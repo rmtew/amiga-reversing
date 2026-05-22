@@ -5,6 +5,7 @@ from dataclasses import asdict, dataclass
 from enum import StrEnum
 from pathlib import Path
 
+from amiga_reversing.disasm.decision_journal import DECISION_JOURNAL_FILE_NAME
 from amiga_reversing.disasm.manual_actions import MANUAL_ACTION_LOG_FILE_NAME
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT, resolve_project_dir
 from amiga_reversing.disasm.target_local_state import (
@@ -238,12 +239,12 @@ def _classify_file(rel_path: str) -> TargetFileInventoryEntry:
             TargetFileAction.PRESERVE,
             "known source/import fact file",
         )
-    if is_target_local and name == MANUAL_ACTION_LOG_FILE_NAME:
+    if is_target_local and name in {MANUAL_ACTION_LOG_FILE_NAME, DECISION_JOURNAL_FILE_NAME}:
         return TargetFileInventoryEntry(
             rel_path,
             TargetFileClass.LOCAL_MANUAL_STATE,
             TargetFileAction.DELETE_ON_CLEAN_RUN,
-            "durable manual state is preserved for continue and reset only in clean-run",
+            "durable manual/journal state is preserved for continue and reset only in clean-run",
         )
     if is_target_local and name in OBSOLETE_UI_STATE_FILE_NAMES:
         return TargetFileInventoryEntry(

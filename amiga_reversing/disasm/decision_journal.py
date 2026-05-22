@@ -22,6 +22,88 @@ def decision_journal_path(target_dir: Path) -> Path:
     return target_dir / DECISION_JOURNAL_FILE_NAME
 
 
+def read_decision_journal(target_dir: Path) -> dict[str, object]:
+    path = decision_journal_path(target_dir)
+    if not path.exists():
+        return _journal_read_result(path, [], [])
+    records: list[dict[str, object]] = []
+    diagnostics: list[dict[str, object]] = []
+    try:
+        with open(path, encoding="utf-8") as handle:
+            for line_number, line in enumerate(handle, start=1):
+                stripped = line.strip()
+                if not stripped:
+                    continue
+                try:
+                    raw = json.loads(stripped)
+                except json.JSONDecodeError as exc:
+                    diagnostics.append(
+                        {
+                            "line": line_number,
+                            "field": "$",
+                            "message": f"malformed JSONL: {exc.msg}",
+                        }
+                    )
+                    continue
+                if not isinstance(raw, Mapping):
+                    diagnostics.append(
+                        {
+                            "line": line_number,
+                            "field": "$",
+                            "message": "record must be an object",
+                        }
+                    )
+                    continue
+                records.append(dict(raw))
+    except OSError as exc:
+        diagnostics.append({"field": "$", "message": str(exc)})
+    return _journal_read_result(path, records, diagnostics)
+
+
+def append_decision_record(target_dir: Path, record: Mapping[str, object]) -> dict[str, object]:
+    path = decision_journal_path(target_dir)
+    current = read_decision_journal(target_dir)
+    if not current["valid"]:
+        return {
+            "status": "rejected",
+            "path": str(path),
+            "record": dict(record),
+            "validation": current["validation"],
+            "diagnostics": current["diagnostics"],
+        }
+    records = [dict(existing) for existing in _record_sequence(current.get("records"))]
+    next_records = [*records, dict(record)]
+    validation = validate_decision_journal_records(next_records)
+    if not validation["valid"]:
+        return {
+            "status": "rejected",
+            "path": str(path),
+            "record": dict(record),
+            "validation": validation,
+            "diagnostics": validation["diagnostics"],
+        }
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "a", encoding="utf-8") as handle:
+        handle.write(json.dumps(dict(record), sort_keys=True, separators=(",", ":")) + "\n")
+    return {
+        "status": "appended",
+        "path": str(path),
+        "record": dict(record),
+        "validation": validation,
+        "head_hash": decision_record_hash(record),
+        "record_count": len(next_records),
+    }
+
+
+def decision_journal_next_prev(records: Sequence[object]) -> str | None:
+    if not records:
+        return None
+    last = records[-1]
+    if not isinstance(last, Mapping):
+        return None
+    return f"sha256:{decision_record_hash(last)}"
+
+
 def decision_packet_reference(packet: Mapping[str, object]) -> dict[str, object]:
     packet_id = _text(packet.get("packet_id"))
     candidate_id = _text(packet.get("candidate_id"))
@@ -105,6 +187,28 @@ def validate_decision_journal_records(records: Sequence[object]) -> dict[str, ob
         "superseded_decision_ids": sorted(superseded_ids),
         "record_count": len(records),
     }
+
+
+def _journal_read_result(
+    path: Path,
+    records: list[dict[str, object]],
+    read_diagnostics: list[dict[str, object]],
+) -> dict[str, object]:
+    validation = validate_decision_journal_records(records)
+    diagnostics = [*read_diagnostics, *validation["diagnostics"]]
+    return {
+        "path": str(path),
+        "valid": not diagnostics,
+        "records": records,
+        "diagnostics": diagnostics,
+        "validation": {**validation, "valid": not diagnostics, "diagnostics": diagnostics},
+    }
+
+
+def _record_sequence(value: object) -> list[dict[str, object]]:
+    if not isinstance(value, Sequence) or isinstance(value, str):
+        return []
+    return [dict(record) for record in value if isinstance(record, Mapping)]
 
 
 def _decision_record_diagnostics(record: Mapping[str, object]) -> list[dict[str, object]]:

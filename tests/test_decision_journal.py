@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from amiga_reversing.disasm import decision_journal
@@ -96,6 +97,98 @@ def test_journal_chain_reports_bad_prev_duplicate_and_forward_supersession() -> 
         "field": "supersedes_decision_id",
         "message": "supersession target must refer to an earlier decision",
     } in validation["diagnostics"]
+
+
+def test_decision_journal_appends_and_reads_jsonl_chain(tmp_path: Path) -> None:
+    target_dir = tmp_path / "targets" / "demo"
+    first = _decision_record("defer_fact", decision_id="decision-1")
+    second = _decision_record(
+        "reject_fact",
+        decision_id="decision-2",
+        prev=f"sha256:{decision_journal.decision_record_hash(first)}",
+    )
+
+    first_append = decision_journal.append_decision_record(target_dir, first)
+    second_append = decision_journal.append_decision_record(target_dir, second)
+    readback = decision_journal.read_decision_journal(target_dir)
+
+    assert first_append["status"] == "appended"
+    assert first_append["record_count"] == 1
+    assert second_append["status"] == "appended"
+    assert second_append["record_count"] == 2
+    assert readback["valid"] is True
+    assert readback["records"] == [first, second]
+    assert readback["validation"]["active_decision_ids"] == ["decision-1", "decision-2"]
+    assert decision_journal.decision_journal_next_prev(readback["records"]) == (
+        f"sha256:{decision_journal.decision_record_hash(second)}"
+    )
+
+
+def test_decision_journal_rejects_invalid_append_without_writing(tmp_path: Path) -> None:
+    target_dir = tmp_path / "targets" / "demo"
+    invalid = _decision_record("accept_fact")
+    del invalid["candidate_id"]
+
+    result = decision_journal.append_decision_record(target_dir, invalid)
+
+    assert result["status"] == "rejected"
+    assert {"index": 0, "field": "candidate_id", "message": "candidate_id must be a non-empty string"} in result[
+        "diagnostics"
+    ]
+    assert not decision_journal.decision_journal_path(target_dir).exists()
+
+
+def test_decision_journal_reports_malformed_jsonl_and_blocks_append(tmp_path: Path) -> None:
+    target_dir = tmp_path / "targets" / "demo"
+    path = decision_journal.decision_journal_path(target_dir)
+    target_dir.mkdir(parents=True)
+    path.write_text('{"schema":"evidence-decision/v1"}\nnot json\n', encoding="utf-8")
+
+    readback = decision_journal.read_decision_journal(target_dir)
+    append = decision_journal.append_decision_record(target_dir, _decision_record("defer_fact"))
+
+    assert readback["valid"] is False
+    assert {"line": 2, "field": "$", "message": "malformed JSONL: Expecting value"} in readback["diagnostics"]
+    assert append["status"] == "rejected"
+    assert path.read_text(encoding="utf-8") == '{"schema":"evidence-decision/v1"}\nnot json\n'
+
+
+def test_decision_journal_read_detects_bad_prev_duplicate_and_supersession(tmp_path: Path) -> None:
+    target_dir = tmp_path / "targets" / "demo"
+    path = decision_journal.decision_journal_path(target_dir)
+    first = _decision_record("defer_fact", decision_id="decision-1")
+    duplicate = _decision_record("reject_fact", decision_id="decision-1", prev="sha256:bad")
+    supersede = _supersede_record(
+        "decision-3",
+        supersedes="decision-missing",
+        replacement=None,
+        prev=f"sha256:{decision_journal.decision_record_hash(duplicate)}",
+    )
+    target_dir.mkdir(parents=True)
+    path.write_text(
+        "".join(
+            f"{json.dumps(record, sort_keys=True, separators=(',', ':'))}\n"
+            for record in [first, duplicate, supersede]
+        ),
+        encoding="utf-8",
+    )
+
+    readback = decision_journal.read_decision_journal(target_dir)
+
+    assert readback["valid"] is False
+    assert {"index": 1, "field": "decision_id", "message": "duplicate decision id: decision-1"} in readback[
+        "diagnostics"
+    ]
+    assert {
+        "index": 1,
+        "field": "prev",
+        "message": f"prev must be 'sha256:{decision_journal.decision_record_hash(first)}' for append-only chain",
+    } in readback["diagnostics"]
+    assert {
+        "index": 2,
+        "field": "supersedes_decision_id",
+        "message": "supersession target must refer to an earlier decision",
+    } in readback["diagnostics"]
 
 
 def test_decision_journal_validation_is_side_effect_free(tmp_path: Path) -> None:

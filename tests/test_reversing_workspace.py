@@ -75,9 +75,11 @@ def test_hygiene_classifies_obsolete_ui_and_manual_state(tmp_path: Path) -> None
     _touch(target_dir / "target_ui_edits.json")
     _touch(target_dir / "ui_preferences.json")
     _touch(target_dir / "manual_actions.jsonl")
+    _touch(target_dir / "decision_journal.jsonl")
 
     report = inspect_target_hygiene("demo", project_root=tmp_path)
 
+    assert _entry(report, "decision_journal.jsonl")["class"] == TargetFileClass.LOCAL_MANUAL_STATE
     assert _entry(report, "target_ui_edits.json")["class"] == TargetFileClass.OBSOLETE_UI_STATE
     assert _entry(report, "ui_preferences.json")["action"] == TargetFileAction.DELETE_ON_CLEAN_RUN
     assert _entry(report, "manual_actions.jsonl")["class"] == TargetFileClass.LOCAL_MANUAL_STATE
@@ -147,10 +149,17 @@ def test_clean_run_deletes_obsolete_ui_and_manual_state(tmp_path: Path) -> None:
     _touch(target_dir / "target_ui_edits.json")
     _touch(target_dir / "ui_preferences.json")
     _touch(target_dir / "manual_actions.jsonl")
+    _touch(target_dir / "decision_journal.jsonl")
 
     report = clean_run_target_workspace("demo", project_root=tmp_path)
 
-    assert sorted(report.deleted_files) == ["manual_actions.jsonl", "target_ui_edits.json", "ui_preferences.json"]
+    assert sorted(report.deleted_files) == [
+        "decision_journal.jsonl",
+        "manual_actions.jsonl",
+        "target_ui_edits.json",
+        "ui_preferences.json",
+    ]
+    assert not (target_dir / "decision_journal.jsonl").exists()
     assert not (target_dir / "target_ui_edits.json").exists()
     assert not (target_dir / "ui_preferences.json").exists()
     assert not (target_dir / "manual_actions.jsonl").exists()

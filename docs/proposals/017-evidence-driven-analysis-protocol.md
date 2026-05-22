@@ -1036,3 +1036,9 @@ repeatable work to `docs\issues\017-*`.
   not read/write target journal files, replay decisions into C facts, replace
   the Manual Action Log, expose `rsset.binding.bind`, render source, or change
   planner/default report behavior.
+- 017-034 added explicit per-target `decision_journal.jsonl` read/append IO for
+  that schema. Reads report malformed JSONL and whole-chain diagnostics; appends
+  are accepted only after existing records and the appended chain validate.
+  `decision_journal.jsonl` is target-local manual/journal state for hygiene and
+  clean-run classification, but no default report, planner, command, render,
+  verifier, C fact replay, or Manual Action Log path consumes it.
