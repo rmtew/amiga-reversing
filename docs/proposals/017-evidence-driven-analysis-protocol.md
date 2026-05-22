@@ -156,7 +156,8 @@ The next Decision Journal path is intentionally sequential:
 1. `017-034` makes `decision_journal.jsonl` durable and append-only, but still
    inactive.
 2. `017-035` exposes explicit validation/inspection for humans, LLMs, CLI, and
-   API callers.
+   API callers through `reversing_loop decision-journal-report`, including an
+   in-memory `--dry-run-record` validation path that never appends or replays.
 3. `017-036` replays accepted/deferred/rejected/superseded decisions into an
    in-memory projection without mutating C facts.
 4. `017-037` lets the selected RSSET packet/gate consult that replayed
