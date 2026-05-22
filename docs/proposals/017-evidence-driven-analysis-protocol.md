@@ -143,6 +143,37 @@ behavior, C/Python ownership, platform-specific hooks, fact/state sources,
 reports, commands, render/export, verifier flow, hidden coupling, reuse/replace
 candidates, and the first safe implementation slice.
 
+017-031 completed that inventory and narrows the first v2 slice. Current target
+loading, binary source descriptors, C decode/facts-v2/render primitives,
+platform facts, source export, and round-trip reproduction are reuse surfaces.
+The rewrite boundary is the workflow/state model: Manual Action Log semantics,
+report-private candidate schemas, report/catalog gate duplication,
+Python-owned evidence truth, scattered verifier result shapes, and implicit
+derived-state ownership must not become the protocol interface.
+
+Current ownership is split:
+
+- Python owns project path resolution, source descriptors, orchestration,
+  listing cache management, command catalog transport, Manual Action Log
+  append/projection, report formatting, planner ranking, and verifier
+  composition.
+- C owns binary/object decode, facts-v2 propagation, `M68kFactIR`, render
+  lookup, source analysis/render planning, emitted listing/source JSON, and
+  source profile counters.
+- Platform knowledge is split between C platform facts, target metadata, and
+  agent-facing Markdown knowledge files.
+
+The first implementation slice should define a shared read-only evidence packet,
+selected identity, blockers/conflicts, and decision result schema. Use
+Pandora RSSET `rsset-raw-a6:022E` at `s0:000006E4` as the primary packet because
+it has high source-quality payoff and remains safely blocked by missing accepted
+app-base evidence. Use current A5 and immediate-reference reports as regression
+packet shapes: A5 proves accepted/already-recorded and verifier-rich states;
+source-offset immediate `s0:000009A6` proves a blocked policy/verifier state.
+Do not add mutation until the RSSET packet can prove selected-use path/lifetime
+scope, selected A6 base identity, explicit empty conflicts, render effect, and
+exact round-trip gates.
+
 Research issues must not start the v2 implementation. They may add narrow
 inspection tooling only when needed to answer the research, and must not change
 default behavior, refactor opportunistically, or delete old code before a
