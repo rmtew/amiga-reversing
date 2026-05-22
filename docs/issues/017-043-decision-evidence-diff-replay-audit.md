@@ -1,6 +1,6 @@
 # 017-043: Decision Evidence Diff/Replay Audit
 
-Status: completed
+Status: active
 
 ## Proposal Context
 
@@ -79,8 +79,8 @@ handling, and report/API surface.
 
 - [x] Decision Journal report and projection checked.
 - [x] Active/superseded/rejected/deferred semantics checked.
-- [x] Semantic reload and current fact comparison path checked.
-- [x] Existing verifier layer outputs checked.
+- [ ] Semantic reload and current fact comparison path checked.
+- [ ] Existing verifier layer outputs checked.
 - [x] No-append/no-mutation behavior checked.
 - [x] Pandora RSSET audit proof planned.
 
@@ -88,7 +88,7 @@ handling, and report/API surface.
 
 - [x] Second pass checked trace blocks against named files/functions.
 - [x] Cross-references searched for missed journal/report hooks.
-- [x] Audit output reviewed for report-private model drift.
+- [ ] Audit output reviewed for report-private model drift.
 - [x] Proposal updated with model corrections or deferred follow-ups.
 
 ## Required Sign-Off
@@ -100,7 +100,10 @@ handling, and report/API surface.
 - [x] Audit packet shape tested.
 - [x] No append/no mutation behavior tested.
 - [x] Pandora proof recorded.
-- [x] Post-commit review found no unresolved worthwhile findings.
+- [ ] Audit source-effect and verifier layers are based on real replay/current
+  semantic state, not fact-type inference.
+- [ ] Public CLI/API/report audit output is tested at the supported boundary.
+- [ ] Post-commit review found no unresolved worthwhile findings.
 
 ## Completion Evidence
 
@@ -117,3 +120,15 @@ handling, and report/API surface.
   append to the Decision Journal or Manual Action Log.
 - Verification: focused 369-test pytest run and changed-file `ruff check` both
   passed.
+
+## Reopen Findings
+
+- The audit currently infers `source_effective` for active
+  `fact_type=rsset_app_base` accepts. Completion requires replay/current
+  semantic-state evidence and real verifier-layer status, or explicit blockers
+  when those checks are unavailable.
+- The audit must not report generated-source or exact-round-trip layers as
+  available/passed/required from inference alone. It must distinguish proven,
+  unavailable, blocked, and not-applicable states.
+- The supported `decision-journal-report`/API boundary must be tested, not only
+  private audit helper behavior.

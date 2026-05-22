@@ -1,6 +1,6 @@
 # 017-041: Source-Offset Immediate Provenance Packet
 
-Status: completed
+Status: active
 
 ## Proposal Context
 
@@ -109,9 +109,13 @@ deleted or deferred.
 - [x] Old code deleted, or deferred deletion blocker recorded.
 - [x] Evidence packet shape tested.
 - [x] Decision/replay behavior tested where applicable.
+- [ ] Every read-only packet command gate is explicitly non-mutating and cannot
+  be consumed as mutation authority.
+- [ ] Public CLI/API/report access to the packet is wired and tested, or the
+  issue records why private helper access is intentionally sufficient.
 - [x] Mutation stayed blocked unless every safe gate was proven.
 - [x] Pandora proof recorded.
-- [x] Post-commit review found no unresolved worthwhile findings.
+- [ ] Post-commit review found no unresolved worthwhile findings.
 
 ## Completion Evidence
 
@@ -128,3 +132,12 @@ deleted or deferred.
 - Focused tests: `test_source_offset_immediate_packet_keeps_same_literal_report_only`.
 - Verification: `uv run python -m pytest tests\test_reversing_loop.py tests\test_decision_journal.py tests\test_validate_017_issues.py -q`
   passed with 369 tests; changed-file `ruff check` passed.
+
+## Reopen Findings
+
+- `command_gate.enabled` and `command_gate.safe_to_mutate` must remain false for
+  this read-only packet even if a lower-level command exists. A consumer must not
+  be able to treat packet metadata as mutation authority.
+- The packet query must be reachable through a supported CLI/API/report path and
+  tested at that boundary, or the issue must explicitly justify private helper
+  access as the completed surface.

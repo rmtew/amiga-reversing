@@ -1118,3 +1118,10 @@ repeatable work to `docs\issues\017-*`.
   proposal reference, required sections, completed checkboxes, completion
   evidence, and superseded replacement/reason without rewriting files; 017-039
   and 017-040 are passing examples.
+- Post-commit review reopened `017-041` through `017-044` for completion
+  corrections. Read-only packets must not expose nested command gates that can
+  be mistaken for mutation authority; packet access must be tested at the
+  supported CLI/API/report boundary or explicitly justified as private helper
+  scope; Decision Journal audit source-effect and verifier layers must come from
+  real replay/current semantic state or report explicit blockers, not fact-type
+  inference.

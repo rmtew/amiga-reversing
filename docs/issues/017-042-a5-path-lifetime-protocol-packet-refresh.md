@@ -1,6 +1,6 @@
 # 017-042: A5 Path/Lifetime Protocol Packet Refresh
 
-Status: completed
+Status: active
 
 ## Proposal Context
 
@@ -108,9 +108,13 @@ code, and out-of-scope sweep work.
 - [x] Old code deleted, or deferred deletion blocker recorded.
 - [x] Evidence packet shape tested.
 - [x] Decision/replay behavior tested where applicable.
+- [ ] Every read-only packet command gate is explicitly non-mutating and cannot
+  be consumed as mutation authority.
+- [ ] Public CLI/API/report access to the packet is wired and tested, or the
+  issue records why private helper access is intentionally sufficient.
 - [x] Mutation stayed blocked unless every safe gate was proven.
 - [x] Pandora proof recorded.
-- [x] Post-commit review found no unresolved worthwhile findings.
+- [ ] Post-commit review found no unresolved worthwhile findings.
 
 ## Completion Evidence
 
@@ -130,3 +134,12 @@ code, and out-of-scope sweep work.
   `test_a5_hardware_lifetime_report_marks_unknown_without_custom_definition`.
 - Verification: focused 369-test pytest run and changed-file `ruff check` both
   passed.
+
+## Reopen Findings
+
+- `command_gate.enabled` and `command_gate.safe_to_mutate` must remain false for
+  this read-only packet even if a lower-level command exists. A consumer must not
+  be able to treat packet metadata as mutation authority.
+- The packet query must be reachable through a supported CLI/API/report path and
+  tested at that boundary, or the issue must explicitly justify private helper
+  access as the completed surface.

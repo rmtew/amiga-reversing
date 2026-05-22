@@ -1,6 +1,6 @@
 # 017-044: Orphan/Code-Island Evidence Packet
 
-Status: completed
+Status: active
 
 ## Proposal Context
 
@@ -101,8 +101,10 @@ and selected Pandora proof.
 - [x] Evidence packet shape tested.
 - [x] Decision/replay behavior tested where applicable.
 - [x] Mutation stayed blocked unless every safe gate was proven.
+- [ ] Public CLI/API/report access to the packet is wired and tested, or the
+  issue records why private helper access is intentionally sufficient.
 - [x] Pandora proof recorded.
-- [x] Post-commit review found no unresolved worthwhile findings.
+- [ ] Post-commit review found no unresolved worthwhile findings.
 
 ## Completion Evidence
 
@@ -120,3 +122,9 @@ and selected Pandora proof.
   `test_orphan_code_island_packet_exposes_range_evidence_and_blockers`.
 - Verification: focused 369-test pytest run and changed-file `ruff check` both
   passed.
+
+## Reopen Findings
+
+- The packet query must be reachable through a supported CLI/API/report path and
+  tested at that boundary, or the issue must explicitly justify private helper
+  access as the completed surface.
