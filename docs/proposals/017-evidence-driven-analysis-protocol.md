@@ -1010,3 +1010,11 @@ repeatable work to `docs\issues\017-*`.
   expanded v2 blockers, explicit conflict state, render intent, and a blocked
   `rsset.binding.bind` gate while leaving default reports, planner behavior,
   Decision Journal writes, rendering, and mutation unchanged.
+- 017-033 added an inactive Decision Journal schema skeleton in Python:
+  `evidence-decision/v1` records for `accept_fact`, `defer_fact`,
+  `reject_fact`, and `supersede_decision`; packet references from the 017-032
+  RSSET shape; append-only `prev` hash validation; actor, selected identity,
+  evidence-ref, conflict, and supersession diagnostics. It intentionally does
+  not read/write target journal files, replay decisions into C facts, replace
+  the Manual Action Log, expose `rsset.binding.bind`, render source, or change
+  planner/default report behavior.
