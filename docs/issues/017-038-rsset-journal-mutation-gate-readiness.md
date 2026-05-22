@@ -1,6 +1,6 @@
 # 017-038: RSSET Journal Mutation Gate Readiness
 
-Status: active
+Status: completed
 
 ## Proposal Context
 
@@ -116,30 +116,73 @@ ownership, and any legacy path that would be replaced by `017-039`.
 
 ## Research Coverage
 
-- [ ] RSSET journal evidence lane checked.
-- [ ] Command catalog and planner hooks checked.
-- [ ] Existing RSSET bind render support checked.
-- [ ] Generated-source verifier support checked.
-- [ ] Exact round-trip availability path checked.
-- [ ] Legacy/current RSSET bind mutation path identified for later cutover or
+- [x] RSSET journal evidence lane checked.
+- [x] Command catalog and planner hooks checked.
+- [x] Existing RSSET bind render support checked.
+- [x] Generated-source verifier support checked.
+- [x] Exact round-trip availability path checked.
+- [x] Legacy/current RSSET bind mutation path identified for later cutover or
   blocker.
-- [ ] Pandora selected-use expected source effect recorded.
+- [x] Pandora selected-use expected source effect recorded.
 
 ## Research Review
 
-- [ ] Second pass checked trace blocks against named files/functions.
-- [ ] Cross-references searched for missed hooks.
-- [ ] Proposal updated if gate/readiness rules change the protocol.
-- [ ] `017-039` refreshed or marked blocked if readiness is incomplete.
+- [x] Second pass checked trace blocks against named files/functions.
+- [x] Cross-references searched for missed hooks.
+- [x] Proposal updated if gate/readiness rules change the protocol.
+- [x] `017-039` refreshed or marked blocked if readiness is incomplete.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before implementation.
-- [ ] Protocol delta implemented as described, or proposal updated.
-- [ ] Default behavior impact verified.
-- [ ] Old code deleted, or deferred deletion blocker recorded.
-- [ ] Gate/readiness object tested.
-- [ ] `mutation_enabled=false` tested for every path.
-- [ ] Render/verifier readiness tested without changing output.
-- [ ] Pandora proof recorded.
-- [ ] Post-commit review found no unresolved worthwhile findings.
+- [x] Proposal context checked before implementation.
+- [x] Protocol delta implemented as described, or proposal updated.
+- [x] Default behavior impact verified.
+- [x] Old code deleted, or deferred deletion blocker recorded.
+- [x] Gate/readiness object tested.
+- [x] `mutation_enabled=false` tested for every path.
+- [x] Render/verifier readiness tested without changing output.
+- [x] Pandora proof recorded.
+- [x] Post-commit review found no unresolved worthwhile findings.
+
+## Completion Evidence
+
+Trace blocks:
+
+- RSSET journal evidence lane:
+  `amiga_reversing/reversing_loop.py::_rsset_journal_decision_evidence`
+  still owns read-only accepted/deferred/rejected/mismatched journal projection
+  consumption. Journal evidence remains excluded from legacy
+  `accepted_base_evidence_count`.
+- Gate/readiness object:
+  `amiga_reversing/reversing_loop.py::_rsset_journal_mutation_gate` now emits
+  `command_id`, `mutation_enabled=false`, `ready_for_039`, `status`,
+  ordered `satisfied_gates`/`missing_gates`, `journal_evidence`,
+  `render_intent`, `verifier_plan`, and render/verifier readiness.
+- Command catalog/planner:
+  `rsset.binding.bind` remains the existing command id, but 017-038 does not
+  make the planner actionable. Candidate `command_support.bind` and evidence
+  packet `command_gate.enabled` remain blocked/false.
+- Render/verifier support:
+  readiness points at existing
+  `_verify_projected_rsset_binding_rendered_source` and `_verify_round_trip_exact`
+  support without invoking mutation or changing rendered source.
+- Exact round-trip availability:
+  `inspect_rsset_candidates` feeds the gate from the target
+  `reproduction.json` availability path. The Pandora raw subtarget has
+  `reproduction.json` with `status: exact`.
+- Legacy/current mutation path:
+  current `rsset.binding.bind` manual-state mutation and verifier code remains
+  legacy command support for 017-039 cutover; 017-038 deliberately does not
+  delete or enable it.
+- Pandora selected-use effect:
+  selected use remains `rsset-raw-a6:022E` at `s0:000006E4:op1`; later mutation
+  intent is one selected use-site binding rendering `app_022E(a6)` only.
+
+Verification:
+
+- Focused RSSET tests:
+  `uv run python -m pytest tests\test_reversing_loop.py -q -k "rsset_journal_mutation_gate or rsset_candidate_report or rsset_evidence_packet or query_rsset_evidence_packet or inspect_rsset_candidates"`
+  passed with `23 passed, 315 deselected`.
+- Lint:
+  `uv run ruff check amiga_reversing\reversing_loop.py tests\test_reversing_loop.py`
+  passed.

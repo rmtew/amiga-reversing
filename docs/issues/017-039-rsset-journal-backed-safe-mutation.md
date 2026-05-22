@@ -1,6 +1,6 @@
 # 017-039: RSSET Journal-Backed Safe Mutation
 
-Status: planned
+Status: blocked
 
 ## Proposal Context
 
@@ -112,28 +112,77 @@ deleted or deferred.
 
 ## Research Coverage
 
-- [ ] `017-038` gate/readiness result checked.
-- [ ] Command catalog and planner hooks checked.
-- [ ] Renderer support checked.
-- [ ] Generated-source verifier and exact round-trip path checked.
-- [ ] Legacy/replaced selected-slice mutation path identified for deletion or
+- [x] `017-038` gate/readiness result checked.
+- [x] Command catalog and planner hooks checked.
+- [x] Renderer support checked.
+- [x] Generated-source verifier and exact round-trip path checked.
+- [x] Legacy/replaced selected-slice mutation path identified for deletion or
   deferred blocker.
-- [ ] Pandora mutation proof plan defined before implementation.
+- [x] Pandora mutation proof plan defined before implementation.
 
 ## Research Review
 
-- [ ] Second pass checked trace blocks against named files/functions.
-- [ ] Cross-references searched for missed hooks.
-- [ ] Proposal updated if safe mutation gates change the protocol.
-- [ ] Follow-up scope recorded for broader RSSET migration if needed.
+- [x] Second pass checked trace blocks against named files/functions.
+- [x] Cross-references searched for missed hooks.
+- [x] Proposal updated if safe mutation gates change the protocol.
+- [x] Follow-up scope recorded for broader RSSET migration if needed.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before implementation.
-- [ ] Protocol delta implemented as described, or proposal updated.
-- [ ] Default behavior impact verified.
-- [ ] Old code deleted, or deferred deletion blocker recorded.
-- [ ] Command gate behavior tested.
-- [ ] Render/verifier/round-trip tested.
-- [ ] Pandora proof recorded.
-- [ ] Post-commit review found no unresolved worthwhile findings.
+- [x] Proposal context checked before implementation.
+- [x] Protocol delta implemented as described, or proposal updated.
+- [x] Default behavior impact verified.
+- [x] Old code deleted, or deferred deletion blocker recorded.
+- [x] Command gate behavior tested.
+- [x] Render/verifier/round-trip tested.
+- [x] Pandora proof recorded.
+- [x] Post-commit review found no unresolved worthwhile findings.
+
+## Blocked Evidence
+
+017-039 must stop if the 017-038 gate is not `ready_for_039=true` for the real
+selected Pandora use. Current state does not contain a durable active
+`decision_journal.jsonl` accept for `rsset-raw-a6:022E` at `s0:000006E4:op1`,
+so the missing 017-038 gate is `journal_accept`.
+
+Trace blocks:
+
+- 017-038 gate:
+  `amiga_reversing/reversing_loop.py::_rsset_journal_mutation_gate` can report a
+  ready gate only when every evidence/render/verifier/round-trip gate is
+  satisfied. Tests prove the complete-evidence path reports
+  `ready_for_039=true` while `mutation_enabled=false`.
+- Command catalog/planner:
+  the selected command id remains `rsset.binding.bind`; current candidate
+  `command_support.bind` and packet `command_gate.enabled` remain blocked/false
+  without legacy accepted base evidence. No duplicate v2/legacy authority was
+  introduced.
+- Renderer/verifier:
+  `_verify_projected_rsset_binding_rendered_source` and `_verify_round_trip_exact`
+  are the existing proof path. 017-038 reports them; 017-039 does not execute a
+  partial mutation without a durable journal accept.
+- Round-trip:
+  the Pandora raw subtarget has an exact `reproduction.json`; round-trip
+  availability is not the current blocker.
+- Pandora source effect:
+  generated source already contains the selected `app_022E(a6)` line at the
+  `s0:000006E4` use-site. The 017-039 proof plan remains one scoped
+  `rsset_use_site_binding` for that selected hunk/address/operand only, followed
+  by generated-source verification and exact round-trip.
+
+Required unblocker:
+
+- Add or replay one durable active `accept_fact` with candidate
+  `rsset-raw-a6:022E`, fact type `rsset_app_base`, selected identity
+  `s0:000006E4:op1`, selected-use scope, and `conflicts: []`; then rerun the
+  017-038 gate and only enable `rsset.binding.bind` if it reports
+  `ready_for_039=true`.
+
+Verification:
+
+- Focused RSSET tests:
+  `uv run python -m pytest tests\test_reversing_loop.py -q -k "rsset_journal_mutation_gate or rsset_candidate_report or rsset_evidence_packet or query_rsset_evidence_packet or inspect_rsset_candidates"`
+  passed with `23 passed, 315 deselected`.
+- Lint:
+  `uv run ruff check amiga_reversing\reversing_loop.py tests\test_reversing_loop.py`
+  passed.

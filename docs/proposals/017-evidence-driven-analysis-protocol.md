@@ -1069,3 +1069,12 @@ repeatable work to `docs\issues\017-*`.
 - 017-038 and 017-039 split the risky mutation step. 017-038 owns gate and
   verifier readiness reporting with `mutation_enabled=false`; 017-039 owns any
   actual selected RSSET source mutation and must stop if 017-038 is not ready.
+- 017-038 is implemented as a read-only `journal_mutation_gate` on RSSET
+  candidate reports and selected evidence packets. It reports ordered
+  evidence/render/verifier/round-trip gates, the selected `app_022E(a6)` render
+  intent, generated-source verifier support, and exact round-trip availability
+  while keeping `rsset.binding.bind` blocked and `mutation_enabled=false`.
+- 017-039 is blocked in the current Pandora state because no durable active
+  Decision Journal `accept_fact` exists for `rsset-raw-a6:022E` at
+  `s0:000006E4:op1`. Exact round-trip is available for the raw subtarget, so the
+  current missing gate is `journal_accept`.

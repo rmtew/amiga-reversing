@@ -7516,6 +7516,119 @@ def test_rsset_candidate_report_surfaces_matching_journal_accept_without_enablin
     assert candidate["safe_to_mutate"] is False
 
 
+def test_rsset_journal_mutation_gate_reports_ready_for_039_without_enabling_mutation() -> None:
+    record = _decision_journal_record("accept_fact")
+    report = _pandora_022e_rsset_candidate_report(
+        journal_projection=_decision_projection(record),
+        exact_round_trip_available=True,
+    )
+
+    gate = report["candidates"][0]["journal_mutation_gate"]
+
+    assert gate["command_id"] == "rsset.binding.bind"
+    assert gate["mutation_enabled"] is False
+    assert gate["ready_for_039"] is True
+    assert gate["status"] == "ready_for_mutation_issue"
+    assert gate["missing_gates"] == []
+    assert gate["satisfied_gates"] == [
+        "journal_accept",
+        "candidate_identity",
+        "selected_identity",
+        "fact_type",
+        "selected_use_scope",
+        "empty_conflicts",
+        "field_or_layout_refinement",
+        "render_support",
+        "generated_source_verifier",
+        "exact_round_trip",
+    ]
+    assert gate["render_verifier_readiness"] == "ready"
+    assert gate["render_intent"]["expected_operand"] == "app_022E(a6)"
+    assert gate["verifier_plan"]["generated_source"]["status"] == "ready"
+    assert gate["verifier_plan"]["exact_round_trip"]["status"] == "ready"
+    assert report["candidates"][0]["command_support"]["bind"]["state"] == "blocked"
+    assert report["candidates"][0]["safe_to_mutate"] is False
+
+
+def test_rsset_journal_mutation_gate_blocks_without_journal_accept() -> None:
+    report = _pandora_022e_rsset_candidate_report(exact_round_trip_available=True)
+
+    gate = report["candidates"][0]["journal_mutation_gate"]
+
+    assert gate["mutation_enabled"] is False
+    assert gate["ready_for_039"] is False
+    assert gate["status"] == "blocked"
+    assert "journal_accept" in gate["missing_gates"]
+    assert gate["render_verifier_readiness"] == "not_applicable_yet"
+    assert gate["verifier_plan"]["generated_source"]["status"] == "not_applicable_yet"
+    assert gate["verifier_plan"]["exact_round_trip"]["status"] == "ready"
+
+
+def test_rsset_journal_mutation_gate_blocks_mismatched_journal_identity_and_conflicts() -> None:
+    wrong_identity = _decision_journal_record("accept_fact", decision_id="decision-wrong-identity", addr=0x6E8)
+    non_empty_conflicts = _decision_journal_record("accept_fact", decision_id="decision-conflicts")
+    non_empty_conflicts["conflicts"] = [{"reason": "competing base"}]
+    projection = _decision_projection(wrong_identity)
+    projection["accepted_facts"].append(non_empty_conflicts)
+    report = _pandora_022e_rsset_candidate_report(
+        journal_projection=projection,
+        exact_round_trip_available=True,
+    )
+
+    gate = report["candidates"][0]["journal_mutation_gate"]
+
+    assert gate["mutation_enabled"] is False
+    assert gate["ready_for_039"] is False
+    assert "selected_identity" in gate["missing_gates"]
+    assert "selected_use_scope" in gate["missing_gates"]
+    assert "empty_conflicts" in gate["missing_gates"]
+    assert gate["journal_evidence"]["mismatch_reasons"] == ["non_empty_conflicts", "scope_mismatch", "wrong_selected_identity"]
+
+
+def test_rsset_journal_mutation_gate_blocks_missing_layout_and_round_trip() -> None:
+    row = _pandora_022e_row()
+    row["app_slot_refs"] = []
+    record = _decision_journal_record("accept_fact")
+    report = reversing_loop._listing_rsset_candidate_report(
+        [row],
+        target_id="pandora",
+        journal_projection=_decision_projection(record),
+    )
+
+    gate = report["candidates"][0]["journal_mutation_gate"]
+
+    assert gate["mutation_enabled"] is False
+    assert gate["ready_for_039"] is False
+    assert "field_or_layout_refinement" in gate["missing_gates"]
+    assert "render_support" in gate["missing_gates"]
+    assert "generated_source_verifier" in gate["missing_gates"]
+    assert "exact_round_trip" in gate["missing_gates"]
+    assert gate["render_verifier_readiness"] == "not_applicable_yet"
+    assert gate["verifier_plan"]["exact_round_trip"]["status"] == "blocked"
+
+
+def test_rsset_evidence_packet_includes_journal_mutation_gate() -> None:
+    record = _decision_journal_record("accept_fact")
+    report = _pandora_022e_rsset_candidate_report(
+        journal_projection=_decision_projection(record),
+        exact_round_trip_available=True,
+    )
+
+    packet = reversing_loop._rsset_evidence_packet_from_candidate_report(
+        "pandora",
+        report,
+        candidate_id="rsset-raw-a6:022E",
+        selected_use_id="s0:000006E4:op1",
+    )
+
+    gate = packet["journal_mutation_gate"]
+    assert gate["ready_for_039"] is True
+    assert gate["mutation_enabled"] is False
+    assert packet["evidence_lanes"]["journal_mutation_gate"]["command_id"] == "rsset.binding.bind"
+    assert packet["command_gate"]["enabled"] is False
+    assert packet["decision"]["writes_enabled"] is False
+
+
 def test_rsset_evidence_packet_includes_journal_decision_lane() -> None:
     record = _decision_journal_record("accept_fact")
     report = _pandora_022e_rsset_candidate_report(journal_projection=_decision_projection(record))
@@ -7652,11 +7765,13 @@ def test_query_rsset_evidence_packet_uses_candidate_report_without_exposing_muta
 def _pandora_022e_rsset_candidate_report(
     *,
     journal_projection: dict[str, object] | None = None,
+    exact_round_trip_available: bool = False,
 ) -> dict[str, object]:
     return reversing_loop._listing_rsset_candidate_report(
         [_pandora_022e_row()],
         target_id="pandora",
         journal_projection=journal_projection,
+        exact_round_trip_available=exact_round_trip_available,
     )
 
 

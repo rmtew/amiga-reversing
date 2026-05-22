@@ -492,6 +492,7 @@ def inspect_rsset_candidates(
         target_id=target_id,
         manual_state=manual_state if isinstance(manual_state, Mapping) else None,
         journal_projection=journal_projection if isinstance(journal_projection, Mapping) else None,
+        exact_round_trip_available=(target_dir / "reproduction.json").exists(),
     )
     return report
 
@@ -3622,6 +3623,19 @@ def _rsset_evidence_packet_from_candidate(
             "render_effect": "none",
             "future_render_effect": "selected_operand_only",
         },
+        "journal_mutation_gate": candidate.get("journal_mutation_gate")
+        or _rsset_journal_mutation_gate(
+            target_id=target_id,
+            candidate_id=candidate_id,
+            selected_use=selected_use,
+            layout_context=candidate.get("field_or_app_slot_context")
+            if isinstance(candidate.get("field_or_app_slot_context"), Mapping)
+            else None,
+            journal_decision_evidence=candidate.get("journal_decision_evidence")
+            if isinstance(candidate.get("journal_decision_evidence"), Mapping)
+            else None,
+            exact_round_trip_available=False,
+        ),
         "command_gate": command_gate,
         "decision": {
             "writes_enabled": False,
@@ -3692,6 +3706,7 @@ def _rsset_evidence_packet_lanes(
         "journal_decision_evidence": candidate.get("journal_decision_evidence")
         or evidence_search.get("journal_decision_evidence")
         or _unavailable_rsset_journal_decision_evidence(),
+        "journal_mutation_gate": candidate.get("journal_mutation_gate"),
     }
 
 
@@ -3772,6 +3787,7 @@ def _listing_rsset_candidate_report(
     target_id: str = "",
     manual_state: Mapping[str, object] | None = None,
     journal_projection: Mapping[str, object] | None = None,
+    exact_round_trip_available: bool = False,
 ) -> dict[str, object]:
     mapping_rows = [row for row in rows if isinstance(row, Mapping)]
     uses: list[dict[str, object]] = []
@@ -3796,6 +3812,7 @@ def _listing_rsset_candidate_report(
             target_id=target_id,
             manual_state=manual_state,
             journal_projection=journal_projection,
+            exact_round_trip_available=exact_round_trip_available,
         )
         for (base_register, displacement), group_uses in grouped.items()
     ]
@@ -3881,6 +3898,7 @@ def _rsset_candidate_group_summary(
     target_id: str = "",
     manual_state: Mapping[str, object] | None = None,
     journal_projection: Mapping[str, object] | None = None,
+    exact_round_trip_available: bool = False,
 ) -> dict[str, object]:
     selected_use = _rsset_candidate_selected_use(uses)
     layout_context = _rsset_candidate_layout_context(uses, displacement)
@@ -3898,6 +3916,14 @@ def _rsset_candidate_group_summary(
         uses=uses,
         manual_state=manual_state,
         journal_decision_evidence=journal_decision_evidence,
+    )
+    journal_mutation_gate = _rsset_journal_mutation_gate(
+        target_id=target_id,
+        candidate_id=candidate_id,
+        selected_use=selected_use,
+        layout_context=layout_context,
+        journal_decision_evidence=journal_decision_evidence,
+        exact_round_trip_available=exact_round_trip_available,
     )
     has_base_evidence = bool(evidence_search["accepted_base_evidence"])
     already_recorded = _rsset_candidate_evidence_search_already_recorded(evidence_search)
@@ -3944,6 +3970,7 @@ def _rsset_candidate_group_summary(
         "field_or_app_slot_context": layout_context,
         "evidence_search": evidence_search,
         "journal_decision_evidence": journal_decision_evidence,
+        "journal_mutation_gate": journal_mutation_gate,
         "command_support": {
             "report": {"command_id": "rsset.binding.report", "state": "available"},
             "bind": bind_support,
@@ -4118,6 +4145,214 @@ def _rsset_journal_decision_missing_gates(has_accepted: bool, *, field_available
         gates.append("missing_field_or_layout_refinement")
     gates.extend(["missing_render_gate", "missing_verifier_gate", "mutation_disabled_in_017_037"])
     return gates
+
+
+_RSSET_JOURNAL_MUTATION_GATE_IDS = (
+    "journal_accept",
+    "candidate_identity",
+    "selected_identity",
+    "fact_type",
+    "selected_use_scope",
+    "empty_conflicts",
+    "field_or_layout_refinement",
+    "render_support",
+    "generated_source_verifier",
+    "exact_round_trip",
+)
+
+
+def _rsset_journal_mutation_gate(
+    *,
+    target_id: str,
+    candidate_id: str,
+    selected_use: Mapping[str, object],
+    layout_context: Mapping[str, object] | None,
+    journal_decision_evidence: Mapping[str, object] | None,
+    exact_round_trip_available: bool,
+) -> dict[str, object]:
+    lane = (
+        dict(journal_decision_evidence)
+        if isinstance(journal_decision_evidence, Mapping)
+        else _unavailable_rsset_journal_decision_evidence()
+    )
+    accepted = _mapping_sequence(lane.get("accepted"))
+    accepted_record = accepted[0] if len(accepted) == 1 else None
+    mismatch_reasons = _rsset_journal_gate_mismatch_reasons(lane)
+    gate_state = {
+        "journal_accept": len(accepted) == 1,
+        "candidate_identity": candidate_id == "rsset-raw-a6:022E"
+        and not (accepted_record is None and "wrong_candidate" in mismatch_reasons),
+        "selected_identity": accepted_record is not None
+        or ("wrong_selected_identity" not in mismatch_reasons and len(accepted) == 1),
+        "fact_type": accepted_record is not None or ("wrong_fact_type" not in mismatch_reasons and len(accepted) == 1),
+        "selected_use_scope": accepted_record is not None
+        or (not {"missing_selected_use_scope", "scope_mismatch"} & mismatch_reasons and len(accepted) == 1),
+        "empty_conflicts": accepted_record is not None
+        or ("non_empty_conflicts" not in mismatch_reasons and len(accepted) == 1),
+        "field_or_layout_refinement": layout_context is not None,
+        "exact_round_trip": exact_round_trip_available,
+    }
+    render_readiness = _rsset_journal_render_readiness(
+        target_id=target_id,
+        candidate_id=candidate_id,
+        selected_use=selected_use,
+        layout_context=layout_context,
+        accepted_record=accepted_record,
+    )
+    gate_state["render_support"] = render_readiness["status"] == "ready"
+    gate_state["generated_source_verifier"] = render_readiness["status"] == "ready"
+    satisfied_gates = [gate for gate in _RSSET_JOURNAL_MUTATION_GATE_IDS if gate_state.get(gate) is True]
+    missing_gates = [gate for gate in _RSSET_JOURNAL_MUTATION_GATE_IDS if gate not in satisfied_gates]
+    return {
+        "command_id": "rsset.binding.bind",
+        "mutation_enabled": False,
+        "ready_for_039": not missing_gates,
+        "status": "ready_for_mutation_issue" if not missing_gates else "blocked",
+        "satisfied_gates": satisfied_gates,
+        "missing_gates": missing_gates,
+        "journal_evidence": {
+            "status": lane.get("status", "unavailable"),
+            "accepted_count": len(accepted),
+            "accepted_decision_ids": [
+                record["decision_id"] for record in accepted if isinstance(record.get("decision_id"), str)
+            ],
+            "mismatched_count": lane.get("mismatched_count", 0),
+            "mismatch_reasons": sorted(mismatch_reasons),
+        },
+        "render_intent": render_readiness["render_intent"],
+        "verifier_plan": {
+            "generated_source": render_readiness["generated_source_verifier"],
+            "exact_round_trip": {
+                "status": "ready" if exact_round_trip_available else "blocked",
+                "available": exact_round_trip_available,
+                "verifier": "_verify_round_trip_exact",
+                "gate": "exact_round_trip",
+            },
+        },
+        "render_verifier_readiness": render_readiness["status"],
+    }
+
+
+def _rsset_journal_gate_mismatch_reasons(lane: Mapping[str, object]) -> set[str]:
+    reasons: set[str] = set()
+    for item in _mapping_sequence(lane.get("mismatched")):
+        for reason in _string_sequence(item.get("reason_codes")):
+            reasons.add(reason)
+    return reasons
+
+
+def _rsset_journal_render_readiness(
+    *,
+    target_id: str,
+    candidate_id: str,
+    selected_use: Mapping[str, object],
+    layout_context: Mapping[str, object] | None,
+    accepted_record: Mapping[str, object] | None,
+) -> dict[str, object]:
+    render_intent = _rsset_journal_render_intent(
+        target_id=target_id,
+        candidate_id=candidate_id,
+        selected_use=selected_use,
+        layout_context=layout_context,
+    )
+    if accepted_record is None or layout_context is None:
+        return {
+            "status": "not_applicable_yet",
+            "render_intent": render_intent,
+            "generated_source_verifier": {
+                "status": "not_applicable_yet",
+                "verifier": "_verify_projected_rsset_binding_rendered_source",
+                "gate": "generated_source_verifier",
+                "reason": "requires one exact journal accept and field/layout context",
+            },
+        }
+    blockers = _rsset_journal_render_intent_blockers(render_intent)
+    if blockers:
+        return {
+            "status": "blocked",
+            "render_intent": render_intent,
+            "generated_source_verifier": {
+                "status": "blocked",
+                "verifier": "_verify_projected_rsset_binding_rendered_source",
+                "gate": "generated_source_verifier",
+                "missing": blockers,
+            },
+        }
+    return {
+        "status": "ready",
+        "render_intent": render_intent,
+        "generated_source_verifier": {
+            "status": "ready",
+            "verifier": "_verify_projected_rsset_binding_rendered_source",
+            "gate": "generated_source_verifier",
+            "proves": [
+                "selected operand/use changed as expected",
+                "unrelated RSSET uses did not change",
+                "no unsafe symbolic operand emitted",
+            ],
+        },
+    }
+
+
+def _rsset_journal_render_intent(
+    *,
+    target_id: str,
+    candidate_id: str,
+    selected_use: Mapping[str, object],
+    layout_context: Mapping[str, object] | None,
+) -> dict[str, object]:
+    hunk = _int_or_none(selected_use.get("hunk")) or 0
+    addr = _int_or_none(selected_use.get("addr"))
+    operand_index = _int_or_none(selected_use.get("operand_index"))
+    displacement = _int_or_none(selected_use.get("displacement"))
+    base_register = selected_use.get("base_register")
+    symbol = layout_context.get("symbol") if isinstance(layout_context, Mapping) else None
+    expected_operand = None
+    if isinstance(symbol, str) and symbol and isinstance(base_register, str) and base_register:
+        expected_operand = f"{symbol}({base_register.lower()})"
+    intent: dict[str, object] = {
+        "target_id": target_id,
+        "candidate_id": candidate_id,
+        "effect": "selected_operand_only",
+        "render_effect": "none_in_017_038",
+        "later_mutation_effect": "bind one selected RSSET use-site to the existing app-slot symbol",
+        "selected_identity": {
+            "segment_id": f"s{hunk}",
+            "hunk": hunk,
+        },
+        "expected_operand": expected_operand,
+    }
+    if addr is not None:
+        cast(dict[str, object], intent["selected_identity"])["addr"] = addr
+        cast(dict[str, object], intent["selected_identity"])["address_hex"] = f"{addr:08X}"
+        intent["source_offset"] = addr
+    if operand_index is not None:
+        cast(dict[str, object], intent["selected_identity"])["operand_index"] = operand_index
+    if isinstance(base_register, str):
+        cast(dict[str, object], intent["selected_identity"])["base_register"] = base_register
+    if displacement is not None:
+        cast(dict[str, object], intent["selected_identity"])["displacement"] = displacement
+        cast(dict[str, object], intent["selected_identity"])["displacement_hex"] = f"{displacement:04X}"
+        intent["raw_operand_tokens"] = _rsset_binding_raw_displacement_tokens(
+            {"displacement": displacement, "base_register": base_register}
+        )
+    if isinstance(symbol, str):
+        intent["field_symbol"] = symbol
+    for key in ("section_index", "source_offset", "element_id", "stable_key"):
+        value = selected_use.get(key)
+        if value is not None:
+            intent[key] = value
+    return intent
+
+
+def _rsset_journal_render_intent_blockers(render_intent: Mapping[str, object]) -> list[str]:
+    blockers: list[str] = []
+    if not isinstance(render_intent.get("expected_operand"), str):
+        blockers.append("missing_expected_operand_symbol")
+    identity = render_intent.get("selected_identity")
+    if not isinstance(identity, Mapping) or not all(key in identity for key in ("addr", "operand_index", "base_register", "displacement")):
+        blockers.append("missing_selected_operand_identity")
+    return blockers
 
 
 def _rsset_journal_decision_mismatch(
