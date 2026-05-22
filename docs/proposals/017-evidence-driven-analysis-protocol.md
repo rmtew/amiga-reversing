@@ -159,7 +159,8 @@ The next Decision Journal path is intentionally sequential:
    API callers through `reversing_loop decision-journal-report`, including an
    in-memory `--dry-run-record` validation path that never appends or replays.
 3. `017-036` replays accepted/deferred/rejected/superseded decisions into an
-   in-memory projection without mutating C facts.
+   in-memory projection, surfaced through `decision-journal-report`, without
+   mutating C facts or feeding command gates.
 4. `017-037` lets the selected RSSET packet/gate consult that replayed
    projection as evidence.
 5. `017-038` enables the selected RSSET mutation only if durable evidence,
