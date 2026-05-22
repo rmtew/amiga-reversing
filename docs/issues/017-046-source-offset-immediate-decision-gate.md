@@ -1,6 +1,6 @@
 # 017-046: Source-Offset Immediate Decision Gate
 
-Status: active
+Status: completed
 
 ## Proposal Context
 
@@ -109,31 +109,42 @@ reports, source-offset/runtime-address provenance sources, command catalog,
 Decision Journal append/replay/audit, renderer/verifier gates, exact round-trip,
 and any old code deleted or deferred.
 
+## Completion Evidence
+
+- Added `decision_lane` to `source_offset_immediate_evidence_packet`.
+- Appended durable Pandora `defer_fact`
+  `decision-source-offset-immediate-000009a6-defer-017-046`.
+- Final Pandora packet for
+  `immediate-runtime-ref:s0:000009A6:instruction:664:0:00001080`
+  reports `decision_lane.status=deferred`, `safe_to_mutate=false`, and the
+  original same-literal/source-offset blockers.
+- No mutation was run; same-literal-only evidence remains non-accepting.
+
 ## Research Coverage
 
-- [ ] `017-041` packet output checked.
-- [ ] Existing immediate-reference command support checked.
-- [ ] Durable source-offset/runtime-address provenance sources checked.
-- [ ] Decision Journal append/replay/audit path checked.
-- [ ] Generated-source verifier and negative-safety support checked.
-- [ ] Exact round-trip availability checked.
-- [ ] Default planner behavior checked.
+- [x] `017-041` packet output checked.
+- [x] Existing immediate-reference command support checked.
+- [x] Durable source-offset/runtime-address provenance sources checked.
+- [x] Decision Journal append/replay/audit path checked.
+- [x] Generated-source verifier and negative-safety support checked.
+- [x] Exact round-trip availability checked.
+- [x] Default planner behavior checked.
 
 ## Research Review
 
-- [ ] Second pass checked trace blocks against named files/functions.
-- [ ] Cross-references searched for missed immediate/provenance hooks.
-- [ ] Same-literal-only acceptance risk reviewed.
-- [ ] Proposal updated with model corrections or deferred follow-ups.
+- [x] Second pass checked trace blocks against named files/functions.
+- [x] Cross-references searched for missed immediate/provenance hooks.
+- [x] Same-literal-only acceptance risk reviewed.
+- [x] Proposal updated with model corrections or deferred follow-ups.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before implementation.
-- [ ] Protocol delta implemented as described, or proposal updated.
-- [ ] Default behavior impact verified.
-- [ ] Old code deleted, or deferred deletion blocker recorded.
-- [ ] Decision lane tested.
-- [ ] Audit replay tested.
-- [ ] Mutation stayed blocked unless every safe gate was proven.
-- [ ] Pandora proof recorded.
-- [ ] Post-commit review found no unresolved worthwhile findings.
+- [x] Proposal context checked before implementation.
+- [x] Protocol delta implemented as described, or proposal updated.
+- [x] Default behavior impact verified.
+- [x] Old code deleted, or deferred deletion blocker recorded.
+- [x] Decision lane tested.
+- [x] Audit replay tested.
+- [x] Mutation stayed blocked unless every safe gate was proven.
+- [x] Pandora proof recorded.
+- [x] Post-commit review found no unresolved worthwhile findings.

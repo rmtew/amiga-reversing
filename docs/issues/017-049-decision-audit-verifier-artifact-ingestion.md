@@ -1,6 +1,6 @@
 # 017-049: Decision Audit Verifier Artifact Ingestion
 
-Status: active
+Status: completed
 
 ## Proposal Context
 
@@ -79,30 +79,44 @@ Record trace blocks for current audit output, existing verifier functions,
 artifact/state identity sources, exact round-trip path, no-append/no-mutation
 behavior, and any artifact support deferred.
 
+## Completion Evidence
+
+- Added read-only ingestion of `decision_verifier_artifacts.json` for Decision
+  Journal audit verifier layers.
+- Layers can become `passed` only when artifact decision id, candidate id,
+  selected identity, and `current=true` match the audited record.
+- Missing artifacts keep explicit `generated_source_not_verified`,
+  `negative_safety_not_verified`, and `exact_round_trip_not_verified` blockers.
+- Stale/mismatched artifacts report explicit artifact blockers.
+- Real Pandora RSSET audit remains conservative: semantic reload/current packet
+  match is `passed`; generated-source, negative-safety, and exact round-trip are
+  `not_checked` because no current verifier artifact was present.
+- No mutation or append is performed by audit.
+
 ## Research Coverage
 
-- [ ] `017-043` audit output checked.
-- [ ] Existing generated-source verifier functions checked.
-- [ ] Existing negative-safety verifier support checked.
-- [ ] Exact round-trip verifier path checked.
-- [ ] Artifact/current-state identity sources checked.
-- [ ] No-append/no-mutation behavior checked.
+- [x] `017-043` audit output checked.
+- [x] Existing generated-source verifier functions checked.
+- [x] Existing negative-safety verifier support checked.
+- [x] Exact round-trip verifier path checked.
+- [x] Artifact/current-state identity sources checked.
+- [x] No-append/no-mutation behavior checked.
 
 ## Research Review
 
-- [ ] Second pass checked trace blocks against named files/functions.
-- [ ] Cross-references searched for missed verifier/report hooks.
-- [ ] Historical prose/artifact inference risk reviewed.
-- [ ] Proposal updated with model corrections or deferred follow-ups.
+- [x] Second pass checked trace blocks against named files/functions.
+- [x] Cross-references searched for missed verifier/report hooks.
+- [x] Historical prose/artifact inference risk reviewed.
+- [x] Proposal updated with model corrections or deferred follow-ups.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before implementation.
-- [ ] Protocol delta implemented as described, or proposal updated.
-- [ ] Default behavior impact verified.
-- [ ] Old code deleted, or deferred deletion blocker recorded.
-- [ ] Verifier artifact/rerun behavior tested.
-- [ ] Missing/stale/mismatched blocker behavior tested.
-- [ ] No append/no mutation behavior tested.
-- [ ] Pandora proof recorded.
-- [ ] Post-commit review found no unresolved worthwhile findings.
+- [x] Proposal context checked before implementation.
+- [x] Protocol delta implemented as described, or proposal updated.
+- [x] Default behavior impact verified.
+- [x] Old code deleted, or deferred deletion blocker recorded.
+- [x] Verifier artifact/rerun behavior tested.
+- [x] Missing/stale/mismatched blocker behavior tested.
+- [x] No append/no mutation behavior tested.
+- [x] Pandora proof recorded.
+- [x] Post-commit review found no unresolved worthwhile findings.

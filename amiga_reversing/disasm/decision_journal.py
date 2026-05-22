@@ -205,6 +205,7 @@ def _decision_audit_verifier_layers(record: Mapping[str, object], replay: Mappin
             {"layer": "decision_journal", "status": "passed"},
             {"layer": "semantic_reload", "status": "not_checked"},
             {"layer": "generated_source", "status": "not_checked"},
+            {"layer": "negative_safety", "status": "not_checked"},
             {"layer": "exact_round_trip", "status": "not_checked"},
         ]
     return [{"layer": "decision_journal", "status": "not_applicable"}]

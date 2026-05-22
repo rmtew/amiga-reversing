@@ -154,6 +154,7 @@ _TARGET_LOCAL_EFFECTS: dict[str, tuple[str, str]] = {
 
 _IMMEDIATE_REF_VERIFIER = "immediate_interpreted_ref_state"
 _A5_HARDWARE_REF_VERIFIER = "a5_hardware_ref_state"
+_DECISION_VERIFIER_ARTIFACTS_FILE = "decision_verifier_artifacts.json"
 
 
 def _parse_int_auto(value: str) -> int:
@@ -409,10 +410,12 @@ def inspect_decision_journal(
     dry_run_record = _load_decision_dry_run_record(dry_run_record_path) if dry_run_record_path is not None else None
     report = decision_journal_report(target_dir, dry_run_record=dry_run_record)
     result = {"target_id": target_id, **report}
+    verifier_artifacts = _load_decision_verifier_artifacts(target_dir)
     result = _decision_journal_report_with_current_source_audit(
         target_id,
         result,
         project_root=project_root,
+        verifier_artifacts=verifier_artifacts,
     )
     if dry_run_record_path is not None:
         dry_run = result.get("dry_run_record")
@@ -433,6 +436,7 @@ def _decision_journal_report_with_current_source_audit(
     report: dict[str, object],
     *,
     project_root: Path = PROJECT_ROOT,
+    verifier_artifacts: Mapping[str, object] | None = None,
 ) -> dict[str, object]:
     audit = report.get("audit")
     records = audit.get("records") if isinstance(audit, Mapping) else None
@@ -452,7 +456,7 @@ def _decision_journal_report_with_current_source_audit(
         ):
             if rsset_report is None:
                 rsset_report = inspect_rsset_candidates(target_id, project_root=project_root)
-            record = _rsset_source_effect_audit_record(record, rsset_report)
+            record = _rsset_source_effect_audit_record(record, rsset_report, verifier_artifacts=verifier_artifacts)
         updated_records.append(record)
     updated_audit = dict(audit)
     updated_audit["records"] = updated_records
@@ -462,6 +466,8 @@ def _decision_journal_report_with_current_source_audit(
 def _rsset_source_effect_audit_record(
     audit_record: dict[str, object],
     rsset_report: Mapping[str, object],
+    *,
+    verifier_artifacts: Mapping[str, object] | None = None,
 ) -> dict[str, object]:
     candidate_id = audit_record.get("candidate_id")
     if not isinstance(candidate_id, str):
@@ -497,21 +503,12 @@ def _rsset_source_effect_audit_record(
         updated["verifier_layers"] = [
             {"layer": "decision_journal", "status": "passed"},
             {"layer": "semantic_reload", "status": "passed", "source": "rsset-candidate-report"},
-            {
-                "layer": "generated_source",
-                "status": "not_checked",
-                "blocker": "current generated-source verifier result was not read",
-            },
-            {
-                "layer": "exact_round_trip",
-                "status": "not_checked",
-                "blocker": "current exact round-trip verifier result was not read",
-            },
+            *_decision_verifier_artifact_layers(audit_record, verifier_artifacts),
         ]
         blockers = [
             blocker for blocker in _string_sequence(audit_record.get("blockers")) if blocker != "source_effect_not_verified"
         ]
-        for blocker in ("generated_source_not_verified", "exact_round_trip_not_verified"):
+        for blocker in _decision_verifier_artifact_blockers(audit_record, verifier_artifacts):
             if blocker not in blockers:
                 blockers.append(blocker)
         updated["blockers"] = blockers
@@ -536,6 +533,262 @@ def _audit_record_with_blocker(record: dict[str, object], blocker: str) -> dict[
     if blocker not in blockers:
         blockers.append(blocker)
     return {**record, "blockers": blockers}
+
+
+def _load_decision_verifier_artifacts(target_dir: Path) -> dict[str, object] | None:
+    path = target_dir / _DECISION_VERIFIER_ARTIFACTS_FILE
+    if not path.exists():
+        return None
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return {"status": "unreadable", "path": str(path), "error": str(exc)}
+    return payload if isinstance(payload, dict) else {"status": "malformed", "path": str(path)}
+
+
+def _decision_verifier_artifact_layers(
+    audit_record: Mapping[str, object],
+    artifacts: Mapping[str, object] | None,
+) -> list[dict[str, object]]:
+    artifact, blocker = _matching_decision_verifier_artifact(audit_record, artifacts)
+    layers: list[dict[str, object]] = []
+    for layer in ("generated_source", "negative_safety", "exact_round_trip"):
+        if artifact is None:
+            layers.append({"layer": layer, "status": "not_checked", "blocker": _decision_verifier_layer_blocker(layer, blocker)})
+            continue
+        layer_result = _decision_verifier_artifact_layer(artifact, layer)
+        status = layer_result.get("status")
+        if status == "passed":
+            passed = {"layer": layer, "status": "passed", "source": _DECISION_VERIFIER_ARTIFACTS_FILE}
+            for key in ("verifier", "artifact_id", "checked_at"):
+                value = layer_result.get(key)
+                if isinstance(value, str):
+                    passed[key] = value
+            layers.append(passed)
+        elif status == "failed":
+            layers.append(
+                {
+                    "layer": layer,
+                    "status": "failed",
+                    "source": _DECISION_VERIFIER_ARTIFACTS_FILE,
+                    "blocker": f"{layer}_failed",
+                }
+            )
+        else:
+            layers.append(
+                {
+                    "layer": layer,
+                    "status": "not_checked",
+                    "source": _DECISION_VERIFIER_ARTIFACTS_FILE,
+                    "blocker": f"{layer}_not_verified",
+                }
+            )
+    return layers
+
+
+def _decision_verifier_artifact_blockers(
+    audit_record: Mapping[str, object],
+    artifacts: Mapping[str, object] | None,
+) -> list[str]:
+    artifact, blocker = _matching_decision_verifier_artifact(audit_record, artifacts)
+    if artifact is None:
+        if blocker in {"verifier_artifact_stale", "verifier_artifact_mismatch", "verifier_artifact_malformed"}:
+            return [blocker]
+        return ["generated_source_not_verified", "negative_safety_not_verified", "exact_round_trip_not_verified"]
+    blockers: list[str] = []
+    for layer in ("generated_source", "negative_safety", "exact_round_trip"):
+        status = _decision_verifier_artifact_layer(artifact, layer).get("status")
+        if status == "failed":
+            blockers.append(f"{layer}_failed")
+        elif status != "passed":
+            blockers.append(f"{layer}_not_verified")
+    return blockers
+
+
+def _matching_decision_verifier_artifact(
+    audit_record: Mapping[str, object],
+    artifacts: Mapping[str, object] | None,
+) -> tuple[Mapping[str, object] | None, str]:
+    if artifacts is None:
+        return None, "verifier_artifact_missing"
+    if artifacts.get("status") in {"unreadable", "malformed"}:
+        return None, "verifier_artifact_malformed"
+    entries = artifacts.get("artifacts", artifacts.get("records"))
+    if isinstance(entries, Mapping):
+        entries = [entries]
+    if isinstance(entries, str) or not isinstance(entries, Sequence):
+        return None, "verifier_artifact_missing"
+    related = False
+    for raw_entry in entries:
+        if not isinstance(raw_entry, Mapping):
+            continue
+        if raw_entry.get("decision_id") == audit_record.get("decision_id") or raw_entry.get("candidate_id") == audit_record.get("candidate_id"):
+            related = True
+        if raw_entry.get("decision_id") != audit_record.get("decision_id"):
+            continue
+        if raw_entry.get("candidate_id") != audit_record.get("candidate_id"):
+            continue
+        if not _decision_verifier_selected_identity_matches(raw_entry.get("selected_identity"), audit_record.get("selected_identity")):
+            return None, "verifier_artifact_mismatch"
+        if raw_entry.get("current") is not True:
+            return None, "verifier_artifact_stale"
+        return raw_entry, "matched"
+    return None, "verifier_artifact_mismatch" if related else "verifier_artifact_missing"
+
+
+def _decision_verifier_selected_identity_matches(left: object, right: object) -> bool:
+    if not isinstance(left, Mapping) or not isinstance(right, Mapping):
+        return False
+    return all(left.get(key) == right.get(key) for key in ("target_id", "segment_id", "hunk", "addr", "operand_index"))
+
+
+def _decision_verifier_artifact_layer(artifact: Mapping[str, object], layer: str) -> Mapping[str, object]:
+    layers = artifact.get("layers")
+    if isinstance(layers, Mapping):
+        result = layers.get(layer)
+        return result if isinstance(result, Mapping) else {}
+    for raw_layer in _mapping_sequence(layers):
+        if raw_layer.get("layer") == layer:
+            return raw_layer
+    return {}
+
+
+def _decision_verifier_layer_blocker(layer: str, artifact_blocker: str) -> str:
+    if artifact_blocker in {"verifier_artifact_stale", "verifier_artifact_mismatch", "verifier_artifact_malformed"}:
+        return artifact_blocker
+    return f"{layer}_not_verified"
+
+
+def _decision_journal_projection_for_target(
+    target_id: str,
+    *,
+    project_root: Path,
+) -> Mapping[str, object] | None:
+    try:
+        target_dir = resolve_project_dir(target_id, project_root=project_root)
+    except Exception:
+        return None
+    report = decision_journal_report(target_dir)
+    projection = report.get("projection") if isinstance(report, Mapping) else None
+    return projection if isinstance(projection, Mapping) else None
+
+
+def _packet_decision_lane(
+    *,
+    target_id: str,
+    candidate_id: str,
+    selected_identity: Mapping[str, object],
+    journal_projection: Mapping[str, object] | None,
+    required_fact_type: str | None = None,
+) -> dict[str, object]:
+    if not isinstance(journal_projection, Mapping):
+        return _unavailable_packet_decision_lane(["missing_decision_journal_projection"])
+    if journal_projection.get("valid") is not True:
+        return _unavailable_packet_decision_lane(
+            ["invalid_decision_journal_projection"],
+            diagnostics=journal_projection.get("diagnostics"),
+        )
+    accepted: list[dict[str, object]] = []
+    deferred: list[dict[str, object]] = []
+    rejected: list[dict[str, object]] = []
+    mismatched: list[dict[str, object]] = []
+    for bucket_name, output in (
+        ("accepted_facts", accepted),
+        ("deferred_facts", deferred),
+        ("rejected_facts", rejected),
+    ):
+        for record in _mapping_sequence(journal_projection.get(bucket_name)):
+            reasons = _packet_decision_mismatch_reasons(
+                record,
+                target_id=target_id,
+                candidate_id=candidate_id,
+                selected_identity=selected_identity,
+                required_fact_type=required_fact_type if bucket_name == "accepted_facts" else None,
+            )
+            if not reasons:
+                output.append(dict(record))
+            elif _packet_decision_is_relevant(record, target_id=target_id, candidate_id=candidate_id, selected_identity=selected_identity):
+                mismatched.append(
+                    {
+                        "decision_id": record.get("decision_id"),
+                        "candidate_id": record.get("candidate_id"),
+                        "action": record.get("action"),
+                        "mismatch_reasons": reasons,
+                    }
+                )
+    status = "accepted" if accepted else "rejected" if rejected else "deferred" if deferred else "blocked" if mismatched else "unavailable"
+    missing_gates = [] if accepted else ["missing_active_accepted_decision"]
+    return {
+        "status": status,
+        "accepted_count": len(accepted),
+        "accepted": accepted,
+        "deferred_count": len(deferred),
+        "deferred": deferred,
+        "rejected_count": len(rejected),
+        "rejected": rejected,
+        "mismatched_count": len(mismatched),
+        "mismatched": mismatched,
+        "missing_gates": missing_gates,
+        "mutation_enabled": False,
+    }
+
+
+def _unavailable_packet_decision_lane(blockers: Sequence[str], diagnostics: object = None) -> dict[str, object]:
+    return {
+        "status": "unavailable",
+        "accepted_count": 0,
+        "accepted": [],
+        "deferred_count": 0,
+        "deferred": [],
+        "rejected_count": 0,
+        "rejected": [],
+        "mismatched_count": 0,
+        "mismatched": [],
+        "missing_gates": list(blockers),
+        "mutation_enabled": False,
+        "diagnostics": _mapping_sequence(diagnostics),
+    }
+
+
+def _packet_decision_mismatch_reasons(
+    record: Mapping[str, object],
+    *,
+    target_id: str,
+    candidate_id: str,
+    selected_identity: Mapping[str, object],
+    required_fact_type: str | None,
+) -> list[str]:
+    reasons: list[str] = []
+    if record.get("candidate_id") != candidate_id:
+        reasons.append("wrong_candidate")
+    if not _packet_selected_identity_matches(record.get("selected_identity"), selected_identity, target_id=target_id):
+        reasons.append("wrong_selected_identity")
+    if required_fact_type is not None and record.get("fact_type") != required_fact_type:
+        reasons.append("wrong_fact_type")
+    return reasons
+
+
+def _packet_decision_is_relevant(
+    record: Mapping[str, object],
+    *,
+    target_id: str,
+    candidate_id: str,
+    selected_identity: Mapping[str, object],
+) -> bool:
+    if record.get("candidate_id") == candidate_id:
+        return True
+    return _packet_selected_identity_matches(record.get("selected_identity"), selected_identity, target_id=target_id)
+
+
+def _packet_selected_identity_matches(left: object, right: Mapping[str, object], *, target_id: str) -> bool:
+    if not isinstance(left, Mapping):
+        return False
+    if left.get("target_id") != target_id:
+        return False
+    for key in ("segment_id", "hunk", "addr", "operand_index"):
+        if key in right and left.get(key) != right.get(key):
+            return False
+    return True
 
 
 def inspect_callback_slots(
@@ -707,6 +960,7 @@ def query_source_offset_immediate_packet(
         target_id,
         [candidate for candidate in candidates if isinstance(candidate, Mapping)],
         candidate_id=candidate_id,
+        journal_projection=_decision_journal_projection_for_target(target_id, project_root=project_root),
     )
 
 
@@ -729,6 +983,7 @@ def query_a5_path_lifetime_packet(
         target_id,
         lifetime_report,
         selected_use_id=selected_use_id,
+        journal_projection=_decision_journal_projection_for_target(target_id, project_root=project_root),
     )
 
 
@@ -750,6 +1005,7 @@ def query_orphan_code_island_packet(
         target_id,
         [candidate for candidate in candidates if isinstance(candidate, Mapping)],
         candidate_id=candidate_id,
+        journal_projection=_decision_journal_projection_for_target(target_id, project_root=project_root),
     )
 
 
@@ -2314,10 +2570,11 @@ def _source_offset_immediate_packet_from_candidates(
     candidates: Sequence[Mapping[str, object]],
     *,
     candidate_id: str,
+    journal_projection: Mapping[str, object] | None = None,
 ) -> dict[str, object]:
     for candidate in candidates:
         if candidate.get("candidate_id") == candidate_id:
-            return _source_offset_immediate_packet_from_candidate(target_id, candidate)
+            return _source_offset_immediate_packet_from_candidate(target_id, candidate, journal_projection=journal_projection)
     return {
         "packet_kind": "source_offset_immediate_evidence_packet",
         "schema_version": 1,
@@ -2332,6 +2589,8 @@ def _source_offset_immediate_packet_from_candidates(
 def _source_offset_immediate_packet_from_candidate(
     target_id: str,
     candidate: Mapping[str, object],
+    *,
+    journal_projection: Mapping[str, object] | None = None,
 ) -> dict[str, object]:
     instruction = candidate.get("instruction_context")
     instruction = instruction if isinstance(instruction, Mapping) else {}
@@ -2391,6 +2650,13 @@ def _source_offset_immediate_packet_from_candidate(
             "available_actions": ["accept_fact", "defer_fact", "reject_fact"],
             "state": "read_only_metadata",
         },
+        "decision_lane": _packet_decision_lane(
+            target_id=target_id,
+            candidate_id=candidate_id,
+            selected_identity=identity,
+            journal_projection=journal_projection,
+            required_fact_type="source_offset_immediate",
+        ),
         "safe_to_mutate": False,
         "mutation_policy": "read_only",
     }
@@ -2851,6 +3117,7 @@ def _a5_path_lifetime_packet_from_report(
     lifetime_report: Mapping[str, object],
     *,
     selected_use_id: str,
+    journal_projection: Mapping[str, object] | None = None,
 ) -> dict[str, object]:
     cfg_report = lifetime_report.get("cfg_path_lifetime_report")
     uses = cfg_report.get("uses") if isinstance(cfg_report, Mapping) else None
@@ -2867,7 +3134,7 @@ def _a5_path_lifetime_packet_from_report(
             "safe_to_mutate": False,
             "mutation_policy": "read_only",
         }
-    return _a5_path_lifetime_packet_from_use(target_id, selected)
+    return _a5_path_lifetime_packet_from_use(target_id, selected, journal_projection=journal_projection)
 
 
 def _a5_path_lifetime_packet_selected_use(
@@ -2888,8 +3155,11 @@ def _a5_path_lifetime_packet_selected_use(
 def _a5_path_lifetime_packet_from_use(
     target_id: str,
     use: Mapping[str, object],
+    *,
+    journal_projection: Mapping[str, object] | None = None,
 ) -> dict[str, object]:
     identity = _a5_path_lifetime_selected_identity(target_id, use)
+    candidate_id = str(use.get("source_evidence_id") or identity.get("selected_use_id") or "")
     blockers = _a5_path_lifetime_packet_blockers(use)
     command_backed = _a5_hardware_candidate_is_command_backed(use)
     existing_manual = use.get("existing_manual_state")
@@ -2902,6 +3172,7 @@ def _a5_path_lifetime_packet_from_use(
         "schema_version": 1,
         "packet_id": f"a5-path-lifetime-packet:{identity.get('selected_use_id', 'unknown')}",
         "target_id": target_id,
+        "candidate_id": candidate_id,
         "candidate_family": "a5_hardware_base",
         "status": status,
         "selected_identity": identity,
@@ -2954,6 +3225,13 @@ def _a5_path_lifetime_packet_from_use(
             "available_actions": ["accept_fact", "defer_fact", "reject_fact"],
             "state": "read_only_metadata",
         },
+        "decision_lane": _packet_decision_lane(
+            target_id=target_id,
+            candidate_id=candidate_id,
+            selected_identity=identity,
+            journal_projection=journal_projection,
+            required_fact_type="a5_path_lifetime",
+        ),
         "safe_to_mutate": False,
         "mutation_policy": "read_only",
     }
@@ -6286,10 +6564,11 @@ def _orphan_code_island_packet_from_candidates(
     candidates: Sequence[Mapping[str, object]],
     *,
     candidate_id: str,
+    journal_projection: Mapping[str, object] | None = None,
 ) -> dict[str, object]:
     for candidate in candidates:
         if candidate.get("candidate_id") == candidate_id or candidate.get("durable_id") == candidate_id:
-            return _orphan_code_island_packet_from_candidate(target_id, candidate)
+            return _orphan_code_island_packet_from_candidate(target_id, candidate, journal_projection=journal_projection)
     return {
         "packet_kind": "orphan_code_island_evidence_packet",
         "schema_version": 1,
@@ -6304,6 +6583,8 @@ def _orphan_code_island_packet_from_candidates(
 def _orphan_code_island_packet_from_candidate(
     target_id: str,
     candidate: Mapping[str, object],
+    *,
+    journal_projection: Mapping[str, object] | None = None,
 ) -> dict[str, object]:
     locator = candidate.get("locator")
     locator = locator if isinstance(locator, Mapping) else {}
@@ -6313,6 +6594,16 @@ def _orphan_code_island_packet_from_candidate(
     status = "action_ready" if candidate.get("actionable") is True and not blockers else "blocked"
     candidate_id = str(candidate.get("candidate_id") or candidate.get("durable_id") or "")
     candidate_family = "ambiguous_data_range" if candidate.get("kind") == "data_symbol_name" else "orphan_code_island"
+    selected_range = {
+        "target_id": target_id,
+        "hunk": locator.get("section_index"),
+        "segment_id": f"s{locator.get('section_index') or 0}",
+        "start": locator.get("start_offset"),
+        "end": locator.get("end_offset"),
+        "current_classification": candidate.get("data_class") or candidate.get("review_item_kind") or candidate.get("kind"),
+        "durable_id": candidate.get("durable_id"),
+    }
+    selected_identity = _orphan_code_island_selected_identity(selected_range)
     return {
         "packet_kind": "orphan_code_island_evidence_packet",
         "schema_version": 1,
@@ -6321,15 +6612,8 @@ def _orphan_code_island_packet_from_candidate(
         "candidate_id": candidate_id,
         "candidate_family": candidate_family,
         "status": status,
-        "selected_range": {
-            "target_id": target_id,
-            "hunk": locator.get("section_index"),
-            "segment_id": f"s{locator.get('section_index') or 0}",
-            "start": locator.get("start_offset"),
-            "end": locator.get("end_offset"),
-            "current_classification": candidate.get("data_class") or candidate.get("review_item_kind") or candidate.get("kind"),
-            "durable_id": candidate.get("durable_id"),
-        },
+        "selected_range": selected_range,
+        "selected_identity": selected_identity,
         "evidence_lanes": {
             "direct_xrefs": candidate.get("xref_summary", []),
             "potential_incoming_control_flow": {
@@ -6355,6 +6639,13 @@ def _orphan_code_island_packet_from_candidate(
             "available_actions": ["accept_fact", "defer_fact", "reject_fact"],
             "state": "read_only_metadata",
         },
+        "decision_lane": _packet_decision_lane(
+            target_id=target_id,
+            candidate_id=candidate_id,
+            selected_identity=selected_identity,
+            journal_projection=journal_projection,
+            required_fact_type=candidate_family,
+        ),
         "safe_next_actions": _orphan_code_island_safe_actions(candidate, blockers),
         "safe_to_mutate": False,
         "mutation_policy": "read_only",
@@ -6375,6 +6666,19 @@ def _orphan_code_island_packet_blockers(candidate: Mapping[str, object]) -> list
         blockers.append("missing_manual_seed_verifier")
     blockers.append("missing_exact_round_trip_gate")
     return sorted(set(blockers))
+
+
+def _orphan_code_island_selected_identity(selected_range: Mapping[str, object]) -> dict[str, object]:
+    hunk = _int_or_none(selected_range.get("hunk")) or 0
+    start = _int_or_none(selected_range.get("start")) or 0
+    return {
+        "target_id": selected_range.get("target_id"),
+        "segment_id": selected_range.get("segment_id") or f"s{hunk}",
+        "hunk": hunk,
+        "addr": start,
+        "operand_index": 0,
+        "selected_use_id": f"s{hunk}:{start:08X}:op0",
+    }
 
 
 def _orphan_code_island_render_effects(candidate: Mapping[str, object]) -> list[dict[str, object]]:

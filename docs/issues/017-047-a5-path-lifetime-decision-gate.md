@@ -1,6 +1,6 @@
 # 017-047: A5 Path/Lifetime Decision Gate
 
-Status: active
+Status: completed
 
 ## Proposal Context
 
@@ -97,31 +97,42 @@ C path/lifetime facts, command catalog, Decision Journal append/replay/audit,
 renderer/verifier gates, exact round-trip, and any old code deleted or
 deferred.
 
+## Completion Evidence
+
+- Added `decision_lane` to `a5_path_lifetime_evidence_packet`.
+- Appended durable Pandora `defer_fact`
+  `decision-a5-path-lifetime-0000045c-defer-017-047`.
+- Final Pandora packet for `s0:0000045C:op0` reports
+  `decision_lane.status=deferred`, `safe_to_mutate=false`, and existing manual
+  state with `already_recorded_in_manual_state`/`missing_command_candidate`
+  blockers.
+- No mutation was run; listing-state-only A5 evidence remains non-accepting.
+
 ## Research Coverage
 
-- [ ] `017-042` packet output checked.
-- [ ] Existing A5 command support checked.
-- [ ] Durable A5 path/lifetime provenance sources checked.
-- [ ] Decision Journal append/replay/audit path checked.
-- [ ] Generated-source verifier and negative-safety support checked.
-- [ ] Exact round-trip availability checked.
-- [ ] Default planner behavior checked.
+- [x] `017-042` packet output checked.
+- [x] Existing A5 command support checked.
+- [x] Durable A5 path/lifetime provenance sources checked.
+- [x] Decision Journal append/replay/audit path checked.
+- [x] Generated-source verifier and negative-safety support checked.
+- [x] Exact round-trip availability checked.
+- [x] Default planner behavior checked.
 
 ## Research Review
 
-- [ ] Second pass checked trace blocks against named files/functions.
-- [ ] Cross-references searched for missed A5/provenance hooks.
-- [ ] Listing-state-only acceptance risk reviewed.
-- [ ] Proposal updated with model corrections or deferred follow-ups.
+- [x] Second pass checked trace blocks against named files/functions.
+- [x] Cross-references searched for missed A5/provenance hooks.
+- [x] Listing-state-only acceptance risk reviewed.
+- [x] Proposal updated with model corrections or deferred follow-ups.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before implementation.
-- [ ] Protocol delta implemented as described, or proposal updated.
-- [ ] Default behavior impact verified.
-- [ ] Old code deleted, or deferred deletion blocker recorded.
-- [ ] Decision lane tested.
-- [ ] Audit replay tested.
-- [ ] Mutation stayed blocked unless every safe gate was proven.
-- [ ] Pandora proof recorded.
-- [ ] Post-commit review found no unresolved worthwhile findings.
+- [x] Proposal context checked before implementation.
+- [x] Protocol delta implemented as described, or proposal updated.
+- [x] Default behavior impact verified.
+- [x] Old code deleted, or deferred deletion blocker recorded.
+- [x] Decision lane tested.
+- [x] Audit replay tested.
+- [x] Mutation stayed blocked unless every safe gate was proven.
+- [x] Pandora proof recorded.
+- [x] Post-commit review found no unresolved worthwhile findings.

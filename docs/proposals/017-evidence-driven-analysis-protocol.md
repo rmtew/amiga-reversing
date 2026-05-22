@@ -1136,17 +1136,21 @@ repeatable work to `docs\issues\017-*`.
   existing manual binding state. Generated-source and exact-round-trip audit
   layers remain `not_checked` with explicit blockers unless current verifier
   results are read or rerun.
-- `017-046` is the next active source-offset immediate continuation. It starts
-  from the `017-041` read-only packet for Pandora `s0:000009A6` and must record
-  an accepted, deferred, or rejected Decision Journal outcome before any mutation
-  is considered. Same-literal-only evidence remains insufficient; mutation may
-  proceed only with scoped command support, generated-source verifier, negative
-  safety, exact round-trip, and audit layers backed by current verifier results.
-- The current parallel worker lot is `017-046` through `017-049`:
-  source-offset immediate decision gate, A5 path/lifetime decision gate,
-  orphan/code-island decision lane, and Decision Journal audit verifier artifact
-  ingestion. `017-046`, `017-047`, and `017-048` can proceed independently as
-  selected-packet decision lanes. `017-049` can proceed in parallel, but any
-  mutation issue that wants audit verifier layers marked passed must either
-  depend on `017-049` or implement equivalent current verifier-result evidence
-  in its own slice.
+- 017-046 added a Decision Journal lane to the source-offset immediate packet
+  and recorded Pandora `s0:000009A6:op0` as durable `defer_fact`
+  `decision-source-offset-immediate-000009a6-defer-017-046`. Same-literal
+  source-offset evidence remains non-accepting and non-mutating.
+- 017-047 added a Decision Journal lane to the A5 path/lifetime packet and
+  recorded Pandora `s0:0000045C:op0` as durable `defer_fact`
+  `decision-a5-path-lifetime-0000045c-defer-017-047`. Existing manual A5 state
+  is reported, but no fresh mutation is authorized.
+- 017-048 added a Decision Journal lane to orphan/code-island and ambiguous
+  data-range packets and recorded Pandora string range `s0:000010F3-$00001113`
+  as durable `defer_fact`
+  `decision-orphan-code-island-000010f3-defer-017-048`.
+- 017-049 added read-only Decision Journal verifier artifact ingestion from
+  `decision_verifier_artifacts.json`. Generated-source, negative-safety, and
+  exact-round-trip layers can be marked `passed` only when artifact decision id,
+  candidate id, selected identity, and freshness match. Missing/stale/mismatched
+  artifacts remain explicit blockers; the real Pandora RSSET audit currently
+  keeps those verifier layers `not_checked` because no current artifact exists.

@@ -186,6 +186,39 @@ def test_orphan_code_island_packet_exposes_range_evidence_and_blockers() -> None
     assert packet["safe_to_mutate"] is False
 
 
+def test_orphan_code_island_packet_surfaces_deferred_decision_lane() -> None:
+    candidate = {
+        "candidate_id": "data-class-symbol:s0:000010F3:data:0:000010F3:string_000210F3",
+        "kind": "data_symbol_name",
+        "durable_id": "data_class:h0:000010F3",
+        "locator": {"section_index": 0, "start_offset": 0x10F3, "end_offset": 0x1113},
+        "data_class": "string",
+        "evidence": {"source": "listing", "evidence_kind": "data_class_row", "data_class": "string"},
+        "suggested_action_kinds": ["data_symbol.rename"],
+        "default_verifier": "projected_data_symbol_name",
+        "actionable": True,
+    }
+    record = _decision_journal_record(
+        "defer_fact",
+        decision_id="decision-orphan-defer",
+        candidate_id="data-class-symbol:s0:000010F3:data:0:000010F3:string_000210F3",
+        addr=0x10F3,
+        operand_index=0,
+    )
+
+    packet = reversing_loop._orphan_code_island_packet_from_candidates(
+        "pandora",
+        [candidate],
+        candidate_id="data-class-symbol:s0:000010F3:data:0:000010F3:string_000210F3",
+        journal_projection=_decision_projection(record),
+    )
+
+    assert packet["selected_identity"]["selected_use_id"] == "s0:000010F3:op0"
+    assert packet["decision_lane"]["status"] == "deferred"
+    assert packet["decision_lane"]["deferred"][0]["decision_id"] == "decision-orphan-defer"
+    assert packet["safe_to_mutate"] is False
+
+
 def test_query_orphan_code_island_packet_uses_inspect_listing_surface(monkeypatch: pytest.MonkeyPatch) -> None:
     candidate = {
         "candidate_id": "data-class-symbol:s0:000010F3:data:0:000010F3:string_000210F3",
@@ -413,6 +446,7 @@ def test_decision_journal_report_includes_diff_replay_audit(tmp_path: Path) -> N
         "decision_journal",
         "semantic_reload",
         "generated_source",
+        "negative_safety",
         "exact_round_trip",
     ]
     assert audit["blockers"] == ["source_effect_not_verified"]
@@ -469,15 +503,110 @@ def test_inspect_decision_journal_verifies_rsset_source_effect_from_current_repo
         {
             "layer": "generated_source",
             "status": "not_checked",
-            "blocker": "current generated-source verifier result was not read",
+            "blocker": "generated_source_not_verified",
+        },
+        {
+            "layer": "negative_safety",
+            "status": "not_checked",
+            "blocker": "negative_safety_not_verified",
         },
         {
             "layer": "exact_round_trip",
             "status": "not_checked",
-            "blocker": "current exact round-trip verifier result was not read",
+            "blocker": "exact_round_trip_not_verified",
         },
     ]
-    assert audit["blockers"] == ["generated_source_not_verified", "exact_round_trip_not_verified"]
+    assert audit["blockers"] == [
+        "generated_source_not_verified",
+        "negative_safety_not_verified",
+        "exact_round_trip_not_verified",
+    ]
+
+
+def test_inspect_decision_journal_reads_current_verifier_artifact(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    target_dir = _target(tmp_path)
+    record = _decision_journal_record("accept_fact", decision_id="decision-accept")
+    decision_journal.append_decision_record(target_dir, record)
+    (target_dir / "decision_verifier_artifacts.json").write_text(
+        json.dumps(
+            {
+                "schema": "decision-verifier-artifacts/v1",
+                "artifacts": [
+                    {
+                        "artifact_id": "artifact-1",
+                        "decision_id": "decision-accept",
+                        "candidate_id": "rsset-raw-a6:022E",
+                        "selected_identity": record["selected_identity"],
+                        "current": True,
+                        "layers": {
+                            "generated_source": {"status": "passed", "verifier": "rsset_binding_state"},
+                            "negative_safety": {"status": "passed", "verifier": "no_extra_mutation"},
+                            "exact_round_trip": {"status": "passed", "verifier": "reproduction.json"},
+                        },
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(reversing_loop, "resolve_project_dir", lambda target_id, project_root: target_dir)
+    monkeypatch.setattr(
+        reversing_loop,
+        "inspect_rsset_candidates",
+        lambda target_id, project_root: _rsset_current_report_for_decision("decision-accept"),
+    )
+
+    report = reversing_loop.inspect_decision_journal("demo", project_root=tmp_path)
+    audit = report["audit"]["records"][0]
+
+    assert {layer["layer"]: layer["status"] for layer in audit["verifier_layers"]} == {
+        "decision_journal": "passed",
+        "semantic_reload": "passed",
+        "generated_source": "passed",
+        "negative_safety": "passed",
+        "exact_round_trip": "passed",
+    }
+    assert audit["blockers"] == []
+
+
+def test_inspect_decision_journal_blocks_stale_verifier_artifact(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    target_dir = _target(tmp_path)
+    record = _decision_journal_record("accept_fact", decision_id="decision-accept")
+    decision_journal.append_decision_record(target_dir, record)
+    (target_dir / "decision_verifier_artifacts.json").write_text(
+        json.dumps(
+            {
+                "artifacts": [
+                    {
+                        "decision_id": "decision-accept",
+                        "candidate_id": "rsset-raw-a6:022E",
+                        "selected_identity": {**record["selected_identity"], "addr": 0x700},
+                        "current": True,
+                        "layers": {"generated_source": {"status": "passed"}},
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(reversing_loop, "resolve_project_dir", lambda target_id, project_root: target_dir)
+    monkeypatch.setattr(
+        reversing_loop,
+        "inspect_rsset_candidates",
+        lambda target_id, project_root: _rsset_current_report_for_decision("decision-accept"),
+    )
+
+    report = reversing_loop.inspect_decision_journal("demo", project_root=tmp_path)
+    audit = report["audit"]["records"][0]
+
+    assert "verifier_artifact_mismatch" in audit["blockers"]
+    assert audit["verifier_layers"][2]["blocker"] == "verifier_artifact_mismatch"
 
 
 def test_decision_journal_audit_classifies_superseded_deferred_and_rejected() -> None:
@@ -7447,6 +7576,31 @@ def test_source_offset_immediate_packet_keeps_same_literal_report_only() -> None
     assert packet["safe_to_mutate"] is False
 
 
+def test_source_offset_immediate_packet_surfaces_deferred_decision_lane() -> None:
+    data_row = _listing_row(row_key="data-row", kind="data", start_offset=0x107C, end_offset=0x1082)
+    candidates = reversing_loop._listing_immediate_runtime_reference_report(
+        [_immediate_address_row(value=0x1080), data_row]
+    )
+    record = _decision_journal_record(
+        "defer_fact",
+        decision_id="decision-source-defer",
+        candidate_id="immediate-runtime-ref:code-row:0:00001080",
+        addr=0x20,
+        operand_index=0,
+    )
+
+    packet = reversing_loop._source_offset_immediate_packet_from_candidates(
+        "pandora",
+        candidates,
+        candidate_id="immediate-runtime-ref:code-row:0:00001080",
+        journal_projection=_decision_projection(record),
+    )
+
+    assert packet["decision_lane"]["status"] == "deferred"
+    assert packet["decision_lane"]["deferred"][0]["decision_id"] == "decision-source-defer"
+    assert packet["safe_to_mutate"] is False
+
+
 def test_query_source_offset_immediate_packet_uses_public_report_surface(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -7638,6 +7792,35 @@ def test_a5_path_lifetime_packet_reports_existing_manual_state_without_mutation(
     assert packet["command_gate"]["enabled"] is False
     assert packet["command_gate"]["safe_to_mutate"] is False
     assert packet["command_gate"]["missing_gates"][0] == "packet_read_only_no_writes"
+    assert packet["safe_to_mutate"] is False
+
+
+def test_a5_path_lifetime_packet_surfaces_deferred_decision_lane() -> None:
+    report = reversing_loop._listing_a5_hardware_lifetime_report(
+        [
+            _a5_definition_row(custom=True),
+            _a5_use_row(displacement=0x96),
+        ]
+    )
+    use = report["cfg_path_lifetime_report"]["uses"][0]
+    record = _decision_journal_record(
+        "defer_fact",
+        decision_id="decision-a5-defer",
+        candidate_id=use["source_evidence_id"],
+        addr=0x40,
+        operand_index=0,
+    )
+
+    packet = reversing_loop._a5_path_lifetime_packet_from_report(
+        "pandora",
+        report,
+        selected_use_id="s0:00000040:op0",
+        journal_projection=_decision_projection(record),
+    )
+
+    assert packet["candidate_id"] == use["source_evidence_id"]
+    assert packet["decision_lane"]["status"] == "deferred"
+    assert packet["decision_lane"]["deferred"][0]["decision_id"] == "decision-a5-defer"
     assert packet["safe_to_mutate"] is False
 
 
@@ -13345,6 +13528,28 @@ def _decision_projection(*records: dict[str, object]) -> dict[str, object]:
         chained.append(record)
         prev = f"sha256:{decision_journal.decision_record_hash(record)}"
     return decision_journal.project_decision_journal(chained)
+
+
+def _rsset_current_report_for_decision(decision_id: str) -> dict[str, object]:
+    return {
+        "rsset_candidate_report": {
+            "candidates": [
+                {
+                    "candidate_id": "rsset-raw-a6:022E",
+                    "journal_decision_evidence": {"accepted": [{"decision_id": decision_id}]},
+                    "command_support": {
+                        "bind": {
+                            "state": "already_satisfied",
+                            "existing_manual_state": {
+                                "source_evidence_id": decision_id,
+                                "owner_action_id": "manual-rsset",
+                            },
+                        }
+                    },
+                }
+            ]
+        }
+    }
 
 
 def _accepted_struct_pointer_evidence() -> dict[str, object]:

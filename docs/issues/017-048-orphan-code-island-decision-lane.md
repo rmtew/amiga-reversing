@@ -1,6 +1,6 @@
 # 017-048: Orphan/Code-Island Decision Lane
 
-Status: active
+Status: completed
 
 ## Proposal Context
 
@@ -97,31 +97,42 @@ C range/xref/overlap facts, command catalog, Decision Journal append/replay/audi
 renderer/verifier gates, exact round-trip, and any old code deleted or
 deferred.
 
+## Completion Evidence
+
+- Added `decision_lane` to `orphan_code_island_evidence_packet`.
+- Appended durable Pandora `defer_fact`
+  `decision-orphan-code-island-000010f3-defer-017-048`.
+- Final Pandora packet for
+  `data-class-symbol:s0:000010F3:data:1111:0:000010F3:string_000210F3`
+  reports `decision_lane.status=deferred`, `safe_to_mutate=false`, and
+  `missing_direct_xref_evidence`/`missing_exact_round_trip_gate` blockers.
+- No mutation was run; ambiguous data-range evidence remains non-accepting.
+
 ## Research Coverage
 
-- [ ] `017-044` packet output checked.
-- [ ] Existing orphan/code/data command support checked.
-- [ ] Durable xref/control-flow/overlap/range evidence sources checked.
-- [ ] Decision Journal append/replay/audit path checked.
-- [ ] Generated-source verifier and negative-safety support checked.
-- [ ] Exact round-trip availability checked.
-- [ ] Default auto-analysis behavior checked.
+- [x] `017-044` packet output checked.
+- [x] Existing orphan/code/data command support checked.
+- [x] Durable xref/control-flow/overlap/range evidence sources checked.
+- [x] Decision Journal append/replay/audit path checked.
+- [x] Generated-source verifier and negative-safety support checked.
+- [x] Exact round-trip availability checked.
+- [x] Default auto-analysis behavior checked.
 
 ## Research Review
 
-- [ ] Second pass checked trace blocks against named files/functions.
-- [ ] Cross-references searched for missed range/review hooks.
-- [ ] Hidden speculative acceptance risk reviewed.
-- [ ] Proposal updated with model corrections or deferred follow-ups.
+- [x] Second pass checked trace blocks against named files/functions.
+- [x] Cross-references searched for missed range/review hooks.
+- [x] Hidden speculative acceptance risk reviewed.
+- [x] Proposal updated with model corrections or deferred follow-ups.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before implementation.
-- [ ] Protocol delta implemented as described, or proposal updated.
-- [ ] Default behavior impact verified.
-- [ ] Old code deleted, or deferred deletion blocker recorded.
-- [ ] Decision lane tested.
-- [ ] Audit replay tested.
-- [ ] Mutation stayed blocked unless every safe gate was proven.
-- [ ] Pandora proof recorded.
-- [ ] Post-commit review found no unresolved worthwhile findings.
+- [x] Proposal context checked before implementation.
+- [x] Protocol delta implemented as described, or proposal updated.
+- [x] Default behavior impact verified.
+- [x] Old code deleted, or deferred deletion blocker recorded.
+- [x] Decision lane tested.
+- [x] Audit replay tested.
+- [x] Mutation stayed blocked unless every safe gate was proven.
+- [x] Pandora proof recorded.
+- [x] Post-commit review found no unresolved worthwhile findings.
