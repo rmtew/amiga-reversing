@@ -1,6 +1,6 @@
 # 017-037: RSSET Decision Evidence Flow
 
-Status: active
+Status: completed
 
 ## Proposal Context
 
@@ -114,32 +114,172 @@ Log accepted evidence, and the selected Pandora candidate.
 
 ## Research Coverage
 
-- [ ] RSSET packet and gate code checked.
-- [ ] Decision replay projection checked.
-- [ ] Command catalog gate logic checked.
-- [ ] Report-private accepted-evidence logic checked for replacement boundary.
-- [ ] Manual Action Log accepted-evidence path checked for replacement
+- [x] RSSET packet and gate code checked.
+- [x] Decision replay projection checked.
+- [x] Command catalog gate logic checked.
+- [x] Report-private accepted-evidence logic checked for replacement boundary.
+- [x] Manual Action Log accepted-evidence path checked for replacement
   boundary.
-- [ ] Journal matching and mismatch reason codes defined.
-- [ ] Pandora selected-use identity and blocker evidence checked.
+- [x] Journal matching and mismatch reason codes defined.
+- [x] Pandora selected-use identity and blocker evidence checked.
 
 ## Research Review
 
-- [ ] Second pass checked trace blocks against named files/functions.
-- [ ] Cross-references searched for missed hooks.
-- [ ] Proposal updated if RSSET evidence flow changes the protocol.
-- [ ] Next issue scope follows from the RSSET decision flow.
+- [x] Second pass checked trace blocks against named files/functions.
+- [x] Cross-references searched for missed hooks.
+- [x] Proposal updated if RSSET evidence flow changes the protocol.
+- [x] Next issue scope follows from the RSSET decision flow.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before implementation.
-- [ ] Protocol delta implemented as described, or proposal updated.
-- [ ] Default behavior impact verified.
-- [ ] Old code deleted, or deferred deletion blocker recorded.
-- [ ] RSSET decision evidence flow tested.
-- [ ] Command gate refuses unsafe mutation unless all gates are present.
-- [ ] Journal accepted/deferred/rejected/mismatched evidence lanes tested.
-- [ ] Render/verifier/round-trip checked where output-affecting, or explicitly
+- [x] Proposal context checked before implementation.
+- [x] Protocol delta implemented as described, or proposal updated.
+- [x] Default behavior impact verified.
+- [x] Old code deleted, or deferred deletion blocker recorded.
+- [x] RSSET decision evidence flow tested.
+- [x] Command gate refuses unsafe mutation unless all gates are present.
+- [x] Journal accepted/deferred/rejected/mismatched evidence lanes tested.
+- [x] Render/verifier/round-trip checked where output-affecting, or explicitly
   not applicable because no output changed.
-- [ ] Pandora proof recorded.
-- [ ] Post-commit review found no unresolved worthwhile findings.
+- [x] Pandora proof recorded.
+- [x] Post-commit review found no unresolved worthwhile findings.
+
+## Implementation Trace
+
+### RSSET Report And Packet Flow
+
+- Files and functions inspected:
+  - `amiga_reversing/reversing_loop.py`
+  - `inspect_rsset_candidates`
+  - `_listing_rsset_candidate_report`
+  - `_rsset_candidate_group_summary`
+  - `_rsset_evidence_packet_from_candidate`
+  - `_rsset_evidence_packet_lanes`
+- Call/data flow summary: `inspect_rsset_candidates` now reads the explicit
+  Decision Journal report for the target, extracts its replay `projection`, and
+  passes that read-only projection into RSSET candidate construction. Each RSSET
+  candidate gets a `journal_decision_evidence` lane, and selected packets expose
+  the same lane under `evidence_lanes`.
+- Gate boundary: `has_base_evidence`, `accepted_base_evidence_count`, candidate
+  status, and `command_support.bind` still use the existing report/private and
+  Manual Action Log accepted-base evidence path. Journal evidence is visible
+  protocol evidence only; it does not make `rsset.binding.bind` available.
+- Searches/commands used:
+  - `Get-Content amiga_reversing\reversing_loop.py | Select-Object -Skip 3740 -First 330`
+  - `Get-Content amiga_reversing\reversing_loop.py | Select-Object -Skip 4060 -First 150`
+- Open questions: none.
+
+### Journal Matching Rules
+
+- Files and functions inspected:
+  - `amiga_reversing/disasm/decision_journal.py`
+  - `project_decision_journal`
+  - `amiga_reversing/reversing_loop.py`
+  - `_rsset_journal_decision_evidence`
+  - `_rsset_journal_decision_mismatch_reasons`
+  - `_rsset_journal_decision_selected_identity_matches`
+  - `_rsset_journal_decision_scope_matches`
+- Matching summary: active journal `accept_fact`, `defer_fact`, and
+  `reject_fact` records are considered only from a valid replay projection.
+  Accepted RSSET evidence requires exact `candidate_id`, selected identity
+  target/segment/address/operand match, optional `selected_use_id` match,
+  `fact_type=rsset_app_base`, `scope.kind=selected_use`, matching
+  hunk/address/operand scope, and explicit empty conflicts.
+- Mismatch reason codes: `wrong_candidate`, `wrong_selected_identity`,
+  `wrong_fact_type`, `missing_selected_use_scope`, `scope_mismatch`, and
+  `non_empty_conflicts`.
+- Invalid journal behavior: invalid or malformed journals surface diagnostics
+  on the lane with `status=unavailable` and no active accepted evidence.
+- Open questions: none.
+
+### Replacement Boundary
+
+- Files and functions inspected:
+  - `inspect_rsset_candidates`
+  - `_rsset_candidate_evidence_search`
+  - `_rsset_candidate_search_sources`
+  - `_rsset_candidate_accepted_base_evidence_ref`
+  - command normalization and RSSET bind command handling in
+    `amiga_reversing/reversing_loop.py`
+- Boundary summary: report-private selected-use evidence and legacy Manual
+  Action Log evidence remain visible and authoritative for current command
+  availability. Decision Journal projection is not passed into C analysis,
+  effective metadata, renderer, verifier, command catalog execution, or planner
+  selection.
+- Deletion decision: no old code deleted; this issue adds a read-only lane and
+  defers cutover/deletion until later verifier/render-gated mutation work.
+- Open questions: none.
+
+## Pandora Proof
+
+Synthetic selected-use proof used the Pandora RSSET packet
+`rsset-raw-a6:022E` at `s0:000006E4:op1` through the same RSSET report and
+packet helpers used by tests. A matching journal accept produced:
+
+```text
+journal_status=accepted
+journal_accepted_count=1
+journal_missing_gates=missing_render_gate,missing_verifier_gate,mutation_disabled_in_017_037
+journal_mutation_enabled=False
+accepted_base_evidence_count=0
+bind_state=blocked
+safe_to_mutate=False
+```
+
+Deferred and rejected matching journal decisions remain negative evidence:
+
+```text
+journal_status=rejected
+deferred_ids=decision-defer
+rejected_ids=decision-reject
+journal_missing_gates=missing_accepted_base_evidence
+```
+
+Mismatch coverage distinguishes wrong candidate, wrong selected identity, wrong
+fact type, missing selected-use scope, scope mismatch, and non-empty conflicts.
+
+Real-target Pandora report remains blocked:
+
+```text
+rsset safe_to_mutate=False
+top_id=rsset-raw-a6:022E
+top_status=blocked
+top_selected_addr=000006E4
+top_missing_gates=missing_accepted_base_evidence
+top_accepted_base_evidence_count=0
+journal_status=unavailable
+journal_accepted_count=0
+journal_mutation_enabled=False
+bind_state=blocked
+```
+
+Real-target dry-run planner remains unchanged:
+
+```text
+dry_action=
+dry_action_result_status=not_run
+dry_planner_status=no_candidate
+dry_next_reason=no locator-backed command candidate
+```
+
+Validation:
+
+```text
+$env:UV_CACHE_DIR='C:\Data\R\git\claude-repos\amiga-reversing2\.uv-cache'; uv run python -m pytest tests\test_reversing_loop.py -q -k "rsset_candidate_report or rsset_evidence_packet or query_rsset_evidence_packet or inspect_rsset_candidates"
+18 passed, 315 deselected
+
+$env:UV_CACHE_DIR='C:\Data\R\git\claude-repos\amiga-reversing2\.uv-cache'; uv run ruff check amiga_reversing\reversing_loop.py tests\test_reversing_loop.py
+All checks passed!
+
+$env:UV_CACHE_DIR='C:\Data\R\git\claude-repos\amiga-reversing2\.uv-cache'; uv run python -m pytest tests\test_reversing_loop.py -q
+333 passed
+```
+
+## Review Notes
+
+- C fact mutation: absent; this issue only reads replay projection and annotates
+  RSSET report/packet output.
+- Render/verifier/round-trip: not applicable because no output-affecting source
+  path changed.
+- Next issue scope: decide the next explicit gate contract for using accepted
+  journal evidence without enabling mutation before render/verifier gates exist.

@@ -470,6 +470,9 @@ def inspect_rsset_candidates(
     project_root: Path = PROJECT_ROOT,
 ) -> dict[str, object]:
     hygiene = inspect_target_hygiene(target_id, mode="inspect", project_root=project_root)
+    target_dir = resolve_project_dir(target_id, project_root=project_root)
+    journal_report = decision_journal_report(target_dir)
+    journal_projection = journal_report.get("projection") if isinstance(journal_report, Mapping) else None
     project_payload = _project_state_payload(target_id, project_root)
     manual_state = project_payload.get("manual_state") if isinstance(project_payload, Mapping) else None
     report: dict[str, object] = {
@@ -486,7 +489,9 @@ def inspect_rsset_candidates(
     rows = _listing_all_rows(target_id)
     report["rsset_candidate_report"] = _listing_rsset_candidate_report(
         rows,
+        target_id=target_id,
         manual_state=manual_state if isinstance(manual_state, Mapping) else None,
+        journal_projection=journal_projection if isinstance(journal_projection, Mapping) else None,
     )
     return report
 
@@ -3684,6 +3689,9 @@ def _rsset_evidence_packet_lanes(
             "rejected": evidence_search.get("rejected_evidence", []),
             "missing_proof": evidence_search.get("missing_proof", []),
         },
+        "journal_decision_evidence": candidate.get("journal_decision_evidence")
+        or evidence_search.get("journal_decision_evidence")
+        or _unavailable_rsset_journal_decision_evidence(),
     }
 
 
@@ -3761,7 +3769,9 @@ def _string_sequence(value: object) -> list[str]:
 def _listing_rsset_candidate_report(
     rows: list[object],
     *,
+    target_id: str = "",
     manual_state: Mapping[str, object] | None = None,
+    journal_projection: Mapping[str, object] | None = None,
 ) -> dict[str, object]:
     mapping_rows = [row for row in rows if isinstance(row, Mapping)]
     uses: list[dict[str, object]] = []
@@ -3783,7 +3793,9 @@ def _listing_rsset_candidate_report(
             base_register=base_register,
             displacement=displacement,
             uses=group_uses,
+            target_id=target_id,
             manual_state=manual_state,
+            journal_projection=journal_projection,
         )
         for (base_register, displacement), group_uses in grouped.items()
     ]
@@ -3866,15 +3878,26 @@ def _rsset_candidate_group_summary(
     base_register: str,
     displacement: int,
     uses: list[dict[str, object]],
+    target_id: str = "",
     manual_state: Mapping[str, object] | None = None,
+    journal_projection: Mapping[str, object] | None = None,
 ) -> dict[str, object]:
     selected_use = _rsset_candidate_selected_use(uses)
     layout_context = _rsset_candidate_layout_context(uses, displacement)
+    candidate_id = f"rsset-raw-a6:{displacement:04X}"
+    journal_decision_evidence = _rsset_journal_decision_evidence(
+        target_id=target_id,
+        candidate_id=candidate_id,
+        selected_use=selected_use,
+        field_available=layout_context is not None,
+        journal_projection=journal_projection,
+    )
     evidence_search = _rsset_candidate_evidence_search(
         selected_use=selected_use,
         layout_context=layout_context,
         uses=uses,
         manual_state=manual_state,
+        journal_decision_evidence=journal_decision_evidence,
     )
     has_base_evidence = bool(evidence_search["accepted_base_evidence"])
     already_recorded = _rsset_candidate_evidence_search_already_recorded(evidence_search)
@@ -3906,7 +3929,7 @@ def _rsset_candidate_group_summary(
         if layout_context is not None and layout_context.get("element_kind") == "app_slot":
             bind_support["catalog_state"] = "report_only_same_displacement_app_slot_not_base_evidence"
     return {
-        "candidate_id": f"rsset-raw-a6:{displacement:04X}",
+        "candidate_id": candidate_id,
         "kind": "rsset_app_slot_candidate",
         "status": status,
         "base_register": base_register,
@@ -3920,6 +3943,7 @@ def _rsset_candidate_group_summary(
         "same_displacement_uses": uses[:10],
         "field_or_app_slot_context": layout_context,
         "evidence_search": evidence_search,
+        "journal_decision_evidence": journal_decision_evidence,
         "command_support": {
             "report": {"command_id": "rsset.binding.report", "state": "available"},
             "bind": bind_support,
@@ -3967,6 +3991,7 @@ def _rsset_candidate_evidence_search(
     layout_context: dict[str, object] | None,
     uses: list[dict[str, object]],
     manual_state: Mapping[str, object] | None,
+    journal_decision_evidence: Mapping[str, object] | None = None,
 ) -> dict[str, object]:
     accepted_refs: list[dict[str, object]] = []
     rejected_refs: list[dict[str, object]] = []
@@ -3992,10 +4017,206 @@ def _rsset_candidate_evidence_search(
         "accepted_base_evidence_count": len(accepted_refs),
         "rejected_evidence": rejected_refs[:8],
         "rejected_evidence_count": len(rejected_refs),
+        "journal_decision_evidence": dict(journal_decision_evidence)
+        if isinstance(journal_decision_evidence, Mapping)
+        else _unavailable_rsset_journal_decision_evidence(),
         "same_displacement_use_count": len(uses),
         "missing_proof": [] if accepted_refs else _rsset_candidate_missing_base_proof(),
         "ownership_requirement": "binding action owner required before generated descendants or cleanup",
     }
+
+
+def _rsset_journal_decision_evidence(
+    *,
+    target_id: str,
+    candidate_id: str,
+    selected_use: Mapping[str, object],
+    field_available: bool,
+    journal_projection: Mapping[str, object] | None,
+) -> dict[str, object]:
+    if not isinstance(journal_projection, Mapping):
+        return _unavailable_rsset_journal_decision_evidence()
+    if journal_projection.get("valid") is not True:
+        return _unavailable_rsset_journal_decision_evidence(diagnostics=journal_projection.get("diagnostics"))
+
+    accepted: list[dict[str, object]] = []
+    deferred: list[dict[str, object]] = []
+    rejected: list[dict[str, object]] = []
+    mismatched: list[dict[str, object]] = []
+    for bucket_name, output in (
+        ("accepted_facts", accepted),
+        ("deferred_facts", deferred),
+        ("rejected_facts", rejected),
+    ):
+        for record in _mapping_sequence(journal_projection.get(bucket_name)):
+            reasons = _rsset_journal_decision_mismatch_reasons(
+                record,
+                target_id=target_id,
+                candidate_id=candidate_id,
+                selected_use=selected_use,
+            )
+            if not reasons:
+                output.append(record)
+            elif _rsset_journal_decision_is_relevant(record, target_id=target_id, candidate_id=candidate_id, selected_use=selected_use):
+                mismatched.append(_rsset_journal_decision_mismatch(record, reasons))
+
+    missing_gates = _rsset_journal_decision_missing_gates(bool(accepted), field_available=field_available)
+    status = _rsset_journal_decision_status(accepted=accepted, deferred=deferred, rejected=rejected, mismatched=mismatched)
+    return {
+        "status": status,
+        "accepted_count": len(accepted),
+        "accepted": accepted,
+        "deferred_count": len(deferred),
+        "deferred": deferred,
+        "rejected_count": len(rejected),
+        "rejected": rejected,
+        "mismatched_count": len(mismatched),
+        "mismatched": mismatched,
+        "missing_gates": missing_gates,
+        "mutation_enabled": False,
+    }
+
+
+def _unavailable_rsset_journal_decision_evidence(diagnostics: object = None) -> dict[str, object]:
+    return {
+        "status": "unavailable",
+        "accepted_count": 0,
+        "accepted": [],
+        "deferred_count": 0,
+        "deferred": [],
+        "rejected_count": 0,
+        "rejected": [],
+        "mismatched_count": 0,
+        "mismatched": [],
+        "missing_gates": ["missing_accepted_base_evidence"],
+        "mutation_enabled": False,
+        "diagnostics": _mapping_sequence(diagnostics),
+    }
+
+
+def _rsset_journal_decision_status(
+    *,
+    accepted: Sequence[Mapping[str, object]],
+    deferred: Sequence[Mapping[str, object]],
+    rejected: Sequence[Mapping[str, object]],
+    mismatched: Sequence[Mapping[str, object]],
+) -> str:
+    if accepted:
+        return "accepted"
+    if rejected:
+        return "rejected"
+    if deferred or mismatched:
+        return "blocked"
+    return "unavailable"
+
+
+def _rsset_journal_decision_missing_gates(has_accepted: bool, *, field_available: bool) -> list[str]:
+    if not has_accepted:
+        return ["missing_accepted_base_evidence"]
+    gates: list[str] = []
+    if not field_available:
+        gates.append("missing_field_or_layout_refinement")
+    gates.extend(["missing_render_gate", "missing_verifier_gate", "mutation_disabled_in_017_037"])
+    return gates
+
+
+def _rsset_journal_decision_mismatch(
+    record: Mapping[str, object],
+    reasons: Sequence[str],
+) -> dict[str, object]:
+    result = {
+        "decision_id": record.get("decision_id"),
+        "action": record.get("action"),
+        "candidate_id": record.get("candidate_id"),
+        "selected_identity": record.get("selected_identity"),
+        "reason_codes": list(reasons),
+    }
+    return {key: value for key, value in result.items() if value is not None}
+
+
+def _rsset_journal_decision_mismatch_reasons(
+    record: Mapping[str, object],
+    *,
+    target_id: str,
+    candidate_id: str,
+    selected_use: Mapping[str, object],
+) -> list[str]:
+    reasons: list[str] = []
+    if record.get("candidate_id") != candidate_id:
+        reasons.append("wrong_candidate")
+    if not _rsset_journal_decision_selected_identity_matches(
+        record.get("selected_identity"),
+        target_id=target_id,
+        selected_use=selected_use,
+    ):
+        reasons.append("wrong_selected_identity")
+    if record.get("action") == "accept_fact":
+        if record.get("fact_type") != "rsset_app_base":
+            reasons.append("wrong_fact_type")
+        scope = record.get("scope")
+        if not isinstance(scope, Mapping) or scope.get("kind") != "selected_use":
+            reasons.append("missing_selected_use_scope")
+        elif not _rsset_journal_decision_scope_matches(scope, selected_use):
+            reasons.append("scope_mismatch")
+        if record.get("conflicts") != []:
+            reasons.append("non_empty_conflicts")
+    return reasons
+
+
+def _rsset_journal_decision_is_relevant(
+    record: Mapping[str, object],
+    *,
+    target_id: str,
+    candidate_id: str,
+    selected_use: Mapping[str, object],
+) -> bool:
+    if record.get("candidate_id") == candidate_id:
+        return True
+    identity = record.get("selected_identity")
+    if not isinstance(identity, Mapping):
+        return False
+    if target_id and identity.get("target_id") != target_id:
+        return False
+    expected_segment = f"s{_int_or_none(selected_use.get('hunk')) or 0}"
+    if identity.get("segment_id") != expected_segment:
+        return False
+    addr = _int_or_none(identity.get("addr"))
+    selected_addr = _int_or_none(selected_use.get("addr"))
+    return addr is not None and selected_addr is not None and abs(addr - selected_addr) <= 8
+
+
+def _rsset_journal_decision_selected_identity_matches(
+    value: object,
+    *,
+    target_id: str,
+    selected_use: Mapping[str, object],
+) -> bool:
+    if not isinstance(value, Mapping):
+        return False
+    hunk = _int_or_none(selected_use.get("hunk")) or 0
+    addr = _int_or_none(selected_use.get("addr"))
+    operand_index = _int_or_none(selected_use.get("operand_index"))
+    expected_selected_use_id = f"s{hunk}:{addr:08X}:op{operand_index}" if addr is not None and operand_index is not None else None
+    if target_id and value.get("target_id") != target_id:
+        return False
+    if value.get("segment_id") != f"s{hunk}":
+        return False
+    if value.get("addr") != addr or value.get("operand_index") != operand_index:
+        return False
+    selected_use_id = value.get("selected_use_id")
+    return not isinstance(selected_use_id, str) or selected_use_id == expected_selected_use_id
+
+
+def _rsset_journal_decision_scope_matches(
+    scope: Mapping[str, object],
+    selected_use: Mapping[str, object],
+) -> bool:
+    selected_hunk = _int_or_none(selected_use.get("hunk")) or 0
+    return (
+        scope.get("hunk") == selected_hunk
+        and scope.get("addr") == selected_use.get("addr")
+        and scope.get("operand_index") == selected_use.get("operand_index")
+    )
 
 
 def _rsset_candidate_evidence_search_already_recorded(evidence_search: Mapping[str, object]) -> bool:

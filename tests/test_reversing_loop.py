@@ -7495,7 +7495,133 @@ def test_rsset_evidence_packet_maps_selected_candidate_to_blocked_v2_shape() -> 
     assert packet["command_gate"]["writes"] == []
     assert packet["command_gate"]["missing_gates"] == packet["blockers"]
     assert packet["evidence_lanes"]["accepted_base_evidence"]["accepted_count"] == 0
+    assert packet["evidence_lanes"]["journal_decision_evidence"]["status"] == "unavailable"
     assert packet["evidence_lanes"]["same_displacement_context"]["use_count"] == 2
+
+
+def test_rsset_candidate_report_surfaces_matching_journal_accept_without_enabling_mutation() -> None:
+    record = _decision_journal_record("accept_fact")
+    report = _pandora_022e_rsset_candidate_report(journal_projection=_decision_projection(record))
+
+    candidate = report["candidates"][0]
+    lane = candidate["journal_decision_evidence"]
+
+    assert lane["status"] == "accepted"
+    assert lane["accepted_count"] == 1
+    assert lane["accepted"][0]["decision_id"] == record["decision_id"]
+    assert lane["mutation_enabled"] is False
+    assert lane["missing_gates"] == ["missing_render_gate", "missing_verifier_gate", "mutation_disabled_in_017_037"]
+    assert candidate["evidence_search"]["accepted_base_evidence_count"] == 0
+    assert candidate["command_support"]["bind"]["state"] == "blocked"
+    assert candidate["safe_to_mutate"] is False
+
+
+def test_rsset_evidence_packet_includes_journal_decision_lane() -> None:
+    record = _decision_journal_record("accept_fact")
+    report = _pandora_022e_rsset_candidate_report(journal_projection=_decision_projection(record))
+
+    packet = reversing_loop._rsset_evidence_packet_from_candidate_report(
+        "pandora",
+        report,
+        candidate_id="rsset-raw-a6:022E",
+        selected_use_id="s0:000006E4:op1",
+    )
+
+    lane = packet["evidence_lanes"]["journal_decision_evidence"]
+    assert lane["status"] == "accepted"
+    assert lane["accepted"][0]["decision_id"] == record["decision_id"]
+    assert packet["command_gate"]["enabled"] is False
+    assert packet["safe_to_mutate"] is False
+
+
+def test_rsset_candidate_report_surfaces_journal_defer_and_reject_as_negative_evidence() -> None:
+    defer = _decision_journal_record("defer_fact", decision_id="decision-defer")
+    reject = _decision_journal_record("reject_fact", decision_id="decision-reject")
+    report = _pandora_022e_rsset_candidate_report(journal_projection=_decision_projection(defer, reject))
+
+    lane = report["candidates"][0]["journal_decision_evidence"]
+
+    assert lane["status"] == "rejected"
+    assert lane["accepted_count"] == 0
+    assert [item["decision_id"] for item in lane["deferred"]] == ["decision-defer"]
+    assert [item["decision_id"] for item in lane["rejected"]] == ["decision-reject"]
+    assert lane["missing_gates"] == ["missing_accepted_base_evidence"]
+    assert lane["mutation_enabled"] is False
+
+
+def test_rsset_candidate_report_reports_journal_mismatch_reason_codes() -> None:
+    wrong_candidate = _decision_journal_record("accept_fact", decision_id="decision-wrong-candidate", candidate_id="other-candidate")
+    wrong_identity = _decision_journal_record("accept_fact", decision_id="decision-wrong-identity", addr=0x6E8)
+    wrong_fact_type = _decision_journal_record("accept_fact", decision_id="decision-wrong-fact-type", fact_type="not_rsset")
+    missing_scope = _decision_journal_record("accept_fact", decision_id="decision-missing-scope", scope={"kind": "function", "hunk": 0, "addr": 0x6E4, "operand_index": 1})
+    scope_mismatch = _decision_journal_record("accept_fact", decision_id="decision-scope-mismatch", scope={"kind": "selected_use", "hunk": 0, "addr": 0x6E8, "operand_index": 1})
+    non_empty_conflicts = _decision_journal_record("accept_fact", decision_id="decision-conflicts")
+    non_empty_conflicts["conflicts"] = [{"reason": "competing base"}]
+    projection = _decision_projection(
+        wrong_candidate,
+        wrong_identity,
+        wrong_fact_type,
+        missing_scope,
+        scope_mismatch,
+    )
+    projection["accepted_facts"].append(non_empty_conflicts)
+
+    report = _pandora_022e_rsset_candidate_report(journal_projection=projection)
+    lane = report["candidates"][0]["journal_decision_evidence"]
+    reasons_by_id = {item["decision_id"]: item["reason_codes"] for item in lane["mismatched"]}
+
+    assert lane["status"] == "blocked"
+    assert lane["accepted_count"] == 0
+    assert reasons_by_id["decision-wrong-candidate"] == ["wrong_candidate"]
+    assert reasons_by_id["decision-wrong-identity"] == ["wrong_selected_identity", "scope_mismatch"]
+    assert reasons_by_id["decision-wrong-fact-type"] == ["wrong_fact_type"]
+    assert reasons_by_id["decision-missing-scope"] == ["missing_selected_use_scope"]
+    assert reasons_by_id["decision-scope-mismatch"] == ["scope_mismatch"]
+    assert reasons_by_id["decision-conflicts"] == ["non_empty_conflicts"]
+
+
+def test_rsset_candidate_report_blocks_journal_evidence_for_invalid_projection() -> None:
+    report = _pandora_022e_rsset_candidate_report(
+        journal_projection={
+            "valid": False,
+            "diagnostics": [{"field": "$", "message": "malformed JSONL: Expecting value"}],
+        }
+    )
+
+    lane = report["candidates"][0]["journal_decision_evidence"]
+
+    assert lane["status"] == "unavailable"
+    assert lane["accepted_count"] == 0
+    assert lane["diagnostics"] == [{"field": "$", "message": "malformed JSONL: Expecting value"}]
+    assert lane["mutation_enabled"] is False
+
+
+def test_inspect_rsset_candidates_reads_journal_projection_without_mutating(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    target_dir = _target(tmp_path, "pandora")
+    record = _decision_journal_record("accept_fact")
+    append = decision_journal.append_decision_record(target_dir, record)
+    before = decision_journal.decision_journal_path(target_dir).read_text(encoding="utf-8")
+    monkeypatch.setattr(
+        reversing_loop,
+        "inspect_target_hygiene",
+        lambda target_id, mode, project_root: SimpleNamespace(to_dict=lambda: {"safe_to_continue": True, "unknown_files": []}),
+    )
+    monkeypatch.setattr(reversing_loop, "_project_state_payload", lambda target_id, project_root: {})
+    monkeypatch.setattr(reversing_loop, "_open_and_wait_listing", lambda target_id, timeout_seconds: {"status": "ready"})
+    monkeypatch.setattr(reversing_loop, "_listing_all_rows", lambda target_id: [_pandora_022e_row()])
+
+    report = reversing_loop.inspect_rsset_candidates("pandora", project_root=tmp_path)
+    lane = report["rsset_candidate_report"]["candidates"][0]["journal_decision_evidence"]
+
+    assert append["status"] == "appended"
+    assert lane["status"] == "accepted"
+    assert lane["accepted"][0]["decision_id"] == record["decision_id"]
+    assert lane["mutation_enabled"] is False
+    assert decision_journal.decision_journal_path(target_dir).read_text(encoding="utf-8") == before
+    assert not (target_dir / "manual_actions.jsonl").exists()
 
 
 def test_query_rsset_evidence_packet_uses_candidate_report_without_exposing_mutation(
@@ -7523,7 +7649,18 @@ def test_query_rsset_evidence_packet_uses_candidate_report_without_exposing_muta
     assert packet["command_gate"]["enabled"] is False
 
 
-def _pandora_022e_rsset_candidate_report() -> dict[str, object]:
+def _pandora_022e_rsset_candidate_report(
+    *,
+    journal_projection: dict[str, object] | None = None,
+) -> dict[str, object]:
+    return reversing_loop._listing_rsset_candidate_report(
+        [_pandora_022e_row()],
+        target_id="pandora",
+        journal_projection=journal_projection,
+    )
+
+
+def _pandora_022e_row() -> dict[str, object]:
     row = _listing_row(
         row_key="pandora-022e",
         text="\tbclr.b #1,app_022E(a6)\n",
@@ -7556,7 +7693,7 @@ def _pandora_022e_rsset_candidate_report() -> dict[str, object]:
             ],
         }
     )
-    return reversing_loop._listing_rsset_candidate_report([row])
+    return row
 
 
 _RSSET_CONFLICTS_MISSING = object()
@@ -12591,7 +12728,14 @@ def _decision_journal_record(
     *,
     decision_id: str = "decision-rsset-022e",
     prev: str | None = None,
+    candidate_id: str = "rsset-raw-a6:022E",
+    target_id: str = "pandora",
+    addr: int = 0x6E4,
+    operand_index: int = 1,
+    fact_type: str = "rsset_app_base",
+    scope: dict[str, object] | None = None,
 ) -> dict[str, object]:
+    packet_id = f"rsset-packet:{candidate_id}:s0:{addr:08X}:op{operand_index}"
     record: dict[str, object] = {
         "schema": decision_journal.DECISION_JOURNAL_SCHEMA,
         "decision_id": decision_id,
@@ -12599,21 +12743,21 @@ def _decision_journal_record(
         "created_at": "2026-05-22T00:00:00+00:00",
         "actor": {"kind": "llm", "name": "codex"},
         "action": action,
-        "packet_id": "rsset-packet:rsset-raw-a6:022E:s0:000006E4:op1",
-        "candidate_id": "rsset-raw-a6:022E",
+        "packet_id": packet_id,
+        "candidate_id": candidate_id,
         "selected_identity": {
-            "target_id": "pandora",
+            "target_id": target_id,
             "segment_id": "s0",
             "hunk": 0,
-            "addr": 0x6E4,
-            "operand_index": 1,
+            "addr": addr,
+            "operand_index": operand_index,
         },
-        "evidence_refs": ["rsset-packet:rsset-raw-a6:022E:s0:000006E4:op1"],
+        "evidence_refs": [packet_id],
         "conflicts": [],
     }
     if action == "accept_fact":
-        record["fact_type"] = "rsset_app_base"
-        record["scope"] = {"kind": "selected_use", "hunk": 0, "addr": 0x6E4, "operand_index": 1}
+        record["fact_type"] = fact_type
+        record["scope"] = scope or {"kind": "selected_use", "hunk": 0, "addr": addr, "operand_index": operand_index}
     elif action == "defer_fact":
         record["defer_reason"] = "missing selected A6 base identity"
     elif action == "reject_fact":
@@ -12621,6 +12765,17 @@ def _decision_journal_record(
     else:
         raise ValueError(action)
     return record
+
+
+def _decision_projection(*records: dict[str, object]) -> dict[str, object]:
+    chained: list[dict[str, object]] = []
+    prev: str | None = None
+    for raw_record in records:
+        record = dict(raw_record)
+        record["prev"] = prev
+        chained.append(record)
+        prev = f"sha256:{decision_journal.decision_record_hash(record)}"
+    return decision_journal.project_decision_journal(chained)
 
 
 def _accepted_struct_pointer_evidence() -> dict[str, object]:

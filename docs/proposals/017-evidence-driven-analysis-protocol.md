@@ -1058,3 +1058,9 @@ repeatable work to `docs\issues\017-*`.
   active facts, replacement ids remain informational, and no C facts, Manual
   Action Log paths, command gates, rendering, or default planner behavior
   consume the projection yet.
+- 017-037 connected RSSET candidate reports and selected evidence packets to
+  that replay projection through a read-only `journal_decision_evidence` lane.
+  Matching `rsset_app_base` accepts, defers, rejects, and mismatches are visible
+  with exact selected-use checks and reason codes, but legacy
+  accepted-base-evidence counts, `rsset.binding.bind`, render/verifier gates,
+  mutation, and planner behavior remain unchanged.
