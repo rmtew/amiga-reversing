@@ -1,5 +1,5 @@
 Status: implemented
-Source proposal: docs/proposals/017-pandora-post-hardening-reversal.md
+Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
 Scope:
 Reconcile Proposal 017 with the current post-hardening Pandora gate state after

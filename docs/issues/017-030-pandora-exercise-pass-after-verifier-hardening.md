@@ -1,6 +1,6 @@
 Status: implemented
 Type: AFK
-Source proposal: docs/proposals/017-pandora-post-hardening-reversal.md
+Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 Promoted from: review request after 017-024/017-025 closeout
 
 Scope:

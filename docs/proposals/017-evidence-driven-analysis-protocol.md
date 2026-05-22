@@ -1,8 +1,13 @@
-# Proposal 017: Pandora Post-Hardening Reversal
+# Proposal 017: Evidence-Driven Analysis Protocol for Pandora Reversal
 
-Status: closed after the final 017-027 rerun. The reopened verifier hardening
-and Pandora exercise pass found no remaining command-backed, verifier-backed,
-exact-round-trip source-converging Pandora mutation.
+Status: active / repurposed for ongoing Pandora analysis-protocol work.
+The 017-027 closeout remains the historical gate snapshot for the previous
+post-hardening pass: at that point no command-backed, verifier-backed,
+exact-round-trip source-converging Pandora mutation remained. The next 017
+phase keeps that knowledge but shifts the forward focus to an Evidence-Driven
+Analysis Protocol: one shared auto-analysis, evidence, decision, command, and
+verifier model for turning report-only reversal facts into verified source
+progress.
 
 Proposal 015 is the historical Pandora trial archive. Proposal 016 hardened the
 loop surfaces found during that trial. This proposal owns the next focused
@@ -17,14 +22,519 @@ Pandora reversing pass using those hardened surfaces.
 
 The sub-target is resettable unless a later issue explicitly promotes target
 state as canonical. Do not treat timestamp-only `.project.json` changes or
-local Manual Action Log churn as meaningful progress.
+local legacy Manual Action Log churn as meaningful progress.
 
 ## Purpose
 
-Continue Pandora source-quality improvement after 016, but avoid another broad
-trial loop. Work from durable evidence, 016 reports, Review Items, and command
-catalogs. Each accepted action must improve the rendered source or fix a
-measured blocker needed for that improvement.
+Build the working specification for evidence-driven auto-analysis and review.
+The protocol must let deterministic analysis, a human, an LLM agent, CLI
+commands, and a future web UI resolve reversal candidates through the same
+model:
+
+1. select one exact use or range;
+2. inspect a structured evidence packet;
+3. see blockers and conflicts explicitly;
+4. accept, defer, or reject a scoped fact;
+5. expose mutation only after the accepted fact satisfies verifier gates;
+6. prove the rendered source changed only inside the selected scope and still
+   round-trips exactly.
+
+Pandora is the proving target. The work is successful only when it moves
+Pandora source toward human-quality reconstructed source or removes a measured
+blocker needed for that progress.
+
+## Forward Direction
+
+017 now owns the next Pandora progress path instead of creating a new proposal.
+The historical 017 pass showed that discovery is no longer the main blocker.
+Reports can find useful candidates, but too many candidates stop as
+report-only because the system lacks one reusable way to carry evidence into a
+scoped, replayable, verifier-backed decision.
+
+The core forward move is the **Evidence-Driven Analysis Protocol**. Evidence
+review is the ambiguity-resolution layer of that protocol, not a separate UI or
+manual-tooling feature. The five concrete candidate families below are starter
+aspects used to prove the protocol against real Pandora work.
+
+## Working Specification
+
+This proposal is the master working specification for this area. New 017 work
+must reference it and either implement its current model or update the proposal
+when implementation evidence proves the model wrong or incomplete.
+
+Rules:
+
+- no issue defines a private model outside this proposal;
+- model changes happen before code, or in the same commit as the code that
+  proves the need;
+- post-implementation observations update this proposal when they affect the
+  protocol;
+- old implementation may be non-conforming while a surface is still
+  transitioning, but new work must not deepen ad hoc paths;
+- legacy state support is temporary transition scaffolding and must be deleted
+  when a surface cuts over to v2.
+
+## Evidence-Driven Analysis Loop
+
+The protocol defines the top-level analysis loop:
+
+```text
+load target
+seed binary, platform, format, and target facts
+run deterministic analysis
+auto-accept decidable facts
+emit review packets for ambiguous facts
+actor resolves one or more packets
+record scoped decisions in the Decision Journal
+replay decisions into the C fact graph
+rerun deterministic propagation to fixed point
+project render effects and verify
+repeat
+```
+
+Auto-analysis may accept only protocol-decidable facts. A fact is decidable
+when it has stable identity or range, deterministic replayable evidence,
+explicit scope, no conflicts, known propagation effect, verifier support,
+defined negative-safety cases, and can be reproduced from current inputs.
+
+When any of those pieces is missing, auto-analysis emits a blocked or
+reviewable evidence packet instead of guessing. The stop condition is fixed
+point under the current binary, target config, platform knowledge, active
+decisions, analysis code, and render policy.
+
+## Clean v2 Stack
+
+Implement the protocol as a clean parallel v2 slice beside the current
+analysis path, then cut over and delete the replaced surface. Side-by-side
+development is scaffolding, not a user-visible compatibility mode.
+
+```text
+binary inputs
+platform knowledge
+target config
+Decision Journal
+    -> C evidence-driven analysis state
+    -> C fact graph
+    -> evidence packets
+    -> command gates
+    -> render effects
+    -> verifier results
+```
+
+Reuse stable fundamentals: binary loading, M68K decode/spec machinery, target
+paths, platform knowledge, round-trip verification, and source-rendering
+primitives where they fit. Current reports are discovery aids and regression
+references only; they are not protocol schemas or durable truth.
+
+Replace workflow/state semantics: Manual Action Log architecture,
+ad hoc accepted/probable statuses, report-specific command gates, scattered
+verifier logic, implicit derived-state ownership, and any C/Python boundary
+that prevents clean fact graph and replay semantics.
+
+Cutover is per surface. Each surface has exactly one default implementation at
+all times. A v2 slice may run internally while old behavior remains default;
+once v2 owns a surface, default behavior switches to v2 and old code is
+deleted.
+
+The concrete rewrite scope is not fixed yet. The next active step is a
+research and architecture inventory issue that maps the current analysis stack
+before any v2 implementation slice starts. That research must identify current
+behavior, C/Python ownership, platform-specific hooks, fact/state sources,
+reports, commands, render/export, verifier flow, hidden coupling, reuse/replace
+candidates, and the first safe implementation slice.
+
+Research issues must not start the v2 implementation. They may add narrow
+inspection tooling only when needed to answer the research, and must not change
+default behavior, refactor opportunistically, or delete old code before a
+cutover plan exists.
+
+## Tutorial: One Evidence Review
+
+Start with one exact candidate, not a broad family. For example, Pandora still
+has `rsset-raw-a6:022E` blocked at `s0:000006E4`.
+
+The report should not just say "maybe app slot". It should produce a packet
+with stable identity, evidence lanes, blockers, and conflicts:
+
+```json
+{
+  "candidate_id": "rsset-raw-a6:022E",
+  "selected_use": {
+    "segment": "s0",
+    "address": "000006E4",
+    "operand_id": "op1",
+    "text": "022E(a6)"
+  },
+  "status": "blocked",
+  "blockers": ["missing_accepted_base_evidence"],
+  "evidence_lanes": {
+    "base_setup": [],
+    "path_lifetime": [],
+    "same_displacement_context": ["app-slot-like uses exist"],
+    "conflicts": "unknown"
+  }
+}
+```
+
+A reviewer, LLM, or CLI command then resolves the missing evidence. If the
+scope is proven and conflicts are empty, the decision is recorded as a manual
+fact, not as a vague note:
+
+```json
+{
+  "action": "accept_fact",
+  "fact_type": "rsset_app_base",
+  "selected_use": "s0:000006E4:op1",
+  "base_id": "pandora_app_base_a6",
+  "scope": {
+    "kind": "selected_use_path_lifetime",
+    "setup": "s0:...",
+    "use": "s0:000006E4"
+  },
+  "conflicts": [],
+  "evidence": ["rsset-report:rsset-raw-a6:022E"],
+  "render_effect": "selected_operand_only"
+}
+```
+
+Only after that accepted fact exists should the command catalog expose a
+mutation:
+
+```json
+{
+  "command": "rsset.binding.bind",
+  "enabled": true,
+  "requires": [
+    "selected_use_identity",
+    "accepted_base_evidence",
+    "explicit_empty_conflicts",
+    "exact_round_trip"
+  ],
+  "writes": ["Decision Journal"],
+  "renders": ["one selected operand"]
+}
+```
+
+The verifier then proves the full chain:
+
+```text
+decision-journal: accepted fact exists
+semantic reload: selected use consumes the fact
+rendered source: only expected source line changes
+negative checks: same-displacement uses remain blocked
+round trip: exact
+```
+
+This is the shape every 017 item should converge on. The candidate-specific
+parts change, but the selected-use identity, evidence packet, scoped decision,
+command gate, verifier, and replay behavior stay common.
+
+## Protocol Primitives
+
+The protocol needs these durable primitives:
+
+- **Selected identity:** exact instruction operand, range, table, string, or
+  code island. No "all matching literals" or "all same displacements" without
+  an explicit scoped rule.
+- **Evidence lanes:** structured facts such as xrefs, CFG path, base setup,
+  lifetime, dataflow, target range classification, active decision state, and
+  rendered-source effect.
+- **Blockers and conflicts:** explicit missing proof, overlap, clobber,
+  competing meaning, stale fact, duplicate action, or unsafe render state.
+- **Decision actions:** accept scoped fact, defer with reason, or reject
+  candidate. Decisions must be replayable from the Decision Journal.
+- **Command gate:** mutation commands appear only when accepted evidence and
+  action-specific verifier requirements are present.
+- **Render effect model:** before/after output is known before writing, and is
+  limited to the selected scope.
+- **Verifier layers:** Decision Journal state, semantic reload, generated source,
+  negative safety checks, and exact round-trip.
+
+## Decision Journal
+
+The clean durable state is a per-target **Decision Journal**, not the current
+Manual Action Log as architecture. The current log may be used as temporary
+seed evidence while developing v2, but once a surface is processed into v2 the
+old storage, adapters, compatibility paths, and legacy semantics must be
+removed.
+
+The journal records compact actor decisions and accepted roots. It does not
+store every derived analysis fact.
+
+```json
+{
+  "schema": "evidence-decision/v1",
+  "id": "decision-01HX...",
+  "prev": "sha256:...",
+  "actor": {
+    "kind": "human | llm | auto-analysis | tool"
+  },
+  "action": "accept_fact",
+  "candidate_id": "rsset-raw-a6:022E",
+  "selected_identity": {
+    "target_id": "amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+    "segment_id": "s0",
+    "address": 1764,
+    "operand_index": 1
+  },
+  "fact_type": "rsset_app_base",
+  "scope": {"kind": "selected_use_path_lifetime"},
+  "evidence_refs": ["packet-rsset-022e-000006e4"],
+  "conflicts": [],
+  "render_intent": "enables_render"
+}
+```
+
+Journal rules:
+
+- append-only with explicit supersession, not mutable edits;
+- generated ids plus a journal hash chain are enough for v1;
+- actor metadata is audit context, not validity proof;
+- rationale text is optional and only for judgment not captured structurally;
+- decisions carry both candidate id and selected identity, with selected
+  identity as the durable anchor;
+- evidence packets are regenerated by default; tests and validation artifacts
+  may snapshot them;
+- invalid replay decisions remain in the journal but are excluded from active
+  facts with structured diagnostics;
+- stale or invalid decisions surface as reviewable packets when actionable.
+
+## Fact Graph and C Query API
+
+The authoritative fact graph should live inside the C analysis state. Python
+owns file IO, orchestration, CLI/API serialization, and presentation, but not
+semantic truth.
+
+```text
+Python reads Decision Journal
+Python validates basic schema/hash chain
+Python calls typed C decision APIs
+C applies active decisions to analysis state
+C reruns propagation to fixed point
+Python queries C for packets, gates, render effects, and verification results
+```
+
+Conceptual C API:
+
+```c
+ArEvidencePacket ar_query_evidence_packet(ArAnalysis *analysis, ArIdentity id);
+ArCommandGate ar_query_command_gate(ArAnalysis *analysis, ArIdentity id);
+ArReplayResult ar_apply_decision(ArAnalysis *analysis, ArDecision decision);
+ArVerifyResult ar_verify_decision(ArAnalysis *analysis, ArDecisionId id);
+```
+
+Consumers use typed queries, not raw graph traversal. The graph exposes
+semantic fields, stable identities, blockers, conflicts, evidence references,
+render effects, and verifier results. UI/CLI formatting, grouping, labels, and
+prose explanations stay outside C.
+
+## Candidate States
+
+The protocol states are:
+
+- `accepted`: active fact under current inputs and verifier rules;
+- `reviewable`: enough evidence exists for an actor to decide now;
+- `blocked`: required evidence, tooling, or protocol support is missing;
+- `deferred`: an actor reviewed it and intentionally left it unresolved with a
+  recorded reason;
+- `rejected`: suppressed as not useful or invalid under the current model;
+- `superseded`: replaced by a later decision.
+
+Uncertainty is represented as blockers, conflicts, and defer reasons, not as
+fuzzy accepted confidence. Ranking is allowed for work ordering only; it never
+proves truth.
+
+State ownership:
+
+- auto-analysis may create blocked, reviewable, rejected, and auto-accepted
+  decidable facts;
+- humans and LLM reviewers may accept, defer, reject, or supersede through the
+  Decision Journal;
+- planners execute command gates only and do not change evidence truth;
+- verifier failure emits diagnostics and required review/supersession work; it
+  does not silently rewrite the journal.
+
+## Render Intent and Policy
+
+Facts declare render intent:
+
+- `renders`: should improve source output when projection support exists;
+- `analysis_only`: supports analysis or suppresses work but does not render;
+- `enables_render`: feeds later facts that render.
+
+Render-intended facts include operand semantic references, labels, range
+classifications, typed data declarations, and structured comments when source
+syntax cannot safely express the fact. Analysis-only facts include temporary
+CFG/dataflow facts, conflicts, rejected/deferred packets, scores, and stale or
+superseded decisions.
+
+Fact types define allowed and unsafe render forms, with platform/target
+refinements:
+
+```json
+{
+  "fact_type": "a5_hardware_ref",
+  "render_intent": "renders",
+  "allowed_render_forms": ["symbolic_operand", "structured_entry_comment"],
+  "unsafe_forms": ["address_mode_changing_operand"]
+}
+```
+
+Structured comments are first-class render projections when operand syntax is
+unsafe, misleading, or assembler-hostile. They are not the default substitute
+for symbolic operands. During build-out, an accepted fact may be missing render
+projection because implementation is incomplete; that is a transitional
+blocker, not a final semantic state for supported render-intended facts.
+
+## Starter Aspects
+
+1. **RSSET/app-base accepted evidence.** Prove one raw A6 use, preferably
+   `rsset-raw-a6:022E` at `s0:000006E4`, from blocked report-only candidate to
+   accepted `rsset_app_base` fact and one scoped source improvement. The proof
+   must include selected-use identity, path/lifetime scope, selected base id,
+   explicit `conflicts: []`, semantic reload, no unrelated A6 changes, and
+   exact round-trip.
+
+2. **Source-offset immediate provenance.** Prove one source-offset immediate,
+   preferably `s0:000009A6` / `addi.w #4224,d1`, by showing operand identity,
+   literal width/signedness, possible meanings, landing range, later dataflow,
+   conflicts, accepted interpretation, scoped render effect, and exact
+   round-trip. Same-literal-only evidence must remain report-only.
+
+3. **A5 path/lifetime evidence.** Prove one A5 hardware/base use from blocked
+   candidate to accepted scoped fact. The packet must show base setup, computed
+   base expression, custom/app-base delta, CFG reachability, no A5 clobber,
+   lifetime end, conflicts, selected render effect, and exact round-trip.
+   Linear listing-state evidence alone must never expose mutation.
+
+4. **Decision evidence diff/replay.** Make Decision Journal state auditable as
+   protocol data. A reviewer should see each accepted/deferred/rejected fact,
+   its evidence inputs, rendered-source effect, verifier layers, stale or
+   superseded state, and replay result after semantic reload.
+
+5. **Orphan/code-island acceptance.** Bring code islands, tables, strings, and
+   data ranges into the same protocol. Evidence lanes should include xrefs,
+   control-flow reachability, overlaps, range classification, and downstream
+   render effect. Ambiguous islands become explicit deferred facts, not hidden
+   speculative code or raw data.
+
+These aspects are not five unrelated features. They are the first five proof
+surfaces for the common protocol.
+
+## Future Human UI
+
+A later proposal can build an Evidence Review Workbench over this protocol. It
+should not invent separate evidence rules. It should present the same packet in
+one place: selected use, evidence lanes, conflicts, render preview, verifier
+state, and scoped accept/defer/reject actions.
+
+The useful UI goal is insight and resolution without forcing the reverser to
+open many disconnected reports. The base 017 goal is the protocol that makes
+that UI, CLI use, and LLM use consume the same evidence and produce the same
+replayable decisions.
+
+## Completion Standard
+
+017 is complete when Pandora demonstrates the protocol across multiple starter
+aspects:
+
+- at least one report-only candidate becomes an accepted scoped fact;
+- any source mutation is command-backed, verifier-backed, and exact-round-trip;
+- the rendered source improves only inside the accepted selected scope;
+- unsafe neighboring candidates remain blocked with clear reasons;
+- the Decision Journal can be replayed to recover the accepted facts and their
+  rendered effects;
+- the same evidence packet shape is usable from reports, commands, tests, and
+  future UI.
+
+## Issue Protocol
+
+Every future `017-*` issue is a protocol-delta slice against this proposal. It
+must not define a private model. Use this structure:
+
+```md
+## Proposal Context
+- Source proposal: `docs/proposals/017-evidence-driven-analysis-protocol.md`
+- Protocol area:
+- Current proposal state:
+- Desired proposal state after this issue:
+
+## Protocol Delta
+- Adds:
+- Changes:
+- Replaces:
+- Deletes:
+- Leaves out of scope:
+
+## Default Behavior
+- Unchanged, v2 internal only:
+- Switched surface to v2:
+- Deleted old surface path:
+- User-visible behavior:
+
+## Pandora Proof
+- Target candidate:
+- Evidence packet expected:
+- Decision behavior:
+- Command gate behavior:
+- Render effect:
+- Verifier/round-trip:
+
+## Implementation Slice
+- C fact graph/query work:
+- Python/API/report work:
+- Journal/replay work:
+- Renderer/verifier work:
+- Tests:
+
+## Research Coverage
+- [ ] Target load lifecycle traced, or marked out of scope with reason.
+- [ ] Post-load auto-analysis hooks traced, or marked out of scope with reason.
+- [ ] C analysis ownership mapped, or marked out of scope with reason.
+- [ ] Python orchestration ownership mapped, or marked out of scope with reason.
+- [ ] Platform-specific extension points mapped, or marked out of scope with reason.
+- [ ] Fact/state sources inventoried, or marked out of scope with reason.
+- [ ] Derived-state/replay assumptions inventoried, or marked out of scope with reason.
+- [ ] Reports/candidate generation traced, or marked out of scope with reason.
+- [ ] Command catalog/planner flow traced, or marked out of scope with reason.
+- [ ] Legacy Manual Action Log flow traced, or marked out of scope with reason.
+- [ ] Render/export flow traced, or marked out of scope with reason.
+- [ ] Verifier/round-trip flow traced, or marked out of scope with reason.
+- [ ] Pandora RSSET/A5/immediate surfaces mapped, or marked out of scope with reason.
+- [ ] Hidden couplings/risks listed, or marked out of scope with reason.
+- [ ] Reuse/replace candidates classified, or marked out of scope with reason.
+- [ ] First implementation slice recommended, or blocker recorded.
+
+If research discovers another relevant subsystem, add it to this checklist
+before continuing. The issue is not complete until the expanded checklist is
+signed off or explicitly marked out of scope with reason.
+
+## Research Review
+- [ ] Second pass checked file/function coverage.
+- [ ] Cross-references searched for missed hooks.
+- [ ] Findings were checked against Pandora current surfaces.
+- [ ] Proposal updated with model corrections and rewrite-scope findings.
+- [ ] Next issue scope follows from the inventory.
+
+## Required Sign-Off
+- [ ] Proposal context checked before implementation.
+- [ ] Protocol delta implemented as described, or proposal updated.
+- [ ] Default behavior impact verified.
+- [ ] Old code deleted, or deferred deletion blocker recorded.
+- [ ] Evidence packet shape tested.
+- [ ] Decision/replay behavior tested where applicable.
+- [ ] Command gate refuses unsafe mutation.
+- [ ] Render/verifier/round-trip checked where output-affecting.
+- [ ] Pandora proof recorded.
+- [ ] Post-commit review found no unresolved worthwhile findings.
+```
+
+Sign-off lives in the issue doc. Bulky command output or target evidence goes
+in validation artifacts. Commit messages summarize visible improvement.
+
+Before implementation, update the proposal if the issue changes the model.
+After implementation, update the proposal with corrected model details,
+unexpected blockers, and out-of-scope follow-ups discovered by the work.
 
 ## Post-016 Rules
 
@@ -49,7 +559,11 @@ measured blocker needed for that improvement.
 - Record deferred findings in this proposal as they are encountered, then
   either resolve them or promote them to issues.
 
-## Issues
+## Historical Issues
+
+These issues document the completed post-hardening pass and reopened verifier
+hardening. The next active `017-*` issues should be written from the Evidence
+Review Protocol order above.
 
 1. `017-001`: post-hardening baseline and candidate queue.
 2. `017-002`: immediate runtime-reference triage and promotion path.
@@ -83,7 +597,7 @@ measured blocker needed for that improvement.
 29. `017-029`: RSSET accepted-evidence conflict-shape hardening.
 30. `017-030`: Pandora exercise pass over the reopened 017 surfaces.
 
-## Current Gate State
+## Historical Gate State
 
 The final 017-027 rerun after `017-028`, `017-029`, and `017-030` recorded
 this Pandora surface:
@@ -172,43 +686,51 @@ work.
 
 ## Recommended Order
 
-Start with `017-001`; it establishes the current safe work queue. Then choose
-the first concrete candidate family from that queue. Prefer `017-002` for
-data/reference work, `017-004` for review-item/code/data blockers, or `017-005`
-for accepted app-base/RSSET opportunities. Do `017-003` only when A5 hardware
-base proof is the active blocker. Use `017-006` whenever a measured slow phase
-blocks normal iteration.
+Begin with `017-031`: a research and architecture inventory issue. It must map
+the current analysis stack, double-check coverage, update this proposal with
+rewrite-scope findings, and recommend the first implementation slice. Default
+behavior must remain unchanged.
 
-If the first pass reaches report-only blockers, continue with the follow-up
-unblockers. Prefer `017-007` to unlock the concrete immediate-reference
-candidate from `017-002`, `017-008` to turn A5 listing-state candidates into
-accepted path/lifetime evidence, and `017-009` to expose RSSET/app-slot work
-when the generic planner has no candidate. Use `017-010` if low-value
-representation work repeatedly masks those higher-value blocked families.
+After that research issue, turn the five starter aspects into the next
+`docs/issues/017-*` sequence, with the Evidence-Driven Analysis Protocol as
+the shared implementation target. Each issue should name the protocol primitive
+it advances and the Pandora demonstration it will use.
 
-For the current reopened continuation, do `017-028`, then `017-029`, then
-`017-030`. Rerun `017-027` only after those are implemented and reviewed.
+Use this order unless implementation evidence forces a better one:
 
-After `017-001`, proceed directly into the best safe mutation when durable
-evidence, command support, verifier support, and exact round-trip gates are
-present. Stop for human review only when the top candidate is ambiguous,
-report-only, or needs new policy/tooling.
+1. complete the research inventory and proposal correction pass;
+2. define the shared evidence packet, selected identity, blockers/conflicts,
+   and decision result schema;
+3. wire one read-only Pandora report through that packet shape;
+4. add accepted/deferred/rejected Decision Journal records for that packet;
+5. gate one mutation command from accepted protocol evidence;
+6. add verifier layers for Decision Journal replay, semantic reload, rendered-source
+   effect, negative safety, and exact round-trip;
+7. repeat the same protocol shape across the remaining starter aspects.
+
+Prefer the first starter aspect that can demonstrate the whole chain with the
+least speculative policy. If no mutation is safe, complete the read-only
+packet, blocker, and defer/reject path, then move to the next starter aspect.
+Use `017-006` only when a measured slow phase blocks normal protocol work.
 
 ## Acceptance Criteria
 
-Each accepted source-changing action must include:
+Each protocol issue must include:
 
-- durable source evidence or accepted manual classification/override,
-- source family and status compatible with the action,
-- path/lifetime scope where the fact is not global,
-- owning action id for generated descendants,
-- action-specific verification,
-- exact round-trip verification when output-affecting,
-- a visible rendered-source improvement.
+- a concrete Pandora candidate or candidate family;
+- a structured evidence packet with stable selected identity;
+- explicit blockers and conflicts;
+- scoped accept/defer/reject behavior recorded in Decision Journal state where
+  applicable;
+- command gating that refuses mutation without accepted evidence;
+- verifier coverage for Decision Journal replay, semantic reload, rendered output,
+  negative safety, and exact round-trip when output-affecting;
+- a visible source-quality improvement, or a documented blocker that the
+  protocol exposes cleanly and safely.
 
-Support-code fixes are accepted only when tied to a concrete Pandora blocker,
+Support-code fixes are accepted only when tied to a concrete protocol blocker,
 verifier gap, command/catalog identity issue, or measured slow span. They need
-focused tests and a rerun of the original Pandora action or report that exposed
+focused tests and a rerun of the original Pandora report or action that exposed
 the issue.
 
 ## Living Notes

@@ -1,6 +1,6 @@
 Status: implemented
 Type: AFK
-Source proposal: docs/proposals/017-pandora-post-hardening-reversal.md
+Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
 Scope:
 Upgrade A5 hardware-base work from non-durable listing-state candidates to
