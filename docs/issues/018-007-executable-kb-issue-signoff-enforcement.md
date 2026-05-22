@@ -1,0 +1,79 @@
+# 018-007: Executable KB Issue Sign-Off Enforcement
+
+Status: open
+
+## Proposal Context
+
+- Source proposal: `docs/proposals/018-platform-executable-format-knowledge.md`
+- Knowledge area: 018 issue protocol hygiene and completion enforcement
+- Blocked by: at least one completed 018 issue using the protocol structure
+- Current proposal state: 018 issues now define research coverage, research
+  review, and required sign-off, but completion is still manually reviewed.
+- Desired proposal state after this issue: a local check can flag completed
+  `018-*` issues whose required sections or checkboxes are incomplete before
+  commit/review.
+
+## Knowledge Delta
+
+- Adds: local issue protocol validation for `018-*`.
+- Changes: completed 018 issues become mechanically reviewable.
+- Replaces: purely manual detection of missing sign-off.
+- Deletes: none.
+- Leaves out of scope: changing 017 validation, UI, and broad CI integration
+  unless already trivial.
+
+## Default Behavior
+
+- The validator must not rewrite issue files.
+- It must not block active/open issues with unchecked boxes.
+- It must fail or warn for issues marked implemented/completed/complete if
+  required sections or sign-off boxes are incomplete.
+
+## Evidence Standard
+
+The check must verify:
+
+- `Status:` exists and is known locally;
+- proposal context references Proposal 018;
+- required protocol sections exist;
+- completed statuses have no unchecked boxes in research coverage, research
+  review, or required sign-off;
+- completion evidence exists for completed statuses;
+- superseded/deleted issues identify replacement or reason where applicable.
+
+## Implementation Slice
+
+- Python/tooling: add a small local validator consistent with existing repo
+  tooling.
+- Tests: passing issue fixture, missing section failure, unchecked completed
+  checkbox failure, superseded reason check, and no file rewrite.
+- Proposal: update 018 with validation rules if needed.
+
+## Research Completion Standard
+
+Record trace blocks for existing 017 validator pattern, issue status vocabulary,
+test/tool location, and any historical exception kept out of scope.
+
+## Research Coverage
+
+- [ ] Existing 017 issue validator pattern checked.
+- [ ] Current `018-*` status vocabulary checked.
+- [ ] Required 018 issue sections checked.
+- [ ] Passing and failing examples planned.
+- [ ] Historical exception policy reviewed.
+
+## Research Review
+
+- [ ] Second pass checked trace blocks against named files/functions.
+- [ ] Cross-references searched for markdown validation helpers.
+- [ ] Exception list reviewed for pure churn risk.
+- [ ] Proposal updated with validation rules or deferred follow-ups.
+
+## Required Sign-Off
+
+- [ ] Proposal context checked before implementation.
+- [ ] Validator behavior tested.
+- [ ] Completed unchecked checkbox failure tested.
+- [ ] No file rewrite behavior tested.
+- [ ] Active/open issue behavior tested.
+- [ ] Post-commit review found no unresolved worthwhile findings.

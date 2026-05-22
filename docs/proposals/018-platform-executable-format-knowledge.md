@@ -216,58 +216,65 @@ Atari ST:
 
 ## Issue Seeds
 
-018-001. Executable-format KB schema
+018-001. Executable-Format KB Schema Gate
 
 ```text
-Define the shared schema and a thin Mac proof record for cited
-platform executable/container format facts: identity, archetypes, sections,
-relocations, symbols, entrypoints, loader/runtime/analysis models, citations,
-parser assertions, unknowns/conflicts/deferred states, renderer expectations,
-and generated checks.
+Prestep/gate. Define the shared schema, canonical KB locations, fact states,
+source policy, citation/assertion rules, unknown/conflict/deferred handling,
+typed entrypoint vocabulary, and a thin Mac proof record. No later issue may
+commit accepted executable-format KB records or parser migrations before this
+gate is complete.
 ```
 
-018-002. Mac OS executable/CODE model
+018-002. Mac OS Executable Citation Packet
 
 ```text
-Extract cited Mac OS Segment Loader, resource fork, CODE resource, A5 world,
-jump-table, relocation, and entrypoint facts from local MD/docs/KB and MPW
-examples. Proposal 012 is blocked on this slice. It must include a migration
-plan that downgrades the current `movea.l (a7)+,a0` heuristic to candidate
-evidence until cited facts validate or replace it.
+Research-only after 018-001. Extract cited Segment Loader, resource fork, CODE
+resource, A5 world, jump-table, relocation/fixup, entrypoint, and MPW Link/Rez
+facts from local MD/docs/KB and MPW examples. The current `movea.l (a7)+,a0`
+boundary remains candidate evidence until this packet validates or replaces it.
 ```
 
-018-003. Amiga executable/HUNK model
+018-003. Mac OS KB Record And Heuristic Migration
 
 ```text
-Capture cited Amiga HUNK executable/object/library/resident/device/LoadSeg
-facts, including relocations, symbols, BSS, entry conventions, and version
-scope.
+After 018-001 and 018-002. Convert the Mac citation packet into accepted or
+parser-asserted KB records, explicitly migrate current CODE parsing heuristics,
+and record unresolved behavior as candidate/deferred rather than accepted.
 ```
 
-018-004. Atari ST executable model
+018-004. Generated Checks And Heuristic Guardrails
 
 ```text
-Capture cited Atari ST PRG/TOS/TTP/GEMDOS executable facts, including
-text/data/bss, relocation table, symbols, basepage, entrypoint, and trap ABI
-context.
+After 018-001 and at least one accepted platform record. Add schema/data
+validation, candidate-vs-accepted guardrails, and reportable KB-backed parser
+coverage so heuristic-only executable parsing cannot be marked complete.
 ```
 
-018-005. Generated parser/check scaffolding
+018-005. Mac OS Parser And Listing KB Migration
 
 ```text
-Generate or validate parser scaffolding from the executable-format KB so C
-parsers enumerate standard code/data/bss/reloc/symbol/metadata regions in a
-consistent platform way. Generated checks are blocking for new/adopted
-KB-backed parser slices and optional reports for legacy parser areas until they
-declare `kb_backed: true`.
+After 018-003 and 018-004. Update the Mac OS C parser, Python wrapper, and
+listing/rendering paths to consume or validate against accepted KB facts.
+Accepted code/data/entry classifications must cite validated or
+parser-asserted fact ids; candidate facts may only produce candidate ranges.
 ```
 
-018-006. Heuristic parsing guardrails
+018-006. Amiga/Atari Backfill Plan And First Records
 
 ```text
-Add tests and review checks that prevent heuristic-only executable parsing from
-being marked implemented. Heuristics may produce candidates, but accepted parser
-rules require citations or explicit parser assertions.
+Research may start early, but accepted records require 018-001. Define the
+Amiga and Atari ST backfill register and first cited records for their standard
+executable-bearing formats without changing existing parser behavior.
+```
+
+018-007. Executable KB Issue Sign-Off Enforcement
+
+```text
+After at least one 018 issue has completed using this protocol. Add a local
+validator for 018 issue structure and sign-off checklists, following the 017
+issue enforcement pattern, so future 018 closure cannot bypass evidence,
+review, and required sign-off sections.
 ```
 
 ## Relationship To 012
