@@ -197,8 +197,6 @@ Decision Journal report command:
 $env:UV_CACHE_DIR='C:\Data\R\git\claude-repos\amiga-reversing2\.uv-cache'; $target='amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8'; $json = uv run python -m amiga_reversing.reversing_loop decision-journal-report --target $target; $rep = $json | ConvertFrom-Json; Write-Output ('journal_exists=' + $rep.exists); Write-Output ('journal_valid=' + $rep.valid); Write-Output ('journal_record_count=' + $rep.record_count); Write-Output ('journal_next_prev=' + $rep.next_prev); Write-Output ('journal_diagnostics_count=' + $rep.diagnostics.Count); Write-Output ('journal_active_ids=' + ($rep.validation.active_decision_ids -join ',')); Write-Output ('journal_superseded_ids=' + ($rep.validation.superseded_decision_ids -join ','))
 ```
 
-Commit: `b6bdc62a073388cf2835e255e708b7644801f14a`
-
 Target: `amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8`
 
 Key output:
