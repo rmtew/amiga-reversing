@@ -214,6 +214,9 @@ def test_decision_journal_report_contract_for_missing_and_valid_journals(tmp_pat
     assert report["record_count"] == 2
     assert report["validation"]["active_decision_ids"] == ["decision-1", "decision-2"]
     assert report["next_prev"] == f"sha256:{decision_journal.decision_record_hash(second)}"
+    assert report["projection"]["valid"] is True
+    assert report["projection"]["deferred_facts"] == [first]
+    assert report["projection"]["rejected_facts"] == [second]
 
 
 def test_decision_journal_report_dry_run_validates_without_appending(tmp_path: Path) -> None:
@@ -263,6 +266,111 @@ def test_decision_journal_report_surfaces_malformed_journal_diagnostics(tmp_path
     assert {"line": 1, "field": "$", "message": "malformed JSONL: Expecting value"} in report["diagnostics"]
 
 
+def test_project_decision_journal_groups_active_decisions_deterministically() -> None:
+    reject = _decision_record(
+        "reject_fact",
+        decision_id="decision-z",
+        candidate_id="candidate-b",
+        addr=0x200,
+    )
+    defer = _decision_record(
+        "defer_fact",
+        decision_id="decision-a",
+        candidate_id="candidate-a",
+        addr=0x100,
+        prev=f"sha256:{decision_journal.decision_record_hash(reject)}",
+    )
+    accept = _decision_record(
+        "accept_fact",
+        decision_id="decision-c",
+        candidate_id="candidate-a",
+        addr=0x100,
+        prev=f"sha256:{decision_journal.decision_record_hash(defer)}",
+    )
+
+    projection = decision_journal.project_decision_journal([reject, defer, accept])
+
+    assert projection["valid"] is True
+    assert projection["diagnostics"] == []
+    assert projection["accepted_facts"] == [accept]
+    assert projection["deferred_facts"] == [defer]
+    assert projection["rejected_facts"] == [reject]
+    assert projection["active_decision_ids"] == ["decision-a", "decision-c", "decision-z"]
+    assert list(projection["by_candidate_id"]) == ["candidate-a", "candidate-b"]
+    assert projection["by_candidate_id"]["candidate-a"]["active_decision_ids"] == ["decision-a", "decision-c"]
+    assert list(projection["by_selected_identity"]) == ["pandora:s0:00000100:op1", "pandora:s0:00000200:op1"]
+
+
+def test_project_decision_journal_supersession_removes_active_fact() -> None:
+    accept = _decision_record("accept_fact", decision_id="decision-accept")
+    replacement = _decision_record(
+        "accept_fact",
+        decision_id="decision-replacement",
+        prev=f"sha256:{decision_journal.decision_record_hash(accept)}",
+    )
+    supersede = _supersede_record(
+        "decision-supersede",
+        supersedes="decision-accept",
+        replacement="decision-future-informational-only",
+        prev=f"sha256:{decision_journal.decision_record_hash(replacement)}",
+    )
+
+    projection = decision_journal.project_decision_journal([accept, replacement, supersede])
+
+    assert projection["valid"] is True
+    assert projection["accepted_facts"] == [replacement]
+    assert projection["superseded_decision_ids"] == ["decision-accept"]
+    assert projection["active_decision_ids"] == ["decision-replacement", "decision-supersede"]
+    assert "decision-future-informational-only" not in projection["active_decision_ids"]
+
+
+def test_project_decision_journal_blocks_invalid_records_from_active_projection() -> None:
+    accept = _decision_record("accept_fact", decision_id="decision-1")
+    duplicate = _decision_record("accept_fact", decision_id="decision-1", prev="sha256:bad")
+
+    projection = decision_journal.project_decision_journal([accept, duplicate])
+
+    assert projection["valid"] is False
+    assert projection["accepted_facts"] == []
+    assert projection["active_decision_ids"] == []
+    assert {"index": 1, "field": "decision_id", "message": "duplicate decision id: decision-1"} in projection[
+        "diagnostics"
+    ]
+
+
+def test_decision_journal_report_blocks_projection_for_malformed_jsonl(tmp_path: Path) -> None:
+    target_dir = tmp_path / "targets" / "demo"
+    path = decision_journal.decision_journal_path(target_dir)
+    record = _decision_record("accept_fact")
+    target_dir.mkdir(parents=True)
+    path.write_text(f"{json.dumps(record, sort_keys=True, separators=(',', ':'))}\nnot json\n", encoding="utf-8")
+
+    report = decision_journal.decision_journal_report(target_dir)
+
+    assert report["valid"] is False
+    assert report["record_count"] == 1
+    assert report["projection"]["valid"] is False
+    assert report["projection"]["accepted_facts"] == []
+    assert {"line": 2, "field": "$", "message": "malformed JSONL: Expecting value"} in report["projection"][
+        "diagnostics"
+    ]
+
+
+def test_decision_journal_projection_is_side_effect_free(tmp_path: Path) -> None:
+    target_dir = tmp_path / "targets" / "demo"
+    record = _decision_record("accept_fact")
+    before_record = dict(record)
+
+    projection = decision_journal.project_decision_journal([record])
+    report = decision_journal.decision_journal_report(target_dir)
+
+    assert projection["accepted_facts"] == [record]
+    assert record == before_record
+    assert report["projection"]["valid"] is True
+    assert not decision_journal.decision_journal_path(target_dir).exists()
+    assert not (target_dir / "manual_actions.jsonl").exists()
+
+
 def test_decision_journal_validation_is_side_effect_free(tmp_path: Path) -> None:
     target_dir = tmp_path / "targets" / "demo"
     target_dir.mkdir(parents=True)
@@ -285,8 +393,19 @@ def _decision_record(
     *,
     decision_id: str = "decision-rsset-022e",
     prev: str | None = None,
+    candidate_id: str = "rsset-raw-a6:022E",
+    addr: int = 0x6E4,
 ) -> dict[str, object]:
     packet_ref = decision_journal.decision_packet_reference(_rsset_packet())
+    packet_ref["candidate_id"] = candidate_id
+    packet_id = f"rsset-packet:{candidate_id}:s0:{addr:08X}:op1"
+    packet_ref["packet_id"] = packet_id
+    packet_ref["evidence_refs"] = [packet_id]
+    if isinstance(packet_ref.get("selected_identity"), dict):
+        packet_ref["selected_identity"] = {
+            **packet_ref["selected_identity"],
+            "addr": addr,
+        }
     record: dict[str, object] = {
         "schema": decision_journal.DECISION_JOURNAL_SCHEMA,
         "decision_id": decision_id,
@@ -301,7 +420,7 @@ def _decision_record(
         record.update(
             {
                 "fact_type": "rsset_app_base",
-                "scope": {"kind": "selected_use", "hunk": 0, "addr": 0x6E4, "operand_index": 1},
+                "scope": {"kind": "selected_use", "hunk": 0, "addr": addr, "operand_index": 1},
             }
         )
     elif action == "defer_fact":

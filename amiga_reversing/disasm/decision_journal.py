@@ -111,10 +111,64 @@ def decision_journal_report(
         "diagnostics": readback["diagnostics"],
         "validation": readback["validation"],
         "next_prev": decision_journal_next_prev(records),
+        "projection": _decision_projection_for_readback(records, readback),
     }
     if dry_run_record is not None:
         report["dry_run_record"] = dry_run_decision_record(records, dry_run_record, current_valid=readback["valid"])
     return report
+
+
+def project_decision_journal(records: Sequence[object]) -> dict[str, object]:
+    validation = validate_decision_journal_records(records)
+    if validation["valid"] is not True:
+        return _empty_decision_projection(valid=False, diagnostics=validation["diagnostics"])
+
+    superseded_ids = set(_string_sequence(validation["superseded_decision_ids"]))
+    accepted_facts: list[dict[str, object]] = []
+    deferred_facts: list[dict[str, object]] = []
+    rejected_facts: list[dict[str, object]] = []
+    by_candidate_id: dict[str, dict[str, object]] = {}
+    by_selected_identity: dict[str, dict[str, object]] = {}
+
+    for raw_record in records:
+        if not isinstance(raw_record, Mapping):
+            continue
+        record = dict(raw_record)
+        decision_id = _text(record.get("decision_id"))
+        if decision_id is None or decision_id in superseded_ids:
+            continue
+        action = record.get("action")
+        if action == "accept_fact":
+            accepted_facts.append(record)
+            bucket_name = "accepted_facts"
+        elif action == "defer_fact":
+            deferred_facts.append(record)
+            bucket_name = "deferred_facts"
+        elif action == "reject_fact":
+            rejected_facts.append(record)
+            bucket_name = "rejected_facts"
+        else:
+            continue
+        candidate_id = _text(record.get("candidate_id"))
+        if candidate_id is not None:
+            _projection_group(by_candidate_id, candidate_id)[bucket_name].append(record)
+            _projection_group(by_candidate_id, candidate_id)["active_decision_ids"].append(decision_id)
+        selected_identity_key = _selected_identity_key(record.get("selected_identity"))
+        if selected_identity_key is not None:
+            _projection_group(by_selected_identity, selected_identity_key)[bucket_name].append(record)
+            _projection_group(by_selected_identity, selected_identity_key)["active_decision_ids"].append(decision_id)
+
+    return {
+        "valid": True,
+        "diagnostics": [],
+        "accepted_facts": accepted_facts,
+        "deferred_facts": deferred_facts,
+        "rejected_facts": rejected_facts,
+        "superseded_decision_ids": validation["superseded_decision_ids"],
+        "active_decision_ids": validation["active_decision_ids"],
+        "by_candidate_id": _sorted_projection_groups(by_candidate_id),
+        "by_selected_identity": _sorted_projection_groups(by_selected_identity),
+    }
 
 
 def dry_run_decision_record(
@@ -261,6 +315,79 @@ def _record_sequence(value: object) -> list[dict[str, object]]:
     if not isinstance(value, Sequence) or isinstance(value, str):
         return []
     return [dict(record) for record in value if isinstance(record, Mapping)]
+
+
+def _decision_projection_for_readback(
+    records: Sequence[object],
+    readback: Mapping[str, object],
+) -> dict[str, object]:
+    if readback.get("valid") is not True:
+        return _empty_decision_projection(valid=False, diagnostics=readback.get("diagnostics"))
+    return project_decision_journal(records)
+
+
+def _empty_decision_projection(
+    *,
+    valid: bool,
+    diagnostics: object,
+) -> dict[str, object]:
+    return {
+        "valid": valid,
+        "diagnostics": [dict(item) for item in diagnostics if isinstance(item, Mapping)]
+        if isinstance(diagnostics, Sequence) and not isinstance(diagnostics, str)
+        else [],
+        "accepted_facts": [],
+        "deferred_facts": [],
+        "rejected_facts": [],
+        "superseded_decision_ids": [],
+        "active_decision_ids": [],
+        "by_candidate_id": {},
+        "by_selected_identity": {},
+    }
+
+
+def _projection_group(groups: dict[str, dict[str, object]], key: str) -> dict[str, object]:
+    group = groups.get(key)
+    if group is None:
+        group = {
+            "accepted_facts": [],
+            "deferred_facts": [],
+            "rejected_facts": [],
+            "active_decision_ids": [],
+        }
+        groups[key] = group
+    return group
+
+
+def _sorted_projection_groups(groups: Mapping[str, dict[str, object]]) -> dict[str, dict[str, object]]:
+    return {
+        key: {
+            **groups[key],
+            "active_decision_ids": sorted(_string_sequence(groups[key].get("active_decision_ids"))),
+        }
+        for key in sorted(groups)
+    }
+
+
+def _selected_identity_key(value: object) -> str | None:
+    if not isinstance(value, Mapping):
+        return None
+    target_id = _text(value.get("target_id"))
+    selected_use_id = _text(value.get("selected_use_id"))
+    if target_id is not None and selected_use_id is not None:
+        return f"{target_id}:{selected_use_id}"
+    segment_id = _text(value.get("segment_id"))
+    addr = _int(value.get("addr"))
+    operand_index = _int(value.get("operand_index"))
+    if target_id is not None and segment_id is not None and addr is not None and operand_index is not None:
+        return f"{target_id}:{segment_id}:{addr:08X}:op{operand_index}"
+    return json.dumps(dict(value), sort_keys=True, separators=(",", ":"))
+
+
+def _string_sequence(value: object) -> list[str]:
+    if isinstance(value, str) or not isinstance(value, Sequence):
+        return []
+    return [item for item in value if isinstance(item, str)]
 
 
 def _decision_record_diagnostics(record: Mapping[str, object]) -> list[dict[str, object]]:

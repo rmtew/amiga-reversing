@@ -222,6 +222,38 @@ def test_decision_journal_report_cli_reports_json_and_dry_run_without_writing(tm
     assert not (target_dir / "manual_actions.jsonl").exists()
 
 
+def test_decision_journal_report_cli_includes_projection_without_mutating(tmp_path: Path) -> None:
+    target_dir = _target(tmp_path)
+    record = _decision_journal_record("accept_fact", decision_id="decision-accept")
+    append = decision_journal.append_decision_record(target_dir, record)
+    before = (target_dir / "decision_journal.jsonl").read_text(encoding="utf-8")
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "amiga_reversing.reversing_loop",
+            "--project-root",
+            str(tmp_path),
+            "decision-journal-report",
+            "--target",
+            "demo",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    payload = json.loads(result.stdout)
+
+    assert append["status"] == "appended"
+    assert payload["projection"]["valid"] is True
+    assert payload["projection"]["accepted_facts"] == [record]
+    assert payload["projection"]["by_candidate_id"]["rsset-raw-a6:022E"]["accepted_facts"] == [record]
+    assert payload["projection"]["by_selected_identity"]["pandora:s0:000006E4:op1"]["accepted_facts"] == [record]
+    assert (target_dir / "decision_journal.jsonl").read_text(encoding="utf-8") == before
+    assert not (target_dir / "manual_actions.jsonl").exists()
+
+
 def test_decision_journal_report_does_not_change_default_inspect(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     target_dir = _target(tmp_path)
     decision_journal.append_decision_record(target_dir, _decision_journal_record("defer_fact"))
@@ -12554,10 +12586,15 @@ def _listing_locator(
     }
 
 
-def _decision_journal_record(action: str, *, prev: str | None = None) -> dict[str, object]:
+def _decision_journal_record(
+    action: str,
+    *,
+    decision_id: str = "decision-rsset-022e",
+    prev: str | None = None,
+) -> dict[str, object]:
     record: dict[str, object] = {
         "schema": decision_journal.DECISION_JOURNAL_SCHEMA,
-        "decision_id": "decision-rsset-022e",
+        "decision_id": decision_id,
         "prev": prev,
         "created_at": "2026-05-22T00:00:00+00:00",
         "actor": {"kind": "llm", "name": "codex"},

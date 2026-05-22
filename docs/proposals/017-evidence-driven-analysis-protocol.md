@@ -1050,3 +1050,10 @@ repeatable work to `docs\issues\017-*`.
   surface reports existence, validity, diagnostics, active/superseded decision
   ids, and `next_prev` without appending, replaying, rendering, enabling
   `rsset.binding.bind`, or changing default inspect/planner behavior.
+- 017-036 added deterministic in-memory replay projection for valid Decision
+  Journal records. `decision-journal-report` now includes active
+  accepted/deferred/rejected buckets, superseded ids, active ids, and grouping
+  by candidate and selected identity. Invalid or malformed journals produce no
+  active facts, replacement ids remain informational, and no C facts, Manual
+  Action Log paths, command gates, rendering, or default planner behavior
+  consume the projection yet.

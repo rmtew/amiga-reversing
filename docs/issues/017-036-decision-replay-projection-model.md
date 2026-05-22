@@ -1,6 +1,6 @@
 # 017-036: Decision Replay Projection Model
 
-Status: active
+Status: completed
 
 ## Proposal Context
 
@@ -110,34 +110,164 @@ replay.
 
 ## Research Coverage
 
-- [ ] Decision Journal IO and validation surfaces checked.
-- [ ] Current RSSET accepted-evidence classification checked.
-- [ ] Existing Manual Action Log projection checked for replacement boundary.
-- [ ] Current command-gate inputs checked to prove projection is not consumed
+- [x] Decision Journal IO and validation surfaces checked.
+- [x] Current RSSET accepted-evidence classification checked.
+- [x] Existing Manual Action Log projection checked for replacement boundary.
+- [x] Current command-gate inputs checked to prove projection is not consumed
   yet.
-- [ ] Active/inactive/superseded projection rules defined.
-- [ ] Side-effect boundary checked so replay projection cannot mutate C facts
+- [x] Active/inactive/superseded projection rules defined.
+- [x] Side-effect boundary checked so replay projection cannot mutate C facts
   or target state.
 
 ## Research Review
 
-- [ ] Second pass checked trace blocks against named files/functions.
-- [ ] Cross-references searched for missed hooks.
-- [ ] Findings checked against current RSSET packet shape.
-- [ ] Proposal updated if replay rules change the protocol.
-- [ ] Next issue scope follows from the replay projection.
+- [x] Second pass checked trace blocks against named files/functions.
+- [x] Cross-references searched for missed hooks.
+- [x] Findings checked against current RSSET packet shape.
+- [x] Proposal updated if replay rules change the protocol.
+- [x] Next issue scope follows from the replay projection.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before implementation.
-- [ ] Protocol delta implemented as described, or proposal updated.
-- [ ] Default behavior impact verified.
-- [ ] Old code deleted, or deferred deletion blocker recorded.
-- [ ] Replay projection tested.
-- [ ] `decision-journal-report` projection output tested.
-- [ ] C fact mutation explicitly absent or deferred.
-- [ ] Command gate refuses unsafe mutation.
-- [ ] Render/verifier/round-trip checked where output-affecting, or explicitly
+- [x] Proposal context checked before implementation.
+- [x] Protocol delta implemented as described, or proposal updated.
+- [x] Default behavior impact verified.
+- [x] Old code deleted, or deferred deletion blocker recorded.
+- [x] Replay projection tested.
+- [x] `decision-journal-report` projection output tested.
+- [x] C fact mutation explicitly absent or deferred.
+- [x] Command gate refuses unsafe mutation.
+- [x] Render/verifier/round-trip checked where output-affecting, or explicitly
   not applicable because no output changed.
-- [ ] Pandora proof recorded.
-- [ ] Post-commit review found no unresolved worthwhile findings.
+- [x] Pandora proof recorded.
+- [x] Post-commit review found no unresolved worthwhile findings.
+
+## Implementation Trace
+
+### Journal Validation And Projection
+
+- Files and functions inspected:
+  - `amiga_reversing/disasm/decision_journal.py`
+  - `read_decision_journal`
+  - `validate_decision_journal_records`
+  - `decision_journal_report`
+  - `project_decision_journal`
+- Call/data flow summary: `decision_journal_report` reads the target-local
+  `decision_journal.jsonl`, validates the current chain, then adds a
+  `projection` object. `project_decision_journal(records)` revalidates the
+  supplied in-memory sequence before producing active accepted/deferred/rejected
+  buckets. Invalid validation blocks projection and returns empty active
+  buckets with diagnostics.
+- Projection rules implemented: active `accept_fact`, `defer_fact`, and
+  `reject_fact` records are copied into action buckets only when their journal
+  is valid and their `decision_id` is not superseded. `supersede_decision`
+  removes the target id from action buckets. `replacement_decision_id` remains
+  informational and does not activate forward references.
+- Grouping shape: projection includes `by_candidate_id` and
+  `by_selected_identity` maps. Selected identity keys prefer
+  `<target_id>:<selected_use_id>`, then fall back to
+  `<target_id>:<segment_id>:<addr>:op<operand_index>`, then stable sorted JSON.
+- Searches/commands used:
+  - `Get-Content amiga_reversing\disasm\decision_journal.py`
+  - `Select-String -Path tests\test_decision_journal.py,tests\test_reversing_loop.py -Pattern "decision_journal_report|dry_run|decision-journal-report|default_inspect|malformed"`
+- Open questions: none.
+
+### RSSET Packet And Gate Boundary
+
+- Files and functions inspected:
+  - `amiga_reversing/reversing_loop.py`
+  - `inspect_decision_journal`
+  - `inspect_rsset_candidates`
+  - `_rsset_evidence_packet_from_candidate`
+  - `_rsset_candidate_evidence_search`
+  - `_rsset_candidate_accepted_base_evidence_ref`
+- Call/data flow summary: `decision-journal-report` is the only
+  reversing-loop command that imports and calls the Decision Journal report.
+  RSSET candidate reporting still derives accepted base evidence from selected
+  use, same-displacement app-slot context, and Manual Action Log projection via
+  `manual_state`; it does not consult Decision Journal projection.
+- Command gate result: `rsset.binding.bind` remains blocked until a later issue
+  explicitly wires replayed accepted evidence into RSSET mutation gates.
+- Searches/commands used:
+  - `Select-String -Path amiga_reversing\reversing_loop.py -Pattern "decision_journal|decision-journal|Decision Journal"`
+  - `Select-String -Path amiga_reversing\reversing_loop.py -Pattern "selected_identity|selected_use_id|packet_id|rsset-packet|by_candidate|accepted_base"`
+- Open questions: none.
+
+### Manual Action Boundary
+
+- Files and functions inspected:
+  - `amiga_reversing/disasm/effective_metadata.py`
+  - `_apply_manual_seed_projection`
+  - `amiga_reversing/disasm/manual_actions.py`
+- Call/data flow summary: existing Manual Action Log projection remains the
+  legacy target-state path consumed by metadata/listing reload. Decision Journal
+  projection is read-only protocol state and is not passed into manual
+  projection, effective metadata, C analysis, renderer, verifier, or command
+  catalog code.
+- Replacement boundary: no old code was deleted because this issue only makes
+  replay state observable; replacement/cutover is deferred to later replay and
+  gate issues.
+- Searches/commands used:
+  - `Get-ChildItem -Path amiga_reversing -Recurse -File | Select-String -Pattern "manual_state|manual_actions|projection" -CaseSensitive`
+- Open questions: none.
+
+## Pandora Proof
+
+Temporary-project projection proof used the Pandora target id and RSSET packet
+`rsset-raw-a6:022E` at `s0:000006E4:op1`, with a temporary
+`decision_journal.jsonl` containing accept, defer, reject, and supersede
+records. The supersede record targeted the defer decision and included an
+informational forward `replacement_decision_id`.
+
+Key output:
+
+```text
+projection_valid=True
+accepted_ids=decision-accept
+deferred_ids=
+rejected_ids=decision-reject
+superseded_ids=decision-defer
+active_ids=decision-accept,decision-reject,decision-supersede
+candidate_keys=rsset-raw-a6:022E
+selected_keys=amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8:s0:000006E4:op1
+```
+
+Real-target RSSET gate proof remains unchanged:
+
+```text
+rsset safe_to_mutate=False
+top_id=rsset-raw-a6:022E
+top_status=blocked
+top_selected_addr=000006E4
+top_missing_gates=missing_accepted_base_evidence
+top_accepted_base_evidence_count=0
+```
+
+Real-target dry-run planner proof remains unchanged:
+
+```text
+dry_action=
+dry_action_result_status=not_run
+dry_planner_status=no_candidate
+dry_next_reason=no locator-backed command candidate
+```
+
+Validation:
+
+```text
+$env:UV_CACHE_DIR='C:\Data\R\git\claude-repos\amiga-reversing2\.uv-cache'; uv run python -m pytest tests\test_decision_journal.py tests\test_reversing_loop.py -q -k "decision_journal or inspect_cli_reports_json"
+23 passed, 323 deselected
+
+$env:UV_CACHE_DIR='C:\Data\R\git\claude-repos\amiga-reversing2\.uv-cache'; uv run ruff check amiga_reversing\disasm\decision_journal.py amiga_reversing\reversing_loop.py tests\test_decision_journal.py tests\test_reversing_loop.py
+All checks passed!
+```
+
+## Review Notes
+
+- C fact mutation: absent by construction; projection code lives only in
+  `decision_journal.py` and report wiring.
+- Render/verifier/round-trip: not applicable because no output-affecting source
+  path changed.
+- Next issue scope: wire the replayed projection into one selected read-only
+  consumer or gate query without enabling mutation until verifier and render
+  gates are present.
