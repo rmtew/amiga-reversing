@@ -1,6 +1,6 @@
 # 017-042: A5 Path/Lifetime Protocol Packet Refresh
 
-Status: active
+Status: completed
 
 ## Proposal Context
 
@@ -86,28 +86,47 @@ code, and out-of-scope sweep work.
 
 ## Research Coverage
 
-- [ ] Existing A5 reports checked.
-- [ ] Prior accepted A5 manual actions checked.
-- [ ] C reachability/clobber/lifetime sources checked.
-- [ ] Custom/app-base delta handling checked.
-- [ ] Command, renderer, verifier, and exact round-trip gates checked.
-- [ ] Listing-state-only blocked behavior checked.
+- [x] Existing A5 reports checked.
+- [x] Prior accepted A5 manual actions checked.
+- [x] C reachability/clobber/lifetime sources checked.
+- [x] Custom/app-base delta handling checked.
+- [x] Command, renderer, verifier, and exact round-trip gates checked.
+- [x] Listing-state-only blocked behavior checked.
 
 ## Research Review
 
-- [ ] Second pass checked trace blocks against named files/functions.
-- [ ] Cross-references searched for missed A5 hooks.
-- [ ] Old selected-slice behavior classified as reuse, replace, or deferred.
-- [ ] Proposal updated with model corrections or deferred follow-ups.
+- [x] Second pass checked trace blocks against named files/functions.
+- [x] Cross-references searched for missed A5 hooks.
+- [x] Old selected-slice behavior classified as reuse, replace, or deferred.
+- [x] Proposal updated with model corrections or deferred follow-ups.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before implementation.
-- [ ] Protocol delta implemented as described, or proposal updated.
-- [ ] Default behavior impact verified.
-- [ ] Old code deleted, or deferred deletion blocker recorded.
-- [ ] Evidence packet shape tested.
-- [ ] Decision/replay behavior tested where applicable.
-- [ ] Mutation stayed blocked unless every safe gate was proven.
-- [ ] Pandora proof recorded.
-- [ ] Post-commit review found no unresolved worthwhile findings.
+- [x] Proposal context checked before implementation.
+- [x] Protocol delta implemented as described, or proposal updated.
+- [x] Default behavior impact verified.
+- [x] Old code deleted, or deferred deletion blocker recorded.
+- [x] Evidence packet shape tested.
+- [x] Decision/replay behavior tested where applicable.
+- [x] Mutation stayed blocked unless every safe gate was proven.
+- [x] Pandora proof recorded.
+- [x] Post-commit review found no unresolved worthwhile findings.
+
+## Completion Evidence
+
+- Added read-only `a5_path_lifetime_evidence_packet` assembly in
+  `amiga_reversing/reversing_loop.py`, reusing the existing A5 CFG lifetime
+  report plus existing Manual Action Log state suppression.
+- Pandora accepted-existing proof: selected `s0:0000045C:op0`, source evidence
+  `a5-custom-cfg:h0:00000456->0000045C:op0:b0002+d0000`, status
+  `accepted_existing_manual_state`, blockers `already_recorded_in_manual_state`
+  and `missing_command_candidate`, with mutation still read-only.
+- Pandora blocked listing-state proof: selected `s0:000004E6:op1`, blockers
+  `call before selected use may clobber A5`,
+  `missing_accepted_path_lifetime_scope`, and `missing_command_candidate`.
+- Focused tests:
+  `test_a5_path_lifetime_packet_reports_existing_manual_state_without_mutation`
+  and the blocked packet assertions in
+  `test_a5_hardware_lifetime_report_marks_unknown_without_custom_definition`.
+- Verification: focused 369-test pytest run and changed-file `ruff check` both
+  passed.

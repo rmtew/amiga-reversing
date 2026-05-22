@@ -146,6 +146,46 @@ def test_orphan_code_candidate_without_durable_evidence_is_report_only(
     assert candidate["stop_reason"] == "orphan code candidate is report-only without durable control/data-flow evidence"
 
 
+def test_orphan_code_island_packet_exposes_range_evidence_and_blockers() -> None:
+    candidates = reversing_loop._candidate_work_items(
+        [
+            {
+                "kind": ReviewItemKind.ORPHAN_CODE_CANDIDATE,
+                "scope": ReviewItemScope.RANGE,
+                "state": ReviewItemState.OPEN,
+                "item_id": "orphan:h0:$00000010-$00000012",
+                "hunk": 0,
+                "start": 0x10,
+                "end": 0x12,
+                "ref_count": 0,
+                "message": "orphan code",
+                "orphan_code_score": {
+                    "category": "terminal_decode_only",
+                    "durable_evidence": [],
+                    "false_positive_checks": [],
+                },
+                "suggested_actions": [{"action": "create_manual_seed"}],
+            }
+        ]
+    )
+
+    packet = reversing_loop._orphan_code_island_packet_from_candidates(
+        "pandora",
+        candidates,
+        candidate_id="orphan:h0:$00000010-$00000012",
+    )
+
+    assert packet["packet_kind"] == "orphan_code_island_evidence_packet"
+    assert packet["selected_range"]["start"] == 0x10
+    assert packet["selected_range"]["end"] == 0x12
+    assert packet["evidence_lanes"]["potential_incoming_control_flow"]["status"] == "unknown"
+    assert packet["evidence_lanes"]["overlap"]["status"] == "unknown"
+    assert "missing_direct_xref_evidence" in packet["blockers"]
+    assert "missing_exact_round_trip_gate" in packet["blockers"]
+    assert packet["safe_next_actions"][0]["action"] == "create_manual_seed"
+    assert packet["safe_to_mutate"] is False
+
+
 def test_inspect_unsafe_hygiene_blocks_mutation_readiness(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -252,6 +292,70 @@ def test_decision_journal_report_cli_includes_projection_without_mutating(tmp_pa
     assert payload["projection"]["by_selected_identity"]["pandora:s0:000006E4:op1"]["accepted_facts"] == [record]
     assert (target_dir / "decision_journal.jsonl").read_text(encoding="utf-8") == before
     assert not (target_dir / "manual_actions.jsonl").exists()
+
+
+def test_decision_journal_report_includes_diff_replay_audit(tmp_path: Path) -> None:
+    target_dir = _target(tmp_path)
+    record = _decision_journal_record("accept_fact", decision_id="decision-accept")
+    decision_journal.append_decision_record(target_dir, record)
+
+    report = decision_journal.decision_journal_report(target_dir)
+    audit = report["audit"]["records"][0]
+
+    assert audit["decision_id"] == "decision-accept"
+    assert audit["state"] == "active"
+    assert audit["candidate_id"] == "rsset-raw-a6:022E"
+    assert audit["evidence_refs"][0]["identity_match"] is True
+    assert audit["replay"] == {"status": "source_effective", "semantic_reload": "projected"}
+    assert audit["rendered_source_effect"]["status"] == "source_effective"
+    assert [layer["layer"] for layer in audit["verifier_layers"]] == [
+        "decision_journal",
+        "semantic_reload",
+        "generated_source",
+        "exact_round_trip",
+    ]
+    assert audit["blockers"] == []
+
+
+def test_decision_journal_audit_classifies_superseded_deferred_and_rejected() -> None:
+    accept = _decision_journal_record("accept_fact", decision_id="decision-accept")
+    defer = _decision_journal_record("defer_fact", decision_id="decision-defer")
+    reject = _decision_journal_record("reject_fact", decision_id="decision-reject")
+    projection = _decision_projection(accept, defer, reject)
+    records = [accept, defer, reject]
+    supersede = {
+        "schema": decision_journal.DECISION_JOURNAL_SCHEMA,
+        "decision_id": "decision-supersede",
+        "prev": f"sha256:{decision_journal.decision_record_hash(records[-1])}",
+        "created_at": "2026-05-22T00:00:00+00:00",
+        "actor": {"kind": "llm"},
+        "action": "supersede_decision",
+        "packet_id": "rsset-packet:rsset-raw-a6:022E:s0:000006E4:op1",
+        "candidate_id": "rsset-raw-a6:022E",
+        "selected_identity": {"target_id": "pandora", "segment_id": "s0", "hunk": 0, "addr": 0x6E4, "operand_index": 1},
+        "evidence_refs": ["rsset-packet:rsset-raw-a6:022E:s0:000006E4:op1"],
+        "conflicts": [],
+        "supersedes_decision_id": "decision-accept",
+        "supersession_reason": "fixture replacement",
+    }
+    records.append(supersede)
+    readback = {
+        "valid": True,
+        "diagnostics": [],
+        "validation": {
+            **projection,
+            "valid": True,
+            "active_decision_ids": ["decision-defer", "decision-reject", "decision-supersede"],
+            "superseded_decision_ids": ["decision-accept"],
+        },
+    }
+
+    audit = decision_journal.decision_journal_audit(records, readback)
+    states = {record["decision_id"]: record["state"] for record in audit["records"]}
+
+    assert states["decision-accept"] == "superseded"
+    assert states["decision-defer"] == "deferred"
+    assert states["decision-reject"] == "rejected"
 
 
 def test_decision_journal_report_does_not_change_default_inspect(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -7148,6 +7252,36 @@ def test_immediate_runtime_reference_report_keeps_source_offset_matches_report_o
     }
 
 
+def test_source_offset_immediate_packet_keeps_same_literal_report_only() -> None:
+    data_row = _listing_row(row_key="data-row", kind="data", start_offset=0x107C, end_offset=0x1082)
+    candidates = reversing_loop._listing_immediate_runtime_reference_report(
+        [_immediate_address_row(value=0x1080), data_row]
+    )
+
+    packet = reversing_loop._source_offset_immediate_packet_from_candidates(
+        "pandora",
+        candidates,
+        candidate_id="immediate-runtime-ref:code-row:0:00001080",
+    )
+
+    assert packet["packet_kind"] == "source_offset_immediate_evidence_packet"
+    assert packet["candidate_family"] == "source_offset_immediate"
+    assert packet["selected_identity"]["selected_use_id"] == "s0:00000020:op0"
+    assert packet["literal"]["value"] == 0x1080
+    assert packet["literal"]["width_bytes"] == 4
+    assert packet["evidence_lanes"]["possible_interpretations"][0]["kind"] == "source_offset"
+    assert packet["evidence_lanes"]["same_literal_context"]["status"] == "report_only"
+    assert packet["conflicts"] == {"status": "none_reported", "explicit_empty": True, "items": []}
+    assert packet["blockers"] == [
+        "same_literal_only_not_durable_provenance",
+        "missing_accepted_runtime_address_provenance",
+        "missing_source_offset_decision_replay_support",
+        "missing_source_offset_render_verifier_gate",
+    ]
+    assert packet["command_gate"]["enabled"] is False
+    assert packet["safe_to_mutate"] is False
+
+
 def test_immediate_runtime_reference_report_surfaces_conflicting_ranges() -> None:
     first = _listing_row(row_key="data-row-1", kind="data", start_offset=0x120, end_offset=0x140)
     first["runtime_address"] = 0x5C720
@@ -7276,6 +7410,43 @@ def test_a5_hardware_lifetime_report_suppresses_existing_manual_ref_candidate() 
     }
 
 
+def test_a5_path_lifetime_packet_reports_existing_manual_state_without_mutation() -> None:
+    report = reversing_loop._listing_a5_hardware_lifetime_report(
+        [
+            _a5_definition_row(custom=True),
+            _a5_use_row(displacement=0x96),
+        ]
+    )
+    source_evidence_id = report["cfg_path_lifetime_report"]["uses"][0]["source_evidence_id"]
+    updated = reversing_loop._a5_hardware_lifetime_report_with_existing_refs(
+        report,
+        {
+            source_evidence_id: {
+                "a5_hardware_ref_id": f"a5-hw:{source_evidence_id}",
+                "source_evidence_id": source_evidence_id,
+                "source_evidence_status": "accepted",
+                "owner_action_id": "manual-a5",
+            }
+        },
+    )
+
+    packet = reversing_loop._a5_path_lifetime_packet_from_report(
+        "pandora",
+        updated,
+        selected_use_id="s0:00000040:op0",
+    )
+
+    assert packet["packet_kind"] == "a5_path_lifetime_evidence_packet"
+    assert packet["status"] == "accepted_existing_manual_state"
+    assert packet["selected_identity"]["base_register"] == "A5"
+    assert packet["evidence_lanes"]["base_setup"]["computed_base_expression"] == "_custom"
+    assert packet["evidence_lanes"]["path_lifetime"]["cfg_reachability"] == "straight_line_cfg"
+    assert packet["evidence_lanes"]["existing_manual_state"]["owner_action_id"] == "manual-a5"
+    assert packet["blockers"] == ["already_recorded_in_manual_state", "missing_command_candidate"]
+    assert packet["command_gate"]["enabled"] is False
+    assert packet["safe_to_mutate"] is False
+
+
 def test_a5_hardware_lifetime_report_accounts_for_custom_base_offset() -> None:
     report = reversing_loop._listing_a5_hardware_lifetime_report(
         [
@@ -7348,6 +7519,15 @@ def test_a5_hardware_lifetime_report_marks_unknown_without_custom_definition() -
     assert report["uses"][0]["lifetime_status"]["status"] == "unknown"
     assert report["uses"][0]["lifetime_status"]["path_lifetime_status"] == "unknown"
     assert report["lifetimes"] == [{"status": "unknown", "definition_count": 0, "use_count": 1}]
+
+    packet = reversing_loop._a5_path_lifetime_packet_from_report(
+        "pandora",
+        report,
+        selected_use_id="s0:00000040:op0",
+    )
+    assert packet["status"] == "blocked"
+    assert "missing_accepted_path_lifetime_scope" in packet["blockers"]
+    assert "missing_command_candidate" in packet["blockers"]
 
 
 def test_a5_hardware_lifetime_report_marks_clobber_and_conflicting_offset() -> None:

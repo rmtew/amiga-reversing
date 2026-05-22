@@ -1092,3 +1092,29 @@ repeatable work to `docs\issues\017-*`.
   catalog context, appended one scoped `rsset_use_site_binding`, verified the
   selected rendered source and exact round-trip, and left the selected report as
   `already_recorded`/`already_satisfied` with no duplicate mutation authority.
+- 017-041 added a read-only source-offset immediate evidence packet over the
+  existing immediate-reference report. Pandora `s0:000009A6:op0`
+  (`addi.w #4224,d1`) now reports selected identity, literal width/syntax,
+  possible source-offset interpretation, landing/dataflow lanes, explicit
+  blockers, and a disabled `immediate_ref.interpret` gate. Same-literal
+  evidence remains report-only and no mutation path was exposed.
+- 017-042 added a read-only A5 path/lifetime evidence packet over the existing
+  A5 CFG lifetime report. Pandora `s0:0000045C:op0` shows accepted existing
+  Manual Action Log state and `s0:000004E6:op1` shows listing-state blockage
+  from a possible A5 clobber before use; neither packet exposes fresh mutation.
+- 017-043 added a Decision Journal audit result to
+  `decision-journal-report`. The real Pandora
+  `decision-rsset-022e-accept-017-040` audit is active and source-effective
+  after replay, with evidence-ref identity matching, rendered-source effect,
+  verifier layers, and no blockers, while fixture coverage proves superseded,
+  deferred, rejected, and malformed classifications.
+- 017-044 added a read-only orphan/code-island/data-range packet surface over
+  manual review and listing-backed data-symbol candidates. The selected Pandora
+  proof used real string data-range candidate `s0:000010F3-$00001113`; it is
+  explicit packet evidence with blocked `data_symbol.rename` next action, not
+  hidden auto-classification.
+- 017-045 added `amiga_reversing.tools.validate_017_issues` as a local
+  protocol sign-off validator for `017-*` Markdown. It validates status,
+  proposal reference, required sections, completed checkboxes, completion
+  evidence, and superseded replacement/reason without rewriting files; 017-039
+  and 017-040 are passing examples.

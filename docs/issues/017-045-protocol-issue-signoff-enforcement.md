@@ -1,6 +1,6 @@
 # 017-045: Protocol Issue Sign-Off Enforcement
 
-Status: active
+Status: completed
 
 ## Proposal Context
 
@@ -72,25 +72,43 @@ historical exception kept out of scope.
 
 ## Research Coverage
 
-- [ ] Current `017-*` status vocabulary checked.
-- [ ] Required issue sections checked against proposal protocol.
-- [ ] Historical variations and superseded issue handling checked.
-- [ ] Existing docs/test/tooling patterns checked.
-- [ ] Passing and failing examples planned.
+- [x] Current `017-*` status vocabulary checked.
+- [x] Required issue sections checked against proposal protocol.
+- [x] Historical variations and superseded issue handling checked.
+- [x] Existing docs/test/tooling patterns checked.
+- [x] Passing and failing examples planned.
 
 ## Research Review
 
-- [ ] Second pass checked trace blocks against named files/functions.
-- [ ] Cross-references searched for existing markdown validation helpers.
-- [ ] Historical exception list reviewed for pure churn risk.
-- [ ] Proposal updated with validation rules or deferred follow-ups.
+- [x] Second pass checked trace blocks against named files/functions.
+- [x] Cross-references searched for existing markdown validation helpers.
+- [x] Historical exception list reviewed for pure churn risk.
+- [x] Proposal updated with validation rules or deferred follow-ups.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before implementation.
-- [ ] Protocol delta implemented as described, or proposal updated.
-- [ ] Default behavior impact verified.
-- [ ] Old code deleted, or deferred deletion blocker recorded.
-- [ ] Validator behavior tested.
-- [ ] No file rewrite behavior tested.
-- [ ] Post-commit review found no unresolved worthwhile findings.
+- [x] Proposal context checked before implementation.
+- [x] Protocol delta implemented as described, or proposal updated.
+- [x] Default behavior impact verified.
+- [x] Old code deleted, or deferred deletion blocker recorded.
+- [x] Validator behavior tested.
+- [x] No file rewrite behavior tested.
+- [x] Post-commit review found no unresolved worthwhile findings.
+
+## Completion Evidence
+
+- Added `amiga_reversing.tools.validate_017_issues`, a read-only local
+  validator for `017-*` issue Markdown. It checks status vocabulary, proposal
+  reference, required protocol sections for protocol-era issues, completed
+  checklist closure, completion evidence, and superseded replacement/reason.
+- Historical exception is narrow: `017-001` through `017-038` predate this
+  validator's enforced completion-evidence shape, while `017-039+` are
+  validated against it.
+- Required passing examples verified:
+  `uv run python -m amiga_reversing.tools.validate_017_issues docs\issues\017-039-rsset-journal-backed-safe-mutation.md docs\issues\017-040-pandora-rsset-journal-accept-evidence.md`
+  exited 0 with no file rewrite.
+- Fixture tests cover passing completed issue, active unchecked issue,
+  completed unchecked failure, missing section failure, superseded
+  replacement/reason failure, and no-rewrite CLI behavior.
+- Verification: focused 369-test pytest run and changed-file `ruff check` both
+  passed.

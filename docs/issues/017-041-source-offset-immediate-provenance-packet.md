@@ -1,6 +1,6 @@
 # 017-041: Source-Offset Immediate Provenance Packet
 
-Status: active
+Status: completed
 
 ## Proposal Context
 
@@ -86,29 +86,45 @@ deleted or deferred.
 
 ## Research Coverage
 
-- [ ] Existing immediate-reference reports checked.
-- [ ] C/Python ownership of operand identity checked.
-- [ ] Literal width/signedness source checked.
-- [ ] Source-offset/runtime-address interpretation path checked.
-- [ ] Landing range and downstream dataflow sources checked.
-- [ ] Command, renderer, verifier, and exact round-trip gates checked.
-- [ ] Default planner behavior checked.
+- [x] Existing immediate-reference reports checked.
+- [x] C/Python ownership of operand identity checked.
+- [x] Literal width/signedness source checked.
+- [x] Source-offset/runtime-address interpretation path checked.
+- [x] Landing range and downstream dataflow sources checked.
+- [x] Command, renderer, verifier, and exact round-trip gates checked.
+- [x] Default planner behavior checked.
 
 ## Research Review
 
-- [ ] Second pass checked trace blocks against named files/functions.
-- [ ] Cross-references searched for missed immediate-reference hooks.
-- [ ] Same-literal-only false promotion risk reviewed.
-- [ ] Proposal updated with model corrections or deferred follow-ups.
+- [x] Second pass checked trace blocks against named files/functions.
+- [x] Cross-references searched for missed immediate-reference hooks.
+- [x] Same-literal-only false promotion risk reviewed.
+- [x] Proposal updated with model corrections or deferred follow-ups.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before implementation.
-- [ ] Protocol delta implemented as described, or proposal updated.
-- [ ] Default behavior impact verified.
-- [ ] Old code deleted, or deferred deletion blocker recorded.
-- [ ] Evidence packet shape tested.
-- [ ] Decision/replay behavior tested where applicable.
-- [ ] Mutation stayed blocked unless every safe gate was proven.
-- [ ] Pandora proof recorded.
-- [ ] Post-commit review found no unresolved worthwhile findings.
+- [x] Proposal context checked before implementation.
+- [x] Protocol delta implemented as described, or proposal updated.
+- [x] Default behavior impact verified.
+- [x] Old code deleted, or deferred deletion blocker recorded.
+- [x] Evidence packet shape tested.
+- [x] Decision/replay behavior tested where applicable.
+- [x] Mutation stayed blocked unless every safe gate was proven.
+- [x] Pandora proof recorded.
+- [x] Post-commit review found no unresolved worthwhile findings.
+
+## Completion Evidence
+
+- Added read-only `source_offset_immediate_evidence_packet` assembly in
+  `amiga_reversing/reversing_loop.py`, reusing existing immediate-reference
+  report rows and leaving default report/planner mutation behavior unchanged.
+- Pandora proof command selected `s0:000009A6:op0` /
+  `addi.w #4224,d1`: packet status `blocked`, source family `source_offset`,
+  blockers `same_literal_only_not_durable_provenance`,
+  `missing_accepted_runtime_address_provenance`,
+  `missing_source_offset_decision_replay_support`, and
+  `missing_source_offset_render_verifier_gate`; report mutation gate stayed
+  `safe_to_mutate=false` with 9 report-only candidates.
+- Focused tests: `test_source_offset_immediate_packet_keeps_same_literal_report_only`.
+- Verification: `uv run python -m pytest tests\test_reversing_loop.py tests\test_decision_journal.py tests\test_validate_017_issues.py -q`
+  passed with 369 tests; changed-file `ruff check` passed.

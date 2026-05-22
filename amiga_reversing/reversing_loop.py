@@ -521,6 +521,71 @@ def query_rsset_evidence_packet(
     )
 
 
+def query_source_offset_immediate_packet(
+    target_id: str,
+    *,
+    candidate_id: str,
+    listing_timeout_seconds: float = 10.0,
+    project_root: Path = PROJECT_ROOT,
+) -> dict[str, object]:
+    report = inspect_immediate_runtime_refs(
+        target_id,
+        listing_timeout_seconds=listing_timeout_seconds,
+        project_root=project_root,
+    )
+    candidates = report.get("immediate_reference_candidates")
+    if not isinstance(candidates, Sequence) or isinstance(candidates, str):
+        candidates = []
+    return _source_offset_immediate_packet_from_candidates(
+        target_id,
+        [candidate for candidate in candidates if isinstance(candidate, Mapping)],
+        candidate_id=candidate_id,
+    )
+
+
+def query_a5_path_lifetime_packet(
+    target_id: str,
+    *,
+    selected_use_id: str,
+    listing_timeout_seconds: float = 10.0,
+    project_root: Path = PROJECT_ROOT,
+) -> dict[str, object]:
+    report = inspect_a5_hardware_lifetimes(
+        target_id,
+        listing_timeout_seconds=listing_timeout_seconds,
+        project_root=project_root,
+    )
+    lifetime_report = report.get("a5_hardware_lifetimes")
+    if not isinstance(lifetime_report, Mapping):
+        lifetime_report = _empty_a5_hardware_lifetime_report()
+    return _a5_path_lifetime_packet_from_report(
+        target_id,
+        lifetime_report,
+        selected_use_id=selected_use_id,
+    )
+
+
+def query_orphan_code_island_packet(
+    target_id: str,
+    *,
+    candidate_id: str,
+    project_root: Path = PROJECT_ROOT,
+) -> dict[str, object]:
+    report = _inspect_report_with_listing_candidates(
+        target_id,
+        inspect_target(target_id, project_root=project_root),
+        project_root=project_root,
+    )
+    candidates = report.get("candidate_work")
+    if not isinstance(candidates, Sequence) or isinstance(candidates, str):
+        candidates = []
+    return _orphan_code_island_packet_from_candidates(
+        target_id,
+        [candidate for candidate in candidates if isinstance(candidate, Mapping)],
+        candidate_id=candidate_id,
+    )
+
+
 def run_listing_backed_label_rename_iteration(
     target_id: str,
     *,
@@ -2077,6 +2142,207 @@ def _immediate_reference_candidate_is_command_backed(candidate: Mapping[str, obj
     )
 
 
+def _source_offset_immediate_packet_from_candidates(
+    target_id: str,
+    candidates: Sequence[Mapping[str, object]],
+    *,
+    candidate_id: str,
+) -> dict[str, object]:
+    for candidate in candidates:
+        if candidate.get("candidate_id") == candidate_id:
+            return _source_offset_immediate_packet_from_candidate(target_id, candidate)
+    return {
+        "packet_kind": "source_offset_immediate_evidence_packet",
+        "schema_version": 1,
+        "target_id": target_id,
+        "candidate_id": candidate_id,
+        "status": "not_found",
+        "safe_to_mutate": False,
+        "mutation_policy": "read_only",
+    }
+
+
+def _source_offset_immediate_packet_from_candidate(
+    target_id: str,
+    candidate: Mapping[str, object],
+) -> dict[str, object]:
+    instruction = candidate.get("instruction_context")
+    instruction = instruction if isinstance(instruction, Mapping) else {}
+    locator = instruction.get("locator")
+    locator = locator if isinstance(locator, Mapping) else {}
+    candidate_id = str(candidate.get("candidate_id") or candidate.get("id") or "")
+    identity = _immediate_packet_selected_identity(target_id, candidate_id, instruction, locator)
+    interpretations = _immediate_packet_interpretations(candidate)
+    command_backed = _immediate_reference_candidate_is_command_backed(candidate)
+    blockers = _source_offset_immediate_packet_blockers(candidate, command_backed)
+    status = "blocked" if blockers else "accepted"
+    return {
+        "packet_kind": "source_offset_immediate_evidence_packet",
+        "schema_version": 1,
+        "packet_id": f"source-offset-immediate-packet:{candidate_id}",
+        "target_id": target_id,
+        "candidate_id": candidate_id,
+        "candidate_family": "source_offset_immediate",
+        "status": status,
+        "selected_identity": identity,
+        "literal": {
+            "value": instruction.get("value"),
+            "value_hex": f"{instruction['value']:X}" if isinstance(instruction.get("value"), int) else None,
+            "width_bits": instruction.get("width_bits"),
+            "width_bytes": instruction.get("width_bytes"),
+            "signedness": "unknown",
+            "syntax": instruction.get("operand_text"),
+        },
+        "evidence_lanes": {
+            "instruction": dict(instruction),
+            "possible_interpretations": interpretations,
+            "landing_range": _source_offset_immediate_landing_range(candidate, interpretations),
+            "local_dataflow": _source_offset_immediate_dataflow(candidate),
+            "downstream_dataflow": {"status": "unavailable", "blocker": "downstream dataflow query is not available"},
+            "same_literal_context": {
+                "status": "report_only",
+                "reason": "same literal matches do not prove source-offset provenance",
+            },
+        },
+        "conflicts": _source_offset_immediate_conflict_state(candidate),
+        "blockers": blockers,
+        "render_intent": {
+            "intent": "renders" if command_backed else "analysis_only",
+            "status": "blocked" if blockers else "ready",
+            "render_effect": "none",
+            "future_render_effect": "selected_operand_only",
+        },
+        "command_gate": {
+            "command_id": "immediate_ref.interpret",
+            "enabled": command_backed and not blockers,
+            "safe_to_mutate": command_backed and not blockers,
+            "missing_gates": blockers,
+        },
+        "decision": {
+            "writes_enabled": False,
+            "available_actions": ["accept_fact", "defer_fact", "reject_fact"],
+            "state": "read_only_metadata",
+        },
+        "safe_to_mutate": False,
+        "mutation_policy": "read_only",
+    }
+
+
+def _immediate_packet_selected_identity(
+    target_id: str,
+    candidate_id: str,
+    instruction: Mapping[str, object],
+    locator: Mapping[str, object],
+) -> dict[str, object]:
+    hunk = _int_or_none(locator.get("section_index")) or 0
+    addr = _int_or_none(locator.get("start_offset"))
+    operand_index = _int_or_none(instruction.get("operand_index"))
+    identity: dict[str, object] = {
+        "target_id": target_id,
+        "segment_id": f"s{hunk}",
+        "hunk": hunk,
+        "candidate_id": candidate_id,
+    }
+    if addr is not None:
+        identity["addr"] = addr
+        identity["address_hex"] = f"{addr:08X}"
+        identity["selected_use_id"] = f"s{hunk}:{addr:08X}:op{operand_index}" if operand_index is not None else f"s{hunk}:{addr:08X}"
+    if operand_index is not None:
+        identity["operand_index"] = operand_index
+    for key in ("row_key", "element_id", "width_bytes", "width_bits", "opcode"):
+        value = instruction.get(key)
+        if value is not None:
+            identity[key] = value
+    return identity
+
+
+def _immediate_packet_interpretations(candidate: Mapping[str, object]) -> list[dict[str, object]]:
+    matches: list[dict[str, object]] = []
+    conflicts = candidate.get("conflicts")
+    if isinstance(conflicts, Sequence) and not isinstance(conflicts, str) and conflicts:
+        matches.extend(dict(item) for item in conflicts if isinstance(item, Mapping))
+    source_range = candidate.get("source_range")
+    if not matches and isinstance(source_range, Mapping):
+        matches.append(dict(source_range))
+    interpretations: list[dict[str, object]] = []
+    for match in matches:
+        target = match.get("target")
+        target = target if isinstance(target, Mapping) else {}
+        interpretations.append(
+            {
+                "kind": match.get("source_family"),
+                "source_offset": target.get("source_offset"),
+                "runtime_address": target.get("runtime_address"),
+                "source_range": match,
+                "provenance": "range_match_only",
+                "durable": False,
+            }
+        )
+    return interpretations
+
+
+def _source_offset_immediate_landing_range(
+    candidate: Mapping[str, object],
+    interpretations: Sequence[Mapping[str, object]],
+) -> dict[str, object]:
+    target = candidate.get("target")
+    target = target if isinstance(target, Mapping) else {}
+    source_range = candidate.get("source_range")
+    source_range = source_range if isinstance(source_range, Mapping) else {}
+    return {
+        "target": dict(target),
+        "classification": source_range.get("classification") or source_range.get("row_kind") or "unknown",
+        "inside_loaded_binary": bool(interpretations),
+        "source_range": dict(source_range),
+    }
+
+
+def _source_offset_immediate_dataflow(candidate: Mapping[str, object]) -> dict[str, object]:
+    render_state = candidate.get("current_render_state")
+    render_state = render_state if isinstance(render_state, Mapping) else {}
+    return {
+        "status": "listing_instruction_only",
+        "opcode": (candidate.get("instruction_context") or {}).get("opcode")
+        if isinstance(candidate.get("instruction_context"), Mapping)
+        else None,
+        "operand_text": render_state.get("operand_text"),
+        "row_text": render_state.get("text"),
+    }
+
+
+def _source_offset_immediate_conflict_state(candidate: Mapping[str, object]) -> dict[str, object]:
+    conflicts = candidate.get("conflicts")
+    if isinstance(conflicts, Sequence) and not isinstance(conflicts, str) and conflicts:
+        return {"status": "conflicting", "explicit_empty": False, "items": list(conflicts)}
+    if candidate.get("source_family") == "source_offset":
+        return {"status": "none_reported", "explicit_empty": True, "items": []}
+    return {"status": "unknown", "explicit_empty": False, "items": []}
+
+
+def _source_offset_immediate_packet_blockers(
+    candidate: Mapping[str, object],
+    command_backed: bool,
+) -> list[str]:
+    blockers: list[str] = []
+    source_family = candidate.get("source_family")
+    if source_family == "source_offset":
+        blockers.extend(
+            [
+                "same_literal_only_not_durable_provenance",
+                "missing_accepted_runtime_address_provenance",
+                "missing_source_offset_decision_replay_support",
+                "missing_source_offset_render_verifier_gate",
+            ]
+        )
+    elif source_family == "ambiguous" or candidate.get("status") == "conflicting":
+        blockers.extend(["conflicting_immediate_interpretations", "missing_selected_interpretation_decision"])
+    elif not command_backed:
+        policy = candidate.get("write_policy")
+        reason = policy.get("reason") if isinstance(policy, Mapping) else None
+        blockers.append(str(reason or "missing_immediate_reference_command_gate"))
+    return blockers
+
+
 def _listing_a5_hardware_lifetime_report(rows: list[object]) -> dict[str, object]:
     definitions: list[dict[str, object]] = []
     uses: list[dict[str, object]] = []
@@ -2410,6 +2676,166 @@ def _existing_a5_hardware_ref_for_candidate(
         if isinstance(value, str) and value in existing_refs:
             return existing_refs[value]
     return None
+
+
+def _a5_path_lifetime_packet_from_report(
+    target_id: str,
+    lifetime_report: Mapping[str, object],
+    *,
+    selected_use_id: str,
+) -> dict[str, object]:
+    cfg_report = lifetime_report.get("cfg_path_lifetime_report")
+    uses = cfg_report.get("uses") if isinstance(cfg_report, Mapping) else None
+    if not isinstance(uses, Sequence) or isinstance(uses, str):
+        uses = []
+    selected = _a5_path_lifetime_packet_selected_use(uses, selected_use_id)
+    if selected is None:
+        return {
+            "packet_kind": "a5_path_lifetime_evidence_packet",
+            "schema_version": 1,
+            "target_id": target_id,
+            "selected_use_query": selected_use_id,
+            "status": "selected_use_not_found",
+            "safe_to_mutate": False,
+            "mutation_policy": "read_only",
+        }
+    return _a5_path_lifetime_packet_from_use(target_id, selected)
+
+
+def _a5_path_lifetime_packet_selected_use(
+    uses: Sequence[object],
+    selected_use_id: str,
+) -> dict[str, object] | None:
+    query = _parse_rsset_selected_use_id(selected_use_id)
+    for raw_use in uses:
+        if not isinstance(raw_use, Mapping):
+            continue
+        use = dict(raw_use)
+        identity = _a5_path_lifetime_selected_identity("", use)
+        if _rsset_selected_identity_matches_query(identity, query) or identity.get("selected_use_id") == selected_use_id:
+            return use
+    return None
+
+
+def _a5_path_lifetime_packet_from_use(
+    target_id: str,
+    use: Mapping[str, object],
+) -> dict[str, object]:
+    identity = _a5_path_lifetime_selected_identity(target_id, use)
+    blockers = _a5_path_lifetime_packet_blockers(use)
+    command_backed = _a5_hardware_candidate_is_command_backed(use)
+    existing_manual = use.get("existing_manual_state")
+    accepted = use.get("status") == "accepted_custom_base"
+    status = "accepted" if accepted and not blockers else "blocked"
+    if isinstance(existing_manual, Mapping) and accepted:
+        status = "accepted_existing_manual_state"
+    return {
+        "packet_kind": "a5_path_lifetime_evidence_packet",
+        "schema_version": 1,
+        "packet_id": f"a5-path-lifetime-packet:{identity.get('selected_use_id', 'unknown')}",
+        "target_id": target_id,
+        "candidate_family": "a5_hardware_base",
+        "status": status,
+        "selected_identity": identity,
+        "evidence_lanes": {
+            "base_setup": {
+                "base_register": "A5",
+                "definition_locator": use.get("definition_locator"),
+                "computed_base_expression": _a5_computed_base_expression(use),
+                "custom_base_offset": use.get("custom_base_offset", 0),
+            },
+            "path_lifetime": {
+                "scope": use.get("path_lifetime_scope"),
+                "cfg_reachability": "straight_line_cfg" if accepted else "unproven",
+                "a5_clobber_before_use": False if accepted else "unknown",
+                "lifetime_end": "selected_use",
+                "blockers": use.get("blockers", []),
+            },
+            "custom_delta": {
+                "displacement": use.get("displacement"),
+                "hardware_register_offset": use.get("hardware_register_offset"),
+                "symbol": (use.get("parameters") or {}).get("symbol") if isinstance(use.get("parameters"), Mapping) else None,
+            },
+            "existing_manual_state": dict(existing_manual) if isinstance(existing_manual, Mapping) else None,
+        },
+        "conflicts": {"status": "none", "explicit_empty": True, "items": []}
+        if accepted
+        else {"status": "unknown", "explicit_empty": False, "items": []},
+        "blockers": blockers,
+        "render_intent": {
+            "intent": "renders",
+            "status": "ready" if command_backed else "blocked",
+            "render_mode": use.get("render_mode"),
+            "unsafe_forms": _a5_path_lifetime_unsafe_forms(use),
+            "future_render_effect": "selected_operand_or_entry_comment",
+        },
+        "verifier_plan": {
+            "generated_source": {"status": "available" if command_backed else "blocked"},
+            "exact_round_trip": {"status": "required_for_output_affecting_mutation"},
+            "verifier": _A5_HARDWARE_REF_VERIFIER,
+        },
+        "command_gate": {
+            "command_id": "a5_hardware_ref.interpret",
+            "enabled": command_backed and not blockers,
+            "safe_to_mutate": command_backed and not blockers,
+            "missing_gates": blockers,
+        },
+        "decision": {
+            "writes_enabled": False,
+            "available_actions": ["accept_fact", "defer_fact", "reject_fact"],
+            "state": "read_only_metadata",
+        },
+        "safe_to_mutate": False,
+        "mutation_policy": "read_only",
+    }
+
+
+def _a5_path_lifetime_selected_identity(target_id: str, use: Mapping[str, object]) -> dict[str, object]:
+    locator = use.get("use_locator")
+    locator = locator if isinstance(locator, Mapping) else {}
+    hunk = _int_or_none(locator.get("section_index")) or 0
+    addr = _int_or_none(locator.get("start_offset"))
+    operand_index = _int_or_none(use.get("operand_index"))
+    identity: dict[str, object] = {
+        "target_id": target_id,
+        "segment_id": f"s{hunk}",
+        "hunk": hunk,
+        "base_register": "A5",
+    }
+    if addr is not None:
+        identity["addr"] = addr
+        identity["address_hex"] = f"{addr:08X}"
+        identity["selected_use_id"] = f"s{hunk}:{addr:08X}:op{operand_index}" if operand_index is not None else f"s{hunk}:{addr:08X}"
+    if operand_index is not None:
+        identity["operand_index"] = operand_index
+    for key in ("displacement", "custom_base_offset", "hardware_register_offset", "source_evidence_id"):
+        value = use.get(key)
+        if value is not None:
+            identity[key] = value
+    return identity
+
+
+def _a5_computed_base_expression(use: Mapping[str, object]) -> str:
+    offset = _int_or_none(use.get("custom_base_offset")) or 0
+    return "_custom" if offset == 0 else f"_custom+${offset:04X}"
+
+
+def _a5_path_lifetime_unsafe_forms(use: Mapping[str, object]) -> list[str]:
+    blocker = use.get("symbol_operand_blocked_reason")
+    if isinstance(blocker, str) and blocker:
+        return ["address_mode_changing_symbol_operand"]
+    return []
+
+
+def _a5_path_lifetime_packet_blockers(use: Mapping[str, object]) -> list[str]:
+    blockers = list(_string_sequence(use.get("blockers")))
+    if use.get("status") != "accepted_custom_base":
+        blockers.append("missing_accepted_path_lifetime_scope")
+    if isinstance(use.get("existing_manual_state"), Mapping):
+        blockers.append("already_recorded_in_manual_state")
+    if not _a5_hardware_candidate_is_command_backed(use):
+        blockers.append("missing_command_candidate")
+    return sorted(set(blockers))
 
 
 def _a5_hardware_ref_parameters(candidate: Mapping[str, object]) -> dict[str, object] | None:
@@ -5684,6 +6110,127 @@ def _candidate_work_items(raw_items: object) -> list[dict[str, object]]:
             candidate["suggested_comment_text"] = suggested_comment_text
         candidates.append(candidate)
     return candidates
+
+
+def _orphan_code_island_packet_from_candidates(
+    target_id: str,
+    candidates: Sequence[Mapping[str, object]],
+    *,
+    candidate_id: str,
+) -> dict[str, object]:
+    for candidate in candidates:
+        if candidate.get("candidate_id") == candidate_id or candidate.get("durable_id") == candidate_id:
+            return _orphan_code_island_packet_from_candidate(target_id, candidate)
+    return {
+        "packet_kind": "orphan_code_island_evidence_packet",
+        "schema_version": 1,
+        "target_id": target_id,
+        "candidate_id": candidate_id,
+        "status": "not_found",
+        "safe_to_mutate": False,
+        "mutation_policy": "read_only",
+    }
+
+
+def _orphan_code_island_packet_from_candidate(
+    target_id: str,
+    candidate: Mapping[str, object],
+) -> dict[str, object]:
+    locator = candidate.get("locator")
+    locator = locator if isinstance(locator, Mapping) else {}
+    evidence = candidate.get("evidence")
+    evidence = evidence if isinstance(evidence, Mapping) else {}
+    blockers = _orphan_code_island_packet_blockers(candidate)
+    status = "action_ready" if candidate.get("actionable") is True and not blockers else "blocked"
+    candidate_id = str(candidate.get("candidate_id") or candidate.get("durable_id") or "")
+    candidate_family = "ambiguous_data_range" if candidate.get("kind") == "data_symbol_name" else "orphan_code_island"
+    return {
+        "packet_kind": "orphan_code_island_evidence_packet",
+        "schema_version": 1,
+        "packet_id": f"orphan-code-island-packet:{candidate_id}",
+        "target_id": target_id,
+        "candidate_id": candidate_id,
+        "candidate_family": candidate_family,
+        "status": status,
+        "selected_range": {
+            "target_id": target_id,
+            "hunk": locator.get("section_index"),
+            "segment_id": f"s{locator.get('section_index') or 0}",
+            "start": locator.get("start_offset"),
+            "end": locator.get("end_offset"),
+            "current_classification": candidate.get("data_class") or candidate.get("review_item_kind") or candidate.get("kind"),
+            "durable_id": candidate.get("durable_id"),
+        },
+        "evidence_lanes": {
+            "direct_xrefs": candidate.get("xref_summary", []),
+            "potential_incoming_control_flow": {
+                "status": "present" if evidence.get("has_xrefs") else "unknown",
+                "source": "manual_review_item",
+            },
+            "overlap": {
+                "status": "unknown",
+                "known_overlaps": [],
+                "blocker": "range overlap query is not available on this packet surface",
+            },
+            "range_bytes": {
+                "status": "unavailable",
+                "blocker": "review item candidate does not carry range bytes",
+            },
+            "decoded_candidates": evidence.get("orphan_code_score") or evidence,
+        },
+        "conflicts": {"status": "unknown", "explicit_empty": False, "items": []},
+        "blockers": blockers,
+        "render_effects": _orphan_code_island_render_effects(candidate),
+        "decision": {
+            "writes_enabled": False,
+            "available_actions": ["accept_fact", "defer_fact", "reject_fact"],
+            "state": "read_only_metadata",
+        },
+        "safe_next_actions": _orphan_code_island_safe_actions(candidate, blockers),
+        "safe_to_mutate": False,
+        "mutation_policy": "read_only",
+    }
+
+
+def _orphan_code_island_packet_blockers(candidate: Mapping[str, object]) -> list[str]:
+    blockers: list[str] = []
+    stop_reason = candidate.get("stop_reason")
+    if isinstance(stop_reason, str) and stop_reason:
+        blockers.append(stop_reason)
+    if candidate.get("locator") is None:
+        blockers.append("missing_range_locator")
+    evidence = candidate.get("evidence")
+    if not isinstance(evidence, Mapping) or evidence.get("has_xrefs") is not True:
+        blockers.append("missing_direct_xref_evidence")
+    if candidate.get("default_verifier") is None:
+        blockers.append("missing_manual_seed_verifier")
+    blockers.append("missing_exact_round_trip_gate")
+    return sorted(set(blockers))
+
+
+def _orphan_code_island_render_effects(candidate: Mapping[str, object]) -> list[dict[str, object]]:
+    actions = candidate.get("suggested_action_kinds")
+    if not isinstance(actions, Sequence) or isinstance(actions, str):
+        return []
+    effects: list[dict[str, object]] = []
+    for action in actions:
+        if isinstance(action, str) and action:
+            effects.append({"action": action, "effect": "manual_seed_projection", "status": "blocked_until_command_verifier"})
+    return effects
+
+
+def _orphan_code_island_safe_actions(
+    candidate: Mapping[str, object],
+    blockers: Sequence[str],
+) -> list[dict[str, object]]:
+    actions = candidate.get("suggested_action_kinds")
+    if not isinstance(actions, Sequence) or isinstance(actions, str):
+        return []
+    return [
+        {"action": action, "status": "blocked" if blockers else "candidate", "blockers": list(blockers)}
+        for action in actions
+        if isinstance(action, str) and action
+    ]
 
 
 def _locator_from_review_item(item: dict[str, object]) -> dict[str, object] | None:

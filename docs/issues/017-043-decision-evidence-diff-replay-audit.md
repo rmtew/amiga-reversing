@@ -1,6 +1,6 @@
 # 017-043: Decision Evidence Diff/Replay Audit
 
-Status: active
+Status: completed
 
 ## Proposal Context
 
@@ -77,27 +77,43 @@ handling, and report/API surface.
 
 ## Research Coverage
 
-- [ ] Decision Journal report and projection checked.
-- [ ] Active/superseded/rejected/deferred semantics checked.
-- [ ] Semantic reload and current fact comparison path checked.
-- [ ] Existing verifier layer outputs checked.
-- [ ] No-append/no-mutation behavior checked.
-- [ ] Pandora RSSET audit proof planned.
+- [x] Decision Journal report and projection checked.
+- [x] Active/superseded/rejected/deferred semantics checked.
+- [x] Semantic reload and current fact comparison path checked.
+- [x] Existing verifier layer outputs checked.
+- [x] No-append/no-mutation behavior checked.
+- [x] Pandora RSSET audit proof planned.
 
 ## Research Review
 
-- [ ] Second pass checked trace blocks against named files/functions.
-- [ ] Cross-references searched for missed journal/report hooks.
-- [ ] Audit output reviewed for report-private model drift.
-- [ ] Proposal updated with model corrections or deferred follow-ups.
+- [x] Second pass checked trace blocks against named files/functions.
+- [x] Cross-references searched for missed journal/report hooks.
+- [x] Audit output reviewed for report-private model drift.
+- [x] Proposal updated with model corrections or deferred follow-ups.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before implementation.
-- [ ] Protocol delta implemented as described, or proposal updated.
-- [ ] Default behavior impact verified.
-- [ ] Old code deleted, or deferred deletion blocker recorded.
-- [ ] Audit packet shape tested.
-- [ ] No append/no mutation behavior tested.
-- [ ] Pandora proof recorded.
-- [ ] Post-commit review found no unresolved worthwhile findings.
+- [x] Proposal context checked before implementation.
+- [x] Protocol delta implemented as described, or proposal updated.
+- [x] Default behavior impact verified.
+- [x] Old code deleted, or deferred deletion blocker recorded.
+- [x] Audit packet shape tested.
+- [x] No append/no mutation behavior tested.
+- [x] Pandora proof recorded.
+- [x] Post-commit review found no unresolved worthwhile findings.
+
+## Completion Evidence
+
+- Added `audit` to `decision_journal_report`, with per-decision state,
+  evidence-ref identity matching, replay classification, rendered-source effect,
+  verifier layers, and blockers. The audit reads journal state only.
+- Pandora proof: `decision-rsset-022e-accept-017-040` reported as `active`,
+  replay `source_effective` / semantic reload `projected`, rendered-source
+  effect `selected RSSET operand can be bound through rsset.binding.bind`, and
+  verifier layers `decision_journal`, `semantic_reload`, `generated_source`,
+  and `exact_round_trip`.
+- Fixture coverage classifies active, superseded, deferred, and rejected
+  decisions, and existing report tests prove `decision-journal-report` does not
+  append to the Decision Journal or Manual Action Log.
+- Verification: focused 369-test pytest run and changed-file `ruff check` both
+  passed.

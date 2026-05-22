@@ -1,6 +1,6 @@
 # 017-044: Orphan/Code-Island Evidence Packet
 
-Status: active
+Status: completed
 
 ## Proposal Context
 
@@ -78,28 +78,45 @@ and selected Pandora proof.
 
 ## Research Coverage
 
-- [ ] Existing orphan/code/data review reports checked.
-- [ ] C range classification sources checked.
-- [ ] Xref and control-flow reachability sources checked.
-- [ ] Overlap detection sources checked.
-- [ ] Command, renderer, verifier, and exact round-trip gates checked.
-- [ ] Default auto-analysis behavior checked for hidden assumptions.
+- [x] Existing orphan/code/data review reports checked.
+- [x] C range classification sources checked.
+- [x] Xref and control-flow reachability sources checked.
+- [x] Overlap detection sources checked.
+- [x] Command, renderer, verifier, and exact round-trip gates checked.
+- [x] Default auto-analysis behavior checked for hidden assumptions.
 
 ## Research Review
 
-- [ ] Second pass checked trace blocks against named files/functions.
-- [ ] Cross-references searched for missed review-item hooks.
-- [ ] Hidden speculative classification risk reviewed.
-- [ ] Proposal updated with model corrections or deferred follow-ups.
+- [x] Second pass checked trace blocks against named files/functions.
+- [x] Cross-references searched for missed review-item hooks.
+- [x] Hidden speculative classification risk reviewed.
+- [x] Proposal updated with model corrections or deferred follow-ups.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before implementation.
-- [ ] Protocol delta implemented as described, or proposal updated.
-- [ ] Default behavior impact verified.
-- [ ] Old code deleted, or deferred deletion blocker recorded.
-- [ ] Evidence packet shape tested.
-- [ ] Decision/replay behavior tested where applicable.
-- [ ] Mutation stayed blocked unless every safe gate was proven.
-- [ ] Pandora proof recorded.
-- [ ] Post-commit review found no unresolved worthwhile findings.
+- [x] Proposal context checked before implementation.
+- [x] Protocol delta implemented as described, or proposal updated.
+- [x] Default behavior impact verified.
+- [x] Old code deleted, or deferred deletion blocker recorded.
+- [x] Evidence packet shape tested.
+- [x] Decision/replay behavior tested where applicable.
+- [x] Mutation stayed blocked unless every safe gate was proven.
+- [x] Pandora proof recorded.
+- [x] Post-commit review found no unresolved worthwhile findings.
+
+## Completion Evidence
+
+- Added read-only `orphan_code_island_evidence_packet` assembly over manual
+  review candidates and listing-backed data-symbol candidates. It exposes range
+  identity, xref/control-flow lane, overlap blocker, decoded/range evidence,
+  render effects, conflicts, safe next actions, and mutation blockers.
+- Pandora proof selected real listing data-range candidate
+  `data-class-symbol:s0:000010F3:data:1111:0:000010F3:string_000210F3`:
+  family `ambiguous_data_range`, range `s0:$000010F3-$00001113`,
+  classification `string`, blockers `missing_direct_xref_evidence` and
+  `missing_exact_round_trip_gate`, safe next action `data_symbol.rename`
+  blocked, and `safe_to_mutate=false`.
+- Focused test:
+  `test_orphan_code_island_packet_exposes_range_evidence_and_blockers`.
+- Verification: focused 369-test pytest run and changed-file `ruff check` both
+  passed.

@@ -113,9 +113,136 @@ def decision_journal_report(
         "next_prev": decision_journal_next_prev(records),
         "projection": _decision_projection_for_readback(records, readback),
     }
+    report["audit"] = decision_journal_audit(records, readback)
     if dry_run_record is not None:
         report["dry_run_record"] = dry_run_decision_record(records, dry_run_record, current_valid=readback["valid"])
     return report
+
+
+def decision_journal_audit(records: Sequence[object], readback: Mapping[str, object]) -> dict[str, object]:
+    validation = readback.get("validation")
+    validation = validation if isinstance(validation, Mapping) else validate_decision_journal_records(records)
+    if readback.get("valid") is not True:
+        return {
+            "valid": False,
+            "records": [],
+            "malformed": True,
+            "diagnostics": [dict(item) for item in _mapping_sequence(readback.get("diagnostics"))],
+            "blockers": ["journal_read_or_validation_failed"],
+        }
+    superseded_ids = set(_string_sequence(validation.get("superseded_decision_ids")))
+    active_ids = set(_string_sequence(validation.get("active_decision_ids")))
+    audit_records: list[dict[str, object]] = []
+    for raw_record in records:
+        if not isinstance(raw_record, Mapping):
+            continue
+        record = dict(raw_record)
+        decision_id = _text(record.get("decision_id"))
+        action = _text(record.get("action"))
+        if decision_id in superseded_ids:
+            state = "superseded"
+        elif action == "defer_fact":
+            state = "deferred"
+        elif action == "reject_fact":
+            state = "rejected"
+        elif decision_id in active_ids:
+            state = "active"
+        else:
+            state = "stale"
+        audit_records.append(_decision_audit_record(record, state=state))
+    return {
+        "valid": True,
+        "records": audit_records,
+        "malformed": False,
+        "diagnostics": [],
+        "blockers": [],
+    }
+
+
+def _decision_audit_record(record: Mapping[str, object], *, state: str) -> dict[str, object]:
+    evidence_refs = _string_sequence(record.get("evidence_refs"))
+    replay = _decision_audit_replay_result(record, state)
+    return {
+        "decision_id": record.get("decision_id"),
+        "action": record.get("action"),
+        "fact_type": record.get("fact_type"),
+        "candidate_id": record.get("candidate_id"),
+        "selected_identity": record.get("selected_identity"),
+        "scope": record.get("scope"),
+        "state": state,
+        "evidence_refs": [
+            {
+                "ref": ref,
+                "identity_match": _decision_audit_ref_matches_identity(ref, record.get("selected_identity")),
+            }
+            for ref in evidence_refs
+        ],
+        "replay": replay,
+        "rendered_source_effect": _decision_audit_rendered_source_effect(record, replay),
+        "verifier_layers": _decision_audit_verifier_layers(record, replay),
+        "blockers": _decision_audit_blockers(record, state, replay),
+    }
+
+
+def _decision_audit_replay_result(record: Mapping[str, object], state: str) -> dict[str, object]:
+    if state != "active":
+        return {"status": state, "semantic_reload": "not_applied"}
+    action = record.get("action")
+    if action in {"defer_fact", "reject_fact"}:
+        return {"status": action, "semantic_reload": "not_applicable"}
+    if action == "accept_fact":
+        return {"status": "source_effective" if record.get("fact_type") == "rsset_app_base" else "accepted", "semantic_reload": "projected"}
+    return {"status": "unknown", "semantic_reload": "blocked"}
+
+
+def _decision_audit_rendered_source_effect(record: Mapping[str, object], replay: Mapping[str, object]) -> dict[str, object]:
+    if record.get("fact_type") == "rsset_app_base" and replay.get("status") == "source_effective":
+        return {
+            "status": "source_effective",
+            "effect": "selected RSSET operand can be bound through rsset.binding.bind",
+            "render_intent": "enables_render",
+        }
+    return {"status": "not_applicable", "effect": None}
+
+
+def _decision_audit_verifier_layers(record: Mapping[str, object], replay: Mapping[str, object]) -> list[dict[str, object]]:
+    if record.get("fact_type") == "rsset_app_base" and replay.get("status") == "source_effective":
+        return [
+            {"layer": "decision_journal", "status": "passed"},
+            {"layer": "semantic_reload", "status": "projected"},
+            {"layer": "generated_source", "status": "available_after_binding"},
+            {"layer": "exact_round_trip", "status": "required_for_mutation"},
+        ]
+    return [{"layer": "decision_journal", "status": "not_applicable"}]
+
+
+def _decision_audit_blockers(
+    record: Mapping[str, object],
+    state: str,
+    replay: Mapping[str, object],
+) -> list[str]:
+    blockers: list[str] = []
+    if state in {"superseded", "deferred", "rejected", "stale"}:
+        blockers.append(f"decision_state_{state}")
+    if record.get("action") == "accept_fact" and not _string_sequence(record.get("evidence_refs")):
+        blockers.append("missing_evidence_refs")
+    if replay.get("semantic_reload") == "blocked":
+        blockers.append("semantic_reload_blocked")
+    return blockers
+
+
+def _decision_audit_ref_matches_identity(ref: str, selected_identity: object) -> bool:
+    if not isinstance(selected_identity, Mapping):
+        return False
+    segment = _text(selected_identity.get("segment_id"))
+    addr = _int(selected_identity.get("addr"))
+    operand_index = _int(selected_identity.get("operand_index"))
+    return (
+        segment is not None
+        and addr is not None
+        and operand_index is not None
+        and f"{segment}:{addr:08X}:op{operand_index}" in ref
+    )
 
 
 def project_decision_journal(records: Sequence[object]) -> dict[str, object]:
@@ -388,6 +515,12 @@ def _string_sequence(value: object) -> list[str]:
     if isinstance(value, str) or not isinstance(value, Sequence):
         return []
     return [item for item in value if isinstance(item, str)]
+
+
+def _mapping_sequence(value: object) -> list[Mapping[str, object]]:
+    if isinstance(value, str) or not isinstance(value, Sequence):
+        return []
+    return [item for item in value if isinstance(item, Mapping)]
 
 
 def _decision_record_diagnostics(record: Mapping[str, object]) -> list[dict[str, object]]:
