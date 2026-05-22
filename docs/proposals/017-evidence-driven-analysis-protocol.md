@@ -764,6 +764,14 @@ Use this order unless implementation evidence forces a better one:
    effect, negative safety, and exact round-trip;
 7. repeat the same protocol shape across the remaining starter aspects.
 
+The current parallel queue after the RSSET/app-base slice is:
+
+- `017-041`: source-offset immediate provenance packet;
+- `017-042`: A5 path/lifetime protocol packet refresh;
+- `017-043`: Decision evidence diff/replay audit;
+- `017-044`: orphan/code-island evidence packet;
+- `017-045`: protocol issue sign-off enforcement.
+
 Prefer the first starter aspect that can demonstrate the whole chain with the
 least speculative policy. If no mutation is safe, complete the read-only
 packet, blocker, and defer/reject path, then move to the next starter aspect.
