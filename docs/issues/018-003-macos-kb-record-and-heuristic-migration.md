@@ -1,6 +1,6 @@
 # 018-003: Mac OS KB Record And Heuristic Migration
 
-Status: open
+Status: completed
 
 ## Proposal Context
 
@@ -64,25 +64,46 @@ candidate, conflict, and deferred area.
 
 ## Research Coverage
 
-- [ ] 018-002 citation packets reviewed.
-- [ ] Mac archetype ids and format ids checked.
-- [ ] MPW producer/variant scope checked.
-- [ ] Entrypoint fact states assigned.
-- [ ] CODE 0 and nonzero CODE fact states assigned.
-- [ ] Unknown/conflict/deferred records created.
+- [x] 018-002 citation packets reviewed.
+- [x] Mac archetype ids and format ids checked.
+- [x] MPW producer/variant scope checked.
+- [x] Entrypoint fact states assigned.
+- [x] CODE 0 and nonzero CODE fact states assigned.
+- [x] Unknown/conflict/deferred records created.
 
 ## Research Review
 
-- [ ] Second pass checked Mac KB records against citation packets.
-- [ ] Candidate facts cannot be mistaken for accepted facts.
-- [ ] Parser assertion records have reason and standard interpretation.
-- [ ] Proposal 012 blocker text updated or deliberately left blocked.
+- [x] Second pass checked Mac KB records against citation packets.
+- [x] Candidate facts cannot be mistaken for accepted facts.
+- [x] Parser assertion records have reason and standard interpretation.
+- [x] Proposal 012 blocker text updated or deliberately left blocked.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before implementation.
-- [ ] Mac KB records added and schema-valid.
-- [ ] `movea.l (a7)+,a0` migration requirement resolved.
-- [ ] Tests validate fact states and citation references.
-- [ ] No parser or renderer behavior changed.
-- [ ] Post-commit review found no unresolved worthwhile findings.
+- [x] Proposal context checked before implementation.
+- [x] Mac KB records added and schema-valid.
+- [x] `movea.l (a7)+,a0` migration requirement resolved.
+- [x] Tests validate fact states and citation references.
+- [x] No parser or renderer behavior changed.
+- [x] Post-commit review found no unresolved worthwhile findings.
+
+## Completion Evidence
+
+- Added accepted Mac record
+  `macos.hfs_resource_fork.code_resources.mpw_application` to
+  `knowledge/platform_executable_formats.json`.
+- Accepted facts cite 018-002 packets for HFS resource-fork code, Segment
+  Loader CODE resources, CODE 0 metadata, nonzero CODE segment headers, CODE 1
+  startup, A5 jump-table offset, and MPW Link output.
+- `movea.l (a7)+,a0` is resolved by migration as candidate-only:
+  `macos.code_resource.movea_stack_a0.boundary.candidate` and
+  `macos.code_resource.movea_stack_a0.entry_candidate`.
+- Relocation/fixup semantics and byte-level executable-entry rules remain
+  deferred.
+- Added accepted-record tests to `tests/test_platform_executable_formats.py`.
+- `uv run python -m pytest tests\test_platform_executable_formats.py -q`
+  passed: 11 tests.
+- `uv run python -m amiga_reversing.tools.platform_executable_formats` passed.
+- `uv run ruff check amiga_reversing\tools\platform_executable_formats.py tests\test_platform_executable_formats.py`
+  passed.
+- Parser and renderer code paths were not changed.

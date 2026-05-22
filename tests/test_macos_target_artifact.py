@@ -59,6 +59,8 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     assert "; CODE 1 Main listing follows." in asm_text
     assert ";   code_entry_offset: 40" in asm_text
     assert ";     data: start=4 end=40 entrypoint=False evidence=prefix_before_stack_entry" in asm_text
+    assert ";     candidate_code: start=40 end=29024 entrypoint=True" in asm_text
+    assert "fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate" in asm_text
     assert "; CODE resource coverage" in asm_text
     assert ";   CODE 0 unknown: status=metadata-only" in asm_text
     assert ";   CODE 1 Main: status=rendered" in asm_text
@@ -140,3 +142,5 @@ def test_macos_listing_artifact_uses_macos_source_and_row_provenance() -> None:
     assert macos["resource_id"] == 1
     assert macos["resource_name"] == "Main"
     assert macos["classified_range"]["start"] == 40
+    assert macos["classified_range"]["kind"] == "candidate_code"
+    assert macos["classified_range"]["fact_status"] == "candidate"

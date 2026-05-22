@@ -1,6 +1,6 @@
 # 018-002: Mac OS Executable Citation Packet
 
-Status: open
+Status: completed
 
 ## Proposal Context
 
@@ -78,29 +78,48 @@ unknowns.
 
 ## Research Coverage
 
-- [ ] Local Mac MD/docs inventory checked.
-- [ ] Existing Mac KB/generated metadata checked.
-- [ ] MPW `Asm` resource metadata checked.
-- [ ] Segment Loader / CODE terms searched.
-- [ ] A5 world / jump table terms searched.
-- [ ] relocation/fixup terms searched.
-- [ ] MPW Link/Rez producer facts searched.
-- [ ] Current `movea.l (a7)+,a0` heuristic reviewed against sources.
+- [x] Local Mac MD/docs inventory checked.
+- [x] Existing Mac KB/generated metadata checked.
+- [x] MPW `Asm` resource metadata checked.
+- [x] Segment Loader / CODE terms searched.
+- [x] A5 world / jump table terms searched.
+- [x] relocation/fixup terms searched.
+- [x] MPW Link/Rez producer facts searched.
+- [x] Current `movea.l (a7)+,a0` heuristic reviewed against sources.
 
 ## Research Review
 
-- [ ] Second pass checked trace blocks against named files.
-- [ ] Citation packet distinguishes validated, parser_asserted, candidate,
+- [x] Second pass checked trace blocks against named files.
+- [x] Citation packet distinguishes validated, parser_asserted, candidate,
   deferred, and unsupported facts.
-- [ ] Fixture-only evidence did not become validated fact.
-- [ ] Proposal 012 blocker text updated if needed.
+- [x] Fixture-only evidence did not become validated fact.
+- [x] Proposal 012 blocker text updated if needed.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before implementation.
-- [ ] 018-001 schema/output shape respected.
-- [ ] Citation packets created with source policy fields.
-- [ ] Mac `movea.l (a7)+,a0` heuristic remains candidate unless cited.
-- [ ] Unknowns/conflicts/deferred areas recorded.
-- [ ] No parser or renderer behavior changed.
-- [ ] Post-commit review found no unresolved worthwhile findings.
+- [x] Proposal context checked before implementation.
+- [x] 018-001 schema/output shape respected.
+- [x] Citation packets created with source policy fields.
+- [x] Mac `movea.l (a7)+,a0` heuristic remains candidate unless cited.
+- [x] Unknowns/conflicts/deferred areas recorded.
+- [x] No parser or renderer behavior changed.
+- [x] Post-commit review found no unresolved worthwhile findings.
+
+## Completion Evidence
+
+- Added `citation_packets` to
+  `knowledge/platform_executable_formats.schema.json`.
+- Added Mac citation packets to
+  `knowledge/platform_executable_formats.json`.
+- Added packet validation to
+  `amiga_reversing.tools.platform_executable_formats`.
+- Added packet tests to `tests/test_platform_executable_formats.py`.
+- Updated `docs/platform-executable-formats.md` trace blocks.
+- Updated Proposal 012 status text to reflect that citation packets now exist
+  but parser/listing migration still remains.
+- `uv run python -m pytest tests\test_platform_executable_formats.py -q`
+  passed: 9 tests.
+- `uv run python -m amiga_reversing.tools.platform_executable_formats` passed.
+- `uv run ruff check amiga_reversing\tools\platform_executable_formats.py tests\test_platform_executable_formats.py`
+  passed.
+- Parser and renderer code paths were not changed.

@@ -1,0 +1,633 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "knowledge/platform_executable_formats.schema.json",
+  "title": "Platform executable format knowledge base",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "_meta",
+    "vocabularies",
+    "sources",
+    "records"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "_meta": {
+      "type": "object",
+      "required": ["name", "status", "proposal"],
+      "additionalProperties": true
+    },
+    "vocabularies": {
+      "type": "object",
+      "required": [
+        "fact_states",
+        "source_types",
+        "entrypoint_types",
+        "parser_uses",
+        "required_parser_behaviors",
+        "model_layers"
+      ],
+      "properties": {
+        "fact_states": {
+          "type": "array",
+          "items": {
+            "enum": ["validated", "parser_asserted", "candidate", "deferred", "unsupported"]
+          },
+          "uniqueItems": true
+        },
+        "source_types": {
+          "type": "array",
+          "items": {
+            "enum": ["old_out_of_print", "modern_compatible", "project_observed", "parser_asserted"]
+          },
+          "uniqueItems": true
+        },
+        "entrypoint_types": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "file_entrypoint",
+              "segment_entrypoint",
+              "runtime_entrypoint",
+              "exported_entrypoint",
+              "callback_entrypoint",
+              "analysis_seed_entrypoint"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "parser_uses": {
+          "type": "array",
+          "items": {
+            "enum": ["accepted_parser_output", "candidate_only", "deferred_only", "unsupported_only"]
+          },
+          "uniqueItems": true
+        },
+        "required_parser_behaviors": {
+          "type": "array",
+          "items": {
+            "enum": ["fail_closed", "emit_candidate", "emit_placeholder", "ignore_safely", "block_closeout"]
+          },
+          "uniqueItems": true
+        },
+        "model_layers": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "file_structure",
+              "loader_model",
+              "runtime_entry_model",
+              "analysis_model",
+              "renderer_expectation",
+              "archetype_identity"
+            ]
+          },
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "sources": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/source"
+      },
+      "uniqueItems": true
+    },
+    "records": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/executable_format_record"
+      }
+    },
+    "citation_packets": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/citation_packet"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "source": {
+      "type": "object",
+      "required": ["id", "source_type", "license_status", "path", "role"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9._-]*$"
+        },
+        "source_type": {
+          "$ref": "#/$defs/source_type"
+        },
+        "license_status": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "executable_format_record": {
+      "type": "object",
+      "required": [
+        "id",
+        "platform_id",
+        "format_id",
+        "archetype_id",
+        "fact_state",
+        "source_policy",
+        "producer_variant_scope",
+        "applies_to",
+        "identification",
+        "containers",
+        "regions",
+        "relocations",
+        "symbols",
+        "bss",
+        "loader_model",
+        "runtime_model",
+        "analysis_model",
+        "renderer_expectations",
+        "entrypoints",
+        "facts",
+        "unknowns",
+        "conflicts",
+        "deferred",
+        "unsupported",
+        "required_parser_behavior"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "platform_id": {
+          "type": "string"
+        },
+        "format_id": {
+          "type": "string"
+        },
+        "archetype_id": {
+          "type": "string"
+        },
+        "fact_state": {
+          "$ref": "#/$defs/fact_state"
+        },
+        "source_policy": {
+          "$ref": "#/$defs/source_policy"
+        },
+        "producer_variant_scope": {
+          "type": "object",
+          "required": ["producers", "variant_scope"],
+          "additionalProperties": true
+        },
+        "applies_to": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["kind", "value"],
+            "additionalProperties": true
+          }
+        },
+        "identification": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/format_item"
+          }
+        },
+        "containers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/format_item"
+          }
+        },
+        "regions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/format_item"
+          }
+        },
+        "relocations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/format_item"
+          }
+        },
+        "symbols": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/format_item"
+          }
+        },
+        "bss": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/format_item"
+          }
+        },
+        "loader_model": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/format_item"
+          }
+        },
+        "runtime_model": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/format_item"
+          }
+        },
+        "analysis_model": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/format_item"
+          }
+        },
+        "renderer_expectations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/format_item"
+          }
+        },
+        "entrypoints": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/entrypoint"
+          }
+        },
+        "facts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/fact"
+          }
+        },
+        "unknowns": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/review_item"
+          }
+        },
+        "conflicts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/review_item"
+          }
+        },
+        "deferred": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/review_item"
+          }
+        },
+        "unsupported": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/review_item"
+          }
+        },
+        "required_parser_behavior": {
+          "type": "object",
+          "required": [
+            "accepted_output_requires_fact_states",
+            "candidate_output_allowed_from_fact_states",
+            "missing_fact_behavior"
+          ],
+          "properties": {
+            "accepted_output_requires_fact_states": {
+              "type": "array",
+              "items": {
+                "enum": ["validated", "parser_asserted"]
+              },
+              "uniqueItems": true
+            },
+            "candidate_output_allowed_from_fact_states": {
+              "type": "array",
+              "items": {
+                "enum": ["candidate"]
+              },
+              "uniqueItems": true
+            },
+            "missing_fact_behavior": {
+              "$ref": "#/$defs/required_parser_behavior"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "source_policy": {
+      "type": "object",
+      "required": ["allowed_source_types", "excluded_source_types", "accepted_fact_states"],
+      "properties": {
+        "allowed_source_types": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/source_type"
+          },
+          "uniqueItems": true
+        },
+        "excluded_source_types": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "accepted_fact_states": {
+          "type": "array",
+          "items": {
+            "enum": ["validated", "parser_asserted"]
+          },
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "format_item": {
+      "type": "object",
+      "required": ["id", "status", "summary", "source_type", "citations", "parser_use"],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/fact_state"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "source_type": {
+          "$ref": "#/$defs/source_type"
+        },
+        "citations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/citation"
+          }
+        },
+        "parser_use": {
+          "$ref": "#/$defs/parser_use"
+        },
+        "required_parser_behavior": {
+          "$ref": "#/$defs/required_parser_behavior"
+        },
+        "details": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "entrypoint": {
+      "type": "object",
+      "required": ["id", "type", "status", "source_type", "summary", "citations", "parser_use"],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/$defs/entrypoint_type"
+        },
+        "status": {
+          "$ref": "#/$defs/fact_state"
+        },
+        "source_type": {
+          "$ref": "#/$defs/source_type"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "citations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/citation"
+          }
+        },
+        "parser_use": {
+          "$ref": "#/$defs/parser_use"
+        },
+        "details": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "fact": {
+      "type": "object",
+      "required": ["id", "layer", "status", "source_type", "summary", "citations", "parser_use"],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "layer": {
+          "$ref": "#/$defs/model_layer"
+        },
+        "status": {
+          "$ref": "#/$defs/fact_state"
+        },
+        "source_type": {
+          "$ref": "#/$defs/source_type"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "citations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/citation"
+          }
+        },
+        "parser_use": {
+          "$ref": "#/$defs/parser_use"
+        },
+        "parser_assertion": {
+          "$ref": "#/$defs/parser_assertion"
+        },
+        "details": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "citation_packet": {
+      "type": "object",
+      "required": [
+        "id",
+        "platform_id",
+        "fact_candidate_id",
+        "wording",
+        "status",
+        "source_type",
+        "license_status",
+        "affects",
+        "citations",
+        "conflicts",
+        "missing_evidence",
+        "parser_behavior_before_kb_migration"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "platform_id": {
+          "type": "string"
+        },
+        "fact_candidate_id": {
+          "type": "string"
+        },
+        "wording": {
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/fact_state"
+        },
+        "source_type": {
+          "$ref": "#/$defs/source_type"
+        },
+        "license_status": {
+          "type": "string"
+        },
+        "affects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/model_layer"
+          },
+          "uniqueItems": true
+        },
+        "citations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/citation"
+          }
+        },
+        "conflicts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "missing_evidence": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "parser_behavior_before_kb_migration": {
+          "$ref": "#/$defs/required_parser_behavior"
+        },
+        "details": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "review_item": {
+      "type": "object",
+      "required": ["id", "scope", "status", "summary", "required_parser_behavior"],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "scope": {
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/fact_state"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "required_parser_behavior": {
+          "$ref": "#/$defs/required_parser_behavior"
+        },
+        "citations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/citation"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "citation": {
+      "type": "object",
+      "required": ["source_id", "source_type", "target", "context"],
+      "properties": {
+        "source_id": {
+          "type": "string"
+        },
+        "source_type": {
+          "$ref": "#/$defs/source_type"
+        },
+        "target": {
+          "type": "string"
+        },
+        "context": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "parser_assertion": {
+      "type": "object",
+      "required": ["reason", "citation_context", "standard_interpretation", "review_status"],
+      "properties": {
+        "reason": {
+          "type": "string"
+        },
+        "citation_context": {
+          "type": "string"
+        },
+        "standard_interpretation": {
+          "type": "string"
+        },
+        "review_status": {
+          "enum": ["seeded", "reviewed", "validated", "rejected"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "fact_state": {
+      "enum": ["validated", "parser_asserted", "candidate", "deferred", "unsupported"]
+    },
+    "source_type": {
+      "enum": ["old_out_of_print", "modern_compatible", "project_observed", "parser_asserted"]
+    },
+    "entrypoint_type": {
+      "enum": [
+        "file_entrypoint",
+        "segment_entrypoint",
+        "runtime_entrypoint",
+        "exported_entrypoint",
+        "callback_entrypoint",
+        "analysis_seed_entrypoint"
+      ]
+    },
+    "parser_use": {
+      "enum": ["accepted_parser_output", "candidate_only", "deferred_only", "unsupported_only"]
+    },
+    "required_parser_behavior": {
+      "enum": ["fail_closed", "emit_candidate", "emit_placeholder", "ignore_safely", "block_closeout"]
+    },
+    "model_layer": {
+      "enum": [
+        "file_structure",
+        "loader_model",
+        "runtime_entry_model",
+        "analysis_model",
+        "renderer_expectation",
+        "archetype_identity"
+      ]
+    }
+  }
+}

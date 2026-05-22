@@ -158,6 +158,9 @@ def test_python_wrapper_uses_c_macos_hfs_code_summary() -> None:
             "end": 4,
             "entrypoint": False,
             "evidence": "nonzero_code_segment_header",
+            "fact_id": "macos.code_resource.nonzero.segment_header",
+            "fact_status": "validated",
+            "parser_use": "accepted_parser_output",
         },
         {
             "kind": "data",
@@ -166,14 +169,20 @@ def test_python_wrapper_uses_c_macos_hfs_code_summary() -> None:
             "end": 10,
             "entrypoint": False,
             "evidence": "prefix_before_stack_entry",
+            "fact_id": "macos.code_resource.movea_stack_a0.boundary.candidate",
+            "fact_status": "candidate",
+            "parser_use": "candidate_only",
         },
         {
-            "kind": "confirmed_code",
+            "kind": "candidate_code",
             "start": 10,
             "size": 4,
             "end": 14,
             "entrypoint": True,
             "evidence": "m68k_movea_l_stack_to_a0_entry",
+            "fact_id": "macos.code_resource.movea_stack_a0.boundary.candidate",
+            "fact_status": "candidate",
+            "parser_use": "candidate_only",
         },
     ]
     assert extract_macos_hfs_code_resource_bytes_with_c_backend(image, "Tools/Asm", 1) == b"\x20\x5f\x4e\x75"
@@ -197,6 +206,9 @@ def test_c_macos_summary_defers_code_without_entry_evidence() -> None:
             "end": 4,
             "entrypoint": False,
             "evidence": "nonzero_code_segment_header",
+            "fact_id": "macos.code_resource.nonzero.segment_header",
+            "fact_status": "validated",
+            "parser_use": "accepted_parser_output",
         },
         {
             "kind": "deferred",
@@ -205,6 +217,9 @@ def test_c_macos_summary_defers_code_without_entry_evidence() -> None:
             "end": 14,
             "entrypoint": False,
             "evidence": "missing_m68k_movea_l_stack_to_a0_entry",
+            "fact_id": "macos.code_resource.byte_entry_rule.unknown",
+            "fact_status": "deferred",
+            "parser_use": "deferred_only",
         },
     ]
     with pytest.raises(RuntimeError, match="no confirmed executable range"):
@@ -269,8 +284,9 @@ def test_c_macos_hfs_code_summary_matches_committed_mpw_asm_metadata() -> None:
     assert summary["selected_code"]["code_bytes_size"] == expected_code1["size"] - 40
     assert summary["selected_code"]["code"]["layout_ranges"][0]["kind"] == "metadata"
     assert summary["selected_code"]["code"]["layout_ranges"][1]["kind"] == "data"
-    assert summary["selected_code"]["code"]["layout_ranges"][2]["kind"] == "confirmed_code"
+    assert summary["selected_code"]["code"]["layout_ranges"][2]["kind"] == "candidate_code"
     assert summary["selected_code"]["code"]["layout_ranges"][2]["start"] == 40
+    assert summary["selected_code"]["code"]["layout_ranges"][2]["fact_status"] == "candidate"
     assert extract_macos_hfs_code_resource_bytes_with_c_backend(
         read_macos_hfs_image_bytes(IMAGE_PATH),
         "MPW-GM/MPW/Tools/Asm",

@@ -238,7 +238,7 @@ def _selected_executable_range(selected_code: Mapping[str, object]) -> Mapping[s
     code = _mapping(selected_code.get("code"))
     for item in _sequence(code.get("layout_ranges")):
         range_info = _mapping(item)
-        if range_info.get("kind") == "confirmed_code" and range_info.get("entrypoint") is True:
+        if range_info.get("kind") in {"confirmed_code", "candidate_code"} and range_info.get("entrypoint") is True:
             return range_info
     return {}
 

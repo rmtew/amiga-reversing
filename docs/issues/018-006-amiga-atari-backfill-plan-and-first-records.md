@@ -1,6 +1,6 @@
 # 018-006: Amiga/Atari Backfill Plan And First Records
 
-Status: open
+Status: completed
 
 ## Proposal Context
 
@@ -55,28 +55,47 @@ Record trace blocks for existing Amiga/Atari parser code, existing project
 knowledge, allowed source candidates, first-record scope, and assumptions
 deferred.
 
+## Completion Evidence
+
+- Added report-only records:
+  `amiga.hunk.load_file.basic_backfill` and
+  `atari_st.prg.gemdos_basic_backfill`.
+- Added source entries for the normalized HUNK/PRG KBs and current parser files.
+- Recorded the backfill register in `docs/platform-executable-formats.md`.
+- Both records set `kb_backed: false`, keep all first-record facts
+  candidate/deferred/unsupported, and do not authorize accepted parser output.
+- No parser or renderer code changed for 018-006.
+
+Verification:
+
+```text
+uv run python -m amiga_reversing.tools.platform_executable_formats validate
+uv run python -m amiga_reversing.tools.platform_executable_formats guardrails
+uv run python -m pytest tests\test_platform_executable_formats.py -q
+```
+
 ## Research Coverage
 
-- [ ] Existing Amiga executable parser assumptions inventoried.
-- [ ] Existing Atari executable parser assumptions inventoried.
-- [ ] Allowed source candidates checked.
-- [ ] First Amiga record scope selected.
-- [ ] First Atari record scope selected.
-- [ ] Backfill-required entries listed.
+- [x] Existing Amiga executable parser assumptions inventoried.
+- [x] Existing Atari executable parser assumptions inventoried.
+- [x] Allowed source candidates checked.
+- [x] First Amiga record scope selected.
+- [x] First Atari record scope selected.
+- [x] Backfill-required entries listed.
 
 ## Research Review
 
-- [ ] Second pass checked trace blocks against named files/functions.
-- [ ] First records do not overclaim unsupported formats.
-- [ ] Parser assertions have reason and review status.
-- [ ] Legacy behavior remains unchanged.
+- [x] Second pass checked trace blocks against named files/functions.
+- [x] First records do not overclaim unsupported formats.
+- [x] Parser assertions have reason and review status.
+- [x] Legacy behavior remains unchanged.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before implementation.
-- [ ] 018-001 schema respected.
-- [ ] First Amiga record schema-valid.
-- [ ] First Atari record schema-valid.
-- [ ] Backfill register created.
-- [ ] No parser behavior changed.
-- [ ] Post-commit review found no unresolved worthwhile findings.
+- [x] Proposal context checked before implementation.
+- [x] 018-001 schema respected.
+- [x] First Amiga record schema-valid.
+- [x] First Atari record schema-valid.
+- [x] Backfill register created.
+- [x] No parser behavior changed.
+- [x] Post-commit review found no unresolved worthwhile findings.

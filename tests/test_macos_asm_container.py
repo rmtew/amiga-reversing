@@ -124,6 +124,9 @@ def test_code1_main_has_code_byte_listing_preview_and_explicit_unsupported_state
             "end": 4,
             "entrypoint": False,
             "evidence": "nonzero_code_segment_header",
+            "fact_id": "macos.code_resource.nonzero.segment_header",
+            "fact_status": "validated",
+            "parser_use": "accepted_parser_output",
         },
         {
             "kind": "data",
@@ -132,14 +135,20 @@ def test_code1_main_has_code_byte_listing_preview_and_explicit_unsupported_state
             "end": 40,
             "entrypoint": False,
             "evidence": "prefix_before_stack_entry",
+            "fact_id": "macos.code_resource.movea_stack_a0.boundary.candidate",
+            "fact_status": "candidate",
+            "parser_use": "candidate_only",
         },
         {
-            "kind": "confirmed_code",
+            "kind": "candidate_code",
             "start": 40,
             "size": 28984,
             "end": 29024,
             "entrypoint": True,
             "evidence": "m68k_movea_l_stack_to_a0_entry",
+            "fact_id": "macos.code_resource.movea_stack_a0.boundary.candidate",
+            "fact_status": "candidate",
+            "parser_use": "candidate_only",
         },
     ]
     assert selected["listing_preview"][:4] == [

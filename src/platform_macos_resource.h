@@ -95,5 +95,8 @@ int platform_macos_code_metadata_executable_range(const PlatformMacosCodeMetadat
   uint32_t *out_start_offset, uint32_t *out_size);
 const char *platform_macos_code_range_kind_name(uint8_t kind);
 const char *platform_macos_code_range_evidence_name(uint8_t evidence);
+const char *platform_macos_code_range_fact_id(uint8_t evidence);
+const char *platform_macos_code_range_fact_status(uint8_t evidence);
+const char *platform_macos_code_range_parser_use(uint8_t evidence);
 
 #endif

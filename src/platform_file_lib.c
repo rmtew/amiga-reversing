@@ -143,14 +143,31 @@ static int macos_append_fork_summary(JsonBuilder *builder, const char *name,
 
 static int macos_append_code_metadata(JsonBuilder *builder, const PlatformMacosCodeMetadata *code) {
   const char *kind = "none";
+  const char *resource_fact_id = "";
+  const char *resource_fact_status = "unsupported";
+  const char *resource_parser_use = "unsupported_only";
   size_t index;
   if (code == NULL) return -1;
-  if (code->kind == PLATFORM_MACOS_CODE_RESOURCE_JUMP_TABLE_SEGMENT)
+  if (code->kind == PLATFORM_MACOS_CODE_RESOURCE_JUMP_TABLE_SEGMENT) {
     kind = "jump_table_segment";
-  else if (code->kind == PLATFORM_MACOS_CODE_RESOURCE_CODE_SEGMENT)
+    resource_fact_id = "macos.code_resource.0.jump_table_metadata";
+    resource_fact_status = "validated";
+    resource_parser_use = "accepted_parser_output";
+  } else if (code->kind == PLATFORM_MACOS_CODE_RESOURCE_CODE_SEGMENT) {
     kind = "code_segment";
+    resource_fact_id = "macos.segment_loader.code_resources";
+    resource_fact_status = "validated";
+    resource_parser_use = "accepted_parser_output";
+  }
   if (json_builder_append(builder, "{\"kind\":") != 0 ||
       json_builder_append_json_string(builder, kind) != 0 ||
+      json_builder_append(builder, ",\"kb_record_id\":\"macos.hfs_resource_fork.code_resources.mpw_application\","
+        "\"fact_id\":") != 0 ||
+      json_builder_append_json_string(builder, resource_fact_id) != 0 ||
+      json_builder_append(builder, ",\"fact_status\":") != 0 ||
+      json_builder_append_json_string(builder, resource_fact_status) != 0 ||
+      json_builder_append(builder, ",\"parser_use\":") != 0 ||
+      json_builder_append_json_string(builder, resource_parser_use) != 0 ||
       json_builder_appendf(builder,
         ",\"above_a5_size\":%u,\"below_a5_size\":%u,\"jump_table_length\":%u,"
         "\"jump_table_offset_from_a5\":%u,\"first_jump_table_entry_offset\":%u,"
@@ -169,6 +186,12 @@ static int macos_append_code_metadata(JsonBuilder *builder, const PlatformMacosC
           (unsigned)range->start_offset, (unsigned)range->size,
           (unsigned)(range->start_offset + range->size), range->entrypoint ? "true" : "false") != 0 ||
         json_builder_append_json_string(builder, platform_macos_code_range_evidence_name(range->evidence)) != 0 ||
+        json_builder_append(builder, ",\"fact_id\":") != 0 ||
+        json_builder_append_json_string(builder, platform_macos_code_range_fact_id(range->evidence)) != 0 ||
+        json_builder_append(builder, ",\"fact_status\":") != 0 ||
+        json_builder_append_json_string(builder, platform_macos_code_range_fact_status(range->evidence)) != 0 ||
+        json_builder_append(builder, ",\"parser_use\":") != 0 ||
+        json_builder_append_json_string(builder, platform_macos_code_range_parser_use(range->evidence)) != 0 ||
         json_builder_append(builder, "}") != 0) {
       return -1;
     }

@@ -1329,10 +1329,12 @@ Current state:
 
 Blocked corrective scope:
 
-- Proposal 018 must define the cited executable-format KB schema.
-- 018-002 must extract cited Mac OS Segment Loader / CODE / A5 / jump-table /
-  relocation / entrypoint facts.
-- Mac CODE parser/listing behavior must consume or validate against those facts.
+- Proposal 018 now defines the cited executable-format KB schema.
+- 018-002 through 018-003 extracted and migrated cited Mac OS Segment Loader /
+  CODE / A5 / jump-table facts. Relocation/fixup and byte-entry facts remain
+  deferred where direct support is missing.
+- Mac CODE parser/listing behavior now exposes KB fact ids/status and keeps the
+  observed byte-entry boundary as candidate output.
 - Any remaining heuristic boundary must stay candidate/deferred, not accepted.
 
 Future scope after cited starter-quality rendering:
@@ -1340,6 +1342,20 @@ Future scope after cited starter-quality rendering:
 - Complete Segment Loader relocation/fixup interpretation.
 - Full per-resource CODE expansion and internal orphan island splitting after
   relocation/source-boundary context is represented.
+- 018-002 has now supplied cited Mac executable/CODE citation packets for the
+  HFS resource-fork application-code relationship, Segment Loader CODE
+  resources, CODE 0 jump-table/A5 metadata, CODE 1 startup, and MPW Link output.
+  Proposal 012 remains blocked because those packets still need accepted KB
+  migration and parser/listing consumption; the current `movea.l (a7)+,a0`
+  boundary remains candidate evidence only.
+- 018-003 migrated those packets into the first accepted Mac executable-format
+  KB record for MPW application/tool-style CODE resources. Proposal 012 remains
+  blocked until guardrails and parser/listing consumption land; the
+  `movea.l (a7)+,a0` byte boundary is still candidate-only.
+- 018-004 and 018-005 added guardrails plus parser/listing consumption of the
+  accepted Mac KB facts. Proposal 012 remains open because relocation/fixup
+  semantics, exact byte-entry rules, and full per-resource CODE expansion are
+  still not accepted platform knowledge.
 - MPW Asm/Link/Rez byte-for-byte roundtrip.
 - Full non-CODE resource semantics.
 - Overflow extents for later fixtures that need them.

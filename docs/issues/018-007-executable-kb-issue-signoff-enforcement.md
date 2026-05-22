@@ -1,6 +1,6 @@
 # 018-007: Executable KB Issue Sign-Off Enforcement
 
-Status: open
+Status: completed
 
 ## Proposal Context
 
@@ -54,26 +54,42 @@ The check must verify:
 Record trace blocks for existing 017 validator pattern, issue status vocabulary,
 test/tool location, and any historical exception kept out of scope.
 
+## Completion Evidence
+
+- Added `amiga_reversing.tools.validate_018_issues`.
+- Added `tests/test_validate_018_issues.py`.
+- Updated Proposal 018 implementation notes with the validation rules.
+- The validator checks status vocabulary, Proposal 018 references, required
+  protocol sections, completion evidence, completed checkbox sign-off, and
+  superseded/deleted reasons. It does not rewrite files.
+
+Verification:
+
+```text
+uv run python -m pytest tests\test_validate_018_issues.py -q
+uv run python -m amiga_reversing.tools.validate_018_issues
+```
+
 ## Research Coverage
 
-- [ ] Existing 017 issue validator pattern checked.
-- [ ] Current `018-*` status vocabulary checked.
-- [ ] Required 018 issue sections checked.
-- [ ] Passing and failing examples planned.
-- [ ] Historical exception policy reviewed.
+- [x] Existing 017 issue validator pattern checked.
+- [x] Current `018-*` status vocabulary checked.
+- [x] Required 018 issue sections checked.
+- [x] Passing and failing examples planned.
+- [x] Historical exception policy reviewed.
 
 ## Research Review
 
-- [ ] Second pass checked trace blocks against named files/functions.
-- [ ] Cross-references searched for markdown validation helpers.
-- [ ] Exception list reviewed for pure churn risk.
-- [ ] Proposal updated with validation rules or deferred follow-ups.
+- [x] Second pass checked trace blocks against named files/functions.
+- [x] Cross-references searched for markdown validation helpers.
+- [x] Exception list reviewed for pure churn risk.
+- [x] Proposal updated with validation rules or deferred follow-ups.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before implementation.
-- [ ] Validator behavior tested.
-- [ ] Completed unchecked checkbox failure tested.
-- [ ] No file rewrite behavior tested.
-- [ ] Active/open issue behavior tested.
-- [ ] Post-commit review found no unresolved worthwhile findings.
+- [x] Proposal context checked before implementation.
+- [x] Validator behavior tested.
+- [x] Completed unchecked checkbox failure tested.
+- [x] No file rewrite behavior tested.
+- [x] Active/open issue behavior tested.
+- [x] Post-commit review found no unresolved worthwhile findings.

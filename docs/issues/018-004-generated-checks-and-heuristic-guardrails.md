@@ -1,6 +1,6 @@
 # 018-004: Generated Checks And Heuristic Guardrails
 
-Status: open
+Status: completed
 
 ## Proposal Context
 
@@ -53,24 +53,43 @@ generated metadata patterns, and any check deliberately left report-only.
 
 ## Research Coverage
 
-- [ ] Existing KB/schema test patterns checked.
-- [ ] Existing generated metadata/check patterns checked.
-- [ ] Candidate-vs-accepted failure cases planned.
-- [ ] Mac heuristic guardrail planned.
-- [ ] Legacy report-only behavior scoped.
+- [x] Existing KB/schema test patterns checked.
+- [x] Existing generated metadata/check patterns checked.
+- [x] Candidate-vs-accepted failure cases planned.
+- [x] Mac heuristic guardrail planned.
+- [x] Legacy report-only behavior scoped.
 
 ## Research Review
 
-- [ ] Second pass checked trace blocks against named files/functions.
-- [ ] Guardrails fail for candidate promotion.
-- [ ] Guardrails do not block untouched legacy parser behavior.
-- [ ] Proposal updated with enforcement rules or deferred follow-ups.
+- [x] Second pass checked trace blocks against named files/functions.
+- [x] Guardrails fail for candidate promotion.
+- [x] Guardrails do not block untouched legacy parser behavior.
+- [x] Proposal updated with enforcement rules or deferred follow-ups.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before implementation.
-- [ ] KB validation checks added.
-- [ ] Candidate promotion failure tested.
-- [ ] Mac heuristic guardrail tested.
-- [ ] Legacy parser behavior unchanged unless explicitly adopted.
-- [ ] Post-commit review found no unresolved worthwhile findings.
+- [x] Proposal context checked before implementation.
+- [x] KB validation checks added.
+- [x] Candidate promotion failure tested.
+- [x] Mac heuristic guardrail tested.
+- [x] Legacy parser behavior unchanged unless explicitly adopted.
+- [x] Post-commit review found no unresolved worthwhile findings.
+
+## Completion Evidence
+
+- Added `build_guardrail_report()` and the `guardrails` CLI mode to
+  `amiga_reversing.tools.platform_executable_formats`.
+- Guardrail report lists KB-backed records, report-only records, accepted
+  parser fact ids, candidate-only fact ids, deferred fact ids, and unsupported
+  fact ids.
+- Added tests that candidate promotion fails and that the Mac
+  `movea.l (a7)+,a0` candidate cannot become accepted parser output.
+- Added tests that the 018-001 thin proof remains report-only while the
+  018-003 Mac record is KB-backed.
+- `uv run python -m pytest tests\test_platform_executable_formats.py -q`
+  passed: 13 tests.
+- `uv run python -m amiga_reversing.tools.platform_executable_formats guardrails`
+  passed and emitted the expected report.
+- `uv run ruff check amiga_reversing\tools\platform_executable_formats.py tests\test_platform_executable_formats.py`
+  passed.
+- Parser and renderer code paths were not changed.

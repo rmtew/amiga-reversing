@@ -97,7 +97,7 @@ int platform_macos_code_metadata_parse(const unsigned char *payload, uint32_t pa
         PLATFORM_MACOS_CODE_EVIDENCE_PREFIX_BEFORE_STACK_ENTRY, 4U, entry_offset - 4U, 0U) != 0) {
     return -1;
   }
-  return append_code_range(out_code, PLATFORM_MACOS_CODE_RANGE_CONFIRMED_CODE,
+  return append_code_range(out_code, PLATFORM_MACOS_CODE_RANGE_CANDIDATE_CODE,
     PLATFORM_MACOS_CODE_EVIDENCE_M68K_STACK_ENTRY_TO_A0, entry_offset, payload_size - entry_offset, 1U);
 }
 
@@ -109,7 +109,8 @@ int platform_macos_code_metadata_executable_range(const PlatformMacosCodeMetadat
   if (code == NULL) return -1;
   for (index = 0U; index < code->layout_range_count; ++index) {
     const PlatformMacosCodeRange *range = &code->layout_ranges[index];
-    if (range->kind == PLATFORM_MACOS_CODE_RANGE_CONFIRMED_CODE && range->entrypoint) {
+    if ((range->kind == PLATFORM_MACOS_CODE_RANGE_CONFIRMED_CODE ||
+         range->kind == PLATFORM_MACOS_CODE_RANGE_CANDIDATE_CODE) && range->entrypoint) {
       if (out_start_offset != NULL) *out_start_offset = range->start_offset;
       if (out_size != NULL) *out_size = range->size;
       return 0;
@@ -137,6 +138,52 @@ const char *platform_macos_code_range_evidence_name(uint8_t evidence) {
     case PLATFORM_MACOS_CODE_EVIDENCE_M68K_STACK_ENTRY_TO_A0: return "m68k_movea_l_stack_to_a0_entry";
     case PLATFORM_MACOS_CODE_EVIDENCE_MISSING_STACK_ENTRY: return "missing_m68k_movea_l_stack_to_a0_entry";
     default: return "none";
+  }
+}
+
+const char *platform_macos_code_range_fact_id(uint8_t evidence) {
+  switch (evidence) {
+    case PLATFORM_MACOS_CODE_EVIDENCE_CODE0_JUMP_TABLE_METADATA:
+      return "macos.code_resource.0.jump_table_metadata";
+    case PLATFORM_MACOS_CODE_EVIDENCE_NONZERO_SEGMENT_HEADER:
+      return "macos.code_resource.nonzero.segment_header";
+    case PLATFORM_MACOS_CODE_EVIDENCE_PREFIX_BEFORE_STACK_ENTRY:
+    case PLATFORM_MACOS_CODE_EVIDENCE_M68K_STACK_ENTRY_TO_A0:
+      return "macos.code_resource.movea_stack_a0.boundary.candidate";
+    case PLATFORM_MACOS_CODE_EVIDENCE_MISSING_STACK_ENTRY:
+      return "macos.code_resource.byte_entry_rule.unknown";
+    default:
+      return "";
+  }
+}
+
+const char *platform_macos_code_range_fact_status(uint8_t evidence) {
+  switch (evidence) {
+    case PLATFORM_MACOS_CODE_EVIDENCE_CODE0_JUMP_TABLE_METADATA:
+    case PLATFORM_MACOS_CODE_EVIDENCE_NONZERO_SEGMENT_HEADER:
+      return "validated";
+    case PLATFORM_MACOS_CODE_EVIDENCE_PREFIX_BEFORE_STACK_ENTRY:
+    case PLATFORM_MACOS_CODE_EVIDENCE_M68K_STACK_ENTRY_TO_A0:
+      return "candidate";
+    case PLATFORM_MACOS_CODE_EVIDENCE_MISSING_STACK_ENTRY:
+      return "deferred";
+    default:
+      return "unsupported";
+  }
+}
+
+const char *platform_macos_code_range_parser_use(uint8_t evidence) {
+  switch (evidence) {
+    case PLATFORM_MACOS_CODE_EVIDENCE_CODE0_JUMP_TABLE_METADATA:
+    case PLATFORM_MACOS_CODE_EVIDENCE_NONZERO_SEGMENT_HEADER:
+      return "accepted_parser_output";
+    case PLATFORM_MACOS_CODE_EVIDENCE_PREFIX_BEFORE_STACK_ENTRY:
+    case PLATFORM_MACOS_CODE_EVIDENCE_M68K_STACK_ENTRY_TO_A0:
+      return "candidate_only";
+    case PLATFORM_MACOS_CODE_EVIDENCE_MISSING_STACK_ENTRY:
+      return "deferred_only";
+    default:
+      return "unsupported_only";
   }
 }
 

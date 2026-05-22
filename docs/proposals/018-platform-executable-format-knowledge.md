@@ -277,13 +277,69 @@ issue enforcement pattern, so future 018 closure cannot bypass evidence,
 review, and required sign-off sections.
 ```
 
+## Implementation Notes
+
+- 018-001 added the canonical human/schema/data authority files:
+  `docs/platform-executable-formats.md`,
+  `knowledge/platform_executable_formats.schema.json`, and
+  `knowledge/platform_executable_formats.json`. The initial KB contains a thin
+  Mac proof record only. It represents `macos`, HFS resource-fork CODE
+  resources, CODE 0 as candidate metadata, nonzero CODE resources as candidate
+  segment resources, and the current `movea.l (a7)+,a0` boundary as an
+  `analysis_seed_entrypoint` with `candidate_only` parser use.
+- 018-001 also added
+  `amiga_reversing.tools.platform_executable_formats` and
+  `tests/test_platform_executable_formats.py`. The validator enforces the
+  source/fact-state vocabulary and rejects candidate/deferred/unsupported facts
+  that try to authorize accepted parser output. No parser or renderer behavior
+  changed.
+- 018-002 added Mac citation packets to the executable-format KB. Validated
+  packets now cite local Inside Macintosh and MPW manual markdown for the HFS
+  resource-fork application-code relationship, Segment Loader CODE resources,
+  nonzero CODE segment headers, CODE 0 jump-table/A5 metadata, CODE 1 main
+  startup, A5 jump-table offset, and MPW Link application output. Project
+  observed MPW Asm inventory remains candidate-only, the current
+  `movea.l (a7)+,a0` boundary remains candidate-only, and relocation/fixup
+  semantics remain deferred. No parser or renderer behavior changed.
+- 018-003 added the first accepted Mac executable-format record,
+  `macos.hfs_resource_fork.code_resources.mpw_application`. It accepts only
+  facts backed by validated 018-002 packets: HFS resource-fork application code,
+  Segment Loader CODE resources, CODE 0 jump-table/A5 metadata, nonzero CODE
+  segment headers, CODE 1 main startup, A5 jump-table offset, and MPW Link
+  output. The `movea.l (a7)+,a0` boundary is explicitly migrated to
+  candidate-only state; relocation/fixups and byte-level entry rules remain
+  deferred. No parser or renderer behavior changed.
+- 018-004 added the first local guardrail report:
+  `python -m amiga_reversing.tools.platform_executable_formats guardrails`.
+  It separates KB-backed records from report-only records and lists accepted,
+  candidate-only, deferred, and unsupported fact ids. Tests fail if the Mac
+  `movea.l (a7)+,a0` candidate is promoted to accepted parser output, while the
+  018-001 thin proof remains report-only and untouched legacy parser behavior is
+  not blocked.
+- 018-005 updated the Mac C parser summary, Python listing adapter, project
+  payload, and committed MPW Asm target artifact to expose KB fact ids/status.
+  CODE 0 and nonzero CODE segment-header classifications are validated parser
+  output. The current `movea.l (a7)+,a0` executable byte boundary is still used
+  to extract/render the starter listing, but it is now explicitly
+  `candidate_code` with `candidate_only` parser use; missing entry evidence is
+  deferred. Regression tests keep `SECTION code,code` out of Mac listings.
+- 018-006 added first report-only Amiga and Atari records:
+  `amiga.hunk.load_file.basic_backfill` and
+  `atari_st.prg.gemdos_basic_backfill`. They cite the existing normalized
+  HUNK/PRG KBs, list backfill-required parser assumptions, set `kb_backed:
+  false`, and do not change parser behavior or authorize accepted parser output.
+- 018-007 added `amiga_reversing.tools.validate_018_issues`. The validator
+  checks 018 issue status vocabulary, Proposal 018 references, required protocol
+  sections, completed-issue completion evidence, completed checkbox sign-off,
+  and superseded/deleted reasons without rewriting files.
+
 ## Relationship To 012
 
-Proposal 012 remains open and blocked for executable/CODE correctness until
-018-002 provides cited Mac OS executable-format facts and the Mac parser is
-updated to consume or validate against them. Existing 012 work is useful
-foundation, but the current CODE entry heuristic is only a candidate boundary,
-not accepted platform knowledge.
+Proposal 012 remains open for full executable/CODE correctness. 018-005 removes
+the stale claim that the Mac parser/listing path accepts the current byte-entry
+heuristic, but relocation/fixup semantics, byte-level entry rules, and full
+per-resource CODE expansion remain deferred/candidate rather than accepted
+platform knowledge.
 
 018 sits above 011 and 012 as the shared executable/container format authority.
 It does not absorb all platform knowledge; it owns file structure, loader model,

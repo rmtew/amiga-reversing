@@ -67,14 +67,20 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
                             "end": 4,
                             "entrypoint": False,
                             "evidence": "nonzero_code_segment_header",
+                            "fact_id": "macos.code_resource.nonzero.segment_header",
+                            "fact_status": "validated",
+                            "parser_use": "accepted_parser_output",
                         },
                         {
-                            "kind": "confirmed_code",
+                            "kind": "candidate_code",
                             "start": 4,
                             "size": 2,
                             "end": 6,
                             "entrypoint": True,
                             "evidence": "m68k_movea_l_stack_to_a0_entry",
+                            "fact_id": "macos.code_resource.movea_stack_a0.boundary.candidate",
+                            "fact_status": "candidate",
+                            "parser_use": "candidate_only",
                         },
                     ]
                 },
@@ -120,7 +126,8 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
     assert container["kind"] == "hfs_resource_code_file"
     assert container["finder"] == {"type": "MPST", "creator": "MPS ", "cnid": 2310}
     assert container["selected_code_segment"]["code_entry_offset"] == 4
-    assert container["selected_code_segment"]["code_layout"][1]["kind"] == "confirmed_code"
+    assert container["selected_code_segment"]["code_layout"][1]["kind"] == "candidate_code"
+    assert container["selected_code_segment"]["code_layout"][1]["fact_status"] == "candidate"
     assert container["selected_code_segment"]["listing"] == {
         "project_id": "macos_mpw_sample",
         "route": "listing",
@@ -181,5 +188,6 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     assert len(container["code_resources"]) == 28
     assert container["selected_code_segment"]["code_entry_offset"] == 40
     assert container["selected_code_segment"]["code_bytes_size"] == 28984
-    assert container["selected_code_segment"]["code_layout"][2]["kind"] == "confirmed_code"
+    assert container["selected_code_segment"]["code_layout"][2]["kind"] == "candidate_code"
+    assert container["selected_code_segment"]["code_layout"][2]["fact_status"] == "candidate"
     assert payload["provenance"]["source_image"] == IMAGE_PATH.as_posix()

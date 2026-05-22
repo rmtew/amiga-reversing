@@ -62,33 +62,33 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ; CODE resource coverage
 ;   total_code_resources: 28
 ;   CODE 0 unknown: status=metadata-only layout=metadata reason=CODE 0 jump-table/application metadata
-;   CODE 27 32-bit bootstrap: status=partial layout=metadata,data,confirmed_code reason=confirmed entry payload[204..1882); full per-resource listing deferred until relocation/source-boundary context is represented
-;   CODE 1 Main: status=rendered layout=metadata,data,confirmed_code reason=expanded below through macos-code listing backend
-;   CODE 2 FPOpTable: status=partial layout=metadata,data,confirmed_code reason=confirmed entry payload[374..7788); full per-resource listing deferred until relocation/source-boundary context is represented
-;   CODE 3 Init: status=partial layout=metadata,data,confirmed_code reason=confirmed entry payload[302..18252); full per-resource listing deferred until relocation/source-boundary context is represented
-;   CODE 4 IOMgr: status=partial layout=metadata,data,confirmed_code reason=confirmed entry payload[468..6426); full per-resource listing deferred until relocation/source-boundary context is represented
-;   CODE 5 Macros: status=partial layout=metadata,data,confirmed_code reason=confirmed entry payload[212..26638); full per-resource listing deferred until relocation/source-boundary context is represented
-;   CODE 6 OpTable: status=partial layout=metadata,data,confirmed_code reason=confirmed entry payload[58..15158); full per-resource listing deferred until relocation/source-boundary context is represented
-;   CODE 7 POpTable: status=partial layout=metadata,data,confirmed_code reason=confirmed entry payload[352..4142); full per-resource listing deferred until relocation/source-boundary context is represented
-;   CODE 8 Listing: status=partial layout=metadata,data,confirmed_code reason=confirmed entry payload[42..1852); full per-resource listing deferred until relocation/source-boundary context is represented
-;   CODE 9 Pass2: status=partial layout=metadata,data,confirmed_code reason=confirmed entry payload[712..13946); full per-resource listing deferred until relocation/source-boundary context is represented
-;   CODE 10 FinishUp: status=partial layout=metadata,data,confirmed_code reason=confirmed entry payload[148..1542); full per-resource listing deferred until relocation/source-boundary context is represented
-;   CODE 11 Dbg: status=partial layout=metadata,data,confirmed_code reason=confirmed entry payload[836..3678); full per-resource listing deferred until relocation/source-boundary context is represented
-;   CODE 12 LoadDump: status=partial layout=metadata,data,confirmed_code reason=confirmed entry payload[44..6928); full per-resource listing deferred until relocation/source-boundary context is represented
-;   CODE 13 Directives: status=partial layout=metadata,data,confirmed_code reason=confirmed entry payload[44..33354); full per-resource listing deferred until relocation/source-boundary context is represented
-;   CODE 14 MemMgr: status=partial layout=metadata,data,confirmed_code reason=confirmed entry payload[236..1886); full per-resource listing deferred until relocation/source-boundary context is represented
-;   CODE 15 Errors: status=partial layout=metadata,data,confirmed_code reason=confirmed entry payload[96..3452); full per-resource listing deferred until relocation/source-boundary context is represented
-;   CODE 16 New: status=partial layout=metadata,data,confirmed_code reason=confirmed entry payload[246..1034); full per-resource listing deferred until relocation/source-boundary context is represented
-;   CODE 17 DispSymTbl: status=partial layout=metadata,data,confirmed_code reason=confirmed entry payload[100..3674); full per-resource listing deferred until relocation/source-boundary context is represented
-;   CODE 18 FinishDirectives: status=partial layout=metadata,data,confirmed_code reason=confirmed entry payload[1562..1974); full per-resource listing deferred until relocation/source-boundary context is represented
+;   CODE 27 32-bit bootstrap: status=partial layout=metadata,data,candidate_code reason=candidate_code entry payload[204..1882); full per-resource listing deferred until relocation/source-boundary context is represented
+;   CODE 1 Main: status=rendered layout=metadata,data,candidate_code reason=expanded below through macos-code listing backend
+;   CODE 2 FPOpTable: status=partial layout=metadata,data,candidate_code reason=candidate_code entry payload[374..7788); full per-resource listing deferred until relocation/source-boundary context is represented
+;   CODE 3 Init: status=partial layout=metadata,data,candidate_code reason=candidate_code entry payload[302..18252); full per-resource listing deferred until relocation/source-boundary context is represented
+;   CODE 4 IOMgr: status=partial layout=metadata,data,candidate_code reason=candidate_code entry payload[468..6426); full per-resource listing deferred until relocation/source-boundary context is represented
+;   CODE 5 Macros: status=partial layout=metadata,data,candidate_code reason=candidate_code entry payload[212..26638); full per-resource listing deferred until relocation/source-boundary context is represented
+;   CODE 6 OpTable: status=partial layout=metadata,data,candidate_code reason=candidate_code entry payload[58..15158); full per-resource listing deferred until relocation/source-boundary context is represented
+;   CODE 7 POpTable: status=partial layout=metadata,data,candidate_code reason=candidate_code entry payload[352..4142); full per-resource listing deferred until relocation/source-boundary context is represented
+;   CODE 8 Listing: status=partial layout=metadata,data,candidate_code reason=candidate_code entry payload[42..1852); full per-resource listing deferred until relocation/source-boundary context is represented
+;   CODE 9 Pass2: status=partial layout=metadata,data,candidate_code reason=candidate_code entry payload[712..13946); full per-resource listing deferred until relocation/source-boundary context is represented
+;   CODE 10 FinishUp: status=partial layout=metadata,data,candidate_code reason=candidate_code entry payload[148..1542); full per-resource listing deferred until relocation/source-boundary context is represented
+;   CODE 11 Dbg: status=partial layout=metadata,data,candidate_code reason=candidate_code entry payload[836..3678); full per-resource listing deferred until relocation/source-boundary context is represented
+;   CODE 12 LoadDump: status=partial layout=metadata,data,candidate_code reason=candidate_code entry payload[44..6928); full per-resource listing deferred until relocation/source-boundary context is represented
+;   CODE 13 Directives: status=partial layout=metadata,data,candidate_code reason=candidate_code entry payload[44..33354); full per-resource listing deferred until relocation/source-boundary context is represented
+;   CODE 14 MemMgr: status=partial layout=metadata,data,candidate_code reason=candidate_code entry payload[236..1886); full per-resource listing deferred until relocation/source-boundary context is represented
+;   CODE 15 Errors: status=partial layout=metadata,data,candidate_code reason=candidate_code entry payload[96..3452); full per-resource listing deferred until relocation/source-boundary context is represented
+;   CODE 16 New: status=partial layout=metadata,data,candidate_code reason=candidate_code entry payload[246..1034); full per-resource listing deferred until relocation/source-boundary context is represented
+;   CODE 17 DispSymTbl: status=partial layout=metadata,data,candidate_code reason=candidate_code entry payload[100..3674); full per-resource listing deferred until relocation/source-boundary context is represented
+;   CODE 18 FinishDirectives: status=partial layout=metadata,data,candidate_code reason=candidate_code entry payload[1562..1974); full per-resource listing deferred until relocation/source-boundary context is represented
 ;   CODE 19 SetupArgV: status=deferred layout=metadata,deferred reason=classifier deferred range: missing_m68k_movea_l_stack_to_a0_entry
-;   CODE 20 INTENV: status=partial layout=metadata,data,confirmed_code reason=confirmed entry payload[2876..5262); full per-resource listing deferred until relocation/source-boundary context is represented
-;   CODE 21 SADEV: status=partial layout=metadata,data,confirmed_code reason=confirmed entry payload[2000..6794); full per-resource listing deferred until relocation/source-boundary context is represented
+;   CODE 20 INTENV: status=partial layout=metadata,data,candidate_code reason=candidate_code entry payload[2876..5262); full per-resource listing deferred until relocation/source-boundary context is represented
+;   CODE 21 SADEV: status=partial layout=metadata,data,candidate_code reason=candidate_code entry payload[2000..6794); full per-resource listing deferred until relocation/source-boundary context is represented
 ;   CODE 22 SANELIB: status=deferred layout=metadata,deferred reason=classifier deferred range: missing_m68k_movea_l_stack_to_a0_entry
 ;   CODE 23 STDCLIB: status=deferred layout=metadata,deferred reason=classifier deferred range: missing_m68k_movea_l_stack_to_a0_entry
-;   CODE 24 STDIO: status=partial layout=metadata,data,confirmed_code reason=confirmed entry payload[2950..4970); full per-resource listing deferred until relocation/source-boundary context is represented
-;   CODE 25 SANELib: status=partial layout=metadata,data,confirmed_code reason=confirmed entry payload[40..246); full per-resource listing deferred until relocation/source-boundary context is represented
-;   CODE 26 PASLIB: status=partial layout=metadata,data,confirmed_code reason=confirmed entry payload[198..2940); full per-resource listing deferred until relocation/source-boundary context is represented
+;   CODE 24 STDIO: status=partial layout=metadata,data,candidate_code reason=candidate_code entry payload[2950..4970); full per-resource listing deferred until relocation/source-boundary context is represented
+;   CODE 25 SANELib: status=partial layout=metadata,data,candidate_code reason=candidate_code entry payload[40..246); full per-resource listing deferred until relocation/source-boundary context is represented
+;   CODE 26 PASLIB: status=partial layout=metadata,data,candidate_code reason=candidate_code entry payload[198..2940); full per-resource listing deferred until relocation/source-boundary context is represented
 
 ; Non-CODE resource placeholders
 ;   type acur: 1 resource(s), structured placeholder
@@ -114,9 +114,9 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;   payload_sha256: 4a543f6fd1c542fccd38ec9f469b06f65c797dfd8b226fefc9f576faafbe70f5
 ;   code_bytes_sha256: 4633044ba0d2a816a0e482a9fb3b65bcd8daf699882df8f95939ad018f51879c
 ;   classified_layout:
-;     metadata: start=0 end=4 entrypoint=False evidence=nonzero_code_segment_header
-;     data: start=4 end=40 entrypoint=False evidence=prefix_before_stack_entry
-;     confirmed_code: start=40 end=29024 entrypoint=True evidence=m68k_movea_l_stack_to_a0_entry
+;     metadata: start=0 end=4 entrypoint=False evidence=nonzero_code_segment_header fact=macos.code_resource.nonzero.segment_header status=validated
+;     data: start=4 end=40 entrypoint=False evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate
+;     candidate_code: start=40 end=29024 entrypoint=True evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate
 ;   listing_rows: 1818
 
 ; CODE 1 Main listing follows. Offsets are local to the selected CODE resource code bytes.
@@ -124,7 +124,7 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ; HFS path: MPW-GM/MPW/Tools/Asm
 ; fork: resource
 ; resource: CODE 1 Main
-; classified_range: confirmed_code payload[40..29024) evidence=m68k_movea_l_stack_to_a0_entry
+; classified_range: candidate_code payload[40..29024) evidence=m68k_movea_l_stack_to_a0_entry
 
 ; OS compatibility
 ;   status: no_os_calls

@@ -1,0 +1,1959 @@
+{
+  "schema_version": 1,
+  "_meta": {
+    "name": "platform_executable_formats",
+    "status": "018-001 schema gate",
+    "proposal": "docs/proposals/018-platform-executable-format-knowledge.md",
+    "description": "Shared executable/container format authority for platform parsers. This first record is a thin Mac proof and intentionally contains no accepted Mac parser facts."
+  },
+  "vocabularies": {
+    "fact_states": [
+      "validated",
+      "parser_asserted",
+      "candidate",
+      "deferred",
+      "unsupported"
+    ],
+    "source_types": [
+      "old_out_of_print",
+      "modern_compatible",
+      "project_observed",
+      "parser_asserted"
+    ],
+    "entrypoint_types": [
+      "file_entrypoint",
+      "segment_entrypoint",
+      "runtime_entrypoint",
+      "exported_entrypoint",
+      "callback_entrypoint",
+      "analysis_seed_entrypoint"
+    ],
+    "parser_uses": [
+      "accepted_parser_output",
+      "candidate_only",
+      "deferred_only",
+      "unsupported_only"
+    ],
+    "required_parser_behaviors": [
+      "fail_closed",
+      "emit_candidate",
+      "emit_placeholder",
+      "ignore_safely",
+      "block_closeout"
+    ],
+    "model_layers": [
+      "file_structure",
+      "loader_model",
+      "runtime_entry_model",
+      "analysis_model",
+      "renderer_expectation",
+      "archetype_identity"
+    ]
+  },
+  "sources": [
+    {
+      "id": "proposal-018",
+      "source_type": "project_observed",
+      "license_status": "project_local",
+      "path": "docs/proposals/018-platform-executable-format-knowledge.md",
+      "role": "Defines required schema vocabulary, fact states, source policy, and Mac thin-proof scope."
+    },
+    {
+      "id": "proposal-012",
+      "source_type": "project_observed",
+      "license_status": "project_local",
+      "path": "docs/proposals/012-classic-mac-os-m68k-platform.md",
+      "role": "Records the Mac CODE blocker and the current candidate movea.l boundary."
+    },
+    {
+      "id": "macos-file-structure-notes",
+      "source_type": "project_observed",
+      "license_status": "project_local",
+      "path": "docs/macos-file-structure.md",
+      "role": "Summarizes local Mac file/resource/CODE observations and manual citation anchors."
+    },
+    {
+      "id": "mpw-asm-code-resources",
+      "source_type": "project_observed",
+      "license_status": "project_local_metadata",
+      "path": "ext/macos_tools/mpw_gm/asm_code_resources.json",
+      "role": "Committed observed MPW Asm CODE resource inventory."
+    },
+    {
+      "id": "macos-targets",
+      "source_type": "project_observed",
+      "license_status": "project_local",
+      "path": "docs/macos-targets.md",
+      "role": "Documents current illustrative Mac target and unsupported Segment Loader/runtime areas."
+    },
+    {
+      "id": "inside-macintosh-volume-i-1985",
+      "source_type": "old_out_of_print",
+      "license_status": "old_out_of_print_reference_excerpt",
+      "path": "ext/docs_macos/Inside_Macintosh_Volume_I_1985.md",
+      "role": "Classic Mac OS resource fork and application-file structure citation source."
+    },
+    {
+      "id": "inside-macintosh-volume-ii-1985",
+      "source_type": "old_out_of_print",
+      "license_status": "old_out_of_print_reference_excerpt",
+      "path": "ext/docs_macos/Inside_Macintosh_Volume_II_1985.md",
+      "role": "Classic Mac OS Segment Loader, CODE resource, jump-table, A5, and entry citation source."
+    },
+    {
+      "id": "mpw-assembly-language-1987",
+      "source_type": "old_out_of_print",
+      "license_status": "old_out_of_print_reference_excerpt",
+      "path": "ext/docs_macos/MPW_and_Assembly_Language_Programming_for_the_Macintosh_1987.md",
+      "role": "MPW Asm/Link workflow and Link progress citation source."
+    },
+    {
+      "id": "programming-with-mpw-1987",
+      "source_type": "old_out_of_print",
+      "license_status": "old_out_of_print_reference_excerpt",
+      "path": "ext/docs_macos/Programming_With_Macintosh_Programmers_Workshop_1987.md",
+      "role": "MPW resource/CODE overview citation source."
+    },
+    {
+      "id": "macos-initial-analysis-research",
+      "source_type": "project_observed",
+      "license_status": "project_local",
+      "path": "docs/macos-initial-analysis-research.md",
+      "role": "Project-local MPW fixture, source segment, Link/Rez, and CODE-resource research trace."
+    },
+    {
+      "id": "mpw-tools-source-metadata",
+      "source_type": "project_observed",
+      "license_status": "project_local_metadata",
+      "path": "ext/macos_tools/mpw_gm/source.json",
+      "role": "Committed source/provenance metadata for MPW-GM tool executable fixture."
+    },
+    {
+      "id": "amiga-hunk-file-kb",
+      "source_type": "project_observed",
+      "license_status": "project_local",
+      "path": "knowledge/amiga_hunk_file.json",
+      "role": "Normalized Amiga HUNK executable/object/library format metadata used by generated helpers."
+    },
+    {
+      "id": "atari-st-prg-file-kb",
+      "source_type": "project_observed",
+      "license_status": "project_local",
+      "path": "knowledge/atari_st_prg_file.json",
+      "role": "Normalized Atari ST GEMDOS PRG executable metadata used by generated helpers."
+    },
+    {
+      "id": "amiga-hunk-parser-source",
+      "source_type": "project_observed",
+      "license_status": "project_local",
+      "path": "src/platform_amiga_hunk.c",
+      "role": "Current Amiga HUNK parser behavior inventory for 018-006 backfill planning."
+    },
+    {
+      "id": "atari-st-parser-source",
+      "source_type": "project_observed",
+      "license_status": "project_local",
+      "path": "src/platform_atari_st.c",
+      "role": "Current Atari ST PRG parser behavior inventory for 018-006 backfill planning."
+    }
+  ],
+  "records": [
+    {
+      "id": "macos.hfs_resource_fork.code_resources.thin_proof",
+      "platform_id": "macos",
+      "format_id": "macos.hfs_resource_fork.code_resources",
+      "archetype_id": "macos.application_code_resources",
+      "fact_state": "candidate",
+      "source_policy": {
+        "allowed_source_types": [
+          "old_out_of_print",
+          "modern_compatible",
+          "project_observed",
+          "parser_asserted"
+        ],
+        "excluded_source_types": [
+          "modern_incompatible",
+          "uncited_generalization",
+          "fixture_only_validated_platform_rule"
+        ],
+        "accepted_fact_states": [
+          "validated",
+          "parser_asserted"
+        ]
+      },
+      "producer_variant_scope": {
+        "producers": [
+          "MPW Link observed fixture"
+        ],
+        "variant_scope": "Application/tool-style HFS resource forks with CODE resources. The record is a schema proof only; it does not validate general Classic Mac OS Segment Loader rules."
+      },
+      "applies_to": [
+        {
+          "kind": "observed_fixture",
+          "value": "MPW-GM/MPW/Tools/Asm"
+        },
+        {
+          "kind": "future_general_scope",
+          "value": "Classic Mac OS application/tool CODE resources after 018-002 citations"
+        }
+      ],
+      "identification": [
+        {
+          "id": "macos.hfs.resource_fork.code_type.present",
+          "status": "candidate",
+          "summary": "A Mac HFS file can carry executable material in its resource fork when CODE resources are present.",
+          "source_type": "project_observed",
+          "citations": [
+            {
+              "source_id": "macos-file-structure-notes",
+              "source_type": "project_observed",
+              "target": "docs/macos-file-structure.md",
+              "context": "Local notes record the HFS data/resource fork split and observed CODE resources."
+            },
+            {
+              "source_id": "mpw-asm-code-resources",
+              "source_type": "project_observed",
+              "target": "ext/macos_tools/mpw_gm/asm_code_resources.json",
+              "context": "Observed MPW Asm resource fork has 28 CODE resources."
+            }
+          ],
+          "parser_use": "candidate_only",
+          "required_parser_behavior": "emit_candidate"
+        }
+      ],
+      "containers": [
+        {
+          "id": "macos.hfs_file.with_data_and_resource_forks",
+          "status": "candidate",
+          "summary": "The observed MPW Asm file has a data fork and a resource fork; executable CODE inventory is in the resource fork.",
+          "source_type": "project_observed",
+          "citations": [
+            {
+              "source_id": "macos-file-structure-notes",
+              "source_type": "project_observed",
+              "target": "docs/macos-file-structure.md",
+              "context": "Records Finder type/creator and fork sizes for MPW-GM/MPW/Tools/Asm."
+            }
+          ],
+          "parser_use": "candidate_only",
+          "required_parser_behavior": "emit_candidate"
+        },
+        {
+          "id": "macos.resource_fork.code_resources",
+          "status": "candidate",
+          "summary": "Resource-fork CODE resources are the container for candidate Mac m68k executable segments.",
+          "source_type": "project_observed",
+          "citations": [
+            {
+              "source_id": "mpw-asm-code-resources",
+              "source_type": "project_observed",
+              "target": "ext/macos_tools/mpw_gm/asm_code_resources.json",
+              "context": "CODE resource inventory and per-resource payload metadata."
+            }
+          ],
+          "parser_use": "candidate_only",
+          "required_parser_behavior": "emit_candidate"
+        }
+      ],
+      "regions": [
+        {
+          "id": "macos.code_resource.0.metadata_candidate",
+          "status": "candidate",
+          "summary": "Observed CODE 0 carries jump-table/application metadata fields, but the general CODE 0 role remains candidate until cited Segment Loader facts are collected.",
+          "source_type": "project_observed",
+          "citations": [
+            {
+              "source_id": "mpw-asm-code-resources",
+              "source_type": "project_observed",
+              "target": "ext/macos_tools/mpw_gm/asm_code_resources.json resources[0].code",
+              "context": "Observed CODE 0 metadata has above/below A5 and jump-table fields."
+            },
+            {
+              "source_id": "proposal-018",
+              "source_type": "project_observed",
+              "target": "018-001 thin proof",
+              "context": "Requires CODE 0 as metadata candidate/known role without overclaiming."
+            }
+          ],
+          "parser_use": "candidate_only",
+          "required_parser_behavior": "emit_candidate",
+          "details": {
+            "observed_role": "jump_table_segment",
+            "general_platform_rule": "not_validated"
+          }
+        },
+        {
+          "id": "macos.code_resource.nonzero.segment_candidate",
+          "status": "candidate",
+          "summary": "Observed nonzero CODE resources are candidate segment resources; accepted code/data boundaries require 018-002/018-003 facts.",
+          "source_type": "project_observed",
+          "citations": [
+            {
+              "source_id": "mpw-asm-code-resources",
+              "source_type": "project_observed",
+              "target": "ext/macos_tools/mpw_gm/asm_code_resources.json resources[1..]",
+              "context": "Observed nonzero CODE resources have names, hashes, sizes, and code_segment metadata."
+            }
+          ],
+          "parser_use": "candidate_only",
+          "required_parser_behavior": "emit_candidate"
+        }
+      ],
+      "relocations": [
+        {
+          "id": "macos.code_resource.relocations.deferred",
+          "status": "deferred",
+          "summary": "Segment Loader relocation/fixup interpretation is not represented by this thin proof.",
+          "source_type": "project_observed",
+          "citations": [
+            {
+              "source_id": "macos-targets",
+              "source_type": "project_observed",
+              "target": "docs/macos-targets.md",
+              "context": "Current target docs list Segment Loader/runtime areas as unsupported/deferred."
+            }
+          ],
+          "parser_use": "deferred_only",
+          "required_parser_behavior": "emit_placeholder"
+        }
+      ],
+      "symbols": [
+        {
+          "id": "macos.code_resource.symbols.unknown",
+          "status": "deferred",
+          "summary": "Standard symbol/jump-table naming semantics are deferred until cited Segment Loader and MPW Link facts are collected.",
+          "source_type": "project_observed",
+          "citations": [
+            {
+              "source_id": "proposal-018",
+              "source_type": "project_observed",
+              "target": "Proposal 018 Mac OS platform scope",
+              "context": "Names jump table and MPW Link output as later citation-packet work."
+            }
+          ],
+          "parser_use": "deferred_only",
+          "required_parser_behavior": "emit_placeholder"
+        }
+      ],
+      "bss": [
+        {
+          "id": "macos.code_resource.bss.unknown",
+          "status": "deferred",
+          "summary": "A5 world and zero-initialized storage interpretation are deferred.",
+          "source_type": "project_observed",
+          "citations": [
+            {
+              "source_id": "proposal-018",
+              "source_type": "project_observed",
+              "target": "Proposal 018 model split and Mac scope",
+              "context": "A5 world and runtime metadata require cited facts in later issues."
+            }
+          ],
+          "parser_use": "deferred_only",
+          "required_parser_behavior": "emit_placeholder"
+        }
+      ],
+      "loader_model": [
+        {
+          "id": "macos.segment_loader.model.deferred",
+          "status": "deferred",
+          "summary": "Segment Loader behavior is required by the model but is not validated by the thin proof.",
+          "source_type": "project_observed",
+          "citations": [
+            {
+              "source_id": "proposal-012",
+              "source_type": "project_observed",
+              "target": "Blocked corrective scope",
+              "context": "Proposal 012 remains blocked on cited Segment Loader/CODE facts."
+            }
+          ],
+          "parser_use": "deferred_only",
+          "required_parser_behavior": "block_closeout"
+        }
+      ],
+      "runtime_model": [
+        {
+          "id": "macos.runtime.a5_world.deferred",
+          "status": "deferred",
+          "summary": "A5 world, jump-table setup, and runtime entry register/stack state are deferred until citation packets exist.",
+          "source_type": "project_observed",
+          "citations": [
+            {
+              "source_id": "proposal-018",
+              "source_type": "project_observed",
+              "target": "018-002 issue seed",
+              "context": "A5 world, jump-table, relocation/fixup, and entrypoint facts are assigned to 018-002."
+            }
+          ],
+          "parser_use": "deferred_only",
+          "required_parser_behavior": "block_closeout"
+        }
+      ],
+      "analysis_model": [
+        {
+          "id": "macos.code_resource.movea_stack_a0.analysis_seed",
+          "status": "candidate",
+          "summary": "The observed movea.l (a7)+,a0 boundary is candidate analysis seed evidence only, not a validated Mac CODE entry rule.",
+          "source_type": "project_observed",
+          "citations": [
+            {
+              "source_id": "proposal-012",
+              "source_type": "project_observed",
+              "target": "Closeout checklist blocked corrective scope",
+              "context": "Current CODE entry boundary is called out as heuristic."
+            }
+          ],
+          "parser_use": "candidate_only",
+          "required_parser_behavior": "emit_candidate"
+        }
+      ],
+      "renderer_expectations": [
+        {
+          "id": "macos.renderer.must_label_candidate_boundaries",
+          "status": "candidate",
+          "summary": "Mac rendering must not present candidate CODE boundaries as accepted platform semantics.",
+          "source_type": "project_observed",
+          "citations": [
+            {
+              "source_id": "proposal-018",
+              "source_type": "project_observed",
+              "target": "Fact States and Model Split",
+              "context": "Candidate facts are research/report only and may not be consumed as accepted facts."
+            }
+          ],
+          "parser_use": "candidate_only",
+          "required_parser_behavior": "emit_candidate"
+        }
+      ],
+      "entrypoints": [
+        {
+          "id": "macos.code_resource.movea_stack_a0.entry_candidate",
+          "type": "analysis_seed_entrypoint",
+          "status": "candidate",
+          "source_type": "project_observed",
+          "summary": "Observed CODE 1 bytes contain movea.l (a7)+,a0 at the current boundary; this is only an analysis seed until validated or replaced.",
+          "citations": [
+            {
+              "source_id": "proposal-012",
+              "source_type": "project_observed",
+              "target": "Post-closeout review and blocked corrective scope",
+              "context": "Proposal 012 identifies the movea.l boundary as heuristic."
+            }
+          ],
+          "parser_use": "candidate_only",
+          "details": {
+            "observed_opcode_bytes": "20 5f",
+            "observed_disassembly": "movea.l (a7)+,a0"
+          }
+        }
+      ],
+      "facts": [
+        {
+          "id": "macos.hfs.resource_fork.code_resources.observed",
+          "layer": "file_structure",
+          "status": "candidate",
+          "source_type": "project_observed",
+          "summary": "The MPW Asm resource fork has a CODE inventory that can exercise the schema's container and region vocabulary.",
+          "citations": [
+            {
+              "source_id": "mpw-asm-code-resources",
+              "source_type": "project_observed",
+              "target": "ext/macos_tools/mpw_gm/asm_code_resources.json",
+              "context": "Committed observed CODE metadata."
+            }
+          ],
+          "parser_use": "candidate_only"
+        },
+        {
+          "id": "macos.code_resource.0.role.candidate",
+          "layer": "loader_model",
+          "status": "candidate",
+          "source_type": "project_observed",
+          "summary": "CODE 0 is represented as candidate Segment Loader metadata for the thin proof.",
+          "citations": [
+            {
+              "source_id": "mpw-asm-code-resources",
+              "source_type": "project_observed",
+              "target": "resources[0].code.kind",
+              "context": "Observed local metadata marks CODE 0 as jump_table_segment."
+            }
+          ],
+          "parser_use": "candidate_only"
+        },
+        {
+          "id": "macos.code_resource.nonzero.role.candidate",
+          "layer": "loader_model",
+          "status": "candidate",
+          "source_type": "project_observed",
+          "summary": "Nonzero CODE resources are represented as candidate segment resources for the thin proof.",
+          "citations": [
+            {
+              "source_id": "mpw-asm-code-resources",
+              "source_type": "project_observed",
+              "target": "resources[1].code.kind",
+              "context": "Observed local metadata marks nonzero CODE resources as code_segment."
+            }
+          ],
+          "parser_use": "candidate_only"
+        },
+        {
+          "id": "macos.code_resource.movea_stack_a0.boundary.candidate",
+          "layer": "analysis_model",
+          "status": "candidate",
+          "source_type": "project_observed",
+          "summary": "The movea.l (a7)+,a0 boundary can guide candidate analysis only.",
+          "citations": [
+            {
+              "source_id": "proposal-012",
+              "source_type": "project_observed",
+              "target": "Proposal 012 blocked corrective scope",
+              "context": "Boundary is explicitly not accepted platform knowledge."
+            }
+          ],
+          "parser_use": "candidate_only"
+        }
+      ],
+      "unknowns": [
+        {
+          "id": "macos.code_resource.entry_rule.unknown",
+          "scope": "entrypoints",
+          "status": "deferred",
+          "summary": "The standard rule for CODE segment runtime entry is not known to this proof record.",
+          "required_parser_behavior": "block_closeout",
+          "citations": [
+            {
+              "source_id": "proposal-018",
+              "source_type": "project_observed",
+              "target": "Relationship To 012",
+              "context": "Mac parser/listing must wait for cited facts."
+            }
+          ]
+        }
+      ],
+      "conflicts": [],
+      "deferred": [
+        {
+          "id": "macos.segment_loader.facts.deferred",
+          "scope": "loader_model",
+          "status": "deferred",
+          "summary": "Segment Loader, relocation/fixup, A5 world, jump-table, and MPW Link/Rez facts belong to 018-002/018-003.",
+          "required_parser_behavior": "block_closeout",
+          "citations": [
+            {
+              "source_id": "proposal-018",
+              "source_type": "project_observed",
+              "target": "Issue seeds 018-002 and 018-003",
+              "context": "Later issues own cited fact collection and accepted KB migration."
+            }
+          ]
+        }
+      ],
+      "unsupported": [
+        {
+          "id": "macos.byte_for_byte_roundtrip.unsupported",
+          "scope": "roundtrip",
+          "status": "unsupported",
+          "summary": "Byte-for-byte MPW Asm/Link/Rez roundtrip is outside this proof record.",
+          "required_parser_behavior": "ignore_safely",
+          "citations": [
+            {
+              "source_id": "proposal-012",
+              "source_type": "project_observed",
+              "target": "Future scope after cited starter-quality rendering",
+              "context": "Roundtrip is future scope."
+            }
+          ]
+        }
+      ],
+      "required_parser_behavior": {
+        "accepted_output_requires_fact_states": [
+          "validated",
+          "parser_asserted"
+        ],
+        "candidate_output_allowed_from_fact_states": [
+          "candidate"
+        ],
+        "missing_fact_behavior": "fail_closed",
+        "candidate_fact_rule": "Facts marked candidate, deferred, or unsupported must not drive accepted code/data/entry classification.",
+        "kb_backed": false
+      }
+    },
+    {
+      "id": "macos.hfs_resource_fork.code_resources.mpw_application",
+      "platform_id": "macos",
+      "format_id": "macos.hfs_resource_fork.code_resources",
+      "archetype_id": "macos.application_code_resources",
+      "fact_state": "validated",
+      "source_policy": {
+        "allowed_source_types": [
+          "old_out_of_print",
+          "modern_compatible",
+          "project_observed",
+          "parser_asserted"
+        ],
+        "excluded_source_types": [
+          "modern_incompatible",
+          "uncited_generalization",
+          "fixture_only_validated_platform_rule"
+        ],
+        "accepted_fact_states": [
+          "validated",
+          "parser_asserted"
+        ]
+      },
+      "producer_variant_scope": {
+        "producers": [
+          "MPW Link"
+        ],
+        "variant_scope": "Classic Mac OS application/tool HFS resource forks whose executable code is represented by CODE resources. Current accepted facts cover resource/container structure, CODE 0 metadata, nonzero CODE segment headers, CODE 1 main startup relationship, A5 jump-table metadata, and MPW Link output. Relocation/fixup interpretation and exact CODE byte entry remain out of accepted scope."
+      },
+      "applies_to": [
+        {
+          "kind": "platform_archetype",
+          "value": "macos.application_code_resources"
+        },
+        {
+          "kind": "producer",
+          "value": "MPW Link application/tool output"
+        }
+      ],
+      "identification": [
+        {
+          "id": "macos.hfs_file.resource_fork.application_code.accepted",
+          "status": "validated",
+          "summary": "A Classic Mac OS application file has data and resource forks, and its resource fork can contain application code segmented as resources.",
+          "source_type": "old_out_of_print",
+          "citations": [
+            {
+              "source_id": "inside-macintosh-volume-i-1985",
+              "source_type": "old_out_of_print",
+              "target": "ext/docs_macos/Inside_Macintosh_Volume_I_1985.md source-page 117",
+              "context": "018-002 packet macos.packet.hfs_resource_fork.application_code."
+            }
+          ],
+          "parser_use": "accepted_parser_output",
+          "required_parser_behavior": "fail_closed",
+          "details": {
+            "citation_packet_id": "macos.packet.hfs_resource_fork.application_code"
+          }
+        }
+      ],
+      "containers": [
+        {
+          "id": "macos.resource_fork.code_resources.accepted",
+          "status": "validated",
+          "summary": "Application segments are stored as CODE resources in the resource fork and are loaded by Segment Loader behavior.",
+          "source_type": "old_out_of_print",
+          "citations": [
+            {
+              "source_id": "inside-macintosh-volume-ii-1985",
+              "source_type": "old_out_of_print",
+              "target": "ext/docs_macos/Inside_Macintosh_Volume_II_1985.md source-page 64",
+              "context": "018-002 packet macos.packet.segment_loader.code_resources."
+            }
+          ],
+          "parser_use": "accepted_parser_output",
+          "required_parser_behavior": "fail_closed",
+          "details": {
+            "citation_packet_id": "macos.packet.segment_loader.code_resources"
+          }
+        }
+      ],
+      "regions": [
+        {
+          "id": "macos.code_resource.0.jump_table_metadata.accepted",
+          "status": "validated",
+          "summary": "CODE resource ID 0 is the Linker-created segment containing A5 sizing fields and the application jump table.",
+          "source_type": "old_out_of_print",
+          "citations": [
+            {
+              "source_id": "inside-macintosh-volume-ii-1985",
+              "source_type": "old_out_of_print",
+              "target": "ext/docs_macos/Inside_Macintosh_Volume_II_1985.md source-pages 70-71",
+              "context": "018-002 packet macos.packet.code0.jump_table_metadata."
+            }
+          ],
+          "parser_use": "accepted_parser_output",
+          "required_parser_behavior": "fail_closed",
+          "details": {
+            "citation_packet_id": "macos.packet.code0.jump_table_metadata",
+            "role": "jump_table_metadata"
+          }
+        },
+        {
+          "id": "macos.code_resource.nonzero.segment_header.accepted",
+          "status": "validated",
+          "summary": "A nonzero CODE segment starts with a four-byte segment header containing first jump-table-entry offset and entry count.",
+          "source_type": "old_out_of_print",
+          "citations": [
+            {
+              "source_id": "inside-macintosh-volume-ii-1985",
+              "source_type": "old_out_of_print",
+              "target": "ext/docs_macos/Inside_Macintosh_Volume_II_1985.md source-page 70",
+              "context": "018-002 packet macos.packet.nonzero_code.segment_header."
+            }
+          ],
+          "parser_use": "accepted_parser_output",
+          "required_parser_behavior": "fail_closed",
+          "details": {
+            "citation_packet_id": "macos.packet.nonzero_code.segment_header",
+            "header_size_bytes": 4,
+            "does_not_define_first_executable_instruction": true
+          }
+        }
+      ],
+      "relocations": [
+        {
+          "id": "macos.segment_loader.relocation_fixups.deferred",
+          "status": "deferred",
+          "summary": "Relocation/fixup semantics are required for complete CODE interpretation but remain deferred.",
+          "source_type": "project_observed",
+          "citations": [
+            {
+              "source_id": "proposal-012",
+              "source_type": "project_observed",
+              "target": "docs/proposals/012-classic-mac-os-m68k-platform.md future scope",
+              "context": "018-002 packet macos.packet.segment_relocation_fixups.deferred."
+            }
+          ],
+          "parser_use": "deferred_only",
+          "required_parser_behavior": "emit_placeholder",
+          "details": {
+            "citation_packet_id": "macos.packet.segment_relocation_fixups.deferred"
+          }
+        }
+      ],
+      "symbols": [
+        {
+          "id": "macos.jump_table.entries.accepted",
+          "status": "validated",
+          "summary": "The jump table contains one eight-byte entry for every externally referenced routine in every segment, grouped contiguously by segment.",
+          "source_type": "old_out_of_print",
+          "citations": [
+            {
+              "source_id": "inside-macintosh-volume-ii-1985",
+              "source_type": "old_out_of_print",
+              "target": "ext/docs_macos/Inside_Macintosh_Volume_II_1985.md source-page 70",
+              "context": "018-002 packets macos.packet.code0.jump_table_metadata and macos.packet.a5_jump_table_offset."
+            }
+          ],
+          "parser_use": "accepted_parser_output",
+          "required_parser_behavior": "fail_closed"
+        }
+      ],
+      "bss": [
+        {
+          "id": "macos.below_a5.application_globals.accepted",
+          "status": "validated",
+          "summary": "CODE 0 records below-A5 size as application globals plus QuickDraw globals; this is runtime metadata, not a direct BSS section claim.",
+          "source_type": "old_out_of_print",
+          "citations": [
+            {
+              "source_id": "inside-macintosh-volume-ii-1985",
+              "source_type": "old_out_of_print",
+              "target": "ext/docs_macos/Inside_Macintosh_Volume_II_1985.md source-page 71",
+              "context": "018-002 packet macos.packet.code0.jump_table_metadata."
+            }
+          ],
+          "parser_use": "accepted_parser_output",
+          "required_parser_behavior": "fail_closed",
+          "details": {
+            "bss_range_claim": false
+          }
+        }
+      ],
+      "loader_model": [
+        {
+          "id": "macos.segment_loader.loads_code_segments.accepted",
+          "status": "validated",
+          "summary": "When a routine in an unloaded segment is called, Segment Loader loads the segment, changes its jump-table entries from unloaded to loaded state, and invokes the routine.",
+          "source_type": "old_out_of_print",
+          "citations": [
+            {
+              "source_id": "inside-macintosh-volume-ii-1985",
+              "source_type": "old_out_of_print",
+              "target": "ext/docs_macos/Inside_Macintosh_Volume_II_1985.md source-pages 69-70",
+              "context": "018-002 packet macos.packet.segment_loader.code_resources."
+            }
+          ],
+          "parser_use": "accepted_parser_output",
+          "required_parser_behavior": "fail_closed"
+        },
+        {
+          "id": "macos.mpw.link.application_output.accepted",
+          "status": "validated",
+          "summary": "MPW Link links assembled object files into standalone applications and reports segments and jump-table-entry counts.",
+          "source_type": "old_out_of_print",
+          "citations": [
+            {
+              "source_id": "mpw-assembly-language-1987",
+              "source_type": "old_out_of_print",
+              "target": "ext/docs_macos/MPW_and_Assembly_Language_Programming_for_the_Macintosh_1987.md source-pages 37-39",
+              "context": "018-002 packet macos.packet.mpw_link_application_output."
+            }
+          ],
+          "parser_use": "accepted_parser_output",
+          "required_parser_behavior": "fail_closed"
+        }
+      ],
+      "runtime_model": [
+        {
+          "id": "macos.runtime.a5_jump_table_offset.accepted",
+          "status": "validated",
+          "summary": "For applications, the jump-table offset from A5 is 32 and the above-A5 size is 32 plus jump-table length.",
+          "source_type": "old_out_of_print",
+          "citations": [
+            {
+              "source_id": "inside-macintosh-volume-ii-1985",
+              "source_type": "old_out_of_print",
+              "target": "ext/docs_macos/Inside_Macintosh_Volume_II_1985.md source-page 71",
+              "context": "018-002 packet macos.packet.a5_jump_table_offset."
+            }
+          ],
+          "parser_use": "accepted_parser_output",
+          "required_parser_behavior": "fail_closed"
+        }
+      ],
+      "analysis_model": [
+        {
+          "id": "macos.code_resource.1.main_startup.accepted",
+          "status": "validated",
+          "summary": "Application startup executes the first jump-table entry, which loads CODE resource 1, the main segment, and starts the application.",
+          "source_type": "old_out_of_print",
+          "citations": [
+            {
+              "source_id": "inside-macintosh-volume-ii-1985",
+              "source_type": "old_out_of_print",
+              "target": "ext/docs_macos/Inside_Macintosh_Volume_II_1985.md source-page 71",
+              "context": "018-002 packet macos.packet.code1.main_startup."
+            }
+          ],
+          "parser_use": "accepted_parser_output",
+          "required_parser_behavior": "fail_closed",
+          "details": {
+            "does_not_validate_byte_entry_boundary": true
+          }
+        },
+        {
+          "id": "macos.code_resource.movea_stack_a0.analysis_seed.candidate",
+          "status": "candidate",
+          "summary": "The observed movea.l (a7)+,a0 boundary remains candidate analysis seed evidence only.",
+          "source_type": "project_observed",
+          "citations": [
+            {
+              "source_id": "proposal-012",
+              "source_type": "project_observed",
+              "target": "docs/proposals/012-classic-mac-os-m68k-platform.md blocked corrective scope",
+              "context": "018-002 packet macos.packet.movea_stack_a0_boundary."
+            }
+          ],
+          "parser_use": "candidate_only",
+          "required_parser_behavior": "emit_candidate",
+          "details": {
+            "citation_packet_id": "macos.packet.movea_stack_a0_boundary",
+            "migration_resolution": "candidate_until_cited_or_replaced"
+          }
+        }
+      ],
+      "renderer_expectations": [
+        {
+          "id": "macos.renderer.accepted_vs_candidate_labeling.accepted",
+          "status": "validated",
+          "summary": "Renderers may label accepted CODE 0 and segment-header facts, but must label the movea.l byte boundary and relocation/fixup interpretation as candidate/deferred.",
+          "source_type": "project_observed",
+          "citations": [
+            {
+              "source_id": "proposal-018",
+              "source_type": "project_observed",
+              "target": "Fact States",
+              "context": "Candidate facts may not be consumed as accepted facts."
+            }
+          ],
+          "parser_use": "accepted_parser_output",
+          "required_parser_behavior": "fail_closed"
+        }
+      ],
+      "entrypoints": [
+        {
+          "id": "macos.code_resource.1.main_segment_entry.accepted",
+          "type": "segment_entrypoint",
+          "status": "validated",
+          "source_type": "old_out_of_print",
+          "summary": "CODE resource 1 is the main segment loaded from the first jump-table entry at application startup.",
+          "citations": [
+            {
+              "source_id": "inside-macintosh-volume-ii-1985",
+              "source_type": "old_out_of_print",
+              "target": "ext/docs_macos/Inside_Macintosh_Volume_II_1985.md source-page 71",
+              "context": "018-002 packet macos.packet.code1.main_startup."
+            }
+          ],
+          "parser_use": "accepted_parser_output",
+          "details": {
+            "byte_entry_boundary": "unknown"
+          }
+        },
+        {
+          "id": "macos.code_resource.movea_stack_a0.entry_candidate",
+          "type": "analysis_seed_entrypoint",
+          "status": "candidate",
+          "source_type": "project_observed",
+          "summary": "Observed movea.l (a7)+,a0 is not an accepted runtime entrypoint.",
+          "citations": [
+            {
+              "source_id": "proposal-012",
+              "source_type": "project_observed",
+              "target": "docs/proposals/012-classic-mac-os-m68k-platform.md blocked corrective scope",
+              "context": "018-002 packet macos.packet.movea_stack_a0_boundary."
+            }
+          ],
+          "parser_use": "candidate_only",
+          "details": {
+            "observed_disassembly": "movea.l (a7)+,a0"
+          }
+        }
+      ],
+      "facts": [
+        {
+          "id": "macos.hfs_file.resource_fork.application_code",
+          "layer": "file_structure",
+          "status": "validated",
+          "source_type": "old_out_of_print",
+          "summary": "Classic Mac application code lives in the resource fork and may be segmented as resources.",
+          "citations": [
+            {
+              "source_id": "inside-macintosh-volume-i-1985",
+              "source_type": "old_out_of_print",
+              "target": "ext/docs_macos/Inside_Macintosh_Volume_I_1985.md source-page 117",
+              "context": "018-002 packet macos.packet.hfs_resource_fork.application_code."
+            }
+          ],
+          "parser_use": "accepted_parser_output"
+        },
+        {
+          "id": "macos.code_resource.0.jump_table_metadata",
+          "layer": "loader_model",
+          "status": "validated",
+          "source_type": "old_out_of_print",
+          "summary": "CODE 0 contains jump-table/A5 metadata and the jump table.",
+          "citations": [
+            {
+              "source_id": "inside-macintosh-volume-ii-1985",
+              "source_type": "old_out_of_print",
+              "target": "ext/docs_macos/Inside_Macintosh_Volume_II_1985.md source-pages 70-71",
+              "context": "018-002 packet macos.packet.code0.jump_table_metadata."
+            }
+          ],
+          "parser_use": "accepted_parser_output"
+        },
+        {
+          "id": "macos.code_resource.nonzero.segment_header",
+          "layer": "file_structure",
+          "status": "validated",
+          "source_type": "old_out_of_print",
+          "summary": "Nonzero CODE resources start with the documented four-byte segment header.",
+          "citations": [
+            {
+              "source_id": "inside-macintosh-volume-ii-1985",
+              "source_type": "old_out_of_print",
+              "target": "ext/docs_macos/Inside_Macintosh_Volume_II_1985.md source-page 70",
+              "context": "018-002 packet macos.packet.nonzero_code.segment_header."
+            }
+          ],
+          "parser_use": "accepted_parser_output"
+        },
+        {
+          "id": "macos.code_resource.movea_stack_a0.boundary.candidate",
+          "layer": "analysis_model",
+          "status": "candidate",
+          "source_type": "project_observed",
+          "summary": "Observed movea.l (a7)+,a0 remains a candidate analysis seed and cannot authorize accepted CODE boundaries.",
+          "citations": [
+            {
+              "source_id": "proposal-012",
+              "source_type": "project_observed",
+              "target": "docs/proposals/012-classic-mac-os-m68k-platform.md blocked corrective scope",
+              "context": "018-002 packet macos.packet.movea_stack_a0_boundary."
+            }
+          ],
+          "parser_use": "candidate_only"
+        }
+      ],
+      "unknowns": [
+        {
+          "id": "macos.code_resource.byte_entry_rule.unknown",
+          "scope": "entrypoints",
+          "status": "deferred",
+          "summary": "The accepted byte-level entry boundary inside nonzero CODE payloads is still unknown.",
+          "required_parser_behavior": "block_closeout",
+          "citations": [
+            {
+              "source_id": "proposal-012",
+              "source_type": "project_observed",
+              "target": "docs/proposals/012-classic-mac-os-m68k-platform.md blocked corrective scope",
+              "context": "Current movea boundary remains heuristic."
+            }
+          ]
+        }
+      ],
+      "conflicts": [],
+      "deferred": [
+        {
+          "id": "macos.segment_loader.relocation_fixups.deferred",
+          "scope": "loader_model",
+          "status": "deferred",
+          "summary": "Relocation/fixup interpretation remains deferred pending direct citations.",
+          "required_parser_behavior": "emit_placeholder",
+          "citations": [
+            {
+              "source_id": "proposal-012",
+              "source_type": "project_observed",
+              "target": "docs/proposals/012-classic-mac-os-m68k-platform.md future scope",
+              "context": "018-002 packet macos.packet.segment_relocation_fixups.deferred."
+            }
+          ]
+        }
+      ],
+      "unsupported": [
+        {
+          "id": "macos.byte_for_byte_roundtrip.unsupported",
+          "scope": "roundtrip",
+          "status": "unsupported",
+          "summary": "Byte-for-byte MPW Asm/Link/Rez roundtrip remains outside current parser/listing scope.",
+          "required_parser_behavior": "ignore_safely",
+          "citations": [
+            {
+              "source_id": "proposal-012",
+              "source_type": "project_observed",
+              "target": "docs/proposals/012-classic-mac-os-m68k-platform.md future scope",
+              "context": "Roundtrip is future scope."
+            }
+          ]
+        }
+      ],
+      "required_parser_behavior": {
+        "accepted_output_requires_fact_states": [
+          "validated",
+          "parser_asserted"
+        ],
+        "candidate_output_allowed_from_fact_states": [
+          "candidate"
+        ],
+        "missing_fact_behavior": "fail_closed",
+        "candidate_fact_rule": "The movea.l (a7)+,a0 boundary must stay candidate-only until later parser/listing work validates or replaces it.",
+        "kb_backed": true
+      }
+    },
+    {
+      "id": "amiga.hunk.load_file.basic_backfill",
+      "platform_id": "amiga",
+      "format_id": "amiga.hunk",
+      "archetype_id": "amiga.hunk_executable",
+      "fact_state": "candidate",
+      "source_policy": {
+        "allowed_source_types": [
+          "old_out_of_print",
+          "modern_compatible",
+          "project_observed",
+          "parser_asserted"
+        ],
+        "excluded_source_types": [
+          "modern_incompatible",
+          "uncited_generalization"
+        ],
+        "accepted_fact_states": [
+          "validated",
+          "parser_asserted"
+        ]
+      },
+      "producer_variant_scope": {
+        "producers": [
+          "AmigaDOS LoadSeg-compatible hunk files",
+          "Amiga object/library hunk files"
+        ],
+        "variant_scope": "First backfill record for normalized HUNK executable/object/library basics. It is report-only until parser areas explicitly opt into KB-backed checks."
+      },
+      "applies_to": [
+        {
+          "kind": "backfill_scope",
+          "value": "HUNK_HEADER executable load files plus HUNK_UNIT object and HUNK_LIB/HUNK_INDEX library containers"
+        }
+      ],
+      "identification": [
+        {
+          "id": "amiga.hunk.header.identifies_load_file.candidate",
+          "status": "candidate",
+          "summary": "A HUNK executable load file starts with a HUNK_HEADER record in the normalized HUNK KB.",
+          "source_type": "project_observed",
+          "citations": [
+            {
+              "source_id": "amiga-hunk-file-kb",
+              "source_type": "project_observed",
+              "target": "knowledge/amiga_hunk_file.json containers.executable.magic_type",
+              "context": "The normalized KB names HUNK_HEADER as the executable magic record."
+            }
+          ],
+          "parser_use": "candidate_only",
+          "required_parser_behavior": "emit_candidate"
+        }
+      ],
+      "containers": [
+        {
+          "id": "amiga.hunk.container.sequence.candidate",
+          "status": "candidate",
+          "summary": "The normalized KB models executable, object, and library container sequences for HUNK files.",
+          "source_type": "project_observed",
+          "citations": [
+            {
+              "source_id": "amiga-hunk-file-kb",
+              "source_type": "project_observed",
+              "target": "knowledge/amiga_hunk_file.json containers",
+              "context": "Executable, object, and library top-level sequences are already captured in project-local format metadata."
+            }
+          ],
+          "parser_use": "candidate_only",
+          "required_parser_behavior": "emit_candidate"
+        }
+      ],
+      "regions": [
+        {
+          "id": "amiga.hunk.code_data_bss.sections.candidate",
+          "status": "candidate",
+          "summary": "HUNK_CODE, HUNK_DATA, and HUNK_BSS are modeled as code, data, and bss section starts.",
+          "source_type": "project_observed",
+          "citations": [
+            {
+              "source_id": "amiga-hunk-file-kb",
+              "source_type": "project_observed",
+              "target": "knowledge/amiga_hunk_file.json record_types.HUNK_CODE/HUNK_DATA/HUNK_BSS",
+              "context": "The normalized KB assigns section_kind code/data/bss to these records."
+            }
+          ],
+          "parser_use": "candidate_only",
+          "required_parser_behavior": "emit_candidate"
+        }
+      ],
+      "relocations": [
+        {
+          "id": "amiga.hunk.relocation.records.candidate",
+          "status": "candidate",
+          "summary": "The normalized KB records absolute, PC-relative, and data-relative HUNK relocation record encodings.",
+          "source_type": "project_observed",
+          "citations": [
+            {
+              "source_id": "amiga-hunk-file-kb",
+              "source_type": "project_observed",
+              "target": "knowledge/amiga_hunk_file.json relocation_kinds",
+              "context": "Relocation kind width/mode metadata is captured for helper/runtime generation."
+            }
+          ],
+          "parser_use": "candidate_only",
+          "required_parser_behavior": "emit_candidate"
+        }
+      ],
+      "symbols": [
+        {
+          "id": "amiga.hunk.symbol_and_ext.records.candidate",
+          "status": "candidate",
+          "summary": "HUNK_SYMBOL and HUNK_EXT are modeled as section auxiliary symbol/external records.",
+          "source_type": "project_observed",
+          "citations": [
+            {
+              "source_id": "amiga-hunk-file-kb",
+              "source_type": "project_observed",
+              "target": "knowledge/amiga_hunk_file.json record_types.HUNK_SYMBOL/HUNK_EXT",
+              "context": "Symbol and external record payload shapes are captured in the normalized KB."
+            }
+          ],
+          "parser_use": "candidate_only",
+          "required_parser_behavior": "emit_candidate"
+        }
+      ],
+      "bss": [
+        {
+          "id": "amiga.hunk.bss.size_only.candidate",
+          "status": "candidate",
+          "summary": "HUNK_BSS stores a size word and has no file payload bytes in the normalized section model.",
+          "source_type": "project_observed",
+          "citations": [
+            {
+              "source_id": "amiga-hunk-file-kb",
+              "source_type": "project_observed",
+              "target": "knowledge/amiga_hunk_file.json record_types.HUNK_BSS",
+              "context": "The HUNK_BSS field list contains size metadata and no data blob."
+            }
+          ],
+          "parser_use": "candidate_only",
+          "required_parser_behavior": "emit_candidate"
+        }
+      ],
+      "loader_model": [
+        {
+          "id": "amiga.hunk.loadseg.record_order.candidate",
+          "status": "candidate",
+          "summary": "The current HUNK KB captures LoadSeg-compatible load-file record order and supported record ids.",
+          "source_type": "project_observed",
+          "citations": [
+            {
+              "source_id": "amiga-hunk-file-kb",
+              "source_type": "project_observed",
+              "target": "knowledge/amiga_hunk_file.json constraints.load_file_valid_record_types",
+              "context": "Load-file-valid record ids are represented as normalized constraints."
+            }
+          ],
+          "parser_use": "candidate_only",
+          "required_parser_behavior": "emit_candidate"
+        }
+      ],
+      "runtime_model": [
+        {
+          "id": "amiga.hunk.runtime_entry.deferred",
+          "status": "deferred",
+          "summary": "Executable runtime entry policy for imported HUNK files remains a parser/backfill item, not an accepted platform fact in this record.",
+          "source_type": "project_observed",
+          "citations": [
+            {
+              "source_id": "amiga-hunk-parser-source",
+              "source_type": "project_observed",
+              "target": "src/platform_amiga_hunk.c",
+              "context": "Current parser behavior remains unchanged and still needs KB-backed signoff before being accepted."
+            }
+          ],
+          "parser_use": "deferred_only",
+          "required_parser_behavior": "block_closeout"
+        }
+      ],
+      "analysis_model": [
+        {
+          "id": "amiga.hunk.legacy_parser_assumptions.visible.candidate",
+          "status": "candidate",
+          "summary": "Existing HUNK parser assumptions are inventoried as backfill debt and do not become accepted output through this record.",
+          "source_type": "project_observed",
+          "citations": [
+            {
+              "source_id": "amiga-hunk-parser-source",
+              "source_type": "project_observed",
+              "target": "src/platform_amiga_hunk.c",
+              "context": "018-006 records current parser areas for later citation-backed migration."
+            }
+          ],
+          "parser_use": "candidate_only",
+          "required_parser_behavior": "emit_candidate"
+        }
+      ],
+      "renderer_expectations": [
+        {
+          "id": "amiga.hunk.renderer.must_not_claim_kb_backed.candidate",
+          "status": "candidate",
+          "summary": "Renderers and parser summaries must not claim Amiga HUNK parser behavior is KB-backed until a later migration issue opts in.",
+          "source_type": "project_observed",
+          "citations": [
+            {
+              "source_id": "proposal-018",
+              "source_type": "project_observed",
+              "target": "docs/proposals/018-platform-executable-format-knowledge.md 018-006 issue seed",
+              "context": "Backfill records should not force immediate parser rewrites."
+            }
+          ],
+          "parser_use": "candidate_only",
+          "required_parser_behavior": "emit_candidate"
+        }
+      ],
+      "entrypoints": [
+        {
+          "id": "amiga.hunk.first_code_entry.candidate",
+          "type": "analysis_seed_entrypoint",
+          "status": "candidate",
+          "source_type": "project_observed",
+          "summary": "The current analysis pipeline may seed code from HUNK code sections, but this first record does not accept a general runtime entry rule.",
+          "citations": [
+            {
+              "source_id": "amiga-hunk-parser-source",
+              "source_type": "project_observed",
+              "target": "src/platform_amiga_hunk.c",
+              "context": "Entry behavior is retained as legacy behavior and listed for later citation-backed review."
+            }
+          ],
+          "parser_use": "candidate_only"
+        }
+      ],
+      "facts": [
+        {
+          "id": "amiga.hunk.backfill.record.scope",
+          "layer": "archetype_identity",
+          "status": "candidate",
+          "source_type": "project_observed",
+          "summary": "This is the first report-only HUNK executable-format backfill record and intentionally does not change parser behavior.",
+          "citations": [
+            {
+              "source_id": "proposal-018",
+              "source_type": "project_observed",
+              "target": "docs/proposals/018-platform-executable-format-knowledge.md 018-006",
+              "context": "018-006 requires first records and no parser behavior changes."
+            }
+          ],
+          "parser_use": "candidate_only"
+        }
+      ],
+      "unknowns": [
+        {
+          "id": "amiga.hunk.entry_policy.needs_citation",
+          "scope": "entrypoints",
+          "status": "deferred",
+          "summary": "Accepted HUNK runtime entry policy needs direct citation or a reviewed parser assertion before parser-backed closeout.",
+          "required_parser_behavior": "block_closeout",
+          "citations": [
+            {
+              "source_id": "amiga-hunk-parser-source",
+              "source_type": "project_observed",
+              "target": "src/platform_amiga_hunk.c",
+              "context": "Legacy behavior remains unchanged pending backfill."
+            }
+          ]
+        }
+      ],
+      "conflicts": [],
+      "deferred": [
+        {
+          "id": "amiga.hunk.overlay.and_loader_variants.deferred",
+          "scope": "loader_model",
+          "status": "deferred",
+          "summary": "Overlay and less common loader variants remain outside this first record.",
+          "required_parser_behavior": "emit_placeholder",
+          "citations": [
+            {
+              "source_id": "amiga-hunk-file-kb",
+              "source_type": "project_observed",
+              "target": "knowledge/amiga_hunk_file.json unsupported_record_types.HUNK_OVERLAY",
+              "context": "Current normalized KB keeps HUNK_OVERLAY recognized but unsupported."
+            }
+          ]
+        }
+      ],
+      "unsupported": [
+        {
+          "id": "amiga.hunk.parser_migration.unsupported_in_018_006",
+          "scope": "implementation",
+          "status": "unsupported",
+          "summary": "Full Amiga parser migration is explicitly out of scope for 018-006.",
+          "required_parser_behavior": "ignore_safely",
+          "citations": [
+            {
+              "source_id": "proposal-018",
+              "source_type": "project_observed",
+              "target": "docs/proposals/018-platform-executable-format-knowledge.md 018-006",
+              "context": "018-006 asks for first records and no parser behavior changes."
+            }
+          ]
+        }
+      ],
+      "required_parser_behavior": {
+        "accepted_output_requires_fact_states": [
+          "validated",
+          "parser_asserted"
+        ],
+        "candidate_output_allowed_from_fact_states": [
+          "candidate"
+        ],
+        "missing_fact_behavior": "emit_candidate",
+        "kb_backed": false
+      }
+    },
+    {
+      "id": "atari_st.prg.gemdos_basic_backfill",
+      "platform_id": "atari_st",
+      "format_id": "atari_st.prg",
+      "archetype_id": "atari_st.prg",
+      "fact_state": "candidate",
+      "source_policy": {
+        "allowed_source_types": [
+          "old_out_of_print",
+          "modern_compatible",
+          "project_observed",
+          "parser_asserted"
+        ],
+        "excluded_source_types": [
+          "modern_incompatible",
+          "uncited_generalization"
+        ],
+        "accepted_fact_states": [
+          "validated",
+          "parser_asserted"
+        ]
+      },
+      "producer_variant_scope": {
+        "producers": [
+          "GEMDOS PRG/TOS/TTP executables"
+        ],
+        "variant_scope": "First backfill record for GEMDOS PRG/TOS/TTP-style flat executable layout. It is report-only until parser areas explicitly opt into KB-backed checks."
+      },
+      "applies_to": [
+        {
+          "kind": "backfill_scope",
+          "value": "Atari ST GEMDOS PRG/TOS/TTP files with 28-byte header, TEXT/DATA/BSS sizes, optional symbols, and optional relocation stream"
+        }
+      ],
+      "identification": [
+        {
+          "id": "atari_st.prg.magic_601a.candidate",
+          "status": "candidate",
+          "summary": "The normalized Atari ST PRG KB identifies GEMDOS PRG files by the 0x601A header magic.",
+          "source_type": "project_observed",
+          "citations": [
+            {
+              "source_id": "atari-st-prg-file-kb",
+              "source_type": "project_observed",
+              "target": "knowledge/atari_st_prg_file.json enums.magic.PRG",
+              "context": "The PRG magic enum records decimal 24602, hex 0x601A."
+            }
+          ],
+          "parser_use": "candidate_only",
+          "required_parser_behavior": "emit_candidate"
+        }
+      ],
+      "containers": [
+        {
+          "id": "atari_st.prg.container_sequence.candidate",
+          "status": "candidate",
+          "summary": "The normalized KB models PRG_HEADER, TEXT, DATA, optional SYMBOL_TABLE, and optional RELOCATION_STREAM order.",
+          "source_type": "project_observed",
+          "citations": [
+            {
+              "source_id": "atari-st-prg-file-kb",
+              "source_type": "project_observed",
+              "target": "knowledge/atari_st_prg_file.json containers.prg_executable.top_level_sequence",
+              "context": "The project-local KB records the top-level PRG executable sequence."
+            }
+          ],
+          "parser_use": "candidate_only",
+          "required_parser_behavior": "emit_candidate"
+        }
+      ],
+      "regions": [
+        {
+          "id": "atari_st.prg.text_data_bss_regions.candidate",
+          "status": "candidate",
+          "summary": "TEXT and DATA are stored payload regions and BSS is represented by a header size.",
+          "source_type": "project_observed",
+          "citations": [
+            {
+              "source_id": "atari-st-prg-file-kb",
+              "source_type": "project_observed",
+              "target": "knowledge/atari_st_prg_file.json record_types.TEXT/DATA and constraints.bss_is_not_stored_in_file",
+              "context": "The normalized KB records TEXT/DATA payload length expressions and BSS as not stored in file."
+            }
+          ],
+          "parser_use": "candidate_only",
+          "required_parser_behavior": "emit_candidate"
+        }
+      ],
+      "relocations": [
+        {
+          "id": "atari_st.prg.relocation_stream.candidate",
+          "status": "candidate",
+          "summary": "The normalized KB records a PRG relocation stream applying 32-bit load-base-relative fixups over TEXT+DATA.",
+          "source_type": "project_observed",
+          "citations": [
+            {
+              "source_id": "atari-st-prg-file-kb",
+              "source_type": "project_observed",
+              "target": "knowledge/atari_st_prg_file.json relocation_kinds.PRG_RELOC_32",
+              "context": "Relocation mode and target-space metadata are captured in project-local format metadata."
+            }
+          ],
+          "parser_use": "candidate_only",
+          "required_parser_behavior": "emit_candidate"
+        }
+      ],
+      "symbols": [
+        {
+          "id": "atari_st.prg.symbol_table.optional.candidate",
+          "status": "candidate",
+          "summary": "The normalized KB treats the PRG symbol table as optional parser metadata sized by the header.",
+          "source_type": "project_observed",
+          "citations": [
+            {
+              "source_id": "atari-st-prg-file-kb",
+              "source_type": "project_observed",
+              "target": "knowledge/atari_st_prg_file.json record_types.SYMBOL_TABLE",
+              "context": "Symbol table payload length is derived from header.symbol_table_size."
+            }
+          ],
+          "parser_use": "candidate_only",
+          "required_parser_behavior": "emit_candidate"
+        }
+      ],
+      "bss": [
+        {
+          "id": "atari_st.prg.bss.header_only.candidate",
+          "status": "candidate",
+          "summary": "PRG BSS is not stored in the file and is represented by the header bss_size.",
+          "source_type": "project_observed",
+          "citations": [
+            {
+              "source_id": "atari-st-prg-file-kb",
+              "source_type": "project_observed",
+              "target": "knowledge/atari_st_prg_file.json constraints.bss_is_not_stored_in_file",
+              "context": "The normalized KB records BSS as absent from the file payload."
+            }
+          ],
+          "parser_use": "candidate_only",
+          "required_parser_behavior": "emit_candidate"
+        }
+      ],
+      "loader_model": [
+        {
+          "id": "atari_st.prg.text_data_loaded_image.candidate",
+          "status": "candidate",
+          "summary": "The normalized KB models TEXT and DATA as a contiguous loaded image for relocation.",
+          "source_type": "project_observed",
+          "citations": [
+            {
+              "source_id": "atari-st-prg-file-kb",
+              "source_type": "project_observed",
+              "target": "knowledge/atari_st_prg_file.json groups.loaded_image and interpretation_rules",
+              "context": "Relocations apply to the loaded TEXT+DATA image."
+            }
+          ],
+          "parser_use": "candidate_only",
+          "required_parser_behavior": "emit_candidate"
+        }
+      ],
+      "runtime_model": [
+        {
+          "id": "atari_st.prg.basepage_runtime.deferred",
+          "status": "deferred",
+          "summary": "GEMDOS process basepage/register startup details remain deferred for this first record.",
+          "source_type": "project_observed",
+          "citations": [
+            {
+              "source_id": "atari-st-parser-source",
+              "source_type": "project_observed",
+              "target": "src/platform_atari_st.c",
+              "context": "018-006 leaves current parser behavior unchanged and records runtime details as backfill debt."
+            }
+          ],
+          "parser_use": "deferred_only",
+          "required_parser_behavior": "block_closeout"
+        }
+      ],
+      "analysis_model": [
+        {
+          "id": "atari_st.prg.legacy_parser_assumptions.visible.candidate",
+          "status": "candidate",
+          "summary": "Existing Atari PRG parser assumptions are inventoried as backfill debt and do not become accepted output through this record.",
+          "source_type": "project_observed",
+          "citations": [
+            {
+              "source_id": "atari-st-parser-source",
+              "source_type": "project_observed",
+              "target": "src/platform_atari_st.c",
+              "context": "018-006 records current parser areas for later citation-backed migration."
+            }
+          ],
+          "parser_use": "candidate_only",
+          "required_parser_behavior": "emit_candidate"
+        }
+      ],
+      "renderer_expectations": [
+        {
+          "id": "atari_st.prg.renderer.must_not_claim_kb_backed.candidate",
+          "status": "candidate",
+          "summary": "Renderers and parser summaries must not claim Atari ST PRG parser behavior is KB-backed until a later migration issue opts in.",
+          "source_type": "project_observed",
+          "citations": [
+            {
+              "source_id": "proposal-018",
+              "source_type": "project_observed",
+              "target": "docs/proposals/018-platform-executable-format-knowledge.md 018-006 issue seed",
+              "context": "Backfill records should not force immediate parser rewrites."
+            }
+          ],
+          "parser_use": "candidate_only",
+          "required_parser_behavior": "emit_candidate"
+        }
+      ],
+      "entrypoints": [
+        {
+          "id": "atari_st.prg.text_start_entry.candidate",
+          "type": "file_entrypoint",
+          "status": "candidate",
+          "source_type": "project_observed",
+          "summary": "The current analysis pipeline may seed executable decoding at TEXT start, but this first record does not accept full GEMDOS runtime entry state.",
+          "citations": [
+            {
+              "source_id": "atari-st-parser-source",
+              "source_type": "project_observed",
+              "target": "src/platform_atari_st.c",
+              "context": "Entry behavior is retained as legacy behavior and listed for later citation-backed review."
+            }
+          ],
+          "parser_use": "candidate_only"
+        }
+      ],
+      "facts": [
+        {
+          "id": "atari_st.prg.backfill.record.scope",
+          "layer": "archetype_identity",
+          "status": "candidate",
+          "source_type": "project_observed",
+          "summary": "This is the first report-only Atari ST PRG executable-format backfill record and intentionally does not change parser behavior.",
+          "citations": [
+            {
+              "source_id": "proposal-018",
+              "source_type": "project_observed",
+              "target": "docs/proposals/018-platform-executable-format-knowledge.md 018-006",
+              "context": "018-006 requires first records and no parser behavior changes."
+            }
+          ],
+          "parser_use": "candidate_only"
+        }
+      ],
+      "unknowns": [
+        {
+          "id": "atari_st.prg.runtime_entry_state.needs_citation",
+          "scope": "runtime_entry_model",
+          "status": "deferred",
+          "summary": "Accepted GEMDOS runtime entry state needs direct citation or a reviewed parser assertion before parser-backed closeout.",
+          "required_parser_behavior": "block_closeout",
+          "citations": [
+            {
+              "source_id": "atari-st-parser-source",
+              "source_type": "project_observed",
+              "target": "src/platform_atari_st.c",
+              "context": "Legacy behavior remains unchanged pending backfill."
+            }
+          ]
+        }
+      ],
+      "conflicts": [],
+      "deferred": [
+        {
+          "id": "atari_st.prg.relocation_terminator_variants.deferred",
+          "scope": "relocations",
+          "status": "deferred",
+          "summary": "Relocation-stream EOF and zero-byte terminator variants are retained as backfill review items before accepted parser output.",
+          "required_parser_behavior": "emit_placeholder",
+          "citations": [
+            {
+              "source_id": "atari-st-prg-file-kb",
+              "source_type": "project_observed",
+              "target": "knowledge/atari_st_prg_file.json constraints.relocation_stream_may_terminate_at_eof_without_zero_byte",
+              "context": "The current normalized KB records terminator variants that need parser-backed signoff."
+            }
+          ]
+        }
+      ],
+      "unsupported": [
+        {
+          "id": "atari_st.prg.parser_migration.unsupported_in_018_006",
+          "scope": "implementation",
+          "status": "unsupported",
+          "summary": "Full Atari ST parser migration is explicitly out of scope for 018-006.",
+          "required_parser_behavior": "ignore_safely",
+          "citations": [
+            {
+              "source_id": "proposal-018",
+              "source_type": "project_observed",
+              "target": "docs/proposals/018-platform-executable-format-knowledge.md 018-006",
+              "context": "018-006 asks for first records and no parser behavior changes."
+            }
+          ]
+        }
+      ],
+      "required_parser_behavior": {
+        "accepted_output_requires_fact_states": [
+          "validated",
+          "parser_asserted"
+        ],
+        "candidate_output_allowed_from_fact_states": [
+          "candidate"
+        ],
+        "missing_fact_behavior": "emit_candidate",
+        "kb_backed": false
+      }
+    }
+  ],
+  "citation_packets": [
+    {
+      "id": "macos.packet.hfs_resource_fork.application_code",
+      "platform_id": "macos",
+      "fact_candidate_id": "macos.hfs_file.resource_fork.application_code",
+      "wording": "Classic Mac OS files have data and resource forks; an application resource fork contains resources and application code, and that code may be divided into segment resources.",
+      "status": "validated",
+      "source_type": "old_out_of_print",
+      "license_status": "old_out_of_print_reference_excerpt",
+      "affects": [
+        "file_structure",
+        "archetype_identity"
+      ],
+      "citations": [
+        {
+          "source_id": "inside-macintosh-volume-i-1985",
+          "source_type": "old_out_of_print",
+          "target": "ext/docs_macos/Inside_Macintosh_Volume_I_1985.md source-page 117",
+          "context": "Resource Manager overview describes data/resource forks and application code in resource segments."
+        }
+      ],
+      "conflicts": [],
+      "missing_evidence": [],
+      "parser_behavior_before_kb_migration": "emit_candidate"
+    },
+    {
+      "id": "macos.packet.segment_loader.code_resources",
+      "platform_id": "macos",
+      "fact_candidate_id": "macos.segment_loader.code_resources",
+      "wording": "The Segment Loader divides application code into segments stored as resources of type CODE and loads nonresident segments when called.",
+      "status": "validated",
+      "source_type": "old_out_of_print",
+      "license_status": "old_out_of_print_reference_excerpt",
+      "affects": [
+        "file_structure",
+        "loader_model",
+        "archetype_identity"
+      ],
+      "citations": [
+        {
+          "source_id": "inside-macintosh-volume-ii-1985",
+          "source_type": "old_out_of_print",
+          "target": "ext/docs_macos/Inside_Macintosh_Volume_II_1985.md source-page 64",
+          "context": "Segment Loader chapter says application segments are resources of type CODE and are loaded through Resource Manager behavior."
+        },
+        {
+          "source_id": "programming-with-mpw-1987",
+          "source_type": "old_out_of_print",
+          "target": "ext/docs_macos/Programming_With_Macintosh_Programmers_Workshop_1987.md source-page 69",
+          "context": "MPW book describes executable code in resource forks and multiple CODE segment resources."
+        }
+      ],
+      "conflicts": [],
+      "missing_evidence": [],
+      "parser_behavior_before_kb_migration": "emit_candidate"
+    },
+    {
+      "id": "macos.packet.nonzero_code.segment_header",
+      "platform_id": "macos",
+      "fact_candidate_id": "macos.code_resource.nonzero.segment_header",
+      "wording": "A nonzero CODE segment starts with a four-byte segment header: offset of the first routine's jump-table entry and number of entries for the segment.",
+      "status": "validated",
+      "source_type": "old_out_of_print",
+      "license_status": "old_out_of_print_reference_excerpt",
+      "affects": [
+        "file_structure",
+        "loader_model",
+        "analysis_model"
+      ],
+      "citations": [
+        {
+          "source_id": "inside-macintosh-volume-ii-1985",
+          "source_type": "old_out_of_print",
+          "target": "ext/docs_macos/Inside_Macintosh_Volume_II_1985.md source-page 70",
+          "context": "Jump Table section gives the four-byte segment header layout."
+        }
+      ],
+      "conflicts": [],
+      "missing_evidence": [
+        "This does not define the first executable instruction after the segment header."
+      ],
+      "parser_behavior_before_kb_migration": "emit_candidate"
+    },
+    {
+      "id": "macos.packet.code0.jump_table_metadata",
+      "platform_id": "macos",
+      "fact_candidate_id": "macos.code_resource.0.jump_table_metadata",
+      "wording": "CODE resource ID 0 is a special Linker-created segment that holds the jump table plus above-A5 size, below-A5 size, jump-table length, and jump-table offset from A5.",
+      "status": "validated",
+      "source_type": "old_out_of_print",
+      "license_status": "old_out_of_print_reference_excerpt",
+      "affects": [
+        "file_structure",
+        "loader_model",
+        "runtime_entry_model"
+      ],
+      "citations": [
+        {
+          "source_id": "inside-macintosh-volume-ii-1985",
+          "source_type": "old_out_of_print",
+          "target": "ext/docs_macos/Inside_Macintosh_Volume_II_1985.md source-pages 70-71",
+          "context": "Jump Table section says segment 0 is CODE ID 0 and lists its fields."
+        }
+      ],
+      "conflicts": [],
+      "missing_evidence": [],
+      "parser_behavior_before_kb_migration": "emit_candidate"
+    },
+    {
+      "id": "macos.packet.code1.main_startup",
+      "platform_id": "macos",
+      "fact_candidate_id": "macos.code_resource.1.main_startup",
+      "wording": "At application startup, the Segment Loader executes the first jump-table entry, which loads the main segment, CODE resource 1, and starts the application.",
+      "status": "validated",
+      "source_type": "old_out_of_print",
+      "license_status": "old_out_of_print_reference_excerpt",
+      "affects": [
+        "loader_model",
+        "runtime_entry_model",
+        "analysis_model"
+      ],
+      "citations": [
+        {
+          "source_id": "inside-macintosh-volume-ii-1985",
+          "source_type": "old_out_of_print",
+          "target": "ext/docs_macos/Inside_Macintosh_Volume_II_1985.md source-page 71",
+          "context": "Jump Table section describes loading CODE 1 Main from the first jump-table entry."
+        }
+      ],
+      "conflicts": [],
+      "missing_evidence": [
+        "This does not validate the current movea.l (a7)+,a0 byte boundary."
+      ],
+      "parser_behavior_before_kb_migration": "emit_candidate"
+    },
+    {
+      "id": "macos.packet.a5_jump_table_offset",
+      "platform_id": "macos",
+      "fact_candidate_id": "macos.runtime.a5_jump_table_offset",
+      "wording": "For applications, the jump-table offset from A5 is 32, and the above-A5 size is 32 plus the jump-table length.",
+      "status": "validated",
+      "source_type": "old_out_of_print",
+      "license_status": "old_out_of_print_reference_excerpt",
+      "affects": [
+        "runtime_entry_model",
+        "loader_model"
+      ],
+      "citations": [
+        {
+          "source_id": "inside-macintosh-volume-ii-1985",
+          "source_type": "old_out_of_print",
+          "target": "ext/docs_macos/Inside_Macintosh_Volume_II_1985.md source-page 71",
+          "context": "Jump Table note records A5-relative jump-table offset and above-A5 size relationship."
+        }
+      ],
+      "conflicts": [],
+      "missing_evidence": [],
+      "parser_behavior_before_kb_migration": "emit_candidate"
+    },
+    {
+      "id": "macos.packet.mpw_link_application_output",
+      "platform_id": "macos",
+      "fact_candidate_id": "macos.mpw.link.application_output",
+      "wording": "MPW Asm creates an object file and MPW Link links that object into a standalone application; Link progress reports segment and jump-table-entry counts.",
+      "status": "validated",
+      "source_type": "old_out_of_print",
+      "license_status": "old_out_of_print_reference_excerpt",
+      "affects": [
+        "archetype_identity",
+        "loader_model"
+      ],
+      "citations": [
+        {
+          "source_id": "mpw-assembly-language-1987",
+          "source_type": "old_out_of_print",
+          "target": "ext/docs_macos/MPW_and_Assembly_Language_Programming_for_the_Macintosh_1987.md source-pages 37-39",
+          "context": "Assembly tutorial shows asm/link commands, object creation, standalone application output, and Link progress with segments/jump-table entries."
+        }
+      ],
+      "conflicts": [],
+      "missing_evidence": [],
+      "parser_behavior_before_kb_migration": "emit_candidate"
+    },
+    {
+      "id": "macos.packet.mpw_asm_fixture_code_inventory",
+      "platform_id": "macos",
+      "fact_candidate_id": "macos.mpw_asm.fixture.code_inventory",
+      "wording": "The committed MPW Asm fixture metadata inventories 28 CODE resources in MPW-GM/MPW/Tools/Asm and records CODE 0 metadata plus named nonzero CODE resources.",
+      "status": "candidate",
+      "source_type": "project_observed",
+      "license_status": "project_local_metadata",
+      "affects": [
+        "file_structure",
+        "analysis_model",
+        "renderer_expectation"
+      ],
+      "citations": [
+        {
+          "source_id": "mpw-tools-source-metadata",
+          "source_type": "project_observed",
+          "target": "ext/macos_tools/mpw_gm/source.json",
+          "context": "Records the MPW-GM source image and derived CODE resource metadata path."
+        },
+        {
+          "source_id": "mpw-asm-code-resources",
+          "source_type": "project_observed",
+          "target": "ext/macos_tools/mpw_gm/asm_code_resources.json",
+          "context": "Observed CODE resource inventory for MPW/Tools/Asm."
+        }
+      ],
+      "conflicts": [],
+      "missing_evidence": [
+        "Fixture observation alone cannot validate a general platform rule."
+      ],
+      "parser_behavior_before_kb_migration": "emit_candidate"
+    },
+    {
+      "id": "macos.packet.movea_stack_a0_boundary",
+      "platform_id": "macos",
+      "fact_candidate_id": "macos.code_resource.movea_stack_a0.boundary",
+      "wording": "The current observed CODE 1 boundary at movea.l (a7)+,a0 is fixture-backed analysis evidence only; no local citation packet validates it as the general runtime entry rule.",
+      "status": "candidate",
+      "source_type": "project_observed",
+      "license_status": "project_local_metadata",
+      "affects": [
+        "analysis_model",
+        "renderer_expectation"
+      ],
+      "citations": [
+        {
+          "source_id": "proposal-012",
+          "source_type": "project_observed",
+          "target": "docs/proposals/012-classic-mac-os-m68k-platform.md blocked corrective scope",
+          "context": "Proposal 012 identifies the movea.l boundary as heuristic."
+        },
+        {
+          "source_id": "macos-initial-analysis-research",
+          "source_type": "project_observed",
+          "target": "docs/macos-initial-analysis-research.md Segment Mapping Model",
+          "context": "Project research separates observed binary CODE facts from source/Segment Loader facts."
+        }
+      ],
+      "conflicts": [],
+      "missing_evidence": [
+        "No cited Segment Loader or MPW runtime startup source explains this exact instruction as the accepted boundary."
+      ],
+      "parser_behavior_before_kb_migration": "emit_candidate"
+    },
+    {
+      "id": "macos.packet.segment_relocation_fixups.deferred",
+      "platform_id": "macos",
+      "fact_candidate_id": "macos.segment_loader.relocation_fixups",
+      "wording": "Segment relocation and fixup semantics are required for complete CODE interpretation but remain deferred in the current local packet.",
+      "status": "deferred",
+      "source_type": "project_observed",
+      "license_status": "project_local",
+      "affects": [
+        "loader_model",
+        "analysis_model",
+        "renderer_expectation"
+      ],
+      "citations": [
+        {
+          "source_id": "proposal-012",
+          "source_type": "project_observed",
+          "target": "docs/proposals/012-classic-mac-os-m68k-platform.md future scope",
+          "context": "Relocation/fixup interpretation remains future work."
+        },
+        {
+          "source_id": "macos-targets",
+          "source_type": "project_observed",
+          "target": "docs/macos-targets.md",
+          "context": "Current target docs list unsupported Segment Loader/runtime areas."
+        }
+      ],
+      "conflicts": [],
+      "missing_evidence": [
+        "Need direct Segment Loader/Linker fixup layout citations before accepted parser behavior."
+      ],
+      "parser_behavior_before_kb_migration": "emit_placeholder"
+    }
+  ]
+}

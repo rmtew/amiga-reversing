@@ -1,6 +1,6 @@
 # 018-005: Mac OS Parser And Listing KB Migration
 
-Status: open
+Status: completed
 
 ## Proposal Context
 
@@ -51,28 +51,52 @@ Status: open
 Record trace blocks for current Mac parser entrypoints, listing adapter,
 generated metadata hook points, C/Python boundary, and obsolete code decisions.
 
+## Completion Evidence
+
+- `src/platform_macos_resource.c` now reports validated fact ids for CODE 0 and
+  nonzero CODE segment headers, candidate fact ids for the observed
+  `movea.l (a7)+,a0` boundary, and deferred fact ids when entry evidence is
+  missing.
+- `src/platform_file_lib.c` exposes `kb_record_id`, `fact_id`, `fact_status`,
+  and `parser_use` through the Mac C summary.
+- Mac listing/project/artifact code renders the observed byte-entry range as
+  `candidate_code`, not accepted `confirmed_code`, while preserving the MPW Asm
+  starter listing path.
+- `targets/macos_hfs_mpw_gm/targets/macos_file_mpw_tools_asm/asm.s` was
+  regenerated with candidate status/fact labels and no `SECTION code,code`.
+- Proposal 012 was reassessed: parser/listing consumption landed, but exact
+  byte-entry and relocation/fixup semantics remain deferred/candidate blockers.
+
+Verification:
+
+```text
+cmd /c src\build.bat
+uv run python -m amiga_reversing.disasm.macos_target_artifact --write
+uv run python -m pytest tests\test_macos_c_backend.py tests\test_macos_asm_container.py tests\test_macos_project_payload.py tests\test_macos_target_artifact.py -q
+```
+
 ## Research Coverage
 
-- [ ] Current Mac C resource/CODE parser checked.
-- [ ] Current Mac listing adapter checked.
-- [ ] Generated KB/check hook point checked.
-- [ ] Current heuristic code path checked.
-- [ ] Existing tests and artifact drift checks checked.
-- [ ] 012 closeout criteria checked.
+- [x] Current Mac C resource/CODE parser checked.
+- [x] Current Mac listing adapter checked.
+- [x] Generated KB/check hook point checked.
+- [x] Current heuristic code path checked.
+- [x] Existing tests and artifact drift checks checked.
+- [x] 012 closeout criteria checked.
 
 ## Research Review
 
-- [ ] Second pass checked trace blocks against named files/functions.
-- [ ] Candidate facts cannot produce accepted output.
-- [ ] Renderer wording reviewed for overclaiming.
-- [ ] Proposal 012 updated with evidence-backed status.
+- [x] Second pass checked trace blocks against named files/functions.
+- [x] Candidate facts cannot produce accepted output.
+- [x] Renderer wording reviewed for overclaiming.
+- [x] Proposal 012 updated with evidence-backed status.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before implementation.
-- [ ] 018-003 accepted Mac KB facts consumed or validated.
-- [ ] 018-004 guardrails pass.
-- [ ] Mac parser/listing tests pass.
-- [ ] Existing Amiga/Atari tests remain unaffected or changes are justified.
-- [ ] Stale heuristic code deleted or deferred deletion blocker recorded.
-- [ ] Post-commit review found no unresolved worthwhile findings.
+- [x] Proposal context checked before implementation.
+- [x] 018-003 accepted Mac KB facts consumed or validated.
+- [x] 018-004 guardrails pass.
+- [x] Mac parser/listing tests pass.
+- [x] Existing Amiga/Atari tests remain unaffected or changes are justified.
+- [x] Stale heuristic code deleted or deferred deletion blocker recorded.
+- [x] Post-commit review found no unresolved worthwhile findings.

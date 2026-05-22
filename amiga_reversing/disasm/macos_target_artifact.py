@@ -243,7 +243,7 @@ def _code_resource_coverage_line(resource: Mapping[str, object], *, selected_id:
     code = _mapping(resource.get("code"))
     ranges = [_mapping(item) for item in _sequence(code.get("layout_ranges"))]
     kinds = ",".join(_text(item.get("kind")) for item in ranges) or "none"
-    confirmed = next((item for item in ranges if item.get("kind") == "confirmed_code"), None)
+    candidate = next((item for item in ranges if item.get("kind") in {"confirmed_code", "candidate_code"}), None)
     deferred = next((item for item in ranges if item.get("kind") == "deferred"), None)
     if resource_id == 0:
         status = "metadata-only"
@@ -251,10 +251,11 @@ def _code_resource_coverage_line(resource: Mapping[str, object], *, selected_id:
     elif resource_id == selected_id:
         status = "rendered"
         reason = "expanded below through macos-code listing backend"
-    elif confirmed is not None:
+    elif candidate is not None:
         status = "partial"
         reason = (
-            f"confirmed entry payload[{_text(confirmed.get('start'))}..{_text(confirmed.get('end'))}); "
+            f"{_text(candidate.get('kind'))} entry payload[{_text(candidate.get('start'))}.."
+            f"{_text(candidate.get('end'))}); "
             "full per-resource listing deferred until relocation/source-boundary context is represented"
         )
     elif deferred is not None:
@@ -275,7 +276,8 @@ def _code_layout_lines(ranges: Sequence[Mapping[str, object]]) -> list[str]:
     return [
         f";     {_text(item.get('kind'))}: start={_text(item.get('start'))} "
         f"end={_text(item.get('end'))} entrypoint={_text(item.get('entrypoint'))} "
-        f"evidence={_text(item.get('evidence'))}"
+        f"evidence={_text(item.get('evidence'))} fact={_text(item.get('fact_id'))} "
+        f"status={_text(item.get('fact_status'))}"
         for item in ranges
     ]
 

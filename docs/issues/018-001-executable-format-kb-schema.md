@@ -1,6 +1,6 @@
 # 018-001: Executable-Format KB Schema Gate
 
-Status: open
+Status: completed
 
 ## Proposal Context
 
@@ -80,29 +80,42 @@ terminology, and the thin Mac proof record.
 
 ## Research Coverage
 
-- [ ] Existing `knowledge/` schema/data conventions checked.
-- [ ] Existing generated metadata conventions checked.
-- [ ] Existing docs citation/provenance conventions checked.
-- [ ] JSON schema validation/test pattern checked.
-- [ ] Mac proof record scope checked against 012 blocker text.
-- [ ] Source policy and fact state vocabulary checked against proposal 018.
+- [x] Existing `knowledge/` schema/data conventions checked.
+- [x] Existing generated metadata conventions checked.
+- [x] Existing docs citation/provenance conventions checked.
+- [x] JSON schema validation/test pattern checked.
+- [x] Mac proof record scope checked against 012 blocker text.
+- [x] Source policy and fact state vocabulary checked against proposal 018.
 
 ## Research Review
 
-- [ ] Second pass checked trace blocks against named files/functions.
-- [ ] Schema checked against Mac, Amiga, and Atari needs at a representative
+- [x] Second pass checked trace blocks against named files/functions.
+- [x] Schema checked against Mac, Amiga, and Atari needs at a representative
   level.
-- [ ] Thin Mac proof record checked to avoid promoting heuristic evidence.
-- [ ] Proposal updated with model corrections or deferred follow-ups.
+- [x] Thin Mac proof record checked to avoid promoting heuristic evidence.
+- [x] Proposal updated with model corrections or deferred follow-ups.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before implementation.
-- [ ] Canonical docs/schema/data files created.
-- [ ] Thin Mac proof record included.
-- [ ] Candidate facts cannot be consumed as accepted parser facts by schema
+- [x] Proposal context checked before implementation.
+- [x] Canonical docs/schema/data files created.
+- [x] Thin Mac proof record included.
+- [x] Candidate facts cannot be consumed as accepted parser facts by schema
   design.
-- [ ] Unknown/conflict/deferred/unsupported states represented.
-- [ ] Tests validate schema and proof record.
-- [ ] No parser or renderer behavior changed.
-- [ ] Post-commit review found no unresolved worthwhile findings.
+- [x] Unknown/conflict/deferred/unsupported states represented.
+- [x] Tests validate schema and proof record.
+- [x] No parser or renderer behavior changed.
+- [x] Post-commit review found no unresolved worthwhile findings.
+
+## Completion Evidence
+
+- Created `docs/platform-executable-formats.md`.
+- Created `knowledge/platform_executable_formats.schema.json`.
+- Created `knowledge/platform_executable_formats.json`.
+- Added `amiga_reversing.tools.platform_executable_formats` validation.
+- Added `tests/test_platform_executable_formats.py`.
+- `uv run python -m pytest tests\test_platform_executable_formats.py -q`
+  passed: 6 tests.
+- `uv run ruff check amiga_reversing\tools\platform_executable_formats.py tests\test_platform_executable_formats.py`
+  passed.
+- Parser and renderer code paths were not changed.
