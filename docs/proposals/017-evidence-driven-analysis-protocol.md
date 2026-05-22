@@ -1136,3 +1136,9 @@ repeatable work to `docs\issues\017-*`.
   existing manual binding state. Generated-source and exact-round-trip audit
   layers remain `not_checked` with explicit blockers unless current verifier
   results are read or rerun.
+- `017-046` is the next active source-offset immediate continuation. It starts
+  from the `017-041` read-only packet for Pandora `s0:000009A6` and must record
+  an accepted, deferred, or rejected Decision Journal outcome before any mutation
+  is considered. Same-literal-only evidence remains insufficient; mutation may
+  proceed only with scoped command support, generated-source verifier, negative
+  safety, exact round-trip, and audit layers backed by current verifier results.
