@@ -7516,7 +7516,7 @@ def test_rsset_candidate_report_surfaces_matching_journal_accept_without_enablin
     assert candidate["safe_to_mutate"] is False
 
 
-def test_rsset_journal_mutation_gate_reports_ready_for_039_without_enabling_mutation() -> None:
+def test_rsset_journal_mutation_gate_enables_selected_039_bind_support() -> None:
     record = _decision_journal_record("accept_fact")
     report = _pandora_022e_rsset_candidate_report(
         journal_projection=_decision_projection(record),
@@ -7546,8 +7546,51 @@ def test_rsset_journal_mutation_gate_reports_ready_for_039_without_enabling_muta
     assert gate["render_intent"]["expected_operand"] == "app_022E(a6)"
     assert gate["verifier_plan"]["generated_source"]["status"] == "ready"
     assert gate["verifier_plan"]["exact_round_trip"]["status"] == "ready"
-    assert report["candidates"][0]["command_support"]["bind"]["state"] == "blocked"
-    assert report["candidates"][0]["safe_to_mutate"] is False
+    bind = report["candidates"][0]["command_support"]["bind"]
+    assert bind["state"] == "available"
+    assert bind["authority"] == "decision_journal"
+    assert bind["source_decision_id"] == record["decision_id"]
+    assert bind["writes"][0]["kind"] == "rsset_use_site_binding"
+    assert report["candidates"][0]["safe_to_mutate"] is True
+
+
+def test_rsset_journal_binding_candidate_uses_decision_evidence_and_scope() -> None:
+    record = _decision_journal_record("accept_fact")
+    report = _pandora_022e_rsset_candidate_report(
+        journal_projection=_decision_projection(record),
+        exact_round_trip_available=True,
+    )
+
+    candidates = reversing_loop._listing_rsset_journal_binding_candidates(report)
+    command = reversing_loop._candidate_command_options(candidates[0])[0]
+
+    assert len(candidates) == 1
+    assert candidates[0]["kind"] == "rsset_use_site_binding"
+    assert candidates[0]["element_id"] == "pandora-022e:displacement:1:operand"
+    assert candidates[0]["parameters"] == {
+        "layout_name": "app",
+        "base_symbol": "__amiga_app_base__",
+        "base_register": "A6",
+        "base_evidence_id": "selected-base:A6:__amiga_app_base__",
+        "displacement": 0x22E,
+        "operand_index": 1,
+        "source_evidence_id": record["decision_id"],
+        "source_family": "rsset_app_base",
+        "source_evidence_status": "accepted",
+        "path_lifetime_scope": {"kind": "selected_use", "hunk": 0, "addr": 0x6E4, "operand_index": 1},
+        "conflicts": [],
+        "parent_evidence_ids": record["evidence_refs"],
+        "reason": record["reason"],
+    }
+    assert command["command_id"] == "rsset.binding.bind"
+    assert command["context"]["source_evidence_id"] == record["decision_id"]
+    assert command["context"]["source_evidence_status"] == "accepted"
+    assert command["context"]["path_lifetime_scope"] == {
+        "kind": "selected_use",
+        "hunk": 0,
+        "addr": 0x6E4,
+        "operand_index": 1,
+    }
 
 
 def test_rsset_journal_mutation_gate_blocks_without_journal_accept() -> None:
@@ -7625,7 +7668,9 @@ def test_rsset_evidence_packet_includes_journal_mutation_gate() -> None:
     assert gate["ready_for_039"] is True
     assert gate["mutation_enabled"] is False
     assert packet["evidence_lanes"]["journal_mutation_gate"]["command_id"] == "rsset.binding.bind"
-    assert packet["command_gate"]["enabled"] is False
+    assert packet["command_gate"]["enabled"] is True
+    assert packet["command_gate"]["safe_to_mutate"] is True
+    assert packet["command_gate"]["writes"][0]["kind"] == "rsset_use_site_binding"
     assert packet["decision"]["writes_enabled"] is False
 
 
@@ -12875,6 +12920,7 @@ def _decision_journal_record(
         },
         "evidence_refs": [packet_id],
         "conflicts": [],
+        "reason": "Selected Pandora use has accepted app-base journal evidence.",
     }
     if action == "accept_fact":
         record["fact_type"] = fact_type

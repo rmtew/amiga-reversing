@@ -195,7 +195,9 @@ _SOURCE_EVIDENCE_OBJECT_KEYS = (
     "cleanup_scope",
 )
 _SOURCE_EVIDENCE_KEYS = (*_SOURCE_EVIDENCE_STRING_KEYS, *_SOURCE_EVIDENCE_OBJECT_KEYS)
-_ACCEPTED_PROVENANCE_STATUSES = frozenset({"analysis_proven", "path_specific", "manual_classified", "manual_override"})
+_ACCEPTED_PROVENANCE_STATUSES = frozenset(
+    {"accepted", "analysis_proven", "path_specific", "manual_classified", "manual_override"}
+)
 
 
 def _copy_source_evidence_context(target: dict[str, object], source: Mapping[str, object]) -> None:
@@ -2519,7 +2521,7 @@ def _rsset_use_site_binding_parameters(
         "base_evidence_id": evidence.get("base_evidence_id") if evidence is not None else None,
         "displacement": displacement,
         "operand_index": operand_index,
-    }
+    } | (_source_evidence_parameters(context) if evidence is not None else {})
 
 
 def _rsset_binding_evidence_parameters(context: Mapping[str, object], base_register: str) -> dict[str, str] | None:
@@ -2906,7 +2908,7 @@ def _rsset_base_evidence_refs(
         isinstance(source_evidence_id, str)
         and isinstance(source_family, str)
         and source_family not in {"", "unknown", "conflicting"}
-        and status in {"analysis_proven", "path_specific", "manual_classified", "manual_override"}
+        and status in _ACCEPTED_PROVENANCE_STATUSES
         and isinstance(base_evidence_id, str)
         and bool(base_evidence_id.strip())
     )
@@ -2984,7 +2986,7 @@ def _rsset_use_site_binding_payload(
         "base_symbol": base_symbol,
         "base_evidence_id": base_evidence_id,
         "access": context.get("access") or "reference",
-        "render_state": "linked_gap_or_raw",
+        "render_state": "linked_existing_field" if _rsset_context_has_existing_field(context) else "linked_gap_or_raw",
     }
     evidence_refs = _rsset_base_evidence_refs(context, row, params)
     accepted_ref = next((ref for ref in evidence_refs if ref.get("accepted") is True), None)
@@ -3014,6 +3016,12 @@ def _rsset_use_site_binding_payload(
     if isinstance(element_id, str) and element_id:
         binding["element_id"] = element_id
     return binding
+
+
+def _rsset_context_has_existing_field(context: Mapping[str, object]) -> bool:
+    element_kind = context.get("element_kind")
+    symbol = context.get("symbol")
+    return element_kind in {"app_slot", "symbol"} and isinstance(symbol, str) and bool(symbol.strip())
 
 
 def _rsset_use_site_binding_identity_payload(

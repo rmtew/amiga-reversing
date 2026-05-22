@@ -967,6 +967,28 @@ def test_rsset_binding_stays_report_only_for_unaccepted_explicit_provenance() ->
 
     assert any(action["action_id"] == "rsset.binding.bind" for action in accepted_actions)
 
+    journal_selector = {
+        **accepted_selector,
+        "source_evidence_id": "decision-rsset-022e",
+        "source_evidence_status": "accepted",
+        "conflicts": [],
+    }
+    journal_actions = listing_element_action_catalog(row, journal_selector)
+    bind_action = next(action for action in journal_actions if action["action_id"] == "rsset.binding.bind")
+
+    assert bind_action["parameters"]["source_evidence_id"] == "decision-rsset-022e"
+    assert bind_action["parameters"]["source_evidence_status"] == "accepted"
+    assert bind_action["parameters"]["conflicts"] == []
+    kind, payload = listing_catalog_manual_payload(
+        row,
+        "rsset.binding.bind",
+        element_context=journal_selector,
+        parameters=bind_action["parameters"],
+    )
+    binding = payload["rsset_use_site_binding"]
+    assert kind == "create_manual_rsset_use_site_binding"
+    assert binding["render_state"] == "linked_gap_or_raw"
+
     mismatched_override_selector = {
         **selector,
         "source_family": "rsset_app_base",
@@ -982,6 +1004,50 @@ def test_rsset_binding_stays_report_only_for_unaccepted_explicit_provenance() ->
         action["action_id"] in {"rsset.binding.bind", "rsset.binding.unbind"}
         for action in mismatched_override_actions
     )
+
+
+def test_rsset_binding_existing_app_slot_payload_records_existing_field_render_state() -> None:
+    row = {
+        "kind": "instruction",
+        "section_index": 0,
+        "start_offset": 0x6E4,
+        "end_offset": 0x6EA,
+        "stable_key": "app-field-rsset",
+        "text": "bclr.b #1,app_022E(a6)",
+        "opcode": "bclr.b",
+        "app_slot_refs": [
+            {
+                "symbol": "app_022E",
+                "operand_index": 1,
+                "base_register": "A6",
+                "displacement": 0x022E,
+                "access": "memory_write",
+            }
+        ],
+    }
+    selector = {
+        "element_kind": "app_slot",
+        "symbol": "app_022E",
+        "operand_index": 1,
+        "base_evidence_id": "selected-base:A6:__amiga_app_base__",
+        "source_evidence_id": "decision-rsset-022e",
+        "source_family": "rsset_app_base",
+        "source_evidence_status": "accepted",
+        "path_lifetime_scope": {"kind": "selected_use", "hunk": 0, "addr": 0x6E4, "operand_index": 1},
+        "conflicts": [],
+    }
+
+    actions = listing_element_action_catalog(row, selector)
+    bind_action = next(action for action in actions if action["action_id"] == "rsset.binding.bind")
+    kind, payload = listing_catalog_manual_payload(
+        row,
+        "rsset.binding.bind",
+        element_context=selector,
+        parameters=bind_action["parameters"],
+    )
+
+    assert kind == "create_manual_rsset_use_site_binding"
+    assert payload["rsset_use_site_binding"]["render_state"] == "linked_existing_field"
 
 
 def test_target_execution_view_add_and_edit_command_payloads() -> None:

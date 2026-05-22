@@ -1076,10 +1076,11 @@ repeatable work to `docs\issues\017-*`.
   evidence/render/verifier/round-trip gates, the selected `app_022E(a6)` render
   intent, generated-source verifier support, and exact round-trip availability
   while keeping `rsset.binding.bind` blocked and `mutation_enabled=false`.
-- 017-039 is blocked in the current Pandora state because no durable active
-  Decision Journal `accept_fact` exists for `rsset-raw-a6:022E` at
-  `s0:000006E4:op1`. Exact round-trip is available for the raw subtarget, so the
-  current missing gate is `journal_accept`.
-- 017-040 owns the `journal_accept` unblocker: either append a real durable
-  selected-use `accept_fact` with current evidence and prove the 017-038 gate is
-  ready, or keep 017-039 blocked with the missing evidence recorded.
+- 017-040 recorded the real durable Pandora `accept_fact` for
+  `rsset-raw-a6:022E` at `s0:000006E4:op1`, with selected-use scope and
+  `conflicts: []`; the 017-038 gate then reported ready.
+- 017-039 consumed that accepted journal fact through a selected-only
+  `rsset.binding.bind` candidate. The command copied journal provenance into the
+  catalog context, appended one scoped `rsset_use_site_binding`, verified the
+  selected rendered source and exact round-trip, and left the selected report as
+  `already_recorded`/`already_satisfied` with no duplicate mutation authority.

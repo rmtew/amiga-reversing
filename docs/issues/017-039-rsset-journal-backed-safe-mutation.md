@@ -1,6 +1,6 @@
 # 017-039: RSSET Journal-Backed Safe Mutation
 
-Status: blocked
+Status: complete
 
 ## Proposal Context
 
@@ -139,12 +139,11 @@ deleted or deferred.
 - [x] Pandora proof recorded.
 - [x] Post-commit review found no unresolved worthwhile findings.
 
-## Blocked Evidence
+## Completion Evidence
 
-017-039 must stop if the 017-038 gate is not `ready_for_039=true` for the real
-selected Pandora use. Current state does not contain a durable active
-`decision_journal.jsonl` accept for `rsset-raw-a6:022E` at `s0:000006E4:op1`,
-so the missing 017-038 gate is `journal_accept`. `017-040` owns that unblocker.
+017-040 provided the durable active `decision_journal.jsonl` accept for
+`rsset-raw-a6:022E` at `s0:000006E4:op1`, so 017-039 proceeded only after the
+017-038 gate reported `ready_for_039=true`.
 
 Trace blocks:
 
@@ -152,38 +151,48 @@ Trace blocks:
   `amiga_reversing/reversing_loop.py::_rsset_journal_mutation_gate` can report a
   ready gate only when every evidence/render/verifier/round-trip gate is
   satisfied. Tests prove the complete-evidence path reports
-  `ready_for_039=true` while `mutation_enabled=false`.
+  `ready_for_039=true` while the selected 017-039 bind support becomes
+  available from journal authority.
 - Command catalog/planner:
-  the selected command id remains `rsset.binding.bind`; current candidate
-  `command_support.bind` and packet `command_gate.enabled` remain blocked/false
-  without legacy accepted base evidence. No duplicate v2/legacy authority was
-  introduced.
+  the selected command id remains `rsset.binding.bind`. The planner now derives
+  exactly one selected `rsset_use_site_binding` candidate from the journal-ready
+  RSSET report and copies decision provenance into command context/parameters.
+  Catalog execution accepts `source_evidence_status=accepted` and keeps
+  non-journal or mismatched evidence report-only.
 - Renderer/verifier:
   `_verify_projected_rsset_binding_rendered_source` and `_verify_round_trip_exact`
-  are the existing proof path. 017-038 reports them; 017-039 does not execute a
-  partial mutation without a durable journal accept.
+  are the proof path. Existing app-slot/symbol contexts now record
+  `render_state=linked_existing_field`; raw/gap contexts remain
+  `linked_gap_or_raw`.
 - Round-trip:
-  the Pandora raw subtarget has an exact `reproduction.json`; round-trip
-  availability is not the current blocker.
+  the real Pandora execution passed exact round-trip verification.
 - Pandora source effect:
-  generated source already contains the selected `app_022E(a6)` line at the
-  `s0:000006E4` use-site. The 017-039 proof plan remains one scoped
-  `rsset_use_site_binding` for that selected hunk/address/operand only, followed
-  by generated-source verification and exact round-trip.
+  generated source already contained the selected `app_022E(a6)` line. The
+  durable source-progress effect is one scoped binding:
+  `rsset-binding-h0-000006E4-op1-A6-022E-app-__amiga_app_base__-selected-base_A6___amiga_app_base__`.
+  The verifier proved the selected app-slot render, no raw unsafe operand, and
+  exact round-trip.
 
-Required unblocker:
+Real execution:
 
-- Add or replay one durable active `accept_fact` with candidate
-  `rsset-raw-a6:022E`, fact type `rsset_app_base`, selected identity
-  `s0:000006E4:op1`, selected-use scope, and `conflicts: []`; then rerun the
-  017-038 gate and only enable `rsset.binding.bind` in this issue if it reports
-  `ready_for_039=true`. This work is tracked by `017-040`.
+- Dry-run selected `rsset-journal-bind:rsset-raw-a6:022E:s0:000006E4:op1`
+  with command `rsset.binding.bind`.
+- Real execution appended
+  `create_manual_rsset_use_site_binding` action
+  `manual-6e574feccab748359c7577833fa718ba` at sequence 60, scoped to
+  hunk 0, address `000006E4`, operand 1, base `A6`, displacement `022E`,
+  source evidence `decision-rsset-022e-accept-017-040`, and `conflicts: []`.
+- Post-mutation selected report state:
+  `status=already_recorded`, `bind_state=already_satisfied`,
+  `accepted_base_evidence_count=1`, `journal_ready=true`, no missing gates.
 
 Verification:
 
 - Focused RSSET tests:
-  `uv run python -m pytest tests\test_reversing_loop.py -q -k "rsset_journal_mutation_gate or rsset_candidate_report or rsset_evidence_packet or query_rsset_evidence_packet or inspect_rsset_candidates"`
-  passed with `23 passed, 315 deselected`.
+  `uv run python -m pytest tests\test_reversing_loop.py tests\test_manual_action_catalog.py -q -k "rsset_journal or rsset_candidate_report or rsset_evidence_packet or rsset_binding"`
+  passed with `36 passed, 341 deselected`.
+- Real verifier replay:
+  `manual_action_log`, `semantic_reload`, `rendered_source`, and `round_trip`
+  all passed for the corrected sequence-60 binding action.
 - Lint:
-  `uv run ruff check amiga_reversing\reversing_loop.py tests\test_reversing_loop.py`
-  passed.
+  pending final run before commit.

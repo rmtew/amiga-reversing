@@ -1,6 +1,6 @@
 # 017-040: Pandora RSSET Journal Accept Evidence
 
-Status: active
+Status: complete
 
 ## Proposal Context
 
@@ -101,15 +101,29 @@ reason evidence is insufficient.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before implementation.
-- [ ] Protocol delta implemented as described, or proposal updated.
-- [ ] Default behavior impact verified.
-- [ ] Old code deleted, or deferred deletion blocker recorded.
-- [ ] Durable journal accept validated, or blocker recorded.
-- [ ] `decision-journal-report` projection proof recorded.
-- [ ] RSSET `journal_mutation_gate` proof recorded.
-- [ ] `mutation_enabled=false` and command gate blocked verified.
-- [ ] Render/verifier/round-trip checked where output-affecting, or explicitly
+- [x] Proposal context checked before implementation.
+- [x] Protocol delta implemented as described, or proposal updated.
+- [x] Default behavior impact verified.
+- [x] Old code deleted, or deferred deletion blocker recorded.
+- [x] Durable journal accept validated, or blocker recorded.
+- [x] `decision-journal-report` projection proof recorded.
+- [x] RSSET `journal_mutation_gate` proof recorded.
+- [x] `mutation_enabled=false` and command gate blocked verified.
+- [x] Render/verifier/round-trip checked where output-affecting, or explicitly
   not applicable because no output changed.
-- [ ] Pandora proof recorded.
-- [ ] Post-commit review found no unresolved worthwhile findings.
+- [x] Pandora proof recorded.
+- [x] Post-commit review found no unresolved worthwhile findings.
+
+## Completion Evidence
+
+- Commit `cf1067b8` added the durable target-local
+  `decision_journal.jsonl` accept for `rsset-raw-a6:022E` at
+  `s0:000006E4:op1`.
+- The accepted record has `fact_type=rsset_app_base`,
+  `scope.kind=selected_use`, matching hunk/address/operand, `conflicts: []`,
+  actor metadata, reason, and evidence refs for packet/report/source/rebuild.
+- After append, the selected RSSET gate reported `ready_for_039=true`,
+  `mutation_enabled=false`, no missing gates, one active accepted decision,
+  and exact round-trip availability.
+- 017-039 subsequently consumed this durable accept through the gated command
+  path; 017-040 itself performed no render mutation.

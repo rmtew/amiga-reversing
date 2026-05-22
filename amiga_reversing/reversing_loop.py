@@ -1501,6 +1501,22 @@ def _inspect_report_with_listing_candidates(
             existing_regions=_existing_rsset_region_map(inspect_report),
         )
     )
+    target_dir = projects.resolve_project_dir(target_id, project_root=project_root)
+    journal_report = decision_journal_report(target_dir)
+    journal_projection = journal_report.get("projection") if isinstance(journal_report, Mapping) else None
+    project_payload = inspect_report.get("target_state")
+    project_payload = project_payload.get("project") if isinstance(project_payload, Mapping) else None
+    if not isinstance(project_payload, Mapping):
+        project_payload = _project_state_payload(target_id, project_root)
+    manual_state = project_payload.get("manual_state") if isinstance(project_payload, Mapping) else None
+    rsset_report = _listing_rsset_candidate_report(
+        rows if isinstance(rows, list) else [],
+        target_id=target_id,
+        manual_state=manual_state if isinstance(manual_state, Mapping) else None,
+        journal_projection=journal_projection if isinstance(journal_projection, Mapping) else None,
+        exact_round_trip_available=(target_dir / "reproduction.json").exists(),
+    )
+    candidates.extend(_listing_rsset_journal_binding_candidates(rsset_report))
     return {**inspect_report, "listing_open": listing_ready, "candidate_work": candidates}
 
 
@@ -3715,6 +3731,9 @@ def _rsset_evidence_packet_blockers(
     evidence_search: Mapping[str, object],
 ) -> list[str]:
     blockers = list(_string_sequence(candidate.get("missing_gates")))
+    journal_gate = candidate.get("journal_mutation_gate")
+    if isinstance(journal_gate, Mapping) and journal_gate.get("ready_for_039") is True:
+        return blockers
     accepted_count = _int_or_none(evidence_search.get("accepted_base_evidence_count")) or 0
     if accepted_count == 0:
         for blocker in (
@@ -3764,13 +3783,14 @@ def _rsset_evidence_packet_command_gate(
     bind = support.get("bind") if isinstance(support, Mapping) else None
     bind_support = dict(bind) if isinstance(bind, Mapping) else {"command_id": "rsset.binding.bind", "state": "unknown"}
     state = "blocked" if blockers else str(bind_support.get("state") or "unknown")
+    enabled = not blockers and state == "available"
     return {
         "command_id": "rsset.binding.bind",
         "state": state,
-        "enabled": False,
-        "safe_to_mutate": False,
+        "enabled": enabled,
+        "safe_to_mutate": enabled,
         "missing_gates": blockers,
-        "writes": [],
+        "writes": list(bind_support.get("writes") or []) if enabled else [],
         "source": bind_support,
     }
 
@@ -3869,6 +3889,9 @@ def _rsset_candidate_use_from_context(
         value = context.get(key)
         if value is not None:
             use[key] = value
+    locator = row.get("locator")
+    if isinstance(locator, Mapping):
+        use["locator"] = dict(locator)
     return {key: value for key, value in use.items() if value is not None}
 
 
@@ -3928,15 +3951,21 @@ def _rsset_candidate_group_summary(
     has_base_evidence = bool(evidence_search["accepted_base_evidence"])
     already_recorded = _rsset_candidate_evidence_search_already_recorded(evidence_search)
     field_available = layout_context is not None
+    journal_ready = journal_mutation_gate.get("ready_for_039") is True
+    duplicate_authority = has_base_evidence and journal_ready and not already_recorded
     missing_gates: list[str] = []
-    if not has_base_evidence:
+    if not has_base_evidence and not journal_ready:
         missing_gates.append("missing_accepted_base_evidence")
     if not field_available:
         missing_gates.append("missing_field_or_layout_refinement")
+    if duplicate_authority:
+        missing_gates.append("duplicate_legacy_v2_authority")
     if already_recorded:
         status = "already_recorded"
+    elif duplicate_authority:
+        status = "blocked"
     else:
-        status = "actionable" if has_base_evidence and field_available else "blocked"
+        status = "actionable" if (has_base_evidence or journal_ready) and field_available else "blocked"
     bind_support: dict[str, object]
     if already_recorded:
         bind_support = {
@@ -3944,6 +3973,20 @@ def _rsset_candidate_group_summary(
             "state": "already_satisfied",
             "existing_manual_state": evidence_search["accepted_base_evidence"][0],
         }
+    elif duplicate_authority:
+        bind_support = {
+            "command_id": "rsset.binding.bind",
+            "state": "blocked",
+            "missing_gates": ["duplicate_legacy_v2_authority"],
+        }
+    elif journal_ready:
+        bind_support = _rsset_journal_bind_support(
+            candidate_id,
+            selected_use,
+            layout_context,
+            journal_decision_evidence,
+            journal_mutation_gate,
+        )
     elif has_base_evidence:
         bind_support = {"command_id": "rsset.binding.bind", "state": "available"}
     else:
@@ -3981,9 +4024,122 @@ def _rsset_candidate_group_summary(
             "exact_round_trip": "required_for_output_affecting_mutation",
         },
         "missing_gates": missing_gates,
-        "safe_to_mutate": False,
-        "mutation_policy": "report_only_requires_separate_verified_command",
+        "safe_to_mutate": status == "actionable" and bind_support.get("state") == "available",
+        "mutation_policy": "journal_gate_requires_verified_command" if journal_ready else "report_only_requires_separate_verified_command",
         "rationale": "A6 displacement use requires accepted app-base evidence and field/layout context before mutation",
+    }
+
+
+def _rsset_journal_bind_support(
+    candidate_id: str,
+    selected_use: Mapping[str, object],
+    layout_context: Mapping[str, object] | None,
+    journal_decision_evidence: Mapping[str, object],
+    journal_mutation_gate: Mapping[str, object],
+) -> dict[str, object]:
+    candidate = _rsset_journal_binding_candidate(
+        {
+            "candidate_id": candidate_id,
+            "selected_use": dict(selected_use),
+            "field_or_app_slot_context": dict(layout_context) if isinstance(layout_context, Mapping) else None,
+            "journal_decision_evidence": dict(journal_decision_evidence),
+            "journal_mutation_gate": dict(journal_mutation_gate),
+        }
+    )
+    writes = []
+    if candidate is not None:
+        writes.append({"kind": "rsset_use_site_binding", "parameters": candidate["parameters"]})
+    accepted = _mapping_sequence(journal_decision_evidence.get("accepted"))
+    source_decision_id = accepted[0].get("decision_id") if accepted and isinstance(accepted[0], Mapping) else None
+    return {
+        "command_id": "rsset.binding.bind",
+        "state": "available",
+        "authority": "decision_journal",
+        "source_decision_id": source_decision_id,
+        "writes": writes,
+    }
+
+
+def _listing_rsset_journal_binding_candidates(rsset_report: Mapping[str, object]) -> list[dict[str, object]]:
+    candidates = rsset_report.get("candidates")
+    if not isinstance(candidates, Sequence) or isinstance(candidates, str):
+        return []
+    result: list[dict[str, object]] = []
+    for candidate in candidates:
+        if isinstance(candidate, Mapping):
+            bind_candidate = _rsset_journal_binding_candidate(candidate)
+            if bind_candidate is not None:
+                result.append(bind_candidate)
+    return result
+
+
+def _rsset_journal_binding_candidate(candidate: Mapping[str, object]) -> dict[str, object] | None:
+    if candidate.get("candidate_id") != "rsset-raw-a6:022E":
+        return None
+    gate = candidate.get("journal_mutation_gate")
+    if not isinstance(gate, Mapping) or gate.get("ready_for_039") is not True:
+        return None
+    evidence_search = candidate.get("evidence_search")
+    if isinstance(evidence_search, Mapping) and _int_or_none(evidence_search.get("accepted_base_evidence_count")):
+        return None
+    selected_use = candidate.get("selected_use")
+    layout_context = candidate.get("field_or_app_slot_context")
+    journal_lane = candidate.get("journal_decision_evidence")
+    if not isinstance(selected_use, Mapping) or not isinstance(layout_context, Mapping) or not isinstance(journal_lane, Mapping):
+        return None
+    accepted = _mapping_sequence(journal_lane.get("accepted"))
+    if len(accepted) != 1:
+        return None
+    record = accepted[0]
+    locator = selected_use.get("locator") or layout_context.get("locator")
+    element_id = selected_use.get("element_id") or layout_context.get("element_id")
+    if not isinstance(locator, Mapping) or not isinstance(element_id, str) or not element_id:
+        return None
+    addr = _int_or_none(selected_use.get("addr"))
+    operand_index = _int_or_none(selected_use.get("operand_index"))
+    displacement = _int_or_none(selected_use.get("displacement"))
+    if addr is None or operand_index is None or displacement is None:
+        return None
+    scope = record.get("scope")
+    if not isinstance(scope, Mapping):
+        return None
+    decision_id = record.get("decision_id")
+    reason = record.get("reason")
+    parameters: dict[str, object] = {
+        "layout_name": str(layout_context.get("layout_name") or "app"),
+        "base_symbol": str(layout_context.get("base_symbol") or "__amiga_app_base__"),
+        "base_register": str(selected_use.get("base_register") or "A6"),
+        "base_evidence_id": "selected-base:A6:__amiga_app_base__",
+        "displacement": displacement,
+        "operand_index": operand_index,
+        "source_evidence_id": decision_id,
+        "source_family": "rsset_app_base",
+        "source_evidence_status": "accepted",
+        "path_lifetime_scope": dict(scope),
+        "conflicts": list(record.get("conflicts") or []),
+        "parent_evidence_ids": list(record.get("evidence_refs") or []),
+        "reason": reason,
+    }
+    if not isinstance(decision_id, str) or not decision_id or not isinstance(reason, str) or not reason:
+        return None
+    selected_use_id = f"s{_int_or_none(selected_use.get('hunk')) or 0}:{addr:08X}:op{operand_index}"
+    return {
+        "id": f"rsset-journal-bind:{candidate.get('candidate_id')}:{selected_use_id}",
+        "candidate_id": f"rsset-journal-bind:{candidate.get('candidate_id')}:{selected_use_id}",
+        "kind": "rsset_use_site_binding",
+        "locator": dict(locator),
+        "element_id": element_id,
+        "selected_use": dict(selected_use),
+        "parameters": parameters,
+        "suggested_action_kinds": ["rsset.binding.bind"],
+        "default_verifier": "rsset_binding_state",
+        "confidence": "high",
+        "actionable": True,
+        "evidence": {
+            "decision_id": decision_id,
+            "candidate_id": candidate.get("candidate_id"),
+            "selected_use_id": selected_use_id,
+        },
     }
 
 
@@ -10411,6 +10567,20 @@ def _command_from_candidate_action(candidate: dict[str, object], action: str) ->
             value = parameter_payload.get(key)
             if isinstance(value, str) and value:
                 context[key] = value
+        for key in (
+            "source_evidence_id",
+            "source_family",
+            "source_evidence_status",
+            "path_lifetime_scope",
+            "confidence",
+            "conflicts",
+            "parent_evidence_ids",
+            "contradicted_evidence_id",
+            "reason",
+            "cleanup_scope",
+        ):
+            if key in parameter_payload:
+                context[key] = parameter_payload[key]
         return {
             "kind": "command",
             "command_id": action,
