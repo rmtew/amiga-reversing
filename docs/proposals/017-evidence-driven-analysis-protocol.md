@@ -1043,3 +1043,9 @@ repeatable work to `docs\issues\017-*`.
   `decision_journal.jsonl` is target-local manual/journal state for hygiene and
   clean-run classification, but no default report, planner, command, render,
   verifier, C fact replay, or Manual Action Log path consumes it.
+- 017-035 exposed that state through explicit
+  `python -m amiga_reversing.reversing_loop decision-journal-report --target`
+  JSON output, with optional `--dry-run-record` in-memory validation. The
+  surface reports existence, validity, diagnostics, active/superseded decision
+  ids, and `next_prev` without appending, replaying, rendering, enabling
+  `rsset.binding.bind`, or changing default inspect/planner behavior.

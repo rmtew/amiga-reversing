@@ -95,6 +95,58 @@ def append_decision_record(target_dir: Path, record: Mapping[str, object]) -> di
     }
 
 
+def decision_journal_report(
+    target_dir: Path,
+    *,
+    dry_run_record: object | None = None,
+) -> dict[str, object]:
+    path = decision_journal_path(target_dir)
+    readback = read_decision_journal(target_dir)
+    records = _record_sequence(readback.get("records"))
+    report: dict[str, object] = {
+        "path": str(path),
+        "exists": path.exists(),
+        "valid": readback["valid"],
+        "record_count": len(records),
+        "diagnostics": readback["diagnostics"],
+        "validation": readback["validation"],
+        "next_prev": decision_journal_next_prev(records),
+    }
+    if dry_run_record is not None:
+        report["dry_run_record"] = dry_run_decision_record(records, dry_run_record, current_valid=readback["valid"])
+    return report
+
+
+def dry_run_decision_record(
+    records: Sequence[object],
+    record: object,
+    *,
+    current_valid: object = True,
+) -> dict[str, object]:
+    if not isinstance(record, Mapping):
+        validation = {
+            "valid": False,
+            "diagnostics": [{"index": len(records), "field": "$", "message": "record must be an object"}],
+            "active_decision_ids": [],
+            "superseded_decision_ids": [],
+            "record_count": len(records) + 1,
+        }
+        return {"record": record, "status": "rejected", "validation": validation, "diagnostics": validation["diagnostics"]}
+    if current_valid is not True:
+        validation = validate_decision_journal_records(records)
+        diagnostics = validation["diagnostics"] or [
+            {"field": "$", "message": "current journal is invalid; proposed record was not evaluated"}
+        ]
+        return {"record": dict(record), "status": "rejected", "validation": validation, "diagnostics": diagnostics}
+    validation = validate_decision_journal_records([*records, dict(record)])
+    return {
+        "record": dict(record),
+        "status": "valid" if validation["valid"] else "rejected",
+        "validation": validation,
+        "diagnostics": validation["diagnostics"],
+    }
+
+
 def decision_journal_next_prev(records: Sequence[object]) -> str | None:
     if not records:
         return None

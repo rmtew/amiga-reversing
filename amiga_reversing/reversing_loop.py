@@ -21,13 +21,18 @@ from amiga_reversing.disasm.binary_source import (
 )
 from amiga_reversing.disasm.c_backend import render_project_source_with_c_backend
 from amiga_reversing.disasm.callback_slot_report import callback_slot_report
+from amiga_reversing.disasm.decision_journal import decision_journal_report
 from amiga_reversing.disasm.effective_metadata import (
     effective_metadata_file,
     effective_target_metadata,
 )
 from amiga_reversing.disasm.listing_context import listing_element_contexts
 from amiga_reversing.disasm.manual_actions import review_item_is_open
-from amiga_reversing.disasm.project_paths import PROJECT_ROOT, resolve_project_paths
+from amiga_reversing.disasm.project_paths import (
+    PROJECT_ROOT,
+    resolve_project_dir,
+    resolve_project_paths,
+)
 from amiga_reversing.disasm.target_metadata import SeededEntityMetadata, TargetMetadata
 from amiga_reversing.reversing_workspace import (
     clean_run_target_workspace,
@@ -209,6 +214,13 @@ def main(argv: list[str] | None = None) -> int:
     rsset_candidate_parser.add_argument("--target", required=True)
     rsset_candidate_parser.add_argument("--listing-timeout-seconds", type=float, default=10.0)
 
+    decision_journal_parser = subparsers.add_parser(
+        "decision-journal-report",
+        help="Report read-only Decision Journal validation state.",
+    )
+    decision_journal_parser.add_argument("--target", required=True)
+    decision_journal_parser.add_argument("--dry-run-record", type=Path)
+
     run_parser = subparsers.add_parser("run-one", help="Run one safe reversing loop iteration.")
     run_parser.add_argument("--target", required=True)
     run_parser.add_argument("--mode", choices=("continue", "clean-run", "reimport"), default="continue")
@@ -285,6 +297,15 @@ def main(argv: list[str] | None = None) -> int:
             )
         )
         return 0
+    if args.command == "decision-journal-report":
+        _print_json(
+            inspect_decision_journal(
+                args.target,
+                dry_run_record_path=args.dry_run_record,
+                project_root=args.project_root,
+            )
+        )
+        return 0
     if args.command == "run-one":
         if args.listing_backed_label_rename:
             _print_json(
@@ -324,6 +345,30 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 0
     raise SystemExit(f"Unsupported command: {args.command}")
+
+
+def inspect_decision_journal(
+    target_id: str,
+    *,
+    dry_run_record_path: Path | None = None,
+    project_root: Path = PROJECT_ROOT,
+) -> dict[str, object]:
+    target_dir = resolve_project_dir(target_id, project_root=project_root)
+    dry_run_record = _load_decision_dry_run_record(dry_run_record_path) if dry_run_record_path is not None else None
+    report = decision_journal_report(target_dir, dry_run_record=dry_run_record)
+    result = {"target_id": target_id, **report}
+    if dry_run_record_path is not None:
+        dry_run = result.get("dry_run_record")
+        if isinstance(dry_run, dict):
+            dry_run["path"] = str(dry_run_record_path)
+    return result
+
+
+def _load_decision_dry_run_record(path: Path) -> object:
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return {"__load_error__": str(exc)}
 
 
 def inspect_callback_slots(

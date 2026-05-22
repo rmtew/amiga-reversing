@@ -12,6 +12,7 @@ from typing import cast
 import pytest
 
 from amiga_reversing import reversing_loop
+from amiga_reversing.disasm import decision_journal
 from amiga_reversing.disasm.manual_actions import (
     ReviewItemKind,
     ReviewItemScope,
@@ -182,6 +183,55 @@ def test_inspect_cli_reports_json(tmp_path: Path) -> None:
     assert payload["target_id"] == "demo"
     assert payload["candidate_work"] == []
     assert payload["target_state"]["manual_action_log"]["count"] == 0
+
+
+def test_decision_journal_report_cli_reports_json_and_dry_run_without_writing(tmp_path: Path) -> None:
+    target_dir = _target(tmp_path)
+    record_path = tmp_path / "candidate-decision.json"
+    record = _decision_journal_record("defer_fact")
+    record_path.write_text(json.dumps(record), encoding="utf-8")
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "amiga_reversing.reversing_loop",
+            "--project-root",
+            str(tmp_path),
+            "decision-journal-report",
+            "--target",
+            "demo",
+            "--dry-run-record",
+            str(record_path),
+        ],
+        check=True,
+        text=True,
+        capture_output=True,
+    )
+
+    payload = json.loads(result.stdout)
+    assert payload["target_id"] == "demo"
+    assert payload["exists"] is False
+    assert payload["valid"] is True
+    assert payload["record_count"] == 0
+    assert payload["next_prev"] is None
+    assert payload["dry_run_record"]["status"] == "valid"
+    assert payload["dry_run_record"]["record"] == record
+    assert payload["dry_run_record"]["path"] == str(record_path)
+    assert not (target_dir / "decision_journal.jsonl").exists()
+    assert not (target_dir / "manual_actions.jsonl").exists()
+
+
+def test_decision_journal_report_does_not_change_default_inspect(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    target_dir = _target(tmp_path)
+    decision_journal.append_decision_record(target_dir, _decision_journal_record("defer_fact"))
+    monkeypatch.setattr(reversing_loop.projects, "get_project", lambda target_id, project_root: _project(()))
+
+    report = reversing_loop.inspect_target("demo", project_root=tmp_path)
+
+    assert "decision_journal" not in report
+    assert report["safe_to_mutate"] is True
+    assert (target_dir / "decision_journal.jsonl").exists()
 
 
 def test_run_identity_creation_includes_report_paths(tmp_path: Path) -> None:
@@ -12502,6 +12552,38 @@ def _listing_locator(
         "end_offset": end_offset,
         "kind": kind,
     }
+
+
+def _decision_journal_record(action: str, *, prev: str | None = None) -> dict[str, object]:
+    record: dict[str, object] = {
+        "schema": decision_journal.DECISION_JOURNAL_SCHEMA,
+        "decision_id": "decision-rsset-022e",
+        "prev": prev,
+        "created_at": "2026-05-22T00:00:00+00:00",
+        "actor": {"kind": "llm", "name": "codex"},
+        "action": action,
+        "packet_id": "rsset-packet:rsset-raw-a6:022E:s0:000006E4:op1",
+        "candidate_id": "rsset-raw-a6:022E",
+        "selected_identity": {
+            "target_id": "pandora",
+            "segment_id": "s0",
+            "hunk": 0,
+            "addr": 0x6E4,
+            "operand_index": 1,
+        },
+        "evidence_refs": ["rsset-packet:rsset-raw-a6:022E:s0:000006E4:op1"],
+        "conflicts": [],
+    }
+    if action == "accept_fact":
+        record["fact_type"] = "rsset_app_base"
+        record["scope"] = {"kind": "selected_use", "hunk": 0, "addr": 0x6E4, "operand_index": 1}
+    elif action == "defer_fact":
+        record["defer_reason"] = "missing selected A6 base identity"
+    elif action == "reject_fact":
+        record["reject_reason"] = "not accepted under current evidence model"
+    else:
+        raise ValueError(action)
+    return record
 
 
 def _accepted_struct_pointer_evidence() -> dict[str, object]:

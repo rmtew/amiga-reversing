@@ -191,6 +191,78 @@ def test_decision_journal_read_detects_bad_prev_duplicate_and_supersession(tmp_p
     } in readback["diagnostics"]
 
 
+def test_decision_journal_report_contract_for_missing_and_valid_journals(tmp_path: Path) -> None:
+    target_dir = tmp_path / "targets" / "demo"
+    first = _decision_record("defer_fact", decision_id="decision-1")
+    second = _decision_record(
+        "reject_fact",
+        decision_id="decision-2",
+        prev=f"sha256:{decision_journal.decision_record_hash(first)}",
+    )
+
+    missing = decision_journal.decision_journal_report(target_dir)
+    decision_journal.append_decision_record(target_dir, first)
+    decision_journal.append_decision_record(target_dir, second)
+    report = decision_journal.decision_journal_report(target_dir)
+
+    assert missing["exists"] is False
+    assert missing["valid"] is True
+    assert missing["record_count"] == 0
+    assert missing["next_prev"] is None
+    assert report["exists"] is True
+    assert report["valid"] is True
+    assert report["record_count"] == 2
+    assert report["validation"]["active_decision_ids"] == ["decision-1", "decision-2"]
+    assert report["next_prev"] == f"sha256:{decision_journal.decision_record_hash(second)}"
+
+
+def test_decision_journal_report_dry_run_validates_without_appending(tmp_path: Path) -> None:
+    target_dir = tmp_path / "targets" / "demo"
+    first = _decision_record("defer_fact", decision_id="decision-1")
+    second = _decision_record(
+        "reject_fact",
+        decision_id="decision-2",
+        prev=f"sha256:{decision_journal.decision_record_hash(first)}",
+    )
+    decision_journal.append_decision_record(target_dir, first)
+
+    report = decision_journal.decision_journal_report(target_dir, dry_run_record=second)
+
+    assert report["record_count"] == 1
+    assert report["dry_run_record"]["status"] == "valid"
+    assert report["dry_run_record"]["record"] == second
+    assert report["dry_run_record"]["validation"]["record_count"] == 2
+    assert decision_journal.read_decision_journal(target_dir)["records"] == [first]
+
+
+def test_decision_journal_report_dry_run_rejects_without_appending(tmp_path: Path) -> None:
+    target_dir = tmp_path / "targets" / "demo"
+    invalid = _decision_record("accept_fact")
+    del invalid["candidate_id"]
+
+    report = decision_journal.decision_journal_report(target_dir, dry_run_record=invalid)
+
+    assert report["dry_run_record"]["status"] == "rejected"
+    assert {"index": 0, "field": "candidate_id", "message": "candidate_id must be a non-empty string"} in report[
+        "dry_run_record"
+    ]["diagnostics"]
+    assert not decision_journal.decision_journal_path(target_dir).exists()
+
+
+def test_decision_journal_report_surfaces_malformed_journal_diagnostics(tmp_path: Path) -> None:
+    target_dir = tmp_path / "targets" / "demo"
+    path = decision_journal.decision_journal_path(target_dir)
+    target_dir.mkdir(parents=True)
+    path.write_text("not json\n", encoding="utf-8")
+
+    report = decision_journal.decision_journal_report(target_dir)
+
+    assert report["exists"] is True
+    assert report["valid"] is False
+    assert report["record_count"] == 0
+    assert {"line": 1, "field": "$", "message": "malformed JSONL: Expecting value"} in report["diagnostics"]
+
+
 def test_decision_journal_validation_is_side_effect_free(tmp_path: Path) -> None:
     target_dir = tmp_path / "targets" / "demo"
     target_dir.mkdir(parents=True)
