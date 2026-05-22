@@ -1,6 +1,6 @@
 # 017-042: A5 Path/Lifetime Protocol Packet Refresh
 
-Status: active
+Status: completed
 
 ## Proposal Context
 
@@ -108,13 +108,13 @@ code, and out-of-scope sweep work.
 - [x] Old code deleted, or deferred deletion blocker recorded.
 - [x] Evidence packet shape tested.
 - [x] Decision/replay behavior tested where applicable.
-- [ ] Every read-only packet command gate is explicitly non-mutating and cannot
+- [x] Every read-only packet command gate is explicitly non-mutating and cannot
   be consumed as mutation authority.
-- [ ] Public CLI/API/report access to the packet is wired and tested, or the
+- [x] Public CLI/API/report access to the packet is wired and tested, or the
   issue records why private helper access is intentionally sufficient.
 - [x] Mutation stayed blocked unless every safe gate was proven.
 - [x] Pandora proof recorded.
-- [ ] Post-commit review found no unresolved worthwhile findings.
+- [x] Post-commit review found no unresolved worthwhile findings.
 
 ## Completion Evidence
 
@@ -134,6 +134,18 @@ code, and out-of-scope sweep work.
   `test_a5_hardware_lifetime_report_marks_unknown_without_custom_definition`.
 - Verification: focused 369-test pytest run and changed-file `ruff check` both
   passed.
+- Reopen hardening: `a5-path-lifetime-packet` is now a supported CLI surface,
+  covered by `test_packet_query_cli_commands_emit_json` and
+  `test_query_a5_path_lifetime_packet_reports_command_candidate_as_read_only`.
+  Packet-level `command_gate.enabled=false` and
+  `command_gate.safe_to_mutate=false` for read-only packets even when a lower
+  A5 report candidate has command support; availability is reported only as
+  `candidate_command_available`.
+- Pandora CLI proof after hardening:
+  `uv run python -m amiga_reversing.reversing_loop a5-path-lifetime-packet --target amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8 --selected-use-id s0:0000045C:op0 --listing-timeout-seconds 10`
+  returned `status=accepted_existing_manual_state`,
+  `mutation_policy=read_only`, `command_gate.enabled=false`, and
+  `command_gate.safe_to_mutate=false`.
 
 ## Reopen Findings
 

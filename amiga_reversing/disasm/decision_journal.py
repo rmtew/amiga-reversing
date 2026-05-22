@@ -191,27 +191,21 @@ def _decision_audit_replay_result(record: Mapping[str, object], state: str) -> d
     if action in {"defer_fact", "reject_fact"}:
         return {"status": action, "semantic_reload": "not_applicable"}
     if action == "accept_fact":
-        return {"status": "source_effective" if record.get("fact_type") == "rsset_app_base" else "accepted", "semantic_reload": "projected"}
+        return {"status": "projected_unverified", "semantic_reload": "not_checked"}
     return {"status": "unknown", "semantic_reload": "blocked"}
 
 
 def _decision_audit_rendered_source_effect(record: Mapping[str, object], replay: Mapping[str, object]) -> dict[str, object]:
-    if record.get("fact_type") == "rsset_app_base" and replay.get("status") == "source_effective":
-        return {
-            "status": "source_effective",
-            "effect": "selected RSSET operand can be bound through rsset.binding.bind",
-            "render_intent": "enables_render",
-        }
-    return {"status": "not_applicable", "effect": None}
+    return {"status": "not_verified", "effect": None, "render_intent": record.get("render_intent")}
 
 
 def _decision_audit_verifier_layers(record: Mapping[str, object], replay: Mapping[str, object]) -> list[dict[str, object]]:
-    if record.get("fact_type") == "rsset_app_base" and replay.get("status") == "source_effective":
+    if replay.get("status") == "projected_unverified":
         return [
             {"layer": "decision_journal", "status": "passed"},
-            {"layer": "semantic_reload", "status": "projected"},
-            {"layer": "generated_source", "status": "available_after_binding"},
-            {"layer": "exact_round_trip", "status": "required_for_mutation"},
+            {"layer": "semantic_reload", "status": "not_checked"},
+            {"layer": "generated_source", "status": "not_checked"},
+            {"layer": "exact_round_trip", "status": "not_checked"},
         ]
     return [{"layer": "decision_journal", "status": "not_applicable"}]
 
@@ -226,6 +220,8 @@ def _decision_audit_blockers(
         blockers.append(f"decision_state_{state}")
     if record.get("action") == "accept_fact" and not _string_sequence(record.get("evidence_refs")):
         blockers.append("missing_evidence_refs")
+    if replay.get("status") == "projected_unverified":
+        blockers.append("source_effect_not_verified")
     if replay.get("semantic_reload") == "blocked":
         blockers.append("semantic_reload_blocked")
     return blockers

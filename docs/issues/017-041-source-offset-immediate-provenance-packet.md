@@ -1,6 +1,6 @@
 # 017-041: Source-Offset Immediate Provenance Packet
 
-Status: active
+Status: completed
 
 ## Proposal Context
 
@@ -109,13 +109,13 @@ deleted or deferred.
 - [x] Old code deleted, or deferred deletion blocker recorded.
 - [x] Evidence packet shape tested.
 - [x] Decision/replay behavior tested where applicable.
-- [ ] Every read-only packet command gate is explicitly non-mutating and cannot
+- [x] Every read-only packet command gate is explicitly non-mutating and cannot
   be consumed as mutation authority.
-- [ ] Public CLI/API/report access to the packet is wired and tested, or the
+- [x] Public CLI/API/report access to the packet is wired and tested, or the
   issue records why private helper access is intentionally sufficient.
 - [x] Mutation stayed blocked unless every safe gate was proven.
 - [x] Pandora proof recorded.
-- [ ] Post-commit review found no unresolved worthwhile findings.
+- [x] Post-commit review found no unresolved worthwhile findings.
 
 ## Completion Evidence
 
@@ -132,6 +132,17 @@ deleted or deferred.
 - Focused tests: `test_source_offset_immediate_packet_keeps_same_literal_report_only`.
 - Verification: `uv run python -m pytest tests\test_reversing_loop.py tests\test_decision_journal.py tests\test_validate_017_issues.py -q`
   passed with 369 tests; changed-file `ruff check` passed.
+- Reopen hardening: `source-offset-immediate-packet` is now a supported CLI
+  surface, covered by `test_packet_query_cli_commands_emit_json` and
+  `test_query_source_offset_immediate_packet_uses_public_report_surface`.
+  The packet-level `command_gate.enabled=false` and
+  `command_gate.safe_to_mutate=false` even when an underlying command-backed
+  immediate candidate exists; command availability is reported only as
+  `candidate_command_available`.
+- Pandora CLI proof after hardening:
+  `uv run python -m amiga_reversing.reversing_loop source-offset-immediate-packet --target amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8 --candidate-id immediate-runtime-ref:s0:000009A6:instruction:664:0:00001080 --listing-timeout-seconds 10`
+  returned `status=blocked`, `mutation_policy=read_only`,
+  `command_gate.enabled=false`, and `command_gate.safe_to_mutate=false`.
 
 ## Reopen Findings
 

@@ -200,6 +200,14 @@ def main(argv: list[str] | None = None) -> int:
     immediate_ref_parser.add_argument("--target", required=True)
     immediate_ref_parser.add_argument("--listing-timeout-seconds", type=float, default=10.0)
 
+    immediate_packet_parser = subparsers.add_parser(
+        "source-offset-immediate-packet",
+        help="Emit one read-only source-offset immediate evidence packet.",
+    )
+    immediate_packet_parser.add_argument("--target", required=True)
+    immediate_packet_parser.add_argument("--candidate-id", required=True)
+    immediate_packet_parser.add_argument("--listing-timeout-seconds", type=float, default=10.0)
+
     a5_hardware_parser = subparsers.add_parser(
         "a5-hardware-report",
         help="Report read-only A5 custom-chip base listing candidates.",
@@ -207,12 +215,27 @@ def main(argv: list[str] | None = None) -> int:
     a5_hardware_parser.add_argument("--target", required=True)
     a5_hardware_parser.add_argument("--listing-timeout-seconds", type=float, default=10.0)
 
+    a5_packet_parser = subparsers.add_parser(
+        "a5-path-lifetime-packet",
+        help="Emit one read-only A5 path/lifetime evidence packet.",
+    )
+    a5_packet_parser.add_argument("--target", required=True)
+    a5_packet_parser.add_argument("--selected-use-id", required=True)
+    a5_packet_parser.add_argument("--listing-timeout-seconds", type=float, default=10.0)
+
     rsset_candidate_parser = subparsers.add_parser(
         "rsset-candidate-report",
         help="Report read-only RSSET/app-slot candidates from raw or weak A6 operands.",
     )
     rsset_candidate_parser.add_argument("--target", required=True)
     rsset_candidate_parser.add_argument("--listing-timeout-seconds", type=float, default=10.0)
+
+    orphan_packet_parser = subparsers.add_parser(
+        "orphan-code-island-packet",
+        help="Emit one read-only orphan/code-island/data-range evidence packet.",
+    )
+    orphan_packet_parser.add_argument("--target", required=True)
+    orphan_packet_parser.add_argument("--candidate-id", required=True)
 
     decision_journal_parser = subparsers.add_parser(
         "decision-journal-report",
@@ -279,10 +302,30 @@ def main(argv: list[str] | None = None) -> int:
             )
         )
         return 0
+    if args.command == "source-offset-immediate-packet":
+        _print_json(
+            query_source_offset_immediate_packet(
+                args.target,
+                candidate_id=args.candidate_id,
+                listing_timeout_seconds=args.listing_timeout_seconds,
+                project_root=args.project_root,
+            )
+        )
+        return 0
     if args.command == "a5-hardware-report":
         _print_json(
             inspect_a5_hardware_lifetimes(
                 args.target,
+                listing_timeout_seconds=args.listing_timeout_seconds,
+                project_root=args.project_root,
+            )
+        )
+        return 0
+    if args.command == "a5-path-lifetime-packet":
+        _print_json(
+            query_a5_path_lifetime_packet(
+                args.target,
+                selected_use_id=args.selected_use_id,
                 listing_timeout_seconds=args.listing_timeout_seconds,
                 project_root=args.project_root,
             )
@@ -293,6 +336,15 @@ def main(argv: list[str] | None = None) -> int:
             inspect_rsset_candidates(
                 args.target,
                 listing_timeout_seconds=args.listing_timeout_seconds,
+                project_root=args.project_root,
+            )
+        )
+        return 0
+    if args.command == "orphan-code-island-packet":
+        _print_json(
+            query_orphan_code_island_packet(
+                args.target,
+                candidate_id=args.candidate_id,
                 project_root=args.project_root,
             )
         )
@@ -357,6 +409,11 @@ def inspect_decision_journal(
     dry_run_record = _load_decision_dry_run_record(dry_run_record_path) if dry_run_record_path is not None else None
     report = decision_journal_report(target_dir, dry_run_record=dry_run_record)
     result = {"target_id": target_id, **report}
+    result = _decision_journal_report_with_current_source_audit(
+        target_id,
+        result,
+        project_root=project_root,
+    )
     if dry_run_record_path is not None:
         dry_run = result.get("dry_run_record")
         if isinstance(dry_run, dict):
@@ -369,6 +426,104 @@ def _load_decision_dry_run_record(path: Path) -> object:
         return json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         return {"__load_error__": str(exc)}
+
+
+def _decision_journal_report_with_current_source_audit(
+    target_id: str,
+    report: dict[str, object],
+    *,
+    project_root: Path = PROJECT_ROOT,
+) -> dict[str, object]:
+    audit = report.get("audit")
+    records = audit.get("records") if isinstance(audit, Mapping) else None
+    if not isinstance(records, Sequence) or isinstance(records, str):
+        return report
+    rsset_report: dict[str, object] | None = None
+    updated_records: list[object] = []
+    for raw_record in records:
+        if not isinstance(raw_record, Mapping):
+            updated_records.append(raw_record)
+            continue
+        record = dict(raw_record)
+        if (
+            record.get("state") == "active"
+            and record.get("action") == "accept_fact"
+            and record.get("fact_type") == "rsset_app_base"
+        ):
+            if rsset_report is None:
+                rsset_report = inspect_rsset_candidates(target_id, project_root=project_root)
+            record = _rsset_source_effect_audit_record(record, rsset_report)
+        updated_records.append(record)
+    updated_audit = dict(audit)
+    updated_audit["records"] = updated_records
+    return {**report, "audit": updated_audit}
+
+
+def _rsset_source_effect_audit_record(
+    audit_record: dict[str, object],
+    rsset_report: Mapping[str, object],
+) -> dict[str, object]:
+    candidate_id = audit_record.get("candidate_id")
+    if not isinstance(candidate_id, str):
+        return _audit_record_with_blocker(audit_record, "missing_candidate_id")
+    candidate_report = rsset_report.get("rsset_candidate_report")
+    candidate = _rsset_candidate_report_find_candidate(
+        candidate_report if isinstance(candidate_report, Mapping) else {},
+        candidate_id,
+    )
+    if candidate is None:
+        return _audit_record_with_blocker(audit_record, "current_rsset_candidate_not_found")
+    decision_id = audit_record.get("decision_id")
+    matched_decision = _rsset_candidate_has_matching_journal_decision(candidate, decision_id)
+    if not matched_decision:
+        return _audit_record_with_blocker(audit_record, "current_journal_evidence_not_matched")
+    bind = (candidate.get("command_support") or {}).get("bind") if isinstance(candidate.get("command_support"), Mapping) else None
+    existing = bind.get("existing_manual_state") if isinstance(bind, Mapping) else None
+    if (
+        isinstance(bind, Mapping)
+        and bind.get("state") == "already_satisfied"
+        and isinstance(existing, Mapping)
+        and existing.get("source_evidence_id") == decision_id
+    ):
+        updated = dict(audit_record)
+        updated["replay"] = {"status": "source_effective", "semantic_reload": "current_rsset_report_matched"}
+        updated["rendered_source_effect"] = {
+            "status": "source_effective",
+            "effect": "selected RSSET binding exists in current manual state",
+            "render_intent": "enables_render",
+            "source": "rsset-candidate-report",
+            "owner_action_id": existing.get("owner_action_id"),
+        }
+        updated["verifier_layers"] = [
+            {"layer": "decision_journal", "status": "passed"},
+            {"layer": "semantic_reload", "status": "passed", "source": "rsset-candidate-report"},
+            {"layer": "generated_source", "status": "passed_or_previously_verified", "source": "existing_manual_state"},
+            {"layer": "exact_round_trip", "status": "passed_or_previously_verified", "source": "existing_manual_state"},
+        ]
+        updated["blockers"] = [
+            blocker for blocker in _string_sequence(audit_record.get("blockers")) if blocker != "source_effect_not_verified"
+        ]
+        return updated
+    updated = dict(audit_record)
+    updated["replay"] = {"status": "matched_current_packet", "semantic_reload": "current_rsset_report_matched"}
+    return _audit_record_with_blocker(updated, "missing_current_rendered_source_effect")
+
+
+def _rsset_candidate_has_matching_journal_decision(candidate: Mapping[str, object], decision_id: object) -> bool:
+    if not isinstance(decision_id, str):
+        return False
+    lane = candidate.get("journal_decision_evidence")
+    accepted = lane.get("accepted") if isinstance(lane, Mapping) else None
+    if not isinstance(accepted, Sequence) or isinstance(accepted, str):
+        return False
+    return any(isinstance(item, Mapping) and item.get("decision_id") == decision_id for item in accepted)
+
+
+def _audit_record_with_blocker(record: dict[str, object], blocker: str) -> dict[str, object]:
+    blockers = _string_sequence(record.get("blockers"))
+    if blocker not in blockers:
+        blockers.append(blocker)
+    return {**record, "blockers": blockers}
 
 
 def inspect_callback_slots(
@@ -2214,9 +2369,10 @@ def _source_offset_immediate_packet_from_candidate(
         },
         "command_gate": {
             "command_id": "immediate_ref.interpret",
-            "enabled": command_backed and not blockers,
-            "safe_to_mutate": command_backed and not blockers,
-            "missing_gates": blockers,
+            "candidate_command_available": command_backed,
+            "enabled": False,
+            "safe_to_mutate": False,
+            "missing_gates": ["packet_read_only_no_writes", *blockers],
         },
         "decision": {
             "writes_enabled": False,
@@ -2776,9 +2932,10 @@ def _a5_path_lifetime_packet_from_use(
         },
         "command_gate": {
             "command_id": "a5_hardware_ref.interpret",
-            "enabled": command_backed and not blockers,
-            "safe_to_mutate": command_backed and not blockers,
-            "missing_gates": blockers,
+            "candidate_command_available": command_backed,
+            "enabled": False,
+            "safe_to_mutate": False,
+            "missing_gates": ["packet_read_only_no_writes", *blockers],
         },
         "decision": {
             "writes_enabled": False,

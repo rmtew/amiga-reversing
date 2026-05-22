@@ -1,6 +1,6 @@
 # 017-043: Decision Evidence Diff/Replay Audit
 
-Status: active
+Status: completed
 
 ## Proposal Context
 
@@ -79,8 +79,8 @@ handling, and report/API surface.
 
 - [x] Decision Journal report and projection checked.
 - [x] Active/superseded/rejected/deferred semantics checked.
-- [ ] Semantic reload and current fact comparison path checked.
-- [ ] Existing verifier layer outputs checked.
+- [x] Semantic reload and current fact comparison path checked.
+- [x] Existing verifier layer outputs checked.
 - [x] No-append/no-mutation behavior checked.
 - [x] Pandora RSSET audit proof planned.
 
@@ -88,7 +88,7 @@ handling, and report/API surface.
 
 - [x] Second pass checked trace blocks against named files/functions.
 - [x] Cross-references searched for missed journal/report hooks.
-- [ ] Audit output reviewed for report-private model drift.
+- [x] Audit output reviewed for report-private model drift.
 - [x] Proposal updated with model corrections or deferred follow-ups.
 
 ## Required Sign-Off
@@ -100,25 +100,34 @@ handling, and report/API surface.
 - [x] Audit packet shape tested.
 - [x] No append/no mutation behavior tested.
 - [x] Pandora proof recorded.
-- [ ] Audit source-effect and verifier layers are based on real replay/current
+- [x] Audit source-effect and verifier layers are based on real replay/current
   semantic state, not fact-type inference.
-- [ ] Public CLI/API/report audit output is tested at the supported boundary.
-- [ ] Post-commit review found no unresolved worthwhile findings.
+- [x] Public CLI/API/report audit output is tested at the supported boundary.
+- [x] Post-commit review found no unresolved worthwhile findings.
 
 ## Completion Evidence
 
 - Added `audit` to `decision_journal_report`, with per-decision state,
   evidence-ref identity matching, replay classification, rendered-source effect,
-  verifier layers, and blockers. The audit reads journal state only.
-- Pandora proof: `decision-rsset-022e-accept-017-040` reported as `active`,
-  replay `source_effective` / semantic reload `projected`, rendered-source
-  effect `selected RSSET operand can be bound through rsset.binding.bind`, and
-  verifier layers `decision_journal`, `semantic_reload`, `generated_source`,
-  and `exact_round_trip`.
+  verifier layers, and blockers. The base journal audit is conservative:
+  accepted facts without current semantic/report verification remain
+  `projected_unverified` with blocker `source_effect_not_verified`.
+- `inspect_decision_journal` now augments supported RSSET audits from the
+  current `rsset-candidate-report`: it requires a matching active journal lane
+  and current `rsset.binding.bind` state `already_satisfied` before reporting
+  `source_effective`.
+- Pandora proof after hardening:
+  `decision-rsset-022e-accept-017-040` reports replay
+  `source_effective` / semantic reload `current_rsset_report_matched`, rendered
+  source effect `selected RSSET binding exists in current manual state`, owner
+  action `manual-6e574feccab748359c7577833fa718ba`, and verifier layers from
+  the current RSSET report/existing manual state.
 - Fixture coverage classifies active, superseded, deferred, and rejected
   decisions, and existing report tests prove `decision-journal-report` does not
   append to the Decision Journal or Manual Action Log.
-- Verification: focused 369-test pytest run and changed-file `ruff check` both
+- Boundary tests include
+  `test_inspect_decision_journal_verifies_rsset_source_effect_from_current_report`.
+- Verification: focused 375-test pytest run and changed-file `ruff check` both
   passed.
 
 ## Reopen Findings

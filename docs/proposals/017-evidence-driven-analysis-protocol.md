@@ -1125,3 +1125,12 @@ repeatable work to `docs\issues\017-*`.
   scope; Decision Journal audit source-effect and verifier layers must come from
   real replay/current semantic state or report explicit blockers, not fact-type
   inference.
+- The reopened corrections are implemented. `source-offset-immediate-packet`,
+  `a5-path-lifetime-packet`, and `orphan-code-island-packet` are supported CLI
+  packet surfaces with tests. Read-only packet `command_gate.enabled` and
+  `command_gate.safe_to_mutate` are always false; lower-level command support is
+  informational only. The base Decision Journal audit is conservative
+  (`projected_unverified`) until `reversing_loop.inspect_decision_journal`
+  verifies source effect from current target reports; Pandora RSSET audit now
+  reports source-effective only after matching the current RSSET report and
+  existing manual binding state.

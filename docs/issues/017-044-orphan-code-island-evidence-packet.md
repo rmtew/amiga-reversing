@@ -1,6 +1,6 @@
 # 017-044: Orphan/Code-Island Evidence Packet
 
-Status: active
+Status: completed
 
 ## Proposal Context
 
@@ -101,10 +101,10 @@ and selected Pandora proof.
 - [x] Evidence packet shape tested.
 - [x] Decision/replay behavior tested where applicable.
 - [x] Mutation stayed blocked unless every safe gate was proven.
-- [ ] Public CLI/API/report access to the packet is wired and tested, or the
+- [x] Public CLI/API/report access to the packet is wired and tested, or the
   issue records why private helper access is intentionally sufficient.
 - [x] Pandora proof recorded.
-- [ ] Post-commit review found no unresolved worthwhile findings.
+- [x] Post-commit review found no unresolved worthwhile findings.
 
 ## Completion Evidence
 
@@ -122,6 +122,14 @@ and selected Pandora proof.
   `test_orphan_code_island_packet_exposes_range_evidence_and_blockers`.
 - Verification: focused 369-test pytest run and changed-file `ruff check` both
   passed.
+- Reopen hardening: `orphan-code-island-packet` is now a supported CLI surface,
+  covered by `test_packet_query_cli_commands_emit_json` and
+  `test_query_orphan_code_island_packet_uses_inspect_listing_surface`.
+- Pandora CLI proof after hardening:
+  `uv run python -m amiga_reversing.reversing_loop orphan-code-island-packet --target amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8 --candidate-id data-class-symbol:s0:000010F3:data:1111:0:000010F3:string_000210F3`
+  returned the real `ambiguous_data_range` packet with `status=blocked`,
+  `mutation_policy=read_only`, blocked safe next action `data_symbol.rename`,
+  and `safe_to_mutate=false`.
 
 ## Reopen Findings
 
