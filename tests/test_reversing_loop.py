@@ -7360,6 +7360,123 @@ def test_rsset_candidate_report_exposes_catalog_path_without_mutating() -> None:
     )
 
 
+def test_rsset_evidence_packet_maps_selected_candidate_to_blocked_v2_shape() -> None:
+    report = _pandora_022e_rsset_candidate_report()
+
+    packet = reversing_loop._rsset_evidence_packet_from_candidate_report(
+        "pandora",
+        report,
+        candidate_id="rsset-raw-a6:022E",
+        selected_use_id="s0:000006E4",
+    )
+
+    assert "evidence_packet" not in report["candidates"][0]
+    assert packet["packet_kind"] == "rsset_selected_use_evidence_packet"
+    assert packet["candidate_id"] == "rsset-raw-a6:022E"
+    assert packet["candidate_family"] == "rsset_app_base"
+    assert packet["status"] == "blocked"
+    assert packet["safe_to_mutate"] is False
+    assert packet["mutation_policy"] == "read_only"
+    assert packet["selected_identity"] == {
+        "target_id": "pandora",
+        "segment_id": "s0",
+        "hunk": 0,
+        "addr": 0x6E4,
+        "address_hex": "000006E4",
+        "operand_index": 1,
+        "base_register": "A6",
+        "displacement": 0x22E,
+        "displacement_hex": "022E",
+        "element_id": "pandora-022e:displacement:1:operand",
+        "element_kind": "displacement",
+        "stable_key": "pandora-022e",
+        "width_bytes": 1,
+        "access": "memory_write",
+        "selected_use_id": "s0:000006E4:op1",
+    }
+    assert packet["blockers"] == [
+        "missing_accepted_base_evidence",
+        "missing_selected_a6_base_identity",
+        "missing_selected_use_path_lifetime_scope",
+        "missing_explicit_empty_conflicts",
+    ]
+    assert packet["conflicts"] == {"status": "unknown", "explicit_empty": False, "items": [], "blockers": []}
+    assert packet["render_intent"] == {
+        "intent": "enables_render",
+        "status": "blocked",
+        "render_effect": "none",
+        "future_render_effect": "selected_operand_only",
+    }
+    assert packet["command_gate"]["command_id"] == "rsset.binding.bind"
+    assert packet["command_gate"]["state"] == "blocked"
+    assert packet["command_gate"]["safe_to_mutate"] is False
+    assert packet["command_gate"]["writes"] == []
+    assert packet["command_gate"]["missing_gates"] == packet["blockers"]
+    assert packet["evidence_lanes"]["accepted_base_evidence"]["accepted_count"] == 0
+    assert packet["evidence_lanes"]["same_displacement_context"]["use_count"] == 2
+
+
+def test_query_rsset_evidence_packet_uses_candidate_report_without_exposing_mutation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    report = _pandora_022e_rsset_candidate_report()
+    monkeypatch.setattr(
+        reversing_loop,
+        "inspect_rsset_candidates",
+        lambda target_id, listing_timeout_seconds, project_root: {
+            "target_id": target_id,
+            "safe_to_mutate": False,
+            "rsset_candidate_report": report,
+        },
+    )
+
+    packet = reversing_loop.query_rsset_evidence_packet(
+        "pandora",
+        candidate_id="rsset-raw-a6:022E",
+        selected_use_id="s0:000006E4:op1",
+    )
+
+    assert packet["packet_id"] == "rsset-packet:rsset-raw-a6:022E:s0:000006E4:op1"
+    assert packet["decision"]["writes_enabled"] is False
+    assert packet["command_gate"]["enabled"] is False
+
+
+def _pandora_022e_rsset_candidate_report() -> dict[str, object]:
+    row = _listing_row(
+        row_key="pandora-022e",
+        text="\tbclr.b #1,app_022E(a6)\n",
+        start_offset=0x6E4,
+        end_offset=0x6E8,
+    )
+    row.update(
+        {
+            "opcode_or_directive": "bclr.b",
+            "operand_text": "#1,app_022E(a6)",
+            "operand_parts": [
+                {
+                    "kind": "displacement",
+                    "element_id": "pandora-022e:operand:1",
+                    "base_register": "A6",
+                    "displacement": 0x22E,
+                    "operand_index": 1,
+                },
+            ],
+            "operand_accesses": ["immediate", "memory_write"],
+            "operand_registers": ["A6"],
+            "app_slot_refs": [
+                {
+                    "symbol": "app_022E",
+                    "operand_index": 1,
+                    "base_register": "A6",
+                    "displacement": 0x22E,
+                    "access": "write",
+                }
+            ],
+        }
+    )
+    return reversing_loop._listing_rsset_candidate_report([row])
+
+
 _RSSET_CONFLICTS_MISSING = object()
 
 

@@ -1003,3 +1003,10 @@ repeatable work to `docs\issues\017-*`.
 - Final 017-027 rerun after the reopened work matched the exercise pass:
   immediate refs, A5 refs, RSSET, inspect, dry-run planner, focused tests, and
   precommit all agree that no command-backed Pandora mutation remains.
+- 017-032 added the first internal read-only v2 packet projection for
+  `rsset-raw-a6:022E` at `s0:000006E4`. The packet is a Python adapter over the
+  existing C-backed listing/RSSET report facts, not a new authoritative C fact
+  graph API yet. It carries stable selected-use identity, evidence lanes,
+  expanded v2 blockers, explicit conflict state, render intent, and a blocked
+  `rsset.binding.bind` gate while leaving default reports, planner behavior,
+  Decision Journal writes, rendering, and mutation unchanged.

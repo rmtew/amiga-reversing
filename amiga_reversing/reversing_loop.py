@@ -446,6 +446,30 @@ def inspect_rsset_candidates(
     return report
 
 
+def query_rsset_evidence_packet(
+    target_id: str,
+    *,
+    candidate_id: str,
+    selected_use_id: str | None = None,
+    listing_timeout_seconds: float = 10.0,
+    project_root: Path = PROJECT_ROOT,
+) -> dict[str, object]:
+    report = inspect_rsset_candidates(
+        target_id,
+        listing_timeout_seconds=listing_timeout_seconds,
+        project_root=project_root,
+    )
+    candidate_report = report.get("rsset_candidate_report")
+    if not isinstance(candidate_report, Mapping):
+        candidate_report = _empty_rsset_candidate_report()
+    return _rsset_evidence_packet_from_candidate_report(
+        target_id,
+        candidate_report,
+        candidate_id=candidate_id,
+        selected_use_id=selected_use_id,
+    )
+
+
 def run_listing_backed_label_rename_iteration(
     target_id: str,
     *,
@@ -3420,6 +3444,273 @@ def _empty_rsset_candidate_report() -> dict[str, object]:
         "use_count": 0,
         "candidates": [],
     }
+
+
+def _rsset_evidence_packet_from_candidate_report(
+    target_id: str,
+    candidate_report: Mapping[str, object],
+    *,
+    candidate_id: str,
+    selected_use_id: str | None = None,
+) -> dict[str, object]:
+    candidate = _rsset_candidate_report_find_candidate(candidate_report, candidate_id)
+    if candidate is None:
+        return {
+            "packet_kind": "rsset_selected_use_evidence_packet",
+            "schema_version": 1,
+            "target_id": target_id,
+            "candidate_id": candidate_id,
+            "status": "not_found",
+            "safe_to_mutate": False,
+            "mutation_policy": "read_only",
+        }
+    selected_use = _rsset_candidate_packet_selected_use(candidate, selected_use_id)
+    if selected_use is None:
+        return {
+            "packet_kind": "rsset_selected_use_evidence_packet",
+            "schema_version": 1,
+            "target_id": target_id,
+            "candidate_id": candidate_id,
+            "selected_use_query": selected_use_id,
+            "status": "selected_use_not_found",
+            "safe_to_mutate": False,
+            "mutation_policy": "read_only",
+        }
+    return _rsset_evidence_packet_from_candidate(target_id, candidate, selected_use)
+
+
+def _rsset_candidate_report_find_candidate(
+    candidate_report: Mapping[str, object],
+    candidate_id: str,
+) -> dict[str, object] | None:
+    candidates = candidate_report.get("candidates")
+    if not isinstance(candidates, Sequence) or isinstance(candidates, str):
+        return None
+    for candidate in candidates:
+        if isinstance(candidate, Mapping) and candidate.get("candidate_id") == candidate_id:
+            return dict(candidate)
+    return None
+
+
+def _rsset_candidate_packet_selected_use(
+    candidate: Mapping[str, object],
+    selected_use_id: str | None,
+) -> dict[str, object] | None:
+    uses: list[Mapping[str, object]] = []
+    selected_use = candidate.get("selected_use")
+    if isinstance(selected_use, Mapping):
+        uses.append(selected_use)
+    same_displacement_uses = candidate.get("same_displacement_uses")
+    if isinstance(same_displacement_uses, Sequence) and not isinstance(same_displacement_uses, str):
+        uses.extend(use for use in same_displacement_uses if isinstance(use, Mapping))
+    if not uses:
+        return None
+    if selected_use_id is None:
+        return dict(uses[0])
+    query = _parse_rsset_selected_use_id(selected_use_id)
+    for use in uses:
+        identity = _rsset_evidence_packet_selected_identity("", use)
+        if _rsset_selected_identity_matches_query(identity, query):
+            return dict(use)
+    return None
+
+
+def _parse_rsset_selected_use_id(selected_use_id: str) -> dict[str, object]:
+    match = re.fullmatch(r"s(?P<hunk>\d+):(?P<addr>[0-9A-Fa-f]{1,8})(?::op(?P<op>\d+))?", selected_use_id)
+    if match is None:
+        return {"raw": selected_use_id}
+    query: dict[str, object] = {
+        "hunk": int(match.group("hunk")),
+        "addr": int(match.group("addr"), 16),
+    }
+    operand_index = match.group("op")
+    if operand_index is not None:
+        query["operand_index"] = int(operand_index)
+    return query
+
+
+def _rsset_selected_identity_matches_query(
+    identity: Mapping[str, object],
+    query: Mapping[str, object],
+) -> bool:
+    if "raw" in query:
+        return identity.get("selected_use_id") == query.get("raw")
+    for key in ("hunk", "addr", "operand_index"):
+        if key in query and identity.get(key) != query.get(key):
+            return False
+    return True
+
+
+def _rsset_evidence_packet_from_candidate(
+    target_id: str,
+    candidate: Mapping[str, object],
+    selected_use: Mapping[str, object],
+) -> dict[str, object]:
+    candidate_id = str(candidate.get("candidate_id") or "")
+    identity = _rsset_evidence_packet_selected_identity(target_id, selected_use)
+    evidence_search = candidate.get("evidence_search") if isinstance(candidate.get("evidence_search"), Mapping) else {}
+    blockers = _rsset_evidence_packet_blockers(candidate, evidence_search)
+    conflict_state = _rsset_evidence_packet_conflict_state(evidence_search)
+    command_gate = _rsset_evidence_packet_command_gate(candidate, blockers)
+    status = "blocked" if blockers else str(candidate.get("status") or "unknown")
+    selected_use_id = str(identity.get("selected_use_id") or "")
+    return {
+        "packet_kind": "rsset_selected_use_evidence_packet",
+        "schema_version": 1,
+        "packet_id": f"rsset-packet:{candidate_id}:{selected_use_id}",
+        "target_id": target_id,
+        "candidate_id": candidate_id,
+        "candidate_family": "rsset_app_base",
+        "status": status,
+        "selected_identity": identity,
+        "evidence_lanes": _rsset_evidence_packet_lanes(candidate, selected_use, evidence_search),
+        "blockers": blockers,
+        "conflicts": conflict_state,
+        "render_intent": {
+            "intent": "enables_render",
+            "status": "blocked" if blockers else "ready",
+            "render_effect": "none",
+            "future_render_effect": "selected_operand_only",
+        },
+        "command_gate": command_gate,
+        "decision": {
+            "writes_enabled": False,
+            "available_actions": ["accept_fact", "defer_fact", "reject_fact"],
+            "state": "read_only_metadata",
+        },
+        "safe_to_mutate": False,
+        "mutation_policy": "read_only",
+    }
+
+
+def _rsset_evidence_packet_selected_identity(
+    target_id: str,
+    selected_use: Mapping[str, object],
+) -> dict[str, object]:
+    hunk = _int_or_none(selected_use.get("hunk")) or 0
+    addr = _int_or_none(selected_use.get("addr"))
+    operand_index = _int_or_none(selected_use.get("operand_index"))
+    displacement = _int_or_none(selected_use.get("displacement"))
+    identity: dict[str, object] = {
+        "target_id": target_id,
+        "segment_id": f"s{hunk}",
+        "hunk": hunk,
+    }
+    if addr is not None:
+        identity["addr"] = addr
+        identity["address_hex"] = f"{addr:08X}"
+    if operand_index is not None:
+        identity["operand_index"] = operand_index
+    if isinstance(selected_use.get("base_register"), str):
+        identity["base_register"] = selected_use["base_register"]
+    if displacement is not None:
+        identity["displacement"] = displacement
+        identity["displacement_hex"] = f"{displacement:04X}"
+    for key in ("element_id", "element_kind", "stable_key", "width_bytes", "access"):
+        value = selected_use.get(key)
+        if value is not None:
+            identity[key] = value
+    if addr is not None:
+        identity["selected_use_id"] = (
+            f"s{hunk}:{addr:08X}:op{operand_index}" if operand_index is not None else f"s{hunk}:{addr:08X}"
+        )
+    return identity
+
+
+def _rsset_evidence_packet_lanes(
+    candidate: Mapping[str, object],
+    selected_use: Mapping[str, object],
+    evidence_search: Mapping[str, object],
+) -> dict[str, object]:
+    return {
+        "selected_use": dict(selected_use),
+        "same_displacement_context": {
+            "use_count": candidate.get("same_displacement_use_count", 0),
+            "raw_or_weak_use_count": candidate.get("raw_or_weak_use_count", 0),
+            "access_counts": candidate.get("access_counts", {}),
+            "width_counts": candidate.get("width_counts", {}),
+        },
+        "field_or_app_slot_context": candidate.get("field_or_app_slot_context"),
+        "accepted_base_evidence": {
+            "status": evidence_search.get("status", "unknown"),
+            "accepted_count": evidence_search.get("accepted_base_evidence_count", 0),
+            "accepted": evidence_search.get("accepted_base_evidence", []),
+            "rejected_count": evidence_search.get("rejected_evidence_count", 0),
+            "rejected": evidence_search.get("rejected_evidence", []),
+            "missing_proof": evidence_search.get("missing_proof", []),
+        },
+    }
+
+
+def _rsset_evidence_packet_blockers(
+    candidate: Mapping[str, object],
+    evidence_search: Mapping[str, object],
+) -> list[str]:
+    blockers = list(_string_sequence(candidate.get("missing_gates")))
+    accepted_count = _int_or_none(evidence_search.get("accepted_base_evidence_count")) or 0
+    if accepted_count == 0:
+        for blocker in (
+            "missing_accepted_base_evidence",
+            "missing_selected_a6_base_identity",
+            "missing_selected_use_path_lifetime_scope",
+            "missing_explicit_empty_conflicts",
+        ):
+            if blocker not in blockers:
+                blockers.append(blocker)
+    elif not _rsset_evidence_search_has_explicit_empty_conflicts(evidence_search):
+        blockers.append("missing_explicit_empty_conflicts")
+    return blockers
+
+
+def _rsset_evidence_packet_conflict_state(evidence_search: Mapping[str, object]) -> dict[str, object]:
+    if _rsset_evidence_search_has_explicit_empty_conflicts(evidence_search):
+        return {"status": "explicit_empty", "explicit_empty": True, "items": []}
+    rejected = evidence_search.get("rejected_evidence")
+    conflict_reasons = [
+        ref.get("reason")
+        for ref in rejected
+        if isinstance(ref, Mapping)
+        and isinstance(ref.get("reason"), str)
+        and "conflict" in cast(str, ref.get("reason"))
+    ] if isinstance(rejected, Sequence) and not isinstance(rejected, str) else []
+    return {
+        "status": "blocked" if conflict_reasons else "unknown",
+        "explicit_empty": False,
+        "items": [],
+        "blockers": conflict_reasons,
+    }
+
+
+def _rsset_evidence_search_has_explicit_empty_conflicts(evidence_search: Mapping[str, object]) -> bool:
+    accepted = evidence_search.get("accepted_base_evidence")
+    if not isinstance(accepted, Sequence) or isinstance(accepted, str):
+        return False
+    return any(isinstance(ref, Mapping) and ref.get("conflicts") == [] for ref in accepted)
+
+
+def _rsset_evidence_packet_command_gate(
+    candidate: Mapping[str, object],
+    blockers: list[str],
+) -> dict[str, object]:
+    support = candidate.get("command_support")
+    bind = support.get("bind") if isinstance(support, Mapping) else None
+    bind_support = dict(bind) if isinstance(bind, Mapping) else {"command_id": "rsset.binding.bind", "state": "unknown"}
+    state = "blocked" if blockers else str(bind_support.get("state") or "unknown")
+    return {
+        "command_id": "rsset.binding.bind",
+        "state": state,
+        "enabled": False,
+        "safe_to_mutate": False,
+        "missing_gates": blockers,
+        "writes": [],
+        "source": bind_support,
+    }
+
+
+def _string_sequence(value: object) -> list[str]:
+    if not isinstance(value, Sequence) or isinstance(value, str):
+        return []
+    return [item for item in value if isinstance(item, str)]
 
 
 def _listing_rsset_candidate_report(
