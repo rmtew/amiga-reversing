@@ -463,7 +463,21 @@ def test_inspect_decision_journal_verifies_rsset_source_effect_from_current_repo
         "source": "rsset-candidate-report",
         "owner_action_id": "manual-rsset",
     }
-    assert audit["blockers"] == []
+    assert audit["verifier_layers"] == [
+        {"layer": "decision_journal", "status": "passed"},
+        {"layer": "semantic_reload", "status": "passed", "source": "rsset-candidate-report"},
+        {
+            "layer": "generated_source",
+            "status": "not_checked",
+            "blocker": "current generated-source verifier result was not read",
+        },
+        {
+            "layer": "exact_round_trip",
+            "status": "not_checked",
+            "blocker": "current exact round-trip verifier result was not read",
+        },
+    ]
+    assert audit["blockers"] == ["generated_source_not_verified", "exact_round_trip_not_verified"]
 
 
 def test_decision_journal_audit_classifies_superseded_deferred_and_rejected() -> None:

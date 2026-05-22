@@ -120,8 +120,11 @@ handling, and report/API surface.
   `decision-rsset-022e-accept-017-040` reports replay
   `source_effective` / semantic reload `current_rsset_report_matched`, rendered
   source effect `selected RSSET binding exists in current manual state`, owner
-  action `manual-6e574feccab748359c7577833fa718ba`, and verifier layers from
-  the current RSSET report/existing manual state.
+  action `manual-6e574feccab748359c7577833fa718ba`, semantic reload layer
+  `passed` from current `rsset-candidate-report`, and generated-source /
+  exact-round-trip layers `not_checked` with blockers
+  `generated_source_not_verified` and `exact_round_trip_not_verified` because
+  current verifier artifacts are not read by the audit.
 - Fixture coverage classifies active, superseded, deferred, and rejected
   decisions, and existing report tests prove `decision-journal-report` does not
   append to the Decision Journal or Manual Action Log.
@@ -141,3 +144,7 @@ handling, and report/API surface.
   unavailable, blocked, and not-applicable states.
 - The supported `decision-journal-report`/API boundary must be tested, not only
   private audit helper behavior.
+- Follow-up review found `passed_or_previously_verified` still overstated the
+  generated-source and exact-round-trip layers from current manual binding
+  state. The audit now reports those layers as `not_checked` and carries
+  explicit blockers until real verifier results are read or rerun.

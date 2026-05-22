@@ -497,12 +497,24 @@ def _rsset_source_effect_audit_record(
         updated["verifier_layers"] = [
             {"layer": "decision_journal", "status": "passed"},
             {"layer": "semantic_reload", "status": "passed", "source": "rsset-candidate-report"},
-            {"layer": "generated_source", "status": "passed_or_previously_verified", "source": "existing_manual_state"},
-            {"layer": "exact_round_trip", "status": "passed_or_previously_verified", "source": "existing_manual_state"},
+            {
+                "layer": "generated_source",
+                "status": "not_checked",
+                "blocker": "current generated-source verifier result was not read",
+            },
+            {
+                "layer": "exact_round_trip",
+                "status": "not_checked",
+                "blocker": "current exact round-trip verifier result was not read",
+            },
         ]
-        updated["blockers"] = [
+        blockers = [
             blocker for blocker in _string_sequence(audit_record.get("blockers")) if blocker != "source_effect_not_verified"
         ]
+        for blocker in ("generated_source_not_verified", "exact_round_trip_not_verified"):
+            if blocker not in blockers:
+                blockers.append(blocker)
+        updated["blockers"] = blockers
         return updated
     updated = dict(audit_record)
     updated["replay"] = {"status": "matched_current_packet", "semantic_reload": "current_rsset_report_matched"}

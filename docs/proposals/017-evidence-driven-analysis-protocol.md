@@ -1133,4 +1133,6 @@ repeatable work to `docs\issues\017-*`.
   (`projected_unverified`) until `reversing_loop.inspect_decision_journal`
   verifies source effect from current target reports; Pandora RSSET audit now
   reports source-effective only after matching the current RSSET report and
-  existing manual binding state.
+  existing manual binding state. Generated-source and exact-round-trip audit
+  layers remain `not_checked` with explicit blockers unless current verifier
+  results are read or rerun.
