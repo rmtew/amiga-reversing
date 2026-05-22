@@ -161,8 +161,9 @@ The next Decision Journal path is intentionally sequential:
 3. `017-036` replays accepted/deferred/rejected/superseded decisions into an
    in-memory projection, surfaced through `decision-journal-report`, without
    mutating C facts or feeding command gates.
-4. `017-037` lets the selected RSSET packet/gate consult that replayed
-   projection as evidence.
+4. `017-037` lets the selected RSSET packet/report consult that replayed
+   projection as a read-only `journal_decision_evidence` lane, while keeping
+   mutation blocked.
 5. `017-038` enables the selected RSSET mutation only if durable evidence,
    command support, render support, verifier support, and exact round-trip gates
    are all present.
