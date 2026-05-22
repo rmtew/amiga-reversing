@@ -7727,12 +7727,18 @@ def test_inspect_rsset_candidates_reads_journal_projection_without_mutating(
     monkeypatch.setattr(reversing_loop, "_listing_all_rows", lambda target_id: [_pandora_022e_row()])
 
     report = reversing_loop.inspect_rsset_candidates("pandora", project_root=tmp_path)
-    lane = report["rsset_candidate_report"]["candidates"][0]["journal_decision_evidence"]
+    candidate = report["rsset_candidate_report"]["candidates"][0]
+    lane = candidate["journal_decision_evidence"]
+    gate = candidate["journal_mutation_gate"]
 
     assert append["status"] == "appended"
     assert lane["status"] == "accepted"
     assert lane["accepted"][0]["decision_id"] == record["decision_id"]
     assert lane["mutation_enabled"] is False
+    assert gate["command_id"] == "rsset.binding.bind"
+    assert gate["mutation_enabled"] is False
+    assert gate["ready_for_039"] is False
+    assert gate["missing_gates"] == ["exact_round_trip"]
     assert decision_journal.decision_journal_path(target_dir).read_text(encoding="utf-8") == before
     assert not (target_dir / "manual_actions.jsonl").exists()
 
