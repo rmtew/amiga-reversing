@@ -120,6 +120,394 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;   CODE 25: jt_first=65535 jt_count=0 jt_span_size=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
 ;   CODE 26: jt_first=65535 jt_count=0 jt_span_size=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
 
+; CODE resource detail subviews
+;   CODE 0 unknown: role=code0_metadata kind=jump_table_segment payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b84853e7c77a60e63166d5b6399c1 fact=macos.code_resource.0.jump_table_metadata status=validated
+;     jump_table: start=16 size=2768 entries=346 fact=macos.jump_table.entries.accepted status=validated
+;     anchors:
+;       accepted_metadata: label=CODE 0 metadata offset=unknown fact=macos.code_resource.0.jump_table_metadata status=validated parser_use=accepted_parser_output
+;       accepted_jump_table: label=CODE 0 jump table offset=16 fact=macos.jump_table.entries.accepted status=validated parser_use=accepted_parser_output
+;       candidate_routine_jump_table_entry: label=CODE 27 routine candidate 0 offset=16 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
+;     layout:
+;     metadata: start=0 end=2784 entrypoint=False evidence=code0_jump_table_metadata fact=macos.code_resource.0.jump_table_metadata status=validated
+;     orphan_ranges:
+;     none
+;     relocation_fixups:
+;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;     listing: kind=metadata available=False route=unknown reason=CODE 0 is jump-table/application metadata, not ordinary m68k code
+;   CODE 1 Main: role=code_segment kind=code_segment payload_size=29024 sha256=4a543f6fd1c542fccd38ec9f469b06f65c797dfd8b226fefc9f576faafbe70f5 fact=macos.resource_fork.code_resources.accepted status=validated
+;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
+;     anchors:
+;       accepted_segment_metadata: label=CODE 1 segment metadata offset=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated parser_use=accepted_parser_output
+;       candidate_code_range: label=CODE 1 candidate code offset=40 fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;     layout:
+;     metadata: start=0 end=4 entrypoint=False evidence=nonzero_code_segment_header fact=macos.code_resource.nonzero.segment_header status=validated
+;     data: start=4 end=40 entrypoint=False evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate
+;     candidate_code: start=40 end=29024 entrypoint=True evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate
+;     orphan_ranges:
+;     candidate_data_island: start=4 end=40 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
+;     relocation_fixups:
+;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;     listing: kind=full_listing available=True route=listing reason=unknown
+;   CODE 2 FPOpTable: role=code_segment kind=code_segment payload_size=7788 sha256=a33f1dfe28237a5ee6f9ba7a96540e8e4842a7e6207575db5f0479b8c622a4f2 fact=macos.resource_fork.code_resources.accepted status=validated
+;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
+;     anchors:
+;       accepted_segment_metadata: label=CODE 2 segment metadata offset=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated parser_use=accepted_parser_output
+;       candidate_code_range: label=CODE 2 candidate code offset=374 fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;     layout:
+;     metadata: start=0 end=4 entrypoint=False evidence=nonzero_code_segment_header fact=macos.code_resource.nonzero.segment_header status=validated
+;     data: start=4 end=374 entrypoint=False evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate
+;     candidate_code: start=374 end=7788 entrypoint=True evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate
+;     orphan_ranges:
+;     candidate_data_island: start=4 end=374 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
+;     relocation_fixups:
+;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;     listing: kind=structured_placeholder available=False route=unknown reason=full per-resource listing deferred until relocation/source-boundary context is represented
+;   CODE 3 Init: role=code_segment kind=code_segment payload_size=18252 sha256=331fc8e7daf79d4e733760cb8ad413ade51431a01dd6c19c4f73720f562b08e4 fact=macos.resource_fork.code_resources.accepted status=validated
+;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
+;     anchors:
+;       accepted_segment_metadata: label=CODE 3 segment metadata offset=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated parser_use=accepted_parser_output
+;       candidate_code_range: label=CODE 3 candidate code offset=302 fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;     layout:
+;     metadata: start=0 end=4 entrypoint=False evidence=nonzero_code_segment_header fact=macos.code_resource.nonzero.segment_header status=validated
+;     data: start=4 end=302 entrypoint=False evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate
+;     candidate_code: start=302 end=18252 entrypoint=True evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate
+;     orphan_ranges:
+;     candidate_data_island: start=4 end=302 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
+;     relocation_fixups:
+;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;     listing: kind=structured_placeholder available=False route=unknown reason=full per-resource listing deferred until relocation/source-boundary context is represented
+;   CODE 4 IOMgr: role=code_segment kind=code_segment payload_size=6426 sha256=a697293e579b91031cb9bb37cd80a4f47d2acb9eff60a4f4b7e3cb9a18fd4fca fact=macos.resource_fork.code_resources.accepted status=validated
+;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
+;     anchors:
+;       accepted_segment_metadata: label=CODE 4 segment metadata offset=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated parser_use=accepted_parser_output
+;       candidate_code_range: label=CODE 4 candidate code offset=468 fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;     layout:
+;     metadata: start=0 end=4 entrypoint=False evidence=nonzero_code_segment_header fact=macos.code_resource.nonzero.segment_header status=validated
+;     data: start=4 end=468 entrypoint=False evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate
+;     candidate_code: start=468 end=6426 entrypoint=True evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate
+;     orphan_ranges:
+;     candidate_data_island: start=4 end=468 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
+;     relocation_fixups:
+;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;     listing: kind=structured_placeholder available=False route=unknown reason=full per-resource listing deferred until relocation/source-boundary context is represented
+;   CODE 5 Macros: role=code_segment kind=code_segment payload_size=26638 sha256=90b898d2148ba2c3b798bed0c8c5dc936fba9ed3e8b958d279db4b279a033dfc fact=macos.resource_fork.code_resources.accepted status=validated
+;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
+;     anchors:
+;       accepted_segment_metadata: label=CODE 5 segment metadata offset=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated parser_use=accepted_parser_output
+;       candidate_code_range: label=CODE 5 candidate code offset=212 fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;     layout:
+;     metadata: start=0 end=4 entrypoint=False evidence=nonzero_code_segment_header fact=macos.code_resource.nonzero.segment_header status=validated
+;     data: start=4 end=212 entrypoint=False evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate
+;     candidate_code: start=212 end=26638 entrypoint=True evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate
+;     orphan_ranges:
+;     candidate_data_island: start=4 end=212 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
+;     relocation_fixups:
+;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;     listing: kind=structured_placeholder available=False route=unknown reason=full per-resource listing deferred until relocation/source-boundary context is represented
+;   CODE 6 OpTable: role=code_segment kind=code_segment payload_size=15158 sha256=75005bca2e9e007ce374020416127735d9096e064806e4e1e1b888cd3ba8a9cf fact=macos.resource_fork.code_resources.accepted status=validated
+;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
+;     anchors:
+;       accepted_segment_metadata: label=CODE 6 segment metadata offset=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated parser_use=accepted_parser_output
+;       candidate_code_range: label=CODE 6 candidate code offset=58 fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;     layout:
+;     metadata: start=0 end=4 entrypoint=False evidence=nonzero_code_segment_header fact=macos.code_resource.nonzero.segment_header status=validated
+;     data: start=4 end=58 entrypoint=False evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate
+;     candidate_code: start=58 end=15158 entrypoint=True evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate
+;     orphan_ranges:
+;     candidate_data_island: start=4 end=58 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
+;     relocation_fixups:
+;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;     listing: kind=structured_placeholder available=False route=unknown reason=full per-resource listing deferred until relocation/source-boundary context is represented
+;   CODE 7 POpTable: role=code_segment kind=code_segment payload_size=4142 sha256=3bc5de90c439ad5e0f7e5d4635b445022db8ab231a9b43981dbd95673ac0b78e fact=macos.resource_fork.code_resources.accepted status=validated
+;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
+;     anchors:
+;       accepted_segment_metadata: label=CODE 7 segment metadata offset=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated parser_use=accepted_parser_output
+;       candidate_code_range: label=CODE 7 candidate code offset=352 fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;     layout:
+;     metadata: start=0 end=4 entrypoint=False evidence=nonzero_code_segment_header fact=macos.code_resource.nonzero.segment_header status=validated
+;     data: start=4 end=352 entrypoint=False evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate
+;     candidate_code: start=352 end=4142 entrypoint=True evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate
+;     orphan_ranges:
+;     candidate_data_island: start=4 end=352 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
+;     relocation_fixups:
+;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;     listing: kind=structured_placeholder available=False route=unknown reason=full per-resource listing deferred until relocation/source-boundary context is represented
+;   CODE 8 Listing: role=code_segment kind=code_segment payload_size=1852 sha256=5b3cd8756213ba73870bb353160d4e5dbb1a3bdd2da93157146d091b6949a2e9 fact=macos.resource_fork.code_resources.accepted status=validated
+;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
+;     anchors:
+;       accepted_segment_metadata: label=CODE 8 segment metadata offset=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated parser_use=accepted_parser_output
+;       candidate_code_range: label=CODE 8 candidate code offset=42 fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;     layout:
+;     metadata: start=0 end=4 entrypoint=False evidence=nonzero_code_segment_header fact=macos.code_resource.nonzero.segment_header status=validated
+;     data: start=4 end=42 entrypoint=False evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate
+;     candidate_code: start=42 end=1852 entrypoint=True evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate
+;     orphan_ranges:
+;     candidate_data_island: start=4 end=42 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
+;     relocation_fixups:
+;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;     listing: kind=structured_placeholder available=False route=unknown reason=full per-resource listing deferred until relocation/source-boundary context is represented
+;   CODE 9 Pass2: role=code_segment kind=code_segment payload_size=13946 sha256=0361ae9dcb47f31cf559372a3e42c672dcfb8920b332d4f900a7124ab6c70bf3 fact=macos.resource_fork.code_resources.accepted status=validated
+;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
+;     anchors:
+;       accepted_segment_metadata: label=CODE 9 segment metadata offset=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated parser_use=accepted_parser_output
+;       candidate_code_range: label=CODE 9 candidate code offset=712 fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;     layout:
+;     metadata: start=0 end=4 entrypoint=False evidence=nonzero_code_segment_header fact=macos.code_resource.nonzero.segment_header status=validated
+;     data: start=4 end=712 entrypoint=False evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate
+;     candidate_code: start=712 end=13946 entrypoint=True evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate
+;     orphan_ranges:
+;     candidate_data_island: start=4 end=712 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
+;     relocation_fixups:
+;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;     listing: kind=structured_placeholder available=False route=unknown reason=full per-resource listing deferred until relocation/source-boundary context is represented
+;   CODE 10 FinishUp: role=code_segment kind=code_segment payload_size=1542 sha256=2d5d27affd131aaa28eb0bd33157051e8f30ee3cdc054df4aad3011bdb22c1e1 fact=macos.resource_fork.code_resources.accepted status=validated
+;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
+;     anchors:
+;       accepted_segment_metadata: label=CODE 10 segment metadata offset=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated parser_use=accepted_parser_output
+;       candidate_code_range: label=CODE 10 candidate code offset=148 fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;     layout:
+;     metadata: start=0 end=4 entrypoint=False evidence=nonzero_code_segment_header fact=macos.code_resource.nonzero.segment_header status=validated
+;     data: start=4 end=148 entrypoint=False evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate
+;     candidate_code: start=148 end=1542 entrypoint=True evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate
+;     orphan_ranges:
+;     candidate_data_island: start=4 end=148 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
+;     relocation_fixups:
+;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;     listing: kind=structured_placeholder available=False route=unknown reason=full per-resource listing deferred until relocation/source-boundary context is represented
+;   CODE 11 Dbg: role=code_segment kind=code_segment payload_size=3678 sha256=04097ca27d77f09604177ac5e85019ecaed552d68ae2e9d50ae3b5a4e394c503 fact=macos.resource_fork.code_resources.accepted status=validated
+;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
+;     anchors:
+;       accepted_segment_metadata: label=CODE 11 segment metadata offset=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated parser_use=accepted_parser_output
+;       candidate_code_range: label=CODE 11 candidate code offset=836 fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;     layout:
+;     metadata: start=0 end=4 entrypoint=False evidence=nonzero_code_segment_header fact=macos.code_resource.nonzero.segment_header status=validated
+;     data: start=4 end=836 entrypoint=False evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate
+;     candidate_code: start=836 end=3678 entrypoint=True evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate
+;     orphan_ranges:
+;     candidate_data_island: start=4 end=836 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
+;     relocation_fixups:
+;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;     listing: kind=structured_placeholder available=False route=unknown reason=full per-resource listing deferred until relocation/source-boundary context is represented
+;   CODE 12 LoadDump: role=code_segment kind=code_segment payload_size=6928 sha256=9c563d29bea4465730181b661ea9a3a60d15276aa71a6be399b02b9a4091cbdb fact=macos.resource_fork.code_resources.accepted status=validated
+;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
+;     anchors:
+;       accepted_segment_metadata: label=CODE 12 segment metadata offset=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated parser_use=accepted_parser_output
+;       candidate_code_range: label=CODE 12 candidate code offset=44 fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;     layout:
+;     metadata: start=0 end=4 entrypoint=False evidence=nonzero_code_segment_header fact=macos.code_resource.nonzero.segment_header status=validated
+;     data: start=4 end=44 entrypoint=False evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate
+;     candidate_code: start=44 end=6928 entrypoint=True evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate
+;     orphan_ranges:
+;     candidate_data_island: start=4 end=44 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
+;     relocation_fixups:
+;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;     listing: kind=structured_placeholder available=False route=unknown reason=full per-resource listing deferred until relocation/source-boundary context is represented
+;   CODE 13 Directives: role=code_segment kind=code_segment payload_size=33354 sha256=1358e27cbf9cb7da402416dfa830bd93f99a23e16da5c9972f63549d171a30c8 fact=macos.resource_fork.code_resources.accepted status=validated
+;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
+;     anchors:
+;       accepted_segment_metadata: label=CODE 13 segment metadata offset=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated parser_use=accepted_parser_output
+;       candidate_code_range: label=CODE 13 candidate code offset=44 fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;     layout:
+;     metadata: start=0 end=4 entrypoint=False evidence=nonzero_code_segment_header fact=macos.code_resource.nonzero.segment_header status=validated
+;     data: start=4 end=44 entrypoint=False evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate
+;     candidate_code: start=44 end=33354 entrypoint=True evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate
+;     orphan_ranges:
+;     candidate_data_island: start=4 end=44 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
+;     relocation_fixups:
+;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;     listing: kind=structured_placeholder available=False route=unknown reason=full per-resource listing deferred until relocation/source-boundary context is represented
+;   CODE 14 MemMgr: role=code_segment kind=code_segment payload_size=1886 sha256=14e851122fdae5910c2772def35a8b36c30dc7133cb92df8524f8a42ff5f8c70 fact=macos.resource_fork.code_resources.accepted status=validated
+;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
+;     anchors:
+;       accepted_segment_metadata: label=CODE 14 segment metadata offset=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated parser_use=accepted_parser_output
+;       candidate_code_range: label=CODE 14 candidate code offset=236 fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;     layout:
+;     metadata: start=0 end=4 entrypoint=False evidence=nonzero_code_segment_header fact=macos.code_resource.nonzero.segment_header status=validated
+;     data: start=4 end=236 entrypoint=False evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate
+;     candidate_code: start=236 end=1886 entrypoint=True evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate
+;     orphan_ranges:
+;     candidate_data_island: start=4 end=236 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
+;     relocation_fixups:
+;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;     listing: kind=structured_placeholder available=False route=unknown reason=full per-resource listing deferred until relocation/source-boundary context is represented
+;   CODE 15 Errors: role=code_segment kind=code_segment payload_size=3452 sha256=ebe2c26fe6fffb8585f7e9e0ebfffa73ca877946c26eab44f0efbd96678018cd fact=macos.resource_fork.code_resources.accepted status=validated
+;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
+;     anchors:
+;       accepted_segment_metadata: label=CODE 15 segment metadata offset=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated parser_use=accepted_parser_output
+;       candidate_code_range: label=CODE 15 candidate code offset=96 fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;     layout:
+;     metadata: start=0 end=4 entrypoint=False evidence=nonzero_code_segment_header fact=macos.code_resource.nonzero.segment_header status=validated
+;     data: start=4 end=96 entrypoint=False evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate
+;     candidate_code: start=96 end=3452 entrypoint=True evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate
+;     orphan_ranges:
+;     candidate_data_island: start=4 end=96 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
+;     relocation_fixups:
+;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;     listing: kind=structured_placeholder available=False route=unknown reason=full per-resource listing deferred until relocation/source-boundary context is represented
+;   CODE 16 New: role=code_segment kind=code_segment payload_size=1034 sha256=51e7a7d264825cd4103b31a0bff37ff49fdb64e8ddb299b2a46d4bd3c07f6a37 fact=macos.resource_fork.code_resources.accepted status=validated
+;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
+;     anchors:
+;       accepted_segment_metadata: label=CODE 16 segment metadata offset=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated parser_use=accepted_parser_output
+;       candidate_code_range: label=CODE 16 candidate code offset=246 fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;     layout:
+;     metadata: start=0 end=4 entrypoint=False evidence=nonzero_code_segment_header fact=macos.code_resource.nonzero.segment_header status=validated
+;     data: start=4 end=246 entrypoint=False evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate
+;     candidate_code: start=246 end=1034 entrypoint=True evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate
+;     orphan_ranges:
+;     candidate_data_island: start=4 end=246 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
+;     relocation_fixups:
+;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;     listing: kind=structured_placeholder available=False route=unknown reason=full per-resource listing deferred until relocation/source-boundary context is represented
+;   CODE 17 DispSymTbl: role=code_segment kind=code_segment payload_size=3674 sha256=e4c8e735bff587b55b1482bde5137deec3ae177ea802b09aac3e97401f2905b9 fact=macos.resource_fork.code_resources.accepted status=validated
+;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
+;     anchors:
+;       accepted_segment_metadata: label=CODE 17 segment metadata offset=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated parser_use=accepted_parser_output
+;       candidate_code_range: label=CODE 17 candidate code offset=100 fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;     layout:
+;     metadata: start=0 end=4 entrypoint=False evidence=nonzero_code_segment_header fact=macos.code_resource.nonzero.segment_header status=validated
+;     data: start=4 end=100 entrypoint=False evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate
+;     candidate_code: start=100 end=3674 entrypoint=True evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate
+;     orphan_ranges:
+;     candidate_data_island: start=4 end=100 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
+;     relocation_fixups:
+;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;     listing: kind=structured_placeholder available=False route=unknown reason=full per-resource listing deferred until relocation/source-boundary context is represented
+;   CODE 18 FinishDirectives: role=code_segment kind=code_segment payload_size=1974 sha256=96d836fa8382f88453204a38fddb5da2e46867767f572482abb8f9cbb5e431c6 fact=macos.resource_fork.code_resources.accepted status=validated
+;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
+;     anchors:
+;       accepted_segment_metadata: label=CODE 18 segment metadata offset=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated parser_use=accepted_parser_output
+;       candidate_code_range: label=CODE 18 candidate code offset=1562 fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;     layout:
+;     metadata: start=0 end=4 entrypoint=False evidence=nonzero_code_segment_header fact=macos.code_resource.nonzero.segment_header status=validated
+;     data: start=4 end=1562 entrypoint=False evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate
+;     candidate_code: start=1562 end=1974 entrypoint=True evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate
+;     orphan_ranges:
+;     candidate_data_island: start=4 end=1562 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
+;     relocation_fixups:
+;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;     listing: kind=structured_placeholder available=False route=unknown reason=full per-resource listing deferred until relocation/source-boundary context is represented
+;   CODE 19 SetupArgV: role=code_segment kind=code_segment payload_size=556 sha256=46027b8ec8f830b28abc470f5e942b54f7845efd9cf136f68e3b2b8a9873f3ce fact=macos.resource_fork.code_resources.accepted status=validated
+;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
+;     anchors:
+;       accepted_segment_metadata: label=CODE 19 segment metadata offset=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated parser_use=accepted_parser_output
+;     layout:
+;     metadata: start=0 end=4 entrypoint=False evidence=nonzero_code_segment_header fact=macos.code_resource.nonzero.segment_header status=validated
+;     deferred: start=4 end=556 entrypoint=False evidence=missing_m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.byte_entry_rule.unknown status=deferred
+;     orphan_ranges:
+;     deferred_code_or_data_island: start=4 end=556 evidence=missing_m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.byte_entry_rule.unknown status=deferred
+;     relocation_fixups:
+;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;     listing: kind=structured_placeholder available=False route=unknown reason=full per-resource listing deferred until relocation/source-boundary context is represented
+;   CODE 20 INTENV: role=code_segment kind=code_segment payload_size=5262 sha256=de9f4a82222f3ff12586a0bb691cc6b5d513777d498d223dfa45311d4a7dc84a fact=macos.resource_fork.code_resources.accepted status=validated
+;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
+;     anchors:
+;       accepted_segment_metadata: label=CODE 20 segment metadata offset=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated parser_use=accepted_parser_output
+;       candidate_code_range: label=CODE 20 candidate code offset=2876 fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;     layout:
+;     metadata: start=0 end=4 entrypoint=False evidence=nonzero_code_segment_header fact=macos.code_resource.nonzero.segment_header status=validated
+;     data: start=4 end=2876 entrypoint=False evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate
+;     candidate_code: start=2876 end=5262 entrypoint=True evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate
+;     orphan_ranges:
+;     candidate_data_island: start=4 end=2876 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
+;     relocation_fixups:
+;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;     listing: kind=structured_placeholder available=False route=unknown reason=full per-resource listing deferred until relocation/source-boundary context is represented
+;   CODE 21 SADEV: role=code_segment kind=code_segment payload_size=6794 sha256=927c28db98eadbc5501e570ada73af8afca05964552a831c02051f6e6fa3b687 fact=macos.resource_fork.code_resources.accepted status=validated
+;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
+;     anchors:
+;       accepted_segment_metadata: label=CODE 21 segment metadata offset=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated parser_use=accepted_parser_output
+;       candidate_code_range: label=CODE 21 candidate code offset=2000 fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;     layout:
+;     metadata: start=0 end=4 entrypoint=False evidence=nonzero_code_segment_header fact=macos.code_resource.nonzero.segment_header status=validated
+;     data: start=4 end=2000 entrypoint=False evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate
+;     candidate_code: start=2000 end=6794 entrypoint=True evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate
+;     orphan_ranges:
+;     candidate_data_island: start=4 end=2000 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
+;     relocation_fixups:
+;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;     listing: kind=structured_placeholder available=False route=unknown reason=full per-resource listing deferred until relocation/source-boundary context is represented
+;   CODE 22 SANELIB: role=code_segment kind=code_segment payload_size=96 sha256=6929f16d82666fe0f31993c30f2750798bf934a0dcddf3c6eb0adc2c552484f8 fact=macos.resource_fork.code_resources.accepted status=validated
+;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
+;     anchors:
+;       accepted_segment_metadata: label=CODE 22 segment metadata offset=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated parser_use=accepted_parser_output
+;     layout:
+;     metadata: start=0 end=4 entrypoint=False evidence=nonzero_code_segment_header fact=macos.code_resource.nonzero.segment_header status=validated
+;     deferred: start=4 end=96 entrypoint=False evidence=missing_m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.byte_entry_rule.unknown status=deferred
+;     orphan_ranges:
+;     deferred_code_or_data_island: start=4 end=96 evidence=missing_m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.byte_entry_rule.unknown status=deferred
+;     relocation_fixups:
+;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;     listing: kind=structured_placeholder available=False route=unknown reason=full per-resource listing deferred until relocation/source-boundary context is represented
+;   CODE 23 STDCLIB: role=code_segment kind=code_segment payload_size=126 sha256=ce2eaab2bd782055c6aaaefc223f2e72d4f746e25a05cc8b3599836ecbd41969 fact=macos.resource_fork.code_resources.accepted status=validated
+;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
+;     anchors:
+;       accepted_segment_metadata: label=CODE 23 segment metadata offset=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated parser_use=accepted_parser_output
+;     layout:
+;     metadata: start=0 end=4 entrypoint=False evidence=nonzero_code_segment_header fact=macos.code_resource.nonzero.segment_header status=validated
+;     deferred: start=4 end=126 entrypoint=False evidence=missing_m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.byte_entry_rule.unknown status=deferred
+;     orphan_ranges:
+;     deferred_code_or_data_island: start=4 end=126 evidence=missing_m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.byte_entry_rule.unknown status=deferred
+;     relocation_fixups:
+;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;     listing: kind=structured_placeholder available=False route=unknown reason=full per-resource listing deferred until relocation/source-boundary context is represented
+;   CODE 24 STDIO: role=code_segment kind=code_segment payload_size=4970 sha256=f98dfc823a565d6502fa4ac1feb7b616b397ba9a918ce2c5f47b274e99a9026a fact=macos.resource_fork.code_resources.accepted status=validated
+;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
+;     anchors:
+;       accepted_segment_metadata: label=CODE 24 segment metadata offset=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated parser_use=accepted_parser_output
+;       candidate_code_range: label=CODE 24 candidate code offset=2950 fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;     layout:
+;     metadata: start=0 end=4 entrypoint=False evidence=nonzero_code_segment_header fact=macos.code_resource.nonzero.segment_header status=validated
+;     data: start=4 end=2950 entrypoint=False evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate
+;     candidate_code: start=2950 end=4970 entrypoint=True evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate
+;     orphan_ranges:
+;     candidate_data_island: start=4 end=2950 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
+;     relocation_fixups:
+;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;     listing: kind=structured_placeholder available=False route=unknown reason=full per-resource listing deferred until relocation/source-boundary context is represented
+;   CODE 25 SANELib: role=code_segment kind=code_segment payload_size=246 sha256=c87908dd286d0e5fdcab70725ec20e98a37cca1357f18132809c3ab9e7562090 fact=macos.resource_fork.code_resources.accepted status=validated
+;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
+;     anchors:
+;       accepted_segment_metadata: label=CODE 25 segment metadata offset=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated parser_use=accepted_parser_output
+;       candidate_code_range: label=CODE 25 candidate code offset=40 fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;     layout:
+;     metadata: start=0 end=4 entrypoint=False evidence=nonzero_code_segment_header fact=macos.code_resource.nonzero.segment_header status=validated
+;     data: start=4 end=40 entrypoint=False evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate
+;     candidate_code: start=40 end=246 entrypoint=True evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate
+;     orphan_ranges:
+;     candidate_data_island: start=4 end=40 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
+;     relocation_fixups:
+;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;     listing: kind=structured_placeholder available=False route=unknown reason=full per-resource listing deferred until relocation/source-boundary context is represented
+;   CODE 26 PASLIB: role=code_segment kind=code_segment payload_size=2940 sha256=62b8ca8b968fab6a003f39717b671f9c6cae8d20a9c77cb7ab41fd0315a229ae fact=macos.resource_fork.code_resources.accepted status=validated
+;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
+;     anchors:
+;       accepted_segment_metadata: label=CODE 26 segment metadata offset=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated parser_use=accepted_parser_output
+;       candidate_code_range: label=CODE 26 candidate code offset=198 fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;     layout:
+;     metadata: start=0 end=4 entrypoint=False evidence=nonzero_code_segment_header fact=macos.code_resource.nonzero.segment_header status=validated
+;     data: start=4 end=198 entrypoint=False evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate
+;     candidate_code: start=198 end=2940 entrypoint=True evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate
+;     orphan_ranges:
+;     candidate_data_island: start=4 end=198 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
+;     relocation_fixups:
+;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;     listing: kind=structured_placeholder available=False route=unknown reason=full per-resource listing deferred until relocation/source-boundary context is represented
+;   CODE 27 32-bit bootstrap: role=code_segment kind=code_segment payload_size=1882 sha256=f683b4c722b40eda686a3074d68910f8316ecd373798c1a5834df64d8b757352 fact=macos.resource_fork.code_resources.accepted status=validated
+;     segment: jt_first=0 jt_count=1 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
+;     anchors:
+;       accepted_segment_metadata: label=CODE 27 segment metadata offset=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated parser_use=accepted_parser_output
+;       candidate_routine_entry: label=CODE 27 routine candidate 0 offset=0 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
+;       candidate_code_range: label=CODE 27 candidate code offset=204 fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;     layout:
+;     metadata: start=0 end=4 entrypoint=False evidence=nonzero_code_segment_header fact=macos.code_resource.nonzero.segment_header status=validated
+;     data: start=4 end=204 entrypoint=False evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate
+;     candidate_code: start=204 end=1882 entrypoint=True evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate
+;     orphan_ranges:
+;     candidate_data_island: start=4 end=204 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
+;     relocation_fixups:
+;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;     listing: kind=structured_placeholder available=False route=unknown reason=full per-resource listing deferred until relocation/source-boundary context is represented
+
 ; Non-CODE resource placeholders
 ;   type acur: 1 resource(s), structured placeholder
 ;   type CURS: 4 resource(s), structured placeholder

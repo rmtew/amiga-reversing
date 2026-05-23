@@ -454,11 +454,15 @@ validation alone. Do not change parser/rendering behavior.
   orphan ranges, and deferred relocation/fixup placeholders with KB fact ids.
   The `movea.l (a7)+,a0` boundary is still candidate-only; relocation/fixup
   interpretation and complete byte-level CODE entry rules remain deferred.
-- 018-010 is the next rendering/navigation slice. It should turn the 018-009
-  segment-map evidence into per-CODE resource source/navigation views so the Mac
-  target is useful beyond a single selected CODE 1 listing. It must keep CODE 0
-  as metadata/jump-table output, keep routine/code anchors candidate where
-  appropriate, and keep relocation/fixups deferred until separately validated.
+- 018-010 turned the 018-009 segment-map evidence into per-CODE resource
+  source/navigation views. The Mac project payload now exposes
+  `code_resource_details` and navigation groups for every CODE resource; the
+  committed MPW `Asm` artifact has a per-CODE detail subview for CODE 0,
+  nonzero CODE segment metadata, candidate routine/code anchors, orphan ranges,
+  deferred relocation/fixups, and listing availability. CODE 0 remains
+  metadata/jump-table output, routine/code anchors remain candidate where
+  appropriate, and relocation/fixups remain deferred until separately
+  validated.
 - 018-011 through 018-016 are intended as parallel-safe work items while
   018-010 proceeds. They should not require updates from 018-010 and should
   avoid Mac multi-CODE rendering/navigation files unless their issue explicitly
@@ -472,9 +476,11 @@ Proposal 012 remains open for full executable/CODE correctness. 018-005 removes
 the stale claim that the Mac parser/listing path accepts the current byte-entry
 heuristic, and 018-008 validates emitted parser fact ids against the KB, but
 relocation/fixup semantics and byte-level entry rules remain deferred/candidate.
-018-009 now exposes CODE 0 jump-table to segment/routine mapping,
-orphan-island evidence, and deferred relocation placeholders structurally, but
-full per-resource CODE rendering/navigation remains future work for 018-010.
+018-009 exposes CODE 0 jump-table to segment/routine mapping, orphan-island
+evidence, and deferred relocation placeholders structurally. 018-010 now exposes
+that structure in per-CODE payload/navigation/artifact views, while keeping
+unresolved byte-entry and relocation semantics candidate/deferred rather than
+accepted.
 
 018 sits above 011 and 012 as the shared executable/container format authority.
 It does not absorb all platform knowledge; it owns file structure, loader model,

@@ -103,6 +103,14 @@ def _binary_container_view(c_summary: Mapping[str, object], *, project_id: str) 
     selected_id = selected.get("id", 1)
     selected_resource = _code_resource_by_id(code_resources, selected_id if isinstance(selected_id, int) else 1)
     selected_name = selected_resource.get("name") or selected.get("name")
+    code_segment_map = _sequence(resource_summary.get("code_segment_map"))
+    code_resource_details = _code_resource_details(
+        code_resources,
+        code_segment_map=code_segment_map,
+        selected_id=selected_id,
+        project_id=project_id,
+        unsupported=_sequence(c_summary.get("unsupported")),
+    )
     return {
         "kind": c_summary.get("container_kind"),
         "file": file_info,
@@ -123,7 +131,9 @@ def _binary_container_view(c_summary: Mapping[str, object], *, project_id: str) 
         },
         "code0": {"resource": code0, "metadata": _mapping(code0.get("code"))},
         "code_resources": code_resources,
-        "code_segment_map": _sequence(resource_summary.get("code_segment_map")),
+        "code_segment_map": code_segment_map,
+        "code_resource_details": code_resource_details,
+        "navigation": _code_resource_navigation(code_resource_details),
         "selected_code_segment": {
             "resource_type": "CODE",
             "id": selected_id,
@@ -170,6 +180,263 @@ def _binary_container_view(c_summary: Mapping[str, object], *, project_id: str) 
             "cnid": file_info.get("cnid"),
         },
     }
+
+
+def _code_resource_details(
+    resources: list[object],
+    *,
+    code_segment_map: list[object],
+    selected_id: object,
+    project_id: str,
+    unsupported: list[object],
+) -> list[dict[str, object]]:
+    segment_map_by_id = {
+        item.get("resource_id"): item for item in (_mapping(value) for value in code_segment_map) if "resource_id" in item
+    }
+    all_routine_candidates = [
+        {
+            **candidate,
+            "target_resource_id": segment.get("resource_id"),
+            "kb_record_id": segment.get("kb_record_id"),
+        }
+        for segment in segment_map_by_id.values()
+        for candidate in (_mapping(value) for value in _sequence(segment.get("routine_entry_candidates")))
+    ]
+    details: list[dict[str, object]] = []
+    for resource_value in sorted(resources, key=_resource_id_sort_key):
+        resource = _mapping(resource_value)
+        resource_id = resource.get("id")
+        code = _mapping(resource.get("code"))
+        segment = _mapping(segment_map_by_id.get(resource_id))
+        layout_ranges = _sequence(code.get("layout_ranges"))
+        orphan_ranges = _sequence(code.get("orphan_ranges"))
+        relocation_fixups = _mapping(code.get("relocation_fixups"))
+        role = "code0_metadata" if resource_id == 0 else "code_segment"
+        listing = _listing_descriptor(
+            resource,
+            code=code,
+            selected_id=selected_id,
+            project_id=project_id,
+            unsupported=unsupported,
+        )
+        anchors = _resource_navigation_anchors(
+            resource,
+            code=code,
+            segment=segment,
+            all_routine_candidates=all_routine_candidates,
+        )
+        details.append(
+            {
+                "resource_type": "CODE",
+                "id": resource_id,
+                "name": resource.get("name"),
+                "role": role,
+                "payload_size": resource.get("payload_size"),
+                "payload_sha256": resource.get("sha256"),
+                "code_kind": code.get("kind"),
+                "kb_record_id": code.get("kb_record_id"),
+                "fact_id": code.get("fact_id"),
+                "fact_status": code.get("fact_status"),
+                "parser_use": code.get("parser_use"),
+                "segment_map": segment,
+                "code_layout": layout_ranges,
+                "orphan_ranges": orphan_ranges,
+                "relocation_fixups": relocation_fixups,
+                "jump_table": _mapping(code.get("jump_table")),
+                "navigation_anchors": anchors,
+                "listing": listing,
+            }
+        )
+    return details
+
+
+def _listing_descriptor(
+    resource: Mapping[str, object],
+    *,
+    code: Mapping[str, object],
+    selected_id: object,
+    project_id: str,
+    unsupported: list[object],
+) -> dict[str, object]:
+    resource_id = resource.get("id")
+    if resource_id == 0:
+        return {
+            "kind": "metadata",
+            "available": False,
+            "reason": "CODE 0 is jump-table/application metadata, not ordinary m68k code",
+        }
+    if resource_id == selected_id:
+        code_range = _first_code_range(_sequence(code.get("layout_ranges")))
+        return {
+            "kind": "full_listing",
+            "available": True,
+            "project_id": project_id,
+            "route": "listing",
+            "source_range": {
+                "section_index": 0,
+                "start_offset": 0,
+                "size": code_range.get("size"),
+            },
+            "resource_type": "CODE",
+            "resource_id": resource_id,
+            "resource_name": resource.get("name"),
+            "fork": "resource",
+            "payload_size": resource.get("payload_size"),
+            "payload_sha256": resource.get("sha256"),
+            "unsupported": unsupported,
+        }
+    return {
+        "kind": "structured_placeholder",
+        "available": False,
+        "reason": "full per-resource listing deferred until relocation/source-boundary context is represented",
+    }
+
+
+def _resource_navigation_anchors(
+    resource: Mapping[str, object],
+    *,
+    code: Mapping[str, object],
+    segment: Mapping[str, object],
+    all_routine_candidates: list[dict[str, object]],
+) -> list[dict[str, object]]:
+    resource_id = resource.get("id")
+    anchors: list[dict[str, object]] = []
+    if resource_id == 0:
+        if code.get("fact_id"):
+            anchors.append(
+                {
+                    "kind": "accepted_metadata",
+                    "label": "CODE 0 metadata",
+                    "resource_id": resource_id,
+                    "kb_record_id": code.get("kb_record_id"),
+                    "fact_id": code.get("fact_id"),
+                    "fact_status": code.get("fact_status"),
+                    "parser_use": code.get("parser_use"),
+                }
+            )
+        jump_table = _mapping(code.get("jump_table"))
+        if jump_table:
+            anchors.append(
+                {
+                    "kind": "accepted_jump_table",
+                    "label": "CODE 0 jump table",
+                    "resource_id": resource_id,
+                    "offset": jump_table.get("start"),
+                    "size": jump_table.get("size"),
+                    "kb_record_id": code.get("kb_record_id"),
+                    "fact_id": jump_table.get("fact_id"),
+                    "fact_status": jump_table.get("fact_status"),
+                    "parser_use": jump_table.get("parser_use"),
+                }
+            )
+        for candidate in all_routine_candidates:
+            anchors.append(
+                {
+                    "kind": "candidate_routine_jump_table_entry",
+                    "label": f"CODE {candidate.get('target_resource_id')} routine candidate {candidate.get('index')}",
+                    "resource_id": resource_id,
+                    "target_resource_id": candidate.get("target_resource_id"),
+                    "offset": candidate.get("code0_payload_offset"),
+                    "kb_record_id": candidate.get("kb_record_id"),
+                    "fact_id": candidate.get("fact_id"),
+                    "fact_status": candidate.get("fact_status"),
+                    "parser_use": candidate.get("parser_use"),
+                }
+            )
+        return anchors
+    if segment:
+        anchors.append(
+            {
+                "kind": "accepted_segment_metadata",
+                "label": f"CODE {resource_id} segment metadata",
+                "resource_id": resource_id,
+                "offset": 0,
+                "kb_record_id": segment.get("kb_record_id"),
+                "fact_id": segment.get("fact_id"),
+                "fact_status": segment.get("fact_status"),
+                "parser_use": segment.get("parser_use"),
+            }
+        )
+        for candidate in _sequence(segment.get("routine_entry_candidates")):
+            candidate_mapping = _mapping(candidate)
+            anchors.append(
+                {
+                    "kind": "candidate_routine_entry",
+                    "label": f"CODE {resource_id} routine candidate {candidate_mapping.get('index')}",
+                    "resource_id": resource_id,
+                    "offset": candidate_mapping.get("routine_offset_from_segment"),
+                    "jump_table_offset": candidate_mapping.get("jump_table_offset"),
+                    "kb_record_id": segment.get("kb_record_id"),
+                    "fact_id": candidate_mapping.get("fact_id"),
+                    "fact_status": candidate_mapping.get("fact_status"),
+                    "parser_use": candidate_mapping.get("parser_use"),
+                }
+            )
+    for item in _sequence(code.get("layout_ranges")):
+        range_info = _mapping(item)
+        if range_info.get("kind") == "candidate_code":
+            anchors.append(
+                {
+                    "kind": "candidate_code_range",
+                    "label": f"CODE {resource_id} candidate code",
+                    "resource_id": resource_id,
+                    "offset": range_info.get("start"),
+                    "size": range_info.get("size"),
+                    "kb_record_id": code.get("kb_record_id"),
+                    "fact_id": range_info.get("fact_id"),
+                    "fact_status": range_info.get("fact_status"),
+                    "parser_use": range_info.get("parser_use"),
+                }
+            )
+    return anchors
+
+
+def _code_resource_navigation(details: list[dict[str, object]]) -> dict[str, object]:
+    anchors = [
+        anchor
+        for detail in details
+        for anchor in _sequence(detail.get("navigation_anchors"))
+        if isinstance(anchor, dict)
+    ]
+    return {
+        "groups": [
+            {
+                "id": "macos-code-resources",
+                "label": "CODE resources",
+                "items": [
+                    {
+                        "resource_id": detail.get("id"),
+                        "label": f"CODE {detail.get('id')} {detail.get('name') or ''}".strip(),
+                        "role": detail.get("role"),
+                        "code_kind": detail.get("code_kind"),
+                        "kb_record_id": detail.get("kb_record_id"),
+                        "fact_id": detail.get("fact_id"),
+                        "fact_status": detail.get("fact_status"),
+                        "parser_use": detail.get("parser_use"),
+                    }
+                    for detail in details
+                ],
+            },
+            {
+                "id": "macos-code-anchors",
+                "label": "CODE anchors",
+                "items": anchors,
+            },
+        ]
+    }
+
+
+def _first_code_range(ranges: list[object]) -> Mapping[str, object]:
+    for item in ranges:
+        range_info = _mapping(item)
+        if range_info.get("kind") in {"confirmed_code", "candidate_code"} and range_info.get("entrypoint") is True:
+            return range_info
+    return {}
+
+
+def _resource_id_sort_key(value: object) -> tuple[int, object]:
+    resource_id = _mapping(value).get("id")
+    return (0, resource_id) if isinstance(resource_id, int) else (1, str(resource_id))
 
 
 def _code_resource_by_id(resources: list[object], resource_id: int) -> Mapping[str, object]:

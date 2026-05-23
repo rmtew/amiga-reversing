@@ -109,6 +109,7 @@ def render_macos_example_asm(*, project_root: Path = PROJECT_ROOT) -> str:
     selected_orphans = [_mapping(item) for item in _sequence(selected.get("orphan_ranges"))]
     selected_relocations = _mapping(selected.get("relocation_fixups"))
     code_resources = [_mapping(item) for item in _sequence(container.get("code_resources"))]
+    code_resource_details = [_mapping(item) for item in _sequence(container.get("code_resource_details"))]
     code_segment_map = [_mapping(item) for item in _sequence(container.get("code_segment_map"))]
     resource_types = [_mapping(item) for item in _sequence(resource_fork.get("types"))]
     non_code_types = [item for item in resource_types if item.get("type") != "CODE"]
@@ -156,6 +157,9 @@ def render_macos_example_asm(*, project_root: Path = PROJECT_ROOT) -> str:
         "",
         "; CODE segment/routine map",
         *_code_segment_map_lines(code_segment_map),
+        "",
+        "; CODE resource detail subviews",
+        *_code_resource_detail_lines(code_resource_details),
         "",
         "; Non-CODE resource placeholders",
         *(
@@ -302,6 +306,66 @@ def _code_segment_map_lines(entries: Sequence[Mapping[str, object]]) -> list[str
                 f"fact={_text(candidate.get('fact_id'))} status={_text(candidate.get('fact_status'))}"
             )
     return lines
+
+
+def _code_resource_detail_lines(details: Sequence[Mapping[str, object]]) -> list[str]:
+    if not details:
+        return [";   none"]
+    lines: list[str] = []
+    for detail in details:
+        resource_id = detail.get("id")
+        lines.append(
+            f";   CODE {_text(resource_id)} {_text(detail.get('name'))}: "
+            f"role={_text(detail.get('role'))} kind={_text(detail.get('code_kind'))} "
+            f"payload_size={_text(detail.get('payload_size'))} sha256={_text(detail.get('payload_sha256'))} "
+            f"fact={_text(detail.get('fact_id'))} status={_text(detail.get('fact_status'))}"
+        )
+        jump_table = _mapping(detail.get("jump_table"))
+        if jump_table:
+            lines.append(
+                f";     jump_table: start={_text(jump_table.get('start'))} "
+                f"size={_text(jump_table.get('size'))} entries={_text(jump_table.get('entry_count'))} "
+                f"fact={_text(jump_table.get('fact_id'))} status={_text(jump_table.get('fact_status'))}"
+            )
+        segment = _mapping(detail.get("segment_map"))
+        if segment:
+            lines.append(
+                f";     segment: jt_first={_text(segment.get('first_jump_table_entry_offset'))} "
+                f"jt_count={_text(segment.get('jump_table_entry_count'))} "
+                f"fact={_text(segment.get('fact_id'))} status={_text(segment.get('fact_status'))}"
+            )
+        anchors = [_mapping(item) for item in _sequence(detail.get("navigation_anchors"))]
+        lines.extend(_navigation_anchor_lines(anchors))
+        lines.append(";     layout:")
+        lines.extend(_code_layout_lines([_mapping(item) for item in _sequence(detail.get("code_layout"))]))
+        lines.append(";     orphan_ranges:")
+        lines.extend(_orphan_range_lines([_mapping(item) for item in _sequence(detail.get("orphan_ranges"))]))
+        lines.append(";     relocation_fixups:")
+        lines.append(_relocation_fixup_line(_mapping(detail.get("relocation_fixups"))))
+        lines.append(_listing_descriptor_line(_mapping(detail.get("listing"))))
+    return lines
+
+
+def _navigation_anchor_lines(anchors: Sequence[Mapping[str, object]]) -> list[str]:
+    if not anchors:
+        return [";     anchors: none"]
+    lines = [";     anchors:"]
+    for anchor in anchors:
+        lines.append(
+            f";       {_text(anchor.get('kind'))}: label={_text(anchor.get('label'))} "
+            f"offset={_text(anchor.get('offset'))} fact={_text(anchor.get('fact_id'))} "
+            f"status={_text(anchor.get('fact_status'))} parser_use={_text(anchor.get('parser_use'))}"
+        )
+    return lines
+
+
+def _listing_descriptor_line(listing: Mapping[str, object]) -> str:
+    if not listing:
+        return ";     listing: none"
+    return (
+        f";     listing: kind={_text(listing.get('kind'))} available={_text(listing.get('available'))} "
+        f"route={_text(listing.get('route'))} reason={_text(listing.get('reason'))}"
+    )
 
 
 def _code_layout_lines(ranges: Sequence[Mapping[str, object]]) -> list[str]:

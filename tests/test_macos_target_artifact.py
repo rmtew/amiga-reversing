@@ -69,6 +69,16 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     assert "; CODE segment/routine map" in asm_text
     assert "fact=macos.code_resource.segment_jump_table_span.accepted status=validated" in asm_text
     assert "fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate" in asm_text
+    assert "; CODE resource detail subviews" in asm_text
+    assert ";   CODE 0 unknown: role=code0_metadata" in asm_text
+    assert "listing: kind=metadata available=False" in asm_text
+    assert "reason=CODE 0 is jump-table/application metadata, not ordinary m68k code" in asm_text
+    assert ";   CODE 1 Main: role=code_segment" in asm_text
+    assert "listing: kind=full_listing available=True route=listing" in asm_text
+    assert "listing: kind=structured_placeholder available=False" in asm_text
+    assert "accepted_segment_metadata" in asm_text
+    assert "candidate_routine_entry" in asm_text
+    assert "status=candidate parser_use=candidate_only" in asm_text
     assert ";   orphan_ranges:" in asm_text
     assert "candidate_data_island: start=4 end=40" in asm_text
     assert "fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate" in asm_text
@@ -111,14 +121,23 @@ def test_committed_macos_asm_artifact_covers_every_code_resource() -> None:
     asm_lines = asm_path.read_text(encoding="utf-8").splitlines()
     coverage_start = asm_lines.index("; CODE resource coverage")
     segment_map_start = asm_lines.index("; CODE segment/routine map")
+    detail_start = asm_lines.index("; CODE resource detail subviews")
+    non_code_start = asm_lines.index("; Non-CODE resource placeholders")
     coverage_lines = [
         line for line in asm_lines[coverage_start:segment_map_start] if line.startswith(";   CODE ") and "status=" in line
     ]
+    detail_lines = [
+        line
+        for line in asm_lines[detail_start:non_code_start]
+        if line.startswith(";   CODE ") and "role=" in line and "payload_size=" in line
+    ]
 
     assert len(coverage_lines) == len(expected)
+    assert len(detail_lines) == len(expected)
     for resource in expected:
         prefix = f";   CODE {resource['id']} "
         assert any(line.startswith(prefix) for line in coverage_lines), prefix
+        assert any(line.startswith(prefix) for line in detail_lines), prefix
 
 
 def test_macos_listing_artifact_uses_macos_source_and_row_provenance() -> None:

@@ -1,6 +1,6 @@
 # 018-010: Mac OS Multi-CODE Resource Rendering And Navigation
 
-Status: open
+Status: completed
 
 ## Proposal Context
 
@@ -93,38 +93,131 @@ Record trace blocks for:
 
 ## Research Coverage
 
-- [ ] Current Mac project payload shape traced.
-- [ ] Current Mac listing/artifact route traced.
-- [ ] Existing UI navigation/symbol payload conventions checked.
-- [ ] MPW `Asm` CODE resource inventory checked against current parser output.
-- [ ] CODE 0 metadata rendering requirements checked.
-- [ ] Nonzero CODE preview/placeholder policy selected.
-- [ ] 012/018 blocker wording checked before implementation.
+- [x] Current Mac project payload shape traced.
+- [x] Current Mac listing/artifact route traced.
+- [x] Existing UI navigation/symbol payload conventions checked.
+- [x] MPW `Asm` CODE resource inventory checked against current parser output.
+- [x] CODE 0 metadata rendering requirements checked.
+- [x] Nonzero CODE preview/placeholder policy selected.
+- [x] 012/018 blocker wording checked before implementation.
 
 ## Research Review
 
-- [ ] Second pass checked every CODE resource appears in payload/artifact.
-- [ ] Second pass checked CODE 0 is not rendered as ordinary code.
-- [ ] Candidate routine/code anchors are not labelled accepted.
-- [ ] Deferred relocation/fixup state remains visible in every relevant subview.
-- [ ] Full selected CODE 1 listing still works.
-- [ ] Parser output passes 018-008 fact-reference validation.
-- [ ] Proposal 012/018 docs updated with exact accepted/candidate/deferred
+- [x] Second pass checked every CODE resource appears in payload/artifact.
+- [x] Second pass checked CODE 0 is not rendered as ordinary code.
+- [x] Candidate routine/code anchors are not labelled accepted.
+- [x] Deferred relocation/fixup state remains visible in every relevant subview.
+- [x] Full selected CODE 1 listing still works.
+- [x] Parser output passes 018-008 fact-reference validation.
+- [x] Proposal 012/018 docs updated with exact accepted/candidate/deferred
   state.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before implementation.
-- [ ] Per-CODE resource detail model added to Mac project payloads.
-- [ ] All CODE resources are represented in source/navigation output.
-- [ ] CODE 0 renders as metadata/jump table.
-- [ ] Nonzero CODE resources expose segment metadata, candidate routines,
+- [x] Proposal context checked before implementation.
+- [x] Per-CODE resource detail model added to Mac project payloads.
+- [x] All CODE resources are represented in source/navigation output.
+- [x] CODE 0 renders as metadata/jump table.
+- [x] Nonzero CODE resources expose segment metadata, candidate routines,
   orphan ranges, and deferred relocation state.
-- [ ] Selected CODE 1 detailed listing remains available.
-- [ ] Candidate/deferred facts are not promoted to accepted output.
-- [ ] MPW `Asm` target artifact regenerated if output changes.
-- [ ] Parser fact output passes 018-008 validation.
-- [ ] `amiga_reversing.tools.platform_executable_formats validate` passes.
-- [ ] `amiga_reversing.tools.validate_018_issues` passes.
-- [ ] Relevant Mac parser/listing/project/web tests pass.
-- [ ] Post-commit review found no unresolved worthwhile findings.
+- [x] Selected CODE 1 detailed listing remains available.
+- [x] Candidate/deferred facts are not promoted to accepted output.
+- [x] MPW `Asm` target artifact regenerated if output changes.
+- [x] Parser fact output passes 018-008 validation.
+- [x] `amiga_reversing.tools.platform_executable_formats validate` passes.
+- [x] `amiga_reversing.tools.validate_018_issues` passes.
+- [x] Relevant Mac parser/listing/project/web tests pass.
+- [x] Final review found no unresolved worthwhile findings.
+
+## Trace Blocks
+
+Current Mac project payload shape:
+
+```text
+amiga_reversing/disasm/macos_project_payload.py
+  build_macos_project_payload(...)
+    source_view
+    binary_container_view
+      code_resources
+      code_segment_map
+      code_resource_details
+      navigation.groups[macos-code-resources, macos-code-anchors]
+      selected_code_segment.listing
+```
+
+Current Mac listing/artifact route:
+
+```text
+amiga_reversing/disasm/macos_target_artifact.py
+  render_macos_example_asm(...)
+    builds the committed targets/macos_hfs_mpw_gm/.../asm.s artifact from
+    build_macos_project_payload(...)
+
+amiga_reversing/disasm/server.py
+  existing Mac listing flow continues to use the selected CODE 1 listing route.
+```
+
+Per-CODE detail object shape:
+
+```json
+{
+  "resource_type": "CODE",
+  "id": 1,
+  "role": "code_segment",
+  "payload_size": 29024,
+  "payload_sha256": "...",
+  "code_kind": "code_segment",
+  "kb_record_id": "macos.hfs_resource_fork.code_resources.mpw_application",
+  "fact_id": "macos.resource_fork.code_resources.accepted",
+  "fact_status": "validated",
+  "parser_use": "accepted_parser_output",
+  "segment_map": {},
+  "code_layout": [],
+  "orphan_ranges": [],
+  "relocation_fixups": {},
+  "navigation_anchors": [],
+  "listing": {}
+}
+```
+
+Preview/placeholder policy:
+
+```text
+CODE 0:
+  listing.kind = metadata
+  available = false
+  reason = CODE 0 is jump-table/application metadata, not ordinary m68k code
+
+selected CODE 1:
+  listing.kind = full_listing
+  available = true
+  route = listing
+
+other nonzero CODE resources:
+  listing.kind = structured_placeholder
+  available = false
+  reason = full per-resource listing deferred until relocation/source-boundary
+           context is represented
+```
+
+## Completion Evidence
+
+```text
+uv run ruff check amiga_reversing\disasm\macos_project_payload.py amiga_reversing\disasm\macos_target_artifact.py tests\test_macos_project_payload.py tests\test_macos_target_artifact.py
+  All checks passed
+
+uv run python -m pytest tests\test_macos_project_payload.py tests\test_macos_target_artifact.py -q
+  7 passed
+
+uv run python -m amiga_reversing.tools.platform_executable_formats validate
+  passed
+
+uv run python -m amiga_reversing.tools.validate_018_issues
+  passed
+
+uv run python -m pytest tests\test_macos_c_backend.py tests\test_macos_project_payload.py tests\test_macos_target_artifact.py tests\test_macos_asm_container.py tests\test_platform_executable_formats.py -q
+  38 passed
+
+cmd /c src\build.bat
+  passed
+```

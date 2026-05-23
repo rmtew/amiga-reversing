@@ -48,7 +48,109 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
             },
             "resource_fork": {
                 "types": [{"type": "CODE", "count": 2}],
-                "code_resources": [{"type": "CODE", "id": 1, "size": 6}],
+                "code_resources": [
+                    {
+                        "type": "CODE",
+                        "id": 0,
+                        "name": "unknown",
+                        "payload_size": 32,
+                        "sha256": "code0-hash",
+                        "code": {
+                            "kind": "jump_table_segment",
+                            "kb_record_id": "macos.hfs_resource_fork.code_resources.mpw_application",
+                            "fact_id": "macos.code_resource.0.jump_table_metadata",
+                            "fact_status": "validated",
+                            "parser_use": "accepted_parser_output",
+                            "jump_table": {
+                                "kind": "code0_jump_table",
+                                "start": 16,
+                                "size": 8,
+                                "end": 24,
+                                "entry_size": 8,
+                                "entry_count": 1,
+                                "trailing_bytes": 0,
+                                "fact_id": "macos.jump_table.entries.accepted",
+                                "fact_status": "validated",
+                                "parser_use": "accepted_parser_output",
+                            },
+                            "layout_ranges": [{"kind": "metadata", "start": 0, "size": 32, "end": 32}],
+                            "orphan_ranges": [],
+                            "relocation_fixups": {
+                                "status": "deferred",
+                                "fact_id": "macos.segment_loader.relocation_fixups.deferred",
+                                "fact_status": "deferred",
+                                "parser_use": "deferred_only",
+                            },
+                        },
+                    },
+                    {
+                        "type": "CODE",
+                        "id": 1,
+                        "name": None,
+                        "payload_size": 8,
+                        "sha256": "payload-hash",
+                        "code": {
+                            "kind": "code_segment",
+                            "kb_record_id": "macos.hfs_resource_fork.code_resources.mpw_application",
+                            "fact_id": "macos.resource_fork.code_resources.accepted",
+                            "fact_status": "validated",
+                            "parser_use": "accepted_parser_output",
+                            "layout_ranges": [
+                                {
+                                    "kind": "metadata",
+                                    "start": 0,
+                                    "size": 4,
+                                    "end": 4,
+                                    "entrypoint": False,
+                                    "evidence": "nonzero_code_segment_header",
+                                    "fact_id": "macos.code_resource.nonzero.segment_header",
+                                    "fact_status": "validated",
+                                    "parser_use": "accepted_parser_output",
+                                },
+                                {
+                                    "kind": "data",
+                                    "start": 4,
+                                    "size": 2,
+                                    "end": 6,
+                                    "entrypoint": False,
+                                    "evidence": "prefix_before_stack_entry",
+                                    "fact_id": "macos.code_resource.movea_stack_a0.boundary.candidate",
+                                    "fact_status": "candidate",
+                                    "parser_use": "candidate_only",
+                                },
+                                {
+                                    "kind": "candidate_code",
+                                    "start": 6,
+                                    "size": 2,
+                                    "end": 8,
+                                    "entrypoint": True,
+                                    "evidence": "m68k_movea_l_stack_to_a0_entry",
+                                    "fact_id": "macos.code_resource.movea_stack_a0.boundary.candidate",
+                                    "fact_status": "candidate",
+                                    "parser_use": "candidate_only",
+                                },
+                            ],
+                            "orphan_ranges": [
+                                {
+                                    "classification": "candidate_data_island",
+                                    "start": 4,
+                                    "size": 2,
+                                    "end": 6,
+                                    "evidence": "prefix_before_stack_entry",
+                                    "fact_id": "macos.code_resource.orphan_layout_ranges.candidate",
+                                    "fact_status": "candidate",
+                                    "parser_use": "candidate_only",
+                                }
+                            ],
+                            "relocation_fixups": {
+                                "status": "deferred",
+                                "fact_id": "macos.segment_loader.relocation_fixups.deferred",
+                                "fact_status": "deferred",
+                                "parser_use": "deferred_only",
+                            },
+                        },
+                    },
+                ],
                 "code_segment_map": [
                     {
                         "resource_id": 1,
@@ -193,6 +295,30 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
     assert container["code_segment_map"][0]["routine_entry_candidates"][0]["fact_status"] == "candidate"
     assert container["selected_code_segment"]["orphan_ranges"][0]["fact_status"] == "candidate"
     assert container["selected_code_segment"]["relocation_fixups"]["parser_use"] == "deferred_only"
+    assert [item["id"] for item in container["code_resource_details"]] == [0, 1]
+    code0_detail = container["code_resource_details"][0]
+    code1_detail = container["code_resource_details"][1]
+    assert code0_detail["role"] == "code0_metadata"
+    assert code0_detail["listing"] == {
+        "kind": "metadata",
+        "available": False,
+        "reason": "CODE 0 is jump-table/application metadata, not ordinary m68k code",
+    }
+    assert any(anchor["kind"] == "accepted_jump_table" for anchor in code0_detail["navigation_anchors"])
+    assert any(anchor["kind"] == "candidate_routine_jump_table_entry" for anchor in code0_detail["navigation_anchors"])
+    assert code1_detail["role"] == "code_segment"
+    assert code1_detail["listing"]["kind"] == "full_listing"
+    assert code1_detail["listing"]["available"] is True
+    assert any(anchor["kind"] == "accepted_segment_metadata" for anchor in code1_detail["navigation_anchors"])
+    candidate_anchor = next(
+        anchor for anchor in code1_detail["navigation_anchors"] if anchor["kind"] == "candidate_routine_entry"
+    )
+    assert candidate_anchor["fact_status"] == "candidate"
+    assert candidate_anchor["parser_use"] == "candidate_only"
+    navigation_groups = container["navigation"]["groups"]
+    assert navigation_groups[0]["id"] == "macos-code-resources"
+    assert len(navigation_groups[0]["items"]) == 2
+    assert navigation_groups[1]["id"] == "macos-code-anchors"
     assert container["selected_code_segment"]["listing"] == {
         "project_id": "macos_mpw_sample",
         "route": "listing",
@@ -252,6 +378,22 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     assert payload["platform"] == "macos"
     assert container["finder"] == {"type": "MPST", "creator": "MPS ", "cnid": 2310}
     assert len(container["code_resources"]) == 28
+    assert len(container["code_resource_details"]) == len(container["code_resources"])
+    assert container["code_resource_details"][0]["role"] == "code0_metadata"
+    assert container["code_resource_details"][0]["listing"]["kind"] == "metadata"
+    assert container["code_resource_details"][0]["listing"]["available"] is False
+    assert all("navigation_anchors" in item for item in container["code_resource_details"])
+    assert any(
+        anchor.get("fact_status") == "candidate"
+        for detail in container["code_resource_details"]
+        for anchor in detail["navigation_anchors"]
+        if isinstance(anchor, dict)
+    )
+    assert any(
+        detail["relocation_fixups"].get("parser_use") == "deferred_only"
+        for detail in container["code_resource_details"]
+    )
+    assert len(container["navigation"]["groups"][0]["items"]) == len(container["code_resources"])
     assert container["code_segment_map"]
     assert any(
         item.get("fact_id") == "macos.code_resource.segment_jump_table_span.accepted"

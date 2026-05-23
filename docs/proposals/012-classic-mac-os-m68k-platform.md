@@ -1360,9 +1360,15 @@ Future scope after cited starter-quality rendering:
   CODE evidence output. The Mac summary/project/artifact now expose CODE 0
   jump-table spans, nonzero CODE segment map spans, candidate routine offsets,
   orphan ranges, and deferred relocation/fixup placeholders. Proposal 012 still
-  remains open because `movea.l (a7)+,a0` is candidate-only, relocation/fixup
-  semantics are not accepted, and full per-resource CODE expansion is not
-  complete.
+  remains open because `movea.l (a7)+,a0` is candidate-only and
+  relocation/fixup semantics are not accepted.
+- 018-010 added per-CODE resource payload/navigation/artifact views for the MPW
+  `Asm` target. Every CODE resource now has a structured detail subview; CODE 0
+  is metadata/jump-table output, selected CODE 1 remains the detailed listing,
+  and other nonzero CODE resources expose segment metadata, candidate anchors,
+  orphan ranges, deferred relocation state, and structured placeholders. This
+  completes the starter multi-CODE visibility requirement, not full byte-entry,
+  relocation, or complete source-to-CODE correctness.
 - MPW Asm/Link/Rez byte-for-byte roundtrip.
 - Full non-CODE resource semantics.
 - Overflow extents for later fixtures that need them.

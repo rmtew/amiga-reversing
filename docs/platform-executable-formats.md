@@ -438,6 +438,22 @@ macos.segment_loader.relocation_fixups.deferred. No relocation/fixup output is
 accepted yet.
 ```
 
+018-010 makes that structure visible as source/navigation output:
+
+```text
+binary_container_view.code_resource_details
+binary_container_view.navigation.groups[macos-code-resources]
+binary_container_view.navigation.groups[macos-code-anchors]
+targets/macos_hfs_mpw_gm/targets/macos_file_mpw_tools_asm/asm.s
+```
+
+Every CODE resource has a detail subview with resource id/name, payload
+size/hash, code kind, KB fact identity, layout ranges, orphan ranges,
+relocation/fixup state, navigation anchors, and listing availability. CODE 0 is
+metadata/jump-table output. Selected CODE 1 keeps the full listing route. Other
+nonzero CODE resources expose structured placeholders until relocation and
+source-boundary context can justify fuller previews.
+
 Trace blocks for 018-009:
 
 ```text
