@@ -1092,6 +1092,79 @@ def test_decision_journal_report_does_not_change_default_inspect(tmp_path: Path,
     assert (target_dir / "decision_journal.jsonl").exists()
 
 
+def test_callback_slot_mutation_gate_blocks_without_ready_review_item() -> None:
+    gate = reversing_loop._callback_slot_mutation_gate(
+        {
+            "slots": [
+                {
+                    "assignments": [
+                        {
+                            "action_readiness": {
+                                "status": "blocked",
+                                "blockers": ["missing_orphan_code_review_item"],
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        exact_round_trip_available=True,
+    )
+
+    assert gate["safe_to_mutate"] is False
+    assert gate["missing_gates"] == ["ready_callback_review_item"]
+    assert gate["command_candidate_count"] == 0
+
+
+def test_callback_slot_mutation_gate_requires_round_trip() -> None:
+    gate = reversing_loop._callback_slot_mutation_gate(
+        {
+            "slots": [
+                {
+                    "assignments": [
+                        {
+                            "action_readiness": {
+                                "status": "ready_for_review_seed_code",
+                                "command_id": "review.seed.code",
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        exact_round_trip_available=False,
+    )
+
+    assert gate["safe_to_mutate"] is False
+    assert gate["missing_gates"] == ["exact_round_trip"]
+    assert gate["command_candidate_count"] == 1
+
+
+def test_callback_slot_mutation_gate_allows_ready_review_item_with_round_trip() -> None:
+    gate = reversing_loop._callback_slot_mutation_gate(
+        {
+            "slots": [
+                {
+                    "assignments": [
+                        {
+                            "action_readiness": {
+                                "status": "ready_for_review_seed_code",
+                                "command_id": "review.seed.code",
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        exact_round_trip_available=True,
+    )
+
+    assert gate["safe_to_mutate"] is True
+    assert gate["missing_gates"] == []
+    assert gate["command_candidate_count"] == 1
+    assert gate["verifier_support"]["verifier"] == "manual_seed_state"
+
+
 def test_run_identity_creation_includes_report_paths(tmp_path: Path) -> None:
     _target(tmp_path)
 

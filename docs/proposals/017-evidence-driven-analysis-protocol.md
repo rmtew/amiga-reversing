@@ -1235,3 +1235,18 @@ repeatable work to `docs\issues\017-*`.
   mutate Pandora or touch 012/018 files; any safe mutation requires a separate
   follow-up issue with durable evidence, command support, verifier support, exact
   round-trip, and visible source-quality improvement.
+- 017-055 completed that read-only discovery pass without selecting a mutation.
+  Inspect still reports `candidate_work=[]`, clean hygiene, and available
+  round-trip. Callback-slot discovery surfaced 7 concrete missed-code-target
+  assignments, but all are blocked by `missing_orphan_code_review_item`,
+  `review_item_is_not_code_classification`, or `target_row_missing`; the
+  callback report now has an explicit mutation gate and current Pandora reports
+  `safe_to_mutate=false` because there is no ready callback review item.
+  Immediate-reference discovery still has 9 report-only source-offset-looking
+  candidates, A5 discovery has 20 already accepted custom-base uses plus 505
+  path-proof-blocked unknown uses and no command candidate, RSSET discovery has
+  123 missing-base-evidence candidates plus 2 already-recorded candidates, and
+  the known orphan/data-range packet remains deferred/read-only. No source,
+  Manual Action Log, Decision Journal, verifier artifact, generated output,
+  target metadata, tracked Pandora source, 012, or 018 files were mutated by
+  discovery. No safe 017 follow-up exists; keep 017 paused.

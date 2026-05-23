@@ -1769,27 +1769,87 @@ def inspect_callback_slots(
     project_root: Path = PROJECT_ROOT,
 ) -> dict[str, object]:
     hygiene = inspect_target_hygiene(target_id, mode="inspect", project_root=project_root)
+    target_dir = resolve_project_dir(target_id, project_root=project_root)
     report: dict[str, object] = {
         "target_id": target_id,
         "hygiene": hygiene.to_dict(),
-        "safe_to_mutate": hygiene.safe_to_continue and not hygiene.unknown_files,
+        "safe_to_mutate": False,
     }
     listing_ready = _open_and_wait_listing(target_id, timeout_seconds=listing_timeout_seconds)
     report["listing_open"] = listing_ready
     if listing_ready.get("status") != "ready":
+        report["mutation_gate"] = _callback_slot_mutation_gate({}, exact_round_trip_available=False)
         return report
     rows = _listing_all_rows(target_id)
     project_response = server.route_request("GET", f"/api/projects/{target_id}", {})
     project_data = project_response.get("data")
     project_payload = project_data.get("project") if isinstance(project_data, dict) else {}
     review_items = project_payload.get("review_items") if isinstance(project_payload, dict) else None
-    report["callback_slots"] = callback_slot_report(
+    callback_report = callback_slot_report(
         [row for row in rows if isinstance(row, Mapping)],
         [item for item in review_items if isinstance(item, Mapping)] if isinstance(review_items, list) else (),
         slot_symbol=slot_symbol,
         slot_offset=slot_offset,
     )
+    mutation_gate = _callback_slot_mutation_gate(
+        callback_report,
+        exact_round_trip_available=(target_dir / "reproduction.json").exists(),
+    )
+    report["callback_slots"] = callback_report
+    report["mutation_gate"] = mutation_gate
+    report["safe_to_mutate"] = (
+        hygiene.safe_to_continue and not hygiene.unknown_files and mutation_gate["safe_to_mutate"] is True
+    )
     return report
+
+
+def _callback_slot_mutation_gate(
+    callback_report: Mapping[str, object],
+    *,
+    exact_round_trip_available: bool,
+) -> dict[str, object]:
+    ready_assignments = _callback_slot_ready_assignments(callback_report)
+    missing_gates: list[str] = []
+    if not ready_assignments:
+        missing_gates.append("ready_callback_review_item")
+    if not exact_round_trip_available:
+        missing_gates.append("exact_round_trip")
+    return {
+        "command_id": "review.seed.code",
+        "command_candidate_count": len(ready_assignments),
+        "safe_to_mutate": not missing_gates,
+        "status": "available" if not missing_gates else "blocked",
+        "missing_gates": missing_gates,
+        "mutation_policy": "requires_callback_review_item_and_exact_round_trip",
+        "verifier_support": {
+            "status": "available",
+            "verifier": _default_verifier_for_actions(["review.seed.code"]),
+        },
+        "exact_round_trip": {
+            "status": "available" if exact_round_trip_available else "blocked",
+            "verifier": "_verify_round_trip_exact",
+        },
+    }
+
+
+def _callback_slot_ready_assignments(callback_report: Mapping[str, object]) -> list[Mapping[str, object]]:
+    ready: list[Mapping[str, object]] = []
+    slots = callback_report.get("slots")
+    if not isinstance(slots, Sequence) or isinstance(slots, str):
+        return ready
+    for slot in slots:
+        if not isinstance(slot, Mapping):
+            continue
+        assignments = slot.get("assignments")
+        if not isinstance(assignments, Sequence) or isinstance(assignments, str):
+            continue
+        for assignment in assignments:
+            if not isinstance(assignment, Mapping):
+                continue
+            readiness = assignment.get("action_readiness")
+            if isinstance(readiness, Mapping) and readiness.get("status") == "ready_for_review_seed_code":
+                ready.append(assignment)
+    return ready
 
 
 def inspect_immediate_runtime_refs(
