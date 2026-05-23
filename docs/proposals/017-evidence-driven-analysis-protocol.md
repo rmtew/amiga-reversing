@@ -1173,3 +1173,8 @@ repeatable work to `docs\issues\017-*`.
   mutation is currently unblocked; the next safe issue should define or defer a
   repair/proof path for that manual-action-log sequence mismatch before further
   mutation work.
+- 017-052 is the next active diagnostic step. It must explain the
+  `manual_action_log_inconsistency:target` candidate before further mutation
+  work: where it comes from, whether it is real state corruption or stale/report
+  behavior, whether it affects verifier-backed RSSET state, and whether repair
+  should be implemented, deferred, or treated as outside the 017 protocol scope.
