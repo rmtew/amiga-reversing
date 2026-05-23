@@ -123,6 +123,8 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ; CODE resource detail subviews
 ;   CODE 0 unknown: role=code0_metadata kind=jump_table_segment payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b84853e7c77a60e63166d5b6399c1 fact=macos.code_resource.0.jump_table_metadata status=validated
 ;     jump_table: start=16 size=2768 entries=346 fact=macos.jump_table.entries.accepted status=validated
+;     jump_table_rows:
+;       entry=0 code0_offset=16 entry_size=8 target_CODE=27 routine_offset=0 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
 ;     anchors:
 ;       accepted_metadata: label=CODE 0 metadata offset=unknown fact=macos.code_resource.0.jump_table_metadata status=validated parser_use=accepted_parser_output
 ;       accepted_jump_table: label=CODE 0 jump table offset=16 fact=macos.jump_table.entries.accepted status=validated parser_use=accepted_parser_output

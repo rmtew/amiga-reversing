@@ -274,6 +274,9 @@ def _code_resource_details(
             segment=segment,
             all_routine_candidates=all_routine_candidates,
         )
+        jump_table_rows = (
+            _code0_jump_table_rows(code, all_routine_candidates=all_routine_candidates) if resource_id == 0 else []
+        )
         details.append(
             {
                 "resource_type": "CODE",
@@ -292,6 +295,7 @@ def _code_resource_details(
                 "orphan_ranges": orphan_ranges,
                 "relocation_fixups": relocation_fixups,
                 "jump_table": _mapping(code.get("jump_table")),
+                "jump_table_rows": jump_table_rows,
                 "navigation_anchors": anchors,
                 "listing": listing,
                 "preview_windows": preview_windows,
@@ -628,6 +632,60 @@ def _preview_deferred_reasons(
             or "Segment Loader relocation/fixup interpretation is not represented in this preview",
         }
     ]
+
+
+def _code0_jump_table_rows(
+    code: Mapping[str, object],
+    *,
+    all_routine_candidates: list[dict[str, object]],
+) -> list[dict[str, object]]:
+    jump_table = _mapping(code.get("jump_table"))
+    table_start = _int_value(jump_table.get("start"))
+    entry_size = _int_value(jump_table.get("entry_size"))
+    rows: list[dict[str, object]] = []
+    for candidate in sorted(all_routine_candidates, key=_candidate_code0_offset_sort_key):
+        code0_offset = _int_value(candidate.get("code0_payload_offset"))
+        entry_index = None
+        if code0_offset is not None and table_start is not None and entry_size:
+            entry_index = (code0_offset - table_start) // entry_size
+        if entry_index is None:
+            entry_index = _int_value(candidate.get("index"))
+        rows.append(
+            {
+                "kind": "code0_jump_table_entry",
+                "entry_index": entry_index,
+                "code0_payload_offset": code0_offset,
+                "entry_size": entry_size,
+                "raw_entry_bytes": None,
+                "raw_entry_fields": {
+                    "jump_table_start": table_start,
+                    "entry_size": entry_size,
+                },
+                "target_resource_id": candidate.get("target_resource_id"),
+                "jump_table_offset": candidate.get("jump_table_offset"),
+                "routine_offset_from_segment": candidate.get("routine_offset_from_segment"),
+                "accepted_layout": {
+                    "kb_record_id": code.get("kb_record_id"),
+                    "fact_id": jump_table.get("fact_id"),
+                    "fact_status": jump_table.get("fact_status"),
+                    "parser_use": jump_table.get("parser_use"),
+                },
+                "candidate_target": {
+                    "kb_record_id": candidate.get("kb_record_id"),
+                    "fact_id": candidate.get("fact_id"),
+                    "fact_status": candidate.get("fact_status"),
+                    "parser_use": candidate.get("parser_use"),
+                    "classification": candidate.get("classification"),
+                },
+            }
+        )
+    return rows
+
+
+def _candidate_code0_offset_sort_key(candidate: Mapping[str, object]) -> tuple[int, int]:
+    offset = _int_value(candidate.get("code0_payload_offset"))
+    index = _int_value(candidate.get("index"))
+    return (offset if offset is not None else 10**12, index if index is not None else 10**12)
 
 
 def _non_code_resource_details(resource_types: list[object]) -> list[dict[str, object]]:

@@ -741,6 +741,24 @@ The web UI renders these rows separately from CODE resources so CODE 0 metadata,
 selected CODE 1 listing, and non-selected CODE previews keep their existing
 behavior.
 
+## Mac CODE 0 Jump-Table Drilldown
+
+018-024 adds structured CODE 0 jump-table rows to
+`binary_container_view.code_resource_details[CODE 0].jump_table_rows`.
+
+```text
+Accepted layout fields:
+  entry_index, CODE 0 payload offset, entry size, and
+  macos.jump_table.entries.accepted fact state.
+Candidate target fields:
+  target CODE resource, routine offset, jump-table offset, and
+  macos.code_resource.jump_table.routine_offsets.candidate fact state.
+```
+
+CODE 0 remains metadata/jump-table-only. The drilldown separates accepted entry
+layout from candidate target/routine interpretation, and the web/artifact views
+do not decode CODE 0 as ordinary m68k code.
+
 ## Mac Relocation/Fixup Research Packet
 
 018-021 reviewed local old/out-of-print Mac and MPW sources for Segment Loader

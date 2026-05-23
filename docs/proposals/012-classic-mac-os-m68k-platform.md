@@ -1342,7 +1342,7 @@ Closeout matrix:
 | Area | Current state | Remaining work | Evidence needed | Owner | Starter closeout? |
 | --- | --- | --- | --- | --- | --- |
 | C-backed HFS/resource/CODE import | Normal `macos` project payloads use the C HFS/CODE summary for MPW `Asm`. | Overflow extents for fixtures that need them. | Fixture with overflow extents plus parser drift test. | Proposal 012 backend follow-up | No for current MPW `Asm`; yes for broader fixture support. |
-| CODE 0 metadata and jump table | CODE 0 is metadata/jump-table-only with accepted layout facts and candidate routine mapping. | Entry-by-entry drilldown and richer navigation. | Structured artifact/web rows separating accepted entry layout from candidate target meaning. | 018-024 | Useful for starter audit; not byte-entry closeout. |
+| CODE 0 metadata and jump table | CODE 0 is metadata/jump-table-only with artifact/web drilldown rows separating accepted layout facts from candidate routine targets. | Richer navigation and later routine semantics. | Tests/CDP proving CODE 0 is not decoded as ordinary code and candidate targets remain candidate. | 018-024 maintenance | Useful for starter audit; not byte-entry closeout. |
 | Selected CODE 1 listing | Existing selected full listing route remains available and Mac-style output keeps Amiga `SECTION code,code` out. | Keep route stable while deeper CODE semantics evolve. | Listing tests and CDP checks for selected CODE 1. | 018-018/018-019 maintenance | Yes for starter. |
 | Non-selected CODE previews | Bounded candidate-only previews are payload/artifact/web-visible, and rows decode through the shared m68k listing path where safe. | Keep fallback reasons visible while deeper CODE semantics evolve. | Payload/artifact/web/CDP tests showing decoded candidate rows and fallback reasons. | 018-019 maintenance | Yes for starter usability, not accepted byte-entry. |
 | Byte-entry rules | `movea.l (a7)+,a0` remains candidate-only. | Find citations/parser assertions or replace with safer rule. | KB fact with source strength sufficient for parser use, plus parser-output validation. | Future 018 Mac byte-entry issue | Yes, blocks full 012 closeout. |
@@ -1401,6 +1401,9 @@ Future scope after cited starter-quality rendering:
 - 018-023 surfaces non-CODE resource type inventory in the browser as candidate
   metadata with unsupported payload decoding. It does not decode or accept
   non-CODE resource semantics.
+- 018-024 adds CODE 0 jump-table drilldown rows to payload, artifact, and web
+  views. Accepted entry layout is shown separately from candidate target
+  interpretation, and CODE 0 remains metadata-only.
 - MPW Asm/Link/Rez byte-for-byte roundtrip.
 - Full non-CODE resource semantics.
 - Overflow extents for later fixtures that need them.

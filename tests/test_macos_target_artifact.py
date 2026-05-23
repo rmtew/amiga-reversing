@@ -73,6 +73,9 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     assert ";   CODE 0 unknown: role=code0_metadata" in asm_text
     assert "listing: kind=metadata available=False" in asm_text
     assert "reason=CODE 0 is jump-table/application metadata, not ordinary m68k code" in asm_text
+    assert ";     jump_table_rows:" in asm_text
+    assert "layout_fact=macos.jump_table.entries.accepted layout_status=validated" in asm_text
+    assert "target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate" in asm_text
     assert ";   CODE 1 Main: role=code_segment" in asm_text
     assert "listing: kind=full_listing available=True route=listing" in asm_text
     assert "listing: kind=candidate_preview available=True route=code_preview" in asm_text

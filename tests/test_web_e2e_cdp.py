@@ -177,6 +177,23 @@ def _macos_preview_payload() -> dict[str, object]:
                     "fact_id": "macos.code_resource.0.jump_table_metadata",
                     "fact_status": "validated",
                     "jump_table": {"entry_count": 1},
+                    "jump_table_rows": [
+                        {
+                            "entry_index": 0,
+                            "code0_payload_offset": 16,
+                            "entry_size": 8,
+                            "target_resource_id": 1,
+                            "routine_offset_from_segment": 4,
+                            "accepted_layout": {
+                                "fact_status": "validated",
+                                "parser_use": "accepted_parser_output",
+                            },
+                            "candidate_target": {
+                                "fact_status": "candidate",
+                                "parser_use": "candidate_only",
+                            },
+                        }
+                    ],
                     "relocation_fixups": {
                         "status": "deferred",
                         "fact_status": "deferred",
@@ -913,6 +930,7 @@ def test_brave_cdp_macos_code_details_show_candidate_previews(monkeypatch: pytes
         body_text = page.text_content("body")
         assert "CODE 0 unknown" in body_text
         assert "CODE 0 metadata/jump table only" in body_text
+        assert "validated accepted_parser_output" in body_text
         assert "CODE 1 Main" in body_text
         assert "full_listing listing" in body_text
         assert "Non-CODE Resource Metadata" in body_text
@@ -927,6 +945,7 @@ def test_brave_cdp_macos_code_details_show_candidate_previews(monkeypatch: pytes
         assert "no candidate preview range" in body_text
         assert page.evaluate("document.querySelectorAll('[data-macos-preview-row]').length") == 2
         assert page.evaluate("document.querySelectorAll('[data-macos-non-code-row]').length") == 2
+        assert page.evaluate("document.querySelectorAll('[data-macos-code0-jump-row]').length") == 1
         assert page.evaluate("document.querySelector('[data-macos-code-listing=\"1\"]')?.textContent.includes('movea.l (a7)+,a0')")
         page.assert_no_errors()
 

@@ -10177,9 +10177,37 @@ function renderClassicMacCodeResourceDetail(detail) {
 
 function renderClassicMacCode0Metadata(detail) {
   const jumpTable = detail.jump_table || {};
+  const rows = Array.isArray(detail.jump_table_rows) ? detail.jump_table_rows : [];
   return `
     <div class="macos-code-note" data-macos-code0-metadata="1">
       CODE 0 metadata/jump table only ${jumpTable.entry_count !== undefined ? `entries=${escapeHtml(String(jumpTable.entry_count))}` : ""}
+    </div>
+    ${renderClassicMacCode0JumpTableRows(rows)}
+  `;
+}
+
+function renderClassicMacCode0JumpTableRows(rows) {
+  if (!rows.length) {
+    return "";
+  }
+  return `
+    <div class="macos-code0-jump-table" data-macos-code0-jump-table="1">
+      ${rows.map((row) => renderClassicMacCode0JumpTableRow(row || {})).join("")}
+    </div>
+  `;
+}
+
+function renderClassicMacCode0JumpTableRow(row) {
+  const accepted = row.accepted_layout || {};
+  const candidate = row.candidate_target || {};
+  return `
+    <div class="macos-code0-jump-row" data-macos-code0-jump-row="1">
+      <span>${escapeHtml(String(row.entry_index ?? ""))}</span>
+      <span>${escapeHtml(String(row.code0_payload_offset ?? ""))}</span>
+      <span>${escapeHtml(String(row.target_resource_id ?? ""))}</span>
+      <span>${escapeHtml(String(row.routine_offset_from_segment ?? ""))}</span>
+      <span>${escapeHtml(`${accepted.fact_status || ""} ${accepted.parser_use || ""}`.trim())}</span>
+      <span>${escapeHtml(`${candidate.fact_status || ""} ${candidate.parser_use || ""}`.trim())}</span>
     </div>
   `;
 }

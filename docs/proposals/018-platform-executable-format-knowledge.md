@@ -572,6 +572,9 @@ Do not change code and do not mark Proposal 012 closed.
   C-backed resource type inventory. Rows are candidate inventory with
   unsupported payload-decode status, so they improve container visibility
   without accepting non-CODE resource semantics.
+- 018-024 added CODE 0 jump-table drilldown rows in payload, artifact, and web
+  views. Rows show accepted entry layout facts separately from candidate target
+  CODE/routine interpretation, while CODE 0 remains metadata-only.
 - 018-021 reviewed local Mac/MPW sources for relocation/fixup evidence. It
   added candidate evidence that Segment Loader loading can cause Memory
   Manager heap/block relocation, but it did not find accepted on-disk CODE

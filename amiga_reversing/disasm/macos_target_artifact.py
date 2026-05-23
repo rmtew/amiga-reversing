@@ -327,6 +327,7 @@ def _code_resource_detail_lines(details: Sequence[Mapping[str, object]]) -> list
                 f"size={_text(jump_table.get('size'))} entries={_text(jump_table.get('entry_count'))} "
                 f"fact={_text(jump_table.get('fact_id'))} status={_text(jump_table.get('fact_status'))}"
             )
+        lines.extend(_jump_table_row_lines([_mapping(item) for item in _sequence(detail.get("jump_table_rows"))]))
         segment = _mapping(detail.get("segment_map"))
         if segment:
             lines.append(
@@ -344,6 +345,26 @@ def _code_resource_detail_lines(details: Sequence[Mapping[str, object]]) -> list
         lines.append(_relocation_fixup_line(_mapping(detail.get("relocation_fixups"))))
         lines.append(_listing_descriptor_line(_mapping(detail.get("listing"))))
         lines.extend(_preview_window_lines([_mapping(item) for item in _sequence(detail.get("preview_windows"))]))
+    return lines
+
+
+def _jump_table_row_lines(rows: Sequence[Mapping[str, object]]) -> list[str]:
+    if not rows:
+        return []
+    lines = [";     jump_table_rows:"]
+    for row in rows:
+        accepted = _mapping(row.get("accepted_layout"))
+        candidate = _mapping(row.get("candidate_target"))
+        lines.append(
+            f";       entry={_text(row.get('entry_index'))} "
+            f"code0_offset={_text(row.get('code0_payload_offset'))} "
+            f"entry_size={_text(row.get('entry_size'))} "
+            f"target_CODE={_text(row.get('target_resource_id'))} "
+            f"routine_offset={_text(row.get('routine_offset_from_segment'))} "
+            f"layout_fact={_text(accepted.get('fact_id'))} layout_status={_text(accepted.get('fact_status'))} "
+            f"target_fact={_text(candidate.get('fact_id'))} target_status={_text(candidate.get('fact_status'))} "
+            f"target_parser_use={_text(candidate.get('parser_use'))}"
+        )
     return lines
 
 

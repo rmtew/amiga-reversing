@@ -509,6 +509,56 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
         "reason": "CODE 0 is jump-table/application metadata, not ordinary m68k code",
     }
     assert code0_detail["preview_windows"] == []
+    assert code0_detail["jump_table_rows"] == [
+        {
+            "kind": "code0_jump_table_entry",
+            "entry_index": 0,
+            "code0_payload_offset": 16,
+            "entry_size": 8,
+            "raw_entry_bytes": None,
+            "raw_entry_fields": {"jump_table_start": 16, "entry_size": 8},
+            "target_resource_id": 1,
+            "jump_table_offset": 0,
+            "routine_offset_from_segment": 4,
+            "accepted_layout": {
+                "kb_record_id": "macos.hfs_resource_fork.code_resources.mpw_application",
+                "fact_id": "macos.jump_table.entries.accepted",
+                "fact_status": "validated",
+                "parser_use": "accepted_parser_output",
+            },
+            "candidate_target": {
+                "kb_record_id": "macos.hfs_resource_fork.code_resources.mpw_application",
+                "fact_id": "macos.code_resource.jump_table.routine_offsets.candidate",
+                "fact_status": "candidate",
+                "parser_use": "candidate_only",
+                "classification": "candidate_routine_entry",
+            },
+        },
+        {
+            "kind": "code0_jump_table_entry",
+            "entry_index": 1,
+            "code0_payload_offset": 24,
+            "entry_size": 8,
+            "raw_entry_bytes": None,
+            "raw_entry_fields": {"jump_table_start": 16, "entry_size": 8},
+            "target_resource_id": 2,
+            "jump_table_offset": 8,
+            "routine_offset_from_segment": 6,
+            "accepted_layout": {
+                "kb_record_id": "macos.hfs_resource_fork.code_resources.mpw_application",
+                "fact_id": "macos.jump_table.entries.accepted",
+                "fact_status": "validated",
+                "parser_use": "accepted_parser_output",
+            },
+            "candidate_target": {
+                "kb_record_id": "macos.hfs_resource_fork.code_resources.mpw_application",
+                "fact_id": "macos.code_resource.jump_table.routine_offsets.candidate",
+                "fact_status": "candidate",
+                "parser_use": "candidate_only",
+                "classification": "candidate_routine_entry",
+            },
+        },
+    ]
     assert any(anchor["kind"] == "accepted_jump_table" for anchor in code0_detail["navigation_anchors"])
     assert any(anchor["kind"] == "candidate_routine_jump_table_entry" for anchor in code0_detail["navigation_anchors"])
     assert code1_detail["role"] == "code_segment"
@@ -707,6 +757,15 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     assert container["code_resource_details"][0]["listing"]["kind"] == "metadata"
     assert container["code_resource_details"][0]["listing"]["available"] is False
     assert container["code_resource_details"][0]["preview_windows"] == []
+    assert container["code_resource_details"][0]["jump_table_rows"]
+    assert all(
+        row["accepted_layout"]["fact_status"] == "validated"
+        for row in container["code_resource_details"][0]["jump_table_rows"]
+    )
+    assert any(
+        row["candidate_target"]["fact_status"] == "candidate"
+        for row in container["code_resource_details"][0]["jump_table_rows"]
+    )
     selected_detail = next(detail for detail in container["code_resource_details"] if detail["id"] == 1)
     assert selected_detail["listing"]["kind"] == "full_listing"
     assert selected_detail["preview_windows"] == []

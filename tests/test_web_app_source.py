@@ -436,6 +436,8 @@ def test_web_app_renders_macos_source_and_container_payloads() -> None:
     assert "function renderClassicMacNonCodeResourceDetails(details)" in app_js
     assert "function renderClassicMacNonCodeResourceRow(detail)" in app_js
     assert "function renderClassicMacCodeResourceDetails(details)" in app_js
+    assert "function renderClassicMacCode0JumpTableRows(rows)" in app_js
+    assert "function renderClassicMacCode0JumpTableRow(row)" in app_js
     assert "function renderClassicMacPreviewWindow(preview)" in app_js
     assert "function renderClassicMacPreviewRow(row)" in app_js
     assert "function renderClassicMacBoundary(boundary)" in app_js
@@ -449,6 +451,8 @@ def test_web_app_renders_macos_source_and_container_payloads() -> None:
     assert "preview_windows" in app_js
     assert "non_code_resource_details" in app_js
     assert 'data-macos-non-code-row="1"' in app_js
+    assert "jump_table_rows" in app_js
+    assert 'data-macos-code0-jump-row="1"' in app_js
     assert "Candidate bounded preview" in app_js
     assert 'data-macos-code-details="1"' in app_js
     assert "data-macos-preview-row" in app_js
@@ -460,5 +464,6 @@ def test_web_app_renders_macos_source_and_container_payloads() -> None:
     assert ".macos-pivot-grid" in styles_css
     assert ".macos-summary-grid" in styles_css
     assert ".macos-non-code-row" in styles_css
+    assert ".macos-code0-jump-row" in styles_css
     assert ".macos-code-details" in styles_css
     assert ".macos-code-preview-row" in styles_css
