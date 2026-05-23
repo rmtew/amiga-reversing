@@ -392,6 +392,65 @@ reasons, and deferred relocation/fixup state. Add CDP browser verification for
 the rendered Mac project page.
 ```
 
+018-019. Mac OS Candidate CODE Preview Disassembly Rows
+
+```text
+After 018-018. Replace unconditional dc.w/dc.b candidate preview rows with
+decoded Mac-style m68k rows where the existing listing/decode path can safely
+produce them. Keep rows candidate-only, keep relocation/fixups deferred, and
+preserve data-row fallback with an explicit reason.
+```
+
+018-020. Mac OS CODE Preview Extraction Cache
+
+```text
+After 018-017, and preferably after 018-019 if preview row semantics are being
+changed. Avoid repeated CODE resource extraction during one Mac project payload
+build. Keep output semantics unchanged and prove cache hit/isolation behavior
+with instrumented tests.
+```
+
+018-021. Mac OS Relocation/Fixup Citation Packet
+
+```text
+Batch-safe research/doc issue. Search allowed local Mac/MPW sources for Segment
+Loader relocation/fixup evidence, record citation packets or KB facts with
+accepted/candidate/deferred/conflict status, and do not change parser, payload,
+artifact, or web behavior.
+```
+
+018-022. Mac OS Source-To-CODE Mapping Research
+
+```text
+Batch-safe research/doc issue. Compare MPW source/build metadata, documentation,
+and observed CODE resources to classify source-to-CODE mapping evidence. Keep
+the current source/binary boundary safe and do not change parser or UI behavior.
+```
+
+018-023. Mac OS Non-CODE Resource Web UI
+
+```text
+After 018-014 and 018-018. Surface non-CODE resource metadata inventory in the
+Mac web UI with candidate/deferred/unsupported labels and CDP verification.
+Avoid concurrent edits with 018-024 because both touch the Mac container UI.
+```
+
+018-024. Mac OS CODE 0 Jump Table Drilldown
+
+```text
+After 018-010. Render CODE 0 jump-table entries as structured artifact/web
+rows. Keep accepted jump-table layout facts separate from candidate
+segment/routine interpretation and keep CODE 0 metadata-only.
+```
+
+018-025. Proposal 012 Closeout Matrix
+
+```text
+Batch-safe docs issue. Add a Proposal 012 closeout matrix that separates
+completed starter support from remaining blockers and deeper roundtrip work.
+Do not change code and do not mark Proposal 012 closed.
+```
+
 ## Implementation Notes
 
 - 018-001 added the canonical human/schema/data authority files:
