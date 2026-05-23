@@ -6,6 +6,7 @@ import tempfile
 from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from pathlib import Path
+from typing import cast
 
 from amiga_reversing.disasm.api import ListingWindowPayload
 from amiga_reversing.disasm.binary_source import (
@@ -124,8 +125,9 @@ class MacosCodeListingArtifact:
         adjusted["platform"] = "macos"
         adjusted["backend"] = "macos-code"
         adjusted["macos"] = self._provenance
-        if isinstance(adjusted.get("total_rows"), int):
-            adjusted["total_rows"] = max(0, int(adjusted["total_rows"]) - 1)
+        total_rows = adjusted.get("total_rows")
+        if isinstance(total_rows, int):
+            adjusted["total_rows"] = max(0, total_rows - 1)
         return adjusted, _macos_profile(profile)
 
     def navigation_payload(self) -> tuple[dict[str, object], dict[str, object]]:
@@ -172,10 +174,12 @@ class MacosCodeListingArtifact:
         adjusted = dict(payload)
         adjusted["analysis_generation"] = "macos-code"
         adjusted["rows"] = rows
-        if isinstance(adjusted.get("total_rows"), int):
-            adjusted["total_rows"] = max(0, int(adjusted["total_rows"]) - 1)
-        adjusted["end"] = int(adjusted.get("start", 0)) + len(rows)
-        return adjusted  # type: ignore[return-value]
+        total_rows = adjusted.get("total_rows")
+        if isinstance(total_rows, int):
+            adjusted["total_rows"] = max(0, total_rows - 1)
+        start = adjusted.get("start", 0)
+        adjusted["end"] = (start if isinstance(start, int) else 0) + len(rows)
+        return cast(ListingWindowPayload, adjusted)
 
 
 @contextmanager
@@ -211,7 +215,7 @@ def _macos_origin(project: ProjectRecord) -> Mapping[str, object]:
     origin = project.origin
     if not is_macos_project_origin(origin):
         raise ValueError("Mac OS listing requires macos_mpw_fixture origin")
-    return origin
+    return cast(Mapping[str, object], origin)
 
 
 def _selected_resource_id(origin: Mapping[str, object]) -> int:

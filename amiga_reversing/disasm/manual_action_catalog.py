@@ -922,8 +922,9 @@ def _provenance_consumers(context: Mapping[str, object]) -> list[str]:
     return consumers
 
 
-def listing_range_action_catalog(rows: list[Mapping[str, object]]) -> list[dict[str, object]]:
-    context = listing_range_context(rows)
+def listing_range_action_catalog(rows: Sequence[Mapping[str, object]]) -> list[dict[str, object]]:
+    rows_list = list(rows)
+    context = listing_range_context(rows_list)
     actions = [
         _context_log_action(
             "range.review_note.add",
@@ -933,12 +934,19 @@ def listing_range_action_catalog(rows: list[Mapping[str, object]]) -> list[dict[
             {},
             _review_note_parameter_schema(),
         ),
-        _range_seed_action("range.seed.code", "Seed code", context, rows, {"seed_kind": "code"}, _row_allows_code_seed),
+        _range_seed_action(
+            "range.seed.code",
+            "Seed code",
+            context,
+            rows_list,
+            {"seed_kind": "code"},
+            _row_allows_code_seed,
+        ),
         _range_seed_action(
             "range.seed.data.raw",
             "Raw block",
             context,
-            rows,
+            rows_list,
             {"seed_kind": "data", "data_role": "raw", "unit": "byte"},
             _row_allows_data_seed,
         ),
@@ -946,7 +954,7 @@ def listing_range_action_catalog(rows: list[Mapping[str, object]]) -> list[dict[
             "range.seed.data.named",
             "Name data",
             context,
-            rows,
+            rows_list,
             {"seed_kind": "data", "data_role": "raw", "unit": "byte"},
             _row_allows_data_seed,
             _data_name_parameter_schema(),
@@ -955,7 +963,7 @@ def listing_range_action_catalog(rows: list[Mapping[str, object]]) -> list[dict[
             "range.seed.data.byte",
             "Byte data",
             context,
-            rows,
+            rows_list,
             {"seed_kind": "data", "unit": "byte"},
             _row_allows_data_seed,
         ),
@@ -963,7 +971,7 @@ def listing_range_action_catalog(rows: list[Mapping[str, object]]) -> list[dict[
             "range.seed.data.word",
             "Word data",
             context,
-            rows,
+            rows_list,
             {"seed_kind": "data", "unit": "word"},
             _row_allows_data_seed,
         ),
@@ -971,14 +979,14 @@ def listing_range_action_catalog(rows: list[Mapping[str, object]]) -> list[dict[
             "range.seed.data.long",
             "Long data",
             context,
-            rows,
+            rows_list,
             {"seed_kind": "data", "unit": "long"},
             _row_allows_data_seed,
         ),
     ]
-    actions.extend(_range_data_role_actions(context, rows))
-    actions.append(_range_data_block_layout_action(context, rows))
-    actions.extend(_range_data_block_element_actions(context, rows))
+    actions.extend(_range_data_role_actions(context, rows_list))
+    actions.append(_range_data_block_layout_action(context, rows_list))
+    actions.extend(_range_data_block_element_actions(context, rows_list))
     actions.append(
         _range_unavailable_action(
             "range.semantic.helpers",
@@ -990,9 +998,13 @@ def listing_range_action_catalog(rows: list[Mapping[str, object]]) -> list[dict[
     return actions
 
 
-def listing_range_context(rows: list[Mapping[str, object]]) -> dict[str, object]:
+def listing_range_context(rows: Sequence[Mapping[str, object]]) -> dict[str, object]:
     row_contexts = [listing_row_context(row) for row in rows]
-    row_indexes = [context["row_index"] for context in row_contexts if isinstance(context.get("row_index"), int)]
+    row_indexes = [
+        row_index
+        for context in row_contexts
+        if isinstance(row_index := context.get("row_index"), int)
+    ]
     row_ids = [str(row.get("row_id")) for row in rows if isinstance(row.get("row_id"), str) and row.get("row_id")]
     context: dict[str, object] = {
         "kind": "range",
@@ -1007,12 +1019,13 @@ def listing_range_context(rows: list[Mapping[str, object]]) -> dict[str, object]
 
 
 def listing_range_catalog_manual_payload(
-    rows: list[Mapping[str, object]],
+    rows: Sequence[Mapping[str, object]],
     action_id: str,
     *,
     parameters: Mapping[str, object] | None = None,
 ) -> list[tuple[str, dict[str, object]]]:
-    action = _catalog_action(listing_range_action_catalog(rows), action_id)
+    rows_list = list(rows)
+    action = _catalog_action(listing_range_action_catalog(rows_list), action_id)
     if action.get("appends_to_manual_action_log") is not True:
         raise ValueError(f"Catalog action does not append to Manual Action Log: {action_id}")
     if action.get("range_availability") == "unavailable":
@@ -1022,11 +1035,11 @@ def listing_range_catalog_manual_payload(
     if parameters:
         params.update(parameters)
     if action.get("action") == "add_review_note":
-        return [("add_review_note", {"note": _range_review_note_payload(rows, params)})]
+        return [("add_review_note", {"note": _range_review_note_payload(rows_list, params)})]
     if action.get("action") == "create_manual_data_block_layout":
         return [
             ("create_manual_data_block_layout", {"data_block_layout": _data_block_layout_payload(subrange_rows, params)})
-            for subrange_rows in _range_action_subrange_rows(action, rows)
+            for subrange_rows in _range_action_subrange_rows(action, rows_list)
         ]
     if action.get("action") == "set_manual_data_block_element":
         return [
@@ -1039,7 +1052,7 @@ def listing_range_catalog_manual_payload(
                     )
                 },
             )
-            for subrange_rows in _range_action_subrange_rows(action, rows)
+            for subrange_rows in _range_action_subrange_rows(action, rows_list)
         ]
     if action.get("action") == "remove_manual_data_block_element":
         return [
@@ -1052,7 +1065,7 @@ def listing_range_catalog_manual_payload(
                     )
                 },
             )
-            for subrange_rows in _range_action_subrange_rows(action, rows)
+            for subrange_rows in _range_action_subrange_rows(action, rows_list)
         ]
     if action.get("action") == "represent_manual_data_block_element":
         return [
@@ -1065,13 +1078,13 @@ def listing_range_catalog_manual_payload(
                     )
                 },
             )
-            for subrange_rows in _range_action_subrange_rows(action, rows)
+            for subrange_rows in _range_action_subrange_rows(action, rows_list)
         ]
     subranges = action.get("applicable_subranges")
     if not isinstance(subranges, list) or not subranges:
         raise ValueError("Range action has no explicit applicable subranges")
     results: list[tuple[str, dict[str, object]]] = []
-    rows_by_index = {_optional_int(row.get("row_index")): row for row in rows}
+    rows_by_index = {_optional_int(row.get("row_index")): row for row in rows_list}
     for raw_subrange in subranges:
         if not isinstance(raw_subrange, Mapping):
             continue
@@ -1602,11 +1615,12 @@ def _suppress_seeded_item_actions(context: Mapping[str, object], row: Mapping[st
     actions: list[dict[str, object]] = []
     for item in _row_suppressible_seeded_items(row):
         kind = item["kind"]
+        kind_text = kind if isinstance(kind, str) else ""
         label = {
             "seeded_entity": "Suppress seeded data",
             "seeded_code_label": "Suppress seeded label",
             "seeded_code_entrypoint": "Suppress seeded entrypoint",
-        }.get(kind, "Suppress seeded item")
+        }.get(kind_text, "Suppress seeded item")
         actions.append(
             _context_log_action(
                 f"correction.suppress_seeded_item.{kind}",
@@ -1767,6 +1781,8 @@ def listing_catalog_manual_payload(
             "data_block_interpreted_ref": _data_block_element_ref_payload([row], params)
         }
     if ui_action == "interpret_manual_immediate_ref":
+        if element_context is None:
+            raise ValueError("interpret_manual_immediate_ref requires selected element context")
         return "interpret_manual_immediate_ref", {
             "immediate_interpreted_ref": _immediate_ref_payload(row, element_context, params)
         }
@@ -2678,7 +2694,7 @@ def _rsset_report_nearby_fields(row: Mapping[str, object], displacement: int) ->
             end = offset + 1
         if abs(offset - displacement) <= 8 or abs(end - displacement) <= 8:
             nearby.append(_rsset_report_region_summary(region, offset, end))
-    nearby.sort(key=lambda item: int(item.get("offset", 0)))
+    nearby.sort(key=lambda item: cast(int, item.get("offset", 0)))
     return nearby[:6]
 
 
@@ -4373,7 +4389,7 @@ def _a5_hardware_ref_payload(
         "source_evidence_id": source_evidence_id,
         "path_lifetime_scope": dict(path_lifetime_scope),
         "symbol": symbol,
-        "conflicts": list(params.get("conflicts")) if isinstance(params.get("conflicts"), list) else [],
+        "conflicts": list(cast(list[object], params.get("conflicts"))) if isinstance(params.get("conflicts"), list) else [],
     }
     for key in ("definition_locator", "use_locator"):
         value = params.get(key)

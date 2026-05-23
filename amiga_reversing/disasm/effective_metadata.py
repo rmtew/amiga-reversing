@@ -58,7 +58,7 @@ def effective_target_metadata(target_dir: Path) -> TargetMetadata | None:
     return _apply_manual_seed_projection(target_dir, metadata)
 
 
-def _manual_seed_int(seed: dict[str, object], field_name: str) -> int | None:
+def _manual_seed_int(seed: Mapping[str, object], field_name: str) -> int | None:
     value = seed.get(field_name)
     if isinstance(value, int):
         return value
@@ -99,7 +99,7 @@ def _parse_manual_seed_range(seed: dict[str, object]) -> tuple[int, int, int | N
         return None
 
 
-def _manual_seed_text(seed: dict[str, object], field_name: str) -> str | None:
+def _manual_seed_text(seed: Mapping[str, object], field_name: str) -> str | None:
     value = seed.get(field_name)
     return value if isinstance(value, str) and value else None
 
@@ -143,7 +143,7 @@ def _manual_semantic_hint_source_locator(hint: dict[str, object]) -> str:
     return f"ManualSemanticHint:{hint_id}"
 
 
-def _manual_action_citation(action_object: dict[str, object], id_field: str) -> str:
+def _manual_action_citation(action_object: Mapping[str, object], id_field: str) -> str:
     action_id = _manual_seed_text(action_object, id_field) or "unnamed"
     return f"manual_action_log:{action_id}"
 
@@ -687,7 +687,9 @@ def _manual_rsset_use_site_binding_to_metadata(binding: dict[str, object]) -> Rs
         source_evidence_id=_manual_seed_text(binding, "source_evidence_id"),
         source_family=_manual_seed_text(binding, "source_family"),
         source_evidence_status=_manual_seed_text(binding, "source_evidence_status"),
-        path_lifetime_scope=binding.get("path_lifetime_scope") if isinstance(binding.get("path_lifetime_scope"), dict) else None,
+        path_lifetime_scope=cast(dict[str, object], binding.get("path_lifetime_scope"))
+        if isinstance(binding.get("path_lifetime_scope"), dict)
+        else None,
         confidence=_manual_seed_text(binding, "confidence"),
         base_evidence_refs=tuple(
             dict(ref)
@@ -874,8 +876,9 @@ def _data_block_element_unit(layout: DataBlockLayoutMetadata, element: DataBlock
         return _data_block_unit_from_width(element.width)
     if element.kind is DataBlockElementKind.ARRAY and element.array_stride in {1, 2, 4}:
         return _data_block_unit_from_width(element.array_stride)
-    if layout.default_unit in {"byte", "word", "long"}:
-        return layout.default_unit
+    default_unit = layout.default_unit
+    if isinstance(default_unit, str) and default_unit in {"byte", "word", "long"}:
+        return default_unit
     return _data_block_unit_from_width(element.width)
 
 
@@ -1392,7 +1395,7 @@ def _data_block_element_interpreted_ref_runtime_address_ref(
     ref_id = _manual_data_block_reference_id(ref)
     layout_id = ref.get("layout_id")
     offset = _manual_seed_int(ref, "offset")
-    if not isinstance(layout_id, str) or offset is None:
+    if ref_id is None or not isinstance(layout_id, str) or offset is None:
         return None
     return ManualRuntimeAddressRefMetadata(
         addr=addr,
@@ -1727,15 +1730,15 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
     execution_views = list(metadata.execution_views)
     suppressed_seeded_items = list(metadata.suppressed_seeded_items)
     removed_target_equate_names = {
-        name
+        removed_equate_name
         for equate in removed_target_equate_projections
-        if (name := _manual_seed_text(equate, "name")) is not None
+        if (removed_equate_name := _manual_seed_text(equate, "name")) is not None
     }
     renamed_target_equates = {
-        previous_name: name
+        previous_equate_name: new_equate_name
         for equate in renamed_target_equate_projections
         if (rename := _manual_target_equate_rename(equate)) is not None
-        for previous_name, name in (rename,)
+        for previous_equate_name, new_equate_name in (rename,)
     }
     if renamed_target_equates:
         target_equates = [
@@ -1745,9 +1748,9 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
     if removed_target_equate_names:
         target_equates = [equate for equate in target_equates if equate.name not in removed_target_equate_names]
     removed_execution_view_keys = {
-        key
+        removed_execution_view_key
         for view in removed_execution_view_projections
-        if (key := _manual_execution_view_key(view)) is not None
+        if (removed_execution_view_key := _manual_execution_view_key(view)) is not None
     }
     if removed_execution_view_keys:
         execution_views = [
@@ -1756,15 +1759,15 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
             if (view.source_start, view.source_end, view.base_addr) not in removed_execution_view_keys
         ]
     removed_custom_struct_names = {
-        name
+        removed_struct_name
         for struct in removed_custom_struct_projections
-        if (name := _manual_seed_text(struct, "name")) is not None
+        if (removed_struct_name := _manual_seed_text(struct, "name")) is not None
     }
     renamed_custom_structs = {
-        previous_name: name
+        previous_struct_name: new_struct_name
         for struct in renamed_custom_struct_projections
         if (rename := _manual_custom_struct_rename(struct)) is not None
-        for previous_name, name in (rename,)
+        for previous_struct_name, new_struct_name in (rename,)
     }
     if renamed_custom_structs:
         custom_structs = [
@@ -1778,9 +1781,9 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
             if struct.name not in removed_custom_struct_names
         ]
     removed_rsset_layout_region_keys = {
-        key
+        removed_region_key
         for region in removed_rsset_layout_region_projections
-        if (key := _manual_rsset_layout_region_key(region)) is not None
+        if (removed_region_key := _manual_rsset_layout_region_key(region)) is not None
     }
     if removed_rsset_layout_region_keys:
         rsset_layout_regions = [
@@ -1813,9 +1816,9 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
             ref for ref in manual_runtime_address_refs if ref.owner_layout_id not in removed_data_block_layout_ids
         ]
     removed_data_block_element_keys = {
-        key
+        removed_element_key
         for element in removed_data_block_element_projections
-        if (key := _manual_data_block_element_key(element)) is not None
+        if (removed_element_key := _manual_data_block_element_key(element)) is not None
     }
     if removed_data_block_element_keys:
         data_block_layouts = [
@@ -1934,15 +1937,15 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
         if custom_struct is not None:
             custom_structs.append(custom_struct)
     removed_custom_struct_field_keys = {
-        key
+        removed_field_key
         for field in removed_custom_struct_field_projections
-        if (key := _manual_custom_struct_field_key(field)) is not None
+        if (removed_field_key := _manual_custom_struct_field_key(field)) is not None
     }
     renamed_custom_struct_fields = {
-        key: name
+        renamed_field_key: renamed_field_name
         for field in renamed_custom_struct_field_projections
-        if (key := _manual_custom_struct_field_key(field)) is not None
-        if (name := _manual_seed_text(field, "name")) is not None
+        if (renamed_field_key := _manual_custom_struct_field_key(field)) is not None
+        if (renamed_field_name := _manual_seed_text(field, "name")) is not None
     }
     if custom_struct_field_projections or renamed_custom_struct_fields or removed_custom_struct_field_keys:
         custom_structs = [
@@ -1983,9 +1986,9 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
     data_block_reference_interpretations = _manual_data_block_reference_interpretations(
         data_block_interpreted_ref_projections
     )
-    for layout in data_block_layout_projections:
+    for layout_projection in data_block_layout_projections:
         data_block_layout = _manual_data_block_layout_to_metadata(
-            layout,
+            layout_projection,
             data_block_element_projections,
             data_block_reference_interpretations,
         )
@@ -2000,13 +2003,13 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
             for representation in manual_representations
             if not _representation_overlaps_data_block_element(representation, data_block_representation_ranges)
         ]
-    for layout in effective_data_block_layouts:
-        for element in layout.elements:
-            typed_entities = _data_block_bound_struct_entities(layout, element, merged_custom_structs)
+    for effective_layout in effective_data_block_layouts:
+        for element in effective_layout.elements:
+            typed_entities = _data_block_bound_struct_entities(effective_layout, element, merged_custom_structs)
             if typed_entities:
                 seeded_entities.extend(typed_entities)
             else:
-                entity = _data_block_element_entity(layout, element)
+                entity = _data_block_element_entity(effective_layout, element)
                 if entity is not None:
                     seeded_entities.append(entity)
             interpreted_ref_equate = (
@@ -2014,17 +2017,17 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
                 if isinstance(element.reference_interpretation, dict)
                 else None
             )
-            interpreted_ref_representation = _data_block_element_interpreted_ref_representation(layout, element)
-            interpreted_ref_runtime_ref = _data_block_element_interpreted_ref_runtime_address_ref(layout, element)
+            interpreted_ref_representation = _data_block_element_interpreted_ref_representation(effective_layout, element)
+            interpreted_ref_runtime_ref = _data_block_element_interpreted_ref_runtime_address_ref(effective_layout, element)
             if interpreted_ref_equate is not None and interpreted_ref_representation is not None:
                 target_equates.append(interpreted_ref_equate)
                 manual_representations.append(interpreted_ref_representation)
                 if interpreted_ref_runtime_ref is not None:
                     manual_runtime_address_refs.append(interpreted_ref_runtime_ref)
             elif not typed_entities:
-                representation = _data_block_element_representation(layout, element)
-                if representation is not None:
-                    manual_representations.append(representation)
+                element_representation = _data_block_element_representation(effective_layout, element)
+                if element_representation is not None:
+                    manual_representations.append(element_representation)
     merged_target_equates = {equate.name: equate for equate in target_equates}
     merged_manual_runtime_address_refs = {
         (ref.owner_kind, ref.owner_id, ref.hunk, ref.addr, ref.target_hunk, ref.target_offset): ref

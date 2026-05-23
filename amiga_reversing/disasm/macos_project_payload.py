@@ -289,7 +289,7 @@ def _listing_descriptor(
     selected_id: object,
     project_id: str,
     unsupported: list[object],
-    preview_windows: list[object],
+    preview_windows: list[dict[str, object]],
 ) -> dict[str, object]:
     resource_id = resource.get("id")
     if resource_id == 0:
@@ -530,8 +530,8 @@ def _resource_navigation_anchors(
                 "parser_use": segment.get("parser_use"),
             }
         )
-        for candidate in _sequence(segment.get("routine_entry_candidates")):
-            candidate_mapping = _mapping(candidate)
+        for raw_candidate in _sequence(segment.get("routine_entry_candidates")):
+            candidate_mapping = _mapping(raw_candidate)
             anchors.append(
                 {
                     "kind": "candidate_routine_entry",

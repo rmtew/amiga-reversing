@@ -83,7 +83,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser.parse_args(list(argv) if argv is not None else None)
     paths = args.paths or sorted(args.issues_dir.glob("017-*.md"))
     report = validate_issue_paths(paths)
-    for diagnostic in report["diagnostics"]:
+    for diagnostic in _diagnostic_sequence(report.get("diagnostics")):
         path = diagnostic.get("path") or "<issue>"
         line = f":{diagnostic['line']}" if isinstance(diagnostic.get("line"), int) else ""
         print(f"{path}{line}: {diagnostic['message']}")

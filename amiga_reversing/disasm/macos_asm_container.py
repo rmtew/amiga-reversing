@@ -5,8 +5,9 @@ from __future__ import annotations
 import hashlib
 import subprocess
 import tempfile
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from pathlib import Path
+from typing import cast
 
 from amiga_reversing.disasm.c_backend import (
     extract_macos_hfs_code_resource_bytes_with_c_backend,
@@ -54,9 +55,14 @@ def import_mpw_asm_container(
     code0 = _single_code_resource(code_resources, 0)
     code1 = _single_code_resource(code_resources, 1)
     c_summary = inspect_macos_hfs_code_summary_with_c_backend(hfs_bytes, path)
-    selected = c_summary["selected_code"]
+    selected = cast(Mapping[str, object], c_summary["selected_code"])
     code1_code_bytes = extract_macos_hfs_code_resource_bytes_with_c_backend(hfs_bytes, path, 1)
-    code_entry_offset = int(selected["code_bytes_offset"]) - int(selected["payload_offset"])
+    code_bytes_offset = selected.get("code_bytes_offset")
+    payload_offset = selected.get("payload_offset")
+    if not isinstance(code_bytes_offset, int) or not isinstance(payload_offset, int):
+        raise ValueError("selected CODE resource is missing byte offsets")
+    code_entry_offset = code_bytes_offset - payload_offset
+    selected_code_metadata = selected.get("code")
 
     return {
         "platform": "macos",
@@ -103,7 +109,9 @@ def import_mpw_asm_container(
             "code_header_size": 4,
             "code_entry_offset": code_entry_offset,
             "code_bytes_size": selected.get("code_bytes_size"),
-            "code_layout": selected.get("code", {}).get("layout_ranges", []),
+            "code_layout": selected_code_metadata.get("layout_ranges", [])
+            if isinstance(selected_code_metadata, Mapping)
+            else [],
             "sha256": code1.get("sha256"),
             "listing_preview": _code_listing_preview(code1_code_bytes, max_words=8),
         },

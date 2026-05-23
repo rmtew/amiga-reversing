@@ -426,7 +426,7 @@ def _target_source_kind(project_root: Path, target_name: str) -> BinarySourceKin
 def _integration_target_name(prefix: str, label: str) -> str:
     stem = normalize_filename_stem(Path(label).stem)[:36]
     digest = hashlib.sha1(label.encode("utf-8")).hexdigest()[:10]
-    return cast(str, ensure_safe_project_id(f"{prefix}_{stem}_{digest}"))
+    return str(ensure_safe_project_id(f"{prefix}_{stem}_{digest}"))
 
 
 def _empty_metadata() -> TargetMetadata:

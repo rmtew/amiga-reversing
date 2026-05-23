@@ -4,6 +4,7 @@ import hashlib
 import json
 from collections.abc import Mapping, Sequence
 from pathlib import Path
+from typing import cast
 
 DECISION_JOURNAL_FILE_NAME = "decision_journal.jsonl"
 DECISION_JOURNAL_SCHEMA = "evidence-decision/v1"
@@ -275,12 +276,14 @@ def project_decision_journal(records: Sequence[object]) -> dict[str, object]:
             continue
         candidate_id = _text(record.get("candidate_id"))
         if candidate_id is not None:
-            _projection_group(by_candidate_id, candidate_id)[bucket_name].append(record)
-            _projection_group(by_candidate_id, candidate_id)["active_decision_ids"].append(decision_id)
+            candidate_group = _projection_group(by_candidate_id, candidate_id)
+            cast(list[dict[str, object]], candidate_group[bucket_name]).append(record)
+            cast(list[str], candidate_group["active_decision_ids"]).append(decision_id)
         selected_identity_key = _selected_identity_key(record.get("selected_identity"))
         if selected_identity_key is not None:
-            _projection_group(by_selected_identity, selected_identity_key)[bucket_name].append(record)
-            _projection_group(by_selected_identity, selected_identity_key)["active_decision_ids"].append(decision_id)
+            identity_group = _projection_group(by_selected_identity, selected_identity_key)
+            cast(list[dict[str, object]], identity_group[bucket_name]).append(record)
+            cast(list[str], identity_group["active_decision_ids"]).append(decision_id)
 
     return {
         "valid": True,
@@ -425,7 +428,7 @@ def _journal_read_result(
     read_diagnostics: list[dict[str, object]],
 ) -> dict[str, object]:
     validation = validate_decision_journal_records(records)
-    diagnostics = [*read_diagnostics, *validation["diagnostics"]]
+    diagnostics = [*read_diagnostics, *cast(list[dict[str, object]], validation["diagnostics"])]
     return {
         "path": str(path),
         "valid": not diagnostics,

@@ -47,6 +47,7 @@ from amiga_reversing.disasm.listing_projection import (
     ListingProjectionService,
 )
 from amiga_reversing.disasm.macos_listing_source import (
+    MacosCodeListingArtifact,
     build_macos_project_listing_artifact_profile,
     macos_listing_cache_key,
 )
@@ -132,7 +133,7 @@ class EmptyListingPayload(TypedDict):
     has_more_before: bool
     has_more_after: bool
     total_rows: int
-    rows: list[object]
+    rows: list[dict[str, object]]
 
 
 class AsyncJobPayload(TypedDict):
@@ -248,23 +249,26 @@ def _os_corrections_payload() -> dict[str, object]:
 
 
 def _type_catalog_payload(project_name: str) -> list[dict[str, object]]:
-    return cast(list[dict[str, object]], type_catalog_from_c_backend(project_name))
+    return type_catalog_from_c_backend(project_name)
 
 
-def _valid_c_listing_artifact(project_name: str) -> CListingArtifact | None:
+ListingArtifact = CListingArtifact | MacosCodeListingArtifact
+
+
+def _valid_c_listing_artifact(project_name: str) -> ListingArtifact | None:
     if not _LISTING_PROJECTION_SERVICE.has_project_state(project_name):
         return None
     return cast(
-        CListingArtifact | None,
+        ListingArtifact | None,
         _LISTING_PROJECTION_SERVICE.valid_artifact(project_name, _project_listing_cache_key(project_name)),
     )
 
 
-def _listing_read_artifact(project_name: str) -> CListingArtifact | None:
+def _listing_read_artifact(project_name: str) -> ListingArtifact | None:
     if not _LISTING_PROJECTION_SERVICE.has_project_state(project_name):
         return None
     return cast(
-        CListingArtifact | None,
+        ListingArtifact | None,
         _LISTING_PROJECTION_SERVICE.read_artifact(project_name, _project_listing_cache_key(project_name)),
     )
 
@@ -293,12 +297,12 @@ def _manual_action_affects_listing_artifact(kind: ManualActionKind) -> bool:
 
 def _cached_analysis_review_items(
     project_name: str,
-    listing_artifact: CListingArtifact,
+    listing_artifact: ListingArtifact,
 ) -> tuple[dict[str, object], ...]:
     return _LISTING_PROJECTION_SERVICE.cached_analysis_review_items(
         project_id=project_name,
         artifact=listing_artifact,
-        item_factory=analysis_review_items,
+        item_factory=lambda analysis: list(analysis_review_items(analysis)),
     )
 
 
@@ -414,10 +418,7 @@ def _validate_api_input_struct(
     input_name: str,
     struct_name: str,
 ) -> dict[str, object]:
-    return cast(
-        dict[str, object],
-        validate_api_input_struct_with_c_backend(project_name, library, function, input_name, struct_name),
-    )
+    return validate_api_input_struct_with_c_backend(project_name, library, function, input_name, struct_name)
 
 
 def _annotate_listing_payload(
@@ -456,7 +457,7 @@ def _annotate_listing_payload(
     review_warnings = _review_warnings_for_project_name(project_name)
     if review_warnings:
         result["review_warnings"] = review_warnings
-    return result
+    return cast(ListingWindowPayload, result)
 
 
 def _target_suppressible_seeded_items(project_name: str) -> list[dict[str, object]]:
@@ -636,7 +637,7 @@ def _row_label_address_domain(row: Mapping[str, object]) -> str | None:
 
 def _manual_label_address_domain(label: Mapping[str, object]) -> str:
     domain = label.get("address_domain")
-    return domain if domain in {"runtime", "source"} else "source"
+    return domain if isinstance(domain, str) and domain in {"runtime", "source"} else "source"
 
 
 def _manual_label_matches_row(
@@ -738,7 +739,7 @@ def _review_notes_for_row(
 
 def _active_reproduction_report(project_name: str) -> dict[str, object] | None:
     try:
-        report = cast(dict[str, object], load_reproduction_report(project_name, project_root=PROJECT_ROOT))
+        report = load_reproduction_report(project_name, project_root=PROJECT_ROOT)
     except (FileNotFoundError, ValueError, RuntimeError):
         return None
     if report.get("stale"):
@@ -752,7 +753,7 @@ def _active_reproduction_issues_by_row_index(
     report = _active_reproduction_report(project_name)
     if report is None:
         return {}
-    return cast(dict[int, list[dict[str, object]]], issues_by_row_index(report))
+    return issues_by_row_index(report)
 
 
 def _not_ready_reproduction_payload(
@@ -953,7 +954,7 @@ def _current_reproduction_payload(
 def _overlay_listing_navigation_payload(
     project_name: str,
     payload: dict[str, object],
-    listing_artifact: CListingArtifact | None = None,
+    listing_artifact: ListingArtifact | None = None,
 ) -> dict[str, object]:
     groups = cast(dict[str, list[dict[str, object]]], payload.setdefault("groups", {}))
     for group_name in (
@@ -1062,7 +1063,7 @@ def _parse_int_arg(
     return int(raw, 0)
 
 
-def _first_query_value(values: dict[str, list[str]], key: str) -> str | None:
+def _first_query_value(values: Mapping[str, Sequence[str]], key: str) -> str | None:
     raw_values = values.get(key)
     raw = raw_values[0] if raw_values else None
     if raw in (None, ""):
@@ -1077,7 +1078,7 @@ def _query_csv(values: dict[str, list[str]], key: str) -> list[str]:
     return [part.strip() for part in raw.split(",") if part.strip()]
 
 
-def _empty_listing_payload(addr: int | None) -> EmptyListingPayload:
+def _empty_listing_payload(addr: int | None) -> ListingWindowPayload:
     return {
         "anchor_addr": addr,
         "start": 0,
@@ -1299,7 +1300,7 @@ def _cache_satisfies_listing(project_name: str, cache_key: str) -> bool:
 def _build_rows_job(job_id: str, project_name: str) -> None:
     phase_count = _LISTING_PHASE_COUNT
     total_rows = 0
-    listing_artifact: CListingArtifact | None = None
+    listing_artifact: ListingArtifact | None = None
     try:
         cache_key = _project_listing_cache_key(project_name)
         _log_event("listing_job start", job_id=job_id, project=project_name, generation="full")
@@ -1418,7 +1419,7 @@ def _start_listing_job(project_name: str) -> AsyncJobPayload:
             make_job_id=lambda: str(uuid.uuid4()),
             total_rows=lambda: _c_listing_artifact_total_rows(project_name),
             prewarm=lambda: _prewarm_analysis_review_items(project_name),
-            on_ready=lambda: _start_reproduction_job_if_needed(project_name),
+            on_ready=lambda: None if _start_reproduction_job_if_needed(project_name) else None,
             start_worker=_start_listing_worker,
         ),
     )
@@ -1872,7 +1873,7 @@ def _command_catalog_payload(project_name: str, query: dict[str, list[str]]) -> 
     else:
         raise _command_contract_error("invalid_command_context", f"Unsupported command context: {context_kind}")
     commands = [_command_entry(action, context) for action in actions]
-    payload = {
+    payload: dict[str, object] = {
         "web_state_contract": WEB_STATE_COMMAND_CONTRACT,
         "context": _public_command_context(context),
         "cache_key": cache_key,
@@ -2015,7 +2016,11 @@ def _command_context_from_query(
     if context == "row":
         locator = _query_locator(query)
         row, projection_hash = _resolve_command_locator(project_name, locator)
-        command_context = {"kind": "row", "locator": locator, "projection_hash": projection_hash}
+        command_context: dict[str, object] = {
+            "kind": "row",
+            "locator": locator,
+            "projection_hash": projection_hash,
+        }
         _copy_rsset_binding_context_from_query(command_context, query)
         return command_context, [row]
     if context == "element":
@@ -2334,7 +2339,7 @@ def _all_listing_rows(project_name: str) -> list[dict[str, object]]:
     for index, raw_row in enumerate(rows):
         if not isinstance(raw_row, dict):
             continue
-        row = dict(cast(dict[str, object], raw_row))
+        row = dict(raw_row)
         row.setdefault("row_index", index)
         resolved.append(row)
     return resolved
@@ -2858,12 +2863,12 @@ def _merge_manual_action_applications(parts: list[dict[str, object]]) -> dict[st
     pending_ranges: list[dict[str, object]] = []
     refresh_modes: list[str] = []
     for part in parts:
-        local_effects.extend(
-            effect for effect in part.get("local_effects", []) if isinstance(effect, dict)
-        )
-        pending_ranges.extend(
-            pending for pending in part.get("pending_ranges", []) if isinstance(pending, dict)
-        )
+        raw_local_effects = part.get("local_effects")
+        if isinstance(raw_local_effects, list):
+            local_effects.extend(effect for effect in raw_local_effects if isinstance(effect, dict))
+        raw_pending_ranges = part.get("pending_ranges")
+        if isinstance(raw_pending_ranges, list):
+            pending_ranges.extend(pending for pending in raw_pending_ranges if isinstance(pending, dict))
         refresh = part.get("refresh")
         if isinstance(refresh, Mapping):
             mode = refresh.get("mode")
@@ -2928,7 +2933,9 @@ def _project_disk_browser_payload(project_name: str, path: str = "") -> dict[str
     manifest = DiskManifest.load(Path(manifest_path))
     manifest_dict = manifest.to_dict()
     target_index: dict[str, str] = {}
-    for target in manifest_dict.get("imported_targets", []):
+    imported_targets = manifest_dict.get("imported_targets")
+    target_entries = imported_targets if isinstance(imported_targets, list) else []
+    for target in target_entries:
         if not isinstance(target, dict):
             continue
         target_name = target.get("target_name")
@@ -2936,14 +2943,11 @@ def _project_disk_browser_payload(project_name: str, path: str = "") -> dict[str
         if not isinstance(target_name, str) or not isinstance(entry_path, str):
             continue
         target_index[entry_path.strip().strip("/").lower()] = target_name
-    return cast(
-        dict[str, object],
-        disk_browser.payload_from_project_manifest(
-            manifest_dict,
-            path,
-            content_for_entry=lambda entry: _project_disk_entry_content_payload(manifest_dict, entry),
-            target_index=target_index,
-        ),
+    return disk_browser.payload_from_project_manifest(
+        manifest_dict,
+        path,
+        content_for_entry=lambda entry: _project_disk_entry_content_payload(manifest_dict, entry),
+        target_index=target_index,
     )
 
 
@@ -2967,8 +2971,8 @@ def _project_disk_entry_content_payload(
                 project_root=PROJECT_ROOT,
             )
     except Exception as exc:
-        return cast(dict[str, object], disk_browser.content_error_payload(str(exc), disk_browser.entry_size(entry)))
-    return cast(dict[str, object], disk_browser.content_payload_from_bytes(data))
+        return disk_browser.content_error_payload(str(exc), disk_browser.entry_size(entry))
+    return disk_browser.content_payload_from_bytes(data)
 
 
 def resolve_static_response(path: str) -> StaticResponse:

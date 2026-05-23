@@ -482,10 +482,11 @@ class RoundTripVerificationWorkflow:
                     assembler_tool_path=str(_platform_file_lib_path(project_root)),
                 )
                 with effective_metadata_file(paths.target_dir) as metadata_path:
+                    metadata_file = cast(Path, metadata_path)
                     try:
                         direct_result = run_direct_rebuild_phase(
                             paths.binary_source,
-                            metadata_path=metadata_path,
+                            metadata_path=metadata_file,
                             output_path=rebuilt_path,
                             compare_original=use_facts_v2_direct_compare,
                             project_root=project_root,
@@ -516,7 +517,7 @@ class RoundTripVerificationWorkflow:
                                 target_name=target_name,
                                 binary_source=paths.binary_source,
                                 target_dir=paths.target_dir,
-                                metadata_path=metadata_path,
+                                metadata_path=metadata_file,
                                 project_root=project_root,
                             )
                             rendered_source_text = source_compare_rendering.source_text
@@ -723,12 +724,13 @@ class RoundTripVerificationWorkflow:
                     assembler_tool_path=str(_platform_file_lib_path(project_root)),
                 )
                 with effective_metadata_file(paths.target_dir) as metadata_path:
+                    metadata_file = cast(Path, metadata_path)
                     try:
                         rendering = run_source_rendering_phase(
                             target_name=target_name,
                             binary_source=paths.binary_source,
                             target_dir=paths.target_dir,
-                            metadata_path=metadata_path,
+                            metadata_path=metadata_file,
                             project_root=project_root,
                         )
                         rendered_source_text = rendering.source_text
@@ -914,11 +916,14 @@ class RoundTripVerificationWorkflow:
                 )
                 comparison = comparison_phase.comparison
                 c_compare_profile = comparison_phase.c_profile
+                compare_detail: dict[str, object] = (
+                    {"profile": c_compare_profile} if c_compare_profile is not None else {"backend": backend}
+                )
                 workflow_profile.add_span(
                     "reproduction_compare",
                     time.perf_counter() - compare_started_at,
                     module="c_backend" if c_compare_profile is not None else "python",
-                    detail={"profile": c_compare_profile} if c_compare_profile is not None else {"backend": backend},
+                    detail=compare_detail,
                 )
                 if c_compare_profile is not None:
                     _merge_source_compare_profile(round_trip_profile, c_compare_profile)
@@ -939,11 +944,14 @@ class RoundTripVerificationWorkflow:
                 )
                 comparison = comparison_phase.comparison
                 c_compare_profile = comparison_phase.c_profile
+                compare_detail = (
+                    {"profile": c_compare_profile} if c_compare_profile is not None else {"backend": backend}
+                )
                 workflow_profile.add_span(
                     "reproduction_compare",
                     time.perf_counter() - compare_started_at,
                     module="c_backend" if c_compare_profile is not None else "python",
-                    detail={"profile": c_compare_profile} if c_compare_profile is not None else {"backend": backend},
+                    detail=compare_detail,
                 )
                 layout_started_at = time.perf_counter()
                 file_layout = _comparison_profile_file_layout(c_compare_profile, "reproduction_compare")
@@ -1523,7 +1531,7 @@ def _c_compare_shape_diagnostics(
     issue_flags = _direct_profile_int(compare_profile, f"{prefix}_issue_group_flags") or 0
     issue_kinds = _c_compare_issue_labels(issue_flags, _C_COMPARE_FILE_STRUCTURE_ISSUE_FLAGS)
     if issue_kinds:
-        diagnostics = [{"kind": issue_kind, "group": "original_file_structure", "source": source}
+        diagnostics: list[dict[str, object]] = [{"kind": issue_kind, "group": "original_file_structure", "source": source}
             for issue_kind in issue_kinds]
         _attach_c_compare_source_hints(diagnostics, compare_profile, f"{prefix}_source_hints", row_for_section_offset)
         return diagnostics
@@ -2481,7 +2489,7 @@ def _json_ready_reproduction_options(options: Mapping[str, object]) -> dict[str,
 
 def _best_effort_effective_metadata_hash(target_dir: Path) -> str | None:
     try:
-        return effective_metadata_hash(target_dir)
+        return cast(str | None, effective_metadata_hash(target_dir))
     except Exception:
         return None
 

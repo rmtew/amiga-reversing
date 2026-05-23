@@ -614,7 +614,7 @@ def _needs_review_item(kind: ReviewItemKind, message: str) -> dict[str, object]:
     }
 
 
-def _manual_seed_int(seed: dict[str, object], field_name: str) -> int | None:
+def _manual_seed_int(seed: Mapping[str, object], field_name: str) -> int | None:
     value = seed.get(field_name)
     if isinstance(value, int):
         return value
@@ -1078,7 +1078,14 @@ def _data_block_layout_overlaps(left: dict[str, object], right: dict[str, object
     left_end = _manual_seed_int(left, "source_end")
     right_start = _manual_seed_int(right, "source_start")
     right_end = _manual_seed_int(right, "source_end")
-    if None in (left_hunk, right_hunk, left_start, left_end, right_start, right_end):
+    if (
+        left_hunk is None
+        or right_hunk is None
+        or left_start is None
+        or left_end is None
+        or right_start is None
+        or right_end is None
+    ):
         return False
     return left_hunk == right_hunk and left_start < right_end and right_start < left_end
 
@@ -1721,32 +1728,32 @@ def _project_actions(
             removed_target_equates.pop(str(equate["name"]), None)
         elif action.kind is ManualActionKind.RENAME_MANUAL_TARGET_EQUATE:
             equate = _action_object(action, "target_equate")
-            previous_name, name = _target_equate_rename_names(equate)
+            previous_name, target_equate_name = _target_equate_rename_names(equate)
             existing = target_equates.pop(previous_name, None)
             if existing is not None:
                 updated = dict(existing)
-                updated["name"] = name
-                target_equates[name] = updated
+                updated["name"] = target_equate_name
+                target_equates[target_equate_name] = updated
             renamed_target_equates[previous_name] = equate
         elif action.kind is ManualActionKind.REMOVE_MANUAL_TARGET_EQUATE:
             equate = _action_object(action, "target_equate")
-            name = equate.get("name")
-            if not isinstance(name, str):
+            removed_target_equate_name = equate.get("name")
+            if not isinstance(removed_target_equate_name, str):
                 raise ValueError("target_equate requires name")
-            target_equates.pop(name, None)
-            removed_target_equates[name] = equate
+            target_equates.pop(removed_target_equate_name, None)
+            removed_target_equates[removed_target_equate_name] = equate
         elif action.kind is ManualActionKind.CREATE_MANUAL_CUSTOM_STRUCT:
             custom_struct = _action_object(action, "custom_struct")
             _put_by_id(custom_structs, custom_struct, "name")
             removed_custom_structs.pop(str(custom_struct["name"]), None)
         elif action.kind is ManualActionKind.RENAME_MANUAL_CUSTOM_STRUCT:
             custom_struct = _action_object(action, "custom_struct")
-            previous_name, name = _custom_struct_rename_names(custom_struct)
+            previous_name, custom_struct_name = _custom_struct_rename_names(custom_struct)
             existing = custom_structs.pop(previous_name, None)
             if existing is not None:
                 updated = dict(existing)
-                updated["name"] = name
-                custom_structs[name] = updated
+                updated["name"] = custom_struct_name
+                custom_structs[custom_struct_name] = updated
             renamed_custom_structs[previous_name] = custom_struct
         elif action.kind is ManualActionKind.REMOVE_MANUAL_CUSTOM_STRUCT:
             custom_struct = _action_object(action, "custom_struct")
@@ -1757,58 +1764,58 @@ def _project_actions(
             removed_custom_structs[struct_name] = custom_struct
         elif action.kind is ManualActionKind.CREATE_MANUAL_CUSTOM_STRUCT_FIELD:
             field = dict(_action_object(action, "custom_struct_field"))
-            key = _custom_struct_field_key(field)
+            field_key = _custom_struct_field_key(field)
             field["owner_action_id"] = action.action_id
-            removed_custom_struct_fields.pop(key, None)
-            custom_struct_fields[key] = field
+            removed_custom_struct_fields.pop(field_key, None)
+            custom_struct_fields[field_key] = field
         elif action.kind is ManualActionKind.RENAME_MANUAL_CUSTOM_STRUCT_FIELD:
             field = dict(_action_object(action, "custom_struct_field"))
-            key = _custom_struct_field_key(field)
-            name = field.get("name")
-            if not isinstance(name, str) or not name:
+            field_key = _custom_struct_field_key(field)
+            field_name = field.get("name")
+            if not isinstance(field_name, str) or not field_name:
                 raise ValueError("custom_struct_field rename requires name")
             field["owner_action_id"] = action.action_id
-            existing = custom_struct_fields.get(key)
-            if existing is not None:
-                updated = dict(existing)
-                updated["name"] = name
+            existing_field = custom_struct_fields.get(field_key)
+            if existing_field is not None:
+                updated = dict(existing_field)
+                updated["name"] = field_name
                 updated["owner_action_id"] = action.action_id
-                custom_struct_fields[key] = updated
-            renamed_custom_struct_fields[key] = field
+                custom_struct_fields[field_key] = updated
+            renamed_custom_struct_fields[field_key] = field
         elif action.kind is ManualActionKind.REMOVE_MANUAL_CUSTOM_STRUCT_FIELD:
             field = dict(_action_object(action, "custom_struct_field"))
-            key = _custom_struct_field_key(field)
-            existing = custom_struct_fields.pop(key, None)
-            if isinstance(existing, dict) and isinstance(existing.get("owner_action_id"), str):
-                field["owner_action_id"] = existing["owner_action_id"]
+            field_key = _custom_struct_field_key(field)
+            existing_field = custom_struct_fields.pop(field_key, None)
+            if isinstance(existing_field, dict) and isinstance(existing_field.get("owner_action_id"), str):
+                field["owner_action_id"] = existing_field["owner_action_id"]
             field["cleanup_action_id"] = action.action_id
-            removed_custom_struct_fields[key] = field
+            removed_custom_struct_fields[field_key] = field
         elif action.kind is ManualActionKind.CREATE_MANUAL_RSSET_LAYOUT_REGION:
             region = _action_object(action, "rsset_layout_region")
-            key = _rsset_layout_region_key(region)
-            removed_rsset_layout_regions.pop(key, None)
-            rsset_layout_regions[key] = region
+            region_key = _rsset_layout_region_key(region)
+            removed_rsset_layout_regions.pop(region_key, None)
+            rsset_layout_regions[region_key] = region
         elif action.kind is ManualActionKind.REMOVE_MANUAL_RSSET_LAYOUT_REGION:
             region = _action_object(action, "rsset_layout_region")
-            key = _rsset_layout_region_key(region)
-            rsset_layout_regions.pop(key, None)
-            removed_rsset_layout_regions[key] = region
+            region_key = _rsset_layout_region_key(region)
+            rsset_layout_regions.pop(region_key, None)
+            removed_rsset_layout_regions[region_key] = region
         elif action.kind is ManualActionKind.CREATE_MANUAL_RSSET_USE_SITE_BINDING:
             binding = _action_object(action, "rsset_use_site_binding")
-            key = _rsset_use_site_binding_key(binding)
+            binding_key = _rsset_use_site_binding_key(binding)
             binding = dict(binding)
-            binding.setdefault("rsset_use_site_binding_id", key)
+            binding.setdefault("rsset_use_site_binding_id", binding_key)
             binding["owner_action_id"] = action.action_id
-            removed_rsset_use_site_bindings.pop(key, None)
-            rsset_use_site_bindings[key] = binding
+            removed_rsset_use_site_bindings.pop(binding_key, None)
+            rsset_use_site_bindings[binding_key] = binding
         elif action.kind is ManualActionKind.REMOVE_MANUAL_RSSET_USE_SITE_BINDING:
             binding = _action_object(action, "rsset_use_site_binding")
-            key = _rsset_use_site_binding_key(binding)
+            binding_key = _rsset_use_site_binding_key(binding)
             binding = dict(binding)
-            binding.setdefault("rsset_use_site_binding_id", key)
+            binding.setdefault("rsset_use_site_binding_id", binding_key)
             binding["cleanup_action_id"] = action.action_id
-            rsset_use_site_bindings.pop(key, None)
-            removed_rsset_use_site_bindings[key] = binding
+            rsset_use_site_bindings.pop(binding_key, None)
+            removed_rsset_use_site_bindings[binding_key] = binding
         elif action.kind in {
             ManualActionKind.CREATE_MANUAL_DATA_BLOCK_LAYOUT,
             ManualActionKind.EDIT_MANUAL_DATA_BLOCK_LAYOUT,
@@ -1934,16 +1941,16 @@ def _project_actions(
         elif action.kind is ManualActionKind.CREATE_MANUAL_EXECUTION_VIEW:
             view = dict(_action_object(action, "execution_view"))
             view["owner_action_id"] = action.action_id
-            key = _execution_view_key(view)
-            removed_execution_views.pop(key, None)
-            execution_views[key] = view
+            view_key = _execution_view_key(view)
+            removed_execution_views.pop(view_key, None)
+            execution_views[view_key] = view
         elif action.kind is ManualActionKind.REMOVE_MANUAL_EXECUTION_VIEW:
             view = _action_object(action, "execution_view")
-            key = _execution_view_key(view)
-            existing = execution_views.pop(key, None)
-            removed = dict(existing or view)
+            view_key = _execution_view_key(view)
+            existing_view = execution_views.pop(view_key, None)
+            removed = dict(existing_view or view)
             removed["cleanup_action_id"] = action.action_id
-            removed_execution_views[key] = removed
+            removed_execution_views[view_key] = removed
         elif action.kind is ManualActionKind.ADD_REVIEW_NOTE:
             _put_by_id(review_notes, _review_note_from_action(action), "note_id")
         elif action.kind is ManualActionKind.EDIT_REVIEW_NOTE:
@@ -1967,9 +1974,10 @@ def _project_actions(
             assembler_profile=assembler_profile,
         )
     )
-    review_items.extend(
-        item for note in review_notes.values() if (item := _review_note_item(note)) is not None
-    )
+    for note in review_notes.values():
+        note_item = _review_note_item(note)
+        if note_item is not None:
+            review_items.append(note_item)
     finalized_review_items = _finalize_review_items(review_items, tuple(resolutions.values()))
     review_state = _review_state_for_items(finalized_review_items)
     return ManualActionLogProjection(

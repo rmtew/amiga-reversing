@@ -581,7 +581,7 @@ def _probe_evidence(
     *,
     extra: Mapping[str, object] | None = None,
 ) -> dict[str, object]:
-    evidence = {
+    evidence: dict[str, object] = {
         "probe_method": probe_method,
         "probe_status": probe_status,
         "version_text": version_text,

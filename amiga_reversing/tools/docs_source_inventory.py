@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from collections import Counter
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from pathlib import Path
 from typing import cast
 
@@ -144,7 +144,7 @@ def _source_row(project_root: Path, source: Mapping[str, object]) -> dict[str, o
     )
     applied_pages = sorted(
         page
-        for page in cast(Mapping[str, object], metadata.get("applied_amendments", {})).get("pages", [])
+        for page in cast(list[object], cast(Mapping[str, object], metadata.get("applied_amendments", {})).get("pages", []))
         if isinstance(page, int)
     )
     return {
@@ -196,7 +196,7 @@ def _format_pages(pages: list[int]) -> str:
     return ", ".join(str(page) for page in pages)
 
 
-def _page_numbers(amendments: object) -> list[int]:
+def _page_numbers(amendments: Iterable[object]) -> list[int]:
     return [
         page
         for page in (cast(Mapping[str, object], amendment).get("page") for amendment in amendments)

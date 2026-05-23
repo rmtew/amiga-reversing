@@ -340,11 +340,12 @@ def _bootloader_stage_target_metadata(stage: BootloaderStage, analysis: AdfAnaly
         if source_start is not None and source_end is not None and base_addr is not None:
             existing_keys.add((source_start, source_end, base_addr))
     for view in _bootloader_stage_runtime_copy_execution_views(stage, analysis):
-        key = (
-            int(view["source_start"]),
-            int(view["source_end"]),
-            int(view["base_addr"]),
-        )
+        source_start = _int_field(view, "source_start")
+        source_end = _int_field(view, "source_end")
+        base_addr = _int_field(view, "base_addr")
+        if source_start is None or source_end is None or base_addr is None:
+            continue
+        key = (source_start, source_end, base_addr)
         if key in existing_keys:
             continue
         views.append(view)
@@ -387,6 +388,7 @@ def _bootblock_disk_read_stage_targets(
                 or byte_length is None
                 or handoff_addr is None
                 or instruction_offset is None
+                or source_kind is None
                 or byte_length <= 0
             ):
                 continue
@@ -1490,7 +1492,10 @@ def _hunk_file_section_payload_starts(hunk_data: bytes) -> dict[int, int]:
     except Exception:
         return {}
     try:
-        layout = reproduction._amiga_hunk_file_layout(hunk_data)
+        layout_builder = reproduction.__dict__.get("_amiga_hunk_file_layout")
+        if not callable(layout_builder):
+            return {}
+        layout = layout_builder(hunk_data)
     except Exception:
         return {}
     payload_starts: dict[int, int] = {}

@@ -705,19 +705,20 @@ def _target_platform_summary_artifact(
     analysis = source_analysis if source_analysis is not None else _load_json_if_exists(target_path / "source_analysis.json")
     if "platform_summary" not in analysis:
         return {"source": "missing", "path": "", "payload": {}, "errors": []}
-    payload = analysis.get("platform_summary")
-    if not isinstance(payload, dict):
+    embedded_payload = analysis.get("platform_summary")
+    if not isinstance(embedded_payload, dict):
         return {
             "source": "embedded_source_analysis",
             "path": str(target_path / "source_analysis.json"),
             "payload": {},
             "errors": ["platform_summary is not an object"],
         }
+    payload = embedded_payload
     return {
         "source": "embedded_source_analysis",
         "path": str(target_path / "source_analysis.json"),
-        "payload": cast(dict[str, object], payload),
-        "errors": _target_platform_summary_artifact_errors(cast(Mapping[str, object], payload)),
+        "payload": payload,
+        "errors": _target_platform_summary_artifact_errors(payload),
     }
 
 

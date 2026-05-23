@@ -5,6 +5,7 @@ import json
 import re
 import sys
 from collections import Counter, defaultdict
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Protocol, cast
@@ -464,7 +465,7 @@ def _generated_disassembler_canonical_form_ids(
 
 def _forms_with_generated_canonical_ids(
     forms: Any,
-    canonical_form_ids: dict[Any, int | None],
+    canonical_form_ids: Mapping[Any, int | None],
     source: str,
     key_fn: Any,
 ) -> list[CoverageForm]:

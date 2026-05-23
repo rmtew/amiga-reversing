@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
+from typing import cast
 
 
 def callback_slot_report(
@@ -29,7 +30,7 @@ def callback_slot_report(
         lookback_rows=lookback_rows,
     )
     slots = sorted({*_slot_keys(consumers), *_slot_keys(assignments)})
-    slot_reports = []
+    slot_reports: list[dict[str, object]] = []
     for slot in slots:
         slot_consumers = [consumer for consumer in consumers if _entry_slot_key(consumer) == slot]
         slot_assignments = [assignment for assignment in assignments if _entry_slot_key(assignment) == slot]
@@ -59,7 +60,7 @@ def callback_slot_report(
             "consumer_count": len(consumers),
             "assignment_count": len(assignments),
             "concrete_missed_code_target_count": sum(
-                slot["concrete_missed_code_target_count"] for slot in slot_reports
+                cast(int, slot["concrete_missed_code_target_count"]) for slot in slot_reports
             ),
         },
     }
@@ -69,7 +70,7 @@ def _slot_filter(
     *,
     slot_symbol: str | None,
     slot_offset: int | None,
-):
+) -> Callable[[Mapping[str, object]], bool]:
     normalized_symbol = slot_symbol.strip() if isinstance(slot_symbol, str) and slot_symbol.strip() else None
 
     def matches(ref: Mapping[str, object]) -> bool:
@@ -83,7 +84,7 @@ def _slot_filter(
 def _slot_consumers(
     rows: list[Mapping[str, object]],
     *,
-    slot_filter,
+    slot_filter: Callable[[Mapping[str, object]], bool],
     lookahead_rows: int,
 ) -> list[dict[str, object]]:
     consumers: list[dict[str, object]] = []
@@ -112,7 +113,7 @@ def _slot_consumers(
 def _slot_assignments(
     rows: list[Mapping[str, object]],
     *,
-    slot_filter,
+    slot_filter: Callable[[Mapping[str, object]], bool],
     label_offsets: dict[str, int],
     target_rows: dict[int, Mapping[str, object]],
     review_by_start: dict[int, Mapping[str, object]],
@@ -170,7 +171,7 @@ def _first_app_slot_ref(
     row: Mapping[str, object],
     *,
     access: str,
-    slot_filter,
+    slot_filter: Callable[[Mapping[str, object]], bool],
 ) -> Mapping[str, object] | None:
     refs = row.get("app_slot_refs")
     if not isinstance(refs, list):

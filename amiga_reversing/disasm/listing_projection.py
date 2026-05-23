@@ -517,7 +517,7 @@ def _artifact_row_dict(row: object, *, row_index: int) -> dict[str, object]:
     if isinstance(row, dict):
         payload = dict(cast(dict[str, object], row))
     elif is_dataclass(row):
-        payload = cast(dict[str, object], asdict(row))
+        payload = cast(dict[str, object], asdict(cast(Any, row)))
     else:
         payload = {
             "row_key": getattr(row, "stable_key", None) or getattr(row, "row_id", None),
