@@ -572,6 +572,72 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
     assert payload["provenance"]["binary_container_source"] == "platform_file_lib.macos_hfs_code_summary"
 
 
+def test_macos_code_preview_extraction_cache_hits_and_isolates(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[tuple[bytes, str, int, object]] = []
+
+    def fake_extract(data: bytes, hfs_path: str, resource_id: int, **kwargs: object) -> bytes:
+        calls.append((data, hfs_path, resource_id, kwargs.get("project_root")))
+        return f"{hfs_path}:{resource_id}".encode("ascii")
+
+    monkeypatch.setattr(macos_project_payload, "extract_macos_hfs_code_resource_bytes_with_c_backend", fake_extract)
+    extraction_cache: dict[tuple[str, str, int], bytes] = {}
+
+    first = macos_project_payload._extract_macos_code_resource_payload(
+        b"hfs-one",
+        source_image="image-a",
+        hfs_path="MPW-GM/MPW/Tools/Asm",
+        resource_id=2,
+        project_root=tmp_path,
+        extraction_cache=extraction_cache,
+    )
+    second = macos_project_payload._extract_macos_code_resource_payload(
+        b"hfs-one",
+        source_image="image-a",
+        hfs_path="MPW-GM/MPW/Tools/Asm",
+        resource_id=2,
+        project_root=tmp_path,
+        extraction_cache=extraction_cache,
+    )
+    different_resource = macos_project_payload._extract_macos_code_resource_payload(
+        b"hfs-one",
+        source_image="image-a",
+        hfs_path="MPW-GM/MPW/Tools/Asm",
+        resource_id=3,
+        project_root=tmp_path,
+        extraction_cache=extraction_cache,
+    )
+    different_hfs_path = macos_project_payload._extract_macos_code_resource_payload(
+        b"hfs-one",
+        source_image="image-a",
+        hfs_path="MPW-GM/MPW/Tools/Link",
+        resource_id=2,
+        project_root=tmp_path,
+        extraction_cache=extraction_cache,
+    )
+    different_source_image = macos_project_payload._extract_macos_code_resource_payload(
+        b"hfs-two",
+        source_image="image-b",
+        hfs_path="MPW-GM/MPW/Tools/Asm",
+        resource_id=2,
+        project_root=tmp_path,
+        extraction_cache=extraction_cache,
+    )
+
+    assert first == second == b"MPW-GM/MPW/Tools/Asm:2"
+    assert different_resource == b"MPW-GM/MPW/Tools/Asm:3"
+    assert different_hfs_path == b"MPW-GM/MPW/Tools/Link:2"
+    assert different_source_image == b"MPW-GM/MPW/Tools/Asm:2"
+    assert calls == [
+        (b"hfs-one", "MPW-GM/MPW/Tools/Asm", 2, tmp_path),
+        (b"hfs-one", "MPW-GM/MPW/Tools/Asm", 3, tmp_path),
+        (b"hfs-one", "MPW-GM/MPW/Tools/Link", 2, tmp_path),
+        (b"hfs-two", "MPW-GM/MPW/Tools/Asm", 2, tmp_path),
+    ]
+
+
 def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> None:
     if not IMAGE_PATH.exists():
         pytest.skip("MPW-GM image fixture is not available")

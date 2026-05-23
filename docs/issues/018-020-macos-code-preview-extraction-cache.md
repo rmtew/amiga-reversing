@@ -1,6 +1,6 @@
 # 018-020: Mac OS CODE Preview Extraction Cache
 
-Status: open
+Status: completed
 
 ## Proposal Context
 
@@ -62,30 +62,66 @@ Record trace blocks for:
 - tests proving hit/isolation behavior;
 - unchanged candidate/deferred semantics.
 
+## Research Notes
+
+Trace blocks:
+
+```text
+Extraction call path:
+  build_macos_project_payload -> _binary_container_view ->
+  _code_resource_details -> _preview_windows ->
+  _extract_macos_code_resource_payload.
+
+Cache key shape:
+  (source_image, hfs_path, resource_id). The source image is threaded from the
+  Mac project origin into the binary container view; HFS path and CODE id come
+  from the current preview request.
+
+Cache lifetime:
+  A plain dict is allocated inside one _binary_container_view call and passed
+  through preview generation. It is discarded when that payload build returns.
+
+Semantics:
+  The helper returns the exact bytes from the existing C extractor on a miss and
+  does not add payload/debug fields. Candidate/deferred parser fact state and
+  decoded/fallback preview row semantics are unchanged.
+```
+
+## Completion Evidence
+
+```text
+uv run python -m pytest tests\test_macos_project_payload.py -q
+3 passed
+uv run ruff check amiga_reversing\disasm\macos_project_payload.py tests\test_macos_project_payload.py
+All checks passed!
+uv run python -m amiga_reversing.tools.platform_executable_formats validate
+uv run python -m amiga_reversing.tools.validate_018_issues
+```
+
 ## Research Coverage
 
-- [ ] Current extraction call path traced.
-- [ ] Cache key selected.
-- [ ] Cache lifetime selected.
-- [ ] Test strategy selected.
-- [ ] User-visible output impact checked.
-- [ ] 018 wording checked before implementation.
+- [x] Current extraction call path traced.
+- [x] Cache key selected.
+- [x] Cache lifetime selected.
+- [x] Test strategy selected.
+- [x] User-visible output impact checked.
+- [x] 018 wording checked before implementation.
 
 ## Research Review
 
-- [ ] Second pass checked cache does not change preview semantics.
-- [ ] Cache isolation across resource ids checked.
-- [ ] Cache isolation across HFS paths checked if applicable.
-- [ ] Candidate/deferred facts remain unchanged.
-- [ ] Relevant docs updated if output changes.
+- [x] Second pass checked cache does not change preview semantics.
+- [x] Cache isolation across resource ids checked.
+- [x] Cache isolation across HFS paths checked if applicable.
+- [x] Candidate/deferred facts remain unchanged.
+- [x] Relevant docs updated if output changes.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before implementation.
-- [ ] Local extraction cache added or a documented no-op decision recorded.
-- [ ] Repeated extraction test added.
-- [ ] Cache isolation test added.
-- [ ] Candidate/deferred facts are not changed.
-- [ ] Relevant payload tests pass.
-- [ ] `amiga_reversing.tools.validate_018_issues` passes.
-- [ ] Post-commit review found no unresolved worthwhile findings.
+- [x] Proposal context checked before implementation.
+- [x] Local extraction cache added or a documented no-op decision recorded.
+- [x] Repeated extraction test added.
+- [x] Cache isolation test added.
+- [x] Candidate/deferred facts are not changed.
+- [x] Relevant payload tests pass.
+- [x] `amiga_reversing.tools.validate_018_issues` passes.
+- [x] Post-commit review found no unresolved worthwhile findings.

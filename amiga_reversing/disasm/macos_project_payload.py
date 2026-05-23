@@ -57,6 +57,7 @@ def build_macos_project_payload(project: object, *, project_root: Path = PROJECT
         "binary_container_view": _binary_container_view(
             c_summary,
             project_id=project_id,
+            source_image=image_relpath,
             hfs_bytes=hfs_bytes,
             hfs_path=hfs_path,
             project_root=project_root,
@@ -108,6 +109,7 @@ def _binary_container_view(
     c_summary: Mapping[str, object],
     *,
     project_id: str,
+    source_image: str,
     hfs_bytes: bytes,
     hfs_path: str,
     project_root: Path,
@@ -133,9 +135,11 @@ def _binary_container_view(
         selected_id=selected_id,
         project_id=project_id,
         unsupported=_sequence(c_summary.get("unsupported")),
+        source_image=source_image,
         hfs_bytes=hfs_bytes,
         hfs_path=hfs_path,
         project_root=project_root,
+        extraction_cache={},
     )
     return {
         "kind": c_summary.get("container_kind"),
@@ -215,9 +219,11 @@ def _code_resource_details(
     selected_id: object,
     project_id: str,
     unsupported: list[object],
+    source_image: str,
     hfs_bytes: bytes,
     hfs_path: str,
     project_root: Path,
+    extraction_cache: dict[tuple[str, str, int], bytes],
 ) -> list[dict[str, object]]:
     segment_map_by_id = {
         item.get("resource_id"): item for item in (_mapping(value) for value in code_segment_map) if "resource_id" in item
@@ -245,9 +251,11 @@ def _code_resource_details(
             resource,
             code=code,
             selected_id=selected_id,
+            source_image=source_image,
             hfs_bytes=hfs_bytes,
             hfs_path=hfs_path,
             project_root=project_root,
+            extraction_cache=extraction_cache,
         )
         listing = _listing_descriptor(
             resource,
@@ -345,9 +353,11 @@ def _preview_windows(
     *,
     code: Mapping[str, object],
     selected_id: object,
+    source_image: str,
     hfs_bytes: bytes,
     hfs_path: str,
     project_root: Path,
+    extraction_cache: dict[tuple[str, str, int], bytes],
 ) -> list[dict[str, object]]:
     resource_id = resource.get("id")
     if resource_id == 0 or resource_id == selected_id or not isinstance(resource_id, int):
@@ -357,11 +367,13 @@ def _preview_windows(
     end = _int_value(range_info.get("end"))
     if start is None or end is None or end <= start:
         return []
-    payload = extract_macos_hfs_code_resource_bytes_with_c_backend(
+    payload = _extract_macos_code_resource_payload(
         hfs_bytes,
-        hfs_path,
-        resource_id,
+        source_image=source_image,
+        hfs_path=hfs_path,
+        resource_id=resource_id,
         project_root=project_root,
+        extraction_cache=extraction_cache,
     )
     payload_end = min(end, len(payload))
     if payload_end <= start:
@@ -405,6 +417,26 @@ def _preview_windows(
         ),
     }
     return [window]
+
+
+def _extract_macos_code_resource_payload(
+    hfs_bytes: bytes,
+    *,
+    source_image: str,
+    hfs_path: str,
+    resource_id: int,
+    project_root: Path,
+    extraction_cache: dict[tuple[str, str, int], bytes],
+) -> bytes:
+    cache_key = (source_image, hfs_path, resource_id)
+    if cache_key not in extraction_cache:
+        extraction_cache[cache_key] = extract_macos_hfs_code_resource_bytes_with_c_backend(
+            hfs_bytes,
+            hfs_path,
+            resource_id,
+            project_root=project_root,
+        )
+    return extraction_cache[cache_key]
 
 
 def _preview_decode_rows(
