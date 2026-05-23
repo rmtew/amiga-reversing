@@ -89,6 +89,8 @@ const PlatformExecutableFormatFact PLATFORM_EXECUTABLE_FORMAT_FACTS[] = {
         "candidate_only" },
     { "macos.hfs_resource_fork.code_resources.mpw_application", "macos.resource_fork.non_code_metadata.inventory.candidate", "facts",
         "candidate", "candidate_only" },
+    { "macos.hfs_resource_fork.code_resources.mpw_application", "macos.resource_fork.curs.layout.accepted", "facts", "validated",
+        "accepted_parser_output" },
     { "macos.hfs_resource_fork.code_resources.mpw_application", "macos.code_resource.byte_entry_rule.unknown", "unknowns", "deferred",
         "deferred_only" },
     { "macos.hfs_resource_fork.code_resources.mpw_application", "macos.segment_loader.relocation_fixups.deferred", "deferred", "deferred",
