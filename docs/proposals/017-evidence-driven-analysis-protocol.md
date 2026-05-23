@@ -1163,3 +1163,13 @@ repeatable work to `docs\issues\017-*`.
   source, selected-binding negative safety, and exact round trip. The real
   Pandora `decision-rsset-022e-accept-017-040` audit now consumes the produced
   artifact and reports all five required layers as `passed` with no blockers.
+- 017-051 reran the focused post-050 Pandora baseline. The verifier artifact
+  producer passes in no-write mode, the current local verifier artifact can be
+  regenerated explicitly, and `decision-journal-report` consumes it to report
+  all five RSSET audit layers as `passed`. The 017-046 source-offset immediate,
+  017-047 A5 path/lifetime, and 017-048 orphan/data-range decisions remain
+  deferred/read-only with their blockers. The only current default candidate is
+  non-actionable `manual_action_log_inconsistency:target`, so no useful 017
+  mutation is currently unblocked; the next safe issue should define or defer a
+  repair/proof path for that manual-action-log sequence mismatch before further
+  mutation work.
