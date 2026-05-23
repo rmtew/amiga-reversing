@@ -1227,3 +1227,11 @@ repeatable work to `docs\issues\017-*`.
   is no open sequence inconsistency. No useful unblocked 017 mutation remains;
   pause 017 and resume 012 rather than forcing cosmetic or stale-artifact-based
   Pandora work.
+- 017-055 is a narrow 017-only read-only discovery pass, created because 012/018
+  work may be owned by another agent and should not be conflicted with. It must
+  requery current Pandora reports beyond the default candidate queue and classify
+  any surfaced evidence as accepted/source-effective, deferred/read-only,
+  report-only, tooling-blocked, verifier-blocked, or safe follow-up. It must not
+  mutate Pandora or touch 012/018 files; any safe mutation requires a separate
+  follow-up issue with durable evidence, command support, verifier support, exact
+  round-trip, and visible source-quality improvement.
