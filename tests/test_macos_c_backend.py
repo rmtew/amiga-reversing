@@ -21,6 +21,7 @@ from amiga_reversing.disasm.macos_asm_container import (
     DEFAULT_NDIF2RAW_PATH,
     read_macos_hfs_image_bytes,
 )
+from amiga_reversing.tools import platform_executable_formats
 from src.tests._build_helpers import require_built_tools
 
 IMAGE_PATH = Path("resources/platform_macos/MPW-GM.img.bin")
@@ -134,6 +135,7 @@ def test_python_wrapper_uses_c_macos_hfs_code_summary() -> None:
     require_built_tools()
     image = _make_hfs_image()
     summary = inspect_macos_hfs_code_summary_with_c_backend(image, "MPW-GM/Tools/Asm")
+    assert platform_executable_formats.validate_parser_fact_references(summary) == []
     assert summary["platform"] == "macos"
     assert summary["container_kind"] == "hfs_resource_code_file"
     assert summary["volume"]["name"] == "MPW-GM"
@@ -197,6 +199,7 @@ def test_c_macos_summary_defers_code_without_entry_evidence() -> None:
 
     summary = inspect_macos_hfs_code_summary_with_c_backend(bytes(image), "MPW-GM/Tools/Asm")
 
+    assert platform_executable_formats.validate_parser_fact_references(summary) == []
     assert summary["selected_code"]["code_bytes_size"] == 0
     assert summary["selected_code"]["code"]["layout_ranges"] == [
         {
@@ -267,6 +270,7 @@ def test_c_macos_hfs_code_summary_matches_committed_mpw_asm_metadata() -> None:
         read_macos_hfs_image_bytes(IMAGE_PATH),
         "MPW-GM/MPW/Tools/Asm",
     )
+    assert platform_executable_formats.validate_parser_fact_references(summary) == []
     code_resources = summary["resource_fork"]["code_resources"]
     code0 = next(item for item in code_resources if item["id"] == 0)
 

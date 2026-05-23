@@ -93,3 +93,15 @@ uv run python -m amiga_reversing.tools.validate_018_issues
 - [x] No file rewrite behavior tested.
 - [x] Active/open issue behavior tested.
 - [x] Post-commit review found no unresolved worthwhile findings.
+
+## Post-Completion Review Gap
+
+The 018 issue validator checks structure and checkbox completion only. It does
+not prove that completion evidence is technically true, that parser-output fact
+ids resolve to the KB, or that implementation tests cover the intended runtime
+paths.
+
+Workers must not use a passing `validate_018_issues` result as evidence that
+018 implementation goals are complete. For the concrete gaps found after commit
+`b5e38e84`, see
+`docs/issues/018-008-parser-output-fact-validation-and-macos-rendering-cleanup.md`.

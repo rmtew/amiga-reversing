@@ -128,6 +128,7 @@ def _binary_container_view(c_summary: Mapping[str, object], *, project_id: str) 
             "id": selected_id,
             "name": selected_name,
             "role": "code_segment",
+            "kb_record_id": selected_code.get("kb_record_id"),
             "available": selected.get("available"),
             "payload_size": selected.get("payload_size"),
             "code_bytes_offset": code_bytes_offset,

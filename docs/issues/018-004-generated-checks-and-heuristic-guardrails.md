@@ -93,3 +93,21 @@ generated metadata patterns, and any check deliberately left report-only.
 - `uv run ruff check amiga_reversing\tools\platform_executable_formats.py tests\test_platform_executable_formats.py`
   passed.
 - Parser and renderer code paths were not changed.
+
+## Post-Completion Review Gap
+
+Review after commit `b5e38e84` found that this issue's guardrails are
+KB-internal only. They prove candidate facts cannot be marked accepted inside
+`knowledge/platform_executable_formats.json`, but they do not yet validate
+parser-emitted `fact_id`, `fact_status`, and `parser_use` fields against the
+KB.
+
+This is not sufficient for full 018 closeout. A parser can still emit a string
+that looks like a fact id but resolves only to a citation packet
+`fact_candidate_id`, or does not resolve to a KB item with matching
+status/parser-use semantics.
+
+Required follow-up is tracked by
+`docs/issues/018-008-parser-output-fact-validation-and-macos-rendering-cleanup.md`.
+018-008 must add parser-output-to-KB validation and negative tests for invalid
+parser fact ids before 018 can be considered fully guarded.

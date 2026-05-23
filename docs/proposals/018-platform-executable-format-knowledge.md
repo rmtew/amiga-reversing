@@ -207,6 +207,9 @@ Atari ST:
   with citations and parser assertions where needed.
 - Parser/check scaffolding consumes the KB or validates C parser output against
   the KB.
+- KB-backed parser output emits only fact ids that resolve to KB record items
+  with matching fact status and parser-use semantics; citation packet ids and
+  `fact_candidate_id` values are not accepted parser fact ids.
 - Tests reject heuristic-only executable parsing when no cited or asserted
   platform rule exists.
 - Target-specific analysis remains separate from standard platform semantics.
@@ -277,6 +280,17 @@ issue enforcement pattern, so future 018 closure cannot bypass evidence,
 review, and required sign-off sections.
 ```
 
+018-008. Parser Output Fact Validation And Mac OS Rendering Cleanup
+
+```text
+Post-review follow-up after b5e38e84. Add parser-output-to-KB validation so
+every emitted kb_record_id/fact_id/fact_status/parser_use resolves to
+knowledge/platform_executable_formats.json with matching semantics. Fix the
+invalid Mac parser fact id currently emitted for Segment Loader CODE resources,
+drift-test or generate C fact constants from the KB, and remove Amiga
+SECTION code,code output from every Mac rendering path.
+```
+
 ## Implementation Notes
 
 - 018-001 added the canonical human/schema/data authority files:
@@ -332,6 +346,23 @@ review, and required sign-off sections.
   checks 018 issue status vocabulary, Proposal 018 references, required protocol
   sections, completed-issue completion evidence, completed checkbox sign-off,
   and superseded/deleted reasons without rewriting files.
+- Post-review of commit `b5e38e84` found that 018-004/018-005 are not enough
+  for full proposal closeout. Guardrails validate KB-internal candidate/accepted
+  state, but parser-emitted fact ids are not yet checked against KB records. At
+  least one emitted id, `macos.segment_loader.code_resources`, resolves only to
+  a citation packet `fact_candidate_id`, not a KB item/fact with matching
+  parser-use semantics. One lower-level Mac raw CODE rendering test path also
+  still expects Amiga-style `SECTION code,code`. 018-008 is required before
+  018 can be treated as complete.
+- 018-008 added `validate_parser_fact_references()` to validate real parser
+  output against KB record items, including inherited `kb_record_id` context for
+  nested layout ranges. Tests now reject citation-packet `fact_candidate_id`
+  values as parser facts, reject status/parser-use drift, and drift-test the C
+  Mac fact constants against the KB. The invalid emitted
+  `macos.segment_loader.code_resources` id was replaced with
+  `macos.resource_fork.code_resources.accepted`, and the raw Mac CODE listing
+  test now uses the Mac listing adapter so `SECTION code,code` is filtered on
+  that path too. The `movea.l (a7)+,a0` boundary remains candidate-only.
 
 ## Relationship To 012
 

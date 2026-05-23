@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import copy
+import re
+from pathlib import Path
 
 from amiga_reversing.tools import platform_executable_formats
 
@@ -210,3 +212,53 @@ def test_018_006_backfill_records_do_not_authorize_accepted_parser_output() -> N
     assert all(item["parser_use"] != "accepted_parser_output" for item in atari["facts"])
     assert amiga["runtime_model"][0]["status"] == "deferred"
     assert atari["runtime_model"][0]["status"] == "deferred"
+
+
+def test_018_008_parser_fact_reference_validator_rejects_citation_packet_candidate_ids() -> None:
+    kb = platform_executable_formats.load_kb()
+    payload = {
+        "kb_record_id": "macos.hfs_resource_fork.code_resources.mpw_application",
+        "fact_id": "macos.segment_loader.code_resources",
+        "fact_status": "validated",
+        "parser_use": "accepted_parser_output",
+    }
+
+    diagnostics = platform_executable_formats.validate_parser_fact_references(payload, kb)
+
+    assert any("citation packet fact_candidate_id" in item for item in diagnostics)
+
+
+def test_018_008_parser_fact_reference_validator_rejects_status_and_parser_use_drift() -> None:
+    kb = platform_executable_formats.load_kb()
+    payload = {
+        "kb_record_id": "macos.hfs_resource_fork.code_resources.mpw_application",
+        "fact_id": "macos.code_resource.movea_stack_a0.boundary.candidate",
+        "fact_status": "validated",
+        "parser_use": "accepted_parser_output",
+    }
+
+    diagnostics = platform_executable_formats.validate_parser_fact_references(payload, kb)
+
+    assert any("does not match KB status 'candidate'" in item for item in diagnostics)
+    assert any("does not match KB parser_use 'candidate_only'" in item for item in diagnostics)
+
+
+def test_018_008_c_macos_fact_constants_resolve_to_kb_record_items() -> None:
+    kb = platform_executable_formats.load_kb()
+    record = platform_executable_formats.record_by_id(kb, "macos.hfs_resource_fork.code_resources.mpw_application")
+    repo_root = Path(__file__).resolve().parents[1]
+    c_paths = [
+        repo_root / "src/platform_file_lib.c",
+        repo_root / "src/platform_macos_resource.c",
+    ]
+    constants: set[str] = set()
+    for path in c_paths:
+        text = path.read_text(encoding="utf-8")
+        constants.update(re.findall(r'(?:resource_fact_id\s*=\s*|return\s*)"(?P<id>macos\.[^"]+)"', text))
+
+    assert "macos.segment_loader.code_resources" not in constants
+    assert constants
+    for constant in constants:
+        if constant == record["id"]:
+            continue
+        platform_executable_formats.record_item_by_id(record, constant)

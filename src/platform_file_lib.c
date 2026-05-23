@@ -155,7 +155,7 @@ static int macos_append_code_metadata(JsonBuilder *builder, const PlatformMacosC
     resource_parser_use = "accepted_parser_output";
   } else if (code->kind == PLATFORM_MACOS_CODE_RESOURCE_CODE_SEGMENT) {
     kind = "code_segment";
-    resource_fact_id = "macos.segment_loader.code_resources";
+    resource_fact_id = "macos.resource_fork.code_resources.accepted";
     resource_fact_status = "validated";
     resource_parser_use = "accepted_parser_output";
   }

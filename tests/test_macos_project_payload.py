@@ -7,6 +7,7 @@ import pytest
 
 from amiga_reversing.disasm import macos_project_payload
 from amiga_reversing.disasm.projects import ProjectKind, ProjectRecord
+from amiga_reversing.tools import platform_executable_formats
 
 IMAGE_PATH = Path("resources/platform_macos/MPW-GM.img.bin")
 NDIF2RAW_PATH = Path("ext/tools/ndif2raw/ndif2raw.exe")
@@ -59,6 +60,10 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
                 "payload_sha256": "payload-hash",
                 "code_bytes_sha256": "code-hash",
                 "code": {
+                    "kb_record_id": "macos.hfs_resource_fork.code_resources.mpw_application",
+                    "fact_id": "macos.resource_fork.code_resources.accepted",
+                    "fact_status": "validated",
+                    "parser_use": "accepted_parser_output",
                     "layout_ranges": [
                         {
                             "kind": "metadata",
@@ -120,6 +125,7 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
     payload = macos_project_payload.build_macos_project_payload(project, project_root=tmp_path)
     container = payload["binary_container_view"]
 
+    assert platform_executable_formats.validate_parser_fact_references(payload) == []
     assert payload["platform"] == "macos"
     assert calls["image_path"] == image_path
     assert calls["summary_args"] == (b"hfs", "MPW-GM/MPW/Tools/Asm")
@@ -183,6 +189,7 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     payload = macos_project_payload.build_macos_project_payload(project)
     container = payload["binary_container_view"]
 
+    assert platform_executable_formats.validate_parser_fact_references(payload) == []
     assert payload["platform"] == "macos"
     assert container["finder"] == {"type": "MPST", "creator": "MPS ", "cnid": 2310}
     assert len(container["code_resources"]) == 28

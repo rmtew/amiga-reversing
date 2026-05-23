@@ -11,13 +11,16 @@ from amiga_reversing.disasm.binary_source import (
     RawAddressModel,
     RawBinarySource,
 )
-from amiga_reversing.disasm.c_backend import render_project_source_with_c_backend
+from amiga_reversing.disasm.c_backend import (
+    build_listing_artifact_profile_from_binary_source,
+)
 from amiga_reversing.disasm.macos_asm_container import (
     DEFAULT_NDIF2RAW_PATH,
     MPW_ASM_PATH,
     extract_mpw_asm_code_bytes,
     import_mpw_asm_container,
 )
+from amiga_reversing.disasm.macos_listing_source import MacosCodeListingArtifact
 
 IMAGE_PATH = Path("resources/platform_macos/MPW-GM.img.bin")
 ASM_CODE_RESOURCES_PATH = Path("ext/macos_tools/mpw_gm/asm_code_resources.json")
@@ -167,6 +170,8 @@ def test_code1_main_has_code_byte_listing_preview_and_explicit_unsupported_state
 
 def test_code1_main_is_decodable_by_existing_m68k_listing_backend(tmp_path: Path) -> None:
     _requires_real_fixture()
+    container = _imported()
+    selected = container["selected_code_segment"]
     code_bytes = extract_mpw_asm_code_bytes(IMAGE_PATH, resource_id=1)
     code_path = tmp_path / "mpw_asm_CODE_1_Main.bin"
     code_path.write_bytes(code_bytes[:256])
@@ -182,8 +187,24 @@ def test_code1_main_is_decodable_by_existing_m68k_listing_backend(tmp_path: Path
         analysis_cache_path=tmp_path / "mpw_asm_CODE_1_Main.analysis",
     )
 
-    listing = render_project_source_with_c_backend(source)
+    _total_rows, _profile, raw_artifact = build_listing_artifact_profile_from_binary_source(source)
+    artifact = MacosCodeListingArtifact(
+        raw_artifact,
+        {
+            "hfs_path": MPW_ASM_PATH,
+            "fork": "resource",
+            "resource_type": "CODE",
+            "resource_id": 1,
+            "resource_name": "Main",
+            "classified_range": selected["code_layout"][2],
+        },
+    )
+    try:
+        listing, _listing_profile = artifact.source_text_with_profile()
+    finally:
+        artifact.close()
 
-    assert "SECTION code,code" in listing
+    assert "; Classic Mac OS CODE resource listing" in listing
+    assert "SECTION code,code" not in listing
     assert "ori.b #16,d0" not in listing
     assert "movea.l (a7)+,a0" in listing

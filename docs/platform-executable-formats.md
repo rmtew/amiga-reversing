@@ -386,6 +386,26 @@ starter target, but only as `candidate_code` with
 evidence is emitted as deferred. The committed listing labels fact/status fields
 and still omits Amiga raw `SECTION code,code`.
 
+018-008 adds parser-output validation over actual Mac summaries and payloads.
+Every emitted `kb_record_id`, `fact_id`, `fact_status`, and `parser_use` must
+resolve to an item in the referenced KB record with matching status/parser-use
+semantics. Citation packet `fact_candidate_id` values are not valid parser
+facts unless the same id exists as a KB record item.
+
+Current Mac emitted ids:
+
+```text
+macos.hfs_resource_fork.code_resources.mpw_application
+macos.resource_fork.code_resources.accepted
+macos.code_resource.0.jump_table_metadata
+macos.code_resource.nonzero.segment_header
+macos.code_resource.movea_stack_a0.boundary.candidate
+macos.code_resource.byte_entry_rule.unknown
+```
+
+`macos.segment_loader.code_resources` remains only a citation-packet candidate
+id and must not be emitted as parser fact output.
+
 ### Representative Amiga And Atari Needs
 
 Checked:

@@ -45,6 +45,12 @@ RECORD_SECTIONS = (
     "analysis_model",
     "renderer_expectations",
 )
+REVIEW_SECTIONS = ("unknowns", "conflicts", "deferred", "unsupported")
+STATUS_DEFAULT_PARSER_USE = {
+    "candidate": "candidate_only",
+    "deferred": "deferred_only",
+    "unsupported": "unsupported_only",
+}
 
 
 def load_kb(path: Path = KB_PATH) -> dict[str, Any]:
@@ -117,12 +123,37 @@ def fact_by_id(record: Mapping[str, Any], fact_id: str) -> dict[str, Any]:
     raise KeyError(fact_id)
 
 
+def record_item_by_id(record: Mapping[str, Any], item_id: str) -> dict[str, Any]:
+    for item in _iter_record_items(record):
+        if item.get("id") == item_id:
+            return dict(item)
+    raise KeyError(item_id)
+
+
 def citation_packet_by_id(kb: Mapping[str, Any], packet_id: str) -> dict[str, Any]:
     for packet_value in _sequence(kb.get("citation_packets")):
         packet = _mapping(packet_value)
         if packet.get("id") == packet_id:
             return dict(packet)
     raise KeyError(packet_id)
+
+
+def validate_parser_fact_references(payload: object, kb: Mapping[str, Any] | None = None) -> list[str]:
+    knowledge = load_kb() if kb is None else kb
+    citation_fact_ids = {
+        _string(_mapping(packet).get("fact_candidate_id")) for packet in _sequence(knowledge.get("citation_packets"))
+    }
+    citation_fact_ids.discard("")
+    diagnostics: list[str] = []
+    _validate_parser_fact_node(
+        diagnostics,
+        payload,
+        knowledge,
+        citation_fact_ids,
+        inherited_record_id=None,
+        path="$",
+    )
+    return diagnostics
 
 
 def build_guardrail_report(kb: Mapping[str, Any]) -> dict[str, Any]:
@@ -251,6 +282,102 @@ def _iter_fact_like_items(record: Mapping[str, Any]) -> list[Mapping[str, Any]]:
     for section in (*RECORD_SECTIONS, "entrypoints", "facts"):
         items.extend(_mapping(item) for item in _sequence(record.get(section)))
     return items
+
+
+def _iter_record_items(record: Mapping[str, Any]) -> list[Mapping[str, Any]]:
+    items = _iter_fact_like_items(record)
+    for section in REVIEW_SECTIONS:
+        items.extend(_mapping(item) for item in _sequence(record.get(section)))
+    return items
+
+
+def _validate_parser_fact_node(
+    diagnostics: list[str],
+    value: object,
+    kb: Mapping[str, Any],
+    citation_fact_ids: set[str],
+    *,
+    inherited_record_id: str | None,
+    path: str,
+) -> None:
+    if isinstance(value, Mapping):
+        node = _mapping(value)
+        record_id = _string(node.get("kb_record_id")) or inherited_record_id
+        if "kb_record_id" in node and not _string(node.get("kb_record_id")):
+            diagnostics.append(f"{path}.kb_record_id must be a non-empty string")
+        if _string(node.get("kb_record_id")):
+            try:
+                record_by_id(kb, _string(node.get("kb_record_id")))
+            except KeyError:
+                diagnostics.append(f"{path}.kb_record_id unknown record: {node.get('kb_record_id')}")
+        if any(key in node for key in ("fact_id", "fact_status", "parser_use")):
+            _validate_parser_fact_mapping(diagnostics, node, kb, citation_fact_ids, record_id, path)
+        for key, child in node.items():
+            _validate_parser_fact_node(
+                diagnostics,
+                child,
+                kb,
+                citation_fact_ids,
+                inherited_record_id=record_id,
+                path=f"{path}.{key}",
+            )
+    elif isinstance(value, Sequence) and not isinstance(value, str):
+        for index, child in enumerate(value):
+            _validate_parser_fact_node(
+                diagnostics,
+                child,
+                kb,
+                citation_fact_ids,
+                inherited_record_id=inherited_record_id,
+                path=f"{path}[{index}]",
+            )
+
+
+def _validate_parser_fact_mapping(
+    diagnostics: list[str],
+    node: Mapping[str, Any],
+    kb: Mapping[str, Any],
+    citation_fact_ids: set[str],
+    record_id: str | None,
+    path: str,
+) -> None:
+    fact_id = _string(node.get("fact_id"))
+    if not fact_id:
+        diagnostics.append(f"{path}.fact_id must be present when fact_status/parser_use is emitted")
+        return
+    if record_id is None:
+        diagnostics.append(f"{path}.fact_id {fact_id} has no kb_record_id context")
+        return
+    try:
+        record = record_by_id(kb, record_id)
+    except KeyError:
+        diagnostics.append(f"{path}.kb_record_id unknown record: {record_id}")
+        return
+    try:
+        item = record_item_by_id(record, fact_id)
+    except KeyError:
+        if fact_id in citation_fact_ids:
+            diagnostics.append(f"{path}.fact_id {fact_id} is a citation packet fact_candidate_id, not a KB record item")
+        else:
+            diagnostics.append(f"{path}.fact_id unknown KB record item: {fact_id}")
+        return
+    expected_status = _string(item.get("status"))
+    expected_parser_use = _expected_parser_use(item)
+    fact_status = _string(node.get("fact_status"))
+    parser_use = _string(node.get("parser_use"))
+    if fact_status != expected_status:
+        diagnostics.append(f"{path}.fact_status {fact_status!r} does not match KB status {expected_status!r}")
+    if parser_use != expected_parser_use:
+        diagnostics.append(f"{path}.parser_use {parser_use!r} does not match KB parser_use {expected_parser_use!r}")
+    if parser_use == "accepted_parser_output" and expected_status not in ACCEPTED_FACT_STATES:
+        diagnostics.append(f"{path}.parser_use accepted_parser_output requires validated/parser_asserted status")
+
+
+def _expected_parser_use(item: Mapping[str, Any]) -> str:
+    parser_use = _string(item.get("parser_use"))
+    if parser_use:
+        return parser_use
+    return STATUS_DEFAULT_PARSER_USE.get(_string(item.get("status")), "")
 
 
 def _validate_citation_packet(

@@ -100,3 +100,24 @@ uv run python -m pytest tests\test_macos_c_backend.py tests\test_macos_asm_conta
 - [x] Existing Amiga/Atari tests remain unaffected or changes are justified.
 - [x] Stale heuristic code deleted or deferred deletion blocker recorded.
 - [x] Post-commit review found no unresolved worthwhile findings.
+
+## Post-Completion Review Gap
+
+Review after commit `b5e38e84` found two gaps that prevent this issue from
+being sufficient for full 018 closeout:
+
+- Parser-emitted Mac fact ids are not mechanically checked against
+  `knowledge/platform_executable_formats.json`. In particular,
+  `src/platform_file_lib.c` emits `macos.segment_loader.code_resources` as a
+  validated parser fact id, but that id is currently a citation packet
+  `fact_candidate_id`, not a KB record item/fact with matching
+  status/parser-use semantics.
+- One lower-level Mac CODE raw rendering test path still expects Amiga-style
+  `SECTION code,code` output. The committed Mac target artifact no longer has
+  the directive, but all Mac rendering paths must be cleaned up, not only the
+  target artifact path.
+
+These are follow-up blockers for the proposal, not permission to close 018 by
+claiming the current implementation is complete. Required follow-up is tracked
+by
+`docs/issues/018-008-parser-output-fact-validation-and-macos-rendering-cleanup.md`.
