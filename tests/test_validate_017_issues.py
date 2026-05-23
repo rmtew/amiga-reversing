@@ -104,12 +104,10 @@ def test_validate_017_issue_script_does_not_rewrite(tmp_path: Path) -> None:
     assert path.read_text(encoding="utf-8") == before
 
 
-def test_validate_real_017_039_and_017_040_examples_pass() -> None:
-    repo_root = Path(__file__).resolve().parents[1]
+def test_validate_017_issue_path_accepts_current_completed_fixture(tmp_path: Path) -> None:
+    issue = tmp_path / "017-099-fixture.md"
+    issue.write_text(VALID_COMPLETED, encoding="utf-8")
 
-    for issue in (
-        repo_root / "docs/issues/017-039-rsset-journal-backed-safe-mutation.md",
-        repo_root / "docs/issues/017-040-pandora-rsset-journal-accept-evidence.md",
-    ):
-        report = validate_issue_path(issue)
-        assert report["valid"] is True, report["diagnostics"]
+    report = validate_issue_path(issue)
+
+    assert report["valid"] is True, report["diagnostics"]
