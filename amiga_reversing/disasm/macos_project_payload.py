@@ -123,6 +123,7 @@ def _binary_container_view(c_summary: Mapping[str, object], *, project_id: str) 
         },
         "code0": {"resource": code0, "metadata": _mapping(code0.get("code"))},
         "code_resources": code_resources,
+        "code_segment_map": _sequence(resource_summary.get("code_segment_map")),
         "selected_code_segment": {
             "resource_type": "CODE",
             "id": selected_id,
@@ -139,6 +140,8 @@ def _binary_container_view(c_summary: Mapping[str, object], *, project_id: str) 
             ),
             "code_bytes_size": selected.get("code_bytes_size"),
             "code_layout": _sequence(selected_code.get("layout_ranges")),
+            "orphan_ranges": _sequence(selected_code.get("orphan_ranges")),
+            "relocation_fixups": _mapping(selected_code.get("relocation_fixups")),
             "sha256": selected.get("payload_sha256"),
             "code_bytes_sha256": selected.get("code_bytes_sha256"),
             "resource": selected_resource,

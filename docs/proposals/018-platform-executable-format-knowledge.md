@@ -382,15 +382,22 @@ guessed or dropped.
   or parser assertions. It should either validate byte-entry and relocation
   rules or keep them candidate/deferred while exposing CODE 0 jump-table,
   segment/routine, and orphan-island evidence structurally.
+- 018-009 added that structured Mac output. The C summary, project payload, and
+  committed MPW `Asm` artifact now expose CODE 0 jump-table spans, nonzero CODE
+  segment jump-table spans, candidate routine offsets, candidate/deferred
+  orphan ranges, and deferred relocation/fixup placeholders with KB fact ids.
+  The `movea.l (a7)+,a0` boundary is still candidate-only; relocation/fixup
+  interpretation and complete byte-level CODE entry rules remain deferred.
 
 ## Relationship To 012
 
 Proposal 012 remains open for full executable/CODE correctness. 018-005 removes
 the stale claim that the Mac parser/listing path accepts the current byte-entry
 heuristic, and 018-008 validates emitted parser fact ids against the KB, but
-relocation/fixup semantics, byte-level entry rules, CODE 0 jump-table to
-segment/routine mapping, orphan code islands, and full per-resource CODE
-expansion remain deferred/candidate until 018-009 or later work resolves them.
+relocation/fixup semantics and byte-level entry rules remain deferred/candidate.
+018-009 now exposes CODE 0 jump-table to segment/routine mapping,
+orphan-island evidence, and deferred relocation placeholders structurally, but
+full per-resource CODE expansion remains future work.
 
 018 sits above 011 and 012 as the shared executable/container format authority.
 It does not absorb all platform knowledge; it owns file structure, loader model,

@@ -66,6 +66,14 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     assert ";   CODE 1 Main: status=rendered" in asm_text
     assert ";   CODE 2 FPOpTable: status=partial" in asm_text
     assert ";   CODE 19 SetupArgV: status=deferred" in asm_text
+    assert "; CODE segment/routine map" in asm_text
+    assert "fact=macos.code_resource.segment_jump_table_span.accepted status=validated" in asm_text
+    assert "fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate" in asm_text
+    assert ";   orphan_ranges:" in asm_text
+    assert "candidate_data_island: start=4 end=40" in asm_text
+    assert "fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate" in asm_text
+    assert ";   relocation_fixups:" in asm_text
+    assert "fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only" in asm_text
     assert "missing_m68k_movea_l_stack_to_a0_entry" in asm_text
     assert "; Classic Mac OS CODE resource listing" in asm_text
     assert "; resource: CODE 1 Main" in asm_text
@@ -101,7 +109,11 @@ def test_committed_macos_asm_artifact_covers_every_code_resource() -> None:
     )
     expected = summary["resource_fork"]["code_resources"]
     asm_lines = asm_path.read_text(encoding="utf-8").splitlines()
-    coverage_lines = [line for line in asm_lines if line.startswith(";   CODE ") and "status=" in line]
+    coverage_start = asm_lines.index("; CODE resource coverage")
+    segment_map_start = asm_lines.index("; CODE segment/routine map")
+    coverage_lines = [
+        line for line in asm_lines[coverage_start:segment_map_start] if line.startswith(";   CODE ") and "status=" in line
+    ]
 
     assert len(coverage_lines) == len(expected)
     for resource in expected:

@@ -1356,6 +1356,13 @@ Future scope after cited starter-quality rendering:
   accepted Mac KB facts. Proposal 012 remains open because relocation/fixup
   semantics, exact byte-entry rules, and full per-resource CODE expansion are
   still not accepted platform knowledge.
+- 018-008 and 018-009 added parser-output fact validation and structured Mac
+  CODE evidence output. The Mac summary/project/artifact now expose CODE 0
+  jump-table spans, nonzero CODE segment map spans, candidate routine offsets,
+  orphan ranges, and deferred relocation/fixup placeholders. Proposal 012 still
+  remains open because `movea.l (a7)+,a0` is candidate-only, relocation/fixup
+  semantics are not accepted, and full per-resource CODE expansion is not
+  complete.
 - MPW Asm/Link/Rez byte-for-byte roundtrip.
 - Full non-CODE resource semantics.
 - Overflow extents for later fixtures that need them.

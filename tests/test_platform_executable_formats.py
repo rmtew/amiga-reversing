@@ -254,7 +254,7 @@ def test_018_008_c_macos_fact_constants_resolve_to_kb_record_items() -> None:
     constants: set[str] = set()
     for path in c_paths:
         text = path.read_text(encoding="utf-8")
-        constants.update(re.findall(r'(?:resource_fact_id\s*=\s*|return\s*)"(?P<id>macos\.[^"]+)"', text))
+        constants.update(re.findall(r'"(?P<id>macos\.[A-Za-z0-9_.-]+)"', text))
 
     assert "macos.segment_loader.code_resources" not in constants
     assert constants

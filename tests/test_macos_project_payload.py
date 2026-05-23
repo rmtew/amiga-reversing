@@ -49,13 +49,39 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
             "resource_fork": {
                 "types": [{"type": "CODE", "count": 2}],
                 "code_resources": [{"type": "CODE", "id": 1, "size": 6}],
+                "code_segment_map": [
+                    {
+                        "resource_id": 1,
+                        "kind": "nonzero_code_segment",
+                        "first_jump_table_entry_offset": 0,
+                        "jump_table_entry_count": 1,
+                        "jump_table_entry_size": 8,
+                        "jump_table_span_size": 8,
+                        "kb_record_id": "macos.hfs_resource_fork.code_resources.mpw_application",
+                        "fact_id": "macos.code_resource.segment_jump_table_span.accepted",
+                        "fact_status": "validated",
+                        "parser_use": "accepted_parser_output",
+                        "routine_entry_candidates": [
+                            {
+                                "index": 0,
+                                "jump_table_offset": 0,
+                                "code0_payload_offset": 16,
+                                "routine_offset_from_segment": 4,
+                                "classification": "candidate_routine_entry",
+                                "fact_id": "macos.code_resource.jump_table.routine_offsets.candidate",
+                                "fact_status": "candidate",
+                                "parser_use": "candidate_only",
+                            }
+                        ],
+                    }
+                ],
             },
             "selected_code": {
                 "available": True,
                 "id": 1,
                 "payload_offset": 100,
-                "payload_size": 6,
-                "code_bytes_offset": 104,
+                "payload_size": 8,
+                "code_bytes_offset": 106,
                 "code_bytes_size": 2,
                 "payload_sha256": "payload-hash",
                 "code_bytes_sha256": "code-hash",
@@ -77,17 +103,46 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
                             "parser_use": "accepted_parser_output",
                         },
                         {
-                            "kind": "candidate_code",
+                            "kind": "data",
                             "start": 4,
                             "size": 2,
                             "end": 6,
+                            "entrypoint": False,
+                            "evidence": "prefix_before_stack_entry",
+                            "fact_id": "macos.code_resource.movea_stack_a0.boundary.candidate",
+                            "fact_status": "candidate",
+                            "parser_use": "candidate_only",
+                        },
+                        {
+                            "kind": "candidate_code",
+                            "start": 6,
+                            "size": 2,
+                            "end": 8,
                             "entrypoint": True,
                             "evidence": "m68k_movea_l_stack_to_a0_entry",
                             "fact_id": "macos.code_resource.movea_stack_a0.boundary.candidate",
                             "fact_status": "candidate",
                             "parser_use": "candidate_only",
                         },
-                    ]
+                    ],
+                    "orphan_ranges": [
+                        {
+                            "classification": "candidate_data_island",
+                            "start": 4,
+                            "size": 2,
+                            "end": 6,
+                            "evidence": "prefix_before_stack_entry",
+                            "fact_id": "macos.code_resource.orphan_layout_ranges.candidate",
+                            "fact_status": "candidate",
+                            "parser_use": "candidate_only",
+                        }
+                    ],
+                    "relocation_fixups": {
+                        "status": "deferred",
+                        "fact_id": "macos.segment_loader.relocation_fixups.deferred",
+                        "fact_status": "deferred",
+                        "parser_use": "deferred_only",
+                    },
                 },
             },
             "unsupported": ["segment_loader_relocations"],
@@ -131,9 +186,13 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
     assert calls["summary_args"] == (b"hfs", "MPW-GM/MPW/Tools/Asm")
     assert container["kind"] == "hfs_resource_code_file"
     assert container["finder"] == {"type": "MPST", "creator": "MPS ", "cnid": 2310}
-    assert container["selected_code_segment"]["code_entry_offset"] == 4
-    assert container["selected_code_segment"]["code_layout"][1]["kind"] == "candidate_code"
-    assert container["selected_code_segment"]["code_layout"][1]["fact_status"] == "candidate"
+    assert container["selected_code_segment"]["code_entry_offset"] == 6
+    assert container["selected_code_segment"]["code_layout"][2]["kind"] == "candidate_code"
+    assert container["selected_code_segment"]["code_layout"][2]["fact_status"] == "candidate"
+    assert container["code_segment_map"][0]["fact_id"] == "macos.code_resource.segment_jump_table_span.accepted"
+    assert container["code_segment_map"][0]["routine_entry_candidates"][0]["fact_status"] == "candidate"
+    assert container["selected_code_segment"]["orphan_ranges"][0]["fact_status"] == "candidate"
+    assert container["selected_code_segment"]["relocation_fixups"]["parser_use"] == "deferred_only"
     assert container["selected_code_segment"]["listing"] == {
         "project_id": "macos_mpw_sample",
         "route": "listing",
@@ -142,7 +201,7 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
         "resource_id": 1,
         "resource_name": None,
         "fork": "resource",
-        "payload_size": 6,
+        "payload_size": 8,
         "payload_sha256": "payload-hash",
         "code_bytes_sha256": "code-hash",
         "unsupported": ["segment_loader_relocations"],
@@ -193,8 +252,16 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     assert payload["platform"] == "macos"
     assert container["finder"] == {"type": "MPST", "creator": "MPS ", "cnid": 2310}
     assert len(container["code_resources"]) == 28
+    assert container["code_segment_map"]
+    assert any(
+        item.get("fact_id") == "macos.code_resource.segment_jump_table_span.accepted"
+        for item in container["code_segment_map"]
+        if isinstance(item, dict)
+    )
     assert container["selected_code_segment"]["code_entry_offset"] == 40
     assert container["selected_code_segment"]["code_bytes_size"] == 28984
     assert container["selected_code_segment"]["code_layout"][2]["kind"] == "candidate_code"
     assert container["selected_code_segment"]["code_layout"][2]["fact_status"] == "candidate"
+    assert container["selected_code_segment"]["orphan_ranges"][0]["fact_status"] == "candidate"
+    assert container["selected_code_segment"]["relocation_fixups"]["parser_use"] == "deferred_only"
     assert payload["provenance"]["source_image"] == IMAGE_PATH.as_posix()

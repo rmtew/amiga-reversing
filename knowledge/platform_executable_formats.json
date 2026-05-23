@@ -963,6 +963,38 @@
           "parser_use": "accepted_parser_output"
         },
         {
+          "id": "macos.code_resource.segment_jump_table_span.accepted",
+          "layer": "analysis_model",
+          "status": "validated",
+          "source_type": "old_out_of_print",
+          "summary": "The nonzero CODE segment header identifies the contiguous jump-table entry span for that segment by first-entry offset and entry count.",
+          "citations": [
+            {
+              "source_id": "inside-macintosh-volume-ii-1985",
+              "source_type": "old_out_of_print",
+              "target": "ext/docs_macos/Inside_Macintosh_Volume_II_1985.md source-page 70",
+              "context": "LoadSeg and UnloadSeg use the segment header to locate all jump-table entries for a segment."
+            }
+          ],
+          "parser_use": "accepted_parser_output"
+        },
+        {
+          "id": "macos.code_resource.jump_table.routine_offsets.candidate",
+          "layer": "analysis_model",
+          "status": "candidate",
+          "source_type": "project_observed",
+          "summary": "Jump-table entry routine offsets may be emitted as candidate routine-entry addresses, but they do not validate byte-level CODE entry boundaries or relocation/fixup interpretation.",
+          "citations": [
+            {
+              "source_id": "inside-macintosh-volume-ii-1985",
+              "source_type": "old_out_of_print",
+              "target": "ext/docs_macos/Inside_Macintosh_Volume_II_1985.md source-page 70",
+              "context": "The documented jump-table entry contains a routine offset, but parser closeout still lacks complete byte-entry and relocation semantics."
+            }
+          ],
+          "parser_use": "candidate_only"
+        },
+        {
           "id": "macos.code_resource.movea_stack_a0.boundary.candidate",
           "layer": "analysis_model",
           "status": "candidate",
@@ -974,6 +1006,22 @@
               "source_type": "project_observed",
               "target": "docs/proposals/012-classic-mac-os-m68k-platform.md blocked corrective scope",
               "context": "018-002 packet macos.packet.movea_stack_a0_boundary."
+            }
+          ],
+          "parser_use": "candidate_only"
+        },
+        {
+          "id": "macos.code_resource.orphan_layout_ranges.candidate",
+          "layer": "analysis_model",
+          "status": "candidate",
+          "source_type": "project_observed",
+          "summary": "Bytes in nonzero CODE resources that are outside accepted segment metadata and candidate entry ranges are surfaced as candidate orphan layout ranges instead of being silently dropped.",
+          "citations": [
+            {
+              "source_id": "proposal-018",
+              "source_type": "project_observed",
+              "target": "docs/issues/018-009-macos-code-entry-relocation-and-segment-map.md",
+              "context": "018-009 requires orphan code/data islands to be classified with offsets and reasons."
             }
           ],
           "parser_use": "candidate_only"

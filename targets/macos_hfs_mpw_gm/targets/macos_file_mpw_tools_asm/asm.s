@@ -90,6 +90,36 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;   CODE 25 SANELib: status=partial layout=metadata,data,candidate_code reason=candidate_code entry payload[40..246); full per-resource listing deferred until relocation/source-boundary context is represented
 ;   CODE 26 PASLIB: status=partial layout=metadata,data,candidate_code reason=candidate_code entry payload[198..2940); full per-resource listing deferred until relocation/source-boundary context is represented
 
+; CODE segment/routine map
+;   CODE 27: jt_first=0 jt_count=1 jt_span_size=8 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
+;     routine_candidate index=0 jt_offset=0 code0_offset=16 routine_offset=0 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
+;   CODE 1: jt_first=65535 jt_count=0 jt_span_size=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
+;   CODE 2: jt_first=65535 jt_count=0 jt_span_size=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
+;   CODE 3: jt_first=65535 jt_count=0 jt_span_size=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
+;   CODE 4: jt_first=65535 jt_count=0 jt_span_size=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
+;   CODE 5: jt_first=65535 jt_count=0 jt_span_size=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
+;   CODE 6: jt_first=65535 jt_count=0 jt_span_size=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
+;   CODE 7: jt_first=65535 jt_count=0 jt_span_size=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
+;   CODE 8: jt_first=65535 jt_count=0 jt_span_size=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
+;   CODE 9: jt_first=65535 jt_count=0 jt_span_size=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
+;   CODE 10: jt_first=65535 jt_count=0 jt_span_size=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
+;   CODE 11: jt_first=65535 jt_count=0 jt_span_size=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
+;   CODE 12: jt_first=65535 jt_count=0 jt_span_size=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
+;   CODE 13: jt_first=65535 jt_count=0 jt_span_size=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
+;   CODE 14: jt_first=65535 jt_count=0 jt_span_size=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
+;   CODE 15: jt_first=65535 jt_count=0 jt_span_size=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
+;   CODE 16: jt_first=65535 jt_count=0 jt_span_size=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
+;   CODE 17: jt_first=65535 jt_count=0 jt_span_size=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
+;   CODE 18: jt_first=65535 jt_count=0 jt_span_size=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
+;   CODE 19: jt_first=65535 jt_count=0 jt_span_size=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
+;   CODE 20: jt_first=65535 jt_count=0 jt_span_size=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
+;   CODE 21: jt_first=65535 jt_count=0 jt_span_size=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
+;   CODE 22: jt_first=65535 jt_count=0 jt_span_size=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
+;   CODE 23: jt_first=65535 jt_count=0 jt_span_size=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
+;   CODE 24: jt_first=65535 jt_count=0 jt_span_size=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
+;   CODE 25: jt_first=65535 jt_count=0 jt_span_size=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
+;   CODE 26: jt_first=65535 jt_count=0 jt_span_size=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
+
 ; Non-CODE resource placeholders
 ;   type acur: 1 resource(s), structured placeholder
 ;   type CURS: 4 resource(s), structured placeholder
@@ -117,6 +147,10 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     metadata: start=0 end=4 entrypoint=False evidence=nonzero_code_segment_header fact=macos.code_resource.nonzero.segment_header status=validated
 ;     data: start=4 end=40 entrypoint=False evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate
 ;     candidate_code: start=40 end=29024 entrypoint=True evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate
+;   orphan_ranges:
+;     candidate_data_island: start=4 end=40 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
+;   relocation_fixups:
+;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
 ;   listing_rows: 1818
 
 ; CODE 1 Main listing follows. Offsets are local to the selected CODE resource code bytes.

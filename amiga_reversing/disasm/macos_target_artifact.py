@@ -106,7 +106,10 @@ def render_macos_example_asm(*, project_root: Path = PROJECT_ROOT) -> str:
     selected = _mapping(container.get("selected_code_segment"))
     selected_listing = _mapping(selected.get("listing"))
     selected_layout = [_mapping(item) for item in _sequence(selected.get("code_layout"))]
+    selected_orphans = [_mapping(item) for item in _sequence(selected.get("orphan_ranges"))]
+    selected_relocations = _mapping(selected.get("relocation_fixups"))
     code_resources = [_mapping(item) for item in _sequence(container.get("code_resources"))]
+    code_segment_map = [_mapping(item) for item in _sequence(container.get("code_segment_map"))]
     resource_types = [_mapping(item) for item in _sequence(resource_fork.get("types"))]
     non_code_types = [item for item in resource_types if item.get("type") != "CODE"]
     unsupported = sorted(
@@ -151,6 +154,9 @@ def render_macos_example_asm(*, project_root: Path = PROJECT_ROOT) -> str:
         f";   total_code_resources: {len(code_resources)}",
         *_code_resource_coverage_lines(code_resources, selected_id=selected.get("id")),
         "",
+        "; CODE segment/routine map",
+        *_code_segment_map_lines(code_segment_map),
+        "",
         "; Non-CODE resource placeholders",
         *(
             _resource_type_placeholder_lines(non_code_types)
@@ -173,6 +179,10 @@ def render_macos_example_asm(*, project_root: Path = PROJECT_ROOT) -> str:
         f";   code_bytes_sha256: {_text(selected.get('code_bytes_sha256'))}",
         ";   classified_layout:",
         *_code_layout_lines(selected_layout),
+        ";   orphan_ranges:",
+        *_orphan_range_lines(selected_orphans),
+        ";   relocation_fixups:",
+        _relocation_fixup_line(selected_relocations),
         f";   listing_rows: {total_rows}",
         "",
         "; CODE 1 Main listing follows. Offsets are local to the selected CODE resource code bytes.",
@@ -270,6 +280,30 @@ def _code_resource_coverage_line(resource: Mapping[str, object], *, selected_id:
     )
 
 
+def _code_segment_map_lines(entries: Sequence[Mapping[str, object]]) -> list[str]:
+    if not entries:
+        return [";   none"]
+    lines: list[str] = []
+    for entry in entries:
+        lines.append(
+            f";   CODE {_text(entry.get('resource_id'))}: "
+            f"jt_first={_text(entry.get('first_jump_table_entry_offset'))} "
+            f"jt_count={_text(entry.get('jump_table_entry_count'))} "
+            f"jt_span_size={_text(entry.get('jump_table_span_size'))} "
+            f"fact={_text(entry.get('fact_id'))} status={_text(entry.get('fact_status'))}"
+        )
+        routine_candidates = [_mapping(item) for item in _sequence(entry.get("routine_entry_candidates"))]
+        for candidate in routine_candidates:
+            lines.append(
+                f";     routine_candidate index={_text(candidate.get('index'))} "
+                f"jt_offset={_text(candidate.get('jump_table_offset'))} "
+                f"code0_offset={_text(candidate.get('code0_payload_offset'))} "
+                f"routine_offset={_text(candidate.get('routine_offset_from_segment'))} "
+                f"fact={_text(candidate.get('fact_id'))} status={_text(candidate.get('fact_status'))}"
+            )
+    return lines
+
+
 def _code_layout_lines(ranges: Sequence[Mapping[str, object]]) -> list[str]:
     if not ranges:
         return [";     none"]
@@ -280,6 +314,28 @@ def _code_layout_lines(ranges: Sequence[Mapping[str, object]]) -> list[str]:
         f"status={_text(item.get('fact_status'))}"
         for item in ranges
     ]
+
+
+def _orphan_range_lines(ranges: Sequence[Mapping[str, object]]) -> list[str]:
+    if not ranges:
+        return [";     none"]
+    return [
+        f";     {_text(item.get('classification'))}: start={_text(item.get('start'))} "
+        f"end={_text(item.get('end'))} evidence={_text(item.get('evidence'))} "
+        f"fact={_text(item.get('fact_id'))} status={_text(item.get('fact_status'))}"
+        for item in ranges
+    ]
+
+
+def _relocation_fixup_line(relocation_fixups: Mapping[str, object]) -> str:
+    if not relocation_fixups:
+        return ";     none"
+    return (
+        f";     status={_text(relocation_fixups.get('status'))} "
+        f"fact={_text(relocation_fixups.get('fact_id'))} "
+        f"parser_use={_text(relocation_fixups.get('parser_use'))} "
+        f"reason={_text(relocation_fixups.get('reason'))}"
+    )
 
 
 def _resource_line(resource: Mapping[str, object]) -> str:

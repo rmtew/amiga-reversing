@@ -141,13 +141,105 @@ static int macos_append_fork_summary(JsonBuilder *builder, const char *name,
   return 0;
 }
 
-static int macos_append_code_metadata(JsonBuilder *builder, const PlatformMacosCodeMetadata *code) {
+static uint16_t macos_read_u16be_local(const unsigned char *data, size_t offset) {
+  return (uint16_t)(((uint16_t)data[offset] << 8) | (uint16_t)data[offset + 1U]);
+}
+
+static int macos_append_fact_ref(JsonBuilder *builder, const char *fact_id, const char *fact_status,
+    const char *parser_use) {
+  if (json_builder_append(builder, "\"fact_id\":") != 0 ||
+      json_builder_append_json_string(builder, fact_id) != 0 ||
+      json_builder_append(builder, ",\"fact_status\":") != 0 ||
+      json_builder_append_json_string(builder, fact_status) != 0 ||
+      json_builder_append(builder, ",\"parser_use\":") != 0 ||
+      json_builder_append_json_string(builder, parser_use) != 0) {
+    return -1;
+  }
+  return 0;
+}
+
+static int macos_append_relocation_fixup_placeholder(JsonBuilder *builder) {
+  if (json_builder_append(builder,
+        ",\"relocation_fixups\":{\"status\":\"deferred\",\"reason\":"
+        "\"Segment Loader relocation/fixup interpretation is not yet represented by the parser\",") != 0 ||
+      macos_append_fact_ref(builder, "macos.segment_loader.relocation_fixups.deferred", "deferred",
+        "deferred_only") != 0 ||
+      json_builder_append(builder, "}") != 0) {
+    return -1;
+  }
+  return 0;
+}
+
+static int macos_append_orphan_ranges(JsonBuilder *builder, const PlatformMacosCodeMetadata *code) {
+  size_t index;
+  int first = 1;
+  if (json_builder_append(builder, ",\"orphan_ranges\":[") != 0) return -1;
+  for (index = 0U; index < code->layout_range_count; ++index) {
+    const PlatformMacosCodeRange *range = &code->layout_ranges[index];
+    const char *classification = NULL;
+    const char *reason = NULL;
+    const char *fact_id = "macos.code_resource.orphan_layout_ranges.candidate";
+    const char *fact_status = "candidate";
+    const char *parser_use = "candidate_only";
+    if (range->kind == PLATFORM_MACOS_CODE_RANGE_DATA) {
+      classification = "candidate_data_island";
+      reason = "bytes before candidate byte-entry evidence; exact CODE entry rule remains deferred";
+    } else if (range->kind == PLATFORM_MACOS_CODE_RANGE_DEFERRED) {
+      classification = "deferred_code_or_data_island";
+      reason = "no candidate byte-entry evidence found; code/data interpretation remains deferred";
+      fact_id = "macos.code_resource.byte_entry_rule.unknown";
+      fact_status = "deferred";
+      parser_use = "deferred_only";
+    } else {
+      continue;
+    }
+    if (!first && json_builder_append(builder, ",") != 0) return -1;
+    first = 0;
+    if (json_builder_append(builder, "{\"classification\":") != 0 ||
+        json_builder_append_json_string(builder, classification) != 0 ||
+        json_builder_appendf(builder, ",\"start\":%u,\"size\":%u,\"end\":%u,\"evidence\":",
+          (unsigned)range->start_offset, (unsigned)range->size,
+          (unsigned)(range->start_offset + range->size)) != 0 ||
+        json_builder_append_json_string(builder, platform_macos_code_range_evidence_name(range->evidence)) != 0 ||
+        json_builder_append(builder, ",\"reason\":") != 0 ||
+        json_builder_append_json_string(builder, reason) != 0 ||
+        json_builder_append(builder, ",") != 0 ||
+        macos_append_fact_ref(builder, fact_id, fact_status, parser_use) != 0 ||
+        json_builder_append(builder, "}") != 0) {
+      return -1;
+    }
+  }
+  return json_builder_append(builder, "]");
+}
+
+static int macos_append_code0_jump_table(JsonBuilder *builder, const PlatformMacosCodeMetadata *code,
+    uint32_t payload_size) {
+  uint32_t entry_count;
+  if (code->kind != PLATFORM_MACOS_CODE_RESOURCE_JUMP_TABLE_SEGMENT) return 0;
+  if (payload_size < 16U) return 0;
+  entry_count = code->jump_table_length / 8U;
+  if (json_builder_appendf(builder,
+        ",\"jump_table\":{\"kind\":\"code0_jump_table\",\"start\":16,\"size\":%u,\"end\":%u,"
+        "\"entry_size\":8,\"entry_count\":%u,\"trailing_bytes\":%u,",
+        (unsigned)code->jump_table_length, (unsigned)(16U + code->jump_table_length),
+        (unsigned)entry_count, (unsigned)(code->jump_table_length % 8U)) != 0 ||
+      macos_append_fact_ref(builder, "macos.jump_table.entries.accepted", "validated",
+        "accepted_parser_output") != 0 ||
+      json_builder_append(builder, "}") != 0) {
+    return -1;
+  }
+  return 0;
+}
+
+static int macos_append_code_metadata(JsonBuilder *builder, const PlatformMacosResourceInfo *resource) {
+  const PlatformMacosCodeMetadata *code;
   const char *kind = "none";
   const char *resource_fact_id = "";
   const char *resource_fact_status = "unsupported";
   const char *resource_parser_use = "unsupported_only";
   size_t index;
-  if (code == NULL) return -1;
+  if (resource == NULL) return -1;
+  code = &resource->code;
   if (code->kind == PLATFORM_MACOS_CODE_RESOURCE_JUMP_TABLE_SEGMENT) {
     kind = "jump_table_segment";
     resource_fact_id = "macos.code_resource.0.jump_table_metadata";
@@ -196,7 +288,14 @@ static int macos_append_code_metadata(JsonBuilder *builder, const PlatformMacosC
       return -1;
     }
   }
-  return json_builder_append(builder, "]}");
+  if (json_builder_append(builder, "]") != 0 ||
+      macos_append_code0_jump_table(builder, code, resource->payload_size) != 0 ||
+      macos_append_orphan_ranges(builder, code) != 0 ||
+      macos_append_relocation_fixup_placeholder(builder) != 0 ||
+      json_builder_append(builder, "}") != 0) {
+    return -1;
+  }
+  return 0;
 }
 
 static int macos_copy_resource_name(char *buf, size_t buf_size, const PlatformMacosResourceFork *resource_fork_info,
@@ -257,7 +356,7 @@ static int macos_append_code_resources(JsonBuilder *builder, const PlatformMacos
           (unsigned)resource->payload_size) != 0 ||
         json_builder_append_json_string(builder, sha256) != 0 ||
         json_builder_append(builder, ",\"code\":") != 0 ||
-        macos_append_code_metadata(builder, &resource->code) != 0 ||
+        macos_append_code_metadata(builder, resource) != 0 ||
         json_builder_append(builder, "}") != 0) {
       return -1;
     }
@@ -274,6 +373,90 @@ static int macos_append_resource_types(JsonBuilder *builder, const PlatformMacos
     if (json_builder_append(builder, "{\"type\":") != 0 ||
         json_builder_append_json_string(builder, types[index].type) != 0 ||
         json_builder_appendf(builder, ",\"count\":%u}", (unsigned)types[index].count) != 0) {
+      return -1;
+    }
+  }
+  return json_builder_append(builder, "]");
+}
+
+static const PlatformMacosResourceInfo *macos_find_code0_resource(const PlatformMacosResourceInfo *resources,
+    size_t resource_count) {
+  size_t index;
+  for (index = 0U; index < resource_count; ++index) {
+    const PlatformMacosResourceInfo *resource = &resources[index];
+    if (strcmp(resource->type, "CODE") == 0 && resource->resource_id == 0) return resource;
+  }
+  return NULL;
+}
+
+static int macos_append_segment_routine_candidates(JsonBuilder *builder, const PlatformMacosResourceInfo *resource,
+    const unsigned char *code0_payload, uint32_t code0_payload_size) {
+  uint32_t index;
+  uint32_t first_offset;
+  uint32_t count;
+  if (json_builder_append(builder, ",\"routine_entry_candidates\":[") != 0) return -1;
+  if (resource == NULL || code0_payload == NULL || code0_payload_size < 16U) return json_builder_append(builder, "]");
+  first_offset = resource->code.first_jump_table_entry_offset;
+  count = resource->code.jump_table_entry_count;
+  if (first_offset == 0xFFFFU || count == 0U) return json_builder_append(builder, "]");
+  for (index = 0U; index < count; ++index) {
+    uint32_t jump_table_offset = first_offset + index * 8U;
+    uint32_t code0_entry_offset = 16U + jump_table_offset;
+    uint16_t routine_offset;
+    if (jump_table_offset > UINT32_MAX - 8U || code0_entry_offset > code0_payload_size - 8U) break;
+    routine_offset = macos_read_u16be_local(code0_payload, code0_entry_offset);
+    if (index > 0U && json_builder_append(builder, ",") != 0) return -1;
+    if (json_builder_appendf(builder,
+          "{\"index\":%u,\"jump_table_offset\":%u,\"code0_payload_offset\":%u,"
+          "\"routine_offset_from_segment\":%u,\"classification\":\"candidate_routine_entry\",",
+          (unsigned)index, (unsigned)jump_table_offset, (unsigned)code0_entry_offset,
+          (unsigned)routine_offset) != 0 ||
+        macos_append_fact_ref(builder, "macos.code_resource.jump_table.routine_offsets.candidate",
+          "candidate", "candidate_only") != 0 ||
+        json_builder_append(builder, "}") != 0) {
+      return -1;
+    }
+  }
+  return json_builder_append(builder, "]");
+}
+
+static int macos_append_code_segment_map(JsonBuilder *builder, const unsigned char *resource_fork,
+    size_t resource_fork_size, const PlatformMacosResourceInfo *resources, size_t resource_count) {
+  const PlatformMacosResourceInfo *code0 = macos_find_code0_resource(resources, resource_count);
+  const unsigned char *code0_payload = NULL;
+  uint32_t code0_payload_size = 0U;
+  size_t index;
+  int first = 1;
+  if (code0 != NULL && code0->payload_offset <= resource_fork_size &&
+      code0->payload_size <= resource_fork_size - code0->payload_offset) {
+    code0_payload = resource_fork + code0->payload_offset;
+    code0_payload_size = code0->payload_size;
+  }
+  if (json_builder_append(builder, "\"code_segment_map\":[") != 0) return -1;
+  for (index = 0U; index < resource_count; ++index) {
+    const PlatformMacosResourceInfo *resource = &resources[index];
+    uint32_t first_offset;
+    uint32_t entry_count;
+    uint32_t span_size;
+    if (strcmp(resource->type, "CODE") != 0 ||
+        resource->code.kind != PLATFORM_MACOS_CODE_RESOURCE_CODE_SEGMENT) {
+      continue;
+    }
+    first_offset = resource->code.first_jump_table_entry_offset;
+    entry_count = resource->code.jump_table_entry_count;
+    span_size = entry_count > UINT32_MAX / 8U ? UINT32_MAX : entry_count * 8U;
+    if (!first && json_builder_append(builder, ",") != 0) return -1;
+    first = 0;
+    if (json_builder_appendf(builder,
+          "{\"resource_id\":%d,\"kind\":\"nonzero_code_segment\",\"first_jump_table_entry_offset\":%u,"
+          "\"jump_table_entry_count\":%u,\"jump_table_entry_size\":8,\"jump_table_span_size\":%u,"
+          "\"kb_record_id\":\"macos.hfs_resource_fork.code_resources.mpw_application\",",
+          (int)resource->resource_id, (unsigned)first_offset, (unsigned)entry_count,
+          (unsigned)span_size) != 0 ||
+        macos_append_fact_ref(builder, "macos.code_resource.segment_jump_table_span.accepted",
+          "validated", "accepted_parser_output") != 0 ||
+        macos_append_segment_routine_candidates(builder, resource, code0_payload, code0_payload_size) != 0 ||
+        json_builder_append(builder, "}") != 0) {
       return -1;
     }
   }
@@ -334,7 +517,7 @@ static int macos_append_selected_code(JsonBuilder *builder, const PlatformMacosR
       json_builder_append_json_string(builder, code_sha256) != 0 ||
       json_builder_append(builder, ",\"code\":") != 0 ||
       (selected_resource != NULL
-        ? macos_append_code_metadata(builder, &selected_resource->code)
+        ? macos_append_code_metadata(builder, selected_resource)
         : json_builder_append(builder, "null")) != 0 ||
       json_builder_append(builder, "}") != 0) {
     return -1;
@@ -453,6 +636,9 @@ PLATFORM_FILE_API int platform_file_macos_hfs_code_summary_json_alloc(const unsi
       macos_append_resource_types(&builder, resource_types, resource_fork_info.type_count) != 0 ||
       json_builder_append(&builder, ",") != 0 ||
       macos_append_code_resources(&builder, &resource_fork_info, resource_fork, selected_file->resource_size,
+        resources, resource_fork_info.resource_count) != 0 ||
+      json_builder_append(&builder, ",") != 0 ||
+      macos_append_code_segment_map(&builder, resource_fork, selected_file->resource_size,
         resources, resource_fork_info.resource_count) != 0 ||
       json_builder_append(&builder, "},") != 0 ||
       macos_append_selected_code(&builder, &resource_fork_info, resource_fork, selected_file->resource_size,

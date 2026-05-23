@@ -1,6 +1,6 @@
 # 018-009: Mac OS CODE Entry, Relocation, And Segment Map
 
-Status: open
+Status: completed
 
 ## Proposal Context
 
@@ -96,40 +96,69 @@ Record trace blocks for:
 
 ## Research Coverage
 
-- [ ] Local Mac MD/docs searched for Segment Loader relocation/fixup semantics.
-- [ ] Local Mac MD/docs searched for CODE 0 jump-table-to-segment mapping.
-- [ ] Local Mac MD/docs searched for byte-level CODE entry conventions.
-- [ ] MPW Asm CODE 0 fields and nonzero CODE headers inventoried.
-- [ ] Orphan code/data island examples sampled and recorded with offsets.
-- [ ] Existing Mac parser/listing/project payload paths traced.
-- [ ] 012 blocker wording checked before implementation.
+- [x] Local Mac MD/docs searched for Segment Loader relocation/fixup semantics.
+- [x] Local Mac MD/docs searched for CODE 0 jump-table-to-segment mapping.
+- [x] Local Mac MD/docs searched for byte-level CODE entry conventions.
+- [x] MPW Asm CODE 0 fields and nonzero CODE headers inventoried.
+- [x] Orphan code/data island examples sampled and recorded with offsets.
+- [x] Existing Mac parser/listing/project payload paths traced.
+- [x] 012 blocker wording checked before implementation.
 
 ## Research Review
 
-- [ ] Second pass checked every accepted fact against citations.
-- [ ] Second pass checked parser assertions include reason and standard
+- [x] Second pass checked every accepted fact against citations.
+- [x] Second pass checked parser assertions include reason and standard
   interpretation.
-- [ ] Segment/routine map distinguishes accepted metadata from candidate entry
+- [x] Segment/routine map distinguishes accepted metadata from candidate entry
   offsets.
-- [ ] Relocation/fixup gaps are deferred or placeholder output, not accepted.
-- [ ] Orphan code islands are surfaced with structured evidence.
-- [ ] Parser output passes 018-008 fact-reference validation.
-- [ ] Proposal 012 updated with exact accepted/candidate/deferred state.
+- [x] Relocation/fixup gaps are deferred or placeholder output, not accepted.
+- [x] Orphan code islands are surfaced with structured evidence.
+- [x] Parser output passes 018-008 fact-reference validation.
+- [x] Proposal 012 updated with exact accepted/candidate/deferred state.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before implementation.
-- [ ] Mac CODE KB facts updated with citations or parser assertions.
-- [ ] CODE 0 jump-table/segment map is exposed where evidence supports it.
-- [ ] Byte-entry rule is accepted only if cited/asserted; otherwise remains
+- [x] Proposal context checked before implementation.
+- [x] Mac CODE KB facts updated with citations or parser assertions.
+- [x] CODE 0 jump-table/segment map is exposed where evidence supports it.
+- [x] Byte-entry rule is accepted only if cited/asserted; otherwise remains
   candidate/deferred with evidence.
-- [ ] Relocation/fixup semantics are accepted only if cited/asserted; otherwise
+- [x] Relocation/fixup semantics are accepted only if cited/asserted; otherwise
   structured deferred/placeholder output exists.
-- [ ] Orphan code/data islands are not dropped.
-- [ ] MPW Asm fixture tests cover segment/routine mapping and orphan evidence.
-- [ ] Parser fact output passes 018-008 validation.
-- [ ] Mac target artifact regenerated if output changes.
-- [ ] `amiga_reversing.tools.platform_executable_formats validate` passes.
-- [ ] `amiga_reversing.tools.validate_018_issues` passes.
-- [ ] Relevant Mac parser/listing/project tests pass.
-- [ ] Post-commit review found no unresolved worthwhile findings.
+- [x] Orphan code/data islands are not dropped.
+- [x] MPW Asm fixture tests cover segment/routine mapping and orphan evidence.
+- [x] Parser fact output passes 018-008 validation.
+- [x] Mac target artifact regenerated if output changes.
+- [x] `amiga_reversing.tools.platform_executable_formats validate` passes.
+- [x] `amiga_reversing.tools.validate_018_issues` passes.
+- [x] Relevant Mac parser/listing/project tests pass.
+- [x] Post-commit review found no unresolved worthwhile findings.
+
+## Completion Evidence
+
+- Local evidence checked: `Inside_Macintosh_Volume_II_1985.md` source-pages
+  70-72 for jump-table entries, nonzero segment headers, CODE 0 metadata, CODE
+  1 startup, and `_LoadSeg` stack input; Proposal 012 blocker/future scope for
+  deferred relocation/fixup and byte-entry state.
+- KB/doc updates: `knowledge/platform_executable_formats.json` and
+  `docs/platform-executable-formats.md` now include accepted
+  `macos.code_resource.segment_jump_table_span.accepted`, candidate
+  `macos.code_resource.jump_table.routine_offsets.candidate`, candidate
+  `macos.code_resource.orphan_layout_ranges.candidate`, and deferred
+  relocation placeholder output under
+  `macos.segment_loader.relocation_fixups.deferred`.
+- Parser/project/artifact updates: `src/platform_file_lib.c` emits CODE 0
+  jump-table spans, `resource_fork.code_segment_map`, candidate routine entry
+  offsets where CODE 0 supports them, `orphan_ranges`, and deferred
+  `relocation_fixups`; `macos_project_payload.py` passes those fields through;
+  `macos_target_artifact.py` renders them in the committed MPW `Asm` artifact.
+- Preserved candidate/deferred state: `movea.l (a7)+,a0` remains
+  `candidate_only`; byte-level entry and relocation/fixup interpretation are
+  not accepted.
+- Tests/validation run:
+  `cmd /c src\build.bat`;
+  `uv run python -m amiga_reversing.tools.platform_executable_formats validate`;
+  `uv run python -m amiga_reversing.tools.validate_018_issues`;
+  `uv run python -m pytest tests\test_macos_c_backend.py tests\test_macos_project_payload.py tests\test_macos_target_artifact.py tests\test_macos_asm_container.py tests\test_platform_executable_formats.py -q`
+  passed with 33 tests; `uv run ruff check` on changed Python/test files
+  passed; `git diff --check` passed.

@@ -399,12 +399,62 @@ macos.hfs_resource_fork.code_resources.mpw_application
 macos.resource_fork.code_resources.accepted
 macos.code_resource.0.jump_table_metadata
 macos.code_resource.nonzero.segment_header
+macos.jump_table.entries.accepted
+macos.code_resource.segment_jump_table_span.accepted
+macos.code_resource.jump_table.routine_offsets.candidate
 macos.code_resource.movea_stack_a0.boundary.candidate
+macos.code_resource.orphan_layout_ranges.candidate
 macos.code_resource.byte_entry_rule.unknown
+macos.segment_loader.relocation_fixups.deferred
 ```
 
 `macos.segment_loader.code_resources` remains only a citation-packet candidate
 id and must not be emitted as parser fact output.
+
+018-009 extends the Mac parser/listing output without promoting the byte-entry
+heuristic:
+
+```text
+CODE 0 now emits a jump_table object with start=16, byte length, eight-byte
+entry size, and entry count under macos.jump_table.entries.accepted.
+
+resource_fork.code_segment_map now emits every nonzero CODE resource's
+accepted segment-header jump-table span under
+macos.code_resource.segment_jump_table_span.accepted.
+
+Where CODE 0 bytes and segment headers support it, jump-table routine offsets
+are emitted as candidate routine_entry_candidates under
+macos.code_resource.jump_table.routine_offsets.candidate.
+
+Bytes outside accepted metadata and candidate code ranges are emitted as
+orphan_ranges. Prefix bytes before the current movea.l boundary are candidate
+data islands under macos.code_resource.orphan_layout_ranges.candidate; missing
+entry evidence remains deferred under macos.code_resource.byte_entry_rule.unknown.
+
+Every CODE resource carries a relocation_fixups placeholder under
+macos.segment_loader.relocation_fixups.deferred. No relocation/fixup output is
+accepted yet.
+```
+
+Trace blocks for 018-009:
+
+```text
+Local docs searched:
+  ext/docs_macos/Inside_Macintosh_Volume_II_1985.md source-pages 70-72
+  docs/proposals/012-classic-mac-os-m68k-platform.md blocked/future scope
+
+Accepted citations:
+  source-page 70: jump table entries are eight bytes, grouped contiguously by
+  segment; segment headers contain first jump-table-entry offset and count.
+  source-page 71: CODE 0 contains A5 sizes, jump-table length, jump-table
+  offset, and the jump table; the first entry loads CODE 1.
+
+Deferred/candidate state:
+  No local citation was found that validates movea.l (a7)+,a0 as the general
+  byte-level CODE entry rule. It remains candidate-only.
+  Relocation/fixup interpretation remains deferred and is now emitted as a
+  structured placeholder instead of only prose unsupported state.
+```
 
 ### Representative Amiga And Atari Needs
 

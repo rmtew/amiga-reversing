@@ -62,30 +62,32 @@ def _make_code_resource_fork() -> bytes:
     map_offset = 0x140
     map_length = 0x60
     code0_payload = data_offset + 4
-    code1_record = data_offset + 20
+    code1_record = data_offset + 36
     code1_payload = code1_record + 4
     type_list = map_offset + 28
     ref_list = type_list + 10
     for offset, value in (
         (0, data_offset),
         (4, map_offset),
-        (8, 38),
+        (8, 54),
         (12, map_length),
         (map_offset, data_offset),
         (map_offset + 4, map_offset),
-        (map_offset + 8, 38),
+        (map_offset + 8, 54),
         (map_offset + 12, map_length),
     ):
         _put(data, offset, _u32(value))
-    _put(data, data_offset, _u32(16))
-    _put(data, code0_payload, _u32(32) + _u32(64) + _u32(8) + _u32(32))
+    _put(data, data_offset, _u32(32))
+    _put(data, code0_payload, _u32(48) + _u32(64) + _u32(16) + _u32(32))
+    _put(data, code0_payload + 16, _u16(10) + b"\x3f\x3c\x00\x01\xa9\xf0")
+    _put(data, code0_payload + 24, _u16(12) + b"\x3f\x3c\x00\x01\xa9\xf0")
     _put(data, code1_record, _u32(14))
-    _put(data, code1_payload, _u16(4) + _u16(2) + b"\x00\x00\x00\x10\x00\x00\x20\x5f\x4e\x75")
+    _put(data, code1_payload, _u16(0) + _u16(2) + b"\x00\x00\x00\x10\x00\x00\x20\x5f\x4e\x75")
     _put(data, map_offset + 24, _u16(28))
     _put(data, map_offset + 26, _u16(58))
     _put(data, type_list, _u16(0) + b"CODE" + _u16(1) + _u16(10))
     _put(data, ref_list, _u16(0) + _u16(0xFFFF) + b"\x20" + _u24(0) + b"\x00\x00\x00\x00")
-    _put(data, ref_list + 12, _u16(1) + _u16(0xFFFF) + b"\x00" + _u24(20) + b"\x00\x00\x00\x00")
+    _put(data, ref_list + 12, _u16(1) + _u16(0xFFFF) + b"\x00" + _u24(36) + b"\x00\x00\x00\x00")
     return bytes(data)
 
 
@@ -147,6 +149,44 @@ def test_python_wrapper_uses_c_macos_hfs_code_summary() -> None:
     assert summary["resource_fork"]["type_count"] == 1
     assert summary["resource_fork"]["resource_count"] == 2
     assert [item["id"] for item in summary["resource_fork"]["code_resources"]] == [0, 1]
+    code0 = summary["resource_fork"]["code_resources"][0]["code"]
+    assert code0["jump_table"] == {
+        "kind": "code0_jump_table",
+        "start": 16,
+        "size": 16,
+        "end": 32,
+        "entry_size": 8,
+        "entry_count": 2,
+        "trailing_bytes": 0,
+        "fact_id": "macos.jump_table.entries.accepted",
+        "fact_status": "validated",
+        "parser_use": "accepted_parser_output",
+    }
+    segment_map = summary["resource_fork"]["code_segment_map"]
+    assert segment_map[0]["fact_id"] == "macos.code_resource.segment_jump_table_span.accepted"
+    assert segment_map[0]["fact_status"] == "validated"
+    assert segment_map[0]["routine_entry_candidates"] == [
+        {
+            "index": 0,
+            "jump_table_offset": 0,
+            "code0_payload_offset": 16,
+            "routine_offset_from_segment": 10,
+            "classification": "candidate_routine_entry",
+            "fact_id": "macos.code_resource.jump_table.routine_offsets.candidate",
+            "fact_status": "candidate",
+            "parser_use": "candidate_only",
+        },
+        {
+            "index": 1,
+            "jump_table_offset": 8,
+            "code0_payload_offset": 24,
+            "routine_offset_from_segment": 12,
+            "classification": "candidate_routine_entry",
+            "fact_id": "macos.code_resource.jump_table.routine_offsets.candidate",
+            "fact_status": "candidate",
+            "parser_use": "candidate_only",
+        },
+    ]
     assert summary["selected_code"]["available"] is True
     assert summary["selected_code"]["payload_size"] == 14
     assert summary["selected_code"]["code_bytes_offset"] == summary["selected_code"]["payload_offset"] + 10
@@ -187,6 +227,26 @@ def test_python_wrapper_uses_c_macos_hfs_code_summary() -> None:
             "parser_use": "candidate_only",
         },
     ]
+    assert summary["selected_code"]["code"]["orphan_ranges"] == [
+        {
+            "classification": "candidate_data_island",
+            "start": 4,
+            "size": 6,
+            "end": 10,
+            "evidence": "prefix_before_stack_entry",
+            "reason": "bytes before candidate byte-entry evidence; exact CODE entry rule remains deferred",
+            "fact_id": "macos.code_resource.orphan_layout_ranges.candidate",
+            "fact_status": "candidate",
+            "parser_use": "candidate_only",
+        }
+    ]
+    assert summary["selected_code"]["code"]["relocation_fixups"] == {
+        "status": "deferred",
+        "reason": "Segment Loader relocation/fixup interpretation is not yet represented by the parser",
+        "fact_id": "macos.segment_loader.relocation_fixups.deferred",
+        "fact_status": "deferred",
+        "parser_use": "deferred_only",
+    }
     assert extract_macos_hfs_code_resource_bytes_with_c_backend(image, "Tools/Asm", 1) == b"\x20\x5f\x4e\x75"
 
 
@@ -194,7 +254,7 @@ def test_c_macos_summary_defers_code_without_entry_evidence() -> None:
     require_built_tools()
     image = bytearray(_make_hfs_image())
     resource_fork_base = 2048 + 3 * 512
-    code1_payload = 0x118
+    code1_payload = 0x128
     image[resource_fork_base + code1_payload + 10 : resource_fork_base + code1_payload + 12] = b"\x4e\x75"
 
     summary = inspect_macos_hfs_code_summary_with_c_backend(bytes(image), "MPW-GM/Tools/Asm")
@@ -225,6 +285,20 @@ def test_c_macos_summary_defers_code_without_entry_evidence() -> None:
             "parser_use": "deferred_only",
         },
     ]
+    assert summary["selected_code"]["code"]["orphan_ranges"] == [
+        {
+            "classification": "deferred_code_or_data_island",
+            "start": 4,
+            "size": 10,
+            "end": 14,
+            "evidence": "missing_m68k_movea_l_stack_to_a0_entry",
+            "reason": "no candidate byte-entry evidence found; code/data interpretation remains deferred",
+            "fact_id": "macos.code_resource.byte_entry_rule.unknown",
+            "fact_status": "deferred",
+            "parser_use": "deferred_only",
+        }
+    ]
+    assert summary["selected_code"]["code"]["relocation_fixups"]["parser_use"] == "deferred_only"
     with pytest.raises(RuntimeError, match="no confirmed executable range"):
         extract_macos_hfs_code_resource_bytes_with_c_backend(bytes(image), "Tools/Asm", 1)
 
@@ -278,8 +352,15 @@ def test_c_macos_hfs_code_summary_matches_committed_mpw_asm_metadata() -> None:
     assert summary["file"]["type"] == "MPST"
     assert summary["file"]["creator"] == "MPS "
     assert len(code_resources) == 28
+    assert summary["resource_fork"]["code_segment_map"]
+    assert any(
+        item["fact_id"] == "macos.code_resource.segment_jump_table_span.accepted"
+        for item in summary["resource_fork"]["code_segment_map"]
+    )
     assert code0["payload_size"] == expected_code0["size"]
     assert code0["code"]["kind"] == "jump_table_segment"
+    assert code0["code"]["jump_table"]["entry_size"] == 8
+    assert code0["code"]["jump_table"]["fact_id"] == "macos.jump_table.entries.accepted"
     assert code0["code"]["above_a5_size"] == expected_code0["code"]["above_a5_size"]
     assert code0["code"]["below_a5_size"] == expected_code0["code"]["below_a5_size"]
     assert summary["selected_code"]["payload_size"] == expected_code1["size"]
@@ -291,6 +372,8 @@ def test_c_macos_hfs_code_summary_matches_committed_mpw_asm_metadata() -> None:
     assert summary["selected_code"]["code"]["layout_ranges"][2]["kind"] == "candidate_code"
     assert summary["selected_code"]["code"]["layout_ranges"][2]["start"] == 40
     assert summary["selected_code"]["code"]["layout_ranges"][2]["fact_status"] == "candidate"
+    assert summary["selected_code"]["code"]["orphan_ranges"][0]["fact_status"] == "candidate"
+    assert summary["selected_code"]["code"]["relocation_fixups"]["parser_use"] == "deferred_only"
     assert extract_macos_hfs_code_resource_bytes_with_c_backend(
         read_macos_hfs_image_bytes(IMAGE_PATH),
         "MPW-GM/MPW/Tools/Asm",
