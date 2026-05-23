@@ -5,15 +5,16 @@ Status: completed
 ## Proposal Context
 
 - Source proposal: `docs/proposals/012-classic-mac-os-m68k-platform.md`
-- Current proposal state: 017 is paused after a clean Pandora baseline. 012 has
-  no active `docs/issues/012-*` issue files because the older set was previously
-  consolidated into the proposal.
-- Current blocker state: 012 remains open/blocked on accepted Mac executable
-  byte-entry and relocation/fixup knowledge. Existing uncommitted 018-026 work
-  already updates the proposal with the current byte-entry blocker.
+- Current proposal state: 017 has been restarted and completed through the
+  Pandora baseline follow-up; the completed 017 issue files were removed after
+  their validation commits. This file is the active 012 issue trail restart.
+- Current blocker state: 012 remains open/blocked for full closeout on accepted
+  Mac executable byte-entry and relocation/fixup knowledge. 018-026 and 018-027
+  now explicitly record those blockers as deferred rather than uncommitted
+  work.
 - Desired state after this issue: restart 012 work with a current issue trail,
-  verify known review findings, and avoid mixing the 018-026 proposal edits into
-  this commit.
+  verify known review findings, and keep the 012 sync commit focused on review
+  finding status rather than changing 018 executable-format behavior.
 
 ## Review Findings Checked
 
@@ -38,14 +39,41 @@ All three findings were already addressed in the current codebase:
   `stub` as `object_payload`, and `tests/test_mac_fork_roles.py` covers all
   three.
 
-## Verification
+## Completion Audit
+
+Requirements and evidence:
+
+- 012 issue trail restarted: this issue remains under `docs/issues/012-*` and
+  records the post-017 state instead of relying on the consolidated proposal
+  alone.
+- Known review findings verified: each finding above is tied to a current code
+  path and regression test.
+- 018 scope not mixed into this issue: byte-entry and relocation/fixup behavior
+  remain governed by the completed 018 follow-up records; this issue changes no
+  parser, payload, web, or KB behavior.
+- Proposal state synchronized: Proposal 012 already records the review cleanup
+  and the later 018 blocker matrix; this issue now references the current
+  deferred blocker state instead of stale uncommitted 018 work.
+
+## Completion Evidence
 
 - `pytest tests\test_macos_resource_model.py tests\test_macos_source_structure.py tests\test_mac_fork_roles.py -q`
   passed: 15 tests.
 - `ruff check` on the related Mac parser/classifier/test files passed.
+- Current audit rerun:
+  `uv run python -m pytest tests\test_macos_resource_model.py tests\test_macos_source_structure.py tests\test_mac_fork_roles.py -q`
+  passed: 15 tests.
+- Current lint rerun:
+  `uv run ruff check amiga_reversing\disasm\macos_resource_model.py amiga_reversing\disasm\macos_source_structure.py amiga_reversing\disasm\macos_fork_roles.py tests\test_macos_resource_model.py tests\test_macos_source_structure.py tests\test_mac_fork_roles.py`
+  passed: all checks.
+- Available issue validator rerun:
+  `uv run python -m amiga_reversing.tools.validate_017_issues`
+  passed.
+- Current repository check: `git status --short` was clean before this docs-only
+  sync edit.
 
 ## Next Step
 
 Do not reopen these three findings. Continue 012 only where it is not blocked
-by 018; otherwise let 018-026 and later executable-format issues resolve the
-byte-entry/relocation blockers before final 012 closeout.
+by 018; otherwise let later executable-format evidence resolve the byte-entry
+and relocation/fixup blockers before final 012 closeout.
