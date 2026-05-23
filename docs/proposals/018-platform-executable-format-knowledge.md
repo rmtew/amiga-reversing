@@ -451,6 +451,40 @@ completed starter support from remaining blockers and deeper roundtrip work.
 Do not change code and do not mark Proposal 012 closed.
 ```
 
+018-026. Mac OS Byte-Entry Rule Resolution
+
+```text
+After 018-021 and 018-025. Resolve the remaining Mac CODE byte-entry blocker:
+either validate/parser-assert the executable-byte rule and migrate parser output
+with tests, or explicitly keep it candidate/deferred with a documented blocker.
+Do not promote the current movea.l pattern from project observation alone.
+```
+
+018-027. Mac OS Relocation/Fixup Implementation Path
+
+```text
+After 018-021. Decide whether local evidence supports a narrow relocation/fixup
+implementation slice. If not, record the exact blocker and missing evidence.
+Parser behavior must remain deferred unless byte-layout/application rules are
+accepted or parser-asserted.
+```
+
+018-028. Mac OS Source-To-CODE Fixture Strategy
+
+```text
+After 018-022 and 018-025. Pick or reject candidate source/build/product
+fixtures for future source-to-CODE validation. Keep the current MPW/Tools/Asm
+source boundary false and do not change parser or UI behavior.
+```
+
+018-029. Mac OS First Non-CODE Resource Semantic Slice
+
+```text
+After 018-014, 018-023, and 018-025. Select one useful non-CODE resource type
+and either implement a narrow cited semantic slice or record why evidence is
+insufficient. Do not broaden non-CODE decoding or affect CODE behavior.
+```
+
 ## Implementation Notes
 
 - 018-001 added the canonical human/schema/data authority files:
