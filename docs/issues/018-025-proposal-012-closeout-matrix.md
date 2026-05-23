@@ -1,6 +1,6 @@
 # 018-025: Proposal 012 Closeout Matrix
 
-Status: open
+Status: completed
 
 ## Proposal Context
 
@@ -62,25 +62,40 @@ Record trace blocks for:
 
 ## Research Coverage
 
-- [ ] Proposal 012 closeout text reviewed.
-- [ ] Proposal 018 relationship text reviewed.
-- [ ] Completed 018-009 through 018-018 state reviewed.
-- [ ] Matrix rows selected.
-- [ ] Starter vs deeper-roundtrip distinction checked.
+- [x] Proposal 012 closeout text reviewed.
+- [x] Proposal 018 relationship text reviewed.
+- [x] Completed 018-009 through 018-018 state reviewed.
+- [x] Matrix rows selected.
+- [x] Starter vs deeper-roundtrip distinction checked.
 
 ## Research Review
 
-- [ ] Second pass checked matrix does not close 012 prematurely.
-- [ ] Candidate/deferred facts remain candidate/deferred.
-- [ ] Completed work is accurately represented.
-- [ ] Follow-up ownership is clear.
+- [x] Second pass checked matrix does not close 012 prematurely.
+- [x] Candidate/deferred facts remain candidate/deferred.
+- [x] Completed work is accurately represented.
+- [x] Follow-up ownership is clear.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before implementation.
-- [ ] Proposal 012 closeout matrix added.
-- [ ] Remaining blockers and non-blockers clearly separated.
-- [ ] Completed 018 work accurately represented.
-- [ ] No code files modified.
-- [ ] `amiga_reversing.tools.validate_018_issues` passes.
-- [ ] Post-commit review found no unresolved worthwhile findings.
+- [x] Proposal context checked before implementation.
+- [x] Proposal 012 closeout matrix added.
+- [x] Remaining blockers and non-blockers clearly separated.
+- [x] Completed 018 work accurately represented.
+- [x] No code files modified.
+- [x] `amiga_reversing.tools.validate_018_issues` passes.
+- [x] Post-commit review found no unresolved worthwhile findings.
+
+## Completion Evidence
+
+- Reviewed Proposal 012 closeout/future-scope text and Proposal 018
+  relationship notes through 018-018.
+- Added a Proposal 012 closeout matrix covering byte-entry rules,
+  relocation/fixups, source-to-CODE mapping, non-CODE semantics, overflow
+  extents, roundtrip, CODE preview/UI state, CODE 0 drilldown, and starter
+  target usefulness.
+- Separated starter-support items from full 012 blockers and deeper roundtrip
+  work.
+- Kept Proposal 012 open and preserved candidate/deferred fact states.
+- No code files were modified for the 018-025 slice.
+- Issue validation run:
+  `uv run python -m amiga_reversing.tools.validate_018_issues`

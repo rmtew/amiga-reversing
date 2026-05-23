@@ -562,6 +562,19 @@ Do not change code and do not mark Proposal 012 closed.
   candidate/bounded, shows no-preview reasons, and keeps relocation/fixup state
   deferred. A CDP test opens the rendered Mac project page and checks those DOM
   states.
+- 018-021 reviewed local Mac/MPW sources for relocation/fixup evidence. It
+  added candidate evidence that Segment Loader loading can cause Memory
+  Manager heap/block relocation, but it did not find accepted on-disk CODE
+  fixup byte-layout rules. `macos.segment_loader.relocation_fixups.deferred`
+  remains deferred-only and parser behavior is unchanged.
+- 018-022 reviewed MPW source/build-to-CODE mapping evidence. Local old-source
+  documentation validates that MPW segment names become CODE resource names,
+  but the available Sample/Count/Memory source fixtures are not the source for
+  the observed MPW/Tools/Asm executable. The project boundary therefore remains
+  `source_segments_map_to_observed_code_resources: false`.
+- 018-025 added a Proposal 012 closeout matrix that separates completed starter
+  support from full-closeout blockers and deeper roundtrip work. It does not
+  close Proposal 012 and does not promote candidate/deferred Mac facts.
 
 ## Relationship To 012
 
@@ -581,6 +594,9 @@ candidate/deferred.
 018-018 carries the same fact-state boundaries into the browser UI and verifies
 them with CDP; it adds UI coverage, not accepted byte-entry or relocation
 semantics.
+018-021 and 018-022 clarify why relocation/fixups and source-to-CODE mapping
+remain blockers despite additional cited context, and 018-025 makes that split
+auditable in Proposal 012.
 
 018 sits above 011 and 012 as the shared executable/container format authority.
 It does not absorb all platform knowledge; it owns file structure, loader model,

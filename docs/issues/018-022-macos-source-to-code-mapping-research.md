@@ -1,6 +1,6 @@
 # 018-022: Mac OS Source-To-CODE Mapping Research
 
-Status: open
+Status: completed
 
 ## Proposal Context
 
@@ -63,27 +63,43 @@ Record trace blocks for:
 
 ## Research Coverage
 
-- [ ] MPW source metadata inspected.
-- [ ] MPW build recipes inspected.
-- [ ] Observed CODE resources compared.
-- [ ] Relevant docs searched.
-- [ ] Mapping claims classified.
-- [ ] Parser/UI non-change checked.
+- [x] MPW source metadata inspected.
+- [x] MPW build recipes inspected.
+- [x] Observed CODE resources compared.
+- [x] Relevant docs searched.
+- [x] Mapping claims classified.
+- [x] Parser/UI non-change checked.
 
 ## Research Review
 
-- [ ] Second pass checked Sample/source facts are not conflated with Asm binary
+- [x] Second pass checked Sample/source facts are not conflated with Asm binary
   facts.
-- [ ] Project-observed-only claims remain candidate.
-- [ ] Parser/payload/web output remains unchanged.
-- [ ] Proposal/docs updated with exact mapping boundary.
+- [x] Project-observed-only claims remain candidate.
+- [x] Parser/payload/web output remains unchanged.
+- [x] Proposal/docs updated with exact mapping boundary.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before implementation.
-- [ ] Source-to-CODE research packet added.
-- [ ] Mapping claims classified by evidence strength.
-- [ ] Existing source/binary boundary remains safe.
-- [ ] Parser/UI behavior remains unchanged.
-- [ ] `amiga_reversing.tools.validate_018_issues` passes.
-- [ ] Post-commit review found no unresolved worthwhile findings.
+- [x] Proposal context checked before implementation.
+- [x] Source-to-CODE research packet added.
+- [x] Mapping claims classified by evidence strength.
+- [x] Existing source/binary boundary remains safe.
+- [x] Parser/UI behavior remains unchanged.
+- [x] `amiga_reversing.tools.validate_018_issues` passes.
+- [x] Post-commit review found no unresolved worthwhile findings.
+
+## Completion Evidence
+
+- Inspected MPW tool/source metadata, observed MPW `Asm` CODE resource
+  inventory, and existing Mac initial-analysis research notes.
+- Searched local MPW documentation for Asm/Link, segment, CODE resource, and
+  source-build mapping evidence.
+- Added validated source-mapping packet
+  `macos.packet.mpw.source_segment_to_code_resource_names`.
+- Classified current Sample/Count/Memory to MPW/Tools/Asm mapping as deferred:
+  the source fixtures and observed executable are different targets.
+- Preserved the current safe boundary:
+  `source_segments_map_to_observed_code_resources` remains false.
+- Updated `docs/platform-executable-formats.md` and Proposal 018 notes.
+- Issue validation run:
+  `uv run python -m amiga_reversing.tools.validate_018_issues`

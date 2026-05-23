@@ -1337,6 +1337,21 @@ Blocked corrective scope:
   observed byte-entry boundary as candidate output.
 - Any remaining heuristic boundary must stay candidate/deferred, not accepted.
 
+Closeout matrix:
+
+| Area | Current state | Remaining work | Evidence needed | Owner | Starter closeout? |
+| --- | --- | --- | --- | --- | --- |
+| C-backed HFS/resource/CODE import | Normal `macos` project payloads use the C HFS/CODE summary for MPW `Asm`. | Overflow extents for fixtures that need them. | Fixture with overflow extents plus parser drift test. | Proposal 012 backend follow-up | No for current MPW `Asm`; yes for broader fixture support. |
+| CODE 0 metadata and jump table | CODE 0 is metadata/jump-table-only with accepted layout facts and candidate routine mapping. | Entry-by-entry drilldown and richer navigation. | Structured artifact/web rows separating accepted entry layout from candidate target meaning. | 018-024 | Useful for starter audit; not byte-entry closeout. |
+| Selected CODE 1 listing | Existing selected full listing route remains available and Mac-style output keeps Amiga `SECTION code,code` out. | Keep route stable while deeper CODE semantics evolve. | Listing tests and CDP checks for selected CODE 1. | 018-018/018-019 maintenance | Yes for starter. |
+| Non-selected CODE previews | Bounded candidate-only previews are payload/artifact/web-visible. | Decode candidate preview rows where safe; preserve fallback. | Payload/artifact/web/CDP tests showing decoded candidate rows and fallback reasons. | 018-019 | Yes for starter usability, not accepted byte-entry. |
+| Byte-entry rules | `movea.l (a7)+,a0` remains candidate-only. | Find citations/parser assertions or replace with safer rule. | KB fact with source strength sufficient for parser use, plus parser-output validation. | Future 018 Mac byte-entry issue | Yes, blocks full 012 closeout. |
+| Relocation/fixups | Deferred-only parser/artifact/web state; 018-021 adds candidate memory-relocation context but no fixup layout. | Recover on-disk fixup format and application rules. | Old-source citation/parser assertion plus tests proving relocation-aware interpretation. | Future 018 relocation issue | Yes, blocks full 012 closeout. |
+| Source-to-CODE mapping | MPW source segment names to CODE resource names are cited; current Sample source does not map to MPW `Asm`. | Map a source fixture to its own built binary or reconstruct linker outputs. | Matching source/build/product fixture, symbol/segment map, and source-to-CODE validation. | 018-022/future source mapping | No for current target view; yes for source recovery closeout. |
+| Non-CODE resources | Non-CODE semantics remain inventory/candidate/deferred; current Asm extraction contains CODE resources only. | Browser inventory and later resource-specific semantics. | UI/CDP rows for metadata inventory; separate citations for each resource type. | 018-023 and later resource issues | No for CODE starter; yes for broader Mac platform. |
+| Web/CDP visibility | CODE detail/previews are browser-visible with CDP checks. | Add non-CODE and CODE 0 drilldowns without weakening facts. | CDP verification for each web-visible addition. | 018-023, 018-024 | Yes for UI audit. |
+| Roundtrip | Explicit future scope. | Byte-for-byte MPW Asm/Link/Rez reproduction. | Rebuild pipeline, binary comparison, relocation/resource preservation. | Future roundtrip proposal | No for starter; yes for deeper roundtrip. |
+
 Future scope after cited starter-quality rendering:
 
 - Complete Segment Loader relocation/fixup interpretation.
