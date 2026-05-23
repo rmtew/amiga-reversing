@@ -20,6 +20,7 @@ class TargetFileClass(StrEnum):
     GENERATED_OUTPUT = "generated_output"
     OBSOLETE_UI_STATE = "obsolete_ui_state"
     LOCAL_MANUAL_STATE = "local_manual_state"
+    LOCAL_VERIFIER_STATE = "local_verifier_state"
     AGENT_AUDIT = "agent_audit"
     UNKNOWN = "unknown"
 
@@ -49,6 +50,11 @@ OBSOLETE_UI_STATE_FILE_NAMES = frozenset(
     {
         OBSOLETE_TARGET_UI_EDITS_FILE_NAME,
         UI_PREFERENCES_FILE_NAME,
+    }
+)
+LOCAL_VERIFIER_STATE_FILE_NAMES = frozenset(
+    {
+        "decision_verifier_artifacts.json",
     }
 )
 
@@ -245,6 +251,13 @@ def _classify_file(rel_path: str) -> TargetFileInventoryEntry:
             TargetFileClass.LOCAL_MANUAL_STATE,
             TargetFileAction.DELETE_ON_CLEAN_RUN,
             "durable manual/journal state is preserved for continue and reset only in clean-run",
+        )
+    if is_target_local and name in LOCAL_VERIFIER_STATE_FILE_NAMES:
+        return TargetFileInventoryEntry(
+            rel_path,
+            TargetFileClass.LOCAL_VERIFIER_STATE,
+            TargetFileAction.REGENERATE_ON_CLEAN_RUN,
+            "local verifier artifacts are current-state evidence and can be regenerated after clean-run",
         )
     if is_target_local and name in OBSOLETE_UI_STATE_FILE_NAMES:
         return TargetFileInventoryEntry(

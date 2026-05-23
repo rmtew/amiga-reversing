@@ -85,6 +85,21 @@ def test_hygiene_classifies_obsolete_ui_and_manual_state(tmp_path: Path) -> None
     assert _entry(report, "manual_actions.jsonl")["class"] == TargetFileClass.LOCAL_MANUAL_STATE
 
 
+def test_hygiene_classifies_decision_verifier_artifacts_as_local_verifier_state(tmp_path: Path) -> None:
+    target_dir = _target(tmp_path)
+    _touch(target_dir / "decision_verifier_artifacts.json")
+    _touch(target_dir / "targets" / "raw_payload" / "decision_verifier_artifacts.json")
+
+    report = inspect_target_hygiene("demo", project_root=tmp_path)
+
+    assert _entry(report, "decision_verifier_artifacts.json")["class"] == TargetFileClass.LOCAL_VERIFIER_STATE
+    assert _entry(report, "decision_verifier_artifacts.json")["action"] == TargetFileAction.REGENERATE_ON_CLEAN_RUN
+    assert _entry(report, "targets/raw_payload/decision_verifier_artifacts.json")["class"] == TargetFileClass.LOCAL_VERIFIER_STATE
+    assert report.unknown_files == ()
+    assert report.safe_to_continue is True
+    assert report.safe_to_clean_run is True
+
+
 def test_hygiene_marks_unknown_files_unsafe(tmp_path: Path) -> None:
     target_dir = _target(tmp_path)
     _touch(target_dir / "notes.json")
