@@ -203,6 +203,9 @@ Atari ST:
   are tested against the 012 blocker, not only abstract examples.
 - Mac OS executable parsing rules are backed by local docs/MD/KB citations
   before Proposal 012 can close.
+- Mac OS CODE byte-entry, relocation/fixup, and CODE 0 jump-table/segment-map
+  behavior is either accepted with citations/parser assertions or explicitly
+  emitted as candidate/deferred/unsupported evidence.
 - Amiga and Atari ST records cover their standard executable-bearing formats
   with citations and parser assertions where needed.
 - Parser/check scaffolding consumes the KB or validates C parser output against
@@ -291,6 +294,17 @@ drift-test or generate C fact constants from the KB, and remove Amiga
 SECTION code,code output from every Mac rendering path.
 ```
 
+018-009. Mac OS CODE Entry, Relocation, And Segment Map
+
+```text
+After 018-008. Ground Mac CODE byte-entry rules, Segment Loader
+relocation/fixup semantics, and CODE 0 jump-table-to-segment/routine mapping in
+cited or parser-asserted executable-format KB facts. Update parser/listing
+output so CODE resources, candidate routine entries, deferred relocation state,
+and orphan code/data islands are surfaced structurally instead of being silently
+guessed or dropped.
+```
+
 ## Implementation Notes
 
 - 018-001 added the canonical human/schema/data authority files:
@@ -363,14 +377,20 @@ SECTION code,code output from every Mac rendering path.
   `macos.resource_fork.code_resources.accepted`, and the raw Mac CODE listing
   test now uses the Mac listing adapter so `SECTION code,code` is filtered on
   that path too. The `movea.l (a7)+,a0` boundary remains candidate-only.
+- 018-009 is the next Mac-specific blocker after 018-008. It must not close by
+  relabelling the current `movea.l (a7)+,a0` scan as accepted without citations
+  or parser assertions. It should either validate byte-entry and relocation
+  rules or keep them candidate/deferred while exposing CODE 0 jump-table,
+  segment/routine, and orphan-island evidence structurally.
 
 ## Relationship To 012
 
 Proposal 012 remains open for full executable/CODE correctness. 018-005 removes
 the stale claim that the Mac parser/listing path accepts the current byte-entry
-heuristic, but relocation/fixup semantics, byte-level entry rules, and full
-per-resource CODE expansion remain deferred/candidate rather than accepted
-platform knowledge.
+heuristic, and 018-008 validates emitted parser fact ids against the KB, but
+relocation/fixup semantics, byte-level entry rules, CODE 0 jump-table to
+segment/routine mapping, orphan code islands, and full per-resource CODE
+expansion remain deferred/candidate until 018-009 or later work resolves them.
 
 018 sits above 011 and 012 as the shared executable/container format authority.
 It does not absorb all platform knowledge; it owns file structure, loader model,
