@@ -669,6 +669,201 @@ def test_inspect_decision_journal_blocks_source_state_mismatched_artifact(
     assert audit["verifier_layers"][2]["blocker"] == "verifier_artifact_stale"
 
 
+def test_decision_verifier_artifact_producer_writes_current_artifact_and_audit_consumes(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    target_dir = _target(tmp_path)
+    record = _decision_journal_record("accept_fact", decision_id="decision-accept", target_id="demo")
+    decision_journal.append_decision_record(target_dir, record)
+    (target_dir / "reproduction.json").write_text(json.dumps({"status": "exact"}), encoding="utf-8")
+    before_journal = (target_dir / "decision_journal.jsonl").read_text(encoding="utf-8")
+    binding = _rsset_verifier_binding("decision-accept")
+    rows = [_rsset_verifier_listing_row()]
+
+    monkeypatch.setattr(reversing_loop, "resolve_project_dir", lambda target_id, project_root: target_dir)
+    monkeypatch.setattr(reversing_loop.projects, "resolve_project_dir", lambda target_id, project_root: target_dir)
+    monkeypatch.setattr(
+        reversing_loop,
+        "inspect_rsset_candidates",
+        lambda target_id, project_root: _rsset_verifier_report("decision-accept"),
+    )
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(
+            _project(()),
+            manual_state={"rsset_use_site_bindings": [binding]},
+        ),
+    )
+    monkeypatch.setattr(
+        reversing_loop.server,
+        "route_request",
+        lambda method, path, query, body=None: {"data": {"rows": rows}},
+    )
+
+    produced = reversing_loop.produce_decision_verifier_artifact(
+        "demo",
+        decision_id="decision-accept",
+        write=True,
+        project_root=tmp_path,
+    )
+
+    assert produced["status"] == "passed"
+    assert produced["written"] is True
+    assert (target_dir / "decision_verifier_artifacts.json").exists()
+    assert (target_dir / "decision_journal.jsonl").read_text(encoding="utf-8") == before_journal
+    assert not (target_dir / "manual_actions.jsonl").exists()
+
+    report = reversing_loop.inspect_decision_journal("demo", project_root=tmp_path)
+    audit = report["audit"]["records"][0]
+    assert {layer["layer"]: layer["status"] for layer in audit["verifier_layers"]} == {
+        "decision_journal": "passed",
+        "semantic_reload": "passed",
+        "generated_source": "passed",
+        "negative_safety": "passed",
+        "exact_round_trip": "passed",
+    }
+    assert audit["blockers"] == []
+
+
+def test_decision_verifier_artifact_producer_blocks_missing_source_identity(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    target_dir = _target(tmp_path)
+    record = _decision_journal_record("accept_fact", decision_id="decision-accept", target_id="demo")
+    decision_journal.append_decision_record(target_dir, record)
+    report = _rsset_verifier_report("decision-accept", projection_hash=None)
+
+    monkeypatch.setattr(reversing_loop, "resolve_project_dir", lambda target_id, project_root: target_dir)
+    monkeypatch.setattr(reversing_loop, "inspect_rsset_candidates", lambda target_id, project_root: report)
+
+    produced = reversing_loop.produce_decision_verifier_artifact(
+        "demo",
+        decision_id="decision-accept",
+        write=True,
+        project_root=tmp_path,
+    )
+
+    assert produced["status"] == "blocked"
+    assert produced["blockers"] == ["missing_source_state_identity"]
+    assert produced["written"] is False
+    assert not (target_dir / "decision_verifier_artifacts.json").exists()
+
+
+def test_decision_verifier_artifact_producer_blocks_selected_identity_mismatch(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    target_dir = _target(tmp_path)
+    record = _decision_journal_record("accept_fact", decision_id="decision-accept", target_id="demo")
+    decision_journal.append_decision_record(target_dir, record)
+
+    monkeypatch.setattr(reversing_loop, "resolve_project_dir", lambda target_id, project_root: target_dir)
+    monkeypatch.setattr(
+        reversing_loop,
+        "inspect_rsset_candidates",
+        lambda target_id, project_root: _rsset_verifier_report("decision-accept", addr=0x700),
+    )
+
+    produced = reversing_loop.produce_decision_verifier_artifact(
+        "demo",
+        decision_id="decision-accept",
+        write=True,
+        project_root=tmp_path,
+    )
+
+    assert produced["status"] == "blocked"
+    assert produced["blockers"] == ["selected_identity_mismatch"]
+    assert produced["written"] is False
+
+
+def test_decision_verifier_artifact_producer_reports_verifier_failure_without_writing(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    target_dir = _target(tmp_path)
+    record = _decision_journal_record("accept_fact", decision_id="decision-accept", target_id="demo")
+    decision_journal.append_decision_record(target_dir, record)
+    (target_dir / "reproduction.json").write_text(json.dumps({"status": "different"}), encoding="utf-8")
+    binding = _rsset_verifier_binding("decision-accept")
+    rows = [_rsset_verifier_listing_row()]
+
+    monkeypatch.setattr(reversing_loop, "resolve_project_dir", lambda target_id, project_root: target_dir)
+    monkeypatch.setattr(reversing_loop.projects, "resolve_project_dir", lambda target_id, project_root: target_dir)
+    monkeypatch.setattr(
+        reversing_loop,
+        "inspect_rsset_candidates",
+        lambda target_id, project_root: _rsset_verifier_report("decision-accept"),
+    )
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(
+            _project(()),
+            manual_state={"rsset_use_site_bindings": [binding]},
+        ),
+    )
+    monkeypatch.setattr(
+        reversing_loop.server,
+        "route_request",
+        lambda method, path, query, body=None: {"data": {"rows": rows}},
+    )
+
+    produced = reversing_loop.produce_decision_verifier_artifact(
+        "demo",
+        decision_id="decision-accept",
+        write=True,
+        project_root=tmp_path,
+    )
+
+    assert produced["status"] == "blocked"
+    assert "exact_round_trip_failed" in produced["blockers"]
+    assert produced["layers"]["exact_round_trip"]["status"] == "failed"
+    assert produced["written"] is False
+    assert not (target_dir / "decision_verifier_artifacts.json").exists()
+
+
+def test_decision_verifier_artifact_cli_invokes_explicit_producer(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    calls: list[dict[str, object]] = []
+
+    def produce(target_id: str, *, decision_id: str, write: bool, project_root: Path) -> dict[str, object]:
+        calls.append({"target_id": target_id, "decision_id": decision_id, "write": write, "project_root": project_root})
+        return {"status": "passed"}
+
+    monkeypatch.setattr(reversing_loop, "produce_decision_verifier_artifact", produce)
+
+    assert (
+        reversing_loop.main(
+            [
+                "--project-root",
+                str(Path("root")),
+                "decision-verifier-artifact",
+                "--target",
+                "demo",
+                "--decision-id",
+                "decision-accept",
+                "--write",
+            ]
+        )
+        == 0
+    )
+
+    assert json.loads(capsys.readouterr().out)["status"] == "passed"
+    assert calls == [
+        {
+            "target_id": "demo",
+            "decision_id": "decision-accept",
+            "write": True,
+            "project_root": Path("root"),
+        }
+    ]
+
+
 def test_decision_journal_audit_classifies_superseded_deferred_and_rejected() -> None:
     accept = _decision_journal_record("accept_fact", decision_id="decision-accept")
     defer = _decision_journal_record("defer_fact", decision_id="decision-defer")
@@ -13641,6 +13836,85 @@ def _rsset_current_report_for_decision(decision_id: str) -> dict[str, object]:
                 }
             ]
         }
+    }
+
+
+def _rsset_verifier_report(
+    decision_id: str,
+    *,
+    addr: int = 0x6E4,
+    projection_hash: str | None = "projection-current",
+) -> dict[str, object]:
+    locator = _listing_locator(start_offset=addr, end_offset=addr + 6)
+    if projection_hash is None:
+        locator.pop("projection_hash", None)
+    else:
+        locator["projection_hash"] = projection_hash
+    return {
+        "rsset_candidate_report": {
+            "candidates": [
+                {
+                    "candidate_id": "rsset-raw-a6:022E",
+                    "selected_use": {
+                        "hunk": 0,
+                        "addr": addr,
+                        "stable_key": f"s0:{addr:08X}:instruction:455",
+                        "element_id": f"s0:{addr:08X}:instruction:455:symbol:1:app_022E",
+                        "element_kind": "symbol",
+                        "base_register": "A6",
+                        "displacement": 0x22E,
+                        "operand_index": 1,
+                        "locator": locator,
+                    },
+                    "journal_decision_evidence": {"accepted": [{"decision_id": decision_id}]},
+                    "command_support": {
+                        "bind": {
+                            "state": "already_satisfied",
+                            "existing_manual_state": {
+                                "source_evidence_id": decision_id,
+                                "owner_action_id": "manual-rsset",
+                            },
+                        }
+                    },
+                }
+            ]
+        }
+    }
+
+
+def _rsset_verifier_binding(decision_id: str) -> dict[str, object]:
+    return {
+        "rsset_use_site_binding_id": "rsset-binding-h0-000006E4-op1-A6-022E-app",
+        "hunk": 0,
+        "addr": 0x6E4,
+        "operand_index": 1,
+        "base_register": "A6",
+        "displacement": 0x22E,
+        "layout_name": "app",
+        "base_symbol": "__amiga_app_base__",
+        "base_evidence_id": "selected-base:A6:__amiga_app_base__",
+        "source_evidence_id": decision_id,
+        "source_family": "rsset_app_base",
+        "source_evidence_status": "accepted",
+        "path_lifetime_scope": {"kind": "selected_use", "hunk": 0, "addr": 0x6E4, "operand_index": 1},
+        "confidence": "medium",
+        "conflicts": [],
+        "owner_action_id": "manual-rsset",
+    }
+
+
+def _rsset_verifier_listing_row() -> dict[str, object]:
+    return {
+        **_listing_locator(row_key="s0:000006E4:instruction:455", start_offset=0x6E4, end_offset=0x6EA),
+        "text": "\tbclr.b #1,app_022E(a6)",
+        "app_slot_refs": [
+            {
+                "symbol": "app_022E",
+                "base_register": "A6",
+                "displacement": 0x22E,
+                "operand_index": 1,
+            }
+        ],
     }
 
 

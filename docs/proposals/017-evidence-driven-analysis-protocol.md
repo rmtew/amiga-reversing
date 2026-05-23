@@ -1154,9 +1154,12 @@ repeatable work to `docs\issues\017-*`.
   candidate id, selected identity, and freshness match. Missing/stale/mismatched
   artifacts remain explicit blockers; the real Pandora RSSET audit currently
   keeps those verifier layers `not_checked` because no current artifact exists.
-- 017-050 is the next active step: produce the current verifier artifact for the
-  already accepted and already mutated Pandora RSSET decision. It must keep
-  artifact production explicit and non-mutating, then prove that
-  `decision-journal-report` can consume the artifact and report
-  generated-source, negative-safety, and exact-round-trip layers as `passed`
-  only for the selected `s0:000006E4:op1` decision.
+- 017-050 added the explicit `decision-verifier-artifact` producer and
+  `produce_decision_verifier_artifact(...)` API. Artifact production remains
+  opt-in and non-mutating: it writes only `decision_verifier_artifacts.json`
+  with `--write`, never appends Decision Journal or Manual Action Log records,
+  and passes verifier layers only after matching the active decision, selected
+  identity, current source-state identity, semantic reload, scoped generated
+  source, selected-binding negative safety, and exact round trip. The real
+  Pandora `decision-rsset-022e-accept-017-040` audit now consumes the produced
+  artifact and reports all five required layers as `passed` with no blockers.

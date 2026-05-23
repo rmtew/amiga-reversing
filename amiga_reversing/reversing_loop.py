@@ -245,6 +245,14 @@ def main(argv: list[str] | None = None) -> int:
     decision_journal_parser.add_argument("--target", required=True)
     decision_journal_parser.add_argument("--dry-run-record", type=Path)
 
+    decision_verifier_parser = subparsers.add_parser(
+        "decision-verifier-artifact",
+        help="Produce a current read-only Decision Journal verifier artifact.",
+    )
+    decision_verifier_parser.add_argument("--target", required=True)
+    decision_verifier_parser.add_argument("--decision-id", required=True)
+    decision_verifier_parser.add_argument("--write", action="store_true")
+
     run_parser = subparsers.add_parser("run-one", help="Run one safe reversing loop iteration.")
     run_parser.add_argument("--target", required=True)
     run_parser.add_argument("--mode", choices=("continue", "clean-run", "reimport"), default="continue")
@@ -359,6 +367,16 @@ def main(argv: list[str] | None = None) -> int:
             )
         )
         return 0
+    if args.command == "decision-verifier-artifact":
+        _print_json(
+            produce_decision_verifier_artifact(
+                args.target,
+                decision_id=args.decision_id,
+                write=args.write,
+                project_root=args.project_root,
+            )
+        )
+        return 0
     if args.command == "run-one":
         if args.listing_backed_label_rename:
             _print_json(
@@ -422,6 +440,461 @@ def inspect_decision_journal(
         if isinstance(dry_run, dict):
             dry_run["path"] = str(dry_run_record_path)
     return result
+
+
+def produce_decision_verifier_artifact(
+    target_id: str,
+    *,
+    decision_id: str,
+    write: bool = False,
+    project_root: Path = PROJECT_ROOT,
+) -> dict[str, object]:
+    target_dir = resolve_project_dir(target_id, project_root=project_root)
+    journal_report = decision_journal_report(target_dir)
+    audit_record = _decision_journal_audit_record(journal_report, decision_id)
+    if audit_record is None:
+        return _decision_verifier_producer_blocked(
+            target_id,
+            decision_id,
+            "decision_audit_record_not_found",
+            write=write,
+            artifact_path=target_dir / _DECISION_VERIFIER_ARTIFACTS_FILE,
+        )
+    if audit_record.get("state") != "active" or audit_record.get("action") != "accept_fact":
+        return _decision_verifier_producer_blocked(
+            target_id,
+            decision_id,
+            "decision_not_active_accept_fact",
+            write=write,
+            audit_record=audit_record,
+            artifact_path=target_dir / _DECISION_VERIFIER_ARTIFACTS_FILE,
+        )
+    if audit_record.get("fact_type") != "rsset_app_base":
+        return _decision_verifier_producer_blocked(
+            target_id,
+            decision_id,
+            "unsupported_decision_fact_type",
+            write=write,
+            audit_record=audit_record,
+            artifact_path=target_dir / _DECISION_VERIFIER_ARTIFACTS_FILE,
+        )
+    candidate_id = audit_record.get("candidate_id")
+    if not isinstance(candidate_id, str) or not candidate_id:
+        return _decision_verifier_producer_blocked(
+            target_id,
+            decision_id,
+            "missing_candidate_id",
+            write=write,
+            audit_record=audit_record,
+            artifact_path=target_dir / _DECISION_VERIFIER_ARTIFACTS_FILE,
+        )
+    rsset_report = inspect_rsset_candidates(target_id, project_root=project_root)
+    candidate_report = rsset_report.get("rsset_candidate_report")
+    candidate = _rsset_candidate_report_find_candidate(
+        candidate_report if isinstance(candidate_report, Mapping) else {},
+        candidate_id,
+    )
+    if candidate is None:
+        return _decision_verifier_producer_blocked(
+            target_id,
+            decision_id,
+            "current_rsset_candidate_not_found",
+            write=write,
+            audit_record=audit_record,
+            artifact_path=target_dir / _DECISION_VERIFIER_ARTIFACTS_FILE,
+        )
+    if not _rsset_candidate_has_matching_journal_decision(candidate, decision_id):
+        return _decision_verifier_producer_blocked(
+            target_id,
+            decision_id,
+            "current_journal_evidence_not_matched",
+            write=write,
+            audit_record=audit_record,
+            candidate=candidate,
+            artifact_path=target_dir / _DECISION_VERIFIER_ARTIFACTS_FILE,
+        )
+    candidate_identity = _rsset_candidate_selected_identity(candidate, target_id)
+    if not _decision_verifier_selected_identity_matches(candidate_identity, audit_record.get("selected_identity")):
+        return _decision_verifier_producer_blocked(
+            target_id,
+            decision_id,
+            "selected_identity_mismatch",
+            write=write,
+            audit_record=audit_record,
+            candidate=candidate,
+            candidate_selected_identity=candidate_identity,
+            artifact_path=target_dir / _DECISION_VERIFIER_ARTIFACTS_FILE,
+        )
+    source_state_identity = _rsset_candidate_source_state_identity(candidate)
+    if source_state_identity is None:
+        return _decision_verifier_producer_blocked(
+            target_id,
+            decision_id,
+            "missing_source_state_identity",
+            write=write,
+            audit_record=audit_record,
+            candidate=candidate,
+            artifact_path=target_dir / _DECISION_VERIFIER_ARTIFACTS_FILE,
+        )
+    command = _rsset_decision_verifier_command(candidate)
+    expected = _rsset_decision_verifier_expected_binding(
+        target_id,
+        decision_id,
+        audit_record,
+        candidate,
+        project_root=project_root,
+    )
+    semantic = _verify_project_rsset_binding(target_id, "rsset.binding.bind", expected, project_root=project_root)
+    generated = _verify_projected_rsset_binding_rendered_source(target_id, command, "rsset.binding.bind", expected)
+    negative = _verify_rsset_decision_negative_safety(
+        target_id,
+        decision_id,
+        command,
+        expected,
+        audit_record,
+        project_root=project_root,
+    )
+    round_trip = _verify_round_trip_exact(target_id, project_root=project_root)
+    checked_at = datetime.now(UTC).isoformat(timespec="seconds")
+    layers = {
+        "generated_source": _decision_verifier_artifact_layer_from_result(
+            "generated_source",
+            "_verify_projected_rsset_binding_rendered_source",
+            generated,
+            checked_at=checked_at,
+        ),
+        "negative_safety": _decision_verifier_artifact_layer_from_result(
+            "negative_safety",
+            "_verify_rsset_decision_negative_safety",
+            negative,
+            checked_at=checked_at,
+        ),
+        "exact_round_trip": _decision_verifier_artifact_layer_from_result(
+            "exact_round_trip",
+            "_verify_round_trip_exact",
+            round_trip,
+            checked_at=checked_at,
+        ),
+    }
+    verifier_results = {
+        "semantic_reload": semantic,
+        "generated_source": generated,
+        "negative_safety": negative,
+        "exact_round_trip": round_trip,
+    }
+    passed = semantic.get("status") == "passed" and all(layer.get("status") == "passed" for layer in layers.values())
+    artifact_path = target_dir / _DECISION_VERIFIER_ARTIFACTS_FILE
+    if not passed:
+        return {
+            "target_id": target_id,
+            "decision_id": decision_id,
+            "candidate_id": candidate_id,
+            "status": "blocked",
+            "blockers": _decision_verifier_result_blockers(verifier_results),
+            "artifact": None,
+            "layers": layers,
+            "verifier_results": verifier_results,
+            "write_requested": write,
+            "written": False,
+            "artifact_path": str(artifact_path),
+        }
+    artifact = {
+        "artifact_id": f"decision-verifier:{decision_id}:{candidate_id}:{_short_hash(source_state_identity)}",
+        "target_id": target_id,
+        "decision_id": decision_id,
+        "candidate_id": candidate_id,
+        "selected_identity": dict(cast(Mapping[str, object], audit_record["selected_identity"])),
+        "source_state_identity": source_state_identity,
+        "current": True,
+        "checked_at": checked_at,
+        "producer": "decision-verifier-artifact",
+        "layers": layers,
+    }
+    written = False
+    if write:
+        _write_decision_verifier_artifact(target_dir, artifact)
+        written = True
+    return {
+        "target_id": target_id,
+        "decision_id": decision_id,
+        "candidate_id": candidate_id,
+        "status": "passed",
+        "artifact": artifact,
+        "layers": layers,
+        "verifier_results": verifier_results,
+        "write_requested": write,
+        "written": written,
+        "artifact_path": str(artifact_path),
+    }
+
+
+def _decision_journal_audit_record(report: Mapping[str, object], decision_id: str) -> dict[str, object] | None:
+    audit = report.get("audit")
+    records = audit.get("records") if isinstance(audit, Mapping) else None
+    if not isinstance(records, Sequence) or isinstance(records, str):
+        return None
+    for record in records:
+        if isinstance(record, Mapping) and record.get("decision_id") == decision_id:
+            return dict(record)
+    return None
+
+
+def _decision_verifier_producer_blocked(
+    target_id: str,
+    decision_id: str,
+    blocker: str,
+    *,
+    write: bool,
+    artifact_path: Path,
+    audit_record: Mapping[str, object] | None = None,
+    candidate: Mapping[str, object] | None = None,
+    candidate_selected_identity: Mapping[str, object] | None = None,
+) -> dict[str, object]:
+    result: dict[str, object] = {
+        "target_id": target_id,
+        "decision_id": decision_id,
+        "status": "blocked",
+        "blockers": [blocker],
+        "artifact": None,
+        "write_requested": write,
+        "written": False,
+        "artifact_path": str(artifact_path),
+    }
+    if audit_record is not None:
+        result["audit_record"] = dict(audit_record)
+    if candidate is not None:
+        result["candidate_id"] = candidate.get("candidate_id")
+    if candidate_selected_identity is not None:
+        result["candidate_selected_identity"] = dict(candidate_selected_identity)
+    return result
+
+
+def _rsset_candidate_selected_identity(candidate: Mapping[str, object], target_id: str) -> dict[str, object]:
+    selected_use = candidate.get("selected_use")
+    selected = selected_use if isinstance(selected_use, Mapping) else {}
+    stable_key = selected.get("stable_key")
+    segment_id = stable_key.split(":", 1)[0] if isinstance(stable_key, str) and ":" in stable_key else None
+    return {
+        "target_id": target_id,
+        "segment_id": segment_id,
+        "hunk": selected.get("hunk"),
+        "addr": selected.get("addr"),
+        "operand_index": selected.get("operand_index"),
+    }
+
+
+def _rsset_decision_verifier_command(candidate: Mapping[str, object]) -> dict[str, object]:
+    selected_use = candidate.get("selected_use")
+    selected = selected_use if isinstance(selected_use, Mapping) else {}
+    context = {
+        "kind": "element",
+        "locator": dict(selected.get("locator")) if isinstance(selected.get("locator"), Mapping) else {},
+    }
+    for key in ("element_id", "element_kind", "operand_index", "base_register", "displacement"):
+        if key in selected:
+            context[key] = selected[key]
+    return {"context": context}
+
+
+def _rsset_decision_verifier_expected_binding(
+    target_id: str,
+    decision_id: str,
+    audit_record: Mapping[str, object],
+    candidate: Mapping[str, object],
+    *,
+    project_root: Path,
+) -> dict[str, object] | None:
+    try:
+        project = projects.get_project(target_id, project_root=project_root)
+    except Exception:
+        return None
+    manual_state = project.manual_state
+    bindings = manual_state.get("rsset_use_site_bindings") if isinstance(manual_state, Mapping) else None
+    if not isinstance(bindings, Sequence) or isinstance(bindings, str):
+        return None
+    selected_identity = audit_record.get("selected_identity")
+    selected_use = candidate.get("selected_use")
+    selected = selected_use if isinstance(selected_use, Mapping) else {}
+    for binding in bindings:
+        if not isinstance(binding, Mapping):
+            continue
+        if binding.get("source_evidence_id") != decision_id:
+            continue
+        if not _rsset_binding_matches_selected_identity(binding, selected_identity):
+            continue
+        if selected.get("base_register") is not None and binding.get("base_register") != selected.get("base_register"):
+            continue
+        if selected.get("displacement") is not None and binding.get("displacement") != selected.get("displacement"):
+            continue
+        return dict(binding)
+    return None
+
+
+def _rsset_binding_matches_selected_identity(binding: Mapping[str, object], selected_identity: object) -> bool:
+    if not isinstance(selected_identity, Mapping):
+        return False
+    return all(binding.get(key) == selected_identity.get(key) for key in ("hunk", "addr", "operand_index"))
+
+
+def _verify_rsset_decision_negative_safety(
+    target_id: str,
+    decision_id: str,
+    command: dict[str, object],
+    expected: dict[str, object] | None,
+    audit_record: Mapping[str, object],
+    *,
+    project_root: Path,
+) -> dict[str, object]:
+    if expected is None:
+        return {"layer": "negative_safety", "status": "failed", "message": "missing RSSET use-site binding payload"}
+    try:
+        project = projects.get_project(target_id, project_root=project_root)
+    except Exception as exc:
+        return {"layer": "negative_safety", "status": "failed", "message": str(exc)}
+    manual_state = project.manual_state
+    bindings = manual_state.get("rsset_use_site_bindings") if isinstance(manual_state, Mapping) else None
+    if not isinstance(bindings, Sequence) or isinstance(bindings, str):
+        return {"layer": "negative_safety", "status": "failed", "message": "manual rsset_use_site_bindings were not reloaded"}
+    same_decision_bindings = [
+        dict(binding)
+        for binding in bindings
+        if isinstance(binding, Mapping) and binding.get("source_evidence_id") == decision_id
+    ]
+    unexpected_bindings = [
+        binding
+        for binding in same_decision_bindings
+        if not _rsset_binding_matches_selected_identity(binding, audit_record.get("selected_identity"))
+    ]
+    location = _custom_struct_field_render_location(command)
+    if location is None:
+        return {"layer": "negative_safety", "status": "failed", "message": "RSSET binding source location missing"}
+    section_index, source_offset = location
+    try:
+        listing = server.route_request(
+            "GET",
+            f"/api/projects/{target_id}/listing",
+            {
+                "section_index": [str(section_index)],
+                "source_offset": [str(source_offset)],
+                "before": ["2"],
+                "after": ["2"],
+            },
+        )
+    except Exception as exc:
+        return {"layer": "negative_safety", "status": "failed", "message": str(exc)}
+    data = listing.get("data")
+    rows = data.get("rows") if isinstance(data, dict) else None
+    if not isinstance(rows, list):
+        return {"layer": "negative_safety", "status": "failed", "message": "listing rows missing after reload"}
+    nearby_unexpected_refs = _rsset_nearby_unexpected_same_displacement_refs(rows, expected, audit_record)
+    status = "passed" if len(same_decision_bindings) == 1 and not unexpected_bindings and not nearby_unexpected_refs else "failed"
+    return {
+        "layer": "negative_safety",
+        "status": status,
+        "same_decision_binding_count": len(same_decision_bindings),
+        "unexpected_same_decision_bindings": unexpected_bindings,
+        "nearby_unexpected_same_displacement_refs": nearby_unexpected_refs,
+        "source_offset": source_offset,
+    }
+
+
+def _rsset_nearby_unexpected_same_displacement_refs(
+    rows: Sequence[object],
+    expected: Mapping[str, object],
+    audit_record: Mapping[str, object],
+) -> list[dict[str, object]]:
+    selected_identity = audit_record.get("selected_identity")
+    if not isinstance(selected_identity, Mapping):
+        return []
+    result: list[dict[str, object]] = []
+    for row in rows:
+        if not isinstance(row, Mapping):
+            continue
+        row_addr = row.get("start_offset", row.get("addr"))
+        refs = row.get("app_slot_refs")
+        for ref in _mapping_sequence(refs):
+            if ref.get("base_register") != expected.get("base_register"):
+                continue
+            if ref.get("displacement") != expected.get("displacement"):
+                continue
+            operand_index = ref.get("operand_index")
+            same_selected = row_addr == selected_identity.get("addr") and operand_index == selected_identity.get("operand_index")
+            if not same_selected:
+                result.append(
+                    {
+                        "row_key": row.get("row_key"),
+                        "addr": row_addr,
+                        "operand_index": operand_index,
+                        "symbol": ref.get("symbol"),
+                    }
+                )
+    return result
+
+
+def _decision_verifier_artifact_layer_from_result(
+    layer: str,
+    verifier: str,
+    result: Mapping[str, object],
+    *,
+    checked_at: str,
+) -> dict[str, object]:
+    status = "passed" if result.get("status") == "passed" else "failed"
+    layer_result: dict[str, object] = {
+        "layer": layer,
+        "status": status,
+        "verifier": verifier,
+        "checked_at": checked_at,
+    }
+    if status != "passed":
+        layer_result["blocker"] = f"{layer}_failed"
+        message = result.get("message")
+        if isinstance(message, str):
+            layer_result["message"] = message
+    return layer_result
+
+
+def _decision_verifier_result_blockers(results: Mapping[str, object]) -> list[str]:
+    blockers: list[str] = []
+    for name, raw_result in results.items():
+        result = raw_result if isinstance(raw_result, Mapping) else {}
+        if result.get("status") == "passed":
+            continue
+        blocker = f"{name}_failed"
+        if blocker not in blockers:
+            blockers.append(blocker)
+    return blockers or ["verifier_artifact_not_produced"]
+
+
+def _write_decision_verifier_artifact(target_dir: Path, artifact: Mapping[str, object]) -> None:
+    path = target_dir / _DECISION_VERIFIER_ARTIFACTS_FILE
+    payload = _load_decision_verifier_artifacts(target_dir)
+    entries: list[object] = []
+    if isinstance(payload, Mapping):
+        raw_entries = payload.get("artifacts", payload.get("records"))
+        if isinstance(raw_entries, Mapping):
+            entries = [dict(raw_entries)]
+        elif isinstance(raw_entries, Sequence) and not isinstance(raw_entries, str):
+            entries = [dict(entry) if isinstance(entry, Mapping) else entry for entry in raw_entries]
+    replacement = dict(artifact)
+    filtered = [
+        entry
+        for entry in entries
+        if not (
+            isinstance(entry, Mapping)
+            and entry.get("decision_id") == replacement.get("decision_id")
+            and entry.get("candidate_id") == replacement.get("candidate_id")
+        )
+    ]
+    filtered.append(replacement)
+    path.write_text(
+        json.dumps({"schema": "decision-verifier-artifacts/v1", "artifacts": filtered}, indent=2, sort_keys=True)
+        + "\n",
+        encoding="utf-8",
+    )
+
+
+def _short_hash(value: str) -> str:
+    return hashlib.sha256(value.encode("utf-8")).hexdigest()[:12]
 
 
 def _load_decision_dry_run_record(path: Path) -> object:

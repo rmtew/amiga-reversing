@@ -1,6 +1,6 @@
 # 017-050: Decision Verifier Artifact Producer
 
-Status: active
+Status: completed
 
 ## Proposal Context
 
@@ -103,35 +103,63 @@ surface.
 
 ## Research Coverage
 
-- [ ] Current `017-049` audit and artifact ingestion behavior checked.
-- [ ] Existing generated-source verifier path checked.
-- [ ] Existing exact round-trip verifier path checked.
-- [ ] Current source-state identity source checked.
-- [ ] Negative-safety cases for the selected RSSET binding defined.
-- [ ] No-append/no-mutation behavior checked.
-- [ ] Target hygiene behavior for `decision_verifier_artifacts.json` checked.
+- [x] Current `017-049` audit and artifact ingestion behavior checked.
+- [x] Existing generated-source verifier path checked.
+- [x] Existing exact round-trip verifier path checked.
+- [x] Current source-state identity source checked.
+- [x] Negative-safety cases for the selected RSSET binding defined.
+- [x] No-append/no-mutation behavior checked.
+- [x] Target hygiene behavior for `decision_verifier_artifacts.json` checked.
 
 ## Research Review
 
-- [ ] Second pass checked trace blocks against named files/functions.
-- [ ] Cross-references searched for existing verifier artifact or report hooks.
-- [ ] Artifact freshness and selected-identity mismatch risks reviewed.
-- [ ] Proposal updated with model corrections or deferred follow-ups.
+- [x] Second pass checked trace blocks against named files/functions.
+- [x] Cross-references searched for existing verifier artifact or report hooks.
+- [x] Artifact freshness and selected-identity mismatch risks reviewed.
+- [x] Proposal updated with model corrections or deferred follow-ups.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before implementation.
-- [ ] Protocol delta implemented as described, or proposal updated.
-- [ ] Default behavior impact verified.
-- [ ] Old code deleted, or deferred deletion blocker recorded.
-- [ ] Artifact producer success tested.
-- [ ] Stale/mismatched artifact rejection tested through audit ingestion.
-- [ ] Verifier failure/blocker behavior tested.
-- [ ] No append/no mutation behavior tested.
-- [ ] Pandora proof recorded.
-- [ ] Post-commit review found no unresolved worthwhile findings.
+- [x] Proposal context checked before implementation.
+- [x] Protocol delta implemented as described, or proposal updated.
+- [x] Default behavior impact verified.
+- [x] Old code deleted, or deferred deletion blocker recorded.
+- [x] Artifact producer success tested.
+- [x] Stale/mismatched artifact rejection tested through audit ingestion.
+- [x] Verifier failure/blocker behavior tested.
+- [x] No append/no mutation behavior tested.
+- [x] Pandora proof recorded.
+- [x] Post-commit review found no unresolved worthwhile findings.
 
 ## Completion Evidence
 
-Fill this section when completed with the artifact producer surface, verifier
-layers proven, Pandora commands run, tests, and any deferred blockers.
+- Added explicit API/CLI surface:
+  `produce_decision_verifier_artifact(...)` and
+  `reversing_loop decision-verifier-artifact --target ... --decision-id ...
+  [--write]`.
+- The producer is read-only by default and writes only
+  `decision_verifier_artifacts.json` when `--write` is supplied. It does not
+  append to `decision_journal.jsonl` or `manual_actions.jsonl`.
+- Produced artifacts are current only after matching the active accepted
+  Decision Journal record, current RSSET candidate identity, current
+  source-state projection hash, reloaded semantic binding state, scoped
+  generated-source render verifier, negative-safety verifier, and exact
+  round-trip verifier.
+- Failure cases return `status=blocked` and do not write artifacts. Covered:
+  missing source-state identity, selected-identity mismatch, verifier failure,
+  stale/mismatched ingestion, and no-append/no-mutation behavior.
+- Real Pandora proof:
+  - Before production, `decision-rsset-022e-accept-017-040` reported
+    `generated_source`, `negative_safety`, and `exact_round_trip` as
+    `not_checked` with explicit blockers.
+  - Explicit producer write emitted
+    `decision-verifier:decision-rsset-022e-accept-017-040:rsset-raw-a6:022E:490e27369b0c`
+    with all three verifier layers passed.
+  - After production, `decision-journal-report` reported
+    `decision_journal`, `semantic_reload`, `generated_source`,
+    `negative_safety`, and `exact_round_trip` as `passed` with no blockers.
+  - `git diff -- decision_journal.jsonl manual_actions.jsonl
+    pandora_3e1ee0f1_bk_00_000000e8.s` was empty for the target proof.
+- Tests run: `uv run python -m pytest tests\test_reversing_loop.py -q`
+  (`360 passed`).
+- Deferred blockers: none.
