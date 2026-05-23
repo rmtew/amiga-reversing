@@ -47,7 +47,7 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
                 },
             },
             "resource_fork": {
-                "types": [{"type": "CODE", "count": 3}],
+                "types": [{"type": "CODE", "count": 4}],
                 "code_resources": [
                     {
                         "type": "CODE",
@@ -218,6 +218,52 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
                             },
                         },
                     },
+                    {
+                        "type": "CODE",
+                        "id": 3,
+                        "name": "Tiny",
+                        "payload_size": 7,
+                        "sha256": "code3-hash",
+                        "code": {
+                            "kind": "code_segment",
+                            "kb_record_id": "macos.hfs_resource_fork.code_resources.mpw_application",
+                            "fact_id": "macos.resource_fork.code_resources.accepted",
+                            "fact_status": "validated",
+                            "parser_use": "accepted_parser_output",
+                            "layout_ranges": [
+                                {
+                                    "kind": "metadata",
+                                    "start": 0,
+                                    "size": 4,
+                                    "end": 4,
+                                    "entrypoint": False,
+                                    "evidence": "nonzero_code_segment_header",
+                                    "fact_id": "macos.code_resource.nonzero.segment_header",
+                                    "fact_status": "validated",
+                                    "parser_use": "accepted_parser_output",
+                                },
+                                {
+                                    "kind": "candidate_code",
+                                    "start": 6,
+                                    "size": 1,
+                                    "end": 7,
+                                    "entrypoint": True,
+                                    "evidence": "m68k_movea_l_stack_to_a0_entry",
+                                    "fact_id": "macos.code_resource.movea_stack_a0.boundary.candidate",
+                                    "fact_status": "candidate",
+                                    "parser_use": "candidate_only",
+                                },
+                            ],
+                            "orphan_ranges": [],
+                            "relocation_fixups": {
+                                "status": "deferred",
+                                "fact_id": "macos.segment_loader.relocation_fixups.deferred",
+                                "fact_status": "deferred",
+                                "parser_use": "deferred_only",
+                                "reason": "Segment Loader relocation/fixup interpretation is not represented",
+                            },
+                        },
+                    },
                 ],
                 "code_segment_map": [
                     {
@@ -344,12 +390,54 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
 
     def fake_extract(data: bytes, hfs_path: str, resource_id: int, **kwargs: object) -> bytes:
         calls.setdefault("extract_args", []).append((data, hfs_path, resource_id, kwargs.get("project_root")))
-        assert resource_id == 2
-        return b"\x00\x00\x00\x00\x00\x00\x20\x5f\x4e\x75"
+        if resource_id == 2:
+            return b"\x00\x00\x00\x00\x00\x00\x20\x5f\x4e\x75"
+        if resource_id == 3:
+            return b"\x00\x00\x00\x00\x00\x00\x20"
+        raise AssertionError(resource_id)
+
+    class FakeDecodeArtifact:
+        def window_payload(self, *, start: int, count: int) -> tuple[dict[str, object], dict[str, object]]:
+            assert start == 0
+            assert count >= 4
+            return (
+                {
+                    "rows": [
+                        {
+                            "kind": "instruction",
+                            "text": "movea.l (a7)+,a0\n",
+                            "start_offset": 0,
+                            "end_offset": 2,
+                            "bytes": "205f",
+                            "opcode_or_directive": "movea.l",
+                            "operand_text": "(a7)+,a0",
+                        },
+                        {
+                            "kind": "instruction",
+                            "text": "rts\n",
+                            "start_offset": 2,
+                            "end_offset": 4,
+                            "bytes": "4e75",
+                            "opcode_or_directive": "rts",
+                            "operand_text": "",
+                        },
+                    ]
+                },
+                {},
+            )
+
+        def close(self) -> None:
+            calls["decode_closed"] = True
+
+    def fake_build_listing(binary_source: object, **kwargs: object) -> tuple[int, dict[str, object], FakeDecodeArtifact]:
+        calls.setdefault("decode_bytes", []).append(binary_source.read_bytes())
+        calls.setdefault("decode_project_roots", []).append(kwargs.get("project_root"))
+        return 2, {}, FakeDecodeArtifact()
 
     monkeypatch.setattr(macos_project_payload, "read_macos_hfs_image_bytes", fake_read_hfs)
     monkeypatch.setattr(macos_project_payload, "inspect_macos_hfs_code_summary_with_c_backend", fake_summary)
     monkeypatch.setattr(macos_project_payload, "extract_macos_hfs_code_resource_bytes_with_c_backend", fake_extract)
+    monkeypatch.setattr(macos_project_payload, "build_listing_artifact_profile_from_binary_source", fake_build_listing)
     project = ProjectRecord(
         id="macos_mpw_sample",
         name="macos_mpw_sample",
@@ -393,10 +481,11 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
     assert container["code_segment_map"][0]["routine_entry_candidates"][0]["fact_status"] == "candidate"
     assert container["selected_code_segment"]["orphan_ranges"][0]["fact_status"] == "candidate"
     assert container["selected_code_segment"]["relocation_fixups"]["parser_use"] == "deferred_only"
-    assert [item["id"] for item in container["code_resource_details"]] == [0, 1, 2]
+    assert [item["id"] for item in container["code_resource_details"]] == [0, 1, 2, 3]
     code0_detail = container["code_resource_details"][0]
     code1_detail = container["code_resource_details"][1]
     code2_detail = container["code_resource_details"][2]
+    code3_detail = container["code_resource_details"][3]
     assert code0_detail["role"] == "code0_metadata"
     assert code0_detail["listing"] == {
         "kind": "metadata",
@@ -429,10 +518,42 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
     assert all(row["fact_status"] == "candidate" for row in code2_detail["preview_windows"][0]["rows"])
     assert all(row["parser_use"] == "candidate_only" for row in code2_detail["preview_windows"][0]["rows"])
     assert all(row["offset"] >= 6 and row["end"] <= 10 for row in code2_detail["preview_windows"][0]["rows"])
-    assert calls["extract_args"] == [(b"hfs", "MPW-GM/MPW/Tools/Asm", 2, tmp_path)]
+    assert code2_detail["preview_windows"][0]["rows"][0]["text"] == "movea.l (a7)+,a0"
+    assert code2_detail["preview_windows"][0]["rows"][0]["decode_status"] == "decoded"
+    assert code2_detail["preview_windows"][0]["rows"][0]["decoded"] is True
+    assert code2_detail["preview_windows"][0]["rows"][0]["row_kind"] == "instruction"
+    assert code2_detail["preview_windows"][0]["rows"][0]["fallback_reason"] is None
+    assert code3_detail["listing"]["kind"] == "candidate_preview"
+    assert code3_detail["preview_windows"][0]["rows"] == [
+        {
+            "offset": 6,
+            "end": 7,
+            "size": 1,
+            "bytes": "20",
+            "directive": "dc.b",
+            "value": 32,
+            "text": "dc.b $20",
+            "row_kind": "data",
+            "decoded": False,
+            "decode_status": "fallback_data",
+            "fallback_reason": "preview shorter than one m68k instruction word",
+            "range_kind": "candidate_code",
+            "evidence": "m68k_movea_l_stack_to_a0_entry",
+            "kb_record_id": "macos.hfs_resource_fork.code_resources.mpw_application",
+            "fact_id": "macos.code_resource.movea_stack_a0.boundary.candidate",
+            "fact_status": "candidate",
+            "parser_use": "candidate_only",
+        }
+    ]
+    assert calls["decode_bytes"] == [b"\x20\x5f\x4e\x75"]
+    assert calls["decode_closed"] is True
+    assert calls["extract_args"] == [
+        (b"hfs", "MPW-GM/MPW/Tools/Asm", 2, tmp_path),
+        (b"hfs", "MPW-GM/MPW/Tools/Asm", 3, tmp_path),
+    ]
     navigation_groups = container["navigation"]["groups"]
     assert navigation_groups[0]["id"] == "macos-code-resources"
-    assert len(navigation_groups[0]["items"]) == 3
+    assert len(navigation_groups[0]["items"]) == 4
     assert navigation_groups[1]["id"] == "macos-code-anchors"
     assert container["selected_code_segment"]["listing"] == {
         "project_id": "macos_mpw_sample",
@@ -515,6 +636,12 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     assert first_preview["deferred_reasons"][0]["parser_use"] == "deferred_only"
     assert all(row["fact_status"] == "candidate" for row in first_preview["rows"])
     assert all(row["parser_use"] == "candidate_only" for row in first_preview["rows"])
+    assert any(
+        row.get("decode_status") == "decoded" and row.get("row_kind") == "instruction"
+        for detail in preview_details
+        for preview in detail["preview_windows"]
+        for row in preview["rows"]
+    )
     for detail in preview_details:
         preview = detail["preview_windows"][0]
         candidate = next(item for item in detail["code_layout"] if item.get("kind") == "candidate_code")

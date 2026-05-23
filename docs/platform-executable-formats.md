@@ -702,6 +702,27 @@ CDP verification opens the rendered Mac project page and checks the visible
 CODE 0, CODE 1, candidate preview, no-preview, and deferred relocation text in
 the browser DOM.
 
+## Mac Candidate Preview Decode Rows
+
+018-019 changes non-selected CODE preview rows from unconditional data-word
+rendering to bounded decode-first rendering.
+
+```text
+Input: existing candidate_code preview byte window only.
+Decode path: temporary raw local-offset binary through the same shared m68k
+listing backend used by the selected Mac CODE adapter.
+Decoded rows: instruction/data rows with offset, bytes, text, range/fact state,
+decode_status, and row_kind.
+Fallback rows: dc.w/dc.b rows only when the preview is too short, decode fails,
+or no instruction row is produced; fallback_reason is visible.
+```
+
+All rows keep the candidate fact
+`macos.code_resource.movea_stack_a0.boundary.candidate` and `candidate_only`
+parser use inherited from the preview range. Relocation/fixup state remains
+visible as deferred-only state; decoded preview rows do not accept byte-entry or
+relocation/fixup semantics.
+
 ## Mac Relocation/Fixup Research Packet
 
 018-021 reviewed local old/out-of-print Mac and MPW sources for Segment Loader

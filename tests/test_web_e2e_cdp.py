@@ -124,6 +124,7 @@ def _macos_preview_payload() -> dict[str, object]:
                 {"id": 0, "name": "unknown", "payload_size": 32},
                 {"id": 1, "name": "Main", "payload_size": 256},
                 {"id": 2, "name": "FPOpTable", "payload_size": 128},
+                {"id": 3, "name": "Tiny", "payload_size": 7},
                 {"id": 19, "name": "SetupArgV", "payload_size": 64},
             ],
             "selected_code_segment": {
@@ -206,8 +207,66 @@ def _macos_preview_payload() -> dict[str, object]:
                             "rows": [
                                 {
                                     "offset": 6,
-                                    "bytes": "20 5f",
-                                    "text": "dc.w $205f",
+                                    "end": 8,
+                                    "bytes": "205f",
+                                    "text": "movea.l (a7)+,a0",
+                                    "row_kind": "instruction",
+                                    "decoded": True,
+                                    "decode_status": "decoded",
+                                    "fallback_reason": None,
+                                    "range_kind": "candidate_code",
+                                    "fact_status": "candidate",
+                                    "parser_use": "candidate_only",
+                                }
+                            ],
+                            "deferred_reasons": [
+                                {
+                                    "scope": "relocation_fixups",
+                                    "fact_status": "deferred",
+                                    "parser_use": "deferred_only",
+                                    "reason": "Segment Loader relocation/fixup interpretation remains deferred",
+                                }
+                            ],
+                        }
+                    ],
+                },
+                {
+                    "id": 3,
+                    "name": "Tiny",
+                    "role": "code_segment",
+                    "code_kind": "code_segment",
+                    "fact_id": "macos.resource_fork.code_resources.accepted",
+                    "fact_status": "validated",
+                    "relocation_fixups": {
+                        "status": "deferred",
+                        "fact_status": "deferred",
+                        "parser_use": "deferred_only",
+                        "reason": "Segment Loader relocation/fixup interpretation remains deferred",
+                    },
+                    "listing": {
+                        "kind": "candidate_preview",
+                        "available": True,
+                        "route": "code_preview",
+                        "reason": "bounded candidate preview; full listing remains deferred",
+                    },
+                    "preview_windows": [
+                        {
+                            "resource_id": 3,
+                            "start": 6,
+                            "end": 7,
+                            "bounded": True,
+                            "fact_status": "candidate",
+                            "parser_use": "candidate_only",
+                            "rows": [
+                                {
+                                    "offset": 6,
+                                    "end": 7,
+                                    "bytes": "20",
+                                    "text": "dc.b $20",
+                                    "row_kind": "data",
+                                    "decoded": False,
+                                    "decode_status": "fallback_data",
+                                    "fallback_reason": "preview shorter than one m68k instruction word",
                                     "range_kind": "candidate_code",
                                     "fact_status": "candidate",
                                     "parser_use": "candidate_only",
@@ -829,9 +888,11 @@ def test_brave_cdp_macos_code_details_show_candidate_previews(monkeypatch: pytes
         assert "full_listing listing" in body_text
         assert "Candidate bounded preview" in body_text
         assert "candidate_code candidate candidate_only" in body_text
+        assert "decoded" in body_text
+        assert "fallback_data preview shorter than one m68k instruction word" in body_text
         assert "Deferred: relocation_fixups deferred deferred_only" in body_text
         assert "no candidate preview range" in body_text
-        assert page.evaluate("document.querySelectorAll('[data-macos-preview-row]').length") == 1
+        assert page.evaluate("document.querySelectorAll('[data-macos-preview-row]').length") == 2
         assert page.evaluate("document.querySelector('[data-macos-code-listing=\"1\"]')?.textContent.includes('movea.l (a7)+,a0')")
         page.assert_no_errors()
 

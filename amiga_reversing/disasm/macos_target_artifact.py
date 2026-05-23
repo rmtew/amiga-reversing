@@ -389,9 +389,13 @@ def _preview_window_lines(previews: Sequence[Mapping[str, object]]) -> list[str]
                 f"parser_use={_text(reason.get('parser_use'))} reason={_text(reason.get('reason'))}"
             )
         for row in [_mapping(item) for item in _sequence(preview.get("rows"))]:
+            fallback = row.get("fallback_reason")
+            fallback_text = f" fallback={_text(fallback)}" if fallback else ""
             lines.append(
                 f";         row: offset={_text(row.get('offset'))} end={_text(row.get('end'))} "
                 f"bytes={_text(row.get('bytes'))} text={_text(row.get('text'))} "
+                f"decode={_text(row.get('decode_status'))} row_kind={_text(row.get('row_kind'))}"
+                f"{fallback_text} "
                 f"range={_text(row.get('range_kind'))} fact={_text(row.get('fact_id'))} "
                 f"status={_text(row.get('fact_status'))} parser_use={_text(row.get('parser_use'))}"
             )

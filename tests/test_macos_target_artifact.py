@@ -82,6 +82,7 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     assert "range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate" in asm_text
     assert "bounded=True" in asm_text
     assert "row: offset=" in asm_text
+    assert "decode=decoded row_kind=instruction" in asm_text
     assert "accepted_segment_metadata" in asm_text
     assert "candidate_routine_entry" in asm_text
     assert "status=candidate parser_use=candidate_only" in asm_text

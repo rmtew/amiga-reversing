@@ -562,6 +562,12 @@ Do not change code and do not mark Proposal 012 closed.
   candidate/bounded, shows no-preview reasons, and keeps relocation/fixup state
   deferred. A CDP test opens the rendered Mac project page and checks those DOM
   states.
+- 018-019 replaced unconditional `dc.w`/`dc.b` preview rows with decoded
+  candidate rows where the shared m68k listing backend produces instruction
+  rows for the bounded preview bytes. Fallback `dc.w`/`dc.b` rows remain
+  available with visible reasons when decode is unsafe or unproductive. Rows
+  still inherit candidate/candidate_only fact state, and relocation/fixups stay
+  deferred-only.
 - 018-021 reviewed local Mac/MPW sources for relocation/fixup evidence. It
   added candidate evidence that Segment Loader loading can cause Memory
   Manager heap/block relocation, but it did not find accepted on-disk CODE
@@ -594,6 +600,9 @@ candidate/deferred.
 018-018 carries the same fact-state boundaries into the browser UI and verifies
 them with CDP; it adds UI coverage, not accepted byte-entry or relocation
 semantics.
+018-019 improves preview readability by decoding candidate preview bytes through
+the shared listing path where safe, but it keeps the same fact-state boundary:
+decoded preview rows are still candidate-only, and fallbacks remain explicit.
 018-021 and 018-022 clarify why relocation/fixups and source-to-CODE mapping
 remain blockers despite additional cited context, and 018-025 makes that split
 auditable in Proposal 012.

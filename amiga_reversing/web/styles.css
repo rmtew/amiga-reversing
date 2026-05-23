@@ -353,7 +353,7 @@ body {
 }
 
 .macos-code-preview-row {
-  grid-template-columns: 56px 92px minmax(140px, 1fr) minmax(180px, 1fr);
+  grid-template-columns: 56px 92px minmax(140px, 1fr) minmax(180px, 1fr) minmax(160px, 0.8fr);
   font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
   font-size: 12px;
 }

@@ -2,10 +2,17 @@
 
 from __future__ import annotations
 
+import tempfile
 from collections.abc import Mapping
 from pathlib import Path
 
+from amiga_reversing.disasm.binary_source import (
+    BinarySourceKind,
+    RawAddressModel,
+    RawBinarySource,
+)
 from amiga_reversing.disasm.c_backend import (
+    build_listing_artifact_profile_from_binary_source,
     extract_macos_hfs_code_resource_bytes_with_c_backend,
     inspect_macos_hfs_code_summary_with_c_backend,
 )
@@ -388,17 +395,146 @@ def _preview_windows(
         "max_bytes": MACOS_CODE_PREVIEW_MAX_BYTES,
         "reason": "bounded to candidate_code range; byte-entry and relocation semantics remain unresolved",
         "deferred_reasons": _preview_deferred_reasons(relocation_fixups, code),
-        "rows": _preview_rows(preview_bytes, start=start, range_info=range_info, code=code),
+        "rows": _preview_decode_rows(
+            preview_bytes,
+            start=start,
+            range_info=range_info,
+            code=code,
+            resource=resource,
+            project_root=project_root,
+        ),
     }
     return [window]
 
 
-def _preview_rows(
+def _preview_decode_rows(
     preview_bytes: bytes,
     *,
     start: int,
     range_info: Mapping[str, object],
     code: Mapping[str, object],
+    resource: Mapping[str, object],
+    project_root: Path,
+) -> list[dict[str, object]]:
+    if len(preview_bytes) < 2:
+        return _preview_data_rows(
+            preview_bytes,
+            start=start,
+            range_info=range_info,
+            code=code,
+            fallback_reason="preview shorter than one m68k instruction word",
+        )
+
+    temp_path: Path | None = None
+    artifact = None
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".macos-preview.bin") as temp_file:
+            temp_file.write(preview_bytes)
+            temp_path = Path(temp_file.name)
+        resource_id = resource.get("id")
+        resource_label = f"CODE {resource_id} {resource.get('name') or ''}".strip()
+        binary_source = RawBinarySource(
+            kind=BinarySourceKind.RAW_BINARY,
+            path=temp_path,
+            address_model=RawAddressModel.LOCAL_OFFSET,
+            load_address=0,
+            entrypoint=0,
+            code_start_offset=0,
+            display_path=f"Mac OS candidate preview {resource_label}",
+            analysis_cache_path=project_root / "targets" / ".macos-code-preview.analysis",
+        )
+        _total_rows, _profile, artifact = build_listing_artifact_profile_from_binary_source(
+            binary_source,
+            project_root=project_root,
+        )
+        window, _window_profile = artifact.window_payload(start=0, count=MACOS_CODE_PREVIEW_MAX_BYTES * 2)
+        rows = _decoded_preview_rows(
+            _sequence(window.get("rows")),
+            preview_bytes=preview_bytes,
+            start=start,
+            range_info=range_info,
+            code=code,
+        )
+    except Exception as error:
+        return _preview_data_rows(
+            preview_bytes,
+            start=start,
+            range_info=range_info,
+            code=code,
+            fallback_reason=f"preview decode failed: {type(error).__name__}",
+        )
+    finally:
+        if artifact is not None:
+            artifact.close()
+        if temp_path is not None:
+            temp_path.unlink(missing_ok=True)
+    if not any(row.get("decoded") is True for row in rows):
+        return _preview_data_rows(
+            preview_bytes,
+            start=start,
+            range_info=range_info,
+            code=code,
+            fallback_reason="preview decode produced no instruction rows",
+        )
+    return rows
+
+
+def _decoded_preview_rows(
+    decoded_rows: list[object],
+    *,
+    preview_bytes: bytes,
+    start: int,
+    range_info: Mapping[str, object],
+    code: Mapping[str, object],
+) -> list[dict[str, object]]:
+    rows: list[dict[str, object]] = []
+    for raw_row in decoded_rows:
+        decoded = _mapping(raw_row)
+        row_start = _int_value(decoded.get("start_offset"))
+        row_end = _int_value(decoded.get("end_offset"))
+        if row_start is None or row_end is None or row_end <= row_start:
+            continue
+        if row_start >= len(preview_bytes) or row_end > len(preview_bytes):
+            continue
+        text = str(decoded.get("text") or "").strip()
+        if not text or text.lower() == "section code,code":
+            continue
+        row_kind = str(decoded.get("kind") or "")
+        if row_kind not in {"instruction", "data"}:
+            continue
+        chunk = preview_bytes[row_start:row_end]
+        is_instruction = row_kind == "instruction"
+        rows.append(
+            {
+                "offset": start + row_start,
+                "end": start + row_end,
+                "size": row_end - row_start,
+                "bytes": str(decoded.get("bytes") or chunk.hex(" ")),
+                "text": text,
+                "row_kind": row_kind,
+                "decoded": is_instruction,
+                "decode_status": "decoded" if is_instruction else "decoded_data",
+                "fallback_reason": None,
+                "opcode_or_directive": decoded.get("opcode_or_directive"),
+                "operand_text": decoded.get("operand_text"),
+                "range_kind": range_info.get("kind"),
+                "evidence": range_info.get("evidence"),
+                "kb_record_id": code.get("kb_record_id"),
+                "fact_id": range_info.get("fact_id"),
+                "fact_status": range_info.get("fact_status"),
+                "parser_use": range_info.get("parser_use"),
+            }
+        )
+    return rows
+
+
+def _preview_data_rows(
+    preview_bytes: bytes,
+    *,
+    start: int,
+    range_info: Mapping[str, object],
+    code: Mapping[str, object],
+    fallback_reason: str,
 ) -> list[dict[str, object]]:
     rows: list[dict[str, object]] = []
     for relative in range(0, len(preview_bytes), 2):
@@ -416,6 +552,10 @@ def _preview_rows(
                 "directive": directive,
                 "value": value,
                 "text": f"{directive} ${value:0{len(chunk) * 2}x}",
+                "row_kind": "data",
+                "decoded": False,
+                "decode_status": "fallback_data",
+                "fallback_reason": fallback_reason,
                 "range_kind": range_info.get("kind"),
                 "evidence": range_info.get("evidence"),
                 "kb_record_id": code.get("kb_record_id"),

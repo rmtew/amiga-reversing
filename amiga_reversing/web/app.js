@@ -10200,12 +10200,15 @@ function renderClassicMacPreviewWindow(preview) {
 }
 
 function renderClassicMacPreviewRow(row) {
+  const statusText = `${row.range_kind || ""} ${row.fact_status || ""} ${row.parser_use || ""}`.trim();
+  const decodeText = `${row.decode_status || ""} ${row.fallback_reason || ""}`.trim();
   return `
     <div class="macos-code-preview-row" data-macos-preview-row="1">
       <span>${escapeHtml(String(row.offset ?? ""))}</span>
       <code>${escapeHtml(row.bytes || "")}</code>
       <strong>${escapeHtml(row.text || "")}</strong>
-      <span>${escapeHtml(`${row.range_kind || ""} ${row.fact_status || ""} ${row.parser_use || ""}`.trim())}</span>
+      <span>${escapeHtml(statusText)}</span>
+      <span>${escapeHtml(decodeText)}</span>
     </div>
   `;
 }

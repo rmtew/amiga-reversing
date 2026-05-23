@@ -448,6 +448,8 @@ def test_web_app_renders_macos_source_and_container_payloads() -> None:
     assert "Candidate bounded preview" in app_js
     assert 'data-macos-code-details="1"' in app_js
     assert "data-macos-preview-row" in app_js
+    assert "row.decode_status" in app_js
+    assert "row.fallback_reason" in app_js
     assert "Relocation/fixup state:" in app_js
     assert "source_segments_map_to_observed_code_resources" in app_js
     assert ".macos-view" in styles_css

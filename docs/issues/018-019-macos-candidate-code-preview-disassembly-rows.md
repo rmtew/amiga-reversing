@@ -1,6 +1,6 @@
 # 018-019: Mac OS Candidate CODE Preview Disassembly Rows
 
-Status: open
+Status: completed
 
 ## Proposal Context
 
@@ -68,35 +68,76 @@ Record trace blocks for:
 - decoded row fact/status propagation;
 - tests proving candidate/deferred state is preserved.
 
+## Research Notes
+
+Trace blocks:
+
+```text
+Selected CODE listing adapter reuse:
+  amiga_reversing.disasm.macos_listing_source already feeds selected CODE bytes
+  into build_listing_artifact_profile_from_binary_source through a temporary
+  RawBinarySource, then strips Amiga SECTION code,code from Mac-facing rows.
+
+Preview decode helper:
+  amiga_reversing.disasm.macos_project_payload now builds the same temporary
+  raw local-offset source for bounded non-selected candidate preview bytes and
+  consumes instruction/data rows from the shared listing artifact.
+
+Fallback policy:
+  Fallback dc.w/dc.b rows are emitted only when the preview is shorter than one
+  m68k instruction word, decode raises, or decode produces no instruction rows.
+  The row carries decode_status=fallback_data and a visible fallback_reason.
+
+Fact propagation:
+  Decoded and fallback rows inherit the candidate preview range fact
+  macos.code_resource.movea_stack_a0.boundary.candidate, fact_status=candidate,
+  and parser_use=candidate_only. Relocation/fixups remain deferred_only through
+  the preview deferred_reasons list.
+```
+
+## Completion Evidence
+
+```text
+uv run python -m pytest tests\test_macos_project_payload.py tests\test_macos_target_artifact.py tests\test_web_app_source.py -q
+26 passed
+node --check amiga_reversing\web\app.js
+uv run python -m pytest tests\test_web_e2e_cdp.py::test_brave_cdp_macos_code_details_show_candidate_previews -q
+1 passed
+uv run python -m amiga_reversing.tools.platform_executable_formats validate
+uv run python -m amiga_reversing.tools.validate_018_issues
+uv run ruff check amiga_reversing\disasm\macos_project_payload.py amiga_reversing\disasm\macos_target_artifact.py tests\test_macos_project_payload.py tests\test_macos_target_artifact.py tests\test_web_app_source.py tests\test_web_e2e_cdp.py
+All checks passed!
+```
+
 ## Research Coverage
 
-- [ ] Current selected CODE listing adapter traced.
-- [ ] Current preview row generation traced.
-- [ ] Safe bounded decode policy selected.
-- [ ] Fallback policy selected.
-- [ ] Artifact/web impact checked.
-- [ ] 012/018 wording checked before implementation.
+- [x] Current selected CODE listing adapter traced.
+- [x] Current preview row generation traced.
+- [x] Safe bounded decode policy selected.
+- [x] Fallback policy selected.
+- [x] Artifact/web impact checked.
+- [x] 012/018 wording checked before implementation.
 
 ## Research Review
 
-- [ ] Second pass checked decoded rows are bounded to candidate ranges.
-- [ ] Candidate rows are not labelled accepted.
-- [ ] Fallback rows remain available with reason.
-- [ ] CODE 0 remains metadata-only.
-- [ ] Selected CODE 1 listing still works.
-- [ ] Deferred relocation/fixup state remains visible.
-- [ ] Proposal 012/018 docs updated.
+- [x] Second pass checked decoded rows are bounded to candidate ranges.
+- [x] Candidate rows are not labelled accepted.
+- [x] Fallback rows remain available with reason.
+- [x] CODE 0 remains metadata-only.
+- [x] Selected CODE 1 listing still works.
+- [x] Deferred relocation/fixup state remains visible.
+- [x] Proposal 012/018 docs updated.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before implementation.
-- [ ] Decoded candidate preview rows added where safe.
-- [ ] Data-row fallback preserved with explicit reason.
-- [ ] Preview rows remain bounded to candidate code ranges.
-- [ ] Candidate/deferred facts are not promoted to accepted output.
-- [ ] MPW `Asm` artifact regenerated if output changes.
-- [ ] Relevant payload/artifact/web tests pass.
-- [ ] CDP browser verification passes if web output changes.
-- [ ] `amiga_reversing.tools.platform_executable_formats validate` passes.
-- [ ] `amiga_reversing.tools.validate_018_issues` passes.
-- [ ] Post-commit review found no unresolved worthwhile findings.
+- [x] Proposal context checked before implementation.
+- [x] Decoded candidate preview rows added where safe.
+- [x] Data-row fallback preserved with explicit reason.
+- [x] Preview rows remain bounded to candidate code ranges.
+- [x] Candidate/deferred facts are not promoted to accepted output.
+- [x] MPW `Asm` artifact regenerated if output changes.
+- [x] Relevant payload/artifact/web tests pass.
+- [x] CDP browser verification passes if web output changes.
+- [x] `amiga_reversing.tools.platform_executable_formats validate` passes.
+- [x] `amiga_reversing.tools.validate_018_issues` passes.
+- [x] Post-commit review found no unresolved worthwhile findings.
