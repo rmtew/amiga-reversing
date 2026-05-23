@@ -679,6 +679,29 @@ Preview rows inherit the candidate fact
 through `macos.segment_loader.relocation_fixups.deferred`; preview windows do
 not promote byte-entry or relocation semantics to accepted output.
 
+## Mac CODE Preview Web UI
+
+018-018 makes those Mac CODE detail records browser-visible in the normal
+project page. The web UI now consumes `code_resource_details` and
+`preview_windows` instead of showing only raw CODE inventory plus the selected
+listing panel.
+
+Browser-visible state:
+
+```text
+CODE 0: metadata/jump-table-only detail row, no preview.
+Selected CODE 1: full_listing route remains visible and the selected listing
+panel still renders through the existing listing path.
+Non-selected candidate previews: visible bounded preview rows labelled
+candidate/candidate_only.
+No-preview resources: visible structured reason from the classifier.
+Relocation/fixup state: visible deferred/deferred_only state.
+```
+
+CDP verification opens the rendered Mac project page and checks the visible
+CODE 0, CODE 1, candidate preview, no-preview, and deferred relocation text in
+the browser DOM.
+
 ## Current Limits
 
 018-001 does not change parser or renderer behavior.

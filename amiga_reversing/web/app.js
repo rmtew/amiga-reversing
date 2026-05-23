@@ -10093,6 +10093,7 @@ function renderClassicMacSourceView(sourceView) {
 
 function renderClassicMacContainerView(containerView) {
   const selected = containerView.selected_code_segment || {};
+  const details = Array.isArray(containerView.code_resource_details) ? containerView.code_resource_details : [];
   return `
     <section class="macos-section" data-macos-panel="container">
       <h2>Binary Container</h2>
@@ -10107,7 +10108,117 @@ function renderClassicMacContainerView(containerView) {
         ${renderClassicMacPivotList("CODE Resources", containerView.code_resources, (item) => `CODE ${item.id} ${item.name || ""} ${formatFileSize(item.size || 0)}`)}
         ${renderClassicMacPivotList("Selected CODE Listing", selected.listing ? [selected.listing] : [], (item) => `${item.resource_type || "CODE"} ${item.resource_id ?? ""} ${item.resource_name || ""} ${formatFileSize(item.source_range?.size || 0)}`)}
       </div>
+      ${renderClassicMacCodeResourceDetails(details)}
     </section>
+  `;
+}
+
+function renderClassicMacCodeResourceDetails(details) {
+  const rows = Array.isArray(details) ? details : [];
+  return `
+    <div class="macos-code-details" data-macos-code-details="1">
+      <h3>CODE Resource Details</h3>
+      ${rows.map((detail) => renderClassicMacCodeResourceDetail(detail || {})).join("") || '<div class="empty">No CODE resource details.</div>'}
+    </div>
+  `;
+}
+
+function renderClassicMacCodeResourceDetail(detail) {
+  const listing = detail.listing || {};
+  const relocation = detail.relocation_fixups || {};
+  const previews = Array.isArray(detail.preview_windows) ? detail.preview_windows : [];
+  const previewLabel = previews.length ? `${previews.length} candidate bounded preview` : "no preview";
+  return `
+    <article class="macos-code-detail" data-macos-code-detail="${escapeHtml(String(detail.id ?? ""))}">
+      <header>
+        <h4>CODE ${escapeHtml(String(detail.id ?? ""))} ${escapeHtml(detail.name || "")}</h4>
+        <span>${escapeHtml(previewLabel)}</span>
+      </header>
+      <div class="macos-code-detail-grid">
+        <div><span>Role</span><strong>${escapeHtml(detail.role || "")}</strong></div>
+        <div><span>Kind</span><strong>${escapeHtml(detail.code_kind || "")}</strong></div>
+        <div><span>Fact</span><strong>${escapeHtml(detail.fact_id || "")}</strong></div>
+        <div><span>Status</span><strong>${escapeHtml(detail.fact_status || "")}</strong></div>
+        <div><span>Listing</span><strong>${escapeHtml(`${listing.kind || "none"} ${listing.route || ""}`.trim())}</strong></div>
+        <div><span>Relocation</span><strong>${escapeHtml(`${relocation.fact_status || relocation.status || "unknown"} ${relocation.parser_use || ""}`.trim())}</strong></div>
+      </div>
+      ${detail.id === 0 ? renderClassicMacCode0Metadata(detail) : ""}
+      ${previews.length ? previews.map((preview) => renderClassicMacPreviewWindow(preview || {})).join("") : renderClassicMacNoPreviewReason(detail, listing)}
+      ${renderClassicMacRelocationReason(relocation)}
+    </article>
+  `;
+}
+
+function renderClassicMacCode0Metadata(detail) {
+  const jumpTable = detail.jump_table || {};
+  return `
+    <div class="macos-code-note" data-macos-code0-metadata="1">
+      CODE 0 metadata/jump table only ${jumpTable.entry_count !== undefined ? `entries=${escapeHtml(String(jumpTable.entry_count))}` : ""}
+    </div>
+  `;
+}
+
+function renderClassicMacNoPreviewReason(detail, listing) {
+  if (listing.kind === "full_listing") {
+    return "";
+  }
+  const fallback = detail.id === 0 ? "CODE 0 is metadata/jump-table-only" : "no candidate preview window";
+  return `
+    <div class="macos-code-note" data-macos-no-preview="1">
+      No preview: ${escapeHtml(listing.reason || fallback)}
+    </div>
+  `;
+}
+
+function renderClassicMacRelocationReason(relocation) {
+  const reason = relocation.reason || relocation.status || "";
+  if (!reason) {
+    return "";
+  }
+  return `
+    <div class="macos-code-note" data-macos-relocation-state="1">
+      Relocation/fixup state: ${escapeHtml(`${relocation.fact_status || relocation.status || "unknown"} ${relocation.parser_use || ""}`.trim())} ${escapeHtml(reason)}
+    </div>
+  `;
+}
+
+function renderClassicMacPreviewWindow(preview) {
+  const rows = Array.isArray(preview.rows) ? preview.rows : [];
+  return `
+    <div class="macos-code-preview" data-macos-code-preview="${escapeHtml(String(preview.resource_id ?? ""))}">
+      <div class="macos-code-preview-summary">
+        Candidate bounded preview ${escapeHtml(String(preview.start ?? ""))}..${escapeHtml(String(preview.end ?? ""))}
+        ${escapeHtml(preview.fact_status || "")} ${escapeHtml(preview.parser_use || "")}
+        ${preview.bounded ? "bounded" : ""}
+      </div>
+      <div class="macos-code-preview-rows">
+        ${rows.map((row) => renderClassicMacPreviewRow(row || {})).join("") || '<div class="empty">No preview rows.</div>'}
+      </div>
+      ${renderClassicMacPreviewDeferredReasons(preview)}
+    </div>
+  `;
+}
+
+function renderClassicMacPreviewRow(row) {
+  return `
+    <div class="macos-code-preview-row" data-macos-preview-row="1">
+      <span>${escapeHtml(String(row.offset ?? ""))}</span>
+      <code>${escapeHtml(row.bytes || "")}</code>
+      <strong>${escapeHtml(row.text || "")}</strong>
+      <span>${escapeHtml(`${row.range_kind || ""} ${row.fact_status || ""} ${row.parser_use || ""}`.trim())}</span>
+    </div>
+  `;
+}
+
+function renderClassicMacPreviewDeferredReasons(preview) {
+  const reasons = Array.isArray(preview.deferred_reasons) ? preview.deferred_reasons : [];
+  if (!reasons.length) {
+    return "";
+  }
+  return `
+    <div class="macos-code-preview-deferred">
+      ${reasons.map((reason) => `<div data-macos-preview-deferred="1">Deferred: ${escapeHtml(`${reason.scope || ""} ${reason.fact_status || ""} ${reason.parser_use || ""} ${reason.reason || ""}`.trim())}</div>`).join("")}
+    </div>
   `;
 }
 

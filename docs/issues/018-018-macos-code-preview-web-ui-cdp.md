@@ -1,6 +1,6 @@
 # 018-018: Mac OS CODE Preview Web UI And CDP Verification
 
-Status: open
+Status: completed
 
 ## Proposal Context
 
@@ -86,36 +86,57 @@ Record trace blocks for:
 
 ## Research Coverage
 
-- [ ] Current Mac web render path traced.
-- [ ] Current CDP test harness traced.
-- [ ] Existing Mac project payload fields checked.
-- [ ] UI shape selected for CODE details and preview windows.
-- [ ] CDP assertions selected.
-- [ ] 012/018 wording checked before implementation.
+- [x] Current Mac web render path traced.
+- [x] Current CDP test harness traced.
+- [x] Existing Mac project payload fields checked.
+- [x] UI shape selected for CODE details and preview windows.
+- [x] CDP assertions selected.
+- [x] 012/018 wording checked before implementation.
 
 ## Research Review
 
-- [ ] Second pass checked CODE 0 is not rendered as ordinary code.
-- [ ] Second pass checked selected CODE 1 full listing still works.
-- [ ] Second pass checked candidate preview rows are visible and labelled
+- [x] Second pass checked CODE 0 is not rendered as ordinary code.
+- [x] Second pass checked selected CODE 1 full listing still works.
+- [x] Second pass checked candidate preview rows are visible and labelled
   candidate.
-- [ ] Second pass checked deferred relocation/fixup state is visible.
-- [ ] CDP verification inspects the browser-rendered Mac project page.
-- [ ] Proposal 012/018 docs updated with exact UI state.
+- [x] Second pass checked deferred relocation/fixup state is visible.
+- [x] CDP verification inspects the browser-rendered Mac project page.
+- [x] Proposal 012/018 docs updated with exact UI state.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before implementation.
-- [ ] Mac web UI consumes `code_resource_details`.
-- [ ] Mac web UI consumes `preview_windows`.
-- [ ] CODE 0 renders metadata/jump-table-only in the UI.
-- [ ] Selected CODE 1 listing panel remains available.
-- [ ] Non-selected preview rows are visible and labelled candidate/bounded.
-- [ ] No-preview reasons are visible for resources without safe previews.
-- [ ] Deferred relocation/fixup state is visible.
-- [ ] Candidate/deferred facts are not promoted to accepted output.
-- [ ] Relevant web/render tests pass.
-- [ ] CDP browser verification passes or an environment blocker is documented
+- [x] Proposal context checked before implementation.
+- [x] Mac web UI consumes `code_resource_details`.
+- [x] Mac web UI consumes `preview_windows`.
+- [x] CODE 0 renders metadata/jump-table-only in the UI.
+- [x] Selected CODE 1 listing panel remains available.
+- [x] Non-selected preview rows are visible and labelled candidate/bounded.
+- [x] No-preview reasons are visible for resources without safe previews.
+- [x] Deferred relocation/fixup state is visible.
+- [x] Candidate/deferred facts are not promoted to accepted output.
+- [x] Relevant web/render tests pass.
+- [x] CDP browser verification passes or an environment blocker is documented
   with exact command/output.
-- [ ] `amiga_reversing.tools.validate_018_issues` passes.
-- [ ] Post-commit review found no unresolved worthwhile findings.
+- [x] `amiga_reversing.tools.validate_018_issues` passes.
+- [x] Post-commit review found no unresolved worthwhile findings.
+
+## Completion Evidence
+
+- Traced the normal Mac project UI path through `renderClassicMacProject` and
+  `renderClassicMacContainerView` in `amiga_reversing/web/app.js`.
+- Extended the Mac container UI to render `code_resource_details`,
+  `preview_windows`, candidate preview rows, no-preview reasons, and deferred
+  relocation/fixup state.
+- Preserved the selected CODE 1 listing panel and route behavior.
+- Added browser-source assertions for the new Mac CODE detail renderer and
+  styles.
+- Added CDP verification that opens the rendered Mac project page and checks
+  visible CODE 0 metadata, CODE 1 full listing state, candidate/bounded preview
+  rows, no-preview reasons, and deferred relocation/fixup state.
+- Updated Proposal 012, Proposal 018, and
+  `docs/platform-executable-formats.md` with the UI/CDP state.
+- Validation run:
+  `uv run python -m amiga_reversing.tools.platform_executable_formats validate`
+- Relevant tests:
+  `uv run python -m pytest tests\test_macos_web_view.py tests\test_web_app_source.py tests\test_macos_project_payload.py tests\test_macos_target_artifact.py tests\test_web_e2e_cdp.py::test_brave_cdp_macos_code_details_show_candidate_previews -q`
+- CDP result: the focused browser test passed.

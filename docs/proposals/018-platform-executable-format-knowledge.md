@@ -496,6 +496,13 @@ the rendered Mac project page.
   listing route, preview rows stay `candidate_only`, and relocation/fixup
   interpretation remains deferred. Resources without candidate code ranges keep
   structured placeholders that name the classifier evidence blocking preview.
+- 018-018 made those Mac CODE detail records visible in the browser project
+  page. The current `macos` renderer consumes `code_resource_details` and
+  `preview_windows`, shows CODE 0 as metadata/jump-table-only, preserves the
+  selected CODE 1 listing panel, labels non-selected preview rows as
+  candidate/bounded, shows no-preview reasons, and keeps relocation/fixup state
+  deferred. A CDP test opens the rendered Mac project page and checks those DOM
+  states.
 
 ## Relationship To 012
 
@@ -512,6 +519,9 @@ accepted.
 candidate-only preview windows where safe ranges exist; it still does not close
 Proposal 012 because the byte-entry rule and relocation/fixup semantics remain
 candidate/deferred.
+018-018 carries the same fact-state boundaries into the browser UI and verifies
+them with CDP; it adds UI coverage, not accepted byte-entry or relocation
+semantics.
 
 018 sits above 011 and 012 as the shared executable/container format authority.
 It does not absorb all platform knowledge; it owns file structure, loader model,

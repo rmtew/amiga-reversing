@@ -71,6 +71,195 @@ def _binary_project(project_name: str) -> ProjectRecord:
     )
 
 
+def _macos_project(project_name: str) -> ProjectRecord:
+    return ProjectRecord(
+        id=project_name,
+        name=project_name,
+        kind=ProjectKind.MACOS,
+        target_dir=f"targets/{project_name}",
+        output_path=None,
+        binary_path="resources/platform_macos/MPW-GM.img.bin",
+        ready=True,
+        last_opened=None,
+        manifest_path=None,
+        target_count=None,
+        source_path="resources/platform_macos/MPW-GM.img.bin",
+        disk_type="HFS",
+        parent_project_id=None,
+        target_type="macos_hfs_resource_code_file",
+        created_at="2026-03-25T00:00:00+00:00",
+        updated_at="2026-03-25T01:00:00+00:00",
+        origin={
+            "kind": "macos_mpw_fixture",
+            "source_image": "resources/platform_macos/MPW-GM.img.bin",
+            "hfs_path": "MPW-GM/MPW/Tools/Asm",
+            "selected_code_resource_id": 1,
+        },
+    )
+
+
+def _macos_preview_payload() -> dict[str, object]:
+    return {
+        "schema_version": 1,
+        "kind": "macos_project",
+        "platform": "macos",
+        "source_view": {
+            "kind": "macos_source_project",
+            "pivots": {
+                "source_files": [],
+                "segments": [],
+                "routines": [],
+                "resources": [],
+                "build_products": [],
+                "api_facts": [],
+            },
+            "unsupported": [],
+        },
+        "binary_container_view": {
+            "kind": "hfs_resource_code_file",
+            "finder": {"type": "MPST", "creator": "MPS "},
+            "forks": [{"name": "resource", "role": "executable_resource_fork", "size": 2048}],
+            "code0": {"metadata": {"kind": "jump_table_segment"}},
+            "code_resources": [
+                {"id": 0, "name": "unknown", "payload_size": 32},
+                {"id": 1, "name": "Main", "payload_size": 256},
+                {"id": 2, "name": "FPOpTable", "payload_size": 128},
+                {"id": 19, "name": "SetupArgV", "payload_size": 64},
+            ],
+            "selected_code_segment": {
+                "id": 1,
+                "name": "Main",
+                "code_bytes_size": 4,
+                "listing": {
+                    "resource_type": "CODE",
+                    "resource_id": 1,
+                    "resource_name": "Main",
+                    "fork": "resource",
+                    "source_range": {"section_index": 0, "start_offset": 0, "size": 4},
+                },
+            },
+            "code_resource_details": [
+                {
+                    "id": 0,
+                    "name": "unknown",
+                    "role": "code0_metadata",
+                    "code_kind": "jump_table_segment",
+                    "fact_id": "macos.code_resource.0.jump_table_metadata",
+                    "fact_status": "validated",
+                    "jump_table": {"entry_count": 1},
+                    "relocation_fixups": {
+                        "status": "deferred",
+                        "fact_status": "deferred",
+                        "parser_use": "deferred_only",
+                        "reason": "CODE 0 relocation/fixup interpretation is metadata-only here",
+                    },
+                    "listing": {
+                        "kind": "metadata",
+                        "available": False,
+                        "reason": "CODE 0 is jump-table/application metadata, not ordinary m68k code",
+                    },
+                    "preview_windows": [],
+                },
+                {
+                    "id": 1,
+                    "name": "Main",
+                    "role": "code_segment",
+                    "code_kind": "code_segment",
+                    "fact_id": "macos.resource_fork.code_resources.accepted",
+                    "fact_status": "validated",
+                    "relocation_fixups": {
+                        "status": "deferred",
+                        "fact_status": "deferred",
+                        "parser_use": "deferred_only",
+                        "reason": "Segment Loader relocation/fixup interpretation remains deferred",
+                    },
+                    "listing": {"kind": "full_listing", "available": True, "route": "listing"},
+                    "preview_windows": [],
+                },
+                {
+                    "id": 2,
+                    "name": "FPOpTable",
+                    "role": "code_segment",
+                    "code_kind": "code_segment",
+                    "fact_id": "macos.resource_fork.code_resources.accepted",
+                    "fact_status": "validated",
+                    "relocation_fixups": {
+                        "status": "deferred",
+                        "fact_status": "deferred",
+                        "parser_use": "deferred_only",
+                        "reason": "Segment Loader relocation/fixup interpretation remains deferred",
+                    },
+                    "listing": {
+                        "kind": "candidate_preview",
+                        "available": True,
+                        "route": "code_preview",
+                        "reason": "bounded candidate preview; full listing remains deferred",
+                    },
+                    "preview_windows": [
+                        {
+                            "resource_id": 2,
+                            "start": 6,
+                            "end": 10,
+                            "bounded": True,
+                            "fact_status": "candidate",
+                            "parser_use": "candidate_only",
+                            "rows": [
+                                {
+                                    "offset": 6,
+                                    "bytes": "20 5f",
+                                    "text": "dc.w $205f",
+                                    "range_kind": "candidate_code",
+                                    "fact_status": "candidate",
+                                    "parser_use": "candidate_only",
+                                }
+                            ],
+                            "deferred_reasons": [
+                                {
+                                    "scope": "relocation_fixups",
+                                    "fact_status": "deferred",
+                                    "parser_use": "deferred_only",
+                                    "reason": "Segment Loader relocation/fixup interpretation remains deferred",
+                                }
+                            ],
+                        }
+                    ],
+                },
+                {
+                    "id": 19,
+                    "name": "SetupArgV",
+                    "role": "code_segment",
+                    "code_kind": "code_segment",
+                    "fact_id": "macos.resource_fork.code_resources.accepted",
+                    "fact_status": "validated",
+                    "relocation_fixups": {
+                        "status": "deferred",
+                        "fact_status": "deferred",
+                        "parser_use": "deferred_only",
+                        "reason": "Segment Loader relocation/fixup interpretation remains deferred",
+                    },
+                    "listing": {
+                        "kind": "structured_placeholder",
+                        "available": False,
+                        "reason": "no candidate preview range; classifier deferred byte-entry evidence: missing_m68k_movea_l_stack_to_a0_entry",
+                    },
+                    "preview_windows": [],
+                },
+            ],
+            "source_mapping": {
+                "maps_to_sample_source": False,
+                "reason": "observed MPW/Tools/Asm CODE resources are not inferred from Sample source segments",
+            },
+        },
+        "source_binary_boundary": {
+            "source_project_kind": "macos_source_project",
+            "binary_container_kind": "hfs_resource_code_file",
+            "source_segments_map_to_observed_code_resources": False,
+            "observed_code_fixture": "MPW-GM/MPW/Tools/Asm",
+        },
+        "unsupported": ["segment_loader_relocations"],
+    }
+
+
 def _cache_full_project_rows(
     project_id: str,
     rows: list[ListingRow],
@@ -601,6 +790,49 @@ def test_brave_cdp_can_open_project_and_render_listing(monkeypatch: pytest.Monke
         assert page.evaluate("document.querySelector('#project-title')?.textContent") == project.id
         assert page.evaluate("document.querySelector('.listing-code')?.textContent") == "start:"
         assert page.evaluate("location.pathname") == f"/{project.id}"
+        page.assert_no_errors()
+
+
+@pytest.mark.web_e2e
+def test_brave_cdp_macos_code_details_show_candidate_previews(monkeypatch: pytest.MonkeyPatch) -> None:
+    project = _macos_project("macos_mpw_preview")
+    rows = [
+        ListingRow(row_id="m0", kind="instruction", text="movea.l (a7)+,a0\n", addr=0, start_offset=0, end_offset=4),
+        ListingRow(row_id="m1", kind="instruction", text="rts\n", addr=4, start_offset=4, end_offset=6),
+    ]
+    disasm_server._ASYNC_JOBS.clear()
+    listing_artifact = _FakeCListingArtifact(rows, project_name=project.id)
+    monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
+    monkeypatch.setattr(disasm_server, "mark_project_opened", lambda project_name: project)
+    monkeypatch.setattr(disasm_server, "build_macos_project_payload", lambda project_name: _macos_preview_payload())
+    monkeypatch.setattr(
+        disasm_server,
+        "build_macos_project_listing_artifact_profile",
+        lambda project_record, project_root=None: (len(rows), {"backend": "macos-code"}, listing_artifact),
+    )
+
+    with _live_server() as base_url, brave_page() as page:
+        page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
+        page.wait_for_event("Page.loadEventFired")
+        page.wait_for_app_event(
+            "amiga:project-rendered",
+            f"detail.projectId === {json.dumps(project.id)}",
+            timeout=10.0,
+        )
+        page.wait_for_selector("[data-macos-code-details='1']")
+
+        body_text = page.text_content("body")
+        assert "CODE 0 unknown" in body_text
+        assert "CODE 0 metadata/jump table only" in body_text
+        assert "CODE 1 Main" in body_text
+        assert "full_listing listing" in body_text
+        assert "Candidate bounded preview" in body_text
+        assert "candidate_code candidate candidate_only" in body_text
+        assert "Deferred: relocation_fixups deferred deferred_only" in body_text
+        assert "no candidate preview range" in body_text
+        assert page.evaluate("document.querySelectorAll('[data-macos-preview-row]').length") == 1
+        assert page.evaluate("document.querySelector('[data-macos-code-listing=\"1\"]')?.textContent.includes('movea.l (a7)+,a0')")
         page.assert_no_errors()
 
 

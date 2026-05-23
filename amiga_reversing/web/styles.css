@@ -286,6 +286,78 @@ body {
   text-transform: uppercase;
 }
 
+.macos-code-details {
+  margin-top: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.macos-code-details h3,
+.macos-code-detail h4 {
+  margin: 0;
+  font-size: 13px;
+}
+
+.macos-code-detail {
+  border: 1px solid #bbb;
+  background: #fff;
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.macos-code-detail header,
+.macos-code-preview-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.macos-code-detail header span,
+.macos-code-note,
+.macos-code-preview-summary,
+.macos-code-preview-deferred {
+  color: #555;
+  font-size: 12px;
+}
+
+.macos-code-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 6px;
+}
+
+.macos-code-detail-grid div {
+  border: 1px solid #ddd;
+  padding: 6px;
+}
+
+.macos-code-detail-grid span {
+  display: block;
+  color: #555;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.macos-code-preview {
+  border-left: 3px solid #7a6a00;
+  padding-left: 8px;
+  display: grid;
+  gap: 6px;
+}
+
+.macos-code-preview-rows {
+  display: grid;
+  gap: 2px;
+}
+
+.macos-code-preview-row {
+  grid-template-columns: 56px 92px minmax(140px, 1fr) minmax(180px, 1fr);
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+}
+
 .project-meta {
   display: grid;
   gap: 2px;

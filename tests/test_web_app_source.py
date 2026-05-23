@@ -433,6 +433,9 @@ def test_web_app_renders_macos_source_and_container_payloads() -> None:
     assert "function renderClassicMacProject(projectData, listing = null)" in app_js
     assert "function renderClassicMacSourceView(sourceView)" in app_js
     assert "function renderClassicMacContainerView(containerView)" in app_js
+    assert "function renderClassicMacCodeResourceDetails(details)" in app_js
+    assert "function renderClassicMacPreviewWindow(preview)" in app_js
+    assert "function renderClassicMacPreviewRow(row)" in app_js
     assert "function renderClassicMacBoundary(boundary)" in app_js
     assert "projectData.macos" in app_js
     assert 'generation: "macos_starter"' not in app_js
@@ -440,7 +443,15 @@ def test_web_app_renders_macos_source_and_container_payloads() -> None:
     assert 'data-macos-panel="container"' in app_js
     assert 'data-macos-panel="unsupported"' in app_js
     assert "CODE Resources" in app_js
+    assert "code_resource_details" in app_js
+    assert "preview_windows" in app_js
+    assert "Candidate bounded preview" in app_js
+    assert 'data-macos-code-details="1"' in app_js
+    assert "data-macos-preview-row" in app_js
+    assert "Relocation/fixup state:" in app_js
     assert "source_segments_map_to_observed_code_resources" in app_js
     assert ".macos-view" in styles_css
     assert ".macos-pivot-grid" in styles_css
     assert ".macos-summary-grid" in styles_css
+    assert ".macos-code-details" in styles_css
+    assert ".macos-code-preview-row" in styles_css

@@ -1374,6 +1374,11 @@ Future scope after cited starter-quality rendering:
   `candidate_code` range. CODE 0 is still metadata-only, CODE 1 still uses the
   full listing route, resources without safe candidate ranges keep evidenceful
   placeholders, and relocation/fixup interpretation remains deferred.
+- 018-018 exposed those CODE detail and preview states through the normal Mac
+  project web UI and added CDP browser verification. The UI now distinguishes
+  CODE 0 metadata, selected CODE 1 listing state, non-selected candidate
+  preview rows, no-preview reasons, and deferred relocation/fixup state without
+  promoting candidate/deferred facts.
 - MPW Asm/Link/Rez byte-for-byte roundtrip.
 - Full non-CODE resource semantics.
 - Overflow extents for later fixtures that need them.

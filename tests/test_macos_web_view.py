@@ -106,7 +106,7 @@ def test_macos_web_container_payload_exposes_forks_code_and_unsupported_state() 
     assert container["code0"]["metadata"]["kind"] == "jump_table_segment"
     assert len(container["code_resources"]) == 28
     assert container["selected_code_segment"]["name"] == "Main"
-    assert container["selected_code_segment"]["listing_preview"][1]["value"] == "$0010"
+    assert container["selected_code_segment"]["listing_preview"][0]["value"] == "$205F"
     assert container["source_mapping"] == {
         "maps_to_sample_source": False,
         "reason": "observed MPW/Tools/Asm CODE resources are not inferred from Sample source segments",
