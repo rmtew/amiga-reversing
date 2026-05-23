@@ -1210,3 +1210,10 @@ repeatable work to `docs\issues\017-*`.
   listing-command inspect reports while any open Manual Action Log sequence
   inconsistency remains, so the reviewer-observed `safe_to_mutate=true` mismatch
   cannot recur for that open-item state.
+- 017-054 is the next active baseline step. It must re-establish current Pandora
+  state after the Manual Action Log repair using read-only inspect, Decision
+  Journal audit, RSSET no-write verifier, existing read-only packet surfaces, and
+  exact round-trip checks. It should then either identify a specific next 017
+  candidate with durable evidence, command support, verifier support, and visible
+  source-quality improvement, or record that no useful unblocked 017 work remains
+  and recommend pausing 017 so 012 can resume.
