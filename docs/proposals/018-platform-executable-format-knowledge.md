@@ -206,6 +206,8 @@ Atari ST:
 - Mac OS CODE byte-entry, relocation/fixup, and CODE 0 jump-table/segment-map
   behavior is either accepted with citations/parser assertions or explicitly
   emitted as candidate/deferred/unsupported evidence.
+- Mac OS targets expose multi-CODE resource structure as navigable/renderable
+  source evidence, not only one selected CODE resource.
 - Amiga and Atari ST records cover their standard executable-bearing formats
   with citations and parser assertions where needed.
 - Parser/check scaffolding consumes the KB or validates C parser output against
@@ -305,6 +307,70 @@ and orphan code/data islands are surfaced structurally instead of being silently
 guessed or dropped.
 ```
 
+018-010. Mac OS Multi-CODE Resource Rendering And Navigation
+
+```text
+After 018-009. Make every Mac CODE resource inspectable as structured
+source/navigation output. Render CODE 0 as jump-table/application metadata,
+render nonzero CODE resources with accepted segment metadata, candidate routine
+anchors, orphan ranges, deferred relocation state, and listing previews or
+placeholders, while preserving candidate/deferred status and keeping the
+selected CODE 1 listing as one subview rather than the whole Mac project view.
+```
+
+018-011. Amiga HUNK Accepted Format Records
+
+```text
+Parallel-safe with 018-010. Promote a narrow, cited slice of Amiga HUNK
+executable/object/library facts from report-only candidate inventory to
+validated or parser-asserted executable-format KB records. Keep parser behavior
+unchanged and do not modify Mac files.
+```
+
+018-012. Atari ST PRG Accepted Format Records
+
+```text
+Parallel-safe with 018-010. Promote a narrow, cited slice of Atari ST
+PRG/TOS/TTP executable facts from report-only candidate inventory to validated
+or parser-asserted executable-format KB records. Keep parser behavior unchanged
+and do not modify Mac files.
+```
+
+018-013. Platform Executable KB Generated C Fact Table
+
+```text
+Parallel-safe with 018-010 if it avoids Mac rendering/navigation files.
+Generate C fact constants/tables from knowledge/platform_executable_formats.json
+so parser code can reference KB-derived ids/status/parser-use values instead of
+hardcoded strings. Keep parser output semantics unchanged.
+```
+
+018-014. Mac OS Non-CODE Resource Metadata Inventory
+
+```text
+Parallel-safe with 018-010 if it remains inventory/research focused. Classify
+Mac non-CODE resource types such as acur, CURS, cmdo, and vers as accepted
+metadata, candidate metadata, deferred, unsupported, or conflict evidence
+without changing CODE rendering/navigation.
+```
+
+018-015. MPW Object And Library Format Research Packet
+
+```text
+Parallel-safe with 018-010. Search local MPW docs and extracted files for object
+and library format evidence, then record citation packets or candidate/deferred
+KB records. Do not implement parser/import/rendering behavior.
+```
+
+018-016. Executable Format Source Citation Audit
+
+```text
+Parallel-safe with 018-010. Audit accepted and parser-asserted executable-format
+facts for source quality, source policy, and claim strength. Downgrade,
+defer, or convert weak accepted claims rather than relying on structural
+validation alone. Do not change parser/rendering behavior.
+```
+
 ## Implementation Notes
 
 - 018-001 added the canonical human/schema/data authority files:
@@ -388,6 +454,17 @@ guessed or dropped.
   orphan ranges, and deferred relocation/fixup placeholders with KB fact ids.
   The `movea.l (a7)+,a0` boundary is still candidate-only; relocation/fixup
   interpretation and complete byte-level CODE entry rules remain deferred.
+- 018-010 is the next rendering/navigation slice. It should turn the 018-009
+  segment-map evidence into per-CODE resource source/navigation views so the Mac
+  target is useful beyond a single selected CODE 1 listing. It must keep CODE 0
+  as metadata/jump-table output, keep routine/code anchors candidate where
+  appropriate, and keep relocation/fixups deferred until separately validated.
+- 018-011 through 018-016 are intended as parallel-safe work items while
+  018-010 proceeds. They should not require updates from 018-010 and should
+  avoid Mac multi-CODE rendering/navigation files unless their issue explicitly
+  permits metadata-only inventory. Their purpose is to advance Amiga/Atari KB
+  acceptance, generated fact-table infrastructure, MPW format research, and
+  citation quality without blocking the Mac rendering slice.
 
 ## Relationship To 012
 
@@ -397,7 +474,7 @@ heuristic, and 018-008 validates emitted parser fact ids against the KB, but
 relocation/fixup semantics and byte-level entry rules remain deferred/candidate.
 018-009 now exposes CODE 0 jump-table to segment/routine mapping,
 orphan-island evidence, and deferred relocation placeholders structurally, but
-full per-resource CODE expansion remains future work.
+full per-resource CODE rendering/navigation remains future work for 018-010.
 
 018 sits above 011 and 012 as the shared executable/container format authority.
 It does not absorb all platform knowledge; it owns file structure, loader model,
