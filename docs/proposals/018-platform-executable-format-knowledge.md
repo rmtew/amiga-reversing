@@ -382,6 +382,16 @@ or byte-entry semantics must remain candidate/deferred until separately
 validated.
 ```
 
+018-018. Mac OS CODE Preview Web UI And CDP Verification
+
+```text
+After 018-017. Make the Mac project web UI consume code_resource_details and
+preview_windows so the browser-visible project view shows CODE 0 metadata,
+selected CODE 1 listing state, non-selected candidate preview rows, no-preview
+reasons, and deferred relocation/fixup state. Add CDP browser verification for
+the rendered Mac project page.
+```
+
 ## Implementation Notes
 
 - 018-001 added the canonical human/schema/data authority files:
