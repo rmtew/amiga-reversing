@@ -119,6 +119,35 @@ def _macos_preview_payload() -> dict[str, object]:
             "kind": "hfs_resource_code_file",
             "finder": {"type": "MPST", "creator": "MPS "},
             "forks": [{"name": "resource", "role": "executable_resource_fork", "size": 2048}],
+            "resource_fork": {
+                "type_count": 3,
+                "resource_count": 6,
+                "types": [
+                    {"type": "CODE", "count": 4},
+                    {"type": "CURS", "count": 1},
+                    {"type": "vers", "count": 1},
+                ],
+                "non_code_resource_details": [
+                    {
+                        "resource_type": "CURS",
+                        "resource_count": 1,
+                        "semantic_status": "candidate",
+                        "payload_decode_status": "unsupported",
+                        "fact_status": "candidate",
+                        "parser_use": "candidate_only",
+                        "evidence": "resource fork type inventory; payload semantics are not decoded",
+                    },
+                    {
+                        "resource_type": "vers",
+                        "resource_count": 1,
+                        "semantic_status": "candidate",
+                        "payload_decode_status": "unsupported",
+                        "fact_status": "candidate",
+                        "parser_use": "candidate_only",
+                        "evidence": "resource fork type inventory; payload semantics are not decoded",
+                    },
+                ],
+            },
             "code0": {"metadata": {"kind": "jump_table_segment"}},
             "code_resources": [
                 {"id": 0, "name": "unknown", "payload_size": 32},
@@ -886,6 +915,10 @@ def test_brave_cdp_macos_code_details_show_candidate_previews(monkeypatch: pytes
         assert "CODE 0 metadata/jump table only" in body_text
         assert "CODE 1 Main" in body_text
         assert "full_listing listing" in body_text
+        assert "Non-CODE Resource Metadata" in body_text
+        assert "CURS" in body_text
+        assert "candidate candidate_only" in body_text
+        assert "unsupported" in body_text
         assert "Candidate bounded preview" in body_text
         assert "candidate_code candidate candidate_only" in body_text
         assert "decoded" in body_text
@@ -893,6 +926,7 @@ def test_brave_cdp_macos_code_details_show_candidate_previews(monkeypatch: pytes
         assert "Deferred: relocation_fixups deferred deferred_only" in body_text
         assert "no candidate preview range" in body_text
         assert page.evaluate("document.querySelectorAll('[data-macos-preview-row]').length") == 2
+        assert page.evaluate("document.querySelectorAll('[data-macos-non-code-row]').length") == 2
         assert page.evaluate("document.querySelector('[data-macos-code-listing=\"1\"]')?.textContent.includes('movea.l (a7)+,a0')")
         page.assert_no_errors()
 

@@ -723,6 +723,24 @@ parser use inherited from the preview range. Relocation/fixup state remains
 visible as deferred-only state; decoded preview rows do not accept byte-entry or
 relocation/fixup semantics.
 
+## Mac Non-CODE Resource Metadata UI
+
+018-023 adds browser-visible non-CODE resource metadata rows under
+`binary_container_view.resource_fork.non_code_resource_details`.
+
+```text
+Source: C-backed resource_fork.types inventory.
+Rows: resource type, count, candidate fact state, parser_use, payload decode
+status, and inventory evidence.
+Fact: macos.resource_fork.non_code_metadata.inventory.candidate.
+Decode status: unsupported for payload semantics; no non-CODE payload decoding
+or executable interpretation is implied.
+```
+
+The web UI renders these rows separately from CODE resources so CODE 0 metadata,
+selected CODE 1 listing, and non-selected CODE previews keep their existing
+behavior.
+
 ## Mac Relocation/Fixup Research Packet
 
 018-021 reviewed local old/out-of-print Mac and MPW sources for Segment Loader

@@ -10094,6 +10094,8 @@ function renderClassicMacSourceView(sourceView) {
 function renderClassicMacContainerView(containerView) {
   const selected = containerView.selected_code_segment || {};
   const details = Array.isArray(containerView.code_resource_details) ? containerView.code_resource_details : [];
+  const resourceFork = containerView.resource_fork || {};
+  const nonCodeDetails = Array.isArray(resourceFork.non_code_resource_details) ? resourceFork.non_code_resource_details : [];
   return `
     <section class="macos-section" data-macos-panel="container">
       <h2>Binary Container</h2>
@@ -10108,8 +10110,32 @@ function renderClassicMacContainerView(containerView) {
         ${renderClassicMacPivotList("CODE Resources", containerView.code_resources, (item) => `CODE ${item.id} ${item.name || ""} ${formatFileSize(item.size || 0)}`)}
         ${renderClassicMacPivotList("Selected CODE Listing", selected.listing ? [selected.listing] : [], (item) => `${item.resource_type || "CODE"} ${item.resource_id ?? ""} ${item.resource_name || ""} ${formatFileSize(item.source_range?.size || 0)}`)}
       </div>
+      ${renderClassicMacNonCodeResourceDetails(nonCodeDetails)}
       ${renderClassicMacCodeResourceDetails(details)}
     </section>
+  `;
+}
+
+function renderClassicMacNonCodeResourceDetails(details) {
+  const rows = Array.isArray(details) ? details : [];
+  return `
+    <div class="macos-non-code-details" data-macos-non-code-details="1">
+      <h3>Non-CODE Resource Metadata</h3>
+      ${rows.map((detail) => renderClassicMacNonCodeResourceRow(detail || {})).join("") || '<div class="empty">No non-CODE resource metadata.</div>'}
+    </div>
+  `;
+}
+
+function renderClassicMacNonCodeResourceRow(detail) {
+  const statusText = `${detail.fact_status || detail.semantic_status || ""} ${detail.parser_use || ""}`.trim();
+  return `
+    <div class="macos-non-code-row" data-macos-non-code-row="1">
+      <strong>${escapeHtml(detail.resource_type || "")}</strong>
+      <span>${escapeHtml(String(detail.resource_count ?? ""))}</span>
+      <span>${escapeHtml(statusText)}</span>
+      <span>${escapeHtml(detail.payload_decode_status || "")}</span>
+      <span>${escapeHtml(detail.evidence || detail.inventory_source || detail.reason || "")}</span>
+    </div>
   `;
 }
 

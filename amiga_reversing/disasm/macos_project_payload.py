@@ -26,6 +26,8 @@ from amiga_reversing.disasm.macos_source_render import render_macos_source_views
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT
 
 MACOS_CODE_PREVIEW_MAX_BYTES = 64
+MACOS_APPLICATION_KB_RECORD_ID = "macos.hfs_resource_fork.code_resources.mpw_application"
+MACOS_NON_CODE_RESOURCE_FACT_ID = "macos.resource_fork.non_code_metadata.inventory.candidate"
 
 
 def build_macos_project_payload(project: object, *, project_root: Path = PROJECT_ROOT) -> dict[str, object]:
@@ -158,6 +160,7 @@ def _binary_container_view(
             "type_count": resource_summary.get("type_count"),
             "resource_count": resource_summary.get("resource_count"),
             "types": resource_summary.get("types"),
+            "non_code_resource_details": _non_code_resource_details(_sequence(resource_summary.get("types"))),
         },
         "code0": {"resource": code0, "metadata": _mapping(code0.get("code"))},
         "code_resources": code_resources,
@@ -624,6 +627,27 @@ def _preview_deferred_reasons(
             "reason": relocation_fixups.get("reason")
             or "Segment Loader relocation/fixup interpretation is not represented in this preview",
         }
+    ]
+
+
+def _non_code_resource_details(resource_types: list[object]) -> list[dict[str, object]]:
+    return [
+        {
+            "resource_type": resource_type.get("type"),
+            "resource_count": resource_type.get("count"),
+            "role": "resource_metadata_inventory",
+            "semantic_status": "candidate",
+            "payload_decode_status": "unsupported",
+            "kb_record_id": MACOS_APPLICATION_KB_RECORD_ID,
+            "fact_id": MACOS_NON_CODE_RESOURCE_FACT_ID,
+            "fact_status": "candidate",
+            "parser_use": "candidate_only",
+            "evidence": "resource fork type inventory; payload semantics are not decoded",
+            "inventory_source": "platform_file_lib.macos_hfs_code_summary resource_fork.types",
+            "reason": "non-CODE resource metadata is inventory-only and not executable CODE",
+        }
+        for resource_type in (_mapping(value) for value in resource_types)
+        if resource_type.get("type") != "CODE"
     ]
 
 

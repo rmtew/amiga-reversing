@@ -47,7 +47,7 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
                 },
             },
             "resource_fork": {
-                "types": [{"type": "CODE", "count": 4}],
+                "types": [{"type": "CODE", "count": 4}, {"type": "WIND", "count": 1}],
                 "code_resources": [
                     {
                         "type": "CODE",
@@ -474,6 +474,22 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
     assert calls["summary_args"] == (b"hfs", "MPW-GM/MPW/Tools/Asm")
     assert container["kind"] == "hfs_resource_code_file"
     assert container["finder"] == {"type": "MPST", "creator": "MPS ", "cnid": 2310}
+    assert container["resource_fork"]["non_code_resource_details"] == [
+        {
+            "resource_type": "WIND",
+            "resource_count": 1,
+            "role": "resource_metadata_inventory",
+            "semantic_status": "candidate",
+            "payload_decode_status": "unsupported",
+            "kb_record_id": "macos.hfs_resource_fork.code_resources.mpw_application",
+            "fact_id": "macos.resource_fork.non_code_metadata.inventory.candidate",
+            "fact_status": "candidate",
+            "parser_use": "candidate_only",
+            "evidence": "resource fork type inventory; payload semantics are not decoded",
+            "inventory_source": "platform_file_lib.macos_hfs_code_summary resource_fork.types",
+            "reason": "non-CODE resource metadata is inventory-only and not executable CODE",
+        }
+    ]
     assert container["selected_code_segment"]["code_entry_offset"] == 6
     assert container["selected_code_segment"]["code_layout"][2]["kind"] == "candidate_code"
     assert container["selected_code_segment"]["code_layout"][2]["fact_status"] == "candidate"
@@ -680,6 +696,12 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     assert payload["platform"] == "macos"
     assert container["finder"] == {"type": "MPST", "creator": "MPS ", "cnid": 2310}
     assert len(container["code_resources"]) == 28
+    non_code_details = container["resource_fork"]["non_code_resource_details"]
+    assert non_code_details
+    assert {item["resource_type"] for item in non_code_details} == {"acur", "CURS", "cmdo", "vers"}
+    assert all(item["fact_status"] == "candidate" for item in non_code_details)
+    assert all(item["parser_use"] == "candidate_only" for item in non_code_details)
+    assert all(item["payload_decode_status"] == "unsupported" for item in non_code_details)
     assert len(container["code_resource_details"]) == len(container["code_resources"])
     assert container["code_resource_details"][0]["role"] == "code0_metadata"
     assert container["code_resource_details"][0]["listing"]["kind"] == "metadata"

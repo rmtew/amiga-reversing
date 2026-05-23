@@ -568,6 +568,10 @@ Do not change code and do not mark Proposal 012 closed.
   available with visible reasons when decode is unsafe or unproductive. Rows
   still inherit candidate/candidate_only fact state, and relocation/fixups stay
   deferred-only.
+- 018-023 added browser-visible non-CODE resource metadata rows from the
+  C-backed resource type inventory. Rows are candidate inventory with
+  unsupported payload-decode status, so they improve container visibility
+  without accepting non-CODE resource semantics.
 - 018-021 reviewed local Mac/MPW sources for relocation/fixup evidence. It
   added candidate evidence that Segment Loader loading can cause Memory
   Manager heap/block relocation, but it did not find accepted on-disk CODE

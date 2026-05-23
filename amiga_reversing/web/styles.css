@@ -292,10 +292,28 @@ body {
   gap: 8px;
 }
 
+.macos-non-code-details {
+  margin-top: 12px;
+  display: grid;
+  gap: 6px;
+}
+
 .macos-code-details h3,
+.macos-non-code-details h3,
 .macos-code-detail h4 {
   margin: 0;
   font-size: 13px;
+}
+
+.macos-non-code-row {
+  display: grid;
+  grid-template-columns: 72px 56px minmax(130px, 0.7fr) minmax(100px, 0.6fr) minmax(220px, 1.4fr);
+  gap: 8px;
+  align-items: center;
+  border: 1px solid #bbb;
+  background: #fff;
+  padding: 6px 8px;
+  font-size: 12px;
 }
 
 .macos-code-detail {
