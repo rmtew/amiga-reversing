@@ -1187,6 +1187,9 @@ repeatable work to `docs\issues\017-*`.
   binding active, and leaves review state at `needs_review`. No repair command
   exists beyond the suggested review action enum, so no manual state rewrite was
   performed. The no-write RSSET verifier artifact producer and exact
-  round-trip still pass. 017-053 is the next active step: define and either
-  implement or defer a dry-run-first, verifier-gated repair for this exact
-  one-record skipped-sequence case before further 017 mutation work.
+  round-trip still pass. Current `inspect_target(...)` still reports
+  `safe_to_mutate=true` while the open inconsistency exists, so 017-053 is the
+  next active step: define and either implement a dry-run-first,
+  verifier-gated repair for this exact one-record skipped-sequence case, or
+  change/defer mutation readiness reporting so it blocks while the open Manual
+  Action Log inconsistency remains.

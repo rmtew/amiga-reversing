@@ -14,14 +14,16 @@ Status: active
 - Desired proposal state after this issue: either a fully gated, dry-run-first
   repair path exists for the exact one-record skipped-sequence case, or Manual
   Action Log sequence normalization is explicitly deferred outside 017 mutation
-  work.
+  work with mutation readiness/reporting made to block while the open
+  inconsistency remains.
 
 ## Protocol Delta
 
 - Adds: explicit gates for repairing or deferring Manual Action Log sequence
   normalization.
 - Changes: future 017 writes must not proceed while target-local manual state
-  reports unexplained sequence inconsistency.
+  reports unexplained sequence inconsistency, and machine-readable mutation
+  readiness must not report safe mutation while that inconsistency remains open.
 - Replaces: ad hoc manual editing of `manual_actions.jsonl`.
 - Deletes: none.
 - Leaves out of scope: source mutation, Decision Journal appends, broad target
@@ -35,7 +37,9 @@ Status: active
 - Repair must be limited to the single final-record skipped-sequence condition
   proven by `017-052`.
 - If repair cannot meet every gate below, defer it and keep future mutation work
-  blocked on the open review item.
+  blocked on the open review item in both prose and machine-readable reports.
+- Current mismatch to fix or explicitly defer: `inspect_target(...)` reports
+  `safe_to_mutate=true` while `manual_action_log_inconsistency:target` is open.
 
 ## Required Repair Gates
 
@@ -50,6 +54,11 @@ Status: active
   changed by the repair.
 - The RSSET verifier artifact producer passes in no-write mode after repair.
 - Exact round-trip remains exact after repair.
+- After repair, `inspect_target(...)` no longer reports
+  `manual_action_log_inconsistency:target`.
+- If repair is deferred, `inspect_target(...)` and any equivalent mutation
+  readiness surface must report unsafe/blocked mutation while
+  `manual_action_log_inconsistency:target` remains open.
 
 ## Research Coverage
 
@@ -60,11 +69,14 @@ Status: active
 - [ ] RSSET verifier artifact no-write checked.
 - [ ] Exact round-trip checked.
 - [ ] No unrelated target mutation checked.
+- [ ] Machine-readable mutation readiness checked for the open-item case.
+- [ ] Outcome proves either repair clears the item or readiness blocks while it remains open.
 
 ## Research Review
 
 - [ ] Second pass checked gates against `017-052` evidence.
 - [ ] Risk of hiding real Manual Action Log corruption reviewed.
+- [ ] Risk of prose-only blocker with `safe_to_mutate=true` reviewed.
 - [ ] Proposal updated with repair or deferral outcome.
 
 ## Required Sign-Off
@@ -75,6 +87,7 @@ Status: active
 - [ ] Old code deleted, or deferred deletion blocker recorded.
 - [ ] Dry-run proof recorded before any write.
 - [ ] No source/journal/generated-output mutation performed.
+- [ ] Machine-readable mutation readiness mismatch resolved or explicitly deferred with blocker.
 - [ ] Post-repair or deferral state recorded.
 - [ ] Post-commit review found no unresolved worthwhile findings.
 
