@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from copy import deepcopy
+from functools import cache
 from pathlib import Path
 from typing import cast
 
@@ -9,12 +11,20 @@ from amiga_reversing.disasm.c_backend import ApiCallRowKey
 from amiga_reversing.disasm.effective_metadata import effective_metadata_file
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT, resolve_project_paths
 
+ProjectRowsResult = tuple[list[dict[str, object]], dict[ApiCallRowKey, dict[str, object]], dict[str, object]]
+
 
 def build_project_listing_rows_with_c_artifact(
     project_name: str,
     *,
     project_root: Path = PROJECT_ROOT,
-) -> tuple[list[dict[str, object]], dict[ApiCallRowKey, dict[str, object]], dict[str, object]]:
+) -> ProjectRowsResult:
+    return cast(ProjectRowsResult, deepcopy(_cached_project_listing_rows(project_name, str(project_root.resolve()))))
+
+
+@cache
+def _cached_project_listing_rows(project_name: str, project_root_text: str) -> ProjectRowsResult:
+    project_root = Path(project_root_text)
     total_rows, profile, artifact = c_backend.build_project_listing_artifact_profile(
         project_name,
         project_root=project_root,
@@ -23,6 +33,7 @@ def build_project_listing_rows_with_c_artifact(
         payload, window_profile = artifact.window_payload(start=0, count=total_rows)
         navigation, navigation_profile = artifact.navigation_payload()
         merged_profile = {**profile, **navigation_profile, **window_profile}
+        merged_profile["navigation"] = navigation
         app_slot_analysis = navigation.get("app_slot_analysis")
         if isinstance(app_slot_analysis, dict):
             merged_profile["app_slot_analysis"] = app_slot_analysis
@@ -39,7 +50,7 @@ def build_project_listing_rows_profile_with_c_artifact(
     project_name: str,
     *,
     project_root: Path = PROJECT_ROOT,
-) -> tuple[list[dict[str, object]], dict[ApiCallRowKey, dict[str, object]], dict[str, object]]:
+) -> ProjectRowsResult:
     return build_project_listing_rows_with_c_artifact(project_name, project_root=project_root)
 
 
@@ -99,6 +110,12 @@ def analyze_project_with_c_artifact(
     *,
     project_root: Path = PROJECT_ROOT,
 ) -> dict[str, object]:
+    return cast(dict[str, object], deepcopy(_cached_project_analysis(project_name, str(project_root.resolve()))))
+
+
+@cache
+def _cached_project_analysis(project_name: str, project_root_text: str) -> dict[str, object]:
+    project_root = Path(project_root_text)
     paths = resolve_project_paths(project_name, project_root=project_root)
     with effective_metadata_file(paths.target_dir) as metadata_path:
         metadata_text = c_backend._metadata_path_text(metadata_path)

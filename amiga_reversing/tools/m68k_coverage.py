@@ -7,6 +7,7 @@ import sys
 from collections import Counter, defaultdict
 from collections.abc import Mapping
 from dataclasses import dataclass
+from functools import cache, lru_cache
 from pathlib import Path
 from typing import Any, Protocol, cast
 
@@ -332,6 +333,7 @@ def strict_coverage_failures(inventory: dict[str, Any]) -> list[dict[str, str]]:
     return failures
 
 
+@lru_cache(maxsize=1)
 def _load_current_forms() -> tuple[list[FormLike], list[FormLike], list[dict[str, Any]], list[dict[str, Any]]]:
     if str(SCRIPTS_DIR) not in sys.path:
         sys.path.insert(0, str(SCRIPTS_DIR))
@@ -493,6 +495,7 @@ def _forms_with_generated_canonical_ids(
     ]
 
 
+@cache
 def _generated_form_rows(table_path: Path) -> list[str]:
     rows: list[str] = []
     current: list[str] = []
@@ -803,6 +806,7 @@ def _entry_canonical_form_id(entry: dict[str, Any]) -> int | None:
     return None
 
 
+@lru_cache(maxsize=1)
 def _generated_simulator_semantic_statuses() -> dict[int, str]:
     statuses: dict[int, str] = {}
     for line in SIM_TABLE_PATH.read_text(encoding="utf-8").splitlines():

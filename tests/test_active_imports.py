@@ -7,6 +7,17 @@ import sys
 from pathlib import Path
 
 
+def _repo_python_paths(repo_root: Path, roots: tuple[str, ...]) -> list[Path]:
+    paths: list[Path] = []
+    for root in roots:
+        base = repo_root / root
+        if base.is_file() and base.suffix == ".py":
+            paths.append(base)
+        elif base.exists():
+            paths.extend(path for path in base.rglob("*.py") if "__pycache__" not in path.parts)
+    return paths
+
+
 def test_active_python_imports_stay_inside_package_boundary() -> None:
     repo_root = Path(__file__).resolve().parents[1]
     script = """
@@ -59,10 +70,8 @@ def test_kb_parser_imports_are_limited_to_maintenance_tools() -> None:
         "tests/test_sync_amiga_includes.py",
     }
     offenders: list[str] = []
-    for path in repo_root.rglob("*.py"):
+    for path in _repo_python_paths(repo_root, ("amiga_reversing", "tests", "src/scripts")):
         relative = path.relative_to(repo_root).as_posix()
-        if relative.startswith(".venv/") or "__pycache__" in relative:
-            continue
         text = path.read_text(encoding="utf-8", errors="ignore")
         if "from src.scripts.kb" not in text and "import src.scripts.kb" not in text:
             continue

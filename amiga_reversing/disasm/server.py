@@ -1912,10 +1912,18 @@ def _public_command_context(context: Mapping[str, object]) -> dict[str, object]:
     return {"kind": "target"}
 
 
+def _public_command_parameters(command_id: str, parameters: object) -> object:
+    if command_id not in {"rsset.binding.bind", "rsset.binding.unbind"} or not isinstance(parameters, Mapping):
+        return parameters
+    return {key: value for key, value in parameters.items() if key not in _SOURCE_EVIDENCE_CONTEXT_KEYS}
+
+
 def _command_entry(action: Mapping[str, object], context: Mapping[str, object]) -> dict[str, object]:
     entry = dict(action)
     command_id = str(entry.get("action_id") or "")
     entry["command_id"] = command_id
+    if "parameters" in entry:
+        entry["parameters"] = _public_command_parameters(command_id, entry["parameters"])
     entry["effect"] = _command_effect(entry)
     entry["target_context"] = _public_command_context(context)
     entry["required_parameters"] = _command_required_parameters(entry)

@@ -9653,25 +9653,17 @@ def test_real_dll_render_plan_data_classes_reach_navigation() -> None:
         assert duplicate_keys
         assert expected
 
-        paths = resolve_project_paths(target_name, project_root=PROJECT_ROOT)
-        metadata_path = paths.target_dir / "target_metadata.json"
-        binary_path = paths.binary_source.path
-        if not binary_path.is_absolute():
-            binary_path = PROJECT_ROOT / binary_path
-        artifact = c_backend.CListingArtifact.create(
-            c_backend._CBackendSourceFile(binary_path, "amiga-hunk"),
-            metadata_text=str(metadata_path) if metadata_path.exists() else "",
-            include_dir=str(PROJECT_ROOT / "ext" / "amiga_includes" / "ndk_2.0" / "include"),
-            project_root=PROJECT_ROOT,
-        )
-        try:
-            navigation, _ = artifact.navigation_payload()
-        finally:
-            artifact.close()
+        navigation = profile["navigation"]
+        assert isinstance(navigation, dict)
+        groups = navigation["groups"]
+        assert isinstance(groups, dict)
+        typed_data = groups["typed-data"]
+        assert isinstance(typed_data, list)
 
         keys = [
             (entry.get("hunk_index"), entry.get("addr"), entry.get("summary"))
-            for entry in navigation["groups"]["typed-data"]
+            for entry in typed_data
+            if isinstance(entry, dict)
         ]
         assert len(keys) == len(set(keys))
         entries = set(keys)
