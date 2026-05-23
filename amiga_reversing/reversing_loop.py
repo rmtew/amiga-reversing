@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from functools import lru_cache
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import cast
 
 from amiga_reversing.disasm import projects, server
@@ -27,7 +28,12 @@ from amiga_reversing.disasm.effective_metadata import (
     effective_target_metadata,
 )
 from amiga_reversing.disasm.listing_context import listing_element_contexts
-from amiga_reversing.disasm.manual_actions import review_item_is_open
+from amiga_reversing.disasm.manual_actions import (
+    ReviewItemKind,
+    load_manual_projection,
+    manual_action_log_path,
+    review_item_is_open,
+)
 from amiga_reversing.disasm.project_paths import (
     PROJECT_ROOT,
     resolve_project_dir,
@@ -253,6 +259,13 @@ def main(argv: list[str] | None = None) -> int:
     decision_verifier_parser.add_argument("--decision-id", required=True)
     decision_verifier_parser.add_argument("--write", action="store_true")
 
+    manual_log_repair_parser = subparsers.add_parser(
+        "repair-manual-action-log-sequence",
+        help="Dry-run or apply the exact final-record Manual Action Log sequence repair.",
+    )
+    manual_log_repair_parser.add_argument("--target", required=True)
+    manual_log_repair_parser.add_argument("--write", action="store_true")
+
     run_parser = subparsers.add_parser("run-one", help="Run one safe reversing loop iteration.")
     run_parser.add_argument("--target", required=True)
     run_parser.add_argument("--mode", choices=("continue", "clean-run", "reimport"), default="continue")
@@ -372,6 +385,15 @@ def main(argv: list[str] | None = None) -> int:
             produce_decision_verifier_artifact(
                 args.target,
                 decision_id=args.decision_id,
+                write=args.write,
+                project_root=args.project_root,
+            )
+        )
+        return 0
+    if args.command == "repair-manual-action-log-sequence":
+        _print_json(
+            repair_manual_action_log_sequence(
+                args.target,
                 write=args.write,
                 project_root=args.project_root,
             )
@@ -1304,6 +1326,356 @@ def _packet_selected_identity_matches(left: object, right: Mapping[str, object],
     return True
 
 
+def repair_manual_action_log_sequence(
+    target_id: str,
+    *,
+    write: bool = False,
+    project_root: Path = PROJECT_ROOT,
+) -> dict[str, object]:
+    target_dir = resolve_project_dir(target_id, project_root=project_root)
+    log_path = manual_action_log_path(target_dir)
+    gates: list[dict[str, object]] = []
+    blockers: list[str] = []
+
+    try:
+        raw_text = log_path.read_text(encoding="utf-8")
+    except OSError as exc:
+        return _manual_action_log_sequence_repair_result(
+            target_id,
+            log_path,
+            write=write,
+            written=False,
+            status="blocked",
+            gates=[_repair_gate("log_readable", False, error=str(exc))],
+            blockers=["log_read_failed"],
+        )
+
+    lines = raw_text.splitlines()
+    entries: list[tuple[int, int, dict[str, object]]] = []
+    parse_error: str | None = None
+    for line_index, line in enumerate(lines):
+        stripped = line.strip()
+        if not stripped:
+            continue
+        try:
+            parsed = json.loads(stripped)
+        except json.JSONDecodeError as exc:
+            parse_error = f"line {line_index + 1}: {exc}"
+            break
+        if not isinstance(parsed, dict):
+            parse_error = f"line {line_index + 1}: record is not an object"
+            break
+        entries.append((line_index + 1, line_index, parsed))
+    if parse_error is not None:
+        return _manual_action_log_sequence_repair_result(
+            target_id,
+            log_path,
+            write=write,
+            written=False,
+            status="blocked",
+            gates=[_repair_gate("log_parses", False, error=parse_error)],
+            blockers=["log_parse_failed"],
+        )
+
+    gates.append(_repair_gate("log_parses", True, record_count=len(entries)))
+    if not entries or entries[0][2].get("record") != "manual_action_log_header":
+        blockers.append("missing_manual_action_log_header")
+        gates.append(_repair_gate("header_valid", False))
+    else:
+        gates.append(_repair_gate("header_valid", True))
+
+    action_entries = entries[1:]
+    non_action_lines = [
+        line_number for line_number, _, record in action_entries if record.get("record") != "manual_action"
+    ]
+    if non_action_lines:
+        blockers.append("non_action_record_after_header")
+        gates.append(_repair_gate("all_records_after_header_are_actions", False, lines=non_action_lines))
+    else:
+        gates.append(_repair_gate("all_records_after_header_are_actions", True, action_count=len(action_entries)))
+
+    seen_ids: set[str] = set()
+    duplicate_ids: list[str] = []
+    sequence_mismatches: list[dict[str, object]] = []
+    for expected_sequence, (line_number, line_index, record) in enumerate(action_entries, start=1):
+        action_id = record.get("action_id")
+        if isinstance(action_id, str):
+            if action_id in seen_ids:
+                duplicate_ids.append(action_id)
+            seen_ids.add(action_id)
+        actual_sequence = record.get("sequence")
+        if not isinstance(actual_sequence, int) or isinstance(actual_sequence, bool):
+            sequence_mismatches.append(
+                {
+                    "line": line_number,
+                    "line_index": line_index,
+                    "file_action_index": expected_sequence,
+                    "action_id": action_id,
+                    "actual_sequence": actual_sequence,
+                    "expected_sequence": expected_sequence,
+                }
+            )
+            continue
+        if actual_sequence != expected_sequence:
+            sequence_mismatches.append(
+                {
+                    "line": line_number,
+                    "line_index": line_index,
+                    "file_action_index": expected_sequence,
+                    "action_id": action_id,
+                    "actual_sequence": actual_sequence,
+                    "expected_sequence": expected_sequence,
+                }
+            )
+
+    if duplicate_ids:
+        blockers.append("duplicate_action_ids")
+        gates.append(_repair_gate("action_ids_unique", False, duplicate_action_ids=duplicate_ids))
+    else:
+        gates.append(_repair_gate("action_ids_unique", True, action_id_count=len(seen_ids)))
+
+    before_projection = load_manual_projection(target_dir)
+    before_inconsistencies = _open_manual_action_log_inconsistency_items(before_projection.review_items)
+    if len(before_inconsistencies) != 1:
+        blockers.append("manual_action_log_inconsistency_count_not_one")
+        gates.append(
+            _repair_gate(
+                "exactly_one_manual_action_log_inconsistency",
+                False,
+                inconsistency_count=len(before_inconsistencies),
+            )
+        )
+    else:
+        gates.append(
+            _repair_gate(
+                "exactly_one_manual_action_log_inconsistency",
+                True,
+                item_id=before_inconsistencies[0].get("item_id"),
+            )
+        )
+
+    final_mismatch = sequence_mismatches[-1] if sequence_mismatches else None
+    final_action = action_entries[-1] if action_entries else None
+    only_final_mismatch = (
+        len(sequence_mismatches) == 1
+        and final_action is not None
+        and final_mismatch is not None
+        and final_mismatch.get("line_index") == final_action[1]
+    )
+    if only_final_mismatch:
+        gates.append(_repair_gate("only_sequence_mismatch_is_final_action", True, mismatch=final_mismatch))
+    else:
+        blockers.append("not_single_final_sequence_mismatch")
+        gates.append(
+            _repair_gate("only_sequence_mismatch_is_final_action", False, mismatches=sequence_mismatches)
+        )
+
+    if final_mismatch is not None and final_mismatch.get("file_action_index") == final_mismatch.get("expected_sequence"):
+        gates.append(
+            _repair_gate(
+                "final_action_file_index_is_expected_sequence",
+                True,
+                file_action_index=final_mismatch.get("file_action_index"),
+            )
+        )
+    else:
+        blockers.append("final_action_file_index_mismatch")
+        gates.append(_repair_gate("final_action_file_index_is_expected_sequence", False))
+
+    proposed_edit: dict[str, object] | None = None
+    repaired_lines = list(lines)
+    if only_final_mismatch and final_action is not None and final_mismatch is not None:
+        line_number, line_index, final_record = final_action
+        repaired_record = dict(final_record)
+        before_sequence = repaired_record.get("sequence")
+        after_sequence = final_mismatch["expected_sequence"]
+        repaired_record["sequence"] = after_sequence
+        changed_fields = [
+            key
+            for key in sorted(set(final_record) | set(repaired_record))
+            if final_record.get(key) != repaired_record.get(key)
+        ]
+        proposed_edit = {
+            "path": str(log_path),
+            "line": line_number,
+            "action_id": final_record.get("action_id"),
+            "file_action_index": final_mismatch.get("file_action_index"),
+            "field": "sequence",
+            "before": before_sequence,
+            "after": after_sequence,
+            "changed_fields": changed_fields,
+        }
+        if changed_fields == ["sequence"]:
+            gates.append(_repair_gate("proposed_edit_changes_only_final_sequence", True, proposed_edit=proposed_edit))
+            repaired_lines[line_index] = json.dumps(repaired_record, sort_keys=True)
+        else:
+            blockers.append("proposed_edit_not_sequence_only")
+            gates.append(_repair_gate("proposed_edit_changes_only_final_sequence", False, proposed_edit=proposed_edit))
+
+    if proposed_edit is not None and "proposed_edit_not_sequence_only" not in blockers:
+        with TemporaryDirectory(prefix="manual-log-sequence-repair-") as temp_dir_name:
+            temp_target_dir = Path(temp_dir_name)
+            manual_action_log_path(temp_target_dir).write_text(
+                "\n".join(repaired_lines) + "\n",
+                encoding="utf-8",
+            )
+            after_projection = load_manual_projection(temp_target_dir)
+        if _manual_projection_semantics_equal_for_sequence_repair(before_projection, after_projection):
+            gates.append(_repair_gate("projection_semantic_equivalence", True))
+        else:
+            blockers.append("projection_semantic_equivalence_failed")
+            gates.append(_repair_gate("projection_semantic_equivalence", False))
+
+        after_inconsistencies = _open_manual_action_log_inconsistency_items(after_projection.review_items)
+        if after_inconsistencies:
+            blockers.append("sequence_inconsistency_not_cleared")
+            gates.append(
+                _repair_gate(
+                    "repair_clears_manual_action_log_inconsistency",
+                    False,
+                    remaining_item_ids=[item.get("item_id") for item in after_inconsistencies],
+                )
+            )
+        else:
+            gates.append(_repair_gate("repair_clears_manual_action_log_inconsistency", True))
+
+    gates.append(
+        _repair_gate(
+            "repair_scope_limited_to_manual_action_log",
+            True,
+            permitted_write=str(log_path),
+            source_decision_verifier_and_generated_writes=[],
+        )
+    )
+
+    if blockers:
+        return _manual_action_log_sequence_repair_result(
+            target_id,
+            log_path,
+            write=write,
+            written=False,
+            status="blocked",
+            gates=gates,
+            blockers=blockers,
+            proposed_edit=proposed_edit,
+        )
+
+    if not write:
+        return _manual_action_log_sequence_repair_result(
+            target_id,
+            log_path,
+            write=write,
+            written=False,
+            status="dry_run_ready",
+            gates=gates,
+            blockers=[],
+            proposed_edit=proposed_edit,
+        )
+
+    log_path.write_text("\n".join(repaired_lines) + "\n", encoding="utf-8")
+    return _manual_action_log_sequence_repair_result(
+        target_id,
+        log_path,
+        write=write,
+        written=True,
+        status="applied",
+        gates=gates,
+        blockers=[],
+        proposed_edit=proposed_edit,
+    )
+
+
+def _repair_gate(gate: str, passed: bool, **details: object) -> dict[str, object]:
+    result: dict[str, object] = {"gate": gate, "status": "passed" if passed else "failed"}
+    result.update(details)
+    return result
+
+
+def _manual_action_log_sequence_repair_result(
+    target_id: str,
+    log_path: Path,
+    *,
+    write: bool,
+    written: bool,
+    status: str,
+    gates: Sequence[Mapping[str, object]],
+    blockers: Sequence[str],
+    proposed_edit: Mapping[str, object] | None = None,
+) -> dict[str, object]:
+    return {
+        "target_id": target_id,
+        "repair_kind": "manual_action_log_final_sequence",
+        "status": status,
+        "write_requested": write,
+        "written": written,
+        "path": str(log_path),
+        "proposed_edit": dict(proposed_edit) if proposed_edit is not None else None,
+        "gates": [dict(gate) for gate in gates],
+        "blockers": list(blockers),
+    }
+
+
+def _open_manual_action_log_inconsistency_items(review_items: object) -> list[Mapping[str, object]]:
+    items: list[Mapping[str, object]] = []
+    if not isinstance(review_items, Sequence) or isinstance(review_items, (str, bytes)):
+        return items
+    for item in review_items:
+        if not isinstance(item, Mapping):
+            continue
+        if str(item.get("kind")) != ReviewItemKind.MANUAL_ACTION_LOG_INCONSISTENCY:
+            continue
+        if review_item_is_open(item):
+            items.append(item)
+    return items
+
+
+def _manual_projection_semantics_equal_for_sequence_repair(
+    before_projection: object,
+    after_projection: object,
+) -> bool:
+    return _manual_projection_payload_without_sequence_review(
+        before_projection
+    ) == _manual_projection_payload_without_sequence_review(after_projection)
+
+
+def _manual_projection_payload_without_sequence_review(projection: object) -> dict[str, object]:
+    if not hasattr(projection, "to_dict"):
+        return {}
+    payload = dict(projection.to_dict())
+    payload.pop("log_path", None)
+    payload.pop("review_state", None)
+    for key in ("diagnostics", "review_items"):
+        raw_items = payload.get(key)
+        if isinstance(raw_items, Sequence) and not isinstance(raw_items, (str, bytes)):
+            payload[key] = [
+                item
+                for item in raw_items
+                if not (
+                    isinstance(item, Mapping)
+                    and str(item.get("kind")) == ReviewItemKind.MANUAL_ACTION_LOG_INCONSISTENCY
+                )
+            ]
+    return payload
+
+
+def _target_mutation_readiness(hygiene_safe: bool, review_items: object) -> dict[str, object]:
+    blockers: list[dict[str, object]] = []
+    if not hygiene_safe:
+        blockers.append({"kind": "target_hygiene_not_safe"})
+    for item in _open_manual_action_log_inconsistency_items(review_items):
+        blockers.append(
+            {
+                "kind": "manual_action_log_inconsistency",
+                "item_id": item.get("item_id", "manual_action_log_inconsistency:target"),
+                "message": item.get("message"),
+            }
+        )
+    return {
+        "safe_to_mutate": not blockers,
+        "blockers": blockers,
+    }
+
+
 def inspect_callback_slots(
     target_id: str,
     *,
@@ -1856,6 +2228,10 @@ def inspect_target(target_id: str, *, project_root: Path = PROJECT_ROOT) -> dict
     target_dir = Path(hygiene.target_dir)
     project_payload = _project_state_payload(target_id, project_root)
     candidates = _candidate_work_items(project_payload.get("review_items"))
+    mutation_readiness = _target_mutation_readiness(
+        hygiene.safe_to_continue and not hygiene.unknown_files,
+        project_payload.get("review_items"),
+    )
     return {
         "target_id": target_id,
         "mode": "inspect",
@@ -1873,7 +2249,8 @@ def inspect_target(target_id: str, *, project_root: Path = PROJECT_ROOT) -> dict
         },
         "candidate_work": candidates,
         "verification_paths": _verification_paths(target_dir),
-        "safe_to_mutate": hygiene.safe_to_continue and not hygiene.unknown_files,
+        "mutation_readiness": mutation_readiness,
+        "safe_to_mutate": mutation_readiness["safe_to_mutate"],
     }
 
 
@@ -1899,6 +2276,11 @@ def _listing_command_inspect_report(
     project_root: Path,
 ) -> dict[str, object]:
     target_dir = projects.resolve_project_dir(target_id, project_root=project_root)
+    project_payload = _project_state_payload(target_id, project_root)
+    mutation_readiness = _target_mutation_readiness(
+        not hygiene.get("unknown_files") and hygiene.get("safe_to_continue") is True,
+        project_payload.get("review_items"),
+    )
     return {
         "target_id": target_id,
         "mode": mode,
@@ -1906,12 +2288,13 @@ def _listing_command_inspect_report(
         "target_state": {
             "target_dir": str(target_dir),
             "manual_action_log": _manual_action_log_state(target_dir),
-            "project": _project_state_payload(target_id, project_root),
+            "project": project_payload,
             "round_trip": _round_trip_state(target_dir),
         },
         "candidate_work": [],
         "verification_paths": _verification_paths(target_dir),
-        "safe_to_mutate": not hygiene.get("unknown_files") and hygiene.get("safe_to_continue") is True,
+        "mutation_readiness": mutation_readiness,
+        "safe_to_mutate": mutation_readiness["safe_to_mutate"],
     }
 
 

@@ -14,9 +14,11 @@ import pytest
 from amiga_reversing import reversing_loop
 from amiga_reversing.disasm import decision_journal
 from amiga_reversing.disasm.manual_actions import (
+    MANUAL_ACTION_LOG_FILE_NAME,
     ReviewItemKind,
     ReviewItemScope,
     ReviewItemState,
+    load_manual_projection,
 )
 from amiga_reversing.disasm.projects import ProjectKind, ProjectRecord
 from amiga_reversing.disasm.target_metadata import (
@@ -68,6 +70,35 @@ def _project_with_manual_labels(labels: list[dict[str, object]]) -> ProjectRecor
     return replace(_project(()), manual_state={"labels": labels})
 
 
+def _manual_action(sequence: int, action_id: str) -> dict[str, object]:
+    return {
+        "record": "manual_action",
+        "action_id": action_id,
+        "sequence": sequence,
+        "created_at": "2026-05-18T00:00:00+00:00",
+        "kind": "add_review_note",
+        "note": {"note_id": f"note-{action_id}", "tracking": "note_only"},
+    }
+
+
+def _write_manual_action_log(target_dir: Path, actions: list[dict[str, object]]) -> Path:
+    path = target_dir / MANUAL_ACTION_LOG_FILE_NAME
+    records: list[dict[str, object]] = [
+        {
+            "record": "manual_action_log_header",
+            "version": 1,
+            "created_at": "2026-05-18T00:00:00+00:00",
+            "target_identity": {},
+        },
+        *actions,
+    ]
+    path.write_text(
+        "".join(f"{json.dumps(record, sort_keys=True)}\n" for record in records),
+        encoding="utf-8",
+    )
+    return path
+
+
 def test_inspect_report_generation_does_not_mutate(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     target_dir = _target(tmp_path)
     (target_dir / "source_binary.json").write_text("{}", encoding="utf-8")
@@ -78,6 +109,94 @@ def test_inspect_report_generation_does_not_mutate(tmp_path: Path, monkeypatch: 
     assert report["target_id"] == "demo"
     assert report["safe_to_mutate"] is True
     assert sorted(path.name for path in target_dir.iterdir()) == ["source_binary.json"]
+
+
+def test_inspect_target_blocks_mutation_on_open_manual_log_inconsistency(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _target(tmp_path)
+    item = {
+        "kind": ReviewItemKind.MANUAL_ACTION_LOG_INCONSISTENCY,
+        "scope": ReviewItemScope.TARGET,
+        "state": ReviewItemState.OPEN,
+        "item_id": "manual_action_log_inconsistency:target",
+        "message": "Action manual-2 has sequence 3; expected 2",
+    }
+    monkeypatch.setattr(reversing_loop.projects, "get_project", lambda target_id, project_root: _project((item,)))
+
+    report = reversing_loop.inspect_target("demo", project_root=tmp_path)
+
+    assert report["safe_to_mutate"] is False
+    readiness = cast(dict[str, object], report["mutation_readiness"])
+    blockers = cast(list[dict[str, object]], readiness["blockers"])
+    assert blockers == [
+        {
+            "kind": "manual_action_log_inconsistency",
+            "item_id": "manual_action_log_inconsistency:target",
+            "message": "Action manual-2 has sequence 3; expected 2",
+        }
+    ]
+
+
+def test_manual_action_log_sequence_repair_dry_run_and_write(tmp_path: Path) -> None:
+    target_dir = _target(tmp_path)
+    log_path = _write_manual_action_log(
+        target_dir,
+        [
+            _manual_action(1, "manual-1"),
+            _manual_action(3, "manual-2"),
+        ],
+    )
+    before_text = log_path.read_text(encoding="utf-8")
+
+    dry_run = reversing_loop.repair_manual_action_log_sequence("demo", project_root=tmp_path)
+
+    assert dry_run["status"] == "dry_run_ready"
+    assert dry_run["written"] is False
+    assert log_path.read_text(encoding="utf-8") == before_text
+    assert dry_run["proposed_edit"] == {
+        "path": str(log_path),
+        "line": 3,
+        "action_id": "manual-2",
+        "file_action_index": 2,
+        "field": "sequence",
+        "before": 3,
+        "after": 2,
+        "changed_fields": ["sequence"],
+    }
+
+    applied = reversing_loop.repair_manual_action_log_sequence("demo", write=True, project_root=tmp_path)
+
+    assert applied["status"] == "applied"
+    assert applied["written"] is True
+    projection = load_manual_projection(target_dir)
+    assert not [
+        item
+        for item in projection.review_items
+        if item.get("kind") == ReviewItemKind.MANUAL_ACTION_LOG_INCONSISTENCY
+    ]
+    final_record = json.loads(log_path.read_text(encoding="utf-8").splitlines()[-1])
+    assert final_record["sequence"] == 2
+
+
+def test_manual_action_log_sequence_repair_rejects_non_final_mismatch(tmp_path: Path) -> None:
+    target_dir = _target(tmp_path)
+    log_path = _write_manual_action_log(
+        target_dir,
+        [
+            _manual_action(2, "manual-1"),
+            _manual_action(2, "manual-2"),
+        ],
+    )
+    before_text = log_path.read_text(encoding="utf-8")
+
+    result = reversing_loop.repair_manual_action_log_sequence("demo", write=True, project_root=tmp_path)
+
+    assert result["status"] == "blocked"
+    assert "not_single_final_sequence_mismatch" in result["blockers"]
+    assert result["written"] is False
+    assert log_path.read_text(encoding="utf-8") == before_text
 
 
 def test_inspect_candidates_include_durable_identity_or_locator(

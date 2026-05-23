@@ -1,6 +1,6 @@
 # 017-053: Manual Action Log Sequence Repair Gate
 
-Status: active
+Status: completed
 
 ## Proposal Context
 
@@ -62,36 +62,72 @@ Status: active
 
 ## Research Coverage
 
-- [ ] Existing repair support checked.
-- [ ] Dry-run repair shape defined.
-- [ ] One-record repair gates implemented or deferral justified.
-- [ ] Projection before/after equivalence checked.
-- [ ] RSSET verifier artifact no-write checked.
-- [ ] Exact round-trip checked.
-- [ ] No unrelated target mutation checked.
-- [ ] Machine-readable mutation readiness checked for the open-item case.
-- [ ] Outcome proves either repair clears the item or readiness blocks while it remains open.
+- [x] Existing repair support checked.
+- [x] Dry-run repair shape defined.
+- [x] One-record repair gates implemented or deferral justified.
+- [x] Projection before/after equivalence checked.
+- [x] RSSET verifier artifact no-write checked.
+- [x] Exact round-trip checked.
+- [x] No unrelated target mutation checked.
+- [x] Machine-readable mutation readiness checked for the open-item case.
+- [x] Outcome proves either repair clears the item or readiness blocks while it remains open.
 
 ## Research Review
 
-- [ ] Second pass checked gates against `017-052` evidence.
-- [ ] Risk of hiding real Manual Action Log corruption reviewed.
-- [ ] Risk of prose-only blocker with `safe_to_mutate=true` reviewed.
-- [ ] Proposal updated with repair or deferral outcome.
+- [x] Second pass checked gates against `017-052` evidence.
+- [x] Risk of hiding real Manual Action Log corruption reviewed.
+- [x] Risk of prose-only blocker with `safe_to_mutate=true` reviewed.
+- [x] Proposal updated with repair or deferral outcome.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before implementation.
-- [ ] Protocol delta implemented as described, or proposal updated.
-- [ ] Default behavior impact verified.
-- [ ] Old code deleted, or deferred deletion blocker recorded.
-- [ ] Dry-run proof recorded before any write.
-- [ ] No source/journal/generated-output mutation performed.
-- [ ] Machine-readable mutation readiness mismatch resolved or explicitly deferred with blocker.
-- [ ] Post-repair or deferral state recorded.
-- [ ] Post-commit review found no unresolved worthwhile findings.
+- [x] Proposal context checked before implementation.
+- [x] Protocol delta implemented as described, or proposal updated.
+- [x] Default behavior impact verified.
+- [x] Old code deleted, or deferred deletion blocker recorded.
+- [x] Dry-run proof recorded before any write.
+- [x] No source/journal/generated-output mutation performed.
+- [x] Machine-readable mutation readiness mismatch resolved or explicitly deferred with blocker.
+- [x] Post-repair or deferral state recorded.
+- [x] Post-commit review found no unresolved worthwhile findings.
 
 ## Completion Evidence
 
-Fill this section when completed with the dry-run repair proof, repair or
-deferral decision, post-decision verifier results, and mutation audit.
+Implemented `repair-manual-action-log-sequence` as a dry-run-first command and
+`repair_manual_action_log_sequence(...)` API. The command is limited to the
+single final-record skipped-sequence case and blocks malformed logs, duplicate
+action ids, non-final mismatches, multi-mismatch logs, and semantic projection
+changes beyond clearing the sequence inconsistency.
+
+Dry-run proof on
+`amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8`
+passed every gate before write:
+
+- 60 log records parsed: header plus 59 actions.
+- Exactly one open `manual_action_log_inconsistency:target` existed.
+- Only mismatch was final line 60, action
+  `manual-6e574feccab748359c7577833fa718ba`.
+- Proposed edit changed only `sequence`, from `60` to expected file action
+  index `59`.
+- Before/after projection was semantically equal except the sequence review
+  item was cleared.
+
+Repair decision: applied the one-record repair with `--write`. The resulting
+git diff for target state changes only the final manual action `sequence`
+value, `60 -> 59`.
+
+Post-repair evidence:
+
+- `inspect_target(...)`: `safe_to_mutate=true`, `mutation_readiness.blockers=[]`,
+  and `candidate_work=[]`.
+- `round_trip`: exact.
+- `decision-verifier-artifact --decision-id decision-rsset-022e-accept-017-040`
+  in no-write mode: `status=passed`; `generated_source`,
+  `negative_safety`, `semantic_reload`, and `exact_round_trip` passed.
+- `git diff --name-only` showed only implementation/test/docs files and the
+  repaired `manual_actions.jsonl`; no source, Decision Journal, verifier
+  artifact, or generated-output file changed.
+
+The open-item readiness mismatch is also covered directly: before repair,
+`inspect_target(...)` reported `safe_to_mutate=false` with a
+`manual_action_log_inconsistency` mutation blocker while the item was open.

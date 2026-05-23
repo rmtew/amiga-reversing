@@ -1193,3 +1193,20 @@ repeatable work to `docs\issues\017-*`.
   verifier-gated repair for this exact one-record skipped-sequence case, or
   change/defer mutation readiness reporting so it blocks while the open Manual
   Action Log inconsistency remains.
+- 017-053 implemented and applied that exact repair path. The new
+  `repair-manual-action-log-sequence` command and
+  `repair_manual_action_log_sequence(...)` API default to dry-run, report the
+  exact line/field/value edit, and write only when all gates pass: one open
+  `manual_action_log_inconsistency`, parseable log, unique action ids, only the
+  final action sequence mismatching its file index, sequence-only proposed
+  edit, projection semantic equivalence except clearing the sequence review
+  item, and Manual Action Log-only write scope. Pandora dry-run reported line
+  60 action `manual-6e574feccab748359c7577833fa718ba`, `sequence` `60 -> 59`;
+  the write applied only that field. After repair, `inspect_target(...)`
+  reports no `manual_action_log_inconsistency:target`, `candidate_work=[]`,
+  `mutation_readiness.blockers=[]`, and `safe_to_mutate=true`; exact round-trip
+  remains exact and the RSSET verifier artifact producer passes in no-write
+  mode. The same mutation readiness helper now blocks `inspect_target(...)` and
+  listing-command inspect reports while any open Manual Action Log sequence
+  inconsistency remains, so the reviewer-observed `safe_to_mutate=true` mismatch
+  cannot recur for that open-item state.
