@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import copy
 import re
+import subprocess
+import sys
 from pathlib import Path
 
 from amiga_reversing.tools import platform_executable_formats
@@ -214,6 +216,33 @@ def test_018_006_backfill_records_do_not_authorize_accepted_parser_output() -> N
     assert atari["runtime_model"][0]["status"] == "deferred"
 
 
+def test_018_011_amiga_hunk_reference_slice_is_parser_asserted_but_report_only() -> None:
+    kb = platform_executable_formats.load_kb()
+    record = platform_executable_formats.record_by_id(kb, "amiga.hunk.load_file.basic_backfill")
+    accepted = platform_executable_formats.record_item_by_id(record, "amiga.hunk.code_data_bss.sections.accepted")
+    candidate = platform_executable_formats.record_item_by_id(record, "amiga.hunk.code_data_bss.sections.candidate")
+
+    assert accepted["status"] == "parser_asserted"
+    assert accepted["parser_use"] == "accepted_parser_output"
+    assert accepted["details"]["parser_assertion"]["standard_interpretation"]
+    assert candidate["status"] == "candidate"
+    assert candidate["parser_use"] == "candidate_only"
+    assert record["required_parser_behavior"]["kb_backed"] is False
+
+
+def test_018_012_atari_prg_reference_slice_is_parser_asserted_but_report_only() -> None:
+    kb = platform_executable_formats.load_kb()
+    record = platform_executable_formats.record_by_id(kb, "atari_st.prg.gemdos_basic_backfill")
+    accepted = platform_executable_formats.record_item_by_id(record, "atari_st.prg.container_sequence.accepted")
+    deferred = platform_executable_formats.record_item_by_id(record, "atari_st.prg.relocation_terminator_variants.deferred")
+
+    assert accepted["status"] == "parser_asserted"
+    assert accepted["parser_use"] == "accepted_parser_output"
+    assert accepted["details"]["parser_assertion"]["reason"]
+    assert deferred["status"] == "deferred"
+    assert record["required_parser_behavior"]["kb_backed"] is False
+
+
 def test_018_008_parser_fact_reference_validator_rejects_citation_packet_candidate_ids() -> None:
     kb = platform_executable_formats.load_kb()
     payload = {
@@ -262,3 +291,56 @@ def test_018_008_c_macos_fact_constants_resolve_to_kb_record_items() -> None:
         if constant == record["id"]:
             continue
         platform_executable_formats.record_item_by_id(record, constant)
+
+
+def test_018_013_generated_platform_executable_fact_table_is_fresh(tmp_path: Path) -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    script = repo_root / "src" / "scripts" / "generate_platform_format_runtime.py"
+    subprocess.run(
+        [sys.executable, str(script), "--output-dir", str(tmp_path)],
+        cwd=repo_root,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    for name in ("platform_executable_formats.c", "platform_executable_formats.h"):
+        assert (tmp_path / name).read_text(encoding="utf-8") == (
+            repo_root / "src" / "generated" / name
+        ).read_text(encoding="utf-8")
+
+
+def test_018_013_generated_fact_table_excludes_citation_packet_candidate_ids() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    header = (repo_root / "src" / "generated" / "platform_executable_formats.h").read_text(encoding="utf-8")
+    source = (repo_root / "src" / "generated" / "platform_executable_formats.c").read_text(encoding="utf-8")
+
+    assert "PLATFORM_EXECUTABLE_FORMAT_FACT_MACOS_RESOURCE_FORK_CODE_RESOURCES_ACCEPTED" in header
+    assert '"macos.segment_loader.code_resources"' not in source
+
+
+def test_018_014_015_016_research_packets_and_audit_state() -> None:
+    kb = platform_executable_formats.load_kb()
+    mac_record = platform_executable_formats.record_by_id(kb, "macos.hfs_resource_fork.code_resources.mpw_application")
+    non_code = platform_executable_formats.record_item_by_id(
+        mac_record,
+        "macos.resource_fork.non_code_metadata.inventory.candidate",
+    )
+    renderer = platform_executable_formats.record_item_by_id(
+        mac_record,
+        "macos.renderer.accepted_vs_candidate_labeling.accepted",
+    )
+    object_packet = platform_executable_formats.citation_packet_by_id(kb, "macos.packet.mpw.object_modules")
+    library_packet = platform_executable_formats.citation_packet_by_id(kb, "macos.packet.mpw.object_libraries")
+    format_packet = platform_executable_formats.citation_packet_by_id(
+        kb,
+        "macos.packet.mpw.object_library_format.deferred",
+    )
+
+    assert non_code["status"] == "candidate"
+    assert non_code["parser_use"] == "candidate_only"
+    assert renderer["status"] == "parser_asserted"
+    assert renderer["source_type"] == "parser_asserted"
+    assert object_packet["status"] == "validated"
+    assert library_packet["status"] == "validated"
+    assert format_packet["status"] == "deferred"

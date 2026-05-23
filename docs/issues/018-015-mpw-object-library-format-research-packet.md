@@ -1,6 +1,6 @@
 # 018-015: MPW Object And Library Format Research Packet
 
-Status: open
+Status: completed
 
 ## Proposal Context
 
@@ -67,29 +67,36 @@ Record trace blocks for:
 
 ## Research Coverage
 
-- [ ] Local MPW manuals/docs searched.
-- [ ] Extracted MPW filesystem examples searched.
-- [ ] Object format evidence recorded.
-- [ ] Library format evidence recorded.
-- [ ] Symbol/relocation/link input evidence recorded.
-- [ ] Missing evidence and conflicts listed.
+- [x] Local MPW manuals/docs searched.
+- [x] Extracted MPW filesystem examples searched.
+- [x] Object format evidence recorded.
+- [x] Library format evidence recorded.
+- [x] Symbol/relocation/link input evidence recorded.
+- [x] Missing evidence and conflicts listed.
 
 ## Research Review
 
-- [ ] Second pass checked citation packets against sources.
-- [ ] Project-observed-only facts remain candidate.
-- [ ] No parser/rendering behavior changed.
-- [ ] Follow-up parser/import issues are identified if warranted.
-- [ ] No 018-010 files are modified.
+- [x] Second pass checked citation packets against sources.
+- [x] Project-observed-only facts remain candidate.
+- [x] No parser/rendering behavior changed.
+- [x] Follow-up parser/import issues are identified if warranted.
+- [x] No 018-010 files are modified.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before implementation.
-- [ ] MPW object/library research packet recorded.
-- [ ] Source policy recorded for every citation.
-- [ ] Candidate/deferred/unsupported state used where evidence is incomplete.
-- [ ] Tests added if KB records are added.
-- [ ] `amiga_reversing.tools.platform_executable_formats validate` passes if KB
+- [x] Proposal context checked before implementation.
+- [x] MPW object/library research packet recorded.
+- [x] Source policy recorded for every citation.
+- [x] Candidate/deferred/unsupported state used where evidence is incomplete.
+- [x] Tests added if KB records are added.
+- [x] `amiga_reversing.tools.platform_executable_formats validate` passes if KB
   changes.
-- [ ] `amiga_reversing.tools.validate_018_issues` passes.
-- [ ] Post-commit review found no unresolved worthwhile findings.
+- [x] `amiga_reversing.tools.validate_018_issues` passes.
+- [x] Post-commit review found no unresolved worthwhile findings.
+
+
+## Completion Evidence
+
+- Added MPW object/module and object-library citation packets, with byte-level object/library format details deferred.
+- Validation commands listed in the required sign-off were run after implementation before commit.
+- No Mac multi-CODE rendering/navigation files for 018-010 were modified.

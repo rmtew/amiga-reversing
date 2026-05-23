@@ -1,6 +1,6 @@
 # 018-011: Amiga HUNK Accepted Format Records
 
-Status: open
+Status: completed
 
 ## Proposal Context
 
@@ -70,29 +70,36 @@ Record trace blocks for:
 
 ## Research Coverage
 
-- [ ] Existing Amiga HUNK KB reviewed.
-- [ ] Current Amiga HUNK parser assumptions inventoried.
-- [ ] Allowed Amiga source documents identified.
-- [ ] Version/toolchain scope recorded.
-- [ ] First accepted HUNK fact slice selected.
-- [ ] Deferred/conflict areas listed.
+- [x] Existing Amiga HUNK KB reviewed.
+- [x] Current Amiga HUNK parser assumptions inventoried.
+- [x] Allowed Amiga source documents identified.
+- [x] Version/toolchain scope recorded.
+- [x] First accepted HUNK fact slice selected.
+- [x] Deferred/conflict areas listed.
 
 ## Research Review
 
-- [ ] Second pass checked every accepted fact against citations.
-- [ ] Parser assertions include reason and standard interpretation.
-- [ ] Project-observed-only facts remain candidate.
-- [ ] Parser behavior remains unchanged.
-- [ ] No Mac files are modified.
+- [x] Second pass checked every accepted fact against citations.
+- [x] Parser assertions include reason and standard interpretation.
+- [x] Project-observed-only facts remain candidate.
+- [x] Parser behavior remains unchanged.
+- [x] No Mac files are modified.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before implementation.
-- [ ] Amiga HUNK accepted/parser-asserted facts added.
-- [ ] Citation/source policy recorded for every accepted fact.
-- [ ] Candidate/deferred facts cannot authorize accepted parser output.
-- [ ] Tests cover accepted and candidate fact states.
-- [ ] Existing Amiga parser behavior remains unchanged.
-- [ ] `amiga_reversing.tools.platform_executable_formats validate` passes.
-- [ ] `amiga_reversing.tools.validate_018_issues` passes.
-- [ ] Post-commit review found no unresolved worthwhile findings.
+- [x] Proposal context checked before implementation.
+- [x] Amiga HUNK accepted/parser-asserted facts added.
+- [x] Citation/source policy recorded for every accepted fact.
+- [x] Candidate/deferred facts cannot authorize accepted parser output.
+- [x] Tests cover accepted and candidate fact states.
+- [x] Existing Amiga parser behavior remains unchanged.
+- [x] `amiga_reversing.tools.platform_executable_formats validate` passes.
+- [x] `amiga_reversing.tools.validate_018_issues` passes.
+- [x] Post-commit review found no unresolved worthwhile findings.
+
+
+## Completion Evidence
+
+- Added parser-asserted HUNK_HEADER, object/library container, CODE/DATA/BSS, and BSS size-only reference facts while leaving the HUNK parser report-only (`kb_backed: false`).
+- Validation commands listed in the required sign-off were run after implementation before commit.
+- No Mac multi-CODE rendering/navigation files for 018-010 were modified.

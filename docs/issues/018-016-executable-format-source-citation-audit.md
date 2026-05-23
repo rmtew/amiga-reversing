@@ -1,6 +1,6 @@
 # 018-016: Executable Format Source Citation Audit
 
-Status: open
+Status: completed
 
 ## Proposal Context
 
@@ -66,29 +66,36 @@ Record trace blocks for:
 
 ## Research Coverage
 
-- [ ] Mac accepted facts audited.
-- [ ] Amiga accepted/parser-asserted facts audited if present.
-- [ ] Atari accepted/parser-asserted facts audited if present.
-- [ ] Parser assertions checked for required fields.
-- [ ] Insufficient citations downgraded or marked for follow-up.
-- [ ] Source policy violations checked.
+- [x] Mac accepted facts audited.
+- [x] Amiga accepted/parser-asserted facts audited if present.
+- [x] Atari accepted/parser-asserted facts audited if present.
+- [x] Parser assertions checked for required fields.
+- [x] Insufficient citations downgraded or marked for follow-up.
+- [x] Source policy violations checked.
 
 ## Research Review
 
-- [ ] Second pass checked audit results against source citations.
-- [ ] Accepted facts have direct citations or valid parser assertions.
-- [ ] Project-observed-only general claims are not validated.
-- [ ] No parser/rendering behavior changed.
-- [ ] Validator/tests updated if fact states changed.
+- [x] Second pass checked audit results against source citations.
+- [x] Accepted facts have direct citations or valid parser assertions.
+- [x] Project-observed-only general claims are not validated.
+- [x] No parser/rendering behavior changed.
+- [x] Validator/tests updated if fact states changed.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before implementation.
-- [ ] Accepted/parser-asserted facts audited.
-- [ ] Weak accepted facts downgraded, deferred, or converted to parser
+- [x] Proposal context checked before implementation.
+- [x] Accepted/parser-asserted facts audited.
+- [x] Weak accepted facts downgraded, deferred, or converted to parser
   assertions with required fields.
-- [ ] Audit summary documented.
-- [ ] No parser/rendering behavior changed.
-- [ ] `amiga_reversing.tools.platform_executable_formats validate` passes.
-- [ ] `amiga_reversing.tools.validate_018_issues` passes.
-- [ ] Post-commit review found no unresolved worthwhile findings.
+- [x] Audit summary documented.
+- [x] No parser/rendering behavior changed.
+- [x] `amiga_reversing.tools.platform_executable_formats validate` passes.
+- [x] `amiga_reversing.tools.validate_018_issues` passes.
+- [x] Post-commit review found no unresolved worthwhile findings.
+
+
+## Completion Evidence
+
+- Audited accepted/parser-asserted executable-format facts and converted the weak Mac renderer expectation from project-observed validated to parser-asserted.
+- Validation commands listed in the required sign-off were run after implementation before commit.
+- No Mac multi-CODE rendering/navigation files for 018-010 were modified.

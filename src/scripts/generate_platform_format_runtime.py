@@ -714,6 +714,146 @@ def _write_runtime_json(path_json: Path, payload: dict[str, Any]) -> None:
     path_json.write_text(json.dumps(output, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
+PLATFORM_FACT_SECTIONS = (
+    "identification",
+    "containers",
+    "regions",
+    "relocations",
+    "symbols",
+    "bss",
+    "loader_model",
+    "runtime_model",
+    "analysis_model",
+    "renderer_expectations",
+    "entrypoints",
+    "facts",
+    "unknowns",
+    "conflicts",
+    "deferred",
+    "unsupported",
+)
+
+
+def _json_string(value: object) -> str:
+    return json.dumps(str(value), ensure_ascii=True)
+
+
+def _platform_parser_use(item: dict[str, Any]) -> str:
+    parser_use = item.get("parser_use")
+    if isinstance(parser_use, str) and parser_use:
+        return parser_use
+    return {
+        "candidate": "candidate_only",
+        "deferred": "deferred_only",
+        "unsupported": "unsupported_only",
+    }.get(str(item.get("status", "")), "")
+
+
+def _platform_fact_rows(payload: dict[str, Any]) -> list[tuple[str, str, str, str, str]]:
+    rows: list[tuple[str, str, str, str, str]] = []
+    for record in payload.get("records", []):
+        record_id = str(record.get("id", ""))
+        if not record_id:
+            continue
+        rows.append((record_id, record_id, "record", str(record.get("fact_state", "")), ""))
+        for section in PLATFORM_FACT_SECTIONS:
+            for item in record.get(section, []):
+                item_id = str(item.get("id", ""))
+                if not item_id:
+                    continue
+                rows.append((record_id, item_id, section, str(item.get("status", "")), _platform_parser_use(item)))
+    return rows
+
+
+def _write_platform_executable_format_files(path_h: Path, path_c: Path, payload: dict[str, Any]) -> None:
+    guard = "PLATFORM_EXECUTABLE_FORMATS_H"
+    rows = _platform_fact_rows(payload)
+    record_ids = sorted({record_id for record_id, _item_id, section, _status, _parser_use in rows if section == "record"})
+    fact_ids = sorted({item_id for _record_id, item_id, section, _status, _parser_use in rows if section != "record"})
+
+    lines_h = [
+        "/* Generated platform executable-format fact metadata. Do not edit directly. */",
+        f"#ifndef {guard}",
+        f"#define {guard}",
+        "",
+        "#include <stddef.h>",
+        "",
+        "typedef struct PlatformExecutableFormatFact {",
+        "    const char *record_id;",
+        "    const char *fact_id;",
+        "    const char *section;",
+        "    const char *status;",
+        "    const char *parser_use;",
+        "} PlatformExecutableFormatFact;",
+        "",
+    ]
+    for record_id in record_ids:
+        lines_h.append(f"#define {_define_name('PLATFORM_EXECUTABLE_FORMAT_RECORD', record_id)} {_json_string(record_id)}")
+    if record_ids:
+        lines_h.append("")
+    for fact_id in fact_ids:
+        lines_h.append(f"#define {_define_name('PLATFORM_EXECUTABLE_FORMAT_FACT', fact_id)} {_json_string(fact_id)}")
+    if fact_ids:
+        lines_h.append("")
+    lines_h.extend(
+        [
+            "extern const PlatformExecutableFormatFact PLATFORM_EXECUTABLE_FORMAT_FACTS[];",
+            "extern const size_t PLATFORM_EXECUTABLE_FORMAT_FACT_COUNT;",
+            "",
+            "const PlatformExecutableFormatFact *platform_executable_format_fact_lookup(",
+            "    const char *record_id,",
+            "    const char *fact_id",
+            ");",
+            "",
+            f"#endif /* {guard} */",
+            "",
+        ]
+    )
+    path_h.write_text("\n".join(_style_runtime_lines(lines_h)).rstrip() + "\n", encoding="utf-8")
+
+    lines_c = [
+        "/* Generated platform executable-format fact metadata table. Do not edit directly. */",
+        f'#include "{path_h.name}"',
+        "",
+        "#include <string.h>",
+        "",
+        "const PlatformExecutableFormatFact PLATFORM_EXECUTABLE_FORMAT_FACTS[] = {",
+    ]
+    if rows:
+        for record_id, item_id, section, status, parser_use in rows:
+            lines_c.append(
+                f"    {{ {_json_string(record_id)}, {_json_string(item_id)}, {_json_string(section)}, "
+                f"{_json_string(status)}, {_json_string(parser_use)} }},"
+            )
+    else:
+        lines_c.append("    { NULL, NULL, NULL, NULL, NULL },")
+    lines_c.extend(
+        [
+            "};",
+            "const size_t PLATFORM_EXECUTABLE_FORMAT_FACT_COUNT = sizeof(PLATFORM_EXECUTABLE_FORMAT_FACTS) /",
+            "    sizeof(PLATFORM_EXECUTABLE_FORMAT_FACTS[0]);",
+            "",
+            "const PlatformExecutableFormatFact *platform_executable_format_fact_lookup(",
+            "    const char *record_id,",
+            "    const char *fact_id",
+            ") {",
+            "    if (record_id == NULL || fact_id == NULL) {",
+            "        return NULL;",
+            "    }",
+            "    for (size_t index = 0; index < PLATFORM_EXECUTABLE_FORMAT_FACT_COUNT; ++index) {",
+            "        const PlatformExecutableFormatFact *fact = &PLATFORM_EXECUTABLE_FORMAT_FACTS[index];",
+            "        if (strcmp(fact->record_id, record_id) == 0 && strcmp(fact->fact_id, fact_id) == 0) {",
+            "            return fact;",
+            "        }",
+            "    }",
+            "    return NULL;",
+            "}",
+            "",
+        ]
+    )
+    path_c.write_text("\n".join(_style_runtime_lines(lines_c)).rstrip() + "\n", encoding="utf-8")
+
+
 def generate(output_dir: Path) -> list[Path]:
     output_dir.mkdir(parents=True, exist_ok=True)
     outputs: list[Path] = []
@@ -736,6 +876,11 @@ def generate(output_dir: Path) -> list[Path]:
         )
         _write_runtime_json(path_json, payload)
         outputs.extend([path_h, path_c, path_json])
+    platform_payload = _load_json("platform_executable_formats.json")
+    path_h = output_dir / "platform_executable_formats.h"
+    path_c = output_dir / "platform_executable_formats.c"
+    _write_platform_executable_format_files(path_h, path_c, platform_payload)
+    outputs.extend([path_h, path_c])
     return outputs
 
 

@@ -125,7 +125,8 @@ cl %CFLAGS% /c /Fo%OUTDIR%\ ^
     src\generated\amiga_hunk_file_runtime.c ^
     src\generated\amiga_disk_file_runtime.c ^
     src\generated\atari_st_prg_file_runtime.c ^
-    src\generated\atari_st_disk_file_runtime.c || exit /b %errorlevel%
+    src\generated\atari_st_disk_file_runtime.c ^
+    src\generated\platform_executable_formats.c || exit /b %errorlevel%
 
 cl %CFLAGS% /DM68K_ASSEMBLER_BUILD_DLL /c /Fo%OUTDIR%\m68k_source_ir_api_dll.obj src\m68k_source_ir_api.c || exit /b %errorlevel%
 

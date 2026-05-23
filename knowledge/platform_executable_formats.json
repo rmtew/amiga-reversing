@@ -155,6 +155,20 @@
       "license_status": "project_local",
       "path": "src/platform_atari_st.c",
       "role": "Current Atari ST PRG parser behavior inventory for 018-006 backfill planning."
+    },
+    {
+      "id": "inside-macintosh-volume-iii-1985",
+      "source_type": "old_out_of_print",
+      "license_status": "old_out_of_print_reference_excerpt",
+      "path": "ext/docs_macos/Inside_Macintosh_Volume_III_1985.md",
+      "role": "Classic Mac OS Finder/resource metadata citation source for non-CODE resource inventory."
+    },
+    {
+      "id": "mpw-gm-inventory",
+      "source_type": "project_observed",
+      "license_status": "project_local_metadata",
+      "path": "ext/macos_includes/mpw_gm/inventory.json",
+      "role": "Extracted MPW-GM filesystem inventory with file type, creator, data size, and resource size metadata."
     }
   ],
   "records": [
@@ -858,9 +872,9 @@
       "renderer_expectations": [
         {
           "id": "macos.renderer.accepted_vs_candidate_labeling.accepted",
-          "status": "validated",
-          "summary": "Renderers may label accepted CODE 0 and segment-header facts, but must label the movea.l byte boundary and relocation/fixup interpretation as candidate/deferred.",
-          "source_type": "project_observed",
+          "status": "parser_asserted",
+          "summary": "Renderers may label validated CODE 0 and segment-header facts, but must label the movea.l byte boundary and relocation/fixup interpretation as candidate/deferred.",
+          "source_type": "parser_asserted",
           "citations": [
             {
               "source_id": "proposal-018",
@@ -870,7 +884,15 @@
             }
           ],
           "parser_use": "accepted_parser_output",
-          "required_parser_behavior": "fail_closed"
+          "required_parser_behavior": "fail_closed",
+          "details": {
+            "parser_assertion": {
+              "reason": "This is a project renderer contract derived from Proposal 018 fact-state policy, not an old-source platform rule.",
+              "citation_context": "docs/proposals/018-platform-executable-format-knowledge.md Fact States and Parser Use.",
+              "standard_interpretation": "Accepted parser output may render only validated/parser_asserted KB items as accepted; candidate and deferred Mac CODE items must remain visibly non-accepted.",
+              "review_status": "018-016 source citation audit conversion"
+            }
+          }
         }
       ],
       "entrypoints": [
@@ -1025,6 +1047,28 @@
             }
           ],
           "parser_use": "candidate_only"
+        },
+        {
+          "id": "macos.resource_fork.non_code_metadata.inventory.candidate",
+          "layer": "file_structure",
+          "status": "candidate",
+          "source_type": "project_observed",
+          "summary": "Non-CODE MPW resource metadata is inventory-only in this issue; it must not be rendered or navigated as executable CODE.",
+          "citations": [
+            {
+              "source_id": "mpw-asm-code-resources",
+              "source_type": "project_observed",
+              "target": "ext/macos_tools/mpw_gm/asm_code_resources.json resources",
+              "context": "Committed MPW Asm executable resource inventory contains CODE resources only."
+            },
+            {
+              "source_id": "mpw-gm-inventory",
+              "source_type": "project_observed",
+              "target": "ext/macos_includes/mpw_gm/inventory.json items",
+              "context": "The broader extracted MPW volume records file/resource fork metadata for object, APPL, rsrc, and other file types, but not accepted executable CODE semantics."
+            }
+          ],
+          "parser_use": "candidate_only"
         }
       ],
       "unknowns": [
@@ -1143,6 +1187,30 @@
           ],
           "parser_use": "candidate_only",
           "required_parser_behavior": "emit_candidate"
+        },
+        {
+          "id": "amiga.hunk.header.identifies_load_file.accepted",
+          "status": "parser_asserted",
+          "summary": "HUNK_HEADER is the accepted load-file identifying record for the normalized Amiga HUNK executable slice.",
+          "source_type": "parser_asserted",
+          "citations": [
+            {
+              "source_id": "amiga-hunk-file-kb",
+              "source_type": "project_observed",
+              "target": "knowledge/amiga_hunk_file.json containers.executable.magic_type",
+              "context": "The normalized KB names HUNK_HEADER as the executable container magic and traces the underlying NDK/RKRM sources in _meta.sources."
+            }
+          ],
+          "parser_use": "accepted_parser_output",
+          "required_parser_behavior": "fail_closed",
+          "details": {
+            "parser_assertion": {
+              "reason": "The local normalized HUNK KB captures the cited AmigaOS hunk constants but direct parser output is not yet migrated to this shared KB.",
+              "citation_context": "knowledge/amiga_hunk_file.json _meta.sources plus containers.executable.magic_type.",
+              "standard_interpretation": "Treat HUNK_HEADER as the load-file identifier while keeping current parser behavior report-only.",
+              "review_status": "018-011/018-012 post-review accepted slice"
+            }
+          }
         }
       ],
       "containers": [
@@ -1161,6 +1229,30 @@
           ],
           "parser_use": "candidate_only",
           "required_parser_behavior": "emit_candidate"
+        },
+        {
+          "id": "amiga.hunk.unit_library.containers.accepted",
+          "status": "parser_asserted",
+          "summary": "HUNK_UNIT identifies object units, while HUNK_LIB plus HUNK_INDEX identify library container structure in the accepted reference slice.",
+          "source_type": "parser_asserted",
+          "citations": [
+            {
+              "source_id": "amiga-hunk-file-kb",
+              "source_type": "project_observed",
+              "target": "knowledge/amiga_hunk_file.json containers.object_unit and containers.library",
+              "context": "Object-unit and library top-level sequences are modeled from local HUNK metadata."
+            }
+          ],
+          "parser_use": "accepted_parser_output",
+          "required_parser_behavior": "fail_closed",
+          "details": {
+            "parser_assertion": {
+              "reason": "Object/library hunk containers are normalized in the HUNK KB but parser/import support remains outside this issue.",
+              "citation_context": "knowledge/amiga_hunk_file.json containers.object_unit/library.",
+              "standard_interpretation": "Record object and library containers as accepted reference facts only, not parser migration.",
+              "review_status": "018-011/018-012 post-review accepted slice"
+            }
+          }
         }
       ],
       "regions": [
@@ -1179,6 +1271,30 @@
           ],
           "parser_use": "candidate_only",
           "required_parser_behavior": "emit_candidate"
+        },
+        {
+          "id": "amiga.hunk.code_data_bss.sections.accepted",
+          "status": "parser_asserted",
+          "summary": "HUNK_CODE, HUNK_DATA, and HUNK_BSS identify code, initialized data, and BSS section starts in the accepted reference slice.",
+          "source_type": "parser_asserted",
+          "citations": [
+            {
+              "source_id": "amiga-hunk-file-kb",
+              "source_type": "project_observed",
+              "target": "knowledge/amiga_hunk_file.json record_types.HUNK_CODE/HUNK_DATA/HUNK_BSS",
+              "context": "Section start records carry code/data/bss section_kind metadata."
+            }
+          ],
+          "parser_use": "accepted_parser_output",
+          "required_parser_behavior": "fail_closed",
+          "details": {
+            "parser_assertion": {
+              "reason": "The section roles are standard HUNK interpretation captured in the normalized KB; parser output remains unchanged.",
+              "citation_context": "knowledge/amiga_hunk_file.json record_types section_kind fields.",
+              "standard_interpretation": "Use CODE/DATA/BSS section roles as accepted reference facts without changing HUNK parser emission.",
+              "review_status": "018-011/018-012 post-review accepted slice"
+            }
+          }
         }
       ],
       "relocations": [
@@ -1233,6 +1349,30 @@
           ],
           "parser_use": "candidate_only",
           "required_parser_behavior": "emit_candidate"
+        },
+        {
+          "id": "amiga.hunk.bss.size_only.accepted",
+          "status": "parser_asserted",
+          "summary": "HUNK_BSS carries size metadata and no stored section payload bytes in the accepted reference slice.",
+          "source_type": "parser_asserted",
+          "citations": [
+            {
+              "source_id": "amiga-hunk-file-kb",
+              "source_type": "project_observed",
+              "target": "knowledge/amiga_hunk_file.json record_types.HUNK_BSS",
+              "context": "HUNK_BSS has a size field and no byte_blob payload."
+            }
+          ],
+          "parser_use": "accepted_parser_output",
+          "required_parser_behavior": "fail_closed",
+          "details": {
+            "parser_assertion": {
+              "reason": "BSS absence from file payload follows the normalized HUNK record shape.",
+              "citation_context": "knowledge/amiga_hunk_file.json record_types.HUNK_BSS fields.",
+              "standard_interpretation": "Treat HUNK_BSS as size-only BSS metadata; do not emit stored bytes.",
+              "review_status": "018-011/018-012 post-review accepted slice"
+            }
+          }
         }
       ],
       "loader_model": [
@@ -1457,6 +1597,30 @@
           ],
           "parser_use": "candidate_only",
           "required_parser_behavior": "emit_candidate"
+        },
+        {
+          "id": "atari_st.prg.magic_601a.accepted",
+          "status": "parser_asserted",
+          "summary": "GEMDOS PRG/TOS/TTP files use the 0x601A magic in the accepted reference slice.",
+          "source_type": "parser_asserted",
+          "citations": [
+            {
+              "source_id": "atari-st-prg-file-kb",
+              "source_type": "project_observed",
+              "target": "knowledge/atari_st_prg_file.json enums.magic.PRG",
+              "context": "The normalized KB records PRG magic decimal 24602, hex 0x601A, with local GEMDOS/EmuTOS/Hatari source provenance."
+            }
+          ],
+          "parser_use": "accepted_parser_output",
+          "required_parser_behavior": "fail_closed",
+          "details": {
+            "parser_assertion": {
+              "reason": "The normalized Atari KB carries the legacy GEMDOS PRG signature but parser behavior is not migrated here.",
+              "citation_context": "knowledge/atari_st_prg_file.json _meta.sources and enums.magic.PRG.",
+              "standard_interpretation": "Treat 0x601A as the PRG/TOS/TTP file signature in reference facts only.",
+              "review_status": "018-011/018-012 post-review accepted slice"
+            }
+          }
         }
       ],
       "containers": [
@@ -1475,6 +1639,30 @@
           ],
           "parser_use": "candidate_only",
           "required_parser_behavior": "emit_candidate"
+        },
+        {
+          "id": "atari_st.prg.container_sequence.accepted",
+          "status": "parser_asserted",
+          "summary": "The accepted PRG reference sequence is PRG_HEADER, TEXT, DATA, optional SYMBOL_TABLE, and optional RELOCATION_STREAM.",
+          "source_type": "parser_asserted",
+          "citations": [
+            {
+              "source_id": "atari-st-prg-file-kb",
+              "source_type": "project_observed",
+              "target": "knowledge/atari_st_prg_file.json containers.prg_executable.top_level_sequence",
+              "context": "The normalized KB records the executable top-level sequence."
+            }
+          ],
+          "parser_use": "accepted_parser_output",
+          "required_parser_behavior": "fail_closed",
+          "details": {
+            "parser_assertion": {
+              "reason": "The local Atari KB normalizes the PRG sequence from legacy and compatible-source references.",
+              "citation_context": "knowledge/atari_st_prg_file.json containers.prg_executable.",
+              "standard_interpretation": "Use the normalized sequence as accepted reference metadata while keeping parser output unchanged.",
+              "review_status": "018-011/018-012 post-review accepted slice"
+            }
+          }
         }
       ],
       "regions": [
@@ -1493,6 +1681,30 @@
           ],
           "parser_use": "candidate_only",
           "required_parser_behavior": "emit_candidate"
+        },
+        {
+          "id": "atari_st.prg.text_data_bss_regions.accepted",
+          "status": "parser_asserted",
+          "summary": "TEXT and DATA are stored image regions, while BSS is represented by header size and is not stored in the file.",
+          "source_type": "parser_asserted",
+          "citations": [
+            {
+              "source_id": "atari-st-prg-file-kb",
+              "source_type": "project_observed",
+              "target": "knowledge/atari_st_prg_file.json record_types.TEXT/DATA and constraints.bss_is_not_stored_in_file",
+              "context": "TEXT/DATA payloads and BSS absence are modeled in the normalized KB."
+            }
+          ],
+          "parser_use": "accepted_parser_output",
+          "required_parser_behavior": "fail_closed",
+          "details": {
+            "parser_assertion": {
+              "reason": "The TEXT/DATA/BSS split is normalized from PRG references but runtime/basepage state remains deferred.",
+              "citation_context": "knowledge/atari_st_prg_file.json record_types and constraints.",
+              "standard_interpretation": "Treat TEXT and DATA as stored regions and BSS as header-only reference metadata.",
+              "review_status": "018-011/018-012 post-review accepted slice"
+            }
+          }
         }
       ],
       "relocations": [
@@ -1565,6 +1777,30 @@
           ],
           "parser_use": "candidate_only",
           "required_parser_behavior": "emit_candidate"
+        },
+        {
+          "id": "atari_st.prg.text_data_loaded_image.accepted",
+          "status": "parser_asserted",
+          "summary": "PRG relocation applies over the loaded TEXT+DATA image in the accepted reference slice.",
+          "source_type": "parser_asserted",
+          "citations": [
+            {
+              "source_id": "atari-st-prg-file-kb",
+              "source_type": "project_observed",
+              "target": "knowledge/atari_st_prg_file.json groups.loaded_image and relocation_kinds.PRG_RELOC_32",
+              "context": "The normalized KB marks relocation target space as the TEXT+DATA loaded image."
+            }
+          ],
+          "parser_use": "accepted_parser_output",
+          "required_parser_behavior": "fail_closed",
+          "details": {
+            "parser_assertion": {
+              "reason": "Relocation target-space metadata is normalized, while terminator variants remain deferred.",
+              "citation_context": "knowledge/atari_st_prg_file.json groups.loaded_image and relocation_kinds.PRG_RELOC_32.",
+              "standard_interpretation": "Use TEXT+DATA as the relocation target space; keep edge-case relocation variants deferred.",
+              "review_status": "018-011/018-012 post-review accepted slice"
+            }
+          }
         }
       ],
       "runtime_model": [
@@ -2000,6 +2236,122 @@
       "conflicts": [],
       "missing_evidence": [
         "Need direct Segment Loader/Linker fixup layout citations before accepted parser behavior."
+      ],
+      "parser_behavior_before_kb_migration": "emit_placeholder"
+    },
+    {
+      "id": "macos.packet.mpw_asm.non_code_resource_metadata_inventory",
+      "platform_id": "macos",
+      "fact_candidate_id": "macos.resource_fork.non_code_metadata.inventory",
+      "wording": "MPW Asm non-CODE resource metadata remains inventory-only: the committed Asm resource extraction contains CODE resources only, while requested non-CODE types such as acur, CURS, cmdo, and vers lack accepted local evidence for executable semantics here.",
+      "status": "candidate",
+      "source_type": "project_observed",
+      "license_status": "project_local_metadata",
+      "affects": [
+        "file_structure",
+        "renderer_expectation"
+      ],
+      "citations": [
+        {
+          "source_id": "mpw-asm-code-resources",
+          "source_type": "project_observed",
+          "target": "ext/macos_tools/mpw_gm/asm_code_resources.json resources",
+          "context": "The Asm resource-fork sample enumerates 28 CODE resources and no non-CODE resource types."
+        },
+        {
+          "source_id": "inside-macintosh-volume-iii-1985",
+          "source_type": "old_out_of_print",
+          "target": "ext/docs_macos/Inside_Macintosh_Volume_III_1985.md source-pages 17-20",
+          "context": "Finder-related resources and version data are metadata resources, not Segment Loader CODE resources."
+        }
+      ],
+      "conflicts": [],
+      "missing_evidence": [
+        "No local accepted source was found that makes acur, CURS, cmdo, or vers executable CODE resources for the MPW Asm target."
+      ],
+      "parser_behavior_before_kb_migration": "emit_candidate"
+    },
+    {
+      "id": "macos.packet.mpw.object_modules",
+      "platform_id": "macos",
+      "fact_candidate_id": "macos.mpw.object_file.modules",
+      "wording": "MPW object files contain modules, and the object file format can mark a module as the main entry point consumed by Link.",
+      "status": "validated",
+      "source_type": "old_out_of_print",
+      "license_status": "old_out_of_print_reference_excerpt",
+      "affects": [
+        "loader_model",
+        "runtime_entry_model"
+      ],
+      "citations": [
+        {
+          "source_id": "programming-with-mpw-1987",
+          "source_type": "old_out_of_print",
+          "target": "ext/docs_macos/Programming_With_Macintosh_Programmers_Workshop_1987.md source-page 566",
+          "context": "The MPW manual describes object files as module containers and describes the object-file main-entry provision."
+        }
+      ],
+      "conflicts": [],
+      "missing_evidence": [
+        "Byte-level MPW object file record layout is not yet captured."
+      ],
+      "parser_behavior_before_kb_migration": "emit_candidate"
+    },
+    {
+      "id": "macos.packet.mpw.object_libraries",
+      "platform_id": "macos",
+      "fact_candidate_id": "macos.mpw.object_library.inputs",
+      "wording": "MPW library files are merged from object files with Lib, and Link treats object files and object libraries as input files for resolving needed modules.",
+      "status": "validated",
+      "source_type": "old_out_of_print",
+      "license_status": "old_out_of_print_reference_excerpt",
+      "affects": [
+        "loader_model",
+        "archetype_identity"
+      ],
+      "citations": [
+        {
+          "source_id": "programming-with-mpw-1987",
+          "source_type": "old_out_of_print",
+          "target": "ext/docs_macos/Programming_With_Macintosh_Programmers_Workshop_1987.md source-pages 565, 569-570",
+          "context": "The MPW manual states Link handles object files and libraries as inputs and that Lib merges object files into libraries."
+        }
+      ],
+      "conflicts": [],
+      "missing_evidence": [
+        "Byte-level MPW library container/index layout is not yet captured."
+      ],
+      "parser_behavior_before_kb_migration": "emit_candidate"
+    },
+    {
+      "id": "macos.packet.mpw.object_library_format.deferred",
+      "platform_id": "macos",
+      "fact_candidate_id": "macos.mpw.object_library.byte_format",
+      "wording": "MPW object/library byte format details remain deferred; local sources currently support workflow/module facts but not a complete import parser format.",
+      "status": "deferred",
+      "source_type": "project_observed",
+      "license_status": "project_local",
+      "affects": [
+        "loader_model",
+        "analysis_model"
+      ],
+      "citations": [
+        {
+          "source_id": "programming-with-mpw-1987",
+          "source_type": "old_out_of_print",
+          "target": "ext/docs_macos/Programming_With_Macintosh_Programmers_Workshop_1987.md source-page 566",
+          "context": "The manual confirms module and main-entry concepts without giving enough byte layout for an importer."
+        },
+        {
+          "source_id": "mpw-gm-inventory",
+          "source_type": "project_observed",
+          "target": "ext/macos_includes/mpw_gm/inventory.json OBJ entries",
+          "context": "The extracted MPW inventory contains OBJ files with data and resource fork sizes, but no parsed object/library byte records."
+        }
+      ],
+      "conflicts": [],
+      "missing_evidence": [
+        "Need byte-layout source or importer-backed extraction before accepted parser output."
       ],
       "parser_behavior_before_kb_migration": "emit_placeholder"
     }

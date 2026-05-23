@@ -1,6 +1,6 @@
 # 018-013: Platform Executable KB Generated C Fact Table
 
-Status: open
+Status: completed
 
 ## Proposal Context
 
@@ -63,30 +63,37 @@ Record trace blocks for:
 
 ## Research Coverage
 
-- [ ] Existing generated C conventions checked.
-- [ ] Build integration path checked.
-- [ ] C fact string emission sites inventoried.
-- [ ] Generated API shape selected.
-- [ ] Stale generated output test planned.
-- [ ] 018-008 validation kept in the test path.
+- [x] Existing generated C conventions checked.
+- [x] Build integration path checked.
+- [x] C fact string emission sites inventoried.
+- [x] Generated API shape selected.
+- [x] Stale generated output test planned.
+- [x] 018-008 validation kept in the test path.
 
 ## Research Review
 
-- [ ] Generated output is deterministic.
-- [ ] Generated output is derived from KB data.
-- [ ] C parser output remains unchanged or explicitly justified.
-- [ ] Stale generated output fails tests.
-- [ ] No Mac rendering/navigation files are modified.
+- [x] Generated output is deterministic.
+- [x] Generated output is derived from KB data.
+- [x] C parser output remains unchanged or explicitly justified.
+- [x] Stale generated output fails tests.
+- [x] No Mac rendering/navigation files are modified.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before implementation.
-- [ ] Generated C fact table/header added.
-- [ ] Generation command documented.
-- [ ] Build/test path uses or validates generated files.
-- [ ] Current Mac C fact literals migrated or deliberately documented.
-- [ ] Parser output passes 018-008 validation.
-- [ ] `cmd /c src\build.bat` passes.
-- [ ] Relevant Python/C tests pass.
-- [ ] `amiga_reversing.tools.validate_018_issues` passes.
-- [ ] Post-commit review found no unresolved worthwhile findings.
+- [x] Proposal context checked before implementation.
+- [x] Generated C fact table/header added.
+- [x] Generation command documented.
+- [x] Build/test path uses or validates generated files.
+- [x] Current Mac C fact literals migrated or deliberately documented.
+- [x] Parser output passes 018-008 validation.
+- [x] `cmd /c src\build.bat` passes.
+- [x] Relevant Python/C tests pass.
+- [x] `amiga_reversing.tools.validate_018_issues` passes.
+- [x] Post-commit review found no unresolved worthwhile findings.
+
+
+## Completion Evidence
+
+- Extended `src/scripts/generate_platform_format_runtime.py` to generate `src/generated/platform_executable_formats.c/.h`; stale generated output is tested, and current Mac C literals are deliberately documented as unchanged.
+- Validation commands listed in the required sign-off were run after implementation before commit.
+- No Mac multi-CODE rendering/navigation files for 018-010 were modified.

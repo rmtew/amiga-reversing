@@ -355,6 +355,8 @@ kb_backed_records:
 
 report_only_records:
   macos.hfs_resource_fork.code_resources.thin_proof
+  amiga.hunk.load_file.basic_backfill
+  atari_st.prg.gemdos_basic_backfill
 ```
 
 The validator fails if a candidate such as
@@ -509,6 +511,134 @@ Atari ST PRG:
 - relocation-stream EOF and zero-byte terminator variants
 - relocation flag and program flag parser/rendering policy
 ```
+
+## Amiga HUNK Accepted Reference Slice
+
+018-011 promotes a narrow Amiga HUNK reference slice to `parser_asserted`
+record items while keeping `amiga.hunk.load_file.basic_backfill`
+`kb_backed: false`.
+
+Accepted reference facts:
+
+```text
+amiga.hunk.header.identifies_load_file.accepted
+amiga.hunk.unit_library.containers.accepted
+amiga.hunk.code_data_bss.sections.accepted
+amiga.hunk.bss.size_only.accepted
+```
+
+Checked:
+
+```text
+knowledge/amiga_hunk_file.json
+src/platform_amiga_hunk.c
+docs/proposals/018-platform-executable-format-knowledge.md
+```
+
+The parser-asserted facts cite the normalized HUNK KB and carry assertion
+context. Current parser assumptions, entry policy, overlay variants, and full
+object/library importer behavior remain candidate or deferred.
+
+## Atari ST PRG Accepted Reference Slice
+
+018-012 promotes a narrow Atari ST PRG/TOS/TTP reference slice to
+`parser_asserted` record items while keeping
+`atari_st.prg.gemdos_basic_backfill` `kb_backed: false`.
+
+Accepted reference facts:
+
+```text
+atari_st.prg.magic_601a.accepted
+atari_st.prg.container_sequence.accepted
+atari_st.prg.text_data_bss_regions.accepted
+atari_st.prg.text_data_loaded_image.accepted
+```
+
+Checked:
+
+```text
+knowledge/atari_st_prg_file.json
+src/platform_atari_st.c
+docs/proposals/018-platform-executable-format-knowledge.md
+```
+
+Runtime/basepage entry state and relocation terminator variants remain deferred;
+the TEXT-start parser analysis seed is still candidate-only.
+
+## Generated C Fact Table
+
+018-013 extends `src/scripts/generate_platform_format_runtime.py` to generate:
+
+```text
+src/generated/platform_executable_formats.h
+src/generated/platform_executable_formats.c
+```
+
+The generated table is derived from
+`knowledge/platform_executable_formats.json` and preserves record id, item id,
+section, status, and parser use. Tests regenerate into a temporary directory and
+compare the committed generated files, so stale generated output fails.
+
+Current Mac C fact string literals in `src/platform_file_lib.c` and
+`src/platform_macos_resource.c` are deliberately left unchanged in this issue:
+018-013 adds the generated drift surface without changing parser output or Mac
+CODE rendering/navigation behavior.
+
+## Mac Non-CODE Resource Metadata Inventory
+
+018-014 records non-CODE resource metadata as candidate-only inventory:
+
+```text
+macos.resource_fork.non_code_metadata.inventory.candidate
+macos.packet.mpw_asm.non_code_resource_metadata_inventory
+```
+
+Checked:
+
+```text
+ext/macos_tools/mpw_gm/asm_code_resources.json
+ext/macos_includes/mpw_gm/inventory.json
+ext/docs_macos/Inside_Macintosh_Volume_III_1985.md source-pages 17-20
+```
+
+The committed MPW Asm resource extraction contains only CODE resources. The
+requested non-CODE type names `acur`, `CURS`, `cmdo`, and `vers` therefore stay
+candidate/deferred for this target; no non-CODE resource is presented as
+executable CODE.
+
+## MPW Object And Library Packet
+
+018-015 adds MPW object/library citation packets:
+
+```text
+macos.packet.mpw.object_modules
+macos.packet.mpw.object_libraries
+macos.packet.mpw.object_library_format.deferred
+```
+
+Checked:
+
+```text
+ext/docs_macos/Programming_With_Macintosh_Programmers_Workshop_1987.md source-pages 565-570
+ext/macos_includes/mpw_gm/inventory.json
+```
+
+The accepted packet scope covers MPW object modules, object-file main-entry
+metadata, library creation from object files, and Link treating object files and
+libraries as module inputs. Byte-level object/library container layout remains
+deferred.
+
+## Source Citation Audit
+
+018-016 audited accepted and parser-asserted executable-format facts. The weak
+Mac renderer rule
+`macos.renderer.accepted_vs_candidate_labeling.accepted` is now
+`parser_asserted` rather than project-observed validated, because it is a
+project renderer contract derived from Proposal 018 fact-state policy.
+
+Project-observed-only general claims remain candidate or deferred. The new
+Amiga/Atari accepted reference slices are parser assertions with reason,
+citation context, standard interpretation, and review status.
 
 ## Current Limits
 

@@ -1,6 +1,6 @@
 # 018-014: Mac OS Non-CODE Resource Metadata Inventory
 
-Status: open
+Status: completed
 
 ## Proposal Context
 
@@ -66,28 +66,35 @@ Record trace blocks for:
 
 ## Research Coverage
 
-- [ ] MPW Asm non-CODE resource inventory sampled.
-- [ ] Local Mac docs searched for each observed resource type.
-- [ ] Resource classifications assigned.
-- [ ] Deferred/unsupported reasons recorded.
-- [ ] CODE rendering/navigation touch points avoided.
+- [x] MPW Asm non-CODE resource inventory sampled.
+- [x] Local Mac docs searched for each observed resource type.
+- [x] Resource classifications assigned.
+- [x] Deferred/unsupported reasons recorded.
+- [x] CODE rendering/navigation touch points avoided.
 
 ## Research Review
 
-- [ ] Second pass checked every accepted classification against citations.
-- [ ] Project-observed-only classifications remain candidate.
-- [ ] Non-CODE resources are not presented as executable CODE.
-- [ ] No 018-010 output paths are modified.
-- [ ] Tests added if output changes.
+- [x] Second pass checked every accepted classification against citations.
+- [x] Project-observed-only classifications remain candidate.
+- [x] Non-CODE resources are not presented as executable CODE.
+- [x] No 018-010 output paths are modified.
+- [x] Tests added if output changes.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before implementation.
-- [ ] Non-CODE resource inventory recorded.
-- [ ] Classification/status/source policy recorded for each resource type.
-- [ ] Deferred/unsupported reasons recorded.
-- [ ] No CODE rendering/navigation behavior changed.
-- [ ] `amiga_reversing.tools.platform_executable_formats validate` passes if KB
+- [x] Proposal context checked before implementation.
+- [x] Non-CODE resource inventory recorded.
+- [x] Classification/status/source policy recorded for each resource type.
+- [x] Deferred/unsupported reasons recorded.
+- [x] No CODE rendering/navigation behavior changed.
+- [x] `amiga_reversing.tools.platform_executable_formats validate` passes if KB
   changes.
-- [ ] `amiga_reversing.tools.validate_018_issues` passes.
-- [ ] Post-commit review found no unresolved worthwhile findings.
+- [x] `amiga_reversing.tools.validate_018_issues` passes.
+- [x] Post-commit review found no unresolved worthwhile findings.
+
+
+## Completion Evidence
+
+- Recorded candidate-only non-CODE resource metadata inventory and confirmed no CODE rendering/navigation behavior changed.
+- Validation commands listed in the required sign-off were run after implementation before commit.
+- No Mac multi-CODE rendering/navigation files for 018-010 were modified.
