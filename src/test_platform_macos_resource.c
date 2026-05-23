@@ -113,7 +113,8 @@ static int test_resource_fork_parses_code_metadata(void) {
   M68K_C_ASSERT_U32(PLATFORM_MACOS_CODE_RANGE_DATA, resources[1].code.layout_ranges[1].kind);
   M68K_C_ASSERT_U32(4U, resources[1].code.layout_ranges[1].start_offset);
   M68K_C_ASSERT_U32(6U, resources[1].code.layout_ranges[1].size);
-  M68K_C_ASSERT_U32(PLATFORM_MACOS_CODE_RANGE_CONFIRMED_CODE, resources[1].code.layout_ranges[2].kind);
+  M68K_C_ASSERT_U32(PLATFORM_MACOS_CODE_RANGE_CANDIDATE_CODE, resources[1].code.layout_ranges[2].kind);
+  M68K_C_ASSERT_U32(PLATFORM_MACOS_CODE_EVIDENCE_M68K_STACK_ENTRY_TO_A0, resources[1].code.layout_ranges[2].evidence);
   M68K_C_ASSERT_U32(10U, resources[1].code.layout_ranges[2].start_offset);
   M68K_C_ASSERT_U32(4U, resources[1].code.layout_ranges[2].size);
   M68K_C_ASSERT_U32(1U, resources[1].code.layout_ranges[2].entrypoint);
