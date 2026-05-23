@@ -28,6 +28,7 @@ from amiga_reversing.disasm.project_paths import PROJECT_ROOT
 MACOS_CODE_PREVIEW_MAX_BYTES = 64
 MACOS_APPLICATION_KB_RECORD_ID = "macos.hfs_resource_fork.code_resources.mpw_application"
 MACOS_NON_CODE_RESOURCE_FACT_ID = "macos.resource_fork.non_code_metadata.inventory.candidate"
+MACOS_CURS_RESOURCE_FACT_ID = "macos.resource_fork.curs.layout.accepted"
 
 
 def build_macos_project_payload(project: object, *, project_root: Path = PROJECT_ROOT) -> dict[str, object]:
@@ -689,8 +690,11 @@ def _candidate_code0_offset_sort_key(candidate: Mapping[str, object]) -> tuple[i
 
 
 def _non_code_resource_details(resource_types: list[object]) -> list[dict[str, object]]:
-    return [
-        {
+    rows = []
+    for resource_type in (_mapping(value) for value in resource_types):
+        if resource_type.get("type") == "CODE":
+            continue
+        row = {
             "resource_type": resource_type.get("type"),
             "resource_count": resource_type.get("count"),
             "role": "resource_metadata_inventory",
@@ -704,9 +708,26 @@ def _non_code_resource_details(resource_types: list[object]) -> list[dict[str, o
             "inventory_source": "platform_file_lib.macos_hfs_code_summary resource_fork.types",
             "reason": "non-CODE resource metadata is inventory-only and not executable CODE",
         }
-        for resource_type in (_mapping(value) for value in resource_types)
-        if resource_type.get("type") != "CODE"
-    ]
+        if resource_type.get("type") == "CURS":
+            row.update(
+                {
+                    "role": "resource_type_semantic",
+                    "semantic_status": "validated",
+                    "fact_id": MACOS_CURS_RESOURCE_FACT_ID,
+                    "fact_status": "validated",
+                    "parser_use": "accepted_parser_output",
+                    "evidence": "Inside Macintosh QuickDraw Cursor record; type-level semantics only",
+                    "semantic": {
+                        "kind": "classic_cursor_16x16",
+                        "image_bytes": 32,
+                        "mask_bytes": 32,
+                        "hotspot_bytes": 4,
+                    },
+                    "reason": "CURS type-level layout is cited; payload bitmap/hotspot bytes are not decoded",
+                }
+            )
+        rows.append(row)
+    return rows
 
 
 def _no_preview_reason(code: Mapping[str, object]) -> str:

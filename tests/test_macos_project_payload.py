@@ -749,8 +749,20 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     non_code_details = container["resource_fork"]["non_code_resource_details"]
     assert non_code_details
     assert {item["resource_type"] for item in non_code_details} == {"acur", "CURS", "cmdo", "vers"}
-    assert all(item["fact_status"] == "candidate" for item in non_code_details)
-    assert all(item["parser_use"] == "candidate_only" for item in non_code_details)
+    curs_detail = next(item for item in non_code_details if item["resource_type"] == "CURS")
+    candidate_details = [item for item in non_code_details if item["resource_type"] != "CURS"]
+    assert curs_detail["semantic_status"] == "validated"
+    assert curs_detail["fact_id"] == "macos.resource_fork.curs.layout.accepted"
+    assert curs_detail["fact_status"] == "validated"
+    assert curs_detail["parser_use"] == "accepted_parser_output"
+    assert curs_detail["semantic"] == {
+        "kind": "classic_cursor_16x16",
+        "image_bytes": 32,
+        "mask_bytes": 32,
+        "hotspot_bytes": 4,
+    }
+    assert all(item["fact_status"] == "candidate" for item in candidate_details)
+    assert all(item["parser_use"] == "candidate_only" for item in candidate_details)
     assert all(item["payload_decode_status"] == "unsupported" for item in non_code_details)
     assert len(container["code_resource_details"]) == len(container["code_resources"])
     assert container["code_resource_details"][0]["role"] == "code0_metadata"

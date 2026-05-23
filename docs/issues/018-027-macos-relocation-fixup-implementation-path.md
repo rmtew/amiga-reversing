@@ -1,6 +1,6 @@
 # 018-027: Mac OS Relocation/Fixup Implementation Path
 
-Status: open
+Status: completed
 
 ## Proposal Context
 
@@ -66,29 +66,66 @@ Record trace blocks for:
 - implementation/defer decision;
 - tests or future tests required.
 
+## Resolution
+
+Decision: implementation blocked/deferred.
+
+Trace blocks:
+
+- Sources searched: local Inside Macintosh and MPW markdown, existing
+  relocation/fixup KB packets, 018-021 completion evidence, and extracted
+  MPW/tool interface materials.
+- Evidence found: Segment Loader loading can cause Memory Manager heap/block
+  relocation; existing accepted CODE/jump-table facts remain valid; later
+  PEF/CFM interface headers define relocation structures for Code Fragment
+  Manager formats.
+- Evidence rejected for implementation: runtime heap/block relocation context
+  does not identify on-disk classic 68K CODE fixup records, and PEF/CFM
+  relocation structures are not classic CODE Segment Loader fixup evidence.
+- Missing layout facts: record location, encoding, grouping/termination,
+  payload-offset mapping, target/base interpretation, loader application order,
+  and an expected-byte fixture or source/object/link trace.
+- Parser behavior before/after: unchanged. Parser/artifact/web output must keep
+  relocation/fixup state deferred-only.
+
+Added blocker packet:
+
+```text
+macos.packet.segment_relocation_fixups.implementation_blocked
+```
+
 ## Research Coverage
 
-- [ ] Local Mac/MPW docs searched for fixup layout.
-- [ ] Existing relocation packets reviewed.
-- [ ] Project-observed binary evidence classified.
-- [ ] Implementation/defer decision selected.
-- [ ] Proposal 012 closeout matrix impact checked.
+- [x] Local Mac/MPW docs searched for fixup layout.
+- [x] Existing relocation packets reviewed.
+- [x] Project-observed binary evidence classified.
+- [x] Implementation/defer decision selected.
+- [x] Proposal 012 closeout matrix impact checked.
 
 ## Research Review
 
-- [ ] Second pass checked runtime relocation context is not overused.
-- [ ] Deferred state remains if byte layout is missing.
-- [ ] Parser behavior remains unchanged unless evidence supports it.
-- [ ] Proposal/docs updated with exact blocker or plan.
+- [x] Second pass checked runtime relocation context is not overused.
+- [x] Deferred state remains if byte layout is missing.
+- [x] Parser behavior remains unchanged unless evidence supports it.
+- [x] Proposal/docs updated with exact blocker or plan.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before implementation.
-- [ ] Relocation/fixup implementation path or blocker packet added.
-- [ ] Evidence strength classified.
-- [ ] Parser behavior unchanged unless justified.
-- [ ] Candidate/deferred facts are not promoted without support.
-- [ ] `amiga_reversing.tools.platform_executable_formats validate` passes if KB
+- [x] Proposal context checked before implementation.
+- [x] Relocation/fixup implementation path or blocker packet added.
+- [x] Evidence strength classified.
+- [x] Parser behavior unchanged unless justified.
+- [x] Candidate/deferred facts are not promoted without support.
+- [x] `amiga_reversing.tools.platform_executable_formats validate` passes if KB
   changes.
-- [ ] `amiga_reversing.tools.validate_018_issues` passes.
-- [ ] Post-commit review found no unresolved worthwhile findings.
+- [x] `amiga_reversing.tools.validate_018_issues` passes.
+- [x] Post-commit review found no unresolved worthwhile findings.
+
+## Completion Evidence
+
+```text
+uv run python -m amiga_reversing.tools.platform_executable_formats validate
+uv run python -m pytest tests\test_macos_asm_container.py tests\test_macos_c_backend.py tests\test_macos_project_payload.py tests\test_macos_target_artifact.py tests\test_macos_web_view.py -q
+19 passed
+uv run python -m amiga_reversing.tools.validate_018_issues
+```

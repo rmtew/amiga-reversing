@@ -131,11 +131,11 @@ def _macos_preview_payload() -> dict[str, object]:
                     {
                         "resource_type": "CURS",
                         "resource_count": 1,
-                        "semantic_status": "candidate",
+                        "semantic_status": "validated",
                         "payload_decode_status": "unsupported",
-                        "fact_status": "candidate",
-                        "parser_use": "candidate_only",
-                        "evidence": "resource fork type inventory; payload semantics are not decoded",
+                        "fact_status": "validated",
+                        "parser_use": "accepted_parser_output",
+                        "evidence": "Inside Macintosh QuickDraw Cursor record; type-level semantics only",
                     },
                     {
                         "resource_type": "vers",
@@ -935,6 +935,7 @@ def test_brave_cdp_macos_code_details_show_candidate_previews(monkeypatch: pytes
         assert "full_listing listing" in body_text
         assert "Non-CODE Resource Metadata" in body_text
         assert "CURS" in body_text
+        assert "validated accepted_parser_output" in body_text
         assert "candidate candidate_only" in body_text
         assert "unsupported" in body_text
         assert "Candidate bounded preview" in body_text

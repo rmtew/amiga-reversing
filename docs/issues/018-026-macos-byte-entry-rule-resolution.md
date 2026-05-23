@@ -1,6 +1,6 @@
 # 018-026: Mac OS Byte-Entry Rule Resolution
 
-Status: open
+Status: completed
 
 ## Proposal Context
 
@@ -72,34 +72,74 @@ Record trace blocks for:
 - parser behavior before/after;
 - tests proving fact-state correctness.
 
+## Resolution
+
+Decision: blocked/deferred, not accepted/parser-asserted.
+
+Trace blocks:
+
+- Sources searched: `Inside_Macintosh_Volume_II_1985.md` Segment Loader /
+  Jump Table pages, `Programming_With_Macintosh_Programmers_Workshop_1987.md`
+  object/link entry references, `MPW_and_Assembly_Language_Programming_for_the_Macintosh_1987.md`
+  assembly/link tutorial context, and existing Mac KB packets/facts.
+- Cited support found: nonzero CODE segment headers, CODE 0 jump-table/A5
+  metadata, jump-table entry relationships, CODE 1 startup through the first
+  jump-table entry, and MPW object main-entry context.
+- Missing support: no cited or parser-asserted rule for the executable byte
+  offset inside nonzero CODE payloads, no rule tying first jump-table routine
+  entry semantics to that byte offset, and no source/object/link map that would
+  let MPW object main-entry evidence authorize observed CODE resource bytes.
+- Candidate facts reviewed: `macos.code_resource.movea_stack_a0.boundary` and
+  `macos.code_resource.movea_stack_a0.entry_candidate` remain candidate-only.
+- Deferred facts reviewed: `macos.code_resource.byte_entry_rule.unknown`
+  remains deferred.
+- Parser behavior before/after: unchanged. Parser output may emit the observed
+  `movea.l (a7)+,a0` boundary only as candidate evidence and must keep missing
+  byte-entry authority deferred.
+
+Added blocker packet:
+
+```text
+macos.packet.byte_entry_rule.blocked
+```
+
 ## Research Coverage
 
-- [ ] Local Mac docs searched for byte-entry evidence.
-- [ ] MPW docs searched for startup/segment entry evidence.
-- [ ] Existing byte-entry KB facts reviewed.
-- [ ] Project-observed MPW `Asm` byte patterns classified.
-- [ ] Migration-or-defer decision recorded.
-- [ ] Proposal 012/018 wording checked.
+- [x] Local Mac docs searched for byte-entry evidence.
+- [x] MPW docs searched for startup/segment entry evidence.
+- [x] Existing byte-entry KB facts reviewed.
+- [x] Project-observed MPW `Asm` byte patterns classified.
+- [x] Migration-or-defer decision recorded.
+- [x] Proposal 012/018 wording checked.
 
 ## Research Review
 
-- [ ] Second pass checked weak evidence is not promoted.
-- [ ] Candidate/deferred facts remain correctly labelled if no accepted rule is
+- [x] Second pass checked weak evidence is not promoted.
+- [x] Candidate/deferred facts remain correctly labelled if no accepted rule is
   found.
-- [ ] Parser-output validation passes.
-- [ ] CODE 0 remains metadata-only.
-- [ ] Selected CODE 1 and preview behavior still works.
-- [ ] Proposal/docs updated with exact decision.
+- [x] Parser-output validation passes.
+- [x] CODE 0 remains metadata-only.
+- [x] Selected CODE 1 and preview behavior still works.
+- [x] Proposal/docs updated with exact decision.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before implementation.
-- [ ] Byte-entry decision packet added.
-- [ ] KB facts updated or blocker explicitly recorded.
-- [ ] Parser behavior changed only if evidence supports it.
-- [ ] Candidate/deferred facts are not promoted without support.
-- [ ] Relevant parser/payload/artifact/web tests pass if behavior changes.
-- [ ] MPW `Asm` artifact regenerated if output changes.
-- [ ] `amiga_reversing.tools.platform_executable_formats validate` passes.
-- [ ] `amiga_reversing.tools.validate_018_issues` passes.
-- [ ] Post-commit review found no unresolved worthwhile findings.
+- [x] Proposal context checked before implementation.
+- [x] Byte-entry decision packet added.
+- [x] KB facts updated or blocker explicitly recorded.
+- [x] Parser behavior changed only if evidence supports it.
+- [x] Candidate/deferred facts are not promoted without support.
+- [x] Relevant parser/payload/artifact/web tests pass if behavior changes.
+- [x] MPW `Asm` artifact regenerated if output changes.
+- [x] `amiga_reversing.tools.platform_executable_formats validate` passes.
+- [x] `amiga_reversing.tools.validate_018_issues` passes.
+- [x] Post-commit review found no unresolved worthwhile findings.
+
+## Completion Evidence
+
+```text
+uv run python -m amiga_reversing.tools.platform_executable_formats validate
+uv run python -m pytest tests\test_macos_asm_container.py tests\test_macos_c_backend.py tests\test_macos_project_payload.py tests\test_macos_target_artifact.py tests\test_macos_web_view.py -q
+19 passed
+uv run python -m amiga_reversing.tools.validate_018_issues
+```

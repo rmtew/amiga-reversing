@@ -622,6 +622,31 @@ insufficient. Do not broaden non-CODE decoding or affect CODE behavior.
 - 018-025 added a Proposal 012 closeout matrix that separates completed starter
   support from full-closeout blockers and deeper roundtrip work. It does not
   close Proposal 012 and does not promote candidate/deferred Mac facts.
+- 018-026 resolved the Mac byte-entry rule as explicitly blocked, not accepted.
+  Local Inside Macintosh and MPW sources validate CODE resources, CODE 0
+  jump-table metadata, nonzero CODE headers, CODE 1 startup, and MPW object
+  main-entry context, but they do not define the byte-level executable boundary
+  inside nonzero CODE payloads or validate `movea.l (a7)+,a0` as the accepted
+  entry instruction. `macos.packet.byte_entry_rule.blocked` is deferred;
+  parser, payload, artifact, and web behavior are unchanged.
+- 018-027 resolved the Mac relocation/fixup implementation path as blocked.
+  Runtime heap/block relocation context and later PEF/CFM relocation structures
+  are not enough to implement classic 68K CODE fixups. The missing evidence is
+  exact CODE fixup record location, encoding, affected payload offsets, Segment
+  Loader application rules, and a fixture with expected relocated bytes.
+  Parser behavior remains deferred-only.
+- 018-028 selected a docs-only source-to-CODE fixture strategy. The preferred
+  first future fixture is
+  `MPW-GM/Interfaces&Libraries/Interfaces/AStructMacs/Sample`, but only after
+  its own built product is captured or reproduced. `AExamples/Sample` remains a
+  semantic follow-up, `Count` is a small secondary smoke fixture, and `Memory`
+  waits until application CODE mapping is proven. The MPW/Tools/Asm source
+  boundary remains false and no parser/UI behavior changed.
+- 018-029 selected `CURS` as the first non-CODE semantic slice. Local
+  QuickDraw/MPW documentation supports type-level 16-by-16 cursor semantics, so
+  `macos.resource_fork.curs.layout.accepted` is accepted parser output for
+  resource-type rows only. Payload byte decoding remains unsupported, and
+  `acur`, `cmdo`, and `vers` stay candidate inventory.
 
 ## Relationship To 012
 
@@ -646,7 +671,16 @@ the shared listing path where safe, but it keeps the same fact-state boundary:
 decoded preview rows are still candidate-only, and fallbacks remain explicit.
 018-021 and 018-022 clarify why relocation/fixups and source-to-CODE mapping
 remain blockers despite additional cited context, and 018-025 makes that split
-auditable in Proposal 012.
+auditable in Proposal 012. 018-026 closes the byte-entry follow-up only as a
+documented blocker decision: the current selected CODE 1 listing remains
+available, CODE 0 remains metadata-only, and the byte-entry rule remains
+candidate/deferred pending stronger evidence. 018-027 likewise closes only as a
+blocker decision for relocation/fixups: runtime memory-relocation context and
+PEF/CFM structures do not authorize classic 68K CODE fixup parsing.
+018-028 turns the source-to-CODE blocker into an assignable fixture path while
+keeping the current MPW/Tools/Asm boundary safe.
+018-029 accepts only type-level `CURS` resource semantics; it does not broaden
+non-CODE decoding or affect CODE behavior.
 
 018 sits above 011 and 012 as the shared executable/container format authority.
 It does not absorb all platform knowledge; it owns file structure, loader model,

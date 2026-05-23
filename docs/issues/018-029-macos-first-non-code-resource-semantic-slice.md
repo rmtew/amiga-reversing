@@ -1,6 +1,6 @@
 # 018-029: Mac OS First Non-CODE Resource Semantic Slice
 
-Status: open
+Status: completed
 
 ## Proposal Context
 
@@ -66,32 +66,68 @@ Record trace blocks for:
 - semantic facts accepted/candidate/deferred;
 - implementation or blocker decision.
 
+## Resolution
+
+Decision: implement one narrow type-level semantic slice for `CURS`; do not
+decode non-CODE payload bytes.
+
+Trace blocks:
+
+- Candidate resource types considered: `CURS`, `acur`, `cmdo`, and `vers` from
+  the current Mac non-CODE resource type inventory.
+- Sources searched: Inside Macintosh / QuickDraw cursor records and MPW
+  resource type lists for `CURS` plus local docs for the named non-CODE types.
+- Selected type and reason: `CURS`, because local sources define a narrow
+  classic 16-by-16 cursor layout and the current Mac fixture exposes the type.
+- Accepted semantic fact: `macos.resource_fork.curs.layout.accepted` is
+  type-level only: 32 bytes image data, 32 bytes mask data, and 4 bytes hot
+  spot Point.
+- Candidate/deferred facts: `acur`, `cmdo`, and `vers` remain candidate
+  inventory with `payload_decode_status: unsupported`; individual `CURS`
+  payload bitmap/hotspot decoding is still unsupported.
+- Implementation scope: payload/web rows label only `CURS` type-level semantics
+  as validated accepted parser output. CODE parser/listing behavior is
+  unchanged.
+
 ## Research Coverage
 
-- [ ] 018-014 inventory reviewed.
-- [ ] Current non-CODE UI reviewed.
-- [ ] Local docs searched for present resource types.
-- [ ] One resource type selected or blocker recorded.
-- [ ] Implementation/defer decision selected.
-- [ ] CODE regression risk checked.
+- [x] 018-014 inventory reviewed.
+- [x] Current non-CODE UI reviewed.
+- [x] Local docs searched for present resource types.
+- [x] One resource type selected or blocker recorded.
+- [x] Implementation/defer decision selected.
+- [x] CODE regression risk checked.
 
 ## Research Review
 
-- [ ] Second pass checked non-CODE semantics are not over-accepted.
-- [ ] Source policy recorded.
-- [ ] CODE parser/UI behavior remains unchanged.
-- [ ] Candidate/deferred labels preserved for unsupported types.
-- [ ] Proposal/docs updated.
+- [x] Second pass checked non-CODE semantics are not over-accepted.
+- [x] Source policy recorded.
+- [x] CODE parser/UI behavior remains unchanged.
+- [x] Candidate/deferred labels preserved for unsupported types.
+- [x] Proposal/docs updated.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before implementation.
-- [ ] One non-CODE resource type selected or blocker recorded.
-- [ ] Semantic evidence classified.
-- [ ] Parser/payload/web behavior changed only if evidence supports it.
-- [ ] CODE behavior remains unchanged.
-- [ ] Relevant tests/CDP pass if behavior changes.
-- [ ] `amiga_reversing.tools.platform_executable_formats validate` passes if KB
+- [x] Proposal context checked before implementation.
+- [x] One non-CODE resource type selected or blocker recorded.
+- [x] Semantic evidence classified.
+- [x] Parser/payload/web behavior changed only if evidence supports it.
+- [x] CODE behavior remains unchanged.
+- [x] Relevant tests/CDP pass if behavior changes.
+- [x] `amiga_reversing.tools.platform_executable_formats validate` passes if KB
   changes.
-- [ ] `amiga_reversing.tools.validate_018_issues` passes.
-- [ ] Post-commit review found no unresolved worthwhile findings.
+- [x] `amiga_reversing.tools.validate_018_issues` passes.
+- [x] Post-commit review found no unresolved worthwhile findings.
+
+## Completion Evidence
+
+```text
+uv run python -m amiga_reversing.tools.platform_executable_formats validate
+uv run python -m pytest tests\test_macos_project_payload.py tests\test_web_app_source.py -q
+22 passed
+uv run python -m pytest tests\test_web_e2e_cdp.py::test_brave_cdp_macos_code_details_show_candidate_previews -q
+1 passed
+uv run python -m pytest tests\test_macos_asm_container.py tests\test_macos_c_backend.py tests\test_macos_project_payload.py tests\test_macos_target_artifact.py tests\test_macos_web_view.py -q
+19 passed
+uv run python -m amiga_reversing.tools.validate_018_issues
+```

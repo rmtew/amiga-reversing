@@ -1,6 +1,6 @@
 # 018-028: Mac OS Source-To-CODE Fixture Strategy
 
-Status: open
+Status: completed
 
 ## Proposal Context
 
@@ -63,28 +63,65 @@ Record trace blocks for:
 - selected strategy;
 - acceptance criteria for future implementation.
 
+## Resolution
+
+Decision: docs-only fixture strategy selected; no parser/payload/web behavior
+changed.
+
+Trace blocks:
+
+- Candidate fixtures inspected:
+  `MPW-GM/Interfaces&Libraries/Interfaces/AStructMacs/Sample`,
+  `MPW-GM/MPW/Examples/AExamples/Sample`, `Count`, and `Memory`.
+- Build/product evidence found: AStructMacs/Sample has `Sample.a`,
+  `Sample.make`, and `Sample.r`; AExamples/Sample has source/resource/make
+  files; Count has source/resource plus MakeFile recipe; Memory has a DRVR/data
+  file recipe.
+- Missing artifacts: no captured or reproduced built product resource fork,
+  CODE inventory, symbol/list map, or byte correspondence exists for those
+  source fixtures in this repo.
+- Selected strategy: use AStructMacs/Sample first after capturing/reproducing
+  its own product because it is the narrowest APPL source/build/product
+  fixture. Use AExamples/Sample as the semantic follow-up, Count as a small
+  secondary smoke fixture, and defer Memory until non-APPL/DRVR mapping is in
+  scope.
+- Boundary: MPW/Tools/Asm remains a separate executable/container fixture;
+  `source_segments_map_to_observed_code_resources` remains false.
+- Future acceptance criteria: same-fixture source, build recipe, object/library
+  inputs, Link/Rez commands, Finder type/creator, product hashes, extracted
+  resource-fork/CODE inventory, symbol/segment map, and source-to-CODE byte
+  validation.
+
 ## Research Coverage
 
-- [ ] Available Mac source fixtures inventoried.
-- [ ] Build recipes/products checked.
-- [ ] CODE resource inventories compared where available.
-- [ ] Preferred fixture strategy selected.
-- [ ] Missing artifacts listed.
-- [ ] No-code-change boundary checked.
+- [x] Available Mac source fixtures inventoried.
+- [x] Build recipes/products checked.
+- [x] CODE resource inventories compared where available.
+- [x] Preferred fixture strategy selected.
+- [x] Missing artifacts listed.
+- [x] No-code-change boundary checked.
 
 ## Research Review
 
-- [ ] Second pass checked no unrelated source/binary mapping is implied.
-- [ ] Fixture ranking is evidence-backed.
-- [ ] Future acceptance criteria are concrete.
-- [ ] Proposal/docs updated.
+- [x] Second pass checked no unrelated source/binary mapping is implied.
+- [x] Fixture ranking is evidence-backed.
+- [x] Future acceptance criteria are concrete.
+- [x] Proposal/docs updated.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before implementation.
-- [ ] Fixture strategy recorded.
-- [ ] Candidate fixtures ranked or blocker recorded.
-- [ ] Source/binary boundary remains safe.
-- [ ] No code files modified.
-- [ ] `amiga_reversing.tools.validate_018_issues` passes.
-- [ ] Post-commit review found no unresolved worthwhile findings.
+- [x] Proposal context checked before implementation.
+- [x] Fixture strategy recorded.
+- [x] Candidate fixtures ranked or blocker recorded.
+- [x] Source/binary boundary remains safe.
+- [x] No code files modified.
+- [x] `amiga_reversing.tools.validate_018_issues` passes.
+- [x] Post-commit review found no unresolved worthwhile findings.
+
+## Completion Evidence
+
+```text
+Docs/research-only issue. No parser/payload/web behavior changes were made for
+018-028.
+uv run python -m amiga_reversing.tools.validate_018_issues
+```

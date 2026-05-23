@@ -1069,6 +1069,37 @@
             }
           ],
           "parser_use": "candidate_only"
+        },
+        {
+          "id": "macos.resource_fork.curs.layout.accepted",
+          "layer": "file_structure",
+          "status": "validated",
+          "source_type": "old_out_of_print",
+          "summary": "A classic CURS resource is a type-level 16-by-16 cursor resource with 32 bytes of image data, 32 bytes of mask data, and a Point hot spot.",
+          "citations": [
+            {
+              "source_id": "inside-macintosh-volume-iii-1985",
+              "source_type": "old_out_of_print",
+              "target": "ext/docs_macos/Inside_Macintosh_Volume_III_1985.md source-page 150",
+              "context": "The QuickDraw Cursor record defines data, mask, and hotSpot fields."
+            },
+            {
+              "source_id": "programming-with-mpw-1987",
+              "source_type": "old_out_of_print",
+              "target": "ext/docs_macos/Programming_With_Macintosh_Programmers_Workshop_1987.md resource type list",
+              "context": "The resource type list identifies CURS as a 16x16 cursor resource."
+            }
+          ],
+          "parser_use": "accepted_parser_output",
+          "required_parser_behavior": "fail_closed",
+          "details": {
+            "resource_type": "CURS",
+            "type_level_only": true,
+            "payload_decode_status": "unsupported",
+            "image_bytes": 32,
+            "mask_bytes": 32,
+            "hotspot_bytes": 4
+          }
         }
       ],
       "unknowns": [
@@ -2207,6 +2238,48 @@
       "parser_behavior_before_kb_migration": "emit_candidate"
     },
     {
+      "id": "macos.packet.byte_entry_rule.blocked",
+      "platform_id": "macos",
+      "fact_candidate_id": "macos.code_resource.byte_entry_rule",
+      "wording": "Local Mac/MPW sources validate CODE resources, CODE 0 jump-table metadata, nonzero CODE headers, and CODE 1 startup through the first jump-table entry, but they do not validate a byte-level executable-entry boundary inside nonzero CODE payloads. The observed movea.l (a7)+,a0 boundary remains candidate-only and cannot be promoted from project observation alone.",
+      "status": "deferred",
+      "source_type": "old_out_of_print",
+      "license_status": "old_out_of_print_reference_excerpt",
+      "affects": [
+        "runtime_entry_model",
+        "analysis_model",
+        "renderer_expectation"
+      ],
+      "citations": [
+        {
+          "source_id": "inside-macintosh-volume-ii-1985",
+          "source_type": "old_out_of_print",
+          "target": "ext/docs_macos/Inside_Macintosh_Volume_II_1985.md source-pages 70-71",
+          "context": "The Jump Table section defines nonzero segment headers, CODE 0 jump-table metadata, jump-table entries, and CODE 1 startup through the first jump-table entry, but does not define a byte-level CODE payload entry boundary."
+        },
+        {
+          "source_id": "programming-with-mpw-1987",
+          "source_type": "old_out_of_print",
+          "target": "ext/docs_macos/Programming_With_Macintosh_Programmers_Workshop_1987.md source-page 566",
+          "context": "The MPW manual describes object files as module containers with a main-entry provision, but this is object/link context rather than an accepted CODE resource byte-entry rule."
+        },
+        {
+          "source_id": "proposal-012",
+          "source_type": "project_observed",
+          "target": "docs/proposals/012-classic-mac-os-m68k-platform.md blocked corrective scope",
+          "context": "The project-observed movea.l boundary is explicitly heuristic and candidate-only."
+        }
+      ],
+      "conflicts": [],
+      "missing_evidence": [
+        "Need a cited or parser-asserted rule for the executable byte offset inside nonzero CODE payloads.",
+        "Need a cited rule tying first jump-table routine entry semantics to the payload byte boundary used for listing extraction.",
+        "Need a cited runtime/startup convention explaining movea.l (a7)+,a0 as the accepted entry instruction rather than a fixture observation.",
+        "Need a parsed source/object/link map if source-level main-entry evidence is to authorize CODE resource byte boundaries."
+      ],
+      "parser_behavior_before_kb_migration": "emit_placeholder"
+    },
+    {
       "id": "macos.packet.segment_relocation_fixups.deferred",
       "platform_id": "macos",
       "fact_candidate_id": "macos.segment_loader.relocation_fixups",
@@ -2243,6 +2316,49 @@
       "missing_evidence": [
         "Need direct Segment Loader/Linker fixup byte-layout citations before accepted parser behavior.",
         "Current local evidence does not identify on-disk relocation/fixup records or how to apply them to CODE payload bytes."
+      ],
+      "parser_behavior_before_kb_migration": "emit_placeholder"
+    },
+    {
+      "id": "macos.packet.segment_relocation_fixups.implementation_blocked",
+      "platform_id": "macos",
+      "fact_candidate_id": "macos.segment_loader.relocation_fixups.implementation_path",
+      "wording": "A Mac CODE relocation/fixup parser slice is not implementation-ready. Local evidence supports Segment Loader runtime memory-relocation context and project-local searches find later PEF/CFM relocation formats, but no accepted or parser-asserted source identifies classic 68K CODE resource fixup records, their encoding, affected payload offsets, or Segment Loader application rules.",
+      "status": "deferred",
+      "source_type": "project_observed",
+      "license_status": "project_local",
+      "affects": [
+        "loader_model",
+        "analysis_model",
+        "renderer_expectation"
+      ],
+      "citations": [
+        {
+          "source_id": "programming-with-mpw-1987",
+          "source_type": "old_out_of_print",
+          "target": "ext/docs_macos/Programming_With_Macintosh_Programmers_Workshop_1987.md source-page 69",
+          "context": "Segment Loader loading can cause heap compaction and block relocation; this is runtime memory context, not on-disk CODE fixup layout."
+        },
+        {
+          "source_id": "proposal-018",
+          "source_type": "project_observed",
+          "target": "docs/issues/018-021-macos-relocation-fixup-citation-packet.md completion evidence",
+          "context": "018-021 searched local Mac/MPW sources and preserved relocation/fixup interpretation as deferred because byte layout was missing."
+        },
+        {
+          "source_id": "proposal-012",
+          "source_type": "project_observed",
+          "target": "docs/proposals/012-classic-mac-os-m68k-platform.md closeout matrix",
+          "context": "Proposal 012 requires recovered on-disk fixup format and application rules before relocation-aware interpretation."
+        }
+      ],
+      "conflicts": [],
+      "missing_evidence": [
+        "Need classic 68K CODE resource fixup record location and ownership: resource fork, CODE resource payload, object/link metadata, or loader-private data.",
+        "Need fixup record encoding, lengths, grouping, and termination rules for classic 68K CODE resources.",
+        "Need mapping from each fixup record to affected CODE payload offsets and target bases.",
+        "Need Segment Loader application rules: when fixups are applied, which base addresses or A5/jump-table values are used, and whether bytes in the resource fork are already linked or require load-time mutation.",
+        "Need a fixture or source/object/link trace with expected relocated bytes before parser output can move beyond deferred placeholders."
       ],
       "parser_behavior_before_kb_migration": "emit_placeholder"
     },
@@ -2303,6 +2419,39 @@
       "conflicts": [],
       "missing_evidence": [
         "No local accepted source was found that makes acur, CURS, cmdo, or vers executable CODE resources for the MPW Asm target."
+      ],
+      "parser_behavior_before_kb_migration": "emit_candidate"
+    },
+    {
+      "id": "macos.packet.resource.curs.layout",
+      "platform_id": "macos",
+      "fact_candidate_id": "macos.resource_fork.curs.layout",
+      "wording": "Classic Mac OS CURS resources describe 16-by-16 cursors with image data, mask data, and a hot spot. This authorizes type-level CURS semantics only; current Mac output still does not decode individual CURS payload bytes.",
+      "status": "validated",
+      "source_type": "old_out_of_print",
+      "license_status": "old_out_of_print_reference_excerpt",
+      "affects": [
+        "file_structure",
+        "renderer_expectation"
+      ],
+      "citations": [
+        {
+          "source_id": "inside-macintosh-volume-iii-1985",
+          "source_type": "old_out_of_print",
+          "target": "ext/docs_macos/Inside_Macintosh_Volume_III_1985.md source-page 150",
+          "context": "The QuickDraw Cursor record defines data, mask, and hotSpot fields."
+        },
+        {
+          "source_id": "programming-with-mpw-1987",
+          "source_type": "old_out_of_print",
+          "target": "ext/docs_macos/Programming_With_Macintosh_Programmers_Workshop_1987.md resource type list",
+          "context": "The resource type list identifies CURS as a 16x16 cursor resource."
+        }
+      ],
+      "conflicts": [],
+      "missing_evidence": [
+        "Current output has resource type counts, not per-resource CURS payload bytes or decoded bitmap/hotspot fields.",
+        "Other non-CODE resource types in the MPW Asm fixture remain candidate inventory only."
       ],
       "parser_behavior_before_kb_migration": "emit_candidate"
     },

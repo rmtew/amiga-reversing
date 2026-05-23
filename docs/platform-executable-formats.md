@@ -169,7 +169,10 @@ macos.packet.a5_jump_table_offset
 macos.packet.mpw_link_application_output
 macos.packet.mpw_asm_fixture_code_inventory
 macos.packet.movea_stack_a0_boundary
+macos.packet.byte_entry_rule.blocked
 macos.packet.segment_relocation_fixups.deferred
+macos.packet.segment_relocation_fixups.implementation_blocked
+macos.packet.resource.curs.layout
 ```
 
 Validated packets cite local old out-of-print markdown sources. Project-observed
@@ -741,6 +744,28 @@ The web UI renders these rows separately from CODE resources so CODE 0 metadata,
 selected CODE 1 listing, and non-selected CODE previews keep their existing
 behavior.
 
+## Mac CURS Resource Semantic Slice
+
+018-029 selects `CURS` as the first non-CODE semantic slice.
+
+Accepted type-level semantics:
+
+```text
+Resource type: CURS
+Fact: macos.resource_fork.curs.layout.accepted
+Source: Inside Macintosh Volume III QuickDraw Cursor record
+Layout: 32 bytes image data, 32 bytes mask data, 4 bytes hot spot Point
+Parser use: accepted_parser_output for type-level semantics only
+Payload decode: unsupported
+```
+
+The Mac payload/web rows may label `CURS` as validated because local sources
+define the cursor resource layout, but the current parser still exposes only
+resource type counts for non-CODE resources. It does not extract individual
+CURS payload bytes or render bitmap/hotspot fields. Other non-CODE types such
+as `acur`, `cmdo`, and `vers` remain candidate inventory with unsupported
+payload decoding.
+
 ## Mac CODE 0 Jump-Table Drilldown
 
 018-024 adds structured CODE 0 jump-table rows to
@@ -758,6 +783,42 @@ Candidate target fields:
 CODE 0 remains metadata/jump-table-only. The drilldown separates accepted entry
 layout from candidate target/routine interpretation, and the web/artifact views
 do not decode CODE 0 as ordinary m68k code.
+
+## Mac Byte-Entry Rule Resolution
+
+018-026 rechecked local Mac/MPW docs and existing KB packets for a byte-level
+nonzero CODE entry rule.
+
+Checked evidence:
+
+```text
+Inside Macintosh Volume II source-pages 70-71:
+  validates nonzero CODE segment headers, CODE 0 jump-table metadata,
+  jump-table entries, and CODE 1 startup through the first jump-table entry.
+
+Programming With Macintosh Programmer's Workshop source-page 566:
+  validates MPW object module/main-entry context, not CODE resource byte-entry
+  layout.
+
+Project-observed MPW Asm bytes:
+  show movea.l (a7)+,a0 at the current selected CODE 1 boundary, but remain
+  fixture observation only.
+```
+
+Decision:
+
+```text
+macos.packet.byte_entry_rule.blocked is deferred.
+macos.code_resource.movea_stack_a0.boundary remains candidate_only.
+macos.code_resource.byte_entry_rule.unknown remains deferred.
+Parser, payload, artifact, and web behavior are unchanged.
+```
+
+The missing blocker is exact byte-entry authority: a cited or parser-asserted
+rule for the executable byte offset inside nonzero CODE payloads, including how
+first jump-table entry semantics map to that byte offset. Source/object main
+entry evidence cannot authorize CODE bytes until a source/object/link map is
+available.
 
 ## Mac Relocation/Fixup Research Packet
 
@@ -795,6 +856,34 @@ The KB now records
 `macos.packet.segment_loader.memory_relocation_context` as candidate evidence
 and keeps `macos.segment_loader.relocation_fixups.deferred` deferred. Parser,
 payload, artifact, and web output are unchanged.
+
+## Mac Relocation/Fixup Implementation Path
+
+018-027 checked whether the 018-021 evidence is sufficient for a narrow parser
+implementation slice.
+
+Assessment:
+
+```text
+Implementation-ready: no.
+
+Accepted/current:
+- Segment Loader loads CODE resources and updates jump-table state.
+- Runtime loading can cause Memory Manager heap/block relocation.
+
+Rejected as insufficient:
+- Runtime heap/block relocation context does not identify on-disk CODE fixups.
+- Project-local MPW interface searches find PEF/CFM relocation structures, but
+  those are later Code Fragment Manager formats, not classic 68K CODE resource
+  Segment Loader fixup evidence.
+```
+
+The blocker packet is
+`macos.packet.segment_relocation_fixups.implementation_blocked`. Required
+evidence before implementation: classic 68K CODE fixup record location,
+encoding, grouping/termination, affected payload offsets, loader application
+rules, and a fixture or source/object/link trace with expected relocated bytes.
+Parser, payload, artifact, and web behavior remain unchanged.
 
 ## Mac Source-To-CODE Mapping Research
 
@@ -835,6 +924,49 @@ The KB now records
 `macos.packet.mpw.source_segment_to_code_resource_names` as validated source
 mapping evidence. The current project payload boundary remains
 `source_segments_map_to_observed_code_resources: false`.
+
+## Mac Source-To-CODE Fixture Strategy
+
+018-028 selects a future fixture strategy without changing parser, payload,
+artifact, or web behavior.
+
+Fixture ranking:
+
+```text
+1. MPW-GM/Interfaces&Libraries/Interfaces/AStructMacs/Sample
+   Best first fixture once a built product is available. It has a single
+   assembler source, Sample.make, Sample.r, and APPL output recipe, so the
+   source/build/product relationship is narrow.
+
+2. MPW-GM/MPW/Examples/AExamples/Sample
+   Best semantic follow-up. It matches the existing source-view baseline and
+   has richer source/resource structure, but its multi-file build has more
+   dependencies and still needs its own built product.
+
+3. MPW-GM/MPW/Examples/AExamples/Count
+   Useful small secondary smoke fixture. It has source/resource inputs and a
+   MakeFile recipe, but less semantic breadth than Sample.
+
+4. MPW-GM/MPW/Examples/AExamples/Memory
+   Not first. It builds a DRVR/data-file style target, so it should wait until
+   application CODE mapping is proven.
+```
+
+Acceptance criteria for future implementation:
+
+```text
+- Capture or reproduce the selected fixture's exact built product.
+- Record source, object inputs, libraries, Link/Rez commands, Finder
+  type/creator, and product hashes.
+- Extract product resource-fork and CODE inventory from that same product.
+- Compare source SEG/main-entry evidence to that product's CODE resource names,
+  symbol/listing map, and byte ranges.
+- Keep MPW/Tools/Asm separate unless its own source/build/product evidence is
+  found.
+```
+
+Until those artifacts exist, `source_segments_map_to_observed_code_resources`
+stays false and source-to-CODE claims remain candidate/deferred.
 
 ## Current Limits
 
