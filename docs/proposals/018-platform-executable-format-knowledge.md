@@ -371,6 +371,17 @@ defer, or convert weak accepted claims rather than relying on structural
 validation alone. Do not change parser/rendering behavior.
 ```
 
+018-017. Mac OS Nonselected CODE Preview And Windowing
+
+```text
+After 018-010. Add bounded candidate preview/listing windows for non-selected
+nonzero Mac CODE resources where current classified ranges support them. CODE 0
+must remain metadata-only, selected CODE 1 must keep the existing full listing
+route, previews must be bounded to candidate code ranges, and relocation/fixup
+or byte-entry semantics must remain candidate/deferred until separately
+validated.
+```
+
 ## Implementation Notes
 
 - 018-001 added the canonical human/schema/data authority files:
@@ -469,6 +480,12 @@ validation alone. Do not change parser/rendering behavior.
   permits metadata-only inventory. Their purpose is to advance Amiga/Atari KB
   acceptance, generated fact-table infrastructure, MPW format research, and
   citation quality without blocking the Mac rendering slice.
+- 018-017 added bounded candidate preview windows for non-selected nonzero Mac
+  CODE resources where the existing classifier exposes `candidate_code` ranges.
+  CODE 0 remains metadata/jump-table only, selected CODE 1 keeps the full
+  listing route, preview rows stay `candidate_only`, and relocation/fixup
+  interpretation remains deferred. Resources without candidate code ranges keep
+  structured placeholders that name the classifier evidence blocking preview.
 
 ## Relationship To 012
 
@@ -481,6 +498,10 @@ evidence, and deferred relocation placeholders structurally. 018-010 now exposes
 that structure in per-CODE payload/navigation/artifact views, while keeping
 unresolved byte-entry and relocation semantics candidate/deferred rather than
 accepted.
+018-017 makes those non-selected CODE views inspectable with bounded
+candidate-only preview windows where safe ranges exist; it still does not close
+Proposal 012 because the byte-entry rule and relocation/fixup semantics remain
+candidate/deferred.
 
 018 sits above 011 and 012 as the shared executable/container format authority.
 It does not absorb all platform knowledge; it owns file structure, loader model,

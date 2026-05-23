@@ -75,7 +75,13 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     assert "reason=CODE 0 is jump-table/application metadata, not ordinary m68k code" in asm_text
     assert ";   CODE 1 Main: role=code_segment" in asm_text
     assert "listing: kind=full_listing available=True route=listing" in asm_text
+    assert "listing: kind=candidate_preview available=True route=code_preview" in asm_text
     assert "listing: kind=structured_placeholder available=False" in asm_text
+    assert ";     previews:" in asm_text
+    assert "candidate_code_preview: start=" in asm_text
+    assert "range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate" in asm_text
+    assert "bounded=True" in asm_text
+    assert "row: offset=" in asm_text
     assert "accepted_segment_metadata" in asm_text
     assert "candidate_routine_entry" in asm_text
     assert "status=candidate parser_use=candidate_only" in asm_text
@@ -84,6 +90,7 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     assert "fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate" in asm_text
     assert ";   relocation_fixups:" in asm_text
     assert "fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only" in asm_text
+    assert "no candidate preview range; classifier deferred byte-entry evidence" in asm_text
     assert "missing_m68k_movea_l_stack_to_a0_entry" in asm_text
     assert "; Classic Mac OS CODE resource listing" in asm_text
     assert "; resource: CODE 1 Main" in asm_text

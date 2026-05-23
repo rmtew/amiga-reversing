@@ -656,6 +656,29 @@ Project-observed-only general claims remain candidate or deferred. The new
 Amiga/Atari accepted reference slices are parser assertions with reason,
 citation context, standard interpretation, and review status.
 
+## Mac Nonselected CODE Preview Windows
+
+018-017 adds bounded preview descriptors for non-selected nonzero Mac CODE
+resources when the current C-backed classifier exposes a `candidate_code`
+range.
+
+Preview policy:
+
+```text
+CODE 0: metadata/jump-table only; no preview.
+Selected CODE 1: existing full listing route.
+Other nonzero CODE resources with candidate_code ranges: candidate preview,
+bounded to the classified candidate range and capped at 64 bytes.
+Other nonzero CODE resources without candidate_code ranges: structured
+placeholder with the classifier evidence explaining why no preview is safe.
+```
+
+Preview rows inherit the candidate fact
+`macos.code_resource.movea_stack_a0.boundary.candidate` and
+`candidate_only` parser use. Relocation/fixup interpretation remains deferred
+through `macos.segment_loader.relocation_fixups.deferred`; preview windows do
+not promote byte-entry or relocation semantics to accepted output.
+
 ## Current Limits
 
 018-001 does not change parser or renderer behavior.

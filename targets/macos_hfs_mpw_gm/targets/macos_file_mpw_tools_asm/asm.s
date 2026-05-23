@@ -134,6 +134,7 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     relocation_fixups:
 ;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
 ;     listing: kind=metadata available=False route=unknown reason=CODE 0 is jump-table/application metadata, not ordinary m68k code
+;     previews: none
 ;   CODE 1 Main: role=code_segment kind=code_segment payload_size=29024 sha256=4a543f6fd1c542fccd38ec9f469b06f65c797dfd8b226fefc9f576faafbe70f5 fact=macos.resource_fork.code_resources.accepted status=validated
 ;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
 ;     anchors:
@@ -148,6 +149,7 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     relocation_fixups:
 ;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
 ;     listing: kind=full_listing available=True route=listing reason=unknown
+;     previews: none
 ;   CODE 2 FPOpTable: role=code_segment kind=code_segment payload_size=7788 sha256=a33f1dfe28237a5ee6f9ba7a96540e8e4842a7e6207575db5f0479b8c622a4f2 fact=macos.resource_fork.code_resources.accepted status=validated
 ;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
 ;     anchors:
@@ -161,7 +163,42 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     candidate_data_island: start=4 end=374 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
 ;     relocation_fixups:
 ;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
-;     listing: kind=structured_placeholder available=False route=unknown reason=full per-resource listing deferred until relocation/source-boundary context is represented
+;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
+;     previews:
+;       candidate_code_preview: start=374 end=438 size=64 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only bounded=True truncated=True reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
+;         deferred: scope=relocation_fixups fact=macos.segment_loader.relocation_fixups.deferred status=deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;         row: offset=374 end=376 bytes=00 00 text=dc.w $0000 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=376 end=378 bytes=0c 12 text=dc.w $0c12 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=378 end=380 bytes=0c 30 text=dc.w $0c30 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=380 end=382 bytes=0c 3e text=dc.w $0c3e range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=382 end=384 bytes=00 00 text=dc.w $0000 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=384 end=386 bytes=0c 6a text=dc.w $0c6a range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=386 end=388 bytes=0c c2 text=dc.w $0cc2 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=388 end=390 bytes=00 00 text=dc.w $0000 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=390 end=392 bytes=0c e2 text=dc.w $0ce2 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=392 end=394 bytes=0d 9a text=dc.w $0d9a range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=394 end=396 bytes=0d ac text=dc.w $0dac range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=396 end=398 bytes=0d da text=dc.w $0dda range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=398 end=400 bytes=0d ec text=dc.w $0dec range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=400 end=402 bytes=00 00 text=dc.w $0000 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=402 end=404 bytes=00 00 text=dc.w $0000 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=404 end=406 bytes=0e 1a text=dc.w $0e1a range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=406 end=408 bytes=0e 28 text=dc.w $0e28 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=408 end=410 bytes=0e 46 text=dc.w $0e46 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=410 end=412 bytes=00 00 text=dc.w $0000 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=412 end=414 bytes=0e 56 text=dc.w $0e56 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=414 end=416 bytes=0e 7a text=dc.w $0e7a range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=416 end=418 bytes=0e 96 text=dc.w $0e96 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=418 end=420 bytes=00 00 text=dc.w $0000 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=420 end=422 bytes=0e c0 text=dc.w $0ec0 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=422 end=424 bytes=00 00 text=dc.w $0000 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=424 end=426 bytes=0e d0 text=dc.w $0ed0 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=426 end=428 bytes=00 00 text=dc.w $0000 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=428 end=430 bytes=0e de text=dc.w $0ede range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=430 end=432 bytes=0e fe text=dc.w $0efe range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=432 end=434 bytes=0f 18 text=dc.w $0f18 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=434 end=436 bytes=0f 34 text=dc.w $0f34 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=436 end=438 bytes=0f 58 text=dc.w $0f58 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
 ;   CODE 3 Init: role=code_segment kind=code_segment payload_size=18252 sha256=331fc8e7daf79d4e733760cb8ad413ade51431a01dd6c19c4f73720f562b08e4 fact=macos.resource_fork.code_resources.accepted status=validated
 ;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
 ;     anchors:
@@ -175,7 +212,42 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     candidate_data_island: start=4 end=302 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
 ;     relocation_fixups:
 ;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
-;     listing: kind=structured_placeholder available=False route=unknown reason=full per-resource listing deferred until relocation/source-boundary context is represented
+;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
+;     previews:
+;       candidate_code_preview: start=302 end=366 size=64 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only bounded=True truncated=True reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
+;         deferred: scope=relocation_fixups fact=macos.segment_loader.relocation_fixups.deferred status=deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;         row: offset=302 end=304 bytes=4a 9f text=dc.w $4a9f range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=304 end=306 bytes=6c 04 text=dc.w $6c04 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=306 end=308 bytes=42 2e text=dc.w $422e range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=308 end=310 bytes=fe fc text=dc.w $fefc range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=310 end=312 bytes=42 67 text=dc.w $4267 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=312 end=314 bytes=48 6e text=dc.w $486e range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=314 end=316 bytes=fe fc text=dc.w $fefc range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=316 end=318 bytes=48 6d text=dc.w $486d range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=318 end=320 bytes=ed 70 text=dc.w $ed70 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=320 end=322 bytes=4e ad text=dc.w $4ead range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=322 end=324 bytes=00 62 text=dc.w $0062 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=324 end=326 bytes=1b 5f text=dc.w $1b5f range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=326 end=328 bytes=eb 69 text=dc.w $eb69 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=328 end=330 bytes=70 00 text=dc.w $7000 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=330 end=332 bytes=2b 40 text=dc.w $2b40 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=332 end=334 bytes=ed 62 text=dc.w $ed62 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=334 end=336 bytes=1b 7c text=dc.w $1b7c range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=336 end=338 bytes=00 01 text=dc.w $0001 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=338 end=340 bytes=ee 70 text=dc.w $ee70 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=340 end=342 bytes=42 6d text=dc.w $426d range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=342 end=344 bytes=ed 6c text=dc.w $ed6c range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=344 end=346 bytes=70 00 text=dc.w $7000 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=346 end=348 bytes=2b 40 text=dc.w $2b40 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=348 end=350 bytes=ed 68 text=dc.w $ed68 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=350 end=352 bytes=42 2d text=dc.w $422d range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=352 end=354 bytes=ec fe text=dc.w $ecfe range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=354 end=356 bytes=70 00 text=dc.w $7000 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=356 end=358 bytes=2b 40 text=dc.w $2b40 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=358 end=360 bytes=ec f8 text=dc.w $ecf8 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=360 end=362 bytes=42 2d text=dc.w $422d range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=362 end=364 bytes=f0 73 text=dc.w $f073 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=364 end=366 bytes=42 2d text=dc.w $422d range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
 ;   CODE 4 IOMgr: role=code_segment kind=code_segment payload_size=6426 sha256=a697293e579b91031cb9bb37cd80a4f47d2acb9eff60a4f4b7e3cb9a18fd4fca fact=macos.resource_fork.code_resources.accepted status=validated
 ;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
 ;     anchors:
@@ -189,7 +261,42 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     candidate_data_island: start=4 end=468 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
 ;     relocation_fixups:
 ;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
-;     listing: kind=structured_placeholder available=False route=unknown reason=full per-resource listing deferred until relocation/source-boundary context is represented
+;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
+;     previews:
+;       candidate_code_preview: start=468 end=532 size=64 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only bounded=True truncated=True reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
+;         deferred: scope=relocation_fixups fact=macos.segment_loader.relocation_fixups.deferred status=deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;         row: offset=468 end=470 bytes=fd fc text=dc.w $fdfc range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=470 end=472 bytes=48 e7 text=dc.w $48e7 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=472 end=474 bytes=01 08 text=dc.w $0108 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=474 end=476 bytes=28 6e text=dc.w $286e range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=476 end=478 bytes=00 0a text=dc.w $000a range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=478 end=480 bytes=42 67 text=dc.w $4267 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=480 end=482 bytes=2f 0c text=dc.w $2f0c range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=482 end=484 bytes=48 6e text=dc.w $486e range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=484 end=486 bytes=ff 00 text=dc.w $ff00 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=486 end=488 bytes=48 6e text=dc.w $486e range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=488 end=490 bytes=fe fe text=dc.w $fefe range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=490 end=492 bytes=48 6e text=dc.w $486e range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=492 end=494 bytes=fe ff text=dc.w $feff range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=494 end=496 bytes=4e ad text=dc.w $4ead range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=496 end=498 bytes=09 0a text=dc.w $090a range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=498 end=500 bytes=3e 1f text=dc.w $3e1f range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=500 end=502 bytes=3d 47 text=dc.w $3d47 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=502 end=504 bytes=00 0e text=dc.w $000e range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=504 end=506 bytes=10 2e text=dc.w $102e range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=506 end=508 bytes=fe ff text=dc.w $feff range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=508 end=510 bytes=67 52 text=dc.w $6752 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=510 end=512 bytes=4a 47 text=dc.w $4a47 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=512 end=514 bytes=57 c0 text=dc.w $57c0 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=514 end=516 bytes=4a 00 text=dc.w $4a00 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=516 end=518 bytes=66 0a text=dc.w $660a range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=518 end=520 bytes=72 d5 text=dc.w $72d5 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=520 end=522 bytes=b2 47 text=dc.w $b247 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=522 end=524 bytes=57 c1 text=dc.w $57c1 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=524 end=526 bytes=80 01 text=dc.w $8001 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=526 end=528 bytes=67 0c text=dc.w $670c range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=528 end=530 bytes=48 6e text=dc.w $486e range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=530 end=532 bytes=ff 00 text=dc.w $ff00 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
 ;   CODE 5 Macros: role=code_segment kind=code_segment payload_size=26638 sha256=90b898d2148ba2c3b798bed0c8c5dc936fba9ed3e8b958d279db4b279a033dfc fact=macos.resource_fork.code_resources.accepted status=validated
 ;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
 ;     anchors:
@@ -203,7 +310,42 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     candidate_data_island: start=4 end=212 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
 ;     relocation_fixups:
 ;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
-;     listing: kind=structured_placeholder available=False route=unknown reason=full per-resource listing deferred until relocation/source-boundary context is represented
+;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
+;     previews:
+;       candidate_code_preview: start=212 end=276 size=64 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only bounded=True truncated=True reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
+;         deferred: scope=relocation_fixups fact=macos.segment_loader.relocation_fixups.deferred status=deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;         row: offset=212 end=214 bytes=48 6e text=dc.w $486e range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=214 end=216 bytes=fd f2 text=dc.w $fdf2 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=216 end=218 bytes=48 6e text=dc.w $486e range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=218 end=220 bytes=fd f1 text=dc.w $fdf1 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=220 end=222 bytes=48 6e text=dc.w $486e range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=222 end=224 bytes=fd ee text=dc.w $fdee range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=224 end=226 bytes=4e ad text=dc.w $4ead range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=226 end=228 bytes=02 2a text=dc.w $022a range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=228 end=230 bytes=10 1f text=dc.w $101f range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=230 end=232 bytes=66 0a text=dc.w $660a range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=232 end=234 bytes=3f 2e text=dc.w $3f2e range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=234 end=236 bytes=fd ee text=dc.w $fdee range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=236 end=238 bytes=4e ad text=dc.w $4ead range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=238 end=240 bytes=07 ca text=dc.w $07ca range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=240 end=242 bytes=60 54 text=dc.w $6054 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=242 end=244 bytes=10 2e text=dc.w $102e range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=244 end=246 bytes=fd f1 text=dc.w $fdf1 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=246 end=248 bytes=66 1a text=dc.w $661a range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=248 end=250 bytes=59 4f text=dc.w $594f range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=250 end=252 bytes=2f 2e text=dc.w $2f2e range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=252 end=254 bytes=fd f2 text=dc.w $fdf2 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=254 end=256 bytes=4e ad text=dc.w $4ead range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=256 end=258 bytes=00 c2 text=dc.w $00c2 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=258 end=260 bytes=20 5f text=dc.w $205f range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=260 end=262 bytes=70 00 text=dc.w $7000 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=262 end=264 bytes=10 18 text=dc.w $1018 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=264 end=266 bytes=60 02 text=dc.w $6002 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=266 end=268 bytes=18 d8 text=dc.w $18d8 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=268 end=270 bytes=51 c8 text=dc.w $51c8 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=270 end=272 bytes=ff fc text=dc.w $fffc range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=272 end=274 bytes=60 34 text=dc.w $6034 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=274 end=276 bytes=53 00 text=dc.w $5300 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
 ;   CODE 6 OpTable: role=code_segment kind=code_segment payload_size=15158 sha256=75005bca2e9e007ce374020416127735d9096e064806e4e1e1b888cd3ba8a9cf fact=macos.resource_fork.code_resources.accepted status=validated
 ;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
 ;     anchors:
@@ -217,7 +359,42 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     candidate_data_island: start=4 end=58 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
 ;     relocation_fixups:
 ;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
-;     listing: kind=structured_placeholder available=False route=unknown reason=full per-resource listing deferred until relocation/source-boundary context is represented
+;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
+;     previews:
+;       candidate_code_preview: start=58 end=122 size=64 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only bounded=True truncated=True reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
+;         deferred: scope=relocation_fixups fact=macos.segment_loader.relocation_fixups.deferred status=deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;         row: offset=58 end=60 bytes=74 00 text=dc.w $7400 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=60 end=62 bytes=60 72 text=dc.w $6072 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=62 end=64 bytes=20 08 text=dc.w $2008 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=64 end=66 bytes=08 00 text=dc.w $0800 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=66 end=68 bytes=00 00 text=dc.w $0000 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=68 end=70 bytes=67 02 text=dc.w $6702 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=70 end=72 bytes=52 80 text=dc.w $5280 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=72 end=74 bytes=52 80 text=dc.w $5280 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=74 end=76 bytes=20 40 text=dc.w $2040 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=76 end=78 bytes=58 4f text=dc.w $584f range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=78 end=80 bytes=12 18 text=dc.w $1218 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=80 end=82 bytes=24 08 text=dc.w $2408 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=82 end=84 bytes=22 5f text=dc.w $225f range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=84 end=86 bytes=32 81 text=dc.w $3281 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=86 end=88 bytes=10 18 text=dc.w $1018 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=88 end=90 bytes=12 18 text=dc.w $1218 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=90 end=92 bytes=22 5f text=dc.w $225f range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=92 end=94 bytes=32 81 text=dc.w $3281 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=94 end=96 bytes=08 00 text=dc.w $0800 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=96 end=98 bytes=00 06 text=dc.w $0006 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=98 end=100 bytes=66 1e text=dc.w $661e range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=100 end=102 bytes=08 00 text=dc.w $0800 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=102 end=104 bytes=00 05 text=dc.w $0005 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=104 end=106 bytes=66 18 text=dc.w $6618 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=106 end=108 bytes=12 10 text=dc.w $1210 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=108 end=110 bytes=02 01 text=dc.w $0201 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=110 end=112 bytes=00 23 text=dc.w $0023 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=112 end=114 bytes=b2 6d text=dc.w $b26d range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=114 end=116 bytes=f3 98 text=dc.w $f398 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=116 end=118 bytes=6f 0c text=dc.w $6f0c range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=118 end=120 bytes=1b 7c text=dc.w $1b7c range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=120 end=122 bytes=00 01 text=dc.w $0001 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
 ;   CODE 7 POpTable: role=code_segment kind=code_segment payload_size=4142 sha256=3bc5de90c439ad5e0f7e5d4635b445022db8ab231a9b43981dbd95673ac0b78e fact=macos.resource_fork.code_resources.accepted status=validated
 ;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
 ;     anchors:
@@ -231,7 +408,42 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     candidate_data_island: start=4 end=352 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
 ;     relocation_fixups:
 ;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
-;     listing: kind=structured_placeholder available=False route=unknown reason=full per-resource listing deferred until relocation/source-boundary context is represented
+;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
+;     previews:
+;       candidate_code_preview: start=352 end=416 size=64 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only bounded=True truncated=True reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
+;         deferred: scope=relocation_fixups fact=macos.segment_loader.relocation_fixups.deferred status=deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;         row: offset=352 end=354 bytes=00 00 text=dc.w $0000 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=354 end=356 bytes=07 36 text=dc.w $0736 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=356 end=358 bytes=00 00 text=dc.w $0000 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=358 end=360 bytes=00 00 text=dc.w $0000 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=360 end=362 bytes=00 00 text=dc.w $0000 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=362 end=364 bytes=00 00 text=dc.w $0000 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=364 end=366 bytes=00 00 text=dc.w $0000 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=366 end=368 bytes=00 00 text=dc.w $0000 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=368 end=370 bytes=00 00 text=dc.w $0000 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=370 end=372 bytes=07 46 text=dc.w $0746 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=372 end=374 bytes=00 00 text=dc.w $0000 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=374 end=376 bytes=00 00 text=dc.w $0000 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=376 end=378 bytes=00 00 text=dc.w $0000 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=378 end=380 bytes=00 00 text=dc.w $0000 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=380 end=382 bytes=00 00 text=dc.w $0000 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=382 end=384 bytes=00 00 text=dc.w $0000 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=384 end=386 bytes=00 00 text=dc.w $0000 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=386 end=388 bytes=00 00 text=dc.w $0000 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=388 end=390 bytes=00 00 text=dc.w $0000 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=390 end=392 bytes=00 00 text=dc.w $0000 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=392 end=394 bytes=00 00 text=dc.w $0000 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=394 end=396 bytes=00 00 text=dc.w $0000 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=396 end=398 bytes=00 00 text=dc.w $0000 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=398 end=400 bytes=00 00 text=dc.w $0000 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=400 end=402 bytes=00 00 text=dc.w $0000 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=402 end=404 bytes=07 54 text=dc.w $0754 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=404 end=406 bytes=07 62 text=dc.w $0762 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=406 end=408 bytes=00 00 text=dc.w $0000 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=408 end=410 bytes=00 00 text=dc.w $0000 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=410 end=412 bytes=00 00 text=dc.w $0000 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=412 end=414 bytes=00 00 text=dc.w $0000 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=414 end=416 bytes=00 00 text=dc.w $0000 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
 ;   CODE 8 Listing: role=code_segment kind=code_segment payload_size=1852 sha256=5b3cd8756213ba73870bb353160d4e5dbb1a3bdd2da93157146d091b6949a2e9 fact=macos.resource_fork.code_resources.accepted status=validated
 ;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
 ;     anchors:
@@ -245,7 +457,42 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     candidate_data_island: start=4 end=42 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
 ;     relocation_fixups:
 ;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
-;     listing: kind=structured_placeholder available=False route=unknown reason=full per-resource listing deferred until relocation/source-boundary context is represented
+;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
+;     previews:
+;       candidate_code_preview: start=42 end=106 size=64 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only bounded=True truncated=True reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
+;         deferred: scope=relocation_fixups fact=macos.segment_loader.relocation_fixups.deferred status=deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;         row: offset=42 end=44 bytes=66 ee text=dc.w $66ee range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=44 end=46 bytes=60 70 text=dc.w $6070 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=46 end=48 bytes=0c 00 text=dc.w $0c00 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=48 end=50 bytes=00 c0 text=dc.w $00c0 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=50 end=52 bytes=66 6a text=dc.w $666a range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=52 end=54 bytes=26 49 text=dc.w $2649 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=54 end=56 bytes=42 41 text=dc.w $4241 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=56 end=58 bytes=12 c0 text=dc.w $12c0 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=58 end=60 bytes=51 ca text=dc.w $51ca range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=60 end=62 bytes=00 04 text=dc.w $0004 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=62 end=64 bytes=60 42 text=dc.w $6042 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=64 end=66 bytes=10 18 text=dc.w $1018 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=66 end=68 bytes=0c 00 text=dc.w $0c00 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=68 end=70 bytes=00 40 text=dc.w $0040 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=70 end=72 bytes=6d 06 text=dc.w $6d06 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=72 end=74 bytes=0c 00 text=dc.w $0c00 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=74 end=76 bytes=00 5a text=dc.w $005a range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=76 end=78 bytes=6f e8 text=dc.w $6fe8 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=78 end=80 bytes=0c 00 text=dc.w $0c00 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=80 end=82 bytes=00 61 text=dc.w $0061 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=82 end=84 bytes=6d 06 text=dc.w $6d06 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=84 end=86 bytes=0c 00 text=dc.w $0c00 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=86 end=88 bytes=00 7a text=dc.w $007a range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=88 end=90 bytes=6f dc text=dc.w $6fdc range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=90 end=92 bytes=0c 00 text=dc.w $0c00 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=92 end=94 bytes=00 30 text=dc.w $0030 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=94 end=96 bytes=6d 0a text=dc.w $6d0a range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=96 end=98 bytes=0c 00 text=dc.w $0c00 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=98 end=100 bytes=00 39 text=dc.w $0039 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=100 end=102 bytes=6e 04 text=dc.w $6e04 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=102 end=104 bytes=52 41 text=dc.w $5241 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=104 end=106 bytes=60 ce text=dc.w $60ce range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
 ;   CODE 9 Pass2: role=code_segment kind=code_segment payload_size=13946 sha256=0361ae9dcb47f31cf559372a3e42c672dcfb8920b332d4f900a7124ab6c70bf3 fact=macos.resource_fork.code_resources.accepted status=validated
 ;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
 ;     anchors:
@@ -259,7 +506,42 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     candidate_data_island: start=4 end=712 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
 ;     relocation_fixups:
 ;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
-;     listing: kind=structured_placeholder available=False route=unknown reason=full per-resource listing deferred until relocation/source-boundary context is represented
+;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
+;     previews:
+;       candidate_code_preview: start=712 end=776 size=64 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only bounded=True truncated=True reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
+;         deferred: scope=relocation_fixups fact=macos.segment_loader.relocation_fixups.deferred status=deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;         row: offset=712 end=714 bytes=21 86 text=dc.w $2186 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=714 end=716 bytes=00 00 text=dc.w $0000 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=716 end=718 bytes=60 00 text=dc.w $6000 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=718 end=720 bytes=ff 3c text=dc.w $ff3c range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=720 end=722 bytes=0c 06 text=dc.w $0c06 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=722 end=724 bytes=00 1e text=dc.w $001e range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=724 end=726 bytes=6d 08 text=dc.w $6d08 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=726 end=728 bytes=4a 2e text=dc.w $4a2e range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=728 end=730 bytes=ff fe text=dc.w $fffe range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=730 end=732 bytes=67 00 text=dc.w $6700 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=732 end=734 bytes=ff 2e text=dc.w $ff2e range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=734 end=736 bytes=1d 46 text=dc.w $1d46 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=736 end=738 bytes=ff ff text=dc.w $ffff range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=738 end=740 bytes=48 86 text=dc.w $4886 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=740 end=742 bytes=dc 46 text=dc.w $dc46 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=742 end=744 bytes=3c 3b text=dc.w $3c3b range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=744 end=746 bytes=60 06 text=dc.w $6006 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=746 end=748 bytes=4e fb text=dc.w $4efb range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=748 end=750 bytes=60 02 text=dc.w $6002 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=750 end=752 bytes=02 66 text=dc.w $0266 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=752 end=754 bytes=03 7c text=dc.w $037c range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=754 end=756 bytes=03 88 text=dc.w $0388 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=756 end=758 bytes=03 9c text=dc.w $039c range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=758 end=760 bytes=03 b4 text=dc.w $03b4 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=760 end=762 bytes=03 ca text=dc.w $03ca range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=762 end=764 bytes=03 d0 text=dc.w $03d0 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=764 end=766 bytes=03 d6 text=dc.w $03d6 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=766 end=768 bytes=03 da text=dc.w $03da range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=768 end=770 bytes=03 e0 text=dc.w $03e0 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=770 end=772 bytes=03 ec text=dc.w $03ec range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=772 end=774 bytes=29 10 text=dc.w $2910 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=774 end=776 bytes=29 10 text=dc.w $2910 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
 ;   CODE 10 FinishUp: role=code_segment kind=code_segment payload_size=1542 sha256=2d5d27affd131aaa28eb0bd33157051e8f30ee3cdc054df4aad3011bdb22c1e1 fact=macos.resource_fork.code_resources.accepted status=validated
 ;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
 ;     anchors:
@@ -273,7 +555,42 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     candidate_data_island: start=4 end=148 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
 ;     relocation_fixups:
 ;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
-;     listing: kind=structured_placeholder available=False route=unknown reason=full per-resource listing deferred until relocation/source-boundary context is represented
+;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
+;     previews:
+;       candidate_code_preview: start=148 end=212 size=64 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only bounded=True truncated=True reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
+;         deferred: scope=relocation_fixups fact=macos.segment_loader.relocation_fixups.deferred status=deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;         row: offset=148 end=150 bytes=4e d0 text=dc.w $4ed0 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=150 end=152 bytes=89 57 text=dc.w $8957 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=152 end=154 bytes=52 49 text=dc.w $5249 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=154 end=156 bytes=54 45 text=dc.w $5445 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=156 end=158 bytes=4c 49 text=dc.w $4c49 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=158 end=160 bytes=4e 45 text=dc.w $4e45 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=160 end=162 bytes=00 00 text=dc.w $0000 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=162 end=164 bytes=4e 56 text=dc.w $4e56 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=164 end=166 bytes=fe 54 text=dc.w $fe54 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=166 end=168 bytes=48 e7 text=dc.w $48e7 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=168 end=170 bytes=07 00 text=dc.w $0700 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=170 end=172 bytes=10 2d text=dc.w $102d range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=172 end=174 bytes=ec ff text=dc.w $ecff range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=174 end=176 bytes=67 28 text=dc.w $6728 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=176 end=178 bytes=08 2d text=dc.w $082d range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=178 end=180 bytes=00 04 text=dc.w $0004 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=180 end=182 bytes=ed 5c text=dc.w $ed5c range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=182 end=184 bytes=56 c1 text=dc.w $56c1 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=184 end=186 bytes=c0 01 text=dc.w $c001 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=186 end=188 bytes=4a 00 text=dc.w $4a00 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=188 end=190 bytes=67 1a text=dc.w $671a range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=190 end=192 bytes=08 2d text=dc.w $082d range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=192 end=194 bytes=00 00 text=dc.w $0000 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=194 end=196 bytes=ed 5d text=dc.w $ed5d range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=196 end=198 bytes=56 c1 text=dc.w $56c1 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=198 end=200 bytes=c0 01 text=dc.w $c001 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=200 end=202 bytes=67 0e text=dc.w $670e range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=202 end=204 bytes=42 67 text=dc.w $4267 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=204 end=206 bytes=4e ad text=dc.w $4ead range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=206 end=208 bytes=08 0a text=dc.w $080a range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=208 end=210 bytes=48 6d text=dc.w $486d range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=210 end=212 bytes=08 0a text=dc.w $080a range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
 ;   CODE 11 Dbg: role=code_segment kind=code_segment payload_size=3678 sha256=04097ca27d77f09604177ac5e85019ecaed552d68ae2e9d50ae3b5a4e394c503 fact=macos.resource_fork.code_resources.accepted status=validated
 ;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
 ;     anchors:
@@ -287,7 +604,42 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     candidate_data_island: start=4 end=836 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
 ;     relocation_fixups:
 ;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
-;     listing: kind=structured_placeholder available=False route=unknown reason=full per-resource listing deferred until relocation/source-boundary context is represented
+;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
+;     previews:
+;       candidate_code_preview: start=836 end=900 size=64 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only bounded=True truncated=True reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
+;         deferred: scope=relocation_fixups fact=macos.segment_loader.relocation_fixups.deferred status=deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;         row: offset=836 end=838 bytes=00 0c text=dc.w $000c range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=838 end=840 bytes=4e d0 text=dc.w $4ed0 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=840 end=842 bytes=89 43 text=dc.w $8943 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=842 end=844 bytes=44 42 text=dc.w $4442 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=844 end=846 bytes=47 45 text=dc.w $4745 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=846 end=848 bytes=4e 54 text=dc.w $4e54 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=848 end=850 bytes=52 59 text=dc.w $5259 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=850 end=852 bytes=00 00 text=dc.w $0000 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=852 end=854 bytes=4e 56 text=dc.w $4e56 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=854 end=856 bytes=ff fc text=dc.w $fffc range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=856 end=858 bytes=4e ba text=dc.w $4eba range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=858 end=860 bytes=fb bc text=dc.w $fbbc range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=860 end=862 bytes=59 8f text=dc.w $598f range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=862 end=864 bytes=70 08 text=dc.w $7008 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=864 end=866 bytes=3f 00 text=dc.w $3f00 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=866 end=868 bytes=4e ba text=dc.w $4eba range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=868 end=870 bytes=fc b4 text=dc.w $fcb4 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=870 end=872 bytes=20 5f text=dc.w $205f range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=872 end=874 bytes=2d 48 text=dc.w $2d48 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=874 end=876 bytes=ff fc text=dc.w $fffc range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=876 end=878 bytes=30 bc text=dc.w $30bc range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=878 end=880 bytes=0e 00 text=dc.w $0e00 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=880 end=882 bytes=20 2e text=dc.w $202e range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=882 end=884 bytes=ff fc text=dc.w $fffc range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=884 end=886 bytes=54 80 text=dc.w $5480 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=886 end=888 bytes=2d 40 text=dc.w $2d40 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=888 end=890 bytes=ff fc text=dc.w $fffc range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=890 end=892 bytes=20 40 text=dc.w $2040 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=892 end=894 bytes=30 ae text=dc.w $30ae range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=894 end=896 bytes=00 08 text=dc.w $0008 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=896 end=898 bytes=20 2e text=dc.w $202e range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=898 end=900 bytes=ff fc text=dc.w $fffc range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
 ;   CODE 12 LoadDump: role=code_segment kind=code_segment payload_size=6928 sha256=9c563d29bea4465730181b661ea9a3a60d15276aa71a6be399b02b9a4091cbdb fact=macos.resource_fork.code_resources.accepted status=validated
 ;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
 ;     anchors:
@@ -301,7 +653,42 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     candidate_data_island: start=4 end=44 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
 ;     relocation_fixups:
 ;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
-;     listing: kind=structured_placeholder available=False route=unknown reason=full per-resource listing deferred until relocation/source-boundary context is represented
+;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
+;     previews:
+;       candidate_code_preview: start=44 end=108 size=64 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only bounded=True truncated=True reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
+;         deferred: scope=relocation_fixups fact=macos.segment_loader.relocation_fixups.deferred status=deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;         row: offset=44 end=46 bytes=51 c8 text=dc.w $51c8 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=46 end=48 bytes=ff fc text=dc.w $fffc range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=48 end=50 bytes=20 5f text=dc.w $205f range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=50 end=52 bytes=12 d8 text=dc.w $12d8 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=52 end=54 bytes=12 d8 text=dc.w $12d8 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=54 end=56 bytes=12 d8 text=dc.w $12d8 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=56 end=58 bytes=12 d0 text=dc.w $12d0 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=58 end=60 bytes=20 5f text=dc.w $205f range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=60 end=62 bytes=12 d8 text=dc.w $12d8 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=62 end=64 bytes=12 90 text=dc.w $1290 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=64 end=66 bytes=20 42 text=dc.w $2042 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=66 end=68 bytes=4e d0 text=dc.w $4ed0 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=68 end=70 bytes=4e 56 text=dc.w $4e56 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=70 end=72 bytes=fc ba text=dc.w $fcba range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=72 end=74 bytes=48 e7 text=dc.w $48e7 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=74 end=76 bytes=0f 08 text=dc.w $0f08 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=76 end=78 bytes=28 6e text=dc.w $286e range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=78 end=80 bytes=00 0e text=dc.w $000e range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=80 end=82 bytes=1b 6e text=dc.w $1b6e range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=82 end=84 bytes=00 0c text=dc.w $000c range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=84 end=86 bytes=cb 27 text=dc.w $cb27 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=86 end=88 bytes=70 01 text=dc.w $7001 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=88 end=90 bytes=b0 6d text=dc.w $b06d range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=90 end=92 bytes=cb 1c text=dc.w $cb1c range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=92 end=94 bytes=6c 16 text=dc.w $6c16 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=94 end=96 bytes=30 2d text=dc.w $302d range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=96 end=98 bytes=cb 1c text=dc.w $cb1c range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=98 end=100 bytes=53 40 text=dc.w $5340 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=100 end=102 bytes=53 40 text=dc.w $5340 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=102 end=104 bytes=41 ed text=dc.w $41ed range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=104 end=106 bytes=ca d2 text=dc.w $cad2 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=106 end=108 bytes=e5 40 text=dc.w $e540 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
 ;   CODE 13 Directives: role=code_segment kind=code_segment payload_size=33354 sha256=1358e27cbf9cb7da402416dfa830bd93f99a23e16da5c9972f63549d171a30c8 fact=macos.resource_fork.code_resources.accepted status=validated
 ;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
 ;     anchors:
@@ -315,7 +702,42 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     candidate_data_island: start=4 end=44 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
 ;     relocation_fixups:
 ;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
-;     listing: kind=structured_placeholder available=False route=unknown reason=full per-resource listing deferred until relocation/source-boundary context is represented
+;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
+;     previews:
+;       candidate_code_preview: start=44 end=108 size=64 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only bounded=True truncated=True reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
+;         deferred: scope=relocation_fixups fact=macos.segment_loader.relocation_fixups.deferred status=deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;         row: offset=44 end=46 bytes=0c 03 text=dc.w $0c03 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=46 end=48 bytes=00 7a text=dc.w $007a range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=48 end=50 bytes=6e 04 text=dc.w $6e04 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=50 end=52 bytes=04 03 text=dc.w $0403 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=52 end=54 bytes=00 20 text=dc.w $0020 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=54 end=56 bytes=14 c3 text=dc.w $14c3 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=56 end=58 bytes=51 c8 text=dc.w $51c8 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=58 end=60 bytes=ff ea text=dc.w $ffea range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=60 end=62 bytes=60 06 text=dc.w $6006 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=62 end=64 bytes=14 d9 text=dc.w $14d9 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=64 end=66 bytes=51 c8 text=dc.w $51c8 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=66 end=68 bytes=ff fc text=dc.w $fffc range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=68 end=70 bytes=55 42 text=dc.w $5542 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=70 end=72 bytes=6d 08 text=dc.w $6d08 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=72 end=74 bytes=14 fc text=dc.w $14fc range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=74 end=76 bytes=00 20 text=dc.w $0020 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=76 end=78 bytes=51 ca text=dc.w $51ca range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=78 end=80 bytes=ff fa text=dc.w $fffa range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=80 end=82 bytes=14 bc text=dc.w $14bc range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=82 end=84 bytes=00 2e text=dc.w $002e range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=84 end=86 bytes=42 42 text=dc.w $4242 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=86 end=88 bytes=14 18 text=dc.w $1418 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=88 end=90 bytes=b4 41 text=dc.w $b441 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=90 end=92 bytes=6d 18 text=dc.w $6d18 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=92 end=94 bytes=42 40 text=dc.w $4240 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=94 end=96 bytes=52 40 text=dc.w $5240 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=96 end=98 bytes=24 4f text=dc.w $244f range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=98 end=100 bytes=36 01 text=dc.w $3601 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=100 end=102 bytes=53 43 text=dc.w $5343 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=102 end=104 bytes=b1 0a text=dc.w $b10a range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=104 end=106 bytes=56 cb text=dc.w $56cb range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=106 end=108 bytes=ff fc text=dc.w $fffc range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
 ;   CODE 14 MemMgr: role=code_segment kind=code_segment payload_size=1886 sha256=14e851122fdae5910c2772def35a8b36c30dc7133cb92df8524f8a42ff5f8c70 fact=macos.resource_fork.code_resources.accepted status=validated
 ;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
 ;     anchors:
@@ -329,7 +751,42 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     candidate_data_island: start=4 end=236 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
 ;     relocation_fixups:
 ;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
-;     listing: kind=structured_placeholder available=False route=unknown reason=full per-resource listing deferred until relocation/source-boundary context is represented
+;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
+;     previews:
+;       candidate_code_preview: start=236 end=300 size=64 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only bounded=True truncated=True reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
+;         deferred: scope=relocation_fixups fact=macos.segment_loader.relocation_fixups.deferred status=deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;         row: offset=236 end=238 bytes=c8 4a text=dc.w $c84a range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=238 end=240 bytes=60 0a text=dc.w $600a range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=240 end=242 bytes=20 6c text=dc.w $206c range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=242 end=244 bytes=00 0c text=dc.w $000c range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=244 end=246 bytes=21 6c text=dc.w $216c range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=246 end=248 bytes=00 08 text=dc.w $0008 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=248 end=250 bytes=00 08 text=dc.w $0008 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=250 end=252 bytes=29 6d text=dc.w $296d range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=252 end=254 bytes=c8 3a text=dc.w $c83a range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=254 end=256 bytes=00 0c text=dc.w $000c range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=256 end=258 bytes=2b 47 text=dc.w $2b47 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=258 end=260 bytes=c8 3a text=dc.w $c83a range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=260 end=262 bytes=4c df text=dc.w $4cdf range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=262 end=264 bytes=18 80 text=dc.w $1880 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=264 end=266 bytes=4e 5e text=dc.w $4e5e range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=266 end=268 bytes=2e 9f text=dc.w $2e9f range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=268 end=270 bytes=4e 75 text=dc.w $4e75 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=270 end=272 bytes=88 46 text=dc.w $8846 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=272 end=274 bytes=52 45 text=dc.w $5245 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=274 end=276 bytes=45 5a text=dc.w $455a range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=276 end=278 bytes=4f 4e text=dc.w $4f4e range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=278 end=280 bytes=45 00 text=dc.w $4500 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=280 end=282 bytes=00 00 text=dc.w $0000 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=282 end=284 bytes=4e 56 text=dc.w $4e56 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=284 end=286 bytes=ff e8 text=dc.w $ffe8 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=286 end=288 bytes=48 e7 text=dc.w $48e7 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=288 end=290 bytes=0f 18 text=dc.w $0f18 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=290 end=292 bytes=38 2e text=dc.w $382e range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=292 end=294 bytes=00 08 text=dc.w $0008 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=294 end=296 bytes=28 6e text=dc.w $286e range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=296 end=298 bytes=00 0a text=dc.w $000a range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=298 end=300 bytes=70 04 text=dc.w $7004 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
 ;   CODE 15 Errors: role=code_segment kind=code_segment payload_size=3452 sha256=ebe2c26fe6fffb8585f7e9e0ebfffa73ca877946c26eab44f0efbd96678018cd fact=macos.resource_fork.code_resources.accepted status=validated
 ;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
 ;     anchors:
@@ -343,7 +800,42 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     candidate_data_island: start=4 end=96 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
 ;     relocation_fixups:
 ;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
-;     listing: kind=structured_placeholder available=False route=unknown reason=full per-resource listing deferred until relocation/source-boundary context is represented
+;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
+;     previews:
+;       candidate_code_preview: start=96 end=160 size=64 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only bounded=True truncated=True reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
+;         deferred: scope=relocation_fixups fact=macos.segment_loader.relocation_fixups.deferred status=deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;         row: offset=96 end=98 bytes=30 d9 text=dc.w $30d9 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=98 end=100 bytes=51 c8 text=dc.w $51c8 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=100 end=102 bytes=ff fc text=dc.w $fffc range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=102 end=104 bytes=20 6e text=dc.w $206e range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=104 end=106 bytes=00 08 text=dc.w $0008 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=106 end=108 bytes=2c 48 text=dc.w $2c48 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=108 end=110 bytes=4e fa text=dc.w $4efa range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=110 end=112 bytes=04 06 text=dc.w $0406 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=112 end=114 bytes=00 00 text=dc.w $0000 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=114 end=116 bytes=3d 6e text=dc.w $3d6e range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=116 end=118 bytes=00 10 text=dc.w $0010 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=118 end=120 bytes=00 12 text=dc.w $0012 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=120 end=122 bytes=4c df text=dc.w $4cdf range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=122 end=124 bytes=10 80 text=dc.w $1080 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=124 end=126 bytes=4e 5e text=dc.w $4e5e range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=126 end=128 bytes=20 5f text=dc.w $205f range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=128 end=130 bytes=de fc text=dc.w $defc range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=130 end=132 bytes=00 0a text=dc.w $000a range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=132 end=134 bytes=4e d0 text=dc.w $4ed0 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=134 end=136 bytes=8a 47 text=dc.w $8a47 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=136 end=138 bytes=45 54 text=dc.w $4554 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=138 end=140 bytes=32 42 text=dc.w $3242 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=140 end=142 bytes=4c 4f text=dc.w $4c4f range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=142 end=144 bytes=43 4b text=dc.w $434b range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=144 end=146 bytes=53 00 text=dc.w $5300 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=146 end=148 bytes=00 2e text=dc.w $002e range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=148 end=150 bytes=02 22 text=dc.w $0222 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=150 end=152 bytes=29 00 text=dc.w $2900 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=152 end=154 bytes=28 20 text=dc.w $2820 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=154 end=156 bytes=28 42 text=dc.w $2842 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=156 end=158 bytes=61 64 text=dc.w $6164 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=158 end=160 bytes=20 62 text=dc.w $2062 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
 ;   CODE 16 New: role=code_segment kind=code_segment payload_size=1034 sha256=51e7a7d264825cd4103b31a0bff37ff49fdb64e8ddb299b2a46d4bd3c07f6a37 fact=macos.resource_fork.code_resources.accepted status=validated
 ;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
 ;     anchors:
@@ -357,7 +849,42 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     candidate_data_island: start=4 end=246 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
 ;     relocation_fixups:
 ;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
-;     listing: kind=structured_placeholder available=False route=unknown reason=full per-resource listing deferred until relocation/source-boundary context is represented
+;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
+;     previews:
+;       candidate_code_preview: start=246 end=310 size=64 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only bounded=True truncated=True reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
+;         deferred: scope=relocation_fixups fact=macos.segment_loader.relocation_fixups.deferred status=deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;         row: offset=246 end=248 bytes=58 00 text=dc.w $5800 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=248 end=250 bytes=00 18 text=dc.w $0018 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=250 end=252 bytes=16 53 text=dc.w $1653 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=252 end=254 bytes=70 69 text=dc.w $7069 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=254 end=256 bytes=6c 6c text=dc.w $6c6c range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=256 end=258 bytes=20 66 text=dc.w $2066 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=258 end=260 bytes=69 6c text=dc.w $696c range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=260 end=262 bytes=65 20 text=dc.w $6520 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=262 end=264 bytes=77 72 text=dc.w $7772 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=264 end=266 bytes=69 74 text=dc.w $6974 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=266 end=268 bytes=65 20 text=dc.w $6520 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=268 end=270 bytes=65 72 text=dc.w $6572 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=270 end=272 bytes=72 6f text=dc.w $726f range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=272 end=274 bytes=72 00 text=dc.w $7200 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=274 end=276 bytes=4e 56 text=dc.w $4e56 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=276 end=278 bytes=ff 50 text=dc.w $ff50 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=278 end=280 bytes=08 2d text=dc.w $082d range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=280 end=282 bytes=00 02 text=dc.w $0002 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=282 end=284 bytes=ed 5a text=dc.w $ed5a range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=284 end=286 bytes=67 00 text=dc.w $6700 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=286 end=288 bytes=00 f0 text=dc.w $00f0 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=288 end=290 bytes=10 2d text=dc.w $102d range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=290 end=292 bytes=eb 68 text=dc.w $eb68 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=292 end=294 bytes=66 00 text=dc.w $6600 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=294 end=296 bytes=00 e8 text=dc.w $00e8 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=296 end=298 bytes=80 2d text=dc.w $802d range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=298 end=300 bytes=eb 69 text=dc.w $eb69 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=300 end=302 bytes=66 00 text=dc.w $6600 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=302 end=304 bytes=00 e0 text=dc.w $00e0 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=304 end=306 bytes=41 ee text=dc.w $41ee range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=306 end=308 bytes=ff ae text=dc.w $ffae range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=308 end=310 bytes=43 fa text=dc.w $43fa range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
 ;   CODE 17 DispSymTbl: role=code_segment kind=code_segment payload_size=3674 sha256=e4c8e735bff587b55b1482bde5137deec3ae177ea802b09aac3e97401f2905b9 fact=macos.resource_fork.code_resources.accepted status=validated
 ;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
 ;     anchors:
@@ -371,7 +898,42 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     candidate_data_island: start=4 end=100 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
 ;     relocation_fixups:
 ;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
-;     listing: kind=structured_placeholder available=False route=unknown reason=full per-resource listing deferred until relocation/source-boundary context is represented
+;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
+;     previews:
+;       candidate_code_preview: start=100 end=164 size=64 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only bounded=True truncated=True reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
+;         deferred: scope=relocation_fixups fact=macos.segment_loader.relocation_fixups.deferred status=deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;         row: offset=100 end=102 bytes=4e ad text=dc.w $4ead range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=102 end=104 bytes=00 92 text=dc.w $0092 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=104 end=106 bytes=48 6e text=dc.w $486e range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=106 end=108 bytes=fd f2 text=dc.w $fdf2 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=108 end=110 bytes=48 6e text=dc.w $486e range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=110 end=112 bytes=fe f2 text=dc.w $fef2 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=112 end=114 bytes=4e ad text=dc.w $4ead range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=114 end=116 bytes=0a ca text=dc.w $0aca range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=116 end=118 bytes=10 1f text=dc.w $101f range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=118 end=120 bytes=67 02 text=dc.w $6702 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=120 end=122 bytes=60 34 text=dc.w $6034 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=122 end=124 bytes=48 6e text=dc.w $486e range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=124 end=126 bytes=fd f2 text=dc.w $fdf2 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=126 end=128 bytes=48 6e text=dc.w $486e range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=128 end=130 bytes=fe f2 text=dc.w $fef2 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=130 end=132 bytes=4e ad text=dc.w $4ead range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=132 end=134 bytes=0a e2 text=dc.w $0ae2 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=134 end=136 bytes=10 1f text=dc.w $101f range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=136 end=138 bytes=67 08 text=dc.w $6708 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=138 end=140 bytes=28 6c text=dc.w $286c range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=140 end=142 bytes=00 08 text=dc.w $0008 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=142 end=144 bytes=42 06 text=dc.w $4206 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=144 end=146 bytes=60 06 text=dc.w $6006 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=146 end=148 bytes=28 6c text=dc.w $286c range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=148 end=150 bytes=00 04 text=dc.w $0004 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=150 end=152 bytes=7c 01 text=dc.w $7c01 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=152 end=154 bytes=20 0c text=dc.w $200c range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=154 end=156 bytes=66 bc text=dc.w $66bc range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=156 end=158 bytes=10 06 text=dc.w $1006 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=158 end=160 bytes=67 08 text=dc.w $6708 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=160 end=162 bytes=20 47 text=dc.w $2047 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=162 end=164 bytes=21 4b text=dc.w $214b range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
 ;   CODE 18 FinishDirectives: role=code_segment kind=code_segment payload_size=1974 sha256=96d836fa8382f88453204a38fddb5da2e46867767f572482abb8f9cbb5e431c6 fact=macos.resource_fork.code_resources.accepted status=validated
 ;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
 ;     anchors:
@@ -385,7 +947,8 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     candidate_data_island: start=4 end=1562 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
 ;     relocation_fixups:
 ;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
-;     listing: kind=structured_placeholder available=False route=unknown reason=full per-resource listing deferred until relocation/source-boundary context is represented
+;     listing: kind=structured_placeholder available=False route=unknown reason=no candidate_code range available for a bounded preview
+;     previews: none
 ;   CODE 19 SetupArgV: role=code_segment kind=code_segment payload_size=556 sha256=46027b8ec8f830b28abc470f5e942b54f7845efd9cf136f68e3b2b8a9873f3ce fact=macos.resource_fork.code_resources.accepted status=validated
 ;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
 ;     anchors:
@@ -397,7 +960,8 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     deferred_code_or_data_island: start=4 end=556 evidence=missing_m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.byte_entry_rule.unknown status=deferred
 ;     relocation_fixups:
 ;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
-;     listing: kind=structured_placeholder available=False route=unknown reason=full per-resource listing deferred until relocation/source-boundary context is represented
+;     listing: kind=structured_placeholder available=False route=unknown reason=no candidate preview range; classifier deferred byte-entry evidence: missing_m68k_movea_l_stack_to_a0_entry
+;     previews: none
 ;   CODE 20 INTENV: role=code_segment kind=code_segment payload_size=5262 sha256=de9f4a82222f3ff12586a0bb691cc6b5d513777d498d223dfa45311d4a7dc84a fact=macos.resource_fork.code_resources.accepted status=validated
 ;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
 ;     anchors:
@@ -411,7 +975,8 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     candidate_data_island: start=4 end=2876 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
 ;     relocation_fixups:
 ;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
-;     listing: kind=structured_placeholder available=False route=unknown reason=full per-resource listing deferred until relocation/source-boundary context is represented
+;     listing: kind=structured_placeholder available=False route=unknown reason=no candidate_code range available for a bounded preview
+;     previews: none
 ;   CODE 21 SADEV: role=code_segment kind=code_segment payload_size=6794 sha256=927c28db98eadbc5501e570ada73af8afca05964552a831c02051f6e6fa3b687 fact=macos.resource_fork.code_resources.accepted status=validated
 ;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
 ;     anchors:
@@ -425,7 +990,42 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     candidate_data_island: start=4 end=2000 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
 ;     relocation_fixups:
 ;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
-;     listing: kind=structured_placeholder available=False route=unknown reason=full per-resource listing deferred until relocation/source-boundary context is represented
+;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
+;     previews:
+;       candidate_code_preview: start=2000 end=2064 size=64 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only bounded=True truncated=True reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
+;         deferred: scope=relocation_fixups fact=macos.segment_loader.relocation_fixups.deferred status=deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;         row: offset=2000 end=2002 bytes=3e 1f text=dc.w $3e1f range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=2002 end=2004 bytes=66 12 text=dc.w $6612 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=2004 end=2006 bytes=20 2e text=dc.w $202e range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=2006 end=2008 bytes=ff fc text=dc.w $fffc range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=2008 end=2010 bytes=91 ac text=dc.w $91ac range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=2010 end=2012 bytes=00 0c text=dc.w $000c range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=2012 end=2014 bytes=20 2e text=dc.w $202e range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=2014 end=2016 bytes=ff fc text=dc.w $fffc range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=2016 end=2018 bytes=d1 ac text=dc.w $d1ac range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=2018 end=2020 bytes=00 10 text=dc.w $0010 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=2020 end=2022 bytes=60 04 text=dc.w $6004 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=2022 end=2024 bytes=39 47 text=dc.w $3947 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=2024 end=2026 bytes=00 02 text=dc.w $0002 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=2026 end=2028 bytes=4a 47 text=dc.w $4a47 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=2028 end=2030 bytes=57 c3 text=dc.w $57c3 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=2030 end=2032 bytes=44 03 text=dc.w $4403 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=2032 end=2034 bytes=67 04 text=dc.w $6704 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=2034 end=2036 bytes=70 00 text=dc.w $7000 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=2036 end=2038 bytes=60 02 text=dc.w $6002 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=2038 end=2040 bytes=70 05 text=dc.w $7005 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=2040 end=2042 bytes=4c ee text=dc.w $4cee range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=2042 end=2044 bytes=10 88 text=dc.w $1088 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=2044 end=2046 bytes=ff f0 text=dc.w $fff0 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=2046 end=2048 bytes=4e 5e text=dc.w $4e5e range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=2048 end=2050 bytes=4e 75 text=dc.w $4e75 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=2050 end=2052 bytes=88 5f text=dc.w $885f range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=2052 end=2054 bytes=66 73 text=dc.w $6673 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=2054 end=2056 bytes=57 72 text=dc.w $5772 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=2056 end=2058 bytes=69 74 text=dc.w $6974 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=2058 end=2060 bytes=65 00 text=dc.w $6500 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=2060 end=2062 bytes=00 00 text=dc.w $0000 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=2062 end=2064 bytes=4e 56 text=dc.w $4e56 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
 ;   CODE 22 SANELIB: role=code_segment kind=code_segment payload_size=96 sha256=6929f16d82666fe0f31993c30f2750798bf934a0dcddf3c6eb0adc2c552484f8 fact=macos.resource_fork.code_resources.accepted status=validated
 ;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
 ;     anchors:
@@ -437,7 +1037,8 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     deferred_code_or_data_island: start=4 end=96 evidence=missing_m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.byte_entry_rule.unknown status=deferred
 ;     relocation_fixups:
 ;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
-;     listing: kind=structured_placeholder available=False route=unknown reason=full per-resource listing deferred until relocation/source-boundary context is represented
+;     listing: kind=structured_placeholder available=False route=unknown reason=no candidate preview range; classifier deferred byte-entry evidence: missing_m68k_movea_l_stack_to_a0_entry
+;     previews: none
 ;   CODE 23 STDCLIB: role=code_segment kind=code_segment payload_size=126 sha256=ce2eaab2bd782055c6aaaefc223f2e72d4f746e25a05cc8b3599836ecbd41969 fact=macos.resource_fork.code_resources.accepted status=validated
 ;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
 ;     anchors:
@@ -449,7 +1050,8 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     deferred_code_or_data_island: start=4 end=126 evidence=missing_m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.byte_entry_rule.unknown status=deferred
 ;     relocation_fixups:
 ;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
-;     listing: kind=structured_placeholder available=False route=unknown reason=full per-resource listing deferred until relocation/source-boundary context is represented
+;     listing: kind=structured_placeholder available=False route=unknown reason=no candidate preview range; classifier deferred byte-entry evidence: missing_m68k_movea_l_stack_to_a0_entry
+;     previews: none
 ;   CODE 24 STDIO: role=code_segment kind=code_segment payload_size=4970 sha256=f98dfc823a565d6502fa4ac1feb7b616b397ba9a918ce2c5f47b274e99a9026a fact=macos.resource_fork.code_resources.accepted status=validated
 ;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
 ;     anchors:
@@ -463,7 +1065,8 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     candidate_data_island: start=4 end=2950 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
 ;     relocation_fixups:
 ;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
-;     listing: kind=structured_placeholder available=False route=unknown reason=full per-resource listing deferred until relocation/source-boundary context is represented
+;     listing: kind=structured_placeholder available=False route=unknown reason=no candidate_code range available for a bounded preview
+;     previews: none
 ;   CODE 25 SANELib: role=code_segment kind=code_segment payload_size=246 sha256=c87908dd286d0e5fdcab70725ec20e98a37cca1357f18132809c3ab9e7562090 fact=macos.resource_fork.code_resources.accepted status=validated
 ;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
 ;     anchors:
@@ -477,7 +1080,42 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     candidate_data_island: start=4 end=40 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
 ;     relocation_fixups:
 ;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
-;     listing: kind=structured_placeholder available=False route=unknown reason=full per-resource listing deferred until relocation/source-boundary context is represented
+;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
+;     previews:
+;       candidate_code_preview: start=40 end=104 size=64 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only bounded=True truncated=True reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
+;         deferred: scope=relocation_fixups fact=macos.segment_loader.relocation_fixups.deferred status=deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;         row: offset=40 end=42 bytes=80 42 text=dc.w $8042 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=42 end=44 bytes=3f 00 text=dc.w $3f00 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=44 end=46 bytes=48 57 text=dc.w $4857 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=46 end=48 bytes=3f 3c text=dc.w $3f3c range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=48 end=50 bytes=00 01 text=dc.w $0001 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=50 end=52 bytes=a9 eb text=dc.w $a9eb range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=52 end=54 bytes=54 8f text=dc.w $548f range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=54 end=56 bytes=4e d0 text=dc.w $4ed0 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=56 end=58 bytes=22 5f text=dc.w $225f range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=58 end=60 bytes=20 5f text=dc.w $205f range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=60 end=62 bytes=12 1f text=dc.w $121f range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=62 end=64 bytes=74 1f text=dc.w $741f range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=64 end=66 bytes=c4 5f text=dc.w $c45f range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=66 end=68 bytes=2f 09 text=dc.w $2f09 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=68 end=70 bytes=55 8f text=dc.w $558f range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=70 end=72 bytes=48 57 text=dc.w $4857 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=72 end=74 bytes=3f 3c text=dc.w $3f3c range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=74 end=76 bytes=00 03 text=dc.w $0003 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=76 end=78 bytes=a9 eb text=dc.w $a9eb range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=78 end=80 bytes=30 1f text=dc.w $301f range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=80 end=82 bytes=4e 75 text=dc.w $4e75 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=82 end=84 bytes=20 5f text=dc.w $205f range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=84 end=86 bytes=61 ee text=dc.w $61ee range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=86 end=88 bytes=02 40 text=dc.w $0240 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=88 end=90 bytes=9f ff text=dc.w $9fff range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=90 end=92 bytes=34 1f text=dc.w $341f range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=92 end=94 bytes=eb 4a text=dc.w $eb4a range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=94 end=96 bytes=02 42 text=dc.w $0242 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=96 end=98 bytes=60 00 text=dc.w $6000 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=98 end=100 bytes=60 c4 text=dc.w $60c4 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=100 end=102 bytes=61 d2 text=dc.w $61d2 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=102 end=104 bytes=e1 4a text=dc.w $e14a range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
 ;   CODE 26 PASLIB: role=code_segment kind=code_segment payload_size=2940 sha256=62b8ca8b968fab6a003f39717b671f9c6cae8d20a9c77cb7ab41fd0315a229ae fact=macos.resource_fork.code_resources.accepted status=validated
 ;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
 ;     anchors:
@@ -491,7 +1129,42 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     candidate_data_island: start=4 end=198 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
 ;     relocation_fixups:
 ;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
-;     listing: kind=structured_placeholder available=False route=unknown reason=full per-resource listing deferred until relocation/source-boundary context is represented
+;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
+;     previews:
+;       candidate_code_preview: start=198 end=262 size=64 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only bounded=True truncated=True reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
+;         deferred: scope=relocation_fixups fact=macos.segment_loader.relocation_fixups.deferred status=deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;         row: offset=198 end=200 bytes=4e 56 text=dc.w $4e56 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=200 end=202 bytes=00 00 text=dc.w $0000 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=202 end=204 bytes=10 2d text=dc.w $102d range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=204 end=206 bytes=d2 97 text=dc.w $d297 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=206 end=208 bytes=67 14 text=dc.w $6714 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=208 end=210 bytes=48 6d text=dc.w $486d range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=210 end=212 bytes=d2 98 text=dc.w $d298 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=212 end=214 bytes=70 02 text=dc.w $7002 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=214 end=216 bytes=2f 00 text=dc.w $2f00 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=216 end=218 bytes=4e ba text=dc.w $4eba range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=218 end=220 bytes=02 02 text=dc.w $0202 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=220 end=222 bytes=20 6d text=dc.w $206d range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=222 end=224 bytes=d2 98 text=dc.w $d298 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=224 end=226 bytes=30 bc text=dc.w $30bc range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=226 end=228 bytes=c0 da text=dc.w $c0da range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=228 end=230 bytes=4e 5e text=dc.w $4e5e range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=230 end=232 bytes=4e 75 text=dc.w $4e75 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=232 end=234 bytes=88 53 text=dc.w $8853 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=234 end=236 bytes=45 54 text=dc.w $4554 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=236 end=238 bytes=43 48 text=dc.w $4348 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=238 end=240 bytes=45 43 text=dc.w $4543 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=240 end=242 bytes=4b 00 text=dc.w $4b00 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=242 end=244 bytes=00 00 text=dc.w $0000 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=244 end=246 bytes=4e 56 text=dc.w $4e56 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=246 end=248 bytes=ff f0 text=dc.w $fff0 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=248 end=250 bytes=48 e7 text=dc.w $48e7 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=250 end=252 bytes=0f 18 text=dc.w $0f18 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=252 end=254 bytes=28 2e text=dc.w $282e range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=254 end=256 bytes=00 10 text=dc.w $0010 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=256 end=258 bytes=2c 2e text=dc.w $2c2e range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=258 end=260 bytes=00 14 text=dc.w $0014 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=260 end=262 bytes=5f c0 text=dc.w $5fc0 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
 ;   CODE 27 32-bit bootstrap: role=code_segment kind=code_segment payload_size=1882 sha256=f683b4c722b40eda686a3074d68910f8316ecd373798c1a5834df64d8b757352 fact=macos.resource_fork.code_resources.accepted status=validated
 ;     segment: jt_first=0 jt_count=1 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
 ;     anchors:
@@ -506,7 +1179,42 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     candidate_data_island: start=4 end=204 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
 ;     relocation_fixups:
 ;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
-;     listing: kind=structured_placeholder available=False route=unknown reason=full per-resource listing deferred until relocation/source-boundary context is represented
+;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
+;     previews:
+;       candidate_code_preview: start=204 end=268 size=64 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only bounded=True truncated=True reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
+;         deferred: scope=relocation_fixups fact=macos.segment_loader.relocation_fixups.deferred status=deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;         row: offset=204 end=206 bytes=48 e7 text=dc.w $48e7 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=206 end=208 bytes=80 c0 text=dc.w $80c0 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=208 end=210 bytes=42 40 text=dc.w $4240 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=210 end=212 bytes=61 00 text=dc.w $6100 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=212 end=214 bytes=04 d0 text=dc.w $04d0 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=214 end=216 bytes=b0 fc text=dc.w $b0fc range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=216 end=218 bytes=00 00 text=dc.w $0000 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=218 end=220 bytes=66 02 text=dc.w $6602 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=220 end=222 bytes=a9 ff text=dc.w $a9ff range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=222 end=224 bytes=59 8f text=dc.w $598f range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=224 end=226 bytes=2f 08 text=dc.w $2f08 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=226 end=228 bytes=a9 a5 text=dc.w $a9a5 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=228 end=230 bytes=20 5f text=dc.w $205f range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=230 end=232 bytes=d0 f8 text=dc.w $d0f8 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=232 end=234 bytes=09 34 text=dc.w $0934 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=234 end=236 bytes=90 fc text=dc.w $90fc range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=236 end=238 bytes=00 10 text=dc.w $0010 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=238 end=240 bytes=43 fa text=dc.w $43fa range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=240 end=242 bytes=00 46 text=dc.w $0046 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=242 end=244 bytes=22 88 text=dc.w $2288 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=244 end=246 bytes=4c df text=dc.w $4cdf range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=246 end=248 bytes=03 01 text=dc.w $0301 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=248 end=250 bytes=4e 75 text=dc.w $4e75 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=250 end=252 bytes=80 0e text=dc.w $800e range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=252 end=254 bytes=73 65 text=dc.w $7365 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=254 end=256 bytes=74 75 text=dc.w $7475 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=256 end=258 bytes=70 5f text=dc.w $705f range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=258 end=260 bytes=6a 74 text=dc.w $6a74 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=260 end=262 bytes=5f 6c text=dc.w $5f6c range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=262 end=264 bytes=69 6d text=dc.w $696d range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=264 end=266 bytes=69 74 text=dc.w $6974 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
+;         row: offset=266 end=268 bytes=00 00 text=dc.w $0000 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
 
 ; Non-CODE resource placeholders
 ;   type acur: 1 resource(s), structured placeholder

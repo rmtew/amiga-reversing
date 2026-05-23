@@ -1369,6 +1369,11 @@ Future scope after cited starter-quality rendering:
   orphan ranges, deferred relocation state, and structured placeholders. This
   completes the starter multi-CODE visibility requirement, not full byte-entry,
   relocation, or complete source-to-CODE correctness.
+- 018-017 replaced blanket non-selected CODE placeholders with bounded
+  candidate-only preview windows when a nonzero CODE resource has a classified
+  `candidate_code` range. CODE 0 is still metadata-only, CODE 1 still uses the
+  full listing route, resources without safe candidate ranges keep evidenceful
+  placeholders, and relocation/fixup interpretation remains deferred.
 - MPW Asm/Link/Rez byte-for-byte roundtrip.
 - Full non-CODE resource semantics.
 - Overflow extents for later fixtures that need them.

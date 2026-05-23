@@ -6,6 +6,7 @@ from collections.abc import Mapping
 from pathlib import Path
 
 from amiga_reversing.disasm.c_backend import (
+    extract_macos_hfs_code_resource_bytes_with_c_backend,
     inspect_macos_hfs_code_summary_with_c_backend,
 )
 from amiga_reversing.disasm.macos_asm_container import (
@@ -16,6 +17,8 @@ from amiga_reversing.disasm.macos_project_origin import is_macos_project_origin
 from amiga_reversing.disasm.macos_source_project import build_macos_source_project
 from amiga_reversing.disasm.macos_source_render import render_macos_source_views
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT
+
+MACOS_CODE_PREVIEW_MAX_BYTES = 64
 
 
 def build_macos_project_payload(project: object, *, project_root: Path = PROJECT_ROOT) -> dict[str, object]:
@@ -44,7 +47,13 @@ def build_macos_project_payload(project: object, *, project_root: Path = PROJECT
         "kind": "macos_project",
         "platform": "macos",
         "source_view": _source_view(source_project, source_render),
-        "binary_container_view": _binary_container_view(c_summary, project_id=project_id),
+        "binary_container_view": _binary_container_view(
+            c_summary,
+            project_id=project_id,
+            hfs_bytes=hfs_bytes,
+            hfs_path=hfs_path,
+            project_root=project_root,
+        ),
         "source_binary_boundary": {
             "source_project_kind": source_project.get("kind"),
             "binary_container_kind": c_summary.get("container_kind"),
@@ -88,7 +97,14 @@ def _source_view(source_project: Mapping[str, object], source_render: Mapping[st
     }
 
 
-def _binary_container_view(c_summary: Mapping[str, object], *, project_id: str) -> dict[str, object]:
+def _binary_container_view(
+    c_summary: Mapping[str, object],
+    *,
+    project_id: str,
+    hfs_bytes: bytes,
+    hfs_path: str,
+    project_root: Path,
+) -> dict[str, object]:
     file_info = _mapping(c_summary.get("file"))
     forks = _mapping(file_info.get("forks"))
     data_fork = _mapping(forks.get("data"))
@@ -110,6 +126,9 @@ def _binary_container_view(c_summary: Mapping[str, object], *, project_id: str) 
         selected_id=selected_id,
         project_id=project_id,
         unsupported=_sequence(c_summary.get("unsupported")),
+        hfs_bytes=hfs_bytes,
+        hfs_path=hfs_path,
+        project_root=project_root,
     )
     return {
         "kind": c_summary.get("container_kind"),
@@ -189,6 +208,9 @@ def _code_resource_details(
     selected_id: object,
     project_id: str,
     unsupported: list[object],
+    hfs_bytes: bytes,
+    hfs_path: str,
+    project_root: Path,
 ) -> list[dict[str, object]]:
     segment_map_by_id = {
         item.get("resource_id"): item for item in (_mapping(value) for value in code_segment_map) if "resource_id" in item
@@ -212,12 +234,21 @@ def _code_resource_details(
         orphan_ranges = _sequence(code.get("orphan_ranges"))
         relocation_fixups = _mapping(code.get("relocation_fixups"))
         role = "code0_metadata" if resource_id == 0 else "code_segment"
+        preview_windows = _preview_windows(
+            resource,
+            code=code,
+            selected_id=selected_id,
+            hfs_bytes=hfs_bytes,
+            hfs_path=hfs_path,
+            project_root=project_root,
+        )
         listing = _listing_descriptor(
             resource,
             code=code,
             selected_id=selected_id,
             project_id=project_id,
             unsupported=unsupported,
+            preview_windows=preview_windows,
         )
         anchors = _resource_navigation_anchors(
             resource,
@@ -245,6 +276,7 @@ def _code_resource_details(
                 "jump_table": _mapping(code.get("jump_table")),
                 "navigation_anchors": anchors,
                 "listing": listing,
+                "preview_windows": preview_windows,
             }
         )
     return details
@@ -257,6 +289,7 @@ def _listing_descriptor(
     selected_id: object,
     project_id: str,
     unsupported: list[object],
+    preview_windows: list[object],
 ) -> dict[str, object]:
     resource_id = resource.get("id")
     if resource_id == 0:
@@ -285,11 +318,151 @@ def _listing_descriptor(
             "payload_sha256": resource.get("sha256"),
             "unsupported": unsupported,
         }
+    if preview_windows:
+        return {
+            "kind": "candidate_preview",
+            "available": True,
+            "route": "code_preview",
+            "reason": "bounded candidate preview; full listing remains deferred",
+            "preview_count": len(preview_windows),
+        }
     return {
         "kind": "structured_placeholder",
         "available": False,
-        "reason": "full per-resource listing deferred until relocation/source-boundary context is represented",
+        "reason": _no_preview_reason(code),
     }
+
+
+def _preview_windows(
+    resource: Mapping[str, object],
+    *,
+    code: Mapping[str, object],
+    selected_id: object,
+    hfs_bytes: bytes,
+    hfs_path: str,
+    project_root: Path,
+) -> list[dict[str, object]]:
+    resource_id = resource.get("id")
+    if resource_id == 0 or resource_id == selected_id or not isinstance(resource_id, int):
+        return []
+    range_info = _first_candidate_code_range(_sequence(code.get("layout_ranges")))
+    start = _int_value(range_info.get("start"))
+    end = _int_value(range_info.get("end"))
+    if start is None or end is None or end <= start:
+        return []
+    payload = extract_macos_hfs_code_resource_bytes_with_c_backend(
+        hfs_bytes,
+        hfs_path,
+        resource_id,
+        project_root=project_root,
+    )
+    payload_end = min(end, len(payload))
+    if payload_end <= start:
+        return []
+    preview_end = min(payload_end, start + MACOS_CODE_PREVIEW_MAX_BYTES)
+    preview_bytes = payload[start:preview_end]
+    relocation_fixups = _mapping(code.get("relocation_fixups"))
+    window = {
+        "kind": "candidate_code_preview",
+        "available": True,
+        "bounded": True,
+        "route": "code_preview",
+        "resource_type": "CODE",
+        "resource_id": resource_id,
+        "resource_name": resource.get("name"),
+        "payload_size": resource.get("payload_size"),
+        "payload_sha256": resource.get("sha256"),
+        "start": start,
+        "end": preview_end,
+        "size": len(preview_bytes),
+        "candidate_range_start": start,
+        "candidate_range_end": end,
+        "candidate_range_size": end - start,
+        "range_kind": range_info.get("kind"),
+        "evidence": range_info.get("evidence"),
+        "kb_record_id": code.get("kb_record_id"),
+        "fact_id": range_info.get("fact_id"),
+        "fact_status": range_info.get("fact_status"),
+        "parser_use": range_info.get("parser_use"),
+        "truncated": preview_end < payload_end,
+        "max_bytes": MACOS_CODE_PREVIEW_MAX_BYTES,
+        "reason": "bounded to candidate_code range; byte-entry and relocation semantics remain unresolved",
+        "deferred_reasons": _preview_deferred_reasons(relocation_fixups, code),
+        "rows": _preview_rows(preview_bytes, start=start, range_info=range_info, code=code),
+    }
+    return [window]
+
+
+def _preview_rows(
+    preview_bytes: bytes,
+    *,
+    start: int,
+    range_info: Mapping[str, object],
+    code: Mapping[str, object],
+) -> list[dict[str, object]]:
+    rows: list[dict[str, object]] = []
+    for relative in range(0, len(preview_bytes), 2):
+        chunk = preview_bytes[relative : relative + 2]
+        offset = start + relative
+        byte_text = chunk.hex(" ")
+        value = int.from_bytes(chunk, "big")
+        directive = "dc.w" if len(chunk) == 2 else "dc.b"
+        rows.append(
+            {
+                "offset": offset,
+                "end": offset + len(chunk),
+                "size": len(chunk),
+                "bytes": byte_text,
+                "directive": directive,
+                "value": value,
+                "text": f"{directive} ${value:0{len(chunk) * 2}x}",
+                "range_kind": range_info.get("kind"),
+                "evidence": range_info.get("evidence"),
+                "kb_record_id": code.get("kb_record_id"),
+                "fact_id": range_info.get("fact_id"),
+                "fact_status": range_info.get("fact_status"),
+                "parser_use": range_info.get("parser_use"),
+            }
+        )
+    return rows
+
+
+def _preview_deferred_reasons(
+    relocation_fixups: Mapping[str, object],
+    code: Mapping[str, object],
+) -> list[dict[str, object]]:
+    if not relocation_fixups:
+        return [
+            {
+                "scope": "relocation_fixups",
+                "kb_record_id": code.get("kb_record_id"),
+                "fact_id": "macos.segment_loader.relocation_fixups.deferred",
+                "fact_status": "deferred",
+                "parser_use": "deferred_only",
+                "reason": "Segment Loader relocation/fixup interpretation is not represented in this preview",
+            }
+        ]
+    return [
+        {
+            "scope": "relocation_fixups",
+            "kb_record_id": code.get("kb_record_id"),
+            "fact_id": relocation_fixups.get("fact_id"),
+            "fact_status": relocation_fixups.get("fact_status"),
+            "parser_use": relocation_fixups.get("parser_use"),
+            "reason": relocation_fixups.get("reason")
+            or "Segment Loader relocation/fixup interpretation is not represented in this preview",
+        }
+    ]
+
+
+def _no_preview_reason(code: Mapping[str, object]) -> str:
+    deferred = next(
+        (item for item in (_mapping(value) for value in _sequence(code.get("layout_ranges"))) if item.get("kind") == "deferred"),
+        {},
+    )
+    if deferred:
+        return f"no candidate preview range; classifier deferred byte-entry evidence: {deferred.get('evidence')}"
+    return "no candidate_code range available for a bounded preview"
 
 
 def _resource_navigation_anchors(
@@ -434,6 +607,14 @@ def _first_code_range(ranges: list[object]) -> Mapping[str, object]:
     return {}
 
 
+def _first_candidate_code_range(ranges: list[object]) -> Mapping[str, object]:
+    for item in ranges:
+        range_info = _mapping(item)
+        if range_info.get("kind") == "candidate_code":
+            return range_info
+    return {}
+
+
 def _resource_id_sort_key(value: object) -> tuple[int, object]:
     resource_id = _mapping(value).get("id")
     return (0, resource_id) if isinstance(resource_id, int) else (1, str(resource_id))
@@ -481,3 +662,7 @@ def _string_list(value: object) -> list[str]:
     if not isinstance(value, list | tuple):
         return []
     return [item for item in value if isinstance(item, str)]
+
+
+def _int_value(value: object) -> int | None:
+    return value if isinstance(value, int) else None
