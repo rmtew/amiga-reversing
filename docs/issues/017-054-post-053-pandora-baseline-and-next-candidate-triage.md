@@ -1,6 +1,6 @@
 # 017-054: Post-053 Pandora Baseline and Next-Candidate Triage
 
-Status: active
+Status: completed
 
 ## Proposal Context
 
@@ -80,29 +80,92 @@ Status: active
 
 ## Research Coverage
 
-- [ ] Current Pandora inspect state captured after 017-053.
-- [ ] RSSET no-write verifier producer rerun.
-- [ ] Decision Journal audit rerun.
-- [ ] Source-offset immediate packet rerun.
-- [ ] A5 path/lifetime packet rerun.
-- [ ] Orphan/data-range packet rerun.
-- [ ] Manual log repair command post-repair blocked/no-op state checked.
-- [ ] No unintended file diffs checked.
-- [ ] Next-candidate decision recorded.
+- [x] Current Pandora inspect state captured after 017-053.
+- [x] RSSET no-write verifier producer rerun.
+- [x] Decision Journal audit rerun.
+- [x] Source-offset immediate packet rerun.
+- [x] A5 path/lifetime packet rerun.
+- [x] Orphan/data-range packet rerun.
+- [x] Manual log repair command post-repair blocked/no-op state checked.
+- [x] No unintended file diffs checked.
+- [x] Next-candidate decision recorded.
 
 ## Research Review
 
-- [ ] Second pass checked the baseline against `017-053` completion evidence.
-- [ ] Stale tracked `.s` and historical artifact assumptions reviewed.
-- [ ] Candidate selection checked against durable evidence and verifier gates.
-- [ ] Proposal updated with baseline result and next-step conclusion.
+- [x] Second pass checked the baseline against `017-053` completion evidence.
+- [x] Stale tracked `.s` and historical artifact assumptions reviewed.
+- [x] Candidate selection checked against durable evidence and verifier gates.
+- [x] Proposal updated with baseline result and next-step conclusion.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before work.
-- [ ] Baseline commands and outputs summarized.
-- [ ] Any generated/local file changes explained or reverted.
-- [ ] Next mutation candidate either defined in a follow-up issue or explicitly
+- [x] Proposal context checked before work.
+- [x] Baseline commands and outputs summarized.
+- [x] Any generated/local file changes explained or reverted.
+- [x] Next mutation candidate either defined in a follow-up issue or explicitly
   rejected/deferred.
-- [ ] 017 pause/resume recommendation recorded.
-- [ ] Post-commit review found no unresolved worthwhile findings.
+- [x] 017 pause/resume recommendation recorded.
+- [x] Post-commit review found no unresolved worthwhile findings.
+
+## Completion Evidence
+
+Pandora target:
+`amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8`.
+
+Read-only `inspect` after `017-053` reported:
+
+- `safe_to_mutate=true`.
+- `candidate_work=[]`.
+- `mutation_readiness.safe_to_mutate=true`, `blockers=[]`.
+- target hygiene unknown files: `[]`.
+
+`decision-verifier-artifact --decision-id
+decision-rsset-022e-accept-017-040` was rerun without `--write` and returned
+`status=passed`, `written=false`. Current verifier results passed:
+
+- `semantic_reload`.
+- `generated_source`.
+- `negative_safety`.
+- `exact_round_trip`, with `round_trip.status=exact`.
+
+`decision-journal-report --current-verifier-artifact
+decision-rsset-022e-accept-017-040` consumes that fresh verifier proof in
+memory and does not write `decision_verifier_artifacts.json`. The RSSET audit
+reported `blockers=[]`, `replay.status=source_effective`, and passed
+`decision_journal`, `semantic_reload`, `generated_source`, `negative_safety`,
+and `exact_round_trip`.
+
+Read-only packet requery results:
+
+- `source-offset-immediate-packet` for
+  `immediate-runtime-ref:s0:000009A6:instruction:664:0:00001080`:
+  `safe_to_mutate=false`, `mutation_policy=read_only`,
+  `decision_lane.status=deferred`, command gate disabled. Blockers remain
+  same-literal/non-durable provenance plus missing accepted runtime-address,
+  decision replay, and render/verifier gates.
+- `a5-path-lifetime-packet` for `s0:0000045C:op0`:
+  `safe_to_mutate=false`, `mutation_policy=read_only`,
+  `decision_lane.status=deferred`, command gate disabled. Blockers remain
+  `already_recorded_in_manual_state` and `missing_command_candidate`.
+- `orphan-code-island-packet` for
+  `data-class-symbol:s0:000010F3:data:1111:0:000010F3:string_000210F3`:
+  `safe_to_mutate=false`, `mutation_policy=read_only`,
+  `decision_lane.status=deferred`. `data_symbol.rename` remains blocked by
+  `missing_direct_xref_evidence` and `missing_exact_round_trip_gate`.
+
+`repair-manual-action-log-sequence` now no-ops/blocks post-repair:
+`status=blocked`, `written=false`, `inconsistency_count=0`, no `proposed_edit`.
+This confirms there is no remaining final-record sequence inconsistency to
+repair.
+
+`git diff --name-only -- targets docs/validation
+docs/proposals/017-evidence-driven-analysis-protocol.md` was empty before this
+issue/proposal documentation update, proving the baseline commands did not
+rewrite target source, Decision Journal, Manual Action Log, verifier artifacts,
+generated output, or metadata.
+
+Triage conclusion: no useful unblocked 017 mutation remains. The current
+candidate list is empty, the three known packet lanes are explicitly
+deferred/read-only or blocked, and the only active accepted RSSET decision is
+already source-effective and verifier-backed. Pause 017 and resume 012 rather
+than forcing a cosmetic or stale-artifact-dependent Pandora mutation.

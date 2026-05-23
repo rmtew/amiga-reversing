@@ -1210,10 +1210,20 @@ repeatable work to `docs\issues\017-*`.
   listing-command inspect reports while any open Manual Action Log sequence
   inconsistency remains, so the reviewer-observed `safe_to_mutate=true` mismatch
   cannot recur for that open-item state.
-- 017-054 is the next active baseline step. It must re-establish current Pandora
-  state after the Manual Action Log repair using read-only inspect, Decision
-  Journal audit, RSSET no-write verifier, existing read-only packet surfaces, and
-  exact round-trip checks. It should then either identify a specific next 017
-  candidate with durable evidence, command support, verifier support, and visible
-  source-quality improvement, or record that no useful unblocked 017 work remains
-  and recommend pausing 017 so 012 can resume.
+- 017-054 re-established the current Pandora baseline after the Manual Action
+  Log repair. Read-only inspect reports `candidate_work=[]`,
+  `mutation_readiness.blockers=[]`, hygiene unknown files `[]`, and
+  `safe_to_mutate=true`. The RSSET no-write verifier producer for
+  `decision-rsset-022e-accept-017-040` passes `semantic_reload`,
+  `generated_source`, `negative_safety`, and `exact_round_trip` with exact
+  reproduction. `decision-journal-report` now has an explicit
+  `--current-verifier-artifact` option so a fresh no-write verifier artifact can
+  be consumed in memory without rewriting `decision_verifier_artifacts.json`;
+  with that option the RSSET audit has no blockers and every verifier layer
+  passes. The source-offset immediate, A5 path/lifetime, and orphan/data-range
+  packet surfaces still report `safe_to_mutate=false`,
+  `mutation_policy=read_only`, and deferred decision lanes with their existing
+  blockers. `repair-manual-action-log-sequence` now blocks/no-ops because there
+  is no open sequence inconsistency. No useful unblocked 017 mutation remains;
+  pause 017 and resume 012 rather than forcing cosmetic or stale-artifact-based
+  Pandora work.

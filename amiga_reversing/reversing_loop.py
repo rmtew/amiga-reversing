@@ -250,6 +250,13 @@ def main(argv: list[str] | None = None) -> int:
     )
     decision_journal_parser.add_argument("--target", required=True)
     decision_journal_parser.add_argument("--dry-run-record", type=Path)
+    decision_journal_parser.add_argument(
+        "--current-verifier-artifact",
+        action="append",
+        default=[],
+        metavar="DECISION_ID",
+        help="Run a current no-write verifier artifact for this decision and consume it in memory.",
+    )
 
     decision_verifier_parser = subparsers.add_parser(
         "decision-verifier-artifact",
@@ -376,6 +383,7 @@ def main(argv: list[str] | None = None) -> int:
             inspect_decision_journal(
                 args.target,
                 dry_run_record_path=args.dry_run_record,
+                current_verifier_decision_ids=args.current_verifier_artifact,
                 project_root=args.project_root,
             )
         )
@@ -444,6 +452,7 @@ def inspect_decision_journal(
     target_id: str,
     *,
     dry_run_record_path: Path | None = None,
+    current_verifier_decision_ids: Sequence[str] = (),
     project_root: Path = PROJECT_ROOT,
 ) -> dict[str, object]:
     target_dir = resolve_project_dir(target_id, project_root=project_root)
@@ -451,17 +460,91 @@ def inspect_decision_journal(
     report = decision_journal_report(target_dir, dry_run_record=dry_run_record)
     result = {"target_id": target_id, **report}
     verifier_artifacts = _load_decision_verifier_artifacts(target_dir)
+    current_verifier_artifacts: list[dict[str, object]] = []
+    if current_verifier_decision_ids:
+        verifier_artifacts, current_verifier_artifacts = _decision_verifier_artifacts_with_current_no_write(
+            target_id,
+            verifier_artifacts,
+            current_verifier_decision_ids,
+            project_root=project_root,
+        )
     result = _decision_journal_report_with_current_source_audit(
         target_id,
         result,
         project_root=project_root,
         verifier_artifacts=verifier_artifacts,
     )
+    if current_verifier_artifacts:
+        result["current_verifier_artifacts"] = current_verifier_artifacts
     if dry_run_record_path is not None:
         dry_run = result.get("dry_run_record")
         if isinstance(dry_run, dict):
             dry_run["path"] = str(dry_run_record_path)
     return result
+
+
+def _decision_verifier_artifacts_with_current_no_write(
+    target_id: str,
+    verifier_artifacts: Mapping[str, object] | None,
+    decision_ids: Sequence[str],
+    *,
+    project_root: Path,
+) -> tuple[dict[str, object], list[dict[str, object]]]:
+    payload = _normalized_decision_verifier_artifacts_payload(verifier_artifacts)
+    entries = [
+        dict(entry) if isinstance(entry, Mapping) else entry
+        for entry in _decision_verifier_artifact_entries(payload)
+    ]
+    summaries: list[dict[str, object]] = []
+    for decision_id in decision_ids:
+        produced = produce_decision_verifier_artifact(
+            target_id,
+            decision_id=decision_id,
+            write=False,
+            project_root=project_root,
+        )
+        artifact = produced.get("artifact")
+        summary: dict[str, object] = {
+            "decision_id": decision_id,
+            "status": produced.get("status"),
+            "write_requested": produced.get("write_requested"),
+            "written": produced.get("written"),
+        }
+        if isinstance(produced.get("blockers"), Sequence) and not isinstance(produced.get("blockers"), str):
+            summary["blockers"] = list(cast(Sequence[object], produced["blockers"]))
+        if isinstance(artifact, Mapping):
+            summary["artifact_id"] = artifact.get("artifact_id")
+            summary["candidate_id"] = artifact.get("candidate_id")
+            current_artifact = dict(artifact)
+            current_artifact["source"] = "current_no_write_verifier_artifact"
+            entries = [
+                entry
+                for entry in entries
+                if not (
+                    isinstance(entry, Mapping)
+                    and entry.get("decision_id") == artifact.get("decision_id")
+                    and entry.get("candidate_id") == artifact.get("candidate_id")
+                )
+            ]
+            entries.append(current_artifact)
+        summaries.append(summary)
+    payload["artifacts"] = entries
+    return payload, summaries
+
+
+def _normalized_decision_verifier_artifacts_payload(artifacts: Mapping[str, object] | None) -> dict[str, object]:
+    if not isinstance(artifacts, Mapping) or artifacts.get("status") in {"unreadable", "malformed"}:
+        return {"schema": "decision-verifier-artifacts/v1", "artifacts": []}
+    return dict(artifacts)
+
+
+def _decision_verifier_artifact_entries(artifacts: Mapping[str, object]) -> list[object]:
+    entries = artifacts.get("artifacts", artifacts.get("records"))
+    if isinstance(entries, Mapping):
+        return [dict(entries)]
+    if isinstance(entries, Sequence) and not isinstance(entries, str):
+        return list(entries)
+    return []
 
 
 def produce_decision_verifier_artifact(
@@ -1074,8 +1157,9 @@ def _decision_verifier_artifact_layers(
             continue
         layer_result = _decision_verifier_artifact_layer(artifact, layer)
         status = layer_result.get("status")
+        source = artifact.get("source") if isinstance(artifact.get("source"), str) else _DECISION_VERIFIER_ARTIFACTS_FILE
         if status == "passed":
-            passed = {"layer": layer, "status": "passed", "source": _DECISION_VERIFIER_ARTIFACTS_FILE}
+            passed = {"layer": layer, "status": "passed", "source": source}
             for key in ("verifier", "artifact_id", "checked_at"):
                 value = layer_result.get(key)
                 if isinstance(value, str):
@@ -1086,7 +1170,7 @@ def _decision_verifier_artifact_layers(
                 {
                     "layer": layer,
                     "status": "failed",
-                    "source": _DECISION_VERIFIER_ARTIFACTS_FILE,
+                    "source": source,
                     "blocker": f"{layer}_failed",
                 }
             )
@@ -1095,7 +1179,7 @@ def _decision_verifier_artifact_layers(
                 {
                     "layer": layer,
                     "status": "not_checked",
-                    "source": _DECISION_VERIFIER_ARTIFACTS_FILE,
+                    "source": source,
                     "blocker": f"{layer}_not_verified",
                 }
             )

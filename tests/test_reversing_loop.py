@@ -846,6 +846,62 @@ def test_decision_verifier_artifact_producer_writes_current_artifact_and_audit_c
     assert audit["blockers"] == []
 
 
+def test_inspect_decision_journal_consumes_current_no_write_verifier_artifact(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    target_dir = _target(tmp_path)
+    record = _decision_journal_record("accept_fact", decision_id="decision-accept", target_id="demo")
+    decision_journal.append_decision_record(target_dir, record)
+    (target_dir / "reproduction.json").write_text(json.dumps({"status": "exact"}), encoding="utf-8")
+    before_journal = (target_dir / "decision_journal.jsonl").read_text(encoding="utf-8")
+    binding = _rsset_verifier_binding("decision-accept")
+    rows = [_rsset_verifier_listing_row()]
+
+    monkeypatch.setattr(reversing_loop, "resolve_project_dir", lambda target_id, project_root: target_dir)
+    monkeypatch.setattr(reversing_loop.projects, "resolve_project_dir", lambda target_id, project_root: target_dir)
+    monkeypatch.setattr(
+        reversing_loop,
+        "inspect_rsset_candidates",
+        lambda target_id, project_root: _rsset_verifier_report("decision-accept"),
+    )
+    monkeypatch.setattr(
+        reversing_loop.projects,
+        "get_project",
+        lambda target_id, project_root: replace(
+            _project(()),
+            manual_state={"rsset_use_site_bindings": [binding]},
+        ),
+    )
+    monkeypatch.setattr(
+        reversing_loop.server,
+        "route_request",
+        lambda method, path, query, body=None: {"data": {"rows": rows}},
+    )
+
+    report = reversing_loop.inspect_decision_journal(
+        "demo",
+        current_verifier_decision_ids=["decision-accept"],
+        project_root=tmp_path,
+    )
+
+    audit = report["audit"]["records"][0]
+    assert {layer["layer"]: layer["status"] for layer in audit["verifier_layers"]} == {
+        "decision_journal": "passed",
+        "semantic_reload": "passed",
+        "generated_source": "passed",
+        "negative_safety": "passed",
+        "exact_round_trip": "passed",
+    }
+    assert audit["blockers"] == []
+    assert audit["verifier_layers"][2]["source"] == "current_no_write_verifier_artifact"
+    assert report["current_verifier_artifacts"][0]["status"] == "passed"
+    assert report["current_verifier_artifacts"][0]["written"] is False
+    assert not (target_dir / "decision_verifier_artifacts.json").exists()
+    assert (target_dir / "decision_journal.jsonl").read_text(encoding="utf-8") == before_journal
+    assert not (target_dir / "manual_actions.jsonl").exists()
+
+
 def test_decision_verifier_artifact_producer_blocks_missing_source_identity(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
