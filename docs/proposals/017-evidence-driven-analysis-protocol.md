@@ -1178,3 +1178,15 @@ repeatable work to `docs\issues\017-*`.
   work: where it comes from, whether it is real state corruption or stale/report
   behavior, whether it affects verifier-backed RSSET state, and whether repair
   should be implemented, deferred, or treated as outside the 017 protocol scope.
+- 017-052 classified the Pandora `manual_action_log_inconsistency:target` as a
+  real target-local skipped-sequence condition, not malformed JSON, duplicate
+  action ids, target metadata drift, or projected-state loss. The final
+  `create_manual_rsset_use_site_binding` action
+  `manual-6e574feccab748359c7577833fa718ba` is file action index 59 but carries
+  `sequence=60`; projection continues in file order, keeps the accepted RSSET
+  binding active, and leaves review state at `needs_review`. No repair command
+  exists beyond the suggested review action enum, so no manual state rewrite was
+  performed. The no-write RSSET verifier artifact producer and exact
+  round-trip still pass. 017-053 is the next active step: define and either
+  implement or defer a dry-run-first, verifier-gated repair for this exact
+  one-record skipped-sequence case before further 017 mutation work.
