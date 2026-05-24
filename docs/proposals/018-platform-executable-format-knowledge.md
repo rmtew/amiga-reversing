@@ -664,6 +664,17 @@ insufficient. Do not broaden non-CODE decoding or affect CODE behavior.
   relocation target space. GEMDOS basepage/runtime entry state, relocation
   terminator variants, symbol table details, and full parser migration remain
   candidate/deferred/unsupported as recorded in the KB.
+- 018-036 completed the Mac closeout research pass without promoting facts.
+  The research rechecked committed Inside Macintosh markdown, MPW manuals,
+  MPW-GM tool/source inventories, the executable-format KB, Proposal 012, and
+  current Mac parser/report/test surfaces. It found no accepted or
+  parser-assertable evidence for a general nonzero CODE byte-entry rule or for
+  classic 68K CODE relocation/fixup on-disk records, encoding, affected offsets,
+  and Segment Loader application rules. It also confirmed source-to-CODE mapping
+  remains deferred until a candidate source's own built product is captured or
+  reproduced. Non-CODE semantics remain limited to type-level `CURS`; CURS
+  payload decoding is unsupported and `acur`, `cmdo`, and `vers` remain
+  candidate inventory.
 
 ## Relationship To 012
 
