@@ -1,8 +1,10 @@
 # Proposal 018: Platform Executable Format Knowledge
 
-Status: open. This proposal defines the single top-down cited executable and
-object-format authority that Mac OS, Amiga, and Atari ST parsers should use
-before target-specific analysis guesses at code/data boundaries.
+Status: completed as the executable-format KB authority. This proposal defines
+the single top-down cited executable and object-format authority that Mac OS,
+Amiga, and Atari ST parsers should use before target-specific analysis guesses
+at code/data boundaries. Downstream parser/UI/source-recovery work remains open
+where the KB records candidate, deferred, or unsupported state.
 
 ## Purpose
 
@@ -221,6 +223,58 @@ Atari ST:
 - Renderer expectations are derived obligations: output must expose platform
   code/data/bss/entry/relocation facts and must not present one platform as
   another, but exact formatting remains renderer-owned.
+
+## Closeout State
+
+018 is complete as the executable-format KB authority after 018-038. Durable
+state now lives in `knowledge/platform_executable_formats.json`, generated
+`src/generated/platform_executable_formats.[ch]`, parser fact validation/report
+code, and this proposal.
+
+Current platform authority:
+
+- Mac OS has a KB-backed validated MPW application/CODE resource record for HFS
+  resource-fork application code, CODE 0 metadata, nonzero CODE segment headers,
+  Segment Loader loading, A5/jump-table metadata, MPW Link application output,
+  type-level CURS semantics, renderer labeling, and parser-output fact
+  validation.
+- Mac byte-entry remains unresolved by accepted evidence:
+  `macos.code_resource.byte_entry_rule.unknown` is formally deferred, while
+  `macos.code_resource.movea_stack_a0.boundary.candidate` stays candidate-only.
+- Mac classic 68K CODE relocation/fixup interpretation remains formally
+  deferred because the on-disk fixup record location, byte encoding, affected
+  offsets, Segment Loader application rules, and relocated-byte fixture are
+  still missing.
+- Mac source-to-CODE mapping is deferred until the selected future fixture's own
+  built product is captured or reproduced. Current Sample source is not mapped
+  to MPW/Tools/Asm CODE resources.
+- Mac non-CODE payload decoding remains unsupported except for accepted
+  type-level CURS semantics; `acur`, `cmdo`, and `vers` remain candidate
+  inventory.
+- Amiga HUNK has a KB-backed parser-asserted reference slice for HUNK_HEADER
+  identification, object/library container identity, CODE/DATA/BSS section
+  roles, and size-only BSS. Runtime entry policy, relocation breadth,
+  overlay/loader variants, symbol/EXT details, and full parser migration remain
+  candidate/deferred/unsupported as recorded in the KB.
+- Atari ST PRG has a KB-backed parser-asserted reference slice for 0x601A PRG
+  magic, PRG_HEADER/TEXT/DATA/optional symbol and relocation stream sequence,
+  TEXT/DATA/BSS region shape, and TEXT+DATA loaded-image relocation target
+  space. GEMDOS basepage/runtime entry state, relocation terminator variants,
+  symbol table details, and full parser migration remain
+  candidate/deferred/unsupported as recorded in the KB.
+
+Closeout validation:
+
+- Platform executable KB validation passes.
+- Generated platform executable fact tables are fresh and derive from
+  `knowledge/platform_executable_formats.json`.
+- Parser fact coverage reports accepted/candidate/deferred/unsupported/invalid
+  claims and fails closed on invalid accepted claims.
+- Mac C summary, project payload, committed artifact, and web payload tests keep
+  byte-entry candidate/deferred and relocation/fixup deferred, while preserving
+  candidate visibility.
+- Proposal 012 remains downstream and open for full Mac executable/CODE
+  correctness; it must consume these 018 states rather than bypass them.
 
 ## Issue Seeds
 
@@ -704,6 +758,12 @@ insufficient. Do not broaden non-CODE decoding or affect CODE behavior.
   deferred until the candidate fixture's own built product is captured or
   reproduced; and CURS payload decoding is explicitly unsupported while
   type-level `CURS` remains the only accepted non-CODE semantic slice.
+- 018-038 closed Proposal 018 as the executable-format KB authority. It reran
+  current validation rather than relying on historical issue labels, recorded
+  the durable closeout state in this proposal, confirmed Proposal 012 remains
+  downstream/open for Mac byte-entry, relocation/fixup, source-to-CODE, and
+  broader resource semantics, and removed the completed 018-030 through 018-038
+  issue files after this proposal held their conclusions.
 
 ## Relationship To 012
 

@@ -1425,6 +1425,10 @@ Future scope after cited starter-quality rendering:
   state. Proposal 012 must continue to consume those states downstream:
   byte-entry and relocation/fixup stay deferred, source-to-CODE mapping waits
   for fixture/product evidence, and CURS payload decoding remains unsupported.
+- 018-038 closes Proposal 018 as the executable-format KB authority. Proposal
+  012 remains open for full Mac executable/CODE correctness and must not promote
+  Mac byte-entry or relocation/fixup behavior beyond the accepted/deferred
+  states recorded in 018.
 - MPW Asm/Link/Rez byte-for-byte roundtrip.
 - Full non-CODE resource semantics.
 - Overflow extents for later fixtures that need them.
