@@ -7,6 +7,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 from amiga_reversing.tools import platform_executable_formats
 
 
@@ -428,6 +430,27 @@ def test_019_001_current_amiga_hunk_output_runs_real_parser_path() -> None:
     assert "amiga" not in report["unreported_platforms"]
 
 
+def test_019_004_raw_amiga_hunk_parser_summary_emits_kb_refs_before_coverage() -> None:
+    payload = platform_executable_formats._inspect_platform_fixture(
+        "amiga-hunk",
+        platform_executable_formats._synthetic_amiga_hunk_fixture(),
+        ".hunk",
+    )
+    refs = payload["fact_refs"]
+
+    assert payload["kb_record_id"] == "amiga.hunk.load_file.basic_backfill"
+    assert payload["parser"] == "platform_file_inspect_path_json_alloc"
+    assert {
+        (ref["fact_id"], ref["fact_status"], ref["parser_use"])
+        for ref in refs
+    } >= {
+        ("amiga.hunk.header.identifies_load_file.accepted", "parser_asserted", "accepted_parser_output"),
+        ("amiga.hunk.code_data_bss.sections.accepted", "parser_asserted", "accepted_parser_output"),
+        ("amiga.hunk.runtime_entry.deferred", "deferred", "deferred_only"),
+    }
+    assert platform_executable_formats.validate_parser_fact_references(payload) == []
+
+
 def test_019_002_current_atari_prg_output_runs_real_parser_path() -> None:
     payload = platform_executable_formats._load_current_atari_prg_output()
     report = platform_executable_formats.build_parser_fact_coverage_report([payload], labels=["current-atari-prg"])
@@ -441,6 +464,58 @@ def test_019_002_current_atari_prg_output_runs_real_parser_path() -> None:
     assert report["summary"]["candidate"] >= 1
     assert report["summary"]["deferred"] >= 1
     assert "atari_st" not in report["unreported_platforms"]
+
+
+def test_019_004_raw_atari_prg_parser_summary_emits_kb_refs_before_coverage() -> None:
+    payload = platform_executable_formats._inspect_platform_fixture(
+        "atari-st",
+        platform_executable_formats._synthetic_atari_prg_fixture(),
+        ".prg",
+    )
+    refs = payload["fact_refs"]
+
+    assert payload["kb_record_id"] == "atari_st.prg.gemdos_basic_backfill"
+    assert payload["parser"] == "platform_file_inspect_path_json_alloc"
+    assert {
+        (ref["fact_id"], ref["fact_status"], ref["parser_use"])
+        for ref in refs
+    } >= {
+        ("atari_st.prg.magic_601a.accepted", "parser_asserted", "accepted_parser_output"),
+        ("atari_st.prg.text_data_bss_regions.accepted", "parser_asserted", "accepted_parser_output"),
+        ("atari_st.prg.bss.header_only.candidate", "candidate", "candidate_only"),
+        ("atari_st.prg.relocation_terminator_variants.deferred", "deferred", "deferred_only"),
+    }
+    assert platform_executable_formats.validate_parser_fact_references(payload) == []
+
+
+def test_019_004_current_amiga_hunk_coverage_refuses_summary_without_parser_refs(monkeypatch) -> None:
+    monkeypatch.setattr(
+        platform_executable_formats,
+        "_inspect_platform_fixture",
+        lambda backend, fixture_bytes, suffix: {
+            "platform": backend,
+            "file_kind": "executable",
+            "sections": [{"kind": "code"}],
+        },
+    )
+
+    with pytest.raises(ValueError, match="parser summary did not emit kb_record_id"):
+        platform_executable_formats._load_current_amiga_hunk_output()
+
+
+def test_019_004_current_atari_prg_coverage_refuses_summary_without_parser_refs(monkeypatch) -> None:
+    monkeypatch.setattr(
+        platform_executable_formats,
+        "_inspect_platform_fixture",
+        lambda backend, fixture_bytes, suffix: {
+            "platform": backend,
+            "file_kind": "executable",
+            "sections": [{"kind": "code"}],
+        },
+    )
+
+    with pytest.raises(ValueError, match="parser summary did not emit kb_record_id"):
+        platform_executable_formats._load_current_atari_prg_output()
 
 
 def test_019_003_combined_current_coverage_requires_amiga_and_atari_refs(monkeypatch, capsys) -> None:

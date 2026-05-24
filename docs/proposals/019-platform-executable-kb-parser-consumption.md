@@ -1,11 +1,9 @@
 # Proposal 019: Platform Executable KB Parser Consumption
 
-Status: active. Proposal 018 is complete as the executable-format KB authority;
-Proposal 019 has current-output coverage hooks for Mac OS, Amiga HUNK, and
-Atari ST PRG, but review found the Amiga/Atari KB refs are still synthesized by
-the coverage wrapper rather than emitted by the parser-owned summary surface.
-The remaining work is to make parser output itself carry the executable-format
-KB refs.
+Status: complete. Proposal 018 is complete as the executable-format KB
+authority. Proposal 019 now has current-output coverage hooks for Mac OS,
+Amiga HUNK, and Atari ST PRG, and the Amiga/Atari refs are emitted by the raw
+parser-owned inspect summaries before coverage consumes them.
 
 ## Purpose
 
@@ -74,9 +72,8 @@ Expected result:
 The combined current-output gate now leaves no platform unreported. The only
 remaining unreported record is the old Mac report-only thin proof; the current
 Mac parser hook reports the accepted MPW application record. Amiga and Atari
-current hooks currently prove parser execution plus wrapper validation, but
-they must be tightened so the raw parser/import summaries carry the fact refs
-before coverage sees them.
+current hooks run real parser inspection and consume parser-owned KB refs from
+the raw inspect summaries.
 
 ## Consumption Contract
 
@@ -136,10 +133,11 @@ hook or handcrafted dictionary is not acceptable.
 
 Completed state: `coverage --current-amiga-hunk` writes a synthetic HUNK load
 file with CODE, DATA, and BSS hunks, runs it through the real
-`platform_file_inspect_path_json_alloc` / `amiga-hunk` parser path, then emits
-refs for `amiga.hunk.load_file.basic_backfill`. The output includes accepted
-parser-asserted refs for HUNK_HEADER, container basics, CODE/DATA/BSS section
-roles, BSS size-only state, and a deferred runtime-entry limit.
+`platform_file_inspect_path_json_alloc` / `amiga-hunk` parser path, and consumes
+the parser-owned refs for `amiga.hunk.load_file.basic_backfill`. The raw parser
+summary includes accepted parser-asserted refs for HUNK_HEADER, container
+basics, CODE/DATA/BSS section roles, BSS size-only state, and a deferred
+runtime-entry limit.
 
 ### 019-002: Atari PRG Current KB Fact Output
 
@@ -165,11 +163,11 @@ or handcrafted dictionary is not acceptable.
 Completed state: `coverage --current-atari-prg` writes a synthetic GEMDOS PRG
 with 0x601A header, TEXT, DATA, BSS size, and relocation-stream terminator,
 runs it through the real `platform_file_inspect_path_json_alloc` / `atari-st`
-parser path, then emits refs for `atari_st.prg.gemdos_basic_backfill`. The
-output includes accepted parser-asserted refs for magic/header, container
-sequence, TEXT/DATA/BSS region shape, loaded TEXT+DATA relocation target space,
-plus candidate/deferred limits for BSS header-only and relocation terminator
-variants.
+parser path, and consumes the parser-owned refs for
+`atari_st.prg.gemdos_basic_backfill`. The raw parser summary includes accepted
+parser-asserted refs for magic/header, container sequence, TEXT/DATA/BSS region
+shape, loaded TEXT+DATA relocation target space, plus candidate/deferred limits
+for BSS header-only and relocation terminator variants.
 
 ### 019-003: Cross-Platform Current Coverage Gate
 
@@ -212,6 +210,14 @@ before coverage wrapping and fail if those summaries contain no KB refs. The
 coverage command may add source labels and aggregate results, but it must not
 construct Amiga/Atari executable-format fact refs from section kinds itself.
 
+Completed state: `platform_file_inspect_path_json_alloc` now emits
+`parser`, `kb_record_id`, and `fact_refs` directly for executable Amiga HUNK
+and Atari ST PRG inspect summaries. The Python current-output hooks validate
+those refs and pass the raw summaries into coverage without constructing
+executable-format fact refs. Regression tests assert raw Amiga/Atari summaries
+contain `kb_record_id`, `fact_id`, `fact_status`, and `parser_use`, and assert
+the current-output hooks refuse summaries where the raw parser omitted refs.
+
 ## Review Finding
 
 - Review of commit `43555c72` found that `coverage --current-amiga-hunk` and
@@ -230,8 +236,10 @@ construct Amiga/Atari executable-format fact refs from section kinds itself.
   closeout gate.
 - Completed issue files `019-001`, `019-002`, and `019-003` were deleted only
   after this proposal recorded their durable conclusions.
-- 019-004 is active after review found that Amiga/Atari refs are wrapper-owned,
-  not parser-owned.
+- 019-004 moved Amiga/Atari refs into raw C parser inspect summaries and made
+  coverage consume those parser-owned refs unchanged.
+- Completed issue file `019-004` was deleted only after this proposal recorded
+  the durable conclusion.
 
 ## Acceptance Criteria
 

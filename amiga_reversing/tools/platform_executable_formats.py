@@ -528,34 +528,8 @@ def _load_current_amiga_hunk_output() -> dict[str, Any]:
     sections = _sequence(summary.get("sections"))
     if summary.get("file_kind") != "executable" or not sections:
         raise ValueError("synthetic Amiga HUNK fixture did not parse as an executable with sections")
-    refs: list[dict[str, str]] = [
-        _fact_ref("amiga.hunk.header.identifies_load_file.accepted", "parser_asserted", "accepted_parser_output"),
-        _fact_ref("amiga.hunk.unit_library.containers.accepted", "parser_asserted", "accepted_parser_output"),
-    ]
-    kinds = {_string(_mapping(section).get("kind")) for section in sections}
-    if {"code", "data", "bss"} <= kinds:
-        refs.append(_fact_ref("amiga.hunk.code_data_bss.sections.accepted", "parser_asserted", "accepted_parser_output"))
-    if any(_string(_mapping(section).get("kind")) == "bss" and _mapping(section).get("data_size") == 0 for section in sections):
-        refs.append(_fact_ref("amiga.hunk.bss.size_only.accepted", "parser_asserted", "accepted_parser_output"))
-    refs.append(_fact_ref("amiga.hunk.runtime_entry.deferred", "deferred", "deferred_only"))
-    if len(refs) <= 1:
-        raise ValueError("current Amiga HUNK parser output emitted no meaningful fact refs")
-    return {
-        "kb_record_id": "amiga.hunk.load_file.basic_backfill",
-        "parser": "platform_file_inspect_path_json_alloc",
-        "platform": summary.get("platform"),
-        "file_kind": summary.get("file_kind"),
-        "sections": [
-            {
-                "name": section.get("name"),
-                "kind": section.get("kind"),
-                "size": section.get("size"),
-                "data_size": section.get("data_size"),
-            }
-            for section in (_mapping(item) for item in sections)
-        ],
-        "fact_refs": refs,
-    }
+    _require_parser_owned_fact_refs(summary, "amiga.hunk.load_file.basic_backfill", "current Amiga HUNK")
+    return summary
 
 
 def _load_current_atari_prg_output() -> dict[str, Any]:
@@ -563,35 +537,23 @@ def _load_current_atari_prg_output() -> dict[str, Any]:
     sections = _sequence(summary.get("sections"))
     if summary.get("file_kind") != "executable" or not sections:
         raise ValueError("synthetic Atari PRG fixture did not parse as an executable with sections")
-    refs: list[dict[str, str]] = [
-        _fact_ref("atari_st.prg.magic_601a.accepted", "parser_asserted", "accepted_parser_output"),
-        _fact_ref("atari_st.prg.container_sequence.accepted", "parser_asserted", "accepted_parser_output"),
-    ]
-    kinds = {_string(_mapping(section).get("kind")) for section in sections}
-    if {"code", "data", "bss"} <= kinds:
-        refs.append(_fact_ref("atari_st.prg.text_data_bss_regions.accepted", "parser_asserted", "accepted_parser_output"))
-    refs.append(_fact_ref("atari_st.prg.text_data_loaded_image.accepted", "parser_asserted", "accepted_parser_output"))
-    if any(_string(_mapping(section).get("kind")) == "bss" and _mapping(section).get("data_size") == 0 for section in sections):
-        refs.append(_fact_ref("atari_st.prg.bss.header_only.candidate", "candidate", "candidate_only"))
-    refs.append(_fact_ref("atari_st.prg.relocation_terminator_variants.deferred", "deferred", "deferred_only"))
-    if len(refs) <= 1:
-        raise ValueError("current Atari PRG parser output emitted no meaningful fact refs")
-    return {
-        "kb_record_id": "atari_st.prg.gemdos_basic_backfill",
-        "parser": "platform_file_inspect_path_json_alloc",
-        "platform": summary.get("platform"),
-        "file_kind": summary.get("file_kind"),
-        "sections": [
-            {
-                "name": section.get("name"),
-                "kind": section.get("kind"),
-                "size": section.get("size"),
-                "data_size": section.get("data_size"),
-            }
-            for section in (_mapping(item) for item in sections)
-        ],
-        "fact_refs": refs,
-    }
+    _require_parser_owned_fact_refs(summary, "atari_st.prg.gemdos_basic_backfill", "current Atari PRG")
+    return summary
+
+
+def _require_parser_owned_fact_refs(payload: Mapping[str, Any], record_id: str, label: str) -> None:
+    if _string(payload.get("kb_record_id")) != record_id:
+        raise ValueError(f"{label} parser summary did not emit kb_record_id {record_id}")
+    refs = [_mapping(item) for item in _sequence(payload.get("fact_refs"))]
+    if not refs:
+        raise ValueError(f"{label} parser summary emitted no parser-owned fact refs")
+    for index, ref in enumerate(refs):
+        for key in ("fact_id", "fact_status", "parser_use"):
+            if not _string(ref.get(key)):
+                raise ValueError(f"{label} parser summary fact_refs[{index}] missing {key}")
+    diagnostics = validate_parser_fact_references(payload)
+    if diagnostics:
+        raise ValueError(f"{label} parser summary emitted invalid fact refs: {diagnostics}")
 
 
 def _inspect_platform_fixture(backend: str, fixture_bytes: bytes, suffix: str) -> dict[str, Any]:
@@ -670,14 +632,6 @@ def _synthetic_atari_prg_fixture() -> bytes:
             u32(0),
         ]
     )
-
-
-def _fact_ref(fact_id: str, fact_status: str, parser_use: str) -> dict[str, str]:
-    return {
-        "fact_id": fact_id,
-        "fact_status": fact_status,
-        "parser_use": parser_use,
-    }
 
 
 def _validate_parser_fact_node(

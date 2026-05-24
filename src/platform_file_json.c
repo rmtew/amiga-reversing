@@ -6,6 +6,7 @@
 #include "m68k_source_text_util.h"
 #include "generated/amiga_os_runtime.h"
 #include "generated/m68k_cpu_runtime.h"
+#include "generated/platform_executable_formats.h"
 #include "util_arena.h"
 
 static int json_builder_append_nullable_string(JsonBuilder *builder, const char *text);
@@ -613,6 +614,116 @@ static const char *section_kind_name(M68kSectionKind kind) {
   if (kind == M68K_SECTION_CODE) return "code";
   if (kind == M68K_SECTION_DATA) return "data";
   return "bss";
+}
+
+static int object_has_section_kind(const M68kObject *object, M68kSectionKind kind) {
+  size_t index;
+  if (object == NULL) return 0;
+  for (index = 0U; index < object->section_count; ++index) {
+    if (object->sections[index].kind == kind) return 1;
+  }
+  return 0;
+}
+
+static int object_has_size_only_bss_section(const M68kObject *object) {
+  size_t index;
+  if (object == NULL) return 0;
+  for (index = 0U; index < object->section_count; ++index) {
+    const M68kSection *section = &object->sections[index];
+    if (section->kind == M68K_SECTION_BSS && section->data_size == 0U) return 1;
+  }
+  return 0;
+}
+
+static int append_platform_executable_fact_ref_json(JsonBuilder *builder, const char *fact_id,
+    const char *fact_status, const char *parser_use, int *emitted_any) {
+  if (builder == NULL || fact_id == NULL || fact_status == NULL || parser_use == NULL || emitted_any == NULL)
+    return -1;
+  if (*emitted_any && json_builder_append(builder, ",") != 0) return -1;
+  if (json_builder_append(builder, "{\"fact_id\":") != 0) return -1;
+  if (json_builder_append_json_string(builder, fact_id) != 0) return -1;
+  if (json_builder_append(builder, ",\"fact_status\":") != 0) return -1;
+  if (json_builder_append_json_string(builder, fact_status) != 0) return -1;
+  if (json_builder_append(builder, ",\"parser_use\":") != 0) return -1;
+  if (json_builder_append_json_string(builder, parser_use) != 0) return -1;
+  if (json_builder_append(builder, "}") != 0) return -1;
+  *emitted_any = 1;
+  return 0;
+}
+
+static int append_platform_executable_kb_refs_json(JsonBuilder *builder, const M68kBackend *backend,
+    const M68kObject *object) {
+  const char *record_id = NULL;
+  int emitted_any = 0;
+  if (builder == NULL || backend == NULL || object == NULL ||
+      object->platform_file_kind != M68K_PLATFORM_FILE_EXECUTABLE) {
+    return 0;
+  }
+  if (backend->platform_kind == M68K_PLATFORM_BACKEND_AMIGA_HUNK) {
+    record_id = PLATFORM_EXECUTABLE_FORMAT_RECORD_AMIGA_HUNK_LOAD_FILE_BASIC_BACKFILL;
+  } else if (backend->platform_kind == M68K_PLATFORM_BACKEND_ATARI_ST) {
+    record_id = PLATFORM_EXECUTABLE_FORMAT_RECORD_ATARI_ST_PRG_GEMDOS_BASIC_BACKFILL;
+  } else {
+    return 0;
+  }
+  if (json_builder_append(builder, ",\"parser\":\"platform_file_inspect_path_json_alloc\",\"kb_record_id\":") != 0)
+    return -1;
+  if (json_builder_append_json_string(builder, record_id) != 0) return -1;
+  if (json_builder_append(builder, ",\"fact_refs\":[") != 0) return -1;
+  if (backend->platform_kind == M68K_PLATFORM_BACKEND_AMIGA_HUNK) {
+    if (append_platform_executable_fact_ref_json(builder,
+        PLATFORM_EXECUTABLE_FORMAT_FACT_AMIGA_HUNK_HEADER_IDENTIFIES_LOAD_FILE_ACCEPTED, "parser_asserted",
+        "accepted_parser_output", &emitted_any) != 0)
+      return -1;
+    if (append_platform_executable_fact_ref_json(builder,
+        PLATFORM_EXECUTABLE_FORMAT_FACT_AMIGA_HUNK_UNIT_LIBRARY_CONTAINERS_ACCEPTED, "parser_asserted",
+        "accepted_parser_output", &emitted_any) != 0)
+      return -1;
+    if (object_has_section_kind(object, M68K_SECTION_CODE) && object_has_section_kind(object, M68K_SECTION_DATA) &&
+        object_has_section_kind(object, M68K_SECTION_BSS) &&
+        append_platform_executable_fact_ref_json(builder,
+          PLATFORM_EXECUTABLE_FORMAT_FACT_AMIGA_HUNK_CODE_DATA_BSS_SECTIONS_ACCEPTED, "parser_asserted",
+          "accepted_parser_output", &emitted_any) != 0)
+      return -1;
+    if (object_has_size_only_bss_section(object) &&
+        append_platform_executable_fact_ref_json(builder,
+          PLATFORM_EXECUTABLE_FORMAT_FACT_AMIGA_HUNK_BSS_SIZE_ONLY_ACCEPTED, "parser_asserted",
+          "accepted_parser_output", &emitted_any) != 0)
+      return -1;
+    if (append_platform_executable_fact_ref_json(builder,
+        PLATFORM_EXECUTABLE_FORMAT_FACT_AMIGA_HUNK_RUNTIME_ENTRY_DEFERRED, "deferred", "deferred_only",
+        &emitted_any) != 0)
+      return -1;
+  } else {
+    if (append_platform_executable_fact_ref_json(builder,
+        PLATFORM_EXECUTABLE_FORMAT_FACT_ATARI_ST_PRG_MAGIC_601A_ACCEPTED, "parser_asserted",
+        "accepted_parser_output", &emitted_any) != 0)
+      return -1;
+    if (append_platform_executable_fact_ref_json(builder,
+        PLATFORM_EXECUTABLE_FORMAT_FACT_ATARI_ST_PRG_CONTAINER_SEQUENCE_ACCEPTED, "parser_asserted",
+        "accepted_parser_output", &emitted_any) != 0)
+      return -1;
+    if (object_has_section_kind(object, M68K_SECTION_CODE) && object_has_section_kind(object, M68K_SECTION_DATA) &&
+        object_has_section_kind(object, M68K_SECTION_BSS) &&
+        append_platform_executable_fact_ref_json(builder,
+          PLATFORM_EXECUTABLE_FORMAT_FACT_ATARI_ST_PRG_TEXT_DATA_BSS_REGIONS_ACCEPTED, "parser_asserted",
+          "accepted_parser_output", &emitted_any) != 0)
+      return -1;
+    if (append_platform_executable_fact_ref_json(builder,
+        PLATFORM_EXECUTABLE_FORMAT_FACT_ATARI_ST_PRG_TEXT_DATA_LOADED_IMAGE_ACCEPTED, "parser_asserted",
+        "accepted_parser_output", &emitted_any) != 0)
+      return -1;
+    if (object_has_size_only_bss_section(object) &&
+        append_platform_executable_fact_ref_json(builder,
+          PLATFORM_EXECUTABLE_FORMAT_FACT_ATARI_ST_PRG_BSS_HEADER_ONLY_CANDIDATE, "candidate", "candidate_only",
+          &emitted_any) != 0)
+      return -1;
+    if (append_platform_executable_fact_ref_json(builder,
+        PLATFORM_EXECUTABLE_FORMAT_FACT_ATARI_ST_PRG_RELOCATION_TERMINATOR_VARIANTS_DEFERRED, "deferred",
+        "deferred_only", &emitted_any) != 0)
+      return -1;
+  }
+  return json_builder_append(builder, "]");
 }
 static int json_builder_append_hex_bytes(JsonBuilder *builder, const unsigned char *data, size_t size) {
   static const char hex[] = "0123456789abcdef";
@@ -1693,6 +1804,8 @@ int inspect_object_json(const M68kBackend *backend, const M68kObject *object, ch
   if (json_builder_append(&builder, ",\"file_kind\":") != 0)
     goto fail;
   if (json_builder_append_json_string(&builder, file_kind_name(object->platform_file_kind)) != 0)
+    goto fail;
+  if (append_platform_executable_kb_refs_json(&builder, backend, object) != 0)
     goto fail;
   if (json_builder_appendf(&builder, ",\"section_count\":%zu,\"symbol_count\":%zu,\"fixup_count\":%zu",
       object->section_count, object->symbol_count, object->fixup_count) != 0)
