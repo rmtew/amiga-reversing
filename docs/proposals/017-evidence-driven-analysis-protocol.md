@@ -1264,3 +1264,42 @@ repeatable work to `docs\issues\017-*`.
   Manual Action Log, Decision Journal, verifier artifact, generated output,
   target metadata, tracked Pandora source, 012, or 018 files were mutated by
   discovery. No safe 017 follow-up exists; keep 017 paused.
+- 017-056 classified the 7 callback-slot missed-code-target assignments from
+  017-055. Five target existing data rows with no orphan/code review item:
+  `app_020C` and `app_0210` to `s0:0004D5DE`, `app_027C` to
+  `s0:0004D5DE`, and two `app_0280` stores to `s0:00000B28`. Two target data
+  rows that already have `unreconciled_data_range` review items, not code
+  classification items: `app_027C` to `s0:0000076E` and `s0:00000AC8`.
+  Broader callback assignments still include 173 `target_row_missing` cases,
+  but those are not concrete missed-code-target assignments because no target
+  row/source offset resolves. The callback mutation gate remains blocked by
+  `ready_callback_review_item`.
+- 017-057 rechecked exact source-offset immediate
+  `immediate-runtime-ref:s0:000009A6:instruction:664:0:00001080`
+  (`s0:000009A6:op0`, `addi.w #4224,d1`). The packet still has explicit empty
+  conflicts and a deferred Decision Journal lane, but landing classification is
+  unknown, downstream dataflow is unavailable, and same-literal/source-offset
+  range evidence remains non-durable. `immediate_ref.interpret` stays disabled
+  by `same_literal_only_not_durable_provenance`,
+  `missing_accepted_runtime_address_provenance`,
+  `missing_source_offset_decision_replay_support`, and
+  `missing_source_offset_render_verifier_gate`.
+- 017-058 selected the largest repeated A5 unknown-use family, base setup
+  `s0:00006C68:instruction:4379`, with 165 unknown uses. Representative packet
+  `a5-path-lifetime-packet:s0:00006C96:op0` shows A5 computed as `_custom`,
+  displacement `$001E`, no existing manual state, and blockers
+  `branch before selected use requires full CFG path proof`,
+  `missing_accepted_path_lifetime_scope`, and `missing_command_candidate`.
+  CFG reachability is unproven, A5 clobber state is unknown, conflicts are not
+  explicit-empty, and no new A5 command candidate is exposed.
+- 017-059 rechecked RSSET `rsset-raw-a6:022E` at `s0:000006E4:op1`. The issue
+  premise is stale for that exact candidate: current reports show it as
+  `already_recorded`, with accepted base evidence from
+  `decision-rsset-022e-accept-017-040`, selected-use scope, and explicit
+  `conflicts: []`; `rsset.binding.bind` is already satisfied by
+  `manual-6e574feccab748359c7577833fa718ba`. The Decision Journal audit reports
+  the accepted fact active and source-effective through current semantic reload,
+  but local generated-source, negative-safety, and exact-round-trip artifact
+  layers are stale/not checked because no verifier artifact was regenerated.
+  New/unrecorded RSSET candidates remain blocked without accepted selected-use
+  base evidence and verifier-ready gates; no duplicate mutation is allowed.

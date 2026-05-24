@@ -1,6 +1,6 @@
 # 017-059: RSSET Accepted-Base Evidence Discovery
 
-Status: active
+Status: completed
 Type: AFK
 Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
@@ -45,29 +45,94 @@ Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
 ## Research Coverage
 
-- [ ] Current RSSET candidate report rerun for Pandora.
-- [ ] Selected candidate or family justified.
-- [ ] Selected-use identity checked.
-- [ ] Accepted-base evidence count and source checked.
-- [ ] Possible base setup/path/lifetime evidence checked.
-- [ ] Conflict state checked, including explicit empty-conflict requirement.
-- [ ] Existing already-recorded RSSET candidates compared to avoid duplicate work.
-- [ ] No 012/018/Mac/platform-format files touched.
+- [x] Current RSSET candidate report rerun for Pandora.
+- [x] Selected candidate or family justified.
+- [x] Selected-use identity checked.
+- [x] Accepted-base evidence count and source checked.
+- [x] Possible base setup/path/lifetime evidence checked.
+- [x] Conflict state checked, including explicit empty-conflict requirement.
+- [x] Existing already-recorded RSSET candidates compared to avoid duplicate work.
+- [x] No 012/018/Mac/platform-format files touched.
 
 ## Research Review
 
-- [ ] Confirmed RSSET mutation remains blocked without accepted base evidence.
-- [ ] Confirmed no command candidate was exposed.
-- [ ] Confirmed no source, Manual Action Log, Decision Journal, verifier artifact, generated output, or target metadata was modified.
-- [ ] Proposal 017 living notes updated with concise findings.
+- [x] Confirmed RSSET mutation remains blocked without accepted base evidence.
+- [x] Confirmed no command candidate was exposed.
+- [x] Confirmed no source, Manual Action Log, Decision Journal, verifier artifact, generated output, or target metadata was modified.
+- [x] Proposal 017 living notes updated with concise findings.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before work.
-- [ ] One candidate or small family selected.
-- [ ] Accepted-base evidence path or exact blocker recorded.
-- [ ] Output remains read-only.
-- [ ] Any support-code change is tied to a concrete packet/report correctness blocker.
-- [ ] Focused tests pass if code changes.
-- [ ] `amiga_reversing.tools.validate_017_issues` passes.
-- [ ] `git diff --check` passes.
+- [x] Proposal context checked before work.
+- [x] One candidate or small family selected.
+- [x] Accepted-base evidence path or exact blocker recorded.
+- [x] Output remains read-only.
+- [x] Any support-code change is tied to a concrete packet/report correctness blocker.
+- [x] Focused tests pass if code changes.
+- [x] `amiga_reversing.tools.validate_017_issues` passes.
+- [x] `git diff --check` passes.
+
+## Completion Evidence
+
+Pandora target:
+`amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8`.
+
+Read-only commands rerun:
+
+- `uv run python -m amiga_reversing.reversing_loop rsset-candidate-report --target amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8`
+- `uv run python -m amiga_reversing.reversing_loop decision-journal-report --target amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8`
+
+Current RSSET report summary:
+
+- 125 candidates.
+- Status counts: 123 `blocked`, 2 `already_recorded`.
+- No new RSSET command candidate was exposed.
+- Unrecorded candidates remain blocked by missing accepted base evidence.
+
+Selected candidate:
+
+- Candidate: `rsset-raw-a6:022E`.
+- Selected use: `s0:000006E4:op1`, hunk 0, addr 1764,
+  operand index 1.
+- Row text: `bclr.b #1,app_022E(a6)`.
+- Displacement: `$022E` / 558.
+- Same-displacement use count: 66.
+- Current candidate status: `already_recorded`.
+
+Accepted-base evidence path:
+
+- `accepted_base_evidence_count=1`.
+- Evidence source:
+  `decision-rsset-022e-accept-017-040`.
+- Source family/status: `rsset_app_base` / `accepted`.
+- Base evidence id: `selected-base:A6:__amiga_app_base__`.
+- Scope: selected-use path/lifetime, hunk 0, addr 1764,
+  operand index 1.
+- Conflict state: explicit empty `conflicts: []`.
+- Existing manual binding owner:
+  `manual-6e574feccab748359c7577833fa718ba`.
+
+Readiness/current blocker state:
+
+- `rsset.binding.report` remains available.
+- `rsset.binding.bind` for `022E` is `already_satisfied`; this issue must not
+  create a duplicate mutation.
+- The journal mutation gate reports `ready_for_039=true` but
+  `mutation_enabled=false`, matching the read-only policy.
+- `decision-journal-report` shows the accepted RSSET decision is active and
+  source-effective through current semantic reload/report matching.
+- Current verifier artifact consumption reports generated-source,
+  negative-safety, and exact-round-trip layers as `not_checked` because the
+  local artifact is stale; no artifact was regenerated or written here.
+
+Conclusion:
+
+- The historical issue premise is stale for `rsset-raw-a6:022E`: accepted-base
+  evidence is now present and already recorded from earlier 017 work.
+- The useful current blocker is for new/unrecorded RSSET candidates: without
+  accepted selected-use base evidence, explicit empty conflicts, and verifier
+  readiness, mutation remains blocked.
+- No RSSET mutation or duplicate command candidate was exposed.
+
+No code changed, so no focused tests were required beyond issue validation and
+diff checks.

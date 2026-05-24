@@ -1,6 +1,6 @@
 # 017-057: Source-Offset Immediate Provenance Unblocker
 
-Status: active
+Status: completed
 Type: AFK
 Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
@@ -45,28 +45,84 @@ Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
 ## Research Coverage
 
-- [ ] Current immediate-reference report rerun for Pandora.
-- [ ] Current `source-offset-immediate-packet` inspected for the selected candidate.
-- [ ] Current Decision Journal lane checked without appending.
-- [ ] Landing/dataflow evidence checked.
-- [ ] Conflict state checked.
-- [ ] Render/verifier readiness checked as read-only.
-- [ ] No 012/018/Mac/platform-format files touched.
+- [x] Current immediate-reference report rerun for Pandora.
+- [x] Current `source-offset-immediate-packet` inspected for the selected candidate.
+- [x] Current Decision Journal lane checked without appending.
+- [x] Landing/dataflow evidence checked.
+- [x] Conflict state checked.
+- [x] Render/verifier readiness checked as read-only.
+- [x] No 012/018/Mac/platform-format files touched.
 
 ## Research Review
 
-- [ ] Confirmed source-offset-only evidence remains non-accepting unless stronger provenance exists.
-- [ ] Confirmed command gate remains disabled.
-- [ ] Confirmed no source, Manual Action Log, Decision Journal, verifier artifact, generated output, or target metadata was modified.
-- [ ] Proposal 017 living notes updated with concise findings.
+- [x] Confirmed source-offset-only evidence remains non-accepting unless stronger provenance exists.
+- [x] Confirmed command gate remains disabled.
+- [x] Confirmed no source, Manual Action Log, Decision Journal, verifier artifact, generated output, or target metadata was modified.
+- [x] Proposal 017 living notes updated with concise findings.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before work.
-- [ ] One exact operand selected.
-- [ ] Blockers/conflicts recorded explicitly.
-- [ ] Output remains read-only.
-- [ ] Any support-code change is tied to a concrete packet/report correctness blocker.
-- [ ] Focused tests pass if code changes.
-- [ ] `amiga_reversing.tools.validate_017_issues` passes.
-- [ ] `git diff --check` passes.
+- [x] Proposal context checked before work.
+- [x] One exact operand selected.
+- [x] Blockers/conflicts recorded explicitly.
+- [x] Output remains read-only.
+- [x] Any support-code change is tied to a concrete packet/report correctness blocker.
+- [x] Focused tests pass if code changes.
+- [x] `amiga_reversing.tools.validate_017_issues` passes.
+- [x] `git diff --check` passes.
+
+## Completion Evidence
+
+Pandora target:
+`amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8`.
+
+Read-only commands rerun:
+
+- `uv run python -m amiga_reversing.reversing_loop immediate-ref-report --target amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8`
+- `uv run python -m amiga_reversing.reversing_loop source-offset-immediate-packet --target amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8 --candidate-id immediate-runtime-ref:s0:000009A6:instruction:664:0:00001080`
+- `uv run python -m amiga_reversing.reversing_loop decision-journal-report --target amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8`
+
+Selected operand:
+
+- Packet id:
+  `source-offset-immediate-packet:immediate-runtime-ref:s0:000009A6:instruction:664:0:00001080`.
+- Selected identity: `s0:000009A6:op0`, hunk 0, addr 2470,
+  operand index 0.
+- Instruction: `addi.w #4224,d1`.
+- Literal: value 4224 / `$1080`, width 16 bits / 2 bytes,
+  signedness unknown.
+- Possible interpretation: source offset 4224 by range match only, no runtime
+  address provenance.
+
+Evidence state:
+
+- Landing range is inside the loaded binary but classification remains
+  `unknown`.
+- Local dataflow is listing-instruction-only; downstream dataflow query is
+  unavailable.
+- Same-literal context is explicitly report-only and does not prove
+  source-offset provenance.
+- Conflicts are explicit and empty.
+- Decision Journal lane is `deferred` by
+  `decision-source-offset-immediate-000009a6-defer-017-046`, with no active
+  accepted decision.
+
+Blockers:
+
+- `same_literal_only_not_durable_provenance`
+- `missing_accepted_runtime_address_provenance`
+- `missing_source_offset_decision_replay_support`
+- `missing_source_offset_render_verifier_gate`
+
+Command/render state:
+
+- `immediate_ref.interpret` remains disabled for this packet:
+  `candidate_command_available=false`, `enabled=false`,
+  `safe_to_mutate=false`.
+- Render intent remains analysis-only with `render_effect=none`.
+- The precise defer reason is unchanged: source-offset-only evidence is
+  plausible but non-accepting until accepted runtime-address provenance and
+  source-offset replay/render/verifier gates exist.
+
+No code changed, so no focused tests were required beyond issue validation and
+diff checks.
