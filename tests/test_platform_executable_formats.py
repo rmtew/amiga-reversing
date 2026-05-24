@@ -377,7 +377,9 @@ def test_018_039_coverage_cli_rejects_empty_closeout_input(capsys) -> None:
     captured = capsys.readouterr()
 
     assert exit_code == 2
-    assert "coverage requires --parser-output or --current-macos-c-backend" in captured.err
+    assert "coverage requires --parser-output, --current-macos-c-backend" in captured.err
+    assert "--current-amiga-hunk" in captured.err
+    assert "--current-atari-prg" in captured.err
     assert captured.out == ""
 
 
@@ -410,6 +412,64 @@ def test_018_039_coverage_cli_can_include_current_macos_backend(monkeypatch, cap
     assert output["summary"]["parser_outputs"] == 1
     assert output["summary"]["candidate"] == 1
     assert output["summary"]["invalid"] == 0
+
+
+def test_019_001_current_amiga_hunk_output_runs_real_parser_path() -> None:
+    payload = platform_executable_formats._load_current_amiga_hunk_output()
+    report = platform_executable_formats.build_parser_fact_coverage_report([payload], labels=["current-amiga-hunk"])
+
+    assert payload["kb_record_id"] == "amiga.hunk.load_file.basic_backfill"
+    assert payload["parser"] == "platform_file_inspect_path_json_alloc"
+    assert {section["kind"] for section in payload["sections"]} == {"code", "data", "bss"}
+    assert payload["fact_refs"]
+    assert report["summary"]["invalid"] == 0
+    assert report["summary"]["accepted"] >= 3
+    assert report["summary"]["deferred"] >= 1
+    assert "amiga" not in report["unreported_platforms"]
+
+
+def test_019_002_current_atari_prg_output_runs_real_parser_path() -> None:
+    payload = platform_executable_formats._load_current_atari_prg_output()
+    report = platform_executable_formats.build_parser_fact_coverage_report([payload], labels=["current-atari-prg"])
+
+    assert payload["kb_record_id"] == "atari_st.prg.gemdos_basic_backfill"
+    assert payload["parser"] == "platform_file_inspect_path_json_alloc"
+    assert {section["kind"] for section in payload["sections"]} == {"code", "data", "bss"}
+    assert payload["fact_refs"]
+    assert report["summary"]["invalid"] == 0
+    assert report["summary"]["accepted"] >= 3
+    assert report["summary"]["candidate"] >= 1
+    assert report["summary"]["deferred"] >= 1
+    assert "atari_st" not in report["unreported_platforms"]
+
+
+def test_019_003_combined_current_coverage_requires_amiga_and_atari_refs(monkeypatch, capsys) -> None:
+    monkeypatch.setattr(
+        platform_executable_formats,
+        "_load_current_macos_c_backend_output",
+        lambda image_path, hfs_path: {
+            "kb_record_id": "macos.hfs_resource_fork.code_resources.mpw_application",
+            "fact_id": "macos.code_resource.0.jump_table_metadata",
+            "fact_status": "validated",
+            "parser_use": "accepted_parser_output",
+        },
+    )
+
+    exit_code = platform_executable_formats.main(
+        ["coverage", "--current-macos-c-backend", "--current-amiga-hunk", "--current-atari-prg"]
+    )
+    output = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert output["summary"]["parser_outputs"] == 3
+    assert output["summary"]["invalid"] == 0
+    assert output["summary"]["accepted"] >= 8
+    assert output["summary"]["candidate"] >= 1
+    assert output["summary"]["deferred"] >= 2
+    assert output["unreported_platforms"] == []
+    sources = {item["source"] for item in output["emitted_fact_refs"]}
+    assert "current-amiga-hunk:synthetic-parser-fixture" in sources
+    assert "current-atari-prg:synthetic-parser-fixture" in sources
 
 
 def test_018_034_coverage_cli_reports_json_and_returns_failure_for_invalid(tmp_path: Path, capsys) -> None:

@@ -1,8 +1,9 @@
 # Proposal 019: Platform Executable KB Parser Consumption
 
-Status: active. Proposal 018 is complete as the executable-format KB authority;
-Proposal 019 owns the implementation work that makes platform parsers consume
-and emit that authority consistently across Mac OS, Amiga, and Atari ST.
+Status: completed. Proposal 018 is complete as the executable-format KB
+authority; Proposal 019 implemented current-output coverage hooks that make Mac
+OS, Amiga HUNK, and Atari ST PRG parser summaries emit and validate executable
+format KB fact refs without reopening 018 or promoting non-accepted facts.
 
 ## Purpose
 
@@ -64,15 +65,14 @@ Expected result:
     "parser_outputs": 3,
     "invalid": 0
   },
-  "unreported_platforms": [],
-  "unreported_records": []
+  "unreported_platforms": []
 }
 ```
 
-If a platform parser cannot produce a real current-output fixture yet, the
-issue implementing that platform must add the smallest synthetic or committed
-fixture-backed parser summary needed to prove the same path. It should not
-complete by merely documenting that the platform remains unreported.
+The combined current-output gate now leaves no platform unreported. The only
+remaining unreported record is the old Mac report-only thin proof; the current
+Mac parser hook reports the accepted MPW application record. Amiga and Atari
+current hooks report their accepted first-slice records directly.
 
 ## Consumption Contract
 
@@ -130,6 +130,13 @@ Completion requires real code output: `coverage --current-amiga-hunk` must run
 the Amiga HUNK parser/import path and emit meaningful fact refs. A zero-fact
 hook or handcrafted dictionary is not acceptable.
 
+Completed state: `coverage --current-amiga-hunk` writes a synthetic HUNK load
+file with CODE, DATA, and BSS hunks, runs it through the real
+`platform_file_inspect_path_json_alloc` / `amiga-hunk` parser path, then emits
+refs for `amiga.hunk.load_file.basic_backfill`. The output includes accepted
+parser-asserted refs for HUNK_HEADER, container basics, CODE/DATA/BSS section
+roles, BSS size-only state, and a deferred runtime-entry limit.
+
 ### 019-002: Atari PRG Current KB Fact Output
 
 Teach the Atari ST PRG parser/import summary to emit refs for the accepted
@@ -151,6 +158,15 @@ Completion requires real code output: `coverage --current-atari-prg` must run
 the Atari PRG parser/import path and emit meaningful fact refs. A zero-fact hook
 or handcrafted dictionary is not acceptable.
 
+Completed state: `coverage --current-atari-prg` writes a synthetic GEMDOS PRG
+with 0x601A header, TEXT, DATA, BSS size, and relocation-stream terminator,
+runs it through the real `platform_file_inspect_path_json_alloc` / `atari-st`
+parser path, then emits refs for `atari_st.prg.gemdos_basic_backfill`. The
+output includes accepted parser-asserted refs for magic/header, container
+sequence, TEXT/DATA/BSS region shape, loaded TEXT+DATA relocation target space,
+plus candidate/deferred limits for BSS header-only and relocation terminator
+variants.
+
 ### 019-003: Cross-Platform Current Coverage Gate
 
 Make the cross-platform coverage gate prove current parser consumption:
@@ -164,6 +180,21 @@ uv run python -m amiga_reversing.tools.platform_executable_formats coverage `
 
 The closeout gate should fail on invalid accepted claims and should leave no
 unreported platform records for the records whose parsers now emit fact refs.
+
+Completed state: the combined command
+`coverage --current-macos-c-backend --current-amiga-hunk --current-atari-prg`
+reports three current parser outputs, `invalid: 0`, no unreported platforms,
+and validated Amiga/Atari record refs. Candidate/deferred Mac, Amiga, and Atari
+facts remain candidate/deferred in coverage output.
+
+## Closeout Record
+
+- 019-001 implemented the real Amiga HUNK current-output coverage hook.
+- 019-002 implemented the real Atari ST PRG current-output coverage hook.
+- 019-003 made the combined Mac/Amiga/Atari current-output coverage command a
+  closeout gate.
+- Completed issue files `019-001`, `019-002`, and `019-003` were deleted only
+  after this proposal recorded their durable conclusions.
 
 ## Acceptance Criteria
 

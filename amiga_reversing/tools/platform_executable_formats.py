@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import tempfile
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
@@ -276,6 +277,16 @@ def main(argv: Sequence[str] | None = None) -> int:
         help="Include current Mac C backend output from the committed MPW fixture.",
     )
     parser.add_argument(
+        "--current-amiga-hunk",
+        action="store_true",
+        help="Include current Amiga HUNK parser output from a synthetic parser fixture.",
+    )
+    parser.add_argument(
+        "--current-atari-prg",
+        action="store_true",
+        help="Include current Atari ST PRG parser output from a synthetic parser fixture.",
+    )
+    parser.add_argument(
         "--macos-image",
         type=Path,
         default=PROJECT_ROOT / "resources/platform_macos/MPW-GM.img.bin",
@@ -306,9 +317,24 @@ def main(argv: Sequence[str] | None = None) -> int:
                 print(f"coverage current Mac C backend output failed: {exc}", file=sys.stderr)
                 return 1
             labels.append(f"current-macos-c-backend:{args.macos_image}:{args.macos_hfs_path}")
+        if args.current_amiga_hunk:
+            try:
+                payloads.append(_load_current_amiga_hunk_output())
+            except Exception as exc:
+                print(f"coverage current Amiga HUNK output failed: {exc}", file=sys.stderr)
+                return 1
+            labels.append("current-amiga-hunk:synthetic-parser-fixture")
+        if args.current_atari_prg:
+            try:
+                payloads.append(_load_current_atari_prg_output())
+            except Exception as exc:
+                print(f"coverage current Atari PRG output failed: {exc}", file=sys.stderr)
+                return 1
+            labels.append("current-atari-prg:synthetic-parser-fixture")
         if not payloads and not args.allow_empty:
             print(
-                "coverage requires --parser-output or --current-macos-c-backend; "
+                "coverage requires --parser-output, --current-macos-c-backend, "
+                "--current-amiga-hunk, or --current-atari-prg; "
                 "use --allow-empty only for inventory/report-only output",
                 file=sys.stderr,
             )
@@ -495,6 +521,163 @@ def _load_current_macos_c_backend_output(image_path: Path, hfs_path: str) -> dic
         raise FileNotFoundError(image_path)
     image_data = read_macos_hfs_image_bytes(image_path)
     return inspect_macos_hfs_code_summary_with_c_backend(image_data, hfs_path)
+
+
+def _load_current_amiga_hunk_output() -> dict[str, Any]:
+    summary = _inspect_platform_fixture("amiga-hunk", _synthetic_amiga_hunk_fixture(), ".hunk")
+    sections = _sequence(summary.get("sections"))
+    if summary.get("file_kind") != "executable" or not sections:
+        raise ValueError("synthetic Amiga HUNK fixture did not parse as an executable with sections")
+    refs: list[dict[str, str]] = [
+        _fact_ref("amiga.hunk.header.identifies_load_file.accepted", "parser_asserted", "accepted_parser_output"),
+        _fact_ref("amiga.hunk.unit_library.containers.accepted", "parser_asserted", "accepted_parser_output"),
+    ]
+    kinds = {_string(_mapping(section).get("kind")) for section in sections}
+    if {"code", "data", "bss"} <= kinds:
+        refs.append(_fact_ref("amiga.hunk.code_data_bss.sections.accepted", "parser_asserted", "accepted_parser_output"))
+    if any(_string(_mapping(section).get("kind")) == "bss" and _mapping(section).get("data_size") == 0 for section in sections):
+        refs.append(_fact_ref("amiga.hunk.bss.size_only.accepted", "parser_asserted", "accepted_parser_output"))
+    refs.append(_fact_ref("amiga.hunk.runtime_entry.deferred", "deferred", "deferred_only"))
+    if len(refs) <= 1:
+        raise ValueError("current Amiga HUNK parser output emitted no meaningful fact refs")
+    return {
+        "kb_record_id": "amiga.hunk.load_file.basic_backfill",
+        "parser": "platform_file_inspect_path_json_alloc",
+        "platform": summary.get("platform"),
+        "file_kind": summary.get("file_kind"),
+        "sections": [
+            {
+                "name": section.get("name"),
+                "kind": section.get("kind"),
+                "size": section.get("size"),
+                "data_size": section.get("data_size"),
+            }
+            for section in (_mapping(item) for item in sections)
+        ],
+        "fact_refs": refs,
+    }
+
+
+def _load_current_atari_prg_output() -> dict[str, Any]:
+    summary = _inspect_platform_fixture("atari-st", _synthetic_atari_prg_fixture(), ".prg")
+    sections = _sequence(summary.get("sections"))
+    if summary.get("file_kind") != "executable" or not sections:
+        raise ValueError("synthetic Atari PRG fixture did not parse as an executable with sections")
+    refs: list[dict[str, str]] = [
+        _fact_ref("atari_st.prg.magic_601a.accepted", "parser_asserted", "accepted_parser_output"),
+        _fact_ref("atari_st.prg.container_sequence.accepted", "parser_asserted", "accepted_parser_output"),
+    ]
+    kinds = {_string(_mapping(section).get("kind")) for section in sections}
+    if {"code", "data", "bss"} <= kinds:
+        refs.append(_fact_ref("atari_st.prg.text_data_bss_regions.accepted", "parser_asserted", "accepted_parser_output"))
+    refs.append(_fact_ref("atari_st.prg.text_data_loaded_image.accepted", "parser_asserted", "accepted_parser_output"))
+    if any(_string(_mapping(section).get("kind")) == "bss" and _mapping(section).get("data_size") == 0 for section in sections):
+        refs.append(_fact_ref("atari_st.prg.bss.header_only.candidate", "candidate", "candidate_only"))
+    refs.append(_fact_ref("atari_st.prg.relocation_terminator_variants.deferred", "deferred", "deferred_only"))
+    if len(refs) <= 1:
+        raise ValueError("current Atari PRG parser output emitted no meaningful fact refs")
+    return {
+        "kb_record_id": "atari_st.prg.gemdos_basic_backfill",
+        "parser": "platform_file_inspect_path_json_alloc",
+        "platform": summary.get("platform"),
+        "file_kind": summary.get("file_kind"),
+        "sections": [
+            {
+                "name": section.get("name"),
+                "kind": section.get("kind"),
+                "size": section.get("size"),
+                "data_size": section.get("data_size"),
+            }
+            for section in (_mapping(item) for item in sections)
+        ],
+        "fact_refs": refs,
+    }
+
+
+def _inspect_platform_fixture(backend: str, fixture_bytes: bytes, suffix: str) -> dict[str, Any]:
+    from amiga_reversing.disasm.c_backend import _platform_file_text
+
+    temp_path: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as fixture:
+            fixture.write(fixture_bytes)
+            temp_path = Path(fixture.name)
+        summary_text = _platform_file_text(
+            "platform_file_inspect_path_json_alloc",
+            backend,
+            str(temp_path),
+            project_root=PROJECT_ROOT,
+        )
+        summary = json.loads(summary_text)
+        if not isinstance(summary, dict):
+            raise ValueError(f"{backend} parser summary was not a JSON object")
+        return summary
+    finally:
+        if temp_path is not None:
+            temp_path.unlink(missing_ok=True)
+
+
+def _synthetic_amiga_hunk_fixture() -> bytes:
+    def u32(value: int) -> bytes:
+        return value.to_bytes(4, "big")
+
+    return b"".join(
+        [
+            u32(1011),  # HUNK_HEADER
+            u32(0),  # no resident library names
+            u32(3),
+            u32(0),
+            u32(2),
+            u32(1),
+            u32(1),
+            u32(2),
+            u32(1001),  # HUNK_CODE
+            u32(1),
+            b"\x4e\x75\x00\x00",
+            u32(1010),
+            u32(1002),  # HUNK_DATA
+            u32(1),
+            b"\x12\x34\x56\x78",
+            u32(1010),
+            u32(1003),  # HUNK_BSS
+            u32(2),
+            u32(1010),
+        ]
+    )
+
+
+def _synthetic_atari_prg_fixture() -> bytes:
+    def u16(value: int) -> bytes:
+        return value.to_bytes(2, "big")
+
+    def u32(value: int) -> bytes:
+        return value.to_bytes(4, "big")
+
+    text = b"\x4e\x75\x00\x00"
+    data = b"\x12\x34\x56\x78"
+    return b"".join(
+        [
+            u16(0x601A),
+            u32(len(text)),
+            u32(len(data)),
+            u32(8),
+            u32(0),
+            u32(0),
+            u32(0),
+            u16(0),
+            text,
+            data,
+            u32(0),
+        ]
+    )
+
+
+def _fact_ref(fact_id: str, fact_status: str, parser_use: str) -> dict[str, str]:
+    return {
+        "fact_id": fact_id,
+        "fact_status": fact_status,
+        "parser_use": parser_use,
+    }
 
 
 def _validate_parser_fact_node(
