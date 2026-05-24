@@ -768,32 +768,24 @@ work.
 ## Recommended Order
 
 The completed 017 issue sequence reached a paused state, not a finished
-protocol. The next useful work is to create new, non-overlapping unblocker
-issues from current evidence rather than resume deleted historical issue files.
+protocol. Issues `017-056` through `017-062` clarified callback/orphan blockers
+but did not implement the idealized protocol. Treat those blockers as work to
+remove, not as endpoints.
 
 Use this order:
 
 1. keep `017-006` deferred unless a measured slow phase blocks active 017 work;
-2. complete `017-056`, the callback/orphan-code review-item unblocker from the
-   017-055 discovery findings;
-3. complete `017-057`, the source-offset immediate provenance unblocker for one
-   exact source-offset-looking candidate;
-4. complete `017-058`, the A5 path/lifetime blocker-reduction issue for a
-   narrow unknown-use family;
-5. complete `017-059`, the RSSET accepted-base-evidence discovery issue for one
-   candidate or small candidate family;
-6. only after one lane has durable evidence and verifier support, create a
-   mutation issue with command gating, semantic reload, generated-source
-   verification, negative safety, and exact round-trip.
+2. complete `017-063`, the callback-derived code evidence packet;
+3. complete `017-064`, callback orphan-code signal generation;
+4. complete `017-065`, callback code accept/defer action support;
+5. complete `017-066`, rendering accepted callback code classification;
+6. complete `017-067`, callback code verifier gates;
+7. complete `017-068`, the Pandora callback tracer bullet.
 
-Current callback follow-up order after `017-056`:
-
-1. complete `017-060`, the review-item generation proof for the five callback
-   target rows that have no orphan/code review item;
-2. complete `017-061`, the data/code classification proof for the two callback
-   target rows that currently have `unreconciled_data_range` review items;
-3. complete `017-062`, the lower-priority audit of broader
-   `target_row_missing` callback assignments.
+This sequence is code-bearing implementation work. A worker must not close
+these issues by only documenting blockers. If current Pandora candidates fail,
+the implementation still needs fixture proof that an eligible callback target
+would become actionable and verifier-gated.
 
 Each new issue must explicitly state that 012/018, Mac OS support, platform
 executable format knowledge, and Mac targets are out of scope. If an issue can
