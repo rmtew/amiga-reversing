@@ -699,7 +699,8 @@ typedef struct M68kRecoveredIndirectSiteIR {
 } M68kRecoveredIndirectSiteIR;
 
 typedef enum M68kOrphanCodeSignalReason {
-  M68K_ORPHAN_CODE_SIGNAL_TERMINAL_DECODE = 1
+  M68K_ORPHAN_CODE_SIGNAL_TERMINAL_DECODE = 1,
+  M68K_ORPHAN_CODE_SIGNAL_CALLBACK_SLOT = 2
 } M68kOrphanCodeSignalReason;
 
 typedef enum M68kOrphanCodeSignalStatus {

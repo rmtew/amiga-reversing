@@ -21,7 +21,10 @@ from amiga_reversing.disasm.binary_source import (
     resolve_target_binary_source,
 )
 from amiga_reversing.disasm.c_backend import render_project_source_with_c_backend
-from amiga_reversing.disasm.callback_slot_report import callback_slot_report
+from amiga_reversing.disasm.callback_slot_report import (
+    callback_orphan_code_signals,
+    callback_slot_report,
+)
 from amiga_reversing.disasm.decision_journal import decision_journal_report
 from amiga_reversing.disasm.effective_metadata import (
     effective_metadata_file,
@@ -1796,6 +1799,7 @@ def inspect_callback_slots(
         exact_round_trip_available=(target_dir / "reproduction.json").exists(),
     )
     report["callback_slots"] = callback_report
+    report["callback_orphan_code_signals"] = list(callback_orphan_code_signals(callback_report))
     report["mutation_gate"] = mutation_gate
     report["safe_to_mutate"] = (
         hygiene.safe_to_continue and not hygiene.unknown_files and mutation_gate["safe_to_mutate"] is True

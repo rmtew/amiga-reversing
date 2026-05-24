@@ -1,7 +1,11 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping, Sequence
+import copy
+import re
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from typing import cast
+
+from amiga_reversing.disasm import decision_journal
 
 
 def callback_slot_report(
@@ -34,6 +38,14 @@ def callback_slot_report(
     for slot in slots:
         slot_consumers = [consumer for consumer in consumers if _entry_slot_key(consumer) == slot]
         slot_assignments = [assignment for assignment in assignments if _entry_slot_key(assignment) == slot]
+        for assignment in slot_assignments:
+            assignment["evidence_packet"] = _callback_assignment_evidence_packet(
+                assignment,
+                slot_consumers,
+            )
+            assignment["generated_orphan_code_signal"] = _callback_assignment_orphan_code_signal(
+                cast(Mapping[str, object], assignment["evidence_packet"])
+            )
         concrete_assignments = [
             assignment
             for assignment in slot_assignments
@@ -63,6 +75,236 @@ def callback_slot_report(
                 cast(int, slot["concrete_missed_code_target_count"]) for slot in slot_reports
             ),
         },
+    }
+
+
+def callback_orphan_code_signals(callback_report: Mapping[str, object]) -> tuple[dict[str, object], ...]:
+    """Return callback-derived orphan-code signals that passed packet guards."""
+
+    signals: list[dict[str, object]] = []
+    for assignment in _callback_report_assignments(callback_report):
+        generated = assignment.get("generated_orphan_code_signal")
+        if not isinstance(generated, Mapping) or generated.get("status") != "generated":
+            continue
+        signal = generated.get("signal")
+        if isinstance(signal, Mapping):
+            signals.append(dict(signal))
+    return tuple(signals)
+
+
+def analysis_with_callback_orphan_code_signals(
+    analysis: Mapping[str, object],
+    signals: Iterable[Mapping[str, object]],
+) -> dict[str, object]:
+    """Project callback-derived signal records into analysis sections without mutating input."""
+
+    projected = copy.deepcopy(dict(analysis))
+    sections = projected.get("sections")
+    if not isinstance(sections, list):
+        projected["sections"] = []
+        sections = projected["sections"]
+    by_section: dict[int, list[dict[str, object]]] = {}
+    for signal in signals:
+        section_index = _int_or_none(signal.get("section_index"))
+        if section_index is None:
+            section_index = _int_or_none(signal.get("hunk"))
+        if section_index is None:
+            section_index = 0
+        payload = dict(signal)
+        payload.pop("section_index", None)
+        payload.pop("hunk", None)
+        by_section.setdefault(section_index, []).append(payload)
+    for section_index, section_signals in by_section.items():
+        section = _analysis_section(sections, section_index)
+        existing = section.get("orphan_code_signals")
+        if not isinstance(existing, list):
+            existing = []
+            section["orphan_code_signals"] = existing
+        known = {
+            (
+                _int_or_none(item.get("offset")),
+                _int_or_none(item.get("size")),
+                str(item.get("reason_name") or item.get("reason") or ""),
+            )
+            for item in existing
+            if isinstance(item, Mapping)
+        }
+        for signal in section_signals:
+            key = (
+                _int_or_none(signal.get("offset")),
+                _int_or_none(signal.get("size")),
+                str(signal.get("reason_name") or signal.get("reason") or ""),
+            )
+            if key not in known:
+                existing.append(signal)
+                known.add(key)
+    return projected
+
+
+def callback_decision_record(
+    packet: Mapping[str, object],
+    action: str,
+    *,
+    target_id: str,
+    decision_id: str,
+    prev: str | None = None,
+    reason: str | None = None,
+    created_at: str = "2026-05-24T00:00:00+00:00",
+) -> dict[str, object]:
+    """Build a Decision Journal record for a callback-derived code packet."""
+
+    selected_identity = _packet_selected_identity(packet, target_id)
+    candidate_id = str(packet.get("candidate_id") or f"callback-code:{selected_identity['selected_use_id']}")
+    record: dict[str, object] = {
+        "schema": decision_journal.DECISION_JOURNAL_SCHEMA,
+        "decision_id": decision_id,
+        "prev": prev,
+        "created_at": created_at,
+        "actor": {"kind": "llm", "name": "codex"},
+        "action": action,
+        "packet_id": packet.get("packet_id"),
+        "candidate_id": candidate_id,
+        "selected_identity": selected_identity,
+        "evidence_refs": [str(packet.get("packet_id") or candidate_id)],
+        "conflicts": [],
+    }
+    if action == "accept_fact":
+        record.update(
+            {
+                "fact_type": "callback_derived_code",
+                "scope": {
+                    "kind": "selected_callback_target",
+                    "hunk": selected_identity["hunk"],
+                    "addr": selected_identity["addr"],
+                    "operand_index": selected_identity["operand_index"],
+                },
+                "render_intent": {
+                    "effect": "classify_range_as_code",
+                    "selected_identity": selected_identity,
+                    "source": "callback_slot",
+                },
+            }
+        )
+    elif action == "defer_fact":
+        record["defer_reason"] = reason or "callback-derived code evidence requires more review"
+    elif action == "reject_fact":
+        record["reject_reason"] = reason or "callback-derived code evidence rejected"
+    else:
+        raise ValueError(action)
+    return record
+
+
+def callback_decision_lane(
+    packet: Mapping[str, object],
+    journal_projection: Mapping[str, object],
+    *,
+    target_id: str,
+) -> dict[str, object]:
+    selected_identity = _packet_selected_identity(packet, target_id)
+    key = f"{target_id}:{selected_identity['selected_use_id']}"
+    by_identity = journal_projection.get("by_selected_identity")
+    group = by_identity.get(key) if isinstance(by_identity, Mapping) else None
+    group = group if isinstance(group, Mapping) else {}
+    accepted = _matching_callback_decisions(group.get("accepted_facts"), packet)
+    deferred = _matching_callback_decisions(group.get("deferred_facts"), packet)
+    rejected = _matching_callback_decisions(group.get("rejected_facts"), packet)
+    return {
+        "authority": "decision_journal",
+        "status": "accepted" if accepted else "deferred" if deferred else "rejected" if rejected else "missing",
+        "accepted": accepted,
+        "deferred": deferred,
+        "rejected": rejected,
+    }
+
+
+def analysis_with_accepted_callback_code(
+    analysis: Mapping[str, object],
+    journal_projection: Mapping[str, object],
+) -> dict[str, object]:
+    projected = copy.deepcopy(dict(analysis))
+    accepted = [
+        record
+        for record in _mapping_sequence(journal_projection.get("accepted_facts"))
+        if record.get("fact_type") == "callback_derived_code"
+    ]
+    projected["accepted_callback_code_facts"] = accepted
+    by_section: dict[int, list[dict[str, object]]] = {}
+    for record in accepted:
+        scope = record.get("scope")
+        if not isinstance(scope, Mapping) or scope.get("kind") != "selected_callback_target":
+            continue
+        hunk = _int_or_none(scope.get("hunk")) or 0
+        addr = _int_or_none(scope.get("addr")) or 0
+        by_section.setdefault(hunk, []).append(
+            {
+                "offset": addr,
+                "size": 1,
+                "source_evidence_id": record.get("decision_id"),
+                "source_family": "callback_derived_code",
+                "status": "accepted",
+            }
+        )
+    sections = projected.get("sections")
+    if not isinstance(sections, list):
+        projected["sections"] = []
+        sections = projected["sections"]
+    for hunk, facts in by_section.items():
+        section = _analysis_section(sections, hunk)
+        section["accepted_callback_code_ranges"] = [
+            *[dict(item) for item in _mapping_sequence(section.get("accepted_callback_code_ranges"))],
+            *facts,
+        ]
+    return projected
+
+
+def callback_render_effect(
+    packet: Mapping[str, object],
+    journal_projection: Mapping[str, object],
+    *,
+    target_id: str,
+    verifier_report: Mapping[str, object] | None = None,
+) -> dict[str, object]:
+    lane = callback_decision_lane(packet, journal_projection, target_id=target_id)
+    if lane["status"] != "accepted":
+        return {"status": "blocked", "blockers": ["accepted_callback_code_fact_required"], "effect": None}
+    verifier = callback_verifier_gate(packet, journal_projection, target_id=target_id, verifier_report=verifier_report)
+    if verifier["status"] != "passed":
+        return {"status": "blocked", "blockers": verifier["blockers"], "effect": None}
+    selected_identity = _packet_selected_identity(packet, target_id)
+    return {
+        "status": "ready",
+        "blockers": [],
+        "effect": {
+            "kind": "classify_range_as_code",
+            "hunk": selected_identity["hunk"],
+            "start": selected_identity["addr"],
+            "end": _packet_target_end(packet),
+            "source": "accepted_callback_derived_code",
+        },
+    }
+
+
+def callback_verifier_gate(
+    packet: Mapping[str, object],
+    journal_projection: Mapping[str, object],
+    *,
+    target_id: str,
+    verifier_report: Mapping[str, object] | None,
+) -> dict[str, object]:
+    lane = callback_decision_lane(packet, journal_projection, target_id=target_id)
+    blockers: list[str] = []
+    if lane["status"] != "accepted":
+        blockers.append("accepted_callback_code_fact_required")
+    if verifier_report is None:
+        blockers.extend(["missing_semantic_reload", "missing_generated_source_diff", "missing_negative_safety", "missing_exact_round_trip"])
+    else:
+        for layer in ("semantic_reload", "generated_source", "negative_safety", "exact_round_trip"):
+            if verifier_report.get(layer) != "passed":
+                blockers.append(f"{layer}_not_passed")
+    return {
+        "status": "passed" if not blockers else "blocked",
+        "blockers": blockers,
+        "required_layers": ["semantic_reload", "generated_source", "negative_safety", "exact_round_trip"],
     }
 
 
@@ -165,6 +407,210 @@ def _assignment_action_readiness(
             "review_item_kind": review_item.get("kind"),
         }
     return {"status": "ready_for_review_seed_code", "command_id": "review.seed.code", "blockers": []}
+
+
+def _callback_assignment_evidence_packet(
+    assignment: Mapping[str, object],
+    consumers: Sequence[Mapping[str, object]],
+) -> dict[str, object]:
+    target = assignment.get("target")
+    target = target if isinstance(target, Mapping) else None
+    store = assignment.get("store")
+    store = store if isinstance(store, Mapping) else None
+    review_item = assignment.get("review_item")
+    review_item = review_item if isinstance(review_item, Mapping) else None
+    hunk = _row_hunk(target) if target is not None else _row_hunk(store)
+    target_start = _int_or_none(assignment.get("stored_source_offset"))
+    target_end = _int_or_none(target.get("end_offset")) if target is not None else None
+    target_bytes = _row_bytes(target)
+    selected_identity = {
+        "segment_id": f"s{hunk or 0}",
+        "hunk": hunk or 0,
+        "addr": target_start,
+        "operand_index": 0,
+        "selected_use_id": f"s{hunk or 0}:{target_start or 0:08X}:op0",
+    }
+    false_positive_checks = _callback_false_positive_checks(target, target_bytes)
+    review_gate_blockers = list(_string_sequence(assignment.get("action_readiness"), "blockers"))
+    blockers = [
+        check["kind"]
+        for check in false_positive_checks
+        if check.get("status") == "risk"
+    ]
+    if not consumers:
+        blockers.append("missing_callback_consumer")
+    if target_start is None:
+        blockers.append("missing_stored_source_offset")
+    if target is None:
+        blockers.append("target_row_missing")
+    elif target.get("kind") == "instruction":
+        blockers.append("target_already_code")
+    packet_id = "callback-code-packet:{}:{}:{}".format(
+        assignment.get("slot_symbol") or "unknown_slot",
+        _row_id(store) or "unknown_store",
+        selected_identity["selected_use_id"],
+    )
+    return {
+        "packet_kind": "callback_derived_code_evidence_packet",
+        "schema_version": 1,
+        "packet_id": packet_id,
+        "candidate_id": f"callback-code:{selected_identity['selected_use_id']}",
+        "selected_identity": selected_identity,
+        "callback_slot": {
+            "slot_symbol": assignment.get("slot_symbol"),
+            "slot_offset": assignment.get("slot_offset"),
+            "base_register": assignment.get("base_register"),
+        },
+        "callback_store": {
+            "store": store,
+            "stored_register": assignment.get("stored_register"),
+            "value_source": assignment.get("value_source"),
+            "stored_symbol": assignment.get("stored_symbol"),
+            "stored_source_offset": target_start,
+        },
+        "callback_consumers": list(consumers),
+        "target": {
+            "row": target,
+            "bytes": target_bytes,
+            "classification": target.get("kind") if target is not None else None,
+            "range": {"hunk": hunk or 0, "start": target_start, "end": target_end},
+        },
+        "review_item": review_item,
+        "existing_review_gate": {
+            "status": assignment.get("action_readiness", {}).get("status")
+            if isinstance(assignment.get("action_readiness"), Mapping)
+            else None,
+            "blockers": review_gate_blockers,
+        },
+        "xrefs": [
+            {
+                "kind": "callback_slot_store",
+                "source": store,
+                "target": target,
+            },
+            *(
+                {
+                    "kind": "callback_slot_indirect_consumer",
+                    "source": consumer.get("load"),
+                    "target": consumer.get("indirect_transfer"),
+                }
+                for consumer in consumers
+            ),
+        ],
+        "false_positive_checks": false_positive_checks,
+        "conflicts": {"status": "explicit_empty", "explicit_empty": True, "items": []},
+        "blockers": sorted(set(blockers)),
+        "status": "blocked" if blockers else "action_ready",
+        "render_readiness": {
+            "status": "blocked",
+            "blockers": ["decision_journal_accept_required", "verifier_gates_required"],
+        },
+        "verifier_readiness": {
+            "status": "blocked",
+            "required_layers": ["semantic_reload", "generated_source", "negative_safety", "exact_round_trip"],
+        },
+    }
+
+
+def _callback_assignment_orphan_code_signal(packet: Mapping[str, object]) -> dict[str, object]:
+    blockers = list(_string_sequence(packet, "blockers"))
+    target = packet.get("target")
+    target = target if isinstance(target, Mapping) else {}
+    row = target.get("row")
+    row = row if isinstance(row, Mapping) else {}
+    selected_identity = packet.get("selected_identity")
+    selected_identity = selected_identity if isinstance(selected_identity, Mapping) else {}
+    target_range = target.get("range")
+    target_range = target_range if isinstance(target_range, Mapping) else {}
+    target_bytes = [value for value in target.get("bytes", []) if isinstance(value, int)]
+    if row.get("kind") != "data":
+        blockers.append("target_not_data_row")
+    if not _looks_like_terminal_code_bytes(target_bytes):
+        blockers.append("target_bytes_not_terminal_callback_code")
+    if blockers:
+        return {"status": "blocked", "blockers": sorted(set(blockers))}
+    start = _int_or_none(target_range.get("start")) or 0
+    end = _int_or_none(target_range.get("end")) or start + len(target_bytes)
+    size = max(1, min(len(target_bytes), end - start))
+    return {
+        "status": "generated",
+        "signal": {
+            "section_index": _int_or_none(target_range.get("hunk")) or 0,
+            "offset": start,
+            "size": size,
+            "terminal_offset": max(start, start + size - 2),
+            "reason_name": "callback_slot",
+            "status_name": "unresolved",
+            "context": "callback_slot_store",
+            "missing_inbound": "callback",
+            "callback_slot": packet.get("callback_slot"),
+            "stored_code_pointer": packet.get("callback_store"),
+            "refs": packet.get("xrefs"),
+            "packet_id": packet.get("packet_id"),
+            "selected_identity": dict(selected_identity),
+        },
+    }
+
+
+def _callback_false_positive_checks(
+    row: Mapping[str, object] | None,
+    target_bytes: Sequence[int],
+) -> list[dict[str, object]]:
+    text = str(row.get("text") or "") if row is not None else ""
+    directive = str(row.get("opcode_or_directive") or "").lower() if row is not None else ""
+    all_zero = bool(target_bytes) and all(value == 0 for value in target_bytes)
+    return [
+        {"kind": "all_zero_data", "status": "risk" if all_zero or _dcb_zero_fill(text) else "clear"},
+        {"kind": "data_like_directive", "status": "risk" if directive.startswith("dcb") else "clear"},
+        {"kind": "missing_target_bytes", "status": "risk" if not target_bytes else "clear"},
+    ]
+
+
+def _looks_like_terminal_code_bytes(values: Sequence[int]) -> bool:
+    if len(values) < 4:
+        return False
+    return values[-2:] == [0x4E, 0x75] or values[:2] in ([0x4E, 0x75], [0x4E, 0xF9], [0x4E, 0xD0])
+
+
+def _row_bytes(row: Mapping[str, object] | None) -> list[int]:
+    if row is None:
+        return []
+    raw = row.get("bytes")
+    if isinstance(raw, Sequence) and not isinstance(raw, (str, bytes)):
+        values = [value for value in raw if isinstance(value, int) and not isinstance(value, bool)]
+        if values:
+            return [value & 0xFF for value in values]
+    text = str(row.get("text") or "")
+    return [int(match, 16) for match in re.findall(r"\$([0-9A-Fa-f]{2})\b", text)]
+
+
+def _dcb_zero_fill(text: str) -> bool:
+    normalized = text.replace(" ", "").lower()
+    return "dcb" in normalized and (",$00" in normalized or ",0" in normalized)
+
+
+def _callback_report_assignments(callback_report: Mapping[str, object]) -> list[Mapping[str, object]]:
+    result: list[Mapping[str, object]] = []
+    slots = callback_report.get("slots")
+    if not isinstance(slots, Sequence) or isinstance(slots, str):
+        return result
+    for slot in slots:
+        if not isinstance(slot, Mapping):
+            continue
+        assignments = slot.get("assignments")
+        if not isinstance(assignments, Sequence) or isinstance(assignments, str):
+            continue
+        result.extend(assignment for assignment in assignments if isinstance(assignment, Mapping))
+    return result
+
+
+def _analysis_section(sections: list[object], section_index: int) -> dict[str, object]:
+    for section in sections:
+        if isinstance(section, dict) and _int_or_none(section.get("section_index")) == section_index:
+            return section
+    section: dict[str, object] = {"section_index": section_index, "section_size": 0}
+    sections.append(section)
+    return section
 
 
 def _first_app_slot_ref(
@@ -319,6 +765,7 @@ def _row_payload(row: Mapping[str, object] | None) -> dict[str, object] | None:
         "opcode_or_directive": row.get("opcode_or_directive"),
         "operand_text": row.get("operand_text"),
         "text": str(row.get("text") or "").strip(),
+        "bytes": _row_bytes(row),
     }
 
 
@@ -347,3 +794,90 @@ def _entry_slot_key(entry: Mapping[str, object]) -> tuple[str | None, int | None
 
 def _slot_keys(entries: Sequence[Mapping[str, object]]) -> set[tuple[str | None, int | None]]:
     return {_entry_slot_key(entry) for entry in entries}
+
+
+def _int_or_none(value: object) -> int | None:
+    return value if isinstance(value, int) and not isinstance(value, bool) else None
+
+
+def _row_hunk(row: Mapping[str, object] | None) -> int | None:
+    if row is None:
+        return None
+    row_key = row.get("row_key")
+    if isinstance(row_key, str):
+        match = re.match(r"s(\d+):", row_key)
+        if match:
+            return int(match.group(1))
+    return _int_or_none(row.get("section_index"))
+
+
+def _row_id(row: Mapping[str, object] | None) -> str | None:
+    if row is None:
+        return None
+    row_key = row.get("row_key")
+    if isinstance(row_key, str) and row_key:
+        return row_key
+    start = _int_or_none(row.get("start_offset"))
+    if start is None:
+        return None
+    return f"offset:{start:08X}"
+
+
+def _string_sequence(mapping: object, key: str) -> list[str]:
+    if not isinstance(mapping, Mapping):
+        return []
+    value = mapping.get(key)
+    if not isinstance(value, Sequence) or isinstance(value, str):
+        return []
+    return [item for item in value if isinstance(item, str)]
+
+
+def _mapping_sequence(value: object) -> list[Mapping[str, object]]:
+    if not isinstance(value, Sequence) or isinstance(value, str):
+        return []
+    return [item for item in value if isinstance(item, Mapping)]
+
+
+def _packet_selected_identity(packet: Mapping[str, object], target_id: str) -> dict[str, object]:
+    raw = packet.get("selected_identity")
+    raw = raw if isinstance(raw, Mapping) else {}
+    hunk = _int_or_none(raw.get("hunk")) or 0
+    addr = _int_or_none(raw.get("addr")) or 0
+    operand_index = _int_or_none(raw.get("operand_index")) or 0
+    selected_use_id = raw.get("selected_use_id")
+    if not isinstance(selected_use_id, str) or not selected_use_id:
+        selected_use_id = f"s{hunk}:{addr:08X}:op{operand_index}"
+    segment_id = raw.get("segment_id")
+    if not isinstance(segment_id, str) or not segment_id:
+        segment_id = f"s{hunk}"
+    return {
+        "target_id": target_id,
+        "segment_id": segment_id,
+        "hunk": hunk,
+        "addr": addr,
+        "operand_index": operand_index,
+        "selected_use_id": selected_use_id,
+    }
+
+
+def _matching_callback_decisions(value: object, packet: Mapping[str, object]) -> list[dict[str, object]]:
+    candidate_id = packet.get("candidate_id")
+    return [
+        dict(record)
+        for record in _mapping_sequence(value)
+        if record.get("fact_type") in {None, "callback_derived_code"}
+        and (candidate_id is None or record.get("candidate_id") == candidate_id)
+    ]
+
+
+def _packet_target_end(packet: Mapping[str, object]) -> int:
+    target = packet.get("target")
+    target = target if isinstance(target, Mapping) else {}
+    target_range = target.get("range")
+    target_range = target_range if isinstance(target_range, Mapping) else {}
+    end = _int_or_none(target_range.get("end"))
+    if end is not None:
+        return end
+    selected = packet.get("selected_identity")
+    selected = selected if isinstance(selected, Mapping) else {}
+    return (_int_or_none(selected.get("addr")) or 0) + 1

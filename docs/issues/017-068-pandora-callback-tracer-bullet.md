@@ -1,6 +1,6 @@
 # 017-068: Pandora Callback Tracer Bullet
 
-Status: active
+Status: implemented
 Type: AFK
 Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
@@ -45,28 +45,34 @@ Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
 ## Research Coverage
 
-- [ ] Strongest Pandora candidate selected from implemented packet output.
-- [ ] Full gate stack run.
-- [ ] Decision Journal write performed only if gates authorize it.
-- [ ] Rendered source diff inspected if source changes.
-- [ ] Exact round-trip run if source changes.
-- [ ] Temporary scaffolding cleanup checked.
-- [ ] No 012/018/Mac/platform-format files touched.
+- [x] Strongest Pandora candidate selected from implemented packet output.
+- [x] Full gate stack run.
+- [x] Decision Journal write performed only if gates authorize it.
+- [x] Rendered source diff inspected if source changes.
+- [x] Exact round-trip run if source changes.
+- [x] Temporary scaffolding cleanup checked.
+- [x] No 012/018/Mac/platform-format files touched.
 
 ## Research Review
 
-- [ ] Real Pandora source improvement committed if a candidate passes.
-- [ ] If no Pandora candidate passes, failure is from implemented gates, not missing implementation.
-- [ ] Fixture proof remains for eligible callback target path.
-- [ ] No duplicate/manual bypass path used.
-- [ ] Proposal 017 updated with final tracer-bullet state.
+- [x] Real Pandora source improvement committed if a candidate passes.
+- [x] If no Pandora candidate passes, failure is from implemented gates, not missing implementation.
+- [x] Fixture proof remains for eligible callback target path.
+- [x] No duplicate/manual bypass path used.
+- [x] Proposal 017 updated with final tracer-bullet state.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before work.
-- [ ] End-to-end code path exists before declaring no Pandora candidate valid.
-- [ ] Source-changing action used only if verifier gates pass.
-- [ ] Exact round-trip passes for any source change.
-- [ ] Focused tests pass.
-- [ ] `amiga_reversing.tools.validate_017_issues` passes.
-- [ ] `git diff --check` passes.
+- [x] Proposal context checked before work.
+- [x] End-to-end code path exists before declaring no Pandora candidate valid.
+- [x] Source-changing action used only if verifier gates pass.
+- [x] Exact round-trip passes for any source change.
+- [x] Focused tests pass.
+- [x] `amiga_reversing.tools.validate_017_issues` passes.
+- [x] `git diff --check` passes.
+
+## Completion Evidence
+
+- Ran `callback-report` on `amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8`.
+- Result: `callback_orphan_code_signals` was empty; current real candidates fail implemented blockers such as missing stored source offsets, missing target rows/bytes, and already-code targets.
+- No Decision Journal write or source change was performed for Pandora because no candidate passed the signal and verifier gates.

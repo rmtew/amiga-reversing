@@ -1079,6 +1079,7 @@ static const char *recovered_indirect_table_bounds_status_name(uint8_t status) {
 
 static const char *orphan_code_signal_reason_name(uint8_t reason) {
   if (reason == M68K_ORPHAN_CODE_SIGNAL_TERMINAL_DECODE) return "terminal_decode";
+  if (reason == M68K_ORPHAN_CODE_SIGNAL_CALLBACK_SLOT) return "callback_slot";
   return "unknown";
 }
 

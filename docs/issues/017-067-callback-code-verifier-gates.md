@@ -1,6 +1,6 @@
 # 017-067: Callback Code Verifier Gates
 
-Status: active
+Status: implemented
 Type: AFK
 Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
@@ -45,27 +45,33 @@ Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
 ## Research Coverage
 
-- [ ] Required verifier layers mapped.
-- [ ] Command readiness wired to verifier layers.
-- [ ] Stale/missing verifier state fails closed.
-- [ ] Negative safety checks neighboring ranges.
-- [ ] Exact round-trip required for output-affecting change.
-- [ ] No 012/018/Mac/platform-format files touched.
+- [x] Required verifier layers mapped.
+- [x] Command readiness wired to verifier layers.
+- [x] Stale/missing verifier state fails closed.
+- [x] Negative safety checks neighboring ranges.
+- [x] Exact round-trip required for output-affecting change.
+- [x] No 012/018/Mac/platform-format files touched.
 
 ## Research Review
 
-- [ ] No command can bypass verifier gates.
-- [ ] Failure reasons are explicit.
-- [ ] Existing verifier surfaces are reused where appropriate.
-- [ ] Tests cover pass and fail-closed cases.
-- [ ] Proposal 017 updated with implementation findings.
+- [x] No command can bypass verifier gates.
+- [x] Failure reasons are explicit.
+- [x] Existing verifier surfaces are reused where appropriate.
+- [x] Tests cover pass and fail-closed cases.
+- [x] Proposal 017 updated with implementation findings.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before work.
-- [ ] Code implemented, not only documentation.
-- [ ] Verifier gates are command-enforced.
-- [ ] Tests cover stale/missing/failing verifier states.
-- [ ] Exact round-trip passes where output changes.
-- [ ] `amiga_reversing.tools.validate_017_issues` passes.
-- [ ] `git diff --check` passes.
+- [x] Proposal context checked before work.
+- [x] Code implemented, not only documentation.
+- [x] Verifier gates are command-enforced.
+- [x] Tests cover stale/missing/failing verifier states.
+- [x] Exact round-trip passes where output changes.
+- [x] `amiga_reversing.tools.validate_017_issues` passes.
+- [x] `git diff --check` passes.
+
+## Completion Evidence
+
+- Added `callback_verifier_gate` requiring semantic reload, generated source, negative safety, and exact round-trip pass states.
+- Missing verifier state and individual failing layers block render/source effects.
+- No output-affecting Pandora change occurred, so exact round-trip was not required for target output.

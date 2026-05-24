@@ -1,6 +1,6 @@
 # 017-063: Callback-Derived Code Evidence Packet
 
-Status: active
+Status: implemented
 Type: AFK
 Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
@@ -45,27 +45,34 @@ Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
 ## Research Coverage
 
-- [ ] Existing callback report and review-item generation surfaces traced.
-- [ ] Core ownership boundary chosen and documented.
-- [ ] Packet schema implemented with stable selected identity.
-- [ ] Pandora packets generated for representative callback targets.
-- [ ] Fixture covers an eligible-looking callback target and a zero-fill/data-like target.
-- [ ] No 012/018/Mac/platform-format files touched.
+- [x] Existing callback report and review-item generation surfaces traced.
+- [x] Core ownership boundary chosen and documented.
+- [x] Packet schema implemented with stable selected identity.
+- [x] Pandora packets generated for representative callback targets.
+- [x] Fixture covers an eligible-looking callback target and a zero-fill/data-like target.
+- [x] No 012/018/Mac/platform-format files touched.
 
 ## Research Review
 
-- [ ] Packet shape matches Proposal 017 protocol primitives.
-- [ ] Core classification is not implemented only as Python prose formatting.
-- [ ] Existing callback report behavior remains sane.
-- [ ] No source, Manual Action Log, Decision Journal, verifier artifact, generated output, or target metadata was modified.
-- [ ] Proposal 017 updated with implementation findings.
+- [x] Packet shape matches Proposal 017 protocol primitives.
+- [x] Core classification is not implemented only as Python prose formatting.
+- [x] Existing callback report behavior remains sane.
+- [x] No source, Manual Action Log, Decision Journal, verifier artifact, generated output, or target metadata was modified.
+- [x] Proposal 017 updated with implementation findings.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before work.
-- [ ] Code implemented, not only documentation.
-- [ ] C/core ownership used for fact/classification semantics where appropriate.
-- [ ] Python remains wrapper/orchestration for this core behavior.
-- [ ] Tests cover positive packet shape and fail-closed blockers.
-- [ ] `amiga_reversing.tools.validate_017_issues` passes.
-- [ ] `git diff --check` passes.
+- [x] Proposal context checked before work.
+- [x] Code implemented, not only documentation.
+- [x] C/core ownership used for fact/classification semantics where appropriate.
+- [x] Python remains wrapper/orchestration for this core behavior.
+- [x] Tests cover positive packet shape and fail-closed blockers.
+- [x] `amiga_reversing.tools.validate_017_issues` passes.
+- [x] `git diff --check` passes.
+
+## Completion Evidence
+
+- Implemented callback-derived evidence packets in `amiga_reversing.disasm.callback_slot_report`.
+- C/export ownership updated with `M68K_ORPHAN_CODE_SIGNAL_CALLBACK_SLOT` and JSON/manifest name mapping.
+- Focused tests: `tests/test_callback_slot_report.py`, `tests/test_manual_review_items.py`, `tests/test_decision_journal.py`, `tests/test_target_usage_manifest.py`.
+- Pandora derived target `amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8` generated packets; current real candidates remain blocked.

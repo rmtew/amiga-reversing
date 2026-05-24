@@ -305,6 +305,7 @@ SIM_FLOW_NAMES = {
 }
 ORPHAN_CODE_SIGNAL_REASON_NAMES = {
     1: "terminal_decode",
+    2: "callback_slot",
 }
 ORPHAN_CODE_SIGNAL_STATUS_NAMES = {
     1: "unresolved",

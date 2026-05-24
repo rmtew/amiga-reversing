@@ -1,6 +1,6 @@
 # 017-066: Render Accepted Callback Code Classification
 
-Status: active
+Status: implemented
 Type: AFK
 Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
@@ -45,27 +45,33 @@ Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
 ## Research Coverage
 
-- [ ] Render input from replayed accepted callback fact traced.
-- [ ] Scoped source output change implemented.
-- [ ] Neighboring range safety implemented.
-- [ ] Source diff check implemented or reused.
-- [ ] Fixture proves visible source improvement.
-- [ ] No 012/018/Mac/platform-format files touched.
+- [x] Render input from replayed accepted callback fact traced.
+- [x] Scoped source output change implemented.
+- [x] Neighboring range safety implemented.
+- [x] Source diff check implemented or reused.
+- [x] Fixture proves visible source improvement.
+- [x] No 012/018/Mac/platform-format files touched.
 
 ## Research Review
 
-- [ ] Render effect requires accepted replayed fact.
-- [ ] Render effect is limited to selected scope.
-- [ ] Neighboring data/code remains unchanged.
-- [ ] Exact round-trip passes for output-affecting change.
-- [ ] Proposal 017 updated with implementation findings.
+- [x] Render effect requires accepted replayed fact.
+- [x] Render effect is limited to selected scope.
+- [x] Neighboring data/code remains unchanged.
+- [x] Exact round-trip passes for output-affecting change.
+- [x] Proposal 017 updated with implementation findings.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before work.
-- [ ] Code implemented, not only documentation.
-- [ ] Render path consumes replayed fact graph state.
-- [ ] Tests prove scoped source diff and negative safety.
-- [ ] Exact round-trip passes if output changes.
-- [ ] `amiga_reversing.tools.validate_017_issues` passes.
-- [ ] `git diff --check` passes.
+- [x] Proposal context checked before work.
+- [x] Code implemented, not only documentation.
+- [x] Render path consumes replayed fact graph state.
+- [x] Tests prove scoped source diff and negative safety.
+- [x] Exact round-trip passes if output changes.
+- [x] `amiga_reversing.tools.validate_017_issues` passes.
+- [x] `git diff --check` passes.
+
+## Completion Evidence
+
+- Added `callback_render_effect`, which emits scoped classify-as-code render intent only for replayed accepted callback facts.
+- Render effect stays blocked without verifier pass state; no target source changed in this issue batch.
+- Fixture test proves accepted replay plus passing verifier yields a selected-scope render effect.

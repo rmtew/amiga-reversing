@@ -787,6 +787,14 @@ these issues by only documenting blockers. If current Pandora candidates fail,
 the implementation still needs fixture proof that an eligible callback target
 would become actionable and verifier-gated.
 
+Implementation note for `017-063` through `017-068`: callback-slot correlation
+now emits structured evidence packets, callback-derived orphan-code signals,
+Decision Journal accept/defer records, replayed accepted callback facts, scoped
+render effects, and verifier gates. The C/export schema recognizes
+`callback_slot` orphan-code signal reasons. The Pandora derived target currently
+produces no accepted callback source change because all real candidates fail
+implemented gates; fixture coverage proves the eligible path remains usable.
+
 Each new issue must explicitly state that 012/018, Mac OS support, platform
 executable format knowledge, and Mac targets are out of scope. If an issue can
 only make progress by touching those areas, stop and record the blocker instead

@@ -1,6 +1,6 @@
 # 017-064: Callback Orphan-Code Signal Generation
 
-Status: active
+Status: implemented
 Type: AFK
 Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
@@ -45,27 +45,33 @@ Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
 ## Research Coverage
 
-- [ ] Signal inputs from 017-063 packet support consumed.
-- [ ] False-positive guards implemented for zero-fill/data-like rows.
-- [ ] Review-item generation connected to callback-derived signals.
-- [ ] Pandora current candidates evaluated through the new signal path.
-- [ ] Fixture proves at least one eligible callback target generates a review item.
-- [ ] No 012/018/Mac/platform-format files touched.
+- [x] Signal inputs from 017-063 packet support consumed.
+- [x] False-positive guards implemented for zero-fill/data-like rows.
+- [x] Review-item generation connected to callback-derived signals.
+- [x] Pandora current candidates evaluated through the new signal path.
+- [x] Fixture proves at least one eligible callback target generates a review item.
+- [x] No 012/018/Mac/platform-format files touched.
 
 ## Research Review
 
-- [ ] Generated signals are durable structured data, not report-only prose.
-- [ ] Unsafe Pandora targets remain blocked with explicit reasons.
-- [ ] Eligible fixture target becomes reviewable.
-- [ ] No source, Manual Action Log, Decision Journal, verifier artifact, generated output, or target metadata was modified unless tests require fixture output.
-- [ ] Proposal 017 updated with implementation findings.
+- [x] Generated signals are durable structured data, not report-only prose.
+- [x] Unsafe Pandora targets remain blocked with explicit reasons.
+- [x] Eligible fixture target becomes reviewable.
+- [x] No source, Manual Action Log, Decision Journal, verifier artifact, generated output, or target metadata was modified unless tests require fixture output.
+- [x] Proposal 017 updated with implementation findings.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before work.
-- [ ] Code implemented, not only documentation.
-- [ ] Signal semantics live in core analysis where appropriate.
-- [ ] Python remains wrapper/orchestration for this core behavior.
-- [ ] Focused tests prove eligible and rejected cases.
-- [ ] `amiga_reversing.tools.validate_017_issues` passes.
-- [ ] `git diff --check` passes.
+- [x] Proposal context checked before work.
+- [x] Code implemented, not only documentation.
+- [x] Signal semantics live in core analysis where appropriate.
+- [x] Python remains wrapper/orchestration for this core behavior.
+- [x] Focused tests prove eligible and rejected cases.
+- [x] `amiga_reversing.tools.validate_017_issues` passes.
+- [x] `git diff --check` passes.
+
+## Completion Evidence
+
+- Added `callback_orphan_code_signals` and `analysis_with_callback_orphan_code_signals`.
+- Eligible fixture produces an `orphan_code_candidate`; zero-fill/data-like targets remain blocked.
+- Pandora derived target produced no generated callback orphan-code signals; failures came from implemented blockers.

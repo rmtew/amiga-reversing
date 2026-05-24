@@ -1,6 +1,6 @@
 # 017-065: Callback Code Accept/Defer Action Path
 
-Status: active
+Status: implemented
 Type: AFK
 Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
@@ -45,27 +45,33 @@ Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
 ## Research Coverage
 
-- [ ] Decision fact schema defined for callback-derived code classification.
-- [ ] Accept/defer command dry-run implemented.
-- [ ] Journal append implemented only behind gates.
-- [ ] Replay projection implemented.
-- [ ] Fail-closed cases covered.
-- [ ] No 012/018/Mac/platform-format files touched.
+- [x] Decision fact schema defined for callback-derived code classification.
+- [x] Accept/defer command dry-run implemented.
+- [x] Journal append implemented only behind gates.
+- [x] Replay projection implemented.
+- [x] Fail-closed cases covered.
+- [x] No 012/018/Mac/platform-format files touched.
 
 ## Research Review
 
-- [ ] Accepted facts require selected identity and explicit conflict state.
-- [ ] Defer records preserve reason and selected scope.
-- [ ] Replay is deterministic after semantic reload.
-- [ ] No unsafe Pandora mutation occurred.
-- [ ] Proposal 017 updated with implementation findings.
+- [x] Accepted facts require selected identity and explicit conflict state.
+- [x] Defer records preserve reason and selected scope.
+- [x] Replay is deterministic after semantic reload.
+- [x] No unsafe Pandora mutation occurred.
+- [x] Proposal 017 updated with implementation findings.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before work.
-- [ ] Code implemented, not only documentation.
-- [ ] Decision Journal is durable source of decisions.
-- [ ] Replay feeds analysis state instead of report-only state.
-- [ ] Focused tests pass.
-- [ ] `amiga_reversing.tools.validate_017_issues` passes.
-- [ ] `git diff --check` passes.
+- [x] Proposal context checked before work.
+- [x] Code implemented, not only documentation.
+- [x] Decision Journal is durable source of decisions.
+- [x] Replay feeds analysis state instead of report-only state.
+- [x] Focused tests pass.
+- [x] `amiga_reversing.tools.validate_017_issues` passes.
+- [x] `git diff --check` passes.
+
+## Completion Evidence
+
+- Added `callback_decision_record`, `callback_decision_lane`, and `analysis_with_accepted_callback_code`.
+- Decision Journal validation covers accept/defer records with selected identity, conflicts, and scoped replay.
+- Pandora remained read-only because no real callback orphan-code signal passed gates.
