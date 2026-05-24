@@ -6,9 +6,10 @@ Status: active
 
 - Source proposal: `docs/proposals/018-platform-executable-format-knowledge.md`
 - Blocked by: `docs/issues/018-030-executable-kb-restart-and-state-sync.md`
-- Best started after: `docs/issues/018-031-amiga-hunk-accepted-format-records.md`
-  and `docs/issues/018-032-atari-prg-accepted-format-records.md`, if they finish
-  cleanly.
+- Best started after: `docs/issues/018-031-amiga-hunk-accepted-format-records.md`,
+  `docs/issues/018-032-atari-prg-accepted-format-records.md`, and
+  `docs/issues/018-037-macos-blocker-resolution-or-final-deferral.md`, if they
+  finish cleanly.
 - Purpose: make platform executable fact ids/status/parser-use values available
   through generated constants or tables instead of string-only scattered usage.
 
@@ -73,4 +74,3 @@ mechanical outputs of the KB.
 - [ ] Generation/freshness test passes.
 - [ ] Platform executable format tests pass.
 - [ ] Ruff/mypy or targeted static checks pass where touched.
-

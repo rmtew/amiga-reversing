@@ -6,7 +6,8 @@ Status: active
 
 - Source proposal: `docs/proposals/018-platform-executable-format-knowledge.md`
 - Blocked by: `docs/issues/018-030-executable-kb-restart-and-state-sync.md`
-- Stronger after: `docs/issues/018-034-parser-fact-coverage-report.md`
+- Stronger after: `docs/issues/018-034-parser-fact-coverage-report.md` and
+  `docs/issues/018-037-macos-blocker-resolution-or-final-deferral.md`
 - Purpose: ensure Mac byte-entry and relocation/fixup facts remain blocked or
   deferred until real accepted evidence exists.
 
@@ -70,4 +71,3 @@ is enforced.
 - [ ] Targeted Mac parser/listing/artifact tests pass.
 - [ ] Platform executable format tests pass.
 - [ ] Any web-visible status change has matching test coverage.
-
