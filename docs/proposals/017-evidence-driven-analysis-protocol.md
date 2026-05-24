@@ -786,6 +786,15 @@ Use this order:
    mutation issue with command gating, semantic reload, generated-source
    verification, negative safety, and exact round-trip.
 
+Current callback follow-up order after `017-056`:
+
+1. complete `017-060`, the review-item generation proof for the five callback
+   target rows that have no orphan/code review item;
+2. complete `017-061`, the data/code classification proof for the two callback
+   target rows that currently have `unreconciled_data_range` review items;
+3. complete `017-062`, the lower-priority audit of broader
+   `target_row_missing` callback assignments.
+
 Each new issue must explicitly state that 012/018, Mac OS support, platform
 executable format knowledge, and Mac targets are out of scope. If an issue can
 only make progress by touching those areas, stop and record the blocker instead
