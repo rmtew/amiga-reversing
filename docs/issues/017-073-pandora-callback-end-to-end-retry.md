@@ -76,12 +76,13 @@ Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 - The disk-level Pandora target does not expose a disassembly listing, so no callback packet can be selected or accepted from that target in this pass.
 - The block is now an implemented gate result: `listing_open.status=failed`, `ready_callback_review_item` missing, and `exact_round_trip` missing.
 - No Decision Journal, Manual Action Log, generated source, verifier artifact, or target metadata write was authorized for Pandora.
-- Fixture tests prove the full command/replay/render/verifier path when a current callback packet is available.
+- Fixture tests prove the full command/replay/effective-metadata/render/verifier path when a current callback packet is available.
 
 ## Completion Evidence
 
 - Pandora command: `uv run python -m amiga_reversing.reversing_loop callback-report --target amiga_disk_pandora-1988-firebird --listing-timeout-seconds 10`.
 - Pandora result: `listing_open.status=failed`; no callback packet selected and no target write authorized.
-- Focused tests: `uv run python -m pytest tests\test_reversing_loop.py tests\test_callback_slot_report.py -q` (`385 passed`).
+- Focused tests: `uv run python -m pytest tests\test_manual_seed_effective_metadata.py tests\test_reversing_loop.py tests\test_callback_slot_report.py -q` (`428 passed`).
+- C backend coverage: `uv run python -m pytest tests\test_c_backend.py -q` (`198 passed, 15 skipped`).
 - Required validation: `uv run python -m amiga_reversing.tools.validate_017_issues`.
 - Whitespace check: `git diff --check`.

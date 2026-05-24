@@ -1345,10 +1345,11 @@ repeatable work to `docs\issues\017-*`.
   packet, generated callback orphan-code signal, selected-identity match, and
   explicit empty conflicts. `callback-report` replays current accepted,
   deferred, and rejected callback decisions into per-packet report state.
-  Accepted callback decisions are projected through temporary seeded-code
-  metadata and rendered with the C backend for verifier/source-diff checks.
-  `decision-verifier-artifact` now supports active callback accept facts and
-  enforces semantic reload, generated-source diff, negative safety, and exact
+  Accepted callback decisions are projected into effective metadata as
+  seeded-code entrypoints, so normal C backend source export consumes them
+  without target metadata mutation. `decision-verifier-artifact` now supports
+  active callback accept facts and enforces semantic reload, normal
+  effective-metadata generated-source diff, negative safety, and exact
   round-trip layers before writing an artifact. Manual Action Log, target
   metadata, generated output, 012, 018, and Mac/platform files are not mutated by
   these callback decision checks.
@@ -1358,4 +1359,5 @@ repeatable work to `docs\issues\017-*`.
   `listing_open.status=failed` with no authorized Decision Journal or source
   write. This is now an implemented-gate failure rather than missing command,
   replay, render, or verifier support. Fixture coverage proves the complete
-  callback path when a current packet exists.
+  callback path when a current packet exists, including Decision Journal replay
+  into effective metadata and C backend source rendering.

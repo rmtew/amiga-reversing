@@ -71,10 +71,12 @@ Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
 - `inspect_callback_slots` now consumes the current Decision Journal projection and attaches per-packet `decision_replay`.
 - The callback report includes accepted/deferred/rejected callback fact counts and semantic reload status.
-- Deferred/rejected decisions remain report-visible but do not create accepted render/source effects.
+- Effective metadata now replays active accepted `callback_derived_code` facts into seeded code entrypoints consumed by normal source export.
+- Deferred/rejected decisions remain report-visible but do not create accepted render/source effects or effective metadata entrypoints.
 
 ## Completion Evidence
 
-- Focused tests: `uv run python -m pytest tests\test_reversing_loop.py tests\test_callback_slot_report.py -q` (`385 passed`).
+- Focused tests: `uv run python -m pytest tests\test_manual_seed_effective_metadata.py tests\test_reversing_loop.py tests\test_callback_slot_report.py -q` (`428 passed`).
+- C backend coverage: `uv run python -m pytest tests\test_c_backend.py -q` (`198 passed, 15 skipped`).
 - Required validation: `uv run python -m amiga_reversing.tools.validate_017_issues`.
 - Whitespace check: `git diff --check`.

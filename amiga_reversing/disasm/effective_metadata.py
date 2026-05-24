@@ -15,6 +15,7 @@ from amiga_reversing.disasm.binary_source import (
     RawBinarySource,
     resolve_target_binary_source,
 )
+from amiga_reversing.disasm.decision_journal import decision_journal_report
 from amiga_reversing.disasm.manual_actions import (
     ManualLabelScope,
     ManualSeedKind,
@@ -53,9 +54,12 @@ from amiga_reversing.disasm.target_metadata import (
 )
 
 
-def effective_target_metadata(target_dir: Path) -> TargetMetadata | None:
+def effective_target_metadata(target_dir: Path, *, include_decision_journal: bool = True) -> TargetMetadata | None:
     metadata = load_target_metadata(target_dir)
-    return _apply_manual_seed_projection(target_dir, metadata)
+    metadata = _apply_manual_seed_projection(target_dir, metadata)
+    if include_decision_journal:
+        metadata = _apply_decision_journal_projection(target_dir, metadata)
+    return metadata
 
 
 def _manual_seed_int(seed: Mapping[str, object], field_name: str) -> int | None:
@@ -102,6 +106,12 @@ def _parse_manual_seed_range(seed: dict[str, object]) -> tuple[int, int, int | N
 def _manual_seed_text(seed: Mapping[str, object], field_name: str) -> str | None:
     value = seed.get(field_name)
     return value if isinstance(value, str) and value else None
+
+
+def _mapping_sequence(value: object) -> list[Mapping[str, object]]:
+    if isinstance(value, str) or not isinstance(value, list | tuple):
+        return []
+    return [item for item in value if isinstance(item, Mapping)]
 
 
 def _manual_seed_name(seed: dict[str, object]) -> str:
@@ -2064,8 +2074,71 @@ def _apply_manual_seed_projection(target_dir: Path, metadata: TargetMetadata | N
     return result
 
 
-def effective_metadata_text(target_dir: Path) -> str:
-    metadata = effective_target_metadata(target_dir)
+def _apply_decision_journal_projection(target_dir: Path, metadata: TargetMetadata | None) -> TargetMetadata | None:
+    if metadata is None:
+        return None
+    try:
+        report = decision_journal_report(target_dir)
+    except Exception:
+        return metadata
+    projection = report.get("projection") if isinstance(report, Mapping) else None
+    if not isinstance(projection, Mapping) or projection.get("valid") is not True:
+        return metadata
+    accepted_entrypoints = [
+        entrypoint
+        for record in _mapping_sequence(projection.get("accepted_facts"))
+        if (entrypoint := _callback_decision_to_code_entrypoint(record)) is not None
+    ]
+    if not accepted_entrypoints:
+        return metadata
+    known_locations = {(entrypoint.hunk, entrypoint.addr) for entrypoint in metadata.seeded_code_entrypoints}
+    merged_entrypoints = list(metadata.seeded_code_entrypoints)
+    for entrypoint in accepted_entrypoints:
+        key = (entrypoint.hunk, entrypoint.addr)
+        if key in known_locations:
+            continue
+        merged_entrypoints.append(entrypoint)
+        known_locations.add(key)
+    return replace(metadata, seeded_code_entrypoints=tuple(merged_entrypoints))
+
+
+def _callback_decision_to_code_entrypoint(record: Mapping[str, object]) -> SeededCodeEntrypointMetadata | None:
+    if record.get("action") != "accept_fact" or record.get("fact_type") != "callback_derived_code":
+        return None
+    scope = record.get("scope")
+    selected_identity = record.get("selected_identity")
+    if not isinstance(scope, Mapping) or scope.get("kind") != "selected_callback_target":
+        return None
+    if not isinstance(selected_identity, Mapping):
+        return None
+    hunk = _manual_seed_int(scope, "hunk")
+    addr = _manual_seed_int(scope, "addr")
+    if hunk is None:
+        hunk = _manual_seed_int(selected_identity, "hunk") or 0
+    if addr is None:
+        addr = _manual_seed_int(selected_identity, "addr")
+    decision_id = _manual_seed_text(record, "decision_id")
+    candidate_id = _manual_seed_text(record, "candidate_id")
+    packet_id = _manual_seed_text(record, "packet_id")
+    if addr is None or decision_id is None:
+        return None
+    return SeededCodeEntrypointMetadata(
+        addr=addr,
+        hunk=hunk,
+        name=f"callback_{hunk}_{addr:08x}",
+        seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
+        review_status=TargetMetadataReviewStatus.VALIDATED,
+        citation=f"Decision Journal {decision_id}",
+        source_id=decision_id,
+        source_path="decision_journal.jsonl",
+        source_locator=packet_id or candidate_id or decision_id,
+        comment="callback-derived code target accepted through Decision Journal",
+        role="callback_derived_code",
+    )
+
+
+def effective_metadata_text(target_dir: Path, *, include_decision_journal: bool = True) -> str:
+    metadata = effective_target_metadata(target_dir, include_decision_journal=include_decision_journal)
     if metadata is None:
         return ""
     payload = target_metadata_json_payload(metadata)
@@ -2122,8 +2195,8 @@ def effective_metadata_hash(target_dir: Path) -> str:
 
 
 @contextmanager
-def effective_metadata_file(target_dir: Path) -> Iterator[Path | None]:
-    text = effective_metadata_text(target_dir)
+def effective_metadata_file(target_dir: Path, *, include_decision_journal: bool = True) -> Iterator[Path | None]:
+    text = effective_metadata_text(target_dir, include_decision_journal=include_decision_journal)
     if not text:
         yield None
         return

@@ -77,6 +77,6 @@ Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
 ## Completion Evidence
 
-- Focused tests: `uv run python -m pytest tests\test_reversing_loop.py tests\test_callback_slot_report.py -q` (`385 passed`).
+- Focused tests: `uv run python -m pytest tests\test_manual_seed_effective_metadata.py tests\test_reversing_loop.py tests\test_callback_slot_report.py -q` (`428 passed`).
 - Required validation: `uv run python -m amiga_reversing.tools.validate_017_issues`.
 - Whitespace check: `git diff --check`.

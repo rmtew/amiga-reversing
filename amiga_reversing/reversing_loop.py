@@ -8,7 +8,7 @@ import re
 import time
 import uuid
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from functools import lru_cache
 from pathlib import Path
@@ -53,7 +53,6 @@ from amiga_reversing.disasm.target_metadata import (
     TargetMetadata,
     TargetMetadataReviewStatus,
     TargetMetadataSeedOrigin,
-    target_metadata_json_payload,
 )
 from amiga_reversing.reversing_workspace import (
     clean_run_target_workspace,
@@ -1397,25 +1396,13 @@ def _verify_projected_callback_rendered_source(
         return {"layer": "generated_source", "status": "failed", "message": "callback seeded code entrypoint payload missing"}
     try:
         paths = resolve_project_paths(target_id, project_root=project_root)
-        with effective_metadata_file(paths.target_dir) as metadata_path:
+        with effective_metadata_file(paths.target_dir, include_decision_journal=False) as metadata_path:
             before = render_project_source_with_c_backend(
                 paths.binary_source,
                 metadata_path=metadata_path,
                 project_root=project_root,
             )
-        metadata = effective_target_metadata(paths.target_dir)
-        if metadata is None:
-            return {"layer": "generated_source", "status": "failed", "message": "effective target metadata missing"}
-        projected_metadata = replace(
-            metadata,
-            seeded_code_entrypoints=(*metadata.seeded_code_entrypoints, entrypoint),
-        )
-        with TemporaryDirectory() as temp_dir:
-            projected_path = Path(temp_dir) / "target_metadata.json"
-            projected_path.write_text(
-                json.dumps(target_metadata_json_payload(projected_metadata), indent=2, sort_keys=True) + "\n",
-                encoding="utf-8",
-            )
+        with effective_metadata_file(paths.target_dir) as projected_path:
             after = render_project_source_with_c_backend(
                 paths.binary_source,
                 metadata_path=projected_path,

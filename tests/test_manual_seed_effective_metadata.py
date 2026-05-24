@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from amiga_reversing.disasm import decision_journal
 from amiga_reversing.disasm.binary_source import resolve_target_binary_source
 from amiga_reversing.disasm.effective_metadata import effective_metadata_text
 from amiga_reversing.disasm.manual_actions import (
@@ -47,6 +48,75 @@ def _action(action_id: str, sequence: int, kind: str, **fields: object) -> dict[
         "kind": kind,
         **fields,
     }
+
+
+def test_effective_metadata_replays_accepted_callback_decision_as_code_entrypoint(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
+    accepted = {
+        "schema": decision_journal.DECISION_JOURNAL_SCHEMA,
+        "decision_id": "decision-callback-accepted",
+        "prev": None,
+        "created_at": "2026-05-24T00:00:00+00:00",
+        "actor": {"kind": "llm", "name": "codex"},
+        "action": "accept_fact",
+        "packet_id": "callback-code-packet:app_0360:s0:00001004:s0:00000AA2:op0",
+        "candidate_id": "callback-code:s0:00000AA2:op0",
+        "fact_type": "callback_derived_code",
+        "selected_identity": {
+            "target_id": "demo",
+            "segment_id": "s0",
+            "hunk": 0,
+            "addr": 0x0AA2,
+            "operand_index": 0,
+        },
+        "scope": {"kind": "selected_callback_target", "hunk": 0, "addr": 0x0AA2, "operand_index": 0},
+        "evidence_refs": ["callback-code-packet:app_0360:s0:00001004:s0:00000AA2:op0"],
+        "conflicts": [],
+    }
+    deferred = {
+        "schema": decision_journal.DECISION_JOURNAL_SCHEMA,
+        "decision_id": "decision-callback-deferred",
+        "prev": f"sha256:{decision_journal.decision_record_hash(accepted)}",
+        "created_at": "2026-05-24T00:00:01+00:00",
+        "actor": {"kind": "llm", "name": "codex"},
+        "action": "defer_fact",
+        "packet_id": "callback-code-packet:app_0364:s0:00001008:s0:00000AC8:op0",
+        "candidate_id": "callback-code:s0:00000AC8:op0",
+        "selected_identity": {
+            "target_id": "demo",
+            "segment_id": "s0",
+            "hunk": 0,
+            "addr": 0x0AC8,
+            "operand_index": 0,
+        },
+        "evidence_refs": ["callback-code-packet:app_0364:s0:00001008:s0:00000AC8:op0"],
+        "conflicts": [],
+        "defer_reason": "fixture defer",
+    }
+    assert decision_journal.append_decision_record(target_dir, accepted)["status"] == "appended"
+    assert decision_journal.append_decision_record(target_dir, deferred)["status"] == "appended"
+
+    payload = json.loads(effective_metadata_text(target_dir))
+    without_journal = json.loads(effective_metadata_text(target_dir, include_decision_journal=False))
+
+    assert payload["seeded_code_entrypoints"] == [
+        {
+            "addr": 0x0AA2,
+            "citation": "Decision Journal decision-callback-accepted",
+            "comment": "callback-derived code target accepted through Decision Journal",
+            "hunk": 0,
+            "name": "callback_0_00000aa2",
+            "review_status": "validated",
+            "role": "callback_derived_code",
+            "seed_origin": "manual_analysis",
+            "source_id": "decision-callback-accepted",
+            "source_locator": "callback-code-packet:app_0360:s0:00001004:s0:00000AA2:op0",
+            "source_path": "decision_journal.jsonl",
+        }
+    ]
+    assert without_journal["seeded_code_entrypoints"] == []
 
 
 def test_effective_metadata_includes_required_manual_code_and_data_seeds(tmp_path: Path) -> None:

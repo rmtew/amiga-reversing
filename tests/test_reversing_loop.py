@@ -1331,9 +1331,14 @@ def test_projected_callback_rendered_source_uses_c_backend_metadata_path(
     seen_metadata_paths: list[Path] = []
 
     @contextmanager
-    def metadata_file(target_dir_arg: Path):
+    def metadata_file(target_dir_arg: Path, *, include_decision_journal: bool = True):
         assert target_dir_arg == target_dir
-        yield before_path
+        if include_decision_journal:
+            projected_path = target_dir / "projected.json"
+            projected_path.write_text(json.dumps({"source_id": "decision-callback"}), encoding="utf-8")
+            yield projected_path
+        else:
+            yield before_path
 
     def render(binary_source: object, *, metadata_path: Path | None, project_root: Path) -> str:
         assert metadata_path is not None
@@ -1349,11 +1354,6 @@ def test_projected_callback_rendered_source_uses_c_backend_metadata_path(
         lambda target_id, project_root: SimpleNamespace(target_dir=target_dir, binary_source=object()),
     )
     monkeypatch.setattr(reversing_loop, "effective_metadata_file", metadata_file)
-    monkeypatch.setattr(
-        reversing_loop,
-        "effective_target_metadata",
-        lambda target_dir_arg: TargetMetadata(target_type="program", entry_register_seeds=()),
-    )
     monkeypatch.setattr(reversing_loop, "render_project_source_with_c_backend", render)
 
     result = reversing_loop._verify_projected_callback_rendered_source(
