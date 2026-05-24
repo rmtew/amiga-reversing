@@ -1,6 +1,6 @@
 # 017-060: Callback Review Item Generation Proof
 
-Status: active
+Status: completed
 Type: AFK
 Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
@@ -50,26 +50,68 @@ Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
 ## Research Coverage
 
-- [ ] Current callback report rerun for Pandora.
-- [ ] Current manual review item generation inspected for the 5 target rows.
-- [ ] Orphan-code signals checked for `s0:0004D5DE` and `s0:00000B28`.
-- [ ] Review-item generation thresholds and filters checked.
-- [ ] Exact missing condition recorded for each row.
-- [ ] No 012/018/Mac/platform-format files touched.
+- [x] Current callback report rerun for Pandora.
+- [x] Current manual review item generation inspected for the 5 target rows.
+- [x] Orphan-code signals checked for `s0:0004D5DE` and `s0:00000B28`.
+- [x] Review-item generation thresholds and filters checked.
+- [x] Exact missing condition recorded for each row.
+- [x] No 012/018/Mac/platform-format files touched.
 
 ## Research Review
 
-- [ ] Confirmed no mutation path was exposed.
-- [ ] Confirmed no source, Manual Action Log, Decision Journal, verifier artifact, generated output, or target metadata was modified.
-- [ ] Confirmed each row has a next action or explicit blocker.
-- [ ] Proposal 017 living notes updated.
+- [x] Confirmed no mutation path was exposed.
+- [x] Confirmed no source, Manual Action Log, Decision Journal, verifier artifact, generated output, or target metadata was modified.
+- [x] Confirmed each row has a next action or explicit blocker.
+- [x] Proposal 017 living notes updated.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before work.
-- [ ] 017-056 completion evidence used as the starting point.
-- [ ] Output remains read-only.
-- [ ] Any support-code change is tied to a concrete read-only correctness blocker.
-- [ ] Focused tests pass if code changes.
-- [ ] `amiga_reversing.tools.validate_017_issues` passes.
-- [ ] `git diff --check` passes.
+- [x] Proposal context checked before work.
+- [x] 017-056 completion evidence used as the starting point.
+- [x] Output remains read-only.
+- [x] Any support-code change is tied to a concrete read-only correctness blocker.
+- [x] Focused tests pass if code changes.
+- [x] `amiga_reversing.tools.validate_017_issues` passes.
+- [x] `git diff --check` passes.
+
+## Completion Evidence
+
+Pandora target:
+`amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8`.
+
+Read-only evidence commands:
+
+- `uv run python -m amiga_reversing.reversing_loop callback-report --target amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8`
+- Read-only server/project review-item inspection after listing open.
+
+Current callback evidence for the five rows:
+
+| Slot | Store | Value source | Target | Current review evidence | Missing condition |
+| --- | --- | --- | --- | --- | --- |
+| `app_020C` | `s0:000094D0:instruction:6835` | `lea.l abs_0_0005D5DE.l,a0` | `s0:0004D5DE:data:26379` / `dcb.b $200,$00` | covered by `unreconciled_data_range:h0:$0004d37e-$0004d7de`, not exact start | no `orphan_code_candidate` item at target start |
+| `app_0210` | `s0:000094D4:instruction:6836` | `lea.l abs_0_0005D5DE.l,a0` | `s0:0004D5DE:data:26379` / `dcb.b $200,$00` | covered by `unreconciled_data_range:h0:$0004d37e-$0004d7de`, not exact start | no `orphan_code_candidate` item at target start |
+| `app_027C` | `s0:00000730:instruction:471` | `lea.l abs_0_0005D5DE.l,a0` | `s0:0004D5DE:data:26379` / `dcb.b $200,$00` | covered by `unreconciled_data_range:h0:$0004d37e-$0004d7de`, not exact start | no `orphan_code_candidate` item at target start |
+| `app_0280` | `s0:00000F66:instruction:1017` | `lea.l abs_0_00010B28(pc),a0` | `s0:00000B28:data:749` / `dcb.b $40,$00` | covered by `unreconciled_data_range:h0:$00000ac8-$00000ba8`, not exact start | no `orphan_code_candidate` item at target start |
+| `app_0280` | `s0:00001026:instruction:1071` | `lea.l abs_0_00010B28(pc),a0` | `s0:00000B28:data:749` / `dcb.b $40,$00` | covered by `unreconciled_data_range:h0:$00000ac8-$00000ba8`, not exact start | no `orphan_code_candidate` item at target start |
+
+Review-item generation proof:
+
+- `manual_review_items._orphan_code_items(...)` emits orphan/code review items
+  only from `section.orphan_code_signals`.
+- The live review-item set has no `orphan_code_candidate` covering
+  `s0:0004D5DE` or `s0:00000B28`.
+- Both target rows are zero-fill data rows. They are covered only by low
+  confidence `unreconciled_data_range` review items with `has_xrefs=false` and
+  no `orphan_code_score`.
+- `callback_slot_report` indexes review items by exact `start`; the covering
+  data ranges start at `s0:0004D37E` and `s0:00000AC8`, not at the callback
+  target starts. Even if the range-start mismatch were relaxed, these are data
+  review items, not code-classification items.
+
+Conclusion: the blocker is expected under the current generation model, not a
+row lookup failure. A later implementation issue would need a read-only
+callback-derived orphan-code signal model with false-positive checks for
+zero-fill targets before any `review.seed.code` gate could be considered.
+
+No code changed, so no focused tests were required beyond issue validation and
+diff checks.

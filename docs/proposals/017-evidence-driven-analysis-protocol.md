@@ -1312,3 +1312,25 @@ repeatable work to `docs\issues\017-*`.
   layers are stale/not checked because no verifier artifact was regenerated.
   New/unrecorded RSSET candidates remain blocked without accepted selected-use
   base evidence and verifier-ready gates; no duplicate mutation is allowed.
+- 017-060 proved the five callback targets without exact orphan/code review
+  items are expected under current generation rules. `s0:0004D5DE` and
+  `s0:00000B28` are zero-fill data rows, have no `orphan_code_candidate`, and
+  are only covered by low-confidence `unreconciled_data_range` items whose
+  range starts do not match the callback target starts. Orphan/code review
+  items are generated only from `orphan_code_signals`; no current signal exists
+  for those target starts, so `review.seed.code` stays blocked.
+- 017-061 classified the two callback targets with exact
+  `unreconciled_data_range` items. `s0:0000076E` remains
+  ambiguous/deferred: nonzero data bytes plus callback-store evidence, but no
+  xrefs, no indirect consumer for `app_027C`, no orphan-code signal, and no
+  verifier-backed code proof. `s0:00000AC8` is data-like/deferred: the target
+  starts at zero-fill inside a larger unreconciled range, so all-zero
+  false-positive risk prevents code promotion. Neither target becomes a code
+  seed candidate.
+- 017-062 audited all 173 `target_row_missing` callback assignments. The
+  current breakdown is 155 non-source-offset app-slot writes, 9 address-register
+  stores with no recoverable stored source value, 6 non-label/lookup-gap symbols,
+  and 3 immediate long stores inside binary bounds that the current symbol-load
+  path does not interpret. There are no out-of-range values, artifact gaps, or
+  unknowns after classification. The only possible follow-up is a read-only
+  diagnostic for those 3 immediate long stores; no mutation gate is unblocked.
