@@ -365,6 +365,30 @@ def _macos_preview_payload() -> dict[str, object]:
     }
 
 
+def test_macos_preview_payload_keeps_blocked_facts_non_accepted() -> None:
+    payload = _macos_preview_payload()
+    nodes: list[dict[str, object]] = []
+
+    def collect(value: object) -> None:
+        if isinstance(value, dict):
+            if "fact_status" in value or "parser_use" in value:
+                nodes.append(value)
+            for child in value.values():
+                collect(child)
+        elif isinstance(value, list):
+            for child in value:
+                collect(child)
+
+    collect(payload)
+
+    assert any(node.get("fact_status") == "candidate" for node in nodes)
+    assert any(node.get("parser_use") == "deferred_only" for node in nodes)
+    assert not any(
+        node.get("fact_status") in {"candidate", "deferred"} and node.get("parser_use") == "accepted_parser_output"
+        for node in nodes
+    )
+
+
 def _cache_full_project_rows(
     project_id: str,
     rows: list[ListingRow],

@@ -94,6 +94,14 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     assert "fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate" in asm_text
     assert ";   relocation_fixups:" in asm_text
     assert "fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only" in asm_text
+    assert not any(
+        "macos.code_resource.movea_stack_a0.boundary.candidate" in line and "accepted_parser_output" in line
+        for line in asm_text.splitlines()
+    )
+    assert not any(
+        "macos.segment_loader.relocation_fixups.deferred" in line and "accepted_parser_output" in line
+        for line in asm_text.splitlines()
+    )
     assert "no candidate preview range; classifier deferred byte-entry evidence" in asm_text
     assert "missing_m68k_movea_l_stack_to_a0_entry" in asm_text
     assert "; Classic Mac OS CODE resource listing" in asm_text

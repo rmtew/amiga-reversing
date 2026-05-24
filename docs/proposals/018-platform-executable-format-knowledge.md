@@ -678,6 +678,12 @@ insufficient. Do not broaden non-CODE decoding or affect CODE behavior.
   unreported records/platforms. Current Mac C backend output is covered; Amiga
   and Atari parser-output fact refs remain visible as unreported until those
   parsers emit KB fact metadata.
+- 018-035 added regression gates for the Mac blocked facts after 018-034 and
+  018-037. Mac C summary output, Mac project payloads, the committed Mac target
+  artifact, and the web payload fixture now have tests proving
+  `macos.code_resource.movea_stack_a0.boundary.candidate` remains
+  candidate-only and `macos.segment_loader.relocation_fixups.deferred` remains
+  deferred-only instead of accepted parser authority.
 - 018-036 completed the Mac closeout research pass without promoting facts.
   The research rechecked committed Inside Macintosh markdown, MPW manuals,
   MPW-GM tool/source inventories, the executable-format KB, Proposal 012, and

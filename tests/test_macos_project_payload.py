@@ -469,6 +469,22 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
     container = payload["binary_container_view"]
 
     assert platform_executable_formats.validate_parser_fact_references(payload) == []
+    coverage = platform_executable_formats.build_parser_fact_coverage_report([payload], labels=["macos_project_payload"])
+    assert coverage["summary"]["invalid"] == 0
+    assert coverage["summary"]["candidate"] > 0
+    assert coverage["summary"]["deferred"] > 0
+    movea_refs = [
+        item
+        for item in coverage["emitted_fact_refs"]
+        if item["fact_id"] == "macos.code_resource.movea_stack_a0.boundary.candidate"
+    ]
+    relocation_refs = [
+        item
+        for item in coverage["emitted_fact_refs"]
+        if item["fact_id"] == "macos.segment_loader.relocation_fixups.deferred"
+    ]
+    assert movea_refs and all(item["classification"] == "candidate" for item in movea_refs)
+    assert relocation_refs and all(item["classification"] == "deferred" for item in relocation_refs)
     assert payload["platform"] == "macos"
     assert calls["image_path"] == image_path
     assert calls["summary_args"] == (b"hfs", "MPW-GM/MPW/Tools/Asm")
