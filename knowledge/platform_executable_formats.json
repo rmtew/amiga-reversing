@@ -1584,7 +1584,7 @@
       "platform_id": "atari_st",
       "format_id": "atari_st.prg",
       "archetype_id": "atari_st.prg",
-      "fact_state": "candidate",
+      "fact_state": "parser_asserted",
       "source_policy": {
         "allowed_source_types": [
           "old_out_of_print",
@@ -1605,7 +1605,7 @@
         "producers": [
           "GEMDOS PRG/TOS/TTP executables"
         ],
-        "variant_scope": "First backfill record for GEMDOS PRG/TOS/TTP-style flat executable layout. It is report-only until parser areas explicitly opt into KB-backed checks."
+        "variant_scope": "KB-backed accepted reference slice for GEMDOS PRG/TOS/TTP-style flat executable layout. Parser behavior is unchanged outside facts explicitly marked accepted/parser_asserted."
       },
       "applies_to": [
         {
@@ -1875,7 +1875,7 @@
         {
           "id": "atari_st.prg.renderer.must_not_claim_kb_backed.candidate",
           "status": "candidate",
-          "summary": "Renderers and parser summaries must not claim Atari ST PRG parser behavior is KB-backed until a later migration issue opts in.",
+          "summary": "Renderers and parser summaries must distinguish the KB-backed Atari ST PRG accepted reference slice from remaining candidate/deferred parser migration gaps.",
           "source_type": "project_observed",
           "citations": [
             {
@@ -1913,7 +1913,7 @@
           "layer": "archetype_identity",
           "status": "candidate",
           "source_type": "project_observed",
-          "summary": "This is the first report-only Atari ST PRG executable-format backfill record and intentionally does not change parser behavior.",
+          "summary": "This is the first KB-backed Atari ST PRG executable-format accepted slice and intentionally does not change parser behavior outside accepted/parser_asserted facts.",
           "citations": [
             {
               "source_id": "proposal-018",
@@ -1965,7 +1965,7 @@
           "id": "atari_st.prg.parser_migration.unsupported_in_018_006",
           "scope": "implementation",
           "status": "unsupported",
-          "summary": "Full Atari ST parser migration is explicitly out of scope for 018-006.",
+          "summary": "Full Atari ST parser migration remains out of scope for the 018-032 accepted reference slice.",
           "required_parser_behavior": "ignore_safely",
           "citations": [
             {
@@ -1985,8 +1985,9 @@
         "candidate_output_allowed_from_fact_states": [
           "candidate"
         ],
-        "missing_fact_behavior": "emit_candidate",
-        "kb_backed": false
+        "missing_fact_behavior": "fail_closed",
+        "candidate_fact_rule": "Only explicit validated/parser_asserted Atari PRG facts may authorize accepted output; candidate, deferred, or unsupported Atari facts must not be promoted.",
+        "kb_backed": true
       }
     }
   ],

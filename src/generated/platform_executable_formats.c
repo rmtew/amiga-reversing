@@ -124,7 +124,7 @@ const PlatformExecutableFormatFact PLATFORM_EXECUTABLE_FORMAT_FACTS[] = {
     { "amiga.hunk.load_file.basic_backfill", "amiga.hunk.overlay.and_loader_variants.deferred", "deferred", "deferred", "deferred_only" },
     { "amiga.hunk.load_file.basic_backfill", "amiga.hunk.parser_migration.unsupported_in_018_006", "unsupported", "unsupported",
         "unsupported_only" },
-    { "atari_st.prg.gemdos_basic_backfill", "atari_st.prg.gemdos_basic_backfill", "record", "candidate", "" },
+    { "atari_st.prg.gemdos_basic_backfill", "atari_st.prg.gemdos_basic_backfill", "record", "parser_asserted", "" },
     { "atari_st.prg.gemdos_basic_backfill", "atari_st.prg.magic_601a.candidate", "identification", "candidate", "candidate_only" },
     { "atari_st.prg.gemdos_basic_backfill", "atari_st.prg.magic_601a.accepted", "identification", "parser_asserted",
         "accepted_parser_output" },

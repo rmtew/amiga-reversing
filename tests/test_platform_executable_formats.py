@@ -192,7 +192,7 @@ def test_018_004_mac_movea_heuristic_guardrail_fails_candidate_promotion() -> No
     assert any("cannot use candidate as accepted parser output" in item for item in diagnostics)
 
 
-def test_018_006_031_first_amiga_and_atari_records_keep_current_authority_state() -> None:
+def test_018_006_031_032_first_amiga_and_atari_records_keep_current_authority_state() -> None:
     kb = platform_executable_formats.load_kb()
     amiga = platform_executable_formats.record_by_id(kb, "amiga.hunk.load_file.basic_backfill")
     atari = platform_executable_formats.record_by_id(kb, "atari_st.prg.gemdos_basic_backfill")
@@ -203,7 +203,8 @@ def test_018_006_031_first_amiga_and_atari_records_keep_current_authority_state(
     assert amiga["required_parser_behavior"]["kb_backed"] is True
     assert atari["platform_id"] == "atari_st"
     assert atari["format_id"] == "atari_st.prg"
-    assert atari["required_parser_behavior"]["kb_backed"] is False
+    assert atari["fact_state"] == "parser_asserted"
+    assert atari["required_parser_behavior"]["kb_backed"] is True
 
 
 def test_018_006_backfill_records_do_not_authorize_accepted_parser_output() -> None:
@@ -236,17 +237,19 @@ def test_018_031_amiga_hunk_reference_slice_is_parser_asserted_and_kb_backed() -
     assert runtime["parser_use"] == "deferred_only"
 
 
-def test_018_012_atari_prg_reference_slice_is_parser_asserted_but_report_only() -> None:
+def test_018_032_atari_prg_reference_slice_is_parser_asserted_and_kb_backed() -> None:
     kb = platform_executable_formats.load_kb()
     record = platform_executable_formats.record_by_id(kb, "atari_st.prg.gemdos_basic_backfill")
     accepted = platform_executable_formats.record_item_by_id(record, "atari_st.prg.container_sequence.accepted")
     deferred = platform_executable_formats.record_item_by_id(record, "atari_st.prg.relocation_terminator_variants.deferred")
 
+    assert record["fact_state"] == "parser_asserted"
+    assert record["required_parser_behavior"]["kb_backed"] is True
+    assert record["required_parser_behavior"]["missing_fact_behavior"] == "fail_closed"
     assert accepted["status"] == "parser_asserted"
     assert accepted["parser_use"] == "accepted_parser_output"
     assert accepted["details"]["parser_assertion"]["reason"]
     assert deferred["status"] == "deferred"
-    assert record["required_parser_behavior"]["kb_backed"] is False
 
 
 def test_018_008_parser_fact_reference_validator_rejects_citation_packet_candidate_ids() -> None:

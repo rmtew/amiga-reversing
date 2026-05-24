@@ -657,6 +657,13 @@ insufficient. Do not broaden non-CODE decoding or affect CODE behavior.
   section roles, and size-only BSS. Runtime entry policy, relocation breadth,
   overlay/loader variants, symbol/EXT details, and full parser migration remain
   candidate/deferred/unsupported as recorded in the KB.
+- 018-032 promoted the existing Atari ST PRG accepted reference slice from
+  report-only to a KB-backed parser-asserted record. The accepted slice covers
+  the 0x601A PRG magic, PRG_HEADER/TEXT/DATA/optional symbol and relocation
+  stream sequence, TEXT/DATA/BSS region shape, and TEXT+DATA loaded-image
+  relocation target space. GEMDOS basepage/runtime entry state, relocation
+  terminator variants, symbol table details, and full parser migration remain
+  candidate/deferred/unsupported as recorded in the KB.
 
 ## Relationship To 012
 
