@@ -109,15 +109,7 @@ impossible without accepted/parser-asserted KB authority.
 
 ## Implementation Slices
 
-### 019-001: Coverage Current-Output Hooks
-
-Extend `platform_executable_formats coverage` so it can include current Amiga
-and Atari parser outputs alongside the existing Mac C backend path. The command
-may initially call synthetic fixture helpers if no committed real target fixture
-is appropriate, but the helper must execute the parser/import code path being
-validated, not return a handcrafted report.
-
-### 019-002: Amiga HUNK Parser Fact Refs
+### 019-001: Amiga HUNK Current KB Fact Output
 
 Teach the Amiga HUNK parser/import summary to emit refs for the accepted
 parser-asserted HUNK record from 018:
@@ -134,7 +126,11 @@ candidate/deferred/unsupported limits for unresolved breadth
 The worker should prefer the narrowest existing parser summary surface that can
 carry these refs into coverage. Do not rewrite HUNK import broadly.
 
-### 019-003: Atari PRG Parser Fact Refs
+Completion requires real code output: `coverage --current-amiga-hunk` must run
+the Amiga HUNK parser/import path and emit meaningful fact refs. A zero-fact
+hook or handcrafted dictionary is not acceptable.
+
+### 019-002: Atari PRG Current KB Fact Output
 
 Teach the Atari ST PRG parser/import summary to emit refs for the accepted
 parser-asserted PRG record from 018:
@@ -151,7 +147,11 @@ candidate/deferred/unsupported limits for runtime/basepage/symbol details
 Again, use the smallest existing parser summary surface that can carry real
 parser output into coverage.
 
-### 019-004: Cross-Platform Coverage Gate
+Completion requires real code output: `coverage --current-atari-prg` must run
+the Atari PRG parser/import path and emit meaningful fact refs. A zero-fact hook
+or handcrafted dictionary is not acceptable.
+
+### 019-003: Cross-Platform Current Coverage Gate
 
 Make the cross-platform coverage gate prove current parser consumption:
 
@@ -170,10 +170,15 @@ unreported platform records for the records whose parsers now emit fact refs.
 - Current-output coverage can include Mac, Amiga, and Atari parser outputs.
 - Amiga HUNK parser/import output emits KB fact refs for its accepted 018 slice.
 - Atari PRG parser/import output emits KB fact refs for its accepted 018 slice.
+- The Amiga and Atari current-output hooks each emit at least one accepted or
+  parser-asserted KB-backed fact ref and at least one non-accepted limit where
+  the parser currently has candidate/deferred/unsupported breadth.
 - Candidate/deferred/unsupported executable facts remain non-accepted.
 - `coverage` reports `invalid: 0` for current outputs and fails closed for
   invalid accepted claims.
 - Tests cover the parser output path, not only handcrafted coverage payloads.
+- Tests fail if either Amiga or Atari current-output coverage becomes an empty
+  placeholder.
 - Proposal 018 remains closed; any new evidence work becomes a separate future
   proposal or an explicit 018-style KB update only if real evidence appears.
 
@@ -197,4 +202,3 @@ git diff --check
 ```
 
 Parser-specific issues must also run the relevant Amiga or Atari parser tests.
-
