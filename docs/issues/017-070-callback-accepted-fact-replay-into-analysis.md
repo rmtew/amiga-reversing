@@ -1,6 +1,6 @@
 # 017-070: Callback Accepted Fact Replay Into Analysis
 
-Status: active
+Status: complete
 Type: AFK
 Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
@@ -45,24 +45,36 @@ Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
 ## Research Coverage
 
-- [ ] Existing analysis reload/replay path traced.
-- [ ] Accepted callback fact model wired into normal analysis state.
-- [ ] Deferred/rejected records confirmed non-effecting.
-- [ ] Report visibility added or verified.
-- [ ] No 012/018/Mac/platform-format files touched.
+- [x] Existing analysis reload/replay path traced.
+- [x] Accepted callback fact model wired into normal analysis state.
+- [x] Deferred/rejected records confirmed non-effecting.
+- [x] Report visibility added or verified.
+- [x] No 012/018/Mac/platform-format files touched.
 
 ## Research Review
 
-- [ ] Replay is not test-only helper projection.
-- [ ] Core fact ownership is appropriate.
-- [ ] No source output changes occur unless already safely supported.
-- [ ] Proposal 017 updated with implementation findings.
+- [x] Replay is not test-only helper projection.
+- [x] Core fact ownership is appropriate.
+- [x] No source output changes occur unless already safely supported.
+- [x] Proposal 017 updated with implementation findings.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before work.
-- [ ] `017-065` supersession addressed.
-- [ ] Code implemented in normal replay/analysis path.
-- [ ] Tests cover accepted/deferred/rejected behavior.
-- [ ] `amiga_reversing.tools.validate_017_issues` passes.
-- [ ] `git diff --check` passes.
+- [x] Proposal context checked before work.
+- [x] `017-065` supersession addressed.
+- [x] Code implemented in normal replay/analysis path.
+- [x] Tests cover accepted/deferred/rejected behavior.
+- [x] `amiga_reversing.tools.validate_017_issues` passes.
+- [x] `git diff --check` passes.
+
+## Completion Notes
+
+- `inspect_callback_slots` now consumes the current Decision Journal projection and attaches per-packet `decision_replay`.
+- The callback report includes accepted/deferred/rejected callback fact counts and semantic reload status.
+- Deferred/rejected decisions remain report-visible but do not create accepted render/source effects.
+
+## Completion Evidence
+
+- Focused tests: `uv run python -m pytest tests\test_reversing_loop.py tests\test_callback_slot_report.py -q` (`385 passed`).
+- Required validation: `uv run python -m amiga_reversing.tools.validate_017_issues`.
+- Whitespace check: `git diff --check`.

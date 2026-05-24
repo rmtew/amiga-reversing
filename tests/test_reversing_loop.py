@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
+from contextlib import contextmanager
 from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
@@ -13,6 +14,10 @@ import pytest
 
 from amiga_reversing import reversing_loop
 from amiga_reversing.disasm import decision_journal
+from amiga_reversing.disasm.callback_slot_report import (
+    callback_decision_record,
+    callback_slot_report,
+)
 from amiga_reversing.disasm.manual_actions import (
     MANUAL_ACTION_LOG_FILE_NAME,
     ReviewItemKind,
@@ -1163,6 +1168,326 @@ def test_callback_slot_mutation_gate_allows_ready_review_item_with_round_trip() 
     assert gate["missing_gates"] == []
     assert gate["command_candidate_count"] == 1
     assert gate["verifier_support"]["verifier"] == "manual_seed_state"
+
+
+def test_callback_decision_command_dry_run_does_not_write(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    target_dir = _target(tmp_path)
+    report = _callback_inspect_report()
+    candidate_id = _callback_packet()["candidate_id"]
+
+    monkeypatch.setattr(reversing_loop, "resolve_project_dir", lambda target_id, project_root: target_dir)
+    monkeypatch.setattr(reversing_loop, "inspect_callback_slots", lambda *args, **kwargs: report)
+
+    result = reversing_loop.decide_callback_code(
+        "demo",
+        candidate_id=str(candidate_id),
+        action="accept_fact",
+        decision_id="decision-callback",
+        project_root=tmp_path,
+    )
+
+    assert result["status"] == "dry_run_ready"
+    assert result["written"] is False
+    assert not (target_dir / "decision_journal.jsonl").exists()
+    assert result["record"]["fact_type"] == "callback_derived_code"
+
+
+def test_callback_decision_command_append_writes_only_decision_journal(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    target_dir = _target(tmp_path)
+    report = _callback_inspect_report()
+    candidate_id = _callback_packet()["candidate_id"]
+
+    monkeypatch.setattr(reversing_loop, "resolve_project_dir", lambda target_id, project_root: target_dir)
+    monkeypatch.setattr(reversing_loop, "inspect_callback_slots", lambda *args, **kwargs: report)
+
+    result = reversing_loop.decide_callback_code(
+        "demo",
+        candidate_id=str(candidate_id),
+        action="accept_fact",
+        decision_id="decision-callback",
+        write=True,
+        project_root=tmp_path,
+    )
+
+    assert result["status"] == "appended"
+    assert result["written"] is True
+    assert (target_dir / "decision_journal.jsonl").exists()
+    assert not (target_dir / "manual_actions.jsonl").exists()
+
+
+def test_callback_decision_cli_invokes_command_api(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    calls: list[dict[str, object]] = []
+
+    def decide(target_id: str, **kwargs: object) -> dict[str, object]:
+        calls.append({"target_id": target_id, **kwargs})
+        return {"status": "dry_run_ready"}
+
+    monkeypatch.setattr(reversing_loop, "decide_callback_code", decide)
+
+    assert (
+        reversing_loop.main(
+            [
+                "--project-root",
+                str(Path("root")),
+                "callback-decision",
+                "--target",
+                "demo",
+                "--candidate-id",
+                "callback-code:s0:00000AA2:op0",
+                "--action",
+                "accept_fact",
+                "--decision-id",
+                "decision-callback",
+                "--slot-symbol",
+                "app_0360",
+            ]
+        )
+        == 0
+    )
+
+    assert json.loads(capsys.readouterr().out)["status"] == "dry_run_ready"
+    assert calls == [
+        {
+            "target_id": "demo",
+            "candidate_id": "callback-code:s0:00000AA2:op0",
+            "action": "accept_fact",
+            "reason": None,
+            "decision_id": "decision-callback",
+            "write": False,
+            "slot_symbol": "app_0360",
+            "slot_offset": None,
+            "listing_timeout_seconds": 10.0,
+            "project_root": Path("root"),
+        }
+    ]
+
+
+def test_callback_decision_command_blocks_blocked_signal(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    target_dir = _target(tmp_path)
+    report = _callback_inspect_report(blocked_signal=True)
+    candidate_id = report["callback_slots"]["slots"][0]["assignments"][0]["evidence_packet"]["candidate_id"]
+
+    monkeypatch.setattr(reversing_loop, "resolve_project_dir", lambda target_id, project_root: target_dir)
+    monkeypatch.setattr(reversing_loop, "inspect_callback_slots", lambda *args, **kwargs: report)
+
+    result = reversing_loop.decide_callback_code(
+        "demo",
+        candidate_id=str(candidate_id),
+        action="accept_fact",
+        decision_id="decision-callback",
+        write=True,
+        project_root=tmp_path,
+    )
+
+    assert result["status"] == "blocked"
+    assert "callback_orphan_code_signal_not_generated" in result["blockers"]
+    assert "all_zero_data" in result["blockers"]
+    assert result["written"] is False
+    assert not (target_dir / "decision_journal.jsonl").exists()
+
+
+def test_callback_report_replays_active_accepted_fact(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    target_dir = _target(tmp_path)
+    packet = _callback_packet()
+    decision_journal.append_decision_record(
+        target_dir,
+        callback_decision_record(packet, "accept_fact", target_id="demo", decision_id="decision-callback"),
+    )
+    review_items = [{"kind": "orphan_code_candidate", "start": 0x0AA2, "end": 0x0AA6}]
+
+    monkeypatch.setattr(reversing_loop, "resolve_project_dir", lambda target_id, project_root: target_dir)
+    monkeypatch.setattr(reversing_loop, "inspect_target_hygiene", lambda *args, **kwargs: _hygiene_ok())
+    monkeypatch.setattr(reversing_loop, "_open_and_wait_listing", lambda *args, **kwargs: {"status": "ready"})
+    monkeypatch.setattr(reversing_loop, "_listing_all_rows", lambda target_id: _callback_rows())
+    monkeypatch.setattr(
+        reversing_loop.server,
+        "route_request",
+        lambda method, path, query, body=None: {"data": {"project": {"review_items": review_items}}},
+    )
+
+    result = reversing_loop.inspect_callback_slots("demo", project_root=tmp_path)
+    assignment = result["callback_slots"]["slots"][0]["assignments"][0]
+
+    assert result["callback_slots"]["decision_replay"]["accepted_callback_fact_count"] == 1
+    assert assignment["decision_replay"]["status"] == "accepted"
+    assert assignment["decision_replay"]["accepted"][0]["decision_id"] == "decision-callback"
+
+
+def test_projected_callback_rendered_source_uses_c_backend_metadata_path(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    target_dir = _target(tmp_path)
+    packet = _callback_packet()
+    record = callback_decision_record(packet, "accept_fact", target_id="demo", decision_id="decision-callback")
+    before_path = target_dir / "effective.json"
+    before_path.write_text("{}", encoding="utf-8")
+    seen_metadata_paths: list[Path] = []
+
+    @contextmanager
+    def metadata_file(target_dir_arg: Path):
+        assert target_dir_arg == target_dir
+        yield before_path
+
+    def render(binary_source: object, *, metadata_path: Path | None, project_root: Path) -> str:
+        assert metadata_path is not None
+        seen_metadata_paths.append(metadata_path)
+        text = metadata_path.read_text(encoding="utf-8")
+        if "decision-callback" in text:
+            return "callback_0_00000aa2:\n\trts\n"
+        return "\tdc.b $70,$01,$4e,$75\n"
+
+    monkeypatch.setattr(
+        reversing_loop,
+        "resolve_project_paths",
+        lambda target_id, project_root: SimpleNamespace(target_dir=target_dir, binary_source=object()),
+    )
+    monkeypatch.setattr(reversing_loop, "effective_metadata_file", metadata_file)
+    monkeypatch.setattr(
+        reversing_loop,
+        "effective_target_metadata",
+        lambda target_dir_arg: TargetMetadata(target_type="program", entry_register_seeds=()),
+    )
+    monkeypatch.setattr(reversing_loop, "render_project_source_with_c_backend", render)
+
+    result = reversing_loop._verify_projected_callback_rendered_source(
+        "demo",
+        "decision-callback",
+        record,
+        packet,
+        project_root=tmp_path,
+    )
+
+    assert result["status"] == "passed"
+    assert result["source_changed"] is True
+    assert len(seen_metadata_paths) == 2
+    assert seen_metadata_paths[0] == before_path
+
+
+def test_callback_decision_verifier_artifact_producer_writes_current_artifact(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    target_dir = _target(tmp_path)
+    packet = _callback_packet()
+    record = callback_decision_record(packet, "accept_fact", target_id="demo", decision_id="decision-callback")
+    decision_journal.append_decision_record(target_dir, record)
+    (target_dir / "reproduction.json").write_text(json.dumps({"status": "exact"}), encoding="utf-8")
+
+    def current_report(*args: object, **kwargs: object) -> dict[str, object]:
+        projection = decision_journal.decision_journal_report(target_dir)["projection"]
+        return {
+            "target_id": "demo",
+            "callback_slots": reversing_loop._callback_report_with_decision_replay(
+                callback_slot_report(_callback_rows()),
+                target_id="demo",
+                journal_projection=projection,
+            ),
+        }
+
+    monkeypatch.setattr(reversing_loop, "resolve_project_dir", lambda target_id, project_root: target_dir)
+    monkeypatch.setattr(reversing_loop.projects, "resolve_project_dir", lambda target_id, project_root: target_dir)
+    monkeypatch.setattr(reversing_loop, "inspect_callback_slots", current_report)
+    monkeypatch.setattr(
+        reversing_loop,
+        "_verify_projected_callback_rendered_source",
+        lambda *args, **kwargs: {"layer": "generated_source", "status": "passed"},
+    )
+
+    produced = reversing_loop.produce_decision_verifier_artifact(
+        "demo",
+        decision_id="decision-callback",
+        write=True,
+        project_root=tmp_path,
+    )
+
+    assert produced["status"] == "passed"
+    assert produced["written"] is True
+    assert (target_dir / "decision_verifier_artifacts.json").exists()
+    assert produced["artifact"]["layers"]["semantic_reload"]["status"] == "passed"
+
+
+def _callback_rows(*, blocked_signal: bool = False) -> list[dict[str, object]]:
+    target_row = {
+        "kind": "data",
+        "start_offset": 0x0AA2,
+        "end_offset": 0x0AA6,
+        "row_key": "s0:00000AA2:data:2",
+        "opcode_or_directive": "dc.b",
+        "text": "\tdc.b $70,$01,$4E,$75\n",
+        "bytes": [0x70, 0x01, 0x4E, 0x75],
+    }
+    if blocked_signal:
+        target_row = {
+            **target_row,
+            "opcode_or_directive": "dcb.b",
+            "text": "\tdcb.b $04,$00\n",
+            "bytes": [0, 0, 0, 0],
+        }
+    return [
+        {"kind": "label", "label": "abs_0_00010AA2", "start_offset": 0x0AA2},
+        target_row,
+        {
+            "kind": "instruction",
+            "start_offset": 0x1000,
+            "opcode_or_directive": "lea.l",
+            "operand_registers": [None, "A0"],
+            "operand_parts": [{"kind": "symbol", "metadata": {"symbol": "abs_0_00010AA2"}}],
+        },
+        {
+            "kind": "instruction",
+            "start_offset": 0x1004,
+            "opcode_or_directive": "move.l",
+            "operand_registers": ["A0", None],
+            "app_slot_refs": [{"access": "write", "symbol": "app_0360", "displacement": 0x0360}],
+        },
+        {
+            "kind": "instruction",
+            "start_offset": 0x2000,
+            "opcode_or_directive": "movea.l",
+            "operand_registers": [None, "A0"],
+            "app_slot_refs": [{"access": "read", "symbol": "app_0360", "displacement": 0x0360}],
+        },
+        {"kind": "instruction", "start_offset": 0x2004, "opcode_or_directive": "jsr", "operand_text": "(a0)"},
+    ]
+
+
+def _callback_report(*, blocked_signal: bool = False) -> dict[str, object]:
+    review_items = [
+        {
+            "kind": "orphan_code_candidate",
+            "item_id": "orphan_code_candidate:h0:$00000aa2-$00000aa6",
+            "start": 0x0AA2,
+            "end": 0x0AA6,
+        }
+    ]
+    return callback_slot_report(_callback_rows(blocked_signal=blocked_signal), review_items)
+
+
+def _callback_packet() -> dict[str, object]:
+    return _callback_report()["slots"][0]["assignments"][0]["evidence_packet"]
+
+
+def _callback_inspect_report(*, blocked_signal: bool = False) -> dict[str, object]:
+    return {
+        "target_id": "demo",
+        "listing_open": {"status": "ready"},
+        "callback_slots": _callback_report(blocked_signal=blocked_signal),
+    }
+
+
+def _hygiene_ok() -> SimpleNamespace:
+    return SimpleNamespace(
+        safe_to_continue=True,
+        unknown_files=[],
+        to_dict=lambda: {"safe_to_continue": True, "unknown_files": []},
+    )
 
 
 def test_run_identity_creation_includes_report_paths(tmp_path: Path) -> None:

@@ -1,6 +1,6 @@
 # 017-073: Pandora Callback End-To-End Retry
 
-Status: active
+Status: complete
 Type: AFK
 Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
@@ -45,27 +45,43 @@ Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
 ## Research Coverage
 
-- [ ] Current Pandora callback packets generated.
-- [ ] Strongest candidate selected.
-- [ ] Full command/replay/render/verifier path run.
-- [ ] Decision Journal write performed only if authorized.
-- [ ] Source diff and exact round-trip checked if source changes.
-- [ ] Fixture proof remains if Pandora has no passing candidate.
-- [ ] No 012/018/Mac/platform-format files touched.
+- [x] Current Pandora callback packets generated.
+- [x] Strongest candidate selected.
+- [x] Full command/replay/render/verifier path run.
+- [x] Decision Journal write performed only if authorized.
+- [x] Source diff and exact round-trip checked if source changes.
+- [x] Fixture proof remains if Pandora has no passing candidate.
+- [x] No 012/018/Mac/platform-format files touched.
 
 ## Research Review
 
-- [ ] Real Pandora source improvement committed if a candidate passes.
-- [ ] If no candidate passes, failure is from implemented gates, not missing implementation.
-- [ ] No helper-only bypass used.
-- [ ] Proposal 017 updated with final state.
+- [x] Real Pandora source improvement committed if a candidate passes.
+- [x] If no candidate passes, failure is from implemented gates, not missing implementation.
+- [x] No helper-only bypass used.
+- [x] Proposal 017 updated with final state.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before work.
-- [ ] `017-068` supersession addressed.
-- [ ] Full implemented path used.
-- [ ] Exact round-trip passes for any source change.
-- [ ] Focused tests pass.
-- [ ] `amiga_reversing.tools.validate_017_issues` passes.
-- [ ] `git diff --check` passes.
+- [x] Proposal context checked before work.
+- [x] `017-068` supersession addressed.
+- [x] Full implemented path used.
+- [x] Exact round-trip passes for any source change.
+- [x] Focused tests pass.
+- [x] `amiga_reversing.tools.validate_017_issues` passes.
+- [x] `git diff --check` passes.
+
+## Completion Notes
+
+- `callback-report --target amiga_disk_pandora-1988-firebird` now runs through the implemented report gates.
+- The disk-level Pandora target does not expose a disassembly listing, so no callback packet can be selected or accepted from that target in this pass.
+- The block is now an implemented gate result: `listing_open.status=failed`, `ready_callback_review_item` missing, and `exact_round_trip` missing.
+- No Decision Journal, Manual Action Log, generated source, verifier artifact, or target metadata write was authorized for Pandora.
+- Fixture tests prove the full command/replay/render/verifier path when a current callback packet is available.
+
+## Completion Evidence
+
+- Pandora command: `uv run python -m amiga_reversing.reversing_loop callback-report --target amiga_disk_pandora-1988-firebird --listing-timeout-seconds 10`.
+- Pandora result: `listing_open.status=failed`; no callback packet selected and no target write authorized.
+- Focused tests: `uv run python -m pytest tests\test_reversing_loop.py tests\test_callback_slot_report.py -q` (`385 passed`).
+- Required validation: `uv run python -m amiga_reversing.tools.validate_017_issues`.
+- Whitespace check: `git diff --check`.

@@ -1,6 +1,6 @@
 # 017-069: Callback Accept/Defer CLI/API Wiring
 
-Status: active
+Status: complete
 Type: AFK
 Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
@@ -45,25 +45,38 @@ Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
 ## Research Coverage
 
-- [ ] Existing callback packet helper usage traced.
-- [ ] CLI/API command added.
-- [ ] Dry-run mode implemented and tested.
-- [ ] Explicit append/write mode implemented and tested.
-- [ ] Fail-closed cases covered.
-- [ ] No 012/018/Mac/platform-format files touched.
+- [x] Existing callback packet helper usage traced.
+- [x] CLI/API command added.
+- [x] Dry-run mode implemented and tested.
+- [x] Explicit append/write mode implemented and tested.
+- [x] Fail-closed cases covered.
+- [x] No 012/018/Mac/platform-format files touched.
 
 ## Research Review
 
-- [ ] Command is the supported path, not test-only helpers.
-- [ ] Decision Journal remains durable source of decisions.
-- [ ] No source output changes occur.
-- [ ] Proposal 017 updated with implementation findings.
+- [x] Command is the supported path, not test-only helpers.
+- [x] Decision Journal remains durable source of decisions.
+- [x] No source output changes occur.
+- [x] Proposal 017 updated with implementation findings.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before work.
-- [ ] `017-065` supersession addressed.
-- [ ] Code implemented and command/API path exists.
-- [ ] Tests cover dry-run, append, and fail-closed cases.
-- [ ] `amiga_reversing.tools.validate_017_issues` passes.
-- [ ] `git diff --check` passes.
+- [x] Proposal context checked before work.
+- [x] `017-065` supersession addressed.
+- [x] Code implemented and command/API path exists.
+- [x] Tests cover dry-run, append, and fail-closed cases.
+- [x] `amiga_reversing.tools.validate_017_issues` passes.
+- [x] `git diff --check` passes.
+
+## Completion Notes
+
+- Added `reversing_loop callback-decision` plus `decide_callback_code(...)`.
+- Dry-run validates the exact Decision Journal record and writes nothing.
+- `--write` appends only after the current packet, generated callback orphan-code signal, selected identity, and empty-conflict gates pass.
+- Blocked packet/signal cases fail closed and do not write Manual Action Log or target metadata.
+
+## Completion Evidence
+
+- Focused tests: `uv run python -m pytest tests\test_reversing_loop.py tests\test_callback_slot_report.py -q` (`385 passed`).
+- Required validation: `uv run python -m amiga_reversing.tools.validate_017_issues`.
+- Whitespace check: `git diff --check`.

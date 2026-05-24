@@ -8,7 +8,7 @@ import re
 import time
 import uuid
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from functools import lru_cache
 from pathlib import Path
@@ -22,10 +22,15 @@ from amiga_reversing.disasm.binary_source import (
 )
 from amiga_reversing.disasm.c_backend import render_project_source_with_c_backend
 from amiga_reversing.disasm.callback_slot_report import (
+    callback_decision_lane,
+    callback_decision_record,
     callback_orphan_code_signals,
     callback_slot_report,
 )
-from amiga_reversing.disasm.decision_journal import decision_journal_report
+from amiga_reversing.disasm.decision_journal import (
+    append_decision_record,
+    decision_journal_report,
+)
 from amiga_reversing.disasm.effective_metadata import (
     effective_metadata_file,
     effective_target_metadata,
@@ -42,7 +47,14 @@ from amiga_reversing.disasm.project_paths import (
     resolve_project_dir,
     resolve_project_paths,
 )
-from amiga_reversing.disasm.target_metadata import SeededEntityMetadata, TargetMetadata
+from amiga_reversing.disasm.target_metadata import (
+    SeededCodeEntrypointMetadata,
+    SeededEntityMetadata,
+    TargetMetadata,
+    TargetMetadataReviewStatus,
+    TargetMetadataSeedOrigin,
+    target_metadata_json_payload,
+)
 from amiga_reversing.reversing_workspace import (
     clean_run_target_workspace,
     inspect_target_hygiene,
@@ -269,6 +281,20 @@ def main(argv: list[str] | None = None) -> int:
     decision_verifier_parser.add_argument("--decision-id", required=True)
     decision_verifier_parser.add_argument("--write", action="store_true")
 
+    callback_decision_parser = subparsers.add_parser(
+        "callback-decision",
+        help="Dry-run or append a callback-derived code Decision Journal record.",
+    )
+    callback_decision_parser.add_argument("--target", required=True)
+    callback_decision_parser.add_argument("--candidate-id", required=True)
+    callback_decision_parser.add_argument("--action", choices=("accept_fact", "defer_fact", "reject_fact"), required=True)
+    callback_decision_parser.add_argument("--reason")
+    callback_decision_parser.add_argument("--decision-id")
+    callback_decision_parser.add_argument("--write", action="store_true")
+    callback_decision_parser.add_argument("--slot-symbol")
+    callback_decision_parser.add_argument("--slot-offset", type=_parse_int_auto)
+    callback_decision_parser.add_argument("--listing-timeout-seconds", type=float, default=10.0)
+
     manual_log_repair_parser = subparsers.add_parser(
         "repair-manual-action-log-sequence",
         help="Dry-run or apply the exact final-record Manual Action Log sequence repair.",
@@ -401,6 +427,22 @@ def main(argv: list[str] | None = None) -> int:
             )
         )
         return 0
+    if args.command == "callback-decision":
+        _print_json(
+            decide_callback_code(
+                args.target,
+                candidate_id=args.candidate_id,
+                action=args.action,
+                reason=args.reason,
+                decision_id=args.decision_id,
+                write=args.write,
+                slot_symbol=args.slot_symbol,
+                slot_offset=args.slot_offset,
+                listing_timeout_seconds=args.listing_timeout_seconds,
+                project_root=args.project_root,
+            )
+        )
+        return 0
     if args.command == "repair-manual-action-log-sequence":
         _print_json(
             repair_manual_action_log_sequence(
@@ -449,6 +491,183 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 0
     raise SystemExit(f"Unsupported command: {args.command}")
+
+
+def decide_callback_code(
+    target_id: str,
+    *,
+    candidate_id: str,
+    action: str,
+    reason: str | None = None,
+    decision_id: str | None = None,
+    write: bool = False,
+    slot_symbol: str | None = None,
+    slot_offset: int | None = None,
+    listing_timeout_seconds: float = 10.0,
+    project_root: Path = PROJECT_ROOT,
+) -> dict[str, object]:
+    target_dir = resolve_project_dir(target_id, project_root=project_root)
+    callback_report = inspect_callback_slots(
+        target_id,
+        slot_symbol=slot_symbol,
+        slot_offset=slot_offset,
+        listing_timeout_seconds=listing_timeout_seconds,
+        project_root=project_root,
+    )
+    packet, assignment = _callback_packet_for_candidate(callback_report.get("callback_slots"), candidate_id)
+    artifact_path = target_dir / "decision_journal.jsonl"
+    if packet is None:
+        return _callback_decision_blocked(
+            target_id,
+            candidate_id,
+            "current_callback_packet_not_found",
+            write=write,
+            journal_path=artifact_path,
+            callback_report=callback_report,
+        )
+    blockers = _callback_decision_packet_blockers(packet, assignment)
+    if blockers:
+        return _callback_decision_blocked(
+            target_id,
+            candidate_id,
+            blockers,
+            write=write,
+            journal_path=artifact_path,
+            packet=packet,
+            assignment=assignment,
+        )
+    journal = decision_journal_report(target_dir)
+    record = callback_decision_record(
+        packet,
+        action,
+        target_id=target_id,
+        decision_id=decision_id or f"decision-callback-{uuid.uuid4().hex[:12]}",
+        prev=journal.get("next_prev") if isinstance(journal.get("next_prev"), str) else None,
+        reason=reason,
+        created_at=datetime.now(UTC).isoformat(timespec="seconds"),
+    )
+    dry_run = decision_journal_report(target_dir, dry_run_record=record).get("dry_run_record")
+    if not isinstance(dry_run, Mapping) or dry_run.get("status") != "valid":
+        return {
+            "target_id": target_id,
+            "candidate_id": candidate_id,
+            "status": "blocked",
+            "blockers": ["decision_journal_dry_run_rejected"],
+            "record": record,
+            "dry_run_record": dry_run,
+            "write_requested": write,
+            "written": False,
+            "journal_path": str(artifact_path),
+        }
+    if not write:
+        return {
+            "target_id": target_id,
+            "candidate_id": candidate_id,
+            "decision_id": record["decision_id"],
+            "status": "dry_run_ready",
+            "record": record,
+            "dry_run_record": dry_run,
+            "write_requested": False,
+            "written": False,
+            "journal_path": str(artifact_path),
+        }
+    appended = append_decision_record(target_dir, record)
+    return {
+        "target_id": target_id,
+        "candidate_id": candidate_id,
+        "decision_id": record["decision_id"],
+        "status": "appended" if appended.get("status") == "appended" else "blocked",
+        "blockers": [] if appended.get("status") == "appended" else ["decision_journal_append_rejected"],
+        "record": record,
+        "dry_run_record": dry_run,
+        "append_result": appended,
+        "write_requested": True,
+        "written": appended.get("status") == "appended",
+        "journal_path": str(artifact_path),
+    }
+
+
+def _callback_decision_blocked(
+    target_id: str,
+    candidate_id: str,
+    blockers: str | Sequence[str],
+    *,
+    write: bool,
+    journal_path: Path,
+    callback_report: Mapping[str, object] | None = None,
+    packet: Mapping[str, object] | None = None,
+    assignment: Mapping[str, object] | None = None,
+) -> dict[str, object]:
+    result: dict[str, object] = {
+        "target_id": target_id,
+        "candidate_id": candidate_id,
+        "status": "blocked",
+        "blockers": [blockers] if isinstance(blockers, str) else list(blockers),
+        "write_requested": write,
+        "written": False,
+        "journal_path": str(journal_path),
+    }
+    if callback_report is not None:
+        result["callback_report_status"] = callback_report.get("listing_open")
+    if packet is not None:
+        result["packet"] = dict(packet)
+    if assignment is not None:
+        result["assignment_action_readiness"] = assignment.get("action_readiness")
+        result["generated_orphan_code_signal"] = assignment.get("generated_orphan_code_signal")
+    return result
+
+
+def _callback_decision_packet_blockers(
+    packet: Mapping[str, object],
+    assignment: Mapping[str, object] | None,
+) -> list[str]:
+    blockers: list[str] = []
+    if packet.get("status") != "action_ready":
+        blockers.append("callback_packet_not_action_ready")
+    for blocker in _string_sequence(packet.get("blockers")):
+        if blocker not in blockers:
+            blockers.append(blocker)
+    conflicts = packet.get("conflicts")
+    if not isinstance(conflicts, Mapping) or conflicts.get("explicit_empty") is not True or conflicts.get("items") != []:
+        blockers.append("callback_packet_conflicts_not_empty")
+    selected_identity = packet.get("selected_identity")
+    if not isinstance(selected_identity, Mapping) or not all(key in selected_identity for key in ("segment_id", "hunk", "addr", "operand_index")):
+        blockers.append("callback_packet_selected_identity_incomplete")
+    generated = assignment.get("generated_orphan_code_signal") if isinstance(assignment, Mapping) else None
+    if not isinstance(generated, Mapping) or generated.get("status") != "generated":
+        blockers.append("callback_orphan_code_signal_not_generated")
+        if isinstance(generated, Mapping):
+            for blocker in _string_sequence(generated.get("blockers")):
+                if blocker not in blockers:
+                    blockers.append(blocker)
+    return blockers
+
+
+def _callback_packet_for_candidate(
+    callback_report: object,
+    candidate_id: str,
+) -> tuple[dict[str, object] | None, dict[str, object] | None]:
+    for assignment in _callback_report_assignments(callback_report):
+        packet = assignment.get("evidence_packet")
+        if not isinstance(packet, Mapping):
+            continue
+        if packet.get("candidate_id") == candidate_id or packet.get("packet_id") == candidate_id:
+            return dict(packet), dict(assignment)
+    return None, None
+
+
+def _callback_report_assignments(callback_report: object) -> list[dict[str, object]]:
+    slots = callback_report.get("slots") if isinstance(callback_report, Mapping) else None
+    if not isinstance(slots, Sequence) or isinstance(slots, str):
+        return []
+    assignments: list[dict[str, object]] = []
+    for slot in slots:
+        if not isinstance(slot, Mapping):
+            continue
+        raw_assignments = slot.get("assignments")
+        if isinstance(raw_assignments, Sequence) and not isinstance(raw_assignments, str):
+            assignments.extend(dict(assignment) for assignment in raw_assignments if isinstance(assignment, Mapping))
+    return assignments
 
 
 def inspect_decision_journal(
@@ -577,7 +796,17 @@ def produce_decision_verifier_artifact(
             audit_record=audit_record,
             artifact_path=target_dir / _DECISION_VERIFIER_ARTIFACTS_FILE,
         )
-    if audit_record.get("fact_type") != "rsset_app_base":
+    fact_type = audit_record.get("fact_type")
+    if fact_type == "callback_derived_code":
+        return _produce_callback_decision_verifier_artifact(
+            target_id,
+            decision_id=decision_id,
+            write=write,
+            audit_record=audit_record,
+            project_root=project_root,
+            artifact_path=target_dir / _DECISION_VERIFIER_ARTIFACTS_FILE,
+        )
+    if fact_type != "rsset_app_base":
         return _decision_verifier_producer_blocked(
             target_id,
             decision_id,
@@ -745,6 +974,169 @@ def _decision_journal_audit_record(report: Mapping[str, object], decision_id: st
         if isinstance(record, Mapping) and record.get("decision_id") == decision_id:
             return dict(record)
     return None
+
+
+def _produce_callback_decision_verifier_artifact(
+    target_id: str,
+    *,
+    decision_id: str,
+    write: bool,
+    audit_record: Mapping[str, object],
+    project_root: Path,
+    artifact_path: Path,
+) -> dict[str, object]:
+    candidate_id = audit_record.get("candidate_id")
+    if not isinstance(candidate_id, str) or not candidate_id:
+        return _decision_verifier_producer_blocked(
+            target_id,
+            decision_id,
+            "missing_candidate_id",
+            write=write,
+            audit_record=audit_record,
+            artifact_path=artifact_path,
+        )
+    callback_report = inspect_callback_slots(target_id, project_root=project_root)
+    packet, assignment = _callback_packet_for_candidate(callback_report.get("callback_slots"), candidate_id)
+    if packet is None:
+        return _decision_verifier_producer_blocked(
+            target_id,
+            decision_id,
+            "current_callback_packet_not_found",
+            write=write,
+            audit_record=audit_record,
+            artifact_path=artifact_path,
+        )
+    if not _callback_packet_has_matching_journal_decision(packet, callback_report, decision_id):
+        return _decision_verifier_producer_blocked(
+            target_id,
+            decision_id,
+            "current_journal_evidence_not_matched",
+            write=write,
+            audit_record=audit_record,
+            candidate=packet,
+            artifact_path=artifact_path,
+        )
+    candidate_identity = _callback_packet_selected_identity(packet, target_id)
+    if not _decision_verifier_selected_identity_matches(candidate_identity, audit_record.get("selected_identity")):
+        return _decision_verifier_producer_blocked(
+            target_id,
+            decision_id,
+            "selected_identity_mismatch",
+            write=write,
+            audit_record=audit_record,
+            candidate=packet,
+            candidate_selected_identity=candidate_identity,
+            artifact_path=artifact_path,
+        )
+    source_state_identity = _callback_packet_source_state_identity(packet)
+    if source_state_identity is None:
+        return _decision_verifier_producer_blocked(
+            target_id,
+            decision_id,
+            "missing_source_state_identity",
+            write=write,
+            audit_record=audit_record,
+            candidate=packet,
+            artifact_path=artifact_path,
+        )
+    packet_blockers = _callback_decision_packet_blockers(packet, assignment)
+    if packet_blockers:
+        return _decision_verifier_producer_blocked(
+            target_id,
+            decision_id,
+            packet_blockers[0],
+            write=write,
+            audit_record=audit_record,
+            candidate=packet,
+            artifact_path=artifact_path,
+        )
+    semantic = _verify_callback_decision_semantic_reload(target_id, decision_id, callback_report, packet)
+    generated = _verify_projected_callback_rendered_source(
+        target_id,
+        decision_id,
+        audit_record,
+        packet,
+        project_root=project_root,
+    )
+    negative = _verify_callback_decision_negative_safety(target_id, decision_id, callback_report, packet)
+    round_trip = _verify_round_trip_exact(target_id, project_root=project_root)
+    checked_at = datetime.now(UTC).isoformat(timespec="seconds")
+    layers = {
+        "semantic_reload": _decision_verifier_artifact_layer_from_result(
+            "semantic_reload",
+            "_verify_callback_decision_semantic_reload",
+            semantic,
+            checked_at=checked_at,
+        ),
+        "generated_source": _decision_verifier_artifact_layer_from_result(
+            "generated_source",
+            "_verify_projected_callback_rendered_source",
+            generated,
+            checked_at=checked_at,
+        ),
+        "negative_safety": _decision_verifier_artifact_layer_from_result(
+            "negative_safety",
+            "_verify_callback_decision_negative_safety",
+            negative,
+            checked_at=checked_at,
+        ),
+        "exact_round_trip": _decision_verifier_artifact_layer_from_result(
+            "exact_round_trip",
+            "_verify_round_trip_exact",
+            round_trip,
+            checked_at=checked_at,
+        ),
+    }
+    verifier_results = {
+        "semantic_reload": semantic,
+        "generated_source": generated,
+        "negative_safety": negative,
+        "exact_round_trip": round_trip,
+    }
+    passed = all(layer.get("status") == "passed" for layer in layers.values())
+    if not passed:
+        return {
+            "target_id": target_id,
+            "decision_id": decision_id,
+            "candidate_id": candidate_id,
+            "status": "blocked",
+            "blockers": _decision_verifier_result_blockers(verifier_results),
+            "artifact": None,
+            "layers": layers,
+            "verifier_results": verifier_results,
+            "write_requested": write,
+            "written": False,
+            "artifact_path": str(artifact_path),
+        }
+    artifact = {
+        "artifact_id": f"decision-verifier:{decision_id}:{candidate_id}:{_short_hash(source_state_identity)}",
+        "target_id": target_id,
+        "decision_id": decision_id,
+        "candidate_id": candidate_id,
+        "selected_identity": dict(cast(Mapping[str, object], audit_record["selected_identity"])),
+        "source_state_identity": source_state_identity,
+        "current": True,
+        "checked_at": checked_at,
+        "producer": "decision-verifier-artifact",
+        "layers": layers,
+    }
+    written = False
+    if write:
+        target_dir = resolve_project_dir(target_id, project_root=project_root)
+        _write_decision_verifier_artifact(target_dir, artifact)
+        written = True
+    return {
+        "target_id": target_id,
+        "decision_id": decision_id,
+        "candidate_id": candidate_id,
+        "status": "passed",
+        "artifact": artifact,
+        "layers": layers,
+        "verifier_results": verifier_results,
+        "write_requested": write,
+        "written": written,
+        "artifact_path": str(artifact_path),
+    }
 
 
 def _decision_verifier_producer_blocked(
@@ -973,6 +1365,172 @@ def _decision_verifier_result_blockers(results: Mapping[str, object]) -> list[st
     return blockers or ["verifier_artifact_not_produced"]
 
 
+def _verify_callback_decision_semantic_reload(
+    target_id: str,
+    decision_id: str,
+    callback_report: Mapping[str, object],
+    packet: Mapping[str, object],
+) -> dict[str, object]:
+    if _callback_packet_has_matching_journal_decision(packet, callback_report, decision_id):
+        return {
+            "layer": "semantic_reload",
+            "status": "passed",
+            "message": "accepted callback_derived_code fact replayed into callback report",
+        }
+    return {
+        "layer": "semantic_reload",
+        "status": "failed",
+        "message": f"{target_id} callback report did not replay decision {decision_id}",
+    }
+
+
+def _verify_projected_callback_rendered_source(
+    target_id: str,
+    decision_id: str,
+    audit_record: Mapping[str, object],
+    packet: Mapping[str, object],
+    *,
+    project_root: Path,
+) -> dict[str, object]:
+    entrypoint = _callback_seeded_code_entrypoint(decision_id, audit_record, packet)
+    if entrypoint is None:
+        return {"layer": "generated_source", "status": "failed", "message": "callback seeded code entrypoint payload missing"}
+    try:
+        paths = resolve_project_paths(target_id, project_root=project_root)
+        with effective_metadata_file(paths.target_dir) as metadata_path:
+            before = render_project_source_with_c_backend(
+                paths.binary_source,
+                metadata_path=metadata_path,
+                project_root=project_root,
+            )
+        metadata = effective_target_metadata(paths.target_dir)
+        if metadata is None:
+            return {"layer": "generated_source", "status": "failed", "message": "effective target metadata missing"}
+        projected_metadata = replace(
+            metadata,
+            seeded_code_entrypoints=(*metadata.seeded_code_entrypoints, entrypoint),
+        )
+        with TemporaryDirectory() as temp_dir:
+            projected_path = Path(temp_dir) / "target_metadata.json"
+            projected_path.write_text(
+                json.dumps(target_metadata_json_payload(projected_metadata), indent=2, sort_keys=True) + "\n",
+                encoding="utf-8",
+            )
+            after = render_project_source_with_c_backend(
+                paths.binary_source,
+                metadata_path=projected_path,
+                project_root=project_root,
+            )
+    except Exception as exc:
+        return {"layer": "generated_source", "status": "failed", "message": str(exc)}
+    expected_name = entrypoint.name
+    changed = before != after
+    selected_present = expected_name in after
+    return {
+        "layer": "generated_source",
+        "status": "passed" if changed and selected_present else "failed",
+        "source_changed": changed,
+        "expected_symbol": expected_name,
+        "expected_symbol_present": selected_present,
+    }
+
+
+def _verify_callback_decision_negative_safety(
+    target_id: str,
+    decision_id: str,
+    callback_report: Mapping[str, object],
+    packet: Mapping[str, object],
+) -> dict[str, object]:
+    matching_assignments: list[dict[str, object]] = []
+    unexpected_same_decision: list[dict[str, object]] = []
+    selected_identity = _callback_packet_selected_identity(packet, target_id)
+    for assignment in _callback_report_assignments(callback_report.get("callback_slots")):
+        current_packet = assignment.get("evidence_packet")
+        if not isinstance(current_packet, Mapping):
+            continue
+        lane = assignment.get("decision_replay")
+        accepted = lane.get("accepted") if isinstance(lane, Mapping) else None
+        has_decision = any(isinstance(item, Mapping) and item.get("decision_id") == decision_id for item in _mapping_sequence(accepted))
+        if not has_decision:
+            continue
+        current_identity = _callback_packet_selected_identity(current_packet, target_id)
+        if _decision_verifier_selected_identity_matches(current_identity, selected_identity):
+            matching_assignments.append(dict(assignment))
+        else:
+            unexpected_same_decision.append(
+                {
+                    "candidate_id": current_packet.get("candidate_id"),
+                    "selected_identity": current_identity,
+                }
+            )
+    passed = len(matching_assignments) == 1 and not unexpected_same_decision
+    return {
+        "layer": "negative_safety",
+        "status": "passed" if passed else "failed",
+        "same_decision_assignment_count": len(matching_assignments),
+        "unexpected_same_decision_assignments": unexpected_same_decision,
+    }
+
+
+def _callback_seeded_code_entrypoint(
+    decision_id: str,
+    audit_record: Mapping[str, object],
+    packet: Mapping[str, object],
+) -> SeededCodeEntrypointMetadata | None:
+    selected_identity = audit_record.get("selected_identity")
+    if not isinstance(selected_identity, Mapping):
+        return None
+    addr = _int_or_none(selected_identity.get("addr"))
+    hunk = _int_or_none(selected_identity.get("hunk")) or 0
+    if addr is None:
+        return None
+    name = f"callback_{hunk}_{addr:08x}"
+    packet_id = packet.get("packet_id")
+    return SeededCodeEntrypointMetadata(
+        addr=addr,
+        hunk=hunk,
+        name=name,
+        seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
+        review_status=TargetMetadataReviewStatus.VALIDATED,
+        citation=f"Decision Journal {decision_id}",
+        source_id=decision_id,
+        source_path="decision_journal.jsonl",
+        source_locator=str(packet_id or packet.get("candidate_id") or decision_id),
+        comment="callback-derived code target accepted through Decision Journal verifier",
+        role="callback_derived_code",
+    )
+
+
+def _callback_packet_selected_identity(packet: Mapping[str, object], target_id: str) -> dict[str, object]:
+    selected = packet.get("selected_identity")
+    selected = selected if isinstance(selected, Mapping) else {}
+    hunk = _int_or_none(selected.get("hunk")) or 0
+    addr = _int_or_none(selected.get("addr")) or 0
+    operand_index = _int_or_none(selected.get("operand_index")) or 0
+    return {
+        "target_id": target_id,
+        "segment_id": str(selected.get("segment_id") or f"s{hunk}"),
+        "hunk": hunk,
+        "addr": addr,
+        "operand_index": operand_index,
+    }
+
+
+def _callback_packet_source_state_identity(packet: Mapping[str, object]) -> str | None:
+    selected = packet.get("selected_identity")
+    target = packet.get("target")
+    if not isinstance(selected, Mapping) or not isinstance(target, Mapping):
+        return None
+    payload = {
+        "packet_id": packet.get("packet_id"),
+        "candidate_id": packet.get("candidate_id"),
+        "selected_identity": dict(selected),
+        "target": target.get("range"),
+        "bytes": target.get("bytes"),
+    }
+    return json.dumps(payload, sort_keys=True, separators=(",", ":"))
+
+
 def _write_decision_verifier_artifact(target_dir: Path, artifact: Mapping[str, object]) -> None:
     path = target_dir / _DECISION_VERIFIER_ARTIFACTS_FILE
     payload = _load_decision_verifier_artifacts(target_dir)
@@ -1024,6 +1582,7 @@ def _decision_journal_report_with_current_source_audit(
     if not isinstance(records, Sequence) or isinstance(records, str):
         return report
     rsset_report: dict[str, object] | None = None
+    callback_report: dict[str, object] | None = None
     updated_records: list[object] = []
     for raw_record in records:
         if not isinstance(raw_record, Mapping):
@@ -1038,6 +1597,14 @@ def _decision_journal_report_with_current_source_audit(
             if rsset_report is None:
                 rsset_report = inspect_rsset_candidates(target_id, project_root=project_root)
             record = _rsset_source_effect_audit_record(record, rsset_report, verifier_artifacts=verifier_artifacts)
+        if (
+            record.get("state") == "active"
+            and record.get("action") == "accept_fact"
+            and record.get("fact_type") == "callback_derived_code"
+        ):
+            if callback_report is None:
+                callback_report = inspect_callback_slots(target_id, project_root=project_root)
+            record = _callback_source_effect_audit_record(record, callback_report, verifier_artifacts=verifier_artifacts)
         updated_records.append(record)
     updated_audit = dict(audit)
     updated_audit["records"] = updated_records
@@ -1105,6 +1672,83 @@ def _rsset_source_effect_audit_record(
     updated = dict(audit_record)
     updated["replay"] = {"status": "matched_current_packet", "semantic_reload": "current_rsset_report_matched"}
     return _audit_record_with_blocker(updated, "missing_current_rendered_source_effect")
+
+
+def _callback_source_effect_audit_record(
+    audit_record: dict[str, object],
+    callback_report: Mapping[str, object],
+    *,
+    verifier_artifacts: Mapping[str, object] | None = None,
+) -> dict[str, object]:
+    candidate_id = audit_record.get("candidate_id")
+    if not isinstance(candidate_id, str):
+        return _audit_record_with_blocker(audit_record, "missing_candidate_id")
+    packet, assignment = _callback_packet_for_candidate(callback_report.get("callback_slots"), candidate_id)
+    if packet is None:
+        return _audit_record_with_blocker(audit_record, "current_callback_packet_not_found")
+    if not _callback_packet_has_matching_journal_decision(packet, callback_report, audit_record.get("decision_id")):
+        return _audit_record_with_blocker(audit_record, "current_journal_evidence_not_matched")
+    selected_identity = audit_record.get("selected_identity")
+    selected_target_id = selected_identity.get("target_id") if isinstance(selected_identity, Mapping) else None
+    candidate_identity = _callback_packet_selected_identity(packet, selected_target_id if isinstance(selected_target_id, str) else "")
+    if not _decision_verifier_selected_identity_matches(candidate_identity, audit_record.get("selected_identity")):
+        updated = dict(audit_record)
+        updated["candidate_selected_identity"] = candidate_identity
+        return _audit_record_with_blocker(updated, "selected_identity_mismatch")
+    source_identity = _callback_packet_source_state_identity(packet)
+    if source_identity is None:
+        return _audit_record_with_blocker(audit_record, "missing_source_state_identity")
+    updated = dict(audit_record)
+    updated["replay"] = {"status": "source_effective", "semantic_reload": "current_callback_report_matched"}
+    updated["rendered_source_effect"] = {
+        "status": "source_effective",
+        "effect": "accepted callback target is projected through seeded-code metadata into the C backend renderer",
+        "render_intent": audit_record.get("render_intent"),
+        "source": "callback-report",
+    }
+    updated["verifier_layers"] = [
+        {"layer": "decision_journal", "status": "passed"},
+        {"layer": "semantic_reload", "status": "passed", "source": "callback-report"},
+        *_decision_verifier_artifact_layers(
+            audit_record,
+            verifier_artifacts,
+            current_source_identity=source_identity,
+        ),
+    ]
+    blockers = [
+        blocker for blocker in _string_sequence(audit_record.get("blockers")) if blocker != "source_effect_not_verified"
+    ]
+    packet_blockers = _callback_decision_packet_blockers(packet, assignment)
+    for blocker in packet_blockers:
+        if blocker not in blockers:
+            blockers.append(blocker)
+    for blocker in _decision_verifier_artifact_blockers(
+        audit_record,
+        verifier_artifacts,
+        current_source_identity=source_identity,
+    ):
+        if blocker not in blockers:
+            blockers.append(blocker)
+    updated["blockers"] = blockers
+    return updated
+
+
+def _callback_packet_has_matching_journal_decision(
+    packet: Mapping[str, object],
+    callback_report: Mapping[str, object],
+    decision_id: object,
+) -> bool:
+    if not isinstance(decision_id, str):
+        return False
+    packet_candidate = packet.get("candidate_id")
+    for assignment in _callback_report_assignments(callback_report.get("callback_slots")):
+        current_packet = assignment.get("evidence_packet")
+        if not isinstance(current_packet, Mapping) or current_packet.get("candidate_id") != packet_candidate:
+            continue
+        lane = assignment.get("decision_replay")
+        accepted = lane.get("accepted") if isinstance(lane, Mapping) else None
+        return any(isinstance(item, Mapping) and item.get("decision_id") == decision_id for item in _mapping_sequence(accepted))
+    return False
 
 
 def _rsset_candidate_has_matching_journal_decision(candidate: Mapping[str, object], decision_id: object) -> bool:
@@ -1794,6 +2438,12 @@ def inspect_callback_slots(
         slot_symbol=slot_symbol,
         slot_offset=slot_offset,
     )
+    journal_projection = _decision_journal_projection_for_target(target_id, project_root=project_root)
+    callback_report = _callback_report_with_decision_replay(
+        callback_report,
+        target_id=target_id,
+        journal_projection=journal_projection,
+    )
     mutation_gate = _callback_slot_mutation_gate(
         callback_report,
         exact_round_trip_available=(target_dir / "reproduction.json").exists(),
@@ -1805,6 +2455,65 @@ def inspect_callback_slots(
         hygiene.safe_to_continue and not hygiene.unknown_files and mutation_gate["safe_to_mutate"] is True
     )
     return report
+
+
+def _callback_report_with_decision_replay(
+    callback_report: Mapping[str, object],
+    *,
+    target_id: str,
+    journal_projection: Mapping[str, object] | None,
+) -> dict[str, object]:
+    report = dict(callback_report)
+    slots = report.get("slots")
+    if not isinstance(slots, Sequence) or isinstance(slots, str):
+        report["decision_replay"] = _callback_decision_replay_summary([])
+        return report
+    replayed_slots: list[object] = []
+    lanes: list[dict[str, object]] = []
+    for slot in slots:
+        if not isinstance(slot, Mapping):
+            replayed_slots.append(slot)
+            continue
+        replayed_slot = dict(slot)
+        assignments = slot.get("assignments")
+        if not isinstance(assignments, Sequence) or isinstance(assignments, str):
+            replayed_slots.append(replayed_slot)
+            continue
+        replayed_assignments: list[object] = []
+        for assignment in assignments:
+            if not isinstance(assignment, Mapping):
+                replayed_assignments.append(assignment)
+                continue
+            replayed_assignment = dict(assignment)
+            packet = assignment.get("evidence_packet")
+            if isinstance(packet, Mapping):
+                lane = (
+                    callback_decision_lane(packet, journal_projection, target_id=target_id)
+                    if isinstance(journal_projection, Mapping) and journal_projection.get("valid") is True
+                    else _unavailable_packet_decision_lane(["missing_decision_journal_projection"])
+                )
+                replayed_assignment["decision_replay"] = lane
+                lanes.append(lane)
+            replayed_assignments.append(replayed_assignment)
+        replayed_slot["assignments"] = replayed_assignments
+        replayed_slots.append(replayed_slot)
+    report["slots"] = replayed_slots
+    report["decision_replay"] = _callback_decision_replay_summary(lanes)
+    return report
+
+
+def _callback_decision_replay_summary(lanes: Sequence[Mapping[str, object]]) -> dict[str, object]:
+    accepted = sum(1 for lane in lanes if lane.get("status") == "accepted")
+    deferred = sum(1 for lane in lanes if lane.get("status") == "deferred")
+    rejected = sum(1 for lane in lanes if lane.get("status") == "rejected")
+    return {
+        "authority": "decision_journal",
+        "accepted_callback_fact_count": accepted,
+        "deferred_callback_fact_count": deferred,
+        "rejected_callback_fact_count": rejected,
+        "semantic_reload": "current_callback_report",
+        "status": "accepted" if accepted else "deferred" if deferred else "rejected" if rejected else "none",
+    }
 
 
 def _callback_slot_mutation_gate(

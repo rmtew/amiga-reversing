@@ -1338,3 +1338,24 @@ repeatable work to `docs\issues\017-*`.
   path does not interpret. There are no out-of-range values, artifact gaps, or
   unknowns after classification. The only possible follow-up is a read-only
   diagnostic for those 3 immediate long stores; no mutation gate is unblocked.
+- 017-069 through 017-072 replaced the callback helper-only path with the normal
+  command, replay, render, and verifier surfaces. `reversing_loop
+  callback-decision` now dry-runs or explicitly appends `callback_derived_code`
+  Decision Journal records; append mode requires a current action-ready callback
+  packet, generated callback orphan-code signal, selected-identity match, and
+  explicit empty conflicts. `callback-report` replays current accepted,
+  deferred, and rejected callback decisions into per-packet report state.
+  Accepted callback decisions are projected through temporary seeded-code
+  metadata and rendered with the C backend for verifier/source-diff checks.
+  `decision-verifier-artifact` now supports active callback accept facts and
+  enforces semantic reload, generated-source diff, negative safety, and exact
+  round-trip layers before writing an artifact. Manual Action Log, target
+  metadata, generated output, 012, 018, and Mac/platform files are not mutated by
+  these callback decision checks.
+- 017-073 reran the implemented callback path against
+  `amiga_disk_pandora-1988-firebird`. The disk-level project currently exposes
+  no disassembly listing, so callback packet selection blocks at
+  `listing_open.status=failed` with no authorized Decision Journal or source
+  write. This is now an implemented-gate failure rather than missing command,
+  replay, render, or verifier support. Fixture coverage proves the complete
+  callback path when a current packet exists.

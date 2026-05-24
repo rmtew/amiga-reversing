@@ -1,6 +1,6 @@
 # 017-072: Callback Verifier Artifact Producer
 
-Status: active
+Status: complete
 Type: AFK
 Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
@@ -45,26 +45,38 @@ Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
 ## Research Coverage
 
-- [ ] Existing RSSET verifier producer path traced for reuse.
-- [ ] Callback decision audit lookup implemented.
-- [ ] Callback render/source diff verifier implemented.
-- [ ] Negative safety checks neighboring ranges.
-- [ ] Exact round-trip integrated.
-- [ ] No 012/018/Mac/platform-format files touched.
+- [x] Existing RSSET verifier producer path traced for reuse.
+- [x] Callback decision audit lookup implemented.
+- [x] Callback render/source diff verifier implemented.
+- [x] Negative safety checks neighboring ranges.
+- [x] Exact round-trip integrated.
+- [x] No 012/018/Mac/platform-format files touched.
 
 ## Research Review
 
-- [ ] `unsupported_decision_fact_type` no longer applies to valid callback facts.
-- [ ] Verifier gates are artifact/command-enforced, not helper-only.
-- [ ] Stale/missing/failing states fail closed.
-- [ ] Proposal 017 updated with implementation findings.
+- [x] `unsupported_decision_fact_type` no longer applies to valid callback facts.
+- [x] Verifier gates are artifact/command-enforced, not helper-only.
+- [x] Stale/missing/failing states fail closed.
+- [x] Proposal 017 updated with implementation findings.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before work.
-- [ ] `017-067` supersession addressed.
-- [ ] Code implemented in real verifier artifact producer.
-- [ ] Tests cover pass and fail-closed cases.
-- [ ] Exact round-trip passes where output changes.
-- [ ] `amiga_reversing.tools.validate_017_issues` passes.
-- [ ] `git diff --check` passes.
+- [x] Proposal context checked before work.
+- [x] `017-067` supersession addressed.
+- [x] Code implemented in real verifier artifact producer.
+- [x] Tests cover pass and fail-closed cases.
+- [x] Exact round-trip passes where output changes.
+- [x] `amiga_reversing.tools.validate_017_issues` passes.
+- [x] `git diff --check` passes.
+
+## Completion Notes
+
+- `decision-verifier-artifact` now accepts active `callback_derived_code` `accept_fact` records.
+- The callback producer enforces current packet replay, selected identity match, generated-source diff, negative safety, and exact round-trip.
+- Passing callback artifacts include semantic reload, generated source, negative safety, and exact round-trip layers.
+
+## Completion Evidence
+
+- Focused tests: `uv run python -m pytest tests\test_reversing_loop.py tests\test_callback_slot_report.py -q` (`385 passed`).
+- Required validation: `uv run python -m amiga_reversing.tools.validate_017_issues`.
+- Whitespace check: `git diff --check`.

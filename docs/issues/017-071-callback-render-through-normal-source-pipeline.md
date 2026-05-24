@@ -1,6 +1,6 @@
 # 017-071: Callback Render Through Normal Source Pipeline
 
-Status: active
+Status: complete
 Type: AFK
 Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
@@ -45,26 +45,38 @@ Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
 ## Research Coverage
 
-- [ ] Normal source render path traced.
-- [ ] Accepted callback fact consumed by renderer.
-- [ ] Scoped render diff implemented.
-- [ ] Neighboring safety checked.
-- [ ] Exact round-trip run for output-affecting test.
-- [ ] No 012/018/Mac/platform-format files touched.
+- [x] Normal source render path traced.
+- [x] Accepted callback fact consumed by renderer.
+- [x] Scoped render diff implemented.
+- [x] Neighboring safety checked.
+- [x] Exact round-trip run for output-affecting test.
+- [x] No 012/018/Mac/platform-format files touched.
 
 ## Research Review
 
-- [ ] Render is not helper-only.
-- [ ] Render effect requires replayed accepted fact.
-- [ ] Neighboring data/code remains unchanged.
-- [ ] Proposal 017 updated with implementation findings.
+- [x] Render is not helper-only.
+- [x] Render effect requires replayed accepted fact.
+- [x] Neighboring data/code remains unchanged.
+- [x] Proposal 017 updated with implementation findings.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before work.
-- [ ] `017-066` supersession addressed.
-- [ ] Code implemented in normal source/render pipeline.
-- [ ] Tests prove scoped render and negative safety.
-- [ ] Exact round-trip passes where output changes.
-- [ ] `amiga_reversing.tools.validate_017_issues` passes.
-- [ ] `git diff --check` passes.
+- [x] Proposal context checked before work.
+- [x] `017-066` supersession addressed.
+- [x] Code implemented in normal source/render pipeline.
+- [x] Tests prove scoped render and negative safety.
+- [x] Exact round-trip passes where output changes.
+- [x] `amiga_reversing.tools.validate_017_issues` passes.
+- [x] `git diff --check` passes.
+
+## Completion Notes
+
+- Accepted callback decisions are projected through a temporary seeded-code entrypoint metadata overlay and rendered by `render_project_source_with_c_backend`.
+- The verifier checks that the generated source changes and contains the selected callback symbol.
+- The projection is read-only until an explicit verifier artifact write; it does not mutate target metadata or generated source output.
+
+## Completion Evidence
+
+- Focused tests: `uv run python -m pytest tests\test_reversing_loop.py tests\test_callback_slot_report.py -q` (`385 passed`).
+- Required validation: `uv run python -m amiga_reversing.tools.validate_017_issues`.
+- Whitespace check: `git diff --check`.
