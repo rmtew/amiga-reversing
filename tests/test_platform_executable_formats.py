@@ -372,6 +372,46 @@ def test_018_034_parser_fact_coverage_fails_closed_on_invalid_accepted_claims() 
     assert "unknown_fact_id" in reasons
 
 
+def test_018_039_coverage_cli_rejects_empty_closeout_input(capsys) -> None:
+    exit_code = platform_executable_formats.main(["coverage"])
+    captured = capsys.readouterr()
+
+    assert exit_code == 2
+    assert "coverage requires --parser-output or --current-macos-c-backend" in captured.err
+    assert captured.out == ""
+
+
+def test_018_039_coverage_cli_allows_explicit_empty_inventory(capsys) -> None:
+    exit_code = platform_executable_formats.main(["coverage", "--allow-empty"])
+    output = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert output["summary"]["parser_outputs"] == 0
+    assert output["unreported_platforms"] == ["amiga", "atari_st", "macos"]
+
+
+def test_018_039_coverage_cli_can_include_current_macos_backend(monkeypatch, capsys) -> None:
+    def fake_current_macos_output(image_path: Path, hfs_path: str) -> dict[str, object]:
+        assert image_path.name == "MPW-GM.img.bin"
+        assert hfs_path == "MPW-GM/MPW/Tools/Asm"
+        return {
+            "kb_record_id": "macos.hfs_resource_fork.code_resources.mpw_application",
+            "fact_id": "macos.code_resource.movea_stack_a0.boundary.candidate",
+            "fact_status": "candidate",
+            "parser_use": "candidate_only",
+        }
+
+    monkeypatch.setattr(platform_executable_formats, "_load_current_macos_c_backend_output", fake_current_macos_output)
+
+    exit_code = platform_executable_formats.main(["coverage", "--current-macos-c-backend"])
+    output = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert output["summary"]["parser_outputs"] == 1
+    assert output["summary"]["candidate"] == 1
+    assert output["summary"]["invalid"] == 0
+
+
 def test_018_034_coverage_cli_reports_json_and_returns_failure_for_invalid(tmp_path: Path, capsys) -> None:
     payload_path = tmp_path / "parser-output.json"
     payload_path.write_text(

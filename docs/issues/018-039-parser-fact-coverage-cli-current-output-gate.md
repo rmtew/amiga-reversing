@@ -1,6 +1,6 @@
 # 018-039: Parser Fact Coverage CLI Current Output Gate
 
-Status: active
+Status: completed
 
 ## Proposal Context
 
@@ -38,6 +38,16 @@ Preferred outcome: provide a command path that can be used in closeout
 validation without extra temp-file plumbing and proves current Mac C backend
 output.
 
+Completed behavior:
+
+- `coverage` with no `--parser-output` now fails with an explicit diagnostic
+  instead of producing a passing empty closeout report.
+- `coverage --allow-empty` preserves explicit inventory/report-only output.
+- `coverage --current-macos-c-backend` loads the committed MPW fixture through
+  the Mac C backend and checks the current parser-emitted fact refs.
+- Invalid accepted claims still fail closed.
+- Mac byte-entry and relocation/fixup remain candidate/deferred.
+
 ## Evidence Standard
 
 Tests must prove:
@@ -67,25 +77,37 @@ parser output by accident.
 
 ## Research Coverage
 
-- [ ] Coverage CLI behavior checked.
-- [ ] In-memory coverage API tests checked.
-- [ ] Mac C backend summary fact output checked.
-- [ ] Invalid accepted-claim failure checked.
-- [ ] Second-pass review checked that no empty-output success remains in the
+- [x] Coverage CLI behavior checked.
+- [x] In-memory coverage API tests checked.
+- [x] Mac C backend summary fact output checked.
+- [x] Invalid accepted-claim failure checked.
+- [x] Second-pass review checked that no empty-output success remains in the
   closeout proof path.
 
 ## Research Review
 
-- [ ] Empty coverage no longer satisfies closeout validation.
-- [ ] Current Mac parser output is covered by CLI or documented closeout command.
-- [ ] Candidate/deferred Mac facts remain non-accepted.
-- [ ] Proposal 018 closeout text matches the implemented command.
+- [x] Empty coverage no longer satisfies closeout validation.
+- [x] Current Mac parser output is covered by CLI or documented closeout command.
+- [x] Candidate/deferred Mac facts remain non-accepted.
+- [x] Proposal 018 closeout text matches the implemented command.
 
 ## Required Sign-Off
 
-- [ ] `uv run python -m amiga_reversing.tools.platform_executable_formats coverage`
+- [x] `uv run python -m amiga_reversing.tools.platform_executable_formats coverage`
   behavior is explicitly tested and documented.
-- [ ] Platform executable format tests pass.
-- [ ] Targeted Mac C backend tests pass.
-- [ ] `git diff --check` passes.
+- [x] Platform executable format tests pass.
+- [x] Targeted Mac C backend tests pass.
+- [x] `git diff --check` passes.
 
+## Completion Evidence
+
+- `uv run python -m amiga_reversing.tools.platform_executable_formats coverage`
+  returned failure for empty closeout input.
+- `uv run python -m amiga_reversing.tools.platform_executable_formats coverage
+  --allow-empty` passed as explicit inventory output.
+- `uv run python -m amiga_reversing.tools.platform_executable_formats coverage
+  --current-macos-c-backend` passed and checked current Mac C backend output.
+- `uv run python -m pytest tests/test_platform_executable_formats.py -q`
+  passed.
+- `uv run python -m pytest tests/test_macos_c_backend.py -q` passed.
+- `git diff --check` passed.

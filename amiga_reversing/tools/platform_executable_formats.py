@@ -269,6 +269,23 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--kb", type=Path, default=KB_PATH)
     parser.add_argument("--schema", type=Path, default=SCHEMA_PATH)
     parser.add_argument("--parser-output", action="append", type=Path, default=[])
+    parser.add_argument("--allow-empty", action="store_true", help="Allow report-only coverage with no parser output.")
+    parser.add_argument(
+        "--current-macos-c-backend",
+        action="store_true",
+        help="Include current Mac C backend output from the committed MPW fixture.",
+    )
+    parser.add_argument(
+        "--macos-image",
+        type=Path,
+        default=PROJECT_ROOT / "resources/platform_macos/MPW-GM.img.bin",
+        help="Mac HFS image used with --current-macos-c-backend.",
+    )
+    parser.add_argument(
+        "--macos-hfs-path",
+        default="MPW-GM/MPW/Tools/Asm",
+        help="HFS path used with --current-macos-c-backend.",
+    )
     args = parser.parse_args(list(argv) if argv is not None else None)
 
     kb = load_kb(args.kb)
@@ -281,7 +298,22 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(json.dumps(build_guardrail_report(kb), indent=2))
     if args.command == "coverage":
         payloads = [_load_json(path) for path in args.parser_output]
-        report = build_parser_fact_coverage_report(payloads, kb, labels=[str(path) for path in args.parser_output])
+        labels = [str(path) for path in args.parser_output]
+        if args.current_macos_c_backend:
+            try:
+                payloads.append(_load_current_macos_c_backend_output(args.macos_image, args.macos_hfs_path))
+            except Exception as exc:
+                print(f"coverage current Mac C backend output failed: {exc}", file=sys.stderr)
+                return 1
+            labels.append(f"current-macos-c-backend:{args.macos_image}:{args.macos_hfs_path}")
+        if not payloads and not args.allow_empty:
+            print(
+                "coverage requires --parser-output or --current-macos-c-backend; "
+                "use --allow-empty only for inventory/report-only output",
+                file=sys.stderr,
+            )
+            return 2
+        report = build_parser_fact_coverage_report(payloads, kb, labels=labels)
         print(json.dumps(report, indent=2, sort_keys=True))
         if report["summary"]["invalid"]:
             return 1
@@ -451,6 +483,18 @@ def _classify_parser_fact_ref(ref: Mapping[str, str], kb: Mapping[str, Any]) -> 
         return output
     output["reason"] = ""
     return output
+
+
+def _load_current_macos_c_backend_output(image_path: Path, hfs_path: str) -> dict[str, Any]:
+    from amiga_reversing.disasm.c_backend import (
+        inspect_macos_hfs_code_summary_with_c_backend,
+    )
+    from amiga_reversing.disasm.macos_asm_container import read_macos_hfs_image_bytes
+
+    if not image_path.exists():
+        raise FileNotFoundError(image_path)
+    image_data = read_macos_hfs_image_bytes(image_path)
+    return inspect_macos_hfs_code_summary_with_c_backend(image_data, hfs_path)
 
 
 def _validate_parser_fact_node(

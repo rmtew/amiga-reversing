@@ -1,12 +1,13 @@
 # Proposal 012: Classic Mac OS M68K Platform
 
-Status: open / blocked. The source/project, HFS/resource, API, web, and target
-artifact work is useful foundation, but executable/CODE correctness is blocked
-on Proposal 018's cited platform executable-format knowledge layer. The current
-Mac CODE entry handling contains heuristic evidence, not accepted Mac OS
-Segment Loader knowledge. Proposal 012 must not close until 018-002 supplies
-cited Mac OS executable/CODE facts and the parser/listing path consumes or
-validates against them.
+Status: open / blocked. Proposal 018 is complete as the executable-format KB
+authority, and the source/project, HFS/resource, API, web, and target artifact
+work remains useful foundation. Full Mac executable/CODE correctness is still
+blocked because the 018 KB records nonzero CODE byte-entry, classic 68K CODE
+relocation/fixup interpretation, source-to-CODE fixture proof, and non-CODE
+payload decoding as formal deferred or unsupported state. Current Mac CODE
+candidate views remain starter visibility, not accepted byte-entry or
+relocation correctness.
 
 This proposal defines the path to a viewable Classic Mac OS m68k starter target.
 The first milestone is deliberately narrow but has two linked views:
@@ -35,9 +36,10 @@ assumptions. The proof is not complete until the durable platform path follows
 the same C-backed architecture used by Amiga and Atari ST.
 
 Proposal 011 covers Atari ST platform knowledge cleanup. Proposal 018 owns the
-cross-platform executable-format KB model. This proposal is the Mac counterpart
-and architecture pressure test, and is blocked on 018 for CODE/executable
-correctness.
+completed cross-platform executable-format KB model. This proposal is the Mac
+counterpart and architecture pressure test, and it remains blocked for full
+CODE/executable correctness by the formal deferred/unsupported Mac facts
+recorded in 018.
 
 ## Section Index
 
@@ -1429,6 +1431,10 @@ Future scope after cited starter-quality rendering:
   012 remains open for full Mac executable/CODE correctness and must not promote
   Mac byte-entry or relocation/fixup behavior beyond the accepted/deferred
   states recorded in 018.
+- 012-024 synced the top proposal status after 018 closeout. Proposal 018 is no
+  longer described as a future supplier of facts; it is the completed authority
+  that records the formal deferrals/unsupported boundaries still blocking full
+  012 closeout.
 - MPW Asm/Link/Rez byte-for-byte roundtrip.
 - Full non-CODE resource semantics.
 - Overflow extents for later fixtures that need them.

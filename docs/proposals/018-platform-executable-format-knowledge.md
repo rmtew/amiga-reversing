@@ -269,7 +269,11 @@ Closeout validation:
 - Generated platform executable fact tables are fresh and derive from
   `knowledge/platform_executable_formats.json`.
 - Parser fact coverage reports accepted/candidate/deferred/unsupported/invalid
-  claims and fails closed on invalid accepted claims.
+  claims and fails closed on invalid accepted claims. Closeout coverage must use
+  either explicit parser output files or
+  `amiga_reversing.tools.platform_executable_formats coverage
+  --current-macos-c-backend`; empty inventory output is only allowed with
+  `--allow-empty`.
 - Mac C summary, project payload, committed artifact, and web payload tests keep
   byte-entry candidate/deferred and relocation/fixup deferred, while preserving
   candidate visibility.
@@ -764,6 +768,12 @@ insufficient. Do not broaden non-CODE decoding or affect CODE behavior.
   downstream/open for Mac byte-entry, relocation/fixup, source-to-CODE, and
   broader resource semantics, and removed the completed 018-030 through 018-038
   issue files after this proposal held their conclusions.
+- 018-039 fixed the parser fact coverage closeout gate after review. The
+  default `coverage` CLI no longer succeeds with zero parser outputs; callers
+  must provide `--parser-output`, use `--current-macos-c-backend` to check the
+  current MPW Mac C backend output, or pass `--allow-empty` for explicit
+  inventory/report-only output. This does not promote Mac byte-entry or
+  relocation/fixup facts.
 
 ## Relationship To 012
 
