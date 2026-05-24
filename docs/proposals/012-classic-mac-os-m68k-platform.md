@@ -1,13 +1,15 @@
 # Proposal 012: Classic Mac OS M68K Platform
 
-Status: open / blocked. Proposal 018 is complete as the executable-format KB
-authority, and the source/project, HFS/resource, API, web, and target artifact
-work remains useful foundation. Full Mac executable/CODE correctness is still
-blocked because the 018 KB records nonzero CODE byte-entry, classic 68K CODE
-relocation/fixup interpretation, source-to-CODE fixture proof, and non-CODE
-payload decoding as formal deferred or unsupported state. Current Mac CODE
-candidate views remain starter visibility, not accepted byte-entry or
-relocation correctness.
+Status: completed for starter scope. Proposal 012 now provides viewable Classic
+Mac OS m68k starter platform support: source/project visibility, HFS/resource
+container import, normal `macos` project/API payloads, Mac-style CODE listing
+surfaces, web visibility, and a drift-checked MPW `Asm` target artifact. Full
+Mac executable/CODE correctness remains future/deferred work because Proposal
+018, the completed executable-format KB authority, records nonzero CODE
+byte-entry, classic 68K CODE relocation/fixup interpretation, source-to-CODE
+fixture proof, and non-CODE payload decoding as candidate, deferred, or
+unsupported states. Current Mac CODE candidate views remain starter visibility,
+not accepted byte-entry or relocation correctness.
 
 This proposal defines the path to a viewable Classic Mac OS m68k starter target.
 The first milestone is deliberately narrow but has two linked views:
@@ -128,10 +130,11 @@ Mac OS:
   CODE resources, Segment Loader conventions, ROM/Toolbox traps
 ```
 
-Adding a viewable Mac target should expose platform assumptions in import,
-listing, source export, generated metadata, API payloads, and the web UI. Those
-assumptions should be fixed generically where possible, not hidden inside Mac
-special cases.
+Adding a viewable Mac target exposes platform assumptions in import, listing,
+source export, generated metadata, API payloads, and the web UI. Those
+assumptions are now represented through the same durable platform path used by
+the other m68k platforms where the starter scope needs them, with deeper Mac
+executable semantics left as explicit future work.
 
 Longer term, comparable platform facts may help porting assistance between
 Mac OS, Amiga, and Atari ST. That is not the first implementation goal.
@@ -217,7 +220,7 @@ shared platform abstractions are extended where Mac exposes framework gaps
 committed illustrative Mac OS target/subtarget under `targets/`
 ```
 
-Future deeper Mac work:
+Future deeper Mac work, outside this proposal's starter closeout:
 
 ```text
 complete Segment Loader relocation/fixup interpretation
@@ -773,8 +776,10 @@ startup/runtime conventions
 
 The old `docs/issues/012-*` files were consolidated here and removed because
 they had drifted into a misleading mix of implemented, reopened, and reclosed
-states. This proposal is the authoritative 012 record until executable-format
-facts from Proposal 018 unblock the remaining Mac CODE work.
+states. This proposal is the authoritative 012 record for starter Mac platform
+support. Remaining full executable/CODE correctness belongs to explicit
+future/deferred work recorded below and in the Proposal 018 executable-format KB
+authority.
 
 1. HFS/fork role inventory - implemented
 
@@ -846,7 +851,7 @@ fork, CODE resource, and unsupported state.
 Document optional MPW-GM fixture paths and the Mac platform inventory check.
 ```
 
-012-013. C-backed Mac platform parser/import parity - reopened / incomplete
+012-013. C-backed Mac platform parser/import parity - starter-complete
 
 ```text
 Promote durable Mac HFS, fork, resource fork, CODE metadata, and selected CODE
@@ -860,8 +865,9 @@ materialization is implemented; overflow extents and normal project/API
 consumption remain. The first exported C platform-file summary API now feeds a
 Python wrapper test for HFS file metadata, Finder type/creator, resource/CODE
 inventory, selected CODE 1 byte metadata, and selected CODE 1 byte extraction.
-Review found the byte extraction is not semantically complete because it treats
-nonzero CODE payloads as flat `payload + 4` code.
+The starter path now uses the C-backed HFS/CODE summary for current MPW `Asm`
+payloads. Overflow extents for later fixtures and full nonzero CODE semantics
+remain future work, not starter blockers.
 ```
 
 012-014. Mac project/API/web integration - implemented
@@ -879,34 +885,43 @@ Feed source render and analysis from generated Mac OS metadata, not handcrafted
 Python dictionaries in tests or view assembly.
 ```
 
-012-016. Real CODE listing view - reopened / incomplete
+012-016. Real CODE listing view - starter-complete
 
 ```text
 Render selected nonzero CODE resources as actual Mac OS m68k listing rows in
 the web UI from classified code ranges, not just a word preview and not a raw
 Amiga-style decode of CODE metadata/data bytes.
+
+The selected listing starts from classified Mac CODE ranges, stays Mac-facing,
+and no longer emits Amiga raw section directives. Full byte-entry and
+relocation correctness remain deferred to future executable-format evidence.
 ```
 
-012-017. Core platform framework cleanup - reopened / incomplete
+012-017. Core platform framework cleanup - starter-complete
 
 ```text
 Remove any Mac-only side paths discovered during implementation by extending
 shared platform source/container/project/listing abstractions cleanly. The Mac
 listing path must not be implemented by routing through `amiga-raw`.
+
+The starter route now uses normal project/listing plumbing with a Mac CODE
+surface while preserving candidate/deferred executable states.
 ```
 
-012-018. Mac OS example target artifact - reopened / incomplete
+012-018. Mac OS example target artifact - starter-complete
 
 ```text
 Commit an illustrative evolving Mac OS target under `targets/macos_hfs_mpw_gm/`
 with `MPW/Tools/Asm` as
 `targets/macos_hfs_mpw_gm/targets/macos_file_mpw_tools_asm/asm.s`, rendered as
-a whole Mac executable shape rather than a standalone CODE fragment. The current
-artifact is partial because it inventories all CODE resources but renders only
-CODE 1, and its CODE 1 listing begins by decoding metadata/data as instructions.
+a whole Mac executable shape rather than a standalone CODE fragment.
+
+The committed artifact now represents the whole MPW `Asm` CODE resource set with
+coverage statuses and a drift test. It renders starter-safe rows only where
+classified candidate code exists and does not claim full executable coverage.
 ```
 
-012-019. Mac CODE segment layout and code-island classification - blocked by 018-002
+012-019. Mac CODE segment layout and code-island classification - starter-complete with deferred full semantics
 
 ```text
 Replace the flat `payload + 4` CODE extraction assumption with a C-backed Mac
@@ -919,11 +934,11 @@ result implemented.
 The first classifier exposes metadata/data/confirmed-code and deferred ranges
 and moves selected CODE 1 extraction to the observed `movea.l (a7)+,a0`
 candidate at payload offset 40. This is a useful heuristic but not accepted
-platform knowledge until 018-002 grounds or replaces it with cited Mac OS
-executable facts.
+platform knowledge; Proposal 018 records exact byte-entry and relocation/fixup
+semantics as deferred until stronger evidence exists.
 ```
 
-012-020. Mac OS assembly-style listing backend - blocked by 018-002
+012-020. Mac OS assembly-style listing backend - starter-complete with deferred full semantics
 
 ```text
 Render Mac CODE ranges through a Mac OS listing/backend path with Mac-oriented
@@ -931,15 +946,16 @@ directives, labels, comments, and resource/segment provenance. Do not route Mac
 targets through `amiga-raw` output or emit Amiga-specific directives such as
 `SECTION code,code`.
 
-Partially implemented as a Mac CODE listing artifact adapter over the shared C analysis
-artifact. Mac source/window output now reports backend `macos-code`, includes
-HFS/resource/classified-range provenance, attaches that provenance to listing
-rows, and filters the Amiga raw section directive from Mac-facing output.
-It remains blocked for correctness until the classified ranges come from cited
-Mac executable facts rather than heuristic boundaries.
+Implemented for starter scope as a Mac CODE listing artifact adapter over the
+shared C analysis artifact. Mac source/window output now reports backend
+`macos-code`, includes HFS/resource/classified-range provenance, attaches that
+provenance to listing rows, and filters the Amiga raw section directive from
+Mac-facing output. Full correctness remains future work until classified ranges
+come from accepted or parser-asserted Mac executable facts rather than
+candidate boundaries.
 ```
 
-012-021. Whole Asm CODE resource coverage in target artifact - blocked by 018-002
+012-021. Whole Asm CODE resource coverage in target artifact - starter-complete with deferred full semantics
 
 ```text
 Update the committed `Asm` target artifact so every CODE resource is covered by
@@ -952,8 +968,9 @@ metadata-only, CODE 1 is rendered through the Mac listing adapter, resources
 with confirmed entry evidence are marked partial with the deferred
 relocation/source-boundary reason, and resources without entry evidence are
 deferred with classifier evidence.
-This is not final until the coverage statuses are derived from cited Mac
-executable-format facts.
+This is not full executable correctness until the coverage statuses are derived
+from accepted or parser-asserted Mac executable-format facts; it is sufficient
+for starter visibility because the unresolved areas are explicit deferred state.
 ```
 
 ## Artifact Ownership
@@ -1315,23 +1332,27 @@ resources documentation coverage tests
 
 ## Closeout Checklist
 
-Current state:
+Starter closeout decision:
 
-- The old `docs/issues/012-*` files were removed after their useful history was
-  consolidated into this proposal. They had become stale and misleading as a
-  working issue tracker.
-- The C-backed Mac parser/import API, normal `macos` project/API path,
-  generated metadata consumption, shared framework cleanup, classified CODE
-  layout, Mac CODE listing adapter, and committed target artifact are useful
-  foundation but not closeout.
+- Proposal 012 is complete for starter Classic Mac OS m68k platform support.
+- Starter support means viewable source/project structure, HFS/resource/CODE
+  container recognition, normal `macos` project/API payloads, Mac-style listing
+  surfaces, web-visible source/container pivots, and a committed target artifact
+  whose drift test proves the current MPW `Asm` rendering.
+- Starter support does not claim full Segment Loader correctness, accepted
+  nonzero CODE byte-entry rules, classic 68K CODE relocation/fixup semantics,
+  source-to-CODE recovery for a matching built product, broad non-CODE payload
+  decoding, or byte-for-byte MPW Asm/Link/Rez roundtrip.
 - The bad `SECTION code,code` / initial `ori.b` metadata decode is covered by
-  regression tests and no longer appears in the committed Mac target artifact,
-  but the replacement CODE entry boundary is still heuristic.
+  regression tests and no longer appears in the committed Mac target artifact.
+  The observed replacement boundary remains candidate output, not accepted
+  executable-format knowledge.
 - `docs/macos-targets.md` explains the current target layout and drift check.
 
-Blocked corrective scope:
+Post-018 blocker map:
 
-- Proposal 018 now defines the cited executable-format KB schema.
+- Proposal 018 is complete as the executable-format KB authority and must not be
+  reopened by Proposal 012 closeout work.
 - 018-002 through 018-003 extracted and migrated cited Mac OS Segment Loader /
   CODE / A5 / jump-table facts. Relocation/fixup and byte-entry facts remain
   deferred where direct support is missing.
@@ -1345,44 +1366,73 @@ Blocked corrective scope:
 
 Closeout matrix:
 
-| Area | Current state | Remaining work | Evidence needed | Owner | Starter closeout? |
+| Area | Current state | Remaining work | Evidence needed | Classification | Starter closeout? |
 | --- | --- | --- | --- | --- | --- |
-| C-backed HFS/resource/CODE import | Normal `macos` project payloads use the C HFS/CODE summary for MPW `Asm`. | Overflow extents for fixtures that need them. | Fixture with overflow extents plus parser drift test. | Proposal 012 backend follow-up | No for current MPW `Asm`; yes for broader fixture support. |
-| CODE 0 metadata and jump table | CODE 0 is metadata/jump-table-only with artifact/web drilldown rows separating accepted layout facts from candidate routine targets. | Richer navigation and later routine semantics. | Tests/CDP proving CODE 0 is not decoded as ordinary code and candidate targets remain candidate. | 018-024 maintenance | Useful for starter audit; not byte-entry closeout. |
-| Selected CODE 1 listing | Existing selected full listing route remains available and Mac-style output keeps Amiga `SECTION code,code` out. | Keep route stable while deeper CODE semantics evolve. | Listing tests and CDP checks for selected CODE 1. | 018-018/018-019 maintenance | Yes for starter. |
-| Non-selected CODE previews | Bounded candidate-only previews are payload/artifact/web-visible, and rows decode through the shared m68k listing path where safe. | Keep fallback reasons visible while deeper CODE semantics evolve. | Payload/artifact/web/CDP tests showing decoded candidate rows and fallback reasons. | 018-019 maintenance | Yes for starter usability, not accepted byte-entry. |
-| Byte-entry rules | `movea.l (a7)+,a0` remains candidate-only; 018-037 records `macos.code_resource.byte_entry_rule.unknown` as formal deferred KB state, not accepted. | Find citations/parser assertions or replace with safer rule. | KB fact with source strength sufficient for parser use, plus parser-output validation. | 018-037 blocker / future byte-entry evidence | Yes, blocks full 012 closeout. |
-| Relocation/fixups | Deferred-only parser/artifact/web state; 018-037 records missing classic CODE fixup location, encoding, affected offsets, Segment Loader application rules, and relocated-byte fixture. | Recover on-disk fixup format and application rules. | Old-source citation/parser assertion plus tests proving relocation-aware interpretation. | 018-037 blocker / future relocation evidence | Yes, blocks full 012 closeout. |
-| Source-to-CODE mapping | MPW source segment names to CODE resource names are cited; current Sample source does not map to MPW `Asm`; 018-037 defers mapping until the candidate fixture's own built product is captured or reproduced. | Capture or reproduce that fixture's own built product before mapping source to CODE. | Matching source/build/product fixture, symbol/segment map, and source-to-CODE validation. | 018-037 fixture deferral / future implementation | No for current target view; yes for source recovery closeout. |
-| Non-CODE resources | Browser-visible metadata inventory rows show type/count; 018-037 keeps type-level `CURS` semantics accepted, records CURS payload decoding as unsupported, and leaves other types candidate. | Add resource-specific payload decoders one type at a time. | Separate citations and decoders for each resource type. | 018-037 CURS payload unsupported / later resource issues | No for CODE starter; yes for broader Mac platform. |
-| Web/CDP visibility | CODE detail/previews are browser-visible with CDP checks. | Add non-CODE and CODE 0 drilldowns without weakening facts. | CDP verification for each web-visible addition. | 018-023, 018-024 | Yes for UI audit. |
-| Roundtrip | Explicit future scope. | Byte-for-byte MPW Asm/Link/Rez reproduction. | Rebuild pipeline, binary comparison, relocation/resource preservation. | Future roundtrip proposal | No for starter; yes for deeper roundtrip. |
+| C-backed HFS/resource/CODE import | Normal `macos` project payloads use the C HFS/CODE summary for MPW `Asm`. | Overflow extents for fixtures that need them. | Fixture with overflow extents plus parser drift test. | Starter-complete for current MPW `Asm`; future broader-fixture backend work. | Yes. |
+| Source/project payload | Sample source, resources, build recipe, generated Mac facts, and MPW `Asm` binary container open through the normal project path. | Keep the project payload contract stable as future Mac facts are added. | `tests/test_macos_project_payload.py` and web payload tests. | Starter-complete. | Yes. |
+| CODE 0 metadata and jump table | CODE 0 is metadata/jump-table-only with artifact/web drilldown rows separating accepted layout facts from candidate routine targets. | Richer navigation and later routine semantics. | Tests/CDP proving CODE 0 is not decoded as ordinary code and candidate targets remain candidate. | Starter-complete visibility; future navigation. | Yes. |
+| Selected CODE 1 listing | Existing selected full listing route remains available and Mac-style output keeps Amiga `SECTION code,code` out. | Keep route stable while deeper CODE semantics evolve. | Listing/artifact tests and CDP checks for selected CODE 1. | Starter-complete. | Yes. |
+| Non-selected CODE previews | Bounded candidate-only previews are payload/artifact/web-visible, and rows decode through the shared m68k listing path where safe. | Keep fallback reasons visible while deeper CODE semantics evolve. | Payload/artifact/web/CDP tests showing decoded candidate rows and fallback reasons. | Starter-complete usability, not accepted byte-entry. | Yes. |
+| Target artifact drift | The committed MPW `Asm` artifact is generated from current project/container/listing output and checked against renderer output. | Update only when current rendering intentionally changes. | `tests/test_macos_target_artifact.py`. | Starter-complete proof gate. | Yes. |
+| Byte-entry rules | `movea.l (a7)+,a0` remains candidate-only; 018-037 records `macos.code_resource.byte_entry_rule.unknown` as formal deferred KB state, not accepted. | Find citations/parser assertions or replace with safer rule. | KB fact with source strength sufficient for parser use, plus parser-output validation. | Deferred future executable-format evidence. | Not required for starter; blocks full executable correctness. |
+| Relocation/fixups | Deferred-only parser/artifact/web state; 018-037 records missing classic CODE fixup location, encoding, affected offsets, Segment Loader application rules, and relocated-byte fixture. | Recover on-disk fixup format and application rules. | Old-source citation/parser assertion plus tests proving relocation-aware interpretation. | Deferred future executable-format evidence. | Not required for starter; blocks full executable correctness. |
+| Source-to-CODE mapping | MPW source segment names to CODE resource names are cited; current Sample source does not map to MPW `Asm`; 018-037 defers mapping until the candidate fixture's own built product is captured or reproduced. | Capture or reproduce that fixture's own built product before mapping source to CODE. | Matching source/build/product fixture, symbol/segment map, and source-to-CODE validation. | Deferred future fixture proof. | Not required for current starter target view. |
+| Non-CODE resources | Browser-visible metadata inventory rows show type/count; 018-037 keeps type-level `CURS` semantics accepted, records CURS payload decoding as unsupported, and leaves other types candidate. | Add resource-specific payload decoders one type at a time. | Separate citations and decoders for each resource type. | Unsupported/deferred future resource semantics. | Metadata inventory is starter-complete; payload semantics are future. |
+| Web/CDP visibility | CODE detail/previews are browser-visible with CDP checks. | Add non-CODE and CODE 0 drilldowns without weakening facts. | CDP verification for each web-visible addition. | Starter-complete for current views; future UI enrichment. | Yes. |
+| Roundtrip | Explicit future scope. | Byte-for-byte MPW Asm/Link/Rez reproduction. | Rebuild pipeline, binary comparison, relocation/resource preservation. | Future roundtrip proposal. | Not required for starter. |
 
-Future scope after cited starter-quality rendering:
+Current proof rerun:
 
-- Complete Segment Loader relocation/fixup interpretation.
+- `platform_executable_formats validate` proves the executable-format KB is
+  still structurally valid.
+- `platform_executable_formats coverage --current-macos-c-backend` proves the
+  current MPW Mac C backend output reports KB fact ids/statuses and has no
+  invalid accepted claims.
+- Mac project, payload, target artifact, C backend, platform executable format,
+  and web-view tests prove the starter project path, listing/artifact surface,
+  candidate/deferred labels, and drift gate remain current.
+- `git diff --check` must pass for any closeout edit.
+
+Future/deferred work after starter closeout:
+
+- Complete Segment Loader relocation/fixup interpretation. Activation requires
+  exact classic 68K CODE on-disk fixup location, encoding, affected offsets,
+  Segment Loader application rules, and a fixture proving relocated bytes.
+- Establish accepted nonzero CODE byte-entry rules. Activation requires cited
+  or parser-assertable evidence strong enough to replace candidate
+  `movea.l (a7)+,a0` output with accepted parser behavior.
+- Capture or reproduce a source fixture's own built CODE product before
+  source-to-CODE mapping. MPW `Sample` source must not be mapped to MPW `Asm`
+  merely because both exist in the image.
+- Add non-CODE resource payload decoders one resource type at a time. Activation
+  requires per-type citations and decoder tests; type inventory alone is not
+  payload semantics.
 - Full per-resource CODE expansion and internal orphan island splitting after
   relocation/source-boundary context is represented.
+- MPW Asm/Link/Rez byte-for-byte roundtrip. Activation requires a rebuild
+  pipeline, binary comparison, and preservation of relocation/resource state.
+- Overflow extent support for later HFS fixtures that need it. Activation
+  requires a fixture with overflow extents and a parser drift test.
 - 018-002 has now supplied cited Mac executable/CODE citation packets for the
   HFS resource-fork application-code relationship, Segment Loader CODE
   resources, CODE 0 jump-table/A5 metadata, CODE 1 startup, and MPW Link output.
-  Proposal 012 remains blocked because those packets still need accepted KB
-  migration and parser/listing consumption; the current `movea.l (a7)+,a0`
-  boundary remains candidate evidence only.
+  Later 018 issues completed accepted KB migration and parser/listing
+  consumption for the accepted subset; the current `movea.l (a7)+,a0` boundary
+  remains candidate evidence only.
 - 018-003 migrated those packets into the first accepted Mac executable-format
-  KB record for MPW application/tool-style CODE resources. Proposal 012 remains
-  blocked until guardrails and parser/listing consumption land; the
+  KB record for MPW application/tool-style CODE resources. Guardrails and
+  parser/listing consumption landed later for accepted facts; the
   `movea.l (a7)+,a0` byte boundary is still candidate-only.
 - 018-004 and 018-005 added guardrails plus parser/listing consumption of the
-  accepted Mac KB facts. Proposal 012 remains open because relocation/fixup
-  semantics, exact byte-entry rules, and full per-resource CODE expansion are
-  still not accepted platform knowledge.
+  accepted Mac KB facts. Relocation/fixup semantics, exact byte-entry rules,
+  and full per-resource CODE expansion remain future full-correctness work
+  because they are still not accepted platform knowledge.
 - 018-008 and 018-009 added parser-output fact validation and structured Mac
   CODE evidence output. The Mac summary/project/artifact now expose CODE 0
   jump-table spans, nonzero CODE segment map spans, candidate routine offsets,
-  orphan ranges, and deferred relocation/fixup placeholders. Proposal 012 still
-  remains open because `movea.l (a7)+,a0` is candidate-only and
-  relocation/fixup semantics are not accepted.
+  orphan ranges, and deferred relocation/fixup placeholders. This supports
+  starter visibility while `movea.l (a7)+,a0` remains candidate-only and
+  relocation/fixup semantics remain deferred.
 - 018-010 added per-CODE resource payload/navigation/artifact views for the MPW
   `Asm` target. Every CODE resource now has a structured detail subview; CODE 0
   is metadata/jump-table output, selected CODE 1 remains the detailed listing,
@@ -1428,17 +1478,22 @@ Future scope after cited starter-quality rendering:
   byte-entry and relocation/fixup stay deferred, source-to-CODE mapping waits
   for fixture/product evidence, and CURS payload decoding remains unsupported.
 - 018-038 closes Proposal 018 as the executable-format KB authority. Proposal
-  012 remains open for full Mac executable/CODE correctness and must not promote
-  Mac byte-entry or relocation/fixup behavior beyond the accepted/deferred
-  states recorded in 018.
+  012 is closed only for starter Mac support and must not promote Mac
+  byte-entry or relocation/fixup behavior beyond the accepted/deferred states
+  recorded in 018.
 - 012-024 synced the top proposal status after 018 closeout. Proposal 018 is no
   longer described as a future supplier of facts; it is the completed authority
   that records the formal deferrals/unsupported boundaries still blocking full
   012 closeout.
-- MPW Asm/Link/Rez byte-for-byte roundtrip.
-- Full non-CODE resource semantics.
-- Overflow extents for later fixtures that need them.
-- Complete source-to-CODE segment mapping.
+- 012-025 superseded the stale 012-023 blocker-map issue and classified the
+  remaining work as starter-complete, deferred future executable-format work,
+  unsupported/future resource payload work, or broader-fixture follow-up.
+- 012-027 reran the current proof after Proposal 018 closeout and found the
+  starter Mac target proof current.
+- 012-028 extracted future Mac work from starter closeout so Proposal 012 does
+  not remain open for formally deferred or unsupported research.
+- 012-026 closed Proposal 012 for starter scope while preserving the future
+  blockers above.
 
 ## Verification
 
