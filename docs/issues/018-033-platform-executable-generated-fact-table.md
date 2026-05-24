@@ -1,6 +1,6 @@
 # 018-033: Platform Executable Generated Fact Table
 
-Status: active
+Status: completed
 
 ## Proposal Context
 
@@ -25,6 +25,18 @@ Generated output should preserve at least:
 - fact state;
 - parser-use authority;
 - owning record/archetype where applicable.
+
+Completed generated table shape:
+
+- `src/generated/platform_executable_formats.h` and `.c` are generated only from
+  `knowledge/platform_executable_formats.json`.
+- Each `PlatformExecutableFormatFact` row now carries `record_id`,
+  `platform_id`, `archetype_id`, `fact_id`, `section`, `status`, and
+  `parser_use`.
+- Generated `PLATFORM_EXECUTABLE_FORMAT_RECORD_*` and
+  `PLATFORM_EXECUTABLE_FORMAT_FACT_*` constants are regenerated from KB ids.
+- `src/platform_macos_resource.c` now consumes generated fact-id constants for
+  its CODE range fact refs while preserving the same emitted strings/statuses.
 
 ## Default Behavior
 
@@ -56,21 +68,32 @@ mechanical outputs of the KB.
 
 ## Research Coverage
 
-- [ ] Existing generated-code patterns checked.
-- [ ] Platform executable KB schema checked.
-- [ ] Current parser fact validation checked.
-- [ ] Current Mac parser fact literal use checked.
-- [ ] Second-pass freshness/drift review completed.
+- [x] Existing generated-code patterns checked.
+- [x] Platform executable KB schema checked.
+- [x] Current parser fact validation checked.
+- [x] Current Mac parser fact literal use checked.
+- [x] Second-pass freshness/drift review completed.
 
 ## Research Review
 
-- [ ] Generated facts preserve KB state and parser-use authority.
-- [ ] Unknown or candidate-only facts cannot become accepted through generation.
-- [ ] Tests prove generated output is fresh.
-- [ ] Any consumer switch is behavior-preserving.
+- [x] Generated facts preserve KB state and parser-use authority.
+- [x] Unknown or candidate-only facts cannot become accepted through generation.
+- [x] Tests prove generated output is fresh.
+- [x] Any consumer switch is behavior-preserving.
 
 ## Required Sign-Off
 
-- [ ] Generation/freshness test passes.
-- [ ] Platform executable format tests pass.
-- [ ] Ruff/mypy or targeted static checks pass where touched.
+- [x] Generation/freshness test passes.
+- [x] Platform executable format tests pass.
+- [x] Ruff/mypy or targeted static checks pass where touched.
+
+## Completion Evidence
+
+- `uv run python src/scripts/generate_platform_format_runtime.py` regenerated the
+  fact table from the KB.
+- `uv run python -m pytest tests/test_platform_executable_formats.py -q`
+  passed.
+- `uv run ruff check src/scripts/generate_platform_format_runtime.py
+  tests/test_platform_executable_formats.py` passed.
+- `cmd /c src\build.bat` passed after the C consumer switched to generated fact
+  constants.

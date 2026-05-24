@@ -1,4 +1,5 @@
 #include "platform_macos_resource.h"
+#include "generated/platform_executable_formats.h"
 
 #include <stdint.h>
 #include <string.h>
@@ -144,14 +145,14 @@ const char *platform_macos_code_range_evidence_name(uint8_t evidence) {
 const char *platform_macos_code_range_fact_id(uint8_t evidence) {
   switch (evidence) {
     case PLATFORM_MACOS_CODE_EVIDENCE_CODE0_JUMP_TABLE_METADATA:
-      return "macos.code_resource.0.jump_table_metadata";
+      return PLATFORM_EXECUTABLE_FORMAT_FACT_MACOS_CODE_RESOURCE_0_JUMP_TABLE_METADATA;
     case PLATFORM_MACOS_CODE_EVIDENCE_NONZERO_SEGMENT_HEADER:
-      return "macos.code_resource.nonzero.segment_header";
+      return PLATFORM_EXECUTABLE_FORMAT_FACT_MACOS_CODE_RESOURCE_NONZERO_SEGMENT_HEADER;
     case PLATFORM_MACOS_CODE_EVIDENCE_PREFIX_BEFORE_STACK_ENTRY:
     case PLATFORM_MACOS_CODE_EVIDENCE_M68K_STACK_ENTRY_TO_A0:
-      return "macos.code_resource.movea_stack_a0.boundary.candidate";
+      return PLATFORM_EXECUTABLE_FORMAT_FACT_MACOS_CODE_RESOURCE_MOVEA_STACK_A0_BOUNDARY_CANDIDATE;
     case PLATFORM_MACOS_CODE_EVIDENCE_MISSING_STACK_ENTRY:
-      return "macos.code_resource.byte_entry_rule.unknown";
+      return PLATFORM_EXECUTABLE_FORMAT_FACT_MACOS_CODE_RESOURCE_BYTE_ENTRY_RULE_UNKNOWN;
     default:
       return "";
   }

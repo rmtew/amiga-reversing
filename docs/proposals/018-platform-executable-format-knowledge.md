@@ -664,6 +664,13 @@ insufficient. Do not broaden non-CODE decoding or affect CODE behavior.
   relocation target space. GEMDOS basepage/runtime entry state, relocation
   terminator variants, symbol table details, and full parser migration remain
   candidate/deferred/unsupported as recorded in the KB.
+- 018-033 extended the generated platform executable fact table so each row
+  carries `record_id`, `platform_id`, `archetype_id`, `fact_id`, section,
+  status, and parser-use authority from
+  `knowledge/platform_executable_formats.json`. The Mac resource parser helper
+  now uses generated fact-id constants for CODE range fact refs; emitted
+  behavior remains unchanged and freshness tests guard against generated-table
+  drift.
 - 018-036 completed the Mac closeout research pass without promoting facts.
   The research rechecked committed Inside Macintosh markdown, MPW manuals,
   MPW-GM tool/source inventories, the executable-format KB, Proposal 012, and

@@ -182,13 +182,9 @@ def _record_rows(payload: dict[str, Any], prefix: str) -> list[str]:
         role_name = _define_name(record.get("role", "UNKNOWN")) if record.get("role") else "UNKNOWN"
         section_name = _define_name(record.get("section_kind", "NONE")) if record.get("section_kind") else "NONE"
         rows.append(
-            "    { %s, %su, %s, %s },"
-            % (
-                kind_lookup[name],
-                _wire_id_for_record(payload, record),
-                _define_name(prefix, "META", "RECORD_ROLE", role_name),
-                _define_name(prefix, "META", "SECTION_KIND", section_name),
-            )
+            f"    {{ {kind_lookup[name]}, {_wire_id_for_record(payload, record)}u, "
+            f"{_define_name(prefix, 'META', 'RECORD_ROLE', role_name)}, "
+            f"{_define_name(prefix, 'META', 'SECTION_KIND', section_name)} }},"
         )
     return rows
 
@@ -203,12 +199,8 @@ def _interpretation_rows(payload: dict[str, Any], prefix: str) -> list[str]:
         if not record_type or not interpret_as:
             continue
         rows.append(
-            "    { %s, %s, %s },"
-            % (
-                _define_name(prefix, "META", "CONTAINER_KIND", _define_name(when.get("container", "UNKNOWN"))),
-                kind_lookup[record_type],
-                kind_lookup[interpret_as],
-            )
+            f"    {{ {_define_name(prefix, 'META', 'CONTAINER_KIND', _define_name(when.get('container', 'UNKNOWN')))}, "
+            f"{kind_lookup[record_type]}, {kind_lookup[interpret_as]} }},"
         )
     return rows
 
@@ -220,12 +212,8 @@ def _relocation_rows(payload: dict[str, Any], prefix: str) -> list[str]:
         mode_name = _define_name(info.get("mode", "NONE")) if info.get("mode") else "NONE"
         target_record_type = str(info.get("record_type", record_type))
         rows.append(
-            "    { %s, %su, %s },"
-            % (
-                kind_lookup.get(target_record_type, _define_name(prefix, "META", "RECORD_KIND", "NONE")),
-                int(info.get("width_bytes", 0)),
-                _define_name(prefix, "META", "RELOCATION_MODE", mode_name),
-            )
+            f"    {{ {kind_lookup.get(target_record_type, _define_name(prefix, 'META', 'RECORD_KIND', 'NONE'))}, "
+            f"{int(info.get('width_bytes', 0))}u, {_define_name(prefix, 'META', 'RELOCATION_MODE', mode_name)} }},"
         )
     return rows
 
@@ -248,7 +236,7 @@ def _container_rows(payload: dict[str, Any], prefix: str) -> list[str]:
             else:
                 item_kind = _define_name(prefix, "META", "CONTAINER_ITEM_KIND", "GROUP")
                 item_id = _define_name(prefix, "META", "GROUP_KIND", _define_name(item_name))
-            rows.append("    { %s, %s, %s, %su }," % (container_id, item_kind, item_id, optional))
+            rows.append(f"    {{ {container_id}, {item_kind}, {item_id}, {optional}u }},")
     return rows
 
 
@@ -257,11 +245,8 @@ def _ext_variant_rows(payload: dict[str, Any], prefix: str) -> list[str]:
     variants = payload.get("record_types", {}).get("HUNK_EXT", {}).get("variant_selector", {}).get("variants", {})
     for ext_type_name, variant_name in variants.items():
         rows.append(
-            "    { %su, %s },"
-            % (
-                _enum_value_or_zero(payload, ext_type_name),
-                _define_name(prefix, "META", "EXT_VARIANT", _define_name(variant_name)),
-            )
+            f"    {{ {_enum_value_or_zero(payload, ext_type_name)}u, "
+            f"{_define_name(prefix, 'META', 'EXT_VARIANT', _define_name(variant_name))} }},"
         )
     return rows
 
@@ -271,12 +256,8 @@ def _ext_reference_rows(payload: dict[str, Any], prefix: str) -> list[str]:
     for ext_type_name, info in payload.get("ext_reference_kinds", {}).items():
         mode_name = _define_name(info.get("mode", "NONE")) if info.get("mode") else "NONE"
         rows.append(
-            "    { %su, %su, %s },"
-            % (
-                _enum_value_or_zero(payload, ext_type_name),
-                int(info.get("width_bytes", 0)),
-                _define_name(prefix, "META", "RELOCATION_MODE", mode_name),
-            )
+            f"    {{ {_enum_value_or_zero(payload, ext_type_name)}u, {int(info.get('width_bytes', 0))}u, "
+            f"{_define_name(prefix, 'META', 'RELOCATION_MODE', mode_name)} }},"
         )
     return rows
 
@@ -498,7 +479,7 @@ def _style_runtime_lines(lines: list[str], line_length: int = 140) -> list[str]:
             else:
                 styled.append("    " + tail.rstrip())
             continue
-        if line.startswith("const ") and "(" in line and (line.endswith(";") or line.endswith(" {")):
+        if line.startswith("const ") and "(" in line and line.endswith((";", " {")):
             head, tail = line.split("(", 1)
             suffix = ");" if line.endswith(";") else ") {"
             params = tail[: -len(suffix)]
@@ -534,15 +515,6 @@ def _write_runtime_files(path_h: Path, path_c: Path, payload: dict[str, Any], *,
     relocation_type = f"{type_prefix}RelocationKind"
     container_item_type = f"{type_prefix}ContainerItem"
     ext_variant_info_type = f"{type_prefix}ExtVariantInfo"
-    rk = lambda name: _define_name(prefix, "META", "RECORD_KIND", name)
-    rr = lambda name: _define_name(prefix, "META", "RECORD_ROLE", name)
-    sk = lambda name: _define_name(prefix, "META", "SECTION_KIND", name)
-    rm = lambda name: _define_name(prefix, "META", "RELOCATION_MODE", name)
-    ck = lambda name: _define_name(prefix, "META", "CONTAINER_KIND", name)
-    gk = lambda name: _define_name(prefix, "META", "GROUP_KIND", name)
-    cik = lambda name: _define_name(prefix, "META", "CONTAINER_ITEM_KIND", name)
-    ev = lambda name: _define_name(prefix, "META", "EXT_VARIANT", name)
-
     lines_h = [
         f"/* {header_comment} */",
         f"#ifndef {guard}",
@@ -749,27 +721,39 @@ def _platform_parser_use(item: dict[str, Any]) -> str:
     }.get(str(item.get("status", "")), "")
 
 
-def _platform_fact_rows(payload: dict[str, Any]) -> list[tuple[str, str, str, str, str]]:
-    rows: list[tuple[str, str, str, str, str]] = []
+def _platform_fact_rows(payload: dict[str, Any]) -> list[tuple[str, str, str, str, str, str, str]]:
+    rows: list[tuple[str, str, str, str, str, str, str]] = []
     for record in payload.get("records", []):
         record_id = str(record.get("id", ""))
+        platform_id = str(record.get("platform_id", ""))
+        archetype_id = str(record.get("archetype_id", ""))
         if not record_id:
             continue
-        rows.append((record_id, record_id, "record", str(record.get("fact_state", "")), ""))
+        rows.append((record_id, platform_id, archetype_id, record_id, "record", str(record.get("fact_state", "")), ""))
         for section in PLATFORM_FACT_SECTIONS:
             for item in record.get(section, []):
                 item_id = str(item.get("id", ""))
                 if not item_id:
                     continue
-                rows.append((record_id, item_id, section, str(item.get("status", "")), _platform_parser_use(item)))
+                rows.append(
+                    (
+                        record_id,
+                        platform_id,
+                        archetype_id,
+                        item_id,
+                        section,
+                        str(item.get("status", "")),
+                        _platform_parser_use(item),
+                    )
+                )
     return rows
 
 
 def _write_platform_executable_format_files(path_h: Path, path_c: Path, payload: dict[str, Any]) -> None:
     guard = "PLATFORM_EXECUTABLE_FORMATS_H"
     rows = _platform_fact_rows(payload)
-    record_ids = sorted({record_id for record_id, _item_id, section, _status, _parser_use in rows if section == "record"})
-    fact_ids = sorted({item_id for _record_id, item_id, section, _status, _parser_use in rows if section != "record"})
+    record_ids = sorted({record_id for record_id, _platform, _archetype, _item_id, section, _status, _parser_use in rows if section == "record"})
+    fact_ids = sorted({item_id for _record_id, _platform, _archetype, item_id, section, _status, _parser_use in rows if section != "record"})
 
     lines_h = [
         "/* Generated platform executable-format fact metadata. Do not edit directly. */",
@@ -780,6 +764,8 @@ def _write_platform_executable_format_files(path_h: Path, path_c: Path, payload:
         "",
         "typedef struct PlatformExecutableFormatFact {",
         "    const char *record_id;",
+        "    const char *platform_id;",
+        "    const char *archetype_id;",
         "    const char *fact_id;",
         "    const char *section;",
         "    const char *status;",
@@ -820,13 +806,13 @@ def _write_platform_executable_format_files(path_h: Path, path_c: Path, payload:
         "const PlatformExecutableFormatFact PLATFORM_EXECUTABLE_FORMAT_FACTS[] = {",
     ]
     if rows:
-        for record_id, item_id, section, status, parser_use in rows:
+        for record_id, platform_id, archetype_id, item_id, section, status, parser_use in rows:
             lines_c.append(
-                f"    {{ {_json_string(record_id)}, {_json_string(item_id)}, {_json_string(section)}, "
-                f"{_json_string(status)}, {_json_string(parser_use)} }},"
+                f"    {{ {_json_string(record_id)}, {_json_string(platform_id)}, {_json_string(archetype_id)}, "
+                f"{_json_string(item_id)}, {_json_string(section)}, {_json_string(status)}, {_json_string(parser_use)} }},"
             )
     else:
-        lines_c.append("    { NULL, NULL, NULL, NULL, NULL },")
+        lines_c.append("    { NULL, NULL, NULL, NULL, NULL, NULL, NULL },")
     lines_c.extend(
         [
             "};",

@@ -355,6 +355,25 @@ def test_018_013_generated_fact_table_excludes_citation_packet_candidate_ids() -
     assert '"macos.segment_loader.code_resources"' not in source
 
 
+def test_018_033_generated_fact_table_preserves_ownership_and_consumer_constants() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    header = (repo_root / "src" / "generated" / "platform_executable_formats.h").read_text(encoding="utf-8")
+    source = (repo_root / "src" / "generated" / "platform_executable_formats.c").read_text(encoding="utf-8")
+    mac_resource = (repo_root / "src" / "platform_macos_resource.c").read_text(encoding="utf-8")
+
+    assert "const char *platform_id;" in header
+    assert "const char *archetype_id;" in header
+    assert re.search(
+        r'\{\s*"macos\.hfs_resource_fork\.code_resources\.mpw_application",\s*"macos",\s*'
+        r'"macos\.application_code_resources",\s*"macos\.code_resource\.0\.jump_table_metadata"',
+        source,
+    )
+    assert "PLATFORM_EXECUTABLE_FORMAT_FACT_MACOS_CODE_RESOURCE_0_JUMP_TABLE_METADATA" in mac_resource
+    assert "PLATFORM_EXECUTABLE_FORMAT_FACT_MACOS_CODE_RESOURCE_BYTE_ENTRY_RULE_UNKNOWN" in mac_resource
+    assert '"macos.code_resource.0.jump_table_metadata"' not in mac_resource
+    assert '"macos.code_resource.byte_entry_rule.unknown"' not in mac_resource
+
+
 def test_018_014_015_016_research_packets_and_audit_state() -> None:
     kb = platform_executable_formats.load_kb()
     mac_record = platform_executable_formats.record_by_id(kb, "macos.hfs_resource_fork.code_resources.mpw_application")

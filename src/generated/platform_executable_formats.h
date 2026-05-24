@@ -6,6 +6,8 @@
 
 typedef struct PlatformExecutableFormatFact {
     const char *record_id;
+    const char *platform_id;
+    const char *archetype_id;
     const char *fact_id;
     const char *section;
     const char *status;
