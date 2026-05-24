@@ -132,6 +132,59 @@ artifact, verifier, and web/API paths for Amiga HUNK, Atari PRG, and Mac CODE.
 This is only enough research to avoid missing a replacement boundary. It must
 end with a concrete replacement map for 020, not a broad blocker report.
 
+Completed inventory:
+
+| Platform | Current parser/summary path | Current analysis/listing path | Current artifact/API path | 020 replacement map |
+| --- | --- | --- | --- | --- |
+| Amiga HUNK | `platform_file_inspect_path_json_alloc` parses through `platform_file_inspect_path_json` and `inspect_object_json`; 019 refs are emitted in `src/platform_file_json.c` for executable `amiga-hunk` summaries. | `source_binary.json` kind `hunk_file` resolves to `HunkFileBinarySource`; `c_backend._source_file_for_c_backend` selects backend from path; `CListingArtifact.create` calls `platform_file_facts_v2_listing_artifact_path_create`; C builds `M68kObject`, `M68kSourceAnalysisIR`, and `M68kRenderPlan`. | Server/project listing routes use `build_project_listing_artifact_profile`; upload validation uses `validate_amiga_hunk_executable_with_c_backend`; disk imports create child targets with `source_binary.json`; round-trip/verifier paths use facts_v2 direct rebuild and reproduction compare. | 020-002 defines shared ranges; 020-003 moves HUNK CODE/DATA/BSS/BSS-size refs from inspect-only JSON into that model; 020-006/020-007 make listing and analysis consume it; 020-008 may delete direct section-kind-to-listing assumptions only after HUNK listing/artifact/rebuild proof passes. |
+| Atari ST PRG | Same C inspect surface as Amiga, selected by backend `atari-st`; 019 refs are emitted in `src/platform_file_json.c`; disk/file corpus discovery uses `build_platform_file_manifest.py` to identify `.prg` entries from Atari disk manifests. | `source_binary.json` disk entries resolve through `DiskEntryBinarySource`; `_source_file_for_c_backend` extracts the entry to a temp file and chooses backend from disk path; the same facts_v2 listing artifact functions produce analysis, source text, windows, navigation, and row lookups; include dir switches to Atari Devpac includes. | Disk browser marks `atari_st_executable`; profile-set import creates Atari resource targets; reproduction code supports backend `atari-st` with Atari include dir and known relocation-target refusal handling. | 020-004 must preserve TEXT/DATA/BSS, loaded TEXT+DATA target space, and candidate/deferred relocation/basepage/symbol limits in shared ranges; 020-008 may delete Atari-specific manifest/listing assumptions only after PRG corpus, listing, and reproduction proof covers them. |
+| Classic Mac OS CODE | C path is separate: `platform_file_macos_hfs_code_summary_json_alloc` parses HFS catalog, forks, resource fork, CODE metadata, `code_segment_map`, and `selected_code`; `platform_file_macos_hfs_code_resource_bytes_alloc` extracts selected CODE bytes. Python `macos_asm_container.py` still performs additional HFS/resource inventory wrapping. | Mac listing is an adapter, not native platform import: `macos_listing_source.build_macos_code_listing_source` calls the C summary/extractor, writes selected CODE bytes to a temp `RawBinarySource`, and wraps the generic C listing artifact as backend `macos-code`; rows are post-processed to attach Mac provenance and hide Amiga section header rows. | `build_macos_project_payload`, `macos_target_artifact`, `macos_web_view`, server project payload/listing branches, and web tests consume Mac-specific payload fields: `resource_fork`, `code_segment_map`, `selected_code_segment`, candidate previews, non-CODE placeholders, and unsupported/deferred facts. | 020-005 must move C CODE layout/classification into the shared model before Python payloads consume it; 020-006 must replace the raw-binary wrapper/post-filter with shared range rendering; 020-007 must import Mac provenance/fact refs into analysis state; 020-008 may delete Python-only Mac CODE projection helpers only after web/API/artifact parity proves replacement. |
+
+Current proof commands and tests:
+
+- Cross-platform KB/parser fact gates:
+  `uv run python -m amiga_reversing.tools.platform_executable_formats validate`;
+  `uv run python -m amiga_reversing.tools.platform_executable_formats coverage --current-macos-c-backend --current-amiga-hunk --current-atari-prg`;
+  `uv run python -m pytest tests\test_platform_executable_formats.py -q`.
+- Amiga/Atari parser, listing, analysis, artifact, and reproduction coverage:
+  `uv run python -m pytest tests\test_c_backend.py -q`;
+  `uv run python -m pytest tests\test_benchmark_target.py tests\test_vasm_roundtrip.py -q`;
+  `cmd /c src\precommit.bat` for native C parser/listing, integration, manifest, and explicit checks.
+- Atari-specific evidence:
+  `uv run python -m pytest tests\test_atari_platform_kb.py -q`;
+  `src\scripts\build_platform_file_manifest.py` and `src\scripts\target_usage_manifest.py` cover Atari PRG corpus discovery.
+- Mac CODE parser/payload/artifact/web evidence:
+  `uv run python -m pytest tests\test_macos_c_backend.py tests\test_macos_project_payload.py tests\test_macos_asm_container.py tests\test_macos_web_view.py tests\test_web_app_source.py -q`;
+  `uv run python -m pytest tests\test_web_e2e_cdp.py -q` for web/API rendering when browser/CDP is enabled.
+- Required 020-001 hygiene: `git diff --check`.
+
+Superseded path candidates, deletion blocked until replacement proof:
+
+- `src/platform_file_json.c` inspect-only Amiga/Atari fact ref emission is a current compatibility surface; delete or reduce it only after shared summary JSON emits equivalent refs and 019 coverage remains green.
+- Python coverage loaders `_load_current_amiga_hunk_output` and `_load_current_atari_prg_output` should become shared-model consumers after 020-003/020-004; they must not regain section-derived fact synthesis.
+- `amiga_reversing/disasm/macos_listing_source.py` temporary `RawBinarySource` bridge and row post-filter are superseded by shared CODE ranges, but remain until Mac listing windows/source text prove parity.
+- `amiga_reversing/disasm/macos_project_payload.py`, `macos_target_artifact.py`, and `macos_web_view.py` consume Mac-specific payload shapes; each can move field-by-field to shared ranges only after tests prove candidate/deferred/non-CODE visibility.
+- Disk/file manifest import heuristics in `src/scripts/build_platform_file_manifest.py`, profile-set target import, and disk browser executable labels remain discovery surfaces; delete only after shared model appears in generated target manifests and disk browser payloads.
+
+Implementation constraints found during 020-001:
+
+- Amiga and Atari already share the C facts_v2 analysis/listing artifact pipeline; the missing piece is a shared executable range model upstream of analysis/rendering, not a new listing artifact architecture.
+- Mac CODE currently does not enter C as a native `macos-code` backend. It is summarized by C, extracted to raw bytes, then rendered through `amiga-raw` plus Python provenance wrapping. This is the highest-risk replacement boundary for 020-005/020-006.
+- `BinarySourceKind` has no Mac-specific source descriptor; Mac projects are recognized by `.project.json` origin and server/project branches. 020 must decide whether shared import introduces a Mac source descriptor or keeps project-origin import with C-owned range data.
+- Existing web/API contracts depend on Mac-specific fields (`selected_code_segment`, `code_segment_map`, non-CODE details). Shared ranges must be additive or migrated with explicit web/API tests before old fields disappear.
+- Candidate/deferred/unsupported KB states are already user-visible in Mac payloads and parser coverage; shared-model migration must preserve those states rather than normalizing everything to accepted code/data sections.
+
+Search evidence used for this inventory:
+
+- `rg "platform_file_inspect_path_json_alloc|_load_current|platform_executable_formats" amiga_reversing src tests`
+- `rg "render_plan|listing_window|source_file|artifact|round|verify|coverage|disasm" amiga_reversing src tests`
+- `rg "source_binary|manifest|imported_targets|amiga_hunk|atari|platform_file_manifest" src\scripts amiga_reversing`
+- Focused reads of `amiga_reversing/disasm/binary_source.py`, `c_backend.py`, `macos_listing_source.py`, `macos_project_payload.py`, `macos_target_artifact.py`, `macos_asm_container.py`, `src/platform_file_lib.c`, and `src/platform_file_json.c`.
+
+Next implementation issue: start `020-002-shared-executable-summary-model.md`.
+It should add the C-owned model behind at least one parser fixture, then expose
+shared ranges in inspect JSON without changing analysis/listing behavior yet.
+
 ### 020-002: Shared Executable Summary Model
 
 Add the first shared C-owned executable summary/range model and expose it
