@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import json
 import re
 import subprocess
 import sys
@@ -306,6 +307,91 @@ def test_018_008_parser_fact_reference_validator_rejects_status_and_parser_use_d
 
     assert any("does not match KB status 'candidate'" in item for item in diagnostics)
     assert any("does not match KB parser_use 'candidate_only'" in item for item in diagnostics)
+
+
+def test_018_034_parser_fact_coverage_report_classifies_current_mac_output() -> None:
+    payload = {
+        "kb_record_id": "macos.hfs_resource_fork.code_resources.mpw_application",
+        "code": {
+            "fact_id": "macos.code_resource.0.jump_table_metadata",
+            "fact_status": "validated",
+            "parser_use": "accepted_parser_output",
+            "layout_ranges": [
+                {
+                    "fact_id": "macos.code_resource.movea_stack_a0.boundary.candidate",
+                    "fact_status": "candidate",
+                    "parser_use": "candidate_only",
+                },
+                {
+                    "fact_id": "macos.segment_loader.relocation_fixups.deferred",
+                    "fact_status": "deferred",
+                    "parser_use": "deferred_only",
+                },
+            ],
+        },
+    }
+
+    report = platform_executable_formats.build_parser_fact_coverage_report([payload], labels=["mac_fixture"])
+
+    assert report["summary"] == {
+        "parser_outputs": 1,
+        "emitted_fact_refs": 3,
+        "accepted": 1,
+        "candidate": 1,
+        "deferred": 1,
+        "unsupported": 0,
+        "invalid": 0,
+    }
+    assert report["invalid_fact_refs"] == []
+    assert {"amiga", "atari_st"} <= set(report["unreported_platforms"])
+    assert report["generated_fact_table"]["source"] == "knowledge/platform_executable_formats.json"
+
+
+def test_018_034_parser_fact_coverage_fails_closed_on_invalid_accepted_claims() -> None:
+    payload = {
+        "kb_record_id": "macos.hfs_resource_fork.code_resources.mpw_application",
+        "claims": [
+            {
+                "fact_id": "macos.code_resource.movea_stack_a0.boundary.candidate",
+                "fact_status": "candidate",
+                "parser_use": "accepted_parser_output",
+            },
+            {
+                "fact_id": "macos.missing.accepted",
+                "fact_status": "validated",
+                "parser_use": "accepted_parser_output",
+            },
+        ],
+    }
+
+    report = platform_executable_formats.build_parser_fact_coverage_report([payload])
+
+    reasons = {item["reason"] for item in report["invalid_fact_refs"]}
+    assert report["summary"]["invalid"] == 2
+    assert "parser_use_mismatch" in reasons
+    assert "unknown_fact_id" in reasons
+
+
+def test_018_034_coverage_cli_reports_json_and_returns_failure_for_invalid(tmp_path: Path, capsys) -> None:
+    payload_path = tmp_path / "parser-output.json"
+    payload_path.write_text(
+        json.dumps(
+            {
+                "kb_record_id": "macos.hfs_resource_fork.code_resources.mpw_application",
+                "fact_id": "macos.code_resource.movea_stack_a0.boundary.candidate",
+                "fact_status": "candidate",
+                "parser_use": "accepted_parser_output",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    exit_code = platform_executable_formats.main(["coverage", "--parser-output", str(payload_path)])
+    output = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 1
+    assert output["summary"]["invalid"] == 1
+    assert output["invalid_fact_refs"][0]["reason"] == "parser_use_mismatch"
 
 
 def test_018_008_c_macos_fact_constants_resolve_to_kb_record_items() -> None:

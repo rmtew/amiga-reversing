@@ -671,6 +671,13 @@ insufficient. Do not broaden non-CODE decoding or affect CODE behavior.
   now uses generated fact-id constants for CODE range fact refs; emitted
   behavior remains unchanged and freshness tests guard against generated-table
   drift.
+- 018-034 added a parser fact coverage report to
+  `amiga_reversing.tools.platform_executable_formats`. The `coverage` command
+  classifies emitted parser fact refs as accepted, candidate, deferred,
+  unsupported, or invalid, fails closed on invalid accepted claims, and reports
+  unreported records/platforms. Current Mac C backend output is covered; Amiga
+  and Atari parser-output fact refs remain visible as unreported until those
+  parsers emit KB fact metadata.
 - 018-036 completed the Mac closeout research pass without promoting facts.
   The research rechecked committed Inside Macintosh markdown, MPW manuals,
   MPW-GM tool/source inventories, the executable-format KB, Proposal 012, and

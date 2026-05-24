@@ -138,6 +138,11 @@ def test_python_wrapper_uses_c_macos_hfs_code_summary() -> None:
     image = _make_hfs_image()
     summary = inspect_macos_hfs_code_summary_with_c_backend(image, "MPW-GM/Tools/Asm")
     assert platform_executable_formats.validate_parser_fact_references(summary) == []
+    coverage = platform_executable_formats.build_parser_fact_coverage_report([summary], labels=["macos_c_backend"])
+    assert coverage["summary"]["invalid"] == 0
+    assert coverage["summary"]["accepted"] >= 4
+    assert coverage["summary"]["candidate"] >= 3
+    assert coverage["summary"]["deferred"] >= 1
     assert summary["platform"] == "macos"
     assert summary["container_kind"] == "hfs_resource_code_file"
     assert summary["volume"]["name"] == "MPW-GM"

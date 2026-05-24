@@ -156,6 +156,72 @@ def validate_parser_fact_references(payload: object, kb: Mapping[str, Any] | Non
     return diagnostics
 
 
+def build_parser_fact_coverage_report(
+    payloads: Sequence[object],
+    kb: Mapping[str, Any] | None = None,
+    *,
+    labels: Sequence[str] | None = None,
+) -> dict[str, Any]:
+    knowledge = load_kb() if kb is None else kb
+    emitted: list[dict[str, Any]] = []
+    invalid: list[dict[str, Any]] = []
+    emitted_record_ids: set[str] = set()
+    counts = {"accepted": 0, "candidate": 0, "deferred": 0, "unsupported": 0, "invalid": 0}
+
+    for payload_index, payload in enumerate(payloads):
+        label = labels[payload_index] if labels is not None and payload_index < len(labels) else f"parser_output[{payload_index}]"
+        for ref in _collect_parser_fact_refs(payload, inherited_record_id=None, path="$"):
+            item = _classify_parser_fact_ref(ref, knowledge)
+            item["source"] = label
+            if item["record_id"]:
+                emitted_record_ids.add(item["record_id"])
+            emitted.append(item)
+            classification = _string(item.get("classification"))
+            if classification in counts:
+                counts[classification] += 1
+            if classification == "invalid":
+                invalid.append(item)
+
+    all_records = [_mapping(record) for record in _sequence(knowledge.get("records"))]
+    unreported_records = [
+        {
+            "record_id": _string(record.get("id")),
+            "platform_id": _string(record.get("platform_id")),
+            "archetype_id": _string(record.get("archetype_id")),
+        }
+        for record in all_records
+        if _string(record.get("id")) not in emitted_record_ids
+    ]
+    emitted_platform_ids = {
+        _string(record.get("platform_id"))
+        for record in all_records
+        if _string(record.get("id")) in emitted_record_ids
+    }
+    all_platform_ids = sorted({_string(record.get("platform_id")) for record in all_records if _string(record.get("platform_id"))})
+    unreported_platforms = [platform_id for platform_id in all_platform_ids if platform_id not in emitted_platform_ids]
+
+    return {
+        "summary": {
+            "parser_outputs": len(payloads),
+            "emitted_fact_refs": len(emitted),
+            "accepted": counts["accepted"],
+            "candidate": counts["candidate"],
+            "deferred": counts["deferred"],
+            "unsupported": counts["unsupported"],
+            "invalid": counts["invalid"],
+        },
+        "emitted_fact_refs": emitted,
+        "invalid_fact_refs": invalid,
+        "unreported_records": unreported_records,
+        "unreported_platforms": unreported_platforms,
+        "generated_fact_table": {
+            "source": "knowledge/platform_executable_formats.json",
+            "record_count": len(all_records),
+            "fact_ref_count": sum(1 for record in all_records for _item in _iter_record_items(record)),
+        },
+    }
+
+
 def build_guardrail_report(kb: Mapping[str, Any]) -> dict[str, Any]:
     records: list[dict[str, Any]] = []
     for record_value in _sequence(kb.get("records")):
@@ -199,9 +265,10 @@ def build_guardrail_report(kb: Mapping[str, Any]) -> dict[str, Any]:
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Validate platform executable-format KB files.")
-    parser.add_argument("command", nargs="?", choices=("validate", "guardrails"), default="validate")
+    parser.add_argument("command", nargs="?", choices=("validate", "guardrails", "coverage"), default="validate")
     parser.add_argument("--kb", type=Path, default=KB_PATH)
     parser.add_argument("--schema", type=Path, default=SCHEMA_PATH)
+    parser.add_argument("--parser-output", action="append", type=Path, default=[])
     args = parser.parse_args(list(argv) if argv is not None else None)
 
     kb = load_kb(args.kb)
@@ -212,6 +279,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 1
     if args.command == "guardrails":
         print(json.dumps(build_guardrail_report(kb), indent=2))
+    if args.command == "coverage":
+        payloads = [_load_json(path) for path in args.parser_output]
+        report = build_parser_fact_coverage_report(payloads, kb, labels=[str(path) for path in args.parser_output])
+        print(json.dumps(report, indent=2, sort_keys=True))
+        if report["summary"]["invalid"]:
+            return 1
     return 0
 
 
@@ -289,6 +362,95 @@ def _iter_record_items(record: Mapping[str, Any]) -> list[Mapping[str, Any]]:
     for section in REVIEW_SECTIONS:
         items.extend(_mapping(item) for item in _sequence(record.get(section)))
     return items
+
+
+def _collect_parser_fact_refs(
+    value: object,
+    *,
+    inherited_record_id: str | None,
+    path: str,
+) -> list[dict[str, str]]:
+    refs: list[dict[str, str]] = []
+    if isinstance(value, Mapping):
+        node = _mapping(value)
+        record_id = _string(node.get("kb_record_id")) or inherited_record_id
+        if any(key in node for key in ("fact_id", "fact_status", "parser_use")):
+            refs.append(
+                {
+                    "path": path,
+                    "record_id": record_id or "",
+                    "fact_id": _string(node.get("fact_id")),
+                    "fact_status": _string(node.get("fact_status")),
+                    "parser_use": _string(node.get("parser_use")),
+                }
+            )
+        for key, child in node.items():
+            refs.extend(_collect_parser_fact_refs(child, inherited_record_id=record_id, path=f"{path}.{key}"))
+    elif isinstance(value, Sequence) and not isinstance(value, str):
+        for index, child in enumerate(value):
+            refs.extend(
+                _collect_parser_fact_refs(child, inherited_record_id=inherited_record_id, path=f"{path}[{index}]")
+            )
+    return refs
+
+
+def _classify_parser_fact_ref(ref: Mapping[str, str], kb: Mapping[str, Any]) -> dict[str, Any]:
+    record_id = _string(ref.get("record_id"))
+    fact_id = _string(ref.get("fact_id"))
+    emitted_status = _string(ref.get("fact_status"))
+    emitted_parser_use = _string(ref.get("parser_use"))
+    output: dict[str, Any] = {
+        "path": _string(ref.get("path")),
+        "record_id": record_id,
+        "fact_id": fact_id,
+        "emitted_status": emitted_status,
+        "emitted_parser_use": emitted_parser_use,
+        "classification": "invalid",
+        "reason": "",
+    }
+    if not record_id:
+        output["reason"] = "missing_kb_record_id"
+        return output
+    if not fact_id:
+        output["reason"] = "missing_fact_id"
+        return output
+    try:
+        record = record_by_id(kb, record_id)
+    except KeyError:
+        output["reason"] = "unknown_kb_record_id"
+        return output
+    try:
+        item = record_item_by_id(record, fact_id)
+    except KeyError:
+        output["reason"] = "unknown_fact_id"
+        return output
+
+    kb_status = _string(item.get("status") or record.get("fact_state"))
+    kb_parser_use = _string(item.get("parser_use")) or STATUS_DEFAULT_PARSER_USE.get(kb_status, "")
+    output["kb_status"] = kb_status
+    output["kb_parser_use"] = kb_parser_use
+    if emitted_status and emitted_status != kb_status:
+        output["reason"] = "status_mismatch"
+        return output
+    if emitted_parser_use and emitted_parser_use != kb_parser_use:
+        output["reason"] = "parser_use_mismatch"
+        return output
+    if emitted_parser_use == "accepted_parser_output" and kb_parser_use != "accepted_parser_output":
+        output["reason"] = "accepted_claim_not_authorized"
+        return output
+    if kb_parser_use == "accepted_parser_output":
+        output["classification"] = "accepted"
+    elif kb_status == "candidate":
+        output["classification"] = "candidate"
+    elif kb_status == "deferred":
+        output["classification"] = "deferred"
+    elif kb_status == "unsupported":
+        output["classification"] = "unsupported"
+    else:
+        output["reason"] = "unknown_kb_status"
+        return output
+    output["reason"] = ""
+    return output
 
 
 def _validate_parser_fact_node(

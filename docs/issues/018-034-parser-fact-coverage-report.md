@@ -1,6 +1,6 @@
 # 018-034: Parser Fact Coverage Report
 
-Status: active
+Status: completed
 
 ## Proposal Context
 
@@ -22,6 +22,21 @@ The report should answer:
   accepted authority;
 - which emitted facts are missing from the KB or have invalid parser-use state;
 - which platform/parser areas are unreported.
+
+Completed report surface:
+
+- `amiga_reversing.tools.platform_executable_formats coverage` reads one or more
+  JSON parser-output files via `--parser-output` and emits a JSON report.
+- The report classifies every emitted `kb_record_id`/`fact_id`/`fact_status`/
+  `parser_use` mapping as `accepted`, `candidate`, `deferred`, `unsupported`, or
+  `invalid`.
+- The CLI returns failure when invalid mappings are present, including unknown
+  fact ids and candidate/deferred facts claimed as accepted parser output.
+- The report lists unreported records/platforms so Amiga and Atari remain
+  visible as absent parser-output coverage rather than silently treated as
+  covered.
+- Current Mac C backend summary output is covered in tests with accepted,
+  candidate, and deferred fact refs.
 
 ## Default Behavior
 
@@ -54,22 +69,33 @@ search and doing a second-pass review for missed emitted fact ids.
 
 ## Research Coverage
 
-- [ ] Mac parser fact producers checked.
-- [ ] Amiga parser fact producers checked or explicitly recorded as absent.
-- [ ] Atari parser fact producers checked or explicitly recorded as absent.
-- [ ] Platform executable KB facts checked through generated table.
-- [ ] Second-pass search for emitted fact id strings completed.
+- [x] Mac parser fact producers checked.
+- [x] Amiga parser fact producers checked or explicitly recorded as absent.
+- [x] Atari parser fact producers checked or explicitly recorded as absent.
+- [x] Platform executable KB facts checked through generated table.
+- [x] Second-pass search for emitted fact id strings completed.
 
 ## Research Review
 
-- [ ] Coverage report distinguishes accepted from candidate/deferred output.
-- [ ] Invalid fact ids fail tests or produce explicit blockers.
-- [ ] Report does not mutate target state or generated source.
-- [ ] Proposal 018 records remaining coverage gaps.
+- [x] Coverage report distinguishes accepted from candidate/deferred output.
+- [x] Invalid fact ids fail tests or produce explicit blockers.
+- [x] Report does not mutate target state or generated source.
+- [x] Proposal 018 records remaining coverage gaps.
 
 ## Required Sign-Off
 
-- [ ] Coverage command/report test passes.
-- [ ] Platform executable format tests pass.
-- [ ] Relevant parser/listing tests pass.
+- [x] Coverage command/report test passes.
+- [x] Platform executable format tests pass.
+- [x] Relevant parser/listing tests pass.
 
+## Completion Evidence
+
+- `uv run python -m amiga_reversing.tools.platform_executable_formats coverage`
+  emitted a no-payload report listing all records/platforms as unreported with
+  zero invalid refs.
+- `uv run python -m pytest tests/test_platform_executable_formats.py -q`
+  passed.
+- `uv run python -m pytest tests/test_macos_c_backend.py -q` passed.
+- `uv run ruff check amiga_reversing/tools/platform_executable_formats.py
+  tests/test_platform_executable_formats.py tests/test_macos_c_backend.py`
+  passed.
