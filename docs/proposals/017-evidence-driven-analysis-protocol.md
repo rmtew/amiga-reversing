@@ -774,14 +774,14 @@ issues from current evidence rather than resume deleted historical issue files.
 Use this order:
 
 1. keep `017-006` deferred unless a measured slow phase blocks active 017 work;
-2. create a callback/orphan-code review-item unblocker from the 017-055
-   discovery findings;
-3. create a source-offset immediate provenance unblocker for one exact
-   source-offset-looking candidate;
-4. create an A5 path/lifetime blocker-reduction issue for a narrow unknown-use
-   family;
-5. create an RSSET accepted-base-evidence discovery issue for one candidate or
-   small candidate family;
+2. complete `017-056`, the callback/orphan-code review-item unblocker from the
+   017-055 discovery findings;
+3. complete `017-057`, the source-offset immediate provenance unblocker for one
+   exact source-offset-looking candidate;
+4. complete `017-058`, the A5 path/lifetime blocker-reduction issue for a
+   narrow unknown-use family;
+5. complete `017-059`, the RSSET accepted-base-evidence discovery issue for one
+   candidate or small candidate family;
 6. only after one lane has durable evidence and verifier support, create a
    mutation issue with command gating, semantic reload, generated-source
    verification, negative safety, and exact round-trip.
