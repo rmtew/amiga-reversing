@@ -1,9 +1,11 @@
 # Proposal 019: Platform Executable KB Parser Consumption
 
-Status: completed. Proposal 018 is complete as the executable-format KB
-authority; Proposal 019 implemented current-output coverage hooks that make Mac
-OS, Amiga HUNK, and Atari ST PRG parser summaries emit and validate executable
-format KB fact refs without reopening 018 or promoting non-accepted facts.
+Status: active. Proposal 018 is complete as the executable-format KB authority;
+Proposal 019 has current-output coverage hooks for Mac OS, Amiga HUNK, and
+Atari ST PRG, but review found the Amiga/Atari KB refs are still synthesized by
+the coverage wrapper rather than emitted by the parser-owned summary surface.
+The remaining work is to make parser output itself carry the executable-format
+KB refs.
 
 ## Purpose
 
@@ -72,7 +74,9 @@ Expected result:
 The combined current-output gate now leaves no platform unreported. The only
 remaining unreported record is the old Mac report-only thin proof; the current
 Mac parser hook reports the accepted MPW application record. Amiga and Atari
-current hooks report their accepted first-slice records directly.
+current hooks currently prove parser execution plus wrapper validation, but
+they must be tightened so the raw parser/import summaries carry the fact refs
+before coverage sees them.
 
 ## Consumption Contract
 
@@ -187,6 +191,37 @@ reports three current parser outputs, `invalid: 0`, no unreported platforms,
 and validated Amiga/Atari record refs. Candidate/deferred Mac, Amiga, and Atari
 facts remain candidate/deferred in coverage output.
 
+### 019-004: Parser-Owned Amiga/Atari KB Fact Refs
+
+Move the Amiga HUNK and Atari ST PRG fact refs out of the coverage wrapper and
+into the parser-owned summary surface consumed by coverage. The current
+implementation runs the C parser paths, then `platform_executable_formats.py`
+adds `fact_refs` based on the parsed section summary. That is useful proof of
+parser reachability, but it is not the intended consumption contract.
+
+The corrected shape is:
+
+```text
+platform_file_inspect_path_json_alloc
+  -> parser/import summary containing kb_record_id/fact_id/fact_status/parser_use
+  -> coverage labels source and validates refs without inventing them
+```
+
+Completion requires tests that inspect the raw Amiga and Atari parser summaries
+before coverage wrapping and fail if those summaries contain no KB refs. The
+coverage command may add source labels and aggregate results, but it must not
+construct Amiga/Atari executable-format fact refs from section kinds itself.
+
+## Review Finding
+
+- Review of commit `43555c72` found that `coverage --current-amiga-hunk` and
+  `coverage --current-atari-prg` run real C parser inspection, but
+  `_load_current_amiga_hunk_output()` and `_load_current_atari_prg_output()`
+  synthesize `fact_refs` after parsing. The C parser summaries themselves do
+  not yet emit `kb_record_id`, `fact_id`, `fact_status`, or `parser_use`.
+- This keeps Proposal 019 active until 019-004 makes the raw parser-owned
+  summaries self-describing and coverage consumes those refs unchanged.
+
 ## Closeout Record
 
 - 019-001 implemented the real Amiga HUNK current-output coverage hook.
@@ -195,6 +230,8 @@ facts remain candidate/deferred in coverage output.
   closeout gate.
 - Completed issue files `019-001`, `019-002`, and `019-003` were deleted only
   after this proposal recorded their durable conclusions.
+- 019-004 is active after review found that Amiga/Atari refs are wrapper-owned,
+  not parser-owned.
 
 ## Acceptance Criteria
 
@@ -208,6 +245,8 @@ facts remain candidate/deferred in coverage output.
 - `coverage` reports `invalid: 0` for current outputs and fails closed for
   invalid accepted claims.
 - Tests cover the parser output path, not only handcrafted coverage payloads.
+- Tests assert raw Amiga and Atari parser/import summaries contain KB refs
+  before coverage wrapping.
 - Tests fail if either Amiga or Atari current-output coverage becomes an empty
   placeholder.
 - Proposal 018 remains closed; any new evidence work becomes a separate future
