@@ -56,6 +56,29 @@ review is the ambiguity-resolution layer of that protocol, not a separate UI or
 manual-tooling feature. The five concrete candidate families below are starter
 aspects used to prove the protocol against real Pandora work.
 
+## Current Active State
+
+Completed `017-*` issue files have been removed from `docs/issues`; their
+details remain available in git history and this proposal's historical notes.
+The only remaining local `017-*` issue is `017-006`, which is a conditional
+performance sentinel. It is not active work unless a measured 017 Pandora loop
+phase crosses its investigation threshold.
+
+No source-converging 017 mutation is currently ready. Current Pandora discovery
+surfaces report useful evidence, but they remain blocked or read-only:
+
+- callback-slot discovery found concrete missed-code-target assignments, but
+  they are blocked by missing or unsuitable orphan/code review items;
+- source-offset immediate candidates remain report-only;
+- A5 unknown uses remain path-proof-blocked;
+- RSSET candidates remain blocked by missing accepted base evidence;
+- the known orphan/data-range packet remains deferred/read-only.
+
+Until a new issue records durable evidence, command support, verifier support,
+exact round-trip, and a visible source-quality improvement, 017 work must stay
+read-only or documentation/planning-only. Do not use 017 work to touch Proposal
+012/018, Mac OS files, platform executable format KB/docs, or Mac targets.
+
 ## Working Specification
 
 This proposal is the master working specification for this area. New 017 work
@@ -617,9 +640,11 @@ unexpected blockers, and out-of-scope follow-ups discovered by the work.
 
 ## Historical Issues
 
-These issues document the completed post-hardening pass and reopened verifier
-hardening. The next active `017-*` issues should be written from the Evidence
-Review Protocol order above.
+These completed issue files were deleted from `docs/issues` after completion.
+They are retained here as a historical index and remain recoverable from git
+history. Do not treat them as active worker assignments. New `017-*` issues
+should be created only from the current active state and the Evidence-Driven
+Analysis Protocol model above.
 
 1. `017-001`: post-hardening baseline and candidate queue.
 2. `017-002`: immediate runtime-reference triage and promotion path.
@@ -742,40 +767,29 @@ work.
 
 ## Recommended Order
 
-Begin with `017-031`: a research and architecture inventory issue. It must map
-the current analysis stack, double-check coverage, update this proposal with
-rewrite-scope findings, and recommend the first implementation slice. Default
-behavior must remain unchanged.
+The completed 017 issue sequence reached a paused state, not a finished
+protocol. The next useful work is to create new, non-overlapping unblocker
+issues from current evidence rather than resume deleted historical issue files.
 
-After that research issue, turn the five starter aspects into the next
-`docs/issues/017-*` sequence, with the Evidence-Driven Analysis Protocol as
-the shared implementation target. Each issue should name the protocol primitive
-it advances and the Pandora demonstration it will use.
+Use this order:
 
-Use this order unless implementation evidence forces a better one:
+1. keep `017-006` deferred unless a measured slow phase blocks active 017 work;
+2. create a callback/orphan-code review-item unblocker from the 017-055
+   discovery findings;
+3. create a source-offset immediate provenance unblocker for one exact
+   source-offset-looking candidate;
+4. create an A5 path/lifetime blocker-reduction issue for a narrow unknown-use
+   family;
+5. create an RSSET accepted-base-evidence discovery issue for one candidate or
+   small candidate family;
+6. only after one lane has durable evidence and verifier support, create a
+   mutation issue with command gating, semantic reload, generated-source
+   verification, negative safety, and exact round-trip.
 
-1. complete the research inventory and proposal correction pass;
-2. define the shared evidence packet, selected identity, blockers/conflicts,
-   and decision result schema;
-3. wire one read-only Pandora report through that packet shape;
-4. add accepted/deferred/rejected Decision Journal records for that packet;
-5. gate one mutation command from accepted protocol evidence;
-6. add verifier layers for Decision Journal replay, semantic reload, rendered-source
-   effect, negative safety, and exact round-trip;
-7. repeat the same protocol shape across the remaining starter aspects.
-
-The current parallel queue after the RSSET/app-base slice is:
-
-- `017-041`: source-offset immediate provenance packet;
-- `017-042`: A5 path/lifetime protocol packet refresh;
-- `017-043`: Decision evidence diff/replay audit;
-- `017-044`: orphan/code-island evidence packet;
-- `017-045`: protocol issue sign-off enforcement.
-
-Prefer the first starter aspect that can demonstrate the whole chain with the
-least speculative policy. If no mutation is safe, complete the read-only
-packet, blocker, and defer/reject path, then move to the next starter aspect.
-Use `017-006` only when a measured slow phase blocks normal protocol work.
+Each new issue must explicitly state that 012/018, Mac OS support, platform
+executable format knowledge, and Mac targets are out of scope. If an issue can
+only make progress by touching those areas, stop and record the blocker instead
+of working around it.
 
 ## Acceptance Criteria
 

@@ -2,6 +2,12 @@ Status: deferred
 Type: AFK
 Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
+Current state:
+This is the only remaining local `017-*` issue after completed 017 issue files
+were deleted from `docs/issues`. It is a conditional sentinel, not an active
+worker assignment. Do not pick it up unless a current 017 Pandora task produces
+a measured slow phase that meets the trigger below.
+
 Scope:
 Fix only measured loop-performance bottlenecks encountered during active
 Pandora work.
@@ -29,6 +35,19 @@ Acceptance:
 
 Blocked by:
 - A measured slow phase from 017 work.
+
+Trigger:
+- A current 017 Pandora command, report, verifier, semantic reload, C rebuild,
+  listing projection, or exact round-trip phase repeatedly exceeds 30 seconds;
+  or
+- a shorter repeated phase is the dominant blocker to interactive 017 protocol
+  work and has wall-clock/profile evidence.
+
+Out of scope:
+- speculative optimization;
+- cleanup unrelated to a measured 017 bottleneck;
+- Proposal 012/018 work;
+- Mac OS/platform executable format docs, KB, targets, or parser work.
 
 Implementation notes:
 - No measured slow phase blocked the active 017 Pandora work.
