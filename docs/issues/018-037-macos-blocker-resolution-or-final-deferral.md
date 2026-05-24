@@ -1,6 +1,6 @@
 # 018-037: MacOS Blocker Resolution or Final Deferral
 
-Status: active
+Status: completed
 
 ## Proposal Context
 
@@ -22,6 +22,15 @@ For each Mac blocker from 018-036:
   parser authority if they remain unresolved.
 
 The expected useful outcome may be a formal deferral, not an implementation.
+
+Completed 018-037 result:
+
+| 018-036 blocker | KB state after this issue | Parser/report behavior |
+| --- | --- | --- |
+| Nonzero CODE byte-entry rule / `movea.l (a7)+,a0` | `macos.code_resource.byte_entry_rule.unknown` remains `deferred` with `final_resolution=formal_deferred`; `macos.code_resource.movea_stack_a0.boundary.candidate` remains `candidate_only`. | Unchanged. Accepted closeout remains blocked until a cited or parser-asserted byte-entry rule exists and parser output validates against it. |
+| Classic 68K CODE relocation/fixup record format | `macos.segment_loader.relocation_fixups.deferred` records the missing on-disk record location, byte encoding, affected payload offsets, Segment Loader application rules, and relocated-byte fixture. | Unchanged. Parser/report output may emit placeholders only; no accepted relocation interpretation is authorized. |
+| Source-to-CODE fixture proof | `macos.source_to_code.fixture_product.deferred` records that a candidate source fixture's own built product must be captured or reproduced before source-to-CODE mapping. | Unchanged. Current Sample source must not be mapped to MPW/Tools/Asm CODE resources. |
+| Non-CODE resource payload semantics | `macos.resource_fork.curs.layout.accepted` remains type-level accepted; `macos.resource_fork.curs.payload_decode.unsupported` records payload decoding as unsupported; `acur`, `cmdo`, and `vers` remain candidate inventory. | Unchanged. Resource rows may expose accepted type-level CURS semantics only, not decoded payload fields. |
 
 ## Default Behavior
 
@@ -55,27 +64,38 @@ or explicitly unchanged for a recorded reason.
 
 ## Research Coverage
 
-- [ ] 018-036 evidence packets checked before edits.
-- [ ] KB state updated or explicitly confirmed for every Mac blocker.
-- [ ] Parser-use authority reviewed for every changed fact.
-- [ ] Proposal 012 downstream blocker wording reviewed.
-- [ ] Second-pass review checked for accidental candidate-to-accepted leakage.
+- [x] 018-036 evidence packets checked before edits.
+- [x] KB state updated or explicitly confirmed for every Mac blocker.
+- [x] Parser-use authority reviewed for every changed fact.
+- [x] Proposal 012 downstream blocker wording reviewed.
+- [x] Second-pass review checked for accidental candidate-to-accepted leakage.
 
 ## Research Review
 
-- [ ] Byte-entry status is accepted/parser-asserted only with evidence, otherwise
+- [x] Byte-entry status is accepted/parser-asserted only with evidence, otherwise
   formally deferred.
-- [ ] Relocation/fixup status is accepted/parser-asserted only with evidence,
+- [x] Relocation/fixup status is accepted/parser-asserted only with evidence,
   otherwise formally deferred.
-- [ ] Source-to-CODE fixture state is recorded without mixing MPW/Tools/Asm with
+- [x] Source-to-CODE fixture state is recorded without mixing MPW/Tools/Asm with
   unrelated source examples.
-- [ ] Non-CODE payload semantics do not broaden beyond cited facts.
-- [ ] Tests enforce the resulting fact-state boundaries.
+- [x] Non-CODE payload semantics do not broaden beyond cited facts.
+- [x] Tests enforce the resulting fact-state boundaries.
 
 ## Required Sign-Off
 
-- [ ] Platform executable KB validation passes.
-- [ ] Platform executable format tests pass.
-- [ ] Relevant Mac parser/listing tests pass if parser/report files changed.
-- [ ] Proposal 018 and Proposal 012 record the final downstream state.
+- [x] Platform executable KB validation passes.
+- [x] Platform executable format tests pass.
+- [x] Relevant Mac parser/listing tests pass if parser/report files changed.
+- [x] Proposal 018 and Proposal 012 record the final downstream state.
 
+## Completion Evidence
+
+- `uv run python -m amiga_reversing.tools.platform_executable_formats validate`
+  passed.
+- `uv run python src/scripts/generate_platform_format_runtime.py` refreshed the
+  generated fact table from `knowledge/platform_executable_formats.json`.
+- `uv run python -m pytest tests/test_platform_executable_formats.py -q`
+  passed.
+- `uv run python -m pytest tests/test_validate_018_issues.py -q` passed.
+- `git diff --check` reported only existing CRLF whitespace warnings and no
+  new whitespace errors.

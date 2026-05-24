@@ -675,6 +675,15 @@ insufficient. Do not broaden non-CODE decoding or affect CODE behavior.
   reproduced. Non-CODE semantics remain limited to type-level `CURS`; CURS
   payload decoding is unsupported and `acur`, `cmdo`, and `vers` remain
   candidate inventory.
+- 018-037 converted the 018-036 Mac research into durable KB state without
+  broadening parser behavior. `macos.code_resource.byte_entry_rule.unknown` is
+  formally deferred and continues to block accepted byte-entry closeout;
+  `macos.segment_loader.relocation_fixups.deferred` records the missing classic
+  CODE fixup record location, encoding, affected offsets, Segment Loader
+  application rules, and relocated-byte fixture; source-to-CODE mapping is
+  deferred until the candidate fixture's own built product is captured or
+  reproduced; and CURS payload decoding is explicitly unsupported while
+  type-level `CURS` remains the only accepted non-CODE semantic slice.
 
 ## Relationship To 012
 
@@ -709,6 +718,11 @@ PEF/CFM structures do not authorize classic 68K CODE fixup parsing.
 keeping the current MPW/Tools/Asm boundary safe.
 018-029 accepts only type-level `CURS` resource semantics; it does not broaden
 non-CODE decoding or affect CODE behavior.
+018-037 makes those Mac blockers explicit KB records rather than loose proposal
+notes: unresolved byte-entry and relocation/fixup facts are deferred, not
+accepted; source-to-CODE proof is deferred until fixture/product evidence
+exists; and non-CODE payload decoding remains unsupported unless a later
+resource-specific slice accepts it.
 
 018 sits above 011 and 012 as the shared executable/container format authority.
 It does not absorb all platform knowledge; it owns file structure, loader model,

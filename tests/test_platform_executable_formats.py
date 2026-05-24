@@ -252,6 +252,33 @@ def test_018_032_atari_prg_reference_slice_is_parser_asserted_and_kb_backed() ->
     assert deferred["status"] == "deferred"
 
 
+def test_018_037_macos_blockers_are_formally_deferred_or_unsupported() -> None:
+    kb = platform_executable_formats.load_kb()
+    record = platform_executable_formats.record_by_id(kb, "macos.hfs_resource_fork.code_resources.mpw_application")
+    byte_entry = platform_executable_formats.record_item_by_id(record, "macos.code_resource.byte_entry_rule.unknown")
+    relocation = platform_executable_formats.record_item_by_id(record, "macos.segment_loader.relocation_fixups.deferred")
+    source_map = platform_executable_formats.record_item_by_id(record, "macos.source_to_code.fixture_product.deferred")
+    curs_payload = platform_executable_formats.record_item_by_id(record, "macos.resource_fork.curs.payload_decode.unsupported")
+    movea = platform_executable_formats.record_item_by_id(record, "macos.code_resource.movea_stack_a0.boundary.candidate")
+
+    assert byte_entry["status"] == "deferred"
+    assert byte_entry["required_parser_behavior"] == "block_closeout"
+    assert byte_entry["details"]["final_resolution"] == "formal_deferred"
+    assert byte_entry["details"]["candidate_fact_id"] == movea["id"]
+    assert relocation["status"] == "deferred"
+    assert relocation["parser_use"] == "deferred_only"
+    assert relocation["details"]["final_resolution"] == "formal_deferred"
+    assert "classic_CODE_fixup_record_location" in relocation["details"]["missing_evidence"]
+    assert source_map["status"] == "deferred"
+    assert source_map["required_parser_behavior"] == "block_closeout"
+    assert source_map["details"]["must_not_map_to_observed_product"] == "MPW/Tools/Asm"
+    assert curs_payload["status"] == "unsupported"
+    assert curs_payload["required_parser_behavior"] == "ignore_safely"
+    assert curs_payload["details"]["accepted_type_level_fact_id"] == "macos.resource_fork.curs.layout.accepted"
+    assert movea["status"] == "candidate"
+    assert movea["parser_use"] == "candidate_only"
+
+
 def test_018_008_parser_fact_reference_validator_rejects_citation_packet_candidate_ids() -> None:
     kb = platform_executable_formats.load_kb()
     payload = {

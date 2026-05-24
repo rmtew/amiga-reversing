@@ -720,7 +720,7 @@
         {
           "id": "macos.segment_loader.relocation_fixups.deferred",
           "status": "deferred",
-          "summary": "Relocation/fixup semantics are required for complete CODE interpretation but remain deferred.",
+          "summary": "Relocation/fixup semantics are required for complete CODE interpretation, but 018-036 found no accepted classic 68K CODE on-disk fixup record location, encoding, affected-offset, or Segment Loader application rule.",
           "source_type": "project_observed",
           "citations": [
             {
@@ -728,12 +728,30 @@
               "source_type": "project_observed",
               "target": "docs/proposals/012-classic-mac-os-m68k-platform.md future scope",
               "context": "018-002 packet macos.packet.segment_relocation_fixups.deferred."
+            },
+            {
+              "source_id": "proposal-018",
+              "source_type": "project_observed",
+              "target": "docs/issues/018-036-macos-executable-kb-closeout-research.md",
+              "context": "018-036 rechecked committed Inside Macintosh, MPW manuals, MPW-GM inventories, KB records, Proposal 012, and parser/report surfaces without finding accepted classic CODE fixup format evidence."
             }
           ],
           "parser_use": "deferred_only",
           "required_parser_behavior": "emit_placeholder",
           "details": {
-            "citation_packet_id": "macos.packet.segment_relocation_fixups.deferred"
+            "citation_packet_id": "macos.packet.segment_relocation_fixups.deferred",
+            "final_resolution": "formal_deferred",
+            "missing_evidence": [
+              "classic_CODE_fixup_record_location",
+              "classic_CODE_fixup_byte_encoding",
+              "affected_payload_offsets",
+              "Segment_Loader_application_rules",
+              "fixture_with_expected_relocated_bytes"
+            ],
+            "non_evidence": [
+              "runtime_heap_or_block_relocation_context",
+              "later_PEF_or_CFM_relocation_material"
+            ]
           }
         }
       ],
@@ -1107,7 +1125,7 @@
           "id": "macos.code_resource.byte_entry_rule.unknown",
           "scope": "entrypoints",
           "status": "deferred",
-          "summary": "The accepted byte-level entry boundary inside nonzero CODE payloads is still unknown.",
+          "summary": "The accepted byte-level entry boundary inside nonzero CODE payloads is formally deferred; 018-036 found no accepted or parser-assertable evidence for a general rule.",
           "required_parser_behavior": "block_closeout",
           "citations": [
             {
@@ -1115,8 +1133,23 @@
               "source_type": "project_observed",
               "target": "docs/proposals/012-classic-mac-os-m68k-platform.md blocked corrective scope",
               "context": "Current movea boundary remains heuristic."
+            },
+            {
+              "source_id": "proposal-018",
+              "source_type": "project_observed",
+              "target": "docs/issues/018-036-macos-executable-kb-closeout-research.md",
+              "context": "018-036 found no committed Inside Macintosh or MPW source that defines movea.l (a7)+,a0 as the general nonzero CODE entry instruction or gives a byte-level entry offset rule."
             }
-          ]
+          ],
+          "details": {
+            "final_resolution": "formal_deferred",
+            "candidate_fact_id": "macos.code_resource.movea_stack_a0.boundary.candidate",
+            "candidate_entrypoint_id": "macos.code_resource.movea_stack_a0.entry_candidate",
+            "required_future_evidence": [
+              "accepted_source_or_parser_assertion_for_nonzero_CODE_entry_rule",
+              "parser_output_validation_for_any_promoted_boundary"
+            ]
+          }
         }
       ],
       "conflicts": [],
@@ -1125,7 +1158,7 @@
           "id": "macos.segment_loader.relocation_fixups.deferred",
           "scope": "loader_model",
           "status": "deferred",
-          "summary": "Relocation/fixup interpretation remains deferred pending direct citations.",
+          "summary": "Relocation/fixup interpretation is formally deferred because 018-036 found no exact classic 68K CODE fixup on-disk format or application-rule evidence.",
           "required_parser_behavior": "emit_placeholder",
           "citations": [
             {
@@ -1133,8 +1166,55 @@
               "source_type": "project_observed",
               "target": "docs/proposals/012-classic-mac-os-m68k-platform.md future scope",
               "context": "018-002 packet macos.packet.segment_relocation_fixups.deferred."
+            },
+            {
+              "source_id": "proposal-018",
+              "source_type": "project_observed",
+              "target": "docs/issues/018-036-macos-executable-kb-closeout-research.md",
+              "context": "018-036 confirmed runtime relocation context and later PEF/CFM material do not authorize classic 68K CODE fixup parsing."
             }
-          ]
+          ],
+          "details": {
+            "final_resolution": "formal_deferred",
+            "missing_evidence": [
+              "on_disk_record_location",
+              "byte_encoding",
+              "affected_payload_offsets",
+              "Segment_Loader_application_rules"
+            ]
+          }
+        },
+        {
+          "id": "macos.source_to_code.fixture_product.deferred",
+          "scope": "analysis_model",
+          "status": "deferred",
+          "summary": "Source-to-CODE mapping is deferred until the candidate source fixture's own built product is captured or reproduced; current Sample source must not be mapped to MPW/Tools/Asm CODE resources.",
+          "required_parser_behavior": "block_closeout",
+          "citations": [
+            {
+              "source_id": "proposal-018",
+              "source_type": "project_observed",
+              "target": "docs/issues/018-036-macos-executable-kb-closeout-research.md",
+              "context": "018-036 found MPW build-flow evidence but no committed built product for the candidate Sample source fixture."
+            },
+            {
+              "source_id": "mpw-tools-source-metadata",
+              "source_type": "project_observed",
+              "target": "ext/macos_tools/mpw_gm/source.json",
+              "context": "Current committed source inventory records MPW tool metadata and does not prove Sample source maps to MPW/Tools/Asm CODE bytes."
+            }
+          ],
+          "details": {
+            "final_resolution": "formal_deferred",
+            "preferred_future_fixture": "MPW-GM/Interfaces&Libraries/Interfaces/AStructMacs/Sample",
+            "must_not_map_to_observed_product": "MPW/Tools/Asm",
+            "required_future_evidence": [
+              "fixture_source_tree",
+              "fixture_build_recipe",
+              "captured_or_reproduced_built_product",
+              "source_segment_to_CODE_resource_validation"
+            ]
+          }
         }
       ],
       "unsupported": [
@@ -1152,6 +1232,36 @@
               "context": "Roundtrip is future scope."
             }
           ]
+        },
+        {
+          "id": "macos.resource_fork.curs.payload_decode.unsupported",
+          "scope": "file_structure",
+          "status": "unsupported",
+          "summary": "CURS type-level layout is accepted, but per-resource CURS payload byte extraction and bitmap/hotspot decoding are unsupported in the current executable KB slice.",
+          "required_parser_behavior": "ignore_safely",
+          "citations": [
+            {
+              "source_id": "inside-macintosh-volume-iii-1985",
+              "source_type": "old_out_of_print",
+              "target": "ext/docs_macos/Inside_Macintosh_Volume_III_1985.md source-page 150",
+              "context": "QuickDraw defines Cursor image, mask, and hotSpot fields, but current output does not expose resource payload bytes for decoding."
+            },
+            {
+              "source_id": "proposal-018",
+              "source_type": "project_observed",
+              "target": "docs/issues/018-036-macos-executable-kb-closeout-research.md",
+              "context": "018-036 classified CURS payload decoding as unsupported while keeping type-level CURS semantics accepted."
+            }
+          ],
+          "details": {
+            "accepted_type_level_fact_id": "macos.resource_fork.curs.layout.accepted",
+            "payload_decode_status": "unsupported",
+            "non_code_types_remaining_candidate": [
+              "acur",
+              "cmdo",
+              "vers"
+            ]
+          }
         }
       ],
       "required_parser_behavior": {
