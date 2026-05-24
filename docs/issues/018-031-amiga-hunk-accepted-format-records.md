@@ -1,6 +1,6 @@
 # 018-031: Amiga HUNK Accepted Format Records
 
-Status: active
+Status: completed
 
 ## Proposal Context
 
@@ -24,6 +24,20 @@ local knowledge:
 
 Facts without sufficient evidence must stay candidate/deferred/report-only with
 explicit blocker reasons.
+
+Completed delta:
+
+- Promoted `amiga.hunk.load_file.basic_backfill` from record-level
+  `fact_state=candidate` and `kb_backed=false` to
+  `fact_state=parser_asserted` and `kb_backed=true`.
+- Kept the accepted slice narrow: HUNK_HEADER load-file identity,
+  HUNK_UNIT/HUNK_LIB/HUNK_INDEX object/library container identity,
+  HUNK_CODE/HUNK_DATA/HUNK_BSS section roles, and size-only HUNK_BSS.
+- Kept relocation breadth, symbol/EXT details, runtime entry policy,
+  overlay/loader variants, and full parser migration
+  candidate/deferred/unsupported.
+- Updated tests so unsupported/candidate promotion still fails closed and the
+  record-level authority boundary is explicit.
 
 ## Default Behavior
 
@@ -53,24 +67,38 @@ Complete only after a first-pass inventory and a second-pass review against
 current parser behavior. If evidence is insufficient, complete by recording a
 blocked/candidate result rather than forcing accepted facts.
 
+Completed with a first pass over `knowledge/amiga_hunk_file.json`,
+`src/platform_amiga_hunk.c`, existing KB record state, and current platform
+executable tests, followed by a second pass over the accepted parser-asserted
+facts and candidate/deferred fields before editing.
+
+## Completion Evidence
+
+- `uv run python -m amiga_reversing.tools.platform_executable_formats validate`
+  passed.
+- `uv run python src/scripts/generate_platform_format_runtime.py` refreshed the
+  KB-derived generated table.
+- `uv run python -m pytest tests/test_platform_executable_formats.py -q` passed.
+- `uv run python -m pytest tests/test_validate_018_issues.py -q` passed.
+
 ## Research Coverage
 
-- [ ] Current Amiga HUNK knowledge files checked.
-- [ ] Existing HUNK parser/report behavior checked.
-- [ ] Existing 018 Amiga report-only record checked.
-- [ ] Citation strength reviewed for every promoted fact.
-- [ ] Second-pass review checked for accidental parser behavior changes.
+- [x] Current Amiga HUNK knowledge files checked.
+- [x] Existing HUNK parser/report behavior checked.
+- [x] Existing 018 Amiga report-only record checked.
+- [x] Citation strength reviewed for every promoted fact.
+- [x] Second-pass review checked for accidental parser behavior changes.
 
 ## Research Review
 
-- [ ] Accepted/parser-asserted facts have citations or assertion rationale.
-- [ ] Candidate/deferred facts are not consumed as accepted.
-- [ ] Mac and Atari files were not changed.
-- [ ] Proposal 018 records remaining Amiga gaps.
+- [x] Accepted/parser-asserted facts have citations or assertion rationale.
+- [x] Candidate/deferred facts are not consumed as accepted.
+- [x] Mac and Atari files were not changed.
+- [x] Proposal 018 records remaining Amiga gaps.
 
 ## Required Sign-Off
 
-- [ ] KB validation passes.
-- [ ] Targeted tests for platform executable formats pass.
-- [ ] No source/render artifact churn was committed.
-
+- [x] KB validation passes.
+- [x] Targeted tests for platform executable formats pass.
+- [x] No target source/render artifact churn was committed; only the
+  KB-derived generated fact table changed.

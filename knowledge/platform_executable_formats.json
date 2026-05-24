@@ -1172,7 +1172,7 @@
       "platform_id": "amiga",
       "format_id": "amiga.hunk",
       "archetype_id": "amiga.hunk_executable",
-      "fact_state": "candidate",
+      "fact_state": "parser_asserted",
       "source_policy": {
         "allowed_source_types": [
           "old_out_of_print",
@@ -1194,7 +1194,7 @@
           "AmigaDOS LoadSeg-compatible hunk files",
           "Amiga object/library hunk files"
         ],
-        "variant_scope": "First backfill record for normalized HUNK executable/object/library basics. It is report-only until parser areas explicitly opt into KB-backed checks."
+        "variant_scope": "KB-backed accepted reference slice for normalized HUNK executable/object/library basics. Parser behavior is unchanged outside facts explicitly marked accepted/parser_asserted."
       },
       "applies_to": [
         {
@@ -1464,7 +1464,7 @@
         {
           "id": "amiga.hunk.renderer.must_not_claim_kb_backed.candidate",
           "status": "candidate",
-          "summary": "Renderers and parser summaries must not claim Amiga HUNK parser behavior is KB-backed until a later migration issue opts in.",
+          "summary": "Renderers and parser summaries must distinguish the KB-backed Amiga HUNK accepted reference slice from remaining candidate/deferred parser migration gaps.",
           "source_type": "project_observed",
           "citations": [
             {
@@ -1502,7 +1502,7 @@
           "layer": "archetype_identity",
           "status": "candidate",
           "source_type": "project_observed",
-          "summary": "This is the first report-only HUNK executable-format backfill record and intentionally does not change parser behavior.",
+          "summary": "This is the first KB-backed HUNK executable-format accepted slice and intentionally does not change parser behavior outside accepted/parser_asserted facts.",
           "citations": [
             {
               "source_id": "proposal-018",
@@ -1554,7 +1554,7 @@
           "id": "amiga.hunk.parser_migration.unsupported_in_018_006",
           "scope": "implementation",
           "status": "unsupported",
-          "summary": "Full Amiga parser migration is explicitly out of scope for 018-006.",
+          "summary": "Full Amiga parser migration remains out of scope for the 018-031 accepted reference slice.",
           "required_parser_behavior": "ignore_safely",
           "citations": [
             {
@@ -1574,8 +1574,9 @@
         "candidate_output_allowed_from_fact_states": [
           "candidate"
         ],
-        "missing_fact_behavior": "emit_candidate",
-        "kb_backed": false
+        "missing_fact_behavior": "fail_closed",
+        "candidate_fact_rule": "Only explicit validated/parser_asserted HUNK facts may authorize accepted output; candidate, deferred, or unsupported HUNK facts must not be promoted.",
+        "kb_backed": true
       }
     },
     {

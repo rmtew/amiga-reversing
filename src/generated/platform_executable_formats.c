@@ -97,7 +97,7 @@ const PlatformExecutableFormatFact PLATFORM_EXECUTABLE_FORMAT_FACTS[] = {
         "deferred_only" },
     { "macos.hfs_resource_fork.code_resources.mpw_application", "macos.byte_for_byte_roundtrip.unsupported", "unsupported", "unsupported",
         "unsupported_only" },
-    { "amiga.hunk.load_file.basic_backfill", "amiga.hunk.load_file.basic_backfill", "record", "candidate", "" },
+    { "amiga.hunk.load_file.basic_backfill", "amiga.hunk.load_file.basic_backfill", "record", "parser_asserted", "" },
     { "amiga.hunk.load_file.basic_backfill", "amiga.hunk.header.identifies_load_file.candidate", "identification", "candidate",
         "candidate_only" },
     { "amiga.hunk.load_file.basic_backfill", "amiga.hunk.header.identifies_load_file.accepted", "identification", "parser_asserted",

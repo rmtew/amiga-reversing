@@ -647,6 +647,16 @@ insufficient. Do not broaden non-CODE decoding or affect CODE behavior.
   `macos.resource_fork.curs.layout.accepted` is accepted parser output for
   resource-type rows only. Payload byte decoding remains unsupported, and
   `acur`, `cmdo`, and `vers` stay candidate inventory.
+- 018-030 restarted the live issue trail after completed 018 issue files were
+  consolidated into this proposal. It recorded the current done/open/blocked
+  matrix, confirmed Proposal 012 remains downstream of 018, and made no KB,
+  parser, generated, target, or web behavior changes.
+- 018-031 promoted the existing Amiga HUNK accepted reference slice from
+  report-only to a KB-backed parser-asserted record. The accepted slice covers
+  HUNK_HEADER identification, object/library container identity, CODE/DATA/BSS
+  section roles, and size-only BSS. Runtime entry policy, relocation breadth,
+  overlay/loader variants, symbol/EXT details, and full parser migration remain
+  candidate/deferred/unsupported as recorded in the KB.
 
 ## Relationship To 012
 

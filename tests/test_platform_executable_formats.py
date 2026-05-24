@@ -192,14 +192,15 @@ def test_018_004_mac_movea_heuristic_guardrail_fails_candidate_promotion() -> No
     assert any("cannot use candidate as accepted parser output" in item for item in diagnostics)
 
 
-def test_018_006_first_amiga_and_atari_records_are_schema_valid_report_only() -> None:
+def test_018_006_031_first_amiga_and_atari_records_keep_current_authority_state() -> None:
     kb = platform_executable_formats.load_kb()
     amiga = platform_executable_formats.record_by_id(kb, "amiga.hunk.load_file.basic_backfill")
     atari = platform_executable_formats.record_by_id(kb, "atari_st.prg.gemdos_basic_backfill")
 
     assert amiga["platform_id"] == "amiga"
     assert amiga["format_id"] == "amiga.hunk"
-    assert amiga["required_parser_behavior"]["kb_backed"] is False
+    assert amiga["fact_state"] == "parser_asserted"
+    assert amiga["required_parser_behavior"]["kb_backed"] is True
     assert atari["platform_id"] == "atari_st"
     assert atari["format_id"] == "atari_st.prg"
     assert atari["required_parser_behavior"]["kb_backed"] is False
@@ -216,18 +217,23 @@ def test_018_006_backfill_records_do_not_authorize_accepted_parser_output() -> N
     assert atari["runtime_model"][0]["status"] == "deferred"
 
 
-def test_018_011_amiga_hunk_reference_slice_is_parser_asserted_but_report_only() -> None:
+def test_018_031_amiga_hunk_reference_slice_is_parser_asserted_and_kb_backed() -> None:
     kb = platform_executable_formats.load_kb()
     record = platform_executable_formats.record_by_id(kb, "amiga.hunk.load_file.basic_backfill")
     accepted = platform_executable_formats.record_item_by_id(record, "amiga.hunk.code_data_bss.sections.accepted")
     candidate = platform_executable_formats.record_item_by_id(record, "amiga.hunk.code_data_bss.sections.candidate")
+    runtime = platform_executable_formats.record_item_by_id(record, "amiga.hunk.runtime_entry.deferred")
 
+    assert record["fact_state"] == "parser_asserted"
+    assert record["required_parser_behavior"]["kb_backed"] is True
+    assert record["required_parser_behavior"]["missing_fact_behavior"] == "fail_closed"
     assert accepted["status"] == "parser_asserted"
     assert accepted["parser_use"] == "accepted_parser_output"
     assert accepted["details"]["parser_assertion"]["standard_interpretation"]
     assert candidate["status"] == "candidate"
     assert candidate["parser_use"] == "candidate_only"
-    assert record["required_parser_behavior"]["kb_backed"] is False
+    assert runtime["status"] == "deferred"
+    assert runtime["parser_use"] == "deferred_only"
 
 
 def test_018_012_atari_prg_reference_slice_is_parser_asserted_but_report_only() -> None:
