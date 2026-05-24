@@ -775,25 +775,29 @@ remove, not as endpoints.
 Use this order:
 
 1. keep `017-006` deferred unless a measured slow phase blocks active 017 work;
-2. complete `017-063`, the callback-derived code evidence packet;
-3. complete `017-064`, callback orphan-code signal generation;
-4. complete `017-065`, callback code accept/defer action support;
-5. complete `017-066`, rendering accepted callback code classification;
-6. complete `017-067`, callback code verifier gates;
-7. complete `017-068`, the Pandora callback tracer bullet.
+2. treat `017-063` and `017-064` as useful partial callback packet/signal
+   groundwork;
+3. complete `017-069`, real callback accept/defer CLI/API wiring;
+4. complete `017-070`, replay accepted callback facts into normal analysis
+   state;
+5. complete `017-071`, render accepted callback code through the normal source
+   pipeline;
+6. complete `017-072`, support callback facts in the verifier artifact
+   producer;
+7. complete `017-073`, rerun the real Pandora callback end-to-end tracer
+   bullet.
 
 This sequence is code-bearing implementation work. A worker must not close
 these issues by only documenting blockers. If current Pandora candidates fail,
 the implementation still needs fixture proof that an eligible callback target
 would become actionable and verifier-gated.
 
-Implementation note for `017-063` through `017-068`: callback-slot correlation
-now emits structured evidence packets, callback-derived orphan-code signals,
-Decision Journal accept/defer records, replayed accepted callback facts, scoped
-render effects, and verifier gates. The C/export schema recognizes
-`callback_slot` orphan-code signal reasons. The Pandora derived target currently
-produces no accepted callback source change because all real candidates fail
-implemented gates; fixture coverage proves the eligible path remains usable.
+Implementation note for `017-063` through `017-068`: post-commit review found
+that `017-063` and `017-064` produced useful callback packet/signal groundwork,
+but `017-065` through `017-068` were closed prematurely. Accept/defer, replay,
+render, and verifier support currently exist as helper functions rather than
+normal command, analysis, renderer, and verifier-artifact paths. Issues
+`017-065` through `017-068` are superseded by `017-069` through `017-073`.
 
 Each new issue must explicitly state that 012/018, Mac OS support, platform
 executable format knowledge, and Mac targets are out of scope. If an issue can

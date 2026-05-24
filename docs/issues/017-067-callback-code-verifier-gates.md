@@ -1,8 +1,12 @@
 # 017-067: Callback Code Verifier Gates
 
-Status: implemented
+Status: superseded
 Type: AFK
 Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
+
+Superseded by: `017-072-callback-verifier-artifact-producer.md`.
+Reason: post-commit review found verifier gates are only helper functions and
+are not enforced by a real command/verifier artifact path.
 
 ## Proposal Context
 

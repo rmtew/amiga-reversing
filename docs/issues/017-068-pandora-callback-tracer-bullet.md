@@ -1,8 +1,12 @@
 # 017-068: Pandora Callback Tracer Bullet
 
-Status: implemented
+Status: superseded
 Type: AFK
 Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
+
+Superseded by: `017-073-pandora-callback-end-to-end-retry.md`.
+Reason: post-commit review found the end-to-end tracer bullet ran before the
+accept/defer, replay, render, and verifier paths were genuinely wired.
 
 ## Proposal Context
 

@@ -1,8 +1,13 @@
 # 017-065: Callback Code Accept/Defer Action Path
 
-Status: implemented
+Status: superseded
 Type: AFK
 Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
+
+Superseded by: `017-069-callback-accept-defer-cli-api-wiring.md` and
+`017-070-callback-accepted-fact-replay-into-analysis.md`.
+Reason: post-commit review found this issue was closed with helper functions
+only. There is no real CLI/API accept/defer path and no normal replay wiring.
 
 ## Proposal Context
 

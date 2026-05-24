@@ -1,8 +1,12 @@
 # 017-066: Render Accepted Callback Code Classification
 
-Status: implemented
+Status: superseded
 Type: AFK
 Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
+
+Superseded by: `017-071-callback-render-through-normal-source-pipeline.md`.
+Reason: post-commit review found the render effect is only a helper dictionary
+and is not consumed by the normal source/render pipeline.
 
 ## Proposal Context
 
