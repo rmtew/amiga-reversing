@@ -2,17 +2,11 @@
 
 from __future__ import annotations
 
-import tempfile
 from collections.abc import Mapping
 from pathlib import Path
 
-from amiga_reversing.disasm.binary_source import (
-    BinarySourceKind,
-    RawAddressModel,
-    RawBinarySource,
-)
 from amiga_reversing.disasm.c_backend import (
-    build_listing_artifact_profile_from_binary_source,
+    build_macos_code_bytes_listing_artifact_profile,
     extract_macos_hfs_code_resource_bytes_with_c_backend,
     inspect_macos_hfs_code_summary_with_c_backend,
 )
@@ -495,26 +489,13 @@ def _preview_decode_rows(
             fallback_reason="preview shorter than one m68k instruction word",
         )
 
-    temp_path: Path | None = None
     artifact = None
     try:
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".macos-preview.bin") as temp_file:
-            temp_file.write(preview_bytes)
-            temp_path = Path(temp_file.name)
         resource_id = resource.get("id")
         resource_label = f"CODE {resource_id} {resource.get('name') or ''}".strip()
-        binary_source = RawBinarySource(
-            kind=BinarySourceKind.RAW_BINARY,
-            path=temp_path,
-            address_model=RawAddressModel.LOCAL_OFFSET,
-            load_address=0,
-            entrypoint=0,
-            code_start_offset=0,
+        _total_rows, _profile, artifact = build_macos_code_bytes_listing_artifact_profile(
+            preview_bytes,
             display_path=f"Mac OS candidate preview {resource_label}",
-            analysis_cache_path=project_root / "targets" / ".macos-code-preview.analysis",
-        )
-        _total_rows, _profile, artifact = build_listing_artifact_profile_from_binary_source(
-            binary_source,
             project_root=project_root,
         )
         window, _window_profile = artifact.window_payload(start=0, count=MACOS_CODE_PREVIEW_MAX_BYTES * 2)
@@ -536,8 +517,6 @@ def _preview_decode_rows(
     finally:
         if artifact is not None:
             artifact.close()
-        if temp_path is not None:
-            temp_path.unlink(missing_ok=True)
     if not any(row.get("decoded") is True for row in rows):
         return _preview_data_rows(
             preview_bytes,

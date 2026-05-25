@@ -673,6 +673,21 @@ def build_listing_artifact_profile_from_binary_source(
     metadata_path: Path | None = None,
     project_root: Path = PROJECT_ROOT,
 ) -> tuple[int, dict[str, object], CListingArtifact]:
+    if isinstance(binary_source, MacosCodeResourceSource):
+        from amiga_reversing.disasm.macos_code_provider import (
+            macos_code_resource_byte_view_with_c_backend,
+        )
+
+        payload, _profile = macos_code_resource_byte_view_with_c_backend(binary_source)
+        code_bytes = payload.get("code_bytes")
+        if not isinstance(code_bytes, bytes):
+            raise TypeError("Mac CODE byte provider did not return code bytes")
+        return build_macos_code_bytes_listing_artifact_profile(
+            code_bytes,
+            display_path=binary_source.display_path,
+            metadata_path=metadata_path,
+            project_root=project_root,
+        )
     metadata_text = _metadata_path_text(metadata_path)
     with _source_file_for_c_backend(binary_source, project_root=project_root) as source_file:
         include_dir = _platform_include_dir_for_listing(source_file.platform_name, project_root)
@@ -689,6 +704,31 @@ def build_listing_artifact_profile_from_binary_source(
             artifact.close()
             raise
         return int(total_rows) if isinstance(total_rows, int) else 0, summary_profile, artifact
+
+
+def build_macos_code_bytes_listing_artifact_profile(
+    code_bytes: bytes,
+    *,
+    display_path: str,
+    metadata_path: Path | None = None,
+    project_root: Path = PROJECT_ROOT,
+) -> tuple[int, dict[str, object], CListingArtifact]:
+    metadata_text = _metadata_path_text(metadata_path)
+    include_dir = _platform_include_dir_for_listing("macos-code", project_root)
+    artifact = CListingArtifact.create_macos_code_bytes(
+        code_bytes,
+        display_path=display_path,
+        metadata_text=metadata_text,
+        include_dir=str(include_dir),
+        project_root=project_root,
+    )
+    try:
+        summary, summary_profile = artifact.summary_payload()
+        total_rows = summary.get("total_rows", 0)
+    except Exception:
+        artifact.close()
+        raise
+    return int(total_rows) if isinstance(total_rows, int) else 0, summary_profile, artifact
 
 
 def type_catalog_from_c_backend(
@@ -1199,6 +1239,16 @@ def _platform_file_dll(project_root: Path) -> CDLL:
         POINTER(c_void_p),
     ]
     dll.platform_file_facts_v2_listing_artifact_raw_path_create.restype = c_int
+    dll.platform_file_facts_v2_listing_artifact_macos_code_buffer_create.argtypes = [
+        c_void_p,
+        c_size_t,
+        c_char_p,
+        c_char_p,
+        c_char_p,
+        POINTER(c_void_p),
+        POINTER(c_void_p),
+    ]
+    dll.platform_file_facts_v2_listing_artifact_macos_code_buffer_create.restype = c_int
     dll.platform_file_facts_v2_listing_artifact_window_json_alloc.argtypes = [
         c_void_p,
         c_uint32,
@@ -1468,6 +1518,38 @@ class CListingArtifact:
             if error.value:
                 dll.platform_file_free_text(error)
 
+    @classmethod
+    def create_macos_code_bytes(
+        cls,
+        code_bytes: bytes,
+        *,
+        display_path: str,
+        metadata_text: str,
+        include_dir: str,
+        project_root: Path,
+    ) -> CListingArtifact:
+        dll = _platform_file_dll(project_root)
+        artifact = c_void_p()
+        error = c_void_p()
+        buffer = create_string_buffer(code_bytes, len(code_bytes))
+        result = dll.platform_file_facts_v2_listing_artifact_macos_code_buffer_create(
+            buffer,
+            len(code_bytes),
+            _c_arg(display_path),
+            _c_arg(metadata_text),
+            _c_arg(include_dir),
+            byref(artifact),
+            byref(error),
+        )
+        try:
+            error_text = string_at(error.value).decode("utf-8", errors="replace") if error.value else ""
+            if result != 0 or not artifact.value:
+                raise RuntimeError(f"C backend DLL failed: {error_text}")
+            return cls(dll, artifact)
+        finally:
+            if error.value:
+                dll.platform_file_free_text(error)
+
     def analysis_payload(self) -> tuple[dict[str, object], dict[str, object]]:
         combined = cast(
             dict[str, object],
@@ -1688,23 +1770,6 @@ def _source_file_for_c_backend(
         finally:
             if temp_path is not None:
                 temp_path.unlink(missing_ok=True)
-        return
-    if isinstance(binary_source, MacosCodeResourceSource):
-        from amiga_reversing.disasm.macos_code_provider import macos_code_resource_byte_view_with_c_backend
-
-        payload, _profile = macos_code_resource_byte_view_with_c_backend(binary_source)
-        code_bytes = payload.get("code_bytes")
-        if not isinstance(code_bytes, bytes):
-            raise TypeError("Mac CODE byte provider did not return code bytes")
-        macos_temp_path: Path | None = None
-        try:
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".macos-code.bin") as temp_file:
-                temp_file.write(code_bytes)
-                macos_temp_path = Path(temp_file.name)
-            yield _CBackendSourceFile(macos_temp_path, "amiga-raw", 0, None)
-        finally:
-            if macos_temp_path is not None:
-                macos_temp_path.unlink(missing_ok=True)
         return
     if isinstance(binary_source, RawBinarySource):
         yield _CBackendSourceFile(

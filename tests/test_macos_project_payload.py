@@ -429,15 +429,21 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
         def close(self) -> None:
             calls["decode_closed"] = True
 
-    def fake_build_listing(binary_source: object, **kwargs: object) -> tuple[int, dict[str, object], FakeDecodeArtifact]:
-        calls.setdefault("decode_bytes", []).append(binary_source.read_bytes())
+    def fake_build_listing(
+        code_bytes: bytes,
+        *,
+        display_path: str,
+        **kwargs: object,
+    ) -> tuple[int, dict[str, object], FakeDecodeArtifact]:
+        calls.setdefault("decode_bytes", []).append(code_bytes)
+        calls.setdefault("decode_display_paths", []).append(display_path)
         calls.setdefault("decode_project_roots", []).append(kwargs.get("project_root"))
         return 2, {}, FakeDecodeArtifact()
 
     monkeypatch.setattr(macos_project_payload, "read_macos_hfs_image_bytes", fake_read_hfs)
     monkeypatch.setattr(macos_project_payload, "inspect_macos_hfs_code_summary_with_c_backend", fake_summary)
     monkeypatch.setattr(macos_project_payload, "extract_macos_hfs_code_resource_bytes_with_c_backend", fake_extract)
-    monkeypatch.setattr(macos_project_payload, "build_listing_artifact_profile_from_binary_source", fake_build_listing)
+    monkeypatch.setattr(macos_project_payload, "build_macos_code_bytes_listing_artifact_profile", fake_build_listing)
     project = ProjectRecord(
         id="macos_mpw_sample",
         name="macos_mpw_sample",
@@ -628,6 +634,7 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
         }
     ]
     assert calls["decode_bytes"] == [b"\x20\x5f\x4e\x75"]
+    assert calls["decode_display_paths"] == ["Mac OS candidate preview CODE 2 FPOpTable"]
     assert calls["decode_closed"] is True
     assert calls["extract_args"] == [
         (b"hfs", "MPW-GM/MPW/Tools/Asm", 2, tmp_path),

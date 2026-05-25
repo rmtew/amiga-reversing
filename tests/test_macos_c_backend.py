@@ -8,6 +8,7 @@ from typing import Any, cast
 
 import pytest
 
+from amiga_reversing.disasm import c_backend
 from amiga_reversing.disasm.binary_source import (
     BinarySourceKind,
     MacosCodeAddressModel,
@@ -16,7 +17,9 @@ from amiga_reversing.disasm.binary_source import (
     RawBinarySource,
 )
 from amiga_reversing.disasm.c_backend import (
+    CListingArtifact,
     build_listing_artifact_profile_from_binary_source,
+    build_macos_code_bytes_listing_artifact_profile,
     extract_macos_hfs_code_resource_bytes_with_c_backend,
     inspect_macos_hfs_code_summary_with_c_backend,
 )
@@ -24,7 +27,10 @@ from amiga_reversing.disasm.macos_asm_container import (
     DEFAULT_NDIF2RAW_PATH,
     read_macos_hfs_image_bytes,
 )
-from amiga_reversing.disasm.macos_code_provider import macos_code_resource_byte_view_with_c_backend
+from amiga_reversing.disasm.macos_code_provider import (
+    macos_code_resource_byte_view_with_c_backend,
+)
+from amiga_reversing.disasm.project_paths import PROJECT_ROOT
 from amiga_reversing.tools import platform_executable_formats
 from src.tests._build_helpers import require_built_tools
 
@@ -372,6 +378,77 @@ def test_021_002_native_macos_code_byte_provider_fails_deferred_no_entry(tmp_pat
 
     with pytest.raises(ValueError, match="deferred byte-entry evidence"):
         macos_code_resource_byte_view_with_c_backend(_macos_code_descriptor(image_path, 1))
+
+
+def test_021_007_macos_code_source_uses_native_buffer_artifact(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    require_built_tools()
+    image_path = tmp_path / "mpw.raw"
+    image_path.write_bytes(_make_hfs_image())
+    calls: dict[str, object] = {}
+
+    class FakeArtifact:
+        def summary_payload(self) -> tuple[dict[str, object], dict[str, object]]:
+            return {"total_rows": 2}, {"backend": "macos-code", "source_kind": "macos_code_resource"}
+
+        def close(self) -> None:
+            calls["closed"] = True
+
+    def fail_raw_transport(*args: object, **kwargs: object) -> object:
+        raise AssertionError("Mac CODE must not enter _source_file_for_c_backend")
+
+    def fake_create_macos_code_bytes(
+        code_bytes: bytes,
+        *,
+        display_path: str,
+        metadata_text: str,
+        include_dir: str,
+        project_root: Path,
+    ) -> FakeArtifact:
+        calls["code_bytes"] = code_bytes
+        calls["display_path"] = display_path
+        calls["metadata_text"] = metadata_text
+        calls["include_dir"] = include_dir
+        calls["project_root"] = project_root
+        return FakeArtifact()
+
+    monkeypatch.setattr(c_backend, "_source_file_for_c_backend", fail_raw_transport)
+    monkeypatch.setattr(CListingArtifact, "create_macos_code_bytes", staticmethod(fake_create_macos_code_bytes))
+
+    total_rows, profile, artifact = build_listing_artifact_profile_from_binary_source(
+        _macos_code_descriptor(image_path, 1),
+        project_root=tmp_path,
+    )
+
+    assert total_rows == 2
+    assert profile["backend"] == "macos-code"
+    assert profile["source_kind"] == "macos_code_resource"
+    assert calls["code_bytes"] == b"\x20\x5f\x4e\x75"
+    assert calls["display_path"] == f"{image_path.as_posix()}::MPW-GM/Tools/Asm::CODE 1"
+    assert calls["project_root"] == tmp_path
+    assert artifact is not None
+
+
+def test_021_007_macos_code_bytes_artifact_profile_is_native(tmp_path: Path) -> None:
+    require_built_tools()
+
+    _total_rows, profile, artifact = build_macos_code_bytes_listing_artifact_profile(
+        b"\x20\x5f\x4e\x75",
+        display_path="Mac OS candidate preview CODE 1 Main",
+        project_root=PROJECT_ROOT,
+    )
+    try:
+        _source_text, source_profile = artifact.source_text_with_profile()
+        window, window_profile = artifact.window_payload(start=0, count=8)
+    finally:
+        artifact.close()
+
+    assert profile["backend"] == "macos-code"
+    assert source_profile["backend"] == "macos-code"
+    assert window_profile["backend"] == "macos-code"
+    assert any(str(row.get("text") or "").strip() == "movea.l (a7)+,a0" for row in window["rows"])
 
 
 def test_c_macos_summary_defers_code_without_entry_evidence() -> None:

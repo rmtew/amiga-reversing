@@ -234,16 +234,26 @@ Completed closeout proof:
   explicit OK.
 - `git diff --check` passed.
 
+Post-closeout follow-ups completed without reopening Proposal 021:
+
+- 021-007 added
+  `platform_file_facts_v2_listing_artifact_macos_code_buffer_create`, a native
+  Mac CODE C artifact entry point that accepts selected CODE bytes in memory and
+  labels artifact profile state as `backend: macos-code`. The selected
+  `MacosCodeResourceSource` path no longer flows through
+  `_source_file_for_c_backend`, does not write selected CODE bytes to a temp
+  file, and does not construct an internal `"amiga-raw"` artifact profile.
+- 021-008 moved candidate preview decoding onto
+  `build_macos_code_bytes_listing_artifact_profile`, so
+  `macos_project_payload._preview_decode_rows` no longer constructs
+  `RawBinarySource` or temp raw files. Candidate preview rows still carry
+  candidate/deferred fact ids and parser-use state.
+- Focused proof for 021-007/008: precommit passed; Mac focused tests passed
+  with 45 tests; targeted mypy passed on changed Python files; combined 020
+  coverage passed with `invalid: 0`.
+
 Final future work:
 
-- Post-closeout follow-up issue 021-007 should remove the selected CODE
-  temp-file/raw C artifact transport by adding a native Mac CODE C artifact
-  entry point. This does not reopen Proposal 021 or justify Proposal 022 by
-  itself.
-- `macos_project_payload._preview_decode_rows` still uses a bounded
-  preview-only `RawBinarySource` transport. It is not the active selected CODE
-  source/listing/analysis/artifact/API path. Follow-up issue 021-008 should
-  delete it after adding a native byte-slice preview decoder API.
 - Mac byte-entry, relocation/fixup, source-to-CODE, and non-CODE payload facts
   remain governed by Proposal 018 states and were not promoted by 021.
 

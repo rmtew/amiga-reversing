@@ -83,6 +83,9 @@ PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_raw_path_create(co
     const char *path, uint32_t entry_address, uint32_t has_runtime_load_address, uint32_t runtime_load_address,
     const char *metadata_path, const char *include_dir, PlatformFileListingArtifact **out_artifact,
     char **out_error);
+PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_macos_code_buffer_create(
+    const unsigned char *data, size_t size, const char *display_path, const char *metadata_path,
+    const char *include_dir, PlatformFileListingArtifact **out_artifact, char **out_error);
 PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_window_json_alloc(
     PlatformFileListingArtifact *artifact, uint32_t start, uint32_t count, char **out_text);
 PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_addr_window_json_alloc(

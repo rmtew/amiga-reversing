@@ -50,6 +50,8 @@ static int load_object_from_path(const M68kBackend *backend, const char *path, M
     M68kDiagSink diagnostics);
 static int load_raw_object_from_path(const char *platform_name, const char *path, M68kObject *object,
     M68kDiagSink diagnostics);
+static int load_raw_object_from_buffer(const char *platform_name, const unsigned char *data, size_t size,
+    M68kObject *object, M68kDiagSink diagnostics);
 static int json_builder_append_facts_v2_profile(JsonBuilder *builder, const M68kFactsV2Profile *profile);
 static uint32_t read_be32_local(const uint8_t *data);
 static int write_bytes_to_path_local(const char *path, const unsigned char *data, size_t size,
@@ -7392,16 +7394,31 @@ static int load_raw_object_from_path(const char *platform_name, const char *path
     M68kDiagSink diagnostics) {
   unsigned char *data = NULL;
   size_t size = 0U;
+  int result;
+  if (read_file_to_buffer(path, &data, &size, diagnostics) != 0) return -1;
+  result = load_raw_object_from_buffer(platform_name, data, size, object, diagnostics);
+  free(data);
+  return result;
+}
+
+static int load_raw_object_from_buffer(const char *platform_name, const unsigned char *data, size_t size,
+    M68kObject *object, M68kDiagSink diagnostics) {
   M68kSection section;
   M68kObjectAddResult add_result;
   const M68kBackend *backend = m68k_raw_backend_by_name(platform_name);
-  if (backend == NULL || object == NULL) {
+  unsigned char *section_data;
+  if (backend == NULL || object == NULL || data == NULL || size > UINT32_MAX) {
     platform_file_add_error(diagnostics.list, "unknown raw platform backend");
     return -1;
   }
-  if (read_file_to_buffer(path, &data, &size, diagnostics) != 0) return -1;
+  section_data = (unsigned char *)malloc(size != 0U ? size : 1U);
+  if (section_data == NULL) {
+    platform_file_add_error(diagnostics.list, "out of memory");
+    return -1;
+  }
+  if (size != 0U) memcpy(section_data, data, size);
   if (m68k_object_create(object) != 0) {
-    free(data);
+    free(section_data);
     platform_file_add_error(diagnostics.list, "out of memory");
     return -1;
   }
@@ -7413,10 +7430,10 @@ static int load_raw_object_from_path(const char *platform_name, const char *path
   section.kind = M68K_SECTION_CODE;
   section.alignment = 2U;
   section.size = (uint32_t)size;
-  section.data = data;
+  section.data = section_data;
   section.data_size = (uint32_t)size;
   add_result = m68k_object_add_section(object, &section);
-  free(data);
+  free(section_data);
   if (!add_result.ok) {
     m68k_object_destroy(object);
     platform_file_add_error(diagnostics.list, "out of memory");
@@ -9487,6 +9504,38 @@ int platform_file_facts_v2_listing_artifact_raw_path_create(const char *platform
 fail:
   platform_file_facts_v2_listing_artifact_destroy(artifact);
   return listing_artifact_set_error(out_error, &diagnostics, "listing artifact create failed");
+}
+
+int platform_file_facts_v2_listing_artifact_macos_code_buffer_create(
+    const unsigned char *data, size_t size, const char *display_path, const char *metadata_path,
+    const char *include_dir, PlatformFileListingArtifact **out_artifact, char **out_error) {
+  M68kDiagList diagnostics = {0};
+  PlatformFileListingArtifact *artifact = NULL;
+  (void)include_dir;
+  if (out_artifact != NULL) *out_artifact = NULL;
+  if (out_error != NULL) *out_error = NULL;
+  if (out_artifact == NULL || out_error == NULL || data == NULL || display_path == NULL || size > UINT32_MAX) {
+    if (out_error != NULL) *out_error = m68k_platform_dup_string("invalid Mac CODE listing artifact request");
+    return -1;
+  }
+  artifact = listing_artifact_alloc_base("macos-code", display_path, &diagnostics);
+  if (artifact == NULL) goto fail;
+  if (configure_analysis_policy_for_alloc(&artifact->policy, "amiga-raw", metadata_path, NULL, &diagnostics) != 0)
+    goto fail;
+  if (load_raw_object_from_buffer("amiga-raw", data, size, &artifact->object, m68k_diag_sink(&diagnostics)) != 0)
+    goto fail;
+  if (!policy_add_raw_runtime_load_range_local(&artifact->policy, &artifact->object, 0U, 0U, &diagnostics) ||
+      !policy_set_raw_entry_address_local(&artifact->policy, &artifact->object, 0U, 0U, &diagnostics))
+    goto fail;
+  enrich_policy_pointer_targets_from_object_local(&artifact->policy, &artifact->object);
+  if (!validate_effective_policy_against_object_local(&diagnostics, &artifact->object, &artifact->policy)) goto fail;
+  if (listing_artifact_build_analysis(artifact, &diagnostics) != 0) goto fail;
+  *out_artifact = artifact;
+  return 0;
+
+fail:
+  platform_file_facts_v2_listing_artifact_destroy(artifact);
+  return listing_artifact_set_error(out_error, &diagnostics, "Mac CODE listing artifact create failed");
 }
 
 int platform_file_facts_v2_listing_artifact_window_json_alloc(PlatformFileListingArtifact *artifact,
