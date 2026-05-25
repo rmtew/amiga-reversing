@@ -451,6 +451,59 @@ def test_019_004_raw_amiga_hunk_parser_summary_emits_kb_refs_before_coverage() -
     assert platform_executable_formats.validate_parser_fact_references(payload) == []
 
 
+def test_020_002_raw_amiga_hunk_parser_summary_exposes_shared_ranges() -> None:
+    payload = platform_executable_formats._inspect_platform_fixture(
+        "amiga-hunk",
+        platform_executable_formats._synthetic_amiga_hunk_fixture(),
+        ".hunk",
+    )
+    ranges = {item["role"]: item for item in payload["executable_ranges"]}
+    deferred = {item["kind"]: item for item in payload["executable_deferred"]}
+
+    assert payload["executable_model"] == "platform_executable_summary_v1"
+    assert set(ranges) == {"code", "data", "bss"}
+    assert ranges["code"] == {
+        "role": "code",
+        "source_offset": 0,
+        "size": 4,
+        "stored_size": 4,
+        "status": "parser_asserted",
+        "fact_id": "amiga.hunk.code_data_bss.sections.accepted",
+        "fact_status": "parser_asserted",
+        "parser_use": "accepted_parser_output",
+    }
+    assert ranges["data"] == {
+        "role": "data",
+        "source_offset": 4,
+        "size": 4,
+        "stored_size": 4,
+        "status": "parser_asserted",
+        "fact_id": "amiga.hunk.code_data_bss.sections.accepted",
+        "fact_status": "parser_asserted",
+        "parser_use": "accepted_parser_output",
+    }
+    assert ranges["bss"] == {
+        "role": "bss",
+        "source_offset": 8,
+        "size": 8,
+        "stored_size": 0,
+        "status": "parser_asserted",
+        "fact_id": "amiga.hunk.bss.size_only.accepted",
+        "fact_status": "parser_asserted",
+        "parser_use": "accepted_parser_output",
+    }
+    assert deferred["runtime_entry"] == {
+        "kind": "runtime_entry",
+        "status": "deferred",
+        "fact_id": "amiga.hunk.runtime_entry.deferred",
+        "fact_status": "deferred",
+        "parser_use": "deferred_only",
+    }
+    assert payload["sections"]
+    assert payload["fact_refs"]
+    assert platform_executable_formats.validate_parser_fact_references(payload) == []
+
+
 def test_019_002_current_atari_prg_output_runs_real_parser_path() -> None:
     payload = platform_executable_formats._load_current_atari_prg_output()
     report = platform_executable_formats.build_parser_fact_coverage_report([payload], labels=["current-atari-prg"])

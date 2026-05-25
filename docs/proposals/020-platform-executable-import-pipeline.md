@@ -187,10 +187,32 @@ shared ranges in inspect JSON without changing analysis/listing behavior yet.
 
 ### 020-002: Shared Executable Summary Model
 
-Add the first shared C-owned executable summary/range model and expose it
-through parser inspect JSON. The first slice may be narrow, but it must be real:
-at least one current parser fixture must emit shared ranges and tests must
-validate fact refs, range roles, byte spans, and state.
+Completed first slice:
+
+- Added `src/platform_executable_summary.h` as the shared C-owned executable
+  summary/range data shape.
+- Wired the executable Amiga HUNK inspect path to build that model from the
+  parsed `M68kObject` and expose `executable_model`,
+  `executable_ranges`, and `executable_deferred` in raw
+  `platform_file_inspect_path_json_alloc` JSON.
+- Proved the current synthetic Amiga HUNK fixture emits shared CODE, DATA, and
+  size-only BSS ranges with source offsets, sizes, stored sizes, fact ids, fact
+  states, and parser-use authority.
+- Kept the existing `sections` and `fact_refs` surfaces intact so 019 coverage
+  continues to validate the parser-owned refs.
+- Represented runtime-entry uncertainty as deferred through
+  `amiga.hunk.runtime_entry.deferred`; no candidate/deferred/unsupported fact
+  is promoted to accepted output.
+
+Model constraints for following slices:
+
+- This is an additive parser-summary exposure only. It does not migrate
+  analysis import, listing/rendering, Atari PRG, or Mac CODE.
+- The first Amiga slice uses parser section order and section-local stored
+  lengths to expose source offsets for the synthetic HUNK fixture.
+- 020-003 should move the Amiga HUNK import path deeper onto this model before
+  old section-kind assumptions are removed. 020-004 can reuse the same C shape
+  for Atari PRG after the Amiga migration constraints are reviewed.
 
 ### 020-003: Amiga HUNK Shared Import Slice
 

@@ -4,6 +4,7 @@
 #include "m68k_bitset.h"
 #include "m68k_render_plan.h"
 #include "m68k_source_text_util.h"
+#include "platform_executable_summary.h"
 #include "generated/amiga_os_runtime.h"
 #include "generated/m68k_cpu_runtime.h"
 #include "generated/platform_executable_formats.h"
@@ -722,6 +723,153 @@ static int append_platform_executable_kb_refs_json(JsonBuilder *builder, const M
         PLATFORM_EXECUTABLE_FORMAT_FACT_ATARI_ST_PRG_RELOCATION_TERMINATOR_VARIANTS_DEFERRED, "deferred",
         "deferred_only", &emitted_any) != 0)
       return -1;
+  }
+  return json_builder_append(builder, "]");
+}
+
+static const char *platform_executable_range_role_name(PlatformExecutableRangeRole role) {
+  switch (role) {
+  case PLATFORM_EXECUTABLE_RANGE_ROLE_CODE:
+    return "code";
+  case PLATFORM_EXECUTABLE_RANGE_ROLE_DATA:
+    return "data";
+  case PLATFORM_EXECUTABLE_RANGE_ROLE_BSS:
+    return "bss";
+  case PLATFORM_EXECUTABLE_RANGE_ROLE_METADATA:
+    return "metadata";
+  case PLATFORM_EXECUTABLE_RANGE_ROLE_CANDIDATE_CODE:
+    return "candidate_code";
+  default:
+    return "unknown";
+  }
+}
+
+static const char *platform_executable_limit_kind_name(PlatformExecutableLimitKind kind) {
+  switch (kind) {
+  case PLATFORM_EXECUTABLE_LIMIT_RUNTIME_ENTRY:
+    return "runtime_entry";
+  case PLATFORM_EXECUTABLE_LIMIT_RELOCATION_BREADTH:
+    return "relocation_breadth";
+  case PLATFORM_EXECUTABLE_LIMIT_UNSUPPORTED_PAYLOAD:
+    return "unsupported_payload";
+  default:
+    return "unknown";
+  }
+}
+
+static int platform_executable_summary_add_range(PlatformExecutableSummary *summary,
+    PlatformExecutableRangeRole role, uint32_t source_offset, uint32_t size, uint32_t stored_size,
+    const char *fact_id, const char *fact_status, const char *parser_use) {
+  PlatformExecutableRange *range;
+  if (summary == NULL || fact_id == NULL || fact_status == NULL || parser_use == NULL ||
+      summary->range_count >= PLATFORM_EXECUTABLE_SUMMARY_MAX_RANGES)
+    return -1;
+  range = &summary->ranges[summary->range_count++];
+  range->role = role;
+  range->source_offset = source_offset;
+  range->size = size;
+  range->stored_size = stored_size;
+  range->fact.fact_id = fact_id;
+  range->fact.fact_status = fact_status;
+  range->fact.parser_use = parser_use;
+  return 0;
+}
+
+static int platform_executable_summary_add_limit(PlatformExecutableSummary *summary,
+    PlatformExecutableLimitKind kind, const char *fact_id, const char *fact_status, const char *parser_use) {
+  PlatformExecutableLimit *limit;
+  if (summary == NULL || fact_id == NULL || fact_status == NULL || parser_use == NULL ||
+      summary->limit_count >= PLATFORM_EXECUTABLE_SUMMARY_MAX_LIMITS)
+    return -1;
+  limit = &summary->limits[summary->limit_count++];
+  limit->kind = kind;
+  limit->fact.fact_id = fact_id;
+  limit->fact.fact_status = fact_status;
+  limit->fact.parser_use = parser_use;
+  return 0;
+}
+
+static int build_amiga_hunk_executable_summary(const M68kObject *object,
+    PlatformExecutableSummary *summary) {
+  size_t index;
+  uint32_t source_offset = 0U;
+  if (object == NULL || summary == NULL) return -1;
+  memset(summary, 0, sizeof(*summary));
+  summary->record_id = PLATFORM_EXECUTABLE_FORMAT_RECORD_AMIGA_HUNK_LOAD_FILE_BASIC_BACKFILL;
+  for (index = 0U; index < object->section_count; ++index) {
+    const M68kSection *section = &object->sections[index];
+    if (section->kind == M68K_SECTION_CODE) {
+      if (platform_executable_summary_add_range(summary, PLATFORM_EXECUTABLE_RANGE_ROLE_CODE,
+          source_offset, section->size, section->data_size,
+          PLATFORM_EXECUTABLE_FORMAT_FACT_AMIGA_HUNK_CODE_DATA_BSS_SECTIONS_ACCEPTED,
+          "parser_asserted", "accepted_parser_output") != 0)
+        return -1;
+    } else if (section->kind == M68K_SECTION_DATA) {
+      if (platform_executable_summary_add_range(summary, PLATFORM_EXECUTABLE_RANGE_ROLE_DATA,
+          source_offset, section->size, section->data_size,
+          PLATFORM_EXECUTABLE_FORMAT_FACT_AMIGA_HUNK_CODE_DATA_BSS_SECTIONS_ACCEPTED,
+          "parser_asserted", "accepted_parser_output") != 0)
+        return -1;
+    } else if (section->kind == M68K_SECTION_BSS) {
+      if (platform_executable_summary_add_range(summary, PLATFORM_EXECUTABLE_RANGE_ROLE_BSS,
+          source_offset, section->size, section->data_size,
+          PLATFORM_EXECUTABLE_FORMAT_FACT_AMIGA_HUNK_BSS_SIZE_ONLY_ACCEPTED,
+          "parser_asserted", "accepted_parser_output") != 0)
+        return -1;
+    }
+    source_offset += section->data_size != 0U ? section->data_size : section->size;
+  }
+  return platform_executable_summary_add_limit(summary, PLATFORM_EXECUTABLE_LIMIT_RUNTIME_ENTRY,
+    PLATFORM_EXECUTABLE_FORMAT_FACT_AMIGA_HUNK_RUNTIME_ENTRY_DEFERRED, "deferred", "deferred_only");
+}
+
+static int append_platform_executable_fact_fields_json(JsonBuilder *builder,
+    const PlatformExecutableFactRef *fact) {
+  if (builder == NULL || fact == NULL) return -1;
+  if (json_builder_append(builder, ",\"status\":") != 0) return -1;
+  if (json_builder_append_json_string(builder, fact->fact_status) != 0) return -1;
+  if (json_builder_append(builder, ",\"fact_id\":") != 0) return -1;
+  if (json_builder_append_json_string(builder, fact->fact_id) != 0) return -1;
+  if (json_builder_append(builder, ",\"fact_status\":") != 0) return -1;
+  if (json_builder_append_json_string(builder, fact->fact_status) != 0) return -1;
+  if (json_builder_append(builder, ",\"parser_use\":") != 0) return -1;
+  return json_builder_append_json_string(builder, fact->parser_use);
+}
+
+static int append_platform_executable_summary_json(JsonBuilder *builder, const M68kBackend *backend,
+    const M68kObject *object) {
+  PlatformExecutableSummary summary;
+  size_t index;
+  if (builder == NULL || backend == NULL || object == NULL ||
+      object->platform_file_kind != M68K_PLATFORM_FILE_EXECUTABLE ||
+      backend->platform_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK) {
+    return 0;
+  }
+  if (build_amiga_hunk_executable_summary(object, &summary) != 0) return -1;
+  if (json_builder_append(builder,
+      ",\"executable_model\":\"platform_executable_summary_v1\",\"executable_ranges\":[") != 0)
+    return -1;
+  for (index = 0U; index < summary.range_count; ++index) {
+    const PlatformExecutableRange *range = &summary.ranges[index];
+    if (index != 0U && json_builder_append(builder, ",") != 0) return -1;
+    if (json_builder_append(builder, "{\"role\":") != 0) return -1;
+    if (json_builder_append_json_string(builder, platform_executable_range_role_name(range->role)) != 0)
+      return -1;
+    if (json_builder_appendf(builder, ",\"source_offset\":%u,\"size\":%u,\"stored_size\":%u",
+        (unsigned)range->source_offset, (unsigned)range->size, (unsigned)range->stored_size) != 0)
+      return -1;
+    if (append_platform_executable_fact_fields_json(builder, &range->fact) != 0) return -1;
+    if (json_builder_append(builder, "}") != 0) return -1;
+  }
+  if (json_builder_append(builder, "],\"executable_deferred\":[") != 0) return -1;
+  for (index = 0U; index < summary.limit_count; ++index) {
+    const PlatformExecutableLimit *limit = &summary.limits[index];
+    if (index != 0U && json_builder_append(builder, ",") != 0) return -1;
+    if (json_builder_append(builder, "{\"kind\":") != 0) return -1;
+    if (json_builder_append_json_string(builder, platform_executable_limit_kind_name(limit->kind)) != 0)
+      return -1;
+    if (append_platform_executable_fact_fields_json(builder, &limit->fact) != 0) return -1;
+    if (json_builder_append(builder, "}") != 0) return -1;
   }
   return json_builder_append(builder, "]");
 }
@@ -1806,6 +1954,8 @@ int inspect_object_json(const M68kBackend *backend, const M68kObject *object, ch
   if (json_builder_append_json_string(&builder, file_kind_name(object->platform_file_kind)) != 0)
     goto fail;
   if (append_platform_executable_kb_refs_json(&builder, backend, object) != 0)
+    goto fail;
+  if (append_platform_executable_summary_json(&builder, backend, object) != 0)
     goto fail;
   if (json_builder_appendf(&builder, ",\"section_count\":%zu,\"symbol_count\":%zu,\"fixup_count\":%zu",
       object->section_count, object->symbol_count, object->fixup_count) != 0)
