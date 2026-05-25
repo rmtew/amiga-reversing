@@ -505,7 +505,6 @@ def decide_callback_code(
     listing_timeout_seconds: float = 10.0,
     project_root: Path = PROJECT_ROOT,
 ) -> dict[str, object]:
-    target_dir = resolve_project_dir(target_id, project_root=project_root)
     callback_report = inspect_callback_slots(
         target_id,
         slot_symbol=slot_symbol,
@@ -513,6 +512,8 @@ def decide_callback_code(
         listing_timeout_seconds=listing_timeout_seconds,
         project_root=project_root,
     )
+    effective_target_id = str(callback_report.get("listing_target_id") or target_id)
+    target_dir = resolve_project_dir(effective_target_id, project_root=project_root)
     packet, assignment = _callback_packet_for_candidate(callback_report.get("callback_slots"), candidate_id)
     artifact_path = target_dir / "decision_journal.jsonl"
     if packet is None:
@@ -539,7 +540,7 @@ def decide_callback_code(
     record = callback_decision_record(
         packet,
         action,
-        target_id=target_id,
+        target_id=effective_target_id,
         decision_id=decision_id or f"decision-callback-{uuid.uuid4().hex[:12]}",
         prev=journal.get("next_prev") if isinstance(journal.get("next_prev"), str) else None,
         reason=reason,
@@ -561,6 +562,7 @@ def decide_callback_code(
     if not write:
         return {
             "target_id": target_id,
+            "listing_target_id": effective_target_id,
             "candidate_id": candidate_id,
             "decision_id": record["decision_id"],
             "status": "dry_run_ready",
@@ -573,6 +575,7 @@ def decide_callback_code(
     appended = append_decision_record(target_dir, record)
     return {
         "target_id": target_id,
+        "listing_target_id": effective_target_id,
         "candidate_id": candidate_id,
         "decision_id": record["decision_id"],
         "status": "appended" if appended.get("status") == "appended" else "blocked",
@@ -2402,20 +2405,37 @@ def inspect_callback_slots(
     listing_timeout_seconds: float = 10.0,
     project_root: Path = PROJECT_ROOT,
 ) -> dict[str, object]:
-    hygiene = inspect_target_hygiene(target_id, mode="inspect", project_root=project_root)
-    target_dir = resolve_project_dir(target_id, project_root=project_root)
+    listing_resolution = _callback_listing_target_resolution(target_id, project_root=project_root)
+    effective_target_id = str(listing_resolution.get("effective_target_id") or target_id)
     report: dict[str, object] = {
         "target_id": target_id,
-        "hygiene": hygiene.to_dict(),
+        "listing_target_id": effective_target_id,
+        "listing_resolution": listing_resolution,
         "safe_to_mutate": False,
     }
-    listing_ready = _open_and_wait_listing(target_id, timeout_seconds=listing_timeout_seconds)
+    if listing_resolution.get("status") == "failed":
+        report["hygiene"] = {
+            "status": "not_checked",
+            "reason": "listing_target_resolution_failed",
+        }
+        report["listing_open"] = {
+            "status": "failed",
+            "message": listing_resolution.get("message"),
+            "blocker": listing_resolution.get("blocker"),
+            "blockers": listing_resolution.get("blockers"),
+        }
+        report["mutation_gate"] = _callback_slot_mutation_gate({}, exact_round_trip_available=False)
+        return report
+    hygiene = inspect_target_hygiene(effective_target_id, mode="inspect", project_root=project_root)
+    target_dir = resolve_project_dir(effective_target_id, project_root=project_root)
+    report["hygiene"] = hygiene.to_dict()
+    listing_ready = _open_and_wait_listing(effective_target_id, timeout_seconds=listing_timeout_seconds)
     report["listing_open"] = listing_ready
     if listing_ready.get("status") != "ready":
         report["mutation_gate"] = _callback_slot_mutation_gate({}, exact_round_trip_available=False)
         return report
-    rows = _listing_all_rows(target_id)
-    project_response = server.route_request("GET", f"/api/projects/{target_id}", {})
+    rows = _listing_all_rows(effective_target_id)
+    project_response = server.route_request("GET", f"/api/projects/{effective_target_id}", {})
     project_data = project_response.get("data")
     project_payload = project_data.get("project") if isinstance(project_data, dict) else {}
     review_items = project_payload.get("review_items") if isinstance(project_payload, dict) else None
@@ -2425,10 +2445,10 @@ def inspect_callback_slots(
         slot_symbol=slot_symbol,
         slot_offset=slot_offset,
     )
-    journal_projection = _decision_journal_projection_for_target(target_id, project_root=project_root)
+    journal_projection = _decision_journal_projection_for_target(effective_target_id, project_root=project_root)
     callback_report = _callback_report_with_decision_replay(
         callback_report,
-        target_id=target_id,
+        target_id=effective_target_id,
         journal_projection=journal_projection,
     )
     mutation_gate = _callback_slot_mutation_gate(
@@ -2442,6 +2462,154 @@ def inspect_callback_slots(
         hygiene.safe_to_continue and not hygiene.unknown_files and mutation_gate["safe_to_mutate"] is True
     )
     return report
+
+
+def _callback_listing_target_resolution(target_id: str, *, project_root: Path) -> dict[str, object]:
+    try:
+        target_dir = resolve_project_dir(target_id, project_root=project_root)
+    except Exception as exc:
+        return {
+            "status": "failed",
+            "requested_target_id": target_id,
+            "effective_target_id": target_id,
+            "blocker": "target_resolution_failed",
+            "blockers": ["target_resolution_failed"],
+            "message": str(exc),
+        }
+    if not (target_dir / "manifest.json").exists():
+        return {
+            "status": "direct",
+            "requested_target_id": target_id,
+            "effective_target_id": target_id,
+            "target_path": str(target_dir),
+        }
+    candidates = _callback_listing_subtarget_candidates(target_dir, project_root=project_root)
+    eligible = [
+        candidate
+        for candidate in candidates
+        if candidate.get("state", "added") == "added" and candidate.get("has_source_binary") is True
+    ]
+    primary = [candidate for candidate in eligible if candidate.get("payload_role") == "primary_program"]
+    payload_nodes = [
+        candidate
+        for candidate in eligible
+        if _candidate_has_source(candidate, "target_state.payload_nodes")
+    ]
+    selection_pool = primary or payload_nodes or eligible
+    if len(selection_pool) == 1:
+        selected = dict(selection_pool[0])
+        selection_policy = "single_disassemblable_subtarget"
+        if primary:
+            selection_policy = "single_primary_program_subtarget"
+        elif payload_nodes:
+            selection_policy = "single_payload_node_subtarget"
+        return {
+            "status": "resolved",
+            "requested_target_id": target_id,
+            "effective_target_id": selected["target_id"],
+            "target_path": selected["target_path"],
+            "selected_subtarget": selected,
+            "candidate_count": len(candidates),
+            "candidate_subtargets": candidates,
+            "selection_policy": selection_policy,
+        }
+    if not selection_pool:
+        return {
+            "status": "failed",
+            "requested_target_id": target_id,
+            "effective_target_id": target_id,
+            "blocker": "no_disassemblable_subtarget",
+            "blockers": ["no_disassemblable_subtarget"],
+            "message": "disk/container target has no disassemblable subtarget with source_binary.json",
+            "candidate_subtargets": candidates,
+            "next_action": "import or select a concrete subtarget that has source_binary.json before running callback analysis",
+        }
+    return {
+        "status": "failed",
+        "requested_target_id": target_id,
+        "effective_target_id": target_id,
+        "blocker": "ambiguous_disassemblable_subtarget",
+        "blockers": ["ambiguous_disassemblable_subtarget"],
+        "message": "disk/container target has multiple disassemblable subtargets; rerun with the intended subtarget id",
+        "candidate_subtargets": selection_pool,
+        "next_action": "rerun callback analysis with one listed subtarget id",
+    }
+
+
+def _callback_listing_subtarget_candidates(disk_target_dir: Path, *, project_root: Path) -> list[dict[str, object]]:
+    candidates: dict[str, dict[str, object]] = {}
+
+    def record_candidate(target_id: str, target_path: str, source: str, values: Mapping[str, object]) -> None:
+        absolute_target_path = project_root / Path(target_path)
+        source_binary = _load_json_mapping(absolute_target_path / "source_binary.json")
+        target_metadata = _load_json_mapping(absolute_target_path / "target_metadata.json")
+        candidate = candidates.setdefault(
+            target_id,
+            {
+                "target_id": target_id,
+                "target_path": target_path,
+                "sources": [],
+            },
+        )
+        sources = candidate.get("sources")
+        if isinstance(sources, list) and source not in sources:
+            sources.append(source)
+        candidate["has_source_binary"] = bool(source_binary)
+        if isinstance(source_binary.get("kind"), str):
+            candidate["source_binary_kind"] = source_binary["kind"]
+        if isinstance(target_metadata.get("target_type"), str):
+            candidate["target_type"] = target_metadata["target_type"]
+        for key in (
+            "entry_path",
+            "media_hint",
+            "parent_file_id",
+            "payload_role",
+            "source_offset",
+            "source_size",
+            "state",
+            "target_type",
+        ):
+            value = values.get(key)
+            if value is not None and key not in candidate:
+                candidate[key] = value
+
+    state_path = disk_target_dir / "target_state.json"
+    state = _load_json_mapping(state_path)
+    payload_nodes = state.get("payload_nodes") if isinstance(state, Mapping) else None
+    if isinstance(payload_nodes, Sequence) and not isinstance(payload_nodes, str):
+        for node in payload_nodes:
+            if not isinstance(node, Mapping):
+                continue
+            target_id = node.get("id")
+            target_path = node.get("path")
+            if not isinstance(target_id, str) or not isinstance(target_path, str):
+                continue
+            record_candidate(target_id, target_path, "target_state.payload_nodes", node)
+    manifest = _load_json_mapping(disk_target_dir / "manifest.json")
+    imported_targets = manifest.get("imported_targets") if isinstance(manifest, Mapping) else None
+    if isinstance(imported_targets, Sequence) and not isinstance(imported_targets, str):
+        for target in imported_targets:
+            if not isinstance(target, Mapping):
+                continue
+            target_id = target.get("target_name")
+            target_path = target.get("target_path")
+            if not isinstance(target_id, str) or not isinstance(target_path, str):
+                continue
+            record_candidate(target_id, target_path, "manifest.imported_targets", target)
+    return list(candidates.values())
+
+
+def _candidate_has_source(candidate: Mapping[str, object], source: str) -> bool:
+    sources = candidate.get("sources")
+    return isinstance(sources, Sequence) and not isinstance(sources, str) and source in sources
+
+
+def _load_json_mapping(path: Path) -> dict[str, object]:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return dict(value) if isinstance(value, Mapping) else {}
 
 
 def _callback_report_with_decision_replay(

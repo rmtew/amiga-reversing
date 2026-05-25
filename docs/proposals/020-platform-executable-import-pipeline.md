@@ -173,6 +173,7 @@ Implementation constraints found during 020-001:
 - `BinarySourceKind` has no Mac-specific source descriptor; Mac projects are recognized by `.project.json` origin and server/project branches. 020 must decide whether shared import introduces a Mac source descriptor or keeps project-origin import with C-owned range data.
 - Existing web/API contracts depend on Mac-specific fields (`selected_code_segment`, `code_segment_map`, non-CODE details). Shared ranges must be additive or migrated with explicit web/API tests before old fields disappear.
 - Candidate/deferred/unsupported KB states are already user-visible in Mac payloads and parser coverage; shared-model migration must preserve those states rather than normalizing everything to accepted code/data sections.
+- 017-074 proved a container-resolution pattern for disk-level workflow reports: use source-backed target/project metadata to select a concrete disassemblable payload subtarget, report other manifest executable candidates for context, and fail closed when selection is ambiguous or no source-backed subtarget exists.
 
 Search evidence used for this inventory:
 

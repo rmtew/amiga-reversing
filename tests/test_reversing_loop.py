@@ -1319,6 +1319,123 @@ def test_callback_report_replays_active_accepted_fact(tmp_path: Path, monkeypatc
     assert assignment["decision_replay"]["accepted"][0]["decision_id"] == "decision-callback"
 
 
+def test_callback_report_resolves_disk_container_to_primary_subtarget(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    disk_dir = _target(tmp_path, "disk")
+    child_id = "disk__raw_payload"
+    _write_disk_subtarget_fixture(disk_dir, tmp_path, [("raw_payload", child_id, True)])
+    state = json.loads((disk_dir / "target_state.json").read_text(encoding="utf-8"))
+    del state["payload_nodes"][0]["payload_role"]
+    (disk_dir / "target_state.json").write_text(json.dumps(state), encoding="utf-8")
+    manifest = json.loads((disk_dir / "manifest.json").read_text(encoding="utf-8"))
+    for local_name, target_id, target_type, source_kind in (
+        ("bootblock", "disk__bootblock", "bootblock", "raw_binary"),
+        ("hunk_program", "disk__hunk_program", "program", "disk_entry"),
+    ):
+        target_dir = disk_dir / "targets" / local_name
+        target_dir.mkdir(parents=True, exist_ok=True)
+        target_path = target_dir.relative_to(tmp_path).as_posix()
+        (target_dir / "source_binary.json").write_text(json.dumps({"kind": source_kind}), encoding="utf-8")
+        manifest["imported_targets"].append(
+            {
+                "target_name": target_id,
+                "target_path": target_path,
+                "target_type": target_type,
+                "entry_path": local_name,
+            }
+        )
+    (disk_dir / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    review_items = [{"kind": "orphan_code_candidate", "start": 0x0AA2, "end": 0x0AA6}]
+    opened_targets: list[str] = []
+    listing_targets: list[str] = []
+    project_paths: list[str] = []
+
+    monkeypatch.setattr(reversing_loop, "inspect_target_hygiene", lambda *args, **kwargs: _hygiene_ok())
+    monkeypatch.setattr(
+        reversing_loop,
+        "_open_and_wait_listing",
+        lambda target_id, **kwargs: opened_targets.append(target_id) or {"status": "ready"},
+    )
+    monkeypatch.setattr(
+        reversing_loop,
+        "_listing_all_rows",
+        lambda target_id: listing_targets.append(target_id) or _callback_rows(),
+    )
+
+    def route_request(method: str, path: str, query: object, body: object = None) -> dict[str, object]:
+        project_paths.append(path)
+        return {"data": {"project": {"review_items": review_items}}}
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+
+    result = reversing_loop.inspect_callback_slots("disk", project_root=tmp_path)
+
+    assert result["target_id"] == "disk"
+    assert result["listing_target_id"] == child_id
+    assert result["listing_resolution"]["status"] == "resolved"
+    assert result["listing_resolution"]["selection_policy"] == "single_payload_node_subtarget"
+    assert result["listing_resolution"]["candidate_count"] == 3
+    assert opened_targets == [child_id]
+    assert listing_targets == [child_id]
+    assert project_paths == [f"/api/projects/{child_id}"]
+    assert result["callback_slots"]["slot_count"] == 1
+
+
+def test_callback_report_blocks_ambiguous_disk_container_subtargets(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    disk_dir = _target(tmp_path, "disk")
+    _write_disk_subtarget_fixture(
+        disk_dir,
+        tmp_path,
+        [
+            ("raw_a", "disk__raw_a", True),
+            ("raw_b", "disk__raw_b", True),
+        ],
+    )
+    monkeypatch.setattr(
+        reversing_loop,
+        "_open_and_wait_listing",
+        lambda *args, **kwargs: pytest.fail("ambiguous container must not open a listing"),
+    )
+
+    result = reversing_loop.inspect_callback_slots("disk", project_root=tmp_path)
+    resolution = result["listing_resolution"]
+
+    assert result["listing_open"]["status"] == "failed"
+    assert resolution["blocker"] == "ambiguous_disassemblable_subtarget"
+    assert [candidate["target_id"] for candidate in resolution["candidate_subtargets"]] == [
+        "disk__raw_a",
+        "disk__raw_b",
+    ]
+    assert result["safe_to_mutate"] is False
+
+
+def test_callback_report_blocks_disk_container_without_disassemblable_subtarget(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    disk_dir = _target(tmp_path, "disk")
+    _write_disk_subtarget_fixture(disk_dir, tmp_path, [("raw_payload", "disk__raw_payload", False)])
+    monkeypatch.setattr(
+        reversing_loop,
+        "_open_and_wait_listing",
+        lambda *args, **kwargs: pytest.fail("container without source_binary.json must not open a listing"),
+    )
+
+    result = reversing_loop.inspect_callback_slots("disk", project_root=tmp_path)
+    resolution = result["listing_resolution"]
+
+    assert result["listing_open"]["status"] == "failed"
+    assert resolution["blocker"] == "no_disassemblable_subtarget"
+    assert resolution["candidate_subtargets"][0]["target_id"] == "disk__raw_payload"
+    assert resolution["candidate_subtargets"][0]["has_source_binary"] is False
+    assert result["safe_to_mutate"] is False
+
+
 def test_projected_callback_rendered_source_uses_c_backend_metadata_path(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -1411,6 +1528,44 @@ def test_callback_decision_verifier_artifact_producer_writes_current_artifact(
     assert produced["written"] is True
     assert (target_dir / "decision_verifier_artifacts.json").exists()
     assert produced["artifact"]["layers"]["semantic_reload"]["status"] == "passed"
+
+
+def _write_disk_subtarget_fixture(
+    disk_dir: Path,
+    project_root: Path,
+    subtargets: list[tuple[str, str, bool]],
+) -> None:
+    payload_nodes: list[dict[str, object]] = []
+    imported_targets: list[dict[str, object]] = []
+    for index, (local_name, target_id, write_source_binary) in enumerate(subtargets):
+        target_dir = disk_dir / "targets" / local_name
+        target_dir.mkdir(parents=True, exist_ok=True)
+        target_path = target_dir.relative_to(project_root).as_posix()
+        if write_source_binary:
+            (target_dir / "source_binary.json").write_text(json.dumps({"kind": "raw_binary"}), encoding="utf-8")
+        (target_dir / "target_metadata.json").write_text(json.dumps({"target_type": "raw_binary"}), encoding="utf-8")
+        payload_nodes.append(
+            {
+                "id": target_id,
+                "path": target_path,
+                "state": "added",
+                "media_hint": "raw",
+                "payload_role": "primary_program",
+                "parent_file_id": "hunk",
+                "source_offset": index * 16,
+                "source_size": 16,
+            }
+        )
+        imported_targets.append(
+            {
+                "target_name": target_id,
+                "target_path": target_path,
+                "target_type": "raw_binary",
+                "entry_path": f"fixture::{local_name}",
+            }
+        )
+    (disk_dir / "target_state.json").write_text(json.dumps({"payload_nodes": payload_nodes}), encoding="utf-8")
+    (disk_dir / "manifest.json").write_text(json.dumps({"imported_targets": imported_targets}), encoding="utf-8")
 
 
 def _callback_rows(*, blocked_signal: bool = False) -> list[dict[str, object]]:

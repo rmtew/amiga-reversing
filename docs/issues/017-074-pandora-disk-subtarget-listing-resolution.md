@@ -1,6 +1,6 @@
 # 017-074: Pandora Disk/Subtarget Listing Resolution
 
-Status: active
+Status: complete
 Type: AFK
 Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
@@ -46,26 +46,47 @@ Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
 ## Research Coverage
 
-- [ ] Current Pandora target/subtarget metadata inspected.
-- [ ] Existing project path resolution behavior understood before changing it.
-- [ ] Callback report can open the expected Pandora subtarget listing, or reports a precise structural blocker.
-- [ ] Ambiguous container selection fails closed with candidate subtarget identities.
-- [ ] Missing subtarget/listing fails closed without Decision Journal, metadata, generated source, or verifier artifact writes.
-- [ ] No 012/018/Mac/platform-format files touched.
+- [x] Current Pandora target/subtarget metadata inspected.
+- [x] Existing project path resolution behavior understood before changing it.
+- [x] Callback report can open the expected Pandora subtarget listing, or reports a precise structural blocker.
+- [x] Ambiguous container selection fails closed with candidate subtarget identities.
+- [x] Missing subtarget/listing fails closed without Decision Journal, metadata, generated source, or verifier artifact writes.
+- [x] No 012/018/Mac/platform-format files touched.
 
 ## Research Review
 
-- [ ] The result is not a helper-only bypass; normal target/project resolution is used.
-- [ ] Any real Pandora candidate exposed by the fixed listing path is either processed through the existing callback gates or explicitly deferred by those gates.
-- [ ] No source write occurs without verifier artifact and exact round-trip success.
-- [ ] Proposal 017 living notes updated with the real outcome.
+- [x] The result is not a helper-only bypass; normal target/project resolution is used.
+- [x] Any real Pandora candidate exposed by the fixed listing path is either processed through the existing callback gates or explicitly deferred by those gates.
+- [x] No source write occurs without verifier artifact and exact round-trip success.
+- [x] Proposal 017 living notes updated with the real outcome.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before work.
-- [ ] `017-073` completion notes checked before work.
-- [ ] Focused tests cover success and closed-failure listing resolution.
-- [ ] Real Pandora callback report rerun.
-- [ ] Exact round-trip passes for any source change.
-- [ ] `amiga_reversing.tools.validate_017_issues` passes.
-- [ ] `git diff --check` passes.
+- [x] Proposal context checked before work.
+- [x] `017-073` completion notes checked before work.
+- [x] Focused tests cover success and closed-failure listing resolution.
+- [x] Real Pandora callback report rerun.
+- [x] Exact round-trip passes for any source change. No source change occurred.
+- [x] `amiga_reversing.tools.validate_017_issues` passes.
+- [x] `git diff --check` passes.
+
+## Completion Evidence
+
+- Current Pandora metadata has one `target_state.payload_nodes` entry:
+  `amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8`.
+  The disk manifest also lists bootblock and hunk targets, so source-backed
+  payload-node selection is required to avoid treating manifest-only executable
+  entries as the callback listing target.
+- `callback-report --target amiga_disk_pandora-1988-firebird` now resolves
+  `listing_target_id` to
+  `amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8`
+  with `selection_policy=single_payload_node_subtarget`.
+- The resolved listing opens successfully: `listing_open.status=ready`,
+  `total_rows=30398`, `slot_count=92`, and `callback_orphan_code_signals=[]`.
+- The real Pandora mutation gate remains closed:
+  `safe_to_mutate=false`, `command_candidate_count=0`,
+  `missing_gates=["ready_callback_review_item"]`, with exact round-trip
+  available. No Decision Journal, metadata, generated source, verifier artifact,
+  target metadata, 012, 018, Mac, or platform-format files were written.
+- Focused coverage:
+  `uv run python -m pytest tests\test_reversing_loop.py -q -k callback`.

@@ -1361,3 +1361,11 @@ repeatable work to `docs\issues\017-*`.
   replay, render, or verifier support. Fixture coverage proves the complete
   callback path when a current packet exists, including Decision Journal replay
   into effective metadata and C backend source rendering.
+- 017-074 resolved that disk/container listing blocker. Callback reports now use
+  normal target/project metadata to select the single source-backed Pandora
+  `target_state.payload_nodes` subtarget
+  `amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8`
+  while still reporting bootblock/hunk manifest candidates for context.
+  Ambiguous and missing-source container fixtures fail closed. The real Pandora
+  callback report opens the resolved listing (`30398` rows, `92` slots) but
+  remains non-mutating because no ready callback review item exists.
