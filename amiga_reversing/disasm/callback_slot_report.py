@@ -479,7 +479,24 @@ def _direct_store_source_recovery(
                 "reason": "direct_immediate_below_address_threshold",
             },
         }
-    if immediate in target_rows:
+    source_row = target_rows.get(immediate)
+    runtime_row = runtime_rows.get(immediate)
+    if source_row is not None and runtime_row is not None:
+        runtime_source_offset = _int_or_none(runtime_row.get("start_offset"))
+        return {
+            "stored_symbol": None,
+            "stored_source_offset": None,
+            "value_source": row,
+            "provenance": {
+                "kind": "direct_immediate_ambiguous_address",
+                "status": "blocked",
+                "value": immediate,
+                "source_offset_target": immediate,
+                "runtime_address_target_offset": runtime_source_offset,
+                "reason": "direct_immediate_matches_source_offset_and_runtime_address",
+            },
+        }
+    if source_row is not None:
         return {
             "stored_symbol": None,
             "stored_source_offset": immediate,
@@ -491,7 +508,6 @@ def _direct_store_source_recovery(
                 "reason": "direct_immediate_matches_listing_source_offset",
             },
         }
-    runtime_row = runtime_rows.get(immediate)
     if runtime_row is not None:
         source_offset = _int_or_none(runtime_row.get("start_offset"))
         return {

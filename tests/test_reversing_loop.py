@@ -1486,6 +1486,50 @@ def test_callback_report_recovers_direct_runtime_address_store() -> None:
     )
 
 
+def test_callback_report_blocks_direct_immediate_source_runtime_ambiguity() -> None:
+    report = callback_slot_report(
+        [
+            {
+                "kind": "data",
+                "start_offset": 0x20100,
+                "end_offset": 0x20104,
+                "row_key": "s0:00020100:data:1",
+                "bytes": [0x4E, 0x75, 0x00, 0x00],
+            },
+            {
+                "kind": "data",
+                "start_offset": 0x0100,
+                "runtime_address": 0x20100,
+                "end_offset": 0x0104,
+                "row_key": "s0:00000100:data:2",
+                "bytes": [0x4E, 0x75, 0x00, 0x00],
+            },
+            {
+                "kind": "instruction",
+                "start_offset": 0x0200,
+                "row_key": "s0:00000200:instruction:3",
+                "operand_text": "#$20100,app_0360(a6)",
+                "app_slot_refs": [{"access": "write", "symbol": "app_0360", "displacement": 0x0360}],
+            },
+        ]
+    )
+
+    assignment = report["slots"][0]["assignments"][0]
+    packet = assignment["evidence_packet"]
+    triage = {item["blocker"]: item for item in packet["blocker_triage"]}
+
+    assert assignment["stored_source_offset"] is None
+    assert "missing_stored_source_offset" in packet["blockers"]
+    assert triage["missing_stored_source_offset"]["reason"] == (
+        "direct_immediate_matches_source_offset_and_runtime_address"
+    )
+    assert triage["missing_stored_source_offset"]["provenance"]["kind"] == (
+        "direct_immediate_ambiguous_address"
+    )
+    assert triage["missing_stored_source_offset"]["provenance"]["source_offset_target"] == 0x20100
+    assert triage["missing_stored_source_offset"]["provenance"]["runtime_address_target_offset"] == 0x0100
+
+
 def test_callback_report_recovers_absolute_label_store() -> None:
     report = callback_slot_report(
         [
