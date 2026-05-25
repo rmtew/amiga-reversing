@@ -27,7 +27,9 @@ def callback_slot_report(
     runtime_rows = _rows_by_runtime_address(row_list)
     review_by_start = _review_items_by_start(review_items)
     slot_filter = _slot_filter(slot_symbol=slot_symbol, slot_offset=slot_offset)
-    consumers = _slot_consumers(row_list, slot_filter=slot_filter, lookahead_rows=lookahead_rows)
+    consumer_scan = _slot_consumer_dataflow(row_list, slot_filter=slot_filter, lookahead_rows=lookahead_rows)
+    consumers = consumer_scan["consumers"]
+    consumer_blockers = consumer_scan["blockers"]
     assignments = _slot_assignments(
         row_list,
         slot_filter=slot_filter,
@@ -41,11 +43,13 @@ def callback_slot_report(
     slot_reports: list[dict[str, object]] = []
     for slot in slots:
         slot_consumers = [consumer for consumer in consumers if _entry_slot_key(consumer) == slot]
+        slot_consumer_blockers = [blocker for blocker in consumer_blockers if _entry_slot_key(blocker) == slot]
         slot_assignments = [assignment for assignment in assignments if _entry_slot_key(assignment) == slot]
         for assignment in slot_assignments:
             assignment["evidence_packet"] = _callback_assignment_evidence_packet(
                 assignment,
                 slot_consumers,
+                slot_consumer_blockers,
             )
             assignment["generated_orphan_code_signal"] = _callback_assignment_orphan_code_signal(
                 cast(Mapping[str, object], assignment["evidence_packet"])
@@ -64,6 +68,7 @@ def callback_slot_report(
                 "assignment_count": len(slot_assignments),
                 "concrete_missed_code_target_count": len(concrete_assignments),
                 "consumers": slot_consumers,
+                "consumer_dataflow_blockers": slot_consumer_blockers,
                 "assignments": slot_assignments,
             }
         )
@@ -330,33 +335,53 @@ def _slot_filter(
     return matches
 
 
-def _slot_consumers(
+def _slot_consumer_dataflow(
     rows: list[Mapping[str, object]],
     *,
     slot_filter: Callable[[Mapping[str, object]], bool],
     lookahead_rows: int,
-) -> list[dict[str, object]]:
+) -> dict[str, list[dict[str, object]]]:
     consumers: list[dict[str, object]] = []
+    blockers: list[dict[str, object]] = []
     for index, row in enumerate(rows):
         ref = _first_app_slot_ref(row, access="read", slot_filter=slot_filter)
         if ref is None:
             continue
         register = _destination_register(row)
         if register is None:
+            blockers.append(
+                {
+                    **_slot_payload(ref),
+                    "load": _row_payload(row),
+                    "status": "blocked",
+                    "reason": "consumer_shape_unsupported",
+                    "detail": "slot_read_does_not_load_address_register",
+                }
+            )
             continue
-        transfer = _following_indirect_transfer(rows, index, register, lookahead_rows=lookahead_rows)
-        if transfer is None:
+        scan = _following_indirect_transfer(rows, index, register, lookahead_rows=lookahead_rows)
+        if scan["status"] != "proven":
+            blockers.append(
+                {
+                    **_slot_payload(ref),
+                    "load": _row_payload(row),
+                    "register": register,
+                    **scan,
+                }
+            )
             continue
         consumers.append(
             {
                 **_slot_payload(ref),
                 "load": _row_payload(row),
-                "register": register,
-                "indirect_transfer": _row_payload(transfer),
-                "evidence": "slot_read_to_address_register_then_indirect_control_transfer",
+                "register": scan["initial_register"],
+                "final_register": scan["final_register"],
+                "indirect_transfer": scan["indirect_transfer"],
+                "dataflow": scan,
+                "evidence": "slot_read_local_dataflow_to_indirect_control_transfer",
             }
         )
-    return consumers
+    return {"consumers": consumers, "blockers": blockers}
 
 
 def _slot_assignments(
@@ -601,6 +626,7 @@ def _assignment_action_readiness(
 def _callback_assignment_evidence_packet(
     assignment: Mapping[str, object],
     consumers: Sequence[Mapping[str, object]],
+    consumer_blockers: Sequence[Mapping[str, object]],
 ) -> dict[str, object]:
     target = assignment.get("target")
     target = target if isinstance(target, Mapping) else None
@@ -668,6 +694,11 @@ def _callback_assignment_evidence_packet(
             "stored_source_offset_provenance": assignment.get("stored_source_offset_provenance"),
         },
         "callback_consumers": list(consumers),
+        "callback_consumer_dataflow": {
+            "proofs": [consumer.get("dataflow") for consumer in consumers if isinstance(consumer.get("dataflow"), Mapping)],
+            "blockers": list(consumer_blockers),
+            "summary": _callback_consumer_dataflow_summary(consumers, consumer_blockers),
+        },
         "target": {
             "row": target,
             "bytes": target_bytes,
@@ -702,6 +733,7 @@ def _callback_assignment_evidence_packet(
         "blocker_triage": _callback_blocker_triage(
             assignment,
             consumers,
+            consumer_blockers,
             target,
             target_bytes,
             blockers,
@@ -880,9 +912,26 @@ def _callback_recovered_target_classification_summary(slot_reports: Sequence[Map
     }
 
 
+def _callback_consumer_dataflow_summary(
+    consumers: Sequence[Mapping[str, object]],
+    consumer_blockers: Sequence[Mapping[str, object]],
+) -> dict[str, object]:
+    by_reason: dict[str, int] = {}
+    for blocker in consumer_blockers:
+        reason = blocker.get("reason")
+        if isinstance(reason, str):
+            by_reason[reason] = by_reason.get(reason, 0) + 1
+    return {
+        "proof_count": len(consumers),
+        "blocker_count": len(consumer_blockers),
+        "blockers_by_reason": dict(sorted(by_reason.items())),
+    }
+
+
 def _callback_blocker_triage(
     assignment: Mapping[str, object],
     consumers: Sequence[Mapping[str, object]],
+    consumer_blockers: Sequence[Mapping[str, object]],
     target: Mapping[str, object] | None,
     target_bytes: Sequence[int],
     blockers: Sequence[str],
@@ -929,12 +978,28 @@ def _callback_blocker_triage(
                 }
             )
         elif blocker == "missing_callback_consumer":
+            dataflow_reasons = sorted(
+                {
+                    reason
+                    for reason in (item.get("reason") for item in consumer_blockers)
+                    if isinstance(reason, str)
+                }
+            )
+            reason = (
+                dataflow_reasons[0]
+                if len(dataflow_reasons) == 1
+                else "multiple_callback_consumer_dataflow_blockers"
+                if dataflow_reasons
+                else "consumer_not_found"
+            )
+            classification = "factual_non_actionable" if reason == "consumer_not_found" else "narrower_follow_up"
             result.append(
                 {
                     "blocker": blocker,
-                    "classification": "factual_non_actionable",
-                    "reason": "no_slot_read_to_indirect_jsr_or_jmp_consumer",
+                    "classification": classification,
+                    "reason": reason,
                     "consumer_count": len(consumers),
+                    "consumer_dataflow_blockers": list(consumer_blockers),
                 }
             )
         elif blocker == "target_already_code":
@@ -1103,6 +1168,16 @@ def _source_register(row: Mapping[str, object]) -> str | None:
     return _address_register(register)
 
 
+def _is_branch_boundary(opcode: str) -> bool:
+    if opcode in {"rts", "rte", "rtr", "trap", "trapv"}:
+        return True
+    return opcode.startswith(("b", "db"))
+
+
+def _is_simple_address_register_move(opcode: str) -> bool:
+    return opcode == "move" or opcode.startswith(("move.", "movea"))
+
+
 def _address_register(value: object) -> str | None:
     if not isinstance(value, str):
         return None
@@ -1118,17 +1193,90 @@ def _following_indirect_transfer(
     register: str,
     *,
     lookahead_rows: int,
-) -> Mapping[str, object] | None:
-    expected = f"({register.lower()})"
+) -> dict[str, object]:
+    initial_register = register
+    current_register = register
+    path: list[dict[str, object]] = []
     for candidate in rows[index + 1 : index + 1 + lookahead_rows]:
-        if _destination_register(candidate) == register:
-            return None
+        if candidate.get("kind") == "label":
+            return {
+                "status": "blocked",
+                "reason": "consumer_crosses_label_boundary",
+                "initial_register": initial_register,
+                "final_register": current_register,
+                "boundary": _row_payload(candidate),
+                "path": path,
+            }
         opcode = str(candidate.get("opcode_or_directive") or "").lower()
-        if opcode not in {"jsr", "jmp"}:
+        operand_text = str(candidate.get("operand_text") or "").strip().lower()
+        expected = f"({current_register.lower()})"
+        if opcode in {"jsr", "jmp"}:
+            if operand_text == expected:
+                return {
+                    "status": "proven",
+                    "reason": "slot_read_flows_to_indirect_control_transfer",
+                    "initial_register": initial_register,
+                    "final_register": current_register,
+                    "indirect_transfer": _row_payload(candidate),
+                    "path": path,
+                }
+            return {
+                "status": "blocked",
+                "reason": "consumer_shape_unsupported",
+                "initial_register": initial_register,
+                "final_register": current_register,
+                "unsupported_transfer": _row_payload(candidate),
+                "path": path,
+            }
+        if _is_branch_boundary(opcode):
+            return {
+                "status": "blocked",
+                "reason": "consumer_crosses_branch",
+                "initial_register": initial_register,
+                "final_register": current_register,
+                "boundary": _row_payload(candidate),
+                "path": path,
+            }
+        destination = _destination_register(candidate)
+        if destination is None:
             continue
-        if str(candidate.get("operand_text") or "").strip().lower() == expected:
-            return candidate
-    return None
+        source = _source_register(candidate)
+        if destination == current_register and source != current_register:
+            return {
+                "status": "blocked",
+                "reason": "consumer_register_clobbered",
+                "initial_register": initial_register,
+                "final_register": current_register,
+                "clobber": _row_payload(candidate),
+                "path": path,
+            }
+        if source == current_register and destination != current_register:
+            if not _is_simple_address_register_move(opcode):
+                return {
+                    "status": "blocked",
+                    "reason": "consumer_shape_unsupported",
+                    "initial_register": initial_register,
+                    "final_register": current_register,
+                    "unsupported_transfer": _row_payload(candidate),
+                    "path": path,
+                }
+            path.append(
+                {
+                    "kind": "address_register_move",
+                    "source": current_register,
+                    "destination": destination,
+                    "row": _row_payload(candidate),
+                }
+            )
+            current_register = destination
+    return {
+        "status": "blocked",
+        "reason": "consumer_not_found",
+        "initial_register": initial_register,
+        "final_register": current_register,
+        "lookahead_rows": lookahead_rows,
+        "path": path,
+    }
 
 
 def _previous_symbol_load(

@@ -1392,3 +1392,13 @@ repeatable work to `docs\issues\017-*`.
   rows classify as `real_data`. Six are zero-fill/data-like rows, and the one
   unreconciled data range has bytes that do not look like terminal callback code.
   No recovered data row surfaced a valid orphan-code signal or source mutation.
+- 017-078 expanded callback consumer detection from a single direct pattern to
+  clobber-aware local dataflow. Callback packets now show proven consumer paths
+  and structured fail-closed blockers for missing consumers, clobbered
+  registers, branch boundaries, label boundaries, and unsupported shapes.
+  Supported fixture shapes include direct slot-read calls, delayed non-clobber
+  reads, and simple address-register moves before `jsr`/`jmp (aN)`. The real
+  Pandora rerun still has no actionable recovered data target:
+  `consumer_count=3`, recovered target classification remains
+  `already_represented=12` and `real_data=7`, `callback_orphan_code_signals=[]`,
+  and the callback mutation gate remains blocked by `ready_callback_review_item`.

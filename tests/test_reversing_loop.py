@@ -1418,10 +1418,171 @@ def test_callback_report_triage_classifies_data_target_without_consumer() -> Non
         {
             "blocker": "missing_callback_consumer",
             "classification": "factual_non_actionable",
-            "reason": "no_slot_read_to_indirect_jsr_or_jmp_consumer",
+            "reason": "consumer_not_found",
             "consumer_count": 0,
+            "consumer_dataflow_blockers": [],
         }
     ]
+
+
+def test_callback_consumer_dataflow_preserves_direct_consumer() -> None:
+    report = callback_slot_report(
+        [
+            *_callback_consumer_fixture_prefix(),
+            _callback_slot_read_row(0x1204, "A0"),
+            {"kind": "instruction", "start_offset": 0x1208, "opcode_or_directive": "jsr", "operand_text": "(a0)"},
+        ]
+    )
+
+    consumer = report["slots"][0]["consumers"][0]
+
+    assert report["summary"]["consumer_count"] == 1
+    assert consumer["dataflow"]["reason"] == "slot_read_flows_to_indirect_control_transfer"
+    assert consumer["final_register"] == "A0"
+
+
+def test_callback_consumer_dataflow_accepts_delayed_consumer() -> None:
+    report = callback_slot_report(
+        [
+            *_callback_consumer_fixture_prefix(),
+            _callback_slot_read_row(0x1204, "A0"),
+            {"kind": "instruction", "start_offset": 0x1206, "opcode_or_directive": "nop"},
+            {"kind": "instruction", "start_offset": 0x1208, "opcode_or_directive": "jsr", "operand_text": "(a0)"},
+        ]
+    )
+
+    assert report["slots"][0]["consumer_count"] == 1
+    assert report["slots"][0]["consumer_dataflow_blockers"] == []
+
+
+def test_callback_consumer_dataflow_accepts_address_register_move() -> None:
+    report = callback_slot_report(
+        [
+            *_callback_consumer_fixture_prefix(),
+            _callback_slot_read_row(0x1204, "A0"),
+            {
+                "kind": "instruction",
+                "start_offset": 0x1206,
+                "opcode_or_directive": "movea.l",
+                "operand_registers": ["A0", "A1"],
+            },
+            {"kind": "instruction", "start_offset": 0x1208, "opcode_or_directive": "jmp", "operand_text": "(a1)"},
+        ]
+    )
+
+    consumer = report["slots"][0]["consumers"][0]
+    path = consumer["dataflow"]["path"]
+
+    assert consumer["final_register"] == "A1"
+    assert path[0]["kind"] == "address_register_move"
+    assert path[0]["source"] == "A0"
+    assert path[0]["destination"] == "A1"
+    assert path[0]["row"]["start_offset"] == 0x1206
+    assert path[0]["row"]["opcode_or_directive"] == "movea.l"
+
+
+def test_callback_consumer_dataflow_blocks_clobbered_register() -> None:
+    report = callback_slot_report(
+        [
+            *_callback_consumer_fixture_prefix(),
+            _callback_slot_read_row(0x1204, "A0"),
+            {
+                "kind": "instruction",
+                "start_offset": 0x1206,
+                "opcode_or_directive": "move.l",
+                "operand_registers": ["D0", "A0"],
+            },
+            {"kind": "instruction", "start_offset": 0x1208, "opcode_or_directive": "jsr", "operand_text": "(a0)"},
+        ]
+    )
+
+    packet = report["slots"][0]["assignments"][0]["evidence_packet"]
+    triage = {item["blocker"]: item for item in packet["blocker_triage"]}
+
+    assert report["slots"][0]["consumer_count"] == 0
+    assert triage["missing_callback_consumer"]["reason"] == "consumer_register_clobbered"
+
+
+def test_callback_consumer_dataflow_blocks_branch_boundary() -> None:
+    report = callback_slot_report(
+        [
+            *_callback_consumer_fixture_prefix(),
+            _callback_slot_read_row(0x1204, "A0"),
+            {"kind": "instruction", "start_offset": 0x1206, "opcode_or_directive": "bra.s", "operand_text": "done"},
+            {"kind": "instruction", "start_offset": 0x1208, "opcode_or_directive": "jsr", "operand_text": "(a0)"},
+        ]
+    )
+
+    blockers = report["slots"][0]["consumer_dataflow_blockers"]
+
+    assert blockers[0]["reason"] == "consumer_crosses_branch"
+
+
+def test_callback_consumer_dataflow_blocks_label_boundary() -> None:
+    report = callback_slot_report(
+        [
+            *_callback_consumer_fixture_prefix(),
+            _callback_slot_read_row(0x1204, "A0"),
+            {"kind": "label", "label": "callback_entry", "start_offset": 0x1208},
+            {"kind": "instruction", "start_offset": 0x1208, "opcode_or_directive": "jsr", "operand_text": "(a0)"},
+        ]
+    )
+
+    blockers = report["slots"][0]["consumer_dataflow_blockers"]
+
+    assert blockers[0]["reason"] == "consumer_crosses_label_boundary"
+
+
+def test_callback_consumer_dataflow_blocks_unsupported_call_shape() -> None:
+    report = callback_slot_report(
+        [
+            *_callback_consumer_fixture_prefix(),
+            _callback_slot_read_row(0x1204, "A0"),
+            {"kind": "instruction", "start_offset": 0x1208, "opcode_or_directive": "jsr", "operand_text": "(a1)"},
+        ]
+    )
+
+    packet = report["slots"][0]["assignments"][0]["evidence_packet"]
+    triage = {item["blocker"]: item for item in packet["blocker_triage"]}
+
+    assert triage["missing_callback_consumer"]["reason"] == "consumer_shape_unsupported"
+
+
+def test_callback_consumer_dataflow_blocks_ambiguous_register_transfer() -> None:
+    report = callback_slot_report(
+        [
+            *_callback_consumer_fixture_prefix(),
+            _callback_slot_read_row(0x1204, "A0"),
+            {
+                "kind": "instruction",
+                "start_offset": 0x1206,
+                "opcode_or_directive": "exg",
+                "operand_registers": ["A0", "A1"],
+            },
+            {"kind": "instruction", "start_offset": 0x1208, "opcode_or_directive": "jsr", "operand_text": "(a1)"},
+        ]
+    )
+
+    blockers = report["slots"][0]["consumer_dataflow_blockers"]
+
+    assert blockers[0]["reason"] == "consumer_shape_unsupported"
+    assert report["slots"][0]["consumer_count"] == 0
+
+
+def test_callback_consumer_dataflow_blocks_non_call_slot_read() -> None:
+    report = callback_slot_report(
+        [
+            *_callback_consumer_fixture_prefix(),
+            _callback_slot_read_row(0x1204, "A0"),
+            {"kind": "instruction", "start_offset": 0x1208, "opcode_or_directive": "nop"},
+        ]
+    )
+
+    packet = report["slots"][0]["assignments"][0]["evidence_packet"]
+    triage = {item["blocker"]: item for item in packet["blocker_triage"]}
+
+    assert triage["missing_callback_consumer"]["reason"] == "consumer_not_found"
+    assert packet["callback_consumer_dataflow"]["summary"]["blockers_by_reason"] == {"consumer_not_found": 1}
 
 
 def test_callback_report_recovers_direct_source_offset_store() -> None:
@@ -2205,6 +2366,37 @@ def _callback_rows(*, blocked_signal: bool = False) -> list[dict[str, object]]:
         },
         {"kind": "instruction", "start_offset": 0x2004, "opcode_or_directive": "jsr", "operand_text": "(a0)"},
     ]
+
+
+def _callback_consumer_fixture_prefix() -> list[dict[str, object]]:
+    return [
+        {
+            "kind": "data",
+            "start_offset": 0x1100,
+            "end_offset": 0x1104,
+            "row_key": "s0:00001100:data:1",
+            "bytes": [0x4E, 0x75, 0, 0],
+            "text": "dc.b $4E,$75,$00,$00",
+        },
+        {
+            "kind": "instruction",
+            "start_offset": 0x1200,
+            "row_key": "s0:00001200:instruction:2",
+            "operand_text": "#$1100,app_0360(a6)",
+            "app_slot_refs": [{"access": "write", "symbol": "app_0360", "displacement": 0x0360}],
+        },
+    ]
+
+
+def _callback_slot_read_row(start_offset: int, register: str) -> dict[str, object]:
+    return {
+        "kind": "instruction",
+        "start_offset": start_offset,
+        "row_key": f"s0:{start_offset:08X}:instruction:read",
+        "opcode_or_directive": "movea.l",
+        "operand_registers": [None, register],
+        "app_slot_refs": [{"access": "read", "symbol": "app_0360", "displacement": 0x0360}],
+    }
 
 
 def _callback_report(*, blocked_signal: bool = False) -> dict[str, object]:

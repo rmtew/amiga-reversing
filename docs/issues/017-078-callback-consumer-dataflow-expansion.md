@@ -1,6 +1,6 @@
 # 017-078: Callback Consumer Dataflow Expansion
 
-Status: active
+Status: complete
 Type: AFK
 Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
@@ -50,35 +50,69 @@ Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
 ## Research Coverage
 
-- [ ] `017-077` completion evidence checked before work.
-- [ ] Current Pandora callback report rerun before changing code.
-- [ ] Direct consumer detection preserved.
-- [ ] Delayed clobber-aware consumer detection implemented or explicitly blocked.
-- [ ] Address-register move consumer detection implemented or explicitly blocked.
-- [ ] Branch, label, clobber, and unsupported-shape cases fail closed with structured reasons.
-- [ ] Real Pandora rerun reports whether any recovered data target gains a consumer.
-- [ ] Any newly actionable candidate still passes existing callback gates.
-- [ ] No 012/018/Mac/platform-format files touched.
+- [x] `017-077` completion evidence checked before work.
+- [x] Current Pandora callback report rerun before changing code.
+- [x] Direct consumer detection preserved.
+- [x] Delayed clobber-aware consumer detection implemented or explicitly blocked.
+- [x] Address-register move consumer detection implemented or explicitly blocked.
+- [x] Branch, label, clobber, and unsupported-shape cases fail closed with structured reasons.
+- [x] Real Pandora rerun reports whether any recovered data target gains a consumer.
+- [x] Any newly actionable candidate still passes existing callback gates. No candidate became actionable.
+- [x] No 012/018/Mac/platform-format files touched.
 
 ## Research Review
 
-- [ ] The result is not documentation-only if a fixable local consumer dataflow gap exists.
-- [ ] Consumer proof is visible in callback evidence packets.
-- [ ] Unsafe or ambiguous consumer paths fail closed with structured reasons.
-- [ ] Any real Pandora candidate exposed by this work is either processed through the existing callback gates or explicitly blocked by those gates.
-- [ ] No Decision Journal write occurs on the disk/container target when the resolved subtarget is the source owner.
-- [ ] No source write occurs without verifier artifact and exact round-trip success.
-- [ ] Proposal 017 living notes updated with the real outcome.
+- [x] The result is not documentation-only if a fixable local consumer dataflow gap exists.
+- [x] Consumer proof is visible in callback evidence packets.
+- [x] Unsafe or ambiguous consumer paths fail closed with structured reasons.
+- [x] Any real Pandora candidate exposed by this work is either processed through the existing callback gates or explicitly blocked by those gates.
+- [x] No Decision Journal write occurs on the disk/container target when the resolved subtarget is the source owner.
+- [x] No source write occurs without verifier artifact and exact round-trip success.
+- [x] Proposal 017 living notes updated with the real outcome.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before work.
-- [ ] `017-077` completion notes checked before work.
-- [ ] Focused tests cover each consumer dataflow case.
-- [ ] Real Pandora callback report rerun.
-- [ ] If a candidate becomes actionable, `callback-decision` uses the resolved `listing_target_id`.
-- [ ] If a candidate becomes accepted, `decision-verifier-artifact` uses the resolved `listing_target_id`.
-- [ ] Exact round-trip passes for any source change.
-- [ ] `amiga_reversing.tools.validate_017_issues` passes.
-- [ ] `git diff --check` passes.
+- [x] Proposal context checked before work.
+- [x] `017-077` completion notes checked before work.
+- [x] Focused tests cover each consumer dataflow case.
+- [x] Real Pandora callback report rerun.
+- [x] If a candidate becomes actionable, `callback-decision` uses the resolved `listing_target_id`. No candidate became actionable.
+- [x] If a candidate becomes accepted, `decision-verifier-artifact` uses the resolved `listing_target_id`. No candidate became accepted.
+- [x] Exact round-trip passes for any source change. No source change occurred.
+- [x] `amiga_reversing.tools.validate_017_issues` passes.
+- [x] `git diff --check` passes.
 
+## Completion Evidence
+
+- Callback reports now run a local clobber-aware consumer dataflow scan for
+  slot reads. Evidence packets include `callback_consumer_dataflow` with
+  proven paths and fail-closed blockers, and slots include
+  `consumer_dataflow_blockers`.
+- Supported consumer proofs cover direct slot-read to `jsr`/`jmp (aN)`,
+  delayed local reads with intervening non-clobber instructions, and simple
+  address-register moves such as `movea.l a0,a1` followed by `jmp (a1)`.
+- Unsafe paths fail closed with structured reasons:
+  `consumer_not_found`, `consumer_register_clobbered`,
+  `consumer_crosses_label_boundary`, `consumer_crosses_branch`, and
+  `consumer_shape_unsupported`.
+- Focused fixture coverage proves direct, delayed, address-register move,
+  clobber, branch boundary, label boundary, unsupported call shape,
+  ambiguous register transfer, and non-call slot-read cases.
+- The current Pandora rerun still resolves to
+  `amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8`.
+  Summary: `assignment_count=191`, `consumer_count=3`,
+  `concrete_missed_code_target_count=7`, and recovered target classification
+  remains `already_represented=12`, `real_data=7`.
+- The current Pandora consumer blocker breakdown is:
+  `consumer_shape_unsupported=122`, `consumer_crosses_label_boundary=3`,
+  `consumer_not_found=3`, `consumer_crosses_branch=2`, and
+  `consumer_register_clobbered=2`.
+- None of the seven recovered Pandora real-data targets gained a consumer.
+  They remain non-actionable: six are zero-fill/data-like rows and one has
+  bytes that do not look like terminal callback code. Their consumer blockers
+  are now narrower (`consumer_shape_unsupported`, `consumer_not_found`, or
+  `consumer_crosses_label_boundary`) instead of silent absence.
+- `callback_orphan_code_signals=[]`; mutation gate remains blocked by
+  `ready_callback_review_item`; `safe_to_mutate=false`.
+- No Decision Journal, target metadata, generated source, verifier artifact,
+  012, 018, Mac, or platform-format files were written.
