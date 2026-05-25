@@ -1,6 +1,6 @@
 # 017-077: Callback Recovered Data Review Bridge
 
-Status: active
+Status: complete
 Type: AFK
 Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
@@ -49,34 +49,52 @@ Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
 ## Research Coverage
 
-- [ ] `017-076` completion evidence checked before work.
-- [ ] Current Pandora callback report rerun and recovered data target set summarized.
-- [ ] Each recovered data row classified with structured evidence.
-- [ ] All-zero/data-like rows fail closed unless stronger code evidence is present.
-- [ ] `unreconciled_data_range` rows are either confirmed as data-like or bridged to a code-review candidate with proof.
-- [ ] Missing-review rows either generate/surface an orphan-code signal or record a precise reason they cannot.
-- [ ] Any newly actionable candidate still passes existing callback gates.
-- [ ] No 012/018/Mac/platform-format files touched.
+- [x] `017-076` completion evidence checked before work.
+- [x] Current Pandora callback report rerun and recovered data target set summarized.
+- [x] Each recovered data row classified with structured evidence.
+- [x] All-zero/data-like rows fail closed unless stronger code evidence is present.
+- [x] `unreconciled_data_range` rows are either confirmed as data-like or bridged to a code-review candidate with proof.
+- [x] Missing-review rows either generate/surface an orphan-code signal or record a precise reason they cannot.
+- [x] Any newly actionable candidate still passes existing callback gates. No newly actionable candidate was found.
+- [x] No 012/018/Mac/platform-format files touched.
 
 ## Research Review
 
-- [ ] The result is not documentation-only if a fixable review/signal generation gap exists.
-- [ ] Recovered data classifications are visible in report/evidence output.
-- [ ] Unsafe or ambiguous recovered data rows fail closed with structured reasons.
-- [ ] Any real Pandora candidate exposed by this work is either processed through the existing callback gates or explicitly blocked by those gates.
-- [ ] No Decision Journal write occurs on the disk/container target when the resolved subtarget is the source owner.
-- [ ] No source write occurs without verifier artifact and exact round-trip success.
-- [ ] Proposal 017 living notes updated with the real outcome.
+- [x] The result is not documentation-only if a fixable review/signal generation gap exists.
+- [x] Recovered data classifications are visible in report/evidence output.
+- [x] Unsafe or ambiguous recovered data rows fail closed with structured reasons.
+- [x] Any real Pandora candidate exposed by this work is either processed through the existing callback gates or explicitly blocked by those gates.
+- [x] No Decision Journal write occurs on the disk/container target when the resolved subtarget is the source owner.
+- [x] No source write occurs without verifier artifact and exact round-trip success.
+- [x] Proposal 017 living notes updated with the real outcome.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before work.
-- [ ] `017-076` completion notes checked before work.
-- [ ] Focused tests cover each recovered-data classification case.
-- [ ] Real Pandora callback report rerun.
-- [ ] If a candidate becomes actionable, `callback-decision` uses the resolved `listing_target_id`.
-- [ ] If a candidate becomes accepted, `decision-verifier-artifact` uses the resolved `listing_target_id`.
-- [ ] Exact round-trip passes for any source change.
-- [ ] `amiga_reversing.tools.validate_017_issues` passes.
-- [ ] `git diff --check` passes.
+- [x] Proposal context checked before work.
+- [x] `017-076` completion notes checked before work.
+- [x] Focused tests cover each recovered-data classification case.
+- [x] Real Pandora callback report rerun.
+- [x] If a candidate becomes actionable, `callback-decision` uses the resolved `listing_target_id`. No candidate became actionable.
+- [x] If a candidate becomes accepted, `decision-verifier-artifact` uses the resolved `listing_target_id`. No candidate became accepted.
+- [x] Exact round-trip passes for any source change. No source change occurred.
+- [x] `amiga_reversing.tools.validate_017_issues` passes.
+- [x] `git diff --check` passes.
 
+## Completion Evidence
+
+- Callback evidence packets now include `recovered_target_classification`, and
+  the report summary includes `recovered_target_classification` counts.
+- Focused fixture coverage proves already-code targets, all-zero data,
+  data-like directives, unreconciled data ranges, missing-review missed-code
+  signal surfacing, and existing orphan-code review item classification.
+- Current Pandora rerun still resolves to
+  `amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8`
+  with no source mutation and `callback_orphan_code_signals=[]`.
+- Current recovered target classification summary:
+  `already_represented=12` and `real_data=7`.
+- The seven recovered data assignments are all non-actionable:
+  six are zero-fill/data-like directives, and one unreconciled data range has
+  bytes `$08,$88,$06,$66`, which do not look like terminal callback code. None
+  has a callback consumer.
+- No Decision Journal, target metadata, generated source, verifier artifact,
+  012, 018, Mac, or platform-format files were written.

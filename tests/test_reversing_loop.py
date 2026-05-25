@@ -16,6 +16,7 @@ from amiga_reversing import reversing_loop
 from amiga_reversing.disasm import decision_journal
 from amiga_reversing.disasm.callback_slot_report import (
     callback_decision_record,
+    callback_orphan_code_signals,
     callback_slot_report,
 )
 from amiga_reversing.disasm.manual_actions import (
@@ -1719,6 +1720,197 @@ def test_callback_report_blocks_register_provenance_across_label_boundary() -> N
 
     assert "missing_stored_source_offset" in packet["blockers"]
     assert triage["missing_stored_source_offset"]["reason"] == "register_symbol_load_crosses_label_boundary"
+
+
+def test_callback_recovered_target_classifies_already_code() -> None:
+    report = callback_slot_report(
+        [
+            {"kind": "label", "label": "abs_0_00011100", "start_offset": 0x1100},
+            {
+                "kind": "instruction",
+                "start_offset": 0x1100,
+                "row_key": "s0:00001100:instruction:1",
+                "opcode_or_directive": "rts",
+            },
+            {
+                "kind": "instruction",
+                "start_offset": 0x1200,
+                "row_key": "s0:00001200:instruction:2",
+                "opcode_or_directive": "lea.l",
+                "operand_registers": [None, "A0"],
+                "operand_parts": [{"kind": "symbol", "metadata": {"symbol": "abs_0_00011100"}}],
+            },
+            {
+                "kind": "instruction",
+                "start_offset": 0x1204,
+                "row_key": "s0:00001204:instruction:3",
+                "operand_text": "a0,app_0360(a6)",
+                "operand_registers": ["A0", None],
+                "app_slot_refs": [{"access": "write", "symbol": "app_0360", "displacement": 0x0360}],
+            },
+        ]
+    )
+
+    classification = report["slots"][0]["assignments"][0]["evidence_packet"]["recovered_target_classification"]
+
+    assert classification["category"] == "already_represented"
+    assert classification["reason"] == "target_listing_row_is_already_instruction"
+
+
+def test_callback_recovered_target_classifies_all_zero_data() -> None:
+    report = callback_slot_report(
+        [
+            {
+                "kind": "data",
+                "start_offset": 0x1100,
+                "end_offset": 0x1104,
+                "row_key": "s0:00001100:data:1",
+                "bytes": [0, 0, 0, 0],
+                "text": "dc.b $00,$00,$00,$00",
+            },
+            {
+                "kind": "instruction",
+                "start_offset": 0x1200,
+                "row_key": "s0:00001200:instruction:2",
+                "operand_text": "#$1100,app_0360(a6)",
+                "app_slot_refs": [{"access": "write", "symbol": "app_0360", "displacement": 0x0360}],
+            },
+        ]
+    )
+
+    classification = report["slots"][0]["assignments"][0]["evidence_packet"]["recovered_target_classification"]
+
+    assert classification["category"] == "real_data"
+    assert classification["reason"] == "target_data_is_zero_fill_or_data_directive"
+    assert classification["risk_kinds"] == ["all_zero_data"]
+
+
+def test_callback_recovered_target_classifies_data_like_directive() -> None:
+    report = callback_slot_report(
+        [
+            {
+                "kind": "data",
+                "start_offset": 0x1100,
+                "end_offset": 0x1120,
+                "row_key": "s0:00001100:data:1",
+                "bytes": [0x20, 0],
+                "text": "dcb.b $20,$00",
+                "opcode_or_directive": "dcb.b",
+            },
+            {
+                "kind": "instruction",
+                "start_offset": 0x1200,
+                "row_key": "s0:00001200:instruction:2",
+                "operand_text": "#$1100,app_0360(a6)",
+                "app_slot_refs": [{"access": "write", "symbol": "app_0360", "displacement": 0x0360}],
+            },
+        ]
+    )
+
+    classification = report["slots"][0]["assignments"][0]["evidence_packet"]["recovered_target_classification"]
+
+    assert classification["category"] == "real_data"
+    assert classification["reason"] == "target_data_is_zero_fill_or_data_directive"
+    assert classification["risk_kinds"] == ["all_zero_data", "data_like_directive"]
+
+
+def test_callback_recovered_target_classifies_unreconciled_data_range() -> None:
+    report = callback_slot_report(
+        [
+            {
+                "kind": "data",
+                "start_offset": 0x1100,
+                "end_offset": 0x1104,
+                "row_key": "s0:00001100:data:1",
+                "bytes": [0x08, 0x88, 0x06, 0x66],
+                "text": "dc.b $08,$88,$06,$66",
+            },
+            {
+                "kind": "instruction",
+                "start_offset": 0x1200,
+                "row_key": "s0:00001200:instruction:2",
+                "operand_text": "#$1100,app_0360(a6)",
+                "app_slot_refs": [{"access": "write", "symbol": "app_0360", "displacement": 0x0360}],
+            },
+        ],
+        [{"kind": "unreconciled_data_range", "start": 0x1100, "end": 0x1104}],
+    )
+
+    classification = report["slots"][0]["assignments"][0]["evidence_packet"]["recovered_target_classification"]
+
+    assert classification["category"] == "real_data"
+    assert classification["review_item_kind"] == "unreconciled_data_range"
+    assert classification["reason"] == "target_bytes_do_not_look_like_terminal_callback_code"
+
+
+def test_callback_recovered_target_surfaces_missing_review_missed_code_signal() -> None:
+    report = callback_slot_report(
+        [
+            {
+                "kind": "data",
+                "start_offset": 0x1100,
+                "end_offset": 0x1104,
+                "row_key": "s0:00001100:data:1",
+                "bytes": [0x4E, 0x75, 0, 0],
+                "text": "dc.b $4E,$75,$00,$00",
+            },
+            {
+                "kind": "instruction",
+                "start_offset": 0x1200,
+                "row_key": "s0:00001200:instruction:2",
+                "operand_text": "#$1100,app_0360(a6)",
+                "app_slot_refs": [{"access": "write", "symbol": "app_0360", "displacement": 0x0360}],
+            },
+            {
+                "kind": "instruction",
+                "start_offset": 0x1204,
+                "row_key": "s0:00001204:instruction:3",
+                "opcode_or_directive": "movea.l",
+                "operand_registers": [None, "A0"],
+                "app_slot_refs": [{"access": "read", "symbol": "app_0360", "displacement": 0x0360}],
+            },
+            {"kind": "instruction", "start_offset": 0x1208, "opcode_or_directive": "jsr", "operand_text": "(a0)"},
+        ]
+    )
+
+    assignment = report["slots"][0]["assignments"][0]
+    classification = assignment["evidence_packet"]["recovered_target_classification"]
+
+    assert assignment["generated_orphan_code_signal"]["status"] == "generated"
+    assert len(callback_orphan_code_signals(report)) == 1
+    assert classification["category"] == "missed_code_candidate"
+    assert classification["bridge_action"] == "surface_orphan_code_signal"
+
+
+def test_callback_recovered_target_classifies_existing_orphan_review_item() -> None:
+    report = callback_slot_report(
+        [
+            {
+                "kind": "data",
+                "start_offset": 0x1100,
+                "end_offset": 0x1104,
+                "row_key": "s0:00001100:data:1",
+                "bytes": [0x4E, 0x75, 0, 0],
+                "text": "dc.b $4E,$75,$00,$00",
+            },
+            {
+                "kind": "instruction",
+                "start_offset": 0x1200,
+                "row_key": "s0:00001200:instruction:2",
+                "operand_text": "#$1100,app_0360(a6)",
+                "app_slot_refs": [{"access": "write", "symbol": "app_0360", "displacement": 0x0360}],
+            },
+        ],
+        [{"kind": "orphan_code_candidate", "start": 0x1100, "end": 0x1104}],
+    )
+
+    assignment = report["slots"][0]["assignments"][0]
+    classification = assignment["evidence_packet"]["recovered_target_classification"]
+
+    assert assignment["action_readiness"]["status"] == "ready_for_review_seed_code"
+    assert classification["category"] == "already_represented"
+    assert classification["reason"] == "orphan_code_candidate_review_item_already_exists"
+    assert classification["bridge_action"] == "existing_review_item"
 
 
 def test_callback_report_resolves_disk_container_to_primary_subtarget(

@@ -1386,3 +1386,9 @@ repeatable work to `docs\issues\017-*`.
   data-like blockers on six. Remaining unresolved stores now fail closed with
   narrower reasons such as small/non-mapped immediates, clobbered registers,
   label-boundary ambiguity, missing listing offsets, or non-address stores.
+- 017-077 added recovered target classification to callback evidence packets and
+  report summaries. The real Pandora recovered set is now explicit:
+  12 already-code targets are `already_represented`, and the 7 recovered data
+  rows classify as `real_data`. Six are zero-fill/data-like rows, and the one
+  unreconciled data range has bytes that do not look like terminal callback code.
+  No recovered data row surfaced a valid orphan-code signal or source mutation.

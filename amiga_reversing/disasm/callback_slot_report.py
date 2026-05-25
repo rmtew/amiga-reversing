@@ -75,6 +75,7 @@ def callback_slot_report(
         ),
     }
     summary["blocker_triage"] = _callback_blocker_triage_summary(slot_reports)
+    summary["recovered_target_classification"] = _callback_recovered_target_classification_summary(slot_reports)
     return {
         "kind": "callback_slot_report",
         "slot_filter": {"slot_symbol": slot_symbol, "slot_offset": slot_offset},
@@ -639,6 +640,14 @@ def _callback_assignment_evidence_packet(
         selected_identity["selected_use_id"],
     )
     blockers = sorted(set(blockers))
+    recovered_target_classification = _callback_recovered_target_classification(
+        assignment,
+        consumers,
+        target,
+        target_bytes,
+        false_positive_checks,
+        blockers,
+    )
     return {
         "packet_kind": "callback_derived_code_evidence_packet",
         "schema_version": 1,
@@ -697,6 +706,7 @@ def _callback_assignment_evidence_packet(
             target_bytes,
             blockers,
         ),
+        "recovered_target_classification": recovered_target_classification,
         "status": "blocked" if blockers else "action_ready",
         "render_readiness": {
             "status": "blocked",
@@ -746,6 +756,127 @@ def _callback_assignment_orphan_code_signal(packet: Mapping[str, object]) -> dic
             "packet_id": packet.get("packet_id"),
             "selected_identity": dict(selected_identity),
         },
+    }
+
+
+def _callback_recovered_target_classification(
+    assignment: Mapping[str, object],
+    consumers: Sequence[Mapping[str, object]],
+    target: Mapping[str, object] | None,
+    target_bytes: Sequence[int],
+    false_positive_checks: Sequence[Mapping[str, object]],
+    blockers: Sequence[str],
+) -> dict[str, object] | None:
+    target_start = _int_or_none(assignment.get("stored_source_offset"))
+    if target_start is None:
+        return None
+    review_item = assignment.get("review_item")
+    review_item = review_item if isinstance(review_item, Mapping) else None
+    target_kind = target.get("kind") if target is not None else None
+    base: dict[str, object] = {
+        "target_offset": target_start,
+        "target_kind": target_kind,
+        "target_bytes": list(target_bytes),
+        "review_item_kind": review_item.get("kind") if review_item is not None else None,
+        "consumer_count": len(consumers),
+        "stored_source_offset_provenance": assignment.get("stored_source_offset_provenance"),
+    }
+    if target is None:
+        return {
+            **base,
+            "category": "blocked_non_code",
+            "reason": "recovered_offset_has_no_listing_target_row",
+            "bridge_action": "blocked",
+        }
+    if target_kind == "instruction":
+        return {
+            **base,
+            "category": "already_represented",
+            "reason": "target_listing_row_is_already_instruction",
+            "bridge_action": "none",
+        }
+    if target_kind != "data":
+        return {
+            **base,
+            "category": "blocked_non_code",
+            "reason": "recovered_target_row_is_not_data_or_instruction",
+            "bridge_action": "blocked",
+        }
+    if review_item is not None and review_item.get("kind") == "orphan_code_candidate":
+        return {
+            **base,
+            "category": "already_represented",
+            "reason": "orphan_code_candidate_review_item_already_exists",
+            "bridge_action": "existing_review_item",
+        }
+    risk_kinds = {
+        str(check.get("kind"))
+        for check in false_positive_checks
+        if check.get("status") == "risk"
+    }
+    if risk_kinds & {"all_zero_data", "data_like_directive"}:
+        return {
+            **base,
+            "category": "real_data",
+            "reason": "target_data_is_zero_fill_or_data_directive",
+            "bridge_action": "blocked",
+            "risk_kinds": sorted(risk_kinds),
+        }
+    code_like = _looks_like_terminal_code_bytes(target_bytes)
+    if not code_like:
+        return {
+            **base,
+            "category": "real_data",
+            "reason": "target_bytes_do_not_look_like_terminal_callback_code",
+            "bridge_action": "blocked",
+        }
+    if not consumers:
+        return {
+            **base,
+            "category": "blocked_non_code",
+            "reason": "code_like_data_lacks_callback_consumer",
+            "bridge_action": "blocked",
+        }
+    if review_item is not None and review_item.get("kind") != "orphan_code_candidate":
+        return {
+            **base,
+            "category": "missed_code_candidate",
+            "reason": "code_like_data_has_non_code_review_item",
+            "bridge_action": "surface_orphan_code_signal",
+            "existing_blockers": list(blockers),
+        }
+    return {
+        **base,
+        "category": "missed_code_candidate",
+        "reason": "code_like_data_has_callback_consumer_and_no_review_item",
+        "bridge_action": "surface_orphan_code_signal",
+    }
+
+
+def _callback_recovered_target_classification_summary(slot_reports: Sequence[Mapping[str, object]]) -> dict[str, object]:
+    by_category: dict[str, int] = {}
+    by_reason: dict[str, int] = {}
+    for slot in slot_reports:
+        assignments = slot.get("assignments")
+        if not isinstance(assignments, Sequence) or isinstance(assignments, str):
+            continue
+        for assignment in assignments:
+            if not isinstance(assignment, Mapping):
+                continue
+            packet = assignment.get("evidence_packet")
+            packet = packet if isinstance(packet, Mapping) else {}
+            classification = packet.get("recovered_target_classification")
+            if not isinstance(classification, Mapping):
+                continue
+            category = classification.get("category")
+            reason = classification.get("reason")
+            if isinstance(category, str):
+                by_category[category] = by_category.get(category, 0) + 1
+            if isinstance(reason, str):
+                by_reason[reason] = by_reason.get(reason, 0) + 1
+    return {
+        "by_category": dict(sorted(by_category.items())),
+        "by_reason": dict(sorted(by_reason.items())),
     }
 
 
