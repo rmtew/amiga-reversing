@@ -7,6 +7,7 @@ from typing import Any, cast
 import pytest
 
 from amiga_reversing.disasm import macos_listing_source
+from amiga_reversing.disasm.binary_source import MacosCodeResourceSource
 from amiga_reversing.disasm.c_backend import (
     inspect_macos_hfs_code_summary_with_c_backend,
 )
@@ -84,6 +85,65 @@ def test_021_001_macos_listing_source_sits_behind_native_descriptor() -> None:
         "macos-code-resource:resources/platform_macos/MPW-GM.img.bin:MPW-GM/MPW/Tools/Asm:CODE:1"
     )
     assert classified_range["fact_status"] == "candidate"
+
+
+def test_021_005_macos_listing_profile_uses_native_descriptor_not_raw_bridge(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    image_path = tmp_path / "MPW-GM.img.bin"
+    image_path.write_bytes(b"fixture")
+    calls: dict[str, object] = {}
+
+    class FakeArtifact:
+        def summary_payload(self) -> tuple[dict[str, object], dict[str, object]]:
+            return {"total_rows": 1}, {}
+
+    project = type(
+        "Project",
+        (),
+        {
+            "id": "macos_sample",
+            "origin": {
+                "kind": "macos_mpw_fixture",
+                "source_image": image_path.name,
+                "hfs_path": "MPW-GM/MPW/Tools/Asm",
+                "selected_code_resource_id": 1,
+            },
+        },
+    )()
+
+    def fake_listing_source(project_obj: object, *, project_root: Path) -> dict[str, object]:
+        calls["listing_project"] = project_obj
+        return {
+            "hfs_path": "MPW-GM/MPW/Tools/Asm",
+            "fork": "resource",
+            "resource_type": "CODE",
+            "resource_id": 1,
+            "resource_name": "Main",
+            "classified_range": {"load_offset": 40, "size": 4},
+            "executable_deferred": [],
+        }
+
+    def fake_build(binary_source: object, **kwargs: object) -> tuple[int, dict[str, object], FakeArtifact]:
+        calls["binary_source"] = binary_source
+        calls["project_root"] = kwargs.get("project_root")
+        return 1, {"backend": "amiga-raw", "wrapped_backend": "amiga-raw"}, FakeArtifact()
+
+    monkeypatch.setattr(macos_listing_source, "build_macos_code_listing_source", fake_listing_source)
+    monkeypatch.setattr(macos_listing_source, "build_listing_artifact_profile_from_binary_source", fake_build)
+
+    _total_rows, profile, artifact = macos_listing_source.build_macos_project_listing_artifact_profile(
+        project,
+        project_root=tmp_path,
+    )
+
+    assert isinstance(calls["binary_source"], MacosCodeResourceSource)
+    assert not hasattr(calls["binary_source"], "read_bytes")
+    assert profile["backend"] == "macos-code"
+    assert profile["source_kind"] == "macos_code_resource"
+    assert "wrapped_backend" not in profile
+    assert isinstance(artifact, macos_listing_source.MacosCodeListingArtifact)
 
 
 def test_021_001_macos_code_source_descriptor_fails_closed_for_invalid_origin() -> None:

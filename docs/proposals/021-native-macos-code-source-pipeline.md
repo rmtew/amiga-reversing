@@ -1,9 +1,9 @@
 # Proposal 021: Native Mac CODE Source Pipeline
 
 Status: active. Proposal 020 completed the shared executable import pipeline:
-Mac CODE now exposes `platform_executable_summary_v1` ranges, but selected CODE
-listing still travels through a temporary `RawBinarySource` byte bridge and
-appears internally as wrapped `amiga-raw`.
+Mac CODE now exposes `platform_executable_summary_v1` ranges, and 021 has moved
+the selected CODE listing path to native `macos-code` identity. Final closeout
+proof is tracked by 021-006.
 
 ## Purpose
 
@@ -192,10 +192,25 @@ Retained public compatibility fields and blockers:
 
 ### 021-005: Delete Raw Bridge And Superseded Paths
 
-Delete `_temporary_code_binary_source` and any active `RawBinarySource` bridge
-behavior proven replaced by 021. Keep no compatibility branch for the old default
-path. Retain only explicitly blocked public compatibility fields that still have
-consumers.
+Completed raw-bridge deletion slice:
+
+| Old path | Replacement proof | Decision |
+| --- | --- | --- |
+| `macos_listing_source._temporary_code_binary_source` materialized selected CODE bytes as a temporary `RawBinarySource`. | `build_macos_project_listing_artifact_profile` now resolves a `MacosCodeResourceSource` descriptor and passes it directly to `build_listing_artifact_profile_from_binary_source`; `test_021_005_macos_listing_profile_uses_native_descriptor_not_raw_bridge` fails if the listing path stops using the native descriptor. | Deleted. |
+| Active Mac CODE listing/analysis profiles stripped a wrapped raw profile after using the raw bridge. | 021-003/021-005 tests assert listing, analysis, source, and row-window profiles report `backend: macos-code`, `source_kind: macos_code_resource`, and no public `wrapped_backend`. | Old active behavior deleted; profile adjustment remains only to normalize the generic C artifact profile under native Mac identity. |
+| Project/artifact/web public compatibility fields (`selected_code_segment`, `code_layout`, `orphan_ranges`, `relocation_fixups`). | 021-004 tests prove current payload consumers still use these fields for visible CODE coverage, candidate previews, and deferred fixup explanations. | Retained as public Mac evidence fields, not raw transport. |
+| Project candidate preview row decoding in `macos_project_payload._preview_decode_rows`. | The preview window decodes bounded candidate bytes only for display rows; it is not the selected listing/analysis/artifact/API source path, and public payload identity now carries `native_source`. | Retained blocker: needs a native byte-slice preview decoder API before deleting this internal preview-only `RawBinarySource` transport. |
+
+Current state after 021-005:
+
+- Active selected Mac CODE source selection, listing, analysis, artifact, and
+  web/API payload identity use native Mac CODE descriptors and report
+  `macos-code`.
+- No active selected Mac CODE listing/analysis path constructs
+  `RawBinarySource` or reports wrapped `amiga-raw`.
+- The only remaining `RawBinarySource` use in Mac project code is the bounded
+  candidate preview decoder. It is formally out of the active listing path and
+  remains future work until a native preview byte-slice decoder exists.
 
 ### 021-006: Closeout Proof
 

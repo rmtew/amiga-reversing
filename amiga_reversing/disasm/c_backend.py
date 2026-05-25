@@ -28,6 +28,7 @@ from amiga_reversing.disasm.binary_source import (
     BinarySourceKind,
     DiskEntryBinarySource,
     HunkFileBinarySource,
+    MacosCodeResourceSource,
     RawAddressModel,
     RawBinarySource,
 )
@@ -1687,6 +1688,23 @@ def _source_file_for_c_backend(
         finally:
             if temp_path is not None:
                 temp_path.unlink(missing_ok=True)
+        return
+    if isinstance(binary_source, MacosCodeResourceSource):
+        from amiga_reversing.disasm.macos_code_provider import macos_code_resource_byte_view_with_c_backend
+
+        payload, _profile = macos_code_resource_byte_view_with_c_backend(binary_source)
+        code_bytes = payload.get("code_bytes")
+        if not isinstance(code_bytes, bytes):
+            raise TypeError("Mac CODE byte provider did not return code bytes")
+        macos_temp_path: Path | None = None
+        try:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".macos-code.bin") as temp_file:
+                temp_file.write(code_bytes)
+                macos_temp_path = Path(temp_file.name)
+            yield _CBackendSourceFile(macos_temp_path, "amiga-raw", 0, None)
+        finally:
+            if macos_temp_path is not None:
+                macos_temp_path.unlink(missing_ok=True)
         return
     if isinstance(binary_source, RawBinarySource):
         yield _CBackendSourceFile(

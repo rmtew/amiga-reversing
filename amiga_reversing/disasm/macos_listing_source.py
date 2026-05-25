@@ -2,18 +2,11 @@
 
 from __future__ import annotations
 
-import tempfile
-from collections.abc import Iterator, Mapping
-from contextlib import contextmanager
+from collections.abc import Mapping
 from pathlib import Path
 from typing import cast
 
 from amiga_reversing.disasm.api import ListingWindowPayload
-from amiga_reversing.disasm.binary_source import (
-    BinarySourceKind,
-    RawAddressModel,
-    RawBinarySource,
-)
 from amiga_reversing.disasm.c_backend import (
     CListingArtifact,
     build_listing_artifact_profile_from_binary_source,
@@ -33,12 +26,12 @@ def build_macos_project_listing_artifact_profile(
     *,
     project_root: Path = PROJECT_ROOT,
 ) -> tuple[int, dict[str, object], MacosCodeListingArtifact]:
+    descriptor = macos_code_source_descriptor_from_project(project, project_root=project_root)
     listing_source = build_macos_code_listing_source(project, project_root=project_root)
-    with _temporary_code_binary_source(listing_source, project_root=project_root) as binary_source:
-        total_rows, profile, artifact = build_listing_artifact_profile_from_binary_source(
-            binary_source,
-            project_root=project_root,
-        )
+    total_rows, profile, artifact = build_listing_artifact_profile_from_binary_source(
+        descriptor,
+        project_root=project_root,
+    )
     macos_artifact = MacosCodeListingArtifact(artifact, listing_source)
     summary, _summary_profile = macos_artifact.summary_payload()
     adjusted_total = summary.get("total_rows")
@@ -184,35 +177,6 @@ class MacosCodeListingArtifact:
         start = adjusted.get("start", 0)
         adjusted["end"] = (start if isinstance(start, int) else 0) + len(rows)
         return cast(ListingWindowPayload, adjusted)
-
-
-@contextmanager
-def _temporary_code_binary_source(
-    listing_source: Mapping[str, object],
-    *,
-    project_root: Path,
-) -> Iterator[RawBinarySource]:
-    code_bytes = listing_source.get("code_bytes")
-    if not isinstance(code_bytes, bytes):
-        raise TypeError("Mac CODE listing source requires code_bytes")
-    temp_path: Path | None = None
-    try:
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".macos-code.bin") as temp_file:
-            temp_file.write(code_bytes)
-            temp_path = Path(temp_file.name)
-        yield RawBinarySource(
-            kind=BinarySourceKind.RAW_BINARY,
-            path=temp_path,
-            address_model=RawAddressModel.LOCAL_OFFSET,
-            load_address=0,
-            entrypoint=0,
-            code_start_offset=0,
-            display_path=str(listing_source.get("display_path") or "Mac OS CODE resource"),
-            analysis_cache_path=project_root / "targets" / ".macos-code.analysis",
-        )
-    finally:
-        if temp_path is not None:
-            temp_path.unlink(missing_ok=True)
 
 
 def _display_source_image(source_image: Path, project_root: Path) -> str:
