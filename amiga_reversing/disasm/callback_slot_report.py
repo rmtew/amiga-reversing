@@ -7,6 +7,8 @@ from typing import cast
 
 from amiga_reversing.disasm import decision_journal
 
+_MIN_CALLBACK_ADDRESS_VALUE = 0x1000
+
 
 def callback_slot_report(
     rows: Sequence[Mapping[str, object]],
@@ -22,6 +24,7 @@ def callback_slot_report(
     row_list = list(rows)
     label_offsets = _label_offsets(row_list)
     target_rows = _rows_by_start_offset(row_list)
+    runtime_rows = _rows_by_runtime_address(row_list)
     review_by_start = _review_items_by_start(review_items)
     slot_filter = _slot_filter(slot_symbol=slot_symbol, slot_offset=slot_offset)
     consumers = _slot_consumers(row_list, slot_filter=slot_filter, lookahead_rows=lookahead_rows)
@@ -30,6 +33,7 @@ def callback_slot_report(
         slot_filter=slot_filter,
         label_offsets=label_offsets,
         target_rows=target_rows,
+        runtime_rows=runtime_rows,
         review_by_start=review_by_start,
         lookback_rows=lookback_rows,
     )
@@ -360,6 +364,7 @@ def _slot_assignments(
     slot_filter: Callable[[Mapping[str, object]], bool],
     label_offsets: dict[str, int],
     target_rows: dict[int, Mapping[str, object]],
+    runtime_rows: dict[int, Mapping[str, object]],
     review_by_start: dict[int, Mapping[str, object]],
     lookback_rows: int,
 ) -> list[dict[str, object]]:
@@ -369,9 +374,19 @@ def _slot_assignments(
         if ref is None:
             continue
         source_register = _source_register(row)
-        symbol_row = _previous_symbol_load(rows, index, source_register, lookback_rows=lookback_rows)
-        symbol = _symbol_operand(symbol_row) if symbol_row is not None else None
-        target_offset = label_offsets.get(symbol) if symbol is not None else None
+        source = _stored_source_recovery(
+            rows,
+            index,
+            source_register=source_register,
+            label_offsets=label_offsets,
+            target_rows=target_rows,
+            runtime_rows=runtime_rows,
+            lookback_rows=max(lookback_rows, 32),
+        )
+        symbol_row = source.get("value_source")
+        symbol_row = symbol_row if isinstance(symbol_row, Mapping) else None
+        symbol = source.get("stored_symbol") if isinstance(source.get("stored_symbol"), str) else None
+        target_offset = _int_or_none(source.get("stored_source_offset"))
         target_row = target_rows.get(target_offset) if target_offset is not None else None
         review_item = review_by_start.get(target_offset) if target_offset is not None else None
         assignments.append(
@@ -382,6 +397,7 @@ def _slot_assignments(
                 "value_source": _row_payload(symbol_row),
                 "stored_symbol": symbol,
                 "stored_source_offset": target_offset,
+                "stored_source_offset_provenance": source.get("provenance"),
                 "target": _row_payload(target_row),
                 "target_kind": target_row.get("kind") if target_row is not None else None,
                 "review_item": _review_item_payload(review_item),
@@ -390,6 +406,160 @@ def _slot_assignments(
             }
         )
     return assignments
+
+
+def _stored_source_recovery(
+    rows: list[Mapping[str, object]],
+    index: int,
+    *,
+    source_register: str | None,
+    label_offsets: Mapping[str, int],
+    target_rows: Mapping[int, Mapping[str, object]],
+    runtime_rows: Mapping[int, Mapping[str, object]],
+    lookback_rows: int,
+) -> dict[str, object]:
+    row = rows[index]
+    direct = _direct_store_source_recovery(row, label_offsets, target_rows, runtime_rows)
+    if direct is not None:
+        return direct
+    register = _register_store_source_recovery(
+        rows,
+        index,
+        source_register=source_register,
+        label_offsets=label_offsets,
+        lookback_rows=lookback_rows,
+    )
+    if register is not None:
+        return register
+    return {
+        "stored_symbol": None,
+        "stored_source_offset": None,
+        "value_source": None,
+        "provenance": {
+            "kind": "unresolved",
+            "status": "blocked",
+            "reason": "store_does_not_write_an_address_register_value"
+            if source_register is None
+            else "stored_register_has_no_nearby_symbol_load",
+        },
+    }
+
+
+def _direct_store_source_recovery(
+    row: Mapping[str, object],
+    label_offsets: Mapping[str, int],
+    target_rows: Mapping[int, Mapping[str, object]],
+    runtime_rows: Mapping[int, Mapping[str, object]],
+) -> dict[str, object] | None:
+    immediate = _store_immediate_value(row)
+    if immediate is None:
+        return None
+    if isinstance(immediate, str):
+        offset = label_offsets.get(immediate)
+        return {
+            "stored_symbol": immediate,
+            "stored_source_offset": offset,
+            "value_source": row,
+            "provenance": {
+                "kind": "absolute_label",
+                "status": "resolved" if offset is not None else "blocked",
+                "symbol": immediate,
+                "reason": "absolute_label_resolved" if offset is not None else "absolute_label_missing_listing_offset",
+            },
+        }
+    if immediate < _MIN_CALLBACK_ADDRESS_VALUE:
+        return {
+            "stored_symbol": None,
+            "stored_source_offset": None,
+            "value_source": row,
+            "provenance": {
+                "kind": "direct_immediate",
+                "status": "blocked",
+                "value": immediate,
+                "reason": "direct_immediate_below_address_threshold",
+            },
+        }
+    if immediate in target_rows:
+        return {
+            "stored_symbol": None,
+            "stored_source_offset": immediate,
+            "value_source": row,
+            "provenance": {
+                "kind": "direct_source_offset",
+                "status": "resolved",
+                "value": immediate,
+                "reason": "direct_immediate_matches_listing_source_offset",
+            },
+        }
+    runtime_row = runtime_rows.get(immediate)
+    if runtime_row is not None:
+        source_offset = _int_or_none(runtime_row.get("start_offset"))
+        return {
+            "stored_symbol": None,
+            "stored_source_offset": source_offset,
+            "value_source": row,
+            "provenance": {
+                "kind": "runtime_address",
+                "status": "resolved" if source_offset is not None else "blocked",
+                "value": immediate,
+                "reason": "direct_immediate_matches_listing_runtime_address"
+                if source_offset is not None
+                else "runtime_address_row_missing_source_offset",
+            },
+        }
+    return {
+        "stored_symbol": None,
+        "stored_source_offset": None,
+        "value_source": row,
+        "provenance": {
+            "kind": "direct_immediate",
+            "status": "blocked",
+            "value": immediate,
+            "reason": "direct_immediate_not_listing_source_or_runtime_address",
+        },
+    }
+
+
+def _register_store_source_recovery(
+    rows: list[Mapping[str, object]],
+    index: int,
+    *,
+    source_register: str | None,
+    label_offsets: Mapping[str, int],
+    lookback_rows: int,
+) -> dict[str, object] | None:
+    if source_register is None:
+        return None
+    source, blocker = _previous_symbol_load_or_blocker(rows, index, source_register, lookback_rows=lookback_rows)
+    if source is None:
+        return {
+            "stored_symbol": None,
+            "stored_source_offset": None,
+            "value_source": None,
+            "provenance": {
+                "kind": "register_local_provenance",
+                "status": "blocked",
+                "register": source_register,
+                "reason": blocker or "stored_register_has_no_nearby_symbol_load",
+            },
+        }
+    symbol = _symbol_operand(source)
+    offset = label_offsets.get(symbol) if symbol is not None else None
+    return {
+        "stored_symbol": symbol,
+        "stored_source_offset": offset,
+        "value_source": source,
+        "provenance": {
+            "kind": "register_symbol_load",
+            "status": "resolved" if offset is not None else "blocked",
+            "register": source_register,
+            "symbol": symbol,
+            "reason": "local_register_symbol_load_resolved"
+            if offset is not None
+            else "local_register_symbol_load_missing_listing_offset",
+            "lookback_row_count": min(index, lookback_rows),
+        },
+    }
 
 
 def _assignment_action_readiness(
@@ -470,6 +640,7 @@ def _callback_assignment_evidence_packet(
             "value_source": assignment.get("value_source"),
             "stored_symbol": assignment.get("stored_symbol"),
             "stored_source_offset": target_start,
+            "stored_source_offset_provenance": assignment.get("stored_source_offset_provenance"),
         },
         "callback_consumers": list(consumers),
         "target": {
@@ -577,6 +748,8 @@ def _callback_blocker_triage(
     stored_register = assignment.get("stored_register")
     value_source = assignment.get("value_source")
     value_source = value_source if isinstance(value_source, Mapping) else None
+    provenance = assignment.get("stored_source_offset_provenance")
+    provenance = provenance if isinstance(provenance, Mapping) else None
     for blocker in blockers:
         if blocker == "missing_stored_source_offset":
             result.append(
@@ -587,7 +760,9 @@ def _callback_blocker_triage(
                         operand_text=operand_text,
                         stored_register=stored_register,
                         value_source=value_source,
+                        provenance=provenance,
                     ),
+                    "provenance": dict(provenance) if provenance is not None else None,
                 }
             )
         elif blocker == "target_row_missing":
@@ -648,7 +823,10 @@ def _missing_stored_source_offset_reason(
     operand_text: str,
     stored_register: object,
     value_source: Mapping[str, object] | None,
+    provenance: Mapping[str, object] | None,
 ) -> str:
+    if provenance is not None and isinstance(provenance.get("reason"), str):
+        return str(provenance["reason"])
     if "#" in operand_text:
         return "direct_immediate_store_requires_address_model_proof"
     if isinstance(stored_register, str) and value_source is None:
@@ -813,18 +991,47 @@ def _previous_symbol_load(
     *,
     lookback_rows: int,
 ) -> Mapping[str, object] | None:
+    source, _blocker = _previous_symbol_load_or_blocker(rows, index, register, lookback_rows=lookback_rows)
+    return source
+
+
+def _previous_symbol_load_or_blocker(
+    rows: list[Mapping[str, object]],
+    index: int,
+    register: str | None,
+    *,
+    lookback_rows: int,
+) -> tuple[Mapping[str, object] | None, str | None]:
     if register is None:
-        return None
+        return None, "store_does_not_write_an_address_register_value"
+    saw_label_boundary = False
     for candidate in reversed(rows[max(0, index - lookback_rows) : index]):
+        if candidate.get("kind") == "label":
+            saw_label_boundary = True
+            continue
         destination = _destination_register(candidate)
         if destination is None:
             continue
         if destination != register:
             continue
         if _symbol_operand(candidate) is not None:
-            return candidate
+            if saw_label_boundary:
+                return None, "register_symbol_load_crosses_label_boundary"
+            return candidate, None
+        return None, "stored_register_clobbered_before_store"
+    return None, "stored_register_has_no_nearby_symbol_load"
+
+
+def _store_immediate_value(row: Mapping[str, object]) -> int | str | None:
+    text = str(row.get("operand_text") or "")
+    match = re.search(r"#(?:\$([0-9A-Fa-f]+)|([0-9]+)|([A-Za-z_][\w.]*)).*?,", text)
+    if match is None:
         return None
-    return None
+    if match.group(1) is not None:
+        return int(match.group(1), 16)
+    if match.group(2) is not None:
+        return int(match.group(2), 10)
+    return match.group(3)
 
 
 def _symbol_operand(row: Mapping[str, object] | None) -> str | None:
@@ -865,6 +1072,17 @@ def _rows_by_start_offset(rows: Sequence[Mapping[str, object]]) -> dict[int, Map
             continue
         if row.get("kind") in {"instruction", "data"} and start not in result:
             result[start] = row
+    return result
+
+
+def _rows_by_runtime_address(rows: Sequence[Mapping[str, object]]) -> dict[int, Mapping[str, object]]:
+    result: dict[int, Mapping[str, object]] = {}
+    for row in rows:
+        runtime_address = row.get("runtime_address")
+        if not isinstance(runtime_address, int) or isinstance(runtime_address, bool):
+            continue
+        if row.get("kind") in {"instruction", "data"} and runtime_address not in result:
+            result[runtime_address] = row
     return result
 
 

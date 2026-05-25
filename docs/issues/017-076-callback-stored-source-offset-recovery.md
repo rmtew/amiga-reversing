@@ -1,6 +1,6 @@
 # 017-076: Callback Stored Source Offset Recovery
 
-Status: active
+Status: complete
 Type: AFK
 Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
@@ -50,34 +50,60 @@ Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
 ## Research Coverage
 
-- [ ] `017-075` completion evidence checked before work.
-- [ ] Current Pandora callback report rerun and summarized before changing code.
-- [ ] Existing source-offset/runtime-address metadata inspected before choosing implementation location.
-- [ ] Direct immediate stores classified into source offset, runtime address, absolute label, or non-code constant.
-- [ ] Register stores classified with clobber-aware local provenance where safe.
-- [ ] Any recovered target row still goes through existing callback review and verifier gates.
-- [ ] If no target row is recovered, report the narrower implemented blocker.
-- [ ] No 012/018/Mac/platform-format files touched.
+- [x] `017-075` completion evidence checked before work.
+- [x] Current Pandora callback report rerun and summarized before changing code.
+- [x] Existing source-offset/runtime-address metadata inspected before choosing implementation location.
+- [x] Direct immediate stores classified into source offset, runtime address, absolute label, or non-code constant.
+- [x] Register stores classified with clobber-aware local provenance where safe.
+- [x] Any recovered target row still goes through existing callback review and verifier gates.
+- [x] If no target row is recovered, report the narrower implemented blocker. Target rows were recovered; none became actionable.
+- [x] No 012/018/Mac/platform-format files touched.
 
 ## Research Review
 
-- [ ] The result is not documentation-only if a fixable address/dataflow recovery gap exists.
-- [ ] Recovered offsets carry provenance in evidence packets.
-- [ ] Unsafe or ambiguous values fail closed with structured reasons.
-- [ ] Any real Pandora candidate exposed by this work is either processed through the existing callback gates or explicitly blocked by those gates.
-- [ ] No Decision Journal write occurs on the disk/container target when the resolved subtarget is the source owner.
-- [ ] No source write occurs without verifier artifact and exact round-trip success.
-- [ ] Proposal 017 living notes updated with the real outcome.
+- [x] The result is not documentation-only if a fixable address/dataflow recovery gap exists.
+- [x] Recovered offsets carry provenance in evidence packets.
+- [x] Unsafe or ambiguous values fail closed with structured reasons.
+- [x] Any real Pandora candidate exposed by this work is either processed through the existing callback gates or explicitly blocked by those gates.
+- [x] No Decision Journal write occurs on the disk/container target when the resolved subtarget is the source owner.
+- [x] No source write occurs without verifier artifact and exact round-trip success.
+- [x] Proposal 017 living notes updated with the real outcome.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before work.
-- [ ] `017-075` completion notes checked before work.
-- [ ] Focused tests cover each new source-offset recovery case.
-- [ ] Real Pandora callback report rerun.
-- [ ] If a candidate becomes actionable, `callback-decision` uses the resolved `listing_target_id`.
-- [ ] If a candidate becomes accepted, `decision-verifier-artifact` uses the resolved `listing_target_id`.
-- [ ] Exact round-trip passes for any source change.
-- [ ] `amiga_reversing.tools.validate_017_issues` passes.
-- [ ] `git diff --check` passes.
+- [x] Proposal context checked before work.
+- [x] `017-075` completion notes checked before work.
+- [x] Focused tests cover each new source-offset recovery case.
+- [x] Real Pandora callback report rerun.
+- [x] If a candidate becomes actionable, `callback-decision` uses the resolved `listing_target_id`. No candidate became actionable.
+- [x] If a candidate becomes accepted, `decision-verifier-artifact` uses the resolved `listing_target_id`. No candidate became accepted.
+- [x] Exact round-trip passes for any source change. No source change occurred.
+- [x] `amiga_reversing.tools.validate_017_issues` passes.
+- [x] `git diff --check` passes.
 
+## Completion Evidence
+
+- The callback report now recovers stored source offsets from existing listing
+  metadata instead of embedding platform facts: source-offset rows,
+  `runtime_address` rows, labels, and clobber-aware local register provenance.
+- Focused tests cover direct source offsets, runtime-address-to-source-offset
+  mapping, absolute labels, non-code constants, small immediate constants,
+  safe wider register provenance, clobbered register provenance, and register
+  provenance crossing a label boundary.
+- Current Pandora rerun still resolves to
+  `amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8`
+  with `slot_count=92`, `assignment_count=191`, and `safe_to_mutate=false`.
+- The rerun recovered 19 stored source offsets with provenance. The recovered
+  rows did not become source candidates: 12 are already code and the remaining
+  recovered data rows are blocked by `missing_callback_consumer`, with six also
+  blocked by `all_zero_data`/`data_like_directive`.
+- Remaining missing source offsets are now narrower structured blockers:
+  `store_does_not_write_an_address_register_value=117`,
+  `direct_immediate_below_address_threshold=37`,
+  `direct_immediate_not_listing_source_or_runtime_address=4`,
+  `stored_register_clobbered_before_store=6`,
+  `local_register_symbol_load_missing_listing_offset=6`,
+  `register_symbol_load_crosses_label_boundary=1`, and
+  `stored_register_has_no_nearby_symbol_load=1`.
+- No Decision Journal, target metadata, generated source, verifier artifact,
+  012, 018, Mac, or platform-format files were written.

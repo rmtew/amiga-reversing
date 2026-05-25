@@ -1378,3 +1378,11 @@ repeatable work to `docs\issues\017-*`.
   callback seeding, and already-code targets no longer carry the misleading
   `missing_target_bytes` blocker. No callback candidate became verifier-ready or
   source-mutating.
+- 017-076 added stored-source-offset recovery for callback slot stores using
+  existing listing metadata: source offsets, runtime-address rows, labels, and
+  clobber-aware local register provenance. The real Pandora rerun recovered 19
+  stored target offsets, but none became actionable: 12 are already code and the
+  remaining recovered data rows still lack callback consumers, with all-zero or
+  data-like blockers on six. Remaining unresolved stores now fail closed with
+  narrower reasons such as small/non-mapped immediates, clobbered registers,
+  label-boundary ambiguity, missing listing offsets, or non-address stores.

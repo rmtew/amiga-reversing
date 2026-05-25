@@ -1423,6 +1423,260 @@ def test_callback_report_triage_classifies_data_target_without_consumer() -> Non
     ]
 
 
+def test_callback_report_recovers_direct_source_offset_store() -> None:
+    report = callback_slot_report(
+        [
+            {
+                "kind": "data",
+                "start_offset": 0x1100,
+                "end_offset": 0x1104,
+                "row_key": "s0:00001100:data:1",
+                "bytes": [0x4E, 0x75, 0x00, 0x00],
+            },
+            {
+                "kind": "instruction",
+                "start_offset": 0x0200,
+                "row_key": "s0:00000200:instruction:2",
+                "operand_text": "#$1100,app_0360(a6)",
+                "app_slot_refs": [{"access": "write", "symbol": "app_0360", "displacement": 0x0360}],
+            },
+        ],
+        [{"kind": "orphan_code_candidate", "start": 0x1100, "end": 0x1104}],
+    )
+
+    assignment = report["slots"][0]["assignments"][0]
+    packet = assignment["evidence_packet"]
+
+    assert assignment["stored_source_offset"] == 0x1100
+    assert packet["callback_store"]["stored_source_offset_provenance"]["kind"] == "direct_source_offset"
+    assert packet["callback_store"]["stored_source_offset_provenance"]["reason"] == (
+        "direct_immediate_matches_listing_source_offset"
+    )
+    assert "missing_stored_source_offset" not in packet["blockers"]
+
+
+def test_callback_report_recovers_direct_runtime_address_store() -> None:
+    report = callback_slot_report(
+        [
+            {
+                "kind": "data",
+                "start_offset": 0x0100,
+                "runtime_address": 0x20100,
+                "end_offset": 0x0104,
+                "row_key": "s0:00000100:data:1",
+                "bytes": [0x4E, 0x75, 0x00, 0x00],
+            },
+            {
+                "kind": "instruction",
+                "start_offset": 0x0200,
+                "row_key": "s0:00000200:instruction:2",
+                "operand_text": "#$20100,app_0360(a6)",
+                "app_slot_refs": [{"access": "write", "symbol": "app_0360", "displacement": 0x0360}],
+            },
+        ],
+        [{"kind": "orphan_code_candidate", "start": 0x0100, "end": 0x0104}],
+    )
+
+    assignment = report["slots"][0]["assignments"][0]
+
+    assert assignment["stored_source_offset"] == 0x0100
+    assert assignment["stored_source_offset_provenance"]["kind"] == "runtime_address"
+    assert assignment["stored_source_offset_provenance"]["reason"] == (
+        "direct_immediate_matches_listing_runtime_address"
+    )
+
+
+def test_callback_report_recovers_absolute_label_store() -> None:
+    report = callback_slot_report(
+        [
+            {"kind": "label", "label": "abs_0_00010100", "start_offset": 0x0100},
+            {
+                "kind": "data",
+                "start_offset": 0x0100,
+                "end_offset": 0x0104,
+                "row_key": "s0:00000100:data:1",
+                "bytes": [0x4E, 0x75, 0x00, 0x00],
+            },
+            {
+                "kind": "instruction",
+                "start_offset": 0x0200,
+                "row_key": "s0:00000200:instruction:2",
+                "operand_text": "#abs_0_00010100,app_0360(a6)",
+                "app_slot_refs": [{"access": "write", "symbol": "app_0360", "displacement": 0x0360}],
+            },
+        ],
+        [{"kind": "orphan_code_candidate", "start": 0x0100, "end": 0x0104}],
+    )
+
+    assignment = report["slots"][0]["assignments"][0]
+
+    assert assignment["stored_source_offset"] == 0x0100
+    assert assignment["stored_symbol"] == "abs_0_00010100"
+    assert assignment["stored_source_offset_provenance"]["kind"] == "absolute_label"
+
+
+def test_callback_report_blocks_direct_non_code_constant_store() -> None:
+    report = callback_slot_report(
+        [
+            {
+                "kind": "instruction",
+                "start_offset": 0x0200,
+                "row_key": "s0:00000200:instruction:2",
+                "operand_text": "#$1234,app_0360(a6)",
+                "app_slot_refs": [{"access": "write", "symbol": "app_0360", "displacement": 0x0360}],
+            },
+        ]
+    )
+
+    packet = report["slots"][0]["assignments"][0]["evidence_packet"]
+    triage = {item["blocker"]: item for item in packet["blocker_triage"]}
+
+    assert "missing_stored_source_offset" in packet["blockers"]
+    assert triage["missing_stored_source_offset"]["reason"] == "direct_immediate_not_listing_source_or_runtime_address"
+    assert triage["missing_stored_source_offset"]["provenance"]["kind"] == "direct_immediate"
+
+
+def test_callback_report_blocks_small_direct_immediate_even_when_source_offset_exists() -> None:
+    report = callback_slot_report(
+        [
+            {
+                "kind": "instruction",
+                "start_offset": 0x0008,
+                "row_key": "s0:00000008:instruction:1",
+                "opcode_or_directive": "rts",
+            },
+            {
+                "kind": "instruction",
+                "start_offset": 0x0200,
+                "row_key": "s0:00000200:instruction:2",
+                "operand_text": "#$8,app_0360(a6)",
+                "app_slot_refs": [{"access": "write", "symbol": "app_0360", "displacement": 0x0360}],
+            },
+        ]
+    )
+
+    packet = report["slots"][0]["assignments"][0]["evidence_packet"]
+    triage = {item["blocker"]: item for item in packet["blocker_triage"]}
+
+    assert "missing_stored_source_offset" in packet["blockers"]
+    assert triage["missing_stored_source_offset"]["reason"] == "direct_immediate_below_address_threshold"
+
+
+def test_callback_report_recovers_wider_local_register_symbol_provenance() -> None:
+    rows: list[dict[str, object]] = [
+        {"kind": "label", "label": "abs_0_00010100", "start_offset": 0x0100},
+        {
+            "kind": "data",
+            "start_offset": 0x0100,
+            "end_offset": 0x0104,
+            "row_key": "s0:00000100:data:1",
+            "bytes": [0x4E, 0x75, 0x00, 0x00],
+        },
+        {
+            "kind": "instruction",
+            "start_offset": 0x0200,
+            "row_key": "s0:00000200:instruction:2",
+            "opcode_or_directive": "lea.l",
+            "operand_registers": [None, "A0"],
+            "operand_parts": [{"kind": "symbol", "metadata": {"symbol": "abs_0_00010100"}}],
+        },
+    ]
+    rows.extend(
+        {
+            "kind": "instruction",
+            "start_offset": 0x0202 + index * 2,
+            "row_key": f"s0:{0x0202 + index * 2:08X}:instruction:{index + 3}",
+            "opcode_or_directive": "nop",
+        }
+        for index in range(8)
+    )
+    rows.append(
+        {
+            "kind": "instruction",
+            "start_offset": 0x0220,
+            "row_key": "s0:00000220:instruction:20",
+            "operand_text": "a0,app_0360(a6)",
+            "operand_registers": ["A0", None],
+            "app_slot_refs": [{"access": "write", "symbol": "app_0360", "displacement": 0x0360}],
+        }
+    )
+
+    report = callback_slot_report(rows, [{"kind": "orphan_code_candidate", "start": 0x0100, "end": 0x0104}])
+    assignment = report["slots"][0]["assignments"][0]
+
+    assert assignment["stored_source_offset"] == 0x0100
+    assert assignment["stored_source_offset_provenance"]["kind"] == "register_symbol_load"
+    assert assignment["stored_source_offset_provenance"]["reason"] == "local_register_symbol_load_resolved"
+
+
+def test_callback_report_blocks_clobbered_register_provenance() -> None:
+    report = callback_slot_report(
+        [
+            {"kind": "label", "label": "abs_0_00010100", "start_offset": 0x0100},
+            {
+                "kind": "instruction",
+                "start_offset": 0x0200,
+                "row_key": "s0:00000200:instruction:2",
+                "opcode_or_directive": "lea.l",
+                "operand_registers": [None, "A0"],
+                "operand_parts": [{"kind": "symbol", "metadata": {"symbol": "abs_0_00010100"}}],
+            },
+            {
+                "kind": "instruction",
+                "start_offset": 0x0202,
+                "row_key": "s0:00000202:instruction:3",
+                "opcode_or_directive": "move.l",
+                "operand_registers": ["D0", "A0"],
+            },
+            {
+                "kind": "instruction",
+                "start_offset": 0x0204,
+                "row_key": "s0:00000204:instruction:4",
+                "operand_text": "a0,app_0360(a6)",
+                "operand_registers": ["A0", None],
+                "app_slot_refs": [{"access": "write", "symbol": "app_0360", "displacement": 0x0360}],
+            },
+        ]
+    )
+
+    packet = report["slots"][0]["assignments"][0]["evidence_packet"]
+    triage = {item["blocker"]: item for item in packet["blocker_triage"]}
+
+    assert "missing_stored_source_offset" in packet["blockers"]
+    assert triage["missing_stored_source_offset"]["reason"] == "stored_register_clobbered_before_store"
+
+
+def test_callback_report_blocks_register_provenance_across_label_boundary() -> None:
+    report = callback_slot_report(
+        [
+            {"kind": "label", "label": "abs_0_00010100", "start_offset": 0x0100},
+            {
+                "kind": "instruction",
+                "start_offset": 0x0200,
+                "row_key": "s0:00000200:instruction:2",
+                "opcode_or_directive": "lea.l",
+                "operand_registers": [None, "A0"],
+                "operand_parts": [{"kind": "symbol", "metadata": {"symbol": "abs_0_00010100"}}],
+            },
+            {"kind": "label", "label": "branch_entry", "start_offset": 0x0204},
+            {
+                "kind": "instruction",
+                "start_offset": 0x0204,
+                "row_key": "s0:00000204:instruction:4",
+                "operand_text": "a0,app_0360(a6)",
+                "operand_registers": ["A0", None],
+                "app_slot_refs": [{"access": "write", "symbol": "app_0360", "displacement": 0x0360}],
+            },
+        ]
+    )
+
+    packet = report["slots"][0]["assignments"][0]["evidence_packet"]
+    triage = {item["blocker"]: item for item in packet["blocker_triage"]}
+
+    assert "missing_stored_source_offset" in packet["blockers"]
+    assert triage["missing_stored_source_offset"]["reason"] == "register_symbol_load_crosses_label_boundary"
+
+
 def test_callback_report_resolves_disk_container_to_primary_subtarget(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
