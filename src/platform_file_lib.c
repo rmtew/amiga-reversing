@@ -4313,17 +4313,17 @@ static int append_analysis_executable_ranges_json(JsonBuilder *builder, const ch
     const M68kObject *object);
 
 static int append_analysis_json_with_decompression_profile(JsonBuilder *builder, const char *base_json,
-    const M68kObject *object, const M68kSourceAnalysisIR *analysis, const M68kFactsV2Profile *profile) {
+    const char *backend_name, const M68kObject *object, const M68kSourceAnalysisIR *analysis,
+    const M68kFactsV2Profile *profile) {
   size_t base_len;
-  if (builder == NULL || base_json == NULL || object == NULL || analysis == NULL) return -1;
+  if (builder == NULL || base_json == NULL || backend_name == NULL || object == NULL || analysis == NULL) return -1;
   base_len = strlen(base_json);
   if (base_len == 0U || base_json[base_len - 1U] != '}') return -1;
   if (json_builder_appendf(builder, "%.*s", (int)(base_len - 1U), base_json) != 0)
     return -1;
   if (append_object_decompression_analysis_json(builder, object, analysis) != 0)
     return -1;
-  if (append_analysis_executable_ranges_json(builder,
-      object->platform_backend_kind == M68K_PLATFORM_BACKEND_ATARI_ST ? "atari-st" : "amiga-hunk", object) != 0)
+  if (append_analysis_executable_ranges_json(builder, backend_name, object) != 0)
     return -1;
   if (profile != NULL) {
     if (json_builder_append(builder,
@@ -4336,8 +4336,8 @@ static int append_analysis_json_with_decompression_profile(JsonBuilder *builder,
 }
 
 static int append_analysis_json_with_decompression(JsonBuilder *builder, const char *base_json,
-    const M68kObject *object, const M68kSourceAnalysisIR *analysis) {
-  return append_analysis_json_with_decompression_profile(builder, base_json, object, analysis, NULL);
+    const char *backend_name, const M68kObject *object, const M68kSourceAnalysisIR *analysis) {
+  return append_analysis_json_with_decompression_profile(builder, base_json, backend_name, object, analysis, NULL);
 }
 
 static void make_policy_symbol_label_local(char *out, size_t out_size, const char *symbol) {
@@ -8486,7 +8486,7 @@ static void platform_file_workflow_destroy(PlatformFileWorkflow *workflow) {
   memset(workflow, 0, sizeof(*workflow));
 }
 
-static PlatformFileTextResult facts_v2_analysis_object_json(const M68kObject *object,
+static PlatformFileTextResult facts_v2_analysis_object_json(const char *backend_name, const M68kObject *object,
     const M68kAnalysisPolicy *analysis_policy) {
   PlatformFileTextResult result;
   JsonBuilder builder = {0};
@@ -8495,7 +8495,7 @@ static PlatformFileTextResult facts_v2_analysis_object_json(const M68kObject *ob
   int json_result;
   memset(&result, 0, sizeof(result));
   memset(&workflow, 0, sizeof(workflow));
-  if (object == NULL) {
+  if (backend_name == NULL || object == NULL) {
     platform_file_add_error(&result.diagnostics, "invalid facts_v2 analysis request");
     return result;
   }
@@ -8513,7 +8513,7 @@ static PlatformFileTextResult facts_v2_analysis_object_json(const M68kObject *ob
   json_result = source_analysis_to_json(workflow.analysis, &base_json, m68k_diag_sink(&result.diagnostics));
   if (json_result == 0) {
     if (json_builder_create(&builder) != 0 ||
-        append_analysis_json_with_decompression_profile(&builder, base_json, object, workflow.analysis,
+        append_analysis_json_with_decompression_profile(&builder, base_json, backend_name, object, workflow.analysis,
           workflow.profile) != 0) {
       json_result = -1;
     } else {
@@ -8552,7 +8552,7 @@ PlatformFileTextResult platform_file_facts_v2_analysis_path_json(const char *bac
   if (!validate_effective_policy_against_object_local(&result.diagnostics, &workflow.object,
       workflow.analysis_policy))
     goto cleanup;
-  result = facts_v2_analysis_object_json(&workflow.object, workflow.analysis_policy);
+  result = facts_v2_analysis_object_json(backend_name, &workflow.object, workflow.analysis_policy);
 cleanup:
   platform_file_workflow_destroy(&workflow);
   return result;
@@ -8581,7 +8581,7 @@ PlatformFileTextResult platform_file_facts_v2_analysis_raw_path_json(const char 
   if (!validate_effective_policy_against_object_local(&result.diagnostics, &workflow.object,
       workflow.analysis_policy))
     goto cleanup;
-  result = facts_v2_analysis_object_json(&workflow.object, workflow.analysis_policy);
+  result = facts_v2_analysis_object_json(platform_name, &workflow.object, workflow.analysis_policy);
 cleanup:
   platform_file_workflow_destroy(&workflow);
   return result;
@@ -8609,7 +8609,7 @@ PlatformFileTextResult platform_file_facts_v2_analysis_buffer_json(const char *b
   if (!validate_effective_policy_against_object_local(&result.diagnostics, &workflow.object,
       workflow.analysis_policy))
     goto cleanup;
-  result = facts_v2_analysis_object_json(&workflow.object, workflow.analysis_policy);
+  result = facts_v2_analysis_object_json(backend_name, &workflow.object, workflow.analysis_policy);
 cleanup:
   platform_file_workflow_destroy(&workflow);
   return result;
@@ -9923,7 +9923,7 @@ int platform_file_facts_v2_listing_artifact_analysis_json_alloc(PlatformFileList
     goto cleanup;
   }
   if (analysis_json == NULL ||
-      append_analysis_json_with_decompression(&builder, analysis_json, &artifact->object,
+      append_analysis_json_with_decompression(&builder, analysis_json, artifact->backend_name, &artifact->object,
         &artifact->source_analysis) != 0) {
     platform_file_add_error(&result.diagnostics, "out of memory");
     goto cleanup;

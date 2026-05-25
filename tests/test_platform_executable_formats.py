@@ -571,6 +571,68 @@ def test_020_002_raw_amiga_hunk_parser_summary_exposes_shared_ranges() -> None:
     assert platform_executable_formats.validate_parser_fact_references(payload) == []
 
 
+def test_020_008_current_amiga_loader_does_not_require_legacy_sections(monkeypatch) -> None:
+    payload = {
+        "kb_record_id": "amiga.hunk.load_file.basic_backfill",
+        "file_kind": "executable",
+        "executable_model": "platform_executable_summary_v1",
+        "executable_ranges": [
+            {
+                "role": "code",
+                "load_offset": 0,
+                "stored_offset": 0,
+                "size": 4,
+                "stored_size": 4,
+                "status": "parser_asserted",
+                "fact_id": "amiga.hunk.code_data_bss.sections.accepted",
+                "fact_status": "parser_asserted",
+                "parser_use": "accepted_parser_output",
+            },
+            {
+                "role": "data",
+                "load_offset": 4,
+                "stored_offset": 4,
+                "size": 4,
+                "stored_size": 4,
+                "status": "parser_asserted",
+                "fact_id": "amiga.hunk.code_data_bss.sections.accepted",
+                "fact_status": "parser_asserted",
+                "parser_use": "accepted_parser_output",
+            },
+            {
+                "role": "bss",
+                "load_offset": 8,
+                "stored_offset": None,
+                "size": 8,
+                "stored_size": 0,
+                "status": "parser_asserted",
+                "fact_id": "amiga.hunk.bss.size_only.accepted",
+                "fact_status": "parser_asserted",
+                "parser_use": "accepted_parser_output",
+            },
+        ],
+        "executable_deferred": [
+            {
+                "kind": "runtime_entry",
+                "status": "deferred",
+                "fact_id": "amiga.hunk.runtime_entry.deferred",
+                "fact_status": "deferred",
+                "parser_use": "deferred_only",
+            }
+        ],
+        "fact_refs": [
+            {
+                "fact_id": "amiga.hunk.header.identifies_load_file.accepted",
+                "fact_status": "parser_asserted",
+                "parser_use": "accepted_parser_output",
+            }
+        ],
+    }
+    monkeypatch.setattr(platform_executable_formats, "_inspect_platform_fixture", lambda *args: payload)
+
+    assert platform_executable_formats._load_current_amiga_hunk_output() is payload
+
+
 def test_019_002_current_atari_prg_output_runs_real_parser_path() -> None:
     payload = platform_executable_formats._load_current_atari_prg_output()
     report = platform_executable_formats.build_parser_fact_coverage_report([payload], labels=["current-atari-prg"])
@@ -669,6 +731,68 @@ def test_020_004_raw_atari_prg_parser_summary_exposes_shared_ranges() -> None:
     assert payload["sections"]
     assert payload["fact_refs"]
     assert platform_executable_formats.validate_parser_fact_references(payload) == []
+
+
+def test_020_008_current_atari_loader_does_not_require_legacy_sections(monkeypatch) -> None:
+    payload = {
+        "kb_record_id": "atari_st.prg.gemdos_basic_backfill",
+        "file_kind": "executable",
+        "executable_model": "platform_executable_summary_v1",
+        "executable_ranges": [
+            {
+                "role": "code",
+                "load_offset": 0,
+                "stored_offset": 0,
+                "size": 4,
+                "stored_size": 4,
+                "status": "parser_asserted",
+                "fact_id": "atari_st.prg.text_data_loaded_image.accepted",
+                "fact_status": "parser_asserted",
+                "parser_use": "accepted_parser_output",
+            },
+            {
+                "role": "data",
+                "load_offset": 4,
+                "stored_offset": 4,
+                "size": 4,
+                "stored_size": 4,
+                "status": "parser_asserted",
+                "fact_id": "atari_st.prg.text_data_loaded_image.accepted",
+                "fact_status": "parser_asserted",
+                "parser_use": "accepted_parser_output",
+            },
+            {
+                "role": "bss",
+                "load_offset": 8,
+                "stored_offset": None,
+                "size": 8,
+                "stored_size": 0,
+                "status": "candidate",
+                "fact_id": "atari_st.prg.bss.header_only.candidate",
+                "fact_status": "candidate",
+                "parser_use": "candidate_only",
+            },
+        ],
+        "executable_deferred": [
+            {
+                "kind": "relocation_breadth",
+                "status": "deferred",
+                "fact_id": "atari_st.prg.relocation_terminator_variants.deferred",
+                "fact_status": "deferred",
+                "parser_use": "deferred_only",
+            }
+        ],
+        "fact_refs": [
+            {
+                "fact_id": "atari_st.prg.magic_601a.accepted",
+                "fact_status": "parser_asserted",
+                "parser_use": "accepted_parser_output",
+            }
+        ],
+    }
+    monkeypatch.setattr(platform_executable_formats, "_inspect_platform_fixture", lambda *args: payload)
+
+    assert platform_executable_formats._load_current_atari_prg_output() is payload
 
 
 def test_019_004_current_amiga_hunk_coverage_refuses_summary_without_parser_refs(monkeypatch) -> None:

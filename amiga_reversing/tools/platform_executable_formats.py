@@ -527,9 +527,8 @@ def _load_current_macos_c_backend_output(image_path: Path, hfs_path: str) -> dic
 
 def _load_current_amiga_hunk_output() -> dict[str, Any]:
     summary = _inspect_platform_fixture("amiga-hunk", _synthetic_amiga_hunk_fixture(), ".hunk")
-    sections = _sequence(summary.get("sections"))
-    if summary.get("file_kind") != "executable" or not sections:
-        raise ValueError("synthetic Amiga HUNK fixture did not parse as an executable with sections")
+    if summary.get("file_kind") != "executable":
+        raise ValueError("synthetic Amiga HUNK fixture did not parse as an executable")
     _require_parser_owned_fact_refs(summary, "amiga.hunk.load_file.basic_backfill", "current Amiga HUNK")
     _require_amiga_hunk_shared_executable_ranges(summary)
     return summary
@@ -537,9 +536,8 @@ def _load_current_amiga_hunk_output() -> dict[str, Any]:
 
 def _load_current_atari_prg_output() -> dict[str, Any]:
     summary = _inspect_platform_fixture("atari-st", _synthetic_atari_prg_fixture(), ".prg")
-    sections = _sequence(summary.get("sections"))
-    if summary.get("file_kind") != "executable" or not sections:
-        raise ValueError("synthetic Atari PRG fixture did not parse as an executable with sections")
+    if summary.get("file_kind") != "executable":
+        raise ValueError("synthetic Atari PRG fixture did not parse as an executable")
     _require_parser_owned_fact_refs(summary, "atari_st.prg.gemdos_basic_backfill", "current Atari PRG")
     _require_atari_prg_shared_executable_ranges(summary)
     return summary

@@ -361,13 +361,24 @@ Retained blockers and deletion candidates:
 
 ### 020-008: Remove Superseded Executable Paths
 
-Delete old per-platform/ad hoc executable summary, range classification, and
-rendering paths that are replaced by 020. Keep no compatibility branch for the
-old behavior.
+Completed deletion table and cleanup:
 
-This issue starts after 020-006 and 020-007. It must create a deletion table
-from Proposal 020 completion evidence before deleting code, tying every removal
-to proven replacement behavior.
+| Old path | Replacement proof | 020-008 decision |
+| --- | --- | --- |
+| Python current Amiga/Atari coverage loaders requiring legacy top-level `sections` before accepting current parser output. | 020-002/020-004 emit shared `executable_ranges`; 020-003 and 020-007 prove parser-owned fact refs and analysis import from shared ranges. | Deleted. `_load_current_amiga_hunk_output` and `_load_current_atari_prg_output` now require executable file kind plus shared executable ranges/fact refs, not legacy section presence. Regression tests pass summaries without `sections`. |
+| C analysis import defaulting every non-Atari executable to the Amiga shared range authority. | 020-007 proved analysis import for Amiga/Atari, while Mac analysis wrapper supplies its own shared range provenance. | Deleted. Analysis JSON append now receives the explicit backend name from path/buffer/raw/listing artifact call sites, so raw or future non-Amiga executables cannot silently inherit Amiga facts. |
+| Mac `selected_code.code.layout_ranges` as listing selection authority. | 020-006 made `macos_listing_source.py` fail closed unless `executable_model: platform_executable_summary_v1` and a selected `executable_ranges` CODE item are present. | Removed from listing selection. Retained only as compatibility payload details in project/artifact/web views until those public fields have explicit replacement consumers. |
+| Mac temporary `RawBinarySource` bridge for selected CODE bytes. | 020-006/020-007 prove shared provenance around listing rows and analysis payload, but the generic C instruction decoder still requires byte transport. | Blocked, retained as transport only. Removing it needs a native Mac CODE byte-provider listing artifact, outside 020's proven replacement scope. |
+| Top-level inspect JSON `sections` and `fact_refs`. | Shared ranges/deferred refs now drive coverage and current loaders, but older inspect/report/API tests still use these as broad parser inventory surfaces. | Blocked, retained as public inspect compatibility. They are no longer accepted as a replacement for shared executable ranges in current coverage/loaders. |
+| Mac project/artifact/web `selected_code_segment`, `code_layout`, orphan, and relocation fields. | Shared ranges carry accepted/candidate/deferred authority, but existing UI/API tests still assert these fields for non-CODE visibility and deferred fixup explanation. | Blocked, retained as compatibility outputs with shared range requirements guarding parser/listing paths. |
+
+Validation:
+
+- `cmd /c src\build.bat`
+- focused parser loader regressions for 020-008
+- focused analysis/import/listing/artifact tests
+- combined current coverage with Mac, Amiga, and Atari
+- `git diff --check`
 
 ### 020-009: Cross-Platform Closeout Proof
 
