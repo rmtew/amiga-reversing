@@ -252,6 +252,41 @@ def test_python_wrapper_uses_c_macos_hfs_code_summary() -> None:
         "fact_status": "deferred",
         "parser_use": "deferred_only",
     }
+    shared_ranges = summary["executable_ranges"]
+    assert summary["executable_model"] == "platform_executable_summary_v1"
+    assert any(
+        item["resource_id"] == 0
+        and item["role"] == "metadata"
+        and item["stored_offset_space"] == "resource_fork_payload"
+        and item["fact_id"] == "macos.code_resource.0.jump_table_metadata"
+        for item in shared_ranges
+    )
+    assert any(
+        item["resource_id"] == 1
+        and item["role"] == "metadata"
+        and item["fact_id"] == "macos.code_resource.nonzero.segment_header"
+        and item["fact_status"] == "validated"
+        for item in shared_ranges
+    )
+    assert any(
+        item["resource_id"] == 1
+        and item["role"] == "candidate_code"
+        and item["stored_offset_space"] == "resource_fork_payload"
+        and item["fact_id"] == "macos.code_resource.movea_stack_a0.boundary.candidate"
+        and item["fact_status"] == "candidate"
+        and item["parser_use"] == "candidate_only"
+        for item in shared_ranges
+    )
+    assert summary["executable_deferred"] == [
+        {
+            "kind": "relocation_breadth",
+            "kb_record_id": "macos.hfs_resource_fork.code_resources.mpw_application",
+            "status": "deferred",
+            "fact_id": "macos.segment_loader.relocation_fixups.deferred",
+            "fact_status": "deferred",
+            "parser_use": "deferred_only",
+        }
+    ]
     assert extract_macos_hfs_code_resource_bytes_with_c_backend(image, "Tools/Asm", 1) == b"\x20\x5f\x4e\x75"
 
 
@@ -304,6 +339,13 @@ def test_c_macos_summary_defers_code_without_entry_evidence() -> None:
         }
     ]
     assert summary["selected_code"]["code"]["relocation_fixups"]["parser_use"] == "deferred_only"
+    deferred_ranges = [
+        item
+        for item in summary["executable_ranges"]
+        if item["fact_id"] == "macos.code_resource.byte_entry_rule.unknown"
+    ]
+    assert deferred_ranges
+    assert all(item["fact_status"] == "deferred" for item in deferred_ranges)
     with pytest.raises(RuntimeError, match="no confirmed executable range"):
         extract_macos_hfs_code_resource_bytes_with_c_backend(bytes(image), "Tools/Asm", 1)
 
@@ -377,6 +419,18 @@ def test_c_macos_hfs_code_summary_matches_committed_mpw_asm_metadata() -> None:
     assert summary["selected_code"]["code"]["layout_ranges"][2]["kind"] == "candidate_code"
     assert summary["selected_code"]["code"]["layout_ranges"][2]["start"] == 40
     assert summary["selected_code"]["code"]["layout_ranges"][2]["fact_status"] == "candidate"
+    shared_code0 = [
+        item for item in summary["executable_ranges"] if item["resource_id"] == 0
+    ]
+    assert shared_code0
+    assert {item["role"] for item in shared_code0} == {"metadata"}
+    assert any(
+        item["resource_id"] == 1
+        and item["role"] == "candidate_code"
+        and item["load_offset"] == 40
+        and item["fact_status"] == "candidate"
+        for item in summary["executable_ranges"]
+    )
     assert summary["selected_code"]["code"]["orphan_ranges"][0]["fact_status"] == "candidate"
     assert summary["selected_code"]["code"]["relocation_fixups"]["parser_use"] == "deferred_only"
     assert extract_macos_hfs_code_resource_bytes_with_c_backend(

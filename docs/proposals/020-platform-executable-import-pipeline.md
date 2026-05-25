@@ -259,14 +259,35 @@ Completed Atari current-output migration:
 
 ### 020-005: Mac CODE Shared Import Slice
 
-Move the current Mac CODE classified ranges into the shared executable model.
-CODE 0 must remain metadata-only. Nonzero CODE ranges must keep accepted
-segment metadata, candidate code windows, and deferred relocation/fixup state.
-No Mac byte-entry rule may be promoted.
+Completed Mac current-output migration:
 
-This issue starts only after 020-003 and 020-004 have been reviewed. It must use
-the completed Amiga/Atari shared range shape as the default model and document
-any Mac-specific extension before tests rely on it.
+- `platform_file_macos_hfs_code_summary_json_alloc` now emits
+  `executable_model: platform_executable_summary_v1`, `executable_ranges`, and
+  `executable_deferred` from the C Mac CODE parser summary.
+- Mac shared ranges use the same loaded-image split as Amiga/Atari:
+  `load_offset` names the offset within the decoded CODE resource payload, while
+  `stored_offset` names bytes in the resource-fork payload space. The Mac
+  extension `stored_offset_space: resource_fork_payload` is emitted so later
+  exactness/import gates do not mistake these values for whole-file source
+  spans.
+- CODE 0 is represented only as role `metadata` through
+  `macos.code_resource.0.jump_table_metadata`; it is not promoted to decodable
+  instruction bytes.
+- Nonzero CODE segment/header metadata remains accepted through
+  `macos.code_resource.nonzero.segment_header`. The `movea.l (a7)+,a0`
+  byte-entry window remains role `candidate_code` with
+  `macos.code_resource.movea_stack_a0.boundary.candidate`,
+  `fact_status: candidate`, and `parser_use: candidate_only`.
+- Segment-loader relocation/fixup breadth remains in `executable_deferred`
+  through `macos.segment_loader.relocation_fixups.deferred`; no relocation/fixup
+  fact was promoted.
+- `_load_current_macos_c_backend_output()` now requires the shared model and
+  fails closed if the old Mac-specific summary fields remain without shared
+  executable ranges.
+- Existing Mac project, artifact, web, `selected_code`, `code_segment_map`,
+  orphan/non-CODE, and unsupported surfaces remain compatibility outputs and
+  deletion candidates for 020-008 after 020-006/020-007 prove their shared
+  replacements.
 
 ### 020-006: Shared Listing/Rendering Contract
 

@@ -520,7 +520,9 @@ def _load_current_macos_c_backend_output(image_path: Path, hfs_path: str) -> dic
     if not image_path.exists():
         raise FileNotFoundError(image_path)
     image_data = read_macos_hfs_image_bytes(image_path)
-    return inspect_macos_hfs_code_summary_with_c_backend(image_data, hfs_path)
+    summary = inspect_macos_hfs_code_summary_with_c_backend(image_data, hfs_path)
+    _require_macos_shared_executable_ranges(summary)
+    return summary
 
 
 def _load_current_amiga_hunk_output() -> dict[str, Any]:
@@ -628,6 +630,58 @@ def _require_atari_prg_shared_executable_ranges(payload: Mapping[str, Any]) -> N
         raise ValueError(f"{label} parser summary missing deferred relocation breadth")
     if (
         relocation.get("fact_id") != "atari_st.prg.relocation_terminator_variants.deferred"
+        or relocation.get("fact_status") != "deferred"
+        or relocation.get("parser_use") != "deferred_only"
+    ):
+        raise ValueError(f"{label} deferred relocation breadth has unexpected fact authority")
+
+
+def _require_macos_shared_executable_ranges(payload: Mapping[str, Any]) -> None:
+    label = "current Mac CODE"
+    if payload.get("executable_model") != "platform_executable_summary_v1":
+        raise ValueError(f"{label} parser summary did not emit shared executable model")
+    ranges = [_mapping(item) for item in _sequence(payload.get("executable_ranges"))]
+    if not ranges:
+        raise ValueError(f"{label} parser summary emitted no shared executable ranges")
+    code0_metadata = [
+        item
+        for item in ranges
+        if item.get("resource_type") == "CODE" and item.get("resource_id") == 0 and item.get("role") == "metadata"
+    ]
+    if not code0_metadata:
+        raise ValueError(f"{label} parser summary missing CODE 0 metadata range")
+    if any(item.get("role") != "metadata" for item in code0_metadata):
+        raise ValueError(f"{label} CODE 0 must remain metadata-only")
+    accepted_metadata = [
+        item
+        for item in ranges
+        if item.get("fact_id") == "macos.code_resource.nonzero.segment_header"
+        and item.get("fact_status") == "validated"
+        and item.get("parser_use") == "accepted_parser_output"
+    ]
+    if not accepted_metadata:
+        raise ValueError(f"{label} parser summary missing accepted nonzero CODE metadata")
+    candidate_ranges = [
+        item
+        for item in ranges
+        if item.get("fact_id") == "macos.code_resource.movea_stack_a0.boundary.candidate"
+    ]
+    if not candidate_ranges:
+        raise ValueError(f"{label} parser summary missing candidate CODE ranges")
+    if any(
+        item.get("fact_status") != "candidate" or item.get("parser_use") != "candidate_only"
+        for item in candidate_ranges
+    ):
+        raise ValueError(f"{label} candidate CODE ranges must remain candidate-only")
+    deferred = {
+        _string(item.get("kind")): item
+        for item in map(_mapping, _sequence(payload.get("executable_deferred")))
+    }
+    relocation = deferred.get("relocation_breadth")
+    if relocation is None:
+        raise ValueError(f"{label} parser summary missing deferred relocation breadth")
+    if (
+        relocation.get("fact_id") != "macos.segment_loader.relocation_fixups.deferred"
         or relocation.get("fact_status") != "deferred"
         or relocation.get("parser_use") != "deferred_only"
     ):

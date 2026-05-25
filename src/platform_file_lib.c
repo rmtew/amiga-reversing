@@ -26,6 +26,7 @@
 #include "util_arena.h"
 #include "generated/amiga_hunk_file_runtime.h"
 #include "generated/amiga_os_runtime.h"
+#include "generated/platform_executable_formats.h"
 
 #include <inttypes.h>
 #include <stdarg.h>
@@ -165,6 +166,81 @@ static int macos_append_relocation_fixup_placeholder(JsonBuilder *builder) {
       macos_append_fact_ref(builder, "macos.segment_loader.relocation_fixups.deferred", "deferred",
         "deferred_only") != 0 ||
       json_builder_append(builder, "}") != 0) {
+    return -1;
+  }
+  return 0;
+}
+
+static const char *macos_shared_executable_role(uint8_t kind) {
+  switch (kind) {
+  case PLATFORM_MACOS_CODE_RANGE_CONFIRMED_CODE:
+    return "code";
+  case PLATFORM_MACOS_CODE_RANGE_CANDIDATE_CODE:
+    return "candidate_code";
+  case PLATFORM_MACOS_CODE_RANGE_METADATA:
+  case PLATFORM_MACOS_CODE_RANGE_DATA:
+  case PLATFORM_MACOS_CODE_RANGE_DEFERRED:
+  default:
+    return "metadata";
+  }
+}
+
+static int macos_append_shared_fact_fields(JsonBuilder *builder, const char *fact_id,
+    const char *fact_status, const char *parser_use) {
+  if (json_builder_append(builder,
+        "\"kb_record_id\":\"macos.hfs_resource_fork.code_resources.mpw_application\",\"status\":") != 0 ||
+      json_builder_append_json_string(builder, fact_status) != 0 ||
+      json_builder_append(builder, ",") != 0 ||
+      macos_append_fact_ref(builder, fact_id, fact_status, parser_use) != 0) {
+    return -1;
+  }
+  return 0;
+}
+
+static int macos_append_shared_executable_ranges(JsonBuilder *builder,
+    const PlatformMacosResourceInfo *resources, size_t resource_count) {
+  size_t resource_index;
+  int first = 1;
+  if (json_builder_append(builder,
+      "\"executable_model\":\"platform_executable_summary_v1\",\"executable_ranges\":[") != 0)
+    return -1;
+  for (resource_index = 0U; resource_index < resource_count; ++resource_index) {
+    const PlatformMacosResourceInfo *resource = &resources[resource_index];
+    const PlatformMacosCodeMetadata *code = &resource->code;
+    size_t range_index;
+    if (strcmp(resource->type, "CODE") != 0) continue;
+    for (range_index = 0U; range_index < code->layout_range_count; ++range_index) {
+      const PlatformMacosCodeRange *range = &code->layout_ranges[range_index];
+      const char *fact_id = platform_macos_code_range_fact_id(range->evidence);
+      const char *fact_status = platform_macos_code_range_fact_status(range->evidence);
+      const char *parser_use = platform_macos_code_range_parser_use(range->evidence);
+      if (!first && json_builder_append(builder, ",") != 0) return -1;
+      first = 0;
+      if (json_builder_append(builder, "{\"role\":") != 0 ||
+          json_builder_append_json_string(builder, macos_shared_executable_role(range->kind)) != 0 ||
+          json_builder_appendf(builder,
+            ",\"resource_type\":\"CODE\",\"resource_id\":%d,"
+            "\"stored_offset_space\":\"resource_fork_payload\",\"range_kind\":",
+            (int)resource->resource_id) != 0 ||
+          json_builder_append_json_string(builder, platform_macos_code_range_kind_name(range->kind)) != 0 ||
+          json_builder_appendf(builder,
+            ",\"load_offset\":%u,\"stored_offset\":%u,\"size\":%u,\"stored_size\":%u,"
+            "\"entrypoint\":%s,\"evidence\":",
+            (unsigned)range->start_offset, (unsigned)(resource->payload_offset + range->start_offset),
+            (unsigned)range->size, (unsigned)range->size, range->entrypoint ? "true" : "false") != 0 ||
+          json_builder_append_json_string(builder, platform_macos_code_range_evidence_name(range->evidence)) != 0 ||
+          json_builder_append(builder, ",") != 0 ||
+          macos_append_shared_fact_fields(builder, fact_id, fact_status, parser_use) != 0 ||
+          json_builder_append(builder, "}") != 0) {
+        return -1;
+      }
+    }
+  }
+  if (json_builder_append(builder, "],\"executable_deferred\":[{\"kind\":\"relocation_breadth\",") != 0 ||
+      macos_append_shared_fact_fields(builder,
+        PLATFORM_EXECUTABLE_FORMAT_FACT_MACOS_SEGMENT_LOADER_RELOCATION_FIXUPS_DEFERRED,
+        "deferred", "deferred_only") != 0 ||
+      json_builder_append(builder, "}]") != 0) {
     return -1;
   }
   return 0;
@@ -643,6 +719,8 @@ PLATFORM_FILE_API int platform_file_macos_hfs_code_summary_json_alloc(const unsi
       json_builder_append(&builder, "},") != 0 ||
       macos_append_selected_code(&builder, &resource_fork_info, resource_fork, selected_file->resource_size,
         resources, resource_fork_info.resource_count) != 0 ||
+      json_builder_append(&builder, ",") != 0 ||
+      macos_append_shared_executable_ranges(&builder, resources, resource_fork_info.resource_count) != 0 ||
       json_builder_append(&builder, ",\"unsupported\":[\"segment_loader_relocations\",\"overflow_extents\"]}") != 0) {
     *out_text = m68k_platform_dup_string("out of memory");
     json_builder_destroy(&builder);
