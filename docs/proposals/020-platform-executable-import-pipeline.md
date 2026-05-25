@@ -217,9 +217,21 @@ Model constraints for following slices:
 
 ### 020-003: Amiga HUNK Shared Import Slice
 
-Move the current Amiga HUNK parser summary into the shared executable model.
-CODE/DATA/BSS and size-only BSS must appear as shared ranges. Runtime entry and
-relocation breadth must remain deferred/candidate where 018 says so.
+Completed Amiga current-output migration:
+
+- `_load_current_amiga_hunk_output()` now requires
+  `executable_model == "platform_executable_summary_v1"` and validates CODE,
+  DATA, and BSS `executable_ranges` from raw inspect JSON.
+- BSS is required to remain size-only in the shared model:
+  `load_offset` is present, `stored_offset` is null, and `stored_size` is 0.
+- Runtime-entry uncertainty is required in `executable_deferred` with
+  `amiga.hunk.runtime_entry.deferred`, `fact_status: deferred`, and
+  `parser_use: deferred_only`.
+- Current coverage proves Amiga refs from `$.executable_ranges[0..2]` and
+  `$.executable_deferred[0]`; the older top-level `sections` and `fact_refs`
+  remain only as compatibility surfaces and deletion candidates for 020-008.
+- Regression coverage fails if old Amiga `sections`/`fact_refs` remain but the
+  shared executable model is omitted.
 
 ### 020-004: Atari PRG Shared Import Slice
 

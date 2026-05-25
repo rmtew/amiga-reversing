@@ -529,6 +529,7 @@ def _load_current_amiga_hunk_output() -> dict[str, Any]:
     if summary.get("file_kind") != "executable" or not sections:
         raise ValueError("synthetic Amiga HUNK fixture did not parse as an executable with sections")
     _require_parser_owned_fact_refs(summary, "amiga.hunk.load_file.basic_backfill", "current Amiga HUNK")
+    _require_amiga_hunk_shared_executable_ranges(summary)
     return summary
 
 
@@ -554,6 +555,42 @@ def _require_parser_owned_fact_refs(payload: Mapping[str, Any], record_id: str, 
     diagnostics = validate_parser_fact_references(payload)
     if diagnostics:
         raise ValueError(f"{label} parser summary emitted invalid fact refs: {diagnostics}")
+
+
+def _require_amiga_hunk_shared_executable_ranges(payload: Mapping[str, Any]) -> None:
+    label = "current Amiga HUNK"
+    if payload.get("executable_model") != "platform_executable_summary_v1":
+        raise ValueError(f"{label} parser summary did not emit shared executable model")
+    ranges = {_string(item.get("role")): item for item in map(_mapping, _sequence(payload.get("executable_ranges")))}
+    for role in ("code", "data", "bss"):
+        if role not in ranges:
+            raise ValueError(f"{label} parser summary missing executable {role} range")
+    for role in ("code", "data"):
+        item = ranges[role]
+        if not isinstance(item.get("load_offset"), int) or not isinstance(item.get("stored_offset"), int):
+            raise ValueError(f"{label} executable {role} range missing load/stored offsets")
+        if item.get("fact_id") != "amiga.hunk.code_data_bss.sections.accepted":
+            raise ValueError(f"{label} executable {role} range has unexpected fact_id")
+        if item.get("fact_status") != "parser_asserted" or item.get("parser_use") != "accepted_parser_output":
+            raise ValueError(f"{label} executable {role} range has unexpected fact authority")
+    bss = ranges["bss"]
+    if not isinstance(bss.get("load_offset"), int) or bss.get("stored_offset") is not None or bss.get("stored_size") != 0:
+        raise ValueError(f"{label} executable bss range must be size-only with no stored offset")
+    if bss.get("fact_id") != "amiga.hunk.bss.size_only.accepted":
+        raise ValueError(f"{label} executable bss range has unexpected fact_id")
+    deferred = {
+        _string(item.get("kind")): item
+        for item in map(_mapping, _sequence(payload.get("executable_deferred")))
+    }
+    runtime_entry = deferred.get("runtime_entry")
+    if runtime_entry is None:
+        raise ValueError(f"{label} parser summary missing deferred runtime entry")
+    if (
+        runtime_entry.get("fact_id") != "amiga.hunk.runtime_entry.deferred"
+        or runtime_entry.get("fact_status") != "deferred"
+        or runtime_entry.get("parser_use") != "deferred_only"
+    ):
+        raise ValueError(f"{label} deferred runtime entry has unexpected fact authority")
 
 
 def _inspect_platform_fixture(backend: str, fixture_bytes: bytes, suffix: str) -> dict[str, Any]:

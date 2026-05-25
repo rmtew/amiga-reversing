@@ -423,11 +423,17 @@ def test_019_001_current_amiga_hunk_output_runs_real_parser_path() -> None:
     assert payload["kb_record_id"] == "amiga.hunk.load_file.basic_backfill"
     assert payload["parser"] == "platform_file_inspect_path_json_alloc"
     assert {section["kind"] for section in payload["sections"]} == {"code", "data", "bss"}
+    assert payload["executable_model"] == "platform_executable_summary_v1"
     assert payload["fact_refs"]
     assert report["summary"]["invalid"] == 0
     assert report["summary"]["accepted"] >= 3
     assert report["summary"]["deferred"] >= 1
     assert "amiga" not in report["unreported_platforms"]
+    paths = {item["path"] for item in report["emitted_fact_refs"]}
+    assert "$.executable_ranges[0]" in paths
+    assert "$.executable_ranges[1]" in paths
+    assert "$.executable_ranges[2]" in paths
+    assert "$.executable_deferred[0]" in paths
 
 
 def test_019_004_raw_amiga_hunk_parser_summary_emits_kb_refs_before_coverage() -> None:
@@ -556,6 +562,35 @@ def test_019_004_current_amiga_hunk_coverage_refuses_summary_without_parser_refs
     )
 
     with pytest.raises(ValueError, match="parser summary did not emit kb_record_id"):
+        platform_executable_formats._load_current_amiga_hunk_output()
+
+
+def test_020_003_current_amiga_hunk_coverage_refuses_summary_without_shared_ranges(monkeypatch) -> None:
+    monkeypatch.setattr(
+        platform_executable_formats,
+        "_inspect_platform_fixture",
+        lambda backend, fixture_bytes, suffix: {
+            "platform": backend,
+            "file_kind": "executable",
+            "parser": "platform_file_inspect_path_json_alloc",
+            "kb_record_id": "amiga.hunk.load_file.basic_backfill",
+            "sections": [{"kind": "code"}, {"kind": "data"}, {"kind": "bss"}],
+            "fact_refs": [
+                {
+                    "fact_id": "amiga.hunk.code_data_bss.sections.accepted",
+                    "fact_status": "parser_asserted",
+                    "parser_use": "accepted_parser_output",
+                },
+                {
+                    "fact_id": "amiga.hunk.runtime_entry.deferred",
+                    "fact_status": "deferred",
+                    "parser_use": "deferred_only",
+                },
+            ],
+        },
+    )
+
+    with pytest.raises(ValueError, match="shared executable model"):
         platform_executable_formats._load_current_amiga_hunk_output()
 
 
