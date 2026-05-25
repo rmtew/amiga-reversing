@@ -168,10 +168,27 @@ Deletion candidates for 021-005:
 
 ### 021-004: Project, Artifact, And Web Payload Migration
 
-Move Mac project payloads, target artifact rendering, and web/API listing
-surfaces off wrapped raw-source assumptions. Existing Mac visibility for CODE 0,
-candidate previews, orphan ranges, non-CODE placeholders, and deferred fixups
-must remain.
+Completed project/artifact/web migration:
+
+- Mac project payloads now expose `native_source` at the project root,
+  binary-container view, selected CODE segment, and selected listing route.
+- Mac target artifact rendering prints native `source_kind` and `backend` for
+  the selected CODE segment.
+- Mac web/starter payloads expose the same native source identity for the
+  binary container and selected CODE segment.
+- Existing CODE 0 metadata, CODE coverage, candidate previews, orphan ranges,
+  non-CODE placeholders, and deferred relocation/fixup explanations remain
+  visible. Candidate/deferred facts remain non-accepted.
+
+Retained public compatibility fields and blockers:
+
+- `selected_code_segment`, `code_layout`, `orphan_ranges`, and
+  `relocation_fixups` remain public because existing artifact/web renderers and
+  tests still consume them for user-visible CODE detail panes.
+- Project preview rendering still has an internal `RawBinarySource` decode path
+  for candidate preview rows. That is byte transport, not public source
+  identity; 021-005 must delete or formally block it together with
+  `_temporary_code_binary_source`.
 
 ### 021-005: Delete Raw Bridge And Superseded Paths
 

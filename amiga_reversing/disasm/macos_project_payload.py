@@ -20,7 +20,10 @@ from amiga_reversing.disasm.macos_asm_container import (
     MPW_ASM_PATH,
     read_macos_hfs_image_bytes,
 )
-from amiga_reversing.disasm.macos_project_origin import is_macos_project_origin
+from amiga_reversing.disasm.macos_project_origin import (
+    is_macos_project_origin,
+    macos_code_source_descriptor_from_project,
+)
 from amiga_reversing.disasm.macos_source_project import build_macos_source_project
 from amiga_reversing.disasm.macos_source_render import render_macos_source_views
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT
@@ -50,17 +53,21 @@ def build_macos_project_payload(project: object, *, project_root: Path = PROJECT
     source_render = render_macos_source_views(source_project)
     image_relpath = _required_string(origin, "source_image")
     hfs_path = str(origin.get("hfs_path") or MPW_ASM_PATH)
+    source_descriptor = macos_code_source_descriptor_from_project(project, project_root=project_root)
+    native_source_identity = _native_source_identity(source_descriptor, source_image=image_relpath)
     hfs_bytes = read_macos_hfs_image_bytes(project_root / image_relpath)
     c_summary = inspect_macos_hfs_code_summary_with_c_backend(hfs_bytes, hfs_path)
     return {
         "schema_version": 1,
         "kind": "macos_project",
         "platform": "macos",
+        "native_source": native_source_identity,
         "source_view": _source_view(source_project, source_render),
         "binary_container_view": _binary_container_view(
             c_summary,
             project_id=project_id,
             source_image=image_relpath,
+            native_source=native_source_identity,
             hfs_bytes=hfs_bytes,
             hfs_path=hfs_path,
             project_root=project_root,
@@ -85,7 +92,24 @@ def build_macos_project_payload(project: object, *, project_root: Path = PROJECT
             "resource_files": _string_list(origin.get("resource_files")),
             "build_files": _string_list(origin.get("build_files")),
             "binary_container_source": "platform_file_lib.macos_hfs_code_summary",
+            "native_source_kind": "macos_code_resource",
         },
+    }
+
+
+def _native_source_identity(descriptor: object, *, source_image: str) -> dict[str, object]:
+    return {
+        "kind": str(getattr(descriptor, "kind")),
+        "backend": "macos-code",
+        "source_kind": "macos_code_resource",
+        "source_image": source_image,
+        "hfs_path": getattr(descriptor, "hfs_path"),
+        "resource_type": getattr(descriptor, "resource_type"),
+        "resource_id": getattr(descriptor, "resource_id"),
+        "resource_name": getattr(descriptor, "resource_name"),
+        "address_model": str(getattr(descriptor, "address_model")),
+        "cache_identity": getattr(descriptor, "stable_cache_identity"),
+        "wrapped_backend": None,
     }
 
 
@@ -113,6 +137,7 @@ def _binary_container_view(
     *,
     project_id: str,
     source_image: str,
+    native_source: Mapping[str, object],
     hfs_bytes: bytes,
     hfs_path: str,
     project_root: Path,
@@ -146,6 +171,7 @@ def _binary_container_view(
     )
     return {
         "kind": c_summary.get("container_kind"),
+        "native_source": dict(native_source),
         "file": file_info,
         "forks": [
             {"name": "data", "role": "data_fork", "size": data_fork.get("size"), "sha256": data_fork.get("sha256")},
@@ -169,6 +195,7 @@ def _binary_container_view(
         "code_resource_details": code_resource_details,
         "navigation": _code_resource_navigation(code_resource_details),
         "selected_code_segment": {
+            "native_source": dict(native_source),
             "resource_type": "CODE",
             "id": selected_id,
             "name": selected_name,
@@ -190,6 +217,9 @@ def _binary_container_view(
             "code_bytes_sha256": selected.get("code_bytes_sha256"),
             "resource": selected_resource,
             "listing": {
+                "backend": "macos-code",
+                "source_kind": "macos_code_resource",
+                "native_source": dict(native_source),
                 "project_id": project_id,
                 "route": "listing",
                 "source_range": {"section_index": 0, "start_offset": 0, "size": selected.get("code_bytes_size")},

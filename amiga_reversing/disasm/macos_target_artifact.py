@@ -104,6 +104,7 @@ def render_macos_example_asm(*, project_root: Path = PROJECT_ROOT) -> str:
     code0_resource = _mapping(code0.get("resource"))
     code0_metadata = _mapping(code0.get("metadata"))
     selected = _mapping(container.get("selected_code_segment"))
+    native_source = _mapping(selected.get("native_source")) or _mapping(container.get("native_source"))
     selected_listing = _mapping(selected.get("listing"))
     selected_layout = [_mapping(item) for item in _sequence(selected.get("code_layout"))]
     selected_orphans = [_mapping(item) for item in _sequence(selected.get("orphan_ranges"))]
@@ -172,6 +173,8 @@ def render_macos_example_asm(*, project_root: Path = PROJECT_ROOT) -> str:
         *[f";   {item}" for item in unsupported],
         "",
         "; Selected CODE segment",
+        f";   source_kind: {_text(native_source.get('source_kind'))}",
+        f";   backend: {_text(native_source.get('backend'))}",
         f";   resource_type: {_text(selected.get('resource_type'))}",
         f";   id: {_text(selected.get('id'))}",
         f";   name: {_text(selected.get('name'))}",

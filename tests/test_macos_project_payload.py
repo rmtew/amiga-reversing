@@ -637,7 +637,11 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
     assert navigation_groups[0]["id"] == "macos-code-resources"
     assert len(navigation_groups[0]["items"]) == 4
     assert navigation_groups[1]["id"] == "macos-code-anchors"
-    assert container["selected_code_segment"]["listing"] == {
+    listing = container["selected_code_segment"]["listing"]
+    assert listing["backend"] == "macos-code"
+    assert listing["source_kind"] == "macos_code_resource"
+    assert listing["native_source"]["resource_id"] == 1
+    assert {key: value for key, value in listing.items() if key not in {"backend", "source_kind", "native_source"}} == {
         "project_id": "macos_mpw_sample",
         "route": "listing",
         "source_range": {"section_index": 0, "start_offset": 0, "size": 2},
@@ -850,6 +854,12 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
         if isinstance(item, dict)
     )
     assert container["selected_code_segment"]["code_entry_offset"] == 40
+    assert payload["native_source"]["backend"] == "macos-code"
+    assert payload["native_source"]["source_kind"] == "macos_code_resource"
+    assert payload["native_source"]["wrapped_backend"] is None
+    assert container["native_source"]["source_kind"] == "macos_code_resource"
+    assert container["selected_code_segment"]["native_source"]["resource_id"] == 1
+    assert container["selected_code_segment"]["listing"]["source_kind"] == "macos_code_resource"
     assert container["selected_code_segment"]["code_bytes_size"] == 28984
     assert container["selected_code_segment"]["code_layout"][2]["kind"] == "candidate_code"
     assert container["selected_code_segment"]["code_layout"][2]["fact_status"] == "candidate"

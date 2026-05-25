@@ -105,7 +105,10 @@ def test_macos_web_container_payload_exposes_forks_code_and_unsupported_state() 
     assert [fork["name"] for fork in container["forks"]] == ["data", "resource"]
     assert container["code0"]["metadata"]["kind"] == "jump_table_segment"
     assert len(container["code_resources"]) == 28
+    assert container["native_source"]["backend"] == "macos-code"
+    assert container["native_source"]["source_kind"] == "macos_code_resource"
     assert container["selected_code_segment"]["name"] == "Main"
+    assert container["selected_code_segment"]["native_source"]["resource_id"] == 1
     assert container["selected_code_segment"]["listing_preview"][0]["value"] == "$205F"
     assert container["source_mapping"] == {
         "maps_to_sample_source": False,

@@ -919,6 +919,8 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;   source-to-CODE segment mapping
 
 ; Selected CODE segment
+;   source_kind: macos_code_resource
+;   backend: macos-code
 ;   resource_type: CODE
 ;   id: 1
 ;   name: Main

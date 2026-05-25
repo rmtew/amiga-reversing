@@ -55,8 +55,14 @@ def _binary_container_view(asm_container: Mapping[str, object]) -> dict[str, obj
     file_info = _mapping(asm_container.get("file"))
     data_fork = _mapping(asm_container.get("data_fork"))
     resource_fork = _mapping(asm_container.get("resource_fork"))
+    native_source = _native_source_identity(asm_container)
+    selected = _mapping(asm_container.get("selected_code_segment"))
+    selected_with_source = dict(selected)
+    if selected_with_source:
+        selected_with_source["native_source"] = dict(native_source)
     return {
         "kind": asm_container.get("container_kind"),
+        "native_source": native_source,
         "file": file_info,
         "forks": [
             {
@@ -75,7 +81,7 @@ def _binary_container_view(asm_container: Mapping[str, object]) -> dict[str, obj
         ],
         "code0": asm_container.get("code0"),
         "code_resources": _sequence(asm_container.get("code_resources")),
-        "selected_code_segment": asm_container.get("selected_code_segment"),
+        "selected_code_segment": selected_with_source or asm_container.get("selected_code_segment"),
         "unsupported": _sequence(asm_container.get("unsupported")),
         "source_mapping": {
             "maps_to_sample_source": False,
@@ -86,6 +92,26 @@ def _binary_container_view(asm_container: Mapping[str, object]) -> dict[str, obj
             "creator": file_info.get("creator"),
             "cnid": file_info.get("cnid"),
         },
+    }
+
+
+def _native_source_identity(asm_container: Mapping[str, object]) -> dict[str, object]:
+    selected = _mapping(asm_container.get("selected_code_segment"))
+    resource_id = selected.get("id", 1)
+    source_image = str(asm_container.get("source_image") or "")
+    hfs_path = str(_mapping(asm_container.get("file")).get("path") or "")
+    return {
+        "kind": "macos_code_resource",
+        "backend": "macos-code",
+        "source_kind": "macos_code_resource",
+        "source_image": source_image,
+        "hfs_path": hfs_path,
+        "resource_type": "CODE",
+        "resource_id": resource_id,
+        "resource_name": selected.get("name"),
+        "address_model": "macos_code_resource_offset",
+        "cache_identity": f"macos-code-resource:{source_image}:{hfs_path}:CODE:{resource_id}",
+        "wrapped_backend": None,
     }
 
 
