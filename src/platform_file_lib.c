@@ -52,6 +52,10 @@ static int load_raw_object_from_path(const char *platform_name, const char *path
     M68kDiagSink diagnostics);
 static int load_raw_object_from_buffer(const char *platform_name, const unsigned char *data, size_t size,
     M68kObject *object, M68kDiagSink diagnostics);
+static int load_flat_m68k_object_from_buffer(const unsigned char *data, size_t size, M68kObject *object,
+    M68kDiagSink diagnostics);
+static int configure_flat_m68k_buffer_policy(M68kAnalysisPolicy *policy, const M68kObject *object,
+    const char *metadata_path, M68kDiagList *diagnostics);
 static int json_builder_append_facts_v2_profile(JsonBuilder *builder, const M68kFactsV2Profile *profile);
 static uint32_t read_be32_local(const uint8_t *data);
 static int write_bytes_to_path_local(const char *path, const unsigned char *data, size_t size,
@@ -7442,6 +7446,57 @@ static int load_raw_object_from_buffer(const char *platform_name, const unsigned
   return 0;
 }
 
+static int load_flat_m68k_object_from_buffer(const unsigned char *data, size_t size, M68kObject *object,
+    M68kDiagSink diagnostics) {
+  M68kSection section;
+  M68kObjectAddResult add_result;
+  unsigned char *section_data;
+  if (object == NULL || data == NULL || size > UINT32_MAX) {
+    platform_file_add_error(diagnostics.list, "invalid flat M68K buffer");
+    return -1;
+  }
+  section_data = (unsigned char *)malloc(size != 0U ? size : 1U);
+  if (section_data == NULL) {
+    platform_file_add_error(diagnostics.list, "out of memory");
+    return -1;
+  }
+  if (size != 0U) memcpy(section_data, data, size);
+  if (m68k_object_create(object) != 0) {
+    free(section_data);
+    platform_file_add_error(diagnostics.list, "out of memory");
+    return -1;
+  }
+  object->platform_backend_kind = M68K_PLATFORM_BACKEND_UNKNOWN;
+  object->platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  m68k_object_mark_no_container(object);
+  memset(&section, 0, sizeof(section));
+  section.name = "code";
+  section.kind = M68K_SECTION_CODE;
+  section.alignment = 2U;
+  section.size = (uint32_t)size;
+  section.data = section_data;
+  section.data_size = (uint32_t)size;
+  add_result = m68k_object_add_section(object, &section);
+  free(section_data);
+  if (!add_result.ok) {
+    m68k_object_destroy(object);
+    platform_file_add_error(diagnostics.list, "out of memory");
+    return -1;
+  }
+  return 0;
+}
+
+static int configure_flat_m68k_buffer_policy(M68kAnalysisPolicy *policy, const M68kObject *object,
+    const char *metadata_path, M68kDiagList *diagnostics) {
+  if (policy == NULL || object == NULL) return -1;
+  m68k_analysis_policy_init_default(policy);
+  if (metadata_path != NULL && metadata_path[0] != '\0' &&
+      platform_file_analysis_policy_load_target_metadata(policy, metadata_path, m68k_diag_sink(diagnostics)) != 0) {
+    return -1;
+  }
+  return policy_set_raw_entry_address_local(policy, object, 0U, 0U, diagnostics) ? 0 : -1;
+}
+
 static int read_file_to_buffer(const char *path, unsigned char **out_data, size_t *out_size,
     M68kDiagSink diagnostics) {
   FILE *input = NULL;
@@ -9504,6 +9559,35 @@ int platform_file_facts_v2_listing_artifact_raw_path_create(const char *platform
 fail:
   platform_file_facts_v2_listing_artifact_destroy(artifact);
   return listing_artifact_set_error(out_error, &diagnostics, "listing artifact create failed");
+}
+
+int platform_file_facts_v2_listing_artifact_flat_m68k_buffer_create(
+    const unsigned char *data, size_t size, const char *display_path, const char *metadata_path,
+    const char *include_dir, PlatformFileListingArtifact **out_artifact, char **out_error) {
+  M68kDiagList diagnostics = {0};
+  PlatformFileListingArtifact *artifact = NULL;
+  (void)include_dir;
+  if (out_artifact != NULL) *out_artifact = NULL;
+  if (out_error != NULL) *out_error = NULL;
+  if (out_artifact == NULL || out_error == NULL || data == NULL || display_path == NULL || size > UINT32_MAX) {
+    if (out_error != NULL) *out_error = m68k_platform_dup_string("invalid flat M68K listing artifact request");
+    return -1;
+  }
+  artifact = listing_artifact_alloc_base("m68k-flat-buffer", display_path, &diagnostics);
+  if (artifact == NULL) goto fail;
+  if (load_flat_m68k_object_from_buffer(data, size, &artifact->object, m68k_diag_sink(&diagnostics)) != 0)
+    goto fail;
+  if (configure_flat_m68k_buffer_policy(&artifact->policy, &artifact->object, metadata_path, &diagnostics) != 0)
+    goto fail;
+  enrich_policy_pointer_targets_from_object_local(&artifact->policy, &artifact->object);
+  if (!validate_effective_policy_against_object_local(&diagnostics, &artifact->object, &artifact->policy)) goto fail;
+  if (listing_artifact_build_analysis(artifact, &diagnostics) != 0) goto fail;
+  *out_artifact = artifact;
+  return 0;
+
+fail:
+  platform_file_facts_v2_listing_artifact_destroy(artifact);
+  return listing_artifact_set_error(out_error, &diagnostics, "flat M68K listing artifact create failed");
 }
 
 int platform_file_facts_v2_listing_artifact_macos_code_buffer_create(

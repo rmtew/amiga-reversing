@@ -250,16 +250,21 @@ Post-closeout follow-ups completed without reopening Proposal 021:
 - Focused proof for 021-007/008: precommit passed; Mac focused tests passed
   with 45 tests; targeted mypy passed on changed Python files; combined 020
   coverage passed with `invalid: 0`.
+- 021-009 added the neutral `m68k-flat-buffer` in-memory artifact path:
+  `platform_file_facts_v2_listing_artifact_flat_m68k_buffer_create` owns
+  flat local-offset object/policy setup directly. It renders flat bytes such as
+  `20 5f 4e 75` without reporting `amiga-raw` and without using the Amiga raw
+  policy/object loader boundary.
 
 Final future work:
 
 - Mac byte-entry, relocation/fixup, source-to-CODE, and non-CODE payload facts
   remain governed by Proposal 018 states and were not promoted by 021.
 - A post-closeout cleanup batch remains active for the low-level C buffer
-  implementation: 021-009 creates a neutral flat M68K buffer backend, 021-010
-  moves the Mac CODE buffer artifact off `amiga-raw` internals, 021-011 adds
-  regression guards against raw identity leaks, and 021-012 reconciles this
-  proposal after those code slices land.
+  implementation: 021-010 moves the Mac CODE buffer artifact onto the new
+  neutral flat M68K buffer path, 021-011 adds regression guards against raw
+  identity leaks, and 021-012 reconciles this proposal after those code slices
+  land.
 
 ## Acceptance Criteria
 

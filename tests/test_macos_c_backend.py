@@ -18,6 +18,7 @@ from amiga_reversing.disasm.binary_source import (
 )
 from amiga_reversing.disasm.c_backend import (
     CListingArtifact,
+    build_flat_m68k_bytes_listing_artifact_profile,
     build_listing_artifact_profile_from_binary_source,
     build_macos_code_bytes_listing_artifact_profile,
     extract_macos_hfs_code_resource_bytes_with_c_backend,
@@ -449,6 +450,28 @@ def test_021_007_macos_code_bytes_artifact_profile_is_native(tmp_path: Path) -> 
     assert source_profile["backend"] == "macos-code"
     assert window_profile["backend"] == "macos-code"
     assert any(str(row.get("text") or "").strip() == "movea.l (a7)+,a0" for row in window["rows"])
+
+
+def test_021_009_flat_m68k_buffer_artifact_profile_is_neutral() -> None:
+    require_built_tools()
+
+    _total_rows, profile, artifact = build_flat_m68k_bytes_listing_artifact_profile(
+        b"\x20\x5f\x4e\x75",
+        display_path="flat m68k test buffer",
+        project_root=PROJECT_ROOT,
+    )
+    try:
+        _source_text, source_profile = artifact.source_text_with_profile()
+        window, window_profile = artifact.window_payload(start=0, count=8)
+    finally:
+        artifact.close()
+
+    assert profile["backend"] == "m68k-flat-buffer"
+    assert source_profile["backend"] == "m68k-flat-buffer"
+    assert window_profile["backend"] == "m68k-flat-buffer"
+    assert profile["backend"] != "amiga-raw"
+    assert any(str(row.get("text") or "").strip() == "movea.l (a7)+,a0" for row in window["rows"])
+    assert any(str(row.get("text") or "").strip() == "rts" for row in window["rows"])
 
 
 def test_c_macos_summary_defers_code_without_entry_evidence() -> None:

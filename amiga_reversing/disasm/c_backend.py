@@ -731,6 +731,31 @@ def build_macos_code_bytes_listing_artifact_profile(
     return int(total_rows) if isinstance(total_rows, int) else 0, summary_profile, artifact
 
 
+def build_flat_m68k_bytes_listing_artifact_profile(
+    code_bytes: bytes,
+    *,
+    display_path: str,
+    metadata_path: Path | None = None,
+    project_root: Path = PROJECT_ROOT,
+) -> tuple[int, dict[str, object], CListingArtifact]:
+    metadata_text = _metadata_path_text(metadata_path)
+    include_dir = _platform_include_dir_for_listing("m68k-flat-buffer", project_root)
+    artifact = CListingArtifact.create_flat_m68k_bytes(
+        code_bytes,
+        display_path=display_path,
+        metadata_text=metadata_text,
+        include_dir=str(include_dir),
+        project_root=project_root,
+    )
+    try:
+        summary, summary_profile = artifact.summary_payload()
+        total_rows = summary.get("total_rows", 0)
+    except Exception:
+        artifact.close()
+        raise
+    return int(total_rows) if isinstance(total_rows, int) else 0, summary_profile, artifact
+
+
 def type_catalog_from_c_backend(
     project_name: str,
     project_root: Path = PROJECT_ROOT,
@@ -1239,6 +1264,16 @@ def _platform_file_dll(project_root: Path) -> CDLL:
         POINTER(c_void_p),
     ]
     dll.platform_file_facts_v2_listing_artifact_raw_path_create.restype = c_int
+    dll.platform_file_facts_v2_listing_artifact_flat_m68k_buffer_create.argtypes = [
+        c_void_p,
+        c_size_t,
+        c_char_p,
+        c_char_p,
+        c_char_p,
+        POINTER(c_void_p),
+        POINTER(c_void_p),
+    ]
+    dll.platform_file_facts_v2_listing_artifact_flat_m68k_buffer_create.restype = c_int
     dll.platform_file_facts_v2_listing_artifact_macos_code_buffer_create.argtypes = [
         c_void_p,
         c_size_t,
@@ -1533,6 +1568,38 @@ class CListingArtifact:
         error = c_void_p()
         buffer = create_string_buffer(code_bytes, len(code_bytes))
         result = dll.platform_file_facts_v2_listing_artifact_macos_code_buffer_create(
+            buffer,
+            len(code_bytes),
+            _c_arg(display_path),
+            _c_arg(metadata_text),
+            _c_arg(include_dir),
+            byref(artifact),
+            byref(error),
+        )
+        try:
+            error_text = string_at(error.value).decode("utf-8", errors="replace") if error.value else ""
+            if result != 0 or not artifact.value:
+                raise RuntimeError(f"C backend DLL failed: {error_text}")
+            return cls(dll, artifact)
+        finally:
+            if error.value:
+                dll.platform_file_free_text(error)
+
+    @classmethod
+    def create_flat_m68k_bytes(
+        cls,
+        code_bytes: bytes,
+        *,
+        display_path: str,
+        metadata_text: str,
+        include_dir: str,
+        project_root: Path,
+    ) -> CListingArtifact:
+        dll = _platform_file_dll(project_root)
+        artifact = c_void_p()
+        error = c_void_p()
+        buffer = create_string_buffer(code_bytes, len(code_bytes))
+        result = dll.platform_file_facts_v2_listing_artifact_flat_m68k_buffer_create(
             buffer,
             len(code_bytes),
             _c_arg(display_path),
