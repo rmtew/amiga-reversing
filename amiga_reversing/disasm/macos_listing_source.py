@@ -21,10 +21,9 @@ from amiga_reversing.disasm.c_backend import (
     inspect_macos_hfs_code_summary_with_c_backend,
 )
 from amiga_reversing.disasm.macos_asm_container import (
-    MPW_ASM_PATH,
     read_macos_hfs_image_bytes,
 )
-from amiga_reversing.disasm.macos_project_origin import is_macos_project_origin
+from amiga_reversing.disasm.macos_project_origin import macos_code_source_descriptor_from_project
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT
 from amiga_reversing.disasm.projects import ProjectRecord
 
@@ -51,11 +50,11 @@ def build_macos_code_listing_source(
     *,
     project_root: Path = PROJECT_ROOT,
 ) -> dict[str, object]:
-    origin = _macos_origin(project)
-    image_relpath = _required_string(origin, "source_image")
-    hfs_path = str(origin.get("hfs_path") or MPW_ASM_PATH)
-    resource_id = _selected_resource_id(origin)
-    hfs_bytes = read_macos_hfs_image_bytes(project_root / image_relpath)
+    descriptor = macos_code_source_descriptor_from_project(project, project_root=project_root)
+    image_relpath = _display_source_image(descriptor.source_image, project_root)
+    hfs_path = descriptor.hfs_path
+    resource_id = descriptor.resource_id
+    hfs_bytes = read_macos_hfs_image_bytes(descriptor.source_image)
     summary = inspect_macos_hfs_code_summary_with_c_backend(hfs_bytes, hfs_path)
     code_bytes = extract_macos_hfs_code_resource_bytes_with_c_backend(hfs_bytes, hfs_path, resource_id)
     if not code_bytes:
@@ -73,6 +72,7 @@ def build_macos_code_listing_source(
         "resource_type": "CODE",
         "resource_id": resource_id,
         "resource_name": resource.get("name") or selected_code.get("name"),
+        "source_descriptor": _macos_source_descriptor_payload(descriptor, project_root),
         "resource": resource,
         "selected_code": selected_code,
         "classified_range": selected_range,
@@ -90,19 +90,13 @@ def build_macos_code_listing_source(
 
 
 def macos_listing_cache_key(project: ProjectRecord, *, project_root: Path = PROJECT_ROOT) -> str:
-    origin = _macos_origin(project)
-    image_relpath = _required_string(origin, "source_image")
-    hfs_path = str(origin.get("hfs_path") or MPW_ASM_PATH)
-    resource_id = _selected_resource_id(origin)
+    descriptor = macos_code_source_descriptor_from_project(project, project_root=project_root)
     target_dir = project_root / project.target_dir
     return "|".join(
         [
             project.id,
-            "macos-code-resource",
-            image_relpath,
-            _file_cache_stamp(project_root / image_relpath),
-            hfs_path,
-            f"CODE:{resource_id}",
+            descriptor.stable_cache_identity,
+            _file_cache_stamp(descriptor.source_image),
             _file_cache_stamp(target_dir / ".project.json"),
         ]
     )
@@ -221,23 +215,26 @@ def _temporary_code_binary_source(
             temp_path.unlink(missing_ok=True)
 
 
-def _macos_origin(project: ProjectRecord) -> Mapping[str, object]:
-    origin = project.origin
-    if not is_macos_project_origin(origin):
-        raise ValueError("Mac OS listing requires macos_mpw_fixture origin")
-    return cast(Mapping[str, object], origin)
+def _display_source_image(source_image: Path, project_root: Path) -> str:
+    try:
+        return source_image.resolve().relative_to(project_root.resolve()).as_posix()
+    except ValueError:
+        return source_image.as_posix()
 
 
-def _selected_resource_id(origin: Mapping[str, object]) -> int:
-    value = origin.get("selected_code_resource_id", 1)
-    return value if isinstance(value, int) and value > 0 else 1
-
-
-def _required_string(origin: Mapping[str, object], key: str) -> str:
-    value = origin.get(key)
-    if not isinstance(value, str) or not value:
-        raise ValueError(f"Mac OS project origin missing {key}")
-    return value
+def _macos_source_descriptor_payload(descriptor: object, project_root: Path) -> dict[str, object]:
+    source_image = cast(Path, getattr(descriptor, "source_image"))
+    return {
+        "kind": str(getattr(descriptor, "kind")),
+        "source_image": _display_source_image(source_image, project_root),
+        "hfs_path": getattr(descriptor, "hfs_path"),
+        "resource_type": getattr(descriptor, "resource_type"),
+        "resource_id": getattr(descriptor, "resource_id"),
+        "resource_name": getattr(descriptor, "resource_name"),
+        "address_model": str(getattr(descriptor, "address_model")),
+        "cache_identity": getattr(descriptor, "stable_cache_identity"),
+        "display_path": getattr(descriptor, "display_path"),
+    }
 
 
 def _code_resource_by_id(resources: list[object], resource_id: int) -> Mapping[str, object]:

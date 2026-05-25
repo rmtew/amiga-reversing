@@ -15,11 +15,16 @@ class BinarySourceKind(StrEnum):
     HUNK_FILE = "hunk_file"
     DISK_ENTRY = "disk_entry"
     RAW_BINARY = "raw_binary"
+    MACOS_CODE_RESOURCE = "macos_code_resource"
 
 
 class RawAddressModel(StrEnum):
     LOCAL_OFFSET = "local_offset"
     RUNTIME_ABSOLUTE = "runtime_absolute"
+
+
+class MacosCodeAddressModel(StrEnum):
+    RESOURCE_OFFSET = "macos_code_resource_offset"
 
 
 def _json_object(value: object) -> dict[str, object]:
@@ -83,6 +88,8 @@ class DiskEntryBinarySource:
             self.entry_path,
             project_root=self.project_root,
         )
+        if not isinstance(data, bytes):
+            raise TypeError("C backend disk entry extraction did not return bytes")
         if key is not None:
             _DISK_ENTRY_BYTES_CACHE[key] = data
         return data
@@ -130,7 +137,53 @@ class RawBinarySource:
         return self.entrypoint - self.load_address
 
 
-type BinarySource = HunkFileBinarySource | DiskEntryBinarySource | RawBinarySource
+@dataclass(frozen=True, slots=True)
+class MacosCodeResourceSource:
+    kind: BinarySourceKind
+    source_image: Path
+    hfs_path: str
+    resource_type: str
+    resource_id: int
+    address_model: MacosCodeAddressModel
+    display_path: str
+    analysis_cache_path: Path
+    resource_name: str | None = None
+    cache_identity: str | None = None
+    parent_project_id: str | None = None
+    project_root: Path = PROJECT_ROOT
+
+    def __post_init__(self) -> None:
+        if self.kind is not BinarySourceKind.MACOS_CODE_RESOURCE:
+            raise TypeError("MacosCodeResourceSource.kind must be BinarySourceKind.MACOS_CODE_RESOURCE")
+        if self.resource_type != "CODE":
+            raise ValueError(f"MacosCodeResourceSource.resource_type must be CODE: {self.resource_type}")
+        if self.resource_id < 0:
+            raise ValueError(f"MacosCodeResourceSource.resource_id must be non-negative: {self.resource_id}")
+        if not isinstance(self.address_model, MacosCodeAddressModel):
+            raise TypeError("MacosCodeResourceSource.address_model must be a MacosCodeAddressModel")
+
+    @property
+    def stable_cache_identity(self) -> str:
+        if self.cache_identity:
+            return self.cache_identity
+        return macos_code_resource_cache_identity(
+            self.source_image.as_posix(),
+            self.hfs_path,
+            self.resource_type,
+            self.resource_id,
+        )
+
+
+type BinarySource = HunkFileBinarySource | DiskEntryBinarySource | RawBinarySource | MacosCodeResourceSource
+
+
+def macos_code_resource_cache_identity(
+    source_image: str,
+    hfs_path: str,
+    resource_type: str,
+    resource_id: int,
+) -> str:
+    return f"macos-code-resource:{source_image}:{hfs_path}:{resource_type}:{resource_id}"
 
 
 def source_descriptor_path(target_dir: Path) -> Path:
@@ -251,6 +304,51 @@ def _load_raw_binary_source(
     )
 
 
+def _load_macos_code_resource_source(
+    payload: dict[str, object],
+    target_dir: Path,
+    project_root: Path,
+) -> MacosCodeResourceSource:
+    source_image = payload["source_image"]
+    hfs_path = payload["hfs_path"]
+    resource_type = payload.get("resource_type", "CODE")
+    resource_id = payload["resource_id"]
+    address_model = payload["address_model"]
+    resource_name = payload.get("resource_name")
+    cache_identity = payload.get("cache_identity")
+    parent_project_id = payload.get("parent_project_id")
+    assert isinstance(source_image, str)
+    assert isinstance(hfs_path, str)
+    assert isinstance(resource_type, str)
+    assert isinstance(resource_id, int)
+    assert isinstance(address_model, str)
+    assert isinstance(resource_name, str) or resource_name is None
+    assert isinstance(cache_identity, str) or cache_identity is None
+    assert isinstance(parent_project_id, str) or parent_project_id is None
+    try:
+        address_model_id = MacosCodeAddressModel(address_model)
+    except ValueError:
+        raise ValueError(
+            f"Unsupported Mac CODE address_model for target {target_dir.name}: {address_model}"
+        ) from None
+    resolved_image = _resolve_recorded_path(source_image, project_root)
+    return MacosCodeResourceSource(
+        kind=BinarySourceKind.MACOS_CODE_RESOURCE,
+        source_image=resolved_image,
+        hfs_path=hfs_path,
+        resource_type=resource_type,
+        resource_id=resource_id,
+        resource_name=resource_name,
+        address_model=address_model_id,
+        display_path=f"{source_image}::{hfs_path}::{resource_type} {resource_id}",
+        analysis_cache_path=target_dir / "binary.analysis",
+        cache_identity=cache_identity
+        or macos_code_resource_cache_identity(source_image, hfs_path, resource_type, resource_id),
+        parent_project_id=parent_project_id,
+        project_root=project_root,
+    )
+
+
 def resolve_target_binary_source(target_dir: Path, project_root: Path = PROJECT_ROOT) -> BinarySource | None:
     descriptor_path = source_descriptor_path(target_dir)
     if not descriptor_path.exists():
@@ -269,6 +367,8 @@ def resolve_target_binary_source(target_dir: Path, project_root: Path = PROJECT_
         return _load_disk_entry_source(descriptor, target_dir, project_root)
     if kind_id is BinarySourceKind.RAW_BINARY:
         return _load_raw_binary_source(descriptor, target_dir, project_root)
+    if kind_id is BinarySourceKind.MACOS_CODE_RESOURCE:
+        return _load_macos_code_resource_source(descriptor, target_dir, project_root)
     raise AssertionError(f"Unhandled source_binary kind: {kind_id}")
 
 

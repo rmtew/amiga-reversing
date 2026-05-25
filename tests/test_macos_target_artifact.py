@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any, cast
 
 import pytest
 
@@ -14,6 +15,7 @@ from amiga_reversing.disasm.macos_listing_source import (
     build_macos_code_listing_source,
     build_macos_project_listing_artifact_profile,
 )
+from amiga_reversing.disasm.macos_project_origin import macos_code_source_descriptor_from_project
 from amiga_reversing.disasm.macos_target_artifact import (
     MACOS_EXAMPLE_ASM_RELPATH,
     MACOS_EXAMPLE_PROJECT_ID,
@@ -39,6 +41,61 @@ def test_committed_macos_example_target_loads_through_project_record() -> None:
     assert project.origin["kind"] == "macos_mpw_fixture"
     assert project.origin["hfs_path"] == "MPW-GM/MPW/Tools/Asm"
     assert project.origin["selected_code_resource_id"] == 1
+
+
+def test_021_001_committed_mpw_asm_project_resolves_native_code_source_descriptor() -> None:
+    if not (Path.cwd() / MACOS_EXAMPLE_TARGET_RELPATH / ".project.json").exists():
+        pytest.skip("committed Mac OS example target is not available")
+
+    project = get_project(MACOS_EXAMPLE_PROJECT_ID)
+    descriptor = macos_code_source_descriptor_from_project(project)
+
+    assert descriptor.kind == "macos_code_resource"
+    assert descriptor.source_image == (Path.cwd() / "resources/platform_macos/MPW-GM.img.bin").resolve()
+    assert descriptor.hfs_path == "MPW-GM/MPW/Tools/Asm"
+    assert descriptor.resource_type == "CODE"
+    assert descriptor.resource_id == 1
+    assert descriptor.address_model == "macos_code_resource_offset"
+    assert descriptor.display_path == "resources/platform_macos/MPW-GM.img.bin::MPW-GM/MPW/Tools/Asm::CODE 1"
+    assert descriptor.stable_cache_identity == (
+        "macos-code-resource:resources/platform_macos/MPW-GM.img.bin:MPW-GM/MPW/Tools/Asm:CODE:1"
+    )
+
+
+def test_021_001_macos_listing_source_sits_behind_native_descriptor() -> None:
+    if not IMAGE_PATH.exists():
+        pytest.skip("MPW-GM image fixture is not available")
+    if not NDIF2RAW_PATH.exists():
+        pytest.skip("ndif2raw provider is not available")
+
+    project = get_project(MACOS_EXAMPLE_PROJECT_ID)
+    listing_source = build_macos_code_listing_source(project)
+    descriptor = cast(dict[str, object], listing_source["source_descriptor"])
+    classified_range = cast(dict[str, object], listing_source["classified_range"])
+
+    assert isinstance(descriptor, dict)
+    assert descriptor["kind"] == "macos_code_resource"
+    assert descriptor["source_image"] == "resources/platform_macos/MPW-GM.img.bin"
+    assert descriptor["hfs_path"] == "MPW-GM/MPW/Tools/Asm"
+    assert descriptor["resource_type"] == "CODE"
+    assert descriptor["resource_id"] == 1
+    assert descriptor["address_model"] == "macos_code_resource_offset"
+    assert descriptor["cache_identity"] == (
+        "macos-code-resource:resources/platform_macos/MPW-GM.img.bin:MPW-GM/MPW/Tools/Asm:CODE:1"
+    )
+    assert classified_range["fact_status"] == "candidate"
+
+
+def test_021_001_macos_code_source_descriptor_fails_closed_for_invalid_origin() -> None:
+    project = get_project(MACOS_EXAMPLE_PROJECT_ID)
+    bad_project = type(
+        "BadProject",
+        (),
+        {"id": project.id, "origin": {"kind": "macos_mpw_fixture", "selected_code_resource_id": 1}},
+    )()
+
+    with pytest.raises(ValueError, match="source_image"):
+        macos_code_source_descriptor_from_project(bad_project)
 
 
 def test_020_006_macos_listing_requires_shared_executable_ranges(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -200,13 +257,15 @@ def test_macos_listing_artifact_uses_macos_source_and_row_provenance() -> None:
     finally:
         artifact.close()
 
+    analysis_ranges = cast(list[dict[str, Any]], analysis["executable_ranges"])
+    analysis_deferred = cast(list[dict[str, Any]], analysis["executable_deferred"])
     assert profile["backend"] == "amiga-raw"
     assert analysis_profile["backend"] == "macos-code"
     assert analysis["executable_model"] == "platform_executable_summary_v1"
-    assert analysis["executable_ranges"][0]["role"] == "candidate_code"
-    assert analysis["executable_ranges"][0]["fact_status"] == "candidate"
-    assert analysis["executable_ranges"][0]["parser_use"] == "candidate_only"
-    assert analysis["executable_deferred"][0]["fact_status"] == "deferred"
+    assert analysis_ranges[0]["role"] == "candidate_code"
+    assert analysis_ranges[0]["fact_status"] == "candidate"
+    assert analysis_ranges[0]["parser_use"] == "candidate_only"
+    assert analysis_deferred[0]["fact_status"] == "deferred"
     assert source_profile["backend"] == "macos-code"
     assert source_profile["wrapped_backend"] == "amiga-raw"
     assert "; Classic Mac OS CODE resource listing" in source_text

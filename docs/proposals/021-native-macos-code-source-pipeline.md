@@ -96,10 +96,29 @@ CODE 0 remains metadata-only. Relocation/fixup details remain deferred.
 
 ### 021-001: Native Mac CODE Source Descriptor
 
-Add a first-class source descriptor for selected Mac CODE resources. Project
-origin and source resolution should be able to describe the HFS image, HFS path,
-resource type/id, address model, and target-local cache identity without
-materializing a raw binary wrapper as the source of truth.
+Completed descriptor slice:
+
+- Added `MacosCodeResourceSource` with source image path, HFS path, resource
+  type/id, optional resource name, `macos_code_resource_offset` address model,
+  display path, target-local analysis cache path, and stable cache identity.
+- Added `macos_code_source_descriptor_from_project`, which resolves the
+  committed MPW `Asm` project origin into that descriptor and fails closed when
+  required origin fields are missing or invalid.
+- `build_macos_code_listing_source` now constructs and carries the native
+  descriptor before the temporary byte bridge. Listing/rendering behavior is not
+  migrated in this slice.
+
+Current raw bridge callers and replacement order:
+
+1. `macos_listing_source._temporary_code_binary_source` still materializes the
+   selected CODE bytes as a temporary `RawBinarySource`; 021-002 replaces byte
+   access with a native Mac CODE provider.
+2. `build_macos_project_listing_artifact_profile` still passes that temporary
+   source to the generic C listing artifact; 021-003 replaces the listing and
+   analysis artifact identity.
+3. Mac project/artifact/web payloads still consume compatibility fields around
+   `selected_code_segment`, `code_layout`, and preview rows; 021-004 migrates
+   public payload assumptions after native listing parity.
 
 ### 021-002: Native C Backend Byte Provider
 
