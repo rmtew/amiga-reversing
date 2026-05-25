@@ -520,12 +520,18 @@ def test_019_002_current_atari_prg_output_runs_real_parser_path() -> None:
     assert payload["kb_record_id"] == "atari_st.prg.gemdos_basic_backfill"
     assert payload["parser"] == "platform_file_inspect_path_json_alloc"
     assert {section["kind"] for section in payload["sections"]} == {"code", "data", "bss"}
+    assert payload["executable_model"] == "platform_executable_summary_v1"
     assert payload["fact_refs"]
     assert report["summary"]["invalid"] == 0
     assert report["summary"]["accepted"] >= 3
     assert report["summary"]["candidate"] >= 1
     assert report["summary"]["deferred"] >= 1
     assert "atari_st" not in report["unreported_platforms"]
+    paths = {item["path"] for item in report["emitted_fact_refs"]}
+    assert "$.executable_ranges[0]" in paths
+    assert "$.executable_ranges[1]" in paths
+    assert "$.executable_ranges[2]" in paths
+    assert "$.executable_deferred[0]" in paths
 
 
 def test_019_004_raw_atari_prg_parser_summary_emits_kb_refs_before_coverage() -> None:
@@ -547,6 +553,62 @@ def test_019_004_raw_atari_prg_parser_summary_emits_kb_refs_before_coverage() ->
         ("atari_st.prg.bss.header_only.candidate", "candidate", "candidate_only"),
         ("atari_st.prg.relocation_terminator_variants.deferred", "deferred", "deferred_only"),
     }
+    assert platform_executable_formats.validate_parser_fact_references(payload) == []
+
+
+def test_020_004_raw_atari_prg_parser_summary_exposes_shared_ranges() -> None:
+    payload = platform_executable_formats._inspect_platform_fixture(
+        "atari-st",
+        platform_executable_formats._synthetic_atari_prg_fixture(),
+        ".prg",
+    )
+    ranges = {item["role"]: item for item in payload["executable_ranges"]}
+    deferred = {item["kind"]: item for item in payload["executable_deferred"]}
+
+    assert payload["executable_model"] == "platform_executable_summary_v1"
+    assert set(ranges) == {"code", "data", "bss"}
+    assert ranges["code"] == {
+        "role": "code",
+        "load_offset": 0,
+        "stored_offset": 0,
+        "size": 4,
+        "stored_size": 4,
+        "status": "parser_asserted",
+        "fact_id": "atari_st.prg.text_data_loaded_image.accepted",
+        "fact_status": "parser_asserted",
+        "parser_use": "accepted_parser_output",
+    }
+    assert ranges["data"] == {
+        "role": "data",
+        "load_offset": 4,
+        "stored_offset": 4,
+        "size": 4,
+        "stored_size": 4,
+        "status": "parser_asserted",
+        "fact_id": "atari_st.prg.text_data_loaded_image.accepted",
+        "fact_status": "parser_asserted",
+        "parser_use": "accepted_parser_output",
+    }
+    assert ranges["bss"] == {
+        "role": "bss",
+        "load_offset": 8,
+        "stored_offset": None,
+        "size": 8,
+        "stored_size": 0,
+        "status": "candidate",
+        "fact_id": "atari_st.prg.bss.header_only.candidate",
+        "fact_status": "candidate",
+        "parser_use": "candidate_only",
+    }
+    assert deferred["relocation_breadth"] == {
+        "kind": "relocation_breadth",
+        "status": "deferred",
+        "fact_id": "atari_st.prg.relocation_terminator_variants.deferred",
+        "fact_status": "deferred",
+        "parser_use": "deferred_only",
+    }
+    assert payload["sections"]
+    assert payload["fact_refs"]
     assert platform_executable_formats.validate_parser_fact_references(payload) == []
 
 
@@ -606,6 +668,40 @@ def test_019_004_current_atari_prg_coverage_refuses_summary_without_parser_refs(
     )
 
     with pytest.raises(ValueError, match="parser summary did not emit kb_record_id"):
+        platform_executable_formats._load_current_atari_prg_output()
+
+
+def test_020_004_current_atari_prg_coverage_refuses_summary_without_shared_ranges(monkeypatch) -> None:
+    monkeypatch.setattr(
+        platform_executable_formats,
+        "_inspect_platform_fixture",
+        lambda backend, fixture_bytes, suffix: {
+            "platform": backend,
+            "file_kind": "executable",
+            "parser": "platform_file_inspect_path_json_alloc",
+            "kb_record_id": "atari_st.prg.gemdos_basic_backfill",
+            "sections": [{"kind": "code"}, {"kind": "data"}, {"kind": "bss"}],
+            "fact_refs": [
+                {
+                    "fact_id": "atari_st.prg.text_data_loaded_image.accepted",
+                    "fact_status": "parser_asserted",
+                    "parser_use": "accepted_parser_output",
+                },
+                {
+                    "fact_id": "atari_st.prg.bss.header_only.candidate",
+                    "fact_status": "candidate",
+                    "parser_use": "candidate_only",
+                },
+                {
+                    "fact_id": "atari_st.prg.relocation_terminator_variants.deferred",
+                    "fact_status": "deferred",
+                    "parser_use": "deferred_only",
+                },
+            ],
+        },
+    )
+
+    with pytest.raises(ValueError, match="shared executable model"):
         platform_executable_formats._load_current_atari_prg_output()
 
 

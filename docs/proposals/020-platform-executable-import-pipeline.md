@@ -235,10 +235,27 @@ Completed Amiga current-output migration:
 
 ### 020-004: Atari PRG Shared Import Slice
 
-Move the current Atari ST PRG parser summary into the shared executable model.
-TEXT/DATA/BSS and loaded TEXT+DATA target space must appear as shared ranges.
-Basepage/runtime entry and relocation/symbol details must remain
-candidate/deferred where 018 says so.
+Completed Atari current-output migration:
+
+- The executable Atari ST PRG inspect path now builds
+  `platform_executable_summary_v1` and emits shared `executable_ranges` plus
+  `executable_deferred` from C.
+- TEXT is represented as role `code`, DATA as role `data`, and BSS as role
+  `bss`, with loaded-image offsets separated from nullable stored offsets.
+- CODE/DATA ranges carry
+  `atari_st.prg.text_data_loaded_image.accepted` as parser-asserted accepted
+  output. BSS remains candidate-only through
+  `atari_st.prg.bss.header_only.candidate`, with `stored_offset: null` and
+  `stored_size: 0`.
+- Relocation breadth remains deferred through
+  `atari_st.prg.relocation_terminator_variants.deferred` in
+  `executable_deferred`.
+- `_load_current_atari_prg_output()` now requires the shared model; regression
+  coverage fails if old Atari `sections`/`fact_refs` remain but shared ranges
+  are omitted.
+- Current coverage proves Atari refs from `$.executable_ranges[0..2]` and
+  `$.executable_deferred[0]`; the older top-level `sections` and `fact_refs`
+  remain only as compatibility surfaces and deletion candidates for 020-008.
 
 ### 020-005: Mac CODE Shared Import Slice
 

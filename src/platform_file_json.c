@@ -829,6 +829,44 @@ static int build_amiga_hunk_executable_summary(const M68kObject *object,
     PLATFORM_EXECUTABLE_FORMAT_FACT_AMIGA_HUNK_RUNTIME_ENTRY_DEFERRED, "deferred", "deferred_only");
 }
 
+static int build_atari_prg_executable_summary(const M68kObject *object,
+    PlatformExecutableSummary *summary) {
+  size_t index;
+  uint32_t load_offset = 0U;
+  uint32_t stored_offset = 0U;
+  if (object == NULL || summary == NULL) return -1;
+  memset(summary, 0, sizeof(*summary));
+  summary->record_id = PLATFORM_EXECUTABLE_FORMAT_RECORD_ATARI_ST_PRG_GEMDOS_BASIC_BACKFILL;
+  for (index = 0U; index < object->section_count; ++index) {
+    const M68kSection *section = &object->sections[index];
+    uint8_t has_stored_offset = section->data_size != 0U ? 1U : 0U;
+    if (section->kind == M68K_SECTION_CODE) {
+      if (platform_executable_summary_add_range(summary, PLATFORM_EXECUTABLE_RANGE_ROLE_CODE,
+          load_offset, stored_offset, has_stored_offset, section->size, section->data_size,
+          PLATFORM_EXECUTABLE_FORMAT_FACT_ATARI_ST_PRG_TEXT_DATA_LOADED_IMAGE_ACCEPTED,
+          "parser_asserted", "accepted_parser_output") != 0)
+        return -1;
+    } else if (section->kind == M68K_SECTION_DATA) {
+      if (platform_executable_summary_add_range(summary, PLATFORM_EXECUTABLE_RANGE_ROLE_DATA,
+          load_offset, stored_offset, has_stored_offset, section->size, section->data_size,
+          PLATFORM_EXECUTABLE_FORMAT_FACT_ATARI_ST_PRG_TEXT_DATA_LOADED_IMAGE_ACCEPTED,
+          "parser_asserted", "accepted_parser_output") != 0)
+        return -1;
+    } else if (section->kind == M68K_SECTION_BSS) {
+      if (platform_executable_summary_add_range(summary, PLATFORM_EXECUTABLE_RANGE_ROLE_BSS,
+          load_offset, stored_offset, 0U, section->size, section->data_size,
+          PLATFORM_EXECUTABLE_FORMAT_FACT_ATARI_ST_PRG_BSS_HEADER_ONLY_CANDIDATE,
+          "candidate", "candidate_only") != 0)
+        return -1;
+    }
+    load_offset += section->size;
+    stored_offset += section->data_size;
+  }
+  return platform_executable_summary_add_limit(summary, PLATFORM_EXECUTABLE_LIMIT_RELOCATION_BREADTH,
+    PLATFORM_EXECUTABLE_FORMAT_FACT_ATARI_ST_PRG_RELOCATION_TERMINATOR_VARIANTS_DEFERRED, "deferred",
+    "deferred_only");
+}
+
 static int append_platform_executable_fact_fields_json(JsonBuilder *builder,
     const PlatformExecutableFactRef *fact) {
   if (builder == NULL || fact == NULL) return -1;
@@ -847,11 +885,16 @@ static int append_platform_executable_summary_json(JsonBuilder *builder, const M
   PlatformExecutableSummary summary;
   size_t index;
   if (builder == NULL || backend == NULL || object == NULL ||
-      object->platform_file_kind != M68K_PLATFORM_FILE_EXECUTABLE ||
-      backend->platform_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK) {
+      object->platform_file_kind != M68K_PLATFORM_FILE_EXECUTABLE) {
     return 0;
   }
-  if (build_amiga_hunk_executable_summary(object, &summary) != 0) return -1;
+  if (backend->platform_kind == M68K_PLATFORM_BACKEND_AMIGA_HUNK) {
+    if (build_amiga_hunk_executable_summary(object, &summary) != 0) return -1;
+  } else if (backend->platform_kind == M68K_PLATFORM_BACKEND_ATARI_ST) {
+    if (build_atari_prg_executable_summary(object, &summary) != 0) return -1;
+  } else {
+    return 0;
+  }
   if (json_builder_append(builder,
       ",\"executable_model\":\"platform_executable_summary_v1\",\"executable_ranges\":[") != 0)
     return -1;
