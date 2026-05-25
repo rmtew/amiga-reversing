@@ -382,14 +382,39 @@ Validation:
 
 ### 020-009: Cross-Platform Closeout Proof
 
-Rerun the full cross-platform proof. Amiga, Atari, and Mac must all flow through
-the shared model; parser fact coverage must pass; target artifacts must stay
-exact where expected; and candidate/deferred/unsupported states must remain
-non-accepted.
+Completed closeout decision:
 
-This issue starts only after 020-008. It is proof and closeout, not a migration
-bucket; serious gaps should become the smallest follow-up issue instead of being
-hidden in closeout.
+Proposal 020 is complete. Amiga HUNK, Atari PRG, and Classic Mac OS CODE now
+flow through `platform_executable_summary_v1` for executable-format parser
+authority, range/status reporting, analysis import, and listing/rendering
+guards. Candidate, deferred, and unsupported states remain non-accepted; Mac
+byte-entry and relocation/fixup facts were not promoted.
+
+Closeout proof:
+
+- `uv run python -m amiga_reversing.tools.platform_executable_formats validate`
+  passed.
+- `uv run python -m amiga_reversing.tools.platform_executable_formats coverage
+  --current-macos-c-backend --current-amiga-hunk --current-atari-prg` passed
+  with `parser_outputs: 3`, `invalid: 0`, `unreported_platforms: []`, and
+  visible `$.executable_ranges[...]` / `$.executable_deferred[...]` refs for
+  all current platforms.
+- Focused parser, analysis, listing, artifact, Mac project, Mac web, and web app
+  source tests passed: `80 passed`.
+- Repository precommit passed: style OK, dead code OK, unit OK, integration OK,
+  explicit OK.
+- `git diff --check` passed during final closeout.
+
+Remaining future work is intentionally outside 020:
+
+- Replace the Mac selected-CODE `RawBinarySource` byte-transport bridge with a
+  native Mac CODE byte-provider listing artifact.
+- Retire public inspect/API compatibility fields such as top-level `sections`,
+  `fact_refs`, `selected_code_segment`, `code_layout`, orphan ranges, and
+  relocation summaries only after downstream UI/API consumers move to shared
+  ranges.
+- Extend Amiga overlay/runtime entry handling and Atari relocation/symbol parsing
+  under new issues without weakening 018 KB authority.
 
 ## Acceptance Criteria
 
