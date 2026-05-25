@@ -146,10 +146,25 @@ Remaining wrapper dependency:
 
 ### 021-003: Native Listing And Analysis Artifact
 
-Route Mac listing and analysis through the native Mac CODE source path. Profiles,
-analysis payloads, source headers, row provenance, and navigation should report
-`macos-code` / `macos_code_resource` directly and retain shared executable
-ranges.
+Completed native listing/analysis identity slice:
+
+- `build_macos_project_listing_artifact_profile` now returns active Mac listing
+  profiles as `backend: macos-code` and `source_kind: macos_code_resource`.
+- Analysis, source text, summary, navigation, and row-window profiles no longer
+  expose `wrapped_backend: amiga-raw`.
+- Mac source text headers include the native CODE source kind; row provenance
+  keeps HFS path, resource id/name, shared candidate range, and deferred state.
+- Analysis payloads continue to carry `platform_executable_summary_v1`,
+  candidate CODE ranges, and deferred relocation/fixup evidence without fact
+  promotion.
+
+Deletion candidates for 021-005:
+
+- `_temporary_code_binary_source` still exists as internal byte transport for
+  the generic C listing artifact.
+- The generic raw listing artifact invocation inside
+  `build_macos_project_listing_artifact_profile` remains the next replacement
+  boundary before deleting raw bridge code.
 
 ### 021-004: Project, Artifact, And Web Payload Migration
 

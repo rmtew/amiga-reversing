@@ -940,6 +940,7 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 
 ; CODE 1 Main listing follows. Offsets are local to the selected CODE resource code bytes.
 ; Classic Mac OS CODE resource listing
+; source kind: macos_code_resource
 ; HFS path: MPW-GM/MPW/Tools/Asm
 ; fork: resource
 ; resource: CODE 1 Main

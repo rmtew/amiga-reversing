@@ -259,16 +259,22 @@ def test_macos_listing_artifact_uses_macos_source_and_row_provenance() -> None:
 
     analysis_ranges = cast(list[dict[str, Any]], analysis["executable_ranges"])
     analysis_deferred = cast(list[dict[str, Any]], analysis["executable_deferred"])
-    assert profile["backend"] == "amiga-raw"
+    assert profile["backend"] == "macos-code"
+    assert profile["source_kind"] == "macos_code_resource"
+    assert "wrapped_backend" not in profile
     assert analysis_profile["backend"] == "macos-code"
+    assert analysis_profile["source_kind"] == "macos_code_resource"
+    assert "wrapped_backend" not in analysis_profile
     assert analysis["executable_model"] == "platform_executable_summary_v1"
     assert analysis_ranges[0]["role"] == "candidate_code"
     assert analysis_ranges[0]["fact_status"] == "candidate"
     assert analysis_ranges[0]["parser_use"] == "candidate_only"
     assert analysis_deferred[0]["fact_status"] == "deferred"
     assert source_profile["backend"] == "macos-code"
-    assert source_profile["wrapped_backend"] == "amiga-raw"
+    assert source_profile["source_kind"] == "macos_code_resource"
+    assert "wrapped_backend" not in source_profile
     assert "; Classic Mac OS CODE resource listing" in source_text
+    assert "; source kind: macos_code_resource" in source_text
     assert "; HFS path: MPW-GM/MPW/Tools/Asm" in source_text
     assert "SECTION code,code" not in source_text
     assert "\tori.b #16,d0" not in source_text

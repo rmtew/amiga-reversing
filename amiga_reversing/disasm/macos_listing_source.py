@@ -42,7 +42,7 @@ def build_macos_project_listing_artifact_profile(
     macos_artifact = MacosCodeListingArtifact(artifact, listing_source)
     summary, _summary_profile = macos_artifact.summary_payload()
     adjusted_total = summary.get("total_rows")
-    return adjusted_total if isinstance(adjusted_total, int) else total_rows, profile, macos_artifact
+    return adjusted_total if isinstance(adjusted_total, int) else total_rows, _macos_profile(profile), macos_artifact
 
 
 def build_macos_code_listing_source(
@@ -277,7 +277,8 @@ def _macos_row_provenance(listing_source: Mapping[str, object]) -> dict[str, obj
 def _macos_profile(profile: Mapping[str, object]) -> dict[str, object]:
     adjusted = dict(profile)
     adjusted["backend"] = "macos-code"
-    adjusted["wrapped_backend"] = profile.get("backend")
+    adjusted["source_kind"] = "macos_code_resource"
+    adjusted.pop("wrapped_backend", None)
     return adjusted
 
 
@@ -286,6 +287,7 @@ def _macos_source_text(listing_source: Mapping[str, object], source_text: str) -
     selected_range = _mapping(provenance.get("classified_range"))
     header = [
         "; Classic Mac OS CODE resource listing",
+        "; source kind: macos_code_resource",
         f"; HFS path: {provenance.get('hfs_path')}",
         f"; fork: {provenance.get('fork')}",
         (
