@@ -1369,3 +1369,12 @@ repeatable work to `docs\issues\017-*`.
   Ambiguous and missing-source container fixtures fail closed. The real Pandora
   callback report opens the resolved listing (`30398` rows, `92` slots) but
   remains non-mutating because no ready callback review item exists.
+- 017-075 added structured callback blocker triage to evidence packets and the
+  report summary. The real Pandora callback report now classifies the exposed
+  blockers instead of leaving them as flat names: `target_row_missing` and
+  remaining `missing_target_bytes` are derived from unresolved stored source
+  offsets, `missing_stored_source_offset` is a narrower address/dataflow
+  follow-up, `missing_callback_consumer` is factual non-actionability for current
+  callback seeding, and already-code targets no longer carry the misleading
+  `missing_target_bytes` blocker. No callback candidate became verifier-ready or
+  source-mutating.

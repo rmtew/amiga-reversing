@@ -1319,6 +1319,110 @@ def test_callback_report_replays_active_accepted_fact(tmp_path: Path, monkeypatc
     assert assignment["decision_replay"]["accepted"][0]["decision_id"] == "decision-callback"
 
 
+def test_callback_report_triage_marks_already_code_without_missing_bytes() -> None:
+    report = callback_slot_report(
+        [
+            {"kind": "label", "label": "abs_0_00010100", "start_offset": 0x0100},
+            {
+                "kind": "instruction",
+                "start_offset": 0x0100,
+                "row_key": "s0:00000100:instruction:1",
+                "opcode_or_directive": "rts",
+                "text": "rts",
+            },
+            {
+                "kind": "instruction",
+                "start_offset": 0x0200,
+                "row_key": "s0:00000200:instruction:2",
+                "opcode_or_directive": "lea.l",
+                "operand_registers": [None, "A0"],
+                "operand_parts": [{"kind": "symbol", "metadata": {"symbol": "abs_0_00010100"}}],
+            },
+            {
+                "kind": "instruction",
+                "start_offset": 0x0204,
+                "row_key": "s0:00000204:instruction:3",
+                "opcode_or_directive": "move.l",
+                "operand_registers": ["A0", None],
+                "app_slot_refs": [{"access": "write", "symbol": "app_0360", "displacement": 0x0360}],
+            },
+            {
+                "kind": "instruction",
+                "start_offset": 0x0208,
+                "row_key": "s0:00000208:instruction:4",
+                "opcode_or_directive": "movea.l",
+                "operand_registers": [None, "A0"],
+                "app_slot_refs": [{"access": "read", "symbol": "app_0360", "displacement": 0x0360}],
+            },
+            {"kind": "instruction", "start_offset": 0x020C, "opcode_or_directive": "jsr", "operand_text": "(a0)"},
+        ]
+    )
+
+    packet = report["slots"][0]["assignments"][0]["evidence_packet"]
+
+    assert packet["blockers"] == ["target_already_code"]
+    assert "missing_target_bytes" not in packet["blockers"]
+    assert packet["blocker_triage"] == [
+        {
+            "blocker": "target_already_code",
+            "classification": "already_satisfied",
+            "reason": "target_listing_row_is_already_instruction",
+        }
+    ]
+    assert report["summary"]["blocker_triage"]["by_classification"] == {"already_satisfied": 1}
+
+
+def test_callback_report_triage_separates_missing_source_offset_from_target_lookup() -> None:
+    report = callback_slot_report(
+        [
+            {
+                "kind": "instruction",
+                "start_offset": 0x0204,
+                "row_key": "s0:00000204:instruction:3",
+                "opcode_or_directive": "move.l",
+                "operand_text": "a0,app_0364(a6)",
+                "operand_registers": ["A0", None],
+                "app_slot_refs": [{"access": "write", "symbol": "app_0364", "displacement": 0x0364}],
+            }
+        ]
+    )
+
+    packet = report["slots"][0]["assignments"][0]["evidence_packet"]
+    triage = {item["blocker"]: item for item in packet["blocker_triage"]}
+
+    assert packet["blockers"] == [
+        "missing_callback_consumer",
+        "missing_stored_source_offset",
+        "missing_target_bytes",
+        "target_row_missing",
+    ]
+    assert triage["missing_stored_source_offset"]["classification"] == "narrower_follow_up"
+    assert triage["missing_stored_source_offset"]["reason"] == "stored_register_has_no_nearby_symbol_load"
+    assert triage["target_row_missing"]["classification"] == "derived_blocker"
+    assert triage["target_row_missing"]["reason"] == "stored_source_offset_missing"
+    assert triage["missing_target_bytes"]["classification"] == "derived_blocker"
+    assert triage["missing_target_bytes"]["reason"] == "target_row_missing"
+
+
+def test_callback_report_triage_classifies_data_target_without_consumer() -> None:
+    report = callback_slot_report(
+        _callback_rows()[:4],
+        [{"kind": "orphan_code_candidate", "start": 0x0AA2, "end": 0x0AA6}],
+    )
+
+    packet = report["slots"][0]["assignments"][0]["evidence_packet"]
+
+    assert packet["blockers"] == ["missing_callback_consumer"]
+    assert packet["blocker_triage"] == [
+        {
+            "blocker": "missing_callback_consumer",
+            "classification": "factual_non_actionable",
+            "reason": "no_slot_read_to_indirect_jsr_or_jmp_consumer",
+            "consumer_count": 0,
+        }
+    ]
+
+
 def test_callback_report_resolves_disk_container_to_primary_subtarget(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

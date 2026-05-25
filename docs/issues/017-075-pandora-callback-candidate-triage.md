@@ -1,6 +1,6 @@
 # 017-075: Pandora Callback Candidate Triage
 
-Status: active
+Status: complete
 Type: AFK
 Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
@@ -52,33 +52,57 @@ Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
 ## Research Coverage
 
-- [ ] `017-074` completion evidence checked before work.
-- [ ] Current `callback-report --target amiga_disk_pandora-1988-firebird` rerun and summarized.
-- [ ] Resolved `listing_target_id` used for any decision/verifier/source-affecting command.
-- [ ] At least the strongest current `target_row_missing` candidates inspected and classified.
-- [ ] At least the strongest current `missing_stored_source_offset` candidates inspected and classified.
-- [ ] At least the strongest current `missing_callback_consumer` candidates inspected and classified.
-- [ ] At least the strongest current `missing_target_bytes` candidates inspected and classified.
-- [ ] Any fixable extraction/report blocker implemented in code with focused tests.
-- [ ] No 012/018/Mac/platform-format files touched.
+- [x] `017-074` completion evidence checked before work.
+- [x] Current `callback-report --target amiga_disk_pandora-1988-firebird` rerun and summarized.
+- [x] Resolved `listing_target_id` used for any decision/verifier/source-affecting command.
+- [x] At least the strongest current `target_row_missing` candidates inspected and classified.
+- [x] At least the strongest current `missing_stored_source_offset` candidates inspected and classified.
+- [x] At least the strongest current `missing_callback_consumer` candidates inspected and classified.
+- [x] At least the strongest current `missing_target_bytes` candidates inspected and classified.
+- [x] Any fixable extraction/report blocker implemented in code with focused tests.
+- [x] No 012/018/Mac/platform-format files touched.
 
 ## Research Review
 
-- [ ] The result is not documentation-only if a fixable extraction/report gap exists.
-- [ ] Any real Pandora candidate exposed by this work is either processed through the existing callback gates or explicitly blocked by those gates.
-- [ ] No Decision Journal write occurs on the disk/container target when the resolved subtarget is the source owner.
-- [ ] No source write occurs without verifier artifact and exact round-trip success.
-- [ ] Proposal 017 living notes updated with the real outcome.
+- [x] The result is not documentation-only if a fixable extraction/report gap exists.
+- [x] Any real Pandora candidate exposed by this work is either processed through the existing callback gates or explicitly blocked by those gates.
+- [x] No Decision Journal write occurs on the disk/container target when the resolved subtarget is the source owner.
+- [x] No source write occurs without verifier artifact and exact round-trip success.
+- [x] Proposal 017 living notes updated with the real outcome.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before work.
-- [ ] `017-074` completion notes checked before work.
-- [ ] Focused tests cover any new code path.
-- [ ] Real Pandora callback report rerun.
-- [ ] If a candidate becomes actionable, `callback-decision` uses the resolved `listing_target_id`.
-- [ ] If a candidate becomes accepted, `decision-verifier-artifact` uses the resolved `listing_target_id`.
-- [ ] Exact round-trip passes for any source change.
-- [ ] `amiga_reversing.tools.validate_017_issues` passes.
-- [ ] `git diff --check` passes.
+- [x] Proposal context checked before work.
+- [x] `017-074` completion notes checked before work.
+- [x] Focused tests cover any new code path.
+- [x] Real Pandora callback report rerun.
+- [x] If a candidate becomes actionable, `callback-decision` uses the resolved `listing_target_id`. No candidate became actionable.
+- [x] If a candidate becomes accepted, `decision-verifier-artifact` uses the resolved `listing_target_id`. No candidate became accepted.
+- [x] Exact round-trip passes for any source change. No source change occurred.
+- [x] `amiga_reversing.tools.validate_017_issues` passes.
+- [x] `git diff --check` passes.
 
+## Completion Evidence
+
+- `callback-report --target amiga_disk_pandora-1988-firebird` still resolves to
+  `amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8`
+  and reports `slot_count=92`, `assignment_count=191`,
+  `callback_orphan_code_signals=[]`, and `safe_to_mutate=false`.
+- Implemented code-backed blocker triage in callback evidence packets and report
+  summary. The live blocker classification is:
+  `already_satisfied=11`, `derived_blocker=346`,
+  `factual_non_actionable=191`, and `narrower_follow_up=173`.
+- `target_row_missing`: all current instances are derived from missing stored
+  source offsets, not a row lookup miss at a known offset.
+- `missing_stored_source_offset`: current instances split into direct immediate
+  stores requiring address-model proof and register stores without a nearby
+  symbol-backed value source. These are narrower follow-ups, not safe callback
+  code seeds.
+- `missing_callback_consumer`: current instances have no slot read feeding an
+  indirect `jsr`/`jmp` consumer in the current report window, so they are
+  factual non-actionable for callback-derived code seeding.
+- `missing_target_bytes`: fixed the report-only false positive where already
+  code instruction targets were also marked as missing target bytes. Remaining
+  live `missing_target_bytes=173` entries are derived from missing target rows.
+- No Decision Journal, target metadata, generated source, verifier artifact,
+  012, 018, Mac, or platform-format files were written.

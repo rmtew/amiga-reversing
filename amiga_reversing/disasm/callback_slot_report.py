@@ -63,18 +63,20 @@ def callback_slot_report(
                 "assignments": slot_assignments,
             }
         )
+    summary = {
+        "consumer_count": len(consumers),
+        "assignment_count": len(assignments),
+        "concrete_missed_code_target_count": sum(
+            cast(int, slot["concrete_missed_code_target_count"]) for slot in slot_reports
+        ),
+    }
+    summary["blocker_triage"] = _callback_blocker_triage_summary(slot_reports)
     return {
         "kind": "callback_slot_report",
         "slot_filter": {"slot_symbol": slot_symbol, "slot_offset": slot_offset},
         "slot_count": len(slot_reports),
         "slots": slot_reports,
-        "summary": {
-            "consumer_count": len(consumers),
-            "assignment_count": len(assignments),
-            "concrete_missed_code_target_count": sum(
-                cast(int, slot["concrete_missed_code_target_count"]) for slot in slot_reports
-            ),
-        },
+        "summary": summary,
     }
 
 
@@ -450,6 +452,7 @@ def _callback_assignment_evidence_packet(
         _row_id(store) or "unknown_store",
         selected_identity["selected_use_id"],
     )
+    blockers = sorted(set(blockers))
     return {
         "packet_kind": "callback_derived_code_evidence_packet",
         "schema_version": 1,
@@ -499,7 +502,14 @@ def _callback_assignment_evidence_packet(
         ],
         "false_positive_checks": false_positive_checks,
         "conflicts": {"status": "explicit_empty", "explicit_empty": True, "items": []},
-        "blockers": sorted(set(blockers)),
+        "blockers": blockers,
+        "blocker_triage": _callback_blocker_triage(
+            assignment,
+            consumers,
+            target,
+            target_bytes,
+            blockers,
+        ),
         "status": "blocked" if blockers else "action_ready",
         "render_readiness": {
             "status": "blocked",
@@ -552,6 +562,127 @@ def _callback_assignment_orphan_code_signal(packet: Mapping[str, object]) -> dic
     }
 
 
+def _callback_blocker_triage(
+    assignment: Mapping[str, object],
+    consumers: Sequence[Mapping[str, object]],
+    target: Mapping[str, object] | None,
+    target_bytes: Sequence[int],
+    blockers: Sequence[str],
+) -> list[dict[str, object]]:
+    result: list[dict[str, object]] = []
+    target_start = _int_or_none(assignment.get("stored_source_offset"))
+    store = assignment.get("store")
+    store = store if isinstance(store, Mapping) else {}
+    operand_text = str(store.get("operand_text") or "")
+    stored_register = assignment.get("stored_register")
+    value_source = assignment.get("value_source")
+    value_source = value_source if isinstance(value_source, Mapping) else None
+    for blocker in blockers:
+        if blocker == "missing_stored_source_offset":
+            result.append(
+                {
+                    "blocker": blocker,
+                    "classification": "narrower_follow_up",
+                    "reason": _missing_stored_source_offset_reason(
+                        operand_text=operand_text,
+                        stored_register=stored_register,
+                        value_source=value_source,
+                    ),
+                }
+            )
+        elif blocker == "target_row_missing":
+            result.append(
+                {
+                    "blocker": blocker,
+                    "classification": "derived_blocker" if target_start is None else "lookup_gap",
+                    "reason": "stored_source_offset_missing" if target_start is None else "no_listing_row_at_stored_source_offset",
+                }
+            )
+        elif blocker == "missing_target_bytes":
+            result.append(
+                {
+                    "blocker": blocker,
+                    "classification": "derived_blocker" if target is None else "extraction_gap",
+                    "reason": "target_row_missing" if target is None else "data_listing_row_has_no_bytes",
+                }
+            )
+        elif blocker == "missing_callback_consumer":
+            result.append(
+                {
+                    "blocker": blocker,
+                    "classification": "factual_non_actionable",
+                    "reason": "no_slot_read_to_indirect_jsr_or_jmp_consumer",
+                    "consumer_count": len(consumers),
+                }
+            )
+        elif blocker == "target_already_code":
+            result.append(
+                {
+                    "blocker": blocker,
+                    "classification": "already_satisfied",
+                    "reason": "target_listing_row_is_already_instruction",
+                }
+            )
+        elif blocker in {"all_zero_data", "data_like_directive"}:
+            result.append(
+                {
+                    "blocker": blocker,
+                    "classification": "factual_non_actionable",
+                    "reason": "target_data_does_not_look_like_terminal_callback_code",
+                    "target_bytes": list(target_bytes),
+                }
+            )
+        else:
+            result.append(
+                {
+                    "blocker": blocker,
+                    "classification": "unknown",
+                    "reason": "unclassified_callback_blocker",
+                }
+            )
+    return result
+
+
+def _missing_stored_source_offset_reason(
+    *,
+    operand_text: str,
+    stored_register: object,
+    value_source: Mapping[str, object] | None,
+) -> str:
+    if "#" in operand_text:
+        return "direct_immediate_store_requires_address_model_proof"
+    if isinstance(stored_register, str) and value_source is None:
+        return "stored_register_has_no_nearby_symbol_load"
+    if stored_register is None:
+        return "store_does_not_write_an_address_register_value"
+    return "stored_value_is_not_symbol_backed"
+
+
+def _callback_blocker_triage_summary(slot_reports: Sequence[Mapping[str, object]]) -> dict[str, object]:
+    by_blocker: dict[str, int] = {}
+    by_classification: dict[str, int] = {}
+    for slot in slot_reports:
+        assignments = slot.get("assignments")
+        if not isinstance(assignments, Sequence) or isinstance(assignments, str):
+            continue
+        for assignment in assignments:
+            if not isinstance(assignment, Mapping):
+                continue
+            packet = assignment.get("evidence_packet")
+            packet = packet if isinstance(packet, Mapping) else {}
+            for item in _mapping_sequence(packet.get("blocker_triage")):
+                blocker = item.get("blocker")
+                classification = item.get("classification")
+                if isinstance(blocker, str):
+                    by_blocker[blocker] = by_blocker.get(blocker, 0) + 1
+                if isinstance(classification, str):
+                    by_classification[classification] = by_classification.get(classification, 0) + 1
+    return {
+        "by_blocker": dict(sorted(by_blocker.items())),
+        "by_classification": dict(sorted(by_classification.items())),
+    }
+
+
 def _callback_false_positive_checks(
     row: Mapping[str, object] | None,
     target_bytes: Sequence[int],
@@ -559,10 +690,11 @@ def _callback_false_positive_checks(
     text = str(row.get("text") or "") if row is not None else ""
     directive = str(row.get("opcode_or_directive") or "").lower() if row is not None else ""
     all_zero = bool(target_bytes) and all(value == 0 for value in target_bytes)
+    missing_bytes = row is None or (row.get("kind") == "data" and not target_bytes)
     return [
         {"kind": "all_zero_data", "status": "risk" if all_zero or _dcb_zero_fill(text) else "clear"},
         {"kind": "data_like_directive", "status": "risk" if directive.startswith("dcb") else "clear"},
-        {"kind": "missing_target_bytes", "status": "risk" if not target_bytes else "clear"},
+        {"kind": "missing_target_bytes", "status": "risk" if missing_bytes else "clear"},
     ]
 
 
