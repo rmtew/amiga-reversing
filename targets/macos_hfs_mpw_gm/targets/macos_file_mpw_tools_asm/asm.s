@@ -938,7 +938,7 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     candidate_data_island: start=4 end=40 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
 ;   relocation_fixups:
 ;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
-;   listing_rows: 1818
+;   listing_rows: 1814
 
 ; CODE 1 Main listing follows. Offsets are local to the selected CODE resource code bytes.
 ; Classic Mac OS CODE resource listing
@@ -947,9 +947,6 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ; fork: resource
 ; resource: CODE 1 Main
 ; classified_range: candidate_code payload[40..29024) evidence=m68k_movea_l_stack_to_a0_entry
-
-; OS compatibility
-;   status: no_os_calls
 
 loc_0_00000000:
 	movea.l (a7)+,a0

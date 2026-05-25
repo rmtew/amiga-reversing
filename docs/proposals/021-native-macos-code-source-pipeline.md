@@ -255,16 +255,18 @@ Post-closeout follow-ups completed without reopening Proposal 021:
   flat local-offset object/policy setup directly. It renders flat bytes such as
   `20 5f 4e 75` without reporting `amiga-raw` and without using the Amiga raw
   policy/object loader boundary.
+- 021-010 moved `platform_file_facts_v2_listing_artifact_macos_code_buffer_create`
+  onto that neutral flat M68K object/policy path. Selected Mac CODE and preview
+  byte artifacts still report `backend: macos-code`, but their C setup no
+  longer calls the Amiga raw policy or raw object loader.
 
 Final future work:
 
 - Mac byte-entry, relocation/fixup, source-to-CODE, and non-CODE payload facts
   remain governed by Proposal 018 states and were not promoted by 021.
 - A post-closeout cleanup batch remains active for the low-level C buffer
-  implementation: 021-010 moves the Mac CODE buffer artifact onto the new
-  neutral flat M68K buffer path, 021-011 adds regression guards against raw
-  identity leaks, and 021-012 reconciles this proposal after those code slices
-  land.
+  implementation: 021-011 adds regression guards against raw identity leaks,
+  and 021-012 reconciles this proposal after those code slices land.
 
 ## Acceptance Criteria
 

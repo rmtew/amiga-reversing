@@ -9604,12 +9604,9 @@ int platform_file_facts_v2_listing_artifact_macos_code_buffer_create(
   }
   artifact = listing_artifact_alloc_base("macos-code", display_path, &diagnostics);
   if (artifact == NULL) goto fail;
-  if (configure_analysis_policy_for_alloc(&artifact->policy, "amiga-raw", metadata_path, NULL, &diagnostics) != 0)
+  if (load_flat_m68k_object_from_buffer(data, size, &artifact->object, m68k_diag_sink(&diagnostics)) != 0)
     goto fail;
-  if (load_raw_object_from_buffer("amiga-raw", data, size, &artifact->object, m68k_diag_sink(&diagnostics)) != 0)
-    goto fail;
-  if (!policy_add_raw_runtime_load_range_local(&artifact->policy, &artifact->object, 0U, 0U, &diagnostics) ||
-      !policy_set_raw_entry_address_local(&artifact->policy, &artifact->object, 0U, 0U, &diagnostics))
+  if (configure_flat_m68k_buffer_policy(&artifact->policy, &artifact->object, metadata_path, &diagnostics) != 0)
     goto fail;
   enrich_policy_pointer_targets_from_object_local(&artifact->policy, &artifact->object);
   if (!validate_effective_policy_against_object_local(&diagnostics, &artifact->object, &artifact->policy)) goto fail;
