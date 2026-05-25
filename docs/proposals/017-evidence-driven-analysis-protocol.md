@@ -1402,3 +1402,44 @@ repeatable work to `docs\issues\017-*`.
   `consumer_count=3`, recovered target classification remains
   `already_represented=12` and `real_data=7`, `callback_orphan_code_signals=[]`,
   and the callback mutation gate remains blocked by `ready_callback_review_item`.
+- 017-079 closed the current callback lane without source progress. The current
+  Pandora rerun still resolves to the source-backed subtarget, reports
+  `slot_count=92`, `assignment_count=191`, `consumer_count=3`,
+  `concrete_missed_code_target_count=7`, no callback orphan-code signals, no
+  command candidates, and `safe_to_mutate=false`. The final current blocker is
+  lack of a ready callback review item; recovered target classification remains
+  `already_represented=12` and `real_data=7`. Callback work should stop being
+  the default 017 path unless new evidence appears. The next active lanes are
+  RSSET/app-base (`017-080`, then dependent `017-081` if evidence supports it),
+  A5 path/lifetime (`017-082`), immediate source/runtime references (`017-083`),
+  and shared address-provenance reuse (`017-084`) only if a non-callback lane
+  proves the need.
+- 017-080 reran the RSSET/app-base lane against the resolved Pandora listing
+  target. The report now shows `candidate_count=125`, `use_count=994`, and no
+  source mutation allowed. Most top candidates remain blocked by
+  `missing_accepted_base_evidence`, but historical `rsset-raw-a6:022E` at
+  `s0:000006E4:op1` is accepted with selected-use scope, empty conflicts,
+  `decision-rsset-022e-accept-017-040`, and owner action
+  `manual-6e574feccab748359c7577833fa718ba`.
+- 017-081 verified the existing RSSET base provenance command/replay/verifier
+  path for `rsset-raw-a6:022E` without writing target state. Current
+  no-write verification passed semantic reload, generated-source,
+  negative-safety, and exact-round-trip layers for
+  `decision-rsset-022e-accept-017-040`; the selected operand renders
+  `app_022E(a6)` and the exact round-trip remains `status=exact`.
+- 017-082 reran A5 path/lifetime evidence on the resolved Pandora listing.
+  There are `525` uses: `20` already accepted and `505` unknown. No command
+  candidate is exposed, so `safe_to_mutate=false`. Unknown blockers are still
+  dominated by full CFG proof (`494`), call clobber (`288`), return boundary
+  (`286`), save/restore lifetime (`218`), and A5 redefinition (`201`).
+- 017-083 reran immediate source/runtime references on the resolved Pandora
+  listing. The report has `9` candidates, all `source_family=source_offset`,
+  all `write_policy.status=report_only`, and `command_candidate_count=0`.
+  The exact `s0:000009A6:op0` candidate remains report-only until accepted
+  runtime-address provenance exists; no source progress is claimed.
+- 017-084 is deferred. The non-callback refreshes did not prove a shared
+  address-provenance utility is needed: RSSET `$022E` is already handled by its
+  Decision Journal/verifier path, and immediate references currently expose only
+  source-offset report-only candidates. Utility extraction would be speculative
+  until at least two active non-callback/callback call sites need the same
+  provenance behavior.

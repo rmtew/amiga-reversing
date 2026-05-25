@@ -1,6 +1,6 @@
 # 017-084: Shared Address Provenance Utility
 
-Status: active
+Status: deferred
 Type: AFK
 Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
@@ -66,3 +66,19 @@ Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 - [ ] `amiga_reversing.tools.validate_017_issues` passes.
 - [ ] `git diff --check` passes.
 
+## Deferred Evidence
+
+- Dependency evidence was checked after `017-080` and `017-083`.
+- `017-080` selected RSSET `$022E`, but its current evidence is already carried
+  by the RSSET report, Decision Journal projection, and no-write verifier
+  artifact. It does not require source-offset/runtime-address/label provenance
+  reuse from callback logic.
+- `017-083` reran current immediate-reference evidence and found only nine
+  `source_family=source_offset` report-only candidates, with zero command
+  candidates and no accepted runtime-address provenance.
+- No non-callback lane currently demonstrates two active call sites needing a
+  shared source-offset/runtime-address/label provenance utility. Extracting one
+  now would be speculative cleanup, which this issue explicitly forbids.
+- This issue is deferred rather than completed. It should be reopened only when
+  a non-callback lane has concrete duplicate provenance logic to migrate and
+  tests for every migrated lane.

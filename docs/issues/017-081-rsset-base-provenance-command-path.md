@@ -1,6 +1,6 @@
 # 017-081: RSSET Base Provenance Command Path
 
-Status: active
+Status: complete
 Type: AFK
 Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
@@ -42,28 +42,56 @@ Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
 ## Research Coverage
 
-- [ ] `017-080` completion evidence checked before work.
-- [ ] Selected RSSET candidate and evidence shape named.
-- [ ] Command dry-run implemented or existing command verified.
-- [ ] Accepted state replays into report/effective analysis.
-- [ ] Generated-source effect tested when source change is expected.
-- [ ] Negative safety and exact round-trip gates enforced.
-- [ ] No callback, 012/018/Mac/platform-format files touched.
+- [x] `017-080` completion evidence checked before work.
+- [x] Selected RSSET candidate and evidence shape named.
+- [x] Command dry-run implemented or existing command verified.
+- [x] Accepted state replays into report/effective analysis.
+- [x] Generated-source effect tested when source change is expected.
+- [x] Negative safety and exact round-trip gates enforced.
+- [x] No callback, 012/018/Mac/platform-format files touched.
 
 ## Research Review
 
-- [ ] No helper-only path is closed as complete.
-- [ ] Any source effect comes through normal render/effective metadata paths.
-- [ ] If no source change occurs, the blocker is implemented and precise.
-- [ ] Proposal 017 living notes updated.
+- [x] No helper-only path is closed as complete.
+- [x] Any source effect comes through normal render/effective metadata paths.
+- [x] If no source change occurs, the blocker is implemented and precise.
+- [x] Proposal 017 living notes updated.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before work.
-- [ ] `017-080` checked before work.
-- [ ] Focused command/replay/verifier tests pass.
-- [ ] Real Pandora RSSET rerun performed.
-- [ ] Exact round-trip passes for any source change.
-- [ ] `amiga_reversing.tools.validate_017_issues` passes.
-- [ ] `git diff --check` passes.
+- [x] Proposal context checked before work.
+- [x] `017-080` checked before work.
+- [x] Focused command/replay/verifier tests pass.
+- [x] Real Pandora RSSET rerun performed.
+- [x] Exact round-trip passes for any source change.
+- [x] `amiga_reversing.tools.validate_017_issues` passes.
+- [x] `git diff --check` passes.
 
+## Completion Evidence
+
+- `017-080` selected the already accepted RSSET candidate
+  `rsset-raw-a6:022E` at `s0:000006E4:op1`.
+- Current RSSET rerun reports the selected candidate as
+  `evidence_search.status=accepted`, `journal_decision_evidence.status=accepted`,
+  `journal_decision_evidence.accepted_count=1`,
+  `command_support.bind.state=already_satisfied`, and
+  `journal_mutation_gate.status=ready_for_mutation_issue`.
+- The gate satisfied all required fields:
+  `journal_accept`, `candidate_identity`, `selected_identity`, `fact_type`,
+  `selected_use_scope`, `empty_conflicts`, `field_or_layout_refinement`,
+  `render_support`, `generated_source_verifier`, and `exact_round_trip`.
+- No new command implementation was needed in this issue. The existing
+  Decision Journal path already records
+  `decision-rsset-022e-accept-017-040` as active and source-effective.
+- Current no-write verifier artifact for
+  `decision-rsset-022e-accept-017-040` passed:
+  `semantic_reload`, `generated_source`,
+  `negative_safety`, and `exact_round_trip`.
+- The generated-source verifier matched `app_022E` and no raw displacement
+  token for the selected operand. Negative safety reported
+  `same_decision_binding_count=1` and no unexpected same-displacement refs.
+- Exact round-trip used the current `reproduction.json` and reported
+  `status=exact`.
+- No source, target metadata, Manual Action Log, Decision Journal write,
+  verifier artifact write, generated output, 012, 018, Mac, or platform-format
+  file was changed.

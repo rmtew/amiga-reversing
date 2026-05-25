@@ -1,6 +1,6 @@
 # 017-079: Callback Lane Closeout
 
-Status: active
+Status: complete
 Type: AFK
 Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
@@ -43,27 +43,63 @@ Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
 ## Research Coverage
 
-- [ ] `017-074` through `017-078` completion evidence checked.
-- [ ] Current Pandora callback report rerun and summarized.
-- [ ] Callback tooling progress summarized: target resolution, blocker triage, offset recovery, recovered target classification, and local consumer dataflow.
-- [ ] Final callback blockers recorded.
-- [ ] No current callback mutation candidate confirmed, or a separate follow-up created if one appears.
-- [ ] Next 017 lanes selected.
-- [ ] No 012/018/Mac/platform-format files touched.
+- [x] `017-074` through `017-078` completion evidence checked.
+- [x] Current Pandora callback report rerun and summarized.
+- [x] Callback tooling progress summarized: target resolution, blocker triage, offset recovery, recovered target classification, and local consumer dataflow.
+- [x] Final callback blockers recorded.
+- [x] No current callback mutation candidate confirmed, or a separate follow-up created if one appears.
+- [x] Next 017 lanes selected.
+- [x] No 012/018/Mac/platform-format files touched.
 
 ## Research Review
 
-- [ ] Closeout does not overstate callback source progress.
-- [ ] Final blockers are stated as current evidence, not permanent truth.
-- [ ] Next-lane selection is based on current report surfaces.
-- [ ] Proposal 017 living notes updated with the closeout.
+- [x] Closeout does not overstate callback source progress.
+- [x] Final blockers are stated as current evidence, not permanent truth.
+- [x] Next-lane selection is based on current report surfaces.
+- [x] Proposal 017 living notes updated with the closeout.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before work.
-- [ ] Current callback report rerun.
-- [ ] No source or journal writes performed.
-- [ ] Next-lane issue list confirmed.
-- [ ] `amiga_reversing.tools.validate_017_issues` passes.
-- [ ] `git diff --check` passes.
+- [x] Proposal context checked before work.
+- [x] Current callback report rerun.
+- [x] No source or journal writes performed.
+- [x] Next-lane issue list confirmed.
+- [x] `amiga_reversing.tools.validate_017_issues` passes.
+- [x] `git diff --check` passes.
 
+## Completion Evidence
+
+- Current Pandora callback rerun resolves the container to
+  `amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8`.
+- Current report summary: `slot_count=92`, `assignment_count=191`,
+  `consumer_count=3`, and `concrete_missed_code_target_count=7`.
+- Callback tooling progress is durable:
+  `017-074` resolved disk/container listing selection,
+  `017-075` added structured blocker triage,
+  `017-076` recovered stored source offsets with fail-closed provenance,
+  `017-077` classified recovered data targets, and
+  `017-078` added local consumer dataflow blockers/proofs.
+- Current recovered target classification remains
+  `already_represented=12` and `real_data=7`. Six real-data rows are
+  zero-fill/data-like, and one does not look like terminal callback code.
+- Current blocker summary includes `target_already_code=12`,
+  `missing_callback_consumer=179`, `missing_stored_source_offset=172`,
+  `target_row_missing=172`, `missing_target_bytes=172`,
+  `all_zero_data=6`, and `data_like_directive=6`.
+- Current consumer dataflow blocker reasons are
+  `consumer_shape_unsupported=122`, `consumer_crosses_label_boundary=3`,
+  `consumer_not_found=3`, `consumer_crosses_branch=2`, and
+  `consumer_register_clobbered=2`.
+- `callback_orphan_code_signals=[]`, `command_candidate_count=0`,
+  `safe_to_mutate=false`, and the mutation gate remains blocked by
+  `ready_callback_review_item`.
+- Callback work therefore closes as tooling improvement and current
+  non-actionability, not source progress. These blockers are current evidence,
+  not a permanent claim about all future callback evidence.
+- Next selected 017 lanes are:
+  `017-080` RSSET/app-base evidence recheck,
+  `017-082` A5 path/lifetime candidate refresh,
+  `017-083` immediate source/runtime reference refresh,
+  then dependent `017-081` and conditional `017-084`.
+- No source, target state, Decision Journal, generated output, verifier
+  artifact, 012, 018, Mac, or platform-format file was written.

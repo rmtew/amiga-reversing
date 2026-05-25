@@ -1,6 +1,6 @@
 # 017-080: RSSET App-Base Evidence Recheck
 
-Status: active
+Status: complete
 Type: AFK
 Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
@@ -43,28 +43,61 @@ Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
 ## Research Coverage
 
-- [ ] `017-079` closeout checked before work.
-- [ ] Current RSSET report rerun.
-- [ ] Top RSSET groups listed with blockers and accepted base evidence counts.
-- [ ] Historical `$022E` state rechecked.
-- [ ] Missing evidence shape recorded precisely if still blocked.
-- [ ] Any report-code change covered by focused tests.
-- [ ] No callback, 012/018/Mac/platform-format files touched.
+- [x] `017-079` closeout checked before work.
+- [x] Current RSSET report rerun.
+- [x] Top RSSET groups listed with blockers and accepted base evidence counts.
+- [x] Historical `$022E` state rechecked.
+- [x] Missing evidence shape recorded precisely if still blocked.
+- [x] Any report-code change covered by focused tests.
+- [x] No callback, 012/018/Mac/platform-format files touched.
 
 ## Research Review
 
-- [ ] Conclusions are based on current report output.
-- [ ] Strongest RSSET candidate is selected or explicitly rejected.
-- [ ] Any command-ready result is deferred to a dependent implementation issue.
-- [ ] Proposal 017 living notes updated.
+- [x] Conclusions are based on current report output.
+- [x] Strongest RSSET candidate is selected or explicitly rejected.
+- [x] Any command-ready result is deferred to a dependent implementation issue.
+- [x] Proposal 017 living notes updated.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before work.
-- [ ] `017-079` checked before work.
-- [ ] Real Pandora RSSET report rerun.
-- [ ] No source or journal writes performed.
-- [ ] Focused tests pass if code changed.
-- [ ] `amiga_reversing.tools.validate_017_issues` passes.
-- [ ] `git diff --check` passes.
+- [x] Proposal context checked before work.
+- [x] `017-079` checked before work.
+- [x] Real Pandora RSSET report rerun.
+- [x] No source or journal writes performed.
+- [x] Focused tests pass if code changed.
+- [x] `amiga_reversing.tools.validate_017_issues` passes.
+- [x] `git diff --check` passes.
 
+## Completion Evidence
+
+- Current report was rerun against the resolved Pandora listing target
+  `amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8`;
+  the disk/container target alone still has no listing, so it is not sufficient
+  evidence for RSSET classification.
+- The resolved listing opened successfully with `30398` rows. The RSSET report
+  found `candidate_count=125`, `use_count=994`, and `safe_to_mutate=false`.
+- Top report-only groups by current report order remain blocked by missing
+  accepted base evidence:
+  `rsset-raw-a6:02A6` (`same_displacement_use_count=38`),
+  `rsset-raw-a6:033C` (`38`), `rsset-raw-a6:027B` (`26`),
+  `rsset-raw-a6:022D` (`20`), `rsset-raw-a6:0232` (`20`),
+  `rsset-raw-a6:0360` (`20`), `rsset-raw-a6:01E4` (`18`), and
+  `rsset-raw-a6:0214` (`18`). Each has
+  `accepted_base_evidence_count=0` and
+  `status=missing_accepted_base_evidence`.
+- Historical `$022E` at `s0:000006E4:op1` is no longer blocked in the current
+  report. `rsset-raw-a6:022E` has `same_displacement_use_count=66`,
+  `raw_or_weak_use_count=33`, `accepted_base_evidence_count=1`, and
+  `evidence_search.status=accepted`.
+- The accepted `$022E` selected identity is
+  `addr=1764`, `hunk=0`, `operand_index=1`, `base_register=A6`,
+  `displacement=558`, `stable_key=s0:000006E4:instruction:455`, rendering
+  `bclr.b #1,app_022E(a6)`.
+- Accepted base evidence is
+  `decision-rsset-022e-accept-017-040` with
+  `source_family=rsset_app_base`, `source_evidence_status=accepted`,
+  `base_evidence_id=selected-base:A6:__amiga_app_base__`,
+  selected-use path/lifetime scope, empty conflicts, and existing owner action
+  `manual-6e574feccab748359c7577833fa718ba`.
+- This issue performs no RSSET mutation. The implementable command/verifier
+  follow-up is the dependent `017-081` issue.

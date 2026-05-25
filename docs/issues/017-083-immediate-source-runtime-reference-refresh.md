@@ -1,6 +1,6 @@
 # 017-083: Immediate Source/Runtime Reference Refresh
 
-Status: active
+Status: complete
 Type: AFK
 Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
@@ -42,28 +42,55 @@ Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
 ## Research Coverage
 
-- [ ] `017-079` closeout checked before work.
-- [ ] Current immediate-reference report rerun.
-- [ ] Candidates classified by address semantics.
-- [ ] Ambiguous and unsafe interpretations fail closed.
-- [ ] Reuse opportunity with callback address-provenance logic identified.
-- [ ] Any safe candidate processed through existing gates or deferred to a new implementation issue.
-- [ ] No callback mutation, 012/018/Mac/platform-format files touched.
+- [x] `017-079` closeout checked before work.
+- [x] Current immediate-reference report rerun.
+- [x] Candidates classified by address semantics.
+- [x] Ambiguous and unsafe interpretations fail closed.
+- [x] Reuse opportunity with callback address-provenance logic identified.
+- [x] Any safe candidate processed through existing gates or deferred to a new implementation issue.
+- [x] No callback mutation, 012/018/Mac/platform-format files touched.
 
 ## Research Review
 
-- [ ] Work does not count report-only source-offset hints as source progress.
-- [ ] Any code change improves reusable address-provenance/report behavior.
-- [ ] If no mutation occurs, blockers are structured and current.
-- [ ] Proposal 017 living notes updated.
+- [x] Work does not count report-only source-offset hints as source progress.
+- [x] Any code change improves reusable address-provenance/report behavior.
+- [x] If no mutation occurs, blockers are structured and current.
+- [x] Proposal 017 living notes updated.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before work.
-- [ ] `017-079` checked before work.
-- [ ] Real Pandora immediate-reference report rerun.
-- [ ] Focused tests pass if code changed.
-- [ ] Exact round-trip passes for any source change.
-- [ ] `amiga_reversing.tools.validate_017_issues` passes.
-- [ ] `git diff --check` passes.
+- [x] Proposal context checked before work.
+- [x] `017-079` checked before work.
+- [x] Real Pandora immediate-reference report rerun.
+- [x] Focused tests pass if code changed.
+- [x] Exact round-trip passes for any source change.
+- [x] `amiga_reversing.tools.validate_017_issues` passes.
+- [x] `git diff --check` passes.
 
+## Completion Evidence
+
+- Current report was rerun against the resolved Pandora listing target
+  `amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8`;
+  the disk/container target alone still has no listing.
+- The resolved listing opened successfully. The immediate-reference report found
+  `candidate_count=9`, `report_only_candidate_count=9`,
+  `command_candidate_count=0`, `safe_to_mutate=false`, and mutation gate
+  `status=blocked` with reason `remaining immediate reference candidates are
+  report-only`.
+- All current candidates are classified as `source_family=source_offset` with
+  `write_policy.status=report_only`. No current runtime-address, label,
+  constant, or ambiguity candidate is emitted by the report.
+- The exact `017-057` candidate
+  `immediate-runtime-ref:s0:000009A6:instruction:664:0:00001080`
+  remains source-offset/report-only: `addi.w #4224,d1`, value `4224`,
+  width `16`, target source offset `4224`, with reason `source-offset
+  immediate matches are report-only until accepted runtime-address provenance
+  exists`.
+- Other current report-only source-offset candidates are at
+  `s0:00006C48`, `s0:00006D96`, `s0:00007AD4`, `s0:00007B28`,
+  `s0:00009302`, `s0:0003D7DE`, `s0:0004E544`, and `s0:0004E5EA`.
+- No source progress is claimed from these report-only source-offset hints.
+  Ambiguous or unsafe address interpretation remains fail-closed because no
+  candidate has accepted runtime-address provenance.
+- No code change or shared utility extraction is justified by this issue alone;
+  it records the dependency outcome for `017-084`.
