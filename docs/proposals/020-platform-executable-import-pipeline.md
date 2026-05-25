@@ -197,8 +197,8 @@ Completed first slice:
   `executable_ranges`, and `executable_deferred` in raw
   `platform_file_inspect_path_json_alloc` JSON.
 - Proved the current synthetic Amiga HUNK fixture emits shared CODE, DATA, and
-  size-only BSS ranges with source offsets, sizes, stored sizes, fact ids, fact
-  states, and parser-use authority.
+  size-only BSS ranges with load offsets, nullable stored offsets, sizes,
+  stored sizes, fact ids, fact states, and parser-use authority.
 - Kept the existing `sections` and `fact_refs` surfaces intact so 019 coverage
   continues to validate the parser-owned refs.
 - Represented runtime-entry uncertainty as deferred through
@@ -209,8 +209,8 @@ Model constraints for following slices:
 
 - This is an additive parser-summary exposure only. It does not migrate
   analysis import, listing/rendering, Atari PRG, or Mac CODE.
-- The first Amiga slice uses parser section order and section-local stored
-  lengths to expose source offsets for the synthetic HUNK fixture.
+- The first Amiga slice separates loaded-image offsets from original stored
+  bytes: BSS has a `load_offset` and `stored_size: 0`, but no `stored_offset`.
 - 020-003 should move the Amiga HUNK import path deeper onto this model before
   old section-kind assumptions are removed. 020-004 can reuse the same C shape
   for Atari PRG after the Amiga migration constraints are reviewed.

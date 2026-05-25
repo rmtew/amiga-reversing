@@ -758,7 +758,8 @@ static const char *platform_executable_limit_kind_name(PlatformExecutableLimitKi
 }
 
 static int platform_executable_summary_add_range(PlatformExecutableSummary *summary,
-    PlatformExecutableRangeRole role, uint32_t source_offset, uint32_t size, uint32_t stored_size,
+    PlatformExecutableRangeRole role, uint32_t load_offset, uint32_t stored_offset, uint8_t has_stored_offset,
+    uint32_t size, uint32_t stored_size,
     const char *fact_id, const char *fact_status, const char *parser_use) {
   PlatformExecutableRange *range;
   if (summary == NULL || fact_id == NULL || fact_status == NULL || parser_use == NULL ||
@@ -766,7 +767,9 @@ static int platform_executable_summary_add_range(PlatformExecutableSummary *summ
     return -1;
   range = &summary->ranges[summary->range_count++];
   range->role = role;
-  range->source_offset = source_offset;
+  range->load_offset = load_offset;
+  range->stored_offset = stored_offset;
+  range->has_stored_offset = has_stored_offset;
   range->size = size;
   range->stored_size = stored_size;
   range->fact.fact_id = fact_id;
@@ -792,32 +795,35 @@ static int platform_executable_summary_add_limit(PlatformExecutableSummary *summ
 static int build_amiga_hunk_executable_summary(const M68kObject *object,
     PlatformExecutableSummary *summary) {
   size_t index;
-  uint32_t source_offset = 0U;
+  uint32_t load_offset = 0U;
+  uint32_t stored_offset = 0U;
   if (object == NULL || summary == NULL) return -1;
   memset(summary, 0, sizeof(*summary));
   summary->record_id = PLATFORM_EXECUTABLE_FORMAT_RECORD_AMIGA_HUNK_LOAD_FILE_BASIC_BACKFILL;
   for (index = 0U; index < object->section_count; ++index) {
     const M68kSection *section = &object->sections[index];
+    uint8_t has_stored_offset = section->data_size != 0U ? 1U : 0U;
     if (section->kind == M68K_SECTION_CODE) {
       if (platform_executable_summary_add_range(summary, PLATFORM_EXECUTABLE_RANGE_ROLE_CODE,
-          source_offset, section->size, section->data_size,
+          load_offset, stored_offset, has_stored_offset, section->size, section->data_size,
           PLATFORM_EXECUTABLE_FORMAT_FACT_AMIGA_HUNK_CODE_DATA_BSS_SECTIONS_ACCEPTED,
           "parser_asserted", "accepted_parser_output") != 0)
         return -1;
     } else if (section->kind == M68K_SECTION_DATA) {
       if (platform_executable_summary_add_range(summary, PLATFORM_EXECUTABLE_RANGE_ROLE_DATA,
-          source_offset, section->size, section->data_size,
+          load_offset, stored_offset, has_stored_offset, section->size, section->data_size,
           PLATFORM_EXECUTABLE_FORMAT_FACT_AMIGA_HUNK_CODE_DATA_BSS_SECTIONS_ACCEPTED,
           "parser_asserted", "accepted_parser_output") != 0)
         return -1;
     } else if (section->kind == M68K_SECTION_BSS) {
       if (platform_executable_summary_add_range(summary, PLATFORM_EXECUTABLE_RANGE_ROLE_BSS,
-          source_offset, section->size, section->data_size,
+          load_offset, stored_offset, 0U, section->size, section->data_size,
           PLATFORM_EXECUTABLE_FORMAT_FACT_AMIGA_HUNK_BSS_SIZE_ONLY_ACCEPTED,
           "parser_asserted", "accepted_parser_output") != 0)
         return -1;
     }
-    source_offset += section->data_size != 0U ? section->data_size : section->size;
+    load_offset += section->size;
+    stored_offset += section->data_size;
   }
   return platform_executable_summary_add_limit(summary, PLATFORM_EXECUTABLE_LIMIT_RUNTIME_ENTRY,
     PLATFORM_EXECUTABLE_FORMAT_FACT_AMIGA_HUNK_RUNTIME_ENTRY_DEFERRED, "deferred", "deferred_only");
@@ -855,8 +861,14 @@ static int append_platform_executable_summary_json(JsonBuilder *builder, const M
     if (json_builder_append(builder, "{\"role\":") != 0) return -1;
     if (json_builder_append_json_string(builder, platform_executable_range_role_name(range->role)) != 0)
       return -1;
-    if (json_builder_appendf(builder, ",\"source_offset\":%u,\"size\":%u,\"stored_size\":%u",
-        (unsigned)range->source_offset, (unsigned)range->size, (unsigned)range->stored_size) != 0)
+    if (json_builder_appendf(builder, ",\"load_offset\":%u,\"stored_offset\":",
+        (unsigned)range->load_offset) != 0)
+      return -1;
+    if (range->has_stored_offset) {
+      if (json_builder_appendf(builder, "%u", (unsigned)range->stored_offset) != 0) return -1;
+    } else if (json_builder_append(builder, "null") != 0) return -1;
+    if (json_builder_appendf(builder, ",\"size\":%u,\"stored_size\":%u",
+        (unsigned)range->size, (unsigned)range->stored_size) != 0)
       return -1;
     if (append_platform_executable_fact_fields_json(builder, &range->fact) != 0) return -1;
     if (json_builder_append(builder, "}") != 0) return -1;

@@ -27,7 +27,9 @@ typedef struct PlatformExecutableFactRef {
 
 typedef struct PlatformExecutableRange {
   PlatformExecutableRangeRole role;
-  uint32_t source_offset;
+  uint32_t load_offset;
+  uint32_t stored_offset;
+  uint8_t has_stored_offset;
   uint32_t size;
   uint32_t stored_size;
   PlatformExecutableFactRef fact;

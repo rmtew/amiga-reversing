@@ -464,7 +464,8 @@ def test_020_002_raw_amiga_hunk_parser_summary_exposes_shared_ranges() -> None:
     assert set(ranges) == {"code", "data", "bss"}
     assert ranges["code"] == {
         "role": "code",
-        "source_offset": 0,
+        "load_offset": 0,
+        "stored_offset": 0,
         "size": 4,
         "stored_size": 4,
         "status": "parser_asserted",
@@ -474,7 +475,8 @@ def test_020_002_raw_amiga_hunk_parser_summary_exposes_shared_ranges() -> None:
     }
     assert ranges["data"] == {
         "role": "data",
-        "source_offset": 4,
+        "load_offset": 4,
+        "stored_offset": 4,
         "size": 4,
         "stored_size": 4,
         "status": "parser_asserted",
@@ -484,7 +486,8 @@ def test_020_002_raw_amiga_hunk_parser_summary_exposes_shared_ranges() -> None:
     }
     assert ranges["bss"] == {
         "role": "bss",
-        "source_offset": 8,
+        "load_offset": 8,
+        "stored_offset": None,
         "size": 8,
         "stored_size": 0,
         "status": "parser_asserted",
