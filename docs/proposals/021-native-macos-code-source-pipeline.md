@@ -122,10 +122,27 @@ Current raw bridge callers and replacement order:
 
 ### 021-002: Native C Backend Byte Provider
 
-Add a C/Python backend entry point that accepts the native Mac CODE descriptor
-and creates the selected CODE byte view with Mac provenance and shared executable
-range evidence. It may internally read bytes, but the public artifact/profile
-path must be Mac CODE, not raw Amiga.
+Completed native byte-provider slice:
+
+- Added `macos_code_resource_byte_view_with_c_backend`, which accepts
+  `MacosCodeResourceSource`, reads the HFS image/file/resource id from the
+  descriptor, reuses the C Mac CODE summary/extractor internally, and returns a
+  selected CODE byte view with Mac provenance and shared executable range
+  evidence.
+- Public provider identity is `backend: macos-code`,
+  `source_kind: macos_code_resource`, and `wrapped_backend: null`; no public
+  `amiga-raw` identity is exposed by this API.
+- MPW `Asm` CODE 1 returns bytes plus the candidate shared executable range.
+  CODE 0 fails as metadata-only, missing CODE resources fail as missing
+  resources, and no-entry/deferred CODE fails closed without promoting
+  byte-entry evidence.
+
+Remaining wrapper dependency:
+
+- `build_macos_project_listing_artifact_profile` still calls
+  `_temporary_code_binary_source` and then the generic raw C listing artifact.
+  021-003 must route listing/analysis through the native provider so artifact
+  profiles no longer report wrapped raw identity.
 
 ### 021-003: Native Listing And Analysis Artifact
 

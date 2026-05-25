@@ -4,11 +4,14 @@ import hashlib
 import json
 import struct
 from pathlib import Path
+from typing import Any, cast
 
 import pytest
 
 from amiga_reversing.disasm.binary_source import (
     BinarySourceKind,
+    MacosCodeAddressModel,
+    MacosCodeResourceSource,
     RawAddressModel,
     RawBinarySource,
 )
@@ -21,6 +24,7 @@ from amiga_reversing.disasm.macos_asm_container import (
     DEFAULT_NDIF2RAW_PATH,
     read_macos_hfs_image_bytes,
 )
+from amiga_reversing.disasm.macos_code_provider import macos_code_resource_byte_view_with_c_backend
 from amiga_reversing.tools import platform_executable_formats
 from src.tests._build_helpers import require_built_tools
 
@@ -131,6 +135,22 @@ def _make_hfs_image() -> bytes:
     _put(image, 2048 + 2 * 512, b"DATA-FORK")
     _put(image, 2048 + 3 * 512, _make_code_resource_fork())
     return bytes(image)
+
+
+def _macos_code_descriptor(image_path: Path, resource_id: int) -> MacosCodeResourceSource:
+    return MacosCodeResourceSource(
+        kind=BinarySourceKind.MACOS_CODE_RESOURCE,
+        source_image=image_path,
+        hfs_path="MPW-GM/Tools/Asm",
+        resource_type="CODE",
+        resource_id=resource_id,
+        resource_name="Main" if resource_id == 1 else None,
+        address_model=MacosCodeAddressModel.RESOURCE_OFFSET,
+        display_path=f"{image_path.as_posix()}::MPW-GM/Tools/Asm::CODE {resource_id}",
+        analysis_cache_path=image_path.parent / f"CODE_{resource_id}.analysis",
+        cache_identity=f"macos-code-resource:{image_path.as_posix()}:MPW-GM/Tools/Asm:CODE:{resource_id}",
+        project_root=image_path.parent,
+    )
 
 
 def test_python_wrapper_uses_c_macos_hfs_code_summary() -> None:
@@ -288,6 +308,70 @@ def test_python_wrapper_uses_c_macos_hfs_code_summary() -> None:
         }
     ]
     assert extract_macos_hfs_code_resource_bytes_with_c_backend(image, "Tools/Asm", 1) == b"\x20\x5f\x4e\x75"
+
+
+def test_021_002_native_macos_code_byte_provider_returns_code1_view(tmp_path: Path) -> None:
+    require_built_tools()
+    image_path = tmp_path / "mpw.raw"
+    image_path.write_bytes(_make_hfs_image())
+
+    payload, profile = macos_code_resource_byte_view_with_c_backend(_macos_code_descriptor(image_path, 1))
+
+    assert profile == {
+        "backend": "macos-code",
+        "source_kind": "macos_code_resource",
+        "wrapped_backend": None,
+        "executable_model": "platform_executable_summary_v1",
+        "cache_identity": f"macos-code-resource:{image_path.as_posix()}:MPW-GM/Tools/Asm:CODE:1",
+    }
+    assert payload["backend"] == "macos-code"
+    assert payload["source_kind"] == "macos_code_resource"
+    assert payload["wrapped_backend"] is None
+    assert payload["code_bytes"] == b"\x20\x5f\x4e\x75"
+    assert payload["executable_model"] == "platform_executable_summary_v1"
+    ranges = cast(list[dict[str, Any]], payload["executable_ranges"])
+    deferred = cast(list[dict[str, Any]], payload["executable_deferred"])
+    assert ranges[0]["resource_id"] == 1
+    assert ranges[0]["role"] == "candidate_code"
+    assert ranges[0]["fact_status"] == "candidate"
+    assert ranges[0]["parser_use"] == "candidate_only"
+    assert deferred[0]["fact_status"] == "deferred"
+    provenance = payload["provenance"]
+    assert isinstance(provenance, dict)
+    assert provenance["resource_type"] == "CODE"
+    assert provenance["resource_id"] == 1
+    assert provenance["source_kind"] == "macos_code_resource"
+
+
+def test_021_002_native_macos_code_byte_provider_fails_code0_metadata_only(tmp_path: Path) -> None:
+    require_built_tools()
+    image_path = tmp_path / "mpw.raw"
+    image_path.write_bytes(_make_hfs_image())
+
+    with pytest.raises(ValueError, match="metadata-only"):
+        macos_code_resource_byte_view_with_c_backend(_macos_code_descriptor(image_path, 0))
+
+
+def test_021_002_native_macos_code_byte_provider_fails_missing_resource(tmp_path: Path) -> None:
+    require_built_tools()
+    image_path = tmp_path / "mpw.raw"
+    image_path.write_bytes(_make_hfs_image())
+
+    with pytest.raises(ValueError, match="CODE 99 resource is missing"):
+        macos_code_resource_byte_view_with_c_backend(_macos_code_descriptor(image_path, 99))
+
+
+def test_021_002_native_macos_code_byte_provider_fails_deferred_no_entry(tmp_path: Path) -> None:
+    require_built_tools()
+    image = bytearray(_make_hfs_image())
+    resource_fork_base = 2048 + 3 * 512
+    code1_payload = 0x128
+    image[resource_fork_base + code1_payload + 10 : resource_fork_base + code1_payload + 12] = b"\x4e\x75"
+    image_path = tmp_path / "mpw.raw"
+    image_path.write_bytes(image)
+
+    with pytest.raises(ValueError, match="deferred byte-entry evidence"):
+        macos_code_resource_byte_view_with_c_backend(_macos_code_descriptor(image_path, 1))
 
 
 def test_c_macos_summary_defers_code_without_entry_evidence() -> None:
