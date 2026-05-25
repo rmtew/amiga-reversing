@@ -7,17 +7,36 @@ Source proposal: docs/proposals/020-platform-executable-import-pipeline.md
 ## Proposal Context
 
 - Source proposal: `docs/proposals/020-platform-executable-import-pipeline.md`
-- Blocked by: 020-001 through 020-008.
+- Blocked by: completed/reviewed 020-001 through 020-008.
 - Current state: final closeout must prove the shared executable import
   pipeline is the active cross-platform path.
 - Desired state after this issue: Proposal 020 is complete, with durable
-  evidence that Amiga, Atari, and Mac flow through the shared model.
+  evidence that Amiga, Atari, and Mac flow through the shared model from parser
+  output to analysis/listing/rendering proof.
+
+## Start-Of-Issue Refresh
+
+Before running closeout, verify that issue docs 020-001 through 020-008 have
+their durable conclusions copied into Proposal 020. If a completed issue file
+still exists, either delete it after copying conclusions or explain why it must
+remain active.
 
 ## What To Build
 
-Run and record the full cross-platform closeout proof. Fix any small issues
-found during closeout. If a serious gap remains, reopen or create the smallest
-follow-up issue instead of marking the proposal complete.
+Run and record the full cross-platform closeout proof. Fix small closeout
+failures only when the fix is clearly inside 020 scope. If a serious gap
+remains, reopen or create the smallest follow-up issue instead of marking the
+proposal complete.
+
+Required proof:
+
+- current parser coverage for Mac, Amiga, and Atari;
+- shared executable range paths visible in coverage;
+- analysis import uses shared ranges;
+- listing/rendering uses shared ranges;
+- candidate/deferred/unsupported states remain non-accepted;
+- removed paths stay removed and no old default path remains;
+- exact artifact/round-trip behavior stays exact where expected.
 
 ## Acceptance Criteria
 
@@ -55,5 +74,5 @@ follow-up issue instead of marking the proposal complete.
 
 ## Completion Evidence
 
-Record exact commands, summaries, remaining future work, and the final proposal
-closeout decision.
+Record exact commands, summaries, remaining future work, deleted issue files,
+and the final proposal closeout decision.

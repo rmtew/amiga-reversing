@@ -264,11 +264,19 @@ CODE 0 must remain metadata-only. Nonzero CODE ranges must keep accepted
 segment metadata, candidate code windows, and deferred relocation/fixup state.
 No Mac byte-entry rule may be promoted.
 
+This issue starts only after 020-003 and 020-004 have been reviewed. It must use
+the completed Amiga/Atari shared range shape as the default model and document
+any Mac-specific extension before tests rely on it.
+
 ### 020-006: Shared Listing/Rendering Contract
 
 Make listing/rendering consume shared executable ranges rather than platform
 side decisions. Metadata-only ranges must not decode as instructions.
 Candidate/deferred state must be visible in source/artifact/web output.
+
+This issue starts after 020-005. Its first step is to refresh exact field/path
+assumptions from the 020-003 through 020-005 completion evidence, then migrate
+rendering/listing consumers to the shared contract as the default path.
 
 ### 020-007: Analysis-State Executable Import
 
@@ -276,11 +284,19 @@ Feed shared executable ranges into analysis state through one import path.
 Analysis should receive durable range roles, provenance, fact refs, and
 candidate/deferred markers instead of re-deriving them from ad hoc parser JSON.
 
+This issue starts after 020-005 and reviews 020-006 before finalizing import
+assumptions. Analysis may normalize platform parser output into the shared
+model, but the active analysis range classification must be shared.
+
 ### 020-008: Remove Superseded Executable Paths
 
 Delete old per-platform/ad hoc executable summary, range classification, and
 rendering paths that are replaced by 020. Keep no compatibility branch for the
 old behavior.
+
+This issue starts after 020-006 and 020-007. It must create a deletion table
+from Proposal 020 completion evidence before deleting code, tying every removal
+to proven replacement behavior.
 
 ### 020-009: Cross-Platform Closeout Proof
 
@@ -288,6 +304,10 @@ Rerun the full cross-platform proof. Amiga, Atari, and Mac must all flow through
 the shared model; parser fact coverage must pass; target artifacts must stay
 exact where expected; and candidate/deferred/unsupported states must remain
 non-accepted.
+
+This issue starts only after 020-008. It is proof and closeout, not a migration
+bucket; serious gaps should become the smallest follow-up issue instead of being
+hidden in closeout.
 
 ## Acceptance Criteria
 
@@ -321,11 +341,11 @@ the platform they touch. Closeout must run the repository precommit gate.
 - Start with 020-001.
 - 020-002 follows 020-001.
 - 020-003 and 020-004 may run in parallel after 020-002.
-- 020-005 should start after 020-002 and after reviewing lessons from either
-  020-003 or 020-004.
-- 020-006 follows at least one completed platform migration and closes after
-  all three platform migrations are represented.
-- 020-007 follows 020-003 through 020-005.
+- 020-005 follows completed/reviewed 020-003 and 020-004.
+- 020-006 follows 020-005 and must refresh assumptions from 020-003 through
+  020-005 before coding.
+- 020-007 follows 020-005 and must review 020-006 before finalizing import
+  assumptions.
 - 020-008 follows 020-006 and 020-007.
 - 020-009 closes the proposal after all prior issues are complete.
 
