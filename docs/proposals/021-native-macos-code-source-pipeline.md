@@ -236,10 +236,14 @@ Completed closeout proof:
 
 Final future work:
 
+- Post-closeout follow-up issue 021-007 should remove the selected CODE
+  temp-file/raw C artifact transport by adding a native Mac CODE C artifact
+  entry point. This does not reopen Proposal 021 or justify Proposal 022 by
+  itself.
 - `macos_project_payload._preview_decode_rows` still uses a bounded
   preview-only `RawBinarySource` transport. It is not the active selected CODE
-  source/listing/analysis/artifact/API path. Delete it only after adding a
-  native byte-slice preview decoder API.
+  source/listing/analysis/artifact/API path. Follow-up issue 021-008 should
+  delete it after adding a native byte-slice preview decoder API.
 - Mac byte-entry, relocation/fixup, source-to-CODE, and non-CODE payload facts
   remain governed by Proposal 018 states and were not promoted by 021.
 
