@@ -1,6 +1,6 @@
 # Proposal 020: Platform Executable Import Pipeline
 
-Status: active. Proposal 018 established the executable-format KB authority,
+Status: complete. Proposal 018 established the executable-format KB authority,
 and Proposal 019 made current parser summaries emit KB fact refs. Proposal 020
 turns those foundations into the clean forward implementation: one shared,
 C-owned executable import pipeline that parser summaries, analysis state,
