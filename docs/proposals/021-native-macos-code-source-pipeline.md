@@ -255,6 +255,11 @@ Final future work:
 
 - Mac byte-entry, relocation/fixup, source-to-CODE, and non-CODE payload facts
   remain governed by Proposal 018 states and were not promoted by 021.
+- A post-closeout cleanup batch remains active for the low-level C buffer
+  implementation: 021-009 creates a neutral flat M68K buffer backend, 021-010
+  moves the Mac CODE buffer artifact off `amiga-raw` internals, 021-011 adds
+  regression guards against raw identity leaks, and 021-012 reconciles this
+  proposal after those code slices land.
 
 ## Acceptance Criteria
 
@@ -292,6 +297,10 @@ precommit gate.
 - 021-004 follows 021-003.
 - 021-005 follows 021-004.
 - 021-006 closes the proposal after all previous issues complete.
+- 021-009 starts the post-closeout native buffer cleanup.
+- 021-010 follows 021-009.
+- 021-011 follows 021-010.
+- 021-012 follows 021-011 and closes the post-closeout cleanup notes.
 
 ## Non-Goals
 
