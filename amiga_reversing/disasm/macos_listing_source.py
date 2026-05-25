@@ -61,6 +61,7 @@ def build_macos_code_listing_source(
     if not code_bytes:
         raise ValueError(f"Mac OS project {project.id} selected CODE {resource_id} has no code bytes")
     selected_code = _mapping(summary.get("selected_code"))
+    selected_range = _selected_executable_range(summary, resource_id)
     resource = _code_resource_by_id(_sequence(_mapping(summary.get("resource_fork")).get("code_resources")), resource_id)
     file_info = _mapping(summary.get("file"))
     return {
@@ -74,7 +75,7 @@ def build_macos_code_listing_source(
         "resource_name": resource.get("name") or selected_code.get("name"),
         "resource": resource,
         "selected_code": selected_code,
-        "classified_range": _selected_executable_range(selected_code),
+        "classified_range": selected_range,
         "code_bytes": code_bytes,
         "display_path": f"{hfs_path} CODE {resource_id} {resource.get('name') or selected_code.get('name') or ''}".strip(),
         "container": {
@@ -238,13 +239,19 @@ def _code_resource_by_id(resources: list[object], resource_id: int) -> Mapping[s
     return {}
 
 
-def _selected_executable_range(selected_code: Mapping[str, object]) -> Mapping[str, object]:
-    code = _mapping(selected_code.get("code"))
-    for item in _sequence(code.get("layout_ranges")):
+def _selected_executable_range(summary: Mapping[str, object], resource_id: int) -> Mapping[str, object]:
+    if summary.get("executable_model") != "platform_executable_summary_v1":
+        raise ValueError("Mac OS CODE listing requires shared executable ranges")
+    for item in _sequence(summary.get("executable_ranges")):
         range_info = _mapping(item)
-        if range_info.get("kind") in {"confirmed_code", "candidate_code"} and range_info.get("entrypoint") is True:
+        if (
+            range_info.get("resource_type") == "CODE"
+            and range_info.get("resource_id") == resource_id
+            and range_info.get("role") in {"code", "candidate_code"}
+            and range_info.get("entrypoint") is True
+        ):
             return range_info
-    return {}
+    raise ValueError(f"Mac OS CODE {resource_id} listing requires a shared executable code range")
 
 
 def _macos_row_provenance(listing_source: Mapping[str, object]) -> dict[str, object]:
@@ -257,7 +264,7 @@ def _macos_row_provenance(listing_source: Mapping[str, object]) -> dict[str, obj
         "resource_id": listing_source.get("resource_id"),
         "resource_name": listing_source.get("resource_name"),
         "classified_range": selected_range,
-        "code_resource_offset_base": selected_range.get("start"),
+        "code_resource_offset_base": selected_range.get("load_offset"),
     }
 
 
@@ -280,8 +287,9 @@ def _macos_source_text(listing_source: Mapping[str, object], source_text: str) -
             f"{provenance.get('resource_name') or ''}"
         ).rstrip(),
         (
-            f"; classified_range: {selected_range.get('kind')} "
-            f"payload[{selected_range.get('start')}..{selected_range.get('end')}) "
+            f"; classified_range: {selected_range.get('role')} "
+            f"payload[{selected_range.get('load_offset')}.."
+            f"{_range_end(selected_range)}) "
             f"evidence={selected_range.get('evidence')}"
         ),
         "",
@@ -303,6 +311,14 @@ def _macos_row(row: dict[str, object] | None, provenance: Mapping[str, object]) 
 
 def _is_amiga_section_line(text: str) -> bool:
     return text.strip().lower() == "section code,code"
+
+
+def _range_end(range_info: Mapping[str, object]) -> object:
+    start = range_info.get("load_offset")
+    size = range_info.get("size")
+    if isinstance(start, int) and isinstance(size, int):
+        return start + size
+    return None
 
 
 def _file_cache_stamp(path: Path) -> str:

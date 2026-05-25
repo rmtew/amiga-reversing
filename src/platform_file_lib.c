@@ -23,6 +23,7 @@
 #include "platform_file_decompression.h"
 #include "platform_macos_hfs.h"
 #include "platform_macos_resource.h"
+#include "platform_executable_summary.h"
 #include "util_arena.h"
 #include "generated/amiga_hunk_file_runtime.h"
 #include "generated/amiga_os_runtime.h"
@@ -8822,6 +8823,88 @@ static int listing_artifact_build_analysis(PlatformFileListingArtifact *artifact
   return 0;
 }
 
+static int listing_executable_range_role_for_section(const char *backend_name, M68kSectionKind kind,
+    PlatformExecutableRangeRole *out_role, const char **out_fact_id, const char **out_fact_status,
+    const char **out_parser_use) {
+  if (backend_name == NULL || out_role == NULL || out_fact_id == NULL || out_fact_status == NULL ||
+      out_parser_use == NULL) {
+    return 0;
+  }
+  if (strcmp(backend_name, "amiga-hunk") == 0) {
+    if (kind == M68K_SECTION_CODE) {
+      *out_role = PLATFORM_EXECUTABLE_RANGE_ROLE_CODE;
+      *out_fact_id = PLATFORM_EXECUTABLE_FORMAT_FACT_AMIGA_HUNK_CODE_DATA_BSS_SECTIONS_ACCEPTED;
+    } else if (kind == M68K_SECTION_DATA) {
+      *out_role = PLATFORM_EXECUTABLE_RANGE_ROLE_DATA;
+      *out_fact_id = PLATFORM_EXECUTABLE_FORMAT_FACT_AMIGA_HUNK_CODE_DATA_BSS_SECTIONS_ACCEPTED;
+    } else if (kind == M68K_SECTION_BSS) {
+      *out_role = PLATFORM_EXECUTABLE_RANGE_ROLE_BSS;
+      *out_fact_id = PLATFORM_EXECUTABLE_FORMAT_FACT_AMIGA_HUNK_BSS_SIZE_ONLY_ACCEPTED;
+    } else {
+      return 0;
+    }
+    *out_fact_status = "parser_asserted";
+    *out_parser_use = "accepted_parser_output";
+    return 1;
+  }
+  if (strcmp(backend_name, "atari-st") == 0) {
+    if (kind == M68K_SECTION_CODE) {
+      *out_role = PLATFORM_EXECUTABLE_RANGE_ROLE_CODE;
+      *out_fact_id = PLATFORM_EXECUTABLE_FORMAT_FACT_ATARI_ST_PRG_TEXT_DATA_LOADED_IMAGE_ACCEPTED;
+      *out_fact_status = "parser_asserted";
+      *out_parser_use = "accepted_parser_output";
+    } else if (kind == M68K_SECTION_DATA) {
+      *out_role = PLATFORM_EXECUTABLE_RANGE_ROLE_DATA;
+      *out_fact_id = PLATFORM_EXECUTABLE_FORMAT_FACT_ATARI_ST_PRG_TEXT_DATA_LOADED_IMAGE_ACCEPTED;
+      *out_fact_status = "parser_asserted";
+      *out_parser_use = "accepted_parser_output";
+    } else if (kind == M68K_SECTION_BSS) {
+      *out_role = PLATFORM_EXECUTABLE_RANGE_ROLE_BSS;
+      *out_fact_id = PLATFORM_EXECUTABLE_FORMAT_FACT_ATARI_ST_PRG_BSS_HEADER_ONLY_CANDIDATE;
+      *out_fact_status = "candidate";
+      *out_parser_use = "candidate_only";
+    } else {
+      return 0;
+    }
+    return 1;
+  }
+  return 0;
+}
+
+static int listing_validate_shared_executable_ranges(const char *backend_name, const M68kObject *object,
+    M68kDiagList *diagnostics) {
+  size_t index;
+  if (backend_name == NULL || object == NULL || object->platform_file_kind != M68K_PLATFORM_FILE_EXECUTABLE)
+    return 1;
+  if (strcmp(backend_name, "amiga-hunk") != 0 && strcmp(backend_name, "atari-st") != 0)
+    return 1;
+  for (index = 0U; index < object->section_count; ++index) {
+    const M68kSection *section = &object->sections[index];
+    PlatformExecutableRangeRole role;
+    const char *fact_id = NULL;
+    const char *fact_status = NULL;
+    const char *parser_use = NULL;
+    if (!listing_executable_range_role_for_section(backend_name, section->kind, &role, &fact_id, &fact_status,
+        &parser_use)) {
+      platform_file_add_error(diagnostics, "shared executable listing range has unsupported section kind");
+      return 0;
+    }
+    if (role == PLATFORM_EXECUTABLE_RANGE_ROLE_BSS && section->data_size != 0U) {
+      platform_file_add_error(diagnostics, "shared executable listing range refuses stored BSS bytes");
+      return 0;
+    }
+    if ((role == PLATFORM_EXECUTABLE_RANGE_ROLE_CODE) != (section->kind == M68K_SECTION_CODE)) {
+      platform_file_add_error(diagnostics, "shared executable listing range code role does not match section kind");
+      return 0;
+    }
+    if (fact_id == NULL || fact_status == NULL || parser_use == NULL) {
+      platform_file_add_error(diagnostics, "shared executable listing range missing parser fact authority");
+      return 0;
+    }
+  }
+  return 1;
+}
+
 static char *listing_artifact_profile_json_alloc(const PlatformFileListingArtifact *artifact,
     const char *generation, const char *timing_key, double timing_seconds, M68kDiagList *diagnostics) {
   JsonBuilder builder = {0};
@@ -9278,6 +9361,7 @@ int platform_file_facts_v2_listing_artifact_path_create(const char *backend_name
   }
   enrich_policy_pointer_targets_from_object_local(&artifact->policy, &artifact->object);
   if (!validate_effective_policy_against_object_local(&diagnostics, &artifact->object, &artifact->policy)) goto fail;
+  if (!listing_validate_shared_executable_ranges(backend_name, &artifact->object, &diagnostics)) goto fail;
   if (listing_artifact_build_analysis(artifact, &diagnostics) != 0) goto fail;
   *out_artifact = artifact;
   return 0;

@@ -5,11 +5,13 @@ from pathlib import Path
 
 import pytest
 
+from amiga_reversing.disasm import macos_listing_source
 from amiga_reversing.disasm.c_backend import (
     inspect_macos_hfs_code_summary_with_c_backend,
 )
 from amiga_reversing.disasm.macos_asm_container import read_macos_hfs_image_bytes
 from amiga_reversing.disasm.macos_listing_source import (
+    build_macos_code_listing_source,
     build_macos_project_listing_artifact_profile,
 )
 from amiga_reversing.disasm.macos_target_artifact import (
@@ -37,6 +39,28 @@ def test_committed_macos_example_target_loads_through_project_record() -> None:
     assert project.origin["kind"] == "macos_mpw_fixture"
     assert project.origin["hfs_path"] == "MPW-GM/MPW/Tools/Asm"
     assert project.origin["selected_code_resource_id"] == 1
+
+
+def test_020_006_macos_listing_requires_shared_executable_ranges(monkeypatch: pytest.MonkeyPatch) -> None:
+    project = get_project(MACOS_EXAMPLE_PROJECT_ID)
+    monkeypatch.setattr(macos_listing_source, "read_macos_hfs_image_bytes", lambda path: b"image")
+    monkeypatch.setattr(
+        macos_listing_source,
+        "extract_macos_hfs_code_resource_bytes_with_c_backend",
+        lambda image_data, hfs_path, resource_id: b"\x4e\x75",
+    )
+    monkeypatch.setattr(
+        macos_listing_source,
+        "inspect_macos_hfs_code_summary_with_c_backend",
+        lambda image_data, hfs_path: {
+            "selected_code": {"name": "Main"},
+            "resource_fork": {"code_resources": [{"id": 1, "name": "Main"}]},
+            "file": {},
+        },
+    )
+
+    with pytest.raises(ValueError, match="shared executable ranges"):
+        build_macos_code_listing_source(project)
 
 
 def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
@@ -191,6 +215,6 @@ def test_macos_listing_artifact_uses_macos_source_and_row_provenance() -> None:
     assert macos["resource_type"] == "CODE"
     assert macos["resource_id"] == 1
     assert macos["resource_name"] == "Main"
-    assert macos["classified_range"]["start"] == 40
-    assert macos["classified_range"]["kind"] == "candidate_code"
+    assert macos["classified_range"]["load_offset"] == 40
+    assert macos["classified_range"]["role"] == "candidate_code"
     assert macos["classified_range"]["fact_status"] == "candidate"

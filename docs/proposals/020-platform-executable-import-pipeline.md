@@ -291,13 +291,42 @@ Completed Mac current-output migration:
 
 ### 020-006: Shared Listing/Rendering Contract
 
-Make listing/rendering consume shared executable ranges rather than platform
-side decisions. Metadata-only ranges must not decode as instructions.
-Candidate/deferred state must be visible in source/artifact/web output.
+Completed shared listing/rendering contract:
 
-This issue starts after 020-005. Its first step is to refresh exact field/path
-assumptions from the 020-003 through 020-005 completion evidence, then migrate
-rendering/listing consumers to the shared contract as the default path.
+- Amiga HUNK and Atari PRG C listing artifact construction now validates the
+  executable object against the shared executable range role/fact contract
+  before render-plan creation. CODE/TEXT ranges may render as instructions;
+  DATA and BSS ranges are refused as instruction roles, and BSS must remain
+  stored-size-only.
+- The Amiga/Atari listing contract carries the same parser fact authority as
+  the shared summaries: Amiga CODE/DATA use
+  `amiga.hunk.code_data_bss.sections.accepted`, Amiga BSS uses
+  `amiga.hunk.bss.size_only.accepted`, Atari TEXT/DATA use
+  `atari_st.prg.text_data_loaded_image.accepted`, and Atari BSS remains
+  candidate-only through `atari_st.prg.bss.header_only.candidate`.
+- Mac listing provenance now selects the active CODE range from
+  `summary.executable_ranges` and fails closed when the shared model is absent.
+  It no longer treats `selected_code.code.layout_ranges` as the listing
+  authority. The temporary raw-binary bridge remains only as a byte transport
+  for the selected shared CODE range until 020-008 removes the superseded
+  wrapper path.
+- CODE 0 and non-code Mac metadata remain non-instruction surfaces; selected
+  CODE listing rows use the shared candidate range and keep
+  `fact_status: candidate` visible in row provenance/source headers.
+- Focused regressions prove decode-looking Amiga/Atari DATA and Atari BSS bytes
+  are not rendered as instructions, and Mac listing fails if shared executable
+  ranges are missing.
+
+Deletion candidates for 020-008:
+
+- Mac `selected_code.code.layout_ranges` listing selection in
+  `macos_listing_source.py` is superseded by `executable_ranges`.
+- The Mac temporary `RawBinarySource` bridge remains active as a transport only;
+  remove it after 020-007 imports shared Mac range provenance into analysis and
+  020-008 proves artifact/web parity.
+- Amiga/Atari direct section-kind render assumptions are now guarded by the
+  shared role/fact contract and can be consolidated with the 020-007 analysis
+  import path.
 
 ### 020-007: Analysis-State Executable Import
 

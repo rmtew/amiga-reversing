@@ -93,6 +93,60 @@ def _requires_project_paths(target_name: str) -> ProjectPaths:
         pytest.skip(f"Target fixture is not materialized by the current import policy: {target_name} ({exc})")
 
 
+def test_020_006_amiga_listing_keeps_shared_data_range_out_of_instruction_rows(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    binary_path = tmp_path / "shared_ranges.hunk"
+    binary_path.write_bytes(make_synthetic_hunkexe(code_data=bytes.fromhex("4e750000"), data_data=bytes.fromhex("4e750000")))
+    source = HunkFileBinarySource(
+        kind=BinarySourceKind.HUNK_FILE,
+        path=binary_path,
+        display_path=str(binary_path),
+        analysis_cache_path=tmp_path / "shared_ranges.analysis",
+    )
+
+    rows, _api_calls, profile = build_project_listing_rows_from_source_with_c_artifact(
+        source,
+        metadata_text="",
+        project_root=PROJECT_ROOT,
+    )
+
+    assert profile["facts_v2"]["asm_source_refused"] is False
+    assert any(row.get("section_index") == 0 and row.get("kind") == "instruction" for row in rows)
+    assert not any(row.get("section_index") == 1 and row.get("kind") == "instruction" for row in rows)
+    assert any(row.get("section_index") == 1 and row.get("kind") == "data" for row in rows)
+
+
+def test_020_006_atari_listing_keeps_shared_data_bss_ranges_out_of_instruction_rows(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    binary_path = tmp_path / "shared_ranges.prg"
+    binary_path.write_bytes(
+        make_synthetic_atari_prg(
+            text=bytes.fromhex("4e75"),
+            data=bytes.fromhex("4e75"),
+            bss_size=4,
+            reloc_offsets=[],
+        )
+    )
+    source = HunkFileBinarySource(
+        kind=BinarySourceKind.HUNK_FILE,
+        path=binary_path,
+        display_path=str(binary_path),
+        analysis_cache_path=tmp_path / "shared_ranges_atari.analysis",
+    )
+
+    rows, _api_calls, profile = build_project_listing_rows_from_source_with_c_artifact(
+        source,
+        metadata_text="",
+        project_root=PROJECT_ROOT,
+    )
+
+    assert profile["facts_v2"]["asm_source_refused"] is False
+    assert any(row.get("section_index") == 0 and row.get("kind") == "instruction" for row in rows)
+    assert not any(row.get("section_index") in {1, 2} and row.get("kind") == "instruction" for row in rows)
+    assert any(row.get("section_index") == 1 and row.get("kind") == "data" for row in rows)
+    assert any(row.get("section_index") == 2 and row.get("kind") == "data" for row in rows)
+
+
 def test_load_dll_resolves_relative_project_root_for_windows_dll_directory(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
