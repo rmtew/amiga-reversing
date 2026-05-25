@@ -1252,6 +1252,8 @@ def test_full_listing_instruction_rows_expose_symbol_operand_parts(tmp_path: Pat
     branch = next(row for row in rows if row["kind"] == "instruction" and row["addr"] == 0)
 
     assert branch["operand_text"] == "loc_0_00000004"
+    assert branch["flow_kind"] == 2
+    assert branch["flow"] == "branch"
     assert branch["operand_parts"][0]["kind"] == "symbol"
     assert branch["operand_parts"][0]["text"] == "loc_0_00000004"
     assert branch["operand_parts"][0]["metadata"] == {"symbol": "loc_0_00000004"}

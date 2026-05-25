@@ -4641,6 +4641,13 @@ static const char *listing_statement_operation_type(const M68kStatementIR *stmt)
   return metadata != NULL ? listing_operation_type_name(metadata->operation_type) : NULL;
 }
 
+static uint8_t listing_statement_flow_kind(const M68kStatementIR *stmt) {
+  const M68kSimFormMetadata *metadata;
+  if (stmt == NULL || stmt->kind != M68K_STATEMENT_INSTRUCTION) return M68K_SIM_FLOW_NONE;
+  metadata = instruction_sim_metadata(&stmt->u.instruction);
+  return metadata != NULL ? metadata->flow_kind : M68K_SIM_FLOW_NONE;
+}
+
 static int append_listing_operand_accesses_json(JsonBuilder *builder, const M68kStatementIR *stmt) {
   const M68kInstructionIR *instruction;
   const M68kSimFormMetadata *metadata;
@@ -6620,6 +6627,11 @@ static int append_listing_row_json_parsed(JsonBuilder *builder, size_t row_index
   if (listing_statement_operation_type(stmt) != NULL) {
     if (json_builder_append(builder, ",\"operation_type\":") != 0) return -1;
     if (json_builder_append_json_string(builder, listing_statement_operation_type(stmt)) != 0) return -1;
+  }
+  if (stmt != NULL && stmt->kind == M68K_STATEMENT_INSTRUCTION) {
+    uint8_t flow_kind = listing_statement_flow_kind(stmt);
+    if (json_builder_appendf(builder, ",\"flow_kind\":%u,\"flow\":", (unsigned)flow_kind) != 0) return -1;
+    if (json_builder_append_json_string(builder, sim_flow_kind_name(flow_kind)) != 0) return -1;
   }
   if (operand != NULL && operand[0] != '\0') {
     if (json_builder_append(builder, ",\"operand_text\":") != 0) return -1;

@@ -1455,6 +1455,21 @@ def test_callback_consumer_dataflow_accepts_delayed_consumer() -> None:
     assert report["slots"][0]["consumer_dataflow_blockers"] == []
 
 
+@pytest.mark.parametrize("opcode", ["btst", "bset", "bclr", "bchg"])
+def test_callback_consumer_dataflow_does_not_treat_bit_ops_as_branch_boundaries(opcode: str) -> None:
+    report = callback_slot_report(
+        [
+            *_callback_consumer_fixture_prefix(),
+            _callback_slot_read_row(0x1204, "A0"),
+            {"kind": "instruction", "start_offset": 0x1206, "opcode_or_directive": opcode, "flow": "sequential"},
+            {"kind": "instruction", "start_offset": 0x1208, "opcode_or_directive": "jsr", "operand_text": "(a0)"},
+        ]
+    )
+
+    assert report["slots"][0]["consumer_count"] == 1
+    assert report["slots"][0]["consumer_dataflow_blockers"] == []
+
+
 def test_callback_consumer_dataflow_accepts_address_register_move() -> None:
     report = callback_slot_report(
         [
@@ -1508,7 +1523,14 @@ def test_callback_consumer_dataflow_blocks_branch_boundary() -> None:
         [
             *_callback_consumer_fixture_prefix(),
             _callback_slot_read_row(0x1204, "A0"),
-            {"kind": "instruction", "start_offset": 0x1206, "opcode_or_directive": "bra.s", "operand_text": "done"},
+            {
+                "kind": "instruction",
+                "start_offset": 0x1206,
+                "opcode_or_directive": "bra.s",
+                "operand_text": "done",
+                "flow": "branch",
+                "flow_kind": 2,
+            },
             {"kind": "instruction", "start_offset": 0x1208, "opcode_or_directive": "jsr", "operand_text": "(a0)"},
         ]
     )

@@ -8,6 +8,7 @@ from typing import cast
 from amiga_reversing.disasm import decision_journal
 
 _MIN_CALLBACK_ADDRESS_VALUE = 0x1000
+_CONTROL_FLOW_BOUNDARY_FLOWS = {"branch", "jump", "call", "return", "trap"}
 
 
 def callback_slot_report(
@@ -1168,10 +1169,9 @@ def _source_register(row: Mapping[str, object]) -> str | None:
     return _address_register(register)
 
 
-def _is_branch_boundary(opcode: str) -> bool:
-    if opcode in {"rts", "rte", "rtr", "trap", "trapv"}:
-        return True
-    return opcode.startswith(("b", "db"))
+def _is_control_flow_boundary(row: Mapping[str, object]) -> bool:
+    flow = row.get("flow")
+    return isinstance(flow, str) and flow in _CONTROL_FLOW_BOUNDARY_FLOWS
 
 
 def _is_simple_address_register_move(opcode: str) -> bool:
@@ -1228,7 +1228,7 @@ def _following_indirect_transfer(
                 "unsupported_transfer": _row_payload(candidate),
                 "path": path,
             }
-        if _is_branch_boundary(opcode):
+        if _is_control_flow_boundary(candidate):
             return {
                 "status": "blocked",
                 "reason": "consumer_crosses_branch",
