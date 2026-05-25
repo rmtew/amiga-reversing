@@ -1,9 +1,8 @@
 # Proposal 021: Native Mac CODE Source Pipeline
 
-Status: active. Proposal 020 completed the shared executable import pipeline:
-Mac CODE now exposes `platform_executable_summary_v1` ranges, and 021 has moved
-the selected CODE listing path to native `macos-code` identity. Final closeout
-proof is tracked by 021-006.
+Status: complete. Proposal 020 completed the shared executable import pipeline:
+Mac CODE now exposes `platform_executable_summary_v1` ranges, and 021 moved the
+selected CODE listing path to native `macos-code` identity.
 
 ## Purpose
 
@@ -158,13 +157,13 @@ Completed native listing/analysis identity slice:
   candidate CODE ranges, and deferred relocation/fixup evidence without fact
   promotion.
 
-Deletion candidates for 021-005:
+Deletion candidates handed to 021-005:
 
-- `_temporary_code_binary_source` still exists as internal byte transport for
-  the generic C listing artifact.
+- `_temporary_code_binary_source` was internal byte transport for the generic C
+  listing artifact.
 - The generic raw listing artifact invocation inside
-  `build_macos_project_listing_artifact_profile` remains the next replacement
-  boundary before deleting raw bridge code.
+  `build_macos_project_listing_artifact_profile` was the replacement boundary
+  before deleting raw bridge code.
 
 ### 021-004: Project, Artifact, And Web Payload Migration
 
@@ -187,8 +186,8 @@ Retained public compatibility fields and blockers:
   tests still consume them for user-visible CODE detail panes.
 - Project preview rendering still has an internal `RawBinarySource` decode path
   for candidate preview rows. That is byte transport, not public source
-  identity; 021-005 must delete or formally block it together with
-  `_temporary_code_binary_source`.
+  identity; 021-005 formally blocks it until a native byte-slice preview
+  decoder API exists.
 
 ### 021-005: Delete Raw Bridge And Superseded Paths
 
@@ -214,10 +213,35 @@ Current state after 021-005:
 
 ### 021-006: Closeout Proof
 
-Run the full Mac-focused and cross-platform proof. Proposal 021 closes only when
-Mac CODE is native through source selection, listing, analysis, artifact, and API
-paths, and when the old raw bridge is deleted or has a precise out-of-scope
-blocker.
+Completed closeout proof:
+
+- Native Mac CODE source descriptor is active in project resolution:
+  `test_021_001_committed_mpw_asm_project_resolves_native_code_source_descriptor`.
+- Listing/analysis/artifact/web paths report native Mac CODE identity:
+  `tests\test_macos_c_backend.py tests\test_macos_target_artifact.py
+  tests\test_macos_project_payload.py tests\test_macos_web_view.py
+  tests\test_web_app_source.py -q` passed with 43 tests.
+- Active raw bridge and wrapped raw backend are deleted from selected Mac CODE
+  behavior: `test_021_005_macos_listing_profile_uses_native_descriptor_not_raw_bridge`
+  proves the listing path passes `MacosCodeResourceSource`, not a temporary
+  `RawBinarySource`.
+- Shared executable ranges remain authoritative and candidate/deferred facts
+  remain non-accepted: combined coverage passed with `invalid: 0`,
+  `parser_outputs: 3`, `candidate: 126`, `deferred: 43`.
+- Focused C/listing tests passed with 4 tests, including the 020 listing range
+  checks and Mac CODE bytes feeding the shared listing artifact.
+- Repository precommit passed: style OK, dead_code OK, unit OK, integration OK,
+  explicit OK.
+- `git diff --check` passed.
+
+Final future work:
+
+- `macos_project_payload._preview_decode_rows` still uses a bounded
+  preview-only `RawBinarySource` transport. It is not the active selected CODE
+  source/listing/analysis/artifact/API path. Delete it only after adding a
+  native byte-slice preview decoder API.
+- Mac byte-entry, relocation/fixup, source-to-CODE, and non-CODE payload facts
+  remain governed by Proposal 018 states and were not promoted by 021.
 
 ## Acceptance Criteria
 
