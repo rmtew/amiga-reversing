@@ -194,12 +194,19 @@ def test_macos_listing_artifact_uses_macos_source_and_row_provenance() -> None:
     project = get_project(MACOS_EXAMPLE_PROJECT_ID)
     _total_rows, profile, artifact = build_macos_project_listing_artifact_profile(project)
     try:
+        analysis, analysis_profile = artifact.analysis_payload()
         source_text, source_profile = artifact.source_text_with_profile()
         window, _window_profile = artifact.window_payload(start=0, count=16)
     finally:
         artifact.close()
 
     assert profile["backend"] == "amiga-raw"
+    assert analysis_profile["backend"] == "macos-code"
+    assert analysis["executable_model"] == "platform_executable_summary_v1"
+    assert analysis["executable_ranges"][0]["role"] == "candidate_code"
+    assert analysis["executable_ranges"][0]["fact_status"] == "candidate"
+    assert analysis["executable_ranges"][0]["parser_use"] == "candidate_only"
+    assert analysis["executable_deferred"][0]["fact_status"] == "deferred"
     assert source_profile["backend"] == "macos-code"
     assert source_profile["wrapped_backend"] == "amiga-raw"
     assert "; Classic Mac OS CODE resource listing" in source_text

@@ -525,6 +525,7 @@ def test_020_002_raw_amiga_hunk_parser_summary_exposes_shared_ranges() -> None:
 
     assert payload["executable_model"] == "platform_executable_summary_v1"
     assert set(ranges) == {"code", "data", "bss"}
+    assert all("source_offset" not in item for item in payload["executable_ranges"])
     assert ranges["code"] == {
         "role": "code",
         "load_offset": 0,
@@ -624,6 +625,7 @@ def test_020_004_raw_atari_prg_parser_summary_exposes_shared_ranges() -> None:
 
     assert payload["executable_model"] == "platform_executable_summary_v1"
     assert set(ranges) == {"code", "data", "bss"}
+    assert all("source_offset" not in item for item in payload["executable_ranges"])
     assert ranges["code"] == {
         "role": "code",
         "load_offset": 0,

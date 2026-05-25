@@ -27,7 +27,9 @@ typedef struct PlatformExecutableFactRef {
 
 typedef struct PlatformExecutableRange {
   PlatformExecutableRangeRole role;
+  /* Offset in the loaded executable image, not an original file byte span. */
   uint32_t load_offset;
+  /* Offset in stored bytes when the range has on-disk payload bytes. BSS has none. */
   uint32_t stored_offset;
   uint8_t has_stored_offset;
   uint32_t size;

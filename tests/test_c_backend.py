@@ -147,6 +147,64 @@ def test_020_006_atari_listing_keeps_shared_data_bss_ranges_out_of_instruction_r
     assert any(row.get("section_index") == 2 and row.get("kind") == "data" for row in rows)
 
 
+def test_020_007_amiga_analysis_imports_shared_executable_ranges(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    binary_path = tmp_path / "analysis_ranges.hunk"
+    binary_path.write_bytes(make_synthetic_hunkexe(code_data=bytes.fromhex("4e750000"), data_data=bytes.fromhex("4e750000")))
+    source = HunkFileBinarySource(
+        kind=BinarySourceKind.HUNK_FILE,
+        path=binary_path,
+        display_path=str(binary_path),
+        analysis_cache_path=tmp_path / "analysis_ranges.analysis",
+    )
+
+    combined = analyze_source_with_c_artifact(source, metadata_text="", project_root=PROJECT_ROOT)
+    ranges = {item["role"]: item for item in combined["analysis"]["executable_ranges"]}
+
+    assert combined["analysis"]["executable_model"] == "platform_executable_summary_v1"
+    assert ranges["code"]["fact_id"] == "amiga.hunk.code_data_bss.sections.accepted"
+    assert ranges["data"]["parser_use"] == "accepted_parser_output"
+    assert ranges["data"]["stored_offset"] == 4
+    assert combined["analysis"]["executable_deferred"] == [
+        {
+            "kind": "runtime_entry",
+            "status": "deferred",
+            "fact_id": "amiga.hunk.runtime_entry.deferred",
+            "fact_status": "deferred",
+            "parser_use": "deferred_only",
+        }
+    ]
+
+
+def test_020_007_atari_analysis_imports_candidate_bss_without_promotion(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    binary_path = tmp_path / "analysis_ranges.prg"
+    binary_path.write_bytes(make_synthetic_atari_prg(text=bytes.fromhex("4e75"), data=b"\0\0", bss_size=4, reloc_offsets=[]))
+    source = HunkFileBinarySource(
+        kind=BinarySourceKind.HUNK_FILE,
+        path=binary_path,
+        display_path=str(binary_path),
+        analysis_cache_path=tmp_path / "analysis_ranges_atari.analysis",
+    )
+
+    combined = analyze_source_with_c_artifact(source, metadata_text="", project_root=PROJECT_ROOT)
+    ranges = {item["role"]: item for item in combined["analysis"]["executable_ranges"]}
+
+    assert combined["analysis"]["executable_model"] == "platform_executable_summary_v1"
+    assert ranges["bss"]["stored_offset"] is None
+    assert ranges["bss"]["fact_status"] == "candidate"
+    assert ranges["bss"]["parser_use"] == "candidate_only"
+    assert combined["analysis"]["executable_deferred"] == [
+        {
+            "kind": "relocation_breadth",
+            "status": "deferred",
+            "fact_id": "atari_st.prg.relocation_terminator_variants.deferred",
+            "fact_status": "deferred",
+            "parser_use": "deferred_only",
+        }
+    ]
+
+
 def test_load_dll_resolves_relative_project_root_for_windows_dll_directory(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

@@ -330,13 +330,34 @@ Deletion candidates for 020-008:
 
 ### 020-007: Analysis-State Executable Import
 
-Feed shared executable ranges into analysis state through one import path.
-Analysis should receive durable range roles, provenance, fact refs, and
-candidate/deferred markers instead of re-deriving them from ad hoc parser JSON.
+Completed analysis-state executable import:
 
-This issue starts after 020-005 and reviews 020-006 before finalizing import
-assumptions. Analysis may normalize platform parser output into the shared
-model, but the active analysis range classification must be shared.
+- C listing analysis JSON now imports the shared executable model at the
+  analysis root as `executable_model`, `executable_ranges`, and
+  `executable_deferred`.
+- Amiga and Atari analysis import share the same range role/fact contract used
+  by 020-006 listing validation. Each analysis range carries `section_index`,
+  `role`, `load_offset`, nullable `stored_offset`, `size`, `stored_size`,
+  `status`, `fact_id`, `fact_status`, and `parser_use`.
+- Amiga analysis preserves accepted CODE/DATA/BSS authority and deferred runtime
+  entry state. Atari analysis preserves accepted TEXT/DATA authority, keeps BSS
+  candidate-only, and keeps relocation breadth deferred-only.
+- Mac analysis payloads now carry `platform: macos`,
+  `executable_model: platform_executable_summary_v1`, the selected shared CODE
+  range from `executable_ranges`, `executable_deferred`, and Mac provenance.
+  Candidate CODE remains candidate-only; byte-entry and relocation/fixup facts
+  are not promoted.
+- Focused regressions prove Amiga, Atari, and Mac analysis payloads contain
+  shared executable ranges with KB fact ids, statuses, and parser-use authority.
+
+Retained blockers and deletion candidates:
+
+- Mac analysis still wraps a raw selected CODE byte artifact for instruction
+  analysis. The analysis payload carries shared Mac provenance, but the
+  transport wrapper remains a 020-008 deletion candidate after parity proof.
+- The Amiga/Atari C range import currently normalizes object sections into the
+  shared contract inside the C analysis path. 020-008 should consolidate any
+  duplicate summary/listing helpers that remain after closeout proof.
 
 ### 020-008: Remove Superseded Executable Paths
 

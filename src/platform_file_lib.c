@@ -4309,6 +4309,9 @@ static int append_object_decompression_analysis_json(JsonBuilder *builder, const
   return json_builder_append(builder, "]");
 }
 
+static int append_analysis_executable_ranges_json(JsonBuilder *builder, const char *backend_name,
+    const M68kObject *object);
+
 static int append_analysis_json_with_decompression_profile(JsonBuilder *builder, const char *base_json,
     const M68kObject *object, const M68kSourceAnalysisIR *analysis, const M68kFactsV2Profile *profile) {
   size_t base_len;
@@ -4318,6 +4321,9 @@ static int append_analysis_json_with_decompression_profile(JsonBuilder *builder,
   if (json_builder_appendf(builder, "%.*s", (int)(base_len - 1U), base_json) != 0)
     return -1;
   if (append_object_decompression_analysis_json(builder, object, analysis) != 0)
+    return -1;
+  if (append_analysis_executable_ranges_json(builder,
+      object->platform_backend_kind == M68K_PLATFORM_BACKEND_ATARI_ST ? "atari-st" : "amiga-hunk", object) != 0)
     return -1;
   if (profile != NULL) {
     if (json_builder_append(builder,
@@ -8903,6 +8909,83 @@ static int listing_validate_shared_executable_ranges(const char *backend_name, c
     }
   }
   return 1;
+}
+
+static const char *listing_executable_range_role_name(PlatformExecutableRangeRole role) {
+  if (role == PLATFORM_EXECUTABLE_RANGE_ROLE_CODE) return "code";
+  if (role == PLATFORM_EXECUTABLE_RANGE_ROLE_DATA) return "data";
+  if (role == PLATFORM_EXECUTABLE_RANGE_ROLE_BSS) return "bss";
+  if (role == PLATFORM_EXECUTABLE_RANGE_ROLE_METADATA) return "metadata";
+  if (role == PLATFORM_EXECUTABLE_RANGE_ROLE_CANDIDATE_CODE) return "candidate_code";
+  return "unknown";
+}
+
+static int append_analysis_executable_ranges_json(JsonBuilder *builder, const char *backend_name,
+    const M68kObject *object) {
+  size_t index;
+  uint32_t load_offset = 0U;
+  uint32_t stored_offset = 0U;
+  int emitted = 0;
+  if (builder == NULL || backend_name == NULL || object == NULL ||
+      object->platform_file_kind != M68K_PLATFORM_FILE_EXECUTABLE) {
+    return 0;
+  }
+  if (strcmp(backend_name, "amiga-hunk") != 0 && strcmp(backend_name, "atari-st") != 0)
+    return 0;
+  if (json_builder_append(builder,
+      ",\"executable_model\":\"platform_executable_summary_v1\",\"executable_ranges\":[") != 0)
+    return -1;
+  for (index = 0U; index < object->section_count; ++index) {
+    const M68kSection *section = &object->sections[index];
+    PlatformExecutableRangeRole role;
+    const char *fact_id = NULL;
+    const char *fact_status = NULL;
+    const char *parser_use = NULL;
+    uint8_t has_stored_offset = section->data_size != 0U ? 1U : 0U;
+    if (!listing_executable_range_role_for_section(backend_name, section->kind, &role, &fact_id, &fact_status,
+        &parser_use)) {
+      return -1;
+    }
+    if (emitted++ != 0 && json_builder_append(builder, ",") != 0) return -1;
+    if (json_builder_append(builder, "{\"section_index\":") != 0 ||
+        json_builder_appendf(builder, "%u,\"role\":", (unsigned)index) != 0 ||
+        json_builder_append_json_string(builder, listing_executable_range_role_name(role)) != 0 ||
+        json_builder_appendf(builder, ",\"load_offset\":%u,\"stored_offset\":", (unsigned)load_offset) != 0)
+      return -1;
+    if (has_stored_offset) {
+      if (json_builder_appendf(builder, "%u", (unsigned)stored_offset) != 0) return -1;
+    } else if (json_builder_append(builder, "null") != 0) return -1;
+    if (json_builder_appendf(builder,
+          ",\"size\":%u,\"stored_size\":%u,\"status\":",
+          (unsigned)section->size, (unsigned)section->data_size) != 0 ||
+        json_builder_append_json_string(builder, fact_status) != 0 ||
+        json_builder_append(builder, ",\"fact_id\":") != 0 ||
+        json_builder_append_json_string(builder, fact_id) != 0 ||
+        json_builder_append(builder, ",\"fact_status\":") != 0 ||
+        json_builder_append_json_string(builder, fact_status) != 0 ||
+        json_builder_append(builder, ",\"parser_use\":") != 0 ||
+        json_builder_append_json_string(builder, parser_use) != 0 ||
+        json_builder_append(builder, "}") != 0)
+      return -1;
+    load_offset += section->size;
+    stored_offset += section->data_size;
+  }
+  if (json_builder_append(builder, "]") != 0) return -1;
+  if (strcmp(backend_name, "amiga-hunk") == 0) {
+    if (json_builder_append(builder, ",\"executable_deferred\":[{\"kind\":\"runtime_entry\",\"status\":\"deferred\","
+          "\"fact_id\":") != 0 ||
+        json_builder_append_json_string(builder, PLATFORM_EXECUTABLE_FORMAT_FACT_AMIGA_HUNK_RUNTIME_ENTRY_DEFERRED) != 0 ||
+        json_builder_append(builder, ",\"fact_status\":\"deferred\",\"parser_use\":\"deferred_only\"}]") != 0)
+      return -1;
+  } else {
+    if (json_builder_append(builder,
+          ",\"executable_deferred\":[{\"kind\":\"relocation_breadth\",\"status\":\"deferred\",\"fact_id\":") != 0 ||
+        json_builder_append_json_string(builder,
+          PLATFORM_EXECUTABLE_FORMAT_FACT_ATARI_ST_PRG_RELOCATION_TERMINATOR_VARIANTS_DEFERRED) != 0 ||
+        json_builder_append(builder, ",\"fact_status\":\"deferred\",\"parser_use\":\"deferred_only\"}]") != 0)
+      return -1;
+  }
+  return 0;
 }
 
 static char *listing_artifact_profile_json_alloc(const PlatformFileListingArtifact *artifact,

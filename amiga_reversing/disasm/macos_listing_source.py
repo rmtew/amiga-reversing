@@ -76,6 +76,7 @@ def build_macos_code_listing_source(
         "resource": resource,
         "selected_code": selected_code,
         "classified_range": selected_range,
+        "executable_deferred": _sequence(summary.get("executable_deferred")),
         "code_bytes": code_bytes,
         "display_path": f"{hfs_path} CODE {resource_id} {resource.get('name') or selected_code.get('name') or ''}".strip(),
         "container": {
@@ -114,7 +115,15 @@ class MacosCodeListingArtifact:
         self._provenance = _macos_row_provenance(listing_source)
 
     def analysis_payload(self) -> tuple[dict[str, object], dict[str, object]]:
-        return self._wrapped.analysis_payload()
+        analysis, profile = self._wrapped.analysis_payload()
+        adjusted = dict(analysis)
+        selected_range = _mapping(self._provenance.get("classified_range"))
+        adjusted["platform"] = "macos"
+        adjusted["executable_model"] = "platform_executable_summary_v1"
+        adjusted["executable_ranges"] = [dict(selected_range)] if selected_range else []
+        adjusted["executable_deferred"] = list(_sequence(self._listing_source.get("executable_deferred")))
+        adjusted["macos"] = self._provenance
+        return adjusted, _macos_profile(profile)
 
     def source_text_with_profile(self) -> tuple[str, dict[str, object]]:
         source_text, profile = self._wrapped.source_text_with_profile()
