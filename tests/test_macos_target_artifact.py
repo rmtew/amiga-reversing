@@ -256,6 +256,19 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     assert "kind=code0_routing_table" in asm_text
     assert "kind=a5_world_context_placeholder" in asm_text
     assert "a5_world status=deferred" in asm_text
+    assert "macos_code_CODE_0:" in asm_text
+    assert "macos_code_CODE_27:" in asm_text
+    assert "macos_CODE_0_application_metadata:" in asm_text
+    assert "macos_CODE_0_jump_table:" in asm_text
+    assert "macos_CODE_0_jump_table_entry_0:" in asm_text
+    assert "jump_table payload[16..2784) entry_size=8 entry_count=346 status=validated" in asm_text
+    assert (
+        "candidate_target target_section=macos_code_CODE_27 target_resource_id=27 "
+        "routine_offset=0 status=candidate parser_use=candidate_only"
+    ) in asm_text
+    assert "raw_byte_gap: CODE 0 row bytes are not exposed by the current C-owned row model" in asm_text
+    assert "target_section=macos_code_CODE_1 target_resource_id=1" not in asm_text
+    assert "target_section=macos_code_CODE_1 target_resource_id=1 routine_offset=0 status=validated" not in asm_text
     code0_start = asm_text.index(";   CODE 0 unknown: role=code0_metadata")
     code1_start = asm_text.index(";   CODE 1 Main: role=code_segment")
     code0_block = asm_text[code0_start:code1_start]

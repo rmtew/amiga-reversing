@@ -496,6 +496,15 @@ Required outcome:
 - Tests cover CODE 0 table rendering, linked CODE 27 behavior, and absent-link
   behavior for CODE resources such as CODE 1.
 
+Completed state:
+
+- `Asm.s` labels every CODE source section and renders CODE 0 application
+  metadata/jump-table labels in the source body.
+- The parsed CODE 0 row links to `macos_code_CODE_27` only as candidate target
+  interpretation while keeping the jump-table layout fact validated.
+- CODE 1 remains absent from accepted CODE 0 dispatch links, and the current
+  raw-entry byte gap is source-visible rather than hidden in report text.
+
 ### 023-014: CODE 1 Entry, Stub, And Residual Span Presentation
 
 Use the known CODE resource layout to make CODE 1 visibly understandable.

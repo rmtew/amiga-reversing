@@ -12,6 +12,7 @@
 ; CODE source body sections
 
 ; CODE 0 unknown source section
+macos_code_CODE_0:
 ;   source_section_id: macos-code-CODE-0
 ;   source_kind: macos_code_resource
 ;   backend: macos-code
@@ -37,11 +38,22 @@
 ;       1: kind=a5_world_context_placeholder ownership=0 status=deferred parser_use=unknown target=classic_mac_a5_world
 ;   source_body_ranges:
 ;     metadata payload[0..2784) size=2784 entrypoint=False status=validated parser_use=accepted_parser_output evidence=code0_jump_table_metadata fact=macos.code_resource.0.jump_table_metadata
+;   structured_CODE0_context:
+macos_CODE_0_application_metadata:
+;     above/below A5 metadata and jump-table header are accepted CODE 0 metadata.
+;     jump_table payload[16..2784) entry_size=8 entry_count=346 status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
+macos_CODE_0_jump_table:
+macos_CODE_0_jump_table_entry_0:
+;     payload_offset=16 size=8 raw_entry_bytes=unknown
+;     raw_byte_gap: CODE 0 row bytes are not exposed by the current C-owned row model; the enclosing CODE 0 payload range and SHA-256 preserve byte identity.
+;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
+;     candidate_target target_section=macos_code_CODE_27 target_resource_id=27 routine_offset=0 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;   byte_preserving_placeholder: CODE 0 payload[0..2784) sha256=8413f3bca1604845bb778c2a7701a067aa8b84853e7c77a60e63166d5b6399c1
 ;   placeholder_reason: full CODE source listing remains deferred; current source body preserves exact C-owned ranges and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
 ;   preview_rows: none
 
 ; CODE 1 Main source section
+macos_code_CODE_1:
 ;   source_section_id: macos-code-CODE-1
 ;   source_kind: macos_code_resource
 ;   backend: macos-code
@@ -1898,6 +1910,7 @@ loc_0_00000000:
 	dc.b $F6,$D4
 
 ; CODE 2 FPOpTable source section
+macos_code_CODE_2:
 ;   source_section_id: macos-code-CODE-2
 ;   source_kind: macos_code_resource
 ;   backend: macos-code
@@ -1940,6 +1953,7 @@ loc_0_00000000:
 ;       deferred scope=relocation_fixups status=deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
 
 ; CODE 3 Init source section
+macos_code_CODE_3:
 ;   source_section_id: macos-code-CODE-3
 ;   source_kind: macos_code_resource
 ;   backend: macos-code
@@ -1995,6 +2009,7 @@ loc_0_00000000:
 ;       deferred scope=relocation_fixups status=deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
 
 ; CODE 4 IOMgr source section
+macos_code_CODE_4:
 ;   source_section_id: macos-code-CODE-4
 ;   source_kind: macos_code_resource
 ;   backend: macos-code
@@ -2063,6 +2078,7 @@ loc_0_00000000:
 ;       deferred scope=relocation_fixups status=deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
 
 ; CODE 5 Macros source section
+macos_code_CODE_5:
 ;   source_section_id: macos-code-CODE-5
 ;   source_kind: macos_code_resource
 ;   backend: macos-code
@@ -2121,6 +2137,7 @@ loc_0_00000000:
 ;       deferred scope=relocation_fixups status=deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
 
 ; CODE 6 OpTable source section
+macos_code_CODE_6:
 ;   source_section_id: macos-code-CODE-6
 ;   source_kind: macos_code_resource
 ;   backend: macos-code
@@ -2162,6 +2179,7 @@ loc_0_00000000:
 ;       deferred scope=relocation_fixups status=deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
 
 ; CODE 7 POpTable source section
+macos_code_CODE_7:
 ;   source_section_id: macos-code-CODE-7
 ;   source_kind: macos_code_resource
 ;   backend: macos-code
@@ -2215,6 +2233,7 @@ loc_0_00000000:
 ;       deferred scope=relocation_fixups status=deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
 
 ; CODE 8 Listing source section
+macos_code_CODE_8:
 ;   source_section_id: macos-code-CODE-8
 ;   source_kind: macos_code_resource
 ;   backend: macos-code
@@ -2283,6 +2302,7 @@ loc_0_00000000:
 ;       deferred scope=relocation_fixups status=deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
 
 ; CODE 9 Pass2 source section
+macos_code_CODE_9:
 ;   source_section_id: macos-code-CODE-9
 ;   source_kind: macos_code_resource
 ;   backend: macos-code
@@ -2324,6 +2344,7 @@ loc_0_00000000:
 ;       deferred scope=relocation_fixups status=deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
 
 ; CODE 10 FinishUp source section
+macos_code_CODE_10:
 ;   source_section_id: macos-code-CODE-10
 ;   source_kind: macos_code_resource
 ;   backend: macos-code
@@ -2365,6 +2386,7 @@ loc_0_00000000:
 ;       deferred scope=relocation_fixups status=deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
 
 ; CODE 11 Dbg source section
+macos_code_CODE_11:
 ;   source_section_id: macos-code-CODE-11
 ;   source_kind: macos_code_resource
 ;   backend: macos-code
@@ -2433,6 +2455,7 @@ loc_0_00000000:
 ;       deferred scope=relocation_fixups status=deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
 
 ; CODE 12 LoadDump source section
+macos_code_CODE_12:
 ;   source_section_id: macos-code-CODE-12
 ;   source_kind: macos_code_resource
 ;   backend: macos-code
@@ -2501,6 +2524,7 @@ loc_0_00000000:
 ;       deferred scope=relocation_fixups status=deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
 
 ; CODE 13 Directives source section
+macos_code_CODE_13:
 ;   source_section_id: macos-code-CODE-13
 ;   source_kind: macos_code_resource
 ;   backend: macos-code
@@ -2545,6 +2569,7 @@ loc_0_00000000:
 ;       deferred scope=relocation_fixups status=deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
 
 ; CODE 14 MemMgr source section
+macos_code_CODE_14:
 ;   source_section_id: macos-code-CODE-14
 ;   source_kind: macos_code_resource
 ;   backend: macos-code
@@ -2613,6 +2638,7 @@ loc_0_00000000:
 ;       deferred scope=relocation_fixups status=deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
 
 ; CODE 15 Errors source section
+macos_code_CODE_15:
 ;   source_section_id: macos-code-CODE-15
 ;   source_kind: macos_code_resource
 ;   backend: macos-code
@@ -2657,6 +2683,7 @@ loc_0_00000000:
 ;       deferred scope=relocation_fixups status=deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
 
 ; CODE 16 New source section
+macos_code_CODE_16:
 ;   source_section_id: macos-code-CODE-16
 ;   source_kind: macos_code_resource
 ;   backend: macos-code
@@ -2700,6 +2727,7 @@ loc_0_00000000:
 ;       deferred scope=relocation_fixups status=deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
 
 ; CODE 17 DispSymTbl source section
+macos_code_CODE_17:
 ;   source_section_id: macos-code-CODE-17
 ;   source_kind: macos_code_resource
 ;   backend: macos-code
@@ -2755,6 +2783,7 @@ loc_0_00000000:
 ;       deferred scope=relocation_fixups status=deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
 
 ; CODE 18 FinishDirectives source section
+macos_code_CODE_18:
 ;   source_section_id: macos-code-CODE-18
 ;   source_kind: macos_code_resource
 ;   backend: macos-code
@@ -2789,6 +2818,7 @@ loc_0_00000000:
 ;   preview_rows: none
 
 ; CODE 19 SetupArgV source section
+macos_code_CODE_19:
 ;   source_section_id: macos-code-CODE-19
 ;   source_kind: macos_code_resource
 ;   backend: macos-code
@@ -2821,6 +2851,7 @@ loc_0_00000000:
 ;   preview_rows: none
 
 ; CODE 20 INTENV source section
+macos_code_CODE_20:
 ;   source_section_id: macos-code-CODE-20
 ;   source_kind: macos_code_resource
 ;   backend: macos-code
@@ -2855,6 +2886,7 @@ loc_0_00000000:
 ;   preview_rows: none
 
 ; CODE 21 SADEV source section
+macos_code_CODE_21:
 ;   source_section_id: macos-code-CODE-21
 ;   source_kind: macos_code_resource
 ;   backend: macos-code
@@ -2910,6 +2942,7 @@ loc_0_00000000:
 ;       deferred scope=relocation_fixups status=deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
 
 ; CODE 22 SANELIB source section
+macos_code_CODE_22:
 ;   source_section_id: macos-code-CODE-22
 ;   source_kind: macos_code_resource
 ;   backend: macos-code
@@ -2942,6 +2975,7 @@ loc_0_00000000:
 ;   preview_rows: none
 
 ; CODE 23 STDCLIB source section
+macos_code_CODE_23:
 ;   source_section_id: macos-code-CODE-23
 ;   source_kind: macos_code_resource
 ;   backend: macos-code
@@ -2974,6 +3008,7 @@ loc_0_00000000:
 ;   preview_rows: none
 
 ; CODE 24 STDIO source section
+macos_code_CODE_24:
 ;   source_section_id: macos-code-CODE-24
 ;   source_kind: macos_code_resource
 ;   backend: macos-code
@@ -3008,6 +3043,7 @@ loc_0_00000000:
 ;   preview_rows: none
 
 ; CODE 25 SANELib source section
+macos_code_CODE_25:
 ;   source_section_id: macos-code-CODE-25
 ;   source_kind: macos_code_resource
 ;   backend: macos-code
@@ -3050,6 +3086,7 @@ loc_0_00000000:
 ;       deferred scope=relocation_fixups status=deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
 
 ; CODE 26 PASLIB source section
+macos_code_CODE_26:
 ;   source_section_id: macos-code-CODE-26
 ;   source_kind: macos_code_resource
 ;   backend: macos-code
@@ -3099,6 +3136,7 @@ loc_0_00000000:
 ;       deferred scope=relocation_fixups status=deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
 
 ; CODE 27 32-bit bootstrap source section
+macos_code_CODE_27:
 ;   source_section_id: macos-code-CODE-27
 ;   source_kind: macos_code_resource
 ;   backend: macos-code

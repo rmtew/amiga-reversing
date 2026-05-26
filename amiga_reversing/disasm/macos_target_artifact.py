@@ -260,6 +260,7 @@ def _code_source_body_section_lines(
             [
                 "",
                 f"; CODE {_text(resource_id)} {_text(detail.get('name'))} source section",
+                f"macos_code_CODE_{_text(resource_id)}:",
                 f";   source_section_id: macos-code-CODE-{_text(resource_id)}",
                 f";   source_kind: {_text(native_source.get('source_kind') or 'macos_code_resource')}",
                 f";   backend: {_text(native_source.get('backend') or 'macos-code')}",
@@ -283,6 +284,8 @@ def _code_source_body_section_lines(
                 *_code_source_body_range_lines(detail),
             ]
         )
+        if resource_id == 0:
+            lines.extend(_code0_structured_source_lines(detail))
         if resource_id == selected_id:
             lines.extend(
                 [
@@ -369,6 +372,48 @@ def _code_source_preview_or_placeholder_lines(detail: Mapping[str, object]) -> l
                 f"status={_text(reason.get('fact_status'))} parser_use={_text(reason.get('parser_use'))} "
                 f"reason={_text(reason.get('reason'))}"
             )
+    return lines
+
+
+def _code0_structured_source_lines(detail: Mapping[str, object]) -> list[str]:
+    jump_table = _mapping(detail.get("jump_table"))
+    rows = [_mapping(item) for item in _sequence(detail.get("jump_table_rows"))]
+    lines = [
+        ";   structured_CODE0_context:",
+        "macos_CODE_0_application_metadata:",
+        f";     above/below A5 metadata and jump-table header are accepted CODE 0 metadata.",
+        f";     jump_table payload[{_text(jump_table.get('start'))}..{_text(jump_table.get('end'))}) "
+        f"entry_size={_text(jump_table.get('entry_size'))} entry_count={_text(jump_table.get('entry_count'))} "
+        f"status={_text(jump_table.get('fact_status'))} parser_use={_text(jump_table.get('parser_use'))} "
+        f"fact={_text(jump_table.get('fact_id'))}",
+        "macos_CODE_0_jump_table:",
+    ]
+    if not rows:
+        lines.append(
+            ";     no parsed jump-table rows; raw CODE 0 payload remains covered by the exact metadata placeholder"
+        )
+        return lines
+    for row in rows:
+        accepted = _mapping(row.get("accepted_layout"))
+        candidate = _mapping(row.get("candidate_target"))
+        target_id = row.get("target_resource_id")
+        entry_index = row.get("entry_index")
+        label = f"macos_CODE_0_jump_table_entry_{_text(entry_index)}"
+        lines.extend(
+            [
+                f"{label}:",
+                f";     payload_offset={_text(row.get('code0_payload_offset'))} "
+                f"size={_text(row.get('entry_size'))} raw_entry_bytes={_text(row.get('raw_entry_bytes'))}",
+                f";     raw_byte_gap: CODE 0 row bytes are not exposed by the current C-owned row model; "
+                "the enclosing CODE 0 payload range and SHA-256 preserve byte identity.",
+                f";     accepted_layout status={_text(accepted.get('fact_status'))} "
+                f"parser_use={_text(accepted.get('parser_use'))} fact={_text(accepted.get('fact_id'))}",
+                f";     candidate_target target_section=macos_code_CODE_{_text(target_id)} "
+                f"target_resource_id={_text(target_id)} routine_offset={_text(row.get('routine_offset_from_segment'))} "
+                f"status={_text(candidate.get('fact_status'))} parser_use={_text(candidate.get('parser_use'))} "
+                f"fact={_text(candidate.get('fact_id'))}",
+            ]
+        )
     return lines
 
 

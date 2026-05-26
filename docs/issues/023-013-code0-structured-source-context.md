@@ -1,6 +1,6 @@
 # 023-013: CODE 0 Structured Source Context
 
-Status: active
+Status: complete
 Type: AFK
 Source proposal: docs/proposals/023-classic-mac-os-source-presentation.md
 
@@ -25,15 +25,25 @@ structured or conservative data; it must not collapse back to a report table.
 
 ## Acceptance Criteria
 
-- [ ] CODE 0 has a source-body data section in `Asm.s`.
-- [ ] Validated CODE 0 dispatch references link to corresponding CODE section
+- [x] CODE 0 has a source-body data section in `Asm.s`.
+- [x] Validated CODE 0 dispatch references link to corresponding CODE section
       labels where parsed evidence exists.
-- [ ] CODE resources with absent jump-table spans are not rendered as accepted
+- [x] CODE resources with absent jump-table spans are not rendered as accepted
       dispatch targets.
-- [ ] Undecoded CODE 0 bytes remain visible as labelled data with a precise
+- [x] Undecoded CODE 0 bytes remain visible as labelled data with a precise
       unproven semantic, not as an omitted report note.
-- [ ] Tests cover linked behavior, absent-link behavior, and artifact rendering.
-- [ ] Proposal 023 records the final CODE 0 source-context behavior.
+- [x] Tests cover linked behavior, absent-link behavior, and artifact rendering.
+- [x] Proposal 023 records the final CODE 0 source-context behavior.
+
+## Completed Result
+
+- `Asm.s` now labels every CODE source section and renders CODE 0 application
+  metadata/jump-table labels in the source body.
+- The current parsed CODE 0 row links to `macos_code_CODE_27` only as candidate
+  target interpretation while keeping the jump-table layout fact validated.
+- CODE 1 is not rendered as an accepted CODE 0 dispatch target, and the CODE 0
+  raw-entry byte gap is explicit because the current row model preserves payload
+  identity but does not expose entry bytes.
 
 ## Blocked By
 
@@ -44,8 +54,8 @@ the all-CODE source body sections.
 
 ## Required Sign-Off
 
-- [ ] Focused Mac artifact/project/API tests pass.
-- [ ] Platform executable validate/coverage pass with Mac/Amiga/Atari current
+- [x] Focused Mac artifact/project/API tests pass.
+- [x] Platform executable validate/coverage pass with Mac/Amiga/Atari current
       backends.
-- [ ] `cmd /c src\precommit.bat` passes if shared rendering or C code changes.
-- [ ] `git diff --check` passes.
+- [x] `cmd /c src\precommit.bat` passes if shared rendering or C code changes.
+- [x] `git diff --check` passes.
