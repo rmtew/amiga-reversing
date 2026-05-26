@@ -1259,6 +1259,46 @@ def test_full_listing_instruction_rows_expose_symbol_operand_parts(tmp_path: Pat
     assert branch["operand_parts"][0]["metadata"] == {"symbol": "loc_0_00000004"}
 
 
+def test_full_listing_bit_ops_use_generated_sequential_flow_metadata(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    source_text = (
+        "    SECTION section,code\n"
+        "    btst #0,d0\n"
+        "    bset #1,d0\n"
+        "    bclr #2,d0\n"
+        "    bchg #3,d0\n"
+        "    rts\n"
+        "    nop\n"
+    )
+    rebuilt, _assembler_profile = assemble_platform_source_text_with_c_backend(
+        "amiga-hunk",
+        source_text,
+        project_root=PROJECT_ROOT,
+    )
+    path = tmp_path / "bit_ops.hunk"
+    path.write_bytes(rebuilt)
+
+    rows, _, _ = build_project_listing_rows_from_source_with_c_artifact(
+        HunkFileBinarySource(
+            kind=BinarySourceKind.HUNK_FILE,
+            path=path,
+            display_path=str(path),
+            analysis_cache_path=tmp_path / "bit_ops.analysis",
+        ),
+        metadata_text="",
+        project_root=PROJECT_ROOT,
+    )
+    by_opcode = {
+        str(row.get("opcode_or_directive", "")).split(".", 1)[0]: row
+        for row in rows
+        if row.get("kind") == "instruction"
+    }
+
+    for opcode in ("btst", "bset", "bclr", "bchg"):
+        assert by_opcode[opcode]["flow_kind"] == 1
+        assert by_opcode[opcode]["flow"] == "sequential"
+
+
 def test_real_dll_genam_lvo_symbol_operand_parts_expose_base_register() -> None:
     _requires_c_backend_dlls()
     rows, _api_calls, profile = build_project_listing_rows_with_c_artifact(

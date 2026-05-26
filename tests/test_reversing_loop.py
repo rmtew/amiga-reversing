@@ -1461,7 +1461,13 @@ def test_callback_consumer_dataflow_does_not_treat_bit_ops_as_branch_boundaries(
         [
             *_callback_consumer_fixture_prefix(),
             _callback_slot_read_row(0x1204, "A0"),
-            {"kind": "instruction", "start_offset": 0x1206, "opcode_or_directive": opcode, "flow": "sequential"},
+            {
+                "kind": "instruction",
+                "start_offset": 0x1206,
+                "opcode_or_directive": opcode,
+                "flow": "sequential",
+                "flow_kind": 1,
+            },
             {"kind": "instruction", "start_offset": 0x1208, "opcode_or_directive": "jsr", "operand_text": "(a0)"},
         ]
     )

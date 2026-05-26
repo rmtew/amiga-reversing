@@ -8,6 +8,7 @@ from typing import cast
 from amiga_reversing.disasm import decision_journal
 
 _MIN_CALLBACK_ADDRESS_VALUE = 0x1000
+_CONTROL_FLOW_BOUNDARY_FLOW_KINDS = {2, 3, 4, 5, 6}
 _CONTROL_FLOW_BOUNDARY_FLOWS = {"branch", "jump", "call", "return", "trap"}
 
 
@@ -1170,6 +1171,9 @@ def _source_register(row: Mapping[str, object]) -> str | None:
 
 
 def _is_control_flow_boundary(row: Mapping[str, object]) -> bool:
+    flow_kind = row.get("flow_kind")
+    if isinstance(flow_kind, int):
+        return flow_kind in _CONTROL_FLOW_BOUNDARY_FLOW_KINDS
     flow = row.get("flow")
     return isinstance(flow, str) and flow in _CONTROL_FLOW_BOUNDARY_FLOWS
 
