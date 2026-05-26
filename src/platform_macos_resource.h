@@ -79,6 +79,22 @@ typedef struct PlatformMacosSegmentLoaderFixupInventory {
   const char *provenance;
 } PlatformMacosSegmentLoaderFixupInventory;
 
+typedef enum PlatformMacosSegmentLoaderFixupInventoryAggregateStatus {
+  PLATFORM_MACOS_SEGMENT_LOADER_FIXUP_INVENTORY_AGGREGATE_BLOCKED = 0,
+  PLATFORM_MACOS_SEGMENT_LOADER_FIXUP_INVENTORY_AGGREGATE_PARSEABLE = 1,
+  PLATFORM_MACOS_SEGMENT_LOADER_FIXUP_INVENTORY_AGGREGATE_MALFORMED = 2
+} PlatformMacosSegmentLoaderFixupInventoryAggregateStatus;
+
+typedef struct PlatformMacosSegmentLoaderFixupInventoryAggregate {
+  uint8_t status;
+  uint32_t absent_count;
+  uint32_t parseable_count;
+  uint32_t unsupported_count;
+  uint32_t custom_unknown_count;
+  uint32_t malformed_count;
+  const char *summary;
+} PlatformMacosSegmentLoaderFixupInventoryAggregate;
+
 typedef struct PlatformMacosResourceForkHeader {
   uint32_t resource_data_offset;
   uint32_t resource_map_offset;
@@ -145,6 +161,9 @@ int platform_macos_code_metadata_executable_range(const PlatformMacosCodeMetadat
 int platform_macos_segment_loader_fixup_inventory_from_code_metadata(const PlatformMacosCodeMetadata *code,
   int16_t resource_id, uint32_t payload_size, PlatformMacosSegmentLoaderFixupInventory *out_inventory);
 const char *platform_macos_segment_loader_fixup_inventory_status_name(uint8_t status);
+int platform_macos_segment_loader_fixup_inventory_aggregate_counts(const uint32_t *counts, size_t count_capacity,
+  PlatformMacosSegmentLoaderFixupInventoryAggregate *out_aggregate);
+const char *platform_macos_segment_loader_fixup_inventory_aggregate_status_name(uint8_t status);
 const char *platform_macos_code_range_kind_name(uint8_t kind);
 const char *platform_macos_code_range_evidence_name(uint8_t evidence);
 const char *platform_macos_code_range_fact_id(uint8_t evidence);

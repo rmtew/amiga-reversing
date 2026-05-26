@@ -249,6 +249,41 @@ static int test_segment_loader_fixup_inventory_reports_code0_absent(void) {
   return 0;
 }
 
+static int test_segment_loader_fixup_inventory_aggregate_status_policy(void) {
+  uint32_t counts[PLATFORM_MACOS_SEGMENT_LOADER_FIXUP_INVENTORY_MALFORMED + 1U] = {0};
+  PlatformMacosSegmentLoaderFixupInventoryAggregate aggregate;
+  counts[PLATFORM_MACOS_SEGMENT_LOADER_FIXUP_INVENTORY_ABSENT] = 2U;
+  M68K_C_ASSERT_INT(0, platform_macos_segment_loader_fixup_inventory_aggregate_counts(counts,
+    sizeof(counts) / sizeof(counts[0]), &aggregate));
+  M68K_C_ASSERT_U32(PLATFORM_MACOS_SEGMENT_LOADER_FIXUP_INVENTORY_AGGREGATE_BLOCKED, aggregate.status);
+  M68K_C_ASSERT_U32(2U, aggregate.absent_count);
+  M68K_C_ASSERT_STR("blocked", platform_macos_segment_loader_fixup_inventory_aggregate_status_name(aggregate.status));
+
+  memset(counts, 0, sizeof(counts));
+  counts[PLATFORM_MACOS_SEGMENT_LOADER_FIXUP_INVENTORY_PARSEABLE] = 1U;
+  M68K_C_ASSERT_INT(0, platform_macos_segment_loader_fixup_inventory_aggregate_counts(counts,
+    sizeof(counts) / sizeof(counts[0]), &aggregate));
+  M68K_C_ASSERT_U32(PLATFORM_MACOS_SEGMENT_LOADER_FIXUP_INVENTORY_AGGREGATE_PARSEABLE, aggregate.status);
+  M68K_C_ASSERT_U32(1U, aggregate.parseable_count);
+  M68K_C_ASSERT_STR("parseable", platform_macos_segment_loader_fixup_inventory_aggregate_status_name(aggregate.status));
+
+  memset(counts, 0, sizeof(counts));
+  counts[PLATFORM_MACOS_SEGMENT_LOADER_FIXUP_INVENTORY_MALFORMED] = 1U;
+  M68K_C_ASSERT_INT(0, platform_macos_segment_loader_fixup_inventory_aggregate_counts(counts,
+    sizeof(counts) / sizeof(counts[0]), &aggregate));
+  M68K_C_ASSERT_U32(PLATFORM_MACOS_SEGMENT_LOADER_FIXUP_INVENTORY_AGGREGATE_MALFORMED, aggregate.status);
+  M68K_C_ASSERT_U32(1U, aggregate.malformed_count);
+  M68K_C_ASSERT_STR("malformed", platform_macos_segment_loader_fixup_inventory_aggregate_status_name(aggregate.status));
+
+  counts[PLATFORM_MACOS_SEGMENT_LOADER_FIXUP_INVENTORY_PARSEABLE] = 1U;
+  M68K_C_ASSERT_INT(0, platform_macos_segment_loader_fixup_inventory_aggregate_counts(counts,
+    sizeof(counts) / sizeof(counts[0]), &aggregate));
+  M68K_C_ASSERT_U32(PLATFORM_MACOS_SEGMENT_LOADER_FIXUP_INVENTORY_AGGREGATE_MALFORMED, aggregate.status);
+  M68K_C_ASSERT_U32(1U, aggregate.parseable_count);
+  M68K_C_ASSERT_U32(1U, aggregate.malformed_count);
+  return 0;
+}
+
 static int test_resource_fork_rejects_payload_past_end(void) {
   unsigned char data[512];
   PlatformMacosResourceFork fork;
@@ -335,6 +370,8 @@ int m68k_c_platform_macos_resource_tests(void) {
     {"segment_loader_fixup_inventory_rejects_header_internal_relocation_offsets",
       test_segment_loader_fixup_inventory_rejects_header_internal_relocation_offsets},
     {"segment_loader_fixup_inventory_reports_code0_absent", test_segment_loader_fixup_inventory_reports_code0_absent},
+    {"segment_loader_fixup_inventory_aggregate_status_policy",
+      test_segment_loader_fixup_inventory_aggregate_status_policy},
     {"resource_fork_rejects_payload_past_end", test_resource_fork_rejects_payload_past_end},
     {"restored_source_verifier_accepts_complete_candidate_coverage",
       test_restored_source_verifier_accepts_complete_candidate_coverage},

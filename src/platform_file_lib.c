@@ -279,10 +279,8 @@ static int macos_append_segment_loader_fixup_inventory(JsonBuilder *builder,
     const PlatformMacosResourceInfo *resources, size_t resource_count) {
   size_t index;
   int first = 1;
-  int has_parseable = 0;
-  int has_malformed = 0;
-  const char *status = "blocked";
-  const char *summary = "No current CODE resource proves actual Segment Loader fixup encoding byte provenance.";
+  uint32_t counts[PLATFORM_MACOS_SEGMENT_LOADER_FIXUP_INVENTORY_MALFORMED + 1U] = {0};
+  PlatformMacosSegmentLoaderFixupInventoryAggregate aggregate;
   for (index = 0U; index < resource_count; ++index) {
     PlatformMacosSegmentLoaderFixupInventory inventory;
     const PlatformMacosResourceInfo *resource = &resources[index];
@@ -291,22 +289,27 @@ static int macos_append_segment_loader_fixup_inventory(JsonBuilder *builder,
         resource->payload_size, &inventory) != 0) {
       return -1;
     }
-    if (inventory.status == PLATFORM_MACOS_SEGMENT_LOADER_FIXUP_INVENTORY_PARSEABLE) has_parseable = 1;
-    if (inventory.status == PLATFORM_MACOS_SEGMENT_LOADER_FIXUP_INVENTORY_MALFORMED) has_malformed = 1;
+    if (inventory.status <= PLATFORM_MACOS_SEGMENT_LOADER_FIXUP_INVENTORY_MALFORMED) {
+      counts[inventory.status]++;
+    }
   }
-  if (has_parseable) {
-    status = "parseable";
-    summary = "At least one CODE resource has documented Segment Loader fixup encoding byte provenance.";
-  } else if (has_malformed) {
-    status = "malformed";
-    summary = "At least one CODE resource has malformed documented Segment Loader relocation-info offsets.";
+  if (platform_macos_segment_loader_fixup_inventory_aggregate_counts(counts,
+      sizeof(counts) / sizeof(counts[0]), &aggregate) != 0) {
+    return -1;
   }
   if (json_builder_append(builder,
         ",\"segment_loader_fixup_inventory\":{\"model\":\"segment_loader_fixup_inventory_v1\","
         "\"authority\":\"c_owned\",\"status\":") != 0 ||
-      json_builder_append_json_string(builder, status) != 0 ||
+      json_builder_append_json_string(builder,
+        platform_macos_segment_loader_fixup_inventory_aggregate_status_name(aggregate.status)) != 0 ||
       json_builder_append(builder, ",\"summary\":") != 0 ||
-      json_builder_append_json_string(builder, summary) != 0 ||
+      json_builder_append_json_string(builder, aggregate.summary) != 0 ||
+      json_builder_appendf(builder,
+        ",\"counts\":{\"absent\":%u,\"parseable\":%u,\"unsupported\":%u,"
+        "\"custom_unknown\":%u,\"malformed\":%u}",
+        (unsigned)aggregate.absent_count, (unsigned)aggregate.parseable_count,
+        (unsigned)aggregate.unsupported_count, (unsigned)aggregate.custom_unknown_count,
+        (unsigned)aggregate.malformed_count) != 0 ||
       json_builder_append(builder, ",\"records\":[") != 0) {
     return -1;
   }

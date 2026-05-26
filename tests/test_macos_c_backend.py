@@ -185,6 +185,13 @@ def test_python_wrapper_uses_c_macos_hfs_code_summary() -> None:
     assert fixup_inventory["model"] == "segment_loader_fixup_inventory_v1"
     assert fixup_inventory["authority"] == "c_owned"
     assert fixup_inventory["status"] == "blocked"
+    assert fixup_inventory["counts"] == {
+        "absent": 2,
+        "parseable": 0,
+        "unsupported": 0,
+        "custom_unknown": 0,
+        "malformed": 0,
+    }
     assert [item["classification"] for item in fixup_inventory["records"]] == ["absent", "absent"]
     code1_fixups = fixup_inventory["records"][1]
     assert code1_fixups["resource_id"] == 1
@@ -740,6 +747,13 @@ def test_c_macos_hfs_code_summary_matches_committed_mpw_asm_metadata() -> None:
     assert summary["selected_code"]["code"]["orphan_ranges"] == []
     fixup_inventory = summary["resource_fork"]["segment_loader_fixup_inventory"]
     assert fixup_inventory["status"] == "blocked"
+    assert fixup_inventory["counts"] == {
+        "absent": 28,
+        "parseable": 0,
+        "unsupported": 0,
+        "custom_unknown": 0,
+        "malformed": 0,
+    }
     assert len(fixup_inventory["records"]) == 28
     assert all(item["parseable"] is False for item in fixup_inventory["records"])
     assert all(item["encoding_byte_provenance"]["known"] is False for item in fixup_inventory["records"])

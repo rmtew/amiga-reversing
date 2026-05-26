@@ -1,6 +1,6 @@
 # 024-010: Fixup Inventory Aggregate Status
 
-Status: active
+Status: complete
 Type: AFK
 Source proposal: docs/proposals/024-classic-mac-os-segment-loader-fixups.md
 
@@ -31,16 +31,24 @@ aggregate inventory must still warn that malformed relocation metadata exists.
 
 ## Acceptance Criteria
 
-- [ ] Top-level `segment_loader_fixup_inventory_v1.status` is `malformed` when
+- [x] Top-level `segment_loader_fixup_inventory_v1.status` is `malformed` when
       any record is malformed, even if another record is parseable.
-- [ ] Top-level status is `parseable` only when at least one record is parseable
+- [x] Top-level status is `parseable` only when at least one record is parseable
       and no records are malformed.
-- [ ] Top-level status remains `blocked` for the current MPW `Asm` fixture.
-- [ ] Inventory JSON emits counts for `absent`, `parseable`, `unsupported`,
+- [x] Top-level status remains `blocked` for the current MPW `Asm` fixture.
+- [x] Inventory JSON emits counts for `absent`, `parseable`, `unsupported`,
       `custom_unknown`, and `malformed` records.
-- [ ] Native C/API tests cover all-blocked, parseable-only, malformed-only, and
+- [x] Native C/API tests cover all-blocked, parseable-only, malformed-only, and
       mixed parseable+malformed aggregation.
-- [ ] Proposal 024 records the aggregate-status policy.
+- [x] Proposal 024 records the aggregate-status policy.
+
+## Completed Result
+
+- Aggregate policy moved into the C Mac resource model and is covered by native
+  C tests.
+- JSON inventory emits counts by classification.
+- Mixed parseable+malformed input reports top-level `malformed`.
+- Current MPW `Asm` remains `blocked` with all records counted as `absent`.
 
 ## Blocked By
 
@@ -48,8 +56,8 @@ aggregate inventory must still warn that malformed relocation metadata exists.
 
 ## Required Sign-Off
 
-- [ ] Native C unit tests pass.
-- [ ] Focused Mac backend tests pass.
-- [ ] Platform executable validate/coverage pass.
-- [ ] `cmd /c src\precommit.bat` passes.
-- [ ] `git diff --check` passes.
+- [x] Native C unit tests pass.
+- [x] Focused Mac backend tests pass.
+- [x] Platform executable validate/coverage pass.
+- [x] `cmd /c src\precommit.bat` passes.
+- [x] `git diff --check` passes.

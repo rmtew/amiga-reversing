@@ -169,6 +169,44 @@ const char *platform_macos_segment_loader_fixup_inventory_status_name(uint8_t st
   }
 }
 
+const char *platform_macos_segment_loader_fixup_inventory_aggregate_status_name(uint8_t status) {
+  switch (status) {
+    case PLATFORM_MACOS_SEGMENT_LOADER_FIXUP_INVENTORY_AGGREGATE_BLOCKED:
+      return "blocked";
+    case PLATFORM_MACOS_SEGMENT_LOADER_FIXUP_INVENTORY_AGGREGATE_PARSEABLE:
+      return "parseable";
+    case PLATFORM_MACOS_SEGMENT_LOADER_FIXUP_INVENTORY_AGGREGATE_MALFORMED:
+      return "malformed";
+    default:
+      return "unknown";
+  }
+}
+
+int platform_macos_segment_loader_fixup_inventory_aggregate_counts(const uint32_t *counts, size_t count_capacity,
+    PlatformMacosSegmentLoaderFixupInventoryAggregate *out_aggregate) {
+  if (counts == NULL || out_aggregate == NULL ||
+      count_capacity <= PLATFORM_MACOS_SEGMENT_LOADER_FIXUP_INVENTORY_MALFORMED) {
+    return -1;
+  }
+  memset(out_aggregate, 0, sizeof(*out_aggregate));
+  out_aggregate->absent_count = counts[PLATFORM_MACOS_SEGMENT_LOADER_FIXUP_INVENTORY_ABSENT];
+  out_aggregate->parseable_count = counts[PLATFORM_MACOS_SEGMENT_LOADER_FIXUP_INVENTORY_PARSEABLE];
+  out_aggregate->unsupported_count = counts[PLATFORM_MACOS_SEGMENT_LOADER_FIXUP_INVENTORY_UNSUPPORTED];
+  out_aggregate->custom_unknown_count = counts[PLATFORM_MACOS_SEGMENT_LOADER_FIXUP_INVENTORY_CUSTOM_UNKNOWN];
+  out_aggregate->malformed_count = counts[PLATFORM_MACOS_SEGMENT_LOADER_FIXUP_INVENTORY_MALFORMED];
+  if (out_aggregate->malformed_count != 0U) {
+    out_aggregate->status = PLATFORM_MACOS_SEGMENT_LOADER_FIXUP_INVENTORY_AGGREGATE_MALFORMED;
+    out_aggregate->summary = "At least one CODE resource has malformed documented Segment Loader relocation-info offsets.";
+  } else if (out_aggregate->parseable_count != 0U) {
+    out_aggregate->status = PLATFORM_MACOS_SEGMENT_LOADER_FIXUP_INVENTORY_AGGREGATE_PARSEABLE;
+    out_aggregate->summary = "At least one CODE resource has documented Segment Loader fixup encoding byte provenance.";
+  } else {
+    out_aggregate->status = PLATFORM_MACOS_SEGMENT_LOADER_FIXUP_INVENTORY_AGGREGATE_BLOCKED;
+    out_aggregate->summary = "No current CODE resource proves actual Segment Loader fixup encoding byte provenance.";
+  }
+  return 0;
+}
+
 int platform_macos_segment_loader_fixup_inventory_from_code_metadata(const PlatformMacosCodeMetadata *code,
     int16_t resource_id, uint32_t payload_size, PlatformMacosSegmentLoaderFixupInventory *out_inventory) {
   if (out_inventory == NULL) return -1;
