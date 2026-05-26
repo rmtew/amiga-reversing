@@ -67,7 +67,7 @@ def _put_extent(data: bytearray, offset: int, start: int, count: int) -> None:
     _put(data, offset, _u16(start) + _u16(count))
 
 
-def _make_code_resource_fork() -> bytes:
+def _make_code_resource_fork(code1_payload_bytes: bytes | None = None) -> bytes:
     data = bytearray(512)
     data_offset = 0x100
     map_offset = 0x140
@@ -75,6 +75,8 @@ def _make_code_resource_fork() -> bytes:
     code0_payload = data_offset + 4
     code1_record = data_offset + 36
     code1_payload = code1_record + 4
+    if code1_payload_bytes is None:
+        code1_payload_bytes = _u16(0) + _u16(2) + b"\x00\x00\x00\x10\x00\x00\x20\x5f\x4e\x75"
     type_list = map_offset + 28
     ref_list = type_list + 10
     for offset, value in (
@@ -92,8 +94,8 @@ def _make_code_resource_fork() -> bytes:
     _put(data, code0_payload, _u32(48) + _u32(64) + _u32(16) + _u32(32))
     _put(data, code0_payload + 16, _u16(10) + b"\x3f\x3c\x00\x01\xa9\xf0")
     _put(data, code0_payload + 24, _u16(12) + b"\x3f\x3c\x00\x01\xa9\xf0")
-    _put(data, code1_record, _u32(14))
-    _put(data, code1_payload, _u16(0) + _u16(2) + b"\x00\x00\x00\x10\x00\x00\x20\x5f\x4e\x75")
+    _put(data, code1_record, _u32(len(code1_payload_bytes)))
+    _put(data, code1_payload, code1_payload_bytes)
     _put(data, map_offset + 24, _u16(28))
     _put(data, map_offset + 26, _u16(58))
     _put(data, type_list, _u16(0) + b"CODE" + _u16(1) + _u16(10))
@@ -102,7 +104,7 @@ def _make_code_resource_fork() -> bytes:
     return bytes(data)
 
 
-def _make_hfs_image() -> bytes:
+def _make_hfs_image(code1_payload: bytes | None = None) -> bytes:
     image = bytearray(4096)
     mdb = 1024
     catalog_offset = 2048
@@ -140,8 +142,22 @@ def _make_hfs_image() -> bytes:
     _put(image, leaf_offset + 512 - 2, _u16(directory_record))
     _put(image, leaf_offset + 512 - 4, _u16(file_record))
     _put(image, 2048 + 2 * 512, b"DATA-FORK")
-    _put(image, 2048 + 3 * 512, _make_code_resource_fork())
+    _put(image, 2048 + 3 * 512, _make_code_resource_fork(code1_payload_bytes=code1_payload))
     return bytes(image)
+
+
+def _make_far_model_code_payload(
+    *,
+    a5_relocation_info_offset: int = 0,
+    segment_relocation_info_offset: int = 0,
+    payload_size: int = 64,
+) -> bytes:
+    payload = bytearray(payload_size)
+    _put(payload, 0, _u16(0xFFFF) + _u16(0))
+    _put(payload, 20, _u32(a5_relocation_info_offset))
+    _put(payload, 28, _u32(segment_relocation_info_offset))
+    _put(payload, 40, b"\x20\x5f\x4e\x75")
+    return bytes(payload)
 
 
 def _macos_code_descriptor(image_path: Path, resource_id: int) -> MacosCodeResourceSource:
@@ -367,6 +383,61 @@ def test_python_wrapper_uses_c_macos_hfs_code_summary() -> None:
         }
     ]
     assert extract_macos_hfs_code_resource_bytes_with_c_backend(image, "Tools/Asm", 1) == b"\x20\x5f\x4e\x75"
+
+
+@pytest.mark.parametrize("offset_field", ["a5_relocation_info_offset", "segment_relocation_info_offset"])
+@pytest.mark.parametrize("bad_offset", [20, 39])
+def test_far_model_relocation_offsets_inside_header_are_malformed(
+    offset_field: str, bad_offset: int
+) -> None:
+    require_built_tools()
+    payload_kwargs = {offset_field: bad_offset}
+    image = _make_hfs_image(code1_payload=_make_far_model_code_payload(**payload_kwargs))
+
+    summary = inspect_macos_hfs_code_summary_with_c_backend(image, "MPW-GM/Tools/Asm")
+
+    fixup_inventory = summary["resource_fork"]["segment_loader_fixup_inventory"]
+    assert fixup_inventory["status"] == "malformed"
+    assert fixup_inventory["counts"] == {
+        "absent": 1,
+        "parseable": 0,
+        "unsupported": 0,
+        "custom_unknown": 0,
+        "malformed": 1,
+    }
+    code1_record = next(item for item in fixup_inventory["records"] if item["resource_id"] == 1)
+    assert code1_record["classification"] == "malformed"
+    assert code1_record["parseable"] is False
+    assert code1_record["encoding_byte_provenance"]["known"] is False
+
+
+def test_fixup_inventory_summary_reports_parseable_when_record_is_parseable() -> None:
+    require_built_tools()
+    image = _make_hfs_image(code1_payload=_make_far_model_code_payload(a5_relocation_info_offset=40))
+
+    summary = inspect_macos_hfs_code_summary_with_c_backend(image, "MPW-GM/Tools/Asm")
+
+    fixup_inventory = summary["resource_fork"]["segment_loader_fixup_inventory"]
+    assert fixup_inventory["status"] == "parseable"
+    assert fixup_inventory["summary"] == (
+        "At least one CODE resource has documented Segment Loader fixup encoding byte provenance."
+    )
+    assert fixup_inventory["counts"] == {
+        "absent": 1,
+        "parseable": 1,
+        "unsupported": 0,
+        "custom_unknown": 0,
+        "malformed": 0,
+    }
+    code1_record = next(item for item in fixup_inventory["records"] if item["resource_id"] == 1)
+    assert code1_record["classification"] == "parseable"
+    assert code1_record["parseable"] is True
+    assert code1_record["encoding_byte_provenance"]["known"] is True
+    assert code1_record["encoding_byte_provenance"]["source_range"] == {
+        "start": 40,
+        "end": 64,
+        "size": 24,
+    }
 
 
 def test_022_013_macos_restored_source_verifier_is_c_computed() -> None:
