@@ -185,9 +185,11 @@ Retained public compatibility fields after 021-004:
   `relocation_fixups` remain public because existing artifact/web renderers and
   tests still consume them for user-visible CODE detail panes.
 - At 021-004 closeout, project preview rendering still had an internal
-  `RawBinarySource` decode path for candidate preview rows. 021-005 recorded
-  that as a non-public transport blocker; 021-008 later removed it by routing
-  preview rows through the native Mac CODE byte artifact helper.
+  `RawBinarySource` decode path for candidate preview rows, and 021-005
+  recorded that as a non-public transport blocker. That blocker is now closed:
+  021-008 routes preview rows through the native Mac CODE byte artifact helper,
+  so project preview rendering no longer constructs `RawBinarySource` or temp
+  raw files.
 
 ### 021-005: Delete Raw Bridge And Superseded Paths
 
@@ -198,7 +200,7 @@ Completed raw-bridge deletion slice:
 | `macos_listing_source._temporary_code_binary_source` materialized selected CODE bytes as a temporary `RawBinarySource`. | `build_macos_project_listing_artifact_profile` now resolves a `MacosCodeResourceSource` descriptor and passes it directly to `build_listing_artifact_profile_from_binary_source`; `test_021_005_macos_listing_profile_uses_native_descriptor_not_raw_bridge` fails if the listing path stops using the native descriptor. | Deleted. |
 | Active Mac CODE listing/analysis profiles stripped a wrapped raw profile after using the raw bridge. | 021-003/021-005 tests assert listing, analysis, source, and row-window profiles report `backend: macos-code`, `source_kind: macos_code_resource`, and no public `wrapped_backend`. | Old active behavior deleted; profile adjustment remains only to normalize the generic C artifact profile under native Mac identity. |
 | Project/artifact/web public compatibility fields (`selected_code_segment`, `code_layout`, `orphan_ranges`, `relocation_fixups`). | 021-004 tests prove current payload consumers still use these fields for visible CODE coverage, candidate previews, and deferred fixup explanations. | Retained as public Mac evidence fields, not raw transport. |
-| Project candidate preview row decoding in `macos_project_payload._preview_decode_rows`. | The preview window decodes bounded candidate bytes only for display rows; it is not the selected listing/analysis/artifact/API source path, and public payload identity now carries `native_source`. | 021-005 retained this as a blocker; 021-008 resolved it with `build_macos_code_bytes_listing_artifact_profile`. |
+| Project candidate preview row decoding in `macos_project_payload._preview_decode_rows`. | 021-008 routes bounded candidate preview bytes through `build_macos_code_bytes_listing_artifact_profile`; the preview path keeps native Mac CODE identity and no longer constructs `RawBinarySource` or temp raw files. | Resolved. |
 
 Current state after 021-005:
 

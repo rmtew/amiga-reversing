@@ -407,14 +407,17 @@ Closeout proof:
 
 Remaining future work is intentionally outside 020:
 
-- Replace the Mac selected-CODE `RawBinarySource` byte-transport bridge with a
-  native Mac CODE byte-provider listing artifact.
+- Proposal 021 completed the Mac selected-CODE native source path and removed
+  the remaining `RawBinarySource` byte-transport bridge from selected listing
+  and preview rendering.
 - Retire public inspect/API compatibility fields such as top-level `sections`,
   `fact_refs`, `selected_code_segment`, `code_layout`, orphan ranges, and
-  relocation summaries only after downstream UI/API consumers move to shared
-  ranges.
-- Extend Amiga overlay/runtime entry handling and Atari relocation/symbol parsing
-  under new issues without weakening 018 KB authority.
+  relocation summaries only after downstream UI/API consumers move to restored
+  source records.
+- Proposal 022 owns the next platform track: restored source ownership,
+  source-level relocation/reference records, executable-relevant placeholders,
+  and deletion of superseded display/source compatibility paths without
+  weakening 018 KB authority.
 
 ## Acceptance Criteria
 
