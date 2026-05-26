@@ -1566,3 +1566,35 @@ repeatable work to `docs\issues\017-*`.
   `move.w d0,dmacon(a5)`, negative safety reports one same-decision A5 ref and
   no unexpected refs, and exact round-trip remains `status=exact`. Bulk A5
   acceptance remains intentionally deferred.
+- 017-090 through 017-096 implemented the first cascade v2 slice. The new
+  `analysis-cascade/v1` schema represents accepted parent facts, derived child
+  facts, blocked children, render effects, verifier deltas, invalidation, and
+  fixed-point state. The reusable cascade engine runs deterministic rules to
+  fixed point, preserves parent/rule provenance, and fails closed for stale
+  parents, missing scope, conflicts, and missing rule support. This is a
+  transitional Python wrapper over current C-owned listing/report facts; the
+  durable target remains moving overlapping cascade state into the C fact graph.
+- The `cascade-report` command is now the user-facing read-only exhaustion
+  surface. It adapts current A5, RSSET, immediate, and callback reports into
+  parent facts, derived facts, blocked facts, exhausted facts, and review
+  packets. Real Pandora run:
+  `parent_fact_count=11`, `derived_fact_count=22`, `blocked_child_count=817`,
+  `exhausted_fact_count=12`, `review_packet_count=312`; fixed point reached in
+  2 iterations with stop reason `fixed_point_no_new_facts`.
+- The A5 cascade now uses `a5_custom_base_lifetime` as the parent unit, not a
+  selected operand. Real Pandora derives multiple A5 hardware-ref children, but
+  20 render effects are marked `already_represented`, addressing the 017-089
+  false-positive review finding. One non-legacy render effect is
+  `pending_baseline_delta_verifier`; it is not written as source output.
+- RSSET, runtime-address, and callback lanes now participate in the same
+  cascade report. RSSET accepted parents derive field/downstream children;
+  runtime-address parents derive labels/xrefs; callback pointer parents derive
+  callable target children. Source-offset immediates remain candidate-only, and
+  already-code/data callback outcomes are exhausted rather than repeatedly
+  proposed.
+- Cascade verifier state now distinguishes already-represented effects from
+  decision-caused deltas. Output-affecting pending children require
+  baseline-without-decision versus effective-with-decision proof, bounded
+  changed rows, negative safety, fixed-point stability, and exact round-trip
+  before any write. The current Pandora cascade pass is read-only and applies
+  no source output changes.

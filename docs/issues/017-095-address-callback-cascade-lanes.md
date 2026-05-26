@@ -1,6 +1,6 @@
 # 017-095: Add Address And Callback Cascade Lanes
 
-Status: active
+Status: completed
 Type: AFK
 Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
@@ -42,27 +42,43 @@ Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
 ## Research Coverage
 
-- [ ] Current immediate and callback reports checked.
-- [ ] Address-space identity is stable.
-- [ ] Callback store/use path identity is stable.
-- [ ] Derived children can feed further review packets.
-- [ ] Already represented targets are exhausted cleanly.
-- [ ] No 012/018/Mac/platform-format files touched.
+- [x] Current immediate and callback reports checked.
+- [x] Address-space identity is stable.
+- [x] Callback store/use path identity is stable.
+- [x] Derived children can feed further review packets.
+- [x] Already represented targets are exhausted cleanly.
+- [x] No 012/018/Mac/platform-format files touched.
 
 ## Research Review
 
-- [ ] This adds general cascade lanes, not callback-only special cases.
-- [ ] Ambiguous code/data promotion fails closed.
-- [ ] Derived facts feed chained analysis where safe.
-- [ ] Proposal 017 living notes updated.
+- [x] This adds general cascade lanes, not callback-only special cases.
+- [x] Ambiguous code/data promotion fails closed.
+- [x] Derived facts feed chained analysis where safe.
+- [x] Proposal 017 living notes updated.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before work.
-- [ ] `017-094` complete.
-- [ ] Focused address/callback cascade tests pass.
-- [ ] Real Pandora reports demonstrate derived children or precise blockers.
-- [ ] Exact round-trip passes for any source output change.
-- [ ] `amiga_reversing.tools.validate_017_issues` passes.
-- [ ] `git diff --check` passes.
+- [x] Proposal context checked before work.
+- [x] `017-094` complete.
+- [x] Focused address/callback cascade tests pass.
+- [x] Real Pandora reports demonstrate derived children or precise blockers.
+- [x] Exact round-trip passes for any source output change.
+- [x] `amiga_reversing.tools.validate_017_issues` passes.
+- [x] `git diff --check` passes.
 
+## Completion Evidence
+
+- Implemented `runtime_address` parent facts and `address.runtime.labels.v1` derivation into `address_label` and `address_xref` children.
+- Implemented `callback_pointer_path` parent facts and `callback.pointer.callable_targets.v1` derivation into `callback_callable_target` children.
+- Source-offset immediates remain candidate-only and emit blockers/review packets instead of accepted parser facts.
+- Callback already-code/data outcomes are emitted as exhausted facts rather than repeated proposals.
+- Focused tests: `test_cascade_report_keeps_source_offset_immediate_candidate_only` and `test_cascade_report_derives_rsset_address_and_callback_lanes`.
+
+## Cascade Evidence
+
+- Address-space identity is explicit in runtime-address parent scope; source-offset candidates are blocked by `source_offset_candidate_only`.
+- Callback path identity is carried through the callback packet selected identity and candidate id.
+- Real Pandora blocker summary includes 9 source-offset candidate-only blockers and 179 missing callback consumer blockers.
+- Real Pandora exhausted facts: 12 already-represented callback facts.
+- Baseline-delta verifier proof: address/callback output-affecting children remain pending until baseline/effective rendering proves a bounded delta and exact round-trip.
+- Not report-only: this issue added address and callback cascade lane implementation plus focused tests.

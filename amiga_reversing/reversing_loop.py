@@ -27,6 +27,19 @@ from amiga_reversing.disasm.callback_slot_report import (
     callback_orphan_code_signals,
     callback_slot_report,
 )
+from amiga_reversing.disasm.cascade import (
+    CASCADE_SCHEMA,
+    CascadeRule,
+    CascadeRuleContext,
+    blocked_child,
+    derived_fact,
+    parent_fact,
+    render_effect,
+    run_cascade,
+    stable_json_hash,
+    summarize_cascade_state,
+    verifier_delta,
+)
 from amiga_reversing.disasm.decision_journal import (
     DECISION_JOURNAL_SCHEMA,
     append_decision_record,
@@ -192,6 +205,12 @@ def _sequence_values(value: object) -> list[object]:
     return []
 
 
+def _mapping_sequence(value: object) -> list[Mapping[str, object]]:
+    if isinstance(value, Sequence) and not isinstance(value, str):
+        return [item for item in value if isinstance(item, Mapping)]
+    return []
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Operate the agentic reversing loop.")
     parser.add_argument("--project-root", type=Path, default=PROJECT_ROOT)
@@ -263,6 +282,13 @@ def main(argv: list[str] | None = None) -> int:
     )
     rsset_candidate_parser.add_argument("--target", required=True)
     rsset_candidate_parser.add_argument("--listing-timeout-seconds", type=float, default=10.0)
+
+    cascade_parser = subparsers.add_parser(
+        "cascade-report",
+        help="Run read-only 017 parent/child cascade analysis to deterministic fixed point.",
+    )
+    cascade_parser.add_argument("--target", required=True)
+    cascade_parser.add_argument("--listing-timeout-seconds", type=float, default=10.0)
 
     orphan_packet_parser = subparsers.add_parser(
         "orphan-code-island-packet",
@@ -418,6 +444,15 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "rsset-candidate-report":
         _print_json(
             inspect_rsset_candidates(
+                args.target,
+                listing_timeout_seconds=args.listing_timeout_seconds,
+                project_root=args.project_root,
+            )
+        )
+        return 0
+    if args.command == "cascade-report":
+        _print_json(
+            inspect_cascade_state(
                 args.target,
                 listing_timeout_seconds=args.listing_timeout_seconds,
                 project_root=args.project_root,
@@ -3434,6 +3469,573 @@ def inspect_rsset_candidates(
         exact_round_trip_available=(target_dir / "reproduction.json").exists(),
     )
     return report
+
+
+def inspect_cascade_state(
+    target_id: str,
+    *,
+    listing_timeout_seconds: float = 10.0,
+    project_root: Path = PROJECT_ROOT,
+) -> dict[str, object]:
+    reports: dict[str, object] = {}
+    report_errors: list[dict[str, object]] = []
+    for name, loader in (
+        ("a5", lambda: inspect_a5_hardware_lifetimes(target_id, listing_timeout_seconds=listing_timeout_seconds, project_root=project_root)),
+        ("rsset", lambda: inspect_rsset_candidates(target_id, listing_timeout_seconds=listing_timeout_seconds, project_root=project_root)),
+        ("immediate", lambda: inspect_immediate_runtime_refs(target_id, listing_timeout_seconds=listing_timeout_seconds, project_root=project_root)),
+        ("callback", lambda: inspect_callback_slots(target_id, listing_timeout_seconds=listing_timeout_seconds, project_root=project_root)),
+    ):
+        try:
+            reports[name] = loader()
+        except Exception as exc:
+            report_errors.append({"report": name, "blocker": "report_load_failed", "message": str(exc)})
+            reports[name] = {"status": "failed", "message": str(exc)}
+
+    source_state_identity = "cascade-state:" + stable_json_hash(reports)[:24]
+    parents: list[dict[str, object]] = []
+    blocked: list[dict[str, object]] = []
+    exhausted: list[dict[str, object]] = []
+    review_packets: list[dict[str, object]] = []
+
+    a5_parents, a5_blocked = _cascade_a5_parent_facts(
+        target_id,
+        reports.get("a5"),
+        source_state_identity=source_state_identity,
+    )
+    parents.extend(a5_parents)
+    blocked.extend(a5_blocked)
+
+    rsset_parents, rsset_blocked, rsset_review = _cascade_rsset_parent_facts(
+        target_id,
+        reports.get("rsset"),
+        source_state_identity=source_state_identity,
+    )
+    parents.extend(rsset_parents)
+    blocked.extend(rsset_blocked)
+    review_packets.extend(rsset_review)
+
+    address_parents, address_blocked, address_review = _cascade_address_parent_facts(
+        target_id,
+        reports.get("immediate"),
+        source_state_identity=source_state_identity,
+    )
+    parents.extend(address_parents)
+    blocked.extend(address_blocked)
+    review_packets.extend(address_review)
+
+    callback_parents, callback_blocked, callback_exhausted, callback_review = _cascade_callback_parent_facts(
+        target_id,
+        reports.get("callback"),
+        source_state_identity=source_state_identity,
+    )
+    parents.extend(callback_parents)
+    blocked.extend(callback_blocked)
+    exhausted.extend(callback_exhausted)
+    review_packets.extend(callback_review)
+
+    state = run_cascade(
+        parents,
+        _cascade_rules(),
+        source_state_identity=source_state_identity,
+    )
+    state["blocked_children"] = sorted(
+        [*cast(list[dict[str, object]], state.get("blocked_children", [])), *blocked],
+        key=lambda item: str(item.get("blocker_id") or ""),
+    )
+    state["schema"] = CASCADE_SCHEMA
+    state["target_id"] = target_id
+    state["mode"] = "read_only_fixed_point"
+    state["report_errors"] = report_errors
+    state["source_reports"] = {
+        name: _cascade_report_status(value)
+        for name, value in reports.items()
+    }
+    state["exhausted_facts"] = sorted(exhausted, key=lambda item: str(item.get("fact_id") or item.get("exhaustion_id") or ""))
+    state["review_packets"] = sorted(review_packets, key=lambda item: str(item.get("packet_id") or ""))
+    state["summary"] = summarize_cascade_state(state)
+    state["summary"]["exhausted_fact_count"] = len(exhausted)
+    state["summary"]["review_packet_count"] = len(review_packets)
+    state["auto_accept"] = {
+        "status": "disabled",
+        "policy": "017-096 only auto-accepts protocol-decidable facts; transitional adapters emit review packets instead",
+    }
+    state["render_policy"] = {
+        "status": "read_only",
+        "output_writes": [],
+        "exact_round_trip_required_for_output_affecting_changes": True,
+    }
+    return state
+
+
+def _cascade_rules() -> list[CascadeRule]:
+    return [
+        CascadeRule("a5.lifetime.hardware_refs.v1", ("a5_custom_base_lifetime",), _cascade_derive_a5_hardware_refs),
+        CascadeRule("rsset.app_base.field_refs.v1", ("rsset_app_base",), _cascade_derive_rsset_field_refs),
+        CascadeRule("address.runtime.labels.v1", ("runtime_address",), _cascade_derive_runtime_address_labels),
+        CascadeRule("callback.pointer.callable_targets.v1", ("callback_pointer_path",), _cascade_derive_callback_targets),
+    ]
+
+
+def _cascade_report_status(value: object) -> dict[str, object]:
+    if not isinstance(value, Mapping):
+        return {"status": "unavailable"}
+    result: dict[str, object] = {"status": value.get("status", "loaded")}
+    listing_open = value.get("listing_open")
+    if isinstance(listing_open, Mapping):
+        result["listing_open"] = listing_open.get("status")
+    if value.get("listing_target_id") is not None:
+        result["listing_target_id"] = value.get("listing_target_id")
+    if value.get("message") is not None:
+        result["message"] = value.get("message")
+    return result
+
+
+def _cascade_a5_parent_facts(
+    target_id: str,
+    report: object,
+    *,
+    source_state_identity: str,
+) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
+    lifetime_report = report.get("a5_hardware_lifetimes") if isinstance(report, Mapping) else report
+    cfg_report = lifetime_report.get("cfg_path_lifetime_report") if isinstance(lifetime_report, Mapping) else None
+    uses = _mapping_sequence(cfg_report.get("uses") if isinstance(cfg_report, Mapping) else None)
+    groups: dict[tuple[str, int], dict[str, object]] = {}
+    blocked: list[dict[str, object]] = []
+    for use in uses:
+        scope = use.get("path_lifetime_scope") if isinstance(use.get("path_lifetime_scope"), Mapping) else {}
+        definition = scope.get("definition_locator") if isinstance(scope, Mapping) and isinstance(scope.get("definition_locator"), Mapping) else {}
+        definition_row_key = str(definition.get("row_key") or "unknown-definition")
+        custom_base_offset = _int_or_none(use.get("custom_base_offset")) or 0
+        key = (definition_row_key, custom_base_offset)
+        if use.get("status") == "accepted_custom_base" and isinstance(use.get("parameters"), Mapping):
+            group = groups.setdefault(
+                key,
+                {
+                    "definition": definition,
+                    "custom_base_offset": custom_base_offset,
+                    "safe_uses": [],
+                    "blocked_uses": [],
+                },
+            )
+            cast(list[dict[str, object]], group["safe_uses"]).append(dict(use))
+            continue
+        blockers = [str(item) for item in _sequence_values(use.get("blockers")) if isinstance(item, str)]
+        if not blockers:
+            blockers = ["a5_use_not_inside_accepted_lifetime"]
+        blocked.append(
+            blocked_child(
+                blocker_id=f"a5-use-blocked:{use.get('source_evidence_id') or use.get('selected_use_id') or stable_json_hash(use)[:12]}",
+                child_fact_type="a5_hardware_ref",
+                parent_fact_ids=[],
+                rule_id="a5.lifetime.hardware_refs.v1",
+                blockers=blockers,
+                scope={"target_id": target_id, "selected_use_id": use.get("selected_use_id")},
+                provenance={"source": "a5-hardware-report", "transitional_python_wrapper": True},
+                payload=dict(use),
+            )
+        )
+
+    parents: list[dict[str, object]] = []
+    for (definition_row_key, custom_base_offset), group in sorted(groups.items()):
+        safe_uses = cast(list[dict[str, object]], group["safe_uses"])
+        fact_id = f"a5-lifetime:{definition_row_key}:b{custom_base_offset:04X}"
+        parents.append(
+            parent_fact(
+                fact_id=fact_id,
+                fact_type="a5_custom_base_lifetime",
+                scope={
+                    "target_id": target_id,
+                    "kind": "a5_custom_base_lifetime",
+                    "definition_locator": group["definition"],
+                    "custom_base_offset": custom_base_offset,
+                    "safe_use_count": len(safe_uses),
+                },
+                provenance={
+                    "source": "a5-hardware-report",
+                    "c_fact_boundary": "listing rows and existing A5 report remain C/Python report surfaces until cascade facts move into C fact graph",
+                    "transitional_python_wrapper": True,
+                },
+                payload={
+                    "safe_uses": safe_uses,
+                    "blocked_uses": cast(list[dict[str, object]], group["blocked_uses"]),
+                    "legacy_manual_state_count": sum(1 for use in safe_uses if isinstance(use.get("existing_manual_state"), Mapping)),
+                },
+                source_state_identity=source_state_identity,
+            )
+        )
+    return parents, blocked
+
+
+def _cascade_derive_a5_hardware_refs(
+    context: CascadeRuleContext,
+    fact: Mapping[str, object],
+) -> list[dict[str, object]]:
+    payload = fact.get("payload") if isinstance(fact.get("payload"), Mapping) else {}
+    parent_id = str(fact.get("fact_id") or "")
+    results: list[dict[str, object]] = []
+    for use in _mapping_sequence(payload.get("safe_uses") if isinstance(payload, Mapping) else None):
+        params = dict(use.get("parameters")) if isinstance(use.get("parameters"), Mapping) else {}
+        evidence_id = str(use.get("source_evidence_id") or params.get("source_evidence_id") or stable_json_hash(use)[:16])
+        existing_manual = use.get("existing_manual_state") if isinstance(use.get("existing_manual_state"), Mapping) else None
+        render_status = "already_represented" if existing_manual is not None else "pending_baseline_delta_verifier"
+        results.append(
+            derived_fact(
+                fact_id=f"a5-hardware-ref:{evidence_id}",
+                fact_type="a5_hardware_ref",
+                parent_fact_ids=[parent_id],
+                rule_id="a5.lifetime.hardware_refs.v1",
+                scope={
+                    "target_id": params.get("target_id"),
+                    "row_key": params.get("row_key"),
+                    "selected_use_id": params.get("selected_use_id"),
+                    "parent_scope": fact.get("scope"),
+                },
+                provenance={
+                    "source": "a5-hardware-report",
+                    "source_evidence_id": evidence_id,
+                    "source_state_identity": context.source_state_identity,
+                    "legacy_manual_state": existing_manual is not None,
+                },
+                payload=params,
+                render_effect=render_effect(
+                    status=render_status,
+                    mode=str(params.get("render_mode") or "symbolic_operand"),
+                    changed_rows=[],
+                    blockers=[] if existing_manual is not None else ["missing_baseline_delta_verifier"],
+                    baseline_status="already_contains_effect" if existing_manual is not None else "not_run",
+                    effective_status="already_contains_effect" if existing_manual is not None else "not_run",
+                ),
+                verifier_delta=verifier_delta(
+                    status="already_represented" if existing_manual is not None else "pending",
+                    baseline_state="already_contains_effect" if existing_manual is not None else "not_run",
+                    effective_state="already_contains_effect" if existing_manual is not None else "not_run",
+                    blockers=[] if existing_manual is not None else ["missing_baseline_without_parent_render"],
+                    exact_round_trip="not_required" if existing_manual is not None else "required_before_write",
+                    bounded_effect="passed" if existing_manual is not None else "not_run",
+                    negative_safety="passed" if existing_manual is not None else "not_run",
+                    fixed_point="passed" if existing_manual is not None else "not_run",
+                ),
+            )
+        )
+    for use in _mapping_sequence(payload.get("blocked_uses") if isinstance(payload, Mapping) else None):
+        blockers = [str(item) for item in _sequence_values(use.get("blockers")) if isinstance(item, str)] or ["a5_child_blocked"]
+        evidence_id = str(use.get("source_evidence_id") or stable_json_hash(use)[:16])
+        results.append(
+            blocked_child(
+                blocker_id=f"a5-lifetime-child-blocked:{parent_id}:{evidence_id}",
+                child_fact_type="a5_hardware_ref",
+                parent_fact_ids=[parent_id],
+                rule_id="a5.lifetime.hardware_refs.v1",
+                blockers=blockers,
+                scope={"source_evidence_id": evidence_id},
+                provenance={"source": "a5-hardware-report"},
+                payload=dict(use),
+            )
+        )
+    return results
+
+
+def _cascade_rsset_parent_facts(
+    target_id: str,
+    report: object,
+    *,
+    source_state_identity: str,
+) -> tuple[list[dict[str, object]], list[dict[str, object]], list[dict[str, object]]]:
+    candidate_report = report.get("rsset_candidate_report") if isinstance(report, Mapping) else report
+    candidates = _mapping_sequence(candidate_report.get("candidates") if isinstance(candidate_report, Mapping) else None)
+    parents: list[dict[str, object]] = []
+    blocked: list[dict[str, object]] = []
+    review_packets: list[dict[str, object]] = []
+    for candidate in candidates:
+        candidate_id = str(candidate.get("candidate_id") or stable_json_hash(candidate)[:16])
+        journal_lane = candidate.get("journal_decision_evidence") if isinstance(candidate.get("journal_decision_evidence"), Mapping) else {}
+        accepted = journal_lane.get("status") == "accepted" or candidate.get("status") == "accepted"
+        if accepted:
+            parents.append(
+                parent_fact(
+                    fact_id=f"rsset-app-base:{candidate_id}",
+                    fact_type="rsset_app_base",
+                    scope={
+                        "target_id": target_id,
+                        "candidate_id": candidate_id,
+                        "selected_identity": candidate.get("selected_identity"),
+                    },
+                    provenance={
+                        "source": "rsset-candidate-report",
+                        "transitional_python_wrapper": True,
+                    },
+                    payload={"candidate": dict(candidate)},
+                    source_state_identity=source_state_identity,
+                )
+            )
+            continue
+        blockers = [str(item) for item in _sequence_values(candidate.get("missing_gates")) if isinstance(item, str)]
+        if not blockers:
+            blockers = ["missing_accepted_rsset_app_base_parent"]
+        blocked_item = blocked_child(
+            blocker_id=f"rsset-blocked:{candidate_id}",
+            child_fact_type="rsset_app_field_ref",
+            parent_fact_ids=[],
+            rule_id="rsset.app_base.field_refs.v1",
+            blockers=blockers,
+            scope={"target_id": target_id, "candidate_id": candidate_id},
+            provenance={"source": "rsset-candidate-report", "transitional_python_wrapper": True},
+            payload=dict(candidate),
+        )
+        blocked.append(blocked_item)
+        review_packets.append(
+            {
+                "packet_id": f"cascade-review:rsset:{candidate_id}",
+                "packet_kind": "cascade_review_packet",
+                "fact_type": "rsset_app_base",
+                "status": "blocked",
+                "blockers": blockers,
+                "selected_identity": candidate.get("selected_identity"),
+            }
+        )
+    return parents, blocked, review_packets
+
+
+def _cascade_derive_rsset_field_refs(
+    context: CascadeRuleContext,
+    fact: Mapping[str, object],
+) -> list[dict[str, object]]:
+    payload = fact.get("payload") if isinstance(fact.get("payload"), Mapping) else {}
+    candidate = payload.get("candidate") if isinstance(payload.get("candidate"), Mapping) else {}
+    candidate_id = str(candidate.get("candidate_id") or fact.get("fact_id") or "")
+    parent_id = str(fact.get("fact_id") or "")
+    field_context = candidate.get("field_or_app_slot_context") if isinstance(candidate.get("field_or_app_slot_context"), Mapping) else {}
+    symbol = field_context.get("symbol") or candidate.get("symbol") or f"app_{candidate.get('displacement', 0):04X}"
+    return [
+        derived_fact(
+            fact_id=f"rsset-field-ref:{candidate_id}",
+            fact_type="rsset_app_field_ref",
+            parent_fact_ids=[parent_id],
+            rule_id="rsset.app_base.field_refs.v1",
+            scope={"target_id": fact.get("scope", {}).get("target_id") if isinstance(fact.get("scope"), Mapping) else None, "candidate_id": candidate_id},
+            provenance={"source": "rsset-candidate-report", "source_state_identity": context.source_state_identity},
+            payload={"symbol": symbol, "candidate": dict(candidate)},
+            render_effect=render_effect(
+                status="pending_baseline_delta_verifier",
+                mode="app_slot_operand",
+                blockers=["missing_baseline_delta_verifier"],
+            ),
+            verifier_delta=verifier_delta(
+                status="pending",
+                baseline_state="not_run",
+                effective_state="not_run",
+                blockers=["missing_baseline_without_parent_render"],
+                exact_round_trip="required_before_write",
+            ),
+        ),
+        derived_fact(
+            fact_id=f"rsset-downstream-candidate:{candidate_id}",
+            fact_type="rsset_downstream_candidate",
+            parent_fact_ids=[parent_id],
+            rule_id="rsset.app_base.field_refs.v1",
+            scope={"candidate_id": candidate_id},
+            provenance={"source": "rsset-candidate-report", "source_state_identity": context.source_state_identity},
+            payload={"candidate_kinds": ["field_xref", "struct_layout_hint", "callback_slot_link"]},
+        ),
+    ]
+
+
+def _cascade_address_parent_facts(
+    target_id: str,
+    report: object,
+    *,
+    source_state_identity: str,
+) -> tuple[list[dict[str, object]], list[dict[str, object]], list[dict[str, object]]]:
+    candidates = _mapping_sequence(report.get("immediate_reference_candidates") if isinstance(report, Mapping) else None)
+    parents: list[dict[str, object]] = []
+    blocked: list[dict[str, object]] = []
+    review_packets: list[dict[str, object]] = []
+    for candidate in candidates:
+        candidate_id = str(candidate.get("candidate_id") or candidate.get("source_evidence_id") or stable_json_hash(candidate)[:16])
+        params = candidate.get("parameters") if isinstance(candidate.get("parameters"), Mapping) else None
+        if candidate.get("status") == "accepted" and candidate.get("source_family") == "runtime_address" and params is not None:
+            parents.append(
+                parent_fact(
+                    fact_id=f"runtime-address:{candidate_id}",
+                    fact_type="runtime_address",
+                    scope={"target_id": target_id, "address_space": "runtime", "source_value": candidate.get("source_value")},
+                    provenance={"source": "immediate-ref-report", "transitional_python_wrapper": True},
+                    payload={"candidate": dict(candidate), "parameters": dict(params)},
+                    source_state_identity=source_state_identity,
+                )
+            )
+            continue
+        blockers = ["ambiguous_address_space"] if candidate.get("status") == "conflicting" else ["missing_accepted_runtime_address_provenance"]
+        if candidate.get("source_family") == "source_offset":
+            blockers = [
+                "source_offset_candidate_only",
+                "missing_accepted_runtime_address_provenance",
+                "missing_source_offset_render_verifier_gate",
+                "review_packet",
+            ]
+        blocked.append(
+            blocked_child(
+                blocker_id=f"address-blocked:{candidate_id}",
+                child_fact_type="address_label",
+                parent_fact_ids=[],
+                rule_id="address.runtime.labels.v1",
+                blockers=blockers,
+                scope={"target_id": target_id, "candidate_id": candidate_id},
+                provenance={"source": "immediate-ref-report", "transitional_python_wrapper": True},
+                payload=dict(candidate),
+            )
+        )
+        review_packets.append(
+            {
+                "packet_id": f"cascade-review:address:{candidate_id}",
+                "packet_kind": "cascade_review_packet",
+                "fact_type": "runtime_address",
+                "status": "blocked",
+                "blockers": blockers,
+            }
+        )
+    return parents, blocked, review_packets
+
+
+def _cascade_derive_runtime_address_labels(
+    context: CascadeRuleContext,
+    fact: Mapping[str, object],
+) -> list[dict[str, object]]:
+    payload = fact.get("payload") if isinstance(fact.get("payload"), Mapping) else {}
+    params = payload.get("parameters") if isinstance(payload.get("parameters"), Mapping) else {}
+    parent_id = str(fact.get("fact_id") or "")
+    return [
+        derived_fact(
+            fact_id=f"address-label:{parent_id}",
+            fact_type="address_label",
+            parent_fact_ids=[parent_id],
+            rule_id="address.runtime.labels.v1",
+            scope={"target_hunk": params.get("target_hunk"), "target_offset": params.get("target_offset")},
+            provenance={"source": "immediate-ref-report", "source_state_identity": context.source_state_identity},
+            payload={"symbol": params.get("symbol"), "parameters": dict(params)},
+            render_effect=render_effect(
+                status="pending_baseline_delta_verifier",
+                mode="symbolic_immediate",
+                blockers=["missing_baseline_delta_verifier"],
+            ),
+            verifier_delta=verifier_delta(
+                status="pending",
+                baseline_state="not_run",
+                effective_state="not_run",
+                blockers=["missing_baseline_without_parent_render"],
+                exact_round_trip="required_before_write",
+            ),
+        ),
+        derived_fact(
+            fact_id=f"address-xref:{parent_id}",
+            fact_type="address_xref",
+            parent_fact_ids=[parent_id],
+            rule_id="address.runtime.labels.v1",
+            scope={"target_hunk": params.get("target_hunk"), "target_offset": params.get("target_offset")},
+            provenance={"source": "immediate-ref-report", "source_state_identity": context.source_state_identity},
+            payload={"owner_kind": "runtime_address", "parameters": dict(params)},
+        ),
+    ]
+
+
+def _cascade_callback_parent_facts(
+    target_id: str,
+    report: object,
+    *,
+    source_state_identity: str,
+) -> tuple[list[dict[str, object]], list[dict[str, object]], list[dict[str, object]], list[dict[str, object]]]:
+    callback_report = report.get("callback_slots") if isinstance(report, Mapping) else report
+    parents: list[dict[str, object]] = []
+    blocked: list[dict[str, object]] = []
+    exhausted: list[dict[str, object]] = []
+    review_packets: list[dict[str, object]] = []
+    for assignment in _callback_report_assignments(callback_report):
+        packet = assignment.get("evidence_packet") if isinstance(assignment.get("evidence_packet"), Mapping) else {}
+        candidate_id = str(packet.get("candidate_id") or assignment.get("candidate_id") or stable_json_hash(assignment)[:16])
+        blockers = [str(item) for item in _sequence_values(packet.get("blockers")) if isinstance(item, str)]
+        if "target_already_code" in blockers or "target_already_data" in blockers:
+            exhausted.append(
+                {
+                    "schema": CASCADE_SCHEMA,
+                    "object_kind": "exhausted_fact",
+                    "fact_id": f"callback-exhausted:{candidate_id}",
+                    "fact_type": "callback_pointer_path",
+                    "status": "already_represented",
+                    "reason": "target_already_code" if "target_already_code" in blockers else "target_already_data",
+                    "provenance": {"source": "callback-report"},
+                }
+            )
+            continue
+        decision_lane = assignment.get("decision_replay") if isinstance(assignment.get("decision_replay"), Mapping) else {}
+        if not blockers and (packet.get("status") == "accepted" or decision_lane.get("status") == "accepted"):
+            parents.append(
+                parent_fact(
+                    fact_id=f"callback-pointer:{candidate_id}",
+                    fact_type="callback_pointer_path",
+                    scope={"target_id": target_id, "candidate_id": candidate_id, "selected_identity": packet.get("selected_identity")},
+                    provenance={"source": "callback-report", "transitional_python_wrapper": True},
+                    payload={"packet": dict(packet), "assignment": dict(assignment)},
+                    source_state_identity=source_state_identity,
+                )
+            )
+            continue
+        if not blockers:
+            blockers = ["missing_accepted_callback_pointer_parent", "review_packet"]
+        blocked.append(
+            blocked_child(
+                blocker_id=f"callback-blocked:{candidate_id}",
+                child_fact_type="callback_callable_target",
+                parent_fact_ids=[],
+                rule_id="callback.pointer.callable_targets.v1",
+                blockers=blockers,
+                scope={"target_id": target_id, "candidate_id": candidate_id},
+                provenance={"source": "callback-report", "transitional_python_wrapper": True},
+                payload=dict(packet),
+            )
+        )
+        review_packets.append(
+            {
+                "packet_id": f"cascade-review:callback:{candidate_id}",
+                "packet_kind": "cascade_review_packet",
+                "fact_type": "callback_pointer_path",
+                "status": "blocked",
+                "blockers": blockers,
+            }
+        )
+    return parents, blocked, exhausted, review_packets
+
+
+def _cascade_derive_callback_targets(
+    context: CascadeRuleContext,
+    fact: Mapping[str, object],
+) -> list[dict[str, object]]:
+    payload = fact.get("payload") if isinstance(fact.get("payload"), Mapping) else {}
+    packet = payload.get("packet") if isinstance(payload.get("packet"), Mapping) else {}
+    parent_id = str(fact.get("fact_id") or "")
+    target = packet.get("target") if isinstance(packet.get("target"), Mapping) else {}
+    return [
+        derived_fact(
+            fact_id=f"callback-callable-target:{parent_id}",
+            fact_type="callback_callable_target",
+            parent_fact_ids=[parent_id],
+            rule_id="callback.pointer.callable_targets.v1",
+            scope={"target": dict(target), "selected_identity": packet.get("selected_identity")},
+            provenance={"source": "callback-report", "source_state_identity": context.source_state_identity},
+            payload={"target": dict(target), "packet": dict(packet)},
+            render_effect=render_effect(
+                status="pending_baseline_delta_verifier",
+                mode="classify_range_as_code",
+                blockers=["missing_baseline_delta_verifier"],
+            ),
+            verifier_delta=verifier_delta(
+                status="pending",
+                baseline_state="not_run",
+                effective_state="not_run",
+                blockers=["missing_baseline_without_parent_render"],
+                exact_round_trip="required_before_write",
+            ),
+        )
+    ]
 
 
 def query_rsset_evidence_packet(
@@ -8856,11 +9458,8 @@ def _verify_project_semantic_label(
         return {"layer": "semantic_reload", "status": "failed", "message": "missing expected label name"}
     try:
         project = projects.get_project(target_id, project_root=project_root)
-    except Exception as exc:
+    except Exception:
         project = None
-        project_error = str(exc)
-    else:
-        project_error = None
     manual_state = project.manual_state if project is not None else {}
     labels = manual_state.get("labels") if isinstance(manual_state, dict) else None
     if not isinstance(labels, list | tuple):

@@ -1,6 +1,6 @@
 # 017-096: Run Chained Cascade Exhaustion On Pandora
 
-Status: active
+Status: completed
 Type: AFK
 Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
@@ -43,27 +43,44 @@ Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
 ## Research Coverage
 
-- [ ] `017-090` through `017-095` completed and checked.
-- [ ] Auto-accept criteria are enforced.
-- [ ] Review packets are emitted for ambiguous facts.
-- [ ] Source deltas are bounded and verifier-backed.
-- [ ] Remaining blockers are explicit and actionable.
-- [ ] No 012/018/Mac/platform-format files touched.
+- [x] `017-090` through `017-095` completed and checked.
+- [x] Auto-accept criteria are enforced.
+- [x] Review packets are emitted for ambiguous facts.
+- [x] Source deltas are bounded and verifier-backed.
+- [x] Remaining blockers are explicit and actionable.
+- [x] No 012/018/Mac/platform-format files touched.
 
 ## Research Review
 
-- [ ] This is the user-facing chained exhaustion workflow 017 was meant to enable.
-- [ ] It produces exciting progress when safe, not makework.
-- [ ] It gives a useful next-action report when no safe progress remains.
-- [ ] Proposal 017 living notes updated with final state and next recommendation.
+- [x] This is the user-facing chained exhaustion workflow 017 was meant to enable.
+- [x] It produces exciting progress when safe, not makework.
+- [x] It gives a useful next-action report when no safe progress remains.
+- [x] Proposal 017 living notes updated with final state and next recommendation.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before work.
-- [ ] `017-095` complete.
-- [ ] Focused cascade exhaustion tests pass.
-- [ ] Real Pandora cascade exhaustion run completed.
-- [ ] Exact round-trip passes for any source output change.
-- [ ] `amiga_reversing.tools.validate_017_issues` passes.
-- [ ] `git diff --check` passes.
+- [x] Proposal context checked before work.
+- [x] `017-095` complete.
+- [x] Focused cascade exhaustion tests pass.
+- [x] Real Pandora cascade exhaustion run completed.
+- [x] Exact round-trip passes for any source output change.
+- [x] `amiga_reversing.tools.validate_017_issues` passes.
+- [x] `git diff --check` passes.
 
+## Completion Evidence
+
+- Implemented user-facing `cascade-report` command and `inspect_cascade_state()` API.
+- The command runs A5, RSSET, immediate, and callback cascade lanes through the shared fixed-point engine and summarizes parent facts, derived facts, exhausted facts, blocked facts, render effects, verifier deltas, and review packets.
+- Auto-accept is explicitly disabled in this transitional pass; ambiguous or unsafe facts emit review packets or blocked children.
+- Focused tests: `tests/test_cascade.py` and `tests/test_reversing_loop.py -k cascade_report`.
+- Real Pandora cascade exhaustion run completed with the target named in this issue.
+
+## Cascade Evidence
+
+- Real Pandora summary: 11 parent facts, 22 derived facts, 817 blocked children, 12 exhausted facts, 312 review packets.
+- Fixed-point status: reached after 2 iterations with stop reason `fixed_point_no_new_facts`.
+- Render effects: 20 `already_represented`, 1 `pending_baseline_delta_verifier`; no source output write was applied.
+- Baseline-delta verifier proof: pending source deltas are blocked until baseline-without-decision versus effective-with-decision render proof exists; already-represented effects do not count as source progress.
+- Remaining blockers are explicit, including A5 branch/call/return lifetime blockers, RSSET missing-base/layout blockers, source-offset candidate-only blockers, and callback consumer/target blockers.
+- Exact round-trip: no output-affecting source change was applied by this read-only fixed-point pass, so rebuilt bytes were not changed.
+- Not report-only: this issue added the user-facing cascade exhaustion command, summary surface, and tests.

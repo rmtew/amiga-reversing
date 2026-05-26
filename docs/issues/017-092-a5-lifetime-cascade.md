@@ -1,6 +1,6 @@
 # 017-092: Convert A5 To Lifetime Parent Fact Cascade
 
-Status: active
+Status: completed
 Type: AFK
 Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
@@ -42,27 +42,43 @@ Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
 ## Research Coverage
 
-- [ ] `017-089` review failure accounted for.
-- [ ] Lifetime parent fact identity is stable.
-- [ ] Derived children carry parent fact id and rule id.
-- [ ] Unsafe uses remain blocked with reasons.
-- [ ] Legacy manual state does not satisfy "new source progress".
-- [ ] No 012/018/Mac/platform-format files touched.
+- [x] `017-089` review failure accounted for.
+- [x] Lifetime parent fact identity is stable.
+- [x] Derived children carry parent fact id and rule id.
+- [x] Unsafe uses remain blocked with reasons.
+- [x] Legacy manual state does not satisfy "new source progress".
+- [x] No 012/018/Mac/platform-format files touched.
 
 ## Research Review
 
-- [ ] This is A5 cascade work, not selected-operand mutation.
-- [ ] The real Pandora proof shows multiple derived effects or honestly blocks.
-- [ ] The implementation does not add backwards-compatibility debt beyond documented transitional handling.
-- [ ] Proposal 017 living notes updated.
+- [x] This is A5 cascade work, not selected-operand mutation.
+- [x] The real Pandora proof shows multiple derived effects or honestly blocks.
+- [x] The implementation does not add backwards-compatibility debt beyond documented transitional handling.
+- [x] Proposal 017 living notes updated.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before work.
-- [ ] `017-091` complete.
-- [ ] Focused A5 cascade tests pass.
-- [ ] Real Pandora A5 cascade report produced.
-- [ ] Exact round-trip passes for any source output change.
-- [ ] `amiga_reversing.tools.validate_017_issues` passes.
-- [ ] `git diff --check` passes.
+- [x] Proposal context checked before work.
+- [x] `017-091` complete.
+- [x] Focused A5 cascade tests pass.
+- [x] Real Pandora A5 cascade report produced.
+- [x] Exact round-trip passes for any source output change.
+- [x] `amiga_reversing.tools.validate_017_issues` passes.
+- [x] `git diff --check` passes.
 
+## Completion Evidence
+
+- Implemented `a5_custom_base_lifetime` parent fact construction in `inspect_cascade_state()`.
+- Implemented `a5.lifetime.hardware_refs.v1` derivation so one lifetime parent derives all safe `a5_hardware_ref` children from the grouped lifetime payload.
+- Unsafe A5 uses remain blocked with original report blockers such as `call before selected use may clobber A5`, `branch before selected use requires full CFG path proof`, and `return before selected use breaks local path proof`.
+- Focused test: `test_cascade_report_derives_a5_lifetime_children_and_marks_legacy_non_progress`.
+- Real Pandora cascade report produced by `uv run python -m amiga_reversing.reversing_loop cascade-report --target amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8 --listing-timeout-seconds 10`.
+
+## Cascade Evidence
+
+- Real Pandora summary: 11 parent facts, 22 derived facts, 817 blocked children, 12 exhausted facts, 312 review packets, fixed point reached after 2 iterations.
+- A5 lane derives multiple children; real Pandora render effects show 20 `already_represented` A5 children and no false source progress claim for legacy Manual Action Log state.
+- One non-legacy render effect remains `pending_baseline_delta_verifier`, so it is not written as source output.
+- Baseline-delta verifier proof: already-represented children record baseline/effective state as already containing the effect; pending children carry `missing_baseline_without_parent_render`.
+- Exact round-trip: no output-affecting source change was applied by this issue, so no rebuilt bytes changed.
+- Not report-only: this issue added A5 parent/child cascade code and focused tests.

@@ -1,6 +1,6 @@
 # 017-090: Define Cascade Protocol State And Schemas
 
-Status: active
+Status: completed
 Type: AFK
 Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
@@ -41,25 +41,40 @@ Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
 ## Research Coverage
 
-- [ ] Proposal 017 cascade sections checked.
-- [ ] Existing A5, RSSET, immediate, and callback report shapes reviewed.
-- [ ] Parent fact schema defined.
-- [ ] Derived fact schema defined.
-- [ ] Blocked child and conflict schema defined.
-- [ ] Baseline delta verifier contract defined.
-- [ ] No 012/018/Mac/platform-format files touched.
+- [x] Proposal 017 cascade sections checked.
+- [x] Existing A5, RSSET, immediate, and callback report shapes reviewed.
+- [x] Parent fact schema defined.
+- [x] Derived fact schema defined.
+- [x] Blocked child and conflict schema defined.
+- [x] Baseline delta verifier contract defined.
+- [x] No 012/018/Mac/platform-format files touched.
 
 ## Research Review
 
-- [ ] This is a cohesive protocol foundation, not another report-only closeout.
-- [ ] The schema supports chained derived analysis to fixed point.
-- [ ] The schema makes stale/invalidated children disappear or recompute.
-- [ ] Proposal 017 living notes updated.
+- [x] This is a cohesive protocol foundation, not another report-only closeout.
+- [x] The schema supports chained derived analysis to fixed point.
+- [x] The schema makes stale/invalidated children disappear or recompute.
+- [x] Proposal 017 living notes updated.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before work.
-- [ ] Schema/docs/tests are committed.
-- [ ] `amiga_reversing.tools.validate_017_issues` passes.
-- [ ] `git diff --check` passes.
+- [x] Proposal context checked before work.
+- [x] Schema/docs/tests are committed.
+- [x] `amiga_reversing.tools.validate_017_issues` passes.
+- [x] `git diff --check` passes.
 
+## Completion Evidence
+
+- Implemented `amiga_reversing.disasm.cascade` with schema helpers for parent facts, derived facts, blocked children, render effects, verifier deltas, validation, and deterministic state hashing.
+- Added `tests/test_cascade.py` schema and fixed-point fixture coverage.
+- Added `cascade-report` inspection wiring in `amiga_reversing.reversing_loop` as the transitional Python/API surface over existing C-owned listing and report facts.
+- Validation commands run after the full 017-090 through 017-096 batch: `uv run python -m amiga_reversing.tools.validate_017_issues` and `git diff --check`.
+
+## Cascade Evidence
+
+- Parent fact schema implemented: `parent_fact()` carries `fact_id`, `fact_type`, `status`, `scope`, `provenance`, `conflicts`, `invalidated_by`, and source-state identity.
+- Derived child schema implemented: `derived_fact()` carries `parent_fact_ids`, deterministic `rule_id`, scope, provenance, optional render effect, and optional verifier delta.
+- Blocked child/conflict schema implemented: `blocked_child()` carries blockers, parent ids, rule id, scope, provenance, and conflicts.
+- Baseline-delta verifier proof contract implemented in `verifier_delta()`: baseline/effective state, changed rows, bounded effect, negative safety, fixed point, and exact round-trip status are first-class fields.
+- Fixed point behavior checked by `tests/test_cascade.py`; stale source identities and missing parent scopes fail closed.
+- Not report-only: this issue added executable schema and validation code plus focused tests.

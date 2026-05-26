@@ -1,6 +1,6 @@
 # 017-091: Implement Cascade Engine Fixed-Point Core
 
-Status: active
+Status: completed
 Type: AFK
 Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
@@ -41,25 +41,41 @@ Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
 ## Research Coverage
 
-- [ ] `017-090` schema used directly.
-- [ ] Engine rerun is deterministic.
-- [ ] Parent-to-child provenance is preserved.
-- [ ] Invalid/stale parent facts do not produce children.
-- [ ] Fixed-point stop condition is explicit.
-- [ ] No 012/018/Mac/platform-format files touched.
+- [x] `017-090` schema used directly.
+- [x] Engine rerun is deterministic.
+- [x] Parent-to-child provenance is preserved.
+- [x] Invalid/stale parent facts do not produce children.
+- [x] Fixed-point stop condition is explicit.
+- [x] No 012/018/Mac/platform-format files touched.
 
 ## Research Review
 
-- [ ] This implements reusable cascade infrastructure, not a domain-specific shortcut.
-- [ ] Any Python wrapper is justified and does not duplicate C-owned analysis logic.
-- [ ] The engine can be reused by A5, RSSET, immediate, and callback lanes.
-- [ ] Proposal 017 living notes updated.
+- [x] This implements reusable cascade infrastructure, not a domain-specific shortcut.
+- [x] Any Python wrapper is justified and does not duplicate C-owned analysis logic.
+- [x] The engine can be reused by A5, RSSET, immediate, and callback lanes.
+- [x] Proposal 017 living notes updated.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before work.
-- [ ] `017-090` complete.
-- [ ] Focused cascade engine tests pass.
-- [ ] `amiga_reversing.tools.validate_017_issues` passes.
-- [ ] `git diff --check` passes.
+- [x] Proposal context checked before work.
+- [x] `017-090` complete.
+- [x] Focused cascade engine tests pass.
+- [x] `amiga_reversing.tools.validate_017_issues` passes.
+- [x] `git diff --check` passes.
 
+## Completion Evidence
+
+- Implemented reusable `run_cascade()` fixed-point execution in `amiga_reversing.disasm.cascade`.
+- Added deterministic rule dispatch with `CascadeRule`, skipped-parent diagnostics, missing-rule blockers, and explicit stop reasons: `fixed_point_no_new_facts`, `no_rules`, and `max_iterations`.
+- Added `inspect_cascade_state()` and CLI `cascade-report` as the read-only inspection API.
+- Focused tests: `uv run python -m pytest tests/test_cascade.py -q`.
+- Validation commands run after the full 017-090 through 017-096 batch: `uv run python -m amiga_reversing.tools.validate_017_issues` and `git diff --check`.
+
+## Cascade Evidence
+
+- Parent facts feed deterministic rules by `fact_type`; children retain `parent_fact_ids` and deterministic `rule_id`.
+- Fixed point behavior checked with two fixture domains, A5 lifetime and runtime address, in `test_cascade_engine_runs_deterministic_fixed_point_for_two_domains`.
+- Stale/invalid parents fail closed in `test_cascade_engine_fails_closed_for_stale_or_incomplete_parent`.
+- Missing rule support emits structured blocked children in `test_cascade_engine_reports_missing_rule_support`.
+- Baseline-delta verifier proof fields are preserved on derived facts; no source output write occurs from the engine.
+- Not report-only: this issue added the reusable engine and public inspection command.

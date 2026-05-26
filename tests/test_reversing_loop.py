@@ -10968,6 +10968,159 @@ def test_rsset_candidate_report_keeps_existing_manual_binding_non_actionable() -
     assert candidate["evidence_search"]["accepted_base_evidence_count"] == 1
 
 
+def test_cascade_report_derives_a5_lifetime_children_and_marks_legacy_non_progress(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    lifetime_report = reversing_loop._listing_a5_hardware_lifetime_report(
+        [
+            _a5_definition_row(custom=True),
+            _a5_use_row(displacement=0x96),
+            _a5_use_row(displacement=0x9A),
+        ]
+    )
+    first_use = lifetime_report["cfg_path_lifetime_report"]["uses"][0]
+    lifetime_report = reversing_loop._a5_hardware_lifetime_report_with_existing_refs(
+        lifetime_report,
+        {
+            first_use["source_evidence_id"]: {
+                "a5_hardware_ref_id": f"a5-hw:{first_use['source_evidence_id']}",
+                "source_evidence_id": first_use["source_evidence_id"],
+                "source_evidence_status": "accepted",
+                "owner_action_id": "manual-a5",
+            }
+        },
+    )
+    monkeypatch.setattr(
+        reversing_loop,
+        "inspect_a5_hardware_lifetimes",
+        lambda *args, **kwargs: {"a5_hardware_lifetimes": lifetime_report},
+    )
+    monkeypatch.setattr(reversing_loop, "inspect_rsset_candidates", lambda *args, **kwargs: {"rsset_candidate_report": {"candidates": []}})
+    monkeypatch.setattr(reversing_loop, "inspect_immediate_runtime_refs", lambda *args, **kwargs: {"immediate_reference_candidates": []})
+    monkeypatch.setattr(reversing_loop, "inspect_callback_slots", lambda *args, **kwargs: {"callback_slots": {"slots": []}})
+
+    state = reversing_loop.inspect_cascade_state("pandora")
+
+    a5_children = [fact for fact in state["derived_facts"] if fact["fact_type"] == "a5_hardware_ref"]
+    assert state["fixed_point"]["status"] == "reached"
+    assert len([fact for fact in state["parent_facts"] if fact["fact_type"] == "a5_custom_base_lifetime"]) == 1
+    assert len(a5_children) == 2
+    assert {child["render_effect"]["status"] for child in a5_children} == {
+        "already_represented",
+        "pending_baseline_delta_verifier",
+    }
+    assert any(child["verifier_delta"]["status"] == "already_represented" for child in a5_children)
+
+
+def test_cascade_report_keeps_source_offset_immediate_candidate_only(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    data_row = _listing_row(row_key="data-row", kind="data", start_offset=0x107C, end_offset=0x1082)
+    candidates = reversing_loop._listing_immediate_runtime_reference_report(
+        [_immediate_address_row(value=0x1080), data_row]
+    )
+    monkeypatch.setattr(reversing_loop, "inspect_a5_hardware_lifetimes", lambda *args, **kwargs: {"a5_hardware_lifetimes": {}})
+    monkeypatch.setattr(reversing_loop, "inspect_rsset_candidates", lambda *args, **kwargs: {"rsset_candidate_report": {"candidates": []}})
+    monkeypatch.setattr(
+        reversing_loop,
+        "inspect_immediate_runtime_refs",
+        lambda *args, **kwargs: {"immediate_reference_candidates": candidates},
+    )
+    monkeypatch.setattr(reversing_loop, "inspect_callback_slots", lambda *args, **kwargs: {"callback_slots": {"slots": []}})
+
+    state = reversing_loop.inspect_cascade_state("pandora")
+
+    assert not any(fact["fact_type"] == "runtime_address" for fact in state["parent_facts"])
+    blocked = {item["blocker_id"]: item for item in state["blocked_children"]}
+    address_blockers = next(item["blockers"] for key, item in blocked.items() if key.startswith("address-blocked:"))
+    assert "source_offset_candidate_only" in address_blockers
+    assert state["review_packets"][0]["fact_type"] == "runtime_address"
+
+
+def test_cascade_report_derives_rsset_address_and_callback_lanes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    rsset_candidate = {
+        "candidate_id": "rsset-demo",
+        "status": "accepted",
+        "selected_identity": {"selected_use_id": "s0:000006E4:op1"},
+        "field_or_app_slot_context": {"symbol": "app_022E"},
+    }
+    data_row = _listing_row(row_key="data-row", kind="data", start_offset=0x120, end_offset=0x140)
+    data_row["runtime_address"] = 0x5C720
+    immediate = reversing_loop._listing_immediate_runtime_reference_report(
+        [_immediate_address_row(value=0x5C72A), data_row]
+    )[0]
+    callback_slots = {
+        "slots": [
+            {
+                "assignments": [
+                    {
+                        "decision_replay": {"status": "accepted"},
+                        "evidence_packet": {
+                            "candidate_id": "callback-demo",
+                            "status": "accepted",
+                            "blockers": [],
+                            "target": {"hunk": 0, "source_offset": 0x100},
+                            "selected_identity": {"slot_symbol": "app_0360"},
+                        },
+                    }
+                ]
+            }
+        ]
+    }
+    monkeypatch.setattr(reversing_loop, "inspect_a5_hardware_lifetimes", lambda *args, **kwargs: {"a5_hardware_lifetimes": {}})
+    monkeypatch.setattr(
+        reversing_loop,
+        "inspect_rsset_candidates",
+        lambda *args, **kwargs: {"rsset_candidate_report": {"candidates": [rsset_candidate]}},
+    )
+    monkeypatch.setattr(
+        reversing_loop,
+        "inspect_immediate_runtime_refs",
+        lambda *args, **kwargs: {"immediate_reference_candidates": [immediate]},
+    )
+    monkeypatch.setattr(reversing_loop, "inspect_callback_slots", lambda *args, **kwargs: {"callback_slots": callback_slots})
+
+    state = reversing_loop.inspect_cascade_state("pandora")
+    derived_types = {fact["fact_type"] for fact in state["derived_facts"]}
+
+    assert {"rsset_app_field_ref", "rsset_downstream_candidate", "address_label", "address_xref", "callback_callable_target"} <= derived_types
+    assert state["summary"]["derived_fact_count"] >= 5
+    assert state["render_policy"]["status"] == "read_only"
+
+
+def test_cascade_report_cli_invokes_inspection(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    calls: list[dict[str, object]] = []
+
+    def inspect(target_id: str, **kwargs: object) -> dict[str, object]:
+        calls.append({"target_id": target_id, **kwargs})
+        return {"schema": "analysis-cascade/v1", "target_id": target_id}
+
+    monkeypatch.setattr(reversing_loop, "inspect_cascade_state", inspect)
+
+    assert (
+        reversing_loop.main(
+            [
+                "--project-root",
+                str(Path("root")),
+                "cascade-report",
+                "--target",
+                "pandora",
+                "--listing-timeout-seconds",
+                "1.5",
+            ]
+        )
+        == 0
+    )
+
+    assert json.loads(capsys.readouterr().out)["schema"] == "analysis-cascade/v1"
+    assert calls == [{"target_id": "pandora", "listing_timeout_seconds": 1.5, "project_root": Path("root")}]
+
+
 def test_listing_entrypoint_label_candidates_skip_human_label(tmp_path: Path) -> None:
     _target(tmp_path)
     _write_raw_source(tmp_path, entrypoint=2)
