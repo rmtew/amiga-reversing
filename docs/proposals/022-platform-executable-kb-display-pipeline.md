@@ -1,6 +1,6 @@
 # Proposal 022: Platform Restored Source Model
 
-Status: active
+Status: complete
 
 ## Purpose
 
@@ -591,6 +591,40 @@ Close the proposal by proving all platform outcomes together:
 - Mac CODE selected executable source has full ownership coverage, source-level
   relocation/reference representation, executable-relevant placeholders, and no
   round-trip claim.
+
+Completed 022-011 closeout proof:
+
+- Amiga HUNK and Atari PRG listing artifact analysis emit
+  `restored_source_model_v1`, `source_ownership_ranges`,
+  `source_reference_records`, and passing `source_coverage_verifier` reports.
+  Exactness remains enforced by existing rebuild/reproduction precommit gates.
+- Mac CODE project, listing artifact, target artifact, and web/API surfaces
+  expose restored-source ownership, reference records, verifier results,
+  executable resource placeholders, and platform extensions. Mac keeps
+  `round_trip_required: false` and makes no resource-fork round-trip claim.
+- The verifier has positive coverage on current Amiga/Atari/Mac artifact paths
+  and negative coverage for C failure modes: gaps, overlaps, malformed unknown
+  ranges, and invalid instruction ownership.
+- Completed 022 issue files were deleted only after durable conclusions were
+  promoted into this proposal.
+- Retained future work: richer Mac UI navigation for ownership ranges,
+  relocation/reference context, executable resource placeholders, and
+  side-by-side code/data/source inspection. Public Mac compatibility payload
+  fields remain until current API consumers migrate fully to restored-source
+  records.
+
+Final proof commands:
+
+- `cmd /c src\precommit.bat`: passed.
+- `uv run python -m amiga_reversing.tools.platform_executable_formats validate`:
+  passed.
+- `uv run python -m amiga_reversing.tools.platform_executable_formats coverage
+  --current-macos-c-backend --current-amiga-hunk --current-atari-prg`: passed
+  with `invalid: 0`, `parser_outputs: 3`.
+- `uv run python -m pytest tests\test_macos_c_backend.py
+  tests\test_macos_project_payload.py tests\test_macos_target_artifact.py
+  tests\test_macos_web_view.py tests\test_web_app_source.py -q`: passed with
+  48 tests.
 
 ## Acceptance Criteria
 
