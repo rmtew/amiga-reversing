@@ -287,6 +287,9 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     assert "missing_m68k_movea_l_stack_to_a0_entry" in asm_text
     assert ";   byte_real_source:" in asm_text
     assert "macos_code_CODE_2_candidate_code_00000176:" in asm_text
+    assert "macos_code_CODE_1_candidate_code_00000028:" in asm_text
+    assert "\tdc.b $20,$5F" in asm_text and "; payload+40" in asm_text
+    assert "macos_code_CODE_1_candidate_code_00000028:\n\tdc.b $20,$5F" in asm_text
     assert "; CODE 1 Main byte-real source follows." in asm_text
     assert "$20,$5F" in asm_text
     assert "SECTION code,code" not in asm_text

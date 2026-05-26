@@ -365,7 +365,7 @@ def _code_source_byte_real_lines(section: Mapping[str, object], *, payload_bytes
             f";     {kind} payload[{start}..{end}) status={_text(item.get('fact_status'))} "
             f"parser_use={_text(item.get('parser_use'))} evidence={_text(item.get('evidence'))}"
         )
-        lines.extend(_dc_b_lines(payload_bytes[start:end], label=label))
+        lines.extend(_dc_b_lines(payload_bytes[start:end], label=label, base_offset=start))
     return lines
 
 
