@@ -508,13 +508,18 @@ def _source_quality_resource_row(
     ranges = [_mapping(item) for item in _sequence(section.get("source_body_ranges"))]
     payload_size = _int_value(detail.get("payload_size")) or 0
     labels = _source_quality_labels(detail, section)
-    residuals = _source_quality_residuals(detail, ranges, payload_size=payload_size)
     reachable = _source_quality_reachable_evidence(detail, section)
     semantic_source = _mapping(section.get("semantic_source"))
     semantic_rows = [_mapping(item) for item in _sequence(semantic_source.get("rows"))]
     semantic_instruction_count = sum(1 for item in semantic_rows if item.get("kind") == "instruction")
-    semantic_data_count = sum(1 for item in semantic_rows if item.get("kind") == "data")
+    semantic_data_count = sum(1 for item in semantic_rows if item.get("kind") in {"data", "directive"})
     semantic_xref_count = sum(len(_sequence(item.get("xrefs"))) for item in semantic_rows)
+    residuals = _source_quality_residuals(
+        detail,
+        ranges,
+        payload_size=payload_size,
+        semantic_rows=semantic_rows,
+    )
     executable_body_spans = [
         item
         for item in ranges
@@ -569,6 +574,7 @@ def _source_quality_labels(detail: Mapping[str, object], section: Mapping[str, o
             _text(_mapping(context.get(key)).get("label"))
             for key in ("far_model_header", "candidate_entry_stub", "candidate_body_after_stub")
         )
+    labels.extend(_text(_mapping(item).get("target_label")) for item in _sequence(section.get("incoming_code0_xrefs")))
     for item in _sequence(section.get("source_body_ranges")):
         range_info = _mapping(item)
         start = _int_value(range_info.get("start")) or 0
@@ -581,11 +587,17 @@ def _source_quality_residuals(
     ranges: list[Mapping[str, object]],
     *,
     payload_size: int,
+    semantic_rows: list[Mapping[str, object]],
 ) -> list[dict[str, object]]:
     residuals: list[dict[str, object]] = []
     for item in ranges:
         kind = str(item.get("kind") or "")
         status = str(item.get("fact_status") or item.get("status") or "")
+        if kind in {"candidate_code", "confirmed_code", "code"}:
+            decoded_residuals = _semantic_gap_residuals(detail, item, semantic_rows)
+            if semantic_rows:
+                residuals.extend(decoded_residuals)
+                continue
         if kind in {"candidate_code", "deferred", "unknown", "placeholder"} or status in {"candidate", "deferred"}:
             residuals.append(
                 {
@@ -615,6 +627,61 @@ def _source_quality_residuals(
             }
         )
     return residuals
+
+
+def _semantic_gap_residuals(
+    detail: Mapping[str, object],
+    range_info: Mapping[str, object],
+    semantic_rows: list[Mapping[str, object]],
+) -> list[dict[str, object]]:
+    start = _int_value(range_info.get("start"))
+    end = _int_value(range_info.get("end"))
+    if start is None or end is None or end <= start:
+        return []
+    gaps: list[dict[str, object]] = []
+    covered_end = start
+    for row in sorted(semantic_rows, key=lambda item: _int_value(item.get("payload_offset")) or -1):
+        row_start = _int_value(row.get("payload_offset"))
+        row_end = _int_value(row.get("payload_end"))
+        if row_start is None or row_end is None or row_end <= row_start:
+            continue
+        if row_end <= start or row_start >= end:
+            continue
+        if row_start > covered_end:
+            gaps.append(
+                _semantic_gap_residual(
+                    detail,
+                    range_info,
+                    start=covered_end,
+                    end=min(row_start, end),
+                )
+            )
+        covered_end = max(covered_end, min(row_end, end))
+    if covered_end < end:
+        gaps.append(_semantic_gap_residual(detail, range_info, start=covered_end, end=end))
+    return gaps
+
+
+def _semantic_gap_residual(
+    detail: Mapping[str, object],
+    range_info: Mapping[str, object],
+    *,
+    start: int,
+    end: int,
+) -> dict[str, object]:
+    return {
+        "kind": "semantic_decode_gap",
+        "start": start,
+        "end": end,
+        "size": end - start,
+        "status": "candidate",
+        "fact_status": range_info.get("fact_status") or "candidate",
+        "parser_use": range_info.get("parser_use"),
+        "fact_id": range_info.get("fact_id"),
+        "kb_record_id": range_info.get("kb_record_id") or detail.get("kb_record_id"),
+        "reason": "decoder did not emit an instruction/data row for this exact executable subrange",
+        "next_required_implementation": "extend flow/data classification for this exact CODE subrange",
+    }
 
 
 def _source_quality_reachable_evidence(
@@ -893,11 +960,11 @@ def _semantic_source_rows(
     project_root: Path,
 ) -> dict[str, object]:
     resource_id = resource.get("id")
-    if resource_id != selected_id or resource_id != 1:
+    if resource_id == 0:
         return {
             "kind": "semantic_source_deferred",
             "status": "deferred",
-            "reason": "023-019 starts semantic disassembly with selected CODE 1",
+            "reason": "CODE 0 is routing/application metadata, not an executable body",
             "rows": [],
         }
     code_range = _first_code_range(_sequence(code.get("layout_ranges")))
@@ -907,7 +974,7 @@ def _semantic_source_rows(
         return {
             "kind": "semantic_source_blocked",
             "status": "blocked",
-            "reason": "selected CODE 1 has no classifiable executable body range",
+            "reason": "CODE resource has no classifiable executable body range",
             "rows": [],
         }
     code_bytes = extract_macos_hfs_code_resource_bytes_with_c_backend(
@@ -920,7 +987,7 @@ def _semantic_source_rows(
         return {
             "kind": "semantic_source_blocked",
             "status": "blocked",
-            "reason": "selected CODE 1 executable body bytes are unavailable from the native C Mac CODE path",
+            "reason": "CODE executable body bytes are unavailable from the native C Mac CODE path",
             "rows": [],
         }
     total_rows, _profile, artifact = build_macos_code_bytes_listing_artifact_profile(
@@ -949,7 +1016,7 @@ def _semantic_source_rows(
         "payload_size": code_size,
         "row_count": len(rows),
         "instruction_row_count": instruction_count,
-        "data_row_count": sum(1 for row in rows if row.get("kind") == "data"),
+        "data_row_count": sum(1 for row in rows if row.get("kind") in {"data", "directive"}),
         "generated_label_count": sum(1 for row in rows if row.get("kind") == "label"),
         "generated_xref_count": sum(len(_sequence(row.get("xrefs"))) for row in rows),
         "rows": rows,

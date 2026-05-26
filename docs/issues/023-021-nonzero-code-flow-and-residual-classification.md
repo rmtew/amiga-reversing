@@ -1,6 +1,6 @@
 # 023-021: Nonzero CODE Flow And Residual Classification
 
-Status: active
+Status: complete
 
 Proposal: `docs/proposals/023-classic-mac-os-source-presentation.md`
 
@@ -45,13 +45,29 @@ annotations. Human-quality names and comments are later reversing work.
 
 ## Acceptance
 
-- CODE 1 contains real instruction rows and recovered labels/xrefs for the
+- [x] CODE 1 contains real instruction rows and recovered labels/xrefs for the
   currently supported path.
-- CODE 1 no longer presents the whole candidate body as one byte-real block.
-- Unsupported spans remain visible as precise residuals, not broad orphan or
+- [x] CODE 1 no longer presents the whole candidate body as one byte-real block.
+- [x] Unsupported spans remain visible as precise residuals, not broad orphan or
   candidate buckets.
-- Tests cover instruction rows, labels/xrefs, data rows where discovered, and
+- [x] Tests cover instruction rows, labels/xrefs, data rows where discovered, and
   residual accounting.
+
+## Result
+
+- Semantic decoding now applies to nonzero CODE resources with classifiable
+  executable body spans, not only selected CODE 1.
+- CODE 1 and other supported nonzero CODE resources render decoded instruction
+  rows, generated labels/xrefs, and semantic data/directive rows from the shared
+  M68K listing artifact path.
+- CODE 1 no longer has a broad candidate-code residual for the decoded body; the
+  source-quality gate reaches `semantic_source_complete_for_known_bounds`.
+- Residual accounting now creates exact semantic gap records for uncovered
+  executable subranges instead of treating a whole decoded candidate body as one
+  residual bucket.
+- Missing source symbols, human names, A5 lifetime proof, and Segment Loader
+  fixup decoding were not used as blockers for decoder-supported instruction
+  rows.
 
 ## Verification
 

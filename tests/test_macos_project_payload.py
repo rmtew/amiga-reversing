@@ -840,13 +840,12 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
     assert calls["decode_display_paths"] == [
         "Mac OS semantic source CODE 1",
         "Mac OS candidate preview CODE 2 FPOpTable",
+        "Mac OS semantic source CODE 2 FPOpTable",
+        "Mac OS semantic source CODE 3 Tiny",
     ]
     assert calls["decode_closed"] is True
-    assert calls["extract_args"] == [
-        (b"hfs", "MPW-GM/MPW/Tools/Asm", 1, tmp_path),
-        (b"hfs", "MPW-GM/MPW/Tools/Asm", 2, tmp_path),
-        (b"hfs", "MPW-GM/MPW/Tools/Asm", 3, tmp_path),
-    ]
+    assert [item[2] for item in calls["extract_args"]] == [1, 2, 2, 3, 3]
+    assert all(item[:2] == (b"hfs", "MPW-GM/MPW/Tools/Asm") and item[3] == tmp_path for item in calls["extract_args"])
     navigation_groups = container["navigation"]["groups"]
     assert navigation_groups[0]["id"] == "macos-code-resources"
     assert len(navigation_groups[0]["items"]) == 4
@@ -1092,11 +1091,11 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     assert source_quality["kind"] == "macos_source_quality_gate_v1"
     assert source_quality["status"] == "byte_real_baseline"
     assert source_quality["baseline_status"] == "passed_with_deferred_semantics"
-    assert source_quality["semantic_closeout_status"] == "blocked_byte_real_only"
+    assert source_quality["semantic_closeout_status"] == "semantic_source_complete_for_known_bounds"
     assert source_quality["semantic_components"] == {
         "byte_preservation_status": "byte_real_complete",
         "source_ordering_status": "source_first",
-        "semantic_disassembly_status": "byte_real_only",
+            "semantic_disassembly_status": "semantic_instruction_rows_present",
         "label_xref_status": "generated_labels_and_xrefs_present",
         "residual_status": "explicit",
     }
@@ -1128,25 +1127,12 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     assert code1_quality["generated_label_count"] >= 1
     assert code1_quality["human_semantic_names_required"] is False
     assert "macos_CODE_1_candidate_entry_stub" in code1_quality["labels"]
-    assert [
-        {
-            key: value
-            for key, value in item.items()
-            if key in {"kind", "start", "end", "size", "status", "parser_use", "reason"}
-        }
-        for item in code1_quality["residuals"]
-    ] == [
-        {
-            "kind": "candidate_code",
-            "start": 40,
-            "end": 29024,
-            "size": 28984,
-            "status": "candidate",
-            "parser_use": "candidate_only",
-            "reason": "m68k_movea_l_stack_to_a0_entry",
-        }
-    ]
-    assert code1_quality["residuals"][0]["fact_id"] == "macos.code_resource.movea_stack_a0.boundary.candidate"
+    assert code1_quality["residuals"] == []
+    code2_quality = next(item for item in quality_rows if item["resource_id"] == 2)
+    assert code2_quality["semantic_instruction_row_count"] >= 4
+    assert code2_quality["semantic_data_row_count"] >= 1
+    assert code2_quality["byte_real_only_executable_body"] is False
+    assert all(item["kind"] != "candidate_code" for item in code2_quality["residuals"])
     assert any(item["kind"] == "known_entry_stub_pattern" for item in code1_quality["reachable_code_evidence"])
     code1_section = next(item for item in source_sections if item["id"] == 1)
     semantic_source = code1_section["semantic_source"]

@@ -883,6 +883,21 @@ Required outcome:
   for at least the currently supported CODE 1 path, and that unsupported spans
   remain precise residuals.
 
+Completion state:
+
+- Complete for current parser-supported nonzero CODE spans. Semantic decoding now
+  feeds all nonzero CODE resources with classifiable executable body ranges
+  through the shared M68K listing artifact path.
+- CODE 1 and other supported CODE resources render instruction rows,
+  generated labels/xrefs, and data/directive rows instead of broad byte-real
+  `dc.b` bodies.
+- Decoded executable ranges no longer remain as broad candidate residuals.
+  Remaining residuals are exact typed semantic gaps or non-code data/metadata
+  ranges with candidate/deferred evidence.
+- The source-quality gate now reaches
+  `semantic_source_complete_for_known_bounds`; 023-022 owns the final closeout
+  audit and deletion/promotion work.
+
 ### 023-022: Semantic Source Presentation Closeout
 
 Close 023 only after the generated Mac source is visibly useful to a reverser,
