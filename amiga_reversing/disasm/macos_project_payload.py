@@ -297,6 +297,7 @@ def _code_source_body_sections(
             "listing": detail.get("listing"),
             "restored_source": detail.get("restored_source"),
             "source_body_ranges": _source_body_ranges(detail),
+            "semantic_source": detail.get("semantic_source"),
             "preview_windows": detail.get("preview_windows"),
             "byte_preserving_placeholder": _code_source_placeholder(detail),
         }
@@ -451,6 +452,11 @@ def _source_quality_resource_row(
     labels = _source_quality_labels(detail, section)
     residuals = _source_quality_residuals(detail, ranges, payload_size=payload_size)
     reachable = _source_quality_reachable_evidence(detail, section)
+    semantic_source = _mapping(section.get("semantic_source"))
+    semantic_rows = [_mapping(item) for item in _sequence(semantic_source.get("rows"))]
+    semantic_instruction_count = sum(1 for item in semantic_rows if item.get("kind") == "instruction")
+    semantic_data_count = sum(1 for item in semantic_rows if item.get("kind") == "data")
+    semantic_xref_count = sum(len(_sequence(item.get("xrefs"))) for item in semantic_rows)
     executable_body_spans = [
         item
         for item in ranges
@@ -470,19 +476,23 @@ def _source_quality_resource_row(
         "legacy_orphan_ranges_reclassified": len(_sequence(detail.get("orphan_ranges"))),
         "renders_only_byte_real_rows": True,
         "executable_body_span_count": len(executable_body_spans),
-        "semantic_instruction_row_count": 0,
-        "semantic_data_row_count": 0,
-        "byte_real_only_executable_body": bool(executable_body_spans),
+        "semantic_instruction_row_count": semantic_instruction_count,
+        "semantic_data_row_count": semantic_data_count,
+        "byte_real_only_executable_body": bool(executable_body_spans) and semantic_instruction_count == 0,
         "stable_labels_present": bool(labels),
         "labels": labels,
         "generated_label_count": len(labels),
-        "generated_xref_count": 0,
+        "generated_xref_count": semantic_xref_count,
         "human_semantic_names_required": False,
         "residuals_explicit": all(item.get("status") in {"candidate", "deferred"} for item in residuals),
         "residuals": residuals,
         "reachable_code_evidence_recorded": bool(reachable),
         "reachable_code_evidence": reachable,
-        "next_required_implementation": _source_quality_next_step(detail, residuals),
+        "next_required_implementation": _source_quality_next_step(
+            detail,
+            residuals,
+            semantic_instruction_count=semantic_instruction_count,
+        ),
     }
 
 
@@ -592,9 +602,16 @@ def _source_quality_reachable_evidence(
     return evidence
 
 
-def _source_quality_next_step(detail: Mapping[str, object], residuals: list[Mapping[str, object]]) -> str:
+def _source_quality_next_step(
+    detail: Mapping[str, object],
+    residuals: list[Mapping[str, object]],
+    *,
+    semantic_instruction_count: int = 0,
+) -> str:
     if detail.get("id") == 0:
         return "decode CODE 0 dispatch target semantics only where accepted target evidence exists"
+    if semantic_instruction_count:
+        return "extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans"
     if any(_mapping(item).get("kind") == "candidate_code" for item in residuals):
         return "implement accepted Mac CODE entry/reachability proof before rendering semantic instructions"
     return "extend C-owned CODE layout and reference analysis before promoting semantic source rows"
@@ -719,6 +736,14 @@ def _code_resource_details(
             unsupported=unsupported,
             preview_windows=preview_windows,
         )
+        semantic_source = _semantic_source_rows(
+            resource,
+            code=code,
+            selected_id=selected_id,
+            hfs_bytes=hfs_bytes,
+            hfs_path=hfs_path,
+            project_root=project_root,
+        )
         restored_source = _c_owned_restored_source_packet(code, scope=f"CODE {resource_id}")
         source_presentation_status = _code_source_presentation_status(
             resource,
@@ -753,6 +778,7 @@ def _code_resource_details(
                 "relocation_fixups": relocation_fixups,
                 "restored_source": restored_source,
                 "source_presentation_status": source_presentation_status,
+                "semantic_source": semantic_source,
                 "jump_table": _mapping(code.get("jump_table")),
                 "jump_table_rows": jump_table_rows,
                 "navigation_anchors": anchors,
@@ -797,6 +823,138 @@ def _code_source_presentation_status(
         "reason": restored_source.get("reason") or listing.get("reason") or "CODE resource has no C-owned source packet",
         "provenance": "macos_project_payload.c_owned_restored_source_packet",
     }
+
+
+def _semantic_source_rows(
+    resource: Mapping[str, object],
+    *,
+    code: Mapping[str, object],
+    selected_id: object,
+    hfs_bytes: bytes,
+    hfs_path: str,
+    project_root: Path,
+) -> dict[str, object]:
+    resource_id = resource.get("id")
+    if resource_id != selected_id or resource_id != 1:
+        return {
+            "kind": "semantic_source_deferred",
+            "status": "deferred",
+            "reason": "023-019 starts semantic disassembly with selected CODE 1",
+            "rows": [],
+        }
+    code_range = _first_code_range(_sequence(code.get("layout_ranges")))
+    code_start = _int_value(code_range.get("start"))
+    code_size = _int_value(code_range.get("size"))
+    if code_start is None or code_size is None or code_size <= 0:
+        return {
+            "kind": "semantic_source_blocked",
+            "status": "blocked",
+            "reason": "selected CODE 1 has no classifiable executable body range",
+            "rows": [],
+        }
+    code_bytes = extract_macos_hfs_code_resource_bytes_with_c_backend(
+        hfs_bytes,
+        hfs_path,
+        int(resource_id),
+        project_root=project_root,
+    )
+    if not code_bytes:
+        return {
+            "kind": "semantic_source_blocked",
+            "status": "blocked",
+            "reason": "selected CODE 1 executable body bytes are unavailable from the native C Mac CODE path",
+            "rows": [],
+        }
+    total_rows, _profile, artifact = build_macos_code_bytes_listing_artifact_profile(
+        code_bytes,
+        display_path=f"Mac OS semantic source CODE {resource_id} {resource.get('name') or ''}".strip(),
+        project_root=project_root,
+    )
+    try:
+        window, _window_profile = artifact.window_payload(start=0, count=total_rows)
+    finally:
+        artifact.close()
+    rows = [
+        _semantic_source_row(row, payload_base=code_start, resource=resource, code=code, code_range=code_range)
+        for row in _sequence(window.get("rows"))
+    ]
+    rows = [row for row in rows if row]
+    instruction_count = sum(1 for row in rows if row.get("kind") == "instruction")
+    return {
+        "kind": "macos_code_semantic_source_v1",
+        "status": "decoded" if instruction_count else "blocked",
+        "backend": "macos-code",
+        "authority": "c_owned_listing_artifact",
+        "resource_type": "CODE",
+        "resource_id": resource_id,
+        "payload_base": code_start,
+        "payload_size": code_size,
+        "row_count": len(rows),
+        "instruction_row_count": instruction_count,
+        "data_row_count": sum(1 for row in rows if row.get("kind") == "data"),
+        "generated_label_count": sum(1 for row in rows if row.get("kind") == "label"),
+        "generated_xref_count": sum(len(_sequence(row.get("xrefs"))) for row in rows),
+        "rows": rows,
+    }
+
+
+def _semantic_source_row(
+    row: object,
+    *,
+    payload_base: int,
+    resource: Mapping[str, object],
+    code: Mapping[str, object],
+    code_range: Mapping[str, object],
+) -> dict[str, object]:
+    row_map = _mapping(row)
+    kind = str(row_map.get("kind") or "")
+    start = _int_value(row_map.get("start_offset"))
+    end = _int_value(row_map.get("end_offset"))
+    payload_start = payload_base + start if start is not None else None
+    payload_end = payload_base + end if end is not None else payload_start
+    label = row_map.get("label") if isinstance(row_map.get("label"), str) else None
+    xrefs = _semantic_source_xrefs(row_map, payload_base=payload_base)
+    semantic_row = {
+        "kind": kind,
+        "resource_type": "CODE",
+        "resource_id": resource.get("id"),
+        "resource_name": resource.get("name"),
+        "payload_offset": payload_start,
+        "payload_end": payload_end,
+        "size": (payload_end - payload_start) if isinstance(payload_start, int) and isinstance(payload_end, int) else 0,
+        "bytes": row_map.get("bytes"),
+        "text": str(row_map.get("text") or "").rstrip(),
+        "label": label,
+        "opcode_or_directive": row_map.get("opcode_or_directive"),
+        "operand_text": row_map.get("operand_text"),
+        "flow": row_map.get("flow"),
+        "flow_kind": row_map.get("flow_kind"),
+        "control_flow_boundary": row_map.get("control_flow_boundary"),
+        "stable_key": row_map.get("stable_key") or row_map.get("row_key"),
+        "xrefs": xrefs,
+        "provenance": "CListingArtifact.create_macos_code_bytes",
+        "kb_record_id": code_range.get("kb_record_id") or code.get("kb_record_id"),
+        "fact_id": code_range.get("fact_id"),
+        "fact_status": code_range.get("fact_status"),
+        "parser_use": code_range.get("parser_use"),
+    }
+    return {key: value for key, value in semantic_row.items() if value not in (None, "")}
+
+
+def _semantic_source_xrefs(row: Mapping[str, object], *, payload_base: int) -> list[dict[str, object]]:
+    xrefs: list[dict[str, object]] = []
+    for ref in _sequence(row.get("code_start_refs")):
+        ref_map = _mapping(ref)
+        offset = _int_value(ref_map.get("offset"))
+        xrefs.append(
+            {
+                "kind": "code_start_ref",
+                "payload_offset": payload_base + offset if offset is not None else None,
+                "reason": ref_map.get("reason_name"),
+                "confidence": ref_map.get("confidence"),
+            }
+        )
+    return xrefs
 
 
 def _listing_descriptor(

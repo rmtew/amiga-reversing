@@ -527,6 +527,8 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
 
     def fake_extract(data: bytes, hfs_path: str, resource_id: int, **kwargs: object) -> bytes:
         calls.setdefault("extract_args", []).append((data, hfs_path, resource_id, kwargs.get("project_root")))
+        if resource_id == 1:
+            return b"\x20\x5f\x4e\x75"
         if resource_id == 2:
             return b"\x00\x00\x00\x00\x00\x00\x20\x5f\x4e\x75"
         if resource_id == 3:
@@ -536,7 +538,7 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
     class FakeDecodeArtifact:
         def window_payload(self, *, start: int, count: int) -> tuple[dict[str, object], dict[str, object]]:
             assert start == 0
-            assert count >= 4
+            assert count >= 2
             return (
                 {
                     "rows": [
@@ -834,10 +836,14 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
             "parser_use": "candidate_only",
         }
     ]
-    assert calls["decode_bytes"] == [b"\x20\x5f\x4e\x75"]
-    assert calls["decode_display_paths"] == ["Mac OS candidate preview CODE 2 FPOpTable"]
+    assert calls["decode_bytes"].count(b"\x20\x5f\x4e\x75") == 2
+    assert calls["decode_display_paths"] == [
+        "Mac OS semantic source CODE 1",
+        "Mac OS candidate preview CODE 2 FPOpTable",
+    ]
     assert calls["decode_closed"] is True
     assert calls["extract_args"] == [
+        (b"hfs", "MPW-GM/MPW/Tools/Asm", 1, tmp_path),
         (b"hfs", "MPW-GM/MPW/Tools/Asm", 2, tmp_path),
         (b"hfs", "MPW-GM/MPW/Tools/Asm", 3, tmp_path),
     ]
@@ -1079,7 +1085,7 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
         "byte_preservation_status": "byte_real_complete",
         "source_ordering_status": "source_first",
         "semantic_disassembly_status": "byte_real_only",
-        "label_xref_status": "generated_labels_without_xrefs",
+        "label_xref_status": "generated_labels_and_xrefs_present",
         "residual_status": "explicit",
     }
     assert "not semantic source closeout" in source_quality["baseline_status_meaning"]
@@ -1103,11 +1109,11 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     assert code1_quality["orphan_bucket_present"] is False
     assert code1_quality["legacy_orphan_ranges_reclassified"] == 0
     assert code1_quality["renders_only_byte_real_rows"] is True
-    assert code1_quality["byte_real_only_executable_body"] is True
+    assert code1_quality["byte_real_only_executable_body"] is False
     assert code1_quality["executable_body_span_count"] == 1
-    assert code1_quality["semantic_instruction_row_count"] == 0
+    assert code1_quality["semantic_instruction_row_count"] >= 8
+    assert code1_quality["generated_xref_count"] >= 1
     assert code1_quality["generated_label_count"] >= 1
-    assert code1_quality["generated_xref_count"] == 0
     assert code1_quality["human_semantic_names_required"] is False
     assert "macos_CODE_1_candidate_entry_stub" in code1_quality["labels"]
     assert [
@@ -1130,6 +1136,22 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     ]
     assert code1_quality["residuals"][0]["fact_id"] == "macos.code_resource.movea_stack_a0.boundary.candidate"
     assert any(item["kind"] == "known_entry_stub_pattern" for item in code1_quality["reachable_code_evidence"])
+    code1_section = next(item for item in source_sections if item["id"] == 1)
+    semantic_source = code1_section["semantic_source"]
+    assert semantic_source["kind"] == "macos_code_semantic_source_v1"
+    assert semantic_source["status"] == "decoded"
+    assert semantic_source["authority"] == "c_owned_listing_artifact"
+    assert semantic_source["payload_base"] == 40
+    assert semantic_source["instruction_row_count"] >= 8
+    assert any(
+            row["kind"] == "instruction"
+            and row["payload_offset"] == 40
+            and row["text"].strip() == "movea.l (a7)+,a0"
+            and row["bytes"] == "205f"
+        for row in semantic_source["rows"]
+    )
+    assert any(row["kind"] == "label" and row["payload_offset"] == 40 for row in semantic_source["rows"])
+    assert all(row.get("payload_offset") is None or row["payload_offset"] >= 40 for row in semantic_source["rows"])
     code2_quality = next(item for item in quality_rows if item["resource_id"] == 2)
     assert code2_quality["legacy_orphan_ranges_reclassified"] > 0
     assert code2_quality["orphan_bucket_present"] is False

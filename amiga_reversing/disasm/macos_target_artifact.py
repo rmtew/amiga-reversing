@@ -344,6 +344,8 @@ def _code_source_body_range_lines(section: Mapping[str, object]) -> list[str]:
 
 def _code_source_byte_real_lines(section: Mapping[str, object], *, payload_bytes: bytes) -> list[str]:
     placeholder = _mapping(section.get("byte_preserving_placeholder"))
+    semantic_source = _mapping(section.get("semantic_source"))
+    semantic_rows = [_mapping(item) for item in _sequence(semantic_source.get("rows"))]
     lines = [
         (
             f";   byte_preserving_placeholder: CODE {_text(section.get('id'))} "
@@ -366,8 +368,69 @@ def _code_source_byte_real_lines(section: Mapping[str, object], *, payload_bytes
             f";     {kind} payload[{start}..{end}) status={_text(item.get('fact_status'))} "
             f"parser_use={_text(item.get('parser_use'))} evidence={_text(item.get('evidence'))}"
         )
+        if kind in {"candidate_code", "confirmed_code", "code"} and semantic_rows:
+            lines.extend(_semantic_source_lines(section, semantic_source, start=start, end=end))
+            continue
         lines.extend(_dc_b_lines(payload_bytes[start:end], label=label, base_offset=start))
     return lines
+
+
+def _semantic_source_lines(
+    section: Mapping[str, object],
+    semantic_source: Mapping[str, object],
+    *,
+    start: int,
+    end: int,
+) -> list[str]:
+    rows = [
+        row
+        for row in (_mapping(value) for value in _sequence(semantic_source.get("rows")))
+        if _semantic_row_in_range(row, start=start, end=end)
+    ]
+    if not rows:
+        return []
+    lines = [
+        (
+            f";     semantic_source: kind={_text(semantic_source.get('kind'))} "
+            f"status={_text(semantic_source.get('status'))} "
+            f"instructions={_text(semantic_source.get('instruction_row_count'))} "
+            f"labels={_text(semantic_source.get('generated_label_count'))} "
+            f"xrefs={_text(semantic_source.get('generated_xref_count'))}"
+        )
+    ]
+    resource_id = section.get("id")
+    for row in rows:
+        kind = row.get("kind")
+        payload_offset = _int_value(row.get("payload_offset"))
+        if kind == "label":
+            label_offset = payload_offset if payload_offset is not None else start
+            lines.append(f"macos_code_CODE_{_text(resource_id)}_loc_{label_offset:08x}:")
+            continue
+        text = str(row.get("text") or "").rstrip()
+        if not text:
+            continue
+        bytes_text = str(row.get("bytes") or "").replace(" ", "").upper()
+        pretty_bytes = " ".join(bytes_text[index : index + 2] for index in range(0, len(bytes_text), 2))
+        suffix = f"\t; payload+{_text(payload_offset)}"
+        if pretty_bytes:
+            suffix += f" bytes={pretty_bytes}"
+        lines.append(f"{text}{suffix}")
+        for xref in [_mapping(value) for value in _sequence(row.get("xrefs"))]:
+            lines.append(
+                f";       xref { _text(xref.get('kind')) } "
+                f"payload+{_text(xref.get('payload_offset'))} reason={_text(xref.get('reason'))}"
+            )
+    return lines
+
+
+def _semantic_row_in_range(row: Mapping[str, object], *, start: int, end: int) -> bool:
+    payload_offset = _int_value(row.get("payload_offset"))
+    payload_end = _int_value(row.get("payload_end"))
+    if payload_offset is None:
+        return False
+    if payload_end is None or payload_end == payload_offset:
+        return start <= payload_offset <= end
+    return start <= payload_offset and payload_end <= end
 
 
 def _source_quality_gate_lines(gate: Mapping[str, object]) -> list[str]:

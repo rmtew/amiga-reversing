@@ -1,6 +1,6 @@
 # 023-019: Mac CODE Semantic Disassembly Model
 
-Status: active
+Status: complete
 
 Proposal: `docs/proposals/023-classic-mac-os-source-presentation.md`
 
@@ -43,13 +43,27 @@ xrefs are the expected output for auto-analysis.
 
 ## Acceptance
 
-- CODE 1 entry/stub bytes render as instruction rows where the decoder accepts
+- [x] CODE 1 entry/stub bytes render as instruction rows where the decoder accepts
   them.
-- Instruction rows can use generated labels; meaningful routine names are not
+- [x] Instruction rows can use generated labels; meaningful routine names are not
   required.
-- CODE 1 far-model header remains metadata/data, not fake code.
-- The artifact, API, and web payload consume the same C-owned row model.
-- Tests fail if the supported CODE 1 executable span regresses to only `dc.b`.
+- [x] CODE 1 far-model header remains metadata/data, not fake code.
+- [x] The artifact, API, and web payload consume the same C-owned row model.
+- [x] Tests fail if the supported CODE 1 executable span regresses to only `dc.b`.
+
+## Result
+
+- Added `macos_code_semantic_source_v1` rows to `source_body_sections` for
+  selected CODE 1.
+- The model is fed by the native Mac CODE C extractor and the existing M68K
+  listing artifact path; it does not use raw-file compatibility transport.
+- CODE 1 far-model body rows start at payload offset 40 and render decoded
+  instructions such as `movea.l (a7)+,a0` with generated labels/xrefs.
+- The far-model header remains typed metadata/data and continues to render as
+  byte rows.
+- Later 023 issues still own CODE 0 routing reconciliation, broader nonzero CODE
+  flow following, and residual/data classification beyond the initial CODE 1
+  semantic slice.
 
 ## Verification
 

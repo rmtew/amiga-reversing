@@ -812,6 +812,18 @@ Required outcome:
 - Tests cover CODE 1 entry/stub bytes rendering as instructions instead of
   `dc.b`, while header bytes remain metadata/data.
 
+Completion state:
+
+- Complete for the initial CODE 1 slice. `source_body_sections[].semantic_source`
+  now carries `macos_code_semantic_source_v1` rows from the native Mac CODE C
+  extractor through the shared M68K listing artifact path.
+- CODE 1 far-model body rows begin at payload offset 40 and render decoded
+  instructions plus generated labels/xrefs; the far-model header remains
+  metadata/data.
+- This does not close Proposal 023. CODE 0 routing labels, broader nonzero CODE
+  flow, typed residual/data splitting, and final semantic-source closeout remain
+  under 023-020 through 023-022.
+
 ### 023-020: CODE 0 Routing Seeds And Source Labels
 
 Use documented CODE 0 and segment map structure to seed executable source

@@ -287,9 +287,9 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     assert "missing_m68k_movea_l_stack_to_a0_entry" in asm_text
     assert ";   byte_real_source:" in asm_text
     assert "macos_code_CODE_2_candidate_code_00000176:" in asm_text
-    assert "macos_code_CODE_1_candidate_code_00000028:" in asm_text
-    assert "\tdc.b $20,$5F" in asm_text and "; payload+40" in asm_text
-    assert "macos_code_CODE_1_candidate_code_00000028:\n\tdc.b $20,$5F" in asm_text
+    assert "macos_code_CODE_1_loc_00000028:" in asm_text
+    assert "\tmovea.l (a7)+,a0\t; payload+40 bytes=20 5F" in asm_text
+    assert "macos_code_CODE_1_candidate_code_00000028:\n\tdc.b $20,$5F" not in asm_text
     assert "; CODE 1 Main byte-real source follows." in asm_text
     assert "$20,$5F" in asm_text
     assert "; Source quality gate" in asm_text
@@ -298,7 +298,7 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     assert ";   baseline_status: passed_with_deferred_semantics" in asm_text
     assert "this is not semantic source closeout" in asm_text
     assert ";     semantic_disassembly_status: byte_real_only" in asm_text
-    assert ";     label_xref_status: generated_labels_without_xrefs" in asm_text
+    assert ";     label_xref_status: generated_labels_and_xrefs_present" in asm_text
     assert ";     no_fake_disassembly: True" in asm_text
     assert ";     no_vague_orphan_bucket: True" in asm_text
     assert ";     range_ownership_complete: True" in asm_text
@@ -313,9 +313,15 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     assert ";     deferred A5 lifetime proof" in asm_text
     assert (
         ";     CODE 1: section=macos-code-CODE-1 ownership=candidate_code,metadata "
-        "coverage=True labels=6 xrefs=0 instructions=0 body_spans=1 byte_real_only_body=True "
+        "coverage=True labels=6 xrefs=1 instructions=8 body_spans=1 byte_real_only_body=False "
         "reachable_evidence=3 residuals=1"
     ) in asm_text
+    assert ";     semantic_source: kind=macos_code_semantic_source_v1 status=decoded" in asm_text
+    assert "macos_code_CODE_1_loc_00000028:" in asm_text
+    assert "\tmovea.l (a7)+,a0\t; payload+40 bytes=20 5F" in asm_text
+    assert "\tmove.l a7,d0\t; payload+42 bytes=20 0F" in asm_text
+    assert ";       xref code_start_ref payload+40 reason=policy_entry_offset" in asm_text
+    assert "macos_code_CODE_1_candidate_code_00000028:\n\tdc.b $20,$5F" not in asm_text
     assert (
         ";       residual candidate_code payload[40..29024) status=candidate "
         "parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry"
