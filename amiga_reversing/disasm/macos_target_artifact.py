@@ -293,6 +293,7 @@ def _code_source_body_section_lines(
                     f";   selected_code_bytes_size: {_text(selected.get('code_bytes_size'))}",
                     f";   code_bytes_sha256: {_text(selected.get('code_bytes_sha256'))}",
                     f";   listing_rows: {selected_listing_rows}",
+                    *_code1_entry_stub_context_lines(detail, selected=selected),
                     "",
                     f"; CODE {_text(resource_id)} {_text(detail.get('name'))} full selected listing follows.",
                 ]
@@ -415,6 +416,35 @@ def _code0_structured_source_lines(detail: Mapping[str, object]) -> list[str]:
             ]
         )
     return lines
+
+
+def _code1_entry_stub_context_lines(detail: Mapping[str, object], *, selected: Mapping[str, object]) -> list[str]:
+    if detail.get("id") != 1:
+        return []
+    payload_size = _int_value(detail.get("payload_size"))
+    entry_offset = _int_value(selected.get("code_entry_offset"))
+    stub_size = 22
+    stub_end = entry_offset + stub_size if entry_offset is not None else None
+    residual_end = payload_size
+    return [
+        ";   CODE_1_layout_context:",
+        "macos_CODE_1_far_model_header:",
+        (
+            ";     payload[0..40) status=validated parser_use=accepted_parser_output "
+            "reason=far_model_segment_header; documented far-model header, not executable source rows"
+        ),
+        "macos_CODE_1_candidate_entry_stub:",
+        (
+            f";     payload[{_text(entry_offset)}..{_text(stub_end)}) "
+            f"selected_code_bytes[0..{stub_size}) status=candidate parser_use=candidate_only "
+            "reason=entry/stub bytes begin at candidate movea.l (a7)+,a0 boundary; accepted byte-entry proof remains deferred"
+        ),
+        "macos_CODE_1_candidate_body_after_stub:",
+        (
+            f";     payload[{_text(stub_end)}..{_text(residual_end)}) status=candidate parser_use=candidate_only "
+            "reason=remaining CODE 1 bytes are owned by candidate executable body; Segment Loader relocation/fixup semantics remain deferred"
+        ),
+    ]
 
 
 def _code_resource_lines(resources: Sequence[Mapping[str, object]], *, selected_id: object) -> list[str]:
@@ -707,6 +737,10 @@ def _sequence(value: object) -> list[object]:
 
 def _text(value: object) -> str:
     return "unknown" if value is None else str(value)
+
+
+def _int_value(value: object) -> int | None:
+    return value if isinstance(value, int) else None
 
 
 def main(argv: Sequence[str] | None = None) -> int:

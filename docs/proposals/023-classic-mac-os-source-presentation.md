@@ -521,6 +521,17 @@ Required outcome:
 - Tests assert the CODE 1 section contains the real code start after metadata,
   clear labels, and no misleading orphan terminology.
 
+Completed state:
+
+- `Asm.s` labels the CODE 1 far-model header as accepted metadata
+  `payload[0..40)` before the selected executable listing.
+- The candidate entry/stub span is explicit as `payload[40..62)` /
+  `selected_code_bytes[0..22)`, with the missing accepted byte-entry proof named
+  directly.
+- The remaining CODE 1 body is labelled `payload[62..29024)` as candidate
+  executable body with Segment Loader relocation/fixup interpretation still
+  deferred, and artifact tests reject vague orphan-code wording.
+
 ### 023-015: Mac Source Artifact Web/API Parity
 
 Make the web/API source views follow the same source-first, all-CODE contract as

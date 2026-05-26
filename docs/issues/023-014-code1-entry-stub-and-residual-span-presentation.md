@@ -1,6 +1,6 @@
 # 023-014: CODE 1 Entry, Stub, And Residual Span Presentation
 
-Status: active
+Status: complete
 Type: AFK
 Source proposal: docs/proposals/023-classic-mac-os-source-presentation.md
 
@@ -28,17 +28,27 @@ remaining unproven semantic may stay deferred.
 
 ## Acceptance Criteria
 
-- [ ] CODE 1 metadata/header bytes are separated from executable source rows.
-- [ ] The first executable CODE 1 row starts at the accepted body offset.
-- [ ] The leading stub is labelled from accepted evidence, or explicitly marked
+- [x] CODE 1 metadata/header bytes are separated from executable source rows.
+- [x] The first executable CODE 1 row starts at the accepted body offset.
+- [x] The leading stub is labelled from accepted evidence, or explicitly marked
       as a deferred entry/stub placeholder when evidence is insufficient.
-- [ ] Residual bytes after the stub are rendered under clear ownership/status
+- [x] Residual bytes after the stub are rendered under clear ownership/status
       wording and are not called orphan code unless that term has a precise
       tested meaning.
-- [ ] Any remaining deferred CODE 1 claim names the exact missing proof after
+- [x] Any remaining deferred CODE 1 claim names the exact missing proof after
       local documentation/KB review.
-- [ ] Tests assert the CODE 1 section contains clear labels and no misleading
+- [x] Tests assert the CODE 1 section contains clear labels and no misleading
       orphan terminology.
+
+## Completed Result
+
+- `Asm.s` now labels the CODE 1 far-model header separately from executable
+  source rows.
+- The selected CODE 1 listing starts after the documented 40-byte header and the
+  section records the candidate entry/stub span `payload[40..62)`.
+- Remaining CODE 1 bytes are labelled as candidate executable body
+  `payload[62..29024)`, with byte-entry and Segment Loader fixup proof still
+  explicitly deferred instead of described as vague orphan code.
 
 ## Blocked By
 
@@ -49,8 +59,8 @@ identity.
 
 ## Required Sign-Off
 
-- [ ] Focused Mac artifact/project/API tests pass.
-- [ ] Platform executable validate/coverage pass with Mac/Amiga/Atari current
+- [x] Focused Mac artifact/project/API tests pass.
+- [x] Platform executable validate/coverage pass with Mac/Amiga/Atari current
       backends.
-- [ ] `cmd /c src\precommit.bat` passes if shared rendering or C code changes.
-- [ ] `git diff --check` passes.
+- [x] `cmd /c src\precommit.bat` passes if shared rendering or C code changes.
+- [x] `git diff --check` passes.

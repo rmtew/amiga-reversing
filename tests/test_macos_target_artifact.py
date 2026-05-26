@@ -289,12 +289,25 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     assert "movea.l (a7)+,a0" in asm_text
     assert "SECTION code,code" not in asm_text
     assert "\tori.b #16,d0" not in asm_text
+    assert "macos_CODE_1_far_model_header:" in asm_text
+    assert "payload[0..40) status=validated parser_use=accepted_parser_output reason=far_model_segment_header" in asm_text
+    assert "macos_CODE_1_candidate_entry_stub:" in asm_text
+    assert (
+        "payload[40..62) selected_code_bytes[0..22) status=candidate parser_use=candidate_only "
+        "reason=entry/stub bytes begin at candidate movea.l (a7)+,a0 boundary"
+    ) in asm_text
+    assert "macos_CODE_1_candidate_body_after_stub:" in asm_text
+    assert "payload[62..29024) status=candidate parser_use=candidate_only" in asm_text
+    assert "accepted byte-entry proof remains deferred" in asm_text
+    assert "orphan code" not in asm_text.lower()
     source_start = asm_text.index("; CODE source body sections")
     code0_source_start = asm_text.index("; CODE 0 unknown source section")
+    code1_header = asm_text.index("macos_CODE_1_far_model_header:")
+    code1_stub = asm_text.index("macos_CODE_1_candidate_entry_stub:")
     listing_start = asm_text.index("; CODE 1 Main full selected listing follows.")
-    first_instruction = asm_text.index("movea.l (a7)+,a0")
+    first_instruction = asm_text.index("\tmovea.l (a7)+,a0")
     evidence_start = asm_text.index("; Supporting evidence follows after the source body.")
-    assert source_start < code0_source_start < listing_start < first_instruction < evidence_start
+    assert source_start < code0_source_start < code1_header < code1_stub < listing_start < first_instruction < evidence_start
     assert evidence_start < asm_text.index("; File forks")
     assert asm_text.index("; Resource fork") > evidence_start
     assert asm_text.index("; CODE resources") > evidence_start

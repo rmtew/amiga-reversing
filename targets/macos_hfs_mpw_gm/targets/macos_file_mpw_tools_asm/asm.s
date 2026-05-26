@@ -85,6 +85,13 @@ macos_code_CODE_1:
 ;   selected_code_bytes_size: 28984
 ;   code_bytes_sha256: 4633044ba0d2a816a0e482a9fb3b65bcd8daf699882df8f95939ad018f51879c
 ;   listing_rows: 1814
+;   CODE_1_layout_context:
+macos_CODE_1_far_model_header:
+;     payload[0..40) status=validated parser_use=accepted_parser_output reason=far_model_segment_header; documented far-model header, not executable source rows
+macos_CODE_1_candidate_entry_stub:
+;     payload[40..62) selected_code_bytes[0..22) status=candidate parser_use=candidate_only reason=entry/stub bytes begin at candidate movea.l (a7)+,a0 boundary; accepted byte-entry proof remains deferred
+macos_CODE_1_candidate_body_after_stub:
+;     payload[62..29024) status=candidate parser_use=candidate_only reason=remaining CODE 1 bytes are owned by candidate executable body; Segment Loader relocation/fixup semantics remain deferred
 
 ; CODE 1 Main full selected listing follows.
 ; Classic Mac OS CODE resource listing
