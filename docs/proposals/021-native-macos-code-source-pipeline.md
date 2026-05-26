@@ -107,16 +107,16 @@ Completed descriptor slice:
   descriptor before the temporary byte bridge. Listing/rendering behavior is not
   migrated in this slice.
 
-Current raw bridge callers and replacement order:
+Raw bridge callers recorded at 021-001 closeout, before later replacement:
 
-1. `macos_listing_source._temporary_code_binary_source` still materializes the
-   selected CODE bytes as a temporary `RawBinarySource`; 021-002 replaces byte
-   access with a native Mac CODE provider.
-2. `build_macos_project_listing_artifact_profile` still passes that temporary
-   source to the generic C listing artifact; 021-003 replaces the listing and
-   analysis artifact identity.
-3. Mac project/artifact/web payloads still consume compatibility fields around
-   `selected_code_segment`, `code_layout`, and preview rows; 021-004 migrates
+1. `macos_listing_source._temporary_code_binary_source` materialized the
+   selected CODE bytes as a temporary `RawBinarySource`; 021-002 began replacing
+   byte access with a native Mac CODE provider, and 021-005 deleted this bridge.
+2. `build_macos_project_listing_artifact_profile` passed that temporary source
+   to the generic C listing artifact; 021-003 replaced listing and analysis
+   artifact identity.
+3. Mac project/artifact/web payloads consumed compatibility fields around
+   `selected_code_segment`, `code_layout`, and preview rows; 021-004 migrated
    public payload assumptions after native listing parity.
 
 ### 021-002: Native C Backend Byte Provider
@@ -136,11 +136,11 @@ Completed native byte-provider slice:
   resources, and no-entry/deferred CODE fails closed without promoting
   byte-entry evidence.
 
-Remaining wrapper dependency:
+Wrapper dependency recorded at 021-002 closeout, before later replacement:
 
-- `build_macos_project_listing_artifact_profile` still calls
+- `build_macos_project_listing_artifact_profile` called
   `_temporary_code_binary_source` and then the generic raw C listing artifact.
-  021-003 must route listing/analysis through the native provider so artifact
+  021-003 routed listing/analysis through the native provider so artifact
   profiles no longer report wrapped raw identity.
 
 ### 021-003: Native Listing And Analysis Artifact
@@ -272,9 +272,9 @@ Final future work:
 
 - Mac byte-entry, relocation/fixup, source-to-CODE, and non-CODE payload facts
   remain governed by Proposal 018 states and were not promoted by 021.
-- A post-closeout cleanup batch remains active for the low-level C buffer
-  implementation: 021-012 reconciles this proposal after those code slices
-  land.
+- The post-closeout low-level C buffer cleanup is complete. Selected and
+  preview Mac CODE byte artifacts use Mac CODE identity over neutral flat M68K
+  internals, with regression guards against raw identity leaks.
 
 ## Acceptance Criteria
 
@@ -284,8 +284,8 @@ Final future work:
   roles/statuses.
 - Candidate/deferred/unsupported facts remain non-accepted.
 - CODE 0 remains metadata-only.
-- The raw byte bridge is deleted after replacement proof, or the exact remaining
-  blocker is recorded as future work.
+- The raw byte bridge is deleted after replacement proof; no Mac CODE selected
+  listing or preview path has a remaining `RawBinarySource` transport blocker.
 - Mac project/artifact/web tests continue to prove existing user-visible
   behavior.
 - Cross-platform 020 parser coverage remains green.
@@ -315,7 +315,7 @@ precommit gate.
 - 021-009 starts the post-closeout native buffer cleanup.
 - 021-010 follows 021-009.
 - 021-011 follows 021-010.
-- 021-012 follows 021-011 and closes the post-closeout cleanup notes.
+- 021-012 followed 021-011 and closed the post-closeout cleanup notes.
 
 ## Non-Goals
 
