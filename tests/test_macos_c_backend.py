@@ -452,6 +452,13 @@ def test_021_007_macos_code_bytes_artifact_profile_is_native(tmp_path: Path) -> 
         assert observed_profile.get("wrapped_backend") != "amiga-raw"
     assert analysis["restored_source_model"] == "restored_source_model_v1"
     assert analysis["round_trip_required"] is False
+    assert analysis["source_coverage_verifier"] == {
+        "ok": True,
+        "gap_count": 0,
+        "overlap_count": 0,
+        "invalid_instruction_ownership_count": 0,
+        "explicit_unknown_missing_detail_count": 0,
+    }
     ownership = cast(list[dict[str, Any]], analysis["source_ownership_ranges"])
     assert ownership == [
         {
@@ -468,6 +475,7 @@ def test_021_007_macos_code_bytes_artifact_profile_is_native(tmp_path: Path) -> 
             "fact_status": "candidate",
             "parser_use": "candidate_only",
             "provenance": "platform_file_facts_v2_listing_artifact_macos_code_buffer_create",
+            "reason": "selected Mac CODE bytes remain candidate because byte-entry evidence is not accepted",
         }
     ]
     assert any(str(row.get("text") or "").strip() == "movea.l (a7)+,a0" for row in window["rows"])

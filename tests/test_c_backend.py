@@ -165,6 +165,13 @@ def test_020_007_amiga_analysis_imports_shared_executable_ranges(tmp_path: Path)
     assert combined["analysis"]["executable_model"] == "platform_executable_summary_v1"
     assert combined["analysis"]["restored_source_model"] == "restored_source_model_v1"
     assert combined["analysis"]["round_trip_required"] is True
+    assert combined["analysis"]["source_coverage_verifier"] == {
+        "ok": True,
+        "gap_count": 0,
+        "overlap_count": 0,
+        "invalid_instruction_ownership_count": 0,
+        "explicit_unknown_missing_detail_count": 0,
+    }
     assert ranges["code"]["fact_id"] == "amiga.hunk.code_data_bss.sections.accepted"
     assert ranges["data"]["parser_use"] == "accepted_parser_output"
     assert ranges["data"]["stored_offset"] == 4
@@ -200,6 +207,9 @@ def test_020_007_atari_analysis_imports_candidate_bss_without_promotion(tmp_path
     assert combined["analysis"]["executable_model"] == "platform_executable_summary_v1"
     assert combined["analysis"]["restored_source_model"] == "restored_source_model_v1"
     assert combined["analysis"]["round_trip_required"] is True
+    assert combined["analysis"]["source_coverage_verifier"]["ok"] is True
+    assert combined["analysis"]["source_coverage_verifier"]["gap_count"] == 0
+    assert combined["analysis"]["source_coverage_verifier"]["overlap_count"] == 0
     assert ranges["bss"]["stored_offset"] is None
     assert ranges["bss"]["fact_status"] == "candidate"
     assert ranges["bss"]["parser_use"] == "candidate_only"
@@ -214,6 +224,20 @@ def test_020_007_atari_analysis_imports_candidate_bss_without_promotion(tmp_path
             "parser_use": "deferred_only",
         }
     ]
+
+
+def test_022_003_source_coverage_verifier_has_c_failure_modes() -> None:
+    source = (PROJECT_ROOT / "src" / "platform_file_lib.c").read_text(encoding="utf-8")
+    start = source.index("static void restored_source_coverage_verify(")
+    end = source.index("static int append_restored_source_coverage_verifier_json(", start)
+    body = source[start:end]
+
+    assert "++verifier->gap_count" in body
+    assert "++verifier->overlap_count" in body
+    assert "++verifier->invalid_instruction_ownership_count" in body
+    assert "++verifier->explicit_unknown_missing_detail_count" in body
+    assert "row->kind != M68K_RENDER_PLAN_ROW_INSTRUCTION" in body
+    assert "restored_source_ownership_role_allows_instruction" in body
 
 
 def test_load_dll_resolves_relative_project_root_for_windows_dll_directory(

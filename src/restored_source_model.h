@@ -32,6 +32,7 @@ typedef struct RestoredSourceOwnershipRange {
   uint32_t stored_size;
   PlatformExecutableFactRef fact;
   const char *provenance;
+  const char *reason;
 } RestoredSourceOwnershipRange;
 
 #define RESTORED_SOURCE_MODEL_MAX_OWNERSHIP_RANGES PLATFORM_EXECUTABLE_SUMMARY_MAX_RANGES
@@ -44,5 +45,13 @@ typedef struct RestoredSourceModel {
   RestoredSourceOwnershipRange ownership_ranges[RESTORED_SOURCE_MODEL_MAX_OWNERSHIP_RANGES];
   size_t ownership_range_count;
 } RestoredSourceModel;
+
+typedef struct RestoredSourceCoverageVerifier {
+  uint8_t ok;
+  uint32_t gap_count;
+  uint32_t overlap_count;
+  uint32_t invalid_instruction_ownership_count;
+  uint32_t explicit_unknown_missing_detail_count;
+} RestoredSourceCoverageVerifier;
 
 #endif

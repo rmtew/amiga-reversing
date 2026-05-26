@@ -357,6 +357,19 @@ Required result:
 - Verifier results are available through `CListingArtifact` or an equivalent
   artifact API so CLI/web/API callers can use the same proof.
 
+Completed initial verifier slice:
+
+- Listing artifact analysis JSON now includes `source_coverage_verifier`.
+- The C verifier detects initial/inter-range/trailing gaps, overlaps, malformed
+  explicit unknown ranges, and instruction rows whose source bytes are owned by
+  non-code ownership roles.
+- Current Amiga/Atari and Mac CODE artifact paths emit passing verifier reports.
+  Amiga/Atari still rely on exact rebuild/reproduction gates for binary
+  correctness; verifier success only proves restored-source ownership coverage.
+- The verifier currently validates ownership and rendered instruction role
+  compatibility. It does not yet validate shared reference records or Mac
+  executable-resource placeholders; those are 022-004 through 022-008 work.
+
 ### 022-004: Shared Source Reference Records
 
 Add shared `source_reference_records` for relocations, fixups, address refs,
