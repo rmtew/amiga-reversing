@@ -4706,7 +4706,7 @@ static int append_source_reference_records_json(JsonBuilder *builder, const char
   int emitted = 0;
   const char *fact_id = restored_source_reference_fact_id_for_backend(backend_name);
   if (builder == NULL || backend_name == NULL || object == NULL || model == NULL ||
-      model->ownership_range_count == 0U) {
+      model->ownership_range_count == 0U || source_plan == NULL) {
     return 0;
   }
   if (json_builder_append(builder, ",\"source_reference_records\":[") != 0) return -1;
@@ -4773,11 +4773,6 @@ static int append_analysis_restored_source_model_json(JsonBuilder *builder, cons
   restored_source_coverage_verify(&model, object, source_plan, &verifier);
   if (append_restored_source_coverage_verifier_json(builder, &verifier) != 0) return -1;
   return append_source_reference_records_json(builder, backend_name, object, source_plan, &model);
-}
-
-static int append_analysis_json_with_decompression(JsonBuilder *builder, const char *base_json,
-    const char *backend_name, const M68kObject *object, const M68kSourceAnalysisIR *analysis) {
-  return append_analysis_json_with_decompression_profile(builder, base_json, backend_name, object, analysis, NULL, NULL);
 }
 
 static void make_policy_symbol_label_local(char *out, size_t out_size, const char *symbol) {

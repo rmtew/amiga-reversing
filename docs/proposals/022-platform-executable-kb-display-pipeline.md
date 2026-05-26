@@ -414,6 +414,19 @@ Required result:
 - Direct rebuild/reproduction compare remain the acceptance gates; source
   coverage cannot substitute for binary exactness.
 
+Completed Amiga integration slice:
+
+- Amiga HUNK listing artifact analysis exposes `restored_source_model_v1`,
+  `source_ownership_ranges`, `source_reference_records`, and
+  `source_coverage_verifier`.
+- CODE/DATA/BSS ownership is derived from the shared loaded-image ownership
+  model rather than a separate display-only model.
+- Existing HUNK fixups map to shared `relocation_fixup` records attached to
+  ownership ranges and render-plan row ids when available.
+- Exactness remains governed by existing direct rebuild/reproduction gates;
+  `cmd /c src\precommit.bat` passed after this integration.
+- Runtime entry uncertainty remains deferred and non-promoted.
+
 ### 022-006: Atari PRG Restored Source Integration
 
 Move Atari PRG source/listing/artifact output onto the shared restored source
@@ -428,6 +441,21 @@ Required result:
 - Candidate/deferred states remain governed by Proposal 018.
 - Direct rebuild/reproduction compare remain the acceptance gates; source
   coverage cannot substitute for binary exactness.
+
+Completed Atari integration slice:
+
+- Atari PRG listing artifact analysis exposes `restored_source_model_v1`,
+  `source_ownership_ranges`, `source_reference_records`, and
+  `source_coverage_verifier`.
+- TEXT/DATA/BSS ownership is derived from the shared loaded-image ownership
+  model. BSS remains candidate-only under Proposal 018 authority.
+- Existing PRG fixups map to shared `relocation_fixup` records where parsed;
+  broader relocation terminator variants remain deferred.
+- Exactness remains governed by existing direct rebuild/reproduction gates;
+  `cmd /c src\precommit.bat` passed after this integration.
+- Retained extension work is richer symbol/basepage/reference normalization in
+  later restored-source reference iterations; no candidate/deferred state was
+  promoted.
 
 ### 022-007: Mac CODE Ownership And Relocation Integration
 
