@@ -361,27 +361,31 @@ static int macos_append_restored_source_reference_records(JsonBuilder *builder, 
   uint32_t reference_start = macos_restored_source_reference_start(records, range_count, reference_range_index);
   uint32_t reference_size = macos_restored_source_reference_size(records, range_count, reference_range_index);
   uint32_t reference_end = reference_start + reference_size;
+  int emitted = 0;
   if (builder == NULL || resource == NULL) return -1;
-  if (json_builder_append(builder,
-        ",\"source_reference_records\":[{\"kind\":\"segment_loader_fixup_placeholder\",\"ownership_range_index\":") != 0 ||
-      json_builder_appendf(builder, "%u", (unsigned)reference_range_index) != 0 ||
-      json_builder_appendf(builder,
-        ",\"resource_type\":\"CODE\",\"resource_id\":%d,\"byte_space\":\"code_resource_payload\","
-        "\"source_offset\":%u,\"size\":%u,\"source_range\":{\"start\":%u,\"end\":%u,\"size\":%u},"
-        "\"target\":\"unresolved_segment_loader_fixup\",\"status\":\"deferred\","
-        "\"reason\":\"Segment Loader relocation/fixup custom extension decoding is not implemented for this CODE span.\","
-        "\"provenance\":\"platform_file_lib.macos_hfs_code_summary\",\"source_visible\":true,"
-        "\"rendering\":{\"kind\":\"placeholder\",\"text\":\"deferred Segment Loader relocation/fixup effect\"},"
-        "\"kb_record_id\":\"macos.hfs_resource_fork.code_resources.mpw_application\","
-        "\"fact_id\":\"macos.segment_loader.relocation_fixups.deferred\","
-        "\"fact_status\":\"deferred\",\"parser_use\":\"deferred_only\"}",
-        (int)resource->resource_id, (unsigned)reference_start, (unsigned)reference_size, (unsigned)reference_start,
-        (unsigned)reference_end, (unsigned)reference_size) != 0) {
-    return -1;
+  if (json_builder_append(builder, ",\"source_reference_records\":[") != 0) return -1;
+  if (resource->resource_id != 0) {
+    if (json_builder_appendf(builder,
+          "{\"kind\":\"segment_loader_fixup_placeholder\",\"ownership_range_index\":%u"
+          ",\"resource_type\":\"CODE\",\"resource_id\":%d,\"byte_space\":\"code_resource_payload\","
+          "\"source_offset\":%u,\"size\":%u,\"source_range\":{\"start\":%u,\"end\":%u,\"size\":%u},"
+          "\"target\":\"unresolved_segment_loader_fixup\",\"status\":\"deferred\","
+          "\"reason\":\"Segment Loader relocation/fixup custom extension decoding is not implemented for this CODE span.\","
+          "\"provenance\":\"platform_file_lib.macos_hfs_code_summary\",\"source_visible\":true,"
+          "\"rendering\":{\"kind\":\"placeholder\",\"text\":\"deferred Segment Loader relocation/fixup effect\"},"
+          "\"kb_record_id\":\"macos.hfs_resource_fork.code_resources.mpw_application\","
+          "\"fact_id\":\"macos.segment_loader.relocation_fixups.deferred\","
+          "\"fact_status\":\"deferred\",\"parser_use\":\"deferred_only\"}",
+          (unsigned)reference_range_index, (int)resource->resource_id, (unsigned)reference_start,
+          (unsigned)reference_size, (unsigned)reference_start, (unsigned)reference_end,
+          (unsigned)reference_size) != 0) {
+      return -1;
+    }
+    emitted = 1;
   }
   if (resource->resource_id == 0) {
     if (json_builder_appendf(builder,
-          ",{\"kind\":\"code0_routing_table\",\"resource_type\":\"CODE\",\"resource_id\":0,"
+          "%s{\"kind\":\"code0_routing_table\",\"resource_type\":\"CODE\",\"resource_id\":0,"
           "\"byte_space\":\"code_resource_payload\",\"source_offset\":%u,\"size\":%u,"
           "\"target\":\"CODE resource dispatch table\",\"status\":\"validated\","
           "\"reason\":\"CODE 0 jump-table metadata routes application CODE resources.\","
@@ -389,12 +393,15 @@ static int macos_append_restored_source_reference_records(JsonBuilder *builder, 
           "\"kb_record_id\":\"macos.hfs_resource_fork.code_resources.mpw_application\","
           "\"fact_id\":\"macos.jump_table.entries.accepted\","
           "\"fact_status\":\"validated\",\"parser_use\":\"accepted_parser_output\"}",
+          emitted ? "," : "",
           (unsigned)resource->code.jump_table_offset_from_a5, (unsigned)resource->code.jump_table_length) != 0) {
       return -1;
     }
-  } else {
+    emitted = 1;
+  } else if (resource->code.first_jump_table_entry_offset != 0xffffU &&
+      resource->code.jump_table_entry_count > 0U) {
     if (json_builder_appendf(builder,
-          ",{\"kind\":\"code0_dispatch_reference\",\"resource_type\":\"CODE\",\"resource_id\":%d,"
+          "%s{\"kind\":\"code0_dispatch_reference\",\"resource_type\":\"CODE\",\"resource_id\":%d,"
           "\"byte_space\":\"code0_jump_table\",\"source_offset\":%u,\"size\":%u,"
           "\"target\":\"CODE:%d\",\"status\":\"validated\","
           "\"reason\":\"CODE 0 segment jump-table span maps this CODE resource into the application dispatch table.\","
@@ -402,20 +409,22 @@ static int macos_append_restored_source_reference_records(JsonBuilder *builder, 
           "\"kb_record_id\":\"macos.hfs_resource_fork.code_resources.mpw_application\","
           "\"fact_id\":\"macos.code_resource.segment_jump_table_span.accepted\","
           "\"fact_status\":\"validated\",\"parser_use\":\"accepted_parser_output\"}",
-          (int)resource->resource_id, (unsigned)resource->code.first_jump_table_entry_offset,
+          emitted ? "," : "", (int)resource->resource_id, (unsigned)resource->code.first_jump_table_entry_offset,
           (unsigned)((uint32_t)resource->code.jump_table_entry_count * 8U), (int)resource->resource_id) != 0) {
       return -1;
     }
+    emitted = 1;
   }
   if (json_builder_appendf(builder,
-        ",{\"kind\":\"a5_world_context_placeholder\",\"ownership_range_index\":%u,"
+        "%s{\"kind\":\"a5_world_context_placeholder\",\"ownership_range_index\":%u,"
         "\"resource_type\":\"CODE\",\"resource_id\":%d,\"byte_space\":\"code_resource_payload\","
         "\"source_offset\":%u,\"size\":0,\"target\":\"classic_mac_a5_world\","
         "\"status\":\"deferred\",\"reason\":\"Classic Mac A5/world lifetime and global-base context is visible but not proven accepted.\","
         "\"provenance\":\"platform_file_lib.macos_hfs_code_summary\",\"source_visible\":true,"
         "\"rendering\":{\"kind\":\"placeholder\",\"text\":\"deferred A5/world context\"},"
         "\"kb_record_id\":\"macos.hfs_resource_fork.code_resources.mpw_application\"}]",
-        (unsigned)reference_range_index, (int)resource->resource_id, (unsigned)reference_start) != 0) {
+        emitted ? "," : "", (unsigned)reference_range_index, (int)resource->resource_id,
+        (unsigned)reference_start) != 0) {
     return -1;
   }
   return 0;

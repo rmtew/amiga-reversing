@@ -250,9 +250,16 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     assert "role=candidate_code" in asm_text
     assert "kind=segment_loader_fixup_placeholder" in asm_text
     assert "kind=code0_dispatch_reference" in asm_text
+    assert "target=CODE:27" in asm_text
+    assert "target=CODE:1" not in asm_text
     assert "kind=code0_routing_table" in asm_text
     assert "kind=a5_world_context_placeholder" in asm_text
     assert "a5_world status=deferred" in asm_text
+    code0_start = asm_text.index(";   CODE 0 unknown: role=code0_metadata")
+    code1_start = asm_text.index(";   CODE 1 Main: role=code_segment")
+    code0_block = asm_text[code0_start:code1_start]
+    assert "kind=code0_routing_table" in code0_block
+    assert "kind=segment_loader_fixup_placeholder" not in code0_block
     assert not any(
         "macos.code_resource.movea_stack_a0.boundary.candidate" in line and "accepted_parser_output" in line
         for line in asm_text.splitlines()

@@ -1,6 +1,6 @@
 # Proposal 023: Classic Mac OS Source Presentation
 
-Status: active
+Status: complete
 
 ## Purpose
 
@@ -311,6 +311,17 @@ Required outcome:
 - The generated MPW `Asm` artifact no longer shows validated CODE 0 dispatch
   references for resources whose segment map says `jt_first=65535 jt_count=0`.
 
+Completed corrected dispatch-reference behavior:
+
+- The C-owned restored-source reference builder now emits validated
+  `code0_dispatch_reference` records only when a nonzero CODE resource has both
+  `first_jump_table_entry_offset != 0xffff` and `jump_table_entry_count > 0`.
+- Current MPW `Asm` CODE 1 has `jt_first=65535 jt_count=0`, so its restored
+  source records keep the deferred Segment Loader placeholder and A5/world
+  context but no accepted CODE 0 dispatch reference.
+- Current MPW `Asm` CODE 27 has a real CODE 0 jump-table span and still emits a
+  validated `code0_dispatch_reference` targeting `CODE:27`.
+
 ### 023-010: Keep CODE 0 Free Of Segment Loader Fixup Placeholders
 
 Fix CODE 0 restored-source reference records so metadata/routing CODE 0 does not
@@ -326,6 +337,18 @@ Required outcome:
   evidence remains deferred.
 - Tests cover CODE 0 and nonzero CODE behavior, and the MPW `Asm` artifact
   reflects the corrected records.
+
+Completed corrected CODE 0 reference behavior:
+
+- CODE 0 restored-source records now contain the validated `code0_routing_table`
+  reference and deferred A5/world context only; the normal metadata/routing
+  packet no longer receives a `segment_loader_fixup_placeholder`.
+- Nonzero CODE resources still keep span-specific deferred
+  `segment_loader_fixup_placeholder` records with resource id, byte space,
+  source offset/range, deferred fact state, provenance, and source visibility.
+- Artifact and project/API tests now fail if CODE 0 regresses to broad
+  fixup-placeholder output or if an absent CODE 0 jump-table span is promoted
+  to a validated dispatch reference.
 
 ## Verification Plan
 

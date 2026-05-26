@@ -1076,6 +1076,11 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     assert container["code_resource_details"][0]["listing"]["available"] is False
     assert container["code_resource_details"][0]["preview_windows"] == []
     assert container["code_resource_details"][0]["jump_table_rows"]
+    code0_references = container["code_resource_details"][0]["restored_source"]["source_reference_records"]
+    assert [item["kind"] for item in code0_references] == [
+        "code0_routing_table",
+        "a5_world_context_placeholder",
+    ]
     assert all(
         row["accepted_layout"]["fact_status"] == "validated"
         for row in container["code_resource_details"][0]["jump_table_rows"]
@@ -1161,9 +1166,19 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     assert restored_source["source_reference_records"][0]["fact_id"] == "macos.segment_loader.relocation_fixups.deferred"
     assert restored_source["source_reference_records"][0]["resource_id"] == 1
     assert restored_source["source_reference_records"][0]["source_range"] == {"start": 40, "end": 29024, "size": 28984}
-    assert restored_source["source_reference_records"][1]["kind"] == "code0_dispatch_reference"
-    assert restored_source["source_reference_records"][1]["target"] == "CODE:1"
-    assert restored_source["source_reference_records"][2]["kind"] == "a5_world_context_placeholder"
+    assert [item["kind"] for item in restored_source["source_reference_records"]] == [
+        "segment_loader_fixup_placeholder",
+        "a5_world_context_placeholder",
+    ]
+    dispatch_detail = next(detail for detail in container["code_resource_details"] if detail["id"] == 27)
+    dispatch_references = dispatch_detail["restored_source"]["source_reference_records"]
+    assert any(
+        item["kind"] == "code0_dispatch_reference"
+        and item["target"] == "CODE:27"
+        and item["fact_status"] == "validated"
+        and item["parser_use"] == "accepted_parser_output"
+        for item in dispatch_references
+    )
     assert restored_source["platform_extensions"]["address_model"]["payload_offset_space"] == "code_resource_payload"
     assert restored_source["platform_extensions"]["a5_world"]["status"] == "deferred"
     assert container["selected_code_segment"]["orphan_ranges"][0]["fact_status"] == "candidate"
