@@ -279,11 +279,35 @@ static int macos_append_segment_loader_fixup_inventory(JsonBuilder *builder,
     const PlatformMacosResourceInfo *resources, size_t resource_count) {
   size_t index;
   int first = 1;
+  int has_parseable = 0;
+  int has_malformed = 0;
+  const char *status = "blocked";
+  const char *summary = "No current CODE resource proves actual Segment Loader fixup encoding byte provenance.";
+  for (index = 0U; index < resource_count; ++index) {
+    PlatformMacosSegmentLoaderFixupInventory inventory;
+    const PlatformMacosResourceInfo *resource = &resources[index];
+    if (strcmp(resource->type, "CODE") != 0) continue;
+    if (platform_macos_segment_loader_fixup_inventory_from_code_metadata(&resource->code, resource->resource_id,
+        resource->payload_size, &inventory) != 0) {
+      return -1;
+    }
+    if (inventory.status == PLATFORM_MACOS_SEGMENT_LOADER_FIXUP_INVENTORY_PARSEABLE) has_parseable = 1;
+    if (inventory.status == PLATFORM_MACOS_SEGMENT_LOADER_FIXUP_INVENTORY_MALFORMED) has_malformed = 1;
+  }
+  if (has_parseable) {
+    status = "parseable";
+    summary = "At least one CODE resource has documented Segment Loader fixup encoding byte provenance.";
+  } else if (has_malformed) {
+    status = "malformed";
+    summary = "At least one CODE resource has malformed documented Segment Loader relocation-info offsets.";
+  }
   if (json_builder_append(builder,
         ",\"segment_loader_fixup_inventory\":{\"model\":\"segment_loader_fixup_inventory_v1\","
-        "\"authority\":\"c_owned\",\"status\":\"blocked\","
-        "\"summary\":\"No current CODE resource proves actual Segment Loader fixup encoding byte provenance.\","
-        "\"records\":[") != 0) {
+        "\"authority\":\"c_owned\",\"status\":") != 0 ||
+      json_builder_append_json_string(builder, status) != 0 ||
+      json_builder_append(builder, ",\"summary\":") != 0 ||
+      json_builder_append_json_string(builder, summary) != 0 ||
+      json_builder_append(builder, ",\"records\":[") != 0) {
     return -1;
   }
   for (index = 0U; index < resource_count; ++index) {

@@ -204,6 +204,33 @@ static int test_segment_loader_fixup_inventory_maps_far_model_relocation_offsets
   return 0;
 }
 
+static int test_segment_loader_fixup_inventory_rejects_header_internal_relocation_offsets(void) {
+  unsigned char payload[48];
+  PlatformMacosCodeMetadata code;
+  PlatformMacosSegmentLoaderFixupInventory inventory;
+  memset(payload, 0, sizeof(payload));
+  put_u16(payload, 0U, 0xffffU);
+  put_u16(payload, 2U, 0U);
+  put_u32(payload, 20U, 20U);
+  payload[40U] = 0x20U;
+  payload[41U] = 0x5fU;
+  M68K_C_ASSERT_INT(0, platform_macos_code_metadata_parse(payload, sizeof(payload), 1, &code));
+  M68K_C_ASSERT_INT(0, platform_macos_segment_loader_fixup_inventory_from_code_metadata(&code, 1,
+    sizeof(payload), &inventory));
+  M68K_C_ASSERT_U32(PLATFORM_MACOS_SEGMENT_LOADER_FIXUP_INVENTORY_MALFORMED, inventory.status);
+  M68K_C_ASSERT_U32(0U, inventory.encoding_byte_provenance_known);
+
+  put_u32(payload, 20U, 0U);
+  put_u32(payload, 28U, 39U);
+  M68K_C_ASSERT_INT(0, platform_macos_code_metadata_parse(payload, sizeof(payload), 1, &code));
+  M68K_C_ASSERT_INT(0, platform_macos_segment_loader_fixup_inventory_from_code_metadata(&code, 1,
+    sizeof(payload), &inventory));
+  M68K_C_ASSERT_U32(PLATFORM_MACOS_SEGMENT_LOADER_FIXUP_INVENTORY_MALFORMED, inventory.status);
+  M68K_C_ASSERT_U32(0U, inventory.encoding_byte_provenance_known);
+  M68K_C_ASSERT_STR("malformed", platform_macos_segment_loader_fixup_inventory_status_name(inventory.status));
+  return 0;
+}
+
 static int test_segment_loader_fixup_inventory_reports_code0_absent(void) {
   unsigned char data[512];
   PlatformMacosResourceFork fork;
@@ -305,6 +332,8 @@ int m68k_c_platform_macos_resource_tests(void) {
       test_segment_loader_fixup_inventory_reports_near_model_absent},
     {"segment_loader_fixup_inventory_maps_far_model_relocation_offsets",
       test_segment_loader_fixup_inventory_maps_far_model_relocation_offsets},
+    {"segment_loader_fixup_inventory_rejects_header_internal_relocation_offsets",
+      test_segment_loader_fixup_inventory_rejects_header_internal_relocation_offsets},
     {"segment_loader_fixup_inventory_reports_code0_absent", test_segment_loader_fixup_inventory_reports_code0_absent},
     {"resource_fork_rejects_payload_past_end", test_resource_fork_rejects_payload_past_end},
     {"restored_source_verifier_accepts_complete_candidate_coverage",

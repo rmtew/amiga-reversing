@@ -199,11 +199,13 @@ int platform_macos_segment_loader_fixup_inventory_from_code_metadata(const Platf
       "information offsets are zero.";
     return 0;
   }
-  if ((code->a5_relocation_info_offset != 0U && code->a5_relocation_info_offset >= payload_size) ||
-      (code->segment_relocation_info_offset != 0U && code->segment_relocation_info_offset >= payload_size)) {
+  if ((code->a5_relocation_info_offset != 0U &&
+        (code->a5_relocation_info_offset < 40U || code->a5_relocation_info_offset >= payload_size)) ||
+      (code->segment_relocation_info_offset != 0U &&
+        (code->segment_relocation_info_offset < 40U || code->segment_relocation_info_offset >= payload_size))) {
     out_inventory->status = PLATFORM_MACOS_SEGMENT_LOADER_FIXUP_INVENTORY_MALFORMED;
     out_inventory->reason =
-      "Documented far-model relocation information offset points outside the CODE resource payload.";
+      "Documented far-model relocation information offset points outside the relocation-info payload area.";
     return 0;
   }
   out_inventory->status = PLATFORM_MACOS_SEGMENT_LOADER_FIXUP_INVENTORY_PARSEABLE;
