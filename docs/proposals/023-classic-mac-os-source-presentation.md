@@ -511,7 +511,7 @@ Required outcome:
 ### 023-016: Visible Mac Source Presentation Closeout
 
 Close 023 only after the committed MPW `Asm.s` artifact shows visible reversing
-improvement.
+improvement and passes the 023-017 source-quality gate.
 
 Required outcome:
 
@@ -522,8 +522,37 @@ Required outcome:
 - Every CODE resource is visibly represented in source body output.
 - CODE 0 context and CODE 1 entry/stub/residual-span presentation are covered by
   tests.
+- 023-017 proves the source is not merely rearranged report output: reachable
+  code, labels, xrefs, byte ownership, and residual unknown accounting are
+  explicitly checked.
 - Platform executable validate/coverage, focused Mac tests, and shared
   precommit proof pass without weakening Amiga/Atari gates.
+
+### 023-017: Source Quality Analysis Gates
+
+Add gates that prevent 023 from closing on tidy but shallow source output.
+
+Required outcome:
+
+- The worker regenerates the committed MPW `Asm.s` artifact and records the
+  visible before/after improvement in Proposal 023.
+- Every CODE resource has a per-byte or range-level ownership summary:
+  metadata, code, data, fixup/relocation, padding, placeholder, or unknown. No
+  vague orphan bucket is allowed.
+- Reachable code analysis uses CODE 0, segment headers, branch targets,
+  JSR/BSR targets, jump tables, and known entry/stub patterns as evidence where
+  available.
+- Bytes not proven as code do not render as plausible instructions. They render
+  as data, unknown, or source-visible placeholders until analysis supports code.
+- Stable labels exist for CODE sections, entrypoints, jump-table targets, branch
+  targets, data references, and placeholders where evidence supports them.
+- Source output splits code/data/metadata/residual spans clearly inside each
+  CODE resource instead of rendering one flat blob.
+- Any remaining unknown/deferred span names its exact byte range, reason,
+  attempted local-docs/KB rule, and next required implementation.
+- Closeout includes a source-first review checklist over the actual generated
+  `Asm.s`: first screen, all CODE sections, CODE 0, CODE 1, residual spans,
+  labels, xrefs, and absence of report spam.
 
 ## Verification Plan
 
@@ -565,7 +594,9 @@ Closeout must include the full relevant Mac proof plus Amiga/Atari exact gates.
 - 023-014 follows 023-011 and may run in parallel with 023-012/023-013 if it
   does not change section identity.
 - 023-015 follows 023-012 through 023-014.
-- 023-016 closes the reopened proposal after 023-011 through 023-015 complete.
+- 023-017 follows 023-012 through 023-014 and may run alongside 023-015.
+- 023-016 closes the reopened proposal after 023-011 through 023-015 and
+  023-017 complete.
 
 ## Non-Goals
 

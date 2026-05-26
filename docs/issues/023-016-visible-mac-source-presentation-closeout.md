@@ -15,8 +15,8 @@ Source proposal: docs/proposals/023-classic-mac-os-source-presentation.md
 Perform the final closeout for the reopened 023 source-output track. The closeout
 must prove that the committed MPW `Asm.s` artifact is source-first, all CODE
 resources are visibly represented, CODE 0 context is source-visible, CODE 1
-entry/stub/residual spans are presented clearly, and API/web surfaces match the
-artifact.
+entry/stub/residual spans are presented clearly, source-quality gates pass, and
+API/web surfaces match the artifact.
 
 Do not close on report availability, proof packet presence, or "blocked" notes.
 Close only on visible source-output behavior. Any remaining placeholder must be
@@ -25,13 +25,16 @@ execution-standard research path in Proposal 023.
 
 ## Acceptance Criteria
 
-- [ ] Proposal 023 status is updated only after 023-011 through 023-015 are
+- [ ] Proposal 023 status is updated only after 023-011 through 023-015 and
+      023-017 are
       complete.
 - [ ] The proposal records the corrected final source-output state and does not
       treat evidence/report visibility as sufficient.
 - [ ] Generated `Asm.s` starts with useful source after a compact header.
 - [ ] Every CODE resource is visible in source-body output.
 - [ ] CODE 0 and CODE 1 presentation requirements are covered by tests.
+- [ ] 023-017 source-quality gates pass: ownership, reachable-code evidence,
+      conservative code/data splitting, labels/xrefs, and residual accounting.
 - [ ] No Mac round-trip or unsupported semantic promotion is claimed.
 - [ ] Any remaining placeholder has a precise local-docs/KB-backed explanation
       of what was attempted and why the semantic cannot yet be accepted.
@@ -45,6 +48,7 @@ execution-standard research path in Proposal 023.
 - docs/issues/023-013-code0-structured-source-context.md
 - docs/issues/023-014-code1-entry-stub-and-residual-span-presentation.md
 - docs/issues/023-015-mac-source-artifact-web-api-parity.md
+- docs/issues/023-017-source-quality-analysis-gates.md
 
 ## Required Sign-Off
 
