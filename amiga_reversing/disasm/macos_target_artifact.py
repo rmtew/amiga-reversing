@@ -411,10 +411,13 @@ def _semantic_source_lines(
             continue
         bytes_text = str(row.get("bytes") or "").replace(" ", "").upper()
         pretty_bytes = " ".join(bytes_text[index : index + 2] for index in range(0, len(bytes_text), 2))
-        suffix = f"\t; payload+{_text(payload_offset)}"
-        if pretty_bytes:
-            suffix += f" bytes={pretty_bytes}"
-        lines.append(f"{text}{suffix}")
+        if row.get("kind") == "instruction":
+            suffix = f"\t; payload+{_text(payload_offset)}"
+            if pretty_bytes:
+                suffix += f" bytes={pretty_bytes}"
+            lines.append(f"{text}{suffix}")
+        else:
+            lines.append(text)
         for xref in [_mapping(value) for value in _sequence(row.get("xrefs"))]:
             lines.append(
                 f";       xref { _text(xref.get('kind')) } "
@@ -511,7 +514,7 @@ def _dc_b_lines(data: bytes, *, label: str, base_offset: int = 0) -> list[str]:
     for offset in range(0, len(data), 16):
         chunk = data[offset : offset + 16]
         byte_text = ",".join(f"${value:02X}" for value in chunk)
-        lines.append(f"\tdc.b {byte_text}\t; payload+{base_offset + offset}")
+        lines.append(f"\tdc.b {byte_text}")
     return lines
 
 
