@@ -1,6 +1,14 @@
 # Proposal 023: Classic Mac OS Source Presentation
 
-Status: complete
+Status: active
+
+Reopened after the post-closeout artifact review: the C-owned restored-source
+evidence exists, but the committed MPW `Asm.s` artifact is still report-first
+and selected-CODE-centric. 023 is not complete until the visible source file
+itself improves for a reversing user: real source must lead the artifact, every
+CODE resource must have a visible source section or typed placeholder section,
+CODE 0 routing must render as structured source data/context, and broad evidence
+inventories must not swamp the front of the listing.
 
 ## Purpose
 
@@ -17,7 +25,7 @@ This builds on completed proposals:
 - 022 owns C-backed restored-source ownership, reference records, placeholders,
   and verifier packets.
 
-023 is the next source-quality slice. It must use those foundations to make Mac
+023 is the source-quality slice. It must use those foundations to make Mac
 source useful at the same basic presentation level as Amiga HUNK and Atari PRG:
 code and data areas are visible, ownership is verified, references are surfaced,
 unsupported platform extensions are explicit placeholders, and Python/web/API
@@ -57,6 +65,34 @@ CODE_1_00000028:
         move.l  a7,d0
 ```
 
+The committed `Asm.s` artifact must be source-first. A short identity header is
+acceptable, but broad resource inventories, verifier dumps, per-CODE evidence
+records, and unsupported-resource summaries belong after the source sections or
+in a sidecar artifact. The first useful screen of `Asm.s` should show executable
+Mac source, not pages of report comments.
+
+Every CODE resource must be represented in the source body. A resource that
+cannot yet be fully decoded still needs a stable section with a typed reason and
+conservative bytes/placeholder rows, so a reverser can see that it exists and
+where future work belongs:
+
+```asm
+; CODE 2: source placeholder, candidate bytes preserved
+CODE_2_start:
+        dc.b    $00,$00,$00,$00
+        ; deferred: no accepted entry/lifetime proof yet
+```
+
+CODE 0 is source context, not just a report. Its jump-table and segment-routing
+metadata should render as structured data with labels and links to CODE
+sections where the parsed evidence supports that relationship:
+
+```asm
+CODE_0_jump_table:
+        dc.l    CODE_27_start
+        ; validated CODE 0 dispatch reference
+```
+
 An unresolved platform extension must still be inspectable:
 
 ```json
@@ -75,8 +111,12 @@ An unresolved platform extension must still be inspectable:
 023 is complete only when the Mac source presentation contract is true for the
 current committed Mac fixture:
 
+- the generated `Asm.s` artifact is source-first: after a short header, real
+  source sections appear before broad inventory/report comments;
 - every executable CODE resource is either rendered through a C-owned restored
   source packet or represented by a typed, source-visible deferred placeholder;
+- every executable CODE resource has a visible source-body section or
+  placeholder section in `Asm.s`, not only a leading report entry;
 - CODE 0 contributes routing/reference context instead of remaining only a
   metadata note;
 - Segment Loader relocation/fixup effects are represented as source reference
@@ -89,6 +129,15 @@ current committed Mac fixture:
 - Python/web/API surfaces display that evidence and do not synthesize passing
   restored-source facts;
 - no Mac round-trip or resource rebuild claim is introduced.
+
+Post-closeout correction:
+
+- The previous 023 closeout proved C-owned evidence availability, not visible
+  source quality. It allowed `Asm.s` to begin with a large report preamble and
+  left the artifact effectively selected-CODE-centric. That is insufficient.
+  The active 023-011 through 023-016 work restores the intended user-visible
+  contract without promoting Mac byte-entry, Segment Loader, A5, or resource
+  facts beyond their evidence status.
 
 ## Implementation Direction
 
@@ -350,6 +399,103 @@ Completed corrected CODE 0 reference behavior:
   fixup-placeholder output or if an absent CODE 0 jump-table span is promoted
   to a validated dispatch reference.
 
+### 023-011: Source-First `Asm.s` Artifact Contract
+
+Move the Mac target artifact from report-first to source-first output.
+
+Required outcome:
+
+- `Asm.s` starts with a short identity/header block followed by actual restored
+  source or source placeholder sections.
+- Broad file/resource inventory, coverage tables, verifier dumps, and per-CODE
+  evidence records move behind the source body or to a sidecar artifact.
+- Tests fail if the first useful lines of `Asm.s` are dominated by report
+  comments instead of source rows.
+- No C-owned evidence is deleted; only its artifact placement changes unless a
+  sidecar replacement is added.
+
+### 023-012: All-CODE Source Body Sections
+
+Render every executable CODE resource as a visible source-body section.
+
+Required outcome:
+
+- Every CODE resource in the committed MPW `Asm` fixture has a stable source
+  section label or typed placeholder section in `Asm.s`.
+- Fully covered CODE resources render their restored-source rows.
+- Deferred or partial CODE resources render conservative source-visible
+  placeholder/data rows with resource id, status, reason, and byte span where
+  known.
+- The artifact no longer depends on a selected-CODE-only body to represent the
+  program.
+- Tests compare CODE resource inventory against source-body section labels so a
+  CODE resource cannot silently disappear from visible output.
+
+### 023-013: CODE 0 Structured Source Context
+
+Render CODE 0 routing as structured source context rather than a leading report
+table.
+
+Required outcome:
+
+- CODE 0 has a source-body data section with labels for parsed routing/jump-table
+  structures.
+- Validated CODE 0 dispatch references link to the corresponding CODE section
+  labels where evidence exists.
+- Resources with absent jump-table spans remain unlinked/deferred and are not
+  promoted to accepted dispatch targets.
+- Tests cover CODE 0 table rendering, linked CODE 27 behavior, and absent-link
+  behavior for CODE resources such as CODE 1.
+
+### 023-014: CODE 1 Entry, Stub, And Residual Span Presentation
+
+Use the known CODE resource layout to make CODE 1 visibly understandable.
+
+Required outcome:
+
+- The far-model segment header is separated from executable body output and not
+  presented as orphan code.
+- The current leading CODE 1 stub is labelled/classified using accepted
+  structure where possible, or marked as a precise deferred entry/stub
+  placeholder where evidence is still insufficient.
+- Residual candidate bytes after the stub are rendered under a clear
+  code/data/unknown/deferred ownership label instead of a vague orphan label.
+- Tests assert the CODE 1 section contains the real code start after metadata,
+  clear labels, and no misleading orphan terminology.
+
+### 023-015: Mac Source Artifact Web/API Parity
+
+Make the web/API source views follow the same source-first, all-CODE contract as
+`Asm.s`.
+
+Required outcome:
+
+- API/web payloads expose the source-body ordering and per-CODE section identity
+  used by the artifact.
+- Source navigation can list all CODE source sections and distinguish full,
+  partial, and placeholder sections.
+- Broad evidence remains available as supporting context, but not as the primary
+  source view.
+- Tests cover artifact/API/web parity for section count, section ids, and
+  deferred/source-visible status.
+
+### 023-016: Visible Mac Source Presentation Closeout
+
+Close 023 only after the committed MPW `Asm.s` artifact shows visible reversing
+improvement.
+
+Required outcome:
+
+- Proposal 023 records the corrected final state and no longer claims success
+  merely from evidence/report availability.
+- The generated `Asm.s` first screen is source-first and contains real Mac CODE
+  source/placeholder sections.
+- Every CODE resource is visibly represented in source body output.
+- CODE 0 context and CODE 1 entry/stub/residual-span presentation are covered by
+  tests.
+- Platform executable validate/coverage, focused Mac tests, and shared
+  precommit proof pass without weakening Amiga/Atari gates.
+
 ## Verification Plan
 
 Minimum proof for every implementation issue:
@@ -383,6 +529,14 @@ Closeout must include the full relevant Mac proof plus Amiga/Atari exact gates.
 - 023-009 and 023-010 reopen the post-closeout reference accuracy findings.
   They should be done together or in that order because both touch the same
   C-owned Mac source reference record builder.
+- 023-011 reopens the visible artifact quality track and starts immediately.
+- 023-012 follows 023-011.
+- 023-013 may run after 023-011, but its final artifact placement should be
+  reconciled with 023-012.
+- 023-014 follows 023-011 and may run in parallel with 023-012/023-013 if it
+  does not change section identity.
+- 023-015 follows 023-012 through 023-014.
+- 023-016 closes the reopened proposal after 023-011 through 023-015 complete.
 
 ## Non-Goals
 
@@ -390,5 +544,6 @@ Closeout must include the full relevant Mac proof plus Amiga/Atari exact gates.
 - Broad non-CODE resource decoding unrelated to executable source.
 - Promoting Mac byte-entry, Segment Loader, A5, or resource facts beyond their
   evidence status.
+- Treating evidence/report visibility as a substitute for source presentation.
 - 017 cascade/evidence-review protocol work.
 - UI redesign beyond making existing source evidence visible.

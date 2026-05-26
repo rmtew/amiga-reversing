@@ -1,0 +1,47 @@
+# 023-012: All-CODE Source Body Sections
+
+Status: active
+Type: AFK
+Source proposal: docs/proposals/023-classic-mac-os-source-presentation.md
+
+## Proposal Context
+
+- Proposal 023 requires every executable CODE resource to be visible as source or
+  as a typed source-visible placeholder.
+- Current evidence says the MPW `Asm` fixture has many CODE resources, but the
+  artifact remains effectively selected-CODE-centric.
+- 023-011 establishes the source-first artifact shell this issue must fill.
+
+## What To Build
+
+Render every executable CODE resource in the MPW `Asm` target as a visible
+source-body section. Fully covered CODE resources should render restored-source
+rows. Deferred, partial, or unsupported CODE resources must still render stable
+placeholder/data sections with resource id, status, reason, and byte span where
+known.
+
+Do not promote candidate/deferred facts to accepted semantics just to make the
+section prettier.
+
+## Acceptance Criteria
+
+- [ ] Every CODE resource in the current MPW `Asm` resource inventory has a
+      visible section label or typed placeholder section in `Asm.s`.
+- [ ] Full/partial/deferred section status is visible in the source body.
+- [ ] Deferred sections preserve bytes or explicit source-visible placeholders
+      instead of disappearing into report comments.
+- [ ] Tests compare the CODE resource inventory against source-body section
+      identities.
+- [ ] No selected-CODE-only path is treated as complete program source.
+
+## Blocked By
+
+- docs/issues/023-011-source-first-asm-artifact-contract.md
+
+## Required Sign-Off
+
+- [ ] Focused Mac artifact/project/API tests pass.
+- [ ] Platform executable validate/coverage pass with Mac/Amiga/Atari current
+      backends.
+- [ ] `cmd /c src\precommit.bat` passes if shared rendering or C code changes.
+- [ ] `git diff --check` passes.
