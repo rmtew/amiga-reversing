@@ -18,6 +18,11 @@ or segment-routing entries should get stable labels and link to CODE section
 labels only where the evidence supports that relationship. Resources with absent
 jump-table spans must remain unlinked/deferred.
 
+If a CODE 0 field is not currently decoded, the worker must use the local Mac
+docs and executable KB to decode it or record the exact byte/documentation gap
+that prevents a semantic link. The source section must still render the bytes as
+structured or conservative data; it must not collapse back to a report table.
+
 ## Acceptance Criteria
 
 - [ ] CODE 0 has a source-body data section in `Asm.s`.
@@ -25,6 +30,8 @@ jump-table spans must remain unlinked/deferred.
       labels where parsed evidence exists.
 - [ ] CODE resources with absent jump-table spans are not rendered as accepted
       dispatch targets.
+- [ ] Undecoded CODE 0 bytes remain visible as labelled data with a precise
+      unproven semantic, not as an omitted report note.
 - [ ] Tests cover linked behavior, absent-link behavior, and artifact rendering.
 - [ ] Proposal 023 records the final CODE 0 source-context behavior.
 

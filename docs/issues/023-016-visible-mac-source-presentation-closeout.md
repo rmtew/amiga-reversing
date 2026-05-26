@@ -18,6 +18,11 @@ resources are visibly represented, CODE 0 context is source-visible, CODE 1
 entry/stub/residual spans are presented clearly, and API/web surfaces match the
 artifact.
 
+Do not close on report availability, proof packet presence, or "blocked" notes.
+Close only on visible source-output behavior. Any remaining placeholder must be
+source-visible, byte-preserving where bytes exist, and justified by the
+execution-standard research path in Proposal 023.
+
 ## Acceptance Criteria
 
 - [ ] Proposal 023 status is updated only after 023-011 through 023-015 are
@@ -28,6 +33,8 @@ artifact.
 - [ ] Every CODE resource is visible in source-body output.
 - [ ] CODE 0 and CODE 1 presentation requirements are covered by tests.
 - [ ] No Mac round-trip or unsupported semantic promotion is claimed.
+- [ ] Any remaining placeholder has a precise local-docs/KB-backed explanation
+      of what was attempted and why the semantic cannot yet be accepted.
 - [ ] Completed 023 issue files are deleted only after their work is represented
       in the proposal.
 

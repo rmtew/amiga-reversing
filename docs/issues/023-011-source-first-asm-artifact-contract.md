@@ -23,6 +23,10 @@ sidecar artifact.
 
 This is not a report-only issue. The visible `Asm.s` ordering must change.
 
+If a current report block appears necessary, first identify the exact consumer
+that needs it. Move it behind source or to a sidecar, then update that consumer.
+Do not leave the report at the front because it is easier.
+
 ## Acceptance Criteria
 
 - [ ] `Asm.s` has at most a compact identity/header block before the first source
@@ -31,6 +35,8 @@ This is not a report-only issue. The visible `Asm.s` ordering must change.
       typed source placeholder, not resource inventory/report comments.
 - [ ] Existing C-owned evidence remains available either after the source body or
       in a sidecar artifact with stable naming.
+- [ ] Any sidecar/report relocation has tests proving the evidence remains
+      reachable without dominating source output.
 - [ ] Tests fail if a large report preamble returns to the front of `Asm.s`.
 - [ ] Proposal 023 records where the supporting evidence now lives.
 

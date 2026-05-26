@@ -19,6 +19,10 @@ payloads that `Asm.s` uses. Broad evidence should remain available as supporting
 context, but source navigation must list and identify all CODE sections and
 their full/partial/deferred state.
 
+Do not create a parallel compatibility surface. The API/web path must consume
+the same section identity and status model as the source artifact, or the shared
+model must be extended until it can serve all three.
+
 ## Acceptance Criteria
 
 - [ ] API/project payloads expose source-body section order and section
@@ -26,6 +30,8 @@ their full/partial/deferred state.
 - [ ] Web/source views can list all CODE source sections and distinguish full,
       partial, and placeholder/deferred sections.
 - [ ] Supporting evidence remains available but is not the primary source view.
+- [ ] No web/API field synthesizes source status that is absent from the shared
+      artifact/source model.
 - [ ] Tests cover artifact/API/web parity for section count, section ids, and
       deferred/source-visible status.
 - [ ] Proposal 023 records any remaining UI-only follow-up ideas without making

@@ -21,6 +21,11 @@ header from executable body output, label or precisely defer the leading stub,
 and replace vague orphan/residual wording with clear code/data/unknown/deferred
 ownership labels.
 
+This issue must not stop at "entry proof missing". The documented CODE layout is
+already known. Use it to split metadata from executable body, then inspect the
+stub bytes and local Mac docs/KB to classify what can be classified. Only the
+remaining unproven semantic may stay deferred.
+
 ## Acceptance Criteria
 
 - [ ] CODE 1 metadata/header bytes are separated from executable source rows.
@@ -30,6 +35,8 @@ ownership labels.
 - [ ] Residual bytes after the stub are rendered under clear ownership/status
       wording and are not called orphan code unless that term has a precise
       tested meaning.
+- [ ] Any remaining deferred CODE 1 claim names the exact missing proof after
+      local documentation/KB review.
 - [ ] Tests assert the CODE 1 section contains clear labels and no misleading
       orphan terminology.
 

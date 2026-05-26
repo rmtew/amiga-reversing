@@ -17,11 +17,15 @@ Source proposal: docs/proposals/023-classic-mac-os-source-presentation.md
 Render every executable CODE resource in the MPW `Asm` target as a visible
 source-body section. Fully covered CODE resources should render restored-source
 rows. Deferred, partial, or unsupported CODE resources must still render stable
-placeholder/data sections with resource id, status, reason, and byte span where
-known.
+placeholder/data sections with resource id, status, reason, and byte span.
 
 Do not promote candidate/deferred facts to accepted semantics just to make the
 section prettier.
+
+Do not treat an undecoded CODE resource as a blocker. Use the local Mac docs and
+formal KB to classify the resource structure as far as the bytes permit. If code
+entry/lifetime semantics remain unproven, still emit a conservative section that
+preserves the bytes and labels the exact unproven semantic.
 
 ## Acceptance Criteria
 
@@ -30,6 +34,9 @@ section prettier.
 - [ ] Full/partial/deferred section status is visible in the source body.
 - [ ] Deferred sections preserve bytes or explicit source-visible placeholders
       instead of disappearing into report comments.
+- [ ] For every deferred/partial section, the implementation records what local
+      Mac documentation/KB rule was applied and what exact semantic remains
+      unproven.
 - [ ] Tests compare the CODE resource inventory against source-body section
       identities.
 - [ ] No selected-CODE-only path is treated as complete program source.

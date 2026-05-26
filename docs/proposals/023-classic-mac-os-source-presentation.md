@@ -153,6 +153,35 @@ Post-closeout correction:
 - Preserve Amiga/Atari exact gates when shared code changes.
 - Keep 017 cascade/evidence-review work separate.
 
+## Execution Standard
+
+023 is implementation work, not a blocker-discovery track. The worker must make
+visible source-output progress unless a fact is genuinely unknowable from the
+target bytes plus the repository's Mac documentation and executable KB.
+
+When an implementation detail seems missing, the required path is:
+
+1. Inspect the current target bytes, parser output, restored-source packets, and
+   generated `Asm.s` artifact.
+2. Read the local Mac references first: `docs/macos-file-structure.md`,
+   `docs/macos-initial-analysis-research.md`, `docs/macos-targets.md`,
+   `docs/proposals/012-classic-mac-os-m68k-platform.md`,
+   `docs/proposals/018-platform-executable-format-knowledge.md`,
+   `docs/proposals/021-native-macos-code-source-pipeline.md`, and
+   `docs/proposals/024-classic-mac-os-segment-loader-fixups.md`.
+3. If the local documentation contains the needed rule, formalize it in the C
+   parser/model or executable KB and continue the issue.
+4. If the local documentation exposes a narrow missing KB fact, add the fact,
+   provenance, tests, and continue the issue.
+5. Only if the byte evidence and local documentation still do not support a
+   semantic claim may the output use a conservative placeholder. That placeholder
+   must still be source-visible, byte-preserving where bytes exist, labelled with
+   a precise reason, and covered by tests.
+
+The worker must not stop with a vague blocker, broad report-only output, or
+selected-CODE-only output. Any remaining placeholder must be the result of this
+documented implementation attempt, not a substitute for doing it.
+
 ## Work Items
 
 ### 023-001: Mac Source Presentation Baseline Harness
