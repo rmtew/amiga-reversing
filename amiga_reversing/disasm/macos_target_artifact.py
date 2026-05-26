@@ -106,9 +106,6 @@ def render_macos_example_asm(*, project_root: Path = PROJECT_ROOT) -> str:
     selected = _mapping(container.get("selected_code_segment"))
     native_source = _mapping(selected.get("native_source")) or _mapping(container.get("native_source"))
     selected_listing = _mapping(selected.get("listing"))
-    selected_layout = [_mapping(item) for item in _sequence(selected.get("code_layout"))]
-    selected_orphans = [_mapping(item) for item in _sequence(selected.get("orphan_ranges"))]
-    selected_relocations = _mapping(selected.get("relocation_fixups"))
     selected_restored_source = _mapping(selected.get("restored_source"))
     code_resources = [_mapping(item) for item in _sequence(container.get("code_resources"))]
     code_resource_details = [_mapping(item) for item in _sequence(container.get("code_resource_details"))]
@@ -188,12 +185,6 @@ def render_macos_example_asm(*, project_root: Path = PROJECT_ROOT) -> str:
         f";   code_bytes_size: {_text(selected.get('code_bytes_size'))}",
         f";   payload_sha256: {_text(selected.get('sha256'))}",
         f";   code_bytes_sha256: {_text(selected.get('code_bytes_sha256'))}",
-        ";   classified_layout:",
-        *_code_layout_lines(selected_layout),
-        ";   orphan_ranges:",
-        *_orphan_range_lines(selected_orphans),
-        ";   relocation_fixups:",
-        _relocation_fixup_line(selected_relocations),
         ";   restored_source_model:",
         *_restored_source_model_lines(selected_restored_source),
         f";   listing_rows: {total_rows}",
@@ -368,12 +359,6 @@ def _code_resource_detail_lines(details: Sequence[Mapping[str, object]]) -> list
             )
         anchors = [_mapping(item) for item in _sequence(detail.get("navigation_anchors"))]
         lines.extend(_navigation_anchor_lines(anchors))
-        lines.append(";     layout:")
-        lines.extend(_code_layout_lines([_mapping(item) for item in _sequence(detail.get("code_layout"))]))
-        lines.append(";     orphan_ranges:")
-        lines.extend(_orphan_range_lines([_mapping(item) for item in _sequence(detail.get("orphan_ranges"))]))
-        lines.append(";     relocation_fixups:")
-        lines.append(_relocation_fixup_line(_mapping(detail.get("relocation_fixups"))))
         lines.append(";     restored_source_model:")
         lines.extend(_restored_source_model_lines(_mapping(detail.get("restored_source"))))
         lines.append(_listing_descriptor_line(_mapping(detail.get("listing"))))
@@ -454,40 +439,6 @@ def _preview_window_lines(previews: Sequence[Mapping[str, object]]) -> list[str]
                 f"status={_text(row.get('fact_status'))} parser_use={_text(row.get('parser_use'))}"
             )
     return lines
-
-
-def _code_layout_lines(ranges: Sequence[Mapping[str, object]]) -> list[str]:
-    if not ranges:
-        return [";     none"]
-    return [
-        f";     {_text(item.get('kind'))}: start={_text(item.get('start'))} "
-        f"end={_text(item.get('end'))} entrypoint={_text(item.get('entrypoint'))} "
-        f"evidence={_text(item.get('evidence'))} fact={_text(item.get('fact_id'))} "
-        f"status={_text(item.get('fact_status'))}"
-        for item in ranges
-    ]
-
-
-def _orphan_range_lines(ranges: Sequence[Mapping[str, object]]) -> list[str]:
-    if not ranges:
-        return [";     none"]
-    return [
-        f";     {_text(item.get('classification'))}: start={_text(item.get('start'))} "
-        f"end={_text(item.get('end'))} evidence={_text(item.get('evidence'))} "
-        f"fact={_text(item.get('fact_id'))} status={_text(item.get('fact_status'))}"
-        for item in ranges
-    ]
-
-
-def _relocation_fixup_line(relocation_fixups: Mapping[str, object]) -> str:
-    if not relocation_fixups:
-        return ";     none"
-    return (
-        f";     status={_text(relocation_fixups.get('status'))} "
-        f"fact={_text(relocation_fixups.get('fact_id'))} "
-        f"parser_use={_text(relocation_fixups.get('parser_use'))} "
-        f"reason={_text(relocation_fixups.get('reason'))}"
-    )
 
 
 def _restored_source_model_lines(restored_source: Mapping[str, object]) -> list[str]:

@@ -201,9 +201,8 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     assert ";   source_kind: macos_code_resource" in asm_text
     assert ";   backend: macos-code" in asm_text
     assert ";   code_entry_offset: 40" in asm_text
-    assert ";     data: start=4 end=40 entrypoint=False evidence=prefix_before_stack_entry" in asm_text
-    assert ";     candidate_code: start=40 end=29024 entrypoint=True" in asm_text
-    assert "fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate" in asm_text
+    assert "role=data span=4..40 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry" in asm_text
+    assert "role=candidate_code span=40..29024 status=candidate parser_use=candidate_only" in asm_text
     assert "; CODE resource coverage" in asm_text
     assert ";   CODE 0 unknown: status=metadata-only" in asm_text
     assert ";   CODE 1 Main: status=rendered" in asm_text
@@ -232,11 +231,9 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     assert "accepted_segment_metadata" in asm_text
     assert "candidate_routine_entry" in asm_text
     assert "status=candidate parser_use=candidate_only" in asm_text
-    assert ";   orphan_ranges:" in asm_text
-    assert "candidate_data_island: start=4 end=40" in asm_text
-    assert "fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate" in asm_text
-    assert ";   relocation_fixups:" in asm_text
-    assert "fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only" in asm_text
+    assert ";   orphan_ranges:" not in asm_text
+    assert "candidate_data_island: start=4 end=40" not in asm_text
+    assert ";   relocation_fixups:" not in asm_text
     assert "; Executable resource placeholders" in asm_text
     assert "executable_resource_placeholder: type=CURS" in asm_text
     assert "reference_site=resource_type_inventory" in asm_text

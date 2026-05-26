@@ -569,6 +569,19 @@ Required result:
 - Public API compatibility fields are removed only after consumers migrate.
 - Amiga/Atari exact gates and Mac source-quality gates still pass.
 
+Completed 022-010 deletion table:
+
+| Legacy field/path | 022-010 decision | Replacement / remaining consumer |
+| --- | --- | --- |
+| Mac target artifact selected `classified_layout` rendering | Deleted from default artifact output. | Restored-source `ownership_ranges` render metadata/data/candidate/unknown spans with status, provenance, and reason. |
+| Mac target artifact selected/detail `orphan_ranges` rendering | Deleted from default artifact output. | Candidate data/unknown spans render through `source_ownership_ranges`; tests assert the old artifact section is absent. |
+| Mac target artifact selected/detail `relocation_fixups` rendering | Deleted from default artifact output. | Deferred Segment Loader state renders through `source_reference_records` and `segment_loader_fixup_placeholder`. |
+| Payload `selected_code_segment`, `code_layout`, `orphan_ranges`, `relocation_fixups`, `preview_windows`, `non_code_resource_details` | Retained as public compatibility/API data. | Current tests and web/API fixtures still consume these fields for selected CODE identity, preview rows, navigation anchors, and compatibility assertions. Default artifact/web evidence now exposes restored-source records where the shared model exists. |
+| Web Mac CODE detail display | Migrated without redesign. | Existing panel displays restored-source model status/counts and executable resource placeholders; legacy fields are no longer the only visible evidence. |
+
+Amiga/Atari exactness still depends on their rebuild/reproduction gates; this
+deletion slice does not weaken those gates. Mac still has no round-trip claim.
+
 ### 022-011: Cross-Platform Closeout Proof
 
 Close the proposal by proving all platform outcomes together:
