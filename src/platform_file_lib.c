@@ -4621,6 +4621,147 @@ static int append_restored_source_coverage_verifier_json(JsonBuilder *builder,
     (unsigned)verifier->explicit_unknown_missing_detail_count);
 }
 
+static uint32_t restored_source_fixup_width_bytes(const M68kFixup *fixup) {
+  if (fixup == NULL) return 0U;
+  switch (fixup->width) {
+  case M68K_FIXUP_WIDTH_8:
+    return 1U;
+  case M68K_FIXUP_WIDTH_16:
+    return 2U;
+  case M68K_FIXUP_WIDTH_32:
+    return 4U;
+  default:
+    return 0U;
+  }
+}
+
+static uint32_t restored_source_section_loaded_base(const M68kObject *object, size_t section_index) {
+  size_t index;
+  uint32_t base = 0U;
+  if (object == NULL) return 0U;
+  for (index = 0U; index < object->section_count && index < section_index; ++index)
+    base += object->sections[index].size;
+  return base;
+}
+
+static uint32_t restored_source_model_ownership_index_for_loaded_offset(const RestoredSourceModel *model,
+    uint32_t offset) {
+  size_t index;
+  if (model == NULL) return UINT32_MAX;
+  for (index = 0U; index < model->ownership_range_count; ++index) {
+    const RestoredSourceOwnershipRange *range = &model->ownership_ranges[index];
+    if (offset >= range->start && offset - range->start < range->size) return (uint32_t)index;
+  }
+  return UINT32_MAX;
+}
+
+static const char *restored_source_reference_fact_id_for_backend(const char *backend_name) {
+  if (backend_name == NULL) return "";
+  if (strcmp(backend_name, "amiga-hunk") == 0)
+    return PLATFORM_EXECUTABLE_FORMAT_FACT_AMIGA_HUNK_RELOCATION_RECORDS_CANDIDATE;
+  if (strcmp(backend_name, "atari-st") == 0)
+    return PLATFORM_EXECUTABLE_FORMAT_FACT_ATARI_ST_PRG_RELOCATION_STREAM_CANDIDATE;
+  if (strcmp(backend_name, "macos-code") == 0)
+    return PLATFORM_EXECUTABLE_FORMAT_FACT_MACOS_SEGMENT_LOADER_RELOCATION_FIXUPS_DEFERRED;
+  return "";
+}
+
+static int append_source_reference_record_json(JsonBuilder *builder, const RestoredSourceReferenceRecord *record) {
+  if (builder == NULL || record == NULL) return -1;
+  if (json_builder_append(builder, "{\"kind\":") != 0 ||
+      json_builder_append_json_string(builder, record->kind) != 0 ||
+      json_builder_appendf(builder,
+        ",\"ownership_range_index\":%u,\"source_section_index\":%u,\"source_offset\":%u,\"size\":%u,"
+        "\"target_section_index\":",
+        (unsigned)record->ownership_range_index, (unsigned)record->source_section_index,
+        (unsigned)record->source_offset, (unsigned)record->size) != 0)
+    return -1;
+  if (record->has_target_section) {
+    if (json_builder_appendf(builder, "%u", (unsigned)record->target_section_index) != 0) return -1;
+  } else if (json_builder_append(builder, "null") != 0) return -1;
+  if (json_builder_appendf(builder, ",\"target_offset\":%u,\"addend\":%d,\"row_id\":",
+      (unsigned)record->target_offset, (int)record->addend) != 0)
+    return -1;
+  if (record->has_row_id) {
+    if (json_builder_appendf(builder, "%u", (unsigned)record->row_id) != 0) return -1;
+  } else if (json_builder_append(builder, "null") != 0) return -1;
+  return json_builder_append(builder, ",\"target\":") != 0 ||
+      json_builder_append_json_string(builder, record->target) != 0 ||
+      json_builder_append(builder, ",\"status\":") != 0 ||
+      json_builder_append_json_string(builder, record->status) != 0 ||
+      json_builder_append(builder, ",\"fact_id\":") != 0 ||
+      json_builder_append_json_string(builder, record->fact.fact_id) != 0 ||
+      json_builder_append(builder, ",\"fact_status\":") != 0 ||
+      json_builder_append_json_string(builder, record->fact.fact_status) != 0 ||
+      json_builder_append(builder, ",\"parser_use\":") != 0 ||
+      json_builder_append_json_string(builder, record->fact.parser_use) != 0 ||
+      json_builder_append(builder, ",\"provenance\":") != 0 ||
+      json_builder_append_json_string(builder, record->provenance) != 0 ||
+      json_builder_append(builder, "}") != 0 ? -1 : 0;
+}
+
+static int append_source_reference_records_json(JsonBuilder *builder, const char *backend_name,
+    const M68kObject *object, const M68kRenderPlan *source_plan, const RestoredSourceModel *model) {
+  size_t index;
+  int emitted = 0;
+  const char *fact_id = restored_source_reference_fact_id_for_backend(backend_name);
+  if (builder == NULL || backend_name == NULL || object == NULL || model == NULL ||
+      model->ownership_range_count == 0U) {
+    return 0;
+  }
+  if (json_builder_append(builder, ",\"source_reference_records\":[") != 0) return -1;
+  if (strcmp(backend_name, "macos-code") == 0) {
+    RestoredSourceReferenceRecord record;
+    memset(&record, 0, sizeof(record));
+    record.kind = "segment_loader_fixup_placeholder";
+    record.ownership_range_index = 0U;
+    record.source_section_index = 0U;
+    record.source_offset = 0U;
+    record.size = 0U;
+    record.fact.fact_id = fact_id;
+    record.fact.fact_status = "deferred";
+    record.fact.parser_use = "deferred_only";
+    record.status = "deferred";
+    record.provenance = "platform_executable_summary_v1";
+    record.target = "unresolved_segment_loader_fixup";
+    if (append_source_reference_record_json(builder, &record) != 0) return -1;
+    emitted = 1;
+  }
+  for (index = 0U; index < object->fixup_count; ++index) {
+    const M68kFixup *fixup = &object->fixups[index];
+    uint32_t loaded_offset = restored_source_section_loaded_base(object, fixup->section_index) + fixup->offset;
+    uint32_t ownership_index = restored_source_model_ownership_index_for_loaded_offset(model, loaded_offset);
+    RestoredSourceReferenceRecord record;
+    const M68kRenderPlanRow *row = NULL;
+    if (ownership_index == UINT32_MAX) continue;
+    memset(&record, 0, sizeof(record));
+    record.kind = "relocation_fixup";
+    record.ownership_range_index = ownership_index;
+    record.source_section_index = (uint32_t)fixup->section_index;
+    record.source_offset = fixup->offset;
+    record.size = restored_source_fixup_width_bytes(fixup);
+    record.has_target_section = fixup->has_target_section ? 1U : 0U;
+    record.target_section_index = (uint32_t)fixup->target_section_index;
+    record.target_offset = (uint32_t)fixup->addend;
+    record.addend = fixup->addend;
+    if (source_plan != NULL &&
+        (row = m68k_render_plan_find_row_for_source_offset(source_plan, (uint32_t)fixup->section_index,
+           fixup->offset)) != NULL) {
+      record.has_row_id = 1U;
+      record.row_id = row->id;
+    }
+    record.fact.fact_id = fact_id;
+    record.fact.fact_status = "candidate";
+    record.fact.parser_use = "candidate_only";
+    record.status = "candidate";
+    record.provenance = "M68kObject.fixups";
+    record.target = fixup->has_target_section ? "section_offset" : "external_or_unresolved";
+    if (emitted++ != 0 && json_builder_append(builder, ",") != 0) return -1;
+    if (append_source_reference_record_json(builder, &record) != 0) return -1;
+  }
+  return json_builder_append(builder, "]");
+}
+
 static int append_analysis_restored_source_model_json(JsonBuilder *builder, const char *backend_name,
     const M68kObject *object, const M68kRenderPlan *source_plan) {
   RestoredSourceModel model;
@@ -4630,7 +4771,8 @@ static int append_analysis_restored_source_model_json(JsonBuilder *builder, cons
   if (append_restored_source_model_json(builder, &model) != 0) return -1;
   if (model.ownership_range_count == 0U) return 0;
   restored_source_coverage_verify(&model, object, source_plan, &verifier);
-  return append_restored_source_coverage_verifier_json(builder, &verifier);
+  if (append_restored_source_coverage_verifier_json(builder, &verifier) != 0) return -1;
+  return append_source_reference_records_json(builder, backend_name, object, source_plan, &model);
 }
 
 static int append_analysis_json_with_decompression(JsonBuilder *builder, const char *base_json,

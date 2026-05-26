@@ -385,6 +385,21 @@ Required result:
 - Existing facts-v2 relocation/source counters and reproduction exactness data
   are reviewed so shared references do not weaken current Amiga/Atari behavior.
 
+Completed initial reference-record slice:
+
+- Added the C-owned `RestoredSourceReferenceRecord` shape.
+- Listing artifact analysis JSON now exposes `source_reference_records`.
+- Amiga/Atari object fixups map to shared `relocation_fixup` records attached
+  to ownership ranges and render-plan row ids where a row exists. These records
+  preserve candidate parser-use status and do not replace exact rebuild or
+  reproduction relocation checks.
+- Mac CODE emits a deferred `segment_loader_fixup_placeholder` reference so the
+  Segment Loader effect has source-level representation without claiming decoded
+  fixup semantics.
+- Remaining platform extension work: richer target strings, symbol/address ref
+  normalization, and decoded Mac Segment Loader/custom extension records belong
+  to 022-007/022-008.
+
 ### 022-005: Amiga HUNK Restored Source Integration
 
 Move Amiga source/listing/artifact output onto the shared restored source model.

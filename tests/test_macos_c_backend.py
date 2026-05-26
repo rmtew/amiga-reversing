@@ -459,6 +459,26 @@ def test_021_007_macos_code_bytes_artifact_profile_is_native(tmp_path: Path) -> 
         "invalid_instruction_ownership_count": 0,
         "explicit_unknown_missing_detail_count": 0,
     }
+    references = cast(list[dict[str, Any]], analysis["source_reference_records"])
+    assert references == [
+        {
+            "kind": "segment_loader_fixup_placeholder",
+            "ownership_range_index": 0,
+            "source_section_index": 0,
+            "source_offset": 0,
+            "size": 0,
+            "target_section_index": None,
+            "target_offset": 0,
+            "addend": 0,
+            "row_id": None,
+            "target": "unresolved_segment_loader_fixup",
+            "status": "deferred",
+            "fact_id": "macos.segment_loader.relocation_fixups.deferred",
+            "fact_status": "deferred",
+            "parser_use": "deferred_only",
+            "provenance": "platform_executable_summary_v1",
+        }
+    ]
     ownership = cast(list[dict[str, Any]], analysis["source_ownership_ranges"])
     assert ownership == [
         {

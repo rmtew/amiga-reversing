@@ -54,4 +54,22 @@ typedef struct RestoredSourceCoverageVerifier {
   uint32_t explicit_unknown_missing_detail_count;
 } RestoredSourceCoverageVerifier;
 
+typedef struct RestoredSourceReferenceRecord {
+  const char *kind;
+  uint32_t ownership_range_index;
+  uint32_t source_section_index;
+  uint32_t source_offset;
+  uint32_t size;
+  uint8_t has_target_section;
+  uint32_t target_section_index;
+  uint32_t target_offset;
+  int32_t addend;
+  uint8_t has_row_id;
+  uint32_t row_id;
+  PlatformExecutableFactRef fact;
+  const char *status;
+  const char *provenance;
+  const char *target;
+} RestoredSourceReferenceRecord;
+
 #endif

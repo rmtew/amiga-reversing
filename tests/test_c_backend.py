@@ -161,6 +161,7 @@ def test_020_007_amiga_analysis_imports_shared_executable_ranges(tmp_path: Path)
     combined = analyze_source_with_c_artifact(source, metadata_text="", project_root=PROJECT_ROOT)
     ranges = {item["role"]: item for item in combined["analysis"]["executable_ranges"]}
     ownership = {item["role"]: item for item in combined["analysis"]["source_ownership_ranges"]}
+    references = combined["analysis"]["source_reference_records"]
 
     assert combined["analysis"]["executable_model"] == "platform_executable_summary_v1"
     assert combined["analysis"]["restored_source_model"] == "restored_source_model_v1"
@@ -178,6 +179,15 @@ def test_020_007_amiga_analysis_imports_shared_executable_ranges(tmp_path: Path)
     assert ownership["code"]["byte_space"] == "loaded_image"
     assert ownership["data"]["start"] == ranges["data"]["load_offset"]
     assert set(ownership) == set(ranges)
+    assert references
+    assert references[0]["kind"] == "relocation_fixup"
+    assert references[0]["ownership_range_index"] == 1
+    assert references[0]["source_section_index"] == 1
+    assert references[0]["source_offset"] == 0
+    assert references[0]["fact_id"] == "amiga.hunk.relocation.records.candidate"
+    assert references[0]["fact_status"] == "candidate"
+    assert references[0]["parser_use"] == "candidate_only"
+    assert references[0]["row_id"] is not None
     assert combined["analysis"]["executable_deferred"] == [
         {
             "kind": "runtime_entry",
