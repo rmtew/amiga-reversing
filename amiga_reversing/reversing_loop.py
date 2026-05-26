@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import difflib
 import hashlib
 import json
 import os
@@ -12,6 +13,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from functools import lru_cache
 from pathlib import Path
+from shutil import copy2, copytree
 from tempfile import TemporaryDirectory
 from typing import cast
 
@@ -20,7 +22,10 @@ from amiga_reversing.disasm.binary_source import (
     BinarySourceKind,
     resolve_target_binary_source,
 )
-from amiga_reversing.disasm.c_backend import render_project_source_with_c_backend
+from amiga_reversing.disasm.c_backend import (
+    listing_artifact_source_text_with_c_backend_profile,
+    render_project_source_with_c_backend,
+)
 from amiga_reversing.disasm.callback_slot_report import (
     callback_decision_lane,
     callback_decision_record,
@@ -61,6 +66,7 @@ from amiga_reversing.disasm.project_paths import (
     resolve_project_dir,
     resolve_project_paths,
 )
+from amiga_reversing.disasm.reproduction import run_reproduction
 from amiga_reversing.disasm.target_metadata import (
     SeededCodeEntrypointMetadata,
     SeededEntityMetadata,
@@ -290,6 +296,32 @@ def main(argv: list[str] | None = None) -> int:
     cascade_parser.add_argument("--target", required=True)
     cascade_parser.add_argument("--listing-timeout-seconds", type=float, default=10.0)
 
+    cascade_verify_parser = subparsers.add_parser(
+        "cascade-verify",
+        help="Run read-only baseline/effective render verification for pending cascade effects.",
+    )
+    cascade_verify_parser.add_argument("--target", required=True)
+    cascade_verify_parser.add_argument("--parent-fact-id")
+    cascade_verify_parser.add_argument("--child-fact-id")
+    cascade_verify_parser.add_argument("--listing-timeout-seconds", type=float, default=10.0)
+
+    cascade_apply_parser = subparsers.add_parser(
+        "cascade-apply",
+        help="Dry-run or apply verified cascade render effects through Decision Journal projection.",
+    )
+    cascade_apply_parser.add_argument("--target", required=True)
+    cascade_apply_parser.add_argument("--child-fact-id")
+    cascade_apply_parser.add_argument("--write", action="store_true")
+    cascade_apply_parser.add_argument("--listing-timeout-seconds", type=float, default=10.0)
+
+    cascade_closeout_parser = subparsers.add_parser(
+        "cascade-closeout",
+        help="Run Pandora cascade exhaustion closeout with verifier/apply gates.",
+    )
+    cascade_closeout_parser.add_argument("--target", required=True)
+    cascade_closeout_parser.add_argument("--write", action="store_true")
+    cascade_closeout_parser.add_argument("--listing-timeout-seconds", type=float, default=10.0)
+
     orphan_packet_parser = subparsers.add_parser(
         "orphan-code-island-packet",
         help="Emit one read-only orphan/code-island/data-range evidence packet.",
@@ -454,6 +486,38 @@ def main(argv: list[str] | None = None) -> int:
         _print_json(
             inspect_cascade_state(
                 args.target,
+                listing_timeout_seconds=args.listing_timeout_seconds,
+                project_root=args.project_root,
+            )
+        )
+        return 0
+    if args.command == "cascade-verify":
+        _print_json(
+            verify_cascade_effects(
+                args.target,
+                parent_fact_id=args.parent_fact_id,
+                child_fact_id=args.child_fact_id,
+                listing_timeout_seconds=args.listing_timeout_seconds,
+                project_root=args.project_root,
+            )
+        )
+        return 0
+    if args.command == "cascade-apply":
+        _print_json(
+            apply_verified_cascade_effects(
+                args.target,
+                child_fact_id=args.child_fact_id,
+                write=args.write,
+                listing_timeout_seconds=args.listing_timeout_seconds,
+                project_root=args.project_root,
+            )
+        )
+        return 0
+    if args.command == "cascade-closeout":
+        _print_json(
+            closeout_cascade_exhaustion(
+                args.target,
+                write=args.write,
                 listing_timeout_seconds=args.listing_timeout_seconds,
                 project_root=args.project_root,
             )
@@ -3567,6 +3631,596 @@ def inspect_cascade_state(
     return state
 
 
+def verify_cascade_effects(
+    target_id: str,
+    *,
+    parent_fact_id: str | None = None,
+    child_fact_id: str | None = None,
+    listing_timeout_seconds: float = 10.0,
+    project_root: Path = PROJECT_ROOT,
+    cascade_state: Mapping[str, object] | None = None,
+) -> dict[str, object]:
+    state = dict(cascade_state) if isinstance(cascade_state, Mapping) else inspect_cascade_state(
+        target_id,
+        listing_timeout_seconds=listing_timeout_seconds,
+        project_root=project_root,
+    )
+    derived = _mapping_sequence(state.get("derived_facts"))
+    selected = [
+        child
+        for child in derived
+        if (child_fact_id is None or child.get("fact_id") == child_fact_id)
+        and (parent_fact_id is None or parent_fact_id in {str(item) for item in _sequence_values(child.get("parent_fact_ids"))})
+    ]
+    if child_fact_id is None:
+        selected = [
+            child
+            for child in selected
+            if _cascade_child_render_status(child) in {"pending_baseline_delta_verifier", "already_represented"}
+        ]
+    verifications = [
+        _verify_one_cascade_child(target_id, state, child, project_root=project_root)
+        for child in selected
+    ]
+    status = "passed" if verifications and all(item.get("status") == "verified_delta" for item in verifications) else "blocked"
+    if selected and all(item.get("status") in {"verified_delta", "already_represented"} for item in verifications):
+        status = "passed"
+    return {
+        "schema": CASCADE_SCHEMA,
+        "target_id": target_id,
+        "status": status,
+        "source_state_identity": state.get("source_state_identity"),
+        "requested_parent_fact_id": parent_fact_id,
+        "requested_child_fact_id": child_fact_id,
+        "verifications": verifications,
+        "summary": {
+            "checked_count": len(verifications),
+            "verified_delta_count": sum(1 for item in verifications if item.get("status") == "verified_delta"),
+            "already_represented_count": sum(1 for item in verifications if item.get("status") == "already_represented"),
+            "blocked_count": sum(1 for item in verifications if item.get("status") == "blocked"),
+        },
+    }
+
+
+def apply_verified_cascade_effects(
+    target_id: str,
+    *,
+    child_fact_id: str | None = None,
+    write: bool = False,
+    listing_timeout_seconds: float = 10.0,
+    project_root: Path = PROJECT_ROOT,
+    verifier_report: Mapping[str, object] | None = None,
+) -> dict[str, object]:
+    verifier = dict(verifier_report) if isinstance(verifier_report, Mapping) else verify_cascade_effects(
+        target_id,
+        child_fact_id=child_fact_id,
+        listing_timeout_seconds=listing_timeout_seconds,
+        project_root=project_root,
+    )
+    current_state = inspect_cascade_state(target_id, listing_timeout_seconds=listing_timeout_seconds, project_root=project_root)
+    applications = [
+        _application_for_verified_cascade_child(target_id, current_state, verification, write=write, project_root=project_root)
+        for verification in _mapping_sequence(verifier.get("verifications"))
+        if child_fact_id is None or verification.get("derived_child_fact_id") == child_fact_id
+    ]
+    status = "passed" if applications and all(item.get("status") in {"dry_run", "applied", "no_op"} for item in applications) else "blocked"
+    return {
+        "schema": CASCADE_SCHEMA,
+        "target_id": target_id,
+        "status": status,
+        "mode": "write" if write else "dry_run",
+        "verifier_status": verifier.get("status"),
+        "source_state_identity": current_state.get("source_state_identity"),
+        "applications": applications,
+        "summary": {
+            "planned_count": sum(1 for item in applications if item.get("status") in {"dry_run", "applied"}),
+            "applied_count": sum(1 for item in applications if item.get("status") == "applied"),
+            "no_op_count": sum(1 for item in applications if item.get("status") == "no_op"),
+            "blocked_count": sum(1 for item in applications if item.get("status") == "blocked"),
+        },
+    }
+
+
+def closeout_cascade_exhaustion(
+    target_id: str,
+    *,
+    write: bool = False,
+    listing_timeout_seconds: float = 10.0,
+    project_root: Path = PROJECT_ROOT,
+) -> dict[str, object]:
+    before = inspect_cascade_state(target_id, listing_timeout_seconds=listing_timeout_seconds, project_root=project_root)
+    verifier = verify_cascade_effects(
+        target_id,
+        listing_timeout_seconds=listing_timeout_seconds,
+        project_root=project_root,
+        cascade_state=before,
+    )
+    apply_report = apply_verified_cascade_effects(
+        target_id,
+        write=write,
+        listing_timeout_seconds=listing_timeout_seconds,
+        project_root=project_root,
+        verifier_report=verifier,
+    )
+    after = inspect_cascade_state(target_id, listing_timeout_seconds=listing_timeout_seconds, project_root=project_root)
+    summary_stable = before.get("summary") == after.get("summary")
+    identity_stable = before.get("source_state_identity") == after.get("source_state_identity")
+    applied = apply_report.get("summary", {}).get("applied_count") if isinstance(apply_report.get("summary"), Mapping) else 0
+    status = "passed" if (applied or summary_stable) and apply_report.get("status") in {"passed", "blocked"} else "blocked"
+    return {
+        "schema": CASCADE_SCHEMA,
+        "target_id": target_id,
+        "status": status,
+        "mode": "write" if write else "dry_run",
+        "before_summary": before.get("summary"),
+        "verifier_summary": verifier.get("summary"),
+        "apply_summary": apply_report.get("summary"),
+        "after_summary": after.get("summary"),
+        "fixed_point": {
+            "status": "stable" if summary_stable else "changed_after_apply",
+            "summary_stable": summary_stable,
+            "source_state_identity_stable": identity_stable,
+            "before_source_state_identity": before.get("source_state_identity"),
+            "after_source_state_identity": after.get("source_state_identity"),
+        },
+        "blockers": _cascade_closeout_blockers(verifier, apply_report, before, after),
+    }
+
+
+def _cascade_child_render_status(child: Mapping[str, object]) -> str:
+    effect = child.get("render_effect")
+    if isinstance(effect, Mapping) and isinstance(effect.get("status"), str):
+        return str(effect["status"])
+    return ""
+
+
+def _verify_one_cascade_child(
+    target_id: str,
+    state: Mapping[str, object],
+    child: Mapping[str, object],
+    *,
+    project_root: Path,
+) -> dict[str, object]:
+    child_id = str(child.get("fact_id") or "")
+    parent_ids = [str(item) for item in _sequence_values(child.get("parent_fact_ids")) if isinstance(item, str)]
+    parent_facts = {str(parent.get("fact_id") or ""): parent for parent in _mapping_sequence(state.get("parent_facts"))}
+    missing_parent_ids = [item for item in parent_ids if item not in parent_facts]
+    if missing_parent_ids:
+        return _cascade_verifier_blocked(target_id, child, "stale_or_missing_parent_fact", {"missing_parent_fact_ids": missing_parent_ids})
+    status = _cascade_child_render_status(child)
+    if status == "already_represented":
+        return {
+            "schema": CASCADE_SCHEMA,
+            "target_id": target_id,
+            "status": "already_represented",
+            "parent_fact_ids": parent_ids,
+            "derived_child_fact_id": child_id,
+            "fact_type": child.get("fact_type"),
+            "layers": [
+                {"layer": "already_represented", "status": "passed", "message": "baseline already contains this effect"},
+            ],
+            "verifier_delta": verifier_delta(
+                status="already_represented",
+                baseline_state="already_contains_effect",
+                effective_state="already_contains_effect",
+                blockers=[],
+                exact_round_trip="not_required",
+                bounded_effect="passed",
+                negative_safety="passed",
+                fixed_point="passed",
+            ),
+        }
+    if child.get("fact_type") != "a5_hardware_ref":
+        return _cascade_verifier_blocked(target_id, child, "unsupported_cascade_verifier_fact_type", {"fact_type": child.get("fact_type")})
+    return _verify_a5_cascade_child(target_id, state, child, project_root=project_root)
+
+
+def _verify_a5_cascade_child(
+    target_id: str,
+    state: Mapping[str, object],
+    child: Mapping[str, object],
+    *,
+    project_root: Path,
+) -> dict[str, object]:
+    child_id = str(child.get("fact_id") or "")
+    payload = child.get("payload")
+    if not isinstance(payload, Mapping):
+        return _cascade_verifier_blocked(target_id, child, "missing_a5_hardware_ref_payload", {})
+    expected = _normalized_a5_hardware_ref(dict(payload))
+    missing = _a5_hardware_ref_missing_required_identity_fields(expected)
+    if missing:
+        return _cascade_verifier_blocked(target_id, child, "incomplete_a5_hardware_ref_payload", {"missing_identity_fields": missing})
+    with TemporaryDirectory(prefix="cascade-verify-") as tmp:
+        temp_root = Path(tmp)
+        staged_target_dir = _stage_cascade_target(target_id, project_root=project_root, temp_root=temp_root)
+        baseline_text, baseline_profile = _cascade_render_source(target_id, project_root=temp_root)
+        baseline_contains = _a5_expected_render_token(expected) in baseline_text if _a5_expected_render_token(expected) else False
+        record = _cascade_a5_decision_record(target_id, child, staged_target_dir)
+        append_result = append_decision_record(staged_target_dir, record)
+        if append_result.get("status") != "appended":
+            return _cascade_verifier_blocked(target_id, child, "staged_decision_record_rejected", {"append_result": append_result})
+        semantic = _verify_project_a5_hardware_ref(target_id, expected, project_root=temp_root)
+        effective_text, effective_profile = _cascade_render_source(target_id, project_root=temp_root)
+        delta = _cascade_render_delta_layer(
+            baseline_text,
+            effective_text,
+            child,
+            expected_tokens=_a5_expected_render_tokens(expected),
+            baseline_already_contains=baseline_contains,
+        )
+        exact = _cascade_exact_round_trip_layer(
+            target_id,
+            effective_text,
+            effective_profile,
+            project_root=temp_root,
+        )
+    fixed_point = {
+        "layer": "fixed_point",
+        "status": "passed" if state.get("fixed_point", {}).get("status") == "reached" else "failed",
+        "source_state_identity": state.get("source_state_identity"),
+        "source_state_summary_hash": stable_json_hash(state.get("summary") or {}),
+    }
+    layers = [
+        {"layer": "baseline_render", "status": "passed", "profile": _cascade_profile_summary(baseline_profile)},
+        {"layer": "effective_render", "status": "passed", "profile": _cascade_profile_summary(effective_profile)},
+        semantic,
+        delta,
+        fixed_point,
+        exact,
+    ]
+    passed = all(layer.get("status") == "passed" for layer in layers)
+    blockers = [] if passed else [str(layer.get("blocker") or layer.get("layer")) for layer in layers if layer.get("status") != "passed"]
+    return {
+        "schema": CASCADE_SCHEMA,
+        "target_id": target_id,
+        "status": "verified_delta" if passed else "blocked",
+        "parent_fact_ids": [str(item) for item in _sequence_values(child.get("parent_fact_ids")) if isinstance(item, str)],
+        "derived_child_fact_id": child_id,
+        "fact_type": child.get("fact_type"),
+        "decision_record": record,
+        "planned_writes": [{"path": "decision_journal.jsonl", "record_decision_id": record["decision_id"]}],
+        "changed_rows": delta.get("changed_rows", []),
+        "layers": layers,
+        "verifier_delta": verifier_delta(
+            status="verified_delta" if passed else "blocked",
+            baseline_state="rendered",
+            effective_state="rendered",
+            blockers=blockers,
+            exact_round_trip="passed" if exact.get("status") == "passed" else "failed",
+            bounded_effect="passed" if delta.get("bounded_effect") == "passed" else "failed",
+            negative_safety="passed" if delta.get("status") == "passed" else "failed",
+            fixed_point="passed" if fixed_point.get("status") == "passed" else "failed",
+        ),
+    }
+
+
+def _cascade_render_delta_layer(
+    baseline_text: str,
+    effective_text: str,
+    child: Mapping[str, object],
+    *,
+    expected_tokens: Sequence[str],
+    baseline_already_contains: bool = False,
+) -> dict[str, object]:
+    child_id = str(child.get("fact_id") or "")
+    tokens = [token for token in expected_tokens if token]
+    changed_rows: list[dict[str, object]] = []
+    for group in difflib.SequenceMatcher(a=baseline_text.splitlines(), b=effective_text.splitlines()).get_opcodes():
+        tag, i1, i2, j1, j2 = group
+        if tag == "equal":
+            continue
+        baseline_lines = baseline_text.splitlines()[i1:i2]
+        effective_lines = effective_text.splitlines()[j1:j2]
+        width = max(len(baseline_lines), len(effective_lines), 1)
+        for index in range(width):
+            before = baseline_lines[index] if index < len(baseline_lines) else ""
+            after = effective_lines[index] if index < len(effective_lines) else ""
+            changed_rows.append(
+                {
+                    "baseline_line": i1 + index + 1,
+                    "effective_line": j1 + index + 1,
+                    "baseline_text": before,
+                    "effective_text": after,
+                    "derived_child_fact_id": child_id,
+                    "attribution": "matched_expected_token" if any(token in after for token in tokens) else "unattributed",
+                }
+            )
+    if baseline_text == effective_text:
+        blocker = "already_represented_without_parent_delta" if baseline_already_contains else "missing_effective_render_delta"
+        return {
+            "layer": "changed_row_attribution",
+            "status": "failed",
+            "blocker": blocker,
+            "changed_rows": [],
+            "expected_tokens": tokens,
+            "bounded_effect": "failed",
+        }
+    unattributed = [row for row in changed_rows if row["attribution"] != "matched_expected_token"]
+    status = "passed" if changed_rows and not unattributed else "failed"
+    return {
+        "layer": "changed_row_attribution",
+        "status": status,
+        "blocker": None if status == "passed" else "unattributed_changed_rows",
+        "changed_rows": changed_rows,
+        "expected_tokens": tokens,
+        "unattributed_changed_rows": unattributed,
+        "bounded_effect": "passed" if status == "passed" else "failed",
+    }
+
+
+def _application_for_verified_cascade_child(
+    target_id: str,
+    current_state: Mapping[str, object],
+    verification: Mapping[str, object],
+    *,
+    write: bool,
+    project_root: Path,
+) -> dict[str, object]:
+    status = verification.get("status")
+    child_id = str(verification.get("derived_child_fact_id") or "")
+    if status == "already_represented":
+        return {"status": "no_op", "derived_child_fact_id": child_id, "reason": "already_represented"}
+    if status != "verified_delta":
+        return {"status": "blocked", "derived_child_fact_id": child_id, "blocker": "verification_not_verified_delta"}
+    current_child = _cascade_child_by_id(current_state, child_id)
+    if current_child is None:
+        return {"status": "blocked", "derived_child_fact_id": child_id, "blocker": "stale_verified_child_missing"}
+    fixed_point = _cascade_verification_fixed_point_layer(verification)
+    expected_summary_hash = fixed_point.get("source_state_summary_hash") if isinstance(fixed_point, Mapping) else None
+    if isinstance(expected_summary_hash, str) and expected_summary_hash:
+        stale = stable_json_hash(current_state.get("summary") or {}) != expected_summary_hash
+    else:
+        stale = current_state.get("source_state_identity") != fixed_point.get("source_state_identity") if isinstance(fixed_point, Mapping) else True
+    if stale:
+        return {"status": "blocked", "derived_child_fact_id": child_id, "blocker": "stale_verified_source_state_identity"}
+    record = verification.get("decision_record")
+    if not isinstance(record, Mapping):
+        return {"status": "blocked", "derived_child_fact_id": child_id, "blocker": "missing_verified_decision_record"}
+    target_dir = resolve_project_dir(target_id, project_root=project_root)
+    if not write:
+        return {
+            "status": "dry_run",
+            "derived_child_fact_id": child_id,
+            "planned_writes": [{"path": str(target_dir / "decision_journal.jsonl"), "record_decision_id": record.get("decision_id")}],
+        }
+    with TemporaryDirectory(prefix="cascade-apply-") as tmp:
+        temp_root = Path(tmp)
+        staged_target_dir = _stage_cascade_target(target_id, project_root=project_root, temp_root=temp_root)
+        staged_record = _cascade_record_with_current_prev(staged_target_dir, record)
+        staged_append = append_decision_record(staged_target_dir, staged_record)
+        if staged_append.get("status") != "appended":
+            return {"status": "blocked", "derived_child_fact_id": child_id, "blocker": "staged_apply_record_rejected", "append_result": staged_append}
+        source_text, source_profile = _cascade_render_source(target_id, project_root=temp_root)
+        exact = _cascade_exact_round_trip_layer(target_id, source_text, source_profile, project_root=temp_root)
+        if exact.get("status") != "passed":
+            return {"status": "blocked", "derived_child_fact_id": child_id, "blocker": "staged_exact_round_trip_failed", "exact_round_trip": exact}
+    real_record = _cascade_record_with_current_prev(target_dir, record)
+    append_result = append_decision_record(target_dir, real_record)
+    if append_result.get("status") != "appended":
+        return {"status": "blocked", "derived_child_fact_id": child_id, "blocker": "decision_record_rejected", "append_result": append_result}
+    source_text, source_profile = _cascade_render_source(target_id, project_root=project_root)
+    exact_after = _cascade_exact_round_trip_layer(target_id, source_text, source_profile, project_root=project_root)
+    return {
+        "status": "applied" if exact_after.get("status") == "passed" else "blocked",
+        "derived_child_fact_id": child_id,
+        "writes": [{"path": str(target_dir / "decision_journal.jsonl"), "record_decision_id": real_record.get("decision_id")}],
+        "append_result": append_result,
+        "exact_round_trip": exact_after,
+        "blocker": None if exact_after.get("status") == "passed" else "post_write_exact_round_trip_failed",
+    }
+
+
+def _cascade_verifier_blocked(
+    target_id: str,
+    child: Mapping[str, object],
+    blocker: str,
+    detail: Mapping[str, object],
+) -> dict[str, object]:
+    return {
+        "schema": CASCADE_SCHEMA,
+        "target_id": target_id,
+        "status": "blocked",
+        "parent_fact_ids": [str(item) for item in _sequence_values(child.get("parent_fact_ids")) if isinstance(item, str)],
+        "derived_child_fact_id": child.get("fact_id"),
+        "fact_type": child.get("fact_type"),
+        "layers": [{"layer": "preflight", "status": "failed", "blocker": blocker, **dict(detail)}],
+        "verifier_delta": verifier_delta(
+            status="blocked",
+            baseline_state="not_run",
+            effective_state="not_run",
+            blockers=[blocker],
+            exact_round_trip="not_run",
+            bounded_effect="not_run",
+            negative_safety="not_run",
+            fixed_point="not_run",
+        ),
+    }
+
+
+def _cascade_render_source(target_id: str, *, project_root: Path) -> tuple[str, dict[str, object]]:
+    paths = resolve_project_paths(target_id, project_root=project_root)
+    with effective_metadata_file(paths.target_dir) as metadata_path:
+        return listing_artifact_source_text_with_c_backend_profile(
+            paths.binary_source,
+            metadata_path=metadata_path,
+            project_root=project_root,
+        )
+
+
+def _cascade_exact_round_trip_layer(
+    target_id: str,
+    source_text: str,
+    source_profile: Mapping[str, object],
+    *,
+    project_root: Path,
+) -> dict[str, object]:
+    try:
+        report = run_reproduction(
+            target_id,
+            project_root=project_root,
+            pre_rendered_source_text=source_text,
+            pre_rendered_source_profile=source_profile,
+        )
+    except Exception as exc:
+        return {"layer": "exact_round_trip", "status": "failed", "message": str(exc)}
+    return {
+        "layer": "exact_round_trip",
+        "status": "passed" if report.get("status") == "exact" else "failed",
+        "round_trip": {"status": report.get("status"), "issues": report.get("issues", [])},
+    }
+
+
+def _stage_cascade_target(target_id: str, *, project_root: Path, temp_root: Path) -> Path:
+    target_dir = resolve_project_dir(target_id, project_root=project_root)
+    relative_target = target_dir.resolve().relative_to(project_root.resolve())
+    staged_target_dir = temp_root / relative_target
+    staged_target_dir.parent.mkdir(parents=True, exist_ok=True)
+    copytree(target_dir, staged_target_dir)
+    descriptor = target_dir / "source_binary.json"
+    if descriptor.exists():
+        payload = json.loads(descriptor.read_text(encoding="utf-8"))
+        if isinstance(payload, Mapping):
+            for key in ("path", "disk_path", "source_image"):
+                value = payload.get(key)
+                if isinstance(value, str):
+                    _copy_recorded_source_path(value, project_root=project_root, temp_root=temp_root)
+    return staged_target_dir
+
+
+def _copy_recorded_source_path(value: str, *, project_root: Path, temp_root: Path) -> None:
+    source = Path(value)
+    if source.is_absolute():
+        return
+    actual = project_root / value
+    if not actual.exists() or not actual.is_file():
+        return
+    dest = temp_root / value
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    copy2(actual, dest)
+
+
+def _cascade_a5_decision_record(
+    target_id: str,
+    child: Mapping[str, object],
+    target_dir: Path,
+) -> dict[str, object]:
+    payload = dict(cast(Mapping[str, object], child["payload"]))
+    selected_identity = {
+        key: payload.get(key)
+        for key in (
+            "target_id",
+            "row_key",
+            "segment_id",
+            "hunk",
+            "addr",
+            "end",
+            "operand_index",
+            "base_register",
+            "displacement",
+            "hardware_register_offset",
+            "parent_evidence_id",
+            "selected_use_id",
+        )
+        if key in payload
+    }
+    record = a5_hardware_decision_record(
+        {
+            "selected_identity": selected_identity,
+            "command": {"parameters": payload},
+            "candidate_id": payload.get("source_evidence_id") or payload.get("a5_hardware_ref_id"),
+            "packet_id": f"cascade:{child.get('fact_id')}",
+            "render_intent": {"source": "cascade_baseline_delta_verifier", "child_fact_id": child.get("fact_id")},
+        },
+        "accept_fact",
+        target_id=target_id,
+        decision_id=f"cascade:{stable_json_hash({'target_id': target_id, 'child': child.get('fact_id')})[:24]}",
+        prev=str(decision_journal_report(target_dir).get("next_prev")),
+        reason="Accepted by cascade baseline-delta verifier.",
+        created_at="1970-01-01T00:00:00+00:00",
+    )
+    record["cascade_parent_fact_ids"] = [str(item) for item in _sequence_values(child.get("parent_fact_ids")) if isinstance(item, str)]
+    record["cascade_child_fact_id"] = child.get("fact_id")
+    return record
+
+
+def _cascade_record_with_current_prev(target_dir: Path, record: Mapping[str, object]) -> dict[str, object]:
+    updated = dict(record)
+    updated["prev"] = str(decision_journal_report(target_dir).get("next_prev"))
+    return updated
+
+
+def _a5_expected_render_token(expected: Mapping[str, object]) -> str | None:
+    comment = _a5_hardware_ref_entry_comment_text(expected)
+    if comment is not None:
+        return comment
+    symbol = expected.get("symbol")
+    return f"{symbol}(a5)" if isinstance(symbol, str) else None
+
+
+def _a5_expected_render_tokens(expected: Mapping[str, object]) -> list[str]:
+    tokens = []
+    token = _a5_expected_render_token(expected)
+    if token:
+        tokens.append(token)
+    symbol = expected.get("symbol")
+    if isinstance(symbol, str):
+        tokens.append(symbol)
+    return tokens
+
+
+def _cascade_profile_summary(profile: Mapping[str, object]) -> dict[str, object]:
+    return {
+        "status": profile.get("status"),
+        "backend": profile.get("backend"),
+        "facts_v2_source_refused": profile.get("facts_v2_source_refused"),
+    }
+
+
+def _cascade_child_by_id(state: Mapping[str, object], child_id: str) -> Mapping[str, object] | None:
+    for child in _mapping_sequence(state.get("derived_facts")):
+        if child.get("fact_id") == child_id:
+            return child
+    return None
+
+
+def _cascade_verification_fixed_point_layer(verification: Mapping[str, object]) -> Mapping[str, object]:
+    for layer in _mapping_sequence(verification.get("layers")):
+        if layer.get("layer") == "fixed_point":
+            return layer
+    return {}
+
+
+def _cascade_closeout_blockers(
+    verifier: Mapping[str, object],
+    apply_report: Mapping[str, object],
+    before: Mapping[str, object],
+    after: Mapping[str, object],
+) -> list[dict[str, object]]:
+    blockers: list[dict[str, object]] = []
+    for verification in _mapping_sequence(verifier.get("verifications")):
+        if verification.get("status") == "blocked":
+            delta = verification.get("verifier_delta")
+            blockers.append(
+                {
+                    "source": "cascade_verifier",
+                    "derived_child_fact_id": verification.get("derived_child_fact_id"),
+                    "blockers": delta.get("blockers") if isinstance(delta, Mapping) else [],
+                }
+            )
+    for application in _mapping_sequence(apply_report.get("applications")):
+        if application.get("status") == "blocked":
+            blockers.append(
+                {
+                    "source": "cascade_apply",
+                    "derived_child_fact_id": application.get("derived_child_fact_id"),
+                    "blocker": application.get("blocker"),
+                }
+            )
+    if before.get("summary") != after.get("summary"):
+        blockers.append({"source": "cascade_closeout", "blocker": "state_changed_after_closeout"})
+    return blockers
+
+
 def _cascade_rules() -> list[CascadeRule]:
     return [
         CascadeRule("a5.lifetime.hardware_refs.v1", ("a5_custom_base_lifetime",), _cascade_derive_a5_hardware_refs),
@@ -3806,6 +4460,7 @@ def _cascade_derive_rsset_field_refs(
     parent_id = str(fact.get("fact_id") or "")
     field_context = candidate.get("field_or_app_slot_context") if isinstance(candidate.get("field_or_app_slot_context"), Mapping) else {}
     symbol = field_context.get("symbol") or candidate.get("symbol") or f"app_{candidate.get('displacement', 0):04X}"
+    already_represented = candidate.get("status") == "already_recorded"
     return [
         derived_fact(
             fact_id=f"rsset-field-ref:{candidate_id}",
@@ -3816,16 +4471,21 @@ def _cascade_derive_rsset_field_refs(
             provenance={"source": "rsset-candidate-report", "source_state_identity": context.source_state_identity},
             payload={"symbol": symbol, "candidate": dict(candidate)},
             render_effect=render_effect(
-                status="pending_baseline_delta_verifier",
+                status="already_represented" if already_represented else "pending_baseline_delta_verifier",
                 mode="app_slot_operand",
-                blockers=["missing_baseline_delta_verifier"],
+                blockers=[] if already_represented else ["missing_baseline_delta_verifier"],
+                baseline_status="already_contains_effect" if already_represented else "not_run",
+                effective_status="already_contains_effect" if already_represented else "not_run",
             ),
             verifier_delta=verifier_delta(
-                status="pending",
-                baseline_state="not_run",
-                effective_state="not_run",
-                blockers=["missing_baseline_without_parent_render"],
-                exact_round_trip="required_before_write",
+                status="already_represented" if already_represented else "pending",
+                baseline_state="already_contains_effect" if already_represented else "not_run",
+                effective_state="already_contains_effect" if already_represented else "not_run",
+                blockers=[] if already_represented else ["missing_baseline_without_parent_render"],
+                exact_round_trip="not_required" if already_represented else "required_before_write",
+                bounded_effect="passed" if already_represented else "not_run",
+                negative_safety="passed" if already_represented else "not_run",
+                fixed_point="passed" if already_represented else "not_run",
             ),
         ),
         derived_fact(

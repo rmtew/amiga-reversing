@@ -1,6 +1,6 @@
 # 017-099: Rerun Pandora Cascade Exhaustion Closeout
 
-Status: active
+Status: completed
 Type: AFK
 Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
@@ -42,27 +42,41 @@ Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
 ## Research Coverage
 
-- [ ] `017-097` and `017-098` completed and checked.
-- [ ] Full Pandora cascade run reached fixed point.
-- [ ] Verified effects were applied or precisely blocked.
-- [ ] Rerun after application is stable.
-- [ ] Remaining blockers are explicit and actionable.
-- [ ] No 012/018/Mac/platform-format files touched.
+- [x] `017-097` and `017-098` completed and checked.
+- [x] Full Pandora cascade run reached fixed point.
+- [x] Verified effects were applied or precisely blocked.
+- [x] Rerun after application is stable.
+- [x] Remaining blockers are explicit and actionable.
+- [x] No 012/018/Mac/platform-format files touched.
 
 ## Research Review
 
-- [ ] This is the real replacement for superseded `017-096`.
-- [ ] It does not treat pending verifier state as completed source progress.
-- [ ] It gives a useful next-action report when safe progress is exhausted.
-- [ ] Proposal 017 living notes updated with final state and next recommendation.
+- [x] This is the real replacement for superseded `017-096`.
+- [x] It does not treat pending verifier state as completed source progress.
+- [x] It gives a useful next-action report when safe progress is exhausted.
+- [x] Proposal 017 living notes updated with final state and next recommendation.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before work.
-- [ ] `017-098` complete.
-- [ ] Focused closeout tests pass.
-- [ ] Real Pandora cascade exhaustion run completed.
-- [ ] Exact round-trip passes for any source output change.
-- [ ] `amiga_reversing.tools.validate_017_issues` passes.
-- [ ] `git diff --check` passes.
+- [x] Proposal context checked before work.
+- [x] `017-098` complete.
+- [x] Focused closeout tests pass.
+- [x] Real Pandora cascade exhaustion run completed.
+- [x] Exact round-trip passes for any source output change.
+- [x] `amiga_reversing.tools.validate_017_issues` passes.
+- [x] `git diff --check` passes.
 
+## Completion Evidence
+
+- Added `cascade-closeout` and `closeout_cascade_exhaustion()` to run cascade,
+  verifier, dry-run apply, and a post-apply cascade rerun.
+
+## Cascade Evidence
+
+- Real Pandora closeout result:
+  `status=passed`, `render_effects_by_status={already_represented: 21}`,
+  `verifier_deltas_by_status={already_represented: 21}`,
+  `applied_count=0`, `blocked_count=0`, and `summary_stable=true`.
+- Remaining blockers are unchanged fixed-point research blockers, not safe
+  cascade writes: A5 lifetime proof gaps, missing RSSET base evidence,
+  runtime-address source-offset gates, and callback target-row/data blockers.

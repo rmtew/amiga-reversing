@@ -1,6 +1,6 @@
 # 017-098: Apply Verifier-Safe Cascade Render Effects
 
-Status: active
+Status: completed
 Type: AFK
 Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
@@ -43,27 +43,42 @@ Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
 ## Research Coverage
 
-- [ ] `017-097` verifier output checked.
-- [ ] Apply path is dry-run-first.
-- [ ] Written files are narrowly scoped and attributed.
-- [ ] Already-represented effects remain no-ops.
-- [ ] Exact round-trip is enforced after any write.
-- [ ] No 012/018/Mac/platform-format files touched.
+- [x] `017-097` verifier output checked.
+- [x] Apply path is dry-run-first.
+- [x] Written files are narrowly scoped and attributed.
+- [x] Already-represented effects remain no-ops.
+- [x] Exact round-trip is enforced after any write.
+- [x] No 012/018/Mac/platform-format files touched.
 
 ## Research Review
 
-- [ ] This applies only verifier-safe cascade effects.
-- [ ] No selected-row shortcut or legacy workaround is added.
-- [ ] Failed writes leave target state unchanged.
-- [ ] Proposal 017 living notes updated.
+- [x] This applies only verifier-safe cascade effects.
+- [x] No selected-row shortcut or legacy workaround is added.
+- [x] Failed writes leave target state unchanged.
+- [x] Proposal 017 living notes updated.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before work.
-- [ ] `017-097` complete.
-- [ ] Focused cascade apply tests pass.
-- [ ] Real Pandora apply dry-run reviewed.
-- [ ] Exact round-trip passes for any write.
-- [ ] `amiga_reversing.tools.validate_017_issues` passes.
-- [ ] `git diff --check` passes.
+- [x] Proposal context checked before work.
+- [x] `017-097` complete.
+- [x] Focused cascade apply tests pass.
+- [x] Real Pandora apply dry-run reviewed.
+- [x] Exact round-trip passes for any write.
+- [x] `amiga_reversing.tools.validate_017_issues` passes.
+- [x] `git diff --check` passes.
 
+## Completion Evidence
+
+- Added `cascade-apply` and `apply_verified_cascade_effects()` with dry-run
+  default, stale verifier checks, already-represented no-op handling, staged
+  exact round-trip before real writes, and post-write exact round-trip for any
+  write.
+- The apply path writes only a verified effect's attributed Decision Journal
+  record for supported `verified_delta` effects. The real Pandora run produced
+  no verified deltas, so no files were written.
+
+## Cascade Evidence
+
+- Real Pandora dry-run result:
+  `planned_count=0`, `applied_count=0`, `no_op_count=21`,
+  `blocked_count=0`, `status=passed`.

@@ -11090,6 +11090,32 @@ def test_cascade_report_derives_rsset_address_and_callback_lanes(
     assert state["render_policy"]["status"] == "read_only"
 
 
+def test_cascade_report_marks_already_recorded_rsset_field_ref_non_pending(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    rsset_candidate = {
+        "candidate_id": "rsset-demo",
+        "status": "already_recorded",
+        "journal_decision_evidence": {"status": "accepted"},
+        "selected_identity": {"selected_use_id": "s0:000006E4:op1"},
+        "field_or_app_slot_context": {"symbol": "app_022E"},
+    }
+    monkeypatch.setattr(reversing_loop, "inspect_a5_hardware_lifetimes", lambda *args, **kwargs: {"a5_hardware_lifetimes": {}})
+    monkeypatch.setattr(
+        reversing_loop,
+        "inspect_rsset_candidates",
+        lambda *args, **kwargs: {"rsset_candidate_report": {"candidates": [rsset_candidate]}},
+    )
+    monkeypatch.setattr(reversing_loop, "inspect_immediate_runtime_refs", lambda *args, **kwargs: {"immediate_reference_candidates": []})
+    monkeypatch.setattr(reversing_loop, "inspect_callback_slots", lambda *args, **kwargs: {"callback_slots": {"slots": []}})
+
+    state = reversing_loop.inspect_cascade_state("pandora")
+
+    rsset = next(fact for fact in state["derived_facts"] if fact["fact_type"] == "rsset_app_field_ref")
+    assert rsset["render_effect"]["status"] == "already_represented"
+    assert rsset["verifier_delta"]["status"] == "already_represented"
+
+
 def test_cascade_report_cli_invokes_inspection(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
@@ -11119,6 +11145,216 @@ def test_cascade_report_cli_invokes_inspection(
 
     assert json.loads(capsys.readouterr().out)["schema"] == "analysis-cascade/v1"
     assert calls == [{"target_id": "pandora", "listing_timeout_seconds": 1.5, "project_root": Path("root")}]
+
+
+def test_cascade_delta_blocks_already_represented_false_positive() -> None:
+    child = {"fact_id": "a5-hardware-ref:demo"}
+
+    layer = reversing_loop._cascade_render_delta_layer(
+        "    move.w dmacon(a5),d0\n",
+        "    move.w dmacon(a5),d0\n",
+        child,
+        expected_tokens=["dmacon(a5)"],
+        baseline_already_contains=True,
+    )
+
+    assert layer["status"] == "failed"
+    assert layer["blocker"] == "already_represented_without_parent_delta"
+
+
+def test_cascade_delta_passes_only_attributed_rows() -> None:
+    child = {"fact_id": "a5-hardware-ref:demo"}
+
+    layer = reversing_loop._cascade_render_delta_layer(
+        "    move.w $0096(a5),d0\n",
+        "    move.w dmacon(a5),d0\n",
+        child,
+        expected_tokens=["dmacon(a5)", "dmacon"],
+    )
+
+    assert layer["status"] == "passed"
+    assert layer["changed_rows"][0]["derived_child_fact_id"] == "a5-hardware-ref:demo"
+    assert layer["changed_rows"][0]["attribution"] == "matched_expected_token"
+
+
+def test_cascade_delta_rejects_unattributed_rows() -> None:
+    child = {"fact_id": "a5-hardware-ref:demo"}
+
+    layer = reversing_loop._cascade_render_delta_layer(
+        "    move.w $0096(a5),d0\n",
+        "    move.w dmacon(a5),d0\n    moveq #0,d1\n",
+        child,
+        expected_tokens=["dmacon(a5)", "dmacon"],
+    )
+
+    assert layer["status"] == "failed"
+    assert layer["blocker"] == "unattributed_changed_rows"
+    assert layer["unattributed_changed_rows"]
+
+
+def test_cascade_verifier_blocks_stale_parent() -> None:
+    state = {
+        "source_state_identity": "cascade-state:test",
+        "fixed_point": {"status": "reached"},
+        "parent_facts": [],
+        "derived_facts": [
+            {
+                "fact_id": "a5-hardware-ref:demo",
+                "fact_type": "a5_hardware_ref",
+                "parent_fact_ids": ["missing-parent"],
+                "render_effect": {"status": "pending_baseline_delta_verifier"},
+            }
+        ],
+    }
+
+    report = reversing_loop.verify_cascade_effects("demo", cascade_state=state)
+
+    assert report["status"] == "blocked"
+    assert report["verifications"][0]["verifier_delta"]["blockers"] == ["stale_or_missing_parent_fact"]
+
+
+def test_cascade_apply_dry_run_does_not_append(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _target(tmp_path)
+    state = _verified_cascade_state()
+    calls: list[object] = []
+    monkeypatch.setattr(reversing_loop, "inspect_cascade_state", lambda *args, **kwargs: state)
+    monkeypatch.setattr(reversing_loop, "append_decision_record", lambda *args, **kwargs: calls.append(args) or {"status": "appended"})
+
+    report = reversing_loop.apply_verified_cascade_effects(
+        "demo",
+        verifier_report=_verified_cascade_report(),
+        project_root=tmp_path,
+    )
+
+    assert report["status"] == "passed"
+    assert report["applications"][0]["status"] == "dry_run"
+    assert calls == []
+
+
+def test_cascade_apply_blocks_stale_verified_child(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _target(tmp_path)
+    monkeypatch.setattr(
+        reversing_loop,
+        "inspect_cascade_state",
+        lambda *args, **kwargs: {"source_state_identity": "cascade-state:test", "derived_facts": []},
+    )
+
+    report = reversing_loop.apply_verified_cascade_effects(
+        "demo",
+        verifier_report=_verified_cascade_report(),
+        project_root=tmp_path,
+    )
+
+    assert report["status"] == "blocked"
+    assert report["applications"][0]["blocker"] == "stale_verified_child_missing"
+
+
+def test_cascade_apply_blocks_exact_failure_before_real_write(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    real_target = _target(tmp_path)
+    state = _verified_cascade_state()
+    append_paths: list[Path] = []
+    monkeypatch.setattr(reversing_loop, "inspect_cascade_state", lambda *args, **kwargs: state)
+    monkeypatch.setattr(reversing_loop, "_stage_cascade_target", lambda target_id, project_root, temp_root: _target(temp_root))
+    monkeypatch.setattr(reversing_loop, "_cascade_render_source", lambda *args, **kwargs: ("    move.w dmacon(a5),d0\n", {}))
+    monkeypatch.setattr(
+        reversing_loop,
+        "_cascade_exact_round_trip_layer",
+        lambda *args, **kwargs: {"layer": "exact_round_trip", "status": "failed"},
+    )
+    monkeypatch.setattr(
+        reversing_loop,
+        "append_decision_record",
+        lambda target_dir, record: append_paths.append(target_dir) or {"status": "appended"},
+    )
+
+    report = reversing_loop.apply_verified_cascade_effects(
+        "demo",
+        verifier_report=_verified_cascade_report(),
+        write=True,
+        project_root=tmp_path,
+    )
+
+    assert report["status"] == "blocked"
+    assert report["applications"][0]["blocker"] == "staged_exact_round_trip_failed"
+    assert real_target not in append_paths
+
+
+def test_cascade_apply_writes_only_decision_journal_after_verified_dry_run(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    real_target = _target(tmp_path)
+    state = _verified_cascade_state()
+    append_paths: list[Path] = []
+    monkeypatch.setattr(reversing_loop, "inspect_cascade_state", lambda *args, **kwargs: state)
+    monkeypatch.setattr(reversing_loop, "_stage_cascade_target", lambda target_id, project_root, temp_root: _target(temp_root))
+    monkeypatch.setattr(reversing_loop, "_cascade_render_source", lambda *args, **kwargs: ("    move.w dmacon(a5),d0\n", {}))
+    monkeypatch.setattr(
+        reversing_loop,
+        "_cascade_exact_round_trip_layer",
+        lambda *args, **kwargs: {"layer": "exact_round_trip", "status": "passed"},
+    )
+    monkeypatch.setattr(
+        reversing_loop,
+        "append_decision_record",
+        lambda target_dir, record: append_paths.append(target_dir) or {"status": "appended"},
+    )
+
+    report = reversing_loop.apply_verified_cascade_effects(
+        "demo",
+        verifier_report=_verified_cascade_report(),
+        write=True,
+        project_root=tmp_path,
+    )
+
+    assert report["status"] == "passed"
+    assert report["applications"][0]["status"] == "applied"
+    assert append_paths[-1] == real_target
+    assert report["applications"][0]["writes"] == [
+        {"path": str(real_target / "decision_journal.jsonl"), "record_decision_id": "cascade:test"}
+    ]
+
+
+def _verified_cascade_state() -> dict[str, object]:
+    return {
+        "source_state_identity": "cascade-state:test",
+        "derived_facts": [
+            {
+                "fact_id": "a5-hardware-ref:demo",
+                "fact_type": "a5_hardware_ref",
+                "parent_fact_ids": ["a5-lifetime:demo"],
+            }
+        ],
+    }
+
+
+def _verified_cascade_report() -> dict[str, object]:
+    return {
+        "schema": "analysis-cascade/v1",
+        "target_id": "demo",
+        "status": "passed",
+        "verifications": [
+            {
+                "status": "verified_delta",
+                "derived_child_fact_id": "a5-hardware-ref:demo",
+                "decision_record": {"decision_id": "cascade:test", "prev": "old"},
+                "layers": [
+                    {"layer": "baseline_render", "status": "passed"},
+                    {"layer": "fixed_point", "status": "passed", "source_state_identity": "cascade-state:test"},
+                    {"layer": "exact_round_trip", "status": "passed"},
+                ],
+            }
+        ],
+    }
 
 
 def test_listing_entrypoint_label_candidates_skip_human_label(tmp_path: Path) -> None:

@@ -1582,19 +1582,22 @@ repeatable work to `docs\issues\017-*`.
   `exhausted_fact_count=12`, `review_packet_count=312`; fixed point reached in
   2 iterations with stop reason `fixed_point_no_new_facts`.
 - The A5 cascade now uses `a5_custom_base_lifetime` as the parent unit, not a
-  selected operand. Real Pandora derives multiple A5 hardware-ref children, but
-  20 render effects are marked `already_represented`, addressing the 017-089
-  false-positive review finding. One non-legacy render effect is
-  `pending_baseline_delta_verifier`; it is not written as source output.
+  selected operand. Real Pandora derives multiple A5 hardware-ref children, and
+  all 20 A5 render effects are marked `already_represented`, addressing the
+  017-089 false-positive review finding without claiming new source progress.
 - RSSET, runtime-address, and callback lanes now participate in the same
   cascade report. RSSET accepted parents derive field/downstream children;
   runtime-address parents derive labels/xrefs; callback pointer parents derive
   callable target children. Source-offset immediates remain candidate-only, and
   already-code/data callback outcomes are exhausted rather than repeatedly
   proposed.
-- Cascade verifier state now distinguishes already-represented effects from
-  decision-caused deltas. Output-affecting pending children require
-  baseline-without-decision versus effective-with-decision proof, bounded
-  changed rows, negative safety, fixed-point stability, and exact round-trip
-  before any write. The current Pandora cascade pass is read-only and applies
-  no source output changes.
+- 017-097 through 017-099 completed the post-review cascade verifier/apply
+  correction. `cascade-verify` performs staged baseline/effective render
+  comparison, changed-row attribution to derived child ids, already-represented
+  false-positive blocking, stale-parent checks, fixed-point checks, and exact
+  round-trip for output-affecting `verified_delta` effects. `cascade-apply` is
+  dry-run-first and writes only verified, attributed effects after staged exact
+  round-trip. `cascade-closeout` reruns Pandora after verification/application.
+  Current Pandora result: 21 render effects, all `already_represented`; zero
+  verified deltas; zero writes; closeout summary stable with remaining blockers
+  reported as evidence gaps rather than completed source progress.

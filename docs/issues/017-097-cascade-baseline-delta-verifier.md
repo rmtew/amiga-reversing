@@ -1,6 +1,6 @@
 # 017-097: Implement Cascade Baseline-Delta Verifier
 
-Status: active
+Status: completed
 Type: AFK
 Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
@@ -43,27 +43,42 @@ Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
 ## Research Coverage
 
-- [ ] Superseded `017-093` reviewed before implementation.
-- [ ] Baseline excludes only the selected parent fact.
-- [ ] Effective render includes selected parent and derived children.
-- [ ] Changed rows are attributed to derived child fact ids.
-- [ ] Already-represented manual/legacy state blocks source-progress claims.
-- [ ] No 012/018/Mac/platform-format files touched.
+- [x] Superseded `017-093` reviewed before implementation.
+- [x] Baseline excludes only the selected parent fact.
+- [x] Effective render includes selected parent and derived children.
+- [x] Changed rows are attributed to derived child fact ids.
+- [x] Already-represented manual/legacy state blocks source-progress claims.
+- [x] No 012/018/Mac/platform-format files touched.
 
 ## Research Review
 
-- [ ] This implements verifier execution, not just verifier-delta data fields.
-- [ ] Verifier blocks broad or unexplained changes.
-- [ ] Verifier proves fixed-point cascade semantics before write.
-- [ ] Proposal 017 living notes updated.
+- [x] This implements verifier execution, not just verifier-delta data fields.
+- [x] Verifier blocks broad or unexplained changes.
+- [x] Verifier proves fixed-point cascade semantics before write.
+- [x] Proposal 017 living notes updated.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before work.
-- [ ] `017-090` through `017-092` complete.
-- [ ] Focused cascade verifier tests pass.
-- [ ] Real Pandora verifier result reviewed.
-- [ ] Exact round-trip layer included for any output-affecting verified delta.
-- [ ] `amiga_reversing.tools.validate_017_issues` passes.
-- [ ] `git diff --check` passes.
+- [x] Proposal context checked before work.
+- [x] `017-090` through `017-092` complete.
+- [x] Focused cascade verifier tests pass.
+- [x] Real Pandora verifier result reviewed.
+- [x] Exact round-trip layer included for any output-affecting verified delta.
+- [x] `amiga_reversing.tools.validate_017_issues` passes.
+- [x] `git diff --check` passes.
 
+## Completion Evidence
+
+- Added `cascade-verify` and `verify_cascade_effects()` with real staged
+  baseline/effective source rendering, changed-row attribution to child fact
+  ids, stale-parent checks, false-positive blocking for already-represented
+  effects, and exact round-trip enforcement for any `verified_delta`.
+- Added regression coverage for already-represented no-delta, attributed fixture
+  deltas, broad/unattributed deltas, stale parent state, and apply-time exact
+  round-trip failures.
+
+## Cascade Evidence
+
+- Real Pandora verifier result:
+  `checked_count=21`, `already_represented_count=21`,
+  `verified_delta_count=0`, `blocked_count=0`, `status=passed`.
