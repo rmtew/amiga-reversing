@@ -817,6 +817,7 @@ def _executable_resource_placeholders(
         resource_type = detail.get("resource_type")
         resource_count = detail.get("resource_count")
         stable_identity = f"macos-resource:{source_image}:{hfs_path}:{resource_type}:*"
+        source_context = _placeholder_source_context(stable_identity)
         placeholders.append(
             {
                 "kind": "executable_resource_placeholder",
@@ -831,7 +832,8 @@ def _executable_resource_placeholders(
                 "reason": detail.get("reason") or "resource payload semantics are not decoded",
                 "provenance": "platform_file_lib.macos_hfs_code_summary resource_fork.types",
                 "source_visible": True,
-                "reference_sites": _placeholder_reference_sites(detail),
+                "source_context": source_context,
+                "reference_sites": _placeholder_reference_sites(detail, stable_identity=stable_identity),
                 "kb_record_id": detail.get("kb_record_id"),
                 "fact_id": detail.get("fact_id"),
                 "fact_status": detail.get("fact_status"),
@@ -841,14 +843,27 @@ def _executable_resource_placeholders(
     return placeholders
 
 
-def _placeholder_reference_sites(detail: Mapping[str, object]) -> list[dict[str, object]]:
+def _placeholder_source_context(stable_identity: str) -> dict[str, object]:
+    return {
+        "status": "unlinked",
+        "stable_identity": stable_identity,
+        "link_kind": "resource_type_inventory",
+        "reason": "No direct CODE routing, fixup, or restored-source reference targets this resource type yet.",
+    }
+
+
+def _placeholder_reference_sites(
+    detail: Mapping[str, object], *, stable_identity: str
+) -> list[dict[str, object]]:
     return [
         {
             "kind": "resource_type_inventory",
             "resource_type": detail.get("resource_type"),
             "resource_id": None,
+            "stable_identity": stable_identity,
+            "link_status": "unlinked",
             "source_offset": None,
-            "reason": "No direct CODE source reference site is known for this resource type yet.",
+            "reason": "No direct CODE routing, fixup, or restored-source reference targets this resource type yet.",
         }
     ]
 

@@ -120,6 +120,7 @@ def _executable_resource_placeholders(
         resource_type = item.get("type")
         if resource_type == "CODE":
             continue
+        stable_identity = f"macos-resource:{source_image}:{hfs_path}:{resource_type}:*"
         placeholders.append(
             {
                 "kind": "executable_resource_placeholder",
@@ -129,18 +130,26 @@ def _executable_resource_placeholders(
                 "resource_count": item.get("count"),
                 "byte_size": None,
                 "sha256": None,
-                "stable_identity": f"macos-resource:{source_image}:{hfs_path}:{resource_type}:*",
+                "stable_identity": stable_identity,
                 "status": "candidate",
                 "reason": "non-CODE resource metadata is inventory-only and not executable CODE",
                 "provenance": "platform_file_lib.macos_hfs_code_summary resource_fork.types",
                 "source_visible": True,
+                "source_context": {
+                    "status": "unlinked",
+                    "stable_identity": stable_identity,
+                    "link_kind": "resource_type_inventory",
+                    "reason": "No direct CODE routing, fixup, or restored-source reference targets this resource type yet.",
+                },
                 "reference_sites": [
                     {
                         "kind": "resource_type_inventory",
                         "resource_type": resource_type,
                         "resource_id": None,
+                        "stable_identity": stable_identity,
+                        "link_status": "unlinked",
                         "source_offset": None,
-                        "reason": "No direct CODE source reference site is known for this resource type yet.",
+                        "reason": "No direct CODE routing, fixup, or restored-source reference targets this resource type yet.",
                     }
                 ],
             }

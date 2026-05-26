@@ -216,6 +216,21 @@ Link executable-relevant non-CODE resource placeholders back to source context
 where evidence exists. Keep broad resource parsing out of scope unless needed
 for source comprehension.
 
+Completed placeholder linking state:
+
+- Project/API and web payload placeholders now carry a stable
+  `macos-resource:<image>:<hfs-path>:<type>:*` identity through the placeholder,
+  source-context summary, and reference-site record.
+- Current non-CODE executable-resource placeholders remain type-level inventory
+  records. Because no CODE routing, Segment Loader fixup, or restored-source
+  reference currently targets those non-CODE resource types, each placeholder is
+  explicitly `source_context.status: unlinked` with the reason recorded on both
+  the source context and reference site.
+- The target artifact renders placeholder source-context status, stable
+  identity, and reference-site link status, so a reverser can navigate from the
+  source-visible inventory context to the placeholder identity without treating
+  unsupported resource payloads as decoded.
+
 ### 023-007: Source Display And API Consolidation
 
 Make source/artifact/web/API output consume the shared records from 023-002

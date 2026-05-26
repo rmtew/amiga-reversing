@@ -664,13 +664,21 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
             "reason": "non-CODE resource metadata is inventory-only and not executable CODE",
             "provenance": "platform_file_lib.macos_hfs_code_summary resource_fork.types",
             "source_visible": True,
+            "source_context": {
+                "status": "unlinked",
+                "stable_identity": "macos-resource:MPW-GM.img.bin:MPW-GM/MPW/Tools/Asm:WIND:*",
+                "link_kind": "resource_type_inventory",
+                "reason": "No direct CODE routing, fixup, or restored-source reference targets this resource type yet.",
+            },
             "reference_sites": [
                 {
                     "kind": "resource_type_inventory",
                     "resource_type": "WIND",
                     "resource_id": None,
+                    "stable_identity": "macos-resource:MPW-GM.img.bin:MPW-GM/MPW/Tools/Asm:WIND:*",
+                    "link_status": "unlinked",
                     "source_offset": None,
-                    "reason": "No direct CODE source reference site is known for this resource type yet.",
+                    "reason": "No direct CODE routing, fixup, or restored-source reference targets this resource type yet.",
                 }
             ],
             "kb_record_id": "macos.hfs_resource_fork.code_resources.mpw_application",
@@ -1040,7 +1048,10 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     assert {item["resource_type"] for item in placeholders} == {"acur", "CURS", "cmdo", "vers"}
     assert all(item["source_visible"] is True for item in placeholders)
     assert all(item["stable_identity"].startswith("macos-resource:") for item in placeholders)
+    assert all(item["source_context"]["status"] == "unlinked" for item in placeholders)
     assert all(item["reference_sites"][0]["kind"] == "resource_type_inventory" for item in placeholders)
+    assert all(item["reference_sites"][0]["stable_identity"] == item["stable_identity"] for item in placeholders)
+    assert all(item["reference_sites"][0]["link_status"] == "unlinked" for item in placeholders)
     assert len(container["code_resource_details"]) == len(container["code_resources"])
     for detail in container["code_resource_details"]:
         presentation = detail["source_presentation_status"]

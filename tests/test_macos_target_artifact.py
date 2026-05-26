@@ -237,6 +237,9 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     assert "; Executable resource placeholders" in asm_text
     assert "executable_resource_placeholder: type=CURS" in asm_text
     assert "reference_site=resource_type_inventory" in asm_text
+    assert "source_context=unlinked" in asm_text
+    assert "link_status=unlinked" in asm_text
+    assert "identity=macos-resource:" in asm_text
     assert ";   restored_source_model:" in asm_text
     assert asm_text.count("source_presentation: kind=c_owned_restored_source_packet status=covered") >= 28
     assert "model=restored_source_model_v1 round_trip_required=false" in asm_text

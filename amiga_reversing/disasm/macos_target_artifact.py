@@ -253,18 +253,22 @@ def _executable_resource_placeholder_lines(placeholders: Sequence[Mapping[str, o
         return [";   none"]
     lines: list[str] = []
     for item in placeholders:
+        source_context = _mapping(item.get("source_context"))
         lines.append(
             f";   {_text(item.get('kind'))}: type={_text(item.get('resource_type'))} "
             f"id={_text(item.get('resource_id'))} name={_text(item.get('resource_name'))} "
             f"count={_text(item.get('resource_count'))} size={_text(item.get('byte_size'))} "
             f"sha256={_text(item.get('sha256'))} identity={_text(item.get('stable_identity'))} "
             f"status={_text(item.get('fact_status') or item.get('status'))} "
+            f"source_context={_text(source_context.get('status'))} "
             f"reason={_text(item.get('reason'))}"
         )
         for site in [_mapping(value) for value in _sequence(item.get("reference_sites"))]:
             lines.append(
                 f";     reference_site={_text(site.get('kind'))} "
                 f"type={_text(site.get('resource_type'))} id={_text(site.get('resource_id'))} "
+                f"identity={_text(site.get('stable_identity'))} "
+                f"link_status={_text(site.get('link_status'))} "
                 f"source_offset={_text(site.get('source_offset'))} reason={_text(site.get('reason'))}"
             )
     return lines
