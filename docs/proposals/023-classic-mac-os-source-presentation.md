@@ -443,6 +443,16 @@ Required outcome:
 - No C-owned evidence is deleted; only its artifact placement changes unless a
   sidecar replacement is added.
 
+Completed state:
+
+- `Asm.s` uses a compact identity header, then the selected CODE restored-source
+  context and source listing.
+- Broad file/resource inventory, CODE coverage, CODE details, non-CODE
+  placeholders, and unsupported-runtime notes remain in `Asm.s` after the source
+  body under `; Supporting evidence follows after the source body.`
+- Artifact tests assert this ordering so report-first output cannot silently
+  return.
+
 ### 023-012: All-CODE Source Body Sections
 
 Render every executable CODE resource as a visible source-body section.

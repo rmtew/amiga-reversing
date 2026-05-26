@@ -1,6 +1,6 @@
 # 023-011: Source-First Asm Artifact Contract
 
-Status: active
+Status: complete
 Type: AFK
 Source proposal: docs/proposals/023-classic-mac-os-source-presentation.md
 
@@ -29,16 +29,26 @@ Do not leave the report at the front because it is easier.
 
 ## Acceptance Criteria
 
-- [ ] `Asm.s` has at most a compact identity/header block before the first source
+- [x] `Asm.s` has at most a compact identity/header block before the first source
       section.
-- [ ] The first useful artifact body after the header is restored source or a
+- [x] The first useful artifact body after the header is restored source or a
       typed source placeholder, not resource inventory/report comments.
-- [ ] Existing C-owned evidence remains available either after the source body or
+- [x] Existing C-owned evidence remains available either after the source body or
       in a sidecar artifact with stable naming.
-- [ ] Any sidecar/report relocation has tests proving the evidence remains
+- [x] Any sidecar/report relocation has tests proving the evidence remains
       reachable without dominating source output.
-- [ ] Tests fail if a large report preamble returns to the front of `Asm.s`.
-- [ ] Proposal 023 records where the supporting evidence now lives.
+- [x] Tests fail if a large report preamble returns to the front of `Asm.s`.
+- [x] Proposal 023 records where the supporting evidence now lives.
+
+## Completed Result
+
+- `Asm.s` now starts with a compact identity header, selected CODE restored-source
+  packet context, and the CODE 1 source listing.
+- Broad file/resource inventory, CODE coverage, CODE detail evidence, non-CODE
+  placeholders, and unsupported-runtime notes remain in `Asm.s` after the source
+  body under a supporting-evidence section.
+- Artifact tests assert source appears before report evidence so the old
+  report-first preamble cannot return silently.
 
 ## Blocked By
 
@@ -46,8 +56,8 @@ None - can start immediately.
 
 ## Required Sign-Off
 
-- [ ] Focused Mac artifact/project/API tests pass.
-- [ ] Platform executable validate/coverage pass with Mac/Amiga/Atari current
+- [x] Focused Mac artifact/project/API tests pass.
+- [x] Platform executable validate/coverage pass with Mac/Amiga/Atari current
       backends.
-- [ ] `cmd /c src\precommit.bat` passes if shared rendering or C code changes.
-- [ ] `git diff --check` passes.
+- [x] `cmd /c src\precommit.bat` passes if shared rendering or C code changes.
+- [x] `git diff --check` passes.

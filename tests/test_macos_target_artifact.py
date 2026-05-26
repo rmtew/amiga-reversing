@@ -275,6 +275,14 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     assert "movea.l (a7)+,a0" in asm_text
     assert "SECTION code,code" not in asm_text
     assert "\tori.b #16,d0" not in asm_text
+    source_start = asm_text.index("; Selected CODE segment source")
+    listing_start = asm_text.index("; CODE 1 Main listing follows.")
+    first_instruction = asm_text.index("movea.l (a7)+,a0")
+    evidence_start = asm_text.index("; Supporting evidence follows after the source body.")
+    assert source_start < listing_start < first_instruction < evidence_start
+    assert evidence_start < asm_text.index("; File forks")
+    assert asm_text.index("; Resource fork") > evidence_start
+    assert asm_text.index("; CODE resources") > evidence_start
 
 
 def test_committed_macos_asm_artifact_matches_renderer() -> None:

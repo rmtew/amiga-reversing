@@ -121,7 +121,7 @@ def render_macos_example_asm(*, project_root: Path = PROJECT_ROOT) -> str:
             "byte-for-byte MPW Link/Rez roundtrip",
         }
     )
-    lines: list[str] = [
+    header_lines: list[str] = [
         "; Classic Mac OS target artifact: MPW Tools Asm",
         "; Renderer: amiga_reversing.disasm.macos_target_artifact",
         "; Source image: resources/platform_macos/MPW-GM.img.bin",
@@ -132,6 +132,30 @@ def render_macos_example_asm(*, project_root: Path = PROJECT_ROOT) -> str:
         ";",
         "; This is an illustrative source artifact, not an MPW round-trip contract.",
         "; Durable input comes from the C-backed HFS/resource/CODE summary and shared m68k listing renderer.",
+        "",
+    ]
+    selected_source_header = [
+        "; Selected CODE segment source",
+        f";   source_kind: {_text(native_source.get('source_kind'))}",
+        f";   backend: {_text(native_source.get('backend'))}",
+        f";   resource_type: {_text(selected.get('resource_type'))}",
+        f";   id: {_text(selected.get('id'))}",
+        f";   name: {_text(selected.get('name'))}",
+        f";   fork: {_text(selected_listing.get('fork'))}",
+        f";   payload_size: {_text(selected.get('payload_size'))}",
+        f";   code_entry_offset: {_text(selected.get('code_entry_offset'))}",
+        f";   code_bytes_size: {_text(selected.get('code_bytes_size'))}",
+        f";   payload_sha256: {_text(selected.get('sha256'))}",
+        f";   code_bytes_sha256: {_text(selected.get('code_bytes_sha256'))}",
+        ";   restored_source_model:",
+        *_restored_source_model_lines(selected_restored_source),
+        f";   listing_rows: {total_rows}",
+        "",
+        "; CODE 1 Main listing follows. Offsets are local to the selected CODE resource code bytes.",
+    ]
+    report_lines: list[str] = [
+        "",
+        "; Supporting evidence follows after the source body.",
         "",
         "; File forks",
         *_fork_lines(forks),
@@ -172,26 +196,11 @@ def render_macos_example_asm(*, project_root: Path = PROJECT_ROOT) -> str:
         "",
         "; Unsupported Mac Segment Loader/runtime areas",
         *[f";   {item}" for item in unsupported],
-        "",
-        "; Selected CODE segment",
-        f";   source_kind: {_text(native_source.get('source_kind'))}",
-        f";   backend: {_text(native_source.get('backend'))}",
-        f";   resource_type: {_text(selected.get('resource_type'))}",
-        f";   id: {_text(selected.get('id'))}",
-        f";   name: {_text(selected.get('name'))}",
-        f";   fork: {_text(selected_listing.get('fork'))}",
-        f";   payload_size: {_text(selected.get('payload_size'))}",
-        f";   code_entry_offset: {_text(selected.get('code_entry_offset'))}",
-        f";   code_bytes_size: {_text(selected.get('code_bytes_size'))}",
-        f";   payload_sha256: {_text(selected.get('sha256'))}",
-        f";   code_bytes_sha256: {_text(selected.get('code_bytes_sha256'))}",
-        ";   restored_source_model:",
-        *_restored_source_model_lines(selected_restored_source),
-        f";   listing_rows: {total_rows}",
-        "",
-        "; CODE 1 Main listing follows. Offsets are local to the selected CODE resource code bytes.",
     ]
+    lines = [*header_lines, *selected_source_header]
     lines.extend(selected_code_source.rstrip().splitlines())
+    lines.append("")
+    lines.extend(report_lines)
     lines.append("")
     return "\n".join(lines)
 
