@@ -1,0 +1,39 @@
+# 024-003: Decode First Supported Fixup Form
+
+Status: active
+Type: AFK
+Source proposal: docs/proposals/024-classic-mac-os-segment-loader-fixups.md
+
+## Proposal Context
+
+- 024-001 identifies parseable fixup candidates.
+- 024-002 provides the record model.
+- This issue must turn at least one supported fixup form into decoded source
+  reference records.
+
+## What To Build
+
+Implement the first supported Segment Loader fixup decoder found in the current
+MPW `Asm` fixture. Emit decoded records through the C-owned model and keep every
+other unsupported/custom form as typed deferred placeholders.
+
+## Acceptance Criteria
+
+- [ ] At least one real fixture fixup form is decoded from bytes.
+- [ ] Decoded records include effect kind, source span, target when known,
+      provenance, and source visibility.
+- [ ] Unsupported/custom forms remain deferred placeholders.
+- [ ] Tests prove decoded records cannot be emitted from malformed or absent
+      evidence.
+- [ ] Proposal 024 records the decoded form and residual deferred forms.
+
+## Blocked By
+
+- docs/issues/024-002-c-fixup-record-model.md
+
+## Required Sign-Off
+
+- [ ] Focused Mac C/backend/project/artifact tests pass.
+- [ ] Platform executable validate/coverage pass.
+- [ ] `cmd /c src\precommit.bat` passes.
+- [ ] `git diff --check` passes.
