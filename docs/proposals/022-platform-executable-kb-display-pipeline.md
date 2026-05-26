@@ -1,11 +1,15 @@
 # Proposal 022: Platform Restored Source Model
 
-Status: complete
+Status: active
 
 Reclosed after `022-012`: Mac project/web/API restored-source evidence now comes
 from C-owned `restored_source_model_v1` packets or fails closed with an explicit
 missing-model blocker. Python compatibility fields remain for identity and
 navigation only; they are not restored-source authority.
+
+Reopened after closeout review for `022-013`: the Mac C-owned restored-source
+packet currently emits `source_coverage_verifier.ok: true` directly instead of
+running shared or equivalent C validation over the packet it emits.
 
 ## Purpose
 
@@ -656,6 +660,31 @@ Completed 022-012 outcome:
   `source_reference_records`, and passing `source_coverage_verifier` values from
   `code_layout`/`relocation_fixups` were removed.
 
+Closeout review finding after `022-012`:
+
+- Mac restored-source authority moved into C, but the Mac packet still hardcodes
+  `source_coverage_verifier` success. That is not enough for final 022 closure:
+  the verifier must be computed from the emitted Mac ownership ranges, with
+  negative coverage proving gaps, overlaps, malformed unknown spans, and invalid
+  role/status combinations cannot report `ok: true`.
+
+### 022-013: Real C Validation For Mac Restored-Source Verifier
+
+Replace hardcoded Mac restored-source verifier success with real C validation.
+
+Required outcome:
+
+- Mac `restored_source_model_v1` packets still have `authority: c_owned`.
+- Mac `source_coverage_verifier` is computed from the emitted ownership ranges,
+  not hardcoded.
+- The verifier rejects at least gaps, overlaps, malformed explicit unknown
+  ranges, and invalid role/status combinations for Mac CODE packets.
+- Existing Python fail-closed behavior from `022-012` remains intact.
+- Tests include positive current Mac fixture coverage and negative C/backend or
+  parser-level coverage for malformed Mac ownership packets.
+- Proposal 022 is marked complete again only after this issue is implemented,
+  reviewed, and its conclusions are promoted here.
+
 Final proof commands:
 
 - `cmd /c src\precommit.bat`: passed.
@@ -680,6 +709,8 @@ Final proof commands:
 - `source_reference_records` represent relocation/fixup/address effects.
 - `source_coverage_verifier` rejects gaps, overlaps, and invalid role/status
   renderings.
+- Mac `source_coverage_verifier` is real C validation, not a hardcoded success
+  object.
 - Amiga and Atari remain exact round-trip capable.
 - Mac CODE reaches restored-source quality without round-trip requirement.
 - Mac Segment Loader relocation/fixup effects are represented as source-level
@@ -730,6 +761,8 @@ Closeout must run all applicable proof together.
 - 022-010 follows 022-005 through 022-009.
 - 022-011 closes the proposal.
 - 022-012 follows the closeout review finding and blocks final re-closeout.
+- 022-013 follows the post-012 closeout review finding and blocks final
+  re-closeout.
 
 ## Non-Goals
 
