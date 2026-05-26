@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+import json
+import tempfile
+from collections.abc import Iterator, Mapping
+from contextlib import contextmanager
 from pathlib import Path
 
 from amiga_reversing.disasm.c_backend import (
@@ -93,16 +96,16 @@ def build_macos_project_payload(project: object, *, project_root: Path = PROJECT
 
 def _native_source_identity(descriptor: object, *, source_image: str) -> dict[str, object]:
     return {
-        "kind": str(getattr(descriptor, "kind")),
+        "kind": str(descriptor.kind),
         "backend": "macos-code",
         "source_kind": "macos_code_resource",
         "source_image": source_image,
-        "hfs_path": getattr(descriptor, "hfs_path"),
-        "resource_type": getattr(descriptor, "resource_type"),
-        "resource_id": getattr(descriptor, "resource_id"),
-        "resource_name": getattr(descriptor, "resource_name"),
-        "address_model": str(getattr(descriptor, "address_model")),
-        "cache_identity": getattr(descriptor, "stable_cache_identity"),
+        "hfs_path": descriptor.hfs_path,
+        "resource_type": descriptor.resource_type,
+        "resource_id": descriptor.resource_id,
+        "resource_name": descriptor.resource_name,
+        "address_model": str(descriptor.address_model),
+        "cache_identity": descriptor.stable_cache_identity,
         "wrapped_backend": None,
     }
 
@@ -331,6 +334,9 @@ def _code_source_body_sections(
 def _code_source_section_status(detail: Mapping[str, object], *, selected_id: object) -> str:
     if detail.get("id") == selected_id:
         return "selected_full_listing"
+    semantic_source = _mapping(detail.get("semantic_source"))
+    if semantic_source.get("status") == "decoded":
+        return "semantic_source"
     presentation = _mapping(detail.get("source_presentation_status"))
     listing = _mapping(detail.get("listing"))
     if presentation.get("status") == "covered" and listing.get("available") is True:
@@ -519,6 +525,9 @@ def _source_quality_resource_row(
         ranges,
         payload_size=payload_size,
         semantic_rows=semantic_rows,
+        semantic_candidate_residuals=[
+            _mapping(item) for item in _sequence(semantic_source.get("candidate_residuals"))
+        ],
     )
     executable_body_spans = [
         item
@@ -588,8 +597,9 @@ def _source_quality_residuals(
     *,
     payload_size: int,
     semantic_rows: list[Mapping[str, object]],
+    semantic_candidate_residuals: list[Mapping[str, object]],
 ) -> list[dict[str, object]]:
-    residuals: list[dict[str, object]] = []
+    residuals: list[dict[str, object]] = [dict(item) for item in semantic_candidate_residuals]
     for item in ranges:
         kind = str(item.get("kind") or "")
         status = str(item.get("fact_status") or item.get("status") or "")
@@ -853,14 +863,6 @@ def _code_resource_details(
             project_root=project_root,
             extraction_cache=extraction_cache,
         )
-        listing = _listing_descriptor(
-            resource,
-            code=code,
-            selected_id=selected_id,
-            project_id=project_id,
-            unsupported=unsupported,
-            preview_windows=preview_windows,
-        )
         semantic_source = _semantic_source_rows(
             resource,
             code=code,
@@ -868,6 +870,18 @@ def _code_resource_details(
             hfs_bytes=hfs_bytes,
             hfs_path=hfs_path,
             project_root=project_root,
+            all_routine_candidates=all_routine_candidates,
+        )
+        analysis_seeds = [_mapping(item) for item in _sequence(semantic_source.get("analysis_seeds"))]
+        listing = _listing_descriptor(
+            resource,
+            code=code,
+            selected_id=selected_id,
+            project_id=project_id,
+            unsupported=unsupported,
+            preview_windows=preview_windows,
+            analysis_seeds=analysis_seeds,
+            semantic_source=semantic_source,
         )
         restored_source = _c_owned_restored_source_packet(code, scope=f"CODE {resource_id}")
         source_presentation_status = _code_source_presentation_status(
@@ -958,6 +972,7 @@ def _semantic_source_rows(
     hfs_bytes: bytes,
     hfs_path: str,
     project_root: Path,
+    all_routine_candidates: list[dict[str, object]],
 ) -> dict[str, object]:
     resource_id = resource.get("id")
     if resource_id == 0:
@@ -965,6 +980,8 @@ def _semantic_source_rows(
             "kind": "semantic_source_deferred",
             "status": "deferred",
             "reason": "CODE 0 is routing/application metadata, not an executable body",
+            "analysis_seed_count": 0,
+            "analysis_seeds": [],
             "rows": [],
         }
     code_range = _first_code_range(_sequence(code.get("layout_ranges")))
@@ -975,6 +992,8 @@ def _semantic_source_rows(
             "kind": "semantic_source_blocked",
             "status": "blocked",
             "reason": "CODE resource has no classifiable executable body range",
+            "analysis_seed_count": 0,
+            "analysis_seeds": [],
             "rows": [],
         }
     code_bytes = extract_macos_hfs_code_resource_bytes_with_c_backend(
@@ -988,13 +1007,23 @@ def _semantic_source_rows(
             "kind": "semantic_source_blocked",
             "status": "blocked",
             "reason": "CODE executable body bytes are unavailable from the native C Mac CODE path",
+            "analysis_seed_count": 0,
+            "analysis_seeds": [],
             "rows": [],
         }
-    total_rows, _profile, artifact = build_macos_code_bytes_listing_artifact_profile(
-        code_bytes,
-        display_path=f"Mac OS semantic source CODE {resource_id} {resource.get('name') or ''}".strip(),
-        project_root=project_root,
+    analysis_seeds = _macos_code_analysis_seeds(
+        resource,
+        code=code,
+        payload_base=code_start,
+        all_routine_candidates=all_routine_candidates,
     )
+    with _macos_code_analysis_seed_metadata_path(analysis_seeds) as metadata_path:
+        total_rows, _profile, artifact = build_macos_code_bytes_listing_artifact_profile(
+            code_bytes,
+            display_path=f"Mac OS semantic source CODE {resource_id} {resource.get('name') or ''}".strip(),
+            metadata_path=metadata_path,
+            project_root=project_root,
+        )
     try:
         window, _window_profile = artifact.window_payload(start=0, count=total_rows)
     finally:
@@ -1004,6 +1033,14 @@ def _semantic_source_rows(
         for row in _sequence(window.get("rows"))
     ]
     rows = [row for row in rows if row]
+    candidate_residuals = _macos_code_candidate_residuals(
+        code_bytes,
+        payload_base=code_start,
+        code_range=code_range,
+        semantic_rows=rows,
+        resource=resource,
+        code=code,
+    )
     instruction_count = sum(1 for row in rows if row.get("kind") == "instruction")
     return {
         "kind": "macos_code_semantic_source_v1",
@@ -1019,8 +1056,196 @@ def _semantic_source_rows(
         "data_row_count": sum(1 for row in rows if row.get("kind") in {"data", "directive"}),
         "generated_label_count": sum(1 for row in rows if row.get("kind") == "label"),
         "generated_xref_count": sum(len(_sequence(row.get("xrefs"))) for row in rows),
+        "analysis_seed_count": len(analysis_seeds),
+        "analysis_seeds": analysis_seeds,
+        "candidate_residual_count": len(candidate_residuals),
+        "candidate_residuals": candidate_residuals,
         "rows": rows,
     }
+
+
+def _macos_code_analysis_seeds(
+    resource: Mapping[str, object],
+    *,
+    code: Mapping[str, object],
+    payload_base: int,
+    all_routine_candidates: list[dict[str, object]],
+) -> list[dict[str, object]]:
+    resource_id = resource.get("id")
+    if not isinstance(resource_id, int):
+        return []
+    seeds: dict[int, dict[str, object]] = {}
+    for range_info in (_mapping(item) for item in _sequence(code.get("layout_ranges"))):
+        if range_info.get("kind") not in {"candidate_code", "confirmed_code", "code"}:
+            continue
+        start = _int_value(range_info.get("start"))
+        end = _int_value(range_info.get("end"))
+        if start is None or end is None or end <= start:
+            continue
+        _add_macos_code_analysis_seed(
+            seeds,
+            payload_offset=start,
+            payload_base=payload_base,
+            resource_id=resource_id,
+            reason="loader_candidate_code_entry",
+            fact_id=range_info.get("fact_id"),
+            fact_status=range_info.get("fact_status"),
+            parser_use=range_info.get("parser_use"),
+        )
+        for candidate in all_routine_candidates:
+            if candidate.get("target_resource_id") != resource_id:
+                continue
+            target_offset = _code0_target_payload_offset(
+                {"code_layout": [range_info]},
+                _int_value(candidate.get("routine_offset_from_segment")),
+            )
+            if target_offset is None:
+                continue
+            _add_macos_code_analysis_seed(
+                seeds,
+                payload_offset=target_offset,
+                payload_base=payload_base,
+                resource_id=resource_id,
+                reason="code0_routine_candidate",
+                fact_id=candidate.get("fact_id"),
+                fact_status=candidate.get("fact_status"),
+                parser_use=candidate.get("parser_use"),
+                code0_payload_offset=candidate.get("code0_payload_offset"),
+            )
+    return [seeds[offset] for offset in sorted(seeds)]
+
+
+def _macos_code_candidate_residuals(
+    code_bytes: bytes,
+    *,
+    payload_base: int,
+    code_range: Mapping[str, object],
+    semantic_rows: list[Mapping[str, object]],
+    resource: Mapping[str, object],
+    code: Mapping[str, object],
+) -> list[dict[str, object]]:
+    start = _int_value(code_range.get("start"))
+    end = _int_value(code_range.get("end"))
+    if start is None or end is None or end <= start:
+        return []
+    residuals: list[dict[str, object]] = []
+    for payload_offset, pattern in _macos_candidate_entry_patterns(code_bytes, payload_base=payload_base):
+        if payload_offset < start or payload_offset >= end:
+            continue
+        if _payload_offset_is_covered(payload_offset, semantic_rows):
+            continue
+        residuals.append(
+            {
+                "kind": "candidate_unvisited_entry_pattern",
+                "resource_id": resource.get("id"),
+                "start": payload_offset,
+                "end": min(payload_offset + 2, end),
+                "size": min(payload_offset + 2, end) - payload_offset,
+                "status": "candidate",
+                "fact_status": "candidate",
+                "parser_use": "candidate_only",
+                "fact_id": code_range.get("fact_id"),
+                "kb_record_id": code.get("kb_record_id") or resource.get("kb_record_id"),
+                "pattern": pattern,
+                "reason": "unvisited executable-looking bytes are explicit residuals, not generated entrypoints",
+                "next_required_implementation": "prove reachability from CODE0/loader control flow before seeding",
+            }
+        )
+    return residuals
+
+
+def _macos_candidate_entry_patterns(code_bytes: bytes, *, payload_base: int) -> Iterator[tuple[int, str]]:
+    limit = len(code_bytes) - 1
+    for local_offset in range(0, max(limit, 0), 2):
+        word = code_bytes[local_offset : local_offset + 2]
+        pattern: str | None = None
+        if word in {b"\x20\x5f", b"\x22\x5f", b"\x24\x5f", b"\x26\x5f"}:
+            pattern = "movea_stack"
+        elif word == b"\x4e\x56":
+            pattern = "link_frame"
+        elif word == b"\x48\xe7":
+            pattern = "movem_prologue"
+        if pattern is not None:
+            yield payload_base + local_offset, pattern
+
+
+def _payload_offset_is_covered(payload_offset: int, semantic_rows: list[Mapping[str, object]]) -> bool:
+    for row in semantic_rows:
+        if row.get("kind") not in {"instruction", "data", "directive"}:
+            continue
+        start = _int_value(row.get("payload_offset"))
+        end = _int_value(row.get("payload_end"))
+        if start is not None and end is not None and start <= payload_offset < end:
+            return True
+    return False
+
+
+def _add_macos_code_analysis_seed(
+    seeds: dict[int, dict[str, object]],
+    *,
+    payload_offset: int,
+    payload_base: int,
+    resource_id: int,
+    reason: str,
+    fact_id: object,
+    fact_status: object,
+    parser_use: object,
+    code0_payload_offset: object | None = None,
+) -> None:
+    local_offset = payload_offset - payload_base
+    if local_offset < 0:
+        return
+    existing = seeds.get(local_offset)
+    if existing is not None and existing.get("reason") == "code0_routine_candidate":
+        return
+    seed = {
+        "resource_id": resource_id,
+        "payload_offset": payload_offset,
+        "local_offset": local_offset,
+        "reason": reason,
+        "name": f"macos_CODE_{resource_id}_entry_{payload_offset:08x}",
+        "fact_id": fact_id,
+        "fact_status": fact_status,
+        "parser_use": parser_use,
+    }
+    if code0_payload_offset is not None:
+        seed["code0_payload_offset"] = code0_payload_offset
+    seeds[local_offset] = seed
+
+
+@contextmanager
+def _macos_code_analysis_seed_metadata_path(seeds: list[dict[str, object]]) -> Iterator[Path | None]:
+    if not seeds:
+        yield None
+        return
+    payload = {
+        "target_type": "raw_binary",
+        "seeded_code_entrypoints": [
+            {
+                "addr": int(seed["local_offset"]),
+                "hunk": 0,
+                "name": str(seed["name"]),
+                "seed_origin": "primary_doc",
+                "review_status": "seeded",
+                "citation": str(seed.get("fact_id") or "macos.generated.analysis_seed"),
+                "source_id": f"macos-code:{seed.get('resource_id')}",
+                "source_path": f"CODE:{seed.get('resource_id')}",
+                "source_locator": f"payload+{int(seed['payload_offset'])}",
+                "comment": f"generated Mac CODE analysis seed: {seed.get('reason')}",
+                "role": str(seed.get("reason") or "generated_entry"),
+            }
+            for seed in seeds
+        ],
+    }
+    temp_path: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile("w", delete=False, suffix=".json", encoding="utf-8") as temp_file:
+            json.dump(payload, temp_file)
+            temp_path = Path(temp_file.name)
+        yield temp_path
+    finally:
+        if temp_path is not None:
+            temp_path.unlink(missing_ok=True)
 
 
 def _semantic_source_row(
@@ -1090,6 +1315,8 @@ def _listing_descriptor(
     project_id: str,
     unsupported: list[object],
     preview_windows: list[dict[str, object]],
+    analysis_seeds: list[dict[str, object]],
+    semantic_source: Mapping[str, object],
 ) -> dict[str, object]:
     resource_id = resource.get("id")
     if resource_id == 0:
@@ -1117,6 +1344,26 @@ def _listing_descriptor(
             "payload_size": resource.get("payload_size"),
             "payload_sha256": resource.get("sha256"),
             "unsupported": unsupported,
+            "analysis_seed_count": len(analysis_seeds),
+            "analysis_seeds": analysis_seeds,
+        }
+    if semantic_source.get("status") == "decoded":
+        return {
+            "kind": "semantic_listing",
+            "available": True,
+            "route": "listing",
+            "reason": "C-owned semantic rows from generated loader/CODE0 entry seeds",
+            "row_count": semantic_source.get("row_count"),
+            "instruction_row_count": semantic_source.get("instruction_row_count"),
+            "candidate_residual_count": semantic_source.get("candidate_residual_count"),
+            "analysis_seed_count": len(analysis_seeds),
+            "analysis_seeds": analysis_seeds,
+            "project_id": project_id,
+            "resource_type": resource.get("type") or "CODE",
+            "resource_id": resource_id,
+            "payload_size": resource.get("payload_size"),
+            "payload_sha256": resource.get("sha256"),
+            "unsupported": unsupported,
         }
     if preview_windows:
         return {
@@ -1125,11 +1372,15 @@ def _listing_descriptor(
             "route": "code_preview",
             "reason": "bounded candidate preview; full listing remains deferred",
             "preview_count": len(preview_windows),
+            "analysis_seed_count": len(analysis_seeds),
+            "analysis_seeds": analysis_seeds,
         }
     return {
         "kind": "structured_placeholder",
         "available": False,
         "reason": _no_preview_reason(code),
+        "analysis_seed_count": len(analysis_seeds),
+        "analysis_seeds": analysis_seeds,
     }
 
 

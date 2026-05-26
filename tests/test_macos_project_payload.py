@@ -73,7 +73,7 @@ def _c_owned_restored_source_packet(
 def _restored_ranges_from_layout(layout_ranges: list[dict[str, object]], payload_size: int) -> list[dict[str, object]]:
     ranges: list[dict[str, object]] = []
     cursor = 0
-    for index, source in enumerate(layout_ranges):
+    for source in layout_ranges:
         start = int(source["start"])
         end = int(source["end"])
         if start > cursor:
@@ -785,9 +785,9 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
     )
     assert candidate_anchor["fact_status"] == "candidate"
     assert candidate_anchor["parser_use"] == "candidate_only"
-    assert code2_detail["listing"]["kind"] == "candidate_preview"
+    assert code2_detail["listing"]["kind"] == "semantic_listing"
     assert code2_detail["listing"]["available"] is True
-    assert code2_detail["listing"]["route"] == "code_preview"
+    assert code2_detail["listing"]["route"] == "listing"
     assert code2_detail["preview_windows"][0]["range_kind"] == "candidate_code"
     assert code2_detail["preview_windows"][0].get("backend") != "amiga-raw"
     assert code2_detail["preview_windows"][0].get("wrapped_backend") != "amiga-raw"
@@ -805,7 +805,7 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
     assert code2_detail["preview_windows"][0]["rows"][0]["decoded"] is True
     assert code2_detail["preview_windows"][0]["rows"][0]["row_kind"] == "instruction"
     assert code2_detail["preview_windows"][0]["rows"][0]["fallback_reason"] is None
-    assert code3_detail["listing"]["kind"] == "candidate_preview"
+    assert code3_detail["listing"]["kind"] == "semantic_listing"
     code3_restored = code3_detail["restored_source"]
     assert [item["role"] for item in code3_restored["source_ownership_ranges"]] == [
         "metadata",
@@ -989,6 +989,29 @@ def test_macos_code_preview_extraction_cache_hits_and_isolates(
     ]
 
 
+def test_macos_candidate_patterns_are_residuals_not_entry_seeds() -> None:
+    residuals = macos_project_payload._macos_code_candidate_residuals(
+        b"\x20\x5f\x4e\x75\x4e\x56\x20\x5f",
+        payload_base=40,
+        code_range={
+            "start": 40,
+            "end": 48,
+            "fact_id": "macos.code_resource.movea_stack_a0.boundary.candidate",
+        },
+        semantic_rows=[{"kind": "instruction", "payload_offset": 40, "payload_end": 42}],
+        resource={"id": 1},
+        code={"kb_record_id": "macos.hfs_resource_fork.code_resources.mpw_application"},
+    )
+
+    assert [item["kind"] for item in residuals] == [
+        "candidate_unvisited_entry_pattern",
+        "candidate_unvisited_entry_pattern",
+    ]
+    assert [item["start"] for item in residuals] == [44, 46]
+    assert all(item["status"] == "candidate" for item in residuals)
+    assert all("not generated entrypoints" in str(item["reason"]) for item in residuals)
+
+
 def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> None:
     if not IMAGE_PATH.exists():
         pytest.skip("MPW-GM image fixture is not available")
@@ -1069,7 +1092,7 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     assert all(item["source_visible"] is True for item in source_sections)
     assert all(item["byte_preserving_placeholder"]["kind"] == "byte_preserving_placeholder" for item in source_sections)
     assert next(item for item in source_sections if item["id"] == 1)["status"] == "selected_full_listing"
-    assert any(item["status"] == "partial_preview_with_exact_placeholders" for item in source_sections)
+    assert any(item["status"] == "semantic_source" for item in source_sections)
     assert any(item["status"] == "covered_placeholder" for item in source_sections)
     assert next(item for item in source_sections if item["id"] == 0)["code0_structured_context"]["jump_table_rows"]
     code0_routing_xrefs = next(item for item in source_sections if item["id"] == 0)["code0_structured_context"][
@@ -1083,6 +1106,20 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     assert code0_routing_xrefs[0]["target_label"] == "macos_code_CODE_27_routine_candidate_000000cc"
     code27_section = next(item for item in source_sections if item["id"] == 27)
     assert code27_section["incoming_code0_xrefs"] == code0_routing_xrefs
+    code27_seeds = code27_section["semantic_source"]["analysis_seeds"]
+    assert code27_seeds == [
+        {
+            "resource_id": 27,
+            "payload_offset": 204,
+            "local_offset": 0,
+            "reason": "code0_routine_candidate",
+            "name": "macos_CODE_27_entry_000000cc",
+            "fact_id": "macos.code_resource.jump_table.routine_offsets.candidate",
+            "fact_status": "candidate",
+            "parser_use": "candidate_only",
+            "code0_payload_offset": 16,
+        }
+    ]
     assert next(item for item in source_sections if item["id"] == 19)["incoming_code0_xrefs"] == []
     assert next(item for item in source_sections if item["id"] == 1)["code1_layout_context"]["candidate_entry_stub"][
         "fact_status"
@@ -1141,6 +1178,23 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     assert semantic_source["authority"] == "c_owned_listing_artifact"
     assert semantic_source["payload_base"] == 40
     assert semantic_source["instruction_row_count"] >= 8
+    assert semantic_source["analysis_seeds"] == [
+        {
+            "resource_id": 1,
+            "payload_offset": 40,
+            "local_offset": 0,
+            "reason": "loader_candidate_code_entry",
+            "name": "macos_CODE_1_entry_00000028",
+            "fact_id": "macos.code_resource.movea_stack_a0.boundary.candidate",
+            "fact_status": "candidate",
+            "parser_use": "candidate_only",
+        }
+    ]
+    assert all(
+        not str(seed.get("reason") or "").startswith("macos_entry_pattern")
+        for section in source_sections
+        for seed in section["semantic_source"].get("analysis_seeds", [])
+    )
     assert any(
             row["kind"] == "instruction"
             and row["payload_offset"] == 40
@@ -1193,40 +1247,27 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     selected_detail = next(detail for detail in container["code_resource_details"] if detail["id"] == 1)
     assert selected_detail["listing"]["kind"] == "full_listing"
     assert selected_detail["preview_windows"] == []
-    preview_details = [
+    semantic_details = [
         detail
         for detail in container["code_resource_details"]
-        if detail["id"] not in {0, 1} and detail["preview_windows"]
+        if detail["id"] not in {0, 1} and detail["listing"]["kind"] == "semantic_listing"
     ]
-    assert preview_details
-    first_preview = preview_details[0]["preview_windows"][0]
-    assert first_preview["kind"] == "candidate_code_preview"
-    assert first_preview["fact_status"] == "candidate"
-    assert first_preview["parser_use"] == "candidate_only"
-    assert first_preview["range_kind"] == "candidate_code"
-    assert first_preview["deferred_reasons"][0]["parser_use"] == "deferred_only"
-    assert all(row["fact_status"] == "candidate" for row in first_preview["rows"])
-    assert all(row["parser_use"] == "candidate_only" for row in first_preview["rows"])
-    assert any(
-        row.get("decode_status") == "decoded" and row.get("row_kind") == "instruction"
-        for detail in preview_details
-        for preview in detail["preview_windows"]
-        for row in preview["rows"]
+    assert semantic_details
+    assert all(detail["listing"]["route"] == "listing" for detail in semantic_details)
+    assert all(detail["listing"]["instruction_row_count"] >= 1 for detail in semantic_details)
+    assert all(detail["listing"]["analysis_seed_count"] >= 1 for detail in semantic_details)
+    assert all(
+        not str(seed.get("reason") or "").startswith("macos_entry_pattern")
+        for detail in semantic_details
+        for seed in detail["listing"]["analysis_seeds"]
     )
-    for detail in preview_details:
-        preview = detail["preview_windows"][0]
-        candidate = next(item for item in detail["code_layout"] if item.get("kind") == "candidate_code")
-        non_code_ranges = [item for item in detail["code_layout"] if item.get("kind") != "candidate_code"]
-        assert candidate["start"] <= preview["start"] < preview["end"] <= candidate["end"]
-        for non_code in non_code_ranges:
-            assert preview["end"] <= non_code["start"] or preview["start"] >= non_code["end"]
-    no_preview = [
+    placeholder_details = [
         detail
         for detail in container["code_resource_details"]
-        if detail["id"] not in {0, 1} and not detail["preview_windows"]
+        if detail["id"] not in {0, 1} and detail["listing"]["kind"] == "structured_placeholder"
     ]
-    assert no_preview
-    assert all("no candidate" in detail["listing"]["reason"] for detail in no_preview)
+    assert placeholder_details
+    assert all("no candidate" in detail["listing"]["reason"] for detail in placeholder_details)
     assert all("navigation_anchors" in item for item in container["code_resource_details"])
     assert any(
         anchor.get("fact_status") == "candidate"

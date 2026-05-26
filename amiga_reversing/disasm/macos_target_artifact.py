@@ -8,7 +8,9 @@ from collections.abc import Mapping, Sequence
 from dataclasses import asdict
 from pathlib import Path
 
-from amiga_reversing.disasm.c_backend import extract_macos_hfs_code_resource_payload_bytes_with_c_backend
+from amiga_reversing.disasm.c_backend import (
+    extract_macos_hfs_code_resource_payload_bytes_with_c_backend,
+)
 from amiga_reversing.disasm.macos_asm_container import read_macos_hfs_image_bytes
 from amiga_reversing.disasm.macos_listing_source import (
     build_macos_project_listing_artifact_profile,
@@ -107,9 +109,7 @@ def render_macos_example_asm(*, project_root: Path = PROJECT_ROOT) -> str:
     code0_resource = _mapping(code0.get("resource"))
     code0_metadata = _mapping(code0.get("metadata"))
     selected = _mapping(container.get("selected_code_segment"))
-    native_source = _mapping(selected.get("native_source")) or _mapping(container.get("native_source"))
     selected_listing = _mapping(selected.get("listing"))
-    selected_restored_source = _mapping(selected.get("restored_source"))
     code_resources = [_mapping(item) for item in _sequence(container.get("code_resources"))]
     code_resource_details = [_mapping(item) for item in _sequence(container.get("code_resource_details"))]
     source_body_sections = [_mapping(item) for item in _sequence(container.get("source_body_sections"))]
@@ -547,7 +547,7 @@ def _code0_structured_source_lines(section: Mapping[str, object], *, payload_byt
     lines = [
         ";   structured_CODE0_context:",
         "macos_CODE_0_application_metadata:",
-        f";     above/below A5 metadata and jump-table header are accepted CODE 0 metadata.",
+        ";     above/below A5 metadata and jump-table header are accepted CODE 0 metadata.",
         f";     jump_table payload[{_text(jump_table.get('start'))}..{_text(jump_table.get('end'))}) "
         f"entry_size={_text(jump_table.get('entry_size'))} entry_count={_text(jump_table.get('entry_count'))} "
         f"status={_text(jump_table.get('fact_status'))} parser_use={_text(jump_table.get('parser_use'))} "
@@ -765,8 +765,10 @@ def _code_resource_detail_lines(details: Sequence[Mapping[str, object]]) -> list
         lines.extend(_navigation_anchor_lines(anchors))
         lines.append(";     restored_source_model:")
         lines.extend(_restored_source_model_lines(_mapping(detail.get("restored_source"))))
-        lines.append(_listing_descriptor_line(_mapping(detail.get("listing"))))
-        lines.extend(_preview_window_lines([_mapping(item) for item in _sequence(detail.get("preview_windows"))]))
+        listing = _mapping(detail.get("listing"))
+        lines.append(_listing_descriptor_line(listing))
+        if listing.get("kind") != "semantic_listing":
+            lines.extend(_preview_window_lines([_mapping(item) for item in _sequence(detail.get("preview_windows"))]))
     return lines
 
 

@@ -16,7 +16,9 @@ from amiga_reversing.disasm.macos_listing_source import (
     build_macos_code_listing_source,
     build_macos_project_listing_artifact_profile,
 )
-from amiga_reversing.disasm.macos_project_origin import macos_code_source_descriptor_from_project
+from amiga_reversing.disasm.macos_project_origin import (
+    macos_code_source_descriptor_from_project,
+)
 from amiga_reversing.disasm.macos_target_artifact import (
     MACOS_EXAMPLE_ASM_RELPATH,
     MACOS_EXAMPLE_PROJECT_ID,
@@ -221,14 +223,14 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     assert "target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate" in asm_text
     assert ";   CODE 1 Main: role=code_segment" in asm_text
     assert "listing: kind=full_listing available=True route=listing" in asm_text
-    assert "listing: kind=candidate_preview available=True route=code_preview" in asm_text
+    assert "listing: kind=semantic_listing available=True route=listing" in asm_text
+    assert "listing: kind=candidate_preview available=True route=code_preview" not in asm_text
     assert "listing: kind=structured_placeholder available=False" in asm_text
-    assert ";     previews:" in asm_text
-    assert "candidate_code_preview: start=" in asm_text
-    assert "range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate" in asm_text
-    assert "bounded=True" in asm_text
-    assert "row: offset=" in asm_text
-    assert "decode=decoded row_kind=instruction" in asm_text
+    assert "candidate_code_preview: start=" not in asm_text
+    assert "candidate_code payload[" in asm_text
+    assert "bounded=True" not in asm_text
+    assert "row: offset=" not in asm_text
+    assert "decode=decoded row_kind=instruction" not in asm_text
     assert "accepted_segment_metadata" in asm_text
     assert "candidate_routine_entry" in asm_text
     assert "status=candidate parser_use=candidate_only" in asm_text
@@ -323,7 +325,7 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     assert ";     deferred A5 lifetime proof" in asm_text
     assert (
         ";     CODE 1: section=macos-code-CODE-1 ownership=candidate_code,metadata "
-        "coverage=True labels=6 xrefs=1 instructions=8 body_spans=1 byte_real_only_body=False "
+        "coverage=True labels=6 xrefs=2 instructions=8 body_spans=1 byte_real_only_body=False "
         "reachable_evidence=3 residuals=0"
     ) in asm_text
     assert ";     semantic_source: kind=macos_code_semantic_source_v1 status=decoded" in asm_text
