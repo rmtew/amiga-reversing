@@ -511,6 +511,37 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
             "evidence": "resource fork type inventory; payload semantics are not decoded",
             "inventory_source": "platform_file_lib.macos_hfs_code_summary resource_fork.types",
             "reason": "non-CODE resource metadata is inventory-only and not executable CODE",
+            }
+        ]
+    placeholders = container["executable_resource_placeholders"]
+    assert placeholders == container["resource_fork"]["executable_resource_placeholders"]
+    assert placeholders == [
+        {
+            "kind": "executable_resource_placeholder",
+            "resource_type": "WIND",
+            "resource_id": None,
+            "resource_name": None,
+            "resource_count": 1,
+            "byte_size": None,
+            "sha256": None,
+            "stable_identity": "macos-resource:MPW-GM.img.bin:MPW-GM/MPW/Tools/Asm:WIND:*",
+            "status": "candidate",
+            "reason": "non-CODE resource metadata is inventory-only and not executable CODE",
+            "provenance": "platform_file_lib.macos_hfs_code_summary resource_fork.types",
+            "source_visible": True,
+            "reference_sites": [
+                {
+                    "kind": "resource_type_inventory",
+                    "resource_type": "WIND",
+                    "resource_id": None,
+                    "source_offset": None,
+                    "reason": "No direct CODE source reference site is known for this resource type yet.",
+                }
+            ],
+            "kb_record_id": "macos.hfs_resource_fork.code_resources.mpw_application",
+            "fact_id": "macos.resource_fork.non_code_metadata.inventory.candidate",
+            "fact_status": "candidate",
+            "parser_use": "candidate_only",
         }
     ]
     assert container["selected_code_segment"]["code_entry_offset"] == 6
@@ -834,6 +865,12 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     assert all(item["fact_status"] == "candidate" for item in candidate_details)
     assert all(item["parser_use"] == "candidate_only" for item in candidate_details)
     assert all(item["payload_decode_status"] == "unsupported" for item in non_code_details)
+    placeholders = container["executable_resource_placeholders"]
+    assert placeholders
+    assert {item["resource_type"] for item in placeholders} == {"acur", "CURS", "cmdo", "vers"}
+    assert all(item["source_visible"] is True for item in placeholders)
+    assert all(item["stable_identity"].startswith("macos-resource:") for item in placeholders)
+    assert all(item["reference_sites"][0]["kind"] == "resource_type_inventory" for item in placeholders)
     assert len(container["code_resource_details"]) == len(container["code_resources"])
     assert container["code_resource_details"][0]["role"] == "code0_metadata"
     assert container["code_resource_details"][0]["listing"]["kind"] == "metadata"

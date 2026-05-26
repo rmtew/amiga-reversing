@@ -237,6 +237,9 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     assert "fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate" in asm_text
     assert ";   relocation_fixups:" in asm_text
     assert "fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only" in asm_text
+    assert "; Executable resource placeholders" in asm_text
+    assert "executable_resource_placeholder: type=CURS" in asm_text
+    assert "reference_site=resource_type_inventory" in asm_text
     assert ";   restored_source_model:" in asm_text
     assert "model=restored_source_model_v1 round_trip_required=false" in asm_text
     assert "ownership_ranges:" in asm_text

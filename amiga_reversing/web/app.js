@@ -10096,6 +10096,11 @@ function renderClassicMacContainerView(containerView) {
   const details = Array.isArray(containerView.code_resource_details) ? containerView.code_resource_details : [];
   const resourceFork = containerView.resource_fork || {};
   const nonCodeDetails = Array.isArray(resourceFork.non_code_resource_details) ? resourceFork.non_code_resource_details : [];
+  const placeholders = Array.isArray(containerView.executable_resource_placeholders)
+    ? containerView.executable_resource_placeholders
+    : Array.isArray(resourceFork.executable_resource_placeholders)
+      ? resourceFork.executable_resource_placeholders
+      : [];
   return `
     <section class="macos-section" data-macos-panel="container">
       <h2>Binary Container</h2>
@@ -10111,6 +10116,7 @@ function renderClassicMacContainerView(containerView) {
         ${renderClassicMacPivotList("Selected CODE Listing", selected.listing ? [selected.listing] : [], (item) => `${item.resource_type || "CODE"} ${item.resource_id ?? ""} ${item.resource_name || ""} ${formatFileSize(item.source_range?.size || 0)}`)}
       </div>
       ${renderClassicMacNonCodeResourceDetails(nonCodeDetails)}
+      ${renderClassicMacExecutableResourcePlaceholders(placeholders)}
       ${renderClassicMacCodeResourceDetails(details)}
     </section>
   `;
@@ -10135,6 +10141,30 @@ function renderClassicMacNonCodeResourceRow(detail) {
       <span>${escapeHtml(statusText)}</span>
       <span>${escapeHtml(detail.payload_decode_status || "")}</span>
       <span>${escapeHtml(detail.evidence || detail.inventory_source || detail.reason || "")}</span>
+    </div>
+  `;
+}
+
+function renderClassicMacExecutableResourcePlaceholders(placeholders) {
+  const rows = Array.isArray(placeholders) ? placeholders : [];
+  return `
+    <div class="macos-non-code-details" data-macos-executable-resource-placeholders="1">
+      <h3>Executable Resource Placeholders</h3>
+      ${rows.map((placeholder) => renderClassicMacExecutableResourcePlaceholder(placeholder || {})).join("") || '<div class="empty">No executable resource placeholders.</div>'}
+    </div>
+  `;
+}
+
+function renderClassicMacExecutableResourcePlaceholder(placeholder) {
+  const references = Array.isArray(placeholder.reference_sites) ? placeholder.reference_sites : [];
+  return `
+    <div class="macos-non-code-row" data-macos-resource-placeholder="1">
+      <strong>${escapeHtml(placeholder.resource_type || "")}</strong>
+      <span>${escapeHtml(String(placeholder.resource_id ?? "*"))}</span>
+      <span>${escapeHtml(placeholder.status || placeholder.fact_status || "")}</span>
+      <span>${escapeHtml(placeholder.stable_identity || "")}</span>
+      <span>${escapeHtml(placeholder.reason || "")}</span>
+      <span>${escapeHtml(String(references.length))}</span>
     </div>
   `;
 }

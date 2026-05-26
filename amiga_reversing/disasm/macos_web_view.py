@@ -56,6 +56,11 @@ def _binary_container_view(asm_container: Mapping[str, object]) -> dict[str, obj
     data_fork = _mapping(asm_container.get("data_fork"))
     resource_fork = _mapping(asm_container.get("resource_fork"))
     native_source = _native_source_identity(asm_container)
+    resource_placeholders = _executable_resource_placeholders(
+        _sequence(resource_fork.get("types")),
+        source_image=str(asm_container.get("source_image") or ""),
+        hfs_path=str(file_info.get("path") or ""),
+    )
     selected = _mapping(asm_container.get("selected_code_segment"))
     selected_with_source = dict(selected)
     if selected_with_source:
@@ -83,6 +88,7 @@ def _binary_container_view(asm_container: Mapping[str, object]) -> dict[str, obj
         "code0": asm_container.get("code0"),
         "code_resources": _sequence(asm_container.get("code_resources")),
         "selected_code_segment": selected_with_source or asm_container.get("selected_code_segment"),
+        "executable_resource_placeholders": resource_placeholders,
         "unsupported": _sequence(asm_container.get("unsupported")),
         "source_mapping": {
             "maps_to_sample_source": False,
@@ -94,6 +100,46 @@ def _binary_container_view(asm_container: Mapping[str, object]) -> dict[str, obj
             "cnid": file_info.get("cnid"),
         },
     }
+
+
+def _executable_resource_placeholders(
+    resource_types: list[object],
+    *,
+    source_image: str,
+    hfs_path: str,
+) -> list[dict[str, object]]:
+    placeholders: list[dict[str, object]] = []
+    for value in resource_types:
+        item = _mapping(value)
+        resource_type = item.get("type")
+        if resource_type == "CODE":
+            continue
+        placeholders.append(
+            {
+                "kind": "executable_resource_placeholder",
+                "resource_type": resource_type,
+                "resource_id": None,
+                "resource_name": None,
+                "resource_count": item.get("count"),
+                "byte_size": None,
+                "sha256": None,
+                "stable_identity": f"macos-resource:{source_image}:{hfs_path}:{resource_type}:*",
+                "status": "candidate",
+                "reason": "non-CODE resource metadata is inventory-only and not executable CODE",
+                "provenance": "platform_file_lib.macos_hfs_code_summary resource_fork.types",
+                "source_visible": True,
+                "reference_sites": [
+                    {
+                        "kind": "resource_type_inventory",
+                        "resource_type": resource_type,
+                        "resource_id": None,
+                        "source_offset": None,
+                        "reason": "No direct CODE source reference site is known for this resource type yet.",
+                    }
+                ],
+            }
+        )
+    return placeholders
 
 
 def _native_source_identity(asm_container: Mapping[str, object]) -> dict[str, object]:

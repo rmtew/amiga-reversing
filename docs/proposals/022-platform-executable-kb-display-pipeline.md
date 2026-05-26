@@ -511,6 +511,21 @@ Required result:
 - Placeholder identity must be stable enough for later UI/navigation work to
   link resource type/id/name back to source reference sites.
 
+Completed 022-008 state:
+
+- Mac project and web payloads expose `executable_resource_placeholders` for
+  non-CODE resource inventory that can matter to executable comprehension.
+- Placeholder records include resource type, id/name when known, resource
+  count, byte size/hash when known, stable identity, status, reason,
+  provenance, source-visible state, KB fact state where applicable, and
+  reference-site records.
+- Current reference sites are inventory-level because no direct CODE source
+  reference offset is known yet. The placeholder schema keeps the source
+  reference slot stable for later CODE-derived navigation.
+- The Mac target artifact renders executable resource placeholders and their
+  reference-site context. Broad non-CODE resource payload decoding remains out
+  of scope.
+
 ### 022-009: Web/API Exposure And UI Follow-Up Notes
 
 Expose restored source ownership, references, verifier results, and placeholders
@@ -528,6 +543,19 @@ Required result:
   all.
 - The current Mac CODE web panel is an existing consumer to migrate, not a
   reason to build a new UI.
+
+Completed 022-009 state:
+
+- Existing Mac project/web/API payloads expose restored-source ownership
+  ranges, source reference records, verifier results, platform extensions, and
+  executable resource placeholders.
+- The existing Mac web panel renders restored-source model status/counts and
+  executable resource placeholders without a redesign. Existing listing,
+  navigation, and window APIs remain usable.
+- Future UI work: ownership-range navigation, richer relocation/reference
+  context views, resource-placeholder navigation by stable identity, and
+  side-by-side code/data/source views would improve inspection but are not
+  required for evidence visibility.
 
 ### 022-010: Delete Superseded Compatibility Paths
 

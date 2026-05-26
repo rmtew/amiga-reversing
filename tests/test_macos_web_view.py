@@ -115,6 +115,11 @@ def test_macos_web_container_payload_exposes_forks_code_and_unsupported_state() 
     assert restored_source["round_trip_required"] is False
     assert restored_source["source_reference_records"][0]["kind"] == "segment_loader_fixup_placeholder"
     assert restored_source["platform_extensions"]["a5_world"]["status"] == "deferred"
+    placeholders = container["executable_resource_placeholders"]
+    assert placeholders
+    assert all(item["kind"] == "executable_resource_placeholder" for item in placeholders)
+    assert all(item["source_visible"] is True for item in placeholders)
+    assert all(item["reference_sites"][0]["kind"] == "resource_type_inventory" for item in placeholders)
     assert container["source_mapping"] == {
         "maps_to_sample_source": False,
         "reason": "observed MPW/Tools/Asm CODE resources are not inferred from Sample source segments",

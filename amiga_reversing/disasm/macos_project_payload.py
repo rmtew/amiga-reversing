@@ -142,6 +142,12 @@ def _binary_container_view(
     resource_fork = _mapping(forks.get("resource"))
     resource_summary = _mapping(c_summary.get("resource_fork"))
     code_resources = _sequence(resource_summary.get("code_resources"))
+    non_code_details = _non_code_resource_details(_sequence(resource_summary.get("types")))
+    executable_placeholders = _executable_resource_placeholders(
+        non_code_details,
+        source_image=source_image,
+        hfs_path=hfs_path,
+    )
     code0 = _code_resource_by_id(code_resources, 0)
     selected = _mapping(c_summary.get("selected_code"))
     selected_code = _mapping(selected.get("code"))
@@ -186,7 +192,8 @@ def _binary_container_view(
             "type_count": resource_summary.get("type_count"),
             "resource_count": resource_summary.get("resource_count"),
             "types": resource_summary.get("types"),
-            "non_code_resource_details": _non_code_resource_details(_sequence(resource_summary.get("types"))),
+            "non_code_resource_details": non_code_details,
+            "executable_resource_placeholders": executable_placeholders,
         },
         "code0": {"resource": code0, "metadata": _mapping(code0.get("code"))},
         "code_resources": code_resources,
@@ -235,6 +242,7 @@ def _binary_container_view(
             },
         },
         "unsupported": _sequence(c_summary.get("unsupported")),
+        "executable_resource_placeholders": executable_placeholders,
         "source_mapping": {
             "maps_to_sample_source": False,
             "reason": "observed MPW/Tools/Asm CODE resources are not inferred from Sample source segments",
@@ -976,6 +984,53 @@ def _non_code_resource_details(resource_types: list[object]) -> list[dict[str, o
             )
         rows.append(row)
     return rows
+
+
+def _executable_resource_placeholders(
+    non_code_details: list[dict[str, object]],
+    *,
+    source_image: str,
+    hfs_path: str,
+) -> list[dict[str, object]]:
+    placeholders: list[dict[str, object]] = []
+    for detail in non_code_details:
+        resource_type = detail.get("resource_type")
+        resource_count = detail.get("resource_count")
+        stable_identity = f"macos-resource:{source_image}:{hfs_path}:{resource_type}:*"
+        placeholders.append(
+            {
+                "kind": "executable_resource_placeholder",
+                "resource_type": resource_type,
+                "resource_id": None,
+                "resource_name": None,
+                "resource_count": resource_count,
+                "byte_size": None,
+                "sha256": None,
+                "stable_identity": stable_identity,
+                "status": detail.get("fact_status") or detail.get("semantic_status") or "candidate",
+                "reason": detail.get("reason") or "resource payload semantics are not decoded",
+                "provenance": "platform_file_lib.macos_hfs_code_summary resource_fork.types",
+                "source_visible": True,
+                "reference_sites": _placeholder_reference_sites(detail),
+                "kb_record_id": detail.get("kb_record_id"),
+                "fact_id": detail.get("fact_id"),
+                "fact_status": detail.get("fact_status"),
+                "parser_use": detail.get("parser_use"),
+            }
+        )
+    return placeholders
+
+
+def _placeholder_reference_sites(detail: Mapping[str, object]) -> list[dict[str, object]]:
+    return [
+        {
+            "kind": "resource_type_inventory",
+            "resource_type": detail.get("resource_type"),
+            "resource_id": None,
+            "source_offset": None,
+            "reason": "No direct CODE source reference site is known for this resource type yet.",
+        }
+    ]
 
 
 def _no_preview_reason(code: Mapping[str, object]) -> str:

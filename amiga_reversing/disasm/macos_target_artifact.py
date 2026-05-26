@@ -113,6 +113,7 @@ def render_macos_example_asm(*, project_root: Path = PROJECT_ROOT) -> str:
     code_resources = [_mapping(item) for item in _sequence(container.get("code_resources"))]
     code_resource_details = [_mapping(item) for item in _sequence(container.get("code_resource_details"))]
     code_segment_map = [_mapping(item) for item in _sequence(container.get("code_segment_map"))]
+    executable_placeholders = [_mapping(item) for item in _sequence(container.get("executable_resource_placeholders"))]
     resource_types = [_mapping(item) for item in _sequence(resource_fork.get("types"))]
     non_code_types = [item for item in resource_types if item.get("type") != "CODE"]
     unsupported = sorted(
@@ -169,6 +170,8 @@ def render_macos_example_asm(*, project_root: Path = PROJECT_ROOT) -> str:
             if non_code_types
             else [";   none reported by the C-backed resource summary"]
         ),
+        "; Executable resource placeholders",
+        *_executable_resource_placeholder_lines(executable_placeholders),
         "",
         "; Unsupported Mac Segment Loader/runtime areas",
         *[f";   {item}" for item in unsupported],
@@ -251,6 +254,28 @@ def _code_resource_lines(resources: Sequence[Mapping[str, object]], *, selected_
     for resource in resources:
         marker = " selected" if resource.get("id") == selected_id else ""
         lines.append(f";   {_resource_line(resource)}{marker}")
+    return lines
+
+
+def _executable_resource_placeholder_lines(placeholders: Sequence[Mapping[str, object]]) -> list[str]:
+    if not placeholders:
+        return [";   none"]
+    lines: list[str] = []
+    for item in placeholders:
+        lines.append(
+            f";   {_text(item.get('kind'))}: type={_text(item.get('resource_type'))} "
+            f"id={_text(item.get('resource_id'))} name={_text(item.get('resource_name'))} "
+            f"count={_text(item.get('resource_count'))} size={_text(item.get('byte_size'))} "
+            f"sha256={_text(item.get('sha256'))} identity={_text(item.get('stable_identity'))} "
+            f"status={_text(item.get('fact_status') or item.get('status'))} "
+            f"reason={_text(item.get('reason'))}"
+        )
+        for site in [_mapping(value) for value in _sequence(item.get("reference_sites"))]:
+            lines.append(
+                f";     reference_site={_text(site.get('kind'))} "
+                f"type={_text(site.get('resource_type'))} id={_text(site.get('resource_id'))} "
+                f"source_offset={_text(site.get('source_offset'))} reason={_text(site.get('reason'))}"
+            )
     return lines
 
 

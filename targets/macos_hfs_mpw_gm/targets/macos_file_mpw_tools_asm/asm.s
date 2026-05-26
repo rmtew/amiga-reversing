@@ -1213,6 +1213,15 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;   type CURS: 4 resource(s), structured placeholder
 ;   type cmdo: 1 resource(s), structured placeholder
 ;   type vers: 1 resource(s), structured placeholder
+; Executable resource placeholders
+;   executable_resource_placeholder: type=acur id=unknown name=unknown count=1 size=unknown sha256=unknown identity=macos-resource:resources/platform_macos/MPW-GM.img.bin:MPW-GM/MPW/Tools/Asm:acur:* status=candidate reason=non-CODE resource metadata is inventory-only and not executable CODE
+;     reference_site=resource_type_inventory type=acur id=unknown source_offset=unknown reason=No direct CODE source reference site is known for this resource type yet.
+;   executable_resource_placeholder: type=CURS id=unknown name=unknown count=4 size=unknown sha256=unknown identity=macos-resource:resources/platform_macos/MPW-GM.img.bin:MPW-GM/MPW/Tools/Asm:CURS:* status=validated reason=CURS type-level layout is cited; payload bitmap/hotspot bytes are not decoded
+;     reference_site=resource_type_inventory type=CURS id=unknown source_offset=unknown reason=No direct CODE source reference site is known for this resource type yet.
+;   executable_resource_placeholder: type=cmdo id=unknown name=unknown count=1 size=unknown sha256=unknown identity=macos-resource:resources/platform_macos/MPW-GM.img.bin:MPW-GM/MPW/Tools/Asm:cmdo:* status=candidate reason=non-CODE resource metadata is inventory-only and not executable CODE
+;     reference_site=resource_type_inventory type=cmdo id=unknown source_offset=unknown reason=No direct CODE source reference site is known for this resource type yet.
+;   executable_resource_placeholder: type=vers id=unknown name=unknown count=1 size=unknown sha256=unknown identity=macos-resource:resources/platform_macos/MPW-GM.img.bin:MPW-GM/MPW/Tools/Asm:vers:* status=candidate reason=non-CODE resource metadata is inventory-only and not executable CODE
+;     reference_site=resource_type_inventory type=vers id=unknown source_offset=unknown reason=No direct CODE source reference site is known for this resource type yet.
 
 ; Unsupported Mac Segment Loader/runtime areas
 ;   byte-for-byte MPW Link/Rez roundtrip
