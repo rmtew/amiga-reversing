@@ -6,6 +6,7 @@ from typing import Any, cast
 import pytest
 
 from amiga_reversing.disasm import macos_project_payload
+from amiga_reversing.disasm.macos_target_artifact import MACOS_EXAMPLE_ASM_RELPATH
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT
 from amiga_reversing.disasm.projects import ProjectKind, ProjectRecord
 from amiga_reversing.tools import platform_executable_formats
@@ -1053,6 +1054,22 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     assert all(item["reference_sites"][0]["stable_identity"] == item["stable_identity"] for item in placeholders)
     assert all(item["reference_sites"][0]["link_status"] == "unlinked" for item in placeholders)
     assert len(container["code_resource_details"]) == len(container["code_resources"])
+    source_sections = container["source_body_sections"]
+    assert len(source_sections) == len(container["code_resources"])
+    expected_section_ids = sorted(item["id"] for item in container["code_resources"])
+    assert [item["id"] for item in source_sections] == expected_section_ids
+    assert [item["source_section_id"] for item in source_sections] == [
+        f"macos-code-CODE-{resource_id}" for resource_id in expected_section_ids
+    ]
+    assert all(item["source_visible"] is True for item in source_sections)
+    assert all(item["byte_preserving_placeholder"]["kind"] == "byte_preserving_placeholder" for item in source_sections)
+    assert next(item for item in source_sections if item["id"] == 1)["status"] == "selected_full_listing"
+    assert any(item["status"] == "partial_preview_with_exact_placeholders" for item in source_sections)
+    assert any(item["status"] == "covered_placeholder" for item in source_sections)
+    assert next(item for item in source_sections if item["id"] == 0)["code0_structured_context"]["jump_table_rows"]
+    assert next(item for item in source_sections if item["id"] == 1)["code1_layout_context"]["candidate_entry_stub"][
+        "fact_status"
+    ] == "candidate"
     for detail in container["code_resource_details"]:
         presentation = detail["source_presentation_status"]
         assert presentation["kind"] == "c_owned_restored_source_packet"
@@ -1188,3 +1205,12 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     assert container["selected_code_segment"]["orphan_ranges"] == []
     assert container["selected_code_segment"]["relocation_fixups"]["parser_use"] == "deferred_only"
     assert payload["provenance"]["source_image"] == IMAGE_PATH.as_posix()
+    asm_path = Path.cwd() / MACOS_EXAMPLE_ASM_RELPATH
+    if asm_path.exists():
+        asm_text = asm_path.read_text(encoding="utf-8")
+        asm_section_ids = [
+            line.split(": ", 1)[1]
+            for line in asm_text.splitlines()
+            if line.startswith(";   source_section_id: ")
+        ]
+        assert asm_section_ids == [item["source_section_id"] for item in source_sections]

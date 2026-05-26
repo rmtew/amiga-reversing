@@ -386,7 +386,8 @@ def test_committed_macos_asm_artifact_covers_every_code_resource() -> None:
         assert f";   source_section_id: macos-code-CODE-{resource['id']}" in source_block
         assert f";   payload_size: {resource['payload_size']}" in source_block
         assert ";   source_body_ranges:" in source_block
-        assert "byte_preserving_placeholder:" in source_block or "full selected listing follows" in source_block
+        assert "byte_preserving_placeholder:" in source_block
+        assert ";   byte_real_source:" in source_block
         prefix = report_prefix
         assert any(line.startswith(prefix) for line in coverage_lines), prefix
         assert any(line.startswith(prefix) for line in detail_lines), prefix

@@ -551,6 +551,18 @@ Required outcome:
 - Tests cover artifact/API/web parity for section count, section ids, and
   deferred/source-visible status.
 
+Completed state:
+
+- Project/API payloads expose `binary_container_view.source_body_sections` as
+  the shared ordered section model used by both `Asm.s` and the web view.
+- Web Mac source/container views list all CODE source sections from that shared
+  model and distinguish selected/full, partial, and placeholder/deferred
+  sections without synthesizing a separate status surface.
+- Supporting CODE details, previews, non-CODE placeholders, and resource
+  evidence remain available after the source-section view as supporting context.
+- UI-only refinements remain non-blocking; source correctness depends on the
+  shared source section model and the 023-017 quality gate.
+
 ### 023-016: Visible Mac Source Presentation Closeout
 
 Close 023 only after the committed MPW `Asm.s` artifact shows visible reversing

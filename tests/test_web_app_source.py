@@ -448,6 +448,12 @@ def test_web_app_renders_macos_source_and_container_payloads() -> None:
     assert 'data-macos-panel="container"' in app_js
     assert 'data-macos-panel="unsupported"' in app_js
     assert "CODE Resources" in app_js
+    assert "CODE Source Sections" in app_js
+    assert "source_body_sections" in app_js
+    assert 'data-macos-source-body-sections="1"' in app_js
+    assert "data-macos-source-section=" in app_js
+    assert "data-macos-source-section-status=" in app_js
+    assert "source.source_section_id" not in app_js
     assert "code_resource_details" in app_js
     assert "preview_windows" in app_js
     assert "restored_source" in app_js
@@ -471,6 +477,9 @@ def test_web_app_renders_macos_source_and_container_payloads() -> None:
     assert "Candidate bounded preview" in app_js
     assert 'data-macos-code-details="1"' in app_js
     assert "data-macos-preview-row" in app_js
+    assert "data-macos-source-section-range" in app_js
+    assert "code1_layout_context" in app_js
+    assert "code0_structured_context" in app_js
     assert "row.decode_status" in app_js
     assert "row.fallback_reason" in app_js
     assert "Relocation/fixup state:" in app_js

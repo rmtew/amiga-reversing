@@ -1,6 +1,6 @@
 # 023-015: Mac Source Artifact Web/API Parity
 
-Status: active
+Status: complete
 Type: AFK
 Source proposal: docs/proposals/023-classic-mac-os-source-presentation.md
 
@@ -25,17 +25,29 @@ model must be extended until it can serve all three.
 
 ## Acceptance Criteria
 
-- [ ] API/project payloads expose source-body section order and section
+- [x] API/project payloads expose source-body section order and section
       identities matching the artifact.
-- [ ] Web/source views can list all CODE source sections and distinguish full,
+- [x] Web/source views can list all CODE source sections and distinguish full,
       partial, and placeholder/deferred sections.
-- [ ] Supporting evidence remains available but is not the primary source view.
-- [ ] No web/API field synthesizes source status that is absent from the shared
+- [x] Supporting evidence remains available but is not the primary source view.
+- [x] No web/API field synthesizes source status that is absent from the shared
       artifact/source model.
-- [ ] Tests cover artifact/API/web parity for section count, section ids, and
+- [x] Tests cover artifact/API/web parity for section count, section ids, and
       deferred/source-visible status.
-- [ ] Proposal 023 records any remaining UI-only follow-up ideas without making
+- [x] Proposal 023 records any remaining UI-only follow-up ideas without making
       them blockers for source correctness.
+
+## Completed Result
+
+- `binary_container_view.source_body_sections` is the shared section identity
+  and status model consumed by the artifact and web view.
+- The committed `Asm.s` source-section ids match project/API
+  `source_body_sections` order exactly.
+- The web Mac container view lists `CODE Source Sections` from
+  `source_body_sections`, renders source-section statuses, ranges, CODE 0
+  context, and CODE 1 context before supporting evidence details.
+- Remaining UI refinements are presentation-only; source correctness is covered
+  by the shared model and tests.
 
 ## Blocked By
 
@@ -45,8 +57,8 @@ model must be extended until it can serve all three.
 
 ## Required Sign-Off
 
-- [ ] Focused Mac artifact/project/API/web tests pass.
-- [ ] Platform executable validate/coverage pass with Mac/Amiga/Atari current
+- [x] Focused Mac artifact/project/API/web tests pass.
+- [x] Platform executable validate/coverage pass with Mac/Amiga/Atari current
       backends.
-- [ ] `cmd /c src\precommit.bat` passes if shared rendering or C code changes.
-- [ ] `git diff --check` passes.
+- [x] `cmd /c src\precommit.bat` passes if shared rendering or C code changes.
+- [x] `git diff --check` passes.
