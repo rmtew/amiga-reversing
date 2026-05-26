@@ -1,0 +1,196 @@
+# Proposal 023: Classic Mac OS Source Presentation
+
+Status: active
+
+## Purpose
+
+Bring Classic Mac OS m68k source presentation to the reasonable stopping point
+for a non-round-trip platform: a reverser can load the target, inspect CODE
+resources as platform source, navigate source-owned code/data/placeholder
+ranges, and see relocation/resource/A5 context without hidden compatibility
+paths or unsupported semantic promotion.
+
+This builds on completed proposals:
+
+- 020 owns shared executable import through `platform_executable_summary_v1`.
+- 021 owns native Mac CODE byte/listing identity over neutral flat M68K buffers.
+- 022 owns C-backed restored-source ownership, reference records, placeholders,
+  and verifier packets.
+
+023 is the next source-quality slice. It must use those foundations to make Mac
+source useful at the same basic presentation level as Amiga HUNK and Atari PRG:
+code and data areas are visible, ownership is verified, references are surfaced,
+unsupported platform extensions are explicit placeholders, and Python/web/API
+surfaces present C-owned evidence instead of inventing authority.
+
+Mac still has no resource-fork round-trip requirement.
+
+## Target Outcome
+
+For the committed MPW `Asm` Mac target, the user-visible source state should be:
+
+```text
+HFS image + file path
+  -> CODE resource inventory
+  -> C-owned restored-source packet per executable CODE resource
+  -> CODE 0 routing/reference context
+  -> Segment Loader fixup records or typed placeholders
+  -> A5/world/global-access context or typed placeholders
+  -> source/artifact/web/API display
+  -> verifier proving no silent source ownership gaps
+```
+
+A selected CODE resource should render like source, not like a raw blob with a
+side note:
+
+```asm
+; source_kind: macos_code_resource
+; resource: CODE 1 "Main"
+; restored_source_model: v1
+; verifier: ok
+; round_trip_required: false
+; references: CODE0 dispatch, segment_loader_fixup placeholders
+; a5_context: deferred, visible at source rows that use A5-relative forms
+
+CODE_1_00000028:
+        movea.l (a7)+,a0
+        move.l  a7,d0
+```
+
+An unresolved platform extension must still be inspectable:
+
+```json
+{
+  "kind": "segment_loader_fixup_placeholder",
+  "resource": "CODE:1",
+  "source_offset": 128,
+  "status": "deferred",
+  "reason": "custom extension format not decoded yet",
+  "source_visible": true
+}
+```
+
+## Stopping Contract
+
+023 is complete only when the Mac source presentation contract is true for the
+current committed Mac fixture:
+
+- every executable CODE resource is either rendered through a C-owned restored
+  source packet or represented by a typed, source-visible deferred placeholder;
+- CODE 0 contributes routing/reference context instead of remaining only a
+  metadata note;
+- Segment Loader relocation/fixup effects are represented as source reference
+  records where decoded, or as byte/span-specific placeholders where not;
+- A5/world/global-base evidence is visible as row/context metadata or typed
+  placeholders without claiming accepted lifetime proof;
+- executable-relevant non-CODE resources have stable placeholders linked from
+  source context when evidence exists;
+- ownership and verifier evidence is C-owned and fail-closed;
+- Python/web/API surfaces display that evidence and do not synthesize passing
+  restored-source facts;
+- no Mac round-trip or resource rebuild claim is introduced.
+
+## Implementation Direction
+
+- Prefer C-owned model and verifier extensions over Python synthesis.
+- Extend shared restored-source and render-plan records before adding Mac-only
+  display fields.
+- Use platform extensions for Mac-specific concepts: CODE resource identity,
+  CODE 0 routing, Segment Loader fixups, A5/world context, and resource
+  placeholders.
+- Make placeholders precise: type, resource id/name where known, byte span or
+  source row where known, status, reason, provenance, and source visibility.
+- Delete superseded compatibility paths after replacement proof.
+- Preserve Amiga/Atari exact gates when shared code changes.
+- Keep 017 cascade/evidence-review work separate.
+
+## Work Items
+
+### 023-001: Mac Source Presentation Baseline Harness
+
+Add a current-state harness that proves what the Mac fixture source presentation
+does and does not provide through the same C-owned surfaces the user sees.
+
+This is not a report-only blocker issue. It must add executable checks that fail
+when Mac source presentation silently drops CODE resources, restored-source
+packets, verifier state, source references, placeholders, or web/API exposure.
+
+### 023-002: All CODE Resource Restored-Source Coverage
+
+Move beyond selected-CODE-only confidence. Every executable CODE resource in the
+Mac fixture must have either a C-owned restored-source packet with ownership
+coverage or an explicit typed deferred source placeholder.
+
+### 023-003: CODE 0 Routing And Source References
+
+Use CODE 0 as platform routing evidence. Represent CODE 0 dispatch/resource
+relationships as source reference records or typed placeholders that link CODE
+resources together.
+
+### 023-004: Segment Loader Fixup Source Records
+
+Replace broad relocation/fixup notes with source-level records: decoded records
+where evidence supports them, and span-specific placeholders where decoding is
+not yet implemented.
+
+### 023-005: Mac Address And A5 Context Presentation
+
+Surface Mac address-space and A5/world/global-base context at source rows and
+reference records without promoting lifetime proof. A5-relative uses should be
+visible and navigable as candidate/deferred context.
+
+### 023-006: Executable Resource Placeholder Linking
+
+Link executable-relevant non-CODE resource placeholders back to source context
+where evidence exists. Keep broad resource parsing out of scope unless needed
+for source comprehension.
+
+### 023-007: Source Display And API Consolidation
+
+Make source/artifact/web/API output consume the shared records from 023-002
+through 023-006. Delete compatibility display paths that are no longer needed.
+
+### 023-008: Cross-Platform Source Presentation Closeout
+
+Prove the final Mac source presentation contract alongside Amiga/Atari exact
+gates and close the proposal.
+
+## Verification Plan
+
+Minimum proof for every implementation issue:
+
+```powershell
+uv run python -m amiga_reversing.tools.platform_executable_formats validate
+uv run python -m amiga_reversing.tools.platform_executable_formats coverage --current-macos-c-backend --current-amiga-hunk --current-atari-prg
+uv run python -m pytest tests\test_macos_c_backend.py tests\test_macos_project_payload.py tests\test_macos_target_artifact.py tests\test_macos_web_view.py tests\test_web_app_source.py -q
+git diff --check
+```
+
+Shared restored-source/render-plan changes must also run:
+
+```powershell
+cmd /c src\precommit.bat
+```
+
+Closeout must include the full relevant Mac proof plus Amiga/Atari exact gates.
+
+## Issue Ordering
+
+- 023-001 starts first.
+- 023-002 follows 023-001.
+- 023-003 follows 023-002.
+- 023-004 follows 023-002 and may run in parallel with 023-003 if it does not
+  change CODE 0 assumptions.
+- 023-005 follows 023-002 and may run in parallel with 023-003/023-004.
+- 023-006 follows 023-003 and 023-004.
+- 023-007 follows 023-003 through 023-006.
+- 023-008 closes the proposal after all previous issues complete.
+
+## Non-Goals
+
+- Classic Mac OS resource-fork round-trip.
+- Broad non-CODE resource decoding unrelated to executable source.
+- Promoting Mac byte-entry, Segment Loader, A5, or resource facts beyond their
+  evidence status.
+- 017 cascade/evidence-review protocol work.
+- UI redesign beyond making existing source evidence visible.
