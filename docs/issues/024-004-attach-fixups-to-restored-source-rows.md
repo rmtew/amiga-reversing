@@ -1,6 +1,6 @@
 # 024-004: Attach Fixups To Restored Source Rows
 
-Status: paused
+Status: blocked
 Type: AFK
 Source proposal: docs/proposals/024-classic-mac-os-segment-loader-fixups.md
 
@@ -28,7 +28,8 @@ record and back.
 ## Blocked By
 
 - docs/issues/024-003-decode-first-supported-fixup-form.md
-- 024-001 found no supported fixup form with actual encoding byte provenance.
+- 024-009 found no current-fixture CODE resource with a nonzero documented A5 or
+  segment relocation-info offset.
 
 ## Required Sign-Off
 

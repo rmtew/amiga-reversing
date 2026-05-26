@@ -1,6 +1,6 @@
 # 024-005: Expand Supported Fixup Forms
 
-Status: paused
+Status: blocked
 Type: AFK
 Source proposal: docs/proposals/024-classic-mac-os-segment-loader-fixups.md
 
@@ -31,7 +31,7 @@ keep it as a typed deferred placeholder with the exact blocking reason.
 ## Blocked By
 
 - docs/issues/024-004-attach-fixups-to-restored-source-rows.md
-- 024-001 found no supported fixup forms to expand.
+- 024-009 found no supported current-fixture fixup forms to expand.
 
 ## Required Sign-Off
 

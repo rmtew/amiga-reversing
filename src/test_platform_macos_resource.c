@@ -158,7 +158,7 @@ static int test_code_layout_defers_nonzero_payload_without_entry(void) {
   return 0;
 }
 
-static int test_segment_loader_fixup_inventory_fails_closed_without_encoding_provenance(void) {
+static int test_segment_loader_fixup_inventory_reports_near_model_absent(void) {
   unsigned char data[512];
   PlatformMacosResourceFork fork;
   PlatformMacosResourceInfo resources[2];
@@ -168,12 +168,39 @@ static int test_segment_loader_fixup_inventory_fails_closed_without_encoding_pro
   M68K_C_ASSERT_INT(0, platform_macos_resource_fork_parse(data, size, &fork, NULL, 0U, resources, 2U));
   M68K_C_ASSERT_INT(0, platform_macos_segment_loader_fixup_inventory_from_code_metadata(&resources[1].code,
     resources[1].resource_id, resources[1].payload_size, &inventory));
-  M68K_C_ASSERT_U32(PLATFORM_MACOS_SEGMENT_LOADER_FIXUP_INVENTORY_CUSTOM_UNKNOWN, inventory.status);
+  M68K_C_ASSERT_U32(PLATFORM_MACOS_SEGMENT_LOADER_FIXUP_INVENTORY_ABSENT, inventory.status);
   M68K_C_ASSERT_U32(0U, inventory.encoding_byte_provenance_known);
-  M68K_C_ASSERT_U32(10U, inventory.source_offset);
+  M68K_C_ASSERT_U32(0U, inventory.source_offset);
+  M68K_C_ASSERT_U32(0U, inventory.size);
+  M68K_C_ASSERT_STR("absent", platform_macos_segment_loader_fixup_inventory_status_name(inventory.status));
+  return 0;
+}
+
+static int test_segment_loader_fixup_inventory_maps_far_model_relocation_offsets(void) {
+  unsigned char payload[48];
+  PlatformMacosCodeMetadata code;
+  PlatformMacosSegmentLoaderFixupInventory inventory;
+  memset(payload, 0, sizeof(payload));
+  put_u16(payload, 0U, 0xffffU);
+  put_u16(payload, 2U, 0U);
+  put_u32(payload, 4U, 0x10U);
+  put_u32(payload, 8U, 1U);
+  put_u32(payload, 20U, 44U);
+  put_u32(payload, 28U, 0U);
+  payload[40U] = 0x20U;
+  payload[41U] = 0x5fU;
+  M68K_C_ASSERT_INT(0, platform_macos_code_metadata_parse(payload, sizeof(payload), 1, &code));
+  M68K_C_ASSERT_U32(1U, code.far_model);
+  M68K_C_ASSERT_U32(44U, code.a5_relocation_info_offset);
+  M68K_C_ASSERT_U32(40U, code.layout_ranges[0].size);
+  M68K_C_ASSERT_INT(0, platform_macos_segment_loader_fixup_inventory_from_code_metadata(&code, 1,
+    sizeof(payload), &inventory));
+  M68K_C_ASSERT_U32(PLATFORM_MACOS_SEGMENT_LOADER_FIXUP_INVENTORY_PARSEABLE, inventory.status);
+  M68K_C_ASSERT_U32(1U, inventory.encoding_byte_provenance_known);
+  M68K_C_ASSERT_U32(44U, inventory.source_offset);
   M68K_C_ASSERT_U32(4U, inventory.size);
-  M68K_C_ASSERT_U32(14U, inventory.end);
-  M68K_C_ASSERT_STR("custom_unknown", platform_macos_segment_loader_fixup_inventory_status_name(inventory.status));
+  M68K_C_ASSERT_U32(48U, inventory.end);
+  M68K_C_ASSERT_STR("parseable", platform_macos_segment_loader_fixup_inventory_status_name(inventory.status));
   return 0;
 }
 
@@ -274,8 +301,10 @@ int m68k_c_platform_macos_resource_tests(void) {
     {"resource_fork_parses_code_metadata", test_resource_fork_parses_code_metadata},
     {"resource_fork_finds_selected_payload_bounds", test_resource_fork_finds_selected_payload_bounds},
     {"code_layout_defers_nonzero_payload_without_entry", test_code_layout_defers_nonzero_payload_without_entry},
-    {"segment_loader_fixup_inventory_fails_closed_without_encoding_provenance",
-      test_segment_loader_fixup_inventory_fails_closed_without_encoding_provenance},
+    {"segment_loader_fixup_inventory_reports_near_model_absent",
+      test_segment_loader_fixup_inventory_reports_near_model_absent},
+    {"segment_loader_fixup_inventory_maps_far_model_relocation_offsets",
+      test_segment_loader_fixup_inventory_maps_far_model_relocation_offsets},
     {"segment_loader_fixup_inventory_reports_code0_absent", test_segment_loader_fixup_inventory_reports_code0_absent},
     {"resource_fork_rejects_payload_past_end", test_resource_fork_rejects_payload_past_end},
     {"restored_source_verifier_accepts_complete_candidate_coverage",

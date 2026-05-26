@@ -53,13 +53,21 @@ static int append_code_range(PlatformMacosCodeMetadata *code, uint8_t kind, uint
 }
 
 static uint32_t find_stack_entry_to_a0_pattern(const unsigned char *payload, uint32_t payload_size,
-    uint32_t start_offset) {
+    uint32_t start_offset, uint32_t end_offset) {
   uint32_t offset;
   if (payload == NULL || start_offset >= payload_size) return UINT32_MAX;
-  for (offset = start_offset; offset + 1U < payload_size; offset += 2U) {
+  if (end_offset > payload_size) end_offset = payload_size;
+  for (offset = start_offset; offset + 1U < end_offset; offset += 2U) {
     if (payload[offset] == 0x20U && payload[offset + 1U] == 0x5FU) return offset;
   }
   return UINT32_MAX;
+}
+
+static uint32_t code_relocation_limit(uint32_t payload_size, uint32_t a5_offset, uint32_t segment_offset) {
+  uint32_t limit = payload_size;
+  if (a5_offset != 0U && a5_offset < limit) limit = a5_offset;
+  if (segment_offset != 0U && segment_offset < limit) limit = segment_offset;
+  return limit;
 }
 
 int platform_macos_code_metadata_parse(const unsigned char *payload, uint32_t payload_size,
@@ -82,24 +90,48 @@ int platform_macos_code_metadata_parse(const unsigned char *payload, uint32_t pa
   if (payload_size >= 4U && payload != NULL) {
     out_code->first_jump_table_entry_offset = read_u16be_at(payload, 0U);
     out_code->jump_table_entry_count = read_u16be_at(payload, 2U);
-    if (append_code_range(out_code, PLATFORM_MACOS_CODE_RANGE_METADATA,
-        PLATFORM_MACOS_CODE_EVIDENCE_NONZERO_SEGMENT_HEADER, 0U, 4U, 0U) != 0) {
-      return -1;
+    if (out_code->first_jump_table_entry_offset == 0xffffU && out_code->jump_table_entry_count == 0U &&
+        payload_size >= 40U) {
+      out_code->far_model = 1U;
+      out_code->near_entry_start_a5_offset = read_u32be_at(payload, 4U);
+      out_code->near_entry_count = read_u32be_at(payload, 8U);
+      out_code->far_entry_start_a5_offset = read_u32be_at(payload, 12U);
+      out_code->far_entry_count = read_u32be_at(payload, 16U);
+      out_code->a5_relocation_info_offset = read_u32be_at(payload, 20U);
+      out_code->current_a5_value = read_u32be_at(payload, 24U);
+      out_code->segment_relocation_info_offset = read_u32be_at(payload, 28U);
+      out_code->segment_load_address = read_u32be_at(payload, 32U);
+      if (append_code_range(out_code, PLATFORM_MACOS_CODE_RANGE_METADATA,
+          PLATFORM_MACOS_CODE_EVIDENCE_FAR_MODEL_SEGMENT_HEADER, 0U, 40U, 0U) != 0) {
+        return -1;
+      }
+    } else {
+      if (append_code_range(out_code, PLATFORM_MACOS_CODE_RANGE_METADATA,
+          PLATFORM_MACOS_CODE_EVIDENCE_NONZERO_SEGMENT_HEADER, 0U, 4U, 0U) != 0) {
+        return -1;
+      }
     }
   }
   if (payload_size <= 4U || payload == NULL) return 0;
-  entry_offset = find_stack_entry_to_a0_pattern(payload, payload_size, 4U);
-  if (entry_offset == UINT32_MAX) {
-    return append_code_range(out_code, PLATFORM_MACOS_CODE_RANGE_DEFERRED,
-      PLATFORM_MACOS_CODE_EVIDENCE_MISSING_STACK_ENTRY, 4U, payload_size - 4U, 0U);
+  {
+    uint32_t code_start = out_code->far_model ? 40U : 4U;
+    uint32_t code_end = code_relocation_limit(payload_size, out_code->a5_relocation_info_offset,
+      out_code->segment_relocation_info_offset);
+    if (code_end < code_start) code_end = code_start;
+    if (code_start >= payload_size) return 0;
+    entry_offset = find_stack_entry_to_a0_pattern(payload, payload_size, code_start, code_end);
+    if (entry_offset == UINT32_MAX) {
+      return append_code_range(out_code, PLATFORM_MACOS_CODE_RANGE_DEFERRED,
+        PLATFORM_MACOS_CODE_EVIDENCE_MISSING_STACK_ENTRY, code_start, code_end - code_start, 0U);
+    }
+    if (entry_offset > code_start &&
+        append_code_range(out_code, PLATFORM_MACOS_CODE_RANGE_DATA,
+          PLATFORM_MACOS_CODE_EVIDENCE_PREFIX_BEFORE_STACK_ENTRY, code_start, entry_offset - code_start, 0U) != 0) {
+      return -1;
+    }
+    return append_code_range(out_code, PLATFORM_MACOS_CODE_RANGE_CANDIDATE_CODE,
+      PLATFORM_MACOS_CODE_EVIDENCE_M68K_STACK_ENTRY_TO_A0, entry_offset, code_end - entry_offset, 1U);
   }
-  if (entry_offset > 4U &&
-      append_code_range(out_code, PLATFORM_MACOS_CODE_RANGE_DATA,
-        PLATFORM_MACOS_CODE_EVIDENCE_PREFIX_BEFORE_STACK_ENTRY, 4U, entry_offset - 4U, 0U) != 0) {
-    return -1;
-  }
-  return append_code_range(out_code, PLATFORM_MACOS_CODE_RANGE_CANDIDATE_CODE,
-    PLATFORM_MACOS_CODE_EVIDENCE_M68K_STACK_ENTRY_TO_A0, entry_offset, payload_size - entry_offset, 1U);
 }
 
 int platform_macos_code_metadata_executable_range(const PlatformMacosCodeMetadata *code,
@@ -139,9 +171,6 @@ const char *platform_macos_segment_loader_fixup_inventory_status_name(uint8_t st
 
 int platform_macos_segment_loader_fixup_inventory_from_code_metadata(const PlatformMacosCodeMetadata *code,
     int16_t resource_id, uint32_t payload_size, PlatformMacosSegmentLoaderFixupInventory *out_inventory) {
-  uint32_t candidate_start = 4U;
-  uint32_t candidate_size;
-  size_t index;
   if (out_inventory == NULL) return -1;
   memset(out_inventory, 0, sizeof(*out_inventory));
   out_inventory->source_visible = 1U;
@@ -156,23 +185,39 @@ int platform_macos_segment_loader_fixup_inventory_from_code_metadata(const Platf
     out_inventory->reason = "CODE resource has only the nonzero segment header; no fixup encoding byte span is present.";
     return 0;
   }
-  for (index = 0U; index < code->layout_range_count; ++index) {
-    const PlatformMacosCodeRange *range = &code->layout_ranges[index];
-    if (range->kind == PLATFORM_MACOS_CODE_RANGE_CANDIDATE_CODE ||
-        range->kind == PLATFORM_MACOS_CODE_RANGE_DEFERRED) {
-      candidate_start = range->start_offset;
-      break;
-    }
+  if (!code->far_model) {
+    out_inventory->status = PLATFORM_MACOS_SEGMENT_LOADER_FIXUP_INVENTORY_ABSENT;
+    out_inventory->reason =
+      "Documented near-model CODE segment has only the 4-byte Segment Manager header; no A5 or segment "
+      "relocation information offsets are present.";
+    return 0;
   }
-  if (candidate_start > payload_size) candidate_start = 4U;
-  candidate_size = payload_size - candidate_start;
-  out_inventory->status = PLATFORM_MACOS_SEGMENT_LOADER_FIXUP_INVENTORY_CUSTOM_UNKNOWN;
-  out_inventory->source_offset = candidate_start;
-  out_inventory->size = candidate_size;
+  if (code->a5_relocation_info_offset == 0U && code->segment_relocation_info_offset == 0U) {
+    out_inventory->status = PLATFORM_MACOS_SEGMENT_LOADER_FIXUP_INVENTORY_ABSENT;
+    out_inventory->reason =
+      "Documented far-model CODE segment header is present, but both A5-relative and segment-relative relocation "
+      "information offsets are zero.";
+    return 0;
+  }
+  if ((code->a5_relocation_info_offset != 0U && code->a5_relocation_info_offset >= payload_size) ||
+      (code->segment_relocation_info_offset != 0U && code->segment_relocation_info_offset >= payload_size)) {
+    out_inventory->status = PLATFORM_MACOS_SEGMENT_LOADER_FIXUP_INVENTORY_MALFORMED;
+    out_inventory->reason =
+      "Documented far-model relocation information offset points outside the CODE resource payload.";
+    return 0;
+  }
+  out_inventory->status = PLATFORM_MACOS_SEGMENT_LOADER_FIXUP_INVENTORY_PARSEABLE;
+  out_inventory->encoding_byte_provenance_known = 1U;
+  if (code->a5_relocation_info_offset != 0U) {
+    out_inventory->source_offset = code->a5_relocation_info_offset;
+  } else {
+    out_inventory->source_offset = code->segment_relocation_info_offset;
+  }
   out_inventory->end = payload_size;
+  out_inventory->size = payload_size - out_inventory->source_offset;
   out_inventory->reason =
-    "Current parser sees CODE payload bytes that may be affected by Segment Loader fixups, but no resource-format "
-    "field proves these bytes encode a fixup stream.";
+    "Documented far-model CODE segment header identifies relocation information offsets; decoder has not yet "
+    "interpreted relocation items.";
   return 0;
 }
 
@@ -191,6 +236,7 @@ const char *platform_macos_code_range_evidence_name(uint8_t evidence) {
   switch (evidence) {
     case PLATFORM_MACOS_CODE_EVIDENCE_CODE0_JUMP_TABLE_METADATA: return "code0_jump_table_metadata";
     case PLATFORM_MACOS_CODE_EVIDENCE_NONZERO_SEGMENT_HEADER: return "nonzero_code_segment_header";
+    case PLATFORM_MACOS_CODE_EVIDENCE_FAR_MODEL_SEGMENT_HEADER: return "far_model_segment_header";
     case PLATFORM_MACOS_CODE_EVIDENCE_PREFIX_BEFORE_STACK_ENTRY: return "prefix_before_stack_entry";
     case PLATFORM_MACOS_CODE_EVIDENCE_M68K_STACK_ENTRY_TO_A0: return "m68k_movea_l_stack_to_a0_entry";
     case PLATFORM_MACOS_CODE_EVIDENCE_MISSING_STACK_ENTRY: return "missing_m68k_movea_l_stack_to_a0_entry";
@@ -203,6 +249,7 @@ const char *platform_macos_code_range_fact_id(uint8_t evidence) {
     case PLATFORM_MACOS_CODE_EVIDENCE_CODE0_JUMP_TABLE_METADATA:
       return PLATFORM_EXECUTABLE_FORMAT_FACT_MACOS_CODE_RESOURCE_0_JUMP_TABLE_METADATA;
     case PLATFORM_MACOS_CODE_EVIDENCE_NONZERO_SEGMENT_HEADER:
+    case PLATFORM_MACOS_CODE_EVIDENCE_FAR_MODEL_SEGMENT_HEADER:
       return PLATFORM_EXECUTABLE_FORMAT_FACT_MACOS_CODE_RESOURCE_NONZERO_SEGMENT_HEADER;
     case PLATFORM_MACOS_CODE_EVIDENCE_PREFIX_BEFORE_STACK_ENTRY:
     case PLATFORM_MACOS_CODE_EVIDENCE_M68K_STACK_ENTRY_TO_A0:
@@ -218,6 +265,7 @@ const char *platform_macos_code_range_fact_status(uint8_t evidence) {
   switch (evidence) {
     case PLATFORM_MACOS_CODE_EVIDENCE_CODE0_JUMP_TABLE_METADATA:
     case PLATFORM_MACOS_CODE_EVIDENCE_NONZERO_SEGMENT_HEADER:
+    case PLATFORM_MACOS_CODE_EVIDENCE_FAR_MODEL_SEGMENT_HEADER:
       return "validated";
     case PLATFORM_MACOS_CODE_EVIDENCE_PREFIX_BEFORE_STACK_ENTRY:
     case PLATFORM_MACOS_CODE_EVIDENCE_M68K_STACK_ENTRY_TO_A0:
@@ -233,6 +281,7 @@ const char *platform_macos_code_range_parser_use(uint8_t evidence) {
   switch (evidence) {
     case PLATFORM_MACOS_CODE_EVIDENCE_CODE0_JUMP_TABLE_METADATA:
     case PLATFORM_MACOS_CODE_EVIDENCE_NONZERO_SEGMENT_HEADER:
+    case PLATFORM_MACOS_CODE_EVIDENCE_FAR_MODEL_SEGMENT_HEADER:
       return "accepted_parser_output";
     case PLATFORM_MACOS_CODE_EVIDENCE_PREFIX_BEFORE_STACK_ENTRY:
     case PLATFORM_MACOS_CODE_EVIDENCE_M68K_STACK_ENTRY_TO_A0:

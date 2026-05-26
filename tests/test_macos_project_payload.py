@@ -1152,20 +1152,24 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     assert container["selected_code_segment"]["native_source"]["resource_id"] == 1
     assert container["selected_code_segment"]["listing"]["source_kind"] == "macos_code_resource"
     assert container["selected_code_segment"]["code_bytes_size"] == 28984
-    assert container["selected_code_segment"]["code_layout"][2]["kind"] == "candidate_code"
-    assert container["selected_code_segment"]["code_layout"][2]["fact_status"] == "candidate"
+    selected_layout = container["selected_code_segment"]["code_layout"]
+    assert selected_layout[0]["kind"] == "metadata"
+    assert selected_layout[0]["size"] == 40
+    assert selected_layout[0]["evidence"] == "far_model_segment_header"
+    selected_candidate = next(item for item in selected_layout if item["kind"] == "candidate_code")
+    assert selected_candidate["start"] == 40
+    assert selected_candidate["fact_status"] == "candidate"
     restored_source = container["selected_code_segment"]["restored_source"]
     assert restored_source["model"] == "restored_source_model_v1"
     assert restored_source["round_trip_required"] is False
     assert restored_source["source_coverage_verifier"]["ok"] is True
     assert [item["role"] for item in restored_source["source_ownership_ranges"]] == [
         "metadata",
-        "data",
         "candidate_code",
     ]
     assert restored_source["source_reference_records"][0]["fact_id"] == "macos.segment_loader.relocation_fixups.deferred"
     assert restored_source["source_reference_records"][0]["resource_id"] == 1
-    assert restored_source["source_reference_records"][0]["source_range"] == {"start": 40, "end": 29024, "size": 28984}
+    assert restored_source["source_reference_records"][0]["source_range"] == {"start": 0, "end": 0, "size": 0}
     assert [item["kind"] for item in restored_source["source_reference_records"]] == [
         "segment_loader_fixup_placeholder",
         "a5_world_context_placeholder",
@@ -1181,6 +1185,6 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     )
     assert restored_source["platform_extensions"]["address_model"]["payload_offset_space"] == "code_resource_payload"
     assert restored_source["platform_extensions"]["a5_world"]["status"] == "deferred"
-    assert container["selected_code_segment"]["orphan_ranges"][0]["fact_status"] == "candidate"
+    assert container["selected_code_segment"]["orphan_ranges"] == []
     assert container["selected_code_segment"]["relocation_fixups"]["parser_use"] == "deferred_only"
     assert payload["provenance"]["source_image"] == IMAGE_PATH.as_posix()

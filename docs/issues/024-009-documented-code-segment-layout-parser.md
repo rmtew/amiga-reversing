@@ -1,6 +1,6 @@
 # 024-009: Documented CODE Segment Layout Parser
 
-Status: active
+Status: complete
 Type: AFK
 Source proposal: docs/proposals/024-classic-mac-os-segment-loader-fixups.md
 
@@ -30,22 +30,34 @@ payload candidate spans.
 
 ## Acceptance Criteria
 
-- [ ] Proposal 024 cites the primary documentation used and records the specific
+- [x] Proposal 024 cites the primary documentation used and records the specific
       CODE segment fields/offsets relevant to code bytes, A5 relocation
       information, and segment relocation information.
-- [ ] The C parser maps documented fields onto current CODE resource bytes where
+- [x] The C parser maps documented fields onto current CODE resource bytes where
       the fixture supports them.
-- [ ] Inventory records distinguish actual fixup encoding byte spans from
+- [x] Inventory records distinguish actual fixup encoding byte spans from
       executable bytes that may be affected by fixups.
-- [ ] Nonzero CODE resources are no longer all `custom_unknown` merely because
+- [x] Nonzero CODE resources are no longer all `custom_unknown` merely because
       the old parser lacked a layout model.
-- [ ] Unsupported/custom/malformed cases stay deferred with exact documented
+- [x] Unsupported/custom/malformed cases stay deferred with exact documented
       mismatch or blocker reason.
-- [ ] No decoded fixup effect is emitted until a supported encoding span and
+- [x] No decoded fixup effect is emitted until a supported encoding span and
       format are proven.
-- [ ] 024-002 through 024-008 are updated to the correct state after this issue:
+- [x] 024-002 through 024-008 are updated to the correct state after this issue:
       active if a parser boundary exists, or specifically blocked if the fixture
       uses a documented custom/unsupported variant.
+
+## Completed Result
+
+- Proposal 024 records the primary-source far-model and near-model CODE segment
+  layout.
+- C parses the documented 40-byte far-model segment header and records A5 and
+  segment relocation information offsets.
+- Current MPW `Asm` far-model resources have zero A5/segment relocation offsets;
+  near-model resources have no relocation-info fields. The fixture therefore has
+  documented absence of fixup encoding spans, not a generic parser gap.
+- 024-002 through 024-008 remain blocked for this fixture until a nonzero
+  documented relocation-info span or equivalent primary-source evidence exists.
 
 ## Blocked By
 

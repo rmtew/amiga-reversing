@@ -1,14 +1,12 @@
 # 024-002: C Fixup Record Model
 
-Status: paused
+Status: blocked
 Type: AFK
 Source proposal: docs/proposals/024-classic-mac-os-segment-loader-fixups.md
 
 ## Proposal Context
 
-- 024-001 defined the current-parser inventory boundary.
-- 024-009 must add the documented CODE segment layout parser boundary before
-  this issue resumes.
+- 024-001 defines the byte inventory and parser boundary.
 - Later 024 issues need a C-owned record shape for decoded effects and residual
   placeholders.
 
@@ -40,7 +38,11 @@ Records must carry at least:
 
 ## Blocked By
 
-- docs/issues/024-009-documented-code-segment-layout-parser.md
+- docs/issues/024-001-current-fixup-byte-inventory-and-parser-boundary.md
+- 024-009 mapped the documented CODE layout. Current MPW `Asm` resources either
+  use near-model headers with no relocation-info fields or far-model headers
+  whose A5/segment relocation offsets are zero. Record-model work must not
+  invent decoded forms without a real encoding span.
 
 ## Required Sign-Off
 

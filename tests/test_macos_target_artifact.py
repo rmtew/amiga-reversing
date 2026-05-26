@@ -201,7 +201,7 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     assert ";   source_kind: macos_code_resource" in asm_text
     assert ";   backend: macos-code" in asm_text
     assert ";   code_entry_offset: 40" in asm_text
-    assert "role=data span=4..40 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry" in asm_text
+    assert "role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header" in asm_text
     assert "role=candidate_code span=40..29024 status=candidate parser_use=candidate_only" in asm_text
     assert "; CODE resource coverage" in asm_text
     assert ";   CODE 0 unknown: status=metadata-only" in asm_text

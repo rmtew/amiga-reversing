@@ -27,8 +27,9 @@ typedef enum PlatformMacosCodeRangeEvidence {
   PLATFORM_MACOS_CODE_EVIDENCE_CODE0_JUMP_TABLE_METADATA = 1,
   PLATFORM_MACOS_CODE_EVIDENCE_NONZERO_SEGMENT_HEADER = 2,
   PLATFORM_MACOS_CODE_EVIDENCE_PREFIX_BEFORE_STACK_ENTRY = 3,
-  PLATFORM_MACOS_CODE_EVIDENCE_M68K_STACK_ENTRY_TO_A0 = 4,
-  PLATFORM_MACOS_CODE_EVIDENCE_MISSING_STACK_ENTRY = 5
+  PLATFORM_MACOS_CODE_EVIDENCE_FAR_MODEL_SEGMENT_HEADER = 4,
+  PLATFORM_MACOS_CODE_EVIDENCE_M68K_STACK_ENTRY_TO_A0 = 5,
+  PLATFORM_MACOS_CODE_EVIDENCE_MISSING_STACK_ENTRY = 6
 } PlatformMacosCodeRangeEvidence;
 
 typedef struct PlatformMacosCodeRange {
@@ -93,6 +94,15 @@ typedef struct PlatformMacosCodeMetadata {
   uint32_t jump_table_offset_from_a5;
   uint16_t first_jump_table_entry_offset;
   uint16_t jump_table_entry_count;
+  uint8_t far_model;
+  uint32_t near_entry_start_a5_offset;
+  uint32_t near_entry_count;
+  uint32_t far_entry_start_a5_offset;
+  uint32_t far_entry_count;
+  uint32_t a5_relocation_info_offset;
+  uint32_t current_a5_value;
+  uint32_t segment_relocation_info_offset;
+  uint32_t segment_load_address;
   size_t layout_range_count;
   PlatformMacosCodeRange layout_ranges[PLATFORM_MACOS_CODE_LAYOUT_RANGE_CAPACITY];
 } PlatformMacosCodeMetadata;

@@ -249,10 +249,20 @@ static int macos_append_segment_loader_fixup_inventory_record(JsonBuilder *build
         (int)resource->resource_id, (unsigned)inventory.source_offset, (unsigned)inventory.size,
         (unsigned)inventory.source_offset, (unsigned)inventory.end, (unsigned)inventory.size) != 0 ||
       json_builder_append_json_string(builder, status_name) != 0 ||
-      json_builder_append(builder,
-        ",\"status\":\"deferred\",\"parseable\":false,\"source_visible\":true,"
-        "\"encoding_byte_provenance\":{\"known\":false,\"byte_space\":null,\"source_range\":null},"
-        "\"reason\":") != 0 ||
+      json_builder_appendf(builder,
+        ",\"status\":\"deferred\",\"parseable\":%s,\"source_visible\":true,"
+        "\"encoding_byte_provenance\":{\"known\":%s,\"byte_space\":",
+        inventory.status == PLATFORM_MACOS_SEGMENT_LOADER_FIXUP_INVENTORY_PARSEABLE ? "true" : "false",
+        inventory.encoding_byte_provenance_known ? "true" : "false") != 0 ||
+      (inventory.encoding_byte_provenance_known
+        ? json_builder_append_json_string(builder, "code_resource_payload")
+        : json_builder_append(builder, "null")) != 0 ||
+      json_builder_append(builder, ",\"source_range\":") != 0 ||
+      (inventory.encoding_byte_provenance_known
+        ? json_builder_appendf(builder, "{\"start\":%u,\"end\":%u,\"size\":%u}",
+            (unsigned)inventory.source_offset, (unsigned)inventory.end, (unsigned)inventory.size)
+        : json_builder_append(builder, "null")) != 0 ||
+      json_builder_append(builder, "},\"reason\":") != 0 ||
       json_builder_append_json_string(builder, inventory.reason) != 0 ||
       json_builder_append(builder, ",\"provenance\":") != 0 ||
       json_builder_append_json_string(builder, inventory.provenance) != 0 ||
@@ -415,24 +425,42 @@ static int macos_append_restored_source_reference_records(JsonBuilder *builder, 
   uint32_t reference_start = macos_restored_source_reference_start(records, range_count, reference_range_index);
   uint32_t reference_size = macos_restored_source_reference_size(records, range_count, reference_range_index);
   uint32_t reference_end = reference_start + reference_size;
+  uint32_t placeholder_ownership_index = reference_range_index;
   int emitted = 0;
   if (builder == NULL || resource == NULL) return -1;
   if (json_builder_append(builder, ",\"source_reference_records\":[") != 0) return -1;
   if (resource->resource_id != 0) {
+    PlatformMacosSegmentLoaderFixupInventory inventory;
+    if (platform_macos_segment_loader_fixup_inventory_from_code_metadata(&resource->code, resource->resource_id,
+        resource->payload_size, &inventory) != 0) {
+      return -1;
+    }
+    if (!inventory.encoding_byte_provenance_known) {
+      reference_start = 0U;
+      reference_size = 0U;
+      reference_end = 0U;
+      placeholder_ownership_index = 0U;
+    } else {
+      reference_start = inventory.source_offset;
+      reference_size = inventory.size;
+      reference_end = inventory.end;
+    }
     if (json_builder_appendf(builder,
           "{\"kind\":\"segment_loader_fixup_placeholder\",\"ownership_range_index\":%u"
           ",\"resource_type\":\"CODE\",\"resource_id\":%d,\"byte_space\":\"code_resource_payload\","
           "\"source_offset\":%u,\"size\":%u,\"source_range\":{\"start\":%u,\"end\":%u,\"size\":%u},"
           "\"target\":\"unresolved_segment_loader_fixup\",\"status\":\"deferred\","
-          "\"reason\":\"Segment Loader relocation/fixup custom extension decoding is not implemented for this CODE span.\","
-          "\"provenance\":\"platform_file_lib.macos_hfs_code_summary\",\"source_visible\":true,"
+          "\"reason\":",
+          (unsigned)placeholder_ownership_index, (int)resource->resource_id, (unsigned)reference_start,
+          (unsigned)reference_size, (unsigned)reference_start, (unsigned)reference_end,
+          (unsigned)reference_size) != 0 ||
+        json_builder_append_json_string(builder, inventory.reason) != 0 ||
+        json_builder_append(builder,
+          ",\"provenance\":\"platform_file_lib.macos_hfs_code_summary\",\"source_visible\":true,"
           "\"rendering\":{\"kind\":\"placeholder\",\"text\":\"deferred Segment Loader relocation/fixup effect\"},"
           "\"kb_record_id\":\"macos.hfs_resource_fork.code_resources.mpw_application\","
           "\"fact_id\":\"macos.segment_loader.relocation_fixups.deferred\","
-          "\"fact_status\":\"deferred\",\"parser_use\":\"deferred_only\"}",
-          (unsigned)reference_range_index, (int)resource->resource_id, (unsigned)reference_start,
-          (unsigned)reference_size, (unsigned)reference_start, (unsigned)reference_end,
-          (unsigned)reference_size) != 0) {
+          "\"fact_status\":\"deferred\",\"parser_use\":\"deferred_only\"}") != 0) {
       return -1;
     }
     emitted = 1;
@@ -690,10 +718,19 @@ static int macos_append_code_metadata(JsonBuilder *builder, const PlatformMacosR
       json_builder_appendf(builder,
         ",\"above_a5_size\":%u,\"below_a5_size\":%u,\"jump_table_length\":%u,"
         "\"jump_table_offset_from_a5\":%u,\"first_jump_table_entry_offset\":%u,"
-        "\"jump_table_entry_count\":%u,\"layout_ranges\":[",
+        "\"jump_table_entry_count\":%u,\"far_model\":%s,"
+        "\"far_model_header\":{\"near_entry_start_a5_offset\":%u,\"near_entry_count\":%u,"
+        "\"far_entry_start_a5_offset\":%u,\"far_entry_count\":%u,"
+        "\"a5_relocation_info_offset\":%u,\"current_a5_value\":%u,"
+        "\"segment_relocation_info_offset\":%u,\"segment_load_address\":%u},\"layout_ranges\":[",
         (unsigned)code->above_a5_size, (unsigned)code->below_a5_size,
         (unsigned)code->jump_table_length, (unsigned)code->jump_table_offset_from_a5,
-        (unsigned)code->first_jump_table_entry_offset, (unsigned)code->jump_table_entry_count) != 0) {
+        (unsigned)code->first_jump_table_entry_offset, (unsigned)code->jump_table_entry_count,
+        code->far_model ? "true" : "false", (unsigned)code->near_entry_start_a5_offset,
+        (unsigned)code->near_entry_count, (unsigned)code->far_entry_start_a5_offset,
+        (unsigned)code->far_entry_count, (unsigned)code->a5_relocation_info_offset,
+        (unsigned)code->current_a5_value, (unsigned)code->segment_relocation_info_offset,
+        (unsigned)code->segment_load_address) != 0) {
     return -1;
   }
   for (index = 0U; index < code->layout_range_count; ++index) {

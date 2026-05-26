@@ -223,6 +223,45 @@ Required outcome:
 - No decoded fixup effect is emitted until the parser has identified the actual
   encoding byte span and format.
 
+024-009 documented layout result:
+
+- Primary source: Inside Macintosh: Mac OS Runtime Architectures, Chapter 10,
+  "Classic 68K Runtime Architecture". The Segment Manager chapter in Inside
+  Macintosh: Processes confirms that ordinary code segments are `'CODE'`
+  resources, that CODE 0 stores A5-world/jump-table setup, and that near-model
+  nonzero segments begin with a 4-byte header containing the first jump-table
+  entry offset and the number of jump-table entries.
+- Primary source: Mac OS Runtime Architectures, Chapter 10, "The Far Model
+  Segment Header Structure" and "Relocation Information Format". A far-model
+  segment starts with marker `$FFFF`, reserved `$0000`, near-entry A5 offset and
+  count, far-entry A5 offset and count, offset `$14` to A5-relative relocation
+  information, current A5 value at `$18`, offset `$1C` to segment-relative
+  relocation information, segment load address at `$20`, and reserved `$24`.
+  Code follows the 40-byte header, then A5 relocation information and segment
+  relocation information when the corresponding offsets are nonzero. The
+  relocation streams are compressed lists of longword offsets ending with a zero
+  word.
+- C now parses the documented far-model header. Far-model CODE resources no
+  longer treat bytes 4..40 as candidate data; that span is metadata, and the
+  executable candidate scan starts at offset 40. Near-model CODE resources
+  retain the documented 4-byte Segment Manager header.
+- Current MPW `Asm` fixture result: many nonzero resources, including CODE 1,
+  have the documented far-model marker and 40-byte header, but both documented
+  relocation offsets (`a5_relocation_info_offset` at `$14` and
+  `segment_relocation_info_offset` at `$1C`) are zero. Other nonzero CODE
+  resources use the documented near-model 4-byte header. Therefore the fixture
+  no longer has a generic parser-provenance gap, but it still provides no actual
+  Segment Loader fixup encoding byte span to decode.
+- `segment_loader_fixup_inventory_v1` now records documented absence rather than
+  `custom_unknown` for the current fixture. It can report `parseable` with
+  `encoding_byte_provenance.known=true` for a documented far-model relocation
+  offset, and native C tests cover that parser boundary, but the committed MPW
+  `Asm` fixture has no such offset.
+- 024-002 through 024-008 remain blocked for this fixture: no decoded effect or
+  precise per-fixup placeholder may be emitted until a CODE resource with a
+  nonzero documented relocation-info offset, or equivalent primary-source
+  evidence for another format, is available.
+
 ## Verification Plan
 
 Minimum proof for every issue:

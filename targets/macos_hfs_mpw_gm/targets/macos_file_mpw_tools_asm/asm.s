@@ -63,7 +63,7 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;   total_code_resources: 28
 ;   CODE 0 unknown: status=metadata-only layout=metadata reason=CODE 0 jump-table/application metadata
 ;   CODE 27 32-bit bootstrap: status=partial layout=metadata,data,candidate_code reason=candidate_code entry payload[204..1882); full per-resource listing deferred until relocation/source-boundary context is represented
-;   CODE 1 Main: status=rendered layout=metadata,data,candidate_code reason=expanded below through macos-code listing backend
+;   CODE 1 Main: status=rendered layout=metadata,candidate_code reason=expanded below through macos-code listing backend
 ;   CODE 2 FPOpTable: status=partial layout=metadata,data,candidate_code reason=candidate_code entry payload[374..7788); full per-resource listing deferred until relocation/source-boundary context is represented
 ;   CODE 3 Init: status=partial layout=metadata,data,candidate_code reason=candidate_code entry payload[302..18252); full per-resource listing deferred until relocation/source-boundary context is represented
 ;   CODE 4 IOMgr: status=partial layout=metadata,data,candidate_code reason=candidate_code entry payload[468..6426); full per-resource listing deferred until relocation/source-boundary context is represented
@@ -87,7 +87,7 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;   CODE 22 SANELIB: status=deferred layout=metadata,deferred reason=classifier deferred range: missing_m68k_movea_l_stack_to_a0_entry
 ;   CODE 23 STDCLIB: status=deferred layout=metadata,deferred reason=classifier deferred range: missing_m68k_movea_l_stack_to_a0_entry
 ;   CODE 24 STDIO: status=partial layout=metadata,data,candidate_code reason=candidate_code entry payload[2950..4970); full per-resource listing deferred until relocation/source-boundary context is represented
-;   CODE 25 SANELib: status=partial layout=metadata,data,candidate_code reason=candidate_code entry payload[40..246); full per-resource listing deferred until relocation/source-boundary context is represented
+;   CODE 25 SANELib: status=partial layout=metadata,candidate_code reason=candidate_code entry payload[40..246); full per-resource listing deferred until relocation/source-boundary context is represented
 ;   CODE 26 PASLIB: status=partial layout=metadata,data,candidate_code reason=candidate_code entry payload[198..2940); full per-resource listing deferred until relocation/source-boundary context is represented
 
 ; CODE segment/routine map
@@ -154,12 +154,11 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     code_resource=CODE 1 name=unknown
 ;     a5_world status=deferred parser_use=unknown
 ;     ownership_ranges:
-;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
-;       1: role=data span=4..40 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
-;       2: role=candidate_code span=40..29024 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
+;       1: role=candidate_code span=40..29024 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
 ;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=2 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
-;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
+;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
+;       1: kind=a5_world_context_placeholder ownership=1 status=deferred parser_use=unknown target=classic_mac_a5_world
 ;     listing: kind=full_listing available=True route=listing reason=unknown
 ;     previews: none
 ;   CODE 2 FPOpTable: role=code_segment kind=code_segment payload_size=7788 sha256=a33f1dfe28237a5ee6f9ba7a96540e8e4842a7e6207575db5f0479b8c622a4f2 fact=macos.resource_fork.code_resources.accepted status=validated
@@ -174,11 +173,11 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     code_resource=CODE 2 name=unknown
 ;     a5_world status=deferred parser_use=unknown
 ;     ownership_ranges:
-;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
-;       1: role=data span=4..374 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
+;       1: role=data span=40..374 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
 ;       2: role=candidate_code span=374..7788 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
 ;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=2 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
+;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
 ;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
 ;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
 ;     previews:
@@ -202,11 +201,11 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     code_resource=CODE 3 name=unknown
 ;     a5_world status=deferred parser_use=unknown
 ;     ownership_ranges:
-;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
-;       1: role=data span=4..302 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
+;       1: role=data span=40..302 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
 ;       2: role=candidate_code span=302..18252 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
 ;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=2 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
+;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
 ;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
 ;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
 ;     previews:
@@ -243,11 +242,11 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     code_resource=CODE 4 name=unknown
 ;     a5_world status=deferred parser_use=unknown
 ;     ownership_ranges:
-;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
-;       1: role=data span=4..468 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
+;       1: role=data span=40..468 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
 ;       2: role=candidate_code span=468..6426 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
 ;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=2 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
+;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
 ;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
 ;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
 ;     previews:
@@ -297,11 +296,11 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     code_resource=CODE 5 name=unknown
 ;     a5_world status=deferred parser_use=unknown
 ;     ownership_ranges:
-;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
-;       1: role=data span=4..212 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
+;       1: role=data span=40..212 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
 ;       2: role=candidate_code span=212..26638 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
 ;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=2 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
+;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
 ;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
 ;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
 ;     previews:
@@ -341,11 +340,11 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     code_resource=CODE 6 name=unknown
 ;     a5_world status=deferred parser_use=unknown
 ;     ownership_ranges:
-;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
-;       1: role=data span=4..58 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
+;       1: role=data span=40..58 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
 ;       2: role=candidate_code span=58..15158 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
 ;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=2 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
+;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
 ;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
 ;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
 ;     previews:
@@ -368,11 +367,11 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     code_resource=CODE 7 name=unknown
 ;     a5_world status=deferred parser_use=unknown
 ;     ownership_ranges:
-;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
-;       1: role=data span=4..352 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
+;       1: role=data span=40..352 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
 ;       2: role=candidate_code span=352..4142 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
 ;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=2 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
+;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
 ;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
 ;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
 ;     previews:
@@ -407,11 +406,11 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     code_resource=CODE 8 name=unknown
 ;     a5_world status=deferred parser_use=unknown
 ;     ownership_ranges:
-;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
-;       1: role=data span=4..42 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
+;       1: role=data span=40..42 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
 ;       2: role=candidate_code span=42..1852 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
 ;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=2 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
+;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
 ;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
 ;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
 ;     previews:
@@ -461,11 +460,11 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     code_resource=CODE 9 name=unknown
 ;     a5_world status=deferred parser_use=unknown
 ;     ownership_ranges:
-;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
-;       1: role=data span=4..712 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
+;       1: role=data span=40..712 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
 ;       2: role=candidate_code span=712..13946 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
 ;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=2 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
+;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
 ;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
 ;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
 ;     previews:
@@ -488,11 +487,11 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     code_resource=CODE 10 name=unknown
 ;     a5_world status=deferred parser_use=unknown
 ;     ownership_ranges:
-;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
-;       1: role=data span=4..148 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
+;       1: role=data span=40..148 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
 ;       2: role=candidate_code span=148..1542 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
 ;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=2 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
+;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
 ;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
 ;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
 ;     previews:
@@ -515,11 +514,11 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     code_resource=CODE 11 name=unknown
 ;     a5_world status=deferred parser_use=unknown
 ;     ownership_ranges:
-;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
-;       1: role=data span=4..836 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
+;       1: role=data span=40..836 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
 ;       2: role=candidate_code span=836..3678 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
 ;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=2 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
+;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
 ;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
 ;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
 ;     previews:
@@ -569,11 +568,11 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     code_resource=CODE 12 name=unknown
 ;     a5_world status=deferred parser_use=unknown
 ;     ownership_ranges:
-;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
-;       1: role=data span=4..44 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
+;       1: role=data span=40..44 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
 ;       2: role=candidate_code span=44..6928 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
 ;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=2 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
+;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
 ;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
 ;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
 ;     previews:
@@ -623,11 +622,11 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     code_resource=CODE 13 name=unknown
 ;     a5_world status=deferred parser_use=unknown
 ;     ownership_ranges:
-;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
-;       1: role=data span=4..44 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
+;       1: role=data span=40..44 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
 ;       2: role=candidate_code span=44..33354 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
 ;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=2 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
+;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
 ;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
 ;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
 ;     previews:
@@ -653,11 +652,11 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     code_resource=CODE 14 name=unknown
 ;     a5_world status=deferred parser_use=unknown
 ;     ownership_ranges:
-;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
-;       1: role=data span=4..236 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
+;       1: role=data span=40..236 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
 ;       2: role=candidate_code span=236..1886 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
 ;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=2 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
+;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
 ;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
 ;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
 ;     previews:
@@ -707,11 +706,11 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     code_resource=CODE 15 name=unknown
 ;     a5_world status=deferred parser_use=unknown
 ;     ownership_ranges:
-;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
-;       1: role=data span=4..96 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
+;       1: role=data span=40..96 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
 ;       2: role=candidate_code span=96..3452 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
 ;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=2 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
+;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
 ;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
 ;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
 ;     previews:
@@ -737,11 +736,11 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     code_resource=CODE 16 name=unknown
 ;     a5_world status=deferred parser_use=unknown
 ;     ownership_ranges:
-;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
-;       1: role=data span=4..246 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
+;       1: role=data span=40..246 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
 ;       2: role=candidate_code span=246..1034 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
 ;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=2 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
+;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
 ;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
 ;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
 ;     previews:
@@ -766,11 +765,11 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     code_resource=CODE 17 name=unknown
 ;     a5_world status=deferred parser_use=unknown
 ;     ownership_ranges:
-;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
-;       1: role=data span=4..100 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
+;       1: role=data span=40..100 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
 ;       2: role=candidate_code span=100..3674 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
 ;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=2 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
+;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
 ;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
 ;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
 ;     previews:
@@ -807,11 +806,11 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     code_resource=CODE 18 name=unknown
 ;     a5_world status=deferred parser_use=unknown
 ;     ownership_ranges:
-;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
-;       1: role=data span=4..1562 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
+;       1: role=data span=40..1562 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
 ;       2: role=candidate_code span=1562..1974 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
 ;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=2 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
+;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
 ;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
 ;     listing: kind=structured_placeholder available=False route=unknown reason=no candidate_code range available for a bounded preview
 ;     previews: none
@@ -826,8 +825,8 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     code_resource=CODE 19 name=unknown
 ;     a5_world status=deferred parser_use=unknown
 ;     ownership_ranges:
-;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
-;       1: role=unknown span=4..556 status=deferred parser_use=deferred_only reason=missing_m68k_movea_l_stack_to_a0_entry
+;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
+;       1: role=unknown span=40..556 status=deferred parser_use=deferred_only reason=missing_m68k_movea_l_stack_to_a0_entry
 ;     source_reference_records:
 ;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
 ;       1: kind=a5_world_context_placeholder ownership=0 status=deferred parser_use=unknown target=classic_mac_a5_world
@@ -845,11 +844,11 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     code_resource=CODE 20 name=unknown
 ;     a5_world status=deferred parser_use=unknown
 ;     ownership_ranges:
-;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
-;       1: role=data span=4..2876 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
+;       1: role=data span=40..2876 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
 ;       2: role=candidate_code span=2876..5262 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
 ;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=2 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
+;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
 ;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
 ;     listing: kind=structured_placeholder available=False route=unknown reason=no candidate_code range available for a bounded preview
 ;     previews: none
@@ -865,11 +864,11 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     code_resource=CODE 21 name=unknown
 ;     a5_world status=deferred parser_use=unknown
 ;     ownership_ranges:
-;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
-;       1: role=data span=4..2000 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
+;       1: role=data span=40..2000 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
 ;       2: role=candidate_code span=2000..6794 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
 ;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=2 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
+;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
 ;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
 ;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
 ;     previews:
@@ -905,8 +904,8 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     code_resource=CODE 22 name=unknown
 ;     a5_world status=deferred parser_use=unknown
 ;     ownership_ranges:
-;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
-;       1: role=unknown span=4..96 status=deferred parser_use=deferred_only reason=missing_m68k_movea_l_stack_to_a0_entry
+;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
+;       1: role=unknown span=40..96 status=deferred parser_use=deferred_only reason=missing_m68k_movea_l_stack_to_a0_entry
 ;     source_reference_records:
 ;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
 ;       1: kind=a5_world_context_placeholder ownership=0 status=deferred parser_use=unknown target=classic_mac_a5_world
@@ -923,8 +922,8 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     code_resource=CODE 23 name=unknown
 ;     a5_world status=deferred parser_use=unknown
 ;     ownership_ranges:
-;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
-;       1: role=unknown span=4..126 status=deferred parser_use=deferred_only reason=missing_m68k_movea_l_stack_to_a0_entry
+;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
+;       1: role=unknown span=40..126 status=deferred parser_use=deferred_only reason=missing_m68k_movea_l_stack_to_a0_entry
 ;     source_reference_records:
 ;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
 ;       1: kind=a5_world_context_placeholder ownership=0 status=deferred parser_use=unknown target=classic_mac_a5_world
@@ -942,11 +941,11 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     code_resource=CODE 24 name=unknown
 ;     a5_world status=deferred parser_use=unknown
 ;     ownership_ranges:
-;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
-;       1: role=data span=4..2950 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
+;       1: role=data span=40..2950 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
 ;       2: role=candidate_code span=2950..4970 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
 ;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=2 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
+;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
 ;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
 ;     listing: kind=structured_placeholder available=False route=unknown reason=no candidate_code range available for a bounded preview
 ;     previews: none
@@ -962,12 +961,11 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     code_resource=CODE 25 name=unknown
 ;     a5_world status=deferred parser_use=unknown
 ;     ownership_ranges:
-;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
-;       1: role=data span=4..40 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
-;       2: role=candidate_code span=40..246 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
+;       1: role=candidate_code span=40..246 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
 ;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=2 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
-;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
+;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
+;       1: kind=a5_world_context_placeholder ownership=1 status=deferred parser_use=unknown target=classic_mac_a5_world
 ;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
 ;     previews:
 ;       candidate_code_preview: start=40 end=104 size=64 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only bounded=True truncated=True reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
@@ -992,11 +990,11 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     code_resource=CODE 26 name=unknown
 ;     a5_world status=deferred parser_use=unknown
 ;     ownership_ranges:
-;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
-;       1: role=data span=4..198 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
+;       1: role=data span=40..198 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
 ;       2: role=candidate_code span=198..2940 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
 ;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=2 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
+;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
 ;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
 ;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
 ;     previews:
@@ -1032,7 +1030,7 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;       1: role=data span=4..204 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
 ;       2: role=candidate_code span=204..1882 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
 ;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=2 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
+;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
 ;       1: kind=code0_dispatch_reference ownership=unknown status=validated parser_use=accepted_parser_output target=CODE:27
 ;       2: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
 ;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
@@ -1086,12 +1084,11 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     code_resource=CODE 1 name=unknown
 ;     a5_world status=deferred parser_use=unknown
 ;     ownership_ranges:
-;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
-;       1: role=data span=4..40 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
-;       2: role=candidate_code span=40..29024 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
+;       1: role=candidate_code span=40..29024 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
 ;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=2 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
-;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
+;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
+;       1: kind=a5_world_context_placeholder ownership=1 status=deferred parser_use=unknown target=classic_mac_a5_world
 ;   listing_rows: 1814
 
 ; CODE 1 Main listing follows. Offsets are local to the selected CODE resource code bytes.
