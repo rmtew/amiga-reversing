@@ -115,6 +115,25 @@ This is not a report-only blocker issue. It must add executable checks that fail
 when Mac source presentation silently drops CODE resources, restored-source
 packets, verifier state, source references, placeholders, or web/API exposure.
 
+Completed baseline:
+
+- The committed MPW `Asm` project payload test now requires every CODE resource
+  detail to expose a C-owned `restored_source_model_v1` packet, passing
+  verifier, ownership ranges, source reference records, CODE resource platform
+  extension, and deferred A5/world context. This fails if any executable CODE
+  resource disappears from the source presentation boundary.
+- The committed Mac target artifact test now requires broad restored-source
+  rendering counts for model, verifier, and source reference records, plus
+  executable resource placeholders.
+- The Mac web payload test now requires selected CODE web/API restored-source
+  authority, verifier state, ownership ranges, source reference records, and
+  executable resource placeholders.
+- Current blocker for 023-002 and later: baseline proves per-CODE packets are
+  visible in project/artifact surfaces, while richer CODE 0 routing references,
+  span-specific Segment Loader placeholders, A5 row context, and linked
+  non-CODE source reference sites still need the later 023 slices. Candidate and
+  deferred facts remain candidate/deferred; no Mac round-trip claim was added.
+
 ### 023-002: All CODE Resource Restored-Source Coverage
 
 Move beyond selected-CODE-only confidence. Every executable CODE resource in the

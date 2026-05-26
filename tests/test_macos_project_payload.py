@@ -1042,6 +1042,16 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     assert all(item["stable_identity"].startswith("macos-resource:") for item in placeholders)
     assert all(item["reference_sites"][0]["kind"] == "resource_type_inventory" for item in placeholders)
     assert len(container["code_resource_details"]) == len(container["code_resources"])
+    for detail in container["code_resource_details"]:
+        restored = detail["restored_source"]
+        assert restored["model"] == "restored_source_model_v1"
+        assert restored["authority"] == "c_owned"
+        assert restored["round_trip_required"] is False
+        assert restored["source_coverage_verifier"]["ok"] is True
+        assert restored["source_ownership_ranges"]
+        assert restored["source_reference_records"]
+        assert restored["platform_extensions"]["code_resource"]["resource_id"] == detail["id"]
+        assert restored["platform_extensions"]["a5_world"]["status"] == "deferred"
     assert container["code_resource_details"][0]["role"] == "code0_metadata"
     assert container["code_resource_details"][0]["listing"]["kind"] == "metadata"
     assert container["code_resource_details"][0]["listing"]["available"] is False
