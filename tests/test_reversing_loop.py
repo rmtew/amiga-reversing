@@ -1708,6 +1708,27 @@ def test_callback_consumer_dataflow_does_not_treat_bit_ops_as_branch_boundaries(
     assert report["slots"][0]["consumer_dataflow_blockers"] == []
 
 
+def test_callback_consumer_dataflow_uses_generated_boundary_metadata_not_opcode_text() -> None:
+    report = callback_slot_report(
+        [
+            *_callback_consumer_fixture_prefix(),
+            _callback_slot_read_row(0x1204, "A0"),
+            {
+                "kind": "instruction",
+                "start_offset": 0x1206,
+                "opcode_or_directive": "bra.s",
+                "flow": "sequential",
+                "flow_kind": 1,
+                "control_flow_boundary": False,
+            },
+            {"kind": "instruction", "start_offset": 0x1208, "opcode_or_directive": "jsr", "operand_text": "(a0)"},
+        ]
+    )
+
+    assert report["slots"][0]["consumer_count"] == 1
+    assert report["slots"][0]["consumer_dataflow_blockers"] == []
+
+
 def test_callback_consumer_dataflow_accepts_address_register_move() -> None:
     report = callback_slot_report(
         [
