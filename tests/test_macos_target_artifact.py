@@ -238,6 +238,7 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     assert "executable_resource_placeholder: type=CURS" in asm_text
     assert "reference_site=resource_type_inventory" in asm_text
     assert ";   restored_source_model:" in asm_text
+    assert asm_text.count("source_presentation: kind=c_owned_restored_source_packet status=covered") >= 28
     assert "model=restored_source_model_v1 round_trip_required=false" in asm_text
     assert asm_text.count("model=restored_source_model_v1 round_trip_required=false") >= 28
     assert asm_text.count("coverage ok=true gaps=0 overlaps=0 unknown_detail=0") >= 28

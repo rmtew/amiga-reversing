@@ -1043,6 +1043,14 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     assert all(item["reference_sites"][0]["kind"] == "resource_type_inventory" for item in placeholders)
     assert len(container["code_resource_details"]) == len(container["code_resources"])
     for detail in container["code_resource_details"]:
+        presentation = detail["source_presentation_status"]
+        assert presentation["kind"] == "c_owned_restored_source_packet"
+        assert presentation["status"] == "covered"
+        assert presentation["stable_identity"] == f"macos-code:CODE:{detail['id']}"
+        assert presentation["source_visible"] is True
+        assert presentation["verifier_ok"] is True
+        assert presentation["ownership_range_count"] > 0
+        assert presentation["source_reference_count"] > 0
         restored = detail["restored_source"]
         assert restored["model"] == "restored_source_model_v1"
         assert restored["authority"] == "c_owned"

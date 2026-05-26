@@ -305,6 +305,11 @@ def _code_resource_details(
             preview_windows=preview_windows,
         )
         restored_source = _c_owned_restored_source_packet(code, scope=f"CODE {resource_id}")
+        source_presentation_status = _code_source_presentation_status(
+            resource,
+            restored_source=restored_source,
+            listing=listing,
+        )
         anchors = _resource_navigation_anchors(
             resource,
             code=code,
@@ -332,6 +337,7 @@ def _code_resource_details(
                 "orphan_ranges": orphan_ranges,
                 "relocation_fixups": relocation_fixups,
                 "restored_source": restored_source,
+                "source_presentation_status": source_presentation_status,
                 "jump_table": _mapping(code.get("jump_table")),
                 "jump_table_rows": jump_table_rows,
                 "navigation_anchors": anchors,
@@ -340,6 +346,42 @@ def _code_resource_details(
             }
         )
     return details
+
+
+def _code_source_presentation_status(
+    resource: Mapping[str, object],
+    *,
+    restored_source: Mapping[str, object],
+    listing: Mapping[str, object],
+) -> dict[str, object]:
+    resource_id = resource.get("id")
+    stable_identity = f"macos-code:CODE:{resource_id}"
+    if restored_source.get("model") == "restored_source_model_v1" and restored_source.get("authority") == "c_owned":
+        verifier = _mapping(restored_source.get("source_coverage_verifier"))
+        return {
+            "kind": "c_owned_restored_source_packet",
+            "status": "covered" if verifier.get("ok") is True else "blocked",
+            "resource_type": "CODE",
+            "resource_id": resource_id,
+            "resource_name": resource.get("name"),
+            "stable_identity": stable_identity,
+            "source_visible": True,
+            "verifier_ok": verifier.get("ok") is True,
+            "ownership_range_count": len(_sequence(restored_source.get("source_ownership_ranges"))),
+            "source_reference_count": len(_sequence(restored_source.get("source_reference_records"))),
+            "provenance": "platform_file_lib.macos_hfs_code_summary restored_source",
+        }
+    return {
+        "kind": "typed_deferred_source_placeholder",
+        "status": "blocked",
+        "resource_type": "CODE",
+        "resource_id": resource_id,
+        "resource_name": resource.get("name"),
+        "stable_identity": stable_identity,
+        "source_visible": True,
+        "reason": restored_source.get("reason") or listing.get("reason") or "CODE resource has no C-owned source packet",
+        "provenance": "macos_project_payload.c_owned_restored_source_packet",
+    }
 
 
 def _listing_descriptor(

@@ -357,6 +357,14 @@ def _code_resource_detail_lines(details: Sequence[Mapping[str, object]]) -> list
                 f"jt_count={_text(segment.get('jump_table_entry_count'))} "
                 f"fact={_text(segment.get('fact_id'))} status={_text(segment.get('fact_status'))}"
             )
+        presentation = _mapping(detail.get("source_presentation_status"))
+        if presentation:
+            lines.append(
+                f";     source_presentation: kind={_text(presentation.get('kind'))} "
+                f"status={_text(presentation.get('status'))} "
+                f"stable_identity={_text(presentation.get('stable_identity'))} "
+                f"visible={_text(presentation.get('source_visible'))}"
+            )
         anchors = [_mapping(item) for item in _sequence(detail.get("navigation_anchors"))]
         lines.extend(_navigation_anchor_lines(anchors))
         lines.append(";     restored_source_model:")

@@ -140,6 +140,23 @@ Move beyond selected-CODE-only confidence. Every executable CODE resource in the
 Mac fixture must have either a C-owned restored-source packet with ownership
 coverage or an explicit typed deferred source placeholder.
 
+Completed per-CODE coverage:
+
+- Mac project/API `code_resource_details` now exposes
+  `source_presentation_status` for every CODE resource. C-owned restored-source
+  packets report `kind: c_owned_restored_source_packet`, `status: covered`,
+  stable `macos-code:CODE:<id>` identity, verifier state, ownership range
+  count, source reference count, provenance, and source visibility.
+- If a CODE resource lacks a C-owned packet, the status fails closed as
+  `kind: typed_deferred_source_placeholder`, `status: blocked`, with resource
+  identity, reason, provenance, and `source_visible: true`; compatibility
+  fields are not treated as restored-source authority.
+- The Mac target artifact renders the per-CODE source presentation status before
+  the restored-source packet detail, so the committed artifact fails tests if
+  executable CODE resources are silently omitted.
+- CODE 0 remains metadata/routing-oriented but is explicitly represented with a
+  C-owned restored-source packet and covered source presentation status.
+
 ### 023-003: CODE 0 Routing And Source References
 
 Use CODE 0 as platform routing evidence. Represent CODE 0 dispatch/resource
