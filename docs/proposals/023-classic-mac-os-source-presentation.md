@@ -1,6 +1,28 @@
 # Proposal 023: Classic Mac OS Source Presentation
 
-Status: active
+Status: complete
+
+Final closeout:
+
+- The committed MPW Tools `Asm.s` artifact is now source-first: a compact
+  identity header is followed by visible CODE source-body sections before broad
+  supporting evidence.
+- Every current executable CODE resource has a source-body section with stable
+  section identity, byte-real rows, C-owned restored-source evidence, and
+  range-level ownership.
+- CODE 0 renders structured application/jump-table context with candidate
+  target links only where evidence supports them. CODE 1 renders the accepted
+  far-model header separately from candidate entry/stub/body residual spans.
+- `binary_container_view.source_body_sections` and
+  `binary_container_view.source_quality_gate` are shared API/web/artifact
+  surfaces; the web view consumes those surfaces rather than inventing status.
+- The source-quality gate passes as `passed_with_deferred_semantics`: it proves
+  visible ownership, labels, explicit residuals, conservative byte rendering,
+  and absence of vague orphan buckets or fake semantic disassembly.
+- Mac byte-entry, Segment Loader relocation/fixup decoding, A5 lifetime
+  semantics, non-CODE payload semantics, source-to-CODE mapping, and
+  resource-fork round trip remain candidate/deferred/unsupported exactly as
+  recorded by Proposal 018/024 evidence. Proposal 023 does not promote them.
 
 Reopened after the post-closeout artifact review: the C-owned restored-source
 evidence exists, but the committed MPW `Asm.s` artifact is still report-first
@@ -582,6 +604,20 @@ Required outcome:
   explicitly checked.
 - Platform executable validate/coverage, focused Mac tests, and shared
   precommit proof pass without weakening Amiga/Atari gates.
+
+Completed state:
+
+- Proposal 023 is closed as visible Classic Mac OS source presentation for the
+  committed MPW Tools `Asm` fixture.
+- `Asm.s` starts with useful source after a compact header, every CODE resource
+  is represented in the source body, CODE 0/CODE 1 structure is visible, and the
+  023-017 quality gate is rendered before supporting evidence.
+- Remaining semantic gaps are explicit candidate/deferred residuals with exact
+  byte ranges and next implementation steps. No Mac round-trip or unsupported
+  semantic promotion is claimed.
+- Final proof passed: platform executable validate; platform executable
+  coverage with current Mac/Amiga/Atari backends; focused Mac backend/project/
+  artifact/web/source tests; C precommit; and `git diff --check`.
 
 ### 023-017: Source Quality Analysis Gates
 
