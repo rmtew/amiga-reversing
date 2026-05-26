@@ -3555,7 +3555,8 @@ def inspect_cascade_state(
             report_errors.append({"report": name, "blocker": "report_load_failed", "message": str(exc)})
             reports[name] = {"status": "failed", "message": str(exc)}
 
-    source_state_identity = "cascade-state:" + stable_json_hash(reports)[:24]
+    identity_input = _cascade_semantic_identity_input(reports)
+    source_state_identity = "cascade-state:" + stable_json_hash(identity_input)[:24]
     parents: list[dict[str, object]] = []
     blocked: list[dict[str, object]] = []
     exhausted: list[dict[str, object]] = []
@@ -3614,6 +3615,7 @@ def inspect_cascade_state(
         name: _cascade_report_status(value)
         for name, value in reports.items()
     }
+    state["source_state_identity_diagnostics"] = _cascade_source_identity_diagnostics(reports, identity_input)
     state["exhausted_facts"] = sorted(exhausted, key=lambda item: str(item.get("fact_id") or item.get("exhaustion_id") or ""))
     state["review_packets"] = sorted(review_packets, key=lambda item: str(item.get("packet_id") or ""))
     state["summary"] = summarize_cascade_state(state)
@@ -3746,7 +3748,7 @@ def closeout_cascade_exhaustion(
     summary_stable = before.get("summary") == after.get("summary")
     identity_stable = before.get("source_state_identity") == after.get("source_state_identity")
     applied = apply_report.get("summary", {}).get("applied_count") if isinstance(apply_report.get("summary"), Mapping) else 0
-    status = "passed" if (applied or summary_stable) and apply_report.get("status") in {"passed", "blocked"} else "blocked"
+    status = "passed" if (applied or summary_stable) and identity_stable and apply_report.get("status") in {"passed", "blocked"} else "blocked"
     return {
         "schema": CASCADE_SCHEMA,
         "target_id": target_id,
@@ -3772,6 +3774,61 @@ def _cascade_child_render_status(child: Mapping[str, object]) -> str:
     if isinstance(effect, Mapping) and isinstance(effect.get("status"), str):
         return str(effect["status"])
     return ""
+
+
+def _cascade_semantic_identity_input(value: object) -> object:
+    if isinstance(value, Mapping):
+        result: dict[str, object] = {}
+        for key, raw in value.items():
+            if key == "job":
+                semantic_job = _cascade_semantic_listing_job(raw)
+                if semantic_job:
+                    result[str(key)] = semantic_job
+                continue
+            if key in {"created_at", "finished_at", "job_id"}:
+                continue
+            result[str(key)] = _cascade_semantic_identity_input(raw)
+        return result
+    if isinstance(value, list | tuple):
+        return [_cascade_semantic_identity_input(item) for item in value]
+    return value
+
+
+def _cascade_semantic_listing_job(value: object) -> dict[str, object]:
+    if not isinstance(value, Mapping):
+        return {}
+    return {
+        str(key): _cascade_semantic_identity_input(value[key])
+        for key in sorted(value, key=str)
+        if key not in {"created_at", "finished_at", "job_id"}
+    }
+
+
+def _cascade_source_identity_diagnostics(
+    reports: Mapping[str, object],
+    identity_input: object,
+) -> dict[str, object]:
+    return {
+        "identity_input": "semantic_reports_without_listing_job_volatiles",
+        "identity_hash": stable_json_hash(identity_input)[:24],
+        "stripped_volatile_fields": _cascade_stripped_volatile_field_paths(reports),
+    }
+
+
+def _cascade_stripped_volatile_field_paths(value: object, path: str = "$") -> list[str]:
+    paths: list[str] = []
+    if isinstance(value, Mapping):
+        for key, raw in value.items():
+            key_path = f"{path}.{key}"
+            if key == "job" and isinstance(raw, Mapping):
+                for volatile in ("created_at", "finished_at", "job_id"):
+                    if volatile in raw:
+                        paths.append(f"{key_path}.{volatile}")
+            paths.extend(_cascade_stripped_volatile_field_paths(raw, key_path))
+    elif isinstance(value, list | tuple):
+        for index, item in enumerate(value):
+            paths.extend(_cascade_stripped_volatile_field_paths(item, f"{path}[{index}]"))
+    return paths
 
 
 def _verify_one_cascade_child(
@@ -4218,6 +4275,15 @@ def _cascade_closeout_blockers(
             )
     if before.get("summary") != after.get("summary"):
         blockers.append({"source": "cascade_closeout", "blocker": "state_changed_after_closeout"})
+    elif before.get("source_state_identity") != after.get("source_state_identity"):
+        blockers.append(
+            {
+                "source": "cascade_closeout",
+                "blocker": "source_state_identity_changed_without_summary_change",
+                "before_identity_diagnostics": before.get("source_state_identity_diagnostics"),
+                "after_identity_diagnostics": after.get("source_state_identity_diagnostics"),
+            }
+        )
     return blockers
 
 

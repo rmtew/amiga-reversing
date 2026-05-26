@@ -1608,3 +1608,12 @@ repeatable work to `docs\issues\017-*`.
   between read-only runs. 017-100 must reproduce the mismatch, identify volatile
   identity fields, canonicalize source identity inputs without hiding real stale
   state, and make closeout fail closed on unexplained identity changes.
+- 017-100 fixed the closeout identity defect. The volatile inputs were
+  `listing_open.job.created_at`, `listing_open.job.finished_at`, and
+  `listing_open.job.job_id`; semantic job status/error fields remain identity
+  inputs. `cascade-closeout` now requires source identity stability as well as
+  summary stability and reports
+  `source_state_identity_changed_without_summary_change` if an unexplained
+  identity drift remains. Real Pandora post-fix closeout reports
+  `status=passed`, `summary_stable=true`, and
+  `source_state_identity_stable=true`.

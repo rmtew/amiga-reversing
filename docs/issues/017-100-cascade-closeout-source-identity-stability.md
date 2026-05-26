@@ -1,6 +1,6 @@
 # 017-100: Fix Cascade Closeout Source Identity Stability
 
-Status: active
+Status: completed
 Type: AFK
 Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
@@ -43,26 +43,49 @@ Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
 ## Research Coverage
 
-- [ ] `017-099` closeout reviewed before implementation.
-- [ ] Real Pandora source identity mismatch reproduced.
-- [ ] Volatile fields identified and documented.
-- [ ] Semantic identity canonicalization preserves stale-state detection.
-- [ ] Closeout blocks on unexplained identity changes.
-- [ ] No 012/018/Mac/platform-format files touched.
+- [x] `017-099` closeout reviewed before implementation.
+- [x] Real Pandora source identity mismatch reproduced.
+- [x] Volatile fields identified and documented.
+- [x] Semantic identity canonicalization preserves stale-state detection.
+- [x] Closeout blocks on unexplained identity changes.
+- [x] No 012/018/Mac/platform-format files touched.
 
 ## Research Review
 
-- [ ] This fixes closeout stability, not a cosmetic report mismatch.
-- [ ] The fix does not hide real stale-state changes.
-- [ ] Real Pandora no longer passes with unstable source identity.
-- [ ] Proposal 017 living notes updated.
+- [x] This fixes closeout stability, not a cosmetic report mismatch.
+- [x] The fix does not hide real stale-state changes.
+- [x] Real Pandora no longer passes with unstable source identity.
+- [x] Proposal 017 living notes updated.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before work.
-- [ ] Focused cascade identity tests pass.
-- [ ] Focused closeout tests pass.
-- [ ] Real Pandora closeout rerun reviewed.
-- [ ] `amiga_reversing.tools.validate_017_issues` passes.
-- [ ] `git diff --check` passes.
+- [x] Proposal context checked before work.
+- [x] Focused cascade identity tests pass.
+- [x] Focused closeout tests pass.
+- [x] Real Pandora closeout rerun reviewed.
+- [x] `amiga_reversing.tools.validate_017_issues` passes.
+- [x] `git diff --check` passes.
 
+## Completion Evidence
+
+- Added semantic source-state identity canonicalization for cascade input
+  reports.
+- Added closeout fail-closed behavior for unexplained identity drift.
+- Added focused regression tests for volatile stripping, semantic job-field
+  retention, and closeout blocking on identity mismatch.
+
+## Cascade Evidence
+
+- Reproduced the pre-fix Pandora defect: read-only `cascade-closeout` returned
+  `status=passed` while `fixed_point.source_state_identity_stable=false`.
+- Identified volatile identity inputs as listing-open job metadata:
+  `listing_open.job.created_at`, `listing_open.job.finished_at`, and
+  `listing_open.job.job_id` across A5, RSSET, immediate, and callback reports.
+- Implemented semantic source-state identity canonicalization that strips only
+  those volatile job fields while keeping semantic job status/error fields.
+- Added closeout fail-closed behavior for unexplained identity drift:
+  `source_state_identity_changed_without_summary_change`.
+- Real Pandora post-fix closeout result:
+  `status=passed`, `summary_stable=true`,
+  `source_state_identity_stable=true`, and matching before/after
+  `cascade-state:f21ad9827d8a4ac2773f0d3a`.

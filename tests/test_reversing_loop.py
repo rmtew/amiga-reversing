@@ -11324,6 +11324,78 @@ def test_cascade_apply_writes_only_decision_journal_after_verified_dry_run(
     ]
 
 
+def test_cascade_source_identity_strips_listing_job_volatiles() -> None:
+    first = {
+        "a5": {
+            "listing_open": {
+                "status": "ready",
+                "job": {"job_id": "run-1", "created_at": 1.0, "finished_at": 2.0, "status": "completed"},
+            },
+            "semantic": {"count": 1},
+        }
+    }
+    second = {
+        "a5": {
+            "listing_open": {
+                "status": "ready",
+                "job": {"job_id": "run-2", "created_at": 3.0, "finished_at": 4.0, "status": "completed"},
+            },
+            "semantic": {"count": 1},
+        }
+    }
+
+    assert reversing_loop._cascade_semantic_identity_input(first) == reversing_loop._cascade_semantic_identity_input(second)
+    diagnostics = reversing_loop._cascade_source_identity_diagnostics(
+        first,
+        reversing_loop._cascade_semantic_identity_input(first),
+    )
+    assert "$.a5.listing_open.job.job_id" in diagnostics["stripped_volatile_fields"]
+
+
+def test_cascade_source_identity_keeps_semantic_listing_job_changes() -> None:
+    first = {"a5": {"listing_open": {"job": {"status": "completed", "error": None}}}}
+    second = {"a5": {"listing_open": {"job": {"status": "failed", "error": "boom"}}}}
+
+    assert reversing_loop._cascade_semantic_identity_input(first) != reversing_loop._cascade_semantic_identity_input(second)
+
+
+def test_cascade_closeout_blocks_unexplained_identity_change(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    states = iter(
+        [
+            {
+                "source_state_identity": "cascade-state:before",
+                "summary": {"derived_fact_count": 1},
+                "source_state_identity_diagnostics": {"identity_hash": "before"},
+            },
+            {
+                "source_state_identity": "cascade-state:after",
+                "summary": {"derived_fact_count": 1},
+                "source_state_identity_diagnostics": {"identity_hash": "after"},
+            },
+        ]
+    )
+    monkeypatch.setattr(reversing_loop, "inspect_cascade_state", lambda *args, **kwargs: next(states))
+    monkeypatch.setattr(
+        reversing_loop,
+        "verify_cascade_effects",
+        lambda *args, **kwargs: {"status": "passed", "summary": {"checked_count": 0}, "verifications": []},
+    )
+    monkeypatch.setattr(
+        reversing_loop,
+        "apply_verified_cascade_effects",
+        lambda *args, **kwargs: {"status": "passed", "summary": {"applied_count": 0, "blocked_count": 0}, "applications": []},
+    )
+
+    report = reversing_loop.closeout_cascade_exhaustion("demo")
+
+    assert report["status"] == "blocked"
+    assert report["fixed_point"]["summary_stable"] is True
+    assert report["fixed_point"]["source_state_identity_stable"] is False
+    assert report["blockers"][0]["blocker"] == "source_state_identity_changed_without_summary_change"
+
+
 def _verified_cascade_state() -> dict[str, object]:
     return {
         "source_state_identity": "cascade-state:test",
