@@ -339,7 +339,7 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     assert "\tmove.l a7,d0\n" in asm_text
     assert "\tmovea.l (a7)+,a0\t; payload+" not in asm_text
     assert " bytes=20 5F" not in asm_text
-    assert ";       xref code_start_ref payload+40 reason=policy_entry_offset" in asm_text
+    assert ";       xref code_start_ref payload+" not in asm_text
     assert "macos_code_CODE_1_candidate_code_00000028:\n\tdc.b $20,$5F" not in asm_text
     assert "\tdc.b $20,$5F,$22,$57" not in asm_text
     assert "residual candidate_code payload[40..29024)" not in asm_text

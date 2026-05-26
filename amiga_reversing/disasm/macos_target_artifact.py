@@ -414,11 +414,6 @@ def _semantic_source_lines(
             lines.append(text)
         else:
             lines.append(text)
-        for xref in [_mapping(value) for value in _sequence(row.get("xrefs"))]:
-            lines.append(
-                f";       xref { _text(xref.get('kind')) } "
-                f"payload+{_text(xref.get('payload_offset'))} reason={_text(xref.get('reason'))}"
-            )
     return lines
 
 

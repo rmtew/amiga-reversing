@@ -282,8 +282,6 @@ macos_code_CODE_1_metadata_00000000:
 ;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=8 labels=1 xrefs=2
 macos_code_CODE_1_loc_00000028:
 	movea.l (a7)+,a0
-;       xref code_start_ref payload+40 reason=policy_entry_offset
-;       xref code_start_ref payload+40 reason=policy_entry_point
 	move.l a7,d0
 	sub.l $0114.w,d0
 	cmpi.l #512,d0
@@ -358,8 +356,6 @@ macos_code_CODE_2_data_00000028:
 ;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=4 labels=1 xrefs=2
 macos_code_CODE_2_loc_00000176:
 	movea.l (a7)+,a0
-;       xref code_start_ref payload+374 reason=policy_entry_offset
-;       xref code_start_ref payload+374 reason=policy_entry_point
 	lea.l $001C(a7),a7
 	move.b d0,(a7)
 	jmp (a0)
@@ -426,8 +422,6 @@ macos_code_CODE_3_data_00000028:
 ;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=3 labels=1 xrefs=2
 macos_code_CODE_3_loc_0000012e:
 	movea.l (a7)+,a0
-;       xref code_start_ref payload+302 reason=policy_entry_offset
-;       xref code_start_ref payload+302 reason=policy_entry_point
 	addq.w #2,a7
 	jmp (a0)
 
@@ -503,8 +497,6 @@ macos_code_CODE_4_data_00000028:
 ;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=10 labels=2 xrefs=3
 macos_code_CODE_4_loc_000001d4:
 	movea.l (a7)+,a0
-;       xref code_start_ref payload+468 reason=policy_entry_offset
-;       xref code_start_ref payload+468 reason=policy_entry_point
 	move.w (a7)+,d0
 	move.l a0,-(a7)
 	pea.l $0004(a7)
@@ -513,7 +505,6 @@ macos_code_CODE_4_loc_000001d4:
 	addq.w #1,d0
 macos_code_CODE_4_loc_000001e6:
 	move.w d0,-(a7)
-;       xref code_start_ref payload+486 reason=control_target
 	jsr $0A4A(a5)
 	rts
 
@@ -573,8 +564,6 @@ macos_code_CODE_5_data_00000028:
 ;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=11 labels=1 xrefs=2
 macos_code_CODE_5_loc_000000d4:
 	movea.l (a7)+,a0
-;       xref code_start_ref payload+212 reason=policy_entry_offset
-;       xref code_start_ref payload+212 reason=policy_entry_point
 	movea.l a7,a1
 	move.b (a1)+,(a0)+
 	move.b (a1)+,(a0)+
@@ -633,8 +622,6 @@ macos_code_CODE_6_data_00000028:
 ;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=76 labels=15 xrefs=21
 macos_code_CODE_6_loc_0000003a:
 	movea.l (a7)+,a0
-;       xref code_start_ref payload+58 reason=policy_entry_offset
-;       xref code_start_ref payload+58 reason=policy_entry_point
 	move.w d0,(a0)
 	add.w d0,d0
 	lea.l loc_0_000022A0(pc),a0
@@ -644,12 +631,10 @@ macos_code_CODE_6_loc_0000003a:
 	clr.w d1
 macos_code_CODE_6_loc_0000004e:
 	movea.l (a7),a1
-;       xref code_start_ref payload+78 reason=control_target
 	moveq.l #0,d0
 	move.b (a0),d0
 macos_code_CODE_6_loc_00000054:
 	cmpm.b (a0)+,(a1)+
-;       xref code_start_ref payload+84 reason=control_target
 	dbne.w d0,loc_0_0000001A
 	beq.b loc_0_0000003E
 	add.l a0,d0
@@ -658,26 +643,21 @@ macos_code_CODE_6_loc_00000054:
 	addq.l #1,d0
 macos_code_CODE_6_loc_00000066:
 	movea.l d0,a0
-;       xref code_start_ref payload+102 reason=control_target
 	move.b (a0),d1
 	beq.b loc_0_00000036
 	adda.w d1,a0
 	bra.b loc_0_00000014
 macos_code_CODE_6_loc_00000070:
 	lea.l $0014(a7),a7
-;       xref code_start_ref payload+112 reason=control_target
-;       xref code_start_ref payload+112 reason=control_target
 	moveq.l #0,d2
 	bra.b loc_0_000000B0
 macos_code_CODE_6_loc_00000078:
 	move.l a0,d0
-;       xref code_start_ref payload+120 reason=control_target
 	btst #0,d0
 	beq.b loc_0_00000048
 	addq.l #1,d0
 macos_code_CODE_6_loc_00000082:
 	addq.l #1,d0
-;       xref code_start_ref payload+130 reason=control_target
 	movea.l d0,a0
 	addq.w #4,a7
 	move.b (a0)+,d1
@@ -702,9 +682,6 @@ macos_code_CODE_6_loc_00000082:
 	bra.b loc_0_000000B0
 macos_code_CODE_6_loc_000000bc:
 	movea.l (a7)+,a1
-;       xref code_start_ref payload+188 reason=control_target
-;       xref code_start_ref payload+188 reason=control_target
-;       xref code_start_ref payload+188 reason=control_target
 	tst.b -$0C5D(a5)
 	bne.b loc_0_00000094
 	move.b (a0),d1
@@ -714,11 +691,8 @@ macos_code_CODE_6_loc_000000bc:
 	bra.b loc_0_00000096
 macos_code_CODE_6_loc_000000ce:
 	clr.b (a1)
-;       xref code_start_ref payload+206 reason=control_target
-;       xref code_start_ref payload+206 reason=control_target
 macos_code_CODE_6_loc_000000d0:
 	btst #6,d0
-;       xref code_start_ref payload+208 reason=control_target
 	bne.b loc_0_000000A6
 	btst #5,d0
 	beq.b loc_0_000000AA
@@ -726,20 +700,14 @@ macos_code_CODE_6_loc_000000d0:
 	bra.b loc_0_000000AC
 macos_code_CODE_6_loc_000000e0:
 	moveq.l #2,d1
-;       xref code_start_ref payload+224 reason=control_target
 	bra.b loc_0_000000AC
 macos_code_CODE_6_loc_000000e4:
 	clr.w d1
-;       xref code_start_ref payload+228 reason=control_target
 macos_code_CODE_6_loc_000000e6:
 	movea.l (a7)+,a1
-;       xref code_start_ref payload+230 reason=control_target
-;       xref code_start_ref payload+230 reason=control_target
 	move.w d1,(a1)
 macos_code_CODE_6_loc_000000ea:
 	movea.l (a7),a0
-;       xref code_start_ref payload+234 reason=control_target
-;       xref code_start_ref payload+234 reason=control_target
 	move.l d2,(a7)
 	jmp (a0)
 macos_code_CODE_6_loc_000022da:
@@ -809,8 +777,6 @@ macos_code_CODE_7_data_00000028:
 ;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=4 labels=1 xrefs=2
 macos_code_CODE_7_loc_00000160:
 	movea.l (a7)+,a0
-;       xref code_start_ref payload+352 reason=policy_entry_offset
-;       xref code_start_ref payload+352 reason=policy_entry_point
 	lea.l $001E(a7),a7
 	move.b d0,(a7)
 	jmp (a0)
@@ -861,8 +827,6 @@ macos_code_CODE_8_data_00000028:
 ;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=66 labels=17 xrefs=27
 macos_code_CODE_8_loc_0000002a:
 	movea.l (a7)+,a0
-;       xref code_start_ref payload+42 reason=policy_entry_offset
-;       xref code_start_ref payload+42 reason=policy_entry_point
 	movem.l a1-a3,-(a7)
 	movea.l a0,a2
 	clr.w d2
@@ -871,56 +835,41 @@ macos_code_CODE_8_loc_0000002a:
 	bra.w loc_0_000000A0
 macos_code_CODE_8_loc_0000003c:
 	move.b (a0)+,d0
-;       xref code_start_ref payload+60 reason=control_target
 macos_code_CODE_8_loc_0000003e:
 	cmpi.b #39,d0
-;       xref code_start_ref payload+62 reason=control_target
 	bne.b loc_0_0000002E
 macos_code_CODE_8_loc_00000044:
 	move.b d0,(a1)+
-;       xref code_start_ref payload+68 reason=control_target
 	dbf.w d2,loc_0_00000024
 	bra.w loc_0_000000A4
 macos_code_CODE_8_loc_0000004e:
 	move.b (a0)+,d0
-;       xref code_start_ref payload+78 reason=control_target
 	cmpi.b #39,d0
 	bne.b loc_0_0000001A
 	bra.b loc_0_0000009E
 macos_code_CODE_8_loc_00000058:
 	cmpi.b #192,d0
-;       xref code_start_ref payload+88 reason=control_target
 	bne.b loc_0_0000009E
 	movea.l a1,a3
 macos_code_CODE_8_loc_00000060:
 	clr.w d1
-;       xref code_start_ref payload+96 reason=control_target
-;       xref code_start_ref payload+96 reason=control_target
-;       xref code_start_ref payload+96 reason=control_target
-;       xref code_start_ref payload+96 reason=control_target
-;       xref code_start_ref payload+96 reason=control_target
-;       xref code_start_ref payload+96 reason=control_target
 macos_code_CODE_8_loc_00000062:
 	move.b d0,(a1)+
-;       xref code_start_ref payload+98 reason=control_target
 	dbf.w d2,loc_0_00000040
 	bra.b loc_0_00000082
 macos_code_CODE_8_loc_0000006a:
 	move.b (a0)+,d0
-;       xref code_start_ref payload+106 reason=control_target
 	cmpi.b #64,d0
 	blt.b loc_0_0000004E
 	cmpi.b #90,d0
 	ble.b loc_0_00000036
 macos_code_CODE_8_loc_00000078:
 	cmpi.b #97,d0
-;       xref code_start_ref payload+120 reason=control_target
 	blt.b loc_0_0000005A
 	cmpi.b #122,d0
 	ble.b loc_0_00000036
 macos_code_CODE_8_loc_00000084:
 	cmpi.b #48,d0
-;       xref code_start_ref payload+132 reason=control_target
 	blt.b loc_0_0000006A
 	cmpi.b #57,d0
 	bgt.b loc_0_0000006A
@@ -928,8 +877,6 @@ macos_code_CODE_8_loc_00000084:
 	bra.b loc_0_00000038
 macos_code_CODE_8_loc_00000094:
 	cmpi.b #95,d0
-;       xref code_start_ref payload+148 reason=control_target
-;       xref code_start_ref payload+148 reason=control_target
 	beq.b loc_0_00000036
 	cmpi.b #36,d0
 	beq.b loc_0_00000036
@@ -939,7 +886,6 @@ macos_code_CODE_8_loc_00000094:
 	beq.b loc_0_00000036
 macos_code_CODE_8_loc_000000ac:
 	subq.w #4,d1
-;       xref code_start_ref payload+172 reason=control_target
 	blt.b loc_0_00000096
 	move.l a1,d1
 	sub.l a3,d1
@@ -949,21 +895,14 @@ macos_code_CODE_8_loc_000000ac:
 	move.b #$40,(a3)
 macos_code_CODE_8_loc_000000c0:
 	tst.w d2
-;       xref code_start_ref payload+192 reason=control_target
-;       xref code_start_ref payload+192 reason=control_target
 	bge.w loc_0_00000014
 	bra.b loc_0_000000A4
 macos_code_CODE_8_loc_000000c8:
 	move.b d0,(a1)+
-;       xref code_start_ref payload+200 reason=control_target
-;       xref code_start_ref payload+200 reason=control_target
 macos_code_CODE_8_loc_000000ca:
 	dbf.w d2,loc_0_00000012
-;       xref code_start_ref payload+202 reason=control_target
 macos_code_CODE_8_loc_000000ce:
 	move.l a1,d2
-;       xref code_start_ref payload+206 reason=control_target
-;       xref code_start_ref payload+206 reason=control_target
 	sub.l a2,d2
 	subq.b #1,d2
 	move.b d2,(a2)
@@ -1057,8 +996,6 @@ macos_code_CODE_9_data_00000028:
 ;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=3 labels=1 xrefs=2
 macos_code_CODE_9_loc_000002c8:
 	movea.l (a7)+,a0
-;       xref code_start_ref payload+712 reason=policy_entry_offset
-;       xref code_start_ref payload+712 reason=policy_entry_point
 	lea.l $000E(a7),a7
 	jmp (a0)
 
@@ -1114,8 +1051,6 @@ macos_code_CODE_10_data_00000028:
 ;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=3 labels=1 xrefs=2
 macos_code_CODE_10_loc_00000094:
 	movea.l (a7)+,a0
-;       xref code_start_ref payload+148 reason=policy_entry_offset
-;       xref code_start_ref payload+148 reason=policy_entry_point
 	addq.w #6,a7
 	jmp (a0)
 
@@ -1214,8 +1149,6 @@ macos_code_CODE_11_data_00000028:
 ;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=3 labels=1 xrefs=2
 macos_code_CODE_11_loc_00000344:
 	movea.l (a7)+,a0
-;       xref code_start_ref payload+836 reason=policy_entry_offset
-;       xref code_start_ref payload+836 reason=policy_entry_point
 	addq.w #2,a7
 	jmp (a0)
 
@@ -1265,13 +1198,10 @@ macos_code_CODE_12_data_00000028:
 ;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=15 labels=2 xrefs=3
 macos_code_CODE_12_loc_0000002c:
 	movea.l (a7)+,a0
-;       xref code_start_ref payload+44 reason=policy_entry_offset
-;       xref code_start_ref payload+44 reason=policy_entry_point
 	clr.w d0
 	move.b (a1),d0
 macos_code_CODE_12_loc_00000032:
 	move.b (a1)+,(a0)+
-;       xref code_start_ref payload+50 reason=control_target
 	dbf.w d0,loc_0_00000006
 	movea.l (a7)+,a0
 	move.b (a1)+,(a0)+
@@ -1330,8 +1260,6 @@ macos_code_CODE_13_data_00000028:
 ;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=61 labels=14 xrefs=16
 macos_code_CODE_13_loc_0000002c:
 	movea.l (a7)+,a0
-;       xref code_start_ref payload+44 reason=policy_entry_offset
-;       xref code_start_ref payload+44 reason=policy_entry_point
 	move.l a1,-(a7)
 	lea.l -$0106(a5),a1
 	clr.w d0
@@ -1348,7 +1276,6 @@ macos_code_CODE_13_loc_0000002c:
 	bra.b loc_0_00000038
 macos_code_CODE_13_loc_00000050:
 	move.b (a1)+,d3
-;       xref code_start_ref payload+80 reason=control_target
 	cmpi.b #97,d3
 	blt.b loc_0_00000036
 	cmpi.b #122,d3
@@ -1356,29 +1283,21 @@ macos_code_CODE_13_loc_00000050:
 	subi.b #32,d3
 macos_code_CODE_13_loc_00000062:
 	move.b d3,(a2)+
-;       xref code_start_ref payload+98 reason=control_target
-;       xref code_start_ref payload+98 reason=control_target
 macos_code_CODE_13_loc_00000064:
 	dbf.w d0,loc_0_00000024
-;       xref code_start_ref payload+100 reason=control_target
 	bra.b loc_0_00000044
 macos_code_CODE_13_loc_0000006a:
 	move.b (a1)+,(a2)+
-;       xref code_start_ref payload+106 reason=control_target
 macos_code_CODE_13_loc_0000006c:
 	dbf.w d0,loc_0_0000003E
-;       xref code_start_ref payload+108 reason=control_target
 macos_code_CODE_13_loc_00000070:
 	subq.w #2,d2
-;       xref code_start_ref payload+112 reason=control_target
 	blt.b loc_0_00000050
 macos_code_CODE_13_loc_00000074:
 	move.b #$20,(a2)+
-;       xref code_start_ref payload+116 reason=control_target
 	dbf.w d2,loc_0_00000048
 macos_code_CODE_13_loc_0000007c:
 	move.b #$2E,(a2)
-;       xref code_start_ref payload+124 reason=control_target
 	clr.w d2
 	move.b (a0)+,d2
 	cmp.w d1,d2
@@ -1386,13 +1305,11 @@ macos_code_CODE_13_loc_0000007c:
 	clr.w d0
 macos_code_CODE_13_loc_0000008a:
 	addq.w #1,d0
-;       xref code_start_ref payload+138 reason=control_target
 	movea.l a7,a2
 	move.w d1,d3
 	subq.w #1,d3
 macos_code_CODE_13_loc_00000092:
 	cmpm.b (a2)+,(a0)+
-;       xref code_start_ref payload+146 reason=control_target
 	dbne.w d3,loc_0_00000066
 	beq.b loc_0_00000084
 	adda.w d3,a0
@@ -1400,18 +1317,15 @@ macos_code_CODE_13_loc_00000092:
 	bge.b loc_0_0000005E
 macos_code_CODE_13_loc_000000a0:
 	lea.l $0100(a7),a7
-;       xref code_start_ref payload+160 reason=control_target
 	move.w (a7)+,d3
 	movea.l (a7)+,a2
 macos_code_CODE_13_loc_000000a8:
 	movea.l (a7)+,a0
-;       xref code_start_ref payload+168 reason=control_target
 	addq.w #4,a7
 	clr.b (a7)
 	jmp (a0)
 macos_code_CODE_13_loc_000000b0:
 	lea.l $0100(a7),a7
-;       xref code_start_ref payload+176 reason=control_target
 	move.w (a7)+,d3
 	movea.l (a7)+,a2
 	movea.l (a7)+,a0
@@ -1478,8 +1392,6 @@ macos_code_CODE_14_data_00000028:
 ;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=3 labels=1 xrefs=2
 macos_code_CODE_14_loc_000000ec:
 	movea.l (a7)+,a0
-;       xref code_start_ref payload+236 reason=policy_entry_offset
-;       xref code_start_ref payload+236 reason=policy_entry_point
 	addq.w #2,a7
 	jmp (a0)
 
@@ -1532,8 +1444,6 @@ macos_code_CODE_15_data_00000028:
 ;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=3 labels=1 xrefs=2
 macos_code_CODE_15_loc_00000060:
 	movea.l (a7)+,a0
-;       xref code_start_ref payload+96 reason=policy_entry_offset
-;       xref code_start_ref payload+96 reason=policy_entry_point
 	adda.w #$A,a7
 	jmp (a0)
 
@@ -1595,8 +1505,6 @@ macos_code_CODE_16_data_00000028:
 ;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=3 labels=1 xrefs=2
 macos_code_CODE_16_loc_000000f6:
 	movea.l (a7)+,a0
-;       xref code_start_ref payload+246 reason=policy_entry_offset
-;       xref code_start_ref payload+246 reason=policy_entry_point
 	addq.w #2,a7
 	jmp (a0)
 
@@ -1649,8 +1557,6 @@ macos_code_CODE_17_data_00000028:
 ;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=3 labels=1 xrefs=2
 macos_code_CODE_17_loc_00000064:
 	movea.l (a7)+,a0
-;       xref code_start_ref payload+100 reason=policy_entry_offset
-;       xref code_start_ref payload+100 reason=policy_entry_point
 	addq.w #8,a7
 	jmp (a0)
 
@@ -1795,8 +1701,6 @@ macos_code_CODE_18_data_00000028:
 ;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=3 labels=1 xrefs=2
 macos_code_CODE_18_loc_0000061a:
 	movea.l (a7)+,a0
-;       xref code_start_ref payload+1562 reason=policy_entry_offset
-;       xref code_start_ref payload+1562 reason=policy_entry_point
 	addq.w #2,a7
 	jmp (a0)
 
@@ -2096,8 +2000,6 @@ macos_code_CODE_20_data_00000028:
 ;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=3 labels=1 xrefs=2
 macos_code_CODE_20_loc_00000b3c:
 	movea.l (a7)+,a0
-;       xref code_start_ref payload+2876 reason=policy_entry_offset
-;       xref code_start_ref payload+2876 reason=policy_entry_point
 	lea.l $000C(a7),a7
 	jmp (a0)
 
@@ -2269,8 +2171,6 @@ macos_code_CODE_21_data_00000028:
 ;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=3 labels=1 xrefs=2
 macos_code_CODE_21_loc_000007d0:
 	movea.l (a7)+,a0
-;       xref code_start_ref payload+2000 reason=policy_entry_offset
-;       xref code_start_ref payload+2000 reason=policy_entry_point
 	lea.l $0010(a7),a7
 	jmp (a0)
 
@@ -2591,8 +2491,6 @@ macos_code_CODE_24_data_00000028:
 ;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=3 labels=1 xrefs=2
 macos_code_CODE_24_loc_00000b86:
 	movea.l (a7)+,a0
-;       xref code_start_ref payload+2950 reason=policy_entry_offset
-;       xref code_start_ref payload+2950 reason=policy_entry_point
 	lea.l $000C(a7),a7
 	jmp (a0)
 
@@ -2637,24 +2535,19 @@ macos_code_CODE_25_metadata_00000000:
 ;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=13 labels=4 xrefs=5
 macos_code_CODE_25_loc_00000028:
 	movea.l (a7)+,a0
-;       xref code_start_ref payload+40 reason=policy_entry_offset
-;       xref code_start_ref payload+40 reason=policy_entry_point
 	moveq.l #31,d2
 	and.w (a7)+,d2
 	bra.b loc_0_00000010
 macos_code_CODE_25_loc_00000038:
 	bsr.b loc_0_00000044
-;       xref code_start_ref payload+56 reason=control_target
 	clr.w (a7)
 	and.w d2,d0
 	beq.b loc_0_0000001A
 	addq.b #1,(a7)
 macos_code_CODE_25_loc_00000042:
 	jmp (a0)
-;       xref code_start_ref payload+66 reason=control_target
 macos_code_CODE_25_loc_0000006c:
 	subq.l #2,a7
-;       xref code_start_ref payload+108 reason=control_target
 	pea.l (a7)
 	move.w #$3,-(a7)
 
@@ -2713,13 +2606,10 @@ macos_code_CODE_26_data_00000028:
 ;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=7 labels=2 xrefs=3
 macos_code_CODE_26_loc_000000c6:
 	movea.l (a7)+,a0
-;       xref code_start_ref payload+198 reason=policy_entry_offset
-;       xref code_start_ref payload+198 reason=policy_entry_point
 	jsr (a0)
 	bra.b loc_0_00000028
 macos_code_CODE_26_loc_000000ee:
 	movem.l (a7)+,d6-d7/a3-a4
-;       xref code_start_ref payload+238 reason=control_target
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
@@ -2784,8 +2674,6 @@ macos_code_CODE_27_data_00000004:
 ;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=4 labels=1 xrefs=2
 macos_code_CODE_27_loc_000000cc:
 	movea.l (a7)+,a0
-;       xref code_start_ref payload+204 reason=policy_entry_offset
-;       xref code_start_ref payload+204 reason=policy_entry_point
 	addq.w #4,a7
 	clr.w (a7)
 	jmp (a0)
