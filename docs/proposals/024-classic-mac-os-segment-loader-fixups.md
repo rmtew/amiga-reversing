@@ -1,6 +1,6 @@
 # Proposal 024: Classic Mac OS Segment Loader Fixups
 
-Status: blocked
+Status: active
 
 ## Purpose
 
@@ -124,15 +124,31 @@ This issue must end with executable evidence, not only documentation.
   emit decoded records until a future issue proves actual on-disk fixup encoding
   byte provenance for a supported form.
 
+Review correction after 024-001:
+
+- The 024-001 result is a current-parser boundary, not a final platform
+  boundary. Classic Mac OS Segment Loader/CODE layout is old documented
+  technology; lack of provenance in our current parser means the parser is
+  incomplete, not that the evidence cannot be identified.
+- Continue with a documentation-backed implementation slice. Use primary
+  Apple/MPW documentation where available, including Inside Macintosh Runtime
+  Architectures / Segment Manager material and MPW Segment Loader notes, to map
+  the CODE segment layout and locate A5 relocation and segment relocation
+  information.
+- Do not decode from guesses or broad CODE payload spans. The next issue must
+  connect documented layout fields to resource bytes, add parser support, and
+  update the inventory from `custom_unknown` to parseable/unsupported/malformed
+  states only where the documented layout supports it.
+
 ### 024-002: C Fixup Record Model
 
 Add a C-owned Segment Loader fixup record model that can represent decoded
 effects and deferred placeholders with resource identity, byte span, status,
 reason, provenance, and source visibility.
 
-Blocked by 024-001 boundary result: no supported decoded form is proven. Future
-model work must start from the C-owned inventory and keep records deferred until
-encoding provenance is known.
+Superseded ordering note: 024-002 is paused until 024-009 researches and
+implements documented CODE segment layout extraction. The record model must be
+based on that parser boundary, not the pre-024-009 `custom_unknown` inventory.
 
 ### 024-003: Decode First Supported Fixup Form
 
@@ -141,8 +157,8 @@ emit decoded source reference records for it. Keep all other forms deferred. If
 024-001 does not prove any supported form, this issue must not invent one; it
 must record the blocker and leave later decode-expansion issues blocked.
 
-Blocked by 024-001 boundary result: no supported form or fixup encoding byte
-stream is proven for the current fixture.
+Paused until 024-009 identifies documented fixup encoding byte provenance and
+024-002 adds the record model.
 
 ### 024-004: Attach Fixups To Restored Source Rows
 
@@ -150,8 +166,7 @@ Attach decoded fixup records and residual placeholders to restored-source
 ownership ranges/source rows so artifact/web/API users can navigate from source
 to fixup evidence.
 
-Blocked until a decoded or typed deferred fixup record model exists beyond the
-024-001 inventory boundary.
+Paused until 024-009 and 024-002 provide a documented parser/model boundary.
 
 ### 024-005: Expand Supported Fixup Forms
 
@@ -159,8 +174,7 @@ Decode the remaining supported forms found by 024-001 where the format is clear
 from bytes and current evidence. Leave custom/ambiguous forms as typed
 placeholders.
 
-Blocked by 024-001 boundary result: there are no remaining supported forms to
-expand.
+Paused until 024-009/024-003 prove one or more supported forms.
 
 ### 024-006: Replace Broad Fixup Placeholders
 
@@ -168,24 +182,46 @@ Remove broad Segment Loader placeholder output where decoded records or precise
 per-span placeholders now exist. Keep fail-closed behavior for missing parse
 model output.
 
-Blocked until decoded records or precise per-fixup placeholders exist. Current
-broad placeholders remain correct because fixup encoding provenance is unknown.
+Paused until decoded records or precise per-fixup placeholders exist. Current
+broad placeholders remain transitional evidence, not a final decoder result.
 
 ### 024-007: Source Display And Web/API Exposure
 
 Expose decoded fixup effects and residual placeholders in existing source,
 artifact, web, and API surfaces without a UI redesign.
 
-Blocked until decoded records or precise per-fixup placeholders exist.
+Paused until decoded records or precise per-fixup placeholders exist.
 
 ### 024-008: Closeout Proof
 
 Close 024 by proving decoded fixup records, residual placeholders, source
 presentation, and cross-platform gates together.
 
-Blocked: 024 cannot close its decoder track until actual Segment Loader fixup
-encoding bytes are proven or a future proposal formally narrows the scope to the
-inventory-only blocker.
+Paused: 024 cannot close its decoder track until 024-009 resolves the documented
+layout/parser boundary or records a primary-source contradiction.
+
+### 024-009: Documented CODE Segment Layout Parser
+
+Research documented Classic Mac OS CODE segment layout and implement the parser
+boundary needed to locate Segment Loader relocation/fixup encoding bytes.
+
+Required outcome:
+
+- Primary Apple/MPW documentation is cited in Proposal 024 with the specific
+  fields/offsets relevant to code bytes, A5 relocation information, and segment
+  relocation information.
+- The C Mac resource parser maps those documented fields onto current CODE
+  resource bytes where the fixture supports it.
+- `segment_loader_fixup_inventory_v1` no longer treats all nonzero CODE payload
+  candidate spans as `custom_unknown` merely because the old parser lacked a
+  model.
+- Records become `parseable`, `unsupported`, `malformed`, or still
+  `custom_unknown` according to documented layout evidence.
+- If the current MPW `Asm` fixture uses a custom extension or variant not
+  covered by the docs, the blocker is recorded as that specific documented
+  mismatch, not as generic missing provenance.
+- No decoded fixup effect is emitted until the parser has identified the actual
+  encoding byte span and format.
 
 ## Verification Plan
 
@@ -208,7 +244,9 @@ cmd /c src\precommit.bat
 ## Issue Ordering
 
 - 024-001 starts first.
-- 024-002 follows 024-001.
+- 024-009 follows 024-001 and reopens the path after the current-parser
+  boundary result.
+- 024-002 follows 024-009.
 - 024-003 follows 024-002.
 - 024-004 follows 024-003.
 - 024-005 follows 024-004.
