@@ -160,11 +160,17 @@ def test_020_007_amiga_analysis_imports_shared_executable_ranges(tmp_path: Path)
 
     combined = analyze_source_with_c_artifact(source, metadata_text="", project_root=PROJECT_ROOT)
     ranges = {item["role"]: item for item in combined["analysis"]["executable_ranges"]}
+    ownership = {item["role"]: item for item in combined["analysis"]["source_ownership_ranges"]}
 
     assert combined["analysis"]["executable_model"] == "platform_executable_summary_v1"
+    assert combined["analysis"]["restored_source_model"] == "restored_source_model_v1"
+    assert combined["analysis"]["round_trip_required"] is True
     assert ranges["code"]["fact_id"] == "amiga.hunk.code_data_bss.sections.accepted"
     assert ranges["data"]["parser_use"] == "accepted_parser_output"
     assert ranges["data"]["stored_offset"] == 4
+    assert ownership["code"]["byte_space"] == "loaded_image"
+    assert ownership["data"]["start"] == ranges["data"]["load_offset"]
+    assert set(ownership) == set(ranges)
     assert combined["analysis"]["executable_deferred"] == [
         {
             "kind": "runtime_entry",
@@ -189,11 +195,16 @@ def test_020_007_atari_analysis_imports_candidate_bss_without_promotion(tmp_path
 
     combined = analyze_source_with_c_artifact(source, metadata_text="", project_root=PROJECT_ROOT)
     ranges = {item["role"]: item for item in combined["analysis"]["executable_ranges"]}
+    ownership = {item["role"]: item for item in combined["analysis"]["source_ownership_ranges"]}
 
     assert combined["analysis"]["executable_model"] == "platform_executable_summary_v1"
+    assert combined["analysis"]["restored_source_model"] == "restored_source_model_v1"
+    assert combined["analysis"]["round_trip_required"] is True
     assert ranges["bss"]["stored_offset"] is None
     assert ranges["bss"]["fact_status"] == "candidate"
     assert ranges["bss"]["parser_use"] == "candidate_only"
+    assert ownership["bss"]["fact_status"] == "candidate"
+    assert ownership["bss"]["parser_use"] == "candidate_only"
     assert combined["analysis"]["executable_deferred"] == [
         {
             "kind": "relocation_breadth",

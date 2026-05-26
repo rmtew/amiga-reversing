@@ -24,6 +24,7 @@
 #include "platform_macos_hfs.h"
 #include "platform_macos_resource.h"
 #include "platform_executable_summary.h"
+#include "restored_source_model.h"
 #include "util_arena.h"
 #include "generated/amiga_hunk_file_runtime.h"
 #include "generated/amiga_os_runtime.h"
@@ -57,6 +58,8 @@ static int load_flat_m68k_object_from_buffer(const unsigned char *data, size_t s
 static int configure_flat_m68k_buffer_policy(M68kAnalysisPolicy *policy, const M68kObject *object,
     const char *metadata_path, M68kDiagList *diagnostics);
 static int json_builder_append_facts_v2_profile(JsonBuilder *builder, const M68kFactsV2Profile *profile);
+static int append_analysis_restored_source_model_json(JsonBuilder *builder, const char *backend_name,
+    const M68kObject *object);
 static uint32_t read_be32_local(const uint8_t *data);
 static int write_bytes_to_path_local(const char *path, const unsigned char *data, size_t size,
     M68kDiagList *diagnostics);
@@ -4331,6 +4334,8 @@ static int append_analysis_json_with_decompression_profile(JsonBuilder *builder,
     return -1;
   if (append_analysis_executable_ranges_json(builder, backend_name, object) != 0)
     return -1;
+  if (append_analysis_restored_source_model_json(builder, backend_name, object) != 0)
+    return -1;
   if (profile != NULL) {
     if (json_builder_append(builder,
         ",\"profile\":{\"generation\":\"facts_v2_analysis\",\"analysis_backend\":\"facts_v2\",\"facts_v2\":") != 0 ||
@@ -4339,6 +4344,196 @@ static int append_analysis_json_with_decompression_profile(JsonBuilder *builder,
       return -1;
   }
   return json_builder_append(builder, "}");
+}
+
+static const char *restored_source_ownership_role_name(RestoredSourceOwnershipRole role) {
+  switch (role) {
+  case RESTORED_SOURCE_OWNERSHIP_CODE:
+    return "code";
+  case RESTORED_SOURCE_OWNERSHIP_DATA:
+    return "data";
+  case RESTORED_SOURCE_OWNERSHIP_BSS:
+    return "bss";
+  case RESTORED_SOURCE_OWNERSHIP_METADATA:
+    return "metadata";
+  case RESTORED_SOURCE_OWNERSHIP_RELOCATION_FIXUP:
+    return "relocation_fixup";
+  case RESTORED_SOURCE_OWNERSHIP_PADDING:
+    return "padding";
+  case RESTORED_SOURCE_OWNERSHIP_PLACEHOLDER:
+    return "placeholder";
+  case RESTORED_SOURCE_OWNERSHIP_CANDIDATE_CODE:
+    return "candidate_code";
+  case RESTORED_SOURCE_OWNERSHIP_UNKNOWN:
+  default:
+    return "unknown";
+  }
+}
+
+static int restored_source_model_add_ownership_range(RestoredSourceModel *model, RestoredSourceOwnershipRole role,
+    const char *byte_space, const char *platform, const char *source_kind, uint32_t section_index,
+    uint32_t start, uint32_t size, uint32_t stored_offset, uint8_t has_stored_offset, uint32_t stored_size,
+    const char *fact_id, const char *fact_status, const char *parser_use, const char *provenance) {
+  RestoredSourceOwnershipRange *range;
+  if (model == NULL || byte_space == NULL || platform == NULL || source_kind == NULL || fact_id == NULL ||
+      fact_status == NULL || parser_use == NULL || provenance == NULL ||
+      model->ownership_range_count >= RESTORED_SOURCE_MODEL_MAX_OWNERSHIP_RANGES) {
+    return -1;
+  }
+  range = &model->ownership_ranges[model->ownership_range_count++];
+  range->role = role;
+  range->byte_space = byte_space;
+  range->platform = platform;
+  range->source_kind = source_kind;
+  range->section_index = section_index;
+  range->start = start;
+  range->size = size;
+  range->stored_offset = stored_offset;
+  range->has_stored_offset = has_stored_offset;
+  range->stored_size = stored_size;
+  range->fact.fact_id = fact_id;
+  range->fact.fact_status = fact_status;
+  range->fact.parser_use = parser_use;
+  range->provenance = provenance;
+  return 0;
+}
+
+static int restored_source_model_role_for_section(const char *backend_name, M68kSectionKind kind,
+    RestoredSourceOwnershipRole *out_role, const char **out_fact_id, const char **out_fact_status,
+    const char **out_parser_use) {
+  if (backend_name == NULL || out_role == NULL || out_fact_id == NULL || out_fact_status == NULL ||
+      out_parser_use == NULL) {
+    return 0;
+  }
+  if (strcmp(backend_name, "amiga-hunk") == 0) {
+    if (kind == M68K_SECTION_CODE) {
+      *out_role = RESTORED_SOURCE_OWNERSHIP_CODE;
+      *out_fact_id = PLATFORM_EXECUTABLE_FORMAT_FACT_AMIGA_HUNK_CODE_DATA_BSS_SECTIONS_ACCEPTED;
+    } else if (kind == M68K_SECTION_DATA) {
+      *out_role = RESTORED_SOURCE_OWNERSHIP_DATA;
+      *out_fact_id = PLATFORM_EXECUTABLE_FORMAT_FACT_AMIGA_HUNK_CODE_DATA_BSS_SECTIONS_ACCEPTED;
+    } else if (kind == M68K_SECTION_BSS) {
+      *out_role = RESTORED_SOURCE_OWNERSHIP_BSS;
+      *out_fact_id = PLATFORM_EXECUTABLE_FORMAT_FACT_AMIGA_HUNK_BSS_SIZE_ONLY_ACCEPTED;
+    } else {
+      return 0;
+    }
+    *out_fact_status = "parser_asserted";
+    *out_parser_use = "accepted_parser_output";
+    return 1;
+  }
+  if (strcmp(backend_name, "atari-st") == 0) {
+    if (kind == M68K_SECTION_CODE) {
+      *out_role = RESTORED_SOURCE_OWNERSHIP_CODE;
+      *out_fact_id = PLATFORM_EXECUTABLE_FORMAT_FACT_ATARI_ST_PRG_TEXT_DATA_LOADED_IMAGE_ACCEPTED;
+      *out_fact_status = "parser_asserted";
+      *out_parser_use = "accepted_parser_output";
+    } else if (kind == M68K_SECTION_DATA) {
+      *out_role = RESTORED_SOURCE_OWNERSHIP_DATA;
+      *out_fact_id = PLATFORM_EXECUTABLE_FORMAT_FACT_ATARI_ST_PRG_TEXT_DATA_LOADED_IMAGE_ACCEPTED;
+      *out_fact_status = "parser_asserted";
+      *out_parser_use = "accepted_parser_output";
+    } else if (kind == M68K_SECTION_BSS) {
+      *out_role = RESTORED_SOURCE_OWNERSHIP_BSS;
+      *out_fact_id = PLATFORM_EXECUTABLE_FORMAT_FACT_ATARI_ST_PRG_BSS_HEADER_ONLY_CANDIDATE;
+      *out_fact_status = "candidate";
+      *out_parser_use = "candidate_only";
+    } else {
+      return 0;
+    }
+    return 1;
+  }
+  return 0;
+}
+
+static int restored_source_model_build_for_object(const char *backend_name, const M68kObject *object,
+    RestoredSourceModel *model) {
+  size_t index;
+  uint32_t load_offset = 0U;
+  uint32_t stored_offset = 0U;
+  if (backend_name == NULL || object == NULL || model == NULL ||
+      object->platform_file_kind != M68K_PLATFORM_FILE_EXECUTABLE) {
+    return 0;
+  }
+  memset(model, 0, sizeof(*model));
+  model->model = "restored_source_model_v1";
+  model->platform = backend_name;
+  model->source_kind = backend_name;
+  model->round_trip_required = (strcmp(backend_name, "macos-code") == 0) ? 0U : 1U;
+  if (strcmp(backend_name, "macos-code") == 0) {
+    if (object->section_count == 0U) return 0;
+    return restored_source_model_add_ownership_range(model, RESTORED_SOURCE_OWNERSHIP_CANDIDATE_CODE,
+      "selected_code_bytes", "macos", "macos_code_resource", 0U, 0U, object->sections[0].size, 0U, 1U,
+      object->sections[0].data_size, PLATFORM_EXECUTABLE_FORMAT_FACT_MACOS_CODE_RESOURCE_MOVEA_STACK_A0_BOUNDARY_CANDIDATE,
+      "candidate", "candidate_only", "platform_file_facts_v2_listing_artifact_macos_code_buffer_create");
+  }
+  if (strcmp(backend_name, "amiga-hunk") != 0 && strcmp(backend_name, "atari-st") != 0) return 0;
+  for (index = 0U; index < object->section_count; ++index) {
+    const M68kSection *section = &object->sections[index];
+    RestoredSourceOwnershipRole role;
+    const char *fact_id = NULL;
+    const char *fact_status = NULL;
+    const char *parser_use = NULL;
+    uint8_t has_stored_offset = section->data_size != 0U ? 1U : 0U;
+    if (!restored_source_model_role_for_section(backend_name, section->kind, &role, &fact_id, &fact_status,
+        &parser_use))
+      return -1;
+    if (restored_source_model_add_ownership_range(model, role, "loaded_image", backend_name, backend_name,
+        (uint32_t)index, load_offset, section->size, stored_offset, has_stored_offset, section->data_size,
+        fact_id, fact_status, parser_use, "platform_executable_summary_v1") != 0)
+      return -1;
+    load_offset += section->size;
+    stored_offset += section->data_size;
+  }
+  return 0;
+}
+
+static int append_restored_source_model_json(JsonBuilder *builder, const RestoredSourceModel *model) {
+  size_t index;
+  if (builder == NULL || model == NULL || model->ownership_range_count == 0U) return 0;
+  if (json_builder_append(builder, ",\"restored_source_model\":\"restored_source_model_v1\","
+        "\"round_trip_required\":") != 0 ||
+      json_builder_append(builder, model->round_trip_required ? "true" : "false") != 0 ||
+      json_builder_append(builder, ",\"source_ownership_ranges\":[") != 0) {
+    return -1;
+  }
+  for (index = 0U; index < model->ownership_range_count; ++index) {
+    const RestoredSourceOwnershipRange *range = &model->ownership_ranges[index];
+    if (index != 0U && json_builder_append(builder, ",") != 0) return -1;
+    if (json_builder_append(builder, "{\"role\":") != 0 ||
+        json_builder_append_json_string(builder, restored_source_ownership_role_name(range->role)) != 0 ||
+        json_builder_append(builder, ",\"byte_space\":") != 0 ||
+        json_builder_append_json_string(builder, range->byte_space) != 0 ||
+        json_builder_append(builder, ",\"platform\":") != 0 ||
+        json_builder_append_json_string(builder, range->platform) != 0 ||
+        json_builder_append(builder, ",\"source_kind\":") != 0 ||
+        json_builder_append_json_string(builder, range->source_kind) != 0 ||
+        json_builder_appendf(builder, ",\"section_index\":%u,\"start\":%u,\"size\":%u,\"stored_offset\":",
+          (unsigned)range->section_index, (unsigned)range->start, (unsigned)range->size) != 0)
+      return -1;
+    if (range->has_stored_offset) {
+      if (json_builder_appendf(builder, "%u", (unsigned)range->stored_offset) != 0) return -1;
+    } else if (json_builder_append(builder, "null") != 0) return -1;
+    if (json_builder_appendf(builder, ",\"stored_size\":%u,\"fact_id\":", (unsigned)range->stored_size) != 0 ||
+        json_builder_append_json_string(builder, range->fact.fact_id) != 0 ||
+        json_builder_append(builder, ",\"fact_status\":") != 0 ||
+        json_builder_append_json_string(builder, range->fact.fact_status) != 0 ||
+        json_builder_append(builder, ",\"parser_use\":") != 0 ||
+        json_builder_append_json_string(builder, range->fact.parser_use) != 0 ||
+        json_builder_append(builder, ",\"provenance\":") != 0 ||
+        json_builder_append_json_string(builder, range->provenance) != 0 ||
+        json_builder_append(builder, "}") != 0)
+      return -1;
+  }
+  return json_builder_append(builder, "]");
+}
+
+static int append_analysis_restored_source_model_json(JsonBuilder *builder, const char *backend_name,
+    const M68kObject *object) {
+  RestoredSourceModel model;
+  int status = restored_source_model_build_for_object(backend_name, object, &model);
+  if (status != 0) return -1;
+  return append_restored_source_model_json(builder, &model);
 }
 
 static int append_analysis_json_with_decompression(JsonBuilder *builder, const char *base_json,

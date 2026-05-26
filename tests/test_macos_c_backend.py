@@ -441,6 +441,7 @@ def test_021_007_macos_code_bytes_artifact_profile_is_native(tmp_path: Path) -> 
         project_root=PROJECT_ROOT,
     )
     try:
+        analysis, _analysis_profile = artifact.analysis_payload()
         _source_text, source_profile = artifact.source_text_with_profile()
         window, window_profile = artifact.window_payload(start=0, count=8)
     finally:
@@ -449,6 +450,26 @@ def test_021_007_macos_code_bytes_artifact_profile_is_native(tmp_path: Path) -> 
     for observed_profile in (profile, source_profile, window_profile):
         assert observed_profile["backend"] == "macos-code"
         assert observed_profile.get("wrapped_backend") != "amiga-raw"
+    assert analysis["restored_source_model"] == "restored_source_model_v1"
+    assert analysis["round_trip_required"] is False
+    ownership = cast(list[dict[str, Any]], analysis["source_ownership_ranges"])
+    assert ownership == [
+        {
+            "role": "candidate_code",
+            "byte_space": "selected_code_bytes",
+            "platform": "macos",
+            "source_kind": "macos_code_resource",
+            "section_index": 0,
+            "start": 0,
+            "size": 4,
+            "stored_offset": 0,
+            "stored_size": 4,
+            "fact_id": "macos.code_resource.movea_stack_a0.boundary.candidate",
+            "fact_status": "candidate",
+            "parser_use": "candidate_only",
+            "provenance": "platform_file_facts_v2_listing_artifact_macos_code_buffer_create",
+        }
+    ]
     assert any(str(row.get("text") or "").strip() == "movea.l (a7)+,a0" for row in window["rows"])
 
 

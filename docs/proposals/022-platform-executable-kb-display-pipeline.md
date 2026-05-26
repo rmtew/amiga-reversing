@@ -324,6 +324,23 @@ Required result:
 - The model consumes `platform_executable_summary_v1` and reaches listing
   artifact/render-plan output, not only inspect JSON.
 
+Completed initial ownership slice:
+
+- Added the C-owned `RestoredSourceModel`/`RestoredSourceOwnershipRange` shape in
+  `src/restored_source_model.h`.
+- Listing artifact analysis JSON now exposes `restored_source_model:
+  restored_source_model_v1`, `round_trip_required`, and
+  `source_ownership_ranges`.
+- Amiga HUNK and Atari PRG ownership ranges are derived from current executable
+  section summaries over `loaded_image` byte space. Amiga/Atari round-trip
+  remains required; Atari BSS remains `candidate`/`candidate_only`.
+- Mac CODE byte artifacts expose selected-code ownership over
+  `selected_code_bytes`, with `round_trip_required: false` and candidate
+  byte-entry fact status preserved.
+- This first model slice carries ownership only. Reference records, verifier
+  decisions, and Mac placeholder expansion are left to 022-003 through 022-008
+  so they do not get confused with ownership proof.
+
 ### 022-003: Source Coverage Verifier
 
 Add the C-owned verifier for restored source ownership.
