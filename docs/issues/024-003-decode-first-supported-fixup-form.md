@@ -1,12 +1,13 @@
 # 024-003: Decode First Supported Fixup Form
 
-Status: blocked
+Status: paused
 Type: AFK
 Source proposal: docs/proposals/024-classic-mac-os-segment-loader-fixups.md
 
 ## Proposal Context
 
-- 024-001 identifies parseable fixup candidates.
+- 024-009 identifies parseable fixup candidates from documented CODE segment
+  layout.
 - 024-002 provides the record model.
 - This issue must turn at least one supported fixup form into decoded source
   reference records.

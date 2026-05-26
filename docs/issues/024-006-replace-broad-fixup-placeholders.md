@@ -1,6 +1,6 @@
 # 024-006: Replace Broad Fixup Placeholders
 
-Status: blocked
+Status: paused
 Type: AFK
 Source proposal: docs/proposals/024-classic-mac-os-segment-loader-fixups.md
 

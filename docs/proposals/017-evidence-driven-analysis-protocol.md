@@ -1617,3 +1617,13 @@ repeatable work to `docs\issues\017-*`.
   identity drift remains. Real Pandora post-fix closeout reports
   `status=passed`, `summary_stable=true`, and
   `source_state_identity_stable=true`.
+- Current 017 cascade v1 is complete as a working read-only/fail-closed
+  analysis cascade surface: schema, fixed-point engine, A5/RSSET/address/
+  callback lanes, baseline-delta verifier, dry-run/apply gates, stable closeout,
+  and Proposal/issue validation guardrails are in place. Completed `017-090`
+  through `017-100` issue files have been removed from `docs/issues`; their
+  implementation record remains in git history and these proposal notes. Current
+  Pandora closeout finds no verifier-safe new source deltas: all current render
+  effects are already represented or blocked by explicit evidence gaps. Further
+  017 work should start only if it targets a concrete remaining blocker family
+  with a path to new cascade-derived source progress.

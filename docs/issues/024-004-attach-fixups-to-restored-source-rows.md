@@ -1,6 +1,6 @@
 # 024-004: Attach Fixups To Restored Source Rows
 
-Status: blocked
+Status: paused
 Type: AFK
 Source proposal: docs/proposals/024-classic-mac-os-segment-loader-fixups.md
 

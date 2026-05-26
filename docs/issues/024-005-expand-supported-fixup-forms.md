@@ -1,6 +1,6 @@
 # 024-005: Expand Supported Fixup Forms
 
-Status: blocked
+Status: paused
 Type: AFK
 Source proposal: docs/proposals/024-classic-mac-os-segment-loader-fixups.md
 

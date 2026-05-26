@@ -1,6 +1,6 @@
 # 024-007: Source Display And Web/API Exposure
 
-Status: blocked
+Status: paused
 Type: AFK
 Source proposal: docs/proposals/024-classic-mac-os-segment-loader-fixups.md
 

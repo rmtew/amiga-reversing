@@ -1,12 +1,14 @@
 # 024-002: C Fixup Record Model
 
-Status: blocked
+Status: paused
 Type: AFK
 Source proposal: docs/proposals/024-classic-mac-os-segment-loader-fixups.md
 
 ## Proposal Context
 
-- 024-001 defines the byte inventory and parser boundary.
+- 024-001 defined the current-parser inventory boundary.
+- 024-009 must add the documented CODE segment layout parser boundary before
+  this issue resumes.
 - Later 024 issues need a C-owned record shape for decoded effects and residual
   placeholders.
 
@@ -38,9 +40,7 @@ Records must carry at least:
 
 ## Blocked By
 
-- docs/issues/024-001-current-fixup-byte-inventory-and-parser-boundary.md
-- 024-001 found no actual Segment Loader fixup encoding byte provenance for the
-  current fixture. Record-model work must not invent decoded forms.
+- docs/issues/024-009-documented-code-segment-layout-parser.md
 
 ## Required Sign-Off
 
