@@ -664,7 +664,23 @@ def build_project_listing_artifact_profile(
             paths.binary_source,
             metadata_path=metadata_path,
             project_root=project_root,
-        )
+    )
+
+
+def extract_macos_hfs_code_resource_payload_bytes_with_c_backend(
+    image_data: bytes,
+    hfs_path: str,
+    resource_id: int,
+    *,
+    project_root: Path = PROJECT_ROOT,
+) -> bytes:
+    return _platform_file_buffer_bytes(
+        "platform_file_macos_hfs_code_resource_payload_bytes_alloc",
+        image_data,
+        hfs_path,
+        resource_id,
+        project_root=project_root,
+    )
 
 
 def build_listing_artifact_profile_from_binary_source(
@@ -1169,6 +1185,16 @@ def _platform_file_dll(project_root: Path) -> CDLL:
         POINTER(c_void_p),
     ]
     dll.platform_file_macos_hfs_code_resource_bytes_alloc.restype = c_int
+    dll.platform_file_macos_hfs_code_resource_payload_bytes_alloc.argtypes = [
+        c_void_p,
+        c_size_t,
+        c_char_p,
+        c_int,
+        POINTER(c_void_p),
+        POINTER(c_size_t),
+        POINTER(c_void_p),
+    ]
+    dll.platform_file_macos_hfs_code_resource_payload_bytes_alloc.restype = c_int
     dll.platform_file_facts_v2_direct_rebuild_path_bytes_profile_alloc.argtypes = [
         c_char_p,
         c_char_p,

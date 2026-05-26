@@ -22,6 +22,7 @@ from amiga_reversing.disasm.c_backend import (
     build_listing_artifact_profile_from_binary_source,
     build_macos_code_bytes_listing_artifact_profile,
     extract_macos_hfs_code_resource_bytes_with_c_backend,
+    extract_macos_hfs_code_resource_payload_bytes_with_c_backend,
     inspect_macos_hfs_code_summary_with_c_backend,
 )
 from amiga_reversing.disasm.macos_asm_container import (
@@ -383,6 +384,17 @@ def test_python_wrapper_uses_c_macos_hfs_code_summary() -> None:
         }
     ]
     assert extract_macos_hfs_code_resource_bytes_with_c_backend(image, "Tools/Asm", 1) == b"\x20\x5f\x4e\x75"
+
+
+def test_macos_hfs_resource_fork_extracts_full_code_resource_payload_bytes() -> None:
+    require_built_tools()
+    image = _make_hfs_image()
+
+    code0_payload = extract_macos_hfs_code_resource_payload_bytes_with_c_backend(image, "MPW-GM/Tools/Asm", 0)
+    code1_payload = extract_macos_hfs_code_resource_payload_bytes_with_c_backend(image, "MPW-GM/Tools/Asm", 1)
+
+    assert code0_payload[:16] == _u32(48) + _u32(64) + _u32(16) + _u32(32)
+    assert code1_payload == _u16(0) + _u16(2) + b"\x00\x00\x00\x10\x00\x00\x20\x5f\x4e\x75"
 
 
 @pytest.mark.parametrize("offset_field", ["a5_relocation_info_offset", "segment_relocation_info_offset"])

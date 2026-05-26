@@ -198,7 +198,7 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     assert "CODE 1 Main:" in asm_text
     assert "; Non-CODE resource placeholders" in asm_text
     assert "; CODE source body sections" in asm_text
-    assert "; CODE 1 Main full selected listing follows." in asm_text
+    assert "; CODE 1 Main byte-real source follows." in asm_text
     assert ";   source_kind: macos_code_resource" in asm_text
     assert ";   backend: macos-code" in asm_text
     assert ";   selected_code_entry_offset: 40" in asm_text
@@ -266,7 +266,8 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
         "candidate_target target_section=macos_code_CODE_27 target_resource_id=27 "
         "routine_offset=0 status=candidate parser_use=candidate_only"
     ) in asm_text
-    assert "raw_byte_gap: CODE 0 row bytes are not exposed by the current C-owned row model" in asm_text
+    assert "raw_entry_bytes=00 00 3F 3C 00 1B A9 F0" in asm_text
+    assert "raw_byte_gap: CODE 0 row bytes are not exposed" not in asm_text
     assert "target_section=macos_code_CODE_1 target_resource_id=1" not in asm_text
     assert "target_section=macos_code_CODE_1 target_resource_id=1 routine_offset=0 status=validated" not in asm_text
     code0_start = asm_text.index(";   CODE 0 unknown: role=code0_metadata")
@@ -284,9 +285,10 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     )
     assert "no candidate preview range; classifier deferred byte-entry evidence" in asm_text
     assert "missing_m68k_movea_l_stack_to_a0_entry" in asm_text
-    assert "; Classic Mac OS CODE resource listing" in asm_text
-    assert "; resource: CODE 1 Main" in asm_text
-    assert "movea.l (a7)+,a0" in asm_text
+    assert ";   byte_real_source:" in asm_text
+    assert "macos_code_CODE_2_candidate_code_00000176:" in asm_text
+    assert "; CODE 1 Main byte-real source follows." in asm_text
+    assert "$20,$5F" in asm_text
     assert "SECTION code,code" not in asm_text
     assert "\tori.b #16,d0" not in asm_text
     assert "macos_CODE_1_far_model_header:" in asm_text
@@ -304,8 +306,8 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     code0_source_start = asm_text.index("; CODE 0 unknown source section")
     code1_header = asm_text.index("macos_CODE_1_far_model_header:")
     code1_stub = asm_text.index("macos_CODE_1_candidate_entry_stub:")
-    listing_start = asm_text.index("; CODE 1 Main full selected listing follows.")
-    first_instruction = asm_text.index("\tmovea.l (a7)+,a0")
+    listing_start = asm_text.index("; CODE 1 Main byte-real source follows.")
+    first_instruction = asm_text.index("$20,$5F", listing_start)
     evidence_start = asm_text.index("; Supporting evidence follows after the source body.")
     assert source_start < code0_source_start < code1_header < code1_stub < listing_start < first_instruction < evidence_start
     assert evidence_start < asm_text.index("; File forks")

@@ -119,6 +119,8 @@ PLATFORM_FILE_API int platform_file_macos_hfs_code_summary_json_alloc(const unsi
     const char *hfs_path, char **out_text);
 PLATFORM_FILE_API int platform_file_macos_hfs_code_resource_bytes_alloc(const unsigned char *data, size_t size,
     const char *hfs_path, int32_t resource_id, unsigned char **out_data, size_t *out_size, char **out_error);
+PLATFORM_FILE_API int platform_file_macos_hfs_code_resource_payload_bytes_alloc(const unsigned char *data, size_t size,
+    const char *hfs_path, int32_t resource_id, unsigned char **out_data, size_t *out_size, char **out_error);
 PLATFORM_FILE_API int platform_file_decompression_identify_path_range_json_alloc(const char *provider_id,
     const char *provider_path, const char *path, uint32_t offset, uint32_t size, char **out_text);
 PLATFORM_FILE_API int platform_file_decompression_decompress_path_range_json_alloc(const char *provider_id,

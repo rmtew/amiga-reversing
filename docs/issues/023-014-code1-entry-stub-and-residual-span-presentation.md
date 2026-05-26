@@ -44,8 +44,10 @@ remaining unproven semantic may stay deferred.
 
 - `Asm.s` now labels the CODE 1 far-model header separately from executable
   source rows.
-- The selected CODE 1 listing starts after the documented 40-byte header and the
-  section records the candidate entry/stub span `payload[40..62)`.
+- CODE 1 now renders exact byte-real rows for the header and candidate body
+  ranges instead of relying on a broad decoder listing that collapsed into
+  mostly `dc.b` output after the stub.
+- The section records the candidate entry/stub span `payload[40..62)`.
 - Remaining CODE 1 bytes are labelled as candidate executable body
   `payload[62..29024)`, with byte-entry and Segment Loader fixup proof still
   explicitly deferred instead of described as vague orphan code.

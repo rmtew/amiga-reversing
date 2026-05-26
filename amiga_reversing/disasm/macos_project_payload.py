@@ -170,6 +170,20 @@ def _binary_container_view(
         extraction_cache={},
     )
     selected_restored_source = _c_owned_restored_source_packet(selected_code, scope="selected CODE")
+    source_body_sections = _code_source_body_sections(
+        code_resource_details,
+        selected_id=selected_id,
+        selected_code_segment={
+            "code_entry_offset": (
+                code_bytes_offset - payload_offset
+                if isinstance(code_bytes_offset, int) and isinstance(payload_offset, int)
+                else None
+            ),
+            "code_bytes_size": selected.get("code_bytes_size"),
+            "code_bytes_sha256": selected.get("code_bytes_sha256"),
+        },
+        native_source=native_source,
+    )
     return {
         "kind": c_summary.get("container_kind"),
         "native_source": dict(native_source),
@@ -195,6 +209,7 @@ def _binary_container_view(
         "code_resources": code_resources,
         "code_segment_map": code_segment_map,
         "code_resource_details": code_resource_details,
+        "source_body_sections": source_body_sections,
         "navigation": _code_resource_navigation(code_resource_details),
         "selected_code_segment": {
             "native_source": dict(native_source),
@@ -247,6 +262,161 @@ def _binary_container_view(
             "type": file_info.get("type"),
             "creator": file_info.get("creator"),
             "cnid": file_info.get("cnid"),
+        },
+    }
+
+
+def _code_source_body_sections(
+    details: list[dict[str, object]],
+    *,
+    selected_id: object,
+    selected_code_segment: Mapping[str, object],
+    native_source: Mapping[str, object],
+) -> list[dict[str, object]]:
+    sections: list[dict[str, object]] = []
+    for detail in details:
+        resource_id = detail.get("id")
+        section = {
+            "source_section_id": f"macos-code-CODE-{resource_id}",
+            "label": f"macos_code_CODE_{resource_id}",
+            "source_kind": native_source.get("source_kind") or "macos_code_resource",
+            "backend": native_source.get("backend") or "macos-code",
+            "status": _code_source_section_status(detail, selected_id=selected_id),
+            "source_visible": True,
+            "resource_type": detail.get("resource_type"),
+            "id": resource_id,
+            "name": detail.get("name"),
+            "role": detail.get("role"),
+            "code_kind": detail.get("code_kind"),
+            "kb_record_id": detail.get("kb_record_id"),
+            "payload_size": detail.get("payload_size"),
+            "payload_sha256": detail.get("payload_sha256"),
+            "presentation": detail.get("source_presentation_status"),
+            "listing": detail.get("listing"),
+            "restored_source": detail.get("restored_source"),
+            "source_body_ranges": _source_body_ranges(detail),
+            "preview_windows": detail.get("preview_windows"),
+            "byte_preserving_placeholder": _code_source_placeholder(detail),
+        }
+        if resource_id == 0:
+            jump_table = _mapping(detail.get("jump_table"))
+            section["code0_structured_context"] = {
+                "jump_table": {
+                    **jump_table,
+                    "kb_record_id": jump_table.get("kb_record_id") or detail.get("kb_record_id"),
+                },
+                "jump_table_rows": _source_jump_table_rows(detail),
+                "raw_byte_gap_reason": (
+                    "CODE 0 row bytes are not exposed by the current C-owned row model; "
+                    "the enclosing CODE 0 payload range and SHA-256 preserve byte identity."
+                ),
+            }
+        if resource_id == selected_id:
+            section["selected_listing_context"] = dict(selected_code_segment)
+            if resource_id == 1:
+                section["code1_layout_context"] = _code1_layout_context(detail, selected_code_segment)
+        sections.append(section)
+    return sections
+
+
+def _code_source_section_status(detail: Mapping[str, object], *, selected_id: object) -> str:
+    if detail.get("id") == selected_id:
+        return "selected_full_listing"
+    presentation = _mapping(detail.get("source_presentation_status"))
+    listing = _mapping(detail.get("listing"))
+    if presentation.get("status") == "covered" and listing.get("available") is True:
+        return "partial_preview_with_exact_placeholders"
+    if presentation.get("status") == "covered":
+        return "covered_placeholder"
+    return str(presentation.get("status") or "deferred_placeholder")
+
+
+def _source_body_ranges(detail: Mapping[str, object]) -> list[dict[str, object]]:
+    kb_record_id = detail.get("kb_record_id")
+    return [
+        {**_mapping(item), "kb_record_id": _mapping(item).get("kb_record_id") or kb_record_id}
+        for item in _sequence(detail.get("code_layout"))
+    ]
+
+
+def _source_jump_table_rows(detail: Mapping[str, object]) -> list[dict[str, object]]:
+    kb_record_id = detail.get("kb_record_id")
+    rows: list[dict[str, object]] = []
+    for item in _sequence(detail.get("jump_table_rows")):
+        row = dict(_mapping(item))
+        for key in ("accepted_layout", "candidate_target"):
+            child = _mapping(row.get(key))
+            if child:
+                row[key] = {**child, "kb_record_id": child.get("kb_record_id") or kb_record_id}
+        rows.append(row)
+    return rows
+
+
+def _code_source_placeholder(detail: Mapping[str, object]) -> dict[str, object]:
+    return {
+        "kind": "byte_preserving_placeholder",
+        "resource_type": detail.get("resource_type"),
+        "resource_id": detail.get("id"),
+        "start": 0,
+        "end": detail.get("payload_size"),
+        "size": detail.get("payload_size"),
+        "payload_sha256": detail.get("payload_sha256"),
+        "reason": (
+            "semantic CODE disassembly remains deferred; current source body renders exact bytes for C-owned ranges and "
+            "evidence status without promoting byte-entry, A5, or Segment Loader semantics."
+        ),
+    }
+
+
+def _code1_layout_context(
+    detail: Mapping[str, object],
+    selected_code_segment: Mapping[str, object],
+) -> dict[str, object]:
+    payload_size = _int_value(detail.get("payload_size"))
+    entry_offset = _int_value(selected_code_segment.get("code_entry_offset"))
+    stub_size = 22
+    stub_end = entry_offset + stub_size if entry_offset is not None else None
+    return {
+        "far_model_header": {
+            "label": "macos_CODE_1_far_model_header",
+            "start": 0,
+            "end": 40,
+            "status": "validated",
+            "fact_status": "validated",
+            "parser_use": "accepted_parser_output",
+            "kb_record_id": MACOS_APPLICATION_KB_RECORD_ID,
+            "fact_id": "macos.code_resource.nonzero.segment_header",
+            "reason": "far_model_segment_header; documented far-model header, not executable source rows",
+        },
+        "candidate_entry_stub": {
+            "label": "macos_CODE_1_candidate_entry_stub",
+            "start": entry_offset,
+            "end": stub_end,
+            "selected_code_bytes_start": 0,
+            "selected_code_bytes_end": stub_size,
+            "status": "candidate",
+            "fact_status": "candidate",
+            "parser_use": "candidate_only",
+            "kb_record_id": MACOS_APPLICATION_KB_RECORD_ID,
+            "fact_id": "macos.code_resource.movea_stack_a0.boundary.candidate",
+            "reason": (
+                "entry/stub bytes begin at candidate movea.l (a7)+,a0 boundary; "
+                "accepted byte-entry proof remains deferred"
+            ),
+        },
+        "candidate_body_after_stub": {
+            "label": "macos_CODE_1_candidate_body_after_stub",
+            "start": stub_end,
+            "end": payload_size,
+            "status": "candidate",
+            "fact_status": "candidate",
+            "parser_use": "candidate_only",
+            "kb_record_id": MACOS_APPLICATION_KB_RECORD_ID,
+            "fact_id": "macos.code_resource.movea_stack_a0.boundary.candidate",
+            "reason": (
+                "remaining CODE 1 bytes are owned by candidate executable body; "
+                "Segment Loader relocation/fixup semantics remain deferred"
+            ),
         },
     }
 

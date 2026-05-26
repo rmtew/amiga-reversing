@@ -10094,6 +10094,7 @@ function renderClassicMacSourceView(sourceView) {
 function renderClassicMacContainerView(containerView) {
   const selected = containerView.selected_code_segment || {};
   const details = Array.isArray(containerView.code_resource_details) ? containerView.code_resource_details : [];
+  const sourceSections = Array.isArray(containerView.source_body_sections) ? containerView.source_body_sections : [];
   const resourceFork = containerView.resource_fork || {};
   const nonCodeDetails = Array.isArray(resourceFork.non_code_resource_details) ? resourceFork.non_code_resource_details : [];
   const placeholders = Array.isArray(containerView.executable_resource_placeholders) ? containerView.executable_resource_placeholders : [];
@@ -10109,12 +10110,93 @@ function renderClassicMacContainerView(containerView) {
       <div class="macos-pivot-grid">
         ${renderClassicMacPivotList("Forks", containerView.forks, (item) => `${item.name}: ${item.role} ${formatFileSize(item.size || 0)}`)}
         ${renderClassicMacPivotList("CODE Resources", containerView.code_resources, (item) => `CODE ${item.id} ${item.name || ""} ${formatFileSize(item.size || 0)}`)}
+        ${renderClassicMacPivotList("CODE Source Sections", sourceSections, (item) => `${item.source_section_id || ""} ${item.status || ""}`)}
         ${renderClassicMacPivotList("Selected CODE Listing", selected.listing ? [selected.listing] : [], (item) => `${item.resource_type || "CODE"} ${item.resource_id ?? ""} ${item.resource_name || ""} ${formatFileSize(item.source_range?.size || 0)}`)}
       </div>
+      ${renderClassicMacSourceBodySections(sourceSections)}
       ${renderClassicMacNonCodeResourceDetails(nonCodeDetails)}
       ${renderClassicMacExecutableResourcePlaceholders(placeholders)}
       ${renderClassicMacCodeResourceDetails(details)}
     </section>
+  `;
+}
+
+function renderClassicMacSourceBodySections(sections) {
+  const rows = Array.isArray(sections) ? sections : [];
+  return `
+    <div class="macos-code-details" data-macos-source-body-sections="1">
+      <h3>CODE Source Sections</h3>
+      ${rows.map((section) => renderClassicMacSourceBodySection(section || {})).join("") || '<div class="empty">No CODE source sections.</div>'}
+    </div>
+  `;
+}
+
+function renderClassicMacSourceBodySection(section) {
+  const ranges = Array.isArray(section.source_body_ranges) ? section.source_body_ranges : [];
+  const previews = Array.isArray(section.preview_windows) ? section.preview_windows : [];
+  const placeholder = section.byte_preserving_placeholder || {};
+  return `
+    <article class="macos-code-detail" data-macos-source-section="${escapeHtml(section.source_section_id || "")}" data-macos-source-section-status="${escapeHtml(section.status || "")}">
+      <header>
+        <h4>${escapeHtml(section.label || "")}</h4>
+        <span>${escapeHtml(section.status || "")}</span>
+      </header>
+      <div class="macos-code-detail-grid">
+        <div><span>Resource</span><strong>${escapeHtml(`${section.resource_type || "CODE"} ${section.id ?? ""}`.trim())}</strong></div>
+        <div><span>Role</span><strong>${escapeHtml(section.role || "")}</strong></div>
+        <div><span>Kind</span><strong>${escapeHtml(section.code_kind || "")}</strong></div>
+        <div><span>Payload</span><strong>${escapeHtml(formatFileSize(section.payload_size || 0))}</strong></div>
+      </div>
+      <div class="macos-code-note" data-macos-source-section-placeholder="1">
+        Placeholder ${escapeHtml(String(placeholder.start ?? 0))}..${escapeHtml(String(placeholder.end ?? ""))}
+        ${escapeHtml(placeholder.reason || "")}
+      </div>
+      ${renderClassicMacSourceSectionRanges(ranges)}
+      ${section.code0_structured_context ? renderClassicMacCode0SourceContext(section.code0_structured_context) : ""}
+      ${section.code1_layout_context ? renderClassicMacCode1SourceContext(section.code1_layout_context) : ""}
+      ${previews.length ? `<div class="macos-code-note">Preview windows: ${escapeHtml(String(previews.length))}</div>` : ""}
+    </article>
+  `;
+}
+
+function renderClassicMacSourceSectionRanges(ranges) {
+  if (!ranges.length) {
+    return '<div class="macos-code-note">No source body ranges.</div>';
+  }
+  return `
+    <div class="macos-code0-jump-table" data-macos-source-section-ranges="1">
+      ${ranges.map((range) => `
+        <div class="macos-code0-jump-row" data-macos-source-section-range="1">
+          <span>${escapeHtml(range.kind || "")}</span>
+          <span>${escapeHtml(String(range.start ?? ""))}..${escapeHtml(String(range.end ?? ""))}</span>
+          <span>${escapeHtml(`${range.fact_status || ""} ${range.parser_use || ""}`.trim())}</span>
+          <span>${escapeHtml(range.fact_id || "")}</span>
+        </div>
+      `).join("")}
+    </div>
+  `;
+}
+
+function renderClassicMacCode0SourceContext(context) {
+  const rows = Array.isArray(context.jump_table_rows) ? context.jump_table_rows : [];
+  return `
+    <div class="macos-code-note" data-macos-source-code0-context="1">
+      CODE 0 source context rows=${escapeHtml(String(rows.length))}
+      ${escapeHtml(context.raw_byte_gap_reason || "")}
+    </div>
+  `;
+}
+
+function renderClassicMacCode1SourceContext(context) {
+  const header = context.far_model_header || {};
+  const stub = context.candidate_entry_stub || {};
+  const residual = context.candidate_body_after_stub || {};
+  return `
+    <div class="macos-code-note" data-macos-source-code1-context="1">
+      ${escapeHtml(header.label || "")} ${escapeHtml(String(header.start ?? ""))}..${escapeHtml(String(header.end ?? ""))}
+      ${escapeHtml(stub.label || "")} ${escapeHtml(String(stub.start ?? ""))}..${escapeHtml(String(stub.end ?? ""))}
+      ${escapeHtml(residual.label || "")} ${escapeHtml(String(residual.start ?? ""))}..${escapeHtml(String(residual.end ?? ""))}
+    </div>
   `;
 }
 

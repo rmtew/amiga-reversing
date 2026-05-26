@@ -8,6 +8,8 @@ from collections.abc import Mapping, Sequence
 from dataclasses import asdict
 from pathlib import Path
 
+from amiga_reversing.disasm.c_backend import extract_macos_hfs_code_resource_payload_bytes_with_c_backend
+from amiga_reversing.disasm.macos_asm_container import read_macos_hfs_image_bytes
 from amiga_reversing.disasm.macos_listing_source import (
     build_macos_project_listing_artifact_profile,
 )
@@ -87,6 +89,7 @@ def macos_example_project_record(*, project_root: Path = PROJECT_ROOT) -> Projec
 def render_macos_example_asm(*, project_root: Path = PROJECT_ROOT) -> str:
     project = macos_example_project_record(project_root=project_root)
     payload = build_macos_project_payload(project, project_root=project_root)
+    hfs_bytes = read_macos_hfs_image_bytes(project_root / MACOS_EXAMPLE_SOURCE_IMAGE)
     total_rows, _summary_profile, artifact = build_macos_project_listing_artifact_profile(
         project,
         project_root=project_root,
@@ -109,6 +112,7 @@ def render_macos_example_asm(*, project_root: Path = PROJECT_ROOT) -> str:
     selected_restored_source = _mapping(selected.get("restored_source"))
     code_resources = [_mapping(item) for item in _sequence(container.get("code_resources"))]
     code_resource_details = [_mapping(item) for item in _sequence(container.get("code_resource_details"))]
+    source_body_sections = [_mapping(item) for item in _sequence(container.get("source_body_sections"))]
     code_segment_map = [_mapping(item) for item in _sequence(container.get("code_segment_map"))]
     executable_placeholders = [_mapping(item) for item in _sequence(container.get("executable_resource_placeholders"))]
     resource_types = [_mapping(item) for item in _sequence(resource_fork.get("types"))]
@@ -135,14 +139,14 @@ def render_macos_example_asm(*, project_root: Path = PROJECT_ROOT) -> str:
         "",
     ]
     source_sections = _code_source_body_section_lines(
-        code_resource_details,
+        source_body_sections,
         selected_id=selected.get("id"),
         selected=selected,
         selected_listing=selected_listing,
-        selected_restored_source=selected_restored_source,
-        native_source=native_source,
         selected_code_source=selected_code_source,
         selected_listing_rows=total_rows,
+        hfs_bytes=hfs_bytes,
+        project_root=project_root,
     )
     report_lines: list[str] = [
         "",
@@ -239,39 +243,39 @@ def _resource_type_placeholder_lines(types: Sequence[Mapping[str, object]]) -> l
 
 
 def _code_source_body_section_lines(
-    details: Sequence[Mapping[str, object]],
+    sections: Sequence[Mapping[str, object]],
     *,
     selected_id: object,
     selected: Mapping[str, object],
     selected_listing: Mapping[str, object],
-    selected_restored_source: Mapping[str, object],
-    native_source: Mapping[str, object],
     selected_code_source: str,
     selected_listing_rows: int,
+    hfs_bytes: bytes,
+    project_root: Path,
 ) -> list[str]:
     lines = ["; CODE source body sections"]
-    for detail in details:
-        resource_id = detail.get("id")
-        restored_source = selected_restored_source if resource_id == selected_id else _mapping(detail.get("restored_source"))
-        presentation = _mapping(detail.get("source_presentation_status"))
-        listing = _mapping(detail.get("listing"))
-        section_status = _code_source_section_status(detail, selected_id=selected_id)
+    for section in sections:
+        resource_id = section.get("id")
+        payload_bytes = _code_resource_payload_bytes(section, hfs_bytes=hfs_bytes, project_root=project_root)
+        restored_source = _mapping(section.get("restored_source"))
+        presentation = _mapping(section.get("presentation"))
+        listing = _mapping(section.get("listing"))
         lines.extend(
             [
                 "",
-                f"; CODE {_text(resource_id)} {_text(detail.get('name'))} source section",
-                f"macos_code_CODE_{_text(resource_id)}:",
-                f";   source_section_id: macos-code-CODE-{_text(resource_id)}",
-                f";   source_kind: {_text(native_source.get('source_kind') or 'macos_code_resource')}",
-                f";   backend: {_text(native_source.get('backend') or 'macos-code')}",
-                f";   status: {section_status}",
-                f";   resource_type: {_text(detail.get('resource_type'))}",
+                f"; CODE {_text(resource_id)} {_text(section.get('name'))} source section",
+                f"{_text(section.get('label'))}:",
+                f";   source_section_id: {_text(section.get('source_section_id'))}",
+                f";   source_kind: {_text(section.get('source_kind'))}",
+                f";   backend: {_text(section.get('backend'))}",
+                f";   status: {_text(section.get('status'))}",
+                f";   resource_type: {_text(section.get('resource_type'))}",
                 f";   id: {_text(resource_id)}",
-                f";   name: {_text(detail.get('name'))}",
-                f";   role: {_text(detail.get('role'))}",
-                f";   code_kind: {_text(detail.get('code_kind'))}",
-                f";   payload_size: {_text(detail.get('payload_size'))}",
-                f";   payload_sha256: {_text(detail.get('payload_sha256'))}",
+                f";   name: {_text(section.get('name'))}",
+                f";   role: {_text(section.get('role'))}",
+                f";   code_kind: {_text(section.get('code_kind'))}",
+                f";   payload_size: {_text(section.get('payload_size'))}",
+                f";   payload_sha256: {_text(section.get('payload_sha256'))}",
                 f";   presentation: kind={_text(presentation.get('kind'))} "
                 f"status={_text(presentation.get('status'))} "
                 f"visible={_text(presentation.get('source_visible'))} "
@@ -281,46 +285,47 @@ def _code_source_body_section_lines(
                 ";   restored_source_model:",
                 *_restored_source_model_lines(restored_source),
                 ";   source_body_ranges:",
-                *_code_source_body_range_lines(detail),
+                *_code_source_body_range_lines(section),
             ]
         )
         if resource_id == 0:
-            lines.extend(_code0_structured_source_lines(detail))
+            lines.extend(_code0_structured_source_lines(section, payload_bytes=payload_bytes))
         if resource_id == selected_id:
+            selected_context = _mapping(section.get("selected_listing_context"))
             lines.extend(
                 [
-                    f";   selected_code_entry_offset: {_text(selected.get('code_entry_offset'))}",
-                    f";   selected_code_bytes_size: {_text(selected.get('code_bytes_size'))}",
-                    f";   code_bytes_sha256: {_text(selected.get('code_bytes_sha256'))}",
+                    f";   selected_code_entry_offset: {_text(selected_context.get('code_entry_offset'))}",
+                    f";   selected_code_bytes_size: {_text(selected_context.get('code_bytes_size'))}",
+                    f";   code_bytes_sha256: {_text(selected_context.get('code_bytes_sha256'))}",
                     f";   listing_rows: {selected_listing_rows}",
-                    *_code1_entry_stub_context_lines(detail, selected=selected),
+                    *_code1_entry_stub_context_lines(section),
                     "",
-                    f"; CODE {_text(resource_id)} {_text(detail.get('name'))} full selected listing follows.",
+                    f"; CODE {_text(resource_id)} {_text(section.get('name'))} byte-real source follows.",
                 ]
             )
-            lines.extend(selected_code_source.rstrip().splitlines())
+            lines.extend(_code_source_byte_real_lines(section, payload_bytes=payload_bytes))
         else:
-            lines.extend(_code_source_preview_or_placeholder_lines(detail))
+            lines.extend(_code_source_byte_real_lines(section, payload_bytes=payload_bytes))
     lines.append("")
     return lines
 
 
-def _code_source_section_status(detail: Mapping[str, object], *, selected_id: object) -> str:
-    if detail.get("id") == selected_id:
-        return "selected_full_listing"
-    presentation = _mapping(detail.get("source_presentation_status"))
-    listing = _mapping(detail.get("listing"))
-    if presentation.get("status") == "covered" and listing.get("available") is True:
-        return "partial_preview_with_exact_placeholders"
-    if presentation.get("status") == "covered":
-        return "covered_placeholder"
-    return _text(presentation.get("status") or "deferred_placeholder")
+def _code_resource_payload_bytes(section: Mapping[str, object], *, hfs_bytes: bytes, project_root: Path) -> bytes:
+    resource_id = _int_value(section.get("id"))
+    if resource_id is None:
+        return b""
+    return extract_macos_hfs_code_resource_payload_bytes_with_c_backend(
+        hfs_bytes,
+        MACOS_EXAMPLE_HFS_PATH,
+        resource_id,
+        project_root=project_root,
+    )
 
 
-def _code_source_body_range_lines(detail: Mapping[str, object]) -> list[str]:
-    ranges = [_mapping(item) for item in _sequence(detail.get("code_layout"))]
+def _code_source_body_range_lines(section: Mapping[str, object]) -> list[str]:
+    ranges = [_mapping(item) for item in _sequence(section.get("source_body_ranges"))]
     if not ranges:
-        payload_size = detail.get("payload_size")
+        payload_size = section.get("payload_size")
         return [
             f";     placeholder payload[0..{_text(payload_size)}): status=deferred "
             "reason=no C-owned CODE layout range available"
@@ -336,49 +341,50 @@ def _code_source_body_range_lines(detail: Mapping[str, object]) -> list[str]:
     return lines
 
 
-def _code_source_preview_or_placeholder_lines(detail: Mapping[str, object]) -> list[str]:
+def _code_source_byte_real_lines(section: Mapping[str, object], *, payload_bytes: bytes) -> list[str]:
+    placeholder = _mapping(section.get("byte_preserving_placeholder"))
     lines = [
         (
-            f";   byte_preserving_placeholder: CODE {_text(detail.get('id'))} "
-            f"payload[0..{_text(detail.get('payload_size'))}) "
-            f"sha256={_text(detail.get('payload_sha256'))}"
+            f";   byte_preserving_placeholder: CODE {_text(section.get('id'))} "
+            f"payload[{_text(placeholder.get('start'))}..{_text(placeholder.get('end'))}) "
+            f"sha256={_text(placeholder.get('payload_sha256'))}"
         ),
-        (
-            ";   placeholder_reason: full CODE source listing remains deferred; "
-            "current source body preserves exact C-owned ranges and evidence status without promoting byte-entry, "
-            "A5, or Segment Loader semantics."
-        ),
+        f";   placeholder_reason: {_text(placeholder.get('reason'))}",
+        ";   byte_real_source:",
     ]
-    previews = [_mapping(item) for item in _sequence(detail.get("preview_windows"))]
-    if not previews:
-        lines.append(";   preview_rows: none")
+    ranges = [_mapping(item) for item in _sequence(section.get("source_body_ranges"))]
+    if not ranges:
+        lines.extend(_dc_b_lines(payload_bytes, label=f"{_text(section.get('label'))}_payload"))
         return lines
-    lines.append(";   bounded_preview_rows:")
-    for preview in previews:
+    for item in ranges:
+        start = _int_value(item.get("start")) or 0
+        end = _int_value(item.get("end")) or start
+        kind = _text(item.get("kind"))
+        label = f"{_text(section.get('label'))}_{kind}_{start:08x}"
         lines.append(
-            f";     preview payload[{_text(preview.get('start'))}..{_text(preview.get('end'))}) "
-            f"range={_text(preview.get('range_kind'))} truncated={_text(preview.get('truncated'))} "
-            f"status={_text(preview.get('fact_status'))} parser_use={_text(preview.get('parser_use'))} "
-            f"reason={_text(preview.get('reason'))}"
+            f";     {kind} payload[{start}..{end}) status={_text(item.get('fact_status'))} "
+            f"parser_use={_text(item.get('parser_use'))} evidence={_text(item.get('evidence'))}"
         )
-        for row in [_mapping(item) for item in _sequence(preview.get("rows"))]:
-            lines.append(
-                f";       { _text(row.get('offset')) }: bytes={_text(row.get('bytes'))} "
-                f"kind={_text(row.get('row_kind'))} decode={_text(row.get('decode_status'))} "
-                f"text={_text(row.get('text'))}"
-            )
-        for reason in [_mapping(item) for item in _sequence(preview.get("deferred_reasons"))]:
-            lines.append(
-                f";       deferred scope={_text(reason.get('scope'))} "
-                f"status={_text(reason.get('fact_status'))} parser_use={_text(reason.get('parser_use'))} "
-                f"reason={_text(reason.get('reason'))}"
-            )
+        lines.extend(_dc_b_lines(payload_bytes[start:end], label=label))
     return lines
 
 
-def _code0_structured_source_lines(detail: Mapping[str, object]) -> list[str]:
-    jump_table = _mapping(detail.get("jump_table"))
-    rows = [_mapping(item) for item in _sequence(detail.get("jump_table_rows"))]
+def _dc_b_lines(data: bytes, *, label: str, base_offset: int = 0) -> list[str]:
+    lines = [f"{label}:"]
+    if not data:
+        lines.append(";     empty")
+        return lines
+    for offset in range(0, len(data), 16):
+        chunk = data[offset : offset + 16]
+        byte_text = ",".join(f"${value:02X}" for value in chunk)
+        lines.append(f"\tdc.b {byte_text}\t; payload+{base_offset + offset}")
+    return lines
+
+
+def _code0_structured_source_lines(section: Mapping[str, object], *, payload_bytes: bytes) -> list[str]:
+    context = _mapping(section.get("code0_structured_context"))
+    jump_table = _mapping(context.get("jump_table"))
+    rows = [_mapping(item) for item in _sequence(context.get("jump_table_rows"))]
     lines = [
         ";   structured_CODE0_context:",
         "macos_CODE_0_application_metadata:",
@@ -404,9 +410,8 @@ def _code0_structured_source_lines(detail: Mapping[str, object]) -> list[str]:
             [
                 f"{label}:",
                 f";     payload_offset={_text(row.get('code0_payload_offset'))} "
-                f"size={_text(row.get('entry_size'))} raw_entry_bytes={_text(row.get('raw_entry_bytes'))}",
-                f";     raw_byte_gap: CODE 0 row bytes are not exposed by the current C-owned row model; "
-                "the enclosing CODE 0 payload range and SHA-256 preserve byte identity.",
+                f"size={_text(row.get('entry_size'))} "
+                f"raw_entry_bytes={_code0_entry_bytes(row, payload_bytes=payload_bytes)}",
                 f";     accepted_layout status={_text(accepted.get('fact_status'))} "
                 f"parser_use={_text(accepted.get('parser_use'))} fact={_text(accepted.get('fact_id'))}",
                 f";     candidate_target target_section=macos_code_CODE_{_text(target_id)} "
@@ -418,31 +423,45 @@ def _code0_structured_source_lines(detail: Mapping[str, object]) -> list[str]:
     return lines
 
 
-def _code1_entry_stub_context_lines(detail: Mapping[str, object], *, selected: Mapping[str, object]) -> list[str]:
-    if detail.get("id") != 1:
+def _code0_entry_bytes(row: Mapping[str, object], *, payload_bytes: bytes) -> str:
+    start = _int_value(row.get("code0_payload_offset"))
+    size = _int_value(row.get("entry_size"))
+    if start is None or size is None or start < 0 or size < 0:
+        return "unavailable"
+    chunk = payload_bytes[start : start + size]
+    if len(chunk) != size:
+        return "truncated"
+    return " ".join(f"{value:02X}" for value in chunk)
+
+
+def _code1_entry_stub_context_lines(section: Mapping[str, object]) -> list[str]:
+    if section.get("id") != 1:
         return []
-    payload_size = _int_value(detail.get("payload_size"))
-    entry_offset = _int_value(selected.get("code_entry_offset"))
-    stub_size = 22
-    stub_end = entry_offset + stub_size if entry_offset is not None else None
-    residual_end = payload_size
+    context = _mapping(section.get("code1_layout_context"))
+    header = _mapping(context.get("far_model_header"))
+    stub = _mapping(context.get("candidate_entry_stub"))
+    residual = _mapping(context.get("candidate_body_after_stub"))
     return [
         ";   CODE_1_layout_context:",
-        "macos_CODE_1_far_model_header:",
+        f"{_text(header.get('label'))}:",
         (
-            ";     payload[0..40) status=validated parser_use=accepted_parser_output "
-            "reason=far_model_segment_header; documented far-model header, not executable source rows"
+            f";     payload[{_text(header.get('start'))}..{_text(header.get('end'))}) "
+            f"status={_text(header.get('status'))} parser_use={_text(header.get('parser_use'))} "
+            f"reason={_text(header.get('reason'))}"
         ),
-        "macos_CODE_1_candidate_entry_stub:",
+        f"{_text(stub.get('label'))}:",
         (
-            f";     payload[{_text(entry_offset)}..{_text(stub_end)}) "
-            f"selected_code_bytes[0..{stub_size}) status=candidate parser_use=candidate_only "
-            "reason=entry/stub bytes begin at candidate movea.l (a7)+,a0 boundary; accepted byte-entry proof remains deferred"
+            f";     payload[{_text(stub.get('start'))}..{_text(stub.get('end'))}) "
+            f"selected_code_bytes[{_text(stub.get('selected_code_bytes_start'))}.."
+            f"{_text(stub.get('selected_code_bytes_end'))}) "
+            f"status={_text(stub.get('status'))} parser_use={_text(stub.get('parser_use'))} "
+            f"reason={_text(stub.get('reason'))}"
         ),
-        "macos_CODE_1_candidate_body_after_stub:",
+        f"{_text(residual.get('label'))}:",
         (
-            f";     payload[{_text(stub_end)}..{_text(residual_end)}) status=candidate parser_use=candidate_only "
-            "reason=remaining CODE 1 bytes are owned by candidate executable body; Segment Loader relocation/fixup semantics remain deferred"
+            f";     payload[{_text(residual.get('start'))}..{_text(residual.get('end'))}) "
+            f"status={_text(residual.get('status'))} parser_use={_text(residual.get('parser_use'))} "
+            f"reason={_text(residual.get('reason'))}"
         ),
     ]
 

@@ -45,9 +45,10 @@ preserves the bytes and labels the exact unproven semantic.
 
 - `Asm.s` now has a source-body section for every current MPW `Asm` CODE
   resource before the supporting-evidence report.
-- CODE 1 retains the full selected listing. Other CODE resources expose exact
-  C-owned payload/layout ranges, status, fact/parser-use evidence, byte-preserving
-  placeholders, and bounded preview rows where the model provides them.
+- Every CODE section now renders exact payload bytes as labelled `dc.b` source
+  rows for each C-owned layout range. Candidate/deferred semantic claims remain
+  labelled as candidate/deferred, but the source body is no longer preview-only
+  for non-selected CODE resources.
 - The artifact test compares the C-backed CODE inventory against source-body
   section identities and fails if the output returns to selected-CODE-only
   source coverage.

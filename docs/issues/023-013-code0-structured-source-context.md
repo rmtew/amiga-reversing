@@ -41,9 +41,9 @@ structured or conservative data; it must not collapse back to a report table.
   metadata/jump-table labels in the source body.
 - The current parsed CODE 0 row links to `macos_code_CODE_27` only as candidate
   target interpretation while keeping the jump-table layout fact validated.
-- CODE 1 is not rendered as an accepted CODE 0 dispatch target, and the CODE 0
-  raw-entry byte gap is explicit because the current row model preserves payload
-  identity but does not expose entry bytes.
+- CODE 1 is not rendered as an accepted CODE 0 dispatch target. CODE 0 row bytes
+  are now source-visible from the C-backed CODE payload extractor, so the former
+  raw-entry byte gap is closed without promoting candidate target semantics.
 
 ## Blocked By
 

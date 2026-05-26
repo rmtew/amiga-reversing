@@ -474,9 +474,10 @@ Completed state:
 
 - `Asm.s` now renders a source-body section for every current MPW `Asm` CODE
   resource before the supporting-evidence report.
-- CODE 1 remains the full selected listing. Other CODE resources carry exact
-  C-owned payload/layout ranges, source-visible byte-preserving placeholders,
-  evidence status, parser-use, and bounded preview rows when available.
+- Every CODE source section renders exact payload bytes as labelled `dc.b` rows
+  for each C-owned layout range. Candidate/deferred semantic claims remain
+  candidate/deferred, but non-selected CODE resources are no longer preview-only
+  placeholders.
 - Artifact tests compare the C-backed CODE inventory against source-body section
   identities and fail if the artifact regresses to selected-CODE-only output.
 
@@ -502,8 +503,9 @@ Completed state:
   metadata/jump-table labels in the source body.
 - The parsed CODE 0 row links to `macos_code_CODE_27` only as candidate target
   interpretation while keeping the jump-table layout fact validated.
-- CODE 1 remains absent from accepted CODE 0 dispatch links, and the current
-  raw-entry byte gap is source-visible rather than hidden in report text.
+- CODE 1 remains absent from accepted CODE 0 dispatch links. CODE 0 row bytes are
+  now source-visible from the C-backed CODE payload extractor, closing the former
+  raw-entry byte gap without promoting candidate target semantics.
 
 ### 023-014: CODE 1 Entry, Stub, And Residual Span Presentation
 
@@ -524,7 +526,8 @@ Required outcome:
 Completed state:
 
 - `Asm.s` labels the CODE 1 far-model header as accepted metadata
-  `payload[0..40)` before the selected executable listing.
+  `payload[0..40)` and renders exact byte-real source rows instead of depending
+  on the broad selected executable decoder listing.
 - The candidate entry/stub span is explicit as `payload[40..62)` /
   `selected_code_bytes[0..22)`, with the missing accepted byte-entry proof named
   directly.
