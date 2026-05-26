@@ -1,6 +1,6 @@
 # 017-096: Run Chained Cascade Exhaustion On Pandora
 
-Status: completed
+Status: superseded
 Type: AFK
 Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
@@ -84,3 +84,14 @@ Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 - Remaining blockers are explicit, including A5 branch/call/return lifetime blockers, RSSET missing-base/layout blockers, source-offset candidate-only blockers, and callback consumer/target blockers.
 - Exact round-trip: no output-affecting source change was applied by this read-only fixed-point pass, so rebuilt bytes were not changed.
 - Not report-only: this issue added the user-facing cascade exhaustion command, summary surface, and tests.
+
+## Superseded Review
+
+- Superseded by `017-099`.
+- Review found this issue correctly delivered a read-only cascade-report
+  milestone, but not the full chained exhaustion workflow that applies
+  verifier-safe render effects.
+- The real Pandora run still had one `pending_baseline_delta_verifier` render
+  effect and no source application.
+- Keep the read-only `cascade-report` command and fixed-point summary. Complete
+  exhaustion requires `017-097` and `017-098` first.

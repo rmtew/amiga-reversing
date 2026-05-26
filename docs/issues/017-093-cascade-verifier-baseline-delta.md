@@ -1,6 +1,6 @@
 # 017-093: Verify Cascades With Baseline Delta Proof
 
-Status: completed
+Status: superseded
 Type: AFK
 Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
@@ -81,3 +81,13 @@ Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 - Exact round-trip layer is modeled as `required_before_write` for pending output-affecting children and `not_required` for already-represented children.
 - Fixed point behavior is preserved in the same cascade report: stop reason `fixed_point_no_new_facts`.
 - Not report-only: this issue added verifier-delta data model, integration, and regression coverage.
+
+## Superseded Review
+
+- Superseded by `017-097`.
+- Review found this issue implemented verifier-delta state but not the required
+  baseline-without-parent versus effective-with-parent renderer/verifier.
+- Pending output-affecting effects still report `baseline_state=not_run`,
+  `effective_state=not_run`, and `missing_baseline_without_parent_render`.
+- Keep the schema/state work from this issue, but do not treat it as completed
+  verifier implementation.
