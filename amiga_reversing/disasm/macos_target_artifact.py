@@ -410,13 +410,8 @@ def _semantic_source_lines(
         text = str(row.get("text") or "").rstrip()
         if not text:
             continue
-        bytes_text = str(row.get("bytes") or "").replace(" ", "").upper()
-        pretty_bytes = " ".join(bytes_text[index : index + 2] for index in range(0, len(bytes_text), 2))
         if row.get("kind") == "instruction":
-            suffix = f"\t; payload+{_text(payload_offset)}"
-            if pretty_bytes:
-                suffix += f" bytes={pretty_bytes}"
-            lines.append(f"{text}{suffix}")
+            lines.append(text)
         else:
             lines.append(text)
         for xref in [_mapping(value) for value in _sequence(row.get("xrefs"))]:
@@ -516,15 +511,32 @@ def _source_quality_gate_lines(gate: Mapping[str, object]) -> list[str]:
                 f";       next: {_text(item.get('next_required_implementation'))}",
             ]
         )
-        for residual in [_mapping(value) for value in _sequence(item.get("residuals"))]:
+        residual_lines, summarized_residual_count = _human_residual_lines(item)
+        lines.extend(residual_lines)
+        if summarized_residual_count:
             lines.append(
-                f";       residual { _text(residual.get('kind')) } "
-                f"payload[{_text(residual.get('start'))}..{_text(residual.get('end'))}) "
-                f"status={_text(residual.get('status'))} parser_use={_text(residual.get('parser_use'))} "
-                f"reason={_text(residual.get('reason'))}"
+                f";       residual_summary candidate_unvisited_entry_pattern count={summarized_residual_count} "
+                "status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain "
+                "structured residuals, not rendered as source comments"
             )
     lines.append("")
     return lines
+
+
+def _human_residual_lines(item: Mapping[str, object]) -> tuple[list[str], int]:
+    lines: list[str] = []
+    summarized_residual_count = 0
+    for residual in [_mapping(value) for value in _sequence(item.get("residuals"))]:
+        if residual.get("kind") == "candidate_unvisited_entry_pattern":
+            summarized_residual_count += 1
+            continue
+        lines.append(
+            f";       residual { _text(residual.get('kind')) } "
+            f"payload[{_text(residual.get('start'))}..{_text(residual.get('end'))}) "
+            f"status={_text(residual.get('status'))} parser_use={_text(residual.get('parser_use'))} "
+            f"reason={_text(residual.get('reason'))}"
+        )
+    return lines, summarized_residual_count
 
 
 def _dc_b_lines(data: bytes, *, label: str, base_offset: int = 0) -> list[str]:

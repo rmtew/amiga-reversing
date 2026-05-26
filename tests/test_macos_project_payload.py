@@ -1164,21 +1164,20 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     assert code1_quality["generated_label_count"] >= 1
     assert code1_quality["human_semantic_names_required"] is False
     assert "macos_CODE_1_candidate_entry_stub" in code1_quality["labels"]
-    assert code1_quality["residuals"] == [
-        {
-            "kind": "semantic_decode_gap",
-            "start": 62,
-            "end": 29024,
-            "size": 28962,
-            "status": "candidate",
-            "fact_status": "candidate",
-            "parser_use": "candidate_only",
-            "fact_id": "macos.code_resource.movea_stack_a0.boundary.candidate",
-            "kb_record_id": "macos.hfs_resource_fork.code_resources.mpw_application",
-            "reason": "decoder did not emit an instruction/data row for this exact executable subrange",
-            "next_required_implementation": "extend flow/data classification for this exact CODE subrange",
-        }
-    ]
+    assert {
+        "kind": "semantic_decode_gap",
+        "start": 62,
+        "end": 29024,
+        "size": 28962,
+        "status": "candidate",
+        "fact_status": "candidate",
+        "parser_use": "candidate_only",
+        "fact_id": "macos.code_resource.movea_stack_a0.boundary.candidate",
+        "kb_record_id": "macos.hfs_resource_fork.code_resources.mpw_application",
+        "reason": "decoder did not emit an instruction/data row for this exact executable subrange",
+        "next_required_implementation": "extend flow/data classification for this exact CODE subrange",
+    } in code1_quality["residuals"]
+    assert any(item["kind"] == "candidate_unvisited_entry_pattern" for item in code1_quality["residuals"])
     code2_quality = next(item for item in quality_rows if item["resource_id"] == 2)
     assert code2_quality["semantic_instruction_row_count"] >= 4
     assert code2_quality["semantic_data_row_count"] == 0

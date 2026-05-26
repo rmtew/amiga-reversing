@@ -536,6 +536,7 @@ def _source_quality_resource_row(
         ranges,
         payload_size=payload_size,
         semantic_rows=semantic_rows,
+        candidate_residuals=[_mapping(item) for item in _sequence(semantic_source.get("candidate_residuals"))],
     )
     executable_body_spans = [
         item
@@ -605,6 +606,7 @@ def _source_quality_residuals(
     *,
     payload_size: int,
     semantic_rows: list[Mapping[str, object]],
+    candidate_residuals: list[Mapping[str, object]],
 ) -> list[dict[str, object]]:
     residuals: list[dict[str, object]] = []
     for item in ranges:
@@ -643,6 +645,40 @@ def _source_quality_residuals(
                 "next_required_implementation": "extend C-owned CODE layout classification",
             }
         )
+    existing_spans = {
+        (
+            _int_value(item.get("start")),
+            _int_value(item.get("end")),
+            str(item.get("kind") or ""),
+        )
+        for item in residuals
+    }
+    for item in candidate_residuals:
+        start = _int_value(item.get("start"))
+        end = _int_value(item.get("end"))
+        kind = str(item.get("kind") or "")
+        if start is None or end is None or end <= start:
+            continue
+        key = (start, end, kind)
+        if key in existing_spans:
+            continue
+        residuals.append(
+            {
+                "kind": kind or "candidate_unvisited_entry_pattern",
+                "start": start,
+                "end": end,
+                "size": end - start,
+                "status": item.get("status") or "candidate",
+                "fact_status": item.get("fact_status") or "candidate",
+                "parser_use": item.get("parser_use") or "candidate_only",
+                "fact_id": item.get("fact_id"),
+                "kb_record_id": item.get("kb_record_id") or detail.get("kb_record_id"),
+                "reason": item.get("reason") or "unvisited executable-looking bytes remain candidate residuals",
+                "next_required_implementation": item.get("next_required_implementation")
+                or "prove reachability from loader/CODE0/control-flow evidence before seeding",
+            }
+        )
+        existing_spans.add(key)
     return residuals
 
 

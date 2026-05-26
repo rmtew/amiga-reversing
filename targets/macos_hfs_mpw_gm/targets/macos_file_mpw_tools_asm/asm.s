@@ -281,16 +281,16 @@ macos_code_CODE_1_metadata_00000000:
 ;     candidate_code payload[40..29024) status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry
 ;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=8 labels=1 xrefs=2
 macos_code_CODE_1_loc_00000028:
-	movea.l (a7)+,a0	; payload+40 bytes=20 5F
+	movea.l (a7)+,a0
 ;       xref code_start_ref payload+40 reason=policy_entry_offset
 ;       xref code_start_ref payload+40 reason=policy_entry_point
-	move.l a7,d0	; payload+42 bytes=20 0F
-	sub.l $0114.w,d0	; payload+44 bytes=90 B8 01 14
-	cmpi.l #512,d0	; payload+48 bytes=0C 80 00 00 02 00
-	sge.b d0	; payload+54 bytes=5C C0
-	neg.b d0	; payload+56 bytes=44 00
-	move.b d0,(a7)	; payload+58 bytes=1E 80
-	jmp (a0)	; payload+60 bytes=4E D0
+	move.l a7,d0
+	sub.l $0114.w,d0
+	cmpi.l #512,d0
+	sge.b d0
+	neg.b d0
+	move.b d0,(a7)
+	jmp (a0)
 
 ; CODE 2 FPOpTable source section
 macos_code_CODE_2:
@@ -357,12 +357,12 @@ macos_code_CODE_2_data_00000028:
 ;     candidate_code payload[374..7788) status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry
 ;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=4 labels=1 xrefs=2
 macos_code_CODE_2_loc_00000176:
-	movea.l (a7)+,a0	; payload+374 bytes=20 5F
+	movea.l (a7)+,a0
 ;       xref code_start_ref payload+374 reason=policy_entry_offset
 ;       xref code_start_ref payload+374 reason=policy_entry_point
-	lea.l $001C(a7),a7	; payload+376 bytes=4F EF 00 1C
-	move.b d0,(a7)	; payload+380 bytes=1E 80
-	jmp (a0)	; payload+382 bytes=4E D0
+	lea.l $001C(a7),a7
+	move.b d0,(a7)
+	jmp (a0)
 
 ; CODE 3 Init source section
 macos_code_CODE_3:
@@ -425,11 +425,11 @@ macos_code_CODE_3_data_00000028:
 ;     candidate_code payload[302..18252) status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry
 ;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=3 labels=1 xrefs=2
 macos_code_CODE_3_loc_0000012e:
-	movea.l (a7)+,a0	; payload+302 bytes=20 5F
+	movea.l (a7)+,a0
 ;       xref code_start_ref payload+302 reason=policy_entry_offset
 ;       xref code_start_ref payload+302 reason=policy_entry_point
-	addq.w #2,a7	; payload+304 bytes=54 4F
-	jmp (a0)	; payload+306 bytes=4E D0
+	addq.w #2,a7
+	jmp (a0)
 
 ; CODE 4 IOMgr source section
 macos_code_CODE_4:
@@ -502,20 +502,20 @@ macos_code_CODE_4_data_00000028:
 ;     candidate_code payload[468..6426) status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry
 ;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=10 labels=2 xrefs=3
 macos_code_CODE_4_loc_000001d4:
-	movea.l (a7)+,a0	; payload+468 bytes=20 5F
+	movea.l (a7)+,a0
 ;       xref code_start_ref payload+468 reason=policy_entry_offset
 ;       xref code_start_ref payload+468 reason=policy_entry_point
-	move.w (a7)+,d0	; payload+470 bytes=30 1F
-	move.l a0,-(a7)	; payload+472 bytes=2F 08
-	pea.l $0004(a7)	; payload+474 bytes=48 6F 00 04
-	btst #0,d0	; payload+478 bytes=08 00 00 00
-	beq.b loc_0_00000012	; payload+482 bytes=67 02
-	addq.w #1,d0	; payload+484 bytes=52 40
+	move.w (a7)+,d0
+	move.l a0,-(a7)
+	pea.l $0004(a7)
+	btst #0,d0
+	beq.b loc_0_00000012
+	addq.w #1,d0
 macos_code_CODE_4_loc_000001e6:
-	move.w d0,-(a7)	; payload+486 bytes=3F 00
+	move.w d0,-(a7)
 ;       xref code_start_ref payload+486 reason=control_target
-	jsr $0A4A(a5)	; payload+488 bytes=4E AD 0A 4A
-	rts	; payload+492 bytes=4E 75
+	jsr $0A4A(a5)
+	rts
 
 ; CODE 5 Macros source section
 macos_code_CODE_5:
@@ -572,19 +572,19 @@ macos_code_CODE_5_data_00000028:
 ;     candidate_code payload[212..26638) status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry
 ;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=11 labels=1 xrefs=2
 macos_code_CODE_5_loc_000000d4:
-	movea.l (a7)+,a0	; payload+212 bytes=20 5F
+	movea.l (a7)+,a0
 ;       xref code_start_ref payload+212 reason=policy_entry_offset
 ;       xref code_start_ref payload+212 reason=policy_entry_point
-	movea.l a7,a1	; payload+214 bytes=22 4F
-	move.b (a1)+,(a0)+	; payload+216 bytes=10 D9
-	move.b (a1)+,(a0)+	; payload+218 bytes=10 D9
-	move.b (a1)+,(a0)+	; payload+220 bytes=10 D9
-	move.b (a1)+,(a0)+	; payload+222 bytes=10 D9
-	move.b (a1)+,(a0)+	; payload+224 bytes=10 D9
-	move.b (a1)+,(a0)	; payload+226 bytes=10 99
-	movea.l a1,a7	; payload+228 bytes=2E 49
-	movea.l d2,a0	; payload+230 bytes=20 42
-	jmp (a0)	; payload+232 bytes=4E D0
+	movea.l a7,a1
+	move.b (a1)+,(a0)+
+	move.b (a1)+,(a0)+
+	move.b (a1)+,(a0)+
+	move.b (a1)+,(a0)+
+	move.b (a1)+,(a0)+
+	move.b (a1)+,(a0)
+	movea.l a1,a7
+	movea.l d2,a0
+	jmp (a0)
 
 ; CODE 6 OpTable source section
 macos_code_CODE_6:
@@ -632,116 +632,116 @@ macos_code_CODE_6_data_00000028:
 ;     candidate_code payload[58..15158) status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry
 ;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=76 labels=15 xrefs=21
 macos_code_CODE_6_loc_0000003a:
-	movea.l (a7)+,a0	; payload+58 bytes=20 5F
+	movea.l (a7)+,a0
 ;       xref code_start_ref payload+58 reason=policy_entry_offset
 ;       xref code_start_ref payload+58 reason=policy_entry_point
-	move.w d0,(a0)	; payload+60 bytes=30 80
-	add.w d0,d0	; payload+62 bytes=D0 40
-	lea.l loc_0_000022A0(pc),a0	; payload+64 bytes=41 FA 22 98
-	move.w $0(a0,d0.w),d1	; payload+68 bytes=32 30 00 00
-	beq.b loc_0_00000036	; payload+72 bytes=67 26
-	adda.w d1,a0	; payload+74 bytes=D0 C1
-	clr.w d1	; payload+76 bytes=42 41
+	move.w d0,(a0)
+	add.w d0,d0
+	lea.l loc_0_000022A0(pc),a0
+	move.w $0(a0,d0.w),d1
+	beq.b loc_0_00000036
+	adda.w d1,a0
+	clr.w d1
 macos_code_CODE_6_loc_0000004e:
-	movea.l (a7),a1	; payload+78 bytes=22 57
+	movea.l (a7),a1
 ;       xref code_start_ref payload+78 reason=control_target
-	moveq.l #0,d0	; payload+80 bytes=70 00
-	move.b (a0),d0	; payload+82 bytes=10 10
+	moveq.l #0,d0
+	move.b (a0),d0
 macos_code_CODE_6_loc_00000054:
-	cmpm.b (a0)+,(a1)+	; payload+84 bytes=B3 08
+	cmpm.b (a0)+,(a1)+
 ;       xref code_start_ref payload+84 reason=control_target
-	dbne.w d0,loc_0_0000001A	; payload+86 bytes=56 C8 FF FC
-	beq.b loc_0_0000003E	; payload+90 bytes=67 1C
-	add.l a0,d0	; payload+92 bytes=D0 88
-	btst #0,d0	; payload+94 bytes=08 00 00 00
-	beq.b loc_0_0000002C	; payload+98 bytes=67 02
-	addq.l #1,d0	; payload+100 bytes=52 80
+	dbne.w d0,loc_0_0000001A
+	beq.b loc_0_0000003E
+	add.l a0,d0
+	btst #0,d0
+	beq.b loc_0_0000002C
+	addq.l #1,d0
 macos_code_CODE_6_loc_00000066:
-	movea.l d0,a0	; payload+102 bytes=20 40
+	movea.l d0,a0
 ;       xref code_start_ref payload+102 reason=control_target
-	move.b (a0),d1	; payload+104 bytes=12 10
-	beq.b loc_0_00000036	; payload+106 bytes=67 04
-	adda.w d1,a0	; payload+108 bytes=D0 C1
-	bra.b loc_0_00000014	; payload+110 bytes=60 DE
+	move.b (a0),d1
+	beq.b loc_0_00000036
+	adda.w d1,a0
+	bra.b loc_0_00000014
 macos_code_CODE_6_loc_00000070:
-	lea.l $0014(a7),a7	; payload+112 bytes=4F EF 00 14
+	lea.l $0014(a7),a7
 ;       xref code_start_ref payload+112 reason=control_target
 ;       xref code_start_ref payload+112 reason=control_target
-	moveq.l #0,d2	; payload+116 bytes=74 00
-	bra.b loc_0_000000B0	; payload+118 bytes=60 72
+	moveq.l #0,d2
+	bra.b loc_0_000000B0
 macos_code_CODE_6_loc_00000078:
-	move.l a0,d0	; payload+120 bytes=20 08
+	move.l a0,d0
 ;       xref code_start_ref payload+120 reason=control_target
-	btst #0,d0	; payload+122 bytes=08 00 00 00
-	beq.b loc_0_00000048	; payload+126 bytes=67 02
-	addq.l #1,d0	; payload+128 bytes=52 80
+	btst #0,d0
+	beq.b loc_0_00000048
+	addq.l #1,d0
 macos_code_CODE_6_loc_00000082:
-	addq.l #1,d0	; payload+130 bytes=52 80
+	addq.l #1,d0
 ;       xref code_start_ref payload+130 reason=control_target
-	movea.l d0,a0	; payload+132 bytes=20 40
-	addq.w #4,a7	; payload+134 bytes=58 4F
-	move.b (a0)+,d1	; payload+136 bytes=12 18
-	move.l a0,d2	; payload+138 bytes=24 08
-	movea.l (a7)+,a1	; payload+140 bytes=22 5F
-	move.w d1,(a1)	; payload+142 bytes=32 81
-	move.b (a0)+,d0	; payload+144 bytes=10 18
-	move.b (a0)+,d1	; payload+146 bytes=12 18
-	movea.l (a7)+,a1	; payload+148 bytes=22 5F
-	move.w d1,(a1)	; payload+150 bytes=32 81
-	btst #6,d0	; payload+152 bytes=08 00 00 06
-	bne.b loc_0_00000082	; payload+156 bytes=66 1E
-	btst #5,d0	; payload+158 bytes=08 00 00 05
-	bne.b loc_0_00000082	; payload+162 bytes=66 18
-	move.b (a0),d1	; payload+164 bytes=12 10
-	andi.b #35,d1	; payload+166 bytes=02 01 00 23
-	cmp.w -$0C68(a5),d1	; payload+170 bytes=B2 6D F3 98
-	ble.b loc_0_00000082	; payload+174 bytes=6F 0C
-	move.b #$1,-$0BD0(a5)	; payload+176 bytes=1B 7C 00 01 F4 30
-	addq.w #8,a7	; payload+182 bytes=50 4F
-	moveq.l #0,d2	; payload+184 bytes=74 00
-	bra.b loc_0_000000B0	; payload+186 bytes=60 2E
+	movea.l d0,a0
+	addq.w #4,a7
+	move.b (a0)+,d1
+	move.l a0,d2
+	movea.l (a7)+,a1
+	move.w d1,(a1)
+	move.b (a0)+,d0
+	move.b (a0)+,d1
+	movea.l (a7)+,a1
+	move.w d1,(a1)
+	btst #6,d0
+	bne.b loc_0_00000082
+	btst #5,d0
+	bne.b loc_0_00000082
+	move.b (a0),d1
+	andi.b #35,d1
+	cmp.w -$0C68(a5),d1
+	ble.b loc_0_00000082
+	move.b #$1,-$0BD0(a5)
+	addq.w #8,a7
+	moveq.l #0,d2
+	bra.b loc_0_000000B0
 macos_code_CODE_6_loc_000000bc:
-	movea.l (a7)+,a1	; payload+188 bytes=22 5F
+	movea.l (a7)+,a1
 ;       xref code_start_ref payload+188 reason=control_target
 ;       xref code_start_ref payload+188 reason=control_target
 ;       xref code_start_ref payload+188 reason=control_target
-	tst.b -$0C5D(a5)	; payload+190 bytes=4A 2D F3 A3
-	bne.b loc_0_00000094	; payload+194 bytes=66 0A
-	move.b (a0),d1	; payload+196 bytes=12 10
-	bpl.b loc_0_00000094	; payload+198 bytes=6A 06
-	moveq.l #1,d1	; payload+200 bytes=72 01
-	move.b d1,(a1)	; payload+202 bytes=12 81
-	bra.b loc_0_00000096	; payload+204 bytes=60 02
+	tst.b -$0C5D(a5)
+	bne.b loc_0_00000094
+	move.b (a0),d1
+	bpl.b loc_0_00000094
+	moveq.l #1,d1
+	move.b d1,(a1)
+	bra.b loc_0_00000096
 macos_code_CODE_6_loc_000000ce:
-	clr.b (a1)	; payload+206 bytes=42 11
+	clr.b (a1)
 ;       xref code_start_ref payload+206 reason=control_target
 ;       xref code_start_ref payload+206 reason=control_target
 macos_code_CODE_6_loc_000000d0:
-	btst #6,d0	; payload+208 bytes=08 00 00 06
+	btst #6,d0
 ;       xref code_start_ref payload+208 reason=control_target
-	bne.b loc_0_000000A6	; payload+212 bytes=66 0A
-	btst #5,d0	; payload+214 bytes=08 00 00 05
-	beq.b loc_0_000000AA	; payload+218 bytes=67 08
-	moveq.l #1,d1	; payload+220 bytes=72 01
-	bra.b loc_0_000000AC	; payload+222 bytes=60 06
+	bne.b loc_0_000000A6
+	btst #5,d0
+	beq.b loc_0_000000AA
+	moveq.l #1,d1
+	bra.b loc_0_000000AC
 macos_code_CODE_6_loc_000000e0:
-	moveq.l #2,d1	; payload+224 bytes=72 02
+	moveq.l #2,d1
 ;       xref code_start_ref payload+224 reason=control_target
-	bra.b loc_0_000000AC	; payload+226 bytes=60 02
+	bra.b loc_0_000000AC
 macos_code_CODE_6_loc_000000e4:
-	clr.w d1	; payload+228 bytes=42 41
+	clr.w d1
 ;       xref code_start_ref payload+228 reason=control_target
 macos_code_CODE_6_loc_000000e6:
-	movea.l (a7)+,a1	; payload+230 bytes=22 5F
+	movea.l (a7)+,a1
 ;       xref code_start_ref payload+230 reason=control_target
 ;       xref code_start_ref payload+230 reason=control_target
-	move.w d1,(a1)	; payload+232 bytes=32 81
+	move.w d1,(a1)
 macos_code_CODE_6_loc_000000ea:
-	movea.l (a7),a0	; payload+234 bytes=20 57
+	movea.l (a7),a0
 ;       xref code_start_ref payload+234 reason=control_target
 ;       xref code_start_ref payload+234 reason=control_target
-	move.l d2,(a7)	; payload+236 bytes=2E 82
-	jmp (a0)	; payload+238 bytes=4E D0
+	move.l d2,(a7)
+	jmp (a0)
 macos_code_CODE_6_loc_000022da:
 
 ; CODE 7 POpTable source section
@@ -808,12 +808,12 @@ macos_code_CODE_7_data_00000028:
 ;     candidate_code payload[352..4142) status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry
 ;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=4 labels=1 xrefs=2
 macos_code_CODE_7_loc_00000160:
-	movea.l (a7)+,a0	; payload+352 bytes=20 5F
+	movea.l (a7)+,a0
 ;       xref code_start_ref payload+352 reason=policy_entry_offset
 ;       xref code_start_ref payload+352 reason=policy_entry_point
-	lea.l $001E(a7),a7	; payload+354 bytes=4F EF 00 1E
-	move.b d0,(a7)	; payload+358 bytes=1E 80
-	jmp (a0)	; payload+360 bytes=4E D0
+	lea.l $001E(a7),a7
+	move.b d0,(a7)
+	jmp (a0)
 
 ; CODE 8 Listing source section
 macos_code_CODE_8:
@@ -860,40 +860,40 @@ macos_code_CODE_8_data_00000028:
 ;     candidate_code payload[42..1852) status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry
 ;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=66 labels=17 xrefs=27
 macos_code_CODE_8_loc_0000002a:
-	movea.l (a7)+,a0	; payload+42 bytes=20 5F
+	movea.l (a7)+,a0
 ;       xref code_start_ref payload+42 reason=policy_entry_offset
 ;       xref code_start_ref payload+42 reason=policy_entry_point
-	movem.l a1-a3,-(a7)	; payload+44 bytes=48 E7 00 70
-	movea.l a0,a2	; payload+48 bytes=24 48
-	clr.w d2	; payload+50 bytes=42 42
-	move.b (a0)+,d2	; payload+52 bytes=14 18
-	movea.l a0,a1	; payload+54 bytes=22 48
-	bra.w loc_0_000000A0	; payload+56 bytes=60 00 00 90
+	movem.l a1-a3,-(a7)
+	movea.l a0,a2
+	clr.w d2
+	move.b (a0)+,d2
+	movea.l a0,a1
+	bra.w loc_0_000000A0
 macos_code_CODE_8_loc_0000003c:
-	move.b (a0)+,d0	; payload+60 bytes=10 18
+	move.b (a0)+,d0
 ;       xref code_start_ref payload+60 reason=control_target
 macos_code_CODE_8_loc_0000003e:
-	cmpi.b #39,d0	; payload+62 bytes=0C 00 00 27
+	cmpi.b #39,d0
 ;       xref code_start_ref payload+62 reason=control_target
-	bne.b loc_0_0000002E	; payload+66 bytes=66 14
+	bne.b loc_0_0000002E
 macos_code_CODE_8_loc_00000044:
-	move.b d0,(a1)+	; payload+68 bytes=12 C0
+	move.b d0,(a1)+
 ;       xref code_start_ref payload+68 reason=control_target
-	dbf.w d2,loc_0_00000024	; payload+70 bytes=51 CA 00 06
-	bra.w loc_0_000000A4	; payload+74 bytes=60 00 00 82
+	dbf.w d2,loc_0_00000024
+	bra.w loc_0_000000A4
 macos_code_CODE_8_loc_0000004e:
-	move.b (a0)+,d0	; payload+78 bytes=10 18
+	move.b (a0)+,d0
 ;       xref code_start_ref payload+78 reason=control_target
-	cmpi.b #39,d0	; payload+80 bytes=0C 00 00 27
-	bne.b loc_0_0000001A	; payload+84 bytes=66 EE
-	bra.b loc_0_0000009E	; payload+86 bytes=60 70
+	cmpi.b #39,d0
+	bne.b loc_0_0000001A
+	bra.b loc_0_0000009E
 macos_code_CODE_8_loc_00000058:
-	cmpi.b #192,d0	; payload+88 bytes=0C 00 00 C0
+	cmpi.b #192,d0
 ;       xref code_start_ref payload+88 reason=control_target
-	bne.b loc_0_0000009E	; payload+92 bytes=66 6A
-	movea.l a1,a3	; payload+94 bytes=26 49
+	bne.b loc_0_0000009E
+	movea.l a1,a3
 macos_code_CODE_8_loc_00000060:
-	clr.w d1	; payload+96 bytes=42 41
+	clr.w d1
 ;       xref code_start_ref payload+96 reason=control_target
 ;       xref code_start_ref payload+96 reason=control_target
 ;       xref code_start_ref payload+96 reason=control_target
@@ -901,74 +901,74 @@ macos_code_CODE_8_loc_00000060:
 ;       xref code_start_ref payload+96 reason=control_target
 ;       xref code_start_ref payload+96 reason=control_target
 macos_code_CODE_8_loc_00000062:
-	move.b d0,(a1)+	; payload+98 bytes=12 C0
+	move.b d0,(a1)+
 ;       xref code_start_ref payload+98 reason=control_target
-	dbf.w d2,loc_0_00000040	; payload+100 bytes=51 CA 00 04
-	bra.b loc_0_00000082	; payload+104 bytes=60 42
+	dbf.w d2,loc_0_00000040
+	bra.b loc_0_00000082
 macos_code_CODE_8_loc_0000006a:
-	move.b (a0)+,d0	; payload+106 bytes=10 18
+	move.b (a0)+,d0
 ;       xref code_start_ref payload+106 reason=control_target
-	cmpi.b #64,d0	; payload+108 bytes=0C 00 00 40
-	blt.b loc_0_0000004E	; payload+112 bytes=6D 06
-	cmpi.b #90,d0	; payload+114 bytes=0C 00 00 5A
-	ble.b loc_0_00000036	; payload+118 bytes=6F E8
+	cmpi.b #64,d0
+	blt.b loc_0_0000004E
+	cmpi.b #90,d0
+	ble.b loc_0_00000036
 macos_code_CODE_8_loc_00000078:
-	cmpi.b #97,d0	; payload+120 bytes=0C 00 00 61
+	cmpi.b #97,d0
 ;       xref code_start_ref payload+120 reason=control_target
-	blt.b loc_0_0000005A	; payload+124 bytes=6D 06
-	cmpi.b #122,d0	; payload+126 bytes=0C 00 00 7A
-	ble.b loc_0_00000036	; payload+130 bytes=6F DC
+	blt.b loc_0_0000005A
+	cmpi.b #122,d0
+	ble.b loc_0_00000036
 macos_code_CODE_8_loc_00000084:
-	cmpi.b #48,d0	; payload+132 bytes=0C 00 00 30
+	cmpi.b #48,d0
 ;       xref code_start_ref payload+132 reason=control_target
-	blt.b loc_0_0000006A	; payload+136 bytes=6D 0A
-	cmpi.b #57,d0	; payload+138 bytes=0C 00 00 39
-	bgt.b loc_0_0000006A	; payload+142 bytes=6E 04
-	addq.w #1,d1	; payload+144 bytes=52 41
-	bra.b loc_0_00000038	; payload+146 bytes=60 CE
+	blt.b loc_0_0000006A
+	cmpi.b #57,d0
+	bgt.b loc_0_0000006A
+	addq.w #1,d1
+	bra.b loc_0_00000038
 macos_code_CODE_8_loc_00000094:
-	cmpi.b #95,d0	; payload+148 bytes=0C 00 00 5F
+	cmpi.b #95,d0
 ;       xref code_start_ref payload+148 reason=control_target
 ;       xref code_start_ref payload+148 reason=control_target
-	beq.b loc_0_00000036	; payload+152 bytes=67 C6
-	cmpi.b #36,d0	; payload+154 bytes=0C 00 00 24
-	beq.b loc_0_00000036	; payload+158 bytes=67 C0
-	cmpi.b #35,d0	; payload+160 bytes=0C 00 00 23
-	beq.b loc_0_00000036	; payload+164 bytes=67 BA
-	cmpi.b #37,d0	; payload+166 bytes=0C 00 00 25
-	beq.b loc_0_00000036	; payload+170 bytes=67 B4
+	beq.b loc_0_00000036
+	cmpi.b #36,d0
+	beq.b loc_0_00000036
+	cmpi.b #35,d0
+	beq.b loc_0_00000036
+	cmpi.b #37,d0
+	beq.b loc_0_00000036
 macos_code_CODE_8_loc_000000ac:
-	subq.w #4,d1	; payload+172 bytes=59 41
+	subq.w #4,d1
 ;       xref code_start_ref payload+172 reason=control_target
-	blt.b loc_0_00000096	; payload+174 bytes=6D 10
-	move.l a1,d1	; payload+176 bytes=22 09
-	sub.l a3,d1	; payload+178 bytes=92 8B
-	cmpi.w #5,d1	; payload+180 bytes=0C 41 00 05
-	blt.b loc_0_00000096	; payload+184 bytes=6D 06
-	subq.w #4,a1	; payload+186 bytes=59 49
-	move.b #$40,(a3)	; payload+188 bytes=16 BC 00 40
+	blt.b loc_0_00000096
+	move.l a1,d1
+	sub.l a3,d1
+	cmpi.w #5,d1
+	blt.b loc_0_00000096
+	subq.w #4,a1
+	move.b #$40,(a3)
 macos_code_CODE_8_loc_000000c0:
-	tst.w d2	; payload+192 bytes=4A 42
+	tst.w d2
 ;       xref code_start_ref payload+192 reason=control_target
 ;       xref code_start_ref payload+192 reason=control_target
-	bge.w loc_0_00000014	; payload+194 bytes=6C 00 FF 7A
-	bra.b loc_0_000000A4	; payload+198 bytes=60 06
+	bge.w loc_0_00000014
+	bra.b loc_0_000000A4
 macos_code_CODE_8_loc_000000c8:
-	move.b d0,(a1)+	; payload+200 bytes=12 C0
+	move.b d0,(a1)+
 ;       xref code_start_ref payload+200 reason=control_target
 ;       xref code_start_ref payload+200 reason=control_target
 macos_code_CODE_8_loc_000000ca:
-	dbf.w d2,loc_0_00000012	; payload+202 bytes=51 CA FF 70
+	dbf.w d2,loc_0_00000012
 ;       xref code_start_ref payload+202 reason=control_target
 macos_code_CODE_8_loc_000000ce:
-	move.l a1,d2	; payload+206 bytes=24 09
+	move.l a1,d2
 ;       xref code_start_ref payload+206 reason=control_target
 ;       xref code_start_ref payload+206 reason=control_target
-	sub.l a2,d2	; payload+208 bytes=94 8A
-	subq.b #1,d2	; payload+210 bytes=53 02
-	move.b d2,(a2)	; payload+212 bytes=14 82
-	movem.l (a7)+,a1-a3	; payload+214 bytes=4C DF 0E 00
-	jmp (a1)	; payload+218 bytes=4E D1
+	sub.l a2,d2
+	subq.b #1,d2
+	move.b d2,(a2)
+	movem.l (a7)+,a1-a3
+	jmp (a1)
 
 ; CODE 9 Pass2 source section
 macos_code_CODE_9:
@@ -1056,11 +1056,11 @@ macos_code_CODE_9_data_00000028:
 ;     candidate_code payload[712..13946) status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry
 ;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=3 labels=1 xrefs=2
 macos_code_CODE_9_loc_000002c8:
-	movea.l (a7)+,a0	; payload+712 bytes=20 5F
+	movea.l (a7)+,a0
 ;       xref code_start_ref payload+712 reason=policy_entry_offset
 ;       xref code_start_ref payload+712 reason=policy_entry_point
-	lea.l $000E(a7),a7	; payload+714 bytes=4F EF 00 0E
-	jmp (a0)	; payload+718 bytes=4E D0
+	lea.l $000E(a7),a7
+	jmp (a0)
 
 ; CODE 10 FinishUp source section
 macos_code_CODE_10:
@@ -1113,11 +1113,11 @@ macos_code_CODE_10_data_00000028:
 ;     candidate_code payload[148..1542) status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry
 ;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=3 labels=1 xrefs=2
 macos_code_CODE_10_loc_00000094:
-	movea.l (a7)+,a0	; payload+148 bytes=20 5F
+	movea.l (a7)+,a0
 ;       xref code_start_ref payload+148 reason=policy_entry_offset
 ;       xref code_start_ref payload+148 reason=policy_entry_point
-	addq.w #6,a7	; payload+150 bytes=5C 4F
-	jmp (a0)	; payload+152 bytes=4E D0
+	addq.w #6,a7
+	jmp (a0)
 
 ; CODE 11 Dbg source section
 macos_code_CODE_11:
@@ -1213,11 +1213,11 @@ macos_code_CODE_11_data_00000028:
 ;     candidate_code payload[836..3678) status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry
 ;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=3 labels=1 xrefs=2
 macos_code_CODE_11_loc_00000344:
-	movea.l (a7)+,a0	; payload+836 bytes=20 5F
+	movea.l (a7)+,a0
 ;       xref code_start_ref payload+836 reason=policy_entry_offset
 ;       xref code_start_ref payload+836 reason=policy_entry_point
-	addq.w #2,a7	; payload+838 bytes=54 4F
-	jmp (a0)	; payload+840 bytes=4E D0
+	addq.w #2,a7
+	jmp (a0)
 
 ; CODE 12 LoadDump source section
 macos_code_CODE_12:
@@ -1264,25 +1264,25 @@ macos_code_CODE_12_data_00000028:
 ;     candidate_code payload[44..6928) status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry
 ;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=15 labels=2 xrefs=3
 macos_code_CODE_12_loc_0000002c:
-	movea.l (a7)+,a0	; payload+44 bytes=20 5F
+	movea.l (a7)+,a0
 ;       xref code_start_ref payload+44 reason=policy_entry_offset
 ;       xref code_start_ref payload+44 reason=policy_entry_point
-	clr.w d0	; payload+46 bytes=42 40
-	move.b (a1),d0	; payload+48 bytes=10 11
+	clr.w d0
+	move.b (a1),d0
 macos_code_CODE_12_loc_00000032:
-	move.b (a1)+,(a0)+	; payload+50 bytes=10 D9
+	move.b (a1)+,(a0)+
 ;       xref code_start_ref payload+50 reason=control_target
-	dbf.w d0,loc_0_00000006	; payload+52 bytes=51 C8 FF FC
-	movea.l (a7)+,a0	; payload+56 bytes=20 5F
-	move.b (a1)+,(a0)+	; payload+58 bytes=10 D9
-	move.b (a1)+,(a0)+	; payload+60 bytes=10 D9
-	move.b (a1)+,(a0)+	; payload+62 bytes=10 D9
-	move.b (a1)+,(a0)	; payload+64 bytes=10 99
-	movea.l (a7)+,a0	; payload+66 bytes=20 5F
-	move.b (a1)+,(a0)+	; payload+68 bytes=10 D9
-	move.b (a1),(a0)	; payload+70 bytes=10 91
-	movea.l d2,a0	; payload+72 bytes=20 42
-	jmp (a0)	; payload+74 bytes=4E D0
+	dbf.w d0,loc_0_00000006
+	movea.l (a7)+,a0
+	move.b (a1)+,(a0)+
+	move.b (a1)+,(a0)+
+	move.b (a1)+,(a0)+
+	move.b (a1)+,(a0)
+	movea.l (a7)+,a0
+	move.b (a1)+,(a0)+
+	move.b (a1),(a0)
+	movea.l d2,a0
+	jmp (a0)
 
 ; CODE 13 Directives source section
 macos_code_CODE_13:
@@ -1329,96 +1329,96 @@ macos_code_CODE_13_data_00000028:
 ;     candidate_code payload[44..33354) status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry
 ;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=61 labels=14 xrefs=16
 macos_code_CODE_13_loc_0000002c:
-	movea.l (a7)+,a0	; payload+44 bytes=20 5F
+	movea.l (a7)+,a0
 ;       xref code_start_ref payload+44 reason=policy_entry_offset
 ;       xref code_start_ref payload+44 reason=policy_entry_point
-	move.l a1,-(a7)	; payload+46 bytes=2F 09
-	lea.l -$0106(a5),a1	; payload+48 bytes=43 ED FE FA
-	clr.w d0	; payload+52 bytes=42 40
-	move.b (a1)+,d0	; payload+54 bytes=10 19
-	move.w d1,d2	; payload+56 bytes=34 01
-	sub.w d0,d2	; payload+58 bytes=94 40
-	ble.b loc_0_0000007C	; payload+60 bytes=6F 6A
-	move.l a2,-(a7)	; payload+62 bytes=2F 0A
-	move.w d3,-(a7)	; payload+64 bytes=3F 03
-	suba.w #$100,a7	; payload+66 bytes=9E FC 01 00
-	movea.l a7,a2	; payload+70 bytes=24 4F
-	tst.b -$0C5F(a5)	; payload+72 bytes=4A 2D F3 A1
-	bne.b loc_0_00000040	; payload+76 bytes=66 1E
-	bra.b loc_0_00000038	; payload+78 bytes=60 14
+	move.l a1,-(a7)
+	lea.l -$0106(a5),a1
+	clr.w d0
+	move.b (a1)+,d0
+	move.w d1,d2
+	sub.w d0,d2
+	ble.b loc_0_0000007C
+	move.l a2,-(a7)
+	move.w d3,-(a7)
+	suba.w #$100,a7
+	movea.l a7,a2
+	tst.b -$0C5F(a5)
+	bne.b loc_0_00000040
+	bra.b loc_0_00000038
 macos_code_CODE_13_loc_00000050:
-	move.b (a1)+,d3	; payload+80 bytes=16 19
+	move.b (a1)+,d3
 ;       xref code_start_ref payload+80 reason=control_target
-	cmpi.b #97,d3	; payload+82 bytes=0C 03 00 61
-	blt.b loc_0_00000036	; payload+86 bytes=6D 0A
-	cmpi.b #122,d3	; payload+88 bytes=0C 03 00 7A
-	bgt.b loc_0_00000036	; payload+92 bytes=6E 04
-	subi.b #32,d3	; payload+94 bytes=04 03 00 20
+	cmpi.b #97,d3
+	blt.b loc_0_00000036
+	cmpi.b #122,d3
+	bgt.b loc_0_00000036
+	subi.b #32,d3
 macos_code_CODE_13_loc_00000062:
-	move.b d3,(a2)+	; payload+98 bytes=14 C3
+	move.b d3,(a2)+
 ;       xref code_start_ref payload+98 reason=control_target
 ;       xref code_start_ref payload+98 reason=control_target
 macos_code_CODE_13_loc_00000064:
-	dbf.w d0,loc_0_00000024	; payload+100 bytes=51 C8 FF EA
+	dbf.w d0,loc_0_00000024
 ;       xref code_start_ref payload+100 reason=control_target
-	bra.b loc_0_00000044	; payload+104 bytes=60 06
+	bra.b loc_0_00000044
 macos_code_CODE_13_loc_0000006a:
-	move.b (a1)+,(a2)+	; payload+106 bytes=14 D9
+	move.b (a1)+,(a2)+
 ;       xref code_start_ref payload+106 reason=control_target
 macos_code_CODE_13_loc_0000006c:
-	dbf.w d0,loc_0_0000003E	; payload+108 bytes=51 C8 FF FC
+	dbf.w d0,loc_0_0000003E
 ;       xref code_start_ref payload+108 reason=control_target
 macos_code_CODE_13_loc_00000070:
-	subq.w #2,d2	; payload+112 bytes=55 42
+	subq.w #2,d2
 ;       xref code_start_ref payload+112 reason=control_target
-	blt.b loc_0_00000050	; payload+114 bytes=6D 08
+	blt.b loc_0_00000050
 macos_code_CODE_13_loc_00000074:
-	move.b #$20,(a2)+	; payload+116 bytes=14 FC 00 20
+	move.b #$20,(a2)+
 ;       xref code_start_ref payload+116 reason=control_target
-	dbf.w d2,loc_0_00000048	; payload+120 bytes=51 CA FF FA
+	dbf.w d2,loc_0_00000048
 macos_code_CODE_13_loc_0000007c:
-	move.b #$2E,(a2)	; payload+124 bytes=14 BC 00 2E
+	move.b #$2E,(a2)
 ;       xref code_start_ref payload+124 reason=control_target
-	clr.w d2	; payload+128 bytes=42 42
-	move.b (a0)+,d2	; payload+130 bytes=14 18
-	cmp.w d1,d2	; payload+132 bytes=B4 41
-	blt.b loc_0_00000074	; payload+134 bytes=6D 18
-	clr.w d0	; payload+136 bytes=42 40
+	clr.w d2
+	move.b (a0)+,d2
+	cmp.w d1,d2
+	blt.b loc_0_00000074
+	clr.w d0
 macos_code_CODE_13_loc_0000008a:
-	addq.w #1,d0	; payload+138 bytes=52 40
+	addq.w #1,d0
 ;       xref code_start_ref payload+138 reason=control_target
-	movea.l a7,a2	; payload+140 bytes=24 4F
-	move.w d1,d3	; payload+142 bytes=36 01
-	subq.w #1,d3	; payload+144 bytes=53 43
+	movea.l a7,a2
+	move.w d1,d3
+	subq.w #1,d3
 macos_code_CODE_13_loc_00000092:
-	cmpm.b (a2)+,(a0)+	; payload+146 bytes=B1 0A
+	cmpm.b (a2)+,(a0)+
 ;       xref code_start_ref payload+146 reason=control_target
-	dbne.w d3,loc_0_00000066	; payload+148 bytes=56 CB FF FC
-	beq.b loc_0_00000084	; payload+152 bytes=67 16
-	adda.w d3,a0	; payload+154 bytes=D0 C3
-	sub.w d1,d2	; payload+156 bytes=94 41
-	bge.b loc_0_0000005E	; payload+158 bytes=6C EA
+	dbne.w d3,loc_0_00000066
+	beq.b loc_0_00000084
+	adda.w d3,a0
+	sub.w d1,d2
+	bge.b loc_0_0000005E
 macos_code_CODE_13_loc_000000a0:
-	lea.l $0100(a7),a7	; payload+160 bytes=4F EF 01 00
+	lea.l $0100(a7),a7
 ;       xref code_start_ref payload+160 reason=control_target
-	move.w (a7)+,d3	; payload+164 bytes=36 1F
-	movea.l (a7)+,a2	; payload+166 bytes=24 5F
+	move.w (a7)+,d3
+	movea.l (a7)+,a2
 macos_code_CODE_13_loc_000000a8:
-	movea.l (a7)+,a0	; payload+168 bytes=20 5F
+	movea.l (a7)+,a0
 ;       xref code_start_ref payload+168 reason=control_target
-	addq.w #4,a7	; payload+170 bytes=58 4F
-	clr.b (a7)	; payload+172 bytes=42 17
-	jmp (a0)	; payload+174 bytes=4E D0
+	addq.w #4,a7
+	clr.b (a7)
+	jmp (a0)
 macos_code_CODE_13_loc_000000b0:
-	lea.l $0100(a7),a7	; payload+176 bytes=4F EF 01 00
+	lea.l $0100(a7),a7
 ;       xref code_start_ref payload+176 reason=control_target
-	move.w (a7)+,d3	; payload+180 bytes=36 1F
-	movea.l (a7)+,a2	; payload+182 bytes=24 5F
-	movea.l (a7)+,a0	; payload+184 bytes=20 5F
-	movea.l (a7)+,a1	; payload+186 bytes=22 5F
-	move.w d0,(a1)	; payload+188 bytes=32 80
-	move.b #$1,(a7)	; payload+190 bytes=1E BC 00 01
-	jmp (a0)	; payload+194 bytes=4E D0
+	move.w (a7)+,d3
+	movea.l (a7)+,a2
+	movea.l (a7)+,a0
+	movea.l (a7)+,a1
+	move.w d0,(a1)
+	move.b #$1,(a7)
+	jmp (a0)
 
 ; CODE 14 MemMgr source section
 macos_code_CODE_14:
@@ -1477,11 +1477,11 @@ macos_code_CODE_14_data_00000028:
 ;     candidate_code payload[236..1886) status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry
 ;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=3 labels=1 xrefs=2
 macos_code_CODE_14_loc_000000ec:
-	movea.l (a7)+,a0	; payload+236 bytes=20 5F
+	movea.l (a7)+,a0
 ;       xref code_start_ref payload+236 reason=policy_entry_offset
 ;       xref code_start_ref payload+236 reason=policy_entry_point
-	addq.w #2,a7	; payload+238 bytes=54 4F
-	jmp (a0)	; payload+240 bytes=4E D0
+	addq.w #2,a7
+	jmp (a0)
 
 ; CODE 15 Errors source section
 macos_code_CODE_15:
@@ -1531,11 +1531,11 @@ macos_code_CODE_15_data_00000028:
 ;     candidate_code payload[96..3452) status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry
 ;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=3 labels=1 xrefs=2
 macos_code_CODE_15_loc_00000060:
-	movea.l (a7)+,a0	; payload+96 bytes=20 5F
+	movea.l (a7)+,a0
 ;       xref code_start_ref payload+96 reason=policy_entry_offset
 ;       xref code_start_ref payload+96 reason=policy_entry_point
-	adda.w #$A,a7	; payload+98 bytes=DE FC 00 0A
-	jmp (a0)	; payload+102 bytes=4E D0
+	adda.w #$A,a7
+	jmp (a0)
 
 ; CODE 16 New source section
 macos_code_CODE_16:
@@ -1594,11 +1594,11 @@ macos_code_CODE_16_data_00000028:
 ;     candidate_code payload[246..1034) status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry
 ;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=3 labels=1 xrefs=2
 macos_code_CODE_16_loc_000000f6:
-	movea.l (a7)+,a0	; payload+246 bytes=20 5F
+	movea.l (a7)+,a0
 ;       xref code_start_ref payload+246 reason=policy_entry_offset
 ;       xref code_start_ref payload+246 reason=policy_entry_point
-	addq.w #2,a7	; payload+248 bytes=54 4F
-	jmp (a0)	; payload+250 bytes=4E D0
+	addq.w #2,a7
+	jmp (a0)
 
 ; CODE 17 DispSymTbl source section
 macos_code_CODE_17:
@@ -1648,11 +1648,11 @@ macos_code_CODE_17_data_00000028:
 ;     candidate_code payload[100..3674) status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry
 ;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=3 labels=1 xrefs=2
 macos_code_CODE_17_loc_00000064:
-	movea.l (a7)+,a0	; payload+100 bytes=20 5F
+	movea.l (a7)+,a0
 ;       xref code_start_ref payload+100 reason=policy_entry_offset
 ;       xref code_start_ref payload+100 reason=policy_entry_point
-	addq.w #8,a7	; payload+102 bytes=50 4F
-	jmp (a0)	; payload+104 bytes=4E D0
+	addq.w #8,a7
+	jmp (a0)
 
 ; CODE 18 FinishDirectives source section
 macos_code_CODE_18:
@@ -1794,11 +1794,11 @@ macos_code_CODE_18_data_00000028:
 ;     candidate_code payload[1562..1974) status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry
 ;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=3 labels=1 xrefs=2
 macos_code_CODE_18_loc_0000061a:
-	movea.l (a7)+,a0	; payload+1562 bytes=20 5F
+	movea.l (a7)+,a0
 ;       xref code_start_ref payload+1562 reason=policy_entry_offset
 ;       xref code_start_ref payload+1562 reason=policy_entry_point
-	addq.w #2,a7	; payload+1564 bytes=54 4F
-	jmp (a0)	; payload+1566 bytes=4E D0
+	addq.w #2,a7
+	jmp (a0)
 
 ; CODE 19 SetupArgV source section
 macos_code_CODE_19:
@@ -2095,11 +2095,11 @@ macos_code_CODE_20_data_00000028:
 ;     candidate_code payload[2876..5262) status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry
 ;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=3 labels=1 xrefs=2
 macos_code_CODE_20_loc_00000b3c:
-	movea.l (a7)+,a0	; payload+2876 bytes=20 5F
+	movea.l (a7)+,a0
 ;       xref code_start_ref payload+2876 reason=policy_entry_offset
 ;       xref code_start_ref payload+2876 reason=policy_entry_point
-	lea.l $000C(a7),a7	; payload+2878 bytes=4F EF 00 0C
-	jmp (a0)	; payload+2882 bytes=4E D0
+	lea.l $000C(a7),a7
+	jmp (a0)
 
 ; CODE 21 SADEV source section
 macos_code_CODE_21:
@@ -2268,11 +2268,11 @@ macos_code_CODE_21_data_00000028:
 ;     candidate_code payload[2000..6794) status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry
 ;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=3 labels=1 xrefs=2
 macos_code_CODE_21_loc_000007d0:
-	movea.l (a7)+,a0	; payload+2000 bytes=20 5F
+	movea.l (a7)+,a0
 ;       xref code_start_ref payload+2000 reason=policy_entry_offset
 ;       xref code_start_ref payload+2000 reason=policy_entry_point
-	lea.l $0010(a7),a7	; payload+2002 bytes=4F EF 00 10
-	jmp (a0)	; payload+2006 bytes=4E D0
+	lea.l $0010(a7),a7
+	jmp (a0)
 
 ; CODE 22 SANELIB source section
 macos_code_CODE_22:
@@ -2590,11 +2590,11 @@ macos_code_CODE_24_data_00000028:
 ;     candidate_code payload[2950..4970) status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry
 ;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=3 labels=1 xrefs=2
 macos_code_CODE_24_loc_00000b86:
-	movea.l (a7)+,a0	; payload+2950 bytes=20 5F
+	movea.l (a7)+,a0
 ;       xref code_start_ref payload+2950 reason=policy_entry_offset
 ;       xref code_start_ref payload+2950 reason=policy_entry_point
-	lea.l $000C(a7),a7	; payload+2952 bytes=4F EF 00 0C
-	jmp (a0)	; payload+2956 bytes=4E D0
+	lea.l $000C(a7),a7
+	jmp (a0)
 
 ; CODE 25 SANELib source section
 macos_code_CODE_25:
@@ -2636,27 +2636,27 @@ macos_code_CODE_25_metadata_00000000:
 ;     candidate_code payload[40..246) status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry
 ;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=13 labels=4 xrefs=5
 macos_code_CODE_25_loc_00000028:
-	movea.l (a7)+,a0	; payload+40 bytes=20 5F
+	movea.l (a7)+,a0
 ;       xref code_start_ref payload+40 reason=policy_entry_offset
 ;       xref code_start_ref payload+40 reason=policy_entry_point
-	moveq.l #31,d2	; payload+42 bytes=74 1F
-	and.w (a7)+,d2	; payload+44 bytes=C4 5F
-	bra.b loc_0_00000010	; payload+46 bytes=60 08
+	moveq.l #31,d2
+	and.w (a7)+,d2
+	bra.b loc_0_00000010
 macos_code_CODE_25_loc_00000038:
-	bsr.b loc_0_00000044	; payload+56 bytes=61 32
+	bsr.b loc_0_00000044
 ;       xref code_start_ref payload+56 reason=control_target
-	clr.w (a7)	; payload+58 bytes=42 57
-	and.w d2,d0	; payload+60 bytes=C0 42
-	beq.b loc_0_0000001A	; payload+62 bytes=67 02
-	addq.b #1,(a7)	; payload+64 bytes=52 17
+	clr.w (a7)
+	and.w d2,d0
+	beq.b loc_0_0000001A
+	addq.b #1,(a7)
 macos_code_CODE_25_loc_00000042:
-	jmp (a0)	; payload+66 bytes=4E D0
+	jmp (a0)
 ;       xref code_start_ref payload+66 reason=control_target
 macos_code_CODE_25_loc_0000006c:
-	subq.l #2,a7	; payload+108 bytes=55 8F
+	subq.l #2,a7
 ;       xref code_start_ref payload+108 reason=control_target
-	pea.l (a7)	; payload+110 bytes=48 57
-	move.w #$3,-(a7)	; payload+112 bytes=3F 3C 00 03
+	pea.l (a7)
+	move.w #$3,-(a7)
 
 ; CODE 26 PASLIB source section
 macos_code_CODE_26:
@@ -2712,17 +2712,17 @@ macos_code_CODE_26_data_00000028:
 ;     candidate_code payload[198..2940) status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry
 ;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=7 labels=2 xrefs=3
 macos_code_CODE_26_loc_000000c6:
-	movea.l (a7)+,a0	; payload+198 bytes=20 5F
+	movea.l (a7)+,a0
 ;       xref code_start_ref payload+198 reason=policy_entry_offset
 ;       xref code_start_ref payload+198 reason=policy_entry_point
-	jsr (a0)	; payload+200 bytes=4E 90
-	bra.b loc_0_00000028	; payload+202 bytes=60 22
+	jsr (a0)
+	bra.b loc_0_00000028
 macos_code_CODE_26_loc_000000ee:
-	movem.l (a7)+,d6-d7/a3-a4	; payload+238 bytes=4C DF 18 C0
+	movem.l (a7)+,d6-d7/a3-a4
 ;       xref code_start_ref payload+238 reason=control_target
-	unlk a6	; payload+242 bytes=4E 5E
-	move.l (a7)+,(a7)	; payload+244 bytes=2E 9F
-	rts	; payload+246 bytes=4E 75
+	unlk a6
+	move.l (a7)+,(a7)
+	rts
 
 ; CODE 27 32-bit bootstrap source section
 macos_code_CODE_27:
@@ -2783,12 +2783,12 @@ macos_code_CODE_27_data_00000004:
 ;     candidate_code payload[204..1882) status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry
 ;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=4 labels=1 xrefs=2
 macos_code_CODE_27_loc_000000cc:
-	movea.l (a7)+,a0	; payload+204 bytes=20 5F
+	movea.l (a7)+,a0
 ;       xref code_start_ref payload+204 reason=policy_entry_offset
 ;       xref code_start_ref payload+204 reason=policy_entry_point
-	addq.w #4,a7	; payload+206 bytes=58 4F
-	clr.w (a7)	; payload+208 bytes=42 57
-	jmp (a0)	; payload+210 bytes=4E D0
+	addq.w #4,a7
+	clr.w (a7)
+	jmp (a0)
 
 
 ; Source quality gate
@@ -2826,112 +2826,136 @@ macos_code_CODE_27_loc_000000cc:
 ;   resource_review:
 ;     CODE 0: section=macos-code-CODE-0 ownership=metadata coverage=True labels=5 xrefs=0 instructions=0 body_spans=0 byte_real_only_body=False reachable_evidence=4 residuals=0
 ;       next: decode CODE 0 dispatch target semantics only where accepted target evidence exists
-;     CODE 1: section=macos-code-CODE-1 ownership=candidate_code,metadata coverage=True labels=6 xrefs=2 instructions=8 body_spans=1 byte_real_only_body=False reachable_evidence=3 residuals=1
+;     CODE 1: section=macos-code-CODE-1 ownership=candidate_code,metadata coverage=True labels=6 xrefs=2 instructions=8 body_spans=1 byte_real_only_body=False reachable_evidence=3 residuals=338
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual semantic_decode_gap payload[62..29024) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;     CODE 2: section=macos-code-CODE-2 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=2 instructions=4 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=2
+;       residual_summary candidate_unvisited_entry_pattern count=337 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
+;     CODE 2: section=macos-code-CODE-2 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=2 instructions=4 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=23
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual data payload[40..374) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
 ;       residual semantic_decode_gap payload[384..7788) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;     CODE 3: section=macos-code-CODE-3 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=2 instructions=3 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=2
+;       residual_summary candidate_unvisited_entry_pattern count=21 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
+;     CODE 3: section=macos-code-CODE-3 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=2 instructions=3 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=78
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual data payload[40..302) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
 ;       residual semantic_decode_gap payload[308..18252) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;     CODE 4: section=macos-code-CODE-4 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=3 instructions=10 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=2
+;       residual_summary candidate_unvisited_entry_pattern count=76 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
+;     CODE 4: section=macos-code-CODE-4 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=3 instructions=10 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=59
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual data payload[40..468) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
 ;       residual semantic_decode_gap payload[494..6426) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;     CODE 5: section=macos-code-CODE-5 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=2 instructions=11 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=2
+;       residual_summary candidate_unvisited_entry_pattern count=57 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
+;     CODE 5: section=macos-code-CODE-5 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=2 instructions=11 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=169
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual data payload[40..212) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
 ;       residual semantic_decode_gap payload[234..26638) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;     CODE 6: section=macos-code-CODE-6 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=21 instructions=76 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=2
+;       residual_summary candidate_unvisited_entry_pattern count=167 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
+;     CODE 6: section=macos-code-CODE-6 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=21 instructions=76 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=41
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual data payload[40..58) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
 ;       residual semantic_decode_gap payload[240..15158) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;     CODE 7: section=macos-code-CODE-7 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=2 instructions=4 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=2
+;       residual_summary candidate_unvisited_entry_pattern count=39 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
+;     CODE 7: section=macos-code-CODE-7 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=2 instructions=4 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=15
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual data payload[40..352) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
 ;       residual semantic_decode_gap payload[362..4142) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;     CODE 8: section=macos-code-CODE-8 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=27 instructions=66 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=2
+;       residual_summary candidate_unvisited_entry_pattern count=13 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
+;     CODE 8: section=macos-code-CODE-8 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=27 instructions=66 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=17
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual data payload[40..42) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
 ;       residual semantic_decode_gap payload[220..1852) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;     CODE 9: section=macos-code-CODE-9 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=2 instructions=3 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=2
+;       residual_summary candidate_unvisited_entry_pattern count=15 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
+;     CODE 9: section=macos-code-CODE-9 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=2 instructions=3 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=39
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual data payload[40..712) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
 ;       residual semantic_decode_gap payload[720..13946) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;     CODE 10: section=macos-code-CODE-10 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=2 instructions=3 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=2
+;       residual_summary candidate_unvisited_entry_pattern count=37 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
+;     CODE 10: section=macos-code-CODE-10 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=2 instructions=3 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=6
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual data payload[40..148) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
 ;       residual semantic_decode_gap payload[154..1542) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;     CODE 11: section=macos-code-CODE-11 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=2 instructions=3 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=2
+;       residual_summary candidate_unvisited_entry_pattern count=4 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
+;     CODE 11: section=macos-code-CODE-11 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=2 instructions=3 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=49
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual data payload[40..836) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
 ;       residual semantic_decode_gap payload[842..3678) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;     CODE 12: section=macos-code-CODE-12 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=3 instructions=15 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=2
+;       residual_summary candidate_unvisited_entry_pattern count=47 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
+;     CODE 12: section=macos-code-CODE-12 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=3 instructions=15 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=51
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual data payload[40..44) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
 ;       residual semantic_decode_gap payload[76..6928) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;     CODE 13: section=macos-code-CODE-13 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=16 instructions=61 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=2
+;       residual_summary candidate_unvisited_entry_pattern count=49 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
+;     CODE 13: section=macos-code-CODE-13 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=16 instructions=61 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=166
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual data payload[40..44) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
 ;       residual semantic_decode_gap payload[196..33354) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;     CODE 14: section=macos-code-CODE-14 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=2 instructions=3 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=2
+;       residual_summary candidate_unvisited_entry_pattern count=164 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
+;     CODE 14: section=macos-code-CODE-14 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=2 instructions=3 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=24
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual data payload[40..236) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
 ;       residual semantic_decode_gap payload[242..1886) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;     CODE 15: section=macos-code-CODE-15 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=2 instructions=3 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=2
+;       residual_summary candidate_unvisited_entry_pattern count=22 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
+;     CODE 15: section=macos-code-CODE-15 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=2 instructions=3 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=41
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual data payload[40..96) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
 ;       residual semantic_decode_gap payload[104..3452) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;     CODE 16: section=macos-code-CODE-16 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=2 instructions=3 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=2
+;       residual_summary candidate_unvisited_entry_pattern count=39 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
+;     CODE 16: section=macos-code-CODE-16 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=2 instructions=3 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=8
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual data payload[40..246) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
 ;       residual semantic_decode_gap payload[252..1034) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;     CODE 17: section=macos-code-CODE-17 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=2 instructions=3 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=2
+;       residual_summary candidate_unvisited_entry_pattern count=6 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
+;     CODE 17: section=macos-code-CODE-17 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=2 instructions=3 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=32
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual data payload[40..100) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
 ;       residual semantic_decode_gap payload[106..3674) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;     CODE 18: section=macos-code-CODE-18 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=2 instructions=3 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=2
+;       residual_summary candidate_unvisited_entry_pattern count=30 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
+;     CODE 18: section=macos-code-CODE-18 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=2 instructions=3 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=4
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual data payload[40..1562) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
 ;       residual semantic_decode_gap payload[1568..1974) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual_summary candidate_unvisited_entry_pattern count=2 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
 ;     CODE 19: section=macos-code-CODE-19 ownership=deferred,metadata coverage=True labels=3 xrefs=0 instructions=0 body_spans=0 byte_real_only_body=False reachable_evidence=1 residuals=1
 ;       next: extend C-owned CODE layout and reference analysis before promoting semantic source rows
 ;       residual deferred payload[40..556) status=deferred parser_use=deferred_only reason=missing_m68k_movea_l_stack_to_a0_entry
-;     CODE 20: section=macos-code-CODE-20 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=2 instructions=3 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=2
+;     CODE 20: section=macos-code-CODE-20 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=2 instructions=3 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=37
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual data payload[40..2876) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
 ;       residual semantic_decode_gap payload[2884..5262) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;     CODE 21: section=macos-code-CODE-21 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=2 instructions=3 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=2
+;       residual_summary candidate_unvisited_entry_pattern count=35 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
+;     CODE 21: section=macos-code-CODE-21 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=2 instructions=3 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=39
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual data payload[40..2000) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
 ;       residual semantic_decode_gap payload[2008..6794) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual_summary candidate_unvisited_entry_pattern count=37 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
 ;     CODE 22: section=macos-code-CODE-22 ownership=deferred,metadata coverage=True labels=3 xrefs=0 instructions=0 body_spans=0 byte_real_only_body=False reachable_evidence=1 residuals=1
 ;       next: extend C-owned CODE layout and reference analysis before promoting semantic source rows
 ;       residual deferred payload[40..96) status=deferred parser_use=deferred_only reason=missing_m68k_movea_l_stack_to_a0_entry
 ;     CODE 23: section=macos-code-CODE-23 ownership=deferred,metadata coverage=True labels=3 xrefs=0 instructions=0 body_spans=0 byte_real_only_body=False reachable_evidence=1 residuals=1
 ;       next: extend C-owned CODE layout and reference analysis before promoting semantic source rows
 ;       residual deferred payload[40..126) status=deferred parser_use=deferred_only reason=missing_m68k_movea_l_stack_to_a0_entry
-;     CODE 24: section=macos-code-CODE-24 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=2 instructions=3 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=2
+;     CODE 24: section=macos-code-CODE-24 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=2 instructions=3 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=25
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual data payload[40..2950) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
 ;       residual semantic_decode_gap payload[2958..4970) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;     CODE 25: section=macos-code-CODE-25 ownership=candidate_code,metadata coverage=True labels=3 xrefs=5 instructions=13 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=3
+;       residual_summary candidate_unvisited_entry_pattern count=23 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
+;     CODE 25: section=macos-code-CODE-25 ownership=candidate_code,metadata coverage=True labels=3 xrefs=5 instructions=13 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=13
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual semantic_decode_gap payload[48..56) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[68..108) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[116..246) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;     CODE 26: section=macos-code-CODE-26 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=3 instructions=7 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=3
+;       residual_summary candidate_unvisited_entry_pattern count=10 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
+;     CODE 26: section=macos-code-CODE-26 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=3 instructions=7 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=58
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual data payload[40..198) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
 ;       residual semantic_decode_gap payload[204..238) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[248..2940) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;     CODE 27: section=macos-code-CODE-27 ownership=candidate_code,data,metadata coverage=True labels=5 xrefs=2 instructions=4 body_spans=1 byte_real_only_body=False reachable_evidence=3 residuals=2
+;       residual_summary candidate_unvisited_entry_pattern count=55 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
+;     CODE 27: section=macos-code-CODE-27 ownership=candidate_code,data,metadata coverage=True labels=5 xrefs=2 instructions=4 body_spans=1 byte_real_only_body=False reachable_evidence=3 residuals=21
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual data payload[4..204) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
 ;       residual semantic_decode_gap payload[212..1882) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual_summary candidate_unvisited_entry_pattern count=19 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
 
 
 ; Supporting evidence follows after the source body.
