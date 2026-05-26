@@ -1,6 +1,6 @@
 # Proposal 023: Classic Mac OS Source Presentation
 
-Status: active
+Status: complete
 
 ## Purpose
 
@@ -258,6 +258,30 @@ Completed display/API consolidation state:
 
 Prove the final Mac source presentation contract alongside Amiga/Atari exact
 gates and close the proposal.
+
+Final closeout state:
+
+- Proposal 023 is complete for the committed MPW `Asm` fixture as starter
+  Classic Mac OS source presentation, not as resource-fork round-trip support.
+- Every executable CODE resource is visible in `code_resource_details` with
+  `source_presentation_status`. Current fixture CODE resources are covered by
+  C-owned `restored_source_model_v1` packets with verifier state, ownership
+  ranges, source reference records, and stable CODE identities; missing future
+  packets fail closed as typed deferred source placeholders.
+- CODE 0 routing, Segment Loader fixup placeholders, A5/world context,
+  address-space context, and executable non-CODE resource placeholders are
+  visible through the same source/API/artifact/web surfaces. Mac byte-entry,
+  Segment Loader relocation/fixup decoding, and A5 lifetime semantics remain at
+  their existing candidate/deferred evidence states.
+- Non-CODE resource payloads remain placeholders. Current placeholders are
+  stable by resource type and explicitly unlinked because no CODE routing,
+  fixup, or restored-source reference targets those resource types yet.
+- Python/web/API presentation consumes C-owned restored-source evidence and
+  does not synthesize passing verifier, ownership, or restored-source authority.
+- Final proof passed: executable-format KB validation; executable-format
+  coverage against current Mac C backend, current Amiga HUNK, and current Atari
+  PRG outputs; focused Mac backend/project/artifact/web/source tests; C
+  precommit; and `git diff --check`.
 
 ## Verification Plan
 
