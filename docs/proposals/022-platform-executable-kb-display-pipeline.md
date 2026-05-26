@@ -98,6 +98,95 @@ Anchors to reuse or deliberately replace:
   explicit placeholders for those effects; leaving only a broad deferred note is
   not sufficient.
 
+## 022-001 Inventory And Replacement Map
+
+Current ownership/range sources:
+
+- Shared executable import authority is `platform_executable_summary_v1` in
+  `src/platform_executable_summary.h` and its emitters in
+  `src/platform_file_json.c`/`src/platform_file_lib.c`. Amiga and Atari ranges
+  are derived from `M68kObject` sections as loaded-image `load_offset` spans
+  with nullable stored offsets for BSS; Mac ranges come from CODE resource
+  summary/layout facts.
+- Rendered source ownership is currently implicit in `src/m68k_render_ir.c`:
+  accepted instruction bytes render as instruction rows, fixup/anchor/structured
+  data/string/unknown spans render as data rows, BSS/uninitialized spans render
+  as reserve rows, and platform metadata renders as diagnostic or platform
+  directive rows.
+- `src/m68k_render_plan.h` is the correct attachment point for 022 output. Rows
+  already carry row kind, section index, source offset/size, runtime range,
+  statement metadata, source bytes, data class flags, labels, and line-window
+  indexes.
+
+Current relocation/reference sources:
+
+- Amiga/Atari low-level relocation data enters through `M68kObject.fixups` and
+  `M68kFixup` lookups. `src/m68k_analysis_facts_v2.c` turns fixups and traced
+  address effects into xrefs, runtime-address refs, relocation anchors, and
+  violation facts.
+- `src/m68k_render_ir.c` renders fixup/anchor records as source data
+  expressions today, but those references are not yet surfaced as a shared
+  `source_reference_records` model.
+- Mac Segment Loader relocation/fixup state is currently emitted mainly as
+  deferred `relocation_fixups`/`executable_deferred` summary state. 022 must
+  replace that broad-only surface with source-level reference records where
+  evidence exists and explicit placeholders where it does not.
+
+Current consumers:
+
+- C listing artifacts in `src/platform_file_lib.c` expose analysis, source text,
+  summary, navigation, row windows, source-offset row lookup, runtime-address row
+  lookup, and anchor windows.
+- `amiga_reversing/disasm/c_backend.py` is the Python API boundary for those
+  artifact calls and for direct rebuild/reproduction comparison.
+- `amiga_reversing/disasm/reproduction.py` owns Amiga/Atari round-trip report
+  generation and remains the exactness proof surface.
+- Mac project/artifact/web consumers are
+  `amiga_reversing/disasm/macos_project_payload.py`,
+  `amiga_reversing/disasm/macos_target_artifact.py`,
+  `amiga_reversing/disasm/macos_web_view.py`, and
+  `amiga_reversing/web/app.js`.
+
+Legacy compatibility fields and deletion proof:
+
+| Legacy field/path | Current role | Replacement restored-source record | Delete only after |
+| --- | --- | --- | --- |
+| `selected_code_segment` | Mac selected CODE identity/listing link | platform extension plus ownership model root | Web/API/artifact consumers read restored-source identity and listing link |
+| `code_layout` | Mac CODE metadata/candidate/data spans | `source_ownership_ranges` | Mac selected CODE coverage verifier proves no silent gaps/overlaps |
+| `orphan_ranges` | Mac candidate bytes outside selected code body | ownership ranges with candidate/unknown roles | Rows and web payload expose same span, reason, fact id/status/parser-use |
+| `relocation_fixups` | Broad Mac deferred fixup note | `source_reference_records` plus placeholders | Source-level references/placeholders preserve deferred reason and provenance |
+| `code_segment_map` | CODE 0 jump-table/resource routing | source references plus Mac platform extension | Navigation and artifact output link CODE resources through shared records |
+| `preview_windows` | Candidate CODE previews for non-selected resources | placeholder/source-line groups over restored-source rows | Preview evidence is visible through shared rows or typed placeholders |
+| `non_code_resource_details` | Unsupported resource inventory | executable-relevant resource placeholders | Placeholders expose type/id/name, size/hash, status, reason, provenance |
+| ad hoc executable range JSON in listing profiles | Duplicate platform range summary | restored-source model derived from executable summary | C artifact APIs expose model and tests prove parity |
+
+Round-trip and source-quality proof surfaces:
+
+- Amiga/Atari exactness remains `cmd /c src\precommit.bat`, facts-v2 direct
+  rebuild compare profiles, reproduction compare reports, and existing
+  relocation/content exactness flags. Source coverage is additional evidence and
+  cannot substitute for exact rebuild/reproduction proof.
+- Mac proof is no-round-trip source quality: selected CODE listing/artifact/web
+  tests, `platform_executable_formats` validate/coverage, candidate/deferred
+  fact preservation, full selected CODE ownership coverage, source-level
+  relocation/reference records or placeholders, and explicit `round_trip_required:
+  false`.
+
+First coding boundary for 022-002:
+
+- Add a C-owned restored-source model adjacent to the render-plan/listing
+  artifact layer, initially derived from `PlatformExecutableSummary` plus
+  `M68kObject` section/CODE metadata. Expose it through a listing artifact
+  analysis/API payload for one rebuilt platform path and one Mac CODE path before
+  adding the verifier. This avoids a disconnected report-only implementation and
+  gives 022-003 one authoritative model to validate.
+
+UI follow-up observations:
+
+- Existing web panels can display the new evidence without redesign, but later
+  UI work should add ownership navigation, reference/fixup context, resource
+  placeholder navigation, and side-by-side code/data/source views.
+
 ## Tutorial Example
 
 A Mac CODE restored-source packet should be explicit about ownership and
