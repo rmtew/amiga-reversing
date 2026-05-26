@@ -446,10 +446,23 @@ def test_021_007_macos_code_bytes_artifact_profile_is_native(tmp_path: Path) -> 
     finally:
         artifact.close()
 
-    assert profile["backend"] == "macos-code"
-    assert source_profile["backend"] == "macos-code"
-    assert window_profile["backend"] == "macos-code"
+    for observed_profile in (profile, source_profile, window_profile):
+        assert observed_profile["backend"] == "macos-code"
+        assert observed_profile.get("wrapped_backend") != "amiga-raw"
     assert any(str(row.get("text") or "").strip() == "movea.l (a7)+,a0" for row in window["rows"])
+
+
+def test_021_011_macos_code_buffer_entrypoint_stays_off_amiga_raw_internals() -> None:
+    source = (PROJECT_ROOT / "src" / "platform_file_lib.c").read_text(encoding="utf-8")
+    start = source.index("int platform_file_facts_v2_listing_artifact_macos_code_buffer_create(")
+    end = source.index("int platform_file_facts_v2_listing_artifact_window_json_alloc(", start)
+    body = source[start:end]
+
+    assert "load_flat_m68k_object_from_buffer(" in body
+    assert "configure_flat_m68k_buffer_policy(" in body
+    assert "amiga-raw" not in body
+    assert "load_raw_object_from_buffer(" not in body
+    assert "configure_analysis_policy_for_alloc(" not in body
 
 
 def test_021_009_flat_m68k_buffer_artifact_profile_is_neutral() -> None:

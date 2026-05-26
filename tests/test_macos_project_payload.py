@@ -6,6 +6,7 @@ from typing import Any
 import pytest
 
 from amiga_reversing.disasm import macos_project_payload
+from amiga_reversing.disasm.project_paths import PROJECT_ROOT
 from amiga_reversing.disasm.projects import ProjectKind, ProjectRecord
 from amiga_reversing.tools import platform_executable_formats
 
@@ -438,7 +439,7 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
         calls.setdefault("decode_bytes", []).append(code_bytes)
         calls.setdefault("decode_display_paths", []).append(display_path)
         calls.setdefault("decode_project_roots", []).append(kwargs.get("project_root"))
-        return 2, {}, FakeDecodeArtifact()
+        return 2, {"backend": "macos-code", "source_kind": "macos_code_resource"}, FakeDecodeArtifact()
 
     monkeypatch.setattr(macos_project_payload, "read_macos_hfs_image_bytes", fake_read_hfs)
     monkeypatch.setattr(macos_project_payload, "inspect_macos_hfs_code_summary_with_c_backend", fake_summary)
@@ -597,6 +598,8 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
     assert code2_detail["listing"]["available"] is True
     assert code2_detail["listing"]["route"] == "code_preview"
     assert code2_detail["preview_windows"][0]["range_kind"] == "candidate_code"
+    assert code2_detail["preview_windows"][0].get("backend") != "amiga-raw"
+    assert code2_detail["preview_windows"][0].get("wrapped_backend") != "amiga-raw"
     assert code2_detail["preview_windows"][0]["start"] == 6
     assert code2_detail["preview_windows"][0]["end"] == 10
     assert code2_detail["preview_windows"][0]["fact_status"] == "candidate"
@@ -647,6 +650,7 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
     listing = container["selected_code_segment"]["listing"]
     assert listing["backend"] == "macos-code"
     assert listing["source_kind"] == "macos_code_resource"
+    assert listing.get("wrapped_backend") != "amiga-raw"
     assert listing["native_source"]["resource_id"] == 1
     assert {key: value for key, value in listing.items() if key not in {"backend", "source_kind", "native_source"}} == {
         "project_id": "macos_mpw_sample",
@@ -663,6 +667,19 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
     }
     assert payload["source_binary_boundary"]["observed_code_fixture"] == "MPW-GM/MPW/Tools/Asm"
     assert payload["provenance"]["binary_container_source"] == "platform_file_lib.macos_hfs_code_summary"
+
+
+def test_021_011_macos_preview_decode_source_stays_native() -> None:
+    source = (PROJECT_ROOT / "amiga_reversing" / "disasm" / "macos_project_payload.py").read_text(encoding="utf-8")
+    start = source.index("def _preview_decode_rows(")
+    end = source.index("def _decoded_preview_rows(", start)
+    body = source[start:end]
+
+    assert "build_macos_code_bytes_listing_artifact_profile(" in body
+    assert "RawBinarySource" not in body
+    assert "NamedTemporaryFile" not in body
+    assert "build_listing_artifact_profile_from_binary_source(" not in body
+    assert "amiga-raw" not in body
 
 
 def test_macos_code_preview_extraction_cache_hits_and_isolates(

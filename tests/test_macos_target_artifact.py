@@ -314,27 +314,33 @@ def test_macos_listing_artifact_uses_macos_source_and_row_provenance() -> None:
     _total_rows, profile, artifact = build_macos_project_listing_artifact_profile(project)
     try:
         analysis, analysis_profile = artifact.analysis_payload()
+        summary, summary_profile = artifact.summary_payload()
+        navigation, navigation_profile = artifact.navigation_payload()
         source_text, source_profile = artifact.source_text_with_profile()
-        window, _window_profile = artifact.window_payload(start=0, count=16)
+        window, window_profile = artifact.window_payload(start=0, count=16)
     finally:
         artifact.close()
 
     analysis_ranges = cast(list[dict[str, Any]], analysis["executable_ranges"])
     analysis_deferred = cast(list[dict[str, Any]], analysis["executable_deferred"])
-    assert profile["backend"] == "macos-code"
-    assert profile["source_kind"] == "macos_code_resource"
-    assert "wrapped_backend" not in profile
-    assert analysis_profile["backend"] == "macos-code"
-    assert analysis_profile["source_kind"] == "macos_code_resource"
-    assert "wrapped_backend" not in analysis_profile
+    for observed_profile in (
+        profile,
+        analysis_profile,
+        summary_profile,
+        navigation_profile,
+        source_profile,
+        window_profile,
+    ):
+        assert observed_profile["backend"] == "macos-code"
+        assert observed_profile["source_kind"] == "macos_code_resource"
+        assert observed_profile.get("wrapped_backend") != "amiga-raw"
+    assert summary["total_rows"] > 0
+    assert navigation["groups"]
     assert analysis["executable_model"] == "platform_executable_summary_v1"
     assert analysis_ranges[0]["role"] == "candidate_code"
     assert analysis_ranges[0]["fact_status"] == "candidate"
     assert analysis_ranges[0]["parser_use"] == "candidate_only"
     assert analysis_deferred[0]["fact_status"] == "deferred"
-    assert source_profile["backend"] == "macos-code"
-    assert source_profile["source_kind"] == "macos_code_resource"
-    assert "wrapped_backend" not in source_profile
     assert "; Classic Mac OS CODE resource listing" in source_text
     assert "; source kind: macos_code_resource" in source_text
     assert "; HFS path: MPW-GM/MPW/Tools/Asm" in source_text

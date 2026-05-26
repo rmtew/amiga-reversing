@@ -259,14 +259,22 @@ Post-closeout follow-ups completed without reopening Proposal 021:
   onto that neutral flat M68K object/policy path. Selected Mac CODE and preview
   byte artifacts still report `backend: macos-code`, but their C setup no
   longer calls the Amiga raw policy or raw object loader.
+- 021-011 added regression guards for that post-closeout boundary. Tests now
+  fail if selected Mac CODE listing, analysis, summary, navigation, source text,
+  row-window, or preview surfaces expose `backend: amiga-raw` or
+  `wrapped_backend: amiga-raw`; source-level guards also keep the Mac CODE
+  buffer entry point and preview decoder off the old raw object/policy path.
+  These guards prove identity and transport boundaries only; they deliberately
+  do not promote Mac byte-entry, relocation/fixup, source-to-CODE, or non-CODE
+  facts beyond their Proposal 018 states.
 
 Final future work:
 
 - Mac byte-entry, relocation/fixup, source-to-CODE, and non-CODE payload facts
   remain governed by Proposal 018 states and were not promoted by 021.
 - A post-closeout cleanup batch remains active for the low-level C buffer
-  implementation: 021-011 adds regression guards against raw identity leaks,
-  and 021-012 reconciles this proposal after those code slices land.
+  implementation: 021-012 reconciles this proposal after those code slices
+  land.
 
 ## Acceptance Criteria
 
