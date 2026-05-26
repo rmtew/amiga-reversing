@@ -1220,7 +1220,12 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     code2_quality = next(item for item in quality_rows if item["resource_id"] == 2)
     assert code2_quality["legacy_orphan_ranges_reclassified"] > 0
     assert code2_quality["orphan_bucket_present"] is False
-    assert any(item["kind"] == "data" and item["status"] == "candidate" for item in code2_quality["residuals"])
+    assert any(
+        item["kind"] == "candidate_unresolved_prefix"
+        and item["status"] == "candidate"
+        and item.get("parser_range_kind") == "data"
+        for item in code2_quality["residuals"]
+    )
     assert any(item["kind"] == "semantic_decode_gap" for item in code2_quality["residuals"])
     for detail in container["code_resource_details"]:
         presentation = detail["source_presentation_status"]

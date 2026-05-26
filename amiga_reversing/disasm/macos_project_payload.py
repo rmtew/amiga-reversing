@@ -348,10 +348,19 @@ def _code_source_section_status(detail: Mapping[str, object], *, selected_id: ob
 
 def _source_body_ranges(detail: Mapping[str, object]) -> list[dict[str, object]]:
     kb_record_id = detail.get("kb_record_id")
-    return [
-        {**_mapping(item), "kb_record_id": _mapping(item).get("kb_record_id") or kb_record_id}
-        for item in _sequence(detail.get("code_layout"))
-    ]
+    return [_source_body_range(item, kb_record_id=kb_record_id) for item in _sequence(detail.get("code_layout"))]
+
+
+def _source_body_range(item: object, *, kb_record_id: object) -> dict[str, object]:
+    range_info = {**_mapping(item), "kb_record_id": _mapping(item).get("kb_record_id") or kb_record_id}
+    if range_info.get("kind") == "data" and range_info.get("evidence") == "prefix_before_stack_entry":
+        range_info["parser_range_kind"] = "data"
+        range_info["kind"] = "candidate_unresolved_prefix"
+        range_info["reason"] = (
+            "bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached "
+            "through loader/stack/fixup flow not yet modeled"
+        )
+    return range_info
 
 
 def _source_jump_table_rows(detail: Mapping[str, object]) -> list[dict[str, object]]:
@@ -617,10 +626,17 @@ def _source_quality_residuals(
             if semantic_rows:
                 residuals.extend(decoded_residuals)
                 continue
-        if kind in {"candidate_code", "deferred", "unknown", "placeholder"} or status in {"candidate", "deferred"}:
+        if kind in {
+            "candidate_code",
+            "candidate_unresolved_prefix",
+            "deferred",
+            "unknown",
+            "placeholder",
+        } or status in {"candidate", "deferred"}:
             residuals.append(
                 {
                     "kind": kind or "unknown",
+                    "parser_range_kind": item.get("parser_range_kind"),
                     "start": item.get("start"),
                     "end": item.get("end"),
                     "size": item.get("size"),
@@ -629,7 +645,7 @@ def _source_quality_residuals(
                     "parser_use": item.get("parser_use"),
                     "fact_id": item.get("fact_id"),
                     "kb_record_id": item.get("kb_record_id") or detail.get("kb_record_id"),
-                    "reason": item.get("evidence") or item.get("reason") or "semantic ownership remains unresolved",
+                    "reason": item.get("reason") or item.get("evidence") or "semantic ownership remains unresolved",
                     "next_required_implementation": _source_quality_next_step(detail, []),
                 }
             )

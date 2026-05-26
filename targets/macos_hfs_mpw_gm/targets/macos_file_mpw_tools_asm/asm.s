@@ -319,7 +319,7 @@ macos_code_CODE_2:
 ;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
 ;   source_body_ranges:
 ;     metadata payload[0..40) size=40 entrypoint=False status=validated parser_use=accepted_parser_output evidence=far_model_segment_header fact=macos.code_resource.nonzero.segment_header
-;     data payload[40..374) size=334 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;     candidate_unresolved_prefix payload[40..374) size=334 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
 ;     candidate_code payload[374..7788) size=7414 entrypoint=True status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
 ;   byte_preserving_placeholder: CODE 2 payload[0..7788) sha256=a33f1dfe28237a5ee6f9ba7a96540e8e4842a7e6207575db5f0479b8c622a4f2
 ;   placeholder_reason: semantic CODE disassembly remains deferred; current source body renders exact bytes for C-owned ranges and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
@@ -329,8 +329,8 @@ macos_code_CODE_2_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$03,$A0,$00,$00,$00,$07,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00
-;     data payload[40..374) status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry
-macos_code_CODE_2_data_00000028:
+;     candidate_unresolved_prefix payload[40..374) status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry
+macos_code_CODE_2_candidate_unresolved_prefix_00000028:
 	dc.b $20,$1F,$2F,$40,$00,$10,$30,$2D,$F4,$2A,$D0,$40,$41,$FA,$01,$92
 	dc.b $32,$30,$00,$00,$67,$26,$D0,$C1,$42,$41,$22,$57,$70,$00,$10,$10
 	dc.b $B3,$08,$56,$C8,$FF,$FC,$67,$1C,$D0,$88,$08,$00,$00,$00,$67,$02
@@ -389,7 +389,7 @@ macos_code_CODE_3:
 ;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
 ;   source_body_ranges:
 ;     metadata payload[0..40) size=40 entrypoint=False status=validated parser_use=accepted_parser_output evidence=far_model_segment_header fact=macos.code_resource.nonzero.segment_header
-;     data payload[40..302) size=262 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;     candidate_unresolved_prefix payload[40..302) size=262 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
 ;     candidate_code payload[302..18252) size=17950 entrypoint=True status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
 ;   byte_preserving_placeholder: CODE 3 payload[0..18252) sha256=331fc8e7daf79d4e733760cb8ad413ade51431a01dd6c19c4f73720f562b08e4
 ;   placeholder_reason: semantic CODE disassembly remains deferred; current source body renders exact bytes for C-owned ranges and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
@@ -399,8 +399,8 @@ macos_code_CODE_3_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$03,$D8,$00,$00,$00,$03,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00
-;     data payload[40..302) status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry
-macos_code_CODE_3_data_00000028:
+;     candidate_unresolved_prefix payload[40..302) status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry
+macos_code_CODE_3_candidate_unresolved_prefix_00000028:
 	dc.b $91,$C8,$4E,$AD,$06,$1A,$30,$3C,$00,$04,$4E,$AD,$06,$22,$22,$5F
 	dc.b $30,$FC,$01,$00,$30,$9F,$4E,$D1,$4E,$56,$FF,$F8,$48,$6D,$D2,$72
 	dc.b $4E,$AD,$09,$FA,$4E,$5E,$4E,$75,$8B,$43,$4C,$45,$41,$52,$53,$43
@@ -454,7 +454,7 @@ macos_code_CODE_4:
 ;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
 ;   source_body_ranges:
 ;     metadata payload[0..40) size=40 entrypoint=False status=validated parser_use=accepted_parser_output evidence=far_model_segment_header fact=macos.code_resource.nonzero.segment_header
-;     data payload[40..468) size=428 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;     candidate_unresolved_prefix payload[40..468) size=428 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
 ;     candidate_code payload[468..6426) size=5958 entrypoint=True status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
 ;   byte_preserving_placeholder: CODE 4 payload[0..6426) sha256=a697293e579b91031cb9bb37cd80a4f47d2acb9eff60a4f4b7e3cb9a18fd4fca
 ;   placeholder_reason: semantic CODE disassembly remains deferred; current source body renders exact bytes for C-owned ranges and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
@@ -464,8 +464,8 @@ macos_code_CODE_4_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$03,$F0,$00,$00,$00,$14,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00
-;     data payload[40..468) status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry
-macos_code_CODE_4_data_00000028:
+;     candidate_unresolved_prefix payload[40..468) status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry
+macos_code_CODE_4_candidate_unresolved_prefix_00000028:
 	dc.b $22,$5F,$20,$1F,$22,$1F,$48,$E7,$04,$78,$24,$40,$28,$41,$30,$2C
 	dc.b $01,$0A,$32,$2C,$02,$2E,$4A,$2C,$02,$38,$67,$16,$42,$2C,$02,$38
 	dc.b $B0,$41,$6F,$0E,$2F,$0C,$4E,$BA,$11,$BE,$30,$2C,$01,$0A,$32,$2C
@@ -537,7 +537,7 @@ macos_code_CODE_5:
 ;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
 ;   source_body_ranges:
 ;     metadata payload[0..40) size=40 entrypoint=False status=validated parser_use=accepted_parser_output evidence=far_model_segment_header fact=macos.code_resource.nonzero.segment_header
-;     data payload[40..212) size=172 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;     candidate_unresolved_prefix payload[40..212) size=172 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
 ;     candidate_code payload[212..26638) size=26426 entrypoint=True status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
 ;   byte_preserving_placeholder: CODE 5 payload[0..26638) sha256=90b898d2148ba2c3b798bed0c8c5dc936fba9ed3e8b958d279db4b279a033dfc
 ;   placeholder_reason: semantic CODE disassembly remains deferred; current source body renders exact bytes for C-owned ranges and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
@@ -547,8 +547,8 @@ macos_code_CODE_5_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$04,$90,$00,$00,$00,$17,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00
-;     data payload[40..212) status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry
-macos_code_CODE_5_data_00000028:
+;     candidate_unresolved_prefix payload[40..212) status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry
+macos_code_CODE_5_candidate_unresolved_prefix_00000028:
 	dc.b $24,$1F,$22,$5F,$20,$6D,$EC,$E6,$4A,$28,$00,$2A,$67,$06,$42,$17
 	dc.b $20,$42,$4E,$D0,$70,$01,$1E,$80,$2F,$0B,$26,$68,$00,$20,$21,$4B
 	dc.b $00,$26,$30,$28,$00,$1E,$31,$40,$00,$24,$3B,$40,$ED,$5E,$52,$40
@@ -604,7 +604,7 @@ macos_code_CODE_6:
 ;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
 ;   source_body_ranges:
 ;     metadata payload[0..40) size=40 entrypoint=False status=validated parser_use=accepted_parser_output evidence=far_model_segment_header fact=macos.code_resource.nonzero.segment_header
-;     data payload[40..58) size=18 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;     candidate_unresolved_prefix payload[40..58) size=18 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
 ;     candidate_code payload[58..15158) size=15100 entrypoint=True status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
 ;   byte_preserving_placeholder: CODE 6 payload[0..15158) sha256=75005bca2e9e007ce374020416127735d9096e064806e4e1e1b888cd3ba8a9cf
 ;   placeholder_reason: semantic CODE disassembly remains deferred; current source body renders exact bytes for C-owned ranges and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
@@ -614,8 +614,8 @@ macos_code_CODE_6_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$05,$48,$00,$00,$00,$09,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00
-;     data payload[40..58) status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry
-macos_code_CODE_6_data_00000028:
+;     candidate_unresolved_prefix payload[40..58) status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry
+macos_code_CODE_6_candidate_unresolved_prefix_00000028:
 	dc.b $20,$1F,$2F,$40,$00,$18,$55,$4F,$2F,$2F,$00,$06,$4E,$AD,$00,$D2
 	dc.b $30,$1F
 ;     candidate_code payload[58..15158) status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry
@@ -741,7 +741,7 @@ macos_code_CODE_7:
 ;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
 ;   source_body_ranges:
 ;     metadata payload[0..40) size=40 entrypoint=False status=validated parser_use=accepted_parser_output evidence=far_model_segment_header fact=macos.code_resource.nonzero.segment_header
-;     data payload[40..352) size=312 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;     candidate_unresolved_prefix payload[40..352) size=312 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
 ;     candidate_code payload[352..4142) size=3790 entrypoint=True status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
 ;   byte_preserving_placeholder: CODE 7 payload[0..4142) sha256=3bc5de90c439ad5e0f7e5d4635b445022db8ab231a9b43981dbd95673ac0b78e
 ;   placeholder_reason: semantic CODE disassembly remains deferred; current source body renders exact bytes for C-owned ranges and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
@@ -751,8 +751,8 @@ macos_code_CODE_7_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$05,$90,$00,$00,$00,$06,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00
-;     data payload[40..352) status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry
-macos_code_CODE_7_data_00000028:
+;     candidate_unresolved_prefix payload[40..352) status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry
+macos_code_CODE_7_candidate_unresolved_prefix_00000028:
 	dc.b $20,$1F,$2F,$40,$00,$10,$30,$2D,$F4,$2A,$D0,$40,$41,$FA,$01,$7C
 	dc.b $32,$30,$00,$00,$67,$26,$D0,$C1,$42,$41,$22,$57,$70,$00,$10,$10
 	dc.b $B3,$08,$56,$C8,$FF,$FC,$67,$1C,$D0,$88,$08,$00,$00,$00,$67,$02
@@ -810,7 +810,7 @@ macos_code_CODE_8:
 ;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
 ;   source_body_ranges:
 ;     metadata payload[0..40) size=40 entrypoint=False status=validated parser_use=accepted_parser_output evidence=far_model_segment_header fact=macos.code_resource.nonzero.segment_header
-;     data payload[40..42) size=2 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;     candidate_unresolved_prefix payload[40..42) size=2 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
 ;     candidate_code payload[42..1852) size=1810 entrypoint=True status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
 ;   byte_preserving_placeholder: CODE 8 payload[0..1852) sha256=5b3cd8756213ba73870bb353160d4e5dbb1a3bdd2da93157146d091b6949a2e9
 ;   placeholder_reason: semantic CODE disassembly remains deferred; current source body renders exact bytes for C-owned ranges and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
@@ -820,8 +820,8 @@ macos_code_CODE_8_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$05,$C0,$00,$00,$00,$07,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00
-;     data payload[40..42) status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry
-macos_code_CODE_8_data_00000028:
+;     candidate_unresolved_prefix payload[40..42) status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry
+macos_code_CODE_8_candidate_unresolved_prefix_00000028:
 	dc.b $22,$5F
 ;     candidate_code payload[42..1852) status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry
 ;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=66 labels=17 xrefs=27
@@ -938,7 +938,7 @@ macos_code_CODE_9:
 ;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
 ;   source_body_ranges:
 ;     metadata payload[0..40) size=40 entrypoint=False status=validated parser_use=accepted_parser_output evidence=far_model_segment_header fact=macos.code_resource.nonzero.segment_header
-;     data payload[40..712) size=672 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;     candidate_unresolved_prefix payload[40..712) size=672 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
 ;     candidate_code payload[712..13946) size=13234 entrypoint=True status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
 ;   byte_preserving_placeholder: CODE 9 payload[0..13946) sha256=0361ae9dcb47f31cf559372a3e42c672dcfb8920b332d4f900a7124ab6c70bf3
 ;   placeholder_reason: semantic CODE disassembly remains deferred; current source body renders exact bytes for C-owned ranges and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
@@ -948,8 +948,8 @@ macos_code_CODE_9_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$05,$F8,$00,$00,$00,$09,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00
-;     data payload[40..712) status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry
-macos_code_CODE_9_data_00000028:
+;     candidate_unresolved_prefix payload[40..712) status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry
+macos_code_CODE_9_candidate_unresolved_prefix_00000028:
 	dc.b $2B,$48,$F0,$BE,$22,$6D,$F0,$CE,$20,$2D,$F0,$CA,$67,$14,$20,$40
 	dc.b $10,$10,$32,$3C,$07,$18,$01,$01,$67,$08,$20,$09,$90,$88,$31,$40
 	dc.b $00,$02,$20,$09,$08,$00,$00,$00,$67,$02,$42,$19,$20,$09,$90,$AD
@@ -1028,7 +1028,7 @@ macos_code_CODE_10:
 ;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
 ;   source_body_ranges:
 ;     metadata payload[0..40) size=40 entrypoint=False status=validated parser_use=accepted_parser_output evidence=far_model_segment_header fact=macos.code_resource.nonzero.segment_header
-;     data payload[40..148) size=108 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;     candidate_unresolved_prefix payload[40..148) size=108 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
 ;     candidate_code payload[148..1542) size=1394 entrypoint=True status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
 ;   byte_preserving_placeholder: CODE 10 payload[0..1542) sha256=2d5d27affd131aaa28eb0bd33157051e8f30ee3cdc054df4aad3011bdb22c1e1
 ;   placeholder_reason: semantic CODE disassembly remains deferred; current source body renders exact bytes for C-owned ranges and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
@@ -1038,8 +1038,8 @@ macos_code_CODE_10_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$06,$40,$00,$00,$00,$02,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00
-;     data payload[40..148) status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry
-macos_code_CODE_10_data_00000028:
+;     candidate_unresolved_prefix payload[40..148) status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry
+macos_code_CODE_10_candidate_unresolved_prefix_00000028:
 	dc.b $91,$C8,$4E,$AD,$06,$1A,$4A,$2D,$F0,$B1,$67,$16,$20,$2D,$F0,$CE
 	dc.b $90,$AD,$F0,$D2,$6F,$06,$2F,$00,$4E,$AD,$06,$52,$4E,$AD,$06,$7A
 	dc.b $4E,$75,$30,$3C,$00,$02,$4E,$AD,$06,$22,$30,$FC,$02,$00,$20,$08
@@ -1083,7 +1083,7 @@ macos_code_CODE_11:
 ;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
 ;   source_body_ranges:
 ;     metadata payload[0..40) size=40 entrypoint=False status=validated parser_use=accepted_parser_output evidence=far_model_segment_header fact=macos.code_resource.nonzero.segment_header
-;     data payload[40..836) size=796 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;     candidate_unresolved_prefix payload[40..836) size=796 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
 ;     candidate_code payload[836..3678) size=2842 entrypoint=True status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
 ;   byte_preserving_placeholder: CODE 11 payload[0..3678) sha256=04097ca27d77f09604177ac5e85019ecaed552d68ae2e9d50ae3b5a4e394c503
 ;   placeholder_reason: semantic CODE disassembly remains deferred; current source body renders exact bytes for C-owned ranges and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
@@ -1093,8 +1093,8 @@ macos_code_CODE_11_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$06,$50,$00,$00,$00,$0F,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00
-;     data payload[40..836) status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry
-macos_code_CODE_11_data_00000028:
+;     candidate_unresolved_prefix payload[40..836) status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry
+macos_code_CODE_11_candidate_unresolved_prefix_00000028:
 	dc.b $2B,$48,$F0,$96,$4E,$BA,$00,$62,$B3,$ED,$F0,$9E,$6D,$50,$2F,$09
 	dc.b $20,$2D,$F0,$CA,$67,$14,$20,$40,$10,$10,$32,$3C,$07,$18,$01,$01
 	dc.b $67,$08,$20,$09,$90,$88,$31,$40,$00,$02,$20,$09,$08,$00,$00,$00
@@ -1181,7 +1181,7 @@ macos_code_CODE_12:
 ;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
 ;   source_body_ranges:
 ;     metadata payload[0..40) size=40 entrypoint=False status=validated parser_use=accepted_parser_output evidence=far_model_segment_header fact=macos.code_resource.nonzero.segment_header
-;     data payload[40..44) size=4 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;     candidate_unresolved_prefix payload[40..44) size=4 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
 ;     candidate_code payload[44..6928) size=6884 entrypoint=True status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
 ;   byte_preserving_placeholder: CODE 12 payload[0..6928) sha256=9c563d29bea4465730181b661ea9a3a60d15276aa71a6be399b02b9a4091cbdb
 ;   placeholder_reason: semantic CODE disassembly remains deferred; current source body renders exact bytes for C-owned ranges and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
@@ -1191,8 +1191,8 @@ macos_code_CODE_12_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$06,$C8,$00,$00,$00,$02,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00
-;     data payload[40..44) status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry
-macos_code_CODE_12_data_00000028:
+;     candidate_unresolved_prefix payload[40..44) status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry
+macos_code_CODE_12_candidate_unresolved_prefix_00000028:
 	dc.b $24,$1F,$22,$5F
 ;     candidate_code payload[44..6928) status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry
 ;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=15 labels=2 xrefs=3
@@ -1243,7 +1243,7 @@ macos_code_CODE_13:
 ;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
 ;   source_body_ranges:
 ;     metadata payload[0..40) size=40 entrypoint=False status=validated parser_use=accepted_parser_output evidence=far_model_segment_header fact=macos.code_resource.nonzero.segment_header
-;     data payload[40..44) size=4 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;     candidate_unresolved_prefix payload[40..44) size=4 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
 ;     candidate_code payload[44..33354) size=33310 entrypoint=True status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
 ;   byte_preserving_placeholder: CODE 13 payload[0..33354) sha256=1358e27cbf9cb7da402416dfa830bd93f99a23e16da5c9972f63549d171a30c8
 ;   placeholder_reason: semantic CODE disassembly remains deferred; current source body renders exact bytes for C-owned ranges and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
@@ -1253,8 +1253,8 @@ macos_code_CODE_13_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$06,$D8,$00,$00,$00,$0D,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00
-;     data payload[40..44) status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry
-macos_code_CODE_13_data_00000028:
+;     candidate_unresolved_prefix payload[40..44) status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry
+macos_code_CODE_13_candidate_unresolved_prefix_00000028:
 	dc.b $22,$5F,$32,$1F
 ;     candidate_code payload[44..33354) status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry
 ;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=61 labels=14 xrefs=16
@@ -1363,7 +1363,7 @@ macos_code_CODE_14:
 ;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
 ;   source_body_ranges:
 ;     metadata payload[0..40) size=40 entrypoint=False status=validated parser_use=accepted_parser_output evidence=far_model_segment_header fact=macos.code_resource.nonzero.segment_header
-;     data payload[40..236) size=196 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;     candidate_unresolved_prefix payload[40..236) size=196 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
 ;     candidate_code payload[236..1886) size=1650 entrypoint=True status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
 ;   byte_preserving_placeholder: CODE 14 payload[0..1886) sha256=14e851122fdae5910c2772def35a8b36c30dc7133cb92df8524f8a42ff5f8c70
 ;   placeholder_reason: semantic CODE disassembly remains deferred; current source body renders exact bytes for C-owned ranges and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
@@ -1373,8 +1373,8 @@ macos_code_CODE_14_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$07,$40,$00,$00,$00,$0B,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00
-;     data payload[40..236) status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry
-macos_code_CODE_14_data_00000028:
+;     candidate_unresolved_prefix payload[40..236) status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry
+macos_code_CODE_14_candidate_unresolved_prefix_00000028:
 	dc.b $4E,$56,$FF,$FC,$2F,$07,$10,$2E,$00,$08,$67,$0A,$48,$6D,$C8,$66
 	dc.b $4E,$AD,$0A,$5A,$60,$08,$48,$6D,$C8,$66,$4E,$AD,$0A,$62,$70,$00
 	dc.b $2B,$40,$C8,$3E,$70,$00,$2B,$40,$C8,$42,$70,$00,$2B,$40,$C8,$46
@@ -1424,7 +1424,7 @@ macos_code_CODE_15:
 ;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
 ;   source_body_ranges:
 ;     metadata payload[0..40) size=40 entrypoint=False status=validated parser_use=accepted_parser_output evidence=far_model_segment_header fact=macos.code_resource.nonzero.segment_header
-;     data payload[40..96) size=56 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;     candidate_unresolved_prefix payload[40..96) size=56 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
 ;     candidate_code payload[96..3452) size=3356 entrypoint=True status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
 ;   byte_preserving_placeholder: CODE 15 payload[0..3452) sha256=ebe2c26fe6fffb8585f7e9e0ebfffa73ca877946c26eab44f0efbd96678018cd
 ;   placeholder_reason: semantic CODE disassembly remains deferred; current source body renders exact bytes for C-owned ranges and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
@@ -1434,8 +1434,8 @@ macos_code_CODE_15_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$07,$98,$00,$00,$00,$07,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00
-;     data payload[40..96) status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry
-macos_code_CODE_15_data_00000028:
+;     candidate_unresolved_prefix payload[40..96) status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry
+macos_code_CODE_15_candidate_unresolved_prefix_00000028:
 	dc.b $4E,$56,$00,$00,$2F,$0C,$28,$6E,$00,$0E,$20,$6E,$00,$08,$10,$BC
 	dc.b $00,$01,$42,$40,$10,$14,$0C,$40,$00,$FF,$6C,$18,$20,$6E,$00,$08
 	dc.b $42,$10,$42,$40,$10,$14,$52,$40,$18,$80,$42,$40,$10,$14,$19,$AE
@@ -1476,7 +1476,7 @@ macos_code_CODE_16:
 ;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
 ;   source_body_ranges:
 ;     metadata payload[0..40) size=40 entrypoint=False status=validated parser_use=accepted_parser_output evidence=far_model_segment_header fact=macos.code_resource.nonzero.segment_header
-;     data payload[40..246) size=206 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;     candidate_unresolved_prefix payload[40..246) size=206 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
 ;     candidate_code payload[246..1034) size=788 entrypoint=True status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
 ;   byte_preserving_placeholder: CODE 16 payload[0..1034) sha256=51e7a7d264825cd4103b31a0bff37ff49fdb64e8ddb299b2a46d4bd3c07f6a37
 ;   placeholder_reason: semantic CODE disassembly remains deferred; current source body renders exact bytes for C-owned ranges and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
@@ -1486,8 +1486,8 @@ macos_code_CODE_16_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$07,$D0,$00,$00,$00,$03,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00
-;     data payload[40..246) status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry
-macos_code_CODE_16_data_00000028:
+;     candidate_unresolved_prefix payload[40..246) status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry
+macos_code_CODE_16_candidate_unresolved_prefix_00000028:
 	dc.b $4E,$56,$FF,$FC,$48,$E7,$01,$08,$3E,$2E,$00,$08,$30,$07,$D0,$40
 	dc.b $41,$ED,$EB,$6E,$3B,$70,$00,$00,$ED,$60,$30,$07,$53,$40,$41,$ED
 	dc.b $CA,$D2,$E5,$40,$20,$70,$00,$00,$2F,$08,$48,$6D,$ED,$70,$4E,$AD
@@ -1537,7 +1537,7 @@ macos_code_CODE_17:
 ;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
 ;   source_body_ranges:
 ;     metadata payload[0..40) size=40 entrypoint=False status=validated parser_use=accepted_parser_output evidence=far_model_segment_header fact=macos.code_resource.nonzero.segment_header
-;     data payload[40..100) size=60 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;     candidate_unresolved_prefix payload[40..100) size=60 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
 ;     candidate_code payload[100..3674) size=3574 entrypoint=True status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
 ;   byte_preserving_placeholder: CODE 17 payload[0..3674) sha256=e4c8e735bff587b55b1482bde5137deec3ae177ea802b09aac3e97401f2905b9
 ;   placeholder_reason: semantic CODE disassembly remains deferred; current source body renders exact bytes for C-owned ranges and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
@@ -1547,8 +1547,8 @@ macos_code_CODE_17_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$07,$E8,$00,$00,$00,$01,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00
-;     data payload[40..100) status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry
-macos_code_CODE_17_data_00000028:
+;     candidate_unresolved_prefix payload[40..100) status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry
+macos_code_CODE_17_candidate_unresolved_prefix_00000028:
 	dc.b $4E,$56,$FF,$FC,$2F,$0C,$42,$A7,$20,$6E,$00,$08,$2F,$28,$00,$1C
 	dc.b $3F,$3C,$00,$10,$4E,$AD,$07,$8A,$28,$5F,$2D,$4C,$00,$10,$20,$0C
 	dc.b $67,$16,$70,$00,$29,$40,$00,$04,$70,$00,$29,$40,$00,$08,$70,$00
@@ -1589,7 +1589,7 @@ macos_code_CODE_18:
 ;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
 ;   source_body_ranges:
 ;     metadata payload[0..40) size=40 entrypoint=False status=validated parser_use=accepted_parser_output evidence=far_model_segment_header fact=macos.code_resource.nonzero.segment_header
-;     data payload[40..1562) size=1522 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;     candidate_unresolved_prefix payload[40..1562) size=1522 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
 ;     candidate_code payload[1562..1974) size=412 entrypoint=True status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
 ;   byte_preserving_placeholder: CODE 18 payload[0..1974) sha256=96d836fa8382f88453204a38fddb5da2e46867767f572482abb8f9cbb5e431c6
 ;   placeholder_reason: semantic CODE disassembly remains deferred; current source body renders exact bytes for C-owned ranges and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
@@ -1599,8 +1599,8 @@ macos_code_CODE_18_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$07,$F0,$00,$00,$00,$03,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00
-;     data payload[40..1562) status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry
-macos_code_CODE_18_data_00000028:
+;     candidate_unresolved_prefix payload[40..1562) status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry
+macos_code_CODE_18_candidate_unresolved_prefix_00000028:
 	dc.b $4E,$56,$FF,$F8,$48,$E7,$00,$18,$4A,$AD,$F3,$D8,$67,$06,$42,$67
 	dc.b $4E,$AD,$07,$1A,$42,$A7,$2F,$2D,$F3,$EA,$4E,$AD,$01,$22,$28,$5F
 	dc.b $20,$2D,$F4,$10,$90,$AD,$F3,$C6,$6A,$02,$44,$80,$28,$80,$10,$2D
@@ -1806,7 +1806,7 @@ macos_code_CODE_20:
 ;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
 ;   source_body_ranges:
 ;     metadata payload[0..40) size=40 entrypoint=False status=validated parser_use=accepted_parser_output evidence=far_model_segment_header fact=macos.code_resource.nonzero.segment_header
-;     data payload[40..2876) size=2836 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;     candidate_unresolved_prefix payload[40..2876) size=2836 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
 ;     candidate_code payload[2876..5262) size=2386 entrypoint=True status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
 ;   byte_preserving_placeholder: CODE 20 payload[0..5262) sha256=de9f4a82222f3ff12586a0bb691cc6b5d513777d498d223dfa45311d4a7dc84a
 ;   placeholder_reason: semantic CODE disassembly remains deferred; current source body renders exact bytes for C-owned ranges and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
@@ -1816,8 +1816,8 @@ macos_code_CODE_20_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$08,$10,$00,$00,$00,$1B,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00
-;     data payload[40..2876) status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry
-macos_code_CODE_20_data_00000028:
+;     candidate_unresolved_prefix payload[40..2876) status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry
+macos_code_CODE_20_candidate_unresolved_prefix_00000028:
 	dc.b $4E,$56,$00,$00,$2F,$2E,$00,$10,$2F,$2E,$00,$0C,$2F,$2E,$00,$08
 	dc.b $70,$00,$2F,$00,$4E,$BA,$08,$1A,$4E,$5E,$4E,$75,$87,$66,$61,$63
 	dc.b $63,$65,$73,$73,$00,$00,$4E,$56,$FF,$F8,$48,$E7,$01,$08,$70,$FF
@@ -2032,7 +2032,7 @@ macos_code_CODE_21:
 ;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
 ;   source_body_ranges:
 ;     metadata payload[0..40) size=40 entrypoint=False status=validated parser_use=accepted_parser_output evidence=far_model_segment_header fact=macos.code_resource.nonzero.segment_header
-;     data payload[40..2000) size=1960 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;     candidate_unresolved_prefix payload[40..2000) size=1960 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
 ;     candidate_code payload[2000..6794) size=4794 entrypoint=True status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
 ;   byte_preserving_placeholder: CODE 21 payload[0..6794) sha256=927c28db98eadbc5501e570ada73af8afca05964552a831c02051f6e6fa3b687
 ;   placeholder_reason: semantic CODE disassembly remains deferred; current source body renders exact bytes for C-owned ranges and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
@@ -2042,8 +2042,8 @@ macos_code_CODE_21_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$08,$E8,$00,$00,$00,$13,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00
-;     data payload[40..2000) status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry
-macos_code_CODE_21_data_00000028:
+;     candidate_unresolved_prefix payload[40..2000) status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry
+macos_code_CODE_21_candidate_unresolved_prefix_00000028:
 	dc.b $4E,$56,$FF,$94,$48,$E7,$11,$18,$26,$6E,$00,$08,$28,$6E,$00,$10
 	dc.b $70,$00,$2D,$40,$FF,$A0,$3D,$53,$FF,$AA,$42,$6E,$FF,$B0,$2D,$6B
 	dc.b $00,$02,$FF,$C4,$20,$4B,$5C,$88,$2D,$48,$FF,$A6,$55,$8F,$48,$6E
@@ -2293,7 +2293,7 @@ macos_code_CODE_24:
 ;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
 ;   source_body_ranges:
 ;     metadata payload[0..40) size=40 entrypoint=False status=validated parser_use=accepted_parser_output evidence=far_model_segment_header fact=macos.code_resource.nonzero.segment_header
-;     data payload[40..2950) size=2910 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;     candidate_unresolved_prefix payload[40..2950) size=2910 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
 ;     candidate_code payload[2950..4970) size=2020 entrypoint=True status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
 ;   byte_preserving_placeholder: CODE 24 payload[0..4970) sha256=f98dfc823a565d6502fa4ac1feb7b616b397ba9a918ce2c5f47b274e99a9026a
 ;   placeholder_reason: semantic CODE disassembly remains deferred; current source body renders exact bytes for C-owned ranges and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
@@ -2303,8 +2303,8 @@ macos_code_CODE_24_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$09,$90,$00,$00,$00,$0D,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00
-;     data payload[40..2950) status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry
-macos_code_CODE_24_data_00000028:
+;     candidate_unresolved_prefix payload[40..2950) status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry
+macos_code_CODE_24_candidate_unresolved_prefix_00000028:
 	dc.b $4E,$56,$00,$00,$2F,$0C,$49,$ED,$D0,$B2,$60,$0C,$2F,$0C,$4E,$BA
 	dc.b $02,$86,$58,$4F,$49,$EC,$00,$16,$B9,$ED,$D0,$AE,$65,$EE,$28,$6E
 	dc.b $FF,$FC,$4E,$5E,$4E,$75,$89,$5F,$5F,$63,$6C,$65,$61,$6E,$75,$70
@@ -2580,7 +2580,7 @@ macos_code_CODE_26:
 ;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
 ;   source_body_ranges:
 ;     metadata payload[0..40) size=40 entrypoint=False status=validated parser_use=accepted_parser_output evidence=far_model_segment_header fact=macos.code_resource.nonzero.segment_header
-;     data payload[40..198) size=158 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;     candidate_unresolved_prefix payload[40..198) size=158 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
 ;     candidate_code payload[198..2940) size=2742 entrypoint=True status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
 ;   byte_preserving_placeholder: CODE 26 payload[0..2940) sha256=62b8ca8b968fab6a003f39717b671f9c6cae8d20a9c77cb7ab41fd0315a229ae
 ;   placeholder_reason: semantic CODE disassembly remains deferred; current source body renders exact bytes for C-owned ranges and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
@@ -2590,8 +2590,8 @@ macos_code_CODE_26_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$0A,$10,$00,$00,$00,$18,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00
-;     data payload[40..198) status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry
-macos_code_CODE_26_data_00000028:
+;     candidate_unresolved_prefix payload[40..198) status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry
+macos_code_CODE_26_candidate_unresolved_prefix_00000028:
 	dc.b $4E,$56,$00,$00,$2B,$7C,$00,$00,$13,$88,$D2,$B8,$42,$2D,$D2,$B3
 	dc.b $42,$2D,$D2,$B2,$70,$00,$2B,$40,$D2,$AC,$70,$00,$2B,$40,$D2,$A8
 	dc.b $70,$00,$2B,$40,$D2,$9C,$70,$00,$2B,$40,$D2,$98,$1B,$7C,$00,$01
@@ -2644,7 +2644,7 @@ macos_code_CODE_27:
 ;       2: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
 ;   source_body_ranges:
 ;     metadata payload[0..4) size=4 entrypoint=False status=validated parser_use=accepted_parser_output evidence=nonzero_code_segment_header fact=macos.code_resource.nonzero.segment_header
-;     data payload[4..204) size=200 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;     candidate_unresolved_prefix payload[4..204) size=200 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
 ;     candidate_code payload[204..1882) size=1678 entrypoint=True status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
 ;   incoming_CODE0_xrefs:
 macos_code_CODE_27_routine_candidate_000000cc:
@@ -2655,8 +2655,8 @@ macos_code_CODE_27_routine_candidate_000000cc:
 ;     metadata payload[0..4) status=validated parser_use=accepted_parser_output evidence=nonzero_code_segment_header
 macos_code_CODE_27_metadata_00000000:
 	dc.b $00,$00,$00,$01
-;     data payload[4..204) status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry
-macos_code_CODE_27_data_00000004:
+;     candidate_unresolved_prefix payload[4..204) status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry
+macos_code_CODE_27_candidate_unresolved_prefix_00000004:
 	dc.b $70,$30,$A3,$1E,$4A,$40,$66,$72,$30,$38,$09,$34,$2B,$88,$00,$0C
 	dc.b $4A,$78,$02,$8E,$6D,$2E,$30,$3C,$A8,$9F,$A7,$46,$22,$48,$30,$3C
 	dc.b $A0,$90,$A3,$46,$B3,$C8,$67,$1C,$9E,$FC,$00,$10,$41,$D7,$70,$02
@@ -2718,102 +2718,102 @@ macos_code_CODE_27_loc_000000cc:
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual semantic_decode_gap payload[62..29024) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual_summary candidate_unvisited_entry_pattern count=337 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
-;     CODE 2: section=macos-code-CODE-2 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=2 instructions=4 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=23
+;     CODE 2: section=macos-code-CODE-2 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=4 xrefs=2 instructions=4 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=23
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
-;       residual data payload[40..374) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       residual candidate_unresolved_prefix payload[40..374) status=candidate parser_use=candidate_only reason=bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached through loader/stack/fixup flow not yet modeled
 ;       residual semantic_decode_gap payload[384..7788) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual_summary candidate_unvisited_entry_pattern count=21 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
-;     CODE 3: section=macos-code-CODE-3 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=2 instructions=3 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=78
+;     CODE 3: section=macos-code-CODE-3 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=4 xrefs=2 instructions=3 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=78
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
-;       residual data payload[40..302) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       residual candidate_unresolved_prefix payload[40..302) status=candidate parser_use=candidate_only reason=bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached through loader/stack/fixup flow not yet modeled
 ;       residual semantic_decode_gap payload[308..18252) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual_summary candidate_unvisited_entry_pattern count=76 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
-;     CODE 4: section=macos-code-CODE-4 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=3 instructions=10 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=59
+;     CODE 4: section=macos-code-CODE-4 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=4 xrefs=3 instructions=10 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=59
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
-;       residual data payload[40..468) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       residual candidate_unresolved_prefix payload[40..468) status=candidate parser_use=candidate_only reason=bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached through loader/stack/fixup flow not yet modeled
 ;       residual semantic_decode_gap payload[494..6426) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual_summary candidate_unvisited_entry_pattern count=57 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
-;     CODE 5: section=macos-code-CODE-5 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=2 instructions=11 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=169
+;     CODE 5: section=macos-code-CODE-5 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=4 xrefs=2 instructions=11 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=169
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
-;       residual data payload[40..212) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       residual candidate_unresolved_prefix payload[40..212) status=candidate parser_use=candidate_only reason=bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached through loader/stack/fixup flow not yet modeled
 ;       residual semantic_decode_gap payload[234..26638) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual_summary candidate_unvisited_entry_pattern count=167 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
-;     CODE 6: section=macos-code-CODE-6 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=21 instructions=76 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=41
+;     CODE 6: section=macos-code-CODE-6 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=4 xrefs=21 instructions=76 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=41
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
-;       residual data payload[40..58) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       residual candidate_unresolved_prefix payload[40..58) status=candidate parser_use=candidate_only reason=bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached through loader/stack/fixup flow not yet modeled
 ;       residual semantic_decode_gap payload[240..15158) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual_summary candidate_unvisited_entry_pattern count=39 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
-;     CODE 7: section=macos-code-CODE-7 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=2 instructions=4 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=15
+;     CODE 7: section=macos-code-CODE-7 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=4 xrefs=2 instructions=4 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=15
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
-;       residual data payload[40..352) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       residual candidate_unresolved_prefix payload[40..352) status=candidate parser_use=candidate_only reason=bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached through loader/stack/fixup flow not yet modeled
 ;       residual semantic_decode_gap payload[362..4142) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual_summary candidate_unvisited_entry_pattern count=13 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
-;     CODE 8: section=macos-code-CODE-8 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=27 instructions=66 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=17
+;     CODE 8: section=macos-code-CODE-8 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=4 xrefs=27 instructions=66 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=17
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
-;       residual data payload[40..42) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       residual candidate_unresolved_prefix payload[40..42) status=candidate parser_use=candidate_only reason=bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached through loader/stack/fixup flow not yet modeled
 ;       residual semantic_decode_gap payload[220..1852) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual_summary candidate_unvisited_entry_pattern count=15 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
-;     CODE 9: section=macos-code-CODE-9 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=2 instructions=3 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=39
+;     CODE 9: section=macos-code-CODE-9 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=4 xrefs=2 instructions=3 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=39
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
-;       residual data payload[40..712) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       residual candidate_unresolved_prefix payload[40..712) status=candidate parser_use=candidate_only reason=bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached through loader/stack/fixup flow not yet modeled
 ;       residual semantic_decode_gap payload[720..13946) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual_summary candidate_unvisited_entry_pattern count=37 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
-;     CODE 10: section=macos-code-CODE-10 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=2 instructions=3 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=6
+;     CODE 10: section=macos-code-CODE-10 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=4 xrefs=2 instructions=3 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=6
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
-;       residual data payload[40..148) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       residual candidate_unresolved_prefix payload[40..148) status=candidate parser_use=candidate_only reason=bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached through loader/stack/fixup flow not yet modeled
 ;       residual semantic_decode_gap payload[154..1542) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual_summary candidate_unvisited_entry_pattern count=4 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
-;     CODE 11: section=macos-code-CODE-11 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=2 instructions=3 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=49
+;     CODE 11: section=macos-code-CODE-11 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=4 xrefs=2 instructions=3 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=49
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
-;       residual data payload[40..836) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       residual candidate_unresolved_prefix payload[40..836) status=candidate parser_use=candidate_only reason=bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached through loader/stack/fixup flow not yet modeled
 ;       residual semantic_decode_gap payload[842..3678) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual_summary candidate_unvisited_entry_pattern count=47 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
-;     CODE 12: section=macos-code-CODE-12 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=3 instructions=15 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=51
+;     CODE 12: section=macos-code-CODE-12 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=4 xrefs=3 instructions=15 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=51
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
-;       residual data payload[40..44) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       residual candidate_unresolved_prefix payload[40..44) status=candidate parser_use=candidate_only reason=bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached through loader/stack/fixup flow not yet modeled
 ;       residual semantic_decode_gap payload[76..6928) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual_summary candidate_unvisited_entry_pattern count=49 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
-;     CODE 13: section=macos-code-CODE-13 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=16 instructions=61 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=166
+;     CODE 13: section=macos-code-CODE-13 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=4 xrefs=16 instructions=61 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=166
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
-;       residual data payload[40..44) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       residual candidate_unresolved_prefix payload[40..44) status=candidate parser_use=candidate_only reason=bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached through loader/stack/fixup flow not yet modeled
 ;       residual semantic_decode_gap payload[196..33354) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual_summary candidate_unvisited_entry_pattern count=164 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
-;     CODE 14: section=macos-code-CODE-14 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=2 instructions=3 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=24
+;     CODE 14: section=macos-code-CODE-14 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=4 xrefs=2 instructions=3 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=24
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
-;       residual data payload[40..236) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       residual candidate_unresolved_prefix payload[40..236) status=candidate parser_use=candidate_only reason=bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached through loader/stack/fixup flow not yet modeled
 ;       residual semantic_decode_gap payload[242..1886) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual_summary candidate_unvisited_entry_pattern count=22 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
-;     CODE 15: section=macos-code-CODE-15 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=2 instructions=3 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=41
+;     CODE 15: section=macos-code-CODE-15 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=4 xrefs=2 instructions=3 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=41
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
-;       residual data payload[40..96) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       residual candidate_unresolved_prefix payload[40..96) status=candidate parser_use=candidate_only reason=bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached through loader/stack/fixup flow not yet modeled
 ;       residual semantic_decode_gap payload[104..3452) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual_summary candidate_unvisited_entry_pattern count=39 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
-;     CODE 16: section=macos-code-CODE-16 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=2 instructions=3 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=8
+;     CODE 16: section=macos-code-CODE-16 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=4 xrefs=2 instructions=3 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=8
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
-;       residual data payload[40..246) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       residual candidate_unresolved_prefix payload[40..246) status=candidate parser_use=candidate_only reason=bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached through loader/stack/fixup flow not yet modeled
 ;       residual semantic_decode_gap payload[252..1034) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual_summary candidate_unvisited_entry_pattern count=6 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
-;     CODE 17: section=macos-code-CODE-17 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=2 instructions=3 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=32
+;     CODE 17: section=macos-code-CODE-17 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=4 xrefs=2 instructions=3 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=32
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
-;       residual data payload[40..100) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       residual candidate_unresolved_prefix payload[40..100) status=candidate parser_use=candidate_only reason=bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached through loader/stack/fixup flow not yet modeled
 ;       residual semantic_decode_gap payload[106..3674) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual_summary candidate_unvisited_entry_pattern count=30 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
-;     CODE 18: section=macos-code-CODE-18 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=2 instructions=3 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=4
+;     CODE 18: section=macos-code-CODE-18 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=4 xrefs=2 instructions=3 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=4
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
-;       residual data payload[40..1562) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       residual candidate_unresolved_prefix payload[40..1562) status=candidate parser_use=candidate_only reason=bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached through loader/stack/fixup flow not yet modeled
 ;       residual semantic_decode_gap payload[1568..1974) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual_summary candidate_unvisited_entry_pattern count=2 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
 ;     CODE 19: section=macos-code-CODE-19 ownership=deferred,metadata coverage=True labels=3 xrefs=0 instructions=0 body_spans=0 byte_real_only_body=False reachable_evidence=1 residuals=1
 ;       next: extend C-owned CODE layout and reference analysis before promoting semantic source rows
 ;       residual deferred payload[40..556) status=deferred parser_use=deferred_only reason=missing_m68k_movea_l_stack_to_a0_entry
-;     CODE 20: section=macos-code-CODE-20 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=2 instructions=3 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=37
+;     CODE 20: section=macos-code-CODE-20 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=4 xrefs=2 instructions=3 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=37
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
-;       residual data payload[40..2876) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       residual candidate_unresolved_prefix payload[40..2876) status=candidate parser_use=candidate_only reason=bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached through loader/stack/fixup flow not yet modeled
 ;       residual semantic_decode_gap payload[2884..5262) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual_summary candidate_unvisited_entry_pattern count=35 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
-;     CODE 21: section=macos-code-CODE-21 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=2 instructions=3 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=39
+;     CODE 21: section=macos-code-CODE-21 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=4 xrefs=2 instructions=3 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=39
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
-;       residual data payload[40..2000) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       residual candidate_unresolved_prefix payload[40..2000) status=candidate parser_use=candidate_only reason=bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached through loader/stack/fixup flow not yet modeled
 ;       residual semantic_decode_gap payload[2008..6794) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual_summary candidate_unvisited_entry_pattern count=37 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
 ;     CODE 22: section=macos-code-CODE-22 ownership=deferred,metadata coverage=True labels=3 xrefs=0 instructions=0 body_spans=0 byte_real_only_body=False reachable_evidence=1 residuals=1
@@ -2822,9 +2822,9 @@ macos_code_CODE_27_loc_000000cc:
 ;     CODE 23: section=macos-code-CODE-23 ownership=deferred,metadata coverage=True labels=3 xrefs=0 instructions=0 body_spans=0 byte_real_only_body=False reachable_evidence=1 residuals=1
 ;       next: extend C-owned CODE layout and reference analysis before promoting semantic source rows
 ;       residual deferred payload[40..126) status=deferred parser_use=deferred_only reason=missing_m68k_movea_l_stack_to_a0_entry
-;     CODE 24: section=macos-code-CODE-24 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=2 instructions=3 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=25
+;     CODE 24: section=macos-code-CODE-24 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=4 xrefs=2 instructions=3 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=25
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
-;       residual data payload[40..2950) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       residual candidate_unresolved_prefix payload[40..2950) status=candidate parser_use=candidate_only reason=bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached through loader/stack/fixup flow not yet modeled
 ;       residual semantic_decode_gap payload[2958..4970) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual_summary candidate_unvisited_entry_pattern count=23 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
 ;     CODE 25: section=macos-code-CODE-25 ownership=candidate_code,metadata coverage=True labels=3 xrefs=5 instructions=13 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=13
@@ -2833,15 +2833,15 @@ macos_code_CODE_27_loc_000000cc:
 ;       residual semantic_decode_gap payload[68..108) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[116..246) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual_summary candidate_unvisited_entry_pattern count=10 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
-;     CODE 26: section=macos-code-CODE-26 ownership=candidate_code,data,metadata coverage=True labels=4 xrefs=3 instructions=7 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=58
+;     CODE 26: section=macos-code-CODE-26 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=4 xrefs=3 instructions=7 body_spans=1 byte_real_only_body=False reachable_evidence=2 residuals=58
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
-;       residual data payload[40..198) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       residual candidate_unresolved_prefix payload[40..198) status=candidate parser_use=candidate_only reason=bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached through loader/stack/fixup flow not yet modeled
 ;       residual semantic_decode_gap payload[204..238) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[248..2940) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual_summary candidate_unvisited_entry_pattern count=55 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
-;     CODE 27: section=macos-code-CODE-27 ownership=candidate_code,data,metadata coverage=True labels=5 xrefs=2 instructions=4 body_spans=1 byte_real_only_body=False reachable_evidence=3 residuals=21
+;     CODE 27: section=macos-code-CODE-27 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=5 xrefs=2 instructions=4 body_spans=1 byte_real_only_body=False reachable_evidence=3 residuals=21
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
-;       residual data payload[4..204) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       residual candidate_unresolved_prefix payload[4..204) status=candidate parser_use=candidate_only reason=bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached through loader/stack/fixup flow not yet modeled
 ;       residual semantic_decode_gap payload[212..1882) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual_summary candidate_unvisited_entry_pattern count=19 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
 
