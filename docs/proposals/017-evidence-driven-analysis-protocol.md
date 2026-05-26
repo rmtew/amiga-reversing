@@ -1,13 +1,13 @@
-# Proposal 017: Evidence-Driven Analysis Protocol for Pandora Reversal
+# Proposal 017: Evidence-Driven Analysis Cascade Protocol for Pandora Reversal
 
-Status: active / repurposed for ongoing Pandora analysis-protocol work.
+Status: active / refocused on cascaded auto-analysis to fixed point.
 The 017-027 closeout remains the historical gate snapshot for the previous
 post-hardening pass: at that point no command-backed, verifier-backed,
 exact-round-trip source-converging Pandora mutation remained. The next 017
-phase keeps that knowledge but shifts the forward focus to an Evidence-Driven
-Analysis Protocol: one shared auto-analysis, evidence, decision, command, and
-verifier model for turning report-only reversal facts into verified source
-progress.
+phase keeps that knowledge but refocuses the work on an Evidence-Driven
+Analysis Cascade Protocol: accepted facts must trigger deterministic derived
+analysis across all safe dependent uses until fixed point, then render and
+verify the bounded cascade.
 
 Proposal 015 is the historical Pandora trial archive. Proposal 016 hardened the
 loop surfaces found during that trial. This proposal owns the next focused
@@ -26,18 +26,21 @@ local legacy Manual Action Log churn as meaningful progress.
 
 ## Purpose
 
-Build the working specification for evidence-driven auto-analysis and review.
-The protocol must let deterministic analysis, a human, an LLM agent, CLI
-commands, and a future web UI resolve reversal candidates through the same
-model:
+Build the working specification for evidence-driven auto-analysis, review, and
+cascaded propagation. The protocol must let deterministic analysis, a human, an
+LLM agent, CLI commands, and a future web UI resolve reversal facts through the
+same model:
 
-1. select one exact use or range;
-2. inspect a structured evidence packet;
-3. see blockers and conflicts explicitly;
-4. accept, defer, or reject a scoped fact;
-5. expose mutation only after the accepted fact satisfies verifier gates;
-6. prove the rendered source changed only inside the selected scope and still
-   round-trips exactly.
+1. discover seed facts and derived candidate facts;
+2. inspect structured evidence, blockers, conflicts, and proposed propagation;
+3. auto-accept protocol-decidable facts and emit review packets for ambiguous
+   facts;
+4. accept, defer, or reject durable scoped facts in the Decision Journal;
+5. replay accepted facts into the C-owned analysis model;
+6. rerun deterministic derived analysis to fixed point;
+7. render all verifier-safe derived effects;
+8. prove the cascade is bounded, source-improving, negative-safe, and still
+   exact-round-trip.
 
 Pandora is the proving target. The work is successful only when it moves
 Pandora source toward human-quality reconstructed source or removes a measured
@@ -51,33 +54,39 @@ Reports can find useful candidates, but too many candidates stop as
 report-only because the system lacks one reusable way to carry evidence into a
 scoped, replayable, verifier-backed decision.
 
-The core forward move is the **Evidence-Driven Analysis Protocol**. Evidence
-review is the ambiguity-resolution layer of that protocol, not a separate UI or
-manual-tooling feature. The five concrete candidate families below are starter
-aspects used to prove the protocol against real Pandora work.
+The core forward move is the **Evidence-Driven Analysis Cascade Protocol**.
+Evidence review is the ambiguity-resolution layer of that protocol, not a
+separate UI or manual-tooling feature. The concrete candidate families below
+are starter surfaces used to prove cascaded propagation against real Pandora
+work.
+
+The protocol is not complete when it can mutate one selected operand. It is
+complete only when an accepted durable fact can trigger every safe downstream
+analysis consequence that follows from that fact. Single-row facts are allowed
+only when the fact is inherently single-row. If the evidence proves a lifetime,
+layout, pointer path, address-space binding, type, code range, or API semantic,
+the accepted fact must be modeled at that level and derived children must be
+generated automatically.
 
 ## Current Active State
 
-Completed `017-*` issue files have been removed from `docs/issues`; their
-details remain available in git history and this proposal's historical notes.
-The only remaining local `017-*` issue is `017-006`, which is a conditional
-performance sentinel. It is not active work unless a measured 017 Pandora loop
-phase crosses its investigation threshold.
+Completed `017-*` issue files may be removed after their durable outcome is
+captured here. Deferred issues remain local only when they still represent real
+unresolved work.
 
-No source-converging 017 mutation is currently ready. Current Pandora discovery
-surfaces report useful evidence, but they remain blocked or read-only:
+The 017-085 through 017-088 A5 work added useful command/replay/render/verifier
+plumbing, but it proved the wrong unit of work: a selected A5 operand. Review of
+017-089 found that the chosen real Pandora operand was already represented by
+Manual Action Log state, so the Decision Journal tracer bullet did not prove new
+real source progress. That does not invalidate the plumbing, but it invalidates
+single-operand A5 as the target model. A5 must now be represented as an accepted
+custom-base lifetime fact whose children are derived hardware-register
+references across the proven lifetime.
 
-- callback-slot discovery found concrete missed-code-target assignments, but
-  they are blocked by missing or unsuitable orphan/code review items;
-- source-offset immediate candidates remain report-only;
-- A5 unknown uses remain path-proof-blocked;
-- RSSET candidates remain blocked by missing accepted base evidence;
-- the known orphan/data-range packet remains deferred/read-only.
-
-Until a new issue records durable evidence, command support, verifier support,
-exact round-trip, and a visible source-quality improvement, 017 work must stay
-read-only or documentation/planning-only. Do not use 017 work to touch Proposal
-012/018, Mac OS files, platform executable format KB/docs, or Mac targets.
+Current 017 work is therefore reopened around cascaded auto-analysis. The next
+work must build the cascade layer and prove it on real Pandora source output.
+Do not use 017 work to touch Proposal 012/018, Mac OS files, platform executable
+format KB/docs, or Mac targets.
 
 ## Working Specification
 
@@ -105,13 +114,14 @@ The protocol defines the top-level analysis loop:
 load target
 seed binary, platform, format, and target facts
 run deterministic analysis
-auto-accept decidable facts
-emit review packets for ambiguous facts
+derive facts to fixed point
+auto-accept protocol-decidable facts
+emit review packets for ambiguous facts and unsafe cascades
 actor resolves one or more packets
 record scoped decisions in the Decision Journal
 replay decisions into the C fact graph
-rerun deterministic propagation to fixed point
-project render effects and verify
+rerun deterministic propagation and derived analysis to fixed point
+project all bounded render effects and verify the cascade
 repeat
 ```
 
@@ -124,6 +134,61 @@ When any of those pieces is missing, auto-analysis emits a blocked or
 reviewable evidence packet instead of guessing. The stop condition is fixed
 point under the current binary, target config, platform knowledge, active
 decisions, analysis code, and render policy.
+
+## Cascade Model
+
+Accepted facts are parent facts. Derived facts are children. Every derived fact
+must carry provenance back to its accepted parent and to the deterministic rule
+that produced it.
+
+Examples:
+
+- Accepted A5 custom-base lifetime:
+  A5 is `_custom + n` over a proven bounded lifetime. Children are all safe A5
+  displacement hardware-register references inside that lifetime.
+- Accepted RSSET/app-base scope:
+  A6 is the app/global base over a proven layout/lifetime scope. Children are
+  app-slot field references, xrefs, type/layout hints, and later code/data
+  classifications that depend on those fields.
+- Accepted runtime/source address:
+  an immediate or stored value is a source/runtime address in a known address
+  space. Children are xrefs, labels, landing range classifications, and
+  possible code/data/string/table candidates.
+- Accepted callback pointer path:
+  a slot/store/use path proves a callable target. Children are code entrypoints,
+  code/data boundary updates, xrefs, and follow-on function/dataflow analysis.
+- Accepted platform/API semantic:
+  a library/hardware call or register use has known semantics. Children are
+  typed arguments, clobber facts, return facts, memory effects, and named data.
+
+The cascade engine must be deterministic, bounded, and repeatable. It must not
+write generated artifacts until verifier gates pass. It must be able to explain
+why each possible child was derived, blocked, deferred, or rejected.
+
+Derived facts are not lower-quality facts. They are durable analysis facts when
+their parent fact, derivation rule, scope, conflicts, and verifier contract are
+stable. If a parent fact is removed, superseded, or invalidated, all dependent
+derived facts must disappear or be recomputed.
+
+## Verification of Cascades
+
+Verifier artifacts must prove more than "the selected row currently contains
+the expected text." For every output-affecting cascade they must prove:
+
+- semantic reload: accepted parent facts and derived child facts are present in
+  effective analysis state;
+- baseline delta: rendering without the parent decision lacks the derived
+  effect, and rendering with the parent decision contains it;
+- bounded effect: all changed rows are inside the accepted scope or are
+  explicitly derived children;
+- negative safety: plausible near-miss rows outside the scope did not change;
+- exact round-trip: rebuilt bytes still match original bytes;
+- fixed-point stability: rerunning analysis after the cascade produces no
+  unexplained additional changes.
+
+The 017-089 review finding exists because the generated-source verifier checked
+current text only. New verifier work must compare baseline-without-decision
+against effective-with-decision for cascades.
 
 ## Clean v2 Stack
 
