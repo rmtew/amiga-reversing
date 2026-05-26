@@ -168,12 +168,84 @@ static int test_resource_fork_rejects_payload_past_end(void) {
   return 0;
 }
 
+static int test_restored_source_verifier_accepts_complete_candidate_coverage(void) {
+  PlatformMacosRestoredSourceCoverageVerifier verifier;
+  const PlatformMacosRestoredSourceRangeView ranges[] = {
+    {"metadata", 0U, 4U, 4U, "validated", "header", "test", 1U, 0U},
+    {"candidate_code", 4U, 4U, 8U, "candidate", "entry", "test", 1U, 1U},
+  };
+  M68K_C_ASSERT_INT(0, platform_macos_restored_source_verify_ranges(ranges, 2U, 8U, &verifier));
+  M68K_C_ASSERT_U32(1U, verifier.ok);
+  M68K_C_ASSERT_U32(0U, verifier.gap_count);
+  M68K_C_ASSERT_U32(0U, verifier.overlap_count);
+  M68K_C_ASSERT_U32(0U, verifier.invalid_instruction_ownership_count);
+  M68K_C_ASSERT_U32(0U, verifier.explicit_unknown_missing_detail_count);
+  return 0;
+}
+
+static int test_restored_source_verifier_rejects_gaps(void) {
+  PlatformMacosRestoredSourceCoverageVerifier verifier;
+  const PlatformMacosRestoredSourceRangeView ranges[] = {
+    {"metadata", 0U, 2U, 2U, "validated", "header", "test", 1U, 0U},
+    {"candidate_code", 4U, 2U, 6U, "candidate", "entry", "test", 1U, 1U},
+  };
+  M68K_C_ASSERT_INT(0, platform_macos_restored_source_verify_ranges(ranges, 2U, 6U, &verifier));
+  M68K_C_ASSERT_U32(0U, verifier.ok);
+  M68K_C_ASSERT_U32(1U, verifier.gap_count);
+  return 0;
+}
+
+static int test_restored_source_verifier_rejects_overlaps(void) {
+  PlatformMacosRestoredSourceCoverageVerifier verifier;
+  const PlatformMacosRestoredSourceRangeView ranges[] = {
+    {"metadata", 0U, 4U, 4U, "validated", "header", "test", 1U, 0U},
+    {"candidate_code", 2U, 4U, 6U, "candidate", "entry", "test", 1U, 1U},
+  };
+  M68K_C_ASSERT_INT(0, platform_macos_restored_source_verify_ranges(ranges, 2U, 6U, &verifier));
+  M68K_C_ASSERT_U32(0U, verifier.ok);
+  M68K_C_ASSERT_U32(1U, verifier.overlap_count);
+  return 0;
+}
+
+static int test_restored_source_verifier_rejects_malformed_unknown_ranges(void) {
+  PlatformMacosRestoredSourceCoverageVerifier verifier;
+  const PlatformMacosRestoredSourceRangeView ranges[] = {
+    {"unknown", 0U, 4U, 4U, "deferred", "", "test", 1U, 0U},
+    {"unknown", 4U, 4U, 8U, "deferred", "missing provenance", "", 1U, 0U},
+    {"unknown", 8U, 4U, 12U, "deferred", "hidden unknown", "test", 0U, 0U},
+  };
+  M68K_C_ASSERT_INT(0, platform_macos_restored_source_verify_ranges(ranges, 3U, 12U, &verifier));
+  M68K_C_ASSERT_U32(0U, verifier.ok);
+  M68K_C_ASSERT_U32(3U, verifier.explicit_unknown_missing_detail_count);
+  return 0;
+}
+
+static int test_restored_source_verifier_rejects_unsafe_instruction_ownership(void) {
+  PlatformMacosRestoredSourceCoverageVerifier verifier;
+  const PlatformMacosRestoredSourceRangeView ranges[] = {
+    {"data", 0U, 2U, 2U, "candidate", "instruction claimed as data", "test", 1U, 1U},
+    {"candidate_code", 2U, 2U, 4U, "validated", "candidate role with accepted status", "test", 1U, 1U},
+  };
+  M68K_C_ASSERT_INT(0, platform_macos_restored_source_verify_ranges(ranges, 2U, 4U, &verifier));
+  M68K_C_ASSERT_U32(0U, verifier.ok);
+  M68K_C_ASSERT_U32(2U, verifier.invalid_instruction_ownership_count);
+  return 0;
+}
+
 int m68k_c_platform_macos_resource_tests(void) {
   static const M68kCTestCase cases[] = {
     {"resource_fork_parses_code_metadata", test_resource_fork_parses_code_metadata},
     {"resource_fork_finds_selected_payload_bounds", test_resource_fork_finds_selected_payload_bounds},
     {"code_layout_defers_nonzero_payload_without_entry", test_code_layout_defers_nonzero_payload_without_entry},
     {"resource_fork_rejects_payload_past_end", test_resource_fork_rejects_payload_past_end},
+    {"restored_source_verifier_accepts_complete_candidate_coverage",
+      test_restored_source_verifier_accepts_complete_candidate_coverage},
+    {"restored_source_verifier_rejects_gaps", test_restored_source_verifier_rejects_gaps},
+    {"restored_source_verifier_rejects_overlaps", test_restored_source_verifier_rejects_overlaps},
+    {"restored_source_verifier_rejects_malformed_unknown_ranges",
+      test_restored_source_verifier_rejects_malformed_unknown_ranges},
+    {"restored_source_verifier_rejects_unsafe_instruction_ownership",
+      test_restored_source_verifier_rejects_unsafe_instruction_ownership},
   };
   return m68k_c_test_run_suite("platform_macos_resource", cases, sizeof(cases) / sizeof(cases[0]));
 }

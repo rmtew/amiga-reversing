@@ -336,6 +336,17 @@ def test_python_wrapper_uses_c_macos_hfs_code_summary() -> None:
     assert extract_macos_hfs_code_resource_bytes_with_c_backend(image, "Tools/Asm", 1) == b"\x20\x5f\x4e\x75"
 
 
+def test_022_013_macos_restored_source_verifier_is_c_computed() -> None:
+    source = (PROJECT_ROOT / "src" / "platform_file_lib.c").read_text(encoding="utf-8")
+    start = source.index("static int macos_append_restored_source_packet(")
+    end = source.index("static int macos_append_shared_fact_fields(", start)
+    body = source[start:end]
+
+    assert "platform_macos_restored_source_verify_ranges(" in body
+    assert '"source_coverage_verifier":{"ok":true,"gap_count":0' not in body
+    assert "macos_append_restored_source_coverage_verifier(builder, &verifier)" in body
+
+
 def test_021_002_native_macos_code_byte_provider_returns_code1_view(tmp_path: Path) -> None:
     require_built_tools()
     image_path = tmp_path / "mpw.raw"

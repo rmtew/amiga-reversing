@@ -39,6 +39,26 @@ typedef struct PlatformMacosCodeRange {
   uint32_t size;
 } PlatformMacosCodeRange;
 
+typedef struct PlatformMacosRestoredSourceRangeView {
+  const char *role;
+  uint32_t start;
+  uint32_t size;
+  uint32_t end;
+  const char *status;
+  const char *reason;
+  const char *provenance;
+  uint8_t source_visible;
+  uint8_t contains_instruction;
+} PlatformMacosRestoredSourceRangeView;
+
+typedef struct PlatformMacosRestoredSourceCoverageVerifier {
+  uint8_t ok;
+  uint32_t gap_count;
+  uint32_t overlap_count;
+  uint32_t invalid_instruction_ownership_count;
+  uint32_t explicit_unknown_missing_detail_count;
+} PlatformMacosRestoredSourceCoverageVerifier;
+
 typedef struct PlatformMacosResourceForkHeader {
   uint32_t resource_data_offset;
   uint32_t resource_map_offset;
@@ -98,5 +118,7 @@ const char *platform_macos_code_range_evidence_name(uint8_t evidence);
 const char *platform_macos_code_range_fact_id(uint8_t evidence);
 const char *platform_macos_code_range_fact_status(uint8_t evidence);
 const char *platform_macos_code_range_parser_use(uint8_t evidence);
+int platform_macos_restored_source_verify_ranges(const PlatformMacosRestoredSourceRangeView *ranges,
+  size_t range_count, uint32_t payload_size, PlatformMacosRestoredSourceCoverageVerifier *out_verifier);
 
 #endif

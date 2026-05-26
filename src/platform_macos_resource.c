@@ -313,3 +313,45 @@ int platform_macos_resource_fork_find_payload(const unsigned char *data,
   }
   return 1;
 }
+
+static int string_empty(const char *value) {
+  return value == NULL || value[0] == '\0';
+}
+
+static int restored_source_role_allows_instruction(const char *role, const char *status) {
+  if (role == NULL || status == NULL) return 0;
+  if (strcmp(role, "code") == 0) return strcmp(status, "validated") == 0 || strcmp(status, "parser_asserted") == 0;
+  if (strcmp(role, "candidate_code") == 0) return strcmp(status, "candidate") == 0;
+  return 0;
+}
+
+int platform_macos_restored_source_verify_ranges(const PlatformMacosRestoredSourceRangeView *ranges,
+    size_t range_count, uint32_t payload_size, PlatformMacosRestoredSourceCoverageVerifier *out_verifier) {
+  size_t index;
+  uint32_t cursor = 0U;
+  PlatformMacosRestoredSourceCoverageVerifier verifier;
+  if (out_verifier == NULL) return -1;
+  memset(&verifier, 0, sizeof(verifier));
+  if (ranges == NULL && range_count != 0U) return -1;
+  for (index = 0U; index < range_count; ++index) {
+    const PlatformMacosRestoredSourceRangeView *range = &ranges[index];
+    uint32_t end = range->end;
+    if (range->size != 0U && end == 0U) end = range->start + range->size;
+    if (range->start > cursor) ++verifier.gap_count;
+    if (range->start < cursor) ++verifier.overlap_count;
+    if (range->role != NULL && strcmp(range->role, "unknown") == 0 &&
+        (string_empty(range->reason) || string_empty(range->provenance) || range->source_visible != 1U)) {
+      ++verifier.explicit_unknown_missing_detail_count;
+    }
+    if (range->contains_instruction && !restored_source_role_allows_instruction(range->role, range->status)) {
+      ++verifier.invalid_instruction_ownership_count;
+    }
+    if (end > cursor) cursor = end;
+  }
+  if (payload_size > cursor) ++verifier.gap_count;
+  verifier.ok = verifier.gap_count == 0U && verifier.overlap_count == 0U &&
+    verifier.invalid_instruction_ownership_count == 0U &&
+    verifier.explicit_unknown_missing_detail_count == 0U;
+  *out_verifier = verifier;
+  return 0;
+}

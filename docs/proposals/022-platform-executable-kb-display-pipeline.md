@@ -1,15 +1,11 @@
 # Proposal 022: Platform Restored Source Model
 
-Status: active
+Status: complete
 
-Reclosed after `022-012`: Mac project/web/API restored-source evidence now comes
-from C-owned `restored_source_model_v1` packets or fails closed with an explicit
-missing-model blocker. Python compatibility fields remain for identity and
-navigation only; they are not restored-source authority.
-
-Reopened after closeout review for `022-013`: the Mac C-owned restored-source
-packet currently emits `source_coverage_verifier.ok: true` directly instead of
-running shared or equivalent C validation over the packet it emits.
+Reclosed after `022-013`: Mac project/web/API restored-source evidence comes
+from C-owned `restored_source_model_v1` packets or fails closed, and Mac
+`source_coverage_verifier` results are computed by C validation over the emitted
+ownership ranges instead of hardcoded success.
 
 ## Purpose
 
@@ -672,7 +668,7 @@ Closeout review finding after `022-012`:
 
 Replace hardcoded Mac restored-source verifier success with real C validation.
 
-Required outcome:
+Completed 022-013 outcome:
 
 - Mac `restored_source_model_v1` packets still have `authority: c_owned`.
 - Mac `source_coverage_verifier` is computed from the emitted ownership ranges,
@@ -680,14 +676,16 @@ Required outcome:
 - The verifier rejects at least gaps, overlaps, malformed explicit unknown
   ranges, and invalid role/status combinations for Mac CODE packets.
 - Existing Python fail-closed behavior from `022-012` remains intact.
-- Tests include positive current Mac fixture coverage and negative C/backend or
-  parser-level coverage for malformed Mac ownership packets.
-- Proposal 022 is marked complete again only after this issue is implemented,
-  reviewed, and its conclusions are promoted here.
+- Tests include positive current Mac fixture coverage, a source guard proving
+  Mac packet emission calls C validation instead of hardcoded success, and
+  native C negative tests for gaps, overlaps, malformed unknown ranges, and
+  unsafe instruction ownership role/status combinations.
 
 Final proof commands:
 
 - `cmd /c src\precommit.bat`: passed.
+- `.\src\build\m68k_c_unit_tests.exe`: passed, including 9
+  `platform_macos_resource` tests.
 - `uv run python -m amiga_reversing.tools.platform_executable_formats validate`:
   passed.
 - `uv run python -m amiga_reversing.tools.platform_executable_formats coverage
@@ -696,7 +694,7 @@ Final proof commands:
 - `uv run python -m pytest tests\test_macos_c_backend.py
   tests\test_macos_project_payload.py tests\test_macos_target_artifact.py
   tests\test_macos_web_view.py tests\test_web_app_source.py -q`: passed with
-  51 tests.
+  52 tests.
 - `git diff --check`: passed.
 
 ## Acceptance Criteria
