@@ -360,6 +360,17 @@ static int instruction_is_unconditional_transfer(const M68kInstructionIR *instru
     (metadata->flow_kind == M68K_SIM_FLOW_BRANCH && metadata->flow_conditional == 0U);
 }
 
+int instruction_is_control_flow_boundary(const M68kInstructionIR *instruction) {
+  const M68kSimFormMetadata *metadata;
+  metadata = instruction_sim_metadata(instruction);
+  if (metadata == NULL) return 0;
+  return metadata->flow_kind == M68K_SIM_FLOW_BRANCH ||
+    metadata->flow_kind == M68K_SIM_FLOW_JUMP ||
+    metadata->flow_kind == M68K_SIM_FLOW_CALL ||
+    metadata->flow_kind == M68K_SIM_FLOW_RETURN ||
+    metadata->flow_kind == M68K_SIM_FLOW_TRAP;
+}
+
 int instruction_is_call_transfer(const M68kInstructionIR *instruction) {
   const M68kSimFormMetadata *metadata;
   metadata = instruction_sim_metadata(instruction);

@@ -394,6 +394,121 @@ def test_effective_metadata_projects_a5_hardware_refs_without_changing_address_m
     ]
 
 
+def test_effective_metadata_replays_accepted_a5_decision(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
+    a5_ref = {
+        "a5_hardware_ref_id": "a5-hw:decision",
+        "target_id": "demo",
+        "row_key": "s0:00000300:instruction:1",
+        "hunk": 0,
+        "addr": 0x300,
+        "end": 0x304,
+        "operand_index": 0,
+        "base_register": "A5",
+        "displacement": 0x96,
+        "custom_base_offset": 0,
+        "hardware_register_offset": 0x96,
+        "custom_base_address": 0xDFF000,
+        "hardware_register_address": 0xDFF096,
+        "reference_kind": "hardware_register",
+        "source_family": "amiga_custom_base",
+        "source_evidence_status": "accepted",
+        "source_evidence_id": "a5-custom-cfg:decision",
+        "path_lifetime_scope": {"accepted_hardware_base_evidence": True},
+        "symbol": "dmacon",
+        "conflicts": [],
+    }
+    decision_journal.append_decision_record(
+        target_dir,
+        {
+            "schema": decision_journal.DECISION_JOURNAL_SCHEMA,
+            "decision_id": "decision-a5",
+            "prev": None,
+            "created_at": "2026-05-26T00:00:00+00:00",
+            "actor": {"kind": "llm", "name": "codex"},
+            "action": "accept_fact",
+            "packet_id": "a5-path-lifetime-packet:s0:00000300:op0",
+            "candidate_id": "a5-custom-cfg:decision",
+            "selected_identity": {
+                "target_id": "demo",
+                "segment_id": "s0",
+                "hunk": 0,
+                "addr": 0x300,
+                "end": 0x304,
+                "row_key": "s0:00000300:instruction:1",
+                "operand_index": 0,
+                "base_register": "A5",
+                "displacement": 0x96,
+                "hardware_register_offset": 0x96,
+                "parent_evidence_id": "a5-custom-cfg:decision",
+            },
+            "fact_type": "a5_hardware_ref",
+            "scope": {"kind": "selected_a5_hardware_ref", "hunk": 0, "addr": 0x300, "end": 0x304, "operand_index": 0},
+            "a5_hardware_ref": a5_ref,
+            "evidence_refs": ["a5-path-lifetime-packet:s0:00000300:op0", "a5-custom-cfg:decision"],
+            "conflicts": [],
+            "reason": "accepted",
+        },
+    )
+
+    payload = json.loads(effective_metadata_text(target_dir))
+
+    assert payload["manual_representations"] == [
+        {
+            "addr": 0x300,
+            "citation": "Decision Journal decision-a5",
+            "element_kind": "a5_hardware_ref",
+            "end": 0x304,
+            "hunk": 0,
+            "operand_index": 0,
+            "review_status": "seeded",
+            "seed_origin": "manual_analysis",
+            "source_id": "decision-a5",
+            "source_locator": "a5-hw:decision",
+            "source_path": "decision_journal.jsonl",
+            "style": "symbol",
+            "symbol": "dmacon",
+        }
+    ]
+
+
+def test_effective_metadata_does_not_replay_deferred_a5_decision(tmp_path: Path) -> None:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
+    decision_journal.append_decision_record(
+        target_dir,
+        {
+            "schema": decision_journal.DECISION_JOURNAL_SCHEMA,
+            "decision_id": "decision-a5-defer",
+            "prev": None,
+            "created_at": "2026-05-26T00:00:00+00:00",
+            "actor": {"kind": "llm", "name": "codex"},
+            "action": "defer_fact",
+            "packet_id": "a5-path-lifetime-packet:s0:00000300:op0",
+            "candidate_id": "a5-custom-cfg:decision",
+            "selected_identity": {
+                "target_id": "demo",
+                "segment_id": "s0",
+                "hunk": 0,
+                "addr": 0x300,
+                "operand_index": 0,
+            },
+            "evidence_refs": ["a5-path-lifetime-packet:s0:00000300:op0"],
+            "conflicts": [],
+            "reason": "deferred",
+            "defer_reason": "deferred",
+        },
+    )
+
+    payload = json.loads(effective_metadata_text(target_dir))
+
+    assert payload.get("manual_representations", []) == []
+    assert payload.get("entry_comments", []) == []
+
+
 def test_effective_metadata_projects_target_equate_actions(tmp_path: Path) -> None:
     target_dir = tmp_path / "target"
     target_dir.mkdir()

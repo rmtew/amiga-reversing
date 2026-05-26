@@ -1,6 +1,6 @@
 # 017-089: Prove Pandora A5 End-To-End Source Progress
 
-Status: active
+Status: completed
 Type: AFK
 Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
@@ -42,27 +42,31 @@ Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
 ## Research Coverage
 
-- [ ] `017-085` through `017-088` completed and checked.
-- [ ] Selected real candidate recorded with stable identity and parent evidence.
-- [ ] Accepted fact replays into effective metadata.
-- [ ] Source render diff is narrow and meaningful.
-- [ ] Verifier artifact passes semantic reload, generated-source effect, negative safety, and exact round-trip.
-- [ ] No 012/018/Mac/platform-format files touched.
+- [x] `017-085` through `017-088` completed and checked.
+- [x] Selected real candidate recorded with stable identity and parent evidence.
+- [x] Accepted fact replays into effective metadata.
+- [x] Source render diff is narrow and meaningful.
+- [x] Verifier artifact passes semantic reload, generated-source effect, negative safety, and exact round-trip.
+- [x] No 012/018/Mac/platform-format files touched.
 
 ## Research Review
 
-- [ ] This proves useful source progress, not just plumbing.
-- [ ] Any blocker is fixed in the framework if it is general, not worked around in Pandora.
-- [ ] Bulk acceptance is deferred until the tracer bullet proves safe.
-- [ ] Proposal 017 living notes updated with the implementation result and next lane recommendation.
+- [x] This proves useful source progress, not just plumbing.
+- [x] Any blocker is fixed in the framework if it is general, not worked around in Pandora.
+- [x] Bulk acceptance is deferred until the tracer bullet proves safe.
+- [x] Proposal 017 living notes updated with the implementation result and next lane recommendation.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before work.
-- [ ] `017-088` complete.
-- [ ] Real Pandora A5 end-to-end path demonstrated.
-- [ ] Focused regressions pass.
-- [ ] Exact round-trip passes.
-- [ ] `amiga_reversing.tools.validate_017_issues` passes.
-- [ ] `git diff --check` passes.
+- [x] Proposal context checked before work.
+- [x] `017-088` complete.
+- [x] Real Pandora A5 end-to-end path demonstrated.
+- [x] Focused regressions pass.
+- [x] Exact round-trip passes.
+- [x] `amiga_reversing.tools.validate_017_issues` passes.
+- [x] `git diff --check` passes.
 
+## Completion Evidence
+
+- Real Pandora tracer bullet selected `a5-custom-cfg:h0:00000498->000004A6:op1:d0096` at `s0:000004A6:op1`, accepted as `decision-a5-dmacon-000004a6-accept-017-089`.
+- `decision-verifier-artifact --write` passed all layers; generated source shows `move.w d0,dmacon(a5)`, negative safety found one same-decision A5 ref and no unexpected refs, and `reproduction.json` reports `status=exact`.

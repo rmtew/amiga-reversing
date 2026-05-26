@@ -28,6 +28,7 @@ from amiga_reversing.disasm.callback_slot_report import (
     callback_slot_report,
 )
 from amiga_reversing.disasm.decision_journal import (
+    DECISION_JOURNAL_SCHEMA,
     append_decision_record,
     decision_journal_report,
 )
@@ -244,6 +245,18 @@ def main(argv: list[str] | None = None) -> int:
     a5_packet_parser.add_argument("--selected-use-id", required=True)
     a5_packet_parser.add_argument("--listing-timeout-seconds", type=float, default=10.0)
 
+    a5_decision_parser = subparsers.add_parser(
+        "a5-decision",
+        help="Dry-run or append an A5 hardware-reference Decision Journal record.",
+    )
+    a5_decision_parser.add_argument("--target", required=True)
+    a5_decision_parser.add_argument("--candidate-id", required=True)
+    a5_decision_parser.add_argument("--action", choices=("accept_fact", "defer_fact", "reject_fact"), required=True)
+    a5_decision_parser.add_argument("--reason")
+    a5_decision_parser.add_argument("--decision-id")
+    a5_decision_parser.add_argument("--write", action="store_true")
+    a5_decision_parser.add_argument("--listing-timeout-seconds", type=float, default=10.0)
+
     rsset_candidate_parser = subparsers.add_parser(
         "rsset-candidate-report",
         help="Report read-only RSSET/app-slot candidates from raw or weak A6 operands.",
@@ -383,6 +396,20 @@ def main(argv: list[str] | None = None) -> int:
             query_a5_path_lifetime_packet(
                 args.target,
                 selected_use_id=args.selected_use_id,
+                listing_timeout_seconds=args.listing_timeout_seconds,
+                project_root=args.project_root,
+            )
+        )
+        return 0
+    if args.command == "a5-decision":
+        _print_json(
+            decide_a5_hardware_ref(
+                args.target,
+                candidate_id=args.candidate_id,
+                action=args.action,
+                reason=args.reason,
+                decision_id=args.decision_id,
+                write=args.write,
                 listing_timeout_seconds=args.listing_timeout_seconds,
                 project_root=args.project_root,
             )
@@ -619,6 +646,243 @@ def _callback_decision_blocked(
     return result
 
 
+def decide_a5_hardware_ref(
+    target_id: str,
+    *,
+    candidate_id: str,
+    action: str,
+    reason: str | None = None,
+    decision_id: str | None = None,
+    write: bool = False,
+    listing_timeout_seconds: float = 10.0,
+    project_root: Path = PROJECT_ROOT,
+) -> dict[str, object]:
+    report = inspect_a5_hardware_lifetimes(
+        target_id,
+        listing_timeout_seconds=listing_timeout_seconds,
+        project_root=project_root,
+    )
+    effective_target_id = str(report.get("listing_target_id") or target_id)
+    target_dir = resolve_project_dir(effective_target_id, project_root=project_root)
+    lifetime_report = report.get("a5_hardware_lifetimes")
+    use = _a5_candidate_from_lifetime_report(lifetime_report if isinstance(lifetime_report, Mapping) else {}, candidate_id)
+    journal_path = target_dir / "decision_journal.jsonl"
+    if use is None:
+        return _a5_decision_blocked(
+            target_id,
+            candidate_id,
+            "current_a5_candidate_not_found",
+            write=write,
+            journal_path=journal_path,
+            a5_report=report,
+        )
+    packet = _a5_path_lifetime_packet_from_use(effective_target_id, use)
+    blockers = _a5_decision_packet_blockers(packet)
+    if blockers:
+        return _a5_decision_blocked(
+            target_id,
+            candidate_id,
+            blockers,
+            write=write,
+            journal_path=journal_path,
+            packet=packet,
+        )
+    journal = decision_journal_report(target_dir)
+    record = a5_hardware_decision_record(
+        packet,
+        action,
+        target_id=effective_target_id,
+        decision_id=decision_id or f"decision-a5-{uuid.uuid4().hex[:12]}",
+        prev=journal.get("next_prev") if isinstance(journal.get("next_prev"), str) else None,
+        reason=reason,
+        created_at=datetime.now(UTC).isoformat(timespec="seconds"),
+    )
+    dry_run = decision_journal_report(target_dir, dry_run_record=record).get("dry_run_record")
+    if not isinstance(dry_run, Mapping) or dry_run.get("status") != "valid":
+        return {
+            "target_id": target_id,
+            "listing_target_id": effective_target_id,
+            "candidate_id": candidate_id,
+            "status": "blocked",
+            "blockers": ["decision_journal_dry_run_rejected"],
+            "record": record,
+            "dry_run_record": dry_run,
+            "write_requested": write,
+            "written": False,
+            "journal_path": str(journal_path),
+        }
+    if not write:
+        return {
+            "target_id": target_id,
+            "listing_target_id": effective_target_id,
+            "candidate_id": candidate_id,
+            "decision_id": record["decision_id"],
+            "status": "dry_run_ready",
+            "record": record,
+            "dry_run_record": dry_run,
+            "write_requested": False,
+            "written": False,
+            "journal_path": str(journal_path),
+        }
+    appended = append_decision_record(target_dir, record)
+    return {
+        "target_id": target_id,
+        "listing_target_id": effective_target_id,
+        "candidate_id": candidate_id,
+        "decision_id": record["decision_id"],
+        "status": "appended" if appended.get("status") == "appended" else "blocked",
+        "blockers": [] if appended.get("status") == "appended" else ["decision_journal_append_rejected"],
+        "record": record,
+        "dry_run_record": dry_run,
+        "append_result": appended,
+        "write_requested": True,
+        "written": appended.get("status") == "appended",
+        "journal_path": str(journal_path),
+    }
+
+
+def _a5_decision_blocked(
+    target_id: str,
+    candidate_id: str,
+    blockers: str | Sequence[str],
+    *,
+    write: bool,
+    journal_path: Path,
+    a5_report: Mapping[str, object] | None = None,
+    packet: Mapping[str, object] | None = None,
+) -> dict[str, object]:
+    result: dict[str, object] = {
+        "target_id": target_id,
+        "candidate_id": candidate_id,
+        "status": "blocked",
+        "blockers": [blockers] if isinstance(blockers, str) else list(blockers),
+        "write_requested": write,
+        "written": False,
+        "journal_path": str(journal_path),
+    }
+    if a5_report is not None:
+        result["a5_report_status"] = a5_report.get("listing_open")
+    if packet is not None:
+        result["packet"] = dict(packet)
+    return result
+
+
+def _a5_candidate_from_lifetime_report(
+    lifetime_report: Mapping[str, object],
+    candidate_id: str,
+) -> dict[str, object] | None:
+    cfg_report = lifetime_report.get("cfg_path_lifetime_report")
+    uses = cfg_report.get("uses") if isinstance(cfg_report, Mapping) else None
+    if not isinstance(uses, Sequence) or isinstance(uses, str):
+        return None
+    for raw_use in uses:
+        if not isinstance(raw_use, Mapping):
+            continue
+        use = dict(raw_use)
+        params = use.get("parameters")
+        identity = _a5_path_lifetime_selected_identity(str(use.get("target_id") or ""), use)
+        aliases = {
+            use.get("source_evidence_id"),
+            identity.get("selected_use_id"),
+            params.get("a5_hardware_ref_id") if isinstance(params, Mapping) else None,
+            params.get("selected_use_id") if isinstance(params, Mapping) else None,
+        }
+        if candidate_id in {alias for alias in aliases if isinstance(alias, str)}:
+            return use
+    return None
+
+
+def _a5_decision_packet_blockers(packet: Mapping[str, object]) -> list[str]:
+    blockers: list[str] = []
+    if packet.get("status") not in {"accepted", "accepted_existing_manual_state"}:
+        blockers.append("a5_packet_not_accepted")
+    for blocker in _string_sequence(packet.get("blockers")):
+        if blocker not in blockers:
+            blockers.append(blocker)
+    command_gate = packet.get("command_gate")
+    if not isinstance(command_gate, Mapping) or command_gate.get("candidate_command_available") is not True:
+        blockers.append("missing_command_candidate")
+    conflicts = packet.get("conflicts")
+    if not isinstance(conflicts, Mapping) or conflicts.get("explicit_empty") is not True or conflicts.get("items") != []:
+        blockers.append("a5_packet_conflicts_not_empty")
+    selected_identity = packet.get("selected_identity")
+    required_identity = (
+        "target_id",
+        "row_key",
+        "segment_id",
+        "hunk",
+        "addr",
+        "end",
+        "operand_index",
+        "base_register",
+        "displacement",
+        "hardware_register_offset",
+        "parent_evidence_id",
+    )
+    if not isinstance(selected_identity, Mapping) or not all(key in selected_identity for key in required_identity):
+        blockers.append("a5_packet_selected_identity_incomplete")
+    command = packet.get("command")
+    parameters = command.get("parameters") if isinstance(command, Mapping) else None
+    if not isinstance(parameters, Mapping):
+        blockers.append("missing_a5_command_parameters")
+    elif isinstance(selected_identity, Mapping):
+        for key in ("target_id", "row_key", "addr", "end", "operand_index", "base_register", "displacement", "hardware_register_offset"):
+            if key in selected_identity and parameters.get(key) != selected_identity.get(key):
+                blockers.append(f"a5_packet_identity_mismatch_{key}")
+    return blockers
+
+
+def a5_hardware_decision_record(
+    packet: Mapping[str, object],
+    action: str,
+    *,
+    target_id: str,
+    decision_id: str,
+    prev: str | None = None,
+    reason: str | None = None,
+    created_at: str | None = None,
+) -> dict[str, object]:
+    selected_identity = dict(cast(Mapping[str, object], packet["selected_identity"]))
+    command = packet.get("command")
+    parameters = command.get("parameters") if isinstance(command, Mapping) else None
+    a5_ref = dict(cast(Mapping[str, object], parameters))
+    candidate_id = str(packet.get("candidate_id") or a5_ref.get("source_evidence_id") or a5_ref.get("a5_hardware_ref_id"))
+    packet_id = str(packet.get("packet_id") or f"a5-path-lifetime-packet:{selected_identity.get('selected_use_id', candidate_id)}")
+    record: dict[str, object] = {
+        "schema": DECISION_JOURNAL_SCHEMA,
+        "decision_id": decision_id,
+        "prev": prev,
+        "created_at": created_at or datetime.now(UTC).isoformat(timespec="seconds"),
+        "actor": {"kind": "llm", "name": "codex"},
+        "action": action,
+        "packet_id": packet_id,
+        "candidate_id": candidate_id,
+        "selected_identity": selected_identity,
+        "evidence_refs": [packet_id, str(a5_ref.get("source_evidence_id") or "")],
+        "conflicts": [],
+        "reason": reason or "Accepted A5 path/lifetime evidence identifies this operand as an Amiga custom hardware reference.",
+        "render_intent": packet.get("render_intent"),
+    }
+    record["evidence_refs"] = [ref for ref in record["evidence_refs"] if ref]
+    if action == "accept_fact":
+        record["fact_type"] = "a5_hardware_ref"
+        record["scope"] = {
+            "kind": "selected_a5_hardware_ref",
+            "hunk": selected_identity.get("hunk"),
+            "addr": selected_identity.get("addr"),
+            "end": selected_identity.get("end"),
+            "operand_index": selected_identity.get("operand_index"),
+        }
+        record["a5_hardware_ref"] = a5_ref
+    elif action == "defer_fact":
+        record["defer_reason"] = reason or "A5 hardware-reference candidate deferred for reviewer follow-up."
+    elif action == "reject_fact":
+        record["reject_reason"] = reason or "A5 hardware-reference candidate rejected under current evidence."
+    else:
+        raise ValueError(action)
+    return record
+
+
 def _callback_decision_packet_blockers(
     packet: Mapping[str, object],
     assignment: Mapping[str, object] | None,
@@ -808,6 +1072,16 @@ def produce_decision_verifier_artifact(
             project_root=project_root,
             artifact_path=target_dir / _DECISION_VERIFIER_ARTIFACTS_FILE,
         )
+    if fact_type == "a5_hardware_ref":
+        return _produce_a5_decision_verifier_artifact(
+            target_id,
+            decision_id=decision_id,
+            write=write,
+            audit_record=audit_record,
+            journal_report=journal_report,
+            project_root=project_root,
+            artifact_path=target_dir / _DECISION_VERIFIER_ARTIFACTS_FILE,
+        )
     if fact_type != "rsset_app_base":
         return _decision_verifier_producer_blocked(
             target_id,
@@ -951,6 +1225,174 @@ def produce_decision_verifier_artifact(
     }
     written = False
     if write:
+        _write_decision_verifier_artifact(target_dir, artifact)
+        written = True
+    return {
+        "target_id": target_id,
+        "decision_id": decision_id,
+        "candidate_id": candidate_id,
+        "status": "passed",
+        "artifact": artifact,
+        "layers": layers,
+        "verifier_results": verifier_results,
+        "write_requested": write,
+        "written": written,
+        "artifact_path": str(artifact_path),
+    }
+
+
+def _produce_a5_decision_verifier_artifact(
+    target_id: str,
+    *,
+    decision_id: str,
+    write: bool,
+    audit_record: Mapping[str, object],
+    journal_report: Mapping[str, object],
+    project_root: Path,
+    artifact_path: Path,
+) -> dict[str, object]:
+    candidate_id = audit_record.get("candidate_id")
+    if not isinstance(candidate_id, str) or not candidate_id:
+        return _decision_verifier_producer_blocked(
+            target_id,
+            decision_id,
+            "missing_candidate_id",
+            write=write,
+            audit_record=audit_record,
+            artifact_path=artifact_path,
+        )
+    packet = _current_a5_packet_for_audit_record(target_id, audit_record, journal_report, project_root=project_root)
+    if packet is None:
+        return _decision_verifier_producer_blocked(
+            target_id,
+            decision_id,
+            "current_a5_candidate_not_found",
+            write=write,
+            audit_record=audit_record,
+            artifact_path=artifact_path,
+        )
+    if not _a5_packet_has_matching_journal_decision(packet, decision_id):
+        return _decision_verifier_producer_blocked(
+            target_id,
+            decision_id,
+            "current_journal_evidence_not_matched",
+            write=write,
+            audit_record=audit_record,
+            candidate=packet,
+            artifact_path=artifact_path,
+        )
+    candidate_identity = _a5_packet_selected_identity(packet, target_id)
+    if not _decision_verifier_selected_identity_matches(candidate_identity, audit_record.get("selected_identity")):
+        return _decision_verifier_producer_blocked(
+            target_id,
+            decision_id,
+            "selected_identity_mismatch",
+            write=write,
+            audit_record=audit_record,
+            candidate=packet,
+            candidate_selected_identity=candidate_identity,
+            artifact_path=artifact_path,
+        )
+    source_state_identity = _a5_packet_source_state_identity(packet)
+    if source_state_identity is None:
+        return _decision_verifier_producer_blocked(
+            target_id,
+            decision_id,
+            "missing_source_state_identity",
+            write=write,
+            audit_record=audit_record,
+            candidate=packet,
+            artifact_path=artifact_path,
+        )
+    command = packet.get("command")
+    if not isinstance(command, Mapping):
+        return _decision_verifier_producer_blocked(
+            target_id,
+            decision_id,
+            "missing_a5_command_parameters",
+            write=write,
+            audit_record=audit_record,
+            candidate=packet,
+            artifact_path=artifact_path,
+        )
+    raw_expected = audit_record.get("a5_hardware_ref")
+    if not isinstance(raw_expected, Mapping):
+        raw_expected = _a5_packet_accepted_decision_fact(packet, decision_id)
+    expected = _normalized_a5_hardware_ref(dict(raw_expected)) if isinstance(raw_expected, Mapping) else None
+    if expected is not None:
+        expected = {**expected, "decision_id": decision_id}
+    semantic = _verify_project_a5_hardware_ref(target_id, expected, project_root=project_root)
+    generated = _verify_projected_a5_hardware_ref_rendered_source(
+        target_id,
+        dict(command),
+        expected,
+        project_root=project_root,
+    )
+    negative = _verify_a5_decision_negative_safety(target_id, decision_id, expected, project_root=project_root)
+    round_trip = _verify_round_trip_exact(target_id, project_root=project_root)
+    checked_at = datetime.now(UTC).isoformat(timespec="seconds")
+    layers = {
+        "semantic_reload": _decision_verifier_artifact_layer_from_result(
+            "semantic_reload",
+            "_verify_project_a5_hardware_ref",
+            semantic,
+            checked_at=checked_at,
+        ),
+        "generated_source": _decision_verifier_artifact_layer_from_result(
+            "generated_source",
+            "_verify_projected_a5_hardware_ref_rendered_source",
+            generated,
+            checked_at=checked_at,
+        ),
+        "negative_safety": _decision_verifier_artifact_layer_from_result(
+            "negative_safety",
+            "_verify_a5_decision_negative_safety",
+            negative,
+            checked_at=checked_at,
+        ),
+        "exact_round_trip": _decision_verifier_artifact_layer_from_result(
+            "exact_round_trip",
+            "_verify_round_trip_exact",
+            round_trip,
+            checked_at=checked_at,
+        ),
+    }
+    verifier_results = {
+        "semantic_reload": semantic,
+        "generated_source": generated,
+        "negative_safety": negative,
+        "exact_round_trip": round_trip,
+    }
+    passed = all(layer.get("status") == "passed" for layer in layers.values())
+    if not passed:
+        return {
+            "target_id": target_id,
+            "decision_id": decision_id,
+            "candidate_id": candidate_id,
+            "status": "blocked",
+            "blockers": _decision_verifier_result_blockers(verifier_results),
+            "artifact": None,
+            "layers": layers,
+            "verifier_results": verifier_results,
+            "write_requested": write,
+            "written": False,
+            "artifact_path": str(artifact_path),
+        }
+    artifact = {
+        "artifact_id": f"decision-verifier:{decision_id}:{candidate_id}:{_short_hash(source_state_identity)}",
+        "target_id": target_id,
+        "decision_id": decision_id,
+        "candidate_id": candidate_id,
+        "selected_identity": dict(cast(Mapping[str, object], audit_record["selected_identity"])),
+        "source_state_identity": source_state_identity,
+        "current": True,
+        "checked_at": checked_at,
+        "producer": "decision-verifier-artifact",
+        "layers": layers,
+    }
+    written = False
+    if write:
+        target_dir = resolve_project_dir(target_id, project_root=project_root)
         _write_decision_verifier_artifact(target_dir, artifact)
         written = True
     return {
@@ -1521,6 +1963,120 @@ def _callback_packet_source_state_identity(packet: Mapping[str, object]) -> str 
     return json.dumps(payload, sort_keys=True, separators=(",", ":"))
 
 
+def _current_a5_packet_for_audit_record(
+    target_id: str,
+    audit_record: Mapping[str, object],
+    journal_report: Mapping[str, object],
+    *,
+    project_root: Path,
+) -> dict[str, object] | None:
+    candidate_id = audit_record.get("candidate_id")
+    if not isinstance(candidate_id, str) or not candidate_id:
+        return None
+    report = inspect_a5_hardware_lifetimes(target_id, project_root=project_root)
+    lifetime_report = report.get("a5_hardware_lifetimes")
+    if not isinstance(lifetime_report, Mapping):
+        return None
+    use = _a5_candidate_from_lifetime_report(lifetime_report, candidate_id)
+    if use is None:
+        return None
+    projection = journal_report.get("projection") if isinstance(journal_report.get("projection"), Mapping) else None
+    return _a5_path_lifetime_packet_from_use(
+        target_id,
+        use,
+        journal_projection=projection if isinstance(projection, Mapping) else None,
+    )
+
+
+def _a5_packet_selected_identity(packet: Mapping[str, object], target_id: str) -> dict[str, object]:
+    selected = packet.get("selected_identity")
+    selected = selected if isinstance(selected, Mapping) else {}
+    hunk = _int_or_none(selected.get("hunk")) or 0
+    addr = _int_or_none(selected.get("addr")) or 0
+    operand_index = _int_or_none(selected.get("operand_index")) or 0
+    identity = dict(selected)
+    identity.update(
+        {
+            "target_id": target_id,
+            "segment_id": str(selected.get("segment_id") or f"s{hunk}"),
+            "hunk": hunk,
+            "addr": addr,
+            "operand_index": operand_index,
+        }
+    )
+    return identity
+
+
+def _a5_selected_identity_matches(left: object, right: object) -> bool:
+    if not isinstance(left, Mapping) or not isinstance(right, Mapping):
+        return False
+    required = (
+        "target_id",
+        "segment_id",
+        "hunk",
+        "addr",
+        "end",
+        "row_key",
+        "operand_index",
+        "base_register",
+        "displacement",
+        "custom_base_offset",
+        "hardware_register_offset",
+        "parent_evidence_id",
+    )
+    return all(key in left and key in right and left.get(key) == right.get(key) for key in required)
+
+
+def _a5_packet_has_matching_journal_decision(packet: Mapping[str, object], decision_id: object) -> bool:
+    if not isinstance(decision_id, str):
+        return False
+    selected_identity = packet.get("selected_identity")
+    lane = packet.get("decision_lane")
+    accepted = lane.get("accepted") if isinstance(lane, Mapping) else None
+    return any(
+        isinstance(item, Mapping)
+        and item.get("decision_id") == decision_id
+        and _a5_selected_identity_matches(selected_identity, item.get("selected_identity"))
+        for item in _mapping_sequence(accepted)
+    )
+
+
+def _a5_packet_accepted_decision_fact(packet: Mapping[str, object], decision_id: object) -> Mapping[str, object] | None:
+    if not isinstance(decision_id, str):
+        return None
+    selected_identity = packet.get("selected_identity")
+    lane = packet.get("decision_lane")
+    accepted = lane.get("accepted") if isinstance(lane, Mapping) else None
+    for item in _mapping_sequence(accepted):
+        if (
+            item.get("decision_id") == decision_id
+            and _a5_selected_identity_matches(selected_identity, item.get("selected_identity"))
+            and isinstance(item.get("a5_hardware_ref"), Mapping)
+        ):
+            return cast(Mapping[str, object], item["a5_hardware_ref"])
+    return None
+
+
+def _a5_packet_source_state_identity(packet: Mapping[str, object]) -> str | None:
+    selected = packet.get("selected_identity")
+    command = packet.get("command")
+    parameters = command.get("parameters") if isinstance(command, Mapping) else None
+    if not isinstance(selected, Mapping) or not isinstance(parameters, Mapping):
+        return None
+    use_locator = parameters.get("use_locator")
+    projection_hash = use_locator.get("projection_hash") if isinstance(use_locator, Mapping) else None
+    payload: dict[str, object] = {
+        "packet_id": packet.get("packet_id"),
+        "candidate_id": packet.get("candidate_id"),
+        "selected_identity": dict(selected),
+        "source_evidence_id": parameters.get("source_evidence_id"),
+        "a5_hardware_ref_id": parameters.get("a5_hardware_ref_id"),
+    }
+    if isinstance(projection_hash, str) and projection_hash:
+        payload["projection_hash"] = projection_hash
+    return json.dumps(payload, sort_keys=True, separators=(",", ":"))
+
+
 def _write_decision_verifier_artifact(target_dir: Path, artifact: Mapping[str, object]) -> None:
     path = target_dir / _DECISION_VERIFIER_ARTIFACTS_FILE
     payload = _load_decision_verifier_artifacts(target_dir)
@@ -1595,6 +2151,18 @@ def _decision_journal_report_with_current_source_audit(
             if callback_report is None:
                 callback_report = inspect_callback_slots(target_id, project_root=project_root)
             record = _callback_source_effect_audit_record(record, callback_report, verifier_artifacts=verifier_artifacts)
+        if (
+            record.get("state") == "active"
+            and record.get("action") == "accept_fact"
+            and record.get("fact_type") == "a5_hardware_ref"
+        ):
+            record = _a5_source_effect_audit_record(
+                target_id,
+                record,
+                report,
+                project_root=project_root,
+                verifier_artifacts=verifier_artifacts,
+            )
         updated_records.append(record)
     updated_audit = dict(audit)
     updated_audit["records"] = updated_records
@@ -1712,6 +2280,60 @@ def _callback_source_effect_audit_record(
     for blocker in packet_blockers:
         if blocker not in blockers:
             blockers.append(blocker)
+    for blocker in _decision_verifier_artifact_blockers(
+        audit_record,
+        verifier_artifacts,
+        current_source_identity=source_identity,
+    ):
+        if blocker not in blockers:
+            blockers.append(blocker)
+    updated["blockers"] = blockers
+    return updated
+
+
+def _a5_source_effect_audit_record(
+    target_id: str,
+    audit_record: dict[str, object],
+    journal_report: Mapping[str, object],
+    *,
+    project_root: Path,
+    verifier_artifacts: Mapping[str, object] | None = None,
+) -> dict[str, object]:
+    packet = _current_a5_packet_for_audit_record(target_id, audit_record, journal_report, project_root=project_root)
+    if packet is None:
+        return _audit_record_with_blocker(audit_record, "current_a5_candidate_not_found")
+    if not _a5_packet_has_matching_journal_decision(packet, audit_record.get("decision_id")):
+        return _audit_record_with_blocker(audit_record, "current_journal_evidence_not_matched")
+    selected_identity = audit_record.get("selected_identity")
+    selected_target_id = selected_identity.get("target_id") if isinstance(selected_identity, Mapping) else None
+    candidate_identity = _a5_packet_selected_identity(packet, selected_target_id if isinstance(selected_target_id, str) else target_id)
+    if not _decision_verifier_selected_identity_matches(candidate_identity, audit_record.get("selected_identity")):
+        updated = dict(audit_record)
+        updated["candidate_selected_identity"] = candidate_identity
+        return _audit_record_with_blocker(updated, "selected_identity_mismatch")
+    source_identity = _a5_packet_source_state_identity(packet)
+    if source_identity is None:
+        return _audit_record_with_blocker(audit_record, "missing_source_state_identity")
+    updated = dict(audit_record)
+    updated["replay"] = {"status": "source_effective", "semantic_reload": "effective_metadata_a5_ref_matched"}
+    updated["rendered_source_effect"] = {
+        "status": "source_effective",
+        "effect": "accepted A5 hardware ref is projected through effective metadata into the C backend renderer",
+        "render_intent": audit_record.get("render_intent"),
+        "source": "a5-path-lifetime-report",
+    }
+    updated["verifier_layers"] = [
+        {"layer": "decision_journal", "status": "passed"},
+        {"layer": "semantic_reload", "status": "passed", "source": "effective-metadata"},
+        *_decision_verifier_artifact_layers(
+            audit_record,
+            verifier_artifacts,
+            current_source_identity=source_identity,
+        ),
+    ]
+    blockers = [
+        blocker for blocker in _string_sequence(audit_record.get("blockers")) if blocker != "source_effect_not_verified"
+    ]
     for blocker in _decision_verifier_artifact_blockers(
         audit_record,
         verifier_artifacts,
@@ -4979,9 +5601,6 @@ def _a5_hardware_lifetime_report_with_existing_refs(
         updated = dict(use)
         existing = _existing_a5_hardware_ref_for_candidate(updated, existing_refs)
         if existing is not None:
-            updated.pop("suggested_action_kinds", None)
-            updated.pop("default_verifier", None)
-            updated.pop("parameters", None)
             updated["existing_manual_state"] = {
                 key: existing[key]
                 for key in ("a5_hardware_ref_id", "source_evidence_id", "owner_action_id")
@@ -5070,6 +5689,8 @@ def _a5_path_lifetime_packet_from_use(
     candidate_id = str(use.get("source_evidence_id") or identity.get("selected_use_id") or "")
     blockers = _a5_path_lifetime_packet_blockers(use)
     command_backed = _a5_hardware_candidate_is_command_backed(use)
+    parameters = use.get("parameters")
+    command_parameters = dict(parameters) if isinstance(parameters, Mapping) else None
     existing_manual = use.get("existing_manual_state")
     accepted = use.get("status") == "accepted_custom_base"
     status = "accepted" if accepted and not blockers else "blocked"
@@ -5128,6 +5749,12 @@ def _a5_path_lifetime_packet_from_use(
             "safe_to_mutate": False,
             "missing_gates": ["packet_read_only_no_writes", *blockers],
         },
+        "command": {
+            "command_id": "a5_hardware_ref.interpret",
+            "parameters": command_parameters,
+        }
+        if command_parameters is not None
+        else None,
         "decision": {
             "writes_enabled": False,
             "available_actions": ["accept_fact", "defer_fact", "reject_fact"],
@@ -5138,7 +5765,7 @@ def _a5_path_lifetime_packet_from_use(
             candidate_id=candidate_id,
             selected_identity=identity,
             journal_projection=journal_projection,
-            required_fact_type="a5_path_lifetime",
+            required_fact_type="a5_hardware_ref",
         ),
         "safe_to_mutate": False,
         "mutation_policy": "read_only",
@@ -5161,12 +5788,20 @@ def _a5_path_lifetime_selected_identity(target_id: str, use: Mapping[str, object
         identity["addr"] = addr
         identity["address_hex"] = f"{addr:08X}"
         identity["selected_use_id"] = f"s{hunk}:{addr:08X}:op{operand_index}" if operand_index is not None else f"s{hunk}:{addr:08X}"
+    end = _int_or_none(locator.get("end_offset"))
+    if end is not None:
+        identity["end"] = end
+    row_key = locator.get("row_key")
+    if isinstance(row_key, str) and row_key:
+        identity["row_key"] = row_key
     if operand_index is not None:
         identity["operand_index"] = operand_index
     for key in ("displacement", "custom_base_offset", "hardware_register_offset", "source_evidence_id"):
         value = use.get(key)
         if value is not None:
             identity[key] = value
+    if isinstance(identity.get("source_evidence_id"), str):
+        identity["parent_evidence_id"] = identity["source_evidence_id"]
     return identity
 
 
@@ -5186,8 +5821,6 @@ def _a5_path_lifetime_packet_blockers(use: Mapping[str, object]) -> list[str]:
     blockers = list(_string_sequence(use.get("blockers")))
     if use.get("status") != "accepted_custom_base":
         blockers.append("missing_accepted_path_lifetime_scope")
-    if isinstance(use.get("existing_manual_state"), Mapping):
-        blockers.append("already_recorded_in_manual_state")
     if not _a5_hardware_candidate_is_command_backed(use):
         blockers.append("missing_command_candidate")
     return sorted(set(blockers))
@@ -5221,17 +5854,31 @@ def _a5_hardware_ref_parameters(candidate: Mapping[str, object]) -> dict[str, ob
     addr = _int_or_none(use_locator.get("start_offset"))
     if addr is None:
         return None
+    end = _int_or_none(use_locator.get("end_offset"))
+    if end is None or end <= addr:
+        return None
     hunk = _int_or_none(use_locator.get("section_index")) or 0
+    target_id = use_locator.get("target_id")
+    row_key = use_locator.get("row_key")
     return {
         "a5_hardware_ref_id": f"a5-hw:{source_evidence_id}",
+        "target_id": target_id if isinstance(target_id, str) else "",
+        "row_key": row_key if isinstance(row_key, str) else "",
+        "selected_use_id": f"s{hunk}:{addr:08X}:op{operand_index}",
+        "parent_evidence_id": source_evidence_id,
+        "parent_evidence_ids": [source_evidence_id],
         "source_family": "amiga_custom_base",
         "source_evidence_status": "accepted",
         "source_evidence_id": source_evidence_id,
         "path_lifetime_scope": dict(path_lifetime_scope),
+        "base_register": "A5",
+        "register": "A5",
         "operand_index": operand_index,
         "displacement": displacement,
         "custom_base_offset": custom_base_offset,
+        "custom_base_address": _AMIGA_CUSTOM_BASE_ADDRESS,
         "hardware_register_offset": hardware_register_offset,
+        "reference_kind": "hardware_register",
         "symbol": symbol,
         "render_mode": _a5_hardware_ref_render_mode(
             {
@@ -5251,6 +5898,7 @@ def _a5_hardware_ref_parameters(candidate: Mapping[str, object]) -> dict[str, ob
         "conflicts": [],
         "hunk": hunk,
         "addr": addr,
+        "end": end,
     }
 
 
@@ -8209,8 +8857,11 @@ def _verify_project_semantic_label(
     try:
         project = projects.get_project(target_id, project_root=project_root)
     except Exception as exc:
-        return {"layer": "semantic_reload", "status": "failed", "message": str(exc)}
-    manual_state = project.manual_state
+        project = None
+        project_error = str(exc)
+    else:
+        project_error = None
+    manual_state = project.manual_state if project is not None else {}
     labels = manual_state.get("labels") if isinstance(manual_state, dict) else None
     if not isinstance(labels, list | tuple):
         return {"layer": "semantic_reload", "status": "failed", "message": "manual labels were not reloaded"}
@@ -11015,21 +11666,24 @@ def _verify_project_a5_hardware_ref(
             "missing_identity_fields": missing_identity_fields,
             "expected_a5_hardware_ref": expected,
         }
+    project_error: str | None = None
     try:
         project = projects.get_project(target_id, project_root=project_root)
     except Exception as exc:
-        return {"layer": "semantic_reload", "status": "failed", "message": str(exc)}
-    manual_state = project.manual_state
+        project = None
+        project_error = str(exc)
+    manual_state = project.manual_state if project is not None else None
     refs = manual_state.get("a5_hardware_refs") if isinstance(manual_state, dict) else None
-    if not isinstance(refs, list | tuple):
-        return {"layer": "semantic_reload", "status": "failed", "message": "manual A5 hardware refs were not reloaded"}
-    matches = [ref for ref in refs if isinstance(ref, dict) and _a5_hardware_ref_matches(ref, expected)]
+    matches = [ref for ref in refs if isinstance(ref, dict) and _a5_hardware_ref_matches(ref, expected)] if isinstance(refs, list | tuple) else []
+    effective_matches = _effective_metadata_a5_hardware_ref_matches(target_id, expected, project_root=project_root)
     return {
         "layer": "semantic_reload",
-        "status": "passed" if matches else "failed",
+        "status": "passed" if matches or effective_matches else "failed",
         "expected_a5_hardware_ref": expected,
         "matching_a5_hardware_refs": matches,
+        "matching_effective_metadata_refs": effective_matches,
         "state_key": "a5_hardware_refs",
+        "project_reload_error": project_error,
     }
 
 
@@ -11053,6 +11707,72 @@ def _project_a5_hardware_ref_state_match(
         if isinstance(ref, dict) and _a5_hardware_ref_matches(ref, expected):
             return cast(dict[str, object], ref)
     return None
+
+
+def _effective_metadata_a5_hardware_ref_matches(
+    target_id: str,
+    expected: Mapping[str, object],
+    *,
+    project_root: Path,
+) -> list[dict[str, object]]:
+    try:
+        target_dir = resolve_project_dir(target_id, project_root=project_root)
+        metadata = effective_target_metadata(target_dir)
+    except Exception:
+        return []
+    if metadata is None:
+        return []
+    decision_id = expected.get("decision_id")
+    hunk = expected.get("hunk")
+    addr = expected.get("addr")
+    end = expected.get("end")
+    operand_index = expected.get("operand_index")
+    symbol = expected.get("symbol")
+    source_locator = expected.get("a5_hardware_ref_id")
+    matches: list[dict[str, object]] = []
+    for representation in metadata.manual_representations:
+        if (
+            representation.hunk == hunk
+            and representation.addr == addr
+            and representation.end == end
+            and representation.operand_index == operand_index
+            and representation.symbol == symbol
+            and (decision_id is None or representation.source_id == decision_id)
+            and (source_locator is None or representation.source_locator == source_locator)
+        ):
+            matches.append(
+                {
+                    "kind": "manual_representation",
+                    "hunk": representation.hunk,
+                    "addr": representation.addr,
+                    "end": representation.end,
+                    "operand_index": representation.operand_index,
+                    "symbol": representation.symbol,
+                    "source_id": representation.source_id,
+                    "source_locator": representation.source_locator,
+                }
+            )
+    expected_comment = _a5_hardware_ref_entry_comment_text(expected)
+    if expected_comment is not None:
+        for comment in metadata.entry_comments:
+            if (
+                comment.hunk == hunk
+                and comment.addr == addr
+                and comment.comment == expected_comment
+                and (decision_id is None or comment.source_id == decision_id)
+                and (source_locator is None or comment.source_locator == source_locator)
+            ):
+                matches.append(
+                    {
+                        "kind": "entry_comment",
+                        "hunk": comment.hunk,
+                        "addr": comment.addr,
+                        "comment": comment.comment,
+                        "source_id": comment.source_id,
+                        "source_locator": comment.source_locator,
+                    }
+                )
+    return matches
 
 
 def _a5_hardware_ref_matches(actual: dict[str, object], expected: dict[str, object]) -> bool:
@@ -11219,6 +11939,64 @@ def _verify_projected_a5_hardware_ref_entry_comment(
         "source_render_error": source_error,
         "affected_rendered_text": rendered_text,
         "selected_operands": selected_operands,
+    }
+
+
+def _verify_a5_decision_negative_safety(
+    target_id: str,
+    decision_id: str,
+    expected: dict[str, object] | None,
+    *,
+    project_root: Path,
+) -> dict[str, object]:
+    if expected is None:
+        return {"layer": "negative_safety", "status": "failed", "message": "missing A5 hardware ref payload"}
+    try:
+        target_dir = resolve_project_dir(target_id, project_root=project_root)
+        metadata = effective_target_metadata(target_dir)
+    except Exception as exc:
+        return {"layer": "negative_safety", "status": "failed", "message": str(exc)}
+    if metadata is None:
+        return {"layer": "negative_safety", "status": "failed", "message": "effective metadata missing"}
+    expected_for_decision = {**expected, "decision_id": decision_id}
+    matching = _effective_metadata_a5_hardware_ref_matches(target_id, expected_for_decision, project_root=project_root)
+    unexpected: list[dict[str, object]] = []
+    for representation in metadata.manual_representations:
+        if representation.source_id != decision_id:
+            continue
+        same_selected = (
+            representation.hunk == expected.get("hunk")
+            and representation.addr == expected.get("addr")
+            and representation.operand_index == expected.get("operand_index")
+        )
+        if not same_selected:
+            unexpected.append(
+                {
+                    "kind": "manual_representation",
+                    "hunk": representation.hunk,
+                    "addr": representation.addr,
+                    "operand_index": representation.operand_index,
+                    "symbol": representation.symbol,
+                }
+            )
+    for comment in metadata.entry_comments:
+        if comment.source_id != decision_id:
+            continue
+        same_selected = comment.hunk == expected.get("hunk") and comment.addr == expected.get("addr")
+        if not same_selected:
+            unexpected.append(
+                {
+                    "kind": "entry_comment",
+                    "hunk": comment.hunk,
+                    "addr": comment.addr,
+                    "comment": comment.comment,
+                }
+            )
+    return {
+        "layer": "negative_safety",
+        "status": "passed" if len(matching) == 1 and not unexpected else "failed",
+        "same_decision_a5_ref_count": len(matching),
+        "unexpected_same_decision_a5_refs": unexpected,
     }
 
 

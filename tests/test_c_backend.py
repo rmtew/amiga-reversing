@@ -11,7 +11,7 @@ from zipfile import ZipFile
 import pytest
 
 from amiga_reversing import reversing_loop
-from amiga_reversing.disasm import c_backend
+from amiga_reversing.disasm import c_backend, decision_journal
 from amiga_reversing.disasm.binary_source import (
     BinarySourceKind,
     DiskEntryBinarySource,
@@ -1254,6 +1254,7 @@ def test_full_listing_instruction_rows_expose_symbol_operand_parts(tmp_path: Pat
     assert branch["operand_text"] == "loc_0_00000004"
     assert branch["flow_kind"] == 2
     assert branch["flow"] == "branch"
+    assert branch["control_flow_boundary"] is True
     assert branch["operand_parts"][0]["kind"] == "symbol"
     assert branch["operand_parts"][0]["text"] == "loc_0_00000004"
     assert branch["operand_parts"][0]["metadata"] == {"symbol": "loc_0_00000004"}
@@ -1297,6 +1298,7 @@ def test_full_listing_bit_ops_use_generated_sequential_flow_metadata(tmp_path: P
     for opcode in ("btst", "bset", "bclr", "bchg"):
         assert by_opcode[opcode]["flow_kind"] == 1
         assert by_opcode[opcode]["flow"] == "sequential"
+        assert by_opcode[opcode]["control_flow_boundary"] is False
 
 
 def test_real_dll_genam_lvo_symbol_operand_parts_expose_base_register() -> None:
@@ -4961,6 +4963,221 @@ start:
     ]
     assert '    INCLUDE "exec/memory.i"\n' in rendered
     assert "\tmove.l #MEMF_CLEAR,d0\n" in rendered
+    assert rebuilt == original
+    assert direct_profile["direct_rebuild_exact"] is True
+
+
+def _append_a5_decision(
+    target_dir: Path,
+    *,
+    action: str = "accept_fact",
+    decision_id: str = "decision-a5-render",
+    ref_override: dict[str, object] | None = None,
+) -> dict[str, object]:
+    ref = {
+        "a5_hardware_ref_id": "a5-hw:fixture",
+        "target_id": "demo",
+        "row_key": "s0:00000000:instruction:1",
+        "selected_use_id": "s0:00000000:op0",
+        "parent_evidence_id": "a5-custom-cfg:fixture",
+        "parent_evidence_ids": ["a5-custom-cfg:fixture"],
+        "source_family": "amiga_custom_base",
+        "source_evidence_status": "accepted",
+        "source_evidence_id": "a5-custom-cfg:fixture",
+        "path_lifetime_scope": {
+            "accepted_hardware_base_evidence": True,
+            "kind": "straight_line_cfg_between_definition_and_use",
+        },
+        "base_register": "A5",
+        "register": "A5",
+        "operand_index": 1,
+        "displacement": 0x96,
+        "custom_base_offset": 0,
+        "custom_base_address": 0xDFF000,
+        "hardware_register_offset": 0x96,
+        "hardware_register_address": 0xDFF096,
+        "reference_kind": "hardware_register",
+        "symbol": "dmacon",
+        "render_mode": "symbol_operand",
+        "conflicts": [],
+        "hunk": 0,
+        "addr": 0,
+        "end": 4,
+    }
+    if ref_override:
+        ref.update(ref_override)
+    selected_identity = {
+        "target_id": "demo",
+        "segment_id": "s0",
+        "hunk": 0,
+        "addr": 0,
+        "end": 4,
+        "row_key": "s0:00000000:instruction:1",
+        "operand_index": 1,
+        "base_register": "A5",
+        "displacement": 0x96,
+        "hardware_register_offset": 0x96,
+        "parent_evidence_id": "a5-custom-cfg:fixture",
+    }
+    record = {
+        "schema": decision_journal.DECISION_JOURNAL_SCHEMA,
+        "decision_id": decision_id,
+        "prev": None,
+        "created_at": "2026-05-26T00:00:00+00:00",
+        "actor": {"kind": "llm", "name": "codex"},
+        "action": action,
+        "packet_id": "a5-path-lifetime-packet:s0:00000000:op1",
+        "candidate_id": "a5-custom-cfg:fixture",
+        "selected_identity": selected_identity,
+        "evidence_refs": ["a5-path-lifetime-packet:s0:00000000:op1", "a5-custom-cfg:fixture"],
+        "conflicts": [],
+        "reason": action,
+    }
+    if action == "accept_fact":
+        record["fact_type"] = "a5_hardware_ref"
+        record["scope"] = {"kind": "selected_a5_hardware_ref", "hunk": 0, "addr": 0, "end": 4, "operand_index": 1}
+        record["a5_hardware_ref"] = ref
+    elif action == "defer_fact":
+        record["defer_reason"] = "deferred fixture"
+    elif action == "reject_fact":
+        record["reject_reason"] = "rejected fixture"
+    else:
+        raise AssertionError(action)
+    decision_journal.append_decision_record(target_dir, record)
+    return ref
+
+
+def _a5_decision_render_fixture(tmp_path: Path, source_text: str) -> tuple[HunkFileBinarySource, Path, bytes]:
+    target_dir = tmp_path / "target"
+    target_dir.mkdir()
+    binary_path = tmp_path / "a5-render.bin"
+    original, _assembler_profile = assemble_platform_source_text_with_c_backend(
+        "amiga-hunk",
+        source_text,
+        output_path=binary_path,
+        project_root=PROJECT_ROOT,
+    )
+    source = HunkFileBinarySource(
+        kind=BinarySourceKind.HUNK_FILE,
+        path=binary_path,
+        display_path=str(binary_path),
+        analysis_cache_path=target_dir / "binary.analysis",
+    )
+    (target_dir / "source_binary.json").write_text(
+        json.dumps({"kind": "hunk_file", "path": str(binary_path)}),
+        encoding="utf-8",
+    )
+    write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
+    return source, target_dir, original
+
+
+def test_real_dll_accepted_a5_decision_renders_through_effective_metadata(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    source, target_dir, original = _a5_decision_render_fixture(
+        tmp_path,
+        """    SECTION section,code
+start:
+    move.w d0,$0096(a5)
+    rts
+    dc.w 0
+""",
+    )
+    _append_a5_decision(target_dir)
+
+    with effective_metadata_file(target_dir, include_decision_journal=False) as baseline_path:
+        baseline = render_project_source_with_c_backend(source, metadata_path=baseline_path, project_root=PROJECT_ROOT)
+    with effective_metadata_file(target_dir) as metadata_path:
+        assert metadata_path is not None
+        policy = effective_policy_project_source_with_c_backend(
+            source,
+            metadata_path=metadata_path,
+            project_root=PROJECT_ROOT,
+        )["analysis_policy"]
+        rendered = render_project_source_with_c_backend(source, metadata_path=metadata_path, project_root=PROJECT_ROOT)
+        rebuilt, _source_profile, direct_profile = facts_v2_direct_rebuild_project_source_with_c_backend_profile(
+            source,
+            metadata_path=metadata_path,
+            compare_original=True,
+            project_root=PROJECT_ROOT,
+        )
+
+    assert "\tmove.w d0,$0096(a5)\n" in baseline
+    assert policy["manual_representations"] == [
+        {"section_index": 0, "offset": 0, "size": 4, "style": "symbol", "operand_index": 1, "symbol": "dmacon"}
+    ]
+    assert "\tmove.w d0,dmacon(a5)\n" in rendered
+    assert "\tmove.w d0,$0096(a5)\n" not in rendered
+    assert rebuilt == original
+    assert direct_profile["direct_rebuild_exact"] is True
+
+
+@pytest.mark.parametrize("action", ["defer_fact", "reject_fact"])
+def test_real_dll_nonaccepted_a5_decision_does_not_render(tmp_path: Path, action: str) -> None:
+    _requires_c_backend_dlls()
+    source, target_dir, original = _a5_decision_render_fixture(
+        tmp_path,
+        """    SECTION section,code
+start:
+    move.w d0,$0096(a5)
+    rts
+    dc.w 0
+""",
+    )
+    _append_a5_decision(target_dir, action=action, decision_id=f"decision-a5-{action}")
+
+    with effective_metadata_file(target_dir) as metadata_path:
+        assert metadata_path is not None
+        policy = effective_policy_project_source_with_c_backend(
+            source,
+            metadata_path=metadata_path,
+            project_root=PROJECT_ROOT,
+        )["analysis_policy"]
+        rendered = render_project_source_with_c_backend(source, metadata_path=metadata_path, project_root=PROJECT_ROOT)
+        rebuilt, _source_profile, direct_profile = facts_v2_direct_rebuild_project_source_with_c_backend_profile(
+            source,
+            metadata_path=metadata_path,
+            compare_original=True,
+            project_root=PROJECT_ROOT,
+        )
+
+    assert policy["manual_representations"] == []
+    assert "\tmove.w d0,$0096(a5)\n" in rendered
+    assert "dmacon(a5)" not in rendered
+    assert rebuilt == original
+    assert direct_profile["direct_rebuild_exact"] is True
+
+
+def test_real_dll_stale_a5_decision_identity_does_not_render(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    source, target_dir, original = _a5_decision_render_fixture(
+        tmp_path,
+        """    SECTION section,code
+start:
+    move.w d0,$0096(a5)
+    rts
+    dc.w 0
+""",
+    )
+    _append_a5_decision(target_dir, ref_override={"row_key": "s0:00000002:instruction:stale"})
+
+    with effective_metadata_file(target_dir) as metadata_path:
+        assert metadata_path is not None
+        policy = effective_policy_project_source_with_c_backend(
+            source,
+            metadata_path=metadata_path,
+            project_root=PROJECT_ROOT,
+        )["analysis_policy"]
+        rendered = render_project_source_with_c_backend(source, metadata_path=metadata_path, project_root=PROJECT_ROOT)
+        rebuilt, _source_profile, direct_profile = facts_v2_direct_rebuild_project_source_with_c_backend_profile(
+            source,
+            metadata_path=metadata_path,
+            compare_original=True,
+            project_root=PROJECT_ROOT,
+        )
+
+    assert policy["manual_representations"] == []
+    assert "\tmove.w d0,$0096(a5)\n" in rendered
+    assert "dmacon(a5)" not in rendered
     assert rebuilt == original
     assert direct_profile["direct_rebuild_exact"] is True
 

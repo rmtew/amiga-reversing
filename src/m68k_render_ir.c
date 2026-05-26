@@ -3957,7 +3957,7 @@ static const char *manual_representation_symbol_name(const M68kRenderLookup *loo
   return policy->target_equates[representation->target_equate_index - 1U].name;
 }
 
-static void apply_manual_immediate_representations(const M68kRenderLookup *lookup, size_t section_index,
+static void apply_manual_operand_representations(const M68kRenderLookup *lookup, size_t section_index,
     uint32_t offset, M68kInstructionIR *instruction) {
   size_t operand_index;
   if (instruction == NULL) return;
@@ -3965,7 +3965,11 @@ static void apply_manual_immediate_representations(const M68kRenderLookup *looku
     M68kOperandIR *operand = &instruction->operands[operand_index];
     const M68kAnalysisManualRepresentation *representation;
     uint32_t value = 0U;
-    if (operand->symbol_ref.has_name != 0U || !operand_is_immediate_value_local(operand, &value)) continue;
+    uint8_t base_reg = 0U;
+    int16_t displacement = 0;
+    int is_immediate = operand_is_immediate_value_local(operand, &value);
+    int is_base_displacement = operand_is_address_displacement_local(operand, &base_reg, &displacement);
+    if (operand->symbol_ref.has_name != 0U || (!is_immediate && !is_base_displacement)) continue;
     representation = lookup_manual_operand_representation(lookup, section_index, offset, operand_index);
     if (representation == NULL) continue;
     if (representation->style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL) {
@@ -3980,6 +3984,7 @@ static void apply_manual_immediate_representations(const M68kRenderLookup *looku
       snprintf(operand->symbol_ref.name, sizeof(operand->symbol_ref.name), "%s", symbol_name);
       continue;
     }
+    if (!is_immediate) continue;
     operand->manual_representation_style_id = representation->style_id;
   }
 }
@@ -9698,7 +9703,7 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, const M68kRender
     &instruction);
   (void)attach_amiga_typed_struct_field_symbols(lookup, section->section_index, candidate->offset, &instruction);
   (void)attach_m68k_cpu_vector_symbols(lookup, &instruction);
-  apply_manual_immediate_representations(lookup, section->section_index, candidate->offset, &instruction);
+  apply_manual_operand_representations(lookup, section->section_index, candidate->offset, &instruction);
   if (!render_asm_include_for_instruction_platform_symbols(preview, &instruction)) return 0;
   attach_amiga_runtime_sink_comment_for_render(platform_state, lookup, section->section_index, candidate->offset,
     &instruction, platform_comment, sizeof(platform_comment));

@@ -30,6 +30,8 @@ from amiga_reversing.disasm.projects import ProjectKind, ProjectRecord
 from amiga_reversing.disasm.target_metadata import (
     EntryRegisterSeedKind,
     EntryRegisterSeedMetadata,
+    ManualRepresentationMetadata,
+    ManualRepresentationStyle,
     RssetLayoutRegionMetadata,
     RssetLayoutStorageKind,
     SeededCodeLabelMetadata,
@@ -1006,6 +1008,214 @@ def test_decision_verifier_artifact_producer_reports_verifier_failure_without_wr
     assert not (target_dir / "decision_verifier_artifacts.json").exists()
 
 
+def _setup_a5_decision_verifier_fixture(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    decision_id: str = "decision-a5",
+) -> tuple[Path, dict[str, object], dict[str, object]]:
+    target_dir = _target(tmp_path)
+    write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
+    _write_reproduction_exact(tmp_path)
+    lifetime_report = reversing_loop._listing_a5_hardware_lifetime_report(
+        [
+            _a5_definition_row(custom=True),
+            _a5_use_row(displacement=0x96),
+        ]
+    )
+    packet = reversing_loop._a5_path_lifetime_packet_from_report(
+        "demo",
+        lifetime_report,
+        selected_use_id="s0:00000040:op0",
+    )
+    record = reversing_loop.a5_hardware_decision_record(
+        packet,
+        "accept_fact",
+        target_id="demo",
+        decision_id=decision_id,
+        created_at="2026-05-26T00:00:00+00:00",
+    )
+    decision_journal.append_decision_record(target_dir, record)
+
+    monkeypatch.setattr(reversing_loop, "resolve_project_dir", lambda target_id, project_root: target_dir)
+    monkeypatch.setattr(
+        reversing_loop,
+        "inspect_a5_hardware_lifetimes",
+        lambda *args, **kwargs: {"listing_target_id": "demo", "a5_hardware_lifetimes": lifetime_report},
+    )
+
+    def route_request(method: str, path: str, query: dict[str, list[str]], body: object = None) -> dict[str, object]:
+        if method == "GET" and path.endswith("/listing"):
+            row = _a5_use_row(displacement=0x96)
+            row["operand_parts"][0]["symbol"] = "dmacon"
+            row["operand_parts"][0]["metadata"] = {"symbol": "dmacon"}
+            row["text"] = "\tmove.w dmacon(a5),d0\n"
+            return {"data": {"rows": [row]}}
+        raise AssertionError(path)
+
+    monkeypatch.setattr(reversing_loop.server, "route_request", route_request)
+    return target_dir, record, lifetime_report
+
+
+def test_a5_decision_verifier_artifact_producer_writes_current_artifact_and_audit_consumes(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    target_dir, _record, _lifetime_report = _setup_a5_decision_verifier_fixture(tmp_path, monkeypatch)
+    before_journal = (target_dir / "decision_journal.jsonl").read_text(encoding="utf-8")
+
+    produced = reversing_loop.produce_decision_verifier_artifact(
+        "demo",
+        decision_id="decision-a5",
+        write=True,
+        project_root=tmp_path,
+    )
+
+    assert produced["status"] == "passed", produced
+    assert produced["written"] is True
+    assert (target_dir / "decision_verifier_artifacts.json").exists()
+    assert (target_dir / "decision_journal.jsonl").read_text(encoding="utf-8") == before_journal
+    assert not (target_dir / "manual_actions.jsonl").exists()
+
+    report = reversing_loop.inspect_decision_journal("demo", project_root=tmp_path)
+    audit = report["audit"]["records"][0]
+    assert {layer["layer"]: layer["status"] for layer in audit["verifier_layers"]} == {
+        "decision_journal": "passed",
+        "semantic_reload": "passed",
+        "generated_source": "passed",
+        "negative_safety": "passed",
+        "exact_round_trip": "passed",
+    }
+    assert audit["blockers"] == []
+
+
+def test_a5_decision_verifier_artifact_no_write_is_current_and_does_not_persist(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    target_dir, _record, _lifetime_report = _setup_a5_decision_verifier_fixture(tmp_path, monkeypatch)
+    before_journal = (target_dir / "decision_journal.jsonl").read_text(encoding="utf-8")
+
+    report = reversing_loop.inspect_decision_journal(
+        "demo",
+        current_verifier_decision_ids=["decision-a5"],
+        project_root=tmp_path,
+    )
+
+    audit = report["audit"]["records"][0]
+    assert audit["blockers"] == []
+    assert {layer["layer"]: layer["status"] for layer in audit["verifier_layers"]} == {
+        "decision_journal": "passed",
+        "semantic_reload": "passed",
+        "generated_source": "passed",
+        "negative_safety": "passed",
+        "exact_round_trip": "passed",
+    }
+    assert report["current_verifier_artifacts"][0]["written"] is False
+    assert not (target_dir / "decision_verifier_artifacts.json").exists()
+    assert (target_dir / "decision_journal.jsonl").read_text(encoding="utf-8") == before_journal
+
+
+def test_a5_decision_verifier_artifact_blocks_stale_row_identity(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    target_dir, _record, lifetime_report = _setup_a5_decision_verifier_fixture(tmp_path, monkeypatch)
+    use = lifetime_report["cfg_path_lifetime_report"]["uses"][0]
+    stale_locator = {**use["use_locator"], "row_key": "a5-use-stale"}
+    stale_use = {**use, "use_locator": stale_locator}
+    stale_use["parameters"] = {**use["parameters"], "row_key": "a5-use-stale", "use_locator": stale_locator}
+    stale_report = {
+        **lifetime_report,
+        "cfg_path_lifetime_report": {**lifetime_report["cfg_path_lifetime_report"], "uses": [stale_use]},
+    }
+    monkeypatch.setattr(
+        reversing_loop,
+        "inspect_a5_hardware_lifetimes",
+        lambda *args, **kwargs: {"listing_target_id": "demo", "a5_hardware_lifetimes": stale_report},
+    )
+
+    produced = reversing_loop.produce_decision_verifier_artifact(
+        "demo",
+        decision_id="decision-a5",
+        write=True,
+        project_root=tmp_path,
+    )
+
+    assert produced["status"] == "blocked"
+    assert produced["blockers"] == ["current_journal_evidence_not_matched"]
+    assert produced["written"] is False
+    assert not (target_dir / "decision_verifier_artifacts.json").exists()
+
+
+def test_a5_decision_verifier_artifact_blocks_negative_safety_failure_without_writing(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    target_dir, record, _lifetime_report = _setup_a5_decision_verifier_fixture(tmp_path, monkeypatch)
+    ref = record["a5_hardware_ref"]
+    matching = ManualRepresentationMetadata(
+        addr=0x40,
+        end=0x44,
+        hunk=0,
+        style=ManualRepresentationStyle.SYMBOL,
+        element_kind="a5_hardware_ref",
+        operand_index=0,
+        symbol="dmacon",
+        seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
+        review_status=TargetMetadataReviewStatus.SEEDED,
+        citation="Decision Journal decision-a5",
+        source_id="decision-a5",
+        source_path="decision_journal.jsonl",
+        source_locator=str(ref["a5_hardware_ref_id"]),
+    )
+    unexpected = replace(matching, addr=0x48, end=0x4C, symbol="intreq")
+    monkeypatch.setattr(
+        reversing_loop,
+        "effective_target_metadata",
+        lambda target_dir: TargetMetadata(
+            target_type="program",
+            entry_register_seeds=(),
+            manual_representations=(matching, unexpected),
+        ),
+    )
+
+    produced = reversing_loop.produce_decision_verifier_artifact(
+        "demo",
+        decision_id="decision-a5",
+        write=True,
+        project_root=tmp_path,
+    )
+
+    assert produced["status"] == "blocked"
+    assert "negative_safety_failed" in produced["blockers"]
+    assert produced["verifier_results"]["negative_safety"]["unexpected_same_decision_a5_refs"] == [
+        {"kind": "manual_representation", "hunk": 0, "addr": 0x48, "operand_index": 0, "symbol": "intreq"}
+    ]
+    assert produced["written"] is False
+    assert not (target_dir / "decision_verifier_artifacts.json").exists()
+
+
+def test_a5_decision_verifier_artifact_write_gated_on_exact_round_trip(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    target_dir, _record, _lifetime_report = _setup_a5_decision_verifier_fixture(tmp_path, monkeypatch)
+    (target_dir / "reproduction.json").write_text(json.dumps({"status": "different"}), encoding="utf-8")
+
+    produced = reversing_loop.produce_decision_verifier_artifact(
+        "demo",
+        decision_id="decision-a5",
+        write=True,
+        project_root=tmp_path,
+    )
+
+    assert produced["status"] == "blocked"
+    assert "exact_round_trip_failed" in produced["blockers"]
+    assert produced["written"] is False
+    assert not (target_dir / "decision_verifier_artifacts.json").exists()
+
+
 def test_decision_verifier_artifact_cli_invokes_explicit_producer(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
@@ -1446,13 +1656,34 @@ def test_callback_consumer_dataflow_accepts_delayed_consumer() -> None:
         [
             *_callback_consumer_fixture_prefix(),
             _callback_slot_read_row(0x1204, "A0"),
-            {"kind": "instruction", "start_offset": 0x1206, "opcode_or_directive": "nop"},
+            {
+                "kind": "instruction",
+                "start_offset": 0x1206,
+                "opcode_or_directive": "nop",
+                "control_flow_boundary": False,
+            },
             {"kind": "instruction", "start_offset": 0x1208, "opcode_or_directive": "jsr", "operand_text": "(a0)"},
         ]
     )
 
     assert report["slots"][0]["consumer_count"] == 1
     assert report["slots"][0]["consumer_dataflow_blockers"] == []
+
+
+def test_callback_consumer_dataflow_fails_closed_without_generated_flow_metadata() -> None:
+    report = callback_slot_report(
+        [
+            *_callback_consumer_fixture_prefix(),
+            _callback_slot_read_row(0x1204, "A0"),
+            {"kind": "instruction", "start_offset": 0x1206, "opcode_or_directive": "nop"},
+            {"kind": "instruction", "start_offset": 0x1208, "opcode_or_directive": "jsr", "operand_text": "(a0)"},
+        ]
+    )
+
+    blockers = report["slots"][0]["consumer_dataflow_blockers"]
+
+    assert report["slots"][0]["consumer_count"] == 0
+    assert blockers[0]["reason"] == "consumer_missing_control_flow_metadata"
 
 
 @pytest.mark.parametrize("opcode", ["btst", "bset", "bclr", "bchg"])
@@ -1467,6 +1698,7 @@ def test_callback_consumer_dataflow_does_not_treat_bit_ops_as_branch_boundaries(
                 "opcode_or_directive": opcode,
                 "flow": "sequential",
                 "flow_kind": 1,
+                "control_flow_boundary": False,
             },
             {"kind": "instruction", "start_offset": 0x1208, "opcode_or_directive": "jsr", "operand_text": "(a0)"},
         ]
@@ -1486,6 +1718,7 @@ def test_callback_consumer_dataflow_accepts_address_register_move() -> None:
                 "start_offset": 0x1206,
                 "opcode_or_directive": "movea.l",
                 "operand_registers": ["A0", "A1"],
+                "control_flow_boundary": False,
             },
             {"kind": "instruction", "start_offset": 0x1208, "opcode_or_directive": "jmp", "operand_text": "(a1)"},
         ]
@@ -1512,6 +1745,7 @@ def test_callback_consumer_dataflow_blocks_clobbered_register() -> None:
                 "start_offset": 0x1206,
                 "opcode_or_directive": "move.l",
                 "operand_registers": ["D0", "A0"],
+                "control_flow_boundary": False,
             },
             {"kind": "instruction", "start_offset": 0x1208, "opcode_or_directive": "jsr", "operand_text": "(a0)"},
         ]
@@ -1536,6 +1770,7 @@ def test_callback_consumer_dataflow_blocks_branch_boundary() -> None:
                 "operand_text": "done",
                 "flow": "branch",
                 "flow_kind": 2,
+                "control_flow_boundary": True,
             },
             {"kind": "instruction", "start_offset": 0x1208, "opcode_or_directive": "jsr", "operand_text": "(a0)"},
         ]
@@ -1586,6 +1821,7 @@ def test_callback_consumer_dataflow_blocks_ambiguous_register_transfer() -> None
                 "start_offset": 0x1206,
                 "opcode_or_directive": "exg",
                 "operand_registers": ["A0", "A1"],
+                "control_flow_boundary": False,
             },
             {"kind": "instruction", "start_offset": 0x1208, "opcode_or_directive": "jsr", "operand_text": "(a1)"},
         ]
@@ -1602,7 +1838,12 @@ def test_callback_consumer_dataflow_blocks_non_call_slot_read() -> None:
         [
             *_callback_consumer_fixture_prefix(),
             _callback_slot_read_row(0x1204, "A0"),
-            {"kind": "instruction", "start_offset": 0x1208, "opcode_or_directive": "nop"},
+            {
+                "kind": "instruction",
+                "start_offset": 0x1208,
+                "opcode_or_directive": "nop",
+                "control_flow_boundary": False,
+            },
         ]
     )
 
@@ -9510,6 +9751,15 @@ def test_a5_hardware_lifetime_report_marks_probable_custom_base_candidate() -> N
     assert cfg_report["uses"][0]["parameters"]["symbol"] == "dmacon"
     assert cfg_report["uses"][0]["parameters"]["custom_base_offset"] == 0
     assert cfg_report["uses"][0]["parameters"]["hardware_register_offset"] == 0x96
+    assert cfg_report["uses"][0]["parameters"]["target_id"] == "demo"
+    assert cfg_report["uses"][0]["parameters"]["row_key"] == "a5-use-96"
+    assert cfg_report["uses"][0]["parameters"]["selected_use_id"] == "s0:00000040:op0"
+    assert cfg_report["uses"][0]["parameters"]["parent_evidence_id"] == cfg_report["uses"][0]["source_evidence_id"]
+    assert cfg_report["uses"][0]["parameters"]["base_register"] == "A5"
+    assert cfg_report["uses"][0]["parameters"]["custom_base_address"] == 0xDFF000
+    assert cfg_report["uses"][0]["parameters"]["reference_kind"] == "hardware_register"
+    assert cfg_report["uses"][0]["parameters"]["addr"] == 0x40
+    assert cfg_report["uses"][0]["parameters"]["end"] == 0x44
     assert cfg_report["uses"][0]["parameters"]["source_evidence_status"] == "accepted"
     assert cfg_report["uses"][0]["parameters"]["path_lifetime_scope"]["accepted_hardware_base_evidence"] is True
     assert cfg_report["rendering_gate"] == {
@@ -9528,7 +9778,7 @@ def test_a5_hardware_lifetime_report_marks_probable_custom_base_candidate() -> N
     assert "proven" not in json.dumps(report)
 
 
-def test_a5_hardware_lifetime_report_suppresses_existing_manual_ref_candidate() -> None:
+def test_a5_hardware_lifetime_report_keeps_existing_manual_ref_command_candidate() -> None:
     report = reversing_loop._listing_a5_hardware_lifetime_report(
         [
             _a5_definition_row(custom=True),
@@ -9552,15 +9802,15 @@ def test_a5_hardware_lifetime_report_suppresses_existing_manual_ref_candidate() 
     updated_use = updated_cfg["uses"][0]
 
     assert updated_cfg["accepted_custom_base_evidence_count"] == 1
-    assert updated_cfg["safe_to_mutate"] is False
-    assert updated_cfg["rendering_allowed"] is False
-    assert updated_cfg["rendering_gate"]["missing_gates"] == ["command_candidate"]
-    assert updated_cfg["rendering_gate"]["command_support"]["command_candidate_count"] == 0
+    assert updated_cfg["safe_to_mutate"] is True
+    assert updated_cfg["rendering_allowed"] is True
+    assert updated_cfg["rendering_gate"]["missing_gates"] == []
+    assert updated_cfg["rendering_gate"]["command_support"]["command_candidate_count"] == 1
     assert updated_cfg["rendering_gate"]["command_support"]["status"] == "available"
     assert updated_cfg["rendering_gate"]["verifier_support"]["status"] == "available"
-    assert "suggested_action_kinds" not in updated_use
-    assert "default_verifier" not in updated_use
-    assert "parameters" not in updated_use
+    assert updated_use["suggested_action_kinds"] == ["a5_hardware_ref.interpret"]
+    assert updated_use["default_verifier"] == "a5_hardware_ref_state"
+    assert updated_use["parameters"]["a5_hardware_ref_id"] == f"a5-hw:{source_evidence_id}"
     assert updated_use["existing_manual_state"] == {
         "a5_hardware_ref_id": f"a5-hw:{source_evidence_id}",
         "source_evidence_id": source_evidence_id,
@@ -9597,13 +9847,16 @@ def test_a5_path_lifetime_packet_reports_existing_manual_state_without_mutation(
     assert packet["packet_kind"] == "a5_path_lifetime_evidence_packet"
     assert packet["status"] == "accepted_existing_manual_state"
     assert packet["selected_identity"]["base_register"] == "A5"
+    assert packet["selected_identity"]["row_key"] == "a5-use-96"
+    assert packet["selected_identity"]["parent_evidence_id"] == source_evidence_id
     assert packet["evidence_lanes"]["base_setup"]["computed_base_expression"] == "_custom"
     assert packet["evidence_lanes"]["path_lifetime"]["cfg_reachability"] == "straight_line_cfg"
     assert packet["evidence_lanes"]["existing_manual_state"]["owner_action_id"] == "manual-a5"
-    assert packet["blockers"] == ["already_recorded_in_manual_state", "missing_command_candidate"]
+    assert packet["blockers"] == []
+    assert packet["command_gate"]["candidate_command_available"] is True
     assert packet["command_gate"]["enabled"] is False
     assert packet["command_gate"]["safe_to_mutate"] is False
-    assert packet["command_gate"]["missing_gates"][0] == "packet_read_only_no_writes"
+    assert packet["command_gate"]["missing_gates"] == ["packet_read_only_no_writes"]
     assert packet["safe_to_mutate"] is False
 
 
@@ -9634,6 +9887,38 @@ def test_a5_path_lifetime_packet_surfaces_deferred_decision_lane() -> None:
     assert packet["decision_lane"]["status"] == "deferred"
     assert packet["decision_lane"]["deferred"][0]["decision_id"] == "decision-a5-defer"
     assert packet["safe_to_mutate"] is False
+
+
+def test_a5_path_lifetime_packet_surfaces_accepted_hardware_ref_decision_lane() -> None:
+    report = reversing_loop._listing_a5_hardware_lifetime_report(
+        [
+            _a5_definition_row(custom=True),
+            _a5_use_row(displacement=0x96),
+        ]
+    )
+    packet = reversing_loop._a5_path_lifetime_packet_from_report(
+        "pandora",
+        report,
+        selected_use_id="s0:00000040:op0",
+    )
+    record = reversing_loop.a5_hardware_decision_record(
+        packet,
+        "accept_fact",
+        target_id="pandora",
+        decision_id="decision-a5-accept",
+    )
+
+    replayed = reversing_loop._a5_path_lifetime_packet_from_report(
+        "pandora",
+        report,
+        selected_use_id="s0:00000040:op0",
+        journal_projection=_decision_projection(record),
+    )
+
+    assert replayed["decision_lane"]["status"] == "accepted"
+    assert replayed["decision_lane"]["accepted_count"] == 1
+    assert replayed["decision_lane"]["accepted"][0]["fact_type"] == "a5_hardware_ref"
+    assert replayed["decision_lane"]["accepted"][0]["decision_id"] == "decision-a5-accept"
 
 
 def test_query_a5_path_lifetime_packet_reports_command_candidate_as_read_only(
@@ -9678,6 +9963,161 @@ def test_query_a5_path_lifetime_packet_reports_command_candidate_as_read_only(
     assert packet["decision_lane"]["status"] == "deferred"
     assert packet["decision_lane"]["deferred"][0]["decision_id"] == "decision-a5-query-defer"
     assert packet["safe_to_mutate"] is False
+
+
+def test_a5_decision_command_dry_run_does_not_write(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    target_dir = _target(tmp_path)
+    lifetime_report = reversing_loop._listing_a5_hardware_lifetime_report(
+        [
+            _a5_definition_row(custom=True),
+            _a5_use_row(displacement=0x96),
+        ]
+    )
+    candidate_id = lifetime_report["cfg_path_lifetime_report"]["uses"][0]["source_evidence_id"]
+
+    monkeypatch.setattr(reversing_loop, "resolve_project_dir", lambda target_id, project_root: target_dir)
+    monkeypatch.setattr(
+        reversing_loop,
+        "inspect_a5_hardware_lifetimes",
+        lambda *args, **kwargs: {"listing_target_id": "demo", "a5_hardware_lifetimes": lifetime_report},
+    )
+
+    result = reversing_loop.decide_a5_hardware_ref(
+        "demo",
+        candidate_id=str(candidate_id),
+        action="accept_fact",
+        decision_id="decision-a5",
+        project_root=tmp_path,
+    )
+
+    assert result["status"] == "dry_run_ready"
+    assert result["written"] is False
+    assert not (target_dir / "decision_journal.jsonl").exists()
+    assert result["record"]["fact_type"] == "a5_hardware_ref"
+    assert result["record"]["conflicts"] == []
+    assert result["record"]["a5_hardware_ref"]["source_evidence_id"] == candidate_id
+    assert result["record"]["selected_identity"]["row_key"] == "a5-use-96"
+
+
+def test_a5_decision_command_append_writes_only_decision_journal(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    target_dir = _target(tmp_path)
+    lifetime_report = reversing_loop._listing_a5_hardware_lifetime_report(
+        [
+            _a5_definition_row(custom=True),
+            _a5_use_row(displacement=0x96),
+        ]
+    )
+    candidate_id = lifetime_report["cfg_path_lifetime_report"]["uses"][0]["source_evidence_id"]
+
+    monkeypatch.setattr(reversing_loop, "resolve_project_dir", lambda target_id, project_root: target_dir)
+    monkeypatch.setattr(
+        reversing_loop,
+        "inspect_a5_hardware_lifetimes",
+        lambda *args, **kwargs: {"listing_target_id": "demo", "a5_hardware_lifetimes": lifetime_report},
+    )
+
+    result = reversing_loop.decide_a5_hardware_ref(
+        "demo",
+        candidate_id=str(candidate_id),
+        action="accept_fact",
+        decision_id="decision-a5",
+        write=True,
+        project_root=tmp_path,
+    )
+
+    assert result["status"] == "appended"
+    assert result["written"] is True
+    assert (target_dir / "decision_journal.jsonl").exists()
+    assert not (target_dir / "manual_actions.jsonl").exists()
+
+
+def test_a5_decision_cli_invokes_command_api(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    calls: list[dict[str, object]] = []
+
+    def decide(target_id: str, **kwargs: object) -> dict[str, object]:
+        calls.append({"target_id": target_id, **kwargs})
+        return {"status": "dry_run_ready"}
+
+    monkeypatch.setattr(reversing_loop, "decide_a5_hardware_ref", decide)
+
+    assert (
+        reversing_loop.main(
+            [
+                "--project-root",
+                str(Path("root")),
+                "a5-decision",
+                "--target",
+                "demo",
+                "--candidate-id",
+                "a5-custom-cfg:h0:00000030->00000040:op0:d0096",
+                "--action",
+                "accept_fact",
+                "--decision-id",
+                "decision-a5",
+            ]
+        )
+        == 0
+    )
+
+    assert json.loads(capsys.readouterr().out)["status"] == "dry_run_ready"
+    assert calls == [
+        {
+            "target_id": "demo",
+            "candidate_id": "a5-custom-cfg:h0:00000030->00000040:op0:d0096",
+            "action": "accept_fact",
+            "reason": None,
+            "decision_id": "decision-a5",
+            "write": False,
+            "listing_timeout_seconds": 10.0,
+            "project_root": Path("root"),
+        }
+    ]
+
+
+def test_a5_decision_command_blocks_stale_identity(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    target_dir = _target(tmp_path)
+    lifetime_report = reversing_loop._listing_a5_hardware_lifetime_report(
+        [
+            _a5_definition_row(custom=True),
+            _a5_use_row(displacement=0x96),
+        ]
+    )
+    use = lifetime_report["cfg_path_lifetime_report"]["uses"][0]
+    stale_use = dict(use)
+    stale_params = dict(stale_use["parameters"])
+    stale_params["row_key"] = "stale-row"
+    stale_use["parameters"] = stale_params
+    stale_report = dict(lifetime_report)
+    stale_cfg = dict(stale_report["cfg_path_lifetime_report"])
+    stale_cfg["uses"] = [stale_use]
+    stale_report["cfg_path_lifetime_report"] = stale_cfg
+
+    monkeypatch.setattr(reversing_loop, "resolve_project_dir", lambda target_id, project_root: target_dir)
+    monkeypatch.setattr(
+        reversing_loop,
+        "inspect_a5_hardware_lifetimes",
+        lambda *args, **kwargs: {"listing_target_id": "demo", "a5_hardware_lifetimes": stale_report},
+    )
+
+    result = reversing_loop.decide_a5_hardware_ref(
+        "demo",
+        candidate_id=str(use["source_evidence_id"]),
+        action="accept_fact",
+        decision_id="decision-a5",
+        write=True,
+        project_root=tmp_path,
+    )
+
+    assert result["status"] == "blocked"
+    assert "a5_packet_identity_mismatch_row_key" in result["blockers"]
+    assert result["written"] is False
+    assert not (target_dir / "decision_journal.jsonl").exists()
 
 
 def test_a5_hardware_lifetime_report_accounts_for_custom_base_offset() -> None:

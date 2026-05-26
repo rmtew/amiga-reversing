@@ -1443,3 +1443,22 @@ repeatable work to `docs\issues\017-*`.
   source-offset report-only candidates. Utility extraction would be speculative
   until at least two active non-callback/callback call sites need the same
   provenance behavior.
+- 017-085 through 017-088 implemented the A5 command, replay, render, and
+  verifier-artifact lane. The A5 hardware report now exposes 20 command-backed
+  accepted custom-base candidates while 505 unknown uses remain non-actionable.
+  `a5-decision` supports dry-run and append for accept/defer/reject records with
+  explicit empty conflicts and full selected identity, accepted A5 facts replay
+  into effective metadata, and the C backend consumes replayed A5 symbol
+  representations through the normal manual-representation source path.
+- 017-088 added an A5 Decision Journal verifier artifact equivalent to the RSSET
+  path. It supports no-write current verification, writes only when semantic
+  reload, generated-source, negative-safety, and exact-round-trip layers pass,
+  and fails closed on stale row identity, negative-safety expansion, or
+  round-trip failure.
+- 017-089 proved the real Pandora A5 tracer bullet. Candidate
+  `a5-custom-cfg:h0:00000498->000004A6:op1:d0096` at `s0:000004A6:op1` is
+  accepted as `decision-a5-dmacon-000004a6-accept-017-089`; effective metadata
+  replay projects the `dmacon` A5 hardware ref, generated source shows
+  `move.w d0,dmacon(a5)`, negative safety reports one same-decision A5 ref and
+  no unexpected refs, and exact round-trip remains `status=exact`. Bulk A5
+  acceptance remains intentionally deferred.

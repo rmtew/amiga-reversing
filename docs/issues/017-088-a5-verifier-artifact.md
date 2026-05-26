@@ -1,6 +1,6 @@
 # 017-088: Add A5 Hardware Reference Verifier Artifact
 
-Status: active
+Status: completed
 Type: AFK
 Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
@@ -42,27 +42,31 @@ Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
 ## Research Coverage
 
-- [ ] Callback and RSSET verifier artifact patterns reviewed.
-- [ ] Semantic reload proves the accepted A5 fact exists in effective metadata.
-- [ ] Generated-source layer proves the intended narrow source effect.
-- [ ] Negative-safety layer proves unrelated A5 uses did not change.
-- [ ] Exact round-trip is required for any output-affecting mutation.
-- [ ] No 012/018/Mac/platform-format files touched.
+- [x] Callback and RSSET verifier artifact patterns reviewed.
+- [x] Semantic reload proves the accepted A5 fact exists in effective metadata.
+- [x] Generated-source layer proves the intended narrow source effect.
+- [x] Negative-safety layer proves unrelated A5 uses did not change.
+- [x] Exact round-trip is required for any output-affecting mutation.
+- [x] No 012/018/Mac/platform-format files touched.
 
 ## Research Review
 
-- [ ] This makes A5 rendering verifier-backed, not manually eyeballed.
-- [ ] The verifier fails closed on stale identity and broad source diffs.
-- [ ] Artifact write mode is gated by passing layers.
-- [ ] Proposal 017 living notes updated with the implementation result.
+- [x] This makes A5 rendering verifier-backed, not manually eyeballed.
+- [x] The verifier fails closed on stale identity and broad source diffs.
+- [x] Artifact write mode is gated by passing layers.
+- [x] Proposal 017 living notes updated with the implementation result.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before work.
-- [ ] `017-087` complete.
-- [ ] Focused verifier tests pass.
-- [ ] Real Pandora no-write verifier passes or reports a precise blocker.
-- [ ] Exact round-trip check included.
-- [ ] `amiga_reversing.tools.validate_017_issues` passes.
-- [ ] `git diff --check` passes.
+- [x] Proposal context checked before work.
+- [x] `017-087` complete.
+- [x] Focused verifier tests pass.
+- [x] Real Pandora no-write verifier passes or reports a precise blocker.
+- [x] Exact round-trip check included.
+- [x] `amiga_reversing.tools.validate_017_issues` passes.
+- [x] `git diff --check` passes.
 
+## Completion Evidence
+
+- Added A5 decision verifier artifact coverage for pass/write, current no-write, stale row identity, negative-safety failure, and exact-round-trip write gating.
+- Real Pandora verifier artifact for `decision-a5-dmacon-000004a6-accept-017-089` passes semantic reload, generated source, negative safety, and exact round-trip.

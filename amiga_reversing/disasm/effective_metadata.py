@@ -1505,8 +1505,9 @@ def _a5_hardware_ref_representation(ref: Mapping[str, object]) -> ManualRepresen
         symbol=symbol,
         seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
         review_status=TargetMetadataReviewStatus.SEEDED,
-        citation=_manual_action_citation(ref, "a5_hardware_ref_id"),
-        source_id="manual_action_log",
+        citation=_a5_hardware_ref_citation(ref),
+        source_id=_a5_hardware_ref_source_id(ref),
+        source_path=_a5_hardware_ref_source_path(ref),
         source_locator=str(ref.get("a5_hardware_ref_id") or ""),
     )
 
@@ -1528,10 +1529,27 @@ def _a5_hardware_ref_entry_comment(ref: Mapping[str, object]) -> EntryCommentMet
         comment=_a5_hardware_ref_entry_comment_text(symbol, hardware_register_offset, displacement),
         seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
         review_status=TargetMetadataReviewStatus.SEEDED,
-        citation=_manual_action_citation(dict(ref), "a5_hardware_ref_id"),
-        source_id="manual_action_log",
+        citation=_a5_hardware_ref_citation(ref),
+        source_id=_a5_hardware_ref_source_id(ref),
+        source_path=_a5_hardware_ref_source_path(ref),
         source_locator=str(ref.get("a5_hardware_ref_id") or ""),
     )
+
+
+def _a5_hardware_ref_citation(ref: Mapping[str, object]) -> str:
+    decision_id = _manual_seed_text(ref, "decision_id")
+    if decision_id is not None:
+        return f"Decision Journal {decision_id}"
+    return _manual_action_citation(dict(ref), "a5_hardware_ref_id")
+
+
+def _a5_hardware_ref_source_id(ref: Mapping[str, object]) -> str:
+    decision_id = _manual_seed_text(ref, "decision_id")
+    return decision_id if decision_id is not None else "manual_action_log"
+
+
+def _a5_hardware_ref_source_path(ref: Mapping[str, object]) -> str | None:
+    return "decision_journal.jsonl" if _manual_seed_text(ref, "decision_id") is not None else None
 
 
 def _a5_hardware_ref_entry_comment_text(symbol: str, hardware_register_offset: int, displacement: int) -> str:
@@ -2089,7 +2107,12 @@ def _apply_decision_journal_projection(target_dir: Path, metadata: TargetMetadat
         for record in _mapping_sequence(projection.get("accepted_facts"))
         if (entrypoint := _callback_decision_to_code_entrypoint(record)) is not None
     ]
-    if not accepted_entrypoints:
+    accepted_a5_refs = [
+        ref
+        for record in _mapping_sequence(projection.get("accepted_facts"))
+        if (ref := _a5_decision_to_hardware_ref(record)) is not None
+    ]
+    if not accepted_entrypoints and not accepted_a5_refs:
         return metadata
     known_locations = {(entrypoint.hunk, entrypoint.addr) for entrypoint in metadata.seeded_code_entrypoints}
     merged_entrypoints = list(metadata.seeded_code_entrypoints)
@@ -2099,7 +2122,21 @@ def _apply_decision_journal_projection(target_dir: Path, metadata: TargetMetadat
             continue
         merged_entrypoints.append(entrypoint)
         known_locations.add(key)
-    return replace(metadata, seeded_code_entrypoints=tuple(merged_entrypoints))
+    entry_comments = list(metadata.entry_comments)
+    manual_representations = list(metadata.manual_representations)
+    for ref in accepted_a5_refs:
+        a5_representation = _a5_hardware_ref_representation(ref)
+        if a5_representation is not None:
+            manual_representations.append(a5_representation)
+        a5_entry_comment = _a5_hardware_ref_entry_comment(ref)
+        if a5_entry_comment is not None:
+            entry_comments.append(a5_entry_comment)
+    return replace(
+        metadata,
+        seeded_code_entrypoints=tuple(merged_entrypoints),
+        entry_comments=tuple(entry_comments),
+        manual_representations=tuple(manual_representations),
+    )
 
 
 def _callback_decision_to_code_entrypoint(record: Mapping[str, object]) -> SeededCodeEntrypointMetadata | None:
@@ -2135,6 +2172,40 @@ def _callback_decision_to_code_entrypoint(record: Mapping[str, object]) -> Seede
         comment="callback-derived code target accepted through Decision Journal",
         role="callback_derived_code",
     )
+
+
+def _a5_decision_to_hardware_ref(record: Mapping[str, object]) -> dict[str, object] | None:
+    if record.get("action") != "accept_fact" or record.get("fact_type") != "a5_hardware_ref":
+        return None
+    ref = record.get("a5_hardware_ref")
+    selected_identity = record.get("selected_identity")
+    if not isinstance(ref, Mapping) or not isinstance(selected_identity, Mapping):
+        return None
+    if not _a5_decision_identity_matches_ref(selected_identity, ref):
+        return None
+    result = dict(ref)
+    decision_id = _manual_seed_text(record, "decision_id")
+    if decision_id is not None:
+        result.setdefault("decision_id", decision_id)
+    return result
+
+
+def _a5_decision_identity_matches_ref(identity: Mapping[str, object], ref: Mapping[str, object]) -> bool:
+    checks = (
+        ("target_id", "target_id"),
+        ("row_key", "row_key"),
+        ("addr", "addr"),
+        ("end", "end"),
+        ("operand_index", "operand_index"),
+        ("base_register", "base_register"),
+        ("displacement", "displacement"),
+        ("hardware_register_offset", "hardware_register_offset"),
+        ("parent_evidence_id", "source_evidence_id"),
+    )
+    for identity_key, ref_key in checks:
+        if identity_key in identity and identity.get(identity_key) != ref.get(ref_key):
+            return False
+    return True
 
 
 def effective_metadata_text(target_dir: Path, *, include_decision_journal: bool = True) -> str:

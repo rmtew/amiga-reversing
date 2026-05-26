@@ -1,6 +1,6 @@
 # 017-086: Wire A5 Hardware Decisions Into Replay
 
-Status: active
+Status: completed
 Type: AFK
 Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
@@ -42,27 +42,31 @@ Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
 ## Research Coverage
 
-- [ ] `017-085` candidate structure checked.
-- [ ] Existing callback/RSSET decision patterns reviewed and reused where appropriate.
-- [ ] Stale candidate identity failure cases covered.
-- [ ] Accepted, deferred, and rejected decision paths covered.
-- [ ] No target metadata or generated source output written by this issue.
-- [ ] No 012/018/Mac/platform-format files touched.
+- [x] `017-085` candidate structure checked.
+- [x] Existing callback/RSSET decision patterns reviewed and reused where appropriate.
+- [x] Stale candidate identity failure cases covered.
+- [x] Accepted, deferred, and rejected decision paths covered.
+- [x] No target metadata or generated source output written by this issue.
+- [x] No 012/018/Mac/platform-format files touched.
 
 ## Research Review
 
-- [ ] This creates an implemented mutation path, not another evidence summary.
-- [ ] Accepted A5 facts become effective metadata through the normal replay path.
-- [ ] Deferred/rejected facts stay report-visible and source-inert.
-- [ ] Proposal 017 living notes updated with the implementation result.
+- [x] This creates an implemented mutation path, not another evidence summary.
+- [x] Accepted A5 facts become effective metadata through the normal replay path.
+- [x] Deferred/rejected facts stay report-visible and source-inert.
+- [x] Proposal 017 living notes updated with the implementation result.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before work.
-- [ ] `017-085` complete.
-- [ ] Focused A5 Decision Journal tests pass.
-- [ ] Real Pandora dry-run accept/defer/reject behavior demonstrated.
-- [ ] Effective metadata replay test passes.
-- [ ] `amiga_reversing.tools.validate_017_issues` passes.
-- [ ] `git diff --check` passes.
+- [x] Proposal context checked before work.
+- [x] `017-085` complete.
+- [x] Focused A5 Decision Journal tests pass.
+- [x] Real Pandora dry-run accept/defer/reject behavior demonstrated.
+- [x] Effective metadata replay test passes.
+- [x] `amiga_reversing.tools.validate_017_issues` passes.
+- [x] `git diff --check` passes.
 
+## Completion Evidence
+
+- `a5-decision` dry-run accepts the real Pandora candidate `a5-custom-cfg:h0:00000498->000004A6:op1:d0096` with explicit empty conflicts and stable selected identity.
+- Focused tests passed for A5 Decision Journal append/dry-run/stale identity and `tests/test_manual_seed_effective_metadata.py -q -k a5`.

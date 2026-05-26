@@ -8,8 +8,6 @@ from typing import cast
 from amiga_reversing.disasm import decision_journal
 
 _MIN_CALLBACK_ADDRESS_VALUE = 0x1000
-_CONTROL_FLOW_BOUNDARY_FLOW_KINDS = {2, 3, 4, 5, 6}
-_CONTROL_FLOW_BOUNDARY_FLOWS = {"branch", "jump", "call", "return", "trap"}
 
 
 def callback_slot_report(
@@ -1170,12 +1168,13 @@ def _source_register(row: Mapping[str, object]) -> str | None:
     return _address_register(register)
 
 
-def _is_control_flow_boundary(row: Mapping[str, object]) -> bool:
-    flow_kind = row.get("flow_kind")
-    if isinstance(flow_kind, int):
-        return flow_kind in _CONTROL_FLOW_BOUNDARY_FLOW_KINDS
-    flow = row.get("flow")
-    return isinstance(flow, str) and flow in _CONTROL_FLOW_BOUNDARY_FLOWS
+def _control_flow_boundary_status(row: Mapping[str, object]) -> tuple[bool, bool]:
+    boundary = row.get("control_flow_boundary")
+    if isinstance(boundary, bool):
+        return True, boundary
+    if row.get("kind") == "instruction":
+        return False, True
+    return True, False
 
 
 def _is_simple_address_register_move(opcode: str) -> bool:
@@ -1232,7 +1231,17 @@ def _following_indirect_transfer(
                 "unsupported_transfer": _row_payload(candidate),
                 "path": path,
             }
-        if _is_control_flow_boundary(candidate):
+        boundary_known, is_boundary = _control_flow_boundary_status(candidate)
+        if not boundary_known:
+            return {
+                "status": "blocked",
+                "reason": "consumer_missing_control_flow_metadata",
+                "initial_register": initial_register,
+                "final_register": current_register,
+                "boundary": _row_payload(candidate),
+                "path": path,
+            }
+        if is_boundary:
             return {
                 "status": "blocked",
                 "reason": "consumer_crosses_branch",

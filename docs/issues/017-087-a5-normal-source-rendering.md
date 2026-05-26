@@ -1,6 +1,6 @@
 # 017-087: Render Accepted A5 Hardware References
 
-Status: active
+Status: completed
 Type: AFK
 Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
@@ -42,27 +42,31 @@ Source proposal: docs/proposals/017-evidence-driven-analysis-protocol.md
 
 ## Research Coverage
 
-- [ ] Existing Amiga hardware rendering conventions checked.
-- [ ] `knowledge/amiga-hardware.md` used for symbol naming.
-- [ ] Accepted replayed fact is the only source of rendering authority.
-- [ ] Unknown A5 uses remain byte-identical in rendered source.
-- [ ] Assembler compatibility and exact round-trip constraints checked.
-- [ ] No 012/018/Mac/platform-format files touched.
+- [x] Existing Amiga hardware rendering conventions checked.
+- [x] `knowledge/amiga-hardware.md` used for symbol naming.
+- [x] Accepted replayed fact is the only source of rendering authority.
+- [x] Unknown A5 uses remain byte-identical in rendered source.
+- [x] Assembler compatibility and exact round-trip constraints checked.
+- [x] No 012/018/Mac/platform-format files touched.
 
 ## Research Review
 
-- [ ] This changes source output only when accepted evidence authorizes it.
-- [ ] The rendering path is normal framework extension, not a target-specific special case.
-- [ ] No backwards-compatibility shim or legacy workaround is added.
-- [ ] Proposal 017 living notes updated with the implementation result.
+- [x] This changes source output only when accepted evidence authorizes it.
+- [x] The rendering path is normal framework extension, not a target-specific special case.
+- [x] No backwards-compatibility shim or legacy workaround is added.
+- [x] Proposal 017 living notes updated with the implementation result.
 
 ## Required Sign-Off
 
-- [ ] Proposal context checked before work.
-- [ ] `017-086` complete.
-- [ ] Focused source-render tests pass.
-- [ ] Real Pandora render diff is narrow and explained.
-- [ ] Exact round-trip passes for affected output.
-- [ ] `amiga_reversing.tools.validate_017_issues` passes.
-- [ ] `git diff --check` passes.
+- [x] Proposal context checked before work.
+- [x] `017-086` complete.
+- [x] Focused source-render tests pass.
+- [x] Real Pandora render diff is narrow and explained.
+- [x] Exact round-trip passes for affected output.
+- [x] `amiga_reversing.tools.validate_017_issues` passes.
+- [x] `git diff --check` passes.
 
+## Completion Evidence
+
+- The accepted real Pandora A5 fact renders through the normal source path as `move.w d0,dmacon(a5)` at source offset `1190`.
+- Focused C backend render tests passed: `tests/test_c_backend.py -q -k a5_decision`.

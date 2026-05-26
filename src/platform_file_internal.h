@@ -227,6 +227,7 @@ int instruction_render_operand_target(const M68kInstructionIR *instruction, cons
     uint8_t operand_index, uint32_t offset, uint32_t section_size, uint32_t *out_target);
 int instruction_operand_absolute_target_ref(const SectionAnalysisContext *ctx, const M68kInstructionIR *instruction,
     size_t operand_index, uint32_t instruction_offset, size_t *out_section_index, uint32_t *out_target_offset);
+int instruction_is_control_flow_boundary(const M68kInstructionIR *instruction);
 int instruction_is_call_transfer(const M68kInstructionIR *instruction);
 int instruction_stops_fallthrough(const M68kInstructionIR *instruction);
 int instruction_target_operand_local(const M68kInstructionIR *instruction, const M68kOperandIR **out_operand);
