@@ -46,6 +46,22 @@ Pandora is the proving target. The work is successful only when it moves
 Pandora source toward human-quality reconstructed source or removes a measured
 blocker needed for that progress.
 
+## Non-Negotiable Goal
+
+017 is successful only when accepted facts trigger cascaded derived analysis to
+fixed point. The default unit of progress is not one selected row; it is the
+largest durable fact the evidence proves, plus every safe downstream fact that
+deterministically follows from it.
+
+Selected-row closure is valid only when the fact is inherently selected-row
+scoped. If a fact proves a register lifetime, app-base scope, address-space
+binding, callback pointer path, code/data range, type/layout fact, or platform
+semantic, the implementation must model that parent fact and derive children
+automatically. A completed issue must not claim source progress unless the
+verifier proves a baseline-without-decision versus effective-with-decision
+delta, bounded derived effects, negative safety, fixed-point stability, and
+exact round-trip.
+
 ## Forward Direction
 
 017 now owns the next Pandora progress path instead of creating a new proposal.
@@ -189,6 +205,29 @@ the expected text." For every output-affecting cascade they must prove:
 The 017-089 review finding exists because the generated-source verifier checked
 current text only. New verifier work must compare baseline-without-decision
 against effective-with-decision for cascades.
+
+## 017 Completion Criteria
+
+Proposal 017 can close only when all of the following are true:
+
+- parent fact and derived child fact schemas are implemented and documented;
+- the cascade engine reruns deterministic derived analysis to fixed point;
+- accepted facts carry provenance, scope, conflicts, invalidation, and rule ids;
+- A5 custom-base lifetimes derive safe hardware-register children;
+- RSSET/app-base scopes derive safe app-slot field references and downstream
+  candidates;
+- address and callback facts derive xrefs, labels, code/data candidates, and
+  callable targets where safe;
+- verifier artifacts compare baseline-without-decision against
+  effective-with-decision and block already-represented false positives;
+- Pandora can run a chained cascade exhaustion pass that either produces
+  verifier-safe source-quality progress or a precise fixed-point blocker report;
+- every output-affecting change exact-round-trips;
+- stale selected-row-only paths are deleted or explicitly retained only for
+  inherently selected-row facts;
+- completed `017-090+` issues include a `Cascade Evidence` section that proves
+  parent facts, derived children, fixed-point behavior, verifier status, and
+  remaining blockers.
 
 ## Clean v2 Stack
 

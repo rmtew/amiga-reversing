@@ -19,6 +19,7 @@ REQUIRED_SECTIONS = {
 }
 CHECKED_SECTIONS = {"Research Coverage", "Research Review", "Required Sign-Off"}
 PROTOCOL_ENFORCEMENT_START = 39
+CASCADE_ENFORCEMENT_START = 90
 
 
 def validate_issue_path(path: Path) -> dict[str, object]:
@@ -55,6 +56,10 @@ def validate_issue_text(text: str, *, path: Path | None = None) -> dict[str, obj
                         _diagnostic("checkbox", f"unchecked completed checkbox in {section}", line=line_number)
                     )
 
+    cascade_issue = issue_number is not None and issue_number >= CASCADE_ENFORCEMENT_START
+    if cascade_issue and status in COMPLETED_STATUSES:
+        _validate_completed_cascade_issue(text, sections, diagnostics)
+
     if protocol_issue and status == "superseded" and not re.search(r"\b(superseded by|replacement|replaced by|reason)\b", text, re.I):
         diagnostics.append(_diagnostic("superseded", "superseded issue must identify replacement or reason"))
 
@@ -64,6 +69,42 @@ def validate_issue_text(text: str, *, path: Path | None = None) -> dict[str, obj
         "status": status,
         "diagnostics": diagnostics,
     }
+
+
+def _validate_completed_cascade_issue(
+    text: str,
+    sections: Mapping[str, tuple[int, list[str]]],
+    diagnostics: list[dict[str, object]],
+) -> None:
+    if "Cascade Evidence" not in sections:
+        diagnostics.append(_diagnostic("cascade_evidence", "completed cascade issue lacks Cascade Evidence section"))
+        return
+
+    for line_number, line in _section_lines(sections, "Cascade Evidence"):
+        if re.match(r"\s*- \[ \]", line):
+            diagnostics.append(
+                _diagnostic("checkbox", "unchecked completed checkbox in Cascade Evidence", line=line_number)
+            )
+
+    evidence_text = "\n".join(
+        _section_text(sections, name)
+        for name in ("Completion Evidence", "Cascade Evidence")
+        if name in sections
+    )
+    if _claims_source_progress(evidence_text) and not _mentions_baseline_delta(evidence_text):
+        diagnostics.append(
+            _diagnostic(
+                "baseline_delta",
+                "completed cascade issue claims source progress without baseline-delta proof",
+            )
+        )
+    if _report_only_closeout(evidence_text):
+        diagnostics.append(
+            _diagnostic(
+                "report_only",
+                "completed cascade issue appears to close with report-only evidence",
+            )
+        )
 
 
 def validate_issue_paths(paths: Sequence[Path]) -> dict[str, object]:
@@ -123,6 +164,39 @@ def _section_lines(sections: Mapping[str, tuple[int, list[str]]], name: str) -> 
         return []
     start, lines = section
     return [(start + index, line) for index, line in enumerate(lines, start=1)]
+
+
+def _section_text(sections: Mapping[str, tuple[int, list[str]]], name: str) -> str:
+    section = sections.get(name)
+    if section is None:
+        return ""
+    return "\n".join(section[1])
+
+
+def _claims_source_progress(text: str) -> bool:
+    return re.search(
+        r"\b(source progress|source-quality progress|source improvement|source delta|source output change|"
+        r"source change|render diff|rendered source change|rendered source shows)\b",
+        text,
+        re.I,
+    ) is not None
+
+
+def _mentions_baseline_delta(text: str) -> bool:
+    return re.search(
+        r"\b(baseline[- ]delta|baseline-without-decision|baseline without decision|"
+        r"without the parent decision|without .*decision.*with .*decision)\b",
+        text,
+        re.I | re.S,
+    ) is not None
+
+
+def _report_only_closeout(text: str) -> bool:
+    if re.search(r"\bnot report-only\b|\bnot report only\b", text, re.I):
+        return False
+    if not re.search(r"\breport-only\b|\breport only\b", text, re.I):
+        return False
+    return not re.search(r"\b(implemented|implementation|code change|source progress|baseline[- ]delta)\b", text, re.I)
 
 
 def _diagnostic(field: str, message: str, *, line: int | None = None) -> dict[str, object]:

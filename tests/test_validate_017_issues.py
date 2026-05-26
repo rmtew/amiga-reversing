@@ -40,6 +40,14 @@ Unchanged.
 ## Completion Evidence
 
 - `pytest tests/test_validate_017_issues.py`
+
+## Cascade Evidence
+
+- Parent fact schema implemented.
+- Derived child schema implemented.
+- Fixed point behavior checked.
+- Baseline-delta verifier proof: baseline-without-decision differs from effective-with-decision.
+- Not report-only.
 """
 
 
@@ -86,6 +94,40 @@ def test_validate_017_issue_rejects_missing_section_and_bad_superseded() -> None
     report = validate_issue_text(superseded, path=Path("017-099-fixture.md"))
     assert report["valid"] is False
     assert any("superseded issue" in item["message"] for item in report["diagnostics"])
+
+
+def test_validate_017_issue_rejects_completed_cascade_without_cascade_evidence() -> None:
+    report = validate_issue_text(
+        VALID_COMPLETED.replace("\n## Cascade Evidence\n\n- Parent fact schema implemented.\n- Derived child schema implemented.\n- Fixed point behavior checked.\n- Baseline-delta verifier proof: baseline-without-decision differs from effective-with-decision.\n- Not report-only.\n", ""),
+        path=Path("017-099-fixture.md"),
+    )
+
+    assert report["valid"] is False
+    assert any("Cascade Evidence" in item["message"] for item in report["diagnostics"])
+
+
+def test_validate_017_issue_rejects_source_progress_without_baseline_delta() -> None:
+    text = VALID_COMPLETED.replace(
+        "Baseline-delta verifier proof: baseline-without-decision differs from effective-with-decision.",
+        "Rendered source shows source progress.",
+    )
+
+    report = validate_issue_text(text, path=Path("017-099-fixture.md"))
+
+    assert report["valid"] is False
+    assert any("baseline-delta proof" in item["message"] for item in report["diagnostics"])
+
+
+def test_validate_017_issue_rejects_report_only_cascade_closeout() -> None:
+    text = VALID_COMPLETED.replace(
+        "- Parent fact schema implemented.\n- Derived child schema implemented.\n- Fixed point behavior checked.\n- Baseline-delta verifier proof: baseline-without-decision differs from effective-with-decision.\n- Not report-only.",
+        "- report-only summary.",
+    )
+
+    report = validate_issue_text(text, path=Path("017-099-fixture.md"))
+
+    assert report["valid"] is False
+    assert any("report-only evidence" in item["message"] for item in report["diagnostics"])
 
 
 def test_validate_017_issue_script_does_not_rewrite(tmp_path: Path) -> None:
