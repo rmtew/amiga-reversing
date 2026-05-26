@@ -236,6 +236,24 @@ Completed placeholder linking state:
 Make source/artifact/web/API output consume the shared records from 023-002
 through 023-006. Delete compatibility display paths that are no longer needed.
 
+Completed display/API consolidation state:
+
+- The Mac project/API and target artifact paths consume the shared
+  per-CODE `source_presentation_status`, C-owned restored-source ownership,
+  source reference records, platform extensions, and executable resource
+  placeholder records built by 023-002 through 023-006.
+- The web renderer now displays per-CODE source presentation status, restored
+  source reference kinds, A5/world status, and executable resource placeholder
+  source-context/link status directly from those shared records.
+- The web renderer no longer falls back from the top-level executable resource
+  placeholder API to nested resource-fork compatibility data. Missing restored
+  source still fails closed as `restored_source_missing`; no passing verifier or
+  ownership evidence is synthesized in Python or web code.
+- Remaining UI limitations are presentational only: the current web panel shows
+  compact summaries rather than a dedicated cross-linked resource/source
+  navigation UI. That is future UI work and does not block the source evidence
+  contract.
+
 ### 023-008: Cross-Platform Source Presentation Closeout
 
 Prove the final Mac source presentation contract alongside Amiga/Atari exact

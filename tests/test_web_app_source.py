@@ -436,6 +436,7 @@ def test_web_app_renders_macos_source_and_container_payloads() -> None:
     assert "function renderClassicMacNonCodeResourceDetails(details)" in app_js
     assert "function renderClassicMacNonCodeResourceRow(detail)" in app_js
     assert "function renderClassicMacCodeResourceDetails(details)" in app_js
+    assert "function renderClassicMacSourcePresentationStatus(sourcePresentation)" in app_js
     assert "function renderClassicMacCode0JumpTableRows(rows)" in app_js
     assert "function renderClassicMacCode0JumpTableRow(row)" in app_js
     assert "function renderClassicMacPreviewWindow(preview)" in app_js
@@ -450,12 +451,19 @@ def test_web_app_renders_macos_source_and_container_payloads() -> None:
     assert "code_resource_details" in app_js
     assert "preview_windows" in app_js
     assert "restored_source" in app_js
+    assert "source_presentation_status" in app_js
+    assert 'data-macos-source-presentation="1"' in app_js
     assert 'data-macos-restored-source="1"' in app_js
     assert "source_ownership_ranges" in app_js
     assert "source_reference_records" in app_js
+    assert "reference-kinds=" in app_js
+    assert "platform_extensions" in app_js
     assert "executable_resource_placeholders" in app_js
     assert 'data-macos-executable-resource-placeholders="1"' in app_js
     assert 'data-macos-resource-placeholder="1"' in app_js
+    assert "source_context" in app_js
+    assert "link_status" in app_js
+    assert "resourceFork.executable_resource_placeholders" not in app_js
     assert "non_code_resource_details" in app_js
     assert 'data-macos-non-code-row="1"' in app_js
     assert "jump_table_rows" in app_js

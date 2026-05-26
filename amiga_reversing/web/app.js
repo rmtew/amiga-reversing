@@ -10096,11 +10096,7 @@ function renderClassicMacContainerView(containerView) {
   const details = Array.isArray(containerView.code_resource_details) ? containerView.code_resource_details : [];
   const resourceFork = containerView.resource_fork || {};
   const nonCodeDetails = Array.isArray(resourceFork.non_code_resource_details) ? resourceFork.non_code_resource_details : [];
-  const placeholders = Array.isArray(containerView.executable_resource_placeholders)
-    ? containerView.executable_resource_placeholders
-    : Array.isArray(resourceFork.executable_resource_placeholders)
-      ? resourceFork.executable_resource_placeholders
-      : [];
+  const placeholders = Array.isArray(containerView.executable_resource_placeholders) ? containerView.executable_resource_placeholders : [];
   return `
     <section class="macos-section" data-macos-panel="container">
       <h2>Binary Container</h2>
@@ -10157,14 +10153,16 @@ function renderClassicMacExecutableResourcePlaceholders(placeholders) {
 
 function renderClassicMacExecutableResourcePlaceholder(placeholder) {
   const references = Array.isArray(placeholder.reference_sites) ? placeholder.reference_sites : [];
+  const sourceContext = placeholder.source_context || {};
+  const referenceSummary = references.map((site) => `${site.kind || ""}:${site.link_status || ""}`).filter(Boolean).join(", ");
   return `
     <div class="macos-non-code-row" data-macos-resource-placeholder="1">
       <strong>${escapeHtml(placeholder.resource_type || "")}</strong>
       <span>${escapeHtml(String(placeholder.resource_id ?? "*"))}</span>
       <span>${escapeHtml(placeholder.status || placeholder.fact_status || "")}</span>
       <span>${escapeHtml(placeholder.stable_identity || "")}</span>
-      <span>${escapeHtml(placeholder.reason || "")}</span>
-      <span>${escapeHtml(String(references.length))}</span>
+      <span>${escapeHtml(`${sourceContext.status || ""} ${referenceSummary}`.trim())}</span>
+      <span>${escapeHtml(sourceContext.reason || placeholder.reason || "")}</span>
     </div>
   `;
 }
@@ -10183,6 +10181,7 @@ function renderClassicMacCodeResourceDetail(detail) {
   const listing = detail.listing || {};
   const relocation = detail.relocation_fixups || {};
   const restoredSource = detail.restored_source || {};
+  const sourcePresentation = detail.source_presentation_status || {};
   const previews = Array.isArray(detail.preview_windows) ? detail.preview_windows : [];
   const previewLabel = previews.length ? `${previews.length} candidate bounded preview` : "no preview";
   return `
@@ -10199,11 +10198,26 @@ function renderClassicMacCodeResourceDetail(detail) {
         <div><span>Listing</span><strong>${escapeHtml(`${listing.kind || "none"} ${listing.route || ""}`.trim())}</strong></div>
         <div><span>Relocation</span><strong>${escapeHtml(`${relocation.fact_status || relocation.status || "unknown"} ${relocation.parser_use || ""}`.trim())}</strong></div>
       </div>
+      ${renderClassicMacSourcePresentationStatus(sourcePresentation)}
       ${renderClassicMacRestoredSource(restoredSource)}
       ${detail.id === 0 ? renderClassicMacCode0Metadata(detail) : ""}
       ${previews.length ? previews.map((preview) => renderClassicMacPreviewWindow(preview || {})).join("") : renderClassicMacNoPreviewReason(detail, listing)}
       ${renderClassicMacRelocationReason(relocation)}
     </article>
+  `;
+}
+
+function renderClassicMacSourcePresentationStatus(sourcePresentation) {
+  if (!sourcePresentation || !sourcePresentation.kind) {
+    return "";
+  }
+  return `
+    <div class="macos-code-note" data-macos-source-presentation="1">
+      Source presentation: ${escapeHtml(sourcePresentation.kind || "")}
+      status=${escapeHtml(sourcePresentation.status || "")}
+      identity=${escapeHtml(sourcePresentation.stable_identity || "")}
+      visible=${escapeHtml(String(sourcePresentation.source_visible))}
+    </div>
   `;
 }
 
@@ -10214,6 +10228,9 @@ function renderClassicMacRestoredSource(restoredSource) {
   const ranges = Array.isArray(restoredSource.source_ownership_ranges) ? restoredSource.source_ownership_ranges : [];
   const references = Array.isArray(restoredSource.source_reference_records) ? restoredSource.source_reference_records : [];
   const verifier = restoredSource.source_coverage_verifier || {};
+  const extensions = restoredSource.platform_extensions || {};
+  const a5World = extensions.a5_world || {};
+  const referenceSummary = references.map((reference) => reference.kind || "").filter(Boolean).join(", ");
   return `
     <div class="macos-code-note" data-macos-restored-source="1">
       Restored source: ${escapeHtml(restoredSource.model || "")}
@@ -10221,6 +10238,8 @@ function renderClassicMacRestoredSource(restoredSource) {
       ownership=${escapeHtml(String(ranges.length))}
       references=${escapeHtml(String(references.length))}
       coverage=${escapeHtml(String(verifier.ok))}
+      reference-kinds=${escapeHtml(referenceSummary)}
+      a5=${escapeHtml(a5World.status || "")}
     </div>
   `;
 }
