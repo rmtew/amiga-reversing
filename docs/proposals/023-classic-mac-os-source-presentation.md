@@ -846,6 +846,18 @@ Required outcome:
 - Tests cover linked CODE resources, absent-link resources, and the generated
   artifact labels.
 
+Completion state:
+
+- Complete. CODE 0 routing now emits generated source xref records from parsed
+  jump-table entries to target CODE body payload offsets only when the target has
+  a real executable span.
+- The API exposes `generated_routing_xrefs` on CODE 0 and
+  `incoming_code0_xrefs` on linked target sections; `Asm.s` and the web source
+  panel render the same labels/xrefs.
+- Current MPW evidence links CODE 0 entry 0 to CODE 27 payload offset 204.
+  Absent or non-resolvable entries remain unlinked and do not become accepted
+  dispatch claims.
+
 ### 023-021: Nonzero CODE Flow And Residual Classification
 
 Follow executable code inside nonzero CODE resources and split source rows into

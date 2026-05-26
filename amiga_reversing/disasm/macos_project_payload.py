@@ -276,6 +276,10 @@ def _code_source_body_sections(
     native_source: Mapping[str, object],
 ) -> list[dict[str, object]]:
     sections: list[dict[str, object]] = []
+    code0_routing_xrefs = _code0_routing_xrefs(details)
+    incoming_by_target: dict[object, list[dict[str, object]]] = {}
+    for xref in code0_routing_xrefs:
+        incoming_by_target.setdefault(xref.get("target_resource_id"), []).append(xref)
     for detail in details:
         resource_id = detail.get("id")
         section = {
@@ -298,6 +302,7 @@ def _code_source_body_sections(
             "restored_source": detail.get("restored_source"),
             "source_body_ranges": _source_body_ranges(detail),
             "semantic_source": detail.get("semantic_source"),
+            "incoming_code0_xrefs": incoming_by_target.get(resource_id, []),
             "preview_windows": detail.get("preview_windows"),
             "byte_preserving_placeholder": _code_source_placeholder(detail),
         }
@@ -309,6 +314,7 @@ def _code_source_body_sections(
                     "kb_record_id": jump_table.get("kb_record_id") or detail.get("kb_record_id"),
                 },
                 "jump_table_rows": _source_jump_table_rows(detail),
+                "generated_routing_xrefs": code0_routing_xrefs,
                 "raw_byte_gap_reason": (
                     "CODE 0 row bytes are not exposed by the current C-owned row model; "
                     "the enclosing CODE 0 payload range and SHA-256 preserve byte identity."
@@ -353,6 +359,58 @@ def _source_jump_table_rows(detail: Mapping[str, object]) -> list[dict[str, obje
                 row[key] = {**child, "kb_record_id": child.get("kb_record_id") or kb_record_id}
         rows.append(row)
     return rows
+
+
+def _code0_routing_xrefs(details: list[dict[str, object]]) -> list[dict[str, object]]:
+    code0_detail = next((detail for detail in details if detail.get("id") == 0), None)
+    if not code0_detail:
+        return []
+    details_by_id = {detail.get("id"): detail for detail in details}
+    xrefs: list[dict[str, object]] = []
+    for row in _source_jump_table_rows(code0_detail):
+        code0_offset = _int_value(row.get("code0_payload_offset"))
+        target_id = row.get("target_resource_id")
+        routine_offset = _int_value(row.get("routine_offset_from_segment"))
+        entry_index = _int_value(row.get("entry_index"))
+        target_offset = _code0_target_payload_offset(details_by_id.get(target_id), routine_offset)
+        if code0_offset is None or target_id is None or routine_offset is None or target_offset is None:
+            continue
+        candidate = _mapping(row.get("candidate_target"))
+        accepted = _mapping(row.get("accepted_layout"))
+        xrefs.append(
+            {
+                "kind": "generated_code0_routing_xref",
+                "source_resource_id": 0,
+                "source_payload_offset": code0_offset,
+                "source_label": f"macos_CODE_0_jump_table_entry_{_text(entry_index)}",
+                "entry_index": entry_index,
+                "target_resource_id": target_id,
+                "target_payload_offset": target_offset,
+                "routine_offset_from_segment": routine_offset,
+                "target_label": f"macos_code_CODE_{_text(target_id)}_routine_candidate_{target_offset:08x}",
+                "link_status": "linked_candidate",
+                "accepted_layout": accepted,
+                "candidate_target": candidate,
+            }
+        )
+    return xrefs
+
+
+def _code0_target_payload_offset(detail: Mapping[str, object] | None, routine_offset: int | None) -> int | None:
+    if not detail or routine_offset is None or routine_offset < 0:
+        return None
+    for item in _sequence(detail.get("code_layout")):
+        range_info = _mapping(item)
+        if range_info.get("kind") not in {"candidate_code", "confirmed_code", "code"}:
+            continue
+        start = _int_value(range_info.get("start"))
+        end = _int_value(range_info.get("end"))
+        if start is None or end is None:
+            continue
+        target_offset = start + routine_offset
+        if start <= target_offset < end:
+            return target_offset
+    return None
 
 
 def _code_source_placeholder(detail: Mapping[str, object]) -> dict[str, object]:

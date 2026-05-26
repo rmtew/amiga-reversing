@@ -1,6 +1,6 @@
 # 023-020: CODE 0 Routing Seeds And Source Labels
 
-Status: active
+Status: complete
 
 Proposal: `docs/proposals/023-classic-mac-os-source-presentation.md`
 
@@ -33,11 +33,24 @@ are used only where resource names or source evidence directly support them.
 
 ## Acceptance
 
-- Linked CODE resources have stable labels and visible xrefs from CODE 0 source
+- [x] Linked CODE resources have stable labels and visible xrefs from CODE 0 source
   context.
-- Absent-link resources do not get fake accepted dispatch references.
-- Tests cover a linked CODE resource, an absent-link CODE resource, and the
+- [x] Absent-link resources do not get fake accepted dispatch references.
+- [x] Tests cover a linked CODE resource, an absent-link CODE resource, and the
   generated artifact labels/xrefs.
+
+## Result
+
+- CODE 0 jump-table rows now produce `generated_code0_routing_xref` records only
+  when the target CODE resource has a real executable span.
+- Routine offsets are translated through the target CODE body range, so
+  far-model headers remain metadata/data and do not receive fake routing labels.
+- Source sections expose both the CODE 0 generated routing xrefs and target
+  `incoming_code0_xrefs`; `Asm.s` and the web source panel render the same
+  relationships.
+- Current MPW evidence resolves CODE 0 entry 0 to CODE 27 payload offset 204.
+  Resources without resolvable real spans, such as CODE 19 in the current
+  fixture, remain unlinked.
 
 ## Verification
 

@@ -266,6 +266,15 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
         "candidate_target target_section=macos_code_CODE_27 target_resource_id=27 "
         "routine_offset=0 status=candidate parser_use=candidate_only"
     ) in asm_text
+    assert (
+        "generated_xref source=macos_CODE_0_jump_table_entry_0 "
+        "target=macos_code_CODE_27_routine_candidate_000000cc link_status=linked_candidate"
+    ) in asm_text
+    assert "macos_code_CODE_27_routine_candidate_000000cc:" in asm_text
+    assert (
+        "from=macos_CODE_0_jump_table_entry_0 source_payload=16 target_payload=204 "
+        "status=candidate parser_use=candidate_only"
+    ) in asm_text
     assert "raw_entry_bytes=00 00 3F 3C 00 1B A9 F0" in asm_text
     assert "raw_byte_gap: CODE 0 row bytes are not exposed" not in asm_text
     assert "target_section=macos_code_CODE_1 target_resource_id=1" not in asm_text

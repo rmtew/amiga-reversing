@@ -473,6 +473,10 @@ def test_web_app_renders_macos_source_and_container_payloads() -> None:
     assert "non_code_resource_details" in app_js
     assert 'data-macos-non-code-row="1"' in app_js
     assert "jump_table_rows" in app_js
+    assert "generated_routing_xrefs" in app_js
+    assert "incoming_code0_xrefs" in app_js
+    assert 'data-macos-code0-routing-xrefs="1"' in app_js
+    assert 'data-macos-code0-routing-xref="1"' in app_js
     assert 'data-macos-code0-jump-row="1"' in app_js
     assert "Candidate bounded preview" in app_js
     assert 'data-macos-code-details="1"' in app_js

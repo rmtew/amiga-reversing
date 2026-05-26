@@ -10134,6 +10134,7 @@ function renderClassicMacSourceBodySections(sections) {
 function renderClassicMacSourceBodySection(section) {
   const ranges = Array.isArray(section.source_body_ranges) ? section.source_body_ranges : [];
   const previews = Array.isArray(section.preview_windows) ? section.preview_windows : [];
+  const incomingCode0Xrefs = Array.isArray(section.incoming_code0_xrefs) ? section.incoming_code0_xrefs : [];
   const placeholder = section.byte_preserving_placeholder || {};
   return `
     <article class="macos-code-detail" data-macos-source-section="${escapeHtml(section.source_section_id || "")}" data-macos-source-section-status="${escapeHtml(section.status || "")}">
@@ -10152,6 +10153,7 @@ function renderClassicMacSourceBodySection(section) {
         ${escapeHtml(placeholder.reason || "")}
       </div>
       ${renderClassicMacSourceSectionRanges(ranges)}
+      ${renderClassicMacCode0IncomingXrefs(incomingCode0Xrefs)}
       ${section.code0_structured_context ? renderClassicMacCode0SourceContext(section.code0_structured_context) : ""}
       ${section.code1_layout_context ? renderClassicMacCode1SourceContext(section.code1_layout_context) : ""}
       ${previews.length ? `<div class="macos-code-note">Preview windows: ${escapeHtml(String(previews.length))}</div>` : ""}
@@ -10179,10 +10181,31 @@ function renderClassicMacSourceSectionRanges(ranges) {
 
 function renderClassicMacCode0SourceContext(context) {
   const rows = Array.isArray(context.jump_table_rows) ? context.jump_table_rows : [];
+  const xrefs = Array.isArray(context.generated_routing_xrefs) ? context.generated_routing_xrefs : [];
   return `
     <div class="macos-code-note" data-macos-source-code0-context="1">
       CODE 0 source context rows=${escapeHtml(String(rows.length))}
+      routing_xrefs=${escapeHtml(String(xrefs.length))}
       ${escapeHtml(context.raw_byte_gap_reason || "")}
+    </div>
+    ${renderClassicMacCode0IncomingXrefs(xrefs)}
+  `;
+}
+
+function renderClassicMacCode0IncomingXrefs(rows) {
+  if (!rows.length) {
+    return "";
+  }
+  return `
+    <div class="macos-code0-jump-table" data-macos-code0-routing-xrefs="1">
+      ${rows.map((xref) => `
+        <div class="macos-code0-jump-row" data-macos-code0-routing-xref="1">
+          <span>${escapeHtml(xref.source_label || "")}</span>
+          <span>${escapeHtml(xref.target_label || "")}</span>
+          <span>${escapeHtml(String(xref.source_payload_offset ?? ""))} -> ${escapeHtml(String(xref.target_payload_offset ?? ""))}</span>
+          <span>${escapeHtml(xref.link_status || "")}</span>
+        </div>
+      `).join("")}
     </div>
   `;
 }

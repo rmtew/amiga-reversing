@@ -1073,6 +1073,18 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     assert any(item["status"] == "partial_preview_with_exact_placeholders" for item in source_sections)
     assert any(item["status"] == "covered_placeholder" for item in source_sections)
     assert next(item for item in source_sections if item["id"] == 0)["code0_structured_context"]["jump_table_rows"]
+    code0_routing_xrefs = next(item for item in source_sections if item["id"] == 0)["code0_structured_context"][
+        "generated_routing_xrefs"
+    ]
+    assert code0_routing_xrefs
+    assert code0_routing_xrefs[0]["kind"] == "generated_code0_routing_xref"
+    assert code0_routing_xrefs[0]["source_label"] == "macos_CODE_0_jump_table_entry_0"
+    assert code0_routing_xrefs[0]["target_resource_id"] == 27
+    assert code0_routing_xrefs[0]["target_payload_offset"] == 204
+    assert code0_routing_xrefs[0]["target_label"] == "macos_code_CODE_27_routine_candidate_000000cc"
+    code27_section = next(item for item in source_sections if item["id"] == 27)
+    assert code27_section["incoming_code0_xrefs"] == code0_routing_xrefs
+    assert next(item for item in source_sections if item["id"] == 19)["incoming_code0_xrefs"] == []
     assert next(item for item in source_sections if item["id"] == 1)["code1_layout_context"]["candidate_entry_stub"][
         "fact_status"
     ] == "candidate"

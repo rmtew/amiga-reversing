@@ -47,6 +47,7 @@ macos_CODE_0_jump_table_entry_0:
 ;     payload_offset=16 size=8 raw_entry_bytes=00 00 3F 3C 00 1B A9 F0
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=macos_code_CODE_27 target_resource_id=27 routine_offset=0 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
+;     generated_xref source=macos_CODE_0_jump_table_entry_0 target=macos_code_CODE_27_routine_candidate_000000cc link_status=linked_candidate
 ;   byte_preserving_placeholder: CODE 0 payload[0..2784) sha256=8413f3bca1604845bb778c2a7701a067aa8b84853e7c77a60e63166d5b6399c1
 ;   placeholder_reason: semantic CODE disassembly remains deferred; current source body renders exact bytes for C-owned ranges and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
 ;   byte_real_source:
@@ -13966,6 +13967,9 @@ macos_code_CODE_27:
 ;     metadata payload[0..4) size=4 entrypoint=False status=validated parser_use=accepted_parser_output evidence=nonzero_code_segment_header fact=macos.code_resource.nonzero.segment_header
 ;     data payload[4..204) size=200 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
 ;     candidate_code payload[204..1882) size=1678 entrypoint=True status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;   incoming_CODE0_xrefs:
+macos_code_CODE_27_routine_candidate_000000cc:
+;     from=macos_CODE_0_jump_table_entry_0 source_payload=16 target_payload=204 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;   byte_preserving_placeholder: CODE 27 payload[0..1882) sha256=f683b4c722b40eda686a3074d68910f8316ecd373798c1a5834df64d8b757352
 ;   placeholder_reason: semantic CODE disassembly remains deferred; current source body renders exact bytes for C-owned ranges and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
 ;   byte_real_source:
