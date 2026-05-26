@@ -184,12 +184,12 @@ Retained public compatibility fields after 021-004:
 - `selected_code_segment`, `code_layout`, `orphan_ranges`, and
   `relocation_fixups` remain public because existing artifact/web renderers and
   tests still consume them for user-visible CODE detail panes.
-- At 021-004 closeout, project preview rendering still had an internal
-  `RawBinarySource` decode path for candidate preview rows, and 021-005
-  recorded that as a non-public transport blocker. That blocker is now closed:
-  021-008 routes preview rows through the native Mac CODE byte artifact helper,
-  so project preview rendering no longer constructs `RawBinarySource` or temp
-  raw files.
+- 021-004 originally left project preview rendering with an internal
+  `RawBinarySource` decode path for candidate preview rows; 021-005 recorded
+  that as a non-public transport blocker. Post-closeout follow-up 021-008
+  closed the blocker by routing preview rows through the native Mac CODE byte
+  artifact helper, so project preview rendering no longer constructs
+  `RawBinarySource` or temp raw files.
 
 ### 021-005: Delete Raw Bridge And Superseded Paths
 
@@ -244,10 +244,10 @@ Post-closeout follow-ups completed without reopening Proposal 021:
   `MacosCodeResourceSource` path no longer flows through
   `_source_file_for_c_backend`, does not write selected CODE bytes to a temp
   file, and does not construct an internal `"amiga-raw"` artifact profile.
-- 021-008 moved candidate preview decoding onto
-  `build_macos_code_bytes_listing_artifact_profile`, so
+- 021-008 closed the candidate preview transport blocker by moving candidate
+  preview decoding onto `build_macos_code_bytes_listing_artifact_profile`.
   `macos_project_payload._preview_decode_rows` no longer constructs
-  `RawBinarySource` or temp raw files. Candidate preview rows still carry
+  `RawBinarySource` or temp raw files, while preview rows still carry
   candidate/deferred fact ids and parser-use state.
 - Focused proof for 021-007/008: precommit passed; Mac focused tests passed
   with 45 tests; targeted mypy passed on changed Python files; combined 020
