@@ -1,6 +1,6 @@
 # Proposal 023: Classic Mac OS Source Presentation
 
-Status: complete
+Status: active
 
 ## Purpose
 
@@ -283,6 +283,50 @@ Final closeout state:
   PRG outputs; focused Mac backend/project/artifact/web/source tests; C
   precommit; and `git diff --check`.
 
+Closeout review finding:
+
+- The C-owned source reference records overstate two Mac reference facts. First,
+  nonzero CODE resources with no CODE 0 jump-table span still get a validated
+  `code0_dispatch_reference`. A resource with `first_jump_table_entry_offset:
+  65535` and `jump_table_entry_count: 0` has no accepted dispatch span and must
+  not receive a validated source reference. Second, CODE 0 gets a
+  `segment_loader_fixup_placeholder` even though it is metadata/routing, not a
+  normal executable CODE segment fixup span. Both defects make the source
+  presentation look more proven than the parsed evidence supports.
+
+### 023-009: Guard CODE 0 Dispatch References
+
+Fix nonzero CODE source reference records so validated `code0_dispatch_reference`
+records are emitted only when the parsed CODE segment has a real CODE 0
+jump-table span.
+
+Required outcome:
+
+- CODE resources with `first_jump_table_entry_offset == 0xffff` or
+  `jump_table_entry_count == 0` do not emit validated CODE 0 dispatch
+  references.
+- If user-visible context is still useful for those resources, it is emitted as
+  a typed deferred/unlinked placeholder, not as accepted routing.
+- Tests cover both a real dispatch span and an absent span.
+- The generated MPW `Asm` artifact no longer shows validated CODE 0 dispatch
+  references for resources whose segment map says `jt_first=65535 jt_count=0`.
+
+### 023-010: Keep CODE 0 Free Of Segment Loader Fixup Placeholders
+
+Fix CODE 0 restored-source reference records so metadata/routing CODE 0 does not
+receive a Segment Loader fixup placeholder unless there is explicit evidence for
+one.
+
+Required outcome:
+
+- CODE 0 keeps routing/metadata source references.
+- CODE 0 does not emit `segment_loader_fixup_placeholder` for the normal
+  metadata/routing packet.
+- Nonzero CODE resources keep span-specific Segment Loader placeholders where
+  evidence remains deferred.
+- Tests cover CODE 0 and nonzero CODE behavior, and the MPW `Asm` artifact
+  reflects the corrected records.
+
 ## Verification Plan
 
 Minimum proof for every implementation issue:
@@ -313,6 +357,9 @@ Closeout must include the full relevant Mac proof plus Amiga/Atari exact gates.
 - 023-006 follows 023-003 and 023-004.
 - 023-007 follows 023-003 through 023-006.
 - 023-008 closes the proposal after all previous issues complete.
+- 023-009 and 023-010 reopen the post-closeout reference accuracy findings.
+  They should be done together or in that order because both touch the same
+  C-owned Mac source reference record builder.
 
 ## Non-Goals
 
