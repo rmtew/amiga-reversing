@@ -246,6 +246,9 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     assert "ownership_ranges:" in asm_text
     assert "role=candidate_code" in asm_text
     assert "kind=segment_loader_fixup_placeholder" in asm_text
+    assert "kind=code0_dispatch_reference" in asm_text
+    assert "kind=code0_routing_table" in asm_text
+    assert "kind=a5_world_context_placeholder" in asm_text
     assert "a5_world status=deferred" in asm_text
     assert not any(
         "macos.code_resource.movea_stack_a0.boundary.candidate" in line and "accepted_parser_output" in line

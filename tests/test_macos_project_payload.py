@@ -1148,6 +1148,12 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
         "candidate_code",
     ]
     assert restored_source["source_reference_records"][0]["fact_id"] == "macos.segment_loader.relocation_fixups.deferred"
+    assert restored_source["source_reference_records"][0]["resource_id"] == 1
+    assert restored_source["source_reference_records"][0]["source_range"] == {"start": 40, "end": 29024, "size": 28984}
+    assert restored_source["source_reference_records"][1]["kind"] == "code0_dispatch_reference"
+    assert restored_source["source_reference_records"][1]["target"] == "CODE:1"
+    assert restored_source["source_reference_records"][2]["kind"] == "a5_world_context_placeholder"
+    assert restored_source["platform_extensions"]["address_model"]["payload_offset_space"] == "code_resource_payload"
     assert restored_source["platform_extensions"]["a5_world"]["status"] == "deferred"
     assert container["selected_code_segment"]["orphan_ranges"][0]["fact_status"] == "candidate"
     assert container["selected_code_segment"]["relocation_fixups"]["parser_use"] == "deferred_only"

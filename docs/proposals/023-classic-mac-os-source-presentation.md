@@ -163,17 +163,52 @@ Use CODE 0 as platform routing evidence. Represent CODE 0 dispatch/resource
 relationships as source reference records or typed placeholders that link CODE
 resources together.
 
+Completed CODE 0 routing state:
+
+- C-owned Mac restored-source packets now include CODE 0 routing records in
+  `source_reference_records`: CODE 0 emits `code0_routing_table`, and nonzero
+  CODE resources emit `code0_dispatch_reference` with CODE resource identity,
+  CODE 0 jump-table offset/size, validated status, provenance, source
+  visibility, and the accepted segment jump-table fact.
+- Project/API and target artifact tests require these records. The facts remain
+  accepted only for CODE 0/jump-table structure; byte-entry and Segment Loader
+  semantics remain candidate/deferred.
+
 ### 023-004: Segment Loader Fixup Source Records
 
 Replace broad relocation/fixup notes with source-level records: decoded records
 where evidence supports them, and span-specific placeholders where decoding is
 not yet implemented.
 
+Completed Segment Loader source record state:
+
+- The C-owned `segment_loader_fixup_placeholder` now carries CODE resource
+  identity, `code_resource_payload` byte-space, source offset, source range
+  start/end/size, status, provenance, and source visibility.
+- Placeholder reason now distinguishes unsupported custom extension decoding
+  from missing evidence: the current fixture has source spans but Segment
+  Loader relocation/fixup custom extension decoding remains unimplemented and
+  deferred.
+- Artifact/API tests require the placeholder kind, deferred fact, resource id,
+  and source range so the presentation cannot regress to a broad-only note.
+
 ### 023-005: Mac Address And A5 Context Presentation
 
 Surface Mac address-space and A5/world/global-base context at source rows and
 reference records without promoting lifetime proof. A5-relative uses should be
 visible and navigable as candidate/deferred context.
+
+Completed address/A5 context state:
+
+- C-owned Mac restored-source packets now expose `platform_extensions.address_model`
+  with payload offset space, local source offset space, deferred runtime address
+  model, and C provenance.
+- `source_reference_records` include `a5_world_context_placeholder` records with
+  CODE resource identity, source offset, deferred status, provenance, and source
+  visibility. This makes A5/world context visible in the same reference path
+  without claiming accepted lifetime proof.
+- `platform_extensions.a5_world` remains deferred and source-visible with C
+  provenance; no parser fact or accepted status is asserted for A5 lifetime.
 
 ### 023-006: Executable Resource Placeholder Linking
 

@@ -297,7 +297,16 @@ def test_python_wrapper_uses_c_macos_hfs_code_summary() -> None:
     ]
     assert restored_source["source_reference_records"][0]["kind"] == "segment_loader_fixup_placeholder"
     assert restored_source["source_reference_records"][0]["parser_use"] == "deferred_only"
+    assert restored_source["source_reference_records"][0]["resource_id"] == 1
+    assert restored_source["source_reference_records"][0]["source_offset"] == 10
+    assert restored_source["source_reference_records"][0]["source_range"] == {"start": 10, "end": 14, "size": 4}
+    assert restored_source["source_reference_records"][1]["kind"] == "code0_dispatch_reference"
+    assert restored_source["source_reference_records"][1]["target"] == "CODE:1"
+    assert restored_source["source_reference_records"][2]["kind"] == "a5_world_context_placeholder"
     assert restored_source["platform_extensions"]["code_resource"]["resource_id"] == 1
+    assert restored_source["platform_extensions"]["address_model"]["runtime_address_model"] == (
+        "classic_mac_segment_loader_deferred"
+    )
     shared_ranges = summary["executable_ranges"]
     assert summary["executable_model"] == "platform_executable_summary_v1"
     assert any(
