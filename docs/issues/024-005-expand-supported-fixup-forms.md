@@ -13,10 +13,10 @@ Source proposal: docs/proposals/024-classic-mac-os-segment-loader-fixups.md
 
 ## What To Build
 
-Decode every additional Segment Loader fixup form that is clear from current
-bytes and existing facts. Do not infer semantics from wishful source appearance.
-If a form is ambiguous, keep it as a typed deferred placeholder with the exact
-blocking reason.
+Decode every additional Segment Loader fixup form that is clear from actual
+fixup encoding bytes and existing facts. Do not infer semantics from wishful
+source appearance or from CODE payload candidate spans. If a form is ambiguous,
+keep it as a typed deferred placeholder with the exact blocking reason.
 
 ## Acceptance Criteria
 
@@ -25,6 +25,8 @@ blocking reason.
 - [ ] Tests cover each decoded form and each residual placeholder class.
 - [ ] No unsupported form is promoted to accepted/decoded behavior.
 - [ ] Proposal 024 records the supported and deferred form list.
+- [ ] If 024-001/024-003 proved no supported form, this issue remains blocked
+      rather than inventing a decoder.
 
 ## Blocked By
 
@@ -35,4 +37,5 @@ blocking reason.
 - [ ] Focused Mac C/backend/project/artifact tests pass.
 - [ ] Platform executable validate/coverage pass.
 - [ ] `cmd /c src\precommit.bat` passes.
+- [ ] Native C unit tests cover every decoded form or the blocked state.
 - [ ] `git diff --check` passes.

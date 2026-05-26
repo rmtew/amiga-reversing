@@ -70,7 +70,8 @@ Unsupported effects must stay precise:
 024 is complete when the committed Mac fixture has:
 
 - a C-owned Segment Loader fixup parse model for the current CODE bytes;
-- decoded records for every supported fixup form encountered;
+- decoded records for every supported fixup form encountered, if any are proven
+  from actual fixup encoding bytes;
 - typed placeholders for unsupported, malformed, or custom extension spans;
 - restored-source `source_reference_records` using decoded records where
   available instead of broad-only placeholders;
@@ -83,8 +84,13 @@ Unsupported effects must stay precise:
 
 - Implement parsing and record emission in C. Python may expose and test it.
 - Start with current MPW `Asm` fixture bytes and current parser evidence.
+- Prove where fixup encoding bytes come from in the resource format before
+  decoding them. A CODE payload candidate span is not, by itself, fixup encoding
+  provenance.
 - Decode only forms that are understood from bytes and existing facts.
 - Keep unsupported forms deferred with byte spans, reasons, and provenance.
+- If 024-001 finds no supported fixup form, stop the decoder track, record the
+  blocker in this proposal, and do not force 024-003/024-005 implementation.
 - Attach decoded effects to restored-source ranges/rows when possible.
 - Keep A5 lifetime proof out of scope unless directly required to describe a
   decoded fixup target safely.
@@ -95,8 +101,9 @@ Unsupported effects must stay precise:
 ### 024-001: Current Fixup Byte Inventory And Parser Boundary
 
 Build a narrow C/API/test harness that locates current Segment Loader fixup
-candidate spans in the committed MPW `Asm` fixture and records what bytes are
-parseable versus still custom/unknown.
+candidate spans in the committed MPW `Asm` fixture, proves where actual fixup
+encoding bytes come from, and records what bytes are parseable versus still
+custom/unknown.
 
 This issue must end with executable evidence, not only documentation.
 
@@ -109,7 +116,9 @@ reason, provenance, and source visibility.
 ### 024-003: Decode First Supported Fixup Form
 
 Implement the first supported fixup decoder found in the MPW `Asm` fixture and
-emit decoded source reference records for it. Keep all other forms deferred.
+emit decoded source reference records for it. Keep all other forms deferred. If
+024-001 does not prove any supported form, this issue must not invent one; it
+must record the blocker and leave later decode-expansion issues blocked.
 
 ### 024-004: Attach Fixups To Restored Source Rows
 
@@ -154,6 +163,7 @@ Shared C/source-output changes must also run:
 
 ```powershell
 cmd /c src\precommit.bat
+.\src\build\m68k_c_unit_tests.exe
 ```
 
 ## Issue Ordering

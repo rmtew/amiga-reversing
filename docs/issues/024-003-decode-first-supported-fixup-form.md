@@ -17,6 +17,10 @@ Implement the first supported Segment Loader fixup decoder found in the current
 MPW `Asm` fixture. Emit decoded records through the C-owned model and keep every
 other unsupported/custom form as typed deferred placeholders.
 
+If 024-001 did not prove a supported fixup form with actual fixup encoding byte
+provenance, do not implement a speculative decoder. Record the blocker in
+Proposal 024 and leave 024-003/024-005 blocked until evidence exists.
+
 ## Acceptance Criteria
 
 - [ ] At least one real fixture fixup form is decoded from bytes.
@@ -26,6 +30,8 @@ other unsupported/custom form as typed deferred placeholders.
 - [ ] Tests prove decoded records cannot be emitted from malformed or absent
       evidence.
 - [ ] Proposal 024 records the decoded form and residual deferred forms.
+- [ ] If no supported form exists, Proposal 024 records the blocker and no
+      decoded records are emitted.
 
 ## Blocked By
 
@@ -36,4 +42,5 @@ other unsupported/custom form as typed deferred placeholders.
 - [ ] Focused Mac C/backend/project/artifact tests pass.
 - [ ] Platform executable validate/coverage pass.
 - [ ] `cmd /c src\precommit.bat` passes.
+- [ ] Native C unit tests cover the decoder or the no-supported-form blocker.
 - [ ] `git diff --check` passes.
