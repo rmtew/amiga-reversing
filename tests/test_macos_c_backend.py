@@ -181,6 +181,23 @@ def test_python_wrapper_uses_c_macos_hfs_code_summary() -> None:
     assert summary["resource_fork"]["type_count"] == 1
     assert summary["resource_fork"]["resource_count"] == 2
     assert [item["id"] for item in summary["resource_fork"]["code_resources"]] == [0, 1]
+    fixup_inventory = summary["resource_fork"]["segment_loader_fixup_inventory"]
+    assert fixup_inventory["model"] == "segment_loader_fixup_inventory_v1"
+    assert fixup_inventory["authority"] == "c_owned"
+    assert fixup_inventory["status"] == "blocked"
+    assert [item["classification"] for item in fixup_inventory["records"]] == ["absent", "custom_unknown"]
+    code1_fixups = fixup_inventory["records"][1]
+    assert code1_fixups["resource_id"] == 1
+    assert code1_fixups["byte_space"] == "code_resource_payload"
+    assert code1_fixups["source_range"] == {"start": 10, "end": 14, "size": 4}
+    assert code1_fixups["parseable"] is False
+    assert code1_fixups["encoding_byte_provenance"] == {
+        "known": False,
+        "byte_space": None,
+        "source_range": None,
+    }
+    assert code1_fixups["fact_status"] == "deferred"
+    assert code1_fixups["parser_use"] == "deferred_only"
     code0 = summary["resource_fork"]["code_resources"][0]["code"]
     assert code0["jump_table"] == {
         "kind": "code0_jump_table",
@@ -717,6 +734,17 @@ def test_c_macos_hfs_code_summary_matches_committed_mpw_asm_metadata() -> None:
         for item in summary["executable_ranges"]
     )
     assert summary["selected_code"]["code"]["orphan_ranges"][0]["fact_status"] == "candidate"
+    fixup_inventory = summary["resource_fork"]["segment_loader_fixup_inventory"]
+    assert fixup_inventory["status"] == "blocked"
+    assert len(fixup_inventory["records"]) == 28
+    assert all(item["parseable"] is False for item in fixup_inventory["records"])
+    assert all(item["encoding_byte_provenance"]["known"] is False for item in fixup_inventory["records"])
+    assert {item["classification"] for item in fixup_inventory["records"]} == {"absent", "custom_unknown"}
+    assert next(item for item in fixup_inventory["records"] if item["resource_id"] == 1)["source_range"] == {
+        "start": 40,
+        "end": expected_code1["size"],
+        "size": expected_code1["size"] - 40,
+    }
     assert summary["selected_code"]["code"]["relocation_fixups"]["parser_use"] == "deferred_only"
     assert extract_macos_hfs_code_resource_bytes_with_c_backend(
         read_macos_hfs_image_bytes(IMAGE_PATH),

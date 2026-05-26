@@ -158,6 +158,43 @@ static int test_code_layout_defers_nonzero_payload_without_entry(void) {
   return 0;
 }
 
+static int test_segment_loader_fixup_inventory_fails_closed_without_encoding_provenance(void) {
+  unsigned char data[512];
+  PlatformMacosResourceFork fork;
+  PlatformMacosResourceInfo resources[2];
+  PlatformMacosSegmentLoaderFixupInventory inventory;
+  size_t size = make_two_code_resource_fork(data, sizeof(data));
+  M68K_C_ASSERT(size != 0U);
+  M68K_C_ASSERT_INT(0, platform_macos_resource_fork_parse(data, size, &fork, NULL, 0U, resources, 2U));
+  M68K_C_ASSERT_INT(0, platform_macos_segment_loader_fixup_inventory_from_code_metadata(&resources[1].code,
+    resources[1].resource_id, resources[1].payload_size, &inventory));
+  M68K_C_ASSERT_U32(PLATFORM_MACOS_SEGMENT_LOADER_FIXUP_INVENTORY_CUSTOM_UNKNOWN, inventory.status);
+  M68K_C_ASSERT_U32(0U, inventory.encoding_byte_provenance_known);
+  M68K_C_ASSERT_U32(10U, inventory.source_offset);
+  M68K_C_ASSERT_U32(4U, inventory.size);
+  M68K_C_ASSERT_U32(14U, inventory.end);
+  M68K_C_ASSERT_STR("custom_unknown", platform_macos_segment_loader_fixup_inventory_status_name(inventory.status));
+  return 0;
+}
+
+static int test_segment_loader_fixup_inventory_reports_code0_absent(void) {
+  unsigned char data[512];
+  PlatformMacosResourceFork fork;
+  PlatformMacosResourceInfo resources[2];
+  PlatformMacosSegmentLoaderFixupInventory inventory;
+  size_t size = make_two_code_resource_fork(data, sizeof(data));
+  M68K_C_ASSERT(size != 0U);
+  M68K_C_ASSERT_INT(0, platform_macos_resource_fork_parse(data, size, &fork, NULL, 0U, resources, 2U));
+  M68K_C_ASSERT_INT(0, platform_macos_segment_loader_fixup_inventory_from_code_metadata(&resources[0].code,
+    resources[0].resource_id, resources[0].payload_size, &inventory));
+  M68K_C_ASSERT_U32(PLATFORM_MACOS_SEGMENT_LOADER_FIXUP_INVENTORY_ABSENT, inventory.status);
+  M68K_C_ASSERT_U32(0U, inventory.encoding_byte_provenance_known);
+  M68K_C_ASSERT_U32(0U, inventory.source_offset);
+  M68K_C_ASSERT_U32(0U, inventory.size);
+  M68K_C_ASSERT_STR("absent", platform_macos_segment_loader_fixup_inventory_status_name(inventory.status));
+  return 0;
+}
+
 static int test_resource_fork_rejects_payload_past_end(void) {
   unsigned char data[512];
   PlatformMacosResourceFork fork;
@@ -237,6 +274,9 @@ int m68k_c_platform_macos_resource_tests(void) {
     {"resource_fork_parses_code_metadata", test_resource_fork_parses_code_metadata},
     {"resource_fork_finds_selected_payload_bounds", test_resource_fork_finds_selected_payload_bounds},
     {"code_layout_defers_nonzero_payload_without_entry", test_code_layout_defers_nonzero_payload_without_entry},
+    {"segment_loader_fixup_inventory_fails_closed_without_encoding_provenance",
+      test_segment_loader_fixup_inventory_fails_closed_without_encoding_provenance},
+    {"segment_loader_fixup_inventory_reports_code0_absent", test_segment_loader_fixup_inventory_reports_code0_absent},
     {"resource_fork_rejects_payload_past_end", test_resource_fork_rejects_payload_past_end},
     {"restored_source_verifier_accepts_complete_candidate_coverage",
       test_restored_source_verifier_accepts_complete_candidate_coverage},

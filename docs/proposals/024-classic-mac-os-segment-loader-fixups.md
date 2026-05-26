@@ -1,6 +1,6 @@
 # Proposal 024: Classic Mac OS Segment Loader Fixups
 
-Status: active
+Status: blocked
 
 ## Purpose
 
@@ -107,11 +107,32 @@ custom/unknown.
 
 This issue must end with executable evidence, not only documentation.
 
+024-001 boundary result:
+
+- The C-owned Mac resource parser now emits
+  `segment_loader_fixup_inventory_v1` in the Mac CODE summary. The committed
+  MPW `Asm` fixture produces deterministic inventory records for all 28 CODE
+  resources.
+- CODE 0 is classified as `absent`. Nonzero CODE resources are classified as
+  `custom_unknown` with deferred status, exact candidate affected-byte spans,
+  provenance, source visibility, and `encoding_byte_provenance.known=false`.
+- No record is `parseable`, and no record identifies a real Segment Loader
+  fixup encoding byte stream. The current candidate CODE payload span remains
+  visible only as bytes that may be affected by fixups, not as bytes that encode
+  fixups.
+- Decode work is therefore blocked after 024-001. 024-003 and 024-005 must not
+  emit decoded records until a future issue proves actual on-disk fixup encoding
+  byte provenance for a supported form.
+
 ### 024-002: C Fixup Record Model
 
 Add a C-owned Segment Loader fixup record model that can represent decoded
 effects and deferred placeholders with resource identity, byte span, status,
 reason, provenance, and source visibility.
+
+Blocked by 024-001 boundary result: no supported decoded form is proven. Future
+model work must start from the C-owned inventory and keep records deferred until
+encoding provenance is known.
 
 ### 024-003: Decode First Supported Fixup Form
 
@@ -120,11 +141,17 @@ emit decoded source reference records for it. Keep all other forms deferred. If
 024-001 does not prove any supported form, this issue must not invent one; it
 must record the blocker and leave later decode-expansion issues blocked.
 
+Blocked by 024-001 boundary result: no supported form or fixup encoding byte
+stream is proven for the current fixture.
+
 ### 024-004: Attach Fixups To Restored Source Rows
 
 Attach decoded fixup records and residual placeholders to restored-source
 ownership ranges/source rows so artifact/web/API users can navigate from source
 to fixup evidence.
+
+Blocked until a decoded or typed deferred fixup record model exists beyond the
+024-001 inventory boundary.
 
 ### 024-005: Expand Supported Fixup Forms
 
@@ -132,21 +159,33 @@ Decode the remaining supported forms found by 024-001 where the format is clear
 from bytes and current evidence. Leave custom/ambiguous forms as typed
 placeholders.
 
+Blocked by 024-001 boundary result: there are no remaining supported forms to
+expand.
+
 ### 024-006: Replace Broad Fixup Placeholders
 
 Remove broad Segment Loader placeholder output where decoded records or precise
 per-span placeholders now exist. Keep fail-closed behavior for missing parse
 model output.
 
+Blocked until decoded records or precise per-fixup placeholders exist. Current
+broad placeholders remain correct because fixup encoding provenance is unknown.
+
 ### 024-007: Source Display And Web/API Exposure
 
 Expose decoded fixup effects and residual placeholders in existing source,
 artifact, web, and API surfaces without a UI redesign.
 
+Blocked until decoded records or precise per-fixup placeholders exist.
+
 ### 024-008: Closeout Proof
 
 Close 024 by proving decoded fixup records, residual placeholders, source
 presentation, and cross-platform gates together.
+
+Blocked: 024 cannot close its decoder track until actual Segment Loader fixup
+encoding bytes are proven or a future proposal formally narrows the scope to the
+inventory-only blocker.
 
 ## Verification Plan
 

@@ -1,6 +1,6 @@
 # 024-008: Segment Loader Fixup Closeout
 
-Status: active
+Status: blocked
 Type: AFK
 Source proposal: docs/proposals/024-classic-mac-os-segment-loader-fixups.md
 
@@ -28,6 +28,8 @@ the proposal.
 ## Blocked By
 
 - docs/issues/024-007-source-display-and-web-api-exposure.md
+- 024-001 found no supported fixup encoding byte provenance; closeout is blocked
+  until that evidence exists or scope is formally narrowed.
 
 ## Required Sign-Off
 

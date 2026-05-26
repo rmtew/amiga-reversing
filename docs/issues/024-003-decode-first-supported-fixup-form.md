@@ -1,6 +1,6 @@
 # 024-003: Decode First Supported Fixup Form
 
-Status: active
+Status: blocked
 Type: AFK
 Source proposal: docs/proposals/024-classic-mac-os-segment-loader-fixups.md
 
@@ -36,6 +36,8 @@ Proposal 024 and leave 024-003/024-005 blocked until evidence exists.
 ## Blocked By
 
 - docs/issues/024-002-c-fixup-record-model.md
+- 024-001 found no supported fixup form with actual encoding byte provenance.
+  Do not implement a speculative decoder.
 
 ## Required Sign-Off
 

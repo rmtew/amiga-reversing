@@ -1,6 +1,6 @@
 # 024-007: Source Display And Web/API Exposure
 
-Status: active
+Status: blocked
 Type: AFK
 Source proposal: docs/proposals/024-classic-mac-os-segment-loader-fixups.md
 
@@ -28,6 +28,8 @@ the evidence visible and navigable in the current Mac source panels.
 ## Blocked By
 
 - docs/issues/024-006-replace-broad-fixup-placeholders.md
+- 024-001 found no decoded fixup records or precise per-fixup placeholders to
+  expose.
 
 ## Required Sign-Off
 

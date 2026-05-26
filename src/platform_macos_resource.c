@@ -120,6 +120,62 @@ int platform_macos_code_metadata_executable_range(const PlatformMacosCodeMetadat
   return 1;
 }
 
+const char *platform_macos_segment_loader_fixup_inventory_status_name(uint8_t status) {
+  switch (status) {
+    case PLATFORM_MACOS_SEGMENT_LOADER_FIXUP_INVENTORY_ABSENT:
+      return "absent";
+    case PLATFORM_MACOS_SEGMENT_LOADER_FIXUP_INVENTORY_PARSEABLE:
+      return "parseable";
+    case PLATFORM_MACOS_SEGMENT_LOADER_FIXUP_INVENTORY_UNSUPPORTED:
+      return "unsupported";
+    case PLATFORM_MACOS_SEGMENT_LOADER_FIXUP_INVENTORY_CUSTOM_UNKNOWN:
+      return "custom_unknown";
+    case PLATFORM_MACOS_SEGMENT_LOADER_FIXUP_INVENTORY_MALFORMED:
+      return "malformed";
+    default:
+      return "unsupported";
+  }
+}
+
+int platform_macos_segment_loader_fixup_inventory_from_code_metadata(const PlatformMacosCodeMetadata *code,
+    int16_t resource_id, uint32_t payload_size, PlatformMacosSegmentLoaderFixupInventory *out_inventory) {
+  uint32_t candidate_start = 4U;
+  uint32_t candidate_size;
+  size_t index;
+  if (out_inventory == NULL) return -1;
+  memset(out_inventory, 0, sizeof(*out_inventory));
+  out_inventory->source_visible = 1U;
+  out_inventory->provenance = "platform_macos_resource.code_metadata";
+  if (code == NULL || resource_id == 0 || code->kind != PLATFORM_MACOS_CODE_RESOURCE_CODE_SEGMENT) {
+    out_inventory->status = PLATFORM_MACOS_SEGMENT_LOADER_FIXUP_INVENTORY_ABSENT;
+    out_inventory->reason = "CODE 0 and non-CODE resources do not provide Segment Loader fixup encoding bytes.";
+    return 0;
+  }
+  if (payload_size <= 4U) {
+    out_inventory->status = PLATFORM_MACOS_SEGMENT_LOADER_FIXUP_INVENTORY_ABSENT;
+    out_inventory->reason = "CODE resource has only the nonzero segment header; no fixup encoding byte span is present.";
+    return 0;
+  }
+  for (index = 0U; index < code->layout_range_count; ++index) {
+    const PlatformMacosCodeRange *range = &code->layout_ranges[index];
+    if (range->kind == PLATFORM_MACOS_CODE_RANGE_CANDIDATE_CODE ||
+        range->kind == PLATFORM_MACOS_CODE_RANGE_DEFERRED) {
+      candidate_start = range->start_offset;
+      break;
+    }
+  }
+  if (candidate_start > payload_size) candidate_start = 4U;
+  candidate_size = payload_size - candidate_start;
+  out_inventory->status = PLATFORM_MACOS_SEGMENT_LOADER_FIXUP_INVENTORY_CUSTOM_UNKNOWN;
+  out_inventory->source_offset = candidate_start;
+  out_inventory->size = candidate_size;
+  out_inventory->end = payload_size;
+  out_inventory->reason =
+    "Current parser sees CODE payload bytes that may be affected by Segment Loader fixups, but no resource-format "
+    "field proves these bytes encode a fixup stream.";
+  return 0;
+}
+
 const char *platform_macos_code_range_kind_name(uint8_t kind) {
   switch (kind) {
     case PLATFORM_MACOS_CODE_RANGE_METADATA: return "metadata";

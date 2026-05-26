@@ -59,6 +59,25 @@ typedef struct PlatformMacosRestoredSourceCoverageVerifier {
   uint32_t explicit_unknown_missing_detail_count;
 } PlatformMacosRestoredSourceCoverageVerifier;
 
+typedef enum PlatformMacosSegmentLoaderFixupInventoryStatus {
+  PLATFORM_MACOS_SEGMENT_LOADER_FIXUP_INVENTORY_ABSENT = 0,
+  PLATFORM_MACOS_SEGMENT_LOADER_FIXUP_INVENTORY_PARSEABLE = 1,
+  PLATFORM_MACOS_SEGMENT_LOADER_FIXUP_INVENTORY_UNSUPPORTED = 2,
+  PLATFORM_MACOS_SEGMENT_LOADER_FIXUP_INVENTORY_CUSTOM_UNKNOWN = 3,
+  PLATFORM_MACOS_SEGMENT_LOADER_FIXUP_INVENTORY_MALFORMED = 4
+} PlatformMacosSegmentLoaderFixupInventoryStatus;
+
+typedef struct PlatformMacosSegmentLoaderFixupInventory {
+  uint8_t status;
+  uint8_t source_visible;
+  uint8_t encoding_byte_provenance_known;
+  uint32_t source_offset;
+  uint32_t size;
+  uint32_t end;
+  const char *reason;
+  const char *provenance;
+} PlatformMacosSegmentLoaderFixupInventory;
+
 typedef struct PlatformMacosResourceForkHeader {
   uint32_t resource_data_offset;
   uint32_t resource_map_offset;
@@ -113,6 +132,9 @@ int platform_macos_code_metadata_parse(const unsigned char *payload, uint32_t pa
   int16_t resource_id, PlatformMacosCodeMetadata *out_code);
 int platform_macos_code_metadata_executable_range(const PlatformMacosCodeMetadata *code,
   uint32_t *out_start_offset, uint32_t *out_size);
+int platform_macos_segment_loader_fixup_inventory_from_code_metadata(const PlatformMacosCodeMetadata *code,
+  int16_t resource_id, uint32_t payload_size, PlatformMacosSegmentLoaderFixupInventory *out_inventory);
+const char *platform_macos_segment_loader_fixup_inventory_status_name(uint8_t status);
 const char *platform_macos_code_range_kind_name(uint8_t kind);
 const char *platform_macos_code_range_evidence_name(uint8_t evidence);
 const char *platform_macos_code_range_fact_id(uint8_t evidence);

@@ -1,6 +1,6 @@
 # 024-002: C Fixup Record Model
 
-Status: active
+Status: blocked
 Type: AFK
 Source proposal: docs/proposals/024-classic-mac-os-segment-loader-fixups.md
 
@@ -39,6 +39,8 @@ Records must carry at least:
 ## Blocked By
 
 - docs/issues/024-001-current-fixup-byte-inventory-and-parser-boundary.md
+- 024-001 found no actual Segment Loader fixup encoding byte provenance for the
+  current fixture. Record-model work must not invent decoded forms.
 
 ## Required Sign-Off
 

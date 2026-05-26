@@ -232,6 +232,60 @@ static int macos_restored_source_add_unknown_range(MacosRestoredSourceRangeRecor
   return 0;
 }
 
+static int macos_append_segment_loader_fixup_inventory_record(JsonBuilder *builder,
+    const PlatformMacosResourceInfo *resource) {
+  PlatformMacosSegmentLoaderFixupInventory inventory;
+  const char *status_name;
+  if (builder == NULL || resource == NULL) return -1;
+  if (platform_macos_segment_loader_fixup_inventory_from_code_metadata(&resource->code, resource->resource_id,
+      resource->payload_size, &inventory) != 0) {
+    return -1;
+  }
+  status_name = platform_macos_segment_loader_fixup_inventory_status_name(inventory.status);
+  if (json_builder_appendf(builder,
+        "{\"resource_type\":\"CODE\",\"resource_id\":%d,\"byte_space\":\"code_resource_payload\","
+        "\"source_offset\":%u,\"size\":%u,\"source_range\":{\"start\":%u,\"end\":%u,\"size\":%u},"
+        "\"classification\":",
+        (int)resource->resource_id, (unsigned)inventory.source_offset, (unsigned)inventory.size,
+        (unsigned)inventory.source_offset, (unsigned)inventory.end, (unsigned)inventory.size) != 0 ||
+      json_builder_append_json_string(builder, status_name) != 0 ||
+      json_builder_append(builder,
+        ",\"status\":\"deferred\",\"parseable\":false,\"source_visible\":true,"
+        "\"encoding_byte_provenance\":{\"known\":false,\"byte_space\":null,\"source_range\":null},"
+        "\"reason\":") != 0 ||
+      json_builder_append_json_string(builder, inventory.reason) != 0 ||
+      json_builder_append(builder, ",\"provenance\":") != 0 ||
+      json_builder_append_json_string(builder, inventory.provenance) != 0 ||
+      json_builder_append(builder,
+        ",\"kb_record_id\":\"macos.hfs_resource_fork.code_resources.mpw_application\","
+        "\"fact_id\":\"macos.segment_loader.relocation_fixups.deferred\","
+        "\"fact_status\":\"deferred\",\"parser_use\":\"deferred_only\"}") != 0) {
+    return -1;
+  }
+  return 0;
+}
+
+static int macos_append_segment_loader_fixup_inventory(JsonBuilder *builder,
+    const PlatformMacosResourceInfo *resources, size_t resource_count) {
+  size_t index;
+  int first = 1;
+  if (json_builder_append(builder,
+        ",\"segment_loader_fixup_inventory\":{\"model\":\"segment_loader_fixup_inventory_v1\","
+        "\"authority\":\"c_owned\",\"status\":\"blocked\","
+        "\"summary\":\"No current CODE resource proves actual Segment Loader fixup encoding byte provenance.\","
+        "\"records\":[") != 0) {
+    return -1;
+  }
+  for (index = 0U; index < resource_count; ++index) {
+    const PlatformMacosResourceInfo *resource = &resources[index];
+    if (strcmp(resource->type, "CODE") != 0) continue;
+    if (!first && json_builder_append(builder, ",") != 0) return -1;
+    first = 0;
+    if (macos_append_segment_loader_fixup_inventory_record(builder, resource) != 0) return -1;
+  }
+  return json_builder_append(builder, "]}");
+}
+
 static int macos_restored_source_add_layout_range(MacosRestoredSourceRangeRecord *records, size_t *count,
     const PlatformMacosCodeRange *range, uint32_t start, uint32_t end) {
   MacosRestoredSourceRangeRecord *record;
@@ -1012,6 +1066,7 @@ PLATFORM_FILE_API int platform_file_macos_hfs_code_summary_json_alloc(const unsi
       json_builder_append(&builder, ",") != 0 ||
       macos_append_code_resources(&builder, &resource_fork_info, resource_fork, selected_file->resource_size,
         resources, resource_fork_info.resource_count) != 0 ||
+      macos_append_segment_loader_fixup_inventory(&builder, resources, resource_fork_info.resource_count) != 0 ||
       json_builder_append(&builder, ",") != 0 ||
       macos_append_code_segment_map(&builder, resource_fork, selected_file->resource_size,
         resources, resource_fork_info.resource_count) != 0 ||

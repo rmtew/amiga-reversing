@@ -1,6 +1,6 @@
 # 024-006: Replace Broad Fixup Placeholders
 
-Status: active
+Status: blocked
 Type: AFK
 Source proposal: docs/proposals/024-classic-mac-os-segment-loader-fixups.md
 
@@ -26,6 +26,8 @@ model is missing.
 ## Blocked By
 
 - docs/issues/024-005-expand-supported-fixup-forms.md
+- 024-001 found no actual Segment Loader fixup encoding byte provenance, so the
+  broad deferred placeholder remains the correct fail-closed output.
 
 ## Required Sign-Off
 

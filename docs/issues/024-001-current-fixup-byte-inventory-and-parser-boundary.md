@@ -1,6 +1,6 @@
 # 024-001: Current Fixup Byte Inventory And Parser Boundary
 
-Status: active
+Status: complete
 Type: AFK
 Source proposal: docs/proposals/024-classic-mac-os-segment-loader-fixups.md
 
@@ -28,16 +28,25 @@ encode the Segment Loader fixup stream.
 
 ## Acceptance Criteria
 
-- [ ] The committed MPW `Asm` fixture produces a deterministic fixup inventory.
-- [ ] The inventory identifies actual fixup encoding byte provenance or records
+- [x] The committed MPW `Asm` fixture produces a deterministic fixup inventory.
+- [x] The inventory identifies actual fixup encoding byte provenance or records
       that the provenance is not yet known.
-- [ ] Inventory records include CODE resource id, byte space, source offset/range,
+- [x] Inventory records include CODE resource id, byte space, source offset/range,
       status, reason, provenance, and source visibility.
-- [ ] The harness distinguishes parseable bytes from unsupported/custom bytes.
-- [ ] Missing or malformed fixup data fails closed and cannot become accepted
+- [x] The harness distinguishes parseable bytes from unsupported/custom bytes.
+- [x] Missing or malformed fixup data fails closed and cannot become accepted
       source references.
-- [ ] Proposal 024 records the current boundary and next decoder target, or
+- [x] Proposal 024 records the current boundary and next decoder target, or
       records that no supported decoder target is proven and blocks decode work.
+
+## Completed Result
+
+- C now emits `segment_loader_fixup_inventory_v1` in the Mac CODE summary.
+- Current MPW `Asm` inventory records CODE 0 as `absent` and nonzero CODE as
+  `custom_unknown`, with `parseable=false` and
+  `encoding_byte_provenance.known=false`.
+- No actual Segment Loader fixup encoding byte provenance is proven, so Proposal
+  024 blocks decode work after this issue.
 
 ## Blocked By
 
