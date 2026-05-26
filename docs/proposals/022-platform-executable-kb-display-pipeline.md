@@ -1,6 +1,11 @@
 # Proposal 022: Platform Restored Source Model
 
-Status: complete
+Status: active
+
+Reopened after closeout review for `022-012`: Mac project/web payloads still
+contain Python-side restored-source synthesis and verifier claims. The completed
+`022-011` proof remains a snapshot, not final closure, until Mac restored-source
+records are consumed from the C-owned model or fail closed.
 
 ## Purpose
 
@@ -613,6 +618,37 @@ Completed 022-011 closeout proof:
   fields remain until current API consumers migrate fully to restored-source
   records.
 
+Closeout review finding:
+
+- The Mac selected CODE project/web path still has Python helpers that build
+  `source_ownership_ranges`, `source_reference_records`, and a passing
+  `source_coverage_verifier` from public compatibility fields when the payload
+  lacks a restored-source packet. That is not acceptable as final 022 authority:
+  Python may expose, render, and fail closed around restored-source records, but
+  it must not synthesize verifier-successful restored-source evidence that the
+  C-owned model did not emit.
+
+### 022-012: C-Owned Mac Restored-Source Authority
+
+Remove Python-side restored-source synthesis from the Mac project/web path and
+make all Mac restored-source evidence come from the C-owned model or fail closed
+with an explicit missing-model diagnostic.
+
+Required outcome:
+
+- Mac project/web/API payloads preserve C-emitted restored-source records without
+  changing their ownership/reference/verifier meaning.
+- If a selected CODE payload lacks C-emitted restored-source records, the project
+  and web surfaces expose a missing-model/blocker state instead of constructing
+  synthetic `source_ownership_ranges`, `source_reference_records`, or
+  `source_coverage_verifier.ok: true`.
+- Compatibility fields may remain for identity/navigation while current
+  consumers need them, but they cannot be treated as restored-source authority.
+- Tests prove both the normal current Mac fixture path and the fail-closed
+  missing-model path.
+- The proposal is marked complete again only after `022-012` is implemented,
+  reviewed, and its conclusions are promoted here.
+
 Final proof commands:
 
 - `cmd /c src\precommit.bat`: passed.
@@ -629,6 +665,9 @@ Final proof commands:
 ## Acceptance Criteria
 
 - `restored_source_model_v1` exists and is C-owned.
+- Mac project/web/API surfaces consume C-owned restored-source records or fail
+  closed; they do not synthesize verifier-successful restored-source evidence
+  from compatibility fields.
 - `source_ownership_ranges` cover relevant executable source bytes.
 - `source_reference_records` represent relocation/fixup/address effects.
 - `source_coverage_verifier` rejects gaps, overlaps, and invalid role/status
@@ -682,6 +721,7 @@ Closeout must run all applicable proof together.
 - 022-009 follows 022-007 and 022-008.
 - 022-010 follows 022-005 through 022-009.
 - 022-011 closes the proposal.
+- 022-012 follows the closeout review finding and blocks final re-closeout.
 
 ## Non-Goals
 
