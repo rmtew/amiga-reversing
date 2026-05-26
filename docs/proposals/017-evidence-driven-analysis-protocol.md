@@ -90,6 +90,60 @@ Completed `017-*` issue files may be removed after their durable outcome is
 captured here. Deferred issues remain local only when they still represent real
 unresolved work.
 
+## Current Priority: Base/Context Cascades
+
+The next 017 priority is the common auto-analysis failure class:
+
+```text
+proved context/base -> lifetime propagation -> symbolic rewrite
+                    -> cascade enqueue -> fixed-point exhaustion
+```
+
+Pandora now gives a concrete regression fixture. In the rendered source,
+`abs_0_00010910` contains:
+
+```asm
+	movea.l app_0364(a6),a0
+	jsr (a0)
+	move.w #$20,$009C(a5)
+```
+
+The analysis already has evidence elsewhere that `A5` is the Amiga custom-chip
+base for this code family, but the `$009C(a5)` access is not symbolised as the
+custom register `intreq(a5)`. That is not a local pretty-printing problem. It
+shows that the cascade currently cannot promote a proven base/context fact into
+all safe downstream uses over the proven lifetime.
+
+017 work should now treat base/context facts as first-class parent facts:
+
+- Amiga: custom-chip base registers, library bases, app/global bases, and
+  callback/interrupter inherited register context.
+- Atari ST: hardware-register bases, GEMDOS/BIOS/XBIOS trap protocol context,
+  and basepage/context facts.
+- Mac OS: A5 world/global context, Toolbox trap protocol context, CODE jump
+  table context, and Segment Loader context.
+
+Pandora remains the active proving target for implementation. Cross-platform
+work in this proposal should define reusable fact/rule shape and fixture-level
+tests, not mutate Proposal 012/018, Mac OS target artifacts, platform executable
+format KB files, or Atari/Mac parsers unless a separate proposal/issue explicitly
+authorizes that work.
+
+The current target outcome is a verifier-backed source delta where accepting or
+proving one durable A5 custom-base lifetime causes all safe hardware-register
+children inside that lifetime to render symbolically, including the
+`$009C(a5)` access above, while ambiguous lifetime/callback cases emit precise
+blocked evidence instead of guessing.
+
+For this batch, blocker reporting is an intermediate diagnostic, not an
+acceptable implementation endpoint. If the current analysis cannot prove the
+needed lifetime/context fact because the core fact model, control-flow walk,
+clobber analysis, callback provenance, renderer integration, or verifier
+attribution is missing, the worker must build the missing foundation in the
+proper core path. A blocker is acceptable only when the binary/control-flow
+evidence proves the transformation semantically unsafe, or when the worker
+creates the next concrete implementation issue that removes the blocker.
+
 The 017-085 through 017-088 A5 work added useful command/replay/render/verifier
 plumbing, but it proved the wrong unit of work: a selected A5 operand. Review of
 017-089 found that the chosen real Pandora operand was already represented by
@@ -1627,3 +1681,14 @@ repeatable work to `docs\issues\017-*`.
   effects are already represented or blocked by explicit evidence gaps. Further
   017 work should start only if it targets a concrete remaining blocker family
   with a path to new cascade-derived source progress.
+- 017-101 through 017-106 reopen that next concrete blocker family:
+  base/context cascades. The current proof target is the real Pandora
+  `abs_0_00010910` site where `$009C(a5)` remains unsymbolised even though the
+  wider code family has evidence for `A5 = _custom`. The batch order is:
+  `017-101` captures the current regression packet, `017-102` models
+  base-register lifetime parent facts, `017-103` derives and verifies A5
+  hardware-register children including `intreq(a5)`, `017-104` handles
+  callback/function-pointer inherited register context, `017-105` locks the
+  cross-platform rule shape without touching Atari/Mac targets, and `017-106`
+  closes out the real Pandora lane with fixed-point/verifier/source-export
+  evidence.
