@@ -112,6 +112,9 @@ def import_mpw_asm_container(
             "code_layout": selected_code_metadata.get("layout_ranges", [])
             if isinstance(selected_code_metadata, Mapping)
             else [],
+            "restored_source": selected_code_metadata.get("restored_source", {})
+            if isinstance(selected_code_metadata, Mapping)
+            else {},
             "sha256": code1.get("sha256"),
             "listing_preview": _code_listing_preview(code1_code_bytes, max_words=8),
         },

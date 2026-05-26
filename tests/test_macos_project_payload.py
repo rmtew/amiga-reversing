@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import pytest
 
@@ -13,6 +13,141 @@ from amiga_reversing.tools import platform_executable_formats
 IMAGE_PATH = Path("resources/platform_macos/MPW-GM.img.bin")
 NDIF2RAW_PATH = Path("ext/tools/ndif2raw/ndif2raw.exe")
 SAMPLE_DIR = Path("ext/macos_includes/mpw_gm/Interfaces/AStructMacs")
+
+
+def _c_owned_restored_source_packet(
+    *,
+    resource_id: int,
+    payload_size: int,
+    ranges: list[dict[str, object]],
+    resource_name: str | None = None,
+) -> dict[str, object]:
+    return {
+        "model": "restored_source_model_v1",
+        "platform": "macos",
+        "source_kind": "macos_code_resource",
+        "authority": "c_owned",
+        "round_trip_required": False,
+        "source_ownership_ranges": ranges,
+        "source_coverage_verifier": {
+            "ok": True,
+            "gap_count": 0,
+            "overlap_count": 0,
+            "invalid_instruction_ownership_count": 0,
+            "explicit_unknown_missing_detail_count": 0,
+        },
+        "source_reference_records": [
+            {
+                "kind": "segment_loader_fixup_placeholder",
+                "ownership_range_index": 0,
+                "source_offset": None,
+                "size": 0,
+                "target": "unresolved_segment_loader_fixup",
+                "status": "deferred",
+                "reason": "Segment Loader relocation/fixup bytes and effects are deferred in the executable-format KB.",
+                "provenance": "platform_file_lib.macos_hfs_code_summary",
+                "source_visible": True,
+                "rendering": {"kind": "placeholder", "text": "deferred Segment Loader relocation/fixup effect"},
+                "kb_record_id": "macos.hfs_resource_fork.code_resources.mpw_application",
+                "fact_id": "macos.segment_loader.relocation_fixups.deferred",
+                "fact_status": "deferred",
+                "parser_use": "deferred_only",
+            }
+        ],
+        "platform_extensions": {
+            "code_resource": {
+                "resource_type": "CODE",
+                "resource_id": resource_id,
+                "resource_name": resource_name,
+                "payload_size": payload_size,
+            },
+            "a5_world": {
+                "status": "deferred",
+                "reason": "Classic Mac A5/world conventions are preserved as platform context, not promoted to executable byte-entry proof.",
+            },
+        },
+    }
+
+
+def _restored_ranges_from_layout(layout_ranges: list[dict[str, object]], payload_size: int) -> list[dict[str, object]]:
+    ranges: list[dict[str, object]] = []
+    cursor = 0
+    for index, source in enumerate(layout_ranges):
+        start = int(source["start"])
+        end = int(source["end"])
+        if start > cursor:
+            ranges.append(
+                {
+                    "index": len(ranges),
+                    "role": "unknown",
+                    "start": cursor,
+                    "end": start,
+                    "size": start - cursor,
+                    "status": "deferred",
+                    "source_visible": True,
+                    "reason": "No parser-owned restored-source range covers these bytes.",
+                    "provenance": "platform_file_lib.macos_hfs_code_summary",
+                }
+            )
+        item = dict(source)
+        item["index"] = len(ranges)
+        item["role"] = "candidate_code" if item.get("kind") == "candidate_code" else item.get("kind")
+        item["status"] = item.get("fact_status")
+        item["source_visible"] = True
+        item["provenance"] = "platform_file_lib.macos_hfs_code_summary"
+        ranges.append(item)
+        cursor = max(cursor, end)
+    if cursor < payload_size:
+        ranges.append(
+            {
+                "index": len(ranges),
+                "role": "unknown",
+                "start": cursor,
+                "end": payload_size,
+                "size": payload_size - cursor,
+                "status": "deferred",
+                "source_visible": True,
+                "reason": "No parser-owned restored-source range covers these bytes.",
+                "provenance": "platform_file_lib.macos_hfs_code_summary",
+            }
+        )
+    for index, item in enumerate(ranges):
+        item["index"] = index
+    return ranges
+
+
+def _summary_with_c_owned_restored_sources(summary: dict[str, object]) -> dict[str, object]:
+    resource_fork = summary["resource_fork"]
+    assert isinstance(resource_fork, dict)
+    code_resources = resource_fork["code_resources"]
+    assert isinstance(code_resources, list)
+    for resource in code_resources:
+        assert isinstance(resource, dict)
+        code = resource.get("code")
+        if not isinstance(code, dict):
+            continue
+        payload_size = int(resource["payload_size"])
+        layout_ranges = code.get("layout_ranges")
+        if not isinstance(layout_ranges, list):
+            continue
+        code["restored_source"] = _c_owned_restored_source_packet(
+            resource_id=int(resource["id"]),
+            resource_name=resource.get("name") if isinstance(resource.get("name"), str) else None,
+            payload_size=payload_size,
+            ranges=_restored_ranges_from_layout(cast(list[dict[str, object]], layout_ranges), payload_size),
+        )
+    selected = summary.get("selected_code")
+    if isinstance(selected, dict):
+        selected_code = selected.get("code")
+        if isinstance(selected_code, dict):
+            layout_ranges = selected_code.get("layout_ranges")
+            if isinstance(layout_ranges, list):
+                selected_code["restored_source"] = _c_owned_restored_source_packet(
+                    resource_id=int(selected["id"]),
+                    payload_size=int(selected["payload_size"]),
+                    ranges=_restored_ranges_from_layout(cast(list[dict[str, object]], layout_ranges), int(selected["payload_size"])),
+                )
+    return summary
 
 
 def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
@@ -35,7 +170,7 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
 
     def fake_summary(data: bytes, hfs_path: str) -> dict[str, object]:
         calls["summary_args"] = (data, hfs_path)
-        return {
+        return _summary_with_c_owned_restored_sources({
             "container_kind": "hfs_resource_code_file",
             "file": {
                 "path": "MPW-GM/MPW/Tools/Asm",
@@ -387,7 +522,7 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
                 },
             },
             "unsupported": ["segment_loader_relocations"],
-        }
+        })
 
     def fake_extract(data: bytes, hfs_path: str, resource_id: int, **kwargs: object) -> bytes:
         calls.setdefault("extract_args", []).append((data, hfs_path, resource_id, kwargs.get("project_root")))
@@ -549,6 +684,7 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
     assert container["selected_code_segment"]["code_layout"][2]["fact_status"] == "candidate"
     selected_restored = container["selected_code_segment"]["restored_source"]
     assert selected_restored["model"] == "restored_source_model_v1"
+    assert selected_restored["authority"] == "c_owned"
     assert selected_restored["round_trip_required"] is False
     assert selected_restored["source_coverage_verifier"]["ok"] is True
     assert [item["role"] for item in selected_restored["source_ownership_ranges"]] == [
@@ -724,6 +860,40 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
     }
     assert payload["source_binary_boundary"]["observed_code_fixture"] == "MPW-GM/MPW/Tools/Asm"
     assert payload["provenance"]["binary_container_source"] == "platform_file_lib.macos_hfs_code_summary"
+
+
+def test_022_012_project_restored_source_missing_c_packet_fails_closed() -> None:
+    code = {
+        "layout_ranges": [
+            {
+                "kind": "candidate_code",
+                "start": 0,
+                "size": 2,
+                "end": 2,
+                "fact_id": "macos.code_resource.movea_stack_a0.boundary.candidate",
+                "fact_status": "candidate",
+                "parser_use": "candidate_only",
+            }
+        ],
+        "relocation_fixups": {
+            "status": "deferred",
+            "fact_id": "macos.segment_loader.relocation_fixups.deferred",
+            "fact_status": "deferred",
+            "parser_use": "deferred_only",
+        },
+    }
+
+    restored = macos_project_payload._c_owned_restored_source_packet(code, scope="selected CODE")
+
+    assert restored == {
+        "model": "restored_source_missing",
+        "status": "blocked",
+        "authority": "missing_c_owned_model",
+        "reason": "selected CODE restored-source evidence is missing from the C-owned model",
+    }
+    assert "source_ownership_ranges" not in restored
+    assert "source_reference_records" not in restored
+    assert "source_coverage_verifier" not in restored
 
 
 def test_021_011_macos_preview_decode_source_stays_native() -> None:

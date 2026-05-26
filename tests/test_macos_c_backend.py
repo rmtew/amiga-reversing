@@ -279,6 +279,25 @@ def test_python_wrapper_uses_c_macos_hfs_code_summary() -> None:
         "fact_status": "deferred",
         "parser_use": "deferred_only",
     }
+    restored_source = summary["selected_code"]["code"]["restored_source"]
+    assert restored_source["model"] == "restored_source_model_v1"
+    assert restored_source["authority"] == "c_owned"
+    assert restored_source["round_trip_required"] is False
+    assert restored_source["source_coverage_verifier"] == {
+        "ok": True,
+        "gap_count": 0,
+        "overlap_count": 0,
+        "invalid_instruction_ownership_count": 0,
+        "explicit_unknown_missing_detail_count": 0,
+    }
+    assert [item["role"] for item in restored_source["source_ownership_ranges"]] == [
+        "metadata",
+        "data",
+        "candidate_code",
+    ]
+    assert restored_source["source_reference_records"][0]["kind"] == "segment_loader_fixup_placeholder"
+    assert restored_source["source_reference_records"][0]["parser_use"] == "deferred_only"
+    assert restored_source["platform_extensions"]["code_resource"]["resource_id"] == 1
     shared_ranges = summary["executable_ranges"]
     assert summary["executable_model"] == "platform_executable_summary_v1"
     assert any(

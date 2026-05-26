@@ -169,11 +169,7 @@ def _binary_container_view(
         project_root=project_root,
         extraction_cache={},
     )
-    selected_restored_source = _restored_source_model_for_code_resource(
-        selected_resource,
-        code=selected_code,
-        native_source=native_source,
-    )
+    selected_restored_source = _c_owned_restored_source_packet(selected_code, scope="selected CODE")
     return {
         "kind": c_summary.get("container_kind"),
         "native_source": dict(native_source),
@@ -308,7 +304,7 @@ def _code_resource_details(
             unsupported=unsupported,
             preview_windows=preview_windows,
         )
-        restored_source = _restored_source_model_for_code_resource(resource, code=code)
+        restored_source = _c_owned_restored_source_packet(code, scope=f"CODE {resource_id}")
         anchors = _resource_navigation_anchors(
             resource,
             code=code,
@@ -397,234 +393,16 @@ def _listing_descriptor(
     }
 
 
-def _restored_source_model_for_code_resource(
-    resource: Mapping[str, object],
-    *,
-    code: Mapping[str, object],
-    native_source: Mapping[str, object] | None = None,
-) -> dict[str, object]:
-    payload_size = _int_value(resource.get("payload_size")) or 0
-    ranges = _restored_source_ownership_ranges(
-        _sequence(code.get("layout_ranges")),
-        payload_size=payload_size,
-        code=code,
-    )
-    references = _restored_source_reference_records(
-        _mapping(code.get("relocation_fixups")),
-        ranges=ranges,
-        code=code,
-    )
-    resource_id = resource.get("id")
+def _c_owned_restored_source_packet(code: Mapping[str, object], *, scope: str) -> dict[str, object]:
+    packet = _mapping(code.get("restored_source"))
+    if packet.get("model") == "restored_source_model_v1" and packet.get("authority") == "c_owned":
+        return dict(packet)
     return {
-        "model": "restored_source_model_v1",
-        "platform": "macos",
-        "source_kind": "macos_code_resource",
-        "round_trip_required": False,
-        "source_ownership_ranges": ranges,
-        "source_coverage_verifier": _restored_source_coverage_verifier(ranges, payload_size=payload_size),
-        "source_reference_records": references,
-        "platform_extensions": {
-            "code_resource": {
-                "resource_type": resource.get("type") or "CODE",
-                "resource_id": resource_id,
-                "resource_name": resource.get("name"),
-                "payload_size": payload_size,
-                "payload_sha256": resource.get("sha256"),
-                "native_source": dict(native_source or {}),
-            },
-            "a5_world": {
-                "status": "deferred",
-                "reason": "Classic Mac A5/world conventions are preserved as platform context, not promoted to executable byte-entry proof.",
-            },
-        },
+        "model": "restored_source_missing",
+        "status": "blocked",
+        "authority": "missing_c_owned_model",
+        "reason": f"{scope} restored-source evidence is missing from the C-owned model",
     }
-
-
-def _restored_source_ownership_ranges(
-    layout_ranges: list[object],
-    *,
-    payload_size: int,
-    code: Mapping[str, object],
-) -> list[dict[str, object]]:
-    records: list[dict[str, object]] = []
-    for item in sorted((_mapping(value) for value in layout_ranges), key=_range_start_sort_key):
-        start = _int_value(item.get("start"))
-        size = _int_value(item.get("size"))
-        end = _int_value(item.get("end"))
-        if start is None or start < 0:
-            continue
-        if size is None and end is not None:
-            size = max(0, end - start)
-        if size is None or size <= 0:
-            continue
-        range_end = min(payload_size, start + size) if payload_size else start + size
-        if range_end <= start:
-            continue
-        records.append(
-            {
-                "role": _restored_source_role_for_layout(item),
-                "byte_space": "code_resource_payload",
-                "platform": "macos",
-                "source_kind": "macos_code_resource",
-                "start": start,
-                "size": range_end - start,
-                "end": range_end,
-                "status": item.get("fact_status") or code.get("fact_status"),
-                "reason": item.get("evidence") or "Mac CODE layout range from C-backed resource summary",
-                "provenance": "platform_file_lib.macos_hfs_code_summary",
-                "source_visible": True,
-                "rendering": {
-                    "kind": "layout_range",
-                    "text": f"{item.get('kind') or 'unknown'} {start}..{range_end}",
-                },
-                "kb_record_id": code.get("kb_record_id"),
-                "fact_id": item.get("fact_id") or code.get("fact_id"),
-                "fact_status": item.get("fact_status") or code.get("fact_status"),
-                "parser_use": item.get("parser_use") or code.get("parser_use"),
-                "layout_kind": item.get("kind"),
-            }
-        )
-    return _restored_source_ranges_with_unknown_gaps(records, payload_size=payload_size, code=code)
-
-
-def _restored_source_ranges_with_unknown_gaps(
-    records: list[dict[str, object]],
-    *,
-    payload_size: int,
-    code: Mapping[str, object],
-) -> list[dict[str, object]]:
-    completed: list[dict[str, object]] = []
-    cursor = 0
-    for record in sorted(records, key=_range_start_sort_key):
-        start = _int_value(record.get("start"))
-        end = _int_value(record.get("end"))
-        if start is None or end is None:
-            continue
-        if start > cursor:
-            completed.append(_unknown_restored_source_range(cursor, start, code=code))
-        completed.append(record)
-        cursor = max(cursor, end)
-    if payload_size > cursor:
-        completed.append(_unknown_restored_source_range(cursor, payload_size, code=code))
-    if not completed and payload_size > 0:
-        completed.append(_unknown_restored_source_range(0, payload_size, code=code))
-    return completed
-
-
-def _unknown_restored_source_range(start: int, end: int, *, code: Mapping[str, object]) -> dict[str, object]:
-    return {
-        "role": "unknown",
-        "byte_space": "code_resource_payload",
-        "platform": "macos",
-        "source_kind": "macos_code_resource",
-        "start": start,
-        "size": end - start,
-        "end": end,
-        "status": "deferred",
-        "reason": "No accepted or candidate Mac CODE layout evidence covers this payload span.",
-        "provenance": "platform_file_lib.macos_hfs_code_summary",
-        "source_visible": True,
-        "rendering": {
-            "kind": "placeholder",
-            "text": f"unknown CODE payload bytes {start}..{end}",
-        },
-        "kb_record_id": code.get("kb_record_id"),
-    }
-
-
-def _restored_source_role_for_layout(item: Mapping[str, object]) -> str:
-    kind = item.get("kind")
-    if kind == "metadata":
-        return "metadata"
-    if kind == "data":
-        return "data"
-    if kind == "candidate_code":
-        return "candidate_code"
-    if kind == "confirmed_code":
-        return "code"
-    if kind == "padding":
-        return "padding"
-    return "unknown"
-
-
-def _restored_source_coverage_verifier(
-    ranges: list[dict[str, object]],
-    *,
-    payload_size: int,
-) -> dict[str, object]:
-    gap_count = 0
-    overlap_count = 0
-    explicit_unknown_missing_detail_count = 0
-    cursor = 0
-    for record in sorted(ranges, key=_range_start_sort_key):
-        start = _int_value(record.get("start"))
-        end = _int_value(record.get("end"))
-        if start is None or end is None:
-            continue
-        if start > cursor:
-            gap_count += 1
-        if start < cursor:
-            overlap_count += 1
-        if record.get("role") == "unknown" and (
-            not record.get("reason") or not record.get("provenance") or record.get("source_visible") is not True
-        ):
-            explicit_unknown_missing_detail_count += 1
-        cursor = max(cursor, end)
-    if payload_size > cursor:
-        gap_count += 1
-    ok = gap_count == 0 and overlap_count == 0 and explicit_unknown_missing_detail_count == 0
-    return {
-        "ok": ok,
-        "gap_count": gap_count,
-        "overlap_count": overlap_count,
-        "invalid_instruction_ownership_count": 0,
-        "explicit_unknown_missing_detail_count": explicit_unknown_missing_detail_count,
-    }
-
-
-def _restored_source_reference_records(
-    relocation_fixups: Mapping[str, object],
-    *,
-    ranges: list[dict[str, object]],
-    code: Mapping[str, object],
-) -> list[dict[str, object]]:
-    fact_id = relocation_fixups.get("fact_id") or "macos.segment_loader.relocation_fixups.deferred"
-    fact_status = relocation_fixups.get("fact_status") or "deferred"
-    parser_use = relocation_fixups.get("parser_use") or "deferred_only"
-    ownership_index = _first_range_index_for_role(ranges, "candidate_code")
-    if ownership_index is None:
-        ownership_index = _first_range_index_for_role(ranges, "code")
-    if ownership_index is None:
-        ownership_index = 0 if ranges else None
-    return [
-        {
-            "kind": "segment_loader_fixup_placeholder",
-            "ownership_range_index": ownership_index,
-            "source_offset": None,
-            "size": 0,
-            "target": "unresolved_segment_loader_fixup",
-            "status": "deferred",
-            "reason": relocation_fixups.get("reason")
-            or "Segment Loader relocation/fixup bytes and effects are deferred in the executable-format KB.",
-            "provenance": "platform_file_lib.macos_hfs_code_summary",
-            "source_visible": True,
-            "rendering": {
-                "kind": "placeholder",
-                "text": "deferred Segment Loader relocation/fixup effect",
-            },
-            "kb_record_id": code.get("kb_record_id"),
-            "fact_id": fact_id,
-            "fact_status": fact_status,
-            "parser_use": parser_use,
-        }
-    ]
-
-
-def _first_range_index_for_role(ranges: list[dict[str, object]], role: str) -> int | None:
-    for index, record in enumerate(ranges):
-        if record.get("role") == role:
-            return index
-    return None
 
 
 def _preview_windows(

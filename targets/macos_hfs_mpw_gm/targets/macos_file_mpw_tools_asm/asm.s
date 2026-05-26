@@ -148,7 +148,7 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     restored_source_model:
 ;     model=restored_source_model_v1 round_trip_required=false
 ;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 1 name=Main
+;     code_resource=CODE 1 name=unknown
 ;     a5_world status=deferred parser_use=unknown
 ;     ownership_ranges:
 ;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
@@ -166,7 +166,7 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     restored_source_model:
 ;     model=restored_source_model_v1 round_trip_required=false
 ;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 2 name=FPOpTable
+;     code_resource=CODE 2 name=unknown
 ;     a5_world status=deferred parser_use=unknown
 ;     ownership_ranges:
 ;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
@@ -192,7 +192,7 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     restored_source_model:
 ;     model=restored_source_model_v1 round_trip_required=false
 ;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 3 name=Init
+;     code_resource=CODE 3 name=unknown
 ;     a5_world status=deferred parser_use=unknown
 ;     ownership_ranges:
 ;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
@@ -231,7 +231,7 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     restored_source_model:
 ;     model=restored_source_model_v1 round_trip_required=false
 ;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 4 name=IOMgr
+;     code_resource=CODE 4 name=unknown
 ;     a5_world status=deferred parser_use=unknown
 ;     ownership_ranges:
 ;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
@@ -283,7 +283,7 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     restored_source_model:
 ;     model=restored_source_model_v1 round_trip_required=false
 ;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 5 name=Macros
+;     code_resource=CODE 5 name=unknown
 ;     a5_world status=deferred parser_use=unknown
 ;     ownership_ranges:
 ;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
@@ -325,7 +325,7 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     restored_source_model:
 ;     model=restored_source_model_v1 round_trip_required=false
 ;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 6 name=OpTable
+;     code_resource=CODE 6 name=unknown
 ;     a5_world status=deferred parser_use=unknown
 ;     ownership_ranges:
 ;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
@@ -350,7 +350,7 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     restored_source_model:
 ;     model=restored_source_model_v1 round_trip_required=false
 ;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 7 name=POpTable
+;     code_resource=CODE 7 name=unknown
 ;     a5_world status=deferred parser_use=unknown
 ;     ownership_ranges:
 ;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
@@ -387,7 +387,7 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     restored_source_model:
 ;     model=restored_source_model_v1 round_trip_required=false
 ;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 8 name=Listing
+;     code_resource=CODE 8 name=unknown
 ;     a5_world status=deferred parser_use=unknown
 ;     ownership_ranges:
 ;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
@@ -439,7 +439,7 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     restored_source_model:
 ;     model=restored_source_model_v1 round_trip_required=false
 ;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 9 name=Pass2
+;     code_resource=CODE 9 name=unknown
 ;     a5_world status=deferred parser_use=unknown
 ;     ownership_ranges:
 ;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
@@ -464,7 +464,7 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     restored_source_model:
 ;     model=restored_source_model_v1 round_trip_required=false
 ;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 10 name=FinishUp
+;     code_resource=CODE 10 name=unknown
 ;     a5_world status=deferred parser_use=unknown
 ;     ownership_ranges:
 ;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
@@ -489,7 +489,7 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     restored_source_model:
 ;     model=restored_source_model_v1 round_trip_required=false
 ;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 11 name=Dbg
+;     code_resource=CODE 11 name=unknown
 ;     a5_world status=deferred parser_use=unknown
 ;     ownership_ranges:
 ;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
@@ -541,7 +541,7 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     restored_source_model:
 ;     model=restored_source_model_v1 round_trip_required=false
 ;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 12 name=LoadDump
+;     code_resource=CODE 12 name=unknown
 ;     a5_world status=deferred parser_use=unknown
 ;     ownership_ranges:
 ;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
@@ -593,7 +593,7 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     restored_source_model:
 ;     model=restored_source_model_v1 round_trip_required=false
 ;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 13 name=Directives
+;     code_resource=CODE 13 name=unknown
 ;     a5_world status=deferred parser_use=unknown
 ;     ownership_ranges:
 ;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
@@ -621,7 +621,7 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     restored_source_model:
 ;     model=restored_source_model_v1 round_trip_required=false
 ;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 14 name=MemMgr
+;     code_resource=CODE 14 name=unknown
 ;     a5_world status=deferred parser_use=unknown
 ;     ownership_ranges:
 ;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
@@ -673,7 +673,7 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     restored_source_model:
 ;     model=restored_source_model_v1 round_trip_required=false
 ;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 15 name=Errors
+;     code_resource=CODE 15 name=unknown
 ;     a5_world status=deferred parser_use=unknown
 ;     ownership_ranges:
 ;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
@@ -701,7 +701,7 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     restored_source_model:
 ;     model=restored_source_model_v1 round_trip_required=false
 ;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 16 name=New
+;     code_resource=CODE 16 name=unknown
 ;     a5_world status=deferred parser_use=unknown
 ;     ownership_ranges:
 ;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
@@ -728,7 +728,7 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     restored_source_model:
 ;     model=restored_source_model_v1 round_trip_required=false
 ;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 17 name=DispSymTbl
+;     code_resource=CODE 17 name=unknown
 ;     a5_world status=deferred parser_use=unknown
 ;     ownership_ranges:
 ;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
@@ -767,7 +767,7 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     restored_source_model:
 ;     model=restored_source_model_v1 round_trip_required=false
 ;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 18 name=FinishDirectives
+;     code_resource=CODE 18 name=unknown
 ;     a5_world status=deferred parser_use=unknown
 ;     ownership_ranges:
 ;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
@@ -784,7 +784,7 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     restored_source_model:
 ;     model=restored_source_model_v1 round_trip_required=false
 ;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 19 name=SetupArgV
+;     code_resource=CODE 19 name=unknown
 ;     a5_world status=deferred parser_use=unknown
 ;     ownership_ranges:
 ;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
@@ -801,7 +801,7 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     restored_source_model:
 ;     model=restored_source_model_v1 round_trip_required=false
 ;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 20 name=INTENV
+;     code_resource=CODE 20 name=unknown
 ;     a5_world status=deferred parser_use=unknown
 ;     ownership_ranges:
 ;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
@@ -819,7 +819,7 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     restored_source_model:
 ;     model=restored_source_model_v1 round_trip_required=false
 ;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 21 name=SADEV
+;     code_resource=CODE 21 name=unknown
 ;     a5_world status=deferred parser_use=unknown
 ;     ownership_ranges:
 ;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
@@ -857,7 +857,7 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     restored_source_model:
 ;     model=restored_source_model_v1 round_trip_required=false
 ;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 22 name=SANELIB
+;     code_resource=CODE 22 name=unknown
 ;     a5_world status=deferred parser_use=unknown
 ;     ownership_ranges:
 ;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
@@ -873,7 +873,7 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     restored_source_model:
 ;     model=restored_source_model_v1 round_trip_required=false
 ;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 23 name=STDCLIB
+;     code_resource=CODE 23 name=unknown
 ;     a5_world status=deferred parser_use=unknown
 ;     ownership_ranges:
 ;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
@@ -890,7 +890,7 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     restored_source_model:
 ;     model=restored_source_model_v1 round_trip_required=false
 ;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 24 name=STDIO
+;     code_resource=CODE 24 name=unknown
 ;     a5_world status=deferred parser_use=unknown
 ;     ownership_ranges:
 ;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
@@ -908,7 +908,7 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     restored_source_model:
 ;     model=restored_source_model_v1 round_trip_required=false
 ;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 25 name=SANELib
+;     code_resource=CODE 25 name=unknown
 ;     a5_world status=deferred parser_use=unknown
 ;     ownership_ranges:
 ;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
@@ -936,7 +936,7 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     restored_source_model:
 ;     model=restored_source_model_v1 round_trip_required=false
 ;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 26 name=PASLIB
+;     code_resource=CODE 26 name=unknown
 ;     a5_world status=deferred parser_use=unknown
 ;     ownership_ranges:
 ;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
@@ -970,7 +970,7 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     restored_source_model:
 ;     model=restored_source_model_v1 round_trip_required=false
 ;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 27 name=32-bit bootstrap
+;     code_resource=CODE 27 name=unknown
 ;     a5_world status=deferred parser_use=unknown
 ;     ownership_ranges:
 ;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
@@ -1026,7 +1026,7 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;   restored_source_model:
 ;     model=restored_source_model_v1 round_trip_required=false
 ;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 1 name=Main
+;     code_resource=CODE 1 name=unknown
 ;     a5_world status=deferred parser_use=unknown
 ;     ownership_ranges:
 ;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header

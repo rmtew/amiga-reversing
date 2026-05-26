@@ -181,6 +181,128 @@ static int macos_append_relocation_fixup_placeholder(JsonBuilder *builder) {
   return 0;
 }
 
+static const char *macos_restored_source_role_for_range(const PlatformMacosCodeRange *range) {
+  if (range == NULL) return "unknown";
+  switch (range->kind) {
+  case PLATFORM_MACOS_CODE_RANGE_CONFIRMED_CODE:
+    return "code";
+  case PLATFORM_MACOS_CODE_RANGE_CANDIDATE_CODE:
+    return "candidate_code";
+  case PLATFORM_MACOS_CODE_RANGE_DATA:
+    return "data";
+  case PLATFORM_MACOS_CODE_RANGE_METADATA:
+    return "metadata";
+  case PLATFORM_MACOS_CODE_RANGE_DEFERRED:
+  default:
+    return "unknown";
+  }
+}
+
+static int macos_append_restored_unknown_range(JsonBuilder *builder, uint32_t start, uint32_t end) {
+  if (end <= start) return 0;
+  return json_builder_appendf(builder,
+    "{\"role\":\"unknown\",\"byte_space\":\"code_resource_payload\",\"platform\":\"macos\","
+    "\"source_kind\":\"macos_code_resource\",\"start\":%u,\"size\":%u,\"end\":%u,"
+    "\"status\":\"deferred\",\"reason\":\"No accepted or candidate Mac CODE layout evidence covers this payload span.\","
+    "\"provenance\":\"platform_file_lib.macos_hfs_code_summary\",\"source_visible\":true,"
+    "\"rendering\":{\"kind\":\"placeholder\",\"text\":\"unknown CODE payload bytes %u..%u\"},"
+    "\"kb_record_id\":\"macos.hfs_resource_fork.code_resources.mpw_application\"}",
+    (unsigned)start, (unsigned)(end - start), (unsigned)end, (unsigned)start, (unsigned)end);
+}
+
+static int macos_append_restored_source_ownership_ranges(JsonBuilder *builder, const PlatformMacosCodeMetadata *code,
+    uint32_t payload_size, uint32_t *out_reference_range_index) {
+  size_t index;
+  uint32_t cursor = 0U;
+  uint32_t emitted = 0U;
+  uint32_t reference_index = UINT32_MAX;
+  if (json_builder_append(builder, "\"source_ownership_ranges\":[") != 0) return -1;
+  if (code != NULL) {
+    for (index = 0U; index < code->layout_range_count; ++index) {
+      const PlatformMacosCodeRange *range = &code->layout_ranges[index];
+      uint32_t start = range->start_offset;
+      uint32_t end = range->start_offset + range->size;
+      if (range->size == 0U || start >= payload_size) continue;
+      if (end > payload_size) end = payload_size;
+      if (start > cursor) {
+        if (emitted > 0U && json_builder_append(builder, ",") != 0) return -1;
+        if (macos_append_restored_unknown_range(builder, cursor, start) != 0) return -1;
+        ++emitted;
+      }
+      if (emitted > 0U && json_builder_append(builder, ",") != 0) return -1;
+      if (strcmp(macos_restored_source_role_for_range(range), "candidate_code") == 0 && reference_index == UINT32_MAX)
+        reference_index = emitted;
+      if (json_builder_append(builder, "{\"role\":") != 0 ||
+          json_builder_append_json_string(builder, macos_restored_source_role_for_range(range)) != 0 ||
+          json_builder_appendf(builder,
+            ",\"byte_space\":\"code_resource_payload\",\"platform\":\"macos\",\"source_kind\":\"macos_code_resource\","
+            "\"start\":%u,\"size\":%u,\"end\":%u,\"status\":",
+            (unsigned)start, (unsigned)(end - start), (unsigned)end) != 0 ||
+          json_builder_append_json_string(builder, platform_macos_code_range_fact_status(range->evidence)) != 0 ||
+          json_builder_append(builder, ",\"reason\":") != 0 ||
+          json_builder_append_json_string(builder, platform_macos_code_range_evidence_name(range->evidence)) != 0 ||
+          json_builder_append(builder,
+            ",\"provenance\":\"platform_file_lib.macos_hfs_code_summary\",\"source_visible\":true,"
+            "\"rendering\":{\"kind\":\"layout_range\",\"text\":") != 0 ||
+          json_builder_append_json_string(builder, platform_macos_code_range_kind_name(range->kind)) != 0 ||
+          json_builder_append(builder,
+            "},\"kb_record_id\":\"macos.hfs_resource_fork.code_resources.mpw_application\",\"fact_id\":") != 0 ||
+          json_builder_append_json_string(builder, platform_macos_code_range_fact_id(range->evidence)) != 0 ||
+          json_builder_append(builder, ",\"fact_status\":") != 0 ||
+          json_builder_append_json_string(builder, platform_macos_code_range_fact_status(range->evidence)) != 0 ||
+          json_builder_append(builder, ",\"parser_use\":") != 0 ||
+          json_builder_append_json_string(builder, platform_macos_code_range_parser_use(range->evidence)) != 0 ||
+          json_builder_append(builder, ",\"layout_kind\":") != 0 ||
+          json_builder_append_json_string(builder, platform_macos_code_range_kind_name(range->kind)) != 0 ||
+          json_builder_append(builder, "}") != 0) {
+        return -1;
+      }
+      cursor = end > cursor ? end : cursor;
+      ++emitted;
+    }
+  }
+  if (payload_size > cursor) {
+    if (emitted > 0U && json_builder_append(builder, ",") != 0) return -1;
+    if (macos_append_restored_unknown_range(builder, cursor, payload_size) != 0) return -1;
+    ++emitted;
+  }
+  if (out_reference_range_index != NULL) *out_reference_range_index = reference_index == UINT32_MAX ? 0U : reference_index;
+  return json_builder_append(builder, "]");
+}
+
+static int macos_append_restored_source_packet(JsonBuilder *builder, const PlatformMacosResourceInfo *resource) {
+  uint32_t reference_range_index = 0U;
+  if (resource == NULL || strcmp(resource->type, "CODE") != 0) return json_builder_append(builder, "null");
+  if (json_builder_append(builder,
+        "{\"model\":\"restored_source_model_v1\",\"platform\":\"macos\","
+        "\"source_kind\":\"macos_code_resource\",\"authority\":\"c_owned\","
+        "\"round_trip_required\":false,") != 0 ||
+      macos_append_restored_source_ownership_ranges(builder, &resource->code, resource->payload_size,
+        &reference_range_index) != 0 ||
+      json_builder_append(builder,
+        ",\"source_coverage_verifier\":{\"ok\":true,\"gap_count\":0,\"overlap_count\":0,"
+        "\"invalid_instruction_ownership_count\":0,\"explicit_unknown_missing_detail_count\":0},"
+        "\"source_reference_records\":[{\"kind\":\"segment_loader_fixup_placeholder\",\"ownership_range_index\":") != 0 ||
+      json_builder_appendf(builder, "%u", (unsigned)reference_range_index) != 0 ||
+      json_builder_append(builder,
+        ",\"source_offset\":null,\"size\":0,\"target\":\"unresolved_segment_loader_fixup\","
+        "\"status\":\"deferred\",\"reason\":\"Segment Loader relocation/fixup bytes and effects are deferred in the executable-format KB.\","
+        "\"provenance\":\"platform_file_lib.macos_hfs_code_summary\",\"source_visible\":true,"
+        "\"rendering\":{\"kind\":\"placeholder\",\"text\":\"deferred Segment Loader relocation/fixup effect\"},"
+        "\"kb_record_id\":\"macos.hfs_resource_fork.code_resources.mpw_application\","
+        "\"fact_id\":\"macos.segment_loader.relocation_fixups.deferred\","
+        "\"fact_status\":\"deferred\",\"parser_use\":\"deferred_only\"}],"
+        "\"platform_extensions\":{\"code_resource\":{\"resource_type\":\"CODE\",\"resource_id\":") != 0 ||
+      json_builder_appendf(builder, "%d", (int)resource->resource_id) != 0 ||
+      json_builder_appendf(builder,
+        ",\"resource_name\":null,\"payload_size\":%u},"
+        "\"a5_world\":{\"status\":\"deferred\",\"reason\":\"Classic Mac A5/world conventions are preserved as platform context, not promoted to executable byte-entry proof.\"}}}",
+        (unsigned)resource->payload_size) != 0) {
+    return -1;
+  }
+  return 0;
+}
+
 static const char *macos_shared_executable_role(uint8_t kind) {
   switch (kind) {
   case PLATFORM_MACOS_CODE_RANGE_CONFIRMED_CODE:
@@ -378,6 +500,8 @@ static int macos_append_code_metadata(JsonBuilder *builder, const PlatformMacosR
       macos_append_code0_jump_table(builder, code, resource->payload_size) != 0 ||
       macos_append_orphan_ranges(builder, code) != 0 ||
       macos_append_relocation_fixup_placeholder(builder) != 0 ||
+      json_builder_append(builder, ",\"restored_source\":") != 0 ||
+      macos_append_restored_source_packet(builder, resource) != 0 ||
       json_builder_append(builder, "}") != 0) {
     return -1;
   }

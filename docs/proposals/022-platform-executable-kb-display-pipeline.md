@@ -1,11 +1,11 @@
 # Proposal 022: Platform Restored Source Model
 
-Status: active
+Status: complete
 
-Reopened after closeout review for `022-012`: Mac project/web payloads still
-contain Python-side restored-source synthesis and verifier claims. The completed
-`022-011` proof remains a snapshot, not final closure, until Mac restored-source
-records are consumed from the C-owned model or fail closed.
+Reclosed after `022-012`: Mac project/web/API restored-source evidence now comes
+from C-owned `restored_source_model_v1` packets or fails closed with an explicit
+missing-model blocker. Python compatibility fields remain for identity and
+navigation only; they are not restored-source authority.
 
 ## Purpose
 
@@ -634,7 +634,7 @@ Remove Python-side restored-source synthesis from the Mac project/web path and
 make all Mac restored-source evidence come from the C-owned model or fail closed
 with an explicit missing-model diagnostic.
 
-Required outcome:
+Completed 022-012 outcome:
 
 - Mac project/web/API payloads preserve C-emitted restored-source records without
   changing their ownership/reference/verifier meaning.
@@ -644,10 +644,17 @@ Required outcome:
   `source_coverage_verifier.ok: true`.
 - Compatibility fields may remain for identity/navigation while current
   consumers need them, but they cannot be treated as restored-source authority.
-- Tests prove both the normal current Mac fixture path and the fail-closed
-  missing-model path.
-- The proposal is marked complete again only after `022-012` is implemented,
-  reviewed, and its conclusions are promoted here.
+- Tests prove the current real Mac fixture path carries C-owned restored-source
+  records, including selected CODE ownership ranges, Segment Loader placeholder
+  references, executable resource placeholders, and `round_trip_required:
+  false`.
+- Negative project and web tests prove missing C-owned restored-source data
+  produces `restored_source_missing` with `authority:
+  missing_c_owned_model` and no synthetic ownership/reference/verifier-success
+  fields.
+- The old Python builders that synthesized Mac `source_ownership_ranges`,
+  `source_reference_records`, and passing `source_coverage_verifier` values from
+  `code_layout`/`relocation_fixups` were removed.
 
 Final proof commands:
 
@@ -656,11 +663,12 @@ Final proof commands:
   passed.
 - `uv run python -m amiga_reversing.tools.platform_executable_formats coverage
   --current-macos-c-backend --current-amiga-hunk --current-atari-prg`: passed
-  with `invalid: 0`, `parser_outputs: 3`.
+  with `invalid: 0`, `parser_outputs: 3`, `emitted_fact_refs: 407`.
 - `uv run python -m pytest tests\test_macos_c_backend.py
   tests\test_macos_project_payload.py tests\test_macos_target_artifact.py
   tests\test_macos_web_view.py tests\test_web_app_source.py -q`: passed with
-  48 tests.
+  51 tests.
+- `git diff --check`: passed.
 
 ## Acceptance Criteria
 

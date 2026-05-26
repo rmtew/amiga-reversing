@@ -127,6 +127,59 @@ def test_macos_web_container_payload_exposes_forks_code_and_unsupported_state() 
     assert "byte-for-byte round-trip" in payload["unsupported"]
 
 
+def test_022_012_web_payload_preserves_c_owned_restored_source_packet() -> None:
+    packet = {
+        "model": "restored_source_model_v1",
+        "authority": "c_owned",
+        "round_trip_required": False,
+        "source_ownership_ranges": [{"role": "candidate_code", "start": 0, "end": 2, "status": "candidate"}],
+        "source_reference_records": [{"kind": "segment_loader_fixup_placeholder"}],
+        "source_coverage_verifier": {"ok": True},
+    }
+    payload = build_macos_starter_web_payload(
+        source_project={"kind": "macos_source_project"},
+        source_render={},
+        asm_container={
+            "container_kind": "hfs_file_with_resource_fork",
+            "file": {"path": "MPW-GM/MPW/Tools/Asm"},
+            "data_fork": {},
+            "resource_fork": {"types": []},
+            "selected_code_segment": {"id": 1, "restored_source": packet},
+        },
+    )
+
+    assert payload["binary_container_view"]["selected_code_segment"]["restored_source"] == packet
+
+
+def test_022_012_web_payload_missing_c_restored_source_fails_closed() -> None:
+    payload = build_macos_starter_web_payload(
+        source_project={"kind": "macos_source_project"},
+        source_render={},
+        asm_container={
+            "container_kind": "hfs_file_with_resource_fork",
+            "file": {"path": "MPW-GM/MPW/Tools/Asm"},
+            "data_fork": {},
+            "resource_fork": {"types": []},
+            "selected_code_segment": {
+                "id": 1,
+                "code_layout": [{"kind": "candidate_code", "start": 0, "end": 2}],
+                "relocation_fixups": {"status": "deferred"},
+            },
+        },
+    )
+
+    restored = payload["binary_container_view"]["selected_code_segment"]["restored_source"]
+    assert restored == {
+        "model": "restored_source_missing",
+        "status": "blocked",
+        "authority": "missing_c_owned_model",
+        "reason": "selected CODE restored-source evidence is missing from the C-owned model",
+    }
+    assert "source_ownership_ranges" not in restored
+    assert "source_reference_records" not in restored
+    assert "source_coverage_verifier" not in restored
+
+
 def test_macos_web_payload_keeps_source_and_observed_binary_facts_distinct() -> None:
     boundary = _payload()["source_binary_boundary"]
 
