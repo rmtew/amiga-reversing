@@ -135,6 +135,15 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     none
 ;     relocation_fixups:
 ;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;     restored_source_model:
+;     model=restored_source_model_v1 round_trip_required=false
+;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
+;     code_resource=CODE 0 name=unknown
+;     a5_world status=deferred parser_use=unknown
+;     ownership_ranges:
+;       0: role=metadata span=0..2784 status=validated parser_use=accepted_parser_output reason=code0_jump_table_metadata
+;     source_reference_records:
+;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
 ;     listing: kind=metadata available=False route=unknown reason=CODE 0 is jump-table/application metadata, not ordinary m68k code
 ;     previews: none
 ;   CODE 1 Main: role=code_segment kind=code_segment payload_size=29024 sha256=4a543f6fd1c542fccd38ec9f469b06f65c797dfd8b226fefc9f576faafbe70f5 fact=macos.resource_fork.code_resources.accepted status=validated
@@ -150,6 +159,17 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     candidate_data_island: start=4 end=40 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
 ;     relocation_fixups:
 ;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;     restored_source_model:
+;     model=restored_source_model_v1 round_trip_required=false
+;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
+;     code_resource=CODE 1 name=Main
+;     a5_world status=deferred parser_use=unknown
+;     ownership_ranges:
+;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
+;       1: role=data span=4..40 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       2: role=candidate_code span=40..29024 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     source_reference_records:
+;       0: kind=segment_loader_fixup_placeholder ownership=2 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
 ;     listing: kind=full_listing available=True route=listing reason=unknown
 ;     previews: none
 ;   CODE 2 FPOpTable: role=code_segment kind=code_segment payload_size=7788 sha256=a33f1dfe28237a5ee6f9ba7a96540e8e4842a7e6207575db5f0479b8c622a4f2 fact=macos.resource_fork.code_resources.accepted status=validated
@@ -165,6 +185,17 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     candidate_data_island: start=4 end=374 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
 ;     relocation_fixups:
 ;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;     restored_source_model:
+;     model=restored_source_model_v1 round_trip_required=false
+;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
+;     code_resource=CODE 2 name=FPOpTable
+;     a5_world status=deferred parser_use=unknown
+;     ownership_ranges:
+;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
+;       1: role=data span=4..374 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       2: role=candidate_code span=374..7788 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     source_reference_records:
+;       0: kind=segment_loader_fixup_placeholder ownership=2 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
 ;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
 ;     previews:
 ;       candidate_code_preview: start=374 end=438 size=64 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only bounded=True truncated=True reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
@@ -188,6 +219,17 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     candidate_data_island: start=4 end=302 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
 ;     relocation_fixups:
 ;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;     restored_source_model:
+;     model=restored_source_model_v1 round_trip_required=false
+;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
+;     code_resource=CODE 3 name=Init
+;     a5_world status=deferred parser_use=unknown
+;     ownership_ranges:
+;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
+;       1: role=data span=4..302 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       2: role=candidate_code span=302..18252 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     source_reference_records:
+;       0: kind=segment_loader_fixup_placeholder ownership=2 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
 ;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
 ;     previews:
 ;       candidate_code_preview: start=302 end=366 size=64 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only bounded=True truncated=True reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
@@ -224,6 +266,17 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     candidate_data_island: start=4 end=468 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
 ;     relocation_fixups:
 ;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;     restored_source_model:
+;     model=restored_source_model_v1 round_trip_required=false
+;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
+;     code_resource=CODE 4 name=IOMgr
+;     a5_world status=deferred parser_use=unknown
+;     ownership_ranges:
+;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
+;       1: role=data span=4..468 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       2: role=candidate_code span=468..6426 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     source_reference_records:
+;       0: kind=segment_loader_fixup_placeholder ownership=2 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
 ;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
 ;     previews:
 ;       candidate_code_preview: start=468 end=532 size=64 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only bounded=True truncated=True reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
@@ -273,6 +326,17 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     candidate_data_island: start=4 end=212 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
 ;     relocation_fixups:
 ;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;     restored_source_model:
+;     model=restored_source_model_v1 round_trip_required=false
+;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
+;     code_resource=CODE 5 name=Macros
+;     a5_world status=deferred parser_use=unknown
+;     ownership_ranges:
+;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
+;       1: role=data span=4..212 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       2: role=candidate_code span=212..26638 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     source_reference_records:
+;       0: kind=segment_loader_fixup_placeholder ownership=2 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
 ;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
 ;     previews:
 ;       candidate_code_preview: start=212 end=276 size=64 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only bounded=True truncated=True reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
@@ -312,6 +376,17 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     candidate_data_island: start=4 end=58 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
 ;     relocation_fixups:
 ;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;     restored_source_model:
+;     model=restored_source_model_v1 round_trip_required=false
+;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
+;     code_resource=CODE 6 name=OpTable
+;     a5_world status=deferred parser_use=unknown
+;     ownership_ranges:
+;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
+;       1: role=data span=4..58 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       2: role=candidate_code span=58..15158 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     source_reference_records:
+;       0: kind=segment_loader_fixup_placeholder ownership=2 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
 ;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
 ;     previews:
 ;       candidate_code_preview: start=58 end=122 size=64 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only bounded=True truncated=True reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
@@ -334,6 +409,17 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     candidate_data_island: start=4 end=352 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
 ;     relocation_fixups:
 ;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;     restored_source_model:
+;     model=restored_source_model_v1 round_trip_required=false
+;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
+;     code_resource=CODE 7 name=POpTable
+;     a5_world status=deferred parser_use=unknown
+;     ownership_ranges:
+;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
+;       1: role=data span=4..352 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       2: role=candidate_code span=352..4142 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     source_reference_records:
+;       0: kind=segment_loader_fixup_placeholder ownership=2 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
 ;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
 ;     previews:
 ;       candidate_code_preview: start=352 end=416 size=64 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only bounded=True truncated=True reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
@@ -368,6 +454,17 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     candidate_data_island: start=4 end=42 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
 ;     relocation_fixups:
 ;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;     restored_source_model:
+;     model=restored_source_model_v1 round_trip_required=false
+;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
+;     code_resource=CODE 8 name=Listing
+;     a5_world status=deferred parser_use=unknown
+;     ownership_ranges:
+;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
+;       1: role=data span=4..42 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       2: role=candidate_code span=42..1852 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     source_reference_records:
+;       0: kind=segment_loader_fixup_placeholder ownership=2 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
 ;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
 ;     previews:
 ;       candidate_code_preview: start=42 end=106 size=64 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only bounded=True truncated=True reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
@@ -417,6 +514,17 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     candidate_data_island: start=4 end=712 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
 ;     relocation_fixups:
 ;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;     restored_source_model:
+;     model=restored_source_model_v1 round_trip_required=false
+;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
+;     code_resource=CODE 9 name=Pass2
+;     a5_world status=deferred parser_use=unknown
+;     ownership_ranges:
+;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
+;       1: role=data span=4..712 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       2: role=candidate_code span=712..13946 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     source_reference_records:
+;       0: kind=segment_loader_fixup_placeholder ownership=2 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
 ;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
 ;     previews:
 ;       candidate_code_preview: start=712 end=776 size=64 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only bounded=True truncated=True reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
@@ -439,6 +547,17 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     candidate_data_island: start=4 end=148 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
 ;     relocation_fixups:
 ;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;     restored_source_model:
+;     model=restored_source_model_v1 round_trip_required=false
+;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
+;     code_resource=CODE 10 name=FinishUp
+;     a5_world status=deferred parser_use=unknown
+;     ownership_ranges:
+;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
+;       1: role=data span=4..148 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       2: role=candidate_code span=148..1542 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     source_reference_records:
+;       0: kind=segment_loader_fixup_placeholder ownership=2 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
 ;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
 ;     previews:
 ;       candidate_code_preview: start=148 end=212 size=64 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only bounded=True truncated=True reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
@@ -461,6 +580,17 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     candidate_data_island: start=4 end=836 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
 ;     relocation_fixups:
 ;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;     restored_source_model:
+;     model=restored_source_model_v1 round_trip_required=false
+;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
+;     code_resource=CODE 11 name=Dbg
+;     a5_world status=deferred parser_use=unknown
+;     ownership_ranges:
+;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
+;       1: role=data span=4..836 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       2: role=candidate_code span=836..3678 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     source_reference_records:
+;       0: kind=segment_loader_fixup_placeholder ownership=2 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
 ;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
 ;     previews:
 ;       candidate_code_preview: start=836 end=900 size=64 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only bounded=True truncated=True reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
@@ -510,6 +640,17 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     candidate_data_island: start=4 end=44 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
 ;     relocation_fixups:
 ;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;     restored_source_model:
+;     model=restored_source_model_v1 round_trip_required=false
+;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
+;     code_resource=CODE 12 name=LoadDump
+;     a5_world status=deferred parser_use=unknown
+;     ownership_ranges:
+;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
+;       1: role=data span=4..44 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       2: role=candidate_code span=44..6928 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     source_reference_records:
+;       0: kind=segment_loader_fixup_placeholder ownership=2 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
 ;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
 ;     previews:
 ;       candidate_code_preview: start=44 end=108 size=64 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only bounded=True truncated=True reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
@@ -559,6 +700,17 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     candidate_data_island: start=4 end=44 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
 ;     relocation_fixups:
 ;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;     restored_source_model:
+;     model=restored_source_model_v1 round_trip_required=false
+;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
+;     code_resource=CODE 13 name=Directives
+;     a5_world status=deferred parser_use=unknown
+;     ownership_ranges:
+;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
+;       1: role=data span=4..44 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       2: role=candidate_code span=44..33354 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     source_reference_records:
+;       0: kind=segment_loader_fixup_placeholder ownership=2 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
 ;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
 ;     previews:
 ;       candidate_code_preview: start=44 end=108 size=64 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only bounded=True truncated=True reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
@@ -584,6 +736,17 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     candidate_data_island: start=4 end=236 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
 ;     relocation_fixups:
 ;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;     restored_source_model:
+;     model=restored_source_model_v1 round_trip_required=false
+;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
+;     code_resource=CODE 14 name=MemMgr
+;     a5_world status=deferred parser_use=unknown
+;     ownership_ranges:
+;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
+;       1: role=data span=4..236 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       2: role=candidate_code span=236..1886 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     source_reference_records:
+;       0: kind=segment_loader_fixup_placeholder ownership=2 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
 ;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
 ;     previews:
 ;       candidate_code_preview: start=236 end=300 size=64 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only bounded=True truncated=True reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
@@ -633,6 +796,17 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     candidate_data_island: start=4 end=96 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
 ;     relocation_fixups:
 ;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;     restored_source_model:
+;     model=restored_source_model_v1 round_trip_required=false
+;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
+;     code_resource=CODE 15 name=Errors
+;     a5_world status=deferred parser_use=unknown
+;     ownership_ranges:
+;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
+;       1: role=data span=4..96 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       2: role=candidate_code span=96..3452 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     source_reference_records:
+;       0: kind=segment_loader_fixup_placeholder ownership=2 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
 ;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
 ;     previews:
 ;       candidate_code_preview: start=96 end=160 size=64 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only bounded=True truncated=True reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
@@ -658,6 +832,17 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     candidate_data_island: start=4 end=246 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
 ;     relocation_fixups:
 ;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;     restored_source_model:
+;     model=restored_source_model_v1 round_trip_required=false
+;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
+;     code_resource=CODE 16 name=New
+;     a5_world status=deferred parser_use=unknown
+;     ownership_ranges:
+;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
+;       1: role=data span=4..246 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       2: role=candidate_code span=246..1034 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     source_reference_records:
+;       0: kind=segment_loader_fixup_placeholder ownership=2 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
 ;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
 ;     previews:
 ;       candidate_code_preview: start=246 end=310 size=64 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only bounded=True truncated=True reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
@@ -682,6 +867,17 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     candidate_data_island: start=4 end=100 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
 ;     relocation_fixups:
 ;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;     restored_source_model:
+;     model=restored_source_model_v1 round_trip_required=false
+;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
+;     code_resource=CODE 17 name=DispSymTbl
+;     a5_world status=deferred parser_use=unknown
+;     ownership_ranges:
+;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
+;       1: role=data span=4..100 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       2: role=candidate_code span=100..3674 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     source_reference_records:
+;       0: kind=segment_loader_fixup_placeholder ownership=2 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
 ;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
 ;     previews:
 ;       candidate_code_preview: start=100 end=164 size=64 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only bounded=True truncated=True reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
@@ -718,6 +914,17 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     candidate_data_island: start=4 end=1562 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
 ;     relocation_fixups:
 ;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;     restored_source_model:
+;     model=restored_source_model_v1 round_trip_required=false
+;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
+;     code_resource=CODE 18 name=FinishDirectives
+;     a5_world status=deferred parser_use=unknown
+;     ownership_ranges:
+;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
+;       1: role=data span=4..1562 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       2: role=candidate_code span=1562..1974 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     source_reference_records:
+;       0: kind=segment_loader_fixup_placeholder ownership=2 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
 ;     listing: kind=structured_placeholder available=False route=unknown reason=no candidate_code range available for a bounded preview
 ;     previews: none
 ;   CODE 19 SetupArgV: role=code_segment kind=code_segment payload_size=556 sha256=46027b8ec8f830b28abc470f5e942b54f7845efd9cf136f68e3b2b8a9873f3ce fact=macos.resource_fork.code_resources.accepted status=validated
@@ -731,6 +938,16 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     deferred_code_or_data_island: start=4 end=556 evidence=missing_m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.byte_entry_rule.unknown status=deferred
 ;     relocation_fixups:
 ;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;     restored_source_model:
+;     model=restored_source_model_v1 round_trip_required=false
+;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
+;     code_resource=CODE 19 name=SetupArgV
+;     a5_world status=deferred parser_use=unknown
+;     ownership_ranges:
+;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
+;       1: role=unknown span=4..556 status=deferred parser_use=deferred_only reason=missing_m68k_movea_l_stack_to_a0_entry
+;     source_reference_records:
+;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
 ;     listing: kind=structured_placeholder available=False route=unknown reason=no candidate preview range; classifier deferred byte-entry evidence: missing_m68k_movea_l_stack_to_a0_entry
 ;     previews: none
 ;   CODE 20 INTENV: role=code_segment kind=code_segment payload_size=5262 sha256=de9f4a82222f3ff12586a0bb691cc6b5d513777d498d223dfa45311d4a7dc84a fact=macos.resource_fork.code_resources.accepted status=validated
@@ -746,6 +963,17 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     candidate_data_island: start=4 end=2876 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
 ;     relocation_fixups:
 ;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;     restored_source_model:
+;     model=restored_source_model_v1 round_trip_required=false
+;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
+;     code_resource=CODE 20 name=INTENV
+;     a5_world status=deferred parser_use=unknown
+;     ownership_ranges:
+;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
+;       1: role=data span=4..2876 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       2: role=candidate_code span=2876..5262 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     source_reference_records:
+;       0: kind=segment_loader_fixup_placeholder ownership=2 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
 ;     listing: kind=structured_placeholder available=False route=unknown reason=no candidate_code range available for a bounded preview
 ;     previews: none
 ;   CODE 21 SADEV: role=code_segment kind=code_segment payload_size=6794 sha256=927c28db98eadbc5501e570ada73af8afca05964552a831c02051f6e6fa3b687 fact=macos.resource_fork.code_resources.accepted status=validated
@@ -761,6 +989,17 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     candidate_data_island: start=4 end=2000 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
 ;     relocation_fixups:
 ;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;     restored_source_model:
+;     model=restored_source_model_v1 round_trip_required=false
+;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
+;     code_resource=CODE 21 name=SADEV
+;     a5_world status=deferred parser_use=unknown
+;     ownership_ranges:
+;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
+;       1: role=data span=4..2000 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       2: role=candidate_code span=2000..6794 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     source_reference_records:
+;       0: kind=segment_loader_fixup_placeholder ownership=2 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
 ;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
 ;     previews:
 ;       candidate_code_preview: start=2000 end=2064 size=64 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only bounded=True truncated=True reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
@@ -795,6 +1034,16 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     deferred_code_or_data_island: start=4 end=96 evidence=missing_m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.byte_entry_rule.unknown status=deferred
 ;     relocation_fixups:
 ;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;     restored_source_model:
+;     model=restored_source_model_v1 round_trip_required=false
+;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
+;     code_resource=CODE 22 name=SANELIB
+;     a5_world status=deferred parser_use=unknown
+;     ownership_ranges:
+;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
+;       1: role=unknown span=4..96 status=deferred parser_use=deferred_only reason=missing_m68k_movea_l_stack_to_a0_entry
+;     source_reference_records:
+;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
 ;     listing: kind=structured_placeholder available=False route=unknown reason=no candidate preview range; classifier deferred byte-entry evidence: missing_m68k_movea_l_stack_to_a0_entry
 ;     previews: none
 ;   CODE 23 STDCLIB: role=code_segment kind=code_segment payload_size=126 sha256=ce2eaab2bd782055c6aaaefc223f2e72d4f746e25a05cc8b3599836ecbd41969 fact=macos.resource_fork.code_resources.accepted status=validated
@@ -808,6 +1057,16 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     deferred_code_or_data_island: start=4 end=126 evidence=missing_m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.byte_entry_rule.unknown status=deferred
 ;     relocation_fixups:
 ;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;     restored_source_model:
+;     model=restored_source_model_v1 round_trip_required=false
+;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
+;     code_resource=CODE 23 name=STDCLIB
+;     a5_world status=deferred parser_use=unknown
+;     ownership_ranges:
+;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
+;       1: role=unknown span=4..126 status=deferred parser_use=deferred_only reason=missing_m68k_movea_l_stack_to_a0_entry
+;     source_reference_records:
+;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
 ;     listing: kind=structured_placeholder available=False route=unknown reason=no candidate preview range; classifier deferred byte-entry evidence: missing_m68k_movea_l_stack_to_a0_entry
 ;     previews: none
 ;   CODE 24 STDIO: role=code_segment kind=code_segment payload_size=4970 sha256=f98dfc823a565d6502fa4ac1feb7b616b397ba9a918ce2c5f47b274e99a9026a fact=macos.resource_fork.code_resources.accepted status=validated
@@ -823,6 +1082,17 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     candidate_data_island: start=4 end=2950 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
 ;     relocation_fixups:
 ;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;     restored_source_model:
+;     model=restored_source_model_v1 round_trip_required=false
+;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
+;     code_resource=CODE 24 name=STDIO
+;     a5_world status=deferred parser_use=unknown
+;     ownership_ranges:
+;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
+;       1: role=data span=4..2950 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       2: role=candidate_code span=2950..4970 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     source_reference_records:
+;       0: kind=segment_loader_fixup_placeholder ownership=2 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
 ;     listing: kind=structured_placeholder available=False route=unknown reason=no candidate_code range available for a bounded preview
 ;     previews: none
 ;   CODE 25 SANELib: role=code_segment kind=code_segment payload_size=246 sha256=c87908dd286d0e5fdcab70725ec20e98a37cca1357f18132809c3ab9e7562090 fact=macos.resource_fork.code_resources.accepted status=validated
@@ -838,6 +1108,17 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     candidate_data_island: start=4 end=40 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
 ;     relocation_fixups:
 ;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;     restored_source_model:
+;     model=restored_source_model_v1 round_trip_required=false
+;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
+;     code_resource=CODE 25 name=SANELib
+;     a5_world status=deferred parser_use=unknown
+;     ownership_ranges:
+;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
+;       1: role=data span=4..40 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       2: role=candidate_code span=40..246 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     source_reference_records:
+;       0: kind=segment_loader_fixup_placeholder ownership=2 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
 ;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
 ;     previews:
 ;       candidate_code_preview: start=40 end=104 size=64 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only bounded=True truncated=True reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
@@ -863,6 +1144,17 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     candidate_data_island: start=4 end=198 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
 ;     relocation_fixups:
 ;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;     restored_source_model:
+;     model=restored_source_model_v1 round_trip_required=false
+;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
+;     code_resource=CODE 26 name=PASLIB
+;     a5_world status=deferred parser_use=unknown
+;     ownership_ranges:
+;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
+;       1: role=data span=4..198 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       2: role=candidate_code span=198..2940 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     source_reference_records:
+;       0: kind=segment_loader_fixup_placeholder ownership=2 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
 ;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
 ;     previews:
 ;       candidate_code_preview: start=198 end=262 size=64 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only bounded=True truncated=True reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
@@ -894,6 +1186,17 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     candidate_data_island: start=4 end=204 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
 ;     relocation_fixups:
 ;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;     restored_source_model:
+;     model=restored_source_model_v1 round_trip_required=false
+;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
+;     code_resource=CODE 27 name=32-bit bootstrap
+;     a5_world status=deferred parser_use=unknown
+;     ownership_ranges:
+;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
+;       1: role=data span=4..204 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       2: role=candidate_code span=204..1882 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     source_reference_records:
+;       0: kind=segment_loader_fixup_placeholder ownership=2 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
 ;     listing: kind=candidate_preview available=True route=code_preview reason=bounded candidate preview; full listing remains deferred
 ;     previews:
 ;       candidate_code_preview: start=204 end=268 size=64 range=candidate_code fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only bounded=True truncated=True reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
@@ -938,6 +1241,17 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ;     candidate_data_island: start=4 end=40 evidence=prefix_before_stack_entry fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate
 ;   relocation_fixups:
 ;     status=deferred fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+;   restored_source_model:
+;     model=restored_source_model_v1 round_trip_required=false
+;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
+;     code_resource=CODE 1 name=Main
+;     a5_world status=deferred parser_use=unknown
+;     ownership_ranges:
+;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
+;       1: role=data span=4..40 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       2: role=candidate_code span=40..29024 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     source_reference_records:
+;       0: kind=segment_loader_fixup_placeholder ownership=2 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
 ;   listing_rows: 1814
 
 ; CODE 1 Main listing follows. Offsets are local to the selected CODE resource code bytes.

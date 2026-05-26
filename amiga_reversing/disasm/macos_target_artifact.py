@@ -109,6 +109,7 @@ def render_macos_example_asm(*, project_root: Path = PROJECT_ROOT) -> str:
     selected_layout = [_mapping(item) for item in _sequence(selected.get("code_layout"))]
     selected_orphans = [_mapping(item) for item in _sequence(selected.get("orphan_ranges"))]
     selected_relocations = _mapping(selected.get("relocation_fixups"))
+    selected_restored_source = _mapping(selected.get("restored_source"))
     code_resources = [_mapping(item) for item in _sequence(container.get("code_resources"))]
     code_resource_details = [_mapping(item) for item in _sequence(container.get("code_resource_details"))]
     code_segment_map = [_mapping(item) for item in _sequence(container.get("code_segment_map"))]
@@ -190,6 +191,8 @@ def render_macos_example_asm(*, project_root: Path = PROJECT_ROOT) -> str:
         *_orphan_range_lines(selected_orphans),
         ";   relocation_fixups:",
         _relocation_fixup_line(selected_relocations),
+        ";   restored_source_model:",
+        *_restored_source_model_lines(selected_restored_source),
         f";   listing_rows: {total_rows}",
         "",
         "; CODE 1 Main listing follows. Offsets are local to the selected CODE resource code bytes.",
@@ -346,6 +349,8 @@ def _code_resource_detail_lines(details: Sequence[Mapping[str, object]]) -> list
         lines.extend(_orphan_range_lines([_mapping(item) for item in _sequence(detail.get("orphan_ranges"))]))
         lines.append(";     relocation_fixups:")
         lines.append(_relocation_fixup_line(_mapping(detail.get("relocation_fixups"))))
+        lines.append(";     restored_source_model:")
+        lines.extend(_restored_source_model_lines(_mapping(detail.get("restored_source"))))
         lines.append(_listing_descriptor_line(_mapping(detail.get("listing"))))
         lines.extend(_preview_window_lines([_mapping(item) for item in _sequence(detail.get("preview_windows"))]))
     return lines
@@ -458,6 +463,66 @@ def _relocation_fixup_line(relocation_fixups: Mapping[str, object]) -> str:
         f"parser_use={_text(relocation_fixups.get('parser_use'))} "
         f"reason={_text(relocation_fixups.get('reason'))}"
     )
+
+
+def _restored_source_model_lines(restored_source: Mapping[str, object]) -> list[str]:
+    if not restored_source:
+        return [";     none"]
+    verifier = _mapping(restored_source.get("source_coverage_verifier"))
+    ranges = [_mapping(item) for item in _sequence(restored_source.get("source_ownership_ranges"))]
+    references = [_mapping(item) for item in _sequence(restored_source.get("source_reference_records"))]
+    extensions = _mapping(restored_source.get("platform_extensions"))
+    code_resource = _mapping(extensions.get("code_resource"))
+    a5_world = _mapping(extensions.get("a5_world"))
+    lines = [
+        (
+            f";     model={_text(restored_source.get('model'))} "
+            f"round_trip_required={str(restored_source.get('round_trip_required')).lower()}"
+        ),
+        (
+            f";     coverage ok={str(verifier.get('ok')).lower()} gaps={_text(verifier.get('gap_count'))} "
+            f"overlaps={_text(verifier.get('overlap_count'))} "
+            f"unknown_detail={_text(verifier.get('explicit_unknown_missing_detail_count'))}"
+        ),
+        (
+            f";     code_resource={_text(code_resource.get('resource_type'))} {_text(code_resource.get('resource_id'))} "
+            f"name={_text(code_resource.get('resource_name'))}"
+        ),
+        f";     a5_world status={_text(a5_world.get('status'))} parser_use={_text(a5_world.get('parser_use'))}",
+        ";     ownership_ranges:",
+    ]
+    lines.extend(_restored_source_ownership_lines(ranges))
+    lines.append(";     source_reference_records:")
+    lines.extend(_restored_source_reference_lines(references))
+    return lines
+
+
+def _restored_source_ownership_lines(ranges: Sequence[Mapping[str, object]]) -> list[str]:
+    if not ranges:
+        return [";       none"]
+    return [
+        (
+            f";       {index}: role={_text(item.get('role'))} "
+            f"span={_text(item.get('start'))}..{_text(item.get('end'))} "
+            f"status={_text(item.get('fact_status') or item.get('status'))} "
+            f"parser_use={_text(item.get('parser_use'))} reason={_text(item.get('reason'))}"
+        )
+        for index, item in enumerate(ranges)
+    ]
+
+
+def _restored_source_reference_lines(references: Sequence[Mapping[str, object]]) -> list[str]:
+    if not references:
+        return [";       none"]
+    return [
+        (
+            f";       {index}: kind={_text(item.get('kind'))} "
+            f"ownership={_text(item.get('ownership_range_index'))} "
+            f"status={_text(item.get('fact_status') or item.get('status'))} "
+            f"parser_use={_text(item.get('parser_use'))} target={_text(item.get('target'))}"
+        )
+        for index, item in enumerate(references)
+    ]
 
 
 def _resource_line(resource: Mapping[str, object]) -> str:

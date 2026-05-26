@@ -237,6 +237,12 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     assert "fact=macos.code_resource.orphan_layout_ranges.candidate status=candidate" in asm_text
     assert ";   relocation_fixups:" in asm_text
     assert "fact=macos.segment_loader.relocation_fixups.deferred parser_use=deferred_only" in asm_text
+    assert ";   restored_source_model:" in asm_text
+    assert "model=restored_source_model_v1 round_trip_required=false" in asm_text
+    assert "ownership_ranges:" in asm_text
+    assert "role=candidate_code" in asm_text
+    assert "kind=segment_loader_fixup_placeholder" in asm_text
+    assert "a5_world status=deferred" in asm_text
     assert not any(
         "macos.code_resource.movea_stack_a0.boundary.candidate" in line and "accepted_parser_output" in line
         for line in asm_text.splitlines()

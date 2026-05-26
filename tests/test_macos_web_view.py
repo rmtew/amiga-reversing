@@ -110,6 +110,11 @@ def test_macos_web_container_payload_exposes_forks_code_and_unsupported_state() 
     assert container["selected_code_segment"]["name"] == "Main"
     assert container["selected_code_segment"]["native_source"]["resource_id"] == 1
     assert container["selected_code_segment"]["listing_preview"][0]["value"] == "$205F"
+    restored_source = container["selected_code_segment"]["restored_source"]
+    assert restored_source["model"] == "restored_source_model_v1"
+    assert restored_source["round_trip_required"] is False
+    assert restored_source["source_reference_records"][0]["kind"] == "segment_loader_fixup_placeholder"
+    assert restored_source["platform_extensions"]["a5_world"]["status"] == "deferred"
     assert container["source_mapping"] == {
         "maps_to_sample_source": False,
         "reason": "observed MPW/Tools/Asm CODE resources are not inferred from Sample source segments",

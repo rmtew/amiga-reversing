@@ -449,6 +449,10 @@ def test_web_app_renders_macos_source_and_container_payloads() -> None:
     assert "CODE Resources" in app_js
     assert "code_resource_details" in app_js
     assert "preview_windows" in app_js
+    assert "restored_source" in app_js
+    assert 'data-macos-restored-source="1"' in app_js
+    assert "source_ownership_ranges" in app_js
+    assert "source_reference_records" in app_js
     assert "non_code_resource_details" in app_js
     assert 'data-macos-non-code-row="1"' in app_js
     assert "jump_table_rows" in app_js

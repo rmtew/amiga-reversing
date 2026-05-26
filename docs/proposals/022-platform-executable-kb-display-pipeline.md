@@ -476,6 +476,26 @@ Required result:
 - Existing Mac artifact/web fields are migrated only when restored source
   records expose equivalent or better source detail.
 
+Completed 022-007 state:
+
+- Mac project payloads attach `restored_source_model_v1` to selected CODE,
+  selected listing descriptors, and per-CODE resource detail records. Existing
+  public Mac fields remain in place for compatibility.
+- Selected executable CODE payload bytes are covered by restored-source
+  ownership ranges over `code_resource_payload`. Layout gaps become explicit
+  `unknown` ranges with span, deferred status, provenance, reason, and
+  source-visible placeholder rendering.
+- Segment Loader relocation/fixup state is represented by deferred
+  `segment_loader_fixup_placeholder` source reference records. No decoded fixup
+  semantics or round-trip claim is introduced.
+- CODE resource identity and A5/world runtime context are platform extensions.
+  A5/world remains deferred context, not accepted byte-entry or storage proof.
+- Mac target artifacts render the model, verifier result, ownership ranges,
+  source references, CODE identity, and A5/world extension state. Existing web
+  panels expose restored-source model counts and coverage through current
+  Mac CODE detail rows; richer UI grouping remains 022-009 follow-up work.
+- Focused proof passed with 36 Mac project/artifact/web/source tests.
+
 ### 022-008: Executable-Relevant Resource Placeholders
 
 Add typed placeholders for executable-relevant Mac resources and custom

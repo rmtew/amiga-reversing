@@ -10152,6 +10152,7 @@ function renderClassicMacCodeResourceDetails(details) {
 function renderClassicMacCodeResourceDetail(detail) {
   const listing = detail.listing || {};
   const relocation = detail.relocation_fixups || {};
+  const restoredSource = detail.restored_source || {};
   const previews = Array.isArray(detail.preview_windows) ? detail.preview_windows : [];
   const previewLabel = previews.length ? `${previews.length} candidate bounded preview` : "no preview";
   return `
@@ -10168,10 +10169,29 @@ function renderClassicMacCodeResourceDetail(detail) {
         <div><span>Listing</span><strong>${escapeHtml(`${listing.kind || "none"} ${listing.route || ""}`.trim())}</strong></div>
         <div><span>Relocation</span><strong>${escapeHtml(`${relocation.fact_status || relocation.status || "unknown"} ${relocation.parser_use || ""}`.trim())}</strong></div>
       </div>
+      ${renderClassicMacRestoredSource(restoredSource)}
       ${detail.id === 0 ? renderClassicMacCode0Metadata(detail) : ""}
       ${previews.length ? previews.map((preview) => renderClassicMacPreviewWindow(preview || {})).join("") : renderClassicMacNoPreviewReason(detail, listing)}
       ${renderClassicMacRelocationReason(relocation)}
     </article>
+  `;
+}
+
+function renderClassicMacRestoredSource(restoredSource) {
+  if (!restoredSource || !restoredSource.model) {
+    return "";
+  }
+  const ranges = Array.isArray(restoredSource.source_ownership_ranges) ? restoredSource.source_ownership_ranges : [];
+  const references = Array.isArray(restoredSource.source_reference_records) ? restoredSource.source_reference_records : [];
+  const verifier = restoredSource.source_coverage_verifier || {};
+  return `
+    <div class="macos-code-note" data-macos-restored-source="1">
+      Restored source: ${escapeHtml(restoredSource.model || "")}
+      round-trip=${restoredSource.round_trip_required ? "required" : "not claimed"}
+      ownership=${escapeHtml(String(ranges.length))}
+      references=${escapeHtml(String(references.length))}
+      coverage=${escapeHtml(String(verifier.ok))}
+    </div>
   `;
 }
 

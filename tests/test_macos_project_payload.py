@@ -516,6 +516,19 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
     assert container["selected_code_segment"]["code_entry_offset"] == 6
     assert container["selected_code_segment"]["code_layout"][2]["kind"] == "candidate_code"
     assert container["selected_code_segment"]["code_layout"][2]["fact_status"] == "candidate"
+    selected_restored = container["selected_code_segment"]["restored_source"]
+    assert selected_restored["model"] == "restored_source_model_v1"
+    assert selected_restored["round_trip_required"] is False
+    assert selected_restored["source_coverage_verifier"]["ok"] is True
+    assert [item["role"] for item in selected_restored["source_ownership_ranges"]] == [
+        "metadata",
+        "data",
+        "candidate_code",
+    ]
+    assert selected_restored["source_reference_records"][0]["kind"] == "segment_loader_fixup_placeholder"
+    assert selected_restored["source_reference_records"][0]["parser_use"] == "deferred_only"
+    assert selected_restored["platform_extensions"]["code_resource"]["resource_id"] == 1
+    assert selected_restored["platform_extensions"]["a5_world"]["status"] == "deferred"
     assert container["code_segment_map"][0]["fact_id"] == "macos.code_resource.segment_jump_table_span.accepted"
     assert container["code_segment_map"][0]["routine_entry_candidates"][0]["fact_status"] == "candidate"
     assert container["selected_code_segment"]["orphan_ranges"][0]["fact_status"] == "candidate"
@@ -615,6 +628,15 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
     assert code2_detail["preview_windows"][0]["rows"][0]["row_kind"] == "instruction"
     assert code2_detail["preview_windows"][0]["rows"][0]["fallback_reason"] is None
     assert code3_detail["listing"]["kind"] == "candidate_preview"
+    code3_restored = code3_detail["restored_source"]
+    assert [item["role"] for item in code3_restored["source_ownership_ranges"]] == [
+        "metadata",
+        "unknown",
+        "candidate_code",
+    ]
+    assert code3_restored["source_ownership_ranges"][1]["source_visible"] is True
+    assert code3_restored["source_ownership_ranges"][1]["status"] == "deferred"
+    assert code3_restored["source_coverage_verifier"]["ok"] is True
     assert code3_detail["preview_windows"][0]["rows"] == [
         {
             "offset": 6,
@@ -652,7 +674,11 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
     assert listing["source_kind"] == "macos_code_resource"
     assert listing.get("wrapped_backend") != "amiga-raw"
     assert listing["native_source"]["resource_id"] == 1
-    assert {key: value for key, value in listing.items() if key not in {"backend", "source_kind", "native_source"}} == {
+    assert {
+        key: value
+        for key, value in listing.items()
+        if key not in {"backend", "source_kind", "native_source", "restored_source"}
+    } == {
         "project_id": "macos_mpw_sample",
         "route": "listing",
         "source_range": {"section_index": 0, "start_offset": 0, "size": 2},
@@ -887,6 +913,17 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     assert container["selected_code_segment"]["code_bytes_size"] == 28984
     assert container["selected_code_segment"]["code_layout"][2]["kind"] == "candidate_code"
     assert container["selected_code_segment"]["code_layout"][2]["fact_status"] == "candidate"
+    restored_source = container["selected_code_segment"]["restored_source"]
+    assert restored_source["model"] == "restored_source_model_v1"
+    assert restored_source["round_trip_required"] is False
+    assert restored_source["source_coverage_verifier"]["ok"] is True
+    assert [item["role"] for item in restored_source["source_ownership_ranges"]] == [
+        "metadata",
+        "data",
+        "candidate_code",
+    ]
+    assert restored_source["source_reference_records"][0]["fact_id"] == "macos.segment_loader.relocation_fixups.deferred"
+    assert restored_source["platform_extensions"]["a5_world"]["status"] == "deferred"
     assert container["selected_code_segment"]["orphan_ranges"][0]["fact_status"] == "candidate"
     assert container["selected_code_segment"]["relocation_fixups"]["parser_use"] == "deferred_only"
     assert payload["provenance"]["source_image"] == IMAGE_PATH.as_posix()
