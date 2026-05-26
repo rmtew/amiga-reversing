@@ -1,24 +1,28 @@
 # Proposal 023: Classic Mac OS Source Presentation
 
-Status: active
+Status: complete
 
-Current byte-real baseline:
+Current semantic closeout state:
 
-- The committed MPW Tools `Asm.s` artifact is now source-first: a compact
-  identity header is followed by visible CODE source-body sections before broad
+- The committed MPW Tools `Asm.s` artifact is source-first: a compact identity
+  header is followed by visible CODE source-body sections before broad
   supporting evidence.
-- Every current executable CODE resource has a source-body section with stable
-  section identity, byte-real rows, C-owned restored-source evidence, and
-  range-level ownership.
-- CODE 0 renders structured application/jump-table context with candidate
-  target links only where evidence supports them. CODE 1 renders the accepted
-  far-model header separately from candidate entry/stub/body residual spans.
+- Every current CODE resource has a source-body section with stable section
+  identity, C-owned restored-source evidence, range-level ownership, and a
+  shared semantic source model exposed through API, artifact, and web views.
+- CODE 0 renders structured application/jump-table context with generated
+  target links only where evidence supports them. Nonzero CODE resources render
+  supported executable body spans as semantic source rows: decoded M68K
+  instructions, generated labels/xrefs, data/directive rows, and precise
+  typed residuals.
 - `binary_container_view.source_body_sections` and
   `binary_container_view.source_quality_gate` are shared API/web/artifact
   surfaces; the web view consumes those surfaces rather than inventing status.
-- The source-quality gate passes as `passed_with_deferred_semantics`: it proves
-  visible ownership, labels, explicit residuals, conservative byte rendering,
-  and absence of vague orphan buckets or fake semantic disassembly.
+- The source-quality gate now reaches
+  `semantic_source_complete_for_known_bounds`. Current closeout metrics for the
+  MPW Tools `Asm` fixture are 28 source sections, 28 semantic source models,
+  315 instruction rows, 11768 data rows, 73 generated labels, and 88 generated
+  xrefs.
 - Mac byte-entry, Segment Loader relocation/fixup decoding, A5 lifetime
   semantics, non-CODE payload semantics, source-to-CODE mapping, and
   resource-fork round trip remain candidate/deferred/unsupported exactly as
@@ -921,6 +925,33 @@ Required outcome:
   by supporting work.
 - Platform executable validate/coverage, focused Mac tests, shared precommit,
   and artifact/API/web parity tests pass without weakening Amiga/Atari gates.
+
+Completed state:
+
+- `Asm.s` now exposes source-first CODE sections for all 28 CODE resources.
+  CODE 0 remains metadata/routing source context; every nonzero CODE resource
+  with supported executable evidence has a `macos_code_semantic_source_v1`
+  model with decoded rows instead of relying on byte-real accounting alone.
+- Current source-quality gate status is
+  `semantic_source_complete_for_known_bounds`. Components are
+  `byte_real_complete`, `source_first`,
+  `semantic_instruction_rows_present`,
+  `generated_labels_and_xrefs_present`, and `explicit` residual accounting.
+- Before this semantic closeout, the reopened gate treated
+  `passed_with_deferred_semantics` as only a byte-real baseline and CODE bodies
+  still rendered mostly as `dc.b`. After 023-019 through 023-021, CODE 1 and
+  other supported nonzero CODE spans feed through the shared M68K listing path:
+  current MPW output has 315 instruction rows, 11768 data rows, 73 generated
+  labels, and 88 generated xrefs across 28 semantic source models.
+- Remaining gaps are non-blocking for 023 because they are outside semantic
+  source presentation: original source symbol recovery, full source-to-CODE
+  mapping, Segment Loader relocation/fixup semantics, A5 lifetime/global-base
+  proof, non-CODE payload semantics, and resource-fork round-trip.
+- Final proof passed: platform executable validate; platform executable
+  coverage with current Mac/Amiga/Atari backends (`invalid: 0`); focused Mac
+  backend/project/artifact/web tests (`58 passed`); shared precommit
+  (`style`, `dead_code`, `unit`, `integration`, and `explicit` all OK); and
+  `git diff --check` with only line-ending warnings.
 
 ## Verification Plan
 
