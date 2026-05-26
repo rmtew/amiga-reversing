@@ -1601,3 +1601,10 @@ repeatable work to `docs\issues\017-*`.
   Current Pandora result: 21 render effects, all `already_represented`; zero
   verified deltas; zero writes; closeout summary stable with remaining blockers
   reported as evidence gaps rather than completed source progress.
+- Review of 017-099 found one remaining closeout-stability defect:
+  `cascade-closeout` can return `status=passed` while
+  `fixed_point.source_state_identity_stable=false`. This means closeout was
+  relying on summary stability while the semantic source-state identity changed
+  between read-only runs. 017-100 must reproduce the mismatch, identify volatile
+  identity fields, canonicalize source identity inputs without hiding real stale
+  state, and make closeout fail closed on unexplained identity changes.
