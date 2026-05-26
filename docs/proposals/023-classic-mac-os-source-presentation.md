@@ -1,8 +1,8 @@
 # Proposal 023: Classic Mac OS Source Presentation
 
-Status: complete
+Status: active
 
-Final closeout:
+Current byte-real baseline:
 
 - The committed MPW Tools `Asm.s` artifact is now source-first: a compact
   identity header is followed by visible CODE source-body sections before broad
@@ -23,6 +23,57 @@ Final closeout:
   semantics, non-CODE payload semantics, source-to-CODE mapping, and
   resource-fork round trip remain candidate/deferred/unsupported exactly as
   recorded by Proposal 018/024 evidence. Proposal 023 does not promote them.
+
+Failed closeout review:
+
+- The previous closeout treated byte-real source visibility as sufficient source
+  presentation. That is not the intended outcome. A reverser still sees mostly
+  `dc.b` rows, including CODE 1 body bytes, rather than analysed M68K source.
+- `passed_with_deferred_semantics` is not a passing semantic source-quality
+  state. It proves conservative accounting and absence of fake disassembly, not
+  useful restored source.
+- The source-quality gate is currently too shallow: it can pass when
+  `renders_only_byte_real_rows` is true, reachable-code evidence is only a
+  candidate marker, and labels exist without instruction/data/xref recovery.
+- Proposal 023 remains active until the Mac fixture renders real CODE source
+  where the bytes and local platform documentation support it, with residual
+  byte-real placeholders only for precise spans that were actually attempted and
+  still cannot be safely classified.
+
+Scope distinction:
+
+- 023 is responsible for platform-correct disassembled and partially analysed
+  assembly output: CODE resource identity, segment/header boundaries, CODE 0
+  routing where supported, instruction decoding, flow labels, xrefs,
+  metadata/data/residual splits, trap/platform annotations where known, and
+  precise placeholders for unsupported loader/runtime extensions.
+- 023 is not responsible for intelligence-driven reversing conclusions such as
+  meaningful routine names, original source symbol names, high-level routine
+  purpose, tool-specific semantic labels, or global variable meanings that
+  require human/LLM interpretation.
+- Lack of human-quality names is not a blocker. The required baseline is the
+  same kind of source presentation expected from Amiga/Atari targets before
+  manual reversing: decoded assembly, stable generated labels, xrefs, typed
+  ranges, and visible platform context.
+
+Local documentation support:
+
+- This is not blocked on a broad research pass. Local docs already establish
+  that Classic Mac OS application code is stored in segmented `CODE` resources,
+  that CODE 0 contains jump-table/application metadata, that CODE 1 is the main
+  segment convention, and that MPW `Asm` owns 28 CODE resources in its resource
+  fork.
+- `docs/macos-file-structure.md` records the intended path as resource-fork
+  CODE resources to segment metadata to M68K disassembly input.
+- `docs/macos-initial-analysis-research.md` records MPW/Inside Macintosh
+  evidence for CODE 0, CODE 1/Main, segment-name-to-CODE-resource convention,
+  and the current MPW `Asm` expectation that CODE 1 is a 68K disassembly range.
+- `docs/proposals/024-classic-mac-os-segment-loader-fixups.md` records the
+  documented near/far CODE segment headers. For the current MPW fixture, many
+  nonzero CODE resources use the documented far-model 40-byte header, code
+  follows that header, and documented relocation offsets are zero. That means
+  relocation/fixup decoding is not a prerequisite for the first semantic
+  disassembly slice.
 
 Reopened after the post-closeout artifact review: the C-owned restored-source
 evidence exists, but the committed MPW `Asm.s` artifact is still report-first
@@ -87,6 +138,13 @@ CODE_1_00000028:
         move.l  a7,d0
 ```
 
+The example is not optional decoration. The closeout target is that CODE bytes
+which are reachable or otherwise classifiable as M68K instructions render as
+instructions with labels and references. Byte-real `dc.b` rows remain valid for
+metadata, tables, padding, unknown residual spans, and unsupported extension
+payloads, but they are not an acceptable final rendering for executable CODE
+body spans that the local Mac executable structure and M68K decoder can analyse.
+
 The committed `Asm.s` artifact must be source-first. A short identity header is
 acceptable, but broad resource inventories, verifier dumps, per-CODE evidence
 records, and unsupported-resource summaries belong after the source sections or
@@ -135,6 +193,15 @@ current committed Mac fixture:
 
 - the generated `Asm.s` artifact is source-first: after a short header, real
   source sections appear before broad inventory/report comments;
+- CODE body bytes that are reachable from CODE 0 routing, segment headers,
+  known entry/stub patterns, branch targets, JSR/BSR targets, jump tables, or
+  decoder-discovered fallthrough render as M68K instructions unless a precise
+  documented reason prevents classification;
+- CODE/data/metadata/relocation/padding/unknown ownership is split inside each
+  CODE resource; a whole-resource byte dump is not a completed source body for
+  any resource with executable evidence;
+- branch and call targets discovered by the disassembler become stable labels
+  and xrefs in the source model and rendered artifact;
 - every executable CODE resource is either rendered through a C-owned restored
   source packet or represented by a typed, source-visible deferred placeholder;
 - every executable CODE resource has a visible source-body section or
@@ -151,6 +218,23 @@ current committed Mac fixture:
 - Python/web/API surfaces display that evidence and do not synthesize passing
   restored-source facts;
 - no Mac round-trip or resource rebuild claim is introduced.
+
+Semantic closeout gate:
+
+- `passed_with_deferred_semantics` is a baseline state, not a closeout state.
+- A closeout gate must fail if all executable CODE rows are byte-real data rows.
+- A closeout gate must distinguish `byte_real_complete`,
+  `semantic_source_partial`, and `semantic_source_complete_for_known_bounds`.
+- `semantic_source_complete_for_known_bounds` requires decoded instructions,
+  stable generated labels, xrefs, typed metadata/data/residual rows, and known
+  platform/trap annotations where mechanically available. It does not require
+  human semantic routine names or original source symbols.
+- Any remaining deferred span must name the attempted evidence path: CODE 0
+  routing, segment header, M68K decode, branch/call target following,
+  relocation/fixup interpretation, A5 context, or local documentation gap.
+- The proposal may close only at `semantic_source_complete_for_known_bounds`:
+  all currently supported executable evidence has been consumed into source, and
+  residual byte-real spans are narrow, typed, and justified.
 
 Post-closeout correction:
 
@@ -203,6 +287,19 @@ When an implementation detail seems missing, the required path is:
 The worker must not stop with a vague blocker, broad report-only output, or
 selected-CODE-only output. Any remaining placeholder must be the result of this
 documented implementation attempt, not a substitute for doing it.
+
+For 023-018 through 023-022, the expected starting assumption is that local docs
+are sufficient to proceed with semantic source rendering of currently supported
+CODE body spans. If the implementation finds a narrow missing rule, the worker
+must name the exact rule, cite the local search performed, update the relevant
+proposal/issue, and still continue with the supported subset. A broad "missing
+Mac documentation" blocker is not acceptable.
+
+The worker must not confuse automated source presentation with completed human
+reversing. Stable generated labels and mechanical xrefs are valid outputs for
+023. Meaningful routine names, original source symbols, and intent comments are
+later reversing work unless directly proven by source symbols, resource names,
+platform ABI/trap knowledge, or accepted manual evidence.
 
 ## Work Items
 
@@ -662,6 +759,130 @@ Completed state:
   next implementation steps, not hidden behind plausible disassembly or broad
   orphan wording.
 
+Post-review correction:
+
+- This completed gate is retained only as a byte-real baseline gate. It must not
+  be used to close 023 because it explicitly permits deferred executable
+  semantics and can pass while the artifact still renders CODE bodies as `dc.b`.
+
+### 023-018: Reopen Semantic Source Gate
+
+Replace the byte-real closeout interpretation with an honest semantic source
+quality gate.
+
+Required outcome:
+
+- Proposal 023 remains active until semantic source output exists for supported
+  CODE body spans.
+- `passed_with_deferred_semantics` is renamed or reclassified so no caller,
+  artifact, proposal, or issue can treat it as final source-quality success.
+- The gate fails semantic closeout when executable CODE body spans render only
+  as byte-real `dc.b` rows.
+- Gate output reports separate statuses for byte preservation, source ordering,
+  semantic disassembly progress, xref/label recovery, and residual unknowns.
+- Gate output distinguishes generated local labels/xrefs from human semantic
+  names so lack of meaningful names cannot block semantic source closeout.
+- Tests prove a byte-real-only CODE body cannot close 023.
+- Gate text records that local docs already support the first semantic source
+  slice; lack of Segment Loader fixup/A5 lifetime proof is not a blocker for
+  disassembling current CODE body bytes.
+
+### 023-019: Mac CODE Semantic Disassembly Model
+
+Add the C-owned model needed to render Mac CODE payload bytes as analysed M68K
+source rows where the bytes are executable.
+
+Required outcome:
+
+- The native Mac CODE path feeds classifiable CODE body byte spans into the
+  shared M68K disassembly machinery without raw-file compatibility transport.
+- The starting implementation scope includes nonzero CODE resources whose
+  documented segment header identifies a code body: far-model code begins after
+  the 40-byte header, near-model code begins after the 4-byte header.
+- Far-model headers, CODE 0 metadata, and other non-instruction ranges remain
+  typed data/metadata, not instructions.
+- Current-fixture zero relocation offsets mean Segment Loader fixup decoding is
+  not required before disassembling the supported CODE body bytes.
+- Valid instruction rows carry CODE resource identity, payload offset, rendered
+  text, size, bytes, flow classification, and source provenance.
+- Generated labels are acceptable and expected for auto-discovered entrypoints,
+  branch targets, call targets, data references, and residual placeholders.
+- Invalid or unsupported spans become typed residual rows with exact byte ranges
+  and reason.
+- Tests cover CODE 1 entry/stub bytes rendering as instructions instead of
+  `dc.b`, while header bytes remain metadata/data.
+
+### 023-020: CODE 0 Routing Seeds And Source Labels
+
+Use documented CODE 0 and segment map structure to seed executable source
+analysis instead of leaving routing as comments.
+
+Required outcome:
+
+- Parsed CODE 0 routing/jump-table evidence creates source labels and candidate
+  entry seeds only where a real table/span exists.
+- Labels created from CODE 0 evidence may be stable generated names. Human
+  segment/routine names are not required unless the resource name or source
+  evidence directly supports them.
+- Local docs support CODE 0 as jump-table/application metadata and CODE 1 as
+  the main segment convention; use that as the implementation boundary rather
+  than treating CODE 0 routing as unknown.
+- Absent spans such as `jt_first=65535 jt_count=0` remain unlinked/deferred and
+  do not create fake dispatch xrefs.
+- Valid CODE 0 links are visible in `Asm.s`, API, and web source sections as
+  labels/xrefs, not only report prose.
+- Tests cover linked CODE resources, absent-link resources, and the generated
+  artifact labels.
+
+### 023-021: Nonzero CODE Flow And Residual Classification
+
+Follow executable code inside nonzero CODE resources and split source rows into
+instructions, data/tables, metadata, and residual placeholders.
+
+Required outcome:
+
+- CODE 1 no longer stops at byte-real entry/stub/body rows when the M68K decoder
+  can decode the reachable bytes.
+- CODE 1 is the first required real fixture proof because local docs and current
+  parser output identify it as `Main` with a far-model header and a code body
+  after payload offset 40.
+- Branch, call, jump, fallthrough, and return behaviour create stable labels and
+  xrefs in the restored source model.
+- Data discovered from instruction references is rendered as data rows, not
+  undifferentiated candidate code.
+- Trap/toolbox calls are annotated where the opcode/platform knowledge is
+  mechanically available; unknown calls remain ordinary decoded instructions
+  with generated labels/xrefs.
+- Each nonzero CODE resource records the attempted entry evidence and decode
+  result, even when no accepted entry exists.
+- Tests prove the artifact contains real instruction rows and recovered labels
+  for at least the currently supported CODE 1 path, and that unsupported spans
+  remain precise residuals.
+
+### 023-022: Semantic Source Presentation Closeout
+
+Close 023 only after the generated Mac source is visibly useful to a reverser,
+not merely byte-accounted.
+
+Required outcome:
+
+- `Asm.s` contains source-first Mac CODE sections with real instruction/data
+  rows for all supported executable spans.
+- The source-quality gate reaches `semantic_source_complete_for_known_bounds`.
+- The closeout explicitly distinguishes mechanical platform/auto-analysis output
+  from future human/LLM reversing names and comments.
+- The proposal records before/after evidence showing which CODE resources moved
+  from byte-real rows to semantic instruction/data/source rows.
+- Remaining placeholders are narrow, typed, justified, and linked to the next
+  missing implementation.
+- Closeout distinguishes real non-blocking gaps from completed work: source
+  symbol recovery, full source-to-CODE mapping, Segment Loader fixup decoding
+  for fixtures with nonzero relocation streams, A5 lifetime/global-base proof,
+  and resource-fork round-trip remain out of this closeout unless implemented
+  by supporting work.
+- Platform executable validate/coverage, focused Mac tests, shared precommit,
+  and artifact/API/web parity tests pass without weakening Amiga/Atari gates.
+
 ## Verification Plan
 
 Minimum proof for every implementation issue:
@@ -705,6 +926,13 @@ Closeout must include the full relevant Mac proof plus Amiga/Atari exact gates.
 - 023-017 follows 023-012 through 023-014 and may run alongside 023-015.
 - 023-016 closes the reopened proposal after 023-011 through 023-015 and
   023-017 complete.
+- 023-018 reopens the failed semantic closeout and must happen before further
+  closeout claims.
+- 023-019 follows 023-018.
+- 023-020 may run after 023-018 and should be reconciled with 023-019 before
+  023-021.
+- 023-021 follows 023-019 and 023-020.
+- 023-022 closes the proposal only after 023-018 through 023-021 complete.
 
 ## Non-Goals
 

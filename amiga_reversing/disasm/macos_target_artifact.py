@@ -385,15 +385,30 @@ def _source_quality_gate_lines(gate: Mapping[str, object]) -> list[str]:
         "; Source quality gate",
         f";   kind: {_text(gate.get('kind'))}",
         f";   status: {_text(gate.get('status'))}",
+        f";   semantic_closeout_status: {_text(gate.get('semantic_closeout_status'))}",
+        f";   baseline_status: {_text(gate.get('baseline_status'))}",
+        f";   baseline_status_meaning: {_text(gate.get('baseline_status_meaning'))}",
         f";   scope: {_text(gate.get('scope'))}",
-        ";   checklist:",
+        ";   semantic_components:",
     ]
+    components = _mapping(gate.get("semantic_components"))
+    for key in sorted(components):
+        lines.append(f";     {key}: {_text(components.get(key))}")
+    lines.extend(
+        [
+        ";   checklist:",
+        ]
+    )
     for key in sorted(checklist):
         lines.append(f";     {key}: {_text(checklist.get(key))}")
     claims = _sequence(gate.get("does_not_claim"))
     if claims:
         lines.append(";   does_not_claim:")
         lines.extend(f";     {claim}" for claim in claims)
+    non_blocking = _sequence(gate.get("non_blocking_for_semantic_disassembly"))
+    if non_blocking:
+        lines.append(";   non_blocking_for_semantic_disassembly:")
+        lines.extend(f";     {item}" for item in non_blocking)
     lines.append(";   resource_review:")
     for item in [_mapping(value) for value in _sequence(gate.get("resources"))]:
         lines.extend(
@@ -404,6 +419,10 @@ def _source_quality_gate_lines(gate: Mapping[str, object]) -> list[str]:
                     f"ownership={','.join(_text(value) for value in _sequence(item.get('ownership_kinds')))} "
                     f"coverage={_text(item.get('ownership_complete'))} "
                     f"labels={len(_sequence(item.get('labels')))} "
+                    f"xrefs={_text(item.get('generated_xref_count'))} "
+                    f"instructions={_text(item.get('semantic_instruction_row_count'))} "
+                    f"body_spans={_text(item.get('executable_body_span_count'))} "
+                    f"byte_real_only_body={_text(item.get('byte_real_only_executable_body'))} "
                     f"reachable_evidence={len(_sequence(item.get('reachable_code_evidence')))} "
                     f"residuals={len(_sequence(item.get('residuals')))}"
                 ),

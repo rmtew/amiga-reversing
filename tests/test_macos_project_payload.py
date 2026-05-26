@@ -1072,7 +1072,23 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     ] == "candidate"
     source_quality = container["source_quality_gate"]
     assert source_quality["kind"] == "macos_source_quality_gate_v1"
-    assert source_quality["status"] == "passed_with_deferred_semantics"
+    assert source_quality["status"] == "byte_real_baseline"
+    assert source_quality["baseline_status"] == "passed_with_deferred_semantics"
+    assert source_quality["semantic_closeout_status"] == "blocked_byte_real_only"
+    assert source_quality["semantic_components"] == {
+        "byte_preservation_status": "byte_real_complete",
+        "source_ordering_status": "source_first",
+        "semantic_disassembly_status": "byte_real_only",
+        "label_xref_status": "generated_labels_without_xrefs",
+        "residual_status": "explicit",
+    }
+    assert "not semantic source closeout" in source_quality["baseline_status_meaning"]
+    assert set(source_quality["non_blocking_for_semantic_disassembly"]) == {
+        "missing human semantic names",
+        "missing original source symbols",
+        "deferred A5 lifetime proof",
+        "deferred Segment Loader fixup decoding for current zero-offset fixture spans",
+    }
     assert set(source_quality["does_not_claim"]) == {
         "accepted byte-entry proof",
         "decoded Segment Loader relocation/fixup semantics",
@@ -1087,6 +1103,12 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     assert code1_quality["orphan_bucket_present"] is False
     assert code1_quality["legacy_orphan_ranges_reclassified"] == 0
     assert code1_quality["renders_only_byte_real_rows"] is True
+    assert code1_quality["byte_real_only_executable_body"] is True
+    assert code1_quality["executable_body_span_count"] == 1
+    assert code1_quality["semantic_instruction_row_count"] == 0
+    assert code1_quality["generated_label_count"] >= 1
+    assert code1_quality["generated_xref_count"] == 0
+    assert code1_quality["human_semantic_names_required"] is False
     assert "macos_CODE_1_candidate_entry_stub" in code1_quality["labels"]
     assert [
         {

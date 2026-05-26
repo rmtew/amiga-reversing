@@ -389,15 +389,51 @@ def _source_quality_gate(
         "residuals_explicit": all(row["residuals_explicit"] is True for row in rows),
         "reachable_code_evidence_recorded": all(row["reachable_code_evidence_recorded"] is True for row in rows),
     }
+    semantic_rows = [row for row in rows if row["executable_body_span_count"]]
+    byte_real_only_bodies = [row for row in semantic_rows if row["semantic_instruction_row_count"] == 0]
+    semantic_components = {
+        "byte_preservation_status": "byte_real_complete" if all(checklist.values()) else "blocked",
+        "source_ordering_status": "source_first" if checklist["source_first_artifact"] else "blocked",
+        "semantic_disassembly_status": (
+            "byte_real_only" if byte_real_only_bodies else "semantic_instruction_rows_present"
+        ),
+        "label_xref_status": (
+            "generated_labels_without_xrefs"
+            if all(row["generated_label_count"] for row in rows)
+            and not any(row["generated_xref_count"] for row in rows)
+            else "generated_labels_and_xrefs_present"
+        ),
+        "residual_status": "explicit" if checklist["residuals_explicit"] else "blocked",
+    }
+    semantic_closeout_status = (
+        "blocked_byte_real_only"
+        if byte_real_only_bodies
+        else "semantic_source_complete_for_known_bounds"
+        if all(checklist.values())
+        else "blocked"
+    )
     return {
         "kind": "macos_source_quality_gate_v1",
-        "status": "passed_with_deferred_semantics" if all(checklist.values()) else "blocked",
+        "status": "byte_real_baseline" if all(checklist.values()) else "blocked",
+        "semantic_closeout_status": semantic_closeout_status,
         "scope": "current MPW Tools Asm fixture",
+        "baseline_status": "passed_with_deferred_semantics",
+        "baseline_status_meaning": (
+            "byte preservation, source ordering, labels, and residual accounting are present; "
+            "this is not semantic source closeout"
+        ),
+        "semantic_components": semantic_components,
         "does_not_claim": [
             "accepted byte-entry proof",
             "decoded Segment Loader relocation/fixup semantics",
             "A5 lifetime proof",
             "resource-fork round trip",
+        ],
+        "non_blocking_for_semantic_disassembly": [
+            "missing human semantic names",
+            "missing original source symbols",
+            "deferred A5 lifetime proof",
+            "deferred Segment Loader fixup decoding for current zero-offset fixture spans",
         ],
         "checklist": checklist,
         "resources": rows,
@@ -415,6 +451,13 @@ def _source_quality_resource_row(
     labels = _source_quality_labels(detail, section)
     residuals = _source_quality_residuals(detail, ranges, payload_size=payload_size)
     reachable = _source_quality_reachable_evidence(detail, section)
+    executable_body_spans = [
+        item
+        for item in ranges
+        if item.get("kind") in {"confirmed_code", "candidate_code", "code"}
+        and _int_value(item.get("end")) is not None
+        and (_int_value(item.get("end")) or 0) > (_int_value(item.get("start")) or 0)
+    ]
     return {
         "resource_id": resource_id,
         "resource_name": detail.get("name"),
@@ -426,8 +469,15 @@ def _source_quality_resource_row(
         "orphan_bucket_present": any("orphan" in str(item.get("kind") or "").lower() for item in ranges),
         "legacy_orphan_ranges_reclassified": len(_sequence(detail.get("orphan_ranges"))),
         "renders_only_byte_real_rows": True,
+        "executable_body_span_count": len(executable_body_spans),
+        "semantic_instruction_row_count": 0,
+        "semantic_data_row_count": 0,
+        "byte_real_only_executable_body": bool(executable_body_spans),
         "stable_labels_present": bool(labels),
         "labels": labels,
+        "generated_label_count": len(labels),
+        "generated_xref_count": 0,
+        "human_semantic_names_required": False,
         "residuals_explicit": all(item.get("status") in {"candidate", "deferred"} for item in residuals),
         "residuals": residuals,
         "reachable_code_evidence_recorded": bool(reachable),

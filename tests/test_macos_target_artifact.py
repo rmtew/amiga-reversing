@@ -293,7 +293,12 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     assert "; CODE 1 Main byte-real source follows." in asm_text
     assert "$20,$5F" in asm_text
     assert "; Source quality gate" in asm_text
-    assert ";   status: passed_with_deferred_semantics" in asm_text
+    assert ";   status: byte_real_baseline" in asm_text
+    assert ";   semantic_closeout_status: blocked_byte_real_only" in asm_text
+    assert ";   baseline_status: passed_with_deferred_semantics" in asm_text
+    assert "this is not semantic source closeout" in asm_text
+    assert ";     semantic_disassembly_status: byte_real_only" in asm_text
+    assert ";     label_xref_status: generated_labels_without_xrefs" in asm_text
     assert ";     no_fake_disassembly: True" in asm_text
     assert ";     no_vague_orphan_bucket: True" in asm_text
     assert ";     range_ownership_complete: True" in asm_text
@@ -303,9 +308,13 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     assert ";     accepted byte-entry proof" in asm_text
     assert ";     decoded Segment Loader relocation/fixup semantics" in asm_text
     assert ";     A5 lifetime proof" in asm_text
+    assert ";   non_blocking_for_semantic_disassembly:" in asm_text
+    assert ";     missing human semantic names" in asm_text
+    assert ";     deferred A5 lifetime proof" in asm_text
     assert (
         ";     CODE 1: section=macos-code-CODE-1 ownership=candidate_code,metadata "
-        "coverage=True labels=6 reachable_evidence=3 residuals=1"
+        "coverage=True labels=6 xrefs=0 instructions=0 body_spans=1 byte_real_only_body=True "
+        "reachable_evidence=3 residuals=1"
     ) in asm_text
     assert (
         ";       residual candidate_code payload[40..29024) status=candidate "
