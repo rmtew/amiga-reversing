@@ -262,6 +262,23 @@ Required outcome:
   nonzero documented relocation-info offset, or equivalent primary-source
   evidence for another format, is available.
 
+### 024-010: Fixup Inventory Aggregate Status
+
+Tighten the inventory aggregate status before decoder work resumes.
+
+Required outcome:
+
+- Top-level `segment_loader_fixup_inventory_v1.status` reports `malformed` if
+  any record is malformed, even when another record is parseable.
+- Top-level status reports `parseable` only when at least one record is
+  parseable and no records are malformed.
+- Top-level status remains `blocked` for all-absent/unsupported/custom-unknown
+  inventories, including current MPW `Asm`.
+- The inventory emits record counts for `absent`, `parseable`, `unsupported`,
+  `custom_unknown`, and `malformed`.
+- Native C/API tests cover all-blocked, parseable-only, malformed-only, and
+  mixed parseable+malformed aggregation.
+
 ## Verification Plan
 
 Minimum proof for every issue:
@@ -285,6 +302,7 @@ cmd /c src\precommit.bat
 - 024-001 starts first.
 - 024-009 follows 024-001 and reopens the path after the current-parser
   boundary result.
+- 024-010 follows 024-009.
 - 024-002 follows 024-009.
 - 024-003 follows 024-002.
 - 024-004 follows 024-003.
