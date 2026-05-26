@@ -9,18 +9,52 @@
 ; This is an illustrative source artifact, not an MPW round-trip contract.
 ; Durable input comes from the C-backed HFS/resource/CODE summary and shared m68k listing renderer.
 
-; Selected CODE segment source
+; CODE source body sections
+
+; CODE 0 unknown source section
+;   source_section_id: macos-code-CODE-0
 ;   source_kind: macos_code_resource
 ;   backend: macos-code
+;   status: covered_placeholder
+;   resource_type: CODE
+;   id: 0
+;   name: unknown
+;   role: code0_metadata
+;   code_kind: jump_table_segment
+;   payload_size: 2784
+;   payload_sha256: 8413f3bca1604845bb778c2a7701a067aa8b84853e7c77a60e63166d5b6399c1
+;   presentation: kind=c_owned_restored_source_packet status=covered visible=True identity=macos-code:CODE:0
+;   listing: kind=metadata available=False reason=CODE 0 is jump-table/application metadata, not ordinary m68k code
+;   restored_source_model:
+;     model=restored_source_model_v1 round_trip_required=false
+;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
+;     code_resource=CODE 0 name=unknown
+;     a5_world status=deferred parser_use=unknown
+;     ownership_ranges:
+;       0: role=metadata span=0..2784 status=validated parser_use=accepted_parser_output reason=code0_jump_table_metadata
+;     source_reference_records:
+;       0: kind=code0_routing_table ownership=unknown status=validated parser_use=accepted_parser_output target=CODE resource dispatch table
+;       1: kind=a5_world_context_placeholder ownership=0 status=deferred parser_use=unknown target=classic_mac_a5_world
+;   source_body_ranges:
+;     metadata payload[0..2784) size=2784 entrypoint=False status=validated parser_use=accepted_parser_output evidence=code0_jump_table_metadata fact=macos.code_resource.0.jump_table_metadata
+;   byte_preserving_placeholder: CODE 0 payload[0..2784) sha256=8413f3bca1604845bb778c2a7701a067aa8b84853e7c77a60e63166d5b6399c1
+;   placeholder_reason: full CODE source listing remains deferred; current source body preserves exact C-owned ranges and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
+;   preview_rows: none
+
+; CODE 1 Main source section
+;   source_section_id: macos-code-CODE-1
+;   source_kind: macos_code_resource
+;   backend: macos-code
+;   status: selected_full_listing
 ;   resource_type: CODE
 ;   id: 1
 ;   name: Main
-;   fork: resource
+;   role: code_segment
+;   code_kind: code_segment
 ;   payload_size: 29024
-;   code_entry_offset: 40
-;   code_bytes_size: 28984
 ;   payload_sha256: 4a543f6fd1c542fccd38ec9f469b06f65c797dfd8b226fefc9f576faafbe70f5
-;   code_bytes_sha256: 4633044ba0d2a816a0e482a9fb3b65bcd8daf699882df8f95939ad018f51879c
+;   presentation: kind=c_owned_restored_source_packet status=covered visible=True identity=macos-code:CODE:1
+;   listing: kind=full_listing available=True reason=unknown
 ;   restored_source_model:
 ;     model=restored_source_model_v1 round_trip_required=false
 ;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
@@ -32,9 +66,15 @@
 ;     source_reference_records:
 ;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
 ;       1: kind=a5_world_context_placeholder ownership=1 status=deferred parser_use=unknown target=classic_mac_a5_world
+;   source_body_ranges:
+;     metadata payload[0..40) size=40 entrypoint=False status=validated parser_use=accepted_parser_output evidence=far_model_segment_header fact=macos.code_resource.nonzero.segment_header
+;     candidate_code payload[40..29024) size=28984 entrypoint=True status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;   selected_code_entry_offset: 40
+;   selected_code_bytes_size: 28984
+;   code_bytes_sha256: 4633044ba0d2a816a0e482a9fb3b65bcd8daf699882df8f95939ad018f51879c
 ;   listing_rows: 1814
 
-; CODE 1 Main listing follows. Offsets are local to the selected CODE resource code bytes.
+; CODE 1 Main full selected listing follows.
 ; Classic Mac OS CODE resource listing
 ; source kind: macos_code_resource
 ; HFS path: MPW-GM/MPW/Tools/Asm
@@ -1856,6 +1896,1250 @@ loc_0_00000000:
 	dc.b $69,$6E,$69,$74,$69,$61,$6C,$69,$7A,$61,$74,$69,$6F,$6E,$20,$66
 	dc.b $61,$69,$6C,$65,$64,$21,$42,$A7,$4E,$BA,$F6,$DA,$42,$A7,$4E,$BA
 	dc.b $F6,$D4
+
+; CODE 2 FPOpTable source section
+;   source_section_id: macos-code-CODE-2
+;   source_kind: macos_code_resource
+;   backend: macos-code
+;   status: partial_preview_with_exact_placeholders
+;   resource_type: CODE
+;   id: 2
+;   name: FPOpTable
+;   role: code_segment
+;   code_kind: code_segment
+;   payload_size: 7788
+;   payload_sha256: a33f1dfe28237a5ee6f9ba7a96540e8e4842a7e6207575db5f0479b8c622a4f2
+;   presentation: kind=c_owned_restored_source_packet status=covered visible=True identity=macos-code:CODE:2
+;   listing: kind=candidate_preview available=True reason=bounded candidate preview; full listing remains deferred
+;   restored_source_model:
+;     model=restored_source_model_v1 round_trip_required=false
+;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
+;     code_resource=CODE 2 name=unknown
+;     a5_world status=deferred parser_use=unknown
+;     ownership_ranges:
+;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
+;       1: role=data span=40..374 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       2: role=candidate_code span=374..7788 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     source_reference_records:
+;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
+;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
+;   source_body_ranges:
+;     metadata payload[0..40) size=40 entrypoint=False status=validated parser_use=accepted_parser_output evidence=far_model_segment_header fact=macos.code_resource.nonzero.segment_header
+;     data payload[40..374) size=334 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;     candidate_code payload[374..7788) size=7414 entrypoint=True status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;   byte_preserving_placeholder: CODE 2 payload[0..7788) sha256=a33f1dfe28237a5ee6f9ba7a96540e8e4842a7e6207575db5f0479b8c622a4f2
+;   placeholder_reason: full CODE source listing remains deferred; current source body preserves exact C-owned ranges and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
+;   bounded_preview_rows:
+;     preview payload[374..438) range=candidate_code truncated=True status=candidate parser_use=candidate_only reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
+;       374: bytes=00000c12 kind=instruction decode=decoded text=ori.b #$C12,d0
+;       378: bytes=0c300c3e0000 kind=instruction decode=decoded text=cmpi.b #$C3E,$0(a0,d0.w)
+;       384: bytes=0c6a0cc20000 kind=instruction decode=decoded text=cmpi.w #3266,$0000(a2)
+;       390: bytes=0ce20d9a0dac0dda0dec000000000e1a kind=data decode=decoded_data text=dc.b $0C,$E2,$0D,$9A,$0D,$AC,$0D,$DA,$0D,$EC,$00,$00,$00,$00,$0E,$1A
+;       406: bytes=0e280e4600000e560e7a0e9600000ec0 kind=data decode=decoded_data text=dc.b $0E,$28,$0E,$46,$00,$00,$0E,$56,$0E,$7A,$0E,$96,$00,$00,$0E,$C0
+;       422: bytes=00000ed000000ede0efe0f180f340f58 kind=data decode=decoded_data text=dc.b $00,$00,$0E,$D0,$00,$00,$0E,$DE,$0E,$FE,$0F,$18,$0F,$34,$0F,$58
+;       deferred scope=relocation_fixups status=deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+
+; CODE 3 Init source section
+;   source_section_id: macos-code-CODE-3
+;   source_kind: macos_code_resource
+;   backend: macos-code
+;   status: partial_preview_with_exact_placeholders
+;   resource_type: CODE
+;   id: 3
+;   name: Init
+;   role: code_segment
+;   code_kind: code_segment
+;   payload_size: 18252
+;   payload_sha256: 331fc8e7daf79d4e733760cb8ad413ade51431a01dd6c19c4f73720f562b08e4
+;   presentation: kind=c_owned_restored_source_packet status=covered visible=True identity=macos-code:CODE:3
+;   listing: kind=candidate_preview available=True reason=bounded candidate preview; full listing remains deferred
+;   restored_source_model:
+;     model=restored_source_model_v1 round_trip_required=false
+;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
+;     code_resource=CODE 3 name=unknown
+;     a5_world status=deferred parser_use=unknown
+;     ownership_ranges:
+;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
+;       1: role=data span=40..302 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       2: role=candidate_code span=302..18252 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     source_reference_records:
+;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
+;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
+;   source_body_ranges:
+;     metadata payload[0..40) size=40 entrypoint=False status=validated parser_use=accepted_parser_output evidence=far_model_segment_header fact=macos.code_resource.nonzero.segment_header
+;     data payload[40..302) size=262 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;     candidate_code payload[302..18252) size=17950 entrypoint=True status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;   byte_preserving_placeholder: CODE 3 payload[0..18252) sha256=331fc8e7daf79d4e733760cb8ad413ade51431a01dd6c19c4f73720f562b08e4
+;   placeholder_reason: full CODE source listing remains deferred; current source body preserves exact C-owned ranges and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
+;   bounded_preview_rows:
+;     preview payload[302..366) range=candidate_code truncated=True status=candidate parser_use=candidate_only reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
+;       302: bytes=4a9f kind=instruction decode=decoded text=tst.l (a7)+
+;       304: bytes=6c04 kind=instruction decode=decoded text=bge.b loc_0_00000008
+;       306: bytes=422efefc kind=instruction decode=decoded text=clr.b -$0104(a6)
+;       310: bytes=4267 kind=instruction decode=decoded text=clr.w -(a7)
+;       312: bytes=486efefc kind=instruction decode=decoded text=pea.l -$0104(a6)
+;       316: bytes=486ded70 kind=instruction decode=decoded text=pea.l -$1290(a5)
+;       320: bytes=4ead0062 kind=instruction decode=decoded text=jsr $0062(a5)
+;       324: bytes=1b5feb69 kind=instruction decode=decoded text=move.b (a7)+,-$1497(a5)
+;       328: bytes=7000 kind=instruction decode=decoded text=moveq.l #0,d0
+;       330: bytes=2b40ed62 kind=instruction decode=decoded text=move.l d0,-$129E(a5)
+;       334: bytes=1b7c0001ee70 kind=instruction decode=decoded text=move.b #$1,-$1190(a5)
+;       340: bytes=426ded6c kind=instruction decode=decoded text=clr.w -$1294(a5)
+;       344: bytes=7000 kind=instruction decode=decoded text=moveq.l #0,d0
+;       346: bytes=2b40ed68 kind=instruction decode=decoded text=move.l d0,-$1298(a5)
+;       350: bytes=422decfe kind=instruction decode=decoded text=clr.b -$1302(a5)
+;       354: bytes=7000 kind=instruction decode=decoded text=moveq.l #0,d0
+;       356: bytes=2b40ecf8 kind=instruction decode=decoded text=move.l d0,-$1308(a5)
+;       360: bytes=422df073 kind=instruction decode=decoded text=clr.b -$0F8D(a5)
+;       364: bytes=422d kind=data decode=decoded_data text=dc.b $42,$2D
+;       deferred scope=relocation_fixups status=deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+
+; CODE 4 IOMgr source section
+;   source_section_id: macos-code-CODE-4
+;   source_kind: macos_code_resource
+;   backend: macos-code
+;   status: partial_preview_with_exact_placeholders
+;   resource_type: CODE
+;   id: 4
+;   name: IOMgr
+;   role: code_segment
+;   code_kind: code_segment
+;   payload_size: 6426
+;   payload_sha256: a697293e579b91031cb9bb37cd80a4f47d2acb9eff60a4f4b7e3cb9a18fd4fca
+;   presentation: kind=c_owned_restored_source_packet status=covered visible=True identity=macos-code:CODE:4
+;   listing: kind=candidate_preview available=True reason=bounded candidate preview; full listing remains deferred
+;   restored_source_model:
+;     model=restored_source_model_v1 round_trip_required=false
+;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
+;     code_resource=CODE 4 name=unknown
+;     a5_world status=deferred parser_use=unknown
+;     ownership_ranges:
+;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
+;       1: role=data span=40..468 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       2: role=candidate_code span=468..6426 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     source_reference_records:
+;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
+;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
+;   source_body_ranges:
+;     metadata payload[0..40) size=40 entrypoint=False status=validated parser_use=accepted_parser_output evidence=far_model_segment_header fact=macos.code_resource.nonzero.segment_header
+;     data payload[40..468) size=428 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;     candidate_code payload[468..6426) size=5958 entrypoint=True status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;   byte_preserving_placeholder: CODE 4 payload[0..6426) sha256=a697293e579b91031cb9bb37cd80a4f47d2acb9eff60a4f4b7e3cb9a18fd4fca
+;   placeholder_reason: full CODE source listing remains deferred; current source body preserves exact C-owned ranges and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
+;   bounded_preview_rows:
+;     preview payload[468..532) range=candidate_code truncated=True status=candidate parser_use=candidate_only reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
+;       468: bytes=fd fc kind=data decode=fallback_data text=dc.w $fdfc
+;       470: bytes=48 e7 kind=data decode=fallback_data text=dc.w $48e7
+;       472: bytes=01 08 kind=data decode=fallback_data text=dc.w $0108
+;       474: bytes=28 6e kind=data decode=fallback_data text=dc.w $286e
+;       476: bytes=00 0a kind=data decode=fallback_data text=dc.w $000a
+;       478: bytes=42 67 kind=data decode=fallback_data text=dc.w $4267
+;       480: bytes=2f 0c kind=data decode=fallback_data text=dc.w $2f0c
+;       482: bytes=48 6e kind=data decode=fallback_data text=dc.w $486e
+;       484: bytes=ff 00 kind=data decode=fallback_data text=dc.w $ff00
+;       486: bytes=48 6e kind=data decode=fallback_data text=dc.w $486e
+;       488: bytes=fe fe kind=data decode=fallback_data text=dc.w $fefe
+;       490: bytes=48 6e kind=data decode=fallback_data text=dc.w $486e
+;       492: bytes=fe ff kind=data decode=fallback_data text=dc.w $feff
+;       494: bytes=4e ad kind=data decode=fallback_data text=dc.w $4ead
+;       496: bytes=09 0a kind=data decode=fallback_data text=dc.w $090a
+;       498: bytes=3e 1f kind=data decode=fallback_data text=dc.w $3e1f
+;       500: bytes=3d 47 kind=data decode=fallback_data text=dc.w $3d47
+;       502: bytes=00 0e kind=data decode=fallback_data text=dc.w $000e
+;       504: bytes=10 2e kind=data decode=fallback_data text=dc.w $102e
+;       506: bytes=fe ff kind=data decode=fallback_data text=dc.w $feff
+;       508: bytes=67 52 kind=data decode=fallback_data text=dc.w $6752
+;       510: bytes=4a 47 kind=data decode=fallback_data text=dc.w $4a47
+;       512: bytes=57 c0 kind=data decode=fallback_data text=dc.w $57c0
+;       514: bytes=4a 00 kind=data decode=fallback_data text=dc.w $4a00
+;       516: bytes=66 0a kind=data decode=fallback_data text=dc.w $660a
+;       518: bytes=72 d5 kind=data decode=fallback_data text=dc.w $72d5
+;       520: bytes=b2 47 kind=data decode=fallback_data text=dc.w $b247
+;       522: bytes=57 c1 kind=data decode=fallback_data text=dc.w $57c1
+;       524: bytes=80 01 kind=data decode=fallback_data text=dc.w $8001
+;       526: bytes=67 0c kind=data decode=fallback_data text=dc.w $670c
+;       528: bytes=48 6e kind=data decode=fallback_data text=dc.w $486e
+;       530: bytes=ff 00 kind=data decode=fallback_data text=dc.w $ff00
+;       deferred scope=relocation_fixups status=deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+
+; CODE 5 Macros source section
+;   source_section_id: macos-code-CODE-5
+;   source_kind: macos_code_resource
+;   backend: macos-code
+;   status: partial_preview_with_exact_placeholders
+;   resource_type: CODE
+;   id: 5
+;   name: Macros
+;   role: code_segment
+;   code_kind: code_segment
+;   payload_size: 26638
+;   payload_sha256: 90b898d2148ba2c3b798bed0c8c5dc936fba9ed3e8b958d279db4b279a033dfc
+;   presentation: kind=c_owned_restored_source_packet status=covered visible=True identity=macos-code:CODE:5
+;   listing: kind=candidate_preview available=True reason=bounded candidate preview; full listing remains deferred
+;   restored_source_model:
+;     model=restored_source_model_v1 round_trip_required=false
+;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
+;     code_resource=CODE 5 name=unknown
+;     a5_world status=deferred parser_use=unknown
+;     ownership_ranges:
+;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
+;       1: role=data span=40..212 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       2: role=candidate_code span=212..26638 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     source_reference_records:
+;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
+;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
+;   source_body_ranges:
+;     metadata payload[0..40) size=40 entrypoint=False status=validated parser_use=accepted_parser_output evidence=far_model_segment_header fact=macos.code_resource.nonzero.segment_header
+;     data payload[40..212) size=172 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;     candidate_code payload[212..26638) size=26426 entrypoint=True status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;   byte_preserving_placeholder: CODE 5 payload[0..26638) sha256=90b898d2148ba2c3b798bed0c8c5dc936fba9ed3e8b958d279db4b279a033dfc
+;   placeholder_reason: full CODE source listing remains deferred; current source body preserves exact C-owned ranges and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
+;   bounded_preview_rows:
+;     preview payload[212..276) range=candidate_code truncated=True status=candidate parser_use=candidate_only reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
+;       212: bytes=486efdf2 kind=instruction decode=decoded text=pea.l -$020E(a6)
+;       216: bytes=486efdf1 kind=instruction decode=decoded text=pea.l -$020F(a6)
+;       220: bytes=486efdee kind=instruction decode=decoded text=pea.l -$0212(a6)
+;       224: bytes=4ead022a kind=instruction decode=decoded text=jsr $022A(a5)
+;       228: bytes=101f kind=instruction decode=decoded text=move.b (a7)+,d0
+;       230: bytes=660a kind=instruction decode=decoded text=bne.b loc_0_0000001E
+;       232: bytes=3f2efdee kind=instruction decode=decoded text=move.w -$0212(a6),-(a7)
+;       236: bytes=4ead07ca kind=instruction decode=decoded text=jsr $07CA(a5)
+;       240: bytes=6054 kind=data decode=decoded_data text=dc.b $60,$54
+;       242: bytes=102efdf1 kind=instruction decode=decoded text=move.b -$020F(a6),d0
+;       246: bytes=661a kind=instruction decode=decoded text=bne.b loc_0_0000003E
+;       248: bytes=594f kind=instruction decode=decoded text=subq.w #4,a7
+;       250: bytes=2f2efdf2 kind=instruction decode=decoded text=move.l -$020E(a6),-(a7)
+;       254: bytes=4ead00c2 kind=instruction decode=decoded text=jsr $00C2(a5)
+;       258: bytes=205f kind=instruction decode=decoded text=movea.l (a7)+,a0
+;       260: bytes=7000 kind=instruction decode=decoded text=moveq.l #0,d0
+;       262: bytes=1018 kind=instruction decode=decoded text=move.b (a0)+,d0
+;       264: bytes=6002 kind=instruction decode=decoded text=bra.b loc_0_00000038
+;       266: bytes=18d8 kind=instruction decode=decoded text=move.b (a0)+,(a4)+
+;       268: bytes=51c8fffc kind=instruction decode=decoded text=dbf.w d0,loc_0_00000036
+;       272: bytes=6034 kind=data decode=decoded_data text=dc.b $60,$34
+;       274: bytes=5300 kind=instruction decode=decoded text=subq.b #1,d0
+;       deferred scope=relocation_fixups status=deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+
+; CODE 6 OpTable source section
+;   source_section_id: macos-code-CODE-6
+;   source_kind: macos_code_resource
+;   backend: macos-code
+;   status: partial_preview_with_exact_placeholders
+;   resource_type: CODE
+;   id: 6
+;   name: OpTable
+;   role: code_segment
+;   code_kind: code_segment
+;   payload_size: 15158
+;   payload_sha256: 75005bca2e9e007ce374020416127735d9096e064806e4e1e1b888cd3ba8a9cf
+;   presentation: kind=c_owned_restored_source_packet status=covered visible=True identity=macos-code:CODE:6
+;   listing: kind=candidate_preview available=True reason=bounded candidate preview; full listing remains deferred
+;   restored_source_model:
+;     model=restored_source_model_v1 round_trip_required=false
+;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
+;     code_resource=CODE 6 name=unknown
+;     a5_world status=deferred parser_use=unknown
+;     ownership_ranges:
+;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
+;       1: role=data span=40..58 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       2: role=candidate_code span=58..15158 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     source_reference_records:
+;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
+;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
+;   source_body_ranges:
+;     metadata payload[0..40) size=40 entrypoint=False status=validated parser_use=accepted_parser_output evidence=far_model_segment_header fact=macos.code_resource.nonzero.segment_header
+;     data payload[40..58) size=18 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;     candidate_code payload[58..15158) size=15100 entrypoint=True status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;   byte_preserving_placeholder: CODE 6 payload[0..15158) sha256=75005bca2e9e007ce374020416127735d9096e064806e4e1e1b888cd3ba8a9cf
+;   placeholder_reason: full CODE source listing remains deferred; current source body preserves exact C-owned ranges and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
+;   bounded_preview_rows:
+;     preview payload[58..122) range=candidate_code truncated=True status=candidate parser_use=candidate_only reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
+;       58: bytes=7400 kind=instruction decode=decoded text=moveq.l #0,d2
+;       60: bytes=60722008080000006702528052802040 kind=data decode=decoded_data text=dc.b $60,$72,$20,$08,$08,$00,$00,$00,$67,$02,$52,$80,$52,$80,$20,$40
+;       76: bytes=584f12182408225f328110181218225f kind=data decode=decoded_data text=dc.b $58,$4F,$12,$18,$24,$08,$22,$5F,$32,$81,$10,$18,$12,$18,$22,$5F
+;       92: bytes=328108000006661e0800000566181210 kind=data decode=decoded_data text=dc.b $32,$81,$08,$00,$00,$06,$66,$1E,$08,$00,$00,$05,$66,$18,$12,$10
+;       108: bytes=02010023b26df3986f0c1b7c0001 kind=data decode=decoded_data text=dc.b $02,$01,$00,$23,$B2,$6D,$F3,$98,$6F,$0C,$1B,$7C,$00,$01
+;       deferred scope=relocation_fixups status=deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+
+; CODE 7 POpTable source section
+;   source_section_id: macos-code-CODE-7
+;   source_kind: macos_code_resource
+;   backend: macos-code
+;   status: partial_preview_with_exact_placeholders
+;   resource_type: CODE
+;   id: 7
+;   name: POpTable
+;   role: code_segment
+;   code_kind: code_segment
+;   payload_size: 4142
+;   payload_sha256: 3bc5de90c439ad5e0f7e5d4635b445022db8ab231a9b43981dbd95673ac0b78e
+;   presentation: kind=c_owned_restored_source_packet status=covered visible=True identity=macos-code:CODE:7
+;   listing: kind=candidate_preview available=True reason=bounded candidate preview; full listing remains deferred
+;   restored_source_model:
+;     model=restored_source_model_v1 round_trip_required=false
+;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
+;     code_resource=CODE 7 name=unknown
+;     a5_world status=deferred parser_use=unknown
+;     ownership_ranges:
+;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
+;       1: role=data span=40..352 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       2: role=candidate_code span=352..4142 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     source_reference_records:
+;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
+;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
+;   source_body_ranges:
+;     metadata payload[0..40) size=40 entrypoint=False status=validated parser_use=accepted_parser_output evidence=far_model_segment_header fact=macos.code_resource.nonzero.segment_header
+;     data payload[40..352) size=312 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;     candidate_code payload[352..4142) size=3790 entrypoint=True status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;   byte_preserving_placeholder: CODE 7 payload[0..4142) sha256=3bc5de90c439ad5e0f7e5d4635b445022db8ab231a9b43981dbd95673ac0b78e
+;   placeholder_reason: full CODE source listing remains deferred; current source body preserves exact C-owned ranges and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
+;   bounded_preview_rows:
+;     preview payload[352..416) range=candidate_code truncated=True status=candidate parser_use=candidate_only reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
+;       352: bytes=00000736 kind=instruction decode=decoded text=ori.b #$736,d0
+;       356: bytes=00000000 kind=instruction decode=decoded text=ori.b #0,d0
+;       360: bytes=00000000 kind=instruction decode=decoded text=ori.b #0,d0
+;       364: bytes=00000000 kind=instruction decode=decoded text=ori.b #0,d0
+;       368: bytes=00000746 kind=instruction decode=decoded text=ori.b #$746,d0
+;       372: bytes=00000000 kind=instruction decode=decoded text=ori.b #0,d0
+;       376: bytes=00000000 kind=instruction decode=decoded text=ori.b #0,d0
+;       380: bytes=00000000 kind=instruction decode=decoded text=ori.b #0,d0
+;       384: bytes=00000000 kind=instruction decode=decoded text=ori.b #0,d0
+;       388: bytes=00000000 kind=instruction decode=decoded text=ori.b #0,d0
+;       392: bytes=00000000 kind=instruction decode=decoded text=ori.b #0,d0
+;       396: bytes=00000000 kind=instruction decode=decoded text=ori.b #0,d0
+;       400: bytes=00000754 kind=instruction decode=decoded text=ori.b #$754,d0
+;       404: bytes=0762 kind=instruction decode=decoded text=bchg.b d3,-(a2)
+;       406: bytes=00000000 kind=instruction decode=decoded text=ori.b #0,d0
+;       410: bytes=00000000 kind=instruction decode=decoded text=ori.b #0,d0
+;       414: bytes=0000 kind=data decode=decoded_data text=dc.w $0000
+;       deferred scope=relocation_fixups status=deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+
+; CODE 8 Listing source section
+;   source_section_id: macos-code-CODE-8
+;   source_kind: macos_code_resource
+;   backend: macos-code
+;   status: partial_preview_with_exact_placeholders
+;   resource_type: CODE
+;   id: 8
+;   name: Listing
+;   role: code_segment
+;   code_kind: code_segment
+;   payload_size: 1852
+;   payload_sha256: 5b3cd8756213ba73870bb353160d4e5dbb1a3bdd2da93157146d091b6949a2e9
+;   presentation: kind=c_owned_restored_source_packet status=covered visible=True identity=macos-code:CODE:8
+;   listing: kind=candidate_preview available=True reason=bounded candidate preview; full listing remains deferred
+;   restored_source_model:
+;     model=restored_source_model_v1 round_trip_required=false
+;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
+;     code_resource=CODE 8 name=unknown
+;     a5_world status=deferred parser_use=unknown
+;     ownership_ranges:
+;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
+;       1: role=data span=40..42 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       2: role=candidate_code span=42..1852 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     source_reference_records:
+;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
+;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
+;   source_body_ranges:
+;     metadata payload[0..40) size=40 entrypoint=False status=validated parser_use=accepted_parser_output evidence=far_model_segment_header fact=macos.code_resource.nonzero.segment_header
+;     data payload[40..42) size=2 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;     candidate_code payload[42..1852) size=1810 entrypoint=True status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;   byte_preserving_placeholder: CODE 8 payload[0..1852) sha256=5b3cd8756213ba73870bb353160d4e5dbb1a3bdd2da93157146d091b6949a2e9
+;   placeholder_reason: full CODE source listing remains deferred; current source body preserves exact C-owned ranges and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
+;   bounded_preview_rows:
+;     preview payload[42..106) range=candidate_code truncated=True status=candidate parser_use=candidate_only reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
+;       42: bytes=66 ee kind=data decode=fallback_data text=dc.w $66ee
+;       44: bytes=60 70 kind=data decode=fallback_data text=dc.w $6070
+;       46: bytes=0c 00 kind=data decode=fallback_data text=dc.w $0c00
+;       48: bytes=00 c0 kind=data decode=fallback_data text=dc.w $00c0
+;       50: bytes=66 6a kind=data decode=fallback_data text=dc.w $666a
+;       52: bytes=26 49 kind=data decode=fallback_data text=dc.w $2649
+;       54: bytes=42 41 kind=data decode=fallback_data text=dc.w $4241
+;       56: bytes=12 c0 kind=data decode=fallback_data text=dc.w $12c0
+;       58: bytes=51 ca kind=data decode=fallback_data text=dc.w $51ca
+;       60: bytes=00 04 kind=data decode=fallback_data text=dc.w $0004
+;       62: bytes=60 42 kind=data decode=fallback_data text=dc.w $6042
+;       64: bytes=10 18 kind=data decode=fallback_data text=dc.w $1018
+;       66: bytes=0c 00 kind=data decode=fallback_data text=dc.w $0c00
+;       68: bytes=00 40 kind=data decode=fallback_data text=dc.w $0040
+;       70: bytes=6d 06 kind=data decode=fallback_data text=dc.w $6d06
+;       72: bytes=0c 00 kind=data decode=fallback_data text=dc.w $0c00
+;       74: bytes=00 5a kind=data decode=fallback_data text=dc.w $005a
+;       76: bytes=6f e8 kind=data decode=fallback_data text=dc.w $6fe8
+;       78: bytes=0c 00 kind=data decode=fallback_data text=dc.w $0c00
+;       80: bytes=00 61 kind=data decode=fallback_data text=dc.w $0061
+;       82: bytes=6d 06 kind=data decode=fallback_data text=dc.w $6d06
+;       84: bytes=0c 00 kind=data decode=fallback_data text=dc.w $0c00
+;       86: bytes=00 7a kind=data decode=fallback_data text=dc.w $007a
+;       88: bytes=6f dc kind=data decode=fallback_data text=dc.w $6fdc
+;       90: bytes=0c 00 kind=data decode=fallback_data text=dc.w $0c00
+;       92: bytes=00 30 kind=data decode=fallback_data text=dc.w $0030
+;       94: bytes=6d 0a kind=data decode=fallback_data text=dc.w $6d0a
+;       96: bytes=0c 00 kind=data decode=fallback_data text=dc.w $0c00
+;       98: bytes=00 39 kind=data decode=fallback_data text=dc.w $0039
+;       100: bytes=6e 04 kind=data decode=fallback_data text=dc.w $6e04
+;       102: bytes=52 41 kind=data decode=fallback_data text=dc.w $5241
+;       104: bytes=60 ce kind=data decode=fallback_data text=dc.w $60ce
+;       deferred scope=relocation_fixups status=deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+
+; CODE 9 Pass2 source section
+;   source_section_id: macos-code-CODE-9
+;   source_kind: macos_code_resource
+;   backend: macos-code
+;   status: partial_preview_with_exact_placeholders
+;   resource_type: CODE
+;   id: 9
+;   name: Pass2
+;   role: code_segment
+;   code_kind: code_segment
+;   payload_size: 13946
+;   payload_sha256: 0361ae9dcb47f31cf559372a3e42c672dcfb8920b332d4f900a7124ab6c70bf3
+;   presentation: kind=c_owned_restored_source_packet status=covered visible=True identity=macos-code:CODE:9
+;   listing: kind=candidate_preview available=True reason=bounded candidate preview; full listing remains deferred
+;   restored_source_model:
+;     model=restored_source_model_v1 round_trip_required=false
+;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
+;     code_resource=CODE 9 name=unknown
+;     a5_world status=deferred parser_use=unknown
+;     ownership_ranges:
+;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
+;       1: role=data span=40..712 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       2: role=candidate_code span=712..13946 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     source_reference_records:
+;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
+;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
+;   source_body_ranges:
+;     metadata payload[0..40) size=40 entrypoint=False status=validated parser_use=accepted_parser_output evidence=far_model_segment_header fact=macos.code_resource.nonzero.segment_header
+;     data payload[40..712) size=672 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;     candidate_code payload[712..13946) size=13234 entrypoint=True status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;   byte_preserving_placeholder: CODE 9 payload[0..13946) sha256=0361ae9dcb47f31cf559372a3e42c672dcfb8920b332d4f900a7124ab6c70bf3
+;   placeholder_reason: full CODE source listing remains deferred; current source body preserves exact C-owned ranges and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
+;   bounded_preview_rows:
+;     preview payload[712..776) range=candidate_code truncated=True status=candidate parser_use=candidate_only reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
+;       712: bytes=21860000 kind=instruction decode=decoded text=move.l d6,$0(a0,d0.w)
+;       716: bytes=6000ff3c0c06001e6d084a2efffe6700 kind=data decode=decoded_data text=dc.b $60,$00,$FF,$3C,$0C,$06,$00,$1E,$6D,$08,$4A,$2E,$FF,$FE,$67,$00
+;       732: bytes=ff2e1d46ffff4886dc463c3b60064efb kind=data decode=decoded_data text=dc.b $FF,$2E,$1D,$46,$FF,$FF,$48,$86,$DC,$46,$3C,$3B,$60,$06,$4E,$FB
+;       748: bytes=60020266037c0388039c03b403ca03d0 kind=data decode=decoded_data text=dc.b $60,$02,$02,$66,$03,$7C,$03,$88,$03,$9C,$03,$B4,$03,$CA,$03,$D0
+;       764: bytes=03d603da03e003ec29102910 kind=data decode=decoded_data text=dc.b $03,$D6,$03,$DA,$03,$E0,$03,$EC,$29,$10,$29,$10
+;       deferred scope=relocation_fixups status=deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+
+; CODE 10 FinishUp source section
+;   source_section_id: macos-code-CODE-10
+;   source_kind: macos_code_resource
+;   backend: macos-code
+;   status: partial_preview_with_exact_placeholders
+;   resource_type: CODE
+;   id: 10
+;   name: FinishUp
+;   role: code_segment
+;   code_kind: code_segment
+;   payload_size: 1542
+;   payload_sha256: 2d5d27affd131aaa28eb0bd33157051e8f30ee3cdc054df4aad3011bdb22c1e1
+;   presentation: kind=c_owned_restored_source_packet status=covered visible=True identity=macos-code:CODE:10
+;   listing: kind=candidate_preview available=True reason=bounded candidate preview; full listing remains deferred
+;   restored_source_model:
+;     model=restored_source_model_v1 round_trip_required=false
+;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
+;     code_resource=CODE 10 name=unknown
+;     a5_world status=deferred parser_use=unknown
+;     ownership_ranges:
+;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
+;       1: role=data span=40..148 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       2: role=candidate_code span=148..1542 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     source_reference_records:
+;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
+;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
+;   source_body_ranges:
+;     metadata payload[0..40) size=40 entrypoint=False status=validated parser_use=accepted_parser_output evidence=far_model_segment_header fact=macos.code_resource.nonzero.segment_header
+;     data payload[40..148) size=108 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;     candidate_code payload[148..1542) size=1394 entrypoint=True status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;   byte_preserving_placeholder: CODE 10 payload[0..1542) sha256=2d5d27affd131aaa28eb0bd33157051e8f30ee3cdc054df4aad3011bdb22c1e1
+;   placeholder_reason: full CODE source listing remains deferred; current source body preserves exact C-owned ranges and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
+;   bounded_preview_rows:
+;     preview payload[148..212) range=candidate_code truncated=True status=candidate parser_use=candidate_only reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
+;       148: bytes=4ed0 kind=instruction decode=decoded text=jmp (a0)
+;       150: bytes=8957524954454c494e4500004e56fe54 kind=data decode=decoded_data text=dc.b $89,$57,$52,$49,$54,$45,$4C,$49,$4E,$45,$00,$00,$4E,$56,$FE,$54
+;       166: bytes=48e70700102decff6728082d0004ed5c kind=data decode=decoded_data text=dc.b $48,$E7,$07,$00,$10,$2D,$EC,$FF,$67,$28,$08,$2D,$00,$04,$ED,$5C
+;       182: bytes=56c1c0014a00671a082d0000ed5d56c1 kind=data decode=decoded_data text=dc.b $56,$C1,$C0,$01,$4A,$00,$67,$1A,$08,$2D,$00,$00,$ED,$5D,$56,$C1
+;       198: bytes=c001670e42674ead080a486d080a kind=data decode=decoded_data text=dc.b $C0,$01,$67,$0E,$42,$67,$4E,$AD,$08,$0A,$48,$6D,$08,$0A
+;       deferred scope=relocation_fixups status=deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+
+; CODE 11 Dbg source section
+;   source_section_id: macos-code-CODE-11
+;   source_kind: macos_code_resource
+;   backend: macos-code
+;   status: partial_preview_with_exact_placeholders
+;   resource_type: CODE
+;   id: 11
+;   name: Dbg
+;   role: code_segment
+;   code_kind: code_segment
+;   payload_size: 3678
+;   payload_sha256: 04097ca27d77f09604177ac5e85019ecaed552d68ae2e9d50ae3b5a4e394c503
+;   presentation: kind=c_owned_restored_source_packet status=covered visible=True identity=macos-code:CODE:11
+;   listing: kind=candidate_preview available=True reason=bounded candidate preview; full listing remains deferred
+;   restored_source_model:
+;     model=restored_source_model_v1 round_trip_required=false
+;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
+;     code_resource=CODE 11 name=unknown
+;     a5_world status=deferred parser_use=unknown
+;     ownership_ranges:
+;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
+;       1: role=data span=40..836 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       2: role=candidate_code span=836..3678 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     source_reference_records:
+;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
+;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
+;   source_body_ranges:
+;     metadata payload[0..40) size=40 entrypoint=False status=validated parser_use=accepted_parser_output evidence=far_model_segment_header fact=macos.code_resource.nonzero.segment_header
+;     data payload[40..836) size=796 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;     candidate_code payload[836..3678) size=2842 entrypoint=True status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;   byte_preserving_placeholder: CODE 11 payload[0..3678) sha256=04097ca27d77f09604177ac5e85019ecaed552d68ae2e9d50ae3b5a4e394c503
+;   placeholder_reason: full CODE source listing remains deferred; current source body preserves exact C-owned ranges and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
+;   bounded_preview_rows:
+;     preview payload[836..900) range=candidate_code truncated=True status=candidate parser_use=candidate_only reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
+;       836: bytes=00 0c kind=data decode=fallback_data text=dc.w $000c
+;       838: bytes=4e d0 kind=data decode=fallback_data text=dc.w $4ed0
+;       840: bytes=89 43 kind=data decode=fallback_data text=dc.w $8943
+;       842: bytes=44 42 kind=data decode=fallback_data text=dc.w $4442
+;       844: bytes=47 45 kind=data decode=fallback_data text=dc.w $4745
+;       846: bytes=4e 54 kind=data decode=fallback_data text=dc.w $4e54
+;       848: bytes=52 59 kind=data decode=fallback_data text=dc.w $5259
+;       850: bytes=00 00 kind=data decode=fallback_data text=dc.w $0000
+;       852: bytes=4e 56 kind=data decode=fallback_data text=dc.w $4e56
+;       854: bytes=ff fc kind=data decode=fallback_data text=dc.w $fffc
+;       856: bytes=4e ba kind=data decode=fallback_data text=dc.w $4eba
+;       858: bytes=fb bc kind=data decode=fallback_data text=dc.w $fbbc
+;       860: bytes=59 8f kind=data decode=fallback_data text=dc.w $598f
+;       862: bytes=70 08 kind=data decode=fallback_data text=dc.w $7008
+;       864: bytes=3f 00 kind=data decode=fallback_data text=dc.w $3f00
+;       866: bytes=4e ba kind=data decode=fallback_data text=dc.w $4eba
+;       868: bytes=fc b4 kind=data decode=fallback_data text=dc.w $fcb4
+;       870: bytes=20 5f kind=data decode=fallback_data text=dc.w $205f
+;       872: bytes=2d 48 kind=data decode=fallback_data text=dc.w $2d48
+;       874: bytes=ff fc kind=data decode=fallback_data text=dc.w $fffc
+;       876: bytes=30 bc kind=data decode=fallback_data text=dc.w $30bc
+;       878: bytes=0e 00 kind=data decode=fallback_data text=dc.w $0e00
+;       880: bytes=20 2e kind=data decode=fallback_data text=dc.w $202e
+;       882: bytes=ff fc kind=data decode=fallback_data text=dc.w $fffc
+;       884: bytes=54 80 kind=data decode=fallback_data text=dc.w $5480
+;       886: bytes=2d 40 kind=data decode=fallback_data text=dc.w $2d40
+;       888: bytes=ff fc kind=data decode=fallback_data text=dc.w $fffc
+;       890: bytes=20 40 kind=data decode=fallback_data text=dc.w $2040
+;       892: bytes=30 ae kind=data decode=fallback_data text=dc.w $30ae
+;       894: bytes=00 08 kind=data decode=fallback_data text=dc.w $0008
+;       896: bytes=20 2e kind=data decode=fallback_data text=dc.w $202e
+;       898: bytes=ff fc kind=data decode=fallback_data text=dc.w $fffc
+;       deferred scope=relocation_fixups status=deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+
+; CODE 12 LoadDump source section
+;   source_section_id: macos-code-CODE-12
+;   source_kind: macos_code_resource
+;   backend: macos-code
+;   status: partial_preview_with_exact_placeholders
+;   resource_type: CODE
+;   id: 12
+;   name: LoadDump
+;   role: code_segment
+;   code_kind: code_segment
+;   payload_size: 6928
+;   payload_sha256: 9c563d29bea4465730181b661ea9a3a60d15276aa71a6be399b02b9a4091cbdb
+;   presentation: kind=c_owned_restored_source_packet status=covered visible=True identity=macos-code:CODE:12
+;   listing: kind=candidate_preview available=True reason=bounded candidate preview; full listing remains deferred
+;   restored_source_model:
+;     model=restored_source_model_v1 round_trip_required=false
+;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
+;     code_resource=CODE 12 name=unknown
+;     a5_world status=deferred parser_use=unknown
+;     ownership_ranges:
+;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
+;       1: role=data span=40..44 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       2: role=candidate_code span=44..6928 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     source_reference_records:
+;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
+;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
+;   source_body_ranges:
+;     metadata payload[0..40) size=40 entrypoint=False status=validated parser_use=accepted_parser_output evidence=far_model_segment_header fact=macos.code_resource.nonzero.segment_header
+;     data payload[40..44) size=4 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;     candidate_code payload[44..6928) size=6884 entrypoint=True status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;   byte_preserving_placeholder: CODE 12 payload[0..6928) sha256=9c563d29bea4465730181b661ea9a3a60d15276aa71a6be399b02b9a4091cbdb
+;   placeholder_reason: full CODE source listing remains deferred; current source body preserves exact C-owned ranges and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
+;   bounded_preview_rows:
+;     preview payload[44..108) range=candidate_code truncated=True status=candidate parser_use=candidate_only reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
+;       44: bytes=51 c8 kind=data decode=fallback_data text=dc.w $51c8
+;       46: bytes=ff fc kind=data decode=fallback_data text=dc.w $fffc
+;       48: bytes=20 5f kind=data decode=fallback_data text=dc.w $205f
+;       50: bytes=12 d8 kind=data decode=fallback_data text=dc.w $12d8
+;       52: bytes=12 d8 kind=data decode=fallback_data text=dc.w $12d8
+;       54: bytes=12 d8 kind=data decode=fallback_data text=dc.w $12d8
+;       56: bytes=12 d0 kind=data decode=fallback_data text=dc.w $12d0
+;       58: bytes=20 5f kind=data decode=fallback_data text=dc.w $205f
+;       60: bytes=12 d8 kind=data decode=fallback_data text=dc.w $12d8
+;       62: bytes=12 90 kind=data decode=fallback_data text=dc.w $1290
+;       64: bytes=20 42 kind=data decode=fallback_data text=dc.w $2042
+;       66: bytes=4e d0 kind=data decode=fallback_data text=dc.w $4ed0
+;       68: bytes=4e 56 kind=data decode=fallback_data text=dc.w $4e56
+;       70: bytes=fc ba kind=data decode=fallback_data text=dc.w $fcba
+;       72: bytes=48 e7 kind=data decode=fallback_data text=dc.w $48e7
+;       74: bytes=0f 08 kind=data decode=fallback_data text=dc.w $0f08
+;       76: bytes=28 6e kind=data decode=fallback_data text=dc.w $286e
+;       78: bytes=00 0e kind=data decode=fallback_data text=dc.w $000e
+;       80: bytes=1b 6e kind=data decode=fallback_data text=dc.w $1b6e
+;       82: bytes=00 0c kind=data decode=fallback_data text=dc.w $000c
+;       84: bytes=cb 27 kind=data decode=fallback_data text=dc.w $cb27
+;       86: bytes=70 01 kind=data decode=fallback_data text=dc.w $7001
+;       88: bytes=b0 6d kind=data decode=fallback_data text=dc.w $b06d
+;       90: bytes=cb 1c kind=data decode=fallback_data text=dc.w $cb1c
+;       92: bytes=6c 16 kind=data decode=fallback_data text=dc.w $6c16
+;       94: bytes=30 2d kind=data decode=fallback_data text=dc.w $302d
+;       96: bytes=cb 1c kind=data decode=fallback_data text=dc.w $cb1c
+;       98: bytes=53 40 kind=data decode=fallback_data text=dc.w $5340
+;       100: bytes=53 40 kind=data decode=fallback_data text=dc.w $5340
+;       102: bytes=41 ed kind=data decode=fallback_data text=dc.w $41ed
+;       104: bytes=ca d2 kind=data decode=fallback_data text=dc.w $cad2
+;       106: bytes=e5 40 kind=data decode=fallback_data text=dc.w $e540
+;       deferred scope=relocation_fixups status=deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+
+; CODE 13 Directives source section
+;   source_section_id: macos-code-CODE-13
+;   source_kind: macos_code_resource
+;   backend: macos-code
+;   status: partial_preview_with_exact_placeholders
+;   resource_type: CODE
+;   id: 13
+;   name: Directives
+;   role: code_segment
+;   code_kind: code_segment
+;   payload_size: 33354
+;   payload_sha256: 1358e27cbf9cb7da402416dfa830bd93f99a23e16da5c9972f63549d171a30c8
+;   presentation: kind=c_owned_restored_source_packet status=covered visible=True identity=macos-code:CODE:13
+;   listing: kind=candidate_preview available=True reason=bounded candidate preview; full listing remains deferred
+;   restored_source_model:
+;     model=restored_source_model_v1 round_trip_required=false
+;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
+;     code_resource=CODE 13 name=unknown
+;     a5_world status=deferred parser_use=unknown
+;     ownership_ranges:
+;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
+;       1: role=data span=40..44 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       2: role=candidate_code span=44..33354 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     source_reference_records:
+;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
+;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
+;   source_body_ranges:
+;     metadata payload[0..40) size=40 entrypoint=False status=validated parser_use=accepted_parser_output evidence=far_model_segment_header fact=macos.code_resource.nonzero.segment_header
+;     data payload[40..44) size=4 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;     candidate_code payload[44..33354) size=33310 entrypoint=True status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;   byte_preserving_placeholder: CODE 13 payload[0..33354) sha256=1358e27cbf9cb7da402416dfa830bd93f99a23e16da5c9972f63549d171a30c8
+;   placeholder_reason: full CODE source listing remains deferred; current source body preserves exact C-owned ranges and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
+;   bounded_preview_rows:
+;     preview payload[44..108) range=candidate_code truncated=True status=candidate parser_use=candidate_only reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
+;       44: bytes=0c03007a kind=instruction decode=decoded text=cmpi.b #122,d3
+;       48: bytes=6e04 kind=instruction decode=decoded text=bgt.b loc_0_0000000A
+;       50: bytes=04030020 kind=instruction decode=decoded text=subi.b #32,d3
+;       54: bytes=14c3 kind=instruction decode=decoded text=move.b d3,(a2)+
+;       56: bytes=51c8ffea600614d951c8fffc55426d08 kind=data decode=decoded_data text=dc.b $51,$C8,$FF,$EA,$60,$06,$14,$D9,$51,$C8,$FF,$FC,$55,$42,$6D,$08
+;       72: bytes=14fc002051cafffa14bc002e42421418 kind=data decode=decoded_data text=dc.b $14,$FC,$00,$20,$51,$CA,$FF,$FA,$14,$BC,$00,$2E,$42,$42,$14,$18
+;       88: bytes=b4416d1842405240244f36015343b10a kind=data decode=decoded_data text=dc.b $B4,$41,$6D,$18,$42,$40,$52,$40,$24,$4F,$36,$01,$53,$43,$B1,$0A
+;       104: bytes=56cbfffc kind=data decode=decoded_data text=dc.b $56,$CB,$FF,$FC
+;       deferred scope=relocation_fixups status=deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+
+; CODE 14 MemMgr source section
+;   source_section_id: macos-code-CODE-14
+;   source_kind: macos_code_resource
+;   backend: macos-code
+;   status: partial_preview_with_exact_placeholders
+;   resource_type: CODE
+;   id: 14
+;   name: MemMgr
+;   role: code_segment
+;   code_kind: code_segment
+;   payload_size: 1886
+;   payload_sha256: 14e851122fdae5910c2772def35a8b36c30dc7133cb92df8524f8a42ff5f8c70
+;   presentation: kind=c_owned_restored_source_packet status=covered visible=True identity=macos-code:CODE:14
+;   listing: kind=candidate_preview available=True reason=bounded candidate preview; full listing remains deferred
+;   restored_source_model:
+;     model=restored_source_model_v1 round_trip_required=false
+;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
+;     code_resource=CODE 14 name=unknown
+;     a5_world status=deferred parser_use=unknown
+;     ownership_ranges:
+;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
+;       1: role=data span=40..236 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       2: role=candidate_code span=236..1886 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     source_reference_records:
+;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
+;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
+;   source_body_ranges:
+;     metadata payload[0..40) size=40 entrypoint=False status=validated parser_use=accepted_parser_output evidence=far_model_segment_header fact=macos.code_resource.nonzero.segment_header
+;     data payload[40..236) size=196 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;     candidate_code payload[236..1886) size=1650 entrypoint=True status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;   byte_preserving_placeholder: CODE 14 payload[0..1886) sha256=14e851122fdae5910c2772def35a8b36c30dc7133cb92df8524f8a42ff5f8c70
+;   placeholder_reason: full CODE source listing remains deferred; current source body preserves exact C-owned ranges and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
+;   bounded_preview_rows:
+;     preview payload[236..300) range=candidate_code truncated=True status=candidate parser_use=candidate_only reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
+;       236: bytes=c8 4a kind=data decode=fallback_data text=dc.w $c84a
+;       238: bytes=60 0a kind=data decode=fallback_data text=dc.w $600a
+;       240: bytes=20 6c kind=data decode=fallback_data text=dc.w $206c
+;       242: bytes=00 0c kind=data decode=fallback_data text=dc.w $000c
+;       244: bytes=21 6c kind=data decode=fallback_data text=dc.w $216c
+;       246: bytes=00 08 kind=data decode=fallback_data text=dc.w $0008
+;       248: bytes=00 08 kind=data decode=fallback_data text=dc.w $0008
+;       250: bytes=29 6d kind=data decode=fallback_data text=dc.w $296d
+;       252: bytes=c8 3a kind=data decode=fallback_data text=dc.w $c83a
+;       254: bytes=00 0c kind=data decode=fallback_data text=dc.w $000c
+;       256: bytes=2b 47 kind=data decode=fallback_data text=dc.w $2b47
+;       258: bytes=c8 3a kind=data decode=fallback_data text=dc.w $c83a
+;       260: bytes=4c df kind=data decode=fallback_data text=dc.w $4cdf
+;       262: bytes=18 80 kind=data decode=fallback_data text=dc.w $1880
+;       264: bytes=4e 5e kind=data decode=fallback_data text=dc.w $4e5e
+;       266: bytes=2e 9f kind=data decode=fallback_data text=dc.w $2e9f
+;       268: bytes=4e 75 kind=data decode=fallback_data text=dc.w $4e75
+;       270: bytes=88 46 kind=data decode=fallback_data text=dc.w $8846
+;       272: bytes=52 45 kind=data decode=fallback_data text=dc.w $5245
+;       274: bytes=45 5a kind=data decode=fallback_data text=dc.w $455a
+;       276: bytes=4f 4e kind=data decode=fallback_data text=dc.w $4f4e
+;       278: bytes=45 00 kind=data decode=fallback_data text=dc.w $4500
+;       280: bytes=00 00 kind=data decode=fallback_data text=dc.w $0000
+;       282: bytes=4e 56 kind=data decode=fallback_data text=dc.w $4e56
+;       284: bytes=ff e8 kind=data decode=fallback_data text=dc.w $ffe8
+;       286: bytes=48 e7 kind=data decode=fallback_data text=dc.w $48e7
+;       288: bytes=0f 18 kind=data decode=fallback_data text=dc.w $0f18
+;       290: bytes=38 2e kind=data decode=fallback_data text=dc.w $382e
+;       292: bytes=00 08 kind=data decode=fallback_data text=dc.w $0008
+;       294: bytes=28 6e kind=data decode=fallback_data text=dc.w $286e
+;       296: bytes=00 0a kind=data decode=fallback_data text=dc.w $000a
+;       298: bytes=70 04 kind=data decode=fallback_data text=dc.w $7004
+;       deferred scope=relocation_fixups status=deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+
+; CODE 15 Errors source section
+;   source_section_id: macos-code-CODE-15
+;   source_kind: macos_code_resource
+;   backend: macos-code
+;   status: partial_preview_with_exact_placeholders
+;   resource_type: CODE
+;   id: 15
+;   name: Errors
+;   role: code_segment
+;   code_kind: code_segment
+;   payload_size: 3452
+;   payload_sha256: ebe2c26fe6fffb8585f7e9e0ebfffa73ca877946c26eab44f0efbd96678018cd
+;   presentation: kind=c_owned_restored_source_packet status=covered visible=True identity=macos-code:CODE:15
+;   listing: kind=candidate_preview available=True reason=bounded candidate preview; full listing remains deferred
+;   restored_source_model:
+;     model=restored_source_model_v1 round_trip_required=false
+;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
+;     code_resource=CODE 15 name=unknown
+;     a5_world status=deferred parser_use=unknown
+;     ownership_ranges:
+;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
+;       1: role=data span=40..96 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       2: role=candidate_code span=96..3452 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     source_reference_records:
+;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
+;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
+;   source_body_ranges:
+;     metadata payload[0..40) size=40 entrypoint=False status=validated parser_use=accepted_parser_output evidence=far_model_segment_header fact=macos.code_resource.nonzero.segment_header
+;     data payload[40..96) size=56 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;     candidate_code payload[96..3452) size=3356 entrypoint=True status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;   byte_preserving_placeholder: CODE 15 payload[0..3452) sha256=ebe2c26fe6fffb8585f7e9e0ebfffa73ca877946c26eab44f0efbd96678018cd
+;   placeholder_reason: full CODE source listing remains deferred; current source body preserves exact C-owned ranges and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
+;   bounded_preview_rows:
+;     preview payload[96..160) range=candidate_code truncated=True status=candidate parser_use=candidate_only reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
+;       96: bytes=30d9 kind=instruction decode=decoded text=move.w (a1)+,(a0)+
+;       98: bytes=51c8fffc kind=instruction decode=decoded text=dbf.w d0,loc_0_00000000
+;       102: bytes=206e0008 kind=instruction decode=decoded text=movea.l $0008(a6),a0
+;       106: bytes=2c48 kind=instruction decode=decoded text=movea.l a0,a6
+;       108: bytes=4efa0406 kind=instruction decode=decoded text=jmp $406(pc)
+;       112: bytes=00003d6e001000124cdf10804e5e205f kind=data decode=decoded_data text=dc.b $00,$00,$3D,$6E,$00,$10,$00,$12,$4C,$DF,$10,$80,$4E,$5E,$20,$5F
+;       128: bytes=defc000a4ed08a47455432424c4f434b kind=data decode=decoded_data text=dc.b $DE,$FC,$00,$0A,$4E,$D0,$8A,$47,$45,$54,$32,$42,$4C,$4F,$43,$4B
+;       144: bytes=5300002e022229002820284261642062 kind=data decode=decoded_data text=dc.b $53,$00,$00,$2E,$02,$22,$29,$00,$28,$20,$28,$42,$61,$64,$20,$62
+;       deferred scope=relocation_fixups status=deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+
+; CODE 16 New source section
+;   source_section_id: macos-code-CODE-16
+;   source_kind: macos_code_resource
+;   backend: macos-code
+;   status: partial_preview_with_exact_placeholders
+;   resource_type: CODE
+;   id: 16
+;   name: New
+;   role: code_segment
+;   code_kind: code_segment
+;   payload_size: 1034
+;   payload_sha256: 51e7a7d264825cd4103b31a0bff37ff49fdb64e8ddb299b2a46d4bd3c07f6a37
+;   presentation: kind=c_owned_restored_source_packet status=covered visible=True identity=macos-code:CODE:16
+;   listing: kind=candidate_preview available=True reason=bounded candidate preview; full listing remains deferred
+;   restored_source_model:
+;     model=restored_source_model_v1 round_trip_required=false
+;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
+;     code_resource=CODE 16 name=unknown
+;     a5_world status=deferred parser_use=unknown
+;     ownership_ranges:
+;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
+;       1: role=data span=40..246 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       2: role=candidate_code span=246..1034 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     source_reference_records:
+;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
+;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
+;   source_body_ranges:
+;     metadata payload[0..40) size=40 entrypoint=False status=validated parser_use=accepted_parser_output evidence=far_model_segment_header fact=macos.code_resource.nonzero.segment_header
+;     data payload[40..246) size=206 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;     candidate_code payload[246..1034) size=788 entrypoint=True status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;   byte_preserving_placeholder: CODE 16 payload[0..1034) sha256=51e7a7d264825cd4103b31a0bff37ff49fdb64e8ddb299b2a46d4bd3c07f6a37
+;   placeholder_reason: full CODE source listing remains deferred; current source body preserves exact C-owned ranges and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
+;   bounded_preview_rows:
+;     preview payload[246..310) range=candidate_code truncated=True status=candidate parser_use=candidate_only reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
+;       246: bytes=5800 kind=instruction decode=decoded text=addq.b #4,d0
+;       248: bytes=00181653 kind=instruction decode=decoded text=ori.b #$1653,(a0)+
+;       252: bytes=7069 kind=instruction decode=decoded text=moveq.l #105,d0
+;       254: bytes=6c6c2066696c65207772697465206572 kind=data decode=decoded_data text=dc.b $6C,$6C,$20,$66,$69,$6C,$65,$20,$77,$72,$69,$74,$65,$20,$65,$72
+;       270: bytes=726f72004e56ff50082d0002ed5a6700 kind=data decode=decoded_data text=dc.b $72,$6F,$72,$00,$4E,$56,$FF,$50,$08,$2D,$00,$02,$ED,$5A,$67,$00
+;       286: bytes=00f0102deb68660000e8802deb696600 kind=data decode=decoded_data text=dc.b $00,$F0,$10,$2D,$EB,$68,$66,$00,$00,$E8,$80,$2D,$EB,$69,$66,$00
+;       302: bytes=00e041eeffae43fa kind=data decode=decoded_data text=dc.b $00,$E0,$41,$EE,$FF,$AE,$43,$FA
+;       deferred scope=relocation_fixups status=deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+
+; CODE 17 DispSymTbl source section
+;   source_section_id: macos-code-CODE-17
+;   source_kind: macos_code_resource
+;   backend: macos-code
+;   status: partial_preview_with_exact_placeholders
+;   resource_type: CODE
+;   id: 17
+;   name: DispSymTbl
+;   role: code_segment
+;   code_kind: code_segment
+;   payload_size: 3674
+;   payload_sha256: e4c8e735bff587b55b1482bde5137deec3ae177ea802b09aac3e97401f2905b9
+;   presentation: kind=c_owned_restored_source_packet status=covered visible=True identity=macos-code:CODE:17
+;   listing: kind=candidate_preview available=True reason=bounded candidate preview; full listing remains deferred
+;   restored_source_model:
+;     model=restored_source_model_v1 round_trip_required=false
+;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
+;     code_resource=CODE 17 name=unknown
+;     a5_world status=deferred parser_use=unknown
+;     ownership_ranges:
+;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
+;       1: role=data span=40..100 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       2: role=candidate_code span=100..3674 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     source_reference_records:
+;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
+;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
+;   source_body_ranges:
+;     metadata payload[0..40) size=40 entrypoint=False status=validated parser_use=accepted_parser_output evidence=far_model_segment_header fact=macos.code_resource.nonzero.segment_header
+;     data payload[40..100) size=60 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;     candidate_code payload[100..3674) size=3574 entrypoint=True status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;   byte_preserving_placeholder: CODE 17 payload[0..3674) sha256=e4c8e735bff587b55b1482bde5137deec3ae177ea802b09aac3e97401f2905b9
+;   placeholder_reason: full CODE source listing remains deferred; current source body preserves exact C-owned ranges and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
+;   bounded_preview_rows:
+;     preview payload[100..164) range=candidate_code truncated=True status=candidate parser_use=candidate_only reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
+;       100: bytes=4ead0092 kind=instruction decode=decoded text=jsr $0092(a5)
+;       104: bytes=486efdf2 kind=instruction decode=decoded text=pea.l -$020E(a6)
+;       108: bytes=486efef2 kind=instruction decode=decoded text=pea.l -$010E(a6)
+;       112: bytes=4ead0aca kind=instruction decode=decoded text=jsr $0ACA(a5)
+;       116: bytes=101f kind=instruction decode=decoded text=move.b (a7)+,d0
+;       118: bytes=6702 kind=instruction decode=decoded text=beq.b loc_0_00000016
+;       120: bytes=6034 kind=data decode=decoded_data text=dc.b $60,$34
+;       122: bytes=486efdf2 kind=instruction decode=decoded text=pea.l -$020E(a6)
+;       126: bytes=486efef2 kind=instruction decode=decoded text=pea.l -$010E(a6)
+;       130: bytes=4ead0ae2 kind=instruction decode=decoded text=jsr $0AE2(a5)
+;       134: bytes=101f kind=instruction decode=decoded text=move.b (a7)+,d0
+;       136: bytes=6708 kind=instruction decode=decoded text=beq.b loc_0_0000002E
+;       138: bytes=286c0008 kind=instruction decode=decoded text=movea.l $0008(a4),a4
+;       142: bytes=4206 kind=instruction decode=decoded text=clr.b d6
+;       144: bytes=6006 kind=instruction decode=decoded text=bra.b loc_0_00000034
+;       146: bytes=286c0004 kind=instruction decode=decoded text=movea.l $0004(a4),a4
+;       150: bytes=7c01 kind=instruction decode=decoded text=moveq.l #1,d6
+;       152: bytes=200c kind=instruction decode=decoded text=move.l a4,d0
+;       154: bytes=66bc100667082047214b kind=data decode=decoded_data text=dc.b $66,$BC,$10,$06,$67,$08,$20,$47,$21,$4B
+;       deferred scope=relocation_fixups status=deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+
+; CODE 18 FinishDirectives source section
+;   source_section_id: macos-code-CODE-18
+;   source_kind: macos_code_resource
+;   backend: macos-code
+;   status: covered_placeholder
+;   resource_type: CODE
+;   id: 18
+;   name: FinishDirectives
+;   role: code_segment
+;   code_kind: code_segment
+;   payload_size: 1974
+;   payload_sha256: 96d836fa8382f88453204a38fddb5da2e46867767f572482abb8f9cbb5e431c6
+;   presentation: kind=c_owned_restored_source_packet status=covered visible=True identity=macos-code:CODE:18
+;   listing: kind=structured_placeholder available=False reason=no candidate_code range available for a bounded preview
+;   restored_source_model:
+;     model=restored_source_model_v1 round_trip_required=false
+;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
+;     code_resource=CODE 18 name=unknown
+;     a5_world status=deferred parser_use=unknown
+;     ownership_ranges:
+;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
+;       1: role=data span=40..1562 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       2: role=candidate_code span=1562..1974 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     source_reference_records:
+;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
+;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
+;   source_body_ranges:
+;     metadata payload[0..40) size=40 entrypoint=False status=validated parser_use=accepted_parser_output evidence=far_model_segment_header fact=macos.code_resource.nonzero.segment_header
+;     data payload[40..1562) size=1522 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;     candidate_code payload[1562..1974) size=412 entrypoint=True status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;   byte_preserving_placeholder: CODE 18 payload[0..1974) sha256=96d836fa8382f88453204a38fddb5da2e46867767f572482abb8f9cbb5e431c6
+;   placeholder_reason: full CODE source listing remains deferred; current source body preserves exact C-owned ranges and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
+;   preview_rows: none
+
+; CODE 19 SetupArgV source section
+;   source_section_id: macos-code-CODE-19
+;   source_kind: macos_code_resource
+;   backend: macos-code
+;   status: covered_placeholder
+;   resource_type: CODE
+;   id: 19
+;   name: SetupArgV
+;   role: code_segment
+;   code_kind: code_segment
+;   payload_size: 556
+;   payload_sha256: 46027b8ec8f830b28abc470f5e942b54f7845efd9cf136f68e3b2b8a9873f3ce
+;   presentation: kind=c_owned_restored_source_packet status=covered visible=True identity=macos-code:CODE:19
+;   listing: kind=structured_placeholder available=False reason=no candidate preview range; classifier deferred byte-entry evidence: missing_m68k_movea_l_stack_to_a0_entry
+;   restored_source_model:
+;     model=restored_source_model_v1 round_trip_required=false
+;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
+;     code_resource=CODE 19 name=unknown
+;     a5_world status=deferred parser_use=unknown
+;     ownership_ranges:
+;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
+;       1: role=unknown span=40..556 status=deferred parser_use=deferred_only reason=missing_m68k_movea_l_stack_to_a0_entry
+;     source_reference_records:
+;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
+;       1: kind=a5_world_context_placeholder ownership=0 status=deferred parser_use=unknown target=classic_mac_a5_world
+;   source_body_ranges:
+;     metadata payload[0..40) size=40 entrypoint=False status=validated parser_use=accepted_parser_output evidence=far_model_segment_header fact=macos.code_resource.nonzero.segment_header
+;     deferred payload[40..556) size=516 entrypoint=False status=deferred parser_use=deferred_only evidence=missing_m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.byte_entry_rule.unknown
+;   byte_preserving_placeholder: CODE 19 payload[0..556) sha256=46027b8ec8f830b28abc470f5e942b54f7845efd9cf136f68e3b2b8a9873f3ce
+;   placeholder_reason: full CODE source listing remains deferred; current source body preserves exact C-owned ranges and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
+;   preview_rows: none
+
+; CODE 20 INTENV source section
+;   source_section_id: macos-code-CODE-20
+;   source_kind: macos_code_resource
+;   backend: macos-code
+;   status: covered_placeholder
+;   resource_type: CODE
+;   id: 20
+;   name: INTENV
+;   role: code_segment
+;   code_kind: code_segment
+;   payload_size: 5262
+;   payload_sha256: de9f4a82222f3ff12586a0bb691cc6b5d513777d498d223dfa45311d4a7dc84a
+;   presentation: kind=c_owned_restored_source_packet status=covered visible=True identity=macos-code:CODE:20
+;   listing: kind=structured_placeholder available=False reason=no candidate_code range available for a bounded preview
+;   restored_source_model:
+;     model=restored_source_model_v1 round_trip_required=false
+;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
+;     code_resource=CODE 20 name=unknown
+;     a5_world status=deferred parser_use=unknown
+;     ownership_ranges:
+;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
+;       1: role=data span=40..2876 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       2: role=candidate_code span=2876..5262 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     source_reference_records:
+;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
+;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
+;   source_body_ranges:
+;     metadata payload[0..40) size=40 entrypoint=False status=validated parser_use=accepted_parser_output evidence=far_model_segment_header fact=macos.code_resource.nonzero.segment_header
+;     data payload[40..2876) size=2836 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;     candidate_code payload[2876..5262) size=2386 entrypoint=True status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;   byte_preserving_placeholder: CODE 20 payload[0..5262) sha256=de9f4a82222f3ff12586a0bb691cc6b5d513777d498d223dfa45311d4a7dc84a
+;   placeholder_reason: full CODE source listing remains deferred; current source body preserves exact C-owned ranges and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
+;   preview_rows: none
+
+; CODE 21 SADEV source section
+;   source_section_id: macos-code-CODE-21
+;   source_kind: macos_code_resource
+;   backend: macos-code
+;   status: partial_preview_with_exact_placeholders
+;   resource_type: CODE
+;   id: 21
+;   name: SADEV
+;   role: code_segment
+;   code_kind: code_segment
+;   payload_size: 6794
+;   payload_sha256: 927c28db98eadbc5501e570ada73af8afca05964552a831c02051f6e6fa3b687
+;   presentation: kind=c_owned_restored_source_packet status=covered visible=True identity=macos-code:CODE:21
+;   listing: kind=candidate_preview available=True reason=bounded candidate preview; full listing remains deferred
+;   restored_source_model:
+;     model=restored_source_model_v1 round_trip_required=false
+;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
+;     code_resource=CODE 21 name=unknown
+;     a5_world status=deferred parser_use=unknown
+;     ownership_ranges:
+;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
+;       1: role=data span=40..2000 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       2: role=candidate_code span=2000..6794 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     source_reference_records:
+;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
+;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
+;   source_body_ranges:
+;     metadata payload[0..40) size=40 entrypoint=False status=validated parser_use=accepted_parser_output evidence=far_model_segment_header fact=macos.code_resource.nonzero.segment_header
+;     data payload[40..2000) size=1960 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;     candidate_code payload[2000..6794) size=4794 entrypoint=True status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;   byte_preserving_placeholder: CODE 21 payload[0..6794) sha256=927c28db98eadbc5501e570ada73af8afca05964552a831c02051f6e6fa3b687
+;   placeholder_reason: full CODE source listing remains deferred; current source body preserves exact C-owned ranges and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
+;   bounded_preview_rows:
+;     preview payload[2000..2064) range=candidate_code truncated=True status=candidate parser_use=candidate_only reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
+;       2000: bytes=3e1f kind=instruction decode=decoded text=move.w (a7)+,d7
+;       2002: bytes=6612 kind=instruction decode=decoded text=bne.b loc_0_00000016
+;       2004: bytes=202efffc kind=instruction decode=decoded text=move.l -$0004(a6),d0
+;       2008: bytes=91ac000c kind=instruction decode=decoded text=sub.l d0,$000C(a4)
+;       2012: bytes=202efffc kind=instruction decode=decoded text=move.l -$0004(a6),d0
+;       2016: bytes=d1ac0010 kind=instruction decode=decoded text=add.l d0,$0010(a4)
+;       2020: bytes=6004 kind=instruction decode=decoded text=bra.b loc_0_0000001A
+;       2022: bytes=39470002 kind=instruction decode=decoded text=move.w d7,$0002(a4)
+;       2026: bytes=4a47 kind=instruction decode=decoded text=tst.w d7
+;       2028: bytes=57c3 kind=instruction decode=decoded text=seq.b d3
+;       2030: bytes=4403 kind=instruction decode=decoded text=neg.b d3
+;       2032: bytes=6704 kind=instruction decode=decoded text=beq.b loc_0_00000026
+;       2034: bytes=7000 kind=instruction decode=decoded text=moveq.l #0,d0
+;       2036: bytes=6002 kind=instruction decode=decoded text=bra.b loc_0_00000028
+;       2038: bytes=7005 kind=instruction decode=decoded text=moveq.l #5,d0
+;       2040: bytes=4cee1088fff0 kind=instruction decode=decoded text=movem.l -$0010(a6),d3/d7/a4
+;       2046: bytes=4e5e kind=instruction decode=decoded text=unlk a6
+;       2048: bytes=4e75 kind=instruction decode=decoded text=rts
+;       2050: bytes=885f667357726974650000004e56 kind=data decode=decoded_data text=dc.b $88,$5F,$66,$73,$57,$72,$69,$74,$65,$00,$00,$00,$4E,$56
+;       deferred scope=relocation_fixups status=deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+
+; CODE 22 SANELIB source section
+;   source_section_id: macos-code-CODE-22
+;   source_kind: macos_code_resource
+;   backend: macos-code
+;   status: covered_placeholder
+;   resource_type: CODE
+;   id: 22
+;   name: SANELIB
+;   role: code_segment
+;   code_kind: code_segment
+;   payload_size: 96
+;   payload_sha256: 6929f16d82666fe0f31993c30f2750798bf934a0dcddf3c6eb0adc2c552484f8
+;   presentation: kind=c_owned_restored_source_packet status=covered visible=True identity=macos-code:CODE:22
+;   listing: kind=structured_placeholder available=False reason=no candidate preview range; classifier deferred byte-entry evidence: missing_m68k_movea_l_stack_to_a0_entry
+;   restored_source_model:
+;     model=restored_source_model_v1 round_trip_required=false
+;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
+;     code_resource=CODE 22 name=unknown
+;     a5_world status=deferred parser_use=unknown
+;     ownership_ranges:
+;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
+;       1: role=unknown span=40..96 status=deferred parser_use=deferred_only reason=missing_m68k_movea_l_stack_to_a0_entry
+;     source_reference_records:
+;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
+;       1: kind=a5_world_context_placeholder ownership=0 status=deferred parser_use=unknown target=classic_mac_a5_world
+;   source_body_ranges:
+;     metadata payload[0..40) size=40 entrypoint=False status=validated parser_use=accepted_parser_output evidence=far_model_segment_header fact=macos.code_resource.nonzero.segment_header
+;     deferred payload[40..96) size=56 entrypoint=False status=deferred parser_use=deferred_only evidence=missing_m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.byte_entry_rule.unknown
+;   byte_preserving_placeholder: CODE 22 payload[0..96) sha256=6929f16d82666fe0f31993c30f2750798bf934a0dcddf3c6eb0adc2c552484f8
+;   placeholder_reason: full CODE source listing remains deferred; current source body preserves exact C-owned ranges and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
+;   preview_rows: none
+
+; CODE 23 STDCLIB source section
+;   source_section_id: macos-code-CODE-23
+;   source_kind: macos_code_resource
+;   backend: macos-code
+;   status: covered_placeholder
+;   resource_type: CODE
+;   id: 23
+;   name: STDCLIB
+;   role: code_segment
+;   code_kind: code_segment
+;   payload_size: 126
+;   payload_sha256: ce2eaab2bd782055c6aaaefc223f2e72d4f746e25a05cc8b3599836ecbd41969
+;   presentation: kind=c_owned_restored_source_packet status=covered visible=True identity=macos-code:CODE:23
+;   listing: kind=structured_placeholder available=False reason=no candidate preview range; classifier deferred byte-entry evidence: missing_m68k_movea_l_stack_to_a0_entry
+;   restored_source_model:
+;     model=restored_source_model_v1 round_trip_required=false
+;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
+;     code_resource=CODE 23 name=unknown
+;     a5_world status=deferred parser_use=unknown
+;     ownership_ranges:
+;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
+;       1: role=unknown span=40..126 status=deferred parser_use=deferred_only reason=missing_m68k_movea_l_stack_to_a0_entry
+;     source_reference_records:
+;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
+;       1: kind=a5_world_context_placeholder ownership=0 status=deferred parser_use=unknown target=classic_mac_a5_world
+;   source_body_ranges:
+;     metadata payload[0..40) size=40 entrypoint=False status=validated parser_use=accepted_parser_output evidence=far_model_segment_header fact=macos.code_resource.nonzero.segment_header
+;     deferred payload[40..126) size=86 entrypoint=False status=deferred parser_use=deferred_only evidence=missing_m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.byte_entry_rule.unknown
+;   byte_preserving_placeholder: CODE 23 payload[0..126) sha256=ce2eaab2bd782055c6aaaefc223f2e72d4f746e25a05cc8b3599836ecbd41969
+;   placeholder_reason: full CODE source listing remains deferred; current source body preserves exact C-owned ranges and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
+;   preview_rows: none
+
+; CODE 24 STDIO source section
+;   source_section_id: macos-code-CODE-24
+;   source_kind: macos_code_resource
+;   backend: macos-code
+;   status: covered_placeholder
+;   resource_type: CODE
+;   id: 24
+;   name: STDIO
+;   role: code_segment
+;   code_kind: code_segment
+;   payload_size: 4970
+;   payload_sha256: f98dfc823a565d6502fa4ac1feb7b616b397ba9a918ce2c5f47b274e99a9026a
+;   presentation: kind=c_owned_restored_source_packet status=covered visible=True identity=macos-code:CODE:24
+;   listing: kind=structured_placeholder available=False reason=no candidate_code range available for a bounded preview
+;   restored_source_model:
+;     model=restored_source_model_v1 round_trip_required=false
+;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
+;     code_resource=CODE 24 name=unknown
+;     a5_world status=deferred parser_use=unknown
+;     ownership_ranges:
+;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
+;       1: role=data span=40..2950 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       2: role=candidate_code span=2950..4970 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     source_reference_records:
+;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
+;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
+;   source_body_ranges:
+;     metadata payload[0..40) size=40 entrypoint=False status=validated parser_use=accepted_parser_output evidence=far_model_segment_header fact=macos.code_resource.nonzero.segment_header
+;     data payload[40..2950) size=2910 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;     candidate_code payload[2950..4970) size=2020 entrypoint=True status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;   byte_preserving_placeholder: CODE 24 payload[0..4970) sha256=f98dfc823a565d6502fa4ac1feb7b616b397ba9a918ce2c5f47b274e99a9026a
+;   placeholder_reason: full CODE source listing remains deferred; current source body preserves exact C-owned ranges and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
+;   preview_rows: none
+
+; CODE 25 SANELib source section
+;   source_section_id: macos-code-CODE-25
+;   source_kind: macos_code_resource
+;   backend: macos-code
+;   status: partial_preview_with_exact_placeholders
+;   resource_type: CODE
+;   id: 25
+;   name: SANELib
+;   role: code_segment
+;   code_kind: code_segment
+;   payload_size: 246
+;   payload_sha256: c87908dd286d0e5fdcab70725ec20e98a37cca1357f18132809c3ab9e7562090
+;   presentation: kind=c_owned_restored_source_packet status=covered visible=True identity=macos-code:CODE:25
+;   listing: kind=candidate_preview available=True reason=bounded candidate preview; full listing remains deferred
+;   restored_source_model:
+;     model=restored_source_model_v1 round_trip_required=false
+;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
+;     code_resource=CODE 25 name=unknown
+;     a5_world status=deferred parser_use=unknown
+;     ownership_ranges:
+;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
+;       1: role=candidate_code span=40..246 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     source_reference_records:
+;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
+;       1: kind=a5_world_context_placeholder ownership=1 status=deferred parser_use=unknown target=classic_mac_a5_world
+;   source_body_ranges:
+;     metadata payload[0..40) size=40 entrypoint=False status=validated parser_use=accepted_parser_output evidence=far_model_segment_header fact=macos.code_resource.nonzero.segment_header
+;     candidate_code payload[40..246) size=206 entrypoint=True status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;   byte_preserving_placeholder: CODE 25 payload[0..246) sha256=c87908dd286d0e5fdcab70725ec20e98a37cca1357f18132809c3ab9e7562090
+;   placeholder_reason: full CODE source listing remains deferred; current source body preserves exact C-owned ranges and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
+;   bounded_preview_rows:
+;     preview payload[40..104) range=candidate_code truncated=True status=candidate parser_use=candidate_only reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
+;       40: bytes=8042 kind=instruction decode=decoded text=or.w d2,d0
+;       42: bytes=3f00 kind=instruction decode=decoded text=move.w d0,-(a7)
+;       44: bytes=4857 kind=instruction decode=decoded text=pea.l (a7)
+;       46: bytes=3f3c0001 kind=instruction decode=decoded text=move.w #$1,-(a7)
+;       50: bytes=a9eb548f4ed0225f205f121f741fc45f kind=data decode=decoded_data text=dc.b $A9,$EB,$54,$8F,$4E,$D0,$22,$5F,$20,$5F,$12,$1F,$74,$1F,$C4,$5F
+;       66: bytes=2f09558f48573f3c0003a9eb301f4e75 kind=data decode=decoded_data text=dc.b $2F,$09,$55,$8F,$48,$57,$3F,$3C,$00,$03,$A9,$EB,$30,$1F,$4E,$75
+;       82: bytes=205f61ee02409fff341feb4a02426000 kind=data decode=decoded_data text=dc.b $20,$5F,$61,$EE,$02,$40,$9F,$FF,$34,$1F,$EB,$4A,$02,$42,$60,$00
+;       98: bytes=60c461d2e14a kind=data decode=decoded_data text=dc.b $60,$C4,$61,$D2,$E1,$4A
+;       deferred scope=relocation_fixups status=deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+
+; CODE 26 PASLIB source section
+;   source_section_id: macos-code-CODE-26
+;   source_kind: macos_code_resource
+;   backend: macos-code
+;   status: partial_preview_with_exact_placeholders
+;   resource_type: CODE
+;   id: 26
+;   name: PASLIB
+;   role: code_segment
+;   code_kind: code_segment
+;   payload_size: 2940
+;   payload_sha256: 62b8ca8b968fab6a003f39717b671f9c6cae8d20a9c77cb7ab41fd0315a229ae
+;   presentation: kind=c_owned_restored_source_packet status=covered visible=True identity=macos-code:CODE:26
+;   listing: kind=candidate_preview available=True reason=bounded candidate preview; full listing remains deferred
+;   restored_source_model:
+;     model=restored_source_model_v1 round_trip_required=false
+;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
+;     code_resource=CODE 26 name=unknown
+;     a5_world status=deferred parser_use=unknown
+;     ownership_ranges:
+;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
+;       1: role=data span=40..198 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       2: role=candidate_code span=198..2940 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     source_reference_records:
+;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
+;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
+;   source_body_ranges:
+;     metadata payload[0..40) size=40 entrypoint=False status=validated parser_use=accepted_parser_output evidence=far_model_segment_header fact=macos.code_resource.nonzero.segment_header
+;     data payload[40..198) size=158 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;     candidate_code payload[198..2940) size=2742 entrypoint=True status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;   byte_preserving_placeholder: CODE 26 payload[0..2940) sha256=62b8ca8b968fab6a003f39717b671f9c6cae8d20a9c77cb7ab41fd0315a229ae
+;   placeholder_reason: full CODE source listing remains deferred; current source body preserves exact C-owned ranges and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
+;   bounded_preview_rows:
+;     preview payload[198..262) range=candidate_code truncated=True status=candidate parser_use=candidate_only reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
+;       198: bytes=4e560000 kind=instruction decode=decoded text=link a6,#0
+;       202: bytes=102dd297 kind=instruction decode=decoded text=move.b -$2D69(a5),d0
+;       206: bytes=6714 kind=instruction decode=decoded text=beq.b loc_0_0000001E
+;       208: bytes=486dd298 kind=instruction decode=decoded text=pea.l -$2D68(a5)
+;       212: bytes=7002 kind=instruction decode=decoded text=moveq.l #2,d0
+;       214: bytes=2f00 kind=instruction decode=decoded text=move.l d0,-(a7)
+;       216: bytes=4eba0202 kind=instruction decode=decoded text=jsr $202(pc)
+;       220: bytes=206dd298 kind=instruction decode=decoded text=movea.l -$2D68(a5),a0
+;       224: bytes=30bcc0da kind=instruction decode=decoded text=move.w #$C0DA,(a0)
+;       228: bytes=4e5e kind=instruction decode=decoded text=unlk a6
+;       230: bytes=4e75 kind=instruction decode=decoded text=rts
+;       232: bytes=88534554434845434b0000004e56fff0 kind=data decode=decoded_data text=dc.b $88,$53,$45,$54,$43,$48,$45,$43,$4B,$00,$00,$00,$4E,$56,$FF,$F0
+;       248: bytes=48e70f18282e00102c2e00145fc0 kind=data decode=decoded_data text=dc.b $48,$E7,$0F,$18,$28,$2E,$00,$10,$2C,$2E,$00,$14,$5F,$C0
+;       deferred scope=relocation_fixups status=deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
+
+; CODE 27 32-bit bootstrap source section
+;   source_section_id: macos-code-CODE-27
+;   source_kind: macos_code_resource
+;   backend: macos-code
+;   status: partial_preview_with_exact_placeholders
+;   resource_type: CODE
+;   id: 27
+;   name: 32-bit bootstrap
+;   role: code_segment
+;   code_kind: code_segment
+;   payload_size: 1882
+;   payload_sha256: f683b4c722b40eda686a3074d68910f8316ecd373798c1a5834df64d8b757352
+;   presentation: kind=c_owned_restored_source_packet status=covered visible=True identity=macos-code:CODE:27
+;   listing: kind=candidate_preview available=True reason=bounded candidate preview; full listing remains deferred
+;   restored_source_model:
+;     model=restored_source_model_v1 round_trip_required=false
+;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
+;     code_resource=CODE 27 name=unknown
+;     a5_world status=deferred parser_use=unknown
+;     ownership_ranges:
+;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
+;       1: role=data span=4..204 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       2: role=candidate_code span=204..1882 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     source_reference_records:
+;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
+;       1: kind=code0_dispatch_reference ownership=unknown status=validated parser_use=accepted_parser_output target=CODE:27
+;       2: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
+;   source_body_ranges:
+;     metadata payload[0..4) size=4 entrypoint=False status=validated parser_use=accepted_parser_output evidence=nonzero_code_segment_header fact=macos.code_resource.nonzero.segment_header
+;     data payload[4..204) size=200 entrypoint=False status=candidate parser_use=candidate_only evidence=prefix_before_stack_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;     candidate_code payload[204..1882) size=1678 entrypoint=True status=candidate parser_use=candidate_only evidence=m68k_movea_l_stack_to_a0_entry fact=macos.code_resource.movea_stack_a0.boundary.candidate
+;   byte_preserving_placeholder: CODE 27 payload[0..1882) sha256=f683b4c722b40eda686a3074d68910f8316ecd373798c1a5834df64d8b757352
+;   placeholder_reason: full CODE source listing remains deferred; current source body preserves exact C-owned ranges and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
+;   bounded_preview_rows:
+;     preview payload[204..268) range=candidate_code truncated=True status=candidate parser_use=candidate_only reason=bounded to candidate_code range; byte-entry and relocation semantics remain unresolved
+;       204: bytes=48e780c0 kind=instruction decode=decoded text=movem.l d0/a0-a1,-(a7)
+;       208: bytes=4240 kind=instruction decode=decoded text=clr.w d0
+;       210: bytes=610004d0b0fc00006602a9ff598f2f08 kind=data decode=decoded_data text=dc.b $61,$00,$04,$D0,$B0,$FC,$00,$00,$66,$02,$A9,$FF,$59,$8F,$2F,$08
+;       226: bytes=a9a5205fd0f8093490fc001043fa0046 kind=data decode=decoded_data text=dc.b $A9,$A5,$20,$5F,$D0,$F8,$09,$34,$90,$FC,$00,$10,$43,$FA,$00,$46
+;       242: bytes=22884cdf03014e75800e73657475705f kind=data decode=decoded_data text=dc.b $22,$88,$4C,$DF,$03,$01,$4E,$75,$80,$0E,$73,$65,$74,$75,$70,$5F
+;       258: bytes=6a745f6c696d69740000 kind=data decode=decoded_data text=dc.b $6A,$74,$5F,$6C,$69,$6D,$69,$74,$00,$00
+;       deferred scope=relocation_fixups status=deferred parser_use=deferred_only reason=Segment Loader relocation/fixup interpretation is not yet represented by the parser
 
 
 ; Supporting evidence follows after the source body.

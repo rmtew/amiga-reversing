@@ -197,10 +197,11 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     assert "; CODE 0 jump-table/application metadata" in asm_text
     assert "CODE 1 Main:" in asm_text
     assert "; Non-CODE resource placeholders" in asm_text
-    assert "; CODE 1 Main listing follows." in asm_text
+    assert "; CODE source body sections" in asm_text
+    assert "; CODE 1 Main full selected listing follows." in asm_text
     assert ";   source_kind: macos_code_resource" in asm_text
     assert ";   backend: macos-code" in asm_text
-    assert ";   code_entry_offset: 40" in asm_text
+    assert ";   selected_code_entry_offset: 40" in asm_text
     assert "role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header" in asm_text
     assert "role=candidate_code span=40..29024 status=candidate parser_use=candidate_only" in asm_text
     assert "; CODE resource coverage" in asm_text
@@ -275,11 +276,12 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     assert "movea.l (a7)+,a0" in asm_text
     assert "SECTION code,code" not in asm_text
     assert "\tori.b #16,d0" not in asm_text
-    source_start = asm_text.index("; Selected CODE segment source")
-    listing_start = asm_text.index("; CODE 1 Main listing follows.")
+    source_start = asm_text.index("; CODE source body sections")
+    code0_source_start = asm_text.index("; CODE 0 unknown source section")
+    listing_start = asm_text.index("; CODE 1 Main full selected listing follows.")
     first_instruction = asm_text.index("movea.l (a7)+,a0")
     evidence_start = asm_text.index("; Supporting evidence follows after the source body.")
-    assert source_start < listing_start < first_instruction < evidence_start
+    assert source_start < code0_source_start < listing_start < first_instruction < evidence_start
     assert evidence_start < asm_text.index("; File forks")
     assert asm_text.index("; Resource fork") > evidence_start
     assert asm_text.index("; CODE resources") > evidence_start
@@ -312,10 +314,17 @@ def test_committed_macos_asm_artifact_covers_every_code_resource() -> None:
     )
     expected = summary["resource_fork"]["code_resources"]
     asm_lines = asm_path.read_text(encoding="utf-8").splitlines()
+    source_start = asm_lines.index("; CODE source body sections")
+    evidence_start = asm_lines.index("; Supporting evidence follows after the source body.")
     coverage_start = asm_lines.index("; CODE resource coverage")
     segment_map_start = asm_lines.index("; CODE segment/routine map")
     detail_start = asm_lines.index("; CODE resource detail subviews")
     non_code_start = asm_lines.index("; Non-CODE resource placeholders")
+    source_lines = [
+        line
+        for line in asm_lines[source_start:evidence_start]
+        if line.startswith("; CODE ") and line.endswith(" source section")
+    ]
     coverage_lines = [
         line for line in asm_lines[coverage_start:segment_map_start] if line.startswith(";   CODE ") and "status=" in line
     ]
@@ -325,10 +334,29 @@ def test_committed_macos_asm_artifact_covers_every_code_resource() -> None:
         if line.startswith(";   CODE ") and "role=" in line and "payload_size=" in line
     ]
 
+    assert len(source_lines) == len(expected)
     assert len(coverage_lines) == len(expected)
     assert len(detail_lines) == len(expected)
     for resource in expected:
-        prefix = f";   CODE {resource['id']} "
+        source_prefix = f"; CODE {resource['id']} "
+        report_prefix = f";   CODE {resource['id']} "
+        assert any(line.startswith(source_prefix) for line in source_lines), source_prefix
+        source_index = next(index for index, line in enumerate(asm_lines) if line.startswith(source_prefix))
+        assert source_start < source_index < evidence_start
+        source_block_end = next(
+            (
+                index
+                for index in range(source_index + 1, evidence_start)
+                if asm_lines[index].startswith("; CODE ") and asm_lines[index].endswith(" source section")
+            ),
+            evidence_start,
+        )
+        source_block = "\n".join(asm_lines[source_index:source_block_end])
+        assert f";   source_section_id: macos-code-CODE-{resource['id']}" in source_block
+        assert f";   payload_size: {resource['payload_size']}" in source_block
+        assert ";   source_body_ranges:" in source_block
+        assert "byte_preserving_placeholder:" in source_block or "full selected listing follows" in source_block
+        prefix = report_prefix
         assert any(line.startswith(prefix) for line in coverage_lines), prefix
         assert any(line.startswith(prefix) for line in detail_lines), prefix
 

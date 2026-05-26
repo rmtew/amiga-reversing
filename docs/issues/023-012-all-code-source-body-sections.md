@@ -1,6 +1,6 @@
 # 023-012: All-CODE Source Body Sections
 
-Status: active
+Status: complete
 Type: AFK
 Source proposal: docs/proposals/023-classic-mac-os-source-presentation.md
 
@@ -29,17 +29,28 @@ preserves the bytes and labels the exact unproven semantic.
 
 ## Acceptance Criteria
 
-- [ ] Every CODE resource in the current MPW `Asm` resource inventory has a
+- [x] Every CODE resource in the current MPW `Asm` resource inventory has a
       visible section label or typed placeholder section in `Asm.s`.
-- [ ] Full/partial/deferred section status is visible in the source body.
-- [ ] Deferred sections preserve bytes or explicit source-visible placeholders
+- [x] Full/partial/deferred section status is visible in the source body.
+- [x] Deferred sections preserve bytes or explicit source-visible placeholders
       instead of disappearing into report comments.
-- [ ] For every deferred/partial section, the implementation records what local
+- [x] For every deferred/partial section, the implementation records what local
       Mac documentation/KB rule was applied and what exact semantic remains
       unproven.
-- [ ] Tests compare the CODE resource inventory against source-body section
+- [x] Tests compare the CODE resource inventory against source-body section
       identities.
-- [ ] No selected-CODE-only path is treated as complete program source.
+- [x] No selected-CODE-only path is treated as complete program source.
+
+## Completed Result
+
+- `Asm.s` now has a source-body section for every current MPW `Asm` CODE
+  resource before the supporting-evidence report.
+- CODE 1 retains the full selected listing. Other CODE resources expose exact
+  C-owned payload/layout ranges, status, fact/parser-use evidence, byte-preserving
+  placeholders, and bounded preview rows where the model provides them.
+- The artifact test compares the C-backed CODE inventory against source-body
+  section identities and fails if the output returns to selected-CODE-only
+  source coverage.
 
 ## Blocked By
 
@@ -47,8 +58,8 @@ preserves the bytes and labels the exact unproven semantic.
 
 ## Required Sign-Off
 
-- [ ] Focused Mac artifact/project/API tests pass.
-- [ ] Platform executable validate/coverage pass with Mac/Amiga/Atari current
+- [x] Focused Mac artifact/project/API tests pass.
+- [x] Platform executable validate/coverage pass with Mac/Amiga/Atari current
       backends.
-- [ ] `cmd /c src\precommit.bat` passes if shared rendering or C code changes.
-- [ ] `git diff --check` passes.
+- [x] `cmd /c src\precommit.bat` passes if shared rendering or C code changes.
+- [x] `git diff --check` passes.

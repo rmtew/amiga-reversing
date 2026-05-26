@@ -470,6 +470,16 @@ Required outcome:
 - Tests compare CODE resource inventory against source-body section labels so a
   CODE resource cannot silently disappear from visible output.
 
+Completed state:
+
+- `Asm.s` now renders a source-body section for every current MPW `Asm` CODE
+  resource before the supporting-evidence report.
+- CODE 1 remains the full selected listing. Other CODE resources carry exact
+  C-owned payload/layout ranges, source-visible byte-preserving placeholders,
+  evidence status, parser-use, and bounded preview rows when available.
+- Artifact tests compare the C-backed CODE inventory against source-body section
+  identities and fail if the artifact regresses to selected-CODE-only output.
+
 ### 023-013: CODE 0 Structured Source Context
 
 Render CODE 0 routing as structured source context rather than a leading report
