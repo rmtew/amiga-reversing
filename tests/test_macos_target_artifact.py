@@ -292,6 +292,26 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     assert "macos_code_CODE_1_candidate_code_00000028:\n\tdc.b $20,$5F" in asm_text
     assert "; CODE 1 Main byte-real source follows." in asm_text
     assert "$20,$5F" in asm_text
+    assert "; Source quality gate" in asm_text
+    assert ";   status: passed_with_deferred_semantics" in asm_text
+    assert ";     no_fake_disassembly: True" in asm_text
+    assert ";     no_vague_orphan_bucket: True" in asm_text
+    assert ";     range_ownership_complete: True" in asm_text
+    assert ";     reachable_code_evidence_recorded: True" in asm_text
+    assert ";     residuals_explicit: True" in asm_text
+    assert ";     stable_labels_present: True" in asm_text
+    assert ";     accepted byte-entry proof" in asm_text
+    assert ";     decoded Segment Loader relocation/fixup semantics" in asm_text
+    assert ";     A5 lifetime proof" in asm_text
+    assert (
+        ";     CODE 1: section=macos-code-CODE-1 ownership=candidate_code,metadata "
+        "coverage=True labels=6 reachable_evidence=3 residuals=1"
+    ) in asm_text
+    assert (
+        ";       residual candidate_code payload[40..29024) status=candidate "
+        "parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry"
+    ) in asm_text
+    assert "candidate_data_island" not in asm_text
     assert "SECTION code,code" not in asm_text
     assert "\tori.b #16,d0" not in asm_text
     assert "macos_CODE_1_far_model_header:" in asm_text
@@ -311,8 +331,18 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     code1_stub = asm_text.index("macos_CODE_1_candidate_entry_stub:")
     listing_start = asm_text.index("; CODE 1 Main byte-real source follows.")
     first_instruction = asm_text.index("$20,$5F", listing_start)
+    quality_start = asm_text.index("; Source quality gate")
     evidence_start = asm_text.index("; Supporting evidence follows after the source body.")
-    assert source_start < code0_source_start < code1_header < code1_stub < listing_start < first_instruction < evidence_start
+    assert (
+        source_start
+        < code0_source_start
+        < code1_header
+        < code1_stub
+        < listing_start
+        < first_instruction
+        < quality_start
+        < evidence_start
+    )
     assert evidence_start < asm_text.index("; File forks")
     assert asm_text.index("; Resource fork") > evidence_start
     assert asm_text.index("; CODE resources") > evidence_start

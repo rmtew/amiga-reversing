@@ -1070,6 +1070,48 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     assert next(item for item in source_sections if item["id"] == 1)["code1_layout_context"]["candidate_entry_stub"][
         "fact_status"
     ] == "candidate"
+    source_quality = container["source_quality_gate"]
+    assert source_quality["kind"] == "macos_source_quality_gate_v1"
+    assert source_quality["status"] == "passed_with_deferred_semantics"
+    assert set(source_quality["does_not_claim"]) == {
+        "accepted byte-entry proof",
+        "decoded Segment Loader relocation/fixup semantics",
+        "A5 lifetime proof",
+        "resource-fork round trip",
+    }
+    assert all(source_quality["checklist"].values())
+    quality_rows = source_quality["resources"]
+    assert len(quality_rows) == len(source_sections)
+    code1_quality = next(item for item in quality_rows if item["resource_id"] == 1)
+    assert code1_quality["ownership_complete"] is True
+    assert code1_quality["orphan_bucket_present"] is False
+    assert code1_quality["legacy_orphan_ranges_reclassified"] == 0
+    assert code1_quality["renders_only_byte_real_rows"] is True
+    assert "macos_CODE_1_candidate_entry_stub" in code1_quality["labels"]
+    assert [
+        {
+            key: value
+            for key, value in item.items()
+            if key in {"kind", "start", "end", "size", "status", "parser_use", "reason"}
+        }
+        for item in code1_quality["residuals"]
+    ] == [
+        {
+            "kind": "candidate_code",
+            "start": 40,
+            "end": 29024,
+            "size": 28984,
+            "status": "candidate",
+            "parser_use": "candidate_only",
+            "reason": "m68k_movea_l_stack_to_a0_entry",
+        }
+    ]
+    assert code1_quality["residuals"][0]["fact_id"] == "macos.code_resource.movea_stack_a0.boundary.candidate"
+    assert any(item["kind"] == "known_entry_stub_pattern" for item in code1_quality["reachable_code_evidence"])
+    code2_quality = next(item for item in quality_rows if item["resource_id"] == 2)
+    assert code2_quality["legacy_orphan_ranges_reclassified"] > 0
+    assert code2_quality["orphan_bucket_present"] is False
+    assert any(item["kind"] == "data" and item["status"] == "candidate" for item in code2_quality["residuals"])
     for detail in container["code_resource_details"]:
         presentation = detail["source_presentation_status"]
         assert presentation["kind"] == "c_owned_restored_source_packet"

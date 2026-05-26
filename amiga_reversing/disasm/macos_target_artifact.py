@@ -113,6 +113,7 @@ def render_macos_example_asm(*, project_root: Path = PROJECT_ROOT) -> str:
     code_resources = [_mapping(item) for item in _sequence(container.get("code_resources"))]
     code_resource_details = [_mapping(item) for item in _sequence(container.get("code_resource_details"))]
     source_body_sections = [_mapping(item) for item in _sequence(container.get("source_body_sections"))]
+    source_quality_gate = _mapping(container.get("source_quality_gate"))
     code_segment_map = [_mapping(item) for item in _sequence(container.get("code_segment_map"))]
     executable_placeholders = [_mapping(item) for item in _sequence(container.get("executable_resource_placeholders"))]
     resource_types = [_mapping(item) for item in _sequence(resource_fork.get("types"))]
@@ -192,7 +193,7 @@ def render_macos_example_asm(*, project_root: Path = PROJECT_ROOT) -> str:
         "; Unsupported Mac Segment Loader/runtime areas",
         *[f";   {item}" for item in unsupported],
     ]
-    lines = [*header_lines, *source_sections]
+    lines = [*header_lines, *source_sections, *_source_quality_gate_lines(source_quality_gate)]
     lines.extend(report_lines)
     lines.append("")
     return "\n".join(lines)
@@ -366,6 +367,57 @@ def _code_source_byte_real_lines(section: Mapping[str, object], *, payload_bytes
             f"parser_use={_text(item.get('parser_use'))} evidence={_text(item.get('evidence'))}"
         )
         lines.extend(_dc_b_lines(payload_bytes[start:end], label=label, base_offset=start))
+    return lines
+
+
+def _source_quality_gate_lines(gate: Mapping[str, object]) -> list[str]:
+    if not gate:
+        return [
+            "",
+            "; Source quality gate",
+            ";   status: blocked",
+            ";   reason: missing source_quality_gate model",
+            "",
+        ]
+    checklist = _mapping(gate.get("checklist"))
+    lines = [
+        "",
+        "; Source quality gate",
+        f";   kind: {_text(gate.get('kind'))}",
+        f";   status: {_text(gate.get('status'))}",
+        f";   scope: {_text(gate.get('scope'))}",
+        ";   checklist:",
+    ]
+    for key in sorted(checklist):
+        lines.append(f";     {key}: {_text(checklist.get(key))}")
+    claims = _sequence(gate.get("does_not_claim"))
+    if claims:
+        lines.append(";   does_not_claim:")
+        lines.extend(f";     {claim}" for claim in claims)
+    lines.append(";   resource_review:")
+    for item in [_mapping(value) for value in _sequence(gate.get("resources"))]:
+        lines.extend(
+            [
+                (
+                    f";     CODE {_text(item.get('resource_id'))}: "
+                    f"section={_text(item.get('section_id'))} "
+                    f"ownership={','.join(_text(value) for value in _sequence(item.get('ownership_kinds')))} "
+                    f"coverage={_text(item.get('ownership_complete'))} "
+                    f"labels={len(_sequence(item.get('labels')))} "
+                    f"reachable_evidence={len(_sequence(item.get('reachable_code_evidence')))} "
+                    f"residuals={len(_sequence(item.get('residuals')))}"
+                ),
+                f";       next: {_text(item.get('next_required_implementation'))}",
+            ]
+        )
+        for residual in [_mapping(value) for value in _sequence(item.get("residuals"))]:
+            lines.append(
+                f";       residual { _text(residual.get('kind')) } "
+                f"payload[{_text(residual.get('start'))}..{_text(residual.get('end'))}) "
+                f"status={_text(residual.get('status'))} parser_use={_text(residual.get('parser_use'))} "
+                f"reason={_text(residual.get('reason'))}"
+            )
+    lines.append("")
     return lines
 
 

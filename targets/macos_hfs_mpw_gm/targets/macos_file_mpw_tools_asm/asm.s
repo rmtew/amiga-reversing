@@ -14093,6 +14093,132 @@ macos_code_CODE_27_candidate_code_000000cc:
 	dc.b $4E,$75,$80,$08,$52,$65,$6C,$6F,$63,$61,$74,$65,$00,$00	; payload+1868
 
 
+; Source quality gate
+;   kind: macos_source_quality_gate_v1
+;   status: passed_with_deferred_semantics
+;   scope: current MPW Tools Asm fixture
+;   checklist:
+;     all_code_sections_visible: True
+;     no_fake_disassembly: True
+;     no_vague_orphan_bucket: True
+;     range_ownership_complete: True
+;     reachable_code_evidence_recorded: True
+;     residuals_explicit: True
+;     source_first_artifact: True
+;     stable_labels_present: True
+;   does_not_claim:
+;     accepted byte-entry proof
+;     decoded Segment Loader relocation/fixup semantics
+;     A5 lifetime proof
+;     resource-fork round trip
+;   resource_review:
+;     CODE 0: section=macos-code-CODE-0 ownership=metadata coverage=True labels=5 reachable_evidence=4 residuals=0
+;       next: decode CODE 0 dispatch target semantics only where accepted target evidence exists
+;     CODE 1: section=macos-code-CODE-1 ownership=candidate_code,metadata coverage=True labels=6 reachable_evidence=3 residuals=1
+;       next: implement accepted Mac CODE entry/reachability proof before rendering semantic instructions
+;       residual candidate_code payload[40..29024) status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     CODE 2: section=macos-code-CODE-2 ownership=candidate_code,data,metadata coverage=True labels=4 reachable_evidence=2 residuals=2
+;       next: implement accepted Mac CODE entry/reachability proof before rendering semantic instructions
+;       residual data payload[40..374) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       residual candidate_code payload[374..7788) status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     CODE 3: section=macos-code-CODE-3 ownership=candidate_code,data,metadata coverage=True labels=4 reachable_evidence=2 residuals=2
+;       next: implement accepted Mac CODE entry/reachability proof before rendering semantic instructions
+;       residual data payload[40..302) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       residual candidate_code payload[302..18252) status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     CODE 4: section=macos-code-CODE-4 ownership=candidate_code,data,metadata coverage=True labels=4 reachable_evidence=2 residuals=2
+;       next: implement accepted Mac CODE entry/reachability proof before rendering semantic instructions
+;       residual data payload[40..468) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       residual candidate_code payload[468..6426) status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     CODE 5: section=macos-code-CODE-5 ownership=candidate_code,data,metadata coverage=True labels=4 reachable_evidence=2 residuals=2
+;       next: implement accepted Mac CODE entry/reachability proof before rendering semantic instructions
+;       residual data payload[40..212) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       residual candidate_code payload[212..26638) status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     CODE 6: section=macos-code-CODE-6 ownership=candidate_code,data,metadata coverage=True labels=4 reachable_evidence=2 residuals=2
+;       next: implement accepted Mac CODE entry/reachability proof before rendering semantic instructions
+;       residual data payload[40..58) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       residual candidate_code payload[58..15158) status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     CODE 7: section=macos-code-CODE-7 ownership=candidate_code,data,metadata coverage=True labels=4 reachable_evidence=2 residuals=2
+;       next: implement accepted Mac CODE entry/reachability proof before rendering semantic instructions
+;       residual data payload[40..352) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       residual candidate_code payload[352..4142) status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     CODE 8: section=macos-code-CODE-8 ownership=candidate_code,data,metadata coverage=True labels=4 reachable_evidence=2 residuals=2
+;       next: implement accepted Mac CODE entry/reachability proof before rendering semantic instructions
+;       residual data payload[40..42) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       residual candidate_code payload[42..1852) status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     CODE 9: section=macos-code-CODE-9 ownership=candidate_code,data,metadata coverage=True labels=4 reachable_evidence=2 residuals=2
+;       next: implement accepted Mac CODE entry/reachability proof before rendering semantic instructions
+;       residual data payload[40..712) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       residual candidate_code payload[712..13946) status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     CODE 10: section=macos-code-CODE-10 ownership=candidate_code,data,metadata coverage=True labels=4 reachable_evidence=2 residuals=2
+;       next: implement accepted Mac CODE entry/reachability proof before rendering semantic instructions
+;       residual data payload[40..148) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       residual candidate_code payload[148..1542) status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     CODE 11: section=macos-code-CODE-11 ownership=candidate_code,data,metadata coverage=True labels=4 reachable_evidence=2 residuals=2
+;       next: implement accepted Mac CODE entry/reachability proof before rendering semantic instructions
+;       residual data payload[40..836) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       residual candidate_code payload[836..3678) status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     CODE 12: section=macos-code-CODE-12 ownership=candidate_code,data,metadata coverage=True labels=4 reachable_evidence=2 residuals=2
+;       next: implement accepted Mac CODE entry/reachability proof before rendering semantic instructions
+;       residual data payload[40..44) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       residual candidate_code payload[44..6928) status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     CODE 13: section=macos-code-CODE-13 ownership=candidate_code,data,metadata coverage=True labels=4 reachable_evidence=2 residuals=2
+;       next: implement accepted Mac CODE entry/reachability proof before rendering semantic instructions
+;       residual data payload[40..44) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       residual candidate_code payload[44..33354) status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     CODE 14: section=macos-code-CODE-14 ownership=candidate_code,data,metadata coverage=True labels=4 reachable_evidence=2 residuals=2
+;       next: implement accepted Mac CODE entry/reachability proof before rendering semantic instructions
+;       residual data payload[40..236) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       residual candidate_code payload[236..1886) status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     CODE 15: section=macos-code-CODE-15 ownership=candidate_code,data,metadata coverage=True labels=4 reachable_evidence=2 residuals=2
+;       next: implement accepted Mac CODE entry/reachability proof before rendering semantic instructions
+;       residual data payload[40..96) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       residual candidate_code payload[96..3452) status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     CODE 16: section=macos-code-CODE-16 ownership=candidate_code,data,metadata coverage=True labels=4 reachable_evidence=2 residuals=2
+;       next: implement accepted Mac CODE entry/reachability proof before rendering semantic instructions
+;       residual data payload[40..246) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       residual candidate_code payload[246..1034) status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     CODE 17: section=macos-code-CODE-17 ownership=candidate_code,data,metadata coverage=True labels=4 reachable_evidence=2 residuals=2
+;       next: implement accepted Mac CODE entry/reachability proof before rendering semantic instructions
+;       residual data payload[40..100) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       residual candidate_code payload[100..3674) status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     CODE 18: section=macos-code-CODE-18 ownership=candidate_code,data,metadata coverage=True labels=4 reachable_evidence=2 residuals=2
+;       next: implement accepted Mac CODE entry/reachability proof before rendering semantic instructions
+;       residual data payload[40..1562) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       residual candidate_code payload[1562..1974) status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     CODE 19: section=macos-code-CODE-19 ownership=deferred,metadata coverage=True labels=3 reachable_evidence=1 residuals=1
+;       next: extend C-owned CODE layout and reference analysis before promoting semantic source rows
+;       residual deferred payload[40..556) status=deferred parser_use=deferred_only reason=missing_m68k_movea_l_stack_to_a0_entry
+;     CODE 20: section=macos-code-CODE-20 ownership=candidate_code,data,metadata coverage=True labels=4 reachable_evidence=2 residuals=2
+;       next: implement accepted Mac CODE entry/reachability proof before rendering semantic instructions
+;       residual data payload[40..2876) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       residual candidate_code payload[2876..5262) status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     CODE 21: section=macos-code-CODE-21 ownership=candidate_code,data,metadata coverage=True labels=4 reachable_evidence=2 residuals=2
+;       next: implement accepted Mac CODE entry/reachability proof before rendering semantic instructions
+;       residual data payload[40..2000) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       residual candidate_code payload[2000..6794) status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     CODE 22: section=macos-code-CODE-22 ownership=deferred,metadata coverage=True labels=3 reachable_evidence=1 residuals=1
+;       next: extend C-owned CODE layout and reference analysis before promoting semantic source rows
+;       residual deferred payload[40..96) status=deferred parser_use=deferred_only reason=missing_m68k_movea_l_stack_to_a0_entry
+;     CODE 23: section=macos-code-CODE-23 ownership=deferred,metadata coverage=True labels=3 reachable_evidence=1 residuals=1
+;       next: extend C-owned CODE layout and reference analysis before promoting semantic source rows
+;       residual deferred payload[40..126) status=deferred parser_use=deferred_only reason=missing_m68k_movea_l_stack_to_a0_entry
+;     CODE 24: section=macos-code-CODE-24 ownership=candidate_code,data,metadata coverage=True labels=4 reachable_evidence=2 residuals=2
+;       next: implement accepted Mac CODE entry/reachability proof before rendering semantic instructions
+;       residual data payload[40..2950) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       residual candidate_code payload[2950..4970) status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     CODE 25: section=macos-code-CODE-25 ownership=candidate_code,metadata coverage=True labels=3 reachable_evidence=2 residuals=1
+;       next: implement accepted Mac CODE entry/reachability proof before rendering semantic instructions
+;       residual candidate_code payload[40..246) status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     CODE 26: section=macos-code-CODE-26 ownership=candidate_code,data,metadata coverage=True labels=4 reachable_evidence=2 residuals=2
+;       next: implement accepted Mac CODE entry/reachability proof before rendering semantic instructions
+;       residual data payload[40..198) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       residual candidate_code payload[198..2940) status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+;     CODE 27: section=macos-code-CODE-27 ownership=candidate_code,data,metadata coverage=True labels=4 reachable_evidence=3 residuals=2
+;       next: implement accepted Mac CODE entry/reachability proof before rendering semantic instructions
+;       residual data payload[4..204) status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
+;       residual candidate_code payload[204..1882) status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
+
+
 ; Supporting evidence follows after the source body.
 
 ; File forks

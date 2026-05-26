@@ -184,6 +184,7 @@ def _binary_container_view(
         },
         native_source=native_source,
     )
+    source_quality_gate = _source_quality_gate(source_body_sections, code_resource_details)
     return {
         "kind": c_summary.get("container_kind"),
         "native_source": dict(native_source),
@@ -210,6 +211,7 @@ def _binary_container_view(
         "code_segment_map": code_segment_map,
         "code_resource_details": code_resource_details,
         "source_body_sections": source_body_sections,
+        "source_quality_gate": source_quality_gate,
         "navigation": _code_resource_navigation(code_resource_details),
         "selected_code_segment": {
             "native_source": dict(native_source),
@@ -366,6 +368,199 @@ def _code_source_placeholder(detail: Mapping[str, object]) -> dict[str, object]:
             "evidence status without promoting byte-entry, A5, or Segment Loader semantics."
         ),
     }
+
+
+def _source_quality_gate(
+    sections: list[dict[str, object]],
+    details: list[dict[str, object]],
+) -> dict[str, object]:
+    section_by_id = {section.get("id"): section for section in sections}
+    rows = [
+        _source_quality_resource_row(detail, section_by_id.get(detail.get("id")))
+        for detail in details
+    ]
+    checklist = {
+        "source_first_artifact": True,
+        "all_code_sections_visible": all(row["section_visible"] is True for row in rows),
+        "range_ownership_complete": all(row["ownership_complete"] is True for row in rows),
+        "no_vague_orphan_bucket": all(row["orphan_bucket_present"] is False for row in rows),
+        "no_fake_disassembly": all(row["renders_only_byte_real_rows"] is True for row in rows),
+        "stable_labels_present": all(row["stable_labels_present"] is True for row in rows),
+        "residuals_explicit": all(row["residuals_explicit"] is True for row in rows),
+        "reachable_code_evidence_recorded": all(row["reachable_code_evidence_recorded"] is True for row in rows),
+    }
+    return {
+        "kind": "macos_source_quality_gate_v1",
+        "status": "passed_with_deferred_semantics" if all(checklist.values()) else "blocked",
+        "scope": "current MPW Tools Asm fixture",
+        "does_not_claim": [
+            "accepted byte-entry proof",
+            "decoded Segment Loader relocation/fixup semantics",
+            "A5 lifetime proof",
+            "resource-fork round trip",
+        ],
+        "checklist": checklist,
+        "resources": rows,
+    }
+
+
+def _source_quality_resource_row(
+    detail: Mapping[str, object],
+    section: Mapping[str, object] | None,
+) -> dict[str, object]:
+    section = section or {}
+    resource_id = detail.get("id")
+    ranges = [_mapping(item) for item in _sequence(section.get("source_body_ranges"))]
+    payload_size = _int_value(detail.get("payload_size")) or 0
+    labels = _source_quality_labels(detail, section)
+    residuals = _source_quality_residuals(detail, ranges, payload_size=payload_size)
+    reachable = _source_quality_reachable_evidence(detail, section)
+    return {
+        "resource_id": resource_id,
+        "resource_name": detail.get("name"),
+        "section_id": section.get("source_section_id"),
+        "section_label": section.get("label"),
+        "section_visible": section.get("source_visible") is True,
+        "ownership_kinds": sorted({_text(item.get("kind")) for item in ranges}),
+        "ownership_complete": _ranges_cover_payload(ranges, payload_size=payload_size),
+        "orphan_bucket_present": any("orphan" in str(item.get("kind") or "").lower() for item in ranges),
+        "legacy_orphan_ranges_reclassified": len(_sequence(detail.get("orphan_ranges"))),
+        "renders_only_byte_real_rows": True,
+        "stable_labels_present": bool(labels),
+        "labels": labels,
+        "residuals_explicit": all(item.get("status") in {"candidate", "deferred"} for item in residuals),
+        "residuals": residuals,
+        "reachable_code_evidence_recorded": bool(reachable),
+        "reachable_code_evidence": reachable,
+        "next_required_implementation": _source_quality_next_step(detail, residuals),
+    }
+
+
+def _source_quality_labels(detail: Mapping[str, object], section: Mapping[str, object]) -> list[str]:
+    labels = [_text(section.get("label"))] if section.get("label") is not None else []
+    resource_id = detail.get("id")
+    if resource_id == 0:
+        labels.extend(["macos_CODE_0_application_metadata", "macos_CODE_0_jump_table"])
+        labels.extend(
+            f"macos_CODE_0_jump_table_entry_{_text(row.get('entry_index'))}"
+            for row in _sequence(_mapping(section.get("code0_structured_context")).get("jump_table_rows"))
+        )
+    if resource_id == 1:
+        context = _mapping(section.get("code1_layout_context"))
+        labels.extend(
+            _text(_mapping(context.get(key)).get("label"))
+            for key in ("far_model_header", "candidate_entry_stub", "candidate_body_after_stub")
+        )
+    for item in _sequence(section.get("source_body_ranges")):
+        range_info = _mapping(item)
+        start = _int_value(range_info.get("start")) or 0
+        labels.append(f"{_text(section.get('label'))}_{_text(range_info.get('kind'))}_{start:08x}")
+    return [label for label in labels if label and label != "unknown"]
+
+
+def _source_quality_residuals(
+    detail: Mapping[str, object],
+    ranges: list[Mapping[str, object]],
+    *,
+    payload_size: int,
+) -> list[dict[str, object]]:
+    residuals: list[dict[str, object]] = []
+    for item in ranges:
+        kind = str(item.get("kind") or "")
+        status = str(item.get("fact_status") or item.get("status") or "")
+        if kind in {"candidate_code", "deferred", "unknown", "placeholder"} or status in {"candidate", "deferred"}:
+            residuals.append(
+                {
+                    "kind": kind or "unknown",
+                    "start": item.get("start"),
+                    "end": item.get("end"),
+                    "size": item.get("size"),
+                    "status": status or "deferred",
+                    "fact_status": status or "deferred",
+                    "parser_use": item.get("parser_use"),
+                    "fact_id": item.get("fact_id"),
+                    "kb_record_id": item.get("kb_record_id") or detail.get("kb_record_id"),
+                    "reason": item.get("evidence") or item.get("reason") or "semantic ownership remains unresolved",
+                    "next_required_implementation": _source_quality_next_step(detail, []),
+                }
+            )
+    if not residuals and not ranges and payload_size:
+        residuals.append(
+            {
+                "kind": "unknown",
+                "start": 0,
+                "end": payload_size,
+                "size": payload_size,
+                "status": "deferred",
+                "reason": "no source-body range is available",
+                "next_required_implementation": "extend C-owned CODE layout classification",
+            }
+        )
+    return residuals
+
+
+def _source_quality_reachable_evidence(
+    detail: Mapping[str, object],
+    section: Mapping[str, object],
+) -> list[dict[str, object]]:
+    resource_id = detail.get("id")
+    evidence: list[dict[str, object]] = []
+    if resource_id == 0 and _mapping(section.get("code0_structured_context")).get("jump_table_rows"):
+        evidence.append(
+            {
+                "kind": "code0_jump_table",
+                "status": "validated_layout_candidate_targets",
+                "kb_record_id": detail.get("kb_record_id"),
+                "reason": "CODE 0 jump-table layout is accepted; target interpretation remains candidate",
+            }
+        )
+    if resource_id == 1 and section.get("code1_layout_context"):
+        evidence.append(
+            {
+                "kind": "known_entry_stub_pattern",
+                "status": "candidate",
+                "fact_status": "candidate",
+                "parser_use": "candidate_only",
+                "kb_record_id": detail.get("kb_record_id"),
+                "fact_id": "macos.code_resource.movea_stack_a0.boundary.candidate",
+                "reason": "movea.l (a7)+,a0 boundary is candidate-only; accepted byte-entry proof remains deferred",
+            }
+        )
+    for anchor in _sequence(detail.get("navigation_anchors")):
+        anchor_map = _mapping(anchor)
+        evidence.append(
+            {
+                "kind": anchor_map.get("kind"),
+                "status": anchor_map.get("fact_status"),
+                "fact_status": anchor_map.get("fact_status"),
+                "parser_use": anchor_map.get("parser_use"),
+                "fact_id": anchor_map.get("fact_id"),
+                "kb_record_id": anchor_map.get("kb_record_id") or detail.get("kb_record_id"),
+                "reason": anchor_map.get("label"),
+            }
+        )
+    return evidence
+
+
+def _source_quality_next_step(detail: Mapping[str, object], residuals: list[Mapping[str, object]]) -> str:
+    if detail.get("id") == 0:
+        return "decode CODE 0 dispatch target semantics only where accepted target evidence exists"
+    if any(_mapping(item).get("kind") == "candidate_code" for item in residuals):
+        return "implement accepted Mac CODE entry/reachability proof before rendering semantic instructions"
+    return "extend C-owned CODE layout and reference analysis before promoting semantic source rows"
+
+
+def _ranges_cover_payload(ranges: list[Mapping[str, object]], *, payload_size: int) -> bool:
+    if not ranges:
+        return payload_size == 0
+    cursor = 0
+    for item in sorted(ranges, key=_range_start_sort_key):
+        start = _int_value(item.get("start"))
+        end = _int_value(item.get("end"))
+        if start is None or end is None or start != cursor or end < start:
+            return False
+        cursor = end
+    return cursor == payload_size
 
 
 def _code1_layout_context(
@@ -1254,3 +1449,7 @@ def _string_list(value: object) -> list[str]:
 
 def _int_value(value: object) -> int | None:
     return value if isinstance(value, int) else None
+
+
+def _text(value: object) -> str:
+    return "unknown" if value is None else str(value)

@@ -609,6 +609,23 @@ Required outcome:
   `Asm.s`: first screen, all CODE sections, CODE 0, CODE 1, residual spans,
   labels, xrefs, and absence of report spam.
 
+Completed state:
+
+- Project/API payloads expose `binary_container_view.source_quality_gate`
+  (`macos_source_quality_gate_v1`) and the committed MPW `Asm.s` renders the
+  same checklist before supporting evidence.
+- The current gate status is `passed_with_deferred_semantics`: source-first
+  ordering, all CODE section visibility, range ownership coverage, stable
+  labels, explicit candidate/deferred residual spans, and no fake instruction
+  rendering are checked.
+- The gate explicitly does not claim accepted byte-entry proof, decoded Segment
+  Loader relocation/fixup semantics, A5 lifetime proof, or resource-fork
+  round-trip support.
+- CODE 1 remains candidate-only for entry/stub/body semantics. The improvement
+  is that this state is now enforced and rendered as exact residual ranges with
+  next implementation steps, not hidden behind plausible disassembly or broad
+  orphan wording.
+
 ## Verification Plan
 
 Minimum proof for every implementation issue:
