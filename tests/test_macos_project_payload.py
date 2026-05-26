@@ -1128,11 +1128,11 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     assert source_quality["kind"] == "macos_source_quality_gate_v1"
     assert source_quality["status"] == "byte_real_baseline"
     assert source_quality["baseline_status"] == "passed_with_deferred_semantics"
-    assert source_quality["semantic_closeout_status"] == "semantic_source_complete_for_known_bounds"
+    assert source_quality["semantic_closeout_status"] == "blocked_residual_decode_gaps"
     assert source_quality["semantic_components"] == {
         "byte_preservation_status": "byte_real_complete",
         "source_ordering_status": "source_first",
-            "semantic_disassembly_status": "semantic_instruction_rows_present",
+            "semantic_disassembly_status": "residual_decode_gaps_present",
         "label_xref_status": "generated_labels_and_xrefs_present",
         "residual_status": "explicit",
     }
@@ -1164,10 +1164,24 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     assert code1_quality["generated_label_count"] >= 1
     assert code1_quality["human_semantic_names_required"] is False
     assert "macos_CODE_1_candidate_entry_stub" in code1_quality["labels"]
-    assert code1_quality["residuals"] == []
+    assert code1_quality["residuals"] == [
+        {
+            "kind": "semantic_decode_gap",
+            "start": 62,
+            "end": 29024,
+            "size": 28962,
+            "status": "candidate",
+            "fact_status": "candidate",
+            "parser_use": "candidate_only",
+            "fact_id": "macos.code_resource.movea_stack_a0.boundary.candidate",
+            "kb_record_id": "macos.hfs_resource_fork.code_resources.mpw_application",
+            "reason": "decoder did not emit an instruction/data row for this exact executable subrange",
+            "next_required_implementation": "extend flow/data classification for this exact CODE subrange",
+        }
+    ]
     code2_quality = next(item for item in quality_rows if item["resource_id"] == 2)
     assert code2_quality["semantic_instruction_row_count"] >= 4
-    assert code2_quality["semantic_data_row_count"] >= 1
+    assert code2_quality["semantic_data_row_count"] == 0
     assert code2_quality["byte_real_only_executable_body"] is False
     assert all(item["kind"] != "candidate_code" for item in code2_quality["residuals"])
     assert any(item["kind"] == "known_entry_stub_pattern" for item in code1_quality["reachable_code_evidence"])
@@ -1208,6 +1222,7 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     assert code2_quality["legacy_orphan_ranges_reclassified"] > 0
     assert code2_quality["orphan_bucket_present"] is False
     assert any(item["kind"] == "data" and item["status"] == "candidate" for item in code2_quality["residuals"])
+    assert any(item["kind"] == "semantic_decode_gap" for item in code2_quality["residuals"])
     for detail in container["code_resource_details"]:
         presentation = detail["source_presentation_status"]
         assert presentation["kind"] == "c_owned_restored_source_packet"

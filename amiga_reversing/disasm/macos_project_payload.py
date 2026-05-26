@@ -456,11 +456,20 @@ def _source_quality_gate(
     }
     semantic_rows = [row for row in rows if row["executable_body_span_count"]]
     byte_real_only_bodies = [row for row in semantic_rows if row["semantic_instruction_row_count"] == 0]
+    semantic_decode_gap_bodies = [
+        row
+        for row in semantic_rows
+        if any(_mapping(item).get("kind") == "semantic_decode_gap" for item in row["residuals"])
+    ]
     semantic_components = {
         "byte_preservation_status": "byte_real_complete" if all(checklist.values()) else "blocked",
         "source_ordering_status": "source_first" if checklist["source_first_artifact"] else "blocked",
         "semantic_disassembly_status": (
-            "byte_real_only" if byte_real_only_bodies else "semantic_instruction_rows_present"
+            "byte_real_only"
+            if byte_real_only_bodies
+            else "residual_decode_gaps_present"
+            if semantic_decode_gap_bodies
+            else "semantic_instruction_rows_present"
         ),
         "label_xref_status": (
             "generated_labels_without_xrefs"
@@ -473,6 +482,8 @@ def _source_quality_gate(
     semantic_closeout_status = (
         "blocked_byte_real_only"
         if byte_real_only_bodies
+        else "blocked_residual_decode_gaps"
+        if semantic_decode_gap_bodies
         else "semantic_source_complete_for_known_bounds"
         if all(checklist.values())
         else "blocked"
@@ -518,16 +529,13 @@ def _source_quality_resource_row(
     semantic_source = _mapping(section.get("semantic_source"))
     semantic_rows = [_mapping(item) for item in _sequence(semantic_source.get("rows"))]
     semantic_instruction_count = sum(1 for item in semantic_rows if item.get("kind") == "instruction")
-    semantic_data_count = sum(1 for item in semantic_rows if item.get("kind") in {"data", "directive"})
+    semantic_data_count = sum(1 for item in semantic_rows if _semantic_row_is_durable_data(item))
     semantic_xref_count = sum(len(_sequence(item.get("xrefs"))) for item in semantic_rows)
     residuals = _source_quality_residuals(
         detail,
         ranges,
         payload_size=payload_size,
         semantic_rows=semantic_rows,
-        semantic_candidate_residuals=[
-            _mapping(item) for item in _sequence(semantic_source.get("candidate_residuals"))
-        ],
     )
     executable_body_spans = [
         item
@@ -597,9 +605,8 @@ def _source_quality_residuals(
     *,
     payload_size: int,
     semantic_rows: list[Mapping[str, object]],
-    semantic_candidate_residuals: list[Mapping[str, object]],
 ) -> list[dict[str, object]]:
-    residuals: list[dict[str, object]] = [dict(item) for item in semantic_candidate_residuals]
+    residuals: list[dict[str, object]] = []
     for item in ranges:
         kind = str(item.get("kind") or "")
         status = str(item.get("fact_status") or item.get("status") or "")
@@ -1033,6 +1040,7 @@ def _semantic_source_rows(
         for row in _sequence(window.get("rows"))
     ]
     rows = [row for row in rows if row]
+    rows = [row for row in rows if not _macos_fallback_byte_row(row, code_range=code_range)]
     candidate_residuals = _macos_code_candidate_residuals(
         code_bytes,
         payload_base=code_start,
@@ -1053,7 +1061,7 @@ def _semantic_source_rows(
         "payload_size": code_size,
         "row_count": len(rows),
         "instruction_row_count": instruction_count,
-        "data_row_count": sum(1 for row in rows if row.get("kind") in {"data", "directive"}),
+        "data_row_count": sum(1 for row in rows if _semantic_row_is_durable_data(row)),
         "generated_label_count": sum(1 for row in rows if row.get("kind") == "label"),
         "generated_xref_count": sum(len(_sequence(row.get("xrefs"))) for row in rows),
         "analysis_seed_count": len(analysis_seeds),
@@ -1171,13 +1179,36 @@ def _macos_candidate_entry_patterns(code_bytes: bytes, *, payload_base: int) -> 
 
 def _payload_offset_is_covered(payload_offset: int, semantic_rows: list[Mapping[str, object]]) -> bool:
     for row in semantic_rows:
-        if row.get("kind") not in {"instruction", "data", "directive"}:
+        if row.get("kind") != "instruction" and not _semantic_row_is_durable_data(row):
             continue
         start = _int_value(row.get("payload_offset"))
         end = _int_value(row.get("payload_end"))
         if start is not None and end is not None and start <= payload_offset < end:
             return True
     return False
+
+
+def _macos_fallback_byte_row(row: Mapping[str, object], *, code_range: Mapping[str, object]) -> bool:
+    if row.get("kind") != "data":
+        return False
+    row_start = _int_value(row.get("payload_offset"))
+    row_end = _int_value(row.get("payload_end"))
+    range_start = _int_value(code_range.get("start"))
+    range_end = _int_value(code_range.get("end"))
+    return (
+        row_start is not None
+        and row_end is not None
+        and range_start is not None
+        and range_end is not None
+        and range_start <= row_start
+        and row_end <= range_end
+    )
+
+
+def _semantic_row_is_durable_data(row: Mapping[str, object]) -> bool:
+    if row.get("kind") == "directive":
+        return _int_value(row.get("payload_offset")) is not None
+    return row.get("kind") == "data" and str(row.get("opcode_or_directive") or "").lower() not in {"dc.b", "dcb.b"}
 
 
 def _add_macos_code_analysis_seed(

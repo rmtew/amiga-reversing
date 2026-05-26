@@ -303,13 +303,12 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     assert "\tmovea.l (a7)+,a0\t; payload+40 bytes=20 5F" in asm_text
     assert "macos_code_CODE_1_candidate_code_00000028:\n\tdc.b $20,$5F" not in asm_text
     assert "; CODE 1 Main byte-real source follows." in asm_text
-    assert "$20,$5F" in asm_text
     assert "; Source quality gate" in asm_text
     assert ";   status: byte_real_baseline" in asm_text
-    assert ";   semantic_closeout_status: semantic_source_complete_for_known_bounds" in asm_text
+    assert ";   semantic_closeout_status: blocked_residual_decode_gaps" in asm_text
     assert ";   baseline_status: passed_with_deferred_semantics" in asm_text
     assert "this is not semantic source closeout" in asm_text
-    assert ";     semantic_disassembly_status: semantic_instruction_rows_present" in asm_text
+    assert ";     semantic_disassembly_status: residual_decode_gaps_present" in asm_text
     assert ";     label_xref_status: generated_labels_and_xrefs_present" in asm_text
     assert ";     no_fake_disassembly: True" in asm_text
     assert ";     no_vague_orphan_bucket: True" in asm_text
@@ -326,7 +325,11 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     assert (
         ";     CODE 1: section=macos-code-CODE-1 ownership=candidate_code,metadata "
         "coverage=True labels=6 xrefs=2 instructions=8 body_spans=1 byte_real_only_body=False "
-        "reachable_evidence=3 residuals=0"
+        "reachable_evidence=3 residuals=1"
+    ) in asm_text
+    assert (
+        ";       residual semantic_decode_gap payload[62..29024) status=candidate parser_use=candidate_only "
+        "reason=decoder did not emit an instruction/data row for this exact executable subrange"
     ) in asm_text
     assert ";     semantic_source: kind=macos_code_semantic_source_v1 status=decoded" in asm_text
     assert "macos_code_CODE_1_loc_00000028:" in asm_text
@@ -334,6 +337,7 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     assert "\tmove.l a7,d0\t; payload+42 bytes=20 0F" in asm_text
     assert ";       xref code_start_ref payload+40 reason=policy_entry_offset" in asm_text
     assert "macos_code_CODE_1_candidate_code_00000028:\n\tdc.b $20,$5F" not in asm_text
+    assert "\tdc.b $20,$5F,$22,$57" not in asm_text
     assert "residual candidate_code payload[40..29024)" not in asm_text
     assert "candidate_data_island" not in asm_text
     assert "SECTION code,code" not in asm_text
@@ -354,7 +358,7 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     code1_header = asm_text.index("macos_CODE_1_far_model_header:")
     code1_stub = asm_text.index("macos_CODE_1_candidate_entry_stub:")
     listing_start = asm_text.index("; CODE 1 Main byte-real source follows.")
-    first_instruction = asm_text.index("$20,$5F", listing_start)
+    first_instruction = asm_text.index("\tmovea.l (a7)+,a0\t; payload+40 bytes=20 5F", listing_start)
     quality_start = asm_text.index("; Source quality gate")
     evidence_start = asm_text.index("; Supporting evidence follows after the source body.")
     assert (
