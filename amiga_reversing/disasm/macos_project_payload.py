@@ -518,6 +518,7 @@ def _source_quality_gate(
         "stable_labels_present": all(row["stable_labels_present"] is True for row in rows),
         "residuals_explicit": all(row["residuals_explicit"] is True for row in rows),
         "reachable_code_evidence_recorded": all(row["reachable_code_evidence_recorded"] is True for row in rows),
+        "xref_target_labels_resolved": all(row["xref_target_labels_resolved"] is True for row in rows),
     }
     semantic_rows = [row for row in rows if row["executable_body_span_count"]]
     byte_real_only_bodies = [row for row in semantic_rows if row["semantic_instruction_row_count"] == 0]
@@ -596,6 +597,9 @@ def _source_quality_resource_row(
     semantic_instruction_count = sum(1 for item in semantic_rows if item.get("kind") == "instruction")
     semantic_data_count = sum(1 for item in semantic_rows if _semantic_row_is_durable_data(item))
     semantic_xref_count = sum(len(_sequence(item.get("xrefs"))) for item in semantic_rows)
+    semantic_label_names = _semantic_label_names(semantic_rows)
+    semantic_xref_target_labels = _semantic_xref_target_labels(semantic_rows)
+    unresolved_xref_target_labels = sorted(semantic_xref_target_labels - semantic_label_names)
     residuals = _source_quality_residuals(
         detail,
         ranges,
@@ -630,6 +634,10 @@ def _source_quality_resource_row(
         "labels": labels,
         "generated_label_count": len(labels),
         "generated_xref_count": semantic_xref_count,
+        "xref_target_label_count": len(semantic_xref_target_labels),
+        "unresolved_xref_target_label_count": len(unresolved_xref_target_labels),
+        "xref_target_labels_resolved": not unresolved_xref_target_labels,
+        "unresolved_xref_target_labels": unresolved_xref_target_labels[:20],
         "human_semantic_names_required": False,
         "residuals_explicit": all(item.get("status") in {"candidate", "deferred"} for item in residuals),
         "residuals": residuals,
@@ -641,6 +649,29 @@ def _source_quality_resource_row(
             semantic_instruction_count=semantic_instruction_count,
         ),
     }
+
+
+def _semantic_label_names(rows: list[Mapping[str, object]]) -> set[str]:
+    labels: set[str] = set()
+    for row in rows:
+        if row.get("kind") != "label":
+            continue
+        resource_id = row.get("resource_id")
+        payload_offset = _int_value(row.get("payload_offset"))
+        if resource_id is None or payload_offset is None:
+            continue
+        labels.add(f"CODE_{_text(resource_id)}_loc_{payload_offset:08x}")
+    return labels
+
+
+def _semantic_xref_target_labels(rows: list[Mapping[str, object]]) -> set[str]:
+    labels: set[str] = set()
+    for row in rows:
+        for xref in (_mapping(value) for value in _sequence(row.get("xrefs"))):
+            target_label = xref.get("target_label")
+            if isinstance(target_label, str) and target_label:
+                labels.add(target_label)
+    return labels
 
 
 def _source_quality_labels(detail: Mapping[str, object], section: Mapping[str, object]) -> list[str]:

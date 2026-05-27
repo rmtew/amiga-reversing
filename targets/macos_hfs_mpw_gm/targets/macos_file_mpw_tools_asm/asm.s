@@ -50299,6 +50299,7 @@ CODE_27_semantic_decode_gap_000000e4:
 ;     residuals_explicit: True
 ;     source_first_artifact: True
 ;     stable_labels_present: True
+;     xref_target_labels_resolved: True
 ;   does_not_claim:
 ;     accepted byte-entry proof
 ;     decoded Segment Loader relocation/fixup semantics
@@ -50310,9 +50311,9 @@ CODE_27_semantic_decode_gap_000000e4:
 ;     deferred A5 lifetime proof
 ;     deferred Segment Loader fixup decoding for current zero-offset fixture spans
 ;   resource_review:
-;     CODE 0: section=macos-code-CODE-0 ownership=metadata coverage=True labels=350 xrefs=0 instructions=0 body_spans=0 byte_real_only_body=False reachable_evidence=348 residuals=0
+;     CODE 0: section=macos-code-CODE-0 ownership=metadata coverage=True labels=350 xrefs=0 xref_targets=0 unresolved_xref_targets=0 instructions=0 body_spans=0 byte_real_only_body=False reachable_evidence=348 residuals=0
 ;       next: decode CODE 0 dispatch target semantics only where accepted target evidence exists
-;     CODE 1: section=macos-code-CODE-1 ownership=candidate_code,metadata coverage=True labels=120 xrefs=1902 instructions=7818 body_spans=1 byte_real_only_body=False reachable_evidence=117 residuals=59
+;     CODE 1: section=macos-code-CODE-1 ownership=candidate_code,metadata coverage=True labels=120 xrefs=1902 xref_targets=1026 unresolved_xref_targets=0 instructions=7818 body_spans=1 byte_real_only_body=False reachable_evidence=117 residuals=59
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual semantic_decode_gap payload[5528..5538) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[5660..5916) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
@@ -50372,12 +50373,12 @@ CODE_27_semantic_decode_gap_000000e4:
 ;       residual candidate_unvisited_entry_pattern island[27382..27396) count=1 payload_offsets=27390 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
 ;       residual candidate_unvisited_entry_pattern island[28454..28462) count=1 payload_offsets=28456 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
 ;       residual candidate_unvisited_entry_pattern island[28692..28748) count=1 payload_offsets=28744 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
-;     CODE 2: section=macos-code-CODE-2 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=9 xrefs=94 instructions=659 body_spans=1 byte_real_only_body=False reachable_evidence=9 residuals=3
+;     CODE 2: section=macos-code-CODE-2 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=9 xrefs=94 xref_targets=71 unresolved_xref_targets=0 instructions=659 body_spans=1 byte_real_only_body=False reachable_evidence=9 residuals=3
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual semantic_decode_gap payload[384..392) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[6016..6036) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[6446..6456) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;     CODE 3: section=macos-code-CODE-3 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=6 xrefs=457 instructions=2999 body_spans=1 byte_real_only_body=False reachable_evidence=5 residuals=10
+;     CODE 3: section=macos-code-CODE-3 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=6 xrefs=457 xref_targets=310 unresolved_xref_targets=0 instructions=2999 body_spans=1 byte_real_only_body=False reachable_evidence=5 residuals=10
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual semantic_decode_gap payload[64..94) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[410..436) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
@@ -50389,10 +50390,10 @@ CODE_27_semantic_decode_gap_000000e4:
 ;       residual semantic_decode_gap payload[17814..17832) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[17884..18252) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual candidate_unvisited_entry_pattern island[64..94) count=1 payload_offsets=64 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
-;     CODE 4: section=macos-code-CODE-4 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=22 xrefs=326 instructions=1874 body_spans=1 byte_real_only_body=False reachable_evidence=22 residuals=1
+;     CODE 4: section=macos-code-CODE-4 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=22 xrefs=326 xref_targets=217 unresolved_xref_targets=0 instructions=1874 body_spans=1 byte_real_only_body=False reachable_evidence=22 residuals=1
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual semantic_decode_gap payload[6030..6032) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;     CODE 5: section=macos-code-CODE-5 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=25 xrefs=1140 instructions=5358 body_spans=1 byte_real_only_body=False reachable_evidence=25 residuals=9
+;     CODE 5: section=macos-code-CODE-5 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=25 xrefs=1140 xref_targets=699 unresolved_xref_targets=0 instructions=5358 body_spans=1 byte_real_only_body=False reachable_evidence=25 residuals=9
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual semantic_decode_gap payload[3436..3438) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[4104..4108) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
@@ -50403,7 +50404,7 @@ CODE_27_semantic_decode_gap_000000e4:
 ;       residual semantic_decode_gap payload[21928..21952) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[23892..23914) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual candidate_unvisited_entry_pattern island[21764..21784) count=1 payload_offsets=21768 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
-;     CODE 6: section=macos-code-CODE-6 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=12 xrefs=824 instructions=2500 body_spans=1 byte_real_only_body=False reachable_evidence=11 residuals=9
+;     CODE 6: section=macos-code-CODE-6 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=12 xrefs=824 xref_targets=368 unresolved_xref_targets=0 instructions=2500 body_spans=1 byte_real_only_body=False reachable_evidence=11 residuals=9
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual semantic_decode_gap payload[316..426) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[728..736) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
@@ -50414,60 +50415,60 @@ CODE_27_semantic_decode_gap_000000e4:
 ;       residual semantic_decode_gap payload[3398..3406) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[4166..4168) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[6854..6858) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;     CODE 7: section=macos-code-CODE-7 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=8 xrefs=83 instructions=395 body_spans=1 byte_real_only_body=False reachable_evidence=8 residuals=2
+;     CODE 7: section=macos-code-CODE-7 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=8 xrefs=83 xref_targets=41 unresolved_xref_targets=0 instructions=395 body_spans=1 byte_real_only_body=False reachable_evidence=8 residuals=2
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual semantic_decode_gap payload[362..370) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[3138..3160) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;     CODE 8: section=macos-code-CODE-8 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=11 xrefs=115 instructions=530 body_spans=1 byte_real_only_body=False reachable_evidence=9 residuals=1
+;     CODE 8: section=macos-code-CODE-8 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=11 xrefs=115 xref_targets=71 unresolved_xref_targets=0 instructions=530 body_spans=1 byte_real_only_body=False reachable_evidence=9 residuals=1
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual semantic_decode_gap payload[598..678) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;     CODE 9: section=macos-code-CODE-9 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=10 xrefs=114 instructions=431 body_spans=1 byte_real_only_body=False reachable_evidence=11 residuals=13
+;     CODE 9: section=macos-code-CODE-9 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=10 xrefs=114 xref_targets=80 unresolved_xref_targets=0 instructions=431 body_spans=1 byte_real_only_body=False reachable_evidence=11 residuals=13
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual semantic_decode_gap payload[206..712) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[12798..13904) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual candidate_unvisited_entry_pattern island[206..712) count=5 payload_offsets=268,298,332,366,616 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
 ;       residual candidate_unvisited_entry_pattern island[12798..13904) count=6 payload_offsets=12836,13098,13178,13182,13274,13854 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
-;     CODE 10: section=macos-code-CODE-10 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=5 xrefs=62 instructions=338 body_spans=1 byte_real_only_body=False reachable_evidence=4 residuals=0
+;     CODE 10: section=macos-code-CODE-10 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=5 xrefs=62 xref_targets=43 unresolved_xref_targets=0 instructions=338 body_spans=1 byte_real_only_body=False reachable_evidence=4 residuals=0
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
-;     CODE 11: section=macos-code-CODE-11 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=17 xrefs=193 instructions=1080 body_spans=1 byte_real_only_body=False reachable_evidence=17 residuals=3
+;     CODE 11: section=macos-code-CODE-11 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=17 xrefs=193 xref_targets=117 unresolved_xref_targets=0 instructions=1080 body_spans=1 byte_real_only_body=False reachable_evidence=17 residuals=3
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual semantic_decode_gap payload[188..254) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[3494..3538) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[3616..3618) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;     CODE 12: section=macos-code-CODE-12 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=6 xrefs=372 instructions=2001 body_spans=1 byte_real_only_body=False reachable_evidence=4 residuals=2
+;     CODE 12: section=macos-code-CODE-12 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=6 xrefs=372 xref_targets=211 unresolved_xref_targets=0 instructions=2001 body_spans=1 byte_real_only_body=False reachable_evidence=4 residuals=2
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual semantic_decode_gap payload[2436..2438) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[4864..4866) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;     CODE 13: section=macos-code-CODE-13 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=16 xrefs=203 instructions=1081 body_spans=1 byte_real_only_body=False reachable_evidence=15 residuals=59
+;     CODE 13: section=macos-code-CODE-13 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=16 xrefs=203 xref_targets=135 unresolved_xref_targets=0 instructions=1081 body_spans=1 byte_real_only_body=False reachable_evidence=15 residuals=59
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual semantic_decode_gap payload[11616..11676) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[12344..26534) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual candidate_unvisited_entry_pattern island[11616..11676) count=1 payload_offsets=11616 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
 ;       residual candidate_unvisited_entry_pattern island[12344..26534) count=56 payload_offsets=12358,12362,13848,13852,14334,14338,14950,14954,15122,16382,16386,17084,... status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
-;     CODE 14: section=macos-code-CODE-14 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=14 xrefs=102 instructions=523 body_spans=1 byte_real_only_body=False reachable_evidence=13 residuals=0
+;     CODE 14: section=macos-code-CODE-14 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=14 xrefs=102 xref_targets=82 unresolved_xref_targets=0 instructions=523 body_spans=1 byte_real_only_body=False reachable_evidence=13 residuals=0
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
-;     CODE 15: section=macos-code-CODE-15 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=11 xrefs=147 instructions=929 body_spans=1 byte_real_only_body=False reachable_evidence=9 residuals=1
+;     CODE 15: section=macos-code-CODE-15 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=11 xrefs=147 xref_targets=103 unresolved_xref_targets=0 instructions=929 body_spans=1 byte_real_only_body=False reachable_evidence=9 residuals=1
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual semantic_decode_gap payload[2712..2802) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;     CODE 16: section=macos-code-CODE-16 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=6 xrefs=35 instructions=231 body_spans=1 byte_real_only_body=False reachable_evidence=5 residuals=1
+;     CODE 16: section=macos-code-CODE-16 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=6 xrefs=35 xref_targets=28 unresolved_xref_targets=0 instructions=231 body_spans=1 byte_real_only_body=False reachable_evidence=5 residuals=1
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual semantic_decode_gap payload[782..866) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;     CODE 17: section=macos-code-CODE-17 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=5 xrefs=199 instructions=960 body_spans=1 byte_real_only_body=False reachable_evidence=3 residuals=1
+;     CODE 17: section=macos-code-CODE-17 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=5 xrefs=199 xref_targets=119 unresolved_xref_targets=0 instructions=960 body_spans=1 byte_real_only_body=False reachable_evidence=3 residuals=1
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual semantic_decode_gap payload[2540..2588) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;     CODE 18: section=macos-code-CODE-18 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=5 xrefs=66 instructions=488 body_spans=1 byte_real_only_body=False reachable_evidence=5 residuals=1
+;     CODE 18: section=macos-code-CODE-18 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=5 xrefs=66 xref_targets=52 unresolved_xref_targets=0 instructions=488 body_spans=1 byte_real_only_body=False reachable_evidence=5 residuals=1
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual semantic_decode_gap payload[1158..1160) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;     CODE 19: section=macos-code-CODE-19 ownership=deferred,metadata coverage=True labels=3 xrefs=0 instructions=0 body_spans=0 byte_real_only_body=False reachable_evidence=2 residuals=1
+;     CODE 19: section=macos-code-CODE-19 ownership=deferred,metadata coverage=True labels=3 xrefs=0 xref_targets=0 unresolved_xref_targets=0 instructions=0 body_spans=0 byte_real_only_body=False reachable_evidence=2 residuals=1
 ;       next: extend C-owned CODE layout and reference analysis before promoting semantic source rows
 ;       residual deferred payload[40..556) status=deferred parser_use=deferred_only reason=missing_m68k_movea_l_stack_to_a0_entry
-;     CODE 20: section=macos-code-CODE-20 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=19 xrefs=353 instructions=1594 body_spans=1 byte_real_only_body=False reachable_evidence=29 residuals=4
+;     CODE 20: section=macos-code-CODE-20 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=19 xrefs=353 xref_targets=234 unresolved_xref_targets=0 instructions=1594 body_spans=1 byte_real_only_body=False reachable_evidence=29 residuals=4
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual semantic_decode_gap payload[1968..1974) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[2704..2756) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[3816..3818) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual candidate_unvisited_entry_pattern island[2704..2756) count=1 payload_offsets=2716 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
-;     CODE 21: section=macos-code-CODE-21 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=22 xrefs=152 instructions=801 body_spans=1 byte_real_only_body=False reachable_evidence=21 residuals=7
+;     CODE 21: section=macos-code-CODE-21 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=22 xrefs=152 xref_targets=102 unresolved_xref_targets=0 instructions=801 body_spans=1 byte_real_only_body=False reachable_evidence=21 residuals=7
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual semantic_decode_gap payload[2008..2078) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[2154..2302) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
@@ -50476,16 +50477,16 @@ CODE_27_semantic_decode_gap_000000e4:
 ;       residual semantic_decode_gap payload[6022..6050) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[6086..6098) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[6138..6150) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;     CODE 22: section=macos-code-CODE-22 ownership=deferred,metadata coverage=True labels=3 xrefs=0 instructions=0 body_spans=0 byte_real_only_body=False reachable_evidence=2 residuals=1
+;     CODE 22: section=macos-code-CODE-22 ownership=deferred,metadata coverage=True labels=3 xrefs=0 xref_targets=0 unresolved_xref_targets=0 instructions=0 body_spans=0 byte_real_only_body=False reachable_evidence=2 residuals=1
 ;       next: extend C-owned CODE layout and reference analysis before promoting semantic source rows
 ;       residual deferred payload[40..96) status=deferred parser_use=deferred_only reason=missing_m68k_movea_l_stack_to_a0_entry
-;     CODE 23: section=macos-code-CODE-23 ownership=deferred,metadata coverage=True labels=3 xrefs=0 instructions=0 body_spans=0 byte_real_only_body=False reachable_evidence=2 residuals=1
+;     CODE 23: section=macos-code-CODE-23 ownership=deferred,metadata coverage=True labels=3 xrefs=0 xref_targets=0 unresolved_xref_targets=0 instructions=0 body_spans=0 byte_real_only_body=False reachable_evidence=2 residuals=1
 ;       next: extend C-owned CODE layout and reference analysis before promoting semantic source rows
 ;       residual deferred payload[40..126) status=deferred parser_use=deferred_only reason=missing_m68k_movea_l_stack_to_a0_entry
-;     CODE 24: section=macos-code-CODE-24 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=13 xrefs=277 instructions=1514 body_spans=1 byte_real_only_body=False reachable_evidence=15 residuals=1
+;     CODE 24: section=macos-code-CODE-24 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=13 xrefs=277 xref_targets=188 unresolved_xref_targets=0 instructions=1514 body_spans=1 byte_real_only_body=False reachable_evidence=15 residuals=1
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual semantic_decode_gap payload[808..816) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;     CODE 25: section=macos-code-CODE-25 ownership=candidate_code,metadata coverage=True labels=6 xrefs=12 instructions=36 body_spans=1 byte_real_only_body=False reachable_evidence=5 residuals=12
+;     CODE 25: section=macos-code-CODE-25 ownership=candidate_code,metadata coverage=True labels=6 xrefs=12 xref_targets=8 unresolved_xref_targets=0 instructions=36 body_spans=1 byte_real_only_body=False reachable_evidence=5 residuals=12
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual semantic_decode_gap payload[48..56) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[90..108) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
@@ -50497,14 +50498,14 @@ CODE_27_semantic_decode_gap_000000e4:
 ;       residual candidate_unvisited_entry_pattern island[90..108) count=2 payload_offsets=96,98 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
 ;       residual candidate_unvisited_entry_pattern island[140..184) count=1 payload_offsets=176 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
 ;       residual candidate_unvisited_entry_pattern island[200..228) count=2 payload_offsets=200,214 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
-;     CODE 26: section=macos-code-CODE-26 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=27 xrefs=187 instructions=911 body_spans=1 byte_real_only_body=False reachable_evidence=26 residuals=5
+;     CODE 26: section=macos-code-CODE-26 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=27 xrefs=187 xref_targets=129 unresolved_xref_targets=0 instructions=911 body_spans=1 byte_real_only_body=False reachable_evidence=26 residuals=5
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual semantic_decode_gap payload[226..232) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[288..310) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[1486..1492) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[2348..2350) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual candidate_unvisited_entry_pattern island[288..310) count=1 payload_offsets=292 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
-;     CODE 27: section=macos-code-CODE-27 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=5 xrefs=2 instructions=5 body_spans=1 byte_real_only_body=False reachable_evidence=3 residuals=20
+;     CODE 27: section=macos-code-CODE-27 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=5 xrefs=2 xref_targets=2 unresolved_xref_targets=0 instructions=5 body_spans=1 byte_real_only_body=False reachable_evidence=3 residuals=20
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual semantic_decode_gap payload[228..1882) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual candidate_unvisited_entry_pattern island[228..1882) count=19 payload_offsets=228,252,278,322,390,408,432,594,746,986,1030,1126,... status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows

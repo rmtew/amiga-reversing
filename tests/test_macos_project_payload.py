@@ -1345,9 +1345,14 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     assert code1_quality["generated_label_count"] >= 100
     assert code1_quality["human_semantic_names_required"] is False
     assert "CODE_1_candidate_entry_stub" in code1_quality["labels"]
+    assert code1_quality["xref_target_label_count"] > 0
+    assert code1_quality["unresolved_xref_target_label_count"] == 0
+    assert code1_quality["xref_target_labels_resolved"] is True
+    assert code1_quality["unresolved_xref_target_labels"] == []
     assert all(item.get("start") != 62 for item in code1_quality["residuals"])
     assert any(item["kind"] == "candidate_unvisited_entry_pattern" for item in code1_quality["residuals"])
     for quality in quality_rows:
+        assert quality["xref_target_labels_resolved"] is True
         residual_spans = [
             (item.get("kind"), item.get("start"), item.get("end"))
             for item in quality["residuals"]

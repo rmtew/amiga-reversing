@@ -641,6 +641,8 @@ def _source_quality_gate_lines(gate: Mapping[str, object]) -> list[str]:
                     f"coverage={_text(item.get('ownership_complete'))} "
                     f"labels={len(_sequence(item.get('labels')))} "
                     f"xrefs={_text(item.get('generated_xref_count'))} "
+                    f"xref_targets={_text(item.get('xref_target_label_count'))} "
+                    f"unresolved_xref_targets={_text(item.get('unresolved_xref_target_label_count'))} "
                     f"instructions={_text(item.get('semantic_instruction_row_count'))} "
                     f"body_spans={_text(item.get('executable_body_span_count'))} "
                     f"byte_real_only_body={_text(item.get('byte_real_only_executable_body'))} "
