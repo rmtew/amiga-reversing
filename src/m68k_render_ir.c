@@ -1757,11 +1757,13 @@ static void render_asm_dc_b(M68kRenderIRPreview *preview, const uint8_t *data, u
 static void render_asm_dc_w_values(M68kRenderIRPreview *preview, const uint8_t *data, uint32_t offset,
     uint32_t size, const char *comment);
 
-static void render_asm_data_dc_b_plan_rows(M68kRenderIRPreview *preview, size_t section_index,
-    const M68kDecodeSectionIR *section, uint32_t offset, uint32_t size, const char *comment) {
+static void render_asm_data_dc_b_plan_rows(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
+    size_t section_index, const M68kDecodeSectionIR *section, uint32_t offset, uint32_t size, const char *comment,
+    uint32_t *io_logical_pc) {
   uint32_t cursor = 0U;
   if (preview == NULL || section == NULL || section->data == NULL) return;
-  if ((offset & 1U) == 0U && size == 2U && section->data[offset] == 0U && section->data[offset + 1U] == 0U) {
+  if ((offset & 1U) == 0U && size == 2U && section->data[offset] == 0U && section->data[offset + 1U] == 0U &&
+      !lookup_has_label(lookup, section->section_index, offset + 1U)) {
     M68kRenderPlanRow *row;
     begin_asm_source_plan_row(preview, M68K_RENDER_PLAN_ROW_DATA, (uint32_t)section_index);
     render_asm_dc_w_values(preview, section->data, offset, size, comment);
@@ -1772,8 +1774,21 @@ static void render_asm_data_dc_b_plan_rows(M68kRenderIRPreview *preview, size_t 
   while (cursor < size) {
     M68kRenderPlanRow *row;
     uint8_t is_dcb = 0U;
+    uint32_t probe;
     uint32_t chunk_size = render_asm_dc_b_chunk_size(section->data, offset + cursor, size - cursor, &is_dcb);
     if (chunk_size == 0U) return;
+    if (cursor != 0U && lookup_has_label(lookup, section->section_index, offset + cursor)) {
+      begin_asm_source_plan_row(preview, M68K_RENDER_PLAN_ROW_LABEL, (uint32_t)section_index);
+      render_asm_label(preview, lookup, section->section_index, offset + cursor, io_logical_pc);
+      row = finish_asm_source_plan_row(preview, section->section_index, offset + cursor, 0U, 1);
+      set_asm_source_plan_row_statement_from_section(row, M68K_STATEMENT_LABEL, NULL, section, offset + cursor, 0U);
+    }
+    for (probe = 1U; probe < chunk_size; ++probe) {
+      if (lookup_has_label(lookup, section->section_index, offset + cursor + probe)) {
+        chunk_size = probe;
+        break;
+      }
+    }
     begin_asm_source_plan_row(preview, M68K_RENDER_PLAN_ROW_DATA, (uint32_t)section_index);
     if (is_dcb) render_asm_dcb_b(preview, chunk_size, section->data[offset + cursor], comment);
     else render_asm_dc_b_values_line(preview, section->data, offset + cursor, chunk_size, comment);
@@ -5101,6 +5116,20 @@ static int render_lookup_build(M68kRenderLookup *lookup, const M68kObject *objec
       if (lookup->object_symbol_labels[symbol->section_index][symbol->value] == NULL) {
         lookup->object_symbol_labels[symbol->section_index][symbol->value] = symbol->name;
       }
+    }
+  }
+  if (policy != NULL) {
+    uint16_t label_index;
+    for (label_index = 0U; label_index < policy->named_label_count &&
+         label_index < M68K_ANALYSIS_NAMED_LABEL_LIMIT; ++label_index) {
+      const M68kAnalysisNamedLabel *label = &policy->named_labels[label_index];
+      size_t label_section_index = label->has_section_index ? (size_t)label->section_index : 0U;
+      if (label->name[0] == '\0' || label->domain != M68K_ANALYSIS_LABEL_DOMAIN_SOURCE ||
+          label_section_index >= decode->section_count ||
+          label->offset > lookup->label_extents[label_section_index]) {
+        continue;
+      }
+      lookup->labels[label_section_index][label->offset] = 1U;
     }
   }
   for (fact_index = 0U; fact_index < facts->fact_count; ++fact_index) {
@@ -10240,7 +10269,8 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
                   lookup_instruction_comment(&lookup, section->section_index, start));
                 finish_asm_source_plan_row(out_preview, section->section_index, start, 0U, 1);
                 if (initialized_span) {
-                  render_asm_data_dc_b_plan_rows(out_preview, section_index, section, start, offset - start, NULL);
+                  render_asm_data_dc_b_plan_rows(out_preview, &lookup, section_index, section, start, offset - start,
+                    NULL, &asm_logical_pc);
                 } else {
                   begin_asm_source_plan_row(out_preview, M68K_RENDER_PLAN_ROW_RESERVE, (uint32_t)section_index);
                   render_asm_ds_best_fit(out_preview, start, offset - start);

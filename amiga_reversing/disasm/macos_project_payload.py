@@ -848,6 +848,28 @@ def _semantic_gap_residuals(
     if start is None or end is None or end <= start:
         return []
     gaps: list[dict[str, object]] = []
+    label_offsets = sorted(
+        {
+            offset
+            for row in semantic_rows
+            if row.get("kind") == "label"
+            for offset in [_int_value(row.get("payload_offset"))]
+            if offset is not None and start < offset < end
+        }
+    )
+
+    def append_gap(gap_start: int, gap_end: int) -> None:
+        cursor = gap_start
+        for label_offset in label_offsets:
+            if label_offset <= cursor:
+                continue
+            if label_offset >= gap_end:
+                break
+            gaps.append(_semantic_gap_residual(detail, range_info, start=cursor, end=label_offset))
+            cursor = label_offset
+        if cursor < gap_end:
+            gaps.append(_semantic_gap_residual(detail, range_info, start=cursor, end=gap_end))
+
     covered_end = start
     for row in sorted(semantic_rows, key=lambda item: _int_value(item.get("payload_offset")) or -1):
         row_start = _int_value(row.get("payload_offset"))
@@ -857,17 +879,10 @@ def _semantic_gap_residuals(
         if row_end <= start or row_start >= end:
             continue
         if row_start > covered_end:
-            gaps.append(
-                _semantic_gap_residual(
-                    detail,
-                    range_info,
-                    start=covered_end,
-                    end=min(row_start, end),
-                )
-            )
+            append_gap(covered_end, min(row_start, end))
         covered_end = max(covered_end, min(row_end, end))
     if covered_end < end:
-        gaps.append(_semantic_gap_residual(detail, range_info, start=covered_end, end=end))
+        append_gap(covered_end, end)
     return gaps
 
 

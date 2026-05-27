@@ -10479,6 +10479,7 @@ static int test_facts_v2_render_asm_source_renders_seeded_lvo_symbol(void) {
   uint8_t bytes[6] = {0x4eu, 0xaeu, 0xffu, 0x94u, 0x4eu, 0x75u};
   memset(&section, 0, sizeof(section));
   M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  m68k_analysis_policy_init_default(&policy);
   object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
   section.kind = M68K_SECTION_CODE;
   section.size = sizeof(bytes);
@@ -11660,6 +11661,7 @@ static int test_facts_v2_render_asm_source_splits_raw_data_plan_rows(void) {
   M68kObjectAddResult added;
   M68kDecodeIR decode;
   M68kFactIR facts;
+  M68kAnalysisPolicy policy;
   M68kRenderIRPreview preview;
   uint8_t *accepted_start[1];
   uint8_t *accepted_bytes[1];
@@ -11669,8 +11671,8 @@ static int test_facts_v2_render_asm_source_splits_raw_data_plan_rows(void) {
   size_t index;
   size_t data_row_count = 0U;
   const M68kRenderPlanRow *mid_row;
-  const uint32_t expected_offsets[3] = {0U, 16U, 32U};
-  const uint32_t expected_sizes[3] = {16U, 16U, 8U};
+  const uint32_t expected_offsets[3] = {0U, 16U, 24U};
+  const uint32_t expected_sizes[3] = {16U, 8U, 16U};
 
   memset(&section, 0, sizeof(section));
   memset(start_map, 0, sizeof(start_map));
@@ -11679,6 +11681,13 @@ static int test_facts_v2_render_asm_source_splits_raw_data_plan_rows(void) {
   accepted_start[0] = start_map;
   accepted_bytes[0] = byte_map;
   M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  m68k_analysis_policy_init_default(&policy);
+  policy.named_label_count = 1U;
+  policy.named_labels[0].has_section_index = 1U;
+  policy.named_labels[0].section_index = 0U;
+  policy.named_labels[0].domain = M68K_ANALYSIS_LABEL_DOMAIN_SOURCE;
+  policy.named_labels[0].offset = 24U;
+  snprintf(policy.named_labels[0].name, sizeof(policy.named_labels[0].name), "data_midpoint");
   section.kind = M68K_SECTION_DATA;
   section.size = sizeof(bytes);
   section.data_size = sizeof(bytes);
@@ -11691,7 +11700,7 @@ static int test_facts_v2_render_asm_source_splits_raw_data_plan_rows(void) {
 
   M68K_C_ASSERT_INT(0, m68k_decode_ir_build_object(&decode, &object, M68K_ASM_CPU_68060,
     m68k_diag_sink(NULL)));
-  M68K_C_ASSERT_INT(0, m68k_render_ir_preview_build(&object, &decode, &facts, NULL,
+  M68K_C_ASSERT_INT(0, m68k_render_ir_preview_build(&object, &decode, &facts, &policy,
     accepted_start, accepted_bytes, 0, 1, 1, 1, &preview, NULL));
   for (index = 0U; index < preview.asm_source_plan.row_count; ++index) {
     const M68kRenderPlanRow *row = &preview.asm_source_plan.rows[index];
@@ -11706,13 +11715,14 @@ static int test_facts_v2_render_asm_source_splits_raw_data_plan_rows(void) {
   mid_row = m68k_render_plan_find_row_for_source_offset(&preview.asm_source_plan, 0U, 24U);
   M68K_C_ASSERT(mid_row != NULL);
   M68K_C_ASSERT_U32(M68K_RENDER_PLAN_ROW_DATA, mid_row->kind);
-  M68K_C_ASSERT_U32(16U, mid_row->source_offset);
+  M68K_C_ASSERT_U32(24U, mid_row->source_offset);
   M68K_C_ASSERT_U32(16U, mid_row->source_size);
-  M68K_C_ASSERT(strstr(mid_row->text, "\tdc.b $11,$12,$13,$14") != NULL);
+  M68K_C_ASSERT(strstr(preview.asm_source_text, "data_midpoint:\n\tdc.b $19,$1A,$1B,$1C") != NULL);
 
   m68k_render_ir_preview_destroy(&preview);
   m68k_fact_ir_destroy(&facts);
   m68k_decode_ir_destroy(&decode);
+  m68k_analysis_policy_destroy(&policy);
   m68k_object_destroy(&object);
   return 0;
 }

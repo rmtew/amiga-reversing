@@ -297,6 +297,9 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     ]
     assert "CODE_1_semantic_string_data_gap_0000027e:" not in asm_text
     assert "CODE_1_semantic_dispatch_table_gap_00000f94:" not in asm_text
+    assert "CODE_26_data_string_00000936:" in asm_text
+    assert "CODE_26_loc_0000093e:" in asm_text
+    assert asm_text.index("CODE_26_data_string_00000936:") < asm_text.index("CODE_26_loc_0000093e:")
     assert "loc_0_" not in asm_text
     assert "CODE_1_loc_00003754(pc,d0.w)" in asm_text
     assert ";       xref code_start_ref payload+" not in asm_text

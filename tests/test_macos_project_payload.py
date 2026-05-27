@@ -1503,6 +1503,15 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
         if xref.get("target_label") and xref.get("reason") != "linkage_api_entry"
     }
     assert xref_target_labels <= semantic_labels
+    code26_rows = next(item for item in source_sections if item["id"] == 26)["semantic_source"]["rows"]
+    assert any(row["kind"] == "label" and row["payload_offset"] == 0x93E for row in code26_rows)
+    assert not any(
+        row.get("kind") == "data"
+        and isinstance(row.get("payload_offset"), int)
+        and isinstance(row.get("payload_end"), int)
+        and row["payload_offset"] < 0x93E < row["payload_end"]
+        for row in code26_rows
+    )
     assert any("CODE_1_loc_000031d2(pc)" in str(row.get("text") or "") for row in semantic_source["rows"])
     code2_quality = next(item for item in quality_rows if item["resource_id"] == 2)
     assert code2_quality["legacy_orphan_ranges_reclassified"] == 0
