@@ -189,6 +189,16 @@ structured length-prefixed string renderer for C-owned structured data. Remainin
 classification into C-owned structured rows where possible, especially for non-Mac targets and for Mac symbol records
 whose high-bit length/control byte has additional meaning.
 
+Audit note: the general C path already owns ordinary length-prefixed ASCII records when the byte stream proves a safe
+sequence, and it renders them from structured row roles rather than label text. Covered by
+`facts_v2_length_prefixed_ascii_sequence_renders_strings`,
+`facts_v2_length_prefixed_ascii_sequence_respects_code_overlap`, and the existing ASCII/string-sequence regressions.
+The Mac `$87,"GETRSRC"` / `$8A,"GETFONTNBR"` rows are deliberately not promoted by the generic scanner: the high bit is
+format-specific symbol-record state, not a plain Pascal length byte. The clean remaining step is to carry the Mac
+semantic gap classifier's accepted symbol/string record into first-class C structured data rows with provenance and
+candidate/accepted status. A generic high-bit Pascal auto-classifier would be a shortcut and risks misclassifying
+arbitrary binary data.
+
 If we know a string is a string of some sort, we should display it as the restored  source should see it. As a
 textual string where applicable. This is an opportunity for clean up. It should be a general thing, not just MacOS.
 We already do it in seemingly inconsistent cases, so looking at data in other targets for failures where we're doing
