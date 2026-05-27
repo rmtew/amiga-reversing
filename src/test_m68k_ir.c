@@ -17188,6 +17188,91 @@ static int test_facts_v2_length_prefixed_ascii_sequence_respects_code_overlap(vo
   return 0;
 }
 
+static int test_facts_v2_macos_highbit_symbol_string_renders_structured_data(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  char *source = NULL;
+  uint16_t index;
+  uint32_t symbol_items = 0U;
+  uint8_t bytes[] = {
+    0x87u, 'G', 'E', 'T', 'R', 'S', 'R', 'C', 0x00u, 0x00u,
+    0x8au, 'G', 'E', 'T', 'F', 'O', 'N', 'T', 'N', 'B', 'R', 0x00u, 0x00u, 0x00u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_MACOS;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_DATA;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  M68K_C_ASSERT(m68k_object_add_section(&object, &section).ok);
+  m68k_analysis_policy_init_default(&policy);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "dc.b $87,\"GETRSRC\",$00,$00") != NULL);
+  M68K_C_ASSERT(strstr(source, "dc.b $8A,\"GETFONTNBR\",$00,$00,$00") != NULL);
+  for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
+    const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
+    if (item->has_section_index && item->section_index == 0U &&
+        structured_data_item_has_role(item, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_MACOS_SYMBOL_STRING)) {
+      M68K_C_ASSERT(strcmp(item->semantic_role, "macos_symbol_string") == 0);
+      M68K_C_ASSERT(structured_data_item_has_role(item,
+        M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING |
+        M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LENGTH_PREFIXED_STRING));
+      ++symbol_items;
+    }
+  }
+  M68K_C_ASSERT_U32(2U, symbol_items);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_highbit_symbol_string_is_not_generic_pascal(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  char *source = NULL;
+  uint16_t index;
+  uint8_t bytes[] = {
+    0x87u, 'G', 'E', 'T', 'R', 'S', 'R', 'C', 0x00u, 0x00u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_DATA;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  M68K_C_ASSERT(m68k_object_add_section(&object, &section).ok);
+  m68k_analysis_policy_init_default(&policy);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "dc.b $87,\"GETRSRC\"") == NULL);
+  for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
+    const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
+    M68K_C_ASSERT(!structured_data_item_has_role(item, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_MACOS_SYMBOL_STRING));
+  }
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_source_analysis_caps_many_auto_structured_strings(void) {
   M68kObject object;
   M68kSection section;
@@ -20710,6 +20795,10 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_length_prefixed_ascii_sequence_renders_strings},
     {"facts_v2_length_prefixed_ascii_sequence_respects_code_overlap",
       test_facts_v2_length_prefixed_ascii_sequence_respects_code_overlap},
+    {"facts_v2_macos_highbit_symbol_string_renders_structured_data",
+      test_facts_v2_macos_highbit_symbol_string_renders_structured_data},
+    {"facts_v2_highbit_symbol_string_is_not_generic_pascal",
+      test_facts_v2_highbit_symbol_string_is_not_generic_pascal},
     {"facts_v2_source_analysis_caps_many_auto_structured_strings",
       test_facts_v2_source_analysis_caps_many_auto_structured_strings},
     {"facts_v2_render_asm_source_infers_lvo_immediate_for_indexed_wrapper",

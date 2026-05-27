@@ -8305,6 +8305,44 @@ static int auto_length_prefixed_string_record_span(const M68kRenderLookup *looku
   return 1;
 }
 
+static int auto_macos_symbol_string_record_span(const M68kRenderLookup *lookup,
+    const M68kDecodeSectionIR *section, const uint8_t *accepted_bytes, uint32_t offset,
+    uint32_t *out_span) {
+  uint32_t length;
+  uint32_t cursor;
+  uint32_t padding_count = 0U;
+  if (out_span != NULL) *out_span = 0U;
+  if (lookup == NULL || lookup->object == NULL ||
+      lookup->object->platform_backend_kind != M68K_PLATFORM_BACKEND_MACOS ||
+      section == NULL || section->data == NULL || accepted_bytes == NULL || out_span == NULL ||
+      offset >= section->size || (section->data[offset] & 0x80U) == 0U) {
+    return 0;
+  }
+  length = section->data[offset] & 0x7FU;
+  if (length < 3U || offset + 1U > section->size || length > section->size - offset - 1U)
+    return 0;
+  if (!auto_string_start_byte(section->data[offset + 1U])) return 0;
+  if (lookup_relocation_at(lookup, section->section_index, offset) != NULL ||
+      lookup_has_anchor_local(lookup, section->section_index, offset) ||
+      lookup_structured_data_item_covering_offset(lookup, section->section_index, offset) != NULL) {
+    return 0;
+  }
+  for (cursor = 0U; cursor < length; ++cursor) {
+    uint32_t payload_offset = offset + 1U + cursor;
+    if (!byte_is_quoted_string_safe(section->data[payload_offset])) return 0;
+    if (!auto_string_interior_clear(lookup, section->section_index, payload_offset)) return 0;
+  }
+  cursor = offset + 1U + length;
+  while (cursor < section->size && section->data[cursor] == 0U && padding_count < 3U &&
+      auto_string_interior_clear(lookup, section->section_index, cursor)) {
+    ++cursor;
+    ++padding_count;
+  }
+  if (auto_string_range_has_code_byte(section, accepted_bytes, offset, cursor - offset)) return 0;
+  *out_span = cursor - offset;
+  return 1;
+}
+
 static int render_lookup_maybe_add_length_prefixed_string_sequence(M68kRenderLookup *lookup,
     const M68kDecodeSectionIR *section, const uint8_t *accepted_bytes, uint32_t offset, uint32_t *out_size) {
   uint32_t offsets[64];
@@ -8332,6 +8370,24 @@ static int render_lookup_maybe_add_length_prefixed_string_sequence(M68kRenderLoo
     }
   }
   *out_size = cursor - offset;
+  return 0;
+}
+
+static int render_lookup_maybe_add_macos_symbol_string(M68kRenderLookup *lookup,
+    const M68kDecodeSectionIR *section, const uint8_t *accepted_bytes, uint32_t offset,
+    uint32_t *out_size) {
+  uint32_t span = 0U;
+  if (out_size != NULL) *out_size = 0U;
+  if (lookup == NULL || section == NULL || out_size == NULL) return 0;
+  if (!auto_macos_symbol_string_record_span(lookup, section, accepted_bytes, offset, &span)) return 0;
+  if (render_lookup_add_auto_structured_data_item(lookup, section->section_index, offset, span,
+      M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING |
+        M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LENGTH_PREFIXED_STRING |
+        M68K_ANALYSIS_STRUCTURED_DATA_ROLE_MACOS_SYMBOL_STRING,
+      M68K_ANALYSIS_STRUCTURED_DATA_STRING) != 0) {
+    return -1;
+  }
+  *out_size = span;
   return 0;
 }
 
@@ -8527,6 +8583,17 @@ static int render_lookup_infer_data_strings(M68kRenderLookup *lookup, const M68k
     if (section->data == NULL) continue;
     while (offset < section->size) {
       uint32_t span;
+      if ((accepted_bytes[section_index] == NULL || accepted_bytes[section_index][offset] == 0U) &&
+          lookup_structured_data_item_covering_offset(lookup, section_index, offset) == NULL) {
+        if (render_lookup_maybe_add_macos_symbol_string(lookup, section, accepted_bytes[section_index], offset,
+            &span) != 0) {
+          return -1;
+        }
+        if (span != 0U) {
+          offset += span;
+          continue;
+        }
+      }
       int candidate_start = auto_string_candidate_start(section, offset) ||
         (byte_is_quoted_string_safe(section->data[offset]) &&
           (lookup_has_label(lookup, section_index, offset) ||

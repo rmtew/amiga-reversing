@@ -244,10 +244,13 @@ sequence, and it renders them from structured row roles rather than label text. 
 `facts_v2_length_prefixed_ascii_sequence_renders_strings`,
 `facts_v2_length_prefixed_ascii_sequence_respects_code_overlap`, and the existing ASCII/string-sequence regressions.
 The Mac `$87,"GETRSRC"` / `$8A,"GETFONTNBR"` rows are deliberately not promoted by the generic scanner: the high bit is
-format-specific symbol-record state, not a plain Pascal length byte. The clean remaining step is to carry the Mac
-semantic gap classifier's accepted symbol/string record into first-class C structured data rows with provenance and
-candidate/accepted status. A generic high-bit Pascal auto-classifier would be a shortcut and risks misclassifying
-arbitrary binary data.
+format-specific symbol-record state, not a plain Pascal length byte. Resolution note: the C auto-data pass now has a
+Mac-gated `macos_symbol_string` structured-data role for high-bit length/control symbol records. It emits first-class
+structured rows with `string` and `length_prefixed_string` roles, renders them as byte-preserving quoted `dc.b` rows,
+and does not promote the same bytes on Amiga/Atari backends. Covered by
+`facts_v2_macos_highbit_symbol_string_renders_structured_data`,
+`facts_v2_highbit_symbol_string_is_not_generic_pascal`, and `cmd /c src\precommit.bat m68k_ir`. Broader string cleanup
+remains about other proven string/data forms, not this Mac high-bit symbol-record case.
 
 If we know a string is a string of some sort, we should display it as the restored  source should see it. As a
 textual string where applicable. This is an opportunity for clean up. It should be a general thing, not just MacOS.

@@ -45,6 +45,8 @@ static int text_equal_nullable(const char *left, const char *right) {
 }
 
 const char *m68k_analysis_structured_data_role_name_for_flags(uint32_t semantic_role_flags) {
+  if ((semantic_role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_MACOS_SYMBOL_STRING) != 0U)
+    return "macos_symbol_string";
   if ((semantic_role_flags &
       (M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING | M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LENGTH_PREFIXED_STRING)) ==
       (M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING | M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LENGTH_PREFIXED_STRING)) {
