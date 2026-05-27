@@ -510,7 +510,10 @@ def _semantic_source_lines(
             lines.extend(
                 _semantic_data_row_lines(
                     row,
-                    label=f"{_text(section.get('label'))}_{_text(row.get('data_kind') or 'data')}_{payload_offset:08x}",
+                    label=(
+                        f"{_text(section.get('label'))}_"
+                        f"{_semantic_data_label_kind(str(row.get('data_kind') or 'data'))}_{payload_offset:08x}"
+                    ),
                     base_offset=payload_offset,
                 )
             )
@@ -558,6 +561,18 @@ def _semantic_data_row_lines(row: Mapping[str, object], *, label: str, base_offs
     if row.get("data_kind") == "semantic_alignment_padding_gap" and data and all(byte == 0 for byte in data):
         return [f"{label}:", f"\tds.b {len(data)}"]
     return _dc_b_lines(data, label=label, base_offset=base_offset)
+
+
+def _semantic_data_label_kind(kind: str) -> str:
+    label_kinds = {
+        "semantic_alignment_padding_gap": "data_alignment_padding",
+        "semantic_dispatch_table_gap": "data_dispatch_table",
+        "semantic_pascal_string_gap": "data_pascal_string",
+        "semantic_string_data_gap": "data_string",
+        "semantic_symbol_record_gap": "data_symbol_record",
+        "semantic_zero_fill_gap": "data_zero_fill",
+    }
+    return label_kinds.get(kind, "data")
 
 
 def _bytes_from_hex(text: str) -> bytes:

@@ -3258,7 +3258,7 @@ CODE_1_loc_00000268:
 	dbf.w d1,CODE_1_loc_00000240
 	bra.b CODE_1_loc_0000029c
 CODE_1_loc_0000027e:
-CODE_1_semantic_string_data_gap_0000027e:
+CODE_1_data_string_0000027e:
 	dc.b $30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$41,$42,$43,$44,$45,$46
 CODE_1_loc_0000028e:
 	moveq.l #10,d7
@@ -4698,7 +4698,7 @@ CODE_1_loc_00000f7a:
 	move.w CODE_1_loc_00000f6c(pc,d0.w),d0
 	jmp CODE_1_loc_00000f6c(pc,d0.w)
 CODE_1_loc_00000f94:
-CODE_1_semantic_dispatch_table_gap_00000f94:
+CODE_1_data_dispatch_table_00000f94:
 	dc.b $00,$20,$00,$3A,$00,$72,$00,$8C,$00,$E2,$01,$2C,$01,$8E,$01,$7C
 	dc.b $01,$6A,$01,$46,$01,$58,$00,$54,$00,$A6,$00,$C4,$00,$FC,$01,$14
 CODE_1_loc_00000fb4:
@@ -4960,7 +4960,7 @@ CODE_1_loc_00001250:
 	movea.l a0,a7
 	jmp (a1)
 CODE_1_loc_00001264:
-CODE_1_semantic_dispatch_table_gap_00001264:
+CODE_1_data_dispatch_table_00001264:
 	dc.b $00,$01,$02,$00,$03,$00,$00,$00,$04,$05,$06,$00,$07,$00
 CODE_1_loc_00001272:
 	subq.w #4,a7
@@ -5079,7 +5079,7 @@ CODE_1_loc_0000136c:
 	move.w CODE_1_loc_00001350(pc,d0.w),d0
 	jmp CODE_1_loc_00001350(pc,d0.w)
 CODE_1_loc_00001378:
-CODE_1_semantic_dispatch_table_gap_00001378:
+CODE_1_data_dispatch_table_00001378:
 	dc.b $07,$80,$07,$8E,$07,$8E,$07,$80,$07,$8E,$07,$8E,$07,$8E,$07,$8E
 	dc.b $07,$8E,$07,$80,$07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E
 	dc.b $07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E
@@ -5477,7 +5477,7 @@ CODE_1_loc_000019f8:
 CODE_1_loc_00001a02:
 	move.b #$17,-$0005(a5)
 	bra.w CODE_1_loc_00001ae4
-CODE_1_semantic_dispatch_table_gap_00001a0c:
+CODE_1_data_dispatch_table_00001a0c:
 	dc.b $1B,$7C,$00,$18,$FF,$FB,$60,$00,$00,$F8,$1B,$7C,$00,$19,$FF,$FB
 	dc.b $60,$00,$00,$EE,$1B,$7C,$00,$1A,$FF,$FB,$60,$00,$00,$E4,$1B,$7C
 	dc.b $00,$1B,$FF,$FB,$60,$00,$00,$DA
@@ -5493,7 +5493,7 @@ CODE_1_loc_00001a48:
 CODE_1_loc_00001a52:
 	move.b #$20,-$0005(a5)
 	bra.w CODE_1_loc_00001ae4
-CODE_1_semantic_dispatch_table_gap_00001a5c:
+CODE_1_data_dispatch_table_00001a5c:
 	dc.b $1B,$7C,$00,$14,$FF,$FB,$60,$00,$00,$A8,$4A,$2D,$EC,$C3,$67,$0E
 	dc.b $18,$1C,$52,$45,$1B,$7C,$00,$21,$FF,$FB,$60,$00,$00,$98,$55,$4F
 	dc.b $22,$6D,$FF,$FC,$4A,$29,$00,$0F,$67,$06,$4E,$BA,$01,$EA,$60,$06
@@ -5737,7 +5737,7 @@ CODE_1_loc_00001d06:
 	move.b #$1,(a7)
 	jmp (a1)
 CODE_1_loc_00001d1c:
-CODE_1_semantic_string_data_gap_00001d1c:
+CODE_1_data_string_00001d1c:
 	dc.b $0A,$3C,$3C,$3C,$49,$4E,$54,$52,$3E,$3E,$3E,$00
 CODE_1_loc_00001d28:
 	link a6,#-4
@@ -6003,7 +6003,7 @@ CODE_1_loc_00001ff0:
 CODE_1_loc_00001ff6:
 	rts
 CODE_1_loc_00001ff8:
-CODE_1_semantic_dispatch_table_gap_00001ff8:
+CODE_1_data_dispatch_table_00001ff8:
 	dc.b $02,$4F,$52,$00,$03,$4E,$4F,$54,$03,$41,$4E,$44,$03,$45,$4F,$52
 	dc.b $03,$44,$49,$56,$03,$4D,$4F,$44,$03,$58,$4F,$52,$00,$00,$00,$09
 	dc.b $00,$00,$00,$14,$00,$00,$00,$0B,$00,$00,$00,$0A,$00,$00,$00,$07
@@ -6032,14 +6032,14 @@ CODE_1_loc_0000207e:
 	dbf.w d0,CODE_1_loc_00002056
 	pea.l -$0100(a6)
 	pea.l -$0102(a6)
-CODE_1_semantic_dispatch_table_gap_0000208c:
+CODE_1_data_dispatch_table_0000208c:
 	dc.b $A9,$00,$3D,$6E,$FE,$FE,$00,$0C,$4E,$5E,$2E,$9F,$4E,$75,$8A,$47
 	dc.b $45,$54,$46,$4F,$4E,$54,$4E,$42,$52,$00,$00,$00
 CODE_1_loc_000020a8:
 	link a6,#-42
 	movem.l d4-d7,-(a7)
 	clr.l -(a7)
-CODE_1_semantic_dispatch_table_gap_000020b2:
+CODE_1_data_dispatch_table_000020b2:
 	dc.b $A9,$75,$28,$1F,$98,$AE,$00,$0C,$2D,$44,$00,$10,$4A,$AE,$00,$08
 	dc.b $67,$00,$00,$BE,$2F,$04,$70,$3C,$2F,$00,$4E,$AD,$0A,$7A,$20,$1F
 	dc.b $3C,$00,$1D,$7C,$00,$0B,$FF,$EA,$7E,$0B,$30,$06,$48,$C0,$81,$FC
@@ -6080,7 +6080,7 @@ CODE_1_loc_00002196:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-CODE_1_semantic_pascal_string_gap_000021e4:
+CODE_1_data_pascal_string_000021e4:
 	dc.b $89,$53,$45,$54,$44,$49,$47,$49,$54,$53,$00,$00
 CODE_1_loc_000021f0:
 	link a6,#-98
@@ -6147,7 +6147,7 @@ CODE_1_loc_00002242:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-CODE_1_semantic_dispatch_table_gap_000022b4:
+CODE_1_data_dispatch_table_000022b4:
 	dc.b $85,$47,$45,$54,$54,$44,$00,$3A,$24,$4A,$61,$6E,$46,$65,$62,$4D
 	dc.b $61,$72,$41,$70,$72,$4D,$61,$79,$4A,$75,$6E,$4A,$75,$6C,$41,$75
 	dc.b $67,$53,$65,$70,$4F,$63,$74,$4E,$6F,$76,$44,$65,$63,$00,$12,$48
@@ -6431,7 +6431,7 @@ CODE_1_loc_000025c8:
 	movea.l (a7)+,a0
 	addq.w #6,a7
 	jmp (a0)
-CODE_1_semantic_dispatch_table_gap_0000263e:
+CODE_1_data_dispatch_table_0000263e:
 	dc.b $87,$49,$4F,$41,$42,$4F,$52,$54,$00,$16,$0A,$3C,$3C,$3C,$49,$4E
 	dc.b $54,$52,$3E,$3E,$3E,$00,$02,$23,$20,$00,$04,$23,$23,$23,$20,$00
 CODE_1_loc_00002648:
@@ -6442,7 +6442,7 @@ CODE_1_loc_0000265e:
 	move.b #$1,-$133F(a5)
 	unlk a6
 	rts
-CODE_1_semantic_pascal_string_gap_0000266c:
+CODE_1_data_pascal_string_0000266c:
 	dc.b $84,$49,$4E,$54,$52,$00,$00,$00
 CODE_1_loc_00002674:
 	link a6,#-4
@@ -6501,7 +6501,7 @@ CODE_1_loc_00002716:
 	movea.l (a7)+,a0
 	addq.w #2,a7
 	jmp (a0)
-CODE_1_semantic_pascal_string_gap_00002724:
+CODE_1_data_pascal_string_00002724:
 	dc.b $89,$46,$4F,$52,$4D,$41,$54,$53,$54,$52,$00,$00
 CODE_1_loc_00002730:
 	link a6,#-10
@@ -6571,7 +6571,7 @@ CODE_1_loc_000027c6:
 	movea.l (a7)+,a0
 	addq.w #6,a7
 	jmp (a0)
-CODE_1_semantic_pascal_string_gap_000027d2:
+CODE_1_data_pascal_string_000027d2:
 	dc.b $89,$53,$54,$52,$49,$4E,$47,$43,$56,$54,$00,$00
 CODE_1_loc_000027de:
 	link a6,#-4
@@ -6599,7 +6599,7 @@ CODE_1_loc_0000281e:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-CODE_1_semantic_pascal_string_gap_00002824:
+CODE_1_data_pascal_string_00002824:
 	dc.b $87,$53,$54,$52,$45,$58,$50,$52,$00,$00
 CODE_1_loc_0000282e:
 	link a6,#-4
@@ -6649,7 +6649,7 @@ CODE_1_loc_000028a8:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-CODE_1_semantic_pascal_string_gap_000028ae:
+CODE_1_data_pascal_string_000028ae:
 	dc.b $87,$41,$42,$53,$45,$58,$50,$52,$00,$00
 CODE_1_loc_000028b8:
 	link a6,#-4
@@ -6686,7 +6686,7 @@ CODE_1_loc_0000290e:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-CODE_1_semantic_pascal_string_gap_00002916:
+CODE_1_data_pascal_string_00002916:
 	dc.b $8D,$49,$53,$54,$59,$50,$45,$44,$49,$4D,$50,$4F,$52,$54,$00,$00
 CODE_1_loc_00002926:
 	link a6,#-14
@@ -6744,7 +6744,7 @@ CODE_1_loc_000029b0:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-CODE_1_semantic_pascal_string_gap_000029bc:
+CODE_1_data_pascal_string_000029bc:
 	dc.b $8B,$49,$53,$54,$59,$50,$45,$44,$44,$41,$54,$41,$00,$00
 CODE_1_loc_000029ca:
 	link a6,#-16
@@ -6897,7 +6897,7 @@ CODE_1_loc_00002b5a:
 	movea.l (a7)+,a0
 	adda.w #$1A,a7
 	jmp (a0)
-CODE_1_semantic_pascal_string_gap_00002b68:
+CODE_1_data_pascal_string_00002b68:
 	dc.b $89,$43,$48,$45,$43,$4B,$57,$49,$54,$48,$00,$00
 CODE_1_loc_00002b74:
 	link a6,#0
@@ -6915,7 +6915,7 @@ CODE_1_loc_00002b8c:
 CODE_1_loc_00002b92:
 	unlk a6
 	rts
-CODE_1_semantic_pascal_string_gap_00002b96:
+CODE_1_data_pascal_string_00002b96:
 	dc.b $92,$53,$4B,$49,$50,$51,$55,$41,$4C,$49,$46,$49,$43,$41,$54,$49
 	dc.b $4F,$4E,$53,$00,$00,$00
 CODE_1_loc_00002bac:
@@ -7471,7 +7471,7 @@ CODE_1_loc_000031b8:
 	movea.l (a7)+,a0
 	adda.w #$14,a7
 	jmp (a0)
-CODE_1_semantic_pascal_string_gap_000031c6:
+CODE_1_data_pascal_string_000031c6:
 	dc.b $88,$4C,$4F,$4F,$4B,$55,$50,$49,$44,$00,$00,$00
 CODE_1_loc_000031d2:
 	link a6,#0
@@ -7546,7 +7546,7 @@ CODE_1_loc_000032c6:
 	movea.l $0008(a6),a0
 	movea.l a0,a6
 	jmp CODE_1_loc_0000441e(pc)
-CODE_1_semantic_dispatch_table_gap_000032e0:
+CODE_1_data_dispatch_table_000032e0:
 	dc.b $00,$00,$4C,$DF,$14,$00,$4E,$5E,$2E,$9F,$4E,$75,$8B,$52,$45,$54
 	dc.b $55,$52,$4E,$56,$41,$4C,$55,$45,$00,$00
 CODE_1_loc_000032fa:
@@ -7571,7 +7571,7 @@ CODE_1_loc_00003312:
 	movea.l (a7)+,a0
 	addq.w #6,a7
 	jmp (a0)
-CODE_1_semantic_pascal_string_gap_00003338:
+CODE_1_data_pascal_string_00003338:
 	dc.b $87,$53,$54,$41,$43,$4B,$4F,$50,$00,$00
 CODE_1_loc_00003342:
 	link a6,#0
@@ -7598,7 +7598,7 @@ CODE_1_loc_0000335a:
 	movea.l (a7)+,a0
 	adda.w #$A,a7
 	jmp (a0)
-CODE_1_semantic_pascal_string_gap_0000338e:
+CODE_1_data_pascal_string_0000338e:
 	dc.b $88,$4F,$55,$54,$5F,$4F,$50,$4E,$44,$00,$00,$00
 CODE_1_loc_0000339a:
 	link a6,#-6
@@ -7656,7 +7656,7 @@ CODE_1_loc_0000340c:
 	movea.l (a7)+,a0
 	adda.w #$C,a7
 	jmp (a0)
-CODE_1_semantic_pascal_string_gap_0000341a:
+CODE_1_data_pascal_string_0000341a:
 	dc.b $8B,$43,$48,$4B,$4F,$50,$4E,$44,$54,$59,$50,$45,$00,$00
 CODE_1_loc_00003428:
 	link a6,#-20
@@ -7841,7 +7841,7 @@ CODE_1_loc_00003616:
 	move.w CODE_1_loc_0000360c(pc,d0.w),d0
 	jmp $0(pc,d0.w)
 CODE_1_loc_00003634:
-CODE_1_semantic_dispatch_table_gap_00003634:
+CODE_1_data_dispatch_table_00003634:
 	dc.b $00,$0E,$00,$22,$00,$36,$00,$4A,$00,$5E,$00,$72,$2F,$0C,$2F,$0B
 	dc.b $4E,$AD,$0A,$CA,$10,$1F,$48,$80,$48,$C0,$2D,$40,$FF,$F8,$60,$62
 	dc.b $2F,$0C,$2F,$0B,$4E,$AD,$0A,$C2,$10,$1F,$48,$80,$48,$C0,$2D,$40
@@ -7917,7 +7917,7 @@ CODE_1_loc_00003738:
 	move.w CODE_1_loc_0000372c(pc,d0.w),d0
 	jmp $0(pc,d0.w)
 CODE_1_loc_00003754:
-CODE_1_semantic_dispatch_table_gap_00003754:
+CODE_1_data_dispatch_table_00003754:
 	dc.b $00,$34,$00,$9C,$01,$1E,$01,$32,$01,$56,$01,$7A,$01,$8A,$01,$9C
 	dc.b $01,$AC,$01,$C4,$01,$DC,$01,$F4,$02,$0C,$02,$24,$02,$3A,$02,$4A
 	dc.b $02,$AC,$02,$AC,$02,$AC,$02,$AC,$02,$AC,$02,$AC,$02,$AC,$02,$AC
@@ -7978,7 +7978,7 @@ CODE_1_loc_000039fe:
 	movea.l (a7)+,a0
 	addq.w #6,a7
 	jmp (a0)
-CODE_1_semantic_pascal_string_gap_00003a32:
+CODE_1_data_pascal_string_00003a32:
 	dc.b $86,$4F,$55,$54,$5F,$4F,$50,$00,$00,$00
 CODE_1_loc_00003a3c:
 	link a6,#-2
@@ -8015,7 +8015,7 @@ CODE_1_loc_00003a98:
 	movea.l (a7)+,a0
 	addq.w #6,a7
 	jmp (a0)
-CODE_1_semantic_pascal_string_gap_00003aa0:
+CODE_1_data_pascal_string_00003aa0:
 	dc.b $8F,$43,$48,$45,$43,$4B,$50,$52,$45,$43,$45,$44,$45,$4E,$43,$45
 	dc.b $00,$00
 CODE_1_loc_00003ab2:
@@ -8233,7 +8233,7 @@ CODE_1_loc_00003d12:
 	movea.l (a7)+,a0
 	adda.w #$10,a7
 	jmp (a0)
-CODE_1_semantic_pascal_string_gap_00003d20:
+CODE_1_data_pascal_string_00003d20:
 	dc.b $89,$4C,$4F,$4F,$4B,$55,$50,$53,$59,$4D,$00,$00
 CODE_1_loc_00003d2c:
 	link a6,#-10
@@ -8266,7 +8266,7 @@ CODE_1_loc_00003d78:
 	movea.l (a7)+,a0
 	adda.w #$C,a7
 	jmp (a0)
-CODE_1_semantic_pascal_string_gap_00003d82:
+CODE_1_data_pascal_string_00003d82:
 	dc.b $8B,$4C,$4F,$4F,$4B,$55,$50,$46,$49,$45,$4C,$44,$00,$00
 CODE_1_loc_00003d90:
 	link a6,#-280
@@ -8867,7 +8867,7 @@ CODE_1_loc_00004446:
 	movea.l (a7)+,a0
 	adda.w #$C,a7
 	jmp (a0)
-CODE_1_semantic_pascal_string_gap_00004458:
+CODE_1_data_pascal_string_00004458:
 	dc.b $88,$45,$56,$41,$4C,$45,$58,$50,$52,$00,$00,$00
 CODE_1_loc_00004464:
 	link a6,#0
@@ -8926,7 +8926,7 @@ CODE_1_loc_00004514:
 	movea.l (a7)+,a0
 	addq.w #6,a7
 	jmp (a0)
-CODE_1_semantic_pascal_string_gap_00004534:
+CODE_1_data_pascal_string_00004534:
 	dc.b $87,$53,$54,$41,$43,$4B,$4F,$50,$00,$00
 CODE_1_loc_0000453e:
 	link a6,#0
@@ -8968,7 +8968,7 @@ CODE_1_loc_000045ac:
 	movea.l (a7)+,a0
 	adda.w #$C,a7
 	jmp (a0)
-CODE_1_semantic_pascal_string_gap_000045b6:
+CODE_1_data_pascal_string_000045b6:
 	dc.b $88,$4F,$55,$54,$5F,$4F,$50,$4E,$44,$00,$00,$00
 CODE_1_loc_000045c2:
 	link a6,#-20
@@ -9224,7 +9224,7 @@ CODE_1_loc_00004852:
 	move.w CODE_1_loc_00004850(pc,d0.w),d0
 	jmp $0(pc,d0.w)
 CODE_1_loc_00004878:
-CODE_1_semantic_dispatch_table_gap_00004878:
+CODE_1_data_dispatch_table_00004878:
 	dc.b $00,$22,$00,$70,$00,$BE,$00,$CC,$00,$E4,$00,$F8,$00,$FC,$01,$02
 	dc.b $01,$06,$01,$14,$01,$22,$01,$30,$01,$3E,$01,$4C,$01,$5A,$01,$60
 	dc.b $70,$01,$B0,$05,$57,$C0,$4A,$00,$67,$24,$72,$01,$B2,$04,$57,$C1
@@ -9277,7 +9277,7 @@ CODE_1_loc_00004a12:
 	movea.l (a7)+,a0
 	addq.w #6,a7
 	jmp (a0)
-CODE_1_semantic_pascal_string_gap_00004a2c:
+CODE_1_data_pascal_string_00004a2c:
 	dc.b $86,$4F,$55,$54,$5F,$4F,$50,$00,$00,$00
 CODE_1_loc_00004a36:
 	link a6,#-2
@@ -9314,7 +9314,7 @@ CODE_1_loc_00004a92:
 	movea.l (a7)+,a0
 	addq.w #6,a7
 	jmp (a0)
-CODE_1_semantic_pascal_string_gap_00004a9a:
+CODE_1_data_pascal_string_00004a9a:
 	dc.b $8F,$43,$48,$45,$43,$4B,$50,$52,$45,$43,$45,$44,$45,$4E,$43,$45
 	dc.b $00,$00
 CODE_1_loc_00004aac:
@@ -9653,7 +9653,7 @@ CODE_1_loc_00004e26:
 	movea.l (a7)+,a0
 	adda.w #$16,a7
 	jmp (a0)
-CODE_1_semantic_pascal_string_gap_00004e34:
+CODE_1_data_pascal_string_00004e34:
 	dc.b $89,$4C,$4F,$4F,$4B,$55,$50,$53,$59,$4D,$00,$00
 CODE_1_loc_00004e40:
 	link a6,#-266
@@ -9698,7 +9698,7 @@ CODE_1_loc_00004eba:
 	movea.l (a7)+,a0
 	adda.w #$14,a7
 	jmp (a0)
-CODE_1_semantic_pascal_string_gap_00004ec4:
+CODE_1_data_pascal_string_00004ec4:
 	dc.b $8B,$4C,$4F,$4F,$4B,$55,$50,$46,$49,$45,$4C,$44,$00,$00
 CODE_1_loc_00004ed2:
 	link a6,#-910
@@ -10081,7 +10081,7 @@ CODE_1_loc_00005318:
 	movea.l (a7)+,a0
 	adda.w #$C,a7
 	jmp (a0)
-CODE_1_semantic_dispatch_table_gap_0000532a:
+CODE_1_data_dispatch_table_0000532a:
 	dc.b $87,$4F,$55,$54,$45,$58,$50,$52,$00,$02,$01,$23
 CODE_1_loc_00005334:
 CODE_1_loc_00005336:
@@ -10123,7 +10123,7 @@ CODE_1_loc_0000539a:
 	move.l (a7)+,d7
 	unlk a6
 	rts
-CODE_1_semantic_pascal_string_gap_000053a0:
+CODE_1_data_pascal_string_000053a0:
 	dc.b $89,$47,$45,$4E,$44,$42,$47,$4C,$42,$4C,$00,$00
 CODE_1_loc_000053ac:
 	link a6,#-256
@@ -10187,7 +10187,7 @@ CODE_1_loc_00005446:
 	movea.l (a7)+,a0
 	addq.w #2,a7
 	jmp (a0)
-CODE_1_semantic_pascal_string_gap_00005462:
+CODE_1_data_pascal_string_00005462:
 	dc.b $91,$45,$4E,$44,$4F,$46,$43,$4F,$4E,$54,$49,$4E,$55,$41,$54,$49
 	dc.b $4F,$4E,$00,$00
 CODE_1_loc_00005476:
@@ -10227,7 +10227,7 @@ CODE_1_loc_000054c6:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-CODE_1_semantic_pascal_string_gap_000054ce:
+CODE_1_data_pascal_string_000054ce:
 	dc.b $8A,$53,$55,$43,$4B,$55,$50,$52,$45,$53,$54,$00,$00,$00
 CODE_1_loc_000054dc:
 	link a6,#0
@@ -10247,7 +10247,7 @@ CODE_1_loc_00005504:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-CODE_1_semantic_pascal_string_gap_0000550c:
+CODE_1_data_pascal_string_0000550c:
 	dc.b $8C,$47,$45,$54,$49,$4E,$50,$55,$54,$4C,$49,$4E,$45,$00,$00,$00
 CODE_1_loc_0000551c:
 	link a6,#-518
@@ -10466,7 +10466,7 @@ CODE_1_loc_0000578c:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-CODE_1_semantic_dispatch_table_gap_00005796:
+CODE_1_data_dispatch_table_00005796:
 	dc.b $89,$45,$4E,$44,$4F,$46,$4C,$49,$4E,$45,$00,$06,$01,$09,$01,$3A
 	dc.b $01,$23
 CODE_1_loc_000057a2:
@@ -10496,7 +10496,7 @@ CODE_1_loc_000057c2:
 	move.w #$FF82,-$0BD2(a5)
 	unlk a6
 	rts
-CODE_1_semantic_pascal_string_gap_00005800:
+CODE_1_data_pascal_string_00005800:
 	dc.b $8C,$49,$4E,$49,$54,$53,$57,$49,$54,$43,$48,$45,$53,$00,$00,$00
 CODE_1_loc_00005810:
 	link a6,#-366
@@ -10579,7 +10579,7 @@ CODE_1_loc_000058ca:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-CODE_1_semantic_pascal_string_gap_000058d6:
+CODE_1_data_pascal_string_000058d6:
 	dc.b $8B,$41,$44,$4A,$55,$53,$54,$46,$49,$45,$4C,$44,$00,$00
 CODE_1_loc_000058e4:
 	link a6,#-2
@@ -10673,7 +10673,7 @@ CODE_1_loc_000059e6:
 CODE_1_loc_000059ee:
 	unlk a6
 	rts
-CODE_1_semantic_pascal_string_gap_000059f2:
+CODE_1_data_pascal_string_000059f2:
 	dc.b $8A,$50,$52,$4F,$43,$45,$53,$53,$4C,$42,$4C,$00,$00,$00
 CODE_1_loc_00005a00:
 	link a6,#-6
@@ -10752,7 +10752,7 @@ CODE_1_loc_00005ad8:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-CODE_1_semantic_pascal_string_gap_00005ae2:
+CODE_1_data_pascal_string_00005ae2:
 	dc.b $8C,$50,$52,$45,$50,$41,$52,$45,$50,$41,$52,$54,$53,$00,$00,$00
 CODE_1_loc_00005af2:
 	link a6,#-10
@@ -11165,7 +11165,7 @@ CODE_1_loc_00005fa8:
 	movem.l (a7)+,d4-d7
 	unlk a6
 	rts
-CODE_1_semantic_pascal_string_gap_00005fb0:
+CODE_1_data_pascal_string_00005fb0:
 	dc.b $8B,$4D,$41,$49,$4E,$43,$54,$4C,$4C,$4F,$4F,$50,$00,$00
 CODE_1_loc_00005fbe:
 	link a6,#0
@@ -11174,7 +11174,7 @@ CODE_1_loc_00005fbe:
 	jsr CODE_1_loc_00005aca(pc)
 	unlk a6
 	rts
-CODE_1_semantic_pascal_string_gap_00005fd0:
+CODE_1_data_pascal_string_00005fd0:
 	dc.b $88,$4C,$4F,$41,$44,$4D,$41,$49,$4E,$00,$00,$00
 CODE_1_loc_00005fdc:
 	link a6,#0
@@ -11192,7 +11192,7 @@ CODE_1_loc_00005fdc:
 	jsr CODE_1_loc_00002008(pc)
 	unlk a6
 	rts
-CODE_1_semantic_pascal_string_gap_00006012:
+CODE_1_data_pascal_string_00006012:
 	dc.b $88,$4C,$4F,$41,$44,$53,$45,$47,$53,$00,$00,$00
 CODE_1_loc_0000601e:
 	jsr CODE_1_loc_000070c8(pc)
@@ -11260,7 +11260,7 @@ CODE_1_loc_000060be:
 	pea.l $066A(a5)
 	jsr CODE_1_loc_00002008(pc)
 	bra.b CODE_1_loc_00006096
-CODE_1_semantic_dispatch_table_gap_000060ec:
+CODE_1_data_dispatch_table_000060ec:
 	dc.b $4E,$BA,$10,$66,$4E,$BA,$10,$68,$4E,$75,$4E,$5E,$4E,$75,$89,$41
 	dc.b $53,$53,$45,$4D,$42,$4C,$45,$52,$00,$0C,$07,$43,$6F,$6D,$6D,$61
 	dc.b $6E,$64,$03,$41,$73,$6D
@@ -11303,7 +11303,7 @@ CODE_1_loc_0000616e:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-CODE_1_semantic_dispatch_table_gap_0000617c:
+CODE_1_data_dispatch_table_0000617c:
 	dc.b $8B,$47,$45,$54,$43,$4F,$4D,$50,$44,$41,$54,$45,$00,$10,$01,$29
 	dc.b $08,$30,$32,$2F,$31,$33,$2F,$39,$35,$00,$02,$20,$28,$00,$20,$2F
 	dc.b $00,$04,$22,$2F,$00,$08
@@ -11399,7 +11399,7 @@ CODE_1_loc_000062f4:
 	movem.l -$0008(a6),d6-d7
 	unlk a6
 	rts
-CODE_1_semantic_pascal_string_gap_00006314:
+CODE_1_data_pascal_string_00006314:
 	dc.b $87,$73,$69,$67,$5F,$64,$66,$6C,$00,$00
 CODE_1_loc_0000631e:
 	link a6,#0
@@ -11421,7 +11421,7 @@ CODE_1_loc_0000634c:
 CODE_1_loc_00006352:
 	unlk a6
 	rts
-CODE_1_semantic_pascal_string_gap_00006356:
+CODE_1_data_pascal_string_00006356:
 	dc.b $91,$5F,$5F,$4E,$55,$4D,$54,$4F,$4F,$4C,$42,$4F,$58,$54,$52,$41
 	dc.b $50,$53,$00,$00
 CODE_1_loc_0000636a:
@@ -11440,7 +11440,7 @@ CODE_1_loc_0000638a:
 	movea.l (a7)+,a0
 	addq.w #2,a7
 	jmp (a0)
-CODE_1_semantic_pascal_string_gap_00006392:
+CODE_1_data_pascal_string_00006392:
 	dc.b $8D,$5F,$5F,$47,$45,$54,$54,$52,$41,$50,$54,$59,$50,$45,$00,$00
 CODE_1_loc_000063a2:
 	link a6,#-2
@@ -11481,7 +11481,7 @@ CODE_1_loc_000063d8:
 	movea.l (a7)+,a0
 	addq.w #2,a7
 	jmp (a0)
-CODE_1_semantic_pascal_string_gap_00006408:
+CODE_1_data_pascal_string_00006408:
 	dc.b $8D,$54,$52,$41,$50,$41,$56,$41,$49,$4C,$41,$42,$4C,$45,$00,$00
 CODE_1_loc_00006418:
 	move.l (a7)+,d0
@@ -11512,7 +11512,7 @@ CODE_1_loc_00006440:
 CODE_1_loc_00006444:
 	move.w d0,$0004(a7)
 	rts
-CODE_1_semantic_pascal_string_gap_0000644a:
+CODE_1_data_pascal_string_0000644a:
 	dc.b $88,$50,$4C,$53,$74,$72,$43,$6D,$70,$00,$00,$00
 CODE_1_loc_00006456:
 	move.l (a7)+,d0
@@ -11529,7 +11529,7 @@ CODE_1_loc_00006468:
 CODE_1_loc_0000646a:
 	dbf.w d0,CODE_1_loc_00006440
 	rts
-CODE_1_semantic_pascal_string_gap_00006470:
+CODE_1_data_pascal_string_00006470:
 	dc.b $88,$50,$4C,$53,$74,$72,$43,$70,$79,$00,$00,$00
 CODE_1_loc_0000647c:
 	link a6,#-4
@@ -11729,7 +11729,7 @@ CODE_1_loc_000067b2:
 	tst.l $0020(a0)
 	beq.b CODE_1_loc_000067ec
 	moveq.l #120,d0
-CODE_1_semantic_dispatch_table_gap_000067c2:
+CODE_1_data_dispatch_table_000067c2:
 	dc.b $A1,$1E,$2B,$48,$CF,$98,$66,$0A,$70,$02,$2F,$00,$4E,$BA,$00,$82
 	dc.b $58,$4F,$20,$78,$03,$16,$20,$68,$00,$04,$26,$68,$00,$20,$7E,$00
 	dc.b $76,$05,$22,$07,$20,$01,$C2,$FC,$00,$18,$48,$40,$C0,$FC,$00,$18
@@ -11744,7 +11744,7 @@ CODE_1_loc_0000681e:
 	movem.l -$0018(a6),d3/d6-d7/a2-a4
 	unlk a6
 	rts
-CODE_1_semantic_pascal_string_gap_00006828:
+CODE_1_data_pascal_string_00006828:
 	dc.b $87,$5F,$52,$54,$49,$6E,$69,$74,$00,$00
 CODE_1_loc_00006832:
 	link a6,#0
@@ -11754,7 +11754,7 @@ CODE_1_loc_00006832:
 	jsr CODE_1_loc_0000682a(pc)
 	unlk a6
 	rts
-CODE_1_semantic_pascal_string_gap_0000684a:
+CODE_1_data_pascal_string_0000684a:
 	dc.b $84,$65,$78,$69,$74,$00,$00,$00
 CODE_1_loc_00006852:
 	link a6,#0
@@ -11794,7 +11794,7 @@ CODE_1_loc_000068a2:
 	movea.l -$0004(a6),a4
 	unlk a6
 	rts
-CODE_1_semantic_pascal_string_gap_000068aa:
+CODE_1_data_pascal_string_000068aa:
 	dc.b $87,$5F,$52,$54,$45,$78,$69,$74,$00,$00
 CODE_1_loc_000068b4:
 	movea.l (a7)+,a1
@@ -11849,7 +11849,7 @@ CODE_1_semantic_decode_gap_00006924:
 CODE_1_loc_00006928:
 	tst.b $0006(a7)
 	beq.b CODE_1_loc_0000690a
-CODE_1_semantic_dispatch_table_gap_0000692e:
+CODE_1_data_dispatch_table_0000692e:
 	dc.b $A6,$3C,$60,$02,$A2,$3C,$0A,$00,$00,$01,$1F,$40,$00,$10,$20,$5F
 	dc.b $4F,$EF,$00,$0C,$4E,$D0
 CODE_1_loc_00006932:
@@ -11887,7 +11887,7 @@ CODE_1_loc_0000697a:
 	link a6,#-50
 	movea.l a7,a0
 	move.w $0008(a6),$0018(a0)
-CODE_1_semantic_dispatch_table_gap_00006986:
+CODE_1_data_dispatch_table_00006986:
 	dc.b $A0,$01,$3D,$40,$00,$0A,$4E,$5E,$20,$5F,$54,$8F,$4E,$D0
 CODE_1_loc_00006994:
 	sf.b d1
@@ -11905,7 +11905,7 @@ CODE_1_loc_0000699a:
 	clr.l $002E(a0)
 	tst.b d1
 	bne.b CODE_1_loc_0000699c
-CODE_1_semantic_dispatch_table_gap_000069c0:
+CODE_1_data_dispatch_table_000069c0:
 	dc.b $A0,$02,$60,$02,$A0,$03,$3D,$40,$00,$12,$22,$6E,$00,$0C,$22,$A8
 	dc.b $00,$28,$4E,$5E,$22,$5F,$4F,$EF,$00,$0A,$4E,$D1
 CODE_1_loc_000069c4:
@@ -11916,7 +11916,7 @@ CODE_1_loc_000069dc:
 	move.w $000C(a6),$0016(a0)
 	clr.b $001A(a0)
 	clr.w $001C(a0)
-CODE_1_semantic_dispatch_table_gap_000069f6:
+CODE_1_data_dispatch_table_000069f6:
 	dc.b $A0,$0C,$3D,$40,$00,$12,$41,$E8,$00,$20,$22,$6E,$00,$08,$70,$10
 	dc.b $A0,$2E,$4E,$5E,$22,$5F,$4F,$EF,$00,$0A,$4E,$D1
 CODE_1_loc_00006a12:
@@ -11934,7 +11934,7 @@ CODE_1_loc_00006a36:
 	move.w $000C(a6),$0016(a0)
 	clr.b $001A(a0)
 	move.l $0008(a6),$001C(a0)
-CODE_1_semantic_dispatch_table_gap_00006a52:
+CODE_1_data_dispatch_table_00006a52:
 	dc.b $A0,$0B,$3D,$40,$00,$12,$4E,$5E,$22,$5F,$4F,$EF,$00,$0A,$4E,$D1
 CODE_1_loc_00006a62:
 	link a6,#-80
@@ -11943,7 +11943,7 @@ CODE_1_loc_00006a62:
 	move.w $000C(a6),$0016(a0)
 	clr.b $001A(a0)
 	clr.w $001C(a0)
-CODE_1_semantic_dispatch_table_gap_00006a7c:
+CODE_1_data_dispatch_table_00006a7c:
 	dc.b $A0,$0C,$43,$E8,$00,$20,$20,$6E,$00,$08,$70,$10,$A0,$2E,$20,$4F
 	dc.b $A0,$0D,$3D,$40,$00,$12,$4E,$5E,$22,$5F,$4F,$EF,$00,$0A,$4E,$D1
 CODE_1_loc_00006a9c:
@@ -11957,7 +11957,7 @@ CODE_1_loc_00006abc:
 	link a6,#-50
 	movea.l a7,a0
 	move.w $000C(a6),$0018(a0)
-CODE_1_semantic_dispatch_table_gap_00006ac8:
+CODE_1_data_dispatch_table_00006ac8:
 	dc.b $A0,$18,$3D,$40,$00,$0E,$22,$6E,$00,$08,$22,$A8,$00,$2E,$4E,$5E
 	dc.b $22,$5F,$5C,$8F,$4E,$D1
 CODE_1_loc_00006ade:
@@ -12082,7 +12082,7 @@ CODE_1_loc_00006bae:
 	movea.l (a7)+,a0
 	lea.l $000C(a7),a7
 	jmp (a0)
-CODE_1_semantic_pascal_string_gap_00006bec:
+CODE_1_data_pascal_string_00006bec:
 	dc.b $87,$48,$47,$45,$54,$56,$4F,$4C,$00,$00
 CODE_1_loc_00006bf6:
 	link a6,#-122
@@ -12100,7 +12100,7 @@ CODE_1_loc_00006bf6:
 	movea.l (a7)+,a0
 	lea.l $000A(a7),a7
 	jmp (a0)
-CODE_1_semantic_pascal_string_gap_00006c2c:
+CODE_1_data_pascal_string_00006c2c:
 	dc.b $87,$48,$44,$45,$4C,$45,$54,$45,$00,$00
 CODE_1_loc_00006c36:
 	link a6,#-122
@@ -12128,7 +12128,7 @@ CODE_1_loc_00006c36:
 	movea.l (a7)+,a0
 	lea.l $000E(a7),a7
 	jmp (a0)
-CODE_1_semantic_pascal_string_gap_00006c88:
+CODE_1_data_pascal_string_00006c88:
 	dc.b $89,$48,$47,$45,$54,$46,$49,$4E,$46,$4F,$00,$00
 CODE_1_loc_00006c94:
 	link a6,#-122
@@ -12166,12 +12166,12 @@ CODE_1_loc_00006cee:
 	movea.l (a7)+,a0
 	lea.l $000E(a7),a7
 	jmp (a0)
-CODE_1_semantic_pascal_string_gap_00006d02:
+CODE_1_data_pascal_string_00006d02:
 	dc.b $89,$48,$53,$45,$54,$46,$49,$4E,$46,$4F,$00,$00
 CODE_1_loc_00006d0e:
 	link a6,#0
 	move.l #$A89F,d0
-CODE_1_semantic_dispatch_table_gap_00006d18:
+CODE_1_data_dispatch_table_00006d18:
 	dc.b $A7,$46,$2F,$08,$20,$3C,$00,$00,$A0,$AD,$A3,$46,$B1,$DF,$67,$0E
 	dc.b $20,$2E,$00,$0C,$A1,$AD,$22,$6E,$00,$08,$22,$88,$60,$26,$41,$FA
 	dc.b $00,$36,$30,$3C,$EA,$51,$22,$2E,$00,$0C,$B2,$98,$67,$06,$4A,$98
@@ -12264,7 +12264,7 @@ CODE_1_loc_00006f80:
 	subq.w #4,a7
 	move.l #$61637572,-(a7)
 	clr.w -(a7)
-CODE_1_semantic_dispatch_table_gap_00006f9e:
+CODE_1_data_dispatch_table_00006f9e:
 	dc.b $A9,$A0,$20,$1F,$67,$12,$26,$40,$42,$43,$55,$4F,$A9,$94,$55,$4F
 	dc.b $2F,$0B,$A9,$A4,$BF,$4F,$67,$3C,$59,$4F,$2F,$3C,$61,$63,$75,$72
 	dc.b $3F,$3C,$00,$01,$A9,$A0,$20,$1F,$67,$0A,$50,$F8,$0A,$5E,$2B,$40
@@ -12513,7 +12513,7 @@ CODE_2_loc_000000a6:
 	movea.l (a7),a0
 	move.l d2,(a7)
 	jmp (a0)
-CODE_2_semantic_dispatch_table_gap_000000ac:
+CODE_2_data_dispatch_table_000000ac:
 	dc.b $4E,$56,$00,$00,$48,$E7,$1E,$00,$22,$6E,$00,$20,$36,$2E,$00,$1A
 	dc.b $38,$2E,$00,$18,$20,$6E,$00,$10,$3A,$10,$20,$49,$54,$48,$0C,$6E
 	dc.b $18,$00,$00,$1E,$67,$0C,$30,$10,$02,$40,$08,$00,$C0,$6E,$00,$1E
@@ -12567,7 +12567,7 @@ CODE_2_loc_000001c2:
 	lea.l CODE_2_loc_000001a0(pc),a0
 	rts
 CODE_2_loc_000001c8:
-CODE_2_semantic_dispatch_table_gap_000001c8:
+CODE_2_data_dispatch_table_000001c8:
 	dc.b $01,$F6,$00,$00,$00,$00,$02,$08,$02,$18,$02,$38,$02,$4A,$02,$5A
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$02,$AC,$00,$00,$02,$BC
 	dc.b $02,$CE,$02,$E0,$02,$EE,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
@@ -13234,7 +13234,7 @@ CODE_2_loc_000018d4:
 	pea.l -$003E(a6)
 	pea.l $0002(a4)
 	move.w #$1010,-(a7)
-CODE_2_semantic_dispatch_table_gap_00001900:
+CODE_2_data_dispatch_table_00001900:
 	dc.b $A9,$EB,$18,$BC,$00,$05,$7A,$08,$60,$00,$00,$92
 CODE_2_loc_0000190c:
 	moveq.l #16,d0
@@ -13439,7 +13439,7 @@ CODE_2_loc_00001b24:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-CODE_2_semantic_dispatch_table_gap_00001b34:
+CODE_2_data_dispatch_table_00001b34:
 	dc.b $87,$44,$45,$43,$4C,$41,$52,$45,$00,$0C,$05,$46,$50,$49,$41,$52
 	dc.b $04,$46,$50,$49,$41,$00
 CODE_2_loc_00001b3e:
@@ -13472,7 +13472,7 @@ CODE_2_loc_00001b62:
 	move.b #$1,-$0C3B(a5)
 	unlk a6
 	rts
-CODE_2_semantic_dispatch_table_gap_00001ba6:
+CODE_2_data_dispatch_table_00001ba6:
 	dc.b $89,$44,$43,$4C,$46,$50,$52,$45,$47,$53,$00,$12,$04,$46,$50,$49
 	dc.b $41,$00,$04,$46,$50,$53,$52,$00,$04,$46,$50,$43,$52,$00,$4E,$56
 	dc.b $FF,$00,$20,$6E,$00,$08,$43,$EE,$FF,$00,$70,$7F,$32,$D8,$51,$C8
@@ -13523,7 +13523,7 @@ CODE_2_loc_00001c50:
 	move.w CODE_2_loc_00001c48(pc,d0.w),d0
 	jmp $0(pc,d0.w)
 CODE_2_loc_00001c70:
-CODE_2_semantic_dispatch_table_gap_00001c70:
+CODE_2_data_dispatch_table_00001c70:
 	dc.b $00,$0E,$00,$98,$00,$98,$01,$02,$01,$02,$01,$78,$42,$67,$48,$6E
 	dc.b $FF,$FA,$4E,$AD,$02,$02,$10,$1F,$67,$70,$4A,$AE,$FF,$FA,$5F,$C0
 	dc.b $4A,$00,$66,$0C,$72,$07,$B2,$AE,$FF,$FA,$5D,$C1,$80,$01,$67,$0C
@@ -13562,7 +13562,7 @@ CODE_2_loc_00001e36:
 	move.l (a7)+,d7
 	unlk a6
 	rts
-CODE_2_semantic_dispatch_table_gap_00001e3c:
+CODE_2_data_dispatch_table_00001e3c:
 	dc.b $89,$44,$4F,$4D,$43,$36,$38,$38,$38,$31,$00,$24,$08,$4B,$2D,$66
 	dc.b $61,$63,$74,$6F,$72,$00,$08,$52,$6F,$75,$6E,$64,$69,$6E,$67,$00
 	dc.b $09,$50,$72,$65,$63,$69,$73,$69,$6F,$6E,$04,$43,$6F,$49,$64,$00
@@ -13656,7 +13656,7 @@ CODE_3_loc_0000005e:
 	move.l d0,-$34EA(a5)
 	unlk a6
 	rts
-CODE_3_semantic_pascal_string_gap_000000ca:
+CODE_3_data_pascal_string_000000ca:
 	dc.b $86,$49,$4E,$49,$54,$49,$4F,$00,$00,$00
 CODE_3_loc_000000d4:
 	link a6,#0
@@ -13703,7 +13703,7 @@ CODE_3_loc_0000012e:
 	movea.l (a7)+,a0
 	addq.w #2,a7
 	jmp (a0)
-CODE_3_semantic_pascal_string_gap_00000134:
+CODE_3_data_pascal_string_00000134:
 	dc.b $8C,$53,$45,$54,$49,$4F,$42,$55,$46,$53,$49,$5A,$45,$00,$00,$00
 CODE_3_loc_00000144:
 	link a6,#0
@@ -14076,7 +14076,7 @@ CODE_3_loc_000005b6:
 	movea.l (a7)+,a0
 	adda.w #$C,a7
 	jmp (a0)
-CODE_3_semantic_dispatch_table_gap_000005c4:
+CODE_3_data_dispatch_table_000005c4:
 	dc.b $8A,$53,$45,$54,$55,$50,$46,$49,$4C,$45,$53,$00,$00,$9C,$01,$22
 	dc.b $0D,$43,$61,$6E,$6E,$6F,$74,$20,$6F,$70,$65,$6E,$20,$22,$02,$2E
 	dc.b $6F,$00,$03,$61,$2E,$6F,$27,$55,$6E,$61,$62,$6C,$65,$20,$74,$6F
@@ -14119,7 +14119,7 @@ CODE_3_loc_0000066e:
 	move.b #$32,-$0C7A(a5)
 	unlk a6
 	rts
-CODE_3_semantic_pascal_string_gap_000006e0:
+CODE_3_data_pascal_string_000006e0:
 	dc.b $88,$49,$4E,$49,$54,$45,$58,$50,$52,$00,$00,$00
 CODE_3_loc_000006ec:
 	link a6,#-8
@@ -14269,7 +14269,7 @@ CODE_3_loc_0000089e:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-CODE_3_semantic_pascal_string_gap_000008f8:
+CODE_3_data_pascal_string_000008f8:
 	dc.b $87,$44,$45,$43,$4C,$41,$52,$45,$00,$00
 CODE_3_loc_00000902:
 	link a6,#-578
@@ -14434,7 +14434,7 @@ CODE_3_loc_00000b02:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-CODE_3_semantic_dispatch_table_gap_00000b0e:
+CODE_3_data_dispatch_table_00000b0e:
 	dc.b $8D,$49,$4E,$49,$54,$47,$4C,$4F,$42,$41,$4C,$54,$42,$4C,$01,$86
 	dc.b $32,$46,$50,$30,$20,$2E,$46,$50,$31,$20,$2E,$46,$50,$32,$20,$2E
 	dc.b $46,$50,$33,$20,$2E,$46,$50,$34,$20,$2E,$46,$50,$35,$20,$2E,$46
@@ -14765,7 +14765,7 @@ CODE_3_loc_0000104c:
 	dbf.w d0,CODE_3_loc_00001024
 	unlk a6
 	rts
-CODE_3_semantic_dispatch_table_gap_00001056:
+CODE_3_data_dispatch_table_00001056:
 	dc.b $8D,$49,$4E,$49,$54,$44,$49,$52,$54,$41,$42,$4C,$45,$53,$06,$26
 	dc.b $21,$26,$45,$4E,$54,$45,$52,$53,$59,$4D,$20,$2E,$26,$44,$45,$4C
 	dc.b $53,$59,$4D,$54,$42,$4C,$2E,$26,$4C,$49,$53,$54,$20,$20,$20,$20
@@ -14916,7 +14916,7 @@ CODE_3_loc_0000169a:
 	movea.l (a7)+,a0
 	addq.w #4,a7
 	jmp (a0)
-CODE_3_semantic_dispatch_table_gap_000016cc:
+CODE_3_data_dispatch_table_000016cc:
 	dc.b $8B,$53,$59,$4E,$54,$41,$58,$45,$52,$52,$4F,$52,$00,$14,$01,$29
 	dc.b $10,$3A,$20,$53,$79,$6E,$74,$61,$78,$20,$65,$72,$72,$6F,$72,$20
 	dc.b $28,$00
@@ -14947,7 +14947,7 @@ CODE_3_loc_00001726:
 	movea.l (a7)+,a0
 	adda.w #$C,a7
 	jmp (a0)
-CODE_3_semantic_pascal_string_gap_0000173c:
+CODE_3_data_pascal_string_0000173c:
 	dc.b $8A,$43,$4F,$50,$59,$53,$54,$52,$49,$4E,$47,$00,$00,$00
 CODE_3_loc_0000174a:
 	link a6,#-512
@@ -14995,7 +14995,7 @@ CODE_3_loc_0000179c:
 	movea.l (a7)+,a0
 	adda.w #$C,a7
 	jmp (a0)
-CODE_3_semantic_pascal_string_gap_000017c6:
+CODE_3_data_pascal_string_000017c6:
 	dc.b $8B,$47,$45,$54,$41,$52,$47,$50,$41,$52,$41,$4D,$00,$00
 CODE_3_loc_000017d4:
 	link a6,#-258
@@ -15064,7 +15064,7 @@ CODE_3_loc_00001874:
 	movea.l (a7)+,a0
 	adda.w #$E,a7
 	jmp (a0)
-CODE_3_semantic_dispatch_table_gap_00001882:
+CODE_3_data_dispatch_table_00001882:
 	dc.b $8C,$4E,$45,$58,$54,$4C,$49,$53,$54,$49,$54,$45,$4D,$00,$00,$02
 	dc.b $01,$2C
 CODE_3_loc_00001892:
@@ -15224,7 +15224,7 @@ CODE_3_loc_000019ec:
 	movea.l (a7)+,a0
 	adda.w #$C,a7
 	jmp (a0)
-CODE_3_semantic_dispatch_table_gap_000019fa:
+CODE_3_data_dispatch_table_000019fa:
 	dc.b $8B,$48,$45,$58,$53,$54,$52,$54,$4F,$49,$4E,$54,$00,$02,$01,$24
 	dc.b $4E,$56,$FC,$F0,$48,$E7,$0F,$08,$20,$6E,$00,$18,$43,$EE,$FF,$00
 	dc.b $70,$7F,$32,$D8,$51,$C8,$FF,$FC,$28,$6E,$00,$0C,$48,$6E,$FD,$F0
@@ -15290,7 +15290,7 @@ CODE_3_loc_00001c8c:
 	movea.l (a7)+,a0
 	addq.w #2,a7
 	jmp (a0)
-CODE_3_semantic_pascal_string_gap_00001c94:
+CODE_3_data_pascal_string_00001c94:
 	dc.b $8E,$53,$45,$54,$50,$52,$49,$4E,$54,$4F,$50,$54,$49,$4F,$4E,$00
 	dc.b $00,$00
 CODE_3_loc_00001ca6:
@@ -15650,7 +15650,7 @@ CODE_3_loc_000020a6:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-CODE_3_semantic_dispatch_table_gap_000020b0:
+CODE_3_data_dispatch_table_000020b0:
 	dc.b $8A,$44,$45,$46,$49,$4E,$45,$4E,$41,$4D,$45,$00,$01,$40,$0B,$4F
 	dc.b $70,$74,$69,$6F,$6E,$3A,$20,$2D,$64,$20,$20,$3A,$20,$49,$6E,$74
 	dc.b $65,$72,$6E,$61,$6C,$20,$6D,$61,$63,$72,$6F,$20,$65,$72,$72,$6F
@@ -15745,7 +15745,7 @@ CODE_3_loc_000022a4:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-CODE_3_semantic_dispatch_table_gap_000022ae:
+CODE_3_data_dispatch_table_000022ae:
 	dc.b $8F,$53,$45,$54,$55,$50,$45,$52,$52,$4C,$4F,$47,$46,$49,$4C,$45
 	dc.b $00,$1A,$0B,$4F,$70,$74,$69,$6F,$6E,$3A,$20,$2D,$65,$20,$0D,$2D
 	dc.b $65,$20,$3C,$66,$69,$6C,$65,$6E,$61,$6D,$65,$3E
@@ -15881,7 +15881,7 @@ CODE_3_loc_0000245c:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-CODE_3_semantic_dispatch_table_gap_00002466:
+CODE_3_data_dispatch_table_00002466:
 	dc.b $8B,$53,$45,$54,$50,$41,$47,$45,$53,$49,$5A,$45,$00,$CA,$12,$4F
 	dc.b $70,$74,$69,$6F,$6E,$3A,$20,$2D,$70,$61,$67,$65,$73,$69,$7A,$65
 	dc.b $20,$00,$1C,$2D,$70,$61,$67,$65,$73,$69,$7A,$65,$20,$6C,$5B,$2C
@@ -16092,7 +16092,7 @@ CODE_3_loc_00002ace:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-CODE_3_semantic_dispatch_table_gap_00002ad8:
+CODE_3_data_dispatch_table_00002ad8:
 	dc.b $8E,$53,$45,$54,$55,$50,$44,$45,$42,$55,$47,$47,$49,$4E,$47,$00
 	dc.b $00,$2A,$0B,$4F,$70,$74,$69,$6F,$6E,$3A,$20,$2D,$BD,$20,$01,$22
 	dc.b $0D,$43,$61,$6E,$6E,$6F,$74,$20,$6F,$70,$65,$6E,$20,$22,$0D,$2D
@@ -16217,7 +16217,7 @@ CODE_3_loc_00002f50:
 	movea.l $0008(a6),a0
 	movea.l a0,a6
 	jmp CODE_3_loc_000036b2(pc)
-CODE_3_semantic_dispatch_table_gap_00002f5a:
+CODE_3_data_dispatch_table_00002f5a:
 	dc.b $00,$00,$4C,$DF,$18,$00,$4E,$5E,$2E,$9F,$4E,$75,$87,$53,$45,$54
 	dc.b $50,$41,$54,$48,$00,$3E,$0B,$4F,$70,$74,$69,$6F,$6E,$3A,$20,$2D
 	dc.b $69,$20,$0B,$20,$70,$61,$74,$68,$6E,$61,$6D,$65,$73,$29,$18,$20
@@ -16256,7 +16256,7 @@ CODE_3_loc_00003000:
 	movea.l $0008(a6),a0
 	movea.l a0,a6
 	jmp CODE_3_loc_000036b2(pc)
-CODE_3_semantic_dispatch_table_gap_0000300a:
+CODE_3_data_dispatch_table_0000300a:
 	dc.b $00,$00,$28,$5F,$4E,$5E,$2E,$9F,$4E,$75,$8A,$53,$45,$54,$4F,$42
 	dc.b $4A,$4E,$41,$4D,$45,$00,$00,$1C,$0B,$4F,$70,$74,$69,$6F,$6E,$3A
 	dc.b $20,$2D,$6F,$20,$0F,$2D,$6F,$20,$3C,$64,$69,$72,$20,$7C,$20,$66
@@ -16403,7 +16403,7 @@ CODE_3_loc_000033ea:
 	move.w CODE_3_loc_00003404(pc,d0.w),d0
 	jmp $0(pc,d0.w)
 CODE_3_loc_0000342c:
-CODE_3_semantic_dispatch_table_gap_0000342c:
+CODE_3_data_dispatch_table_0000342c:
 	dc.b $00,$26,$00,$30,$00,$3A,$00,$44,$00,$4E,$00,$58,$00,$62,$00,$7A
 	dc.b $00,$82,$00,$9A,$00,$A2,$00,$AA,$00,$CA,$00,$D2,$00,$DC,$00,$E4
 	dc.b $00,$EC,$00,$F4,$3D,$7C,$00,$C5,$FF,$FA,$60,$00,$00,$D2,$3D,$7C
@@ -16580,7 +16580,7 @@ CODE_3_loc_000036da:
 	movea.l (a7)+,a0
 	adda.w #$C,a7
 	jmp (a0)
-CODE_3_semantic_dispatch_table_gap_000036ec:
+CODE_3_data_dispatch_table_000036ec:
 	dc.b $8D,$50,$52,$4F,$43,$45,$53,$53,$4F,$50,$54,$49,$4F,$4E,$01,$24
 	dc.b $09,$4F,$70,$74,$69,$6F,$6E,$3A,$20,$2D,$01,$29,$13,$3A,$20,$49
 	dc.b $6E,$76,$61,$6C,$69,$64,$20,$6F,$70,$74,$69,$6F,$6E,$21,$20,$28
@@ -16674,7 +16674,7 @@ CODE_3_loc_000038ce:
 	movea.l (a7)+,a0
 	adda.w #$14,a7
 	jmp (a0)
-CODE_3_semantic_dispatch_table_gap_000038dc:
+CODE_3_data_dispatch_table_000038dc:
 	dc.b $8B,$53,$43,$41,$4E,$41,$52,$47,$4C,$49,$53,$54,$00,$0C,$0A,$46
 	dc.b $69,$6C,$65,$20,$61,$72,$67,$3A,$20,$00
 CODE_3_loc_000038ea:
@@ -17350,7 +17350,7 @@ CODE_3_loc_000041e4:
 	movea.l (a7)+,a0
 	addq.w #2,a7
 	jmp (a0)
-CODE_3_semantic_dispatch_table_gap_000041f0:
+CODE_3_data_dispatch_table_000041f0:
 	dc.b $87,$49,$4E,$49,$54,$41,$53,$4D,$02,$44,$0B,$2E,$2E,$2E,$72,$65
 	dc.b $61,$64,$69,$6E,$67,$20,$0A,$3C,$3C,$3C,$49,$4E,$54,$52,$3E,$3E
 	dc.b $3E,$00,$01,$22,$25,$55,$6E,$61,$62,$6C,$65,$20,$74,$6F,$20,$67
@@ -17900,7 +17900,7 @@ CODE_4_loc_00000224:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-CODE_4_semantic_pascal_string_gap_00000232:
+CODE_4_data_pascal_string_00000232:
 	dc.b $8A,$47,$45,$54,$4D,$4F,$44,$44,$41,$54,$45,$00,$00,$00
 CODE_4_loc_00000240:
 	link a6,#-18
@@ -17927,7 +17927,7 @@ CODE_4_loc_0000027a:
 	movea.l (a7)+,a0
 	adda.w #$C,a7
 	jmp (a0)
-CODE_4_semantic_pascal_string_gap_00000286:
+CODE_4_data_pascal_string_00000286:
 	dc.b $8B,$47,$45,$54,$46,$49,$4C,$45,$54,$59,$50,$45,$00,$00
 CODE_4_loc_00000294:
 	link a6,#-18
@@ -17954,7 +17954,7 @@ CODE_4_loc_000002cc:
 	movea.l (a7)+,a0
 	adda.w #$C,a7
 	jmp (a0)
-CODE_4_semantic_pascal_string_gap_000002dc:
+CODE_4_data_pascal_string_000002dc:
 	dc.b $8B,$53,$45,$54,$46,$49,$4C,$45,$54,$59,$50,$45,$00,$00
 CODE_4_loc_000002ea:
 	link a6,#0
@@ -17965,7 +17965,7 @@ CODE_4_loc_000002ea:
 	jsr $08BA(a5)
 	unlk a6
 	rts
-CODE_4_semantic_pascal_string_gap_00000304:
+CODE_4_data_pascal_string_00000304:
 	dc.b $85,$45,$4E,$44,$49,$4F,$00,$00
 CODE_4_loc_0000030c:
 	link a6,#-10
@@ -18031,7 +18031,7 @@ CODE_4_loc_00000390:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-CODE_4_semantic_pascal_string_gap_0000039a:
+CODE_4_data_pascal_string_0000039a:
 	dc.b $89,$42,$55,$49,$4C,$44,$50,$41,$54,$48,$00,$00
 CODE_4_loc_000003a6:
 	link a6,#-516
@@ -18083,7 +18083,7 @@ CODE_4_loc_00000424:
 	movea.l (a7)+,a0
 	addq.w #6,a7
 	jmp (a0)
-CODE_4_semantic_dispatch_table_gap_00000430:
+CODE_4_data_dispatch_table_00000430:
 	dc.b $8D,$4D,$59,$52,$45,$53,$4F,$4C,$56,$45,$50,$41,$54,$48,$00,$1C
 	dc.b $01,$22,$18,$43,$61,$6E,$6E,$6F,$74,$20,$72,$65,$73,$6F,$6C,$76
 	dc.b $65,$20,$61,$6C,$69,$61,$73,$20,$69,$6E,$22,$00
@@ -18355,7 +18355,7 @@ CODE_4_loc_00000728:
 	movea.l (a7)+,a0
 	adda.w #$12,a7
 	jmp (a0)
-CODE_4_semantic_dispatch_table_gap_00000736:
+CODE_4_data_dispatch_table_00000736:
 	dc.b $88,$41,$4C,$4C,$4F,$43,$46,$43,$42,$00,$00,$24,$11,$3C,$53,$74
 	dc.b $61,$6E,$64,$61,$72,$64,$20,$4F,$75,$74,$70,$75,$74,$3E,$10,$3C
 	dc.b $53,$74,$61,$6E,$64,$61,$72,$64,$20,$49,$6E,$70,$75,$74,$3E,$00
@@ -18410,7 +18410,7 @@ CODE_4_loc_000007ee:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-CODE_4_semantic_pascal_string_gap_000007f8:
+CODE_4_data_pascal_string_000007f8:
 	dc.b $8A,$44,$45,$41,$4C,$4C,$4F,$43,$46,$43,$42,$00,$00,$00
 CODE_4_loc_00000806:
 	link a6,#-794
@@ -18776,7 +18776,7 @@ CODE_4_loc_00000c20:
 	movea.l (a7)+,a0
 	adda.w #$E,a7
 	jmp (a0)
-CODE_4_semantic_dispatch_table_gap_00000c2e:
+CODE_4_data_dispatch_table_00000c2e:
 	dc.b $85,$4F,$50,$45,$4E,$46,$00,$0C,$01,$3A,$08,$4D,$50,$57,$2E,$50
 	dc.b $69,$70,$65,$00
 CODE_4_loc_00000c36:
@@ -18968,7 +18968,7 @@ CODE_4_loc_00000e32:
 	movea.l (a7)+,a0
 	addq.w #6,a7
 	jmp (a0)
-CODE_4_semantic_dispatch_table_gap_00000e3e:
+CODE_4_data_dispatch_table_00000e3e:
 	dc.b $86,$43,$4C,$4F,$53,$45,$46,$00,$00,$3A,$02,$29,$2E,$00,$0C,$20
 	dc.b $28,$49,$2F,$4F,$20,$65,$72,$72,$6F,$72,$20,$00,$0C,$62,$6C,$6F
 	dc.b $63,$6B,$28,$73,$29,$20,$74,$6F,$20,$00,$19,$46,$61,$74,$61,$6C
@@ -19123,7 +19123,7 @@ CODE_4_loc_0000102c:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-CODE_4_semantic_pascal_string_gap_00001038:
+CODE_4_data_pascal_string_00001038:
 	dc.b $89,$50,$55,$53,$48,$49,$4E,$50,$55,$54,$00,$00
 CODE_4_loc_00001044:
 	link a6,#-258
@@ -19238,7 +19238,7 @@ CODE_4_loc_000011be:
 	movem.l (a7)+,d7/a3-a4
 	unlk a6
 	rts
-CODE_4_semantic_dispatch_table_gap_000011c6:
+CODE_4_data_dispatch_table_000011c6:
 	dc.b $88,$50,$4F,$50,$49,$4E,$50,$55,$54,$00,$00,$3C,$02,$29,$2E,$00
 	dc.b $0C,$20,$28,$49,$2F,$4F,$20,$65,$72,$72,$6F,$72,$20,$00,$09,$62
 	dc.b $6C,$6F,$63,$6B,$20,$6F,$66,$20,$1F,$46,$61,$74,$61,$6C,$20,$65
@@ -19361,7 +19361,7 @@ CODE_4_loc_00001368:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-CODE_4_semantic_pascal_string_gap_00001372:
+CODE_4_data_pascal_string_00001372:
 	dc.b $88,$46,$49,$4C,$4C,$42,$55,$46,$52,$00,$00,$00
 CODE_4_loc_0000137e:
 	link a6,#-10
@@ -19428,7 +19428,7 @@ CODE_4_loc_00001420:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-CODE_4_semantic_pascal_string_gap_0000142c:
+CODE_4_data_pascal_string_0000142c:
 	dc.b $87,$50,$55,$54,$4C,$49,$4E,$45,$00,$00
 CODE_4_loc_00001436:
 	link a6,#0
@@ -19472,7 +19472,7 @@ CODE_4_loc_000014a2:
 	movea.l (a7)+,a0
 	addq.w #6,a7
 	jmp (a0)
-CODE_4_semantic_pascal_string_gap_000014ae:
+CODE_4_data_pascal_string_000014ae:
 	dc.b $85,$50,$55,$54,$43,$46,$00,$00
 CODE_4_loc_000014b6:
 	link a6,#-2
@@ -19535,7 +19535,7 @@ CODE_4_loc_0000156e:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-CODE_4_semantic_dispatch_table_gap_00001578:
+CODE_4_data_dispatch_table_00001578:
 	dc.b $89,$46,$4C,$55,$53,$48,$42,$55,$46,$52,$00,$2A,$02,$29,$2E,$00
 	dc.b $0C,$20,$28,$49,$2F,$4F,$20,$45,$72,$72,$6F,$72,$20,$00,$17,$46
 	dc.b $61,$74,$61,$6C,$20,$65,$72,$72,$6F,$72,$20,$77,$72,$69,$74,$69
@@ -19558,7 +19558,7 @@ CODE_4_loc_000015bc:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-CODE_4_semantic_pascal_string_gap_000015d6:
+CODE_4_data_pascal_string_000015d6:
 	dc.b $88,$50,$55,$54,$4C,$49,$4E,$45,$53,$00,$00,$00
 CODE_4_loc_000015e2:
 	link a6,#-20
@@ -19677,7 +19677,7 @@ CODE_4_loc_00001710:
 	movea.l (a7)+,a0
 	adda.w #$A,a7
 	jmp (a0)
-CODE_4_semantic_pascal_string_gap_0000171e:
+CODE_4_data_pascal_string_0000171e:
 	dc.b $87,$50,$55,$54,$53,$54,$52,$50,$00,$00
 CODE_4_loc_00001728:
 	link a6,#-256
@@ -19695,7 +19695,7 @@ CODE_4_loc_00001736:
 	movea.l (a7)+,a0
 	adda.w #$A,a7
 	jmp (a0)
-CODE_4_semantic_pascal_string_gap_00001756:
+CODE_4_data_pascal_string_00001756:
 	dc.b $87,$50,$55,$54,$53,$54,$52,$53,$00,$00
 CODE_4_loc_00001760:
 	link a6,#-260
@@ -19770,7 +19770,7 @@ CODE_4_loc_000017f2:
 	movea.l (a7)+,a0
 	adda.w #$C,a7
 	jmp (a0)
-CODE_4_semantic_pascal_string_gap_00001800:
+CODE_4_data_pascal_string_00001800:
 	dc.b $8D,$53,$50,$4C,$49,$54,$50,$41,$54,$48,$4E,$41,$4D,$45,$00,$00
 CODE_4_loc_00001810:
 	link a6,#-260
@@ -19798,7 +19798,7 @@ CODE_4_loc_0000184e:
 	movea.l (a7)+,a0
 	adda.w #$A,a7
 	jmp (a0)
-CODE_4_semantic_pascal_string_gap_00001858:
+CODE_4_data_pascal_string_00001858:
 	dc.b $86,$47,$45,$54,$54,$41,$42,$00,$00,$00
 CODE_4_loc_00001862:
 	link a6,#-264
@@ -19821,7 +19821,7 @@ CODE_4_loc_00001870:
 	movea.l (a7)+,a0
 	addq.w #6,a7
 	jmp (a0)
-CODE_4_semantic_pascal_string_gap_000018a0:
+CODE_4_data_pascal_string_000018a0:
 	dc.b $86,$53,$45,$54,$54,$41,$42,$00,$00,$00
 CODE_4_loc_000018aa:
 	link a6,#-264
@@ -19849,7 +19849,7 @@ CODE_4_loc_000018b8:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-CODE_4_semantic_pascal_string_gap_000018f4:
+CODE_4_data_pascal_string_000018f4:
 	dc.b $87,$53,$45,$54,$46,$4F,$4E,$54,$00,$00
 CODE_4_loc_000018fe:
 	link a6,#0
@@ -19858,7 +19858,7 @@ CODE_4_loc_000018fe:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-CODE_4_semantic_pascal_string_gap_00001910:
+CODE_4_data_pascal_string_00001910:
 	dc.b $86,$4C,$4F,$41,$44,$49,$4F,$00,$00,$00
 
 ; CODE 5 Macros source section
@@ -20349,7 +20349,7 @@ CODE_5_loc_000003de:
 	move.l (a7)+,(a0)
 	move.b #$1,(a7)
 	jmp (a1)
-CODE_5_semantic_dispatch_table_gap_000003e8:
+CODE_5_data_dispatch_table_000003e8:
 	dc.b $24,$1F,$30,$1F,$22,$5F,$20,$5F,$48,$E7,$3F,$38,$24,$49,$38,$12
 	dc.b $0C,$44,$00,$FA,$6E,$04,$45,$EA,$00,$02,$28,$48,$3E,$00,$47,$ED
 	dc.b $FD,$ED,$42,$43,$42,$45,$52,$4C,$1C,$1C,$67,$04,$BE,$06,$66,$76
@@ -20425,7 +20425,7 @@ CODE_5_loc_00000580:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-CODE_5_semantic_pascal_string_gap_0000058e:
+CODE_5_data_pascal_string_0000058e:
 	dc.b $89,$4E,$45,$57,$4D,$41,$43,$53,$54,$52,$00,$00
 CODE_5_loc_0000059a:
 	link a6,#-4
@@ -20450,7 +20450,7 @@ CODE_5_loc_000005d2:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-CODE_5_semantic_pascal_string_gap_000005d8:
+CODE_5_data_pascal_string_000005d8:
 	dc.b $8C,$43,$55,$54,$42,$41,$43,$4B,$53,$54,$4D,$54,$53,$00,$00,$00
 CODE_5_loc_000005e8:
 	link a6,#0
@@ -20463,7 +20463,7 @@ CODE_5_loc_000005f0:
 CODE_5_loc_000005fc:
 	unlk a6
 	rts
-CODE_5_semantic_pascal_string_gap_00000600:
+CODE_5_data_pascal_string_00000600:
 	dc.b $88,$4B,$49,$4C,$4C,$4D,$41,$43,$53,$00,$00,$00
 CODE_5_loc_0000060c:
 	link a6,#-4
@@ -20493,7 +20493,7 @@ CODE_5_loc_0000063e:
 	movea.l (a7)+,a0
 	addq.w #6,a7
 	jmp (a0)
-CODE_5_semantic_pascal_string_gap_00000648:
+CODE_5_data_pascal_string_00000648:
 	dc.b $88,$47,$45,$54,$50,$41,$52,$4D,$4E,$00,$00,$00
 CODE_5_loc_00000654:
 	link a6,#-8
@@ -20559,7 +20559,7 @@ CODE_5_loc_000006f4:
 	movea.l (a7)+,a0
 	addq.w #6,a7
 	jmp (a0)
-CODE_5_semantic_pascal_string_gap_00000700:
+CODE_5_data_pascal_string_00000700:
 	dc.b $8A,$41,$44,$44,$4D,$41,$43,$50,$41,$52,$4D,$00,$00,$00
 CODE_5_loc_0000070e:
 	link a6,#0
@@ -20587,7 +20587,7 @@ CODE_5_loc_00000740:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-CODE_5_semantic_pascal_string_gap_00000748:
+CODE_5_data_pascal_string_00000748:
 	dc.b $8B,$46,$52,$45,$45,$50,$53,$54,$52,$55,$43,$54,$00,$00
 CODE_5_loc_00000756:
 	link a6,#-4
@@ -20652,7 +20652,7 @@ CODE_5_loc_000007e8:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-CODE_5_semantic_pascal_string_gap_000007f4:
+CODE_5_data_pascal_string_000007f4:
 	dc.b $8A,$43,$4F,$50,$59,$53,$54,$52,$55,$43,$54,$00,$00,$00
 CODE_5_loc_00000802:
 	link a6,#-6
@@ -20695,7 +20695,7 @@ CODE_5_loc_0000085a:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-CODE_5_semantic_pascal_string_gap_00000866:
+CODE_5_data_pascal_string_00000866:
 	dc.b $8F,$43,$48,$4B,$49,$4E,$54,$50,$41,$52,$4D,$56,$41,$4C,$55,$45
 	dc.b $00,$00
 CODE_5_loc_00000878:
@@ -20737,7 +20737,7 @@ CODE_5_loc_000008dc:
 	movea.l (a7)+,a0
 	adda.w #$C,a7
 	jmp (a0)
-CODE_5_semantic_pascal_string_gap_000008e8:
+CODE_5_data_pascal_string_000008e8:
 	dc.b $8C,$53,$45,$54,$50,$41,$52,$4D,$56,$41,$4C,$55,$45,$00,$00,$00
 CODE_5_loc_000008f8:
 	link a6,#-4
@@ -20795,7 +20795,7 @@ CODE_5_loc_00000988:
 	movea.l (a7)+,a0
 	adda.w #$A,a7
 	jmp (a0)
-CODE_5_semantic_pascal_string_gap_00000996:
+CODE_5_data_pascal_string_00000996:
 	dc.b $8D,$53,$45,$54,$50,$41,$52,$4D,$4E,$56,$41,$4C,$55,$45,$00,$00
 CODE_5_loc_000009a6:
 	link a6,#-4
@@ -20813,7 +20813,7 @@ CODE_5_loc_000009c4:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-CODE_5_semantic_pascal_string_gap_000009cc:
+CODE_5_data_pascal_string_000009cc:
 	dc.b $8C,$54,$59,$50,$45,$50,$52,$4D,$41,$53,$49,$4E,$54,$00,$00,$00
 CODE_5_loc_000009dc:
 	link a6,#-4
@@ -20832,7 +20832,7 @@ CODE_5_loc_000009fa:
 	movea.l (a7)+,a0
 	addq.w #2,a7
 	jmp (a0)
-CODE_5_semantic_pascal_string_gap_00000a04:
+CODE_5_data_pascal_string_00000a04:
 	dc.b $8D,$54,$59,$50,$45,$50,$52,$4D,$4E,$41,$53,$49,$4E,$54,$00,$00
 CODE_5_loc_00000a14:
 	link a6,#-2
@@ -20851,7 +20851,7 @@ CODE_5_loc_00000a2e:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-CODE_5_semantic_pascal_string_gap_00000a3c:
+CODE_5_data_pascal_string_00000a3c:
 	dc.b $89,$53,$54,$52,$55,$43,$54,$4E,$42,$52,$00,$00
 CODE_5_loc_00000a48:
 	link a6,#-262
@@ -20912,7 +20912,7 @@ CODE_5_loc_00000af8:
 	move.l (a7)+,d7
 	unlk a6
 	rts
-CODE_5_semantic_dispatch_table_gap_00000afe:
+CODE_5_data_dispatch_table_00000afe:
 	dc.b $88,$53,$43,$41,$4E,$4D,$4C,$42,$4C,$00,$00,$02,$01,$2E
 CODE_5_loc_00000b0a:
 CODE_5_loc_00000b0c:
@@ -20935,7 +20935,7 @@ CODE_5_loc_00000b34:
 	addq.l #1,-$2A12(a5)
 	unlk a6
 	rts
-CODE_5_semantic_pascal_string_gap_00000b48:
+CODE_5_data_pascal_string_00000b48:
 	dc.b $87,$53,$43,$41,$4E,$41,$43,$48,$00,$00
 CODE_5_loc_00000b52:
 	link a6,#-272
@@ -21115,7 +21115,7 @@ CODE_5_loc_00000d26:
 	movea.l (a7)+,a0
 	addq.w #6,a7
 	jmp (a0)
-CODE_5_semantic_pascal_string_gap_00000d32:
+CODE_5_data_pascal_string_00000d32:
 	dc.b $8D,$53,$43,$41,$4E,$41,$4D,$50,$45,$52,$53,$41,$4E,$44,$00,$00
 CODE_5_loc_00000d42:
 	link a6,#-4
@@ -21150,7 +21150,7 @@ CODE_5_loc_00000d82:
 CODE_5_loc_00000d88:
 	unlk a6
 	rts
-CODE_5_semantic_pascal_string_gap_00000d8c:
+CODE_5_data_pascal_string_00000d8c:
 	dc.b $8B,$53,$43,$41,$4E,$41,$53,$54,$52,$49,$4E,$47,$00,$00
 CODE_5_loc_00000d9a:
 	link a6,#-264
@@ -21208,7 +21208,7 @@ CODE_5_loc_00000e2e:
 	movem.l (a7)+,d6-d7/a4
 	unlk a6
 	rts
-CODE_5_semantic_pascal_string_gap_00000e36:
+CODE_5_data_pascal_string_00000e36:
 	dc.b $86,$53,$43,$41,$4E,$41,$54,$00,$00,$00
 CODE_5_loc_00000e40:
 	link a6,#0
@@ -21259,7 +21259,7 @@ CODE_5_loc_00000ea8:
 CODE_5_loc_00000eba:
 	unlk a6
 	rts
-CODE_5_semantic_pascal_string_gap_00000ebe:
+CODE_5_data_pascal_string_00000ebe:
 	dc.b $88,$53,$43,$41,$4E,$43,$4F,$4E,$54,$00,$00,$00
 CODE_5_loc_00000eca:
 	link a6,#-16
@@ -21404,7 +21404,7 @@ CODE_5_loc_0000102a:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-CODE_5_semantic_pascal_string_gap_00001034:
+CODE_5_data_pascal_string_00001034:
 	dc.b $8B,$53,$43,$41,$4E,$53,$55,$42,$4C,$49,$53,$54,$00,$00
 CODE_5_loc_00001042:
 	link a6,#-272
@@ -21658,7 +21658,7 @@ CODE_5_loc_000012e4:
 	movea.l (a7)+,a0
 	adda.w #$A,a7
 	jmp (a0)
-CODE_5_semantic_dispatch_table_gap_000012f2:
+CODE_5_data_dispatch_table_000012f2:
 	dc.b $8B,$53,$43,$41,$4E,$50,$41,$52,$4D,$56,$41,$4C,$00,$02,$01,$26
 CODE_5_loc_00001300:
 CODE_5_loc_00001302:
@@ -21686,7 +21686,7 @@ CODE_5_loc_00001302:
 	move.w d0,-$042A(a5)
 	unlk a6
 	rts
-CODE_5_semantic_pascal_string_gap_00001362:
+CODE_5_data_pascal_string_00001362:
 	dc.b $8A,$53,$43,$41,$4E,$41,$43,$54,$55,$41,$4C,$00,$00,$00
 CODE_5_loc_00001370:
 	link a6,#0
@@ -21711,7 +21711,7 @@ CODE_5_loc_00001370:
 	move.w d0,-$043A(a5)
 	unlk a6
 	rts
-CODE_5_semantic_pascal_string_gap_000013cc:
+CODE_5_data_pascal_string_000013cc:
 	dc.b $91,$53,$43,$41,$4E,$46,$4F,$52,$4D,$41,$4C,$44,$45,$46,$41,$55
 	dc.b $4C,$54,$00,$00
 CODE_5_loc_000013e0:
@@ -21778,7 +21778,7 @@ CODE_5_loc_000014a0:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-CODE_5_semantic_pascal_string_gap_000014a6:
+CODE_5_data_pascal_string_000014a6:
 	dc.b $8C,$50,$55,$54,$4D,$44,$45,$46,$42,$45,$47,$49,$4E,$00,$00,$00
 CODE_5_loc_000014b6:
 	link a6,#-12
@@ -21883,7 +21883,7 @@ CODE_5_loc_000015d4:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-CODE_5_semantic_pascal_string_gap_000015de:
+CODE_5_data_pascal_string_000015de:
 	dc.b $8B,$50,$55,$54,$4D,$44,$45,$46,$4C,$49,$4E,$45,$00,$00
 CODE_5_loc_000015ec:
 	link a6,#0
@@ -21891,7 +21891,7 @@ CODE_5_loc_000015ec:
 	move.b #$1,(a0)
 	unlk a6
 	rts
-CODE_5_semantic_pascal_string_gap_000015fc:
+CODE_5_data_pascal_string_000015fc:
 	dc.b $8A,$50,$55,$54,$4D,$44,$45,$46,$45,$4E,$44,$00,$00,$00
 CODE_5_loc_0000160a:
 	link a6,#-14
@@ -21962,7 +21962,7 @@ CODE_5_loc_000016e4:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-CODE_5_semantic_pascal_string_gap_000016f0:
+CODE_5_data_pascal_string_000016f0:
 	dc.b $89,$4F,$50,$45,$4E,$4D,$41,$43,$52,$4F,$00,$00
 CODE_5_loc_000016fc:
 	link a6,#-8
@@ -22069,7 +22069,7 @@ CODE_5_loc_00001842:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-CODE_5_semantic_pascal_string_gap_00001848:
+CODE_5_data_pascal_string_00001848:
 	dc.b $8B,$54,$59,$50,$45,$54,$4F,$46,$4C,$41,$47,$53,$00,$00
 CODE_5_loc_00001856:
 	link a6,#0
@@ -22090,7 +22090,7 @@ CODE_5_loc_00001874:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-CODE_5_semantic_pascal_string_gap_00001882:
+CODE_5_data_pascal_string_00001882:
 	dc.b $8B,$46,$4C,$41,$47,$53,$54,$4F,$54,$59,$50,$45,$00,$00
 CODE_5_loc_00001890:
 	link a6,#-8
@@ -22189,7 +22189,7 @@ CODE_5_loc_0000197c:
 	movea.l (a7)+,a0
 	adda.w #$12,a7
 	jmp (a0)
-CODE_5_semantic_pascal_string_gap_0000198a:
+CODE_5_data_pascal_string_0000198a:
 	dc.b $8A,$46,$49,$4E,$44,$4D,$41,$43,$56,$41,$52,$00,$00,$00
 CODE_5_loc_00001998:
 	link a6,#-148
@@ -22534,7 +22534,7 @@ CODE_5_loc_00001d38:
 	move.w CODE_5_loc_00001d2c(pc,d0.w),d0
 	jmp $0(pc,d0.w)
 CODE_5_loc_00001d54:
-CODE_5_semantic_dispatch_table_gap_00001d54:
+CODE_5_data_dispatch_table_00001d54:
 	dc.b $00,$20,$00,$20,$00,$6C,$00,$8A,$00,$A8,$00,$CE,$00,$DE,$00,$EE
 	dc.b $00,$FA,$01,$1C,$01,$28,$01,$3E,$01,$46,$01,$9A,$01,$F8,$4A,$AD
 	dc.b $EC,$E6,$66,$1E,$42,$A7,$30,$2D,$DA,$52,$48,$C0,$2F,$00,$2F,$3C
@@ -22657,7 +22657,7 @@ CODE_5_loc_000020ac:
 	movea.l (a7)+,a0
 	adda.w #$A,a7
 	jmp (a0)
-CODE_5_semantic_dispatch_table_gap_000020bc:
+CODE_5_data_dispatch_table_000020bc:
 	dc.b $8A,$41,$44,$44,$44,$49,$4D,$49,$4E,$46,$4F,$00,$00,$04,$01,$5D
 	dc.b $01,$5B,$4E,$56,$FE,$EE,$48,$E7,$07,$18,$26,$6E,$00,$08,$41,$FA
 	dc.b $02,$E2,$22,$4B,$70,$04,$32,$D8,$51,$C8,$FF,$FC,$42,$A7,$48,$6D
@@ -22748,7 +22748,7 @@ CODE_5_loc_00002414:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-CODE_5_semantic_dispatch_table_gap_00002432:
+CODE_5_data_dispatch_table_00002432:
 	dc.b $8A,$43,$4F,$44,$45,$4F,$52,$44,$41,$54,$41,$00,$00,$0C,$05,$44
 	dc.b $41,$54,$41,$20,$05,$43,$4F,$44,$45,$20
 CODE_5_loc_00002440:
@@ -22796,7 +22796,7 @@ CODE_5_loc_000024a6:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-CODE_5_semantic_dispatch_table_gap_000024c2:
+CODE_5_data_dispatch_table_000024c2:
 	dc.b $8A,$56,$49,$53,$49,$42,$49,$4C,$49,$54,$59,$00,$00,$18,$07,$20
 	dc.b $49,$4D,$50,$4F,$52,$54,$06,$20,$45,$4E,$54,$52,$59,$00,$07,$20
 	dc.b $45,$58,$50,$4F,$52,$54
@@ -22844,7 +22844,7 @@ CODE_5_loc_0000254e:
 	movea.l (a7)+,a0
 	addq.w #6,a7
 	jmp (a0)
-CODE_5_semantic_dispatch_table_gap_0000255a:
+CODE_5_data_dispatch_table_0000255a:
 	dc.b $84,$54,$49,$50,$45,$00,$00,$06,$01,$29,$02,$20,$28,$00
 CODE_5_loc_00002562:
 CODE_5_loc_00002564:
@@ -23381,7 +23381,7 @@ CODE_5_loc_00002b30:
 	movea.l (a7)+,a0
 	adda.w #$E,a7
 	jmp (a0)
-CODE_5_semantic_dispatch_table_gap_00002b3e:
+CODE_5_data_dispatch_table_00002b3e:
 	dc.b $89,$54,$59,$50,$45,$41,$53,$4D,$49,$44,$00,$C4,$06,$4F,$50,$57
 	dc.b $4F,$52,$44,$00,$05,$20,$4D,$41,$49,$4E,$05,$4C,$41,$42,$45,$4C
 	dc.b $0E,$54,$45,$4D,$50,$4C,$41,$54,$45,$20,$46,$49,$45,$4C,$44,$00
@@ -23441,7 +23441,7 @@ CODE_5_loc_00002c2e:
 	movea.l $0008(a6),a0
 	movea.l a0,a6
 	jmp CODE_5_loc_00002e1e(pc)
-CODE_5_semantic_dispatch_table_gap_00002c4e:
+CODE_5_data_dispatch_table_00002c4e:
 	dc.b $00,$00,$4E,$5E,$20,$5F,$DE,$FC,$00,$0A,$4E,$D0,$86,$45,$52,$52
 	dc.b $4F,$55,$54,$00,$00,$00
 CODE_5_loc_00002c64:
@@ -23614,7 +23614,7 @@ CODE_5_loc_00002e46:
 	movea.l (a7)+,a0
 	adda.w #$12,a7
 	jmp (a0)
-CODE_5_semantic_pascal_string_gap_00002e58:
+CODE_5_data_pascal_string_00002e58:
 	dc.b $8C,$47,$45,$54,$4D,$41,$43,$41,$52,$52,$56,$41,$4C,$00,$00,$00
 CODE_5_loc_00002e68:
 	link a6,#0
@@ -23645,7 +23645,7 @@ CODE_5_loc_00002eac:
 	movea.l (a7)+,a0
 	addq.w #2,a7
 	jmp (a0)
-CODE_5_semantic_pascal_string_gap_00002eb4:
+CODE_5_data_pascal_string_00002eb4:
 	dc.b $89,$43,$48,$4B,$42,$41,$44,$44,$49,$4D,$00,$00
 CODE_5_loc_00002ec0:
 	link a6,#-8
@@ -23706,7 +23706,7 @@ CODE_5_loc_00002f4a:
 	movea.l (a7)+,a0
 	adda.w #$E,a7
 	jmp (a0)
-CODE_5_semantic_pascal_string_gap_00002f58:
+CODE_5_data_pascal_string_00002f58:
 	dc.b $8D,$43,$48,$4B,$47,$4C,$4F,$42,$41,$4C,$49,$4E,$46,$4F,$00,$00
 CODE_5_loc_00002f68:
 	link a6,#-60
@@ -24284,7 +24284,7 @@ CODE_5_loc_00003542:
 	movea.l (a7)+,a0
 	adda.w #$E,a7
 	jmp (a0)
-CODE_5_semantic_pascal_string_gap_00003550:
+CODE_5_data_pascal_string_00003550:
 	dc.b $89,$4E,$45,$57,$4D,$41,$43,$56,$41,$52,$00,$00
 CODE_5_loc_0000355c:
 	link a6,#-52
@@ -24487,7 +24487,7 @@ CODE_5_loc_0000377a:
 	movem.l (a7)+,d4-d7/a3-a4
 	unlk a6
 	rts
-CODE_5_semantic_pascal_string_gap_00003782:
+CODE_5_data_pascal_string_00003782:
 	dc.b $8B,$46,$52,$45,$45,$4D,$41,$43,$56,$41,$52,$53,$00,$00
 CODE_5_loc_00003790:
 	link a6,#0
@@ -24536,7 +24536,7 @@ CODE_5_loc_0000380a:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-CODE_5_semantic_pascal_string_gap_00003812:
+CODE_5_data_pascal_string_00003812:
 	dc.b $89,$47,$45,$54,$41,$42,$53,$41,$52,$47,$00,$00
 CODE_5_loc_0000381e:
 	link a6,#0
@@ -24579,7 +24579,7 @@ CODE_5_loc_00003884:
 	movea.l (a7)+,a0
 	addq.w #6,a7
 	jmp (a0)
-CODE_5_semantic_pascal_string_gap_00003890:
+CODE_5_data_pascal_string_00003890:
 	dc.b $8C,$47,$45,$54,$54,$48,$45,$41,$42,$53,$41,$52,$47,$00,$00,$00
 CODE_5_loc_000038a0:
 	link a6,#-4
@@ -24610,7 +24610,7 @@ CODE_5_loc_000038de:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-CODE_5_semantic_pascal_string_gap_000038e8:
+CODE_5_data_pascal_string_000038e8:
 	dc.b $8F,$43,$52,$45,$41,$54,$45,$53,$54,$52,$52,$45,$53,$55,$4C,$54
 	dc.b $00,$00
 CODE_5_loc_000038fa:
@@ -24677,7 +24677,7 @@ CODE_5_loc_00003980:
 	movea.l (a7)+,a0
 	adda.w #$C,a7
 	jmp (a0)
-CODE_5_semantic_pascal_string_gap_0000398e:
+CODE_5_data_pascal_string_0000398e:
 	dc.b $92,$43,$52,$45,$41,$54,$45,$53,$55,$42,$53,$54,$52,$52,$45,$53
 	dc.b $55,$4C,$54,$00,$00,$00,$4E,$56,$00,$00,$22,$6E,$00,$08,$20,$69
 	dc.b $00,$08,$30,$AE,$00,$0C,$20,$6E,$00,$08,$42,$28,$00,$0E,$20,$6E
@@ -24722,7 +24722,7 @@ CODE_5_loc_00003ac2:
 	move.w CODE_5_loc_00003ae8(pc,d0.w),d0
 	jmp $0(pc,d0.w)
 CODE_5_loc_00003b10:
-CODE_5_semantic_dispatch_table_gap_00003b10:
+CODE_5_data_dispatch_table_00003b10:
 	dc.b $00,$42,$00,$B6,$01,$2A,$01,$64,$01,$64,$02,$70,$02,$70,$02,$FE
 	dc.b $03,$B8,$08,$C4,$05,$BA,$05,$BA,$03,$6A,$05,$14,$10,$22,$06,$34
 	dc.b $0E,$84,$04,$A6,$06,$80,$0D,$AC,$0F,$38,$0F,$B6,$05,$BA,$05,$BA
@@ -25141,7 +25141,7 @@ CODE_5_loc_000053f6:
 	movea.l (a7)+,a0
 	addq.w #6,a7
 	jmp (a0)
-CODE_5_semantic_dispatch_table_gap_00005430:
+CODE_5_data_dispatch_table_00005430:
 	dc.b $8A,$44,$4F,$46,$55,$4E,$43,$54,$49,$4F,$4E,$00,$00,$A4,$08,$41
 	dc.b $42,$53,$4F,$4C,$55,$54,$45,$00,$08,$52,$45,$4C,$41,$54,$49,$56
 	dc.b $45,$00,$07,$46,$4F,$52,$43,$45,$50,$43,$09,$4E,$4F,$46,$4F,$52
@@ -25264,7 +25264,7 @@ CODE_5_loc_00005632:
 	movea.l (a7)+,a0
 	adda.w #$E,a7
 	jmp (a0)
-CODE_5_semantic_pascal_string_gap_00005640:
+CODE_5_data_pascal_string_00005640:
 	dc.b $8F,$47,$45,$54,$52,$41,$4E,$47,$45,$4F,$52,$49,$4E,$44,$45,$58
 	dc.b $00,$00
 CODE_5_loc_00005652:
@@ -25812,7 +25812,7 @@ CODE_5_loc_00005c8e:
 	movea.l (a7)+,a0
 	addq.w #6,a7
 	jmp (a0)
-CODE_5_semantic_pascal_string_gap_00005c9e:
+CODE_5_data_pascal_string_00005c9e:
 	dc.b $8D,$44,$4F,$41,$52,$52,$41,$59,$41,$43,$43,$45,$53,$53,$00,$00
 CODE_5_loc_00005cae:
 	link a6,#-258
@@ -25855,7 +25855,7 @@ CODE_5_loc_00005d16:
 	move.l (a7)+,d7
 	unlk a6
 	rts
-CODE_5_semantic_dispatch_table_gap_00005d1c:
+CODE_5_data_dispatch_table_00005d1c:
 	dc.b $88,$45,$58,$50,$41,$4E,$44,$4F,$50,$00,$00,$02,$01,$2E
 CODE_5_loc_00005d28:
 CODE_5_loc_00005d2a:
@@ -25892,7 +25892,7 @@ CODE_5_loc_00005d8a:
 	movea.l (a7)+,a0
 	adda.w #$A,a7
 	jmp (a0)
-CODE_5_semantic_pascal_string_gap_00005d9c:
+CODE_5_data_pascal_string_00005d9c:
 	dc.b $8C,$4D,$41,$43,$43,$41,$4C,$4C,$45,$52,$52,$4F,$52,$00,$00,$00
 CODE_5_loc_00005dac:
 	link a6,#-512
@@ -25936,7 +25936,7 @@ CODE_5_loc_00005e04:
 	movea.l (a7)+,a0
 	adda.w #$A,a7
 	jmp (a0)
-CODE_5_semantic_dispatch_table_gap_00005e26:
+CODE_5_data_dispatch_table_00005e26:
 	dc.b $8F,$46,$4F,$52,$4D,$41,$4C,$4C,$49,$53,$54,$45,$52,$52,$4F,$52
 	dc.b $00,$04,$03,$29,$3A,$20
 CODE_5_loc_00005e38:
@@ -26014,7 +26014,7 @@ CODE_5_loc_00005f00:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-CODE_5_semantic_pascal_string_gap_00005f08:
+CODE_5_data_pascal_string_00005f08:
 	dc.b $8A,$44,$45,$46,$49,$4E,$45,$50,$41,$52,$4D,$00,$00,$00
 CODE_5_loc_00005f16:
 	link a6,#-788
@@ -26646,7 +26646,7 @@ CODE_5_loc_00006658:
 	movem.l (a7)+,d3-d7/a2-a4
 	unlk a6
 	rts
-CODE_5_semantic_dispatch_table_gap_00006664:
+CODE_5_data_dispatch_table_00006664:
 	dc.b $8B,$44,$4F,$4D,$41,$43,$52,$4F,$43,$41,$4C,$4C,$00,$DE,$2F,$49
 	dc.b $6E,$76,$61,$6C,$69,$64,$20,$74,$6F,$6B,$65,$6E,$20,$66,$6F,$6C
 	dc.b $6C,$6F,$77,$69,$6E,$67,$20,$70,$61,$72,$61,$6D,$65,$74,$65,$72
@@ -26735,7 +26735,7 @@ CODE_5_loc_000067f8:
 	movem.l (a7)+,a3-a4
 	unlk a6
 	rts
-CODE_5_semantic_pascal_string_gap_00006800:
+CODE_5_data_pascal_string_00006800:
 	dc.b $8A,$44,$4F,$4D,$41,$43,$52,$4F,$4C,$42,$4C,$00,$00,$00
 
 ; CODE 6 OpTable source section
@@ -26901,7 +26901,7 @@ CODE_6_loc_00000106:
 	clr.l (a7)
 	jmp (a1)
 CODE_6_loc_0000010a:
-CODE_6_semantic_dispatch_table_gap_0000010a:
+CODE_6_data_dispatch_table_0000010a:
 	dc.b $06,$00,$00,$00,$08,$0A,$0C,$08,$0A,$0C,$0E,$0A,$06,$08,$0A,$06
 	dc.b $20,$5F,$22,$5F,$61,$0A,$22,$5F,$22,$82,$22,$5F,$22,$81,$4E,$D0
 CODE_6_loc_0000012a:
@@ -26985,7 +26985,7 @@ CODE_6_loc_00000234:
 	move.l $0014(a6),d1
 CODE_6_loc_0000023c:
 	jmp CODE_6_loc_00000214(pc,d0.w)
-CODE_6_semantic_dispatch_table_gap_00000240:
+CODE_6_data_dispatch_table_00000240:
 	dc.b $67,$60,$60,$4C,$24,$01,$67,$48,$50,$81,$6D,$44,$52,$82,$6F,$52
 	dc.b $60,$3E,$24,$01,$53,$81,$6D,$38,$51,$82,$6F,$46,$60,$32,$E8,$81
 	dc.b $67,$40,$60,$2C,$06,$81,$00,$00,$00,$80,$E0,$81,$67,$34,$60,$20
@@ -27066,7 +27066,7 @@ CODE_6_loc_00000312:
 	move.w CODE_6_loc_00000324(pc,d0.w),d0
 	jmp CODE_6_loc_00000324(pc,d0.w)
 CODE_6_loc_0000034c:
-CODE_6_semantic_dispatch_table_gap_0000034c:
+CODE_6_data_dispatch_table_0000034c:
 	dc.b $07,$FA,$0B,$20,$00,$4C,$0B,$20,$0B,$20,$07,$6A,$0B,$20,$00,$4C
 	dc.b $00,$4C,$00,$4C,$00,$4C,$00,$4C,$00,$4C,$00,$4C,$00,$4C,$00,$4C
 	dc.b $00,$4C,$00,$4C,$00,$4C,$00,$4C,$0B,$20,$0B,$20,$0E,$7C,$00,$4C
@@ -27252,7 +27252,7 @@ CODE_6_loc_00000526:
 	move.b d0,(a7)
 	jmp (a0)
 CODE_6_loc_00000534:
-CODE_6_semantic_dispatch_table_gap_00000534:
+CODE_6_data_dispatch_table_00000534:
 	dc.b $00,$01,$80,$00,$00,$02,$40,$00,$00,$04,$20,$00,$00,$08,$10,$00
 	dc.b $00,$10,$08,$00,$00,$20,$04,$00,$00,$40,$02,$00,$00,$80,$01,$00
 	dc.b $01,$00,$00,$80,$02,$00,$00,$40,$04,$00,$00,$20,$08,$00,$00,$10
@@ -27367,7 +27367,7 @@ CODE_6_loc_00000670:
 	move.b d0,(a7)
 	jmp (a0)
 CODE_6_loc_0000067e:
-CODE_6_semantic_dispatch_table_gap_0000067e:
+CODE_6_data_dispatch_table_0000067e:
 	dc.b $80,$01,$40,$02,$20,$04,$10,$08,$08,$10,$04,$20,$02,$40,$01,$80
 CODE_6_loc_0000068e:
 	cmpi.b #15,d5
@@ -28051,7 +28051,7 @@ CODE_6_loc_00000e38:
 	jsr $0142(a5)
 	bra.w CODE_6_loc_000003ca
 CODE_6_loc_00000e50:
-CODE_6_semantic_dispatch_table_gap_00000e50:
+CODE_6_data_dispatch_table_00000e50:
 	dc.b $33,$34,$35,$36,$37,$38,$39,$3A,$3B,$3C,$14,$15,$3D,$3E,$15,$16
 	dc.b $17,$19,$19,$19,$1A,$1B,$1C,$1C,$18,$18,$14,$14
 CODE_6_loc_00000e6c:
@@ -29109,7 +29109,7 @@ CODE_6_loc_00001afc:
 	move.w CODE_6_loc_00001ad4(pc,d0.w),d0
 	jmp CODE_6_loc_00001b12(pc,d0.w)
 CODE_6_loc_00001b3a:
-CODE_6_semantic_dispatch_table_gap_00001b3a:
+CODE_6_data_dispatch_table_00001b3a:
 	dc.b $00,$3A,$00,$3A,$00,$2E,$00,$9E,$00,$CC,$FF,$9C,$FF,$9C,$01,$68
 	dc.b $01,$68,$01,$88,$01,$88,$FF,$9C,$FF,$9C,$01,$DC,$FF,$9C,$FF,$9C
 	dc.b $FF,$9C,$FF,$9C,$02,$48,$00,$01,$02,$02,$04,$04,$02,$02
@@ -29719,7 +29719,7 @@ CODE_6_loc_000022c6:
 	jsr $0172(a5)
 	jmp (a3)
 CODE_6_loc_000022da:
-CODE_6_semantic_dispatch_table_gap_000022da:
+CODE_6_data_dispatch_table_000022da:
 	dc.b $01,$F6,$02,$02,$02,$1C,$02,$7E,$00,$00,$02,$8C,$02,$9A,$02,$D0
 	dc.b $00,$00,$02,$E6,$03,$0A,$00,$00,$03,$16,$03,$24,$00,$00,$00,$00
 	dc.b $03,$D2,$03,$DC,$04,$22,$00,$00,$04,$4A,$04,$90,$00,$00,$04,$A6
@@ -30115,7 +30115,7 @@ CODE_6_loc_00003b16:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-CODE_6_semantic_pascal_string_gap_00003b28:
+CODE_6_data_pascal_string_00003b28:
 	dc.b $8B,$4C,$4F,$41,$44,$4F,$50,$54,$41,$42,$4C,$45,$00,$00
 
 ; CODE 7 POpTable source section
@@ -30231,7 +30231,7 @@ CODE_7_loc_000000a6:
 	movea.l (a7),a0
 	move.l d2,(a7)
 	jmp (a0)
-CODE_7_semantic_dispatch_table_gap_000000ac:
+CODE_7_data_dispatch_table_000000ac:
 	dc.b $4E,$56,$00,$00,$48,$E7,$1E,$00,$22,$6E,$00,$22,$36,$2E,$00,$1C
 	dc.b $38,$2E,$00,$1A,$20,$6E,$00,$12,$3A,$10,$20,$49,$54,$48,$0C,$6E
 	dc.b $18,$00,$00,$20,$67,$0C,$30,$10,$02,$40,$08,$00,$C0,$6E,$00,$20
@@ -30284,7 +30284,7 @@ CODE_7_loc_000001ac:
 	lea.l CODE_7_loc_0000018a(pc),a0
 	rts
 CODE_7_loc_000001b2:
-CODE_7_semantic_dispatch_table_gap_000001b2:
+CODE_7_data_dispatch_table_000001b2:
 	dc.b $01,$F6,$02,$12,$02,$22,$00,$00,$00,$00,$02,$34,$00,$00,$02,$62
 	dc.b $02,$74,$00,$00,$00,$00,$02,$A2,$00,$00,$02,$B2,$00,$00,$00,$00
 	dc.b $02,$C4,$02,$D2,$02,$F2,$00,$00,$00,$00,$03,$04,$00,$00,$03,$14
@@ -30750,7 +30750,7 @@ CODE_7_loc_00000e5a:
 	movea.l (a7)+,a0
 	addq.w #2,a7
 	jmp (a0)
-CODE_7_semantic_dispatch_table_gap_00000e68:
+CODE_7_data_dispatch_table_00000e68:
 	dc.b $8B,$44,$43,$4C,$50,$4D,$4D,$55,$52,$45,$47,$53,$01,$68,$3C,$50
 	dc.b $53,$52,$20,$2E,$20,$20,$20,$20,$2E,$20,$20,$20,$20,$2E,$43,$52
 	dc.b $50,$20,$2E,$53,$52,$50,$20,$2E,$20,$20,$20,$20,$2E,$54,$43,$20
@@ -30833,7 +30833,7 @@ CODE_7_loc_0000100c:
 CODE_7_loc_0000101e:
 	unlk a6
 	rts
-CODE_7_semantic_pascal_string_gap_00001022:
+CODE_7_data_pascal_string_00001022:
 	dc.b $89,$44,$4F,$4D,$43,$36,$38,$38,$35,$31,$00,$00
 
 ; CODE 8 Listing source section
@@ -31140,7 +31140,7 @@ CODE_8_loc_00000300:
 	movea.l (a7)+,a0
 	addq.w #2,a7
 	jmp (a0)
-CODE_8_semantic_pascal_string_gap_0000030a:
+CODE_8_data_pascal_string_0000030a:
 	dc.b $8C,$53,$50,$41,$43,$45,$4C,$49,$53,$54,$49,$4E,$47,$00,$00,$00
 CODE_8_loc_0000031a:
 	link a6,#0
@@ -31166,7 +31166,7 @@ CODE_8_loc_00000354:
 	movea.l (a7)+,a0
 	addq.w #2,a7
 	jmp (a0)
-CODE_8_semantic_pascal_string_gap_0000035c:
+CODE_8_data_pascal_string_0000035c:
 	dc.b $8C,$45,$4A,$45,$43,$54,$4C,$49,$53,$54,$49,$4E,$47,$00,$00,$00
 CODE_8_loc_0000036c:
 	link a6,#-28
@@ -31231,7 +31231,7 @@ CODE_8_loc_000003fc:
 	movea.l (a7)+,a0
 	addq.w #6,a7
 	jmp (a0)
-CODE_8_semantic_pascal_string_gap_00000408:
+CODE_8_data_pascal_string_00000408:
 	dc.b $8C,$4F,$42,$4A,$43,$4F,$44,$45,$46,$49,$45,$4C,$44,$00,$00,$00
 CODE_8_loc_00000418:
 	link a6,#-256
@@ -31257,7 +31257,7 @@ CODE_8_loc_0000044a:
 	movea.l (a7)+,a0
 	addq.w #2,a7
 	jmp (a0)
-CODE_8_semantic_pascal_string_gap_00000458:
+CODE_8_data_pascal_string_00000458:
 	dc.b $91,$53,$48,$4F,$57,$52,$45,$53,$54,$4F,$46,$4F,$42,$4A,$43,$4F
 	dc.b $44,$45,$00,$00
 CODE_8_loc_0000046c:
@@ -31426,7 +31426,7 @@ CODE_8_loc_00000644:
 	movea.l (a7)+,a0
 	adda.w #$E,a7
 	jmp (a0)
-CODE_8_semantic_pascal_string_gap_00000652:
+CODE_8_data_pascal_string_00000652:
 	dc.b $88,$4C,$49,$53,$54,$4C,$49,$4E,$45,$00,$00,$00
 CODE_8_loc_0000065e:
 	link a6,#-2
@@ -31510,7 +31510,7 @@ CODE_8_loc_0000071e:
 	movea.l (a7)+,a0
 	addq.w #2,a7
 	jmp (a0)
-CODE_8_semantic_pascal_string_gap_0000072c:
+CODE_8_data_pascal_string_0000072c:
 	dc.b $8C,$4C,$49,$4E,$45,$4F,$4B,$54,$4F,$4C,$49,$53,$54,$00,$00,$00
 
 ; CODE 9 Pass2 source section
@@ -31664,7 +31664,7 @@ CODE_9_loc_000002c8:
 	movea.l (a7)+,a0
 	lea.l $000E(a7),a7
 	jmp (a0)
-CODE_9_semantic_dispatch_table_gap_000002d0:
+CODE_9_data_dispatch_table_000002d0:
 	dc.b $53,$40,$66,$08,$72,$01,$43,$EF,$00,$11,$60,$18,$53,$40,$66,$08
 	dc.b $72,$02,$43,$EF,$00,$10,$60,$0A,$72,$04,$43,$EF,$00,$0E,$10,$D9
 	dc.b $10,$D9,$10,$D9,$10,$99,$D3,$AD,$F0,$B2,$20,$57,$2E,$49,$4E,$D0
@@ -31807,7 +31807,7 @@ CODE_9_loc_000005a6:
 	move.w CODE_9_loc_0000058e(pc,d6.w),d6
 	jmp CODE_9_loc_0000058e(pc,d6.w)
 CODE_9_loc_000005b6:
-CODE_9_semantic_dispatch_table_gap_000005b6:
+CODE_9_data_dispatch_table_000005b6:
 	dc.b $02,$66,$03,$7C,$03,$88,$03,$9C,$03,$B4,$03,$CA,$03,$D0,$03,$D6
 	dc.b $03,$DA,$03,$E0,$03,$EC,$29,$10,$29,$10,$29,$10,$29,$10,$29,$10
 	dc.b $29,$10,$29,$10,$25,$A0,$14,$98,$14,$9E,$03,$F8,$04,$BA,$04,$FE
@@ -31860,7 +31860,7 @@ CODE_9_loc_000007e4:
 CODE_9_loc_000007e6:
 	move.w #$1,$000A(a0)
 	rts
-CODE_9_semantic_dispatch_table_gap_000007ee:
+CODE_9_data_dispatch_table_000007ee:
 	dc.b $20,$2E,$FF,$B0,$67,$0A,$20,$40,$2D,$68,$00,$0C,$FF,$B0,$60,$16
 	dc.b $59,$4F,$2F,$2D,$F0,$7C,$3F,$3C,$00,$14,$4E,$AD,$07,$8A,$20,$1F
 	dc.b $66,$02,$4E,$75,$20,$40,$31,$7C,$00,$01,$00,$12,$4E,$75
@@ -32027,7 +32027,7 @@ CODE_9_loc_000009a2:
 	move.b (a4)+,d6
 	move.b #$F,d5
 	bra.w CODE_9_loc_00000538
-CODE_9_semantic_dispatch_table_gap_000009ae:
+CODE_9_data_dispatch_table_000009ae:
 	dc.b $10,$1C,$48,$80,$3B,$40,$F4,$2E,$41,$EE,$FF,$E6,$10,$DC,$10,$9C
 	dc.b $1B,$5C,$FB,$DF,$22,$6D,$F0,$F2,$30,$11,$32,$00,$E5,$49,$D2,$40
 	dc.b $D2,$40,$45,$F1,$10,$0A,$12,$1C,$42,$42,$42,$43,$60,$3C,$14,$1C
@@ -32177,7 +32177,7 @@ CODE_9_loc_0000101c:
 CODE_9_loc_00001022:
 	rts
 CODE_9_loc_00001024:
-CODE_9_semantic_string_data_gap_00001024:
+CODE_9_data_string_00001024:
 	dc.b $30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$41,$42,$43,$44,$45,$46
 CODE_9_loc_00001034:
 	movea.l (a7)+,a0
@@ -32238,7 +32238,7 @@ CODE_9_loc_000010a0:
 	swap.w d0
 	bsr.b CODE_9_loc_00001012
 	rts
-CODE_9_semantic_dispatch_table_gap_000010b4:
+CODE_9_data_dispatch_table_000010b4:
 	dc.b $48,$E7,$FF,$38,$36,$02,$C6,$C1,$28,$03,$3A,$01,$3C,$05,$24,$40
 	dc.b $26,$4A,$42,$42,$28,$6D,$EC,$F8,$42,$47,$1E,$14,$54,$47,$0C,$47
 	dc.b $00,$FC,$6F,$06,$61,$00,$FE,$E2,$60,$50,$10,$1A,$41,$F4,$70,$FF
@@ -32877,7 +32877,7 @@ CODE_9_loc_00003668:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-CODE_9_semantic_pascal_string_gap_0000366e:
+CODE_9_data_pascal_string_0000366e:
 	dc.b $89,$4C,$4F,$41,$44,$50,$41,$53,$53,$32,$00,$00
 
 ; CODE 10 FinishUp source section
@@ -32968,7 +32968,7 @@ CODE_10_loc_00000094:
 	movea.l (a7)+,a0
 	addq.w #6,a7
 	jmp (a0)
-CODE_10_semantic_pascal_string_gap_0000009a:
+CODE_10_data_pascal_string_0000009a:
 	dc.b $88,$45,$43,$48,$4F,$4C,$49,$4E,$45,$00,$00,$00
 CODE_10_loc_000000a6:
 	link a6,#0
@@ -33014,7 +33014,7 @@ CODE_10_loc_00000122:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-CODE_10_semantic_pascal_string_gap_0000012a:
+CODE_10_data_pascal_string_0000012a:
 	dc.b $89,$57,$52,$49,$54,$45,$4C,$49,$4E,$45,$00,$00
 CODE_10_loc_00000136:
 	link a6,#-428
@@ -33310,7 +33310,7 @@ CODE_10_loc_0000047c:
 	movem.l (a7)+,d5-d7
 	unlk a6
 	rts
-CODE_10_semantic_dispatch_table_gap_0000048a:
+CODE_10_data_dispatch_table_0000048a:
 	dc.b $88,$46,$49,$4E,$49,$53,$48,$55,$50,$00,$01,$70,$07,$20,$6C,$69
 	dc.b $6E,$65,$73,$2E,$09,$20,$66,$6F,$75,$6E,$64,$2E,$20,$20,$01,$73
 	dc.b $08,$20,$77,$61,$72,$6E,$69,$6E,$67,$00,$05,$20,$61,$6E,$64,$20
@@ -33503,7 +33503,7 @@ CODE_11_loc_00000146:
 	movem.l -$0008(a6),d7/a4
 	unlk a6
 	rts
-CODE_11_semantic_pascal_string_gap_00000156:
+CODE_11_data_pascal_string_00000156:
 	dc.b $91,$43,$4F,$4D,$50,$4C,$45,$54,$45,$44,$42,$47,$48,$45,$41,$44
 	dc.b $45,$52,$00,$00
 CODE_11_loc_0000016a:
@@ -33584,7 +33584,7 @@ CODE_11_loc_00000242:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-CODE_11_semantic_pascal_string_gap_0000024e:
+CODE_11_data_pascal_string_0000024e:
 	dc.b $89,$4E,$45,$57,$48,$45,$41,$44,$45,$52,$00,$00
 CODE_11_loc_0000025a:
 	link a6,#0
@@ -33642,7 +33642,7 @@ CODE_11_loc_000002e6:
 	movem.l -$000C(a6),d7/a3-a4
 	unlk a6
 	rts
-CODE_11_semantic_pascal_string_gap_000002f8:
+CODE_11_data_pascal_string_000002f8:
 	dc.b $8C,$44,$42,$47,$4E,$45,$57,$48,$45,$41,$44,$45,$52,$00,$00,$00
 CODE_11_loc_00000308:
 	link a6,#0
@@ -33670,7 +33670,7 @@ CODE_11_loc_00000344:
 	movea.l (a7)+,a0
 	addq.w #2,a7
 	jmp (a0)
-CODE_11_semantic_pascal_string_gap_0000034a:
+CODE_11_data_pascal_string_0000034a:
 	dc.b $8F,$41,$4C,$4C,$4F,$43,$41,$54,$45,$4F,$46,$42,$59,$54,$45,$53
 	dc.b $00,$00
 CODE_11_loc_0000035c:
@@ -33698,7 +33698,7 @@ CODE_11_loc_00000392:
 	movea.l (a7)+,a0
 	addq.w #2,a7
 	jmp (a0)
-CODE_11_semantic_pascal_string_gap_000003a0:
+CODE_11_data_pascal_string_000003a0:
 	dc.b $8F,$41,$4C,$4C,$4F,$43,$41,$54,$45,$44,$42,$42,$59,$54,$45,$53
 	dc.b $00,$00
 CODE_11_loc_000003b2:
@@ -33726,7 +33726,7 @@ CODE_11_loc_000003e8:
 	move.w -$0F48(a5),(a0)
 	unlk a6
 	rts
-CODE_11_semantic_pascal_string_gap_000003fc:
+CODE_11_data_pascal_string_000003fc:
 	dc.b $88,$44,$49,$43,$54,$50,$52,$4F,$43,$00,$00,$00
 CODE_11_loc_00000408:
 	link a6,#-4
@@ -33789,7 +33789,7 @@ CODE_11_loc_00000498:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-CODE_11_semantic_pascal_string_gap_000004a6:
+CODE_11_data_pascal_string_000004a6:
 	dc.b $8C,$4F,$46,$44,$49,$43,$54,$49,$4F,$4E,$41,$52,$59,$00,$00,$00
 CODE_11_loc_000004b6:
 	link a6,#0
@@ -33797,7 +33797,7 @@ CODE_11_loc_000004b6:
 	jsr CODE_11_loc_00000142(pc)
 	unlk a6
 	rts
-CODE_11_semantic_pascal_string_gap_000004c6:
+CODE_11_data_pascal_string_000004c6:
 	dc.b $89,$58,$44,$41,$54,$41,$50,$52,$4F,$43,$00,$00
 CODE_11_loc_000004d2:
 	link a6,#-4
@@ -33837,7 +33837,7 @@ CODE_11_loc_000004d2:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-CODE_11_semantic_pascal_string_gap_00000540:
+CODE_11_data_pascal_string_00000540:
 	dc.b $87,$4F,$46,$58,$44,$41,$54,$41,$00,$00
 CODE_11_loc_0000054a:
 	link a6,#-4
@@ -33863,7 +33863,7 @@ CODE_11_loc_0000054a:
 	movea.l (a7)+,a0
 	addq.w #6,a7
 	jmp (a0)
-CODE_11_semantic_pascal_string_gap_0000058e:
+CODE_11_data_pascal_string_0000058e:
 	dc.b $89,$43,$44,$42,$47,$46,$4E,$41,$4D,$45,$00,$00
 CODE_11_loc_0000059a:
 	link a6,#-4
@@ -33951,7 +33951,7 @@ CODE_11_loc_00000666:
 	movea.l (a7)+,a0
 	lea.l $000C(a7),a7
 	jmp (a0)
-CODE_11_semantic_pascal_string_gap_0000068c:
+CODE_11_data_pascal_string_0000068c:
 	dc.b $89,$43,$44,$42,$47,$45,$4E,$54,$52,$59,$00,$00
 CODE_11_loc_00000698:
 	link a6,#-4
@@ -33977,7 +33977,7 @@ CODE_11_loc_00000698:
 	movea.l (a7)+,a0
 	addq.w #6,a7
 	jmp (a0)
-CODE_11_semantic_pascal_string_gap_000006dc:
+CODE_11_data_pascal_string_000006dc:
 	dc.b $8A,$43,$44,$42,$47,$4D,$4F,$44,$45,$4E,$44,$00,$00,$00
 CODE_11_loc_000006ea:
 	link a6,#-4
@@ -34032,7 +34032,7 @@ CODE_11_loc_0000076a:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-CODE_11_semantic_pascal_string_gap_00000778:
+CODE_11_data_pascal_string_00000778:
 	dc.b $8B,$4C,$4F,$43,$41,$4C,$49,$44,$50,$52,$4F,$43,$00,$00
 CODE_11_loc_00000786:
 	link a6,#-4
@@ -34197,7 +34197,7 @@ CODE_11_loc_00000920:
 	movea.l (a7)+,a0
 	lea.l $0012(a7),a7
 	jmp (a0)
-CODE_11_semantic_pascal_string_gap_00000930:
+CODE_11_data_pascal_string_00000930:
 	dc.b $8B,$43,$44,$42,$47,$4C,$4F,$43,$41,$4C,$49,$44,$00,$00
 CODE_11_loc_0000093e:
 	link a6,#-4
@@ -34295,7 +34295,7 @@ CODE_11_loc_00000a24:
 	movea.l (a7)+,a0
 	lea.l $000E(a7),a7
 	jmp (a0)
-CODE_11_semantic_pascal_string_gap_00000a46:
+CODE_11_data_pascal_string_00000a46:
 	dc.b $89,$4C,$41,$42,$45,$4C,$50,$52,$4F,$43,$00,$00
 CODE_11_loc_00000a52:
 	link a6,#-4
@@ -34387,7 +34387,7 @@ CODE_11_loc_00000b3a:
 	movea.l (a7)+,a0
 	lea.l $000E(a7),a7
 	jmp (a0)
-CODE_11_semantic_pascal_string_gap_00000b4a:
+CODE_11_data_pascal_string_00000b4a:
 	dc.b $89,$43,$44,$42,$47,$4C,$41,$42,$45,$4C,$00,$00
 CODE_11_loc_00000b56:
 	link a6,#-4
@@ -34480,7 +34480,7 @@ CODE_11_loc_00000c3c:
 	movea.l (a7)+,a0
 	lea.l $000C(a7),a7
 	jmp (a0)
-CODE_11_semantic_pascal_string_gap_00000c4c:
+CODE_11_data_pascal_string_00000c4c:
 	dc.b $8E,$53,$4F,$55,$52,$43,$45,$53,$54,$4D,$54,$50,$52,$4F,$43,$00
 	dc.b $00,$00
 CODE_11_loc_00000c5e:
@@ -34577,7 +34577,7 @@ CODE_11_loc_00000d3e:
 	movea.l (a7)+,a0
 	lea.l $000C(a7),a7
 	jmp (a0)
-CODE_11_semantic_pascal_string_gap_00000d4e:
+CODE_11_data_pascal_string_00000d4e:
 	dc.b $8E,$43,$44,$42,$47,$53,$4F,$55,$52,$43,$45,$53,$54,$4D,$54,$00
 	dc.b $00,$00
 CODE_11_loc_00000d60:
@@ -34654,7 +34654,7 @@ CODE_11_loc_00000e2a:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-CODE_11_semantic_pascal_string_gap_00000e34:
+CODE_11_data_pascal_string_00000e34:
 	dc.b $8F,$47,$45,$54,$44,$49,$43,$54,$49,$4F,$4E,$41,$52,$59,$49,$44
 	dc.b $00,$00
 CODE_11_loc_00000e46:
@@ -34663,7 +34663,7 @@ CODE_11_loc_00000e46:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-CODE_11_semantic_pascal_string_gap_00000e54:
+CODE_11_data_pascal_string_00000e54:
 	dc.b $87,$4C,$4F,$41,$44,$44,$42,$47,$00,$00
 
 ; CODE 12 LoadDump source section
@@ -34976,7 +34976,7 @@ CODE_12_loc_000002e4:
 	movea.l (a7)+,a0
 	adda.w #$A,a7
 	jmp (a0)
-CODE_12_semantic_dispatch_table_gap_00000300:
+CODE_12_data_dispatch_table_00000300:
 	dc.b $8C,$4F,$50,$45,$4E,$44,$55,$4D,$50,$46,$49,$4C,$45,$00,$00,$02
 	dc.b $01,$3A
 CODE_12_loc_00000310:
@@ -35032,7 +35032,7 @@ CODE_12_loc_0000038c:
 	movem.l (a7)+,d7/a4
 	unlk a6
 	rts
-CODE_12_semantic_pascal_string_gap_0000039e:
+CODE_12_data_pascal_string_0000039e:
 	dc.b $8D,$43,$4C,$4F,$53,$45,$44,$55,$4D,$50,$46,$49,$4C,$45,$00,$00
 CODE_12_loc_000003ae:
 	link a6,#-4
@@ -35111,7 +35111,7 @@ CODE_12_loc_00000486:
 	movea.l (a7)+,a4
 	unlk a6
 	rts
-CODE_12_semantic_pascal_string_gap_0000048c:
+CODE_12_data_pascal_string_0000048c:
 	dc.b $8C,$46,$4C,$55,$53,$48,$54,$48,$45,$42,$55,$46,$52,$00,$00,$00
 CODE_12_loc_0000049c:
 	link a6,#-10
@@ -35168,7 +35168,7 @@ CODE_12_loc_00000512:
 	movea.l (a7)+,a0
 	adda.w #$A,a7
 	jmp (a0)
-CODE_12_semantic_pascal_string_gap_00000520:
+CODE_12_data_pascal_string_00000520:
 	dc.b $87,$44,$55,$4D,$50,$53,$59,$4D,$00,$00
 CODE_12_loc_0000052a:
 	link a6,#-10
@@ -35241,7 +35241,7 @@ CODE_12_loc_000005c8:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-CODE_12_semantic_pascal_string_gap_000005d2:
+CODE_12_data_pascal_string_000005d2:
 	dc.b $88,$44,$55,$4D,$50,$4C,$49,$4E,$45,$00,$00,$00
 CODE_12_loc_000005de:
 	link a6,#0
@@ -35306,7 +35306,7 @@ CODE_12_loc_0000069e:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-CODE_12_semantic_pascal_string_gap_000006a4:
+CODE_12_data_pascal_string_000006a4:
 	dc.b $8B,$46,$49,$4C,$4C,$54,$48,$45,$42,$55,$46,$52,$00,$00
 CODE_12_loc_000006b2:
 	link a6,#-6
@@ -35350,7 +35350,7 @@ CODE_12_loc_00000714:
 	movea.l (a7)+,a0
 	adda.w #$C,a7
 	jmp (a0)
-CODE_12_semantic_pascal_string_gap_00000720:
+CODE_12_data_pascal_string_00000720:
 	dc.b $87,$4C,$4F,$41,$44,$53,$59,$4D,$00,$00
 CODE_12_loc_0000072a:
 	link a6,#-6
@@ -35393,7 +35393,7 @@ CODE_12_loc_0000078a:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-CODE_12_semantic_pascal_string_gap_00000792:
+CODE_12_data_pascal_string_00000792:
 	dc.b $88,$4C,$4F,$41,$44,$4C,$49,$4E,$45,$00,$00,$00
 CODE_12_loc_0000079e:
 	link a6,#-268
@@ -35478,7 +35478,7 @@ CODE_12_loc_0000086e:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-CODE_12_semantic_pascal_string_gap_00000878:
+CODE_12_data_pascal_string_00000878:
 	dc.b $89,$44,$55,$4D,$50,$4D,$41,$43,$52,$4F,$00,$00
 CODE_12_loc_00000884:
 	link a6,#0
@@ -35524,7 +35524,7 @@ CODE_12_loc_00000908:
 	movea.l (a7)+,a0
 	addq.w #6,a7
 	jmp (a0)
-CODE_12_semantic_pascal_string_gap_00000910:
+CODE_12_data_pascal_string_00000910:
 	dc.b $88,$44,$55,$4D,$50,$41,$42,$4C,$45,$00,$00,$00
 CODE_12_loc_0000091c:
 	link a6,#-4
@@ -35552,7 +35552,7 @@ CODE_12_loc_0000094a:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-CODE_12_semantic_pascal_string_gap_00000954:
+CODE_12_data_pascal_string_00000954:
 	dc.b $8A,$53,$45,$54,$49,$4D,$50,$43,$41,$53,$45,$00,$00,$00
 CODE_12_loc_00000962:
 	link a6,#-268
@@ -35591,7 +35591,7 @@ CODE_12_loc_00000986:
 	movea.l $0008(a6),a0
 	movea.l a0,a6
 	jmp CODE_12_loc_00001160(pc)
-CODE_12_semantic_alignment_padding_gap_000009c6:
+CODE_12_data_alignment_padding_000009c6:
 	ds.b 2
 CODE_12_loc_000009c8:
 	move.l -$0018(a4),$0004(a3)
@@ -35634,7 +35634,7 @@ CODE_12_loc_00000a00:
 	movea.l $0008(a6),a0
 	movea.l a0,a6
 	jmp CODE_12_loc_00001160(pc)
-CODE_12_semantic_zero_fill_gap_00000a40:
+CODE_12_data_zero_fill_00000a40:
 	dc.b $00,$00
 CODE_12_loc_00000a42:
 	clr.l -(a7)
@@ -35663,7 +35663,7 @@ CODE_12_loc_00000a42:
 	movea.l $0008(a6),a0
 	movea.l a0,a6
 	jmp CODE_12_loc_00001160(pc)
-CODE_12_semantic_alignment_padding_gap_00000a8e:
+CODE_12_data_alignment_padding_00000a8e:
 	ds.b 2
 CODE_12_loc_00000a90:
 	movem.l (a7)+,d5-d7/a3-a4
@@ -35671,7 +35671,7 @@ CODE_12_loc_00000a90:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-CODE_12_semantic_pascal_string_gap_00000a9c:
+CODE_12_data_pascal_string_00000a9c:
 	dc.b $8C,$44,$55,$4D,$50,$54,$45,$4D,$50,$4C,$41,$54,$45,$00,$00,$00
 CODE_12_loc_00000aac:
 	link a6,#-4
@@ -35707,7 +35707,7 @@ CODE_12_loc_00000ad4:
 	movea.l $0008(a6),a0
 	movea.l a0,a6
 	jmp CODE_12_loc_00001160(pc)
-CODE_12_semantic_zero_fill_gap_00000b0c:
+CODE_12_data_zero_fill_00000b0c:
 	dc.b $00,$00
 CODE_12_loc_00000b0e:
 	move.l -$0014(a4),$0004(a3)
@@ -35720,7 +35720,7 @@ CODE_12_loc_00000b22:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-CODE_12_semantic_pascal_string_gap_00000b2e:
+CODE_12_data_pascal_string_00000b2e:
 	dc.b $8F,$49,$4D,$50,$4F,$52,$54,$4E,$4F,$54,$44,$55,$4D,$50,$45,$44
 	dc.b $00,$00
 CODE_12_loc_00000b40:
@@ -36232,7 +36232,7 @@ CODE_12_loc_00001188:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-CODE_12_semantic_dispatch_table_gap_00001196:
+CODE_12_data_dispatch_table_00001196:
 	dc.b $86,$44,$4F,$44,$55,$4D,$50,$00,$00,$56,$0A,$3C,$3C,$3C,$49,$4E
 	dc.b $54,$52,$3E,$3E,$3E,$00,$05,$4D,$4D,$55,$53,$52,$05,$46,$50,$49
 	dc.b $41,$52,$05,$20,$20,$20,$20,$20,$01,$2E,$28,$43,$6F,$75,$6C,$64
@@ -36276,7 +36276,7 @@ CODE_12_loc_00001246:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-CODE_12_semantic_pascal_string_gap_00001252:
+CODE_12_data_pascal_string_00001252:
 	dc.b $89,$41,$44,$44,$54,$4F,$4C,$49,$53,$54,$00,$00
 CODE_12_loc_0000125e:
 	link a6,#-12
@@ -36360,7 +36360,7 @@ CODE_12_loc_00001318:
 	movea.l (a7)+,a0
 	adda.w #$C,a7
 	jmp (a0)
-CODE_12_semantic_pascal_string_gap_00001326:
+CODE_12_data_pascal_string_00001326:
 	dc.b $8F,$43,$48,$4B,$54,$45,$4D,$50,$4C,$41,$54,$45,$4E,$41,$4D,$45
 	dc.b $00,$00
 CODE_12_loc_00001338:
@@ -36984,7 +36984,7 @@ CODE_12_loc_00001a68:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-CODE_12_semantic_dispatch_table_gap_00001a72:
+CODE_12_data_dispatch_table_00001a72:
 	dc.b $86,$44,$4F,$4C,$4F,$41,$44,$00,$00,$94,$0A,$3C,$3C,$3C,$49,$4E
 	dc.b $54,$52,$3E,$3E,$3E,$00,$01,$2E,$28,$43,$6F,$75,$6C,$64,$20,$6E
 	dc.b $6F,$74,$20,$61,$6C,$6C,$6F,$63,$61,$74,$65,$20,$6D,$65,$6D,$6F
@@ -37137,7 +37137,7 @@ CODE_13_loc_000000b0:
 	move.w d0,(a1)
 	move.b #$1,(a7)
 	jmp (a0)
-CODE_13_semantic_dispatch_table_gap_000000c4:
+CODE_13_data_dispatch_table_000000c4:
 	dc.b $4E,$56,$FF,$FC,$42,$67,$48,$6E,$FF,$FC,$4E,$AD,$02,$02,$10,$1F
 	dc.b $67,$30,$4A,$AE,$FF,$FC,$6E,$0A,$3F,$3C,$00,$99,$4E,$AD,$07,$CA
 	dc.b $60,$20,$4A,$AD,$EC,$E6,$67,$10,$20,$2E,$FF,$FC,$52,$80,$20,$6D
@@ -37452,7 +37452,7 @@ CODE_13_loc_000011c4:
 	movea.l (a7)+,a4
 	unlk a6
 	rts
-CODE_13_semantic_pascal_string_gap_000011ca:
+CODE_13_data_pascal_string_000011ca:
 	dc.b $86,$44,$4F,$45,$4E,$44,$4D,$00,$00,$00,$4E,$56,$00,$00,$4A,$AD
 	dc.b $EC,$E6,$66,$0E,$3F,$3C,$00,$63,$48,$6D,$F9,$BA,$4E,$AD,$07,$C2
 	dc.b $60,$0E,$1B,$7C,$00,$01,$EB,$24,$42,$6D,$DA,$58,$4E,$AD,$05,$0A
@@ -37772,13 +37772,13 @@ CODE_13_loc_0000229a:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-CODE_13_semantic_pascal_string_gap_000022a0:
+CODE_13_data_pascal_string_000022a0:
 	dc.b $85,$4F,$55,$54,$50,$43,$00,$00
 CODE_13_loc_000022a8:
 	link a6,#0
 	unlk a6
 	rts
-CODE_13_semantic_pascal_string_gap_000022b0:
+CODE_13_data_pascal_string_000022b0:
 	dc.b $8E,$43,$48,$45,$43,$4B,$48,$49,$47,$48,$45,$53,$54,$50,$43,$00
 	dc.b $00,$00,$4E,$56,$00,$00,$4E,$5E,$4E,$75,$8D,$43,$48,$45,$43,$4B
 	dc.b $4C,$4F,$57,$45,$53,$54,$50,$43,$00,$00,$4E,$56,$FF,$FE,$48,$E7
@@ -37898,7 +37898,7 @@ CODE_13_loc_000024f2:
 	movea.l (a7)+,a0
 	addq.w #2,a7
 	jmp (a0)
-CODE_13_semantic_pascal_string_gap_00002518:
+CODE_13_data_pascal_string_00002518:
 	dc.b $8C,$41,$44,$4A,$55,$53,$54,$4F,$52,$49,$47,$49,$4E,$00,$00,$00
 CODE_13_loc_00002528:
 	link a6,#-272
@@ -38025,7 +38025,7 @@ CODE_13_loc_00002678:
 	movea.l (a7)+,a0
 	adda.w #$C,a7
 	jmp (a0)
-CODE_13_semantic_dispatch_table_gap_00002686:
+CODE_13_data_dispatch_table_00002686:
 	dc.b $89,$47,$45,$4E,$4F,$46,$49,$4E,$46,$4F,$00,$52,$13,$55,$6E,$64
 	dc.b $65,$66,$45,$6E,$74,$72,$79,$50,$74,$73,$20,$6C,$69,$73,$74,$29
 	dc.b $0E,$45,$6E,$74,$72,$79,$50,$74,$73,$20,$6C,$69,$73,$74,$29,$00
@@ -38149,7 +38149,7 @@ CODE_13_loc_00002cf8:
 	movea.l (a7)+,a0
 	addq.w #2,a7
 	jmp (a0)
-CODE_13_semantic_pascal_string_gap_00002d00:
+CODE_13_data_pascal_string_00002d00:
 	dc.b $88,$4E,$45,$58,$54,$4F,$50,$4E,$44,$00,$00,$00
 CODE_13_loc_00002d0c:
 	link a6,#-2
@@ -38180,7 +38180,7 @@ CODE_13_loc_00002d48:
 	movea.l (a7)+,a0
 	adda.w #$A,a7
 	jmp (a0)
-CODE_13_semantic_symbol_record_gap_00002d54:
+CODE_13_data_symbol_record_00002d54:
 	dc.b $89,$49,$53,$4B,$45,$59,$57,$4F,$52,$44,$00,$00
 CODE_13_semantic_decode_gap_00002d60:
 	dc.b $4E,$56,$FF,$FC,$42,$67,$48,$6E,$FF,$FC,$4E,$AD,$01,$FA,$10,$1F
@@ -38218,7 +38218,7 @@ CODE_13_loc_00002dea:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-CODE_13_semantic_pascal_string_gap_00002df6:
+CODE_13_data_pascal_string_00002df6:
 	dc.b $8D,$44,$43,$4C,$47,$4C,$42,$4C,$49,$4D,$50,$4F,$52,$54,$00,$00
 CODE_13_loc_00002e06:
 	link a6,#-16
@@ -39466,7 +39466,7 @@ CODE_13_loc_00006988:
 	movea.l (a7)+,a0
 	addq.w #2,a7
 	jmp (a0)
-CODE_13_semantic_dispatch_table_gap_0000699a:
+CODE_13_data_dispatch_table_0000699a:
 	dc.b $85,$44,$4F,$45,$4E,$44,$00,$26,$24,$3B,$20,$4D,$69,$73,$73,$69
 	dc.b $6E,$67,$20,$45,$4E,$44,$20,$73,$75,$70,$70,$6C,$69,$65,$64,$20
 	dc.b $62,$79,$20,$41,$73,$73,$65,$6D,$62,$6C,$65,$72,$20,$00,$4E,$56
@@ -39897,7 +39897,7 @@ CODE_13_loc_0000729c:
 	move.w CODE_13_loc_00007296(pc,d0.w),d0
 	jmp $0(pc,d0.w)
 CODE_13_loc_000072be:
-CODE_13_semantic_dispatch_table_gap_000072be:
+CODE_13_data_dispatch_table_000072be:
 	dc.b $00,$B0,$00,$B8,$00,$C0,$00,$DA,$00,$DA,$00,$DA,$00,$E2,$00,$EA
 	dc.b $00,$EA,$00,$EA,$00,$F2,$01,$1A,$01,$26,$01,$32,$01,$3E,$01,$8C
 	dc.b $01,$DA,$01,$E6,$03,$88,$03,$D0,$04,$42,$04,$42,$04,$42,$04,$C8
@@ -40157,7 +40157,7 @@ CODE_13_loc_000081a4:
 	movem.l (a7)+,d3-d7/a4
 	unlk a6
 	rts
-CODE_13_semantic_dispatch_table_gap_000081ac:
+CODE_13_data_dispatch_table_000081ac:
 	dc.b $8B,$44,$4F,$44,$49,$52,$45,$43,$54,$49,$56,$45,$00,$6C,$06,$4F
 	dc.b $42,$4A,$45,$43,$54,$00,$03,$4F,$42,$4A,$0D,$2E,$2E,$2E,$69,$6E
 	dc.b $63,$6C,$75,$64,$69,$6E,$67,$20,$01,$22,$25,$55,$6E,$61,$62,$6C
@@ -40174,7 +40174,7 @@ CODE_13_loc_00008226:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-CODE_13_semantic_pascal_string_gap_00008238:
+CODE_13_data_pascal_string_00008238:
 	dc.b $8E,$4C,$4F,$41,$44,$44,$49,$52,$45,$43,$54,$49,$56,$45,$53,$00
 	dc.b $00,$00
 
@@ -40298,7 +40298,7 @@ CODE_14_loc_000000ec:
 	movea.l (a7)+,a0
 	addq.w #2,a7
 	jmp (a0)
-CODE_14_semantic_pascal_string_gap_000000f2:
+CODE_14_data_pascal_string_000000f2:
 	dc.b $8A,$49,$4E,$49,$54,$4D,$45,$4D,$4D,$47,$52,$00,$00,$00
 CODE_14_loc_00000100:
 	link a6,#-4
@@ -40346,7 +40346,7 @@ CODE_14_loc_0000017c:
 	movea.l (a7)+,a4
 	unlk a6
 	rts
-CODE_14_semantic_pascal_string_gap_00000182:
+CODE_14_data_pascal_string_00000182:
 	dc.b $87,$4E,$45,$57,$5A,$4F,$4E,$45,$00,$00
 CODE_14_loc_0000018c:
 	link a6,#-4
@@ -40390,7 +40390,7 @@ CODE_14_loc_000001f0:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-CODE_14_semantic_pascal_string_gap_000001fa:
+CODE_14_data_pascal_string_000001fa:
 	dc.b $88,$46,$52,$45,$45,$5A,$4F,$4E,$45,$00,$00,$00
 CODE_14_loc_00000206:
 	link a6,#-24
@@ -40512,7 +40512,7 @@ CODE_14_loc_0000030e:
 	movea.l (a7)+,a0
 	addq.w #6,a7
 	jmp (a0)
-CODE_14_semantic_pascal_string_gap_00000320:
+CODE_14_data_pascal_string_00000320:
 	dc.b $85,$41,$4C,$4C,$4F,$43,$00,$00
 CODE_14_loc_00000328:
 	link a6,#-18
@@ -40580,7 +40580,7 @@ CODE_14_loc_000003b2:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-CODE_14_semantic_pascal_string_gap_000003be:
+CODE_14_data_pascal_string_000003be:
 	dc.b $84,$46,$52,$45,$45,$00,$00,$00
 CODE_14_loc_000003c6:
 	link a6,#-10
@@ -40639,7 +40639,7 @@ CODE_14_loc_0000044e:
 	movea.l (a7)+,a0
 	addq.w #6,a7
 	jmp (a0)
-CODE_14_semantic_pascal_string_gap_0000045e:
+CODE_14_data_pascal_string_0000045e:
 	dc.b $88,$41,$4C,$4C,$4F,$43,$4D,$45,$4D,$00,$00,$00
 CODE_14_loc_0000046a:
 	link a6,#0
@@ -40655,7 +40655,7 @@ CODE_14_loc_0000046a:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-CODE_14_semantic_pascal_string_gap_0000048e:
+CODE_14_data_pascal_string_0000048e:
 	dc.b $87,$4D,$41,$52,$4B,$4D,$45,$4D,$00,$00
 CODE_14_loc_00000498:
 	link a6,#-8
@@ -40704,7 +40704,7 @@ CODE_14_loc_000004f4:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-CODE_14_semantic_pascal_string_gap_00000500:
+CODE_14_data_pascal_string_00000500:
 	dc.b $8A,$52,$45,$4C,$45,$41,$53,$45,$4D,$45,$4D,$00,$00,$00
 CODE_14_loc_0000050e:
 	link a6,#-8
@@ -40786,7 +40786,7 @@ CODE_14_loc_000005ea:
 	movea.l (a7)+,a4
 	unlk a6
 	rts
-CODE_14_semantic_dispatch_table_gap_000005f4:
+CODE_14_data_dispatch_table_000005f4:
 	dc.b $88,$41,$4C,$4C,$4F,$43,$42,$4C,$4B,$00,$00,$44,$42,$49,$6E,$73
 	dc.b $75,$66,$66,$69,$63,$69,$65,$6E,$74,$20,$6F,$72,$20,$66,$72,$61
 	dc.b $67,$6D,$65,$6E,$74,$65,$64,$20,$6D,$65,$6D,$6F,$72,$79,$20,$2D
@@ -40837,7 +40837,7 @@ CODE_14_loc_000006ac:
 	move.l -$0004(a6),$0008(a6)
 	unlk a6
 	rts
-CODE_14_semantic_dispatch_table_gap_000006c8:
+CODE_14_data_dispatch_table_000006c8:
 	dc.b $8D,$41,$4C,$4C,$4F,$43,$5F,$50,$4F,$53,$54,$46,$49,$58,$00,$44
 	dc.b $42,$49,$6E,$73,$75,$66,$66,$69,$63,$69,$65,$6E,$74,$20,$6F,$72
 	dc.b $20,$66,$72,$61,$67,$6D,$65,$6E,$74,$65,$64,$20,$6D,$65,$6D,$6F
@@ -40868,7 +40868,7 @@ CODE_14_loc_0000074a:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-CODE_14_semantic_pascal_string_gap_00000754:
+CODE_14_data_pascal_string_00000754:
 	dc.b $87,$46,$52,$45,$45,$42,$4C,$4B,$00,$00
 
 ; CODE 15 Errors source section
@@ -40948,7 +40948,7 @@ CODE_15_loc_00000060:
 	movea.l (a7)+,a0
 	adda.w #$A,a7
 	jmp (a0)
-CODE_15_semantic_pascal_string_gap_00000068:
+CODE_15_data_pascal_string_00000068:
 	dc.b $85,$41,$44,$44,$43,$48,$00,$00
 CODE_15_loc_00000070:
 	link a6,#-258
@@ -40980,7 +40980,7 @@ CODE_15_loc_000000c0:
 	movea.l $0008(a6),a0
 	movea.l a0,a6
 	jmp CODE_15_loc_000004ac(pc)
-CODE_15_semantic_zero_fill_gap_000000d0:
+CODE_15_data_zero_fill_000000d0:
 	dc.b $00,$00
 CODE_15_loc_000000d2:
 	move.w $0010(a6),$0012(a6)
@@ -40989,7 +40989,7 @@ CODE_15_loc_000000d2:
 	movea.l (a7)+,a0
 	adda.w #$A,a7
 	jmp (a0)
-CODE_15_semantic_dispatch_table_gap_000000e6:
+CODE_15_data_dispatch_table_000000e6:
 	dc.b $8A,$47,$45,$54,$32,$42,$4C,$4F,$43,$4B,$53,$00,$00,$2E,$02,$22
 	dc.b $29,$00,$28,$20,$28,$42,$61,$64,$20,$62,$6C,$6F,$63,$6B,$20,$72
 	dc.b $65,$61,$64,$20,$6F,$6E,$20,$65,$72,$72,$6F,$72,$20,$6D,$65,$73
@@ -41049,7 +41049,7 @@ CODE_15_loc_000001a4:
 	movea.l $0008(a6),a0
 	movea.l a0,a6
 	jmp CODE_15_loc_000004ac(pc)
-CODE_15_semantic_alignment_padding_gap_000001ae:
+CODE_15_data_alignment_padding_000001ae:
 	ds.b 2
 CODE_15_loc_000001b0:
 	movem.l (a7)+,d4-d7/a4
@@ -41057,7 +41057,7 @@ CODE_15_loc_000001b0:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-CODE_15_semantic_pascal_string_gap_000001bc:
+CODE_15_data_pascal_string_000001bc:
 	dc.b $89,$47,$45,$54,$4D,$53,$47,$49,$44,$58,$00,$00
 CODE_15_loc_000001c8:
 	link a6,#-1582
@@ -41318,7 +41318,7 @@ CODE_15_loc_000004d4:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-CODE_15_semantic_dispatch_table_gap_000004e4:
+CODE_15_data_dispatch_table_000004e4:
 	dc.b $8A,$47,$45,$54,$45,$52,$52,$54,$45,$58,$54,$00,$00,$84,$01,$29
 	dc.b $02,$20,$28,$00,$10,$22,$20,$6E,$6F,$74,$20,$61,$76,$61,$69,$6C
 	dc.b $61,$62,$6C,$65,$29,$00,$16,$20,$28,$45,$72,$72,$6F,$72,$20,$6D
@@ -41431,7 +41431,7 @@ CODE_15_loc_00000660:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-CODE_15_semantic_dispatch_table_gap_0000066c:
+CODE_15_data_dispatch_table_0000066c:
 	dc.b $8B,$42,$55,$49,$4C,$44,$45,$52,$52,$4D,$53,$47,$00,$04,$01,$20
 	dc.b $01,$5E
 CODE_15_loc_0000067a:
@@ -41604,7 +41604,7 @@ CODE_15_loc_00000852:
 	movea.l (a7)+,a0
 	adda.w #$12,a7
 	jmp (a0)
-CODE_15_semantic_dispatch_table_gap_00000860:
+CODE_15_data_dispatch_table_00000860:
 	dc.b $8A,$53,$48,$4F,$57,$45,$52,$52,$4F,$52,$53,$00,$00,$28,$08,$22
 	dc.b $3B,$20,$6C,$69,$6E,$65,$20,$00,$0B,$23,$23,$23,$20,$4D,$61,$63
 	dc.b $72,$6F,$20,$22,$07,$3B,$20,$6C,$69,$6E,$65,$20,$09,$20,$20,$20
@@ -41641,7 +41641,7 @@ CODE_15_loc_000008dc:
 	movem.l (a7)+,d7/a4
 	unlk a6
 	rts
-CODE_15_semantic_pascal_string_gap_000008e4:
+CODE_15_data_pascal_string_000008e4:
 	dc.b $8E,$46,$52,$45,$45,$45,$52,$52,$49,$4E,$53,$45,$52,$54,$53,$00
 	dc.b $00,$00
 CODE_15_loc_000008f6:
@@ -41820,7 +41820,7 @@ CODE_15_loc_00000af2:
 	movea.l (a7)+,a0
 	addq.w #2,a7
 	jmp (a0)
-CODE_15_semantic_pascal_string_gap_00000b08:
+CODE_15_data_pascal_string_00000b08:
 	dc.b $85,$45,$52,$52,$4F,$52,$00,$00
 CODE_15_loc_00000b10:
 	link a6,#-512
@@ -41847,7 +41847,7 @@ CODE_15_loc_00000b46:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-CODE_15_semantic_dispatch_table_gap_00000b60:
+CODE_15_data_dispatch_table_00000b60:
 	dc.b $88,$49,$4E,$53,$49,$4F,$45,$52,$52,$00,$00,$06,$05,$22,$20,$2D
 	dc.b $2D,$20
 CODE_15_loc_00000b6c:
@@ -41944,7 +41944,7 @@ CODE_15_loc_00000c5a:
 	movea.l (a7)+,a0
 	adda.w #$A,a7
 	jmp (a0)
-CODE_15_semantic_pascal_string_gap_00000c68:
+CODE_15_data_pascal_string_00000c68:
 	dc.b $8A,$47,$45,$54,$4D,$41,$43,$4C,$49,$4E,$45,$00,$00,$00
 CODE_15_loc_00000c76:
 	link a6,#-2
@@ -41972,7 +41972,7 @@ CODE_15_loc_00000cb6:
 	move.l (a7)+,d7
 	unlk a6
 	rts
-CODE_15_semantic_pascal_string_gap_00000cbc:
+CODE_15_data_pascal_string_00000cbc:
 	dc.b $8A,$4F,$50,$45,$4E,$45,$52,$52,$4C,$4F,$47,$00,$00,$00
 CODE_15_loc_00000cca:
 	link a6,#0
@@ -42033,7 +42033,7 @@ CODE_15_loc_00000d4e:
 	movea.l (a7)+,a0
 	adda.w #$E,a7
 	jmp (a0)
-CODE_15_semantic_pascal_string_gap_00000d6c:
+CODE_15_data_pascal_string_00000d6c:
 	dc.b $8C,$52,$45,$50,$4F,$52,$54,$45,$52,$52,$4F,$52,$53,$00,$00,$00
 
 ; CODE 16 New source section
@@ -42153,7 +42153,7 @@ CODE_16_loc_000000f6:
 	movea.l (a7)+,a0
 	addq.w #2,a7
 	jmp (a0)
-CODE_16_semantic_dispatch_table_gap_000000fc:
+CODE_16_data_dispatch_table_000000fc:
 	dc.b $8A,$50,$4F,$50,$49,$4E,$43,$4C,$55,$44,$45,$00,$00,$28,$13,$2E
 	dc.b $2E,$2E,$63,$6F,$6E,$74,$69,$6E,$75,$69,$6E,$67,$20,$77,$69,$74
 	dc.b $68,$20,$12,$4E,$6F,$74,$20,$65,$6E,$6F,$75,$67,$68,$20,$6D,$65
@@ -42230,7 +42230,7 @@ CODE_16_loc_000001c6:
 	movea.l (a7)+,a0
 	addq.w #6,a7
 	jmp (a0)
-CODE_16_semantic_dispatch_table_gap_000001e0:
+CODE_16_data_dispatch_table_000001e0:
 	dc.b $8C,$46,$4C,$55,$53,$48,$50,$4F,$53,$54,$46,$49,$58,$00,$00,$18
 	dc.b $16,$53,$70,$69,$6C,$6C,$20,$66,$69,$6C,$65,$20,$77,$72,$69,$74
 	dc.b $65,$20,$65,$72,$72,$6F,$72,$00
@@ -42369,7 +42369,7 @@ CODE_16_loc_000003ba:
 	movea.l (a7)+,a0
 	addq.w #2,a7
 	jmp (a0)
-CODE_16_semantic_dispatch_table_gap_000003c4:
+CODE_16_data_dispatch_table_000003c4:
 	dc.b $8E,$57,$52,$49,$54,$45,$53,$50,$49,$4C,$4C,$46,$49,$4C,$45,$00
 	dc.b $00,$34,$22,$43,$61,$6E,$6E,$6F,$74,$20,$6F,$70,$65,$6E,$20,$74
 	dc.b $68,$65,$20,$50,$6F,$73,$74,$66,$69,$78,$20,$73,$70,$69,$6C,$6C
@@ -42449,7 +42449,7 @@ CODE_17_loc_00000064:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-CODE_17_semantic_pascal_string_gap_0000006a:
+CODE_17_data_pascal_string_0000006a:
 	dc.b $8A,$43,$52,$45,$41,$54,$45,$4E,$4F,$44,$45,$00,$00,$00
 CODE_17_loc_00000078:
 	link a6,#-526
@@ -42517,7 +42517,7 @@ CODE_17_loc_00000112:
 	movea.l (a7)+,a0
 	adda.w #$C,a7
 	jmp (a0)
-CODE_17_semantic_pascal_string_gap_00000120:
+CODE_17_data_pascal_string_00000120:
 	dc.b $8B,$49,$4E,$53,$45,$52,$54,$4E,$45,$57,$49,$44,$00,$00
 CODE_17_loc_0000012e:
 	link a6,#-522
@@ -42589,7 +42589,7 @@ CODE_17_loc_000001da:
 	movea.l (a7)+,a0
 	adda.w #$C,a7
 	jmp (a0)
-CODE_17_semantic_pascal_string_gap_000001e8:
+CODE_17_data_pascal_string_000001e8:
 	dc.b $89,$49,$4E,$53,$45,$52,$54,$52,$45,$43,$00,$00
 CODE_17_loc_000001f4:
 	link a6,#-24
@@ -42747,7 +42747,7 @@ CODE_17_loc_0000037e:
 	movea.l (a7)+,a0
 	adda.w #$1E,a7
 	jmp (a0)
-CODE_17_semantic_dispatch_table_gap_0000038c:
+CODE_17_data_dispatch_table_0000038c:
 	dc.b $92,$53,$4F,$52,$54,$49,$4E,$54,$4F,$42,$49,$4E,$41,$52,$59,$54
 	dc.b $52,$45,$45,$00,$00,$0C,$0A,$3C,$3C,$3C,$49,$4E,$54,$52,$3E,$3E
 	dc.b $3E,$00
@@ -42770,7 +42770,7 @@ CODE_17_loc_000003d6:
 	movea.l (a7)+,a0
 	addq.w #4,a7
 	jmp (a0)
-CODE_17_semantic_pascal_string_gap_000003de:
+CODE_17_data_pascal_string_000003de:
 	dc.b $87,$44,$49,$53,$50,$4C,$41,$59,$00,$00
 CODE_17_loc_000003e8:
 	link a6,#-2
@@ -42848,7 +42848,7 @@ CODE_17_loc_00000496:
 	movea.l (a7)+,a0
 	adda.w #$A,a7
 	jmp (a0)
-CODE_17_semantic_dispatch_table_gap_000004a4:
+CODE_17_data_dispatch_table_000004a4:
 	dc.b $8A,$54,$59,$50,$45,$4D,$41,$43,$53,$59,$4D,$00,$00,$2C,$0A,$53
 	dc.b $45,$54,$43,$20,$41,$52,$52,$41,$59,$00,$0A,$53,$45,$54,$41,$20
 	dc.b $41,$52,$52,$41,$59,$00,$08,$53,$45,$54,$43,$20,$20,$20,$20,$00
@@ -43187,7 +43187,7 @@ CODE_17_loc_000008d6:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-CODE_17_semantic_dispatch_table_gap_000008e2:
+CODE_17_data_dispatch_table_000008e2:
 	dc.b $87,$53,$48,$4F,$57,$53,$59,$4D,$00,$2C,$04,$20,$20,$20,$20,$00
 	dc.b $06,$46,$50,$20,$52,$45,$47,$00,$05,$4D,$4D,$55,$53,$52,$05,$46
 	dc.b $50,$49,$41,$52,$05,$20,$20,$20,$20,$20,$0A,$3C,$3C,$3C,$49,$4E
@@ -43218,7 +43218,7 @@ CODE_17_loc_0000094c:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-CODE_17_semantic_pascal_string_gap_00000954:
+CODE_17_data_pascal_string_00000954:
 	dc.b $8A,$46,$4F,$4C,$4C,$4F,$57,$54,$52,$45,$45,$00,$00,$00
 CODE_17_loc_00000962:
 	link a6,#0
@@ -43546,7 +43546,7 @@ CODE_17_loc_00000ce6:
 	movea.l (a7)+,a0
 	addq.w #2,a7
 	jmp (a0)
-CODE_17_semantic_dispatch_table_gap_00000d14:
+CODE_17_data_dispatch_table_00000d14:
 	dc.b $8A,$44,$49,$53,$50,$53,$59,$4D,$54,$42,$4C,$00,$01,$38,$49,$2A
 	dc.b $2A,$2A,$20,$49,$6E,$73,$75,$66,$66,$69,$63,$69,$65,$6E,$74,$20
 	dc.b $6D,$65,$6D,$6F,$72,$79,$20,$74,$6F,$20,$73,$6F,$72,$74,$20,$61
@@ -43658,7 +43658,7 @@ CODE_18_loc_00000062:
 	movem.l (a7)+,a3-a4
 	unlk a6
 	rts
-CODE_18_semantic_pascal_string_gap_00000088:
+CODE_18_data_pascal_string_00000088:
 	dc.b $8E,$46,$49,$4E,$49,$53,$48,$54,$45,$4D,$50,$4C,$41,$54,$45,$00
 	dc.b $00,$00
 CODE_18_loc_0000009a:
@@ -44105,7 +44105,7 @@ CODE_18_loc_0000061a:
 	movea.l (a7)+,a0
 	addq.w #2,a7
 	jmp (a0)
-CODE_18_semantic_dispatch_table_gap_00000620:
+CODE_18_data_dispatch_table_00000620:
 	dc.b $8C,$46,$49,$4E,$49,$53,$48,$4D,$4F,$44,$55,$4C,$45,$00,$00,$BC
 	dc.b $30,$55,$6E,$61,$62,$6C,$65,$20,$74,$6F,$20,$72,$65,$6F,$70,$65
 	dc.b $6E,$20,$6C,$69,$73,$74,$69,$6E,$67,$20,$73,$63,$72,$61,$74,$63
@@ -44191,7 +44191,7 @@ CODE_18_loc_0000079c:
 	movem.l (a7)+,d5-d7
 	unlk a6
 	rts
-CODE_18_semantic_pascal_string_gap_000007a4:
+CODE_18_data_pascal_string_000007a4:
 	dc.b $8E,$46,$41,$4B,$45,$45,$4E,$44,$50,$4F,$52,$45,$4E,$44,$52,$00
 	dc.b $00,$00
 
@@ -44335,7 +44335,7 @@ CODE_20_loc_00000028:
 	jsr CODE_20_loc_00000830(pc)
 	unlk a6
 	rts
-CODE_20_semantic_pascal_string_gap_00000044:
+CODE_20_data_pascal_string_00000044:
 	dc.b $87,$66,$61,$63,$63,$65,$73,$73,$00,$00
 CODE_20_loc_0000004e:
 	link a6,#-8
@@ -44378,7 +44378,7 @@ CODE_20_loc_000000b2:
 	movem.l -$0010(a6),d7/a4
 	unlk a6
 	rts
-CODE_20_semantic_pascal_string_gap_000000bc:
+CODE_20_data_pascal_string_000000bc:
 	dc.b $84,$6F,$70,$65,$6E,$00,$00,$00
 CODE_20_loc_000000c4:
 	link a6,#0
@@ -44426,7 +44426,7 @@ CODE_20_loc_00000124:
 	movem.l -$0008(a6),d7/a4
 	unlk a6
 	rts
-CODE_20_semantic_pascal_string_gap_0000012e:
+CODE_20_data_pascal_string_0000012e:
 	dc.b $85,$63,$6C,$6F,$73,$65,$00,$00
 CODE_20_loc_00000136:
 	link a6,#0
@@ -44488,7 +44488,7 @@ CODE_20_loc_000001bc:
 	movem.l -$000C(a6),d6-d7/a4
 	unlk a6
 	rts
-CODE_20_semantic_pascal_string_gap_000001c6:
+CODE_20_data_pascal_string_000001c6:
 	dc.b $84,$72,$65,$61,$64,$00,$00,$00
 CODE_20_loc_000001ce:
 	link a6,#0
@@ -44550,7 +44550,7 @@ CODE_20_loc_00000254:
 	movem.l -$000C(a6),d6-d7/a4
 	unlk a6
 	rts
-CODE_20_semantic_pascal_string_gap_0000025e:
+CODE_20_data_pascal_string_0000025e:
 	dc.b $85,$77,$72,$69,$74,$65,$00,$00
 CODE_20_loc_00000266:
 	link a6,#-4
@@ -44658,7 +44658,7 @@ CODE_20_loc_00000360:
 	movem.l -$0014(a6),d6-d7/a3-a4
 	unlk a6
 	rts
-CODE_20_semantic_pascal_string_gap_0000036a:
+CODE_20_data_pascal_string_0000036a:
 	dc.b $85,$69,$6F,$63,$74,$6C,$00,$00
 CODE_20_loc_00000372:
 	link a6,#-4
@@ -44790,7 +44790,7 @@ CODE_20_loc_00000498:
 	movem.l -$0014(a6),d3/d7/a3-a4
 	unlk a6
 	rts
-CODE_20_semantic_pascal_string_gap_000004a2:
+CODE_20_data_pascal_string_000004a2:
 	dc.b $8A,$5F,$67,$65,$74,$49,$4F,$50,$6F,$72,$74,$00,$00,$00
 CODE_20_loc_000004b0:
 	link a6,#0
@@ -44808,7 +44808,7 @@ CODE_20_loc_000004b0:
 	movea.l $001C(a1),a0
 	movea.l -$306C(a5),a1
 	moveq.l #60,d0
-CODE_20_semantic_dispatch_table_gap_000004e2:
+CODE_20_data_dispatch_table_000004e2:
 	dc.b $A0,$2E,$20,$6D,$CF,$94,$49,$D0,$60,$20,$4A,$54,$67,$18,$70,$00
 	dc.b $2F,$00,$48,$78,$66,$01,$2F,$0C,$20,$6C,$00,$04,$22,$68,$00,$14
 	dc.b $4E,$91,$4F,$EF,$00,$0C,$49,$EC,$00,$14,$20,$6D,$CF,$94,$41,$E8
@@ -44838,7 +44838,7 @@ CODE_20_loc_0000055c:
 	movea.l -$0004(a6),a4
 	unlk a6
 	rts
-CODE_20_semantic_dispatch_table_gap_00000564:
+CODE_20_data_dispatch_table_00000564:
 	dc.b $8D,$5F,$69,$6E,$69,$74,$49,$4F,$50,$74,$61,$62,$6C,$65,$00,$0C
 	dc.b $64,$65,$76,$3A,$63,$6F,$6E,$73,$6F,$6C,$65,$00,$4E,$56,$00,$00
 	dc.b $48,$E7,$03,$00,$30,$2D,$CF,$92,$48,$C0,$81,$FC,$00,$14,$48,$C0
@@ -45001,7 +45001,7 @@ CODE_20_loc_000006e8:
 	move.l -$0004(a6),d7
 	unlk a6
 	rts
-CODE_20_semantic_pascal_string_gap_000006f2:
+CODE_20_data_pascal_string_000006f2:
 	dc.b $89,$5F,$6D,$61,$70,$4F,$53,$65,$72,$72,$00,$00
 CODE_20_loc_000006fe:
 	link a6,#0
@@ -45024,7 +45024,7 @@ CODE_20_loc_00000726:
 	movem.l -$0008(a6),d3/d7
 	unlk a6
 	rts
-CODE_20_semantic_pascal_string_gap_00000734:
+CODE_20_data_pascal_string_00000734:
 	dc.b $87,$5F,$75,$65,$72,$72,$6F,$72,$00,$00
 CODE_20_loc_0000073e:
 	link a6,#-8
@@ -45048,7 +45048,7 @@ CODE_20_loc_00000772:
 	movem.l -$0010(a6),d3/d7
 	unlk a6
 	rts
-CODE_20_semantic_pascal_string_gap_00000780:
+CODE_20_data_pascal_string_00000780:
 	dc.b $85,$6C,$73,$65,$65,$6B,$00,$00
 CODE_20_loc_00000788:
 	link a6,#-4
@@ -45070,7 +45070,7 @@ CODE_20_semantic_decode_gap_000007b0:
 	dc.b $A0,$20,$20,$0C,$60,$3C
 CODE_20_loc_000007b6:
 	move.l d6,d0
-CODE_20_semantic_dispatch_table_gap_000007b8:
+CODE_20_data_dispatch_table_000007b8:
 	dc.b $A1,$1E,$2D,$48,$FF,$FC,$4A,$78,$02,$20,$67,$04,$70,$00,$60,$2A
 	dc.b $20,$0C,$67,$0E,$20,$4C,$22,$6E,$FF,$FC,$20,$07,$A0,$2E,$20,$4C
 	dc.b $A0,$1F,$2A,$2E,$FF,$FC,$28,$45,$D9,$C7,$26,$45,$D7,$C6,$60,$02
@@ -45153,7 +45153,7 @@ CODE_20_loc_000008fe:
 	movem.l -$0010(a6),d6-d7/a3-a4
 	unlk a6
 	rts
-CODE_20_semantic_pascal_string_gap_00000908:
+CODE_20_data_pascal_string_00000908:
 	dc.b $88,$5F,$66,$61,$63,$63,$65,$73,$73,$00,$00,$00
 CODE_20_loc_00000914:
 	link a6,#-4
@@ -45261,7 +45261,7 @@ CODE_20_loc_000009fe:
 	movem.l -$001C(a6),d3/d5-d7/a3-a4
 	unlk a6
 	rts
-CODE_20_semantic_pascal_string_gap_00000a08:
+CODE_20_data_pascal_string_00000a08:
 	dc.b $86,$73,$69,$67,$6E,$61,$6C,$00,$00,$00
 CODE_20_loc_00000a12:
 	link a6,#0
@@ -45371,7 +45371,7 @@ CODE_20_loc_00000b3c:
 	movea.l (a7)+,a0
 	lea.l $000C(a7),a7
 	jmp (a0)
-CODE_20_semantic_pascal_string_gap_00000b44:
+CODE_20_data_pascal_string_00000b44:
 	dc.b $89,$49,$45,$46,$41,$43,$43,$45,$53,$53,$00,$00
 CODE_20_loc_00000b50:
 	link a6,#0
@@ -45415,7 +45415,7 @@ CODE_20_loc_00000bb2:
 	movea.l (a7)+,a0
 	lea.l $000C(a7),a7
 	jmp (a0)
-CODE_20_semantic_pascal_string_gap_00000bc2:
+CODE_20_data_pascal_string_00000bc2:
 	dc.b $87,$49,$45,$49,$4F,$43,$54,$4C,$00,$00
 CODE_20_loc_00000bcc:
 	link a6,#-4
@@ -45493,7 +45493,7 @@ CODE_20_loc_00000c72:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-CODE_20_semantic_pascal_string_gap_00000c80:
+CODE_20_data_pascal_string_00000c80:
 	dc.b $88,$49,$45,$47,$45,$54,$45,$4E,$56,$00,$00,$00
 CODE_20_loc_00000c8c:
 	jmp CODE_20_loc_000008ec(pc)
@@ -45512,7 +45512,7 @@ CODE_20_loc_00000c90:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-CODE_20_semantic_pascal_string_gap_00000cb8:
+CODE_20_data_pascal_string_00000cb8:
 	dc.b $87,$50,$4C,$50,$55,$52,$47,$45,$00,$00
 CODE_20_loc_00000cc2:
 	link a6,#-256
@@ -45520,7 +45520,7 @@ CODE_20_loc_00000cc2:
 	lea.l -$0100(a6),a3
 	move.l $000C(a6),d7
 	moveq.l #20,d0
-CODE_20_semantic_dispatch_table_gap_00000cd4:
+CODE_20_data_dispatch_table_00000cd4:
 	dc.b $A1,$22,$28,$48,$20,$0C,$66,$0E,$42,$6D,$CD,$88,$70,$0C,$2B,$40
 	dc.b $CD,$8A,$70,$00,$60,$60,$59,$8F,$2F,$0B,$2F,$2E,$00,$08,$4E,$AD
 	dc.b $02,$A2,$59,$8F,$2F,$0B,$4E,$AD,$03,$A2,$2F,$07,$2F,$0B,$4E,$BA
@@ -45654,7 +45654,7 @@ CODE_20_loc_00000e76:
 	movea.l (a7)+,a0
 	lea.l $000A(a7),a7
 	jmp (a0)
-CODE_20_semantic_pascal_string_gap_00000e86:
+CODE_20_data_pascal_string_00000e86:
 	dc.b $87,$5F,$5F,$46,$4F,$50,$45,$4E,$00,$00
 CODE_20_loc_00000e90:
 	link a6,#0
@@ -45703,7 +45703,7 @@ CODE_20_loc_00000eee:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-CODE_20_semantic_pascal_string_gap_00000efa:
+CODE_20_data_pascal_string_00000efa:
 	dc.b $87,$5F,$5F,$43,$4C,$4F,$53,$45,$00,$00
 CODE_20_loc_00000f04:
 	link a6,#0
@@ -45786,7 +45786,7 @@ CODE_20_loc_00000fc6:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-CODE_20_semantic_pascal_string_gap_00000fd2:
+CODE_20_data_pascal_string_00000fd2:
 	dc.b $85,$5F,$5F,$45,$4F,$46,$00,$00
 CODE_20_loc_00000fda:
 	link a6,#0
@@ -45898,7 +45898,7 @@ CODE_20_loc_000010dc:
 	movea.l (a7)+,a0
 	lea.l $0010(a7),a7
 	jmp (a0)
-CODE_20_semantic_pascal_string_gap_000010ec:
+CODE_20_data_pascal_string_000010ec:
 	dc.b $87,$5F,$5F,$42,$59,$54,$52,$44,$00,$00
 CODE_20_loc_000010f6:
 	link a6,#0
@@ -45971,7 +45971,7 @@ CODE_20_loc_00001196:
 	movea.l (a7)+,a0
 	lea.l $0010(a7),a7
 	jmp (a0)
-CODE_20_semantic_pascal_string_gap_000011a6:
+CODE_20_data_pascal_string_000011a6:
 	dc.b $87,$5F,$5F,$42,$59,$54,$57,$52,$00,$00
 CODE_20_loc_000011b0:
 	link a6,#0
@@ -46031,7 +46031,7 @@ CODE_20_loc_00001234:
 	movea.l (a7)+,a0
 	lea.l $000C(a7),a7
 	jmp (a0)
-CODE_20_semantic_pascal_string_gap_00001244:
+CODE_20_data_pascal_string_00001244:
 	dc.b $87,$5F,$5F,$42,$4C,$4B,$52,$44,$00,$00
 CODE_20_loc_0000124e:
 	link a6,#0
@@ -46071,7 +46071,7 @@ CODE_20_loc_000012a6:
 	movea.l (a7)+,a0
 	lea.l $000C(a7),a7
 	jmp (a0)
-CODE_20_semantic_pascal_string_gap_000012b6:
+CODE_20_data_pascal_string_000012b6:
 	dc.b $87,$5F,$5F,$42,$4C,$4B,$57,$52,$00,$00
 CODE_20_loc_000012c0:
 	link a6,#0
@@ -46134,7 +46134,7 @@ CODE_20_loc_0000134a:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-CODE_20_semantic_pascal_string_gap_00001358:
+CODE_20_data_pascal_string_00001358:
 	dc.b $86,$5F,$5F,$53,$45,$45,$4B,$00,$00,$00
 CODE_20_loc_00001362:
 	link a6,#0
@@ -46190,7 +46190,7 @@ CODE_20_loc_000013d8:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-CODE_20_semantic_pascal_string_gap_000013e4:
+CODE_20_data_pascal_string_000013e4:
 	dc.b $89,$50,$4C,$46,$49,$4C,$45,$50,$4F,$53,$00,$00
 CODE_20_loc_000013f0:
 	link a6,#0
@@ -46240,7 +46240,7 @@ CODE_20_loc_00001460:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-CODE_20_semantic_pascal_string_gap_0000146c:
+CODE_20_data_pascal_string_0000146c:
 	dc.b $88,$50,$4C,$43,$52,$55,$4E,$43,$48,$00,$00,$00
 CODE_20_loc_00001478:
 	tst.w -$3278(a5)
@@ -46406,7 +46406,7 @@ CODE_21_loc_0000013a:
 	movem.l -$007C(a6),d3/d7/a3-a4
 	unlk a6
 	rts
-CODE_21_semantic_dispatch_table_gap_00000146:
+CODE_21_data_dispatch_table_00000146:
 	dc.b $8D,$5F,$47,$65,$74,$41,$6C,$69,$61,$73,$49,$6E,$66,$6F,$00,$00
 	dc.b $4E,$56,$FF,$BA,$48,$E7,$17,$18,$1A,$2E,$00,$17,$1C,$2E,$00,$1B
 	dc.b $26,$6E,$00,$28,$28,$6E,$00,$1C,$55,$8F,$3F,$2E,$00,$0A,$2F,$2E
@@ -46645,7 +46645,7 @@ CODE_21_loc_000009b8:
 	movem.l -$0210(a6),d3/d7/a3-a4
 	unlk a6
 	rts
-CODE_21_semantic_pascal_string_gap_000009c2:
+CODE_21_data_pascal_string_000009c2:
 	dc.b $8A,$5F,$66,$73,$46,$41,$63,$63,$65,$73,$73,$00,$00,$00
 CODE_21_loc_000009d0:
 	link a6,#-284
@@ -46717,7 +46717,7 @@ CODE_21_loc_00000a7a:
 	move.l a3,-(a7)
 	pea.l -$004A(a6)
 	move.w #$1,d0
-CODE_21_semantic_dispatch_table_gap_00000a9c:
+CODE_21_data_dispatch_table_00000a9c:
 	dc.b $AA,$52,$3E,$1F,$66,$3E,$4A,$04,$67,$20,$55,$8F,$48,$6E,$FF,$B6
 	dc.b $70,$01,$1F,$00,$48,$6E,$FF,$FF,$48,$6E,$FF,$FE,$70,$0C,$A8,$23
 	dc.b $3E,$1F,$1D,$6E,$FF,$FE,$FF,$FD,$60,$1A,$48,$6E,$FF,$FE,$48,$6E
@@ -46906,7 +46906,7 @@ CODE_21_loc_00000d68:
 	tst.l d5
 	bne.w CODE_21_loc_00000e06
 	moveq.l #14,d0
-CODE_21_semantic_dispatch_table_gap_00000d70:
+CODE_21_data_dispatch_table_00000d70:
 	dc.b $A1,$22,$29,$48,$00,$08,$66,$16,$55,$8F,$48,$6E,$FE,$FA,$70,$00
 	dc.b $1F,$00,$4E,$AD,$02,$DA,$7A,$0C,$54,$4F,$60,$00,$00,$A2,$20,$6C
 	dc.b $00,$08,$20,$50,$31,$6E,$FF,$12,$00,$02,$20,$6C,$00,$08,$20,$50
@@ -46925,7 +46925,7 @@ CODE_21_loc_00000e30:
 	movem.l -$0138(a6),d4-d7/a2-a4
 	unlk a6
 	rts
-CODE_21_semantic_pascal_string_gap_00000e3a:
+CODE_21_data_pascal_string_00000e3a:
 	dc.b $87,$5F,$66,$73,$4F,$70,$65,$6E,$00,$00
 CODE_21_loc_00000e44:
 	link a6,#0
@@ -46983,7 +46983,7 @@ CODE_21_loc_00000ec6:
 	movem.l -$000C(a6),d3/d7/a4
 	unlk a6
 	rts
-CODE_21_semantic_pascal_string_gap_00000ed0:
+CODE_21_data_pascal_string_00000ed0:
 	dc.b $88,$5F,$66,$73,$43,$6C,$6F,$73,$65,$00,$00,$00
 CODE_21_loc_00000edc:
 	link a6,#-4
@@ -47024,7 +47024,7 @@ CODE_21_loc_00000f38:
 	movem.l -$0010(a6),d3/d7/a4
 	unlk a6
 	rts
-CODE_21_semantic_pascal_string_gap_00000f42:
+CODE_21_data_pascal_string_00000f42:
 	dc.b $87,$5F,$66,$73,$52,$65,$61,$64,$00,$00
 CODE_21_loc_00000f4c:
 	link a6,#-4
@@ -47078,7 +47078,7 @@ CODE_21_loc_00000fc8:
 	movem.l -$0010(a6),d3/d7/a4
 	unlk a6
 	rts
-CODE_21_semantic_pascal_string_gap_00000fd2:
+CODE_21_data_pascal_string_00000fd2:
 	dc.b $88,$5F,$66,$73,$57,$72,$69,$74,$65,$00,$00,$00
 CODE_21_loc_00000fde:
 	link a6,#0
@@ -47093,13 +47093,13 @@ CODE_21_loc_00000fde:
 	move.w CODE_21_loc_00000fe0(pc,d0.l),d0
 	jmp $0(pc,d0.w)
 CODE_21_loc_00001008:
-CODE_21_semantic_dispatch_table_gap_00001008:
+CODE_21_data_dispatch_table_00001008:
 	dc.b $00,$1A,$00,$A6,$00,$10,$00,$B2,$00,$10,$00,$BA,$00,$CC
 CODE_21_loc_00001016:
 	clr.w $0002(a4)
 	moveq.l #22,d0
 	bra.w CODE_21_loc_000010d6
-CODE_21_semantic_dispatch_table_gap_00001020:
+CODE_21_data_dispatch_table_00001020:
 	dc.b $20,$6E,$00,$10,$20,$10,$67,$0A,$53,$80,$67,$0A,$53,$80,$67,$0A
 	dc.b $60,$0C,$7C,$01,$60,$12,$7C,$03,$60,$0E,$7C,$02,$60,$0A,$42,$6C
 	dc.b $00,$02,$70,$16,$60,$00,$00,$B8,$70,$03,$B0,$86,$66,$0E,$20,$6E
@@ -47118,7 +47118,7 @@ CODE_21_loc_000010fe:
 	movem.l -$0010(a6),d3/d6-d7/a4
 	unlk a6
 	rts
-CODE_21_semantic_pascal_string_gap_00001108:
+CODE_21_data_pascal_string_00001108:
 	dc.b $88,$5F,$66,$73,$49,$6F,$63,$74,$6C,$00,$00,$00,$4E,$56,$FF,$FC
 	dc.b $48,$E7,$00,$18,$26,$6E,$00,$0C,$28,$6E,$00,$08,$2D,$4C,$FF,$FC
 	dc.b $18,$DB,$66,$FC,$20,$2E,$FF,$FC,$4C,$EE,$18,$00,$FF,$F4,$4E,$5E
@@ -47136,7 +47136,7 @@ CODE_21_loc_000011a8:
 	pea.l -$0014(a6)
 	pea.l -$0020(a6)
 	pea.l -$001C(a6)
-CODE_21_semantic_dispatch_table_gap_000011c0:
+CODE_21_data_dispatch_table_000011c0:
 	dc.b $A9,$8D,$48,$6E,$FF,$E4,$70,$FC,$3F,$00,$3F,$00,$A8,$A9,$48,$6E
 	dc.b $FF,$EE,$A8,$98,$70,$03,$3F,$00,$3F,$00,$A8,$9B,$48,$6E,$FF,$E4
 	dc.b $70,$10,$3F,$00,$3F,$00,$A8,$B0,$48,$6E,$FF,$EE,$A8,$99,$4E,$5E
@@ -47151,7 +47151,7 @@ CODE_21_loc_0000120c:
 	pea.l -$3166(a5)
 	move.l #$8A0142,-(a7)
 	move.l #$9E017E,-(a7)
-CODE_21_semantic_dispatch_table_gap_00001230:
+CODE_21_data_dispatch_table_00001230:
 	dc.b $A8,$A7,$48,$6D,$CE,$92,$70,$0C,$3F,$00,$72,$08,$3F,$01,$3F,$3C
 	dc.b $01,$9B,$70,$2C,$3F,$00,$A8,$A7,$48,$6D,$CE,$8A,$70,$0C,$3F,$00
 	dc.b $72,$2E,$3F,$01,$3F,$3C,$01,$9B,$70,$7D,$3F,$00,$A8,$A7,$0C,$AB
@@ -47201,7 +47201,7 @@ CODE_21_loc_00001472:
 	pea.l -$3166(a5)
 	move.l #$8A0142,-(a7)
 	move.l #$9E017E,-(a7)
-CODE_21_semantic_dispatch_table_gap_0000149c:
+CODE_21_data_dispatch_table_0000149c:
 	dc.b $A8,$A7,$48,$6D,$CE,$92,$70,$0C,$3F,$00,$72,$08,$3F,$01,$3F,$3C
 	dc.b $01,$9B,$70,$2C,$3F,$00,$A8,$A7,$48,$6D,$CE,$8A,$70,$0C,$3F,$00
 	dc.b $72,$2E,$3F,$01,$3F,$3C,$01,$9B,$70,$7D,$3F,$00,$A8,$A7,$3E,$06
@@ -47290,7 +47290,7 @@ CODE_21_loc_000017a2:
 	moveq.l #0,d0
 	unlk a6
 	rts
-CODE_21_semantic_pascal_string_gap_000017ac:
+CODE_21_data_pascal_string_000017ac:
 	dc.b $88,$5F,$63,$6F,$43,$6C,$6F,$73,$65,$00,$00,$00
 CODE_21_loc_000017b8:
 	link a6,#0
@@ -47306,7 +47306,7 @@ CODE_21_loc_000017d2:
 	addq.w #4,a7
 	unlk a6
 	rts
-CODE_21_semantic_pascal_string_gap_000017e2:
+CODE_21_data_pascal_string_000017e2:
 	dc.b $87,$5F,$63,$6F,$52,$65,$61,$64,$00,$00
 CODE_21_loc_000017ec:
 	link a6,#0
@@ -47322,7 +47322,7 @@ CODE_21_loc_00001806:
 	addq.w #4,a7
 	unlk a6
 	rts
-CODE_21_semantic_pascal_string_gap_00001816:
+CODE_21_data_pascal_string_00001816:
 	dc.b $88,$5F,$63,$6F,$57,$72,$69,$74,$65,$00,$00,$00
 CODE_21_loc_00001822:
 	link a6,#0
@@ -47343,13 +47343,13 @@ CODE_21_loc_0000183e:
 CODE_21_loc_0000184a:
 	unlk a6
 	rts
-CODE_21_semantic_pascal_string_gap_0000184e:
+CODE_21_data_pascal_string_0000184e:
 	dc.b $88,$5F,$63,$6F,$49,$6F,$63,$74,$6C,$00,$00,$00
 CODE_21_loc_0000185a:
 	link a6,#0
 	unlk a6
 	rts
-CODE_21_semantic_pascal_string_gap_00001862:
+CODE_21_data_pascal_string_00001862:
 	dc.b $87,$5F,$63,$6F,$45,$78,$69,$74,$00,$00
 CODE_21_loc_0000186c:
 	link a6,#-260
@@ -47474,7 +47474,7 @@ CODE_21_loc_000019aa:
 	movem.l -$010C(a6),a3-a4
 	unlk a6
 	rts
-CODE_21_semantic_dispatch_table_gap_000019b4:
+CODE_21_data_dispatch_table_000019b4:
 	dc.b $8A,$5F,$73,$79,$46,$41,$63,$63,$65,$73,$73,$00,$00,$2E,$0A,$64
 	dc.b $65,$76,$3A,$73,$74,$64,$65,$72,$72,$00,$0A,$64,$65,$76,$3A,$73
 	dc.b $74,$64,$6F,$75,$74,$00,$09,$64,$65,$76,$3A,$73,$74,$64,$69,$6E
@@ -47488,14 +47488,14 @@ CODE_21_loc_000019f0:
 	moveq.l #0,d0
 	unlk a6
 	rts
-CODE_21_semantic_pascal_string_gap_000019fa:
+CODE_21_data_pascal_string_000019fa:
 	dc.b $88,$5F,$73,$79,$43,$6C,$6F,$73,$65,$00,$00,$00
 CODE_21_loc_00001a06:
 	link a6,#0
 	moveq.l #0,d0
 	unlk a6
 	rts
-CODE_21_semantic_pascal_string_gap_00001a10:
+CODE_21_data_pascal_string_00001a10:
 	dc.b $87,$5F,$73,$79,$52,$65,$61,$64,$00,$00
 CODE_21_loc_00001a1a:
 	link a6,#0
@@ -47509,7 +47509,7 @@ CODE_21_loc_00001a1a:
 	movea.l -$0004(a6),a4
 	unlk a6
 	rts
-CODE_21_semantic_pascal_string_gap_00001a3c:
+CODE_21_data_pascal_string_00001a3c:
 	dc.b $88,$5F,$73,$79,$57,$72,$69,$74,$65,$00,$00,$00
 CODE_21_loc_00001a48:
 	link a6,#0
@@ -47536,7 +47536,7 @@ CODE_21_loc_00001a76:
 	movea.l -$0004(a6),a4
 	unlk a6
 	rts
-CODE_21_semantic_pascal_string_gap_00001a7e:
+CODE_21_data_pascal_string_00001a7e:
 	dc.b $88,$5F,$73,$79,$49,$6F,$63,$74,$6C,$00,$00,$00
 
 ; CODE 22 SANELIB source section
@@ -47696,7 +47696,7 @@ CODE_24_loc_00000040:
 	movea.l -$0004(a6),a4
 	unlk a6
 	rts
-CODE_24_semantic_pascal_string_gap_0000004e:
+CODE_24_data_pascal_string_0000004e:
 	dc.b $89,$5F,$5F,$63,$6C,$65,$61,$6E,$75,$70,$00,$00
 CODE_24_loc_0000005a:
 	link a6,#-4
@@ -47750,7 +47750,7 @@ CODE_24_loc_000000e4:
 	moveq.l #0,d1
 	move.w $0010(a4),d1
 	move.l d1,d0
-CODE_24_semantic_dispatch_table_gap_000000f2:
+CODE_24_data_dispatch_table_000000f2:
 	dc.b $A1,$1E,$29,$48,$00,$08,$66,$38,$70,$00,$30,$2C,$00,$10,$0C,$40
 	dc.b $00,$64,$63,$2C,$70,$00,$30,$2C,$00,$10,$0C,$40,$04,$00,$52,$C3
 	dc.b $44,$03,$67,$08,$20,$3C,$00,$00,$04,$00,$60,$02,$70,$64,$39,$40
@@ -47780,7 +47780,7 @@ CODE_24_loc_0000017c:
 	movem.l -$0014(a6),d3/d6-d7/a4
 	unlk a6
 	rts
-CODE_24_semantic_pascal_string_gap_0000018e:
+CODE_24_data_pascal_string_0000018e:
 	dc.b $88,$5F,$66,$69,$6E,$64,$62,$75,$66,$00,$00,$00
 CODE_24_loc_0000019a:
 	link a6,#0
@@ -47894,7 +47894,7 @@ CODE_24_loc_000002aa:
 	movem.l -$0008(a6),a3-a4
 	unlk a6
 	rts
-CODE_24_semantic_pascal_string_gap_000002b4:
+CODE_24_data_pascal_string_000002b4:
 	dc.b $87,$5F,$66,$69,$6C,$62,$75,$66,$00,$00
 CODE_24_loc_000002be:
 	link a6,#0
@@ -47954,7 +47954,7 @@ CODE_24_loc_00000340:
 	movem.l -$0008(a6),d7/a4
 	unlk a6
 	rts
-CODE_24_semantic_pascal_string_gap_0000034a:
+CODE_24_data_pascal_string_0000034a:
 	dc.b $86,$66,$63,$6C,$6F,$73,$65,$00,$00,$00
 CODE_24_loc_00000354:
 	link a6,#0
@@ -48041,7 +48041,7 @@ CODE_24_loc_00000406:
 	movem.l -$0010(a6),d3/d7/a3-a4
 	unlk a6
 	rts
-CODE_24_semantic_pascal_string_gap_00000410:
+CODE_24_data_pascal_string_00000410:
 	dc.b $86,$66,$66,$6C,$75,$73,$68,$00,$00,$00
 CODE_24_loc_0000041a:
 	link a6,#-2
@@ -48203,7 +48203,7 @@ CODE_24_loc_00000578:
 	movem.l -$000E(a6),d3/d7/a4
 	unlk a6
 	rts
-CODE_24_semantic_pascal_string_gap_00000582:
+CODE_24_data_pascal_string_00000582:
 	dc.b $87,$5F,$66,$6C,$73,$62,$75,$66,$00,$00
 CODE_24_loc_0000058c:
 	link a6,#-4
@@ -48287,7 +48287,7 @@ CODE_24_loc_0000064a:
 	movem.l -$001C(a6),d3/d5-d7/a3-a4
 	unlk a6
 	rts
-CODE_24_semantic_pascal_string_gap_00000654:
+CODE_24_data_pascal_string_00000654:
 	dc.b $88,$5F,$78,$66,$6C,$73,$62,$75,$66,$00,$00,$00
 CODE_24_loc_00000660:
 	link a6,#0
@@ -48360,7 +48360,7 @@ CODE_24_loc_000006fe:
 	movem.l -$0008(a6),d3/a4
 	unlk a6
 	rts
-CODE_24_semantic_pascal_string_gap_00000708:
+CODE_24_data_pascal_string_00000708:
 	dc.b $87,$5F,$77,$72,$74,$63,$68,$6B,$00,$00
 CODE_24_loc_00000712:
 	link a6,#0
@@ -48380,7 +48380,7 @@ CODE_24_loc_00000738:
 	movem.l -$0008(a6),d7/a4
 	unlk a6
 	rts
-CODE_24_semantic_pascal_string_gap_00000742:
+CODE_24_data_pascal_string_00000742:
 	dc.b $88,$5F,$62,$75,$66,$73,$79,$6E,$63,$00,$00,$00
 CODE_24_loc_0000074e:
 	link a6,#0
@@ -48502,7 +48502,7 @@ CODE_24_loc_00000878:
 	movem.l -$0018(a6),d3-d7/a4
 	unlk a6
 	rts
-CODE_24_semantic_pascal_string_gap_00000882:
+CODE_24_data_pascal_string_00000882:
 	dc.b $85,$66,$73,$65,$65,$6B,$00,$00
 CODE_24_loc_0000088a:
 	link a6,#0
@@ -48575,7 +48575,7 @@ CODE_24_loc_00000924:
 	movem.l -$000C(a6),d6-d7/a4
 	unlk a6
 	rts
-CODE_24_semantic_dispatch_table_gap_0000092e:
+CODE_24_data_dispatch_table_0000092e:
 	dc.b $85,$66,$74,$65,$6C,$6C,$00,$00,$4E,$56,$00,$00,$48,$E7,$01,$08
 	dc.b $2E,$2E,$00,$14,$28,$6E,$00,$08,$4A,$AC,$00,$08,$67,$1A,$70,$00
 	dc.b $30,$2C,$00,$12,$72,$08,$C2,$40,$67,$0E,$2F,$0C,$4E,$BA,$F9,$F8
@@ -48628,7 +48628,7 @@ CODE_24_loc_00000a18:
 	movem.l -$0008(a6),d7/a4
 	unlk a6
 	rts
-CODE_24_semantic_pascal_string_gap_00000a22:
+CODE_24_data_pascal_string_00000a22:
 	dc.b $86,$75,$6E,$67,$65,$74,$63,$00,$00,$00,$4E,$56,$00,$00,$2F,$0C
 	dc.b $28,$6E,$00,$08,$20,$54,$2F,$28,$00,$04,$4E,$BA,$F8,$80,$20,$54
 	dc.b $70,$00,$30,$28,$00,$0C,$72,$08,$C2,$40,$58,$4F,$66,$08,$22,$48
@@ -48658,7 +48658,7 @@ CODE_24_loc_00000b86:
 	movea.l (a7)+,a0
 	lea.l $000C(a7),a7
 	jmp (a0)
-CODE_24_semantic_pascal_string_gap_00000b8e:
+CODE_24_data_pascal_string_00000b8e:
 	dc.b $89,$50,$4C,$53,$45,$54,$56,$42,$55,$46,$00,$00
 CODE_24_loc_00000b9a:
 	link a6,#0
@@ -48700,7 +48700,7 @@ CODE_24_loc_00000bfa:
 	movem.l -$000C(a6),d7/a3-a4
 	unlk a6
 	rts
-CODE_24_semantic_pascal_string_gap_00000c04:
+CODE_24_data_pascal_string_00000c04:
 	dc.b $88,$5F,$62,$75,$66,$53,$65,$65,$6B,$00,$00,$00
 CODE_24_loc_00000c10:
 	link a6,#0
@@ -48770,7 +48770,7 @@ CODE_24_loc_00000ca2:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-CODE_24_semantic_pascal_string_gap_00000cae:
+CODE_24_data_pascal_string_00000cae:
 	dc.b $85,$5F,$52,$5F,$4C,$4E,$00,$00
 CODE_24_loc_00000cb6:
 	link a6,#-4
@@ -48943,7 +48943,7 @@ CODE_24_loc_00000e38:
 	movea.l (a7)+,a0
 	lea.l $000A(a7),a7
 	jmp (a0)
-CODE_24_semantic_pascal_string_gap_00000e48:
+CODE_24_data_pascal_string_00000e48:
 	dc.b $86,$5F,$52,$5F,$53,$54,$52,$00,$00,$00
 CODE_24_loc_00000e52:
 	link a6,#0
@@ -49049,7 +49049,7 @@ CODE_24_loc_00000f40:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-CODE_24_semantic_pascal_string_gap_00000f4e:
+CODE_24_data_pascal_string_00000f4e:
 	dc.b $84,$5F,$57,$5F,$43,$00,$00,$00
 CODE_24_loc_00000f56:
 	link a6,#0
@@ -49061,7 +49061,7 @@ CODE_24_loc_00000f56:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-CODE_24_semantic_pascal_string_gap_00000f70:
+CODE_24_data_pascal_string_00000f70:
 	dc.b $85,$5F,$57,$5F,$4C,$4E,$00,$00
 CODE_24_loc_00000f78:
 	link a6,#0
@@ -49073,7 +49073,7 @@ CODE_24_loc_00000f78:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-CODE_24_semantic_pascal_string_gap_00000f92:
+CODE_24_data_pascal_string_00000f92:
 	dc.b $86,$5F,$5F,$50,$41,$47,$45,$00,$00,$00
 CODE_24_loc_00000f9c:
 	link a6,#-20
@@ -49185,7 +49185,7 @@ CODE_24_loc_00001090:
 	movea.l (a7)+,a0
 	lea.l $000A(a7),a7
 	jmp (a0)
-CODE_24_semantic_pascal_string_gap_000010a0:
+CODE_24_data_pascal_string_000010a0:
 	dc.b $84,$5F,$57,$5F,$49,$00,$00,$00
 CODE_24_loc_000010a8:
 	link a6,#-4
@@ -49307,7 +49307,7 @@ CODE_24_loc_000011be:
 	movea.l (a7)+,a0
 	lea.l $000A(a7),a7
 	jmp (a0)
-CODE_24_semantic_pascal_string_gap_000011ce:
+CODE_24_data_pascal_string_000011ce:
 	dc.b $86,$5F,$57,$5F,$53,$54,$52,$00,$00,$00
 CODE_24_loc_000011d8:
 	link a6,#0
@@ -49382,7 +49382,7 @@ CODE_24_loc_00001276:
 	movea.l (a7)+,a0
 	addq.w #6,a7
 	jmp (a0)
-CODE_24_semantic_pascal_string_gap_00001284:
+CODE_24_data_pascal_string_00001284:
 	dc.b $87,$5F,$5F,$55,$50,$41,$52,$52,$00,$00
 CODE_24_loc_0000128e:
 	link a6,#-16
@@ -49467,7 +49467,7 @@ CODE_24_loc_00001354:
 	movem.l -$0024(a6),d3/d6-d7/a3-a4
 	unlk a6
 	rts
-CODE_24_semantic_pascal_string_gap_0000135e:
+CODE_24_data_pascal_string_0000135e:
 	dc.b $88,$5F,$62,$75,$66,$52,$65,$61,$64,$00,$00,$00
 
 ; CODE 25 SANELib source section
@@ -49528,7 +49528,7 @@ CODE_25_loc_00000038:
 	addq.b #1,(a7)
 CODE_25_loc_00000042:
 	jmp (a0)
-CODE_25_semantic_dispatch_table_gap_00000044:
+CODE_25_data_dispatch_table_00000044:
 	dc.b $61,$1A,$E2,$09,$65,$06,$46,$42,$C0,$42,$34,$00
 CODE_25_loc_00000050:
 	or.w d2,d0
@@ -49661,7 +49661,7 @@ CODE_26_loc_00000028:
 	move.l d0,-$2D6E(a5)
 	unlk a6
 	rts
-CODE_26_semantic_pascal_string_gap_0000006a:
+CODE_26_data_pascal_string_0000006a:
 	dc.b $89,$25,$49,$4E,$49,$54,$48,$45,$41,$50,$00,$00
 CODE_26_loc_00000076:
 	link a6,#-12
@@ -49722,7 +49722,7 @@ CODE_26_loc_000000ee:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-CODE_26_semantic_pascal_string_gap_000000f8:
+CODE_26_data_pascal_string_000000f8:
 	dc.b $88,$25,$4D,$59,$52,$45,$4C,$53,$45,$00,$00,$00
 CODE_26_loc_00000104:
 	link a6,#-256
@@ -49754,7 +49754,7 @@ CODE_26_loc_00000158:
 CODE_26_loc_00000160:
 	unlk a6
 	rts
-CODE_26_semantic_dispatch_table_gap_00000164:
+CODE_26_data_dispatch_table_00000164:
 	dc.b $89,$43,$48,$45,$43,$4B,$48,$45,$41,$50,$00,$1C,$1A,$54,$68,$65
 	dc.b $20,$50,$61,$73,$63,$61,$6C,$20,$48,$65,$61,$70,$20,$69,$73,$20
 	dc.b $63,$6F,$72,$72,$75,$70,$74,$00
@@ -49772,7 +49772,7 @@ CODE_26_loc_0000018c:
 CODE_26_loc_000001aa:
 	unlk a6
 	rts
-CODE_26_semantic_pascal_string_gap_000001ae:
+CODE_26_data_pascal_string_000001ae:
 	dc.b $88,$53,$45,$54,$43,$48,$45,$43,$4B,$00,$00,$00
 CODE_26_loc_000001ba:
 	link a6,#-16
@@ -49876,7 +49876,7 @@ CODE_26_loc_000002be:
 	movea.l (a7)+,a0
 	adda.w #$10,a7
 	jmp (a0)
-CODE_26_semantic_pascal_string_gap_000002cc:
+CODE_26_data_pascal_string_000002cc:
 	dc.b $8A,$50,$4C,$48,$45,$41,$50,$49,$4E,$49,$54,$00,$00,$00
 CODE_26_loc_000002da:
 	link a6,#0
@@ -49890,7 +49890,7 @@ CODE_26_loc_000002da:
 	movea.l (a7)+,a0
 	adda.w #$C,a7
 	jmp (a0)
-CODE_26_semantic_pascal_string_gap_00000300:
+CODE_26_data_pascal_string_00000300:
 	dc.b $8A,$50,$4C,$49,$4E,$49,$54,$48,$45,$41,$50,$00,$00,$00
 CODE_26_loc_0000030e:
 	link a6,#0
@@ -49902,7 +49902,7 @@ CODE_26_loc_0000031e:
 	movea.l (a7)+,a0
 	addq.w #2,a7
 	jmp (a0)
-CODE_26_semantic_pascal_string_gap_00000326:
+CODE_26_data_pascal_string_00000326:
 	dc.b $8E,$50,$4C,$53,$45,$54,$48,$45,$41,$50,$43,$48,$45,$43,$4B,$00
 	dc.b $00,$00
 CODE_26_loc_00000338:
@@ -49922,7 +49922,7 @@ CODE_26_loc_00000360:
 	movea.l (a7)+,a0
 	addq.w #6,a7
 	jmp (a0)
-CODE_26_semantic_pascal_string_gap_00000368:
+CODE_26_data_pascal_string_00000368:
 	dc.b $85,$25,$5F,$4E,$45,$57,$00,$00
 CODE_26_loc_00000370:
 	link a6,#0
@@ -49938,7 +49938,7 @@ CODE_26_loc_0000038e:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-CODE_26_semantic_pascal_string_gap_00000396:
+CODE_26_data_pascal_string_00000396:
 	dc.b $89,$25,$5F,$4C,$4F,$4E,$47,$4E,$45,$57,$00,$00
 CODE_26_loc_000003a2:
 	link a6,#-20
@@ -50069,7 +50069,7 @@ CODE_26_loc_00000502:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-CODE_26_semantic_pascal_string_gap_0000050e:
+CODE_26_data_pascal_string_0000050e:
 	dc.b $86,$25,$5F,$4E,$45,$57,$4C,$00,$00,$00
 CODE_26_loc_00000518:
 	link a6,#0
@@ -50090,7 +50090,7 @@ CODE_26_loc_0000053e:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-CODE_26_semantic_pascal_string_gap_00000550:
+CODE_26_data_pascal_string_00000550:
 	dc.b $86,$25,$5F,$4D,$41,$52,$4B,$00,$00,$00
 CODE_26_loc_0000055a:
 	link a6,#-12
@@ -50152,14 +50152,14 @@ CODE_26_loc_000005de:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-CODE_26_semantic_pascal_string_gap_000005e8:
+CODE_26_data_pascal_string_000005e8:
 	dc.b $87,$25,$5F,$52,$45,$4C,$53,$45,$00,$00
 CODE_26_loc_000005f2:
 	link a6,#0
 	move.w -$2D50(a5),$0008(a6)
 	unlk a6
 	rts
-CODE_26_semantic_pascal_string_gap_00000600:
+CODE_26_data_pascal_string_00000600:
 	dc.b $88,$5F,$5F,$48,$45,$41,$50,$52,$45,$00,$00,$00
 CODE_26_loc_0000060c:
 	link a6,#-4
@@ -50224,7 +50224,7 @@ CODE_26_loc_000006cc:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-CODE_26_semantic_pascal_string_gap_000006d6:
+CODE_26_data_pascal_string_000006d6:
 	dc.b $8A,$47,$45,$54,$46,$4C,$53,$50,$41,$43,$45,$00,$00,$00
 CODE_26_loc_000006e4:
 	link a6,#-24
@@ -50303,7 +50303,7 @@ CODE_26_loc_000007c2:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-CODE_26_semantic_pascal_string_gap_000007ca:
+CODE_26_data_pascal_string_000007ca:
 	dc.b $8F,$47,$45,$54,$46,$52,$4F,$4D,$46,$52,$45,$45,$4C,$49,$53,$54
 	dc.b $00,$00
 CODE_26_loc_000007dc:
@@ -50467,7 +50467,7 @@ CODE_26_loc_0000092e:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-CODE_26_semantic_dispatch_table_gap_00000936:
+CODE_26_data_dispatch_table_00000936:
 	dc.b $53,$54,$52,$52,$47,$43,$48,$4B,$18,$53,$74,$72,$69,$6E,$67,$20
 	dc.b $52,$61,$6E,$67,$65,$20,$43,$68,$65,$63,$6B,$20,$41,$62,$6F,$72
 	dc.b $74,$00
@@ -50777,7 +50777,7 @@ CODE_27_metadata_00000000:
 ;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=5 labels=2 xrefs=2
 CODE_27_loc_00000004:
 	moveq.l #48,d0
-CODE_27_semantic_dispatch_table_gap_00000006:
+CODE_27_data_dispatch_table_00000006:
 	dc.b $A3,$1E,$4A,$40,$66,$72,$30,$38,$09,$34,$2B,$88,$00,$0C,$4A,$78
 	dc.b $02,$8E,$6D,$2E,$30,$3C,$A8,$9F,$A7,$46,$22,$48,$30,$3C,$A0,$90
 	dc.b $A3,$46,$B3,$C8,$67,$1C,$9E,$FC,$00,$10,$41,$D7,$70,$02,$A0,$90
@@ -50798,7 +50798,7 @@ CODE_27_loc_000000cc:
 	addq.w #4,a7
 	clr.w (a7)
 	jmp (a0)
-CODE_27_semantic_symbol_record_gap_000000d4:
+CODE_27_data_symbol_record_000000d4:
 	dc.b $80,$0B,$70,$72,$65,$5F,$4C,$6F,$61,$64,$53,$65,$67,$00,$00,$00
 CODE_27_semantic_decode_gap_000000e4:
 	dc.b $20,$5F,$58,$4F,$42,$57,$4E,$D0,$80,$0C,$70,$6F,$73,$74,$5F,$4C

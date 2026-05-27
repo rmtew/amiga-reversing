@@ -349,9 +349,11 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     assert " bytes=20 5F" not in asm_text
     assert "CODE_1_loc_0000003e:" in asm_text
     assert "CODE_1_semantic_decode_gap_0000003e:" not in asm_text
-    assert "CODE_1_semantic_string_data_gap_0000027e:" in asm_text
-    assert "CODE_1_semantic_dispatch_table_gap_00000f94:" in asm_text
-    assert "CODE_12_semantic_alignment_padding_gap_000009c6:\n\tds.b 2" in asm_text
+    assert "CODE_1_data_string_0000027e:" in asm_text
+    assert "CODE_1_data_dispatch_table_00000f94:" in asm_text
+    assert "CODE_12_data_alignment_padding_000009c6:\n\tds.b 2" in asm_text
+    assert "CODE_1_semantic_string_data_gap_0000027e:" not in asm_text
+    assert "CODE_1_semantic_dispatch_table_gap_00000f94:" not in asm_text
     assert "loc_0_" not in asm_text
     assert "CODE_1_loc_0000372c(pc,d0.w)" in asm_text
     assert ";       xref code_start_ref payload+" not in asm_text
