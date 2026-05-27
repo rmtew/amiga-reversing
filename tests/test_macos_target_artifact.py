@@ -297,6 +297,8 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     ]
     assert "CODE_1_semantic_string_data_gap_0000027e:" not in asm_text
     assert "CODE_1_semantic_dispatch_table_gap_00000f94:" not in asm_text
+    assert 'CODE_1_data_pascal_string_00002066:\n\tdc.b $87,"GETRSRC",$00,$00' in asm_text
+    assert 'CODE_1_data_pascal_string_0000209a:\n\tdc.b $8A,"GETFONTNBR",$00,$00,$00' in asm_text
     assert "CODE_26_data_string_00000936:" in asm_text
     assert "CODE_26_loc_0000093e:" in asm_text
     assert asm_text.index("CODE_26_data_string_00000936:") < asm_text.index("CODE_26_loc_0000093e:")

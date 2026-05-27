@@ -469,6 +469,8 @@ def _semantic_gap_kind(gap_kinds: Mapping[tuple[int | None, int | None], str], s
 def _semantic_gap_lines(data: bytes, *, label: str, kind: str, base_offset: int) -> list[str]:
     if kind == "semantic_alignment_padding_gap" and data and all(byte == 0 for byte in data):
         return [f"{label}:", f"\tds.b {len(data)}"]
+    if kind == "semantic_pascal_string_gap":
+        return _dc_b_pascal_string_lines(data, label=label)
     return _dc_b_lines(data, label=label, base_offset=base_offset)
 
 
@@ -480,6 +482,8 @@ def _semantic_data_row_lines(row: Mapping[str, object], *, label: str, base_offs
         return [f"{label}:", text]
     if row.get("data_kind") == "semantic_alignment_padding_gap" and data and all(byte == 0 for byte in data):
         return [f"{label}:", f"\tds.b {len(data)}"]
+    if row.get("data_kind") == "semantic_pascal_string_gap":
+        return _dc_b_pascal_string_lines(data, label=label)
     return _dc_b_lines(data, label=label, base_offset=base_offset)
 
 
@@ -621,6 +625,26 @@ def _dc_b_lines(data: bytes, *, label: str, base_offset: int = 0) -> list[str]:
         byte_text = ",".join(f"${value:02X}" for value in chunk)
         lines.append(f"\tdc.b {byte_text}")
     return lines
+
+
+def _dc_b_pascal_string_lines(data: bytes, *, label: str) -> list[str]:
+    lines = [f"{label}:"]
+    if not data:
+        lines.append(";     empty")
+        return lines
+    text_len = data[0] & 0x7F
+    text_end = 1 + min(text_len, max(0, len(data) - 1))
+    text = data[1:text_end]
+    if not text or any(not _asm_quote_byte_is_safe(value) for value in text):
+        return _dc_b_lines(data, label=label)
+    parts = [f"${data[0]:02X}", f'"{text.decode("ascii")}"']
+    parts.extend(f"${value:02X}" for value in data[text_end:])
+    lines.append(f"\tdc.b {','.join(parts)}")
+    return lines
+
+
+def _asm_quote_byte_is_safe(value: int) -> bool:
+    return 0x20 <= value <= 0x7E and value not in {ord('"'), ord("\\")}
 
 
 def _code0_structured_source_lines(section: Mapping[str, object]) -> list[str]:
