@@ -9478,6 +9478,32 @@ static int attach_absolute_memory_slot_symbols(M68kRenderIRPreview *preview, con
   return 1;
 }
 
+static int attach_absolute_memory_address_use_symbols(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
+    const M68kDecodeSectionIR *section, M68kInstructionIR *instruction, const char *platform_comment,
+    const char *instruction_comment) {
+  const M68kSimFormMetadata *metadata;
+  size_t operand_index;
+  if (preview == NULL || lookup == NULL || section == NULL || instruction == NULL) return 0;
+  if (platform_comment != NULL && platform_comment[0] != '\0') return 1;
+  if (instruction_comment != NULL && instruction_comment[0] != '\0') return 1;
+  metadata = m68k_sim_metadata_for_instruction(instruction);
+  if (metadata == NULL) return 1;
+  for (operand_index = 0U; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
+    M68kOperandIR *operand = &instruction->operands[operand_index];
+    uint32_t address = 0U;
+    char symbol[80];
+    if (operand->symbol_ref.has_name != 0U ||
+        metadata->operand_access_kinds[operand_index] != M68K_SIM_ACCESS_COMPUTE_ADDRESS ||
+        !operand_absolute_offset_local(operand, &address) ||
+        !render_absolute_memory_header_owner_is_absolute(lookup, section, address)) {
+      continue;
+    }
+    if (!render_asm_define_absolute_memory_slot_symbol_once(preview, address, symbol, sizeof(symbol))) return 0;
+    attach_generic_symbol(operand, symbol);
+  }
+  return 1;
+}
+
 static int attach_amiga_runtime_sink_immediate_symbols(const M68kRenderLookup *lookup,
     const M68kRenderPlatformState *platform_state, size_t section_index, M68kInstructionIR *instruction) {
   const M68kSimFormMetadata *metadata;
@@ -10354,6 +10380,10 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, const M68kRender
   (void)attach_amiga_runtime_sink_immediate_symbols(lookup, platform_state, section->section_index, &instruction);
   (void)attach_amiga_hardware_register_immediate_symbols(platform_state, &instruction);
   (void)attach_absolute_stack_top_symbol(preview, &instruction);
+  if (!attach_absolute_memory_address_use_symbols(preview, lookup, section, &instruction, platform_comment,
+      lookup_instruction_comment(lookup, section->section_index, candidate->offset))) {
+    return 0;
+  }
   if (!attach_unmapped_absolute_runtime_address_symbols(preview, lookup, &instruction)) return 0;
   (void)attach_amiga_app_base_slot_symbols(lookup, platform_state, section->section_index, candidate->offset,
     &instruction);

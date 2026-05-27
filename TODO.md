@@ -563,6 +563,14 @@ This is a general renderer/facts improvement, not a Magicland-specific rule. Cov
 `targets/amiga_hunk_magicland_dizzy_md/magicland_dizzy_md.s`. Stronger semantic names and lifetime/size evidence for
 those slots remain future type-propagation work unless a later analysis pass proves their roles.
 
+Resolution note: absolute long address-use operands now share the same stable generated-symbol path when the C owner
+model proves an ordinary absolute-memory range. This covers Magicland-style setup operands such as `$00006F50.l` and
+`$0002F490.l` without inventing target-specific names. The address-use pass runs after stronger semantic renderers and
+skips existing instruction/platform annotations, so stack-top setup, bitmap/display memory comments, hardware, vectors,
+and materialized runtime labels keep their more specific rendering. Covered by
+`facts_v2_render_asm_source_symbols_absolute_address_uses`, the existing stack-top and bitmap memory render tests, and
+`cmd /c src\precommit.bat m68k_ir`.
+
 ### Disk access
 
 This is a hunk file project. The implication here is that we should update this to a disk project and treat the
