@@ -50292,10 +50292,10 @@ CODE_27_semantic_decode_gap_000000e4:
 ;     source_ordering_status: source_first
 ;   checklist:
 ;     all_code_sections_visible: True
-;     no_fake_disassembly: True
 ;     no_vague_orphan_bucket: True
 ;     range_ownership_complete: True
 ;     reachable_code_evidence_recorded: True
+;     renderer_uses_durable_rows: True
 ;     residuals_explicit: True
 ;     source_first_artifact: True
 ;     stable_labels_present: True

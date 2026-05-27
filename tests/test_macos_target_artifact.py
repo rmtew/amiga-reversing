@@ -316,7 +316,7 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     assert "this is not semantic source closeout" in asm_text
     assert ";     semantic_disassembly_status: residual_decode_gaps_present" in asm_text
     assert ";     label_xref_status: generated_labels_and_xrefs_present" in asm_text
-    assert ";     no_fake_disassembly: True" in asm_text
+    assert ";     renderer_uses_durable_rows: True" in asm_text
     assert ";     no_vague_orphan_bucket: True" in asm_text
     assert ";     range_ownership_complete: True" in asm_text
     assert ";     reachable_code_evidence_recorded: True" in asm_text

@@ -308,9 +308,9 @@ def _code_source_body_section_lines(
                     f"; CODE {_text(resource_id)} {_text(section.get('name'))} restored source follows.",
                 ]
             )
-            lines.extend(_code_source_byte_real_lines(section, payload_bytes=payload_bytes))
+            lines.extend(_code_source_restored_lines(section, payload_bytes=payload_bytes))
         else:
-            lines.extend(_code_source_byte_real_lines(section, payload_bytes=payload_bytes))
+            lines.extend(_code_source_restored_lines(section, payload_bytes=payload_bytes))
     lines.append("")
     return lines
 
@@ -344,18 +344,18 @@ def _code_source_body_range_lines(section: Mapping[str, object]) -> list[str]:
     return lines
 
 
-def _code_source_byte_real_lines(section: Mapping[str, object], *, payload_bytes: bytes) -> list[str]:
-    placeholder = _mapping(section.get("byte_preserving_placeholder"))
+def _code_source_restored_lines(section: Mapping[str, object], *, payload_bytes: bytes) -> list[str]:
+    source_envelope = _mapping(section.get("source_envelope"))
     semantic_source = _mapping(section.get("semantic_source"))
     semantic_rows = [_mapping(item) for item in _sequence(semantic_source.get("rows"))]
     source_status = "semantic_rows" if semantic_source.get("status") == "decoded" else "byte_preserved"
     lines = [
         (
             f";   rendered_source: CODE {_text(section.get('id'))} status={source_status} "
-            f"payload[{_text(placeholder.get('start'))}..{_text(placeholder.get('end'))}) "
-            f"sha256={_text(placeholder.get('payload_sha256'))}"
+            f"payload[{_text(source_envelope.get('start'))}..{_text(source_envelope.get('end'))}) "
+            f"sha256={_text(source_envelope.get('payload_sha256'))}"
         ),
-        f";   residual_policy: {_text(placeholder.get('reason'))}",
+        f";   residual_policy: {_text(source_envelope.get('reason'))}",
         ";   source_rows:",
     ]
     if section.get("id") == 0:

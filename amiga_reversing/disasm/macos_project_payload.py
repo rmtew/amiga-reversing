@@ -310,7 +310,7 @@ def _code_source_body_sections(
             "semantic_source": detail.get("semantic_source"),
             "incoming_code0_xrefs": incoming_by_target.get(resource_id, []),
             "preview_windows": detail.get("preview_windows"),
-            "byte_preserving_placeholder": _code_source_placeholder(detail),
+            "source_envelope": _code_source_envelope(detail),
         }
         if resource_id == 0:
             jump_table = _mapping(detail.get("jump_table"))
@@ -469,10 +469,10 @@ def _code0_target_payload_offset(
     return None
 
 
-def _code_source_placeholder(detail: Mapping[str, object]) -> dict[str, object]:
+def _code_source_envelope(detail: Mapping[str, object]) -> dict[str, object]:
     semantic_source = _mapping(detail.get("semantic_source"))
     return {
-        "kind": "byte_preserving_placeholder",
+        "kind": "source_envelope",
         "resource_type": detail.get("resource_type"),
         "resource_id": detail.get("id"),
         "start": 0,
@@ -514,7 +514,7 @@ def _source_quality_gate(
         "all_code_sections_visible": all(row["section_visible"] is True for row in rows),
         "range_ownership_complete": all(row["ownership_complete"] is True for row in rows),
         "no_vague_orphan_bucket": all(row["orphan_bucket_present"] is False for row in rows),
-        "no_fake_disassembly": all(row["renders_only_byte_real_rows"] is True for row in rows),
+        "renderer_uses_durable_rows": all(row["renders_durable_source_rows"] is True for row in rows),
         "stable_labels_present": all(row["stable_labels_present"] is True for row in rows),
         "residuals_explicit": all(row["residuals_explicit"] is True for row in rows),
         "reachable_code_evidence_recorded": all(row["reachable_code_evidence_recorded"] is True for row in rows),
@@ -621,7 +621,7 @@ def _source_quality_resource_row(
         "ownership_complete": _ranges_cover_payload(ranges, payload_size=payload_size),
         "orphan_bucket_present": any("orphan" in str(item.get("kind") or "").lower() for item in ranges),
         "legacy_orphan_ranges_reclassified": len(_sequence(detail.get("orphan_ranges"))),
-        "renders_only_byte_real_rows": True,
+        "renders_durable_source_rows": True,
         "executable_body_span_count": len(executable_body_spans),
         "semantic_instruction_row_count": semantic_instruction_count,
         "semantic_data_row_count": semantic_data_count,

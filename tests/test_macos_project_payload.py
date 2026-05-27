@@ -1191,14 +1191,14 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
         f"macos-code-CODE-{resource_id}" for resource_id in expected_section_ids
     ]
     assert all(item["source_visible"] is True for item in source_sections)
-    assert all(item["byte_preserving_placeholder"]["kind"] == "byte_preserving_placeholder" for item in source_sections)
+    assert all(item["source_envelope"]["kind"] == "source_envelope" for item in source_sections)
     assert (
         "semantic source rows are rendered"
-        in next(item for item in source_sections if item["id"] == 1)["byte_preserving_placeholder"]["reason"]
+        in next(item for item in source_sections if item["id"] == 1)["source_envelope"]["reason"]
     )
     assert "accepted routing/application metadata" in next(
         item for item in source_sections if item["id"] == 0
-    )["byte_preserving_placeholder"]["reason"]
+    )["source_envelope"]["reason"]
     assert next(item for item in source_sections if item["id"] == 1)["status"] == "selected_full_listing"
     assert any(item["status"] == "semantic_source" for item in source_sections)
     assert any(item["status"] == "covered_placeholder" for item in source_sections)
@@ -1275,7 +1275,7 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     assert code1_quality["ownership_complete"] is True
     assert code1_quality["orphan_bucket_present"] is False
     assert code1_quality["legacy_orphan_ranges_reclassified"] == 0
-    assert code1_quality["renders_only_byte_real_rows"] is True
+    assert code1_quality["renders_durable_source_rows"] is True
     assert code1_quality["byte_real_only_executable_body"] is False
     assert code1_quality["executable_body_span_count"] == 1
     assert code1_quality["semantic_instruction_row_count"] >= 7000
