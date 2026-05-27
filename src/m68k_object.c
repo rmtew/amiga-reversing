@@ -121,6 +121,33 @@ M68kObjectAddResult m68k_object_add_fixup(M68kObject *object, const M68kFixup *f
   return result;
 }
 
+int m68k_object_add_platform_storage_layout(M68kObject *object, const M68kPlatformStorageLayoutIR *layout) {
+  size_t index;
+  if (object == NULL || layout == NULL || layout->layout_kind == M68K_PLATFORM_STORAGE_LAYOUT_NONE ||
+      layout->region_kind == M68K_PLATFORM_STORAGE_REGION_NONE || layout->size == 0U || layout->base_reg >= 8U) {
+    return -1;
+  }
+  for (index = 0U; index < object->platform_storage_layout_count; ++index) {
+    const M68kPlatformStorageLayoutIR *existing = &object->platform_storage_layouts[index];
+    if (existing->platform_kind == layout->platform_kind &&
+        existing->layout_kind == layout->layout_kind &&
+        existing->region_kind == layout->region_kind &&
+        existing->base_reg == layout->base_reg &&
+        existing->start == layout->start &&
+        existing->size == layout->size &&
+        existing->owner_resource_id == layout->owner_resource_id) {
+      return 0;
+    }
+  }
+  object->platform_storage_layouts = (M68kPlatformStorageLayoutIR *)grow_array(object,
+    object->platform_storage_layouts, sizeof(*object->platform_storage_layouts),
+    &object->platform_storage_layout_capacity, object->platform_storage_layout_count);
+  if (object->platform_storage_layouts == NULL) return -1;
+  object->platform_storage_layouts[object->platform_storage_layout_count] = *layout;
+  object->platform_storage_layout_count += 1U;
+  return 0;
+}
+
 void m68k_object_add_container_layout(M68kObject *object, uint16_t kind, uint16_t flags, uint32_t id, uint32_t aux) {
   M68kContainerMetadata *metadata;
   M68kContainerLayoutMetadata *item;

@@ -1,5 +1,6 @@
 #include "platform_macos_resource.h"
 #include "generated/platform_executable_formats.h"
+#include "m68k_fact_ir.h"
 
 #include <limits.h>
 #include <stdint.h>
@@ -181,6 +182,33 @@ int platform_macos_object_set_a5_world_layout(M68kObject *object, int16_t code0_
     layout->positive_global_size = code0->above_a5_size - jump_table_end;
   }
   platform_data->has_a5_world_layout = 1U;
+  {
+    M68kPlatformStorageLayoutIR storage_layout;
+    memset(&storage_layout, 0, sizeof(storage_layout));
+    storage_layout.platform_kind = M68K_PLATFORM_BACKEND_MACOS;
+    storage_layout.layout_kind = M68K_PLATFORM_STORAGE_LAYOUT_MACOS_A5_WORLD;
+    storage_layout.base_reg = 5U;
+    storage_layout.owner_resource_id = code0_resource_id;
+    storage_layout.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
+    if (layout->negative_global_size != 0U) {
+      storage_layout.region_kind = M68K_PLATFORM_STORAGE_REGION_BELOW_A5_GLOBALS;
+      storage_layout.start = layout->negative_global_start;
+      storage_layout.size = layout->negative_global_size;
+      if (m68k_object_add_platform_storage_layout(object, &storage_layout) != 0) return -1;
+    }
+    if (layout->jump_table_length != 0U) {
+      storage_layout.region_kind = M68K_PLATFORM_STORAGE_REGION_A5_JUMP_TABLE;
+      storage_layout.start = (int32_t)layout->jump_table_start;
+      storage_layout.size = layout->jump_table_length;
+      if (m68k_object_add_platform_storage_layout(object, &storage_layout) != 0) return -1;
+    }
+    if (layout->positive_global_size != 0U) {
+      storage_layout.region_kind = M68K_PLATFORM_STORAGE_REGION_ABOVE_A5_GLOBALS;
+      storage_layout.start = (int32_t)layout->positive_global_start;
+      storage_layout.size = layout->positive_global_size;
+      if (m68k_object_add_platform_storage_layout(object, &storage_layout) != 0) return -1;
+    }
+  }
   return 0;
 }
 

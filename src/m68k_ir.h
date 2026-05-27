@@ -1128,7 +1128,8 @@ typedef enum M68kMemoryLayoutRecordKind {
   M68K_MEMORY_LAYOUT_RECORD_PLATFORM_UNRESOLVED_TYPED_ACCESS = 5,
   M68K_MEMORY_LAYOUT_RECORD_RUNTIME_VIEW = 6,
   M68K_MEMORY_LAYOUT_RECORD_RUNTIME_ADDRESS_REF = 7,
-  M68K_MEMORY_LAYOUT_RECORD_ABSOLUTE_MEMORY_REF = 8
+  M68K_MEMORY_LAYOUT_RECORD_ABSOLUTE_MEMORY_REF = 8,
+  M68K_MEMORY_LAYOUT_RECORD_PLATFORM_STORAGE_LAYOUT = 9
 } M68kMemoryLayoutRecordKind;
 
 typedef struct M68kAbsoluteMemoryRefIR {
@@ -1323,6 +1324,9 @@ typedef struct M68kSourceAnalysisIR {
   M68kPlatformFileKind file_kind;
   M68kAnalysisPolicy policy;
   M68kAnalysisFindings findings;
+  M68kPlatformStorageLayoutIR *platform_storage_layouts;
+  size_t platform_storage_layout_count;
+  size_t platform_storage_layout_capacity;
   M68kBaseLayoutFieldIR *base_layout_fields;
   size_t base_layout_field_count;
   size_t base_layout_field_capacity;
@@ -1461,6 +1465,8 @@ int m68k_ir_section_analysis_append_code_start_ref(M68kSectionAnalysisIR *sectio
     const M68kCodeStartRefIR *code_start_ref);
 int m68k_ir_source_analysis_create(M68kSourceAnalysisIR *source_analysis);
 void m68k_ir_source_analysis_destroy(M68kSourceAnalysisIR *source_analysis);
+int m68k_ir_source_analysis_append_platform_storage_layout(M68kSourceAnalysisIR *source_analysis,
+  const M68kPlatformStorageLayoutIR *layout);
 int m68k_ir_source_analysis_append_base_layout_field(M68kSourceAnalysisIR *source_analysis,
   const M68kBaseLayoutFieldIR *field);
 int m68k_ir_source_analysis_append_section(M68kSourceAnalysisIR *source_analysis, const M68kSectionAnalysisIR *section_analysis);

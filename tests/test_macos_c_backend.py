@@ -672,6 +672,45 @@ def test_021_007_macos_hfs_code_artifact_carries_code0_a5_world_layout(tmp_path:
             {"kind": "above_a5_globals", "base_register": "a5", "start": 48, "size": 0},
         ],
     }
+    storage_regions = [
+        record
+        for record in analysis["memory_layout_records"]
+        if record["record_kind"] == "platform_storage_layout"
+    ]
+    assert storage_regions == [
+        {
+            "record_kind_id": 9,
+            "record_kind": "platform_storage_layout",
+            "memory_kind": "platform_storage_region",
+            "platform_kind": 3,
+            "layout_kind": 1,
+            "layout_kind_name": "macos_a5_world",
+            "region_kind": 1,
+            "region_kind_name": "below_a5_globals",
+            "base_register": "A5",
+            "start": -64,
+            "size": 64,
+            "end": 0,
+            "owner_resource_id": 0,
+            "confidence": 2,
+        },
+        {
+            "record_kind_id": 9,
+            "record_kind": "platform_storage_layout",
+            "memory_kind": "platform_storage_region",
+            "platform_kind": 3,
+            "layout_kind": 1,
+            "layout_kind_name": "macos_a5_world",
+            "region_kind": 2,
+            "region_kind_name": "a5_jump_table",
+            "base_register": "A5",
+            "start": 32,
+            "size": 16,
+            "end": 48,
+            "owner_resource_id": 0,
+            "confidence": 2,
+        },
+    ]
 
 
 def test_021_007_macos_code_bytes_artifact_profile_is_native(tmp_path: Path) -> None:

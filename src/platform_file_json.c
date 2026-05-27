@@ -1504,6 +1504,18 @@ static const char *base_layout_field_source_kind_name(uint8_t source_kind) {
   return "none";
 }
 
+static const char *platform_storage_layout_kind_name(uint8_t layout_kind) {
+  if (layout_kind == M68K_PLATFORM_STORAGE_LAYOUT_MACOS_A5_WORLD) return "macos_a5_world";
+  return "none";
+}
+
+static const char *platform_storage_region_kind_name(uint8_t region_kind) {
+  if (region_kind == M68K_PLATFORM_STORAGE_REGION_BELOW_A5_GLOBALS) return "below_a5_globals";
+  if (region_kind == M68K_PLATFORM_STORAGE_REGION_A5_JUMP_TABLE) return "a5_jump_table";
+  if (region_kind == M68K_PLATFORM_STORAGE_REGION_ABOVE_A5_GLOBALS) return "above_a5_globals";
+  return "none";
+}
+
 static const char *sim_flow_kind_name(uint8_t flow_kind) {
   if (flow_kind == M68K_SIM_FLOW_NONE) return "none";
   if (flow_kind == M68K_SIM_FLOW_SEQUENTIAL) return "sequential";
@@ -2544,6 +2556,7 @@ static size_t source_analysis_memory_layout_record_count(const M68kSourceAnalysi
   size_t section_index;
   size_t count = 0U;
   if (source_analysis == NULL) return 0U;
+  count += source_analysis->platform_storage_layout_count;
   count += source_analysis_base_layout_record_count(source_analysis);
   count += source_analysis->base_layout_field_count;
   for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
@@ -2732,9 +2745,36 @@ static int platform_effect_storage_range_overlaps_accepted_code(const M68kSource
 static int append_source_analysis_memory_layout_records_json(JsonBuilder *builder,
     const M68kSourceAnalysisIR *source_analysis) {
   size_t field_index;
+  size_t layout_index;
   size_t section_index;
   size_t emitted = 0U;
   if (builder == NULL || source_analysis == NULL) return -1;
+  for (layout_index = 0U; layout_index < source_analysis->platform_storage_layout_count; ++layout_index) {
+    const M68kPlatformStorageLayoutIR *layout = &source_analysis->platform_storage_layouts[layout_index];
+    if (emitted++ != 0U && json_builder_append(builder, ",") != 0) return -1;
+    if (json_builder_appendf(builder,
+        "{\"record_kind_id\":%u,\"record_kind\":\"platform_storage_layout\",\"memory_kind\":\"platform_storage_region\","
+        "\"platform_kind\":%u,\"layout_kind\":%u,\"layout_kind_name\":",
+        (unsigned)M68K_MEMORY_LAYOUT_RECORD_PLATFORM_STORAGE_LAYOUT, (unsigned)layout->platform_kind,
+        (unsigned)layout->layout_kind) != 0) {
+      return -1;
+    }
+    if (json_builder_append_json_string(builder, platform_storage_layout_kind_name(layout->layout_kind)) != 0)
+      return -1;
+    if (json_builder_appendf(builder,
+        ",\"region_kind\":%u,\"region_kind_name\":",
+        (unsigned)layout->region_kind) != 0) return -1;
+    if (json_builder_append_json_string(builder, platform_storage_region_kind_name(layout->region_kind)) != 0)
+      return -1;
+    if (json_builder_appendf(builder,
+        ",\"base_register\":\"A%u\",\"start\":%d,\"size\":%u,\"end\":%d,"
+        "\"owner_resource_id\":%d,\"confidence\":%u}",
+        (unsigned)layout->base_reg, (int)layout->start, (unsigned)layout->size,
+        (int)(layout->start + (int32_t)layout->size), (int)layout->owner_resource_id,
+        (unsigned)layout->confidence) != 0) {
+      return -1;
+    }
+  }
   for (field_index = 0U; field_index < source_analysis->base_layout_field_count; ++field_index) {
     const M68kBaseLayoutFieldIR *first = &source_analysis->base_layout_fields[field_index];
     uint32_t range_start = first->offset;

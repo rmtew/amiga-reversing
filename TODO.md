@@ -31,8 +31,8 @@ Current status map:
   issues should be reduced to expression eligibility versus standalone definition proof.
 - Type propagation: Amiga/Atari-style platform call/type propagation remains the general model. Mac `_GetFNum` now has
   generated metadata, stack-argument binding, and an output-pointer local typed-access bridge. Mac A5-world slot typing
-  is intentionally not closed until CODE 0 layout is carried into C `M68kObject` platform data and a signed A5 storage
-  layout IR.
+  is intentionally not closed until accepted A5 lifetime evidence can connect ordinary instruction reads/writes to the
+  signed A5 storage-layout regions now carried by C analysis.
 
 ## Investigation needed: MacOS/MPW asm
 
@@ -218,8 +218,16 @@ not from detached CODE bytes. The artifact extracts the selected nonzero CODE ex
 A5-world layout to the `M68kObject`, and serializes `macos_a5_world_layout` in the analysis JSON. Context-free Mac CODE
 byte artifacts still report `macos_a5_world_layout: null`, which prevents accidental guessing from incomplete bytes.
 Covered by `test_021_007_macos_hfs_code_artifact_carries_code0_a5_world_layout`,
-`tests/test_macos_c_backend.py`, and `cmd /c src\precommit.bat m68k_ir`. Remaining work is to expose the carried
-layout through source-analysis storage-layout IR and A5 lifetime/type propagation.
+`tests/test_macos_c_backend.py`, and `cmd /c src\precommit.bat m68k_ir`.
+
+Resolution note: the carried CODE 0 A5-world layout is now projected into source-analysis memory-layout records as a
+generic `platform_storage_layout` IR, not as an Amiga app/base layout and not through a Mac renderer shortcut. Mac
+populates generic `M68kObject` platform-storage rows for below-A5 globals, the A5 jump-table window, and above-A5
+globals; the C facts pipeline copies those rows into `memory_layout_records` with signed A5 coordinates. Covered by
+`facts_v2_macos_a5_world_layout_reaches_source_analysis`,
+`test_021_007_macos_hfs_code_artifact_carries_code0_a5_world_layout`,
+`tests/test_macos_c_backend.py`, and `cmd /c src\precommit.bat m68k_ir`. Remaining work is A5 lifetime/type
+propagation: only accesses proven to have A5 live should become typed A5 storage facts.
 
 
 ### Pascal strings

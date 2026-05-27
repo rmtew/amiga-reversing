@@ -2251,6 +2251,37 @@ void m68k_ir_source_analysis_destroy(M68kSourceAnalysisIR *source_analysis) {
   memset(source_analysis, 0, sizeof(*source_analysis));
 }
 
+int m68k_ir_source_analysis_append_platform_storage_layout(M68kSourceAnalysisIR *source_analysis,
+    const M68kPlatformStorageLayoutIR *layout) {
+  size_t index;
+  Arena *arena;
+  if (source_analysis == NULL || layout == NULL || layout->layout_kind == M68K_PLATFORM_STORAGE_LAYOUT_NONE ||
+      layout->region_kind == M68K_PLATFORM_STORAGE_REGION_NONE || layout->size == 0U || layout->base_reg >= 8U) {
+    return -1;
+  }
+  arena = source_analysis->arena;
+  if (arena == NULL) return -1;
+  for (index = 0U; index < source_analysis->platform_storage_layout_count; ++index) {
+    const M68kPlatformStorageLayoutIR *existing = &source_analysis->platform_storage_layouts[index];
+    if (existing->platform_kind == layout->platform_kind &&
+        existing->layout_kind == layout->layout_kind &&
+        existing->region_kind == layout->region_kind &&
+        existing->base_reg == layout->base_reg &&
+        existing->start == layout->start &&
+        existing->size == layout->size &&
+        existing->owner_resource_id == layout->owner_resource_id) {
+      return 0;
+    }
+  }
+  source_analysis->platform_storage_layouts = (M68kPlatformStorageLayoutIR *)arena_grow_array(arena,
+    source_analysis->platform_storage_layouts, source_analysis->platform_storage_layout_count,
+    &source_analysis->platform_storage_layout_capacity, 4U, sizeof(*source_analysis->platform_storage_layouts));
+  if (source_analysis->platform_storage_layouts == NULL) return -1;
+  source_analysis->platform_storage_layouts[source_analysis->platform_storage_layout_count] = *layout;
+  source_analysis->platform_storage_layout_count += 1U;
+  return 0;
+}
+
 static int source_analysis_structured_item_range_overlaps_accepted_code(const M68kSourceAnalysisIR *source_analysis,
     const M68kAnalysisStructuredDataItem *item) {
   const M68kSectionAnalysisIR *section;

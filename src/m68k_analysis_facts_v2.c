@@ -4528,6 +4528,17 @@ static int append_absolute_memory_refs_for_accepted(const M68kDecodeIR *decode, 
   return 0;
 }
 
+static int append_platform_storage_layouts_from_object(const M68kObject *object,
+    M68kSourceAnalysisIR *source_analysis) {
+  size_t index;
+  if (object == NULL || source_analysis == NULL) return -1;
+  for (index = 0U; index < object->platform_storage_layout_count; ++index)
+    if (m68k_ir_source_analysis_append_platform_storage_layout(source_analysis,
+        &object->platform_storage_layouts[index]) != 0)
+      return -1;
+  return 0;
+}
+
 static int candidate_lea_absolute_address(const M68kDecodeCandidate *candidate, uint8_t *out_reg,
     uint32_t *out_address) {
   uint8_t dest_reg = 0U;
@@ -9401,6 +9412,11 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
         &runtime_addresses, accepted_start, accepted_bytes, out_source_analysis) != 0) {
     m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
       "facts_v2 absolute memory ref append failed");
+    goto fail;
+  }
+  if (out_source_analysis != NULL && append_platform_storage_layouts_from_object(object, out_source_analysis) != 0) {
+    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
+      "facts_v2 platform storage layout append failed");
     goto fail;
   }
   if (out_source_analysis != NULL) {

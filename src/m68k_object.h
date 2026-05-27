@@ -101,6 +101,30 @@ typedef struct M68kContainerMetadata {
   uint8_t encoding_overflow;
 } M68kContainerMetadata;
 
+typedef enum M68kPlatformStorageLayoutKind {
+  M68K_PLATFORM_STORAGE_LAYOUT_NONE = 0,
+  M68K_PLATFORM_STORAGE_LAYOUT_MACOS_A5_WORLD = 1
+} M68kPlatformStorageLayoutKind;
+
+typedef enum M68kPlatformStorageRegionKind {
+  M68K_PLATFORM_STORAGE_REGION_NONE = 0,
+  M68K_PLATFORM_STORAGE_REGION_BELOW_A5_GLOBALS = 1,
+  M68K_PLATFORM_STORAGE_REGION_A5_JUMP_TABLE = 2,
+  M68K_PLATFORM_STORAGE_REGION_ABOVE_A5_GLOBALS = 3
+} M68kPlatformStorageRegionKind;
+
+typedef struct M68kPlatformStorageLayoutIR {
+  uint8_t platform_kind;
+  uint8_t layout_kind;
+  uint8_t region_kind;
+  uint8_t base_reg;
+  int32_t start;
+  uint32_t size;
+  int16_t owner_resource_id;
+  uint8_t confidence;
+  uint8_t reserved[1];
+} M68kPlatformStorageLayoutIR;
+
 typedef struct M68kSection {
   char *name;
   M68kSectionKind kind;
@@ -152,6 +176,9 @@ typedef struct M68kObject {
   size_t fixup_count;
   size_t fixup_capacity;
   M68kContainerMetadata container_metadata;
+  M68kPlatformStorageLayoutIR *platform_storage_layouts;
+  size_t platform_storage_layout_count;
+  size_t platform_storage_layout_capacity;
   void *platform_data;
   Arena *arena;
 } M68kObject;
@@ -171,6 +198,7 @@ int m68k_object_set_section_data(M68kObject *object, size_t section_index, const
 int m68k_object_set_section_debug_data(M68kObject *object, size_t section_index, const uint8_t *data, uint32_t debug_size);
 M68kObjectAddResult m68k_object_add_symbol(M68kObject *object, const M68kSymbol *symbol);
 M68kObjectAddResult m68k_object_add_fixup(M68kObject *object, const M68kFixup *fixup);
+int m68k_object_add_platform_storage_layout(M68kObject *object, const M68kPlatformStorageLayoutIR *layout);
 void m68k_object_add_container_layout(M68kObject *object, uint16_t kind, uint16_t flags, uint32_t id, uint32_t aux);
 void m68k_object_add_container_encoding(M68kObject *object, uint16_t kind, uint16_t flags, uint32_t id, uint32_t aux);
 void m68k_object_mark_no_container(M68kObject *object);

@@ -15,6 +15,7 @@
 #include "platform_common.h"
 #include "platform_file_internal.h"
 #include "platform_atari_st.h"
+#include "platform_macos_resource.h"
 #include "util_arena.h"
 #include "generated/amiga_hunk_file_runtime.h"
 #include "generated/amiga_os_runtime.h"
@@ -3268,6 +3269,73 @@ static int test_facts_v2_macos_call_stack_args_from_generated_metadata(void) {
     "\"root_struct_name\":\"short\",\"owner_struct_name\":\"short\",\"field_name\":\"familyID\"") != NULL);
   free(analysis_json);
   m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_macos_a5_world_layout_reaches_source_analysis(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  PlatformMacosCodeMetadata code0;
+  char *analysis_json = NULL;
+  uint8_t bytes[2] = {0x4eu, 0x75u};
+  memset(&section, 0, sizeof(section));
+  memset(&source_analysis, 0, sizeof(source_analysis));
+  memset(&code0, 0, sizeof(code0));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_MACOS;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  code0.kind = PLATFORM_MACOS_CODE_RESOURCE_JUMP_TABLE_SEGMENT;
+  code0.above_a5_size = 64U;
+  code0.below_a5_size = 32U;
+  code0.jump_table_offset_from_a5 = 16U;
+  code0.jump_table_length = 16U;
+  M68K_C_ASSERT_INT(0, platform_macos_object_set_a5_world_layout(&object, 0, &code0));
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.entry_point_count = 1U;
+  policy.entry_points[0].has_section_index = 1U;
+  policy.entry_points[0].section_index = 0U;
+  policy.entry_points[0].offset = 0U;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
+    &source_analysis, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_U32(3U, (uint32_t)source_analysis.platform_storage_layout_count);
+  M68K_C_ASSERT_U32(M68K_PLATFORM_STORAGE_REGION_BELOW_A5_GLOBALS,
+    source_analysis.platform_storage_layouts[0].region_kind);
+  M68K_C_ASSERT_INT(-32, source_analysis.platform_storage_layouts[0].start);
+  M68K_C_ASSERT_U32(32U, source_analysis.platform_storage_layouts[0].size);
+  M68K_C_ASSERT_U32(M68K_PLATFORM_STORAGE_REGION_A5_JUMP_TABLE,
+    source_analysis.platform_storage_layouts[1].region_kind);
+  M68K_C_ASSERT_INT(16, source_analysis.platform_storage_layouts[1].start);
+  M68K_C_ASSERT_U32(16U, source_analysis.platform_storage_layouts[1].size);
+  M68K_C_ASSERT_U32(M68K_PLATFORM_STORAGE_REGION_ABOVE_A5_GLOBALS,
+    source_analysis.platform_storage_layouts[2].region_kind);
+  M68K_C_ASSERT_INT(32, source_analysis.platform_storage_layouts[2].start);
+  M68K_C_ASSERT_U32(32U, source_analysis.platform_storage_layouts[2].size);
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"record_kind\":\"platform_storage_layout\",\"memory_kind\":\"platform_storage_region\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"layout_kind_name\":\"macos_a5_world\",\"region_kind\":1,\"region_kind_name\":\"below_a5_globals\","
+    "\"base_register\":\"A5\",\"start\":-32,\"size\":32,\"end\":0") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"region_kind\":2,\"region_kind_name\":\"a5_jump_table\",\"base_register\":\"A5\","
+    "\"start\":16,\"size\":16,\"end\":32") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"region_kind\":3,\"region_kind_name\":\"above_a5_globals\",\"base_register\":\"A5\","
+    "\"start\":32,\"size\":32,\"end\":64") != NULL);
+  free(analysis_json);
   m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_object_destroy(&object);
   return 0;
@@ -20170,6 +20238,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_macos_opword_call_falls_through},
     {"facts_v2_macos_call_stack_args_from_generated_metadata",
       test_facts_v2_macos_call_stack_args_from_generated_metadata},
+    {"facts_v2_macos_a5_world_layout_reaches_source_analysis",
+      test_facts_v2_macos_a5_world_layout_reaches_source_analysis},
     {"facts_v2_atari_invalid_image_relocation_refuses_source",
       test_facts_v2_atari_invalid_image_relocation_refuses_source},
     {"facts_v2_asm_source_preserves_atari_program_flags",
