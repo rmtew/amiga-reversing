@@ -319,6 +319,12 @@ abs_0_00010910:
 	rte
 ```
 
+Resolution note: accepted callback-slot indirect targets now inherit the call-site trace state in the C facts pass,
+and the render lookup projects proven Amiga hardware-base register state through the same callback-slot shape. This
+keeps callback bodies reached through app slots such as `app_0360`/`app_0364` rendering hardware accesses through the
+same symbolic register base proven at the indirect call site, without a Pandora-specific rule. Covered by
+`facts_v2_callback_field_target_inherits_call_site_trace_state`.
+
 ### Orphaned label definitions
 
 `abs_0_00056218` has no accesses only a definition. This reflects a lack of awareness of why we are emitting these

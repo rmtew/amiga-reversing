@@ -6553,22 +6553,61 @@ static int candidate_loads_callback_field_to_control_register(const M68kDecodeCa
   return candidate_operand_base_field_slot(candidate, 0U, out_base_reg, out_displacement);
 }
 
+static int trace_callback_site_linear_state(const M68kFactsV2RelocationLookup *relocation_lookup,
+    const M68kRuntimeAddressSpace *runtime_addresses, uint8_t **accepted_start, uint8_t **accepted_bytes,
+    size_t section_index, const M68kDecodeSectionIR *section, const M68kDecodeCandidate *site_candidate,
+    M68kFactsV2TraceState *out_state) {
+  enum { BACKWARD_SLICE_LIMIT = 48 };
+  const M68kDecodeCandidate *previous[BACKWARD_SLICE_LIMIT];
+  const M68kDecodeCandidate *cursor_candidate;
+  uint32_t cursor;
+  size_t count = 0U;
+  size_t index;
+  if (out_state != NULL) trace_state_init_unknown(out_state);
+  if (relocation_lookup == NULL || runtime_addresses == NULL || accepted_start == NULL ||
+      accepted_bytes == NULL || section == NULL || site_candidate == NULL || out_state == NULL ||
+      accepted_start[section_index] == NULL || accepted_bytes[section_index] == NULL) {
+    return 0;
+  }
+  cursor = site_candidate->offset;
+  while (count < BACKWARD_SLICE_LIMIT) {
+    cursor_candidate = find_accepted_candidate_ending_at(section, accepted_start[section_index], cursor);
+    if (cursor_candidate == NULL) break;
+    previous[count++] = cursor_candidate;
+    if (cursor_candidate->offset == 0U || !candidate_has_normal_fallthrough(cursor_candidate) ||
+        candidate_has_decoded_direct_control_target(cursor_candidate)) {
+      break;
+    }
+    cursor = cursor_candidate->offset;
+  }
+  trace_state_init_unknown(out_state);
+  for (index = count; index > 0U; --index) {
+    const M68kDecodeCandidate *candidate = previous[index - 1U];
+    M68kFactsV2TraceState next_state;
+    trace_state_after_candidate(section_index, section, candidate, out_state, relocation_lookup, NULL,
+      runtime_addresses, accepted_start[section_index], accepted_bytes[section_index], &next_state);
+    *out_state = next_state;
+  }
+  return count != 0U;
+}
+
 static int enqueue_callback_field_indirect_targets(M68kDecodeIR *decode, M68kFactIR *facts,
     M68kFactsV2WorkQueue *queue, uint8_t **accepted_start, uint8_t **accepted_bytes,
     M68kFactsV2Profile *profile, uint8_t max_cpu, const M68kRuntimeAddressSpace *runtime_addresses,
+    const M68kFactsV2RelocationLookup *relocation_lookup,
     const M68kFactsV2CallbackFieldTargets *targets, size_t section_index,
     const M68kDecodeCandidate *site_candidate) {
   const M68kDecodeSectionIR *section;
   const M68kDecodeCandidate *load_candidate;
-  M68kFactsV2TraceState unknown_state;
+  M68kFactsV2TraceState site_state;
   uint8_t control_reg = 0U;
   uint8_t base_reg = 0U;
   int32_t displacement = 0;
   size_t index;
   size_t matched_count = 0U;
   if (decode == NULL || facts == NULL || queue == NULL || accepted_start == NULL || accepted_bytes == NULL ||
-      profile == NULL || runtime_addresses == NULL || targets == NULL || site_candidate == NULL ||
-      section_index >= decode->section_count ||
+      profile == NULL || runtime_addresses == NULL || relocation_lookup == NULL || targets == NULL ||
+      site_candidate == NULL || section_index >= decode->section_count ||
       !candidate_indirect_control_base_register(site_candidate, &control_reg)) {
     return 0;
   }
@@ -6587,7 +6626,8 @@ static int enqueue_callback_field_indirect_targets(M68kDecodeIR *decode, M68kFac
     }
   }
   if (matched_count < 2U) return 0;
-  trace_state_init_unknown(&unknown_state);
+  (void)trace_callback_site_linear_state(relocation_lookup, runtime_addresses, accepted_start, accepted_bytes,
+    section_index, section, site_candidate, &site_state);
   for (index = 0U; index < targets->count; ++index) {
     const M68kFactsV2CallbackFieldTarget *target = &targets->items[index];
     if (target->section_index != section_index || target->base_reg != base_reg ||
@@ -6596,7 +6636,7 @@ static int enqueue_callback_field_indirect_targets(M68kDecodeIR *decode, M68kFac
     }
     if (enqueue_same_section_control_trace_target(decode, facts, queue, accepted_start, accepted_bytes,
         profile, max_cpu, section_index, site_candidate, &target->target,
-        M68K_FACT_CONFIDENCE_TOOL_INFERRED, runtime_addresses, &unknown_state) != 0) {
+        M68K_FACT_CONFIDENCE_TOOL_INFERRED, runtime_addresses, &site_state) != 0) {
       return -1;
     }
   }
@@ -6637,7 +6677,7 @@ static int seed_callback_field_indirect_targets(M68kDecodeIR *decode, M68kFactIR
       if (candidate->offset >= section->size || !accepted_start[section_index][candidate->offset]) continue;
       if (candidate_has_decoded_direct_control_target(candidate)) continue;
       if (enqueue_callback_field_indirect_targets(decode, facts, queue, accepted_start, accepted_bytes,
-          profile, max_cpu, runtime_addresses, &targets, section_index, candidate) != 0) {
+          profile, max_cpu, runtime_addresses, relocation_lookup, &targets, section_index, candidate) != 0) {
         arena_rewind(scratch_arena, mark);
         return -1;
       }

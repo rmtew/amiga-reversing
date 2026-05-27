@@ -4703,6 +4703,55 @@ static int test_facts_v2_callback_field_store_promotes_indirect_call_target(void
   return 0;
 }
 
+static int test_facts_v2_callback_field_target_inherits_call_site_trace_state(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  char *source = NULL;
+  uint8_t bytes[52] = {
+    0x61u, 0x00u, 0x00u, 0x08u,
+    0x61u, 0x00u, 0x00u, 0x16u,
+    0x4eu, 0x75u,
+    0x41u, 0xfau, 0x00u, 0x1eu,
+    0x27u, 0x48u, 0x00u, 0x3eu,
+    0x41u, 0xfau, 0x00u, 0x1eu,
+    0x27u, 0x48u, 0x00u, 0x3eu,
+    0x4eu, 0x75u,
+    0x4bu, 0xf9u, 0x00u, 0xdfu, 0xf0u, 0x00u,
+    0x20u, 0x6bu, 0x00u, 0x3eu,
+    0x4eu, 0x90u,
+    0x4eu, 0x75u,
+    0x3bu, 0x7cu, 0x00u, 0x20u, 0x00u, 0x9cu,
+    0x4eu, 0x75u,
+    0x4eu, 0x75u
+  };
+  memset(&section, 0, sizeof(section));
+  memset(&source_analysis, 0, sizeof(source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "loc_0_0000002A:\n\tmove.w #INTF_VERTB,intreq(a5)\n\trts\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.w #$20,$009C(a5)\n") == NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_relocated_indirect_call_promotes_cross_section_target(void) {
   M68kObject object;
   M68kSection code_section;
@@ -19908,6 +19957,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_traced_indirect_call_promotes_known_target},
     {"facts_v2_callback_field_store_promotes_indirect_call_target",
       test_facts_v2_callback_field_store_promotes_indirect_call_target},
+    {"facts_v2_callback_field_target_inherits_call_site_trace_state",
+      test_facts_v2_callback_field_target_inherits_call_site_trace_state},
     {"facts_v2_relocated_indirect_call_promotes_cross_section_target",
       test_facts_v2_relocated_indirect_call_promotes_cross_section_target},
     {"facts_v2_traced_displacement_indirect_jump_promotes_runtime_copy_target",

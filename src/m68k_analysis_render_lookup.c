@@ -661,14 +661,224 @@ static int render_lookup_add_inferred_hardware_base_seed(M68kRenderLookup *looku
   return 0;
 }
 
+typedef struct M68kRenderCallbackFieldTarget {
+  size_t section_index;
+  uint32_t target_offset;
+  uint8_t base_reg;
+  int32_t displacement;
+} M68kRenderCallbackFieldTarget;
+
+typedef struct M68kRenderCallbackFieldTargets {
+  M68kRenderCallbackFieldTarget *items;
+  size_t count;
+  size_t capacity;
+} M68kRenderCallbackFieldTargets;
+
+static int render_candidate_operand_base_field_slot(const M68kDecodeCandidate *candidate, size_t operand_index,
+    uint8_t *out_base_reg, int32_t *out_displacement) {
+  const M68kAsmOperandValue *operand;
+  if (out_base_reg != NULL) *out_base_reg = 0U;
+  if (out_displacement != NULL) *out_displacement = 0;
+  if (candidate == NULL || out_base_reg == NULL || out_displacement == NULL ||
+      operand_index >= candidate->operand_count) {
+    return 0;
+  }
+  operand = &candidate->operands[operand_index];
+  if (candidate->operand_kinds[operand_index] != M68K_ASM_OPERAND_EA || operand->ea_reg >= 7U) return 0;
+  if (operand->ea_mode == 2U) {
+    *out_base_reg = operand->ea_reg;
+    *out_displacement = 0;
+    return 1;
+  }
+  if (operand->ea_mode == 5U) {
+    *out_base_reg = operand->ea_reg;
+    *out_displacement = (int32_t)(int16_t)(operand->value & 0xFFFFU);
+    return 1;
+  }
+  return 0;
+}
+
+static int render_operand_is_address_register_direct(const M68kAsmOperandValue *operand, uint8_t *out_reg) {
+  if (operand == NULL) return 0;
+  if (operand->kind == M68K_ASM_OPERAND_AN) {
+    if (out_reg != NULL) *out_reg = operand->reg;
+    return 1;
+  }
+  if (operand->kind == M68K_ASM_OPERAND_RN && operand->reg_is_address) {
+    if (out_reg != NULL) *out_reg = operand->reg;
+    return 1;
+  }
+  if (operand->kind == M68K_ASM_OPERAND_EA && operand->ea_mode == 1U) {
+    if (out_reg != NULL) *out_reg = operand->ea_reg;
+    return 1;
+  }
+  return 0;
+}
+
+static int render_candidate_indirect_control_base_register(const M68kDecodeCandidate *candidate, uint8_t *out_reg) {
+  M68kInstructionIR instruction;
+  const M68kSimFormMetadata *metadata;
+  size_t operand_index;
+  if (out_reg != NULL) *out_reg = 0U;
+  if (candidate == NULL || out_reg == NULL || m68k_decode_candidate_to_instruction(candidate, &instruction) != 0)
+    return 0;
+  metadata = m68k_sim_metadata_for_instruction(&instruction);
+  if (metadata == NULL ||
+      (metadata->flow_kind != M68K_SIM_FLOW_CALL && metadata->flow_kind != M68K_SIM_FLOW_JUMP)) {
+    return 0;
+  }
+  for (operand_index = 0U; operand_index < candidate->operand_count && operand_index < 4U &&
+       operand_index < instruction.operand_count; ++operand_index) {
+    uint8_t base_reg = 0U;
+    int32_t displacement = 0;
+    if (metadata->operand_access_kinds[operand_index] != M68K_SIM_ACCESS_BRANCH_TARGET ||
+        metadata->operand_result_kinds[operand_index] != M68K_SIM_RESULT_CONTROL_TARGET) {
+      continue;
+    }
+    if (candidate->operand_kinds[operand_index] == M68K_ASM_OPERAND_IND) {
+      *out_reg = candidate->operands[operand_index].reg;
+      return 1;
+    }
+    if (render_candidate_operand_base_field_slot(candidate, operand_index, &base_reg, &displacement) &&
+        displacement == 0) {
+      *out_reg = base_reg;
+      return 1;
+    }
+  }
+  return 0;
+}
+
+static int render_candidate_loads_callback_field_to_control_register(const M68kDecodeCandidate *candidate,
+    uint8_t control_reg, uint8_t *out_base_reg, int32_t *out_displacement) {
+  uint8_t dest_reg = 0U;
+  if (candidate == NULL || candidate->mnemonic_id != M68K_ASM_MNEMONIC_MOVEA ||
+      candidate->size_suffix != 'l' || candidate->operand_count != 2U ||
+      !render_operand_is_address_register_direct(&candidate->operands[1], &dest_reg) || dest_reg != control_reg) {
+    return 0;
+  }
+  return render_candidate_operand_base_field_slot(candidate, 0U, out_base_reg, out_displacement);
+}
+
+static int render_callback_field_targets_append(M68kRenderLookup *lookup, M68kRenderCallbackFieldTargets *targets,
+    const M68kRenderCallbackFieldTarget *target) {
+  M68kRenderCallbackFieldTarget *grown;
+  size_t next_capacity;
+  size_t index;
+  if (lookup == NULL || targets == NULL || target == NULL) return -1;
+  for (index = 0U; index < targets->count; ++index) {
+    const M68kRenderCallbackFieldTarget *existing = &targets->items[index];
+    if (existing->section_index == target->section_index && existing->target_offset == target->target_offset &&
+        existing->base_reg == target->base_reg && existing->displacement == target->displacement) {
+      return 0;
+    }
+  }
+  if (targets->count == targets->capacity) {
+    next_capacity = targets->capacity == 0U ? 16U : targets->capacity * 2U;
+    grown = (M68kRenderCallbackFieldTarget *)render_lookup_grow_array(lookup, targets->items, targets->count,
+      sizeof(*grown), next_capacity);
+    if (grown == NULL) return -1;
+    targets->items = grown;
+    targets->capacity = next_capacity;
+  }
+  targets->items[targets->count++] = *target;
+  return 0;
+}
+
+static int render_lookup_collect_callback_field_targets(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
+    uint8_t **accepted_start, M68kRenderCallbackFieldTargets *targets) {
+  size_t section_index;
+  if (lookup == NULL || decode == NULL || accepted_start == NULL || targets == NULL) return -1;
+  memset(targets, 0, sizeof(*targets));
+  for (section_index = 0U; section_index < decode->section_count; ++section_index) {
+    const M68kDecodeSectionIR *section = &decode->sections[section_index];
+    size_t candidate_index;
+    for (candidate_index = 0U; candidate_index < section->candidate_count; ++candidate_index) {
+      const M68kDecodeCandidate *candidate = &section->candidates[candidate_index];
+      const M68kDecodeCandidate *previous;
+      M68kInstructionIR previous_instruction;
+      M68kRenderCallbackFieldTarget target;
+      size_t target_section_index = 0U;
+      uint32_t target_offset = 0U;
+      uint8_t source_reg = 0U;
+      uint8_t load_reg = 0U;
+      if (!candidate_is_accepted_start(section, accepted_start[section_index], candidate) ||
+          candidate->mnemonic_id != M68K_ASM_MNEMONIC_MOVE || candidate->size_suffix != 'l' ||
+          candidate->operand_count != 2U ||
+          !render_operand_is_address_register_direct(&candidate->operands[0], &source_reg) ||
+          !render_candidate_operand_base_field_slot(candidate, 1U, &target.base_reg, &target.displacement)) {
+        continue;
+      }
+      previous = find_previous_accepted_candidate(section, accepted_start[section_index], candidate->offset);
+      if (previous == NULL || previous->offset + previous->byte_count != candidate->offset ||
+          m68k_decode_candidate_to_instruction(previous, &previous_instruction) != 0 ||
+          !candidate_loads_data_target_to_address_reg(previous, &previous_instruction, &target_section_index,
+            &target_offset, &load_reg) ||
+          target_section_index != section_index || load_reg != source_reg) {
+        continue;
+      }
+      target.section_index = section_index;
+      target.target_offset = target_offset;
+      if (render_callback_field_targets_append(lookup, targets, &target) != 0) return -1;
+    }
+  }
+  return 0;
+}
+
+static int render_lookup_add_callback_indirect_hardware_base_seeds(M68kRenderLookup *lookup,
+    const M68kRenderCallbackFieldTargets *targets, const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
+    size_t section_index, uint8_t control_reg, const M68kDecodeCandidate *site_candidate,
+    const M68kRenderPlatformState *platform_state, uint8_t *out_changed) {
+  uint8_t base_reg = 0U;
+  int32_t displacement = 0;
+  const M68kDecodeCandidate *load_candidate;
+  size_t index;
+  size_t matched_count = 0U;
+  uint8_t reg_index;
+  if (lookup == NULL || targets == NULL || site_candidate == NULL || platform_state == NULL ||
+      section == NULL || accepted_start == NULL) {
+    return 0;
+  }
+  load_candidate = find_previous_accepted_candidate(section, accepted_start, site_candidate->offset);
+  if (!render_candidate_loads_callback_field_to_control_register(load_candidate, control_reg, &base_reg,
+      &displacement)) {
+    return 0;
+  }
+  for (index = 0U; index < targets->count; ++index) {
+    const M68kRenderCallbackFieldTarget *target = &targets->items[index];
+    if (target->section_index == section_index && target->base_reg == base_reg &&
+        target->displacement == displacement) {
+      ++matched_count;
+    }
+  }
+  if (matched_count < 2U) return 0;
+  for (index = 0U; index < targets->count; ++index) {
+    const M68kRenderCallbackFieldTarget *target = &targets->items[index];
+    if (target->section_index != section_index || target->base_reg != base_reg ||
+        target->displacement != displacement) {
+      continue;
+    }
+    for (reg_index = 0U; reg_index < 8U; ++reg_index) {
+      if (m68k_bitset_u32_has(platform_state->address_hardware_base_known, reg_index) &&
+          render_lookup_add_inferred_hardware_base_seed(lookup, target->section_index, target->target_offset,
+            reg_index, platform_state->address_hardware_base_id[reg_index], out_changed) != 0) {
+        return -1;
+      }
+    }
+  }
+  return 0;
+}
+
 static int render_lookup_infer_amiga_call_hardware_base_seed_pass(M68kRenderLookup *lookup,
     const M68kDecodeIR *decode, uint8_t **accepted_start, uint8_t *out_changed) {
+  M68kRenderCallbackFieldTargets callback_targets;
   size_t section_index;
   if (out_changed != NULL) *out_changed = 0U;
   if (lookup == NULL || decode == NULL || accepted_start == NULL || lookup->object == NULL ||
       lookup->object->platform_backend_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK) {
     return 0;
   }
+  if (render_lookup_collect_callback_field_targets(lookup, decode, accepted_start, &callback_targets) != 0)
+    return -1;
   for (section_index = 0U; section_index < decode->section_count; ++section_index) {
     const M68kDecodeSectionIR *section = &decode->sections[section_index];
     M68kRenderPlatformState platform_state;
@@ -696,6 +906,14 @@ static int render_lookup_infer_amiga_call_hardware_base_seed_pass(M68kRenderLook
                 reg_index, platform_state.address_hardware_base_id[reg_index], out_changed) != 0) {
             return -1;
           }
+        }
+      } else if (instruction_has_call_flow_local(&instruction)) {
+        uint8_t control_reg = 0U;
+        if (render_candidate_indirect_control_base_register(candidate, &control_reg) &&
+            render_lookup_add_callback_indirect_hardware_base_seeds(lookup, &callback_targets, section,
+              accepted_start[section_index], section_index, control_reg, candidate, &platform_state,
+              out_changed) != 0) {
+          return -1;
         }
       }
       platform_state_update_data_lvo_after_instruction(&platform_state, &instruction);
