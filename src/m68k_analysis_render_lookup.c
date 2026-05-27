@@ -8136,32 +8136,33 @@ static int render_lookup_pointer_value_to_source_offset(const M68kRenderLookup *
   uint32_t logical_address = 0U;
   if (out_source_offset != NULL) *out_source_offset = 0U;
   if (lookup == NULL || section == NULL || out_source_offset == NULL || value == 0U) return 0;
+  if (lookup->runtime_address_ranges != NULL) {
+    for (index = 0U; index < lookup->runtime_address_range_count; ++index) {
+      const M68kFact *range = lookup->runtime_address_ranges[index].fact;
+      uint32_t delta;
+      uint32_t source_offset;
+      if (range == NULL || range->section_index != section->section_index || !range->has_runtime_address ||
+          value < range->runtime_address) {
+        continue;
+      }
+      delta = value - range->runtime_address;
+      if (delta >= range->size || range->offset > UINT32_MAX - delta) continue;
+      source_offset = range->offset + delta;
+      if (source_offset >= section->size) continue;
+      if (!lookup_source_has_materialized_runtime_address(lookup, section->section_index, source_offset, value))
+        continue;
+      if (!lookup_source_logical_address(lookup, section->section_index, source_offset, &logical_address) ||
+          logical_address != value) {
+        continue;
+      }
+      *out_source_offset = source_offset;
+      return 1;
+    }
+  }
   if (value < section->size &&
       lookup_source_logical_address(lookup, section->section_index, value, &logical_address) &&
       logical_address == value) {
     *out_source_offset = value;
-    return 1;
-  }
-  if (lookup->runtime_address_ranges == NULL) return 0;
-  for (index = 0U; index < lookup->runtime_address_range_count; ++index) {
-    const M68kFact *range = lookup->runtime_address_ranges[index].fact;
-    uint32_t delta;
-    uint32_t source_offset;
-    if (range == NULL || range->section_index != section->section_index || !range->has_runtime_address ||
-        value < range->runtime_address) {
-      continue;
-    }
-    delta = value - range->runtime_address;
-    if (delta >= range->size || range->offset > UINT32_MAX - delta) continue;
-    source_offset = range->offset + delta;
-    if (source_offset >= section->size) continue;
-    if (!lookup_source_has_materialized_runtime_address(lookup, section->section_index, source_offset, value))
-      continue;
-    if (!lookup_source_logical_address(lookup, section->section_index, source_offset, &logical_address) ||
-        logical_address != value) {
-      continue;
-    }
-    *out_source_offset = source_offset;
     return 1;
   }
   return 0;
@@ -8169,12 +8170,10 @@ static int render_lookup_pointer_value_to_source_offset(const M68kRenderLookup *
 
 static int render_lookup_pointer_table_target_can_take_auto_label(const M68kRenderLookup *lookup,
     const M68kDecodeSectionIR *section, const uint8_t *accepted_bytes, uint32_t offset) {
-  const M68kAnalysisStructuredDataItem *covering_item;
   if (lookup == NULL || section == NULL || offset >= section->size) return 0;
   if (accepted_range_has_code_byte(accepted_bytes, section->size, offset, 1U)) return 0;
   if (lookup_offset_is_inside_relocation_payload(lookup, section->section_index, offset)) return 0;
-  covering_item = lookup_structured_data_item_covering_offset(lookup, section->section_index, offset);
-  return covering_item == NULL || covering_item->offset == offset;
+  return 1;
 }
 
 static int render_lookup_add_pointer_table_target_labels_for_item(M68kRenderLookup *lookup,
@@ -8202,6 +8201,7 @@ static int render_lookup_add_pointer_table_target_labels_for_item(M68kRenderLook
       continue;
     }
     render_lookup_mark_label(lookup, section_index, target_offset);
+    render_lookup_mark_label_target_ref(lookup, section_index, target_offset);
   }
   return 0;
 }
