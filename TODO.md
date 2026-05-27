@@ -178,6 +178,14 @@ cannot be completed cleanly by the same path used for `_GetFNum` stack locals ye
 is to carry accepted CODE 0 layout into C-owned analysis metadata, then use it with proven A5 lifetime state to emit
 typed A5 storage facts. A renderer-only or Python-only A5 slot inference remains explicitly rejected.
 
+Follow-up audit: the existing `M68kBaseLayoutFieldIR`/app-slot model is not the right carrier for this. It currently
+models app-base storage with app-style symbols and conflict rules, while Mac CODE 0 proves three distinct A5 regions:
+below-A5 globals, the positive jump-table window, and positive globals after the table. Reusing the Amiga app-layout
+path would hide those distinctions and make later type/lifetime propagation less correct. The clean implementation
+needs a Mac platform-data payload on `M68kObject` (populated from the enclosing CODE 0 resource, not guessed from the
+selected CODE bytes) and a platform storage-layout IR that can describe signed A5-relative regions before individual
+slot types are inferred.
+
 
 ### Pascal strings
 
