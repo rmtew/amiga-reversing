@@ -690,20 +690,28 @@ def build_listing_artifact_profile_from_binary_source(
     project_root: Path = PROJECT_ROOT,
 ) -> tuple[int, dict[str, object], CListingArtifact]:
     if isinstance(binary_source, MacosCodeResourceSource):
-        from amiga_reversing.disasm.macos_code_provider import (
-            macos_code_resource_byte_view_with_c_backend,
-        )
-
-        payload, _profile = macos_code_resource_byte_view_with_c_backend(binary_source)
-        code_bytes = payload.get("code_bytes")
-        if not isinstance(code_bytes, bytes):
-            raise TypeError("Mac CODE byte provider did not return code bytes")
-        return build_macos_code_bytes_listing_artifact_profile(
-            code_bytes,
-            display_path=binary_source.display_path,
-            metadata_path=metadata_path,
+        image_bytes = binary_source.source_image.read_bytes()
+        metadata_text = _metadata_path_text(metadata_path)
+        include_dir = _platform_include_dir_for_listing("macos-code", project_root)
+        artifact = CListingArtifact.create_macos_hfs_code_resource(
+            image_bytes,
+            hfs_path=binary_source.hfs_path,
+            resource_id=binary_source.resource_id,
+            metadata_text=metadata_text,
+            include_dir=str(include_dir),
             project_root=project_root,
         )
+        try:
+            summary, summary_profile = artifact.summary_payload()
+            total_rows = summary.get("total_rows", 0)
+        except Exception:
+            artifact.close()
+            raise
+        profile = dict(summary_profile)
+        profile["source_kind"] = "macos_code_resource"
+        profile.setdefault("wrapped_backend", None)
+        profile["cache_identity"] = binary_source.stable_cache_identity
+        return int(total_rows) if isinstance(total_rows, int) else 0, profile, artifact
     metadata_text = _metadata_path_text(metadata_path)
     with _source_file_for_c_backend(binary_source, project_root=project_root) as source_file:
         include_dir = _platform_include_dir_for_listing(source_file.platform_name, project_root)
@@ -1310,6 +1318,17 @@ def _platform_file_dll(project_root: Path) -> CDLL:
         POINTER(c_void_p),
     ]
     dll.platform_file_facts_v2_listing_artifact_macos_code_buffer_create.restype = c_int
+    dll.platform_file_facts_v2_listing_artifact_macos_hfs_code_resource_create.argtypes = [
+        c_void_p,
+        c_size_t,
+        c_char_p,
+        c_int,
+        c_char_p,
+        c_char_p,
+        POINTER(c_void_p),
+        POINTER(c_void_p),
+    ]
+    dll.platform_file_facts_v2_listing_artifact_macos_hfs_code_resource_create.restype = c_int
     dll.platform_file_facts_v2_listing_artifact_window_json_alloc.argtypes = [
         c_void_p,
         c_uint32,
@@ -1597,6 +1616,40 @@ class CListingArtifact:
             buffer,
             len(code_bytes),
             _c_arg(display_path),
+            _c_arg(metadata_text),
+            _c_arg(include_dir),
+            byref(artifact),
+            byref(error),
+        )
+        try:
+            error_text = string_at(error.value).decode("utf-8", errors="replace") if error.value else ""
+            if result != 0 or not artifact.value:
+                raise RuntimeError(f"C backend DLL failed: {error_text}")
+            return cls(dll, artifact)
+        finally:
+            if error.value:
+                dll.platform_file_free_text(error)
+
+    @classmethod
+    def create_macos_hfs_code_resource(
+        cls,
+        image_bytes: bytes,
+        *,
+        hfs_path: str,
+        resource_id: int,
+        metadata_text: str,
+        include_dir: str,
+        project_root: Path,
+    ) -> CListingArtifact:
+        dll = _platform_file_dll(project_root)
+        artifact = c_void_p()
+        error = c_void_p()
+        buffer = create_string_buffer(image_bytes, len(image_bytes))
+        result = dll.platform_file_facts_v2_listing_artifact_macos_hfs_code_resource_create(
+            buffer,
+            len(image_bytes),
+            _c_arg(hfs_path),
+            resource_id,
             _c_arg(metadata_text),
             _c_arg(include_dir),
             byref(artifact),

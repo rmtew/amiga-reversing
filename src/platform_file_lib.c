@@ -5027,6 +5027,26 @@ static int append_analysis_json_with_decompression_profile(JsonBuilder *builder,
     return -1;
   if (append_analysis_restored_source_model_json(builder, backend_name, object, source_plan) != 0)
     return -1;
+  if (strcmp(backend_name, "macos-code") == 0) {
+    const PlatformMacosA5WorldLayout *a5_layout = platform_macos_object_a5_world_layout(object);
+    if (json_builder_append(builder, ",\"macos_a5_world_layout\":") != 0) return -1;
+    if (a5_layout == NULL) {
+      if (json_builder_append(builder, "null") != 0) return -1;
+    } else if (json_builder_appendf(builder,
+          "{\"present\":true,\"code0_resource_id\":%d,\"above_a5_size\":%u,\"below_a5_size\":%u,"
+          "\"jump_table_offset_from_a5\":%u,\"jump_table_length\":%u,"
+          "\"regions\":[{\"kind\":\"below_a5_globals\",\"base_register\":\"a5\",\"start\":%d,\"size\":%u},"
+          "{\"kind\":\"jump_table\",\"base_register\":\"a5\",\"start\":%u,\"end\":%u,\"size\":%u},"
+          "{\"kind\":\"above_a5_globals\",\"base_register\":\"a5\",\"start\":%u,\"size\":%u}]}",
+          (int)a5_layout->code0_resource_id, (unsigned)a5_layout->above_a5_size,
+          (unsigned)a5_layout->below_a5_size, (unsigned)a5_layout->jump_table_offset_from_a5,
+          (unsigned)a5_layout->jump_table_length, (int)a5_layout->negative_global_start,
+          (unsigned)a5_layout->negative_global_size, (unsigned)a5_layout->jump_table_start,
+          (unsigned)a5_layout->jump_table_end, (unsigned)a5_layout->jump_table_length,
+          (unsigned)a5_layout->positive_global_start, (unsigned)a5_layout->positive_global_size) != 0) {
+      return -1;
+    }
+  }
   if (profile != NULL) {
     if (json_builder_append(builder,
         ",\"profile\":{\"generation\":\"facts_v2_analysis\",\"analysis_backend\":\"facts_v2\",\"facts_v2\":") != 0 ||
@@ -10750,6 +10770,111 @@ int platform_file_facts_v2_listing_artifact_macos_code_buffer_create(
 fail:
   platform_file_facts_v2_listing_artifact_destroy(artifact);
   return listing_artifact_set_error(out_error, &diagnostics, "Mac CODE listing artifact create failed");
+}
+
+int platform_file_facts_v2_listing_artifact_macos_hfs_code_resource_create(
+    const unsigned char *data, size_t size, const char *hfs_path, int32_t resource_id,
+    const char *metadata_path, const char *include_dir, PlatformFileListingArtifact **out_artifact,
+    char **out_error) {
+  PlatformMacosHFSCatalog catalog;
+  PlatformMacosHFSDirectoryInfo *directories = NULL;
+  PlatformMacosHFSFileInfo *files = NULL;
+  PlatformMacosHFSFileInfo *selected_file = NULL;
+  PlatformMacosResourceFork resource_fork_info;
+  PlatformMacosResourceInfo *resources = NULL;
+  const PlatformMacosResourceInfo *selected_resource = NULL;
+  const PlatformMacosResourceInfo *code0_resource = NULL;
+  unsigned char *resource_fork = NULL;
+  unsigned char *code_bytes = NULL;
+  char *copy_error = NULL;
+  char path[PLATFORM_MACOS_HFS_PATH_SIZE];
+  uint32_t payload_offset = 0U;
+  uint32_t payload_size = 0U;
+  uint32_t code_start = 0U;
+  uint32_t code_size = 0U;
+  size_t index;
+  int find_status;
+  M68kDiagList diagnostics = {0};
+  PlatformFileListingArtifact *artifact = NULL;
+  (void)include_dir;
+  if (out_artifact != NULL) *out_artifact = NULL;
+  if (out_error != NULL) *out_error = NULL;
+  memset(&catalog, 0, sizeof(catalog));
+  memset(&resource_fork_info, 0, sizeof(resource_fork_info));
+  if (out_artifact == NULL || out_error == NULL || data == NULL || size == 0U ||
+      hfs_path == NULL || hfs_path[0] == '\0' || resource_id <= 0 || resource_id > 32767) {
+    if (out_error != NULL) *out_error = m68k_platform_dup_string("invalid Mac HFS CODE listing artifact request");
+    return -1;
+  }
+  if (platform_macos_hfs_catalog_parse(data, size, &catalog, NULL, 0U, NULL, 0U) != 0) goto fail;
+  directories = (PlatformMacosHFSDirectoryInfo *)calloc(catalog.directory_count ? catalog.directory_count : 1U,
+    sizeof(*directories));
+  files = (PlatformMacosHFSFileInfo *)calloc(catalog.file_count ? catalog.file_count : 1U, sizeof(*files));
+  if (directories == NULL || files == NULL) goto fail;
+  if (platform_macos_hfs_catalog_parse(data, size, &catalog, directories, catalog.directory_count,
+      files, catalog.file_count) != 0) goto fail;
+  for (index = 0U; index < catalog.file_count; ++index) {
+    if (platform_macos_hfs_file_path(directories, catalog.directory_count, &files[index], path, sizeof(path)) != 0)
+      continue;
+    if (macos_hfs_path_matches(&catalog.volume, path, hfs_path)) {
+      selected_file = &files[index];
+      break;
+    }
+  }
+  if (selected_file == NULL) goto fail;
+  if (macos_copy_fork_or_error(data, size, &catalog.volume, selected_file->resource_extents,
+      selected_file->resource_size, &resource_fork, &copy_error) != 0) goto fail;
+  if (platform_macos_resource_fork_parse(resource_fork, selected_file->resource_size, &resource_fork_info,
+      NULL, 0U, NULL, 0U) != 0) goto fail;
+  resources = (PlatformMacosResourceInfo *)calloc(
+    resource_fork_info.resource_count ? resource_fork_info.resource_count : 1U, sizeof(*resources));
+  if (resources == NULL) goto fail;
+  if (platform_macos_resource_fork_parse(resource_fork, selected_file->resource_size, &resource_fork_info,
+      NULL, 0U, resources, resource_fork_info.resource_count) != 0) goto fail;
+  selected_resource = macos_find_resource(resources, resource_fork_info.resource_count, "CODE", (int16_t)resource_id);
+  code0_resource = macos_find_code0_resource(resources, resource_fork_info.resource_count);
+  if (selected_resource == NULL ||
+      platform_macos_code_metadata_executable_range(&selected_resource->code, &code_start, &code_size) != 0) {
+    goto fail;
+  }
+  find_status = platform_macos_resource_fork_find_payload(resource_fork, selected_file->resource_size, "CODE",
+    (int16_t)resource_id, &payload_offset, &payload_size);
+  if (find_status != 0 || code_start > payload_size || code_size > payload_size - code_start) goto fail;
+  code_bytes = (unsigned char *)malloc(code_size ? code_size : 1U);
+  if (code_bytes == NULL) goto fail;
+  if (code_size != 0U) memcpy(code_bytes, resource_fork + payload_offset + code_start, code_size);
+  artifact = listing_artifact_alloc_base("macos-code", hfs_path, &diagnostics);
+  if (artifact == NULL) goto fail;
+  if (load_flat_m68k_object_from_buffer(code_bytes, code_size, &artifact->object, m68k_diag_sink(&diagnostics)) != 0)
+    goto fail;
+  artifact->object.platform_backend_kind = M68K_PLATFORM_BACKEND_MACOS;
+  if (code0_resource != NULL &&
+      platform_macos_object_set_a5_world_layout(&artifact->object, code0_resource->resource_id,
+        &code0_resource->code) != 0) {
+    goto fail;
+  }
+  if (configure_flat_m68k_buffer_policy(&artifact->policy, &artifact->object, metadata_path, &diagnostics) != 0)
+    goto fail;
+  enrich_policy_pointer_targets_from_object_local(&artifact->policy, &artifact->object);
+  if (!validate_effective_policy_against_object_local(&diagnostics, &artifact->object, &artifact->policy)) goto fail;
+  if (listing_artifact_build_analysis(artifact, &diagnostics) != 0) goto fail;
+  *out_artifact = artifact;
+  free(code_bytes);
+  free(resource_fork);
+  free(resources);
+  free(files);
+  free(directories);
+  return 0;
+
+fail:
+  platform_file_facts_v2_listing_artifact_destroy(artifact);
+  free(copy_error);
+  free(code_bytes);
+  free(resource_fork);
+  free(resources);
+  free(files);
+  free(directories);
+  return listing_artifact_set_error(out_error, &diagnostics, "Mac HFS CODE listing artifact create failed");
 }
 
 int platform_file_facts_v2_listing_artifact_window_json_alloc(PlatformFileListingArtifact *artifact,

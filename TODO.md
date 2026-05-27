@@ -211,9 +211,15 @@ Progress note: `M68kObject` now has a Mac platform-data carrier for CODE 0 A5-wo
 signed below-A5 global range, positive jump-table window, and positive global tail from parsed CODE 0 metadata and
 rejects non-CODE0 metadata rather than guessing from selected CODE bytes. Covered by
 `object_a5_world_layout_uses_code0_metadata`, `object_a5_world_layout_rejects_non_code0_metadata`, and
-`cmd /c src\precommit.bat m68k_ir`. Remaining work is to populate this carrier when selected Mac CODE artifacts are
-built from an enclosing resource fork, then expose it through source-analysis storage-layout IR and A5 lifetime/type
-propagation.
+`cmd /c src\precommit.bat m68k_ir`.
+
+Progress note: selected Mac HFS CODE listing artifacts now build in C from the enclosing HFS/resource-fork context,
+not from detached CODE bytes. The artifact extracts the selected nonzero CODE executable span, attaches the CODE 0
+A5-world layout to the `M68kObject`, and serializes `macos_a5_world_layout` in the analysis JSON. Context-free Mac CODE
+byte artifacts still report `macos_a5_world_layout: null`, which prevents accidental guessing from incomplete bytes.
+Covered by `test_021_007_macos_hfs_code_artifact_carries_code0_a5_world_layout`,
+`tests/test_macos_c_backend.py`, and `cmd /c src\precommit.bat m68k_ir`. Remaining work is to expose the carried
+layout through source-analysis storage-layout IR and A5 lifetime/type propagation.
 
 
 ### Pascal strings

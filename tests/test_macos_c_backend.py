@@ -584,7 +584,7 @@ def test_021_002_native_macos_code_byte_provider_uses_segment_body_without_movea
     assert payload["executable_ranges"][0]["evidence"] == "nonzero_code_segment_body"
 
 
-def test_021_007_macos_code_source_uses_native_buffer_artifact(
+def test_021_007_macos_code_source_uses_native_hfs_artifact(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
@@ -603,23 +603,29 @@ def test_021_007_macos_code_source_uses_native_buffer_artifact(
     def fail_raw_transport(*args: object, **kwargs: object) -> object:
         raise AssertionError("Mac CODE must not enter _source_file_for_c_backend")
 
-    def fake_create_macos_code_bytes(
-        code_bytes: bytes,
+    def fake_create_macos_hfs_code_resource(
+        image_bytes: bytes,
         *,
-        display_path: str,
+        hfs_path: str,
+        resource_id: int,
         metadata_text: str,
         include_dir: str,
         project_root: Path,
     ) -> FakeArtifact:
-        calls["code_bytes"] = code_bytes
-        calls["display_path"] = display_path
+        calls["image_bytes"] = image_bytes
+        calls["hfs_path"] = hfs_path
+        calls["resource_id"] = resource_id
         calls["metadata_text"] = metadata_text
         calls["include_dir"] = include_dir
         calls["project_root"] = project_root
         return FakeArtifact()
 
     monkeypatch.setattr(c_backend, "_source_file_for_c_backend", fail_raw_transport)
-    monkeypatch.setattr(CListingArtifact, "create_macos_code_bytes", staticmethod(fake_create_macos_code_bytes))
+    monkeypatch.setattr(
+        CListingArtifact,
+        "create_macos_hfs_code_resource",
+        staticmethod(fake_create_macos_hfs_code_resource),
+    )
 
     total_rows, profile, artifact = build_listing_artifact_profile_from_binary_source(
         _macos_code_descriptor(image_path, 1),
@@ -629,10 +635,43 @@ def test_021_007_macos_code_source_uses_native_buffer_artifact(
     assert total_rows == 2
     assert profile["backend"] == "macos-code"
     assert profile["source_kind"] == "macos_code_resource"
-    assert calls["code_bytes"] == b"\x00\x00\x00\x10\x00\x00\x20\x5f\x4e\x75"
-    assert calls["display_path"] == f"{image_path.as_posix()}::MPW-GM/Tools/Asm::CODE 1"
+    assert calls["image_bytes"] == image_path.read_bytes()
+    assert calls["hfs_path"] == "MPW-GM/Tools/Asm"
+    assert calls["resource_id"] == 1
     assert calls["project_root"] == tmp_path
     assert artifact is not None
+
+
+def test_021_007_macos_hfs_code_artifact_carries_code0_a5_world_layout(tmp_path: Path) -> None:
+    require_built_tools()
+    image_path = tmp_path / "mpw.raw"
+    image_path.write_bytes(_make_hfs_image())
+
+    _total_rows, profile, artifact = build_listing_artifact_profile_from_binary_source(
+        _macos_code_descriptor(image_path, 1),
+        project_root=PROJECT_ROOT,
+    )
+    try:
+        analysis, _analysis_profile = artifact.analysis_payload()
+    finally:
+        artifact.close()
+
+    assert profile["backend"] == "macos-code"
+    assert profile["source_kind"] == "macos_code_resource"
+    assert profile["wrapped_backend"] is None
+    assert analysis["macos_a5_world_layout"] == {
+        "present": True,
+        "code0_resource_id": 0,
+        "above_a5_size": 48,
+        "below_a5_size": 64,
+        "jump_table_offset_from_a5": 32,
+        "jump_table_length": 16,
+        "regions": [
+            {"kind": "below_a5_globals", "base_register": "a5", "start": -64, "size": 64},
+            {"kind": "jump_table", "base_register": "a5", "start": 32, "end": 48, "size": 16},
+            {"kind": "above_a5_globals", "base_register": "a5", "start": 48, "size": 0},
+        ],
+    }
 
 
 def test_021_007_macos_code_bytes_artifact_profile_is_native(tmp_path: Path) -> None:
@@ -654,6 +693,7 @@ def test_021_007_macos_code_bytes_artifact_profile_is_native(tmp_path: Path) -> 
         assert observed_profile["backend"] == "macos-code"
         assert observed_profile.get("wrapped_backend") != "amiga-raw"
     assert analysis["restored_source_model"] == "restored_source_model_v1"
+    assert analysis["macos_a5_world_layout"] is None
     assert analysis["round_trip_required"] is False
     assert analysis["source_coverage_verifier"] == {
         "ok": True,
