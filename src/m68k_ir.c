@@ -86,6 +86,8 @@ const char *m68k_analysis_structured_data_source_pattern_name(uint8_t source_pat
       return "pc_relative_indexed_read";
     case M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_KEYED_LONG_RELATIVE_DISPATCH:
       return "keyed_long_relative_dispatch";
+    case M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_MACOS_SYMBOL_RECORD:
+      return "macos_symbol_record";
     default:
       return NULL;
   }

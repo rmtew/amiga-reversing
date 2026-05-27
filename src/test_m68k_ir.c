@@ -17221,6 +17221,9 @@ static int test_facts_v2_macos_highbit_symbol_string_renders_structured_data(voi
     if (item->has_section_index && item->section_index == 0U &&
         structured_data_item_has_role(item, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_MACOS_SYMBOL_STRING)) {
       M68K_C_ASSERT(strcmp(item->semantic_role, "macos_symbol_string") == 0);
+      M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_MACOS_SYMBOL_RECORD,
+        item->source_pattern_id);
+      M68K_C_ASSERT_STR("macos_symbol_record", item->source_pattern);
       M68K_C_ASSERT(structured_data_item_has_role(item,
         M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING |
         M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LENGTH_PREFIXED_STRING));

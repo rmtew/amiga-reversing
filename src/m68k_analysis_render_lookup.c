@@ -8387,6 +8387,8 @@ static int render_lookup_maybe_add_macos_symbol_string(M68kRenderLookup *lookup,
       M68K_ANALYSIS_STRUCTURED_DATA_STRING) != 0) {
     return -1;
   }
+  render_lookup_set_auto_structured_data_item_source_pattern(lookup, section->section_index, offset,
+    M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_MACOS_SYMBOL_RECORD);
   *out_size = span;
   return 0;
 }

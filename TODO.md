@@ -246,8 +246,8 @@ sequence, and it renders them from structured row roles rather than label text. 
 The Mac `$87,"GETRSRC"` / `$8A,"GETFONTNBR"` rows are deliberately not promoted by the generic scanner: the high bit is
 format-specific symbol-record state, not a plain Pascal length byte. Resolution note: the C auto-data pass now has a
 Mac-gated `macos_symbol_string` structured-data role for high-bit length/control symbol records. It emits first-class
-structured rows with `string` and `length_prefixed_string` roles, renders them as byte-preserving quoted `dc.b` rows,
-and does not promote the same bytes on Amiga/Atari backends. Covered by
+structured rows with `string` and `length_prefixed_string` roles plus `macos_symbol_record` source-pattern provenance,
+renders them as byte-preserving quoted `dc.b` rows, and does not promote the same bytes on Amiga/Atari backends. Covered by
 `facts_v2_macos_highbit_symbol_string_renders_structured_data`,
 `facts_v2_highbit_symbol_string_is_not_generic_pascal`, and `cmd /c src\precommit.bat m68k_ir`. Broader string cleanup
 remains about other proven string/data forms, not this Mac high-bit symbol-record case.
