@@ -79,9 +79,8 @@ call semantics, not comments or Python-side recognition, explain the stack slots
 Resolution note: generated Mac OS runtime metadata now carries structured C prototype fields for calls, including
 `c_name`, `return_type`, and per-parameter rows with source order, type name, pointer depth, and direction. `_GetFNum`
 is therefore represented as `void GetFNum(ConstStr255Param name, short * familyID)` from `Fonts.a`/`Fonts.h`, with the
-font name as an input value and `familyID` as an output-or-inout pointer. This still does not complete type propagation
-through stack locals by itself; the remaining general analysis work is to consume these generated parameter rows when
-Mac trap rows are reached.
+font name as an input value and `familyID` as an output-or-inout pointer. This metadata is now consumed by the C
+analysis bridge described below; this note is the source-data proof, not an open blocker by itself.
 
 Progress note: reached Mac opword calls now expose those generated parameter rows through the recovered platform-call
 JSON/API surface. The `_GetFNum` C regression renders the real `Fonts.a` include and `_GetFNum` macro, records the
@@ -276,7 +275,7 @@ routine offsets as candidate records rather than accepted byte-entry proof. That
 table shape and CODE resource routing are accepted parser output, but individual routine entry semantics still need to
 come from actual entry spans and flow analysis.
 
-What is missing is the bridge from positive A5 calls to these table rows. Calls like:
+The required bridge from positive A5 calls to these table rows is the table-window lookup described below. Calls like:
 
 ```
 	jsr $078A(a5)
