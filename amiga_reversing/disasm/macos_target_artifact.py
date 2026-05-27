@@ -898,8 +898,6 @@ def _code_resource_detail_lines(details: Sequence[Mapping[str, object]]) -> list
         lines.extend(_restored_source_model_lines(_mapping(detail.get("restored_source"))))
         listing = _mapping(detail.get("listing"))
         lines.append(_listing_descriptor_line(listing))
-        if listing.get("kind") != "semantic_listing":
-            lines.extend(_preview_window_lines([_mapping(item) for item in _sequence(detail.get("preview_windows"))]))
     return lines
 
 
@@ -943,39 +941,6 @@ def _listing_descriptor_line(listing: Mapping[str, object]) -> str:
         f";     listing: kind={_text(listing.get('kind'))} available={_text(listing.get('available'))} "
         f"route={_text(listing.get('route'))} reason={_text(listing.get('reason'))}"
     )
-
-
-def _preview_window_lines(previews: Sequence[Mapping[str, object]]) -> list[str]:
-    if not previews:
-        return [";     previews: none"]
-    lines = [";     previews:"]
-    for preview in previews:
-        lines.append(
-            f";       {_text(preview.get('kind'))}: start={_text(preview.get('start'))} "
-            f"end={_text(preview.get('end'))} size={_text(preview.get('size'))} "
-            f"range={_text(preview.get('range_kind'))} fact={_text(preview.get('fact_id'))} "
-            f"status={_text(preview.get('fact_status'))} parser_use={_text(preview.get('parser_use'))} "
-            f"bounded={_text(preview.get('bounded'))} truncated={_text(preview.get('truncated'))} "
-            f"reason={_text(preview.get('reason'))}"
-        )
-        for reason in [_mapping(item) for item in _sequence(preview.get("deferred_reasons"))]:
-            lines.append(
-                f";         deferred: scope={_text(reason.get('scope'))} "
-                f"fact={_text(reason.get('fact_id'))} status={_text(reason.get('fact_status'))} "
-                f"parser_use={_text(reason.get('parser_use'))} reason={_text(reason.get('reason'))}"
-            )
-        for row in [_mapping(item) for item in _sequence(preview.get("rows"))]:
-            fallback = row.get("fallback_reason")
-            fallback_text = f" fallback={_text(fallback)}" if fallback else ""
-            lines.append(
-                f";         row: offset={_text(row.get('offset'))} end={_text(row.get('end'))} "
-                f"bytes={_text(row.get('bytes'))} text={_text(row.get('text'))} "
-                f"decode={_text(row.get('decode_status'))} row_kind={_text(row.get('row_kind'))}"
-                f"{fallback_text} "
-                f"range={_text(row.get('range_kind'))} fact={_text(row.get('fact_id'))} "
-                f"status={_text(row.get('fact_status'))} parser_use={_text(row.get('parser_use'))}"
-            )
-    return lines
 
 
 def _restored_source_model_lines(restored_source: Mapping[str, object]) -> list[str]:
