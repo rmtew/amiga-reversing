@@ -305,7 +305,7 @@ def _code_source_body_section_lines(
                     f";   listing_rows: {selected_listing_rows}",
                     *_code1_entry_stub_context_lines(section),
                     "",
-                    f"; CODE {_text(resource_id)} {_text(section.get('name'))} byte-real source follows.",
+                    f"; CODE {_text(resource_id)} {_text(section.get('name'))} restored source follows.",
                 ]
             )
             lines.extend(_code_source_byte_real_lines(section, payload_bytes=payload_bytes))

@@ -2518,7 +2518,7 @@ CODE_1_candidate_entry_stub:
 CODE_1_candidate_body_after_stub:
 ;     payload[62..29024) status=candidate parser_use=candidate_only reason=remaining CODE 1 bytes are owned by candidate executable body; Segment Loader relocation/fixup semantics remain deferred
 
-; CODE 1 Main byte-real source follows.
+; CODE 1 Main restored source follows.
 ;   rendered_source: CODE 1 status=semantic_rows payload[0..29024) sha256=4a543f6fd1c542fccd38ec9f469b06f65c797dfd8b226fefc9f576faafbe70f5
 ;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
 ;   source_rows:

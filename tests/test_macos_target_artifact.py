@@ -200,7 +200,7 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     assert "CODE 1 Main:" in asm_text
     assert "; Non-CODE resource placeholders" in asm_text
     assert "; CODE source body sections" in asm_text
-    assert "; CODE 1 Main byte-real source follows." in asm_text
+    assert "; CODE 1 Main restored source follows." in asm_text
     assert ";   source_kind: macos_code_resource" in asm_text
     assert ";   backend: macos-code" in asm_text
     assert ";   selected_code_entry_offset: 40" in asm_text
@@ -308,7 +308,7 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     assert "CODE_1_loc_00000028:" in asm_text
     assert "\tmovea.l (a7)+,a0\n" in asm_text
     assert "CODE_1_candidate_code_00000028:\n\tdc.b $20,$5F" not in asm_text
-    assert "; CODE 1 Main byte-real source follows." in asm_text
+    assert "; CODE 1 Main restored source follows." in asm_text
     assert "; Source quality gate" in asm_text
     assert ";   status: byte_real_baseline" in asm_text
     assert ";   semantic_closeout_status: blocked_residual_decode_gaps" in asm_text
@@ -372,7 +372,7 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     code0_source_start = asm_text.index("; CODE 0 unknown source section")
     code1_header = asm_text.index("CODE_1_far_model_header:")
     code1_stub = asm_text.index("CODE_1_candidate_entry_stub:")
-    listing_start = asm_text.index("; CODE 1 Main byte-real source follows.")
+    listing_start = asm_text.index("; CODE 1 Main restored source follows.")
     first_instruction = asm_text.index("\tmovea.l (a7)+,a0\n", listing_start)
     quality_start = asm_text.index("; Source quality gate")
     evidence_start = asm_text.index("; Analysis reports")
