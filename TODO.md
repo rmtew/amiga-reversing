@@ -340,6 +340,13 @@ abs_0_0005CA6C:
 	dc.l $0005CD57	; lookup_table
 ```
 
+Resolution note: one general renderer/analysis gap is fixed here. C-owned absolute long lookup tables now run through
+the same target-label materialization pass as pointer tables, so a table can create renderable labels for mapped data
+targets before the `dc.l` row is emitted. This lets lookup-table values become symbolic label expressions instead of
+remaining numeric only because the target had no pre-existing label. Covered by
+`facts_v2_absolute_long_lookup_table_adds_data_target_labels`. This does not claim the separate byte-emitted dispatch
+table at `lookup_table_00020CA0` or the base-plus-word `jmp $0(a3,a2.w)` form.
+
 ### Auto-analysis failures
 
 General jump table processing. Here the table should be processed as other tables are, in this case we know these are

@@ -9427,6 +9427,52 @@ static int test_facts_v2_absolute_long_lookup_table_renders_labels_and_nulls(voi
   return 0;
 }
 
+static int test_facts_v2_absolute_long_lookup_table_adds_data_target_labels(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  char *source = NULL;
+  uint8_t bytes[28] = {
+    0x00u, 0x00u, 0x00u, 0x10u,
+    0x00u, 0x00u, 0x00u, 0x16u,
+    0x00u, 0x00u, 0x00u, 0x00u,
+    0x00u, 0x00u, 0x00u, 0x00u,
+    'F', 'I', 'R', 'S', 'T', 0x00u,
+    'N', 'E', 'X', 'T', 0x00u, 0x00u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  section.kind = M68K_SECTION_DATA;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.structured_data_item_count = 1U;
+  policy.structured_data_items[0].has_section_index = 1U;
+  policy.structured_data_items[0].section_index = 0U;
+  policy.structured_data_items[0].offset = 0U;
+  policy.structured_data_items[0].size = 8U;
+  policy.structured_data_items[0].kind = M68K_ANALYSIS_STRUCTURED_DATA_LONGS;
+  m68k_analysis_structured_data_item_set_semantic_role_flags(&policy.structured_data_items[0],
+    M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.l loc_0_00000010,loc_0_00000016\t; lookup_table\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "loc_0_00000010:\n\tdc.b $46,$49,$52,$53,$54,$00") != NULL);
+  M68K_C_ASSERT(strstr(source, "loc_0_00000016:\n\tdc.b $4E,$45,$58,$54,$00") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.l $00000010,$00000016") == NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_facts_v2_free_text(source);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_word_lookup_table_mixes_labels_and_raw_without_duplicate_fallback(void) {
   M68kObject object;
   M68kSection section;
@@ -19868,6 +19914,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_pointer_table_runtime_data_targets_get_labels},
     {"facts_v2_absolute_long_lookup_table_renders_labels_and_nulls",
       test_facts_v2_absolute_long_lookup_table_renders_labels_and_nulls},
+    {"facts_v2_absolute_long_lookup_table_adds_data_target_labels",
+      test_facts_v2_absolute_long_lookup_table_adds_data_target_labels},
     {"facts_v2_word_lookup_table_mixes_labels_and_raw_without_duplicate_fallback",
       test_facts_v2_word_lookup_table_mixes_labels_and_raw_without_duplicate_fallback},
     {"facts_v2_policy_runtime_range_uses_first_class_labels",
