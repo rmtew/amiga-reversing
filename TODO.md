@@ -1,6 +1,30 @@
 # TODO
 
+## General notes
+
+- General auto-analysis of jump tables and symbolising tables with relative or absolute labels works well and is
+  triggered for targets in different platforms. We should go through all known targets and prove out the viability
+  of processing cases correctly where we do not already. We should already know the locations. This is a C auto-analysis
+  thing. It should be done cleanly and generally for all platforms.
+- Absolute address detection and processing. This is an incomplete area and all targets that use them (especially
+  bootstrapped and/or decompressed payloads like Pandora or Bloodwych) need better handling in a clean general
+  way helping users get a restored source that undoes the memory dump like nature of the presence of those absolute
+  addresses.
+- Label correctness. Generally Amiga and Atari ST are round-trip supported, so we know that the label accesses must
+  be correct or the round-trip assembly should fail. However we do see labels being emitted that have no visible
+  accesses.
+- Type propagation. If we know from analysis what the type of some data is, that data location should be added to the
+  pending auto-analysis set for processing. All accesses should respect that type, and the changing of the type at
+  all surfaced references should make the expected auto-analysis changes. This should happen for Amiga library call
+  arguments which we know by register and type from KB data, and it should happen for MacOS OS calls which we should
+  have the metadata for from it's own KB and parsed include files and generated C .c/.h metadata similar to Amiga.
+
 ## Investigation needed: MacOS/MPW asm
+
+We don't support the way that official MacOS .a files work. This is to limit the investment of MacOS targets to
+that required to support Amiga developers who might want to port a project to the Amiga. This means that if we need
+to define something like structs and data types in ranges, we might do so with the Amiga structs and RSSET ranges
+for now.
 
 ### System calls
 
@@ -26,15 +50,46 @@ MacOS should have data on these calls and their inputs and outputs garnered from
 sources into the knowledge base as JSON which is used to generate platform-specific includes. This should be extended
 to give us type analysis.
 
-Also I have looked in `ext\macos_includes\mpw_gm\Interfaces` and not found `_GetFNum`. Where it comes from I do not
-know.
+`_GetFNum` is present in the MPW GM interfaces, but not where a quick top-level glance tends to find it. It is in
+`ext\macos_includes\mpw_gm\Interfaces\AIncludes\Fonts.a` as an `OPWORD $A900` macro, with the adjacent interface
+comment:
+
+```
+; pascal void GetFNum(ConstStr255Param name, short *familyID)
+```
+
+The C interface in `ext\macos_includes\mpw_gm\Interfaces\CIncludes\Fonts.h` gives the same shape:
+
+```
+GetFNum(ConstStr255Param name, short *familyID) ONEWORDINLINE(0xA900)
+```
+
+So the example is not an unknown instruction or a guessed API. The call site prepares a copied Pascal string at
+`-$0100(a6)`, pushes that address, pushes `-$0102(a6)` as an output pointer, executes `_GetFNum`, then copies the
+returned font family ID from `-$0102(a6)` into the caller-visible word at `$000C(a6)`.
+
+The nuance for doing this right is that Mac trap knowledge is more than trap-name rendering. We need a generated Mac
+OS/Toolbox call table with the trap word, include source, Pascal calling convention shape, parameter order, stack
+widths, pointer/reference direction, and return/value effects. That data should drive the C analysis in the same
+spirit as the Amiga and Atari platform call metadata. Once `_GetFNum` is represented structurally, the analysis should
+be able to infer that `-$0100(a6)` is a `ConstStr255Param`, `-$0102(a6)` is a writable `short *familyID`, and
+`$000C(a6)` receives a `FontFamilyID`-like value. The rendered source should then become clearer because the structured
+call semantics, not comments or Python-side recognition, explain the stack slots.
+
+There is also an include/rendering distinction to preserve. The assembly source should include the real MPW interface
+file that defines `_GetFNum` (for example `Fonts.a`, with whatever umbrella include policy we settle on), not emit local
+EQU-style replacement definitions. The metadata generator can consume `Fonts.a`/`Fonts.h`, but the restored source
+should remain source-compatible with the MPW assembler include style.
 
 ### A5 data storage
 
 There seems to be data storage in negative A5 offsets. In this case we are using addresses in there as input on the
 stack, and then using the output in one of those addresses. It appears to be moved into positive offsets under the
 jump table (given we know the jump table offset is defined in the leading data as $20 in some standard location).
-In Amiga we have 
+In this snippet the base register is `a6`, because the function has just done `link a6,#-258`. That makes the
+`-$0100(a6)` and `-$0102(a6)` slots stack-frame locals, not A5-world globals. It is still useful evidence because it
+shows the kind of type propagation Mac call metadata should enable: a stack local becomes a Pascal string buffer, a
+neighboring word becomes an out-parameter destination, and the result is copied to another frame slot.
 
 ```
 CODE_1_loc_0000207e:
@@ -50,8 +105,47 @@ CODE_1_data_0000208c:
 	rts
 ```
 
+The actual A5-world issue is separate. CODE 0 gives the application A5 layout:
+
+```
+CODE_0_above_a5_size:
+	dc.l $00000AF0
+CODE_0_below_a5_size:
+	dc.l $00003920
+CODE_0_jump_table_length:
+	dc.l $00000AD0
+CODE_0_jump_table_offset_from_a5:
+	dc.l $00000020
+```
+
+The C parser already reads these fields from CODE 0 (`above_a5_size`, `below_a5_size`, `jump_table_length`,
+`jump_table_offset_from_a5`). The restored-source packet currently emits this only as deferred platform context:
+
+```
+"a5_world":{"status":"deferred","source_visible":true,...}
+```
+
+That means we know the A5 world is real and visible in the file format, but we have not yet promoted it to a typed
+storage model. Doing it correctly probably needs a Mac platform storage domain in the C analysis, analogous to
+app/global slots elsewhere, with positive A5 offsets distinguished from negative A5 offsets and stack-frame offsets.
+Positive A5 offsets may address the jump table or app globals; negative offsets are not automatically the same thing,
+and local `a6` frame offsets are a third case. The work should avoid collapsing all displacements into a single
+"A5 data" bucket just because the rendered code is Mac.
+
+The useful target state is that when a trap or normal instruction reads/writes a proven A5-world slot, the C facts carry
+the base register, displacement, width, type, provenance, and lifetime confidence. That gives us cross-references and
+names which can survive source edits. Free-form comments are not enough; the point is to make the storage model usable
+for type propagation and rendering.
+
 
 ### Pascal strings
+
+Resolution note: current Mac artifact rendering now uses the existing semantic Pascal-string classification to emit
+byte-preserving quoted source, for example `dc.b $87,"GETRSRC",$00,$00`, instead of leaving those rows as opaque hex
+bytes. This is implemented in the canonical Mac target artifact bridge because the general C renderer already has a
+structured length-prefixed string renderer for C-owned structured data. Remaining broader work is to move more string
+classification into C-owned structured rows where possible, especially for non-Mac targets and for Mac symbol records
+whose high-bit length/control byte has additional meaning.
 
 If we know a string is a string of some sort, we should display it as the restored  source should see it. As a
 textual string where applicable. This is an opportunity for clean up. It should be a general thing, not just MacOS.
@@ -62,6 +156,23 @@ it haphazardly and generalising an approach might be worth doing.
 CODE_1_data_pascal_string_00002066:
 	dc.b $87,$47,$45,$54,$52,$53,$52,$43,$00,$00
 ```
+
+The label already says `pascal_string`, and the Mac semantic gap classifier already has a `semantic_pascal_string_gap`
+case. The output is still raw bytes, so the reader has to mentally decode length-prefixed text. For the example above,
+`$87` is not a normal seven-bit length byte; it is the high bit set on a length-like value. Nearby examples such as
+`$8A,$47,$45,$54,$46,$4F,$4E,$54,$4E,$42,$52...` show the same pattern around trap names like `GETFONTNBR`.
+That suggests we should be careful before rendering every labelled Pascal string as a plain `dc.b length,"text"` row:
+some of these records may be symbol/name records with flag bits or tool-specific metadata around a Pascal-style string.
+
+The clean direction is to make string rendering driven by structured data class, not label text. A row should know
+whether it is a C string, Pascal string, fixed string field, symbol record, or unknown byte sequence. Then the renderer
+can choose source forms like a length byte plus quoted text, raw bytes for non-text flag fields, and explicit residual
+bytes for padding. That should be general across Amiga, Atari, and Mac where the data model can prove the string kind.
+
+For Mac specifically, the classifier should not erase the work-in-progress signal. If a region is only a candidate
+Pascal/string record, the rendered source can still be more readable, but the row metadata must preserve that it is not
+yet a fully understood Toolbox string object. The important invariant is byte preservation and reassemblability first,
+then readable quoted text where the structured row proves the representation.
 
 ### A5 calls and the jump table
 
@@ -90,10 +201,159 @@ This implies that we can in theory refer to jump table entry calls based on the 
 jump table. It seems to be derived using a formula like value in `CODE_0_jump_table_offset_from_a5` +
 (table_offset - start_of_table).
 
+The current renderer already exposes CODE 0 as a table of entries:
+
+```
+CODE_0_jump_table:
+CODE_0_jump_table_entry_0:
+	dc.w $0000
+	move.w #27,-(a7)
+	_LoadSeg
+CODE_0_jump_table_entry_1:
+	dc.w $0000
+	dc.w $FFFF
+	dc.l $00000000
+CODE_0_jump_table_entry_2:
+	dc.w $0001
+	_LoadSeg
+	dc.l CODE_1_loc_0000601e-CODE_1
+```
+
+The C packet also emits `code0_routing_table` and `code0_dispatch_reference` records, and tests currently treat the
+routine offsets as candidate records rather than accepted byte-entry proof. That is the right caution: the segment
+table shape and CODE resource routing are accepted parser output, but individual routine entry semantics still need to
+come from actual entry spans and flow analysis.
+
+What is missing is the bridge from positive A5 calls to these table rows. Calls like:
+
+```
+	jsr $078A(a5)
+```
+
+should be resolvable when `$078A` lands inside the proven CODE 0 jump table window. Given
+`CODE_0_jump_table_offset_from_a5 == $20`, the table-relative offset would be `$078A - $20`, and with 8-byte entries
+that should identify a specific `CODE_0_jump_table_entry_N` if the offset is aligned and in range. The rendered call
+should then use the symbolic entry label, and the analysis should record the xref from the call site to the jump-table
+entry and from that entry to the target CODE resource/routine when proven.
+
+The correct implementation point is the C analysis/platform layer, not a Mac source post-processor. A5-relative control
+transfers are ordinary M68K operands plus Mac platform context. Once CODE 0 establishes the A5 jump-table base, general
+analysis should be able to resolve `jsr disp(a5)`/`jmp disp(a5)` as indirect calls through a typed platform table. It
+also has to handle non-call A5 accesses separately: some positive offsets may be globals, some are jump-table entries,
+and malformed or out-of-range offsets should remain numeric with a residual/unresolved fact rather than guessed labels.
+
+There is also a source-restoration nuance for the table itself. The `dc.l CODE_1_loc_...-CODE_1` form is better than
+absolute numeric offsets because it remains edit-friendly if source moves. The same principle should apply to any
+derived A5-call rendering: prefer symbolic table-entry labels and segment-relative expressions where they are proven,
+while keeping raw numeric data where the parser cannot prove the relationship.
+
 ## Investigation needed: Amiga/Pandora
 
-Moved into `docs/proposals/015-agent-reversing-pandora-target.md` as structured
-deferred work entries.
+### Register content propagation
+
+Note that here we store code pointers in locations like `app_0360`. These get called with predictable register
+contents like `_custom` in `a5`. We fail to propagate `_custom` consistently to relevant locations in Pandora
+and should use it as a case study to improve the general register tracking and giving the consistent restored
+source result.
+
+```
+abs_0_00010A72:
+	lea.l abs_0_000134C2.l,a0
+	move.l (a0)+,$0180(a5)
+	move.l (a0)+,$0184(a5)
+	move.l (a0)+,$0188(a5)
+	move.l (a0)+,$018C(a5)
+	move.l (a0)+,$0190(a5)
+	move.l (a0)+,$0194(a5)
+	move.l (a0)+,$0198(a5)
+	move.l (a0)+,$019C(a5)
+	lea.l abs_0_00010AA2(pc),a0
+	move.l a0,app_0360(a6)
+	rts
+abs_0_00010AA2:
+	move.w app_0230(a6),$0182(a5)
+	move.w #$E8,$0194(a5)
+	lea.l abs_0_00010AB8(pc),a0
+	move.l a0,app_0360(a6)
+	rts
+abs_0_00010AB8:
+	bset.b #7,app_027B(a6)
+	lea.l abs_0_00010A72(pc),a0
+	move.l a0,app_0360(a6)
+	rts
+```
+
+Here we use `app_0364` and `a5` is lost. In some c
+
+```
+abs_0_00010910:
+	btst #5,d0
+	beq.b abs_0_00010928
+	movea.l app_0364(a6),a0
+	jsr (a0)
+	move.w #$20,$009C(a5)
+	movem.l (a7)+,d0/a0-a1/a5-a6
+	rte
+```
+
+### Orphaned label definitions
+
+`abs_0_00056218` has no accesses only a definition. This reflects a lack of awareness of why we are emitting these
+orphaned labels and what it means with respect to our analysis being correct. Are we identifying absolute address
+references perhaps and not substituting the in-segment/bootstrapped range label for that address at point of access?
+
+### Address classification and labelisation
+
+These are address looking values that likely fall within known ranges, and are also extracted out and used as addresses.
+This is a good start to knowing to render them as labels.
+
+```
+	movea.l abs_0_0005CA6C(pc,d0.w),a0
+abs_0_0005CA64:
+	jsr abs_0_000199DE.l
+	rts
+abs_0_0005CA6C:
+	dc.l $0005CCF5,$0005CD0B,$0005CD25,$0005CD3E	; lookup_table
+	dc.l $0005CD57	; lookup_table
+```
+
+### Auto-analysis failures
+
+General jump table processing. Here the table should be processed as other tables are, in this case we know these are
+absolute addresses and can likely be mapped into known address ranges, inferring code blocks at each address.
+
+```
+	add.w d2,d2
+	add.w d2,d2
+	movea.l lookup_table_00020CA0(pc,d2.w),a1
+	adda.w d0,a0
+	jmp (a1)
+lookup_table_00020CA0:
+	dc.b $00,$01,$0C,$C0,$00,$01,$0C,$CC,$00,$01,$0C,$D8,$00,$01,$0C,$E4
+	dc.b $00,$01,$0C,$F0,$00,$01,$0C,$FC,$00,$01,$0D,$08,$00,$01,$0D,$14
+```
+
+It is even possible that it is generating labels for those addresses already, but not rendering the data block
+as the labels. This label is not found anywhere.
+
+```
+abs_0_00010CC0:
+	bclr.b d1,(a0)
+	bclr.b d1,$0028(a0)
+	bclr.b d1,$0050(a0)
+	jmp (a3)
+```
+
+Another jump table. In this case it is more complex and tracking registers may be harder and better to defer?
+
+```
+abs_0_0005DC20:
+	add.b d0,d0
+	lea.l abs_0_0005DCE8(pc),a2
+	movea.w $0(a2,d0.w),a2
+	jmp $0(a3,a2.w)
+```
+
 
 ## Investigation needed: Amiga/Magicland Dizzy
 
