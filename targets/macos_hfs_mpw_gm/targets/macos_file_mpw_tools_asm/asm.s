@@ -44,466 +44,351 @@ CODE_0:
 ;     CODE_0_jump_table_entry_0: payload_offset=16 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_27 target_resource_id=27 routine_offset=0 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_0 target=CODE_27_loc_000000cc link_status=linked_candidate
 ;     CODE_0_jump_table_entry_1: payload_offset=24 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     no decoded routine target for this accepted jump-table entry
 ;     CODE_0_jump_table_entry_2: payload_offset=32 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=24606 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_2 target=CODE_1_loc_0000601e link_status=linked_candidate
 ;     CODE_0_jump_table_entry_3: payload_offset=40 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=62 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_3 target=CODE_1_loc_0000003e link_status=linked_candidate
 ;     CODE_0_jump_table_entry_4: payload_offset=48 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=70 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_4 target=CODE_1_loc_00000046 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_5: payload_offset=56 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=94 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_5 target=CODE_1_loc_0000005e link_status=linked_candidate
 ;     CODE_0_jump_table_entry_6: payload_offset=64 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=118 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_6 target=CODE_1_loc_00000076 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_7: payload_offset=72 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=154 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_7 target=CODE_1_loc_0000009a link_status=linked_candidate
 ;     CODE_0_jump_table_entry_8: payload_offset=80 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=190 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_8 target=CODE_1_loc_000000be link_status=linked_candidate
 ;     CODE_0_jump_table_entry_9: payload_offset=88 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=190 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_9 target=CODE_1_loc_000000be link_status=linked_candidate
 ;     CODE_0_jump_table_entry_10: payload_offset=96 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=264 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_10 target=CODE_1_loc_00000108 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_11: payload_offset=104 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=322 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_11 target=CODE_1_loc_00000142 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_12: payload_offset=112 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=358 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_12 target=CODE_1_loc_00000166 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_13: payload_offset=120 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=370 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_13 target=CODE_1_loc_00000172 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_14: payload_offset=128 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=400 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_14 target=CODE_1_loc_00000190 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_15: payload_offset=136 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=420 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_15 target=CODE_1_loc_000001a4 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_16: payload_offset=144 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=446 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_16 target=CODE_1_loc_000001be link_status=linked_candidate
 ;     CODE_0_jump_table_entry_17: payload_offset=152 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=468 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_17 target=CODE_1_loc_000001d4 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_18: payload_offset=160 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=472 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_18 target=CODE_1_loc_000001d8 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_19: payload_offset=168 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=580 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_19 target=CODE_1_loc_00000244 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_20: payload_offset=176 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=574 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_20 target=CODE_1_loc_0000023e link_status=linked_candidate
 ;     CODE_0_jump_table_entry_21: payload_offset=184 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=796 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_21 target=CODE_1_loc_0000031c link_status=linked_candidate
 ;     CODE_0_jump_table_entry_22: payload_offset=192 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=984 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_22 target=CODE_1_loc_000003d8 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_23: payload_offset=200 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=1036 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_23 target=CODE_1_loc_0000040c link_status=linked_candidate
 ;     CODE_0_jump_table_entry_24: payload_offset=208 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=1174 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_24 target=CODE_1_loc_00000496 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_25: payload_offset=216 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=1182 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_25 target=CODE_1_loc_0000049e link_status=linked_candidate
 ;     CODE_0_jump_table_entry_26: payload_offset=224 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=1400 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_26 target=CODE_1_loc_00000578 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_27: payload_offset=232 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=1408 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_27 target=CODE_1_loc_00000580 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_28: payload_offset=240 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=1542 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_28 target=CODE_1_loc_00000606 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_29: payload_offset=248 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=1550 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_29 target=CODE_1_loc_0000060e link_status=linked_candidate
 ;     CODE_0_jump_table_entry_30: payload_offset=256 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=1812 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_30 target=CODE_1_loc_00000714 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_31: payload_offset=264 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=1820 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_31 target=CODE_1_loc_0000071c link_status=linked_candidate
 ;     CODE_0_jump_table_entry_32: payload_offset=272 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=1992 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_32 target=CODE_1_loc_000007c8 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_33: payload_offset=280 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=2020 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_33 target=CODE_1_loc_000007e4 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_34: payload_offset=288 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=2814 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_34 target=CODE_1_loc_00000afe link_status=linked_candidate
 ;     CODE_0_jump_table_entry_35: payload_offset=296 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=3936 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_35 target=CODE_1_loc_00000f60 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_36: payload_offset=304 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=3962 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_36 target=CODE_1_loc_00000f7a link_status=linked_candidate
 ;     CODE_0_jump_table_entry_37: payload_offset=312 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=4572 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_37 target=CODE_1_loc_000011dc link_status=linked_candidate
 ;     CODE_0_jump_table_entry_38: payload_offset=320 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=4596 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_38 target=CODE_1_loc_000011f4 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_39: payload_offset=328 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=4722 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_39 target=CODE_1_loc_00001272 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_40: payload_offset=336 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=4802 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_40 target=CODE_1_loc_000012c2 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_41: payload_offset=344 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=4884 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_41 target=CODE_1_loc_00001314 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_42: payload_offset=352 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=4926 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_42 target=CODE_1_loc_0000133e link_status=linked_candidate
 ;     CODE_0_jump_table_entry_43: payload_offset=360 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=7008 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_43 target=CODE_1_loc_00001b60 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_44: payload_offset=368 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=6950 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_44 target=CODE_1_loc_00001b26 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_45: payload_offset=376 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=7282 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_45 target=CODE_1_loc_00001c72 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_46: payload_offset=384 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=7464 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_46 target=CODE_1_loc_00001d28 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_47: payload_offset=392 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=8240 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_47 target=CODE_1_loc_00002030 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_48: payload_offset=400 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=8266 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_48 target=CODE_1_loc_0000204a link_status=linked_candidate
 ;     CODE_0_jump_table_entry_49: payload_offset=408 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=8304 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_49 target=CODE_1_loc_00002070 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_50: payload_offset=416 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=8360 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_50 target=CODE_1_loc_000020a8 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_51: payload_offset=424 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=8688 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_51 target=CODE_1_loc_000021f0 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_52: payload_offset=432 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=8950 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_52 target=CODE_1_loc_000022f6 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_53: payload_offset=440 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=9062 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_53 target=CODE_1_loc_00002366 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_54: payload_offset=448 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=9362 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_54 target=CODE_1_loc_00002492 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_55: payload_offset=456 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=9658 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_55 target=CODE_1_loc_000025ba link_status=linked_candidate
 ;     CODE_0_jump_table_entry_56: payload_offset=464 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=9822 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_56 target=CODE_1_loc_0000265e link_status=linked_candidate
 ;     CODE_0_jump_table_entry_57: payload_offset=472 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=9844 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_57 target=CODE_1_loc_00002674 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_58: payload_offset=480 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=10032 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_58 target=CODE_1_loc_00002730 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_59: payload_offset=488 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=10206 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_59 target=CODE_1_loc_000027de link_status=linked_candidate
 ;     CODE_0_jump_table_entry_60: payload_offset=496 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=10286 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_60 target=CODE_1_loc_0000282e link_status=linked_candidate
 ;     CODE_0_jump_table_entry_61: payload_offset=504 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=10424 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_61 target=CODE_1_loc_000028b8 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_62: payload_offset=512 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=10698 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_62 target=CODE_1_loc_000029ca link_status=linked_candidate
 ;     CODE_0_jump_table_entry_63: payload_offset=520 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=11180 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_63 target=CODE_1_loc_00002bac link_status=linked_candidate
 ;     CODE_0_jump_table_entry_64: payload_offset=528 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=12376 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_64 target=CODE_1_loc_00003058 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_65: payload_offset=536 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=15760 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_65 target=CODE_1_loc_00003d90 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_66: payload_offset=544 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=20178 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_66 target=CODE_1_loc_00004ed2 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_67: payload_offset=552 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=21302 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_67 target=CODE_1_loc_00005336 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_68: payload_offset=560 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=21420 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_68 target=CODE_1_loc_000053ac link_status=linked_candidate
 ;     CODE_0_jump_table_entry_69: payload_offset=568 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=21622 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_69 target=CODE_1_loc_00005476 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_70: payload_offset=576 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=21788 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_70 target=CODE_1_loc_0000551c link_status=linked_candidate
 ;     CODE_0_jump_table_entry_71: payload_offset=584 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=22440 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_71 target=CODE_1_loc_000057a8 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_72: payload_offset=592 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=24510 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_72 target=CODE_1_loc_00005fbe link_status=linked_candidate
 ;     CODE_0_jump_table_entry_73: payload_offset=600 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=24850 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_73 target=CODE_1_loc_00006112 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_74: payload_offset=608 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=24994 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_74 target=CODE_1_loc_000061a2 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_75: payload_offset=616 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=25032 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_75 target=CODE_1_loc_000061c8 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_76: payload_offset=624 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=25068 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_76 target=CODE_1_loc_000061ec link_status=linked_candidate
 ;     CODE_0_jump_table_entry_77: payload_offset=632 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=25290 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_77 target=CODE_1_loc_000062ca link_status=linked_candidate
 ;     CODE_0_jump_table_entry_78: payload_offset=640 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=25506 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_78 target=CODE_1_loc_000063a2 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_79: payload_offset=648 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=25624 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_79 target=CODE_1_loc_00006418 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_80: payload_offset=656 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=25686 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_80 target=CODE_1_loc_00006456 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_81: payload_offset=664 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=25992 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_81 target=CODE_1_loc_00006588 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_82: payload_offset=672 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=26674 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_82 target=CODE_1_loc_00006832 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_83: payload_offset=680 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=26804 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_83 target=CODE_1_loc_000068b4 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_84: payload_offset=688 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=26814 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_84 target=CODE_1_loc_000068be link_status=linked_candidate
 ;     CODE_0_jump_table_entry_85: payload_offset=696 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=26828 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_85 target=CODE_1_loc_000068cc link_status=linked_candidate
 ;     CODE_0_jump_table_entry_86: payload_offset=704 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=26884 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_86 target=CODE_1_loc_00006904 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_87: payload_offset=712 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=26948 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_87 target=CODE_1_loc_00006944 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_88: payload_offset=720 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=26966 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_88 target=CODE_1_loc_00006956 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_89: payload_offset=728 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=26984 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_89 target=CODE_1_loc_00006968 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_90: payload_offset=736 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=27002 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_90 target=CODE_1_loc_0000697a link_status=linked_candidate
 ;     CODE_0_jump_table_entry_91: payload_offset=744 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=27028 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_91 target=CODE_1_loc_00006994 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_92: payload_offset=752 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=27032 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_92 target=CODE_1_loc_00006998 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_93: payload_offset=760 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=27100 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_93 target=CODE_1_loc_000069dc link_status=linked_candidate
 ;     CODE_0_jump_table_entry_94: payload_offset=768 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=27154 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_94 target=CODE_1_loc_00006a12 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_95: payload_offset=776 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=27190 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_95 target=CODE_1_loc_00006a36 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_96: payload_offset=784 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=27234 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_96 target=CODE_1_loc_00006a62 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_97: payload_offset=792 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=27292 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_97 target=CODE_1_loc_00006a9c link_status=linked_candidate
 ;     CODE_0_jump_table_entry_98: payload_offset=800 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=27324 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_98 target=CODE_1_loc_00006abc link_status=linked_candidate
 ;     CODE_0_jump_table_entry_99: payload_offset=808 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=27358 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_99 target=CODE_1_loc_00006ade link_status=linked_candidate
 ;     CODE_0_jump_table_entry_100: payload_offset=816 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=27414 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_100 target=CODE_1_loc_00006b16 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_101: payload_offset=824 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=27436 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_101 target=CODE_1_loc_00006b2c link_status=linked_candidate
 ;     CODE_0_jump_table_entry_102: payload_offset=832 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=27458 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_102 target=CODE_1_loc_00006b42 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_103: payload_offset=840 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=27476 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_103 target=CODE_1_loc_00006b54 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_104: payload_offset=848 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=27494 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_104 target=CODE_1_loc_00006b66 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_105: payload_offset=856 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=27566 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_105 target=CODE_1_loc_00006bae link_status=linked_candidate
 ;     CODE_0_jump_table_entry_106: payload_offset=864 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=27638 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_106 target=CODE_1_loc_00006bf6 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_107: payload_offset=872 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=27702 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_107 target=CODE_1_loc_00006c36 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_108: payload_offset=880 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=27796 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_108 target=CODE_1_loc_00006c94 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_109: payload_offset=888 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=27918 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_109 target=CODE_1_loc_00006d0e link_status=linked_candidate
 ;     CODE_0_jump_table_entry_110: payload_offset=896 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=28444 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_110 target=CODE_1_loc_00006f1c link_status=linked_candidate
 ;     CODE_0_jump_table_entry_111: payload_offset=904 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=28462 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_111 target=CODE_1_loc_00006f2e link_status=linked_candidate
 ;     CODE_0_jump_table_entry_112: payload_offset=912 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=28516 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_112 target=CODE_1_loc_00006f64 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_113: payload_offset=920 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=28748 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_113 target=CODE_1_loc_0000704c link_status=linked_candidate
 ;     CODE_0_jump_table_entry_114: payload_offset=928 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=28834 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_114 target=CODE_1_loc_000070a2 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_115: payload_offset=936 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=28870 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_115 target=CODE_1_loc_000070c6 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_116: payload_offset=944 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_2 target_resource_id=2 routine_offset=40 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
@@ -513,34 +398,27 @@ CODE_0:
 ;     CODE_0_jump_table_entry_118: payload_offset=960 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_2 target_resource_id=2 routine_offset=392 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_118 target=CODE_2_loc_00000188 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_119: payload_offset=968 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_2 target_resource_id=2 routine_offset=450 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_119 target=CODE_2_loc_000001c2 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_120: payload_offset=976 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_2 target_resource_id=2 routine_offset=6106 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_120 target=CODE_2_loc_000017da link_status=linked_candidate
 ;     CODE_0_jump_table_entry_121: payload_offset=984 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_2 target_resource_id=2 routine_offset=6986 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_121 target=CODE_2_loc_00001b4a link_status=linked_candidate
 ;     CODE_0_jump_table_entry_122: payload_offset=992 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_2 target_resource_id=2 routine_offset=7154 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_122 target=CODE_2_loc_00001bf2 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_123: payload_offset=1000 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_3 target_resource_id=3 routine_offset=64 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;     CODE_0_jump_table_entry_124: payload_offset=1008 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_3 target_resource_id=3 routine_offset=14582 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_124 target=CODE_3_loc_000038f6 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_125: payload_offset=1016 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_3 target_resource_id=3 routine_offset=17470 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_125 target=CODE_3_loc_0000443e link_status=linked_candidate
 ;     CODE_0_jump_table_entry_126: payload_offset=1024 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_4 target_resource_id=4 routine_offset=40 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
@@ -550,75 +428,57 @@ CODE_0:
 ;     CODE_0_jump_table_entry_128: payload_offset=1040 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_4 target_resource_id=4 routine_offset=494 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_128 target=CODE_4_loc_000001ee link_status=linked_candidate
 ;     CODE_0_jump_table_entry_129: payload_offset=1048 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_4 target_resource_id=4 routine_offset=576 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_129 target=CODE_4_loc_00000240 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_130: payload_offset=1056 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_4 target_resource_id=4 routine_offset=660 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_130 target=CODE_4_loc_00000294 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_131: payload_offset=1064 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_4 target_resource_id=4 routine_offset=746 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_131 target=CODE_4_loc_000002ea link_status=linked_candidate
 ;     CODE_0_jump_table_entry_132: payload_offset=1072 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_4 target_resource_id=4 routine_offset=780 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_132 target=CODE_4_loc_0000030c link_status=linked_candidate
 ;     CODE_0_jump_table_entry_133: payload_offset=1080 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_4 target_resource_id=4 routine_offset=934 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_133 target=CODE_4_loc_000003a6 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_134: payload_offset=1088 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_4 target_resource_id=4 routine_offset=2054 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_134 target=CODE_4_loc_00000806 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_135: payload_offset=1096 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_4 target_resource_id=4 routine_offset=3138 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_135 target=CODE_4_loc_00000c42 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_136: payload_offset=1104 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_4 target_resource_id=4 routine_offset=3714 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_136 target=CODE_4_loc_00000e82 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_137: payload_offset=1112 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_4 target_resource_id=4 routine_offset=5174 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_137 target=CODE_4_loc_00001436 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_138: payload_offset=1120 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_4 target_resource_id=4 routine_offset=5550 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_138 target=CODE_4_loc_000015ae link_status=linked_candidate
 ;     CODE_0_jump_table_entry_139: payload_offset=1128 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_4 target_resource_id=4 routine_offset=5602 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_139 target=CODE_4_loc_000015e2 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_140: payload_offset=1136 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_4 target_resource_id=4 routine_offset=5928 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_140 target=CODE_4_loc_00001728 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_141: payload_offset=1144 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_4 target_resource_id=4 routine_offset=5984 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_141 target=CODE_4_loc_00001760 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_142: payload_offset=1152 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_4 target_resource_id=4 routine_offset=6160 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_142 target=CODE_4_loc_00001810 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_143: payload_offset=1160 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_4 target_resource_id=4 routine_offset=6242 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_143 target=CODE_4_loc_00001862 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_144: payload_offset=1168 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_4 target_resource_id=4 routine_offset=6314 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_144 target=CODE_4_loc_000018aa link_status=linked_candidate
 ;     CODE_0_jump_table_entry_145: payload_offset=1176 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_4 target_resource_id=4 routine_offset=6398 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_145 target=CODE_4_loc_000018fe link_status=linked_candidate
 ;     CODE_0_jump_table_entry_146: payload_offset=1184 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_5 target_resource_id=5 routine_offset=40 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
@@ -628,122 +488,93 @@ CODE_0:
 ;     CODE_0_jump_table_entry_148: payload_offset=1200 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_5 target_resource_id=5 routine_offset=234 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_148 target=CODE_5_loc_000000ea link_status=linked_candidate
 ;     CODE_0_jump_table_entry_149: payload_offset=1208 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_5 target_resource_id=5 routine_offset=872 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_149 target=CODE_5_loc_00000368 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_150: payload_offset=1216 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_5 target_resource_id=5 routine_offset=876 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_150 target=CODE_5_loc_0000036c link_status=linked_candidate
 ;     CODE_0_jump_table_entry_151: payload_offset=1224 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_5 target_resource_id=5 routine_offset=1434 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_151 target=CODE_5_loc_0000059a link_status=linked_candidate
 ;     CODE_0_jump_table_entry_152: payload_offset=1232 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_5 target_resource_id=5 routine_offset=1512 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_152 target=CODE_5_loc_000005e8 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_153: payload_offset=1240 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_5 target_resource_id=5 routine_offset=2632 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_153 target=CODE_5_loc_00000a48 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_154: payload_offset=1248 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_5 target_resource_id=5 routine_offset=5088 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_154 target=CODE_5_loc_000013e0 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_155: payload_offset=1256 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_5 target_resource_id=5 routine_offset=5302 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_155 target=CODE_5_loc_000014b6 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_156: payload_offset=1264 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_5 target_resource_id=5 routine_offset=5612 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_156 target=CODE_5_loc_000015ec link_status=linked_candidate
 ;     CODE_0_jump_table_entry_157: payload_offset=1272 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_5 target_resource_id=5 routine_offset=5884 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_157 target=CODE_5_loc_000016fc link_status=linked_candidate
 ;     CODE_0_jump_table_entry_158: payload_offset=1280 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_5 target_resource_id=5 routine_offset=6230 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_158 target=CODE_5_loc_00001856 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_159: payload_offset=1288 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_5 target_resource_id=5 routine_offset=6288 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_159 target=CODE_5_loc_00001890 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_160: payload_offset=1296 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_5 target_resource_id=5 routine_offset=6552 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_160 target=CODE_5_loc_00001998 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_161: payload_offset=1304 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_5 target_resource_id=5 routine_offset=8248 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_161 target=CODE_5_loc_00002038 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_162: payload_offset=1312 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_5 target_resource_id=5 routine_offset=9576 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_162 target=CODE_5_loc_00002568 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_163: payload_offset=1320 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_5 target_resource_id=5 routine_offset=12136 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_163 target=CODE_5_loc_00002f68 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_164: payload_offset=1328 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_5 target_resource_id=5 routine_offset=15042 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_164 target=CODE_5_loc_00003ac2 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_165: payload_offset=1336 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_5 target_resource_id=5 routine_offset=22098 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_165 target=CODE_5_loc_00005652 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_166: payload_offset=1344 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_5 target_resource_id=5 routine_offset=23726 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_166 target=CODE_5_loc_00005cae link_status=linked_candidate
 ;     CODE_0_jump_table_entry_167: payload_offset=1352 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_5 target_resource_id=5 routine_offset=24342 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_167 target=CODE_5_loc_00005f16 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_168: payload_offset=1360 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_5 target_resource_id=5 routine_offset=26448 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_168 target=CODE_5_loc_00006750 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_169: payload_offset=1368 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_6 target_resource_id=6 routine_offset=40 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;     CODE_0_jump_table_entry_170: payload_offset=1376 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_6 target_resource_id=6 routine_offset=240 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_170 target=CODE_6_loc_000000f0 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_171: payload_offset=1384 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_6 target_resource_id=6 routine_offset=298 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_171 target=CODE_6_loc_0000012a link_status=linked_candidate
 ;     CODE_0_jump_table_entry_172: payload_offset=1392 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_6 target_resource_id=6 routine_offset=736 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_172 target=CODE_6_loc_000002e0 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_173: payload_offset=1400 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_6 target_resource_id=6 routine_offset=5724 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_173 target=CODE_6_loc_0000165c link_status=linked_candidate
 ;     CODE_0_jump_table_entry_174: payload_offset=1408 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_6 target_resource_id=6 routine_offset=1396 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_174 target=CODE_6_loc_00000574 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_175: payload_offset=1416 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_6 target_resource_id=6 routine_offset=1160 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_175 target=CODE_6_loc_00000488 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_176: payload_offset=1424 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_6 target_resource_id=6 routine_offset=5774 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_176 target=CODE_6_loc_0000168e link_status=linked_candidate
 ;     CODE_0_jump_table_entry_177: payload_offset=1432 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_6 target_resource_id=6 routine_offset=15126 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_177 target=CODE_6_loc_00003b16 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_178: payload_offset=1440 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_7 target_resource_id=7 routine_offset=40 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
@@ -753,47 +584,36 @@ CODE_0:
 ;     CODE_0_jump_table_entry_180: payload_offset=1456 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_7 target_resource_id=7 routine_offset=370 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_180 target=CODE_7_loc_00000172 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_181: payload_offset=1464 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_7 target_resource_id=7 routine_offset=428 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_181 target=CODE_7_loc_000001ac link_status=linked_candidate
 ;     CODE_0_jump_table_entry_182: payload_offset=1472 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_7 target_resource_id=7 routine_offset=3160 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_182 target=CODE_7_loc_00000c58 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_183: payload_offset=1480 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_7 target_resource_id=7 routine_offset=4062 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_183 target=CODE_7_loc_00000fde link_status=linked_candidate
 ;     CODE_0_jump_table_entry_184: payload_offset=1488 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_8 target_resource_id=8 routine_offset=220 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_184 target=CODE_8_loc_000000dc link_status=linked_candidate
 ;     CODE_0_jump_table_entry_185: payload_offset=1496 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_8 target_resource_id=8 routine_offset=260 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_185 target=CODE_8_loc_00000104 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_186: payload_offset=1504 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_8 target_resource_id=8 routine_offset=678 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_186 target=CODE_8_loc_000002a6 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_187: payload_offset=1512 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_8 target_resource_id=8 routine_offset=794 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_187 target=CODE_8_loc_0000031a link_status=linked_candidate
 ;     CODE_0_jump_table_entry_188: payload_offset=1520 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_8 target_resource_id=8 routine_offset=1048 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_188 target=CODE_8_loc_00000418 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_189: payload_offset=1528 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_8 target_resource_id=8 routine_offset=1132 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_189 target=CODE_8_loc_0000046c link_status=linked_candidate
 ;     CODE_0_jump_table_entry_190: payload_offset=1536 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_8 target_resource_id=8 routine_offset=1630 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_190 target=CODE_8_loc_0000065e link_status=linked_candidate
 ;     CODE_0_jump_table_entry_191: payload_offset=1544 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_9 target_resource_id=9 routine_offset=40 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
@@ -806,34 +626,27 @@ CODE_0:
 ;     CODE_0_jump_table_entry_194: payload_offset=1568 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_9 target_resource_id=9 routine_offset=1146 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_194 target=CODE_9_loc_0000047a link_status=linked_candidate
 ;     CODE_0_jump_table_entry_195: payload_offset=1576 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_9 target_resource_id=9 routine_offset=4256 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_195 target=CODE_9_loc_000010a0 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_196: payload_offset=1584 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_9 target_resource_id=9 routine_offset=4148 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_196 target=CODE_9_loc_00001034 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_197: payload_offset=1592 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_9 target_resource_id=9 routine_offset=4002 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_197 target=CODE_9_loc_00000fa2 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_198: payload_offset=1600 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_9 target_resource_id=9 routine_offset=12734 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_198 target=CODE_9_loc_000031be link_status=linked_candidate
 ;     CODE_0_jump_table_entry_199: payload_offset=1608 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_9 target_resource_id=9 routine_offset=13904 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_199 target=CODE_9_loc_00003650 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_200: payload_offset=1616 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_10 target_resource_id=10 routine_offset=40 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;     CODE_0_jump_table_entry_201: payload_offset=1624 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_10 target_resource_id=10 routine_offset=310 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_201 target=CODE_10_loc_00000136 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_202: payload_offset=1632 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_11 target_resource_id=11 routine_offset=144 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
@@ -843,200 +656,153 @@ CODE_0:
 ;     CODE_0_jump_table_entry_204: payload_offset=1648 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_11 target_resource_id=11 routine_offset=946 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_204 target=CODE_11_loc_000003b2 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_205: payload_offset=1656 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_11 target_resource_id=11 routine_offset=1032 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_205 target=CODE_11_loc_00000408 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_206: payload_offset=1664 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_11 target_resource_id=11 routine_offset=1206 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_206 target=CODE_11_loc_000004b6 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_207: payload_offset=1672 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_11 target_resource_id=11 routine_offset=1234 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_207 target=CODE_11_loc_000004d2 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_208: payload_offset=1680 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_11 target_resource_id=11 routine_offset=1354 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_208 target=CODE_11_loc_0000054a link_status=linked_candidate
 ;     CODE_0_jump_table_entry_209: payload_offset=1688 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_11 target_resource_id=11 routine_offset=1434 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_209 target=CODE_11_loc_0000059a link_status=linked_candidate
 ;     CODE_0_jump_table_entry_210: payload_offset=1696 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_11 target_resource_id=11 routine_offset=1688 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_210 target=CODE_11_loc_00000698 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_211: payload_offset=1704 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_11 target_resource_id=11 routine_offset=1926 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_211 target=CODE_11_loc_00000786 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_212: payload_offset=1712 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_11 target_resource_id=11 routine_offset=2642 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_212 target=CODE_11_loc_00000a52 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_213: payload_offset=1720 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_11 target_resource_id=11 routine_offset=3166 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_213 target=CODE_11_loc_00000c5e link_status=linked_candidate
 ;     CODE_0_jump_table_entry_214: payload_offset=1728 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_11 target_resource_id=11 routine_offset=3424 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_214 target=CODE_11_loc_00000d60 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_215: payload_offset=1736 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_11 target_resource_id=11 routine_offset=3538 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_215 target=CODE_11_loc_00000dd2 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_216: payload_offset=1744 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_11 target_resource_id=11 routine_offset=3654 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_216 target=CODE_11_loc_00000e46 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_217: payload_offset=1752 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_12 target_resource_id=12 routine_offset=2880 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_217 target=CODE_12_loc_00000b40 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_218: payload_offset=1760 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_12 target_resource_id=12 routine_offset=4920 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_218 target=CODE_12_loc_00001338 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_219: payload_offset=1768 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_13 target_resource_id=13 routine_offset=40 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;     CODE_0_jump_table_entry_220: payload_offset=1776 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_13 target_resource_id=13 routine_offset=4402 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_220 target=CODE_13_loc_00001132 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_221: payload_offset=1784 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_13 target_resource_id=13 routine_offset=8698 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_221 target=CODE_13_loc_000021fa link_status=linked_candidate
 ;     CODE_0_jump_table_entry_222: payload_offset=1792 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_13 target_resource_id=13 routine_offset=8872 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_222 target=CODE_13_loc_000022a8 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_223: payload_offset=1800 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_13 target_resource_id=13 routine_offset=9190 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_223 target=CODE_13_loc_000023e6 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_224: payload_offset=1808 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_13 target_resource_id=13 routine_offset=9512 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_224 target=CODE_13_loc_00002528 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_225: payload_offset=1816 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_13 target_resource_id=13 routine_offset=11470 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_225 target=CODE_13_loc_00002cce link_status=linked_candidate
 ;     CODE_0_jump_table_entry_226: payload_offset=1824 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_13 target_resource_id=13 routine_offset=11532 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_226 target=CODE_13_loc_00002d0c link_status=linked_candidate
 ;     CODE_0_jump_table_entry_227: payload_offset=1832 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_13 target_resource_id=13 routine_offset=11676 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_227 target=CODE_13_loc_00002d9c link_status=linked_candidate
 ;     CODE_0_jump_table_entry_228: payload_offset=1840 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_13 target_resource_id=13 routine_offset=11782 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_228 target=CODE_13_loc_00002e06 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_229: payload_offset=1848 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_13 target_resource_id=13 routine_offset=26534 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_229 target=CODE_13_loc_000067a6 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_230: payload_offset=1856 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_13 target_resource_id=13 routine_offset=28486 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_230 target=CODE_13_loc_00006f46 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_231: payload_offset=1864 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_13 target_resource_id=13 routine_offset=33318 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_231 target=CODE_13_loc_00008226 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_232: payload_offset=1872 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_14 target_resource_id=14 routine_offset=40 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;     CODE_0_jump_table_entry_233: payload_offset=1880 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_14 target_resource_id=14 routine_offset=256 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_233 target=CODE_14_loc_00000100 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_234: payload_offset=1888 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_14 target_resource_id=14 routine_offset=396 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_234 target=CODE_14_loc_0000018c link_status=linked_candidate
 ;     CODE_0_jump_table_entry_235: payload_offset=1896 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_14 target_resource_id=14 routine_offset=518 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_235 target=CODE_14_loc_00000206 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_236: payload_offset=1904 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_14 target_resource_id=14 routine_offset=808 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_236 target=CODE_14_loc_00000328 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_237: payload_offset=1912 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_14 target_resource_id=14 routine_offset=966 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_237 target=CODE_14_loc_000003c6 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_238: payload_offset=1920 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_14 target_resource_id=14 routine_offset=1130 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_238 target=CODE_14_loc_0000046a link_status=linked_candidate
 ;     CODE_0_jump_table_entry_239: payload_offset=1928 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_14 target_resource_id=14 routine_offset=1176 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_239 target=CODE_14_loc_00000498 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_240: payload_offset=1936 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_14 target_resource_id=14 routine_offset=1294 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_240 target=CODE_14_loc_0000050e link_status=linked_candidate
 ;     CODE_0_jump_table_entry_241: payload_offset=1944 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_14 target_resource_id=14 routine_offset=1604 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_241 target=CODE_14_loc_00000644 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_242: payload_offset=1952 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_14 target_resource_id=14 routine_offset=1820 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_242 target=CODE_14_loc_0000071c link_status=linked_candidate
 ;     CODE_0_jump_table_entry_243: payload_offset=1960 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_15 target_resource_id=15 routine_offset=456 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_243 target=CODE_15_loc_000001c8 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_244: payload_offset=1968 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_15 target_resource_id=15 routine_offset=2294 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_244 target=CODE_15_loc_000008f6 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_245: payload_offset=1976 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_15 target_resource_id=15 routine_offset=2802 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_245 target=CODE_15_loc_00000af2 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_246: payload_offset=1984 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_15 target_resource_id=15 routine_offset=2832 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_246 target=CODE_15_loc_00000b10 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_247: payload_offset=1992 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_15 target_resource_id=15 routine_offset=2930 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_247 target=CODE_15_loc_00000b72 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_248: payload_offset=2000 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_15 target_resource_id=15 routine_offset=3190 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_248 target=CODE_15_loc_00000c76 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_249: payload_offset=2008 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_15 target_resource_id=15 routine_offset=3274 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_249 target=CODE_15_loc_00000cca link_status=linked_candidate
 ;     CODE_0_jump_table_entry_250: payload_offset=2016 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_16 target_resource_id=16 routine_offset=40 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;     CODE_0_jump_table_entry_251: payload_offset=2024 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_16 target_resource_id=16 routine_offset=306 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_251 target=CODE_16_loc_00000132 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_252: payload_offset=2032 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_16 target_resource_id=16 routine_offset=866 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_252 target=CODE_16_loc_00000362 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_253: payload_offset=2040 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_17 target_resource_id=17 routine_offset=2588 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_253 target=CODE_17_loc_00000a1c link_status=linked_candidate
 ;     CODE_0_jump_table_entry_254: payload_offset=2048 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_18 target_resource_id=18 routine_offset=40 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
@@ -1046,7 +812,6 @@ CODE_0:
 ;     CODE_0_jump_table_entry_256: payload_offset=2064 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_18 target_resource_id=18 routine_offset=1772 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_256 target=CODE_18_loc_000006ec link_status=linked_candidate
 ;     CODE_0_jump_table_entry_257: payload_offset=2072 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_19 target_resource_id=19 routine_offset=40 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
@@ -1089,138 +854,105 @@ CODE_0:
 ;     CODE_0_jump_table_entry_270: payload_offset=2176 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_20 target_resource_id=20 routine_offset=2896 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_270 target=CODE_20_loc_00000b50 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_271: payload_offset=2184 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_20 target_resource_id=20 routine_offset=3020 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_271 target=CODE_20_loc_00000bcc link_status=linked_candidate
 ;     CODE_0_jump_table_entry_272: payload_offset=2192 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_20 target_resource_id=20 routine_offset=3212 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_272 target=CODE_20_loc_00000c8c link_status=linked_candidate
 ;     CODE_0_jump_table_entry_273: payload_offset=2200 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_20 target_resource_id=20 routine_offset=3216 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_273 target=CODE_20_loc_00000c90 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_274: payload_offset=2208 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_20 target_resource_id=20 routine_offset=3424 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_274 target=CODE_20_loc_00000d60 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_275: payload_offset=2216 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_20 target_resource_id=20 routine_offset=3728 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_275 target=CODE_20_loc_00000e90 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_276: payload_offset=2224 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_20 target_resource_id=20 routine_offset=3844 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_276 target=CODE_20_loc_00000f04 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_277: payload_offset=2232 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_20 target_resource_id=20 routine_offset=4058 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_277 target=CODE_20_loc_00000fda link_status=linked_candidate
 ;     CODE_0_jump_table_entry_278: payload_offset=2240 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_20 target_resource_id=20 routine_offset=4342 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_278 target=CODE_20_loc_000010f6 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_279: payload_offset=2248 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_20 target_resource_id=20 routine_offset=4528 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_279 target=CODE_20_loc_000011b0 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_280: payload_offset=2256 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_20 target_resource_id=20 routine_offset=4686 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_280 target=CODE_20_loc_0000124e link_status=linked_candidate
 ;     CODE_0_jump_table_entry_281: payload_offset=2264 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_20 target_resource_id=20 routine_offset=4800 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_281 target=CODE_20_loc_000012c0 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_282: payload_offset=2272 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_20 target_resource_id=20 routine_offset=4962 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_282 target=CODE_20_loc_00001362 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_283: payload_offset=2280 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_20 target_resource_id=20 routine_offset=5104 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_283 target=CODE_20_loc_000013f0 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_284: payload_offset=2288 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_20 target_resource_id=20 routine_offset=5240 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_284 target=CODE_20_loc_00001478 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_285: payload_offset=2296 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_21 target_resource_id=21 routine_offset=1826 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;     CODE_0_jump_table_entry_286: payload_offset=2304 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_21 target_resource_id=21 routine_offset=2078 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_286 target=CODE_21_loc_0000081e link_status=linked_candidate
 ;     CODE_0_jump_table_entry_287: payload_offset=2312 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_21 target_resource_id=21 routine_offset=2302 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_287 target=CODE_21_loc_000008fe link_status=linked_candidate
 ;     CODE_0_jump_table_entry_288: payload_offset=2320 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_21 target_resource_id=21 routine_offset=3652 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_288 target=CODE_21_loc_00000e44 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_289: payload_offset=2328 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_21 target_resource_id=21 routine_offset=3804 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_289 target=CODE_21_loc_00000edc link_status=linked_candidate
 ;     CODE_0_jump_table_entry_290: payload_offset=2336 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_21 target_resource_id=21 routine_offset=3916 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_290 target=CODE_21_loc_00000f4c link_status=linked_candidate
 ;     CODE_0_jump_table_entry_291: payload_offset=2344 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_21 target_resource_id=21 routine_offset=4062 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_291 target=CODE_21_loc_00000fde link_status=linked_candidate
 ;     CODE_0_jump_table_entry_292: payload_offset=2352 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_21 target_resource_id=21 routine_offset=4520 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_292 target=CODE_21_loc_000011a8 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_293: payload_offset=2360 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_21 target_resource_id=21 routine_offset=5928 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_293 target=CODE_21_loc_00001728 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_294: payload_offset=2368 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_21 target_resource_id=21 routine_offset=6050 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_294 target=CODE_21_loc_000017a2 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_295: payload_offset=2376 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_21 target_resource_id=21 routine_offset=6072 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_295 target=CODE_21_loc_000017b8 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_296: payload_offset=2384 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_21 target_resource_id=21 routine_offset=6124 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_296 target=CODE_21_loc_000017ec link_status=linked_candidate
 ;     CODE_0_jump_table_entry_297: payload_offset=2392 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_21 target_resource_id=21 routine_offset=6178 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_297 target=CODE_21_loc_00001822 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_298: payload_offset=2400 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_21 target_resource_id=21 routine_offset=6234 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_298 target=CODE_21_loc_0000185a link_status=linked_candidate
 ;     CODE_0_jump_table_entry_299: payload_offset=2408 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_21 target_resource_id=21 routine_offset=6252 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_299 target=CODE_21_loc_0000186c link_status=linked_candidate
 ;     CODE_0_jump_table_entry_300: payload_offset=2416 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_21 target_resource_id=21 routine_offset=6640 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_300 target=CODE_21_loc_000019f0 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_301: payload_offset=2424 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_21 target_resource_id=21 routine_offset=6662 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_301 target=CODE_21_loc_00001a06 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_302: payload_offset=2432 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_21 target_resource_id=21 routine_offset=6682 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_302 target=CODE_21_loc_00001a1a link_status=linked_candidate
 ;     CODE_0_jump_table_entry_303: payload_offset=2440 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_21 target_resource_id=21 routine_offset=6728 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_303 target=CODE_21_loc_00001a48 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_304: payload_offset=2448 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_22 target_resource_id=22 routine_offset=68 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
@@ -1242,146 +974,111 @@ CODE_0:
 ;     CODE_0_jump_table_entry_310: payload_offset=2496 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_24 target_resource_id=24 routine_offset=2970 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_310 target=CODE_24_loc_00000b9a link_status=linked_candidate
 ;     CODE_0_jump_table_entry_311: payload_offset=2504 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_24 target_resource_id=24 routine_offset=3088 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_311 target=CODE_24_loc_00000c10 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_312: payload_offset=2512 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_24 target_resource_id=24 routine_offset=3254 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_312 target=CODE_24_loc_00000cb6 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_313: payload_offset=2520 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_24 target_resource_id=24 routine_offset=3666 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_313 target=CODE_24_loc_00000e52 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_314: payload_offset=2528 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_24 target_resource_id=24 routine_offset=3926 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_314 target=CODE_24_loc_00000f56 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_315: payload_offset=2536 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_24 target_resource_id=24 routine_offset=3960 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_315 target=CODE_24_loc_00000f78 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_316: payload_offset=2544 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_24 target_resource_id=24 routine_offset=3996 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_316 target=CODE_24_loc_00000f9c link_status=linked_candidate
 ;     CODE_0_jump_table_entry_317: payload_offset=2552 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_24 target_resource_id=24 routine_offset=4264 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_317 target=CODE_24_loc_000010a8 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_318: payload_offset=2560 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_24 target_resource_id=24 routine_offset=4568 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_318 target=CODE_24_loc_000011d8 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_319: payload_offset=2568 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_25 target_resource_id=25 routine_offset=184 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_319 target=CODE_25_loc_000000b8 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_320: payload_offset=2576 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_25 target_resource_id=25 routine_offset=122 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_320 target=CODE_25_loc_0000007a link_status=linked_candidate
 ;     CODE_0_jump_table_entry_321: payload_offset=2584 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_25 target_resource_id=25 routine_offset=228 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_321 target=CODE_25_loc_000000e4 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_322: payload_offset=2592 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_26 target_resource_id=26 routine_offset=40 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;     CODE_0_jump_table_entry_323: payload_offset=2600 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_26 target_resource_id=26 routine_offset=442 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_323 target=CODE_26_loc_000001ba link_status=linked_candidate
 ;     CODE_0_jump_table_entry_324: payload_offset=2608 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_26 target_resource_id=26 routine_offset=782 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_324 target=CODE_26_loc_0000030e link_status=linked_candidate
 ;     CODE_0_jump_table_entry_325: payload_offset=2616 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_26 target_resource_id=26 routine_offset=824 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_325 target=CODE_26_loc_00000338 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_326: payload_offset=2624 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_26 target_resource_id=26 routine_offset=880 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_326 target=CODE_26_loc_00000370 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_327: payload_offset=2632 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_26 target_resource_id=26 routine_offset=1304 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_327 target=CODE_26_loc_00000518 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_328: payload_offset=2640 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_26 target_resource_id=26 routine_offset=1370 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_328 target=CODE_26_loc_0000055a link_status=linked_candidate
 ;     CODE_0_jump_table_entry_329: payload_offset=2648 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_26 target_resource_id=26 routine_offset=1522 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_329 target=CODE_26_loc_000005f2 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_330: payload_offset=2656 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_26 target_resource_id=26 routine_offset=2012 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_330 target=CODE_26_loc_000007dc link_status=linked_candidate
 ;     CODE_0_jump_table_entry_331: payload_offset=2664 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_26 target_resource_id=26 routine_offset=2064 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_331 target=CODE_26_loc_00000810 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_332: payload_offset=2672 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_26 target_resource_id=26 routine_offset=2102 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_332 target=CODE_26_loc_00000836 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_333: payload_offset=2680 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_26 target_resource_id=26 routine_offset=2244 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_333 target=CODE_26_loc_000008c4 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_334: payload_offset=2688 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_26 target_resource_id=26 routine_offset=2322 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_334 target=CODE_26_loc_00000912 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_335: payload_offset=2696 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_26 target_resource_id=26 routine_offset=2392 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_335 target=CODE_26_loc_00000958 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_336: payload_offset=2704 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_26 target_resource_id=26 routine_offset=2470 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_336 target=CODE_26_loc_000009a6 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_337: payload_offset=2712 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_26 target_resource_id=26 routine_offset=2560 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_337 target=CODE_26_loc_00000a00 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_338: payload_offset=2720 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_26 target_resource_id=26 routine_offset=2632 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_338 target=CODE_26_loc_00000a48 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_339: payload_offset=2728 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_26 target_resource_id=26 routine_offset=2686 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_339 target=CODE_26_loc_00000a7e link_status=linked_candidate
 ;     CODE_0_jump_table_entry_340: payload_offset=2736 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_26 target_resource_id=26 routine_offset=2756 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_340 target=CODE_26_loc_00000ac4 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_341: payload_offset=2744 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_26 target_resource_id=26 routine_offset=2764 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_341 target=CODE_26_loc_00000acc link_status=linked_candidate
 ;     CODE_0_jump_table_entry_342: payload_offset=2752 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_26 target_resource_id=26 routine_offset=2812 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_342 target=CODE_26_loc_00000afc link_status=linked_candidate
 ;     CODE_0_jump_table_entry_343: payload_offset=2760 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_26 target_resource_id=26 routine_offset=2830 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_343 target=CODE_26_loc_00000b0e link_status=linked_candidate
 ;     CODE_0_jump_table_entry_344: payload_offset=2768 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_26 target_resource_id=26 routine_offset=2848 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_344 target=CODE_26_loc_00000b20 link_status=linked_candidate
 ;     CODE_0_jump_table_entry_345: payload_offset=2776 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_26 target_resource_id=26 routine_offset=2866 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     generated_xref source=CODE_0_jump_table_entry_345 target=CODE_26_loc_00000b32 link_status=linked_candidate
 ;   rendered_source: CODE 0 status=byte_preserved payload[0..2784) sha256=8413f3bca1604845bb778c2a7701a067aa8b84853e7c77a60e63166d5b6399c1
 ;   residual_policy: CODE 0 is accepted routing/application metadata; source rows render metadata and jump-table entries.
 ;   source_rows:
@@ -2809,121 +2506,6 @@ CODE_1:
 ;   source_body_ranges:
 ;     metadata payload[0..40) size=40 entrypoint=False
 ;     candidate_code payload[40..29024) size=28984 entrypoint=True
-;   incoming_CODE0_xrefs:
-;     from=CODE_0_jump_table_entry_2 target=CODE_1_loc_0000601e source_payload=32 target_payload=24606 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_3 target=CODE_1_loc_0000003e source_payload=40 target_payload=62 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_4 target=CODE_1_loc_00000046 source_payload=48 target_payload=70 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_5 target=CODE_1_loc_0000005e source_payload=56 target_payload=94 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_6 target=CODE_1_loc_00000076 source_payload=64 target_payload=118 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_7 target=CODE_1_loc_0000009a source_payload=72 target_payload=154 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_8 target=CODE_1_loc_000000be source_payload=80 target_payload=190 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_9 target=CODE_1_loc_000000be source_payload=88 target_payload=190 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_10 target=CODE_1_loc_00000108 source_payload=96 target_payload=264 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_11 target=CODE_1_loc_00000142 source_payload=104 target_payload=322 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_12 target=CODE_1_loc_00000166 source_payload=112 target_payload=358 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_13 target=CODE_1_loc_00000172 source_payload=120 target_payload=370 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_14 target=CODE_1_loc_00000190 source_payload=128 target_payload=400 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_15 target=CODE_1_loc_000001a4 source_payload=136 target_payload=420 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_16 target=CODE_1_loc_000001be source_payload=144 target_payload=446 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_17 target=CODE_1_loc_000001d4 source_payload=152 target_payload=468 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_18 target=CODE_1_loc_000001d8 source_payload=160 target_payload=472 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_19 target=CODE_1_loc_00000244 source_payload=168 target_payload=580 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_20 target=CODE_1_loc_0000023e source_payload=176 target_payload=574 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_21 target=CODE_1_loc_0000031c source_payload=184 target_payload=796 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_22 target=CODE_1_loc_000003d8 source_payload=192 target_payload=984 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_23 target=CODE_1_loc_0000040c source_payload=200 target_payload=1036 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_24 target=CODE_1_loc_00000496 source_payload=208 target_payload=1174 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_25 target=CODE_1_loc_0000049e source_payload=216 target_payload=1182 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_26 target=CODE_1_loc_00000578 source_payload=224 target_payload=1400 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_27 target=CODE_1_loc_00000580 source_payload=232 target_payload=1408 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_28 target=CODE_1_loc_00000606 source_payload=240 target_payload=1542 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_29 target=CODE_1_loc_0000060e source_payload=248 target_payload=1550 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_30 target=CODE_1_loc_00000714 source_payload=256 target_payload=1812 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_31 target=CODE_1_loc_0000071c source_payload=264 target_payload=1820 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_32 target=CODE_1_loc_000007c8 source_payload=272 target_payload=1992 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_33 target=CODE_1_loc_000007e4 source_payload=280 target_payload=2020 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_34 target=CODE_1_loc_00000afe source_payload=288 target_payload=2814 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_35 target=CODE_1_loc_00000f60 source_payload=296 target_payload=3936 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_36 target=CODE_1_loc_00000f7a source_payload=304 target_payload=3962 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_37 target=CODE_1_loc_000011dc source_payload=312 target_payload=4572 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_38 target=CODE_1_loc_000011f4 source_payload=320 target_payload=4596 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_39 target=CODE_1_loc_00001272 source_payload=328 target_payload=4722 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_40 target=CODE_1_loc_000012c2 source_payload=336 target_payload=4802 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_41 target=CODE_1_loc_00001314 source_payload=344 target_payload=4884 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_42 target=CODE_1_loc_0000133e source_payload=352 target_payload=4926 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_43 target=CODE_1_loc_00001b60 source_payload=360 target_payload=7008 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_44 target=CODE_1_loc_00001b26 source_payload=368 target_payload=6950 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_45 target=CODE_1_loc_00001c72 source_payload=376 target_payload=7282 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_46 target=CODE_1_loc_00001d28 source_payload=384 target_payload=7464 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_47 target=CODE_1_loc_00002030 source_payload=392 target_payload=8240 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_48 target=CODE_1_loc_0000204a source_payload=400 target_payload=8266 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_49 target=CODE_1_loc_00002070 source_payload=408 target_payload=8304 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_50 target=CODE_1_loc_000020a8 source_payload=416 target_payload=8360 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_51 target=CODE_1_loc_000021f0 source_payload=424 target_payload=8688 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_52 target=CODE_1_loc_000022f6 source_payload=432 target_payload=8950 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_53 target=CODE_1_loc_00002366 source_payload=440 target_payload=9062 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_54 target=CODE_1_loc_00002492 source_payload=448 target_payload=9362 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_55 target=CODE_1_loc_000025ba source_payload=456 target_payload=9658 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_56 target=CODE_1_loc_0000265e source_payload=464 target_payload=9822 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_57 target=CODE_1_loc_00002674 source_payload=472 target_payload=9844 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_58 target=CODE_1_loc_00002730 source_payload=480 target_payload=10032 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_59 target=CODE_1_loc_000027de source_payload=488 target_payload=10206 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_60 target=CODE_1_loc_0000282e source_payload=496 target_payload=10286 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_61 target=CODE_1_loc_000028b8 source_payload=504 target_payload=10424 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_62 target=CODE_1_loc_000029ca source_payload=512 target_payload=10698 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_63 target=CODE_1_loc_00002bac source_payload=520 target_payload=11180 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_64 target=CODE_1_loc_00003058 source_payload=528 target_payload=12376 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_65 target=CODE_1_loc_00003d90 source_payload=536 target_payload=15760 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_66 target=CODE_1_loc_00004ed2 source_payload=544 target_payload=20178 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_67 target=CODE_1_loc_00005336 source_payload=552 target_payload=21302 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_68 target=CODE_1_loc_000053ac source_payload=560 target_payload=21420 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_69 target=CODE_1_loc_00005476 source_payload=568 target_payload=21622 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_70 target=CODE_1_loc_0000551c source_payload=576 target_payload=21788 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_71 target=CODE_1_loc_000057a8 source_payload=584 target_payload=22440 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_72 target=CODE_1_loc_00005fbe source_payload=592 target_payload=24510 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_73 target=CODE_1_loc_00006112 source_payload=600 target_payload=24850 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_74 target=CODE_1_loc_000061a2 source_payload=608 target_payload=24994 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_75 target=CODE_1_loc_000061c8 source_payload=616 target_payload=25032 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_76 target=CODE_1_loc_000061ec source_payload=624 target_payload=25068 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_77 target=CODE_1_loc_000062ca source_payload=632 target_payload=25290 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_78 target=CODE_1_loc_000063a2 source_payload=640 target_payload=25506 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_79 target=CODE_1_loc_00006418 source_payload=648 target_payload=25624 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_80 target=CODE_1_loc_00006456 source_payload=656 target_payload=25686 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_81 target=CODE_1_loc_00006588 source_payload=664 target_payload=25992 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_82 target=CODE_1_loc_00006832 source_payload=672 target_payload=26674 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_83 target=CODE_1_loc_000068b4 source_payload=680 target_payload=26804 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_84 target=CODE_1_loc_000068be source_payload=688 target_payload=26814 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_85 target=CODE_1_loc_000068cc source_payload=696 target_payload=26828 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_86 target=CODE_1_loc_00006904 source_payload=704 target_payload=26884 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_87 target=CODE_1_loc_00006944 source_payload=712 target_payload=26948 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_88 target=CODE_1_loc_00006956 source_payload=720 target_payload=26966 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_89 target=CODE_1_loc_00006968 source_payload=728 target_payload=26984 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_90 target=CODE_1_loc_0000697a source_payload=736 target_payload=27002 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_91 target=CODE_1_loc_00006994 source_payload=744 target_payload=27028 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_92 target=CODE_1_loc_00006998 source_payload=752 target_payload=27032 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_93 target=CODE_1_loc_000069dc source_payload=760 target_payload=27100 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_94 target=CODE_1_loc_00006a12 source_payload=768 target_payload=27154 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_95 target=CODE_1_loc_00006a36 source_payload=776 target_payload=27190 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_96 target=CODE_1_loc_00006a62 source_payload=784 target_payload=27234 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_97 target=CODE_1_loc_00006a9c source_payload=792 target_payload=27292 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_98 target=CODE_1_loc_00006abc source_payload=800 target_payload=27324 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_99 target=CODE_1_loc_00006ade source_payload=808 target_payload=27358 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_100 target=CODE_1_loc_00006b16 source_payload=816 target_payload=27414 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_101 target=CODE_1_loc_00006b2c source_payload=824 target_payload=27436 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_102 target=CODE_1_loc_00006b42 source_payload=832 target_payload=27458 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_103 target=CODE_1_loc_00006b54 source_payload=840 target_payload=27476 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_104 target=CODE_1_loc_00006b66 source_payload=848 target_payload=27494 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_105 target=CODE_1_loc_00006bae source_payload=856 target_payload=27566 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_106 target=CODE_1_loc_00006bf6 source_payload=864 target_payload=27638 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_107 target=CODE_1_loc_00006c36 source_payload=872 target_payload=27702 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_108 target=CODE_1_loc_00006c94 source_payload=880 target_payload=27796 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_109 target=CODE_1_loc_00006d0e source_payload=888 target_payload=27918 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_110 target=CODE_1_loc_00006f1c source_payload=896 target_payload=28444 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_111 target=CODE_1_loc_00006f2e source_payload=904 target_payload=28462 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_112 target=CODE_1_loc_00006f64 source_payload=912 target_payload=28516 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_113 target=CODE_1_loc_0000704c source_payload=920 target_payload=28748 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_114 target=CODE_1_loc_000070a2 source_payload=928 target_payload=28834 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_115 target=CODE_1_loc_000070c6 source_payload=936 target_payload=28870 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;   selected_code_entry_offset: 40
 ;   selected_code_bytes_size: 28984
 ;   code_bytes_sha256: 4633044ba0d2a816a0e482a9fb3b65bcd8daf699882df8f95939ad018f51879c
@@ -12430,12 +12012,6 @@ CODE_2:
 ;     metadata payload[0..40) size=40 entrypoint=False
 ;     candidate_unresolved_prefix payload[40..374) size=334 entrypoint=False
 ;     candidate_code payload[374..7788) size=7414 entrypoint=True
-;   incoming_CODE0_xrefs:
-;     from=CODE_0_jump_table_entry_118 target=CODE_2_loc_00000188 source_payload=960 target_payload=392 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_119 target=CODE_2_loc_000001c2 source_payload=968 target_payload=450 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_120 target=CODE_2_loc_000017da source_payload=976 target_payload=6106 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_121 target=CODE_2_loc_00001b4a source_payload=984 target_payload=6986 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_122 target=CODE_2_loc_00001bf2 source_payload=992 target_payload=7154 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;   rendered_source: CODE 2 status=semantic_rows payload[0..7788) sha256=a33f1dfe28237a5ee6f9ba7a96540e8e4842a7e6207575db5f0479b8c622a4f2
 ;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
 ;   source_rows:
@@ -13598,9 +13174,6 @@ CODE_3:
 ;     metadata payload[0..40) size=40 entrypoint=False
 ;     candidate_unresolved_prefix payload[40..302) size=262 entrypoint=False
 ;     candidate_code payload[302..18252) size=17950 entrypoint=True
-;   incoming_CODE0_xrefs:
-;     from=CODE_0_jump_table_entry_124 target=CODE_3_loc_000038f6 source_payload=1008 target_payload=14582 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_125 target=CODE_3_loc_0000443e source_payload=1016 target_payload=17470 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;   rendered_source: CODE 3 status=semantic_rows payload[0..18252) sha256=331fc8e7daf79d4e733760cb8ad413ade51431a01dd6c19c4f73720f562b08e4
 ;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
 ;   source_rows:
@@ -17655,25 +17228,6 @@ CODE_4:
 ;     metadata payload[0..40) size=40 entrypoint=False
 ;     candidate_unresolved_prefix payload[40..468) size=428 entrypoint=False
 ;     candidate_code payload[468..6426) size=5958 entrypoint=True
-;   incoming_CODE0_xrefs:
-;     from=CODE_0_jump_table_entry_128 target=CODE_4_loc_000001ee source_payload=1040 target_payload=494 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_129 target=CODE_4_loc_00000240 source_payload=1048 target_payload=576 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_130 target=CODE_4_loc_00000294 source_payload=1056 target_payload=660 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_131 target=CODE_4_loc_000002ea source_payload=1064 target_payload=746 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_132 target=CODE_4_loc_0000030c source_payload=1072 target_payload=780 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_133 target=CODE_4_loc_000003a6 source_payload=1080 target_payload=934 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_134 target=CODE_4_loc_00000806 source_payload=1088 target_payload=2054 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_135 target=CODE_4_loc_00000c42 source_payload=1096 target_payload=3138 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_136 target=CODE_4_loc_00000e82 source_payload=1104 target_payload=3714 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_137 target=CODE_4_loc_00001436 source_payload=1112 target_payload=5174 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_138 target=CODE_4_loc_000015ae source_payload=1120 target_payload=5550 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_139 target=CODE_4_loc_000015e2 source_payload=1128 target_payload=5602 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_140 target=CODE_4_loc_00001728 source_payload=1136 target_payload=5928 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_141 target=CODE_4_loc_00001760 source_payload=1144 target_payload=5984 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_142 target=CODE_4_loc_00001810 source_payload=1152 target_payload=6160 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_143 target=CODE_4_loc_00001862 source_payload=1160 target_payload=6242 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_144 target=CODE_4_loc_000018aa source_payload=1168 target_payload=6314 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_145 target=CODE_4_loc_000018fe source_payload=1176 target_payload=6398 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;   rendered_source: CODE 4 status=semantic_rows payload[0..6426) sha256=a697293e579b91031cb9bb37cd80a4f47d2acb9eff60a4f4b7e3cb9a18fd4fca
 ;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
 ;   source_rows:
@@ -19892,28 +19446,6 @@ CODE_5:
 ;     metadata payload[0..40) size=40 entrypoint=False
 ;     candidate_unresolved_prefix payload[40..212) size=172 entrypoint=False
 ;     candidate_code payload[212..26638) size=26426 entrypoint=True
-;   incoming_CODE0_xrefs:
-;     from=CODE_0_jump_table_entry_148 target=CODE_5_loc_000000ea source_payload=1200 target_payload=234 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_149 target=CODE_5_loc_00000368 source_payload=1208 target_payload=872 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_150 target=CODE_5_loc_0000036c source_payload=1216 target_payload=876 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_151 target=CODE_5_loc_0000059a source_payload=1224 target_payload=1434 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_152 target=CODE_5_loc_000005e8 source_payload=1232 target_payload=1512 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_153 target=CODE_5_loc_00000a48 source_payload=1240 target_payload=2632 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_154 target=CODE_5_loc_000013e0 source_payload=1248 target_payload=5088 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_155 target=CODE_5_loc_000014b6 source_payload=1256 target_payload=5302 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_156 target=CODE_5_loc_000015ec source_payload=1264 target_payload=5612 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_157 target=CODE_5_loc_000016fc source_payload=1272 target_payload=5884 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_158 target=CODE_5_loc_00001856 source_payload=1280 target_payload=6230 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_159 target=CODE_5_loc_00001890 source_payload=1288 target_payload=6288 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_160 target=CODE_5_loc_00001998 source_payload=1296 target_payload=6552 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_161 target=CODE_5_loc_00002038 source_payload=1304 target_payload=8248 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_162 target=CODE_5_loc_00002568 source_payload=1312 target_payload=9576 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_163 target=CODE_5_loc_00002f68 source_payload=1320 target_payload=12136 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_164 target=CODE_5_loc_00003ac2 source_payload=1328 target_payload=15042 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_165 target=CODE_5_loc_00005652 source_payload=1336 target_payload=22098 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_166 target=CODE_5_loc_00005cae source_payload=1344 target_payload=23726 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_167 target=CODE_5_loc_00005f16 source_payload=1352 target_payload=24342 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_168 target=CODE_5_loc_00006750 source_payload=1360 target_payload=26448 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;   rendered_source: CODE 5 status=semantic_rows payload[0..26638) sha256=90b898d2148ba2c3b798bed0c8c5dc936fba9ed3e8b958d279db4b279a033dfc
 ;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
 ;   source_rows:
@@ -26769,15 +26301,6 @@ CODE_6:
 ;     metadata payload[0..40) size=40 entrypoint=False
 ;     candidate_unresolved_prefix payload[40..58) size=18 entrypoint=False
 ;     candidate_code payload[58..15158) size=15100 entrypoint=True
-;   incoming_CODE0_xrefs:
-;     from=CODE_0_jump_table_entry_170 target=CODE_6_loc_000000f0 source_payload=1376 target_payload=240 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_171 target=CODE_6_loc_0000012a source_payload=1384 target_payload=298 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_172 target=CODE_6_loc_000002e0 source_payload=1392 target_payload=736 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_173 target=CODE_6_loc_0000165c source_payload=1400 target_payload=5724 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_174 target=CODE_6_loc_00000574 source_payload=1408 target_payload=1396 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_175 target=CODE_6_loc_00000488 source_payload=1416 target_payload=1160 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_176 target=CODE_6_loc_0000168e source_payload=1424 target_payload=5774 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_177 target=CODE_6_loc_00003b16 source_payload=1432 target_payload=15126 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;   rendered_source: CODE 6 status=semantic_rows payload[0..15158) sha256=75005bca2e9e007ce374020416127735d9096e064806e4e1e1b888cd3ba8a9cf
 ;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
 ;   source_rows:
@@ -30149,11 +29672,6 @@ CODE_7:
 ;     metadata payload[0..40) size=40 entrypoint=False
 ;     candidate_unresolved_prefix payload[40..352) size=312 entrypoint=False
 ;     candidate_code payload[352..4142) size=3790 entrypoint=True
-;   incoming_CODE0_xrefs:
-;     from=CODE_0_jump_table_entry_180 target=CODE_7_loc_00000172 source_payload=1456 target_payload=370 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_181 target=CODE_7_loc_000001ac source_payload=1464 target_payload=428 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_182 target=CODE_7_loc_00000c58 source_payload=1472 target_payload=3160 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_183 target=CODE_7_loc_00000fde source_payload=1480 target_payload=4062 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;   rendered_source: CODE 7 status=semantic_rows payload[0..4142) sha256=3bc5de90c439ad5e0f7e5d4635b445022db8ab231a9b43981dbd95673ac0b78e
 ;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
 ;   source_rows:
@@ -30867,14 +30385,6 @@ CODE_8:
 ;     metadata payload[0..40) size=40 entrypoint=False
 ;     candidate_unresolved_prefix payload[40..42) size=2 entrypoint=False
 ;     candidate_code payload[42..1852) size=1810 entrypoint=True
-;   incoming_CODE0_xrefs:
-;     from=CODE_0_jump_table_entry_184 target=CODE_8_loc_000000dc source_payload=1488 target_payload=220 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_185 target=CODE_8_loc_00000104 source_payload=1496 target_payload=260 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_186 target=CODE_8_loc_000002a6 source_payload=1504 target_payload=678 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_187 target=CODE_8_loc_0000031a source_payload=1512 target_payload=794 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_188 target=CODE_8_loc_00000418 source_payload=1520 target_payload=1048 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_189 target=CODE_8_loc_0000046c source_payload=1528 target_payload=1132 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_190 target=CODE_8_loc_0000065e source_payload=1536 target_payload=1630 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;   rendered_source: CODE 8 status=semantic_rows payload[0..1852) sha256=5b3cd8756213ba73870bb353160d4e5dbb1a3bdd2da93157146d091b6949a2e9
 ;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
 ;   source_rows:
@@ -31544,13 +31054,6 @@ CODE_9:
 ;     metadata payload[0..40) size=40 entrypoint=False
 ;     candidate_unresolved_prefix payload[40..712) size=672 entrypoint=False
 ;     candidate_code payload[712..13946) size=13234 entrypoint=True
-;   incoming_CODE0_xrefs:
-;     from=CODE_0_jump_table_entry_194 target=CODE_9_loc_0000047a source_payload=1568 target_payload=1146 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_195 target=CODE_9_loc_000010a0 source_payload=1576 target_payload=4256 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_196 target=CODE_9_loc_00001034 source_payload=1584 target_payload=4148 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_197 target=CODE_9_loc_00000fa2 source_payload=1592 target_payload=4002 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_198 target=CODE_9_loc_000031be source_payload=1600 target_payload=12734 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_199 target=CODE_9_loc_00003650 source_payload=1608 target_payload=13904 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;   rendered_source: CODE 9 status=semantic_rows payload[0..13946) sha256=0361ae9dcb47f31cf559372a3e42c672dcfb8920b332d4f900a7124ab6c70bf3
 ;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
 ;   source_rows:
@@ -32911,8 +32414,6 @@ CODE_10:
 ;     metadata payload[0..40) size=40 entrypoint=False
 ;     candidate_unresolved_prefix payload[40..148) size=108 entrypoint=False
 ;     candidate_code payload[148..1542) size=1394 entrypoint=True
-;   incoming_CODE0_xrefs:
-;     from=CODE_0_jump_table_entry_201 target=CODE_10_loc_00000136 source_payload=1624 target_payload=310 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;   rendered_source: CODE 10 status=semantic_rows payload[0..1542) sha256=2d5d27affd131aaa28eb0bd33157051e8f30ee3cdc054df4aad3011bdb22c1e1
 ;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
 ;   source_rows:
@@ -33382,20 +32883,6 @@ CODE_11:
 ;     metadata payload[0..40) size=40 entrypoint=False
 ;     candidate_unresolved_prefix payload[40..836) size=796 entrypoint=False
 ;     candidate_code payload[836..3678) size=2842 entrypoint=True
-;   incoming_CODE0_xrefs:
-;     from=CODE_0_jump_table_entry_204 target=CODE_11_loc_000003b2 source_payload=1648 target_payload=946 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_205 target=CODE_11_loc_00000408 source_payload=1656 target_payload=1032 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_206 target=CODE_11_loc_000004b6 source_payload=1664 target_payload=1206 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_207 target=CODE_11_loc_000004d2 source_payload=1672 target_payload=1234 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_208 target=CODE_11_loc_0000054a source_payload=1680 target_payload=1354 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_209 target=CODE_11_loc_0000059a source_payload=1688 target_payload=1434 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_210 target=CODE_11_loc_00000698 source_payload=1696 target_payload=1688 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_211 target=CODE_11_loc_00000786 source_payload=1704 target_payload=1926 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_212 target=CODE_11_loc_00000a52 source_payload=1712 target_payload=2642 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_213 target=CODE_11_loc_00000c5e source_payload=1720 target_payload=3166 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_214 target=CODE_11_loc_00000d60 source_payload=1728 target_payload=3424 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_215 target=CODE_11_loc_00000dd2 source_payload=1736 target_payload=3538 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_216 target=CODE_11_loc_00000e46 source_payload=1744 target_payload=3654 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;   rendered_source: CODE 11 status=semantic_rows payload[0..3678) sha256=04097ca27d77f09604177ac5e85019ecaed552d68ae2e9d50ae3b5a4e394c503
 ;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
 ;   source_rows:
@@ -34697,9 +34184,6 @@ CODE_12:
 ;     metadata payload[0..40) size=40 entrypoint=False
 ;     candidate_unresolved_prefix payload[40..44) size=4 entrypoint=False
 ;     candidate_code payload[44..6928) size=6884 entrypoint=True
-;   incoming_CODE0_xrefs:
-;     from=CODE_0_jump_table_entry_217 target=CODE_12_loc_00000b40 source_payload=1752 target_payload=2880 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_218 target=CODE_12_loc_00001338 source_payload=1760 target_payload=4920 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;   rendered_source: CODE 12 status=semantic_rows payload[0..6928) sha256=9c563d29bea4465730181b661ea9a3a60d15276aa71a6be399b02b9a4091cbdb
 ;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
 ;   source_rows:
@@ -37034,19 +36518,6 @@ CODE_13:
 ;     metadata payload[0..40) size=40 entrypoint=False
 ;     candidate_unresolved_prefix payload[40..44) size=4 entrypoint=False
 ;     candidate_code payload[44..33354) size=33310 entrypoint=True
-;   incoming_CODE0_xrefs:
-;     from=CODE_0_jump_table_entry_220 target=CODE_13_loc_00001132 source_payload=1776 target_payload=4402 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_221 target=CODE_13_loc_000021fa source_payload=1784 target_payload=8698 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_222 target=CODE_13_loc_000022a8 source_payload=1792 target_payload=8872 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_223 target=CODE_13_loc_000023e6 source_payload=1800 target_payload=9190 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_224 target=CODE_13_loc_00002528 source_payload=1808 target_payload=9512 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_225 target=CODE_13_loc_00002cce source_payload=1816 target_payload=11470 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_226 target=CODE_13_loc_00002d0c source_payload=1824 target_payload=11532 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_227 target=CODE_13_loc_00002d9c source_payload=1832 target_payload=11676 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_228 target=CODE_13_loc_00002e06 source_payload=1840 target_payload=11782 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_229 target=CODE_13_loc_000067a6 source_payload=1848 target_payload=26534 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_230 target=CODE_13_loc_00006f46 source_payload=1856 target_payload=28486 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_231 target=CODE_13_loc_00008226 source_payload=1864 target_payload=33318 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;   rendered_source: CODE 13 status=semantic_rows payload[0..33354) sha256=1358e27cbf9cb7da402416dfa830bd93f99a23e16da5c9972f63549d171a30c8
 ;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
 ;   source_rows:
@@ -40209,17 +39680,6 @@ CODE_14:
 ;     metadata payload[0..40) size=40 entrypoint=False
 ;     candidate_unresolved_prefix payload[40..236) size=196 entrypoint=False
 ;     candidate_code payload[236..1886) size=1650 entrypoint=True
-;   incoming_CODE0_xrefs:
-;     from=CODE_0_jump_table_entry_233 target=CODE_14_loc_00000100 source_payload=1880 target_payload=256 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_234 target=CODE_14_loc_0000018c source_payload=1888 target_payload=396 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_235 target=CODE_14_loc_00000206 source_payload=1896 target_payload=518 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_236 target=CODE_14_loc_00000328 source_payload=1904 target_payload=808 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_237 target=CODE_14_loc_000003c6 source_payload=1912 target_payload=966 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_238 target=CODE_14_loc_0000046a source_payload=1920 target_payload=1130 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_239 target=CODE_14_loc_00000498 source_payload=1928 target_payload=1176 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_240 target=CODE_14_loc_0000050e source_payload=1936 target_payload=1294 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_241 target=CODE_14_loc_00000644 source_payload=1944 target_payload=1604 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_242 target=CODE_14_loc_0000071c source_payload=1952 target_payload=1820 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;   rendered_source: CODE 14 status=semantic_rows payload[0..1886) sha256=14e851122fdae5910c2772def35a8b36c30dc7133cb92df8524f8a42ff5f8c70
 ;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
 ;   source_rows:
@@ -40902,14 +40362,6 @@ CODE_15:
 ;     metadata payload[0..40) size=40 entrypoint=False
 ;     candidate_unresolved_prefix payload[40..96) size=56 entrypoint=False
 ;     candidate_code payload[96..3452) size=3356 entrypoint=True
-;   incoming_CODE0_xrefs:
-;     from=CODE_0_jump_table_entry_243 target=CODE_15_loc_000001c8 source_payload=1960 target_payload=456 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_244 target=CODE_15_loc_000008f6 source_payload=1968 target_payload=2294 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_245 target=CODE_15_loc_00000af2 source_payload=1976 target_payload=2802 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_246 target=CODE_15_loc_00000b10 source_payload=1984 target_payload=2832 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_247 target=CODE_15_loc_00000b72 source_payload=1992 target_payload=2930 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_248 target=CODE_15_loc_00000c76 source_payload=2000 target_payload=3190 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_249 target=CODE_15_loc_00000cca source_payload=2008 target_payload=3274 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;   rendered_source: CODE 15 status=semantic_rows payload[0..3452) sha256=ebe2c26fe6fffb8585f7e9e0ebfffa73ca877946c26eab44f0efbd96678018cd
 ;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
 ;   source_rows:
@@ -42067,9 +41519,6 @@ CODE_16:
 ;     metadata payload[0..40) size=40 entrypoint=False
 ;     candidate_unresolved_prefix payload[40..246) size=206 entrypoint=False
 ;     candidate_code payload[246..1034) size=788 entrypoint=True
-;   incoming_CODE0_xrefs:
-;     from=CODE_0_jump_table_entry_251 target=CODE_16_loc_00000132 source_payload=2024 target_payload=306 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_252 target=CODE_16_loc_00000362 source_payload=2032 target_payload=866 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;   rendered_source: CODE 16 status=semantic_rows payload[0..1034) sha256=51e7a7d264825cd4103b31a0bff37ff49fdb64e8ddb299b2a46d4bd3c07f6a37
 ;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
 ;   source_rows:
@@ -42409,8 +41858,6 @@ CODE_17:
 ;     metadata payload[0..40) size=40 entrypoint=False
 ;     candidate_unresolved_prefix payload[40..100) size=60 entrypoint=False
 ;     candidate_code payload[100..3674) size=3574 entrypoint=True
-;   incoming_CODE0_xrefs:
-;     from=CODE_0_jump_table_entry_253 target=CODE_17_loc_00000a1c source_payload=2040 target_payload=2588 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;   rendered_source: CODE 17 status=semantic_rows payload[0..3674) sha256=e4c8e735bff587b55b1482bde5137deec3ae177ea802b09aac3e97401f2905b9
 ;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
 ;   source_rows:
@@ -43612,8 +43059,6 @@ CODE_18:
 ;     metadata payload[0..40) size=40 entrypoint=False
 ;     candidate_unresolved_prefix payload[40..1562) size=1522 entrypoint=False
 ;     candidate_code payload[1562..1974) size=412 entrypoint=True
-;   incoming_CODE0_xrefs:
-;     from=CODE_0_jump_table_entry_256 target=CODE_18_loc_000006ec source_payload=2064 target_payload=1772 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;   rendered_source: CODE 18 status=semantic_rows payload[0..1974) sha256=96d836fa8382f88453204a38fddb5da2e46867767f572482abb8f9cbb5e431c6
 ;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
 ;   source_rows:
@@ -44299,22 +43744,6 @@ CODE_20:
 ;     metadata payload[0..40) size=40 entrypoint=False
 ;     candidate_unresolved_prefix payload[40..2876) size=2836 entrypoint=False
 ;     candidate_code payload[2876..5262) size=2386 entrypoint=True
-;   incoming_CODE0_xrefs:
-;     from=CODE_0_jump_table_entry_270 target=CODE_20_loc_00000b50 source_payload=2176 target_payload=2896 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_271 target=CODE_20_loc_00000bcc source_payload=2184 target_payload=3020 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_272 target=CODE_20_loc_00000c8c source_payload=2192 target_payload=3212 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_273 target=CODE_20_loc_00000c90 source_payload=2200 target_payload=3216 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_274 target=CODE_20_loc_00000d60 source_payload=2208 target_payload=3424 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_275 target=CODE_20_loc_00000e90 source_payload=2216 target_payload=3728 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_276 target=CODE_20_loc_00000f04 source_payload=2224 target_payload=3844 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_277 target=CODE_20_loc_00000fda source_payload=2232 target_payload=4058 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_278 target=CODE_20_loc_000010f6 source_payload=2240 target_payload=4342 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_279 target=CODE_20_loc_000011b0 source_payload=2248 target_payload=4528 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_280 target=CODE_20_loc_0000124e source_payload=2256 target_payload=4686 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_281 target=CODE_20_loc_000012c0 source_payload=2264 target_payload=4800 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_282 target=CODE_20_loc_00001362 source_payload=2272 target_payload=4962 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_283 target=CODE_20_loc_000013f0 source_payload=2280 target_payload=5104 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_284 target=CODE_20_loc_00001478 source_payload=2288 target_payload=5240 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;   rendered_source: CODE 20 status=semantic_rows payload[0..5262) sha256=de9f4a82222f3ff12586a0bb691cc6b5d513777d498d223dfa45311d4a7dc84a
 ;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
 ;   source_rows:
@@ -46283,25 +45712,6 @@ CODE_21:
 ;     metadata payload[0..40) size=40 entrypoint=False
 ;     candidate_unresolved_prefix payload[40..2000) size=1960 entrypoint=False
 ;     candidate_code payload[2000..6794) size=4794 entrypoint=True
-;   incoming_CODE0_xrefs:
-;     from=CODE_0_jump_table_entry_286 target=CODE_21_loc_0000081e source_payload=2304 target_payload=2078 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_287 target=CODE_21_loc_000008fe source_payload=2312 target_payload=2302 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_288 target=CODE_21_loc_00000e44 source_payload=2320 target_payload=3652 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_289 target=CODE_21_loc_00000edc source_payload=2328 target_payload=3804 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_290 target=CODE_21_loc_00000f4c source_payload=2336 target_payload=3916 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_291 target=CODE_21_loc_00000fde source_payload=2344 target_payload=4062 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_292 target=CODE_21_loc_000011a8 source_payload=2352 target_payload=4520 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_293 target=CODE_21_loc_00001728 source_payload=2360 target_payload=5928 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_294 target=CODE_21_loc_000017a2 source_payload=2368 target_payload=6050 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_295 target=CODE_21_loc_000017b8 source_payload=2376 target_payload=6072 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_296 target=CODE_21_loc_000017ec source_payload=2384 target_payload=6124 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_297 target=CODE_21_loc_00001822 source_payload=2392 target_payload=6178 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_298 target=CODE_21_loc_0000185a source_payload=2400 target_payload=6234 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_299 target=CODE_21_loc_0000186c source_payload=2408 target_payload=6252 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_300 target=CODE_21_loc_000019f0 source_payload=2416 target_payload=6640 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_301 target=CODE_21_loc_00001a06 source_payload=2424 target_payload=6662 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_302 target=CODE_21_loc_00001a1a source_payload=2432 target_payload=6682 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_303 target=CODE_21_loc_00001a48 source_payload=2440 target_payload=6728 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;   rendered_source: CODE 21 status=semantic_rows payload[0..6794) sha256=927c28db98eadbc5501e570ada73af8afca05964552a831c02051f6e6fa3b687
 ;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
 ;   source_rows:
@@ -47660,16 +47070,6 @@ CODE_24:
 ;     metadata payload[0..40) size=40 entrypoint=False
 ;     candidate_unresolved_prefix payload[40..2950) size=2910 entrypoint=False
 ;     candidate_code payload[2950..4970) size=2020 entrypoint=True
-;   incoming_CODE0_xrefs:
-;     from=CODE_0_jump_table_entry_310 target=CODE_24_loc_00000b9a source_payload=2496 target_payload=2970 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_311 target=CODE_24_loc_00000c10 source_payload=2504 target_payload=3088 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_312 target=CODE_24_loc_00000cb6 source_payload=2512 target_payload=3254 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_313 target=CODE_24_loc_00000e52 source_payload=2520 target_payload=3666 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_314 target=CODE_24_loc_00000f56 source_payload=2528 target_payload=3926 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_315 target=CODE_24_loc_00000f78 source_payload=2536 target_payload=3960 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_316 target=CODE_24_loc_00000f9c source_payload=2544 target_payload=3996 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_317 target=CODE_24_loc_000010a8 source_payload=2552 target_payload=4264 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_318 target=CODE_24_loc_000011d8 source_payload=2560 target_payload=4568 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;   rendered_source: CODE 24 status=semantic_rows payload[0..4970) sha256=f98dfc823a565d6502fa4ac1feb7b616b397ba9a918ce2c5f47b274e99a9026a
 ;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
 ;   source_rows:
@@ -49499,10 +48899,6 @@ CODE_25:
 ;   source_body_ranges:
 ;     metadata payload[0..40) size=40 entrypoint=False
 ;     candidate_code payload[40..246) size=206 entrypoint=True
-;   incoming_CODE0_xrefs:
-;     from=CODE_0_jump_table_entry_319 target=CODE_25_loc_000000b8 source_payload=2568 target_payload=184 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_320 target=CODE_25_loc_0000007a source_payload=2576 target_payload=122 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_321 target=CODE_25_loc_000000e4 source_payload=2584 target_payload=228 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;   rendered_source: CODE 25 status=semantic_rows payload[0..246) sha256=c87908dd286d0e5fdcab70725ec20e98a37cca1357f18132809c3ab9e7562090
 ;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
 ;   source_rows:
@@ -49607,30 +49003,6 @@ CODE_26:
 ;     metadata payload[0..40) size=40 entrypoint=False
 ;     candidate_unresolved_prefix payload[40..198) size=158 entrypoint=False
 ;     candidate_code payload[198..2940) size=2742 entrypoint=True
-;   incoming_CODE0_xrefs:
-;     from=CODE_0_jump_table_entry_323 target=CODE_26_loc_000001ba source_payload=2600 target_payload=442 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_324 target=CODE_26_loc_0000030e source_payload=2608 target_payload=782 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_325 target=CODE_26_loc_00000338 source_payload=2616 target_payload=824 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_326 target=CODE_26_loc_00000370 source_payload=2624 target_payload=880 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_327 target=CODE_26_loc_00000518 source_payload=2632 target_payload=1304 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_328 target=CODE_26_loc_0000055a source_payload=2640 target_payload=1370 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_329 target=CODE_26_loc_000005f2 source_payload=2648 target_payload=1522 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_330 target=CODE_26_loc_000007dc source_payload=2656 target_payload=2012 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_331 target=CODE_26_loc_00000810 source_payload=2664 target_payload=2064 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_332 target=CODE_26_loc_00000836 source_payload=2672 target_payload=2102 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_333 target=CODE_26_loc_000008c4 source_payload=2680 target_payload=2244 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_334 target=CODE_26_loc_00000912 source_payload=2688 target_payload=2322 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_335 target=CODE_26_loc_00000958 source_payload=2696 target_payload=2392 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_336 target=CODE_26_loc_000009a6 source_payload=2704 target_payload=2470 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_337 target=CODE_26_loc_00000a00 source_payload=2712 target_payload=2560 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_338 target=CODE_26_loc_00000a48 source_payload=2720 target_payload=2632 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_339 target=CODE_26_loc_00000a7e source_payload=2728 target_payload=2686 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_340 target=CODE_26_loc_00000ac4 source_payload=2736 target_payload=2756 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_341 target=CODE_26_loc_00000acc source_payload=2744 target_payload=2764 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_342 target=CODE_26_loc_00000afc source_payload=2752 target_payload=2812 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_343 target=CODE_26_loc_00000b0e source_payload=2760 target_payload=2830 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_344 target=CODE_26_loc_00000b20 source_payload=2768 target_payload=2848 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     from=CODE_0_jump_table_entry_345 target=CODE_26_loc_00000b32 source_payload=2776 target_payload=2866 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;   rendered_source: CODE 26 status=semantic_rows payload[0..2940) sha256=62b8ca8b968fab6a003f39717b671f9c6cae8d20a9c77cb7ab41fd0315a229ae
 ;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
 ;   source_rows:
@@ -50765,8 +50137,6 @@ CODE_27:
 ;     metadata payload[0..4) size=4 entrypoint=False
 ;     candidate_unresolved_prefix payload[4..204) size=200 entrypoint=False
 ;     candidate_code payload[204..1882) size=1678 entrypoint=True
-;   incoming_CODE0_xrefs:
-;     from=CODE_0_jump_table_entry_0 target=CODE_27_loc_000000cc source_payload=16 target_payload=204 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;   rendered_source: CODE 27 status=semantic_rows payload[0..1882) sha256=f683b4c722b40eda686a3074d68910f8316ecd373798c1a5834df64d8b757352
 ;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
 ;   source_rows:
@@ -51126,7 +50496,7 @@ CODE_27_semantic_decode_gap_000000e4:
 ;       residual candidate_unvisited_entry_pattern count=19 payload_offsets=228,252,278,322,390,408,432,594,746,986,1030,1126,... status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
 
 
-; Supporting evidence follows after the source body.
+; Analysis reports
 
 ; File forks
 ;   data: role=data_fork size=10752 sha256=ac751c25db1546ffcf35acae2873379816323de4910d3481eae5528841d85eb0

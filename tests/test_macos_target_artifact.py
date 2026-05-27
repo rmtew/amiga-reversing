@@ -270,23 +270,18 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
         "candidate_target target_section=CODE_27 target_resource_id=27 "
         "routine_offset=0 status=candidate parser_use=candidate_only"
     ) in asm_text
-    assert (
-        "generated_xref source=CODE_0_jump_table_entry_0 "
-        "target=CODE_27_loc_000000cc link_status=linked_candidate"
-    ) in asm_text
+    assert "generated_xref source=CODE_0_jump_table_entry_0" not in asm_text
     assert ";     CODE_0_jump_table_entry_1: payload_offset=24 size=8" in asm_text
     assert ";     no decoded routine target for this accepted jump-table entry" in asm_text
     assert "candidate_target target_section=CODE_unknown" not in asm_text
     assert "CODE_27_routine_candidate_000000cc:" not in asm_text
     assert "CODE_27_loc_000000cc:" in asm_text
-    assert (
-        "from=CODE_0_jump_table_entry_0 target=CODE_27_loc_000000cc source_payload=16 target_payload=204 "
-        "status=candidate parser_use=candidate_only"
-    ) in asm_text
+    assert "incoming_CODE0_xrefs:" not in asm_text
     assert "raw_entry_bytes=" not in asm_text
     assert "raw_byte_gap" not in asm_text
     assert "target_section=CODE_1 target_resource_id=1" in asm_text
-    assert "target=CODE_1_loc_0000003e link_status=linked_candidate" in asm_text
+    assert "target=CODE_1_loc_0000003e link_status=linked_candidate" not in asm_text
+    assert "CODE_1_loc_0000003e:" in asm_text
     assert "CODE_1_routine_candidate_0000003e:" not in asm_text
     assert "target_section=CODE_1 target_resource_id=1 routine_offset=0 status=validated" not in asm_text
     code0_start = asm_text.index(";   CODE 0 unknown: role=code0_metadata")
@@ -380,7 +375,7 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     listing_start = asm_text.index("; CODE 1 Main byte-real source follows.")
     first_instruction = asm_text.index("\tmovea.l (a7)+,a0\n", listing_start)
     quality_start = asm_text.index("; Source quality gate")
-    evidence_start = asm_text.index("; Supporting evidence follows after the source body.")
+    evidence_start = asm_text.index("; Analysis reports")
     assert (
         source_start
         < code0_source_start
@@ -424,7 +419,7 @@ def test_committed_macos_asm_artifact_covers_every_code_resource() -> None:
     expected = summary["resource_fork"]["code_resources"]
     asm_lines = asm_path.read_text(encoding="utf-8").splitlines()
     source_start = asm_lines.index("; CODE source body sections")
-    evidence_start = asm_lines.index("; Supporting evidence follows after the source body.")
+    evidence_start = asm_lines.index("; Analysis reports")
     coverage_start = asm_lines.index("; CODE resource coverage")
     segment_map_start = asm_lines.index("; CODE segment/routine map")
     detail_start = asm_lines.index("; CODE resource detail subviews")

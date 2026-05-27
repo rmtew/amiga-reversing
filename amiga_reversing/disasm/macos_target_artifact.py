@@ -151,7 +151,7 @@ def render_macos_example_asm(*, project_root: Path = PROJECT_ROOT) -> str:
     )
     report_lines: list[str] = [
         "",
-        "; Supporting evidence follows after the source body.",
+        "; Analysis reports",
         "",
         "; File forks",
         *_fork_lines(forks),
@@ -291,7 +291,6 @@ def _code_source_body_section_lines(
                 *_restored_source_model_lines(restored_source),
                 ";   source_body_ranges:",
                 *_code_source_body_range_lines(section),
-                *_incoming_code0_xref_lines(section),
             ]
         )
         if resource_id == 0:
@@ -582,25 +581,6 @@ def _bytes_from_hex(text: str) -> bytes:
         return b""
 
 
-def _incoming_code0_xref_lines(section: Mapping[str, object]) -> list[str]:
-    xrefs = [_mapping(item) for item in _sequence(section.get("incoming_code0_xrefs"))]
-    if not xrefs:
-        return []
-    lines = [";   incoming_CODE0_xrefs:"]
-    for xref in xrefs:
-        candidate = _mapping(xref.get("candidate_target"))
-        lines.append(
-            f";     from={_text(xref.get('source_label'))} "
-            f"target={_text(xref.get('target_label'))} "
-            f"source_payload={_text(xref.get('source_payload_offset'))} "
-            f"target_payload={_text(xref.get('target_payload_offset'))} "
-            f"status={_text(candidate.get('fact_status'))} "
-            f"parser_use={_text(candidate.get('parser_use'))} "
-            f"fact={_text(candidate.get('fact_id'))}"
-        )
-    return lines
-
-
 def _semantic_row_in_range(row: Mapping[str, object], *, start: int, end: int) -> bool:
     payload_offset = _int_value(row.get("payload_offset"))
     payload_end = _int_value(row.get("payload_end"))
@@ -718,7 +698,6 @@ def _code0_structured_source_lines(section: Mapping[str, object]) -> list[str]:
     context = _mapping(section.get("code0_structured_context"))
     jump_table = _mapping(context.get("jump_table"))
     rows = [_mapping(item) for item in _sequence(context.get("jump_table_rows"))]
-    xrefs = [_mapping(item) for item in _sequence(context.get("generated_routing_xrefs"))]
     lines = [
         ";   structured_CODE0_context:",
         ";     above/below A5 metadata and jump-table header are accepted CODE 0 metadata.",
@@ -756,13 +735,6 @@ def _code0_structured_source_lines(section: Mapping[str, object]) -> list[str]:
             )
         else:
             lines.append(";     no decoded routine target for this accepted jump-table entry")
-        for xref in xrefs:
-            if xref.get("entry_index") == entry_index:
-                lines.append(
-                    f";     generated_xref source={_text(xref.get('source_label'))} "
-                    f"target={_text(xref.get('target_label'))} "
-                    f"link_status={_text(xref.get('link_status'))}"
-                )
     return lines
 
 
