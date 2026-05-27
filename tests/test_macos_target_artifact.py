@@ -320,6 +320,7 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     assert ";     no_vague_orphan_bucket: True" in asm_text
     assert ";     range_ownership_complete: True" in asm_text
     assert ";     reachable_code_evidence_recorded: True" in asm_text
+    assert ";     recursive_control_target_xrefs_present: True" in asm_text
     assert ";     residuals_explicit: True" in asm_text
     assert ";     stable_labels_present: True" in asm_text
     assert ";     xref_target_labels_resolved: True" in asm_text
@@ -331,7 +332,8 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     assert ";     deferred A5 lifetime proof" in asm_text
     assert (
         ";     CODE 1: section=macos-code-CODE-1 ownership=candidate_code,metadata "
-        "coverage=True labels=120 xrefs=1902 xref_targets=1026 unresolved_xref_targets=0 "
+        "coverage=True labels=120 xrefs=1902 control_target_xrefs=1787 "
+        "xref_targets=1026 unresolved_xref_targets=0 "
         "instructions=7818 body_spans=1 byte_real_only_body=False "
         "reachable_evidence=117 residuals=59"
     ) in asm_text

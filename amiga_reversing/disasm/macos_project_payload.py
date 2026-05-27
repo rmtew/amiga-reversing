@@ -521,6 +521,9 @@ def _source_quality_gate(
         "xref_target_labels_resolved": all(row["xref_target_labels_resolved"] is True for row in rows),
     }
     semantic_rows = [row for row in rows if row["executable_body_span_count"]]
+    checklist["recursive_control_target_xrefs_present"] = any(
+        row["recursive_control_target_xrefs"] > 0 for row in semantic_rows
+    )
     byte_real_only_bodies = [row for row in semantic_rows if row["semantic_instruction_row_count"] == 0]
     semantic_decode_gap_bodies = [
         row
@@ -597,6 +600,7 @@ def _source_quality_resource_row(
     semantic_instruction_count = sum(1 for item in semantic_rows if item.get("kind") == "instruction")
     semantic_data_count = sum(1 for item in semantic_rows if _semantic_row_is_durable_data(item))
     semantic_xref_count = sum(len(_sequence(item.get("xrefs"))) for item in semantic_rows)
+    semantic_xref_reason_counts = _semantic_xref_reason_counts(semantic_rows)
     semantic_label_names = _semantic_label_names(semantic_rows)
     semantic_xref_target_labels = _semantic_xref_target_labels(semantic_rows)
     unresolved_xref_target_labels = sorted(semantic_xref_target_labels - semantic_label_names)
@@ -634,6 +638,8 @@ def _source_quality_resource_row(
         "labels": labels,
         "generated_label_count": len(labels),
         "generated_xref_count": semantic_xref_count,
+        "generated_xref_reason_counts": semantic_xref_reason_counts,
+        "recursive_control_target_xrefs": semantic_xref_reason_counts.get("control_target", 0),
         "xref_target_label_count": len(semantic_xref_target_labels),
         "unresolved_xref_target_label_count": len(unresolved_xref_target_labels),
         "xref_target_labels_resolved": not unresolved_xref_target_labels,
@@ -649,6 +655,17 @@ def _source_quality_resource_row(
             semantic_instruction_count=semantic_instruction_count,
         ),
     }
+
+
+def _semantic_xref_reason_counts(rows: list[Mapping[str, object]]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for row in rows:
+        for xref in (_mapping(value) for value in _sequence(row.get("xrefs"))):
+            reason = _text(xref.get("reason"))
+            if not reason:
+                continue
+            counts[reason] = counts.get(reason, 0) + 1
+    return dict(sorted(counts.items()))
 
 
 def _semantic_label_names(rows: list[Mapping[str, object]]) -> set[str]:

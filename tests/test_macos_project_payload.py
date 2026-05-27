@@ -1345,6 +1345,10 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     assert code1_quality["generated_label_count"] >= 100
     assert code1_quality["human_semantic_names_required"] is False
     assert "CODE_1_candidate_entry_stub" in code1_quality["labels"]
+    assert code1_quality["recursive_control_target_xrefs"] > 0
+    assert code1_quality["generated_xref_reason_counts"]["control_target"] == code1_quality[
+        "recursive_control_target_xrefs"
+    ]
     assert code1_quality["xref_target_label_count"] > 0
     assert code1_quality["unresolved_xref_target_label_count"] == 0
     assert code1_quality["xref_target_labels_resolved"] is True
