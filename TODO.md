@@ -207,6 +207,14 @@ needs a Mac platform-data payload on `M68kObject` (populated from the enclosing 
 selected CODE bytes) and a platform storage-layout IR that can describe signed A5-relative regions before individual
 slot types are inferred.
 
+Progress note: `M68kObject` now has a Mac platform-data carrier for CODE 0 A5-world layout. The carrier derives the
+signed below-A5 global range, positive jump-table window, and positive global tail from parsed CODE 0 metadata and
+rejects non-CODE0 metadata rather than guessing from selected CODE bytes. Covered by
+`object_a5_world_layout_uses_code0_metadata`, `object_a5_world_layout_rejects_non_code0_metadata`, and
+`cmd /c src\precommit.bat m68k_ir`. Remaining work is to populate this carrier when selected Mac CODE artifacts are
+built from an enclosing resource fork, then expose it through source-analysis storage-layout IR and A5 lifetime/type
+propagation.
+
 
 ### Pascal strings
 

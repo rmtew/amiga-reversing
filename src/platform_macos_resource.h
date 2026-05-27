@@ -1,6 +1,8 @@
 #ifndef PLATFORM_MACOS_RESOURCE_H
 #define PLATFORM_MACOS_RESOURCE_H
 
+#include "m68k_object.h"
+
 #include <stddef.h>
 #include <stdint.h>
 
@@ -126,6 +128,26 @@ typedef struct PlatformMacosCodeMetadata {
   PlatformMacosCodeRange layout_ranges[PLATFORM_MACOS_CODE_LAYOUT_RANGE_CAPACITY];
 } PlatformMacosCodeMetadata;
 
+typedef struct PlatformMacosA5WorldLayout {
+  uint8_t present;
+  int16_t code0_resource_id;
+  uint32_t above_a5_size;
+  uint32_t below_a5_size;
+  uint32_t jump_table_offset_from_a5;
+  uint32_t jump_table_length;
+  int32_t negative_global_start;
+  uint32_t negative_global_size;
+  uint32_t jump_table_start;
+  uint32_t jump_table_end;
+  uint32_t positive_global_start;
+  uint32_t positive_global_size;
+} PlatformMacosA5WorldLayout;
+
+typedef struct PlatformMacosPlatformData {
+  uint8_t has_a5_world_layout;
+  PlatformMacosA5WorldLayout a5_world_layout;
+} PlatformMacosPlatformData;
+
 typedef struct PlatformMacosResourceTypeInfo {
   char type[PLATFORM_MACOS_RESOURCE_TYPE_SIZE];
   uint16_t count;
@@ -161,6 +183,9 @@ int platform_macos_code_metadata_parse(const unsigned char *payload, uint32_t pa
   int16_t resource_id, PlatformMacosCodeMetadata *out_code);
 int platform_macos_code_metadata_executable_range(const PlatformMacosCodeMetadata *code,
   uint32_t *out_start_offset, uint32_t *out_size);
+int platform_macos_object_set_a5_world_layout(M68kObject *object, int16_t code0_resource_id,
+  const PlatformMacosCodeMetadata *code0);
+const PlatformMacosA5WorldLayout *platform_macos_object_a5_world_layout(const M68kObject *object);
 int platform_macos_segment_loader_fixup_inventory_from_code_metadata(const PlatformMacosCodeMetadata *code,
   int16_t resource_id, uint32_t payload_size, PlatformMacosSegmentLoaderFixupInventory *out_inventory);
 const char *platform_macos_segment_loader_fixup_inventory_status_name(uint8_t status);

@@ -156,6 +156,52 @@ static int test_code_layout_uses_nonzero_segment_body_without_movea_entry(void) 
   return 0;
 }
 
+static int test_object_a5_world_layout_uses_code0_metadata(void) {
+  unsigned char data[512];
+  PlatformMacosResourceFork fork;
+  PlatformMacosResourceInfo resources[2];
+  M68kObject object;
+  const PlatformMacosA5WorldLayout *layout;
+  size_t size = make_two_code_resource_fork(data, sizeof(data));
+  M68K_C_ASSERT(size != 0U);
+  M68K_C_ASSERT_INT(0, platform_macos_resource_fork_parse(data, size, &fork, NULL, 0U, resources, 2U));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  M68K_C_ASSERT(platform_macos_object_a5_world_layout(&object) == NULL);
+  M68K_C_ASSERT_INT(0, platform_macos_object_set_a5_world_layout(&object, resources[0].resource_id,
+    &resources[0].code));
+  layout = platform_macos_object_a5_world_layout(&object);
+  M68K_C_ASSERT(layout != NULL);
+  M68K_C_ASSERT_U32(1U, layout->present);
+  M68K_C_ASSERT_INT(0, layout->code0_resource_id);
+  M68K_C_ASSERT_U32(32U, layout->above_a5_size);
+  M68K_C_ASSERT_U32(64U, layout->below_a5_size);
+  M68K_C_ASSERT_INT(-64, layout->negative_global_start);
+  M68K_C_ASSERT_U32(64U, layout->negative_global_size);
+  M68K_C_ASSERT_U32(32U, layout->jump_table_start);
+  M68K_C_ASSERT_U32(40U, layout->jump_table_end);
+  M68K_C_ASSERT_U32(40U, layout->positive_global_start);
+  M68K_C_ASSERT_U32(0U, layout->positive_global_size);
+  M68K_C_ASSERT_U32(M68K_PLATFORM_BACKEND_MACOS, object.platform_backend_kind);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_object_a5_world_layout_rejects_non_code0_metadata(void) {
+  unsigned char data[512];
+  PlatformMacosResourceFork fork;
+  PlatformMacosResourceInfo resources[2];
+  M68kObject object;
+  size_t size = make_two_code_resource_fork(data, sizeof(data));
+  M68K_C_ASSERT(size != 0U);
+  M68K_C_ASSERT_INT(0, platform_macos_resource_fork_parse(data, size, &fork, NULL, 0U, resources, 2U));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  M68K_C_ASSERT_INT(-1, platform_macos_object_set_a5_world_layout(&object, resources[1].resource_id,
+    &resources[1].code));
+  M68K_C_ASSERT(platform_macos_object_a5_world_layout(&object) == NULL);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_segment_loader_fixup_inventory_reports_near_model_absent(void) {
   unsigned char data[512];
   PlatformMacosResourceFork fork;
@@ -362,6 +408,9 @@ int m68k_c_platform_macos_resource_tests(void) {
     {"resource_fork_finds_selected_payload_bounds", test_resource_fork_finds_selected_payload_bounds},
     {"code_layout_uses_nonzero_segment_body_without_movea_entry",
       test_code_layout_uses_nonzero_segment_body_without_movea_entry},
+    {"object_a5_world_layout_uses_code0_metadata", test_object_a5_world_layout_uses_code0_metadata},
+    {"object_a5_world_layout_rejects_non_code0_metadata",
+      test_object_a5_world_layout_rejects_non_code0_metadata},
     {"segment_loader_fixup_inventory_reports_near_model_absent",
       test_segment_loader_fixup_inventory_reports_near_model_absent},
     {"segment_loader_fixup_inventory_maps_far_model_relocation_offsets",

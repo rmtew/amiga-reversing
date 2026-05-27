@@ -1,6 +1,7 @@
 #include "platform_macos_resource.h"
 #include "generated/platform_executable_formats.h"
 
+#include <limits.h>
 #include <stdint.h>
 #include <string.h>
 
@@ -129,6 +130,68 @@ int platform_macos_code_metadata_executable_range(const PlatformMacosCodeMetadat
     }
   }
   return 1;
+}
+
+static PlatformMacosPlatformData *platform_macos_object_platform_data(M68kObject *object) {
+  PlatformMacosPlatformData *platform_data;
+  if (object == NULL) return NULL;
+  if (object->platform_backend_kind != M68K_PLATFORM_BACKEND_UNKNOWN &&
+      object->platform_backend_kind != M68K_PLATFORM_BACKEND_MACOS) {
+    return NULL;
+  }
+  platform_data = (PlatformMacosPlatformData *)object->platform_data;
+  if (platform_data == NULL) {
+    platform_data = (PlatformMacosPlatformData *)m68k_object_alloc(object, sizeof(*platform_data));
+    if (platform_data == NULL) return NULL;
+    memset(platform_data, 0, sizeof(*platform_data));
+    object->platform_data = platform_data;
+  }
+  object->platform_backend_kind = M68K_PLATFORM_BACKEND_MACOS;
+  return platform_data;
+}
+
+int platform_macos_object_set_a5_world_layout(M68kObject *object, int16_t code0_resource_id,
+    const PlatformMacosCodeMetadata *code0) {
+  PlatformMacosPlatformData *platform_data;
+  PlatformMacosA5WorldLayout *layout;
+  uint32_t jump_table_end;
+  if (object == NULL || code0 == NULL ||
+      code0->kind != PLATFORM_MACOS_CODE_RESOURCE_JUMP_TABLE_SEGMENT ||
+      code0->below_a5_size > (uint32_t)INT32_MAX ||
+      code0->jump_table_offset_from_a5 > UINT32_MAX - code0->jump_table_length) {
+    return -1;
+  }
+  platform_data = platform_macos_object_platform_data(object);
+  if (platform_data == NULL) return -1;
+  jump_table_end = code0->jump_table_offset_from_a5 + code0->jump_table_length;
+  layout = &platform_data->a5_world_layout;
+  memset(layout, 0, sizeof(*layout));
+  layout->present = 1U;
+  layout->code0_resource_id = code0_resource_id;
+  layout->above_a5_size = code0->above_a5_size;
+  layout->below_a5_size = code0->below_a5_size;
+  layout->jump_table_offset_from_a5 = code0->jump_table_offset_from_a5;
+  layout->jump_table_length = code0->jump_table_length;
+  layout->negative_global_start = -(int32_t)code0->below_a5_size;
+  layout->negative_global_size = code0->below_a5_size;
+  layout->jump_table_start = code0->jump_table_offset_from_a5;
+  layout->jump_table_end = jump_table_end;
+  layout->positive_global_start = jump_table_end;
+  if (code0->above_a5_size > jump_table_end) {
+    layout->positive_global_size = code0->above_a5_size - jump_table_end;
+  }
+  platform_data->has_a5_world_layout = 1U;
+  return 0;
+}
+
+const PlatformMacosA5WorldLayout *platform_macos_object_a5_world_layout(const M68kObject *object) {
+  const PlatformMacosPlatformData *platform_data;
+  if (object == NULL || object->platform_backend_kind != M68K_PLATFORM_BACKEND_MACOS ||
+      object->platform_data == NULL) {
+    return NULL;
+  }
+  platform_data = (const PlatformMacosPlatformData *)object->platform_data;
+  return platform_data->has_a5_world_layout ? &platform_data->a5_world_layout : NULL;
 }
 
 const char *platform_macos_segment_loader_fixup_inventory_status_name(uint8_t status) {
