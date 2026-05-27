@@ -265,6 +265,7 @@ static int runtime_address_space_add(M68kRuntimeAddressSpace *space, size_t sect
   M68kFactIR *facts, M68kFactsV2Profile *profile);
 static int runtime_address_space_translate(const M68kRuntimeAddressSpace *space, size_t section_index,
   uint32_t runtime_address, uint32_t section_size, uint32_t *out_source_offset);
+static int runtime_address_space_section_has_range(const M68kRuntimeAddressSpace *space, size_t section_index);
 static int runtime_address_space_source_to_runtime_near(const M68kRuntimeAddressSpace *space, size_t section_index,
   uint32_t source_offset, uint8_t has_current_runtime, uint32_t current_runtime,
   uint32_t *out_runtime_address);
@@ -4241,6 +4242,15 @@ static int runtime_address_space_translate(const M68kRuntimeAddressSpace *space,
   return 0;
 }
 
+static int runtime_address_space_section_has_range(const M68kRuntimeAddressSpace *space, size_t section_index) {
+  size_t index;
+  if (space == NULL) return 0;
+  for (index = 0U; index < space->count; ++index) {
+    if (space->ranges[index].section_index == section_index && space->ranges[index].size != 0U) return 1;
+  }
+  return 0;
+}
+
 static int runtime_address_space_source_to_runtime_near(const M68kRuntimeAddressSpace *space, size_t section_index,
     uint32_t source_offset, uint8_t has_current_runtime, uint32_t current_runtime, uint32_t *out_runtime_address) {
   size_t index;
@@ -4438,7 +4448,7 @@ static void facts_v2_classify_absolute_memory_ref(uint8_t platform_kind,
     ref->owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_RUNTIME_RANGE;
     return;
   }
-  if (address < section_size) {
+  if (!runtime_address_space_section_has_range(runtime_addresses, section_index) && address < section_size) {
     ref->owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_SECTION_STORAGE;
     ref->owner_offset = address;
   }

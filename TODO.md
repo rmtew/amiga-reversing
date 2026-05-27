@@ -444,6 +444,16 @@ abs_0_0005C3E6:
 	move.l #$1140,$012E.w
 ```
 
+Progress note: low absolute RAM slots in runtime-mapped sections are no longer misclassified as section storage just
+because the numeric address is less than the section size. The C facts path now only falls back to `section_storage`
+for unrelocated absolute operands when the section has no runtime address range; relocated operands still keep their
+explicit section-storage owner. Magicland's example addresses now classify as `absolute_memory`: `$0126` (10 refs),
+`$012A` (21 refs), `$012E` (4 refs), `$0132` (6 refs), `$00006F50` (14 refs), `$0002F490` (2 refs), `$00032DD0`
+(1 ref), and `$0004B470` (1 ref). Covered by
+`facts_v2_runtime_mapped_section_keeps_low_absolute_refs_absolute` and `cmd /c src\precommit.bat m68k_ir`.
+Remaining work: aggregate these absolute-memory refs into a human useful rendered/source-header memory map with stable
+slot/range names and size/lifetime evidence, rather than only exposing per-reference JSON records.
+
 ### Disk access
 
 This is a hunk file project. The implication here is that we should update this to a disk project and treat the

@@ -18230,6 +18230,70 @@ static int test_facts_v2_analysis_records_absolute_memory_refs(void) {
   return 0;
 }
 
+static int test_facts_v2_runtime_mapped_section_keeps_low_absolute_refs_absolute(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  const M68kAbsoluteMemoryRefIR *low_ref = NULL;
+  char *source = NULL;
+  char *analysis_json = NULL;
+  size_t index;
+  uint8_t bytes[0x140];
+  memset(bytes, 0, sizeof(bytes));
+  bytes[0] = 0x20U;
+  bytes[1] = 0x78U;
+  bytes[2] = 0x01U;
+  bytes[3] = 0x2AU;
+  bytes[4] = 0x4EU;
+  bytes[5] = 0x75U;
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.runtime_range_count = 1U;
+  policy.runtime_ranges[0].has_section_index = 1U;
+  policy.runtime_ranges[0].section_index = 0U;
+  policy.runtime_ranges[0].offset = 0U;
+  policy.runtime_ranges[0].size = sizeof(bytes);
+  policy.runtime_ranges[0].runtime_address = 0x5BFF0U;
+  policy.runtime_entry_point_count = 1U;
+  policy.runtime_entry_points[0].has_section_index = 1U;
+  policy.runtime_entry_points[0].section_index = 0U;
+  policy.runtime_entry_points[0].runtime_address = 0x5BFF0U;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  for (index = 0U; index < source_analysis.sections[0].absolute_memory_ref_count; ++index) {
+    const M68kAbsoluteMemoryRefIR *ref = &source_analysis.sections[0].absolute_memory_refs[index];
+    if (ref->address == 0x12AU) low_ref = ref;
+  }
+  M68K_C_ASSERT(low_ref != NULL);
+  M68K_C_ASSERT_U32(M68K_ABSOLUTE_MEMORY_OWNER_ABSOLUTE_MEMORY, low_ref->owner_kind);
+  M68K_C_ASSERT_U32(M68K_SIM_ACCESS_MEMORY_READ, low_ref->access_kind);
+  M68K_C_ASSERT_U32(4U, low_ref->access_width);
+  M68K_C_ASSERT_U32(0U, low_ref->conflicted);
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"record_kind\":\"absolute_memory_ref\",\"memory_kind\":\"absolute_memory\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"range_start\":298,\"range_size\":4,\"range_end\":302") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"owner_kind\":\"section_storage\"") == NULL);
+  free(analysis_json);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_orphan_absolute_operand_records_unresolved_memory_layout(void) {
   M68kObject object;
   M68kSection section;
@@ -20164,6 +20228,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_render_asm_source_inherits_hardware_base_into_local_helper},
     {"facts_v2_analysis_records_absolute_memory_refs",
       test_facts_v2_analysis_records_absolute_memory_refs},
+    {"facts_v2_runtime_mapped_section_keeps_low_absolute_refs_absolute",
+      test_facts_v2_runtime_mapped_section_keeps_low_absolute_refs_absolute},
     {"facts_v2_orphan_absolute_operand_records_unresolved_memory_layout",
       test_facts_v2_orphan_absolute_operand_records_unresolved_memory_layout},
     {"facts_v2_orphan_absolute_operand_classifies_amiga_hardware_owner",

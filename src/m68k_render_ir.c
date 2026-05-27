@@ -5986,6 +5986,16 @@ int lookup_source_logical_address(const M68kRenderLookup *lookup, size_t section
   return 1;
 }
 
+static int render_lookup_section_has_runtime_range(const M68kRenderLookup *lookup, size_t section_index) {
+  size_t index;
+  if (lookup == NULL || lookup->runtime_address_ranges == NULL) return 0;
+  for (index = 0U; index < lookup->runtime_address_range_count; ++index) {
+    const M68kFact *fact = lookup->runtime_address_ranges[index].fact;
+    if (fact != NULL && fact->section_index == section_index && fact->size != 0U) return 1;
+  }
+  return 0;
+}
+
 static void render_lookup_mark_runtime_ref_statement_labels(M68kRenderLookup *lookup) {
   size_t index;
   if (lookup == NULL || lookup->runtime_address_refs == NULL) return;
@@ -7849,7 +7859,8 @@ static void render_analysis_classify_orphan_absolute_memory_ref(const M68kRender
     ref->owner_offset = source_offset;
     return;
   }
-  if (section != NULL && address < section->size) {
+  if (section != NULL && !render_lookup_section_has_runtime_range(lookup, section->section_index) &&
+      address < section->size) {
     ref->owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_SECTION_STORAGE;
     ref->owner_offset = address;
   }
