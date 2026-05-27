@@ -144,6 +144,14 @@ the base register, displacement, width, type, provenance, and lifetime confidenc
 names which can survive source edits. Free-form comments are not enough; the point is to make the storage model usable
 for type propagation and rendering.
 
+Resolution note: the restored-source packet now exposes CODE 0's parsed A5-world layout as structured C-owned platform
+data instead of only a vague deferred placeholder. CODE 0 reports negative A5 globals, the positive A5 jump-table
+window, and positive globals after the table, all with `a5` base-register coordinates. Nonzero CODE resources reference
+CODE 0 as the owner of that layout. This intentionally keeps lifetime proof and slot type propagation deferred: the
+current evidence proves the storage windows, not which function has A5 live or which individual slots hold typed values.
+The remaining general work is to consume Mac trap parameter metadata and normal instruction reads/writes to create
+typed stack-slot/A5-slot facts.
+
 
 ### Pascal strings
 

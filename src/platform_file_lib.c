@@ -544,6 +544,45 @@ static int macos_append_restored_source_reference_records(JsonBuilder *builder, 
   return 0;
 }
 
+static int macos_append_a5_world_extension(JsonBuilder *builder, const PlatformMacosResourceInfo *resource) {
+  if (resource == NULL) return -1;
+  if (resource->resource_id == 0) {
+    uint32_t jump_table_start = resource->code.jump_table_offset_from_a5;
+    uint32_t jump_table_end = jump_table_start + resource->code.jump_table_length;
+    uint32_t positive_global_start = jump_table_end;
+    uint32_t positive_global_size = 0U;
+    if (resource->code.above_a5_size > positive_global_start) {
+      positive_global_size = resource->code.above_a5_size - positive_global_start;
+    }
+    return json_builder_appendf(builder,
+      "\"a5_world\":{\"status\":\"layout_accepted_lifetime_deferred\",\"source_visible\":true,"
+      "\"provenance\":\"platform_file_lib.macos_hfs_code_summary\","
+      "\"fact_id\":\"macos.code_resource.0.jump_table_metadata\","
+      "\"fact_status\":\"validated\",\"parser_use\":\"accepted_parser_output\","
+      "\"reason\":\"CODE 0 records the Classic Mac A5-world layout; lifetime and type propagation remain deferred.\","
+      "\"above_a5_size\":%u,\"below_a5_size\":%u,\"jump_table_offset_from_a5\":%u,"
+      "\"jump_table_length\":%u,\"regions\":["
+      "{\"kind\":\"a5_negative_globals\",\"base_register\":\"a5\",\"start\":-%u,\"end\":0,"
+      "\"size\":%u,\"status\":\"layout_accepted_type_deferred\"},"
+      "{\"kind\":\"code0_jump_table\",\"base_register\":\"a5\",\"start\":%u,\"end\":%u,"
+      "\"size\":%u,\"status\":\"layout_accepted_targets_candidate\"},"
+      "{\"kind\":\"a5_positive_globals\",\"base_register\":\"a5\",\"start\":%u,\"end\":%u,"
+      "\"size\":%u,\"status\":\"layout_accepted_type_deferred\"}]}",
+      (unsigned)resource->code.above_a5_size, (unsigned)resource->code.below_a5_size,
+      (unsigned)jump_table_start, (unsigned)resource->code.jump_table_length,
+      (unsigned)resource->code.below_a5_size, (unsigned)resource->code.below_a5_size,
+      (unsigned)jump_table_start, (unsigned)jump_table_end, (unsigned)resource->code.jump_table_length,
+      (unsigned)positive_global_start, (unsigned)resource->code.above_a5_size, (unsigned)positive_global_size);
+  }
+  return json_builder_append(builder,
+    "\"a5_world\":{\"status\":\"context_in_code0_lifetime_deferred\",\"source_visible\":true,"
+    "\"provenance\":\"platform_file_lib.macos_hfs_code_summary\","
+    "\"fact_id\":\"macos.code_resource.0.jump_table_metadata\","
+    "\"fact_status\":\"validated\",\"parser_use\":\"accepted_parser_output\","
+    "\"reason\":\"A5-world layout is owned by CODE 0; this CODE resource may reference it but lifetime and slot types remain deferred.\","
+    "\"layout_resource\":{\"resource_type\":\"CODE\",\"resource_id\":0}}");
+}
+
 static int macos_append_restored_source_packet(JsonBuilder *builder, const PlatformMacosResourceInfo *resource) {
   MacosRestoredSourceRangeRecord records[MACOS_RESTORED_SOURCE_RANGE_CAPACITY];
   PlatformMacosRestoredSourceRangeView views[MACOS_RESTORED_SOURCE_RANGE_CAPACITY];
@@ -572,11 +611,10 @@ static int macos_append_restored_source_packet(JsonBuilder *builder, const Platf
         ",\"resource_name\":null,\"payload_size\":%u},"
         "\"address_model\":{\"payload_offset_space\":\"code_resource_payload\",\"local_source_offset_space\":\"selected_code_bytes\","
         "\"runtime_address_model\":\"classic_mac_segment_loader_deferred\",\"status\":\"deferred\","
-        "\"provenance\":\"platform_file_lib.macos_hfs_code_summary\"},"
-        "\"a5_world\":{\"status\":\"deferred\",\"source_visible\":true,"
-        "\"provenance\":\"platform_file_lib.macos_hfs_code_summary\","
-        "\"reason\":\"Classic Mac A5/world conventions are preserved as platform context, not promoted to executable byte-entry proof.\"}}}",
-        (unsigned)resource->payload_size) != 0) {
+        "\"provenance\":\"platform_file_lib.macos_hfs_code_summary\"},",
+        (unsigned)resource->payload_size) != 0 ||
+      macos_append_a5_world_extension(builder, resource) != 0 ||
+      json_builder_append(builder, "}}") != 0) {
     return -1;
   }
   return 0;

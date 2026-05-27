@@ -63,8 +63,9 @@ def _c_owned_restored_source_packet(
                 "payload_size": payload_size,
             },
             "a5_world": {
-                "status": "deferred",
-                "reason": "Classic Mac A5/world conventions are preserved as platform context, not promoted to executable byte-entry proof.",
+                "status": "context_in_code0_lifetime_deferred",
+                "reason": "A5-world layout is owned by CODE 0; this CODE resource may reference it but lifetime and slot types remain deferred.",
+                "layout_resource": {"resource_type": "CODE", "resource_id": 0},
             },
         },
     }
@@ -759,7 +760,7 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
     assert selected_restored["source_reference_records"][0]["kind"] == "segment_loader_fixup_placeholder"
     assert selected_restored["source_reference_records"][0]["parser_use"] == "deferred_only"
     assert selected_restored["platform_extensions"]["code_resource"]["resource_id"] == 1
-    assert selected_restored["platform_extensions"]["a5_world"]["status"] == "deferred"
+    assert selected_restored["platform_extensions"]["a5_world"]["status"] == "context_in_code0_lifetime_deferred"
     assert container["code_segment_map"][0]["fact_id"] == "macos.code_resource.segment_jump_table_span.accepted"
     assert container["code_segment_map"][0]["routine_entry_candidates"][0]["fact_status"] == "candidate"
     assert container["selected_code_segment"]["orphan_ranges"][0]["fact_status"] == "candidate"
@@ -1539,7 +1540,10 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
         assert restored["source_ownership_ranges"]
         assert restored["source_reference_records"]
         assert restored["platform_extensions"]["code_resource"]["resource_id"] == detail["id"]
-        assert restored["platform_extensions"]["a5_world"]["status"] == "deferred"
+        assert restored["platform_extensions"]["a5_world"]["status"] in {
+            "layout_accepted_lifetime_deferred",
+            "context_in_code0_lifetime_deferred",
+        }
     assert container["code_resource_details"][0]["role"] == "code0_metadata"
     assert container["code_resource_details"][0]["listing"]["kind"] == "metadata"
     assert container["code_resource_details"][0]["listing"]["available"] is False
@@ -1558,6 +1562,38 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
         row["candidate_target"]["fact_status"] == "candidate"
         for row in container["code_resource_details"][0]["jump_table_rows"]
     )
+    code0_a5_world = container["code_resource_details"][0]["restored_source"]["platform_extensions"]["a5_world"]
+    assert code0_a5_world["status"] == "layout_accepted_lifetime_deferred"
+    assert code0_a5_world["above_a5_size"] == 0xAF0
+    assert code0_a5_world["below_a5_size"] == 0x3920
+    assert code0_a5_world["jump_table_offset_from_a5"] == 0x20
+    assert code0_a5_world["jump_table_length"] == 0xAD0
+    assert code0_a5_world["regions"] == [
+        {
+            "kind": "a5_negative_globals",
+            "base_register": "a5",
+            "start": -0x3920,
+            "end": 0,
+            "size": 0x3920,
+            "status": "layout_accepted_type_deferred",
+        },
+        {
+            "kind": "code0_jump_table",
+            "base_register": "a5",
+            "start": 0x20,
+            "end": 0xAF0,
+            "size": 0xAD0,
+            "status": "layout_accepted_targets_candidate",
+        },
+        {
+            "kind": "a5_positive_globals",
+            "base_register": "a5",
+            "start": 0xAF0,
+            "end": 0xAF0,
+            "size": 0,
+            "status": "layout_accepted_type_deferred",
+        },
+    ]
     selected_detail = next(detail for detail in container["code_resource_details"] if detail["id"] == 1)
     assert selected_detail["listing"]["kind"] == "full_listing"
     assert selected_detail["preview_windows"] == []
@@ -1639,7 +1675,7 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
         for item in dispatch_references
     )
     assert restored_source["platform_extensions"]["address_model"]["payload_offset_space"] == "code_resource_payload"
-    assert restored_source["platform_extensions"]["a5_world"]["status"] == "deferred"
+    assert restored_source["platform_extensions"]["a5_world"]["status"] == "context_in_code0_lifetime_deferred"
     assert container["selected_code_segment"]["orphan_ranges"] == []
     assert container["selected_code_segment"]["relocation_fixups"]["parser_use"] == "deferred_only"
     assert payload["provenance"]["source_image"] == IMAGE_PATH.as_posix()
