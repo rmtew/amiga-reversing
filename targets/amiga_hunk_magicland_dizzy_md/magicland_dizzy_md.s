@@ -7,16 +7,49 @@
 ;   section[$000095E4-$000096D4] -> runtime[$00000322-$00000412] discovered_copy suppressed
 ;   section[$000095E8-$000096D8] -> runtime[$00000326-$00000416] discovered_copy suppressed
 ;   section[$000095EC-$00009664] -> runtime[$0000032A-$000003A2] discovered_copy suppressed
+;   Absolute memory refs:
+;     absolute[$00000112-$00000143] refs=76 access=rw
+;     absolute[$00000144-$00000161] refs=88 access=rw
+;     absolute[$00000162-$0000017A] refs=141 access=rw
+;     absolute[$0000017E-$000001DA] refs=316 access=rw
+;     absolute[$000001DC-$00000318] refs=699 access=rw
+;     absolute[$00000990-$00000992] refs=1 access=r
+;     absolute[$00000D40-$00000D44] refs=1 access=w
+;     absolute[$00001140-$00001144] refs=1 access=w
+;     absolute[$0001A7E0] refs=1 access=a
+;     absolute[$00026F50] refs=2 access=a
+;     absolute[$0002DA30] refs=4 access=a
+;     absolute[$0002E330] refs=1 access=a
+;     absolute[$0002E430] refs=2 access=a
+;     absolute[$0002E6B0] refs=2 access=a
+;     absolute[$0002E6B4] refs=1 access=a
+;     absolute[$0002E6B6] refs=1 access=a
+;     absolute[$0002E6BE] refs=1 access=a
+;     absolute[$0002E7FE] refs=1 access=a
+;     absolute[$0002F490] refs=2 access=a
+;     absolute[$000305B0] refs=2 access=a
+;     absolute[$000308D3] refs=1 access=a
+;     absolute[$00030943] refs=1 access=a
+;     absolute[$000309D8] refs=2 access=a
+;     absolute[$000309DE] refs=1 access=a
+;     absolute[$00032DB0] refs=1 access=a
+;     absolute[$00032DD0] refs=1 access=a
+;     absolute[$0004B470] refs=1 access=a
+;     absolute[$00051618] refs=2 access=a
+;     absolute[$000519D4-$000519D6] refs=3 access=ra
+;     absolute[$00058AB0] refs=1 access=a
+;     absolute[$00068000] refs=1 access=a
+;     absolute[$000680AA] refs=3 access=a
+;     ... additional absolute memory ranges omitted
 
+; OS compatibility
+;   status: no_os_calls
+
+    INCLUDE "hardware/adkbits.i"
     INCLUDE "hardware/cia.i"
     INCLUDE "hardware/custom.i"
     INCLUDE "hardware/dmabits.i"
     INCLUDE "hardware/intbits.i"
-
-    RSSET 0
-    RS.B 31
-app_001F RS.B 1
-app_SIZEOF EQU __RS
 
 _custom	EQU	$DFF000
 stack_top_00080000	EQU	$80000
@@ -25,20 +58,49 @@ m68k_vector_trap_0_instruction_vector	EQU	$80
 INTF_CLRALL	EQU	$7FFF
 DMAF_CLRALL	EQU	$7FFF
 _ciaa	EQU	$BFE001
+runtime_address_00068000	EQU	$68000
+runtime_address_00051618	EQU	$51618
+runtime_address_00026F50	EQU	$26F50
 m68k_vector_trap_4_instruction_vector	EQU	$90
 m68k_vector_level_3_interrupt_autovector	EQU	$6C
+runtime_address_00058AB0	EQU	$58AB0
+runtime_address_00C00000	EQU	$C00000
+runtime_address_00080000	EQU	$80000
+runtime_address_00200000	EQU	$200000
 m68k_vector_trap_1_instruction_vector	EQU	$84
 m68k_vector_trap_2_instruction_vector	EQU	$88
 m68k_vector_trap_3_instruction_vector	EQU	$8C
+runtime_address_000680AA	EQU	$680AA
+runtime_address_00032DD0	EQU	$32DD0
+runtime_address_0004B470	EQU	$4B470
+runtime_address_0002F490	EQU	$2F490
+runtime_address_0002E6B0	EQU	$2E6B0
+runtime_address_000305B0	EQU	$305B0
+runtime_address_00032DB0	EQU	$32DB0
+runtime_address_0002DA30	EQU	$2DA30
+runtime_address_0002E430	EQU	$2E430
+runtime_address_0002E6B4	EQU	$2E6B4
+runtime_address_00030943	EQU	$30943
+runtime_address_000308D3	EQU	$308D3
+runtime_address_0002E330	EQU	$2E330
 runtime_code_00000318	EQU	$318
+runtime_address_0002E6BE	EQU	$2E6BE
+runtime_address_0002E7FE	EQU	$2E7FE
+runtime_address_000309DE	EQU	$309DE
+runtime_address_0006B428	EQU	$6B428
+runtime_address_0006B400	EQU	$6B400
+runtime_address_0007A400	EQU	$7A400
+runtime_address_0001A7E0	EQU	$1A7E0
 _ciab	EQU	$BFD000
+ADKF_CLRALL	EQU	$7FFF
+runtime_address_000519D6	EQU	$519D6
 
     SECTION section,code
 loc_0_00000000:
 	move.l #$7FFF7FFF,_custom+intena.l
 	move.w #$0,_custom+dmacon.l
 	move.l #$B33C,d7
-	lea.l loc_0_0000005C(pc),a4
+	lea.l loc_0_0000005C-(*+2)(pc),a4
 	lea.l abs_0_0005BFF0.l,a5
 	lea.l stack_top_00080000.l,a7
 	pea.l $000000C0.l
@@ -82,23 +144,23 @@ abs_0_0005C004:
 	bset.b #CIAB_LED,_ciaa+ciapra.l
 	bsr.w abs_0_0005C3D6
 	lea.l $00004350.l,a0
-	lea.l $00068000.l,a1
+	lea.l runtime_address_00068000.l,a1
 	jsr abs_0_00064482.l
 	bsr.w abs_0_0005C82A
 	bsr.w abs_0_0005C92E
 	move.l #$E7190345,$0122.w
 	lea.l abs_0_000621FA(pc),a0
-	lea.l $00051618.l,a1
+	lea.l runtime_address_00051618.l,a1
 	trap #3
-	lea.l $00051618.l,a0
+	lea.l runtime_address_00051618.l,a0
 	jsr abs_0_000666B6.l
 	bsr.w abs_0_00061EF4
 	lea.l $00003B40.l,a0
 	bsr.w abs_0_0005C754
 	move #$2100,sr
 	bsr.w abs_0_0005C2D0
-	move.w #INTF_SETCLR|INTF_INTEN|INTF_VERTB|INTF_COPER,intena(a6)
-	move.w #INTF_VERTB|INTF_COPER,intreq(a6)
+	move.w #$C030,$009A(a6)
+	move.w #$30,$009C(a6)
 	bsr.w abs_0_00061F82
 	bsr.w abs_0_00061F90
 	bsr.w abs_0_0005CB28
@@ -110,7 +172,7 @@ abs_0_0005C004:
 	bsr.w abs_0_0005C966
 	bsr.w abs_0_0005C504
 	lea.l abs_0_00062201(pc),a0
-	lea.l $00026F50.l,a1
+	lea.l runtime_address_00026F50.l,a1
 	trap #3
 	bsr.w abs_0_00061FB4
 	bsr.w abs_0_00062096
@@ -337,7 +399,7 @@ abs_0_0005C3CC:
 	rts
 abs_0_0005C3D6:
 	suba.l a0,a0
-	lea.l $00058AB0.l,a1
+	lea.l runtime_address_00058AB0.l,a1
 abs_0_0005C3DE:
 	clr.b (a0)+
 	cmpa.l a1,a0
@@ -357,7 +419,7 @@ abs_0_0005C410:
 	dbf.w d0,abs_0_0005C410
 	rts
 abs_0_0005C41C:
-	move.l $0004(a6),d0
+	move.l vposr(a6),d0
 	lsr.l #8,d0
 	andi.w #511,d0
 	cmp.w #$133,d0
@@ -393,7 +455,7 @@ abs_0_0005C484:
 	bne.b abs_0_0005C494
 	move.w #$1,$0154.w
 abs_0_0005C494:
-	move.w $000C(a6),d0
+	move.w joy1dat(a6),d0	; joystick/mouse port 1 data
 	btst #9,d0
 	sne.b $0152.w
 	btst #1,d0
@@ -630,7 +692,7 @@ abs_0_0005C754:
 	lea.l _custom.l,a6
 	cmpi.b #128,vhposr(a6)
 	bne.b abs_0_0005C754
-	move.l a0,cop1lc(a6)	; copper_list pointer
+	move.l a0,cop1lc(a6)	; copper_list pointer $00003B40
 	move.w copjmp1(a6),d0
 	move.w #DMAF_SETCLR|DMAF_BLITHOG|DMAF_MASTER|DMAF_RASTER|DMAF_COPPER|DMAF_BLITTER|DMAF_SPRITE,dmacon(a6)
 	rts
@@ -709,15 +771,15 @@ abs_0_0005C820:
 	movem.l (a7)+,d4-d5
 	rts
 abs_0_0005C82A:
-	lea.l $00C00000.l,a0
+	lea.l runtime_address_00C00000.l,a0
 	bsr.b abs_0_0005C854
 	tst.w d0
 	bne.b abs_0_0005C852
-	lea.l $00080000.l,a0
+	lea.l runtime_address_00080000.l,a0
 	bsr.b abs_0_0005C854
 	tst.w d0
 	bne.b abs_0_0005C852
-	lea.l $00200000.l,a0
+	lea.l runtime_address_00200000.l,a0
 	bsr.b abs_0_0005C854
 	tst.w d0
 	bne.b abs_0_0005C852
@@ -865,7 +927,7 @@ abs_0_0005C992:
 	bsr.w abs_0_0005D326
 	bsr.w abs_0_0005E514
 	bsr.w abs_0_0005F502
-	lea.l $00026F50.l,a0
+	lea.l runtime_address_00026F50.l,a0
 	move.w $01DE.w,d0
 	cmp.w #$38,d0
 	ble.b abs_0_0005C9D2
@@ -875,10 +937,10 @@ abs_0_0005C9D2:
 	adda.w d0,a0
 	move.l a0,$01E0.w
 	moveq.l #-1,d0
-	move.l d0,$0044(a6)
-	clr.w $0064(a6)
-	move.w #$28,$0066(a6)
-	move.l #$9F00000,$0040(a6)
+	move.l d0,bltafwm(a6)
+	clr.w bltamod(a6)
+	move.w #$28,bltdmod(a6)
+	move.l #$9F00000,bltcon0(a6)
 	movea.l $012A.w,a2
 	move.w #$1001,d3
 	moveq.l #11,d2
@@ -890,19 +952,19 @@ abs_0_0005CA00:
 	lea.l $00006F50.l,a4
 	lsl.l #7,d1
 	adda.l d1,a4
-	move.l a4,$0050(a6)
-	move.l a2,$0054(a6)
-	move.w d3,$0058(a6)
+	move.l a4,bltapt(a6)	; blitter_source pointer
+	move.l a2,bltdpt(a6)	; blitter_destination pointer
+	move.w d3,bltsize(a6)
 	addq.w #2,a2
 abs_0_0005CA1C:
-	btst.b #6,$0002(a6)
+	btst.b #DMAB_BLITTER,dmaconr(a6)
 	bne.b abs_0_0005CA1C
 	dbf.w d0,abs_0_0005CA00
 	adda.w #$A58,a2
 	dbf.w d2,abs_0_0005C9FE
 	bsr.w abs_0_0005CAE0
 	movea.l $012A.w,a0
-	lea.l $000680AA.l,a1
+	lea.l runtime_address_000680AA.l,a1
 	bsr.b abs_0_0005CAAA
 	bsr.w abs_0_0005CEDE
 	bsr.w abs_0_0005CEFA
@@ -937,17 +999,17 @@ abs_0_0005CA94:
 	rts
 abs_0_0005CAAA:
 	moveq.l #-1,d0
-	move.l d0,$0044(a6)
-	clr.w $0064(a6)
-	move.l #$9F00000,$0040(a6)
-	clr.w $0066(a6)
+	move.l d0,bltafwm(a6)
+	clr.w bltamod(a6)
+	move.l #$9F00000,bltcon0(a6)
+	clr.w bltdmod(a6)
 	suba.w #$A8,a1
-	move.l a1,$0054(a6)
+	move.l a1,bltdpt(a6)	; blitter_destination pointer
 	suba.w #$A8,a0
-	move.l a0,$0050(a6)
-	move.w #$612A,$0058(a6)
+	move.l a0,bltapt(a6)	; blitter_source pointer
+	move.w #(388<<6)|42,bltsize(a6)	; blitter size 388 rows x 42 words (84 bytes/row)
 abs_0_0005CAD6:
-	btst.b #6,$0002(a6)
+	btst.b #DMAB_BLITTER,dmaconr(a6)
 	bne.b abs_0_0005CAD6
 	rts
 abs_0_0005CAE0:
@@ -974,9 +1036,9 @@ abs_0_0005CB28:
 	lea.l $00006F50.l,a1
 	trap #3
 	lea.l abs_0_00064CD8.l,a0
-	lea.l $00032DD0.l,a2
-	lea.l $0004B470.l,a3
-	lea.l $0002F490.l,a4
+	lea.l runtime_address_00032DD0.l,a2
+	lea.l runtime_address_0004B470.l,a3
+	lea.l runtime_address_0002F490.l,a4
 	bsr.w abs_0_0005CB8E
 	movem.l a0-a4,-(a7)
 	lea.l abs_0_00062212(pc),a0
@@ -1068,7 +1130,7 @@ abs_0_0005CC58:
 	addq.w #2,a0
 	rts
 abs_0_0005CC5C:
-	lea.l $0002F490.l,a0
+	lea.l runtime_address_0002F490.l,a0
 	lsl.w #4,d2
 	adda.w d2,a0
 	lea.l $0BB0.w,a1
@@ -1147,17 +1209,17 @@ abs_0_0005CD18:
 	move.l #$FFFFFFFF,$0008(a5)
 	clr.w $0000(a5)
 	move.w d1,$0002(a5)
-	move.l #$FFFF0000,$0044(a6)
-	move.w d4,$0064(a6)
-	move.w d4,$0062(a6)
-	move.w d5,$0060(a6)
-	move.w d5,$0066(a6)
+	move.l #$FFFF0000,bltafwm(a6)
+	move.w d4,bltamod(a6)
+	move.w d4,bltbmod(a6)
+	move.w d5,bltcmod(a6)
+	move.w d5,bltdmod(a6)
 	subi.w #126,d5
 	move.w d5,$0006(a5)
 	andi.w #15,d6
 	add.w d6,d6
 	add.w d6,d6
-	move.l abs_0_0005CD9E(pc,d6.w),$0040(a6)
+	move.l abs_0_0005CD9E(pc,d6.w),bltcon0(a6)
 	move.w d3,d4
 	add.w d4,d4
 	move.w d2,d5
@@ -1168,13 +1230,13 @@ abs_0_0005CD18:
 	move.w $0008(a0),d6
 	moveq.l #3,d7
 abs_0_0005CD6C:
-	move.l a4,$0050(a6)
-	move.l a3,$004C(a6)
-	move.l a2,$0048(a6)
-	move.l a2,$0054(a6)
-	move.w d4,$0058(a6)
+	move.l a4,bltapt(a6)	; blitter_source pointer
+	move.l a3,bltbpt(a6)	; blitter_source pointer
+	move.l a2,bltcpt(a6)	; blitter_source pointer
+	move.l a2,bltdpt(a6)	; blitter_destination pointer
+	move.w d4,bltsize(a6)
 abs_0_0005CD80:
-	btst.b #6,$0002(a6)
+	btst.b #DMAB_BLITTER,dmaconr(a6)
 	bne.b abs_0_0005CD80
 	adda.w #$2A,a2
 	adda.w d6,a3
@@ -1227,7 +1289,7 @@ abs_0_0005CF18:
 	cmp.l #$FFFFFFFF,d0
 	beq.b abs_0_0005CF5C
 	move.l #$FFFFFFFF,(a0)
-	lea.l $000680AA.l,a1
+	lea.l runtime_address_000680AA.l,a1
 	movea.l $012A.w,a2
 	adda.w d0,a1
 	adda.w d0,a2
@@ -1330,17 +1392,17 @@ abs_0_0005D122:
 abs_0_0005D162:
 	movea.l $01E0.w,a0
 	moveq.l #-1,d0
-	move.l d0,$0044(a6)
-	clr.w $0064(a6)
-	move.w #$28,$0066(a6)
-	move.l #$9F00000,$0040(a6)
+	move.l d0,bltafwm(a6)
+	clr.w bltamod(a6)
+	move.w #$28,bltdmod(a6)
+	move.l #$9F00000,bltcon0(a6)
 	lea.l $1540.w,a1
 	movea.l $012A.w,a2
-	move.l a2,$0054(a6)
+	move.l a2,bltdpt(a6)	; blitter_destination pointer
 	lea.l $1940.w,a3
 	move.w #$1001,d3
-	lea.l $0058(a6),a4
-	lea.l $0050(a6),a5
+	lea.l bltsize(a6),a4
+	lea.l bltapt(a6),a5
 	moveq.l #11,d2
 abs_0_0005D19C:
 	moveq.l #19,d0
@@ -1351,10 +1413,10 @@ abs_0_0005D19E:
 	add.w d1,d1
 	add.w d1,d1
 	move.l $0(a3,d1.w),(a5)
-	move.w a2,$0056(a6)
+	move.w a2,bltdpt+$02(a6)
 	move.w d3,(a4)
 abs_0_0005D1B4:
-	btst.b #6,$0002(a6)
+	btst.b #DMAB_BLITTER,dmaconr(a6)
 	bne.b abs_0_0005D1B4
 abs_0_0005D1BC:
 	addq.w #2,a2
@@ -1364,12 +1426,12 @@ abs_0_0005D1BC:
 	rts
 abs_0_0005D1CC:
 	lea.l abs_0_00062247(pc),a0
-	lea.l $0002E6B0.l,a1
+	lea.l runtime_address_0002E6B0.l,a1
 	trap #3
 	lea.l abs_0_0006222C(pc),a0
-	lea.l $000305B0.l,a1
+	lea.l runtime_address_000305B0.l,a1
 	trap #3
-	lea.l $00032DB0.l,a0
+	lea.l runtime_address_00032DB0.l,a0
 	lea.l $00000B90.l,a1
 	moveq.l #15,d0
 abs_0_0005D1F2:
@@ -1381,8 +1443,8 @@ abs_0_0005D1FA:
 	lea.l $00006F50.l,a1
 	trap #3
 	lea.l $00006F50.l,a0
-	lea.l $0002DA30.l,a1
-	lea.l $0002E430.l,a2
+	lea.l runtime_address_0002DA30.l,a1
+	lea.l runtime_address_0002E430.l,a2
 	moveq.l #1,d1
 abs_0_0005D21A:
 	moveq.l #39,d2
@@ -1505,12 +1567,12 @@ abs_0_0005D348:
 abs_0_0005D360:
 	not.w $0224.w
 	bne.w abs_0_0005D3D6
-	lea.l $0002E6B4.l,a0
+	lea.l runtime_address_0002E6B4.l,a0
 	cmpi.w #4,$0220.w
 	bge.b abs_0_0005D37A
 	lea.l $01B8(a0),a0
 abs_0_0005D37A:
-	lea.l $00030943.l,a1
+	lea.l runtime_address_00030943.l,a1
 	moveq.l #10,d0
 abs_0_0005D382:
 	move.b $0A50(a0),$1E00(a1)
@@ -1536,12 +1598,12 @@ abs_0_0005D3D0:
 	subq.w #1,$0220.w
 	rts
 abs_0_0005D3D6:
-	lea.l $0002E6B0.l,a0
+	lea.l runtime_address_0002E6B0.l,a0
 	cmpi.w #4,$0222.w
 	bge.b abs_0_0005D3E8
 	lea.l $01B8(a0),a0
 abs_0_0005D3E8:
-	lea.l $000308D3.l,a1
+	lea.l runtime_address_000308D3.l,a1
 	moveq.l #10,d0
 abs_0_0005D3F0:
 	move.b $0A50(a0),$1E00(a1)
@@ -1601,8 +1663,8 @@ abs_0_0005D49C:
 	bsr.w abs_0_0005FA82
 	rts
 abs_0_0005D4AC:
-	lea.l $000305B0.l,a0
-	lea.l $0002DA30.l,a1
+	lea.l runtime_address_000305B0.l,a0
+	lea.l runtime_address_0002DA30.l,a1
 	adda.w d0,a0
 	adda.w d1,a0
 	lsl.w #5,d2
@@ -2362,7 +2424,7 @@ abs_0_0005DEA8:
 	subq.w #1,d2
 abs_0_0005DEAC:
 	moveq.l #7,d4
-	lea.l $0002E330.l,a2
+	lea.l runtime_address_0002E330.l,a2
 abs_0_0005DEB4:
 	move.b (a2)+,(a1)
 	move.b (a2)+,$002A(a1)
@@ -2448,8 +2510,8 @@ abs_0_0005DF70:
 	adda.w d0,a1
 	mulu.w #$540,d1
 	adda.w d1,a1
-	lea.l $0002DA30.l,a2
-	lea.l $0002E430.l,a3
+	lea.l runtime_address_0002DA30.l,a2
+	lea.l runtime_address_0002E430.l,a3
 	lsl.w #3,d3
 	adda.w d3,a3
 	lsl.w #2,d3
@@ -2475,7 +2537,7 @@ abs_0_0005DF96:
 	rts
 abs_0_0005DFCA:
 	movea.l $012A.w,a0
-	lea.l $0002DA30.l,a1
+	lea.l runtime_address_0002DA30.l,a1
 	lea.l abs_0_00062280(pc),a2
 	subi.w #32,d2
 	move.b $0(a2,d2.w),d2
@@ -2989,11 +3051,11 @@ abs_0_0005E59A:
 abs_0_0005E59C:
 	dc.w $0000	; lookup_table
 abs_0_0005E59E:
-	dc.b $00,$00
+	dc.w $0000
 abs_0_0005E5A0:
-	dc.b $00,$00
+	dc.w $0000
 abs_0_0005E5A2:
-	dc.b $00,$00
+	dc.w $0000
 abs_0_0005E5A4:
 	lea.l abs_0_00064A30(pc),a0
 	lea.l abs_0_0005E59E(pc),a1
@@ -4590,11 +4652,11 @@ abs_0_0005F9B8:
 	dbf.w d0,abs_0_0005F9AE
 	rts
 abs_0_0005F9CA:
-	lea.l $0002E6BE.l,a0
+	lea.l runtime_address_0002E6BE.l,a0
 	lea.l $000309D8.l,a1
 	bsr.b abs_0_0005F9E8
-	lea.l $0002E7FE.l,a0
-	lea.l $000309DE.l,a1
+	lea.l runtime_address_0002E7FE.l,a0
+	lea.l runtime_address_000309DE.l,a1
 	bsr.b abs_0_0005F9E8
 	rts
 abs_0_0005F9E8:
@@ -6976,7 +7038,7 @@ abs_0_00061806:
 	rts
 abs_0_00061808:
 	movea.l $012A.w,a0
-	lea.l $000680AA.l,a1
+	lea.l runtime_address_000680AA.l,a1
 	bsr.b abs_0_00061820
 	movea.l $012A.w,a0
 	movea.l $0126.w,a1
@@ -7097,7 +7159,7 @@ abs_0_00061976:
 	bsr.w abs_0_00061BEE
 	move.w #$1,$028C.w
 	lea.l $00006F50.l,a0
-	lea.l $0006B428.l,a1
+	lea.l runtime_address_0006B428.l,a1
 	bsr.w abs_0_00061C00
 	rts
 abs_0_000619B4:
@@ -7117,7 +7179,7 @@ abs_0_000619D4:
 	cmpi.w #12,$028C.w
 	beq.b abs_0_00061A0E
 	lea.l $00006F50.l,a0
-	lea.l $0006B428.l,a1
+	lea.l runtime_address_0006B428.l,a1
 	bsr.w abs_0_00061C00
 abs_0_000619F8:
 	clr.w $01E4.w
@@ -7221,7 +7283,7 @@ abs_0_00061AC2:
 	move.l d0,(a0)+
 	rts
 abs_0_00061B5A:
-	lea.l $0006B400.l,a0
+	lea.l runtime_address_0006B400.l,a0
 	move.w #$2827,d0
 abs_0_00061B64:
 	clr.l (a0)+
@@ -7547,7 +7609,7 @@ abs_0_00061EF4:
 	rts
 abs_0_00061F82:
 	lea.l abs_0_0006227D(pc),a0
-	lea.l $0006B400.l,a1
+	lea.l runtime_address_0006B400.l,a1
 	trap #3
 	rts
 abs_0_00061F90:
@@ -7588,7 +7650,7 @@ abs_0_00061FE6:
 	bne.b abs_0_00061FDE
 	rts
 abs_0_00062006:
-	lea.l $0007A400.l,a0
+	lea.l runtime_address_0007A400.l,a0
 	lea.l $00003B42.l,a1
 	moveq.l #31,d7
 	move.w $028A.w,d0
@@ -7652,7 +7714,7 @@ abs_0_00062096:
 	clr.w aud2+ac_vol(a6)
 	clr.w aud3+ac_vol(a6)
 	lea.l abs_0_0006225F(pc),a0
-	lea.l $0001A7E0.l,a1
+	lea.l runtime_address_0001A7E0.l,a1
 	lea.l $0024(a1),a2
 	move.l a2,m68k_vector_trap_0_instruction_vector.w
 	trap #3
@@ -7922,33 +7984,35 @@ abs_0_00062B4E:
 abs_0_00062BBA:
 	dc.b $00,$00,$00,$00,$00,$0C,$00,$11,$00,$10,$00,$02,$00,$0D
 	dc.b "Y@CHOOSE ITEM TO",$00	; string
-	dc.b $00,$00,$0D,$5F,$28,$53,$45,$4C,$45,$43,$54,$20,$4F,$52,$20,$44
-	dc.b $52,$4F,$50,$FF,$00
+	dc.b $00,$00,$0D,$5F,$28
+	dc.b "SELECT OR DROP",$FF	; string
+	dc.b $00
 abs_0_00062BEE:
 	dc.b $00,$00,$00,$00,$00,$0D,$00,$04,$00,$0E,$00,$05,$00,$0F,$17,$A0
 	dc.b "WELL DONE!",$00	; string
-	dc.b $00,$00,$0D,$22,$20,$59,$4F,$55,$27,$56,$45,$20,$46,$4F,$55,$4E
-	dc.b $44,$20,$41,$00,$00,$00,$10,$27,$60,$44,$49,$41,$4D,$4F,$4E,$44
-	dc.b $21,$FF,$00
+	dc.b $00,$00,$0D,$22,$20
+	dc.b "YOU'VE FOUND A",$00	; string
+	dc.b $00,$00,$10,$27,$60,$44,$49,$41,$4D,$4F,$4E,$44,$21,$FF,$00
 abs_0_00062C2C:
 	dc.b $00,$06,$2C,$7E,$00,$04,$00,$04,$00,$14,$00,$05,$00,$06,$17,$A0
 	dc.b "THE BUSH SPEAKS!",$00	; string
-	dc.b $00,$00,$04,$22,$20,$27,$48,$45,$59,$20,$44,$49,$5A,$5A,$59,$21
-	dc.b $20,$54,$48,$49,$53,$20,$49,$53,$00,$00,$04,$27,$60,$52,$45,$41
-	dc.b $4C,$4C,$59,$20,$48,$45,$41,$56,$59,$20,$4D,$41,$4E,$21,$21,$27
-	dc.b $FF,$00,$06,$2C,$A4,$00,$06,$00,$09,$00,$14,$00,$01,$00,$06,$2F
-	dc.b $40,$27,$44,$59,$4C,$41,$4E,$20,$49,$53,$20,$54,$48,$41,$54,$20
-	dc.b $59,$4F,$55,$3F,$27,$FF,$00,$00,$06,$2C,$FC,$00,$0A,$00,$07,$00
-	dc.b $14,$00,$04,$00,$0A,$27,$60,$27,$5A,$41,$4B,$53,$20,$54,$55,$52
-	dc.b $4E,$45,$44,$20,$4D,$45,$20,$49,$4E,$54,$4F,$00,$00,$00,$0A,$2C
-	dc.b $A0
+	dc.b $00,$00,$04,$22,$20,$27
+	dc.b "HEY DIZZY! THIS IS",$00	; string
+	dc.b $00,$04,$27,$60
+	dc.b "REALLY HEAVY MAN!!'",$FF	; string
+	dc.b $00,$06,$2C,$A4,$00,$06,$00,$09,$00,$14,$00,$01,$00,$06,$2F,$40
+	dc.b $27,$44,$59,$4C,$41,$4E,$20,$49,$53,$20,$54,$48,$41,$54,$20,$59
+	dc.b $4F,$55,$3F,$27,$FF,$00,$00,$06,$2C,$FC,$00,$0A,$00,$07,$00,$14
+	dc.b $00,$04,$00,$0A,$27,$60,$27,$5A,$41,$4B,$53,$20,$54,$55,$52,$4E
+	dc.b $45,$44,$20,$4D,$45,$20,$49,$4E,$54,$4F,$00,$00,$00,$0A,$2C,$A0
 	dc.b "A BUSH AND I'M LIKE",$00	; string
 	dc.b $00,$0A,$31,$E0
 	dc.b "ROOTED TO THE SPOT!'",$FF	; string
 	dc.b $00,$00,$00,$00,$00,$00,$09,$00,$0A,$00,$14,$00,$04,$00,$0B
 	dc.b "7 'I'M REALLY INTO",$00	; string
-	dc.b $00,$00,$09,$3C,$60,$4E,$41,$54,$55,$52,$45,$20,$4D,$41,$4E,$2C
-	dc.b $20,$42,$55,$54,$20,$54,$48,$49,$53,$00,$00,$00,$0C,$41,$A0
+	dc.b $00,$00,$09,$3C,$60
+	dc.b "NATURE MAN, BUT THIS",$00	; string
+	dc.b $00,$00,$0C,$41,$A0
 	dc.b "IS TOO MUCH!'",$FF	; string
 abs_0_00062D4A:
 	dc.b $00,$06,$2D,$A4,$00,$03,$00,$02,$00,$18,$00,$05,$00,$04,$0D,$20
@@ -7961,10 +8025,11 @@ abs_0_00062D4A:
 	dc.b $27,$48,$45,$20,$57,$41,$53,$20,$44,$45,$46,$45,$41,$54,$45,$44
 	dc.b $20,$59,$45,$41,$52,$53,$00,$00,$00,$05,$1C,$E0
 	dc.b "AGO BY A BRAVE HERO, YET",$00	; string
-	dc.b $00,$00,$07,$22,$20,$48,$45,$20,$48,$41,$53,$20,$52,$45,$54,$55
-	dc.b $52,$4E,$45,$44,$20,$4D,$4F,$52,$45,$00,$00,$00,$08,$27,$60,$50
-	dc.b $4F,$57,$45,$52,$46,$55,$4C,$20,$54,$48,$41,$4E,$20,$45,$56,$45
-	dc.b $52,$00,$00,$00,$05,$2C,$A0
+	dc.b $00,$00,$07,$22,$20
+	dc.b "HE HAS RETURNED MORE",$00	; string
+	dc.b $00,$00,$08,$27,$60
+	dc.b "POWERFUL THAN EVER",$00	; string
+	dc.b $00,$00,$05,$2C,$A0
 	dc.b "BEFORE. THIS WILL BE THE",$00	; string
 	dc.b $00,$00,$09,$31,$E0
 	dc.b "FINAL CONFLICT!'",$FF	; string
@@ -7978,21 +8043,22 @@ abs_0_00062E50:
 	dc.b "...BUT DOZY IS",$00	; string
 	dc.b $00,$00,$0D,$1C,$E0
 	dc.b "ABSOLUTELY OUT COLD,",$00	; string
-	dc.b $00,$00,$0C,$22,$20,$45,$56,$45,$4E,$20,$42,$59,$20,$48,$49,$53
-	dc.b $20,$53,$54,$41,$4E,$44,$41,$52,$44,$53,$21,$FF,$00,$00,$00,$00
-	dc.b $00,$00,$08,$00,$06,$00,$16,$00,$03,$00,$0B,$22,$20,$49,$54,$27
-	dc.b $4C,$4C,$20,$54,$41,$4B,$45,$20,$41,$20,$42,$49,$47,$00,$00,$00
-	dc.b $08,$27,$60,$53,$48,$4F,$43,$4B,$20,$54,$4F,$20,$57,$41,$4B,$45
-	dc.b $20,$48,$49,$4D,$20,$55,$50,$21,$21,$FF,$00
+	dc.b $00,$00,$0C,$22,$20
+	dc.b "EVEN BY HIS STANDARDS!",$FF	; string
+	dc.b $00,$00,$00,$00,$00,$00,$08,$00,$06,$00,$16,$00,$03,$00,$0B,$22
+	dc.b $20,$49,$54,$27,$4C,$4C,$20,$54,$41,$4B,$45,$20,$41,$20,$42,$49
+	dc.b $47,$00,$00,$00,$08,$27,$60,$53,$48,$4F,$43,$4B,$20,$54,$4F,$20
+	dc.b $57,$41,$4B,$45,$20,$48,$49,$4D,$20,$55,$50,$21,$21,$FF,$00
 abs_0_00062F1E:
 	dc.b $00,$00,$00,$00,$00,$03,$00,$03,$00,$16,$00,$06,$00,$03,$12,$60
 	dc.b $2D,$20,$54,$48,$45,$20,$43,$41,$52,$56,$49,$4E,$47,$20,$52,$45
 	dc.b $41,$44,$53,$20,$2D,$00,$00,$06,$1C,$E0
 	dc.b "WHOSOEVER PULLS",$00	; string
-	dc.b $00,$05,$22,$20,$45,$58,$43,$41,$4C,$49,$42,$55,$52,$20,$46,$52
-	dc.b $4F,$4D,$20,$54,$48,$45,$00,$00,$00,$04,$27,$60,$53,$54,$4F,$4E
-	dc.b $45,$20,$53,$48,$41,$4C,$4C,$20,$42,$45,$20,$4B,$49,$4E,$47,$2E
-	dc.b $FF,$00
+	dc.b $00,$05,$22,$20
+	dc.b "EXCALIBUR FROM THE",$00	; string
+	dc.b $00,$00,$04,$27,$60
+	dc.b "STONE SHALL BE KING.",$FF	; string
+	dc.b $00
 abs_0_00062F8A:
 	dc.b $00,$00,$00,$00,$00,$06,$00,$06,$00,$1C,$00,$05,$00,$09,$22,$20
 	dc.b $27,$4F,$59,$27,$20,$47,$52,$55,$4E,$54,$53,$20,$54,$48,$45,$20
@@ -8031,18 +8097,20 @@ abs_0_000630F0:
 	dc.b "ME,I PUT HIS SOUL INTO",$00	; string
 	dc.b $00,$00,$0A
 	dc.b "7 A RING SO HE COULD",$00	; string
-	dc.b $00,$00,$0B,$3C,$60,$4E,$45,$56,$45,$52,$20,$42,$45,$20,$4B,$49
-	dc.b $4C,$4C,$45,$44,$27,$FF,$00,$00,$06,$31,$DA,$00,$04,$00,$08,$00
-	dc.b $1A,$00,$05,$00,$07,$2C,$A0,$27,$48,$45,$20,$42,$45,$54,$52,$41
-	dc.b $59,$45,$44,$20,$4D,$45,$20,$41,$4E,$44,$00,$00,$06,$31,$E0
+	dc.b $00,$00,$0B,$3C,$60
+	dc.b "NEVER BE KILLED'",$FF	; string
+	dc.b $00,$00,$06,$31,$DA,$00,$04,$00,$08,$00,$1A,$00,$05,$00,$07,$2C
+	dc.b $A0,$27,$48,$45,$20,$42,$45,$54,$52,$41,$59,$45,$44,$20,$4D,$45
+	dc.b $20,$41,$4E,$44,$00,$00,$06,$31,$E0
 	dc.b "IMPRISONED ME HERE SO",$00	; string
 	dc.b $00,$06
 	dc.b "7 NO-ONE WOULD KNOW HIS",$00	; string
 	dc.b $00,$0D,$3C,$60,$53,$45,$43,$52,$45,$54,$27,$FF,$00,$00,$00,$00
 	dc.b $00,$08,$00,$0A,$00,$18,$00,$04,$00,$0A
 	dc.b "7 'TAKE MY TRIDENT AND",$00	; string
-	dc.b $00,$00,$0A,$3C,$60,$4B,$49,$4C,$4C,$20,$5A,$41,$4B,$53,$20,$54
-	dc.b $48,$45,$4E,$20,$42,$52,$49,$4E,$47,$00,$00,$00,$0D,$41,$A0
+	dc.b $00,$00,$0A,$3C,$60
+	dc.b "KILL ZAKS THEN BRING",$00	; string
+	dc.b $00,$00,$0D,$41,$A0
 	dc.b "ME THE RING!!'",$FF	; string
 	dc.b $00
 abs_0_0006322E:
@@ -8061,8 +8129,9 @@ abs_0_0006328A:
 	dc.b "ABOUT MY GOBOLINO",$00	; string
 	dc.b $00,$07
 	dc.b "7 PLEASE FIND HIM FOR ME",$00	; string
-	dc.b $00,$00,$07,$3C,$60,$49,$56,$45,$20,$4C,$4F,$4F,$4B,$45,$44,$20
-	dc.b $45,$56,$45,$52,$59,$57,$48,$45,$52,$45,$27,$FF,$00
+	dc.b $00,$00,$07,$3C,$60
+	dc.b "IVE LOOKED EVERYWHERE'",$FF	; string
+	dc.b $00
 abs_0_000632FE:
 	dc.b $00,$06,$33,$4E,$00,$06,$00,$06,$00,$12,$00,$04,$00,$07,$22,$20
 	dc.b $27,$4F,$48,$20,$54,$48,$41,$4E,$4B,$20,$59,$4F,$55,$20,$53,$4F
@@ -8089,10 +8158,11 @@ abs_0_000632FE:
 	dc.b $A0,$27,$49,$20,$53,$48,$41,$4C,$4C,$20,$4E,$45,$45,$44,$20,$41
 	dc.b $20,$46,$49,$52,$45,$00,$00,$00,$05,$1C,$E0
 	dc.b "TO LIGHT MY CAULDRON,A",$00	; string
-	dc.b $00,$00,$05,$22,$20,$4C,$45,$41,$46,$20,$46,$52,$4F,$4D,$20,$54
-	dc.b $48,$45,$20,$42,$55,$53,$48,$2C,$41,$4E,$44,$00,$00,$00,$06,$27
-	dc.b $60,$53,$4F,$4D,$45,$54,$48,$49,$4E,$47,$20,$50,$4F,$49,$53,$4F
-	dc.b $4E,$4F,$55,$53,$27,$FF,$00
+	dc.b $00,$00,$05,$22,$20
+	dc.b "LEAF FROM THE BUSH,AND",$00	; string
+	dc.b $00,$00,$06,$27,$60
+	dc.b "SOMETHING POISONOUS'",$FF	; string
+	dc.b $00
 abs_0_0006349E:
 	dc.b $00,$00,$00,$00,$00,$05,$00,$06,$00,$15,$00,$03,$00,$06,$22,$20
 	dc.b $47,$4C,$45,$4E,$44,$41,$20,$50,$4F,$50,$53,$20,$49,$54,$20,$49
@@ -8139,8 +8209,9 @@ abs_0_0006362A:
 	dc.b "7 GOING IN THIS PLACE!'",$FF	; string
 	dc.b $00,$00,$00,$00,$00,$07,$00,$0A,$00,$15,$00,$04,$00,$09
 	dc.b "7 'HURRY HOME SON,",$00	; string
-	dc.b $00,$00,$08,$3C,$60,$49,$27,$4C,$4C,$20,$50,$55,$54,$20,$54,$48
-	dc.b $45,$20,$4B,$45,$54,$54,$4C,$45,$00,$00,$0C,$41,$A0
+	dc.b $00,$00,$08,$3C,$60
+	dc.b "I'LL PUT THE KETTLE",$00	; string
+	dc.b $00,$0C,$41,$A0
 	dc.b "ON FOR YOU!'",$FF	; string
 	dc.b $00
 abs_0_000636F2:
@@ -8160,13 +8231,14 @@ abs_0_00063784:
 	dc.b "FREE,  GROOVY!",$00	; string
 	dc.b $00,$00,$0A
 	dc.b "7 THANKS. I'LL SEE",$00	; string
-	dc.b $00,$00,$0A,$3C,$60,$59,$4F,$55,$20,$4C,$41,$54,$45,$52,$20,$4D
-	dc.b $41,$4E,$21,$27,$FF
+	dc.b $00,$00,$0A,$3C,$60
+	dc.b "YOU LATER MAN!'",$FF	; string
 abs_0_000637E4:
 	dc.b $00,$00,$00,$00,$00,$04,$00,$05,$00,$1A,$00,$03,$00,$04,$1C,$E0
 	dc.b "YOU WIND UP THE ROPE UNTIL",$00	; string
-	dc.b $00,$00,$08,$22,$20,$54,$48,$45,$20,$42,$55,$43,$4B,$45,$54,$20
-	dc.b $41,$50,$50,$45,$41,$52,$53,$FF,$00
+	dc.b $00,$00,$08,$22,$20
+	dc.b "THE BUCKET APPEARS",$FF	; string
+	dc.b $00
 abs_0_00063828:
 	dc.b $00,$00,$00,$00,$00,$04,$00,$04,$00,$14,$00,$02,$00,$06,$17,$A0
 	dc.b "KING TAKES QUEEN",$FF	; string
@@ -8182,10 +8254,11 @@ abs_0_0006388E:
 	dc.b $27,$48,$55,$42,$42,$4C,$45,$20,$42,$55,$42,$42,$4C,$45,$20,$41
 	dc.b $4E,$44,$20,$53,$49,$4D,$4D,$45,$52,$00,$00,$04,$1C,$E0
 	dc.b "OVER A LIGHT CAULDRON FOR",$00	; string
-	dc.b $00,$06,$22,$20,$54,$57,$4F,$20,$4D,$49,$4E,$55,$54,$45,$53,$2E
-	dc.b $2E,$2E,$20,$54,$48,$45,$52,$45,$2C,$00,$00,$04,$27,$60,$53,$4F
-	dc.b $41,$4B,$20,$54,$48,$49,$53,$20,$49,$4E,$54,$4F,$20,$54,$48,$45
-	dc.b $20,$52,$4F,$4F,$54,$53,$00,$00,$00,$06,$2C,$A0
+	dc.b $00,$06,$22,$20
+	dc.b "TWO MINUTES... THERE,",$00	; string
+	dc.b $00,$04,$27,$60
+	dc.b "SOAK THIS INTO THE ROOTS",$00	; string
+	dc.b $00,$00,$06,$2C,$A0
 	dc.b "TO FREE YOUR FRIEND'",$FF	; string
 	dc.b $00
 abs_0_00063928:
@@ -8202,9 +8275,9 @@ abs_0_00063928:
 	dc.b "ON ME, LOOK WHAT",$00	; string
 	dc.b $00,$00,$02
 	dc.b "7 IT DID! I'M TOO BIG",$00	; string
-	dc.b $00,$02,$3C,$60,$54,$4F,$20,$47,$45,$54,$20,$4F,$55,$54,$20,$4F
-	dc.b $46,$20,$48,$45,$52,$45,$21,$27,$FF,$00,$00,$06,$3A,$18,$00,$12
-	dc.b $00,$0E,$00,$06,$00,$02,$00,$12
+	dc.b $00,$02,$3C,$60
+	dc.b "TO GET OUT OF HERE!'",$FF	; string
+	dc.b $00,$00,$06,$3A,$18,$00,$12,$00,$0E,$00,$06,$00,$02,$00,$12
 	dc.b "L 'WOW!'",$FF	; string
 	dc.b $00,$00,$00,$00,$00,$00,$0A,$00,$0C,$00,$14,$00,$03,$00,$0B,$41
 	dc.b $A0,$27,$50,$4C,$45,$41,$53,$45,$20,$46,$49,$4E,$44,$20,$41,$20
@@ -8225,12 +8298,13 @@ abs_0_00063AC6:
 	dc.b "PRINCE CHARMING",$00	; string
 	dc.b $00,$05,$1C,$E0
 	dc.b "KISSES THE FROG",$00	; string
-	dc.b $00,$04,$22,$20,$41,$4E,$44,$20,$44,$4F,$52,$41,$20,$41,$50,$50
-	dc.b $45,$41,$52,$53,$21,$FF,$00,$00,$00,$00,$00,$06,$00,$06,$00,$16
-	dc.b $00,$05,$00,$06,$22,$20,$27,$54,$48,$41,$4E,$4B,$53,$20,$44,$49
-	dc.b $5A,$5A,$59,$21,$20,$4D,$45,$20,$41,$4E,$44,$00,$00,$06,$27,$60
-	dc.b $4D,$52,$20,$43,$48,$41,$52,$4D,$49,$4E,$47,$20,$48,$41,$56,$45
-	dc.b $20,$53,$4F,$4D,$45,$00,$00,$06,$2C,$A0
+	dc.b $00,$04,$22,$20
+	dc.b "AND DORA APPEARS!",$FF	; string
+	dc.b $00,$00,$00,$00,$00,$06,$00,$06,$00,$16,$00,$05,$00,$06,$22,$20
+	dc.b $27,$54,$48,$41,$4E,$4B,$53,$20,$44,$49,$5A,$5A,$59,$21,$20,$4D
+	dc.b $45,$20,$41,$4E,$44,$00,$00,$06,$27,$60,$4D,$52,$20,$43,$48,$41
+	dc.b $52,$4D,$49,$4E,$47,$20,$48,$41,$56,$45,$20,$53,$4F,$4D,$45,$00
+	dc.b $00,$06,$2C,$A0
 	dc.b "BUSINESS TO ATTEND TO!",$00	; string
 	dc.b $00,$00,$06,$31,$E0
 	dc.b "WE'LL SEE YOU LATER!'",$FF	; string
@@ -8273,18 +8347,22 @@ abs_0_00063CF0:
 	dc.b $27,$57,$41,$53,$20,$54,$48,$41,$54,$20,$45,$4E,$4F,$55,$47,$48
 	dc.b $20,$54,$4F,$00,$00,$04,$1C,$E0
 	dc.b "WAKE YOU UP? LISTEN,",$00	; string
-	dc.b $00,$00,$06,$22,$20,$49,$27,$56,$45,$20,$47,$4F,$54,$20,$4E,$4F
-	dc.b $20,$4D,$4F,$52,$45,$00,$00,$00,$07,$27,$60,$57,$49,$53,$48,$45
-	dc.b $53,$20,$4F,$4B,$3F,$3F,$3F,$3F,$27,$FF,$00
+	dc.b $00,$00,$06,$22,$20
+	dc.b "I'VE GOT NO MORE",$00	; string
+	dc.b $00,$00,$07,$27,$60
+	dc.b "WISHES OK????'",$FF	; string
+	dc.b $00
 abs_0_00063D58:
 	dc.b $00,$06,$3D,$70,$00,$02,$00,$02,$00,$09,$00,$02,$00,$03,$0D,$20
 	dc.b $27,$4F,$4F,$50,$53,$21,$27,$FF,$00,$00,$00,$00,$00,$04,$00,$04
 	dc.b $00,$12,$00,$05,$00,$05,$17,$A0,$27,$59,$49,$4B,$45,$53,$21,$20
 	dc.b $54,$48,$41,$54,$20,$57,$41,$53,$00,$00,$00,$04,$1C,$E0
 	dc.b "SHOCKING!! I THINK",$00	; string
-	dc.b $00,$00,$05,$22,$20,$49,$20,$4E,$45,$45,$44,$20,$54,$4F,$20,$47
-	dc.b $4F,$20,$54,$4F,$00,$00,$05,$27,$60,$42,$45,$44,$20,$41,$46,$54
-	dc.b $45,$52,$20,$54,$48,$41,$54,$21,$27,$FF,$00
+	dc.b $00,$00,$05,$22,$20
+	dc.b "I NEED TO GO TO",$00	; string
+	dc.b $00,$05,$27,$60
+	dc.b "BED AFTER THAT!'",$FF	; string
+	dc.b $00
 abs_0_00063DD4:
 	dc.b $00,$06,$3E,$32,$00,$03,$00,$03,$00,$19,$00,$04,$00,$03,$12,$60
 	dc.b $53,$55,$44,$44,$45,$4E,$4C,$59,$20,$54,$48,$45,$20,$45,$41,$52
@@ -8323,9 +8401,11 @@ abs_0_00063F6E:
 	dc.b "INTO THE LAVA! A",$00	; string
 	dc.b $00,$00,$04,$1C,$E0
 	dc.b "TERRIBLE SCREAMING",$00	; string
-	dc.b $00,$00,$05,$22,$20,$53,$4F,$55,$4E,$44,$20,$4D,$41,$52,$4B,$53
-	dc.b $20,$5A,$41,$4B,$53,$00,$00,$00,$06,$27,$60,$46,$49,$4E,$41,$4C
-	dc.b $20,$50,$41,$53,$53,$49,$4E,$47,$21,$FF,$00
+	dc.b $00,$00,$05,$22,$20
+	dc.b "SOUND MARKS ZAKS",$00	; string
+	dc.b $00,$00,$06,$27,$60
+	dc.b "FINAL PASSING!",$FF	; string
+	dc.b $00
 abs_0_00063FEA:
 	dc.b $00,$06,$40,$32,$00,$03,$00,$03,$00,$13,$00,$04,$00,$05,$12,$60
 	dc.b $27,$46,$52,$45,$45,$20,$41,$54,$20,$4C,$41,$53,$54,$21,$21,$00
@@ -8344,9 +8424,10 @@ abs_0_00064084:
 	dc.b $27,$57,$45,$4C,$4C,$20,$44,$4F,$4E,$45,$21,$20,$49,$20,$53,$48
 	dc.b $41,$4C,$4C,$00,$00,$05,$1C,$E0
 	dc.b "TRANSPORT YOU TO JOIN",$00	; string
-	dc.b $00,$05,$22,$20,$59,$4F,$55,$52,$20,$46,$52,$49,$45,$4E,$44,$53
-	dc.b $20,$41,$54,$20,$48,$4F,$4D,$45,$21,$00,$00,$08,$27,$60,$46,$41
-	dc.b $52,$45,$57,$45,$4C,$4C,$20,$48,$45,$52,$4F,$21,$27,$FF
+	dc.b $00,$05,$22,$20
+	dc.b "YOUR FRIENDS AT HOME!",$00	; string
+	dc.b $00,$08,$27,$60
+	dc.b "FAREWELL HERO!'",$FF	; string
 abs_0_000640F0:
 	dc.b $00,$00,$00,$00,$00,$02,$00,$02,$00,$12,$00,$04,$00,$03,$0D,$20
 	dc.b $59,$4F,$55,$20,$48,$49,$54,$20,$54,$48,$45,$20,$47,$4F,$41,$54
@@ -8411,9 +8492,9 @@ abs_0_00064398:
 	dc.b "ALL ARTWORK BY",$00	; string
 	dc.b $00,$00,$0C,$39,$C0
 	dc.b "LEIGH CHRISTIAN.",$00	; string
-	dc.b $00,$00,$00,$76,$20,$43,$4F,$50,$59,$52,$49,$47,$48,$54,$20,$31
-	dc.b $39,$39,$31,$20,$43,$4F,$44,$45,$4D,$41,$53,$54,$45,$52,$53,$20
-	dc.b $53,$4F,$46,$54,$57,$41,$52,$45,$20,$4C,$54,$44,$2E,$FF,$00
+	dc.b $00,$00,$00,$76,$20
+	dc.b "COPYRIGHT 1991 CODEMASTERS SOFTWARE LTD.",$FF	; string
+	dc.b $00
 abs_0_00064446:
 	dcb.b $3C,$00
 abs_0_00064482:
@@ -8439,7 +8520,7 @@ abs_0_000644BE:
 	bsr.b abs_0_000644EE
 	rts
 abs_0_000644D0:
-	lea.l $0100(a3),a5
+	lea.l ciaprb(a3),a5
 	bset.b #6,(a5)
 	bset.b #5,(a5)
 	bset.b #4,(a5)
@@ -8448,7 +8529,7 @@ abs_0_000644D0:
 	bclr.b #3,(a5)
 	rts
 abs_0_000644EE:
-	lea.l $0100(a3),a0
+	lea.l ciaprb(a3),a0
 	bset.b #7,(a0)
 	bset.b #3,(a0)
 	bclr.b #3,(a0)
@@ -8576,7 +8657,7 @@ abs_0_00064620:
 	move.w $001A(a4),d1
 	lsr.w #1,d1
 	move.w d1,-(a7)
-	lea.l $0100(a3),a5
+	lea.l ciaprb(a3),a5
 	bset.b #2,(a5)
 	move.w d6,d0
 	lsr.w #1,d0
@@ -8607,25 +8688,25 @@ abs_0_00064666:
 	cmp.w (a7)+,d1
 	beq.b abs_0_00064688
 abs_0_0006466E:
-	move.b #$8,$0F00(a3)
-	move.b #$2,$0D00(a3)
-	move.b #$54,$0600(a3)
-	move.b #$40,$0700(a3)
+	move.b #CIACRBF_RUNMODE,ciacrb(a3)
+	move.b #CIAICRF_TB,ciaicr(a3)
+	move.b #$54,ciatblo(a3)
+	move.b #$40,ciatbhi(a3)
 	bra.b abs_0_000646A2
 abs_0_00064688:
 	rts
 abs_0_0006468A:
-	move.b #$8,$0F00(a3)
-	move.b #$2,$0D00(a3)
-	move.b #$64,$0600(a3)
-	move.b #$8,$0700(a3)
+	move.b #CIACRBF_RUNMODE,ciacrb(a3)
+	move.b #CIAICRF_TB,ciaicr(a3)
+	move.b #$64,ciatblo(a3)
+	move.b #$8,ciatbhi(a3)
 abs_0_000646A2:
-	btst.b #1,$0D00(a3)
+	btst.b #CIAICRB_TB,ciaicr(a3)
 	beq.b abs_0_000646A2
-	bclr.b #0,$0F00(a3)
+	bclr.b #CIACRBB_START,ciacrb(a3)
 	rts
 abs_0_000646B2:
-	lea.l $0100(a3),a5
+	lea.l ciaprb(a3),a5
 	bset.b #1,(a5)
 abs_0_000646BA:
 	btst.b #CIAB_DSKTRACK0,_ciaa+ciapra.l
@@ -8644,23 +8725,23 @@ abs_0_000646DC:
 	clr.w $001A(a4)
 	rts
 abs_0_000646E4:
-	move.w #$8210,$0096(a6)
-	move.w #$7FFF,$009E(a6)
-	move.w #$9500,$009E(a6)
-	move.w #$4489,$007E(a6)
-	move.l $0004(a4),$0020(a6)
-	move.w #$4000,$0024(a6)
+	move.w #DMAF_SETCLR|DMAF_MASTER|DMAF_DISK,dmacon(a6)
+	move.w #ADKF_CLRALL,adkcon(a6)
+	move.w #ADKF_SETCLR|ADKF_MFMPREC|ADKF_WORDSYNC|ADKF_FAST,adkcon(a6)
+	move.w #$4489,dsksync(a6)	; disk sync word $4489
+	move.l $0004(a4),dskpt(a6)	; disk_buffer pointer
+	move.w #$4000,dsklen(a6)
 abs_0_00064708:
 	btst.b #CIAB_DSKRDY,_ciaa+ciapra.l
 	bne.b abs_0_00064708
-	move.w #$99F0,$0024(a6)
-	move.w #$99F0,$0024(a6)
-	move.w #$2,$009C(a6)
+	move.w #$99F0,dsklen(a6)	; disk DMA read 13280 bytes
+	move.w #$99F0,dsklen(a6)	; disk DMA read 13280 bytes
+	move.w #INTF_DSKBLK,intreq(a6)
 abs_0_00064724:
-	btst.b #1,app_001F(a6)
+	btst.b #1,$001F(a6)
 	beq.b abs_0_00064724
-	move.w #$2,$009C(a6)
-	move.w #$4000,$0024(a6)
+	move.w #INTF_DSKBLK,intreq(a6)
+	move.w #$4000,dsklen(a6)
 	rts
 abs_0_0006473A:
 	move.w #$4,$001C(a4)
@@ -9529,7 +9610,7 @@ abs_0_000669D6:
 	rts
 abs_0_000669D8:
 	clr.w $0004(a5)
-	lea.l $000519D6.l,a3
+	lea.l runtime_address_000519D6.l,a3
 	move.w $0000(a5),d0
 	lsl.w #3,d0
 	lea.l $0(a3,d0.w),a3
@@ -9653,7 +9734,7 @@ abs_0_00066B40:
 	movem.l (a7)+,a1-a2
 	rts
 abs_0_00066B88:
-	dc.b $00,$00
+	dc.w $0000
 abs_0_00066B8A:
 	moveq.l #0,d0
 	move.b $0016(a2),d0

@@ -477,6 +477,16 @@ we are able to relate disk access routines to where they access and how much the
 data we can then treat it as child payloads of the target that read it. This might be depending on how it is referenced
 even auto-analysable as code leads with implied entrypoints and register sets, or data, maybe textual or graphical.
 
+Resolution note: the actionable source-quality part is now covered by the current C analysis/render path rather than a
+Magicland-specific post-process. Regenerating the target with the current engine renders the disk helper through
+platform hardware names: `_ciaa`/`_ciab` register bits, `dmacon`, `adkcon`, `dsksync`, `dskpt`, `dsklen`, and `intreq`,
+including `dskpt(a6)` as a `disk_buffer` pointer sink. That makes the disk DMA setup, sync word, ready/block polling,
+and read length visible from accepted instructions in the source. The broader parent disk-project/child payload mapping
+is formally deferred for this target because the repo contains `bin/MagiclandDizzy_MD_f26cb8133afe` as an extracted
+hunk file plus rebuilt/cache artifacts, but no source Magicland disk image to bind track reads back to real disk bytes.
+The correct future work needs actual source media and a general external-resource relationship model, not guessed child
+payloads from a standalone executable.
+
 ### Unrecognised decompression routine
 
 Decompression routine at `abs_0_000647F2`? It makes sense that this is placed near the disk access, and it likely
