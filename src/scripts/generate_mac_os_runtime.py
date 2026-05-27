@@ -157,9 +157,13 @@ def parse_calls() -> list[dict[str, object]]:
         asm_lines = read_mac(asm_path)
         c_lines = read_mac(c_path)
         call = parse_call_asm(asm_lines, asm_name, family, rel(asm_path))
-        call["prototype"] = parse_c_prototype(c_lines, c_name)
+        prototype = parse_c_prototype_metadata(c_lines, c_name)
+        call["prototype"] = prototype["prototype"] if prototype is not None else None
         call["prototype_source"] = rel(c_path)
         call["prototype_line"] = find_c_name_line(c_lines, c_name)
+        call["c_name"] = prototype.get("c_name") if prototype is not None else None
+        call["return_type"] = prototype.get("return_type") if prototype is not None else None
+        call["parameters"] = prototype.get("parameters") if prototype is not None else []
         calls.append(call)
     return sorted(calls, key=lambda call: (str(call["kind"]), str(call["source"]), int(call["line"]), str(call["name"])))
 
@@ -186,6 +190,9 @@ def parse_trap_constants() -> list[dict[str, object]]:
                 "prototype": None,
                 "prototype_source": "",
                 "prototype_line": 0,
+                "c_name": None,
+                "return_type": None,
+                "parameters": [],
             }
         )
     return calls
@@ -223,6 +230,9 @@ def parse_opword_calls(c_prototypes: dict[int, dict[str, object]]) -> list[dict[
                     "prototype": prototype["prototype"] if prototype is not None else None,
                     "prototype_source": prototype["source"] if prototype is not None else "",
                     "prototype_line": prototype["line"] if prototype is not None else 0,
+                    "c_name": prototype.get("c_name") if prototype is not None else None,
+                    "return_type": prototype.get("return_type") if prototype is not None else None,
+                    "parameters": prototype.get("parameters") if prototype is not None else [],
                 }
             )
     return calls
@@ -244,9 +254,67 @@ def parse_c_onewordinline_prototypes() -> dict[int, dict[str, object]]:
                     "prototype": re.sub(r"\s+", " ", block).strip(),
                     "source": rel(c_path),
                     "line": start + 1,
+                    **parse_c_prototype_signature(block),
                 },
             )
     return prototypes
+
+
+def parse_c_prototype_signature(block: str) -> dict[str, object]:
+    normalized = re.sub(r"\s+", " ", block).strip()
+    match = re.search(
+        r"\bEXTERN_API\s*\(\s*(?P<return_type>.*?)\s*\)\s+"
+        r"(?P<c_name>[A-Za-z_][A-Za-z0-9_]*)\s*\((?P<params>.*?)\)\s+ONEWORDINLINE\b",
+        normalized,
+    )
+    if not match:
+        return {"c_name": None, "return_type": None, "parameters": []}
+    return {
+        "c_name": match.group("c_name"),
+        "return_type": match.group("return_type").strip(),
+        "parameters": parse_c_parameters(match.group("params")),
+    }
+
+
+def parse_c_parameters(params: str) -> list[dict[str, object]]:
+    text = params.strip()
+    if not text or text == "void":
+        return []
+    parsed: list[dict[str, object]] = []
+    for index, raw_param in enumerate(part.strip() for part in text.split(",")):
+        param = parse_c_parameter(raw_param)
+        param["index"] = index
+        parsed.append(param)
+    return parsed
+
+
+def parse_c_parameter(raw_param: str) -> dict[str, object]:
+    param = re.sub(r"\s+", " ", raw_param.replace("*", " * ")).strip()
+    name_match = re.search(r"([A-Za-z_][A-Za-z0-9_]*)(?:\s*\[[^\]]*\])?$", param)
+    if not name_match:
+        return {
+            "name": "",
+            "type": param,
+            "pointer_depth": param.count("*"),
+            "direction": "unknown",
+        }
+    name = name_match.group(1)
+    type_text = param[: name_match.start()].strip()
+    pointer_depth = type_text.count("*")
+    return {
+        "name": name,
+        "type": re.sub(r"\s+", " ", type_text).strip(),
+        "pointer_depth": pointer_depth,
+        "direction": c_parameter_direction(type_text, pointer_depth),
+    }
+
+
+def c_parameter_direction(type_text: str, pointer_depth: int) -> str:
+    if pointer_depth == 0:
+        return "input_value"
+    if re.search(r"\bconst\b", type_text):
+        return "input_pointer"
+    return "output_or_inout_pointer"
 
 
 def parse_call_asm(lines: list[str], asm_name: str, family: str, source_path: str) -> dict[str, object]:
@@ -297,10 +365,21 @@ def _result_register(lines: list[str]) -> str | None:
 
 
 def parse_c_prototype(lines: list[str], c_name: str) -> str | None:
+    metadata = parse_c_prototype_metadata(lines, c_name)
+    return metadata["prototype"] if metadata is not None else None
+
+
+def parse_c_prototype_metadata(lines: list[str], c_name: str) -> dict[str, object] | None:
     for start, end in iter_c_prototype_blocks(lines):
         block = " ".join(line.strip() for line in lines[start : end + 1])
         if re.search(rf"\b{re.escape(c_name)}\b", block):
-            return re.sub(r"\s+", " ", block).strip()
+            normalized = re.sub(r"\s+", " ", block).strip()
+            return {
+                "prototype": normalized,
+                "source": "",
+                "line": start + 1,
+                **parse_c_prototype_signature(block),
+            }
     return None
 
 
@@ -377,8 +456,18 @@ def render_header(metadata: dict[str, object]) -> str:
         "  uint32_t line;",
         "} MacOsRecordFieldInfo;",
         "",
+        "typedef struct MacOsCallParameterInfo {",
+        "  const char *call_name;",
+        "  uint16_t index;",
+        "  const char *name;",
+        "  const char *type_name;",
+        "  uint16_t pointer_depth;",
+        "  const char *direction;",
+        "} MacOsCallParameterInfo;",
+        "",
         "typedef struct MacOsCallInfo {",
         "  const char *name;",
+        "  const char *c_name;",
         "  const char *family;",
         "  uint16_t kind;",
         "  uint16_t opword;",
@@ -388,6 +477,9 @@ def render_header(metadata: dict[str, object]) -> str:
         "  const char *prototype;",
         "  const char *prototype_source_path;",
         "  uint32_t prototype_line;",
+        "  const char *return_type;",
+        "  uint16_t first_parameter;",
+        "  uint16_t parameter_count;",
         "  const char *parameter_register;",
         "  const char *result_register;",
         "} MacOsCallInfo;",
@@ -399,6 +491,7 @@ def render_header(metadata: dict[str, object]) -> str:
         "const MacOsRecordFieldInfo *mac_os_find_record_field(const char *record_name, const char *field_name);",
         "const MacOsCallInfo *mac_os_find_call_by_name(const char *name);",
         "const MacOsCallInfo *mac_os_find_call_by_opword(uint16_t opword);",
+        "const MacOsCallParameterInfo *mac_os_call_parameter(const MacOsCallInfo *call, uint16_t parameter_index);",
         "",
         "#endif",
         "",
@@ -441,16 +534,38 @@ def render_source(metadata: dict[str, object]) -> str:
         f"{as_int(field['line'])}u }},"
         for field in fields
     ]
-    call_rows = [
-        f"  {{ {c_string(str(call['name']))}, {c_string(str(call['family']))}, "
-        f"{mac_os_call_kind_c_name(str(call['kind']))}, "
-        f"{int(call['opword'])}u, {int(call['package_word'])}u, {c_string(str(call['source']))}, "
-        f"{int(call['line'])}u, "
-        f"{c_string(call.get('prototype') if isinstance(call.get('prototype'), str) else None)}, "
-        f"{c_string(str(call['prototype_source']))}, {int(call['prototype_line'])}u, "
-        f"{c_string(call.get('parameter_register') if isinstance(call.get('parameter_register'), str) else None)}, "
-        f"{c_string(call.get('result_register') if isinstance(call.get('result_register'), str) else None)} }},"
-        for call in calls
+    call_parameters: list[dict[str, object]] = []
+    for call in calls:
+        parameters = call.get("parameters")
+        if isinstance(parameters, list):
+            for parameter in parameters:
+                if isinstance(parameter, dict):
+                    call_parameters.append({"call_name": call["name"], **parameter})
+    call_rows: list[str] = []
+    first_parameter = 0
+    for call in calls:
+        parameters = call.get("parameters")
+        parameter_count = len(parameters) if isinstance(parameters, list) else 0
+        call_rows.append(
+            f"  {{ {c_string(str(call['name']))}, "
+            f"{c_string(call.get('c_name') if isinstance(call.get('c_name'), str) else None)}, "
+            f"{c_string(str(call['family']))}, "
+            f"{mac_os_call_kind_c_name(str(call['kind']))}, "
+            f"{int(call['opword'])}u, {int(call['package_word'])}u, {c_string(str(call['source']))}, "
+            f"{int(call['line'])}u, "
+            f"{c_string(call.get('prototype') if isinstance(call.get('prototype'), str) else None)}, "
+            f"{c_string(str(call['prototype_source']))}, {int(call['prototype_line'])}u, "
+            f"{c_string(call.get('return_type') if isinstance(call.get('return_type'), str) else None)}, "
+            f"{first_parameter}u, {parameter_count}u, "
+            f"{c_string(call.get('parameter_register') if isinstance(call.get('parameter_register'), str) else None)}, "
+            f"{c_string(call.get('result_register') if isinstance(call.get('result_register'), str) else None)} }},"
+        )
+        first_parameter += parameter_count
+    call_parameter_rows = [
+        f"  {{ {c_string(str(parameter['call_name']))}, {int(parameter['index'])}u, "
+        f"{c_string(str(parameter['name']))}, {c_string(str(parameter['type']))}, "
+        f"{int(parameter['pointer_depth'])}u, {c_string(str(parameter['direction']))} }},"
+        for parameter in call_parameters
     ]
     lines = [
         "/* Generated Classic Mac OS runtime metadata from MPW includes. Do not edit directly. */",
@@ -464,6 +579,10 @@ def render_source(metadata: dict[str, object]) -> str:
         "",
         "static const MacOsRecordFieldInfo g_mac_os_record_fields[] = {",
         *field_rows,
+        "};",
+        "",
+        "static const MacOsCallParameterInfo g_mac_os_call_parameters[] = {",
+        *call_parameter_rows,
         "};",
         "",
         "static const MacOsCallInfo g_mac_os_calls[] = {",
@@ -506,6 +625,11 @@ def render_source(metadata: dict[str, object]) -> str:
         "        g_mac_os_calls[index].opword == opword) return &g_mac_os_calls[index];",
         "  }",
         "  return NULL;",
+        "}",
+        "",
+        "const MacOsCallParameterInfo *mac_os_call_parameter(const MacOsCallInfo *call, uint16_t parameter_index) {",
+        "  if (call == NULL || parameter_index >= call->parameter_count) return NULL;",
+        "  return &g_mac_os_call_parameters[call->first_parameter + parameter_index];",
         "}",
         "",
     ]

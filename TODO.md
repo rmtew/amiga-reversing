@@ -76,6 +76,13 @@ be able to infer that `-$0100(a6)` is a `ConstStr255Param`, `-$0102(a6)` is a wr
 `$000C(a6)` receives a `FontFamilyID`-like value. The rendered source should then become clearer because the structured
 call semantics, not comments or Python-side recognition, explain the stack slots.
 
+Resolution note: generated Mac OS runtime metadata now carries structured C prototype fields for calls, including
+`c_name`, `return_type`, and per-parameter rows with source order, type name, pointer depth, and direction. `_GetFNum`
+is therefore represented as `void GetFNum(ConstStr255Param name, short * familyID)` from `Fonts.a`/`Fonts.h`, with the
+font name as an input value and `familyID` as an output-or-inout pointer. This still does not complete type propagation
+through stack locals by itself; the remaining general analysis work is to consume these generated parameter rows when
+Mac trap rows are reached.
+
 There is also an include/rendering distinction to preserve. The assembly source should include the real MPW interface
 file that defines `_GetFNum` (for example `Fonts.a`, with whatever umbrella include policy we settle on), not emit local
 EQU-style replacement definitions. The metadata generator can consume `Fonts.a`/`Fonts.h`, but the restored source

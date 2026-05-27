@@ -47,6 +47,9 @@ static int test_mac_os_call_lookup_distinguishes_opword_and_package_macro(void) 
   const MacOsCallInfo *hget_vinfo = mac_os_find_call_by_name("_PBHGetVInfoSync");
   const MacOsCallInfo *new_ptr = mac_os_find_call_by_opword(0xA11EU);
   const MacOsCallInfo *close_sync = mac_os_find_call_by_opword(0xA001U);
+  const MacOsCallInfo *get_fnum = mac_os_find_call_by_opword(0xA900U);
+  const MacOsCallParameterInfo *get_fnum_name;
+  const MacOsCallParameterInfo *get_fnum_family_id;
   const MacOsCallInfo *dec_str = mac_os_find_call_by_opword(0xA9EEU);
   const MacOsCallInfo *num_to_string = mac_os_find_call_by_name("_NumToString");
 
@@ -82,6 +85,25 @@ static int test_mac_os_call_lookup_distinguishes_opword_and_package_macro(void) 
   M68K_C_ASSERT_STR("_PBCloseSync", close_sync->name);
   M68K_C_ASSERT_STR("A0", close_sync->parameter_register);
   M68K_C_ASSERT_STR("D0", close_sync->result_register);
+
+  M68K_C_ASSERT(get_fnum != NULL);
+  M68K_C_ASSERT_STR("_GetFNum", get_fnum->name);
+  M68K_C_ASSERT_STR("GetFNum", get_fnum->c_name);
+  M68K_C_ASSERT_STR("void", get_fnum->return_type);
+  M68K_C_ASSERT_U32(2U, get_fnum->parameter_count);
+  get_fnum_name = mac_os_call_parameter(get_fnum, 0U);
+  get_fnum_family_id = mac_os_call_parameter(get_fnum, 1U);
+  M68K_C_ASSERT(get_fnum_name != NULL);
+  M68K_C_ASSERT_STR("name", get_fnum_name->name);
+  M68K_C_ASSERT_STR("ConstStr255Param", get_fnum_name->type_name);
+  M68K_C_ASSERT_U32(0U, get_fnum_name->pointer_depth);
+  M68K_C_ASSERT_STR("input_value", get_fnum_name->direction);
+  M68K_C_ASSERT(get_fnum_family_id != NULL);
+  M68K_C_ASSERT_STR("familyID", get_fnum_family_id->name);
+  M68K_C_ASSERT_STR("short *", get_fnum_family_id->type_name);
+  M68K_C_ASSERT_U32(1U, get_fnum_family_id->pointer_depth);
+  M68K_C_ASSERT_STR("output_or_inout_pointer", get_fnum_family_id->direction);
+  M68K_C_ASSERT(mac_os_call_parameter(get_fnum, 2U) == NULL);
 
   M68K_C_ASSERT(num_to_string != NULL);
   M68K_C_ASSERT_U32(MAC_OS_CALL_KIND_PACKAGE_MACRO, num_to_string->kind);

@@ -93,6 +93,28 @@ def test_trap_extraction_covers_baseline_calls_with_register_protocol() -> None:
     assert load_seg["family"] == "Traps"
     assert load_seg["source"] == "ext/macos_includes/mpw_gm/Interfaces/CIncludes/Traps.h"
 
+    get_fnum = _call_by_name(metadata, "_GetFNum")
+    assert get_fnum["opword"] == 0xA900
+    assert get_fnum["source"] == "ext/macos_includes/mpw_gm/Interfaces/AIncludes/Fonts.a"
+    assert get_fnum["c_name"] == "GetFNum"
+    assert get_fnum["return_type"] == "void"
+    assert get_fnum["parameters"] == [
+        {
+            "name": "name",
+            "type": "ConstStr255Param",
+            "pointer_depth": 0,
+            "direction": "input_value",
+            "index": 0,
+        },
+        {
+            "name": "familyID",
+            "type": "short *",
+            "pointer_depth": 1,
+            "direction": "output_or_inout_pointer",
+            "index": 1,
+        },
+    ]
+
     hget_vinfo = _call_by_name(metadata, "_PBHGetVInfoSync")
     assert hget_vinfo["opword"] == 0xA207
     assert hget_vinfo["parameter_register"] == "A0"
