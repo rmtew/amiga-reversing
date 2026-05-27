@@ -176,7 +176,11 @@ def render_macos_example_asm(*, project_root: Path = PROJECT_ROOT) -> str:
         "",
         "; CODE resource coverage",
         f";   total_code_resources: {len(code_resources)}",
-        *_code_resource_coverage_lines(code_resources, selected_id=selected.get("id")),
+        *_code_resource_coverage_lines(
+            code_resources,
+            source_sections=source_body_sections,
+            selected_id=selected.get("id"),
+        ),
         "",
         "; CODE segment/routine map",
         *_code_segment_map_lines(code_segment_map),
@@ -348,14 +352,15 @@ def _code_source_byte_real_lines(section: Mapping[str, object], *, payload_bytes
     placeholder = _mapping(section.get("byte_preserving_placeholder"))
     semantic_source = _mapping(section.get("semantic_source"))
     semantic_rows = [_mapping(item) for item in _sequence(semantic_source.get("rows"))]
+    source_status = "semantic_rows" if semantic_source.get("status") == "decoded" else "byte_preserved"
     lines = [
         (
-            f";   byte_preserving_placeholder: CODE {_text(section.get('id'))} "
+            f";   rendered_source: CODE {_text(section.get('id'))} status={source_status} "
             f"payload[{_text(placeholder.get('start'))}..{_text(placeholder.get('end'))}) "
             f"sha256={_text(placeholder.get('payload_sha256'))}"
         ),
-        f";   placeholder_reason: {_text(placeholder.get('reason'))}",
-        ";   byte_real_source:",
+        f";   residual_policy: {_text(placeholder.get('reason'))}",
+        ";   source_rows:",
     ]
     if section.get("id") == 0:
         lines.extend(_code0_byte_real_source_lines(section, payload_bytes=payload_bytes))
@@ -798,11 +803,25 @@ def _executable_resource_placeholder_lines(placeholders: Sequence[Mapping[str, o
     return lines
 
 
-def _code_resource_coverage_lines(resources: Sequence[Mapping[str, object]], *, selected_id: object) -> list[str]:
-    return [_code_resource_coverage_line(resource, selected_id=selected_id) for resource in resources]
+def _code_resource_coverage_lines(
+    resources: Sequence[Mapping[str, object]],
+    *,
+    source_sections: Sequence[Mapping[str, object]],
+    selected_id: object,
+) -> list[str]:
+    sections_by_id = {section.get("id"): section for section in source_sections}
+    return [
+        _code_resource_coverage_line(resource, source_section=sections_by_id.get(resource.get("id")), selected_id=selected_id)
+        for resource in resources
+    ]
 
 
-def _code_resource_coverage_line(resource: Mapping[str, object], *, selected_id: object) -> str:
+def _code_resource_coverage_line(
+    resource: Mapping[str, object],
+    *,
+    source_section: Mapping[str, object] | None,
+    selected_id: object,
+) -> str:
     resource_id = resource.get("id")
     code = _mapping(resource.get("code"))
     ranges = [_mapping(item) for item in _sequence(code.get("layout_ranges"))]
@@ -816,12 +835,19 @@ def _code_resource_coverage_line(resource: Mapping[str, object], *, selected_id:
         status = "rendered"
         reason = "expanded below through macos-code listing backend"
     elif candidate is not None:
-        status = "partial"
-        reason = (
-            f"{_text(candidate.get('kind'))} entry payload[{_text(candidate.get('start'))}.."
-            f"{_text(candidate.get('end'))}); "
-            "full per-resource listing deferred until relocation/source-boundary context is represented"
-        )
+        semantic_source = _mapping(_mapping(source_section).get("semantic_source"))
+        if semantic_source.get("status") == "decoded":
+            status = "rendered"
+            reason = (
+                f"{_text(candidate.get('kind'))} entry payload[{_text(candidate.get('start'))}.."
+                f"{_text(candidate.get('end'))}); semantic rows rendered from generated loader/CODE0 entry seeds"
+            )
+        else:
+            status = "partial"
+            reason = (
+                f"{_text(candidate.get('kind'))} entry payload[{_text(candidate.get('start'))}.."
+                f"{_text(candidate.get('end'))}); semantic listing unavailable"
+            )
     elif deferred is not None:
         status = "deferred"
         reason = f"classifier deferred range: {_text(deferred.get('evidence'))}"

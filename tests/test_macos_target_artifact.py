@@ -209,7 +209,7 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     assert "; CODE resource coverage" in asm_text
     assert ";   CODE 0 unknown: status=metadata-only" in asm_text
     assert ";   CODE 1 Main: status=rendered" in asm_text
-    assert ";   CODE 2 FPOpTable: status=partial" in asm_text
+    assert ";   CODE 2 FPOpTable: status=rendered" in asm_text
     assert ";   CODE 19 SetupArgV: status=deferred" in asm_text
     assert "; CODE segment/routine map" in asm_text
     assert "fact=macos.code_resource.segment_jump_table_span.accepted status=validated" in asm_text
@@ -304,10 +304,10 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     )
     assert "no candidate preview range; classifier deferred byte-entry evidence" in asm_text
     assert "missing_m68k_movea_l_stack_to_a0_entry" in asm_text
-    assert ";   byte_real_source:" in asm_text
+    assert ";   source_rows:" in asm_text
     assert "placeholder_reason: semantic CODE disassembly remains deferred" not in asm_text
-    assert "placeholder_reason: semantic source rows are rendered for decoded C-owned ranges" in asm_text
-    assert "placeholder_reason: CODE 0 is accepted routing/application metadata" in asm_text
+    assert "residual_policy: semantic source rows are rendered for decoded C-owned ranges" in asm_text
+    assert "residual_policy: CODE 0 is accepted routing/application metadata" in asm_text
     assert "CODE_2_loc_00000176:" in asm_text
     assert "\tmovea.l (a7)+,a0\n" in asm_text
     assert "CODE_1_loc_00000028:" in asm_text
@@ -462,8 +462,8 @@ def test_committed_macos_asm_artifact_covers_every_code_resource() -> None:
         assert f";   source_section_id: macos-code-CODE-{resource['id']}" in source_block
         assert f";   payload_size: {resource['payload_size']}" in source_block
         assert ";   source_body_ranges:" in source_block
-        assert "byte_preserving_placeholder:" in source_block
-        assert ";   byte_real_source:" in source_block
+        assert "rendered_source:" in source_block
+        assert ";   source_rows:" in source_block
         prefix = report_prefix
         assert any(line.startswith(prefix) for line in coverage_lines), prefix
         assert any(line.startswith(prefix) for line in detail_lines), prefix

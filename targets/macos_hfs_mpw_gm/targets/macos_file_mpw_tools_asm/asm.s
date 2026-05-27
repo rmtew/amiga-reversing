@@ -1382,9 +1382,9 @@ CODE_0:
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_26 target_resource_id=26 routine_offset=2866 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;     generated_xref source=CODE_0_jump_table_entry_345 target=CODE_26_loc_00000b32 link_status=linked_candidate
-;   byte_preserving_placeholder: CODE 0 payload[0..2784) sha256=8413f3bca1604845bb778c2a7701a067aa8b84853e7c77a60e63166d5b6399c1
-;   placeholder_reason: CODE 0 is accepted routing/application metadata; source rows render metadata and jump-table entries.
-;   byte_real_source:
+;   rendered_source: CODE 0 status=byte_preserved payload[0..2784) sha256=8413f3bca1604845bb778c2a7701a067aa8b84853e7c77a60e63166d5b6399c1
+;   residual_policy: CODE 0 is accepted routing/application metadata; source rows render metadata and jump-table entries.
+;   source_rows:
 CODE_0_metadata_00000000:
 CODE_0_above_a5_size:
 	dc.l $00000AF0
@@ -2937,9 +2937,9 @@ CODE_1_candidate_body_after_stub:
 ;     payload[62..29024) status=candidate parser_use=candidate_only reason=remaining CODE 1 bytes are owned by candidate executable body; Segment Loader relocation/fixup semantics remain deferred
 
 ; CODE 1 Main byte-real source follows.
-;   byte_preserving_placeholder: CODE 1 payload[0..29024) sha256=4a543f6fd1c542fccd38ec9f469b06f65c797dfd8b226fefc9f576faafbe70f5
-;   placeholder_reason: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
-;   byte_real_source:
+;   rendered_source: CODE 1 status=semantic_rows payload[0..29024) sha256=4a543f6fd1c542fccd38ec9f469b06f65c797dfd8b226fefc9f576faafbe70f5
+;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
+;   source_rows:
 ;     metadata payload[0..40)
 CODE_1_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$00,$10,$00,$00,$00,$72,$00,$00,$00,$00
@@ -12462,9 +12462,9 @@ CODE_2:
 ;     from=CODE_0_jump_table_entry_120 target=CODE_2_loc_000017da source_payload=976 target_payload=6106 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;     from=CODE_0_jump_table_entry_121 target=CODE_2_loc_00001b4a source_payload=984 target_payload=6986 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;     from=CODE_0_jump_table_entry_122 target=CODE_2_loc_00001bf2 source_payload=992 target_payload=7154 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;   byte_preserving_placeholder: CODE 2 payload[0..7788) sha256=a33f1dfe28237a5ee6f9ba7a96540e8e4842a7e6207575db5f0479b8c622a4f2
-;   placeholder_reason: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
-;   byte_real_source:
+;   rendered_source: CODE 2 status=semantic_rows payload[0..7788) sha256=a33f1dfe28237a5ee6f9ba7a96540e8e4842a7e6207575db5f0479b8c622a4f2
+;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
+;   source_rows:
 ;     metadata payload[0..40)
 CODE_2_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$03,$A0,$00,$00,$00,$07,$00,$00,$00,$00
@@ -13635,9 +13635,9 @@ CODE_3:
 ;   incoming_CODE0_xrefs:
 ;     from=CODE_0_jump_table_entry_124 target=CODE_3_loc_000038f6 source_payload=1008 target_payload=14582 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;     from=CODE_0_jump_table_entry_125 target=CODE_3_loc_0000443e source_payload=1016 target_payload=17470 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;   byte_preserving_placeholder: CODE 3 payload[0..18252) sha256=331fc8e7daf79d4e733760cb8ad413ade51431a01dd6c19c4f73720f562b08e4
-;   placeholder_reason: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
-;   byte_real_source:
+;   rendered_source: CODE 3 status=semantic_rows payload[0..18252) sha256=331fc8e7daf79d4e733760cb8ad413ade51431a01dd6c19c4f73720f562b08e4
+;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
+;   source_rows:
 ;     metadata payload[0..40)
 CODE_3_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$03,$D8,$00,$00,$00,$03,$00,$00,$00,$00
@@ -17904,9 +17904,9 @@ CODE_4:
 ;     from=CODE_0_jump_table_entry_143 target=CODE_4_loc_00001862 source_payload=1160 target_payload=6242 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;     from=CODE_0_jump_table_entry_144 target=CODE_4_loc_000018aa source_payload=1168 target_payload=6314 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;     from=CODE_0_jump_table_entry_145 target=CODE_4_loc_000018fe source_payload=1176 target_payload=6398 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;   byte_preserving_placeholder: CODE 4 payload[0..6426) sha256=a697293e579b91031cb9bb37cd80a4f47d2acb9eff60a4f4b7e3cb9a18fd4fca
-;   placeholder_reason: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
-;   byte_real_source:
+;   rendered_source: CODE 4 status=semantic_rows payload[0..6426) sha256=a697293e579b91031cb9bb37cd80a4f47d2acb9eff60a4f4b7e3cb9a18fd4fca
+;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
+;   source_rows:
 ;     metadata payload[0..40)
 CODE_4_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$03,$F0,$00,$00,$00,$14,$00,$00,$00,$00
@@ -20168,9 +20168,9 @@ CODE_5:
 ;     from=CODE_0_jump_table_entry_166 target=CODE_5_loc_00005cae source_payload=1344 target_payload=23726 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;     from=CODE_0_jump_table_entry_167 target=CODE_5_loc_00005f16 source_payload=1352 target_payload=24342 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;     from=CODE_0_jump_table_entry_168 target=CODE_5_loc_00006750 source_payload=1360 target_payload=26448 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;   byte_preserving_placeholder: CODE 5 payload[0..26638) sha256=90b898d2148ba2c3b798bed0c8c5dc936fba9ed3e8b958d279db4b279a033dfc
-;   placeholder_reason: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
-;   byte_real_source:
+;   rendered_source: CODE 5 status=semantic_rows payload[0..26638) sha256=90b898d2148ba2c3b798bed0c8c5dc936fba9ed3e8b958d279db4b279a033dfc
+;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
+;   source_rows:
 ;     metadata payload[0..40)
 CODE_5_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$04,$90,$00,$00,$00,$17,$00,$00,$00,$00
@@ -27106,9 +27106,9 @@ CODE_6:
 ;     from=CODE_0_jump_table_entry_175 target=CODE_6_loc_00000488 source_payload=1416 target_payload=1160 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;     from=CODE_0_jump_table_entry_176 target=CODE_6_loc_0000168e source_payload=1424 target_payload=5774 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;     from=CODE_0_jump_table_entry_177 target=CODE_6_loc_00003b16 source_payload=1432 target_payload=15126 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;   byte_preserving_placeholder: CODE 6 payload[0..15158) sha256=75005bca2e9e007ce374020416127735d9096e064806e4e1e1b888cd3ba8a9cf
-;   placeholder_reason: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
-;   byte_real_source:
+;   rendered_source: CODE 6 status=semantic_rows payload[0..15158) sha256=75005bca2e9e007ce374020416127735d9096e064806e4e1e1b888cd3ba8a9cf
+;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
+;   source_rows:
 ;     metadata payload[0..40)
 CODE_6_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$05,$48,$00,$00,$00,$09,$00,$00,$00,$00
@@ -30485,9 +30485,9 @@ CODE_7:
 ;     from=CODE_0_jump_table_entry_181 target=CODE_7_loc_000001ac source_payload=1464 target_payload=428 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;     from=CODE_0_jump_table_entry_182 target=CODE_7_loc_00000c58 source_payload=1472 target_payload=3160 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;     from=CODE_0_jump_table_entry_183 target=CODE_7_loc_00000fde source_payload=1480 target_payload=4062 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;   byte_preserving_placeholder: CODE 7 payload[0..4142) sha256=3bc5de90c439ad5e0f7e5d4635b445022db8ab231a9b43981dbd95673ac0b78e
-;   placeholder_reason: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
-;   byte_real_source:
+;   rendered_source: CODE 7 status=semantic_rows payload[0..4142) sha256=3bc5de90c439ad5e0f7e5d4635b445022db8ab231a9b43981dbd95673ac0b78e
+;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
+;   source_rows:
 ;     metadata payload[0..40)
 CODE_7_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$05,$90,$00,$00,$00,$06,$00,$00,$00,$00
@@ -31259,9 +31259,9 @@ CODE_8:
 ;     from=CODE_0_jump_table_entry_188 target=CODE_8_loc_00000418 source_payload=1520 target_payload=1048 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;     from=CODE_0_jump_table_entry_189 target=CODE_8_loc_0000046c source_payload=1528 target_payload=1132 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;     from=CODE_0_jump_table_entry_190 target=CODE_8_loc_0000065e source_payload=1536 target_payload=1630 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;   byte_preserving_placeholder: CODE 8 payload[0..1852) sha256=5b3cd8756213ba73870bb353160d4e5dbb1a3bdd2da93157146d091b6949a2e9
-;   placeholder_reason: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
-;   byte_real_source:
+;   rendered_source: CODE 8 status=semantic_rows payload[0..1852) sha256=5b3cd8756213ba73870bb353160d4e5dbb1a3bdd2da93157146d091b6949a2e9
+;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
+;   source_rows:
 ;     metadata payload[0..40)
 CODE_8_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$05,$C0,$00,$00,$00,$07,$00,$00,$00,$00
@@ -31935,9 +31935,9 @@ CODE_9:
 ;     from=CODE_0_jump_table_entry_197 target=CODE_9_loc_00000fa2 source_payload=1592 target_payload=4002 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;     from=CODE_0_jump_table_entry_198 target=CODE_9_loc_000031be source_payload=1600 target_payload=12734 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;     from=CODE_0_jump_table_entry_199 target=CODE_9_loc_00003650 source_payload=1608 target_payload=13904 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;   byte_preserving_placeholder: CODE 9 payload[0..13946) sha256=0361ae9dcb47f31cf559372a3e42c672dcfb8920b332d4f900a7124ab6c70bf3
-;   placeholder_reason: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
-;   byte_real_source:
+;   rendered_source: CODE 9 status=semantic_rows payload[0..13946) sha256=0361ae9dcb47f31cf559372a3e42c672dcfb8920b332d4f900a7124ab6c70bf3
+;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
+;   source_rows:
 ;     metadata payload[0..40)
 CODE_9_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$05,$F8,$00,$00,$00,$09,$00,$00,$00,$00
@@ -33297,9 +33297,9 @@ CODE_10:
 ;     candidate_code payload[148..1542) size=1394 entrypoint=True
 ;   incoming_CODE0_xrefs:
 ;     from=CODE_0_jump_table_entry_201 target=CODE_10_loc_00000136 source_payload=1624 target_payload=310 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;   byte_preserving_placeholder: CODE 10 payload[0..1542) sha256=2d5d27affd131aaa28eb0bd33157051e8f30ee3cdc054df4aad3011bdb22c1e1
-;   placeholder_reason: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
-;   byte_real_source:
+;   rendered_source: CODE 10 status=semantic_rows payload[0..1542) sha256=2d5d27affd131aaa28eb0bd33157051e8f30ee3cdc054df4aad3011bdb22c1e1
+;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
+;   source_rows:
 ;     metadata payload[0..40)
 CODE_10_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$06,$40,$00,$00,$00,$02,$00,$00,$00,$00
@@ -33801,9 +33801,9 @@ CODE_11:
 ;     from=CODE_0_jump_table_entry_214 target=CODE_11_loc_00000d60 source_payload=1728 target_payload=3424 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;     from=CODE_0_jump_table_entry_215 target=CODE_11_loc_00000dd2 source_payload=1736 target_payload=3538 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;     from=CODE_0_jump_table_entry_216 target=CODE_11_loc_00000e46 source_payload=1744 target_payload=3654 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;   byte_preserving_placeholder: CODE 11 payload[0..3678) sha256=04097ca27d77f09604177ac5e85019ecaed552d68ae2e9d50ae3b5a4e394c503
-;   placeholder_reason: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
-;   byte_real_source:
+;   rendered_source: CODE 11 status=semantic_rows payload[0..3678) sha256=04097ca27d77f09604177ac5e85019ecaed552d68ae2e9d50ae3b5a4e394c503
+;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
+;   source_rows:
 ;     metadata payload[0..40)
 CODE_11_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$06,$50,$00,$00,$00,$0F,$00,$00,$00,$00
@@ -35105,9 +35105,9 @@ CODE_12:
 ;   incoming_CODE0_xrefs:
 ;     from=CODE_0_jump_table_entry_217 target=CODE_12_loc_00000b40 source_payload=1752 target_payload=2880 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;     from=CODE_0_jump_table_entry_218 target=CODE_12_loc_00001338 source_payload=1760 target_payload=4920 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;   byte_preserving_placeholder: CODE 12 payload[0..6928) sha256=9c563d29bea4465730181b661ea9a3a60d15276aa71a6be399b02b9a4091cbdb
-;   placeholder_reason: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
-;   byte_real_source:
+;   rendered_source: CODE 12 status=semantic_rows payload[0..6928) sha256=9c563d29bea4465730181b661ea9a3a60d15276aa71a6be399b02b9a4091cbdb
+;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
+;   source_rows:
 ;     metadata payload[0..40)
 CODE_12_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$06,$C8,$00,$00,$00,$02,$00,$00,$00,$00
@@ -37475,9 +37475,9 @@ CODE_13:
 ;     from=CODE_0_jump_table_entry_229 target=CODE_13_loc_000067a6 source_payload=1848 target_payload=26534 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;     from=CODE_0_jump_table_entry_230 target=CODE_13_loc_00006f46 source_payload=1856 target_payload=28486 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;     from=CODE_0_jump_table_entry_231 target=CODE_13_loc_00008226 source_payload=1864 target_payload=33318 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;   byte_preserving_placeholder: CODE 13 payload[0..33354) sha256=1358e27cbf9cb7da402416dfa830bd93f99a23e16da5c9972f63549d171a30c8
-;   placeholder_reason: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
-;   byte_real_source:
+;   rendered_source: CODE 13 status=semantic_rows payload[0..33354) sha256=1358e27cbf9cb7da402416dfa830bd93f99a23e16da5c9972f63549d171a30c8
+;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
+;   source_rows:
 ;     metadata payload[0..40)
 CODE_13_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$06,$D8,$00,$00,$00,$0D,$00,$00,$00,$00
@@ -40658,9 +40658,9 @@ CODE_14:
 ;     from=CODE_0_jump_table_entry_240 target=CODE_14_loc_0000050e source_payload=1936 target_payload=1294 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;     from=CODE_0_jump_table_entry_241 target=CODE_14_loc_00000644 source_payload=1944 target_payload=1604 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;     from=CODE_0_jump_table_entry_242 target=CODE_14_loc_0000071c source_payload=1952 target_payload=1820 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;   byte_preserving_placeholder: CODE 14 payload[0..1886) sha256=14e851122fdae5910c2772def35a8b36c30dc7133cb92df8524f8a42ff5f8c70
-;   placeholder_reason: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
-;   byte_real_source:
+;   rendered_source: CODE 14 status=semantic_rows payload[0..1886) sha256=14e851122fdae5910c2772def35a8b36c30dc7133cb92df8524f8a42ff5f8c70
+;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
+;   source_rows:
 ;     metadata payload[0..40)
 CODE_14_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$07,$40,$00,$00,$00,$0B,$00,$00,$00,$00
@@ -41351,9 +41351,9 @@ CODE_15:
 ;     from=CODE_0_jump_table_entry_247 target=CODE_15_loc_00000b72 source_payload=1992 target_payload=2930 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;     from=CODE_0_jump_table_entry_248 target=CODE_15_loc_00000c76 source_payload=2000 target_payload=3190 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;     from=CODE_0_jump_table_entry_249 target=CODE_15_loc_00000cca source_payload=2008 target_payload=3274 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;   byte_preserving_placeholder: CODE 15 payload[0..3452) sha256=ebe2c26fe6fffb8585f7e9e0ebfffa73ca877946c26eab44f0efbd96678018cd
-;   placeholder_reason: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
-;   byte_real_source:
+;   rendered_source: CODE 15 status=semantic_rows payload[0..3452) sha256=ebe2c26fe6fffb8585f7e9e0ebfffa73ca877946c26eab44f0efbd96678018cd
+;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
+;   source_rows:
 ;     metadata payload[0..40)
 CODE_15_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$07,$98,$00,$00,$00,$07,$00,$00,$00,$00
@@ -42538,9 +42538,9 @@ CODE_16:
 ;   incoming_CODE0_xrefs:
 ;     from=CODE_0_jump_table_entry_251 target=CODE_16_loc_00000132 source_payload=2024 target_payload=306 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;     from=CODE_0_jump_table_entry_252 target=CODE_16_loc_00000362 source_payload=2032 target_payload=866 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;   byte_preserving_placeholder: CODE 16 payload[0..1034) sha256=51e7a7d264825cd4103b31a0bff37ff49fdb64e8ddb299b2a46d4bd3c07f6a37
-;   placeholder_reason: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
-;   byte_real_source:
+;   rendered_source: CODE 16 status=semantic_rows payload[0..1034) sha256=51e7a7d264825cd4103b31a0bff37ff49fdb64e8ddb299b2a46d4bd3c07f6a37
+;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
+;   source_rows:
 ;     metadata payload[0..40)
 CODE_16_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$07,$D0,$00,$00,$00,$03,$00,$00,$00,$00
@@ -42886,9 +42886,9 @@ CODE_17:
 ;     candidate_code payload[100..3674) size=3574 entrypoint=True
 ;   incoming_CODE0_xrefs:
 ;     from=CODE_0_jump_table_entry_253 target=CODE_17_loc_00000a1c source_payload=2040 target_payload=2588 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;   byte_preserving_placeholder: CODE 17 payload[0..3674) sha256=e4c8e735bff587b55b1482bde5137deec3ae177ea802b09aac3e97401f2905b9
-;   placeholder_reason: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
-;   byte_real_source:
+;   rendered_source: CODE 17 status=semantic_rows payload[0..3674) sha256=e4c8e735bff587b55b1482bde5137deec3ae177ea802b09aac3e97401f2905b9
+;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
+;   source_rows:
 ;     metadata payload[0..40)
 CODE_17_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$07,$E8,$00,$00,$00,$01,$00,$00,$00,$00
@@ -44122,9 +44122,9 @@ CODE_18:
 ;     candidate_code payload[1562..1974) size=412 entrypoint=True
 ;   incoming_CODE0_xrefs:
 ;     from=CODE_0_jump_table_entry_256 target=CODE_18_loc_000006ec source_payload=2064 target_payload=1772 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;   byte_preserving_placeholder: CODE 18 payload[0..1974) sha256=96d836fa8382f88453204a38fddb5da2e46867767f572482abb8f9cbb5e431c6
-;   placeholder_reason: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
-;   byte_real_source:
+;   rendered_source: CODE 18 status=semantic_rows payload[0..1974) sha256=96d836fa8382f88453204a38fddb5da2e46867767f572482abb8f9cbb5e431c6
+;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
+;   source_rows:
 ;     metadata payload[0..40)
 CODE_18_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$07,$F0,$00,$00,$00,$03,$00,$00,$00,$00
@@ -44741,9 +44741,9 @@ CODE_19:
 ;   source_body_ranges:
 ;     metadata payload[0..40) size=40 entrypoint=False
 ;     deferred payload[40..556) size=516 entrypoint=False
-;   byte_preserving_placeholder: CODE 19 payload[0..556) sha256=46027b8ec8f830b28abc470f5e942b54f7845efd9cf136f68e3b2b8a9873f3ce
-;   placeholder_reason: semantic source rows are not available for this CODE resource; the source body keeps exact bytes and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
-;   byte_real_source:
+;   rendered_source: CODE 19 status=byte_preserved payload[0..556) sha256=46027b8ec8f830b28abc470f5e942b54f7845efd9cf136f68e3b2b8a9873f3ce
+;   residual_policy: semantic source rows are not available for this CODE resource; the source body keeps exact bytes and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
+;   source_rows:
 ;     metadata payload[0..40)
 CODE_19_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$08,$08,$00,$00,$00,$01,$00,$00,$00,$00
@@ -44832,9 +44832,9 @@ CODE_20:
 ;     from=CODE_0_jump_table_entry_282 target=CODE_20_loc_00001362 source_payload=2272 target_payload=4962 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;     from=CODE_0_jump_table_entry_283 target=CODE_20_loc_000013f0 source_payload=2280 target_payload=5104 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;     from=CODE_0_jump_table_entry_284 target=CODE_20_loc_00001478 source_payload=2288 target_payload=5240 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;   byte_preserving_placeholder: CODE 20 payload[0..5262) sha256=de9f4a82222f3ff12586a0bb691cc6b5d513777d498d223dfa45311d4a7dc84a
-;   placeholder_reason: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
-;   byte_real_source:
+;   rendered_source: CODE 20 status=semantic_rows payload[0..5262) sha256=de9f4a82222f3ff12586a0bb691cc6b5d513777d498d223dfa45311d4a7dc84a
+;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
+;   source_rows:
 ;     metadata payload[0..40)
 CODE_20_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$08,$10,$00,$00,$00,$1B,$00,$00,$00,$00
@@ -46820,9 +46820,9 @@ CODE_21:
 ;     from=CODE_0_jump_table_entry_301 target=CODE_21_loc_00001a06 source_payload=2424 target_payload=6662 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;     from=CODE_0_jump_table_entry_302 target=CODE_21_loc_00001a1a source_payload=2432 target_payload=6682 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;     from=CODE_0_jump_table_entry_303 target=CODE_21_loc_00001a48 source_payload=2440 target_payload=6728 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;   byte_preserving_placeholder: CODE 21 payload[0..6794) sha256=927c28db98eadbc5501e570ada73af8afca05964552a831c02051f6e6fa3b687
-;   placeholder_reason: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
-;   byte_real_source:
+;   rendered_source: CODE 21 status=semantic_rows payload[0..6794) sha256=927c28db98eadbc5501e570ada73af8afca05964552a831c02051f6e6fa3b687
+;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
+;   source_rows:
 ;     metadata payload[0..40)
 CODE_21_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$08,$E8,$00,$00,$00,$13,$00,$00,$00,$00
@@ -48094,9 +48094,9 @@ CODE_22:
 ;   source_body_ranges:
 ;     metadata payload[0..40) size=40 entrypoint=False
 ;     deferred payload[40..96) size=56 entrypoint=False
-;   byte_preserving_placeholder: CODE 22 payload[0..96) sha256=6929f16d82666fe0f31993c30f2750798bf934a0dcddf3c6eb0adc2c552484f8
-;   placeholder_reason: semantic source rows are not available for this CODE resource; the source body keeps exact bytes and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
-;   byte_real_source:
+;   rendered_source: CODE 22 status=byte_preserved payload[0..96) sha256=6929f16d82666fe0f31993c30f2750798bf934a0dcddf3c6eb0adc2c552484f8
+;   residual_policy: semantic source rows are not available for this CODE resource; the source body keeps exact bytes and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
+;   source_rows:
 ;     metadata payload[0..40)
 CODE_22_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$09,$80,$00,$00,$00,$01,$00,$00,$00,$00
@@ -48138,9 +48138,9 @@ CODE_23:
 ;   source_body_ranges:
 ;     metadata payload[0..40) size=40 entrypoint=False
 ;     deferred payload[40..126) size=86 entrypoint=False
-;   byte_preserving_placeholder: CODE 23 payload[0..126) sha256=ce2eaab2bd782055c6aaaefc223f2e72d4f746e25a05cc8b3599836ecbd41969
-;   placeholder_reason: semantic source rows are not available for this CODE resource; the source body keeps exact bytes and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
-;   byte_real_source:
+;   rendered_source: CODE 23 status=byte_preserved payload[0..126) sha256=ce2eaab2bd782055c6aaaefc223f2e72d4f746e25a05cc8b3599836ecbd41969
+;   residual_policy: semantic source rows are not available for this CODE resource; the source body keeps exact bytes and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
+;   source_rows:
 ;     metadata payload[0..40)
 CODE_23_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$09,$88,$00,$00,$00,$01,$00,$00,$00,$00
@@ -48196,9 +48196,9 @@ CODE_24:
 ;     from=CODE_0_jump_table_entry_316 target=CODE_24_loc_00000f9c source_payload=2544 target_payload=3996 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;     from=CODE_0_jump_table_entry_317 target=CODE_24_loc_000010a8 source_payload=2552 target_payload=4264 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;     from=CODE_0_jump_table_entry_318 target=CODE_24_loc_000011d8 source_payload=2560 target_payload=4568 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;   byte_preserving_placeholder: CODE 24 payload[0..4970) sha256=f98dfc823a565d6502fa4ac1feb7b616b397ba9a918ce2c5f47b274e99a9026a
-;   placeholder_reason: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
-;   byte_real_source:
+;   rendered_source: CODE 24 status=semantic_rows payload[0..4970) sha256=f98dfc823a565d6502fa4ac1feb7b616b397ba9a918ce2c5f47b274e99a9026a
+;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
+;   source_rows:
 ;     metadata payload[0..40)
 CODE_24_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$09,$90,$00,$00,$00,$0D,$00,$00,$00,$00
@@ -50029,9 +50029,9 @@ CODE_25:
 ;     from=CODE_0_jump_table_entry_319 target=CODE_25_loc_000000b8 source_payload=2568 target_payload=184 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;     from=CODE_0_jump_table_entry_320 target=CODE_25_loc_0000007a source_payload=2576 target_payload=122 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;     from=CODE_0_jump_table_entry_321 target=CODE_25_loc_000000e4 source_payload=2584 target_payload=228 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;   byte_preserving_placeholder: CODE 25 payload[0..246) sha256=c87908dd286d0e5fdcab70725ec20e98a37cca1357f18132809c3ab9e7562090
-;   placeholder_reason: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
-;   byte_real_source:
+;   rendered_source: CODE 25 status=semantic_rows payload[0..246) sha256=c87908dd286d0e5fdcab70725ec20e98a37cca1357f18132809c3ab9e7562090
+;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
+;   source_rows:
 ;     metadata payload[0..40)
 CODE_25_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$09,$F8,$00,$00,$00,$03,$00,$00,$00,$00
@@ -50157,9 +50157,9 @@ CODE_26:
 ;     from=CODE_0_jump_table_entry_343 target=CODE_26_loc_00000b0e source_payload=2760 target_payload=2830 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;     from=CODE_0_jump_table_entry_344 target=CODE_26_loc_00000b20 source_payload=2768 target_payload=2848 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;     from=CODE_0_jump_table_entry_345 target=CODE_26_loc_00000b32 source_payload=2776 target_payload=2866 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;   byte_preserving_placeholder: CODE 26 payload[0..2940) sha256=62b8ca8b968fab6a003f39717b671f9c6cae8d20a9c77cb7ab41fd0315a229ae
-;   placeholder_reason: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
-;   byte_real_source:
+;   rendered_source: CODE 26 status=semantic_rows payload[0..2940) sha256=62b8ca8b968fab6a003f39717b671f9c6cae8d20a9c77cb7ab41fd0315a229ae
+;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
+;   source_rows:
 ;     metadata payload[0..40)
 CODE_26_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$0A,$10,$00,$00,$00,$18,$00,$00,$00,$00
@@ -51295,9 +51295,9 @@ CODE_27:
 ;     candidate_code payload[204..1882) size=1678 entrypoint=True
 ;   incoming_CODE0_xrefs:
 ;     from=CODE_0_jump_table_entry_0 target=CODE_27_loc_000000cc source_payload=16 target_payload=204 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;   byte_preserving_placeholder: CODE 27 payload[0..1882) sha256=f683b4c722b40eda686a3074d68910f8316ecd373798c1a5834df64d8b757352
-;   placeholder_reason: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
-;   byte_real_source:
+;   rendered_source: CODE 27 status=semantic_rows payload[0..1882) sha256=f683b4c722b40eda686a3074d68910f8316ecd373798c1a5834df64d8b757352
+;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
+;   source_rows:
 ;     metadata payload[0..4)
 CODE_27_metadata_00000000:
 	dc.b $00,$00,$00,$01
@@ -52510,33 +52510,33 @@ CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b848
 ; CODE resource coverage
 ;   total_code_resources: 28
 ;   CODE 0 unknown: status=metadata-only layout=metadata reason=CODE 0 jump-table/application metadata
-;   CODE 27 32-bit bootstrap: status=partial layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[204..1882); full per-resource listing deferred until relocation/source-boundary context is represented
+;   CODE 27 32-bit bootstrap: status=rendered layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[204..1882); semantic rows rendered from generated loader/CODE0 entry seeds
 ;   CODE 1 Main: status=rendered layout=metadata,candidate_code reason=expanded below through macos-code listing backend
-;   CODE 2 FPOpTable: status=partial layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[374..7788); full per-resource listing deferred until relocation/source-boundary context is represented
-;   CODE 3 Init: status=partial layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[302..18252); full per-resource listing deferred until relocation/source-boundary context is represented
-;   CODE 4 IOMgr: status=partial layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[468..6426); full per-resource listing deferred until relocation/source-boundary context is represented
-;   CODE 5 Macros: status=partial layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[212..26638); full per-resource listing deferred until relocation/source-boundary context is represented
-;   CODE 6 OpTable: status=partial layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[58..15158); full per-resource listing deferred until relocation/source-boundary context is represented
-;   CODE 7 POpTable: status=partial layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[352..4142); full per-resource listing deferred until relocation/source-boundary context is represented
-;   CODE 8 Listing: status=partial layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[42..1852); full per-resource listing deferred until relocation/source-boundary context is represented
-;   CODE 9 Pass2: status=partial layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[712..13946); full per-resource listing deferred until relocation/source-boundary context is represented
-;   CODE 10 FinishUp: status=partial layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[148..1542); full per-resource listing deferred until relocation/source-boundary context is represented
-;   CODE 11 Dbg: status=partial layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[836..3678); full per-resource listing deferred until relocation/source-boundary context is represented
-;   CODE 12 LoadDump: status=partial layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[44..6928); full per-resource listing deferred until relocation/source-boundary context is represented
-;   CODE 13 Directives: status=partial layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[44..33354); full per-resource listing deferred until relocation/source-boundary context is represented
-;   CODE 14 MemMgr: status=partial layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[236..1886); full per-resource listing deferred until relocation/source-boundary context is represented
-;   CODE 15 Errors: status=partial layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[96..3452); full per-resource listing deferred until relocation/source-boundary context is represented
-;   CODE 16 New: status=partial layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[246..1034); full per-resource listing deferred until relocation/source-boundary context is represented
-;   CODE 17 DispSymTbl: status=partial layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[100..3674); full per-resource listing deferred until relocation/source-boundary context is represented
-;   CODE 18 FinishDirectives: status=partial layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[1562..1974); full per-resource listing deferred until relocation/source-boundary context is represented
+;   CODE 2 FPOpTable: status=rendered layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[374..7788); semantic rows rendered from generated loader/CODE0 entry seeds
+;   CODE 3 Init: status=rendered layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[302..18252); semantic rows rendered from generated loader/CODE0 entry seeds
+;   CODE 4 IOMgr: status=rendered layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[468..6426); semantic rows rendered from generated loader/CODE0 entry seeds
+;   CODE 5 Macros: status=rendered layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[212..26638); semantic rows rendered from generated loader/CODE0 entry seeds
+;   CODE 6 OpTable: status=rendered layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[58..15158); semantic rows rendered from generated loader/CODE0 entry seeds
+;   CODE 7 POpTable: status=rendered layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[352..4142); semantic rows rendered from generated loader/CODE0 entry seeds
+;   CODE 8 Listing: status=rendered layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[42..1852); semantic rows rendered from generated loader/CODE0 entry seeds
+;   CODE 9 Pass2: status=rendered layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[712..13946); semantic rows rendered from generated loader/CODE0 entry seeds
+;   CODE 10 FinishUp: status=rendered layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[148..1542); semantic rows rendered from generated loader/CODE0 entry seeds
+;   CODE 11 Dbg: status=rendered layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[836..3678); semantic rows rendered from generated loader/CODE0 entry seeds
+;   CODE 12 LoadDump: status=rendered layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[44..6928); semantic rows rendered from generated loader/CODE0 entry seeds
+;   CODE 13 Directives: status=rendered layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[44..33354); semantic rows rendered from generated loader/CODE0 entry seeds
+;   CODE 14 MemMgr: status=rendered layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[236..1886); semantic rows rendered from generated loader/CODE0 entry seeds
+;   CODE 15 Errors: status=rendered layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[96..3452); semantic rows rendered from generated loader/CODE0 entry seeds
+;   CODE 16 New: status=rendered layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[246..1034); semantic rows rendered from generated loader/CODE0 entry seeds
+;   CODE 17 DispSymTbl: status=rendered layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[100..3674); semantic rows rendered from generated loader/CODE0 entry seeds
+;   CODE 18 FinishDirectives: status=rendered layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[1562..1974); semantic rows rendered from generated loader/CODE0 entry seeds
 ;   CODE 19 SetupArgV: status=deferred layout=metadata,deferred reason=classifier deferred range: missing_m68k_movea_l_stack_to_a0_entry
-;   CODE 20 INTENV: status=partial layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[2876..5262); full per-resource listing deferred until relocation/source-boundary context is represented
-;   CODE 21 SADEV: status=partial layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[2000..6794); full per-resource listing deferred until relocation/source-boundary context is represented
+;   CODE 20 INTENV: status=rendered layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[2876..5262); semantic rows rendered from generated loader/CODE0 entry seeds
+;   CODE 21 SADEV: status=rendered layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[2000..6794); semantic rows rendered from generated loader/CODE0 entry seeds
 ;   CODE 22 SANELIB: status=deferred layout=metadata,deferred reason=classifier deferred range: missing_m68k_movea_l_stack_to_a0_entry
 ;   CODE 23 STDCLIB: status=deferred layout=metadata,deferred reason=classifier deferred range: missing_m68k_movea_l_stack_to_a0_entry
-;   CODE 24 STDIO: status=partial layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[2950..4970); full per-resource listing deferred until relocation/source-boundary context is represented
-;   CODE 25 SANELib: status=partial layout=metadata,candidate_code reason=candidate_code entry payload[40..246); full per-resource listing deferred until relocation/source-boundary context is represented
-;   CODE 26 PASLIB: status=partial layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[198..2940); full per-resource listing deferred until relocation/source-boundary context is represented
+;   CODE 24 STDIO: status=rendered layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[2950..4970); semantic rows rendered from generated loader/CODE0 entry seeds
+;   CODE 25 SANELib: status=rendered layout=metadata,candidate_code reason=candidate_code entry payload[40..246); semantic rows rendered from generated loader/CODE0 entry seeds
+;   CODE 26 PASLIB: status=rendered layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[198..2940); semantic rows rendered from generated loader/CODE0 entry seeds
 
 ; CODE segment/routine map
 ;   CODE 27: jt_first=0 jt_count=1 jt_span_size=8 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
