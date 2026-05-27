@@ -1132,6 +1132,13 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     ]
     assert all(item["source_visible"] is True for item in source_sections)
     assert all(item["byte_preserving_placeholder"]["kind"] == "byte_preserving_placeholder" for item in source_sections)
+    assert (
+        "semantic source rows are rendered"
+        in next(item for item in source_sections if item["id"] == 1)["byte_preserving_placeholder"]["reason"]
+    )
+    assert "accepted routing/application metadata" in next(
+        item for item in source_sections if item["id"] == 0
+    )["byte_preserving_placeholder"]["reason"]
     assert next(item for item in source_sections if item["id"] == 1)["status"] == "selected_full_listing"
     assert any(item["status"] == "semantic_source" for item in source_sections)
     assert any(item["status"] == "covered_placeholder" for item in source_sections)

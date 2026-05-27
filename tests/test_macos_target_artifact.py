@@ -305,6 +305,9 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     assert "no candidate preview range; classifier deferred byte-entry evidence" in asm_text
     assert "missing_m68k_movea_l_stack_to_a0_entry" in asm_text
     assert ";   byte_real_source:" in asm_text
+    assert "placeholder_reason: semantic CODE disassembly remains deferred" not in asm_text
+    assert "placeholder_reason: semantic source rows are rendered for decoded C-owned ranges" in asm_text
+    assert "placeholder_reason: CODE 0 is accepted routing/application metadata" in asm_text
     assert "CODE_2_loc_00000176:" in asm_text
     assert "\tmovea.l (a7)+,a0\n" in asm_text
     assert "CODE_1_loc_00000028:" in asm_text

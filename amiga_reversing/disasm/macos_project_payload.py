@@ -467,6 +467,7 @@ def _code0_target_payload_offset(
 
 
 def _code_source_placeholder(detail: Mapping[str, object]) -> dict[str, object]:
+    semantic_source = _mapping(detail.get("semantic_source"))
     return {
         "kind": "byte_preserving_placeholder",
         "resource_type": detail.get("resource_type"),
@@ -475,11 +476,25 @@ def _code_source_placeholder(detail: Mapping[str, object]) -> dict[str, object]:
         "end": detail.get("payload_size"),
         "size": detail.get("payload_size"),
         "payload_sha256": detail.get("payload_sha256"),
-        "reason": (
-            "semantic CODE disassembly remains deferred; current source body renders exact bytes for C-owned ranges and "
-            "evidence status without promoting byte-entry, A5, or Segment Loader semantics."
-        ),
+        "reason": _byte_preserving_envelope_reason(detail, semantic_source),
     }
+
+
+def _byte_preserving_envelope_reason(
+    detail: Mapping[str, object],
+    semantic_source: Mapping[str, object],
+) -> str:
+    if detail.get("id") == 0:
+        return "CODE 0 is accepted routing/application metadata; source rows render metadata and jump-table entries."
+    if semantic_source.get("status") == "decoded":
+        return (
+            "semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without "
+            "promoting byte-entry, A5, or Segment Loader semantics."
+        )
+    return (
+        "semantic source rows are not available for this CODE resource; the source body keeps exact bytes and evidence "
+        "status without promoting byte-entry, A5, or Segment Loader semantics."
+    )
 
 
 def _source_quality_gate(
