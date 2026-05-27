@@ -39,194 +39,1409 @@ macos_code_CODE_0:
 ;   source_body_ranges:
 ;     metadata payload[0..2784) size=2784 entrypoint=False status=validated parser_use=accepted_parser_output evidence=code0_jump_table_metadata fact=macos.code_resource.0.jump_table_metadata
 ;   structured_CODE0_context:
-macos_CODE_0_application_metadata:
 ;     above/below A5 metadata and jump-table header are accepted CODE 0 metadata.
 ;     jump_table payload[16..2784) entry_size=8 entry_count=346 status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-macos_CODE_0_jump_table:
-macos_CODE_0_jump_table_entry_0:
-;     payload_offset=16 size=8 raw_entry_bytes=00 00 3F 3C 00 1B A9 F0
+;     macos_CODE_0_jump_table_entry_0: payload_offset=16 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=macos_code_CODE_27 target_resource_id=27 routine_offset=0 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
 ;     generated_xref source=macos_CODE_0_jump_table_entry_0 target=macos_code_CODE_27_routine_candidate_000000cc link_status=linked_candidate
 ;   byte_preserving_placeholder: CODE 0 payload[0..2784) sha256=8413f3bca1604845bb778c2a7701a067aa8b84853e7c77a60e63166d5b6399c1
 ;   placeholder_reason: semantic CODE disassembly remains deferred; current source body renders exact bytes for C-owned ranges and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
 ;   byte_real_source:
-;     metadata payload[0..2784) status=validated parser_use=accepted_parser_output evidence=code0_jump_table_metadata
 macos_code_CODE_0_metadata_00000000:
-	dc.b $00,$00,$0A,$F0,$00,$00,$39,$20,$00,$00,$0A,$D0,$00,$00,$00,$20
-	dc.b $00,$00,$3F,$3C,$00,$1B,$A9,$F0,$00,$00,$FF,$FF,$00,$00,$00,$00
-	dc.b $00,$01,$A9,$F0,$00,$00,$60,$1E,$00,$01,$A9,$F0,$00,$00,$00,$3E
-	dc.b $00,$01,$A9,$F0,$00,$00,$00,$46,$00,$01,$A9,$F0,$00,$00,$00,$5E
-	dc.b $00,$01,$A9,$F0,$00,$00,$00,$76,$00,$01,$A9,$F0,$00,$00,$00,$9A
-	dc.b $00,$01,$A9,$F0,$00,$00,$00,$BE,$00,$01,$A9,$F0,$00,$00,$00,$BE
-	dc.b $00,$01,$A9,$F0,$00,$00,$01,$08,$00,$01,$A9,$F0,$00,$00,$01,$42
-	dc.b $00,$01,$A9,$F0,$00,$00,$01,$66,$00,$01,$A9,$F0,$00,$00,$01,$72
-	dc.b $00,$01,$A9,$F0,$00,$00,$01,$90,$00,$01,$A9,$F0,$00,$00,$01,$A4
-	dc.b $00,$01,$A9,$F0,$00,$00,$01,$BE,$00,$01,$A9,$F0,$00,$00,$01,$D4
-	dc.b $00,$01,$A9,$F0,$00,$00,$01,$D8,$00,$01,$A9,$F0,$00,$00,$02,$44
-	dc.b $00,$01,$A9,$F0,$00,$00,$02,$3E,$00,$01,$A9,$F0,$00,$00,$03,$1C
-	dc.b $00,$01,$A9,$F0,$00,$00,$03,$D8,$00,$01,$A9,$F0,$00,$00,$04,$0C
-	dc.b $00,$01,$A9,$F0,$00,$00,$04,$96,$00,$01,$A9,$F0,$00,$00,$04,$9E
-	dc.b $00,$01,$A9,$F0,$00,$00,$05,$78,$00,$01,$A9,$F0,$00,$00,$05,$80
-	dc.b $00,$01,$A9,$F0,$00,$00,$06,$06,$00,$01,$A9,$F0,$00,$00,$06,$0E
-	dc.b $00,$01,$A9,$F0,$00,$00,$07,$14,$00,$01,$A9,$F0,$00,$00,$07,$1C
-	dc.b $00,$01,$A9,$F0,$00,$00,$07,$C8,$00,$01,$A9,$F0,$00,$00,$07,$E4
-	dc.b $00,$01,$A9,$F0,$00,$00,$0A,$FE,$00,$01,$A9,$F0,$00,$00,$0F,$60
-	dc.b $00,$01,$A9,$F0,$00,$00,$0F,$7A,$00,$01,$A9,$F0,$00,$00,$11,$DC
-	dc.b $00,$01,$A9,$F0,$00,$00,$11,$F4,$00,$01,$A9,$F0,$00,$00,$12,$72
-	dc.b $00,$01,$A9,$F0,$00,$00,$12,$C2,$00,$01,$A9,$F0,$00,$00,$13,$14
-	dc.b $00,$01,$A9,$F0,$00,$00,$13,$3E,$00,$01,$A9,$F0,$00,$00,$1B,$60
-	dc.b $00,$01,$A9,$F0,$00,$00,$1B,$26,$00,$01,$A9,$F0,$00,$00,$1C,$72
-	dc.b $00,$01,$A9,$F0,$00,$00,$1D,$28,$00,$01,$A9,$F0,$00,$00,$20,$30
-	dc.b $00,$01,$A9,$F0,$00,$00,$20,$4A,$00,$01,$A9,$F0,$00,$00,$20,$70
-	dc.b $00,$01,$A9,$F0,$00,$00,$20,$A8,$00,$01,$A9,$F0,$00,$00,$21,$F0
-	dc.b $00,$01,$A9,$F0,$00,$00,$22,$F6,$00,$01,$A9,$F0,$00,$00,$23,$66
-	dc.b $00,$01,$A9,$F0,$00,$00,$24,$92,$00,$01,$A9,$F0,$00,$00,$25,$BA
-	dc.b $00,$01,$A9,$F0,$00,$00,$26,$5E,$00,$01,$A9,$F0,$00,$00,$26,$74
-	dc.b $00,$01,$A9,$F0,$00,$00,$27,$30,$00,$01,$A9,$F0,$00,$00,$27,$DE
-	dc.b $00,$01,$A9,$F0,$00,$00,$28,$2E,$00,$01,$A9,$F0,$00,$00,$28,$B8
-	dc.b $00,$01,$A9,$F0,$00,$00,$29,$CA,$00,$01,$A9,$F0,$00,$00,$2B,$AC
-	dc.b $00,$01,$A9,$F0,$00,$00,$30,$58,$00,$01,$A9,$F0,$00,$00,$3D,$90
-	dc.b $00,$01,$A9,$F0,$00,$00,$4E,$D2,$00,$01,$A9,$F0,$00,$00,$53,$36
-	dc.b $00,$01,$A9,$F0,$00,$00,$53,$AC,$00,$01,$A9,$F0,$00,$00,$54,$76
-	dc.b $00,$01,$A9,$F0,$00,$00,$55,$1C,$00,$01,$A9,$F0,$00,$00,$57,$A8
-	dc.b $00,$01,$A9,$F0,$00,$00,$5F,$BE,$00,$01,$A9,$F0,$00,$00,$61,$12
-	dc.b $00,$01,$A9,$F0,$00,$00,$61,$A2,$00,$01,$A9,$F0,$00,$00,$61,$C8
-	dc.b $00,$01,$A9,$F0,$00,$00,$61,$EC,$00,$01,$A9,$F0,$00,$00,$62,$CA
-	dc.b $00,$01,$A9,$F0,$00,$00,$63,$A2,$00,$01,$A9,$F0,$00,$00,$64,$18
-	dc.b $00,$01,$A9,$F0,$00,$00,$64,$56,$00,$01,$A9,$F0,$00,$00,$65,$88
-	dc.b $00,$01,$A9,$F0,$00,$00,$68,$32,$00,$01,$A9,$F0,$00,$00,$68,$B4
-	dc.b $00,$01,$A9,$F0,$00,$00,$68,$BE,$00,$01,$A9,$F0,$00,$00,$68,$CC
-	dc.b $00,$01,$A9,$F0,$00,$00,$69,$04,$00,$01,$A9,$F0,$00,$00,$69,$44
-	dc.b $00,$01,$A9,$F0,$00,$00,$69,$56,$00,$01,$A9,$F0,$00,$00,$69,$68
-	dc.b $00,$01,$A9,$F0,$00,$00,$69,$7A,$00,$01,$A9,$F0,$00,$00,$69,$94
-	dc.b $00,$01,$A9,$F0,$00,$00,$69,$98,$00,$01,$A9,$F0,$00,$00,$69,$DC
-	dc.b $00,$01,$A9,$F0,$00,$00,$6A,$12,$00,$01,$A9,$F0,$00,$00,$6A,$36
-	dc.b $00,$01,$A9,$F0,$00,$00,$6A,$62,$00,$01,$A9,$F0,$00,$00,$6A,$9C
-	dc.b $00,$01,$A9,$F0,$00,$00,$6A,$BC,$00,$01,$A9,$F0,$00,$00,$6A,$DE
-	dc.b $00,$01,$A9,$F0,$00,$00,$6B,$16,$00,$01,$A9,$F0,$00,$00,$6B,$2C
-	dc.b $00,$01,$A9,$F0,$00,$00,$6B,$42,$00,$01,$A9,$F0,$00,$00,$6B,$54
-	dc.b $00,$01,$A9,$F0,$00,$00,$6B,$66,$00,$01,$A9,$F0,$00,$00,$6B,$AE
-	dc.b $00,$01,$A9,$F0,$00,$00,$6B,$F6,$00,$01,$A9,$F0,$00,$00,$6C,$36
-	dc.b $00,$01,$A9,$F0,$00,$00,$6C,$94,$00,$01,$A9,$F0,$00,$00,$6D,$0E
-	dc.b $00,$01,$A9,$F0,$00,$00,$6F,$1C,$00,$01,$A9,$F0,$00,$00,$6F,$2E
-	dc.b $00,$01,$A9,$F0,$00,$00,$6F,$64,$00,$01,$A9,$F0,$00,$00,$70,$4C
-	dc.b $00,$01,$A9,$F0,$00,$00,$70,$A2,$00,$01,$A9,$F0,$00,$00,$70,$C6
-	dc.b $00,$02,$A9,$F0,$00,$00,$00,$28,$00,$02,$A9,$F0,$00,$00,$00,$AC
-	dc.b $00,$02,$A9,$F0,$00,$00,$01,$88,$00,$02,$A9,$F0,$00,$00,$01,$C2
-	dc.b $00,$02,$A9,$F0,$00,$00,$17,$DA,$00,$02,$A9,$F0,$00,$00,$1B,$4A
-	dc.b $00,$02,$A9,$F0,$00,$00,$1B,$F2,$00,$03,$A9,$F0,$00,$00,$00,$40
-	dc.b $00,$03,$A9,$F0,$00,$00,$38,$F6,$00,$03,$A9,$F0,$00,$00,$44,$3E
-	dc.b $00,$04,$A9,$F0,$00,$00,$00,$28,$00,$04,$A9,$F0,$00,$00,$01,$34
-	dc.b $00,$04,$A9,$F0,$00,$00,$01,$EE,$00,$04,$A9,$F0,$00,$00,$02,$40
-	dc.b $00,$04,$A9,$F0,$00,$00,$02,$94,$00,$04,$A9,$F0,$00,$00,$02,$EA
-	dc.b $00,$04,$A9,$F0,$00,$00,$03,$0C,$00,$04,$A9,$F0,$00,$00,$03,$A6
-	dc.b $00,$04,$A9,$F0,$00,$00,$08,$06,$00,$04,$A9,$F0,$00,$00,$0C,$42
-	dc.b $00,$04,$A9,$F0,$00,$00,$0E,$82,$00,$04,$A9,$F0,$00,$00,$14,$36
-	dc.b $00,$04,$A9,$F0,$00,$00,$15,$AE,$00,$04,$A9,$F0,$00,$00,$15,$E2
-	dc.b $00,$04,$A9,$F0,$00,$00,$17,$28,$00,$04,$A9,$F0,$00,$00,$17,$60
-	dc.b $00,$04,$A9,$F0,$00,$00,$18,$10,$00,$04,$A9,$F0,$00,$00,$18,$62
-	dc.b $00,$04,$A9,$F0,$00,$00,$18,$AA,$00,$04,$A9,$F0,$00,$00,$18,$FE
-	dc.b $00,$05,$A9,$F0,$00,$00,$00,$28,$00,$05,$A9,$F0,$00,$00,$00,$D2
-	dc.b $00,$05,$A9,$F0,$00,$00,$00,$EA,$00,$05,$A9,$F0,$00,$00,$03,$68
-	dc.b $00,$05,$A9,$F0,$00,$00,$03,$6C,$00,$05,$A9,$F0,$00,$00,$05,$9A
-	dc.b $00,$05,$A9,$F0,$00,$00,$05,$E8,$00,$05,$A9,$F0,$00,$00,$0A,$48
-	dc.b $00,$05,$A9,$F0,$00,$00,$13,$E0,$00,$05,$A9,$F0,$00,$00,$14,$B6
-	dc.b $00,$05,$A9,$F0,$00,$00,$15,$EC,$00,$05,$A9,$F0,$00,$00,$16,$FC
-	dc.b $00,$05,$A9,$F0,$00,$00,$18,$56,$00,$05,$A9,$F0,$00,$00,$18,$90
-	dc.b $00,$05,$A9,$F0,$00,$00,$19,$98,$00,$05,$A9,$F0,$00,$00,$20,$38
-	dc.b $00,$05,$A9,$F0,$00,$00,$25,$68,$00,$05,$A9,$F0,$00,$00,$2F,$68
-	dc.b $00,$05,$A9,$F0,$00,$00,$3A,$C2,$00,$05,$A9,$F0,$00,$00,$56,$52
-	dc.b $00,$05,$A9,$F0,$00,$00,$5C,$AE,$00,$05,$A9,$F0,$00,$00,$5F,$16
-	dc.b $00,$05,$A9,$F0,$00,$00,$67,$50,$00,$06,$A9,$F0,$00,$00,$00,$28
-	dc.b $00,$06,$A9,$F0,$00,$00,$00,$F0,$00,$06,$A9,$F0,$00,$00,$01,$2A
-	dc.b $00,$06,$A9,$F0,$00,$00,$02,$E0,$00,$06,$A9,$F0,$00,$00,$16,$5C
-	dc.b $00,$06,$A9,$F0,$00,$00,$05,$74,$00,$06,$A9,$F0,$00,$00,$04,$88
-	dc.b $00,$06,$A9,$F0,$00,$00,$16,$8E,$00,$06,$A9,$F0,$00,$00,$3B,$16
-	dc.b $00,$07,$A9,$F0,$00,$00,$00,$28,$00,$07,$A9,$F0,$00,$00,$00,$AC
-	dc.b $00,$07,$A9,$F0,$00,$00,$01,$72,$00,$07,$A9,$F0,$00,$00,$01,$AC
-	dc.b $00,$07,$A9,$F0,$00,$00,$0C,$58,$00,$07,$A9,$F0,$00,$00,$0F,$DE
-	dc.b $00,$08,$A9,$F0,$00,$00,$00,$DC,$00,$08,$A9,$F0,$00,$00,$01,$04
-	dc.b $00,$08,$A9,$F0,$00,$00,$02,$A6,$00,$08,$A9,$F0,$00,$00,$03,$1A
-	dc.b $00,$08,$A9,$F0,$00,$00,$04,$18,$00,$08,$A9,$F0,$00,$00,$04,$6C
-	dc.b $00,$08,$A9,$F0,$00,$00,$06,$5E,$00,$09,$A9,$F0,$00,$00,$00,$28
-	dc.b $00,$09,$A9,$F0,$00,$00,$00,$CE,$00,$09,$A9,$F0,$00,$00,$00,$EE
-	dc.b $00,$09,$A9,$F0,$00,$00,$04,$7A,$00,$09,$A9,$F0,$00,$00,$10,$A0
-	dc.b $00,$09,$A9,$F0,$00,$00,$10,$34,$00,$09,$A9,$F0,$00,$00,$0F,$A2
-	dc.b $00,$09,$A9,$F0,$00,$00,$31,$BE,$00,$09,$A9,$F0,$00,$00,$36,$50
-	dc.b $00,$0A,$A9,$F0,$00,$00,$00,$28,$00,$0A,$A9,$F0,$00,$00,$01,$36
-	dc.b $00,$0B,$A9,$F0,$00,$00,$00,$90,$00,$0B,$A9,$F0,$00,$00,$00,$DC
-	dc.b $00,$0B,$A9,$F0,$00,$00,$03,$B2,$00,$0B,$A9,$F0,$00,$00,$04,$08
-	dc.b $00,$0B,$A9,$F0,$00,$00,$04,$B6,$00,$0B,$A9,$F0,$00,$00,$04,$D2
-	dc.b $00,$0B,$A9,$F0,$00,$00,$05,$4A,$00,$0B,$A9,$F0,$00,$00,$05,$9A
-	dc.b $00,$0B,$A9,$F0,$00,$00,$06,$98,$00,$0B,$A9,$F0,$00,$00,$07,$86
-	dc.b $00,$0B,$A9,$F0,$00,$00,$0A,$52,$00,$0B,$A9,$F0,$00,$00,$0C,$5E
-	dc.b $00,$0B,$A9,$F0,$00,$00,$0D,$60,$00,$0B,$A9,$F0,$00,$00,$0D,$D2
-	dc.b $00,$0B,$A9,$F0,$00,$00,$0E,$46,$00,$0C,$A9,$F0,$00,$00,$0B,$40
-	dc.b $00,$0C,$A9,$F0,$00,$00,$13,$38,$00,$0D,$A9,$F0,$00,$00,$00,$28
-	dc.b $00,$0D,$A9,$F0,$00,$00,$11,$32,$00,$0D,$A9,$F0,$00,$00,$21,$FA
-	dc.b $00,$0D,$A9,$F0,$00,$00,$22,$A8,$00,$0D,$A9,$F0,$00,$00,$23,$E6
-	dc.b $00,$0D,$A9,$F0,$00,$00,$25,$28,$00,$0D,$A9,$F0,$00,$00,$2C,$CE
-	dc.b $00,$0D,$A9,$F0,$00,$00,$2D,$0C,$00,$0D,$A9,$F0,$00,$00,$2D,$9C
-	dc.b $00,$0D,$A9,$F0,$00,$00,$2E,$06,$00,$0D,$A9,$F0,$00,$00,$67,$A6
-	dc.b $00,$0D,$A9,$F0,$00,$00,$6F,$46,$00,$0D,$A9,$F0,$00,$00,$82,$26
-	dc.b $00,$0E,$A9,$F0,$00,$00,$00,$28,$00,$0E,$A9,$F0,$00,$00,$01,$00
-	dc.b $00,$0E,$A9,$F0,$00,$00,$01,$8C,$00,$0E,$A9,$F0,$00,$00,$02,$06
-	dc.b $00,$0E,$A9,$F0,$00,$00,$03,$28,$00,$0E,$A9,$F0,$00,$00,$03,$C6
-	dc.b $00,$0E,$A9,$F0,$00,$00,$04,$6A,$00,$0E,$A9,$F0,$00,$00,$04,$98
-	dc.b $00,$0E,$A9,$F0,$00,$00,$05,$0E,$00,$0E,$A9,$F0,$00,$00,$06,$44
-	dc.b $00,$0E,$A9,$F0,$00,$00,$07,$1C,$00,$0F,$A9,$F0,$00,$00,$01,$C8
-	dc.b $00,$0F,$A9,$F0,$00,$00,$08,$F6,$00,$0F,$A9,$F0,$00,$00,$0A,$F2
-	dc.b $00,$0F,$A9,$F0,$00,$00,$0B,$10,$00,$0F,$A9,$F0,$00,$00,$0B,$72
-	dc.b $00,$0F,$A9,$F0,$00,$00,$0C,$76,$00,$0F,$A9,$F0,$00,$00,$0C,$CA
-	dc.b $00,$10,$A9,$F0,$00,$00,$00,$28,$00,$10,$A9,$F0,$00,$00,$01,$32
-	dc.b $00,$10,$A9,$F0,$00,$00,$03,$62,$00,$11,$A9,$F0,$00,$00,$0A,$1C
-	dc.b $00,$12,$A9,$F0,$00,$00,$00,$28,$00,$12,$A9,$F0,$00,$00,$00,$9A
-	dc.b $00,$12,$A9,$F0,$00,$00,$06,$EC,$00,$13,$A9,$F0,$00,$00,$00,$28
-	dc.b $00,$14,$A9,$F0,$00,$00,$00,$C4,$00,$14,$A9,$F0,$00,$00,$01,$36
-	dc.b $00,$14,$A9,$F0,$00,$00,$01,$CE,$00,$14,$A9,$F0,$00,$00,$02,$66
-	dc.b $00,$14,$A9,$F0,$00,$00,$03,$72,$00,$14,$A9,$F0,$00,$00,$05,$80
-	dc.b $00,$14,$A9,$F0,$00,$00,$07,$3E,$00,$14,$A9,$F0,$00,$00,$08,$0E
-	dc.b $00,$14,$A9,$F0,$00,$00,$0A,$12,$00,$14,$A9,$F0,$00,$00,$0A,$98
-	dc.b $00,$14,$A9,$F0,$00,$00,$0A,$9C,$00,$14,$A9,$F0,$00,$00,$0A,$C4
-	dc.b $00,$14,$A9,$F0,$00,$00,$0B,$50,$00,$14,$A9,$F0,$00,$00,$0B,$CC
-	dc.b $00,$14,$A9,$F0,$00,$00,$0C,$8C,$00,$14,$A9,$F0,$00,$00,$0C,$90
-	dc.b $00,$14,$A9,$F0,$00,$00,$0D,$60,$00,$14,$A9,$F0,$00,$00,$0E,$90
-	dc.b $00,$14,$A9,$F0,$00,$00,$0F,$04,$00,$14,$A9,$F0,$00,$00,$0F,$DA
-	dc.b $00,$14,$A9,$F0,$00,$00,$10,$F6,$00,$14,$A9,$F0,$00,$00,$11,$B0
-	dc.b $00,$14,$A9,$F0,$00,$00,$12,$4E,$00,$14,$A9,$F0,$00,$00,$12,$C0
-	dc.b $00,$14,$A9,$F0,$00,$00,$13,$62,$00,$14,$A9,$F0,$00,$00,$13,$F0
-	dc.b $00,$14,$A9,$F0,$00,$00,$14,$78,$00,$15,$A9,$F0,$00,$00,$07,$22
-	dc.b $00,$15,$A9,$F0,$00,$00,$08,$1E,$00,$15,$A9,$F0,$00,$00,$08,$FE
-	dc.b $00,$15,$A9,$F0,$00,$00,$0E,$44,$00,$15,$A9,$F0,$00,$00,$0E,$DC
-	dc.b $00,$15,$A9,$F0,$00,$00,$0F,$4C,$00,$15,$A9,$F0,$00,$00,$0F,$DE
-	dc.b $00,$15,$A9,$F0,$00,$00,$11,$A8,$00,$15,$A9,$F0,$00,$00,$17,$28
-	dc.b $00,$15,$A9,$F0,$00,$00,$17,$A2,$00,$15,$A9,$F0,$00,$00,$17,$B8
-	dc.b $00,$15,$A9,$F0,$00,$00,$17,$EC,$00,$15,$A9,$F0,$00,$00,$18,$22
-	dc.b $00,$15,$A9,$F0,$00,$00,$18,$5A,$00,$15,$A9,$F0,$00,$00,$18,$6C
-	dc.b $00,$15,$A9,$F0,$00,$00,$19,$F0,$00,$15,$A9,$F0,$00,$00,$1A,$06
-	dc.b $00,$15,$A9,$F0,$00,$00,$1A,$1A,$00,$15,$A9,$F0,$00,$00,$1A,$48
-	dc.b $00,$16,$A9,$F0,$00,$00,$00,$44,$00,$17,$A9,$F0,$00,$00,$00,$28
-	dc.b $00,$18,$A9,$F0,$00,$00,$00,$28,$00,$18,$A9,$F0,$00,$00,$0A,$2C
-	dc.b $00,$18,$A9,$F0,$00,$00,$0A,$6C,$00,$18,$A9,$F0,$00,$00,$0B,$38
-	dc.b $00,$18,$A9,$F0,$00,$00,$0B,$9A,$00,$18,$A9,$F0,$00,$00,$0C,$10
-	dc.b $00,$18,$A9,$F0,$00,$00,$0C,$B6,$00,$18,$A9,$F0,$00,$00,$0E,$52
-	dc.b $00,$18,$A9,$F0,$00,$00,$0F,$56,$00,$18,$A9,$F0,$00,$00,$0F,$78
-	dc.b $00,$18,$A9,$F0,$00,$00,$0F,$9C,$00,$18,$A9,$F0,$00,$00,$10,$A8
-	dc.b $00,$18,$A9,$F0,$00,$00,$11,$D8,$00,$19,$A9,$F0,$00,$00,$00,$B8
-	dc.b $00,$19,$A9,$F0,$00,$00,$00,$7A,$00,$19,$A9,$F0,$00,$00,$00,$E4
-	dc.b $00,$1A,$A9,$F0,$00,$00,$00,$28,$00,$1A,$A9,$F0,$00,$00,$01,$BA
-	dc.b $00,$1A,$A9,$F0,$00,$00,$03,$0E,$00,$1A,$A9,$F0,$00,$00,$03,$38
-	dc.b $00,$1A,$A9,$F0,$00,$00,$03,$70,$00,$1A,$A9,$F0,$00,$00,$05,$18
-	dc.b $00,$1A,$A9,$F0,$00,$00,$05,$5A,$00,$1A,$A9,$F0,$00,$00,$05,$F2
-	dc.b $00,$1A,$A9,$F0,$00,$00,$07,$DC,$00,$1A,$A9,$F0,$00,$00,$08,$10
-	dc.b $00,$1A,$A9,$F0,$00,$00,$08,$36,$00,$1A,$A9,$F0,$00,$00,$08,$C4
-	dc.b $00,$1A,$A9,$F0,$00,$00,$09,$12,$00,$1A,$A9,$F0,$00,$00,$09,$58
-	dc.b $00,$1A,$A9,$F0,$00,$00,$09,$A6,$00,$1A,$A9,$F0,$00,$00,$0A,$00
-	dc.b $00,$1A,$A9,$F0,$00,$00,$0A,$48,$00,$1A,$A9,$F0,$00,$00,$0A,$7E
-	dc.b $00,$1A,$A9,$F0,$00,$00,$0A,$C4,$00,$1A,$A9,$F0,$00,$00,$0A,$CC
-	dc.b $00,$1A,$A9,$F0,$00,$00,$0A,$FC,$00,$1A,$A9,$F0,$00,$00,$0B,$0E
-	dc.b $00,$1A,$A9,$F0,$00,$00,$0B,$20,$00,$1A,$A9,$F0,$00,$00,$0B,$32
+macos_CODE_0_above_a5_size:
+	dc.l $00000AF0
+macos_CODE_0_below_a5_size:
+	dc.l $00003920
+macos_CODE_0_jump_table_length:
+	dc.l $00000AD0
+macos_CODE_0_jump_table_offset_from_a5:
+	dc.l $00000020
+macos_CODE_0_jump_table_bytes:
+macos_CODE_0_jump_table_entry_0:
+	dc.w $0000
+	dc.w $3F3C
+	dc.l $001BA9F0
+macos_CODE_0_jump_table_entry_1:
+	dc.w $0000
+	dc.w $FFFF
+	dc.l $00000000
+macos_CODE_0_jump_table_entry_2:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $0000601E
+macos_CODE_0_jump_table_entry_3:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $0000003E
+macos_CODE_0_jump_table_entry_4:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00000046
+macos_CODE_0_jump_table_entry_5:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $0000005E
+macos_CODE_0_jump_table_entry_6:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00000076
+macos_CODE_0_jump_table_entry_7:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $0000009A
+macos_CODE_0_jump_table_entry_8:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $000000BE
+macos_CODE_0_jump_table_entry_9:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $000000BE
+macos_CODE_0_jump_table_entry_10:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00000108
+macos_CODE_0_jump_table_entry_11:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00000142
+macos_CODE_0_jump_table_entry_12:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00000166
+macos_CODE_0_jump_table_entry_13:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00000172
+macos_CODE_0_jump_table_entry_14:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00000190
+macos_CODE_0_jump_table_entry_15:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $000001A4
+macos_CODE_0_jump_table_entry_16:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $000001BE
+macos_CODE_0_jump_table_entry_17:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $000001D4
+macos_CODE_0_jump_table_entry_18:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $000001D8
+macos_CODE_0_jump_table_entry_19:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00000244
+macos_CODE_0_jump_table_entry_20:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $0000023E
+macos_CODE_0_jump_table_entry_21:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $0000031C
+macos_CODE_0_jump_table_entry_22:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $000003D8
+macos_CODE_0_jump_table_entry_23:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $0000040C
+macos_CODE_0_jump_table_entry_24:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00000496
+macos_CODE_0_jump_table_entry_25:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $0000049E
+macos_CODE_0_jump_table_entry_26:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00000578
+macos_CODE_0_jump_table_entry_27:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00000580
+macos_CODE_0_jump_table_entry_28:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00000606
+macos_CODE_0_jump_table_entry_29:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $0000060E
+macos_CODE_0_jump_table_entry_30:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00000714
+macos_CODE_0_jump_table_entry_31:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $0000071C
+macos_CODE_0_jump_table_entry_32:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $000007C8
+macos_CODE_0_jump_table_entry_33:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $000007E4
+macos_CODE_0_jump_table_entry_34:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00000AFE
+macos_CODE_0_jump_table_entry_35:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00000F60
+macos_CODE_0_jump_table_entry_36:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00000F7A
+macos_CODE_0_jump_table_entry_37:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $000011DC
+macos_CODE_0_jump_table_entry_38:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $000011F4
+macos_CODE_0_jump_table_entry_39:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00001272
+macos_CODE_0_jump_table_entry_40:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $000012C2
+macos_CODE_0_jump_table_entry_41:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00001314
+macos_CODE_0_jump_table_entry_42:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $0000133E
+macos_CODE_0_jump_table_entry_43:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00001B60
+macos_CODE_0_jump_table_entry_44:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00001B26
+macos_CODE_0_jump_table_entry_45:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00001C72
+macos_CODE_0_jump_table_entry_46:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00001D28
+macos_CODE_0_jump_table_entry_47:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00002030
+macos_CODE_0_jump_table_entry_48:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $0000204A
+macos_CODE_0_jump_table_entry_49:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00002070
+macos_CODE_0_jump_table_entry_50:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $000020A8
+macos_CODE_0_jump_table_entry_51:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $000021F0
+macos_CODE_0_jump_table_entry_52:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $000022F6
+macos_CODE_0_jump_table_entry_53:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00002366
+macos_CODE_0_jump_table_entry_54:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00002492
+macos_CODE_0_jump_table_entry_55:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $000025BA
+macos_CODE_0_jump_table_entry_56:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $0000265E
+macos_CODE_0_jump_table_entry_57:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00002674
+macos_CODE_0_jump_table_entry_58:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00002730
+macos_CODE_0_jump_table_entry_59:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $000027DE
+macos_CODE_0_jump_table_entry_60:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $0000282E
+macos_CODE_0_jump_table_entry_61:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $000028B8
+macos_CODE_0_jump_table_entry_62:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $000029CA
+macos_CODE_0_jump_table_entry_63:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00002BAC
+macos_CODE_0_jump_table_entry_64:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00003058
+macos_CODE_0_jump_table_entry_65:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00003D90
+macos_CODE_0_jump_table_entry_66:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00004ED2
+macos_CODE_0_jump_table_entry_67:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00005336
+macos_CODE_0_jump_table_entry_68:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $000053AC
+macos_CODE_0_jump_table_entry_69:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00005476
+macos_CODE_0_jump_table_entry_70:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $0000551C
+macos_CODE_0_jump_table_entry_71:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $000057A8
+macos_CODE_0_jump_table_entry_72:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00005FBE
+macos_CODE_0_jump_table_entry_73:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00006112
+macos_CODE_0_jump_table_entry_74:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $000061A2
+macos_CODE_0_jump_table_entry_75:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $000061C8
+macos_CODE_0_jump_table_entry_76:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $000061EC
+macos_CODE_0_jump_table_entry_77:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $000062CA
+macos_CODE_0_jump_table_entry_78:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $000063A2
+macos_CODE_0_jump_table_entry_79:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00006418
+macos_CODE_0_jump_table_entry_80:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00006456
+macos_CODE_0_jump_table_entry_81:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00006588
+macos_CODE_0_jump_table_entry_82:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00006832
+macos_CODE_0_jump_table_entry_83:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $000068B4
+macos_CODE_0_jump_table_entry_84:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $000068BE
+macos_CODE_0_jump_table_entry_85:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $000068CC
+macos_CODE_0_jump_table_entry_86:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00006904
+macos_CODE_0_jump_table_entry_87:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00006944
+macos_CODE_0_jump_table_entry_88:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00006956
+macos_CODE_0_jump_table_entry_89:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00006968
+macos_CODE_0_jump_table_entry_90:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $0000697A
+macos_CODE_0_jump_table_entry_91:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00006994
+macos_CODE_0_jump_table_entry_92:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00006998
+macos_CODE_0_jump_table_entry_93:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $000069DC
+macos_CODE_0_jump_table_entry_94:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00006A12
+macos_CODE_0_jump_table_entry_95:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00006A36
+macos_CODE_0_jump_table_entry_96:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00006A62
+macos_CODE_0_jump_table_entry_97:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00006A9C
+macos_CODE_0_jump_table_entry_98:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00006ABC
+macos_CODE_0_jump_table_entry_99:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00006ADE
+macos_CODE_0_jump_table_entry_100:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00006B16
+macos_CODE_0_jump_table_entry_101:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00006B2C
+macos_CODE_0_jump_table_entry_102:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00006B42
+macos_CODE_0_jump_table_entry_103:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00006B54
+macos_CODE_0_jump_table_entry_104:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00006B66
+macos_CODE_0_jump_table_entry_105:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00006BAE
+macos_CODE_0_jump_table_entry_106:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00006BF6
+macos_CODE_0_jump_table_entry_107:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00006C36
+macos_CODE_0_jump_table_entry_108:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00006C94
+macos_CODE_0_jump_table_entry_109:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00006D0E
+macos_CODE_0_jump_table_entry_110:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00006F1C
+macos_CODE_0_jump_table_entry_111:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00006F2E
+macos_CODE_0_jump_table_entry_112:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $00006F64
+macos_CODE_0_jump_table_entry_113:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $0000704C
+macos_CODE_0_jump_table_entry_114:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $000070A2
+macos_CODE_0_jump_table_entry_115:
+	dc.w $0001
+	dc.w $A9F0
+	dc.l $000070C6
+macos_CODE_0_jump_table_entry_116:
+	dc.w $0002
+	dc.w $A9F0
+	dc.l $00000028
+macos_CODE_0_jump_table_entry_117:
+	dc.w $0002
+	dc.w $A9F0
+	dc.l $000000AC
+macos_CODE_0_jump_table_entry_118:
+	dc.w $0002
+	dc.w $A9F0
+	dc.l $00000188
+macos_CODE_0_jump_table_entry_119:
+	dc.w $0002
+	dc.w $A9F0
+	dc.l $000001C2
+macos_CODE_0_jump_table_entry_120:
+	dc.w $0002
+	dc.w $A9F0
+	dc.l $000017DA
+macos_CODE_0_jump_table_entry_121:
+	dc.w $0002
+	dc.w $A9F0
+	dc.l $00001B4A
+macos_CODE_0_jump_table_entry_122:
+	dc.w $0002
+	dc.w $A9F0
+	dc.l $00001BF2
+macos_CODE_0_jump_table_entry_123:
+	dc.w $0003
+	dc.w $A9F0
+	dc.l $00000040
+macos_CODE_0_jump_table_entry_124:
+	dc.w $0003
+	dc.w $A9F0
+	dc.l $000038F6
+macos_CODE_0_jump_table_entry_125:
+	dc.w $0003
+	dc.w $A9F0
+	dc.l $0000443E
+macos_CODE_0_jump_table_entry_126:
+	dc.w $0004
+	dc.w $A9F0
+	dc.l $00000028
+macos_CODE_0_jump_table_entry_127:
+	dc.w $0004
+	dc.w $A9F0
+	dc.l $00000134
+macos_CODE_0_jump_table_entry_128:
+	dc.w $0004
+	dc.w $A9F0
+	dc.l $000001EE
+macos_CODE_0_jump_table_entry_129:
+	dc.w $0004
+	dc.w $A9F0
+	dc.l $00000240
+macos_CODE_0_jump_table_entry_130:
+	dc.w $0004
+	dc.w $A9F0
+	dc.l $00000294
+macos_CODE_0_jump_table_entry_131:
+	dc.w $0004
+	dc.w $A9F0
+	dc.l $000002EA
+macos_CODE_0_jump_table_entry_132:
+	dc.w $0004
+	dc.w $A9F0
+	dc.l $0000030C
+macos_CODE_0_jump_table_entry_133:
+	dc.w $0004
+	dc.w $A9F0
+	dc.l $000003A6
+macos_CODE_0_jump_table_entry_134:
+	dc.w $0004
+	dc.w $A9F0
+	dc.l $00000806
+macos_CODE_0_jump_table_entry_135:
+	dc.w $0004
+	dc.w $A9F0
+	dc.l $00000C42
+macos_CODE_0_jump_table_entry_136:
+	dc.w $0004
+	dc.w $A9F0
+	dc.l $00000E82
+macos_CODE_0_jump_table_entry_137:
+	dc.w $0004
+	dc.w $A9F0
+	dc.l $00001436
+macos_CODE_0_jump_table_entry_138:
+	dc.w $0004
+	dc.w $A9F0
+	dc.l $000015AE
+macos_CODE_0_jump_table_entry_139:
+	dc.w $0004
+	dc.w $A9F0
+	dc.l $000015E2
+macos_CODE_0_jump_table_entry_140:
+	dc.w $0004
+	dc.w $A9F0
+	dc.l $00001728
+macos_CODE_0_jump_table_entry_141:
+	dc.w $0004
+	dc.w $A9F0
+	dc.l $00001760
+macos_CODE_0_jump_table_entry_142:
+	dc.w $0004
+	dc.w $A9F0
+	dc.l $00001810
+macos_CODE_0_jump_table_entry_143:
+	dc.w $0004
+	dc.w $A9F0
+	dc.l $00001862
+macos_CODE_0_jump_table_entry_144:
+	dc.w $0004
+	dc.w $A9F0
+	dc.l $000018AA
+macos_CODE_0_jump_table_entry_145:
+	dc.w $0004
+	dc.w $A9F0
+	dc.l $000018FE
+macos_CODE_0_jump_table_entry_146:
+	dc.w $0005
+	dc.w $A9F0
+	dc.l $00000028
+macos_CODE_0_jump_table_entry_147:
+	dc.w $0005
+	dc.w $A9F0
+	dc.l $000000D2
+macos_CODE_0_jump_table_entry_148:
+	dc.w $0005
+	dc.w $A9F0
+	dc.l $000000EA
+macos_CODE_0_jump_table_entry_149:
+	dc.w $0005
+	dc.w $A9F0
+	dc.l $00000368
+macos_CODE_0_jump_table_entry_150:
+	dc.w $0005
+	dc.w $A9F0
+	dc.l $0000036C
+macos_CODE_0_jump_table_entry_151:
+	dc.w $0005
+	dc.w $A9F0
+	dc.l $0000059A
+macos_CODE_0_jump_table_entry_152:
+	dc.w $0005
+	dc.w $A9F0
+	dc.l $000005E8
+macos_CODE_0_jump_table_entry_153:
+	dc.w $0005
+	dc.w $A9F0
+	dc.l $00000A48
+macos_CODE_0_jump_table_entry_154:
+	dc.w $0005
+	dc.w $A9F0
+	dc.l $000013E0
+macos_CODE_0_jump_table_entry_155:
+	dc.w $0005
+	dc.w $A9F0
+	dc.l $000014B6
+macos_CODE_0_jump_table_entry_156:
+	dc.w $0005
+	dc.w $A9F0
+	dc.l $000015EC
+macos_CODE_0_jump_table_entry_157:
+	dc.w $0005
+	dc.w $A9F0
+	dc.l $000016FC
+macos_CODE_0_jump_table_entry_158:
+	dc.w $0005
+	dc.w $A9F0
+	dc.l $00001856
+macos_CODE_0_jump_table_entry_159:
+	dc.w $0005
+	dc.w $A9F0
+	dc.l $00001890
+macos_CODE_0_jump_table_entry_160:
+	dc.w $0005
+	dc.w $A9F0
+	dc.l $00001998
+macos_CODE_0_jump_table_entry_161:
+	dc.w $0005
+	dc.w $A9F0
+	dc.l $00002038
+macos_CODE_0_jump_table_entry_162:
+	dc.w $0005
+	dc.w $A9F0
+	dc.l $00002568
+macos_CODE_0_jump_table_entry_163:
+	dc.w $0005
+	dc.w $A9F0
+	dc.l $00002F68
+macos_CODE_0_jump_table_entry_164:
+	dc.w $0005
+	dc.w $A9F0
+	dc.l $00003AC2
+macos_CODE_0_jump_table_entry_165:
+	dc.w $0005
+	dc.w $A9F0
+	dc.l $00005652
+macos_CODE_0_jump_table_entry_166:
+	dc.w $0005
+	dc.w $A9F0
+	dc.l $00005CAE
+macos_CODE_0_jump_table_entry_167:
+	dc.w $0005
+	dc.w $A9F0
+	dc.l $00005F16
+macos_CODE_0_jump_table_entry_168:
+	dc.w $0005
+	dc.w $A9F0
+	dc.l $00006750
+macos_CODE_0_jump_table_entry_169:
+	dc.w $0006
+	dc.w $A9F0
+	dc.l $00000028
+macos_CODE_0_jump_table_entry_170:
+	dc.w $0006
+	dc.w $A9F0
+	dc.l $000000F0
+macos_CODE_0_jump_table_entry_171:
+	dc.w $0006
+	dc.w $A9F0
+	dc.l $0000012A
+macos_CODE_0_jump_table_entry_172:
+	dc.w $0006
+	dc.w $A9F0
+	dc.l $000002E0
+macos_CODE_0_jump_table_entry_173:
+	dc.w $0006
+	dc.w $A9F0
+	dc.l $0000165C
+macos_CODE_0_jump_table_entry_174:
+	dc.w $0006
+	dc.w $A9F0
+	dc.l $00000574
+macos_CODE_0_jump_table_entry_175:
+	dc.w $0006
+	dc.w $A9F0
+	dc.l $00000488
+macos_CODE_0_jump_table_entry_176:
+	dc.w $0006
+	dc.w $A9F0
+	dc.l $0000168E
+macos_CODE_0_jump_table_entry_177:
+	dc.w $0006
+	dc.w $A9F0
+	dc.l $00003B16
+macos_CODE_0_jump_table_entry_178:
+	dc.w $0007
+	dc.w $A9F0
+	dc.l $00000028
+macos_CODE_0_jump_table_entry_179:
+	dc.w $0007
+	dc.w $A9F0
+	dc.l $000000AC
+macos_CODE_0_jump_table_entry_180:
+	dc.w $0007
+	dc.w $A9F0
+	dc.l $00000172
+macos_CODE_0_jump_table_entry_181:
+	dc.w $0007
+	dc.w $A9F0
+	dc.l $000001AC
+macos_CODE_0_jump_table_entry_182:
+	dc.w $0007
+	dc.w $A9F0
+	dc.l $00000C58
+macos_CODE_0_jump_table_entry_183:
+	dc.w $0007
+	dc.w $A9F0
+	dc.l $00000FDE
+macos_CODE_0_jump_table_entry_184:
+	dc.w $0008
+	dc.w $A9F0
+	dc.l $000000DC
+macos_CODE_0_jump_table_entry_185:
+	dc.w $0008
+	dc.w $A9F0
+	dc.l $00000104
+macos_CODE_0_jump_table_entry_186:
+	dc.w $0008
+	dc.w $A9F0
+	dc.l $000002A6
+macos_CODE_0_jump_table_entry_187:
+	dc.w $0008
+	dc.w $A9F0
+	dc.l $0000031A
+macos_CODE_0_jump_table_entry_188:
+	dc.w $0008
+	dc.w $A9F0
+	dc.l $00000418
+macos_CODE_0_jump_table_entry_189:
+	dc.w $0008
+	dc.w $A9F0
+	dc.l $0000046C
+macos_CODE_0_jump_table_entry_190:
+	dc.w $0008
+	dc.w $A9F0
+	dc.l $0000065E
+macos_CODE_0_jump_table_entry_191:
+	dc.w $0009
+	dc.w $A9F0
+	dc.l $00000028
+macos_CODE_0_jump_table_entry_192:
+	dc.w $0009
+	dc.w $A9F0
+	dc.l $000000CE
+macos_CODE_0_jump_table_entry_193:
+	dc.w $0009
+	dc.w $A9F0
+	dc.l $000000EE
+macos_CODE_0_jump_table_entry_194:
+	dc.w $0009
+	dc.w $A9F0
+	dc.l $0000047A
+macos_CODE_0_jump_table_entry_195:
+	dc.w $0009
+	dc.w $A9F0
+	dc.l $000010A0
+macos_CODE_0_jump_table_entry_196:
+	dc.w $0009
+	dc.w $A9F0
+	dc.l $00001034
+macos_CODE_0_jump_table_entry_197:
+	dc.w $0009
+	dc.w $A9F0
+	dc.l $00000FA2
+macos_CODE_0_jump_table_entry_198:
+	dc.w $0009
+	dc.w $A9F0
+	dc.l $000031BE
+macos_CODE_0_jump_table_entry_199:
+	dc.w $0009
+	dc.w $A9F0
+	dc.l $00003650
+macos_CODE_0_jump_table_entry_200:
+	dc.w $000A
+	dc.w $A9F0
+	dc.l $00000028
+macos_CODE_0_jump_table_entry_201:
+	dc.w $000A
+	dc.w $A9F0
+	dc.l $00000136
+macos_CODE_0_jump_table_entry_202:
+	dc.w $000B
+	dc.w $A9F0
+	dc.l $00000090
+macos_CODE_0_jump_table_entry_203:
+	dc.w $000B
+	dc.w $A9F0
+	dc.l $000000DC
+macos_CODE_0_jump_table_entry_204:
+	dc.w $000B
+	dc.w $A9F0
+	dc.l $000003B2
+macos_CODE_0_jump_table_entry_205:
+	dc.w $000B
+	dc.w $A9F0
+	dc.l $00000408
+macos_CODE_0_jump_table_entry_206:
+	dc.w $000B
+	dc.w $A9F0
+	dc.l $000004B6
+macos_CODE_0_jump_table_entry_207:
+	dc.w $000B
+	dc.w $A9F0
+	dc.l $000004D2
+macos_CODE_0_jump_table_entry_208:
+	dc.w $000B
+	dc.w $A9F0
+	dc.l $0000054A
+macos_CODE_0_jump_table_entry_209:
+	dc.w $000B
+	dc.w $A9F0
+	dc.l $0000059A
+macos_CODE_0_jump_table_entry_210:
+	dc.w $000B
+	dc.w $A9F0
+	dc.l $00000698
+macos_CODE_0_jump_table_entry_211:
+	dc.w $000B
+	dc.w $A9F0
+	dc.l $00000786
+macos_CODE_0_jump_table_entry_212:
+	dc.w $000B
+	dc.w $A9F0
+	dc.l $00000A52
+macos_CODE_0_jump_table_entry_213:
+	dc.w $000B
+	dc.w $A9F0
+	dc.l $00000C5E
+macos_CODE_0_jump_table_entry_214:
+	dc.w $000B
+	dc.w $A9F0
+	dc.l $00000D60
+macos_CODE_0_jump_table_entry_215:
+	dc.w $000B
+	dc.w $A9F0
+	dc.l $00000DD2
+macos_CODE_0_jump_table_entry_216:
+	dc.w $000B
+	dc.w $A9F0
+	dc.l $00000E46
+macos_CODE_0_jump_table_entry_217:
+	dc.w $000C
+	dc.w $A9F0
+	dc.l $00000B40
+macos_CODE_0_jump_table_entry_218:
+	dc.w $000C
+	dc.w $A9F0
+	dc.l $00001338
+macos_CODE_0_jump_table_entry_219:
+	dc.w $000D
+	dc.w $A9F0
+	dc.l $00000028
+macos_CODE_0_jump_table_entry_220:
+	dc.w $000D
+	dc.w $A9F0
+	dc.l $00001132
+macos_CODE_0_jump_table_entry_221:
+	dc.w $000D
+	dc.w $A9F0
+	dc.l $000021FA
+macos_CODE_0_jump_table_entry_222:
+	dc.w $000D
+	dc.w $A9F0
+	dc.l $000022A8
+macos_CODE_0_jump_table_entry_223:
+	dc.w $000D
+	dc.w $A9F0
+	dc.l $000023E6
+macos_CODE_0_jump_table_entry_224:
+	dc.w $000D
+	dc.w $A9F0
+	dc.l $00002528
+macos_CODE_0_jump_table_entry_225:
+	dc.w $000D
+	dc.w $A9F0
+	dc.l $00002CCE
+macos_CODE_0_jump_table_entry_226:
+	dc.w $000D
+	dc.w $A9F0
+	dc.l $00002D0C
+macos_CODE_0_jump_table_entry_227:
+	dc.w $000D
+	dc.w $A9F0
+	dc.l $00002D9C
+macos_CODE_0_jump_table_entry_228:
+	dc.w $000D
+	dc.w $A9F0
+	dc.l $00002E06
+macos_CODE_0_jump_table_entry_229:
+	dc.w $000D
+	dc.w $A9F0
+	dc.l $000067A6
+macos_CODE_0_jump_table_entry_230:
+	dc.w $000D
+	dc.w $A9F0
+	dc.l $00006F46
+macos_CODE_0_jump_table_entry_231:
+	dc.w $000D
+	dc.w $A9F0
+	dc.l $00008226
+macos_CODE_0_jump_table_entry_232:
+	dc.w $000E
+	dc.w $A9F0
+	dc.l $00000028
+macos_CODE_0_jump_table_entry_233:
+	dc.w $000E
+	dc.w $A9F0
+	dc.l $00000100
+macos_CODE_0_jump_table_entry_234:
+	dc.w $000E
+	dc.w $A9F0
+	dc.l $0000018C
+macos_CODE_0_jump_table_entry_235:
+	dc.w $000E
+	dc.w $A9F0
+	dc.l $00000206
+macos_CODE_0_jump_table_entry_236:
+	dc.w $000E
+	dc.w $A9F0
+	dc.l $00000328
+macos_CODE_0_jump_table_entry_237:
+	dc.w $000E
+	dc.w $A9F0
+	dc.l $000003C6
+macos_CODE_0_jump_table_entry_238:
+	dc.w $000E
+	dc.w $A9F0
+	dc.l $0000046A
+macos_CODE_0_jump_table_entry_239:
+	dc.w $000E
+	dc.w $A9F0
+	dc.l $00000498
+macos_CODE_0_jump_table_entry_240:
+	dc.w $000E
+	dc.w $A9F0
+	dc.l $0000050E
+macos_CODE_0_jump_table_entry_241:
+	dc.w $000E
+	dc.w $A9F0
+	dc.l $00000644
+macos_CODE_0_jump_table_entry_242:
+	dc.w $000E
+	dc.w $A9F0
+	dc.l $0000071C
+macos_CODE_0_jump_table_entry_243:
+	dc.w $000F
+	dc.w $A9F0
+	dc.l $000001C8
+macos_CODE_0_jump_table_entry_244:
+	dc.w $000F
+	dc.w $A9F0
+	dc.l $000008F6
+macos_CODE_0_jump_table_entry_245:
+	dc.w $000F
+	dc.w $A9F0
+	dc.l $00000AF2
+macos_CODE_0_jump_table_entry_246:
+	dc.w $000F
+	dc.w $A9F0
+	dc.l $00000B10
+macos_CODE_0_jump_table_entry_247:
+	dc.w $000F
+	dc.w $A9F0
+	dc.l $00000B72
+macos_CODE_0_jump_table_entry_248:
+	dc.w $000F
+	dc.w $A9F0
+	dc.l $00000C76
+macos_CODE_0_jump_table_entry_249:
+	dc.w $000F
+	dc.w $A9F0
+	dc.l $00000CCA
+macos_CODE_0_jump_table_entry_250:
+	dc.w $0010
+	dc.w $A9F0
+	dc.l $00000028
+macos_CODE_0_jump_table_entry_251:
+	dc.w $0010
+	dc.w $A9F0
+	dc.l $00000132
+macos_CODE_0_jump_table_entry_252:
+	dc.w $0010
+	dc.w $A9F0
+	dc.l $00000362
+macos_CODE_0_jump_table_entry_253:
+	dc.w $0011
+	dc.w $A9F0
+	dc.l $00000A1C
+macos_CODE_0_jump_table_entry_254:
+	dc.w $0012
+	dc.w $A9F0
+	dc.l $00000028
+macos_CODE_0_jump_table_entry_255:
+	dc.w $0012
+	dc.w $A9F0
+	dc.l $0000009A
+macos_CODE_0_jump_table_entry_256:
+	dc.w $0012
+	dc.w $A9F0
+	dc.l $000006EC
+macos_CODE_0_jump_table_entry_257:
+	dc.w $0013
+	dc.w $A9F0
+	dc.l $00000028
+macos_CODE_0_jump_table_entry_258:
+	dc.w $0014
+	dc.w $A9F0
+	dc.l $000000C4
+macos_CODE_0_jump_table_entry_259:
+	dc.w $0014
+	dc.w $A9F0
+	dc.l $00000136
+macos_CODE_0_jump_table_entry_260:
+	dc.w $0014
+	dc.w $A9F0
+	dc.l $000001CE
+macos_CODE_0_jump_table_entry_261:
+	dc.w $0014
+	dc.w $A9F0
+	dc.l $00000266
+macos_CODE_0_jump_table_entry_262:
+	dc.w $0014
+	dc.w $A9F0
+	dc.l $00000372
+macos_CODE_0_jump_table_entry_263:
+	dc.w $0014
+	dc.w $A9F0
+	dc.l $00000580
+macos_CODE_0_jump_table_entry_264:
+	dc.w $0014
+	dc.w $A9F0
+	dc.l $0000073E
+macos_CODE_0_jump_table_entry_265:
+	dc.w $0014
+	dc.w $A9F0
+	dc.l $0000080E
+macos_CODE_0_jump_table_entry_266:
+	dc.w $0014
+	dc.w $A9F0
+	dc.l $00000A12
+macos_CODE_0_jump_table_entry_267:
+	dc.w $0014
+	dc.w $A9F0
+	dc.l $00000A98
+macos_CODE_0_jump_table_entry_268:
+	dc.w $0014
+	dc.w $A9F0
+	dc.l $00000A9C
+macos_CODE_0_jump_table_entry_269:
+	dc.w $0014
+	dc.w $A9F0
+	dc.l $00000AC4
+macos_CODE_0_jump_table_entry_270:
+	dc.w $0014
+	dc.w $A9F0
+	dc.l $00000B50
+macos_CODE_0_jump_table_entry_271:
+	dc.w $0014
+	dc.w $A9F0
+	dc.l $00000BCC
+macos_CODE_0_jump_table_entry_272:
+	dc.w $0014
+	dc.w $A9F0
+	dc.l $00000C8C
+macos_CODE_0_jump_table_entry_273:
+	dc.w $0014
+	dc.w $A9F0
+	dc.l $00000C90
+macos_CODE_0_jump_table_entry_274:
+	dc.w $0014
+	dc.w $A9F0
+	dc.l $00000D60
+macos_CODE_0_jump_table_entry_275:
+	dc.w $0014
+	dc.w $A9F0
+	dc.l $00000E90
+macos_CODE_0_jump_table_entry_276:
+	dc.w $0014
+	dc.w $A9F0
+	dc.l $00000F04
+macos_CODE_0_jump_table_entry_277:
+	dc.w $0014
+	dc.w $A9F0
+	dc.l $00000FDA
+macos_CODE_0_jump_table_entry_278:
+	dc.w $0014
+	dc.w $A9F0
+	dc.l $000010F6
+macos_CODE_0_jump_table_entry_279:
+	dc.w $0014
+	dc.w $A9F0
+	dc.l $000011B0
+macos_CODE_0_jump_table_entry_280:
+	dc.w $0014
+	dc.w $A9F0
+	dc.l $0000124E
+macos_CODE_0_jump_table_entry_281:
+	dc.w $0014
+	dc.w $A9F0
+	dc.l $000012C0
+macos_CODE_0_jump_table_entry_282:
+	dc.w $0014
+	dc.w $A9F0
+	dc.l $00001362
+macos_CODE_0_jump_table_entry_283:
+	dc.w $0014
+	dc.w $A9F0
+	dc.l $000013F0
+macos_CODE_0_jump_table_entry_284:
+	dc.w $0014
+	dc.w $A9F0
+	dc.l $00001478
+macos_CODE_0_jump_table_entry_285:
+	dc.w $0015
+	dc.w $A9F0
+	dc.l $00000722
+macos_CODE_0_jump_table_entry_286:
+	dc.w $0015
+	dc.w $A9F0
+	dc.l $0000081E
+macos_CODE_0_jump_table_entry_287:
+	dc.w $0015
+	dc.w $A9F0
+	dc.l $000008FE
+macos_CODE_0_jump_table_entry_288:
+	dc.w $0015
+	dc.w $A9F0
+	dc.l $00000E44
+macos_CODE_0_jump_table_entry_289:
+	dc.w $0015
+	dc.w $A9F0
+	dc.l $00000EDC
+macos_CODE_0_jump_table_entry_290:
+	dc.w $0015
+	dc.w $A9F0
+	dc.l $00000F4C
+macos_CODE_0_jump_table_entry_291:
+	dc.w $0015
+	dc.w $A9F0
+	dc.l $00000FDE
+macos_CODE_0_jump_table_entry_292:
+	dc.w $0015
+	dc.w $A9F0
+	dc.l $000011A8
+macos_CODE_0_jump_table_entry_293:
+	dc.w $0015
+	dc.w $A9F0
+	dc.l $00001728
+macos_CODE_0_jump_table_entry_294:
+	dc.w $0015
+	dc.w $A9F0
+	dc.l $000017A2
+macos_CODE_0_jump_table_entry_295:
+	dc.w $0015
+	dc.w $A9F0
+	dc.l $000017B8
+macos_CODE_0_jump_table_entry_296:
+	dc.w $0015
+	dc.w $A9F0
+	dc.l $000017EC
+macos_CODE_0_jump_table_entry_297:
+	dc.w $0015
+	dc.w $A9F0
+	dc.l $00001822
+macos_CODE_0_jump_table_entry_298:
+	dc.w $0015
+	dc.w $A9F0
+	dc.l $0000185A
+macos_CODE_0_jump_table_entry_299:
+	dc.w $0015
+	dc.w $A9F0
+	dc.l $0000186C
+macos_CODE_0_jump_table_entry_300:
+	dc.w $0015
+	dc.w $A9F0
+	dc.l $000019F0
+macos_CODE_0_jump_table_entry_301:
+	dc.w $0015
+	dc.w $A9F0
+	dc.l $00001A06
+macos_CODE_0_jump_table_entry_302:
+	dc.w $0015
+	dc.w $A9F0
+	dc.l $00001A1A
+macos_CODE_0_jump_table_entry_303:
+	dc.w $0015
+	dc.w $A9F0
+	dc.l $00001A48
+macos_CODE_0_jump_table_entry_304:
+	dc.w $0016
+	dc.w $A9F0
+	dc.l $00000044
+macos_CODE_0_jump_table_entry_305:
+	dc.w $0017
+	dc.w $A9F0
+	dc.l $00000028
+macos_CODE_0_jump_table_entry_306:
+	dc.w $0018
+	dc.w $A9F0
+	dc.l $00000028
+macos_CODE_0_jump_table_entry_307:
+	dc.w $0018
+	dc.w $A9F0
+	dc.l $00000A2C
+macos_CODE_0_jump_table_entry_308:
+	dc.w $0018
+	dc.w $A9F0
+	dc.l $00000A6C
+macos_CODE_0_jump_table_entry_309:
+	dc.w $0018
+	dc.w $A9F0
+	dc.l $00000B38
+macos_CODE_0_jump_table_entry_310:
+	dc.w $0018
+	dc.w $A9F0
+	dc.l $00000B9A
+macos_CODE_0_jump_table_entry_311:
+	dc.w $0018
+	dc.w $A9F0
+	dc.l $00000C10
+macos_CODE_0_jump_table_entry_312:
+	dc.w $0018
+	dc.w $A9F0
+	dc.l $00000CB6
+macos_CODE_0_jump_table_entry_313:
+	dc.w $0018
+	dc.w $A9F0
+	dc.l $00000E52
+macos_CODE_0_jump_table_entry_314:
+	dc.w $0018
+	dc.w $A9F0
+	dc.l $00000F56
+macos_CODE_0_jump_table_entry_315:
+	dc.w $0018
+	dc.w $A9F0
+	dc.l $00000F78
+macos_CODE_0_jump_table_entry_316:
+	dc.w $0018
+	dc.w $A9F0
+	dc.l $00000F9C
+macos_CODE_0_jump_table_entry_317:
+	dc.w $0018
+	dc.w $A9F0
+	dc.l $000010A8
+macos_CODE_0_jump_table_entry_318:
+	dc.w $0018
+	dc.w $A9F0
+	dc.l $000011D8
+macos_CODE_0_jump_table_entry_319:
+	dc.w $0019
+	dc.w $A9F0
+	dc.l $000000B8
+macos_CODE_0_jump_table_entry_320:
+	dc.w $0019
+	dc.w $A9F0
+	dc.l $0000007A
+macos_CODE_0_jump_table_entry_321:
+	dc.w $0019
+	dc.w $A9F0
+	dc.l $000000E4
+macos_CODE_0_jump_table_entry_322:
+	dc.w $001A
+	dc.w $A9F0
+	dc.l $00000028
+macos_CODE_0_jump_table_entry_323:
+	dc.w $001A
+	dc.w $A9F0
+	dc.l $000001BA
+macos_CODE_0_jump_table_entry_324:
+	dc.w $001A
+	dc.w $A9F0
+	dc.l $0000030E
+macos_CODE_0_jump_table_entry_325:
+	dc.w $001A
+	dc.w $A9F0
+	dc.l $00000338
+macos_CODE_0_jump_table_entry_326:
+	dc.w $001A
+	dc.w $A9F0
+	dc.l $00000370
+macos_CODE_0_jump_table_entry_327:
+	dc.w $001A
+	dc.w $A9F0
+	dc.l $00000518
+macos_CODE_0_jump_table_entry_328:
+	dc.w $001A
+	dc.w $A9F0
+	dc.l $0000055A
+macos_CODE_0_jump_table_entry_329:
+	dc.w $001A
+	dc.w $A9F0
+	dc.l $000005F2
+macos_CODE_0_jump_table_entry_330:
+	dc.w $001A
+	dc.w $A9F0
+	dc.l $000007DC
+macos_CODE_0_jump_table_entry_331:
+	dc.w $001A
+	dc.w $A9F0
+	dc.l $00000810
+macos_CODE_0_jump_table_entry_332:
+	dc.w $001A
+	dc.w $A9F0
+	dc.l $00000836
+macos_CODE_0_jump_table_entry_333:
+	dc.w $001A
+	dc.w $A9F0
+	dc.l $000008C4
+macos_CODE_0_jump_table_entry_334:
+	dc.w $001A
+	dc.w $A9F0
+	dc.l $00000912
+macos_CODE_0_jump_table_entry_335:
+	dc.w $001A
+	dc.w $A9F0
+	dc.l $00000958
+macos_CODE_0_jump_table_entry_336:
+	dc.w $001A
+	dc.w $A9F0
+	dc.l $000009A6
+macos_CODE_0_jump_table_entry_337:
+	dc.w $001A
+	dc.w $A9F0
+	dc.l $00000A00
+macos_CODE_0_jump_table_entry_338:
+	dc.w $001A
+	dc.w $A9F0
+	dc.l $00000A48
+macos_CODE_0_jump_table_entry_339:
+	dc.w $001A
+	dc.w $A9F0
+	dc.l $00000A7E
+macos_CODE_0_jump_table_entry_340:
+	dc.w $001A
+	dc.w $A9F0
+	dc.l $00000AC4
+macos_CODE_0_jump_table_entry_341:
+	dc.w $001A
+	dc.w $A9F0
+	dc.l $00000ACC
+macos_CODE_0_jump_table_entry_342:
+	dc.w $001A
+	dc.w $A9F0
+	dc.l $00000AFC
+macos_CODE_0_jump_table_entry_343:
+	dc.w $001A
+	dc.w $A9F0
+	dc.l $00000B0E
+macos_CODE_0_jump_table_entry_344:
+	dc.w $001A
+	dc.w $A9F0
+	dc.l $00000B20
+macos_CODE_0_jump_table_entry_345:
+	dc.w $001A
+	dc.w $A9F0
+	dc.l $00000B32
 
 ; CODE 1 Main source section
 macos_code_CODE_1:

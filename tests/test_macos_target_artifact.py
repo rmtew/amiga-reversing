@@ -260,9 +260,10 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     assert "a5_world status=deferred" in asm_text
     assert "macos_code_CODE_0:" in asm_text
     assert "macos_code_CODE_27:" in asm_text
-    assert "macos_CODE_0_application_metadata:" in asm_text
-    assert "macos_CODE_0_jump_table:" in asm_text
+    assert "macos_CODE_0_above_a5_size:" in asm_text
+    assert "macos_CODE_0_jump_table_bytes:" in asm_text
     assert "macos_CODE_0_jump_table_entry_0:" in asm_text
+    assert "\tdc.l $00000AF0" in asm_text
     assert "jump_table payload[16..2784) entry_size=8 entry_count=346 status=validated" in asm_text
     assert (
         "candidate_target target_section=macos_code_CODE_27 target_resource_id=27 "
@@ -277,7 +278,7 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
         "from=macos_CODE_0_jump_table_entry_0 source_payload=16 target_payload=204 "
         "status=candidate parser_use=candidate_only"
     ) in asm_text
-    assert "raw_entry_bytes=00 00 3F 3C 00 1B A9 F0" in asm_text
+    assert "raw_entry_bytes=" not in asm_text
     assert "raw_byte_gap: CODE 0 row bytes are not exposed" not in asm_text
     assert "target_section=macos_code_CODE_1 target_resource_id=1" not in asm_text
     assert "target_section=macos_code_CODE_1 target_resource_id=1 routine_offset=0 status=validated" not in asm_text

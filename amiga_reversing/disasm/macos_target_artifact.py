@@ -291,7 +291,7 @@ def _code_source_body_section_lines(
             ]
         )
         if resource_id == 0:
-            lines.extend(_code0_structured_source_lines(section, payload_bytes=payload_bytes))
+            lines.extend(_code0_structured_source_lines(section))
         if resource_id == selected_id:
             selected_context = _mapping(section.get("selected_listing_context"))
             lines.extend(
@@ -356,6 +356,9 @@ def _code_source_byte_real_lines(section: Mapping[str, object], *, payload_bytes
         f";   placeholder_reason: {_text(placeholder.get('reason'))}",
         ";   byte_real_source:",
     ]
+    if section.get("id") == 0:
+        lines.extend(_code0_byte_real_source_lines(section, payload_bytes=payload_bytes))
+        return lines
     ranges = [_mapping(item) for item in _sequence(section.get("source_body_ranges"))]
     if not ranges:
         lines.extend(_dc_b_lines(payload_bytes, label=f"{_text(section.get('label'))}_payload"))
@@ -373,6 +376,50 @@ def _code_source_byte_real_lines(section: Mapping[str, object], *, payload_bytes
             lines.extend(_semantic_source_lines(section, semantic_source, start=start, end=end))
             continue
         lines.extend(_dc_b_lines(payload_bytes[start:end], label=label, base_offset=start))
+    return lines
+
+
+def _code0_byte_real_source_lines(section: Mapping[str, object], *, payload_bytes: bytes) -> list[str]:
+    context = _mapping(section.get("code0_structured_context"))
+    jump_table = _mapping(context.get("jump_table"))
+    label = f"{_text(section.get('label'))}_metadata_00000000"
+    if len(payload_bytes) < 16:
+        return _dc_b_lines(payload_bytes, label=label)
+    above_a5 = int.from_bytes(payload_bytes[0:4], "big")
+    below_a5 = int.from_bytes(payload_bytes[4:8], "big")
+    jump_table_length = int.from_bytes(payload_bytes[8:12], "big")
+    jump_table_offset = int.from_bytes(payload_bytes[12:16], "big")
+    lines = [
+        f"{label}:",
+        "macos_CODE_0_above_a5_size:",
+        f"\tdc.l ${above_a5:08X}",
+        "macos_CODE_0_below_a5_size:",
+        f"\tdc.l ${below_a5:08X}",
+        "macos_CODE_0_jump_table_length:",
+        f"\tdc.l ${jump_table_length:08X}",
+        "macos_CODE_0_jump_table_offset_from_a5:",
+        f"\tdc.l ${jump_table_offset:08X}",
+        "macos_CODE_0_jump_table_bytes:",
+    ]
+    jump_start = _int_value(jump_table.get("start")) or 16
+    jump_end = _int_value(jump_table.get("end")) or len(payload_bytes)
+    entry_size = _int_value(jump_table.get("entry_size")) or 8
+    cursor = min(jump_start, len(payload_bytes))
+    entry_index = 0
+    while entry_size == 8 and cursor + entry_size <= min(jump_end, len(payload_bytes)):
+        chunk = payload_bytes[cursor : cursor + entry_size]
+        lines.extend(
+            [
+                f"macos_CODE_0_jump_table_entry_{entry_index}:",
+                f"\tdc.w ${int.from_bytes(chunk[0:2], 'big'):04X}",
+                f"\tdc.w ${int.from_bytes(chunk[2:4], 'big'):04X}",
+                f"\tdc.l ${int.from_bytes(chunk[4:8], 'big'):08X}",
+            ]
+        )
+        cursor += entry_size
+        entry_index += 1
+    if cursor < len(payload_bytes):
+        lines.extend(_dc_b_lines(payload_bytes[cursor:], label=f"macos_CODE_0_trailing_metadata_{cursor:08x}", base_offset=cursor))
     return lines
 
 
@@ -546,20 +593,18 @@ def _dc_b_lines(data: bytes, *, label: str, base_offset: int = 0) -> list[str]:
     return lines
 
 
-def _code0_structured_source_lines(section: Mapping[str, object], *, payload_bytes: bytes) -> list[str]:
+def _code0_structured_source_lines(section: Mapping[str, object]) -> list[str]:
     context = _mapping(section.get("code0_structured_context"))
     jump_table = _mapping(context.get("jump_table"))
     rows = [_mapping(item) for item in _sequence(context.get("jump_table_rows"))]
     xrefs = [_mapping(item) for item in _sequence(context.get("generated_routing_xrefs"))]
     lines = [
         ";   structured_CODE0_context:",
-        "macos_CODE_0_application_metadata:",
         ";     above/below A5 metadata and jump-table header are accepted CODE 0 metadata.",
         f";     jump_table payload[{_text(jump_table.get('start'))}..{_text(jump_table.get('end'))}) "
         f"entry_size={_text(jump_table.get('entry_size'))} entry_count={_text(jump_table.get('entry_count'))} "
         f"status={_text(jump_table.get('fact_status'))} parser_use={_text(jump_table.get('parser_use'))} "
         f"fact={_text(jump_table.get('fact_id'))}",
-        "macos_CODE_0_jump_table:",
     ]
     if not rows:
         lines.append(
@@ -574,10 +619,8 @@ def _code0_structured_source_lines(section: Mapping[str, object], *, payload_byt
         label = f"macos_CODE_0_jump_table_entry_{_text(entry_index)}"
         lines.extend(
             [
-                f"{label}:",
-                f";     payload_offset={_text(row.get('code0_payload_offset'))} "
-                f"size={_text(row.get('entry_size'))} "
-                f"raw_entry_bytes={_code0_entry_bytes(row, payload_bytes=payload_bytes)}",
+                f";     {label}: payload_offset={_text(row.get('code0_payload_offset'))} "
+                f"size={_text(row.get('entry_size'))}",
                 f";     accepted_layout status={_text(accepted.get('fact_status'))} "
                 f"parser_use={_text(accepted.get('parser_use'))} fact={_text(accepted.get('fact_id'))}",
                 f";     candidate_target target_section=macos_code_CODE_{_text(target_id)} "
@@ -594,17 +637,6 @@ def _code0_structured_source_lines(section: Mapping[str, object], *, payload_byt
                     f"link_status={_text(xref.get('link_status'))}"
                 )
     return lines
-
-
-def _code0_entry_bytes(row: Mapping[str, object], *, payload_bytes: bytes) -> str:
-    start = _int_value(row.get("code0_payload_offset"))
-    size = _int_value(row.get("entry_size"))
-    if start is None or size is None or start < 0 or size < 0:
-        return "unavailable"
-    chunk = payload_bytes[start : start + size]
-    if len(chunk) != size:
-        return "truncated"
-    return " ".join(f"{value:02X}" for value in chunk)
 
 
 def _code1_entry_stub_context_lines(section: Mapping[str, object]) -> list[str]:
