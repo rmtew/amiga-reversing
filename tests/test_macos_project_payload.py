@@ -1136,6 +1136,9 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     assert any(item["status"] == "semantic_source" for item in source_sections)
     assert any(item["status"] == "covered_placeholder" for item in source_sections)
     assert next(item for item in source_sections if item["id"] == 0)["code0_structured_context"]["jump_table_rows"]
+    assert "raw_byte_gap_reason" not in next(
+        item for item in source_sections if item["id"] == 0
+    )["code0_structured_context"]
     code0_routing_xrefs = next(item for item in source_sections if item["id"] == 0)["code0_structured_context"][
         "generated_routing_xrefs"
     ]

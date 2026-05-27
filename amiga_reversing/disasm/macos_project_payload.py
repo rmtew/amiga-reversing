@@ -318,10 +318,6 @@ def _code_source_body_sections(
                 },
                 "jump_table_rows": _source_jump_table_rows(detail),
                 "generated_routing_xrefs": code0_routing_xrefs,
-                "raw_byte_gap_reason": (
-                    "CODE 0 row bytes are not exposed by the current C-owned row model; "
-                    "the enclosing CODE 0 payload range and SHA-256 preserve byte identity."
-                ),
             }
         if resource_id == selected_id:
             section["selected_listing_context"] = dict(selected_code_segment)

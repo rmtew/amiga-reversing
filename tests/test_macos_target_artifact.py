@@ -280,7 +280,7 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
         "status=candidate parser_use=candidate_only"
     ) in asm_text
     assert "raw_entry_bytes=" not in asm_text
-    assert "raw_byte_gap: CODE 0 row bytes are not exposed" not in asm_text
+    assert "raw_byte_gap" not in asm_text
     assert "target_section=macos_code_CODE_1 target_resource_id=1" in asm_text
     assert "target=macos_code_CODE_1_routine_candidate_0000003e link_status=linked_candidate" in asm_text
     assert "target_section=macos_code_CODE_1 target_resource_id=1 routine_offset=0 status=validated" not in asm_text
