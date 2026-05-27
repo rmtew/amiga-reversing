@@ -554,10 +554,9 @@ def _incoming_code0_xref_lines(section: Mapping[str, object]) -> list[str]:
     lines = [";   incoming_CODE0_xrefs:"]
     for xref in xrefs:
         candidate = _mapping(xref.get("candidate_target"))
-        if _int_value(xref.get("target_payload_offset")) is not None:
-            lines.append(f"{_text(xref.get('target_label'))}:")
         lines.append(
             f";     from={_text(xref.get('source_label'))} "
+            f"target={_text(xref.get('target_label'))} "
             f"source_payload={_text(xref.get('source_payload_offset'))} "
             f"target_payload={_text(xref.get('target_payload_offset'))} "
             f"status={_text(candidate.get('fact_status'))} "

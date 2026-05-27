@@ -1147,11 +1147,12 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     assert code0_routing_xrefs[0]["source_label"] == "CODE_0_jump_table_entry_0"
     assert code0_routing_xrefs[0]["target_resource_id"] == 27
     assert code0_routing_xrefs[0]["target_payload_offset"] == 204
-    assert code0_routing_xrefs[0]["target_label"] == "CODE_27_routine_candidate_000000cc"
+    assert code0_routing_xrefs[0]["target_label"] == "CODE_27_loc_000000cc"
     assert any(
         item["target_resource_id"] == 1
         and item["target_payload_offset"] == 62
         and item["routine_offset_from_segment"] == 62
+        and item["target_label"] == "CODE_1_loc_0000003e"
         for item in code0_routing_xrefs
     )
     code27_section = next(item for item in source_sections if item["id"] == 27)

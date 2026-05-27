@@ -398,6 +398,7 @@ def _code0_routing_xrefs(details: list[dict[str, object]]) -> list[dict[str, obj
         )
         if code0_offset is None or target_id is None or routine_offset is None or target_offset is None:
             continue
+        target_detail = details_by_id.get(target_id)
         candidate = _mapping(row.get("candidate_target"))
         accepted = _mapping(row.get("accepted_layout"))
         xrefs.append(
@@ -410,13 +411,33 @@ def _code0_routing_xrefs(details: list[dict[str, object]]) -> list[dict[str, obj
                 "target_resource_id": target_id,
                 "target_payload_offset": target_offset,
                 "routine_offset_from_segment": routine_offset,
-                "target_label": f"CODE_{_text(target_id)}_routine_candidate_{target_offset:08x}",
+                "target_label": _code0_routing_target_label(
+                    target_detail,
+                    target_id=target_id,
+                    target_offset=target_offset,
+                ),
                 "link_status": "linked_candidate",
                 "accepted_layout": accepted,
                 "candidate_target": candidate,
             }
         )
     return xrefs
+
+
+def _code0_routing_target_label(
+    target_detail: Mapping[str, object] | None,
+    *,
+    target_id: object,
+    target_offset: int,
+) -> str:
+    semantic_source = _mapping(_mapping(target_detail).get("semantic_source"))
+    for row in _sequence(semantic_source.get("rows")):
+        row_info = _mapping(row)
+        if row_info.get("kind") != "label":
+            continue
+        if _int_value(row_info.get("payload_offset")) == target_offset:
+            return f"CODE_{_text(target_id)}_loc_{target_offset:08x}"
+    return f"CODE_{_text(target_id)}_routine_candidate_{target_offset:08x}"
 
 
 def _code0_target_payload_offset(
