@@ -87,9 +87,9 @@ Progress note: reached Mac opword calls now expose those generated parameter row
 JSON/API surface. The `_GetFNum` C regression renders the real `Fonts.a` include and `_GetFNum` macro, records the
 reached platform call, and serializes `name: ConstStr255Param` plus `familyID: short *` with
 `output_or_inout_pointer` direction instead of leaving Mac call `inputs` empty. Covered by
-`facts_v2_macos_opword_call_falls_through` and `cmd /c src\precommit.bat m68k_ir`. The still-open work is the harder
-C data-flow bridge: bind the observed `pea -$0100(a6)`/`pea -$0102(a6)` stack operands to those parameter rows, then
-propagate the output pointer write into typed stack/local/A5-slot facts.
+`facts_v2_macos_opword_call_falls_through` and `cmd /c src\precommit.bat m68k_ir`. The later C data-flow bridge work
+now binds the observed `pea -$0100(a6)`/`pea -$0102(a6)` stack operands to those parameter rows and propagates the
+output-pointer local read into a typed access fact.
 
 Progress note: the first C data-flow bridge now records reached Mac stack arguments as recovered function-arg facts
 directly from generated Mac runtime metadata. For the `_GetFNum` pattern, the opword call at payload offset 12 records
@@ -168,8 +168,9 @@ data instead of only a vague deferred placeholder. CODE 0 reports negative A5 gl
 window, and positive globals after the table, all with `a5` base-register coordinates. Nonzero CODE resources reference
 CODE 0 as the owner of that layout. This intentionally keeps lifetime proof and slot type propagation deferred: the
 current evidence proves the storage windows, not which function has A5 live or which individual slots hold typed values.
-The remaining general work is to consume Mac trap parameter metadata and normal instruction reads/writes to create
-typed stack-slot/A5-slot facts.
+Mac trap metadata now creates typed stack/local facts for reached stack-parameter calls such as `_GetFNum`; A5-world
+slot typing remains separate and requires accepted A5 lifetime evidence plus normal instruction reads/writes against
+the CODE 0 storage windows. Do not infer A5 globals from `a6` frame locals.
 
 
 ### Pascal strings
