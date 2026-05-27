@@ -348,9 +348,8 @@ unless the evidence proves a genuinely target-specific Pandora artifact.
 ### Register content propagation
 
 Note that here we store code pointers in locations like `app_0360`. These get called with predictable register
-contents like `_custom` in `a5`. We fail to propagate `_custom` consistently to relevant locations in Pandora
-and should use it as a case study to improve the general register tracking and giving the consistent restored
-source result.
+contents like `_custom` in `a5`. The original failure was that `_custom` did not propagate consistently to relevant
+locations in Pandora; this remains useful as evidence for the general register-tracking fix recorded below.
 
 ```
 abs_0_00010A72:
@@ -437,8 +436,8 @@ table at `lookup_table_00020CA0` or the base-plus-word `jmp $0(a3,a2.w)` form.
 
 ### Auto-analysis failures
 
-General jump table processing. Here the table should be processed as other tables are, in this case we know these are
-absolute addresses and can likely be mapped into known address ranges, inferring code blocks at each address.
+General jump table processing. This table was the evidence case for processing absolute-address tables like other
+pointer tables, mapping entries into known address ranges and inferring code blocks at each address.
 
 ```
 	add.w d2,d2
