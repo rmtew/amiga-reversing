@@ -395,7 +395,11 @@ def _code0_routing_xrefs(details: list[dict[str, object]]) -> list[dict[str, obj
         target_id = row.get("target_resource_id")
         routine_offset = _int_value(row.get("routine_offset_from_segment"))
         entry_index = _int_value(row.get("entry_index"))
-        target_offset = _code0_target_payload_offset(details_by_id.get(target_id), routine_offset)
+        target_offset = _code0_target_payload_offset(
+            details_by_id.get(target_id),
+            routine_offset,
+            routine_offset_space=_text(row.get("routine_offset_space") or "candidate_code_range"),
+        )
         if code0_offset is None or target_id is None or routine_offset is None or target_offset is None:
             continue
         candidate = _mapping(row.get("candidate_target"))
@@ -419,7 +423,12 @@ def _code0_routing_xrefs(details: list[dict[str, object]]) -> list[dict[str, obj
     return xrefs
 
 
-def _code0_target_payload_offset(detail: Mapping[str, object] | None, routine_offset: int | None) -> int | None:
+def _code0_target_payload_offset(
+    detail: Mapping[str, object] | None,
+    routine_offset: int | None,
+    *,
+    routine_offset_space: str = "candidate_code_range",
+) -> int | None:
     if not detail or routine_offset is None or routine_offset < 0:
         return None
     for item in _sequence(detail.get("code_layout")):
@@ -429,6 +438,10 @@ def _code0_target_payload_offset(detail: Mapping[str, object] | None, routine_of
         start = _int_value(range_info.get("start"))
         end = _int_value(range_info.get("end"))
         if start is None or end is None:
+            continue
+        if routine_offset_space == "code_resource_payload":
+            if start <= routine_offset < end:
+                return routine_offset
             continue
         target_offset = start + routine_offset
         if start <= target_offset < end:
@@ -1166,6 +1179,7 @@ def _macos_code_analysis_seeds(
             target_offset = _code0_target_payload_offset(
                 {"code_layout": [range_info]},
                 _int_value(candidate.get("routine_offset_from_segment")),
+                routine_offset_space=_text(candidate.get("routine_offset_space") or "candidate_code_range"),
             )
             if target_offset is None:
                 continue
@@ -1781,6 +1795,7 @@ def _code0_jump_table_rows(
                 "target_resource_id": candidate.get("target_resource_id"),
                 "jump_table_offset": candidate.get("jump_table_offset"),
                 "routine_offset_from_segment": candidate.get("routine_offset_from_segment"),
+                "routine_offset_space": candidate.get("routine_offset_space") or "candidate_code_range",
                 "accepted_layout": {
                     "kb_record_id": code.get("kb_record_id"),
                     "fact_id": jump_table.get("fact_id"),

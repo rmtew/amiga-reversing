@@ -892,7 +892,7 @@ static const PlatformMacosResourceInfo *macos_find_code0_resource(const Platform
 }
 
 static int macos_code0_entry_is_unloaded_loadseg_for_segment(const unsigned char *code0_payload,
-    uint32_t code0_payload_size, uint32_t code0_entry_offset, int16_t segment_id, uint16_t *routine_offset) {
+    uint32_t code0_payload_size, uint32_t code0_entry_offset, int16_t segment_id, uint32_t *routine_offset) {
   uint16_t segment_word;
   if (code0_payload == NULL || code0_entry_offset > code0_payload_size ||
       code0_payload_size - code0_entry_offset < 8U) {
@@ -908,19 +908,39 @@ static int macos_code0_entry_is_unloaded_loadseg_for_segment(const unsigned char
   return 1;
 }
 
+static int macos_code0_entry_is_far_model_loadseg_for_segment(const unsigned char *code0_payload,
+    uint32_t code0_payload_size, uint32_t code0_entry_offset, int16_t segment_id, uint32_t *routine_offset) {
+  uint16_t segment_word;
+  if (code0_payload == NULL || code0_entry_offset > code0_payload_size ||
+      code0_payload_size - code0_entry_offset < 8U) {
+    return 0;
+  }
+  segment_word = macos_read_u16be_local(code0_payload, code0_entry_offset);
+  if (segment_word != (uint16_t)segment_id ||
+      macos_read_u16be_local(code0_payload, code0_entry_offset + 2U) != 0xA9F0U) {
+    return 0;
+  }
+  if (routine_offset != NULL) {
+    *routine_offset = ((uint32_t)macos_read_u16be_local(code0_payload, code0_entry_offset + 4U) << 16U) |
+      (uint32_t)macos_read_u16be_local(code0_payload, code0_entry_offset + 6U);
+  }
+  return 1;
+}
+
 static int macos_append_segment_routine_candidate(JsonBuilder *builder, uint32_t candidate_index,
     uint32_t jump_table_entry_index, uint32_t jump_table_offset, uint32_t code0_entry_offset,
-    uint16_t routine_offset, int16_t segment_id, int needs_comma) {
+    uint32_t routine_offset, int16_t segment_id, const char *entry_state, const char *routine_offset_space,
+    int needs_comma) {
   if (needs_comma && json_builder_append(builder, ",") != 0) return -1;
   if (json_builder_appendf(builder,
         "{\"index\":%u,\"jump_table_entry_index\":%u,\"jump_table_offset\":%u,"
         "\"code0_payload_offset\":%u,\"entry_code_offset\":%u,"
         "\"routine_offset_from_segment\":%u,\"target_resource_id\":%d,"
-        "\"entry_state\":\"unloaded_loadseg\","
+        "\"entry_state\":\"%s\",\"routine_offset_space\":\"%s\","
         "\"classification\":\"candidate_routine_entry\",",
         (unsigned)candidate_index, (unsigned)jump_table_entry_index, (unsigned)jump_table_offset,
         (unsigned)code0_entry_offset, (unsigned)(code0_entry_offset + 2U),
-        (unsigned)routine_offset, (int)segment_id) != 0 ||
+        (unsigned)routine_offset, (int)segment_id, entry_state, routine_offset_space) != 0 ||
       macos_append_fact_ref(builder, "macos.code_resource.jump_table.routine_offsets.candidate",
         "candidate", "candidate_only") != 0 ||
       json_builder_append(builder, "}") != 0) {
@@ -939,18 +959,58 @@ static int macos_append_segment_routine_candidates(JsonBuilder *builder, const P
   if (resource == NULL || code0_payload == NULL || code0_payload_size < 16U) return json_builder_append(builder, "]");
   first_offset = resource->code.first_jump_table_entry_offset;
   count = resource->code.jump_table_entry_count;
-  if (first_offset != 0xFFFFU && count > 0U) {
+  if (resource->code.far_model &&
+      (resource->code.near_entry_count > 0U || resource->code.far_entry_count > 0U)) {
+    uint32_t far_index;
+    uint32_t far_count = resource->code.far_entry_count;
+    count = resource->code.near_entry_count;
+    first_offset = resource->code.near_entry_start_a5_offset;
     for (index = 0U; index < count; ++index) {
       uint32_t jump_table_offset = first_offset + index * 8U;
       uint32_t code0_entry_offset = 16U + jump_table_offset;
-      uint16_t routine_offset;
+      uint32_t routine_offset;
+      if (jump_table_offset > UINT32_MAX - 8U || code0_entry_offset > code0_payload_size - 8U) break;
+      if (!macos_code0_entry_is_far_model_loadseg_for_segment(
+            code0_payload, code0_payload_size, code0_entry_offset, resource->resource_id, &routine_offset)) {
+        continue;
+      }
+      if (macos_append_segment_routine_candidate(builder, emitted, jump_table_offset / 8U, jump_table_offset,
+            code0_entry_offset, routine_offset, resource->resource_id, "far_model_loadseg",
+            "code_resource_payload", emitted > 0U) != 0) {
+        return -1;
+      }
+      emitted++;
+    }
+    first_offset = resource->code.far_entry_start_a5_offset;
+    for (far_index = 0U; far_index < far_count; ++far_index) {
+      uint32_t jump_table_offset = first_offset + far_index * 8U;
+      uint32_t code0_entry_offset = 16U + jump_table_offset;
+      uint32_t routine_offset;
+      if (jump_table_offset > UINT32_MAX - 8U || code0_entry_offset > code0_payload_size - 8U) break;
+      if (!macos_code0_entry_is_far_model_loadseg_for_segment(
+            code0_payload, code0_payload_size, code0_entry_offset, resource->resource_id, &routine_offset)) {
+        continue;
+      }
+      if (macos_append_segment_routine_candidate(builder, emitted, jump_table_offset / 8U, jump_table_offset,
+            code0_entry_offset, routine_offset, resource->resource_id, "far_model_loadseg",
+            "code_resource_payload", emitted > 0U) != 0) {
+        return -1;
+      }
+      emitted++;
+    }
+  } else if (first_offset != 0xFFFFU && count > 0U) {
+    for (index = 0U; index < count; ++index) {
+      uint32_t jump_table_offset = first_offset + index * 8U;
+      uint32_t code0_entry_offset = 16U + jump_table_offset;
+      uint32_t routine_offset;
       if (jump_table_offset > UINT32_MAX - 8U || code0_entry_offset > code0_payload_size - 8U) break;
       if (!macos_code0_entry_is_unloaded_loadseg_for_segment(
             code0_payload, code0_payload_size, code0_entry_offset, resource->resource_id, &routine_offset)) {
         continue;
       }
       if (macos_append_segment_routine_candidate(builder, emitted, jump_table_offset / 8U, jump_table_offset,
-            code0_entry_offset, routine_offset, resource->resource_id, emitted > 0U) != 0) {
+            code0_entry_offset, routine_offset, resource->resource_id, "unloaded_loadseg",
+            "candidate_code_range", emitted > 0U) != 0) {
         return -1;
       }
       emitted++;
@@ -961,13 +1021,14 @@ static int macos_append_segment_routine_candidates(JsonBuilder *builder, const P
     if (jump_table_size > code0_payload_size - 16U) jump_table_size = code0_payload_size - 16U;
     for (index = 0U; index + 8U <= jump_table_size; index += 8U) {
       uint32_t code0_entry_offset = 16U + index;
-      uint16_t routine_offset;
+      uint32_t routine_offset;
       if (!macos_code0_entry_is_unloaded_loadseg_for_segment(
             code0_payload, code0_payload_size, code0_entry_offset, resource->resource_id, &routine_offset)) {
         continue;
       }
       if (macos_append_segment_routine_candidate(builder, emitted, index / 8U, index, code0_entry_offset,
-            routine_offset, resource->resource_id, emitted > 0U) != 0) {
+            routine_offset, resource->resource_id, "unloaded_loadseg", "candidate_code_range",
+            emitted > 0U) != 0) {
         return -1;
       }
       emitted++;

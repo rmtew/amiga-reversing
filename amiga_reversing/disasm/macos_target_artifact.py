@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from collections.abc import Mapping, Sequence
 from dataclasses import asdict
 from pathlib import Path
@@ -24,6 +25,8 @@ from amiga_reversing.disasm.projects import (
     ProjectMetadata,
     ProjectRecord,
 )
+
+_RAW_LOCAL_LABEL_RE = re.compile(r"\bloc_0_([0-9A-Fa-f]{8})\b")
 
 MACOS_EXAMPLE_PROJECT_ID = "macos_hfs_mpw_gm"
 MACOS_EXAMPLE_SUBTARGET_ID = "macos_file_mpw_tools_asm"
@@ -464,7 +467,7 @@ def _semantic_source_lines(
             label_offset = payload_offset if payload_offset is not None else start
             lines.append(f"macos_code_CODE_{_text(resource_id)}_loc_{label_offset:08x}:")
             continue
-        text = str(row.get("text") or "").rstrip()
+        text = _macos_semantic_text(str(row.get("text") or "").rstrip(), resource_id=resource_id)
         if not text:
             continue
         if row.get("kind") == "instruction":
@@ -482,6 +485,13 @@ def _semantic_source_lines(
             )
         )
     return lines
+
+
+def _macos_semantic_text(text: str, *, resource_id: object) -> str:
+    def replace(match: re.Match[str]) -> str:
+        return f"macos_code_CODE_{_text(resource_id)}_loc_{int(match.group(1), 16):08x}"
+
+    return _RAW_LOCAL_LABEL_RE.sub(replace, text)
 
 
 def _incoming_code0_xref_lines(section: Mapping[str, object]) -> list[str]:

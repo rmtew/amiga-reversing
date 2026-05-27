@@ -280,7 +280,8 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     ) in asm_text
     assert "raw_entry_bytes=" not in asm_text
     assert "raw_byte_gap: CODE 0 row bytes are not exposed" not in asm_text
-    assert "target_section=macos_code_CODE_1 target_resource_id=1" not in asm_text
+    assert "target_section=macos_code_CODE_1 target_resource_id=1" in asm_text
+    assert "target=macos_code_CODE_1_routine_candidate_0000003e link_status=linked_candidate" in asm_text
     assert "target_section=macos_code_CODE_1 target_resource_id=1 routine_offset=0 status=validated" not in asm_text
     code0_start = asm_text.index(";   CODE 0 unknown: role=code0_metadata")
     code1_start = asm_text.index(";   CODE 1 Main: role=code_segment")
@@ -325,14 +326,11 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     assert ";     deferred A5 lifetime proof" in asm_text
     assert (
         ";     CODE 1: section=macos-code-CODE-1 ownership=candidate_code,metadata "
-        "coverage=True labels=6 xrefs=2 instructions=8 body_spans=1 byte_real_only_body=False "
-        "reachable_evidence=3 residuals=338"
+        "coverage=True labels=120 xrefs=1902 instructions=7818 body_spans=1 byte_real_only_body=False "
+        "reachable_evidence=117 residuals=149"
     ) in asm_text
-    assert (
-        ";       residual semantic_decode_gap payload[62..29024) status=candidate parser_use=candidate_only "
-        "reason=decoder did not emit an instruction/data row for this exact executable subrange"
-    ) in asm_text
-    assert "residual_summary candidate_unvisited_entry_pattern count=337" in asm_text
+    assert "residual semantic_decode_gap payload[62..29024)" not in asm_text
+    assert "residual_summary candidate_unvisited_entry_pattern count=22" in asm_text
     assert "residual candidate_unvisited_entry_pattern payload[" not in asm_text
     assert ";     semantic_source: kind=macos_code_semantic_source_v1 status=decoded" in asm_text
     assert "macos_code_CODE_1_loc_00000028:" in asm_text
@@ -340,8 +338,10 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     assert "\tmove.l a7,d0\n" in asm_text
     assert "\tmovea.l (a7)+,a0\t; payload+" not in asm_text
     assert " bytes=20 5F" not in asm_text
-    assert "macos_code_CODE_1_semantic_decode_gap_0000003e:" in asm_text
-    assert "\tdc.b " in asm_text[asm_text.index("macos_code_CODE_1_semantic_decode_gap_0000003e:") :]
+    assert "macos_code_CODE_1_loc_0000003e:" in asm_text
+    assert "macos_code_CODE_1_semantic_decode_gap_0000003e:" not in asm_text
+    assert "loc_0_" not in asm_text
+    assert "macos_code_CODE_1_loc_0000372c(pc,d0.w)" in asm_text
     assert ";       xref code_start_ref payload+" not in asm_text
     assert "macos_code_CODE_1_candidate_code_00000028:\n\tdc.b $20,$5F" not in asm_text
     assert "residual candidate_code payload[40..29024)" not in asm_text

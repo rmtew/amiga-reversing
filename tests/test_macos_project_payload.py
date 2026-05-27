@@ -424,6 +424,7 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
                                 "routine_offset_from_segment": 4,
                                 "target_resource_id": 1,
                                 "entry_state": "unloaded_loadseg",
+                                "routine_offset_space": "candidate_code_range",
                                 "classification": "candidate_routine_entry",
                                 "fact_id": "macos.code_resource.jump_table.routine_offsets.candidate",
                                 "fact_status": "candidate",
@@ -452,6 +453,7 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
                                 "routine_offset_from_segment": 6,
                                 "target_resource_id": 2,
                                 "entry_state": "unloaded_loadseg",
+                                "routine_offset_space": "candidate_code_range",
                                 "classification": "candidate_routine_entry",
                                 "fact_id": "macos.code_resource.jump_table.routine_offsets.candidate",
                                 "fact_status": "candidate",
@@ -742,6 +744,7 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
             "target_resource_id": 1,
             "jump_table_offset": 0,
             "routine_offset_from_segment": 4,
+            "routine_offset_space": "candidate_code_range",
             "accepted_layout": {
                 "kb_record_id": "macos.hfs_resource_fork.code_resources.mpw_application",
                 "fact_id": "macos.jump_table.entries.accepted",
@@ -766,6 +769,7 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
             "target_resource_id": 2,
             "jump_table_offset": 8,
             "routine_offset_from_segment": 6,
+            "routine_offset_space": "candidate_code_range",
             "accepted_layout": {
                 "kb_record_id": "macos.hfs_resource_fork.code_resources.mpw_application",
                 "fact_id": "macos.jump_table.entries.accepted",
@@ -1112,8 +1116,15 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     assert code0_routing_xrefs[0]["target_resource_id"] == 27
     assert code0_routing_xrefs[0]["target_payload_offset"] == 204
     assert code0_routing_xrefs[0]["target_label"] == "macos_code_CODE_27_routine_candidate_000000cc"
+    assert any(
+        item["target_resource_id"] == 1
+        and item["target_payload_offset"] == 62
+        and item["routine_offset_from_segment"] == 62
+        for item in code0_routing_xrefs
+    )
     code27_section = next(item for item in source_sections if item["id"] == 27)
-    assert code27_section["incoming_code0_xrefs"] == code0_routing_xrefs
+    code27_xrefs = [item for item in code0_routing_xrefs if item["target_resource_id"] == 27]
+    assert code27_section["incoming_code0_xrefs"] == code27_xrefs
     code27_seeds = code27_section["semantic_source"]["analysis_seeds"]
     assert code27_seeds == [
         {
@@ -1167,24 +1178,12 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     assert code1_quality["renders_only_byte_real_rows"] is True
     assert code1_quality["byte_real_only_executable_body"] is False
     assert code1_quality["executable_body_span_count"] == 1
-    assert code1_quality["semantic_instruction_row_count"] >= 8
-    assert code1_quality["generated_xref_count"] >= 1
-    assert code1_quality["generated_label_count"] >= 1
+    assert code1_quality["semantic_instruction_row_count"] >= 7000
+    assert code1_quality["generated_xref_count"] >= 1000
+    assert code1_quality["generated_label_count"] >= 100
     assert code1_quality["human_semantic_names_required"] is False
     assert "macos_CODE_1_candidate_entry_stub" in code1_quality["labels"]
-    assert {
-        "kind": "semantic_decode_gap",
-        "start": 62,
-        "end": 29024,
-        "size": 28962,
-        "status": "candidate",
-        "fact_status": "candidate",
-        "parser_use": "candidate_only",
-        "fact_id": "macos.code_resource.movea_stack_a0.boundary.candidate",
-        "kb_record_id": "macos.hfs_resource_fork.code_resources.mpw_application",
-        "reason": "decoder did not emit an instruction/data row for this exact executable subrange",
-        "next_required_implementation": "extend flow/data classification for this exact CODE subrange",
-    } in code1_quality["residuals"]
+    assert all(item.get("start") != 62 for item in code1_quality["residuals"])
     assert any(item["kind"] == "candidate_unvisited_entry_pattern" for item in code1_quality["residuals"])
     code2_quality = next(item for item in quality_rows if item["resource_id"] == 2)
     assert code2_quality["semantic_instruction_row_count"] >= 4
@@ -1198,8 +1197,9 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     assert semantic_source["status"] == "decoded"
     assert semantic_source["authority"] == "c_owned_listing_artifact"
     assert semantic_source["payload_base"] == 40
-    assert semantic_source["instruction_row_count"] >= 8
-    assert semantic_source["analysis_seeds"] == [
+    assert semantic_source["instruction_row_count"] >= 7000
+    assert semantic_source["analysis_seed_count"] == 114
+    assert semantic_source["analysis_seeds"][:2] == [
         {
             "resource_id": 1,
             "payload_offset": 40,
@@ -1209,7 +1209,18 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
             "fact_id": "macos.code_resource.movea_stack_a0.boundary.candidate",
             "fact_status": "candidate",
             "parser_use": "candidate_only",
-        }
+        },
+        {
+            "resource_id": 1,
+            "payload_offset": 62,
+            "local_offset": 22,
+            "reason": "code0_routine_candidate",
+            "name": "macos_CODE_1_entry_0000003e",
+            "fact_id": "macos.code_resource.jump_table.routine_offsets.candidate",
+            "fact_status": "candidate",
+            "parser_use": "candidate_only",
+            "code0_payload_offset": 40,
+        },
     ]
     assert all(
         not str(seed.get("reason") or "").startswith("macos_entry_pattern")
