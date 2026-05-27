@@ -48535,7 +48535,7 @@ macos_code_CODE_27_semantic_decode_gap_000000d4:
 ;   resource_review:
 ;     CODE 0: section=macos-code-CODE-0 ownership=metadata coverage=True labels=349 xrefs=0 instructions=0 body_spans=0 byte_real_only_body=False reachable_evidence=348 residuals=0
 ;       next: decode CODE 0 dispatch target semantics only where accepted target evidence exists
-;     CODE 1: section=macos-code-CODE-1 ownership=candidate_code,metadata coverage=True labels=120 xrefs=1902 instructions=7818 body_spans=1 byte_real_only_body=False reachable_evidence=117 residuals=149
+;     CODE 1: section=macos-code-CODE-1 ownership=candidate_code,metadata coverage=True labels=120 xrefs=1902 instructions=7818 body_spans=1 byte_real_only_body=False reachable_evidence=117 residuals=138
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual semantic_string_data_gap payload[638..654) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_dispatch_table_gap payload[3988..4020) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
@@ -48664,8 +48664,8 @@ macos_code_CODE_27_semantic_decode_gap_000000d4:
 ;       residual semantic_decode_gap payload[28900..28912) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[28978..28980) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[28984..29024) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual_summary candidate_unvisited_entry_pattern count=22 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
-;     CODE 2: section=macos-code-CODE-2 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=9 xrefs=82 instructions=603 body_spans=1 byte_real_only_body=False reachable_evidence=9 residuals=12
+;       residual_summary candidate_unvisited_entry_pattern count=11 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
+;     CODE 2: section=macos-code-CODE-2 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=9 xrefs=82 instructions=603 body_spans=1 byte_real_only_body=False reachable_evidence=9 residuals=10
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual candidate_unresolved_prefix payload[40..374) status=candidate parser_use=candidate_only reason=bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached through loader/stack/fixup flow not yet modeled
 ;       residual semantic_decode_gap payload[384..392) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
@@ -48677,8 +48677,7 @@ macos_code_CODE_27_semantic_decode_gap_000000d4:
 ;       residual semantic_dispatch_table_gap payload[7078..7154) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_dispatch_table_gap payload[7280..7718) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_dispatch_table_gap payload[7740..7788) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
-;       residual_summary candidate_unvisited_entry_pattern count=2 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
-;     CODE 3: section=macos-code-CODE-3 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=6 xrefs=448 instructions=2925 body_spans=1 byte_real_only_body=False reachable_evidence=5 residuals=53
+;     CODE 3: section=macos-code-CODE-3 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=6 xrefs=448 instructions=2925 body_spans=1 byte_real_only_body=False reachable_evidence=5 residuals=31
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual candidate_unresolved_prefix payload[40..302) status=candidate parser_use=candidate_only reason=bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached through loader/stack/fixup flow not yet modeled
 ;       residual semantic_pascal_string_gap payload[308..324) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
@@ -48711,8 +48710,7 @@ macos_code_CODE_27_semantic_decode_gap_000000d4:
 ;       residual semantic_decode_gap payload[17730..17740) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[17814..17832) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[17884..18252) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual_summary candidate_unvisited_entry_pattern count=22 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
-;     CODE 4: section=macos-code-CODE-4 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=22 xrefs=264 instructions=1509 body_spans=1 byte_real_only_body=False reachable_evidence=22 residuals=28
+;     CODE 4: section=macos-code-CODE-4 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=22 xrefs=264 instructions=1509 body_spans=1 byte_real_only_body=False reachable_evidence=22 residuals=24
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual candidate_unresolved_prefix payload[40..468) status=candidate parser_use=candidate_only reason=bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached through loader/stack/fixup flow not yet modeled
 ;       residual semantic_pascal_string_gap payload[562..576) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
@@ -48738,8 +48736,7 @@ macos_code_CODE_27_semantic_decode_gap_000000d4:
 ;       residual semantic_pascal_string_gap payload[6304..6314) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_pascal_string_gap payload[6388..6398) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_pascal_string_gap payload[6416..6426) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
-;       residual_summary candidate_unvisited_entry_pattern count=4 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
-;     CODE 5: section=macos-code-CODE-5 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=25 xrefs=1126 instructions=5288 body_spans=1 byte_real_only_body=False reachable_evidence=25 residuals=81
+;     CODE 5: section=macos-code-CODE-5 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=25 xrefs=1126 instructions=5288 body_spans=1 byte_real_only_body=False reachable_evidence=25 residuals=67
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual candidate_unresolved_prefix payload[40..212) status=candidate parser_use=candidate_only reason=bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached through loader/stack/fixup flow not yet modeled
 ;       residual semantic_dispatch_table_gap payload[1000..1284) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
@@ -48807,8 +48804,8 @@ macos_code_CODE_27_semantic_decode_gap_000000d4:
 ;       residual semantic_pascal_string_gap payload[24328..24342) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_dispatch_table_gap payload[26212..26448) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_pascal_string_gap payload[26624..26638) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
-;       residual_summary candidate_unvisited_entry_pattern count=15 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
-;     CODE 6: section=macos-code-CODE-6 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=12 xrefs=824 instructions=2494 body_spans=1 byte_real_only_body=False reachable_evidence=11 residuals=23
+;       residual_summary candidate_unvisited_entry_pattern count=1 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
+;     CODE 6: section=macos-code-CODE-6 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=12 xrefs=824 instructions=2494 body_spans=1 byte_real_only_body=False reachable_evidence=11 residuals=19
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual candidate_unresolved_prefix payload[40..58) status=candidate parser_use=candidate_only reason=bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached through loader/stack/fixup flow not yet modeled
 ;       residual semantic_dispatch_table_gap payload[266..298) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
@@ -48829,7 +48826,6 @@ macos_code_CODE_27_semantic_decode_gap_000000d4:
 ;       residual semantic_dispatch_table_gap payload[6970..7016) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_dispatch_table_gap payload[8922..15126) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_pascal_string_gap payload[15144..15158) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
-;       residual_summary candidate_unvisited_entry_pattern count=4 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
 ;     CODE 7: section=macos-code-CODE-7 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=8 xrefs=71 instructions=339 body_spans=1 byte_real_only_body=False reachable_evidence=8 residuals=6
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual candidate_unresolved_prefix payload[40..352) status=candidate parser_use=candidate_only reason=bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached through loader/stack/fixup flow not yet modeled
@@ -48848,7 +48844,7 @@ macos_code_CODE_27_semantic_decode_gap_000000d4:
 ;       residual semantic_pascal_string_gap payload[1112..1132) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_pascal_string_gap payload[1618..1630) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_pascal_string_gap payload[1836..1852) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
-;     CODE 9: section=macos-code-CODE-9 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=10 xrefs=104 instructions=375 body_spans=1 byte_real_only_body=False reachable_evidence=11 residuals=38
+;     CODE 9: section=macos-code-CODE-9 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=10 xrefs=104 instructions=375 body_spans=1 byte_real_only_body=False reachable_evidence=11 residuals=15
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual candidate_unresolved_prefix payload[40..712) status=candidate parser_use=candidate_only reason=bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached through loader/stack/fixup flow not yet modeled
 ;       residual semantic_dispatch_table_gap payload[720..1146) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
@@ -48859,7 +48855,7 @@ macos_code_CODE_27_semantic_decode_gap_000000d4:
 ;       residual semantic_dispatch_table_gap payload[4276..12734) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_decode_gap payload[12798..13904) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_pascal_string_gap payload[13934..13946) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
-;       residual_summary candidate_unvisited_entry_pattern count=29 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
+;       residual_summary candidate_unvisited_entry_pattern count=6 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
 ;     CODE 10: section=macos-code-CODE-10 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=5 xrefs=55 instructions=305 body_spans=1 byte_real_only_body=False reachable_evidence=4 residuals=4
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual candidate_unresolved_prefix payload[40..148) status=candidate parser_use=candidate_only reason=bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached through loader/stack/fixup flow not yet modeled
@@ -48914,7 +48910,7 @@ macos_code_CODE_27_semantic_decode_gap_000000d4:
 ;       residual semantic_decode_gap payload[4864..4866) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_pascal_string_gap payload[4902..4920) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_dispatch_table_gap payload[6770..6928) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
-;     CODE 13: section=macos-code-CODE-13 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=16 xrefs=202 instructions=1079 body_spans=1 byte_real_only_body=False reachable_evidence=15 residuals=153
+;     CODE 13: section=macos-code-CODE-13 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=16 xrefs=202 instructions=1079 body_spans=1 byte_real_only_body=False reachable_evidence=15 residuals=72
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual candidate_unresolved_prefix payload[40..44) status=candidate parser_use=candidate_only reason=bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached through loader/stack/fixup flow not yet modeled
 ;       residual semantic_dispatch_table_gap payload[196..4402) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
@@ -48931,7 +48927,7 @@ macos_code_CODE_27_semantic_decode_gap_000000d4:
 ;       residual semantic_dispatch_table_gap payload[29374..33138) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_dispatch_table_gap payload[33196..33318) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_pascal_string_gap payload[33336..33354) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
-;       residual_summary candidate_unvisited_entry_pattern count=138 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
+;       residual_summary candidate_unvisited_entry_pattern count=57 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
 ;     CODE 14: section=macos-code-CODE-14 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=14 xrefs=97 instructions=466 body_spans=1 byte_real_only_body=False reachable_evidence=13 residuals=12
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual candidate_unresolved_prefix payload[40..236) status=candidate parser_use=candidate_only reason=bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached through loader/stack/fixup flow not yet modeled
@@ -49011,7 +49007,7 @@ macos_code_CODE_27_semantic_decode_gap_000000d4:
 ;       residual semantic_pascal_string_gap payload[4952..4962) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_pascal_string_gap payload[5092..5104) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_pascal_string_gap payload[5228..5240) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
-;     CODE 21: section=macos-code-CODE-21 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=22 xrefs=129 instructions=713 body_spans=1 byte_real_only_body=False reachable_evidence=21 residuals=39
+;     CODE 21: section=macos-code-CODE-21 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=22 xrefs=129 instructions=713 body_spans=1 byte_real_only_body=False reachable_evidence=21 residuals=31
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual candidate_unresolved_prefix payload[40..2000) status=candidate parser_use=candidate_only reason=bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached through loader/stack/fixup flow not yet modeled
 ;       residual semantic_decode_gap payload[2008..2078) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
@@ -49044,7 +49040,6 @@ macos_code_CODE_27_semantic_decode_gap_000000d4:
 ;       residual semantic_pascal_string_gap payload[6672..6682) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_pascal_string_gap payload[6716..6728) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_pascal_string_gap payload[6782..6794) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
-;       residual_summary candidate_unvisited_entry_pattern count=8 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
 ;     CODE 22: section=macos-code-CODE-22 ownership=deferred,metadata coverage=True labels=3 xrefs=0 instructions=0 body_spans=0 byte_real_only_body=False reachable_evidence=2 residuals=1
 ;       next: extend C-owned CODE layout and reference analysis before promoting semantic source rows
 ;       residual deferred payload[40..96) status=deferred parser_use=deferred_only reason=missing_m68k_movea_l_stack_to_a0_entry
@@ -49075,7 +49070,7 @@ macos_code_CODE_27_semantic_decode_gap_000000d4:
 ;       residual semantic_decode_gap payload[200..228) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[242..246) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual_summary candidate_unvisited_entry_pattern count=6 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
-;     CODE 26: section=macos-code-CODE-26 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=27 xrefs=180 instructions=851 body_spans=1 byte_real_only_body=False reachable_evidence=26 residuals=22
+;     CODE 26: section=macos-code-CODE-26 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=27 xrefs=180 instructions=851 body_spans=1 byte_real_only_body=False reachable_evidence=26 residuals=21
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual candidate_unresolved_prefix payload[40..198) status=candidate parser_use=candidate_only reason=bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached through loader/stack/fixup flow not yet modeled
 ;       residual semantic_dispatch_table_gap payload[204..238) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
@@ -49097,7 +49092,7 @@ macos_code_CODE_27_semantic_decode_gap_000000d4:
 ;       residual semantic_pascal_string_gap payload[1994..2012) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_decode_gap payload[2348..2350) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_dispatch_table_gap payload[2358..2392) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
-;       residual_summary candidate_unvisited_entry_pattern count=2 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
+;       residual_summary candidate_unvisited_entry_pattern count=1 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
 ;     CODE 27: section=macos-code-CODE-27 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=5 xrefs=2 instructions=4 body_spans=1 byte_real_only_body=False reachable_evidence=3 residuals=21
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual candidate_unresolved_prefix payload[4..204) status=candidate parser_use=candidate_only reason=bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached through loader/stack/fixup flow not yet modeled

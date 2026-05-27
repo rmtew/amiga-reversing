@@ -1116,7 +1116,7 @@ def _semantic_source_rows(
     ]
     rows = [row for row in rows if row]
     rows = [row for row in rows if not _macos_fallback_byte_row(row, code_range=code_range)]
-    candidate_residuals = _macos_code_candidate_residuals(
+    semantic_gap_residuals = _macos_code_semantic_gap_residuals(
         code_bytes,
         payload_base=code_start,
         code_range=code_range,
@@ -1124,11 +1124,12 @@ def _semantic_source_rows(
         resource=resource,
         code=code,
     )
-    semantic_gap_residuals = _macos_code_semantic_gap_residuals(
+    candidate_residuals = _macos_code_candidate_residuals(
         code_bytes,
         payload_base=code_start,
         code_range=code_range,
         semantic_rows=rows,
+        classified_data_residuals=semantic_gap_residuals,
         resource=resource,
         code=code,
     )
@@ -1215,6 +1216,7 @@ def _macos_code_candidate_residuals(
     payload_base: int,
     code_range: Mapping[str, object],
     semantic_rows: list[Mapping[str, object]],
+    classified_data_residuals: list[Mapping[str, object]],
     resource: Mapping[str, object],
     code: Mapping[str, object],
 ) -> list[dict[str, object]]:
@@ -1227,6 +1229,8 @@ def _macos_code_candidate_residuals(
         if payload_offset < start or payload_offset >= end:
             continue
         if _payload_offset_is_covered(payload_offset, semantic_rows):
+            continue
+        if _payload_offset_is_classified_data(payload_offset, classified_data_residuals):
             continue
         residuals.append(
             {
@@ -1246,6 +1250,17 @@ def _macos_code_candidate_residuals(
             }
         )
     return residuals
+
+
+def _payload_offset_is_classified_data(payload_offset: int, residuals: list[Mapping[str, object]]) -> bool:
+    for residual in residuals:
+        if residual.get("kind") == "semantic_decode_gap":
+            continue
+        start = _int_value(residual.get("start"))
+        end = _int_value(residual.get("end"))
+        if start is not None and end is not None and start <= payload_offset < end:
+            return True
+    return False
 
 
 def _macos_code_semantic_gap_residuals(

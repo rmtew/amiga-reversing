@@ -1011,6 +1011,7 @@ def test_macos_candidate_patterns_are_residuals_not_entry_seeds() -> None:
             "fact_id": "macos.code_resource.movea_stack_a0.boundary.candidate",
         },
         semantic_rows=[{"kind": "instruction", "payload_offset": 40, "payload_end": 42}],
+        classified_data_residuals=[],
         resource={"id": 1},
         code={"kb_record_id": "macos.hfs_resource_fork.code_resources.mpw_application"},
     )
@@ -1207,6 +1208,14 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
         "semantic_string_data_gap",
         "semantic_decode_gap",
     }.issubset(semantic_gap_kinds)
+    classified_data_gaps = [
+        item for item in semantic_source["semantic_gap_residuals"] if item["kind"] != "semantic_decode_gap"
+    ]
+    assert all(
+        not any(data["start"] <= item["start"] < data["end"] for data in classified_data_gaps)
+        for item in code1_quality["residuals"]
+        if item["kind"] == "candidate_unvisited_entry_pattern"
+    )
     assert semantic_source["analysis_seeds"][:2] == [
         {
             "resource_id": 1,
