@@ -164,15 +164,16 @@ CODE_0_jump_table_offset_from_a5:
 ```
 
 The C parser already reads these fields from CODE 0 (`above_a5_size`, `below_a5_size`, `jump_table_length`,
-`jump_table_offset_from_a5`). The restored-source packet currently emits this only as deferred platform context:
+`jump_table_offset_from_a5`). Before the current structured packet work, the restored-source packet emitted this only
+as deferred platform context:
 
 ```
 "a5_world":{"status":"deferred","source_visible":true,...}
 ```
 
-That means we know the A5 world is real and visible in the file format, but we have not yet promoted it to a typed
-storage model. Doing it correctly probably needs a Mac platform storage domain in the C analysis, analogous to
-app/global slots elsewhere, with positive A5 offsets distinguished from negative A5 offsets and stack-frame offsets.
+That proved the A5 world was real and visible in the file format, but it did not promote it to a typed storage model.
+Doing that correctly still needs a Mac platform storage domain in the C analysis, analogous to app/global slots
+elsewhere, with positive A5 offsets distinguished from negative A5 offsets and stack-frame offsets.
 Positive A5 offsets may address the jump table or app globals; negative offsets are not automatically the same thing,
 and local `a6` frame offsets are a third case. The work should avoid collapsing all displacements into a single
 "A5 data" bucket just because the rendered code is Mac.
