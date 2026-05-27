@@ -121,6 +121,11 @@ file that defines `_GetFNum` (for example `Fonts.a`, with whatever umbrella incl
 EQU-style replacement definitions. The metadata generator can consume `Fonts.a`/`Fonts.h`, but the restored source
 should remain source-compatible with the MPW assembler include style.
 
+Resolution note: the committed MPW Asm artifact now renders MPW interface includes in header material before CODE 0,
+including `Fonts.a`, `SegLoad.a`, `Traps.a`, and related interface files. `_GetFNum` and `_LoadSeg` are therefore
+provided by real MPW include material in the restored source rather than local EQU hacks. This is intentionally a source
+presentation concern; the call metadata remains generated from parsed Mac interface data for C analysis.
+
 ### A5 data storage
 
 There seems to be data storage in negative A5 offsets. In this case we are using addresses in there as input on the
