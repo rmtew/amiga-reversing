@@ -287,7 +287,7 @@ def _code_source_body_sections(
         resource_id = detail.get("id")
         section = {
             "source_section_id": f"macos-code-CODE-{resource_id}",
-            "label": f"macos_code_CODE_{resource_id}",
+            "label": f"CODE_{resource_id}",
             "source_kind": native_source.get("source_kind") or "macos_code_resource",
             "backend": native_source.get("backend") or "macos-code",
             "status": _code_source_section_status(detail, selected_id=selected_id),
@@ -405,12 +405,12 @@ def _code0_routing_xrefs(details: list[dict[str, object]]) -> list[dict[str, obj
                 "kind": "generated_code0_routing_xref",
                 "source_resource_id": 0,
                 "source_payload_offset": code0_offset,
-                "source_label": f"macos_CODE_0_jump_table_entry_{_text(entry_index)}",
+                "source_label": f"CODE_0_jump_table_entry_{_text(entry_index)}",
                 "entry_index": entry_index,
                 "target_resource_id": target_id,
                 "target_payload_offset": target_offset,
                 "routine_offset_from_segment": routine_offset,
-                "target_label": f"macos_code_CODE_{_text(target_id)}_routine_candidate_{target_offset:08x}",
+                "target_label": f"CODE_{_text(target_id)}_routine_candidate_{target_offset:08x}",
                 "link_status": "linked_candidate",
                 "accepted_layout": accepted,
                 "candidate_target": candidate,
@@ -608,9 +608,9 @@ def _source_quality_labels(detail: Mapping[str, object], section: Mapping[str, o
     labels = [_text(section.get("label"))] if section.get("label") is not None else []
     resource_id = detail.get("id")
     if resource_id == 0:
-        labels.extend(["macos_CODE_0_application_metadata", "macos_CODE_0_jump_table"])
+        labels.extend(["CODE_0_application_metadata", "CODE_0_jump_table"])
         labels.extend(
-            f"macos_CODE_0_jump_table_entry_{_text(row.get('entry_index'))}"
+            f"CODE_0_jump_table_entry_{_text(row.get('entry_index'))}"
             for row in _sequence(_mapping(section.get("code0_structured_context")).get("jump_table_rows"))
         )
     if resource_id == 1:
@@ -853,7 +853,7 @@ def _code1_layout_context(
     stub_end = entry_offset + stub_size if entry_offset is not None else None
     return {
         "far_model_header": {
-            "label": "macos_CODE_1_far_model_header",
+            "label": "CODE_1_far_model_header",
             "start": 0,
             "end": 40,
             "status": "validated",
@@ -864,7 +864,7 @@ def _code1_layout_context(
             "reason": "far_model_segment_header; documented far-model header, not executable source rows",
         },
         "candidate_entry_stub": {
-            "label": "macos_CODE_1_candidate_entry_stub",
+            "label": "CODE_1_candidate_entry_stub",
             "start": entry_offset,
             "end": stub_end,
             "selected_code_bytes_start": 0,
@@ -880,7 +880,7 @@ def _code1_layout_context(
             ),
         },
         "candidate_body_after_stub": {
-            "label": "macos_CODE_1_candidate_body_after_stub",
+            "label": "CODE_1_candidate_body_after_stub",
             "start": stub_end,
             "end": payload_size,
             "status": "candidate",
@@ -1472,7 +1472,7 @@ def _add_macos_code_analysis_seed(
         "payload_offset": payload_offset,
         "local_offset": local_offset,
         "reason": reason,
-        "name": f"macos_CODE_{resource_id}_entry_{payload_offset:08x}",
+        "name": f"CODE_{resource_id}_entry_{payload_offset:08x}",
         "fact_id": fact_id,
         "fact_status": fact_status,
         "parser_use": parser_use,
@@ -1937,7 +1937,34 @@ def _code0_jump_table_rows(
     jump_table = _mapping(code.get("jump_table"))
     table_start = _int_value(jump_table.get("start"))
     entry_size = _int_value(jump_table.get("entry_size"))
+    entry_count = _int_value(jump_table.get("entry_count"))
+    accepted_layout = {
+        "kb_record_id": code.get("kb_record_id"),
+        "fact_id": jump_table.get("fact_id"),
+        "fact_status": jump_table.get("fact_status"),
+        "parser_use": jump_table.get("parser_use"),
+    }
+    candidates_by_offset = {
+        _int_value(candidate.get("code0_payload_offset")): candidate
+        for candidate in all_routine_candidates
+        if _int_value(candidate.get("code0_payload_offset")) is not None
+    }
     rows: list[dict[str, object]] = []
+    if table_start is not None and entry_size and entry_count is not None:
+        for entry_index in range(entry_count):
+            code0_offset = table_start + entry_index * entry_size
+            candidate = candidates_by_offset.get(code0_offset, {})
+            rows.append(
+                _code0_jump_table_row(
+                    code0_offset=code0_offset,
+                    entry_index=entry_index,
+                    entry_size=entry_size,
+                    table_start=table_start,
+                    accepted_layout=accepted_layout,
+                    candidate=candidate,
+                )
+            )
+        return rows
     for candidate in sorted(all_routine_candidates, key=_candidate_code0_offset_sort_key):
         code0_offset = _int_value(candidate.get("code0_payload_offset"))
         entry_index = None
@@ -1946,26 +1973,46 @@ def _code0_jump_table_rows(
         if entry_index is None:
             entry_index = _int_value(candidate.get("index"))
         rows.append(
+            _code0_jump_table_row(
+                code0_offset=code0_offset,
+                entry_index=entry_index,
+                entry_size=entry_size,
+                table_start=table_start,
+                accepted_layout=accepted_layout,
+                candidate=candidate,
+            )
+        )
+    return rows
+
+
+def _code0_jump_table_row(
+    *,
+    code0_offset: int | None,
+    entry_index: int | None,
+    entry_size: int | None,
+    table_start: int | None,
+    accepted_layout: Mapping[str, object],
+    candidate: Mapping[str, object],
+) -> dict[str, object]:
+    row = {
+        "kind": "code0_jump_table_entry",
+        "entry_index": entry_index,
+        "code0_payload_offset": code0_offset,
+        "entry_size": entry_size,
+        "raw_entry_bytes": None,
+        "raw_entry_fields": {
+            "jump_table_start": table_start,
+            "entry_size": entry_size,
+        },
+        "accepted_layout": dict(accepted_layout),
+    }
+    if candidate:
+        row.update(
             {
-                "kind": "code0_jump_table_entry",
-                "entry_index": entry_index,
-                "code0_payload_offset": code0_offset,
-                "entry_size": entry_size,
-                "raw_entry_bytes": None,
-                "raw_entry_fields": {
-                    "jump_table_start": table_start,
-                    "entry_size": entry_size,
-                },
                 "target_resource_id": candidate.get("target_resource_id"),
                 "jump_table_offset": candidate.get("jump_table_offset"),
                 "routine_offset_from_segment": candidate.get("routine_offset_from_segment"),
                 "routine_offset_space": candidate.get("routine_offset_space") or "candidate_code_range",
-                "accepted_layout": {
-                    "kb_record_id": code.get("kb_record_id"),
-                    "fact_id": jump_table.get("fact_id"),
-                    "fact_status": jump_table.get("fact_status"),
-                    "parser_use": jump_table.get("parser_use"),
-                },
                 "candidate_target": {
                     "kb_record_id": candidate.get("kb_record_id"),
                     "fact_id": candidate.get("fact_id"),
@@ -1975,7 +2022,7 @@ def _code0_jump_table_rows(
                 },
             }
         )
-    return rows
+    return row
 
 
 def _candidate_code0_offset_sort_key(candidate: Mapping[str, object]) -> tuple[int, int]:

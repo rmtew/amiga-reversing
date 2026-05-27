@@ -394,15 +394,15 @@ def _code0_byte_real_source_lines(section: Mapping[str, object], *, payload_byte
     jump_table_offset = int.from_bytes(payload_bytes[12:16], "big")
     lines = [
         f"{label}:",
-        "macos_CODE_0_above_a5_size:",
+        "CODE_0_above_a5_size:",
         f"\tdc.l ${above_a5:08X}",
-        "macos_CODE_0_below_a5_size:",
+        "CODE_0_below_a5_size:",
         f"\tdc.l ${below_a5:08X}",
-        "macos_CODE_0_jump_table_length:",
+        "CODE_0_jump_table_length:",
         f"\tdc.l ${jump_table_length:08X}",
-        "macos_CODE_0_jump_table_offset_from_a5:",
+        "CODE_0_jump_table_offset_from_a5:",
         f"\tdc.l ${jump_table_offset:08X}",
-        "macos_CODE_0_jump_table:",
+        "CODE_0_jump_table:",
     ]
     jump_start = _int_value(jump_table.get("start")) or 16
     jump_end = _int_value(jump_table.get("end")) or len(payload_bytes)
@@ -423,7 +423,7 @@ def _code0_byte_real_source_lines(section: Mapping[str, object], *, payload_byte
         cursor += entry_size
         entry_index += 1
     if cursor < len(payload_bytes):
-        lines.extend(_dc_b_lines(payload_bytes[cursor:], label=f"macos_CODE_0_trailing_metadata_{cursor:08x}", base_offset=cursor))
+        lines.extend(_dc_b_lines(payload_bytes[cursor:], label=f"CODE_0_trailing_metadata_{cursor:08x}", base_offset=cursor))
     return lines
 
 
@@ -431,7 +431,7 @@ def _code0_jump_table_entry_lines(row: Mapping[str, object], *, chunk: bytes, fa
     entry_index = _int_value(row.get("entry_index"))
     if entry_index is None:
         entry_index = fallback_index
-    label = f"macos_CODE_0_jump_table_entry_{entry_index}"
+    label = f"CODE_0_jump_table_entry_{entry_index}"
     target_resource_id = _int_value(row.get("target_resource_id"))
     routine_offset = _int_value(row.get("routine_offset_from_segment"))
     if target_resource_id is None or routine_offset is None:
@@ -456,7 +456,7 @@ def _code0_jump_table_entry_lines(row: Mapping[str, object], *, chunk: bytes, fa
 
 def _code0_raw_jump_table_entry_lines(chunk: bytes, *, entry_index: int) -> list[str]:
     return [
-        f"macos_CODE_0_jump_table_entry_{entry_index}:",
+        f"CODE_0_jump_table_entry_{entry_index}:",
         f"\tdc.w ${int.from_bytes(chunk[0:2], 'big'):04X}",
         f"\tdc.w ${int.from_bytes(chunk[2:4], 'big'):04X}",
         f"\tdc.l ${int.from_bytes(chunk[4:8], 'big'):08X}",
@@ -507,7 +507,7 @@ def _semantic_source_lines(
             cursor = payload_offset
         if kind == "label":
             label_offset = payload_offset if payload_offset is not None else start
-            lines.append(f"macos_code_CODE_{_text(resource_id)}_loc_{label_offset:08x}:")
+            lines.append(f"CODE_{_text(resource_id)}_loc_{label_offset:08x}:")
             continue
         text = _macos_semantic_text(str(row.get("text") or "").rstrip(), resource_id=resource_id)
         if not text:
@@ -542,7 +542,7 @@ def _semantic_gap_lines(data: bytes, *, label: str, kind: str, base_offset: int)
 
 def _macos_semantic_text(text: str, *, resource_id: object) -> str:
     def replace(match: re.Match[str]) -> str:
-        return f"macos_code_CODE_{_text(resource_id)}_loc_{int(match.group(1), 16):08x}"
+        return f"CODE_{_text(resource_id)}_loc_{int(match.group(1), 16):08x}"
 
     return _RAW_LOCAL_LABEL_RE.sub(replace, text)
 
@@ -703,14 +703,14 @@ def _code0_structured_source_lines(section: Mapping[str, object]) -> list[str]:
         candidate = _mapping(row.get("candidate_target"))
         target_id = row.get("target_resource_id")
         entry_index = row.get("entry_index")
-        label = f"macos_CODE_0_jump_table_entry_{_text(entry_index)}"
+        label = f"CODE_0_jump_table_entry_{_text(entry_index)}"
         lines.extend(
             [
                 f";     {label}: payload_offset={_text(row.get('code0_payload_offset'))} "
                 f"size={_text(row.get('entry_size'))}",
                 f";     accepted_layout status={_text(accepted.get('fact_status'))} "
                 f"parser_use={_text(accepted.get('parser_use'))} fact={_text(accepted.get('fact_id'))}",
-                f";     candidate_target target_section=macos_code_CODE_{_text(target_id)} "
+                f";     candidate_target target_section=CODE_{_text(target_id)} "
                 f"target_resource_id={_text(target_id)} routine_offset={_text(row.get('routine_offset_from_segment'))} "
                 f"status={_text(candidate.get('fact_status'))} parser_use={_text(candidate.get('parser_use'))} "
                 f"fact={_text(candidate.get('fact_id'))}",

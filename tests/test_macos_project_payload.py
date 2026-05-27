@@ -229,10 +229,10 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
                             "jump_table": {
                                 "kind": "code0_jump_table",
                                 "start": 16,
-                                "size": 8,
-                                "end": 24,
+                                "size": 16,
+                                "end": 32,
                                 "entry_size": 8,
-                                "entry_count": 1,
+                                "entry_count": 2,
                                 "trailing_bytes": 0,
                                 "fact_id": "macos.jump_table.entries.accepted",
                                 "fact_status": "validated",
@@ -1135,19 +1135,19 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     assert next(item for item in source_sections if item["id"] == 1)["status"] == "selected_full_listing"
     assert any(item["status"] == "semantic_source" for item in source_sections)
     assert any(item["status"] == "covered_placeholder" for item in source_sections)
-    assert next(item for item in source_sections if item["id"] == 0)["code0_structured_context"]["jump_table_rows"]
+    code0_context = next(item for item in source_sections if item["id"] == 0)["code0_structured_context"]
+    assert code0_context["jump_table_rows"]
+    assert len(code0_context["jump_table_rows"]) == code0_context["jump_table"]["entry_count"]
     assert "raw_byte_gap_reason" not in next(
         item for item in source_sections if item["id"] == 0
     )["code0_structured_context"]
-    code0_routing_xrefs = next(item for item in source_sections if item["id"] == 0)["code0_structured_context"][
-        "generated_routing_xrefs"
-    ]
+    code0_routing_xrefs = code0_context["generated_routing_xrefs"]
     assert code0_routing_xrefs
     assert code0_routing_xrefs[0]["kind"] == "generated_code0_routing_xref"
-    assert code0_routing_xrefs[0]["source_label"] == "macos_CODE_0_jump_table_entry_0"
+    assert code0_routing_xrefs[0]["source_label"] == "CODE_0_jump_table_entry_0"
     assert code0_routing_xrefs[0]["target_resource_id"] == 27
     assert code0_routing_xrefs[0]["target_payload_offset"] == 204
-    assert code0_routing_xrefs[0]["target_label"] == "macos_code_CODE_27_routine_candidate_000000cc"
+    assert code0_routing_xrefs[0]["target_label"] == "CODE_27_routine_candidate_000000cc"
     assert any(
         item["target_resource_id"] == 1
         and item["target_payload_offset"] == 62
@@ -1164,7 +1164,7 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
             "payload_offset": 204,
             "local_offset": 0,
             "reason": "code0_routine_candidate",
-            "name": "macos_CODE_27_entry_000000cc",
+            "name": "CODE_27_entry_000000cc",
             "fact_id": "macos.code_resource.jump_table.routine_offsets.candidate",
             "fact_status": "candidate",
             "parser_use": "candidate_only",
@@ -1214,7 +1214,7 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     assert code1_quality["generated_xref_count"] >= 1000
     assert code1_quality["generated_label_count"] >= 100
     assert code1_quality["human_semantic_names_required"] is False
-    assert "macos_CODE_1_candidate_entry_stub" in code1_quality["labels"]
+    assert "CODE_1_candidate_entry_stub" in code1_quality["labels"]
     assert all(item.get("start") != 62 for item in code1_quality["residuals"])
     assert any(item["kind"] == "candidate_unvisited_entry_pattern" for item in code1_quality["residuals"])
     code2_quality = next(item for item in quality_rows if item["resource_id"] == 2)
@@ -1259,7 +1259,7 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
             "payload_offset": 40,
             "local_offset": 0,
             "reason": "loader_candidate_code_entry",
-            "name": "macos_CODE_1_entry_00000028",
+            "name": "CODE_1_entry_00000028",
             "fact_id": "macos.code_resource.movea_stack_a0.boundary.candidate",
             "fact_status": "candidate",
             "parser_use": "candidate_only",
@@ -1269,7 +1269,7 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
             "payload_offset": 62,
             "local_offset": 22,
             "reason": "code0_routine_candidate",
-            "name": "macos_CODE_1_entry_0000003e",
+            "name": "CODE_1_entry_0000003e",
             "fact_id": "macos.code_resource.jump_table.routine_offsets.candidate",
             "fact_status": "candidate",
             "parser_use": "candidate_only",

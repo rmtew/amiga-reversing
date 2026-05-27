@@ -258,32 +258,32 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     assert "kind=code0_routing_table" in asm_text
     assert "kind=a5_world_context_placeholder" in asm_text
     assert "a5_world status=deferred" in asm_text
-    assert "macos_code_CODE_0:" in asm_text
-    assert "macos_code_CODE_27:" in asm_text
-    assert "macos_CODE_0_above_a5_size:" in asm_text
-    assert "macos_CODE_0_jump_table:" in asm_text
-    assert "macos_CODE_0_jump_table_entry_0:" in asm_text
+    assert "CODE_0:" in asm_text
+    assert "CODE_27:" in asm_text
+    assert "CODE_0_above_a5_size:" in asm_text
+    assert "CODE_0_jump_table:" in asm_text
+    assert "CODE_0_jump_table_entry_0:" in asm_text
     assert "\tmove.w #27,-(a7)" in asm_text
     assert "\tdc.l $0000601E" in asm_text
     assert "jump_table payload[16..2784) entry_size=8 entry_count=346 status=validated" in asm_text
     assert (
-        "candidate_target target_section=macos_code_CODE_27 target_resource_id=27 "
+        "candidate_target target_section=CODE_27 target_resource_id=27 "
         "routine_offset=0 status=candidate parser_use=candidate_only"
     ) in asm_text
     assert (
-        "generated_xref source=macos_CODE_0_jump_table_entry_0 "
-        "target=macos_code_CODE_27_routine_candidate_000000cc link_status=linked_candidate"
+        "generated_xref source=CODE_0_jump_table_entry_0 "
+        "target=CODE_27_routine_candidate_000000cc link_status=linked_candidate"
     ) in asm_text
-    assert "macos_code_CODE_27_routine_candidate_000000cc:" in asm_text
+    assert "CODE_27_routine_candidate_000000cc:" in asm_text
     assert (
-        "from=macos_CODE_0_jump_table_entry_0 source_payload=16 target_payload=204 "
+        "from=CODE_0_jump_table_entry_0 source_payload=16 target_payload=204 "
         "status=candidate parser_use=candidate_only"
     ) in asm_text
     assert "raw_entry_bytes=" not in asm_text
     assert "raw_byte_gap" not in asm_text
-    assert "target_section=macos_code_CODE_1 target_resource_id=1" in asm_text
-    assert "target=macos_code_CODE_1_routine_candidate_0000003e link_status=linked_candidate" in asm_text
-    assert "target_section=macos_code_CODE_1 target_resource_id=1 routine_offset=0 status=validated" not in asm_text
+    assert "target_section=CODE_1 target_resource_id=1" in asm_text
+    assert "target=CODE_1_routine_candidate_0000003e link_status=linked_candidate" in asm_text
+    assert "target_section=CODE_1 target_resource_id=1 routine_offset=0 status=validated" not in asm_text
     code0_start = asm_text.index(";   CODE 0 unknown: role=code0_metadata")
     code1_start = asm_text.index(";   CODE 1 Main: role=code_segment")
     code0_block = asm_text[code0_start:code1_start]
@@ -300,11 +300,11 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     assert "no candidate preview range; classifier deferred byte-entry evidence" in asm_text
     assert "missing_m68k_movea_l_stack_to_a0_entry" in asm_text
     assert ";   byte_real_source:" in asm_text
-    assert "macos_code_CODE_2_loc_00000176:" in asm_text
+    assert "CODE_2_loc_00000176:" in asm_text
     assert "\tmovea.l (a7)+,a0\n" in asm_text
-    assert "macos_code_CODE_1_loc_00000028:" in asm_text
+    assert "CODE_1_loc_00000028:" in asm_text
     assert "\tmovea.l (a7)+,a0\n" in asm_text
-    assert "macos_code_CODE_1_candidate_code_00000028:\n\tdc.b $20,$5F" not in asm_text
+    assert "CODE_1_candidate_code_00000028:\n\tdc.b $20,$5F" not in asm_text
     assert "; CODE 1 Main byte-real source follows." in asm_text
     assert "; Source quality gate" in asm_text
     assert ";   status: byte_real_baseline" in asm_text
@@ -334,39 +334,39 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     assert "residual candidate_unvisited_entry_pattern count=11 payload_offsets=8288,12858,17556" in asm_text
     assert "residual candidate_unvisited_entry_pattern payload[" not in asm_text
     assert ";     semantic_source: kind=macos_code_semantic_source_v1 status=decoded" in asm_text
-    assert "macos_code_CODE_1_loc_00000028:" in asm_text
+    assert "CODE_1_loc_00000028:" in asm_text
     assert "\tmovea.l (a7)+,a0\n" in asm_text
     assert "\tmove.l a7,d0\n" in asm_text
     assert "\tmovea.l (a7)+,a0\t; payload+" not in asm_text
     assert " bytes=20 5F" not in asm_text
-    assert "macos_code_CODE_1_loc_0000003e:" in asm_text
-    assert "macos_code_CODE_1_semantic_decode_gap_0000003e:" not in asm_text
-    assert "macos_code_CODE_1_semantic_string_data_gap_0000027e:" in asm_text
-    assert "macos_code_CODE_1_semantic_dispatch_table_gap_00000f94:" in asm_text
-    assert "macos_code_CODE_12_semantic_alignment_padding_gap_000009c6:\n\tds.b 2" in asm_text
+    assert "CODE_1_loc_0000003e:" in asm_text
+    assert "CODE_1_semantic_decode_gap_0000003e:" not in asm_text
+    assert "CODE_1_semantic_string_data_gap_0000027e:" in asm_text
+    assert "CODE_1_semantic_dispatch_table_gap_00000f94:" in asm_text
+    assert "CODE_12_semantic_alignment_padding_gap_000009c6:\n\tds.b 2" in asm_text
     assert "loc_0_" not in asm_text
-    assert "macos_code_CODE_1_loc_0000372c(pc,d0.w)" in asm_text
+    assert "CODE_1_loc_0000372c(pc,d0.w)" in asm_text
     assert ";       xref code_start_ref payload+" not in asm_text
-    assert "macos_code_CODE_1_candidate_code_00000028:\n\tdc.b $20,$5F" not in asm_text
+    assert "CODE_1_candidate_code_00000028:\n\tdc.b $20,$5F" not in asm_text
     assert "residual candidate_code payload[40..29024)" not in asm_text
     assert "candidate_data_island" not in asm_text
     assert "SECTION code,code" not in asm_text
     assert "\tori.b #16,d0" not in asm_text
-    assert "macos_CODE_1_far_model_header:" in asm_text
+    assert "CODE_1_far_model_header:" in asm_text
     assert "payload[0..40) status=validated parser_use=accepted_parser_output reason=far_model_segment_header" in asm_text
-    assert "macos_CODE_1_candidate_entry_stub:" in asm_text
+    assert "CODE_1_candidate_entry_stub:" in asm_text
     assert (
         "payload[40..62) selected_code_bytes[0..22) status=candidate parser_use=candidate_only "
         "reason=entry/stub bytes begin at candidate movea.l (a7)+,a0 boundary"
     ) in asm_text
-    assert "macos_CODE_1_candidate_body_after_stub:" in asm_text
+    assert "CODE_1_candidate_body_after_stub:" in asm_text
     assert "payload[62..29024) status=candidate parser_use=candidate_only" in asm_text
     assert "accepted byte-entry proof remains deferred" in asm_text
     assert "orphan code" not in asm_text.lower()
     source_start = asm_text.index("; CODE source body sections")
     code0_source_start = asm_text.index("; CODE 0 unknown source section")
-    code1_header = asm_text.index("macos_CODE_1_far_model_header:")
-    code1_stub = asm_text.index("macos_CODE_1_candidate_entry_stub:")
+    code1_header = asm_text.index("CODE_1_far_model_header:")
+    code1_stub = asm_text.index("CODE_1_candidate_entry_stub:")
     listing_start = asm_text.index("; CODE 1 Main byte-real source follows.")
     first_instruction = asm_text.index("\tmovea.l (a7)+,a0\n", listing_start)
     quality_start = asm_text.index("; Source quality gate")
