@@ -6626,9 +6626,8 @@ static int enqueue_backward_sliced_indirect_table_targets(M68kDecodeIR *decode, 
   M68kFactsV2TableBaseRef base_ref;
   uint32_t cursor;
   uint8_t control_reg = 0U;
-  uint8_t dest_reg = 0U;
   size_t count = 0U;
-  size_t index;
+  size_t candidate_index;
   if (decode == NULL || facts == NULL || queue == NULL || accepted_start == NULL || accepted_bytes == NULL ||
       profile == NULL || section == NULL || site_candidate == NULL || runtime_addresses == NULL ||
       !candidate_indirect_control_address_register(site_candidate, &control_reg)) {
@@ -6643,28 +6642,43 @@ static int enqueue_backward_sliced_indirect_table_targets(M68kDecodeIR *decode, 
     if (cursor == 0U) break;
   }
   if (count == 0U) return 0;
-  trace_state_init_unknown(&state);
-  for (index = count; index > 1U; --index) {
-    const M68kDecodeCandidate *candidate = previous[index - 1U];
-    M68kFactsV2TraceState next_state;
-    trace_state_after_candidate(section_index, section, candidate, &state, relocation_lookup, facts,
-      runtime_addresses, accepted_start[section_index], accepted_bytes[section_index], &next_state);
-    state = next_state;
-  }
-  trace_value_set_unknown(&targets);
-  memset(&base_ref, 0, sizeof(base_ref));
-  cursor_candidate = previous[0];
-  if (trace_state_candidate_loads_long_target_table(section, cursor_candidate, &state, runtime_addresses,
-      accepted_bytes[section_index], &dest_reg, &targets, &base_ref) && dest_reg == control_reg) {
-    if (append_indirect_table_base_runtime_ref(facts, section_index, &base_ref) != 0) return -1;
-    return enqueue_target_set_for_indirect_site(decode, facts, queue, accepted_start, accepted_bytes,
-      profile, max_cpu, section_index, site_candidate, &targets, runtime_addresses, section);
-  }
-  if (trace_state_candidate_adds_word_target_table(section, cursor_candidate, &state, runtime_addresses,
-      accepted_start[section_index], accepted_bytes[section_index], &dest_reg, &targets) &&
-      dest_reg == control_reg) {
-    return enqueue_target_set_for_indirect_site(decode, facts, queue, accepted_start, accepted_bytes,
-      profile, max_cpu, section_index, site_candidate, &targets, runtime_addresses, section);
+  for (candidate_index = 0U; candidate_index < count; ++candidate_index) {
+    size_t replay_index;
+    size_t gap_index;
+    uint8_t dest_reg = 0U;
+    uint8_t gap_preserves_control_reg = 1U;
+    for (gap_index = 0U; gap_index < candidate_index; ++gap_index) {
+      const M68kDecodeCandidate *gap_candidate = previous[gap_index];
+      if (!candidate_has_normal_fallthrough(gap_candidate) ||
+          candidate_clobbers_address_register(gap_candidate, control_reg)) {
+        gap_preserves_control_reg = 0U;
+        break;
+      }
+    }
+    if (!gap_preserves_control_reg) break;
+    trace_state_init_unknown(&state);
+    for (replay_index = count; replay_index > candidate_index + 1U; --replay_index) {
+      const M68kDecodeCandidate *candidate = previous[replay_index - 1U];
+      M68kFactsV2TraceState next_state;
+      trace_state_after_candidate(section_index, section, candidate, &state, relocation_lookup, facts,
+        runtime_addresses, accepted_start[section_index], accepted_bytes[section_index], &next_state);
+      state = next_state;
+    }
+    trace_value_set_unknown(&targets);
+    memset(&base_ref, 0, sizeof(base_ref));
+    cursor_candidate = previous[candidate_index];
+    if (trace_state_candidate_loads_long_target_table(section, cursor_candidate, &state, runtime_addresses,
+        accepted_bytes[section_index], &dest_reg, &targets, &base_ref) && dest_reg == control_reg) {
+      if (append_indirect_table_base_runtime_ref(facts, section_index, &base_ref) != 0) return -1;
+      return enqueue_target_set_for_indirect_site(decode, facts, queue, accepted_start, accepted_bytes,
+        profile, max_cpu, section_index, site_candidate, &targets, runtime_addresses, section);
+    }
+    if (trace_state_candidate_adds_word_target_table(section, cursor_candidate, &state, runtime_addresses,
+        accepted_start[section_index], accepted_bytes[section_index], &dest_reg, &targets) &&
+        dest_reg == control_reg) {
+      return enqueue_target_set_for_indirect_site(decode, facts, queue, accepted_start, accepted_bytes,
+        profile, max_cpu, section_index, site_candidate, &targets, runtime_addresses, section);
+    }
   }
   return 0;
 }
@@ -9131,10 +9145,28 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   }
   end = clock();
   add_elapsed_seconds_local(&out_profile->fixed_point_runtime_address_ref_seconds, start, end);
-  fail_stage = "backward sliced indirect table append";
-  if (append_backward_sliced_indirect_table_targets_for_accepted(&decode, &facts, &relocation_lookup, &queue,
-      accepted_start, accepted_bytes, out_profile, max_cpu, &runtime_addresses) != 0) {
-    goto fail;
+  {
+    size_t backward_table_queue_count = queue.count;
+    uint32_t backward_table_accepted = 0U;
+    fail_stage = "backward sliced indirect table append";
+    if (append_backward_sliced_indirect_table_targets_for_accepted(&decode, &facts, &relocation_lookup, &queue,
+        accepted_start, accepted_bytes, out_profile, max_cpu, &runtime_addresses) != 0) {
+      goto fail;
+    }
+    if (queue.count > backward_table_queue_count) {
+      fail_stage = "backward sliced indirect table reachable fixed point";
+      if (run_reachable_fixed_point(object, &decode, &facts, policy, &relocation_lookup, &queue,
+          &runtime_addresses, accepted_start, accepted_bytes, &backward_table_accepted, out_profile, max_cpu,
+          diagnostics) != 0) {
+        goto fail;
+      }
+      out_profile->accepted_instructions += backward_table_accepted;
+      fail_stage = "backward sliced indirect table accepted byte rebuild";
+      if (rebuild_accepted_bytes_from_starts(&decode, accepted_start, accepted_bytes,
+          &out_profile->accepted_instructions) != 0) {
+        goto fail;
+      }
+    }
   }
   {
     uint32_t callback_field_entry_seeds = 0U;

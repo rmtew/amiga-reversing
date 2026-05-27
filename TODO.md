@@ -377,6 +377,14 @@ abs_0_0005DC20:
 	jmp $0(a3,a2.w)
 ```
 
+Resolution note: one general C auto-analysis gap is fixed. The facts pass now handles backward-sliced long target
+tables when the table load is followed by non-clobbering instructions before the indirect jump/call, instead of only
+accepting the immediately preceding instruction. If the late backward-sliced pass enqueues new table targets after
+runtime/address-ref materialization, it now runs the reachable fixed point and rebuilds accepted bytes, so discovered
+targets become real decoded source rather than renderer-only labels. This is covered by
+`facts_v2_indirect_long_table_with_gap_promotes_runtime_targets`. More complex base-plus-word dispatch forms, such as
+the `jmp $0(a3,a2.w)` example above, still need separate bounded analysis rather than being claimed by this fix.
+
 
 ## Investigation needed: Amiga/Magicland Dizzy
 
