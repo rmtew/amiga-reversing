@@ -773,8 +773,18 @@ def _residuals_in_range(
         end = _int_value(residual.get("end"))
         if start is None or end is None:
             continue
-        if range_start <= start and end <= range_end:
+        overlap_start = max(start, range_start)
+        overlap_end = min(end, range_end)
+        if overlap_end <= overlap_start:
+            continue
+        if overlap_start == start and overlap_end == end:
             filtered.append(residual)
+            continue
+        clipped = dict(residual)
+        clipped["start"] = overlap_start
+        clipped["end"] = overlap_end
+        clipped["size"] = overlap_end - overlap_start
+        filtered.append(clipped)
     return filtered
 
 

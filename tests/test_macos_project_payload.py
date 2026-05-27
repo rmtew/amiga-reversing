@@ -1073,6 +1073,46 @@ def test_macos_candidate_patterns_are_residuals_not_entry_seeds() -> None:
     assert all("not generated entrypoints" in str(item["reason"]) for item in residuals)
 
 
+def test_macos_source_quality_residuals_are_split_by_ownership_range() -> None:
+    residuals = [
+        {
+            "kind": "semantic_decode_gap",
+            "start": 38,
+            "end": 44,
+            "size": 6,
+            "status": "deferred",
+        }
+    ]
+
+    prefix = macos_project_payload._residuals_in_range(
+        residuals,
+        {"kind": "candidate_unresolved_prefix", "start": 40, "end": 42},
+    )
+    body = macos_project_payload._residuals_in_range(
+        residuals,
+        {"kind": "candidate_code", "start": 42, "end": 46},
+    )
+
+    assert prefix == [
+        {
+            "kind": "semantic_decode_gap",
+            "start": 40,
+            "end": 42,
+            "size": 2,
+            "status": "deferred",
+        }
+    ]
+    assert body == [
+        {
+            "kind": "semantic_decode_gap",
+            "start": 42,
+            "end": 44,
+            "size": 2,
+            "status": "deferred",
+        }
+    ]
+
+
 def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> None:
     if not IMAGE_PATH.exists():
         pytest.skip("MPW-GM image fixture is not available")
