@@ -97,7 +97,10 @@ directly from generated Mac runtime metadata. For the `_GetFNum` pattern, the op
 `output_or_inout_pointer` direction from the generated metadata. Covered by
 `facts_v2_macos_call_stack_args_from_generated_metadata` and `cmd /c src\precommit.bat m68k_ir`. The same fact now binds
 each parameter to the concrete pushed local-frame operand: `name` comes from `-$0100(a6)` and `familyID` comes from
-`-$0102(a6)`. Remaining work is to forward from the output pointer load into typed stack/local/A5-slot facts.
+`-$0102(a6)`. The output-pointer bridge now also records the later `move.w -$0102(a6),...` read as a typed local access:
+`familyID` is read as a two-byte `short` with API-output provenance pointing back to the `_GetFNum` call. This keeps the
+fact in C-owned source analysis rather than a rendered-source comment. Covered by the same regression and
+`cmd /c src\precommit.bat m68k_ir`.
 
 There is also an include/rendering distinction to preserve. The assembly source should include the real MPW interface
 file that defines `_GetFNum` (for example `Fonts.a`, with whatever umbrella include policy we settle on), not emit local

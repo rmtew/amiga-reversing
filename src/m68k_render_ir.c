@@ -9895,6 +9895,9 @@ typedef struct MacStackArgumentOperand {
   uint8_t source_reg_kind;
   uint8_t source_reg_index;
   int16_t source_displacement;
+  uint8_t is_output_pointer;
+  char pointee_type_name[64];
+  char field_name[64];
 } MacStackArgumentOperand;
 
 static int mac_stack_argument_source_from_operand(const M68kOperandIR *operand, MacStackArgumentOperand *out_arg) {
@@ -9907,6 +9910,115 @@ static int mac_stack_argument_source_from_operand(const M68kOperandIR *operand, 
     out_arg->source_reg_index = base_reg;
     out_arg->source_displacement = displacement;
     return 1;
+  }
+  return 0;
+}
+
+static const char *trim_left_local(const char *text) {
+  if (text == NULL) return NULL;
+  while (*text == ' ' || *text == '\t') ++text;
+  return text;
+}
+
+static void trim_right_in_place_local(char *text) {
+  size_t length;
+  if (text == NULL) return;
+  length = strlen(text);
+  while (length != 0U && (text[length - 1U] == ' ' || text[length - 1U] == '\t')) {
+    text[--length] = '\0';
+  }
+}
+
+static uint16_t mac_instruction_access_size(const M68kInstructionIR *instruction) {
+  if (instruction == NULL) return 0U;
+  if (instruction->size_suffix == 'b') return 1U;
+  if (instruction->size_suffix == 'w') return 2U;
+  if (instruction->size_suffix == 'l') return 4U;
+  return 0U;
+}
+
+static int mac_output_pointer_pointee_type(const MacOsCallParameterInfo *param, char *out_type,
+    size_t out_type_size) {
+  const char *type_name;
+  const char *star;
+  size_t length;
+  if (out_type != NULL && out_type_size != 0U) out_type[0] = '\0';
+  if (param == NULL || param->direction == NULL || strcmp(param->direction, "output_or_inout_pointer") != 0 ||
+      param->type_name == NULL || out_type == NULL || out_type_size == 0U) {
+    return 0;
+  }
+  star = strrchr(param->type_name, '*');
+  if (star == NULL || star == param->type_name) return 0;
+  type_name = trim_left_local(param->type_name);
+  length = (size_t)(star - type_name);
+  if (length >= out_type_size) length = out_type_size - 1U;
+  memcpy(out_type, type_name, length);
+  out_type[length] = '\0';
+  trim_right_in_place_local(out_type);
+  if (out_type[0] == '\0') return 0;
+  return 1;
+}
+
+static int mac_operand_matches_stack_arg_source(const M68kOperandIR *operand, const MacStackArgumentOperand *arg,
+    uint8_t *out_base_reg, int16_t *out_displacement) {
+  uint8_t base_reg = 0U;
+  int16_t displacement = 0;
+  if (out_base_reg != NULL) *out_base_reg = 0U;
+  if (out_displacement != NULL) *out_displacement = 0;
+  if (operand == NULL || arg == NULL || arg->source_reg_kind != 2U ||
+      !operand_is_address_memory_local(operand, &base_reg, &displacement)) {
+    return 0;
+  }
+  if (base_reg != arg->source_reg_index || displacement != arg->source_displacement) return 0;
+  if (out_base_reg != NULL) *out_base_reg = base_reg;
+  if (out_displacement != NULL) *out_displacement = displacement;
+  return 1;
+}
+
+static int record_mac_output_pointer_local_reads_for_render(M68kRenderIRPreview *preview,
+    const M68kDecodeSectionIR *section, const uint8_t *accepted_start, uint32_t call_offset,
+    M68kSectionAnalysisIR *section_analysis, const MacStackArgumentOperand *args, size_t arg_count) {
+  uint32_t cursor;
+  if (preview == NULL || section == NULL || accepted_start == NULL || section_analysis == NULL ||
+      args == NULL || arg_count == 0U) {
+    return 0;
+  }
+  cursor = call_offset + 2U;
+  while (cursor < section->size && cursor - call_offset <= 96U) {
+    const M68kDecodeCandidate *candidate;
+    M68kInstructionIR instruction;
+    const M68kSimFormMetadata *metadata;
+    size_t operand_index;
+    if (!accepted_start_at(section, accepted_start, cursor)) break;
+    candidate = find_candidate_at_offset_local(section, cursor);
+    if (candidate == NULL || candidate->byte_count == 0U) break;
+    if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) break;
+    metadata = m68k_sim_metadata_for_instruction(&instruction);
+    if (metadata == NULL) break;
+    for (operand_index = 0U; operand_index < instruction.operand_count && operand_index < 4U; ++operand_index) {
+      size_t arg_index;
+      uint8_t base_reg = 0U;
+      int16_t displacement = 0;
+      if (metadata->operand_access_kinds[operand_index] != M68K_SIM_ACCESS_MEMORY_READ) continue;
+      for (arg_index = 0U; arg_index < arg_count; ++arg_index) {
+        const MacStackArgumentOperand *arg = &args[arg_index];
+        uint16_t access_size = mac_instruction_access_size(&instruction);
+        if (!arg->is_output_pointer ||
+            !mac_operand_matches_stack_arg_source(&instruction.operands[operand_index], arg, &base_reg,
+              &displacement)) {
+          continue;
+        }
+        if (m68k_ir_section_analysis_append_recovered_platform_typed_access(section_analysis,
+            M68K_PLATFORM_BACKEND_MACOS, candidate->offset, (uint8_t)operand_index, base_reg, displacement, 0,
+            0U, access_size, arg->pointee_type_name, arg->pointee_type_name, arg->field_name,
+            "", 0U, 0U, M68K_PLATFORM_TYPE_PROVENANCE_API_OUTPUT, section->section_index, call_offset) != 0) {
+          preview->asm_source_allocation_failed = 1U;
+          return -1;
+        }
+      }
+    }
+    if (candidate_has_call_flow(candidate) || candidate_has_non_call_control_target(candidate)) break;
+    cursor += candidate->byte_count;
   }
   return 0;
 }
@@ -9965,6 +10077,12 @@ static int record_mac_call_stack_args_for_render(M68kRenderIRPreview *preview, c
       const MacStackArgumentOperand *arg = &args[first_arg + param_index];
       uint16_t stack_offset = (uint16_t)((mac_call->parameter_count - param_index) * 4U);
       if (param == NULL) continue;
+      if (mac_output_pointer_pointee_type(param, args[first_arg + param_index].pointee_type_name,
+          sizeof(args[first_arg + param_index].pointee_type_name))) {
+        args[first_arg + param_index].is_output_pointer = 1U;
+        snprintf(args[first_arg + param_index].field_name, sizeof(args[first_arg + param_index].field_name),
+          "%s", param->name != NULL ? param->name : "");
+      }
       if (m68k_ir_section_analysis_append_recovered_function_arg(section_analysis, M68K_PLATFORM_BACKEND_MACOS,
           call_offset, stack_offset, 0U, 0U, mac_call->c_name, param->name, param->type_name,
           param->direction, NULL, 0U, 0, arg->source_reg_kind != 0U, arg->offset, arg->source_reg_kind,
@@ -9973,6 +10091,10 @@ static int record_mac_call_stack_args_for_render(M68kRenderIRPreview *preview, c
         return -1;
       }
     }
+  }
+  if (record_mac_output_pointer_local_reads_for_render(preview, section, accepted_start, call_offset,
+      section_analysis, args + (arg_count - mac_call->parameter_count), mac_call->parameter_count) != 0) {
+    return -1;
   }
   return 1;
 }
