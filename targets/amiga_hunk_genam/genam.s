@@ -1,3 +1,11 @@
+; OS compatibility
+;   minimum required: 2.0
+;   observed API availability: 1.3, 2.0
+;   observed FD/interface versions: none
+;   max requirement drivers:
+;     _LVOGetSysTime at section_0+$0000AA6A requires 2.0
+;     _LVOGetSysTime at section_0+$0000ABF6 requires 2.0
+
     INCLUDE "devices/timer.i"
     INCLUDE "devices/timer_lib.i"
     INCLUDE "dos/dos.i"
@@ -40,10 +48,7 @@ app_011C RS.B 1
 app_011D RS.B 1
 app_011E RS.B 1
 app_011F RS.B 1
-    RS.B 134
-app_node_list_head RS.L 1
-app_current_node RS.L 1
-    RS.B 82
+    RS.B 224
 app_0200 RS.L 1
 app_0204 RS.L 1
 app_0208 RS.L 1
@@ -57,9 +62,9 @@ app_021C RS.W 1
 app_021E RS.W 1
 app_0220 RS.L 1
 app_0224 RS.L 1
-app_option_source_buffer RS.L 1
-app_startup_options_buffer RS.L 1
-app_input_source_buffer RS.L 1
+app_0228 RS.L 1
+app_022C RS.L 1
+app_0230 RS.L 1
 app_0234 RS.L 1
 app_0238 RS.B 1
 app_0239 RS.B 1
@@ -188,7 +193,6 @@ app_10A8 RS.B 8
 app_10B0 RS.B 8
 app_timer_device_iorequest RS.B 48
 app_10E8 RS.L 1
-app_SIZEOF EQU __RS
     RSSET $021D
 app_021D RS.B 1
     RSSET $023F
@@ -197,6 +201,8 @@ app_023F RS.B 1
 app_057F RS.B 1
     RSSET $10CC
 app_TimerBase RS.L 1
+    RSSET $10EC
+app_SIZEOF EQU __RS
 
 
     SECTION section,code
@@ -259,7 +265,7 @@ loc_0_00000064:
 	beq.b loc_0_00000110
 	jsr loc_0_0000B0AC.l
 	beq.w loc_0_00000174
-	move.l a0,app_input_source_buffer(a6)
+	move.l a0,app_0230(a6)
 	jsr loc_0_0000AB08.l
 	bne.w loc_0_00000170
 loc_0_00000110:
@@ -1359,13 +1365,29 @@ loc_0_00000E62:
 	dc.b $F4,$22,$00
 loc_0_00000E8B:
 	dc.b $00,$00,$00,$00,$04,$04,$16,$16,$14,$14,$14,$14,$14,$14,$12
-	dc.w loc_0_000020B4-loc_0_00000EA2,loc_0_000010A4-loc_0_00000EA2,loc_0_00002BC0-loc_0_00000EA2,loc_0_00002CA2-loc_0_00000EA2	; lookup_table
+	dc.w loc_0_000020B4-loc_0_00000EA2	; lookup_table
+	dc.w loc_0_000010A4-loc_0_00000EA2
+	dc.w loc_0_00002BC0-loc_0_00000EA2
+	dc.w loc_0_00002CA2-loc_0_00000EA2
 loc_0_00000EA2:
-	dc.w loc_0_000010DA-loc_0_00000EA2,loc_0_000010F8-loc_0_00000EA2,loc_0_00001120-loc_0_00000EA2,loc_0_00001124-loc_0_00000EA2	; lookup_table
-	dc.w loc_0_00001128-loc_0_00000EA2,loc_0_00001150-loc_0_00000EA2,loc_0_00001156-loc_0_00000EA2,loc_0_0000115C-loc_0_00000EA2	; lookup_table
-	dc.w loc_0_00001162-loc_0_00000EA2,loc_0_00001168-loc_0_00000EA2,loc_0_00001114-loc_0_00000EA2,loc_0_00001118-loc_0_00000EA2	; lookup_table
-	dc.w loc_0_0000111C-loc_0_00000EA2,loc_0_00001050-loc_0_00000EA2,loc_0_00001096-loc_0_00000EA2,loc_0_0000116E-loc_0_00000EA2	; lookup_table
-	dc.w loc_0_0000117A-loc_0_00000EA2,loc_0_00001178-loc_0_00000EA2	; lookup_table
+	dc.w loc_0_000010DA-loc_0_00000EA2	; lookup_table
+	dc.w loc_0_000010F8-loc_0_00000EA2
+	dc.w loc_0_00001120-loc_0_00000EA2
+	dc.w loc_0_00001124-loc_0_00000EA2
+	dc.w loc_0_00001128-loc_0_00000EA2
+	dc.w loc_0_00001150-loc_0_00000EA2
+	dc.w loc_0_00001156-loc_0_00000EA2
+	dc.w loc_0_0000115C-loc_0_00000EA2
+	dc.w loc_0_00001162-loc_0_00000EA2
+	dc.w loc_0_00001168-loc_0_00000EA2
+	dc.w loc_0_00001114-loc_0_00000EA2
+	dc.w loc_0_00001118-loc_0_00000EA2
+	dc.w loc_0_0000111C-loc_0_00000EA2
+	dc.w loc_0_00001050-loc_0_00000EA2
+	dc.w loc_0_00001096-loc_0_00000EA2
+	dc.w loc_0_0000116E-loc_0_00000EA2
+	dc.w loc_0_0000117A-loc_0_00000EA2
+	dc.w loc_0_00001178-loc_0_00000EA2
 loc_0_00000EC6:
 	lea.l app_0628(a6),a0
 	move.w (a0),d0
@@ -3509,7 +3531,7 @@ loc_0_000044E4:
 	clr.l $0196(a6)
 	tst.b app_0238(a6)
 	bne.b loc_0_000044FA
-	clr.l app_node_list_head(a6)
+	clr.l $01A6(a6)
 loc_0_000044FA:
 	bsr.w loc_0_000079A6
 	move.b -$0001(a4),d1
@@ -6988,7 +7010,7 @@ loc_0_00009A2E:
 	dc.b $02,$38,$67,$18,$4A,$2E,$01,$03,$67,$12,$22,$6E,$01,$AA,$0C,$69
 	dc.b $03,$EB,$00,$12,$67,$06,$94,$81,$D5,$AE,$02,$4C,$70,$00,$4E,$75
 loc_0_00009A90:
-	movea.l app_current_node(a6),a0
+	movea.l $01AA(a6),a0
 	cmpi.w #1003,$0012(a0)
 	beq.w loc_0_0000845A
 	add.l d1,app_024C(a6)
@@ -7023,7 +7045,7 @@ loc_0_00009AFE:
 	clr.l $0008(a0)
 	movea.l a0,a1
 loc_0_00009B04:
-	move.l a1,app_current_node(a6)
+	move.l a1,$01AA(a6)
 	rts
 loc_0_00009B0A:
 	bsr.b loc_0_00009B24
@@ -7033,10 +7055,10 @@ loc_0_00009B0A:
 	lea.l app_05A8(a6),a0
 	move.l a0,app_024C(a6)
 loc_0_00009B1E:
-	move.l a1,app_current_node(a6)
+	move.l a1,$01AA(a6)
 	rts
 loc_0_00009B24:
-	lea.l app_node_list_head(a6),a0
+	lea.l $01A6(a6),a0
 	move.b $000E(a1),d0
 loc_0_00009B2C:
 	tst.l (a0)
@@ -7068,16 +7090,10 @@ loc_0_00009B64:
 	moveq.l #77,d0
 	bra.w loc_0_0000846E
 loc_0_00009B6A:
-	dc.b $03,$42,$53,$53
-	dc.b $04,"CODE"	; length_prefixed_string
-	dc.b $04,"DATA"	; length_prefixed_string
-	dc.b $05,"BSS_C"	; length_prefixed_string
-	dc.b $05,"BSS_F"	; length_prefixed_string
-	dc.b $06,"CODE_C"	; length_prefixed_string
-	dc.b $06,"CODE_F"	; length_prefixed_string
-	dc.b $06,"DATA_C"	; length_prefixed_string
-	dc.b $06,"DATA_F"	; length_prefixed_string
-	dc.b $00,$00
+	dc.b $03,$42,$53,$53,$04,$43,$4F,$44,$45,$04,$44,$41,$54,$41,$05,$42
+	dc.b $53,$53,$5F,$43,$05,$42,$53,$53,$5F,$46,$06,$43,$4F,$44,$45,$5F
+	dc.b $43,$06,$43,$4F,$44,$45,$5F,$46,$06,$44,$41,$54,$41,$5F,$43,$06
+	dc.b $44,$41,$54,$41,$5F,$46,$00,$00
 loc_0_00009BA2:
 	dc.b $00,$00,$03,$EB,$00,$00,$03,$E9,$00,$00,$03,$EA,$40,$00,$03,$EB
 	dc.b $80,$00,$03,$EB,$40,$00,$03,$E9,$80,$00,$03,$E9,$40,$00,$03,$EA
@@ -7085,7 +7101,7 @@ loc_0_00009BA2:
 loc_0_00009BC6:
 	move.l a4,-(a7)
 	movea.l $019A(a6),a4
-	lea.l app_node_list_head(a6),a3
+	lea.l $01A6(a6),a3
 loc_0_00009BD0:
 	tst.l (a3)
 	beq.b loc_0_00009C20
@@ -7129,14 +7145,14 @@ loc_0_00009C2A:
 	moveq.l #46,d1
 	bra.w loc_0_00009288
 loc_0_00009C38:
-	movea.l app_current_node(a6),a1
+	movea.l $01AA(a6),a1
 	cmpi.w #1003,$0012(a1)
 	rts
 loc_0_00009C44:
 	movea.l $019E(a6),a4
 	tst.b $0104(a6)
 	beq.b loc_0_00009C9E
-	lea.l app_node_list_head(a6),a3
+	lea.l $01A6(a6),a3
 loc_0_00009C52:
 	movea.l (a3),a3
 	movea.l $0004(a3),a0
@@ -7167,7 +7183,7 @@ loc_0_00009C9A:
 loc_0_00009C9E:
 	tst.b $0129(a6)
 	beq.b loc_0_00009CBE
-	lea.l app_node_list_head(a6),a3
+	lea.l $01A6(a6),a3
 loc_0_00009CA8:
 	movea.l (a3),a3
 	movea.l $0004(a3),a0
@@ -7177,13 +7193,13 @@ loc_0_00009CA8:
 	tst.l (a3)
 	bne.b loc_0_00009CA8
 loc_0_00009CBE:
-	lea.l app_node_list_head(a6),a3
+	lea.l $01A6(a6),a3
 loc_0_00009CC2:
 	movea.l (a3),a3
 	tst.l $0018(a3)
 	beq.b loc_0_00009CFC
 	moveq.l #0,d3
-	lea.l app_node_list_head(a6),a2
+	lea.l $01A6(a6),a2
 	moveq.l #1,d6
 loc_0_00009CD2:
 	movea.l (a2),a2
@@ -7266,7 +7282,7 @@ loc_0_00009DA6:
 	moveq.l #0,d1
 	bsr.w loc_0_0000A0EE
 	moveq.l #0,d1
-	lea.l app_node_list_head(a6),a0
+	lea.l $01A6(a6),a0
 loc_0_00009DD4:
 	movea.l (a0),a0
 	tst.l $0014(a0)
@@ -7285,7 +7301,7 @@ loc_0_00009DE2:
 	move.l d2,d1
 	subq.l #1,d1
 	bsr.w loc_0_0000A0EE
-	lea.l app_node_list_head(a6),a3
+	lea.l $01A6(a6),a3
 loc_0_00009DFE:
 	movea.l (a3),a3
 	move.l $0014(a3),d1
@@ -7307,7 +7323,7 @@ loc_0_00009E1C:
 	beq.b loc_0_00009E2E
 	bsr.w loc_0_0000A42E
 loc_0_00009E2E:
-	lea.l app_node_list_head(a6),a3
+	lea.l $01A6(a6),a3
 	bra.b loc_0_00009E64
 loc_0_00009E34:
 	move.l #$3E7,d1
@@ -7329,7 +7345,7 @@ loc_0_00009E50:
 	subq.b #1,d0
 loc_0_00009E5C:
 	bsr.w loc_0_0000A1D0
-	lea.l app_node_list_head(a6),a3
+	lea.l $01A6(a6),a3
 loc_0_00009E64:
 	movea.l (a3),a3
 	tst.l $0014(a3)
@@ -7380,7 +7396,7 @@ loc_0_00009EBE:
 loc_0_00009EF4:
 	moveq.l #0,d3
 	move.l d1,-(a7)
-	pea.l app_node_list_head(a6)
+	pea.l $01A6(a6)
 	clr.l -(a7)
 loc_0_00009EFE:
 	movea.l $0004(a7),a0
@@ -7472,7 +7488,7 @@ loc_0_00009FF6:
 loc_0_00009FF8:
 	tst.l (a3)
 	bne.w loc_0_00009E64
-	lea.l app_node_list_head(a6),a3
+	lea.l $01A6(a6),a3
 loc_0_0000A002:
 	movea.l (a3),a3
 	tst.l $0014(a3)
@@ -7673,7 +7689,7 @@ loc_0_0000A1FA:
 	lea.l app_05A8(a6),a0
 	bra.w loc_0_00008422
 loc_0_0000A208:
-	movea.l app_current_node(a6),a0
+	movea.l $01AA(a6),a0
 	lea.l $0018(a0),a0
 	tst.l (a0)
 	beq.b loc_0_0000A220
@@ -7851,7 +7867,7 @@ loc_0_0000A3DD:
 loc_0_0000A3F4:
 	tst.b $0104(a6)
 	beq.b loc_0_0000A42C
-	lea.l app_node_list_head(a6),a3
+	lea.l $01A6(a6),a3
 loc_0_0000A3FE:
 	movea.l (a3),a3
 	tst.l $0014(a3)
@@ -7925,7 +7941,7 @@ loc_0_0000A4E4:
 	tst.b $0104(a6)
 	beq.b loc_0_0000A520
 	moveq.l #0,d2
-	lea.l app_node_list_head(a6),a3
+	lea.l $01A6(a6),a3
 loc_0_0000A4F0:
 	movea.l (a3),a3
 	tst.l $0014(a3)
@@ -8106,7 +8122,7 @@ loc_0_0000A930:
 loc_0_0000A968:
 	move.l d0,app_DOSBase(a6)
 	clr.b app_0DF4(a6)
-	move.l a4,app_option_source_buffer(a6)
+	move.l a4,app_0228(a6)
 	move.l a7,app_0CDE(a6)
 	move.l #$1140,app_0DEA(a6)
 	move.l a3,-(a7)
@@ -8130,7 +8146,7 @@ loc_0_0000A9B8:
 	moveq.l #0,d0
 	rts
 loc_0_0000A9BC:
-	movea.l app_option_source_buffer(a6),a0
+	movea.l app_0228(a6),a0
 	move.b (a0),d0
 	cmp.b #$3F,d0
 	bne.b loc_0_0000AA08
@@ -8150,7 +8166,7 @@ loc_0_0000A9BC:
 	cmp.b #$1,d0
 	ble.w loc_0_0000AAAE
 	movea.l (a7)+,a0
-	move.l a0,app_option_source_buffer(a6)
+	move.l a0,app_0228(a6)
 	clr.b -$1(a0,d0.w)
 loc_0_0000AA08:
 	sf.b app_0840(a6)
@@ -8184,8 +8200,8 @@ loc_0_0000AA08:
 	movea.l (a7)+,a6
 loc_0_0000AA70:
 	move.w #$3,app_021C(a6)
-	clr.l app_startup_options_buffer(a6)
-	clr.l app_input_source_buffer(a6)
+	clr.l app_022C(a6)
+	clr.l app_0230(a6)
 	tst.l $01A2(a6)
 	bne.b loc_0_0000AA9C
 	lea.l loc_0_0000AAF4(pc),a0
@@ -8195,7 +8211,7 @@ loc_0_0000AA70:
 	bsr.w loc_0_0000B0AC
 	beq.b loc_0_0000AA9C
 loc_0_0000AA98:
-	move.l a0,app_startup_options_buffer(a6)
+	move.l a0,app_022C(a6)
 loc_0_0000AA9C:
 	moveq.l #0,d0
 	rts
@@ -8213,13 +8229,13 @@ loc_0_0000AAF4:
 	dc.b "genam.opts",$00	; string
 	dc.b $00
 loc_0_0000AB00:
-	movea.l app_option_source_buffer(a6),a4
+	movea.l app_0228(a6),a4
 	bra.w loc_0_0000AB16
 loc_0_0000AB08:
-	move.l app_input_source_buffer(a6),d0
+	move.l app_0230(a6),d0
 	bra.b loc_0_0000AB12
 loc_0_0000AB0E:
-	move.l app_startup_options_buffer(a6),d0
+	move.l app_022C(a6),d0
 loc_0_0000AB12:
 	beq.b loc_0_0000AB28
 	movea.l d0,a4
@@ -9912,7 +9928,7 @@ loc_0_0000F830:
 	dc.b $60,$0C,$08,$E9,$00,$00,$00,$10,$66,$04,$23,$42,$00,$16,$70,$00
 	dc.b $4E,$75,$70,$FF,$4E,$75
 loc_0_0000F868:
-	movea.l app_current_node(a6),a0
+	movea.l $01AA(a6),a0
 	btst.b #1,$0010(a0)
 	bne.w loc_0_0000F884
 	add.l d1,app_024C(a6)
@@ -9950,7 +9966,7 @@ loc_0_0000F8DE:
 	clr.l $0008(a0)
 	movea.l a0,a1
 loc_0_0000F8E4:
-	move.l a1,app_current_node(a6)
+	move.l a1,$01AA(a6)
 	rts
 loc_0_0000F8EA:
 	bsr.w loc_0_00009B24
@@ -9960,7 +9976,7 @@ loc_0_0000F8EA:
 	lea.l app_05A8(a6),a0
 	move.l a0,app_024C(a6)
 loc_0_0000F902:
-	move.l a1,app_current_node(a6)
+	move.l a1,$01AA(a6)
 	tst.l $0196(a6)
 	beq.b loc_0_0000F92A
 	movem.l a1/a4,-(a7)
@@ -9986,7 +10002,7 @@ loc_0_0000F94E:
 	move.l a5,$000C(a1)
 	rts
 loc_0_0000F954:
-	lea.l app_node_list_head(a6),a3
+	lea.l $01A6(a6),a3
 loc_0_0000F958:
 	tst.l (a3)
 	beq.b loc_0_0000F980
@@ -10005,7 +10021,7 @@ loc_0_0000F97E:
 loc_0_0000F980:
 	rts
 loc_0_0000F982:
-	movea.l app_current_node(a6),a1
+	movea.l $01AA(a6),a1
 	btst.b #1,$0010(a1)
 	eori #4,ccr
 	rts
@@ -10052,7 +10068,7 @@ loc_0_0000F9F0:
 	sub.l a2,d2
 	subq.l #1,d2
 	bsr.w loc_0_0000FA74
-	lea.l app_node_list_head(a6),a3
+	lea.l $01A6(a6),a3
 loc_0_0000FA02:
 	movea.l (a3),a3
 	move.l $0012(a3),d3

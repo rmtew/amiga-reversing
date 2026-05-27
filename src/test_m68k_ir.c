@@ -17126,7 +17126,7 @@ static int test_facts_v2_render_asm_source_drops_conflicting_typed_base_at_branc
   return 0;
 }
 
-static int test_facts_v2_length_prefixed_ascii_sequence_renders_strings(void) {
+static int test_facts_v2_plain_ascii_sequence_is_not_length_prefixed(void) {
   M68kObject object;
   M68kSection section;
   M68kObjectAddResult added;
@@ -17135,7 +17135,7 @@ static int test_facts_v2_length_prefixed_ascii_sequence_renders_strings(void) {
   M68kSourceAnalysisIR source_analysis;
   char *source = NULL;
   uint16_t index;
-  uint32_t string_items = 0U;
+  uint32_t length_prefixed_items = 0U;
   uint8_t bytes[] = {
     5u, 'A', 'L', 'P', 'H', 'A',
     33u, 'T', 'H', 'I', 'S', ' ', 'I', 'S', ' ', 'A', ' ', 'T', 'H', 'I', 'R', 'T', 'Y',
@@ -17155,21 +17155,17 @@ static int test_facts_v2_length_prefixed_ascii_sequence_renders_strings(void) {
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
     &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
-  M68K_C_ASSERT(strstr(source, "dc.b $05,\"ALPHA\"") != NULL);
-  M68K_C_ASSERT(strstr(source, "dc.b $21,\"THIS IS A THIRTY TWO BYTE MESSAGE\"") != NULL);
-  M68K_C_ASSERT(strstr(source, "dc.b $05,\"GAMMA\"") != NULL);
+  M68K_C_ASSERT(strstr(source, "dc.b $05,\"ALPHA\"") == NULL);
+  M68K_C_ASSERT(strstr(source, "length_prefixed_string") == NULL);
   for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
     const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
     if (item->has_section_index && item->section_index == 0U &&
         structured_data_item_has_role(item,
           M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING | M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LENGTH_PREFIXED_STRING)) {
-      M68K_C_ASSERT_U32(
-        M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING | M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LENGTH_PREFIXED_STRING,
-        item->semantic_role_flags);
-      ++string_items;
+      ++length_prefixed_items;
     }
   }
-  M68K_C_ASSERT_U32(3U, string_items);
+  M68K_C_ASSERT_U32(0U, length_prefixed_items);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
   m68k_facts_v2_free_text(source);
@@ -17299,6 +17295,63 @@ static int test_facts_v2_highbit_symbol_string_is_not_generic_pascal(void) {
   return 0;
 }
 
+static int test_facts_v2_fixed_width_text_table_is_not_length_prefixed(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  char *source = NULL;
+  uint16_t index;
+  uint32_t length_prefixed_items = 0U;
+  uint8_t bytes[] = {
+    0x20u, 0x20u, 0x20u, 0x20u, 0x20u, 0x20u,
+    0x4eu, 'O', 'T', 'H', 'I', 'N', 'G', '!', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+    'T', 'H', 'E', ' ', 'B', 'A', 'C', 'K', 'D', 'O', 'O', 'R', ' ', 'K', 'E', 'Y',
+    ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'T', 'H', 'E', ' ', 'D', 'A', 'G', 'G', 'E',
+    'R', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'T', 'H', 'E', ' ', 'B', 'L', 'A', 'C',
+    'K', ' ', 'C', 'A', 'T', '!', ' ', ' ', ' ', 'E', 'X', 'C', 'A', 'L',
+    0x49u, 'B', 'U', 'R', ' ', 'T', 'H', 'E', ' ', 'S', 'W', 'O', 'R', 'D', '!',
+    ' ', ' ', ' ', ' ', ' ', 'T', 'H', 'E', ' ', 'H', 'A', 'N', 'D', 'L', 'E',
+    ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'T', 'H', 'E', ' ', 'B', 'I', 'G',
+    ' ', 'S', 'T', 'I', 'C', 'K', '!', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+    'T', 'H', 'E', ' ', 'D', 'U', 'S', 'T', 'E', 'R', ' ', ' ', ' ', ' ',
+    0x20u, 'T', 'H', 'E', ' ', 'D', 'E', 'V', 'I', 'L', '\'', 'S', ' ', 'T', 'R',
+    'I', 'D', 'E', 'N', 'T', '!', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'A', ' ',
+    'L', 'E', 'A'
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  section.kind = M68K_SECTION_DATA;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "dc.b $4E,\"OTHING!") == NULL);
+  M68K_C_ASSERT(strstr(source, "length_prefixed_string") == NULL);
+  for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
+    const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
+    if (item->has_section_index && item->section_index == 0U &&
+        structured_data_item_has_role(item,
+          M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING | M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LENGTH_PREFIXED_STRING)) {
+      ++length_prefixed_items;
+    }
+  }
+  M68K_C_ASSERT_U32(0U, length_prefixed_items);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_source_analysis_caps_many_auto_structured_strings(void) {
   M68kObject object;
   M68kSection section;
@@ -17314,12 +17367,12 @@ static int test_facts_v2_source_analysis_caps_many_auto_structured_strings(void)
   bytes = (uint8_t *)malloc(record_count * record_size);
   M68K_C_ASSERT(bytes != NULL);
   for (index = 0U; index < record_count; ++index) {
-    bytes[offset++] = 5U;
     bytes[offset++] = 'A';
     bytes[offset++] = (uint8_t)('A' + (index % 26U));
     bytes[offset++] = 'T';
     bytes[offset++] = 'X';
     bytes[offset++] = 'T';
+    bytes[offset++] = 0U;
   }
   M68K_C_ASSERT_INT(0, m68k_object_create(&object));
   section.kind = M68K_SECTION_DATA;
@@ -17334,8 +17387,7 @@ static int test_facts_v2_source_analysis_caps_many_auto_structured_strings(void)
   for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
     const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
     if (item->has_section_index && item->section_index == 0U &&
-        structured_data_item_has_role(item,
-          M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING | M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LENGTH_PREFIXED_STRING))
+        structured_data_item_has_role(item, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING))
       ++string_items;
   }
   M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT, string_items);
@@ -20867,10 +20919,12 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_two_short_ascii_spans_remain_raw_data},
     {"facts_v2_label_bounded_ascii_span_auto_classifies_string",
       test_facts_v2_label_bounded_ascii_span_auto_classifies_string},
-    {"facts_v2_length_prefixed_ascii_sequence_renders_strings",
-      test_facts_v2_length_prefixed_ascii_sequence_renders_strings},
+    {"facts_v2_plain_ascii_sequence_is_not_length_prefixed",
+      test_facts_v2_plain_ascii_sequence_is_not_length_prefixed},
     {"facts_v2_length_prefixed_ascii_sequence_respects_code_overlap",
       test_facts_v2_length_prefixed_ascii_sequence_respects_code_overlap},
+    {"facts_v2_fixed_width_text_table_is_not_length_prefixed",
+      test_facts_v2_fixed_width_text_table_is_not_length_prefixed},
     {"facts_v2_macos_highbit_symbol_string_renders_structured_data",
       test_facts_v2_macos_highbit_symbol_string_renders_structured_data},
     {"facts_v2_highbit_symbol_string_is_not_generic_pascal",

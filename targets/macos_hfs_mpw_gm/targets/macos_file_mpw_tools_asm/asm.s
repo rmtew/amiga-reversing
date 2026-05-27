@@ -32418,7 +32418,7 @@ CODE_11_loc_000001b8:
 CODE_11_loc_000001cc:
 	tst.b -$0F4F(a5)
 	beq.b CODE_11_loc_000001fe
-	pea.l $2000.w
+	pea.l absolute_slot_00002000.w
 	jsr CODE_0_jump_table_entry_198+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l d7,d0
 	add.l -$0F2E(a5),d0
@@ -42709,7 +42709,7 @@ CODE_20_loc_00000070:
 	moveq.l #0,d0
 	move.l d0,$0004(a4)
 	move.l a4,-(a7)
-	pea.l $6400.w
+	pea.l absolute_slot_00006400.w
 	move.l $0008(a6),-(a7)
 	pea.l -$0008(a6)
 	jsr CODE_20_loc_00000858(pc)
@@ -42986,7 +42986,7 @@ CODE_20_loc_00000324:
 	dbf.w d0,CODE_20_loc_00000324
 	moveq.l #0,d0
 	move.l d0,-(a7)
-	pea.l $6601.w
+	pea.l absolute_slot_00006601.w
 	move.l a4,-(a7)
 	movea.l $0004(a4),a0
 	movea.l $0014(a0),a1
@@ -43169,7 +43169,7 @@ CODE_20_loc_000004ec:
 	beq.b CODE_20_loc_00000508
 	moveq.l #0,d0
 	move.l d0,-(a7)
-	pea.l $6601.w
+	pea.l absolute_slot_00006601.w
 	move.l a4,-(a7)
 	movea.l $0004(a4),a0
 	movea.l $0014(a0),a1
@@ -43426,7 +43426,7 @@ CODE_20_loc_0000073e:
 	move.l $0010(a6),-$0008(a6)
 	move.l $000C(a6),-$0004(a6)
 	pea.l -$0008(a6)
-	pea.l $6600.w
+	pea.l absolute_slot_00006600.w
 	move.l $0008(a6),-(a7)
 	jsr CODE_20_loc_00000266(pc)
 	move.l d0,d7
@@ -43963,7 +43963,7 @@ CODE_20_loc_00000c90:
 	move.l d0,-$3276(a5)
 	subq.l #4,a7
 	move.l $0008(a6),-(a7)
-	pea.l $6401.w
+	pea.l absolute_slot_00006401.w
 	moveq.l #0,d0
 	move.l d0,-(a7)
 	jsr CODE_20_loc_00000ac4(pc)
@@ -44720,7 +44720,7 @@ CODE_20_loc_0000140c:
 	move.l a3,-(a7)
 	jsr CODE_20_loc_00001362(pc)
 	move.l (a7),d7
-	pea.l $6606.w
+	pea.l absolute_slot_00006606.w
 	movea.l (a3),a0
 	movea.l (a0),a0
 	move.l (a0),-(a7)
@@ -47063,7 +47063,7 @@ CODE_21_loc_00001960:
 CODE_21_loc_0000197c:
 	moveq.l #0,d0
 	move.l d0,-(a7)
-	pea.l $6601.w
+	pea.l absolute_slot_00006601.w
 	move.l a4,-(a7)
 	movea.l $0004(a4),a0
 	movea.l $0014(a0),a1
@@ -47273,7 +47273,7 @@ CODE_24_loc_00000096:
 	bra.b CODE_24_loc_000000e4
 CODE_24_loc_000000ba:
 	pea.l -$0004(a6)
-	pea.l $6603.w
+	pea.l absolute_slot_00006603.w
 	moveq.l #0,d0
 	move.w $0014(a4),d0
 	move.l d0,-(a7)
@@ -47332,7 +47332,7 @@ CODE_24_loc_00000146:
 	move.l $0008(a4),$0004(a4)
 	moveq.l #0,d0
 	move.l d0,-(a7)
-	pea.l $6602.w
+	pea.l absolute_slot_00006602.w
 	moveq.l #0,d1
 	move.w $0014(a4),d1
 	move.l d1,-(a7)
@@ -50380,7 +50380,7 @@ CODE_27_data_00000006:
 	_NewPtrClear
 	tst.w d0
 	bne.b CODE_27_loc_0000007e
-	move.w $0934.w,d0
+	move.w absolute_slot_00000934.w,d0
 	move.l a0,$C(a5,d0.w)
 	tst.w $028E.w
 	blt.b CODE_27_loc_00000048
@@ -50410,11 +50410,11 @@ CODE_27_loc_00000048:
 	lea.l CODE_27_loc_0000007a(pc),a0
 	move.l (a7),(a0)
 	movea.l a5,a0
-	adda.w $0934.w,a0
+	adda.w absolute_slot_00000934.w,a0
 	jsr $0012(a0)
 	bsr.w CODE_27_loc_00000252
 	movea.l a5,a0
-	adda.w $0934.w,a0
+	adda.w absolute_slot_00000934.w,a0
 	movea.l $000C(a0),a0
 CODE_27_data_00000072:
 	_DisposePtr
@@ -50442,7 +50442,7 @@ CODE_27_loc_00000092:
 CODE_27_loc_00000142:
 	movem.l d0/a0-a2,-(a7)
 	movea.l a5,a1
-	adda.w $0934.w,a1
+	adda.w absolute_slot_00000934.w,a1
 	movea.l $000C(a1),a1
 	lea.l CODE_27_loc_00000130(pc),a2
 CODE_27_loc_00000154:
@@ -50481,7 +50481,7 @@ CODE_27_loc_000001aa:
 CODE_27_data_000001ae:
 	_GetResourceSizeOnDisk
 	movea.l (a7)+,a0
-	adda.w $0934.w,a0
+	adda.w absolute_slot_00000934.w,a0
 	suba.w #$10,a0
 	lea.l CODE_27_loc_00000202(pc),a1
 	move.l a0,(a1)
@@ -50617,15 +50617,15 @@ CODE_27_data_dispatch_table_00000286:
 	dc.b $2F,$3A,$FB,$9C,$4E,$75,$80,$0F,$70,$61,$74,$63,$68,$5F,$55,$6E
 	dc.b $6C,$6F,$61,$64,$53,$65,$67,$00,$00,$00
 CODE_27_loc_00000670:
-	sf.b $0A5E.w
+	sf.b absolute_slot_00000A5E.w
 	subq.w #4,a7
 	move.l #$434F4445,-(a7)
 	move.w d0,-(a7)
 CODE_27_data_0000067e:
 	_GetResource
-	move.w $0A60.w,d0
+	move.w absolute_slot_00000A60.w,d0
 	movea.l (a7)+,a0
-	st.b $0A5E.w
+	st.b absolute_slot_00000A5E.w
 	rts
 CODE_27_semantic_decode_gap_0000068c:
 	dc.b $80,$0B,$67,$65,$74,$5F,$72,$65,$73,$5F,$68,$64,$6C,$00,$00,$00

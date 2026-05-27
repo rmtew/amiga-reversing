@@ -1,3 +1,17 @@
+; OS compatibility
+;   minimum required: 1.3
+;   observed API availability: 1.2, 1.3
+;   observed FD/interface versions: v33
+;   max requirement drivers:
+;     _LVOAllocMem at section_0+$000000AC requires 1.3
+;     _LVOOpenLibrary at section_0+$000000E8 requires 1.3
+;     _LVOOpenLibrary at section_0+$00000102 requires 1.3
+;     _LVOOpenLibrary at section_0+$0000011C requires 1.3
+;     _LVOOpenDevice at section_0+$00000142 requires 1.3
+;     _LVOFindTask at section_0+$00000156 requires 1.3
+;     _LVOAllocSignal at section_0+$0000016E requires 1.3
+;     _LVOAllocSignal at section_0+$00000180 requires 1.3
+
     INCLUDE "devices/console_lib.i"
     INCLUDE "dos/dos.i"
     INCLUDE "dos/dos_lib.i"
@@ -128,7 +142,6 @@ app_0C08 RS.L 1
 app_0C6C RS.L 1
     RS.B 408
 app_0E08 RS.L 1
-app_SIZEOF EQU __RS
     RSSET $0560
 app_0560 RS.L 1
     RSSET $0567
@@ -137,6 +150,8 @@ app_0567 RS.B 1
 app_ConsoleDevice RS.L 1
     RSSET $0C6E
 app_0C6E RS.L 1
+    RSSET $0E0C
+app_SIZEOF EQU __RS
 
 
     SECTION section_0,code
@@ -3808,7 +3823,7 @@ loc_0_000042C0:
 loc_0_000042CF:
 	dc.b $40,$8A,$41,$89,$00
 loc_0_000042D4:
-	dc.b $00,$00
+	dc.w $0000
 loc_0_000042D6:
 	movem.l d2/a2,-(a7)
 	movea.l a0,a2
@@ -5848,14 +5863,32 @@ loc_0_00006BA4:
 	dc.b $FE,$24,$FC,$25,$FA,$40,$F8,$27,$F8,$22,$F6,$5C,$00
 loc_0_00006BD1:
 	dc.b $00,$00,$00,$00,$00,$00,$04,$04,$16,$16,$01,$01,$01
-	dc.w $0101,$0112,$1212,$0202	; lookup_table
-	dc.w loc_0_00008908-loc_0_00006BEA,$1F1F	; lookup_table
+	dc.w $0101	; lookup_table
+	dc.w $0112
+	dc.w $1212
+	dc.w $0202
+	dc.w loc_0_00008908-loc_0_00006BEA
+	dc.w $1F1F
 loc_0_00006BEA:
-	dc.w loc_0_00006EDA-loc_0_00006BEA,loc_0_00006E20-loc_0_00006BEA,loc_0_00006E3E-loc_0_00006BEA,loc_0_00006E42-loc_0_00006BEA	; lookup_table
-	dc.w loc_0_00006E46-loc_0_00006BEA,loc_0_00006E5C-loc_0_00006BEA,loc_0_00006E50-loc_0_00006BEA,loc_0_00006E56-loc_0_00006BEA	; lookup_table
-	dc.w loc_0_00006E62-loc_0_00006BEA,loc_0_00006E68-loc_0_00006BEA,loc_0_00006E32-loc_0_00006BEA,loc_0_00006E36-loc_0_00006BEA	; lookup_table
-	dc.w loc_0_00006E3A-loc_0_00006BEA,loc_0_00006E18-loc_0_00006BEA,loc_0_00006E1C-loc_0_00006BEA,loc_0_00006E6E-loc_0_00006BEA	; lookup_table
-	dc.w loc_0_00006E72-loc_0_00006BEA,loc_0_00006E76-loc_0_00006BEA,loc_0_00006EA6-loc_0_00006BEA	; lookup_table
+	dc.w loc_0_00006EDA-loc_0_00006BEA	; lookup_table
+	dc.w loc_0_00006E20-loc_0_00006BEA
+	dc.w loc_0_00006E3E-loc_0_00006BEA
+	dc.w loc_0_00006E42-loc_0_00006BEA
+	dc.w loc_0_00006E46-loc_0_00006BEA
+	dc.w loc_0_00006E5C-loc_0_00006BEA
+	dc.w loc_0_00006E50-loc_0_00006BEA
+	dc.w loc_0_00006E56-loc_0_00006BEA
+	dc.w loc_0_00006E62-loc_0_00006BEA
+	dc.w loc_0_00006E68-loc_0_00006BEA
+	dc.w loc_0_00006E32-loc_0_00006BEA
+	dc.w loc_0_00006E36-loc_0_00006BEA
+	dc.w loc_0_00006E3A-loc_0_00006BEA
+	dc.w loc_0_00006E18-loc_0_00006BEA
+	dc.w loc_0_00006E1C-loc_0_00006BEA
+	dc.w loc_0_00006E6E-loc_0_00006BEA
+	dc.w loc_0_00006E72-loc_0_00006BEA
+	dc.w loc_0_00006E76-loc_0_00006BEA
+	dc.w loc_0_00006EA6-loc_0_00006BEA
 loc_0_00006C10:
 	lea.l app_07EC(a6),a0
 	move.w (a0),d0
@@ -8211,7 +8244,6 @@ loc_0_0000855F:
 loc_0_00008568:
 	dc.b $20,$00
 	dc.b "Filename to load",$00	; string
-loc_0_0000857B:
 	dc.b "Source file to load",$00	; string
 loc_0_0000858F:
 	dc.b "Executable file to load",$00	; string
@@ -8231,13 +8263,11 @@ loc_0_000085EE:
 	dc.b "Kill all breakpoints",$00	; string
 	dc.b $20,$59,$2F,$4E,$3F,$00
 	dc.b "Breakpoint address[,param n=*?-]",$00	; string
-loc_0_00008660:
 	dc.b "History",$00	; string
 	dc.b "Search for B/W/L/T/I? ",$00	; string
 	dc.b "No printer device selected",$00	; string
 	dc.b "Expression to lock",$00	; string
 	dc.b "Enter expression",$00	; string
-loc_0_000086BE:
 	dc.b "Symbols",$00	; string
 	dc.b "PREFERENCES",$00	; string
 	dc.b "Show relative offset symbols Y/N? ",$00	; string
@@ -8263,7 +8293,6 @@ loc_0_000087FA:
 	dc.b "Stop task",$00	; string
 	dc.b "Kill task",$00	; string
 	dc.b "Unload symbols",$00	; string
-loc_0_0000885C:
 	dc.b "Interlace Y/N? ",$00	; string
 	dc.b "Source window line numbers D/H/N? ",$00	; string
 	dc.b "Auto-load source file Y/N? ",$00	; string
@@ -8281,19 +8310,19 @@ loc_0_000088F5:
 loc_0_000088F6:
 	dc.l $00000000	; lookup_table
 loc_0_000088FA:
-	dc.b $00,$00
+	dc.w $0000
 loc_0_000088FC:
-	dc.b $00,$00
+	dc.w $0000
 loc_0_000088FE:
 	dcb.b $8,$00
 loc_0_00008906:
-	dc.b $00,$00
+	dc.w $0000
 loc_0_00008908:
 	dc.l $00000000	; lookup_table
 loc_0_0000890C:
 	dc.l $00000000	; lookup_table
 loc_0_00008910:
-	dc.b $00,$00
+	dc.w $0000
 loc_0_00008912:
 	dc.l $00000000	; lookup_table
 loc_0_00008916:

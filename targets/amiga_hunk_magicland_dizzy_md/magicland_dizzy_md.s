@@ -53,15 +53,19 @@
 
 _custom	EQU	$DFF000
 stack_top_00080000	EQU	$80000
+absolute_slot_000000C0	EQU	$C0
 runtime_code_00000100	EQU	$100
 m68k_vector_trap_0_instruction_vector	EQU	$80
 INTF_CLRALL	EQU	$7FFF
 DMAF_CLRALL	EQU	$7FFF
 _ciaa	EQU	$BFE001
-runtime_address_00068000	EQU	$68000
+absolute_slot_00004350	EQU	$4350
+absolute_slot_00068000	EQU	$68000
 absolute_slot_00000122	EQU	$122
-runtime_address_00051618	EQU	$51618
-runtime_address_00026F50	EQU	$26F50
+absolute_slot_00051618	EQU	$51618
+absolute_slot_00003B40	EQU	$3B40
+absolute_slot_00026F50	EQU	$26F50
+absolute_slot_00003940	EQU	$3940
 absolute_slot_000002FE	EQU	$2FE
 absolute_slot_000001DE	EQU	$1DE
 absolute_slot_0000018C	EQU	$18C
@@ -84,15 +88,18 @@ absolute_slot_000001C8	EQU	$1C8
 absolute_slot_000002EA	EQU	$2EA
 absolute_slot_00000230	EQU	$230
 absolute_slot_00000192	EQU	$192
+absolute_slot_00000190	EQU	$190
 absolute_slot_00000138	EQU	$138
 m68k_vector_level_3_interrupt_autovector	EQU	$6C
+absolute_slot_00000092	EQU	$92
 absolute_slot_00000140	EQU	$140
 absolute_slot_00000142	EQU	$142
-runtime_address_00058AB0	EQU	$58AB0
+absolute_slot_00058AB0	EQU	$58AB0
 absolute_slot_0000012A	EQU	$12A
 absolute_slot_00000126	EQU	$126
 absolute_slot_00000132	EQU	$132
 absolute_slot_0000012E	EQU	$12E
+absolute_slot_00000BB0	EQU	$BB0
 absolute_slot_00000116	EQU	$116
 absolute_slot_0000014E	EQU	$14E
 absolute_slot_00000154	EQU	$154
@@ -101,17 +108,24 @@ absolute_slot_00000152	EQU	$152
 absolute_slot_00000153	EQU	$153
 absolute_slot_00000150	EQU	$150
 absolute_slot_00000151	EQU	$151
+absolute_slot_00000790	EQU	$790
 absolute_slot_00000990	EQU	$990
+absolute_slot_000007B0	EQU	$7B0
+absolute_slot_00000B90	EQU	$B90
+absolute_slot_000009B0	EQU	$9B0
 absolute_slot_000001E8	EQU	$1E8
 absolute_slot_0000013C	EQU	$13C
 absolute_slot_0000011A	EQU	$11A
-runtime_address_00C00000	EQU	$C00000
-runtime_address_00080000	EQU	$80000
-runtime_address_00200000	EQU	$200000
+absolute_slot_00003D40	EQU	$3D40
+absolute_slot_00004048	EQU	$4048
+absolute_slot_00C00000	EQU	$C00000
+absolute_slot_00080000	EQU	$80000
+absolute_slot_00200000	EQU	$200000
 absolute_slot_0000011E	EQU	$11E
 m68k_vector_trap_1_instruction_vector	EQU	$84
 m68k_vector_trap_2_instruction_vector	EQU	$88
 m68k_vector_trap_3_instruction_vector	EQU	$8C
+absolute_slot_00006F50	EQU	$6F50
 absolute_slot_0000024A	EQU	$24A
 absolute_slot_00000276	EQU	$276
 absolute_slot_00000294	EQU	$294
@@ -124,18 +138,21 @@ absolute_slot_0000015E	EQU	$15E
 absolute_slot_0000023A	EQU	$23A
 absolute_slot_00000182	EQU	$182
 absolute_slot_000001E0	EQU	$1E0
-runtime_address_000680AA	EQU	$680AA
-runtime_address_00032DD0	EQU	$32DD0
-runtime_address_0004B470	EQU	$4B470
-runtime_address_0002F490	EQU	$2F490
+absolute_slot_000680AA	EQU	$680AA
+absolute_slot_00032DD0	EQU	$32DD0
+absolute_slot_0004B470	EQU	$4B470
+absolute_slot_0002F490	EQU	$2F490
 absolute_slot_00000D40	EQU	$D40
 absolute_slot_00001140	EQU	$1140
 absolute_slot_00000136	EQU	$136
-runtime_address_0002E6B0	EQU	$2E6B0
-runtime_address_000305B0	EQU	$305B0
-runtime_address_00032DB0	EQU	$32DB0
-runtime_address_0002DA30	EQU	$2DA30
-runtime_address_0002E430	EQU	$2E430
+absolute_slot_00001940	EQU	$1940
+absolute_slot_00002940	EQU	$2940
+absolute_slot_00001540	EQU	$1540
+absolute_slot_0002E6B0	EQU	$2E6B0
+absolute_slot_000305B0	EQU	$305B0
+absolute_slot_00032DB0	EQU	$32DB0
+absolute_slot_0002DA30	EQU	$2DA30
+absolute_slot_0002E430	EQU	$2E430
 absolute_slot_00000170	EQU	$170
 absolute_slot_00000172	EQU	$172
 absolute_slot_00000174	EQU	$174
@@ -145,18 +162,20 @@ absolute_slot_00000180	EQU	$180
 absolute_slot_00000181	EQU	$181
 absolute_slot_0000017F	EQU	$17F
 absolute_slot_00000224	EQU	$224
-runtime_address_0002E6B4	EQU	$2E6B4
+absolute_slot_0002E6B4	EQU	$2E6B4
 absolute_slot_00000220	EQU	$220
-runtime_address_00030943	EQU	$30943
+absolute_slot_00030943	EQU	$30943
 absolute_slot_00000222	EQU	$222
-runtime_address_000308D3	EQU	$308D3
-absolute_slot_00000190	EQU	$190
+absolute_slot_000308D3	EQU	$308D3
+absolute_slot_0000017A	EQU	$17A
 absolute_slot_000001C2	EQU	$1C2
 absolute_slot_000001BE	EQU	$1BE
 absolute_slot_000001C0	EQU	$1C0
 absolute_slot_00000196	EQU	$196
+absolute_slot_00004750	EQU	$4750
 absolute_slot_0000019C	EQU	$19C
 absolute_slot_0000019A	EQU	$19A
+absolute_slot_00006150	EQU	$6150
 absolute_slot_000001C4	EQU	$1C4
 absolute_slot_00000198	EQU	$198
 absolute_slot_00000184	EQU	$184
@@ -166,6 +185,7 @@ absolute_slot_00000186	EQU	$186
 absolute_slot_000001C6	EQU	$1C6
 absolute_slot_000001A8	EQU	$1A8
 absolute_slot_000001AA	EQU	$1AA
+absolute_slot_000001EC	EQU	$1EC
 absolute_slot_0000020C	EQU	$20C
 absolute_slot_00000210	EQU	$210
 absolute_slot_0000020E	EQU	$20E
@@ -175,7 +195,6 @@ absolute_slot_00000262	EQU	$262
 absolute_slot_00000266	EQU	$266
 absolute_slot_000001D0	EQU	$1D0
 absolute_slot_000001F2	EQU	$1F2
-absolute_slot_000001EC	EQU	$1EC
 absolute_slot_00000200	EQU	$200
 absolute_slot_000001FA	EQU	$1FA
 absolute_slot_000001F6	EQU	$1F6
@@ -189,7 +208,7 @@ absolute_slot_00000209	EQU	$209
 absolute_slot_000001FC	EQU	$1FC
 absolute_slot_000001FE	EQU	$1FE
 absolute_slot_0000020A	EQU	$20A
-runtime_address_0002E330	EQU	$2E330
+absolute_slot_0002E330	EQU	$2E330
 runtime_code_00000318	EQU	$318
 absolute_slot_0000016E	EQU	$16E
 absolute_slot_0000028E	EQU	$28E
@@ -198,7 +217,9 @@ absolute_slot_00000164	EQU	$164
 absolute_slot_000002CE	EQU	$2CE
 absolute_slot_00000166	EQU	$166
 absolute_slot_00000168	EQU	$168
+absolute_slot_00000570	EQU	$570
 absolute_slot_0000024C	EQU	$24C
+absolute_slot_000004BC	EQU	$4BC
 absolute_slot_00000236	EQU	$236
 absolute_slot_00000227	EQU	$227
 absolute_slot_00000282	EQU	$282
@@ -206,6 +227,7 @@ absolute_slot_00000228	EQU	$228
 absolute_slot_00000244	EQU	$244
 absolute_slot_0000021A	EQU	$21A
 absolute_slot_00000226	EQU	$226
+absolute_slot_000004EE	EQU	$4EE
 absolute_slot_00000256	EQU	$256
 absolute_slot_000002E2	EQU	$2E2
 absolute_slot_00000258	EQU	$258
@@ -214,9 +236,10 @@ absolute_slot_00000232	EQU	$232
 absolute_slot_0000021C	EQU	$21C
 absolute_slot_00000229	EQU	$229
 absolute_slot_000002CC	EQU	$2CC
-absolute_slot_0000021B	EQU	$21B
 absolute_slot_000001DC	EQU	$1DC
+absolute_slot_0000021B	EQU	$21B
 absolute_slot_0000022C	EQU	$22C
+absolute_slot_0000048A	EQU	$48A
 absolute_slot_00000296	EQU	$296
 absolute_slot_0000021E	EQU	$21E
 absolute_slot_0000021D	EQU	$21D
@@ -225,6 +248,7 @@ absolute_slot_000001BA	EQU	$1BA
 absolute_slot_000001B8	EQU	$1B8
 absolute_slot_000001B0	EQU	$1B0
 absolute_slot_000002DE	EQU	$2DE
+absolute_slot_000001D8	EQU	$1D8
 absolute_slot_0000026C	EQU	$26C
 absolute_slot_0000026A	EQU	$26A
 absolute_slot_00000268	EQU	$268
@@ -233,10 +257,10 @@ absolute_slot_0000025E	EQU	$25E
 absolute_slot_0000029C	EQU	$29C
 absolute_slot_0000025C	EQU	$25C
 absolute_slot_0000025A	EQU	$25A
-absolute_slot_000001D8	EQU	$1D8
 absolute_slot_000001AC	EQU	$1AC
 absolute_slot_000001AE	EQU	$1AE
 absolute_slot_000001CE	EQU	$1CE
+absolute_slot_00000610	EQU	$610
 absolute_slot_000001A4	EQU	$1A4
 absolute_slot_000001A6	EQU	$1A6
 absolute_slot_0000019E	EQU	$19E
@@ -244,27 +268,34 @@ absolute_slot_000001A2	EQU	$1A2
 absolute_slot_000001D2	EQU	$1D2
 absolute_slot_000001D4	EQU	$1D4
 absolute_slot_000001D6	EQU	$1D6
-runtime_address_0002E6BE	EQU	$2E6BE
-runtime_address_0002E7FE	EQU	$2E7FE
-runtime_address_000309DE	EQU	$309DE
+absolute_slot_0002E6B6	EQU	$2E6B6
+absolute_slot_000309D8	EQU	$309D8
+absolute_slot_0002E6BE	EQU	$2E6BE
+absolute_slot_0002E7FE	EQU	$2E7FE
+absolute_slot_000309DE	EQU	$309DE
 absolute_slot_0000023E	EQU	$23E
+absolute_slot_00000494	EQU	$494
 absolute_slot_00000240	EQU	$240
+absolute_slot_000004A8	EQU	$4A8
 absolute_slot_00000242	EQU	$242
 absolute_slot_00000290	EQU	$290
 absolute_slot_00000292	EQU	$292
 absolute_slot_000001BC	EQU	$1BC
 absolute_slot_000001B6	EQU	$1B6
 absolute_slot_0000029E	EQU	$29E
+absolute_slot_000004D0	EQU	$4D0
 absolute_slot_00000298	EQU	$298
 absolute_slot_0000029A	EQU	$29A
 absolute_slot_00000238	EQU	$238
 absolute_slot_00000218	EQU	$218
 absolute_slot_000002DC	EQU	$2DC
 absolute_slot_000002C8	EQU	$2C8
+absolute_slot_0000053E	EQU	$53E
 absolute_slot_000002CA	EQU	$2CA
 absolute_slot_0000026E	EQU	$26E
 absolute_slot_00000234	EQU	$234
 absolute_slot_0000022E	EQU	$22E
+absolute_slot_00000650	EQU	$650
 absolute_slot_00000248	EQU	$248
 absolute_slot_00000246	EQU	$246
 absolute_slot_000002E0	EQU	$2E0
@@ -277,12 +308,14 @@ absolute_slot_00000212	EQU	$212
 absolute_slot_00000214	EQU	$214
 absolute_slot_00000216	EQU	$216
 absolute_slot_00000270	EQU	$270
+absolute_slot_00000520	EQU	$520
 absolute_slot_00000272	EQU	$272
 absolute_slot_00000274	EQU	$274
 absolute_slot_00000278	EQU	$278
 absolute_slot_0000027A	EQU	$27A
 absolute_slot_00000280	EQU	$280
 absolute_slot_0000027C	EQU	$27C
+absolute_slot_0000050C	EQU	$50C
 absolute_slot_000002EC	EQU	$2EC
 absolute_slot_00000286	EQU	$286
 absolute_slot_00000288	EQU	$288
@@ -298,6 +331,7 @@ absolute_slot_000002BE	EQU	$2BE
 absolute_slot_000002A2	EQU	$2A2
 absolute_slot_000002C4	EQU	$2C4
 absolute_slot_000002C6	EQU	$2C6
+absolute_slot_00000144	EQU	$144
 absolute_slot_000002D0	EQU	$2D0
 absolute_slot_000002F0	EQU	$2F0
 absolute_slot_0000014C	EQU	$14C
@@ -306,15 +340,17 @@ absolute_slot_000001B2	EQU	$1B2
 absolute_slot_0000023C	EQU	$23C
 absolute_slot_000002E8	EQU	$2E8
 absolute_slot_000002D2	EQU	$2D2
+absolute_slot_00000548	EQU	$548
+absolute_slot_0000AF50	EQU	$AF50
 absolute_slot_00000146	EQU	$146
 absolute_slot_0000014A	EQU	$14A
-absolute_slot_00000144	EQU	$144
 absolute_slot_0000028A	EQU	$28A
 absolute_slot_00000148	EQU	$148
 absolute_slot_0000028C	EQU	$28C
-runtime_address_0006B428	EQU	$6B428
+absolute_slot_0006B428	EQU	$6B428
 absolute_slot_00000112	EQU	$112
-runtime_address_0006B400	EQU	$6B400
+absolute_slot_0006B400	EQU	$6B400
+absolute_slot_00003B42	EQU	$3B42
 absolute_slot_000002D4	EQU	$2D4
 absolute_slot_000002D8	EQU	$2D8
 absolute_slot_000002D6	EQU	$2D6
@@ -322,8 +358,8 @@ absolute_slot_000002DA	EQU	$2DA
 absolute_slot_000002FA	EQU	$2FA
 absolute_slot_000002FC	EQU	$2FC
 absolute_slot_000002F8	EQU	$2F8
-runtime_address_0007A400	EQU	$7A400
-runtime_address_0001A7E0	EQU	$1A7E0
+absolute_slot_0007A400	EQU	$7A400
+absolute_slot_0001A7E0	EQU	$1A7E0
 absolute_slot_00000310	EQU	$310
 absolute_slot_00000314	EQU	$314
 absolute_slot_00000308	EQU	$308
@@ -331,7 +367,7 @@ absolute_slot_0000030C	EQU	$30C
 _ciab	EQU	$BFD000
 ADKF_CLRALL	EQU	$7FFF
 absolute_slot_0000013E	EQU	$13E
-runtime_address_000519D6	EQU	$519D6
+absolute_slot_000519D6	EQU	$519D6
 
     SECTION section,code
 loc_0_00000000:
@@ -341,7 +377,7 @@ loc_0_00000000:
 	lea.l loc_0_0000005C-(*+2)(pc),a4
 	lea.l abs_0_0005BFF0.l,a5
 	lea.l stack_top_00080000.l,a7
-	pea.l $000000C0.l
+	pea.l absolute_slot_000000C0.l
 	movem.w loc_0_00000052(pc),d0-d4
 	cmpa.l a5,a4
 	bhi.b loc_0_00000040
@@ -381,19 +417,19 @@ abs_0_0005C004:
 	move #$2700,sr
 	bset.b #CIAB_LED,_ciaa+ciapra.l
 	bsr.w abs_0_0005C3D6
-	lea.l $00004350.l,a0
-	lea.l runtime_address_00068000.l,a1
+	lea.l absolute_slot_00004350.l,a0
+	lea.l absolute_slot_00068000.l,a1
 	jsr abs_0_00064482.l
 	bsr.w abs_0_0005C82A
 	bsr.w abs_0_0005C92E
 	move.l #$E7190345,absolute_slot_00000122.w
 	lea.l abs_0_000621FA(pc),a0
-	lea.l runtime_address_00051618.l,a1
+	lea.l absolute_slot_00051618.l,a1
 	trap #3
-	lea.l runtime_address_00051618.l,a0
+	lea.l absolute_slot_00051618.l,a0
 	jsr abs_0_000666B6.l
 	bsr.w abs_0_00061EF4
-	lea.l $00003B40.l,a0
+	lea.l absolute_slot_00003B40.l,a0
 	bsr.w abs_0_0005C754
 	move #$2100,sr
 	bsr.w abs_0_0005C2D0
@@ -410,7 +446,7 @@ abs_0_0005C004:
 	bsr.w abs_0_0005C966
 	bsr.w abs_0_0005C504
 	lea.l abs_0_00062201(pc),a0
-	lea.l runtime_address_00026F50.l,a1
+	lea.l absolute_slot_00026F50.l,a1
 	trap #3
 	bsr.w abs_0_00061FB4
 	bsr.w abs_0_00062096
@@ -418,7 +454,7 @@ abs_0_0005C004:
 	bsr.w abs_0_0005C3E6
 	bsr.w abs_0_0005C950
 	bsr.w abs_0_0005C642
-	lea.l $00003940.l,a0
+	lea.l absolute_slot_00003940.l,a0
 	bsr.w abs_0_0005C754
 abs_0_0005C0F0:
 	clr.w absolute_slot_000002FE.w
@@ -491,7 +527,7 @@ abs_0_0005C1D8:
 	bsr.w abs_0_0005D74E
 abs_0_0005C1F4:
 	movea.l absolute_slot_00000192.w,a0
-	lea.l $0190.w,a1
+	lea.l absolute_slot_00000190.w,a1
 	bsr.w abs_0_0005D8AE
 	bsr.w abs_0_00060DE4
 	bsr.w abs_0_0005FD7E
@@ -605,7 +641,7 @@ abs_0_0005C320:
 	ror.b #1,d0
 	moveq.l #0,d1
 	move.b d0,d1
-	lea.l $0092.w,a0
+	lea.l absolute_slot_00000092.w,a0
 	btst #7,d1
 	bne.b abs_0_0005C3C0
 	cmp.b #$45,d1
@@ -637,7 +673,7 @@ abs_0_0005C3CC:
 	rts
 abs_0_0005C3D6:
 	suba.l a0,a0
-	lea.l runtime_address_00058AB0.l,a1
+	lea.l absolute_slot_00058AB0.l,a1
 abs_0_0005C3DE:
 	clr.b (a0)+
 	cmpa.l a1,a0
@@ -648,7 +684,7 @@ abs_0_0005C3E6:
 	move.l #$78152,absolute_slot_00000126.w
 	move.l #$D40,absolute_slot_00000132.w
 	move.l #$1140,absolute_slot_0000012E.w
-	lea.l $0BB0.w,a0
+	lea.l absolute_slot_00000BB0.w,a0
 	move.w #$C7,d0
 	moveq.l #0,d1
 abs_0_0005C410:
@@ -709,7 +745,7 @@ abs_0_0005C494:
 abs_0_0005C4C0:
 	clr.w absolute_slot_00000154.w
 	clr.l absolute_slot_00000150.w
-	lea.l $0092.w,a0
+	lea.l absolute_slot_00000092.w,a0
 	tst.b $0031(a0)
 	beq.b abs_0_0005C4D8
 	move.b #$FF,absolute_slot_00000152.w
@@ -731,18 +767,18 @@ abs_0_0005C4F2:
 abs_0_0005C502:
 	rts
 abs_0_0005C504:
-	lea.l $00000790.l,a0
+	lea.l absolute_slot_00000790.l,a0
 	moveq.l #15,d1
 abs_0_0005C50C:
 	move.w absolute_slot_00000990.l,(a0)+
 	dbf.w d1,abs_0_0005C50C
-	lea.l $00000990.l,a3
-	lea.l $00000790.l,a4
-	lea.l $000007B0.l,a2
+	lea.l absolute_slot_00000990.l,a3
+	lea.l absolute_slot_00000790.l,a4
+	lea.l absolute_slot_000007B0.l,a2
 	bsr.b abs_0_0005C540
-	lea.l $00000B90.l,a3
-	lea.l $00000790.l,a4
-	lea.l $000009B0.l,a2
+	lea.l absolute_slot_00000B90.l,a3
+	lea.l absolute_slot_00000790.l,a4
+	lea.l absolute_slot_000009B0.l,a2
 	bsr.b abs_0_0005C540
 	rts
 abs_0_0005C540:
@@ -826,8 +862,8 @@ abs_0_0005C5F4:
 	lsl.w #5,d0
 	tst.w absolute_slot_0000013C.w
 	bne.b abs_0_0005C618
-	lea.l $000009B0.l,a0
-	lea.l $00003940.l,a1
+	lea.l absolute_slot_000009B0.l,a0
+	lea.l absolute_slot_00003940.l,a1
 	adda.w d0,a0
 	moveq.l #15,d1
 abs_0_0005C610:
@@ -835,7 +871,7 @@ abs_0_0005C610:
 	move.w (a0)+,(a1)+
 	dbf.w d1,abs_0_0005C610
 abs_0_0005C618:
-	lea.l $000007B0.l,a0
+	lea.l absolute_slot_000007B0.l,a0
 	movea.l absolute_slot_0000011A.w,a1
 	adda.w d0,a0
 	move.l a0,-(a7)
@@ -853,7 +889,7 @@ abs_0_0005C638:
 	dbf.w d1,abs_0_0005C638
 	rts
 abs_0_0005C642:
-	lea.l $00003940.l,a0
+	lea.l absolute_slot_00003940.l,a0
 	moveq.l #15,d7
 	move.w #$5AF,d0
 	bsr.w abs_0_0005C744
@@ -935,7 +971,7 @@ abs_0_0005C754:
 	move.w #DMAF_SETCLR|DMAF_BLITHOG|DMAF_MASTER|DMAF_RASTER|DMAF_COPPER|DMAF_BLITTER|DMAF_SPRITE,dmacon(a6)
 	rts
 abs_0_0005C772:
-	lea.l $00003D40.l,a0
+	lea.l absolute_slot_00003D40.l,a0
 	lea.l $0308(a0),a1
 	clr.l (a0)+
 	clr.l (a1)+
@@ -948,12 +984,12 @@ abs_0_0005C784:
 	dbf.w d0,abs_0_0005C784
 	clr.l (a0)
 	clr.l (a1)
-	lea.l $00003D40.l,a1
+	lea.l absolute_slot_00003D40.l,a1
 	move.w #$0,d1
 	move.w #$42,d2
 	move.w #$C0,d3
 	bsr.b abs_0_0005C7C2
-	lea.l $00004048.l,a1
+	lea.l absolute_slot_00004048.l,a1
 	move.w #$130,d1
 	move.w #$42,d2
 	move.w #$C0,d3
@@ -1009,15 +1045,15 @@ abs_0_0005C820:
 	movem.l (a7)+,d4-d5
 	rts
 abs_0_0005C82A:
-	lea.l runtime_address_00C00000.l,a0
+	lea.l absolute_slot_00C00000.l,a0
 	bsr.b abs_0_0005C854
 	tst.w d0
 	bne.b abs_0_0005C852
-	lea.l runtime_address_00080000.l,a0
+	lea.l absolute_slot_00080000.l,a0
 	bsr.b abs_0_0005C854
 	tst.w d0
 	bne.b abs_0_0005C852
-	lea.l runtime_address_00200000.l,a0
+	lea.l absolute_slot_00200000.l,a0
 	bsr.b abs_0_0005C854
 	tst.w d0
 	bne.b abs_0_0005C852
@@ -1141,10 +1177,10 @@ abs_0_0005C95C:
 	rts
 abs_0_0005C966:
 	lea.l abs_0_000621F0(pc),a0
-	lea.l $00006F50.l,a1
+	lea.l absolute_slot_00006F50.l,a1
 	trap #3
 	lea.l abs_0_000621F5(pc),a0
-	lea.l $0990.w,a1
+	lea.l absolute_slot_00000990.w,a1
 	trap #3
 	rts
 abs_0_0005C97E:
@@ -1165,7 +1201,7 @@ abs_0_0005C992:
 	bsr.w abs_0_0005D326
 	bsr.w abs_0_0005E514
 	bsr.w abs_0_0005F502
-	lea.l runtime_address_00026F50.l,a0
+	lea.l absolute_slot_00026F50.l,a0
 	move.w absolute_slot_000001DE.w,d0
 	cmp.w #$38,d0
 	ble.b abs_0_0005C9D2
@@ -1187,7 +1223,7 @@ abs_0_0005C9FE:
 abs_0_0005CA00:
 	moveq.l #0,d1
 	move.w (a0)+,d1
-	lea.l $00006F50.l,a4
+	lea.l absolute_slot_00006F50.l,a4
 	lsl.l #7,d1
 	adda.l d1,a4
 	move.l a4,bltapt(a6)	; blitter_source pointer
@@ -1202,7 +1238,7 @@ abs_0_0005CA1C:
 	dbf.w d2,abs_0_0005C9FE
 	bsr.w abs_0_0005CAE0
 	movea.l absolute_slot_0000012A.w,a0
-	lea.l runtime_address_000680AA.l,a1
+	lea.l absolute_slot_000680AA.l,a1
 	bsr.b abs_0_0005CAAA
 	bsr.w abs_0_0005CEDE
 	bsr.w abs_0_0005CEFA
@@ -1271,22 +1307,22 @@ abs_0_0005CAF2:
 	rts
 abs_0_0005CB28:
 	lea.l abs_0_00062205(pc),a0
-	lea.l $00006F50.l,a1
+	lea.l absolute_slot_00006F50.l,a1
 	trap #3
 	lea.l abs_0_00064CD8.l,a0
-	lea.l runtime_address_00032DD0.l,a2
-	lea.l runtime_address_0004B470.l,a3
-	lea.l runtime_address_0002F490.l,a4
+	lea.l absolute_slot_00032DD0.l,a2
+	lea.l absolute_slot_0004B470.l,a3
+	lea.l absolute_slot_0002F490.l,a4
 	bsr.w abs_0_0005CB8E
 	movem.l a0-a4,-(a7)
 	lea.l abs_0_00062212(pc),a0
-	lea.l $00006F50.l,a1
+	lea.l absolute_slot_00006F50.l,a1
 	trap #3
 	movem.l (a7)+,a0-a4
 	bsr.w abs_0_0005CB8E
 	movem.l a0-a4,-(a7)
 	lea.l abs_0_0006221F(pc),a0
-	lea.l $00006F50.l,a1
+	lea.l absolute_slot_00006F50.l,a1
 	trap #3
 	movem.l (a7)+,a0-a4
 	bsr.w abs_0_0005CB8E
@@ -1298,7 +1334,7 @@ abs_0_0005CB8E:
 	beq.w abs_0_0005CC58
 	move.l a2,$0000(a4)
 	move.l a3,$0004(a4)
-	lea.l $00006F50.l,a1
+	lea.l absolute_slot_00006F50.l,a1
 	move.w $0000(a0),d1
 	adda.w d1,a1
 	move.w $0002(a0),d1
@@ -1368,10 +1404,10 @@ abs_0_0005CC58:
 	addq.w #2,a0
 	rts
 abs_0_0005CC5C:
-	lea.l runtime_address_0002F490.l,a0
+	lea.l absolute_slot_0002F490.l,a0
 	lsl.w #4,d2
 	adda.w d2,a0
-	lea.l $0BB0.w,a1
+	lea.l absolute_slot_00000BB0.w,a1
 	movea.l $0000(a0),a3
 	movea.l $0004(a0),a4
 	move.w $000C(a0),d2
@@ -1527,7 +1563,7 @@ abs_0_0005CF18:
 	cmp.l #$FFFFFFFF,d0
 	beq.b abs_0_0005CF5C
 	move.l #$FFFFFFFF,(a0)
-	lea.l runtime_address_000680AA.l,a1
+	lea.l absolute_slot_000680AA.l,a1
 	movea.l absolute_slot_0000012A.w,a2
 	adda.w d0,a1
 	adda.w d0,a2
@@ -1544,9 +1580,9 @@ abs_0_0005CF52:
 abs_0_0005CF5C:
 	rts
 abs_0_0005CF5E:
-	lea.l $00006F50.l,a0
-	lea.l $00001940.l,a1
-	lea.l $00002940.l,a2
+	lea.l absolute_slot_00006F50.l,a0
+	lea.l absolute_slot_00001940.l,a1
+	lea.l absolute_slot_00002940.l,a2
 	move.w #$3FF,d0
 abs_0_0005CF74:
 	move.l a0,(a1)+
@@ -1556,8 +1592,8 @@ abs_0_0005CF74:
 	rts
 abs_0_0005CF82:
 	lea.l abs_0_0005CFD2(pc),a0
-	lea.l $00001940.l,a1
-	lea.l $00002940.l,a2
+	lea.l absolute_slot_00001940.l,a1
+	lea.l absolute_slot_00002940.l,a2
 abs_0_0005CF92:
 	move.l (a0)+,d0
 	bmi.b abs_0_0005CFD0
@@ -1610,7 +1646,7 @@ abs_0_0005CFD2:
 	dc.b $00,$04,$00,$00,$00,$00,$03,$EC,$03,$ED,$03,$FC,$03,$FD,$FF,$FF
 	dc.b $00,$04,$00,$00,$00,$00,$02,$56,$02,$57,$03,$F7,$03,$F8,$FF,$FF
 abs_0_0005D122:
-	lea.l $1540.w,a0
+	lea.l absolute_slot_00001540.w,a0
 	moveq.l #1,d0
 	move.b d0,$000F(a0)
 	move.b d0,$01AC(a0)
@@ -1634,10 +1670,10 @@ abs_0_0005D162:
 	clr.w bltamod(a6)
 	move.w #$28,bltdmod(a6)
 	move.l #$9F00000,bltcon0(a6)
-	lea.l $1540.w,a1
+	lea.l absolute_slot_00001540.w,a1
 	movea.l absolute_slot_0000012A.w,a2
 	move.l a2,bltdpt(a6)	; blitter_destination pointer
-	lea.l $1940.w,a3
+	lea.l absolute_slot_00001940.w,a3
 	move.w #$1001,d3
 	lea.l bltsize(a6),a4
 	lea.l bltapt(a6),a5
@@ -1664,13 +1700,13 @@ abs_0_0005D1BC:
 	rts
 abs_0_0005D1CC:
 	lea.l abs_0_00062247(pc),a0
-	lea.l runtime_address_0002E6B0.l,a1
+	lea.l absolute_slot_0002E6B0.l,a1
 	trap #3
 	lea.l abs_0_0006222C(pc),a0
-	lea.l runtime_address_000305B0.l,a1
+	lea.l absolute_slot_000305B0.l,a1
 	trap #3
-	lea.l runtime_address_00032DB0.l,a0
-	lea.l $00000B90.l,a1
+	lea.l absolute_slot_00032DB0.l,a0
+	lea.l absolute_slot_00000B90.l,a1
 	moveq.l #15,d0
 abs_0_0005D1F2:
 	move.w (a0)+,(a1)+
@@ -1678,11 +1714,11 @@ abs_0_0005D1F2:
 	rts
 abs_0_0005D1FA:
 	lea.l abs_0_00062236(pc),a0
-	lea.l $00006F50.l,a1
+	lea.l absolute_slot_00006F50.l,a1
 	trap #3
-	lea.l $00006F50.l,a0
-	lea.l runtime_address_0002DA30.l,a1
-	lea.l runtime_address_0002E430.l,a2
+	lea.l absolute_slot_00006F50.l,a0
+	lea.l absolute_slot_0002DA30.l,a1
+	lea.l absolute_slot_0002E430.l,a2
 	moveq.l #1,d1
 abs_0_0005D21A:
 	moveq.l #39,d2
@@ -1805,12 +1841,12 @@ abs_0_0005D348:
 abs_0_0005D360:
 	not.w absolute_slot_00000224.w
 	bne.w abs_0_0005D3D6
-	lea.l runtime_address_0002E6B4.l,a0
+	lea.l absolute_slot_0002E6B4.l,a0
 	cmpi.w #4,absolute_slot_00000220.w
 	bge.b abs_0_0005D37A
 	lea.l $01B8(a0),a0
 abs_0_0005D37A:
-	lea.l runtime_address_00030943.l,a1
+	lea.l absolute_slot_00030943.l,a1
 	moveq.l #10,d0
 abs_0_0005D382:
 	move.b $0A50(a0),$1E00(a1)
@@ -1836,12 +1872,12 @@ abs_0_0005D3D0:
 	subq.w #1,absolute_slot_00000220.w
 	rts
 abs_0_0005D3D6:
-	lea.l runtime_address_0002E6B0.l,a0
+	lea.l absolute_slot_0002E6B0.l,a0
 	cmpi.w #4,absolute_slot_00000222.w
 	bge.b abs_0_0005D3E8
 	lea.l $01B8(a0),a0
 abs_0_0005D3E8:
-	lea.l runtime_address_000308D3.l,a1
+	lea.l absolute_slot_000308D3.l,a1
 	moveq.l #10,d0
 abs_0_0005D3F0:
 	move.b $0A50(a0),$1E00(a1)
@@ -1876,7 +1912,7 @@ abs_0_0005D466:
 	rts
 abs_0_0005D46C:
 	movem.l d0/a0-a1,-(a7)
-	lea.l $017A.w,a1
+	lea.l absolute_slot_0000017A.w,a1
 	movea.l a1,a0
 	move.l d0,(a0)+
 	abcd -(a0),-(a1)
@@ -1901,8 +1937,8 @@ abs_0_0005D49C:
 	bsr.w abs_0_0005FA82
 	rts
 abs_0_0005D4AC:
-	lea.l runtime_address_000305B0.l,a0
-	lea.l runtime_address_0002DA30.l,a1
+	lea.l absolute_slot_000305B0.l,a0
+	lea.l absolute_slot_0002DA30.l,a1
 	adda.w d0,a0
 	adda.w d1,a0
 	lsl.w #5,d2
@@ -1943,7 +1979,7 @@ abs_0_0005D516:
 	bne.b abs_0_0005D56A
 	tst.w absolute_slot_0000014E.w
 	beq.b abs_0_0005D530
-	lea.l $00000092.l,a0
+	lea.l absolute_slot_00000092.l,a0
 	tst.b $0040(a0)
 	beq.b abs_0_0005D56A
 	bra.b abs_0_0005D536
@@ -2009,7 +2045,7 @@ abs_0_0005D5D4:
 	rts
 abs_0_0005D5DC:
 	movea.l absolute_slot_000001E0.w,a0
-	lea.l $00004750.l,a1
+	lea.l absolute_slot_00004750.l,a1
 	move.w absolute_slot_0000018C.w,d0
 	addq.w #6,d0
 	move.w absolute_slot_0000018E.w,d1
@@ -2050,7 +2086,7 @@ abs_0_0005D63E:
 	rts
 abs_0_0005D642:
 	movea.l absolute_slot_000001E0.w,a0
-	lea.l $00004750.l,a1
+	lea.l absolute_slot_00004750.l,a1
 	move.w d6,d0
 	move.w d7,d1
 	move.w #$100,d4
@@ -2114,7 +2150,7 @@ abs_0_0005D6DE:
 	rts
 abs_0_0005D6E4:
 	movea.l absolute_slot_000001E0.w,a0
-	lea.l $00006150.l,a1
+	lea.l absolute_slot_00006150.l,a1
 	subi.w #22,d0
 	tst.w d0
 	bmi.b abs_0_0005D748
@@ -2405,7 +2441,7 @@ abs_0_0005D9F2:
 	dc.b $00,$05,$FF,$FF,$00,$39,$00,$00,$00,$06,$FF,$FF,$FF,$FF,$00,$38
 	dc.b $FF,$FF,$00,$09,$FF,$FF,$00,$20,$FF,$FF,$00,$0B,$FF,$FF,$00,$0E
 abs_0_0005DBD2:
-	lea.l $01EC.w,a0
+	lea.l absolute_slot_000001EC.w,a0
 	move.w #$A8,(a0)+
 	move.w #$5A,(a0)+
 	move.w #$27,(a0)+
@@ -2528,10 +2564,10 @@ abs_0_0005DD32:
 	bsr.w abs_0_0005CC5C
 abs_0_0005DD42:
 	movea.l absolute_slot_000001F6.w,a0
-	lea.l $01F0.w,a1
+	lea.l absolute_slot_000001F0.w,a1
 	bsr.w abs_0_0005D8AE
 	movea.l absolute_slot_00000204.w,a0
-	lea.l $01FE.w,a1
+	lea.l absolute_slot_000001FE.w,a1
 	bsr.w abs_0_0005D8AE
 	lea.l abs_0_00062364(pc),a0
 	move.w absolute_slot_0000020A.w,d0
@@ -2585,7 +2621,7 @@ abs_0_0005DDFC:
 	move.w #$2F,absolute_slot_000001FE.w
 	rts
 abs_0_0005DE04:
-	lea.l $0208.w,a1
+	lea.l absolute_slot_00000208.w,a1
 	move.w absolute_slot_000001EC.w,d0
 	addq.w #6,d0
 	moveq.l #40,d1
@@ -2594,7 +2630,7 @@ abs_0_0005DE04:
 	bsr.w abs_0_0005F1E4
 	tst.w d0
 	bne.b abs_0_0005DE38
-	lea.l $0209.w,a1
+	lea.l absolute_slot_00000209.w,a1
 	move.w absolute_slot_000001FA.w,d0
 	addq.w #6,d0
 	moveq.l #40,d1
@@ -2662,7 +2698,7 @@ abs_0_0005DEA8:
 	subq.w #1,d2
 abs_0_0005DEAC:
 	moveq.l #7,d4
-	lea.l runtime_address_0002E330.l,a2
+	lea.l absolute_slot_0002E330.l,a2
 abs_0_0005DEB4:
 	move.b (a2)+,(a1)
 	move.b (a2)+,$002A(a1)
@@ -2748,8 +2784,8 @@ abs_0_0005DF70:
 	adda.w d0,a1
 	mulu.w #$540,d1
 	adda.w d1,a1
-	lea.l runtime_address_0002DA30.l,a2
-	lea.l runtime_address_0002E430.l,a3
+	lea.l absolute_slot_0002DA30.l,a2
+	lea.l absolute_slot_0002E430.l,a3
 	lsl.w #3,d3
 	adda.w d3,a3
 	lsl.w #2,d3
@@ -2775,7 +2811,7 @@ abs_0_0005DF96:
 	rts
 abs_0_0005DFCA:
 	movea.l absolute_slot_0000012A.w,a0
-	lea.l runtime_address_0002DA30.l,a1
+	lea.l absolute_slot_0002DA30.l,a1
 	lea.l abs_0_00062280(pc),a2
 	subi.w #32,d2
 	move.b $0(a2,d2.w),d2
@@ -3225,7 +3261,7 @@ abs_0_0005E4EE:
 	move.l (a0)+,(a1)+
 	move.w (a0)+,(a1)+
 	dbf.w d0,abs_0_0005E4EE
-	lea.l $0570.w,a0
+	lea.l absolute_slot_00000570.w,a0
 	moveq.l #15,d0
 abs_0_0005E4FE:
 	move.l #$FFFFFFFF,(a0)+
@@ -3234,7 +3270,7 @@ abs_0_0005E4FE:
 	dbf.w d0,abs_0_0005E4FE
 	rts
 abs_0_0005E514:
-	lea.l $0570.w,a0
+	lea.l absolute_slot_00000570.w,a0
 	moveq.l #15,d0
 	moveq.l #-1,d1
 abs_0_0005E51C:
@@ -3243,7 +3279,7 @@ abs_0_0005E51C:
 	move.w d1,(a0)+
 	dbf.w d0,abs_0_0005E51C
 	lea.l runtime_code_00000318.w,a0
-	lea.l $0570.w,a1
+	lea.l absolute_slot_00000570.w,a1
 	move.w absolute_slot_000001DE.w,d0
 	moveq.l #0,d1
 	move.w #$3B,d7
@@ -3266,7 +3302,7 @@ abs_0_0005E558:
 	bra.b abs_0_0005E558
 abs_0_0005E562:
 	bsr.w abs_0_0005E5A4
-	lea.l $0570.w,a0
+	lea.l absolute_slot_00000570.w,a0
 	moveq.l #15,d7
 abs_0_0005E56C:
 	tst.w (a0)
@@ -3306,7 +3342,7 @@ abs_0_0005E5A4:
 	bsr.w abs_0_0005D8AE
 	rts
 abs_0_0005E5CA:
-	lea.l $0570.w,a0
+	lea.l absolute_slot_00000570.w,a0
 	moveq.l #15,d7
 	move.w absolute_slot_0000018C.w,d0
 	addq.w #5,d0
@@ -3348,7 +3384,7 @@ abs_0_0005E614:
 abs_0_0005E62E:
 	rts
 abs_0_0005E630:
-	lea.l $0570.w,a0
+	lea.l absolute_slot_00000570.w,a0
 	moveq.l #15,d7
 abs_0_0005E636:
 	cmpi.w #42,$0008(a0)
@@ -3369,7 +3405,7 @@ abs_0_0005E658:
 	bsr.w abs_0_00060378
 	tst.w d0
 	beq.b abs_0_0005E68E
-	lea.l $000004BC.l,a0
+	lea.l absolute_slot_000004BC.l,a0
 	lea.l abs_0_0005E17A(pc),a1
 	moveq.l #2,d1
 abs_0_0005E676:
@@ -3541,7 +3577,7 @@ abs_0_0005E85A:
 	lea.l abs_0_0006388E(pc),a0
 	move.l a0,absolute_slot_0000016A.w
 	move.w #$1,absolute_slot_0000016E.w
-	lea.l $04EE.w,a0
+	lea.l absolute_slot_000004EE.w,a0
 	move.w #$2,(a0)
 	move.l #$8000,d0
 	bsr.w abs_0_0005D46C
@@ -3549,7 +3585,7 @@ abs_0_0005E886:
 	rts
 abs_0_0005E888:
 	lea.l abs_0_00064B98(pc),a0
-	lea.l $0256.w,a1
+	lea.l absolute_slot_00000256.w,a1
 	bsr.w abs_0_0005D8AE
 	moveq.l #100,d0
 	moveq.l #87,d1
@@ -3558,7 +3594,7 @@ abs_0_0005E888:
 	tst.w absolute_slot_000002E2.w
 	beq.b abs_0_0005E8C0
 	lea.l abs_0_00064BAA(pc),a0
-	lea.l $0258.w,a1
+	lea.l absolute_slot_00000258.w,a1
 	bsr.w abs_0_0005D8AE
 	moveq.l #103,d0
 	move.w #$89,d1
@@ -3692,7 +3728,7 @@ abs_0_0005EA3E:
 	move.w #$F0,absolute_slot_0000018C.w
 abs_0_0005EA4C:
 	lea.l abs_0_00064B20(pc),a0
-	lea.l $01DC.w,a1
+	lea.l absolute_slot_000001DC.w,a1
 	bsr.w abs_0_0005D8AE
 	move.w #$100,d0
 	move.w #$80,d1
@@ -3740,7 +3776,7 @@ abs_0_0005EADA:
 	lea.l abs_0_000630F0(pc),a0
 	move.l a0,absolute_slot_0000016A.w
 	move.w #$1,absolute_slot_0000016E.w
-	lea.l $048A.w,a0
+	lea.l absolute_slot_0000048A.w,a0
 	move.w #$15,(a0)
 	move.w #$1,absolute_slot_0000022C.w
 abs_0_0005EAF6:
@@ -3867,7 +3903,7 @@ abs_0_0005EC6A:
 	rts
 abs_0_0005EC6C:
 	lea.l abs_0_00064B50(pc),a0
-	lea.l $01B0.w,a1
+	lea.l absolute_slot_000001B0.w,a1
 	bsr.w abs_0_0005D8AE
 	moveq.l #3,d0
 	moveq.l #104,d1
@@ -4006,7 +4042,7 @@ abs_0_0005EE6A:
 	dc.b $00,$B6,$00,$64,$00,$E5,$00,$0A,$00,$64,$FF,$FF,$00,$22,$00,$08
 abs_0_0005EE7A:
 	lea.l abs_0_00064B0E(pc),a0
-	lea.l $01D8.w,a1
+	lea.l absolute_slot_000001D8.w,a1
 	bsr.w abs_0_0005D8AE
 	rts
 abs_0_0005EE88:
@@ -4028,9 +4064,9 @@ abs_0_0005EE88:
 abs_0_0005EEBE:
 	rts
 abs_0_0005EEC0:
-	lea.l $0260.w,a0
+	lea.l absolute_slot_00000260.w,a0
 	bsr.b abs_0_0005EECE
-	lea.l $0264.w,a0
+	lea.l absolute_slot_00000264.w,a0
 	bsr.b abs_0_0005EECE
 	rts
 abs_0_0005EECE:
@@ -4070,7 +4106,7 @@ abs_0_0005EF1C:
 	cmpi.w #3,absolute_slot_0000026C.w
 	beq.b abs_0_0005EF74
 	lea.l abs_0_00064B5E(pc),a0
-	lea.l $026A.w,a1
+	lea.l absolute_slot_0000026A.w,a1
 	bsr.w abs_0_0005D8AE
 	tst.w absolute_slot_0000026C.w
 	bne.w abs_0_0005EF76
@@ -4384,7 +4420,7 @@ abs_0_0005F2B6:
 	dc.b $00,$45,$00,$00,$00,$00,$00,$A5,$00,$56,$00,$45,$00,$00
 abs_0_0005F2D4:
 	lea.l abs_0_00064A7E(pc),a0
-	lea.l $01AC.w,a1
+	lea.l absolute_slot_000001AC.w,a1
 	bsr.w abs_0_0005D8AE
 	move.w #$96,d0
 	move.w #$72,d1
@@ -4392,7 +4428,7 @@ abs_0_0005F2D4:
 	bsr.w abs_0_0005CC5C
 	rts
 abs_0_0005F2F2:
-	lea.l $01AE.w,a1
+	lea.l absolute_slot_000001AE.w,a1
 	lea.l abs_0_00064AB2(pc),a0
 	cmpi.w #136,absolute_slot_0000018C.w
 	ble.b abs_0_0005F312
@@ -4498,7 +4534,7 @@ abs_0_0005F436:
 	clr.w absolute_slot_000001A8.w
 	tst.w absolute_slot_000001C2.w
 	bmi.b abs_0_0005F47A
-	lea.l $0610.w,a0
+	lea.l absolute_slot_00000610.w,a0
 	moveq.l #7,d6
 abs_0_0005F44A:
 	cmpi.w #$FFFF,(a0)
@@ -4549,14 +4585,14 @@ abs_0_0005F4A6:
 	dc.b $00,$3C,$00,$64,$00,$0B,$00,$20,$00,$C0,$00,$5B,$00,$64,$00,$0B
 	dc.b $00,$20,$00,$2D,$00,$3F,$00,$34,$00,$0B,$FF,$FF
 abs_0_0005F502:
-	lea.l $0610.w,a0
+	lea.l absolute_slot_00000610.w,a0
 	moveq.l #7,d0
 abs_0_0005F508:
 	move.l #$FFFFFFFF,(a0)+
 	move.l #$FFFFFFFF,(a0)+
 	dbf.w d0,abs_0_0005F508
 	lea.l abs_0_0005F4A6(pc),a0
-	lea.l $0610.w,a1
+	lea.l absolute_slot_00000610.w,a1
 	moveq.l #0,d0
 	move.w absolute_slot_000001DE.w,d1
 abs_0_0005F526:
@@ -4588,7 +4624,7 @@ abs_0_0005F562:
 	rts
 abs_0_0005F56A:
 	movea.l absolute_slot_0000019E.w,a0
-	lea.l $01A2.w,a1
+	lea.l absolute_slot_000001A2.w,a1
 	bsr.w abs_0_0005D8AE
 	cmpi.w #87,absolute_slot_000001A2.w
 	beq.b abs_0_0005F590
@@ -4838,8 +4874,8 @@ abs_0_0005F912:
 	rts
 abs_0_0005F91A:
 	sf.b absolute_slot_0000017E.w
-	lea.l $0002E6B6.l,a0
-	lea.l $000309D8.l,a1
+	lea.l absolute_slot_0002E6B6.l,a0
+	lea.l absolute_slot_000309D8.l,a1
 	bsr.w abs_0_0005F994
 	move.w #$9F0,$0040(a6)
 	clr.w $0042(a6)
@@ -4890,11 +4926,11 @@ abs_0_0005F9B8:
 	dbf.w d0,abs_0_0005F9AE
 	rts
 abs_0_0005F9CA:
-	lea.l runtime_address_0002E6BE.l,a0
-	lea.l $000309D8.l,a1
+	lea.l absolute_slot_0002E6BE.l,a0
+	lea.l absolute_slot_000309D8.l,a1
 	bsr.b abs_0_0005F9E8
-	lea.l runtime_address_0002E7FE.l,a0
-	lea.l runtime_address_000309DE.l,a1
+	lea.l absolute_slot_0002E7FE.l,a0
+	lea.l absolute_slot_000309DE.l,a1
 	bsr.b abs_0_0005F9E8
 	rts
 abs_0_0005F9E8:
@@ -5021,7 +5057,7 @@ abs_0_0005FB62:
 	lea.l abs_0_00063258(pc),a0
 	move.l a0,absolute_slot_0000016A.w
 	move.w #$1,absolute_slot_0000016E.w
-	lea.l $0494.w,a0
+	lea.l absolute_slot_00000494.w,a0
 	move.w #$7,(a0)
 abs_0_0005FB84:
 	rts
@@ -5046,7 +5082,7 @@ abs_0_0005FBB8:
 abs_0_0005FBBA:
 	tst.w absolute_slot_00000240.w
 	beq.b abs_0_0005FBDA
-	lea.l $04A8.w,a0
+	lea.l absolute_slot_000004A8.w,a0
 	move.w #$B,(a0)
 	clr.w absolute_slot_00000240.w
 	lea.l abs_0_00063068(pc),a0
@@ -5237,7 +5273,7 @@ abs_0_0005FDF2:
 	andi.w #8,d0
 	bne.b abs_0_0005FE20
 	lea.l abs_0_00064B50(pc),a0
-	lea.l $01B0.w,a1
+	lea.l absolute_slot_000001B0.w,a1
 	bsr.w abs_0_0005D8AE
 	moveq.l #3,d0
 	moveq.l #104,d1
@@ -5332,7 +5368,7 @@ abs_0_0005FF16:
 	move.l a0,absolute_slot_0000016A.w
 	move.w #$1,absolute_slot_0000016E.w
 	move.w #$1,absolute_slot_0000025A.w
-	lea.l $04D0.w,a0
+	lea.l absolute_slot_000004D0.w,a0
 	move.w #$17,(a0)+
 	move.w #$90,(a0)+
 	move.w #$54,(a0)
@@ -5534,7 +5570,7 @@ abs_0_00060158:
 	move.l a0,absolute_slot_0000016A.w
 	move.w #$1,absolute_slot_0000016E.w
 	addq.w #1,absolute_slot_000002C8.w
-	lea.l $053E.w,a0
+	lea.l absolute_slot_0000053E.w,a0
 	move.w #$30,(a0)
 	rts
 abs_0_0006017A:
@@ -5597,7 +5633,7 @@ abs_0_00060232:
 	rts
 abs_0_00060240:
 	lea.l abs_0_00064B3E(pc),a0
-	lea.l $0234.w,a1
+	lea.l absolute_slot_00000234.w,a1
 	bsr.w abs_0_0005D8AE
 	move.w absolute_slot_00000234.w,d2
 	cmp.w #$9D,d2
@@ -5633,7 +5669,7 @@ abs_0_0006029C:
 	move.w d5,absolute_slot_00000230.w
 	sub.w d1,d2
 	sub.w d3,d4
-	lea.l $0650.w,a0
+	lea.l absolute_slot_00000650.w,a0
 abs_0_000602AC:
 	move.w d2,d0
 	bsr.w abs_0_0005C7F6
@@ -5659,7 +5695,7 @@ abs_0_000602EC:
 	tst.w absolute_slot_00000230.w
 	ble.b abs_0_00060368
 	subq.w #1,absolute_slot_00000230.w
-	lea.l $0650.w,a0
+	lea.l absolute_slot_00000650.w,a0
 	move.w absolute_slot_0000022E.w,d7
 abs_0_000602FE:
 	tst.w $0006(a0)
@@ -5764,10 +5800,10 @@ abs_0_00060416:
 	rts
 abs_0_00060420:
 	lea.l abs_0_00064B78(pc),a0
-	lea.l $0246.w,a1
+	lea.l absolute_slot_00000246.w,a1
 	bsr.w abs_0_0005D8AE
 	lea.l abs_0_00064B88(pc),a0
-	lea.l $0248.w,a1
+	lea.l absolute_slot_00000248.w,a1
 	bsr.w abs_0_0005D8AE
 	rts
 abs_0_0006043A:
@@ -5979,7 +6015,7 @@ abs_0_00060732:
 	cmpi.w #3,absolute_slot_000002C8.l
 	bge.b abs_0_00060760
 	lea.l abs_0_00064BBA(pc),a0
-	lea.l $026E.w,a1
+	lea.l absolute_slot_0000026E.w,a1
 	bsr.w abs_0_0005D8AE
 	move.w #$B4,d0
 	move.w #$70,d1
@@ -6024,7 +6060,7 @@ abs_0_000607BE:
 	move.w #$DB,d2
 	bsr.w abs_0_0005CC5C
 	lea.l abs_0_00064C32(pc),a0
-	lea.l $0216.w,a1
+	lea.l absolute_slot_00000216.w,a1
 	bsr.w abs_0_0005D8AE
 	move.w absolute_slot_00000212.w,d0
 	subq.w #5,d0
@@ -6193,7 +6229,7 @@ abs_0_000609D8:
 abs_0_000609DE:
 	bsr.w abs_0_00060A46
 	bsr.w abs_0_00060A2A
-	lea.l $0520.w,a0
+	lea.l absolute_slot_00000520.w,a0
 	cmpi.w #43,(a0)
 	beq.b abs_0_00060A28
 	lea.l abs_0_0005E17A(pc),a0
@@ -6217,7 +6253,7 @@ abs_0_00060A28:
 	rts
 abs_0_00060A2A:
 	lea.l abs_0_00064C4C(pc),a0
-	lea.l $0274.w,a1
+	lea.l absolute_slot_00000274.w,a1
 	bsr.w abs_0_0005D8AE
 	move.w absolute_slot_00000272.w,d0
 	moveq.l #117,d1
@@ -6225,7 +6261,7 @@ abs_0_00060A2A:
 	bsr.w abs_0_0005CC5C
 	rts
 abs_0_00060A46:
-	lea.l $0520.w,a0
+	lea.l absolute_slot_00000520.w,a0
 	cmpi.w #43,(a0)
 	beq.b abs_0_00060A66
 	lea.l abs_0_0005E17A(pc),a0
@@ -6307,7 +6343,7 @@ abs_0_00060B22:
 	addq.w #1,absolute_slot_00000276.w
 	rts
 abs_0_00060B34:
-	lea.l $0000050C.l,a0
+	lea.l absolute_slot_0000050C.l,a0
 	move.w absolute_slot_000001DE.w,d0
 	cmp.w (a0),d0
 	bne.b abs_0_00060B60
@@ -6367,7 +6403,7 @@ abs_0_00060BDE:
 	dbf.w d7,abs_0_00060BDE
 	cmpi.w #10,absolute_slot_000001DE.w
 	bne.b abs_0_00060C24
-	lea.l $0000050C.l,a0
+	lea.l absolute_slot_0000050C.l,a0
 	move.w $0002(a0),d0
 	move.w $0004(a0),d1
 	cmp.w #$64,d1
@@ -6661,7 +6697,7 @@ abs_0_00060F98:
 	movea.l absolute_slot_000002B2.w,a0
 	cmpa.l #$0,a0
 	beq.b abs_0_00060FC0
-	lea.l $02B0.w,a1
+	lea.l absolute_slot_000002B0.w,a1
 	bsr.w abs_0_0005D8AE
 abs_0_00060FC0:
 	move.w absolute_slot_000002A0.w,d0
@@ -6819,10 +6855,10 @@ abs_0_000611AC:
 	bra.b abs_0_00061156
 abs_0_000611BA:
 	lea.l abs_0_00064C7C(pc),a0
-	lea.l $02C4.w,a1
+	lea.l absolute_slot_000002C4.w,a1
 	bsr.w abs_0_0005D8AE
 	lea.l abs_0_00064C8C(pc),a0
-	lea.l $02C6.w,a1
+	lea.l absolute_slot_000002C6.w,a1
 	bsr.w abs_0_0005D8AE
 	rts
 abs_0_000611D4:
@@ -6912,7 +6948,7 @@ abs_0_000612F6:
 	dc.b $14,$00,$14,$00,$14,$00,$14,$00,$14,$00,$14,$00,$14,$00,$14,$00
 	dc.b $14,$00,$14,$00,$14
 abs_0_00061350:
-	lea.l $0144.w,a0
+	lea.l absolute_slot_00000144.w,a0
 	lea.l runtime_code_00000318.w,a1
 abs_0_00061358:
 	clr.b (a0)+
@@ -7004,7 +7040,7 @@ abs_0_00061492:
 	bsr.w abs_0_0005D74E
 abs_0_000614AE:
 	movea.l absolute_slot_00000192.w,a0
-	lea.l $0190.w,a1
+	lea.l absolute_slot_00000190.w,a1
 	bsr.w abs_0_0005D8AE
 	lea.l abs_0_000624F0(pc),a0
 	move.w absolute_slot_000001DE.w,d0
@@ -7036,28 +7072,28 @@ abs_0_0006150A:
 	rts
 abs_0_00061516:
 	lea.l abs_0_00064C9C(pc),a0
-	lea.l $01B4.w,a1
+	lea.l absolute_slot_000001B4.w,a1
 	bsr.w abs_0_0005D8AE
 	move.w #$A2,d0
 	move.w #$22,d1
 	move.w absolute_slot_000001B4.w,d2
 	bsr.w abs_0_0005CC5C
 	lea.l abs_0_00064CAA(pc),a0
-	lea.l $01B2.w,a1
+	lea.l absolute_slot_000001B2.w,a1
 	bsr.w abs_0_0005D8AE
 	move.w #$11C,d0
 	move.w #$22,d1
 	move.w absolute_slot_000001B2.w,d2
 	bsr.w abs_0_0005CC5C
 	lea.l abs_0_00064B5E(pc),a0
-	lea.l $026A.w,a1
+	lea.l absolute_slot_0000026A.w,a1
 	bsr.w abs_0_0005D8AE
 	move.w #$E0,d0
 	move.w #$32,d1
 	move.w absolute_slot_0000026A.w,d2
 	bsr.w abs_0_0005CC5C
 	lea.l abs_0_00064CB8(pc),a0
-	lea.l $023C.w,a1
+	lea.l absolute_slot_0000023C.w,a1
 	bsr.w abs_0_0005D8AE
 	moveq.l #60,d0
 	moveq.l #3,d1
@@ -7092,7 +7128,7 @@ abs_0_000615CE:
 	dc.w $00B4,$0110	; lookup_table
 abs_0_000615E2:
 	lea.l abs_0_0006496A(pc),a0
-	lea.l $02D2.w,a1
+	lea.l absolute_slot_000002D2.w,a1
 	bsr.w abs_0_0005D8AE
 	move.w #$90,d0
 	move.w absolute_slot_000002D0.w,d1
@@ -7135,7 +7171,7 @@ abs_0_00061664:
 	bne.b abs_0_000616A0
 	clr.w absolute_slot_000002DC.w
 	move.w #$40,absolute_slot_000002D0.w
-	lea.l $0548.w,a0
+	lea.l absolute_slot_00000548.w,a0
 	move.w #$35,(a0)+
 	move.w #$2,(a0)+
 	move.w #$70,(a0)+
@@ -7172,15 +7208,15 @@ abs_0_000616E0:
 	rts
 abs_0_000616E2:
 	lea.l abs_0_0006223B(pc),a0
-	lea.l $00006F50.l,a1
+	lea.l absolute_slot_00006F50.l,a1
 	trap #3
-	lea.l $00006F50.l,a0
-	lea.l $00004750.l,a1
+	lea.l absolute_slot_00006F50.l,a0
+	lea.l absolute_slot_00004750.l,a1
 	lea.l $0800(a1),a2
 	bsr.w abs_0_00061724
 	suba.l #$4750,a2
-	lea.l $0000AF50.l,a0
-	lea.l $00006150.l,a1
+	lea.l absolute_slot_0000AF50.l,a0
+	lea.l absolute_slot_00006150.l,a1
 	lea.l $0800(a1),a2
 	bsr.w abs_0_00061724
 	suba.l #$6150,a2
@@ -7276,7 +7312,7 @@ abs_0_00061806:
 	rts
 abs_0_00061808:
 	movea.l absolute_slot_0000012A.w,a0
-	lea.l runtime_address_000680AA.l,a1
+	lea.l absolute_slot_000680AA.l,a1
 	bsr.b abs_0_00061820
 	movea.l absolute_slot_0000012A.w,a0
 	movea.l absolute_slot_00000126.w,a1
@@ -7396,8 +7432,8 @@ abs_0_00061976:
 	moveq.l #0,d0
 	bsr.w abs_0_00061BEE
 	move.w #$1,absolute_slot_0000028C.w
-	lea.l $00006F50.l,a0
-	lea.l runtime_address_0006B428.l,a1
+	lea.l absolute_slot_00006F50.l,a0
+	lea.l absolute_slot_0006B428.l,a1
 	bsr.w abs_0_00061C00
 	rts
 abs_0_000619B4:
@@ -7416,8 +7452,8 @@ abs_0_000619D4:
 	clr.w absolute_slot_00000148.w
 	cmpi.w #12,absolute_slot_0000028C.w
 	beq.b abs_0_00061A0E
-	lea.l $00006F50.l,a0
-	lea.l runtime_address_0006B428.l,a1
+	lea.l absolute_slot_00006F50.l,a0
+	lea.l absolute_slot_0006B428.l,a1
 	bsr.w abs_0_00061C00
 abs_0_000619F8:
 	clr.w absolute_slot_000001E4.w
@@ -7472,7 +7508,7 @@ abs_0_00061A6E:
 	andi.w #15,d3
 	or.w d2,d1
 	or.w d3,d1
-	lea.l $00003940.l,a1
+	lea.l absolute_slot_00003940.l,a1
 	moveq.l #15,d7
 abs_0_00061AAA:
 	addq.w #2,a1
@@ -7486,7 +7522,7 @@ abs_0_00061AB8:
 	dbf.w d7,abs_0_00061AB8
 	rts
 abs_0_00061AC2:
-	lea.l $00003B40.l,a0
+	lea.l absolute_slot_00003B40.l,a0
 	moveq.l #15,d7
 	moveq.l #0,d0
 	bsr.w abs_0_0005C744
@@ -7521,7 +7557,7 @@ abs_0_00061AC2:
 	move.l d0,(a0)+
 	rts
 abs_0_00061B5A:
-	lea.l runtime_address_0006B400.l,a0
+	lea.l absolute_slot_0006B400.l,a0
 	move.w #$2827,d0
 abs_0_00061B64:
 	clr.l (a0)+
@@ -7569,7 +7605,7 @@ abs_0_00061BEE:
 	lea.l abs_0_00062267(pc),a0
 	add.w d0,d0
 	adda.w d0,a0
-	lea.l $00006F50.l,a1
+	lea.l absolute_slot_00006F50.l,a1
 	trap #3
 	rts
 abs_0_00061C00:
@@ -7584,7 +7620,7 @@ abs_0_00061C08:
 	adda.w #$28,a1
 	dbf.w d1,abs_0_00061C06
 	dbf.w d2,abs_0_00061C02
-	lea.l $00003B42.l,a1
+	lea.l absolute_slot_00003B42.l,a1
 	moveq.l #15,d0
 abs_0_00061C22:
 	move.w (a0)+,(a1)
@@ -7622,14 +7658,14 @@ abs_0_00061C70:
 	move.w d1,absolute_slot_000002D4.w
 	move.w d1,absolute_slot_000002D8.w
 	lea.l abs_0_0006497C(pc),a0
-	lea.l $02D6.w,a1
+	lea.l absolute_slot_000002D6.w,a1
 	bsr.w abs_0_0005D8AE
 	move.w #$F0,d0
 	move.w absolute_slot_000002D4.w,d1
 	move.w absolute_slot_000002D6.w,d2
 	bsr.w abs_0_0005CC5C
 	lea.l abs_0_0006498E(pc),a0
-	lea.l $02DA.w,a1
+	lea.l absolute_slot_000002DA.w,a1
 	bsr.w abs_0_0005D8AE
 	move.w #$1C,d0
 	move.w absolute_slot_000002D8.w,d1
@@ -7691,14 +7727,14 @@ abs_0_00061D50:
 	rts
 abs_0_00061D66:
 	lea.l abs_0_00064C9C(pc),a0
-	lea.l $01B4.w,a1
+	lea.l absolute_slot_000001B4.w,a1
 	bsr.w abs_0_0005D8AE
 	move.w #$8A,d0
 	moveq.l #54,d1
 	move.w absolute_slot_000001B4.w,d2
 	bsr.w abs_0_0005CC5C
 	lea.l abs_0_00064CC6(pc),a0
-	lea.l $0190.w,a1
+	lea.l absolute_slot_00000190.w,a1
 	bsr.w abs_0_0005D8AE
 	move.w #$A3,d0
 	moveq.l #54,d1
@@ -7813,7 +7849,7 @@ abs_0_00061EC4:
 	dc.w $0104,$002A,$0040,$00FC,$0000,$0050,$0106,$000E	; lookup_table
 	dc.w $0050,$010D,$001C,$0050,$00FC,$0028,$0050,$0109	; lookup_table
 abs_0_00061EF4:
-	lea.l $00003B40.l,a0
+	lea.l absolute_slot_00003B40.l,a0
 	moveq.l #31,d7
 	moveq.l #0,d0
 	bsr.w abs_0_0005C744
@@ -7847,7 +7883,7 @@ abs_0_00061EF4:
 	rts
 abs_0_00061F82:
 	lea.l abs_0_0006227D(pc),a0
-	lea.l runtime_address_0006B400.l,a1
+	lea.l absolute_slot_0006B400.l,a1
 	trap #3
 	rts
 abs_0_00061F90:
@@ -7888,8 +7924,8 @@ abs_0_00061FE6:
 	bne.b abs_0_00061FDE
 	rts
 abs_0_00062006:
-	lea.l runtime_address_0007A400.l,a0
-	lea.l $00003B42.l,a1
+	lea.l absolute_slot_0007A400.l,a0
+	lea.l absolute_slot_00003B42.l,a1
 	moveq.l #31,d7
 	move.w absolute_slot_0000028A.w,d0
 abs_0_00062018:
@@ -7933,7 +7969,7 @@ abs_0_00062050:
 	andi.w #15,d3
 	or.w d2,d1
 	or.w d3,d1
-	lea.l $00003B42.l,a0
+	lea.l absolute_slot_00003B42.l,a0
 	moveq.l #31,d7
 abs_0_0006208C:
 	move.w d1,(a0)
@@ -7952,7 +7988,7 @@ abs_0_00062096:
 	clr.w aud2+ac_vol(a6)
 	clr.w aud3+ac_vol(a6)
 	lea.l abs_0_0006225F(pc),a0
-	lea.l runtime_address_0001A7E0.l,a1
+	lea.l absolute_slot_0001A7E0.l,a1
 	lea.l $0024(a1),a2
 	move.l a2,m68k_vector_trap_0_instruction_vector.w
 	trap #3
@@ -8166,40 +8202,104 @@ abs_0_000624F0:
 	dc.b $06,$16,$5E
 	dcb.b $20,$00
 abs_0_000625F0:
-	dc.b $20,$20,$20,$20,$20,$20,$57
-	dc.b $45,"IRD-HENGE         THE HAUNTED SWAMP     GOOD WITCH'S ISLAND     THE H"	; length_prefixed_string
-	dc.b $41,"UNTED SWAMP   THE MYSTERIOUS MONOLITH    UP THE MONOLITH      TOP"	; length_prefixed_string
-	dc.b $20,"OF THE MONOLITH      THE BUSHY G"	; length_prefixed_string
-	dc.b $52
-	dc.b $4F,"VE           UP A TREE            THE TREE TOP!          SLEEPY HOLLOW      THE"	; length_prefixed_string
-	dc.b $20,"BARD'S TREEHOUSE! THE SWORD IN T"	; length_prefixed_string
-	dc.b $48,"E STONE!     OUT ON A LIMB         THE TROLLBRIDGE       ACROSS THE BRID"	; length_prefixed_string
-	dc.b $47,$45,$20,$20,$20,$20,$20,$54,$48,$45,$20,$48,$4F,$54,$20,$57
-	dc.b $41,$54,$45,$52,$20,$47,$59,$53,$45,$52,$20,$20,$20,$43,$4C,$49
-	dc.b $4D,$42,$49,$4E,$47,$20,$54,$48,$45,$20,$56,$4F,$4C,$43,$41,$4E
-	dc.b $4F,$21,$20
+	dc.b $20,$20,$20,$20,$20,$20,$57,$45,$49,$52,$44,$2D,$48,$45,$4E,$47
+	dc.b $45
+	dcb.b $9,$20
+	dc.b $54,$48,$45,$20,$48,$41,$55,$4E,$54,$45,$44,$20,$53,$57,$41,$4D
+	dc.b $50,$20,$20,$20,$20,$20,$47,$4F,$4F,$44,$20,$57,$49,$54,$43,$48
+	dc.b $27,$53,$20,$49,$53,$4C,$41,$4E,$44,$20,$20,$20,$20,$20,$54,$48
+	dc.b $45,$20,$48,$41,$55,$4E,$54,$45,$44,$20,$53,$57,$41,$4D,$50,$20
+	dc.b $20,$20,$54,$48,$45,$20,$4D,$59,$53,$54,$45,$52,$49,$4F,$55,$53
+	dc.b $20,$4D,$4F,$4E,$4F,$4C,$49,$54,$48,$20,$20,$20,$20,$55,$50,$20
+	dc.b $54,$48,$45,$20,$4D,$4F,$4E,$4F,$4C,$49,$54,$48,$20,$20,$20,$20
+	dc.b $20,$20,$54,$4F,$50,$20,$4F,$46,$20,$54,$48,$45,$20,$4D,$4F,$4E
+	dc.b $4F,$4C,$49,$54,$48,$20,$20,$20,$20,$20,$20,$54,$48,$45,$20,$42
+	dc.b $55,$53,$48,$59,$20,$47,$52,$4F,$56,$45
+	dcb.b $B,$20
+	dc.b $55,$50,$20,$41,$20,$54,$52,$45,$45
+	dcb.b $C,$20
+	dc.b $54,$48,$45,$20,$54,$52,$45,$45,$20,$54,$4F,$50,$21
+	dcb.b $A,$20
+	dc.b $53,$4C,$45,$45,$50,$59,$20,$48,$4F,$4C,$4C,$4F,$57,$20,$20,$20
+	dc.b $20,$20,$20,$54,$48,$45,$20,$42,$41,$52,$44,$27,$53,$20,$54,$52
+	dc.b $45,$45,$48,$4F,$55,$53,$45,$21,$20,$54,$48,$45,$20,$53,$57,$4F
+	dc.b $52,$44,$20,$49,$4E,$20,$54,$48,$45,$20,$53,$54,$4F,$4E,$45,$21
+	dc.b $20,$20,$20,$20,$20,$4F,$55,$54,$20,$4F,$4E,$20,$41,$20,$4C,$49
+	dc.b $4D,$42
+	dcb.b $9,$20
+	dc.b $54,$48,$45,$20,$54,$52,$4F,$4C,$4C,$42,$52,$49,$44,$47,$45,$20
+	dc.b $20,$20,$20,$20,$20,$20,$41,$43,$52,$4F,$53,$53,$20,$54,$48,$45
+	dc.b $20,$42,$52,$49,$44,$47,$45,$20,$20,$20,$20,$20,$54,$48,$45,$20
+	dc.b $48,$4F,$54,$20,$57,$41,$54,$45,$52,$20,$47,$59,$53,$45,$52,$20
+	dc.b $20,$20,$43,$4C,$49,$4D,$42,$49,$4E,$47,$20,$54,$48,$45,$20,$56
+	dc.b $4F,$4C,$43,$41,$4E,$4F,$21,$20
 abs_0_0006278E:
 	dcb.b $1E,$20
-	dc.b $48
-	dc.b $45,"LL GATE       DESCENT INTO THE DEPTHS         HADES          THE CRAC"	; length_prefixed_string
-	dc.b $4B,"S OF GEHENNA       YE OLD WELL          CASTLE BACKDOOR        THE GRAND HA"	; length_prefixed_string
-	dc.b $4C,"L!        THE THRONE ROOM        THE DRAWBRIDGE!        THE WATCH TOWER     "	; length_prefixed_string
-	dc.b $20,$20,$20,$20
-	dc.b $20,"THE CHAPEL!         THE UPPER GA"	; length_prefixed_string
-	dc.b $4C,"LERY     A TOWER WITH A VIEW       IN THE CLOUDS         THE WATCH TOWER    "	; length_prefixed_string
-	dc.b $42,"ELOW THE TALLEST TOWER   THE TALLEST TOWER         DOWN A WELL    "	; length_prefixed_string
-	dc.b $20,$20,$20,$20,$54,$48,$45
-	dc.b $20,"SECRET PASSAGE!   THE FORGOTTEN "	; length_prefixed_string
-	dc.b $44,"UNGEON      A STICKY END!       ICE PALACE ENTRANCE       ENTRANCE H"	; length_prefixed_string
-	dc.b $41,"LL          THE MAIN HALL            THE CRYPT         THE DEEPES"	; length_prefixed_string
-	dc.b $54,$20,$44,$55,$4E,$47,$45,$4F,$4E,$20,$20,$20,$20,$20,$20,$20
-	dc.b $54,$48,$45,$20,$4F,$55,$42,$4C,$49,$45,$54,$54,$45,$20,$20,$20
-	dc.b $20,$20,$20,$20,$43,$4C,$49,$4D
-	dc.b $42,"ING ZAKS TOWER     BELOW ZAKS TOWER!         ZAKS TOWER!          "	; length_prefixed_string
-	dc.b $20,"MIRROR MIRROR         THE WEST T"	; length_prefixed_string
-	dc.b $4F,"WER!        THE CHESSBOARD!    CURIOUSER AND CURIOUSER    MAGICLAND DIZZY      "	; length_prefixed_string
-	dc.b $20,$20,$4D,$41,$47,$49,$43,$4C,$41,$4E,$44,$20,$44,$49,$5A,$5A
-	dc.b $59
+	dc.b $48,$45,$4C,$4C,$20,$47,$41,$54,$45,$20,$20,$20,$20,$20,$20,$20
+	dc.b $44,$45,$53,$43,$45,$4E,$54,$20,$49,$4E,$54,$4F,$20,$54,$48,$45
+	dc.b $20,$44,$45,$50,$54,$48,$53
+	dcb.b $9,$20
+	dc.b $48,$41,$44,$45,$53
+	dcb.b $A,$20
+	dc.b $54,$48,$45,$20,$43,$52,$41,$43,$4B,$53,$20,$4F,$46,$20,$47,$45
+	dc.b $48,$45,$4E,$4E,$41,$20,$20,$20,$20,$20,$20,$20,$59,$45,$20,$4F
+	dc.b $4C,$44,$20,$57,$45,$4C,$4C
+	dcb.b $A,$20
+	dc.b $43,$41,$53,$54,$4C,$45,$20,$42,$41,$43,$4B,$44,$4F,$4F,$52
+	dcb.b $8,$20
+	dc.b $54,$48,$45,$20,$47,$52,$41,$4E,$44,$20,$48,$41,$4C,$4C,$21
+	dcb.b $8,$20
+	dc.b $54,$48,$45,$20,$54,$48,$52,$4F,$4E,$45,$20,$52,$4F,$4F,$4D
+	dcb.b $8,$20
+	dc.b $54,$48,$45,$20,$44,$52,$41,$57,$42,$52,$49,$44,$47,$45,$21
+	dcb.b $8,$20
+	dc.b $54,$48,$45,$20,$57,$41,$54,$43,$48,$20,$54,$4F,$57,$45,$52
+	dcb.b $A,$20
+	dc.b $54,$48,$45,$20,$43,$48,$41,$50,$45,$4C,$21
+	dcb.b $9,$20
+	dc.b $54,$48,$45,$20,$55,$50,$50,$45,$52,$20,$47,$41,$4C,$4C,$45,$52
+	dc.b $59,$20,$20,$20,$20,$20,$41,$20,$54,$4F,$57,$45,$52,$20,$57,$49
+	dc.b $54,$48,$20,$41,$20,$56,$49,$45,$57,$20,$20,$20,$20,$20,$20,$20
+	dc.b $49,$4E,$20,$54,$48,$45,$20,$43,$4C,$4F,$55,$44,$53
+	dcb.b $9,$20
+	dc.b $54,$48,$45,$20,$57,$41,$54,$43,$48,$20,$54,$4F,$57,$45,$52,$20
+	dc.b $20,$20,$20,$42,$45,$4C,$4F,$57,$20,$54,$48,$45,$20,$54,$41,$4C
+	dc.b $4C,$45,$53,$54,$20,$54,$4F,$57,$45,$52,$20,$20,$20,$54,$48,$45
+	dc.b $20,$54,$41,$4C,$4C,$45,$53,$54,$20,$54,$4F,$57,$45,$52
+	dcb.b $9,$20
+	dc.b $44,$4F,$57,$4E,$20,$41,$20,$57,$45,$4C,$4C
+	dcb.b $8,$20
+	dc.b $54,$48,$45,$20,$53,$45,$43,$52,$45,$54,$20,$50,$41,$53,$53,$41
+	dc.b $47,$45,$21,$20,$20,$20,$54,$48,$45,$20,$46,$4F,$52,$47,$4F,$54
+	dc.b $54,$45,$4E,$20,$44,$55,$4E,$47,$45,$4F,$4E,$20,$20,$20,$20,$20
+	dc.b $20,$41,$20,$53,$54,$49,$43,$4B,$59,$20,$45,$4E,$44,$21,$20,$20
+	dc.b $20,$20,$20,$20,$20,$49,$43,$45,$20,$50,$41,$4C,$41,$43,$45,$20
+	dc.b $45,$4E,$54,$52,$41,$4E,$43,$45,$20,$20,$20,$20,$20,$20,$20,$45
+	dc.b $4E,$54,$52,$41,$4E,$43,$45,$20,$48,$41,$4C,$4C
+	dcb.b $A,$20
+	dc.b $54,$48,$45,$20,$4D,$41,$49,$4E,$20,$48,$41,$4C,$4C
+	dcb.b $C,$20
+	dc.b $54,$48,$45,$20,$43,$52,$59,$50,$54
+	dcb.b $9,$20
+	dc.b $54,$48,$45,$20,$44,$45,$45,$50,$45,$53,$54,$20,$44,$55,$4E,$47
+	dc.b $45,$4F,$4E,$20,$20,$20,$20,$20,$20,$20,$54,$48,$45,$20,$4F,$55
+	dc.b $42,$4C,$49,$45,$54,$54,$45,$20,$20,$20,$20,$20,$20,$20,$43,$4C
+	dc.b $49,$4D,$42,$49,$4E,$47,$20,$5A,$41,$4B,$53,$20,$54,$4F,$57,$45
+	dc.b $52,$20,$20,$20,$20,$20,$42,$45,$4C,$4F,$57,$20,$5A,$41,$4B,$53
+	dc.b $20,$54,$4F,$57,$45,$52,$21
+	dcb.b $9,$20
+	dc.b $5A,$41,$4B,$53,$20,$54,$4F,$57,$45,$52,$21
+	dcb.b $B,$20
+	dc.b $4D,$49,$52,$52,$4F,$52,$20,$4D,$49,$52,$52,$4F,$52
+	dcb.b $9,$20
+	dc.b $54,$48,$45,$20,$57,$45,$53,$54,$20,$54,$4F,$57,$45,$52,$21
+	dcb.b $8,$20
+	dc.b $54,$48,$45,$20,$43,$48,$45,$53,$53,$42,$4F,$41,$52,$44,$21,$20
+	dc.b $20,$20,$20,$43,$55,$52,$49,$4F,$55,$53,$45,$52,$20,$41,$4E,$44
+	dc.b $20,$43,$55,$52,$49,$4F,$55,$53,$45,$52,$20,$20,$20,$20,$4D,$41
+	dc.b $47,$49,$43,$4C,$41,$4E,$44,$20,$44,$49,$5A,$5A,$59
+	dcb.b $8,$20
+	dc.b $4D,$41,$47,$49,$43,$4C,$41,$4E,$44,$20,$44,$49,$5A,$5A,$59
 	dcb.b $8,$20
 	dc.b $4D,$41,$47,$49,$43,$4C,$41,$4E,$44,$20,$44,$49,$5A,$5A,$59
 	dcb.b $E,$20
@@ -8700,12 +8800,15 @@ abs_0_00064216:
 	dc.b $4C,$41,$4E,$44,$20,$44,$49,$5A,$5A,$59
 	dcb.b $15,$20
 	dc.b $4F,$52,$49,$47,$49,$4E,$41,$4C,$20,$44,$45,$53,$49,$47,$4E,$20
-	dc.b $42,$59,$20,$54,$48,$45
-	dc.b $20,"OLIVER TWINS                    "	; length_prefixed_string
-	dc.b $20,"AMIGA AND ST VERSIONS PROGRAMMED"	; length_prefixed_string
-	dc.b $20,"BY DEREK LEIGH GILCHRIST WITH GR"	; length_prefixed_string
-	dc.b $41,$50,$48,$49,$43,$53,$20,$42,$59,$20,$4C,$45,$49,$47,$48,$20
-	dc.b $43,$48,$52,$49,$53,$54,$49,$41,$4E
+	dc.b $42,$59,$20,$54,$48,$45,$20,$4F,$4C,$49,$56,$45,$52,$20,$54,$57
+	dc.b $49,$4E,$53
+	dcb.b $15,$20
+	dc.b $41,$4D,$49,$47,$41,$20,$41,$4E,$44,$20,$53,$54,$20,$56,$45,$52
+	dc.b $53,$49,$4F,$4E,$53,$20,$50,$52,$4F,$47,$52,$41,$4D,$4D,$45,$44
+	dc.b $20,$42,$59,$20,$44,$45,$52,$45,$4B,$20,$4C,$45,$49,$47,$48,$20
+	dc.b $47,$49,$4C,$43,$48,$52,$49,$53,$54,$20,$57,$49,$54,$48,$20,$47
+	dc.b $52,$41,$50,$48,$49,$43,$53,$20,$42,$59,$20,$4C,$45,$49,$47,$48
+	dc.b $20,$43,$48,$52,$49,$53,$54,$49,$41,$4E
 	dcb.b $15,$20
 	dc.b $FF
 abs_0_00064302:
@@ -9500,15 +9603,40 @@ abs_0_0006556E:
 	dc.b $FF,$FF
 	dcb.b $8,$00
 abs_0_000657EE:
-	dc.b $20,$20,$20,$20,$20,$20
-	dc.b $4E,"OTHING!        THE BACKDOOR KEY       THE DAGGER        THE BLACK CAT!   EXCAL"	; length_prefixed_string
-	dc.b $49,"BUR THE SWORD!     THE HANDLE        THE BIG STICK!        THE DUSTER    "	; length_prefixed_string
-	dc.b $20,"THE DEVIL'S TRIDENT!       A LEA"	; length_prefixed_string
-	dc.b $46,$20,$20,$20,$20,$20,$20,$20
-	dc.b $20,"A PERSONAL STEREO!   SOME MAGIC "	; length_prefixed_string
-	dc.b $50,"IPES    A POISONED APPLE     DORA THE FROG!       A POWERPILL!      AN EMPTY BUC"	; length_prefixed_string
-	dc.b $4B,"ET!  BUCKET OF HOT WATER!  SOMETHING STICKY   WEEDKILLER POTION! AN EMPTY M"	; length_prefixed_string
-	dc.b $49,"LK BOTTLE  A BAG OF RUBBISH  LIGHTNING CONDUCTOR!    A LIT TORCH!        "	; length_prefixed_string
+	dc.b $20,$20,$20,$20,$20,$20,$4E,$4F,$54,$48,$49,$4E,$47,$21
+	dcb.b $8,$20
+	dc.b $54,$48,$45,$20,$42,$41,$43,$4B,$44,$4F,$4F,$52,$20,$4B,$45,$59
+	dc.b $20,$20,$20,$20,$20,$20,$20,$54,$48,$45,$20,$44,$41,$47,$47,$45
+	dc.b $52
+	dcb.b $8,$20
+	dc.b $54,$48,$45,$20,$42,$4C,$41,$43,$4B,$20,$43,$41,$54,$21,$20,$20
+	dc.b $20,$45,$58,$43,$41,$4C,$49,$42,$55,$52,$20,$54,$48,$45,$20,$53
+	dc.b $57,$4F,$52,$44,$21,$20,$20,$20,$20,$20,$54,$48,$45,$20,$48,$41
+	dc.b $4E,$44,$4C,$45
+	dcb.b $8,$20
+	dc.b $54,$48,$45,$20,$42,$49,$47,$20,$53,$54,$49,$43,$4B,$21
+	dcb.b $8,$20
+	dc.b $54,$48,$45,$20,$44,$55,$53,$54,$45,$52,$20,$20,$20,$20,$20,$54
+	dc.b $48,$45,$20,$44,$45,$56,$49,$4C,$27,$53,$20,$54,$52,$49,$44,$45
+	dc.b $4E,$54,$21,$20,$20,$20,$20,$20,$20,$20,$41,$20,$4C,$45,$41,$46
+	dcb.b $8,$20
+	dc.b $41,$20,$50,$45,$52,$53,$4F,$4E,$41,$4C,$20,$53,$54,$45,$52,$45
+	dc.b $4F,$21,$20,$20,$20,$53,$4F,$4D,$45,$20,$4D,$41,$47,$49,$43,$20
+	dc.b $50,$49,$50,$45,$53,$20,$20,$20,$20,$41,$20,$50,$4F,$49,$53,$4F
+	dc.b $4E,$45,$44,$20,$41,$50,$50,$4C,$45,$20,$20,$20,$20,$20,$44,$4F
+	dc.b $52,$41,$20,$54,$48,$45,$20,$46,$52,$4F,$47,$21,$20,$20,$20,$20
+	dc.b $20,$20,$20,$41,$20,$50,$4F,$57,$45,$52,$50,$49,$4C,$4C,$21,$20
+	dc.b $20,$20,$20,$20,$20,$41,$4E,$20,$45,$4D,$50,$54,$59,$20,$42,$55
+	dc.b $43,$4B,$45,$54,$21,$20,$20,$42,$55,$43,$4B,$45,$54,$20,$4F,$46
+	dc.b $20,$48,$4F,$54,$20,$57,$41,$54,$45,$52,$21,$20,$20,$53,$4F,$4D
+	dc.b $45,$54,$48,$49,$4E,$47,$20,$53,$54,$49,$43,$4B,$59,$20,$20,$20
+	dc.b $57,$45,$45,$44,$4B,$49,$4C,$4C,$45,$52,$20,$50,$4F,$54,$49,$4F
+	dc.b $4E,$21,$20,$41,$4E,$20,$45,$4D,$50,$54,$59,$20,$4D,$49,$4C,$4B
+	dc.b $20,$42,$4F,$54,$54,$4C,$45,$20,$20,$41,$20,$42,$41,$47,$20,$4F
+	dc.b $46,$20,$52,$55,$42,$42,$49,$53,$48,$20,$20,$4C,$49,$47,$48,$54
+	dc.b $4E,$49,$4E,$47,$20,$43,$4F,$4E,$44,$55,$43,$54,$4F,$52,$21,$20
+	dc.b $20,$20,$20,$41,$20,$4C,$49,$54,$20,$54,$4F,$52,$43,$48,$21
+	dcb.b $8,$20
 	dc.b $41,$20,$47,$4F,$4C,$44,$20,$43,$52,$4F,$53,$53,$20,$20,$20,$20
 	dc.b $54,$48,$45,$20,$27,$44,$52,$49,$4E,$4B,$4D,$45,$27,$20,$50,$4F
 	dc.b $54,$49,$4F,$4E,$20,$20,$41,$4E,$20,$41,$4E,$43,$49,$45,$4E,$54
@@ -9848,7 +9976,7 @@ abs_0_000669D6:
 	rts
 abs_0_000669D8:
 	clr.w $0004(a5)
-	lea.l runtime_address_000519D6.l,a3
+	lea.l absolute_slot_000519D6.l,a3
 	move.w $0000(a5),d0
 	lsl.w #3,d0
 	lea.l $0(a3,d0.w),a3
