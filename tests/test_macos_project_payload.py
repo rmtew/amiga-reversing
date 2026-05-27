@@ -1156,6 +1156,17 @@ def test_macos_analysis_seeds_are_bounded_to_analysis_window() -> None:
     assert all(seed["analysis_payload_end"] == 48 for seed in seeds)
 
 
+def test_macos_semantic_row_text_rebases_local_labels_to_payload_offsets() -> None:
+    assert (
+        macos_project_payload._macos_semantic_row_text(
+            "jsr loc_0_000031AA(pc)",
+            resource_id=1,
+            payload_base=40,
+        )
+        == "jsr CODE_1_loc_000031d2(pc)"
+    )
+
+
 def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> None:
     if not IMAGE_PATH.exists():
         pytest.skip("MPW-GM image fixture is not available")
@@ -1423,6 +1434,19 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     assert semantic_xref["source_payload_offset"] >= 40
     assert semantic_xref["target_payload_offset"] >= 40
     assert semantic_xref["target_label"].startswith("CODE_1_loc_")
+    semantic_labels = {
+        f"CODE_1_loc_{row['payload_offset']:08x}"
+        for row in semantic_source["rows"]
+        if row.get("kind") == "label" and isinstance(row.get("payload_offset"), int)
+    }
+    xref_target_labels = {
+        xref["target_label"]
+        for row in semantic_source["rows"]
+        for xref in row.get("xrefs", [])
+        if xref.get("target_label")
+    }
+    assert xref_target_labels <= semantic_labels
+    assert any("CODE_1_loc_000031d2(pc)" in str(row.get("text") or "") for row in semantic_source["rows"])
     code2_quality = next(item for item in quality_rows if item["resource_id"] == 2)
     assert code2_quality["legacy_orphan_ranges_reclassified"] > 0
     assert code2_quality["orphan_bucket_present"] is False

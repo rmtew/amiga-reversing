@@ -1680,7 +1680,11 @@ def _semantic_source_row(
         "payload_end": payload_end,
         "size": (payload_end - payload_start) if isinstance(payload_start, int) and isinstance(payload_end, int) else 0,
         "bytes": row_map.get("bytes"),
-        "text": _macos_semantic_row_text(str(row_map.get("text") or "").rstrip(), resource_id=resource_id),
+        "text": _macos_semantic_row_text(
+            str(row_map.get("text") or "").rstrip(),
+            resource_id=resource_id,
+            payload_base=payload_base,
+        ),
         "label": label,
         "opcode_or_directive": row_map.get("opcode_or_directive"),
         "operand_text": row_map.get("operand_text"),
@@ -1698,9 +1702,9 @@ def _semantic_source_row(
     return {key: value for key, value in semantic_row.items() if value not in (None, "")}
 
 
-def _macos_semantic_row_text(text: str, *, resource_id: object) -> str:
+def _macos_semantic_row_text(text: str, *, resource_id: object, payload_base: int) -> str:
     def replace(match: re.Match[str]) -> str:
-        return f"CODE_{_text(resource_id)}_loc_{int(match.group(1), 16):08x}"
+        return f"CODE_{_text(resource_id)}_loc_{payload_base + int(match.group(1), 16):08x}"
 
     return _RAW_LOCAL_LABEL_RE.sub(replace, text)
 
