@@ -10116,6 +10116,16 @@ static int record_mac_call_stack_args_for_render(M68kRenderIRPreview *preview, c
         preview->asm_source_allocation_failed = 1U;
         return -1;
       }
+      if (param->direction != NULL && strcmp(param->direction, "input_value") == 0 &&
+          param->type_name != NULL && param->type_name[0] != '\0' && arg->source_reg_kind == 2U) {
+        if (m68k_ir_section_analysis_append_recovered_platform_typed_access(section_analysis,
+            M68K_PLATFORM_BACKEND_MACOS, arg->offset, 0U, arg->source_reg_index, arg->source_displacement, 0,
+            0U, 0U, param->type_name, param->type_name, param->name != NULL ? param->name : "",
+            "", 0U, 0U, M68K_PLATFORM_TYPE_PROVENANCE_API_INPUT, section->section_index, call_offset) != 0) {
+          preview->asm_source_allocation_failed = 1U;
+          return -1;
+        }
+      }
     }
   }
   if (record_mac_output_pointer_local_reads_for_render(preview, section, accepted_start, call_offset,

@@ -30,9 +30,9 @@ Current status map:
 - Label correctness: the known Pandora orphan-label case is covered by the generated-label emission split. New label
   issues should be reduced to expression eligibility versus standalone definition proof.
 - Type propagation: Amiga/Atari-style platform call/type propagation remains the general model. Mac `_GetFNum` now has
-  generated metadata, stack-argument binding, and an output-pointer local typed-access bridge. Mac A5-world slot typing
-  is intentionally not closed until accepted A5 lifetime evidence can connect ordinary instruction reads/writes to the
-  signed A5 storage-layout regions now carried by C analysis.
+  generated metadata, stack-argument binding, API-input local typed-access facts, and an output-pointer local typed-access
+  bridge. Mac A5-world slot typing is intentionally not closed until accepted A5 lifetime evidence can connect ordinary
+  instruction reads/writes to the signed A5 storage-layout regions now carried by C analysis.
 
 ## Investigation needed: MacOS/MPW asm
 
@@ -111,9 +111,10 @@ directly from generated Mac runtime metadata. For the `_GetFNum` pattern, the op
 `output_or_inout_pointer` direction from the generated metadata. Covered by
 `facts_v2_macos_call_stack_args_from_generated_metadata` and `cmd /c src\precommit.bat m68k_ir`. The same fact now binds
 each parameter to the concrete pushed local-frame operand: `name` comes from `-$0100(a6)` and `familyID` comes from
-`-$0102(a6)`. The output-pointer bridge now also records the later `move.w -$0102(a6),...` read as a typed local access:
-`familyID` is read as a two-byte `short` with API-output provenance pointing back to the `_GetFNum` call. This keeps the
-fact in C-owned source analysis rather than a rendered-source comment. Covered by the same regression and
+`-$0102(a6)`. The same bridge records `name` as an API-input typed local access with `ConstStr255Param` provenance, and
+the output-pointer bridge records the later `move.w -$0102(a6),...` read as a typed local access: `familyID` is read as
+a two-byte `short` with API-output provenance pointing back to the `_GetFNum` call. This keeps the facts in C-owned
+source analysis rather than rendered-source comments. Covered by the same regression and
 `cmd /c src\precommit.bat m68k_ir`.
 
 There is also an include/rendering distinction to preserve. The assembly source should include the real MPW interface
