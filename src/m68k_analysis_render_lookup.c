@@ -8132,6 +8132,34 @@ static int auto_string_looks_length_prefixed_sequence(const M68kRenderLookup *lo
   return cursor == text_end && record_count > 1U;
 }
 
+static int auto_string_has_record_sequence_context(const M68kRenderLookup *lookup,
+    const M68kDecodeSectionIR *section, uint32_t offset) {
+  size_t index;
+  uint32_t prior_count = 0U;
+  uint32_t nearest_end = 0U;
+  if (lookup == NULL || section == NULL || section->data == NULL || offset == 0U) return 0;
+  for (index = 0U; index < lookup->auto_structured_data_item_count; ++index) {
+    const M68kAnalysisStructuredDataItem *item = &lookup->auto_structured_data_items[index];
+    uint32_t item_end;
+    if (!item->has_section_index || item->section_index != section->section_index ||
+        (item->semantic_role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING) == 0U ||
+        item->offset > offset || item->size == 0U || item->size > offset - item->offset) {
+      continue;
+    }
+    item_end = item->offset + item->size;
+    if (item_end > offset || offset - item_end > 192U) continue;
+    ++prior_count;
+    if (item_end > nearest_end) nearest_end = item_end;
+  }
+  if (prior_count < 3U || nearest_end == 0U || nearest_end >= offset || offset - nearest_end > 8U) return 0;
+  for (index = nearest_end; index < offset; ++index) {
+    if (!byte_is_quoted_string_safe(section->data[index]) || auto_string_terminator_byte(section->data[index])) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
 static uint32_t auto_renderable_string_span_with_options(const M68kRenderLookup *lookup,
     const M68kDecodeSectionIR *section, const uint8_t *accepted_bytes, uint32_t offset,
     uint32_t min_text_size, int require_space) {
@@ -8144,7 +8172,8 @@ static uint32_t auto_renderable_string_span_with_options(const M68kRenderLookup 
     return 0U;
   }
   if (offset > 0U && byte_is_quoted_string_safe(section->data[offset - 1U]) &&
-      !lookup_has_label(lookup, section->section_index, offset)) {
+      !lookup_has_label(lookup, section->section_index, offset) &&
+      !auto_string_has_record_sequence_context(lookup, section, offset)) {
     return 0U;
   }
   cursor = offset;

@@ -465,3 +465,10 @@ abs_0_00064398:
 	dc.b $39,$39,$31,$20,$43,$4F,$44,$45,$4D,$41,$53,$54,$45,$52,$53,$20
 	dc.b $53,$4F,$46,$54,$57,$41,$52,$45,$20,$4C,$54,$44,$2E,$FF,$00
 ```
+
+Resolution note: the general C structured-data string classifier now handles this record shape without a
+Magicland-specific address rule. A plain ASCII string may start after a printable separator byte only when the same
+section already has a nearby sequence of prior structured strings and the nearest short separator contains control
+bytes. This keeps the normal mid-string split guard intact while allowing the final `COPYRIGHT 1991 CODEMASTERS
+SOFTWARE LTD.` record to render as byte-preserving quoted source. Covered by
+`facts_v2_control_separated_ascii_sequence_keeps_printable_separator_tail`.

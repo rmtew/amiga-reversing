@@ -2290,6 +2290,61 @@ static int test_facts_v2_adjacent_short_ascii_spans_auto_classify_string_sequenc
   return 0;
 }
 
+static int test_facts_v2_control_separated_ascii_sequence_keeps_printable_separator_tail(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  char *source = NULL;
+  uint16_t index;
+  uint32_t string_items = 0U;
+  uint8_t bytes[] = {
+    'M', 'A', 'G', 'I', 'C', 'L', 'A', 'N', 'D', ' ', 'D', 'I', 'Z', 'Z', 'Y', '!', 0x00u,
+    0x00u, 0x00u, 0x05u, 0x15u, 0x00u,
+    'A', 'M', 'I', 'G', 'A', ' ', 'A', 'N', 'D', ' ', 'S', 'T', ' ', 'V', 'E', 'R', 'S', 'I', 'O', 'N',
+    'S', ' ', 'C', 'O', 'D', 'E', 'D', ' ', 'B', 'Y', 0x00u,
+    0x00u, 0x00u, 0x09u, 0x1Cu, 0xE0u,
+    'D', 'E', 'R', 'E', 'K', ' ', 'L', 'E', 'I', 'G', 'H', '-', 'G', 'I', 'L', 'C', 'H', 'R', 'I',
+    'S', 'T', '.', 0x00u,
+    0x00u, 0x00u, 0x0Du, 0x31u, 0xE0u,
+    'A', 'L', 'L', ' ', 'A', 'R', 'T', 'W', 'O', 'R', 'K', ' ', 'B', 'Y', 0x00u,
+    0x00u, 0x00u, 0x0Cu, 0x39u, 0xC0u,
+    'L', 'E', 'I', 'G', 'H', ' ', 'C', 'H', 'R', 'I', 'S', 'T', 'I', 'A', 'N', '.', 0x00u,
+    0x00u, 0x00u, 0x00u, 0x76u, 0x20u,
+    'C', 'O', 'P', 'Y', 'R', 'I', 'G', 'H', 'T', ' ', '1', '9', '9', '1', ' ', 'C', 'O', 'D', 'E',
+    'M', 'A', 'S', 'T', 'E', 'R', 'S', ' ', 'S', 'O', 'F', 'T', 'W', 'A', 'R', 'E', ' ', 'L', 'T',
+    'D', '.', 0xFFu, 0x00u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  section.kind = M68K_SECTION_DATA;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "dc.b \"COPYRIGHT 1991 CODEMASTERS SOFTWARE LTD.\",$FF") != NULL);
+  for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
+    const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
+    if (item->has_section_index && item->section_index == 0U &&
+        structured_data_item_has_role(item, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING))
+      ++string_items;
+  }
+  M68K_C_ASSERT_U32(6U, string_items);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_two_short_ascii_spans_remain_raw_data(void) {
   M68kObject object;
   M68kSection section;
@@ -20075,6 +20130,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_data_ascii_span_rejects_printable_length_sequence},
     {"facts_v2_adjacent_short_ascii_spans_auto_classify_string_sequence",
       test_facts_v2_adjacent_short_ascii_spans_auto_classify_string_sequence},
+    {"facts_v2_control_separated_ascii_sequence_keeps_printable_separator_tail",
+      test_facts_v2_control_separated_ascii_sequence_keeps_printable_separator_tail},
     {"facts_v2_two_short_ascii_spans_remain_raw_data",
       test_facts_v2_two_short_ascii_spans_remain_raw_data},
     {"facts_v2_label_bounded_ascii_span_auto_classifies_string",
