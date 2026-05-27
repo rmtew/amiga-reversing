@@ -1579,8 +1579,8 @@ def _semantic_source_row(
     payload_start = payload_base + start if start is not None else None
     payload_end = payload_base + end if end is not None else payload_start
     label = row_map.get("label") if isinstance(row_map.get("label"), str) else None
-    xrefs = _semantic_source_xrefs(row_map, payload_base=payload_base)
     resource_id = resource.get("id")
+    xrefs = _semantic_source_xrefs(row_map, payload_base=payload_base, resource_id=resource_id, source_payload=payload_start)
     semantic_row = {
         "kind": kind,
         "resource_type": "CODE",
@@ -1615,15 +1615,26 @@ def _macos_semantic_row_text(text: str, *, resource_id: object) -> str:
     return _RAW_LOCAL_LABEL_RE.sub(replace, text)
 
 
-def _semantic_source_xrefs(row: Mapping[str, object], *, payload_base: int) -> list[dict[str, object]]:
+def _semantic_source_xrefs(
+    row: Mapping[str, object],
+    *,
+    payload_base: int,
+    resource_id: object,
+    source_payload: int | None,
+) -> list[dict[str, object]]:
     xrefs: list[dict[str, object]] = []
     for ref in _sequence(row.get("code_start_refs")):
         ref_map = _mapping(ref)
         offset = _int_value(ref_map.get("offset"))
+        target_payload = payload_base + offset if offset is not None else None
         xrefs.append(
             {
                 "kind": "code_start_ref",
-                "payload_offset": payload_base + offset if offset is not None else None,
+                "source_payload_offset": source_payload,
+                "target_payload_offset": target_payload,
+                "target_label": (
+                    f"CODE_{_text(resource_id)}_loc_{target_payload:08x}" if target_payload is not None else None
+                ),
                 "reason": ref_map.get("reason_name"),
                 "confidence": ref_map.get("confidence"),
             }
