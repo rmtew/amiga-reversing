@@ -252,22 +252,21 @@ and does not promote the same bytes on Amiga/Atari backends. Covered by
 `facts_v2_highbit_symbol_string_is_not_generic_pascal`, and `cmd /c src\precommit.bat m68k_ir`. Broader string cleanup
 remains about other proven string/data forms, not this Mac high-bit symbol-record case.
 
-If we know a string is a string of some sort, we should display it as the restored  source should see it. As a
-textual string where applicable. This is an opportunity for clean up. It should be a general thing, not just MacOS.
-We already do it in seemingly inconsistent cases, so looking at data in other targets for failures where we're doing
-it haphazardly and generalising an approach might be worth doing.
+If we know a string is a string of some sort, we should display it as the restored source should see it: textual where
+the bytes prove a textual representation, raw/residual where they do not. This is a general structured-data concern,
+not just MacOS. The Mac high-bit symbol-string examples below are now covered by C-owned structured rows; other targets
+or record shapes still need evidence-driven generalization rather than label-text heuristics.
 
 ```
 CODE_1_data_pascal_string_00002066:
 	dc.b $87,$47,$45,$54,$52,$53,$52,$43,$00,$00
 ```
 
-The label already says `pascal_string`, and the Mac semantic gap classifier already has a `semantic_pascal_string_gap`
-case. The output is still raw bytes, so the reader has to mentally decode length-prefixed text. For the example above,
-`$87` is not a normal seven-bit length byte; it is the high bit set on a length-like value. Nearby examples such as
-`$8A,$47,$45,$54,$46,$4F,$4E,$54,$4E,$42,$52...` show the same pattern around trap names like `GETFONTNBR`.
-That suggests we should be careful before rendering every labelled Pascal string as a plain `dc.b length,"text"` row:
-some of these records may be symbol/name records with flag bits or tool-specific metadata around a Pascal-style string.
+The old failure was that the label said `pascal_string` while the bytes remained opaque. The fixed path no longer uses
+the label as proof. `$87` is not a normal seven-bit length byte; it is the high bit set on a length-like value. Nearby
+examples such as `$8A,$47,$45,$54,$46,$4F,$4E,$54,$4E,$42,$52...` show the same pattern around trap names like
+`GETFONTNBR`. That is why the generic scanner still refuses broad high-bit Pascal promotion: these are Mac symbol/name
+records with flag bits or tool-specific metadata around a Pascal-style string.
 
 The clean direction is to make string rendering driven by structured data class, not label text. A row should know
 whether it is a C string, Pascal string, fixed string field, symbol record, or unknown byte sequence. Then the renderer
