@@ -9874,6 +9874,82 @@ static void record_facts_v2_platform_call(M68kRenderIRPreview *preview,
   }
 }
 
+static int mac_instruction_stack_argument_operand(const M68kInstructionIR *instruction, const M68kOperandIR **out_operand) {
+  if (out_operand != NULL) *out_operand = NULL;
+  if (instruction == NULL || out_operand == NULL) return 0;
+  if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_PEA && instruction->operand_count == 1U) {
+    *out_operand = &instruction->operands[0];
+    return 1;
+  }
+  if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVE && instruction->size_suffix == 'l' &&
+      instruction->operand_count == 2U && instruction->operands[1].kind == M68K_ASM_OPERAND_EA &&
+      instruction->operands[1].value.ea_mode == 4U && instruction->operands[1].value.ea_reg == 7U) {
+    *out_operand = &instruction->operands[0];
+    return 1;
+  }
+  return 0;
+}
+
+static int record_mac_call_stack_args_for_render(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
+    const M68kDecodeSectionIR *section, const uint8_t *accepted_start, uint32_t block_start,
+    uint32_t call_offset, M68kSectionAnalysisIR *section_analysis,
+    const PlatformFactsV2ResolvedCall *call_info) {
+  const MacOsCallInfo *mac_call;
+  size_t arg_count = 0U;
+  uint32_t cursor;
+  if (preview == NULL || lookup == NULL || lookup->object == NULL || section == NULL || accepted_start == NULL ||
+      section_analysis == NULL || call_info == NULL) {
+    return 0;
+  }
+  if (lookup->object->platform_backend_kind != M68K_PLATFORM_BACKEND_MACOS ||
+      call_info->note_kind != M68K_PLATFORM_CALL_NOTE_DIRECT_OS_CALL ||
+      call_info->note_symbol_name[0] == '\0') {
+    return 0;
+  }
+  mac_call = mac_os_find_call_by_name(call_info->note_symbol_name);
+  if (mac_call == NULL || mac_call->parameter_count == 0U || mac_call->parameter_count > 16U) {
+    return 0;
+  }
+  cursor = block_start < call_offset ? block_start : (call_offset > 48U ? call_offset - 48U : 0U);
+  while (cursor < call_offset && cursor < section->size) {
+    const M68kDecodeCandidate *candidate;
+    M68kInstructionIR instruction;
+    const M68kOperandIR *arg_operand = NULL;
+    if (!accepted_start_at(section, accepted_start, cursor)) break;
+    candidate = find_candidate_at_offset_local(section, cursor);
+    if (candidate == NULL || candidate->byte_count == 0U || cursor + candidate->byte_count > call_offset)
+      break;
+    if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) break;
+    if (mac_instruction_stack_argument_operand(&instruction, &arg_operand)) {
+      if (arg_count >= 16U) {
+        arg_count = 0U;
+      } else {
+        (void)arg_operand;
+        ++arg_count;
+      }
+    } else if (candidate_has_call_flow(candidate) || candidate_has_non_call_control_target(candidate)) {
+      arg_count = 0U;
+    }
+    cursor += candidate->byte_count;
+  }
+  if (cursor != call_offset || arg_count < mac_call->parameter_count) return 0;
+  {
+    uint16_t param_index;
+    for (param_index = 0U; param_index < mac_call->parameter_count; ++param_index) {
+      const MacOsCallParameterInfo *param = mac_os_call_parameter(mac_call, param_index);
+      uint16_t stack_offset = (uint16_t)((mac_call->parameter_count - param_index) * 4U);
+      if (param == NULL) continue;
+      if (m68k_ir_section_analysis_append_recovered_function_arg(section_analysis, M68K_PLATFORM_BACKEND_MACOS,
+          call_offset, stack_offset, 0U, 0U, mac_call->c_name, param->name, param->type_name,
+          param->direction, NULL, 0U, 0) != 0) {
+        preview->asm_source_allocation_failed = 1U;
+        return -1;
+      }
+    }
+  }
+  return 1;
+}
+
 static int record_platform_trap_call_for_render(M68kRenderIRPreview *preview,
     const M68kRenderLookup *lookup, const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
     const M68kDecodeCandidate *candidate, M68kSectionAnalysisIR *section_analysis) {
@@ -9887,6 +9963,10 @@ static int record_platform_trap_call_for_render(M68kRenderIRPreview *preview,
     return 0;
   }
   record_facts_v2_platform_call(preview, section_analysis, candidate->offset, &call_info);
+  if (record_mac_call_stack_args_for_render(preview, lookup, section, accepted_start, block_start, candidate->offset,
+      section_analysis, &call_info) < 0) {
+    return -1;
+  }
   return 1;
 }
 
@@ -10409,6 +10489,11 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
               row = finish_asm_source_plan_row(out_preview, section->section_index, offset, 2U, 1);
               set_asm_source_plan_row_statement_from_section(row, M68K_STATEMENT_DATA, NULL, section, offset, 2U);
               record_facts_v2_platform_call(out_preview, current_section_analysis, offset, &call_info);
+              if (record_mac_call_stack_args_for_render(out_preview, &lookup, section, accepted_start[section_index],
+                  lookup_code_block_start_before_or_at(&lookup, section->section_index, offset), offset,
+                  current_section_analysis, &call_info) < 0) {
+                goto cleanup;
+              }
               asm_logical_pc += 2U;
             }
             offset += 2U;

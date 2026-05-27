@@ -91,6 +91,14 @@ reached platform call, and serializes `name: ConstStr255Param` plus `familyID: s
 C data-flow bridge: bind the observed `pea -$0100(a6)`/`pea -$0102(a6)` stack operands to those parameter rows, then
 propagate the output pointer write into typed stack/local/A5-slot facts.
 
+Progress note: the first C data-flow bridge now records reached Mac stack arguments as recovered function-arg facts
+directly from generated Mac runtime metadata. For the `_GetFNum` pattern, the opword call at payload offset 12 records
+`name: ConstStr255Param` at call-stack offset 8 and `familyID: short *` at call-stack offset 4, including the
+`output_or_inout_pointer` direction from the generated metadata. Covered by
+`facts_v2_macos_call_stack_args_from_generated_metadata` and `cmd /c src\precommit.bat m68k_ir`. Remaining work is to
+propagate those argument facts back to the concrete local-frame operands (`-$0100(a6)` and `-$0102(a6)`) and then forward
+from the output pointer load into typed stack/local/A5-slot facts.
+
 There is also an include/rendering distinction to preserve. The assembly source should include the real MPW interface
 file that defines `_GetFNum` (for example `Fonts.a`, with whatever umbrella include policy we settle on), not emit local
 EQU-style replacement definitions. The metadata generator can consume `Fonts.a`/`Fonts.h`, but the restored source

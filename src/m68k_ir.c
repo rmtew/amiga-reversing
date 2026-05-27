@@ -1886,7 +1886,7 @@ int m68k_ir_section_analysis_append_recovered_function_arg(M68kSectionAnalysisIR
   char *copy_context_name, *copy_symbol_name, *copy_type_name, *copy_semantic_kind, *copy_value_domain_name;
   M68kPlatformNameRef context_ref = {0}, symbol_ref = {0}, type_ref = {0};
   M68kPlatformNameRef semantic_kind_ref = {0}, value_domain_ref = {0};
-  if (section_analysis == NULL || stack_offset == 0U || reg_kind == 0U || reg_index >= 8U) return -1;
+  if (section_analysis == NULL || stack_offset == 0U || reg_index >= 8U) return -1;
   if (section_analysis->arena == NULL) return -1;
   context_ref.platform_kind = platform_kind;
   context_ref.domain_kind = M68K_PLATFORM_NAME_BASE;

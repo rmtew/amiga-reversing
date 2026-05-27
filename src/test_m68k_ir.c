@@ -3190,6 +3190,63 @@ static int test_facts_v2_macos_opword_call_falls_through(void) {
   return 0;
 }
 
+static int test_facts_v2_macos_call_stack_args_from_generated_metadata(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  const M68kSectionAnalysisIR *analysis_section;
+  char *source = NULL;
+  char *analysis_json = NULL;
+  uint8_t bytes[24] = {
+    0x4eu, 0x56u, 0xfeu, 0xfeu,
+    0x48u, 0x6eu, 0xffu, 0x00u,
+    0x48u, 0x6eu, 0xfeu, 0xfeu,
+    0xa9u, 0x00u,
+    0x3du, 0x6eu, 0xfeu, 0xfeu, 0x00u, 0x0cu,
+    0x4eu, 0x5eu,
+    0x4eu, 0x75u
+  };
+  memset(&section, 0, sizeof(section));
+  memset(&source_analysis, 0, sizeof(source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_MACOS;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.entry_point_count = 1U;
+  policy.entry_points[0].has_section_index = 1U;
+  policy.entry_points[0].section_index = 0U;
+  policy.entry_points[0].offset = 0U;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source, &profile,
+    &source_analysis, 0U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.section_count);
+  analysis_section = &source_analysis.sections[0];
+  M68K_C_ASSERT_U32(1U, (uint32_t)analysis_section->recovered_platform_call_count);
+  M68K_C_ASSERT_U32(2U, (uint32_t)analysis_section->recovered_function_arg_count);
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"function_offset\":12,\"stack_offset\":8,\"reg_kind\":0,"
+    "\"reg_index\":0,\"context_name\":\"GetFNum\",\"symbol_name\":\"name\","
+    "\"type_name\":\"ConstStr255Param\",\"semantic_kind\":\"input_value\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"function_offset\":12,\"stack_offset\":4,\"reg_kind\":0,"
+    "\"reg_index\":0,\"context_name\":\"GetFNum\",\"symbol_name\":\"familyID\","
+    "\"type_name\":\"short *\",\"semantic_kind\":\"output_or_inout_pointer\"") != NULL);
+  free(analysis_json);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_atari_invalid_image_relocation_refuses_source(void) {
   M68kObject object;
   M68kSection code_section;
@@ -20085,6 +20142,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_render_asm_source_recovers_atari_trap_call},
     {"facts_v2_macos_opword_call_falls_through",
       test_facts_v2_macos_opword_call_falls_through},
+    {"facts_v2_macos_call_stack_args_from_generated_metadata",
+      test_facts_v2_macos_call_stack_args_from_generated_metadata},
     {"facts_v2_atari_invalid_image_relocation_refuses_source",
       test_facts_v2_atari_invalid_image_relocation_refuses_source},
     {"facts_v2_asm_source_preserves_atari_program_flags",
