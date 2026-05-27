@@ -1284,7 +1284,11 @@ def _macos_code_semantic_gap_residuals(
         if local_start < 0 or local_end > len(code_bytes):
             residuals.append(gap)
             continue
-        data_kind = _macos_semantic_gap_data_kind(code_bytes[local_start:local_end])
+        data_kind = _macos_semantic_gap_data_kind(
+            code_bytes[local_start:local_end],
+            payload_start=start,
+            payload_end=end,
+        )
         if data_kind is None:
             residuals.append(gap)
             continue
@@ -1296,10 +1300,12 @@ def _macos_code_semantic_gap_residuals(
     return residuals
 
 
-def _macos_semantic_gap_data_kind(data: bytes) -> str | None:
+def _macos_semantic_gap_data_kind(data: bytes, *, payload_start: int, payload_end: int) -> str | None:
     if not data:
         return None
     if all(byte == 0 for byte in data):
+        if _macos_gap_is_alignment_padding(data, payload_start=payload_start, payload_end=payload_end):
+            return "semantic_alignment_padding_gap"
         return "semantic_zero_fill_gap"
     if _macos_gap_is_printable_bytes(data):
         return "semantic_string_data_gap"
@@ -1308,6 +1314,10 @@ def _macos_semantic_gap_data_kind(data: bytes) -> str | None:
     if _macos_gap_is_word_dispatch_table(data):
         return "semantic_dispatch_table_gap"
     return None
+
+
+def _macos_gap_is_alignment_padding(data: bytes, *, payload_start: int, payload_end: int) -> bool:
+    return len(data) <= 8 and payload_start % 4 != 0 and payload_end % 4 == 0
 
 
 def _macos_gap_is_printable_bytes(data: bytes) -> bool:

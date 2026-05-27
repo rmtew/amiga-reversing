@@ -460,9 +460,10 @@ def _semantic_source_lines(
         payload_end = _int_value(row.get("payload_end")) or payload_offset
         if payload_offset is not None and payload_offset > cursor:
             lines.extend(
-                _dc_b_lines(
+                _semantic_gap_lines(
                     payload_bytes[cursor:payload_offset],
                     label=f"{_text(section.get('label'))}_{_semantic_gap_kind(gap_kinds, cursor, payload_offset)}_{cursor:08x}",
+                    kind=_semantic_gap_kind(gap_kinds, cursor, payload_offset),
                     base_offset=cursor,
                 )
             )
@@ -482,9 +483,10 @@ def _semantic_source_lines(
             cursor = max(cursor, payload_end)
     if cursor < end:
         lines.extend(
-            _dc_b_lines(
+            _semantic_gap_lines(
                 payload_bytes[cursor:end],
                 label=f"{_text(section.get('label'))}_{_semantic_gap_kind(gap_kinds, cursor, end)}_{cursor:08x}",
+                kind=_semantic_gap_kind(gap_kinds, cursor, end),
                 base_offset=cursor,
             )
         )
@@ -493,6 +495,12 @@ def _semantic_source_lines(
 
 def _semantic_gap_kind(gap_kinds: Mapping[tuple[int | None, int | None], str], start: int, end: int) -> str:
     return gap_kinds.get((start, end), "semantic_decode_gap")
+
+
+def _semantic_gap_lines(data: bytes, *, label: str, kind: str, base_offset: int) -> list[str]:
+    if kind == "semantic_alignment_padding_gap" and data and all(byte == 0 for byte in data):
+        return [f"{label}:", f"\tds.b {len(data)}"]
+    return _dc_b_lines(data, label=label, base_offset=base_offset)
 
 
 def _macos_semantic_text(text: str, *, resource_id: object) -> str:

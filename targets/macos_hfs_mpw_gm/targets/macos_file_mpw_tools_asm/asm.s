@@ -35290,8 +35290,8 @@ macos_code_CODE_12_loc_00000986:
 	movea.l $0008(a6),a0
 	movea.l a0,a6
 	jmp macos_code_CODE_12_loc_0000115c(pc)
-macos_code_CODE_12_semantic_zero_fill_gap_000009c6:
-	dc.b $00,$00
+macos_code_CODE_12_semantic_alignment_padding_gap_000009c6:
+	ds.b 2
 macos_code_CODE_12_loc_000009c8:
 	move.l -$0018(a4),$0004(a3)
 	move.l a3,-$0018(a4)
@@ -35362,8 +35362,8 @@ macos_code_CODE_12_loc_00000a42:
 	movea.l $0008(a6),a0
 	movea.l a0,a6
 	jmp macos_code_CODE_12_loc_0000115c(pc)
-macos_code_CODE_12_semantic_zero_fill_gap_00000a8e:
-	dc.b $00,$00
+macos_code_CODE_12_semantic_alignment_padding_gap_00000a8e:
+	ds.b 2
 macos_code_CODE_12_loc_00000a90:
 	movem.l (a7)+,d5-d7/a3-a4
 	unlk a6
@@ -40746,8 +40746,8 @@ macos_code_CODE_15_loc_000001a4:
 	movea.l $0008(a6),a0
 	movea.l a0,a6
 	jmp macos_code_CODE_15_loc_00000474(pc)
-macos_code_CODE_15_semantic_zero_fill_gap_000001ae:
-	dc.b $00,$00
+macos_code_CODE_15_semantic_alignment_padding_gap_000001ae:
+	ds.b 2
 macos_code_CODE_15_loc_000001b0:
 	movem.l (a7)+,d4-d7/a4
 	unlk a6
@@ -48899,9 +48899,9 @@ macos_code_CODE_27_semantic_decode_gap_000000d4:
 ;       residual semantic_pascal_string_gap payload[2320..2332) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_pascal_string_gap payload[2388..2402) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_decode_gap payload[2436..2438) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_zero_fill_gap payload[2502..2504) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_alignment_padding_gap payload[2502..2504) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_zero_fill_gap payload[2624..2626) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
-;       residual semantic_zero_fill_gap payload[2702..2704) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_alignment_padding_gap payload[2702..2704) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_pascal_string_gap payload[2716..2732) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_zero_fill_gap payload[2828..2830) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_pascal_string_gap payload[2862..2880) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
@@ -48948,7 +48948,7 @@ macos_code_CODE_27_semantic_decode_gap_000000d4:
 ;       residual semantic_pascal_string_gap payload[104..112) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_zero_fill_gap payload[208..210) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_dispatch_table_gap payload[230..290) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
-;       residual semantic_zero_fill_gap payload[430..432) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_alignment_padding_gap payload[430..432) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_pascal_string_gap payload[444..456) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_dispatch_table_gap payload[1252..1398) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_dispatch_table_gap payload[1644..1662) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax

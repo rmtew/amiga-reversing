@@ -151,6 +151,25 @@ def _summary_with_c_owned_restored_sources(summary: dict[str, object]) -> dict[s
     return summary
 
 
+def test_macos_semantic_gap_data_kind_classifies_longword_alignment_padding() -> None:
+    assert (
+        macos_project_payload._macos_semantic_gap_data_kind(
+            b"\x00\x00",
+            payload_start=0x9C6,
+            payload_end=0x9C8,
+        )
+        == "semantic_alignment_padding_gap"
+    )
+    assert (
+        macos_project_payload._macos_semantic_gap_data_kind(
+            b"\x00\x00",
+            payload_start=0x9C8,
+            payload_end=0x9CA,
+        )
+        == "semantic_zero_fill_gap"
+    )
+
+
 def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
