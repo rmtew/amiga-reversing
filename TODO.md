@@ -331,6 +331,15 @@ same symbolic register base proven at the indirect call site, without a Pandora-
 orphaned labels and what it means with respect to our analysis being correct. Are we identifying absolute address
 references perhaps and not substituting the in-segment/bootstrapped range label for that address at point of access?
 
+Resolution note: generated labels now separate expression eligibility from standalone label-statement emission in the
+C renderer. A local address may still be usable in symbolic operands or table rows, but it is only emitted as a
+definition when accepted code, explicit naming, relocation/storage data, sink-backed runtime data, or a proven
+structured table needs that source label to exist. PC-relative xrefs are now harvested only from accepted candidates,
+so raw-data decode candidates cannot manufacture label definitions. Runtime refs that render as alternate external
+runtime symbols no longer force unrelated source-offset labels. Covered by `render_ir_suppresses_orphan_structured_field_label`,
+existing runtime/table/copper render tests, `cmd /c src\precommit.bat m68k_ir`, and a Pandora raw render check showing
+`abs_0_00056218:` count `0`.
+
 ### Address classification and labelisation
 
 These are address looking values that likely fall within known ranges, and are also extracted out and used as addresses.

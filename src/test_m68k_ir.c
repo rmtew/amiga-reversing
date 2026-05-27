@@ -8524,7 +8524,7 @@ static int test_facts_v2_source_zero_runtime_copy_continues_without_storage_org(
   M68K_C_ASSERT(preview.asm_source_text != NULL);
   M68K_C_ASSERT(strstr(preview.asm_source_text, "    ORG $100\nabs_0_00000100:\n") != NULL);
   M68K_C_ASSERT(strstr(preview.asm_source_text, "    ORG $4\n") == NULL);
-  M68K_C_ASSERT(strstr(preview.asm_source_text, "abs_0_00000104:\n\tdc.b $00,$01,$02,$03\n") != NULL);
+  M68K_C_ASSERT(strstr(preview.asm_source_text, "\tdc.b $00,$01,$02,$03\n") != NULL);
   M68K_C_ASSERT_U32(0U, preview.asm_source_instruction_render_failures);
   m68k_render_ir_preview_destroy(&preview);
   m68k_fact_ir_destroy(&facts);
@@ -17753,6 +17753,19 @@ static int test_render_ir_suppresses_orphan_structured_field_label(void) {
   M68K_C_ASSERT(preview.asm_source_text != NULL);
   M68K_C_ASSERT(strstr(preview.asm_source_text, "loc_0_00000012:") == NULL);
   M68K_C_ASSERT(strstr(preview.asm_source_text, "\tdc.l resident_name\t; APTR RT_NAME\n") != NULL);
+  M68K_C_ASSERT(strstr(preview.asm_source_text, "resident_name:\n") != NULL);
+  m68k_render_ir_preview_destroy(&preview);
+  m68k_render_ir_preview_init(&preview);
+  memset(&fact, 0, sizeof(fact));
+  fact.kind = M68K_FACT_LABEL_CREATED;
+  fact.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
+  fact.section_index = 0U;
+  fact.offset = 40U;
+  M68K_C_ASSERT_INT(0, m68k_fact_ir_append(&facts, &fact));
+  M68K_C_ASSERT_INT(0, m68k_render_ir_preview_build(&object, &decode, &facts, &policy,
+    accepted_start, accepted_bytes, 0, 1, 1, 1, &preview, NULL));
+  M68K_C_ASSERT(preview.asm_source_text != NULL);
+  M68K_C_ASSERT(strstr(preview.asm_source_text, "loc_0_00000028:") == NULL);
   M68K_C_ASSERT(strstr(preview.asm_source_text, "resident_name:\n") != NULL);
   m68k_render_ir_preview_destroy(&preview);
   m68k_fact_ir_destroy(&facts);

@@ -5387,6 +5387,15 @@ void render_lookup_mark_label_target_ref(M68kRenderLookup *lookup, size_t sectio
   lookup->label_target_refs[section_index][offset] = 1U;
 }
 
+void render_lookup_mark_label_statement_ref(M68kRenderLookup *lookup, size_t section_index, uint32_t offset) {
+  if (lookup == NULL || section_index >= lookup->section_count || lookup->label_statement_refs == NULL ||
+      lookup->label_statement_ref_extents == NULL || offset > lookup->label_statement_ref_extents[section_index] ||
+      lookup->label_statement_refs[section_index] == NULL) {
+    return;
+  }
+  lookup->label_statement_refs[section_index][offset] = 1U;
+}
+
 int render_lookup_add_storage_xref(M68kRenderLookup *lookup, size_t section_index, uint32_t offset,
     size_t target_section_index, uint32_t target_offset) {
   M68kRenderXref *grown;
@@ -5414,20 +5423,24 @@ int render_lookup_add_storage_xref(M68kRenderLookup *lookup, size_t section_inde
   lookup->xrefs[lookup->xref_count].target_offset = target_offset;
   ++lookup->xref_count;
   render_lookup_mark_label_target_ref(lookup, target_section_index, target_offset);
+  render_lookup_mark_label_statement_ref(lookup, target_section_index, target_offset);
   return 0;
 }
 
-int render_lookup_add_pc_relative_xrefs(M68kRenderLookup *lookup, const M68kDecodeIR *decode) {
+int render_lookup_add_pc_relative_xrefs(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
+    uint8_t **accepted_start) {
   size_t section_index;
-  if (lookup == NULL || decode == NULL) return 0;
+  if (lookup == NULL || decode == NULL || accepted_start == NULL) return 0;
   for (section_index = 0U; section_index < decode->section_count; ++section_index) {
     const M68kDecodeSectionIR *section = &decode->sections[section_index];
     size_t candidate_index;
+    if (accepted_start[section_index] == NULL) continue;
     for (candidate_index = 0U; candidate_index < section->candidate_count; ++candidate_index) {
       const M68kDecodeCandidate *candidate = &section->candidates[candidate_index];
       M68kInstructionIR instruction;
       size_t target_index;
       int decoded = 0;
+      if (!accepted_start_at(section, accepted_start[section_index], candidate->offset)) continue;
       memset(&instruction, 0, sizeof(instruction));
       for (target_index = 0U; target_index < candidate->target_count; ++target_index) {
         const M68kDecodeTarget *target = &candidate->targets[target_index];
