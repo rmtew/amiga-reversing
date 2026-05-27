@@ -241,9 +241,13 @@ def test_python_wrapper_uses_c_macos_hfs_code_summary() -> None:
     assert segment_map[0]["routine_entry_candidates"] == [
         {
             "index": 0,
+            "jump_table_entry_index": 0,
             "jump_table_offset": 0,
             "code0_payload_offset": 16,
+            "entry_code_offset": 18,
             "routine_offset_from_segment": 10,
+            "target_resource_id": 1,
+            "entry_state": "unloaded_loadseg",
             "classification": "candidate_routine_entry",
             "fact_id": "macos.code_resource.jump_table.routine_offsets.candidate",
             "fact_status": "candidate",
@@ -251,9 +255,13 @@ def test_python_wrapper_uses_c_macos_hfs_code_summary() -> None:
         },
         {
             "index": 1,
+            "jump_table_entry_index": 1,
             "jump_table_offset": 8,
             "code0_payload_offset": 24,
+            "entry_code_offset": 26,
             "routine_offset_from_segment": 12,
+            "target_resource_id": 1,
+            "entry_state": "unloaded_loadseg",
             "classification": "candidate_routine_entry",
             "fact_id": "macos.code_resource.jump_table.routine_offsets.candidate",
             "fact_status": "candidate",
@@ -398,6 +406,62 @@ def test_macos_hfs_resource_fork_extracts_full_code_resource_payload_bytes() -> 
 
     assert code0_payload[:16] == _u32(48) + _u32(64) + _u32(16) + _u32(32)
     assert code1_payload == _u16(0) + _u16(2) + b"\x00\x00\x00\x10\x00\x00\x20\x5f\x4e\x75"
+
+
+def test_code0_routine_candidates_require_documented_loadseg_rows() -> None:
+    require_built_tools()
+    image = bytearray(_make_hfs_image())
+    resource_fork_base = 2048 + 3 * 512
+    resource_data_offset = 0x100
+    code0_payload = resource_data_offset + 4
+    image[resource_fork_base + code0_payload + 18 : resource_fork_base + code0_payload + 20] = b"\x4e\x71"
+
+    summary = inspect_macos_hfs_code_summary_with_c_backend(bytes(image), "MPW-GM/Tools/Asm")
+
+    candidates = summary["resource_fork"]["code_segment_map"][0]["routine_entry_candidates"]
+    assert [item["jump_table_entry_index"] for item in candidates] == [1]
+    assert candidates[0]["routine_offset_from_segment"] == 12
+
+
+def test_code0_routine_candidates_fallback_scan_documented_loadseg_rows_without_segment_span() -> None:
+    require_built_tools()
+    image = _make_hfs_image(code1_payload=_u16(0xFFFF) + _u16(0) + b"\x20\x5f\x4e\x75")
+
+    summary = inspect_macos_hfs_code_summary_with_c_backend(image, "MPW-GM/Tools/Asm")
+
+    segment = summary["resource_fork"]["code_segment_map"][0]
+    assert segment["first_jump_table_entry_offset"] == 0xFFFF
+    assert segment["jump_table_entry_count"] == 0
+    assert segment["routine_entry_candidates"] == [
+        {
+            "index": 0,
+            "jump_table_entry_index": 0,
+            "jump_table_offset": 0,
+            "code0_payload_offset": 16,
+            "entry_code_offset": 18,
+            "routine_offset_from_segment": 10,
+            "target_resource_id": 1,
+            "entry_state": "unloaded_loadseg",
+            "classification": "candidate_routine_entry",
+            "fact_id": "macos.code_resource.jump_table.routine_offsets.candidate",
+            "fact_status": "candidate",
+            "parser_use": "candidate_only",
+        },
+        {
+            "index": 1,
+            "jump_table_entry_index": 1,
+            "jump_table_offset": 8,
+            "code0_payload_offset": 24,
+            "entry_code_offset": 26,
+            "routine_offset_from_segment": 12,
+            "target_resource_id": 1,
+            "entry_state": "unloaded_loadseg",
+            "classification": "candidate_routine_entry",
+            "fact_id": "macos.code_resource.jump_table.routine_offsets.candidate",
+            "fact_status": "candidate",
+            "parser_use": "candidate_only",
+        },
+    ]
 
 
 @pytest.mark.parametrize("offset_field", ["a5_relocation_info_offset", "segment_relocation_info_offset"])

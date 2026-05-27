@@ -891,32 +891,86 @@ static const PlatformMacosResourceInfo *macos_find_code0_resource(const Platform
   return NULL;
 }
 
+static int macos_code0_entry_is_unloaded_loadseg_for_segment(const unsigned char *code0_payload,
+    uint32_t code0_payload_size, uint32_t code0_entry_offset, int16_t segment_id, uint16_t *routine_offset) {
+  uint16_t segment_word;
+  if (code0_payload == NULL || code0_entry_offset > code0_payload_size ||
+      code0_payload_size - code0_entry_offset < 8U) {
+    return 0;
+  }
+  if (macos_read_u16be_local(code0_payload, code0_entry_offset + 2U) != 0x3F3CU ||
+      macos_read_u16be_local(code0_payload, code0_entry_offset + 6U) != 0xA9F0U) {
+    return 0;
+  }
+  segment_word = macos_read_u16be_local(code0_payload, code0_entry_offset + 4U);
+  if (segment_word != (uint16_t)segment_id) return 0;
+  if (routine_offset != NULL) *routine_offset = macos_read_u16be_local(code0_payload, code0_entry_offset);
+  return 1;
+}
+
+static int macos_append_segment_routine_candidate(JsonBuilder *builder, uint32_t candidate_index,
+    uint32_t jump_table_entry_index, uint32_t jump_table_offset, uint32_t code0_entry_offset,
+    uint16_t routine_offset, int16_t segment_id, int needs_comma) {
+  if (needs_comma && json_builder_append(builder, ",") != 0) return -1;
+  if (json_builder_appendf(builder,
+        "{\"index\":%u,\"jump_table_entry_index\":%u,\"jump_table_offset\":%u,"
+        "\"code0_payload_offset\":%u,\"entry_code_offset\":%u,"
+        "\"routine_offset_from_segment\":%u,\"target_resource_id\":%d,"
+        "\"entry_state\":\"unloaded_loadseg\","
+        "\"classification\":\"candidate_routine_entry\",",
+        (unsigned)candidate_index, (unsigned)jump_table_entry_index, (unsigned)jump_table_offset,
+        (unsigned)code0_entry_offset, (unsigned)(code0_entry_offset + 2U),
+        (unsigned)routine_offset, (int)segment_id) != 0 ||
+      macos_append_fact_ref(builder, "macos.code_resource.jump_table.routine_offsets.candidate",
+        "candidate", "candidate_only") != 0 ||
+      json_builder_append(builder, "}") != 0) {
+    return -1;
+  }
+  return 0;
+}
+
 static int macos_append_segment_routine_candidates(JsonBuilder *builder, const PlatformMacosResourceInfo *resource,
     const unsigned char *code0_payload, uint32_t code0_payload_size) {
   uint32_t index;
   uint32_t first_offset;
   uint32_t count;
+  uint32_t emitted = 0U;
   if (json_builder_append(builder, ",\"routine_entry_candidates\":[") != 0) return -1;
   if (resource == NULL || code0_payload == NULL || code0_payload_size < 16U) return json_builder_append(builder, "]");
   first_offset = resource->code.first_jump_table_entry_offset;
   count = resource->code.jump_table_entry_count;
-  if (first_offset == 0xFFFFU || count == 0U) return json_builder_append(builder, "]");
-  for (index = 0U; index < count; ++index) {
-    uint32_t jump_table_offset = first_offset + index * 8U;
-    uint32_t code0_entry_offset = 16U + jump_table_offset;
-    uint16_t routine_offset;
-    if (jump_table_offset > UINT32_MAX - 8U || code0_entry_offset > code0_payload_size - 8U) break;
-    routine_offset = macos_read_u16be_local(code0_payload, code0_entry_offset);
-    if (index > 0U && json_builder_append(builder, ",") != 0) return -1;
-    if (json_builder_appendf(builder,
-          "{\"index\":%u,\"jump_table_offset\":%u,\"code0_payload_offset\":%u,"
-          "\"routine_offset_from_segment\":%u,\"classification\":\"candidate_routine_entry\",",
-          (unsigned)index, (unsigned)jump_table_offset, (unsigned)code0_entry_offset,
-          (unsigned)routine_offset) != 0 ||
-        macos_append_fact_ref(builder, "macos.code_resource.jump_table.routine_offsets.candidate",
-          "candidate", "candidate_only") != 0 ||
-        json_builder_append(builder, "}") != 0) {
-      return -1;
+  if (first_offset != 0xFFFFU && count > 0U) {
+    for (index = 0U; index < count; ++index) {
+      uint32_t jump_table_offset = first_offset + index * 8U;
+      uint32_t code0_entry_offset = 16U + jump_table_offset;
+      uint16_t routine_offset;
+      if (jump_table_offset > UINT32_MAX - 8U || code0_entry_offset > code0_payload_size - 8U) break;
+      if (!macos_code0_entry_is_unloaded_loadseg_for_segment(
+            code0_payload, code0_payload_size, code0_entry_offset, resource->resource_id, &routine_offset)) {
+        continue;
+      }
+      if (macos_append_segment_routine_candidate(builder, emitted, jump_table_offset / 8U, jump_table_offset,
+            code0_entry_offset, routine_offset, resource->resource_id, emitted > 0U) != 0) {
+        return -1;
+      }
+      emitted++;
+    }
+  } else {
+    uint32_t jump_table_size = ((uint32_t)macos_read_u16be_local(code0_payload, 8U) << 16U) |
+      (uint32_t)macos_read_u16be_local(code0_payload, 10U);
+    if (jump_table_size > code0_payload_size - 16U) jump_table_size = code0_payload_size - 16U;
+    for (index = 0U; index + 8U <= jump_table_size; index += 8U) {
+      uint32_t code0_entry_offset = 16U + index;
+      uint16_t routine_offset;
+      if (!macos_code0_entry_is_unloaded_loadseg_for_segment(
+            code0_payload, code0_payload_size, code0_entry_offset, resource->resource_id, &routine_offset)) {
+        continue;
+      }
+      if (macos_append_segment_routine_candidate(builder, emitted, index / 8U, index, code0_entry_offset,
+            routine_offset, resource->resource_id, emitted > 0U) != 0) {
+        return -1;
+      }
+      emitted++;
     }
   }
   return json_builder_append(builder, "]");

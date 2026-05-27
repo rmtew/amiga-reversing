@@ -417,9 +417,13 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
                         "routine_entry_candidates": [
                             {
                                 "index": 0,
+                                "jump_table_entry_index": 0,
                                 "jump_table_offset": 0,
                                 "code0_payload_offset": 16,
+                                "entry_code_offset": 18,
                                 "routine_offset_from_segment": 4,
+                                "target_resource_id": 1,
+                                "entry_state": "unloaded_loadseg",
                                 "classification": "candidate_routine_entry",
                                 "fact_id": "macos.code_resource.jump_table.routine_offsets.candidate",
                                 "fact_status": "candidate",
@@ -441,9 +445,13 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
                         "routine_entry_candidates": [
                             {
                                 "index": 0,
+                                "jump_table_entry_index": 1,
                                 "jump_table_offset": 8,
                                 "code0_payload_offset": 24,
+                                "entry_code_offset": 26,
                                 "routine_offset_from_segment": 6,
+                                "target_resource_id": 2,
+                                "entry_state": "unloaded_loadseg",
                                 "classification": "candidate_routine_entry",
                                 "fact_id": "macos.code_resource.jump_table.routine_offsets.candidate",
                                 "fact_status": "candidate",
