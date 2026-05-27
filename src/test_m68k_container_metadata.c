@@ -214,6 +214,37 @@ static int test_hunk_parser_result_survives_workflow_teardown(void) {
   return 0;
 }
 
+static int test_hunk_writer_preserves_trailing_hunk_end(void) {
+  static const unsigned char hunk[] = {
+    0x00, 0x00, 0x03, 0xF3,
+    0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x01,
+    0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x01,
+    0x00, 0x00, 0x03, 0xE9,
+    0x00, 0x00, 0x00, 0x01,
+    0x4E, 0x75, 0x00, 0x00,
+    0x00, 0x00, 0x03, 0xF2,
+    0x00, 0x00, 0x03, 0xF2,
+  };
+  M68kObject object;
+  M68kDiagList diagnostics;
+  unsigned char *rebuilt = NULL;
+  size_t rebuilt_size = 0U;
+  m68k_diag_list_reset(&diagnostics);
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  M68K_C_ASSERT_INT(0, M68K_BACKEND_AMIGA_HUNK.read_buffer(hunk, sizeof(hunk), &object,
+    m68k_diag_sink(&diagnostics)));
+  M68K_C_ASSERT_INT(0, M68K_BACKEND_AMIGA_HUNK.write_buffer(&object, &rebuilt, &rebuilt_size,
+    m68k_diag_sink(&diagnostics)));
+  M68K_C_ASSERT_U32(sizeof(hunk), (uint32_t)rebuilt_size);
+  M68K_C_ASSERT(memcmp(hunk, rebuilt, sizeof(hunk)) == 0);
+  free(rebuilt);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_hunk_loader_rejects_overlay_as_explicit_unsupported(void) {
   static const unsigned char hunk[] = {
     0x00, 0x00, 0x03, 0xF3,
@@ -698,6 +729,7 @@ int m68k_c_container_metadata_tests(void) {
       test_hunk_runtime_metadata_covers_reproduction_compare_categories},
     {"hunk_loader_records_payload_and_relocation_metadata", test_hunk_loader_records_payload_and_relocation_metadata},
     {"hunk_parser_result_survives_workflow_teardown", test_hunk_parser_result_survives_workflow_teardown},
+    {"hunk_writer_preserves_trailing_hunk_end", test_hunk_writer_preserves_trailing_hunk_end},
     {"hunk_loader_rejects_overlay_as_explicit_unsupported",
       test_hunk_loader_rejects_overlay_as_explicit_unsupported},
     {"ideal_assembler_policy_has_no_preservation_metadata", test_ideal_assembler_policy_has_no_preservation_metadata},

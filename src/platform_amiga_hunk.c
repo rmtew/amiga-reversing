@@ -70,6 +70,7 @@ typedef struct AmigaHunkPlatformData {
     uint32_t *header_size_words;
     uint32_t *header_mem_attrs;
     uint32_t *section_empty_reloc_masks;
+    uint32_t trailing_hunk_end_count;
 } AmigaHunkPlatformData;
 
 /* Basic IO and string helpers. */
@@ -763,6 +764,17 @@ static int parse_hunk_executable(Reader *reader, Arena *workflow_arena, M68kObje
             goto fail;
         }
     }
+    while (reader->pos < reader->size) {
+        uint32_t hunk_id = 0;
+        if (m68k_reader_peek_u32be(reader, &value) != 0) break;
+        hunk_id = value & HUNK_TYPE_ID_MASK;
+        if (hunk_id != HUNK_END) break;
+        if (m68k_reader_read_u32be(reader, &value) != 0) {
+            platform_file_diag_error(diagnostics, "Unexpected EOF in trailing HUNK_END");
+            goto fail;
+        }
+        ++platform_data->trailing_hunk_end_count;
+    }
     platform_data->header_count = count;
     platform_data->header_first_hunk = first_hunk;
     platform_data->header_last_hunk = last_hunk;
@@ -1388,6 +1400,13 @@ static int amiga_hunk_write_buffer(const M68kObject *object, unsigned char **out
         for (i = 0; i < object->section_count; ++i) {
             if (write_section_record(&writer, object, i, 0) != 0) {
                 goto oom;
+            }
+        }
+        if (platform_data != NULL) {
+            for (i = 0; i < platform_data->trailing_hunk_end_count; ++i) {
+                if (m68k_writer_u32be(&writer, HUNK_END) != 0) {
+                    goto oom;
+                }
             }
         }
     } else {
