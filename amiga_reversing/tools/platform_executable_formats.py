@@ -650,27 +650,31 @@ def _require_macos_shared_executable_ranges(payload: Mapping[str, Any]) -> None:
         raise ValueError(f"{label} parser summary missing CODE 0 metadata range")
     if any(item.get("role") != "metadata" for item in code0_metadata):
         raise ValueError(f"{label} CODE 0 must remain metadata-only")
-    accepted_metadata = [
+    accepted_segment_ranges = [
         item
         for item in ranges
         if item.get("fact_id") == "macos.code_resource.nonzero.segment_header"
         and item.get("fact_status") == "validated"
         and item.get("parser_use") == "accepted_parser_output"
     ]
-    if not accepted_metadata:
-        raise ValueError(f"{label} parser summary missing accepted nonzero CODE metadata")
-    candidate_ranges = [
+    if not accepted_segment_ranges:
+        raise ValueError(f"{label} parser summary missing accepted nonzero CODE segment ranges")
+    accepted_code_ranges = [
         item
-        for item in ranges
-        if item.get("fact_id") == "macos.code_resource.movea_stack_a0.boundary.candidate"
+        for item in accepted_segment_ranges
+        if item.get("role") == "code"
     ]
-    if not candidate_ranges:
-        raise ValueError(f"{label} parser summary missing candidate CODE ranges")
-    if any(
-        item.get("fact_status") != "candidate" or item.get("parser_use") != "candidate_only"
-        for item in candidate_ranges
-    ):
-        raise ValueError(f"{label} candidate CODE ranges must remain candidate-only")
+    if not accepted_code_ranges:
+        raise ValueError(f"{label} parser summary missing accepted CODE body ranges")
+    candidate_refs = [
+        item
+        for item in _collect_parser_fact_refs(payload, inherited_record_id=None, path="$")
+        if item.get("fact_id") == "macos.code_resource.jump_table.routine_offsets.candidate"
+    ]
+    if not candidate_refs:
+        raise ValueError(f"{label} parser summary missing candidate CODE0 routine refs")
+    if any(item.get("fact_status") != "candidate" or item.get("parser_use") != "candidate_only" for item in candidate_refs):
+        raise ValueError(f"{label} CODE0 routine refs must remain candidate-only")
     deferred = {
         _string(item.get("kind")): item
         for item in map(_mapping, _sequence(payload.get("executable_deferred")))

@@ -21,8 +21,9 @@ Current semantic closeout state:
 - The source-quality gate now reaches
   `semantic_source_complete_for_known_bounds`. Current closeout metrics for the
   MPW Tools `Asm` fixture are 28 source sections, 28 semantic source models,
-  315 instruction rows, 11768 data rows, 73 generated labels, and 88 generated
-  xrefs.
+  27 decoded nonzero CODE models, 37,505 instruction rows, 716 data rows,
+  5,128 generated labels, 7,976 generated xrefs, 355 generated analysis seeds,
+  87 candidate residuals, and 89 semantic gap residuals.
 - Mac byte-entry, Segment Loader relocation/fixup decoding, A5 lifetime
   semantics, non-CODE payload semantics, source-to-CODE mapping, and
   resource-fork round trip remain candidate/deferred/unsupported exactly as
@@ -941,17 +942,20 @@ Completed state:
   `passed_with_deferred_semantics` as only a byte-real baseline and CODE bodies
   still rendered mostly as `dc.b`. After 023-019 through 023-021, CODE 1 and
   other supported nonzero CODE spans feed through the shared M68K listing path:
-  current MPW output has 315 instruction rows, 11768 data rows, 73 generated
-  labels, and 88 generated xrefs across 28 semantic source models.
+  current MPW output has 28 semantic source models, 27 decoded nonzero CODE
+  models, 37,505 instruction rows, 716 data rows, 5,128 generated labels, 7,976
+  generated xrefs, 355 generated analysis seeds, 87 candidate residuals, and 89
+  semantic gap residuals.
 - Remaining gaps are non-blocking for 023 because they are outside semantic
   source presentation: original source symbol recovery, full source-to-CODE
   mapping, Segment Loader relocation/fixup semantics, A5 lifetime/global-base
   proof, non-CODE payload semantics, and resource-fork round-trip.
 - Final proof passed: platform executable validate; platform executable
   coverage with current Mac/Amiga/Atari backends (`invalid: 0`); focused Mac
-  backend/project/artifact/web tests (`58 passed`); shared precommit
-  (`style`, `dead_code`, `unit`, `integration`, and `explicit` all OK); and
-  `git diff --check` with only line-ending warnings.
+  runtime/backend/project/artifact tests (`47 passed`); shared precommit
+  (`style`, `dead_code`, `unit`, `integration`, and `explicit` all OK).
+  `git diff --check` is clean for this worktree except pre-existing unrelated
+  `TODO.md` trailing whitespace.
 
 ## Verification Plan
 

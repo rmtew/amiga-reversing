@@ -400,9 +400,9 @@ def test_018_039_coverage_cli_can_include_current_macos_backend(monkeypatch, cap
         assert hfs_path == "MPW-GM/MPW/Tools/Asm"
         return {
             "kb_record_id": "macos.hfs_resource_fork.code_resources.mpw_application",
-            "fact_id": "macos.code_resource.movea_stack_a0.boundary.candidate",
-            "fact_status": "candidate",
-            "parser_use": "candidate_only",
+            "fact_id": "macos.code_resource.nonzero.segment_header",
+            "fact_status": "validated",
+            "parser_use": "accepted_parser_output",
             "executable_model": "platform_executable_summary_v1",
             "executable_ranges": [
                 {
@@ -426,9 +426,15 @@ def test_018_039_coverage_cli_can_include_current_macos_backend(monkeypatch, cap
                 {
                     "resource_type": "CODE",
                     "resource_id": 1,
-                    "role": "candidate_code",
+                    "role": "code",
                     "stored_offset_space": "resource_fork_payload",
-                    "fact_id": "macos.code_resource.movea_stack_a0.boundary.candidate",
+                    "fact_id": "macos.code_resource.nonzero.segment_header",
+                    "fact_status": "validated",
+                    "parser_use": "accepted_parser_output",
+                },
+                {
+                    "kind": "candidate_routine_entry",
+                    "fact_id": "macos.code_resource.jump_table.routine_offsets.candidate",
                     "fact_status": "candidate",
                     "parser_use": "candidate_only",
                 },
@@ -450,7 +456,7 @@ def test_018_039_coverage_cli_can_include_current_macos_backend(monkeypatch, cap
 
     assert exit_code == 0
     assert output["summary"]["parser_outputs"] == 1
-    assert output["summary"]["candidate"] == 2
+    assert output["summary"]["candidate"] == 1
     assert output["summary"]["invalid"] == 0
 
 
