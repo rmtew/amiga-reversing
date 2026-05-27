@@ -50362,7 +50362,16 @@ CODE_27_semantic_decode_gap_000000e4:
 ;       residual semantic_decode_gap payload[28900..28912) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[28978..28980) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[28984..29024) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual candidate_unvisited_entry_pattern count=11 payload_offsets=8288,12858,17556,17652,26838,26840,27184,27318,27390,28456,28744 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
+;       residual candidate_unvisited_entry_pattern island[8280..8304) count=1 payload_offsets=8288 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
+;       residual candidate_unvisited_entry_pattern island[12852..12876) count=1 payload_offsets=12858 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
+;       residual candidate_unvisited_entry_pattern island[17550..17574) count=1 payload_offsets=17556 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
+;       residual candidate_unvisited_entry_pattern island[17636..17660) count=1 payload_offsets=17652 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
+;       residual candidate_unvisited_entry_pattern island[26834..26852) count=2 payload_offsets=26838,26840 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
+;       residual candidate_unvisited_entry_pattern island[27176..27190) count=1 payload_offsets=27184 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
+;       residual candidate_unvisited_entry_pattern island[27310..27324) count=1 payload_offsets=27318 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
+;       residual candidate_unvisited_entry_pattern island[27382..27396) count=1 payload_offsets=27390 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
+;       residual candidate_unvisited_entry_pattern island[28454..28462) count=1 payload_offsets=28456 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
+;       residual candidate_unvisited_entry_pattern island[28692..28748) count=1 payload_offsets=28744 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
 ;     CODE 2: section=macos-code-CODE-2 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=9 xrefs=94 instructions=659 body_spans=1 byte_real_only_body=False reachable_evidence=9 residuals=3
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual semantic_decode_gap payload[384..392) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
@@ -50379,7 +50388,7 @@ CODE_27_semantic_decode_gap_000000e4:
 ;       residual semantic_decode_gap payload[17730..17740) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[17814..17832) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[17884..18252) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual candidate_unvisited_entry_pattern count=1 payload_offsets=64 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
+;       residual candidate_unvisited_entry_pattern island[64..94) count=1 payload_offsets=64 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
 ;     CODE 4: section=macos-code-CODE-4 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=22 xrefs=326 instructions=1874 body_spans=1 byte_real_only_body=False reachable_evidence=22 residuals=1
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual semantic_decode_gap payload[6030..6032) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
@@ -50393,7 +50402,7 @@ CODE_27_semantic_decode_gap_000000e4:
 ;       residual semantic_decode_gap payload[21764..21784) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[21928..21952) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[23892..23914) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual candidate_unvisited_entry_pattern count=1 payload_offsets=21768 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
+;       residual candidate_unvisited_entry_pattern island[21764..21784) count=1 payload_offsets=21768 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
 ;     CODE 6: section=macos-code-CODE-6 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=12 xrefs=824 instructions=2500 body_spans=1 byte_real_only_body=False reachable_evidence=11 residuals=9
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual semantic_decode_gap payload[316..426) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
@@ -50416,7 +50425,8 @@ CODE_27_semantic_decode_gap_000000e4:
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual semantic_decode_gap payload[206..712) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[12798..13904) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual candidate_unvisited_entry_pattern count=11 payload_offsets=268,298,332,366,616,12836,13098,13178,13182,13274,13854 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
+;       residual candidate_unvisited_entry_pattern island[206..712) count=5 payload_offsets=268,298,332,366,616 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
+;       residual candidate_unvisited_entry_pattern island[12798..13904) count=6 payload_offsets=12836,13098,13178,13182,13274,13854 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
 ;     CODE 10: section=macos-code-CODE-10 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=5 xrefs=62 instructions=338 body_spans=1 byte_real_only_body=False reachable_evidence=4 residuals=0
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;     CODE 11: section=macos-code-CODE-11 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=17 xrefs=193 instructions=1080 body_spans=1 byte_real_only_body=False reachable_evidence=17 residuals=3
@@ -50432,7 +50442,8 @@ CODE_27_semantic_decode_gap_000000e4:
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual semantic_decode_gap payload[11616..11676) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[12344..26534) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual candidate_unvisited_entry_pattern count=57 payload_offsets=11616,12358,12362,13848,13852,14334,14338,14950,14954,15122,16382,16386,... status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
+;       residual candidate_unvisited_entry_pattern island[11616..11676) count=1 payload_offsets=11616 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
+;       residual candidate_unvisited_entry_pattern island[12344..26534) count=56 payload_offsets=12358,12362,13848,13852,14334,14338,14950,14954,15122,16382,16386,17084,... status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
 ;     CODE 14: section=macos-code-CODE-14 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=14 xrefs=102 instructions=523 body_spans=1 byte_real_only_body=False reachable_evidence=13 residuals=0
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;     CODE 15: section=macos-code-CODE-15 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=11 xrefs=147 instructions=929 body_spans=1 byte_real_only_body=False reachable_evidence=9 residuals=1
@@ -50455,7 +50466,7 @@ CODE_27_semantic_decode_gap_000000e4:
 ;       residual semantic_decode_gap payload[1968..1974) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[2704..2756) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[3816..3818) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual candidate_unvisited_entry_pattern count=1 payload_offsets=2716 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
+;       residual candidate_unvisited_entry_pattern island[2704..2756) count=1 payload_offsets=2716 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
 ;     CODE 21: section=macos-code-CODE-21 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=22 xrefs=152 instructions=801 body_spans=1 byte_real_only_body=False reachable_evidence=21 residuals=7
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual semantic_decode_gap payload[2008..2078) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
@@ -50482,18 +50493,21 @@ CODE_27_semantic_decode_gap_000000e4:
 ;       residual semantic_decode_gap payload[140..184) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[200..228) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[242..246) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual candidate_unvisited_entry_pattern count=6 payload_offsets=48,96,98,176,200,214 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
+;       residual candidate_unvisited_entry_pattern island[48..56) count=1 payload_offsets=48 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
+;       residual candidate_unvisited_entry_pattern island[90..108) count=2 payload_offsets=96,98 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
+;       residual candidate_unvisited_entry_pattern island[140..184) count=1 payload_offsets=176 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
+;       residual candidate_unvisited_entry_pattern island[200..228) count=2 payload_offsets=200,214 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
 ;     CODE 26: section=macos-code-CODE-26 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=27 xrefs=187 instructions=911 body_spans=1 byte_real_only_body=False reachable_evidence=26 residuals=5
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual semantic_decode_gap payload[226..232) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[288..310) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[1486..1492) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[2348..2350) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual candidate_unvisited_entry_pattern count=1 payload_offsets=292 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
+;       residual candidate_unvisited_entry_pattern island[288..310) count=1 payload_offsets=292 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
 ;     CODE 27: section=macos-code-CODE-27 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=5 xrefs=2 instructions=5 body_spans=1 byte_real_only_body=False reachable_evidence=3 residuals=20
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual semantic_decode_gap payload[228..1882) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual candidate_unvisited_entry_pattern count=19 payload_offsets=228,252,278,322,390,408,432,594,746,986,1030,1126,... status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
+;       residual candidate_unvisited_entry_pattern island[228..1882) count=19 payload_offsets=228,252,278,322,390,408,432,594,746,986,1030,1126,... status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
 
 
 ; Analysis reports

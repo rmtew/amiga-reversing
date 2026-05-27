@@ -1060,6 +1060,7 @@ def test_macos_candidate_patterns_are_residuals_not_entry_seeds() -> None:
             "fact_id": "macos.code_resource.movea_stack_a0.boundary.candidate",
         },
         semantic_rows=[{"kind": "instruction", "payload_offset": 40, "payload_end": 42}],
+        semantic_gap_residuals=[{"kind": "semantic_decode_gap", "start": 42, "end": 48}],
         resource={"id": 1},
         code={"kb_record_id": "macos.hfs_resource_fork.code_resources.mpw_application"},
     )
@@ -1069,6 +1070,10 @@ def test_macos_candidate_patterns_are_residuals_not_entry_seeds() -> None:
         "candidate_unvisited_entry_pattern",
     ]
     assert [item["start"] for item in residuals] == [44, 46]
+    assert [(item["island_start"], item["island_end"], item["island_size"]) for item in residuals] == [
+        (42, 48, 6),
+        (42, 48, 6),
+    ]
     assert all(item["status"] == "candidate" for item in residuals)
     assert all("not generated entrypoints" in str(item["reason"]) for item in residuals)
 
@@ -1383,6 +1388,11 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     ]
     assert all(
         not any(data["payload_offset"] <= item["start"] < data["payload_end"] for data in classified_data_gaps)
+        for item in code1_quality["residuals"]
+        if item["kind"] == "candidate_unvisited_entry_pattern"
+    )
+    assert all(
+        item.get("island_start") is not None and item.get("island_end") is not None
         for item in code1_quality["residuals"]
         if item["kind"] == "candidate_unvisited_entry_pattern"
     )

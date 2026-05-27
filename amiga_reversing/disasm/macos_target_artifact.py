@@ -650,28 +650,23 @@ def _source_quality_gate_lines(gate: Mapping[str, object]) -> list[str]:
                 f";       next: {_text(item.get('next_required_implementation'))}",
             ]
         )
-        residual_lines, candidate_offsets = _human_residual_lines(item)
+        residual_lines, candidate_islands = _human_residual_lines(item)
         lines.extend(residual_lines)
-        if candidate_offsets:
-            lines.append(
-                f";       residual candidate_unvisited_entry_pattern count={len(candidate_offsets)} "
-                f"payload_offsets={','.join(candidate_offsets[:12])}"
-                f"{',...' if len(candidate_offsets) > 12 else ''} "
-                "status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain "
-                "structured residuals, not promoted to source rows"
-            )
+        lines.extend(candidate_islands)
     lines.append("")
     return lines
 
 
 def _human_residual_lines(item: Mapping[str, object]) -> tuple[list[str], list[str]]:
     lines: list[str] = []
-    candidate_offsets: list[str] = []
+    candidate_islands: dict[tuple[int, int], list[int]] = {}
     for residual in [_mapping(value) for value in _sequence(item.get("residuals"))]:
         if residual.get("kind") == "candidate_unvisited_entry_pattern":
             start = _int_value(residual.get("start"))
-            if start is not None:
-                candidate_offsets.append(f"{start}")
+            island_start = _int_value(residual.get("island_start"))
+            island_end = _int_value(residual.get("island_end"))
+            if start is not None and island_start is not None and island_end is not None:
+                candidate_islands.setdefault((island_start, island_end), []).append(start)
             continue
         lines.append(
             f";       residual { _text(residual.get('kind')) } "
@@ -679,7 +674,17 @@ def _human_residual_lines(item: Mapping[str, object]) -> tuple[list[str], list[s
             f"status={_text(residual.get('status'))} parser_use={_text(residual.get('parser_use'))} "
             f"reason={_text(residual.get('reason'))}"
         )
-    return lines, candidate_offsets
+    candidate_lines = []
+    for (island_start, island_end), offsets in sorted(candidate_islands.items()):
+        offset_text = ",".join(str(offset) for offset in sorted(offsets)[:12])
+        candidate_lines.append(
+            f";       residual candidate_unvisited_entry_pattern island[{island_start}..{island_end}) "
+            f"count={len(offsets)} payload_offsets={offset_text}"
+            f"{',...' if len(offsets) > 12 else ''} "
+            "status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain "
+            "structured residuals, not promoted to source rows"
+        )
+    return lines, candidate_lines
 
 
 def _dc_b_lines(data: bytes, *, label: str, base_offset: int = 0) -> list[str]:

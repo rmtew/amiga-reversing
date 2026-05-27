@@ -745,6 +745,9 @@ def _source_quality_residuals(
                 "start": start,
                 "end": end,
                 "size": end - start,
+                "island_start": item.get("island_start"),
+                "island_end": item.get("island_end"),
+                "island_size": item.get("island_size"),
                 "status": item.get("status") or "candidate",
                 "fact_status": item.get("fact_status") or "candidate",
                 "parser_use": item.get("parser_use") or "candidate_only",
@@ -1215,6 +1218,7 @@ def _semantic_source_rows(
         payload_base=analysis_start,
         code_range=analysis_range,
         semantic_rows=rows,
+        semantic_gap_residuals=semantic_gap_residuals,
         resource=resource,
         code=code,
     )
@@ -1303,6 +1307,7 @@ def _macos_code_candidate_residuals(
     payload_base: int,
     code_range: Mapping[str, object],
     semantic_rows: list[Mapping[str, object]],
+    semantic_gap_residuals: list[Mapping[str, object]] | None = None,
     resource: Mapping[str, object],
     code: Mapping[str, object],
 ) -> list[dict[str, object]]:
@@ -1316,6 +1321,9 @@ def _macos_code_candidate_residuals(
             continue
         if _payload_offset_is_covered(payload_offset, semantic_rows):
             continue
+        island = _macos_candidate_residual_island(payload_offset, semantic_gap_residuals or [])
+        island_start = _int_value(island.get("start")) if island else payload_offset
+        island_end = _int_value(island.get("end")) if island else min(payload_offset + 2, end)
         residuals.append(
             {
                 "kind": "candidate_unvisited_entry_pattern",
@@ -1323,6 +1331,9 @@ def _macos_code_candidate_residuals(
                 "start": payload_offset,
                 "end": min(payload_offset + 2, end),
                 "size": min(payload_offset + 2, end) - payload_offset,
+                "island_start": island_start,
+                "island_end": island_end,
+                "island_size": (island_end - island_start) if island_start is not None and island_end is not None else None,
                 "status": "candidate",
                 "fact_status": "candidate",
                 "parser_use": "candidate_only",
@@ -1334,6 +1345,20 @@ def _macos_code_candidate_residuals(
             }
         )
     return residuals
+
+
+def _macos_candidate_residual_island(
+    payload_offset: int,
+    semantic_gap_residuals: list[Mapping[str, object]],
+) -> Mapping[str, object] | None:
+    for residual in semantic_gap_residuals:
+        start = _int_value(residual.get("start"))
+        end = _int_value(residual.get("end"))
+        if start is None or end is None:
+            continue
+        if start <= payload_offset < end:
+            return residual
+    return None
 
 
 def _macos_code_semantic_gap_residuals(
