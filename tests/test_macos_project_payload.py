@@ -170,6 +170,15 @@ def test_macos_semantic_gap_data_kind_classifies_longword_alignment_padding() ->
     )
 
 
+def test_macos_leading_symbol_record_size_splits_mixed_decode_gaps() -> None:
+    assert macos_project_payload._macos_leading_symbol_record_size(
+        b"\x88DOOPWORD\x00\x00\x02"
+    ) == 12
+    assert macos_project_payload._macos_leading_symbol_record_size(
+        b"\x80\x0bpre_LoadSeg\x00\x00\x00\x20\x5f\x58\x4f"
+    ) == 16
+
+
 def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -1227,6 +1236,12 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
         "semantic_string_data_gap",
         "semantic_decode_gap",
     }.issubset(semantic_gap_kinds)
+    all_semantic_gap_kinds = {
+        residual["kind"]
+        for section in source_sections
+        for residual in section.get("semantic_source", {}).get("semantic_gap_residuals", [])
+    }
+    assert "semantic_symbol_record_gap" in all_semantic_gap_kinds
     classified_data_gaps = [
         item for item in semantic_source["semantic_gap_residuals"] if item["kind"] != "semantic_decode_gap"
     ]

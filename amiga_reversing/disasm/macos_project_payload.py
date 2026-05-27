@@ -1284,20 +1284,43 @@ def _macos_code_semantic_gap_residuals(
         if local_start < 0 or local_end > len(code_bytes):
             residuals.append(gap)
             continue
+        gap_bytes = code_bytes[local_start:local_end]
         data_kind = _macos_semantic_gap_data_kind(
-            code_bytes[local_start:local_end],
+            gap_bytes,
             payload_start=start,
             payload_end=end,
         )
         if data_kind is None:
+            symbol_size = _macos_leading_symbol_record_size(gap_bytes)
+            if symbol_size is not None and symbol_size < len(gap_bytes):
+                residuals.append(
+                    _classified_semantic_gap(
+                        gap,
+                        kind="semantic_symbol_record_gap",
+                        start=start,
+                        end=start + symbol_size,
+                    )
+                )
+                trailing = dict(gap)
+                trailing["start"] = start + symbol_size
+                trailing["size"] = end - (start + symbol_size)
+                residuals.append(trailing)
+                continue
             residuals.append(gap)
             continue
-        classified = dict(gap)
-        classified["kind"] = data_kind
-        classified["reason"] = "semantic decoder left a byte span that matches conservative Mac data syntax"
-        classified["next_required_implementation"] = "promote this classified data gap into first-class C-owned data rows"
-        residuals.append(classified)
+        residuals.append(_classified_semantic_gap(gap, kind=data_kind, start=start, end=end))
     return residuals
+
+
+def _classified_semantic_gap(gap: Mapping[str, object], *, kind: str, start: int, end: int) -> dict[str, object]:
+    classified = dict(gap)
+    classified["kind"] = kind
+    classified["start"] = start
+    classified["end"] = end
+    classified["size"] = end - start
+    classified["reason"] = "semantic decoder left a byte span that matches conservative Mac data syntax"
+    classified["next_required_implementation"] = "promote this classified data gap into first-class C-owned data rows"
+    return classified
 
 
 def _macos_semantic_gap_data_kind(data: bytes, *, payload_start: int, payload_end: int) -> str | None:
@@ -1318,6 +1341,39 @@ def _macos_semantic_gap_data_kind(data: bytes, *, payload_start: int, payload_en
 
 def _macos_gap_is_alignment_padding(data: bytes, *, payload_start: int, payload_end: int) -> bool:
     return len(data) <= 8 and payload_start % 4 != 0 and payload_end % 4 == 0
+
+
+def _macos_leading_symbol_record_size(data: bytes) -> int | None:
+    if len(data) < 8:
+        return None
+    length_offset = 1 if data[0] == 0x80 else 0
+    if length_offset == 0 and data[0] & 0x80 == 0:
+        return None
+    length = data[length_offset] & 0x7F
+    text_start = length_offset + 1
+    if length < 3 or text_start + length > len(data):
+        return None
+    text = data[text_start : text_start + length]
+    if any(byte < 32 or byte > 126 for byte in text):
+        return None
+    cursor = text_start + length
+    while cursor < len(data) and data[cursor] == 0 and cursor < length + 5:
+        cursor += 1
+    if cursor % 2 != 0 and cursor < len(data) and data[cursor] == 0:
+        cursor += 1
+    if cursor + 2 <= len(data) and _macos_gap_looks_like_code_start(data[cursor + 2 :]):
+        cursor += 2
+    elif _macos_gap_looks_like_code_start(data[cursor:]):
+        pass
+    elif len(data) - cursor <= 4:
+        cursor = len(data)
+    else:
+        return None
+    return cursor if cursor > text_start + length else None
+
+
+def _macos_gap_looks_like_code_start(data: bytes) -> bool:
+    return data.startswith((b"\x4e\x56", b"\x48\xe7", b"\x20\x5f", b"\x2f\x00", b"\x42\x40"))
 
 
 def _macos_gap_is_printable_bytes(data: bytes) -> bool:
