@@ -34,6 +34,7 @@ CODE_0_jump_table_length:
 	dc.l $00000AD0
 CODE_0_jump_table_offset_from_a5:
 	dc.l $00000020
+CODE_0_jump_table_a5_offset	EQU	$00000020
 CODE_0_jump_table:
 CODE_0_jump_table_entry_0:
 	dc.w $0000
@@ -1934,7 +1935,7 @@ CODE_1_loc_00000438:
 	addi.w #15,d0
 CODE_1_loc_0000043c:
 	move.w d0,-(a7)
-	jsr $078A(a5)
+	jsr CODE_0_jump_table_entry_237+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,d1
 	beq.b CODE_1_loc_0000048c
 	movea.l $0010(a7),a1
@@ -2033,7 +2034,7 @@ CODE_1_loc_00000528:
 	addi.w #15,d0
 CODE_1_loc_0000052c:
 	move.w d0,-(a7)
-	jsr $078A(a5)
+	jsr CODE_0_jump_table_entry_237+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,d1
 	beq.b CODE_1_loc_00000566
 	movea.l d1,a1
@@ -2204,7 +2205,7 @@ CODE_1_loc_000006c0:
 	addi.w #19,d0
 CODE_1_loc_000006c4:
 	move.w d0,-(a7)
-	jsr $078A(a5)
+	jsr CODE_0_jump_table_entry_237+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,d1
 	beq.b CODE_1_loc_00000702
 	movea.l d1,a1
@@ -3131,7 +3132,7 @@ CODE_1_loc_00000f1a:
 	adda.w d2,a0
 	move.b #$1D,(a0)
 	subq.w #4,a7
-	jsr $07AA(a5)
+	jsr CODE_0_jump_table_entry_241+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,d0
 	movea.l -$0F12(a5),a1
 	cmp.l (a1),d0
@@ -3780,7 +3781,7 @@ CODE_1_loc_00001752:
 	cmpi.w #9,d6
 	ble.b CODE_1_loc_00001766
 	move.w #$1,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	moveq.l #48,d1
 	moveq.l #57,d2
 	moveq.l #0,d7
@@ -3793,7 +3794,7 @@ CODE_1_loc_00001766:
 	blt.b CODE_1_loc_00001786
 CODE_1_loc_00001776:
 	move.w #$1,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	moveq.l #48,d1
 	moveq.l #57,d2
 	moveq.l #0,d7
@@ -3846,7 +3847,7 @@ CODE_1_loc_000017d6:
 	cmpi.w #32,d0
 	ble.w CODE_1_loc_00001b10
 	move.w #$2,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_1_loc_00001b10
 CODE_1_loc_000017f4:
 	move.b #$1,-$0005(a5)
@@ -3888,7 +3889,7 @@ CODE_1_loc_0000183e:
 	ble.w CODE_1_loc_00001b10
 CODE_1_loc_0000184e:
 	move.w #$4,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_1_loc_00001b10
 CODE_1_loc_0000185a:
 	move.b #$2,-$0005(a5)
@@ -3902,7 +3903,7 @@ CODE_1_loc_00001866:
 	move.b d0,-$0214(a5)
 	move.w d0,-$0216(a5)
 	move.w #$BE,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_1_loc_00001b10
 CODE_1_loc_00001882:
 	cmpi.b #34,d4
@@ -3925,7 +3926,7 @@ CODE_1_loc_000018a6:
 	bne.b CODE_1_loc_000018bc
 	move.w d0,-(a7)
 	move.w #$5,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d0
 	bra.b CODE_1_loc_000018d2
 CODE_1_loc_000018bc:
@@ -4160,7 +4161,7 @@ CODE_1_loc_00001bac:
 	move.b -$0C71(a5),(a1)
 	movem.l d0-d2/a0-a1,-(a7)
 	move.w #$CE,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movem.l (a7)+,d0-d2/a0-a1
 CODE_1_loc_00001bd4:
 	subq.w #1,d1
@@ -4185,7 +4186,7 @@ CODE_1_loc_00001bfc:
 	move.b -$0C71(a5),(a1)
 	movem.l d0-d2/a0-a1,-(a7)
 	move.w #$CE,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movem.l (a7)+,d0-d2/a0-a1
 CODE_1_loc_00001c18:
 	adda.w d1,a0
@@ -4267,10 +4268,10 @@ CODE_1_loc_00001cbc:
 	tst.l -$131A(a5)
 	beq.b CODE_1_loc_00001ce2
 	move.l a3,-(a7)
-	jsr $04B2(a5)
+	jsr CODE_0_jump_table_entry_146+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	bne.b CODE_1_loc_00001d06
-	jsr $0702(a5)
+	jsr CODE_0_jump_table_entry_220+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l -$0F0E(a5),a0
 	tst.w (a0)
 	beq.b CODE_1_loc_00001cbc
@@ -4279,7 +4280,7 @@ CODE_1_loc_00001cbc:
 CODE_1_loc_00001ce2:
 	move.l -$34E2(a5),-(a7)
 	move.l a3,-(a7)
-	jsr $0412(a5)
+	jsr CODE_0_jump_table_entry_126+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	bne.b CODE_1_loc_00001cf8
 	move.b #$1,-$043F(a5)
@@ -4431,11 +4432,11 @@ CODE_1_loc_00001e86:
 	subq.w #4,a7
 	move.l -$0C24(a5),-(a7)
 	move.w #$8,-(a7)
-	jsr $078A(a5)
+	jsr CODE_0_jump_table_entry_237+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,d0
 	bne.b CODE_1_loc_00001eb2
 	move.w #$B3,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_1_loc_00001f12
 CODE_1_loc_00001eb2:
 	movea.l d0,a0
@@ -4470,13 +4471,13 @@ CODE_1_loc_00001eda:
 	bne.b CODE_1_loc_00001f08
 	move.w #$EB,-(a7)
 	move.l a4,-(a7)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_1_loc_00001f16
 CODE_1_loc_00001f08:
 	move.w #$8,-(a7)
 CODE_1_loc_00001f0c:
 	move.l a4,-(a7)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_1_loc_00001f12:
 	clr.l -$0C36(a5)
 CODE_1_loc_00001f16:
@@ -4525,7 +4526,7 @@ CODE_1_loc_00001f92:
 	move.w #$E9,-(a7)
 CODE_1_loc_00001f96:
 	move.l a4,-(a7)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_1_loc_00001f9c:
 	movem.l (a7)+,d3-d7/a3-a4
 	unlk a6
@@ -4625,7 +4626,7 @@ CODE_1_data_000020b2:
 	move.l d4,-(a7)
 	moveq.l #60,d0
 	move.l d0,-(a7)
-	jsr $0A7A(a5)
+	jsr CODE_0_jump_table_entry_331+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,d0
 	move.w d0,d6
 	move.b #$B,-$0016(a6)
@@ -4647,17 +4648,17 @@ CODE_1_loc_000020dc:
 	pea.l -$0016(a6)
 	move.w #$1,-(a7)
 	move.w d7,-(a7)
-	jsr $0AB2(a5)
+	jsr CODE_0_jump_table_entry_338+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l d4,-(a7)
 	moveq.l #60,d0
 	move.l d0,-(a7)
-	jsr $0A82(a5)
+	jsr CODE_0_jump_table_entry_332+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	moveq.l #100,d0
 	move.l d0,-(a7)
-	jsr $0A72(a5)
+	jsr CODE_0_jump_table_entry_330+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	moveq.l #60,d0
 	move.l d0,-(a7)
-	jsr $0A7A(a5)
+	jsr CODE_0_jump_table_entry_331+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,d0
 	move.w d0,d5
 	move.l #$32E3030,-$001A(a6)
@@ -4685,7 +4686,7 @@ CODE_1_loc_0000215a:
 	pea.l -$001A(a6)
 	pea.l -$002A(a6)
 	move.w #$2,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a0
 	lea.l -$002A(a6),a1
 	moveq.l #7,d0
@@ -4805,7 +4806,7 @@ CODE_1_loc_000022f6:
 	movem.l d7/a3-a4,-(a7)
 	movea.l $000A(a6),a4
 	clr.l -(a7)
-	jsr $076A(a5)
+	jsr CODE_0_jump_table_entry_233+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,(a4)
 	beq.b CODE_1_loc_0000235a
 	move.b $0008(a6),d0
@@ -4816,7 +4817,7 @@ CODE_1_loc_0000231a:
 	clr.l -(a7)
 	move.l (a4),-(a7)
 	move.w #$3EC,-(a7)
-	jsr $078A(a5)
+	jsr CODE_0_jump_table_entry_237+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a3
 	move.l a3,d0
 	beq.b CODE_1_loc_00002350
@@ -4837,7 +4838,7 @@ CODE_1_loc_00002348:
 	bra.b CODE_1_loc_0000235a
 CODE_1_loc_00002350:
 	move.l (a4),-(a7)
-	jsr $0772(a5)
+	jsr CODE_0_jump_table_entry_234+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	moveq.l #0,d0
 	move.l d0,(a4)
 CODE_1_loc_0000235a:
@@ -4853,19 +4854,19 @@ CODE_1_loc_00002366:
 	move.b $0008(a6),d0
 	beq.b CODE_1_loc_00002388
 	pea.l -$1362(a5)
-	jsr $08BA(a5)
+	jsr CODE_0_jump_table_entry_275+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$1466(a5)
-	jsr $08AA(a5)
+	jsr CODE_0_jump_table_entry_273+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_1_loc_000023ae
 CODE_1_loc_00002388:
-	jsr $0662(a5)
+	jsr CODE_0_jump_table_entry_200+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$1362(a5)
-	jsr $08BA(a5)
+	jsr CODE_0_jump_table_entry_275+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.w -(a7)
 	pea.l -$1466(a5)
 	move.l #$4F424A20,-(a7)
 	move.l #$4D505320,-(a7)
-	jsr $0432(a5)
+	jsr CODE_0_jump_table_entry_130+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,-$0002(a6)
 CODE_1_loc_000023ae:
 	clr.b -$1365(a5)
@@ -4874,20 +4875,20 @@ CODE_1_loc_000023b2:
 	beq.b CODE_1_loc_000023f6
 	move.l -$14A0(a5),-(a7)
 	move.b #$2,-(a7)
-	jsr $045A(a5)
+	jsr CODE_0_jump_table_entry_135+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b -$1498(a5),d0
 	bne.b CODE_1_loc_000023f2
 	movea.l -$149C(a5),a0
 	move.l a0,-(a7)
 	move.w -$1AE2(a5),-(a7)
-	jsr $049A(a5)
+	jsr CODE_0_jump_table_entry_143+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l -$149C(a5),a0
 	move.l a0,-(a7)
 	move.l -$1AE6(a5),-(a7)
-	jsr $04A2(a5)
+	jsr CODE_0_jump_table_entry_144+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l -$149C(a5),-(a7)
 	move.b #$1,-(a7)
-	jsr $045A(a5)
+	jsr CODE_0_jump_table_entry_135+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_1_loc_000023f2:
 	clr.b -$1301(a5)
 CODE_1_loc_000023f6:
@@ -4896,37 +4897,37 @@ CODE_1_loc_000023f6:
 	movea.l -$32B2(a5),a0
 	move.l a0,-(a7)
 	move.w -$1AE2(a5),-(a7)
-	jsr $049A(a5)
+	jsr CODE_0_jump_table_entry_143+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l -$32B2(a5),-(a7)
 	move.b #$1,-(a7)
-	jsr $045A(a5)
+	jsr CODE_0_jump_table_entry_135+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_1_loc_00002416:
 	move.b -$0F13(a5),d0
 	beq.b CODE_1_loc_00002430
 	pea.l -$134C(a5)
-	jsr $08BA(a5)
+	jsr CODE_0_jump_table_entry_275+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l CODE_1_loc_00002482(pc)
-	jsr $08AA(a5)
+	jsr CODE_0_jump_table_entry_273+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.b -$0F13(a5)
 CODE_1_loc_00002430:
 	move.b -$32A7(a5),d0
 	beq.b CODE_1_loc_00002442
 	pea.l -$32A6(a5)
-	jsr $08BA(a5)
+	jsr CODE_0_jump_table_entry_275+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.b -$32A7(a5)
 CODE_1_loc_00002442:
 	move.b -$32AD(a5),d0
 	beq.b CODE_1_loc_00002454
 	pea.l -$32AC(a5)
-	jsr $08BA(a5)
+	jsr CODE_0_jump_table_entry_275+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.b -$32AD(a5)
 CODE_1_loc_00002454:
 	move.b -$34C5(a5),d0
 	beq.b CODE_1_loc_00002462
 	pea.l -$34C4(a5)
-	jsr $08BA(a5)
+	jsr CODE_0_jump_table_entry_275+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_1_loc_00002462:
-	jsr $043A(a5)
+	jsr CODE_0_jump_table_entry_131+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	unlk a6
 	movea.l (a7)+,a0
 	addq.w #2,a7
@@ -4964,30 +4965,30 @@ CODE_1_loc_000024c6:
 	ble.b CODE_1_loc_0000252c
 	pea.l -$0100(a6)
 	pea.l CODE_1_loc_000025ae(pc)
-	jsr $0AC2(a5)
+	jsr CODE_0_jump_table_entry_340+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	beq.b CODE_1_loc_0000250e
 	pea.l -$2D92(a5)
-	jsr $09F2(a5)
+	jsr CODE_0_jump_table_entry_314+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
 	pea.l CODE_1_loc_000025a8(pc)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
 	pea.l -$0100(a6)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
-	jsr $09F2(a5)
+	jsr CODE_0_jump_table_entry_314+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_1_loc_0000250e:
 	pea.l -$2D92(a5)
-	jsr $09F2(a5)
+	jsr CODE_0_jump_table_entry_314+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
 	pea.l CODE_1_loc_0000258c(pc)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
-	jsr $09F2(a5)
+	jsr CODE_0_jump_table_entry_314+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_1_loc_0000252c:
 	moveq.l #1,d0
 	cmp.b -$1B0D(a5),d0
@@ -5017,7 +5018,7 @@ CODE_1_loc_0000256c:
 	ext.w d0
 	ext.l d0
 	move.l d0,-(a7)
-	jsr $087A(a5)
+	jsr CODE_0_jump_table_entry_267+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	addq.l #4,a7
 	move.l (a7)+,d7
 	unlk a6
@@ -5042,29 +5043,29 @@ CODE_1_loc_000025c8:
 	move.w $000C(a6),-(a7)
 	pea.l -$0200(a6)
 	move.b #$1,-(a7)
-	jsr $07BA(a5)
+	jsr CODE_0_jump_table_entry_243+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
-	jsr $09F2(a5)
+	jsr CODE_0_jump_table_entry_314+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
 	pea.l CODE_1_loc_00002658(pc)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
 	pea.l -$0100(a6)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
-	jsr $09F2(a5)
+	jsr CODE_0_jump_table_entry_314+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
 	pea.l CODE_1_loc_00002654(pc)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
 	pea.l -$0200(a6)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
-	jsr $09F2(a5)
+	jsr CODE_0_jump_table_entry_314+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l CODE_1_loc_00002648(pc)
 	jsr CODE_1_loc_00002492(pc)
 	unlk a6
@@ -5160,7 +5161,7 @@ CODE_1_loc_00002730:
 	cmp.w d5,d0
 	bge.b CODE_1_loc_0000275c
 	move.w #$2F,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_1_loc_000027b0
 CODE_1_loc_0000275c:
 	moveq.l #1,d6
@@ -5189,12 +5190,12 @@ CODE_1_loc_00002776:
 	beq.b CODE_1_loc_000027b0
 	move.w #$88,-(a7)
 	move.l a4,-(a7)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	moveq.l #0,d7
 	bra.b CODE_1_loc_000027b0
 CODE_1_loc_0000279e:
 	move.w #$87,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	moveq.l #6,d0
 	cmp.b d4,d0
 	beq.b CODE_1_loc_000027b0
@@ -5206,7 +5207,7 @@ CODE_1_loc_000027b0:
 	beq.b CODE_1_loc_000027c6
 	move.l -$0F2A(a5),-(a7)
 	move.l a4,-(a7)
-	jsr $0782(a5)
+	jsr CODE_0_jump_table_entry_236+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_1_loc_000027c6:
 	movem.l (a7)+,d4-d7/a4
 	unlk a6
@@ -5229,14 +5230,14 @@ CODE_1_loc_000027de:
 	cmp.b -$0001(a6),d0
 	ble.b CODE_1_loc_0000280e
 	move.w #$7A,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_1_loc_0000281e
 CODE_1_loc_0000280e:
 	move.b #$1,$000C(a6)
 	bra.b CODE_1_loc_0000281e
 CODE_1_loc_00002816:
 	move.w -$0004(a6),-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_1_loc_0000281e:
 	unlk a6
 	move.l (a7)+,(a7)
@@ -5279,14 +5280,14 @@ CODE_1_loc_0000282e:
 	bra.b CODE_1_loc_000028a8
 CODE_1_loc_0000288e:
 	move.w #$2E,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_1_loc_000028a8
 CODE_1_loc_00002898:
 	move.b #$1,$000C(a6)
 	bra.b CODE_1_loc_000028a8
 CODE_1_loc_000028a0:
 	move.w -$0004(a6),-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_1_loc_000028a8:
 	unlk a6
 	move.l (a7)+,(a7)
@@ -5601,7 +5602,7 @@ CODE_1_loc_00002bac:
 	bne.w CODE_1_loc_00002f0a
 	move.w #$10,-(a7)
 	move.l $0018(a6),-(a7)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l $0014(a6),a0
 	moveq.l #0,d0
 	move.l d0,(a0)
@@ -5617,7 +5618,7 @@ CODE_1_loc_00002c56:
 	beq.b CODE_1_loc_00002c84
 	move.w #$F,-(a7)
 	pea.l -$0122(a6)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l $0014(a6),a0
 	moveq.l #0,d0
 	move.l d0,(a0)
@@ -5825,7 +5826,7 @@ CODE_1_loc_00002e8a:
 	pea.l -$0106(a5)
 	pea.l -$0422(a6)
 	move.w #$3,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$0322(a6),a0
 	lea.l -$0422(a6),a1
 	moveq.l #127,d0
@@ -5839,7 +5840,7 @@ CODE_1_loc_00002eba:
 	pea.l -$0106(a5)
 	pea.l -$0422(a6)
 	move.w #$3,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$0322(a6),a0
 	lea.l -$0422(a6),a1
 	moveq.l #127,d0
@@ -5849,7 +5850,7 @@ CODE_1_loc_00002edc:
 CODE_1_loc_00002ee2:
 	move.w #$10,-(a7)
 	pea.l -$0322(a6)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l $0014(a6),a0
 	moveq.l #0,d0
 	move.l d0,(a0)
@@ -5907,7 +5908,7 @@ CODE_1_loc_00002f74:
 CODE_1_loc_00002f7e:
 	move.w #$B7,-(a7)
 	pea.l -$0122(a6)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l $0014(a6),a0
 	moveq.l #0,d0
 	move.l d0,(a0)
@@ -6315,7 +6316,7 @@ CODE_1_loc_00003428:
 	bne.b CODE_1_loc_00003476
 	move.l -$0F2A(a5),-(a7)
 	move.l -$0004(a6),-(a7)
-	jsr $0782(a5)
+	jsr CODE_0_jump_table_entry_236+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w #$C,-(a7)
 	move.l $0008(a6),-(a7)
 	jsr CODE_1_loc_000031d2(pc)
@@ -6403,7 +6404,7 @@ CODE_1_loc_00003524:
 	bne.b CODE_1_loc_0000356e
 	move.l -$0F2A(a5),-(a7)
 	move.l -$0008(a6),-(a7)
-	jsr $0782(a5)
+	jsr CODE_0_jump_table_entry_236+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w #$C,-(a7)
 	move.l $0008(a6),-(a7)
 	jsr CODE_1_loc_000031d2(pc)
@@ -6454,7 +6455,7 @@ CODE_1_loc_000035ca:
 	bgt.b CODE_1_loc_000035ec
 	move.l -$0F2A(a5),-(a7)
 	move.l a3,-(a7)
-	jsr $0782(a5)
+	jsr CODE_0_jump_table_entry_236+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_1_loc_000035ec:
 	move.w #$E,-(a7)
 	move.l $0008(a6),-(a7)
@@ -6465,7 +6466,7 @@ CODE_1_loc_000035f8:
 	ble.b CODE_1_loc_00003616
 	move.l -$0F2A(a5),-(a7)
 	move.l a4,-(a7)
-	jsr $0782(a5)
+	jsr CODE_0_jump_table_entry_236+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w #$E,-(a7)
 	move.l $0008(a6),-(a7)
 	jsr CODE_1_loc_000031d2(pc)
@@ -6496,10 +6497,10 @@ CODE_1_data_dispatch_table_00003674:
 CODE_1_loc_000036b6:
 	move.l -$0F2A(a5),-(a7)
 	move.l a4,-(a7)
-	jsr $0782(a5)
+	jsr CODE_0_jump_table_entry_236+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l -$0F2A(a5),-(a7)
 	move.l a3,-(a7)
-	jsr $0782(a5)
+	jsr CODE_0_jump_table_entry_236+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.b -$000A(a6)
 	bra.w CODE_1_loc_000039fe
 CODE_1_loc_000036d2:
@@ -6761,12 +6762,12 @@ CODE_1_loc_00003ba2:
 	move.b (a0),d0
 	addq.w #1,d0
 	move.w d0,-(a7)
-	jsr $077A(a5)
+	jsr CODE_0_jump_table_entry_235+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a4
 	move.l a4,d0
 	bne.b CODE_1_loc_00003bf6
 	move.w #$1C,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l $0010(a6),a0
 	moveq.l #0,d0
 	move.l d0,(a0)
@@ -6834,7 +6835,7 @@ CODE_1_loc_00003c86:
 	beq.b CODE_1_loc_00003cbe
 	move.w #$EA,-(a7)
 	move.l a3,-(a7)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.b -$0005(a6)
 	bra.w CODE_1_loc_00003ade
 CODE_1_loc_00003cbe:
@@ -6847,7 +6848,7 @@ CODE_1_loc_00003cc4:
 	ble.b CODE_1_loc_00003cda
 	move.w d7,-(a7)
 	move.l a3,-(a7)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l $0010(a6),a0
 	moveq.l #0,d0
 	move.l d0,(a0)
@@ -7045,7 +7046,7 @@ CODE_1_loc_00003f00:
 	move.l $000C(a6),-(a7)
 	pea.l -$0110(a5)
 	pea.l -$0113(a6)
-	jsr $0522(a5)
+	jsr CODE_0_jump_table_entry_160+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d1
 	move.l (a7)+,d0
 	and.b d1,d0
@@ -7069,7 +7070,7 @@ CODE_1_loc_00003f42:
 	move.b (a0),d0
 	addq.w #1,d0
 	move.w d0,-(a7)
-	jsr $077A(a5)
+	jsr CODE_0_jump_table_entry_235+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,-$0118(a6)
 	bne.b CODE_1_loc_00003f68
 	move.w #$1C,-(a7)
@@ -7182,7 +7183,7 @@ CODE_1_loc_00004088:
 	move.w -$0216(a5),d0
 	addq.w #1,d0
 	move.w d0,-(a7)
-	jsr $077A(a5)
+	jsr CODE_0_jump_table_entry_235+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,-$0118(a6)
 	bne.b CODE_1_loc_000040b2
 	move.w #$1C,-(a7)
@@ -7210,7 +7211,7 @@ CODE_1_loc_000040e8:
 	move.w -$0216(a5),d0
 	addq.w #1,d0
 	move.w d0,-(a7)
-	jsr $077A(a5)
+	jsr CODE_0_jump_table_entry_235+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,-$0118(a6)
 	bne.b CODE_1_loc_0000410a
 	move.w #$1C,-(a7)
@@ -7380,7 +7381,7 @@ CODE_1_loc_00004292:
 	clr.w -(a7)
 	move.b -$0103(a6),-(a7)
 	move.l $0008(a6),-(a7)
-	jsr $0542(a5)
+	jsr CODE_0_jump_table_entry_164+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	bne.b CODE_1_loc_000042f2
 	movea.l $0008(a6),a0
@@ -7451,7 +7452,7 @@ CODE_1_loc_00004380:
 	clr.w -(a7)
 	move.b -$0103(a6),-(a7)
 	move.l $0008(a6),-(a7)
-	jsr $054A(a5)
+	jsr CODE_0_jump_table_entry_165+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	bne.b CODE_1_loc_000043be
 	movea.l $0008(a6),a0
@@ -8243,7 +8244,7 @@ CODE_1_loc_00004d9c:
 	beq.b CODE_1_loc_00004db4
 	move.w d6,-(a7)
 	move.l a4,-(a7)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.b (a3)
 	movea.l $0014(a6),a0
 	moveq.l #0,d0
@@ -8539,7 +8540,7 @@ CODE_1_loc_000050e8:
 	jsr CODE_1_loc_00000244(pc)
 	pea.l -$038E(a6)
 	move.w #$2,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$0542(a5),a0
 	lea.l -$038E(a6),a1
 	moveq.l #127,d0
@@ -8750,14 +8751,14 @@ CODE_1_loc_00005358:
 	beq.b CODE_1_loc_0000539a
 	clr.w -(a7)
 	pea.l -$0542(a5)
-	jsr $06DA(a5)
+	jsr CODE_0_jump_table_entry_215+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d7
 	bne.b CODE_1_loc_00005384
 	move.w -$1348(a5),d7
 	move.w d7,-(a7)
 	pea.l -$0542(a5)
 	move.b #$1,-(a7)
-	jsr $068A(a5)
+	jsr CODE_0_jump_table_entry_205+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	addq.w #1,-$1348(a5)
 CODE_1_loc_00005384:
 	move.w d7,-(a7)
@@ -8765,7 +8766,7 @@ CODE_1_loc_00005384:
 	move.l -$14A4(a5),-(a7)
 	move.w -$14A6(a5),-(a7)
 	move.w -$25A2(a5),-(a7)
-	jsr $06C2(a5)
+	jsr CODE_0_jump_table_entry_212+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_1_loc_0000539a:
 	move.l (a7)+,d7
 	unlk a6
@@ -8805,12 +8806,12 @@ CODE_1_loc_000053f4:
 CODE_1_loc_00005406:
 	move.l -$14A0(a5),-(a7)
 	pea.l -$0100(a6)
-	jsr $041A(a5)
+	jsr CODE_0_jump_table_entry_127+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_1_loc_00005446
 CODE_1_loc_00005414:
 	clr.w -(a7)
 	move.w -$131C(a5),-(a7)
-	jsr $0612(a5)
+	jsr CODE_0_jump_table_entry_190+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	beq.b CODE_1_loc_00005446
 	btst.b #0,-$12A3(a5)
@@ -8822,7 +8823,7 @@ CODE_1_loc_00005414:
 	move.w -$131C(a5),-(a7)
 	move.w -$12A2(a5),-(a7)
 	pea.l -$0100(a6)
-	jsr $060A(a5)
+	jsr CODE_0_jump_table_entry_189+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.b -$14DB(a5)
 CODE_1_loc_00005446:
 	movea.l -$0004(a5),a0
@@ -8953,7 +8954,7 @@ CODE_1_loc_000055a6:
 	movem.l d0-d2,-(a7)
 	clr.w -(a7)
 	move.w -$131C(a5),-(a7)
-	jsr $0612(a5)
+	jsr CODE_0_jump_table_entry_190+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d3
 	movem.l (a7)+,d0-d2
 	and.b d3,d2
@@ -8966,11 +8967,11 @@ CODE_1_loc_000055d8:
 	move.w -$131C(a5),-(a7)
 	move.w -$12A2(a5),-(a7)
 	move.l -$0006(a6),-(a7)
-	jsr $060A(a5)
+	jsr CODE_0_jump_table_entry_189+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	btst.b #6,-$12A4(a5)
 	beq.b CODE_1_loc_00005602
 	move.w #$E,-(a7)
-	jsr $0602(a5)
+	jsr CODE_0_jump_table_entry_188+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_1_loc_00005610
 CODE_1_loc_00005602:
 	movea.l -$1308(a5),a0
@@ -8999,7 +9000,7 @@ CODE_1_loc_00005610:
 	move.l -$0006(a6),-(a7)
 	pea.l -$0206(a6)
 	move.w #$5,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$0106(a6),a0
 	lea.l -$0206(a6),a1
 	moveq.l #127,d0
@@ -9011,16 +9012,16 @@ CODE_1_loc_0000565a:
 	pea.l -$2D92(a5)
 	pea.l -$0106(a6)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
-	jsr $09F2(a5)
+	jsr CODE_0_jump_table_entry_314+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_1_loc_0000567c:
-	jsr $07E2(a5)
+	jsr CODE_0_jump_table_entry_248+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	tst.l -$32B2(a5)
 	beq.b CODE_1_loc_00005692
 	move.l -$32B2(a5),-(a7)
 	pea.l -$0106(a6)
-	jsr $041A(a5)
+	jsr CODE_0_jump_table_entry_127+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_1_loc_00005692:
 	move.b d7,d0
 	beq.w CODE_1_loc_0000578c
@@ -9029,7 +9030,7 @@ CODE_1_loc_00005692:
 	move.l -$1298(a5),-(a7)
 	move.w -$129A(a5),-(a7)
 	move.b #$1,-(a7)
-	jsr $07EA(a5)
+	jsr CODE_0_jump_table_entry_249+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_1_loc_0000578c
 CODE_1_loc_000056b4:
 	tst.w -$32A0(a5)
@@ -9060,7 +9061,7 @@ CODE_1_loc_000056f2:
 	jsr CODE_1_loc_000054dc(pc)
 	move.l -$14A0(a5),-(a7)
 	move.l -$0006(a6),-(a7)
-	jsr $041A(a5)
+	jsr CODE_0_jump_table_entry_127+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	addq.l #1,-$1C1A(a5)
 	move.b -$118F(a5),d0
 	beq.b CODE_1_loc_00005780
@@ -9167,7 +9168,7 @@ CODE_1_loc_00005810:
 	moveq.l #1,d7
 	move.l a4,-(a7)
 	move.l #$10001,-(a7)
-	jsr $0AB2(a5)
+	jsr CODE_0_jump_table_entry_338+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_1_loc_0000585a:
 	cmp.w d6,d5
 	ble.b CODE_1_loc_0000586a
@@ -9181,7 +9182,7 @@ CODE_1_loc_0000586a:
 	move.l a4,-(a7)
 	pea.l -$016E(a6)
 	move.w #$2,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$016E(a6),a0
 	movea.l a4,a1
 	moveq.l #60,d0
@@ -9213,7 +9214,7 @@ CODE_1_loc_00005894:
 	beq.b CODE_1_loc_000058ca
 	move.l a4,-(a7)
 	move.l #$10001,-(a7)
-	jsr $0AB2(a5)
+	jsr CODE_0_jump_table_entry_338+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	subq.w #1,d6
 	bra.b CODE_1_loc_00005894
 CODE_1_loc_000058ca:
@@ -9236,7 +9237,7 @@ CODE_1_loc_000058e4:
 	move.b -$0542(a5),d0
 	move.w d0,-$0002(a6)
 	pea.l -$0542(a5)
-	jsr $04C2(a5)
+	jsr CODE_0_jump_table_entry_148+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b -$1301(a5),d0
 	beq.b CODE_1_loc_00005924
 	pea.l -$0842(a5)
@@ -9284,7 +9285,7 @@ CODE_1_loc_0000597c:
 	addq.l #1,-$0BE8(a5)
 	clr.w -(a7)
 	move.b #$1,-(a7)
-	jsr $070A(a5)
+	jsr CODE_0_jump_table_entry_221+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l -$0BE8(a5),-$0BEC(a5)
 	move.l -$0BE8(a5),-$1354(a5)
 	clr.w d0
@@ -9292,11 +9293,11 @@ CODE_1_loc_0000597c:
 	tst.w d0
 	bne.b CODE_1_loc_000059c0
 	move.w #$CD,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_1_loc_000059c0
 CODE_1_loc_000059b8:
 	move.w #$CC,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_1_loc_000059c0:
 	move.l -$0BE8(a5),-(a7)
 	move.w -$0C20(a5),-(a7)
@@ -9308,11 +9309,11 @@ CODE_1_loc_000059c0:
 	bra.b CODE_1_loc_000059ee
 CODE_1_loc_000059dc:
 	move.w #$A0,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_1_loc_000059ee
 CODE_1_loc_000059e6:
 	move.w #$7,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_1_loc_000059ee:
 	unlk a6
 	rts
@@ -9336,7 +9337,7 @@ CODE_1_loc_00005a2a:
 	move.b -$0543(a5),d0
 	beq.b CODE_1_loc_00005a62
 	pea.l -$0542(a5)
-	jsr $04C2(a5)
+	jsr CODE_0_jump_table_entry_148+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.w d7
 	move.b -$0542(a5),d7
 	tst.w d7
@@ -9359,7 +9360,7 @@ CODE_1_loc_00005a6e:
 	clr.w d5
 	move.b -$074A(a5),d5
 	pea.l -$074A(a5)
-	jsr $04C2(a5)
+	jsr CODE_0_jump_table_entry_148+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.w d6
 	move.b -$074A(a5),d6
 	move.b -$1301(a5),d0
@@ -9375,7 +9376,7 @@ CODE_1_loc_00005a6e:
 	jsr CODE_1_loc_00005810(pc)
 CODE_1_loc_00005aa4:
 	pea.l -$0318(a5)
-	jsr $04C2(a5)
+	jsr CODE_0_jump_table_entry_148+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_1_loc_00005aac:
 	move.b -$0005(a4),d0
 	beq.b CODE_1_loc_00005ad8
@@ -9389,7 +9390,7 @@ CODE_1_loc_00005aac:
 	bne.b CODE_1_loc_00005ad8
 	clr.b -$0542(a5)
 	move.w #$7,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_1_loc_00005ad8:
 	movem.l (a7)+,d5-d7/a4
 	unlk a6
@@ -9437,7 +9438,7 @@ CODE_1_loc_00005b48:
 	tst.l -$131A(a5)
 	beq.b CODE_1_loc_00005b5c
 	pea.l -$0318(a5)
-	jsr $04C2(a5)
+	jsr CODE_0_jump_table_entry_148+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_1_loc_00005b5c:
 	pea.l -$0318(a5)
 	jsr CODE_1_loc_0000551c(pc)
@@ -9474,11 +9475,11 @@ CODE_1_loc_00005b66:
 	jsr CODE_1_loc_00001b60(pc)
 	move.b (a7)+,d0
 	beq.b CODE_1_loc_00005bce
-	jsr $0562(a5)
+	jsr CODE_0_jump_table_entry_168+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_1_loc_00005bd6
 CODE_1_loc_00005bce:
 	move.w #$6,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_1_loc_00005bd6:
 	clr.b -$0005(a6)
 	clr.b -$0543(a5)
@@ -9492,7 +9493,7 @@ CODE_1_loc_00005be0:
 	move.b -$1303(a5),d0
 	bne.b CODE_1_loc_00005bfa
 	move.w #$3B,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_1_loc_00005bfa:
 	pea.l -$0542(a5)
 	pea.l -$108E(a5)
@@ -9526,7 +9527,7 @@ CODE_1_loc_00005c48:
 	sgt.b d1
 	and.b d1,d0
 	beq.b CODE_1_loc_00005c5c
-	jsr $0552(a5)
+	jsr CODE_0_jump_table_entry_166+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_1_loc_00005c5c:
 	pea.l -$0646(a5)
 	pea.l -$118E(a5)
@@ -9546,7 +9547,7 @@ CODE_1_loc_00005c5c:
 	pea.l -$0BD4(a5)
 	pea.l -$0646(a5)
 	pea.l -$0BD6(a5)
-	jsr $056A(a5)
+	jsr CODE_0_jump_table_entry_169+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,-$0BDA(a5)
 	bne.b CODE_1_loc_00005d04
 	move.b -$0C3B(a5),d0
@@ -9556,7 +9557,7 @@ CODE_1_loc_00005c5c:
 	pea.l -$0BD2(a5)
 	pea.l -$0BD4(a5)
 	pea.l -$0646(a5)
-	jsr $03C2(a5)
+	jsr CODE_0_jump_table_entry_116+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,-$0BDA(a5)
 	beq.b CODE_1_loc_00005cd2
 	move.w #$8000,-$0C46(a5)
@@ -9571,7 +9572,7 @@ CODE_1_loc_00005cd2:
 	pea.l -$0BD2(a5)
 	pea.l -$0BD4(a5)
 	pea.l -$0646(a5)
-	jsr $05B2(a5)
+	jsr CODE_0_jump_table_entry_178+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,-$0BDA(a5)
 	beq.b CODE_1_loc_00005d04
 	move.b #$1,-$0C49(a5)
@@ -9589,7 +9590,7 @@ CODE_1_loc_00005d1e:
 	move.w #$3,-$0BCE(a5)
 	move.w #$FF81,-$0BD2(a5)
 	clr.w -(a7)
-	jsr $055A(a5)
+	jsr CODE_0_jump_table_entry_167+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	bne.w CODE_1_loc_00005f90
 	move.l a6,-(a7)
@@ -9597,18 +9598,18 @@ CODE_1_loc_00005d1e:
 	move.w #$2,-$0BCE(a5)
 	move.w #$FFD2,-$0BD2(a5)
 	clr.w -(a7)
-	jsr $0742(a5)
+	jsr CODE_0_jump_table_entry_228+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	bne.w CODE_1_loc_00005f90
 	move.b -$0BD0(a5),d0
 	beq.b CODE_1_loc_00005d66
 	move.w #$36,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_1_loc_00005f90
 CODE_1_loc_00005d66:
 	move.w #$5B,-(a7)
 	pea.l -$0646(a5)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_1_loc_00005f90
 CODE_1_loc_00005d76:
 	moveq.l #2,d0
@@ -9659,7 +9660,7 @@ CODE_1_loc_00005dea:
 	move.l a6,-(a7)
 	jsr CODE_1_loc_00005a00(pc)
 CODE_1_loc_00005df0:
-	jsr $0752(a5)
+	jsr CODE_0_jump_table_entry_230+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b -$14DD(a5),d0
 	beq.w CODE_1_loc_00005f90
 	move.l -$1496(a5),-(a7)
@@ -9686,7 +9687,7 @@ CODE_1_loc_00005e1c:
 	move.l -$14A4(a5),-(a7)
 	move.w -$14A6(a5),-(a7)
 	move.w -$25A2(a5),-(a7)
-	jsr $06CA(a5)
+	jsr CODE_0_jump_table_entry_213+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_1_loc_00005e4c:
 	move.l a6,-(a7)
 	jsr CODE_1_loc_00005a00(pc)
@@ -9708,7 +9709,7 @@ CODE_1_loc_00005e6c:
 	jsr CODE_1_loc_00001d28(pc)
 CODE_1_loc_00005e80:
 	move.w #$A5,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_1_loc_00005f90
 CODE_1_loc_00005e8c:
 	move.b -$0BE5(a5),d0
@@ -9719,12 +9720,12 @@ CODE_1_loc_00005e8c:
 	addq.l #1,-$0BE8(a5)
 	move.b -$0C5C(a5),-(a7)
 	move.b #$1,-(a7)
-	jsr $070A(a5)
+	jsr CODE_0_jump_table_entry_221+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l -$0BE8(a5),-$1354(a5)
 	bra.b CODE_1_loc_00005ebc
 CODE_1_loc_00005eb4:
 	move.w #$CC,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_1_loc_00005ebc:
 	move.l -$0BE8(a5),-$0BEC(a5)
 	move.b -$0005(a6),d0
@@ -9740,14 +9741,14 @@ CODE_1_loc_00005ebc:
 	beq.b CODE_1_loc_00005f1c
 	clr.w -(a7)
 	pea.l -$0542(a5)
-	jsr $06DA(a5)
+	jsr CODE_0_jump_table_entry_215+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d7
 	bne.b CODE_1_loc_00005f06
 	move.w -$1348(a5),d7
 	move.w d7,-(a7)
 	pea.l -$0542(a5)
 	move.b #$1,-(a7)
-	jsr $068A(a5)
+	jsr CODE_0_jump_table_entry_205+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	addq.w #1,-$1348(a5)
 CODE_1_loc_00005f06:
 	move.w d7,-(a7)
@@ -9755,7 +9756,7 @@ CODE_1_loc_00005f06:
 	move.l -$14A4(a5),-(a7)
 	move.w -$14A6(a5),-(a7)
 	move.w -$25A2(a5),-(a7)
-	jsr $06C2(a5)
+	jsr CODE_0_jump_table_entry_212+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_1_loc_00005f1c:
 	move.l -$0BE8(a5),d0
 	sub.l -$1354(a5),d0
@@ -9766,11 +9767,11 @@ CODE_1_loc_00005f28:
 	ble.b CODE_1_loc_00005f40
 	move.b -$0C5C(a5),-(a7)
 	clr.w -(a7)
-	jsr $070A(a5)
+	jsr CODE_0_jump_table_entry_221+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l -$0BE8(a5),-$1354(a5)
 CODE_1_loc_00005f40:
 	move.w -$1492(a5),-(a7)
-	jsr $05A2(a5)
+	jsr CODE_0_jump_table_entry_176+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_1_loc_00005f90
 CODE_1_loc_00005f4a:
 	move.b -$1303(a5),d0
@@ -9787,7 +9788,7 @@ CODE_1_loc_00005f5e:
 	jsr CODE_1_loc_00000190(pc)
 CODE_1_loc_00005f70:
 	move.w #$9,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w -$042A(a5),d0
 	clr.w d1
 	lea.l -$0318(a5),a0
@@ -9803,7 +9804,7 @@ CODE_1_loc_00005f9c:
 	move.b -$14DD(a5),d0
 	bne.b CODE_1_loc_00005fa8
 	clr.w -(a7)
-	jsr $074A(a5)
+	jsr CODE_0_jump_table_entry_229+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_1_loc_00005fa8:
 	movem.l (a7)+,d4-d7
 	unlk a6
@@ -9822,7 +9823,7 @@ CODE_1_data_pascal_string_00005fd0:
 CODE_1_loc_00005fdc:
 	link a6,#0
 	move.l a6,-(a7)
-	jsr $05AA(a5)
+	jsr CODE_0_jump_table_entry_177+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l $055A(a5)
 	jsr CODE_1_loc_00002030(pc)
 	pea.l $07CA(a5)
@@ -9857,28 +9858,28 @@ CODE_1_loc_00006032:
 	clr.l -(a7)
 	move.b #$1,-(a7)
 	clr.w -(a7)
-	jsr $0A3A(a5)
+	jsr CODE_0_jump_table_entry_323+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.w -(a7)
-	jsr $0A42(a5)
+	jsr CODE_0_jump_table_entry_324+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.w -(a7)
-	jsr $0882(a5)
+	jsr CODE_0_jump_table_entry_268+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	beq.b CODE_1_loc_00006070
-	jsr $03FA(a5)
+	jsr CODE_0_jump_table_entry_123+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_1_loc_00006070:
 	clr.w -(a7)
-	jsr $0882(a5)
+	jsr CODE_0_jump_table_entry_268+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	beq.b CODE_1_loc_0000608a
 	pea.l CODE_1_loc_0000610e(pc)
-	jsr $082A(a5)
+	jsr CODE_0_jump_table_entry_257+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l $082A(a5)
 	jsr CODE_1_loc_00002030(pc)
 CODE_1_loc_0000608a:
 	clr.w -(a7)
 	pea.l CODE_1_loc_00006106(pc)
 	pea.l -$1C16(a5)
-	jsr $089A(a5)
+	jsr CODE_0_jump_table_entry_271+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	bne.b CODE_1_loc_000060a8
 	move.l -$1B12(a5),-(a7)
@@ -9892,14 +9893,14 @@ CODE_1_loc_000060a8:
 	clr.w -$1B0C(a5)
 CODE_1_loc_000060be:
 	move.b -$1B05(a5),-(a7)
-	jsr $0762(a5)
+	jsr CODE_0_jump_table_entry_232+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b -$1B05(a5),-(a7)
-	jsr $0402(a5)
+	jsr CODE_0_jump_table_entry_124+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.b -$1B05(a5)
 	pea.l $0402(a5)
 	jsr CODE_1_loc_00002030(pc)
 	jsr CODE_1_loc_00005fdc(pc)
-	jsr $066A(a5)
+	jsr CODE_0_jump_table_entry_201+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l $066A(a5)
 	jsr CODE_1_loc_00002030(pc)
 	bra.b CODE_1_loc_000060be
@@ -9933,12 +9934,12 @@ CODE_1_loc_00006130:
 	pea.l -$00A4(a6)
 	pea.l -$0150(a6)
 	move.w #$5,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a0
 	lea.l -$0150(a6),a1
 	move.b (a1),-(a7)
 	move.w #$50,-(a7)
-	jsr $0A92(a5)
+	jsr CODE_0_jump_table_entry_334+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	moveq.l #40,d0
 CODE_1_loc_0000616e:
 	move.w (a1)+,(a0)+
@@ -10334,7 +10335,7 @@ CODE_1_loc_0000663a:
 	movem.l d3/d6-d7/a2-a4,-(a7)
 	move.l $0018(a6),d7
 	movea.l $000C(a6),a3
-	jsr $040A(a5)
+	jsr CODE_0_jump_table_entry_125+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	tst.l d0
 	beq.b CODE_1_loc_00006658
 	moveq.l #-1,d0
@@ -11383,7 +11384,7 @@ CODE_1_loc_000070f2:
 	addq.w #4,a7
 	tst.l d0
 	bne.b CODE_1_loc_00007134
-	jsr $0A32(a5)
+	jsr CODE_0_jump_table_entry_322+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	rts
 CODE_1_loc_0000712a:
 	pea.l CODE_1_loc_00007138(pc)
@@ -11502,7 +11503,7 @@ CODE_2_loc_000000ee:
 	and.w d0,d6
 	beq.b CODE_2_loc_00000116
 CODE_2_loc_000000fa:
-	jsr $057A(a5)
+	jsr CODE_0_jump_table_entry_171+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	tst.w d3
 	bne.b CODE_2_loc_00000106
 	tst.l d1
@@ -11521,7 +11522,7 @@ CODE_2_loc_00000112:
 CODE_2_loc_00000116:
 	subq.w #4,a7
 	move.l a1,-(a7)
-	jsr $0572(a5)
+	jsr CODE_0_jump_table_entry_170+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a1
 	bne.b CODE_2_loc_000000c6
 	clr.w d0
@@ -12163,19 +12164,19 @@ CODE_2_loc_000017da:
 	clr.w (a0)
 	clr.w -$000E(a6)
 	move.b $000F(a6),-(a7)
-	jsr $0A22(a5)
+	jsr CODE_0_jump_table_entry_320+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b $000D(a6),-(a7)
-	jsr $0A1A(a5)
+	jsr CODE_0_jump_table_entry_319+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w #$1,-$000C(a6)
 	move.l a3,-(a7)
-	jsr $0072(a5)
+	jsr CODE_0_jump_table_entry_10+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.w d6
 	move.b (a3),d6
 	move.l a3,-(a7)
 	pea.l -$000C(a6)
 	pea.l -$002E(a6)
 	pea.l -$0034(a6)
-	jsr $09A2(a5)
+	jsr CODE_0_jump_table_entry_304+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	moveq.l #1,d0
 	cmp.w -$000C(a6),d0
 	bne.w CODE_2_loc_000018c2
@@ -12208,7 +12209,7 @@ CODE_2_loc_0000185a:
 	clr.w d0
 	move.b $0002(a3),d0
 	move.w d0,-(a7)
-	jsr $0042(a5)
+	jsr CODE_0_jump_table_entry_4+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d7
 	moveq.l #48,d0
 	cmp.w d7,d0
@@ -12254,7 +12255,7 @@ CODE_2_loc_000018d4:
 	bne.b CODE_2_loc_0000190c
 	pea.l -$003E(a6)
 	pea.l -$002E(a6)
-	jsr $0A2A(a5)
+	jsr CODE_0_jump_table_entry_321+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	addq.l #4,a7
 	pea.l -$003E(a6)
 	pea.l $0002(a4)
@@ -12270,7 +12271,7 @@ CODE_2_loc_0000190c:
 	bne.b CODE_2_loc_00001938
 	pea.l -$003E(a6)
 	pea.l -$002E(a6)
-	jsr $0A2A(a5)
+	jsr CODE_0_jump_table_entry_321+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	addq.l #4,a7
 	pea.l -$003E(a6)
 	pea.l $0002(a4)
@@ -12310,7 +12311,7 @@ CODE_2_loc_00001938:
 CODE_2_loc_00001972:
 	pea.l -$003E(a6)
 	pea.l -$002E(a6)
-	jsr $0A2A(a5)
+	jsr CODE_0_jump_table_entry_321+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	addq.l #4,a7
 	movea.l a4,a0
 	addq.l #4,a0
@@ -12392,7 +12393,7 @@ CODE_2_loc_00001a38:
 CODE_2_loc_00001a4a:
 	move.l a4,-(a7)
 	move.l #$10001,-(a7)
-	jsr $0AB2(a5)
+	jsr CODE_0_jump_table_entry_338+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	tst.w -$000E(a6)
 	beq.b CODE_2_loc_00001a66
 	move.w d6,d0
@@ -12421,7 +12422,7 @@ CODE_2_loc_00001a96:
 	movea.l $0008(a6),a4
 	pea.l -$0006(a6)
 	pea.l CODE_2_loc_00001b44(pc)
-	jsr $0AC2(a5)
+	jsr CODE_0_jump_table_entry_340+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	beq.b CODE_2_loc_00001ab6
 	lea.l -$0006(a6),a3
@@ -12441,29 +12442,29 @@ CODE_2_loc_00001aca:
 	move.l -$0006(a4),-(a7)
 	move.w -$0002(a4),-(a7)
 	pea.l -$000F(a6)
-	jsr $00EA(a5)
+	jsr CODE_0_jump_table_entry_25+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,d7
 	move.b -$000F(a6),d0
 	beq.b CODE_2_loc_00001af4
 	move.w #$C0,-(a7)
 	move.l a3,-(a7)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_2_loc_00001af4:
 	move.l a3,-(a7)
-	jsr $005A(a5)
+	jsr CODE_0_jump_table_entry_7+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.l -(a7)
 	move.l -$0C50(a5),-(a7)
 	move.l a3,-(a7)
 	move.l -$0006(a4),-(a7)
 	move.w -$0002(a4),-(a7)
 	pea.l -$000F(a6)
-	jsr $00EA(a5)
+	jsr CODE_0_jump_table_entry_25+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,d7
 	move.b -$000F(a6),d0
 	beq.b CODE_2_loc_00001b24
 	move.w #$C0,-(a7)
 	move.l a3,-(a7)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_2_loc_00001b24:
 	addq.l #1,-$0006(a4)
 	movem.l (a7)+,d7/a3-a4
@@ -12536,7 +12537,7 @@ CODE_2_loc_00001c22:
 	pea.l -$20AA(a5)
 	move.w #$A,-(a7)
 	pea.l -$0002(a6)
-	jsr $0732(a5)
+	jsr CODE_0_jump_table_entry_226+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	bne.b CODE_2_loc_00001c3c
 	bra.w CODE_2_loc_00001e36
@@ -12545,10 +12546,10 @@ CODE_2_loc_00001c3c:
 	cmp.b -$0005(a5),d0
 	beq.b CODE_2_loc_00001c50
 	move.w #$99,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_2_loc_00001e36
 CODE_2_loc_00001c50:
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w -$0002(a6),d0
 	subq.w #1,d0
 	bmi.w CODE_2_loc_00001e26
@@ -12593,7 +12594,7 @@ CODE_2_data_dispatch_table_00001cb0:
 CODE_2_loc_00001e26:
 	clr.w -(a7)
 	move.b #$1C,-(a7)
-	jsr $072A(a5)
+	jsr CODE_0_jump_table_entry_225+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	bne.w CODE_2_loc_00001c22
 CODE_2_loc_00001e36:
@@ -12613,9 +12614,9 @@ CODE_3_metadata_00000000:
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00
 CODE_3_loc_00000028:
 	suba.l a0,a0
-	jsr $061A(a5)
+	jsr CODE_0_jump_table_entry_191+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w #$4,d0
-	jsr $0622(a5)
+	jsr CODE_0_jump_table_entry_192+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a1
 	move.w #$100,(a0)+
 	move.w (a7)+,(a0)
@@ -12623,7 +12624,7 @@ CODE_3_loc_00000028:
 CODE_3_loc_00000040:
 	link a6,#-8
 	pea.l -$2D8E(a5)
-	jsr $09FA(a5)
+	jsr CODE_0_jump_table_entry_315+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	unlk a6
 	rts
 CODE_3_data_pascal_string_00000050:
@@ -12747,12 +12748,12 @@ CODE_3_loc_000001b4:
 CODE_3_loc_000001ce:
 	move.l a3,-(a7)
 	pea.l -$1290(a5)
-	jsr $0092(a5)
+	jsr CODE_0_jump_table_entry_14+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_3_loc_000001d8:
 	clr.w -(a7)
 	pea.l -$1290(a5)
 	pea.l $07F2(a5)
-	jsr $0462(a5)
+	jsr CODE_0_jump_table_entry_136+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d7
 	beq.b CODE_3_loc_00000238
 	move.l a3,d0
@@ -12761,7 +12762,7 @@ CODE_3_loc_000001d8:
 	pea.l -$2D8A(a5)
 	move.l #$6604,-(a7)
 	pea.l -$1290(a5)
-	jsr $0892(a5)
+	jsr CODE_0_jump_table_entry_270+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	tst.l (a7)+
 	bge.b CODE_3_loc_00000216
 	lea.l -$1290(a5),a0
@@ -12777,9 +12778,9 @@ CODE_3_loc_00000216:
 	pea.l CODE_3_loc_000005d2(pc)
 	pea.l -$0404(a6)
 	move.w #$3,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$0404(a6)
-	jsr $01DA(a5)
+	jsr CODE_0_jump_table_entry_55+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_3_loc_00000238:
 	movea.l -$34E2(a5),a0
 	lea.l -$1290(a5),a1
@@ -12791,7 +12792,7 @@ CODE_3_loc_00000242:
 	pea.l -$2D92(a5)
 	move.l #$6604,-(a7)
 	pea.l -$0104(a6)
-	jsr $0892(a5)
+	jsr CODE_0_jump_table_entry_270+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	tst.l (a7)+
 	bge.b CODE_3_loc_00000264
 	clr.b -$0104(a6)
@@ -12799,7 +12800,7 @@ CODE_3_loc_00000264:
 	clr.w -(a7)
 	pea.l -$0104(a6)
 	pea.l -$1290(a5)
-	jsr $0062(a5)
+	jsr CODE_0_jump_table_entry_8+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,-$1497(a5)
 	moveq.l #0,d0
 	move.l d0,-$129E(a5)
@@ -12823,7 +12824,7 @@ CODE_3_loc_00000264:
 	pea.l -$1290(a5)
 	move.w #$4,-(a7)
 	pea.l -$1AE2(a5)
-	jsr $0492(a5)
+	jsr CODE_0_jump_table_entry_142+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b $000E(a6),d0
 	beq.w CODE_3_loc_00000496
 	moveq.l #1,d6
@@ -12844,11 +12845,11 @@ CODE_3_loc_00000264:
 	beq.b CODE_3_loc_00000322
 	pea.l -$0304(a4)
 	pea.l -$0304(a6)
-	jsr $0092(a5)
+	jsr CODE_0_jump_table_entry_14+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$0304(a6)
 	pea.l -$0304(a4)
 	clr.l -(a7)
-	jsr $048A(a5)
+	jsr CODE_0_jump_table_entry_141+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b $0008(a4),d0
 	bne.b CODE_3_loc_00000392
 	moveq.l #5,d6
@@ -12866,7 +12867,7 @@ CODE_3_loc_00000330:
 	pea.l CODE_3_loc_00000656(pc)
 	pea.l -$0404(a6)
 	move.w #$2,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$0304(a6),a0
 	lea.l -$0404(a6),a1
 	moveq.l #127,d0
@@ -12878,13 +12879,13 @@ CODE_3_loc_0000035c:
 	pea.l -$1290(a5)
 	clr.l -(a7)
 	pea.l -$0304(a6)
-	jsr $048A(a5)
+	jsr CODE_0_jump_table_entry_141+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$0304(a4)
 	pea.l -$0304(a6)
 	pea.l CODE_3_loc_00000656(pc)
 	pea.l -$0404(a6)
 	move.w #$3,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$0304(a6),a0
 	lea.l -$0404(a6),a1
 	moveq.l #127,d0
@@ -12897,7 +12898,7 @@ CODE_3_loc_00000392:
 	pea.l -$149C(a5)
 	move.b d6,-(a7)
 	clr.l -(a7)
-	jsr $0452(a5)
+	jsr CODE_0_jump_table_entry_134+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d7
 	beq.b CODE_3_loc_000003f6
 	move.l a3,d0
@@ -12906,7 +12907,7 @@ CODE_3_loc_00000392:
 	pea.l -$2D8A(a5)
 	move.l #$6604,-(a7)
 	pea.l -$0304(a6)
-	jsr $0892(a5)
+	jsr CODE_0_jump_table_entry_270+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	tst.l (a7)+
 	bge.b CODE_3_loc_000003d4
 	lea.l -$0304(a6),a0
@@ -12922,15 +12923,15 @@ CODE_3_loc_000003d4:
 	pea.l CODE_3_loc_000005d2(pc)
 	pea.l -$0404(a6)
 	move.w #$3,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$0404(a6)
-	jsr $01DA(a5)
+	jsr CODE_0_jump_table_entry_55+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_3_loc_000003f6:
 	clr.w -(a7)
 	pea.l -$0104(a6)
 	movea.l -$149C(a5),a0
 	move.l a0,-(a7)
-	jsr $0062(a5)
+	jsr CODE_0_jump_table_entry_8+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,-$1498(a5)
 	move.b #$1,-$1301(a5)
 	moveq.l #0,d0
@@ -12940,26 +12941,26 @@ CODE_3_loc_000003f6:
 	pea.l CODE_3_loc_00000636(pc)
 	pea.l -$0404(a6)
 	move.w #$2,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$0404(a6)
 	pea.l -$14A0(a5)
 	move.b #$2,-(a7)
 	clr.l -(a7)
-	jsr $0452(a5)
+	jsr CODE_0_jump_table_entry_134+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d7
 	beq.b CODE_3_loc_0000044c
 	move.w d7,-(a7)
 	pea.l CODE_3_loc_00000612(pc)
-	jsr $01DA(a5)
+	jsr CODE_0_jump_table_entry_55+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_3_loc_0000044c:
 	clr.l -(a7)
 	move.l -$0F2A(a5),-(a7)
 	move.w #$100,-(a7)
-	jsr $077A(a5)
+	jsr CODE_0_jump_table_entry_235+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,-$1308(a5)
 	bne.b CODE_3_loc_00000468
 	pea.l CODE_3_loc_000005ea(pc)
-	jsr $01D2(a5)
+	jsr CODE_0_jump_table_entry_54+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_3_loc_00000468:
 	movea.l -$1308(a5),a0
 	clr.b (a0)
@@ -12970,12 +12971,12 @@ CODE_3_loc_00000468:
 	beq.b CODE_3_loc_0000048a
 	move.l -$149C(a5),-(a7)
 	pea.l -$18E8(a5)
-	jsr $041A(a5)
+	jsr CODE_0_jump_table_entry_127+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_3_loc_00000496
 CODE_3_loc_0000048a:
 	move.l -$149C(a5),-(a7)
 	move.w #$D,-(a7)
-	jsr $046A(a5)
+	jsr CODE_0_jump_table_entry_137+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_3_loc_00000496:
 	move.b $000C(a6),d0
 	bne.w CODE_3_loc_000005b6
@@ -12996,7 +12997,7 @@ CODE_3_loc_00000496:
 	beq.b CODE_3_loc_000004d6
 	pea.l -$0404(a4)
 	pea.l -$1466(a5)
-	jsr $0092(a5)
+	jsr CODE_0_jump_table_entry_14+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_3_loc_00000562
 CODE_3_loc_000004d6:
 	move.l a3,d0
@@ -13005,7 +13006,7 @@ CODE_3_loc_000004d6:
 	pea.l CODE_3_loc_000005e6(pc)
 	pea.l -$0404(a6)
 	move.w #$2,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$1466(a5),a0
 	lea.l -$0404(a6),a1
 	moveq.l #127,d0
@@ -13020,7 +13021,7 @@ CODE_3_loc_00000500:
 	pea.l CODE_3_loc_000005e2(pc)
 	pea.l -$0404(a6)
 	move.w #$2,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$1466(a5),a0
 	lea.l -$0404(a6),a1
 	moveq.l #127,d0
@@ -13032,13 +13033,13 @@ CODE_3_loc_0000052c:
 	pea.l -$1290(a5)
 	clr.l -(a7)
 	pea.l -$0304(a6)
-	jsr $048A(a5)
+	jsr CODE_0_jump_table_entry_141+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$0404(a4)
 	pea.l -$0304(a6)
 	pea.l CODE_3_loc_000005e2(pc)
 	pea.l -$0404(a6)
 	move.w #$3,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$1466(a5),a0
 	lea.l -$0404(a6),a1
 	moveq.l #127,d0
@@ -13049,14 +13050,14 @@ CODE_3_loc_00000562:
 	clr.w -(a7)
 	pea.l -$1466(a5)
 	move.b #$1,-(a7)
-	jsr $044A(a5)
+	jsr CODE_0_jump_table_entry_133+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d7
 	pea.l -$1362(a5)
 	pea.l -$1466(a5)
 	move.w #$1,-(a7)
-	jsr $08B2(a5)
+	jsr CODE_0_jump_table_entry_274+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.w -(a7)
-	jsr $0902(a5)
+	jsr CODE_0_jump_table_entry_284+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d7
 	seq.b d0
 	neg.b d0
@@ -13068,9 +13069,9 @@ CODE_3_loc_00000562:
 	pea.l CODE_3_loc_000005d2(pc)
 	pea.l -$0404(a6)
 	move.w #$3,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$0404(a6)
-	jsr $01DA(a5)
+	jsr CODE_0_jump_table_entry_55+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_3_loc_000005b6:
 	movem.l (a7)+,d6-d7/a3-a4
 	unlk a6
@@ -13130,20 +13131,20 @@ CODE_3_loc_000006ec:
 	link a6,#-8
 	move.l d7,-(a7)
 	clr.l -(a7)
-	jsr $076A(a5)
+	jsr CODE_0_jump_table_entry_233+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,-$132A(a5)
 	clr.l -(a7)
-	jsr $076A(a5)
+	jsr CODE_0_jump_table_entry_233+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,-$25BE(a5)
 	pea.l -$25B2(a5)
 	move.b #$1,-(a7)
-	jsr $01C2(a5)
+	jsr CODE_0_jump_table_entry_52+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$25B6(a5)
 	move.b #$1,-(a7)
-	jsr $01C2(a5)
+	jsr CODE_0_jump_table_entry_52+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$25BA(a5)
 	move.b #$1,-(a7)
-	jsr $01C2(a5)
+	jsr CODE_0_jump_table_entry_52+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	moveq.l #0,d0
 	move.l d0,-$131A(a5)
 	moveq.l #0,d0
@@ -13253,17 +13254,17 @@ CODE_3_loc_0000089e:
 	move.l -$0006(a4),-(a7)
 	move.w -$0002(a4),-(a7)
 	pea.l -$000B(a6)
-	jsr $00EA(a5)
+	jsr CODE_0_jump_table_entry_25+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a3
 	pea.l -$0006(a6)
-	jsr $005A(a5)
+	jsr CODE_0_jump_table_entry_7+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.l -(a7)
 	move.l -$0C50(a5),-(a7)
 	pea.l -$0006(a6)
 	move.l -$0006(a4),-(a7)
 	move.w -$0002(a4),-(a7)
 	pea.l -$000B(a6)
-	jsr $00EA(a5)
+	jsr CODE_0_jump_table_entry_25+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a3
 	addq.l #1,-$0006(a4)
 	movem.l (a7)+,a3-a4
@@ -13277,11 +13278,11 @@ CODE_3_loc_00000902:
 	link a6,#-578
 	pea.l -$0C50(a5)
 	clr.w -(a7)
-	jsr $01C2(a5)
+	jsr CODE_0_jump_table_entry_52+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	tst.l -$0C50(a5)
 	bne.b CODE_3_loc_0000091e
 	pea.l CODE_3_loc_00000c7c(pc)
-	jsr $01D2(a5)
+	jsr CODE_0_jump_table_entry_54+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_3_loc_0000091e:
 	move.l -$0C50(a5),-$0C54(a5)
 	move.w #$8004,-$0002(a6)
@@ -13420,7 +13421,7 @@ CODE_3_loc_00000ac2:
 	pea.l -$004A(a6)
 	pea.l -$0242(a6)
 	move.w #$5,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$23E8(a5),a0
 	lea.l -$0242(a6),a1
 	moveq.l #127,d0
@@ -13527,7 +13528,7 @@ CODE_3_loc_00000ce2:
 	pea.l -$00CC(a6)
 	pea.l -$02FE(a6)
 	move.w #$4,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$1CFE(a5),a0
 	lea.l -$02FE(a6),a1
 	moveq.l #112,d0
@@ -13604,7 +13605,7 @@ CODE_3_loc_00000e10:
 	pea.l -$0198(a6)
 	pea.l -$02C8(a6)
 	move.w #$2,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$1F0A(a5),a0
 	lea.l -$02C8(a6),a1
 	moveq.l #55,d0
@@ -13655,7 +13656,7 @@ CODE_3_loc_00000ec8:
 	pea.l -$0198(a6)
 	pea.l -$02C8(a6)
 	move.w #$2,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$201E(a5),a0
 	lea.l -$02C8(a6),a1
 	moveq.l #60,d0
@@ -13709,7 +13710,7 @@ CODE_3_loc_00000f6c:
 	pea.l -$0066(a6)
 	pea.l -$02FE(a6)
 	move.w #$5,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$21A6(a5),a0
 	lea.l -$02FE(a6),a1
 	moveq.l #125,d0
@@ -13746,7 +13747,7 @@ CODE_3_loc_00000fdc:
 	pea.l -$00CC(a6)
 	pea.l -$02FE(a6)
 	move.w #$4,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$2262(a5),a0
 	lea.l -$02FE(a6),a1
 	moveq.l #93,d0
@@ -13769,7 +13770,7 @@ CODE_3_loc_00001028:
 	pea.l -$0198(a6)
 	pea.l -$02C8(a6)
 	move.w #$2,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$22B0(a5),a0
 	lea.l -$02C8(a6),a1
 	moveq.l #38,d0
@@ -13930,9 +13931,9 @@ CODE_3_loc_0000169a:
 	pea.l CODE_3_loc_000016da(pc)
 	pea.l -$0200(a6)
 	move.w #$4,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$0200(a6)
-	jsr $01D2(a5)
+	jsr CODE_0_jump_table_entry_54+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	unlk a6
 	movea.l (a7)+,a0
 	addq.w #4,a7
@@ -13959,11 +13960,11 @@ CODE_3_loc_00001716:
 	movea.l $0010(a6),a0
 	move.b -$0107(a5),(a0)
 	move.l $0010(a6),-(a7)
-	jsr $0052(a5)
+	jsr CODE_0_jump_table_entry_6+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_3_loc_00001726:
 	move.l $0010(a6),-(a7)
 	move.l $000C(a6),-(a7)
-	jsr $0092(a5)
+	jsr CODE_0_jump_table_entry_14+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	unlk a6
 	movea.l (a7)+,a0
 	adda.w #$C,a7
@@ -14033,7 +14034,7 @@ CODE_3_loc_000017e4:
 CODE_3_loc_000017f4:
 	pea.l CODE_3_loc_00001892(pc)
 	move.l a4,-(a7)
-	jsr $0A9A(a5)
+	jsr CODE_0_jump_table_entry_335+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d7
 	bne.b CODE_3_loc_00001812
 	move.l a4,-(a7)
@@ -14048,7 +14049,7 @@ CODE_3_loc_00001812:
 	bne.b CODE_3_loc_00001828
 	move.l a4,-(a7)
 	move.l #$10001,-(a7)
-	jsr $0AB2(a5)
+	jsr CODE_0_jump_table_entry_338+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.b (a3)
 	bra.b CODE_3_loc_00001856
 CODE_3_loc_00001828:
@@ -14058,7 +14059,7 @@ CODE_3_loc_00001828:
 	move.w d7,d0
 	subq.w #1,d0
 	move.w d0,-(a7)
-	jsr $009A(a5)
+	jsr CODE_0_jump_table_entry_15+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$0102(a6)
 	move.l a3,-(a7)
 	move.l $0008(a6),-(a7)
@@ -14066,7 +14067,7 @@ CODE_3_loc_00001828:
 	move.l a4,-(a7)
 	move.w #$1,-(a7)
 	move.w d7,-(a7)
-	jsr $0AB2(a5)
+	jsr CODE_0_jump_table_entry_338+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_3_loc_00001856:
 	clr.w d0
 	move.b (a3),d0
@@ -14098,7 +14099,7 @@ CODE_3_loc_00001894:
 	clr.w d4
 	move.l $0010(a6),-(a7)
 	pea.l -$010E(a6)
-	jsr $0092(a5)
+	jsr CODE_0_jump_table_entry_14+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.w d0
 	move.b -$010E(a6),d0
 	addq.w #1,d0
@@ -14106,7 +14107,7 @@ CODE_3_loc_00001894:
 	clr.b $0(a0,d0.w)
 	pea.l CODE_3_loc_00001a08(pc)
 	pea.l -$010E(a6)
-	jsr $0A9A(a5)
+	jsr CODE_0_jump_table_entry_335+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d6
 	bne.b CODE_3_loc_000018dc
 	move.b #$2,(a4)
@@ -14237,7 +14238,7 @@ CODE_3_loc_000019d8:
 	ext.l d0
 	move.l d0,-(a7)
 	move.l -$0004(a6),-(a7)
-	jsr $0A72(a5)
+	jsr CODE_0_jump_table_entry_330+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,$0014(a6)
 CODE_3_loc_000019ec:
 	movem.l (a7)+,d4-d7/a4
@@ -14342,7 +14343,7 @@ CODE_3_loc_00001cf8:
 	moveq.l #1,d7
 	pea.l CODE_3_loc_000021fc(pc)
 	pea.l -$0220(a6)
-	jsr $0A9A(a5)
+	jsr CODE_0_jump_table_entry_335+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d6
 	bne.b CODE_3_loc_00001d14
 	move.w #$131,-$0120(a6)
@@ -14372,7 +14373,7 @@ CODE_3_loc_00001d40:
 	sub.w d6,d0
 	move.w d0,-(a7)
 	pea.l -$0420(a6)
-	jsr $0AAA(a5)
+	jsr CODE_0_jump_table_entry_337+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$0120(a6),a0
 	lea.l -$0420(a6),a1
 	moveq.l #127,d0
@@ -14415,7 +14416,7 @@ CODE_3_loc_00001dae:
 	subq.w #2,d0
 	move.w d0,-(a7)
 	pea.l -$0420(a6)
-	jsr $0AAA(a5)
+	jsr CODE_0_jump_table_entry_337+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$0120(a6),a0
 	lea.l -$0420(a6),a1
 	moveq.l #127,d0
@@ -14440,13 +14441,13 @@ CODE_3_loc_00001df0:
 	bne.w CODE_3_loc_00001e96
 	pea.l CODE_3_loc_000021d2(pc)
 	pea.l -$0120(a6)
-	jsr $0A9A(a5)
+	jsr CODE_0_jump_table_entry_335+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	tst.w (a7)+
 	bne.b CODE_3_loc_00001e1c
 	clr.l -(a7)
 	pea.l -$0120(a6)
 	pea.l -$000C(a6)
-	jsr $00CA(a5)
+	jsr CODE_0_jump_table_entry_21+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,-$000A(a6)
 	bra.b CODE_3_loc_00001e32
 CODE_3_loc_00001e1c:
@@ -14471,7 +14472,7 @@ CODE_3_loc_00001e32:
 	pea.l -$0120(a6)
 	move.b -$0C5F(a5),-(a7)
 	clr.w -(a7)
-	jsr $017A(a5)
+	jsr CODE_0_jump_table_entry_43+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d1
 	move.l (a7)+,d0
 	and.b d1,d0
@@ -14481,7 +14482,7 @@ CODE_3_loc_00001e32:
 	pea.l -$0120(a6)
 	pea.l -$000A(a6)
 	pea.l -$0002(a6)
-	jsr $00FA(a5)
+	jsr CODE_0_jump_table_entry_27+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	tst.l (a7)+
 	beq.b CODE_3_loc_00001e88
 	cmpi.w #32768,-$0002(a6)
@@ -14516,7 +14517,7 @@ CODE_3_loc_00001eb2:
 	pea.l -$0220(a6)
 	move.b -$0C5F(a5),-(a7)
 	clr.w -(a7)
-	jsr $017A(a5)
+	jsr CODE_0_jump_table_entry_43+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d1
 	move.l (a7)+,d0
 	eori.b #1,d1
@@ -14533,7 +14534,7 @@ CODE_3_loc_00001eec:
 	move.l -$000A(a6),-(a7)
 	move.w #$8000,-(a7)
 	pea.l -$000B(a6)
-	jsr $00EA(a5)
+	jsr CODE_0_jump_table_entry_25+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,-$001A(a6)
 	bne.b CODE_3_loc_00001f2c
 	move.l -$1B12(a5),-(a7)
@@ -14541,9 +14542,9 @@ CODE_3_loc_00001eec:
 	pea.l -$0220(a6)
 	pea.l -$0420(a6)
 	move.w #$3,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$0420(a6)
-	jsr $01D2(a5)
+	jsr CODE_0_jump_table_entry_54+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_3_loc_00001f2c:
 	move.b -$000B(a6),d0
 	beq.w CODE_3_loc_00002050
@@ -14553,9 +14554,9 @@ CODE_3_loc_00001f2c:
 	pea.l CODE_3_loc_00002144(pc)
 	pea.l -$0420(a6)
 	move.w #$4,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$0420(a6)
-	jsr $01D2(a5)
+	jsr CODE_0_jump_table_entry_54+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_3_loc_00002050
 CODE_3_loc_00001f5c:
 	clr.w d0
@@ -14575,7 +14576,7 @@ CODE_3_loc_00001f70:
 	move.b -$0120(a6),d0
 	addq.w #1,d0
 	move.w d0,-(a7)
-	jsr $077A(a5)
+	jsr CODE_0_jump_table_entry_235+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,d4
 	bne.b CODE_3_loc_00001fae
 	move.l -$1B12(a5),-(a7)
@@ -14583,19 +14584,19 @@ CODE_3_loc_00001f70:
 	pea.l -$0220(a6)
 	pea.l -$0420(a6)
 	move.w #$3,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$0420(a6)
-	jsr $01D2(a5)
+	jsr CODE_0_jump_table_entry_54+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_3_loc_00001fae:
 	pea.l -$0120(a6)
 	move.l d4,-(a7)
-	jsr $0092(a5)
+	jsr CODE_0_jump_table_entry_14+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_3_loc_00001fb8:
 	clr.w -(a7)
 	pea.l -$0220(a6)
 	move.b #$1,-(a7)
 	move.w #$26,-(a7)
-	jsr $017A(a5)
+	jsr CODE_0_jump_table_entry_43+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	bne.b CODE_3_loc_00001fd6
 	pea.l CODE_3_loc_000020ec(pc)
@@ -14607,7 +14608,7 @@ CODE_3_loc_00001fd6:
 	move.b #$1,-(a7)
 	move.b #$1,-(a7)
 	clr.l -(a7)
-	jsr $053A(a5)
+	jsr CODE_0_jump_table_entry_163+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	beq.b CODE_3_loc_00002050
 	clr.w -(a7)
@@ -14616,7 +14617,7 @@ CODE_3_loc_00001fd6:
 	pea.l -$0012(a6)
 	pea.l -$0016(a6)
 	clr.w -(a7)
-	jsr $051A(a5)
+	jsr CODE_0_jump_table_entry_159+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	beq.b CODE_3_loc_00002030
 	moveq.l #1,d0
@@ -14638,9 +14639,9 @@ CODE_3_loc_00002030:
 	pea.l -$0220(a6)
 	pea.l -$0420(a6)
 	move.w #$3,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$0420(a6)
-	jsr $01D2(a5)
+	jsr CODE_0_jump_table_entry_54+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_3_loc_00002050:
 	move.b -$24E9(a5),d0
 	beq.w CODE_3_loc_00001cca
@@ -14649,21 +14650,21 @@ CODE_3_loc_00002050:
 	pea.l -$2D92(a5)
 	pea.l CODE_3_loc_000020be(pc)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
 	pea.l -$0220(a6)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
 	move.b #$3D,-(a7)
 	move.w #$1,-(a7)
-	jsr $09EA(a5)
+	jsr CODE_0_jump_table_entry_313+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
 	pea.l -$0120(a6)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
-	jsr $09F2(a5)
+	jsr CODE_0_jump_table_entry_314+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_3_loc_00001cca
 CODE_3_loc_000020a6:
 	movem.l (a7)+,d4-d7/a3-a4
@@ -14728,13 +14729,13 @@ CODE_3_loc_00002234:
 	clr.w -(a7)
 	pea.l -$33B2(a5)
 	clr.w -(a7)
-	jsr $044A(a5)
+	jsr CODE_0_jump_table_entry_133+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d7
 	tst.l -$32B2(a5)
 	beq.b CODE_3_loc_00002254
 	move.l -$32B2(a5),-(a7)
 	move.b #$2,-(a7)
-	jsr $045A(a5)
+	jsr CODE_0_jump_table_entry_135+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_3_loc_00002254:
 	tst.w -$1B0C(a5)
 	ble.b CODE_3_loc_00002262
@@ -14745,7 +14746,7 @@ CODE_3_loc_00002262:
 	tst.w d7
 	bne.b CODE_3_loc_00002274
 	pea.l -$33B2(a5)
-	jsr $08AA(a5)
+	jsr CODE_0_jump_table_entry_273+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_3_loc_00002274:
 	move.b -$24E9(a5),d0
 	beq.b CODE_3_loc_000022a4
@@ -14754,13 +14755,13 @@ CODE_3_loc_00002274:
 	pea.l -$2D92(a5)
 	pea.l CODE_3_loc_000022c0(pc)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
 	pea.l -$33B2(a5)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
-	jsr $09F2(a5)
+	jsr CODE_0_jump_table_entry_314+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_3_loc_000022a4:
 	movem.l (a7)+,d7/a4
 	unlk a6
@@ -14811,7 +14812,7 @@ CODE_3_loc_00002312:
 	clr.l -(a7)
 	pea.l -$0106(a6)
 	pea.l -$0005(a6)
-	jsr $00CA(a5)
+	jsr CODE_0_jump_table_entry_21+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,d0
 	move.w d0,-$12A8(a5)
 	tst.b -$0005(a6)
@@ -14826,9 +14827,9 @@ CODE_3_loc_00002362:
 	pea.l CODE_3_loc_000024ee(pc)
 	pea.l -$0306(a6)
 	move.w #$2,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$0306(a6)
-	jsr $01D2(a5)
+	jsr CODE_0_jump_table_entry_54+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_3_loc_00002386:
 	move.w -$12A8(a5),-$1300(a5)
 	bra.b CODE_3_loc_00002312
@@ -14841,7 +14842,7 @@ CODE_3_loc_0000238e:
 	clr.l -(a7)
 	pea.l -$0106(a6)
 	pea.l -$0005(a6)
-	jsr $00CA(a5)
+	jsr CODE_0_jump_table_entry_21+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,d0
 	move.w d0,-$12AA(a5)
 	tst.b -$0005(a6)
@@ -14863,9 +14864,9 @@ CODE_3_loc_000023d6:
 	pea.l CODE_3_loc_000024a6(pc)
 	pea.l -$0306(a6)
 	move.w #$2,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$0306(a6)
-	jsr $01D2(a5)
+	jsr CODE_0_jump_table_entry_54+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_3_loc_00002312
 CODE_3_loc_000023f6:
 	pea.l CODE_3_loc_00002488(pc)
@@ -14879,25 +14880,25 @@ CODE_3_loc_00002402:
 	pea.l -$2D92(a5)
 	pea.l CODE_3_loc_00002474(pc)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
 	move.w -$12A8(a5),d0
 	ext.l d0
 	move.l d0,-(a7)
 	move.w #$1,-(a7)
-	jsr $0A02(a5)
+	jsr CODE_0_jump_table_entry_316+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
 	move.b #$2C,-(a7)
 	move.w #$1,-(a7)
-	jsr $09EA(a5)
+	jsr CODE_0_jump_table_entry_313+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
 	move.w -$12AA(a5),d0
 	ext.l d0
 	move.l d0,-(a7)
 	move.w #$1,-(a7)
-	jsr $0A02(a5)
+	jsr CODE_0_jump_table_entry_316+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
-	jsr $09F2(a5)
+	jsr CODE_0_jump_table_entry_314+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_3_loc_0000245c:
 	movem.l (a7)+,d6-d7/a4
 	unlk a6
@@ -14997,7 +14998,7 @@ CODE_3_loc_00002958:
 	move.l $0008(a6),-(a7)
 	jsr CODE_3_loc_0000174a(pc)
 	pea.l -$0100(a6)
-	jsr $0052(a5)
+	jsr CODE_0_jump_table_entry_6+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w #$1,-$0104(a6)
 	clr.w d0
 	move.b -$0100(a6),d0
@@ -15040,13 +15041,13 @@ CODE_3_loc_000029d6:
 	pea.l -$2D92(a5)
 	pea.l CODE_3_loc_00002a1c(pc)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
 	pea.l -$0100(a6)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
-	jsr $09F2(a5)
+	jsr CODE_0_jump_table_entry_314+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_3_loc_00002a00:
 	move.l (a7)+,d7
 	unlk a6
@@ -15079,7 +15080,7 @@ CODE_3_loc_00002a36:
 	pea.l -$0F24(a5)
 	move.b #$1,-(a7)
 	clr.l -(a7)
-	jsr $0452(a5)
+	jsr CODE_0_jump_table_entry_134+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d7
 	beq.b CODE_3_loc_00002aa4
 	move.w d7,-(a7)
@@ -15088,22 +15089,22 @@ CODE_3_loc_00002a36:
 	pea.l CODE_3_loc_00002af6(pc)
 	pea.l -$0302(a6)
 	move.w #$3,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$0302(a6)
-	jsr $01DA(a5)
+	jsr CODE_0_jump_table_entry_55+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_3_loc_00002aa4:
 	move.b -$24E9(a5),d0
 	beq.b CODE_3_loc_00002ace
 	pea.l -$2D92(a5)
 	pea.l CODE_3_loc_00002aea(pc)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
 	pea.l -$0202(a6)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
-	jsr $09F2(a5)
+	jsr CODE_0_jump_table_entry_314+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_3_loc_00002ace:
 	movem.l (a7)+,d7/a4
 	unlk a6
@@ -15194,7 +15195,7 @@ CODE_3_loc_00002e9a:
 	ext.l d0
 	asl.l #2,d0
 	move.l $0(a0,d0.l),-(a7)
-	jsr $0442(a5)
+	jsr CODE_0_jump_table_entry_132+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	bne.b CODE_3_loc_00002f0c
 	move.l -$1B12(a5),-(a7)
@@ -15202,13 +15203,13 @@ CODE_3_loc_00002e9a:
 	clr.l -(a7)
 	moveq.l #15,d0
 	move.l d0,-(a7)
-	jsr $00C2(a5)
+	jsr CODE_0_jump_table_entry_20+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l CODE_3_loc_00002f7c(pc)
 	pea.l -$0200(a6)
 	move.w #$4,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$0200(a6)
-	jsr $01D2(a5)
+	jsr CODE_0_jump_table_entry_54+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_3_loc_00002f0c:
 	move.w -$3536(a5),-$1B08(a5)
 	move.b -$24E9(a5),d0
@@ -15218,13 +15219,13 @@ CODE_3_loc_00002f0c:
 	pea.l -$2D92(a5)
 	pea.l CODE_3_loc_00002f70(pc)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
 	pea.l -$0100(a6)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
-	jsr $09F2(a5)
+	jsr CODE_0_jump_table_entry_314+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_3_loc_00002f50
 CODE_3_loc_00002f44:
 	movea.l $000C(a3),a0
@@ -15262,13 +15263,13 @@ CODE_3_loc_00002fae:
 	pea.l -$2D92(a5)
 	pea.l CODE_3_loc_00003022(pc)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
 	pea.l -$0404(a4)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
-	jsr $09F2(a5)
+	jsr CODE_0_jump_table_entry_314+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_3_loc_00003000:
 	movea.l $0008(a6),a0
 	movea.l a0,a6
@@ -15346,7 +15347,7 @@ CODE_3_loc_0000332c:
 	clr.w d0
 	move.b $0002(a0),d0
 	move.w d0,-(a7)
-	jsr $004A(a5)
+	jsr CODE_0_jump_table_entry_5+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,-$0006(a6)
 	bra.w CODE_3_loc_0000352a
 CODE_3_loc_0000334e:
@@ -15377,7 +15378,7 @@ CODE_3_loc_00003386:
 	pea.l -$006C(a6)
 	pea.l -$0238(a6)
 	move.w #$3,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$258E(a5),a0
 	lea.l -$0238(a6),a1
 	moveq.l #81,d0
@@ -15396,7 +15397,7 @@ CODE_3_loc_000033cc:
 	move.w #$2,-(a7)
 	move.w -$0108(a5),-(a7)
 	pea.l -$0238(a6)
-	jsr $0AAA(a5)
+	jsr CODE_0_jump_table_entry_337+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$0106(a5),a0
 	lea.l -$0238(a6),a1
 	moveq.l #127,d0
@@ -15404,12 +15405,12 @@ CODE_3_loc_000033ea:
 	move.w (a1)+,(a0)+
 	dbf.w d0,CODE_3_loc_000033ea
 	pea.l -$0106(a5)
-	jsr $0052(a5)
+	jsr CODE_0_jump_table_entry_6+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.w -(a7)
 	pea.l -$0002(a6)
 	pea.l -$258E(a5)
 	move.w #$9,-(a7)
-	jsr $06FA(a5)
+	jsr CODE_0_jump_table_entry_219+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	beq.w CODE_3_loc_00003526
 	move.w -$0002(a6),d0
@@ -15559,9 +15560,9 @@ CODE_3_loc_00003652:
 	pea.l CODE_3_loc_00003706(pc)
 	pea.l -$0238(a6)
 	move.w #$4,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$0238(a6)
-	jsr $01D2(a5)
+	jsr CODE_0_jump_table_entry_54+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_3_loc_00003676:
 	move.b -$24E9(a5),d0
 	beq.b CODE_3_loc_000036da
@@ -15587,13 +15588,13 @@ CODE_3_loc_00003676:
 	pea.l -$2D92(a5)
 	pea.l CODE_3_loc_000036fc(pc)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
 	move.b -$0005(a6),-(a7)
 	move.w #$1,-(a7)
-	jsr $09EA(a5)
+	jsr CODE_0_jump_table_entry_313+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
-	jsr $09F2(a5)
+	jsr CODE_0_jump_table_entry_314+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_3_loc_000036da:
 	lea.l -$0258(a6),a7
 	movem.l (a7)+,d3-d7/a2-a4
@@ -15683,13 +15684,13 @@ CODE_3_loc_0000387e:
 	pea.l -$2D92(a5)
 	pea.l CODE_3_loc_000038ea(pc)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
 	move.l a4,-(a7)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
-	jsr $09F2(a5)
+	jsr CODE_0_jump_table_entry_314+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_3_loc_0000383e
 CODE_3_loc_000038ce:
 	movem.l (a7)+,a3-a4
@@ -15714,18 +15715,18 @@ CODE_3_loc_000038f6:
 	clr.b -$32A7(a5)
 	clr.b -$1B0D(a5)
 	clr.w -(a7)
-	jsr $03BA(a5)
+	jsr CODE_0_jump_table_entry_115+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l -$2D40(a5),a0
 	move.l (a0),-$1B12(a5)
 	jsr CODE_3_loc_0000005e(pc)
 	clr.w -$0004(a6)
 	move.l #$4D505320,-$3532(a5)
 	clr.l -(a7)
-	jsr $076A(a5)
+	jsr CODE_0_jump_table_entry_233+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,-$0F2A(a5)
 	bne.b CODE_3_loc_00003952
 	pea.l CODE_3_loc_00004416(pc)
-	jsr $01D2(a5)
+	jsr CODE_0_jump_table_entry_54+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_3_loc_00003952:
 	moveq.l #0,d0
 	move.l d0,-$0C50(a5)
@@ -15744,7 +15745,7 @@ CODE_3_loc_00003952:
 	pea.l $01E2(a5)
 	moveq.l #2,d0
 	move.l d0,-(a7)
-	jsr $08A2(a5)
+	jsr CODE_0_jump_table_entry_272+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	addq.l #8,a7
 	move.l d0,-$0410(a6)
 	move.w #$4B,-$12A8(a5)
@@ -15753,7 +15754,7 @@ CODE_3_loc_00003952:
 	move.w #$4B,-$1300(a5)
 	clr.w -(a7)
 	pea.l CODE_3_loc_0000440e(pc)
-	jsr $01AA(a5)
+	jsr CODE_0_jump_table_entry_49+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,-$1AE4(a5)
 	move.w #$7,-$1AE6(a5)
 	clr.b -$1340(a5)
@@ -15823,12 +15824,12 @@ CODE_3_loc_000039f6:
 	and.b d1,d0
 	beq.b CODE_3_loc_00003ad8
 	pea.l CODE_3_loc_00004406(pc)
-	jsr $01D2(a5)
+	jsr CODE_0_jump_table_entry_54+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_3_loc_00003ad8:
 	clr.l -(a7)
 	move.l #$76657273,-(a7)
 	move.w #$1,-(a7)
-	jsr $01A2(a5)
+	jsr CODE_0_jump_table_entry_48+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,d4
 	bne.b CODE_3_loc_00003af2
 	moveq.l #0,d0
@@ -15850,7 +15851,7 @@ CODE_3_loc_00003b08:
 	move.b (a3),d0
 	move.w d0,-(a7)
 	pea.l -$051C(a6)
-	jsr $0AAA(a5)
+	jsr CODE_0_jump_table_entry_337+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$1908(a5),a0
 	lea.l -$051C(a6),a1
 	moveq.l #12,d0
@@ -15861,7 +15862,7 @@ CODE_3_loc_00003b2c:
 	move.b $0008(a6),d0
 	beq.b CODE_3_loc_00003b3a
 	pea.l -$1AE0(a5)
-	jsr $01BA(a5)
+	jsr CODE_0_jump_table_entry_51+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_3_loc_00003b3a:
 	btst.b #2,-$12A6(a5)
 	beq.w CODE_3_loc_00003c04
@@ -15871,7 +15872,7 @@ CODE_3_loc_00003b3a:
 	pea.l -$1908(a5)
 	pea.l -$044E(a6)
 	move.w #$2,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$0104(a6),a0
 	lea.l -$044E(a6),a1
 	moveq.l #24,d0
@@ -15882,7 +15883,7 @@ CODE_3_loc_00003b6a:
 	pea.l -$1AE0(a5)
 	pea.l -$0482(a6)
 	move.w #$2,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$00B2(a6),a0
 	lea.l -$0482(a6),a1
 	moveq.l #40,d0
@@ -15892,7 +15893,7 @@ CODE_3_loc_00003b8e:
 	pea.l -$056E(a6)
 	pea.l -$0104(a6)
 	pea.l -$00B2(a6)
-	jsr $026A(a5)
+	jsr CODE_0_jump_table_entry_73+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a0
 	lea.l -$0060(a6),a1
 	moveq.l #40,d0
@@ -15900,33 +15901,33 @@ CODE_3_loc_00003bac:
 	move.w (a0)+,(a1)+
 	dbf.w d0,CODE_3_loc_00003bac
 	pea.l -$2D92(a5)
-	jsr $09F2(a5)
+	jsr CODE_0_jump_table_entry_314+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
 	pea.l -$0060(a6)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
-	jsr $09F2(a5)
+	jsr CODE_0_jump_table_entry_314+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
 	pea.l CODE_3_loc_000043ac(pc)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
-	jsr $09F2(a5)
+	jsr CODE_0_jump_table_entry_314+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
 	pea.l CODE_3_loc_00004396(pc)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
-	jsr $09F2(a5)
+	jsr CODE_0_jump_table_entry_314+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
-	jsr $09F2(a5)
+	jsr CODE_0_jump_table_entry_314+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_3_loc_00003c04:
 	move.b $0008(a6),d0
 	beq.b CODE_3_loc_00003c18
 	pea.l -$1AE0(a5)
 	move.l #$90001,-(a7)
-	jsr $0AB2(a5)
+	jsr CODE_0_jump_table_entry_338+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_3_loc_00003c18:
 	tst.w -$0004(a6)
 	bne.b CODE_3_loc_00003c2e
@@ -15945,9 +15946,9 @@ CODE_3_loc_00003c2e:
 	pea.l CODE_3_loc_00004372(pc)
 	pea.l -$051C(a6)
 	move.w #$2,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$051C(a6)
-	jsr $01D2(a5)
+	jsr CODE_0_jump_table_entry_54+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_3_loc_00003c5e:
 	move.b -$24E9(a5),d0
 	beq.b CODE_3_loc_00003ca2
@@ -15956,19 +15957,19 @@ CODE_3_loc_00003c5e:
 	pea.l -$2D92(a5)
 	pea.l CODE_3_loc_00004362(pc)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
 	move.w -$367A(a5),d0
 	ext.l d0
 	move.l d0,-(a7)
 	move.w #$1,-(a7)
-	jsr $0A02(a5)
+	jsr CODE_0_jump_table_entry_316+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
 	pea.l CODE_3_loc_00004350(pc)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
-	jsr $09F2(a5)
+	jsr CODE_0_jump_table_entry_314+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_3_loc_00003ca2:
 	clr.b -$32AE(a5)
 	move.b #$1,-$1B0D(a5)
@@ -15985,25 +15986,25 @@ CODE_3_loc_00003ca2:
 	clr.w -(a7)
 	pea.l CODE_3_loc_00004346(pc)
 	pea.l -$3678(a5)
-	jsr $089A(a5)
+	jsr CODE_0_jump_table_entry_271+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	beq.b CODE_3_loc_00003d18
 	clr.w -(a7)
 	pea.l -$3678(a5)
-	jsr $0442(a5)
+	jsr CODE_0_jump_table_entry_132+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	bne.b CODE_3_loc_00003d18
 	pea.l CODE_3_loc_00004328(pc)
 	clr.l -(a7)
 	moveq.l #15,d0
 	move.l d0,-(a7)
-	jsr $00C2(a5)
+	jsr CODE_0_jump_table_entry_20+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l CODE_3_loc_00004306(pc)
 	pea.l -$051C(a6)
 	move.w #$3,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$051C(a6)
-	jsr $01D2(a5)
+	jsr CODE_0_jump_table_entry_54+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_3_loc_00003d18:
 	jsr CODE_3_loc_0000066e(pc)
 	clr.b -$14DD(a5)
@@ -16141,15 +16142,15 @@ CODE_3_loc_00003ed4:
 	pea.l -$1A40(a5)
 	move.w #$20,-(a7)
 	move.w -$0008(a6),-(a7)
-	jsr $0AB2(a5)
+	jsr CODE_0_jump_table_entry_338+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$1A40(a5)
 	move.w #$4,-(a7)
 	move.w -$0008(a6),-(a7)
-	jsr $0AB2(a5)
+	jsr CODE_0_jump_table_entry_338+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$1A78(a5)
 	move.w #$4,-(a7)
 	move.w -$0008(a6),-(a7)
-	jsr $0AB2(a5)
+	jsr CODE_0_jump_table_entry_338+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_3_loc_00003f10:
 	move.b -$1498(a5),d0
 	bne.b CODE_3_loc_00003f32
@@ -16164,42 +16165,42 @@ CODE_3_loc_00003f32:
 	beq.b CODE_3_loc_00003f48
 	pea.l -$1A40(a5)
 	pea.l -$1A08(a5)
-	jsr $0092(a5)
+	jsr CODE_0_jump_table_entry_14+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_3_loc_00003f54
 CODE_3_loc_00003f48:
 	pea.l -$1A78(a5)
 	pea.l -$1A08(a5)
-	jsr $0092(a5)
+	jsr CODE_0_jump_table_entry_14+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_3_loc_00003f54:
 	clr.l -(a7)
-	jsr $076A(a5)
+	jsr CODE_0_jump_table_entry_233+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,-$0F12(a5)
 	bne.b CODE_3_loc_00003f68
 	pea.l CODE_3_loc_00004284(pc)
-	jsr $01D2(a5)
+	jsr CODE_0_jump_table_entry_54+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_3_loc_00003f68:
 	movea.l -$0F12(a5),a4
 	move.w #$8,$0016(a4)
 	clr.l -(a7)
-	jsr $07A2(a5)
+	jsr CODE_0_jump_table_entry_240+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,(a4)
 	move.l (a4),$0004(a4)
 	bne.b CODE_3_loc_00003f88
 	pea.l CODE_3_loc_0000425c(pc)
-	jsr $01D2(a5)
+	jsr CODE_0_jump_table_entry_54+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_3_loc_00003f88:
 	pea.l -$0F18(a5)
 	move.l #$400,-(a7)
-	jsr $0A52(a5)
+	jsr CODE_0_jump_table_entry_326+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	tst.l -$0F18(a5)
 	bne.b CODE_3_loc_00003fa4
 	pea.l CODE_3_loc_0000423a(pc)
-	jsr $01D2(a5)
+	jsr CODE_0_jump_table_entry_54+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_3_loc_00003fa4:
 	clr.b $001C(a4)
 	move.l -$0F12(a5),-(a7)
 	pea.l -$1350(a5)
-	jsr $0792(a5)
+	jsr CODE_0_jump_table_entry_238+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l #$10001,-$0F20(a5)
 	clr.w -$0F1C(a5)
 	move.l (a4),-$37A2(a5)
@@ -16207,7 +16208,7 @@ CODE_3_loc_00003fa4:
 	clr.w -$1364(a5)
 	pea.l -$0F2E(a5)
 	move.l #$2206,-(a7)
-	jsr $0A52(a5)
+	jsr CODE_0_jump_table_entry_326+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l -$0F2E(a5),-$0F32(a5)
 	move.w #$200,d0
 	asl.w #4,d0
@@ -16234,7 +16235,7 @@ CODE_3_loc_00004022:
 	beq.w CODE_3_loc_00004190
 	pea.l -$0F56(a5)
 	move.l #$1206,-(a7)
-	jsr $0A52(a5)
+	jsr CODE_0_jump_table_entry_326+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l -$0F56(a5),-$0F5A(a5)
 	move.w #$200,d0
 	asl.w #3,d0
@@ -16251,7 +16252,7 @@ CODE_3_loc_00004022:
 	clr.w -(a7)
 	pea.l -$1290(a5)
 	pea.l -$041C(a6)
-	jsr $0422(a5)
+	jsr CODE_0_jump_table_entry_128+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d6
 	beq.b CODE_3_loc_0000409c
 	move.w d6,-(a7)
@@ -16260,19 +16261,19 @@ CODE_3_loc_00004022:
 	pea.l CODE_3_loc_00004212(pc)
 	pea.l -$051C(a6)
 	move.w #$3,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$051C(a6)
-	jsr $01DA(a5)
+	jsr CODE_0_jump_table_entry_55+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_3_loc_0000409c:
 	move.w -$1348(a5),-$14A6(a5)
 	addq.w #1,-$1348(a5)
 	move.w -$14A6(a5),-(a7)
 	pea.l -$1290(a5)
 	move.b #$1,-(a7)
-	jsr $068A(a5)
+	jsr CODE_0_jump_table_entry_205+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l -$041C(a6),-(a7)
 	move.w -$14A6(a5),-(a7)
-	jsr $06A2(a5)
+	jsr CODE_0_jump_table_entry_208+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w -$1348(a5),-$25A4(a5)
 	addq.w #1,-$1348(a5)
 	clr.b -$0F7D(a5)
@@ -16332,24 +16333,24 @@ CODE_3_loc_0000415e:
 	move.w -$25A4(a5),-(a7)
 	pea.l -$0204(a6)
 	move.b #$1,-(a7)
-	jsr $068A(a5)
+	jsr CODE_0_jump_table_entry_205+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w -$25A4(a5),-$25A2(a5)
 	move.w #$2,-(a7)
 	clr.l -(a7)
 	move.w -$14A6(a5),-(a7)
 	move.w -$25A4(a5),-(a7)
 	clr.w -(a7)
-	jsr $06AA(a5)
+	jsr CODE_0_jump_table_entry_209+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_3_loc_00004190:
 	clr.l -(a7)
 	clr.l -(a7)
 	clr.l -(a7)
-	jsr $01B2(a5)
+	jsr CODE_0_jump_table_entry_50+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,-$1AEE(a5)
 	move.b -$133F(a5),d0
 	beq.b CODE_3_loc_000041ac
 	pea.l CODE_3_loc_00004206(pc)
-	jsr $01D2(a5)
+	jsr CODE_0_jump_table_entry_54+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_3_loc_000041ac:
 	btst.b #2,-$12A6(a5)
 	beq.b CODE_3_loc_000041e4
@@ -16360,13 +16361,13 @@ CODE_3_loc_000041ac:
 	pea.l -$2D92(a5)
 	pea.l CODE_3_loc_000041fa(pc)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
 	pea.l -$1290(a5)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
-	jsr $09F2(a5)
+	jsr CODE_0_jump_table_entry_314+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_3_loc_000041e4:
 	movem.l (a7)+,d4-d7/a3-a4
 	unlk a6
@@ -16795,9 +16796,9 @@ CODE_4_loc_0000015e:
 	move.l a3,-(a7)
 	move.l a2,-(a7)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l a3,-(a7)
-	jsr $09F2(a5)
+	jsr CODE_0_jump_table_entry_314+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_4_loc_000001ce
 CODE_4_loc_0000017a:
 	movea.l $0106(a4),a3
@@ -16847,7 +16848,7 @@ CODE_4_loc_000001d4:
 	addq.w #1,d0
 CODE_4_loc_000001e6:
 	move.w d0,-(a7)
-	jsr $0A4A(a5)
+	jsr CODE_0_jump_table_entry_325+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	rts
 CODE_4_loc_000001ee:
 	link a6,#-82
@@ -16861,7 +16862,7 @@ CODE_4_loc_000001ee:
 	clr.w -(a7)
 	pea.l -$0052(a6)
 	clr.w -(a7)
-	jsr $02E2(a5)
+	jsr CODE_0_jump_table_entry_88+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d7
 	bne.b CODE_4_loc_00000224
 	movea.l $0008(a6),a0
@@ -16882,7 +16883,7 @@ CODE_4_loc_00000240:
 	move.l $0010(a6),-(a7)
 	clr.w -(a7)
 	pea.l -$0010(a6)
-	jsr $030A(a5)
+	jsr CODE_0_jump_table_entry_93+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d7
 	move.w d7,$0014(a6)
 	bne.b CODE_4_loc_00000270
@@ -16909,7 +16910,7 @@ CODE_4_loc_00000294:
 	move.l $0010(a6),-(a7)
 	clr.w -(a7)
 	pea.l -$0010(a6)
-	jsr $030A(a5)
+	jsr CODE_0_jump_table_entry_93+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d7
 	blt.b CODE_4_loc_000002cc
 	move.l $000C(a6),-$0010(a6)
@@ -16918,7 +16919,7 @@ CODE_4_loc_00000294:
 	move.l $0010(a6),-(a7)
 	clr.w -(a7)
 	pea.l -$0010(a6)
-	jsr $0322(a5)
+	jsr CODE_0_jump_table_entry_96+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d7
 CODE_4_loc_000002cc:
 	move.w d7,$0014(a6)
@@ -16935,7 +16936,7 @@ CODE_4_loc_000002ea:
 	move.b #$1,-(a7)
 	jsr CODE_4_loc_00000c42(pc)
 	pea.l -$2D8E(a5)
-	jsr $08BA(a5)
+	jsr CODE_0_jump_table_entry_275+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	unlk a6
 	rts
 CODE_4_data_pascal_string_00000304:
@@ -17015,7 +17016,7 @@ CODE_4_loc_000003a6:
 	pea.l -$0100(a6)
 	pea.l -$0102(a6)
 	pea.l -$0101(a6)
-	jsr $090A(a5)
+	jsr CODE_0_jump_table_entry_285+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d7
 	move.w d7,$000E(a6)
 	move.b -$0101(a6),d0
@@ -17032,14 +17033,14 @@ CODE_4_loc_000003a6:
 CODE_4_loc_000003e4:
 	pea.l -$0100(a6)
 	move.l a4,-(a7)
-	jsr $0092(a5)
+	jsr CODE_0_jump_table_entry_14+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_4_loc_00000424
 CODE_4_loc_000003f0:
 	move.b $0008(a6),d0
 	beq.b CODE_4_loc_00000424
 	move.l a4,-(a7)
 	pea.l -$0100(a6)
-	jsr $0092(a5)
+	jsr CODE_0_jump_table_entry_14+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.b (a4)
 	move.w d7,-(a7)
 	pea.l CODE_4_loc_00000442(pc)
@@ -17047,9 +17048,9 @@ CODE_4_loc_000003f0:
 	pea.l CODE_4_loc_00000440(pc)
 	pea.l -$0204(a6)
 	move.w #$3,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$0204(a6)
-	jsr $01DA(a5)
+	jsr CODE_0_jump_table_entry_55+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_4_loc_00000424:
 	movem.l (a7)+,d7/a4
 	unlk a6
@@ -17091,7 +17092,7 @@ CODE_4_loc_00000498:
 	pea.l -$2D8A(a5)
 	move.l #$6604,-(a7)
 	move.l d6,-(a7)
-	jsr $0892(a5)
+	jsr CODE_0_jump_table_entry_270+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	tst.l (a7)+
 	bge.b CODE_4_loc_000004e6
 	movea.l d6,a0
@@ -17106,7 +17107,7 @@ CODE_4_loc_000004be:
 	pea.l -$2D8E(a5)
 	move.l #$6604,-(a7)
 	move.l d6,-(a7)
-	jsr $0892(a5)
+	jsr CODE_0_jump_table_entry_270+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	tst.l (a7)+
 	bge.b CODE_4_loc_000004e6
 	movea.l d6,a0
@@ -17159,7 +17160,7 @@ CODE_4_loc_0000053a:
 	bne.b CODE_4_loc_0000057a
 	move.l $0012(a6),-(a7)
 	move.l #$23A,-(a7)
-	jsr $0A52(a5)
+	jsr CODE_0_jump_table_entry_326+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l $0012(a6),a0
 	movea.l (a0),a0
 	moveq.l #0,d0
@@ -17245,7 +17246,7 @@ CODE_4_loc_00000622:
 	pea.l $010C(a0)
 	moveq.l #8,d0
 	move.l d0,-(a7)
-	jsr $0A52(a5)
+	jsr CODE_0_jump_table_entry_326+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l $0012(a6),a0
 	movea.l (a0),a0
 	move.l a0,-(a7)
@@ -17313,7 +17314,7 @@ CODE_4_loc_000006f2:
 	move.l (a0),-$3682(a5)
 	move.l d6,-(a7)
 	move.l a4,-(a7)
-	jsr $0092(a5)
+	jsr CODE_0_jump_table_entry_14+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b d5,$0100(a4)
 	move.b $0010(a6),$022A(a4)
 	clr.b $0114(a4)
@@ -17452,7 +17453,7 @@ CODE_4_loc_0000088c:
 	beq.b CODE_4_loc_000008dc
 	pea.l CODE_4_loc_00000c36(pc)
 	pea.l -$0100(a6)
-	jsr $0A9A(a5)
+	jsr CODE_0_jump_table_entry_335+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,-$0104(a6)
 	moveq.l #1,d0
 	cmp.w -$0104(a6),d0
@@ -17467,7 +17468,7 @@ CODE_4_loc_0000088c:
 	move.b -$0100(a6),d0
 	sub.w -$0104(a6),d0
 	move.w d0,-(a7)
-	jsr $009A(a5)
+	jsr CODE_0_jump_table_entry_15+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	moveq.l #-1,d5
 CODE_4_loc_000008dc:
 	pea.l -$0100(a6)
@@ -17501,9 +17502,9 @@ CODE_4_loc_00000902:
 	pea.l $0102(a4)
 	move.l a4,-(a7)
 	move.w #$1,-(a7)
-	jsr $08B2(a5)
+	jsr CODE_0_jump_table_entry_274+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.w -(a7)
-	jsr $0902(a5)
+	jsr CODE_0_jump_table_entry_284+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,-$0108(a6)
 	bra.w CODE_4_loc_00000c0a
 CODE_4_loc_0000095a:
@@ -17521,9 +17522,9 @@ CODE_4_loc_00000974:
 	pea.l $0102(a4)
 	move.l a4,-(a7)
 	move.w #$2,-(a7)
-	jsr $08B2(a5)
+	jsr CODE_0_jump_table_entry_274+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.w -(a7)
-	jsr $0902(a5)
+	jsr CODE_0_jump_table_entry_284+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,-$0108(a6)
 	bne.w CODE_4_loc_00000c0a
 	moveq.l #2,d0
@@ -17534,9 +17535,9 @@ CODE_4_loc_00000974:
 CODE_4_loc_000009a2:
 	pea.l $0102(a4)
 	move.l #$7FFFFFFF,-(a7)
-	jsr $08EA(a5)
+	jsr CODE_0_jump_table_entry_281+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.w -(a7)
-	jsr $0902(a5)
+	jsr CODE_0_jump_table_entry_284+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,-$0108(a6)
 	moveq.l #-39,d0
 	cmp.w -$0108(a6),d0
@@ -17547,7 +17548,7 @@ CODE_4_loc_000009c6:
 	bne.b CODE_4_loc_00000a18
 	clr.l -(a7)
 	pea.l $0102(a4)
-	jsr $08F2(a5)
+	jsr CODE_0_jump_table_entry_282+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,-$010C(a6)
 	moveq.l #9,d0
 	move.l -$010C(a6),d1
@@ -17565,7 +17566,7 @@ CODE_4_loc_000009c6:
 	moveq.l #9,d1
 	lsl.l d1,d0
 	move.l d0,-(a7)
-	jsr $08CA(a5)
+	jsr CODE_0_jump_table_entry_277+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,-$010C(a6)
 CODE_4_loc_00000a18:
 	move.b #$1,$022A(a4)
@@ -17576,7 +17577,7 @@ CODE_4_loc_00000a22:
 	move.l $0106(a4),-(a7)
 	clr.w -(a7)
 	move.w -$367C(a5),-(a7)
-	jsr $09CA(a5)
+	jsr CODE_0_jump_table_entry_309+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_4_loc_00000c0a
 CODE_4_loc_00000a3c:
 	tst.b $022A(a4)
@@ -17600,7 +17601,7 @@ CODE_4_loc_00000a5e:
 	clr.l -(a7)
 	clr.w -(a7)
 	move.w -$367C(a5),-(a7)
-	jsr $09CA(a5)
+	jsr CODE_0_jump_table_entry_309+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_4_loc_00000c0a
 CODE_4_loc_00000a8e:
 	tst.b $022A(a4)
@@ -17613,9 +17614,9 @@ CODE_4_loc_00000a8e:
 	pea.l $0102(a4)
 	move.l a4,-(a7)
 	clr.w -(a7)
-	jsr $08B2(a5)
+	jsr CODE_0_jump_table_entry_274+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.w -(a7)
-	jsr $0902(a5)
+	jsr CODE_0_jump_table_entry_284+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,-$0108(a6)
 	bne.b CODE_4_loc_00000b30
 	clr.w -(a7)
@@ -17626,7 +17627,7 @@ CODE_4_loc_00000a8e:
 	move.w (a7)+,-$0108(a6)
 	beq.b CODE_4_loc_00000adc
 	pea.l $0102(a4)
-	jsr $08BA(a5)
+	jsr CODE_0_jump_table_entry_275+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_4_loc_00000b30
 CODE_4_loc_00000adc:
 	move.l #$54455854,d0
@@ -17646,18 +17647,18 @@ CODE_4_loc_00000adc:
 	move.w d1,-(a7)
 	move.w #$8,-(a7)
 	pea.l -$031A(a6)
-	jsr $0AAA(a5)
+	jsr CODE_0_jump_table_entry_337+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,d0
 	pea.l -$031A(a6)
 	pea.l CODE_4_loc_00000c38(pc)
-	jsr $0AC2(a5)
+	jsr CODE_0_jump_table_entry_340+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	or.b (a7)+,d0
 	andi.w #1,d0
 	beq.b CODE_4_loc_00000b30
 CODE_4_loc_00000b22:
 	move.w #$86E7,-$0108(a6)
 	pea.l $0102(a4)
-	jsr $08BA(a5)
+	jsr CODE_0_jump_table_entry_275+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_4_loc_00000b30:
 	tst.w -$0108(a6)
 	seq.b d0
@@ -17691,7 +17692,7 @@ CODE_4_loc_00000b66:
 	beq.b CODE_4_loc_00000b66
 	move.l -$0112(a6),-(a7)
 	pea.l -$0100(a6)
-	jsr $0092(a5)
+	jsr CODE_0_jump_table_entry_14+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.w d6
 	move.b -$0100(a6),d6
 	tst.w d6
@@ -17700,14 +17701,14 @@ CODE_4_loc_00000b66:
 	bne.b CODE_4_loc_00000bae
 	pea.l -$0100(a6)
 	pea.l CODE_4_loc_00000c36(pc)
-	jsr $0ACA(a5)
+	jsr CODE_0_jump_table_entry_341+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	or.b (a7)+,d0
 	andi.w #1,d0
 	beq.b CODE_4_loc_00000bbc
 CODE_4_loc_00000bae:
 	pea.l -$021A(a6)
 	pea.l -$0100(a6)
-	jsr $0092(a5)
+	jsr CODE_0_jump_table_entry_14+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_4_loc_00000bfc
 CODE_4_loc_00000bbc:
 	clr.w d0
@@ -17720,7 +17721,7 @@ CODE_4_loc_00000bbc:
 	pea.l CODE_4_loc_00000c36(pc)
 	pea.l -$031A(a6)
 	move.w #$2,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$0100(a6),a0
 	lea.l -$031A(a6),a1
 	moveq.l #127,d0
@@ -17730,7 +17731,7 @@ CODE_4_loc_00000bea:
 CODE_4_loc_00000bf0:
 	pea.l -$0100(a6)
 	pea.l -$021A(a6)
-	jsr $008A(a5)
+	jsr CODE_0_jump_table_entry_13+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_4_loc_00000bfc:
 	movea.l $000E(a6),a0
 	move.l (a0),-(a7)
@@ -17825,42 +17826,42 @@ CODE_4_loc_00000cd0:
 	moveq.l #9,d1
 	lsl.l d1,d0
 	move.l d0,-(a7)
-	jsr $08D2(a5)
+	jsr CODE_0_jump_table_entry_278+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w $010A(a4),d0
 	ext.l d0
 	cmp.l (a7)+,d0
 	beq.b CODE_4_loc_00000d72
 	clr.w -(a7)
-	jsr $0902(a5)
+	jsr CODE_0_jump_table_entry_284+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d6
 	pea.l -$2D92(a5)
 	pea.l CODE_4_loc_00000e68(pc)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
 	pea.l CODE_4_loc_00000e5a(pc)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
 	move.l a4,-(a7)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
 	pea.l CODE_4_loc_00000e4c(pc)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
 	move.w d6,d0
 	ext.l d0
 	move.l d0,-(a7)
 	move.w #$1,-(a7)
-	jsr $0A02(a5)
+	jsr CODE_0_jump_table_entry_316+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
 	pea.l CODE_4_loc_00000e48(pc)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
-	jsr $09F2(a5)
+	jsr CODE_0_jump_table_entry_314+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_4_loc_00000d72:
 	moveq.l #3,d0
 	cmp.b $022A(a4),d0
@@ -17888,23 +17889,23 @@ CODE_4_loc_00000d96:
 	bra.b CODE_4_loc_00000e16
 CODE_4_loc_00000db6:
 	pea.l $0102(a4)
-	jsr $08BA(a5)
+	jsr CODE_0_jump_table_entry_275+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_4_loc_00000e16
 CODE_4_loc_00000dc0:
 	pea.l $0102(a4)
-	jsr $08BA(a5)
+	jsr CODE_0_jump_table_entry_275+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l a4,-(a7)
-	jsr $08AA(a5)
+	jsr CODE_0_jump_table_entry_273+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_4_loc_00000e16
 CODE_4_loc_00000dd0:
 	pea.l $0102(a4)
-	jsr $08FA(a5)
+	jsr CODE_0_jump_table_entry_283+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l $0102(a4)
-	jsr $08BA(a5)
+	jsr CODE_0_jump_table_entry_275+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_4_loc_00000e16
 CODE_4_loc_00000de2:
 	pea.l $0102(a4)
-	jsr $08BA(a5)
+	jsr CODE_0_jump_table_entry_275+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	moveq.l #1,d0
 	cmp.b $022A(a4),d0
 	seq.b d0
@@ -17976,7 +17977,7 @@ CODE_4_loc_00000ec0:
 	asl.w #2,d0
 	pea.l $0(a0,d0.w)
 	move.l #$23A,-(a7)
-	jsr $0A52(a5)
+	jsr CODE_0_jump_table_entry_326+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w d7,d0
 	subq.w #1,d0
 	lea.l -$352E(a5),a0
@@ -18066,7 +18067,7 @@ CODE_4_loc_00000fc8:
 	move.w $022E(a4),d0
 	addq.w #1,d0
 	move.w d0,-(a7)
-	jsr $0A8A(a5)
+	jsr CODE_0_jump_table_entry_333+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_4_loc_00000fdc:
 	move.b #$1,$0225(a4)
 CODE_4_loc_00000fe2:
@@ -18137,7 +18138,7 @@ CODE_4_loc_00001072:
 	move.w $022E(a4),d0
 	addq.w #1,d0
 	move.w d0,-(a7)
-	jsr $0A8A(a5)
+	jsr CODE_0_jump_table_entry_333+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_4_loc_00001188
 CODE_4_loc_000010d2:
 	clr.w -(a7)
@@ -18145,41 +18146,41 @@ CODE_4_loc_000010d2:
 	move.l -$34EE(a5),-(a7)
 	move.w $022C(a4),-(a7)
 	move.w $0112(a4),-(a7)
-	jsr $08DA(a5)
+	jsr CODE_0_jump_table_entry_279+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d0
 	cmp.w $022C(a4),d0
 	beq.w CODE_4_loc_00001188
 	clr.w -(a7)
-	jsr $0902(a5)
+	jsr CODE_0_jump_table_entry_284+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d7
 	pea.l -$2D92(a5)
 	pea.l CODE_4_loc_000011ee(pc)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
 	pea.l CODE_4_loc_000011e4(pc)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
 	move.l a4,-(a7)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
 	pea.l CODE_4_loc_000011d6(pc)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
 	move.w d7,d0
 	ext.l d0
 	move.l d0,-(a7)
 	move.w #$1,-(a7)
-	jsr $0A02(a5)
+	jsr CODE_0_jump_table_entry_316+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
 	pea.l CODE_4_loc_000011d2(pc)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
-	jsr $09F2(a5)
+	jsr CODE_0_jump_table_entry_314+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.b $0008(a6)
 	move.w #$1,-$34E4(a5)
 	move.l -$352E(a5),-$34E2(a5)
@@ -18204,7 +18205,7 @@ CODE_4_loc_00001188:
 	beq.b CODE_4_loc_000011be
 	move.w -$34E4(a5),-(a7)
 	move.l $0226(a4),-(a7)
-	jsr $003A(a5)
+	jsr CODE_0_jump_table_entry_3+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_4_loc_000011be:
 	movem.l (a7)+,d7/a3-a4
 	unlk a6
@@ -18229,7 +18230,7 @@ CODE_4_loc_0000120e:
 	move.w #$1,$010A(a4)
 	clr.w -(a7)
 	pea.l -$2D8A(a5)
-	jsr $08C2(a5)
+	jsr CODE_0_jump_table_entry_276+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	beq.b CODE_4_loc_00001240
 	moveq.l #1,d7
@@ -18239,9 +18240,9 @@ CODE_4_loc_00001240:
 	pea.l -$2D8A(a5)
 	pea.l -$0102(a6)
 	move.w #$FF,-(a7)
-	jsr $09E2(a5)
+	jsr CODE_0_jump_table_entry_312+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D8A(a5)
-	jsr $09DA(a5)
+	jsr CODE_0_jump_table_entry_311+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_4_loc_0000125a:
 	move.b d7,d0
 	bne.b CODE_4_loc_00001272
@@ -18280,7 +18281,7 @@ CODE_4_loc_000012b2:
 	move.w $022E(a4),d0
 	addq.w #1,d0
 	move.w d0,-(a7)
-	jsr $0A8A(a5)
+	jsr CODE_0_jump_table_entry_333+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w $022E(a4),$0216(a4)
 	bra.w CODE_4_loc_00001368
 CODE_4_loc_000012e8:
@@ -18303,7 +18304,7 @@ CODE_4_loc_000012fa:
 	moveq.l #9,d1
 	lsl.l d1,d0
 	move.l d0,-(a7)
-	jsr $08CA(a5)
+	jsr CODE_0_jump_table_entry_277+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,d0
 	subq.l #1,d0
 	move.w d0,$022E(a4)
@@ -18345,7 +18346,7 @@ CODE_4_loc_0000137e:
 	pea.l -$2D8E(a5)
 	move.l a3,-(a7)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_4_loc_00001420
 CODE_4_loc_000013a4:
 	clr.w d5
@@ -18459,37 +18460,37 @@ CODE_4_loc_000014b6:
 	move.l $0106(a4),-(a7)
 	move.w -$367A(a5),-(a7)
 	move.w $0112(a4),-(a7)
-	jsr $08E2(a5)
+	jsr CODE_0_jump_table_entry_280+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d0
 	cmp.w -$367A(a5),d0
 	beq.b CODE_4_loc_00001554
 	clr.w -(a7)
-	jsr $0902(a5)
+	jsr CODE_0_jump_table_entry_284+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d7
 	pea.l -$2D92(a5)
 	pea.l CODE_4_loc_00001596(pc)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
 	move.l a4,-(a7)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
 	pea.l CODE_4_loc_00001588(pc)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
 	move.w d7,d0
 	ext.l d0
 	move.l d0,-(a7)
 	move.w #$1,-(a7)
-	jsr $0A02(a5)
+	jsr CODE_0_jump_table_entry_316+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
 	pea.l CODE_4_loc_00001584(pc)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
-	jsr $09F2(a5)
+	jsr CODE_0_jump_table_entry_314+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w #$FFFF,$0112(a4)
 	bra.b CODE_4_loc_0000155c
 CODE_4_loc_00001554:
@@ -18700,7 +18701,7 @@ CODE_4_loc_0000179e:
 	move.w #$1,-(a7)
 	move.w d7,-(a7)
 	pea.l -$0104(a6)
-	jsr $0AAA(a5)
+	jsr CODE_0_jump_table_entry_337+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$0104(a6),a0
 	movea.l a3,a1
 	moveq.l #127,d0
@@ -18726,7 +18727,7 @@ CODE_4_loc_000017ca:
 	sub.w d7,d0
 	move.w d0,-(a7)
 	pea.l -$0104(a6)
-	jsr $0AAA(a5)
+	jsr CODE_0_jump_table_entry_337+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a0
 	lea.l -$0104(a6),a1
 	moveq.l #127,d0
@@ -18753,7 +18754,7 @@ CODE_4_loc_0000181e:
 	pea.l -$0100(a6)
 	move.l #$6500,-(a7)
 	pea.l -$0104(a6)
-	jsr $088A(a5)
+	jsr CODE_0_jump_table_entry_269+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	tst.l (a7)+
 	bge.b CODE_4_loc_00001846
 	movea.l $0008(a6),a0
@@ -18784,7 +18785,7 @@ CODE_4_loc_00001870:
 	pea.l -$0100(a6)
 	move.l #$6501,-(a7)
 	move.l -$0108(a6),-(a7)
-	jsr $088A(a5)
+	jsr CODE_0_jump_table_entry_269+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,-$0104(a6)
 	unlk a6
 	movea.l (a7)+,a0
@@ -18812,7 +18813,7 @@ CODE_4_loc_000018b8:
 	pea.l -$0100(a6)
 	move.l #$6503,-(a7)
 	move.l -$0108(a6),-(a7)
-	jsr $088A(a5)
+	jsr CODE_0_jump_table_entry_269+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,-$0104(a6)
 	unlk a6
 	movea.l (a7)+,a0
@@ -18823,7 +18824,7 @@ CODE_4_data_pascal_string_000018f4:
 CODE_4_loc_000018fe:
 	link a6,#0
 	move.l $0008(a6),-(a7)
-	jsr $065A(a5)
+	jsr CODE_0_jump_table_entry_199+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
@@ -18983,7 +18984,7 @@ CODE_5_loc_0000015c:
 	sub.l d4,d0
 	move.w d0,-$043A(a5)
 	move.w d5,-$0438(a5)
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a2),a3
 	move.w -$0438(a5),d6
 	cmpi.b #91,d6
@@ -19001,18 +19002,18 @@ CODE_5_loc_000001a0:
 	pea.l -$020E(a6)
 	pea.l -$020F(a6)
 	pea.l -$0212(a6)
-	jsr $022A(a5)
+	jsr CODE_0_jump_table_entry_65+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	bne.b CODE_5_loc_000001c6
 	move.w -$0212(a6),-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_5_loc_0000021a
 CODE_5_loc_000001c6:
 	move.b -$020F(a6),d0
 	bne.b CODE_5_loc_000001e6
 	subq.w #4,a7
 	move.l -$020E(a6),-(a7)
-	jsr $00C2(a5)
+	jsr CODE_0_jump_table_entry_20+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a0
 	moveq.l #0,d0
 	move.b (a0)+,d0
@@ -19026,7 +19027,7 @@ CODE_5_loc_000001e6:
 	subq.b #1,d0
 	bne.b CODE_5_loc_000001f4
 	move.w #$2E,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_5_loc_0000021a
 CODE_5_loc_000001f4:
 	subq.b #3,d0
@@ -19046,7 +19047,7 @@ CODE_5_loc_00000210:
 	move.b (a0)+,(a4)+
 CODE_5_loc_00000212:
 	dbf.w d0,CODE_5_loc_00000210
-	jsr $0782(a5)
+	jsr CODE_0_jump_table_entry_236+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_5_loc_0000021a:
 	move.b -$0215(a6),-$131E(a5)
 	move.b -$0216(a6),-$131D(a5)
@@ -19110,7 +19111,7 @@ CODE_5_loc_000002ac:
 	rts
 CODE_5_loc_000002b6:
 	move.w #$90,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_5_loc_000002ac
 CODE_5_loc_000002c0:
 	movea.l -$131A(a5),a0
@@ -19223,7 +19224,7 @@ CODE_5_loc_00000370:
 	subq.w #4,a7
 	move.l -$132A(a5),-(a7)
 	move.w #$100,-(a7)
-	jsr $077A(a5)
+	jsr CODE_0_jump_table_entry_235+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,d2
 	movem.l (a7)+,d1/a0-a1
 	bne.b CODE_5_loc_000003ae
@@ -19251,7 +19252,7 @@ CODE_5_loc_000003ba:
 	move.l a0,-(a7)
 	move.l -$0F2A(a5),-(a7)
 	move.l (a0),-(a7)
-	jsr $0782(a5)
+	jsr CODE_0_jump_table_entry_236+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a0
 CODE_5_loc_000003de:
 	movea.l (a7)+,a1
@@ -19320,14 +19321,14 @@ CODE_5_loc_0000054e:
 	clr.l -(a7)
 	move.l -$132A(a5),-(a7)
 	move.w d7,-(a7)
-	jsr $077A(a5)
+	jsr CODE_0_jump_table_entry_235+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a4
 	move.l a4,d0
 	beq.b CODE_5_loc_00000580
 	move.l $0008(a6),-(a7)
 	move.l a4,-(a7)
 	move.w d7,-(a7)
-	jsr $0A8A(a5)
+	jsr CODE_0_jump_table_entry_333+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_5_loc_00000580:
 	move.l a4,$000C(a6)
 	movem.l (a7)+,d7/a4
@@ -19353,7 +19354,7 @@ CODE_5_loc_0000059e:
 	move.l (a0),-$25C2(a5)
 	move.l -$132A(a5),-(a7)
 	move.l -$0004(a6),-(a7)
-	jsr $0782(a5)
+	jsr CODE_0_jump_table_entry_236+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_5_loc_0000059e
 CODE_5_loc_000005d2:
 	unlk a6
@@ -19422,14 +19423,14 @@ CODE_5_loc_00000654:
 	beq.b CODE_5_loc_00000690
 	move.w #$58,-(a7)
 	move.l d6,-(a7)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b #$1,$000E(a6)
 	bra.b CODE_5_loc_000006f4
 CODE_5_loc_00000690:
 	clr.l -(a7)
 	move.l -$132A(a5),-(a7)
 	move.w #$14,-(a7)
-	jsr $077A(a5)
+	jsr CODE_0_jump_table_entry_235+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a3
 	move.l a3,d0
 	bne.b CODE_5_loc_000006a6
@@ -19490,7 +19491,7 @@ CODE_5_loc_00000728:
 CODE_5_loc_00000736:
 	move.l -$132A(a5),-(a7)
 	move.l a4,-(a7)
-	jsr $0782(a5)
+	jsr CODE_0_jump_table_entry_236+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_5_loc_00000740:
 	movea.l (a7)+,a4
 	unlk a6
@@ -19513,12 +19514,12 @@ CODE_5_loc_00000776:
 	clr.l -(a7)
 	move.l -$132A(a5),-(a7)
 	move.w #$C,-(a7)
-	jsr $077A(a5)
+	jsr CODE_0_jump_table_entry_235+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a4
 	move.l a4,d0
 	bne.b CODE_5_loc_0000079a
 	move.w #$57,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	moveq.l #0,d0
 	move.l d0,$0010(a6)
 	bra.b CODE_5_loc_000007e8
@@ -19571,20 +19572,20 @@ CODE_5_loc_00000802:
 	clr.l -(a7)
 	move.l (a4),-(a7)
 	pea.l -$0001(a6)
-	jsr $00CA(a5)
+	jsr CODE_0_jump_table_entry_21+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,d7
 	tst.b -$0001(a6)
 	beq.b CODE_5_loc_00000832
 	move.w #$88,-(a7)
 	move.l (a4),-(a7)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	moveq.l #0,d7
 CODE_5_loc_00000832:
 	movea.l (a4),a0
 	move.l a0,-(a7)
 	clr.l -(a7)
 	move.l d7,-(a7)
-	jsr $00C2(a5)
+	jsr CODE_0_jump_table_entry_20+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,d0
 	movea.l (a7)+,a0
 	movea.l d0,a1
@@ -19619,7 +19620,7 @@ CODE_5_loc_00000878:
 	bne.b CODE_5_loc_000008a4
 	move.w #$65,-(a7)
 	move.l $0010(a6),-(a7)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_5_loc_000008dc
 CODE_5_loc_000008a4:
 	move.b $0012(a4),d0
@@ -19634,7 +19635,7 @@ CODE_5_loc_000008b6:
 	move.l (a7)+,$000A(a4)
 	bne.b CODE_5_loc_000008d0
 	move.w #$57,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_5_loc_000008dc
 CODE_5_loc_000008d0:
 	move.l $0008(a6),$000E(a4)
@@ -19673,11 +19674,11 @@ CODE_5_loc_000008f8:
 	move.l a4,d0
 	bne.b CODE_5_loc_00000950
 	move.w #$59,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_5_loc_00000988
 CODE_5_loc_00000946:
 	move.w #$57,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_5_loc_00000988
 CODE_5_loc_00000950:
 	move.b $0012(a4),d0
@@ -19692,7 +19693,7 @@ CODE_5_loc_00000962:
 	move.l (a7)+,$000A(a4)
 	bne.b CODE_5_loc_0000097c
 	move.w #$57,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_5_loc_00000988
 CODE_5_loc_0000097c:
 	move.l $0008(a6),$000E(a4)
@@ -19770,14 +19771,14 @@ CODE_5_loc_00000a48:
 	moveq.l #29,d0
 	cmp.b -$0005(a5),d0
 	bne.b CODE_5_loc_00000aa8
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	tst.b -$0005(a5)
 	bne.b CODE_5_loc_00000aec
 	pea.l CODE_5_loc_00000b0a(pc)
 	pea.l -$0106(a5)
 	pea.l -$0106(a6)
 	move.w #$2,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$26C4(a5),a0
 	lea.l -$0106(a6),a1
 	moveq.l #127,d0
@@ -19787,19 +19788,19 @@ CODE_5_loc_00000a8c:
 	move.b #$1,$0008(a6)
 	move.b #$1,-$26C5(a5)
 	move.b d7,-$0C5F(a5)
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_5_loc_00000af8
 CODE_5_loc_00000aa8:
 	clr.w -(a7)
 	pea.l -$0006(a6)
-	jsr $01FA(a5)
+	jsr CODE_0_jump_table_entry_59+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	beq.b CODE_5_loc_00000aec
 	clr.w -(a7)
 	move.l -$0006(a6),-(a7)
 	move.b #$1,-(a7)
 	move.w #$2E,-(a7)
-	jsr $017A(a5)
+	jsr CODE_0_jump_table_entry_43+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	beq.b CODE_5_loc_00000aec
 	movea.l -$0006(a6),a0
@@ -19814,7 +19815,7 @@ CODE_5_loc_00000ad6:
 	bra.b CODE_5_loc_00000af8
 CODE_5_loc_00000aec:
 	move.w #$5E,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b d7,-$0C5F(a5)
 CODE_5_loc_00000af8:
 	move.l (a7)+,d7
@@ -19827,7 +19828,7 @@ CODE_5_loc_00000b0c:
 	cmpi.w #255,-$290C(a5)
 	blt.b CODE_5_loc_00000b22
 	move.w #$90,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_5_loc_00000b34
 CODE_5_loc_00000b22:
 	addq.w #1,-$290C(a5)
@@ -19877,7 +19878,7 @@ CODE_5_loc_00000ba8:
 	move.l -$2A12(a5),-$042E(a5)
 	move.w -$2A14(a5),-$0428(a5)
 CODE_5_loc_00000bb4:
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b -$2A15(a5),d0
 	beq.b CODE_5_loc_00000bc4
 	move.w -$0438(a5),d7
@@ -19913,7 +19914,7 @@ CODE_5_loc_00000bfe:
 	pea.l -$000C(a6)
 	pea.l -$000D(a6)
 	pea.l -$0010(a6)
-	jsr $022A(a5)
+	jsr CODE_0_jump_table_entry_65+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	beq.w CODE_5_loc_00000cd4
 	move.b -$000D(a6),d0
@@ -19933,10 +19934,10 @@ CODE_5_loc_00000c32:
 	pea.l -$290A(a5)
 	clr.l -(a7)
 	move.l -$000C(a6),-(a7)
-	jsr $00C2(a5)
+	jsr CODE_0_jump_table_entry_20+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$0110(a6)
 	move.w #$2,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$290A(a5),a0
 	lea.l -$0110(a6),a1
 	moveq.l #127,d0
@@ -19949,13 +19950,13 @@ CODE_5_loc_00000c5c:
 	bra.b CODE_5_loc_00000cdc
 CODE_5_loc_00000c6e:
 	move.w #$2E,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_5_loc_00000cdc
 CODE_5_loc_00000c78:
 	move.b -$290B(a5),-$290A(a5)
 	pea.l -$290A(a5)
 	move.l -$000C(a6),-(a7)
-	jsr $008A(a5)
+	jsr CODE_0_jump_table_entry_13+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b $000C(a6),d0
 	beq.b CODE_5_loc_00000cbc
 	tst.l -$2B20(a5)
@@ -19980,11 +19981,11 @@ CODE_5_loc_00000cbc:
 	move.w d0,-$290C(a5)
 	move.l -$0F2A(a5),-(a7)
 	move.l -$000C(a6),-(a7)
-	jsr $0782(a5)
+	jsr CODE_0_jump_table_entry_236+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_5_loc_00000cdc
 CODE_5_loc_00000cd4:
 	move.w -$0010(a6),-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_5_loc_00000cdc:
 	clr.b -$131D(a5)
 	move.b d6,d0
@@ -20103,11 +20104,11 @@ CODE_5_loc_00000df6:
 	move.b d6,-$0106(a6)
 	pea.l -$0106(a6)
 	pea.l -$0BCC(a5)
-	jsr $008A(a5)
+	jsr CODE_0_jump_table_entry_13+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b -$290B(a5),-$290A(a5)
 	pea.l -$290A(a5)
 	pea.l -$0106(a6)
-	jsr $008A(a5)
+	jsr CODE_0_jump_table_entry_13+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.w d0
 	move.b -$290A(a5),d0
 	move.w d0,-$290C(a5)
@@ -20121,11 +20122,11 @@ CODE_5_loc_00000e40:
 	link a6,#0
 	move.b #$1,$0008(a6)
 	clr.l -(a7)
-	jsr $0242(a5)
+	jsr CODE_0_jump_table_entry_68+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	bne.b CODE_5_loc_00000e62
 	move.w #$85,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.b $0008(a6)
 	bra.b CODE_5_loc_00000eba
 CODE_5_loc_00000e62:
@@ -20204,11 +20205,11 @@ CODE_5_loc_00000f20:
 	clr.l -(a7)
 	move.l -$132A(a5),-(a7)
 	move.w #$C,-(a7)
-	jsr $077A(a5)
+	jsr CODE_0_jump_table_entry_235+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,d7
 	bne.b CODE_5_loc_00000f4a
 	move.w #$57,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a3),-(a7)
 	jsr CODE_5_loc_0000070e(pc)
 	moveq.l #0,d0
@@ -20284,7 +20285,7 @@ CODE_5_loc_00000fe2:
 	move.b (a7)+,d0
 	bne.b CODE_5_loc_00000fbc
 	move.w #$85,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	moveq.l #0,d0
 	move.l d0,(a3)
 	bra.b CODE_5_loc_0000102a
@@ -20301,7 +20302,7 @@ CODE_5_loc_0000100c:
 	bra.b CODE_5_loc_0000102a
 CODE_5_loc_00001018:
 	move.w #$59,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a3),-(a7)
 	jsr CODE_5_loc_0000070e(pc)
 	moveq.l #0,d0
@@ -20395,7 +20396,7 @@ CODE_5_loc_00001114:
 	pea.l -$290A(a5)
 	pea.l -$0110(a6)
 	move.w #$2,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$2A0E(a5),a0
 	lea.l -$0110(a6),a1
 	moveq.l #127,d0
@@ -20403,7 +20404,7 @@ CODE_5_loc_0000113e:
 	move.w (a1)+,(a0)+
 	dbf.w d0,CODE_5_loc_0000113e
 	pea.l -$2A0E(a5)
-	jsr $0052(a5)
+	jsr CODE_0_jump_table_entry_6+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.l -(a7)
 	pea.l -$2A0E(a5)
 	move.l -$2806(a5),-(a7)
@@ -20629,14 +20630,14 @@ CODE_5_loc_000013e0:
 	move.l $0008(a6),-(a7)
 	pea.l -$0008(a6)
 	pea.l -$0004(a6)
-	jsr $00FA(a5)
+	jsr CODE_0_jump_table_entry_27+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,-$27F4(a5)
 	beq.b CODE_5_loc_0000141c
 	btst.b #7,-$0003(a6)
 	beq.b CODE_5_loc_0000141c
 	move.w #$58,-(a7)
 	move.l $0008(a6),-(a7)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_5_loc_000014a0
 CODE_5_loc_0000141c:
 	clr.l -(a7)
@@ -20645,28 +20646,28 @@ CODE_5_loc_0000141c:
 	clr.l -(a7)
 	clr.w -(a7)
 	pea.l -$0001(a6)
-	jsr $00EA(a5)
+	jsr CODE_0_jump_table_entry_25+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,-$27F4(a5)
 	bne.b CODE_5_loc_00001442
 	move.w #$57,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_5_loc_000014a0
 CODE_5_loc_00001442:
 	move.b -$0001(a6),d0
 	beq.b CODE_5_loc_00001456
 	move.w #$58,-(a7)
 	move.l $0008(a6),-(a7)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_5_loc_000014a0
 CODE_5_loc_00001456:
 	clr.l -(a7)
 	move.l -$25BE(a5),-(a7)
 	move.w #$4,-(a7)
-	jsr $078A(a5)
+	jsr CODE_0_jump_table_entry_237+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,-$27F8(a5)
 	bne.b CODE_5_loc_0000147e
 	move.w #$57,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l -$27F4(a5),a0
 	moveq.l #0,d0
 	move.l d0,$0004(a0)
@@ -20704,7 +20705,7 @@ CODE_5_loc_000014b6:
 	pea.l -$27E2(a5)
 	move.l a4,-(a7)
 	move.w #$2,-(a7)
-	jsr $0ABA(a5)
+	jsr CODE_0_jump_table_entry_339+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_5_loc_000014fc
 CODE_5_loc_000014e8:
 	moveq.l #3,d0
@@ -20713,7 +20714,7 @@ CODE_5_loc_000014e8:
 	pea.l -$27F0(a5)
 	move.l a4,-(a7)
 	move.w #$2,-(a7)
-	jsr $0ABA(a5)
+	jsr CODE_0_jump_table_entry_339+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_5_loc_000014fc:
 	movea.l -$25BE(a5),a0
 	clr.b $001C(a0)
@@ -20730,12 +20731,12 @@ CODE_5_loc_000014fc:
 	clr.l -(a7)
 	move.l -$25BE(a5),-(a7)
 	move.w #$4,-(a7)
-	jsr $078A(a5)
+	jsr CODE_0_jump_table_entry_237+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a3
 	move.l a3,d0
 	bne.b CODE_5_loc_0000154a
 	move.w #$57,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l -$27F4(a5),a0
 	moveq.l #0,d0
 	move.l d0,$0004(a0)
@@ -20744,14 +20745,14 @@ CODE_5_loc_0000154a:
 	clr.l -(a7)
 	move.l -$25BE(a5),-(a7)
 	move.w d7,-(a7)
-	jsr $078A(a5)
+	jsr CODE_0_jump_table_entry_237+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,-$27FC(a5)
 	movea.l -$25BE(a5),a0
 	move.b #$1,$001C(a0)
 	tst.l -$27FC(a5)
 	bne.b CODE_5_loc_0000157e
 	move.w #$57,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l -$27F4(a5),a0
 	moveq.l #0,d0
 	move.l d0,$0004(a0)
@@ -20759,7 +20760,7 @@ CODE_5_loc_0000154a:
 CODE_5_loc_0000157e:
 	move.l a4,-(a7)
 	move.l -$27FC(a5),-(a7)
-	jsr $0092(a5)
+	jsr CODE_0_jump_table_entry_14+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l -$27FC(a5),a0
 	move.w d7,d0
 	subq.w #1,d0
@@ -20773,7 +20774,7 @@ CODE_5_loc_0000157e:
 	pea.l -$27FC(a5)
 	move.l a3,-(a7)
 	move.w #$4,-(a7)
-	jsr $00A2(a5)
+	jsr CODE_0_jump_table_entry_16+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_5_loc_000015c6
 CODE_5_loc_000015b8:
 	movea.l -$27F8(a5),a0
@@ -20813,7 +20814,7 @@ CODE_5_loc_0000160a:
 	pea.l -$0008(a6)
 	pea.l -$000A(a6)
 	move.w -$0BD6(a5),-(a7)
-	jsr $00F2(a5)
+	jsr CODE_0_jump_table_entry_26+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a3
 	move.l a3,d0
 	bne.b CODE_5_loc_0000164e
@@ -20834,7 +20835,7 @@ CODE_5_loc_00001662:
 	clr.l -(a7)
 	move.l -$132A(a5),-(a7)
 	move.w #$38,-(a7)
-	jsr $077A(a5)
+	jsr CODE_0_jump_table_entry_235+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,-$131A(a5)
 	bne.b CODE_5_loc_0000168a
 	clr.b $0010(a6)
@@ -20888,7 +20889,7 @@ CODE_5_loc_000016fc:
 	move.l d0,-(a7)
 	move.w #$FFFC,-(a7)
 	move.b #$1,-(a7)
-	jsr $00BA(a5)
+	jsr CODE_0_jump_table_entry_19+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a0
 	lea.l -$0BCC(a5),a1
 	moveq.l #2,d0
@@ -20900,7 +20901,7 @@ CODE_5_loc_00001748:
 	move.l $0034(a0),-$131A(a5)
 	move.l -$132A(a5),-(a7)
 	move.l d7,-(a7)
-	jsr $0782(a5)
+	jsr CODE_0_jump_table_entry_236+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	tst.l -$131A(a5)
 	bne.b CODE_5_loc_000017d8
 	move.w -$34E4(a5),d0
@@ -20910,7 +20911,7 @@ CODE_5_loc_00001748:
 	movea.l $0(a0,d0.w),a0
 	move.l a0,-(a7)
 	pea.l -$1290(a5)
-	jsr $0092(a5)
+	jsr CODE_0_jump_table_entry_14+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b #$1,-$1190(a5)
 	move.w -$12A0(a5),-$12A2(a5)
 	move.b -$0C5A(a5),d0
@@ -20921,20 +20922,20 @@ CODE_5_loc_00001748:
 	move.b -$1290(a5),d0
 	addq.w #1,d0
 	move.w d0,-(a7)
-	jsr $077A(a5)
+	jsr CODE_0_jump_table_entry_235+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a3
 	move.l a3,d0
 	bne.b CODE_5_loc_000017ba
 	pea.l CODE_5_loc_0000180a(pc)
-	jsr $01D2(a5)
+	jsr CODE_0_jump_table_entry_54+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_5_loc_000017ba:
 	pea.l -$1290(a5)
 	move.l a3,-(a7)
-	jsr $0092(a5)
+	jsr CODE_0_jump_table_entry_14+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l a3,-(a7)
 	move.w -$12A2(a5),-(a7)
 	clr.w -(a7)
-	jsr $016A(a5)
+	jsr CODE_0_jump_table_entry_41+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_5_loc_000017d0:
 	moveq.l #0,d0
 	move.l d0,-$1298(a5)
@@ -20947,7 +20948,7 @@ CODE_5_loc_000017d8:
 	move.l -$1298(a5),-(a7)
 	move.w -$25C4(a5),-(a7)
 	move.w -$131C(a5),-(a7)
-	jsr $016A(a5)
+	jsr CODE_0_jump_table_entry_41+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_5_loc_000017f8:
 	movem.l (a7)+,d7/a3-a4
 	unlk a6
@@ -21034,14 +21035,14 @@ CODE_5_loc_000018ec:
 	beq.b CODE_5_loc_000018fc
 	move.w #$51,-(a7)
 	move.l a4,-(a7)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_5_loc_000018fc:
 	clr.b $001A(a6)
 	bra.b CODE_5_loc_0000197c
 CODE_5_loc_00001902:
 	clr.w -(a7)
 	move.l a4,-(a7)
-	jsr $00D2(a5)
+	jsr CODE_0_jump_table_entry_22+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d6
 	movea.l d7,a0
 	move.l a0,-(a7)
@@ -21051,7 +21052,7 @@ CODE_5_loc_00001902:
 	pea.l -$0004(a6)
 	pea.l -$0006(a6)
 	move.w d6,-(a7)
-	jsr $00F2(a5)
+	jsr CODE_0_jump_table_entry_26+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,d0
 	movea.l (a7)+,a0
 	move.l d0,(a0)
@@ -21070,7 +21071,7 @@ CODE_5_loc_0000193a:
 	pea.l -$0004(a6)
 	pea.l -$0006(a6)
 	move.w d6,-(a7)
-	jsr $00F2(a5)
+	jsr CODE_0_jump_table_entry_26+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,d0
 	movea.l (a7)+,a0
 	move.l d0,(a0)
@@ -21085,7 +21086,7 @@ CODE_5_loc_00001968:
 	beq.b CODE_5_loc_00001978
 	move.w #$51,-(a7)
 	move.l a4,-(a7)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_5_loc_00001978:
 	clr.b $001A(a6)
 CODE_5_loc_0000197c:
@@ -21107,7 +21108,7 @@ CODE_5_loc_00001998:
 	move.b -$0C5F(a5),d0
 	bne.b CODE_5_loc_000019c0
 	move.l $0014(a6),-(a7)
-	jsr $0052(a5)
+	jsr CODE_0_jump_table_entry_6+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_5_loc_000019c0:
 	clr.l -(a7)
 	move.l $0014(a6),-(a7)
@@ -21170,13 +21171,13 @@ CODE_5_loc_00001a58:
 	movea.l d7,a0
 	move.l $000A(a0),-(a7)
 	pea.l -$001B(a6)
-	jsr $00CA(a5)
+	jsr CODE_0_jump_table_entry_21+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,(a4)
 	tst.b -$001B(a6)
 	beq.b CODE_5_loc_00001a7c
 	move.w #$88,-(a7)
 	move.l $0014(a6),-(a7)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_5_loc_00001a7c:
 	movea.l d7,a0
 	move.l $000E(a0),-$2B20(a5)
@@ -21262,7 +21263,7 @@ CODE_5_loc_00001b5a:
 	beq.b CODE_5_loc_00001b74
 	move.w #$7C,-(a7)
 	move.l $0014(a6),-(a7)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.b d6
 	bra.w CODE_5_loc_00001fe6
 CODE_5_loc_00001b74:
@@ -21319,7 +21320,7 @@ CODE_5_loc_00001bfe:
 	beq.b CODE_5_loc_00001c18
 	move.w #$7C,-(a7)
 	move.l $0014(a6),-(a7)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.b d6
 	bra.w CODE_5_loc_00001fe6
 CODE_5_loc_00001c18:
@@ -21333,7 +21334,7 @@ CODE_5_loc_00001c2a:
 	pea.l -$0014(a6)
 	pea.l -$21A6(a5)
 	move.w #$A,-(a7)
-	jsr $06FA(a5)
+	jsr CODE_0_jump_table_entry_219+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	beq.b CODE_5_loc_00001c52
 	moveq.l #1,d6
@@ -21347,7 +21348,7 @@ CODE_5_loc_00001c52:
 	pea.l -$0014(a6)
 	pea.l -$2262(a5)
 	move.w #$B,-(a7)
-	jsr $06FA(a5)
+	jsr CODE_0_jump_table_entry_219+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	beq.w CODE_5_loc_00001fbe
 	moveq.l #1,d6
@@ -21418,7 +21419,7 @@ CODE_5_loc_00001ce0:
 	bra.w CODE_5_loc_00001fea
 CODE_5_loc_00001d1a:
 	move.w #$81,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.b d6
 	bra.w CODE_5_loc_00001fea
 CODE_5_loc_00001d28:
@@ -21492,7 +21493,7 @@ CODE_5_loc_00001fbe:
 	pea.l -$0014(a6)
 	pea.l -$22B0(a5)
 	move.w #$B,-(a7)
-	jsr $06FA(a5)
+	jsr CODE_0_jump_table_entry_219+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	beq.b CODE_5_loc_00001fe6
 	moveq.l #1,d6
@@ -21524,7 +21525,7 @@ CODE_5_loc_00002038:
 	move.w (a0),d0
 	ext.l d0
 	move.l d0,-(a7)
-	jsr $00C2(a5)
+	jsr CODE_0_jump_table_entry_20+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a0
 	lea.l -$0016(a6),a1
 	moveq.l #10,d0
@@ -21538,7 +21539,7 @@ CODE_5_loc_00002064:
 	move.w (a0),d0
 	ext.l d0
 	move.l d0,-(a7)
-	jsr $00C2(a5)
+	jsr CODE_0_jump_table_entry_20+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a0
 	lea.l -$0016(a6),a1
 	moveq.l #10,d0
@@ -21554,7 +21555,7 @@ CODE_5_loc_00002082:
 	pea.l CODE_5_loc_000020ca(pc)
 	pea.l -$0116(a6)
 	move.w #$4,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a0
 	lea.l -$0116(a6),a1
 	moveq.l #127,d0
@@ -21649,9 +21650,9 @@ CODE_5_loc_0000240e:
 CODE_5_loc_00002414:
 	move.l $0012(a4),-(a7)
 	pea.l -$000C(a6)
-	jsr $008A(a5)
+	jsr CODE_0_jump_table_entry_13+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l $0012(a4),-(a7)
-	jsr $007A(a5)
+	jsr CODE_0_jump_table_entry_11+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a4
 	unlk a6
 	movea.l (a7)+,a0
@@ -21699,9 +21700,9 @@ CODE_5_loc_000024a0:
 CODE_5_loc_000024a6:
 	move.l $0012(a4),-(a7)
 	pea.l -$0008(a6)
-	jsr $008A(a5)
+	jsr CODE_0_jump_table_entry_13+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l $0012(a4),-(a7)
-	jsr $0072(a5)
+	jsr CODE_0_jump_table_entry_10+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a4
 	unlk a6
 	move.l (a7)+,(a7)
@@ -21728,7 +21729,7 @@ CODE_5_loc_000024e8:
 CODE_5_loc_0000250a:
 	clr.l -(a7)
 	move.l $000E(a4),-(a7)
-	jsr $0122(a5)
+	jsr CODE_0_jump_table_entry_32+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a3
 	addq.l #4,a3
 	tst.l (a3)
@@ -21742,7 +21743,7 @@ CODE_5_loc_0000250a:
 	pea.l CODE_5_loc_00002562(pc)
 	pea.l -$0104(a6)
 	move.w #$4,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a0
 	lea.l -$0104(a6),a1
 	moveq.l #127,d0
@@ -21769,13 +21770,13 @@ CODE_5_loc_0000257a:
 	tst.l $000E(a6)
 	bne.b CODE_5_loc_000025be
 	pea.l -$0106(a5)
-	jsr $0052(a5)
+	jsr CODE_0_jump_table_entry_6+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.l -(a7)
 	move.l -$25B2(a5),-(a7)
 	pea.l -$0106(a5)
 	pea.l $000A(a6)
 	pea.l $0008(a6)
-	jsr $00FA(a5)
+	jsr CODE_0_jump_table_entry_27+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	tst.l (a7)+
 	beq.w CODE_5_loc_00002b30
 	movea.l $0012(a6),a0
@@ -21828,7 +21829,7 @@ CODE_5_loc_0000260e:
 	pea.l CODE_5_loc_00002bec(pc)
 	pea.l -$0312(a6)
 	move.w #$4,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a0
 	lea.l -$0312(a6),a1
 	moveq.l #127,d0
@@ -21963,10 +21964,10 @@ CODE_5_loc_00002784:
 	move.l a3,-(a7)
 	move.l a4,-(a7)
 	move.w #$4,-(a7)
-	jsr $0A8A(a5)
+	jsr CODE_0_jump_table_entry_333+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b #$4,-$0200(a6)
 	pea.l -$0200(a6)
-	jsr $007A(a5)
+	jsr CODE_0_jump_table_entry_11+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_5_loc_000028d8
 CODE_5_loc_000027c0:
 	moveq.l #30,d0
@@ -22012,7 +22013,7 @@ CODE_5_loc_00002810:
 	moveq.l #5,d1
 	move.l d1,-(a7)
 	move.l d0,-(a7)
-	jsr $0A72(a5)
+	jsr CODE_0_jump_table_entry_330+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,d0
 	add.l a0,d0
 	movea.l d0,a3
@@ -22020,10 +22021,10 @@ CODE_5_loc_00002810:
 	move.l a3,-(a7)
 	move.l a4,-(a7)
 	move.w #$4,-(a7)
-	jsr $0A8A(a5)
+	jsr CODE_0_jump_table_entry_333+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b #$4,-$0200(a6)
 	pea.l -$0200(a6)
-	jsr $007A(a5)
+	jsr CODE_0_jump_table_entry_11+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_5_loc_000028d8
 CODE_5_loc_0000285a:
 	moveq.l #62,d0
@@ -22051,7 +22052,7 @@ CODE_5_loc_00002886:
 	moveq.l #5,d1
 	move.l d1,-(a7)
 	move.l d0,-(a7)
-	jsr $0A72(a5)
+	jsr CODE_0_jump_table_entry_330+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,d0
 	add.l a0,d0
 	movea.l d0,a3
@@ -22059,10 +22060,10 @@ CODE_5_loc_00002886:
 	move.l a3,-(a7)
 	move.l a4,-(a7)
 	move.w #$4,-(a7)
-	jsr $0A8A(a5)
+	jsr CODE_0_jump_table_entry_333+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b #$4,-$0200(a6)
 	pea.l -$0200(a6)
-	jsr $007A(a5)
+	jsr CODE_0_jump_table_entry_11+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_5_loc_000028d8
 CODE_5_loc_000028c8:
 	lea.l -$0200(a6),a0
@@ -22091,7 +22092,7 @@ CODE_5_loc_000028fc:
 CODE_5_loc_00002902:
 	move.l $0012(a6),-(a7)
 	pea.l -$0200(a6)
-	jsr $008A(a5)
+	jsr CODE_0_jump_table_entry_13+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_5_loc_00002b30
 CODE_5_loc_00002912:
 	btst.b #5,$0009(a6)
@@ -22141,7 +22142,7 @@ CODE_5_loc_0000296c:
 	pea.l CODE_5_loc_00002b52(pc)
 	pea.l -$0312(a6)
 	move.w #$2,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a0
 	lea.l -$0312(a6),a1
 	moveq.l #127,d0
@@ -22184,7 +22185,7 @@ CODE_5_loc_00002a10:
 	dbf.w d0,CODE_5_loc_00002a10
 	clr.w -(a7)
 	move.l $000E(a6),-(a7)
-	jsr $020A(a5)
+	jsr CODE_0_jump_table_entry_61+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	beq.w CODE_5_loc_00002b30
 	clr.w -(a7)
@@ -22251,7 +22252,7 @@ CODE_5_loc_00002a94:
 	pea.l CODE_5_loc_00002b52(pc)
 	pea.l -$0312(a6)
 	move.w #$2,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a0
 	lea.l -$0312(a6),a1
 	moveq.l #127,d0
@@ -22345,12 +22346,12 @@ CODE_5_loc_00002c0e:
 	tst.l $000C(a6)
 	bne.b CODE_5_loc_00002c22
 	move.w $0010(a6),-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_5_loc_00002c2e
 CODE_5_loc_00002c22:
 	move.w $0010(a6),-(a7)
 	move.l $000C(a6),-(a7)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_5_loc_00002c2e:
 	movea.l $0008(a6),a1
 	movea.l $000C(a1),a0
@@ -22513,7 +22514,7 @@ CODE_5_loc_00002e02:
 	move.b (a0),d0
 	addq.w #1,d0
 	move.w d0,-(a7)
-	jsr $077A(a5)
+	jsr CODE_0_jump_table_entry_235+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,-$001E(a6)
 	bne.b CODE_5_loc_00002e2a
 	move.w #$57,-(a7)
@@ -22523,7 +22524,7 @@ CODE_5_loc_00002e02:
 CODE_5_loc_00002e2a:
 	move.l -$001A(a6),-(a7)
 	move.l -$001E(a6),-(a7)
-	jsr $0092(a5)
+	jsr CODE_0_jump_table_entry_14+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l $000C(a6),a0
 	move.l -$001E(a6),(a0)
 	movea.l $0008(a6),a0
@@ -22544,20 +22545,20 @@ CODE_5_loc_00002e68:
 	cmp.w $0008(a6),d0
 	bne.b CODE_5_loc_00002e84
 	move.w #$52,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_5_loc_00002eac
 CODE_5_loc_00002e84:
 	cmpi.w #4096,$0008(a6)
 	ble.b CODE_5_loc_00002e96
 	move.w #$53,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_5_loc_00002eac
 CODE_5_loc_00002e96:
 	moveq.l #1,d0
 	cmp.w $0008(a6),d0
 	ble.b CODE_5_loc_00002ea8
 	move.w #$54,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_5_loc_00002eac
 CODE_5_loc_00002ea8:
 	clr.b $000A(a6)
@@ -22585,7 +22586,7 @@ CODE_5_loc_00002ec0:
 	beq.b CODE_5_loc_00002efc
 	move.w #$55,-(a7)
 	move.l d6,-(a7)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_5_loc_00002f4a
 CODE_5_loc_00002efc:
 	move.b $000C(a6),d0
@@ -22605,7 +22606,7 @@ CODE_5_loc_00002f0c:
 	beq.b CODE_5_loc_00002f44
 	move.w #$56,-(a7)
 	move.l d6,-(a7)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_5_loc_00002f4a
 CODE_5_loc_00002f28:
 	moveq.l #-1,d0
@@ -22617,7 +22618,7 @@ CODE_5_loc_00002f28:
 	beq.b CODE_5_loc_00002f44
 	move.w #$56,-(a7)
 	move.l d6,-(a7)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_5_loc_00002f4a
 CODE_5_loc_00002f44:
 	move.b #$1,$0016(a6)
@@ -22659,12 +22660,12 @@ CODE_5_loc_00002fa0:
 	move.l a3,-(a7)
 	pea.l -$000A(a6)
 	pea.l -$0006(a6)
-	jsr $00FA(a5)
+	jsr CODE_0_jump_table_entry_27+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	tst.l (a7)+
 	beq.b CODE_5_loc_00002fd8
 	move.w #$58,-(a7)
 	move.l a3,-(a7)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_5_loc_00003542
 CODE_5_loc_00002fd8:
 	clr.l -(a7)
@@ -22673,7 +22674,7 @@ CODE_5_loc_00002fd8:
 	clr.l -(a7)
 	clr.w -(a7)
 	pea.l -$000B(a6)
-	jsr $00EA(a5)
+	jsr CODE_0_jump_table_entry_25+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a4
 	bra.b CODE_5_loc_0000302c
 CODE_5_loc_00002ff0:
@@ -22682,12 +22683,12 @@ CODE_5_loc_00002ff0:
 	move.l a3,-(a7)
 	pea.l -$000A(a6)
 	pea.l -$0006(a6)
-	jsr $00FA(a5)
+	jsr CODE_0_jump_table_entry_27+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	tst.l (a7)+
 	beq.b CODE_5_loc_00003016
 	move.w #$58,-(a7)
 	move.l a3,-(a7)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_5_loc_00003542
 CODE_5_loc_00003016:
 	clr.l -(a7)
@@ -22696,20 +22697,20 @@ CODE_5_loc_00003016:
 	clr.l -(a7)
 	clr.w -(a7)
 	pea.l -$000B(a6)
-	jsr $00EA(a5)
+	jsr CODE_0_jump_table_entry_25+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a4
 CODE_5_loc_0000302c:
 	move.l a4,d0
 	bne.b CODE_5_loc_0000303c
 	move.w #$57,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_5_loc_00003542
 CODE_5_loc_0000303c:
 	move.b -$000B(a6),d0
 	beq.b CODE_5_loc_00003050
 	move.w #$58,-(a7)
 	move.l a3,-(a7)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_5_loc_00003542
 CODE_5_loc_00003050:
 	move.b $0010(a6),d0
@@ -22767,11 +22768,11 @@ CODE_5_loc_000030cc:
 	asl.w #2,d0
 	addq.w #2,d0
 	move.w d0,-(a7)
-	jsr $077A(a5)
+	jsr CODE_0_jump_table_entry_235+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,-$0012(a6)
 	bne.b CODE_5_loc_000030f0
 	move.w #$57,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_5_loc_00003542
 CODE_5_loc_000030f0:
 	movea.l -$0012(a6),a0
@@ -22845,11 +22846,11 @@ CODE_5_loc_00003192:
 	asl.w #2,d0
 	addq.w #2,d0
 	move.w d0,-(a7)
-	jsr $077A(a5)
+	jsr CODE_0_jump_table_entry_235+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,-$0016(a6)
 	bne.b CODE_5_loc_000031b6
 	move.w #$57,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_5_loc_00003542
 CODE_5_loc_000031b6:
 	movea.l -$0016(a6),a0
@@ -22904,7 +22905,7 @@ CODE_5_loc_00003230:
 	beq.b CODE_5_loc_0000324e
 	move.w #$58,-(a7)
 	move.l a3,-(a7)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_5_loc_00003542
 CODE_5_loc_0000324e:
 	clr.l -(a7)
@@ -22929,17 +22930,17 @@ CODE_5_loc_0000324e:
 CODE_5_loc_0000327a:
 	move.w #$58,-(a7)
 	move.l a3,-(a7)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_5_loc_00003542
 CODE_5_loc_00003288:
 	clr.l -(a7)
 	move.l -$132A(a5),-(a7)
 	move.w #$E,-(a7)
-	jsr $077A(a5)
+	jsr CODE_0_jump_table_entry_235+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,d4
 	bne.b CODE_5_loc_000032a6
 	move.w #$57,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_5_loc_00003542
 CODE_5_loc_000032a6:
 	movea.l d4,a0
@@ -22954,7 +22955,7 @@ CODE_5_loc_000032a6:
 	tst.l $0004(a0)
 	bne.b CODE_5_loc_000032ce
 	move.w #$57,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_5_loc_00003542
 CODE_5_loc_000032ce:
 	movea.l d4,a0
@@ -22967,7 +22968,7 @@ CODE_5_loc_000032ce:
 	move.l a3,-(a7)
 	pea.l -$000A(a6)
 	pea.l -$0006(a6)
-	jsr $00FA(a5)
+	jsr CODE_0_jump_table_entry_27+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a4
 	move.l a4,d0
 	bne.b CODE_5_loc_0000334a
@@ -22988,12 +22989,12 @@ CODE_5_loc_0000331a:
 	move.l a3,-(a7)
 	pea.l -$000A(a6)
 	pea.l -$0006(a6)
-	jsr $00FA(a5)
+	jsr CODE_0_jump_table_entry_27+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a4
 	move.l a4,d0
 	bne.b CODE_5_loc_00003340
 	move.w #$59,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_5_loc_00003542
 CODE_5_loc_00003340:
 	movea.l d4,a0
@@ -23062,11 +23063,11 @@ CODE_5_loc_000033ce:
 	asl.w #2,d0
 	addq.w #2,d0
 	move.w d0,-(a7)
-	jsr $077A(a5)
+	jsr CODE_0_jump_table_entry_235+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,-$0012(a6)
 	bne.b CODE_5_loc_000033f2
 	move.w #$57,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_5_loc_00003542
 CODE_5_loc_000033f2:
 	movea.l -$0012(a6),a0
@@ -23136,11 +23137,11 @@ CODE_5_loc_00003484:
 	asl.w #2,d0
 	addq.w #2,d0
 	move.w d0,-(a7)
-	jsr $077A(a5)
+	jsr CODE_0_jump_table_entry_235+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,-$0016(a6)
 	bne.b CODE_5_loc_000034a8
 	move.w #$57,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_5_loc_00003542
 CODE_5_loc_000034a8:
 	movea.l -$0016(a6),a0
@@ -23217,7 +23218,7 @@ CODE_5_loc_0000356c:
 	beq.w CODE_5_loc_000036f4
 	move.l -$132A(a5),-(a7)
 	move.l $0004(a4),-(a7)
-	jsr $0782(a5)
+	jsr CODE_0_jump_table_entry_236+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b $0008(a4),d0
 	ext.w d0
 	subq.w #2,d0
@@ -23233,7 +23234,7 @@ CODE_5_loc_00003596:
 	beq.w CODE_5_loc_000036de
 	move.l -$0F2A(a5),-(a7)
 	move.l $000A(a4),-(a7)
-	jsr $0782(a5)
+	jsr CODE_0_jump_table_entry_236+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_5_loc_000036de
 CODE_5_loc_000035b2:
 	move.l $000A(a4),-$001A(a6)
@@ -23260,7 +23261,7 @@ CODE_5_loc_000035e0:
 	beq.b CODE_5_loc_000035fa
 	move.l -$132A(a5),-(a7)
 	move.l a3,-(a7)
-	jsr $0782(a5)
+	jsr CODE_0_jump_table_entry_236+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_5_loc_000035fa:
 	addq.w #1,d7
 	bvs.b CODE_5_loc_00003604
@@ -23270,7 +23271,7 @@ CODE_5_loc_000035fe:
 CODE_5_loc_00003604:
 	move.l -$132A(a5),-(a7)
 	move.l -$001A(a6),-(a7)
-	jsr $0782(a5)
+	jsr CODE_0_jump_table_entry_236+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_5_loc_000036de
 CODE_5_loc_00003614:
 	move.l $000A(a4),d4
@@ -23291,7 +23292,7 @@ CODE_5_loc_00003632:
 	beq.b CODE_5_loc_0000364c
 	move.l -$0F2A(a5),-(a7)
 	move.l a3,-(a7)
-	jsr $0782(a5)
+	jsr CODE_0_jump_table_entry_236+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_5_loc_0000364c:
 	addq.w #1,d7
 	bvs.w CODE_5_loc_000036d4
@@ -23329,7 +23330,7 @@ CODE_5_loc_00003692:
 	beq.b CODE_5_loc_000036b4
 	move.l -$0F2A(a5),-(a7)
 	move.l -$0026(a6),-(a7)
-	jsr $0782(a5)
+	jsr CODE_0_jump_table_entry_236+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_5_loc_000036b4:
 	addq.w #1,-$000A(a6)
 CODE_5_loc_000036b8:
@@ -23338,7 +23339,7 @@ CODE_5_loc_000036b8:
 	bge.b CODE_5_loc_00003692
 	move.l -$132A(a5),-(a7)
 	move.l a3,-(a7)
-	jsr $0782(a5)
+	jsr CODE_0_jump_table_entry_236+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_5_loc_000036ca:
 	addq.w #1,d7
 	bvs.b CODE_5_loc_000036d4
@@ -23348,13 +23349,13 @@ CODE_5_loc_000036ce:
 CODE_5_loc_000036d4:
 	move.l -$132A(a5),-(a7)
 	move.l d4,-(a7)
-	jsr $0782(a5)
+	jsr CODE_0_jump_table_entry_236+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_5_loc_000036de:
 	move.l a4,-$0008(a6)
 	movea.l (a4),a4
 	move.l -$132A(a5),-(a7)
 	move.l -$0008(a6),-(a7)
-	jsr $0782(a5)
+	jsr CODE_0_jump_table_entry_236+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_5_loc_0000356c
 CODE_5_loc_000036f4:
 	movea.l -$131A(a5),a0
@@ -23364,12 +23365,12 @@ CODE_5_loc_000036fc:
 	beq.b CODE_5_loc_00003720
 	move.l -$132A(a5),-(a7)
 	move.l $0004(a4),-(a7)
-	jsr $0782(a5)
+	jsr CODE_0_jump_table_entry_236+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l a4,-$0008(a6)
 	movea.l (a4),a4
 	move.l -$132A(a5),-(a7)
 	move.l -$0008(a6),-(a7)
-	jsr $0782(a5)
+	jsr CODE_0_jump_table_entry_236+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_5_loc_000036fc
 CODE_5_loc_00003720:
 	movea.l -$131A(a5),a0
@@ -23380,7 +23381,7 @@ CODE_5_loc_00003726:
 	move.l -$132A(a5),-(a7)
 	movea.l d6,a0
 	move.l $0004(a0),-(a7)
-	jsr $0782(a5)
+	jsr CODE_0_jump_table_entry_236+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l d6,a0
 	move.l $000A(a0),d0
 	cmp.l -$1326(a5),d0
@@ -23388,7 +23389,7 @@ CODE_5_loc_00003726:
 	move.l -$132A(a5),-(a7)
 	movea.l d6,a0
 	move.l $000A(a0),-(a7)
-	jsr $0782(a5)
+	jsr CODE_0_jump_table_entry_236+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_5_loc_00003752:
 	movea.l d6,a0
 	tst.l $000E(a0)
@@ -23402,7 +23403,7 @@ CODE_5_loc_00003764:
 	move.l (a0),d6
 	move.l -$132A(a5),-(a7)
 	move.l -$0016(a6),-(a7)
-	jsr $0782(a5)
+	jsr CODE_0_jump_table_entry_236+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_5_loc_00003726
 CODE_5_loc_0000377a:
 	movem.l (a7)+,d4-d7/a3-a4
@@ -23445,7 +23446,7 @@ CODE_5_loc_000037c2:
 	ext.w d0
 	lea.l -$0DDC(a5),a2
 	move.b $0(a2,d0.w),-(a7)
-	jsr $01F2(a5)
+	jsr CODE_0_jump_table_entry_58+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,d0
 	movea.l (a7)+,a0
 	move.l d0,(a0)
@@ -23487,7 +23488,7 @@ CODE_5_loc_0000384c:
 	move.l $0(a1,d0.w),-(a7)
 	lea.l -$0DDC(a5),a2
 	move.b $0(a2,d7.w),-(a7)
-	jsr $01F2(a5)
+	jsr CODE_0_jump_table_entry_58+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,d0
 	movea.l (a7)+,a0
 	move.l d0,(a0)
@@ -23513,7 +23514,7 @@ CODE_5_loc_000038a0:
 	move.b (a0),d0
 	addq.w #1,d0
 	move.w d0,-(a7)
-	jsr $077A(a5)
+	jsr CODE_0_jump_table_entry_235+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a4
 	move.l a4,d0
 	bne.b CODE_5_loc_000038c8
@@ -23521,7 +23522,7 @@ CODE_5_loc_000038a0:
 CODE_5_loc_000038c8:
 	move.l $0008(a6),-(a7)
 	move.l a4,-(a7)
-	jsr $0092(a5)
+	jsr CODE_0_jump_table_entry_14+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l $000C(a6),a0
 	move.l a4,(a0)
 	move.b #$1,$0010(a6)
@@ -23580,7 +23581,7 @@ CODE_5_loc_00003956:
 	pea.l -$0100(a6)
 	move.w d5,-(a7)
 	move.w d6,-(a7)
-	jsr $009A(a5)
+	jsr CODE_0_jump_table_entry_15+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_5_loc_00003966:
 	clr.w -(a7)
 	move.l $0010(a6),-(a7)
@@ -24265,7 +24266,7 @@ CODE_5_loc_000056ec:
 	beq.b CODE_5_loc_00005776
 	move.l -$0F2A(a5),-(a7)
 	move.l -$0014(a6),-(a7)
-	jsr $0782(a5)
+	jsr CODE_0_jump_table_entry_236+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_5_loc_0000578c
 CODE_5_loc_00005776:
 	move.w #$57,-(a7)
@@ -24543,7 +24544,7 @@ CODE_5_loc_00005aa0:
 	movea.l -$001C(a6),a0
 	move.l $000A(a0),-(a7)
 	pea.l -$2B1C(a5)
-	jsr $0092(a5)
+	jsr CODE_0_jump_table_entry_14+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_5_loc_00005ace
 CODE_5_loc_00005ab2:
 	movea.l -$001C(a6),a0
@@ -24552,7 +24553,7 @@ CODE_5_loc_00005ab2:
 	movea.l -$0030(a6),a0
 	move.w $0008(a0),-(a7)
 	move.w $000A(a0),-(a7)
-	jsr $009A(a5)
+	jsr CODE_0_jump_table_entry_15+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_5_loc_00005ace:
 	clr.w -(a7)
 	pea.l -$0014(a6)
@@ -24679,7 +24680,7 @@ CODE_5_loc_00005c16:
 	movea.l -$0030(a6),a0
 	move.w $0008(a0),-(a7)
 	move.w $000A(a0),-(a7)
-	jsr $009A(a5)
+	jsr CODE_0_jump_table_entry_15+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.w -(a7)
 	pea.l -$0014(a6)
 	pea.l -$2B1C(a5)
@@ -24724,7 +24725,7 @@ CODE_5_loc_00005cae:
 	jsr CODE_5_loc_000000ea(pc)
 	pea.l CODE_5_loc_00005d28(pc)
 	pea.l -$0646(a5)
-	jsr $0A9A(a5)
+	jsr CODE_0_jump_table_entry_335+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d7
 	bne.b CODE_5_loc_00005cd2
 	clr.b -$074A(a5)
@@ -24739,7 +24740,7 @@ CODE_5_loc_00005cd2:
 	sub.w d7,d0
 	move.w d0,-(a7)
 	pea.l -$0102(a6)
-	jsr $0AAA(a5)
+	jsr CODE_0_jump_table_entry_337+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$074A(a5),a0
 	lea.l -$0102(a6),a1
 	moveq.l #127,d0
@@ -24783,12 +24784,12 @@ CODE_5_loc_00005d6a:
 	tst.l $000C(a6)
 	bne.b CODE_5_loc_00005d7e
 	move.w $0010(a6),-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_5_loc_00005d8a
 CODE_5_loc_00005d7e:
 	move.w $0010(a6),-(a7)
 	move.l $000C(a6),-(a7)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_5_loc_00005d8a:
 	move.l $0008(a6),-(a7)
 	jsr CODE_5_loc_00005d2a(pc)
@@ -24812,7 +24813,7 @@ CODE_5_loc_00005dbc:
 	move.w $0010(a6),d0
 	ext.l d0
 	move.l d0,-(a7)
-	jsr $00C2(a5)
+	jsr CODE_0_jump_table_entry_20+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a0
 	lea.l -$0104(a4),a1
 	moveq.l #127,d0
@@ -24824,7 +24825,7 @@ CODE_5_loc_00005ddc:
 	pea.l -$0100(a6)
 	pea.l -$0200(a6)
 	move.w #$3,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$0104(a4),a0
 	lea.l -$0200(a6),a1
 	moveq.l #127,d0
@@ -24941,7 +24942,7 @@ CODE_5_loc_00005f36:
 	beq.b CODE_5_loc_00005f60
 	move.w -$0106(a6),-(a7)
 	pea.l -$0646(a5)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_5_loc_00006658
 CODE_5_loc_00005f60:
 	clr.b $0008(a6)
@@ -24974,8 +24975,8 @@ CODE_5_loc_00005fa4:
 	ext.l d0
 	move.l d0,-(a7)
 	move.l #$FFFE,-(a7)
-	jsr $00BA(a5)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_19+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l a6,-(a7)
 	jsr CODE_5_loc_00005d2a(pc)
 CODE_5_loc_00005fd0:
@@ -24985,7 +24986,7 @@ CODE_5_loc_00005fd0:
 	move.b (a7)+,d0
 	bne.b CODE_5_loc_00005fec
 	move.w #$59,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l a6,-(a7)
 	jsr CODE_5_loc_00005d2a(pc)
 CODE_5_loc_00005fec:
@@ -24997,7 +24998,7 @@ CODE_5_loc_00005fec:
 	lea.l -$041C(a5),a0
 	clr.b $0(a0,d0.w)
 	pea.l -$041C(a5)
-	jsr $012A(a5)
+	jsr CODE_0_jump_table_entry_33+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.w d0
 	move.b -$09BE(a5),d0
 	move.w d0,-$0210(a6)
@@ -25012,7 +25013,7 @@ CODE_5_loc_00005fec:
 	pea.l -$09BE(a5)
 	move.b #$1,-(a7)
 	move.w #$26,-(a7)
-	jsr $017A(a5)
+	jsr CODE_0_jump_table_entry_43+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d1
 	move.l (a7)+,d0
 	eori.b #1,d1
@@ -25050,7 +25051,7 @@ CODE_5_loc_00006072:
 	pea.l -$0BC2(a5)
 	move.b #$1,-(a7)
 	move.w #$26,-(a7)
-	jsr $017A(a5)
+	jsr CODE_0_jump_table_entry_43+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d1
 	move.l (a7)+,d0
 	eori.b #1,d1
@@ -25078,7 +25079,7 @@ CODE_5_loc_000060da:
 	move.l a0,-$0004(a5)
 	clr.w -$0002(a6)
 	clr.w -$0004(a6)
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	moveq.l #30,d0
 	cmp.b -$0005(a5),d0
 	beq.w CODE_5_loc_00006294
@@ -25115,15 +25116,15 @@ CODE_5_loc_00006142:
 	jsr CODE_5_loc_00005dac(pc)
 CODE_5_loc_00006158:
 	pea.l -$0106(a5)
-	jsr $0052(a5)
+	jsr CODE_0_jump_table_entry_6+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$0106(a5)
 	pea.l -$020A(a6)
-	jsr $0092(a5)
+	jsr CODE_0_jump_table_entry_14+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_5_loc_0000616c:
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.w -(a7)
 	move.b #$1C,-(a7)
-	jsr $072A(a5)
+	jsr CODE_0_jump_table_entry_225+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	beq.b CODE_5_loc_00006188
 	move.l a6,-(a7)
@@ -25144,7 +25145,7 @@ CODE_5_loc_0000619a:
 	beq.w CODE_5_loc_00006242
 	and.b -$0107(a6),d0
 	beq.w CODE_5_loc_00006242
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	tst.b -$0005(a5)
 	beq.b CODE_5_loc_000061c8
 	move.w -$0002(a6),-(a7)
@@ -25153,15 +25154,15 @@ CODE_5_loc_0000619a:
 	jsr CODE_5_loc_00005dac(pc)
 CODE_5_loc_000061c8:
 	pea.l -$0106(a5)
-	jsr $0052(a5)
+	jsr CODE_0_jump_table_entry_6+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$0106(a5)
 	pea.l CODE_5_loc_000066d4(pc)
-	jsr $0ACA(a5)
+	jsr CODE_0_jump_table_entry_341+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	bne.b CODE_5_loc_000061f0
 	pea.l -$0106(a5)
 	pea.l CODE_5_loc_000066d0(pc)
-	jsr $0ACA(a5)
+	jsr CODE_0_jump_table_entry_341+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	or.b (a7)+,d0
 	beq.b CODE_5_loc_000061f8
 CODE_5_loc_000061f0:
@@ -25170,12 +25171,12 @@ CODE_5_loc_000061f0:
 CODE_5_loc_000061f8:
 	pea.l -$0106(a5)
 	pea.l CODE_5_loc_000066ce(pc)
-	jsr $0AC2(a5)
+	jsr CODE_0_jump_table_entry_340+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	beq.b CODE_5_loc_0000623a
 	pea.l -$0106(a5)
 	pea.l CODE_5_loc_000066ca(pc)
-	jsr $0AC2(a5)
+	jsr CODE_0_jump_table_entry_340+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	and.b (a7)+,d0
 	beq.b CODE_5_loc_0000623a
 	move.w -$0002(a6),-(a7)
@@ -25183,7 +25184,7 @@ CODE_5_loc_000061f8:
 	pea.l -$0106(a5)
 	pea.l -$0314(a6)
 	move.w #$2,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$0314(a6)
 	move.l a6,-(a7)
 	jsr CODE_5_loc_00005dac(pc)
@@ -25202,7 +25203,7 @@ CODE_5_loc_00006242:
 	moveq.l #61,d0
 	cmp.w -$0438(a5),d0
 	bne.b CODE_5_loc_0000626c
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b #$1,-$020B(a6)
 CODE_5_loc_0000626c:
 	clr.w -(a7)
@@ -25221,7 +25222,7 @@ CODE_5_loc_00006282:
 	bra.w CODE_5_loc_000060f8
 CODE_5_loc_00006294:
 	clr.l -(a7)
-	jsr $024A(a5)
+	jsr CODE_0_jump_table_entry_69+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$042E(a5),a0
 	move.l a0,-$0004(a5)
 	movea.l -$2806(a5),a0
@@ -25239,7 +25240,7 @@ CODE_5_loc_00006294:
 CODE_5_loc_000062cc:
 	pea.l -$0542(a5)
 	pea.l -$108E(a5)
-	jsr $0092(a5)
+	jsr CODE_0_jump_table_entry_14+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_5_loc_000062d8:
 	clr.w d0
 	move.b -$0542(a5),d0
@@ -25261,17 +25262,17 @@ CODE_5_loc_000062d8:
 	pea.l -$0542(a5)
 	move.b -$0C5F(a5),-(a7)
 	clr.w -(a7)
-	jsr $017A(a5)
+	jsr CODE_0_jump_table_entry_43+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	beq.b CODE_5_loc_0000632e
 	move.l -$0BEC(a5),-(a7)
 	move.w -$0C20(a5),-(a7)
 	move.l -$0C1E(a5),-(a7)
-	jsr $0192(a5)
+	jsr CODE_0_jump_table_entry_46+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_5_loc_0000637c
 CODE_5_loc_0000632e:
 	move.w #$7,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_5_loc_0000637c
 CODE_5_loc_00006338:
 	move.b #$C0,-$0541(a5)
@@ -25279,7 +25280,7 @@ CODE_5_loc_00006338:
 	pea.l -$0BCC(a5)
 	pea.l -$0314(a6)
 	move.w #$2,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$0542(a5),a0
 	lea.l -$0314(a6),a1
 	moveq.l #127,d0
@@ -25378,7 +25379,7 @@ CODE_5_loc_0000643c:
 	move.l a6,-(a7)
 	jsr CODE_5_loc_00005d2a(pc)
 CODE_5_loc_00006462:
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	moveq.l #30,d0
 	cmp.b -$0005(a5),d0
 	bne.b CODE_5_loc_00006476
@@ -25409,7 +25410,7 @@ CODE_5_loc_000064a4:
 	cmp.w -$0428(a5),d0
 	bne.b CODE_5_loc_000064fa
 	clr.l -(a7)
-	jsr $0242(a5)
+	jsr CODE_0_jump_table_entry_68+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	bne.b CODE_5_loc_000064c2
 	move.w #$85,-(a7)
@@ -25470,24 +25471,24 @@ CODE_5_loc_00006536:
 	pea.l -$0542(a5)
 	move.b -$0C5F(a5),-(a7)
 	clr.w -(a7)
-	jsr $017A(a5)
+	jsr CODE_0_jump_table_entry_43+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	beq.b CODE_5_loc_00006576
 	move.l -$0BEC(a5),-(a7)
 	move.w -$0C20(a5),-(a7)
 	move.l -$0C1E(a5),-(a7)
-	jsr $0192(a5)
+	jsr CODE_0_jump_table_entry_46+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_5_loc_0000658a
 CODE_5_loc_00006576:
 	move.w #$7,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_5_loc_0000658a
 CODE_5_loc_00006580:
 	addq.w #1,-$0BC4(a5)
 	move.w -$0BC4(a5),-$0BC6(a5)
 CODE_5_loc_0000658a:
 	move.l -$1496(a5),-(a7)
-	jsr $0252(a5)
+	jsr CODE_0_jump_table_entry_70+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l -$2806(a5),-$131A(a5)
 	addq.w #1,-$131C(a5)
 	movea.l -$131A(a5),a0
@@ -25515,8 +25516,8 @@ CODE_5_loc_000065ce:
 	ext.l d0
 	move.l d0,-(a7)
 	move.l #$FFFE,-(a7)
-	jsr $00BA(a5)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_19+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l a6,-(a7)
 	jsr CODE_5_loc_00005d2a(pc)
 CODE_5_loc_000065fa:
@@ -25531,7 +25532,7 @@ CODE_5_loc_000065fa:
 	move.l d0,-(a7)
 	move.w #$FFFC,-(a7)
 	move.b #$1,-(a7)
-	jsr $00BA(a5)
+	jsr CODE_0_jump_table_entry_19+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a0
 	lea.l -$0BCC(a5),a1
 	moveq.l #2,d0
@@ -25545,7 +25546,7 @@ CODE_5_loc_00006632:
 	move.l -$1298(a5),-(a7)
 	move.w -$25C4(a5),-(a7)
 	move.w -$131C(a5),-(a7)
-	jsr $016A(a5)
+	jsr CODE_0_jump_table_entry_41+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_5_loc_00006658:
 	lea.l -$0334(a6),a7
 	movem.l (a7)+,d3-d7/a2-a4
@@ -25588,7 +25589,7 @@ CODE_5_loc_00006750:
 	beq.w CODE_5_loc_000067f8
 	pea.l -$0542(a5)
 	pea.l -$27C6(a5)
-	jsr $0ACA(a5)
+	jsr CODE_0_jump_table_entry_341+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	and.b (a7)+,d0
 	beq.w CODE_5_loc_000067f8
 	clr.b -$26C6(a5)
@@ -25658,7 +25659,7 @@ CODE_6_loc_00000028:
 	move.l d0,$0018(a7)
 	subq.w #2,a7
 	move.l $0006(a7),-(a7)
-	jsr $00D2(a5)
+	jsr CODE_0_jump_table_entry_22+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d0
 	movea.l (a7)+,a0
 	move.w d0,(a0)
@@ -26048,7 +26049,7 @@ CODE_6_loc_000003ee:
 	bra.b CODE_6_loc_000003fe
 CODE_6_loc_000003f2:
 	move.b -$0C61(a5),-$0C60(a5)
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_6_loc_000003fc:
 	moveq.l #1,d0
 CODE_6_loc_000003fe:
@@ -26066,7 +26067,7 @@ CODE_6_loc_0000041a:
 	bne.b CODE_6_loc_00000482
 	subq.w #2,a7
 	pea.l -$0106(a5)
-	jsr $00D2(a5)
+	jsr CODE_0_jump_table_entry_22+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d0
 	move.w d0,-$0008(a6)
 	subq.w #4,a7
@@ -26075,7 +26076,7 @@ CODE_6_loc_0000041a:
 	pea.l -$0004(a6)
 	pea.l -$0006(a6)
 	move.w d0,-(a7)
-	jsr $00F2(a5)
+	jsr CODE_0_jump_table_entry_26+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,d0
 	bne.b CODE_6_loc_00000474
 	tst.b -$0C5B(a5)
@@ -26086,7 +26087,7 @@ CODE_6_loc_0000041a:
 	pea.l -$0004(a6)
 	pea.l -$0006(a6)
 	move.w -$0008(a6),-(a7)
-	jsr $00F2(a5)
+	jsr CODE_0_jump_table_entry_26+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,d0
 	beq.b CODE_6_loc_00000482
 CODE_6_loc_00000474:
@@ -26113,23 +26114,23 @@ CODE_6_loc_0000049a:
 	btst #4,d4
 	bne.b CODE_6_loc_00000524
 	or.l d5,(a3)
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_6_loc_00000512
 CODE_6_loc_000004b6:
 	btst #2,d4
 	beq.b CODE_6_loc_00000524
 	move.w d5,d6
 	move.w d5,d7
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	cmpi.b #5,(a4)
 	bne.b CODE_6_loc_00000500
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bsr.w CODE_6_loc_0000041a
 	beq.b CODE_6_loc_00000524
 	btst #2,d4
 	beq.b CODE_6_loc_00000524
 	move.w d5,d7
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	cmpi.w #15,d6
 	bgt.b CODE_6_loc_00000524
 	cmpi.w #15,d7
@@ -26155,7 +26156,7 @@ CODE_6_loc_00000506:
 CODE_6_loc_00000512:
 	cmpi.b #7,(a4)
 	bne.b CODE_6_loc_00000520
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_6_loc_0000049a
 CODE_6_loc_00000520:
 	moveq.l #1,d0
@@ -26195,7 +26196,7 @@ CODE_6_loc_0000058e:
 	tst.b d5
 	beq.b CODE_6_loc_000005b2
 	or.l d5,(a3)
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_6_loc_0000064a
 CODE_6_loc_000005b2:
 	move.l d5,d0
@@ -26224,21 +26225,21 @@ CODE_6_loc_000005ec:
 	addq.b #1,d0
 	bne.b CODE_6_loc_0000066e
 CODE_6_loc_000005f0:
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_6_loc_0000065c
 CODE_6_loc_000005f6:
 	move.w d5,d6
 	move.w d5,d7
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	cmpi.b #5,(a4)
 	bne.b CODE_6_loc_00000630
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bsr.w CODE_6_loc_0000041a
 	beq.b CODE_6_loc_0000066e
 	btst #2,d4
 	beq.b CODE_6_loc_0000066e
 	move.w d5,d7
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	cmpi.w #32,d6
 	blt.b CODE_6_loc_0000066e
 	cmpi.w #39,d6
@@ -26272,7 +26273,7 @@ CODE_6_loc_00000658:
 CODE_6_loc_0000065c:
 	cmpi.b #7,(a4)
 	bne.b CODE_6_loc_0000066a
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_6_loc_0000058e
 CODE_6_loc_0000066a:
 	moveq.l #1,d0
@@ -26316,12 +26317,12 @@ CODE_6_loc_000006bc:
 CODE_6_loc_000006de:
 	move.w #$2,-(a7)
 	move.l d5,-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_6_loc_000006f2
 CODE_6_loc_000006ea:
 	clr.w -(a7)
 	move.l d5,-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_6_loc_000006f2:
 	cmpi.b #29,(a4)
 	beq.b CODE_6_loc_000006fc
@@ -26333,21 +26334,21 @@ CODE_6_loc_000006fc:
 CODE_6_loc_00000702:
 	move.w #$6,-(a7)
 	move.l d0,-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	cmpi.b #6,(a4)
 	beq.b CODE_6_loc_00000724
 	move.w #$6,-(a7)
 	move.l #$1,-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.b d0
 	rts
 CODE_6_loc_00000724:
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	subq.w #2,a7
 	pea.l -$0002(a6)
 	pea.l -$0006(a6)
 	move.l $000C(a6),-(a7)
-	jsr $0232(a5)
+	jsr CODE_0_jump_table_entry_66+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	beq.b CODE_6_loc_0000074e
 	clr.b d0
@@ -26365,7 +26366,7 @@ CODE_6_loc_0000074e:
 	addq.w #4,a7
 	bra.w CODE_6_loc_000003ee
 CODE_6_loc_00000754:
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	cmpi.b #0,(a4)
 	bne.b CODE_6_loc_000007c8
 	subq.w #1,-$0108(a5)
@@ -26376,37 +26377,37 @@ CODE_6_loc_00000754:
 	bne.b CODE_6_loc_0000078e
 	cmpi.b #87,d0
 	bne.b CODE_6_loc_00000780
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	moveq.l #2,d0
 	bra.b CODE_6_loc_000007c4
 CODE_6_loc_00000780:
 	cmpi.b #76,d0
 	bne.b CODE_6_loc_000007c8
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	moveq.l #4,d0
 	bra.b CODE_6_loc_000007c4
 CODE_6_loc_0000078e:
 	cmpi.b #83,d0
 	bne.b CODE_6_loc_0000079c
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	moveq.l #8,d0
 	bra.b CODE_6_loc_000007c4
 CODE_6_loc_0000079c:
 	cmpi.b #68,d0
 	bne.b CODE_6_loc_000007aa
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	moveq.l #16,d0
 	bra.b CODE_6_loc_000007c4
 CODE_6_loc_000007aa:
 	cmpi.b #88,d0
 	bne.b CODE_6_loc_000007b8
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	moveq.l #32,d0
 	bra.b CODE_6_loc_000007c4
 CODE_6_loc_000007b8:
 	cmpi.b #80,d0
 	bne.b CODE_6_loc_000007c8
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	moveq.l #64,d0
 CODE_6_loc_000007c4:
 	clr.b d1
@@ -26428,7 +26429,7 @@ CODE_6_loc_000007cc:
 	cmpi.w #4,d0
 	beq.b CODE_6_loc_00000874
 	move.w #$F1,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_6_loc_00000872
 CODE_6_loc_00000802:
 	clr.b -$000E(a6)
@@ -26476,7 +26477,7 @@ CODE_6_loc_00000874:
 	add.w d0,(a0)
 	move.w #$6,-(a7)
 	move.l d0,-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.b d0
 CODE_6_loc_00000886:
 	rts
@@ -26501,7 +26502,7 @@ CODE_6_loc_000008ac:
 	bne.b CODE_6_loc_000008c2
 	move.w #$3,-(a7)
 	move.l #$8,-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_6_loc_000008c2:
 	bsr.w CODE_6_loc_0000068e
 	bne.w CODE_6_loc_000003e4
@@ -26521,17 +26522,17 @@ CODE_6_loc_000008d2:
 	bne.b CODE_6_loc_000008fe
 	move.w #$1,-(a7)
 	move.l d5,-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_6_loc_00000908
 CODE_6_loc_000008fe:
 	move.w #$3,-(a7)
 	move.l d5,-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_6_loc_00000908:
 	clr.b -$000C(a6)
 	jmp (a3)
 CODE_6_loc_0000090e:
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	tst.b $001C(a6)
 	bne.b CODE_6_loc_0000095a
 	move.b -$0C3B(a5),d0
@@ -26539,19 +26540,19 @@ CODE_6_loc_0000090e:
 	subq.w #2,a7
 	movea.l $0008(a6),a3
 	move.l a3,-(a7)
-	jsr $0202(a5)
+	jsr CODE_0_jump_table_entry_60+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	beq.w CODE_6_loc_000003e0
 	tst.b -$0C45(a5)
 	beq.b CODE_6_loc_00000944
 	move.w #$7,-(a7)
 	move.l (a3),-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_6_loc_0000094e
 CODE_6_loc_00000944:
 	move.w #$6,-(a7)
 	move.l (a3),-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_6_loc_0000094e:
 	movea.l $0010(a6),a0
 	move.w #$D,(a0)
@@ -26559,9 +26560,9 @@ CODE_6_loc_0000094e:
 CODE_6_loc_0000095a:
 	cmpi.b #3,(a4)
 	bne.b CODE_6_loc_00000980
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w #$2,-(a7)
-	jsr $01EA(a5)
+	jsr CODE_0_jump_table_entry_57+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$0214(a5),a0
 	moveq.l #1,d0
 	add.b (a0),d0
@@ -26575,7 +26576,7 @@ CODE_6_loc_00000980:
 CODE_6_loc_0000098c:
 	subq.w #2,a7
 	pea.l -$0006(a6)
-	jsr $0202(a5)
+	jsr CODE_0_jump_table_entry_60+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	beq.w CODE_6_loc_000003e0
 	cmpi.b #29,(a4)
@@ -26592,17 +26593,17 @@ CODE_6_loc_000009b0:
 	move.w -$0C40(a5),-(a7)
 	move.w -$0C42(a5),-(a7)
 	move.l $000C(a6),-(a7)
-	jsr $03E2(a5)
+	jsr CODE_0_jump_table_entry_120+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l -$0F2A(a5),-(a7)
 	move.l -$0006(a6),-(a7)
-	jsr $0782(a5)
+	jsr CODE_0_jump_table_entry_236+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	beq.w CODE_6_loc_000003ee
 	movea.l $000C(a6),a0
 	move.w (a0),d0
 	beq.b CODE_6_loc_000009ec
 	move.w d0,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_6_loc_000009ec:
 	lea.l -$0214(a5),a0
 	moveq.l #1,d0
@@ -26654,7 +26655,7 @@ CODE_6_loc_00000a62:
 	move.l -$0BE4(a5),-(a7)
 	move.w #$A000,-(a7)
 	pea.l -$000B(a6)
-	jsr $00EA(a5)
+	jsr CODE_0_jump_table_entry_25+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,d0
 	beq.w CODE_6_loc_0000039c
 	tst.b -$000B(a6)
@@ -26663,17 +26664,17 @@ CODE_6_loc_00000a62:
 CODE_6_loc_00000a8a:
 	move.w #$5,-(a7)
 	move.l d0,-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w #$6,-(a7)
 	move.l #$2,-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l $0014(a6),a0
 	move.w #$2,(a0)
 	movea.l $0010(a6),a0
 	move.w #$F,(a0)
 	bra.w CODE_6_loc_000003fc
 CODE_6_loc_00000ab6:
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	cmpi.b #22,(a4)
 	beq.b CODE_6_loc_00000ada
 	clr.w d0
@@ -26686,7 +26687,7 @@ CODE_6_loc_00000ab6:
 CODE_6_loc_00000ada:
 	moveq.l #1,d0
 	move.b d0,-$0C60(a5)
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bsr.w CODE_6_loc_0000041a
 	bne.b CODE_6_loc_00000b0c
 	clr.w d0
@@ -26707,8 +26708,8 @@ CODE_6_loc_00000b0c:
 	bgt.w CODE_6_loc_000003a0
 	move.w #$1,-(a7)
 	move.l d5,-(a7)
-	jsr $0142(a5)
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	cmpi.b #23,(a4)
 	bne.w CODE_6_loc_000003a4
 	movea.l $0010(a6),a0
@@ -26733,7 +26734,7 @@ CODE_6_loc_00000b6c:
 	beq.w CODE_6_loc_000003a8
 	move.w #$A,-(a7)
 	move.l -$000A(a6),-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l $0014(a6),a0
 	move.w #$2,(a0)
 	move.w #$6,(a3)
@@ -26759,7 +26760,7 @@ CODE_6_loc_00000bc2:
 CODE_6_loc_00000bc6:
 	clr.w -(a7)
 	move.l d5,-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l $0010(a6),a0
 	move.w #$1,(a0)
 	bra.w CODE_6_loc_000003f2
@@ -26784,7 +26785,7 @@ CODE_6_loc_00000c04:
 CODE_6_loc_00000c08:
 	move.w #$1,-(a7)
 	move.l d5,-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l $0010(a6),a0
 	move.w #$2,(a0)
 	bra.w CODE_6_loc_000003f2
@@ -26821,7 +26822,7 @@ CODE_6_loc_00000c70:
 CODE_6_loc_00000c78:
 	move.w #$4,-(a7)
 	move.l d5,-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_6_loc_000003f2
 CODE_6_loc_00000c86:
 	cmpi.w #32,-$0C68(a5)
@@ -26847,7 +26848,7 @@ CODE_6_loc_00000cc0:
 CODE_6_loc_00000ccc:
 	move.w #$F,-(a7)
 	move.l d5,-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_6_loc_000003f2
 CODE_6_loc_00000cda:
 	btst #2,d4
@@ -26865,7 +26866,7 @@ CODE_6_loc_00000cf0:
 	beq.w CODE_6_loc_000003a8
 	move.w #$A,-(a7)
 	move.l -$000A(a6),-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	tst.b -$000F(a6)
 	bne.b CODE_6_loc_00000d26
 	move.w #$20,(a3)
@@ -26910,7 +26911,7 @@ CODE_6_loc_00000d82:
 CODE_6_loc_00000d92:
 	move.w #$4,-(a7)
 	move.l d5,-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w #$4,(a3)
 	bra.w CODE_6_loc_000003f2
 CODE_6_loc_00000da4:
@@ -26918,7 +26919,7 @@ CODE_6_loc_00000da4:
 	bgt.w CODE_6_loc_00000398
 	move.w #$B,-(a7)
 	move.l d5,-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l $0010(a6),a0
 	move.w #$19,(a0)
 	bra.w CODE_6_loc_000003f2
@@ -26933,7 +26934,7 @@ CODE_6_loc_00000dc2:
 	bgt.b CODE_6_loc_00000df4
 	move.w #$C,-(a7)
 	move.l d5,-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l $0010(a6),a0
 	move.w #$1D,(a0)
 	bra.w CODE_6_loc_000003f2
@@ -26944,7 +26945,7 @@ CODE_6_loc_00000df4:
 	bgt.w CODE_6_loc_00000398
 	move.w #$D,-(a7)
 	move.l d5,-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l $0010(a6),a0
 	move.w #$1E,(a0)
 	bra.w CODE_6_loc_000003f2
@@ -26966,7 +26967,7 @@ CODE_6_loc_00000e38:
 	move.w d0,(a0)
 	move.w #$E,-(a7)
 	move.l d5,-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_6_loc_000003f2
 CODE_6_loc_00000e50:
 	dc.b $33,$34,$35,$36,$37,$38,$39,$3A,$3B,$3C,$14,$15,$3D,$3E,$15,$16
@@ -26976,7 +26977,7 @@ CODE_6_loc_00000e6c:
 	pea.l -$0002(a6)
 	pea.l -$0006(a6)
 	move.l $000C(a6),-(a7)
-	jsr $0232(a5)
+	jsr CODE_0_jump_table_entry_66+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	beq.w CODE_6_loc_000003ee
 CODE_6_loc_00000e84:
@@ -27001,7 +27002,7 @@ CODE_6_loc_00000eba:
 CODE_6_loc_00000ec4:
 	move.w #$6,-(a7)
 	move.l d1,-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l $0010(a6),a0
 	move.w #$B,(a0)
 	bra.w CODE_6_loc_000003fc
@@ -27011,7 +27012,7 @@ CODE_6_loc_00000eda:
 	move.w #$4,(a0)
 	move.w #$6,-(a7)
 	move.l d1,-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l $0010(a6),a0
 	move.w #$C,(a0)
 	bra.w CODE_6_loc_000003fc
@@ -27024,7 +27025,7 @@ CODE_6_loc_00000efa:
 	move.b d0,-$0C91(a5)
 	moveq.l #1,d0
 	move.b d0,-$0C60(a5)
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bsr.w CODE_6_loc_0000041a
 	beq.w CODE_6_loc_000003ac
 	btst #2,d4
@@ -27036,7 +27037,7 @@ CODE_6_loc_00000efa:
 	cmpi.b #15,d5
 	bgt.w CODE_6_loc_000003ac
 CODE_6_loc_00000f42:
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	cmpi.b #28,(a4)
 	beq.w CODE_6_loc_00000fd0
 	cmpi.b #23,(a4)
@@ -27048,7 +27049,7 @@ CODE_6_loc_00000f42:
 CODE_6_loc_00000f62:
 	move.w #$6,-(a7)
 	move.l #$2,-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l $0010(a6),a0
 	move.w #$10,(a0)
 	bra.w CODE_6_loc_000011b4
@@ -27063,28 +27064,28 @@ CODE_6_loc_00000f7c:
 	beq.b CODE_6_loc_00000fac
 	move.w #$6,-(a7)
 	clr.l -(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l $0014(a6),a0
 	clr.w (a0)
 	bra.b CODE_6_loc_00000fba
 CODE_6_loc_00000fac:
 	move.w #$6,-(a7)
 	move.l #$2,-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_6_loc_00000fba:
 	movea.l $0010(a6),a0
 	move.w #$6,(a0)
 	move.w #$1,-(a7)
 	move.l d5,-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_6_loc_000003f2
 CODE_6_loc_00000fd0:
 	move.w #$6,-(a7)
 	move.l #$2,-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w #$1,-(a7)
 	move.l d5,-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l $0010(a6),a0
 	move.w #$7,(a0)
 	bra.w CODE_6_loc_000011a4
@@ -27097,10 +27098,10 @@ CODE_6_loc_00000ffc:
 	beq.b CODE_6_loc_0000102c
 	move.w #$6,-(a7)
 	move.l #$2,-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w #$1,-(a7)
 	move.l #$D,-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l $0010(a6),a0
 	move.w #$6,(a0)
 	bra.w CODE_6_loc_000003fc
@@ -27167,11 +27168,11 @@ CODE_6_loc_000010d6:
 	tst.b -$0C62(a5)
 	beq.b CODE_6_loc_000010e2
 	move.w d0,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_6_loc_000010e2:
 	move.w #$6,-(a7)
 	move.l d7,-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	subq.w #2,d7
 	beq.b CODE_6_loc_00001104
 	subq.w #2,d7
@@ -27195,7 +27196,7 @@ CODE_6_loc_00001110:
 	move.b d0,-$0C91(a5)
 	moveq.l #1,d0
 	move.b d0,-$0C60(a5)
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bsr.w CODE_6_loc_0000041a
 	beq.w CODE_6_loc_000003b0
 	btst #2,d4
@@ -27209,31 +27210,31 @@ CODE_6_loc_00001110:
 CODE_6_loc_00001156:
 	move.w #$6,-(a7)
 	move.l #$2,-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l $0010(a6),a0
 	move.w #$10,(a0)
 	bra.b CODE_6_loc_000011b0
 CODE_6_loc_0000116e:
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	cmpi.b #23,(a4)
 	bne.b CODE_6_loc_00001186
 	move.b -$0C61(a5),-$0C60(a5)
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_6_loc_0000102c
 CODE_6_loc_00001186:
 	cmpi.b #28,(a4)
 	bne.w CODE_6_loc_000003d4
 	move.w #$6,-(a7)
 	move.l #$2,-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l $0010(a6),a0
 	move.w #$10,(a0)
 CODE_6_loc_000011a4:
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bsr.w CODE_6_loc_0000041a
 	beq.w CODE_6_loc_000003b4
 CODE_6_loc_000011b0:
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_6_loc_000011b4:
 	bsr.w CODE_6_loc_0000068e
 	bne.w CODE_6_loc_000003e4
@@ -27250,12 +27251,12 @@ CODE_6_loc_000011c8:
 	move.b d0,-$0C91(a5)
 	moveq.l #1,d0
 	move.b d0,-$0C60(a5)
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	cmpi.b #24,(a4)
 	beq.w CODE_6_loc_00001484
 	bsr.w CODE_6_loc_0000041a
 	beq.w CODE_6_loc_0000127c
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	cmpi.b #23,(a4)
 	bne.b CODE_6_loc_0000124c
 	move.b -$0C61(a5),-$0C60(a5)
@@ -27267,8 +27268,8 @@ CODE_6_loc_000011c8:
 	bgt.w CODE_6_loc_000003c4
 	move.w #$1,-(a7)
 	move.l d5,-(a7)
-	jsr $0142(a5)
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	cmpi.b #4,(a4)
 	beq.b CODE_6_loc_00001240
 	movea.l $0010(a6),a0
@@ -27281,10 +27282,10 @@ CODE_6_loc_00001240:
 CODE_6_loc_0000124c:
 	move.w #$6,-(a7)
 	clr.l -(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w #$6,-(a7)
 	clr.l -(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l $0010(a6),a0
 	move.w #$8,(a0)
 	st.b -$000D(a6)
@@ -27303,7 +27304,7 @@ CODE_6_loc_0000127c:
 	pea.l -$0002(a6)
 	pea.l -$0006(a6)
 	move.l $000C(a6),-(a7)
-	jsr $0232(a5)
+	jsr CODE_0_jump_table_entry_66+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	beq.w CODE_6_loc_000003ee
 	clr.w d0
@@ -27379,10 +27380,10 @@ CODE_6_loc_00001392:
 CODE_6_loc_00001394:
 	movea.l $0010(a6),a0
 	move.w d0,(a0)
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bsr.w CODE_6_loc_0000041a
 	beq.w CODE_6_loc_000003ac
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_6_loc_000013aa:
 	movea.l $0014(a6),a0
 	addq.w #2,(a0)
@@ -27413,13 +27414,13 @@ CODE_6_loc_000013f4:
 CODE_6_loc_000013fa:
 	move.w #$2,-(a7)
 	move.l #$8,-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w #$6,-(a7)
 	move.l #$2,-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w #$6,-(a7)
 	move.l #$1,-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_6_loc_000011bc
 CODE_6_loc_00001428:
 	cmpi.w #6152,-$0C6A(a5)
@@ -27450,15 +27451,15 @@ CODE_6_loc_00001484:
 	st.b -$000D(a6)
 	movea.l $0014(a6),a0
 	move.w #$2,(a0)
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	cmpi.b #25,(a4)
 	bne.b CODE_6_loc_000014b8
 	move.w #$6,-(a7)
 	clr.l -(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w #$6,-(a7)
 	clr.l -(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l $0010(a6),a0
 	move.w #$9,(a0)
 	bra.b CODE_6_loc_00001512
@@ -27467,10 +27468,10 @@ CODE_6_loc_000014b8:
 	beq.b CODE_6_loc_000014dc
 	move.w #$6,-(a7)
 	clr.l -(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w #$6,-(a7)
 	clr.l -(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l $0010(a6),a0
 	move.w #$9,(a0)
 	bra.b CODE_6_loc_0000154e
@@ -27479,7 +27480,7 @@ CODE_6_loc_000014dc:
 	pea.l -$0002(a6)
 	pea.l -$0006(a6)
 	move.l $000C(a6),-(a7)
-	jsr $0232(a5)
+	jsr CODE_0_jump_table_entry_66+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	beq.w CODE_6_loc_000003ee
 	bsr.w CODE_6_loc_000007cc
@@ -27493,7 +27494,7 @@ CODE_6_loc_000014dc:
 CODE_6_loc_00001512:
 	move.w #$3,-(a7)
 	move.l #$8,-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.b -$000C(a6)
 	bra.b CODE_6_loc_00001586
 CODE_6_loc_00001526:
@@ -27506,21 +27507,21 @@ CODE_6_loc_00001526:
 CODE_6_loc_0000153a:
 	cmpi.b #28,(a4)
 	bne.w CODE_6_loc_000003ac
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bsr.w CODE_6_loc_0000041a
 	beq.w CODE_6_loc_000003ac
 CODE_6_loc_0000154e:
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	moveq.l #9,d6
 	moveq.l #18,d7
 	bsr.w CODE_6_loc_00000888
 	bne.b CODE_6_loc_0000157e
 	cmpi.b #28,(a4)
 	bne.b CODE_6_loc_0000157e
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bsr.w CODE_6_loc_0000041a
 	beq.w CODE_6_loc_000003b4
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bsr.w CODE_6_loc_0000068e
 	bne.w CODE_6_loc_000003e4
 	st.b -$000C(a6)
@@ -27528,61 +27529,61 @@ CODE_6_loc_0000157e:
 	cmpi.b #25,(a4)
 	bne.w CODE_6_loc_000003c8
 CODE_6_loc_00001586:
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	cmpi.b #28,(a4)
 	beq.b CODE_6_loc_000015d8
 	tst.b -$000C(a6)
 	bne.b CODE_6_loc_000015c0
 	move.w #$2,-(a7)
 	move.l #$8,-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w #$6,-(a7)
 	move.l #$2,-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w #$6,-(a7)
 	move.l #$1,-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_6_loc_000015c0:
 	move.w #$6,-(a7)
 	clr.l -(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w #$6,-(a7)
 	clr.l -(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_6_loc_000011bc
 CODE_6_loc_000015d8:
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bsr.w CODE_6_loc_0000041a
 	beq.b CODE_6_loc_00001608
 	tst.b -$000C(a6)
 	bne.w CODE_6_loc_000003d0
 	movea.l $0010(a6),a0
 	addq.w #1,(a0)
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bsr.w CODE_6_loc_0000068e
 	bne.w CODE_6_loc_000003e4
 	cmpi.b #28,(a4)
 	bne.b CODE_6_loc_000015c0
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_6_loc_00001638
 CODE_6_loc_00001608:
 	tst.b -$000C(a6)
 	bne.b CODE_6_loc_00001638
 	move.w #$2,-(a7)
 	move.l #$8,-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w #$6,-(a7)
 	move.l #$2,-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w #$6,-(a7)
 	move.l #$1,-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_6_loc_00001638:
 	subq.w #2,a7
 	pea.l -$0002(a6)
 	pea.l -$0006(a6)
 	move.l $000C(a6),-(a7)
-	jsr $0232(a5)
+	jsr CODE_0_jump_table_entry_66+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	beq.w CODE_6_loc_000003ee
 	bsr.w CODE_6_loc_000007cc
@@ -27625,7 +27626,7 @@ CODE_6_loc_000016a4:
 	beq.b CODE_6_loc_000016be
 CODE_6_loc_000016b6:
 	move.w #$32,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_6_loc_000016be:
 	tst.b d5
 	bmi.b CODE_6_loc_000016ca
@@ -27723,7 +27724,7 @@ CODE_6_loc_000017a4:
 	move.b #$1E,-$0005(a5)
 	bra.b CODE_6_loc_000017b6
 CODE_6_loc_000017b2:
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_6_loc_000017b6:
 	moveq.l #2,d7
 	tst.w -$0BCE(a5)
@@ -27759,7 +27760,7 @@ CODE_6_loc_0000180a:
 	bne.b CODE_6_loc_00001848
 	moveq.l #1,d0
 	move.b d0,-$0C60(a5)
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b -$0C61(a5),-$0C60(a5)
 	lea.l -$0006(a6),a0
 	bsr.w CODE_6_loc_000021ce
@@ -27788,13 +27789,13 @@ CODE_6_loc_00001848:
 	pea.l -$000A(a6)
 	move.b -$0C46(a5),d5
 	bge.b CODE_6_loc_0000188c
-	jsr $03CA(a5)
+	jsr CODE_0_jump_table_entry_117+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_6_loc_000018a0
 CODE_6_loc_0000188c:
 	move.b -$0C49(a5),d5
 	beq.b CODE_6_loc_0000189c
 	move.b -$0C48(a5),-(a7)
-	jsr $05BA(a5)
+	jsr CODE_0_jump_table_entry_179+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_6_loc_000018a0
 CODE_6_loc_0000189c:
 	jsr CODE_6_loc_000001aa(pc)
@@ -27943,7 +27944,7 @@ CODE_6_loc_00001a56:
 	addq.w #2,d7
 CODE_6_loc_00001a58:
 	clr.l -(a7)
-	jsr $024A(a5)
+	jsr CODE_0_jump_table_entry_69+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b #$1,-$133B(a5)
 	movea.l -$0F0E(a5),a0
 	tst.w $0008(a0)
@@ -27954,7 +27955,7 @@ CODE_6_loc_00001a58:
 	move.w -$0422(a5),-(a7)
 	move.w $0008(a6),-(a7)
 	move.w -$0BD2(a5),-(a7)
-	jsr $0162(a5)
+	jsr CODE_0_jump_table_entry_40+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_6_loc_00001a88:
 	move.w -$0006(a6),-(a7)
 	move.w -$0004(a6),-(a7)
@@ -27962,7 +27963,7 @@ CODE_6_loc_00001a88:
 	move.w -$000A(a6),-(a7)
 	move.w -$0422(a5),-(a7)
 	move.w $0008(a6),-(a7)
-	jsr $0152(a5)
+	jsr CODE_0_jump_table_entry_38+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	add.l -$0BE8(a5),d7
 	move.l d7,-$0BE8(a5)
 	cmp.l -$0BF0(a5),d7
@@ -28002,7 +28003,7 @@ CODE_6_loc_00001ae6:
 	addi.w #50,d0
 CODE_6_loc_00001aea:
 	move.w d0,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_6_loc_00001ab6
 CODE_6_loc_00001af2:
 	cmpi.b #30,(a4)
@@ -28138,26 +28139,26 @@ CODE_6_loc_00001c06:
 	bne.w CODE_6_loc_00001ad6
 	moveq.l #1,d0
 	move.b d0,-$0C60(a5)
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bsr.w CODE_6_loc_0000212c
 	btst d7,d0
 	move.b -$0C61(a5),-$0C60(a5)
 	cmpi.b #23,(a4)
 	bne.w CODE_6_loc_00001ad6
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	jsr CODE_6_loc_0000210e(pc)
 	move.b d0,-(a7)
 	cmpi.b #22,(a4)
 	bne.w CODE_6_loc_00001ad6
 	moveq.l #1,d0
 	move.b d0,-$0C60(a5)
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bsr.w CODE_6_loc_0000212c
 	btst d7,d0
 	move.b -$0C61(a5),-$0C60(a5)
 	cmpi.b #23,(a4)
 	bne.w CODE_6_loc_00001ad6
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	cmpi.b #30,(a4)
 	bne.w CODE_6_loc_00001ad6
 	addq.w #4,d7
@@ -28192,7 +28193,7 @@ CODE_6_loc_00001cde:
 	beq.b CODE_6_loc_00001d02
 	move.w #$2,-(a7)
 	clr.l -(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w d6,-$0BD4(a5)
 	bra.w CODE_6_loc_00001bc6
 CODE_6_loc_00001d02:
@@ -28243,7 +28244,7 @@ CODE_6_loc_00001d82:
 	clr.w -$0004(a6)
 	bsr.b CODE_6_loc_00001e10
 	bne.w CODE_6_loc_00001ad6
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	cmpi.b #30,(a4)
 	beq.b CODE_6_loc_00001e02
 	cmpi.b #7,(a4)
@@ -28254,11 +28255,11 @@ CODE_6_loc_00001d82:
 	beq.w CODE_6_loc_00001ad6
 	moveq.l #1,d0
 	move.b d0,-$0C60(a5)
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b -$0C61(a5),-$0C60(a5)
 	bsr.b CODE_6_loc_00001e10
 	bne.w CODE_6_loc_00001ad6
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	cmpi.b #30,(a4)
 	beq.b CODE_6_loc_00001e02
 CODE_6_loc_00001dd6:
@@ -28266,7 +28267,7 @@ CODE_6_loc_00001dd6:
 	move.b d0,d6
 	move.w #$6,-(a7)
 	move.l d4,-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$0004(a6),a0
 	bsr.w CODE_6_loc_000021ce
 	cmpi.w #3,d0
@@ -28277,7 +28278,7 @@ CODE_6_loc_00001dd6:
 CODE_6_loc_00001e02:
 	move.w #$6,-(a7)
 	move.l d4,-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_6_loc_00001a58
 CODE_6_loc_00001e10:
 	cmpi.b #0,(a4)
@@ -28322,7 +28323,7 @@ CODE_6_loc_00001e6e:
 	cmpi.b #30,(a4)
 	beq.w CODE_6_loc_00001ad6
 	move.l -$0BDA(a5),d0
-	jsr $03DA(a5)
+	jsr CODE_0_jump_table_entry_119+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	sub.l a0,d0
 	move.w d0,-$000A(a6)
 	move.w #$1F,-$0006(a6)
@@ -28398,12 +28399,12 @@ CODE_6_loc_00001f18:
 	move.l d0,-$0012(a6)
 	move.w #$6,-(a7)
 	move.l d0,-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_6_loc_00001f00
 CODE_6_loc_00001f8a:
 	moveq.l #1,d0
 	move.b d0,-$0C60(a5)
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	jsr CODE_6_loc_0000041a(pc)
 	beq.b CODE_6_loc_00001fa8
 	bsr.w CODE_6_loc_0000212c
@@ -28426,7 +28427,7 @@ CODE_6_loc_00001fa8:
 CODE_6_loc_00001fe0:
 	cmpi.b #27,(a4)
 	bne.w CODE_6_loc_00001ade
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_6_loc_00001f00
 CODE_6_loc_00001ff0:
 	cmpi.b #30,(a4)
@@ -28437,7 +28438,7 @@ CODE_6_loc_00001ff0:
 	btst.b #1,$0002(a1)
 	beq.w CODE_6_loc_00001ad6
 CODE_6_loc_0000200c:
-	jsr $05CA(a5)
+	jsr CODE_0_jump_table_entry_181+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	suba.l a0,a1
 	move.w a1,-$000A(a6)
 	move.w #$1F,-$0006(a6)
@@ -28518,7 +28519,7 @@ CODE_6_loc_0000210e:
 	bne.w CODE_6_loc_00001aca
 	moveq.l #1,d0
 	move.b d0,-$0C60(a5)
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b -$0C61(a5),-$0C60(a5)
 	jmp $0002(a3)
 CODE_6_loc_0000212c:
@@ -28531,8 +28532,8 @@ CODE_6_loc_0000212c:
 	bgt.w CODE_6_loc_00001ad6
 	clr.w -(a7)
 	move.l d5,-(a7)
-	jsr $0142(a5)
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	jmp $0002(a3)
 CODE_6_loc_00002154:
 	movea.l (a7)+,a3
@@ -28546,8 +28547,8 @@ CODE_6_loc_00002154:
 	bgt.w CODE_6_loc_00001ad6
 	move.w #$B,-(a7)
 	move.l d5,-(a7)
-	jsr $0142(a5)
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	jmp (a3)
 CODE_6_loc_00002186:
 	movea.l (a7)+,a2
@@ -28598,7 +28599,7 @@ CODE_6_loc_000021fe:
 	bne.w CODE_6_loc_00001ad6
 	moveq.l #1,d0
 	move.b d0,-$0C60(a5)
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	jsr CODE_6_loc_0000041a(pc)
 	beq.b CODE_6_loc_00002232
 	btst #2,d4
@@ -28607,13 +28608,13 @@ CODE_6_loc_000021fe:
 	bge.b CODE_6_loc_0000224e
 	clr.w -(a7)
 	move.l d5,-(a7)
-	jsr $0142(a5)
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_6_loc_00002262
 CODE_6_loc_00002232:
 	subq.w #2,a7
 	pea.l -$0012(a6)
-	jsr $0202(a5)
+	jsr CODE_0_jump_table_entry_60+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	beq.b CODE_6_loc_0000224e
 	move.l -$0012(a6),d0
@@ -28626,7 +28627,7 @@ CODE_6_loc_0000224e:
 CODE_6_loc_00002258:
 	move.w #$6,-(a7)
 	move.l d0,-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_6_loc_00002262:
 	cmpi.b #31,(a4)
 	beq.b CODE_6_loc_00002278
@@ -28635,7 +28636,7 @@ CODE_6_loc_00002262:
 	move.b -$0C61(a5),-$0C60(a5)
 	bra.w CODE_6_loc_00001ad6
 CODE_6_loc_00002278:
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	jsr CODE_6_loc_0000041a(pc)
 	beq.b CODE_6_loc_0000229c
 	btst #2,d4
@@ -28644,13 +28645,13 @@ CODE_6_loc_00002278:
 	bge.b CODE_6_loc_0000224e
 	clr.w -(a7)
 	move.l d5,-(a7)
-	jsr $0142(a5)
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_6_loc_000022c6
 CODE_6_loc_0000229c:
 	subq.w #2,a7
 	pea.l -$0012(a6)
-	jsr $0202(a5)
+	jsr CODE_0_jump_table_entry_60+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	beq.b CODE_6_loc_0000224e
 	move.l -$0012(a6),d0
@@ -28662,12 +28663,12 @@ CODE_6_loc_0000229c:
 CODE_6_loc_000022bc:
 	move.w #$6,-(a7)
 	move.l d0,-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_6_loc_000022c6:
 	move.b -$0C61(a5),-$0C60(a5)
 	cmpi.b #27,(a4)
 	bne.w CODE_6_loc_00001ad6
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	jmp (a3)
 CODE_6_loc_000022da:
 	dc.b $01,$F6,$02,$02,$02,$1C,$02,$7E,$00,$00,$02,$8C,$02,$9A,$02,$D0
@@ -29061,7 +29062,7 @@ CODE_6_loc_000022da:
 CODE_6_loc_00003b16:
 	link a6,#0
 	move.l $0008(a6),-(a7)
-	jsr $075A(a5)
+	jsr CODE_0_jump_table_entry_231+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
@@ -29172,7 +29173,7 @@ CODE_7_loc_000000ea:
 	and.w d0,d6
 	beq.b CODE_7_loc_00000112
 CODE_7_loc_000000f6:
-	jsr $057A(a5)
+	jsr CODE_0_jump_table_entry_171+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	tst.w d3
 	bne.b CODE_7_loc_00000102
 	tst.l d1
@@ -29191,7 +29192,7 @@ CODE_7_loc_0000010e:
 CODE_7_loc_00000112:
 	subq.w #4,a7
 	move.l a1,-(a7)
-	jsr $0572(a5)
+	jsr CODE_0_jump_table_entry_170+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a1
 	bne.b CODE_7_loc_000000c6
 	clr.w d0
@@ -29420,12 +29421,12 @@ CODE_7_loc_00000af6:
 	movea.l $0008(a6),a4
 	pea.l -$0006(a6)
 	pea.l CODE_7_loc_00000c52(pc)
-	jsr $0AC2(a5)
+	jsr CODE_0_jump_table_entry_340+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	beq.b CODE_7_loc_00000b22
 	pea.l -$0006(a6)
 	pea.l -$0018(a6)
-	jsr $0092(a5)
+	jsr CODE_0_jump_table_entry_14+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_7_loc_00000b32
 CODE_7_loc_00000b22:
 	lea.l -$0018(a6),a0
@@ -29450,7 +29451,7 @@ CODE_7_loc_00000b48:
 	move.l -$0006(a4),-(a7)
 	move.w -$0002(a4),-(a7)
 	pea.l -$000B(a6)
-	jsr $00EA(a5)
+	jsr CODE_0_jump_table_entry_25+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a3
 	move.b -$000B(a6),d0
 	beq.b CODE_7_loc_00000ba6
@@ -29484,17 +29485,17 @@ CODE_7_loc_00000ba6:
 	beq.b CODE_7_loc_00000bb8
 	move.w #$C0,-(a7)
 	pea.l -$0018(a6)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_7_loc_00000bb8:
 	pea.l -$0018(a6)
-	jsr $005A(a5)
+	jsr CODE_0_jump_table_entry_7+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.l -(a7)
 	move.l -$0C50(a5),-(a7)
 	pea.l -$0018(a6)
 	move.l -$0006(a4),-(a7)
 	move.w -$0002(a4),-(a7)
 	pea.l -$000B(a6)
-	jsr $00EA(a5)
+	jsr CODE_0_jump_table_entry_25+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a3
 	move.b -$000B(a6),d0
 	beq.b CODE_7_loc_00000c1e
@@ -29528,7 +29529,7 @@ CODE_7_loc_00000c1e:
 	beq.b CODE_7_loc_00000c30
 	move.w #$C0,-(a7)
 	pea.l -$0018(a6)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_7_loc_00000c30:
 	addq.l #1,-$0006(a4)
 	movem.l (a7)+,d7/a3-a4
@@ -29701,7 +29702,7 @@ CODE_7_loc_00000e1a:
 	pea.l -$0044(a6)
 	pea.l -$0176(a6)
 	move.w #$3,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$24AA(a5),a0
 	lea.l -$0176(a6),a1
 	moveq.l #70,d0
@@ -29804,7 +29805,7 @@ CODE_7_loc_00000fde:
 	cmp.b -$0C4A(a5),d0
 	bne.b CODE_7_loc_00000ff4
 	move.w #$C1,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_7_loc_0000101e
 CODE_7_loc_00000ff4:
 	tst.b -$0C4A(a5)
@@ -29813,7 +29814,7 @@ CODE_7_loc_00000ff4:
 	cmp.w -$0C68(a5),d0
 	bgt.b CODE_7_loc_0000100c
 	move.w #$C4,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_7_loc_0000101e
 CODE_7_loc_0000100c:
 	move.b #$2,-(a7)
@@ -29959,12 +29960,12 @@ CODE_8_loc_00000104:
 	bge.b CODE_8_loc_00000158
 	move.l -$149C(a5),-(a7)
 	pea.l -$18E8(a5)
-	jsr $041A(a5)
+	jsr CODE_0_jump_table_entry_127+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_8_loc_00000164
 CODE_8_loc_00000158:
 	move.l -$149C(a5),-(a7)
 	move.w #$D,-(a7)
-	jsr $046A(a5)
+	jsr CODE_0_jump_table_entry_137+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_8_loc_00000164:
 	btst.b #6,-$12A5(a5)
 	beq.w CODE_8_loc_00000252
@@ -29976,13 +29977,13 @@ CODE_8_loc_00000178:
 	dbf.w d0,CODE_8_loc_00000178
 	pea.l -$0100(a6)
 	pea.l -$1908(a5)
-	jsr $008A(a5)
+	jsr CODE_0_jump_table_entry_13+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$0100(a6)
 	move.w #$1F,-(a7)
 	jsr CODE_8_loc_000000dc(pc)
 	pea.l -$0100(a6)
 	pea.l -$12FC(a5)
-	jsr $008A(a5)
+	jsr CODE_0_jump_table_entry_13+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.w d0
 	move.b -$0100(a6),d0
 	move.w -$12AA(a5),d1
@@ -30000,7 +30001,7 @@ CODE_8_loc_000001c0:
 	jsr CODE_8_loc_000000dc(pc)
 	pea.l -$0100(a6)
 	pea.l -$1AE0(a5)
-	jsr $008A(a5)
+	jsr CODE_0_jump_table_entry_13+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$0100(a6)
 	move.w -$12AA(a5),d0
 	subq.w #7,d0
@@ -30008,30 +30009,30 @@ CODE_8_loc_000001c0:
 	jsr CODE_8_loc_000000dc(pc)
 	pea.l -$0100(a6)
 	pea.l -$18EE(a5)
-	jsr $008A(a5)
+	jsr CODE_0_jump_table_entry_13+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$0100(a6)
 	clr.l -(a7)
 	move.w -$12FE(a5),d0
 	ext.l d0
 	move.l d0,-(a7)
 	move.l #$4,-(a7)
-	jsr $00BA(a5)
-	jsr $008A(a5)
+	jsr CODE_0_jump_table_entry_19+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
+	jsr CODE_0_jump_table_entry_13+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l -$149C(a5),-(a7)
 	pea.l -$0100(a6)
-	jsr $041A(a5)
+	jsr CODE_0_jump_table_entry_127+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l -$149C(a5),-(a7)
 	pea.l CODE_8_loc_00000262(pc)
-	jsr $0472(a5)
+	jsr CODE_0_jump_table_entry_138+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l -$149C(a5),-(a7)
 	move.w #$D,-(a7)
-	jsr $046A(a5)
+	jsr CODE_0_jump_table_entry_137+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l -$149C(a5),-(a7)
 	pea.l -$1A08(a5)
-	jsr $041A(a5)
+	jsr CODE_0_jump_table_entry_127+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l -$149C(a5),-(a7)
 	move.w #$D,-(a7)
-	jsr $046A(a5)
+	jsr CODE_0_jump_table_entry_137+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_8_loc_00000252:
 	unlk a6
 	rts
@@ -30073,7 +30074,7 @@ CODE_8_loc_000002e6:
 	addq.w #1,d7
 	move.l -$149C(a5),-(a7)
 	move.w #$D,-(a7)
-	jsr $046A(a5)
+	jsr CODE_0_jump_table_entry_137+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_8_loc_000002e6
 CODE_8_loc_00000300:
 	move.l (a7)+,d7
@@ -30132,10 +30133,10 @@ CODE_8_loc_0000036c:
 	pea.l -$001C(a6)
 	move.w #$1,-(a7)
 	move.w d4,-(a7)
-	jsr $009A(a5)
+	jsr CODE_0_jump_table_entry_15+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l a4,-(a7)
 	pea.l -$001C(a6)
-	jsr $008A(a5)
+	jsr CODE_0_jump_table_entry_13+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	cmp.w d6,d7
 	bge.b CODE_8_loc_000003c2
 	clr.w d7
@@ -30155,13 +30156,13 @@ CODE_8_loc_000003d8:
 	move.l -$1308(a5),-(a7)
 	move.w #$1,-(a7)
 	move.w d5,-(a7)
-	jsr $0AB2(a5)
+	jsr CODE_0_jump_table_entry_338+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	sub.w d5,d7
 	bra.b CODE_8_loc_000003f6
 CODE_8_loc_000003ea:
 	move.l a4,-(a7)
 	move.l -$1308(a5),-(a7)
-	jsr $008A(a5)
+	jsr CODE_0_jump_table_entry_13+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.w d7
 CODE_8_loc_000003f6:
 	movea.l -$1308(a5),a0
@@ -30189,7 +30190,7 @@ CODE_8_loc_0000041c:
 	jsr CODE_8_loc_00000104(pc)
 	move.l -$149C(a5),-(a7)
 	pea.l -$0100(a6)
-	jsr $041A(a5)
+	jsr CODE_0_jump_table_entry_127+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_8_loc_0000041c
 CODE_8_loc_0000044a:
 	movea.l -$1308(a5),a0
@@ -30222,8 +30223,8 @@ CODE_8_loc_00000486:
 	neg.w d0
 	move.w d0,-(a7)
 	move.b #$1,-(a7)
-	jsr $00BA(a5)
-	jsr $008A(a5)
+	jsr CODE_0_jump_table_entry_19+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
+	jsr CODE_0_jump_table_entry_13+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_8_loc_000004ba:
 	btst.b #2,-$12A4(a5)
 	beq.w CODE_8_loc_000005cc
@@ -30276,7 +30277,7 @@ CODE_8_loc_00000538:
 	ble.b CODE_8_loc_0000055a
 	pea.l -$0108(a6)
 	pea.l -$1312(a5)
-	jsr $008A(a5)
+	jsr CODE_0_jump_table_entry_13+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_8_loc_0000055a:
 	move.l a4,d0
 	beq.w CODE_8_loc_00000620
@@ -30316,7 +30317,7 @@ CODE_8_loc_000005a4:
 CODE_8_loc_000005c0:
 	pea.l -$0108(a6)
 	move.l a4,-(a7)
-	jsr $008A(a5)
+	jsr CODE_0_jump_table_entry_13+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_8_loc_00000620
 CODE_8_loc_000005cc:
 	move.l a4,d0
@@ -30346,17 +30347,17 @@ CODE_8_loc_000005da:
 CODE_8_loc_00000610:
 	pea.l -$0108(a6)
 	move.l a4,-(a7)
-	jsr $008A(a5)
+	jsr CODE_0_jump_table_entry_13+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_8_loc_0000061a:
 	movea.l -$1308(a5),a0
 	clr.b (a0)
 CODE_8_loc_00000620:
 	pea.l -$0108(a6)
-	jsr $007A(a5)
+	jsr CODE_0_jump_table_entry_11+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	jsr CODE_8_loc_00000104(pc)
 	move.l -$149C(a5),-(a7)
 	pea.l -$0108(a6)
-	jsr $041A(a5)
+	jsr CODE_0_jump_table_entry_127+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.b -$1312(a5)
 	clr.b -$0F8D(a5)
 	clr.b -$0F8E(a5)
@@ -30512,7 +30513,7 @@ CODE_9_loc_00000098:
 	move.l d0,-(a7)
 	jsr CODE_9_loc_000031be(pc)
 CODE_9_loc_000000b0:
-	jsr $0672(a5)
+	jsr CODE_0_jump_table_entry_202+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l -$0F56(a5),a0
 	move.l a0,-$0F5A(a5)
 	clr.l -$0F5E(a5)
@@ -30520,7 +30521,7 @@ CODE_9_loc_000000b0:
 	sub.l a0,d0
 	ble.b CODE_9_loc_000000cc
 	move.l d0,-(a7)
-	jsr $06D2(a5)
+	jsr CODE_0_jump_table_entry_214+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_9_loc_000000cc:
 	rts
 CODE_9_loc_000000ce:
@@ -30638,7 +30639,7 @@ CODE_9_loc_0000047a:
 	bra.b CODE_9_loc_000004d2
 CODE_9_loc_000004c8:
 	move.w d0,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_9_loc_000004ce:
 	clr.b -$0002(a6)
 CODE_9_loc_000004d2:
@@ -30792,7 +30793,7 @@ CODE_9_loc_000007d0:
 	subq.w #4,a7
 	move.l -$0F84(a5),-(a7)
 	move.w #$C,-(a7)
-	jsr $078A(a5)
+	jsr CODE_0_jump_table_entry_237+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,d0
 	bne.b CODE_9_loc_000007e4
 	rts
@@ -30819,7 +30820,7 @@ CODE_9_loc_0000081c:
 	beq.w CODE_9_loc_000008d6
 	subq.w #4,a7
 	move.l a3,-(a7)
-	jsr $0122(a5)
+	jsr CODE_0_jump_table_entry_32+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a0
 	move.l (a0),d6
 	movea.l $0004(a3),a3
@@ -30882,7 +30883,7 @@ CODE_9_loc_000008d6:
 	pea.l $000C(a3)
 	pea.l -$0006(a6)
 	pea.l -$0008(a6)
-	jsr $00FA(a5)
+	jsr CODE_0_jump_table_entry_27+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,d2
 	beq.b CODE_9_loc_00000916
 	move.w -$0008(a6),d4
@@ -30910,7 +30911,7 @@ CODE_9_loc_00000922:
 	move.w #$3D,-(a7)
 CODE_9_loc_00000926:
 	pea.l $000C(a3)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_9_loc_000004ce
 CODE_9_loc_00000932:
 	move.b (a4)+,d6
@@ -31718,15 +31719,15 @@ CODE_9_loc_000031be:
 	move.l $0008(a6),-(a7)
 	moveq.l #-1,d0
 	move.l d0,-(a7)
-	jsr $08D2(a5)
+	jsr CODE_0_jump_table_entry_278+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,d0
 	cmp.l $0008(a6),d0
 	beq.b CODE_9_loc_000031f8
 	clr.w -(a7)
-	jsr $0902(a5)
+	jsr CODE_0_jump_table_entry_284+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7),-$0002(a6)
 	pea.l CODE_9_loc_0000320c(pc)
-	jsr $01DA(a5)
+	jsr CODE_0_jump_table_entry_55+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_9_loc_000031f8:
 	unlk a6
 	move.l (a7)+,(a7)
@@ -31808,10 +31809,10 @@ CODE_9_loc_00003650:
 	move.b -$0F4F(a5),d0
 	beq.b CODE_9_loc_00003664
 	move.l $0008(a6),-(a7)
-	jsr $06E2(a5)
+	jsr CODE_0_jump_table_entry_216+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_9_loc_00003668
 CODE_9_loc_00003664:
-	jsr $0262(a5)
+	jsr CODE_0_jump_table_entry_72+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_9_loc_00003668:
 	unlk a6
 	move.l (a7)+,(a7)
@@ -31827,26 +31828,26 @@ CODE_10_metadata_00000000:
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00
 CODE_10_loc_00000028:
 	suba.l a0,a0
-	jsr $061A(a5)
+	jsr CODE_0_jump_table_entry_191+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	tst.b -$0F4F(a5)
 	beq.b CODE_10_loc_0000004a
 	move.l -$0F32(a5),d0
 	sub.l -$0F2E(a5),d0
 	ble.b CODE_10_loc_00000044
 	move.l d0,-(a7)
-	jsr $0652(a5)
+	jsr CODE_0_jump_table_entry_198+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_10_loc_00000044:
-	jsr $067A(a5)
+	jsr CODE_0_jump_table_entry_203+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	rts
 CODE_10_loc_0000004a:
 	move.w #$2,d0
-	jsr $0622(a5)
+	jsr CODE_0_jump_table_entry_192+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w #$200,(a0)+
 	move.l a0,d0
 	sub.l -$0F2E(a5),d0
 	ble.b CODE_10_loc_00000064
 	move.l d0,-(a7)
-	jsr $0652(a5)
+	jsr CODE_0_jump_table_entry_198+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_10_loc_00000064:
 	rts
 CODE_10_loc_00000066:
@@ -31854,15 +31855,15 @@ CODE_10_loc_00000066:
 	move.b $000C(a6),d0
 	beq.b CODE_10_loc_00000078
 	pea.l -$2D92(a5)
-	jsr $09F2(a5)
+	jsr CODE_0_jump_table_entry_314+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_10_loc_00000078:
 	pea.l -$2D92(a5)
 	movea.l $0008(a6),a0
 	pea.l -$0054(a0)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
-	jsr $09F2(a5)
+	jsr CODE_0_jump_table_entry_314+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	unlk a6
 	movea.l (a7)+,a0
 	addq.w #6,a7
@@ -31875,16 +31876,16 @@ CODE_10_loc_000000a6:
 	beq.b CODE_10_loc_000000ee
 	move.b $000E(a6),d0
 	beq.b CODE_10_loc_000000c6
-	jsr $05EA(a5)
+	jsr CODE_0_jump_table_entry_185+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l -$149C(a5),-(a7)
 	move.w #$D,-(a7)
-	jsr $046A(a5)
+	jsr CODE_0_jump_table_entry_137+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_10_loc_000000c6:
-	jsr $05EA(a5)
+	jsr CODE_0_jump_table_entry_185+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l -$149C(a5),-(a7)
 	movea.l $0008(a6),a0
 	pea.l -$0054(a0)
-	jsr $041A(a5)
+	jsr CODE_0_jump_table_entry_127+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b $000C(a6),d0
 	beq.b CODE_10_loc_000000fa
 	move.b $000E(a6),-(a7)
@@ -31902,12 +31903,12 @@ CODE_10_loc_000000fa:
 	beq.b CODE_10_loc_00000112
 	move.l -$32B2(a5),-(a7)
 	move.w #$D,-(a7)
-	jsr $046A(a5)
+	jsr CODE_0_jump_table_entry_137+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_10_loc_00000112:
 	move.l -$32B2(a5),-(a7)
 	movea.l $0008(a6),a0
 	pea.l -$0054(a0)
-	jsr $041A(a5)
+	jsr CODE_0_jump_table_entry_127+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_10_loc_00000122:
 	unlk a6
 	movea.l (a7)+,a0
@@ -31930,12 +31931,12 @@ CODE_10_loc_00000136:
 	and.b d1,d0
 	beq.b CODE_10_loc_0000016c
 	clr.w -(a7)
-	jsr $080A(a5)
+	jsr CODE_0_jump_table_entry_253+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l $080A(a5)
-	jsr $019A(a5)
+	jsr CODE_0_jump_table_entry_47+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_10_loc_0000016c:
 	move.b #$4,-(a7)
-	jsr $03BA(a5)
+	jsr CODE_0_jump_table_entry_115+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	btst.b #2,-$12A6(a5)
 	sne.b d7
 	neg.b d7
@@ -32003,14 +32004,14 @@ CODE_10_loc_00000216:
 	clr.l -(a7)
 	move.l -$1AEE(a5),-(a7)
 	pea.l -$00AC(a6)
-	jsr $01B2(a5)
+	jsr CODE_0_jump_table_entry_50+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,d5
 	pea.l CODE_10_loc_000004f0(pc)
 	pea.l -$00AC(a6)
 	pea.l CODE_10_loc_000004e6(pc)
 	pea.l -$0114(a6)
 	move.w #$3,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$0054(a6),a0
 	lea.l -$0114(a6),a1
 	moveq.l #40,d0
@@ -32037,11 +32038,11 @@ CODE_10_loc_00000270:
 	pea.l CODE_10_loc_000004e2(pc)
 	clr.l -(a7)
 	move.l -$1472(a5),-(a7)
-	jsr $00C2(a5)
+	jsr CODE_0_jump_table_entry_20+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l CODE_10_loc_00000496(pc)
 	pea.l -$01AC(a6)
 	move.w #$4,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$0054(a6),a0
 	lea.l -$01AC(a6),a1
 	moveq.l #40,d0
@@ -32057,11 +32058,11 @@ CODE_10_loc_000002ba:
 	pea.l CODE_10_loc_000004e2(pc)
 	clr.l -(a7)
 	move.l -$1472(a5),-(a7)
-	jsr $00C2(a5)
+	jsr CODE_0_jump_table_entry_20+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l CODE_10_loc_00000496(pc)
 	pea.l -$01AC(a6)
 	move.w #$4,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$0054(a6),a0
 	lea.l -$01AC(a6),a1
 	moveq.l #40,d0
@@ -32093,7 +32094,7 @@ CODE_10_loc_00000316:
 	pea.l CODE_10_loc_000004c2(pc)
 	pea.l -$0106(a6)
 	move.w #$2,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$0054(a6),a0
 	lea.l -$0106(a6),a1
 	moveq.l #40,d0
@@ -32107,11 +32108,11 @@ CODE_10_loc_00000348:
 	move.w -$329C(a5),d0
 	ext.l d0
 	move.l d0,-(a7)
-	jsr $00C2(a5)
+	jsr CODE_0_jump_table_entry_20+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l CODE_10_loc_000004ba(pc)
 	pea.l -$01AC(a6)
 	move.w #$3,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$0054(a6),a0
 	lea.l -$01AC(a6),a1
 	moveq.l #40,d0
@@ -32126,7 +32127,7 @@ CODE_10_loc_0000037a:
 	pea.l CODE_10_loc_000004a8(pc)
 	pea.l -$00FE(a6)
 	move.w #$2,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$0054(a6),a0
 	lea.l -$00FE(a6),a1
 	moveq.l #40,d0
@@ -32142,11 +32143,11 @@ CODE_10_loc_000003a6:
 	move.w -$329E(a5),d0
 	ext.l d0
 	move.l d0,-(a7)
-	jsr $00C2(a5)
+	jsr CODE_0_jump_table_entry_20+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l CODE_10_loc_000004aa(pc)
 	pea.l -$01AC(a6)
 	move.w #$4,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$0054(a6),a0
 	lea.l -$01AC(a6),a1
 	moveq.l #40,d0
@@ -32160,7 +32161,7 @@ CODE_10_loc_000003dc:
 	pea.l CODE_10_loc_000004a8(pc)
 	pea.l -$00FE(a6)
 	move.w #$2,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$0054(a6),a0
 	lea.l -$00FE(a6),a1
 	moveq.l #40,d0
@@ -32172,11 +32173,11 @@ CODE_10_loc_0000040e:
 	pea.l CODE_10_loc_0000049e(pc)
 	clr.l -(a7)
 	move.l -$1472(a5),-(a7)
-	jsr $00C2(a5)
+	jsr CODE_0_jump_table_entry_20+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l CODE_10_loc_00000496(pc)
 	pea.l -$01AC(a6)
 	move.w #$4,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$0054(a6),a0
 	lea.l -$01AC(a6),a1
 	moveq.l #40,d0
@@ -32190,9 +32191,9 @@ CODE_10_loc_0000043a:
 	move.b d7,d0
 	beq.b CODE_10_loc_00000460
 	pea.l -$2D92(a5)
-	jsr $09F2(a5)
+	jsr CODE_0_jump_table_entry_314+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
-	jsr $09F2(a5)
+	jsr CODE_0_jump_table_entry_314+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_10_loc_00000460:
 	move.w -$329C(a5),d0
 	add.w d0,-$1B0C(a5)
@@ -32205,7 +32206,7 @@ CODE_10_loc_00000460:
 	and.b d1,d0
 CODE_10_loc_0000047c:
 	move.b d0,-(a7)
-	jsr $01CA(a5)
+	jsr CODE_0_jump_table_entry_53+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movem.l (a7)+,d5-d7
 	unlk a6
 	rts
@@ -32289,7 +32290,7 @@ CODE_11_loc_0000005c:
 	sub.l a0,d0
 	ble.b CODE_11_loc_00000074
 	move.l d0,-(a7)
-	jsr $0652(a5)
+	jsr CODE_0_jump_table_entry_198+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_11_loc_00000074:
 	move.l (a7)+,d0
 	sub.l -$0F56(a5),d0
@@ -32418,7 +32419,7 @@ CODE_11_loc_000001cc:
 	tst.b -$0F4F(a5)
 	beq.b CODE_11_loc_000001fe
 	pea.l $2000.w
-	jsr $0652(a5)
+	jsr CODE_0_jump_table_entry_198+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l d7,d0
 	add.l -$0F2E(a5),d0
 	move.l d0,-$0F32(a5)
@@ -32427,7 +32428,7 @@ CODE_11_loc_000001cc:
 	move.l d7,-(a7)
 	move.l -$0F3A(a5),-(a7)
 	move.l a3,-(a7)
-	jsr $09AA(a5)
+	jsr CODE_0_jump_table_entry_305+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l $000C(a7),a7
 	bra.b CODE_11_loc_00000242
 CODE_11_loc_000001fe:
@@ -32439,7 +32440,7 @@ CODE_11_loc_000001fe:
 	tst.l d7
 	ble.b CODE_11_loc_0000021e
 	move.l d7,-(a7)
-	jsr $0652(a5)
+	jsr CODE_0_jump_table_entry_198+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_11_loc_0000021e:
 	subq.l #4,a7
 	jsr CODE_11_loc_000000fe(pc)
@@ -32501,7 +32502,7 @@ CODE_11_loc_000002b0:
 	tst.l d7
 	ble.b CODE_11_loc_000002d0
 	move.l d7,-(a7)
-	jsr $0652(a5)
+	jsr CODE_0_jump_table_entry_198+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_11_loc_000002d0:
 	move.l -$0F5A(a5),d7
 	sub.l -$0F56(a5),d7
@@ -32640,7 +32641,7 @@ CODE_11_loc_0000045a:
 	move.l d6,-(a7)
 	move.l a4,-(a7)
 	move.l -$0004(a6),-(a7)
-	jsr $09AA(a5)
+	jsr CODE_0_jump_table_entry_305+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	tst.b -$0F7D(a5)
 	lea.l $000C(a7),a7
 	beq.b CODE_11_loc_00000490
@@ -33049,7 +33050,7 @@ CODE_11_loc_000008de:
 	move.l d6,-(a7)
 	move.l $0008(a6),-(a7)
 	move.l a4,-(a7)
-	jsr $09AA(a5)
+	jsr CODE_0_jump_table_entry_305+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	ext.w d6
 	ext.l d6
 	move.l d6,d0
@@ -33459,15 +33460,15 @@ CODE_11_loc_00000d60:
 	move.l $0008(a6),-(a7)
 	moveq.l #-1,d0
 	move.l d0,-(a7)
-	jsr $08D2(a5)
+	jsr CODE_0_jump_table_entry_278+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,d0
 	cmp.l $0008(a6),d0
 	beq.b CODE_11_loc_00000da0
 	clr.w -(a7)
-	jsr $0902(a5)
+	jsr CODE_0_jump_table_entry_284+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7),-$0002(a6)
 	pea.l CODE_11_loc_00000db4(pc)
-	jsr $01DA(a5)
+	jsr CODE_0_jump_table_entry_55+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_11_loc_00000da0:
 	unlk a6
 	move.l (a7)+,(a7)
@@ -33493,7 +33494,7 @@ CODE_11_loc_00000dee:
 	move.l $0008(a6),-(a7)
 	pea.l -$0008(a6)
 	pea.l -$000A(a6)
-	jsr $00FA(a5)
+	jsr CODE_0_jump_table_entry_27+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a3
 	move.l a3,d0
 	bne.b CODE_11_loc_00000e0c
@@ -33523,7 +33524,7 @@ CODE_11_data_pascal_string_00000e34:
 	dc.b $8F,"GETDICTIONARYID",$00,$00
 CODE_11_loc_00000e46:
 	link a6,#0
-	jsr $0262(a5)
+	jsr CODE_0_jump_table_entry_72+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
@@ -33609,14 +33610,14 @@ CODE_12_loc_000000a0:
 	clr.w -(a7)
 	move.l a4,-(a7)
 	move.b #$1,-(a7)
-	jsr $044A(a5)
+	jsr CODE_0_jump_table_entry_133+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,-$0242(a6)
 	pea.l -$34C4(a5)
 	move.l a4,-(a7)
 	move.w #$1,-(a7)
-	jsr $08B2(a5)
+	jsr CODE_0_jump_table_entry_274+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.w -(a7)
-	jsr $0902(a5)
+	jsr CODE_0_jump_table_entry_284+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d7
 	move.w #$4,-$0034(a6)
 	move.w #$2,-$0346(a6)
@@ -33634,7 +33635,7 @@ CODE_12_loc_00000126:
 	pea.l -$0034(a6)
 	move.l -$34CA(a5),-(a7)
 	move.w #$28,-(a7)
-	jsr $00A2(a5)
+	jsr CODE_0_jump_table_entry_16+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_12_loc_000002e4
 CODE_12_loc_00000140:
 	clr.b -$000B(a6)
@@ -33642,7 +33643,7 @@ CODE_12_loc_00000140:
 	beq.b CODE_12_loc_0000017c
 	pea.l CODE_12_loc_00000310(pc)
 	move.l a4,-(a7)
-	jsr $0A9A(a5)
+	jsr CODE_0_jump_table_entry_335+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d5
 	moveq.l #1,d0
 	cmp.w d5,d0
@@ -33657,20 +33658,20 @@ CODE_12_loc_00000140:
 	move.b (a4),d0
 	sub.w d5,d0
 	move.w d0,-(a7)
-	jsr $009A(a5)
+	jsr CODE_0_jump_table_entry_15+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	moveq.l #-1,d4
 CODE_12_loc_0000017c:
 	clr.w -(a7)
 	move.l a4,-(a7)
 	clr.w -(a7)
-	jsr $044A(a5)
+	jsr CODE_0_jump_table_entry_133+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,-$0242(a6)
 	pea.l -$34C4(a5)
 	move.l a4,-(a7)
 	clr.w -(a7)
-	jsr $08B2(a5)
+	jsr CODE_0_jump_table_entry_274+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.w -(a7)
-	jsr $0902(a5)
+	jsr CODE_0_jump_table_entry_284+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d7
 	sne.b d0
 	tst.b d0
@@ -33688,7 +33689,7 @@ CODE_12_loc_000001ae:
 	beq.b CODE_12_loc_000001ae
 	move.l -$0038(a6),-(a7)
 	move.l a4,-(a7)
-	jsr $0092(a5)
+	jsr CODE_0_jump_table_entry_14+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.w d0
 	move.b (a4),d0
 	move.w d0,-$0002(a6)
@@ -33697,14 +33698,14 @@ CODE_12_loc_000001ae:
 	bne.b CODE_12_loc_000001f2
 	move.l a4,-(a7)
 	pea.l CODE_12_loc_00000310(pc)
-	jsr $0ACA(a5)
+	jsr CODE_0_jump_table_entry_341+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	or.b (a7)+,d0
 	andi.w #1,d0
 	beq.b CODE_12_loc_00000200
 CODE_12_loc_000001f2:
 	pea.l -$0240(a6)
 	move.l a4,-(a7)
-	jsr $0092(a5)
+	jsr CODE_0_jump_table_entry_14+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_12_loc_0000017c
 CODE_12_loc_00000200:
 	move.w -$0002(a6),d0
@@ -33717,7 +33718,7 @@ CODE_12_loc_00000200:
 	pea.l CODE_12_loc_00000310(pc)
 	pea.l -$0344(a6)
 	move.w #$2,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$0344(a6),a0
 	movea.l a4,a1
 	moveq.l #127,d0
@@ -33727,7 +33728,7 @@ CODE_12_loc_0000022a:
 CODE_12_loc_00000230:
 	move.l a4,-(a7)
 	pea.l -$0240(a6)
-	jsr $008A(a5)
+	jsr CODE_0_jump_table_entry_13+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_12_loc_0000017c
 CODE_12_loc_0000023e:
 	movea.l -$34CA(a5),a0
@@ -33738,7 +33739,7 @@ CODE_12_loc_0000023e:
 	move.l a4,-(a7)
 	pea.l -$0040(a6)
 	pea.l -$003C(a6)
-	jsr $042A(a5)
+	jsr CODE_0_jump_table_entry_129+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d7
 	bne.b CODE_12_loc_000002d8
 	move.l #$444D5041,d0
@@ -33752,7 +33753,7 @@ CODE_12_loc_00000270:
 	move.l -$34CA(a5),-(a7)
 	move.w -$34D2(a5),-(a7)
 	clr.w -(a7)
-	jsr $08DA(a5)
+	jsr CODE_0_jump_table_entry_279+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,-$34D4(a5)
 	move.w -$34D4(a5),d0
 	addq.w #5,d0
@@ -33767,7 +33768,7 @@ CODE_12_loc_000002a4:
 	move.l -$34CA(a5),-(a7)
 	pea.l -$0034(a6)
 	move.w #$28,-(a7)
-	jsr $00A2(a5)
+	jsr CODE_0_jump_table_entry_16+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l $0008(a6),a0
 	move.w -$0034(a6),(a0)
 	movea.l $0008(a6),a0
@@ -33787,7 +33788,7 @@ CODE_12_loc_000002d8:
 	tst.w d7
 	bge.b CODE_12_loc_000002e4
 	pea.l -$34C4(a5)
-	jsr $08BA(a5)
+	jsr CODE_0_jump_table_entry_275+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_12_loc_000002e4:
 	tst.w d7
 	seq.b d0
@@ -33839,18 +33840,18 @@ CODE_12_loc_00000354:
 	move.l -$34CA(a5),-(a7)
 	move.w d7,-(a7)
 	move.w -$34D0(a5),-(a7)
-	jsr $08E2(a5)
+	jsr CODE_0_jump_table_entry_280+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d7
 CODE_12_loc_0000037a:
 	pea.l -$34C4(a5)
-	jsr $08BA(a5)
+	jsr CODE_0_jump_table_entry_275+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_12_loc_0000038c
 CODE_12_loc_00000384:
 	pea.l -$34C4(a5)
-	jsr $08BA(a5)
+	jsr CODE_0_jump_table_entry_275+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_12_loc_0000038c:
 	clr.w -(a7)
-	jsr $0902(a5)
+	jsr CODE_0_jump_table_entry_284+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,$0008(a6)
 	movem.l (a7)+,d7/a4
 	unlk a6
@@ -33916,7 +33917,7 @@ CODE_12_loc_0000043e:
 	move.l -$34CA(a5),-(a7)
 	move.w -$34D2(a5),-(a7)
 	move.w -$34D0(a5),-(a7)
-	jsr $08E2(a5)
+	jsr CODE_0_jump_table_entry_280+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d0
 	cmp.w -$34D2(a5),d0
 	beq.b CODE_12_loc_00000468
@@ -34010,7 +34011,7 @@ CODE_12_loc_00000544:
 	move.b #$AF,(a4)
 	move.w #$F2,-(a7)
 	move.l a4,-(a7)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b #$FD,(a4)
 	move.w #$FE,d7
 	bra.b CODE_12_loc_0000056a
@@ -34053,7 +34054,7 @@ CODE_12_loc_000005b4:
 	move.l a4,-(a7)
 	move.l a3,-(a7)
 	move.w d7,-(a7)
-	jsr $00A2(a5)
+	jsr CODE_0_jump_table_entry_16+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_12_loc_000005be:
 	move.w d5,-$34CE(a5)
 	move.l a4,d0
@@ -34109,7 +34110,7 @@ CODE_12_loc_0000063e:
 	move.w -$34D2(a5),d0
 	add.w -$34D0(a5),d0
 	move.w d0,-(a7)
-	jsr $08DA(a5)
+	jsr CODE_0_jump_table_entry_279+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,-$34D4(a5)
 	move.w -$34D4(a5),d0
 	add.w d0,-$34D0(a5)
@@ -34206,7 +34207,7 @@ CODE_12_loc_0000076e:
 	move.l -$0006(a6),-(a7)
 	move.l $0008(a6),-(a7)
 	move.w d7,-(a7)
-	jsr $00A2(a5)
+	jsr CODE_0_jump_table_entry_16+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w d7,d0
 	add.w d0,-$34CE(a5)
 CODE_12_loc_00000784:
@@ -34227,7 +34228,7 @@ CODE_12_loc_0000079e:
 CODE_12_loc_000007b2:
 	move.l -$0008(a6),-(a7)
 	pea.l -$0108(a6)
-	jsr $0092(a5)
+	jsr CODE_0_jump_table_entry_14+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.w d6
 	move.b -$0108(a6),d6
 	clr.w d0
@@ -34242,7 +34243,7 @@ CODE_12_loc_000007b2:
 	bne.b CODE_12_loc_000007ec
 	pea.l -$0108(a6)
 	move.l #$60002,-(a7)
-	jsr $0AB2(a5)
+	jsr CODE_0_jump_table_entry_338+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_12_loc_00000800
 CODE_12_loc_000007ec:
 	moveq.l #3,d0
@@ -34250,7 +34251,7 @@ CODE_12_loc_000007ec:
 	bne.b CODE_12_loc_00000800
 	pea.l -$0108(a6)
 	move.l #$C0002,-(a7)
-	jsr $0AB2(a5)
+	jsr CODE_0_jump_table_entry_338+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_12_loc_00000800:
 	clr.w -(a7)
 	pea.l -$0108(a6)
@@ -34287,7 +34288,7 @@ CODE_12_loc_0000083c:
 	move.l d0,-(a7)
 	pea.l -$0008(a6)
 	move.w #$4,-(a7)
-	jsr $00A2(a5)
+	jsr CODE_0_jump_table_entry_16+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_12_loc_000007b2
 CODE_12_loc_0000085c:
 	move.w d6,d0
@@ -34368,7 +34369,7 @@ CODE_12_loc_0000093a:
 	beq.b CODE_12_loc_0000094a
 	pea.l $0008(a4)
 	move.l $0008(a6),-(a7)
-	jsr $0092(a5)
+	jsr CODE_0_jump_table_entry_14+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_12_loc_0000094a:
 	movea.l (a7)+,a4
 	unlk a6
@@ -34398,19 +34399,19 @@ CODE_12_loc_00000986:
 	clr.l -(a7)
 	move.l -$001C(a4),-(a7)
 	move.w #$8,-(a7)
-	jsr $078A(a5)
+	jsr CODE_0_jump_table_entry_237+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a3
 	move.l a3,d0
 	bne.b CODE_12_loc_000009c8
 	move.w #$B9,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.w -(a7)
 	jsr CODE_12_loc_00000312(pc)
 	move.w (a7)+,d0
 	ext.l d0
 	move.l d0,d6
 	move.l -$001C(a4),-(a7)
-	jsr $0772(a5)
+	jsr CODE_0_jump_table_entry_234+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l $0008(a6),a0
 	movea.l a0,a6
 	jmp CODE_12_loc_00001188(pc)
@@ -34423,7 +34424,7 @@ CODE_12_loc_000009c8:
 	movea.l d7,a0
 	pea.l $000C(a0)
 	pea.l -$010C(a6)
-	jsr $0092(a5)
+	jsr CODE_0_jump_table_entry_14+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l d7,a0
 	btst.b #2,$0008(a0)
 	beq.b CODE_12_loc_000009fa
@@ -34446,14 +34447,14 @@ CODE_12_loc_00000a00:
 	bne.b CODE_12_loc_00000a42
 	move.w #$AE,-(a7)
 	move.l $0008(a4),-(a7)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.w -(a7)
 	jsr CODE_12_loc_00000312(pc)
 	move.w (a7)+,d0
 	ext.l d0
 	move.l d0,d6
 	move.l -$001C(a4),-(a7)
-	jsr $0772(a5)
+	jsr CODE_0_jump_table_entry_234+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l $0008(a6),a0
 	movea.l a0,a6
 	jmp CODE_12_loc_00001188(pc)
@@ -34462,7 +34463,7 @@ CODE_12_data_00000a40:
 CODE_12_loc_00000a42:
 	clr.l -(a7)
 	move.l d7,-(a7)
-	jsr $0122(a5)
+	jsr CODE_0_jump_table_entry_32+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a0
 	move.l (a0),d5
 	clr.w -(a7)
@@ -34475,14 +34476,14 @@ CODE_12_loc_00000a42:
 	bne.b CODE_12_loc_00000a90
 	move.w #$AE,-(a7)
 	move.l $0008(a4),-(a7)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.w -(a7)
 	jsr CODE_12_loc_00000312(pc)
 	move.w (a7)+,d0
 	ext.l d0
 	move.l d0,d6
 	move.l -$001C(a4),-(a7)
-	jsr $0772(a5)
+	jsr CODE_0_jump_table_entry_234+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l $0008(a6),a0
 	movea.l a0,a6
 	jmp CODE_12_loc_00001188(pc)
@@ -34516,17 +34517,17 @@ CODE_12_loc_00000ad4:
 	clr.l -(a7)
 	move.l -$001C(a4),-(a7)
 	move.w #$8,-(a7)
-	jsr $078A(a5)
+	jsr CODE_0_jump_table_entry_237+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a3
 	move.l a3,d0
 	bne.b CODE_12_loc_00000b0e
 	move.w #$B9,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.w -(a7)
 	jsr CODE_12_loc_00000312(pc)
 	move.w (a7)+,-$000A(a4)
 	move.l -$001C(a4),-(a7)
-	jsr $0772(a5)
+	jsr CODE_0_jump_table_entry_234+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l $0008(a6),a0
 	movea.l a0,a6
 	jmp CODE_12_loc_00001188(pc)
@@ -34558,7 +34559,7 @@ CODE_12_loc_00000b40:
 	move.l $0008(a6),-(a7)
 	move.w #$AC,-(a7)
 	move.w -$000C(a6),-(a7)
-	jsr $07D2(a5)
+	jsr CODE_0_jump_table_entry_246+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_12_loc_00001188
 CODE_12_loc_00000b74:
 	btst.b #2,-$12A6(a5)
@@ -34570,20 +34571,20 @@ CODE_12_loc_00000b74:
 	pea.l -$2D92(a5)
 	pea.l CODE_12_loc_000011ea(pc)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
 	move.l $0008(a6),-(a7)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
-	jsr $09F2(a5)
+	jsr CODE_0_jump_table_entry_314+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_12_loc_00000bac:
 	clr.l -(a7)
-	jsr $076A(a5)
+	jsr CODE_0_jump_table_entry_233+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,-$001C(a6)
 	bne.b CODE_12_loc_00000bc0
 	pea.l CODE_12_loc_000011c0(pc)
-	jsr $01D2(a5)
+	jsr CODE_0_jump_table_entry_54+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_12_loc_00000bc0:
 	moveq.l #0,d0
 	move.l d0,-$0018(a6)
@@ -34600,7 +34601,7 @@ CODE_12_loc_00000bec:
 	move.b -$133F(a5),d0
 	beq.b CODE_12_loc_00000bfa
 	pea.l CODE_12_loc_000011a0(pc)
-	jsr $01D2(a5)
+	jsr CODE_0_jump_table_entry_54+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_12_loc_00000bfa:
 	movea.l -$002A(a6),a0
 	move.w -$000C(a6),d0
@@ -34616,7 +34617,7 @@ CODE_12_loc_00000c0a:
 	move.l $0004(a0),-$0010(a6)
 	pea.l $000C(a0)
 	move.l -$033A(a6),-(a7)
-	jsr $0092(a5)
+	jsr CODE_0_jump_table_entry_14+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.w d0
 	move.b -$043A(a6),d0
 	move.w d0,-$0006(a6)
@@ -34631,20 +34632,20 @@ CODE_12_loc_00000c0a:
 	move.l -$0010(a6),-$002E(a6)
 	clr.l -(a7)
 	move.l -$0032(a6),-(a7)
-	jsr $0122(a5)
+	jsr CODE_0_jump_table_entry_32+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,-$0020(a6)
 	movea.l -$0020(a6),a0
 	move.l (a0),-$0010(a6)
 	movea.l -$002E(a6),a0
 	pea.l $000C(a0)
 	pea.l -$0336(a6)
-	jsr $0092(a5)
+	jsr CODE_0_jump_table_entry_14+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$0336(a6)
 	pea.l CODE_12_loc_000011be(pc)
 	pea.l -$043A(a6)
 	pea.l -$053A(a6)
 	move.w #$3,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$043A(a6),a0
 	lea.l -$053A(a6),a1
 	moveq.l #127,d0
@@ -34663,14 +34664,14 @@ CODE_12_loc_00000cb6:
 	blt.w CODE_12_loc_00000d9a
 	pea.l -$043A(a6)
 	pea.l -$0236(a6)
-	jsr $0092(a5)
+	jsr CODE_0_jump_table_entry_14+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$0236(a6)
-	jsr $0052(a5)
+	jsr CODE_0_jump_table_entry_6+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$0236(a6)
 	pea.l CODE_12_loc_000011b8(pc)
 	pea.l -$053A(a6)
 	move.w #$2,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$0236(a6),a0
 	lea.l -$053A(a6),a1
 	moveq.l #127,d0
@@ -34681,7 +34682,7 @@ CODE_12_loc_00000d04:
 	move.b #$5,-$0236(a6)
 	pea.l -$0236(a6)
 	pea.l -$23E8(a5)
-	jsr $0A9A(a5)
+	jsr CODE_0_jump_table_entry_335+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	tst.w (a7)+
 	seq.b d0
 	neg.b d0
@@ -34691,7 +34692,7 @@ CODE_12_loc_00000d04:
 	beq.b CODE_12_loc_00000d4a
 	pea.l -$0236(a6)
 	pea.l -$241C(a5)
-	jsr $0A9A(a5)
+	jsr CODE_0_jump_table_entry_335+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	tst.w (a7)+
 	seq.b d0
 	neg.b d0
@@ -34705,7 +34706,7 @@ CODE_12_loc_00000d4a:
 	beq.b CODE_12_loc_00000d70
 	pea.l -$0236(a6)
 	pea.l -$24AA(a5)
-	jsr $0A9A(a5)
+	jsr CODE_0_jump_table_entry_335+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	tst.w (a7)+
 	seq.b d0
 	neg.b d0
@@ -34717,7 +34718,7 @@ CODE_12_loc_00000d70:
 	beq.w CODE_12_loc_00000f5a
 	pea.l -$0236(a6)
 	pea.l -$24E8(a5)
-	jsr $0A9A(a5)
+	jsr CODE_0_jump_table_entry_335+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	tst.w (a7)+
 	seq.b d0
 	neg.b d0
@@ -34736,7 +34737,7 @@ CODE_12_loc_00000d9a:
 	clr.w -(a7)
 	pea.l -$043A(a6)
 	pea.l CODE_12_loc_000011b2(pc)
-	jsr $006A(a5)
+	jsr CODE_0_jump_table_entry_9+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	eori.b #1,d0
 	move.b d0,-$0025(a6)
@@ -34747,7 +34748,7 @@ CODE_12_loc_00000dd2:
 	clr.w -(a7)
 	pea.l -$043A(a6)
 	pea.l CODE_12_loc_000011ac(pc)
-	jsr $006A(a5)
+	jsr CODE_0_jump_table_entry_9+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	eori.b #1,d0
 	move.b d0,-$0025(a6)
@@ -34758,7 +34759,7 @@ CODE_12_loc_00000df4:
 	clr.w -(a7)
 	pea.l -$043A(a6)
 	pea.l CODE_12_loc_000011ac(pc)
-	jsr $006A(a5)
+	jsr CODE_0_jump_table_entry_9+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	eori.b #1,d0
 	move.b d0,-$0025(a6)
@@ -34806,7 +34807,7 @@ CODE_12_loc_00000e7a:
 	movea.l -$002E(a6),a0
 	pea.l $000C(a0)
 	pea.l -$0136(a6)
-	jsr $0092(a5)
+	jsr CODE_0_jump_table_entry_14+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l -$002E(a6),-(a7)
 	pea.l -$0136(a6)
 	jsr CODE_12_loc_0000091c(pc)
@@ -34890,12 +34891,12 @@ CODE_12_loc_00000f5a:
 CODE_12_loc_00000f90:
 	clr.w -(a7)
 	move.l -$0032(a6),-(a7)
-	jsr $020A(a5)
+	jsr CODE_0_jump_table_entry_61+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	beq.b CODE_12_loc_00000fc4
 	clr.l -(a7)
 	move.l -$0032(a6),-(a7)
-	jsr $0122(a5)
+	jsr CODE_0_jump_table_entry_32+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,d0
 	addq.l #4,d0
 	move.l d0,-$0024(a6)
@@ -34940,12 +34941,12 @@ CODE_12_loc_0000101a:
 	ble.b CODE_12_loc_00001042
 	move.w #$AE,-(a7)
 	move.l $0008(a6),-(a7)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.w -(a7)
 	jsr CODE_12_loc_00000312(pc)
 	move.w (a7)+,-$000A(a6)
 	move.l -$001C(a6),-(a7)
-	jsr $0772(a5)
+	jsr CODE_0_jump_table_entry_234+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_12_loc_00001188
 CODE_12_loc_00001042:
 	movea.l -$0032(a6),a0
@@ -34957,7 +34958,7 @@ CODE_12_loc_00001052:
 	cmpi.w #250,-$000C(a6)
 	ble.w CODE_12_loc_00000bec
 	move.l -$001C(a6),-(a7)
-	jsr $0772(a5)
+	jsr CODE_0_jump_table_entry_234+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	moveq.l #0,d0
 	move.l d0,-$033A(a6)
 	clr.w -(a7)
@@ -34969,7 +34970,7 @@ CODE_12_loc_00001052:
 	bne.b CODE_12_loc_0000109a
 	move.w #$AE,-(a7)
 	move.l $0008(a6),-(a7)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.w -(a7)
 	jsr CODE_12_loc_00000312(pc)
 	move.w (a7)+,-$000A(a6)
@@ -34986,7 +34987,7 @@ CODE_12_loc_000010ba:
 	move.b -$133F(a5),d0
 	beq.b CODE_12_loc_000010c8
 	pea.l CODE_12_loc_000011a0(pc)
-	jsr $01D2(a5)
+	jsr CODE_0_jump_table_entry_54+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_12_loc_000010c8:
 	movea.l -$002A(a6),a0
 	move.w -$000C(a6),d0
@@ -34999,7 +35000,7 @@ CODE_12_loc_000010d8:
 	movea.l -$0032(a6),a0
 	pea.l $000C(a0)
 	pea.l -$043A(a6)
-	jsr $0092(a5)
+	jsr CODE_0_jump_table_entry_14+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.w -(a7)
 	move.l -$033A(a6),-(a7)
 	clr.l -(a7)
@@ -35019,7 +35020,7 @@ CODE_12_loc_0000111c:
 	beq.b CODE_12_loc_0000113a
 	move.w -$0004(a6),-(a7)
 	move.l $0008(a6),-(a7)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.w -(a7)
 	jsr CODE_12_loc_00000312(pc)
 	move.w (a7)+,-$000A(a6)
@@ -35040,13 +35041,13 @@ CODE_12_loc_00001148:
 	move.l $0008(a6),-(a7)
 	move.w #$AE,-(a7)
 	move.w -$000C(a6),-(a7)
-	jsr $07D2(a5)
+	jsr CODE_0_jump_table_entry_246+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_12_loc_0000116e:
 	clr.w -(a7)
 	move.l $0008(a6),-(a7)
 	move.l #$444D5041,-(a7)
 	move.l #$4D505320,-(a7)
-	jsr $0432(a5)
+	jsr CODE_0_jump_table_entry_130+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,-$000C(a6)
 CODE_12_loc_00001188:
 	lea.l -$055E(a6),a7
@@ -35080,13 +35081,13 @@ CODE_12_loc_000011f6:
 	clr.l -(a7)
 	move.l -$0028(a4),-(a7)
 	move.w #$104,-(a7)
-	jsr $078A(a5)
+	jsr CODE_0_jump_table_entry_237+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a3
 	move.l a3,d0
 	bne.b CODE_12_loc_0000122c
 	move.w #$16,-(a7)
 	move.l $000C(a6),-(a7)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.b $0010(a6)
 	bra.b CODE_12_loc_00001246
 CODE_12_loc_0000122c:
@@ -35094,7 +35095,7 @@ CODE_12_loc_0000122c:
 	move.l a3,-$0018(a4)
 	move.l $000C(a6),-(a7)
 	move.l a3,-(a7)
-	jsr $0092(a5)
+	jsr CODE_0_jump_table_entry_14+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b #$1,$0010(a6)
 CODE_12_loc_00001246:
 	movem.l (a7)+,a3-a4
@@ -35112,7 +35113,7 @@ CODE_12_loc_0000125e:
 	clr.b $0014(a6)
 	clr.w -(a7)
 	move.l a3,-(a7)
-	jsr $00D2(a5)
+	jsr CODE_0_jump_table_entry_22+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d7
 	movea.l d6,a0
 	move.l a0,-(a7)
@@ -35122,7 +35123,7 @@ CODE_12_loc_0000125e:
 	pea.l -$0008(a6)
 	pea.l -$0004(a6)
 	move.w d7,-(a7)
-	jsr $00F2(a5)
+	jsr CODE_0_jump_table_entry_26+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,d0
 	movea.l (a7)+,a0
 	move.l d0,(a0)
@@ -35145,7 +35146,7 @@ CODE_12_loc_000012b2:
 	clr.l -(a7)
 	move.w #$8002,-(a7)
 	move.w d7,-(a7)
-	jsr $00DA(a5)
+	jsr CODE_0_jump_table_entry_23+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,d0
 	movea.l (a7)+,a0
 	move.l d0,(a0)
@@ -35154,7 +35155,7 @@ CODE_12_loc_000012b2:
 	bne.b CODE_12_loc_00001312
 	move.w #$16,-(a7)
 	move.l a3,-(a7)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_12_loc_00001318
 CODE_12_loc_000012e2:
 	movea.l $0008(a6),a0
@@ -35164,7 +35165,7 @@ CODE_12_loc_000012ea:
 	beq.b CODE_12_loc_00001302
 	move.l a4,-(a7)
 	move.l a3,-(a7)
-	jsr $0AC2(a5)
+	jsr CODE_0_jump_table_entry_340+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	beq.b CODE_12_loc_00001302
 	movea.l $0100(a4),a4
@@ -35176,7 +35177,7 @@ CODE_12_loc_00001302:
 	bne.b CODE_12_loc_00001312
 	move.w #$8,-(a7)
 	move.l a3,-(a7)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_12_loc_00001318
 CODE_12_loc_00001312:
 	move.b #$1,$0014(a6)
@@ -35203,14 +35204,14 @@ CODE_12_loc_00001338:
 	move.l $0008(a6),-(a7)
 	move.w #$AD,-(a7)
 	move.w d7,-(a7)
-	jsr $07D2(a5)
+	jsr CODE_0_jump_table_entry_246+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_12_loc_00001a68
 CODE_12_loc_0000136e:
 	move.l $0008(a6),-(a7)
 	pea.l CODE_12_loc_00001b0c(pc)
 	pea.l -$0838(a6)
 	move.w #$2,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$0638(a6),a0
 	lea.l -$0838(a6),a1
 	moveq.l #127,d0
@@ -35224,7 +35225,7 @@ CODE_12_loc_0000138c:
 	pea.l CODE_12_loc_00001ae8(pc)
 	pea.l -$0838(a6)
 	move.w #$2,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$0638(a6),a0
 	lea.l -$0838(a6),a1
 	moveq.l #127,d0
@@ -35237,7 +35238,7 @@ CODE_12_loc_000013c0:
 	pea.l CODE_12_loc_00001ac0(pc)
 	pea.l -$0838(a6)
 	move.w #$2,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$0638(a6),a0
 	lea.l -$0838(a6),a1
 	moveq.l #127,d0
@@ -35247,7 +35248,7 @@ CODE_12_loc_000013de:
 CODE_12_loc_000013e4:
 	move.w #$AD,-(a7)
 	pea.l -$0638(a6)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_12_loc_00001a68
 CODE_12_loc_000013f4:
 	btst.b #2,-$12A6(a5)
@@ -35259,20 +35260,20 @@ CODE_12_loc_000013f4:
 	pea.l -$2D92(a5)
 	pea.l CODE_12_loc_00001ab4(pc)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
 	move.l $0008(a6),-(a7)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
-	jsr $09F2(a5)
+	jsr CODE_0_jump_table_entry_314+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_12_loc_0000142c:
 	clr.l -(a7)
-	jsr $076A(a5)
+	jsr CODE_0_jump_table_entry_233+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,-$0028(a6)
 	bne.b CODE_12_loc_00001440
 	pea.l CODE_12_loc_00001a8a(pc)
-	jsr $01D2(a5)
+	jsr CODE_0_jump_table_entry_54+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_12_loc_00001440:
 	moveq.l #0,d0
 	move.l d0,-$0018(a6)
@@ -35289,7 +35290,7 @@ CODE_12_loc_0000144e:
 	move.b -$133F(a5),d0
 	beq.b CODE_12_loc_00001474
 	pea.l CODE_12_loc_00001a7c(pc)
-	jsr $01D2(a5)
+	jsr CODE_0_jump_table_entry_54+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_12_loc_00001474:
 	tst.l -$032C(a6)
 	bne.b CODE_12_loc_0000147e
@@ -35316,23 +35317,23 @@ CODE_12_loc_0000147e:
 	beq.b CODE_12_loc_000014c8
 	move.l -$032C(a6),-(a7)
 	pea.l -$0128(a6)
-	jsr $0092(a5)
+	jsr CODE_0_jump_table_entry_14+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l -$032C(a6),-(a7)
-	jsr $0052(a5)
+	jsr CODE_0_jump_table_entry_6+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_12_loc_000014e2
 CODE_12_loc_000014c8:
 	move.b -$0C5F(a5),d0
 	beq.b CODE_12_loc_000014d6
 	move.l -$032C(a6),-(a7)
-	jsr $0052(a5)
+	jsr CODE_0_jump_table_entry_6+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_12_loc_000014d6:
 	move.l -$032C(a6),-(a7)
 	pea.l -$0128(a6)
-	jsr $0092(a5)
+	jsr CODE_0_jump_table_entry_14+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_12_loc_000014e2:
 	pea.l CODE_12_loc_00001a88(pc)
 	pea.l -$0738(a6)
-	jsr $0A9A(a5)
+	jsr CODE_0_jump_table_entry_335+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d7
 	bne.w CODE_12_loc_00001856
 	clr.w d0
@@ -35341,7 +35342,7 @@ CODE_12_loc_000014e2:
 	ble.b CODE_12_loc_0000150e
 	move.b -$0C71(a5),-$0738(a6)
 	move.w #$CE,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_12_loc_0000150e:
 	btst.b #1,-$0003(a6)
 	beq.w CODE_12_loc_000016e6
@@ -35378,13 +35379,13 @@ CODE_12_loc_00001534:
 	ble.b CODE_12_loc_00001580
 	move.b -$0C71(a5),-$0128(a6)
 	move.w #$CE,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_12_loc_00001580:
 	clr.w -(a7)
 	move.l -$0024(a6),-(a7)
 	clr.l -(a7)
 	pea.l -$0128(a6)
-	jsr $0722(a5)
+	jsr CODE_0_jump_table_entry_224+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d6
 	move.b -$1467(a5),d0
 	beq.b CODE_12_loc_000015c6
@@ -35393,12 +35394,12 @@ CODE_12_loc_00001580:
 	clr.w -(a7)
 	move.l -$0024(a6),-(a7)
 	pea.l -$0128(a6)
-	jsr $073A(a5)
+	jsr CODE_0_jump_table_entry_227+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	bne.b CODE_12_loc_000015c6
 	move.w #$16,-(a7)
 	move.l -$032C(a6),-(a7)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_12_loc_000015c6
 CODE_12_loc_000015bc:
 	movea.l -$0024(a6),a0
@@ -35408,7 +35409,7 @@ CODE_12_loc_000015c6:
 	move.w -$0004(a6),$0008(a0)
 	clr.l -(a7)
 	move.l -$0024(a6),-(a7)
-	jsr $0122(a5)
+	jsr CODE_0_jump_table_entry_32+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a3
 	move.l -$000A(a6),(a3)
 	move.l a3,d0
@@ -35426,7 +35427,7 @@ CODE_12_loc_000015f4:
 	clr.l -(a7)
 	move.w -$0004(a6),-(a7)
 	pea.l -$0013(a6)
-	jsr $00EA(a5)
+	jsr CODE_0_jump_table_entry_25+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a4
 	move.b -$0013(a6),d0
 	eori.b #1,d0
@@ -35442,13 +35443,13 @@ CODE_12_loc_000015f4:
 	ble.b CODE_12_loc_00001646
 	move.b -$0C71(a5),-$0128(a6)
 	move.w #$CE,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_12_loc_00001646:
 	clr.w -(a7)
 	move.l a4,-(a7)
 	clr.l -(a7)
 	pea.l -$0128(a6)
-	jsr $0722(a5)
+	jsr CODE_0_jump_table_entry_224+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d6
 	move.b -$1467(a5),d0
 	beq.b CODE_12_loc_00001674
@@ -35457,7 +35458,7 @@ CODE_12_loc_00001646:
 	clr.w -(a7)
 	move.l a4,-(a7)
 	pea.l -$0128(a6)
-	jsr $073A(a5)
+	jsr CODE_0_jump_table_entry_227+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	bne.b CODE_12_loc_00001674
 	moveq.l #0,d0
@@ -35475,12 +35476,12 @@ CODE_12_loc_00001674:
 	pea.l -$0538(a6)
 	pea.l -$000E(a6)
 	pea.l -$0004(a6)
-	jsr $00FA(a5)
+	jsr CODE_0_jump_table_entry_27+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,-$0024(a6)
 	beq.b CODE_12_loc_000016bc
 	clr.l -(a7)
 	move.l a4,-(a7)
-	jsr $0122(a5)
+	jsr CODE_0_jump_table_entry_32+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a3
 	moveq.l #0,d0
 	move.l d0,(a3)
@@ -35493,7 +35494,7 @@ CODE_12_loc_000016bc:
 	bne.w CODE_12_loc_000019ac
 	move.w #$BA,-(a7)
 	move.l -$032C(a6),-(a7)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_12_loc_000019ac
 CODE_12_loc_000016d4:
 	clr.w -(a7)
@@ -35527,19 +35528,19 @@ CODE_12_loc_0000171e:
 	move.b -$0538(a6),d0
 	addq.w #1,d0
 	move.w d0,-(a7)
-	jsr $078A(a5)
+	jsr CODE_0_jump_table_entry_237+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,-$000E(a6)
 CODE_12_loc_00001736:
 	tst.l -$000E(a6)
 	bne.b CODE_12_loc_0000174c
 	move.w #$16,-(a7)
 	move.l -$032C(a6),-(a7)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_12_loc_0000144e
 CODE_12_loc_0000174c:
 	pea.l -$0538(a6)
 	move.l -$000E(a6),-(a7)
-	jsr $0092(a5)
+	jsr CODE_0_jump_table_entry_14+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_12_loc_00001758:
 	clr.l -(a7)
 	move.l -$0C50(a5),-(a7)
@@ -35547,7 +35548,7 @@ CODE_12_loc_00001758:
 	move.l -$000E(a6),-(a7)
 	move.w -$0004(a6),-(a7)
 	pea.l -$0013(a6)
-	jsr $00EA(a5)
+	jsr CODE_0_jump_table_entry_25+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a4
 	move.b d5,d0
 	beq.w CODE_12_loc_000019ac
@@ -35567,13 +35568,13 @@ CODE_12_loc_00001758:
 	ble.b CODE_12_loc_000017b2
 	move.b -$0C71(a5),-$0128(a6)
 	move.w #$CE,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_12_loc_000017b2:
 	clr.w -(a7)
 	move.l a4,-(a7)
 	clr.l -(a7)
 	pea.l -$0128(a6)
-	jsr $0722(a5)
+	jsr CODE_0_jump_table_entry_224+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d6
 	move.b -$1467(a5),d0
 	beq.w CODE_12_loc_000019ac
@@ -35582,7 +35583,7 @@ CODE_12_loc_000017b2:
 	clr.w -(a7)
 	move.l a4,-(a7)
 	pea.l -$0128(a6)
-	jsr $073A(a5)
+	jsr CODE_0_jump_table_entry_227+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	bne.w CODE_12_loc_000019ac
 	moveq.l #0,d0
@@ -35607,7 +35608,7 @@ CODE_12_loc_000017ea:
 	pea.l -$0438(a6)
 	pea.l -$000E(a6)
 	pea.l -$0004(a6)
-	jsr $00FA(a5)
+	jsr CODE_0_jump_table_entry_27+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,-$001C(a6)
 	beq.b CODE_12_loc_00001836
 	move.l -$001C(a6),$0004(a4)
@@ -35615,12 +35616,12 @@ CODE_12_loc_000017ea:
 CODE_12_loc_00001836:
 	move.w #$C2,-(a7)
 	move.l -$032C(a6),-(a7)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_12_loc_000019ac
 CODE_12_loc_00001846:
 	move.w #$C2,-(a7)
 	move.l -$032C(a6),-(a7)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_12_loc_000019ac
 CODE_12_loc_00001856:
 	pea.l -$0738(a6)
@@ -35629,7 +35630,7 @@ CODE_12_loc_00001856:
 	subq.w #1,d0
 	move.w d0,-(a7)
 	pea.l -$0838(a6)
-	jsr $0AAA(a5)
+	jsr CODE_0_jump_table_entry_337+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$0328(a6),a0
 	lea.l -$0838(a6),a1
 	moveq.l #127,d0
@@ -35645,7 +35646,7 @@ CODE_12_loc_00001876:
 	sub.w d7,d0
 	move.w d0,-(a7)
 	pea.l -$0838(a6)
-	jsr $0AAA(a5)
+	jsr CODE_0_jump_table_entry_337+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$0228(a6),a0
 	lea.l -$0838(a6),a1
 	moveq.l #127,d0
@@ -35658,7 +35659,7 @@ CODE_12_loc_000018a2:
 	ble.b CODE_12_loc_000018c2
 	move.b -$0C71(a5),-$0328(a6)
 	move.w #$CE,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_12_loc_000018c2:
 	clr.w d0
 	move.b -$0228(a6),d0
@@ -35666,7 +35667,7 @@ CODE_12_loc_000018c2:
 	ble.b CODE_12_loc_000018dc
 	move.b -$0C71(a5),-$0228(a6)
 	move.w #$CE,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_12_loc_000018dc:
 	clr.w -(a7)
 	pea.l -$0328(a6)
@@ -35682,7 +35683,7 @@ CODE_12_loc_000018dc:
 	move.w -$0004(a6),-(a7)
 	move.l -$000E(a6),-(a7)
 	pea.l -$0013(a6)
-	jsr $010A(a5)
+	jsr CODE_0_jump_table_entry_29+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a4
 	btst.b #1,-$0003(a6)
 	beq.w CODE_12_loc_000019ac
@@ -35706,12 +35707,12 @@ CODE_12_loc_000018dc:
 	pea.l -$0538(a6)
 	pea.l -$000E(a6)
 	pea.l -$0004(a6)
-	jsr $00FA(a5)
+	jsr CODE_0_jump_table_entry_27+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,-$0024(a6)
 	beq.b CODE_12_loc_00001972
 	clr.l -(a7)
 	move.l a4,-(a7)
-	jsr $0122(a5)
+	jsr CODE_0_jump_table_entry_32+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,d4
 	addq.l #4,d4
 	movea.l d4,a0
@@ -35721,7 +35722,7 @@ CODE_12_loc_00001972:
 	bne.b CODE_12_loc_000019ac
 	move.w #$BA,-(a7)
 	move.l -$032C(a6),-(a7)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_12_loc_000019ac
 CODE_12_loc_00001986:
 	clr.w -(a7)
@@ -35741,18 +35742,18 @@ CODE_12_loc_000019ac:
 	bne.b CODE_12_loc_000019c0
 	move.w #$16,-(a7)
 	move.l -$032C(a6),-(a7)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_12_loc_0000144e
 CODE_12_loc_000019c0:
 	move.b -$0013(a6),d0
 	beq.w CODE_12_loc_0000144e
 	move.w #$8,-(a7)
 	move.l -$032C(a6),-(a7)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_12_loc_0000144e
 CODE_12_loc_000019d8:
 	move.l -$0028(a6),-(a7)
-	jsr $0772(a5)
+	jsr CODE_0_jump_table_entry_234+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$0738(a6),a0
 	move.l a0,-$032C(a6)
 CODE_12_loc_000019e8:
@@ -35766,7 +35767,7 @@ CODE_12_loc_000019e8:
 	move.b -$133F(a5),d0
 	beq.b CODE_12_loc_00001a0c
 	pea.l CODE_12_loc_00001a7c(pc)
-	jsr $01D2(a5)
+	jsr CODE_0_jump_table_entry_54+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_12_loc_00001a0c:
 	tst.l -$032C(a6)
 	bne.b CODE_12_loc_00001a14
@@ -35778,11 +35779,11 @@ CODE_12_loc_00001a14:
 	ble.b CODE_12_loc_00001a2e
 	move.b -$0C71(a5),-$0738(a6)
 	move.w #$CE,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_12_loc_00001a2e:
 	clr.w -(a7)
 	move.l -$032C(a6),-(a7)
-	jsr $04F2(a5)
+	jsr CODE_0_jump_table_entry_154+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d6
 CODE_12_loc_00001a3a:
 	clr.w -(a7)
@@ -35793,12 +35794,12 @@ CODE_12_loc_00001a3a:
 	move.b d6,d0
 	beq.b CODE_12_loc_00001a3a
 	pea.l -$0638(a6)
-	jsr $04FA(a5)
+	jsr CODE_0_jump_table_entry_155+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_12_loc_00001a3a
 CODE_12_loc_00001a56:
 	move.b d6,d0
 	beq.b CODE_12_loc_000019e8
-	jsr $0502(a5)
+	jsr CODE_0_jump_table_entry_156+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_12_loc_000019e8
 CODE_12_loc_00001a60:
 	clr.w -(a7)
@@ -36186,7 +36187,7 @@ CODE_13_loc_00001132:
 	bne.b CODE_13_loc_0000114c
 	move.w #$63,-(a7)
 	pea.l -$0646(a5)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_13_loc_000011c4
 CODE_13_loc_0000114c:
 	move.b #$1,-$14DC(a5)
@@ -36196,7 +36197,7 @@ CODE_13_loc_0000114c:
 	beq.b CODE_13_loc_00001174
 	move.w #$8D,-(a7)
 	pea.l -$27C6(a5)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.b -$26C6(a5)
 	clr.b -$1303(a5)
 	bra.b CODE_13_loc_0000118c
@@ -36218,14 +36219,14 @@ CODE_13_loc_0000118c:
 	bne.b CODE_13_loc_000011b4
 	move.w #$60,-(a7)
 	pea.l -$27D4(a5)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_13_loc_000011c0
 CODE_13_loc_000011b4:
 	move.w #$60,-(a7)
 	pea.l -$27DA(a5)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_13_loc_000011c0:
-	jsr $050A(a5)
+	jsr CODE_0_jump_table_entry_157+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_13_loc_000011c4:
 	movea.l (a7)+,a4
 	unlk a6
@@ -36242,7 +36243,7 @@ CODE_13_loc_000021fa:
 	beq.w CODE_13_loc_0000229a
 	move.w #$9,-(a7)
 	move.l -$0BE8(a5),-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b $0008(a6),d0
 	beq.b CODE_13_loc_0000223c
 	move.w #$6,-(a7)
@@ -36251,7 +36252,7 @@ CODE_13_loc_000021fa:
 	addq.w #2,d0
 	ext.l d0
 	move.l d0,-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_13_loc_0000224e
 CODE_13_loc_0000223c:
 	move.w #$6,-(a7)
@@ -36259,15 +36260,15 @@ CODE_13_loc_0000223c:
 	ext.w d0
 	ext.l d0
 	move.l d0,-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_13_loc_0000224e:
 	move.w #$3B,-(a7)
-	jsr $014A(a5)
+	jsr CODE_0_jump_table_entry_37+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_13_loc_0000229a
 CODE_13_loc_00002258:
 	move.w #$9,-(a7)
 	move.l -$0BE8(a5),-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b $0008(a6),d0
 	beq.b CODE_13_loc_00002280
 	move.w #$6,-(a7)
@@ -36276,7 +36277,7 @@ CODE_13_loc_00002258:
 	addq.w #2,d0
 	ext.l d0
 	move.l d0,-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_13_loc_00002292
 CODE_13_loc_00002280:
 	move.w #$6,-(a7)
@@ -36284,10 +36285,10 @@ CODE_13_loc_00002280:
 	ext.w d0
 	ext.l d0
 	move.l d0,-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_13_loc_00002292:
 	move.w #$3B,-(a7)
-	jsr $014A(a5)
+	jsr CODE_0_jump_table_entry_37+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_13_loc_0000229a:
 	unlk a6
 	move.l (a7)+,(a7)
@@ -36326,13 +36327,13 @@ CODE_13_loc_0000241a:
 	pea.l -$0014(a6)
 	pea.l -$000C(a6)
 	pea.l -$0010(a6)
-	jsr $011A(a5)
+	jsr CODE_0_jump_table_entry_31+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	tst.l (a7)+
 	bne.b CODE_13_loc_0000248e
 	movea.l -$0C16(a5),a0
 	pea.l $000C(a0)
 	pea.l -$0118(a6)
-	jsr $0092(a5)
+	jsr CODE_0_jump_table_entry_14+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.w d0
 	move.b -$0118(a6),d0
 	move.w d0,d7
@@ -36342,10 +36343,10 @@ CODE_13_loc_0000241a:
 	move.b d7,-$0118(a6)
 	pea.l -$0118(a6)
 	move.l -$0C28(a5),-(a7)
-	jsr $008A(a5)
+	jsr CODE_0_jump_table_entry_13+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w #$B2,-(a7)
 	pea.l -$0118(a6)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b #$1,$0008(a6)
 	moveq.l #0,d0
 	move.l d0,-$0010(a6)
@@ -36377,7 +36378,7 @@ CODE_13_loc_0000249a:
 	beq.b CODE_13_loc_000024e6
 	clr.l -(a7)
 	move.l a4,-(a7)
-	jsr $0122(a5)
+	jsr CODE_0_jump_table_entry_32+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a3
 	move.l -$0010(a6),d0
 	sub.l d0,(a3)
@@ -36387,7 +36388,7 @@ CODE_13_loc_000024e6:
 	bra.b CODE_13_loc_0000249a
 CODE_13_loc_000024f2:
 	move.l -$0C24(a5),-(a7)
-	jsr $0772(a5)
+	jsr CODE_0_jump_table_entry_234+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	moveq.l #0,d0
 	move.l d0,-$0C24(a5)
 	moveq.l #0,d0
@@ -36423,7 +36424,7 @@ CODE_13_loc_0000255e:
 	clr.l -(a7)
 	move.l d6,-(a7)
 	move.w #$8,-(a7)
-	jsr $078A(a5)
+	jsr CODE_0_jump_table_entry_237+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a3
 	moveq.l #0,d0
 	move.l d0,(a3)
@@ -36433,7 +36434,7 @@ CODE_13_loc_00002576:
 	clr.l -(a7)
 	move.l -$0C50(a5),-(a7)
 	move.w #$A,-(a7)
-	jsr $078A(a5)
+	jsr CODE_0_jump_table_entry_237+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a4
 	move.l a4,d0
 	seq.b d0
@@ -36451,14 +36452,14 @@ CODE_13_loc_00002576:
 CODE_13_loc_000025a0:
 	move.w #$16,-(a7)
 	move.l d4,-(a7)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.b $0014(a6)
 	lea.l -$2598(a5),a4
 CODE_13_loc_000025b2:
 	move.w -$1348(a5),-(a7)
 	move.l d4,-(a7)
 	clr.w -(a7)
-	jsr $068A(a5)
+	jsr CODE_0_jump_table_entry_205+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w -$1348(a5),(a4)
 	addq.w #1,-$1348(a5)
 	moveq.l #0,d0
@@ -36480,46 +36481,46 @@ CODE_13_loc_000025ea:
 	move.l -$0F24(a5),-(a7)
 	pea.l CODE_13_loc_000026d4(pc)
 	clr.w -(a7)
-	jsr $0482(a5)
+	jsr CODE_0_jump_table_entry_140+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l -$0F24(a5),-(a7)
 	move.l d4,-(a7)
 	clr.w -(a7)
-	jsr $047A(a5)
+	jsr CODE_0_jump_table_entry_139+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l -$0F24(a5),-(a7)
 	pea.l CODE_13_loc_000026ca(pc)
 	clr.l -(a7)
 	move.w (a4),d0
 	ext.l d0
 	move.l d0,-(a7)
-	jsr $00C2(a5)
+	jsr CODE_0_jump_table_entry_20+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$0110(a6)
 	move.w #$2,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$0110(a6)
 	clr.w -(a7)
-	jsr $0482(a5)
+	jsr CODE_0_jump_table_entry_140+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	tst.l d5
 	beq.b CODE_13_loc_0000266c
 	move.l -$0F24(a5),-(a7)
 	pea.l CODE_13_loc_000026b6(pc)
 	clr.w -(a7)
-	jsr $0482(a5)
+	jsr CODE_0_jump_table_entry_140+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b -$0C5A(a5),d0
 	beq.b CODE_13_loc_0000265e
 	move.l -$0F24(a5),-(a7)
 	pea.l CODE_13_loc_000026a6(pc)
 	clr.w -(a7)
-	jsr $0482(a5)
+	jsr CODE_0_jump_table_entry_140+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_13_loc_0000266c
 CODE_13_loc_0000265e:
 	move.l -$0F24(a5),-(a7)
 	pea.l CODE_13_loc_00002692(pc)
 	clr.w -(a7)
-	jsr $0482(a5)
+	jsr CODE_0_jump_table_entry_140+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_13_loc_0000266c:
 	move.l -$0F24(a5),-(a7)
 	move.w #$D,-(a7)
-	jsr $046A(a5)
+	jsr CODE_0_jump_table_entry_137+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_13_loc_00002678:
 	movem.l (a7)+,d4-d7/a3-a4
 	unlk a6
@@ -36642,7 +36643,7 @@ CODE_13_loc_00002cce:
 	bra.b CODE_13_loc_00002cf8
 CODE_13_loc_00002ce2:
 	move.b #$1,-$0C60(a5)
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b -$0C61(a5),-$0C60(a5)
 	move.b #$1,$000A(a6)
 CODE_13_loc_00002cf8:
@@ -36670,11 +36671,11 @@ CODE_13_loc_00002d32:
 	move.b d7,$0012(a6)
 	move.b d7,d0
 	beq.b CODE_13_loc_00002d40
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_13_loc_00002d48
 CODE_13_loc_00002d40:
 	move.w #$99,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_13_loc_00002d48:
 	move.l (a7)+,d7
 	unlk a6
@@ -36699,7 +36700,7 @@ CODE_13_loc_00002d9c:
 	move.w d7,d0
 	add.w #$9,d0
 	move.w d0,-(a7)
-	jsr $078A(a5)
+	jsr CODE_0_jump_table_entry_237+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a4
 	move.l a4,d0
 	bne.b CODE_13_loc_00002dca
@@ -36709,7 +36710,7 @@ CODE_13_loc_00002dca:
 	move.b #$1,$0010(a6)
 	move.l $0008(a6),-(a7)
 	pea.l $0008(a4)
-	jsr $0092(a5)
+	jsr CODE_0_jump_table_entry_14+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l $000C(a6),(a4)
 	move.l -$146C(a5),$0004(a4)
 	move.l a4,-$146C(a5)
@@ -36730,7 +36731,7 @@ CODE_13_loc_00002e06:
 	pea.l -$000C(a6)
 	pea.l -$0004(a6)
 	move.w -$0BD6(a5),-(a7)
-	jsr $00F2(a5)
+	jsr CODE_0_jump_table_entry_26+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a4
 	move.l a4,d0
 	bne.b CODE_13_loc_00002e4a
@@ -36740,7 +36741,7 @@ CODE_13_loc_00002e06:
 	pea.l -$000C(a6)
 	pea.l -$0004(a6)
 	move.w -$0BD6(a5),-(a7)
-	jsr $00F2(a5)
+	jsr CODE_0_jump_table_entry_26+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a4
 CODE_13_loc_00002e4a:
 	move.l a4,d0
@@ -36773,10 +36774,10 @@ CODE_13_loc_00002e86:
 	move.l -$0BEC(a5),-(a7)
 	move.w -$0C20(a5),-(a7)
 	clr.l -(a7)
-	jsr $0192(a5)
+	jsr CODE_0_jump_table_entry_46+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_13_loc_00002e9e:
 	move.w #$A5,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_13_loc_00003030
 CODE_13_loc_00002eaa:
 	move.b -$0BE5(a5),d0
@@ -36791,7 +36792,7 @@ CODE_13_loc_00002eaa:
 	bra.b CODE_13_loc_00002ed4
 CODE_13_loc_00002ecc:
 	move.w #$CC,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_13_loc_00002ed4:
 	move.l -$0BE8(a5),-$0BEC(a5)
 	clr.w d0
@@ -36801,24 +36802,24 @@ CODE_13_loc_00002ed4:
 	move.l -$0BEC(a5),-(a7)
 	move.w -$0C20(a5),-(a7)
 	clr.l -(a7)
-	jsr $0192(a5)
+	jsr CODE_0_jump_table_entry_46+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b -$0F4F(a5),d0
 	beq.b CODE_13_loc_00002f42
 	pea.l -$0542(a5)
 	pea.l CODE_13_loc_00003044(pc)
-	jsr $0AC2(a5)
+	jsr CODE_0_jump_table_entry_340+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	beq.b CODE_13_loc_00002f42
 	clr.w -(a7)
 	pea.l -$0542(a5)
-	jsr $06DA(a5)
+	jsr CODE_0_jump_table_entry_215+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d7
 	bne.b CODE_13_loc_00002f2c
 	move.w -$1348(a5),d7
 	move.w d7,-(a7)
 	pea.l -$0542(a5)
 	move.b #$1,-(a7)
-	jsr $068A(a5)
+	jsr CODE_0_jump_table_entry_205+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	addq.w #1,-$1348(a5)
 CODE_13_loc_00002f2c:
 	move.w d7,-(a7)
@@ -36826,9 +36827,9 @@ CODE_13_loc_00002f2c:
 	move.l -$14A4(a5),-(a7)
 	move.w -$14A6(a5),-(a7)
 	move.w -$25A2(a5),-(a7)
-	jsr $06C2(a5)
+	jsr CODE_0_jump_table_entry_212+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_13_loc_00002f42:
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_13_loc_00002f46:
 	moveq.l #30,d0
 	cmp.b -$0005(a5),d0
@@ -36838,7 +36839,7 @@ CODE_13_loc_00002f46:
 	beq.b CODE_13_loc_00002f94
 	clr.w -(a7)
 	pea.l -$0008(a6)
-	jsr $0202(a5)
+	jsr CODE_0_jump_table_entry_60+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	beq.b CODE_13_loc_00002f94
 	cmpi.l #4294934528,-$0008(a6)
@@ -36851,7 +36852,7 @@ CODE_13_loc_00002f46:
 	beq.b CODE_13_loc_00002f88
 CODE_13_loc_00002f80:
 	move.w #$41,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_13_loc_00002f88:
 	move.l -$0008(a6),d0
 	or.l -$000C(a6),d0
@@ -36867,7 +36868,7 @@ CODE_13_loc_00002f94:
 	beq.b CODE_13_loc_00002f46
 CODE_13_loc_00002faa:
 	clr.l -(a7)
-	jsr $024A(a5)
+	jsr CODE_0_jump_table_entry_69+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b #$1,-$133B(a5)
 	tst.w -$3298(a5)
 	bne.b CODE_13_loc_00003030
@@ -36875,26 +36876,26 @@ CODE_13_loc_00002faa:
 	cmp.b -$0005(a5),d0
 	beq.b CODE_13_loc_00002fce
 	move.w #$33,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_13_loc_00003030
 CODE_13_loc_00002fce:
 	move.w #$6,-(a7)
 	move.l -$000C(a6),-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w #$6,-(a7)
 	clr.l -(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	tst.w -$329A(a5)
 	ble.b CODE_13_loc_00002ffa
 	move.w -$0422(a5),-(a7)
 	move.w -$1492(a5),-(a7)
 	move.w -$0BD2(a5),-(a7)
-	jsr $0162(a5)
+	jsr CODE_0_jump_table_entry_40+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_13_loc_00002ffa:
 	move.l #$20001,-(a7)
 	move.w -$0422(a5),-(a7)
 	move.w -$1492(a5),-(a7)
-	jsr $015A(a5)
+	jsr CODE_0_jump_table_entry_39+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	tst.w -$3298(a5)
 	sgt.b d0
 	neg.b d0
@@ -37808,7 +37809,7 @@ CODE_13_loc_000067a6:
 	bge.w CODE_13_loc_0000687c
 	move.w #$DB,-(a7)
 	pea.l -$1290(a5)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_13_loc_0000687c
 CODE_13_loc_000067ce:
 	clr.b -$108E(a5)
@@ -37844,7 +37845,7 @@ CODE_13_loc_0000680c:
 	pea.l CODE_13_loc_000069a2(pc)
 	pea.l -$0104(a6)
 	move.w #$2,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$0318(a5),a0
 	lea.l -$0104(a6),a1
 	moveq.l #127,d0
@@ -37855,30 +37856,30 @@ CODE_13_loc_00006842:
 	move.b -$0318(a5),d0
 	lea.l -$0318(a5),a0
 	clr.b $0(a0,d0.w)
-	jsr $0132(a5)
+	jsr CODE_0_jump_table_entry_34+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w -$12A0(a5),d0
 	addq.w #1,d0
 	move.w d0,-$12A2(a5)
-	jsr $025A(a5)
+	jsr CODE_0_jump_table_entry_71+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w #$2,-$0BCE(a5)
 	move.w #$18,-$0BD2(a5)
 	move.w #$DC,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_13_loc_0000687c:
 	move.b -$1303(a5),d0
 	beq.b CODE_13_loc_0000688e
 	clr.b -$1303(a5)
 	move.w #$9E,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_13_loc_0000688e:
 	tst.w -$25A8(a5)
 	ble.b CODE_13_loc_0000689c
 	move.w #$E2,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_13_loc_0000689c:
 	move.b -$0C5E(a5),d0
 	beq.b CODE_13_loc_000068a6
-	jsr $0812(a5)
+	jsr CODE_0_jump_table_entry_254+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_13_loc_000068a6:
 	move.b -$0C5A(a5),d0
 	beq.b CODE_13_loc_000068ec
@@ -37899,13 +37900,13 @@ CODE_13_loc_000068d0:
 	jsr CODE_13_loc_000021fa(pc)
 CODE_13_loc_000068da:
 	move.l -$1496(a5),-(a7)
-	jsr $0252(a5)
+	jsr CODE_0_jump_table_entry_70+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b #$1,-(a7)
-	jsr $081A(a5)
+	jsr CODE_0_jump_table_entry_255+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_13_loc_000068f4
 CODE_13_loc_000068ec:
 	move.l -$1496(a5),-(a7)
-	jsr $0252(a5)
+	jsr CODE_0_jump_table_entry_70+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_13_loc_000068f4:
 	tst.l -$0F8C(a5)
 	beq.b CODE_13_loc_00006976
@@ -37928,7 +37929,7 @@ CODE_13_loc_000068fa:
 	move.l -$1298(a5),-(a7)
 	move.w -$129A(a5),-(a7)
 	clr.w -(a7)
-	jsr $07EA(a5)
+	jsr CODE_0_jump_table_entry_249+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_13_loc_00006932:
 	movea.l (a4),a0
 	clr.w d0
@@ -37938,7 +37939,7 @@ CODE_13_loc_00006932:
 	move.w #$10,-(a7)
 	movea.l (a4),a0
 	pea.l $000C(a0)
-	jsr $07C2(a5)
+	jsr CODE_0_jump_table_entry_244+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_13_loc_0000694c:
 	movea.l -$0F8C(a5),a0
 	move.l $0004(a0),-$0F8C(a5)
@@ -37950,13 +37951,13 @@ CODE_13_loc_0000694c:
 	move.l -$1298(a5),-(a7)
 	move.w -$129A(a5),-(a7)
 	move.b #$1,-(a7)
-	jsr $07EA(a5)
+	jsr CODE_0_jump_table_entry_249+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_13_loc_00006976:
 	move.b -$0F4F(a5),d0
 	beq.b CODE_13_loc_00006988
 	move.l -$14A4(a5),-(a7)
 	move.w -$25A4(a5),-(a7)
-	jsr $06B2(a5)
+	jsr CODE_0_jump_table_entry_210+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_13_loc_00006988:
 	move.b #$1,-$14DD(a5)
 	movem.l (a7)+,d6-d7/a4
@@ -38068,7 +38069,7 @@ CODE_13_loc_00006f46:
 	tst.w d5
 	beq.b CODE_13_loc_00006f66
 	move.w #$3A,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_13_loc_00006f66:
 	move.w #$2,-$0BD4(a5)
 	bra.w CODE_13_loc_0000702e
@@ -38079,7 +38080,7 @@ CODE_13_loc_00006f70:
 	tst.w -$0BD4(a5)
 	bne.b CODE_13_loc_00006f8e
 	move.w #$35,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w #$2,-$0BD4(a5)
 	bra.b CODE_13_loc_00007004
 CODE_13_loc_00006f8e:
@@ -38087,7 +38088,7 @@ CODE_13_loc_00006f8e:
 	clr.w d0
 	move.b -$0749(a5),d0
 	move.w d0,-(a7)
-	jsr $0042(a5)
+	jsr CODE_0_jump_table_entry_4+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d0
 	subi.w #66,d0
 	beq.b CODE_13_loc_00006fbe
@@ -38127,7 +38128,7 @@ CODE_13_loc_00006fee:
 	bra.b CODE_13_loc_00007004
 CODE_13_loc_00006ff6:
 	move.w #$32,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w #$2,-$0BD4(a5)
 CODE_13_loc_00007004:
 	moveq.l #4,d0
@@ -38139,7 +38140,7 @@ CODE_13_loc_00007014:
 	tst.w d5
 	beq.b CODE_13_loc_00007028
 	move.w #$32,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w #$2,-$0BD4(a5)
 	bra.b CODE_13_loc_0000702e
 CODE_13_loc_00007028:
@@ -38188,7 +38189,7 @@ CODE_13_loc_0000708a:
 	tst.w d7
 	bne.b CODE_13_loc_000070d0
 	move.w #$17,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	addq.w #1,-$18E6(a5)
 	pea.l CODE_13_loc_00008224(pc)
 	clr.l -(a7)
@@ -38196,10 +38197,10 @@ CODE_13_loc_0000708a:
 	ext.l d0
 	move.l d0,-(a7)
 	move.l #$FFFC,-(a7)
-	jsr $00BA(a5)
+	jsr CODE_0_jump_table_entry_19+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$0422(a6)
 	move.w #$2,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$0542(a5),a0
 	lea.l -$0422(a6),a1
 	moveq.l #127,d0
@@ -38211,7 +38212,7 @@ CODE_13_loc_000070d0:
 	move.b d4,d0
 	beq.b CODE_13_loc_0000713c
 	move.w #$BC,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_13_loc_0000713c
 CODE_13_loc_000070de:
 	moveq.l #63,d0
@@ -38228,9 +38229,9 @@ CODE_13_loc_000070de:
 	beq.b CODE_13_loc_0000713c
 	pea.l -$0542(a5)
 	pea.l -$108E(a5)
-	jsr $0092(a5)
+	jsr CODE_0_jump_table_entry_14+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w #$18,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_13_loc_0000713c
 CODE_13_loc_00007110:
 	moveq.l #10,d0
@@ -38250,7 +38251,7 @@ CODE_13_loc_00007110:
 	and.b d1,d0
 	beq.b CODE_13_loc_0000713c
 	move.w #$18,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_13_loc_0000713c:
 	move.b d4,d0
 	beq.b CODE_13_loc_00007144
@@ -38293,12 +38294,12 @@ CODE_13_loc_0000715c:
 CODE_13_loc_00007198:
 	move.b -$0C60(a5),d0
 	beq.b CODE_13_loc_000071b8
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	moveq.l #30,d0
 	cmp.b -$0005(a5),d0
 	beq.w CODE_13_loc_00007284
 	move.w #$19,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_13_loc_00007284
 CODE_13_loc_000071b8:
 	move.b #$1E,-$0005(a5)
@@ -38329,7 +38330,7 @@ CODE_13_loc_000071c2:
 	sne.b d1
 	and.b d1,d0
 	beq.b CODE_13_loc_00007284
-	jsr $0172(a5)
+	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	moveq.l #30,d0
 	cmp.b -$0005(a5),d0
 	bne.b CODE_13_loc_00007284
@@ -38374,7 +38375,7 @@ CODE_13_loc_00007254:
 	bne.b CODE_13_loc_00007284
 CODE_13_loc_00007278:
 	move.w #$1A,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_13_loc_000081a4
 CODE_13_loc_00007284:
 	move.b -$0C59(a5),d0
@@ -38643,7 +38644,7 @@ CODE_13_loc_00008172:
 	cmp.b -$0005(a5),d0
 	beq.b CODE_13_loc_00008188
 	move.w #$33,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_13_loc_00008188:
 	move.b -$14DC(a5),d0
 	bne.b CODE_13_loc_000081a4
@@ -38673,7 +38674,7 @@ CODE_13_loc_00008224:
 CODE_13_loc_00008226:
 	link a6,#0
 	move.l $0008(a6),-(a7)
-	jsr $04AA(a5)
+	jsr CODE_0_jump_table_entry_145+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
@@ -38692,11 +38693,11 @@ CODE_14_loc_00000028:
 	move.b $0008(a6),d0
 	beq.b CODE_14_loc_0000003e
 	pea.l -$379A(a5)
-	jsr $0A5A(a5)
+	jsr CODE_0_jump_table_entry_327+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_14_loc_00000046
 CODE_14_loc_0000003e:
 	pea.l -$379A(a5)
-	jsr $0A62(a5)
+	jsr CODE_0_jump_table_entry_328+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_14_loc_00000046:
 	moveq.l #0,d0
 	move.l d0,-$37C2(a5)
@@ -38728,14 +38729,14 @@ CODE_14_loc_00000046:
 	move.l (a0),d7
 	sub.l (a1),d7
 	clr.w -(a7)
-	jsr $0882(a5)
+	jsr CODE_0_jump_table_entry_268+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	beq.b CODE_14_loc_000000d0
 	move.l d7,d0
 	sub.l #$2DD78,d0
 	move.l d0,-(a7)
 	move.l #$3F8,-(a7)
-	jsr $0A7A(a5)
+	jsr CODE_0_jump_table_entry_331+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,-$379E(a5)
 	bra.b CODE_14_loc_000000e8
 CODE_14_loc_000000d0:
@@ -38743,7 +38744,7 @@ CODE_14_loc_000000d0:
 	sub.l #$48C18,d0
 	move.l d0,-(a7)
 	move.l #$3F8,-(a7)
-	jsr $0A7A(a5)
+	jsr CODE_0_jump_table_entry_331+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,-$379E(a5)
 CODE_14_loc_000000e8:
 	move.l (a7)+,d7
@@ -39173,13 +39174,13 @@ CODE_14_loc_0000050e:
 CODE_14_loc_0000052c:
 	pea.l -$0008(a6)
 	move.l #$3F8,-(a7)
-	jsr $0A52(a5)
+	jsr CODE_0_jump_table_entry_326+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.w -(a7)
-	jsr $0A6A(a5)
+	jsr CODE_0_jump_table_entry_329+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	tst.w (a7)+
 	beq.b CODE_14_loc_0000055e
 	pea.l CODE_14_loc_00000600(pc)
-	jsr $01D2(a5)
+	jsr CODE_0_jump_table_entry_54+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_14_loc_0000055e
 CODE_14_loc_0000054e:
 	move.l -$37CA(a5),-$0008(a6)
@@ -39209,13 +39210,13 @@ CODE_14_loc_00000580:
 	bra.b CODE_14_loc_000005ea
 CODE_14_loc_00000598:
 	pea.l CODE_14_loc_00000600(pc)
-	jsr $01D2(a5)
+	jsr CODE_0_jump_table_entry_54+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_14_loc_000005ea
 CODE_14_loc_000005a2:
 	move.b -$37A3(a5),d0
 	beq.b CODE_14_loc_000005ea
 	clr.w -(a7)
-	jsr $0802(a5)
+	jsr CODE_0_jump_table_entry_252+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	tst.l -$37CA(a5)
 	bne.b CODE_14_loc_000005c0
 	moveq.l #0,d0
@@ -39260,13 +39261,13 @@ CODE_14_loc_00000644:
 CODE_14_loc_00000660:
 	pea.l -$0004(a6)
 	move.l #$3F8,-(a7)
-	jsr $0A52(a5)
+	jsr CODE_0_jump_table_entry_326+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.w -(a7)
-	jsr $0A6A(a5)
+	jsr CODE_0_jump_table_entry_329+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	tst.w (a7)+
 	beq.b CODE_14_loc_00000692
 	pea.l CODE_14_loc_000006d8(pc)
-	jsr $01D2(a5)
+	jsr CODE_0_jump_table_entry_54+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_14_loc_00000692
 CODE_14_loc_00000682:
 	move.l -$37CA(a5),-$0004(a6)
@@ -39279,7 +39280,7 @@ CODE_14_loc_00000692:
 	bra.b CODE_14_loc_000006ac
 CODE_14_loc_0000069e:
 	move.b #$1,-(a7)
-	jsr $0802(a5)
+	jsr CODE_0_jump_table_entry_252+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l -$37A2(a5),-$0004(a6)
 CODE_14_loc_000006ac:
 	movea.l -$0004(a6),a0
@@ -39367,7 +39368,7 @@ CODE_15_loc_00000070:
 	pea.l -$052E(a4)
 	move.w #$2,-(a7)
 	move.w $0010(a6),-(a7)
-	jsr $08DA(a5)
+	jsr CODE_0_jump_table_entry_279+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d7
 	bne.b CODE_15_loc_000000d2
 	movea.l $000A(a4),a0
@@ -39378,7 +39379,7 @@ CODE_15_loc_00000070:
 	pea.l CODE_15_loc_000000f4(pc)
 	pea.l -$0102(a6)
 	move.w #$4,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a0
 	lea.l -$0102(a6),a1
 	moveq.l #127,d0
@@ -39453,7 +39454,7 @@ CODE_15_loc_00000192:
 	beq.b CODE_15_loc_000001a4
 	pea.l -$002E(a4)
 	move.l $000A(a4),-(a7)
-	jsr $0092(a5)
+	jsr CODE_0_jump_table_entry_14+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_15_loc_000001a4:
 	movea.l $0008(a6),a0
 	movea.l a0,a6
@@ -39480,10 +39481,10 @@ CODE_15_loc_000001c8:
 	move.w $000E(a6),d0
 	ext.l d0
 	move.l d0,-(a7)
-	jsr $00C2(a5)
+	jsr CODE_0_jump_table_entry_20+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$062E(a6)
 	move.w #$2,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$002E(a6),a0
 	lea.l -$062E(a6),a1
 	moveq.l #15,d0
@@ -39495,20 +39496,20 @@ CODE_15_loc_00000206:
 	clr.w -(a7)
 	pea.l CODE_15_loc_0000055c(pc)
 	pea.l -$012E(a6)
-	jsr $089A(a5)
+	jsr CODE_0_jump_table_entry_271+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	beq.b CODE_15_loc_00000236
 	pea.l -$012E(a6)
 	pea.l -$34C0(a5)
 	move.w #$1,-(a7)
-	jsr $0ABA(a5)
+	jsr CODE_0_jump_table_entry_339+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_15_loc_00000236:
 	pea.l -$32AC(a5)
 	pea.l -$34C0(a5)
 	clr.w -(a7)
-	jsr $08B2(a5)
+	jsr CODE_0_jump_table_entry_274+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.w -(a7)
-	jsr $0902(a5)
+	jsr CODE_0_jump_table_entry_284+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,-$0008(a6)
 	beq.w CODE_15_loc_000002d2
 	lea.l -$34C0(a5),a0
@@ -39520,20 +39521,20 @@ CODE_15_loc_0000025c:
 	clr.w -(a7)
 	pea.l CODE_15_loc_00000542(pc)
 	pea.l -$012E(a6)
-	jsr $089A(a5)
+	jsr CODE_0_jump_table_entry_271+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	beq.b CODE_15_loc_00000284
 	pea.l -$012E(a6)
 	pea.l -$34C0(a5)
 	move.w #$1,-(a7)
-	jsr $0ABA(a5)
+	jsr CODE_0_jump_table_entry_339+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_15_loc_00000284:
 	pea.l -$32AC(a5)
 	pea.l -$34C0(a5)
 	clr.w -(a7)
-	jsr $08B2(a5)
+	jsr CODE_0_jump_table_entry_274+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.w -(a7)
-	jsr $0902(a5)
+	jsr CODE_0_jump_table_entry_284+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,-$0008(a6)
 	beq.b CODE_15_loc_000002d2
 	movea.l $000A(a6),a0
@@ -39544,7 +39545,7 @@ CODE_15_loc_00000284:
 	pea.l CODE_15_loc_000004f8(pc)
 	pea.l -$062E(a6)
 	move.w #$4,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a0
 	lea.l -$062E(a6),a1
 	moveq.l #127,d0
@@ -39581,7 +39582,7 @@ CODE_15_loc_00000310:
 	ext.l d0
 	move.l d0,-(a7)
 	move.l #$3,-(a7)
-	jsr $00BA(a5)
+	jsr CODE_0_jump_table_entry_19+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,d0
 	movea.l (a7)+,a0
 	movea.l d0,a1
@@ -39598,7 +39599,7 @@ CODE_15_loc_00000336:
 	pea.l CODE_15_loc_00000522(pc)
 	pea.l -$062E(a6)
 	move.w #$3,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a0
 	lea.l -$062E(a6),a1
 	moveq.l #127,d0
@@ -39614,7 +39615,7 @@ CODE_15_loc_00000372:
 	pea.l CODE_15_loc_00000522(pc)
 	pea.l -$062E(a6)
 	move.w #$3,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a0
 	lea.l -$062E(a6),a1
 	moveq.l #127,d0
@@ -39627,9 +39628,9 @@ CODE_15_loc_0000039e:
 	pea.l -$32A6(a5)
 	move.l -$33C0(a5),-(a7)
 	clr.w -(a7)
-	jsr $08B2(a5)
+	jsr CODE_0_jump_table_entry_274+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.w -(a7)
-	jsr $0902(a5)
+	jsr CODE_0_jump_table_entry_284+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,-$0008(a6)
 	beq.b CODE_15_loc_000003f6
 	pea.l CODE_15_loc_0000050a(pc)
@@ -39637,7 +39638,7 @@ CODE_15_loc_0000039e:
 	pea.l CODE_15_loc_000004f8(pc)
 	pea.l -$062E(a6)
 	move.w #$3,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$012E(a6),a0
 	lea.l -$062E(a6),a1
 	moveq.l #127,d0
@@ -39646,7 +39647,7 @@ CODE_15_loc_000003e0:
 	dbf.w d0,CODE_15_loc_000003e0
 	move.l $000A(a6),-(a7)
 	pea.l -$012E(a6)
-	jsr $008A(a5)
+	jsr CODE_0_jump_table_entry_13+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_15_loc_000004d4
 CODE_15_loc_000003f6:
 	move.b #$1,-$32A7(a5)
@@ -39713,7 +39714,7 @@ CODE_15_loc_00000498:
 	pea.l CODE_15_loc_000004f2(pc)
 	pea.l -$062E(a6)
 	move.w #$4,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a0
 	lea.l -$062E(a6),a1
 	moveq.l #127,d0
@@ -39769,7 +39770,7 @@ CODE_15_loc_00000588:
 	beq.w CODE_15_loc_00000660
 	move.l -$0004(a6),-(a7)
 	pea.l -$010A(a6)
-	jsr $0092(a5)
+	jsr CODE_0_jump_table_entry_14+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.w d6
 	move.b -$010A(a6),d6
 	clr.w d0
@@ -39790,7 +39791,7 @@ CODE_15_loc_00000588:
 CODE_15_loc_000005da:
 	pea.l CODE_15_loc_0000067c(pc)
 	move.l a4,-(a7)
-	jsr $0A9A(a5)
+	jsr CODE_0_jump_table_entry_335+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d7
 	bne.b CODE_15_loc_0000060e
 	move.l a4,-(a7)
@@ -39798,7 +39799,7 @@ CODE_15_loc_000005da:
 	pea.l -$010A(a6)
 	pea.l -$020A(a6)
 	move.w #$3,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$020A(a6),a0
 	movea.l a4,a1
 	moveq.l #127,d0
@@ -39813,7 +39814,7 @@ CODE_15_loc_0000060e:
 	subq.w #1,d0
 	move.w d0,-(a7)
 	pea.l -$020A(a6)
-	jsr $0AAA(a5)
+	jsr CODE_0_jump_table_entry_337+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$020A(a6)
 	pea.l -$010A(a6)
 	move.l a4,-(a7)
@@ -39825,11 +39826,11 @@ CODE_15_loc_0000060e:
 	sub.w d7,d0
 	move.w d0,-(a7)
 	pea.l -$030A(a6)
-	jsr $0AAA(a5)
+	jsr CODE_0_jump_table_entry_337+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$030A(a6)
 	pea.l -$040A(a6)
 	move.w #$3,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$040A(a6),a0
 	movea.l a4,a1
 	moveq.l #127,d0
@@ -39879,7 +39880,7 @@ CODE_15_loc_000006c4:
 	bra.b CODE_15_loc_0000072a
 CODE_15_loc_000006d6:
 	move.w #$FFFF,-(a7)
-	jsr $03B2(a5)
+	jsr CODE_0_jump_table_entry_114+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w d7,d0
 	subq.w #1,d0
 	lea.l -$3296(a5),a0
@@ -39891,19 +39892,19 @@ CODE_15_loc_000006d6:
 	beq.b CODE_15_loc_00000710
 	cmpa.l -$32B2(a5),a4
 	beq.b CODE_15_loc_00000704
-	jsr $05EA(a5)
+	jsr CODE_0_jump_table_entry_185+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_15_loc_00000704:
 	move.l a4,-(a7)
 	pea.l -$0104(a6)
-	jsr $041A(a5)
+	jsr CODE_0_jump_table_entry_127+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_15_loc_00000726
 CODE_15_loc_00000710:
 	pea.l -$2D92(a5)
 	pea.l -$0104(a6)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
-	jsr $09F2(a5)
+	jsr CODE_0_jump_table_entry_314+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_15_loc_00000726:
 	addq.w #1,d7
 	bvs.b CODE_15_loc_00000730
@@ -39920,7 +39921,7 @@ CODE_15_loc_00000730:
 	pea.l CODE_15_loc_00000884(pc)
 	pea.l -$0204(a6)
 	move.w #$5,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$0104(a6),a0
 	lea.l -$0204(a6),a1
 	moveq.l #127,d0
@@ -39934,10 +39935,10 @@ CODE_15_loc_00000760:
 	move.w $000A(a6),d0
 	ext.l d0
 	move.l d0,-(a7)
-	jsr $00C2(a5)
+	jsr CODE_0_jump_table_entry_20+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$0204(a6)
 	move.w #$2,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$0104(a6),a0
 	lea.l -$0204(a6),a1
 	moveq.l #127,d0
@@ -39948,26 +39949,26 @@ CODE_15_loc_00000796:
 	beq.b CODE_15_loc_000007b6
 	cmpa.l -$32B2(a5),a4
 	beq.b CODE_15_loc_000007aa
-	jsr $05EA(a5)
+	jsr CODE_0_jump_table_entry_185+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_15_loc_000007aa:
 	move.l a4,-(a7)
 	pea.l -$0104(a6)
-	jsr $041A(a5)
+	jsr CODE_0_jump_table_entry_127+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_15_loc_000007cc
 CODE_15_loc_000007b6:
 	pea.l -$2D92(a5)
 	pea.l -$0104(a6)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
-	jsr $09F2(a5)
+	jsr CODE_0_jump_table_entry_314+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_15_loc_000007cc:
 	pea.l CODE_15_loc_00000878(pc)
 	move.l $000C(a6),-(a7)
 	pea.l CODE_15_loc_0000086e(pc)
 	pea.l -$0204(a6)
 	move.w #$3,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$0104(a6),a0
 	lea.l -$0204(a6),a1
 	moveq.l #127,d0
@@ -39980,10 +39981,10 @@ CODE_15_loc_000007f4:
 	move.w $0010(a6),d0
 	ext.l d0
 	move.l d0,-(a7)
-	jsr $00C2(a5)
+	jsr CODE_0_jump_table_entry_20+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$0204(a6)
 	move.w #$2,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$0104(a6),a0
 	lea.l -$0204(a6),a1
 	moveq.l #127,d0
@@ -39994,19 +39995,19 @@ CODE_15_loc_0000081c:
 	beq.b CODE_15_loc_0000083c
 	cmpa.l -$32B2(a5),a4
 	beq.b CODE_15_loc_00000830
-	jsr $05EA(a5)
+	jsr CODE_0_jump_table_entry_185+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_15_loc_00000830:
 	move.l a4,-(a7)
 	pea.l -$0104(a6)
-	jsr $041A(a5)
+	jsr CODE_0_jump_table_entry_127+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_15_loc_00000852
 CODE_15_loc_0000083c:
 	pea.l -$2D92(a5)
 	pea.l -$0104(a6)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
-	jsr $09F2(a5)
+	jsr CODE_0_jump_table_entry_314+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_15_loc_00000852:
 	movem.l (a7)+,d7/a3-a4
 	unlk a6
@@ -40040,7 +40041,7 @@ CODE_15_loc_000008b0:
 	beq.b CODE_15_loc_000008d2
 	move.l -$33B8(a5),-(a7)
 	move.l $0002(a4),-(a7)
-	jsr $0782(a5)
+	jsr CODE_0_jump_table_entry_236+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_15_loc_000008d2:
 	addq.w #1,d7
 	bvs.b CODE_15_loc_000008dc
@@ -40109,7 +40110,7 @@ CODE_15_loc_00000966:
 	movea.l $2(a1,d1.w),a1
 	move.l a0,-(a7)
 	move.l a1,-(a7)
-	jsr $0ACA(a5)
+	jsr CODE_0_jump_table_entry_341+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	and.b (a7)+,d0
 	beq.b CODE_15_loc_0000099e
 	bra.w CODE_15_loc_00000a8c
@@ -40134,7 +40135,7 @@ CODE_15_loc_000009a8:
 	and.b d1,d0
 	beq.b CODE_15_loc_000009d6
 	move.w #$16,-(a7)
-	jsr $014A(a5)
+	jsr CODE_0_jump_table_entry_37+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_15_loc_000009d6:
 	addq.w #1,-$329C(a5)
 	bra.b CODE_15_loc_000009e4
@@ -40155,16 +40156,16 @@ CODE_15_loc_000009ee:
 	move.b (a0),d0
 	addq.w #1,d0
 	move.w d0,-(a7)
-	jsr $077A(a5)
+	jsr CODE_0_jump_table_entry_235+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a3
 	move.l a3,d0
 	bne.b CODE_15_loc_00000a10
 	pea.l CODE_15_loc_00000ab0(pc)
-	jsr $01D2(a5)
+	jsr CODE_0_jump_table_entry_54+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_15_loc_00000a10:
 	move.l d6,-(a7)
 	move.l a3,-(a7)
-	jsr $0092(a5)
+	jsr CODE_0_jump_table_entry_14+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_15_loc_00000a18:
 	move.w -$32A0(a5),d0
 	subq.w #1,d0
@@ -40184,21 +40185,21 @@ CODE_15_loc_00000a18:
 	jsr CODE_15_loc_00000576(pc)
 	pea.l CODE_15_loc_00000aaa(pc)
 	pea.l -$0106(a6)
-	jsr $0A9A(a5)
+	jsr CODE_0_jump_table_entry_335+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d7
 	pea.l -$0106(a6)
 	move.w #$1,-(a7)
 	move.w d7,d0
 	addq.w #3,d0
 	move.w d0,-(a7)
-	jsr $0AB2(a5)
+	jsr CODE_0_jump_table_entry_338+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l CODE_15_loc_00000aa4(pc)
 	pea.l -$0106(a6)
 	pea.l -$0206(a6)
 	move.w #$2,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$0206(a6)
-	jsr $01D2(a5)
+	jsr CODE_0_jump_table_entry_54+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_15_loc_00000a8c:
 	movem.l (a7)+,d5-d7/a3-a4
 	unlk a6
@@ -40239,7 +40240,7 @@ CODE_15_loc_00000b10:
 	pea.l -$0100(a6)
 	pea.l -$0200(a6)
 	move.w #$3,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$0100(a6),a0
 	lea.l -$0200(a6),a1
 	moveq.l #127,d0
@@ -40267,7 +40268,7 @@ CODE_15_loc_00000b72:
 	move.l $000E(a6),-(a7)
 	pea.l -$0008(a6)
 	pea.l -$000A(a6)
-	jsr $00FA(a5)
+	jsr CODE_0_jump_table_entry_27+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a3
 	move.l a3,d0
 	bne.b CODE_15_loc_00000ba2
@@ -40289,7 +40290,7 @@ CODE_15_loc_00000bae:
 	bne.b CODE_15_loc_00000c10
 	move.l -$0014(a6),-(a7)
 	move.l a4,-(a7)
-	jsr $0092(a5)
+	jsr CODE_0_jump_table_entry_14+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.w d0
 	move.b (a4),d0
 	tst.w d0
@@ -40302,7 +40303,7 @@ CODE_15_loc_00000bae:
 	bne.b CODE_15_loc_00000bf6
 	move.l a4,-(a7)
 	move.l #$70001,-(a7)
-	jsr $0AB2(a5)
+	jsr CODE_0_jump_table_entry_338+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_15_loc_00000c08
 CODE_15_loc_00000bf6:
 	moveq.l #3,d0
@@ -40310,7 +40311,7 @@ CODE_15_loc_00000bf6:
 	bne.b CODE_15_loc_00000c08
 	move.l a4,-(a7)
 	move.l #$D0001,-(a7)
-	jsr $0AB2(a5)
+	jsr CODE_0_jump_table_entry_338+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_15_loc_00000c08:
 	move.b #$1,$0012(a6)
 	bra.b CODE_15_loc_00000c5a
@@ -40335,7 +40336,7 @@ CODE_15_loc_00000c28:
 	move.l d0,-(a7)
 	pea.l -$0014(a6)
 	move.w #$4,-(a7)
-	jsr $00A2(a5)
+	jsr CODE_0_jump_table_entry_16+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.w CODE_15_loc_00000bae
 CODE_15_loc_00000c48:
 	move.w d5,d0
@@ -40366,7 +40367,7 @@ CODE_15_loc_00000c76:
 	pea.l -$32B2(a5)
 	move.b -$33B3(a5),-(a7)
 	clr.l -(a7)
-	jsr $0452(a5)
+	jsr CODE_0_jump_table_entry_134+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d7
 	beq.b CODE_15_loc_00000cb6
 	pea.l -$33B2(a5)
@@ -40428,7 +40429,7 @@ CODE_15_loc_00000d2a:
 	jsr CODE_15_loc_0000067e(pc)
 	move.l -$32B2(a5),-(a7)
 	move.w #$D,-(a7)
-	jsr $046A(a5)
+	jsr CODE_0_jump_table_entry_137+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_15_loc_00000d4e:
 	jsr CODE_15_loc_00000896(pc)
 	clr.w -$3298(a5)
@@ -40463,7 +40464,7 @@ CODE_16_loc_00000028:
 	movea.l $0(a0,d0.w),a0
 	move.l a0,-(a7)
 	pea.l -$1290(a5)
-	jsr $0092(a5)
+	jsr CODE_0_jump_table_entry_14+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b #$1,-$1190(a5)
 	move.w -$12A0(a5),-$12A2(a5)
 	move.b -$0F4F(a5),d0
@@ -40481,20 +40482,20 @@ CODE_16_loc_0000007a:
 	move.b -$1290(a5),d0
 	addq.w #1,d0
 	move.w d0,-(a7)
-	jsr $077A(a5)
+	jsr CODE_0_jump_table_entry_235+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a4
 	move.l a4,d0
 	bne.b CODE_16_loc_000000a2
 	pea.l CODE_16_loc_0000011e(pc)
-	jsr $01D2(a5)
+	jsr CODE_0_jump_table_entry_54+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_16_loc_000000a2:
 	pea.l -$1290(a5)
 	move.l a4,-(a7)
-	jsr $0092(a5)
+	jsr CODE_0_jump_table_entry_14+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l a4,-(a7)
 	move.w -$12A2(a5),-(a7)
 	clr.w -(a7)
-	jsr $016A(a5)
+	jsr CODE_0_jump_table_entry_41+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_16_loc_000000b8:
 	btst.b #2,-$12A6(a5)
 	beq.b CODE_16_loc_000000f0
@@ -40505,13 +40506,13 @@ CODE_16_loc_000000b8:
 	pea.l -$2D92(a5)
 	pea.l CODE_16_loc_0000010a(pc)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
 	pea.l -$1290(a5)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
-	jsr $09F2(a5)
+	jsr CODE_0_jump_table_entry_314+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_16_loc_000000f0:
 	movem.l (a7)+,d7/a4
 	unlk a6
@@ -40548,22 +40549,22 @@ CODE_16_loc_0000015c:
 	pea.l -$134C(a5)
 	move.l a3,-(a7)
 	move.l #$FFFF0002,-(a7)
-	jsr $08E2(a5)
+	jsr CODE_0_jump_table_entry_280+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	moveq.l #2,d0
 	cmp.w (a7)+,d0
 	beq.b CODE_16_loc_00000188
 	clr.w -(a7)
-	jsr $0902(a5)
+	jsr CODE_0_jump_table_entry_284+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7),d6
 	pea.l CODE_16_loc_000001f0(pc)
-	jsr $01DA(a5)
+	jsr CODE_0_jump_table_entry_55+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_16_loc_00000188:
 	addq.w #2,-$0F1A(a5)
 	move.l $0004(a3),d5
 	cmpa.l a3,a4
 	beq.b CODE_16_loc_0000019e
 	move.l a3,-(a7)
-	jsr $07B2(a5)
+	jsr CODE_0_jump_table_entry_242+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l d4,a0
 	addq.w #1,(a0)
 CODE_16_loc_0000019e:
@@ -40577,9 +40578,9 @@ CODE_16_loc_000001a2:
 	move.l d7,-(a7)
 	move.l a4,-(a7)
 	move.w #$3F8,-(a7)
-	jsr $0A8A(a5)
+	jsr CODE_0_jump_table_entry_333+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l d7,-(a7)
-	jsr $07B2(a5)
+	jsr CODE_0_jump_table_entry_242+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l d4,a0
 	addq.w #1,(a0)
 	moveq.l #0,d0
@@ -40619,16 +40620,16 @@ CODE_16_loc_00000230:
 	ext.l d0
 	move.l d0,-(a7)
 	move.l #$3F8,-(a7)
-	jsr $0A72(a5)
-	jsr $00C2(a5)
-	jsr $008A(a5)
+	jsr CODE_0_jump_table_entry_330+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
+	jsr CODE_0_jump_table_entry_20+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
+	jsr CODE_0_jump_table_entry_13+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	tst.w -$0F1C(a5)
 	bne.b CODE_16_loc_00000286
 	pea.l -$0052(a6)
 	pea.l CODE_16_loc_00000334(pc)
 	pea.l -$00AA(a6)
 	move.w #$2,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$0052(a6),a0
 	lea.l -$00AA(a6),a1
 	moveq.l #40,d0
@@ -40641,7 +40642,7 @@ CODE_16_loc_00000286:
 	pea.l CODE_16_loc_0000032a(pc)
 	pea.l -$00AC(a6)
 	move.w #$2,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$0052(a6),a0
 	lea.l -$00AC(a6),a1
 	moveq.l #40,d0
@@ -40654,14 +40655,14 @@ CODE_16_loc_000002a4:
 	ext.l d0
 	move.l d0,-(a7)
 	move.l #$3F8,-(a7)
-	jsr $0A72(a5)
-	jsr $00C2(a5)
-	jsr $008A(a5)
+	jsr CODE_0_jump_table_entry_330+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
+	jsr CODE_0_jump_table_entry_20+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
+	jsr CODE_0_jump_table_entry_13+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$0052(a6)
 	pea.l CODE_16_loc_0000031c(pc)
 	pea.l -$00B0(a6)
 	move.w #$2,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$0052(a6),a0
 	lea.l -$00B0(a6),a1
 	moveq.l #40,d0
@@ -40672,9 +40673,9 @@ CODE_16_loc_000002ee:
 	pea.l -$2D92(a5)
 	pea.l -$0052(a6)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
-	jsr $09F2(a5)
+	jsr CODE_0_jump_table_entry_314+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_16_loc_00000304:
 	move.w -$0F1E(a5),-$0F1C(a5)
 	unlk a6
@@ -40706,14 +40707,14 @@ CODE_16_loc_0000037c:
 	pea.l -$134C(a5)
 	pea.l CODE_16_loc_000003fa(pc)
 	move.w #$2,-(a7)
-	jsr $08B2(a5)
+	jsr CODE_0_jump_table_entry_274+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.w -(a7)
-	jsr $0902(a5)
+	jsr CODE_0_jump_table_entry_284+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d7
 	beq.b CODE_16_loc_000003a0
 	move.w d7,-(a7)
 	pea.l CODE_16_loc_000003d6(pc)
-	jsr $01DA(a5)
+	jsr CODE_0_jump_table_entry_55+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_16_loc_000003a0:
 	jsr CODE_16_loc_00000208(pc)
 	clr.w -$0F1A(a5)
@@ -40751,7 +40752,7 @@ CODE_17_loc_00000028:
 	movea.l $0008(a6),a0
 	move.l $001C(a0),-(a7)
 	move.w #$10,-(a7)
-	jsr $078A(a5)
+	jsr CODE_0_jump_table_entry_237+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a4
 	move.l a4,$0010(a6)
 	move.l a4,d0
@@ -40786,7 +40787,7 @@ CODE_17_loc_00000078:
 	movea.l $0010(a6),a0
 	pea.l $000C(a0)
 	pea.l -$010E(a6)
-	jsr $0092(a5)
+	jsr CODE_0_jump_table_entry_14+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l d5,a0
 	tst.l (a0)
 	bne.b CODE_17_loc_000000b8
@@ -40801,17 +40802,17 @@ CODE_17_loc_000000bc:
 	movea.l (a4),a0
 	pea.l $000C(a0)
 	pea.l -$020E(a6)
-	jsr $0092(a5)
+	jsr CODE_0_jump_table_entry_14+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$020E(a6)
 	pea.l -$010E(a6)
-	jsr $0ACA(a5)
+	jsr CODE_0_jump_table_entry_341+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	beq.b CODE_17_loc_000000de
 	bra.b CODE_17_loc_00000112
 CODE_17_loc_000000de:
 	pea.l -$020E(a6)
 	pea.l -$010E(a6)
-	jsr $0AE2(a5)
+	jsr CODE_0_jump_table_entry_344+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	beq.b CODE_17_loc_000000f6
 	movea.l $0008(a4),a4
@@ -40848,9 +40849,9 @@ CODE_17_loc_0000012e:
 	movea.l $0010(a6),a0
 	pea.l $000C(a0)
 	pea.l -$010A(a6)
-	jsr $0092(a5)
+	jsr CODE_0_jump_table_entry_14+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$010A(a6)
-	jsr $005A(a5)
+	jsr CODE_0_jump_table_entry_7+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_17_loc_00000156:
 	move.l a4,d0
 	beq.b CODE_17_loc_000001a8
@@ -40858,12 +40859,12 @@ CODE_17_loc_00000156:
 	movea.l (a4),a0
 	pea.l $000C(a0)
 	pea.l -$020A(a6)
-	jsr $0092(a5)
+	jsr CODE_0_jump_table_entry_14+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$020A(a6)
-	jsr $005A(a5)
+	jsr CODE_0_jump_table_entry_7+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$020A(a6)
 	pea.l -$010A(a6)
-	jsr $0ACA(a5)
+	jsr CODE_0_jump_table_entry_341+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	beq.b CODE_17_loc_00000188
 	move.l a4,$0014(a6)
@@ -40871,7 +40872,7 @@ CODE_17_loc_00000156:
 CODE_17_loc_00000188:
 	pea.l -$020A(a6)
 	pea.l -$010A(a6)
-	jsr $0AE2(a5)
+	jsr CODE_0_jump_table_entry_344+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	beq.b CODE_17_loc_000001a0
 	movea.l $0008(a4),a4
@@ -40942,13 +40943,13 @@ CODE_17_loc_00000236:
 	move.b -$133F(a5),d0
 	beq.b CODE_17_loc_0000024a
 	pea.l CODE_17_loc_000003a2(pc)
-	jsr $01D2(a5)
+	jsr CODE_0_jump_table_entry_54+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_17_loc_0000024a:
 	addq.w #1,-$0004(a6)
 	move.w -$0004(a6),d0
 	ext.l d0
 	move.l d0,-(a7)
-	jsr $03AA(a5)
+	jsr CODE_0_jump_table_entry_113+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.w d6
 	move.b $000C(a4),d6
 	tst.w d6
@@ -41074,17 +41075,17 @@ CODE_17_loc_000003a2:
 	dc.b $0A,$3C,$3C,$3C,$49,$4E,$54,$52,$3E,$3E,$3E,$00
 CODE_17_loc_000003ae:
 	link a6,#0
-	jsr $05EA(a5)
+	jsr CODE_0_jump_table_entry_185+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	tst.l $0008(a6)
 	bne.b CODE_17_loc_000003ca
 	move.l -$149C(a5),-(a7)
 	move.w #$D,-(a7)
-	jsr $046A(a5)
+	jsr CODE_0_jump_table_entry_137+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_17_loc_000003d6
 CODE_17_loc_000003ca:
 	move.l -$149C(a5),-(a7)
 	move.l $0008(a6),-(a7)
-	jsr $041A(a5)
+	jsr CODE_0_jump_table_entry_127+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_17_loc_000003d6:
 	unlk a6
 	movea.l (a7)+,a0
@@ -41100,7 +41101,7 @@ CODE_17_loc_000003e8:
 	move.w $0008(a6),-(a7)
 	pea.l -$0001(a6)
 	move.b d6,-(a7)
-	jsr $0512(a5)
+	jsr CODE_0_jump_table_entry_158+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	moveq.l #1,d0
 	cmp.b -$0001(a6),d0
 	bne.b CODE_17_loc_0000042c
@@ -41113,8 +41114,8 @@ CODE_17_loc_00000416:
 	move.l a4,-(a7)
 	clr.l -(a7)
 	move.l d7,-(a7)
-	jsr $00C2(a5)
-	jsr $008A(a5)
+	jsr CODE_0_jump_table_entry_20+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
+	jsr CODE_0_jump_table_entry_13+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_17_loc_00000496
 CODE_17_loc_0000042c:
 	moveq.l #2,d0
@@ -41128,7 +41129,7 @@ CODE_17_loc_0000043c:
 	dbf.w d0,CODE_17_loc_0000043c
 	move.l a4,-(a7)
 	move.l d7,-(a7)
-	jsr $008A(a5)
+	jsr CODE_0_jump_table_entry_13+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_17_loc_00000496
 CODE_17_loc_0000044c:
 	moveq.l #3,d0
@@ -41143,7 +41144,7 @@ CODE_17_loc_0000045c:
 	move.l a4,-(a7)
 	move.l d7,-(a7)
 	move.b #$3,-(a7)
-	jsr $052A(a5)
+	jsr CODE_0_jump_table_entry_161+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_17_loc_00000496
 CODE_17_loc_00000470:
 	moveq.l #4,d0
@@ -41158,7 +41159,7 @@ CODE_17_loc_00000480:
 	move.l a4,-(a7)
 	move.l d7,-(a7)
 	move.b #$4,-(a7)
-	jsr $052A(a5)
+	jsr CODE_0_jump_table_entry_161+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_17_loc_00000496
 CODE_17_loc_00000494:
 	clr.b (a4)
@@ -41186,13 +41187,13 @@ CODE_17_loc_000004de:
 	move.b -$133F(a5),d0
 	beq.b CODE_17_loc_000004fc
 	pea.l CODE_17_loc_0000090c(pc)
-	jsr $01D2(a5)
+	jsr CODE_0_jump_table_entry_54+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_17_loc_000004fc:
 	subq.w #1,-$0008(a4)
 	move.w -$0008(a4),d0
 	ext.l d0
 	move.l d0,-(a7)
-	jsr $03AA(a5)
+	jsr CODE_0_jump_table_entry_113+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l $000C(a6),a0
 	movea.l (a0),a3
 	move.w $0008(a3),-$000C(a6)
@@ -41213,14 +41214,14 @@ CODE_17_loc_000004fc:
 	blt.w CODE_17_loc_000005f2
 	pea.l $000C(a3)
 	pea.l -$0022(a6)
-	jsr $0092(a5)
+	jsr CODE_0_jump_table_entry_14+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$0022(a6)
-	jsr $0052(a5)
+	jsr CODE_0_jump_table_entry_6+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$0022(a6)
 	pea.l CODE_17_loc_00000906(pc)
 	pea.l -$022E(a6)
 	move.w #$2,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$0022(a6),a0
 	lea.l -$022E(a6),a1
 	moveq.l #2,d0
@@ -41231,7 +41232,7 @@ CODE_17_loc_0000057e:
 	move.b #$5,-$0022(a6)
 	pea.l -$0022(a6)
 	pea.l -$23E8(a5)
-	jsr $0A9A(a5)
+	jsr CODE_0_jump_table_entry_335+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	tst.w (a7)+
 	ble.b CODE_17_loc_000005a4
 	bra.w CODE_17_loc_000008d6
@@ -41240,7 +41241,7 @@ CODE_17_loc_000005a4:
 	beq.b CODE_17_loc_000005be
 	pea.l -$0022(a6)
 	pea.l -$241C(a5)
-	jsr $0A9A(a5)
+	jsr CODE_0_jump_table_entry_335+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	tst.w (a7)+
 	ble.b CODE_17_loc_000005be
 	bra.w CODE_17_loc_000008d6
@@ -41249,7 +41250,7 @@ CODE_17_loc_000005be:
 	beq.b CODE_17_loc_000005d8
 	pea.l -$0022(a6)
 	pea.l -$24AA(a5)
-	jsr $0A9A(a5)
+	jsr CODE_0_jump_table_entry_335+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	tst.w (a7)+
 	ble.b CODE_17_loc_000005d8
 	bra.w CODE_17_loc_000008d6
@@ -41258,7 +41259,7 @@ CODE_17_loc_000005d8:
 	beq.b CODE_17_loc_0000065a
 	pea.l -$0022(a6)
 	pea.l -$24E8(a5)
-	jsr $0A9A(a5)
+	jsr CODE_0_jump_table_entry_335+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	tst.w (a7)+
 	ble.b CODE_17_loc_0000065a
 	bra.w CODE_17_loc_000008d6
@@ -41275,7 +41276,7 @@ CODE_17_loc_000005f2:
 	clr.w -(a7)
 	pea.l $000C(a3)
 	pea.l CODE_17_loc_00000900(pc)
-	jsr $006A(a5)
+	jsr CODE_0_jump_table_entry_9+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	beq.b CODE_17_loc_0000065a
 	bra.w CODE_17_loc_000008d6
@@ -41285,7 +41286,7 @@ CODE_17_loc_00000622:
 	clr.w -(a7)
 	pea.l $000C(a3)
 	pea.l CODE_17_loc_000008fa(pc)
-	jsr $006A(a5)
+	jsr CODE_0_jump_table_entry_9+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	beq.b CODE_17_loc_0000065a
 	bra.w CODE_17_loc_000008d6
@@ -41295,7 +41296,7 @@ CODE_17_loc_0000063e:
 	clr.w -(a7)
 	pea.l $000C(a3)
 	pea.l CODE_17_loc_000008fa(pc)
-	jsr $006A(a5)
+	jsr CODE_0_jump_table_entry_9+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b (a7)+,d0
 	beq.b CODE_17_loc_0000065a
 	bra.w CODE_17_loc_000008d6
@@ -41309,11 +41310,11 @@ CODE_17_loc_0000066c:
 CODE_17_loc_00000670:
 	pea.l -$0222(a6)
 	pea.l $000C(a3)
-	jsr $008A(a5)
+	jsr CODE_0_jump_table_entry_13+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w -$0006(a4),d5
 	pea.l -$0222(a6)
 	move.w d5,-(a7)
-	jsr $05E2(a5)
+	jsr CODE_0_jump_table_entry_184+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w #$FFF8,-$0008(a6)
 	moveq.l #-1,d0
 	move.l d0,-$0010(a6)
@@ -41344,7 +41345,7 @@ CODE_17_loc_000006ce:
 	beq.b CODE_17_loc_000006e8
 	clr.l -(a7)
 	move.l a3,-(a7)
-	jsr $0122(a5)
+	jsr CODE_0_jump_table_entry_32+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,-$0018(a6)
 	movea.l -$0018(a6),a0
 	move.l (a0),d7
@@ -41353,7 +41354,7 @@ CODE_17_loc_000006e8:
 	move.l a3,-(a7)
 	move.l d7,-(a7)
 	move.w -$000C(a6),-(a7)
-	jsr $0532(a5)
+	jsr CODE_0_jump_table_entry_162+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	moveq.l #0,d0
 	move.w -$000C(a6),d0
 	move.l #$FFFF8000,d1
@@ -41366,10 +41367,10 @@ CODE_17_loc_000006e8:
 	beq.b CODE_17_loc_00000748
 	pea.l -$0122(a6)
 	move.l #$60001,-(a7)
-	jsr $0AB2(a5)
+	jsr CODE_0_jump_table_entry_338+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$0222(a6)
 	pea.l -$0122(a6)
-	jsr $008A(a5)
+	jsr CODE_0_jump_table_entry_13+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$0122(a6),a0
 	lea.l CODE_17_loc_000008f2(pc),a1
 	moveq.l #3,d0
@@ -41380,10 +41381,10 @@ CODE_17_loc_0000073e:
 CODE_17_loc_00000748:
 	pea.l -$0122(a6)
 	move.l #$40001,-(a7)
-	jsr $0AB2(a5)
+	jsr CODE_0_jump_table_entry_338+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$0222(a6)
 	pea.l -$0122(a6)
-	jsr $008A(a5)
+	jsr CODE_0_jump_table_entry_13+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l #$3524547,-$0122(a6)
 	bra.w CODE_17_loc_000007ee
 CODE_17_loc_0000076e:
@@ -41391,7 +41392,7 @@ CODE_17_loc_0000076e:
 	beq.b CODE_17_loc_00000784
 	pea.l -$0222(a6)
 	pea.l -$0036(a4)
-	jsr $008A(a5)
+	jsr CODE_0_jump_table_entry_13+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_17_loc_000007ee
 CODE_17_loc_00000784:
 	btst.b #4,-$000B(a6)
@@ -41404,13 +41405,13 @@ CODE_17_loc_00000784:
 	beq.b CODE_17_loc_000007d0
 	pea.l -$0222(a6)
 	pea.l -$002C(a4)
-	jsr $008A(a5)
+	jsr CODE_0_jump_table_entry_13+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$0122(a6)
 	pea.l CODE_17_loc_000008ec(pc)
 	move.l d7,-(a7)
 	pea.l -$0322(a6)
 	move.w #$3,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$0122(a6),a0
 	lea.l -$0322(a6),a1
 	moveq.l #127,d0
@@ -41426,16 +41427,16 @@ CODE_17_loc_000007d0:
 	move.l d0,-(a7)
 	move.w -$0008(a6),-(a7)
 	move.b #$1,-(a7)
-	jsr $00BA(a5)
-	jsr $008A(a5)
+	jsr CODE_0_jump_table_entry_19+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
+	jsr CODE_0_jump_table_entry_13+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_17_loc_000007ee:
 	add.w #$C,d5
 	pea.l -$0222(a6)
 	move.w d5,-(a7)
-	jsr $05E2(a5)
+	jsr CODE_0_jump_table_entry_184+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$0222(a6)
 	pea.l -$0122(a6)
-	jsr $008A(a5)
+	jsr CODE_0_jump_table_entry_13+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$0222(a6)
 	jsr CODE_17_loc_000003ae(pc)
 	movea.l $000C(a6),a0
@@ -41452,17 +41453,17 @@ CODE_17_loc_00000830:
 	beq.b CODE_17_loc_00000874
 	pea.l $000C(a3)
 	pea.l -$0222(a6)
-	jsr $0092(a5)
+	jsr CODE_0_jump_table_entry_14+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$0122(a6)
 	move.l d7,-(a7)
 	move.w -$000C(a6),-(a7)
 	jsr CODE_17_loc_000003e8(pc)
 	pea.l -$0222(a6)
 	move.w -$0006(a4),-(a7)
-	jsr $05E2(a5)
+	jsr CODE_0_jump_table_entry_184+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$0222(a6)
 	pea.l -$0122(a6)
-	jsr $008A(a5)
+	jsr CODE_0_jump_table_entry_13+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$0222(a6)
 	jsr CODE_17_loc_000003ae(pc)
 	bra.b CODE_17_loc_000008d6
@@ -41484,11 +41485,11 @@ CODE_17_loc_00000884:
 	move.w d4,d0
 	addq.w #5,d0
 	move.w d0,-(a7)
-	jsr $05E2(a5)
+	jsr CODE_0_jump_table_entry_184+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_17_loc_000008bc
 CODE_17_loc_000008a4:
 	pea.l -$022C(a4)
-	jsr $007A(a5)
+	jsr CODE_0_jump_table_entry_11+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$022C(a4)
 	jsr CODE_17_loc_000003ae(pc)
 	clr.b -$022C(a4)
@@ -41496,12 +41497,12 @@ CODE_17_loc_000008a4:
 CODE_17_loc_000008bc:
 	pea.l -$022C(a4)
 	pea.l $000C(a3)
-	jsr $008A(a5)
+	jsr CODE_0_jump_table_entry_13+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$022C(a4)
 	move.w d6,d0
 	addq.w #1,d0
 	move.w d0,-(a7)
-	jsr $05E2(a5)
+	jsr CODE_0_jump_table_entry_184+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_17_loc_000008d6:
 	movem.l (a7)+,d4-d7/a3-a4
 	unlk a6
@@ -41556,35 +41557,35 @@ CODE_17_loc_00000962:
 	clr.w d0
 	move.b -$12FB(a5),d0
 	move.w d0,-(a7)
-	jsr $004A(a5)
+	jsr CODE_0_jump_table_entry_5+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d0
 	move.b d0,-$12FB(a5)
 	pea.l -$2D92(a5)
 	pea.l CODE_17_loc_00000a0c(pc)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
 	pea.l -$12FC(a5)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b $0008(a6),d0
 	beq.b CODE_17_loc_000009c8
 	pea.l -$2D92(a5)
 	pea.l CODE_17_loc_000009fa(pc)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D92(a5)
-	jsr $09F2(a5)
+	jsr CODE_0_jump_table_entry_314+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_17_loc_000009d0
 CODE_17_loc_000009c8:
 	pea.l -$2D92(a5)
-	jsr $09F2(a5)
+	jsr CODE_0_jump_table_entry_314+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_17_loc_000009d0:
 	clr.w -(a7)
 	clr.w d0
 	move.b -$12FB(a5),d0
 	move.w d0,-(a7)
-	jsr $0042(a5)
+	jsr CODE_0_jump_table_entry_4+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d0
 	move.b d0,-$12FB(a5)
 CODE_17_loc_000009e4:
@@ -41603,10 +41604,10 @@ CODE_17_loc_00000a1c:
 	movem.l d4-d7/a3-a4,-(a7)
 	pea.l -$12FC(a5)
 	pea.l -$00DA(a6)
-	jsr $0092(a5)
+	jsr CODE_0_jump_table_entry_14+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$1A08(a5)
 	pea.l -$012C(a6)
-	jsr $0092(a5)
+	jsr CODE_0_jump_table_entry_14+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l -$12A6(a5),-$0012(a6)
 	move.b -$37A3(a5),d4
 	clr.b -$37A3(a5)
@@ -41655,7 +41656,7 @@ CODE_17_loc_00000aa8:
 	pea.l $000C(a0)
 	pea.l -$032C(a6)
 	move.w #$2,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$12FC(a5),a0
 	lea.l -$032C(a6),a1
 	moveq.l #40,d0
@@ -41705,7 +41706,7 @@ CODE_17_loc_00000b2c:
 	clr.b d7
 CODE_17_loc_00000b38:
 	clr.l -(a7)
-	jsr $076A(a5)
+	jsr CODE_0_jump_table_entry_233+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a3
 	move.l a3,d0
 	bne.b CODE_17_loc_00000b72
@@ -41755,7 +41756,7 @@ CODE_17_loc_00000bc8:
 	dbf.w d0,CODE_17_loc_00000bc8
 	pea.l -$1A08(a5)
 	move.w -$0006(a6),-(a7)
-	jsr $05E2(a5)
+	jsr CODE_0_jump_table_entry_184+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	moveq.l #1,d0
 	cmp.b -$0003(a6),d0
 	blt.b CODE_17_loc_00000c08
@@ -41763,7 +41764,7 @@ CODE_17_loc_00000bc8:
 	pea.l CODE_17_loc_00000d72(pc)
 	pea.l -$032C(a6)
 	move.w #$2,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$1A08(a5),a0
 	lea.l -$032C(a6),a1
 	moveq.l #127,d0
@@ -41776,7 +41777,7 @@ CODE_17_loc_00000c08:
 	pea.l CODE_17_loc_00000d6c(pc)
 	pea.l -$032C(a6)
 	move.w #$2,-(a7)
-	jsr $0AA2(a5)
+	jsr CODE_0_jump_table_entry_336+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l -$1A08(a5),a0
 	lea.l -$032C(a6),a1
 	moveq.l #127,d0
@@ -41810,12 +41811,12 @@ CODE_17_loc_00000c46:
 	and.b d1,d0
 	beq.b CODE_17_loc_00000c7a
 	pea.l -$022C(a6)
-	jsr $007A(a5)
+	jsr CODE_0_jump_table_entry_11+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$022C(a6)
 	jsr CODE_17_loc_000003ae(pc)
 CODE_17_loc_00000c7a:
 	move.l a3,-(a7)
-	jsr $0772(a5)
+	jsr CODE_0_jump_table_entry_234+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	tst.l -$0022(a6)
 	bne.b CODE_17_loc_00000c88
 	bra.b CODE_17_loc_00000cb2
@@ -41856,10 +41857,10 @@ CODE_17_loc_00000cda:
 CODE_17_loc_00000ce6:
 	pea.l -$012C(a6)
 	pea.l -$1A08(a5)
-	jsr $0092(a5)
+	jsr CODE_0_jump_table_entry_14+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$00DA(a6)
 	pea.l -$12FC(a5)
-	jsr $0092(a5)
+	jsr CODE_0_jump_table_entry_14+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l -$0012(a6),-$12A6(a5)
 	move.b d4,-$37A3(a5)
 	movem.l (a7)+,d4-d7/a3-a4
@@ -41917,11 +41918,11 @@ CODE_18_loc_00000028:
 	tst.l -$0C28(a5)
 	beq.b CODE_18_loc_0000003c
 	clr.w -(a7)
-	jsr $071A(a5)
+	jsr CODE_0_jump_table_entry_223+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_18_loc_0000003c:
 	clr.l -(a7)
 	move.l -$0C16(a5),-(a7)
-	jsr $0122(a5)
+	jsr CODE_0_jump_table_entry_32+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a4
 	move.l -$0BF0(a5),d0
 	sub.l -$0C3A(a5),d0
@@ -41961,7 +41962,7 @@ CODE_18_loc_0000009a:
 	move.w #$A000,-$0C20(a5)
 	clr.w -(a7)
 	move.b #$1,-(a7)
-	jsr $070A(a5)
+	jsr CODE_0_jump_table_entry_221+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_18_loc_000000d8:
 	move.b -$0C6B(a5),-$001D(a6)
 	move.l -$12A6(a5),-$0014(a6)
@@ -41973,7 +41974,7 @@ CODE_18_loc_000000d8:
 	addq.l #1,-$0BE8(a5)
 	clr.w -(a7)
 	move.b #$1,-(a7)
-	jsr $070A(a5)
+	jsr CODE_0_jump_table_entry_221+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_18_loc_00000106:
 	move.b -$1301(a5),d0
 	beq.b CODE_18_loc_00000116
@@ -41989,7 +41990,7 @@ CODE_18_loc_00000116:
 CODE_18_loc_00000124:
 	move.b d0,-$0020(a6)
 	move.w #$40,-(a7)
-	jsr $014A(a5)
+	jsr CODE_0_jump_table_entry_37+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b -$0C6B(a5),d5
 	move.w -$0C20(a5),d0
 	add.w #$100,d0
@@ -42023,7 +42024,7 @@ CODE_18_loc_00000142:
 	move.w d7,-(a7)
 	move.l #$2,-(a7)
 	move.w #$FFFF,-(a7)
-	jsr $015A(a5)
+	jsr CODE_0_jump_table_entry_39+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.w d7
 CODE_18_loc_000001a6:
 	move.b -$001F(a6),d5
@@ -42032,9 +42033,9 @@ CODE_18_loc_000001a6:
 	ext.w d0
 	ext.l d0
 	move.l d0,-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w #$37,-(a7)
-	jsr $014A(a5)
+	jsr CODE_0_jump_table_entry_37+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_18_loc_000001c2:
 	subq.w #1,d6
 	movea.l -$0BE4(a5),a0
@@ -42042,15 +42043,15 @@ CODE_18_loc_000001c2:
 	move.w #$8,-(a7)
 	movea.l -$0BE4(a5),a0
 	pea.l $000C(a0)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w #$6,-(a7)
 	clr.l -(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b -$0020(a6),d0
 	beq.b CODE_18_loc_000001fe
 	move.l #$20001,-(a7)
 	move.l #$FFFF0000,-(a7)
-	jsr $015A(a5)
+	jsr CODE_0_jump_table_entry_39+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_18_loc_00000218
 CODE_18_loc_000001fe:
 	addq.w #1,d7
@@ -42060,7 +42061,7 @@ CODE_18_loc_000001fe:
 	move.w d7,-(a7)
 	move.l #$2,-(a7)
 	move.w #$FFFF,-(a7)
-	jsr $015A(a5)
+	jsr CODE_0_jump_table_entry_39+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.w d7
 CODE_18_loc_00000218:
 	move.w d6,d0
@@ -42073,7 +42074,7 @@ CODE_18_loc_00000218:
 	move.w d7,-(a7)
 	move.l #$2,-(a7)
 	move.w #$FFFF,-(a7)
-	jsr $015A(a5)
+	jsr CODE_0_jump_table_entry_39+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_18_loc_0000023e:
 	move.l -$0BE8(a5),-$0BEC(a5)
 	move.l -$0BE8(a5),d0
@@ -42081,7 +42082,7 @@ CODE_18_loc_0000023e:
 	ble.b CODE_18_loc_00000254
 	move.l -$0BE8(a5),-$0BF0(a5)
 CODE_18_loc_00000254:
-	jsr $0712(a5)
+	jsr CODE_0_jump_table_entry_222+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_18_loc_00000258:
 	move.b -$0C5C(a5),d0
 	beq.b CODE_18_loc_000002c8
@@ -42097,19 +42098,19 @@ CODE_18_loc_0000027c:
 	move.w #$6,-(a7)
 	moveq.l #1,d0
 	move.l d0,-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w #$6,-(a7)
 	move.l -$0BF0(a5),d0
 	bpl.b CODE_18_loc_00000294
 	neg.l d0
 CODE_18_loc_00000294:
 	move.l d0,-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w #$3C,-(a7)
-	jsr $014A(a5)
+	jsr CODE_0_jump_table_entry_37+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.l -(a7)
 	move.l -$0C12(a5),-(a7)
-	jsr $0122(a5)
+	jsr CODE_0_jump_table_entry_32+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a3
 	move.l -$0BF0(a5),(a3)
 	move.b $0008(a6),d0
@@ -42128,19 +42129,19 @@ CODE_18_loc_000002c8:
 	move.w #$6,-(a7)
 	moveq.l #1,d0
 	move.l d0,-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w #$6,-(a7)
 	move.l -$0BFA(a5),d0
 	bpl.b CODE_18_loc_000002ee
 	neg.l d0
 CODE_18_loc_000002ee:
 	move.l d0,-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w #$3C,-(a7)
-	jsr $014A(a5)
+	jsr CODE_0_jump_table_entry_37+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.l -(a7)
 	move.l -$0C1A(a5),-(a7)
-	jsr $0122(a5)
+	jsr CODE_0_jump_table_entry_32+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a3
 	move.l -$0BFA(a5),(a3)
 	move.l a3,d4
@@ -42152,31 +42153,31 @@ CODE_18_loc_000002ee:
 CODE_18_loc_0000031c:
 	move.w #$6,-(a7)
 	clr.l -(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w #$6,-(a7)
 	move.l -$0BF0(a5),d0
 	bpl.b CODE_18_loc_00000332
 	neg.l d0
 CODE_18_loc_00000332:
 	move.l d0,-(a7)
-	jsr $0142(a5)
+	jsr CODE_0_jump_table_entry_36+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w #$3C,-(a7)
-	jsr $014A(a5)
+	jsr CODE_0_jump_table_entry_37+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b -$0F4F(a5),d0
 	beq.b CODE_18_loc_00000352
 	move.l -$14A4(a5),-(a7)
 	move.w -$25A6(a5),-(a7)
-	jsr $06B2(a5)
+	jsr CODE_0_jump_table_entry_210+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_18_loc_00000352:
 	move.w #$18,-(a7)
-	jsr $014A(a5)
+	jsr CODE_0_jump_table_entry_37+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w -$25A4(a5),-$25A6(a5)
 	move.b -$0F13(a5),d0
 	beq.w CODE_18_loc_0000040a
 	move.b #$1,-$0F14(a5)
 	move.b #$1,-(a7)
 	pea.l -$0006(a6)
-	jsr $07FA(a5)
+	jsr CODE_0_jump_table_entry_251+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	subq.w #5,-$0006(a6)
 	clr.w -$0F1A(a5)
 	movea.l -$0F12(a5),a0
@@ -42188,7 +42189,7 @@ CODE_18_loc_0000038e:
 	move.l -$0F18(a5),-(a7)
 	move.w #$2,-(a7)
 	move.w -$0F1A(a5),-(a7)
-	jsr $08DA(a5)
+	jsr CODE_0_jump_table_entry_279+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,-$000A(a6)
 	bne.b CODE_18_loc_000003c4
 	cmpa.l -$0028(a6),a4
@@ -42196,22 +42197,22 @@ CODE_18_loc_0000038e:
 	bra.b CODE_18_loc_0000040a
 CODE_18_loc_000003b2:
 	clr.w -(a7)
-	jsr $0902(a5)
+	jsr CODE_0_jump_table_entry_284+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7),-$0008(a6)
 	pea.l CODE_18_loc_000006d6(pc)
-	jsr $01DA(a5)
+	jsr CODE_0_jump_table_entry_55+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_18_loc_000003c4:
 	move.w -$000A(a6),d0
 	add.w d0,-$0F1A(a5)
 	move.l a4,-(a7)
-	jsr $013A(a5)
+	jsr CODE_0_jump_table_entry_35+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	subq.w #1,-$0006(a6)
 	tst.w -$0006(a6)
 	bgt.b CODE_18_loc_000003de
 	bra.b CODE_18_loc_0000040a
 CODE_18_loc_000003de:
 	clr.l -(a7)
-	jsr $07A2(a5)
+	jsr CODE_0_jump_table_entry_240+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a4
 	move.l a4,d0
 	bne.b CODE_18_loc_000003ec
@@ -42227,9 +42228,9 @@ CODE_18_loc_000003ec:
 	bra.b CODE_18_loc_0000038e
 CODE_18_loc_0000040a:
 	move.l -$25A0(a5),-(a7)
-	jsr $07B2(a5)
+	jsr CODE_0_jump_table_entry_242+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l -$259C(a5),-(a7)
-	jsr $07B2(a5)
+	jsr CODE_0_jump_table_entry_242+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.w -$3298(a5)
 	clr.w -$329A(a5)
 	clr.w -$32A0(a5)
@@ -42237,17 +42238,17 @@ CODE_18_loc_0000040a:
 	beq.b CODE_18_loc_0000047c
 	move.l -$14A0(a5),-(a7)
 	move.b #$4,-(a7)
-	jsr $045A(a5)
+	jsr CODE_0_jump_table_entry_135+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.w -(a7)
 	pea.l CODE_18_loc_00000662(pc)
 	pea.l -$14A0(a5)
 	move.b #$4,-(a7)
 	clr.l -(a7)
-	jsr $0452(a5)
+	jsr CODE_0_jump_table_entry_134+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	tst.w (a7)+
 	beq.b CODE_18_loc_00000458
 	pea.l CODE_18_loc_000006a4(pc)
-	jsr $01D2(a5)
+	jsr CODE_0_jump_table_entry_54+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_18_loc_00000458:
 	cmpi.l #128,-$1C1A(a5)
 	sgt.b d0
@@ -42256,7 +42257,7 @@ CODE_18_loc_00000458:
 	move.l -$1472(a5),-(a7)
 	moveq.l #32,d0
 	move.l d0,-(a7)
-	jsr $0A82(a5)
+	jsr CODE_0_jump_table_entry_332+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,d0
 	neg.l d0
 	move.l d0,-$1C1A(a5)
@@ -42270,7 +42271,7 @@ CODE_18_loc_00000488:
 	move.w -$0BD2(a5),-$0002(a6)
 	clr.b -$37A3(a5)
 	move.b #$1,-$32A1(a5)
-	jsr $0632(a5)
+	jsr CODE_0_jump_table_entry_194+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.b -$32A1(a5)
 	move.b #$1,-$37A3(a5)
 	move.w -$0002(a6),-$0BD2(a5)
@@ -42304,18 +42305,18 @@ CODE_18_loc_00000502:
 	move.b -$0F13(a5),d0
 	beq.b CODE_18_loc_00000524
 	pea.l -$134C(a5)
-	jsr $08BA(a5)
+	jsr CODE_0_jump_table_entry_275+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l CODE_18_loc_00000670(pc)
-	jsr $08AA(a5)
+	jsr CODE_0_jump_table_entry_273+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.b -$0F13(a5)
 CODE_18_loc_00000524:
 	move.l -$0F12(a5),-(a7)
 	move.l -$1350(a5),-(a7)
-	jsr $079A(a5)
+	jsr CODE_0_jump_table_entry_239+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	tst.l -$0F84(a5)
 	beq.b CODE_18_loc_0000053e
 	move.l -$0F84(a5),-(a7)
-	jsr $0772(a5)
+	jsr CODE_0_jump_table_entry_234+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_18_loc_0000053e:
 	moveq.l #0,d0
 	move.l d0,-$0F84(a5)
@@ -42328,11 +42329,11 @@ CODE_18_loc_0000053e:
 	pea.l -$14A0(a5)
 	move.b #$3,-(a7)
 	clr.l -(a7)
-	jsr $0452(a5)
+	jsr CODE_0_jump_table_entry_134+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	tst.w (a7)+
 	beq.b CODE_18_loc_00000570
 	pea.l CODE_18_loc_00000630(pc)
-	jsr $01D2(a5)
+	jsr CODE_0_jump_table_entry_54+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_18_loc_00000570:
 	moveq.l #0,d0
 	move.l d0,-$1C1A(a5)
@@ -42348,14 +42349,14 @@ CODE_18_loc_00000570:
 	and.b d1,d0
 	beq.b CODE_18_loc_000005a8
 	move.b #$1,-(a7)
-	jsr $080A(a5)
+	jsr CODE_0_jump_table_entry_253+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l $080A(a5)
-	jsr $019A(a5)
+	jsr CODE_0_jump_table_entry_47+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_18_loc_000005a8:
 	tst.l -$0C58(a5)
 	beq.b CODE_18_loc_000005b6
 	move.l -$0C58(a5),-(a7)
-	jsr $0772(a5)
+	jsr CODE_0_jump_table_entry_234+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_18_loc_000005b6:
 	moveq.l #0,d0
 	move.l d0,-$0C58(a5)
@@ -42366,7 +42367,7 @@ CODE_18_loc_000005b6:
 	moveq.l #0,d0
 	move.l d0,-$135C(a5)
 	move.l -$0C54(a5),-(a7)
-	jsr $0772(a5)
+	jsr CODE_0_jump_table_entry_234+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_18_loc_000005d6:
 	move.l -$0C50(a5),-$0C54(a5)
 	move.b #$1,-$0C59(a5)
@@ -42423,7 +42424,7 @@ CODE_18_loc_000006ec:
 	and.b -$0BDB(a5),d0
 	beq.b CODE_18_loc_00000716
 	move.w #$D8,-(a7)
-	jsr $07CA(a5)
+	jsr CODE_0_jump_table_entry_245+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_18_loc_00000716:
 	moveq.l #0,d0
 	move.l d0,-$0BE0(a5)
@@ -42497,20 +42498,20 @@ CODE_19_loc_0000003a:
 	pea.l -$2D8E(a5)
 	pea.l -$0100(a6)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D8E(a5)
 	pea.l CODE_19_loc_00000228(pc)
 	clr.w -(a7)
-	jsr $0A0A(a5)
+	jsr CODE_0_jump_table_entry_317+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D8A(a5)
 	pea.l -$020A(a6)
 	move.w #$FF,-(a7)
-	jsr $09E2(a5)
+	jsr CODE_0_jump_table_entry_312+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$2D8A(a5)
-	jsr $09DA(a5)
+	jsr CODE_0_jump_table_entry_311+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$010A(a6)
 	move.l #$80,-(a7)
-	jsr $0A52(a5)
+	jsr CODE_0_jump_table_entry_326+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l -$010A(a6),-$2D40(a5)
 	moveq.l #0,d0
 	move.l d0,-$2D44(a5)
@@ -42560,7 +42561,7 @@ CODE_19_loc_000000e4:
 	asl.l #2,d0
 	pea.l $0(a0,d0.l)
 	move.l #$100,-(a7)
-	jsr $0A52(a5)
+	jsr CODE_0_jump_table_entry_326+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.w d5
 CODE_19_loc_00000106:
 	moveq.l #32,d0
@@ -42652,7 +42653,7 @@ CODE_19_loc_000001dc:
 	movea.l -$2D40(a5),a0
 	move.l a0,-(a7)
 	move.l #$100,-(a7)
-	jsr $0A52(a5)
+	jsr CODE_0_jump_table_entry_326+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l -$2D40(a5),a0
 	movea.l (a0),a0
 	lea.l -$0100(a6),a1
@@ -43132,7 +43133,7 @@ CODE_20_loc_00000486:
 	move.l a4,d0
 	sub.l a0,d0
 	moveq.l #20,d1
-	jsr $027A(a5)
+	jsr CODE_0_jump_table_entry_75+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l d0,(a3)
 CODE_20_loc_00000496:
 	move.l a4,d0
@@ -43233,7 +43234,7 @@ CODE_20_loc_000005a6:
 	bge.b CODE_20_loc_0000059c
 	tst.l -$308C(a5)
 	beq.b CODE_20_loc_000005b4
-	jsr $0972(a5)
+	jsr CODE_0_jump_table_entry_298+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_20_loc_000005b4:
 	movem.l -$0008(a6),d6-d7
 	unlk a6
@@ -43453,7 +43454,7 @@ CODE_20_loc_00000788:
 	beq.b CODE_20_loc_000007b6
 	subq.l #4,a7
 	move.l a4,-(a7)
-	jsr $02C2(a5)
+	jsr CODE_0_jump_table_entry_84+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,d7
 	cmp.l d6,d7
 	ble.b CODE_20_loc_000007b6
@@ -43771,7 +43772,7 @@ CODE_20_loc_00000a86:
 CODE_20_data_pascal_string_00000a90:
 	dc.b $85,"raise",$00,$00
 CODE_20_loc_00000a98:
-	jmp $02B2(a5)
+	jmp CODE_0_jump_table_entry_82+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 CODE_20_loc_00000a9c:
 	link a6,#0
 	tst.l -$308C(a5)
@@ -43797,20 +43798,20 @@ CODE_20_loc_00000ac4:
 	subq.l #4,a7
 	pea.l -$0200(a6)
 	move.l $0010(a6),-(a7)
-	jsr $02A2(a5)
+	jsr CODE_0_jump_table_entry_80+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	subq.l #4,a7
 	pea.l -$0200(a6)
-	jsr $03A2(a5)
+	jsr CODE_0_jump_table_entry_112+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	cmpi.l #25602,d7
 	addq.w #8,a7
 	bne.b CODE_20_loc_00000b1a
 	subq.l #4,a7
 	move.l a3,-(a7)
 	move.l $0008(a6),-(a7)
-	jsr $02A2(a5)
+	jsr CODE_0_jump_table_entry_80+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	subq.l #4,a7
 	move.l a3,-(a7)
-	jsr $03A2(a5)
+	jsr CODE_0_jump_table_entry_112+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l a3,a4
 	addq.w #8,a7
 	bra.b CODE_20_loc_00000b1e
@@ -43863,7 +43864,7 @@ CODE_20_loc_00000b7a:
 	blt.b CODE_20_loc_00000bae
 	subq.l #4,a7
 	move.l a3,-(a7)
-	jsr $039A(a5)
+	jsr CODE_0_jump_table_entry_111+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	addq.w #4,a7
 CODE_20_loc_00000bae:
 	move.l d7,$0014(a6)
@@ -43897,7 +43898,7 @@ CODE_20_loc_00000bf4:
 	moveq.l #0,d0
 	move.b d0,-(a7)
 	move.b d0,-(a7)
-	jsr $02D2(a5)
+	jsr CODE_0_jump_table_entry_86+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	tst.b (a7)+
 	beq.b CODE_20_loc_00000c1c
 	movea.l (a4),a3
@@ -43992,10 +43993,10 @@ CODE_20_loc_00000cea:
 	subq.l #4,a7
 	move.l a3,-(a7)
 	move.l $0008(a6),-(a7)
-	jsr $02A2(a5)
+	jsr CODE_0_jump_table_entry_80+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	subq.l #4,a7
 	move.l a3,-(a7)
-	jsr $03A2(a5)
+	jsr CODE_0_jump_table_entry_112+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l d7,-(a7)
 	move.l a3,-(a7)
 	jsr CODE_20_loc_0000004e(pc)
@@ -44514,7 +44515,7 @@ CODE_20_loc_000011f4:
 	ble.b CODE_20_loc_0000121e
 	move.l d7,d0
 	move.l #$200,d1
-	jsr $0282(a5)
+	jsr CODE_0_jump_table_entry_76+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l d0,d6
 	ble.b CODE_20_loc_0000121e
 	adda.l d7,a4
@@ -44532,7 +44533,7 @@ CODE_20_loc_0000121e:
 	move.l d7,d0
 	add.l #$1FF,d0
 	move.l #$200,d1
-	jsr $027A(a5)
+	jsr CODE_0_jump_table_entry_75+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w d0,$0014(a6)
 CODE_20_loc_00001234:
 	movem.l -$0018(a6),d3/d5-d7/a3-a4
@@ -44572,7 +44573,7 @@ CODE_20_loc_00001290:
 	move.l d7,d0
 	add.l #$1FF,d0
 	move.l #$200,d1
-	jsr $027A(a5)
+	jsr CODE_0_jump_table_entry_75+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w d0,$0014(a6)
 CODE_20_loc_000012a6:
 	movem.l -$000C(a6),d3/d6-d7
@@ -44635,7 +44636,7 @@ CODE_20_loc_00001328:
 	move.l a3,-(a7)
 	moveq.l #0,d0
 	move.w d0,-(a7)
-	jsr $0A12(a5)
+	jsr CODE_0_jump_table_entry_318+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	addq.w #4,a7
 CODE_20_loc_0000134a:
 	movem.l -$000C(a6),d7/a3-a4
@@ -44784,7 +44785,7 @@ CODE_21_loc_00000028:
 	pea.l -$006C(a6)
 	moveq.l #0,d0
 	move.b d0,-(a7)
-	jsr $034A(a5)
+	jsr CODE_0_jump_table_entry_101+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d7
 	moveq.l #16,d0
 	and.b -$004E(a6),d0
@@ -44929,7 +44930,7 @@ CODE_21_data_000001d4:
 	subq.l #2,a7
 	pea.l -$0040(a6)
 	pea.l $0006(a4)
-	jsr $029A(a5)
+	jsr CODE_0_jump_table_entry_79+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	tst.w (a7)+
 	bne.b CODE_21_loc_00000208
 	moveq.l #-9,d7
@@ -45301,7 +45302,7 @@ CODE_21_data_00000594:
 	subq.l #2,a7
 	pea.l -$0040(a6)
 	pea.l $0006(a4)
-	jsr $029A(a5)
+	jsr CODE_0_jump_table_entry_79+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	tst.w (a7)+
 	bne.b CODE_21_loc_000005c8
 	moveq.l #-9,d7
@@ -45370,7 +45371,7 @@ CODE_21_loc_00000682:
 	pea.l -$006C(a6)
 	moveq.l #0,d0
 	move.b d0,-(a7)
-	jsr $034A(a5)
+	jsr CODE_0_jump_table_entry_101+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d5
 	move.l -$0008(a6),-$003C(a6)
 	tst.w d5
@@ -45441,7 +45442,7 @@ CODE_21_loc_00000722:
 	move.l d0,-(a7)
 	pea.l -$004A(a6)
 	pea.l -$004E(a6)
-	jsr $036A(a5)
+	jsr CODE_0_jump_table_entry_105+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	pea.l -$0002(a6)
 	pea.l -$0001(a6)
 	move.l $000C(a6),-(a7)
@@ -45640,10 +45641,10 @@ CODE_21_loc_00000920:
 	pea.l $00FF.w
 	move.l a3,-(a7)
 	move.l a4,-(a7)
-	jsr $086A(a5)
+	jsr CODE_0_jump_table_entry_265+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	subq.l #4,a7
 	move.l a4,-(a7)
-	jsr $039A(a5)
+	jsr CODE_0_jump_table_entry_111+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l $000C(a6),d0
 	subi.l #25600,d0
 	lea.l $0010(a7),a7
@@ -45665,23 +45666,23 @@ CODE_21_loc_00000962:
 	move.l a4,-(a7)
 	moveq.l #0,d0
 	move.w d0,-(a7)
-	jsr $0312(a5)
+	jsr CODE_0_jump_table_entry_94+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d7
 	bra.b CODE_21_loc_000009a2
 CODE_21_loc_00000972:
 	pea.l $00FF.w
 	move.l $0010(a6),-(a7)
 	pea.l -$0100(a6)
-	jsr $086A(a5)
+	jsr CODE_0_jump_table_entry_265+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	subq.l #4,a7
 	pea.l -$0100(a6)
-	jsr $039A(a5)
+	jsr CODE_0_jump_table_entry_111+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	subq.l #2,a7
 	move.l a4,-(a7)
 	moveq.l #0,d0
 	move.w d0,-(a7)
 	pea.l -$0100(a6)
-	jsr $031A(a5)
+	jsr CODE_0_jump_table_entry_95+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d7
 	lea.l $0010(a7),a7
 CODE_21_loc_000009a2:
@@ -45728,7 +45729,7 @@ CODE_21_loc_00000a0c:
 	move.l d0,-(a7)
 	pea.l -$0118(a6)
 	pea.l -$011C(a6)
-	jsr $036A(a5)
+	jsr CODE_0_jump_table_entry_105+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l #$1000,d0
 	and.l d6,d0
 	addq.w #2,a7
@@ -45747,13 +45748,13 @@ CODE_21_loc_00000a42:
 	bne.b CODE_21_loc_00000a78
 	subq.l #2,a7
 	move.w #$A1AD,-(a7)
-	jsr $0292(a5)
+	jsr CODE_0_jump_table_entry_78+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	tst.b (a7)+
 	beq.b CODE_21_loc_00000a78
 	subq.l #2,a7
 	move.l #$616C6973,-(a7)
 	pea.l -$004E(a6)
-	jsr $038A(a5)
+	jsr CODE_0_jump_table_entry_109+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	moveq.l #1,d7
 	and.l -$004E(a6),d7
 	addq.w #2,a7
@@ -45895,7 +45896,7 @@ CODE_21_loc_00000be0:
 	pea.l -$0106(a6)
 	moveq.l #0,d0
 	move.b d0,-(a7)
-	jsr $035A(a5)
+	jsr CODE_0_jump_table_entry_103+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d7
 	bra.b CODE_21_loc_00000c08
 CODE_21_loc_00000bf8:
@@ -45903,7 +45904,7 @@ CODE_21_loc_00000bf8:
 	pea.l -$0106(a6)
 	moveq.l #0,d0
 	move.b d0,-(a7)
-	jsr $0352(a5)
+	jsr CODE_0_jump_table_entry_102+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d7
 CODE_21_loc_00000c08:
 	tst.w d7
@@ -45916,7 +45917,7 @@ CODE_21_loc_00000c08:
 	pea.l -$0106(a6)
 	moveq.l #0,d0
 	move.b d0,-(a7)
-	jsr $02DA(a5)
+	jsr CODE_0_jump_table_entry_87+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	moveq.l #-48,d7
 	move.l #$40000011,d5
 	addq.w #2,a7
@@ -45930,7 +45931,7 @@ CODE_21_loc_00000c34:
 	pea.l -$0106(a6)
 	moveq.l #0,d0
 	move.b d0,-(a7)
-	jsr $0362(a5)
+	jsr CODE_0_jump_table_entry_104+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d4
 	bne.b CODE_21_loc_00000cc2
 	moveq.l #16,d0
@@ -45940,7 +45941,7 @@ CODE_21_loc_00000c34:
 	pea.l -$0106(a6)
 	moveq.l #0,d0
 	move.b d0,-(a7)
-	jsr $035A(a5)
+	jsr CODE_0_jump_table_entry_103+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d7
 	bra.b CODE_21_loc_00000cc4
 CODE_21_loc_00000c70:
@@ -45948,7 +45949,7 @@ CODE_21_loc_00000c70:
 	pea.l -$0106(a6)
 	moveq.l #0,d0
 	move.b d0,-(a7)
-	jsr $0352(a5)
+	jsr CODE_0_jump_table_entry_102+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d7
 	move.l #$800,d0
 	and.l d6,d0
@@ -45958,7 +45959,7 @@ CODE_21_loc_00000c70:
 	move.l -$011C(a6),-(a7)
 	move.l a3,-(a7)
 	pea.l -$0116(a6)
-	jsr $037A(a5)
+	jsr CODE_0_jump_table_entry_107+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	tst.w (a7)+
 	bne.b CODE_21_loc_00000cc4
 	move.l #$54455854,-$0116(a6)
@@ -45967,7 +45968,7 @@ CODE_21_loc_00000c70:
 	move.l -$011C(a6),-(a7)
 	move.l a3,-(a7)
 	pea.l -$0116(a6)
-	jsr $0382(a5)
+	jsr CODE_0_jump_table_entry_108+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	addq.w #2,a7
 	bra.b CODE_21_loc_00000cc4
 CODE_21_loc_00000cc2:
@@ -45985,7 +45986,7 @@ CODE_21_loc_00000cc4:
 	pea.l -$008C(a6)
 	moveq.l #0,d0
 	move.b d0,-(a7)
-	jsr $0342(a5)
+	jsr CODE_0_jump_table_entry_100+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	moveq.l #2,d0
 	and.l d6,d0
 	addq.w #2,a7
@@ -45997,7 +45998,7 @@ CODE_21_loc_00000cc4:
 	pea.l -$0106(a6)
 	moveq.l #0,d0
 	move.b d0,-(a7)
-	jsr $02DA(a5)
+	jsr CODE_0_jump_table_entry_87+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	moveq.l #1,d7
 	addq.w #2,a7
 	bra.b CODE_21_loc_00000d4a
@@ -46011,14 +46012,14 @@ CODE_21_loc_00000d18:
 	pea.l -$0106(a6)
 	moveq.l #0,d0
 	move.b d0,-(a7)
-	jsr $02EA(a5)
+	jsr CODE_0_jump_table_entry_89+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d7
 	beq.b CODE_21_loc_00000d4a
 	subq.l #2,a7
 	pea.l -$0106(a6)
 	moveq.l #0,d0
 	move.b d0,-(a7)
-	jsr $02DA(a5)
+	jsr CODE_0_jump_table_entry_87+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	addq.w #2,a7
 CODE_21_loc_00000d4a:
 	tst.w d7
@@ -46045,7 +46046,7 @@ CODE_21_data_00000d70:
 	pea.l -$0106(a6)
 	moveq.l #0,d0
 	move.b d0,-(a7)
-	jsr $02DA(a5)
+	jsr CODE_0_jump_table_entry_87+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	moveq.l #12,d5
 	addq.w #2,a7
 	bra.w CODE_21_loc_00000e2e
@@ -46080,7 +46081,7 @@ CODE_21_data_00000dd4:
 	pea.l -$0106(a6)
 	moveq.l #0,d0
 	move.b d0,-(a7)
-	jsr $02DA(a5)
+	jsr CODE_0_jump_table_entry_87+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	moveq.l #12,d5
 	addq.w #2,a7
 	bra.b CODE_21_loc_00000e1a
@@ -46109,7 +46110,7 @@ CODE_21_loc_00000e1a:
 	move.w d0,-(a7)
 	moveq.l #0,d1
 	move.l d1,-(a7)
-	jsr $033A(a5)
+	jsr CODE_0_jump_table_entry_99+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	addq.w #2,a7
 CODE_21_loc_00000e2e:
 	move.l d5,d0
@@ -46133,7 +46134,7 @@ CODE_21_loc_00000e44:
 	movea.l $0008(a4),a0
 	movea.l (a0),a0
 	move.w $0002(a0),-(a7)
-	jsr $02F2(a5)
+	jsr CODE_0_jump_table_entry_90+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d7
 	beq.b CODE_21_loc_00000e78
 	move.w d7,$0002(a4)
@@ -46152,7 +46153,7 @@ CODE_21_loc_00000e78:
 	movea.l $0008(a4),a0
 	movea.l (a0),a0
 	move.l $000A(a0),-(a7)
-	jsr $0372(a5)
+	jsr CODE_0_jump_table_entry_106+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l $0008(a4),a1
 	movea.l (a1),a1
 	movea.l $000A(a1),a0
@@ -46189,7 +46190,7 @@ CODE_21_loc_00000edc:
 	move.w $0002(a0),-(a7)
 	pea.l -$0004(a6)
 	move.l $0010(a4),-(a7)
-	jsr $02FA(a5)
+	jsr CODE_0_jump_table_entry_91+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d7
 	cmpi.w #65497,d7
 	bne.b CODE_21_loc_00000f10
@@ -46234,7 +46235,7 @@ CODE_21_loc_00000f4c:
 	move.w d0,-(a7)
 	moveq.l #0,d1
 	move.l d1,-(a7)
-	jsr $033A(a5)
+	jsr CODE_0_jump_table_entry_99+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d7
 	beq.b CODE_21_loc_00000f82
 	move.w d7,$0002(a4)
@@ -46248,7 +46249,7 @@ CODE_21_loc_00000f82:
 	move.w $0002(a0),-(a7)
 	pea.l -$0004(a6)
 	move.l $0010(a4),-(a7)
-	jsr $0302(a5)
+	jsr CODE_0_jump_table_entry_92+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w (a7)+,d7
 	bne.b CODE_21_loc_00000fb6
 	move.l -$0004(a6),d0
@@ -46533,7 +46534,7 @@ CODE_21_loc_0000129a:
 	move.l d4,d0
 	sub.l d6,d0
 	moveq.l #2,d1
-	jsr $027A(a5)
+	jsr CODE_0_jump_table_entry_75+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w d0,-$0014(a6)
 	move.w d6,d0
 	add.w -$0014(a6),d0
@@ -46543,7 +46544,7 @@ CODE_21_loc_0000129a:
 	move.l d5,d0
 	sub.l d7,d0
 	moveq.l #4,d1
-	jsr $027A(a5)
+	jsr CODE_0_jump_table_entry_75+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w d0,-$0016(a6)
 	move.w d7,d0
 	add.w -$0016(a6),d0
@@ -46729,7 +46730,7 @@ CODE_21_loc_000014e6:
 	sub.l d6,d1
 	move.l d1,d0
 	moveq.l #2,d1
-	jsr $027A(a5)
+	jsr CODE_0_jump_table_entry_75+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w d0,-$011E(a6)
 	move.w d6,d0
 	add.w -$011E(a6),d0
@@ -46739,7 +46740,7 @@ CODE_21_loc_000014e6:
 	move.l d5,d0
 	sub.l d7,d0
 	moveq.l #4,d1
-	jsr $027A(a5)
+	jsr CODE_0_jump_table_entry_75+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.w d0,-$0120(a6)
 	move.w d7,d0
 	add.w -$0120(a6),d0
@@ -46843,10 +46844,10 @@ CODE_21_loc_00001728:
 	pea.l $00FF.w
 	move.l $0008(a6),-(a7)
 	move.l a4,-(a7)
-	jsr $086A(a5)
+	jsr CODE_0_jump_table_entry_265+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	subq.l #4,a7
 	move.l a4,-(a7)
-	jsr $039A(a5)
+	jsr CODE_0_jump_table_entry_111+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	subq.l #2,a7
 	move.l a4,-(a7)
 	pea.l CODE_21_loc_00001794(pc)
@@ -46854,7 +46855,7 @@ CODE_21_loc_00001728:
 	move.b d0,-(a7)
 	moveq.l #1,d1
 	move.b d1,-(a7)
-	jsr $02D2(a5)
+	jsr CODE_0_jump_table_entry_86+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	tst.b (a7)+
 	lea.l $0010(a7),a7
 	bne.b CODE_21_loc_00001768
@@ -46961,10 +46962,10 @@ CODE_21_loc_0000186c:
 	pea.l $00FF.w
 	move.l $0008(a6),-(a7)
 	move.l a3,-(a7)
-	jsr $086A(a5)
+	jsr CODE_0_jump_table_entry_265+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	subq.l #4,a7
 	move.l a3,-(a7)
-	jsr $039A(a5)
+	jsr CODE_0_jump_table_entry_111+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	subq.l #2,a7
 	move.l a3,-(a7)
 	pea.l CODE_21_loc_000019e6(pc)
@@ -46972,7 +46973,7 @@ CODE_21_loc_0000186c:
 	move.b d0,-(a7)
 	moveq.l #1,d1
 	move.b d1,-(a7)
-	jsr $02D2(a5)
+	jsr CODE_0_jump_table_entry_86+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	tst.b (a7)+
 	lea.l $0010(a7),a7
 	beq.b CODE_21_loc_000018b0
@@ -46986,7 +46987,7 @@ CODE_21_loc_000018b0:
 	move.b d0,-(a7)
 	moveq.l #1,d1
 	move.b d1,-(a7)
-	jsr $02D2(a5)
+	jsr CODE_0_jump_table_entry_86+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	tst.b (a7)+
 	beq.b CODE_21_loc_000018d0
 	moveq.l #0,d0
@@ -47000,7 +47001,7 @@ CODE_21_loc_000018d0:
 	move.b d0,-(a7)
 	moveq.l #1,d1
 	move.b d1,-(a7)
-	jsr $02D2(a5)
+	jsr CODE_0_jump_table_entry_86+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	tst.b (a7)+
 	beq.b CODE_21_loc_000018f0
 	moveq.l #1,d0
@@ -47014,7 +47015,7 @@ CODE_21_loc_000018f0:
 	move.b d0,-(a7)
 	moveq.l #1,d1
 	move.b d1,-(a7)
-	jsr $02D2(a5)
+	jsr CODE_0_jump_table_entry_86+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	tst.b (a7)+
 	beq.b CODE_21_loc_00001910
 	moveq.l #2,d0
@@ -47040,7 +47041,7 @@ CODE_21_loc_0000192a:
 	bra.b CODE_21_loc_000019aa
 CODE_21_loc_00001948:
 	pea.l -$0104(a6)
-	jsr $0852(a5)
+	jsr CODE_0_jump_table_entry_262+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l d0,a4
 	move.l a4,d0
 	addq.w #4,a7
@@ -47276,7 +47277,7 @@ CODE_24_loc_000000ba:
 	moveq.l #0,d0
 	move.w $0014(a4),d0
 	move.l d0,-(a7)
-	jsr $084A(a5)
+	jsr CODE_0_jump_table_entry_261+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	tst.l d0
 	lea.l $000C(a7),a7
 	blt.b CODE_24_loc_000000de
@@ -47335,7 +47336,7 @@ CODE_24_loc_00000146:
 	moveq.l #0,d1
 	move.w $0014(a4),d1
 	move.l d1,-(a7)
-	jsr $084A(a5)
+	jsr CODE_0_jump_table_entry_261+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	tst.l d0
 	lea.l $000C(a7),a7
 	blt.b CODE_24_loc_0000017c
@@ -47426,7 +47427,7 @@ CODE_24_loc_0000024e:
 	moveq.l #0,d0
 	move.w $0014(a3),d0
 	move.l d0,-(a7)
-	jsr $083A(a5)
+	jsr CODE_0_jump_table_entry_259+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l d0,(a3)
 	subq.l #1,(a3)
 	tst.l (a3)
@@ -47494,7 +47495,7 @@ CODE_24_loc_000002fc:
 	moveq.l #0,d0
 	move.w $0014(a4),d0
 	move.l d0,-(a7)
-	jsr $0832(a5)
+	jsr CODE_0_jump_table_entry_258+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	tst.l d0
 	addq.w #4,a7
 	bge.b CODE_24_loc_00000318
@@ -47674,7 +47675,7 @@ CODE_24_loc_0000048a:
 	moveq.l #0,d1
 	move.w $0014(a4),d1
 	move.l d1,-(a7)
-	jsr $0842(a5)
+	jsr CODE_0_jump_table_entry_260+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	moveq.l #1,d1
 	cmp.l d0,d1
 	lea.l $000C(a7),a7
@@ -47822,7 +47823,7 @@ CODE_24_loc_000005ee:
 	moveq.l #0,d0
 	move.w $0014(a4),d0
 	move.l d0,-(a7)
-	jsr $0842(a5)
+	jsr CODE_0_jump_table_entry_260+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l d0,d6
 	cmp.l d7,d6
 	lea.l $000C(a7),a7
@@ -47844,7 +47845,7 @@ CODE_24_loc_00000620:
 	add.l $0008(a4),d0
 	move.l d0,-(a7)
 	move.l $0008(a4),-(a7)
-	jsr $0912(a5)
+	jsr CODE_0_jump_table_entry_286+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	lea.l $000C(a7),a7
 CODE_24_loc_00000644:
 	moveq.l #-1,d0
@@ -47983,7 +47984,7 @@ CODE_24_loc_0000074e:
 	moveq.l #0,d2
 	move.w $0014(a4),d2
 	move.l d2,-(a7)
-	jsr $0862(a5)
+	jsr CODE_0_jump_table_entry_264+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l d7,d1
 	sub.l d0,d1
 	add.l d1,d6
@@ -48023,7 +48024,7 @@ CODE_24_loc_00000802:
 	moveq.l #0,d0
 	move.w $0014(a4),d0
 	move.l d0,-(a7)
-	jsr $0862(a5)
+	jsr CODE_0_jump_table_entry_264+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l d0,d6
 	moveq.l #0,d0
 	move.l d0,(a4)
@@ -48053,7 +48054,7 @@ CODE_24_loc_00000852:
 	moveq.l #0,d0
 	move.w $0014(a4),d0
 	move.l d0,-(a7)
-	jsr $0862(a5)
+	jsr CODE_0_jump_table_entry_264+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l d0,d6
 	lea.l $000C(a7),a7
 CODE_24_loc_00000868:
@@ -48128,7 +48129,7 @@ CODE_24_loc_000008fc:
 	moveq.l #0,d2
 	move.w $0014(a4),d2
 	move.l d2,-(a7)
-	jsr $0862(a5)
+	jsr CODE_0_jump_table_entry_264+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l d0,d6
 	lea.l $000C(a7),a7
 	blt.b CODE_24_loc_0000091c
@@ -48396,7 +48397,7 @@ CODE_24_loc_00000b9a:
 	moveq.l #0,d1
 	move.w $000E(a0),d1
 	move.l d7,d0
-	jsr $0272(a5)
+	jsr CODE_0_jump_table_entry_74+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l d0,-(a7)
 	move.l a3,-(a7)
 	jsr CODE_24_loc_0000074e(pc)
@@ -48416,7 +48417,7 @@ CODE_24_loc_00000bda:
 	moveq.l #0,d1
 	move.w $000E(a0),d1
 	tst.l d1
-	jsr $027A(a5)
+	jsr CODE_0_jump_table_entry_75+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	addq.w #4,a7
 CODE_24_loc_00000bfa:
 	movem.l -$000C(a6),d7/a3-a4
@@ -48840,7 +48841,7 @@ CODE_24_loc_00001000:
 	move.l d0,-$3276(a5)
 	move.l $000A(a6),-(a7)
 	pea.l -$0014(a6)
-	jsr $0392(a5)
+	jsr CODE_0_jump_table_entry_110+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.b -$0014(a6),d0
 	ext.w d0
 	ext.l d0
@@ -49121,7 +49122,7 @@ CODE_24_loc_0000128e:
 	move.l a3,-$0008(a6)
 	subq.l #4,a7
 	pea.l -$0008(a6)
-	jsr $08F2(a5)
+	jsr CODE_0_jump_table_entry_282+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,d6
 	bra.b CODE_24_loc_00001300
 CODE_24_loc_000012c8:
@@ -49171,7 +49172,7 @@ CODE_24_loc_00001316:
 	bne.b CODE_24_loc_00001336
 	pea.l -$0008(a6)
 	move.l d6,-(a7)
-	jsr $08EA(a5)
+	jsr CODE_0_jump_table_entry_281+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	bra.b CODE_24_loc_00001348
 CODE_24_loc_00001336:
 	move.l d6,-(a7)
@@ -49466,7 +49467,7 @@ CODE_26_loc_0000021c:
 	move.l d0,-$2D72(a5)
 	clr.l -(a7)
 	move.l -$2D48(a5),-(a7)
-	jsr $02BA(a5)
+	jsr CODE_0_jump_table_entry_83+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,(a4)
 	clr.w -(a7)
 	move.w $0220.w,(a7)
@@ -49624,7 +49625,7 @@ CODE_26_loc_00000428:
 CODE_26_loc_0000042a:
 	move.l -$2D5C(a5),-(a7)
 	move.l d4,-(a7)
-	jsr $02CA(a5)
+	jsr CODE_0_jump_table_entry_85+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.w -(a7)
 	move.w $0220.w,(a7)
 	move.w (a7)+,-$2D50(a5)
@@ -49640,7 +49641,7 @@ CODE_26_loc_0000042a:
 CODE_26_loc_0000045c:
 	move.l -$2D5C(a5),-(a7)
 	move.l d7,-(a7)
-	jsr $02CA(a5)
+	jsr CODE_0_jump_table_entry_85+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	clr.w -(a7)
 	move.w $0220.w,(a7)
 	move.w (a7)+,-$2D50(a5)
@@ -49664,7 +49665,7 @@ CODE_26_loc_0000048a:
 CODE_26_loc_000004a0:
 	clr.l -(a7)
 	move.l d5,-(a7)
-	jsr $02BA(a5)
+	jsr CODE_0_jump_table_entry_83+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	movea.l (a7)+,a4
 	clr.w -(a7)
 	move.w $0220.w,(a7)
@@ -49892,7 +49893,7 @@ CODE_26_loc_0000071c:
 	beq.w CODE_26_loc_000007b4
 	clr.l -(a7)
 	move.l -$2D72(a5),-(a7)
-	jsr $02BA(a5)
+	jsr CODE_0_jump_table_entry_83+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	move.l (a7)+,-$0004(a6)
 	clr.w -(a7)
 	move.w $0220.w,(a7)

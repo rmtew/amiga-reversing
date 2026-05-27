@@ -32,6 +32,7 @@ MACOS_APPLICATION_KB_RECORD_ID = "macos.hfs_resource_fork.code_resources.mpw_app
 MACOS_NON_CODE_RESOURCE_FACT_ID = "macos.resource_fork.non_code_metadata.inventory.candidate"
 MACOS_CURS_RESOURCE_FACT_ID = "macos.resource_fork.curs.layout.accepted"
 _RAW_LOCAL_LABEL_RE = re.compile(r"\bloc_0_([0-9A-Fa-f]{8})\b")
+_A5_CALLABLE_RE = re.compile(r"\b((?:jsr|jmp)\s+)\$([0-9A-Fa-f]{1,4})\(a5\)")
 
 
 def build_macos_project_payload(project: object, *, project_root: Path = PROJECT_ROOT) -> dict[str, object]:
@@ -1251,8 +1252,16 @@ def _semantic_source_rows(
     finally:
         artifact.close()
     asm_source_includes = _macos_asm_source_includes(_sequence(window.get("rows")))
+    a5_callable_labels = _macos_a5_callable_label_map(all_routine_candidates)
     rows = [
-        _semantic_source_row(row, payload_base=analysis_start, resource=resource, code=code, code_range=analysis_range)
+        _semantic_source_row(
+            row,
+            payload_base=analysis_start,
+            resource=resource,
+            code=code,
+            code_range=analysis_range,
+            a5_callable_labels=a5_callable_labels,
+        )
         for row in _sequence(window.get("rows"))
     ]
     rows = [row for row in rows if row]
@@ -1325,6 +1334,29 @@ def _macos_asm_source_includes(rows: Sequence[object]) -> list[str]:
         if include and include not in includes:
             includes.append(include)
     return includes
+
+
+def _macos_a5_callable_label_map(all_routine_candidates: Sequence[Mapping[str, object]]) -> dict[int, str]:
+    labels: dict[int, str] = {}
+    conflicts: set[int] = set()
+    for candidate in all_routine_candidates:
+        callable_offset = _int_value(candidate.get("a5_callable_offset"))
+        entry_index = _int_value(candidate.get("jump_table_entry_index"))
+        entry_byte_offset = _int_value(candidate.get("callable_entry_byte_offset"))
+        if callable_offset is None or entry_index is None or entry_byte_offset is None:
+            continue
+        label = (
+            f"CODE_0_jump_table_entry_{entry_index}+{entry_byte_offset}"
+            f"-CODE_0_jump_table+CODE_0_jump_table_a5_offset"
+        )
+        existing = labels.get(callable_offset)
+        if existing is not None and existing != label:
+            conflicts.add(callable_offset)
+            continue
+        labels[callable_offset] = label
+    for offset in conflicts:
+        labels.pop(offset, None)
+    return labels
 
 
 def _macos_code_analysis_seeds(
@@ -1771,6 +1803,7 @@ def _semantic_source_row(
     resource: Mapping[str, object],
     code: Mapping[str, object],
     code_range: Mapping[str, object],
+    a5_callable_labels: Mapping[int, str],
 ) -> dict[str, object]:
     row_map = _mapping(row)
     kind = str(row_map.get("kind") or "")
@@ -1794,6 +1827,7 @@ def _semantic_source_row(
             str(row_map.get("text") or "").rstrip(),
             resource_id=resource_id,
             payload_base=payload_base,
+            a5_callable_labels=a5_callable_labels,
         ),
         "label": label,
         "opcode_or_directive": row_map.get("opcode_or_directive"),
@@ -1813,11 +1847,25 @@ def _semantic_source_row(
     return {key: value for key, value in semantic_row.items() if value not in (None, "")}
 
 
-def _macos_semantic_row_text(text: str, *, resource_id: object, payload_base: int) -> str:
+def _macos_semantic_row_text(
+    text: str,
+    *,
+    resource_id: object,
+    payload_base: int,
+    a5_callable_labels: Mapping[int, str],
+) -> str:
     def replace(match: re.Match[str]) -> str:
         return f"CODE_{_text(resource_id)}_loc_{payload_base + int(match.group(1), 16):08x}"
 
-    return _RAW_LOCAL_LABEL_RE.sub(replace, text)
+    def replace_a5_callable(match: re.Match[str]) -> str:
+        offset = int(match.group(2), 16)
+        label = a5_callable_labels.get(offset)
+        if label is None:
+            return match.group(0)
+        return f"{match.group(1)}{label}(a5)"
+
+    text = _RAW_LOCAL_LABEL_RE.sub(replace, text)
+    return _A5_CALLABLE_RE.sub(replace_a5_callable, text)
 
 
 def _semantic_source_xrefs(

@@ -1168,8 +1168,22 @@ def test_macos_semantic_row_text_rebases_local_labels_to_payload_offsets() -> No
             "jsr loc_0_000031AA(pc)",
             resource_id=1,
             payload_base=40,
+            a5_callable_labels={},
         )
         == "jsr CODE_1_loc_000031d2(pc)"
+    )
+
+
+def test_macos_semantic_row_text_rewrites_proven_a5_callable_slots() -> None:
+    callable_label = "CODE_0_jump_table_entry_237+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset"
+    assert (
+        macos_project_payload._macos_semantic_row_text(
+            "jsr $078A(a5)",
+            resource_id=1,
+            payload_base=40,
+            a5_callable_labels={0x078A: callable_label},
+        )
+        == f"jsr {callable_label}(a5)"
     )
 
 

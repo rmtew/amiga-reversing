@@ -253,17 +253,21 @@ entry and from that entry to the target CODE resource/routine when proven.
 
 Resolution note: the table-entry relation is now carried as C-owned platform data on generated routine candidates:
 `a5_entry_offset`, `a5_callable_offset`, `callable_entry_byte_offset`, and `callable_entry_kind`. This deliberately
-does not rewrite `jsr $078A(a5)` yet, because `$078A` is not an entry-start displacement in the current fixture; it
-lands two bytes into a proven 8-byte CODE 0 entry, on the Segment Loader trap word. The correct next step is for the
-general C analysis/rendering path to consume those candidate target facts when it sees an A5-relative control transfer,
-prove the displacement is inside the CODE 0 jump-table callable slot, and then emit a symbolic xref/operand. Numeric
-A5 calls should remain numeric until that proof exists.
+does not claim byte-entry proof for target routines, because `$078A` is not an entry-start displacement in the current
+fixture; it lands two bytes into a proven 8-byte CODE 0 entry, on the Segment Loader trap word. The Mac artifact bridge
+now consumes those C-emitted callable-slot facts when semantic source rows contain `jsr`/`jmp disp(a5)`. Proven callable
+slot displacements render as source-stable table expressions such as
+`CODE_0_jump_table_entry_237+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)`; unresolved, duplicate, malformed, or
+out-of-table A5 control transfers remain numeric. Covered by
+`test_macos_semantic_row_text_rewrites_proven_a5_callable_slots`,
+`test_committed_macos_subtarget_metadata_and_asm_shape`, and the committed MPW Asm artifact, which no longer contains
+the raw `jsr $078A(a5)` example.
 
-The correct implementation point is the C analysis/platform layer, not a Mac source post-processor. A5-relative control
-transfers are ordinary M68K operands plus Mac platform context. Once CODE 0 establishes the A5 jump-table base, general
-analysis should be able to resolve `jsr disp(a5)`/`jmp disp(a5)` as indirect calls through a typed platform table. It
-also has to handle non-call A5 accesses separately: some positive offsets may be globals, some are jump-table entries,
-and malformed or out-of-range offsets should remain numeric with a residual/unresolved fact rather than guessed labels.
+The ownership boundary remains the C analysis/platform layer, not a Mac source post-processor. A5-relative control
+transfers are ordinary M68K operands plus Mac platform context, so the renderer may only consume C-owned callable-slot
+facts and must not infer table membership from label text. Non-call A5 accesses remain separate: some positive offsets
+may be globals, some are jump-table entries, and malformed or out-of-range offsets stay numeric with a residual/
+unresolved fact rather than guessed labels.
 
 There is also a source-restoration nuance for the table itself. The `dc.l CODE_1_loc_...-CODE_1` form is better than
 absolute numeric offsets because it remains edit-friendly if source moves. The same principle should apply to any

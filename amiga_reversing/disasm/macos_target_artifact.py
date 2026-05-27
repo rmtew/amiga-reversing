@@ -262,6 +262,7 @@ def _code0_byte_real_source_lines(section: Mapping[str, object], *, payload_byte
         f"\tdc.l ${jump_table_length:08X}",
         "CODE_0_jump_table_offset_from_a5:",
         f"\tdc.l ${jump_table_offset:08X}",
+        f"CODE_0_jump_table_a5_offset\tEQU\t${jump_table_offset:08X}",
         "CODE_0_jump_table:",
     ]
     jump_start = _int_value(jump_table.get("start")) or 16

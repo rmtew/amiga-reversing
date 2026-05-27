@@ -227,6 +227,7 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     assert "CODE_27:" in asm_text
     assert "CODE_0_above_a5_size:" in asm_text
     assert "CODE_0_jump_table:" in asm_text
+    assert "CODE_0_jump_table_a5_offset\tEQU\t$00000020" in asm_text
     assert "CODE_0_jump_table_entry_0:" in asm_text
     assert "\tmove.w #27,-(a7)" in asm_text
     assert "\t_LoadSeg\n" in asm_text
@@ -284,7 +285,7 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     asm_lines = asm_text.splitlines()
     consecutive_label_pairs = [
         (line, next_line)
-        for line, next_line in zip(asm_lines, asm_lines[1:])
+        for line, next_line in zip(asm_lines, asm_lines[1:], strict=False)
         if line.startswith("CODE_")
         and line.endswith(":")
         and next_line.startswith("CODE_")
@@ -304,6 +305,11 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     assert asm_text.index("CODE_26_data_string_00000936:") < asm_text.index("CODE_26_loc_0000093e:")
     assert "loc_0_" not in asm_text
     assert "CODE_1_loc_00003754(pc,d0.w)" in asm_text
+    assert "\tjsr $078A(a5)\n" not in asm_text
+    assert (
+        "\tjsr CODE_0_jump_table_entry_237+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)\n"
+        in asm_text
+    )
     assert ";       xref code_start_ref payload+" not in asm_text
     assert "CODE_1_candidate_code_00000028:\n\tdc.b $20,$5F" not in asm_text
     assert "residual candidate_code payload[40..29024)" not in asm_text
