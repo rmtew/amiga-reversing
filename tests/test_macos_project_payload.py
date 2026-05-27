@@ -1294,6 +1294,10 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
         "value_space": "code_resource_payload",
         "renderer": "generic_label_minus_base",
     }
+    assert far_model_row["a5_entry_offset"] == 0x38
+    assert far_model_row["a5_callable_offset"] == 0x3A
+    assert far_model_row["callable_entry_byte_offset"] == 2
+    assert far_model_row["callable_entry_kind"] == "segment_loader_trap_word"
     assert any(
         item["target_resource_id"] == 1
         and item["target_payload_offset"] == 62

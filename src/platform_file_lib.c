@@ -933,8 +933,8 @@ static int macos_code0_entry_is_far_model_loadseg_for_segment(const unsigned cha
 
 static int macos_append_segment_routine_candidate(JsonBuilder *builder, uint32_t candidate_index,
     uint32_t jump_table_entry_index, uint32_t jump_table_offset, uint32_t code0_entry_offset,
-    uint32_t routine_offset, int16_t segment_id, const char *entry_state, const char *routine_offset_space,
-    int needs_comma) {
+    uint32_t a5_jump_table_base_offset, uint32_t routine_offset, int16_t segment_id, const char *entry_state,
+    const char *routine_offset_space, int needs_comma) {
   const MacOsCallInfo *loadseg_call = mac_os_find_call_by_opword(0xA9F0U);
   int has_payload_relative_expression =
     routine_offset_space != NULL && strcmp(routine_offset_space, "code_resource_payload") == 0;
@@ -942,11 +942,15 @@ static int macos_append_segment_routine_candidate(JsonBuilder *builder, uint32_t
   if (json_builder_appendf(builder,
         "{\"index\":%u,\"jump_table_entry_index\":%u,\"jump_table_offset\":%u,"
         "\"code0_payload_offset\":%u,\"entry_code_offset\":%u,"
+        "\"a5_entry_offset\":%u,\"a5_callable_offset\":%u,\"callable_entry_byte_offset\":2,"
+        "\"callable_entry_kind\":\"segment_loader_trap_word\","
         "\"routine_offset_from_segment\":%u,\"target_resource_id\":%d,"
         "\"entry_state\":\"%s\",\"routine_offset_space\":\"%s\","
         "\"classification\":\"candidate_routine_entry\",",
         (unsigned)candidate_index, (unsigned)jump_table_entry_index, (unsigned)jump_table_offset,
         (unsigned)code0_entry_offset, (unsigned)(code0_entry_offset + 2U),
+        (unsigned)(a5_jump_table_base_offset + jump_table_offset),
+        (unsigned)(a5_jump_table_base_offset + jump_table_offset + 2U),
         (unsigned)routine_offset, (int)segment_id, entry_state, routine_offset_space) != 0 ||
       json_builder_append(builder, "\"platform_call\":{\"platform\":\"macos\",\"kind\":\"trap_constant\","
         "\"opword\":43504,\"symbol_name\":") != 0 ||
@@ -981,13 +985,15 @@ static int macos_append_segment_routine_candidate(JsonBuilder *builder, uint32_t
 }
 
 static int macos_append_segment_routine_candidates(JsonBuilder *builder, const PlatformMacosResourceInfo *resource,
-    const unsigned char *code0_payload, uint32_t code0_payload_size) {
+    const PlatformMacosResourceInfo *code0_resource, const unsigned char *code0_payload, uint32_t code0_payload_size) {
   uint32_t index;
   uint32_t first_offset;
   uint32_t count;
   uint32_t emitted = 0U;
   if (json_builder_append(builder, ",\"routine_entry_candidates\":[") != 0) return -1;
-  if (resource == NULL || code0_payload == NULL || code0_payload_size < 16U) return json_builder_append(builder, "]");
+  if (resource == NULL || code0_resource == NULL || code0_payload == NULL || code0_payload_size < 16U) {
+    return json_builder_append(builder, "]");
+  }
   first_offset = resource->code.first_jump_table_entry_offset;
   count = resource->code.jump_table_entry_count;
   if (resource->code.far_model &&
@@ -1006,8 +1012,8 @@ static int macos_append_segment_routine_candidates(JsonBuilder *builder, const P
         continue;
       }
       if (macos_append_segment_routine_candidate(builder, emitted, jump_table_offset / 8U, jump_table_offset,
-            code0_entry_offset, routine_offset, resource->resource_id, "far_model_loadseg",
-            "code_resource_payload", emitted > 0U) != 0) {
+            code0_entry_offset, code0_resource->code.jump_table_offset_from_a5, routine_offset, resource->resource_id,
+            "far_model_loadseg", "code_resource_payload", emitted > 0U) != 0) {
         return -1;
       }
       emitted++;
@@ -1023,8 +1029,8 @@ static int macos_append_segment_routine_candidates(JsonBuilder *builder, const P
         continue;
       }
       if (macos_append_segment_routine_candidate(builder, emitted, jump_table_offset / 8U, jump_table_offset,
-            code0_entry_offset, routine_offset, resource->resource_id, "far_model_loadseg",
-            "code_resource_payload", emitted > 0U) != 0) {
+            code0_entry_offset, code0_resource->code.jump_table_offset_from_a5, routine_offset, resource->resource_id,
+            "far_model_loadseg", "code_resource_payload", emitted > 0U) != 0) {
         return -1;
       }
       emitted++;
@@ -1040,8 +1046,8 @@ static int macos_append_segment_routine_candidates(JsonBuilder *builder, const P
         continue;
       }
       if (macos_append_segment_routine_candidate(builder, emitted, jump_table_offset / 8U, jump_table_offset,
-            code0_entry_offset, routine_offset, resource->resource_id, "unloaded_loadseg",
-            "candidate_code_range", emitted > 0U) != 0) {
+            code0_entry_offset, code0_resource->code.jump_table_offset_from_a5, routine_offset, resource->resource_id,
+            "unloaded_loadseg", "candidate_code_range", emitted > 0U) != 0) {
         return -1;
       }
       emitted++;
@@ -1058,8 +1064,8 @@ static int macos_append_segment_routine_candidates(JsonBuilder *builder, const P
         continue;
       }
       if (macos_append_segment_routine_candidate(builder, emitted, index / 8U, index, code0_entry_offset,
-            routine_offset, resource->resource_id, "unloaded_loadseg", "candidate_code_range",
-            emitted > 0U) != 0) {
+            code0_resource->code.jump_table_offset_from_a5, routine_offset, resource->resource_id, "unloaded_loadseg",
+            "candidate_code_range", emitted > 0U) != 0) {
         return -1;
       }
       emitted++;
@@ -1103,7 +1109,7 @@ static int macos_append_code_segment_map(JsonBuilder *builder, const unsigned ch
           (unsigned)span_size) != 0 ||
         macos_append_fact_ref(builder, "macos.code_resource.segment_jump_table_span.accepted",
           "validated", "accepted_parser_output") != 0 ||
-        macos_append_segment_routine_candidates(builder, resource, code0_payload, code0_payload_size) != 0 ||
+        macos_append_segment_routine_candidates(builder, resource, code0, code0_payload, code0_payload_size) != 0 ||
         json_builder_append(builder, "}") != 0) {
       return -1;
     }

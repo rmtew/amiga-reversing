@@ -236,6 +236,14 @@ that should identify a specific `CODE_0_jump_table_entry_N` if the offset is ali
 should then use the symbolic entry label, and the analysis should record the xref from the call site to the jump-table
 entry and from that entry to the target CODE resource/routine when proven.
 
+Resolution note: the table-entry relation is now carried as C-owned platform data on generated routine candidates:
+`a5_entry_offset`, `a5_callable_offset`, `callable_entry_byte_offset`, and `callable_entry_kind`. This deliberately
+does not rewrite `jsr $078A(a5)` yet, because `$078A` is not an entry-start displacement in the current fixture; it
+lands two bytes into a proven 8-byte CODE 0 entry, on the Segment Loader trap word. The correct next step is for the
+general C analysis/rendering path to consume those candidate target facts when it sees an A5-relative control transfer,
+prove the displacement is inside the CODE 0 jump-table callable slot, and then emit a symbolic xref/operand. Numeric
+A5 calls should remain numeric until that proof exists.
+
 The correct implementation point is the C analysis/platform layer, not a Mac source post-processor. A5-relative control
 transfers are ordinary M68K operands plus Mac platform context. Once CODE 0 establishes the A5 jump-table base, general
 analysis should be able to resolve `jsr disp(a5)`/`jmp disp(a5)` as indirect calls through a typed platform table. It

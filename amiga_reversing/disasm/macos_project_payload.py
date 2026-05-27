@@ -2293,6 +2293,9 @@ def _code0_jump_table_row(
                 },
             }
         )
+        for key in ("a5_entry_offset", "a5_callable_offset", "callable_entry_byte_offset", "callable_entry_kind"):
+            if key in candidate:
+                row[key] = candidate.get(key)
         platform_call = candidate.get("platform_call")
         if isinstance(platform_call, Mapping):
             row["platform_call"] = dict(platform_call)
