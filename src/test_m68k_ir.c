@@ -3243,7 +3243,7 @@ static int test_facts_v2_macos_call_stack_args_from_generated_metadata(void) {
   M68K_C_ASSERT_U32(2U, analysis_section->recovered_function_args[1].source_reg_kind);
   M68K_C_ASSERT_U32(6U, analysis_section->recovered_function_args[1].source_reg_index);
   M68K_C_ASSERT_INT(-258, analysis_section->recovered_function_args[1].source_displacement);
-  M68K_C_ASSERT_U32(2U, (uint32_t)analysis_section->recovered_platform_typed_access_count);
+  M68K_C_ASSERT_U32(3U, (uint32_t)analysis_section->recovered_platform_typed_access_count);
   M68K_C_ASSERT_U32(4U, analysis_section->recovered_platform_typed_accesses[0].offset);
   M68K_C_ASSERT_U32(0U, analysis_section->recovered_platform_typed_accesses[0].operand_index);
   M68K_C_ASSERT_U32(6U, analysis_section->recovered_platform_typed_accesses[0].base_reg);
@@ -3260,6 +3260,14 @@ static int test_facts_v2_macos_call_stack_args_from_generated_metadata(void) {
   M68K_C_ASSERT_U32(2U, analysis_section->recovered_platform_typed_accesses[1].field_size);
   M68K_C_ASSERT_U32(M68K_PLATFORM_TYPE_PROVENANCE_API_OUTPUT,
     analysis_section->recovered_platform_typed_accesses[1].type_provenance_kind);
+  M68K_C_ASSERT_U32(14U, analysis_section->recovered_platform_typed_accesses[2].offset);
+  M68K_C_ASSERT_U32(1U, analysis_section->recovered_platform_typed_accesses[2].operand_index);
+  M68K_C_ASSERT_U32(6U, analysis_section->recovered_platform_typed_accesses[2].base_reg);
+  M68K_C_ASSERT_INT(12, analysis_section->recovered_platform_typed_accesses[2].displacement);
+  M68K_C_ASSERT_U32(0U, analysis_section->recovered_platform_typed_accesses[2].struct_size);
+  M68K_C_ASSERT_U32(2U, analysis_section->recovered_platform_typed_accesses[2].field_size);
+  M68K_C_ASSERT_U32(M68K_PLATFORM_TYPE_PROVENANCE_API_OUTPUT,
+    analysis_section->recovered_platform_typed_accesses[2].type_provenance_kind);
   M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(analysis_json != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"function_offset\":12,\"stack_offset\":8,\"reg_kind\":0,"
@@ -3278,6 +3286,9 @@ static int test_facts_v2_macos_call_stack_args_from_generated_metadata(void) {
     "\"field_name\":\"name\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"offset\":14,\"operand_index\":0,\"base_register\":\"A6\","
     "\"displacement\":-258,\"field_offset\":0,\"struct_size\":0,\"field_size\":2,"
+    "\"root_struct_name\":\"short\",\"owner_struct_name\":\"short\",\"field_name\":\"familyID\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"offset\":14,\"operand_index\":1,\"base_register\":\"A6\","
+    "\"displacement\":12,\"field_offset\":0,\"struct_size\":0,\"field_size\":2,"
     "\"root_struct_name\":\"short\",\"owner_struct_name\":\"short\",\"field_name\":\"familyID\"") != NULL);
   free(analysis_json);
   m68k_facts_v2_free_text(source);

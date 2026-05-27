@@ -88,8 +88,8 @@ OS/Toolbox call table with the trap word, include source, Pascal calling convent
 widths, pointer/reference direction, and return/value effects. That data should drive the C analysis in the same
 spirit as the Amiga and Atari platform call metadata. Once `_GetFNum` is represented structurally, the analysis should
 be able to infer that `-$0100(a6)` is a `ConstStr255Param`, `-$0102(a6)` is a writable `short *familyID`, and
-`$000C(a6)` receives a `FontFamilyID`-like value. The rendered source should then become clearer because the structured
-call semantics, not comments or Python-side recognition, explain the stack slots.
+`$000C(a6)` receives the returned family ID value. The rendered source should then become clearer because the
+structured call semantics, not comments or Python-side recognition, explain the stack slots.
 
 Resolution note: generated Mac OS runtime metadata now carries structured C prototype fields for calls, including
 `c_name`, `return_type`, and per-parameter rows with source order, type name, pointer depth, and direction. `_GetFNum`
@@ -113,8 +113,10 @@ directly from generated Mac runtime metadata. For the `_GetFNum` pattern, the op
 each parameter to the concrete pushed local-frame operand: `name` comes from `-$0100(a6)` and `familyID` comes from
 `-$0102(a6)`. The same bridge records `name` as an API-input typed local access with `ConstStr255Param` provenance, and
 the output-pointer bridge records the later `move.w -$0102(a6),...` read as a typed local access: `familyID` is read as
-a two-byte `short` with API-output provenance pointing back to the `_GetFNum` call. This keeps the facts in C-owned
-source analysis rather than rendered-source comments. Covered by the same regression and
+a two-byte `short` with API-output provenance pointing back to the `_GetFNum` call. It also propagates the same typed
+API-output value across the direct `move.w -$0102(a6),$000C(a6)` destination local, so the caller-visible word receives
+the same `familyID` type fact. This keeps the facts in C-owned source analysis rather than rendered-source comments.
+Covered by the same regression and
 `cmd /c src\precommit.bat m68k_ir`.
 
 There is also an include/rendering distinction to preserve. The assembly source should include the real MPW interface

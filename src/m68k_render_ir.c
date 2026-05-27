@@ -10041,6 +10041,26 @@ static int record_mac_output_pointer_local_reads_for_render(M68kRenderIRPreview 
           preview->asm_source_allocation_failed = 1U;
           return -1;
         }
+        {
+          size_t dest_index;
+          for (dest_index = 0U; dest_index < instruction.operand_count && dest_index < 4U; ++dest_index) {
+            uint8_t dest_base_reg = 0U;
+            int16_t dest_displacement = 0;
+            if (metadata->operand_access_kinds[dest_index] != M68K_SIM_ACCESS_MEMORY_WRITE ||
+                !operand_is_address_memory_local(&instruction.operands[dest_index], &dest_base_reg,
+                  &dest_displacement)) {
+              continue;
+            }
+            if (m68k_ir_section_analysis_append_recovered_platform_typed_access(section_analysis,
+                M68K_PLATFORM_BACKEND_MACOS, candidate->offset, (uint8_t)dest_index, dest_base_reg,
+                dest_displacement, 0, 0U, access_size, arg->pointee_type_name, arg->pointee_type_name,
+                arg->field_name, "", 0U, 0U, M68K_PLATFORM_TYPE_PROVENANCE_API_OUTPUT, section->section_index,
+                call_offset) != 0) {
+              preview->asm_source_allocation_failed = 1U;
+              return -1;
+            }
+          }
+        }
       }
     }
     if (candidate_has_call_flow(candidate) || candidate_has_non_call_control_target(candidate)) break;
