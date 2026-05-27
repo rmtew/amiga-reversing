@@ -680,7 +680,10 @@ def _source_quality_residuals(
         kind = str(item.get("kind") or "")
         status = str(item.get("fact_status") or item.get("status") or "")
         if kind in {"candidate_code", "candidate_unresolved_prefix", "confirmed_code", "code"}:
-            decoded_residuals = semantic_gap_residuals or _semantic_gap_residuals(detail, item, semantic_rows)
+            decoded_residuals = _residuals_in_range(
+                semantic_gap_residuals or _semantic_gap_residuals(detail, item, semantic_rows),
+                item,
+            )
             if semantic_rows:
                 residuals.extend(decoded_residuals)
                 continue
@@ -754,6 +757,25 @@ def _source_quality_residuals(
         )
         existing_spans.add(key)
     return residuals
+
+
+def _residuals_in_range(
+    residuals: list[Mapping[str, object]],
+    range_info: Mapping[str, object],
+) -> list[Mapping[str, object]]:
+    range_start = _int_value(range_info.get("start"))
+    range_end = _int_value(range_info.get("end"))
+    if range_start is None or range_end is None:
+        return residuals
+    filtered: list[Mapping[str, object]] = []
+    for residual in residuals:
+        start = _int_value(residual.get("start"))
+        end = _int_value(residual.get("end"))
+        if start is None or end is None:
+            continue
+        if range_start <= start and end <= range_end:
+            filtered.append(residual)
+    return filtered
 
 
 def _semantic_gap_residuals(

@@ -1246,6 +1246,13 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     assert "CODE_1_candidate_entry_stub" in code1_quality["labels"]
     assert all(item.get("start") != 62 for item in code1_quality["residuals"])
     assert any(item["kind"] == "candidate_unvisited_entry_pattern" for item in code1_quality["residuals"])
+    for quality in quality_rows:
+        residual_spans = [
+            (item.get("kind"), item.get("start"), item.get("end"))
+            for item in quality["residuals"]
+            if item.get("kind") == "semantic_decode_gap"
+        ]
+        assert len(residual_spans) == len(set(residual_spans))
     code2_quality = next(item for item in quality_rows if item["resource_id"] == 2)
     assert code2_quality["semantic_instruction_row_count"] >= 4
     assert code2_quality["byte_real_only_executable_body"] is False
