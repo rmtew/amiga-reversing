@@ -83,6 +83,14 @@ font name as an input value and `familyID` as an output-or-inout pointer. This s
 through stack locals by itself; the remaining general analysis work is to consume these generated parameter rows when
 Mac trap rows are reached.
 
+Progress note: reached Mac opword calls now expose those generated parameter rows through the recovered platform-call
+JSON/API surface. The `_GetFNum` C regression renders the real `Fonts.a` include and `_GetFNum` macro, records the
+reached platform call, and serializes `name: ConstStr255Param` plus `familyID: short *` with
+`output_or_inout_pointer` direction instead of leaving Mac call `inputs` empty. Covered by
+`facts_v2_macos_opword_call_falls_through` and `cmd /c src\precommit.bat m68k_ir`. The still-open work is the harder
+C data-flow bridge: bind the observed `pea -$0100(a6)`/`pea -$0102(a6)` stack operands to those parameter rows, then
+propagate the output pointer write into typed stack/local/A5-slot facts.
+
 There is also an include/rendering distinction to preserve. The assembly source should include the real MPW interface
 file that defines `_GetFNum` (for example `Fonts.a`, with whatever umbrella include policy we settle on), not emit local
 EQU-style replacement definitions. The metadata generator can consume `Fonts.a`/`Fonts.h`, but the restored source
@@ -275,6 +283,10 @@ derived A5-call rendering: prefer symbolic table-entry labels and segment-relati
 while keeping raw numeric data where the parser cannot prove the relationship.
 
 ## Investigation needed: Amiga/Pandora
+
+This section tracks current general-analysis follow-ups that use Pandora as concrete evidence. Proposal 015 is closed as
+the historical Pandora reversing-loop trial; these entries should be resolved as reusable C analysis/rendering work
+unless the evidence proves a genuinely target-specific Pandora artifact.
 
 ### Register content propagation
 

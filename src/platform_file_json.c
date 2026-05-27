@@ -6,6 +6,7 @@
 #include "m68k_source_text_util.h"
 #include "platform_executable_summary.h"
 #include "generated/amiga_os_runtime.h"
+#include "generated/mac_os_runtime.h"
 #include "generated/m68k_cpu_runtime.h"
 #include "generated/platform_executable_formats.h"
 #include "util_arena.h"
@@ -1044,6 +1045,49 @@ static int append_amiga_call_outputs_json(JsonBuilder *builder, const AmigaOsLib
   return json_builder_append(builder, "}]");
 }
 
+static const MacOsCallInfo *resolve_mac_call_for_json(const M68kRecoveredPlatformCallIR *call) {
+  const char *symbol_name;
+  if (call == NULL || call->note_symbol_ref.platform_kind != M68K_PLATFORM_BACKEND_MACOS) return NULL;
+  symbol_name = m68k_platform_name_ref_resolve_text_or_fallback(&call->note_symbol_ref, call->note_symbol_name);
+  return symbol_name != NULL && symbol_name[0] != '\0' ? mac_os_find_call_by_name(symbol_name) : NULL;
+}
+
+static int append_mac_call_inputs_json(JsonBuilder *builder, const MacOsCallInfo *call_info) {
+  uint16_t index;
+  int first = 1;
+  if (builder == NULL) return -1;
+  if (json_builder_append(builder, "[") != 0) return -1;
+  if (call_info == NULL) return json_builder_append(builder, "]");
+  for (index = 0U; index < call_info->parameter_count; ++index) {
+    const MacOsCallParameterInfo *param = mac_os_call_parameter(call_info, index);
+    if (param == NULL) continue;
+    if (!first && json_builder_append(builder, ",") != 0) return -1;
+    if (json_builder_append(builder, "{\"name\":") != 0) return -1;
+    if (json_builder_append_nullable_string(builder, param->name) != 0) return -1;
+    if (json_builder_append(builder, ",\"type_name\":") != 0) return -1;
+    if (json_builder_append_nullable_string(builder, param->type_name) != 0) return -1;
+    if (json_builder_appendf(builder, ",\"pointer_depth\":%u,\"direction\":",
+        (unsigned)param->pointer_depth) != 0) {
+      return -1;
+    }
+    if (json_builder_append_nullable_string(builder, param->direction) != 0) return -1;
+    if (json_builder_append(builder, "}") != 0) return -1;
+    first = 0;
+  }
+  return json_builder_append(builder, "]");
+}
+
+static int append_mac_call_outputs_json(JsonBuilder *builder, const MacOsCallInfo *call_info) {
+  if (builder == NULL) return -1;
+  if (call_info == NULL || call_info->return_type == NULL || call_info->return_type[0] == '\0' ||
+      strcmp(call_info->return_type, "void") == 0) {
+    return json_builder_append(builder, "[]");
+  }
+  if (json_builder_append(builder, "[{\"name\":\"return\",\"type_name\":") != 0) return -1;
+  if (json_builder_append_nullable_string(builder, call_info->return_type) != 0) return -1;
+  return json_builder_append(builder, "}]");
+}
+
 static const char *atari_return_value_domain(uint8_t return_kind) {
   switch (return_kind) {
   case ATARI_ST_OS_RETURN_WORD:
@@ -1229,10 +1273,13 @@ static int append_entity_platform_call_hint_json(JsonBuilder *builder, const M68
 static int append_recovered_platform_call_json(JsonBuilder *builder, const M68kRecoveredPlatformCallIR *call) {
   const char *resolved_lvo_symbol_name = NULL;
   const AmigaOsLibraryVectorInfo *amiga_vector;
+  const MacOsCallInfo *mac_call;
   const char *library_name;
   if (builder == NULL || call == NULL) return -1;
   amiga_vector = resolve_amiga_call_vector_for_json(call, &resolved_lvo_symbol_name);
+  mac_call = resolve_mac_call_for_json(call);
   library_name = resolve_amiga_call_library_name_for_json(call, amiga_vector);
+  if (mac_call != NULL && mac_call->family != NULL && mac_call->family[0] != '\0') library_name = mac_call->family;
   if (json_builder_appendf(builder, "{\"offset\":%u,\"kind\":%u,\"symbol_name\":",
         (unsigned)call->offset, (unsigned)call->kind) != 0)
     return -1;
@@ -1274,7 +1321,8 @@ static int append_recovered_platform_call_json(JsonBuilder *builder, const M68kR
   if (json_builder_append(builder, ",\"function_name\":") != 0)
     return -1;
   if (json_builder_append_nullable_string(builder,
-        amiga_vector != NULL ? amiga_os_name(3U, amiga_vector->function_id) : NULL) != 0)
+        mac_call != NULL && mac_call->c_name != NULL && mac_call->c_name[0] != '\0' ? mac_call->c_name :
+          (amiga_vector != NULL ? amiga_os_name(3U, amiga_vector->function_id) : NULL)) != 0)
     return -1;
   if (json_builder_append(builder, ",\"lvo_symbol_name\":") != 0)
     return -1;
@@ -1282,12 +1330,19 @@ static int append_recovered_platform_call_json(JsonBuilder *builder, const M68kR
     return -1;
   if (json_builder_append(builder, ",\"inputs\":") != 0)
     return -1;
-  if (append_amiga_call_inputs_json(builder, amiga_vector) != 0)
+  if (mac_call != NULL) {
+    if (append_mac_call_inputs_json(builder, mac_call) != 0)
+      return -1;
+  } else if (append_amiga_call_inputs_json(builder, amiga_vector) != 0) {
     return -1;
+  }
   if (json_builder_append(builder, ",\"outputs\":") != 0)
     return -1;
   if (amiga_vector != NULL) {
     if (append_amiga_call_outputs_json(builder, amiga_vector) != 0)
+      return -1;
+  } else if (mac_call != NULL) {
+    if (append_mac_call_outputs_json(builder, mac_call) != 0)
       return -1;
   } else if (call->note_symbol_ref.platform_kind == M68K_PLATFORM_BACKEND_ATARI_ST) {
     if (append_atari_call_outputs_json(builder, call) != 0)
@@ -1300,7 +1355,9 @@ static int append_recovered_platform_call_json(JsonBuilder *builder, const M68kR
 
 static const char *listing_api_call_function_name(const M68kRecoveredPlatformCallIR *call,
     const AmigaOsLibraryVectorInfo *amiga_vector) {
+  const MacOsCallInfo *mac_call = resolve_mac_call_for_json(call);
   const char *symbol;
+  if (mac_call != NULL && mac_call->c_name != NULL && mac_call->c_name[0] != '\0') return mac_call->c_name;
   if (amiga_vector != NULL) return amiga_os_name(3U, amiga_vector->function_id);
   symbol = m68k_platform_name_ref_resolve_text_or_fallback(&call->symbol_ref, call->symbol_name);
   if (symbol == NULL || symbol[0] == '\0')
@@ -1312,12 +1369,15 @@ static const char *listing_api_call_function_name(const M68kRecoveredPlatformCal
 static int append_listing_api_call_json(JsonBuilder *builder, const M68kRecoveredPlatformCallIR *call) {
   const char *resolved_lvo_symbol_name = NULL;
   const AmigaOsLibraryVectorInfo *amiga_vector;
+  const MacOsCallInfo *mac_call;
   const char *library_name;
   const char *function_name;
   if (builder == NULL || call == NULL) return -1;
   amiga_vector = resolve_amiga_call_vector_for_json(call, &resolved_lvo_symbol_name);
+  mac_call = resolve_mac_call_for_json(call);
   (void)resolved_lvo_symbol_name;
   library_name = resolve_amiga_call_library_name_for_json(call, amiga_vector);
+  if (mac_call != NULL) library_name = mac_call->family;
   if (library_name == NULL || library_name[0] == '\0')
     library_name = m68k_platform_name_ref_resolve_text_or_fallback(&call->note_base_ref, call->note_base_name);
   if (library_name == NULL || library_name[0] == '\0') library_name = "unknown";
@@ -1338,10 +1398,16 @@ static int append_listing_api_call_json(JsonBuilder *builder, const M68kRecovere
         m68k_platform_name_ref_resolve_text_or_fallback(&call->note_symbol_ref, call->note_symbol_name)) != 0)
     return -1;
   if (json_builder_append(builder, ",\"inputs\":") != 0) return -1;
-  if (append_amiga_call_inputs_json(builder, amiga_vector) != 0) return -1;
+  if (mac_call != NULL) {
+    if (append_mac_call_inputs_json(builder, mac_call) != 0) return -1;
+  } else if (append_amiga_call_inputs_json(builder, amiga_vector) != 0) {
+    return -1;
+  }
   if (json_builder_append(builder, ",\"outputs\":") != 0) return -1;
   if (amiga_vector != NULL) {
     if (append_amiga_call_outputs_json(builder, amiga_vector) != 0) return -1;
+  } else if (mac_call != NULL) {
+    if (append_mac_call_outputs_json(builder, mac_call) != 0) return -1;
   } else if (call->note_symbol_ref.platform_kind == M68K_PLATFORM_BACKEND_ATARI_ST) {
     if (append_atari_call_outputs_json(builder, call) != 0) return -1;
   } else if (json_builder_append(builder, "[]") != 0) {

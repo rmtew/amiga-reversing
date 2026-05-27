@@ -3144,7 +3144,8 @@ static int test_facts_v2_macos_opword_call_falls_through(void) {
   const M68kRecoveredPlatformCallIR *call;
   const char *note_symbol_name;
   char *source = NULL;
-  uint8_t bytes[4] = {0xa9u, 0xf1u, 0x4eu, 0x75u};
+  char *analysis_json = NULL;
+  uint8_t bytes[4] = {0xa9u, 0x00u, 0x4eu, 0x75u};
   memset(&section, 0, sizeof(section));
   M68K_C_ASSERT_INT(0, m68k_object_create(&object));
   object.platform_backend_kind = M68K_PLATFORM_BACKEND_MACOS;
@@ -3159,9 +3160,9 @@ static int test_facts_v2_macos_opword_call_falls_through(void) {
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source, &profile,
     &source_analysis, 0U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
-  M68K_C_ASSERT(strstr(source, "    INCLUDE \"SegLoad.a\"") != NULL);
-  M68K_C_ASSERT(strstr(source, "\t_UnloadSeg") != NULL);
-  M68K_C_ASSERT(strstr(source, "macos_trap__UnloadSeg") == NULL);
+  M68K_C_ASSERT(strstr(source, "    INCLUDE \"Fonts.a\"") != NULL);
+  M68K_C_ASSERT(strstr(source, "\t_GetFNum") != NULL);
+  M68K_C_ASSERT(strstr(source, "macos_trap__GetFNum") == NULL);
   M68K_C_ASSERT(strstr(source, "\trts") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(1U, profile.platform_call_count);
@@ -3171,7 +3172,18 @@ static int test_facts_v2_macos_opword_call_falls_through(void) {
   note_symbol_name = m68k_platform_name_ref_resolve_text_or_fallback(&call->note_symbol_ref, call->note_symbol_name);
   M68K_C_ASSERT_U32(0U, call->offset);
   M68K_C_ASSERT_U32(M68K_PLATFORM_CALL_NOTE_DIRECT_OS_CALL, call->note_kind);
-  M68K_C_ASSERT_STR("_UnloadSeg", note_symbol_name);
+  M68K_C_ASSERT_STR("_GetFNum", note_symbol_name);
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"note_symbol_name\":\"_GetFNum\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"library_name\":\"Fonts\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"function_name\":\"GetFNum\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"inputs\":[{\"name\":\"name\",\"type_name\":\"ConstStr255Param\",\"pointer_depth\":0,"
+    "\"direction\":\"input_value\"},{\"name\":\"familyID\",\"type_name\":\"short *\","
+    "\"pointer_depth\":1,\"direction\":\"output_or_inout_pointer\"}]") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"outputs\":[]") != NULL);
+  free(analysis_json);
   m68k_facts_v2_free_text(source);
   m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_object_destroy(&object);
