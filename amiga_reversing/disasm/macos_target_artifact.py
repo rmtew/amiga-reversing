@@ -373,7 +373,7 @@ def _code_source_byte_real_lines(section: Mapping[str, object], *, payload_bytes
             f"parser_use={_text(item.get('parser_use'))} evidence={_text(item.get('evidence'))}"
         )
         if kind in {"candidate_code", "confirmed_code", "code"} and semantic_rows:
-            lines.extend(_semantic_source_lines(section, semantic_source, start=start, end=end))
+            lines.extend(_semantic_source_lines(section, semantic_source, payload_bytes=payload_bytes, start=start, end=end))
             continue
         lines.extend(_dc_b_lines(payload_bytes[start:end], label=label, base_offset=start))
     return lines
@@ -427,6 +427,7 @@ def _semantic_source_lines(
     section: Mapping[str, object],
     semantic_source: Mapping[str, object],
     *,
+    payload_bytes: bytes,
     start: int,
     end: int,
 ) -> list[str]:
@@ -435,8 +436,6 @@ def _semantic_source_lines(
         for row in (_mapping(value) for value in _sequence(semantic_source.get("rows")))
         if _semantic_row_in_range(row, start=start, end=end)
     ]
-    if not rows:
-        return []
     lines = [
         (
             f";     semantic_source: kind={_text(semantic_source.get('kind'))} "
@@ -447,9 +446,20 @@ def _semantic_source_lines(
         )
     ]
     resource_id = section.get("id")
+    cursor = start
     for row in rows:
         kind = row.get("kind")
         payload_offset = _int_value(row.get("payload_offset"))
+        payload_end = _int_value(row.get("payload_end")) or payload_offset
+        if payload_offset is not None and payload_offset > cursor:
+            lines.extend(
+                _dc_b_lines(
+                    payload_bytes[cursor:payload_offset],
+                    label=f"{_text(section.get('label'))}_semantic_decode_gap_{cursor:08x}",
+                    base_offset=cursor,
+                )
+            )
+            cursor = payload_offset
         if kind == "label":
             label_offset = payload_offset if payload_offset is not None else start
             lines.append(f"macos_code_CODE_{_text(resource_id)}_loc_{label_offset:08x}:")
@@ -461,6 +471,16 @@ def _semantic_source_lines(
             lines.append(text)
         else:
             lines.append(text)
+        if payload_end is not None:
+            cursor = max(cursor, payload_end)
+    if cursor < end:
+        lines.extend(
+            _dc_b_lines(
+                payload_bytes[cursor:end],
+                label=f"{_text(section.get('label'))}_semantic_decode_gap_{cursor:08x}",
+                base_offset=cursor,
+            )
+        )
     return lines
 
 
