@@ -506,6 +506,16 @@ def _semantic_source_lines(
             label_offset = payload_offset if payload_offset is not None else start
             lines.append(f"CODE_{_text(resource_id)}_loc_{label_offset:08x}:")
             continue
+        if kind == "data" and payload_offset is not None and payload_end is not None:
+            lines.extend(
+                _semantic_data_row_lines(
+                    row,
+                    label=f"{_text(section.get('label'))}_{_text(row.get('data_kind') or 'data')}_{payload_offset:08x}",
+                    base_offset=payload_offset,
+                )
+            )
+            cursor = max(cursor, payload_end)
+            continue
         text = str(row.get("text") or "").rstrip()
         if not text:
             continue
@@ -541,6 +551,20 @@ def _semantic_gap_lines(data: bytes, *, label: str, kind: str, base_offset: int)
     if kind == "semantic_alignment_padding_gap" and data and all(byte == 0 for byte in data):
         return [f"{label}:", f"\tds.b {len(data)}"]
     return _dc_b_lines(data, label=label, base_offset=base_offset)
+
+
+def _semantic_data_row_lines(row: Mapping[str, object], *, label: str, base_offset: int) -> list[str]:
+    data = _bytes_from_hex(str(row.get("bytes") or ""))
+    if row.get("data_kind") == "semantic_alignment_padding_gap" and data and all(byte == 0 for byte in data):
+        return [f"{label}:", f"\tds.b {len(data)}"]
+    return _dc_b_lines(data, label=label, base_offset=base_offset)
+
+
+def _bytes_from_hex(text: str) -> bytes:
+    try:
+        return bytes.fromhex(text)
+    except ValueError:
+        return b""
 
 
 def _incoming_code0_xref_lines(section: Mapping[str, object]) -> list[str]:

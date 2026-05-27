@@ -1167,12 +1167,22 @@ def _semantic_source_rows(
         resource=resource,
         code=code,
     )
+    semantic_data_rows = _macos_code_semantic_data_rows(
+        semantic_gap_residuals,
+        code_bytes,
+        payload_base=analysis_start,
+        resource=resource,
+        code=code,
+    )
+    rows = _sorted_semantic_rows([*rows, *semantic_data_rows])
+    semantic_gap_residuals = [
+        residual for residual in semantic_gap_residuals if residual.get("kind") == "semantic_decode_gap"
+    ]
     candidate_residuals = _macos_code_candidate_residuals(
         code_bytes,
         payload_base=analysis_start,
         code_range=analysis_range,
         semantic_rows=rows,
-        classified_data_residuals=semantic_gap_residuals,
         resource=resource,
         code=code,
     )
@@ -1259,7 +1269,6 @@ def _macos_code_candidate_residuals(
     payload_base: int,
     code_range: Mapping[str, object],
     semantic_rows: list[Mapping[str, object]],
-    classified_data_residuals: list[Mapping[str, object]],
     resource: Mapping[str, object],
     code: Mapping[str, object],
 ) -> list[dict[str, object]]:
@@ -1272,8 +1281,6 @@ def _macos_code_candidate_residuals(
         if payload_offset < start or payload_offset >= end:
             continue
         if _payload_offset_is_covered(payload_offset, semantic_rows):
-            continue
-        if _payload_offset_is_classified_data(payload_offset, classified_data_residuals):
             continue
         residuals.append(
             {
@@ -1293,17 +1300,6 @@ def _macos_code_candidate_residuals(
             }
         )
     return residuals
-
-
-def _payload_offset_is_classified_data(payload_offset: int, residuals: list[Mapping[str, object]]) -> bool:
-    for residual in residuals:
-        if residual.get("kind") == "semantic_decode_gap":
-            continue
-        start = _int_value(residual.get("start"))
-        end = _int_value(residual.get("end"))
-        if start is not None and end is not None and start <= payload_offset < end:
-            return True
-    return False
 
 
 def _macos_code_semantic_gap_residuals(
@@ -1353,6 +1349,61 @@ def _macos_code_semantic_gap_residuals(
             continue
         residuals.append(_classified_semantic_gap(gap, kind=data_kind, start=start, end=end))
     return residuals
+
+
+def _macos_code_semantic_data_rows(
+    semantic_gap_residuals: list[Mapping[str, object]],
+    code_bytes: bytes,
+    *,
+    payload_base: int,
+    resource: Mapping[str, object],
+    code: Mapping[str, object],
+) -> list[dict[str, object]]:
+    rows: list[dict[str, object]] = []
+    for residual in semantic_gap_residuals:
+        kind = str(residual.get("kind") or "")
+        if kind == "semantic_decode_gap":
+            continue
+        start = _int_value(residual.get("start"))
+        end = _int_value(residual.get("end"))
+        if start is None or end is None or end <= start:
+            continue
+        local_start = start - payload_base
+        local_end = end - payload_base
+        if local_start < 0 or local_end > len(code_bytes):
+            continue
+        rows.append(
+            {
+                "kind": "data",
+                "resource_type": "CODE",
+                "resource_id": resource.get("id"),
+                "resource_name": resource.get("name"),
+                "payload_offset": start,
+                "payload_end": end,
+                "size": end - start,
+                "bytes": code_bytes[local_start:local_end].hex(),
+                "data_kind": kind,
+                "opcode_or_directive": "dc.b",
+                "stable_key": f"macos-code-{resource.get('id')}-{kind}-{start:08x}",
+                "provenance": "macos_semantic_gap_classifier",
+                "kb_record_id": residual.get("kb_record_id") or code.get("kb_record_id") or resource.get("kb_record_id"),
+                "fact_id": residual.get("fact_id"),
+                "fact_status": residual.get("fact_status") or "candidate",
+                "parser_use": residual.get("parser_use") or "candidate_only",
+            }
+        )
+    return rows
+
+
+def _sorted_semantic_rows(rows: list[dict[str, object]]) -> list[dict[str, object]]:
+    return sorted(
+        rows,
+        key=lambda row: (
+            _int_value(row.get("payload_offset")) if _int_value(row.get("payload_offset")) is not None else -1,
+            0 if row.get("kind") == "label" else 1,
+            _int_value(row.get("payload_end")) if _int_value(row.get("payload_end")) is not None else -1,
+        ),
+    )
 
 
 def _classified_semantic_gap(gap: Mapping[str, object], *, kind: str, start: int, end: int) -> dict[str, object]:
@@ -1491,6 +1542,8 @@ def _macos_fallback_byte_row(row: Mapping[str, object], *, code_range: Mapping[s
 
 
 def _semantic_row_is_durable_data(row: Mapping[str, object]) -> bool:
+    if row.get("data_kind"):
+        return row.get("kind") == "data" and _int_value(row.get("payload_offset")) is not None
     if row.get("kind") == "directive":
         return _int_value(row.get("payload_offset")) is not None
     return row.get("kind") == "data" and str(row.get("opcode_or_directive") or "").lower() not in {"dc.b", "dcb.b"}

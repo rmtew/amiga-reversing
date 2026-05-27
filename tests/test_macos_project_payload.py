@@ -1060,7 +1060,6 @@ def test_macos_candidate_patterns_are_residuals_not_entry_seeds() -> None:
             "fact_id": "macos.code_resource.movea_stack_a0.boundary.candidate",
         },
         semantic_rows=[{"kind": "instruction", "payload_offset": 40, "payload_end": 42}],
-        classified_data_residuals=[],
         resource={"id": 1},
         code={"kb_record_id": "macos.hfs_resource_fork.code_resources.mpw_application"},
     )
@@ -1240,6 +1239,7 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     assert code1_quality["byte_real_only_executable_body"] is False
     assert code1_quality["executable_body_span_count"] == 1
     assert code1_quality["semantic_instruction_row_count"] >= 7000
+    assert code1_quality["semantic_data_row_count"] > 0
     assert code1_quality["generated_xref_count"] >= 1000
     assert code1_quality["generated_label_count"] >= 100
     assert code1_quality["human_semantic_names_required"] is False
@@ -1248,7 +1248,6 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     assert any(item["kind"] == "candidate_unvisited_entry_pattern" for item in code1_quality["residuals"])
     code2_quality = next(item for item in quality_rows if item["resource_id"] == 2)
     assert code2_quality["semantic_instruction_row_count"] >= 4
-    assert code2_quality["semantic_data_row_count"] == 0
     assert code2_quality["byte_real_only_executable_body"] is False
     assert all(item["kind"] != "candidate_code" for item in code2_quality["residuals"])
     assert any(item["kind"] == "known_entry_stub_pattern" for item in code1_quality["reachable_code_evidence"])
@@ -1261,24 +1260,26 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     assert semantic_source["instruction_row_count"] >= 7000
     assert semantic_source["analysis_seed_count"] == 114
     semantic_gap_kinds = {item["kind"] for item in semantic_source["semantic_gap_residuals"]}
-    assert semantic_source["semantic_gap_residual_count"] >= 100
+    semantic_data_kinds = {row.get("data_kind") for row in semantic_source["rows"] if row.get("kind") == "data"}
+    assert semantic_source["semantic_gap_residual_count"] >= 40
+    assert semantic_gap_kinds == {"semantic_decode_gap"}
     assert {
         "semantic_pascal_string_gap",
         "semantic_dispatch_table_gap",
         "semantic_string_data_gap",
-        "semantic_decode_gap",
-    }.issubset(semantic_gap_kinds)
-    all_semantic_gap_kinds = {
-        residual["kind"]
+    }.issubset(semantic_data_kinds)
+    all_semantic_data_kinds = {
+        row.get("data_kind")
         for section in source_sections
-        for residual in section.get("semantic_source", {}).get("semantic_gap_residuals", [])
+        for row in section.get("semantic_source", {}).get("rows", [])
+        if row.get("kind") == "data"
     }
-    assert "semantic_symbol_record_gap" in all_semantic_gap_kinds
+    assert "semantic_symbol_record_gap" in all_semantic_data_kinds
     classified_data_gaps = [
-        item for item in semantic_source["semantic_gap_residuals"] if item["kind"] != "semantic_decode_gap"
+        item for item in semantic_source["rows"] if item.get("kind") == "data"
     ]
     assert all(
-        not any(data["start"] <= item["start"] < data["end"] for data in classified_data_gaps)
+        not any(data["payload_offset"] <= item["start"] < data["payload_end"] for data in classified_data_gaps)
         for item in code1_quality["residuals"]
         if item["kind"] == "candidate_unvisited_entry_pattern"
     )

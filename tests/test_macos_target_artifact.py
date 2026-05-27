@@ -336,7 +336,7 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     assert (
         ";     CODE 1: section=macos-code-CODE-1 ownership=candidate_code,metadata "
         "coverage=True labels=120 xrefs=1902 instructions=7818 body_spans=1 byte_real_only_body=False "
-        "reachable_evidence=117 residuals=138"
+        "reachable_evidence=117 residuals=59"
     ) in asm_text
     assert "residual semantic_decode_gap payload[62..29024)" not in asm_text
     assert "residual candidate_unvisited_entry_pattern count=11 payload_offsets=8288,12858,17556" in asm_text
