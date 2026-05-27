@@ -463,6 +463,15 @@ header now exposes the low RAM slot cluster (`$00000112-$00000318`) and high buf
 slot/range names and stronger size/lifetime evidence where analysis can prove them, instead of only using
 address-span summaries.
 
+Resolution note: repeated low absolute RAM operands now render through stable generated symbols when the C owner model
+proves they are absolute memory, not hardware registers, CPU vectors, section storage, or materialized runtime ranges.
+The Magicland setup above now renders as `absolute_slot_0000012A.w`, `absolute_slot_00000126.w`,
+`absolute_slot_00000132.w`, and `absolute_slot_0000012E.w`, with matching `EQU` declarations in the source header.
+This is a general renderer/facts improvement, not a Magicland-specific rule. Covered by
+`facts_v2_render_asm_source_symbols_low_absolute_memory_slots`, `cmd /c src\precommit.bat m68k_ir`, and regenerated
+`targets/amiga_hunk_magicland_dizzy_md/magicland_dizzy_md.s`. Stronger semantic names and lifetime/size evidence for
+those slots remain future type-propagation work unless a later analysis pass proves their roles.
+
 ### Disk access
 
 This is a hunk file project. The implication here is that we should update this to a disk project and treat the

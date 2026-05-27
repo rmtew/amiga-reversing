@@ -2753,6 +2753,15 @@ static int render_asm_define_runtime_address_symbol_once(M68kRenderIRPreview *pr
   return render_asm_declare_symbol_hex_once(preview, symbol, address);
 }
 
+static int render_asm_define_absolute_memory_slot_symbol_once(M68kRenderIRPreview *preview,
+    uint32_t address, char *symbol, size_t symbol_size) {
+  if (symbol != NULL && symbol_size != 0U) symbol[0] = '\0';
+  if (preview == NULL || symbol == NULL || symbol_size == 0U || address == 0U) return 0;
+  snprintf(symbol, symbol_size, "absolute_slot_%08X", (unsigned)address);
+  if (symbol[0] == '\0') return 0;
+  return render_asm_declare_symbol_hex_once(preview, symbol, address);
+}
+
 static int format_copper_runtime_pointer_value_expr(M68kRenderIRPreview *preview, const uint8_t *data,
     uint32_t offset, uint32_t cursor, uint32_t size, uint16_t first, uint16_t second, char *buf,
     size_t buf_size) {
@@ -9441,6 +9450,34 @@ static int attach_materialized_runtime_absolute_storage_symbols(const M68kRender
   return 1;
 }
 
+static int attach_absolute_memory_slot_symbols(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
+    const M68kDecodeSectionIR *section, const M68kDecodeCandidate *candidate, M68kInstructionIR *instruction) {
+  const M68kSimFormMetadata *metadata;
+  size_t operand_index;
+  if (preview == NULL || lookup == NULL || section == NULL || candidate == NULL || instruction == NULL) return 0;
+  metadata = m68k_sim_metadata_for_instruction(instruction);
+  if (metadata == NULL) return 1;
+  for (operand_index = 0U; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
+    M68kOperandIR *operand = &instruction->operands[operand_index];
+    uint32_t address = 0U;
+    uint32_t width;
+    char symbol[80];
+    if (operand->symbol_ref.has_name != 0U ||
+        !render_absolute_ref_access_kind(metadata->operand_access_kinds[operand_index]) ||
+        !operand_absolute_offset_local(operand, &address)) {
+      continue;
+    }
+    width = render_instruction_access_width(instruction, metadata->operand_access_kinds[operand_index]);
+    if (width == 0U || address >= 0x10000U ||
+        !render_absolute_memory_header_owner_is_absolute(lookup, section, address)) {
+      continue;
+    }
+    if (!render_asm_define_absolute_memory_slot_symbol_once(preview, address, symbol, sizeof(symbol))) return 0;
+    attach_generic_symbol(operand, symbol);
+  }
+  return 1;
+}
+
 static int attach_amiga_runtime_sink_immediate_symbols(const M68kRenderLookup *lookup,
     const M68kRenderPlatformState *platform_state, size_t section_index, M68kInstructionIR *instruction) {
   const M68kSimFormMetadata *metadata;
@@ -10060,6 +10097,7 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, const M68kRender
       &instruction)) {
     return 0;
   }
+  if (!attach_absolute_memory_slot_symbols(preview, lookup, section, candidate, &instruction)) return 0;
   if (!attach_known_external_runtime_address_symbols(preview, lookup, section->section_index, candidate,
       &instruction)) {
     return 0;

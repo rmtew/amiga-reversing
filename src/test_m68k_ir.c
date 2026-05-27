@@ -18296,6 +18296,53 @@ static int test_facts_v2_runtime_mapped_section_keeps_low_absolute_refs_absolute
   return 0;
 }
 
+static int test_facts_v2_render_asm_source_symbols_low_absolute_memory_slots(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  char *source = NULL;
+  uint8_t bytes[] = {
+    0x70U, 0x01U,
+    0x21U, 0xC0U, 0x01U, 0x2AU,
+    0x22U, 0x38U, 0x01U, 0x2AU,
+    0x4EU, 0x75U
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.runtime_range_count = 1U;
+  policy.runtime_ranges[0].has_section_index = 1U;
+  policy.runtime_ranges[0].section_index = 0U;
+  policy.runtime_ranges[0].offset = 0U;
+  policy.runtime_ranges[0].size = sizeof(bytes);
+  policy.runtime_ranges[0].runtime_address = 0x5BFF0U;
+  policy.runtime_entry_point_count = 1U;
+  policy.runtime_entry_points[0].has_section_index = 1U;
+  policy.runtime_entry_points[0].section_index = 0U;
+  policy.runtime_entry_points[0].runtime_address = 0x5BFF0U;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "absolute_slot_0000012A\tEQU\t$12A\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.l d0,absolute_slot_0000012A.w\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.l absolute_slot_0000012A.w,d1\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "$012A.w") == NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_facts_v2_free_text(source);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_orphan_absolute_operand_records_unresolved_memory_layout(void) {
   M68kObject object;
   M68kSection section;
@@ -20232,6 +20279,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_analysis_records_absolute_memory_refs},
     {"facts_v2_runtime_mapped_section_keeps_low_absolute_refs_absolute",
       test_facts_v2_runtime_mapped_section_keeps_low_absolute_refs_absolute},
+    {"facts_v2_render_asm_source_symbols_low_absolute_memory_slots",
+      test_facts_v2_render_asm_source_symbols_low_absolute_memory_slots},
     {"facts_v2_orphan_absolute_operand_records_unresolved_memory_layout",
       test_facts_v2_orphan_absolute_operand_records_unresolved_memory_layout},
     {"facts_v2_orphan_absolute_operand_classifies_amiga_hardware_owner",
