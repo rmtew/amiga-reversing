@@ -232,12 +232,11 @@ propagation: only accesses proven to have A5 live should become typed A5 storage
 
 ### Pascal strings
 
-Resolution note: current Mac artifact rendering now uses the existing semantic Pascal-string classification to emit
-byte-preserving quoted source, for example `dc.b $87,"GETRSRC",$00,$00`, instead of leaving those rows as opaque hex
-bytes. This is implemented in the canonical Mac target artifact bridge because the general C renderer already has a
-structured length-prefixed string renderer for C-owned structured data. Remaining broader work is to move more string
-classification into C-owned structured rows where possible, especially for non-Mac targets and for Mac symbol records
-whose high-bit length/control byte has additional meaning.
+Resolution note: current Mac artifact rendering emits byte-preserving quoted source, for example
+`dc.b $87,"GETRSRC",$00,$00`, instead of leaving those rows as opaque hex bytes. The first fix used the Mac target
+artifact bridge; the durable fix now lives in the C auto-data pass as `macos_symbol_string` structured rows with
+`macos_symbol_record` provenance. Remaining broader work is to move other proven string classifications into C-owned
+structured rows where possible, especially for non-Mac targets and record shapes beyond this high-bit Mac symbol case.
 
 Audit note: the general C path already owns ordinary length-prefixed ASCII records when the byte stream proves a safe
 sequence, and it renders them from structured row roles rather than label text. Covered by
