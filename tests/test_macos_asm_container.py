@@ -119,28 +119,17 @@ def test_code1_main_has_code_byte_listing_preview_and_explicit_unsupported_state
     assert selected["code_header_size"] == 4
     assert selected["code_entry_offset"] == 40
     assert selected["code_bytes_size"] == 28984
-    assert selected["code_layout"][:3] == [
+    assert selected["code_layout"][:2] == [
         {
             "kind": "metadata",
             "start": 0,
-            "size": 4,
-            "end": 4,
+            "size": 40,
+            "end": 40,
             "entrypoint": False,
-            "evidence": "nonzero_code_segment_header",
+            "evidence": "far_model_segment_header",
             "fact_id": "macos.code_resource.nonzero.segment_header",
             "fact_status": "validated",
             "parser_use": "accepted_parser_output",
-        },
-        {
-            "kind": "data",
-            "start": 4,
-            "size": 36,
-            "end": 40,
-            "entrypoint": False,
-            "evidence": "prefix_before_stack_entry",
-            "fact_id": "macos.code_resource.movea_stack_a0.boundary.candidate",
-            "fact_status": "candidate",
-            "parser_use": "candidate_only",
         },
         {
             "kind": "candidate_code",
@@ -196,7 +185,7 @@ def test_code1_main_is_decodable_by_existing_m68k_listing_backend(tmp_path: Path
             "resource_type": "CODE",
             "resource_id": 1,
             "resource_name": "Main",
-            "classified_range": selected["code_layout"][2],
+            "classified_range": selected["code_layout"][1],
         },
     )
     try:

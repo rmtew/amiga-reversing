@@ -125,7 +125,7 @@ int platform_macos_code_metadata_parse(const unsigned char *payload, uint32_t pa
         PLATFORM_MACOS_CODE_EVIDENCE_MISSING_STACK_ENTRY, code_start, code_end - code_start, 0U);
     }
     if (entry_offset > code_start &&
-        append_code_range(out_code, PLATFORM_MACOS_CODE_RANGE_DATA,
+        append_code_range(out_code, PLATFORM_MACOS_CODE_RANGE_CANDIDATE_UNRESOLVED_PREFIX,
           PLATFORM_MACOS_CODE_EVIDENCE_PREFIX_BEFORE_STACK_ENTRY, code_start, entry_offset - code_start, 0U) != 0) {
       return -1;
     }
@@ -268,6 +268,7 @@ const char *platform_macos_code_range_kind_name(uint8_t kind) {
     case PLATFORM_MACOS_CODE_RANGE_CANDIDATE_CODE: return "candidate_code";
     case PLATFORM_MACOS_CODE_RANGE_CONFIRMED_CODE: return "confirmed_code";
     case PLATFORM_MACOS_CODE_RANGE_DEFERRED: return "deferred";
+    case PLATFORM_MACOS_CODE_RANGE_CANDIDATE_UNRESOLVED_PREFIX: return "candidate_unresolved_prefix";
     default: return "none";
   }
 }

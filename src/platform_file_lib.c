@@ -190,6 +190,8 @@ static const char *macos_restored_source_role_for_range(const PlatformMacosCodeR
     return "candidate_code";
   case PLATFORM_MACOS_CODE_RANGE_DATA:
     return "data";
+  case PLATFORM_MACOS_CODE_RANGE_CANDIDATE_UNRESOLVED_PREFIX:
+    return "candidate_unresolved_prefix";
   case PLATFORM_MACOS_CODE_RANGE_METADATA:
     return "metadata";
   case PLATFORM_MACOS_CODE_RANGE_DEFERRED:
@@ -583,6 +585,8 @@ static const char *macos_shared_executable_role(uint8_t kind) {
     return "code";
   case PLATFORM_MACOS_CODE_RANGE_CANDIDATE_CODE:
     return "candidate_code";
+  case PLATFORM_MACOS_CODE_RANGE_CANDIDATE_UNRESOLVED_PREFIX:
+    return "candidate_unresolved_prefix";
   case PLATFORM_MACOS_CODE_RANGE_METADATA:
   case PLATFORM_MACOS_CODE_RANGE_DATA:
   case PLATFORM_MACOS_CODE_RANGE_DEFERRED:
@@ -663,7 +667,12 @@ static int macos_append_orphan_ranges(JsonBuilder *builder, const PlatformMacosC
     const char *fact_id = "macos.code_resource.orphan_layout_ranges.candidate";
     const char *fact_status = "candidate";
     const char *parser_use = "candidate_only";
-    if (range->kind == PLATFORM_MACOS_CODE_RANGE_DATA) {
+    if (range->kind == PLATFORM_MACOS_CODE_RANGE_CANDIDATE_UNRESOLVED_PREFIX) {
+      classification = "candidate_unresolved_prefix";
+      reason =
+        "bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached through "
+        "loader, stack, or fixup flow not yet modeled";
+    } else if (range->kind == PLATFORM_MACOS_CODE_RANGE_DATA) {
       classification = "candidate_data_island";
       reason = "bytes before candidate byte-entry evidence; exact CODE entry rule remains deferred";
     } else if (range->kind == PLATFORM_MACOS_CODE_RANGE_DEFERRED) {

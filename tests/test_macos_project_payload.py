@@ -245,7 +245,7 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
                                     "parser_use": "accepted_parser_output",
                                 },
                                 {
-                                    "kind": "data",
+                                    "kind": "candidate_unresolved_prefix",
                                     "start": 4,
                                     "size": 2,
                                     "end": 6,
@@ -269,7 +269,7 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
                             ],
                             "orphan_ranges": [
                                 {
-                                    "classification": "candidate_data_island",
+                                    "classification": "candidate_unresolved_prefix",
                                     "start": 4,
                                     "size": 2,
                                     "end": 6,
@@ -312,7 +312,7 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
                                     "parser_use": "accepted_parser_output",
                                 },
                                 {
-                                    "kind": "data",
+                                    "kind": "candidate_unresolved_prefix",
                                     "start": 4,
                                     "size": 2,
                                     "end": 6,
@@ -336,7 +336,7 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
                             ],
                             "orphan_ranges": [
                                 {
-                                    "classification": "candidate_data_island",
+                                    "classification": "candidate_unresolved_prefix",
                                     "start": 4,
                                     "size": 2,
                                     "end": 6,
@@ -480,7 +480,7 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
                             "parser_use": "accepted_parser_output",
                         },
                         {
-                            "kind": "data",
+                            "kind": "candidate_unresolved_prefix",
                             "start": 4,
                             "size": 2,
                             "end": 6,
@@ -504,7 +504,7 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
                     ],
                     "orphan_ranges": [
                         {
-                            "classification": "candidate_data_island",
+                            "classification": "candidate_unresolved_prefix",
                             "start": 4,
                             "size": 2,
                             "end": 6,
@@ -700,7 +700,7 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
     assert selected_restored["source_coverage_verifier"]["ok"] is True
     assert [item["role"] for item in selected_restored["source_ownership_ranges"]] == [
         "metadata",
-        "data",
+        "candidate_unresolved_prefix",
         "candidate_code",
     ]
     assert selected_restored["source_reference_records"][0]["kind"] == "segment_loader_fixup_placeholder"
@@ -1223,7 +1223,6 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     assert any(
         item["kind"] == "candidate_unresolved_prefix"
         and item["status"] == "candidate"
-        and item.get("parser_range_kind") == "data"
         for item in code2_quality["residuals"]
     )
     assert any(item["kind"] == "semantic_decode_gap" for item in code2_quality["residuals"])

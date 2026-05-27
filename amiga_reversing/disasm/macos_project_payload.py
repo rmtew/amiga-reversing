@@ -353,7 +353,15 @@ def _source_body_ranges(detail: Mapping[str, object]) -> list[dict[str, object]]
 
 def _source_body_range(item: object, *, kb_record_id: object) -> dict[str, object]:
     range_info = {**_mapping(item), "kb_record_id": _mapping(item).get("kb_record_id") or kb_record_id}
-    if range_info.get("kind") == "data" and range_info.get("evidence") == "prefix_before_stack_entry":
+    if range_info.get("kind") == "candidate_unresolved_prefix":
+        range_info.setdefault(
+            "reason",
+            (
+                "bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached "
+                "through loader/stack/fixup flow not yet modeled"
+            ),
+        )
+    elif range_info.get("kind") == "data" and range_info.get("evidence") == "prefix_before_stack_entry":
         range_info["parser_range_kind"] = "data"
         range_info["kind"] = "candidate_unresolved_prefix"
         range_info["reason"] = (

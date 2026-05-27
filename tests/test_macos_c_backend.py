@@ -278,7 +278,7 @@ def test_python_wrapper_uses_c_macos_hfs_code_summary() -> None:
             "parser_use": "accepted_parser_output",
         },
         {
-            "kind": "data",
+            "kind": "candidate_unresolved_prefix",
             "start": 4,
             "size": 6,
             "end": 10,
@@ -302,12 +302,15 @@ def test_python_wrapper_uses_c_macos_hfs_code_summary() -> None:
     ]
     assert summary["selected_code"]["code"]["orphan_ranges"] == [
         {
-            "classification": "candidate_data_island",
+            "classification": "candidate_unresolved_prefix",
             "start": 4,
             "size": 6,
             "end": 10,
             "evidence": "prefix_before_stack_entry",
-            "reason": "bytes before candidate byte-entry evidence; exact CODE entry rule remains deferred",
+            "reason": (
+                "bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached "
+                "through loader, stack, or fixup flow not yet modeled"
+            ),
             "fact_id": "macos.code_resource.orphan_layout_ranges.candidate",
             "fact_status": "candidate",
             "parser_use": "candidate_only",
@@ -333,7 +336,7 @@ def test_python_wrapper_uses_c_macos_hfs_code_summary() -> None:
     }
     assert [item["role"] for item in restored_source["source_ownership_ranges"]] == [
         "metadata",
-        "data",
+        "candidate_unresolved_prefix",
         "candidate_code",
     ]
     assert restored_source["source_reference_records"][0]["kind"] == "segment_loader_fixup_placeholder"
