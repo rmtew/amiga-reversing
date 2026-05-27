@@ -1,427 +1,48 @@
 # TODO
 
-## General notes
+## Rendered source round-trip priority
 
-This file is now a resolved/deferred work log rather than a fresh backlog. The concrete evidence cases below drove
-general C analysis/rendering fixes where the repo had enough proof, and the remaining broad ideas are recorded as
-future work only where the current artifacts cannot safely prove the required facts.
+Direct rebuild exactness is a tooling-quality signal: it proves the loader, internal model, and rebuilder can preserve
+the original bytes without passing through the human-facing `.s` file. It is not the completion criterion for restored
+source.
 
-- Jump-table auto-analysis was handled through reusable C facts/rendering work for the known Pandora evidence cases.
-- Absolute-address handling was handled for the Magicland and Pandora evidence cases that prove ownership, label
-  materialization, source-header summaries, and stable generated symbols.
-- Label correctness was handled by separating label-expression eligibility from standalone label emission.
-- Type propagation was handled for the reached Mac `_GetFNum` stack/local pattern; raw Mac A5-world slot typing is
-  deferred because the current model lacks neutral storage-use facts and accepted A5 lifetime proof.
+The core target is rendered source round-trip exactness:
 
-Current status map:
+1. Rendered source exact at container level where the original file shape can be reproduced by the standard assembler
+   and standard container writer.
+2. Rendered source exact at content level where code/data bytes are exact but the original container uses odd ordering,
+   padding, relocation encoding, or auxiliary layout that should be classified rather than copied with per-target
+   workarounds.
+3. Direct rebuild exact only is insufficient except as a diagnostic that remaining defects are in source rendering,
+   assembly, or supported container output.
+4. Assembler errors and source byte mismatches are active defects unless the verifier can prove and report an explicit
+   unsupported container-only reason.
 
-- Jump-table auto-analysis: the Pandora absolute-long, local indexed-long, and base-plus-word cases are now covered by
-  reusable C facts/render tests. Remaining work should be driven by new target evidence, not another Pandora-specific
-  rule.
-- Absolute address processing: Magicland low absolute RAM classification, source-header summaries, stable generated
-  low-slot symbols, and ordinary absolute-long address-use symbols are covered. Stronger semantic names/lifetimes
-  remain future type-propagation work unless the analysis proves roles.
-- Label correctness: the known Pandora orphan-label case is covered by the generated-label emission split. New label
-  issues should be reduced to expression eligibility versus standalone definition proof.
-- Type propagation: Amiga/Atari-style platform call/type propagation remains the general model. Mac `_GetFNum` now has
-  generated metadata, stack-argument binding, API-input local typed-access facts, and an output-pointer local typed-access
-  bridge that propagates the direct output-value move into the caller-visible local. Mac A5-world layout is carried as
-  platform storage metadata, but individual slot typing is formally deferred until a neutral A5 storage-use IR plus
-  accepted A5 lifetime proof exists; the current typed-access carrier would overclaim a root type for raw globals.
+Current `.s` target status:
 
-## MacOS/MPW asm resolved and deferred notes
+- `amiga_hunk_genam`: direct rebuild exact and rendered source exact. This is the reference success state.
+- `amiga_hunk_monam302`: direct rebuild exact, rendered source assembles but has 111 diff ranges. Fix source
+  rendering/assembler exactness before treating it as complete.
+- `amiga_hunk_bloodwych`: direct rebuild exact, rendered source currently fails assembly on
+  `abs_0_00008ECC`. Fix label/materialized-address emission generally; do not add a Bloodwych-only symbol workaround.
+- `amiga_disk_magicland-dizzy-1991-codemasters-trsi-lsd__amiga_hunk_md_e066dc14`: direct rebuild exact, rendered
+  source assembles but has one diff range. Determine whether that is a real source defect or a classified
+  container/content distinction, then make the verifier say which.
+- `amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8`: rendered source fails assembly on
+  `abs_0_0005CCF5`. This remains a general absolute/runtime label materialization or data-block splitting defect, not a
+  Pandora-specific patch point.
+- `macos_hfs_mpw_gm__macos_file_mpw_tools_asm`: round-trip unsupported until the Mac target has a resolvable
+  `source_binary.json` and assembler/container support. Keep Mac `asm.s` out of the Amiga round-trip success claim.
 
-Mac restored source now includes the relevant official MPW `.a` interface files for known traps, while generated C
-metadata consumes the corresponding interface declarations for analysis. The remaining Mac support in this TODO is
-about conservative type/storage propagation from that platform knowledge, not local EQU substitutes or Python-side
-rendering shortcuts.
-
-### System calls
-
-We recognise what seem to be system calls.
-
-```
-CODE_1_loc_0000207e:
-	move.w (a0)+,(a1)+
-	dbf.w d0,CODE_1_loc_0000207e
-	pea.l -$0100(a6)
-	pea.l -$0102(a6)
-CODE_1_data_0000208c:
-	_GetFNum
-	move.w -$0102(a6),$000C(a6)
-	unlk a6
-	move.l (a7)+,(a7)
-	rts
-```
-
-This case is now resolved for the reached `_GetFNum` pattern: generated Mac call metadata knows the stack parameters,
-and the C analysis bridge records the concrete stack/local operands and typed input/output value flow. The original
-question was whether this should be driven like Amiga/Atari platform call metadata rather than comments; that is now
-the implemented direction.
-
-`_GetFNum` is present in the MPW GM interfaces, but not where a quick top-level glance tends to find it. It is in
-`ext\macos_includes\mpw_gm\Interfaces\AIncludes\Fonts.a` as an `OPWORD $A900` macro, with the adjacent interface
-comment:
-
-```
-; pascal void GetFNum(ConstStr255Param name, short *familyID)
-```
-
-The C interface in `ext\macos_includes\mpw_gm\Interfaces\CIncludes\Fonts.h` gives the same shape:
-
-```
-GetFNum(ConstStr255Param name, short *familyID) ONEWORDINLINE(0xA900)
-```
-
-So the example is not an unknown instruction or a guessed API. The call site prepares a copied Pascal string at
-`-$0100(a6)`, pushes that address, pushes `-$0102(a6)` as an output pointer, executes `_GetFNum`, then copies the
-returned font family ID from `-$0102(a6)` into the caller-visible word at `$000C(a6)`.
-
-The clean direction was that Mac trap knowledge had to be more than trap-name rendering: a generated Mac OS/Toolbox
-call table with the trap word, include source, Pascal calling convention shape, parameter order, stack widths,
-pointer/reference direction, and return/value effects. That data now drives the C analysis in the same spirit as the
-Amiga and Atari platform call metadata. For `_GetFNum`, the analysis infers that `-$0100(a6)` is a
-`ConstStr255Param`, `-$0102(a6)` is a writable `short *familyID`, and `$000C(a6)` receives the returned family ID
-value. The rendered source can then become clearer because the structured call semantics, not comments or Python-side
-recognition, explain the stack slots.
-
-Resolution note: generated Mac OS runtime metadata now carries structured C prototype fields for calls, including
-`c_name`, `return_type`, and per-parameter rows with source order, type name, pointer depth, and direction. `_GetFNum`
-is therefore represented as `void GetFNum(ConstStr255Param name, short * familyID)` from `Fonts.a`/`Fonts.h`, with the
-font name as an input value and `familyID` as an output-or-inout pointer. This metadata is now consumed by the C
-analysis bridge described below; this note is the source-data proof, not an open blocker by itself.
-
-Progress note: reached Mac opword calls now expose those generated parameter rows through the recovered platform-call
-JSON/API surface. The `_GetFNum` C regression renders the real `Fonts.a` include and `_GetFNum` macro, records the
-reached platform call, and serializes `name: ConstStr255Param` plus `familyID: short *` with
-`output_or_inout_pointer` direction instead of leaving Mac call `inputs` empty. Covered by
-`facts_v2_macos_opword_call_falls_through` and `cmd /c src\precommit.bat m68k_ir`. The later C data-flow bridge work
-now binds the observed `pea -$0100(a6)`/`pea -$0102(a6)` stack operands to those parameter rows and propagates the
-output-pointer local read into a typed access fact.
-
-Progress note: the first C data-flow bridge now records reached Mac stack arguments as recovered function-arg facts
-directly from generated Mac runtime metadata. For the `_GetFNum` pattern, the opword call at payload offset 12 records
-`name: ConstStr255Param` at call-stack offset 8 and `familyID: short *` at call-stack offset 4, including the
-`output_or_inout_pointer` direction from the generated metadata. Covered by
-`facts_v2_macos_call_stack_args_from_generated_metadata` and `cmd /c src\precommit.bat m68k_ir`. The same fact now binds
-each parameter to the concrete pushed local-frame operand: `name` comes from `-$0100(a6)` and `familyID` comes from
-`-$0102(a6)`. The same bridge records `name` as an API-input typed local access with `ConstStr255Param` provenance, and
-the output-pointer bridge records the later `move.w -$0102(a6),...` read as a typed local access: `familyID` is read as
-a two-byte `short` with API-output provenance pointing back to the `_GetFNum` call. It also propagates the same typed
-API-output value across the direct `move.w -$0102(a6),$000C(a6)` destination local, so the caller-visible word receives
-the same `familyID` type fact. This keeps the facts in C-owned source analysis rather than rendered-source comments.
-Covered by the same regression and
-`cmd /c src\precommit.bat m68k_ir`.
-
-There is also an include/rendering distinction to preserve. The assembly source includes the real MPW interface file
-that defines `_GetFNum` (`Fonts.a`) instead of local EQU-style replacement definitions. The metadata generator consumes
-`Fonts.a`/`Fonts.h`, while the restored source remains source-compatible with the MPW assembler include style.
-
-Resolution note: the committed MPW Asm artifact now renders MPW interface includes in header material before CODE 0,
-including `Fonts.a`, `SegLoad.a`, `Traps.a`, and related interface files. `_GetFNum` and `_LoadSeg` are therefore
-provided by real MPW include material in the restored source rather than local EQU hacks. This is intentionally a source
-presentation concern; the call metadata remains generated from parsed Mac interface data for C analysis.
-
-### A5 data storage
-
-There seems to be data storage in negative A5 offsets. In this case we are using addresses in there as input on the
-stack, and then using the output in one of those addresses. It appears to be moved into positive offsets under the
-jump table (given we know the jump table offset is defined in the leading data as $20 in some standard location).
-In this snippet the base register is `a6`, because the function has just done `link a6,#-258`. That makes the
-`-$0100(a6)` and `-$0102(a6)` slots stack-frame locals, not A5-world globals. It is still useful evidence because it
-shows the kind of type propagation Mac call metadata should enable: a stack local becomes a Pascal string buffer, a
-neighboring word becomes an out-parameter destination, and the result is copied to another frame slot.
-
-```
-CODE_1_loc_0000207e:
-	move.w (a0)+,(a1)+
-	dbf.w d0,CODE_1_loc_0000207e
-	pea.l -$0100(a6)
-	pea.l -$0102(a6)
-CODE_1_data_0000208c:
-	_GetFNum
-	move.w -$0102(a6),$000C(a6)
-	unlk a6
-	move.l (a7)+,(a7)
-	rts
-```
-
-The actual A5-world issue is separate. CODE 0 gives the application A5 layout:
-
-```
-CODE_0_above_a5_size:
-	dc.l $00000AF0
-CODE_0_below_a5_size:
-	dc.l $00003920
-CODE_0_jump_table_length:
-	dc.l $00000AD0
-CODE_0_jump_table_offset_from_a5:
-	dc.l $00000020
-```
-
-The C parser already reads these fields from CODE 0 (`above_a5_size`, `below_a5_size`, `jump_table_length`,
-`jump_table_offset_from_a5`). Before the current structured packet work, the restored-source packet emitted this only
-as deferred platform context:
-
-```
-"a5_world":{"status":"deferred","source_visible":true,...}
-```
-
-That proved the A5 world was real and visible in the file format, but it did not promote it to a typed storage model.
-Doing that correctly required a Mac platform storage domain in the C analysis, analogous to app/global slots elsewhere,
-with positive A5 offsets distinguished from negative A5 offsets and stack-frame offsets.
-Positive A5 offsets may address the jump table or app globals; negative offsets are not automatically the same thing,
-and local `a6` frame offsets are a third case. The work should avoid collapsing all displacements into a single
-"A5 data" bucket just because the rendered code is Mac.
-
-The useful target state is that when a trap or normal instruction reads/writes a proven A5-world slot, the C facts carry
-the base register, displacement, width, type, provenance, and lifetime confidence. That gives us cross-references and
-names which can survive source edits. Free-form comments are not enough; the point is to make the storage model usable
-for type propagation and rendering.
-
-Resolution note: the restored-source packet now exposes CODE 0's parsed A5-world layout as structured C-owned platform
-data instead of only a vague deferred placeholder. CODE 0 reports negative A5 globals, the positive A5 jump-table
-window, and positive globals after the table, all with `a5` base-register coordinates. Nonzero CODE resources reference
-CODE 0 as the owner of that layout. This intentionally keeps lifetime proof and slot type propagation deferred: the
-current evidence proves the storage windows, not which function has A5 live or which individual slots hold typed values.
-Mac trap metadata now creates typed stack/local facts for reached stack-parameter calls such as `_GetFNum`; A5-world
-slot typing remains separate and requires accepted A5 lifetime evidence plus normal instruction reads/writes against
-the CODE 0 storage windows. Do not infer A5 globals from `a6` frame locals.
-
-Audit note: C source analysis now receives CODE 0 A5-world layout as `M68kObject` platform storage metadata and projects
-it into source-analysis `platform_storage_layout` records. That closes the old carrier gap. A5-world slot typing still
-cannot be completed by the same path used for `_GetFNum` stack locals, because the current evidence proves storage
-windows, not that A5 is live at a specific ordinary instruction or that an accessed slot has a known type. The next
-correct implementation step is lifetime/type proof over accepted instructions that read or write offsets inside those
-regions. A renderer-only or Python-only A5 slot inference remains explicitly rejected.
-
-Follow-up audit: the existing `M68kBaseLayoutFieldIR`/app-slot model is not the right carrier for this. It currently
-models app-base storage with app-style symbols and conflict rules, while Mac CODE 0 proves three distinct A5 regions:
-below-A5 globals, the positive jump-table window, and positive globals after the table. Reusing the Amiga app-layout
-path would hide those distinctions and make later type/lifetime propagation less correct. The clean implemented carrier
-is a Mac platform-data payload on `M68kObject` populated from the enclosing CODE 0 resource, not guessed from selected
-CODE bytes, plus platform storage-layout IR that describes signed A5-relative regions before individual slot types are
-inferred.
-
-Progress note: `M68kObject` now has a Mac platform-data carrier for CODE 0 A5-world layout. The carrier derives the
-signed below-A5 global range, positive jump-table window, and positive global tail from parsed CODE 0 metadata and
-rejects non-CODE0 metadata rather than guessing from selected CODE bytes. Covered by
-`object_a5_world_layout_uses_code0_metadata`, `object_a5_world_layout_rejects_non_code0_metadata`, and
-`cmd /c src\precommit.bat m68k_ir`.
-
-Progress note: selected Mac HFS CODE listing artifacts now build in C from the enclosing HFS/resource-fork context,
-not from detached CODE bytes. The artifact extracts the selected nonzero CODE executable span, attaches the CODE 0
-A5-world layout to the `M68kObject`, and serializes `macos_a5_world_layout` in the analysis JSON. Context-free Mac CODE
-byte artifacts still report `macos_a5_world_layout: null`, which prevents accidental guessing from incomplete bytes.
-Covered by `test_021_007_macos_hfs_code_artifact_carries_code0_a5_world_layout`,
-`tests/test_macos_c_backend.py`, and `cmd /c src\precommit.bat m68k_ir`.
-
-Resolution note: the carried CODE 0 A5-world layout is now projected into source-analysis memory-layout records as a
-generic `platform_storage_layout` IR, not as an Amiga app/base layout and not through a Mac renderer shortcut. Mac
-populates generic `M68kObject` platform-storage rows for below-A5 globals, the A5 jump-table window, and above-A5
-globals; the C facts pipeline copies those rows into `memory_layout_records` with signed A5 coordinates. Covered by
-`facts_v2_macos_a5_world_layout_reaches_source_analysis`,
-`test_021_007_macos_hfs_code_artifact_carries_code0_a5_world_layout`,
-`tests/test_macos_c_backend.py`, and `cmd /c src\precommit.bat m68k_ir`.
-
-Formal deferral: individual A5-world slot typing is intentionally not closed in this TODO. The current C carriers split
-cleanly between `platform_storage_layout` for known storage windows and `platform_typed_access` for accesses with a
-known root struct/type. Raw A5-world operands have a proven storage region but no proven slot type, and the current
-analysis does not yet have an accepted A5 lifetime proof tying each ordinary `(a5)` use to CODE 0's A5 world. Forcing
-those operands into `platform_typed_access` or the Amiga app-slot model would hide the distinction between below-A5
-globals, jump-table entries, and above-A5 globals. The correct future work is a neutral Mac platform storage-use IR
-that records base register, displacement, width, region kind, and lifetime confidence without claiming a type, followed
-by a later type-propagation pass that promotes only proven slots.
-
-
-### Pascal strings
-
-Resolution note: current Mac artifact rendering emits byte-preserving quoted source, for example
-`dc.b $87,"GETRSRC",$00,$00`, instead of leaving those rows as opaque hex bytes. The first fix used the Mac target
-artifact bridge; the durable fix now lives in the C auto-data pass as `macos_symbol_string` structured rows with
-`macos_symbol_record` provenance. Remaining broader work is to move other proven string classifications into C-owned
-structured rows where possible, especially for non-Mac targets and record shapes beyond this high-bit Mac symbol case.
-
-Audit note: the general C path already owns ordinary length-prefixed ASCII records when the byte stream proves a safe
-sequence, and it renders them from structured row roles rather than label text. Covered by
-`facts_v2_length_prefixed_ascii_sequence_renders_strings`,
-`facts_v2_length_prefixed_ascii_sequence_respects_code_overlap`, and the existing ASCII/string-sequence regressions.
-The Mac `$87,"GETRSRC"` / `$8A,"GETFONTNBR"` rows are deliberately not promoted by the generic scanner: the high bit is
-format-specific symbol-record state, not a plain Pascal length byte. Resolution note: the C auto-data pass now has a
-Mac-gated `macos_symbol_string` structured-data role for high-bit length/control symbol records. It emits first-class
-structured rows with `string` and `length_prefixed_string` roles plus `macos_symbol_record` source-pattern provenance,
-renders them as byte-preserving quoted `dc.b` rows, and does not promote the same bytes on Amiga/Atari backends. Covered by
-`facts_v2_macos_highbit_symbol_string_renders_structured_data`,
-`facts_v2_highbit_symbol_string_is_not_generic_pascal`, and `cmd /c src\precommit.bat m68k_ir`. Broader string cleanup
-remains about other proven string/data forms, not this Mac high-bit symbol-record case.
-
-If we know a string is a string of some sort, we should display it as the restored source should see it: textual where
-the bytes prove a textual representation, raw/residual where they do not. This is a general structured-data concern,
-not just MacOS. The Mac high-bit symbol-string examples below are now covered by C-owned structured rows; other targets
-or record shapes still need evidence-driven generalization rather than label-text heuristics.
-
-```
-CODE_1_data_pascal_string_00002066:
-	dc.b $87,$47,$45,$54,$52,$53,$52,$43,$00,$00
-```
-
-The old failure was that the label said `pascal_string` while the bytes remained opaque. The fixed path no longer uses
-the label as proof. `$87` is not a normal seven-bit length byte; it is the high bit set on a length-like value. Nearby
-examples such as `$8A,$47,$45,$54,$46,$4F,$4E,$54,$4E,$42,$52...` show the same pattern around trap names like
-`GETFONTNBR`. That is why the generic scanner still refuses broad high-bit Pascal promotion: these are Mac symbol/name
-records with flag bits or tool-specific metadata around a Pascal-style string.
-
-The clean direction is string rendering driven by structured data class, not label text. A row knows whether it is a C
-string, Pascal string, fixed string field, symbol record, or unknown byte sequence, and the renderer chooses source
-forms like a length byte plus quoted text, raw bytes for non-text flag fields, and explicit residual bytes for padding.
-That remains general across Amiga, Atari, and Mac where the data model can prove the string kind.
-
-For Mac specifically, the classifier should not erase the work-in-progress signal. If a region is only a candidate
-Pascal/string record, the rendered source can still be more readable, but the row metadata must preserve that it is not
-yet a fully understood Toolbox string object. The important invariant is byte preservation and reassemblability first,
-then readable quoted text where the structured row proves the representation.
-
-### A5 calls and the jump table
-
-There are several lines of leading data implying use of A5 and placement of the jump table in the positive offsets
-of what is kept in A5:
-
-```
-CODE_0_above_a5_size:
-	dc.l $00000AF0
-...
-CODE_0_jump_table_length:
-	dc.l $00000AD0
-CODE_0_jump_table_offset_from_a5:
-	dc.l $00000020
-```
-
-Then there are calls into positive A5 offsets littered throughout the code:
-
-```
-CODE_1_loc_0000043c:
-	move.w d0,-(a7)
-	jsr $078A(a5)
-```
-
-This implies that we can in theory refer to jump table entry calls based on the label we place for an entry in the
-jump table. It seems to be derived using a formula like value in `CODE_0_jump_table_offset_from_a5` +
-(table_offset - start_of_table).
-
-The current renderer already exposes CODE 0 as a table of entries:
-
-```
-CODE_0_jump_table:
-CODE_0_jump_table_entry_0:
-	dc.w $0000
-	move.w #27,-(a7)
-	_LoadSeg
-CODE_0_jump_table_entry_1:
-	dc.w $0000
-	dc.w $FFFF
-	dc.l $00000000
-CODE_0_jump_table_entry_2:
-	dc.w $0001
-	_LoadSeg
-	dc.l CODE_1_loc_0000601e-CODE_1
-```
-
-The C packet also emits `code0_routing_table` and `code0_dispatch_reference` records, and tests currently treat the
-routine offsets as candidate records rather than accepted byte-entry proof. That is the right caution: the segment
-table shape and CODE resource routing are accepted parser output, but individual routine entry semantics still need to
-come from actual entry spans and flow analysis.
-
-The bridge from positive A5 calls to these table rows is the table-window lookup described below. Calls like:
-
-```
-	jsr $078A(a5)
-```
-
-is resolvable when `$078A` lands inside the proven CODE 0 jump table window. Given
-`CODE_0_jump_table_offset_from_a5 == $20`, the table-relative offset is `$078A - $20`, and with 8-byte entries that
-identifies a specific `CODE_0_jump_table_entry_N` if the offset is aligned and in range. The rendered call uses the
-symbolic entry label only when the C platform facts prove the relation.
-
-Resolution note: the table-entry relation is now carried as C-owned platform data on generated routine candidates:
-`a5_entry_offset`, `a5_callable_offset`, `callable_entry_byte_offset`, and `callable_entry_kind`. This deliberately
-does not claim byte-entry proof for target routines, because `$078A` is not an entry-start displacement in the current
-fixture; it lands two bytes into a proven 8-byte CODE 0 entry, on the Segment Loader trap word. The Mac artifact bridge
-now consumes those C-emitted callable-slot facts when semantic source rows contain `jsr`/`jmp disp(a5)`. Proven callable
-slot displacements render as source-stable table expressions such as
-`CODE_0_jump_table_entry_237+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)`; unresolved, duplicate, malformed, or
-out-of-table A5 control transfers remain numeric. Covered by
-`test_macos_semantic_row_text_rewrites_proven_a5_callable_slots`,
-`test_committed_macos_subtarget_metadata_and_asm_shape`, and the committed MPW Asm artifact, which no longer contains
-the raw `jsr $078A(a5)` example.
-
-The ownership boundary remains the C analysis/platform layer, not a Mac source post-processor. A5-relative control
-transfers are ordinary M68K operands plus Mac platform context, so the renderer may only consume C-owned callable-slot
-facts and must not infer table membership from label text. Non-call A5 accesses remain separate: some positive offsets
-may be globals, some are jump-table entries, and malformed or out-of-range offsets stay numeric with a residual/
-unresolved fact rather than guessed labels.
-
-There is also a source-restoration nuance for the table itself. The `dc.l CODE_1_loc_...-CODE_1` form is better than
-absolute numeric offsets because it remains edit-friendly if source moves. The same principle should apply to any
-derived A5-call rendering: prefer symbolic table-entry labels and segment-relative expressions where they are proven,
-while keeping raw numeric data where the parser cannot prove the relationship.
+Acceptance rule: prefer standard, reusable assembler/container behavior. If exact container reproduction is impossible
+or not worth supporting for a non-standard input shape, record a content-exact result with an explicit structural reason
+instead of adding target-specific rebuild behavior.
 
 ## Amiga/Pandora resolved notes
 
 This section tracks current general-analysis follow-ups that use Pandora as concrete evidence. Proposal 015 is closed as
 the historical Pandora reversing-loop trial; these entries should be resolved as reusable C analysis/rendering work
 unless the evidence proves a genuinely target-specific Pandora artifact.
-
-### Register content propagation
-
-Note that here we store code pointers in locations like `app_0360`. These get called with predictable register
-contents like `_custom` in `a5`. The original failure was that `_custom` did not propagate consistently to relevant
-locations in Pandora; this remains useful as evidence for the general register-tracking fix recorded below.
-
-```
-abs_0_00010A72:
-	lea.l abs_0_000134C2.l,a0
-	move.l (a0)+,$0180(a5)
-	move.l (a0)+,$0184(a5)
-	move.l (a0)+,$0188(a5)
-	move.l (a0)+,$018C(a5)
-	move.l (a0)+,$0190(a5)
-	move.l (a0)+,$0194(a5)
-	move.l (a0)+,$0198(a5)
-	move.l (a0)+,$019C(a5)
-	lea.l abs_0_00010AA2(pc),a0
-	move.l a0,app_0360(a6)
-	rts
-abs_0_00010AA2:
-	move.w app_0230(a6),$0182(a5)
-	move.w #$E8,$0194(a5)
-	lea.l abs_0_00010AB8(pc),a0
-	move.l a0,app_0360(a6)
-	rts
-abs_0_00010AB8:
-	bset.b #7,app_027B(a6)
-	lea.l abs_0_00010A72(pc),a0
-	move.l a0,app_0360(a6)
-	rts
-```
-
-Here we use `app_0364` and `a5` is lost. In some c
-
-```
-abs_0_00010910:
-	btst #5,d0
-	beq.b abs_0_00010928
-	movea.l app_0364(a6),a0
-	jsr (a0)
-	move.w #$20,$009C(a5)
-	movem.l (a7)+,d0/a0-a1/a5-a6
-	rte
-```
-
-Resolution note: accepted callback-slot indirect targets now inherit the call-site trace state in the C facts pass,
-and the render lookup projects proven Amiga hardware-base register state through the same callback-slot shape. This
-keeps callback bodies reached through app slots such as `app_0360`/`app_0364` rendering hardware accesses through the
-same symbolic register base proven at the indirect call site, without a Pandora-specific rule. Covered by
-`facts_v2_callback_field_target_inherits_call_site_trace_state`.
 
 ### Orphaned label definitions
 
