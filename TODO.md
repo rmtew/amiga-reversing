@@ -172,6 +172,13 @@ Mac trap metadata now creates typed stack/local facts for reached stack-paramete
 slot typing remains separate and requires accepted A5 lifetime evidence plus normal instruction reads/writes against
 the CODE 0 storage windows. Do not infer A5 globals from `a6` frame locals.
 
+Audit note: current C M68K source analysis does not receive CODE 0 A5-world layout as `M68kObject`/decode metadata.
+The layout is parsed by the Mac resource/container layer and serialized in Mac restored-source packets, while the
+general typed-flow pass only sees ordinary M68K operands plus platform backend kind. Therefore A5-world slot typing
+cannot be completed cleanly by the same path used for `_GetFNum` stack locals yet. The next correct implementation step
+is to carry accepted CODE 0 layout into C-owned analysis metadata, then use it with proven A5 lifetime state to emit
+typed A5 storage facts. A renderer-only or Python-only A5 slot inference remains explicitly rejected.
+
 
 ### Pascal strings
 
