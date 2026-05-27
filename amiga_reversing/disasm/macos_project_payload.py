@@ -11,6 +11,7 @@ from pathlib import Path
 from amiga_reversing.disasm.c_backend import (
     build_macos_code_bytes_listing_artifact_profile,
     extract_macos_hfs_code_resource_bytes_with_c_backend,
+    extract_macos_hfs_code_resource_payload_bytes_with_c_backend,
     inspect_macos_hfs_code_summary_with_c_backend,
 )
 from amiga_reversing.disasm.macos_asm_container import (
@@ -676,7 +677,7 @@ def _source_quality_residuals(
     for item in ranges:
         kind = str(item.get("kind") or "")
         status = str(item.get("fact_status") or item.get("status") or "")
-        if kind in {"candidate_code", "confirmed_code", "code"}:
+        if kind in {"candidate_code", "candidate_unresolved_prefix", "confirmed_code", "code"}:
             decoded_residuals = semantic_gap_residuals or _semantic_gap_residuals(detail, item, semantic_rows)
             if semantic_rows:
                 residuals.extend(decoded_residuals)
@@ -1110,12 +1111,20 @@ def _semantic_source_rows(
             "analysis_seeds": [],
             "rows": [],
         }
-    code_bytes = extract_macos_hfs_code_resource_bytes_with_c_backend(
+    analysis_range = _macos_code_semantic_analysis_range(code)
+    analysis_start = _int_value(analysis_range.get("start"))
+    analysis_end = _int_value(analysis_range.get("end"))
+    if analysis_start is None or analysis_end is None or analysis_end <= analysis_start:
+        analysis_range = code_range
+        analysis_start = code_start
+        analysis_end = code_start + code_size
+    resource_payload = extract_macos_hfs_code_resource_payload_bytes_with_c_backend(
         hfs_bytes,
         hfs_path,
         int(resource_id),
         project_root=project_root,
     )
+    code_bytes = resource_payload[analysis_start:analysis_end]
     if not code_bytes:
         return {
             "kind": "semantic_source_blocked",
@@ -1128,7 +1137,7 @@ def _semantic_source_rows(
     analysis_seeds = _macos_code_analysis_seeds(
         resource,
         code=code,
-        payload_base=code_start,
+        payload_base=analysis_start,
         all_routine_candidates=all_routine_candidates,
     )
     with _macos_code_analysis_seed_metadata_path(analysis_seeds) as metadata_path:
@@ -1143,23 +1152,23 @@ def _semantic_source_rows(
     finally:
         artifact.close()
     rows = [
-        _semantic_source_row(row, payload_base=code_start, resource=resource, code=code, code_range=code_range)
+        _semantic_source_row(row, payload_base=analysis_start, resource=resource, code=code, code_range=analysis_range)
         for row in _sequence(window.get("rows"))
     ]
     rows = [row for row in rows if row]
-    rows = [row for row in rows if not _macos_fallback_byte_row(row, code_range=code_range)]
+    rows = [row for row in rows if not _macos_fallback_byte_row(row, code_range=analysis_range)]
     semantic_gap_residuals = _macos_code_semantic_gap_residuals(
         code_bytes,
-        payload_base=code_start,
-        code_range=code_range,
+        payload_base=analysis_start,
+        code_range=analysis_range,
         semantic_rows=rows,
         resource=resource,
         code=code,
     )
     candidate_residuals = _macos_code_candidate_residuals(
         code_bytes,
-        payload_base=code_start,
-        code_range=code_range,
+        payload_base=analysis_start,
+        code_range=analysis_range,
         semantic_rows=rows,
         classified_data_residuals=semantic_gap_residuals,
         resource=resource,
@@ -1173,8 +1182,8 @@ def _semantic_source_rows(
         "authority": "c_owned_listing_artifact",
         "resource_type": "CODE",
         "resource_id": resource_id,
-        "payload_base": code_start,
-        "payload_size": code_size,
+        "payload_base": analysis_start,
+        "payload_size": analysis_end - analysis_start,
         "row_count": len(rows),
         "instruction_row_count": instruction_count,
         "data_row_count": sum(1 for row in rows if _semantic_row_is_durable_data(row)),
@@ -2320,6 +2329,36 @@ def _first_code_range(ranges: list[object]) -> Mapping[str, object]:
         if range_info.get("kind") in {"confirmed_code", "candidate_code"} and range_info.get("entrypoint") is True:
             return range_info
     return {}
+
+
+def _macos_code_semantic_analysis_range(code: Mapping[str, object]) -> Mapping[str, object]:
+    ranges = [_mapping(item) for item in _sequence(code.get("layout_ranges"))]
+    starts: list[int] = []
+    ends: list[int] = []
+    authority: Mapping[str, object] = _first_code_range(list(ranges))
+    for range_info in ranges:
+        if range_info.get("kind") not in {"candidate_unresolved_prefix", "candidate_code", "confirmed_code"}:
+            continue
+        start = _int_value(range_info.get("start"))
+        end = _int_value(range_info.get("end"))
+        if start is None or end is None or end <= start:
+            continue
+        starts.append(start)
+        ends.append(end)
+    if not starts or not ends:
+        return authority
+    return {
+        "kind": "candidate_code",
+        "start": min(starts),
+        "end": max(ends),
+        "size": max(ends) - min(starts),
+        "entrypoint": True,
+        "evidence": "macos_code_semantic_analysis_span",
+        "fact_id": authority.get("fact_id"),
+        "fact_status": authority.get("fact_status"),
+        "parser_use": authority.get("parser_use"),
+        "kb_record_id": authority.get("kb_record_id") or code.get("kb_record_id"),
+    }
 
 
 def _first_candidate_code_range(ranges: list[object]) -> Mapping[str, object]:

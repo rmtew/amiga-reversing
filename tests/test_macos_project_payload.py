@@ -573,6 +573,16 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
             return b"\x00\x00\x00\x00\x00\x00\x20"
         raise AssertionError(resource_id)
 
+    def fake_extract_payload(data: bytes, hfs_path: str, resource_id: int, **kwargs: object) -> bytes:
+        calls.setdefault("extract_payload_args", []).append((data, hfs_path, resource_id, kwargs.get("project_root")))
+        if resource_id == 1:
+            return b"\x00\x00\x00\x00\x00\x00\x20\x5f"
+        if resource_id == 2:
+            return b"\x00\x00\x00\x00\x00\x00\x20\x5f\x4e\x75"
+        if resource_id == 3:
+            return b"\x00\x00\x00\x00\x00\x00\x20"
+        raise AssertionError(resource_id)
+
     class FakeDecodeArtifact:
         def window_payload(self, *, start: int, count: int) -> tuple[dict[str, object], dict[str, object]]:
             assert start == 0
@@ -620,6 +630,11 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
     monkeypatch.setattr(macos_project_payload, "read_macos_hfs_image_bytes", fake_read_hfs)
     monkeypatch.setattr(macos_project_payload, "inspect_macos_hfs_code_summary_with_c_backend", fake_summary)
     monkeypatch.setattr(macos_project_payload, "extract_macos_hfs_code_resource_bytes_with_c_backend", fake_extract)
+    monkeypatch.setattr(
+        macos_project_payload,
+        "extract_macos_hfs_code_resource_payload_bytes_with_c_backend",
+        fake_extract_payload,
+    )
     monkeypatch.setattr(macos_project_payload, "build_macos_code_bytes_listing_artifact_profile", fake_build_listing)
     project = ProjectRecord(
         id="macos_mpw_sample",
@@ -876,7 +891,12 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
             "parser_use": "candidate_only",
         }
     ]
-    assert calls["decode_bytes"].count(b"\x20\x5f\x4e\x75") == 2
+    assert calls["decode_bytes"] == [
+        b"\x00\x00\x20\x5f",
+        b"\x20\x5f\x4e\x75",
+        b"\x00\x00\x20\x5f\x4e\x75",
+        b"\x20",
+    ]
     assert calls["decode_display_paths"] == [
         "Mac OS semantic source CODE 1",
         "Mac OS candidate preview CODE 2 FPOpTable",
@@ -884,7 +904,8 @@ def test_macos_project_payload_uses_c_summary_and_source_fixture_metadata(
         "Mac OS semantic source CODE 3 Tiny",
     ]
     assert calls["decode_closed"] is True
-    assert [item[2] for item in calls["extract_args"]] == [1, 2, 2, 3, 3]
+    assert [item[2] for item in calls["extract_args"]] == [2, 3]
+    assert [item[2] for item in calls["extract_payload_args"]] == [1, 2, 3]
     assert all(item[:2] == (b"hfs", "MPW-GM/MPW/Tools/Asm") and item[3] == tmp_path for item in calls["extract_args"])
     navigation_groups = container["navigation"]["groups"]
     assert navigation_groups[0]["id"] == "macos-code-resources"
@@ -1170,7 +1191,7 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
         {
             "resource_id": 27,
             "payload_offset": 204,
-            "local_offset": 0,
+            "local_offset": 200,
             "reason": "code0_routine_candidate",
             "name": "CODE_27_entry_000000cc",
             "fact_id": "macos.code_resource.jump_table.routine_offsets.candidate",
@@ -1191,7 +1212,7 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     assert source_quality["semantic_components"] == {
         "byte_preservation_status": "byte_real_complete",
         "source_ordering_status": "source_first",
-            "semantic_disassembly_status": "residual_decode_gaps_present",
+        "semantic_disassembly_status": "residual_decode_gaps_present",
         "label_xref_status": "generated_labels_and_xrefs_present",
         "residual_status": "explicit",
     }
@@ -1301,11 +1322,7 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     code2_quality = next(item for item in quality_rows if item["resource_id"] == 2)
     assert code2_quality["legacy_orphan_ranges_reclassified"] > 0
     assert code2_quality["orphan_bucket_present"] is False
-    assert any(
-        item["kind"] == "candidate_unresolved_prefix"
-        and item["status"] == "candidate"
-        for item in code2_quality["residuals"]
-    )
+    assert all(item["kind"] != "candidate_unresolved_prefix" for item in code2_quality["residuals"])
     assert any(item["kind"] == "semantic_decode_gap" for item in code2_quality["residuals"])
     for detail in container["code_resource_details"]:
         presentation = detail["source_presentation_status"]

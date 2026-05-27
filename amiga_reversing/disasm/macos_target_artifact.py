@@ -339,9 +339,7 @@ def _code_source_body_range_lines(section: Mapping[str, object]) -> list[str]:
     for item in ranges:
         lines.append(
             f";     {_text(item.get('kind'))} payload[{_text(item.get('start'))}..{_text(item.get('end'))}) "
-            f"size={_text(item.get('size'))} entrypoint={_text(item.get('entrypoint'))} "
-            f"status={_text(item.get('fact_status'))} parser_use={_text(item.get('parser_use'))} "
-            f"evidence={_text(item.get('evidence'))} fact={_text(item.get('fact_id'))}"
+            f"size={_text(item.get('size'))} entrypoint={_text(item.get('entrypoint'))}"
         )
     return lines
 
@@ -371,11 +369,8 @@ def _code_source_byte_real_lines(section: Mapping[str, object], *, payload_bytes
         end = _int_value(item.get("end")) or start
         kind = _text(item.get("kind"))
         label = f"{_text(section.get('label'))}_{kind}_{start:08x}"
-        lines.append(
-            f";     {kind} payload[{start}..{end}) status={_text(item.get('fact_status'))} "
-            f"parser_use={_text(item.get('parser_use'))} evidence={_text(item.get('evidence'))}"
-        )
-        if kind in {"candidate_code", "confirmed_code", "code"} and semantic_rows:
+        lines.append(f";     {kind} payload[{start}..{end})")
+        if kind in {"candidate_code", "candidate_unresolved_prefix", "confirmed_code", "code"} and semantic_rows:
             lines.extend(_semantic_source_lines(section, semantic_source, payload_bytes=payload_bytes, start=start, end=end))
             continue
         lines.extend(_dc_b_lines(payload_bytes[start:end], label=label, base_offset=start))
@@ -531,7 +526,13 @@ def _semantic_source_lines(
 
 
 def _semantic_gap_kind(gap_kinds: Mapping[tuple[int | None, int | None], str], start: int, end: int) -> str:
-    return gap_kinds.get((start, end), "semantic_decode_gap")
+    exact = gap_kinds.get((start, end))
+    if exact:
+        return exact
+    for (gap_start, gap_end), kind in gap_kinds.items():
+        if gap_start is not None and gap_end is not None and gap_start <= start and end <= gap_end:
+            return kind
+    return "semantic_decode_gap"
 
 
 def _semantic_gap_lines(data: bytes, *, label: str, kind: str, base_offset: int) -> list[str]:
@@ -572,7 +573,7 @@ def _semantic_row_in_range(row: Mapping[str, object], *, start: int, end: int) -
     if payload_offset is None:
         return False
     if payload_end is None or payload_end == payload_offset:
-        return start <= payload_offset <= end
+        return start <= payload_offset < end
     return start <= payload_offset and payload_end <= end
 
 
