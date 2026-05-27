@@ -274,6 +274,9 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
         "generated_xref source=CODE_0_jump_table_entry_0 "
         "target=CODE_27_routine_candidate_000000cc link_status=linked_candidate"
     ) in asm_text
+    assert ";     CODE_0_jump_table_entry_1: payload_offset=24 size=8" in asm_text
+    assert ";     no decoded routine target for this accepted jump-table entry" in asm_text
+    assert "candidate_target target_section=CODE_unknown" not in asm_text
     assert "CODE_27_routine_candidate_000000cc:" in asm_text
     assert (
         "from=CODE_0_jump_table_entry_0 source_payload=16 target_payload=204 "

@@ -47,7 +47,7 @@ CODE_0:
 ;     generated_xref source=CODE_0_jump_table_entry_0 target=CODE_27_routine_candidate_000000cc link_status=linked_candidate
 ;     CODE_0_jump_table_entry_1: payload_offset=24 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_unknown target_resource_id=unknown routine_offset=unknown status=unknown parser_use=unknown fact=unknown
+;     no decoded routine target for this accepted jump-table entry
 ;     CODE_0_jump_table_entry_2: payload_offset=32 size=8
 ;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
 ;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=24606 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate

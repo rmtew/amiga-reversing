@@ -710,12 +710,18 @@ def _code0_structured_source_lines(section: Mapping[str, object]) -> list[str]:
                 f"size={_text(row.get('entry_size'))}",
                 f";     accepted_layout status={_text(accepted.get('fact_status'))} "
                 f"parser_use={_text(accepted.get('parser_use'))} fact={_text(accepted.get('fact_id'))}",
-                f";     candidate_target target_section=CODE_{_text(target_id)} "
-                f"target_resource_id={_text(target_id)} routine_offset={_text(row.get('routine_offset_from_segment'))} "
-                f"status={_text(candidate.get('fact_status'))} parser_use={_text(candidate.get('parser_use'))} "
-                f"fact={_text(candidate.get('fact_id'))}",
             ]
         )
+        if candidate:
+            lines.append(
+                f";     candidate_target target_section=CODE_{_text(target_id)} "
+                f"target_resource_id={_text(target_id)} "
+                f"routine_offset={_text(row.get('routine_offset_from_segment'))} "
+                f"status={_text(candidate.get('fact_status'))} parser_use={_text(candidate.get('parser_use'))} "
+                f"fact={_text(candidate.get('fact_id'))}"
+            )
+        else:
+            lines.append(";     no decoded routine target for this accepted jump-table entry")
         for xref in xrefs:
             if xref.get("entry_index") == entry_index:
                 lines.append(
