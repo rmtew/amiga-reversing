@@ -439,6 +439,10 @@ def _semantic_source_lines(
         for row in (_mapping(value) for value in _sequence(semantic_source.get("rows")))
         if _semantic_row_in_range(row, start=start, end=end)
     ]
+    gap_kinds = {
+        (_int_value(item.get("start")), _int_value(item.get("end"))): _text(item.get("kind"))
+        for item in (_mapping(value) for value in _sequence(semantic_source.get("semantic_gap_residuals")))
+    }
     lines = [
         (
             f";     semantic_source: kind={_text(semantic_source.get('kind'))} "
@@ -458,7 +462,7 @@ def _semantic_source_lines(
             lines.extend(
                 _dc_b_lines(
                     payload_bytes[cursor:payload_offset],
-                    label=f"{_text(section.get('label'))}_semantic_decode_gap_{cursor:08x}",
+                    label=f"{_text(section.get('label'))}_{_semantic_gap_kind(gap_kinds, cursor, payload_offset)}_{cursor:08x}",
                     base_offset=cursor,
                 )
             )
@@ -480,11 +484,15 @@ def _semantic_source_lines(
         lines.extend(
             _dc_b_lines(
                 payload_bytes[cursor:end],
-                label=f"{_text(section.get('label'))}_semantic_decode_gap_{cursor:08x}",
+                label=f"{_text(section.get('label'))}_{_semantic_gap_kind(gap_kinds, cursor, end)}_{cursor:08x}",
                 base_offset=cursor,
             )
         )
     return lines
+
+
+def _semantic_gap_kind(gap_kinds: Mapping[tuple[int | None, int | None], str], start: int, end: int) -> str:
+    return gap_kinds.get((start, end), "semantic_decode_gap")
 
 
 def _macos_semantic_text(text: str, *, resource_id: object) -> str:

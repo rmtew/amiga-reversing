@@ -1199,6 +1199,14 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     assert semantic_source["payload_base"] == 40
     assert semantic_source["instruction_row_count"] >= 7000
     assert semantic_source["analysis_seed_count"] == 114
+    semantic_gap_kinds = {item["kind"] for item in semantic_source["semantic_gap_residuals"]}
+    assert semantic_source["semantic_gap_residual_count"] >= 100
+    assert {
+        "semantic_pascal_string_gap",
+        "semantic_dispatch_table_gap",
+        "semantic_string_data_gap",
+        "semantic_decode_gap",
+    }.issubset(semantic_gap_kinds)
     assert semantic_source["analysis_seeds"][:2] == [
         {
             "resource_id": 1,

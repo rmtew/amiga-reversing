@@ -567,6 +567,7 @@ def _source_quality_resource_row(
         payload_size=payload_size,
         semantic_rows=semantic_rows,
         candidate_residuals=[_mapping(item) for item in _sequence(semantic_source.get("candidate_residuals"))],
+        semantic_gap_residuals=[_mapping(item) for item in _sequence(semantic_source.get("semantic_gap_residuals"))],
     )
     executable_body_spans = [
         item
@@ -637,13 +638,14 @@ def _source_quality_residuals(
     payload_size: int,
     semantic_rows: list[Mapping[str, object]],
     candidate_residuals: list[Mapping[str, object]],
+    semantic_gap_residuals: list[Mapping[str, object]],
 ) -> list[dict[str, object]]:
     residuals: list[dict[str, object]] = []
     for item in ranges:
         kind = str(item.get("kind") or "")
         status = str(item.get("fact_status") or item.get("status") or "")
         if kind in {"candidate_code", "confirmed_code", "code"}:
-            decoded_residuals = _semantic_gap_residuals(detail, item, semantic_rows)
+            decoded_residuals = semantic_gap_residuals or _semantic_gap_residuals(detail, item, semantic_rows)
             if semantic_rows:
                 residuals.extend(decoded_residuals)
                 continue
@@ -1122,6 +1124,14 @@ def _semantic_source_rows(
         resource=resource,
         code=code,
     )
+    semantic_gap_residuals = _macos_code_semantic_gap_residuals(
+        code_bytes,
+        payload_base=code_start,
+        code_range=code_range,
+        semantic_rows=rows,
+        resource=resource,
+        code=code,
+    )
     instruction_count = sum(1 for row in rows if row.get("kind") == "instruction")
     return {
         "kind": "macos_code_semantic_source_v1",
@@ -1141,6 +1151,8 @@ def _semantic_source_rows(
         "analysis_seeds": analysis_seeds,
         "candidate_residual_count": len(candidate_residuals),
         "candidate_residuals": candidate_residuals,
+        "semantic_gap_residual_count": len(semantic_gap_residuals),
+        "semantic_gap_residuals": semantic_gap_residuals,
         "rows": rows,
     }
 
@@ -1234,6 +1246,81 @@ def _macos_code_candidate_residuals(
             }
         )
     return residuals
+
+
+def _macos_code_semantic_gap_residuals(
+    code_bytes: bytes,
+    *,
+    payload_base: int,
+    code_range: Mapping[str, object],
+    semantic_rows: list[Mapping[str, object]],
+    resource: Mapping[str, object],
+    code: Mapping[str, object],
+) -> list[dict[str, object]]:
+    residuals: list[dict[str, object]] = []
+    detail = {"kb_record_id": code.get("kb_record_id") or resource.get("kb_record_id")}
+    for gap in _semantic_gap_residuals(detail, code_range, semantic_rows):
+        start = _int_value(gap.get("start"))
+        end = _int_value(gap.get("end"))
+        if start is None or end is None or end <= start:
+            continue
+        local_start = start - payload_base
+        local_end = end - payload_base
+        if local_start < 0 or local_end > len(code_bytes):
+            residuals.append(gap)
+            continue
+        data_kind = _macos_semantic_gap_data_kind(code_bytes[local_start:local_end])
+        if data_kind is None:
+            residuals.append(gap)
+            continue
+        classified = dict(gap)
+        classified["kind"] = data_kind
+        classified["reason"] = "semantic decoder left a byte span that matches conservative Mac data syntax"
+        classified["next_required_implementation"] = "promote this classified data gap into first-class C-owned data rows"
+        residuals.append(classified)
+    return residuals
+
+
+def _macos_semantic_gap_data_kind(data: bytes) -> str | None:
+    if not data:
+        return None
+    if all(byte == 0 for byte in data):
+        return "semantic_zero_fill_gap"
+    if _macos_gap_is_printable_bytes(data):
+        return "semantic_string_data_gap"
+    if _macos_gap_is_pascal_identifier(data):
+        return "semantic_pascal_string_gap"
+    if _macos_gap_is_word_dispatch_table(data):
+        return "semantic_dispatch_table_gap"
+    return None
+
+
+def _macos_gap_is_printable_bytes(data: bytes) -> bool:
+    if len(data) < 4:
+        return False
+    printable = sum(1 for byte in data if byte in {0, 9, 10, 13} or 32 <= byte <= 126)
+    return printable == len(data) and sum(1 for byte in data if 32 <= byte <= 126) >= 4
+
+
+def _macos_gap_is_pascal_identifier(data: bytes) -> bool:
+    if len(data) < 4:
+        return False
+    length = data[0] & 0x7F
+    if length == 0 or length + 1 > len(data):
+        return False
+    text = data[1 : 1 + length]
+    if any(byte < 32 or byte > 126 for byte in text):
+        return False
+    padding = data[1 + length :]
+    return len(text) >= 3 and all(byte == 0 for byte in padding[: min(len(padding), 3)])
+
+
+def _macos_gap_is_word_dispatch_table(data: bytes) -> bool:
+    if len(data) < 8 or len(data) % 2 != 0:
+        return False
+    words = [int.from_bytes(data[index : index + 2], "big") for index in range(0, len(data), 2)]
+    even_offsets = [word for word in words if word != 0 and word % 2 == 0 and word < 0x8000]
+    return len(even_offsets) >= 4 and len(even_offsets) >= len(words) // 2
 
 
 def _macos_candidate_entry_patterns(code_bytes: bytes, *, payload_base: int) -> Iterator[tuple[int, str]]:

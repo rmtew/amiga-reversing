@@ -3369,7 +3369,7 @@ macos_code_CODE_1_loc_00000268:
 	dbf.w d1,macos_code_CODE_1_loc_00000240
 	bra.b macos_code_CODE_1_loc_0000029c
 macos_code_CODE_1_loc_0000027e:
-macos_code_CODE_1_semantic_decode_gap_0000027e:
+macos_code_CODE_1_semantic_string_data_gap_0000027e:
 	dc.b $30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$41,$42,$43,$44,$45,$46
 macos_code_CODE_1_loc_0000028e:
 	moveq.l #10,d7
@@ -4809,7 +4809,7 @@ macos_code_CODE_1_loc_00000f7a:
 	move.w macos_code_CODE_1_loc_00000f6c(pc,d0.w),d0
 	jmp macos_code_CODE_1_loc_00000f6c(pc,d0.w)
 macos_code_CODE_1_loc_00000f94:
-macos_code_CODE_1_semantic_decode_gap_00000f94:
+macos_code_CODE_1_semantic_dispatch_table_gap_00000f94:
 	dc.b $00,$20,$00,$3A,$00,$72,$00,$8C,$00,$E2,$01,$2C,$01,$8E,$01,$7C
 	dc.b $01,$6A,$01,$46,$01,$58,$00,$54,$00,$A6,$00,$C4,$00,$FC,$01,$14
 macos_code_CODE_1_loc_00000fb4:
@@ -5071,7 +5071,7 @@ macos_code_CODE_1_loc_00001250:
 	movea.l a0,a7
 	jmp (a1)
 macos_code_CODE_1_loc_00001264:
-macos_code_CODE_1_semantic_decode_gap_00001264:
+macos_code_CODE_1_semantic_dispatch_table_gap_00001264:
 	dc.b $00,$01,$02,$00,$03,$00,$00,$00,$04,$05,$06,$00,$07,$00
 macos_code_CODE_1_loc_00001272:
 	subq.w #4,a7
@@ -5190,7 +5190,7 @@ macos_code_CODE_1_loc_0000136c:
 	move.w macos_code_CODE_1_loc_00001350(pc,d0.w),d0
 	jmp macos_code_CODE_1_loc_00001350(pc,d0.w)
 macos_code_CODE_1_loc_00001378:
-macos_code_CODE_1_semantic_decode_gap_00001378:
+macos_code_CODE_1_semantic_dispatch_table_gap_00001378:
 	dc.b $07,$80,$07,$8E,$07,$8E,$07,$80,$07,$8E,$07,$8E,$07,$8E,$07,$8E
 	dc.b $07,$8E,$07,$80,$07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E
 	dc.b $07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E
@@ -5588,7 +5588,7 @@ macos_code_CODE_1_loc_000019f8:
 macos_code_CODE_1_loc_00001a02:
 	move.b #$17,-$0005(a5)
 	bra.w macos_code_CODE_1_loc_00001ae4
-macos_code_CODE_1_semantic_decode_gap_00001a0c:
+macos_code_CODE_1_semantic_dispatch_table_gap_00001a0c:
 	dc.b $1B,$7C,$00,$18,$FF,$FB,$60,$00,$00,$F8,$1B,$7C,$00,$19,$FF,$FB
 	dc.b $60,$00,$00,$EE,$1B,$7C,$00,$1A,$FF,$FB,$60,$00,$00,$E4,$1B,$7C
 	dc.b $00,$1B,$FF,$FB,$60,$00,$00,$DA
@@ -5604,7 +5604,7 @@ macos_code_CODE_1_loc_00001a48:
 macos_code_CODE_1_loc_00001a52:
 	move.b #$20,-$0005(a5)
 	bra.w macos_code_CODE_1_loc_00001ae4
-macos_code_CODE_1_semantic_decode_gap_00001a5c:
+macos_code_CODE_1_semantic_dispatch_table_gap_00001a5c:
 	dc.b $1B,$7C,$00,$14,$FF,$FB,$60,$00,$00,$A8,$4A,$2D,$EC,$C3,$67,$0E
 	dc.b $18,$1C,$52,$45,$1B,$7C,$00,$21,$FF,$FB,$60,$00,$00,$98,$55,$4F
 	dc.b $22,$6D,$FF,$FC,$4A,$29,$00,$0F,$67,$06,$4E,$BA,$01,$EA,$60,$06
@@ -5848,7 +5848,7 @@ macos_code_CODE_1_loc_00001d06:
 	move.b #$1,(a7)
 	jmp (a1)
 macos_code_CODE_1_loc_00001d1c:
-macos_code_CODE_1_semantic_decode_gap_00001d1c:
+macos_code_CODE_1_semantic_string_data_gap_00001d1c:
 	dc.b $0A,$3C,$3C,$3C,$49,$4E,$54,$52,$3E,$3E,$3E,$00
 macos_code_CODE_1_loc_00001d28:
 	link a6,#-4
@@ -6114,7 +6114,7 @@ macos_code_CODE_1_loc_00001ff0:
 macos_code_CODE_1_loc_00001ff6:
 	rts
 macos_code_CODE_1_loc_00001ff8:
-macos_code_CODE_1_semantic_decode_gap_00001ff8:
+macos_code_CODE_1_semantic_dispatch_table_gap_00001ff8:
 	dc.b $02,$4F,$52,$00,$03,$4E,$4F,$54,$03,$41,$4E,$44,$03,$45,$4F,$52
 	dc.b $03,$44,$49,$56,$03,$4D,$4F,$44,$03,$58,$4F,$52,$00,$00,$00,$09
 	dc.b $00,$00,$00,$14,$00,$00,$00,$0B,$00,$00,$00,$0A,$00,$00,$00,$07
@@ -6143,14 +6143,14 @@ macos_code_CODE_1_loc_0000207e:
 	dbf.w d0,macos_code_CODE_1_loc_00002056
 	pea.l -$0100(a6)
 	pea.l -$0102(a6)
-macos_code_CODE_1_semantic_decode_gap_0000208c:
+macos_code_CODE_1_semantic_dispatch_table_gap_0000208c:
 	dc.b $A9,$00,$3D,$6E,$FE,$FE,$00,$0C,$4E,$5E,$2E,$9F,$4E,$75,$8A,$47
 	dc.b $45,$54,$46,$4F,$4E,$54,$4E,$42,$52,$00,$00,$00
 macos_code_CODE_1_loc_000020a8:
 	link a6,#-42
 	movem.l d4-d7,-(a7)
 	clr.l -(a7)
-macos_code_CODE_1_semantic_decode_gap_000020b2:
+macos_code_CODE_1_semantic_dispatch_table_gap_000020b2:
 	dc.b $A9,$75,$28,$1F,$98,$AE,$00,$0C,$2D,$44,$00,$10,$4A,$AE,$00,$08
 	dc.b $67,$00,$00,$BE,$2F,$04,$70,$3C,$2F,$00,$4E,$AD,$0A,$7A,$20,$1F
 	dc.b $3C,$00,$1D,$7C,$00,$0B,$FF,$EA,$7E,$0B,$30,$06,$48,$C0,$81,$FC
@@ -6191,7 +6191,7 @@ macos_code_CODE_1_loc_00002196:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-macos_code_CODE_1_semantic_decode_gap_000021e4:
+macos_code_CODE_1_semantic_pascal_string_gap_000021e4:
 	dc.b $89,$53,$45,$54,$44,$49,$47,$49,$54,$53,$00,$00
 macos_code_CODE_1_loc_000021f0:
 	link a6,#-98
@@ -6561,7 +6561,7 @@ macos_code_CODE_1_loc_0000265e:
 	move.b #$1,-$133F(a5)
 	unlk a6
 	rts
-macos_code_CODE_1_semantic_decode_gap_0000266c:
+macos_code_CODE_1_semantic_pascal_string_gap_0000266c:
 	dc.b $84,$49,$4E,$54,$52,$00,$00,$00
 macos_code_CODE_1_loc_00002674:
 	link a6,#-4
@@ -6620,7 +6620,7 @@ macos_code_CODE_1_loc_00002716:
 	movea.l (a7)+,a0
 	addq.w #2,a7
 	jmp (a0)
-macos_code_CODE_1_semantic_decode_gap_00002724:
+macos_code_CODE_1_semantic_pascal_string_gap_00002724:
 	dc.b $89,$46,$4F,$52,$4D,$41,$54,$53,$54,$52,$00,$00
 macos_code_CODE_1_loc_00002730:
 	link a6,#-10
@@ -6690,7 +6690,7 @@ macos_code_CODE_1_loc_000027c6:
 	movea.l (a7)+,a0
 	addq.w #6,a7
 	jmp (a0)
-macos_code_CODE_1_semantic_decode_gap_000027d2:
+macos_code_CODE_1_semantic_pascal_string_gap_000027d2:
 	dc.b $89,$53,$54,$52,$49,$4E,$47,$43,$56,$54,$00,$00
 macos_code_CODE_1_loc_000027de:
 	link a6,#-4
@@ -6718,7 +6718,7 @@ macos_code_CODE_1_loc_0000281e:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-macos_code_CODE_1_semantic_decode_gap_00002824:
+macos_code_CODE_1_semantic_pascal_string_gap_00002824:
 	dc.b $87,$53,$54,$52,$45,$58,$50,$52,$00,$00
 macos_code_CODE_1_loc_0000282e:
 	link a6,#-4
@@ -6768,7 +6768,7 @@ macos_code_CODE_1_loc_000028a8:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-macos_code_CODE_1_semantic_decode_gap_000028ae:
+macos_code_CODE_1_semantic_pascal_string_gap_000028ae:
 	dc.b $87,$41,$42,$53,$45,$58,$50,$52,$00,$00
 macos_code_CODE_1_loc_000028b8:
 	link a6,#-4
@@ -6805,7 +6805,7 @@ macos_code_CODE_1_loc_0000290e:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-macos_code_CODE_1_semantic_decode_gap_00002916:
+macos_code_CODE_1_semantic_pascal_string_gap_00002916:
 	dc.b $8D,$49,$53,$54,$59,$50,$45,$44,$49,$4D,$50,$4F,$52,$54,$00,$00
 macos_code_CODE_1_loc_00002926:
 	link a6,#-14
@@ -6863,7 +6863,7 @@ macos_code_CODE_1_loc_000029b0:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-macos_code_CODE_1_semantic_decode_gap_000029bc:
+macos_code_CODE_1_semantic_pascal_string_gap_000029bc:
 	dc.b $8B,$49,$53,$54,$59,$50,$45,$44,$44,$41,$54,$41,$00,$00
 macos_code_CODE_1_loc_000029ca:
 	link a6,#-16
@@ -7016,7 +7016,7 @@ macos_code_CODE_1_loc_00002b5a:
 	movea.l (a7)+,a0
 	adda.w #$1A,a7
 	jmp (a0)
-macos_code_CODE_1_semantic_decode_gap_00002b68:
+macos_code_CODE_1_semantic_pascal_string_gap_00002b68:
 	dc.b $89,$43,$48,$45,$43,$4B,$57,$49,$54,$48,$00,$00
 macos_code_CODE_1_loc_00002b74:
 	link a6,#0
@@ -7034,7 +7034,7 @@ macos_code_CODE_1_loc_00002b8c:
 macos_code_CODE_1_loc_00002b92:
 	unlk a6
 	rts
-macos_code_CODE_1_semantic_decode_gap_00002b96:
+macos_code_CODE_1_semantic_pascal_string_gap_00002b96:
 	dc.b $92,$53,$4B,$49,$50,$51,$55,$41,$4C,$49,$46,$49,$43,$41,$54,$49
 	dc.b $4F,$4E,$53,$00,$00,$00
 macos_code_CODE_1_loc_00002bac:
@@ -7590,7 +7590,7 @@ macos_code_CODE_1_loc_000031b8:
 	movea.l (a7)+,a0
 	adda.w #$14,a7
 	jmp (a0)
-macos_code_CODE_1_semantic_decode_gap_000031c6:
+macos_code_CODE_1_semantic_pascal_string_gap_000031c6:
 	dc.b $88,$4C,$4F,$4F,$4B,$55,$50,$49,$44,$00,$00,$00
 macos_code_CODE_1_loc_000031d2:
 	link a6,#0
@@ -7665,7 +7665,7 @@ macos_code_CODE_1_loc_000032c6:
 	movea.l $0008(a6),a0
 	movea.l a0,a6
 	jmp macos_code_CODE_1_loc_0000441e(pc)
-macos_code_CODE_1_semantic_decode_gap_000032e0:
+macos_code_CODE_1_semantic_dispatch_table_gap_000032e0:
 	dc.b $00,$00,$4C,$DF,$14,$00,$4E,$5E,$2E,$9F,$4E,$75,$8B,$52,$45,$54
 	dc.b $55,$52,$4E,$56,$41,$4C,$55,$45,$00,$00
 macos_code_CODE_1_loc_000032fa:
@@ -7690,7 +7690,7 @@ macos_code_CODE_1_loc_00003312:
 	movea.l (a7)+,a0
 	addq.w #6,a7
 	jmp (a0)
-macos_code_CODE_1_semantic_decode_gap_00003338:
+macos_code_CODE_1_semantic_pascal_string_gap_00003338:
 	dc.b $87,$53,$54,$41,$43,$4B,$4F,$50,$00,$00
 macos_code_CODE_1_loc_00003342:
 	link a6,#0
@@ -7717,7 +7717,7 @@ macos_code_CODE_1_loc_0000335a:
 	movea.l (a7)+,a0
 	adda.w #$A,a7
 	jmp (a0)
-macos_code_CODE_1_semantic_decode_gap_0000338e:
+macos_code_CODE_1_semantic_pascal_string_gap_0000338e:
 	dc.b $88,$4F,$55,$54,$5F,$4F,$50,$4E,$44,$00,$00,$00
 macos_code_CODE_1_loc_0000339a:
 	link a6,#-6
@@ -7775,7 +7775,7 @@ macos_code_CODE_1_loc_0000340c:
 	movea.l (a7)+,a0
 	adda.w #$C,a7
 	jmp (a0)
-macos_code_CODE_1_semantic_decode_gap_0000341a:
+macos_code_CODE_1_semantic_pascal_string_gap_0000341a:
 	dc.b $8B,$43,$48,$4B,$4F,$50,$4E,$44,$54,$59,$50,$45,$00,$00
 macos_code_CODE_1_loc_00003428:
 	link a6,#-20
@@ -7960,7 +7960,7 @@ macos_code_CODE_1_loc_00003616:
 	move.w macos_code_CODE_1_loc_0000360c(pc,d0.w),d0
 	jmp $0(pc,d0.w)
 macos_code_CODE_1_loc_00003634:
-macos_code_CODE_1_semantic_decode_gap_00003634:
+macos_code_CODE_1_semantic_dispatch_table_gap_00003634:
 	dc.b $00,$0E,$00,$22,$00,$36,$00,$4A,$00,$5E,$00,$72,$2F,$0C,$2F,$0B
 	dc.b $4E,$AD,$0A,$CA,$10,$1F,$48,$80,$48,$C0,$2D,$40,$FF,$F8,$60,$62
 	dc.b $2F,$0C,$2F,$0B,$4E,$AD,$0A,$C2,$10,$1F,$48,$80,$48,$C0,$2D,$40
@@ -8036,7 +8036,7 @@ macos_code_CODE_1_loc_00003738:
 	move.w macos_code_CODE_1_loc_0000372c(pc,d0.w),d0
 	jmp $0(pc,d0.w)
 macos_code_CODE_1_loc_00003754:
-macos_code_CODE_1_semantic_decode_gap_00003754:
+macos_code_CODE_1_semantic_dispatch_table_gap_00003754:
 	dc.b $00,$34,$00,$9C,$01,$1E,$01,$32,$01,$56,$01,$7A,$01,$8A,$01,$9C
 	dc.b $01,$AC,$01,$C4,$01,$DC,$01,$F4,$02,$0C,$02,$24,$02,$3A,$02,$4A
 	dc.b $02,$AC,$02,$AC,$02,$AC,$02,$AC,$02,$AC,$02,$AC,$02,$AC,$02,$AC
@@ -8097,7 +8097,7 @@ macos_code_CODE_1_loc_000039fe:
 	movea.l (a7)+,a0
 	addq.w #6,a7
 	jmp (a0)
-macos_code_CODE_1_semantic_decode_gap_00003a32:
+macos_code_CODE_1_semantic_pascal_string_gap_00003a32:
 	dc.b $86,$4F,$55,$54,$5F,$4F,$50,$00,$00,$00
 macos_code_CODE_1_loc_00003a3c:
 	link a6,#-2
@@ -8134,7 +8134,7 @@ macos_code_CODE_1_loc_00003a98:
 	movea.l (a7)+,a0
 	addq.w #6,a7
 	jmp (a0)
-macos_code_CODE_1_semantic_decode_gap_00003aa0:
+macos_code_CODE_1_semantic_pascal_string_gap_00003aa0:
 	dc.b $8F,$43,$48,$45,$43,$4B,$50,$52,$45,$43,$45,$44,$45,$4E,$43,$45
 	dc.b $00,$00
 macos_code_CODE_1_loc_00003ab2:
@@ -8352,7 +8352,7 @@ macos_code_CODE_1_loc_00003d12:
 	movea.l (a7)+,a0
 	adda.w #$10,a7
 	jmp (a0)
-macos_code_CODE_1_semantic_decode_gap_00003d20:
+macos_code_CODE_1_semantic_pascal_string_gap_00003d20:
 	dc.b $89,$4C,$4F,$4F,$4B,$55,$50,$53,$59,$4D,$00,$00
 macos_code_CODE_1_loc_00003d2c:
 	link a6,#-10
@@ -8385,7 +8385,7 @@ macos_code_CODE_1_loc_00003d78:
 	movea.l (a7)+,a0
 	adda.w #$C,a7
 	jmp (a0)
-macos_code_CODE_1_semantic_decode_gap_00003d82:
+macos_code_CODE_1_semantic_pascal_string_gap_00003d82:
 	dc.b $8B,$4C,$4F,$4F,$4B,$55,$50,$46,$49,$45,$4C,$44,$00,$00
 macos_code_CODE_1_loc_00003d90:
 	link a6,#-280
@@ -8986,7 +8986,7 @@ macos_code_CODE_1_loc_00004446:
 	movea.l (a7)+,a0
 	adda.w #$C,a7
 	jmp (a0)
-macos_code_CODE_1_semantic_decode_gap_00004458:
+macos_code_CODE_1_semantic_pascal_string_gap_00004458:
 	dc.b $88,$45,$56,$41,$4C,$45,$58,$50,$52,$00,$00,$00
 macos_code_CODE_1_loc_00004464:
 	link a6,#0
@@ -9045,7 +9045,7 @@ macos_code_CODE_1_loc_00004514:
 	movea.l (a7)+,a0
 	addq.w #6,a7
 	jmp (a0)
-macos_code_CODE_1_semantic_decode_gap_00004534:
+macos_code_CODE_1_semantic_pascal_string_gap_00004534:
 	dc.b $87,$53,$54,$41,$43,$4B,$4F,$50,$00,$00
 macos_code_CODE_1_loc_0000453e:
 	link a6,#0
@@ -9087,7 +9087,7 @@ macos_code_CODE_1_loc_000045ac:
 	movea.l (a7)+,a0
 	adda.w #$C,a7
 	jmp (a0)
-macos_code_CODE_1_semantic_decode_gap_000045b6:
+macos_code_CODE_1_semantic_pascal_string_gap_000045b6:
 	dc.b $88,$4F,$55,$54,$5F,$4F,$50,$4E,$44,$00,$00,$00
 macos_code_CODE_1_loc_000045c2:
 	link a6,#-20
@@ -9343,7 +9343,7 @@ macos_code_CODE_1_loc_00004852:
 	move.w macos_code_CODE_1_loc_00004850(pc,d0.w),d0
 	jmp $0(pc,d0.w)
 macos_code_CODE_1_loc_00004878:
-macos_code_CODE_1_semantic_decode_gap_00004878:
+macos_code_CODE_1_semantic_dispatch_table_gap_00004878:
 	dc.b $00,$22,$00,$70,$00,$BE,$00,$CC,$00,$E4,$00,$F8,$00,$FC,$01,$02
 	dc.b $01,$06,$01,$14,$01,$22,$01,$30,$01,$3E,$01,$4C,$01,$5A,$01,$60
 	dc.b $70,$01,$B0,$05,$57,$C0,$4A,$00,$67,$24,$72,$01,$B2,$04,$57,$C1
@@ -9396,7 +9396,7 @@ macos_code_CODE_1_loc_00004a12:
 	movea.l (a7)+,a0
 	addq.w #6,a7
 	jmp (a0)
-macos_code_CODE_1_semantic_decode_gap_00004a2c:
+macos_code_CODE_1_semantic_pascal_string_gap_00004a2c:
 	dc.b $86,$4F,$55,$54,$5F,$4F,$50,$00,$00,$00
 macos_code_CODE_1_loc_00004a36:
 	link a6,#-2
@@ -9433,7 +9433,7 @@ macos_code_CODE_1_loc_00004a92:
 	movea.l (a7)+,a0
 	addq.w #6,a7
 	jmp (a0)
-macos_code_CODE_1_semantic_decode_gap_00004a9a:
+macos_code_CODE_1_semantic_pascal_string_gap_00004a9a:
 	dc.b $8F,$43,$48,$45,$43,$4B,$50,$52,$45,$43,$45,$44,$45,$4E,$43,$45
 	dc.b $00,$00
 macos_code_CODE_1_loc_00004aac:
@@ -9772,7 +9772,7 @@ macos_code_CODE_1_loc_00004e26:
 	movea.l (a7)+,a0
 	adda.w #$16,a7
 	jmp (a0)
-macos_code_CODE_1_semantic_decode_gap_00004e34:
+macos_code_CODE_1_semantic_pascal_string_gap_00004e34:
 	dc.b $89,$4C,$4F,$4F,$4B,$55,$50,$53,$59,$4D,$00,$00
 macos_code_CODE_1_loc_00004e40:
 	link a6,#-266
@@ -9817,7 +9817,7 @@ macos_code_CODE_1_loc_00004eba:
 	movea.l (a7)+,a0
 	adda.w #$14,a7
 	jmp (a0)
-macos_code_CODE_1_semantic_decode_gap_00004ec4:
+macos_code_CODE_1_semantic_pascal_string_gap_00004ec4:
 	dc.b $8B,$4C,$4F,$4F,$4B,$55,$50,$46,$49,$45,$4C,$44,$00,$00
 macos_code_CODE_1_loc_00004ed2:
 	link a6,#-910
@@ -10244,7 +10244,7 @@ macos_code_CODE_1_loc_0000539a:
 	move.l (a7)+,d7
 	unlk a6
 	rts
-macos_code_CODE_1_semantic_decode_gap_000053a0:
+macos_code_CODE_1_semantic_pascal_string_gap_000053a0:
 	dc.b $89,$47,$45,$4E,$44,$42,$47,$4C,$42,$4C,$00,$00
 macos_code_CODE_1_loc_000053ac:
 	link a6,#-256
@@ -10308,7 +10308,7 @@ macos_code_CODE_1_loc_00005446:
 	movea.l (a7)+,a0
 	addq.w #2,a7
 	jmp (a0)
-macos_code_CODE_1_semantic_decode_gap_00005462:
+macos_code_CODE_1_semantic_pascal_string_gap_00005462:
 	dc.b $91,$45,$4E,$44,$4F,$46,$43,$4F,$4E,$54,$49,$4E,$55,$41,$54,$49
 	dc.b $4F,$4E,$00,$00
 macos_code_CODE_1_loc_00005476:
@@ -10348,7 +10348,7 @@ macos_code_CODE_1_loc_000054c6:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-macos_code_CODE_1_semantic_decode_gap_000054ce:
+macos_code_CODE_1_semantic_pascal_string_gap_000054ce:
 	dc.b $8A,$53,$55,$43,$4B,$55,$50,$52,$45,$53,$54,$00,$00,$00
 macos_code_CODE_1_loc_000054dc:
 	link a6,#0
@@ -10368,7 +10368,7 @@ macos_code_CODE_1_loc_00005504:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-macos_code_CODE_1_semantic_decode_gap_0000550c:
+macos_code_CODE_1_semantic_pascal_string_gap_0000550c:
 	dc.b $8C,$47,$45,$54,$49,$4E,$50,$55,$54,$4C,$49,$4E,$45,$00,$00,$00
 macos_code_CODE_1_loc_0000551c:
 	link a6,#-518
@@ -10622,7 +10622,7 @@ macos_code_CODE_1_loc_000057c2:
 	move.w #$FF82,-$0BD2(a5)
 	unlk a6
 	rts
-macos_code_CODE_1_semantic_decode_gap_00005800:
+macos_code_CODE_1_semantic_pascal_string_gap_00005800:
 	dc.b $8C,$49,$4E,$49,$54,$53,$57,$49,$54,$43,$48,$45,$53,$00,$00,$00
 macos_code_CODE_1_loc_00005810:
 	link a6,#-366
@@ -10705,7 +10705,7 @@ macos_code_CODE_1_loc_000058ca:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-macos_code_CODE_1_semantic_decode_gap_000058d6:
+macos_code_CODE_1_semantic_pascal_string_gap_000058d6:
 	dc.b $8B,$41,$44,$4A,$55,$53,$54,$46,$49,$45,$4C,$44,$00,$00
 macos_code_CODE_1_loc_000058e4:
 	link a6,#-2
@@ -10799,7 +10799,7 @@ macos_code_CODE_1_loc_000059e6:
 macos_code_CODE_1_loc_000059ee:
 	unlk a6
 	rts
-macos_code_CODE_1_semantic_decode_gap_000059f2:
+macos_code_CODE_1_semantic_pascal_string_gap_000059f2:
 	dc.b $8A,$50,$52,$4F,$43,$45,$53,$53,$4C,$42,$4C,$00,$00,$00
 macos_code_CODE_1_loc_00005a00:
 	link a6,#-6
@@ -10878,7 +10878,7 @@ macos_code_CODE_1_loc_00005ad8:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-macos_code_CODE_1_semantic_decode_gap_00005ae2:
+macos_code_CODE_1_semantic_pascal_string_gap_00005ae2:
 	dc.b $8C,$50,$52,$45,$50,$41,$52,$45,$50,$41,$52,$54,$53,$00,$00,$00
 macos_code_CODE_1_loc_00005af2:
 	link a6,#-10
@@ -11291,7 +11291,7 @@ macos_code_CODE_1_loc_00005fa8:
 	movem.l (a7)+,d4-d7
 	unlk a6
 	rts
-macos_code_CODE_1_semantic_decode_gap_00005fb0:
+macos_code_CODE_1_semantic_pascal_string_gap_00005fb0:
 	dc.b $8B,$4D,$41,$49,$4E,$43,$54,$4C,$4C,$4F,$4F,$50,$00,$00
 macos_code_CODE_1_loc_00005fbe:
 	link a6,#0
@@ -11300,7 +11300,7 @@ macos_code_CODE_1_loc_00005fbe:
 	jsr macos_code_CODE_1_loc_00005aca(pc)
 	unlk a6
 	rts
-macos_code_CODE_1_semantic_decode_gap_00005fd0:
+macos_code_CODE_1_semantic_pascal_string_gap_00005fd0:
 	dc.b $88,$4C,$4F,$41,$44,$4D,$41,$49,$4E,$00,$00,$00
 macos_code_CODE_1_loc_00005fdc:
 	link a6,#0
@@ -11318,7 +11318,7 @@ macos_code_CODE_1_loc_00005fdc:
 	jsr macos_code_CODE_1_loc_00002008(pc)
 	unlk a6
 	rts
-macos_code_CODE_1_semantic_decode_gap_00006012:
+macos_code_CODE_1_semantic_pascal_string_gap_00006012:
 	dc.b $88,$4C,$4F,$41,$44,$53,$45,$47,$53,$00,$00,$00
 macos_code_CODE_1_loc_0000601e:
 	jsr macos_code_CODE_1_loc_000070c8(pc)
@@ -11532,7 +11532,7 @@ macos_code_CODE_1_loc_000062f4:
 	movem.l -$0008(a6),d6-d7
 	unlk a6
 	rts
-macos_code_CODE_1_semantic_decode_gap_00006314:
+macos_code_CODE_1_semantic_pascal_string_gap_00006314:
 	dc.b $87,$73,$69,$67,$5F,$64,$66,$6C,$00,$00
 macos_code_CODE_1_loc_0000631e:
 	link a6,#0
@@ -11554,7 +11554,7 @@ macos_code_CODE_1_loc_0000634c:
 macos_code_CODE_1_loc_00006352:
 	unlk a6
 	rts
-macos_code_CODE_1_semantic_decode_gap_00006356:
+macos_code_CODE_1_semantic_pascal_string_gap_00006356:
 	dc.b $91,$5F,$5F,$4E,$55,$4D,$54,$4F,$4F,$4C,$42,$4F,$58,$54,$52,$41
 	dc.b $50,$53,$00,$00
 macos_code_CODE_1_loc_0000636a:
@@ -11573,7 +11573,7 @@ macos_code_CODE_1_loc_0000638a:
 	movea.l (a7)+,a0
 	addq.w #2,a7
 	jmp (a0)
-macos_code_CODE_1_semantic_decode_gap_00006392:
+macos_code_CODE_1_semantic_pascal_string_gap_00006392:
 	dc.b $8D,$5F,$5F,$47,$45,$54,$54,$52,$41,$50,$54,$59,$50,$45,$00,$00
 macos_code_CODE_1_loc_000063a2:
 	link a6,#-2
@@ -11614,7 +11614,7 @@ macos_code_CODE_1_loc_000063d8:
 	movea.l (a7)+,a0
 	addq.w #2,a7
 	jmp (a0)
-macos_code_CODE_1_semantic_decode_gap_00006408:
+macos_code_CODE_1_semantic_pascal_string_gap_00006408:
 	dc.b $8D,$54,$52,$41,$50,$41,$56,$41,$49,$4C,$41,$42,$4C,$45,$00,$00
 macos_code_CODE_1_loc_00006418:
 	move.l (a7)+,d0
@@ -11645,7 +11645,7 @@ macos_code_CODE_1_loc_00006440:
 macos_code_CODE_1_loc_00006444:
 	move.w d0,$0004(a7)
 	rts
-macos_code_CODE_1_semantic_decode_gap_0000644a:
+macos_code_CODE_1_semantic_pascal_string_gap_0000644a:
 	dc.b $88,$50,$4C,$53,$74,$72,$43,$6D,$70,$00,$00,$00
 macos_code_CODE_1_loc_00006456:
 	move.l (a7)+,d0
@@ -11662,7 +11662,7 @@ macos_code_CODE_1_loc_00006468:
 macos_code_CODE_1_loc_0000646a:
 	dbf.w d0,macos_code_CODE_1_loc_00006440
 	rts
-macos_code_CODE_1_semantic_decode_gap_00006470:
+macos_code_CODE_1_semantic_pascal_string_gap_00006470:
 	dc.b $88,$50,$4C,$53,$74,$72,$43,$70,$79,$00,$00,$00
 macos_code_CODE_1_loc_0000647c:
 	link a6,#-4
@@ -11862,7 +11862,7 @@ macos_code_CODE_1_loc_000067b2:
 	tst.l $0020(a0)
 	beq.b macos_code_CODE_1_loc_000067ec
 	moveq.l #120,d0
-macos_code_CODE_1_semantic_decode_gap_000067c2:
+macos_code_CODE_1_semantic_dispatch_table_gap_000067c2:
 	dc.b $A1,$1E,$2B,$48,$CF,$98,$66,$0A,$70,$02,$2F,$00,$4E,$BA,$00,$82
 	dc.b $58,$4F,$20,$78,$03,$16,$20,$68,$00,$04,$26,$68,$00,$20,$7E,$00
 	dc.b $76,$05,$22,$07,$20,$01,$C2,$FC,$00,$18,$48,$40,$C0,$FC,$00,$18
@@ -11877,7 +11877,7 @@ macos_code_CODE_1_loc_0000681e:
 	movem.l -$0018(a6),d3/d6-d7/a2-a4
 	unlk a6
 	rts
-macos_code_CODE_1_semantic_decode_gap_00006828:
+macos_code_CODE_1_semantic_pascal_string_gap_00006828:
 	dc.b $87,$5F,$52,$54,$49,$6E,$69,$74,$00,$00
 macos_code_CODE_1_loc_00006832:
 	link a6,#0
@@ -11887,7 +11887,7 @@ macos_code_CODE_1_loc_00006832:
 	jsr macos_code_CODE_1_loc_0000682a(pc)
 	unlk a6
 	rts
-macos_code_CODE_1_semantic_decode_gap_0000684a:
+macos_code_CODE_1_semantic_pascal_string_gap_0000684a:
 	dc.b $84,$65,$78,$69,$74,$00,$00,$00
 macos_code_CODE_1_loc_00006852:
 	link a6,#0
@@ -11927,7 +11927,7 @@ macos_code_CODE_1_loc_000068a2:
 	movea.l -$0004(a6),a4
 	unlk a6
 	rts
-macos_code_CODE_1_semantic_decode_gap_000068aa:
+macos_code_CODE_1_semantic_pascal_string_gap_000068aa:
 	dc.b $87,$5F,$52,$54,$45,$78,$69,$74,$00,$00
 macos_code_CODE_1_loc_000068b4:
 	movea.l (a7)+,a1
@@ -12022,7 +12022,7 @@ macos_code_CODE_1_loc_0000697a:
 	link a6,#-50
 	movea.l a7,a0
 	move.w $0008(a6),$0018(a0)
-macos_code_CODE_1_semantic_decode_gap_00006986:
+macos_code_CODE_1_semantic_dispatch_table_gap_00006986:
 	dc.b $A0,$01,$3D,$40,$00,$0A,$4E,$5E,$20,$5F,$54,$8F,$4E,$D0
 macos_code_CODE_1_loc_00006994:
 	sf.b d1
@@ -12053,7 +12053,7 @@ macos_code_CODE_1_loc_000069dc:
 	move.w $000C(a6),$0016(a0)
 	clr.b $001A(a0)
 	clr.w $001C(a0)
-macos_code_CODE_1_semantic_decode_gap_000069f6:
+macos_code_CODE_1_semantic_dispatch_table_gap_000069f6:
 	dc.b $A0,$0C,$3D,$40,$00,$12,$41,$E8,$00,$20,$22,$6E,$00,$08,$70,$10
 	dc.b $A0,$2E,$4E,$5E,$22,$5F,$4F,$EF,$00,$0A,$4E,$D1
 macos_code_CODE_1_loc_00006a12:
@@ -12071,7 +12071,7 @@ macos_code_CODE_1_loc_00006a36:
 	move.w $000C(a6),$0016(a0)
 	clr.b $001A(a0)
 	move.l $0008(a6),$001C(a0)
-macos_code_CODE_1_semantic_decode_gap_00006a52:
+macos_code_CODE_1_semantic_dispatch_table_gap_00006a52:
 	dc.b $A0,$0B,$3D,$40,$00,$12,$4E,$5E,$22,$5F,$4F,$EF,$00,$0A,$4E,$D1
 macos_code_CODE_1_loc_00006a62:
 	link a6,#-80
@@ -12080,7 +12080,7 @@ macos_code_CODE_1_loc_00006a62:
 	move.w $000C(a6),$0016(a0)
 	clr.b $001A(a0)
 	clr.w $001C(a0)
-macos_code_CODE_1_semantic_decode_gap_00006a7c:
+macos_code_CODE_1_semantic_dispatch_table_gap_00006a7c:
 	dc.b $A0,$0C,$43,$E8,$00,$20,$20,$6E,$00,$08,$70,$10,$A0,$2E,$20,$4F
 	dc.b $A0,$0D,$3D,$40,$00,$12,$4E,$5E,$22,$5F,$4F,$EF,$00,$0A,$4E,$D1
 macos_code_CODE_1_loc_00006a9c:
@@ -12094,7 +12094,7 @@ macos_code_CODE_1_loc_00006abc:
 	link a6,#-50
 	movea.l a7,a0
 	move.w $000C(a6),$0018(a0)
-macos_code_CODE_1_semantic_decode_gap_00006ac8:
+macos_code_CODE_1_semantic_dispatch_table_gap_00006ac8:
 	dc.b $A0,$18,$3D,$40,$00,$0E,$22,$6E,$00,$08,$22,$A8,$00,$2E,$4E,$5E
 	dc.b $22,$5F,$5C,$8F,$4E,$D1
 macos_code_CODE_1_loc_00006ade:
@@ -12219,7 +12219,7 @@ macos_code_CODE_1_loc_00006bae:
 	movea.l (a7)+,a0
 	lea.l $000C(a7),a7
 	jmp (a0)
-macos_code_CODE_1_semantic_decode_gap_00006bec:
+macos_code_CODE_1_semantic_pascal_string_gap_00006bec:
 	dc.b $87,$48,$47,$45,$54,$56,$4F,$4C,$00,$00
 macos_code_CODE_1_loc_00006bf6:
 	link a6,#-122
@@ -12237,7 +12237,7 @@ macos_code_CODE_1_loc_00006bf6:
 	movea.l (a7)+,a0
 	lea.l $000A(a7),a7
 	jmp (a0)
-macos_code_CODE_1_semantic_decode_gap_00006c2c:
+macos_code_CODE_1_semantic_pascal_string_gap_00006c2c:
 	dc.b $87,$48,$44,$45,$4C,$45,$54,$45,$00,$00
 macos_code_CODE_1_loc_00006c36:
 	link a6,#-122
@@ -12265,7 +12265,7 @@ macos_code_CODE_1_loc_00006c36:
 	movea.l (a7)+,a0
 	lea.l $000E(a7),a7
 	jmp (a0)
-macos_code_CODE_1_semantic_decode_gap_00006c88:
+macos_code_CODE_1_semantic_pascal_string_gap_00006c88:
 	dc.b $89,$48,$47,$45,$54,$46,$49,$4E,$46,$4F,$00,$00
 macos_code_CODE_1_loc_00006c94:
 	link a6,#-122
@@ -12303,12 +12303,12 @@ macos_code_CODE_1_loc_00006cee:
 	movea.l (a7)+,a0
 	lea.l $000E(a7),a7
 	jmp (a0)
-macos_code_CODE_1_semantic_decode_gap_00006d02:
+macos_code_CODE_1_semantic_pascal_string_gap_00006d02:
 	dc.b $89,$48,$53,$45,$54,$46,$49,$4E,$46,$4F,$00,$00
 macos_code_CODE_1_loc_00006d0e:
 	link a6,#0
 	move.l #$A89F,d0
-macos_code_CODE_1_semantic_decode_gap_00006d18:
+macos_code_CODE_1_semantic_dispatch_table_gap_00006d18:
 	dc.b $A7,$46,$2F,$08,$20,$3C,$00,$00,$A0,$AD,$A3,$46,$B1,$DF,$67,$0E
 	dc.b $20,$2E,$00,$0C,$A1,$AD,$22,$6E,$00,$08,$22,$88,$60,$26,$41,$FA
 	dc.b $00,$36,$30,$3C,$EA,$51,$22,$2E,$00,$0C,$B2,$98,$67,$06,$4A,$98
@@ -12401,7 +12401,7 @@ macos_code_CODE_1_loc_00006f80:
 	subq.w #4,a7
 	move.l #$61637572,-(a7)
 	clr.w -(a7)
-macos_code_CODE_1_semantic_decode_gap_00006f9e:
+macos_code_CODE_1_semantic_dispatch_table_gap_00006f9e:
 	dc.b $A9,$A0,$20,$1F,$67,$12,$26,$40,$42,$43,$55,$4F,$A9,$94,$55,$4F
 	dc.b $2F,$0B,$A9,$A4,$BF,$4F,$67,$3C,$59,$4F,$2F,$3C,$61,$63,$75,$72
 	dc.b $3F,$3C,$00,$01,$A9,$A0,$20,$1F,$67,$0A,$50,$F8,$0A,$5E,$2B,$40
@@ -12649,7 +12649,7 @@ macos_code_CODE_2_loc_000001c2:
 	lea.l macos_code_CODE_2_loc_00000052(pc),a0
 	rts
 macos_code_CODE_2_loc_000001c8:
-macos_code_CODE_2_semantic_decode_gap_000001c8:
+macos_code_CODE_2_semantic_dispatch_table_gap_000001c8:
 	dc.b $01,$F6,$00,$00,$00,$00,$02,$08,$02,$18,$02,$38,$02,$4A,$02,$5A
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$02,$AC,$00,$00,$02,$BC
 	dc.b $02,$CE,$02,$E0,$02,$EE,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
@@ -13316,7 +13316,7 @@ macos_code_CODE_2_loc_000018d4:
 	pea.l -$003E(a6)
 	pea.l $0002(a4)
 	move.w #$1010,-(a7)
-macos_code_CODE_2_semantic_decode_gap_00001900:
+macos_code_CODE_2_semantic_dispatch_table_gap_00001900:
 	dc.b $A9,$EB,$18,$BC,$00,$05,$7A,$08,$60,$00,$00,$92
 macos_code_CODE_2_loc_0000190c:
 	moveq.l #16,d0
@@ -13613,7 +13613,7 @@ macos_code_CODE_2_loc_00001c50:
 	move.w macos_code_CODE_2_loc_00001afa(pc,d0.w),d0
 	jmp $0(pc,d0.w)
 macos_code_CODE_2_loc_00001c70:
-macos_code_CODE_2_semantic_decode_gap_00001c70:
+macos_code_CODE_2_semantic_dispatch_table_gap_00001c70:
 	dc.b $00,$0E,$00,$98,$00,$98,$01,$02,$01,$02,$01,$78,$42,$67,$48,$6E
 	dc.b $FF,$FA,$4E,$AD,$02,$02,$10,$1F,$67,$70,$4A,$AE,$FF,$FA,$5F,$C0
 	dc.b $4A,$00,$66,$0C,$72,$07,$B2,$AE,$FF,$FA,$5D,$C1,$80,$01,$67,$0C
@@ -13652,7 +13652,7 @@ macos_code_CODE_2_loc_00001e36:
 	move.l (a7)+,d7
 	unlk a6
 	rts
-macos_code_CODE_2_semantic_decode_gap_00001e3c:
+macos_code_CODE_2_semantic_dispatch_table_gap_00001e3c:
 	dc.b $89,$44,$4F,$4D,$43,$36,$38,$38,$38,$31,$00,$24,$08,$4B,$2D,$66
 	dc.b $61,$63,$74,$6F,$72,$00,$08,$52,$6F,$75,$6E,$64,$69,$6E,$67,$00
 	dc.b $09,$50,$72,$65,$63,$69,$73,$69,$6F,$6E,$04,$43,$6F,$49,$64,$00
@@ -13726,7 +13726,7 @@ macos_code_CODE_3_loc_0000012e:
 	movea.l (a7)+,a0
 	addq.w #2,a7
 	jmp (a0)
-macos_code_CODE_3_semantic_decode_gap_00000134:
+macos_code_CODE_3_semantic_pascal_string_gap_00000134:
 	dc.b $8C,$53,$45,$54,$49,$4F,$42,$55,$46,$53,$49,$5A,$45,$00,$00,$00
 macos_code_CODE_3_loc_00000144:
 	link a6,#0
@@ -14158,7 +14158,7 @@ macos_code_CODE_3_loc_0000066e:
 	move.b #$32,-$0C7A(a5)
 	unlk a6
 	rts
-macos_code_CODE_3_semantic_decode_gap_000006e0:
+macos_code_CODE_3_semantic_pascal_string_gap_000006e0:
 	dc.b $88,$49,$4E,$49,$54,$45,$58,$50,$52,$00,$00,$00
 macos_code_CODE_3_loc_000006ec:
 	link a6,#-8
@@ -14308,7 +14308,7 @@ macos_code_CODE_3_loc_0000089e:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-macos_code_CODE_3_semantic_decode_gap_000008f8:
+macos_code_CODE_3_semantic_pascal_string_gap_000008f8:
 	dc.b $87,$44,$45,$43,$4C,$41,$52,$45,$00,$00
 macos_code_CODE_3_loc_00000902:
 	link a6,#-578
@@ -15065,7 +15065,7 @@ macos_code_CODE_3_loc_00001726:
 	movea.l (a7)+,a0
 	adda.w #$C,a7
 	jmp (a0)
-macos_code_CODE_3_semantic_decode_gap_0000173c:
+macos_code_CODE_3_semantic_pascal_string_gap_0000173c:
 	dc.b $8A,$43,$4F,$50,$59,$53,$54,$52,$49,$4E,$47,$00,$00,$00
 macos_code_CODE_3_loc_0000174a:
 	link a6,#-512
@@ -15113,7 +15113,7 @@ macos_code_CODE_3_loc_0000179c:
 	movea.l (a7)+,a0
 	adda.w #$C,a7
 	jmp (a0)
-macos_code_CODE_3_semantic_decode_gap_000017c6:
+macos_code_CODE_3_semantic_pascal_string_gap_000017c6:
 	dc.b $8B,$47,$45,$54,$41,$52,$47,$50,$41,$52,$41,$4D,$00,$00
 macos_code_CODE_3_loc_000017d4:
 	link a6,#-258
@@ -15410,7 +15410,7 @@ macos_code_CODE_3_loc_00001c8c:
 	movea.l (a7)+,a0
 	addq.w #2,a7
 	jmp (a0)
-macos_code_CODE_3_semantic_decode_gap_00001c94:
+macos_code_CODE_3_semantic_pascal_string_gap_00001c94:
 	dc.b $8E,$53,$45,$54,$50,$52,$49,$4E,$54,$4F,$50,$54,$49,$4F,$4E,$00
 	dc.b $00,$00
 macos_code_CODE_3_loc_00001ca6:
@@ -16573,7 +16573,7 @@ macos_code_CODE_3_loc_000033ea:
 	move.w macos_code_CODE_3_loc_000032fe(pc,d0.w),d0
 	jmp $0(pc,d0.w)
 macos_code_CODE_3_loc_0000342c:
-macos_code_CODE_3_semantic_decode_gap_0000342c:
+macos_code_CODE_3_semantic_dispatch_table_gap_0000342c:
 	dc.b $00,$26,$00,$30,$00,$3A,$00,$44,$00,$4E,$00,$58,$00,$62,$00,$7A
 	dc.b $00,$82,$00,$9A,$00,$A2,$00,$AA,$00,$CA,$00,$D2,$00,$DC,$00,$E4
 	dc.b $00,$EC,$00,$F4,$3D,$7C,$00,$C5,$FF,$FA,$60,$00,$00,$D2,$3D,$7C
@@ -17986,7 +17986,7 @@ macos_code_CODE_4_loc_00000224:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-macos_code_CODE_4_semantic_decode_gap_00000232:
+macos_code_CODE_4_semantic_pascal_string_gap_00000232:
 	dc.b $8A,$47,$45,$54,$4D,$4F,$44,$44,$41,$54,$45,$00,$00,$00
 macos_code_CODE_4_loc_00000240:
 	link a6,#-18
@@ -18013,7 +18013,7 @@ macos_code_CODE_4_loc_0000027a:
 	movea.l (a7)+,a0
 	adda.w #$C,a7
 	jmp (a0)
-macos_code_CODE_4_semantic_decode_gap_00000286:
+macos_code_CODE_4_semantic_pascal_string_gap_00000286:
 	dc.b $8B,$47,$45,$54,$46,$49,$4C,$45,$54,$59,$50,$45,$00,$00
 macos_code_CODE_4_loc_00000294:
 	link a6,#-18
@@ -18040,7 +18040,7 @@ macos_code_CODE_4_loc_000002cc:
 	movea.l (a7)+,a0
 	adda.w #$C,a7
 	jmp (a0)
-macos_code_CODE_4_semantic_decode_gap_000002dc:
+macos_code_CODE_4_semantic_pascal_string_gap_000002dc:
 	dc.b $8B,$53,$45,$54,$46,$49,$4C,$45,$54,$59,$50,$45,$00,$00
 macos_code_CODE_4_loc_000002ea:
 	link a6,#0
@@ -18051,7 +18051,7 @@ macos_code_CODE_4_loc_000002ea:
 	jsr $08BA(a5)
 	unlk a6
 	rts
-macos_code_CODE_4_semantic_decode_gap_00000304:
+macos_code_CODE_4_semantic_pascal_string_gap_00000304:
 	dc.b $85,$45,$4E,$44,$49,$4F,$00,$00
 macos_code_CODE_4_loc_0000030c:
 	link a6,#-10
@@ -18117,7 +18117,7 @@ macos_code_CODE_4_loc_00000390:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-macos_code_CODE_4_semantic_decode_gap_0000039a:
+macos_code_CODE_4_semantic_pascal_string_gap_0000039a:
 	dc.b $89,$42,$55,$49,$4C,$44,$50,$41,$54,$48,$00,$00
 macos_code_CODE_4_loc_000003a6:
 	link a6,#-516
@@ -18503,7 +18503,7 @@ macos_code_CODE_4_loc_000007ee:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-macos_code_CODE_4_semantic_decode_gap_000007f8:
+macos_code_CODE_4_semantic_pascal_string_gap_000007f8:
 	dc.b $8A,$44,$45,$41,$4C,$4C,$4F,$43,$46,$43,$42,$00,$00,$00
 macos_code_CODE_4_loc_00000806:
 	link a6,#-794
@@ -19224,7 +19224,7 @@ macos_code_CODE_4_loc_0000102c:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-macos_code_CODE_4_semantic_decode_gap_00001038:
+macos_code_CODE_4_semantic_dispatch_table_gap_00001038:
 	dc.b $89,$50,$55,$53,$48,$49,$4E,$50,$55,$54,$00,$00,$4E,$56,$FE,$FE
 	dc.b $48,$E7,$01,$18,$1D,$7C,$00,$01,$00,$08,$70,$01,$B0,$6D,$CB,$1C
 	dc.b $66,$18,$2F,$2D,$CA,$D2,$42,$67,$4E,$BA,$FB,$E0,$70,$00,$2B,$40
@@ -19343,7 +19343,7 @@ macos_code_CODE_4_loc_00001420:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-macos_code_CODE_4_semantic_decode_gap_0000142c:
+macos_code_CODE_4_semantic_pascal_string_gap_0000142c:
 	dc.b $87,$50,$55,$54,$4C,$49,$4E,$45,$00,$00
 macos_code_CODE_4_loc_00001436:
 	link a6,#0
@@ -19387,7 +19387,7 @@ macos_code_CODE_4_loc_000014a2:
 	movea.l (a7)+,a0
 	addq.w #6,a7
 	jmp (a0)
-macos_code_CODE_4_semantic_decode_gap_000014ae:
+macos_code_CODE_4_semantic_pascal_string_gap_000014ae:
 	dc.b $85,$50,$55,$54,$43,$46,$00,$00
 macos_code_CODE_4_loc_000014b6:
 	link a6,#-2
@@ -19477,7 +19477,7 @@ macos_code_CODE_4_loc_000015bc:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-macos_code_CODE_4_semantic_decode_gap_000015d6:
+macos_code_CODE_4_semantic_pascal_string_gap_000015d6:
 	dc.b $88,$50,$55,$54,$4C,$49,$4E,$45,$53,$00,$00,$00
 macos_code_CODE_4_loc_000015e2:
 	link a6,#-20
@@ -19596,7 +19596,7 @@ macos_code_CODE_4_loc_00001710:
 	movea.l (a7)+,a0
 	adda.w #$A,a7
 	jmp (a0)
-macos_code_CODE_4_semantic_decode_gap_0000171e:
+macos_code_CODE_4_semantic_pascal_string_gap_0000171e:
 	dc.b $87,$50,$55,$54,$53,$54,$52,$50,$00,$00
 macos_code_CODE_4_loc_00001728:
 	link a6,#-256
@@ -19614,7 +19614,7 @@ macos_code_CODE_4_loc_00001736:
 	movea.l (a7)+,a0
 	adda.w #$A,a7
 	jmp (a0)
-macos_code_CODE_4_semantic_decode_gap_00001756:
+macos_code_CODE_4_semantic_pascal_string_gap_00001756:
 	dc.b $87,$50,$55,$54,$53,$54,$52,$53,$00,$00
 macos_code_CODE_4_loc_00001760:
 	link a6,#-260
@@ -19689,7 +19689,7 @@ macos_code_CODE_4_loc_000017f2:
 	movea.l (a7)+,a0
 	adda.w #$C,a7
 	jmp (a0)
-macos_code_CODE_4_semantic_decode_gap_00001800:
+macos_code_CODE_4_semantic_pascal_string_gap_00001800:
 	dc.b $8D,$53,$50,$4C,$49,$54,$50,$41,$54,$48,$4E,$41,$4D,$45,$00,$00
 macos_code_CODE_4_loc_00001810:
 	link a6,#-260
@@ -19717,7 +19717,7 @@ macos_code_CODE_4_loc_0000184e:
 	movea.l (a7)+,a0
 	adda.w #$A,a7
 	jmp (a0)
-macos_code_CODE_4_semantic_decode_gap_00001858:
+macos_code_CODE_4_semantic_pascal_string_gap_00001858:
 	dc.b $86,$47,$45,$54,$54,$41,$42,$00,$00,$00
 macos_code_CODE_4_loc_00001862:
 	link a6,#-264
@@ -19740,7 +19740,7 @@ macos_code_CODE_4_loc_00001870:
 	movea.l (a7)+,a0
 	addq.w #6,a7
 	jmp (a0)
-macos_code_CODE_4_semantic_decode_gap_000018a0:
+macos_code_CODE_4_semantic_pascal_string_gap_000018a0:
 	dc.b $86,$53,$45,$54,$54,$41,$42,$00,$00,$00
 macos_code_CODE_4_loc_000018aa:
 	link a6,#-264
@@ -19768,7 +19768,7 @@ macos_code_CODE_4_loc_000018b8:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-macos_code_CODE_4_semantic_decode_gap_000018f4:
+macos_code_CODE_4_semantic_pascal_string_gap_000018f4:
 	dc.b $87,$53,$45,$54,$46,$4F,$4E,$54,$00,$00
 macos_code_CODE_4_loc_000018fe:
 	link a6,#0
@@ -19777,7 +19777,7 @@ macos_code_CODE_4_loc_000018fe:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-macos_code_CODE_4_semantic_decode_gap_00001910:
+macos_code_CODE_4_semantic_pascal_string_gap_00001910:
 	dc.b $86,$4C,$4F,$41,$44,$49,$4F,$00,$00,$00
 
 ; CODE 5 Macros source section
@@ -20218,7 +20218,7 @@ macos_code_CODE_5_loc_000003de:
 	move.l (a7)+,(a0)
 	move.b #$1,(a7)
 	jmp (a1)
-macos_code_CODE_5_semantic_decode_gap_000003e8:
+macos_code_CODE_5_semantic_dispatch_table_gap_000003e8:
 	dc.b $24,$1F,$30,$1F,$22,$5F,$20,$5F,$48,$E7,$3F,$38,$24,$49,$38,$12
 	dc.b $0C,$44,$00,$FA,$6E,$04,$45,$EA,$00,$02,$28,$48,$3E,$00,$47,$ED
 	dc.b $FD,$ED,$42,$43,$42,$45,$52,$4C,$1C,$1C,$67,$04,$BE,$06,$66,$76
@@ -20294,7 +20294,7 @@ macos_code_CODE_5_loc_00000580:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-macos_code_CODE_5_semantic_decode_gap_0000058e:
+macos_code_CODE_5_semantic_pascal_string_gap_0000058e:
 	dc.b $89,$4E,$45,$57,$4D,$41,$43,$53,$54,$52,$00,$00
 macos_code_CODE_5_loc_0000059a:
 	link a6,#-4
@@ -20319,7 +20319,7 @@ macos_code_CODE_5_loc_000005d2:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-macos_code_CODE_5_semantic_decode_gap_000005d8:
+macos_code_CODE_5_semantic_pascal_string_gap_000005d8:
 	dc.b $8C,$43,$55,$54,$42,$41,$43,$4B,$53,$54,$4D,$54,$53,$00,$00,$00
 macos_code_CODE_5_loc_000005e8:
 	link a6,#0
@@ -20332,7 +20332,7 @@ macos_code_CODE_5_loc_000005f0:
 macos_code_CODE_5_loc_000005fc:
 	unlk a6
 	rts
-macos_code_CODE_5_semantic_decode_gap_00000600:
+macos_code_CODE_5_semantic_pascal_string_gap_00000600:
 	dc.b $88,$4B,$49,$4C,$4C,$4D,$41,$43,$53,$00,$00,$00
 macos_code_CODE_5_loc_0000060c:
 	link a6,#-4
@@ -20362,7 +20362,7 @@ macos_code_CODE_5_loc_0000063e:
 	movea.l (a7)+,a0
 	addq.w #6,a7
 	jmp (a0)
-macos_code_CODE_5_semantic_decode_gap_00000648:
+macos_code_CODE_5_semantic_pascal_string_gap_00000648:
 	dc.b $88,$47,$45,$54,$50,$41,$52,$4D,$4E,$00,$00,$00
 macos_code_CODE_5_loc_00000654:
 	link a6,#-8
@@ -20428,7 +20428,7 @@ macos_code_CODE_5_loc_000006f4:
 	movea.l (a7)+,a0
 	addq.w #6,a7
 	jmp (a0)
-macos_code_CODE_5_semantic_decode_gap_00000700:
+macos_code_CODE_5_semantic_pascal_string_gap_00000700:
 	dc.b $8A,$41,$44,$44,$4D,$41,$43,$50,$41,$52,$4D,$00,$00,$00
 macos_code_CODE_5_loc_0000070e:
 	link a6,#0
@@ -20456,7 +20456,7 @@ macos_code_CODE_5_loc_00000740:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-macos_code_CODE_5_semantic_decode_gap_00000748:
+macos_code_CODE_5_semantic_pascal_string_gap_00000748:
 	dc.b $8B,$46,$52,$45,$45,$50,$53,$54,$52,$55,$43,$54,$00,$00
 macos_code_CODE_5_loc_00000756:
 	link a6,#-4
@@ -20521,7 +20521,7 @@ macos_code_CODE_5_loc_000007e8:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-macos_code_CODE_5_semantic_decode_gap_000007f4:
+macos_code_CODE_5_semantic_pascal_string_gap_000007f4:
 	dc.b $8A,$43,$4F,$50,$59,$53,$54,$52,$55,$43,$54,$00,$00,$00
 macos_code_CODE_5_loc_00000802:
 	link a6,#-6
@@ -20564,7 +20564,7 @@ macos_code_CODE_5_loc_0000085a:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-macos_code_CODE_5_semantic_decode_gap_00000866:
+macos_code_CODE_5_semantic_pascal_string_gap_00000866:
 	dc.b $8F,$43,$48,$4B,$49,$4E,$54,$50,$41,$52,$4D,$56,$41,$4C,$55,$45
 	dc.b $00,$00
 macos_code_CODE_5_loc_00000878:
@@ -20606,7 +20606,7 @@ macos_code_CODE_5_loc_000008dc:
 	movea.l (a7)+,a0
 	adda.w #$C,a7
 	jmp (a0)
-macos_code_CODE_5_semantic_decode_gap_000008e8:
+macos_code_CODE_5_semantic_pascal_string_gap_000008e8:
 	dc.b $8C,$53,$45,$54,$50,$41,$52,$4D,$56,$41,$4C,$55,$45,$00,$00,$00
 macos_code_CODE_5_loc_000008f8:
 	link a6,#-4
@@ -20664,7 +20664,7 @@ macos_code_CODE_5_loc_00000988:
 	movea.l (a7)+,a0
 	adda.w #$A,a7
 	jmp (a0)
-macos_code_CODE_5_semantic_decode_gap_00000996:
+macos_code_CODE_5_semantic_pascal_string_gap_00000996:
 	dc.b $8D,$53,$45,$54,$50,$41,$52,$4D,$4E,$56,$41,$4C,$55,$45,$00,$00
 macos_code_CODE_5_loc_000009a6:
 	link a6,#-4
@@ -20682,7 +20682,7 @@ macos_code_CODE_5_loc_000009c4:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-macos_code_CODE_5_semantic_decode_gap_000009cc:
+macos_code_CODE_5_semantic_pascal_string_gap_000009cc:
 	dc.b $8C,$54,$59,$50,$45,$50,$52,$4D,$41,$53,$49,$4E,$54,$00,$00,$00
 macos_code_CODE_5_loc_000009dc:
 	link a6,#-4
@@ -20701,7 +20701,7 @@ macos_code_CODE_5_loc_000009fa:
 	movea.l (a7)+,a0
 	addq.w #2,a7
 	jmp (a0)
-macos_code_CODE_5_semantic_decode_gap_00000a04:
+macos_code_CODE_5_semantic_pascal_string_gap_00000a04:
 	dc.b $8D,$54,$59,$50,$45,$50,$52,$4D,$4E,$41,$53,$49,$4E,$54,$00,$00
 macos_code_CODE_5_loc_00000a14:
 	link a6,#-2
@@ -20720,7 +20720,7 @@ macos_code_CODE_5_loc_00000a2e:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-macos_code_CODE_5_semantic_decode_gap_00000a3c:
+macos_code_CODE_5_semantic_pascal_string_gap_00000a3c:
 	dc.b $89,$53,$54,$52,$55,$43,$54,$4E,$42,$52,$00,$00
 macos_code_CODE_5_loc_00000a48:
 	link a6,#-262
@@ -20806,7 +20806,7 @@ macos_code_CODE_5_loc_00000b34:
 	addq.l #1,-$2A12(a5)
 	unlk a6
 	rts
-macos_code_CODE_5_semantic_decode_gap_00000b48:
+macos_code_CODE_5_semantic_pascal_string_gap_00000b48:
 	dc.b $87,$53,$43,$41,$4E,$41,$43,$48,$00,$00
 macos_code_CODE_5_loc_00000b52:
 	link a6,#-272
@@ -20986,7 +20986,7 @@ macos_code_CODE_5_loc_00000d26:
 	movea.l (a7)+,a0
 	addq.w #6,a7
 	jmp (a0)
-macos_code_CODE_5_semantic_decode_gap_00000d32:
+macos_code_CODE_5_semantic_pascal_string_gap_00000d32:
 	dc.b $8D,$53,$43,$41,$4E,$41,$4D,$50,$45,$52,$53,$41,$4E,$44,$00,$00
 macos_code_CODE_5_loc_00000d42:
 	link a6,#-4
@@ -21021,7 +21021,7 @@ macos_code_CODE_5_loc_00000d82:
 macos_code_CODE_5_loc_00000d88:
 	unlk a6
 	rts
-macos_code_CODE_5_semantic_decode_gap_00000d8c:
+macos_code_CODE_5_semantic_pascal_string_gap_00000d8c:
 	dc.b $8B,$53,$43,$41,$4E,$41,$53,$54,$52,$49,$4E,$47,$00,$00
 macos_code_CODE_5_loc_00000d9a:
 	link a6,#-264
@@ -21079,7 +21079,7 @@ macos_code_CODE_5_loc_00000e2e:
 	movem.l (a7)+,d6-d7/a4
 	unlk a6
 	rts
-macos_code_CODE_5_semantic_decode_gap_00000e36:
+macos_code_CODE_5_semantic_pascal_string_gap_00000e36:
 	dc.b $86,$53,$43,$41,$4E,$41,$54,$00,$00,$00
 macos_code_CODE_5_loc_00000e40:
 	link a6,#0
@@ -21130,7 +21130,7 @@ macos_code_CODE_5_loc_00000ea8:
 macos_code_CODE_5_loc_00000eba:
 	unlk a6
 	rts
-macos_code_CODE_5_semantic_decode_gap_00000ebe:
+macos_code_CODE_5_semantic_pascal_string_gap_00000ebe:
 	dc.b $88,$53,$43,$41,$4E,$43,$4F,$4E,$54,$00,$00,$00
 macos_code_CODE_5_loc_00000eca:
 	link a6,#-16
@@ -21275,7 +21275,7 @@ macos_code_CODE_5_loc_0000102a:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-macos_code_CODE_5_semantic_decode_gap_00001034:
+macos_code_CODE_5_semantic_pascal_string_gap_00001034:
 	dc.b $8B,$53,$43,$41,$4E,$53,$55,$42,$4C,$49,$53,$54,$00,$00
 macos_code_CODE_5_loc_00001042:
 	link a6,#-272
@@ -21559,7 +21559,7 @@ macos_code_CODE_5_loc_00001302:
 	move.w d0,-$042A(a5)
 	unlk a6
 	rts
-macos_code_CODE_5_semantic_decode_gap_00001362:
+macos_code_CODE_5_semantic_pascal_string_gap_00001362:
 	dc.b $8A,$53,$43,$41,$4E,$41,$43,$54,$55,$41,$4C,$00,$00,$00
 macos_code_CODE_5_loc_00001370:
 	link a6,#0
@@ -21584,7 +21584,7 @@ macos_code_CODE_5_loc_00001370:
 	move.w d0,-$043A(a5)
 	unlk a6
 	rts
-macos_code_CODE_5_semantic_decode_gap_000013cc:
+macos_code_CODE_5_semantic_pascal_string_gap_000013cc:
 	dc.b $91,$53,$43,$41,$4E,$46,$4F,$52,$4D,$41,$4C,$44,$45,$46,$41,$55
 	dc.b $4C,$54,$00,$00
 macos_code_CODE_5_loc_000013e0:
@@ -21651,7 +21651,7 @@ macos_code_CODE_5_loc_000014a0:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-macos_code_CODE_5_semantic_decode_gap_000014a6:
+macos_code_CODE_5_semantic_pascal_string_gap_000014a6:
 	dc.b $8C,$50,$55,$54,$4D,$44,$45,$46,$42,$45,$47,$49,$4E,$00,$00,$00
 macos_code_CODE_5_loc_000014b6:
 	link a6,#-12
@@ -21756,7 +21756,7 @@ macos_code_CODE_5_loc_000015d4:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-macos_code_CODE_5_semantic_decode_gap_000015de:
+macos_code_CODE_5_semantic_pascal_string_gap_000015de:
 	dc.b $8B,$50,$55,$54,$4D,$44,$45,$46,$4C,$49,$4E,$45,$00,$00
 macos_code_CODE_5_loc_000015ec:
 	link a6,#0
@@ -21764,7 +21764,7 @@ macos_code_CODE_5_loc_000015ec:
 	move.b #$1,(a0)
 	unlk a6
 	rts
-macos_code_CODE_5_semantic_decode_gap_000015fc:
+macos_code_CODE_5_semantic_pascal_string_gap_000015fc:
 	dc.b $8A,$50,$55,$54,$4D,$44,$45,$46,$45,$4E,$44,$00,$00,$00
 macos_code_CODE_5_loc_0000160a:
 	link a6,#-14
@@ -21835,7 +21835,7 @@ macos_code_CODE_5_loc_000016e4:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-macos_code_CODE_5_semantic_decode_gap_000016f0:
+macos_code_CODE_5_semantic_pascal_string_gap_000016f0:
 	dc.b $89,$4F,$50,$45,$4E,$4D,$41,$43,$52,$4F,$00,$00
 macos_code_CODE_5_loc_000016fc:
 	link a6,#-8
@@ -21942,7 +21942,7 @@ macos_code_CODE_5_loc_00001842:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-macos_code_CODE_5_semantic_decode_gap_00001848:
+macos_code_CODE_5_semantic_pascal_string_gap_00001848:
 	dc.b $8B,$54,$59,$50,$45,$54,$4F,$46,$4C,$41,$47,$53,$00,$00
 macos_code_CODE_5_loc_00001856:
 	link a6,#0
@@ -21963,7 +21963,7 @@ macos_code_CODE_5_loc_00001874:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-macos_code_CODE_5_semantic_decode_gap_00001882:
+macos_code_CODE_5_semantic_pascal_string_gap_00001882:
 	dc.b $8B,$46,$4C,$41,$47,$53,$54,$4F,$54,$59,$50,$45,$00,$00
 macos_code_CODE_5_loc_00001890:
 	link a6,#-8
@@ -22062,7 +22062,7 @@ macos_code_CODE_5_loc_0000197c:
 	movea.l (a7)+,a0
 	adda.w #$12,a7
 	jmp (a0)
-macos_code_CODE_5_semantic_decode_gap_0000198a:
+macos_code_CODE_5_semantic_pascal_string_gap_0000198a:
 	dc.b $8A,$46,$49,$4E,$44,$4D,$41,$43,$56,$41,$52,$00,$00,$00
 macos_code_CODE_5_loc_00001998:
 	link a6,#-148
@@ -22407,7 +22407,7 @@ macos_code_CODE_5_loc_00001d38:
 	move.w macos_code_CODE_5_loc_00001c80(pc,d0.w),d0
 	jmp $0(pc,d0.w)
 macos_code_CODE_5_loc_00001d54:
-macos_code_CODE_5_semantic_decode_gap_00001d54:
+macos_code_CODE_5_semantic_dispatch_table_gap_00001d54:
 	dc.b $00,$20,$00,$20,$00,$6C,$00,$8A,$00,$A8,$00,$CE,$00,$DE,$00,$EE
 	dc.b $00,$FA,$01,$1C,$01,$28,$01,$3E,$01,$46,$01,$9A,$01,$F8,$4A,$AD
 	dc.b $EC,$E6,$66,$1E,$42,$A7,$30,$2D,$DA,$52,$48,$C0,$2F,$00,$2F,$3C
@@ -23365,7 +23365,7 @@ macos_code_CODE_5_loc_00002c2e:
 	movea.l $0008(a6),a0
 	movea.l a0,a6
 	jmp macos_code_CODE_5_loc_00002d72(pc)
-macos_code_CODE_5_semantic_decode_gap_00002c4e:
+macos_code_CODE_5_semantic_dispatch_table_gap_00002c4e:
 	dc.b $00,$00,$4E,$5E,$20,$5F,$DE,$FC,$00,$0A,$4E,$D0,$86,$45,$52,$52
 	dc.b $4F,$55,$54,$00,$00,$00
 macos_code_CODE_5_loc_00002c64:
@@ -23538,7 +23538,7 @@ macos_code_CODE_5_loc_00002e46:
 	movea.l (a7)+,a0
 	adda.w #$12,a7
 	jmp (a0)
-macos_code_CODE_5_semantic_decode_gap_00002e58:
+macos_code_CODE_5_semantic_pascal_string_gap_00002e58:
 	dc.b $8C,$47,$45,$54,$4D,$41,$43,$41,$52,$52,$56,$41,$4C,$00,$00,$00
 macos_code_CODE_5_loc_00002e68:
 	link a6,#0
@@ -23569,7 +23569,7 @@ macos_code_CODE_5_loc_00002eac:
 	movea.l (a7)+,a0
 	addq.w #2,a7
 	jmp (a0)
-macos_code_CODE_5_semantic_decode_gap_00002eb4:
+macos_code_CODE_5_semantic_pascal_string_gap_00002eb4:
 	dc.b $89,$43,$48,$4B,$42,$41,$44,$44,$49,$4D,$00,$00
 macos_code_CODE_5_loc_00002ec0:
 	link a6,#-8
@@ -23630,7 +23630,7 @@ macos_code_CODE_5_loc_00002f4a:
 	movea.l (a7)+,a0
 	adda.w #$E,a7
 	jmp (a0)
-macos_code_CODE_5_semantic_decode_gap_00002f58:
+macos_code_CODE_5_semantic_pascal_string_gap_00002f58:
 	dc.b $8D,$43,$48,$4B,$47,$4C,$4F,$42,$41,$4C,$49,$4E,$46,$4F,$00,$00
 macos_code_CODE_5_loc_00002f68:
 	link a6,#-60
@@ -24208,7 +24208,7 @@ macos_code_CODE_5_loc_00003542:
 	movea.l (a7)+,a0
 	adda.w #$E,a7
 	jmp (a0)
-macos_code_CODE_5_semantic_decode_gap_00003550:
+macos_code_CODE_5_semantic_pascal_string_gap_00003550:
 	dc.b $89,$4E,$45,$57,$4D,$41,$43,$56,$41,$52,$00,$00
 macos_code_CODE_5_loc_0000355c:
 	link a6,#-52
@@ -24411,7 +24411,7 @@ macos_code_CODE_5_loc_0000377a:
 	movem.l (a7)+,d4-d7/a3-a4
 	unlk a6
 	rts
-macos_code_CODE_5_semantic_decode_gap_00003782:
+macos_code_CODE_5_semantic_pascal_string_gap_00003782:
 	dc.b $8B,$46,$52,$45,$45,$4D,$41,$43,$56,$41,$52,$53,$00,$00
 macos_code_CODE_5_loc_00003790:
 	link a6,#0
@@ -24460,7 +24460,7 @@ macos_code_CODE_5_loc_0000380a:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-macos_code_CODE_5_semantic_decode_gap_00003812:
+macos_code_CODE_5_semantic_pascal_string_gap_00003812:
 	dc.b $89,$47,$45,$54,$41,$42,$53,$41,$52,$47,$00,$00
 macos_code_CODE_5_loc_0000381e:
 	link a6,#0
@@ -24503,7 +24503,7 @@ macos_code_CODE_5_loc_00003884:
 	movea.l (a7)+,a0
 	addq.w #6,a7
 	jmp (a0)
-macos_code_CODE_5_semantic_decode_gap_00003890:
+macos_code_CODE_5_semantic_pascal_string_gap_00003890:
 	dc.b $8C,$47,$45,$54,$54,$48,$45,$41,$42,$53,$41,$52,$47,$00,$00,$00
 macos_code_CODE_5_loc_000038a0:
 	link a6,#-4
@@ -24534,7 +24534,7 @@ macos_code_CODE_5_loc_000038de:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-macos_code_CODE_5_semantic_decode_gap_000038e8:
+macos_code_CODE_5_semantic_pascal_string_gap_000038e8:
 	dc.b $8F,$43,$52,$45,$41,$54,$45,$53,$54,$52,$52,$45,$53,$55,$4C,$54
 	dc.b $00,$00
 macos_code_CODE_5_loc_000038fa:
@@ -24601,7 +24601,7 @@ macos_code_CODE_5_loc_00003980:
 	movea.l (a7)+,a0
 	adda.w #$C,a7
 	jmp (a0)
-macos_code_CODE_5_semantic_decode_gap_0000398e:
+macos_code_CODE_5_semantic_pascal_string_gap_0000398e:
 	dc.b $92,$43,$52,$45,$41,$54,$45,$53,$55,$42,$53,$54,$52,$52,$45,$53
 	dc.b $55,$4C,$54,$00,$00,$00,$4E,$56,$00,$00,$22,$6E,$00,$08,$20,$69
 	dc.b $00,$08,$30,$AE,$00,$0C,$20,$6E,$00,$08,$42,$28,$00,$0E,$20,$6E
@@ -24646,7 +24646,7 @@ macos_code_CODE_5_loc_00003ac2:
 	move.w macos_code_CODE_5_loc_00003a3c(pc,d0.w),d0
 	jmp $0(pc,d0.w)
 macos_code_CODE_5_loc_00003b10:
-macos_code_CODE_5_semantic_decode_gap_00003b10:
+macos_code_CODE_5_semantic_dispatch_table_gap_00003b10:
 	dc.b $00,$42,$00,$B6,$01,$2A,$01,$64,$01,$64,$02,$70,$02,$70,$02,$FE
 	dc.b $03,$B8,$08,$C4,$05,$BA,$05,$BA,$03,$6A,$05,$14,$10,$22,$06,$34
 	dc.b $0E,$84,$04,$A6,$06,$80,$0D,$AC,$0F,$38,$0F,$B6,$05,$BA,$05,$BA
@@ -25065,7 +25065,7 @@ macos_code_CODE_5_loc_000053f6:
 	movea.l (a7)+,a0
 	addq.w #6,a7
 	jmp (a0)
-macos_code_CODE_5_semantic_decode_gap_00005430:
+macos_code_CODE_5_semantic_dispatch_table_gap_00005430:
 	dc.b $8A,$44,$4F,$46,$55,$4E,$43,$54,$49,$4F,$4E,$00,$00,$A4,$08,$41
 	dc.b $42,$53,$4F,$4C,$55,$54,$45,$00,$08,$52,$45,$4C,$41,$54,$49,$56
 	dc.b $45,$00,$07,$46,$4F,$52,$43,$45,$50,$43,$09,$4E,$4F,$46,$4F,$52
@@ -25188,7 +25188,7 @@ macos_code_CODE_5_loc_00005632:
 	movea.l (a7)+,a0
 	adda.w #$E,a7
 	jmp (a0)
-macos_code_CODE_5_semantic_decode_gap_00005640:
+macos_code_CODE_5_semantic_pascal_string_gap_00005640:
 	dc.b $8F,$47,$45,$54,$52,$41,$4E,$47,$45,$4F,$52,$49,$4E,$44,$45,$58
 	dc.b $00,$00
 macos_code_CODE_5_loc_00005652:
@@ -25736,7 +25736,7 @@ macos_code_CODE_5_loc_00005c8e:
 	movea.l (a7)+,a0
 	addq.w #6,a7
 	jmp (a0)
-macos_code_CODE_5_semantic_decode_gap_00005c9e:
+macos_code_CODE_5_semantic_pascal_string_gap_00005c9e:
 	dc.b $8D,$44,$4F,$41,$52,$52,$41,$59,$41,$43,$43,$45,$53,$53,$00,$00
 macos_code_CODE_5_loc_00005cae:
 	link a6,#-258
@@ -25818,7 +25818,7 @@ macos_code_CODE_5_loc_00005d8a:
 	movea.l (a7)+,a0
 	adda.w #$A,a7
 	jmp (a0)
-macos_code_CODE_5_semantic_decode_gap_00005d9c:
+macos_code_CODE_5_semantic_pascal_string_gap_00005d9c:
 	dc.b $8C,$4D,$41,$43,$43,$41,$4C,$4C,$45,$52,$52,$4F,$52,$00,$00,$00
 macos_code_CODE_5_loc_00005dac:
 	link a6,#-512
@@ -25942,7 +25942,7 @@ macos_code_CODE_5_loc_00005f00:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-macos_code_CODE_5_semantic_decode_gap_00005f08:
+macos_code_CODE_5_semantic_pascal_string_gap_00005f08:
 	dc.b $8A,$44,$45,$46,$49,$4E,$45,$50,$41,$52,$4D,$00,$00,$00
 macos_code_CODE_5_loc_00005f16:
 	link a6,#-788
@@ -26678,7 +26678,7 @@ macos_code_CODE_5_loc_000067f8:
 	movem.l (a7)+,a3-a4
 	unlk a6
 	rts
-macos_code_CODE_5_semantic_decode_gap_00006800:
+macos_code_CODE_5_semantic_pascal_string_gap_00006800:
 	dc.b $8A,$44,$4F,$4D,$41,$43,$52,$4F,$4C,$42,$4C,$00,$00,$00
 
 ; CODE 6 OpTable source section
@@ -26847,7 +26847,7 @@ macos_code_CODE_6_loc_00000106:
 	clr.l (a7)
 	jmp (a1)
 macos_code_CODE_6_loc_0000010a:
-macos_code_CODE_6_semantic_decode_gap_0000010a:
+macos_code_CODE_6_semantic_dispatch_table_gap_0000010a:
 	dc.b $06,$00,$00,$00,$08,$0A,$0C,$08,$0A,$0C,$0E,$0A,$06,$08,$0A,$06
 	dc.b $20,$5F,$22,$5F,$61,$0A,$22,$5F,$22,$82,$22,$5F,$22,$81,$4E,$D0
 macos_code_CODE_6_loc_0000012a:
@@ -27013,7 +27013,7 @@ macos_code_CODE_6_loc_00000312:
 	move.w macos_code_CODE_6_loc_00000312(pc,d0.w),d0
 	jmp macos_code_CODE_6_loc_00000312(pc,d0.w)
 macos_code_CODE_6_loc_0000034c:
-macos_code_CODE_6_semantic_decode_gap_0000034c:
+macos_code_CODE_6_semantic_dispatch_table_gap_0000034c:
 	dc.b $07,$FA,$0B,$20,$00,$4C,$0B,$20,$0B,$20,$07,$6A,$0B,$20,$00,$4C
 	dc.b $00,$4C,$00,$4C,$00,$4C,$00,$4C,$00,$4C,$00,$4C,$00,$4C,$00,$4C
 	dc.b $00,$4C,$00,$4C,$00,$4C,$00,$4C,$0B,$20,$0B,$20,$0E,$7C,$00,$4C
@@ -27199,7 +27199,7 @@ macos_code_CODE_6_loc_00000526:
 	move.b d0,(a7)
 	jmp (a0)
 macos_code_CODE_6_loc_00000534:
-macos_code_CODE_6_semantic_decode_gap_00000534:
+macos_code_CODE_6_semantic_dispatch_table_gap_00000534:
 	dc.b $00,$01,$80,$00,$00,$02,$40,$00,$00,$04,$20,$00,$00,$08,$10,$00
 	dc.b $00,$10,$08,$00,$00,$20,$04,$00,$00,$40,$02,$00,$00,$80,$01,$00
 	dc.b $01,$00,$00,$80,$02,$00,$00,$40,$04,$00,$00,$20,$08,$00,$00,$10
@@ -27314,7 +27314,7 @@ macos_code_CODE_6_loc_00000670:
 	move.b d0,(a7)
 	jmp (a0)
 macos_code_CODE_6_loc_0000067e:
-macos_code_CODE_6_semantic_decode_gap_0000067e:
+macos_code_CODE_6_semantic_dispatch_table_gap_0000067e:
 	dc.b $80,$01,$40,$02,$20,$04,$10,$08,$08,$10,$04,$20,$02,$40,$01,$80
 macos_code_CODE_6_loc_0000068e:
 	cmpi.b #15,d5
@@ -27998,7 +27998,7 @@ macos_code_CODE_6_loc_00000e38:
 	jsr $0142(a5)
 	bra.w macos_code_CODE_6_loc_000003b8
 macos_code_CODE_6_loc_00000e50:
-macos_code_CODE_6_semantic_decode_gap_00000e50:
+macos_code_CODE_6_semantic_dispatch_table_gap_00000e50:
 	dc.b $33,$34,$35,$36,$37,$38,$39,$3A,$3B,$3C,$14,$15,$3D,$3E,$15,$16
 	dc.b $17,$19,$19,$19,$1A,$1B,$1C,$1C,$18,$18,$14,$14
 macos_code_CODE_6_loc_00000e6c:
@@ -29668,7 +29668,7 @@ macos_code_CODE_6_loc_000022c6:
 	jsr $0172(a5)
 	jmp (a3)
 macos_code_CODE_6_loc_000022da:
-macos_code_CODE_6_semantic_decode_gap_000022da:
+macos_code_CODE_6_semantic_dispatch_table_gap_000022da:
 	dc.b $01,$F6,$02,$02,$02,$1C,$02,$7E,$00,$00,$02,$8C,$02,$9A,$02,$D0
 	dc.b $00,$00,$02,$E6,$03,$0A,$00,$00,$03,$16,$03,$24,$00,$00,$00,$00
 	dc.b $03,$D2,$03,$DC,$04,$22,$00,$00,$04,$4A,$04,$90,$00,$00,$04,$A6
@@ -30064,7 +30064,7 @@ macos_code_CODE_6_loc_00003b16:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-macos_code_CODE_6_semantic_decode_gap_00003b28:
+macos_code_CODE_6_semantic_pascal_string_gap_00003b28:
 	dc.b $8B,$4C,$4F,$41,$44,$4F,$50,$54,$41,$42,$4C,$45,$00,$00
 
 ; CODE 7 POpTable source section
@@ -30177,7 +30177,7 @@ macos_code_CODE_7_loc_000001ac:
 	lea.l macos_code_CODE_7_loc_00000052(pc),a0
 	rts
 macos_code_CODE_7_loc_000001b2:
-macos_code_CODE_7_semantic_decode_gap_000001b2:
+macos_code_CODE_7_semantic_dispatch_table_gap_000001b2:
 	dc.b $01,$F6,$02,$12,$02,$22,$00,$00,$00,$00,$02,$34,$00,$00,$02,$62
 	dc.b $02,$74,$00,$00,$00,$00,$02,$A2,$00,$00,$02,$B2,$00,$00,$00,$00
 	dc.b $02,$C4,$02,$D2,$02,$F2,$00,$00,$00,$00,$03,$04,$00,$00,$03,$14
@@ -30779,7 +30779,7 @@ macos_code_CODE_7_loc_0000100c:
 macos_code_CODE_7_loc_0000101e:
 	unlk a6
 	rts
-macos_code_CODE_7_semantic_decode_gap_00001022:
+macos_code_CODE_7_semantic_pascal_string_gap_00001022:
 	dc.b $89,$44,$4F,$4D,$43,$36,$38,$38,$35,$31,$00,$00
 
 ; CODE 8 Listing source section
@@ -31092,7 +31092,7 @@ macos_code_CODE_8_loc_00000300:
 	movea.l (a7)+,a0
 	addq.w #2,a7
 	jmp (a0)
-macos_code_CODE_8_semantic_decode_gap_0000030a:
+macos_code_CODE_8_semantic_pascal_string_gap_0000030a:
 	dc.b $8C,$53,$50,$41,$43,$45,$4C,$49,$53,$54,$49,$4E,$47,$00,$00,$00
 macos_code_CODE_8_loc_0000031a:
 	link a6,#0
@@ -31118,7 +31118,7 @@ macos_code_CODE_8_loc_00000354:
 	movea.l (a7)+,a0
 	addq.w #2,a7
 	jmp (a0)
-macos_code_CODE_8_semantic_decode_gap_0000035c:
+macos_code_CODE_8_semantic_pascal_string_gap_0000035c:
 	dc.b $8C,$45,$4A,$45,$43,$54,$4C,$49,$53,$54,$49,$4E,$47,$00,$00,$00
 macos_code_CODE_8_loc_0000036c:
 	link a6,#-28
@@ -31183,7 +31183,7 @@ macos_code_CODE_8_loc_000003fc:
 	movea.l (a7)+,a0
 	addq.w #6,a7
 	jmp (a0)
-macos_code_CODE_8_semantic_decode_gap_00000408:
+macos_code_CODE_8_semantic_pascal_string_gap_00000408:
 	dc.b $8C,$4F,$42,$4A,$43,$4F,$44,$45,$46,$49,$45,$4C,$44,$00,$00,$00
 macos_code_CODE_8_loc_00000418:
 	link a6,#-256
@@ -31209,7 +31209,7 @@ macos_code_CODE_8_loc_0000044a:
 	movea.l (a7)+,a0
 	addq.w #2,a7
 	jmp (a0)
-macos_code_CODE_8_semantic_decode_gap_00000458:
+macos_code_CODE_8_semantic_pascal_string_gap_00000458:
 	dc.b $91,$53,$48,$4F,$57,$52,$45,$53,$54,$4F,$46,$4F,$42,$4A,$43,$4F
 	dc.b $44,$45,$00,$00
 macos_code_CODE_8_loc_0000046c:
@@ -31378,7 +31378,7 @@ macos_code_CODE_8_loc_00000644:
 	movea.l (a7)+,a0
 	adda.w #$E,a7
 	jmp (a0)
-macos_code_CODE_8_semantic_decode_gap_00000652:
+macos_code_CODE_8_semantic_pascal_string_gap_00000652:
 	dc.b $88,$4C,$49,$53,$54,$4C,$49,$4E,$45,$00,$00,$00
 macos_code_CODE_8_loc_0000065e:
 	link a6,#-2
@@ -31462,7 +31462,7 @@ macos_code_CODE_8_loc_0000071e:
 	movea.l (a7)+,a0
 	addq.w #2,a7
 	jmp (a0)
-macos_code_CODE_8_semantic_decode_gap_0000072c:
+macos_code_CODE_8_semantic_pascal_string_gap_0000072c:
 	dc.b $8C,$4C,$49,$4E,$45,$4F,$4B,$54,$4F,$4C,$49,$53,$54,$00,$00,$00
 
 ; CODE 9 Pass2 source section
@@ -31567,7 +31567,7 @@ macos_code_CODE_9_loc_000002c8:
 	movea.l (a7)+,a0
 	lea.l $000E(a7),a7
 	jmp (a0)
-macos_code_CODE_9_semantic_decode_gap_000002d0:
+macos_code_CODE_9_semantic_dispatch_table_gap_000002d0:
 	dc.b $53,$40,$66,$08,$72,$01,$43,$EF,$00,$11,$60,$18,$53,$40,$66,$08
 	dc.b $72,$02,$43,$EF,$00,$10,$60,$0A,$72,$04,$43,$EF,$00,$0E,$10,$D9
 	dc.b $10,$D9,$10,$D9,$10,$99,$D3,$AD,$F0,$B2,$20,$57,$2E,$49,$4E,$D0
@@ -31710,7 +31710,7 @@ macos_code_CODE_9_loc_000005a6:
 	move.w macos_code_CODE_9_loc_000002ee(pc,d6.w),d6
 	jmp macos_code_CODE_9_loc_000002ee(pc,d6.w)
 macos_code_CODE_9_loc_000005b6:
-macos_code_CODE_9_semantic_decode_gap_000005b6:
+macos_code_CODE_9_semantic_dispatch_table_gap_000005b6:
 	dc.b $02,$66,$03,$7C,$03,$88,$03,$9C,$03,$B4,$03,$CA,$03,$D0,$03,$D6
 	dc.b $03,$DA,$03,$E0,$03,$EC,$29,$10,$29,$10,$29,$10,$29,$10,$29,$10
 	dc.b $29,$10,$29,$10,$25,$A0,$14,$98,$14,$9E,$03,$F8,$04,$BA,$04,$FE
@@ -31763,7 +31763,7 @@ macos_code_CODE_9_loc_000007e4:
 macos_code_CODE_9_loc_000007e6:
 	move.w #$1,$000A(a0)
 	rts
-macos_code_CODE_9_semantic_decode_gap_000007ee:
+macos_code_CODE_9_semantic_dispatch_table_gap_000007ee:
 	dc.b $20,$2E,$FF,$B0,$67,$0A,$20,$40,$2D,$68,$00,$0C,$FF,$B0,$60,$16
 	dc.b $59,$4F,$2F,$2D,$F0,$7C,$3F,$3C,$00,$14,$4E,$AD,$07,$8A,$20,$1F
 	dc.b $66,$02,$4E,$75,$20,$40,$31,$7C,$00,$01,$00,$12,$4E,$75
@@ -31930,7 +31930,7 @@ macos_code_CODE_9_loc_000009a2:
 	move.b (a4)+,d6
 	move.b #$F,d5
 	bra.w macos_code_CODE_9_loc_00000298
-macos_code_CODE_9_semantic_decode_gap_000009ae:
+macos_code_CODE_9_semantic_dispatch_table_gap_000009ae:
 	dc.b $10,$1C,$48,$80,$3B,$40,$F4,$2E,$41,$EE,$FF,$E6,$10,$DC,$10,$9C
 	dc.b $1B,$5C,$FB,$DF,$22,$6D,$F0,$F2,$30,$11,$32,$00,$E5,$49,$D2,$40
 	dc.b $D2,$40,$45,$F1,$10,$0A,$12,$1C,$42,$42,$42,$43,$60,$3C,$14,$1C
@@ -32080,7 +32080,7 @@ macos_code_CODE_9_loc_0000101c:
 macos_code_CODE_9_loc_00001022:
 	rts
 macos_code_CODE_9_loc_00001024:
-macos_code_CODE_9_semantic_decode_gap_00001024:
+macos_code_CODE_9_semantic_string_data_gap_00001024:
 	dc.b $30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$41,$42,$43,$44,$45,$46
 macos_code_CODE_9_loc_00001034:
 	movea.l (a7)+,a0
@@ -32141,7 +32141,7 @@ macos_code_CODE_9_loc_000010a0:
 	swap.w d0
 	bsr.b macos_code_CODE_9_loc_00000d72
 	rts
-macos_code_CODE_9_semantic_decode_gap_000010b4:
+macos_code_CODE_9_semantic_dispatch_table_gap_000010b4:
 	dc.b $48,$E7,$FF,$38,$36,$02,$C6,$C1,$28,$03,$3A,$01,$3C,$05,$24,$40
 	dc.b $26,$4A,$42,$42,$28,$6D,$EC,$F8,$42,$47,$1E,$14,$54,$47,$0C,$47
 	dc.b $00,$FC,$6F,$06,$61,$00,$FE,$E2,$60,$50,$10,$1A,$41,$F4,$70,$FF
@@ -32780,7 +32780,7 @@ macos_code_CODE_9_loc_00003668:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-macos_code_CODE_9_semantic_decode_gap_0000366e:
+macos_code_CODE_9_semantic_pascal_string_gap_0000366e:
 	dc.b $89,$4C,$4F,$41,$44,$50,$41,$53,$53,$32,$00,$00
 
 ; CODE 10 FinishUp source section
@@ -32840,7 +32840,7 @@ macos_code_CODE_10_loc_00000094:
 	movea.l (a7)+,a0
 	addq.w #6,a7
 	jmp (a0)
-macos_code_CODE_10_semantic_decode_gap_0000009a:
+macos_code_CODE_10_semantic_pascal_string_gap_0000009a:
 	dc.b $88,$45,$43,$48,$4F,$4C,$49,$4E,$45,$00,$00,$00
 macos_code_CODE_10_loc_000000a6:
 	link a6,#0
@@ -32886,7 +32886,7 @@ macos_code_CODE_10_loc_00000122:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-macos_code_CODE_10_semantic_decode_gap_0000012a:
+macos_code_CODE_10_semantic_pascal_string_gap_0000012a:
 	dc.b $89,$57,$52,$49,$54,$45,$4C,$49,$4E,$45,$00,$00
 macos_code_CODE_10_loc_00000136:
 	link a6,#-428
@@ -33368,7 +33368,7 @@ macos_code_CODE_11_loc_00000344:
 	movea.l (a7)+,a0
 	addq.w #2,a7
 	jmp (a0)
-macos_code_CODE_11_semantic_decode_gap_0000034a:
+macos_code_CODE_11_semantic_pascal_string_gap_0000034a:
 	dc.b $8F,$41,$4C,$4C,$4F,$43,$41,$54,$45,$4F,$46,$42,$59,$54,$45,$53
 	dc.b $00,$00
 macos_code_CODE_11_loc_0000035c:
@@ -33396,7 +33396,7 @@ macos_code_CODE_11_loc_00000392:
 	movea.l (a7)+,a0
 	addq.w #2,a7
 	jmp (a0)
-macos_code_CODE_11_semantic_decode_gap_000003a0:
+macos_code_CODE_11_semantic_pascal_string_gap_000003a0:
 	dc.b $8F,$41,$4C,$4C,$4F,$43,$41,$54,$45,$44,$42,$42,$59,$54,$45,$53
 	dc.b $00,$00
 macos_code_CODE_11_loc_000003b2:
@@ -33424,7 +33424,7 @@ macos_code_CODE_11_loc_000003e8:
 	move.w -$0F48(a5),(a0)
 	unlk a6
 	rts
-macos_code_CODE_11_semantic_decode_gap_000003fc:
+macos_code_CODE_11_semantic_pascal_string_gap_000003fc:
 	dc.b $88,$44,$49,$43,$54,$50,$52,$4F,$43,$00,$00,$00
 macos_code_CODE_11_loc_00000408:
 	link a6,#-4
@@ -33487,7 +33487,7 @@ macos_code_CODE_11_loc_00000498:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-macos_code_CODE_11_semantic_decode_gap_000004a6:
+macos_code_CODE_11_semantic_pascal_string_gap_000004a6:
 	dc.b $8C,$4F,$46,$44,$49,$43,$54,$49,$4F,$4E,$41,$52,$59,$00,$00,$00
 macos_code_CODE_11_loc_000004b6:
 	link a6,#0
@@ -33495,7 +33495,7 @@ macos_code_CODE_11_loc_000004b6:
 	jsr -$356(pc)
 	unlk a6
 	rts
-macos_code_CODE_11_semantic_decode_gap_000004c6:
+macos_code_CODE_11_semantic_pascal_string_gap_000004c6:
 	dc.b $89,$58,$44,$41,$54,$41,$50,$52,$4F,$43,$00,$00
 macos_code_CODE_11_loc_000004d2:
 	link a6,#-4
@@ -33535,7 +33535,7 @@ macos_code_CODE_11_loc_000004d2:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-macos_code_CODE_11_semantic_decode_gap_00000540:
+macos_code_CODE_11_semantic_pascal_string_gap_00000540:
 	dc.b $87,$4F,$46,$58,$44,$41,$54,$41,$00,$00
 macos_code_CODE_11_loc_0000054a:
 	link a6,#-4
@@ -33561,7 +33561,7 @@ macos_code_CODE_11_loc_0000054a:
 	movea.l (a7)+,a0
 	addq.w #6,a7
 	jmp (a0)
-macos_code_CODE_11_semantic_decode_gap_0000058e:
+macos_code_CODE_11_semantic_pascal_string_gap_0000058e:
 	dc.b $89,$43,$44,$42,$47,$46,$4E,$41,$4D,$45,$00,$00
 macos_code_CODE_11_loc_0000059a:
 	link a6,#-4
@@ -33649,7 +33649,7 @@ macos_code_CODE_11_loc_00000666:
 	movea.l (a7)+,a0
 	lea.l $000C(a7),a7
 	jmp (a0)
-macos_code_CODE_11_semantic_decode_gap_0000068c:
+macos_code_CODE_11_semantic_pascal_string_gap_0000068c:
 	dc.b $89,$43,$44,$42,$47,$45,$4E,$54,$52,$59,$00,$00
 macos_code_CODE_11_loc_00000698:
 	link a6,#-4
@@ -33675,7 +33675,7 @@ macos_code_CODE_11_loc_00000698:
 	movea.l (a7)+,a0
 	addq.w #6,a7
 	jmp (a0)
-macos_code_CODE_11_semantic_decode_gap_000006dc:
+macos_code_CODE_11_semantic_pascal_string_gap_000006dc:
 	dc.b $8A,$43,$44,$42,$47,$4D,$4F,$44,$45,$4E,$44,$00,$00,$00
 macos_code_CODE_11_loc_000006ea:
 	link a6,#-4
@@ -33730,7 +33730,7 @@ macos_code_CODE_11_loc_0000076a:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-macos_code_CODE_11_semantic_decode_gap_00000778:
+macos_code_CODE_11_semantic_pascal_string_gap_00000778:
 	dc.b $8B,$4C,$4F,$43,$41,$4C,$49,$44,$50,$52,$4F,$43,$00,$00
 macos_code_CODE_11_loc_00000786:
 	link a6,#-4
@@ -33895,7 +33895,7 @@ macos_code_CODE_11_loc_00000920:
 	movea.l (a7)+,a0
 	lea.l $0012(a7),a7
 	jmp (a0)
-macos_code_CODE_11_semantic_decode_gap_00000930:
+macos_code_CODE_11_semantic_pascal_string_gap_00000930:
 	dc.b $8B,$43,$44,$42,$47,$4C,$4F,$43,$41,$4C,$49,$44,$00,$00
 macos_code_CODE_11_loc_0000093e:
 	link a6,#-4
@@ -33993,7 +33993,7 @@ macos_code_CODE_11_loc_00000a24:
 	movea.l (a7)+,a0
 	lea.l $000E(a7),a7
 	jmp (a0)
-macos_code_CODE_11_semantic_decode_gap_00000a46:
+macos_code_CODE_11_semantic_pascal_string_gap_00000a46:
 	dc.b $89,$4C,$41,$42,$45,$4C,$50,$52,$4F,$43,$00,$00
 macos_code_CODE_11_loc_00000a52:
 	link a6,#-4
@@ -34085,7 +34085,7 @@ macos_code_CODE_11_loc_00000b3a:
 	movea.l (a7)+,a0
 	lea.l $000E(a7),a7
 	jmp (a0)
-macos_code_CODE_11_semantic_decode_gap_00000b4a:
+macos_code_CODE_11_semantic_pascal_string_gap_00000b4a:
 	dc.b $89,$43,$44,$42,$47,$4C,$41,$42,$45,$4C,$00,$00
 macos_code_CODE_11_loc_00000b56:
 	link a6,#-4
@@ -34178,7 +34178,7 @@ macos_code_CODE_11_loc_00000c3c:
 	movea.l (a7)+,a0
 	lea.l $000C(a7),a7
 	jmp (a0)
-macos_code_CODE_11_semantic_decode_gap_00000c4c:
+macos_code_CODE_11_semantic_pascal_string_gap_00000c4c:
 	dc.b $8E,$53,$4F,$55,$52,$43,$45,$53,$54,$4D,$54,$50,$52,$4F,$43,$00
 	dc.b $00,$00
 macos_code_CODE_11_loc_00000c5e:
@@ -34275,7 +34275,7 @@ macos_code_CODE_11_loc_00000d3e:
 	movea.l (a7)+,a0
 	lea.l $000C(a7),a7
 	jmp (a0)
-macos_code_CODE_11_semantic_decode_gap_00000d4e:
+macos_code_CODE_11_semantic_pascal_string_gap_00000d4e:
 	dc.b $8E,$43,$44,$42,$47,$53,$4F,$55,$52,$43,$45,$53,$54,$4D,$54,$00
 	dc.b $00,$00
 macos_code_CODE_11_loc_00000d60:
@@ -34352,7 +34352,7 @@ macos_code_CODE_11_loc_00000e2a:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-macos_code_CODE_11_semantic_decode_gap_00000e34:
+macos_code_CODE_11_semantic_pascal_string_gap_00000e34:
 	dc.b $8F,$47,$45,$54,$44,$49,$43,$54,$49,$4F,$4E,$41,$52,$59,$49,$44
 	dc.b $00,$00
 macos_code_CODE_11_loc_00000e46:
@@ -34361,7 +34361,7 @@ macos_code_CODE_11_loc_00000e46:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-macos_code_CODE_11_semantic_decode_gap_00000e54:
+macos_code_CODE_11_semantic_pascal_string_gap_00000e54:
 	dc.b $87,$4C,$4F,$41,$44,$44,$42,$47,$00,$00
 
 ; CODE 12 LoadDump source section
@@ -34731,7 +34731,7 @@ macos_code_CODE_12_loc_0000038c:
 	movem.l (a7)+,d7/a4
 	unlk a6
 	rts
-macos_code_CODE_12_semantic_decode_gap_0000039e:
+macos_code_CODE_12_semantic_pascal_string_gap_0000039e:
 	dc.b $8D,$43,$4C,$4F,$53,$45,$44,$55,$4D,$50,$46,$49,$4C,$45,$00,$00
 macos_code_CODE_12_loc_000003ae:
 	link a6,#-4
@@ -34810,7 +34810,7 @@ macos_code_CODE_12_loc_00000486:
 	movea.l (a7)+,a4
 	unlk a6
 	rts
-macos_code_CODE_12_semantic_decode_gap_0000048c:
+macos_code_CODE_12_semantic_pascal_string_gap_0000048c:
 	dc.b $8C,$46,$4C,$55,$53,$48,$54,$48,$45,$42,$55,$46,$52,$00,$00,$00
 macos_code_CODE_12_loc_0000049c:
 	link a6,#-10
@@ -34867,7 +34867,7 @@ macos_code_CODE_12_loc_00000512:
 	movea.l (a7)+,a0
 	adda.w #$A,a7
 	jmp (a0)
-macos_code_CODE_12_semantic_decode_gap_00000520:
+macos_code_CODE_12_semantic_pascal_string_gap_00000520:
 	dc.b $87,$44,$55,$4D,$50,$53,$59,$4D,$00,$00
 macos_code_CODE_12_loc_0000052a:
 	link a6,#-10
@@ -34940,7 +34940,7 @@ macos_code_CODE_12_loc_000005c8:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-macos_code_CODE_12_semantic_decode_gap_000005d2:
+macos_code_CODE_12_semantic_pascal_string_gap_000005d2:
 	dc.b $88,$44,$55,$4D,$50,$4C,$49,$4E,$45,$00,$00,$00
 macos_code_CODE_12_loc_000005de:
 	link a6,#0
@@ -35005,7 +35005,7 @@ macos_code_CODE_12_loc_0000069e:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-macos_code_CODE_12_semantic_decode_gap_000006a4:
+macos_code_CODE_12_semantic_pascal_string_gap_000006a4:
 	dc.b $8B,$46,$49,$4C,$4C,$54,$48,$45,$42,$55,$46,$52,$00,$00
 macos_code_CODE_12_loc_000006b2:
 	link a6,#-6
@@ -35049,7 +35049,7 @@ macos_code_CODE_12_loc_00000714:
 	movea.l (a7)+,a0
 	adda.w #$C,a7
 	jmp (a0)
-macos_code_CODE_12_semantic_decode_gap_00000720:
+macos_code_CODE_12_semantic_pascal_string_gap_00000720:
 	dc.b $87,$4C,$4F,$41,$44,$53,$59,$4D,$00,$00
 macos_code_CODE_12_loc_0000072a:
 	link a6,#-6
@@ -35092,7 +35092,7 @@ macos_code_CODE_12_loc_0000078a:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-macos_code_CODE_12_semantic_decode_gap_00000792:
+macos_code_CODE_12_semantic_pascal_string_gap_00000792:
 	dc.b $88,$4C,$4F,$41,$44,$4C,$49,$4E,$45,$00,$00,$00
 macos_code_CODE_12_loc_0000079e:
 	link a6,#-268
@@ -35177,7 +35177,7 @@ macos_code_CODE_12_loc_0000086e:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-macos_code_CODE_12_semantic_decode_gap_00000878:
+macos_code_CODE_12_semantic_pascal_string_gap_00000878:
 	dc.b $89,$44,$55,$4D,$50,$4D,$41,$43,$52,$4F,$00,$00
 macos_code_CODE_12_loc_00000884:
 	link a6,#0
@@ -35223,7 +35223,7 @@ macos_code_CODE_12_loc_00000908:
 	movea.l (a7)+,a0
 	addq.w #6,a7
 	jmp (a0)
-macos_code_CODE_12_semantic_decode_gap_00000910:
+macos_code_CODE_12_semantic_pascal_string_gap_00000910:
 	dc.b $88,$44,$55,$4D,$50,$41,$42,$4C,$45,$00,$00,$00
 macos_code_CODE_12_loc_0000091c:
 	link a6,#-4
@@ -35251,7 +35251,7 @@ macos_code_CODE_12_loc_0000094a:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-macos_code_CODE_12_semantic_decode_gap_00000954:
+macos_code_CODE_12_semantic_pascal_string_gap_00000954:
 	dc.b $8A,$53,$45,$54,$49,$4D,$50,$43,$41,$53,$45,$00,$00,$00
 macos_code_CODE_12_loc_00000962:
 	link a6,#-268
@@ -35290,7 +35290,7 @@ macos_code_CODE_12_loc_00000986:
 	movea.l $0008(a6),a0
 	movea.l a0,a6
 	jmp macos_code_CODE_12_loc_0000115c(pc)
-macos_code_CODE_12_semantic_decode_gap_000009c6:
+macos_code_CODE_12_semantic_zero_fill_gap_000009c6:
 	dc.b $00,$00
 macos_code_CODE_12_loc_000009c8:
 	move.l -$0018(a4),$0004(a3)
@@ -35333,7 +35333,7 @@ macos_code_CODE_12_loc_00000a00:
 	movea.l $0008(a6),a0
 	movea.l a0,a6
 	jmp macos_code_CODE_12_loc_0000115c(pc)
-macos_code_CODE_12_semantic_decode_gap_00000a40:
+macos_code_CODE_12_semantic_zero_fill_gap_00000a40:
 	dc.b $00,$00
 macos_code_CODE_12_loc_00000a42:
 	clr.l -(a7)
@@ -35362,7 +35362,7 @@ macos_code_CODE_12_loc_00000a42:
 	movea.l $0008(a6),a0
 	movea.l a0,a6
 	jmp macos_code_CODE_12_loc_0000115c(pc)
-macos_code_CODE_12_semantic_decode_gap_00000a8e:
+macos_code_CODE_12_semantic_zero_fill_gap_00000a8e:
 	dc.b $00,$00
 macos_code_CODE_12_loc_00000a90:
 	movem.l (a7)+,d5-d7/a3-a4
@@ -35370,7 +35370,7 @@ macos_code_CODE_12_loc_00000a90:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-macos_code_CODE_12_semantic_decode_gap_00000a9c:
+macos_code_CODE_12_semantic_pascal_string_gap_00000a9c:
 	dc.b $8C,$44,$55,$4D,$50,$54,$45,$4D,$50,$4C,$41,$54,$45,$00,$00,$00
 macos_code_CODE_12_loc_00000aac:
 	link a6,#-4
@@ -35406,7 +35406,7 @@ macos_code_CODE_12_loc_00000ad4:
 	movea.l $0008(a6),a0
 	movea.l a0,a6
 	jmp macos_code_CODE_12_loc_0000115c(pc)
-macos_code_CODE_12_semantic_decode_gap_00000b0c:
+macos_code_CODE_12_semantic_zero_fill_gap_00000b0c:
 	dc.b $00,$00
 macos_code_CODE_12_loc_00000b0e:
 	move.l -$0014(a4),$0004(a3)
@@ -35419,7 +35419,7 @@ macos_code_CODE_12_loc_00000b22:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-macos_code_CODE_12_semantic_decode_gap_00000b2e:
+macos_code_CODE_12_semantic_pascal_string_gap_00000b2e:
 	dc.b $8F,$49,$4D,$50,$4F,$52,$54,$4E,$4F,$54,$44,$55,$4D,$50,$45,$44
 	dc.b $00,$00
 macos_code_CODE_12_loc_00000b40:
@@ -35986,7 +35986,7 @@ macos_code_CODE_12_loc_00001246:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-macos_code_CODE_12_semantic_decode_gap_00001252:
+macos_code_CODE_12_semantic_pascal_string_gap_00001252:
 	dc.b $89,$41,$44,$44,$54,$4F,$4C,$49,$53,$54,$00,$00
 macos_code_CODE_12_loc_0000125e:
 	link a6,#-12
@@ -36070,7 +36070,7 @@ macos_code_CODE_12_loc_00001318:
 	movea.l (a7)+,a0
 	adda.w #$C,a7
 	jmp (a0)
-macos_code_CODE_12_semantic_decode_gap_00001326:
+macos_code_CODE_12_semantic_pascal_string_gap_00001326:
 	dc.b $8F,$43,$48,$4B,$54,$45,$4D,$50,$4C,$41,$54,$45,$4E,$41,$4D,$45
 	dc.b $00,$00
 macos_code_CODE_12_loc_00001338:
@@ -36868,7 +36868,7 @@ macos_code_CODE_13_loc_000000b0:
 	move.w d0,(a1)
 	move.b #$1,(a7)
 	jmp (a0)
-macos_code_CODE_13_semantic_decode_gap_000000c4:
+macos_code_CODE_13_semantic_dispatch_table_gap_000000c4:
 	dc.b $4E,$56,$FF,$FC,$42,$67,$48,$6E,$FF,$FC,$4E,$AD,$02,$02,$10,$1F
 	dc.b $67,$30,$4A,$AE,$FF,$FC,$6E,$0A,$3F,$3C,$00,$99,$4E,$AD,$07,$CA
 	dc.b $60,$20,$4A,$AD,$EC,$E6,$67,$10,$20,$2E,$FF,$FC,$52,$80,$20,$6D
@@ -37183,7 +37183,7 @@ macos_code_CODE_13_loc_000011c4:
 	movea.l (a7)+,a4
 	unlk a6
 	rts
-macos_code_CODE_13_semantic_decode_gap_000011ca:
+macos_code_CODE_13_semantic_pascal_string_gap_000011ca:
 	dc.b $86,$44,$4F,$45,$4E,$44,$4D,$00,$00,$00,$4E,$56,$00,$00,$4A,$AD
 	dc.b $EC,$E6,$66,$0E,$3F,$3C,$00,$63,$48,$6D,$F9,$BA,$4E,$AD,$07,$C2
 	dc.b $60,$0E,$1B,$7C,$00,$01,$EB,$24,$42,$6D,$DA,$58,$4E,$AD,$05,$0A
@@ -37503,13 +37503,13 @@ macos_code_CODE_13_loc_0000229a:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-macos_code_CODE_13_semantic_decode_gap_000022a0:
+macos_code_CODE_13_semantic_pascal_string_gap_000022a0:
 	dc.b $85,$4F,$55,$54,$50,$43,$00,$00
 macos_code_CODE_13_loc_000022a8:
 	link a6,#0
 	unlk a6
 	rts
-macos_code_CODE_13_semantic_decode_gap_000022b0:
+macos_code_CODE_13_semantic_pascal_string_gap_000022b0:
 	dc.b $8E,$43,$48,$45,$43,$4B,$48,$49,$47,$48,$45,$53,$54,$50,$43,$00
 	dc.b $00,$00,$4E,$56,$00,$00,$4E,$5E,$4E,$75,$8D,$43,$48,$45,$43,$4B
 	dc.b $4C,$4F,$57,$45,$53,$54,$50,$43,$00,$00,$4E,$56,$FF,$FE,$48,$E7
@@ -37629,7 +37629,7 @@ macos_code_CODE_13_loc_000024f2:
 	movea.l (a7)+,a0
 	addq.w #2,a7
 	jmp (a0)
-macos_code_CODE_13_semantic_decode_gap_00002518:
+macos_code_CODE_13_semantic_pascal_string_gap_00002518:
 	dc.b $8C,$41,$44,$4A,$55,$53,$54,$4F,$52,$49,$47,$49,$4E,$00,$00,$00
 macos_code_CODE_13_loc_00002528:
 	link a6,#-272
@@ -37887,7 +37887,7 @@ macos_code_CODE_13_loc_00002cf8:
 	movea.l (a7)+,a0
 	addq.w #2,a7
 	jmp (a0)
-macos_code_CODE_13_semantic_decode_gap_00002d00:
+macos_code_CODE_13_semantic_pascal_string_gap_00002d00:
 	dc.b $88,$4E,$45,$58,$54,$4F,$50,$4E,$44,$00,$00,$00
 macos_code_CODE_13_loc_00002d0c:
 	link a6,#-2
@@ -37955,7 +37955,7 @@ macos_code_CODE_13_loc_00002dea:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-macos_code_CODE_13_semantic_decode_gap_00002df6:
+macos_code_CODE_13_semantic_pascal_string_gap_00002df6:
 	dc.b $8D,$44,$43,$4C,$47,$4C,$42,$4C,$49,$4D,$50,$4F,$52,$54,$00,$00
 macos_code_CODE_13_loc_00002e06:
 	link a6,#-16
@@ -39636,7 +39636,7 @@ macos_code_CODE_13_loc_0000729c:
 	move.w macos_code_CODE_13_loc_00007292(pc,d0.w),d0
 	jmp $0(pc,d0.w)
 macos_code_CODE_13_loc_000072be:
-macos_code_CODE_13_semantic_decode_gap_000072be:
+macos_code_CODE_13_semantic_dispatch_table_gap_000072be:
 	dc.b $00,$B0,$00,$B8,$00,$C0,$00,$DA,$00,$DA,$00,$DA,$00,$E2,$00,$EA
 	dc.b $00,$EA,$00,$EA,$00,$F2,$01,$1A,$01,$26,$01,$32,$01,$3E,$01,$8C
 	dc.b $01,$DA,$01,$E6,$03,$88,$03,$D0,$04,$42,$04,$42,$04,$42,$04,$C8
@@ -39915,7 +39915,7 @@ macos_code_CODE_13_loc_00008226:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-macos_code_CODE_13_semantic_decode_gap_00008238:
+macos_code_CODE_13_semantic_pascal_string_gap_00008238:
 	dc.b $8E,$4C,$4F,$41,$44,$44,$49,$52,$45,$43,$54,$49,$56,$45,$53,$00
 	dc.b $00,$00
 
@@ -40000,7 +40000,7 @@ macos_code_CODE_14_loc_000000ec:
 	movea.l (a7)+,a0
 	addq.w #2,a7
 	jmp (a0)
-macos_code_CODE_14_semantic_decode_gap_000000f2:
+macos_code_CODE_14_semantic_pascal_string_gap_000000f2:
 	dc.b $8A,$49,$4E,$49,$54,$4D,$45,$4D,$4D,$47,$52,$00,$00,$00
 macos_code_CODE_14_loc_00000100:
 	link a6,#-4
@@ -40048,7 +40048,7 @@ macos_code_CODE_14_loc_0000017c:
 	movea.l (a7)+,a4
 	unlk a6
 	rts
-macos_code_CODE_14_semantic_decode_gap_00000182:
+macos_code_CODE_14_semantic_pascal_string_gap_00000182:
 	dc.b $87,$4E,$45,$57,$5A,$4F,$4E,$45,$00,$00
 macos_code_CODE_14_loc_0000018c:
 	link a6,#-4
@@ -40092,7 +40092,7 @@ macos_code_CODE_14_loc_000001f0:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-macos_code_CODE_14_semantic_decode_gap_000001fa:
+macos_code_CODE_14_semantic_pascal_string_gap_000001fa:
 	dc.b $88,$46,$52,$45,$45,$5A,$4F,$4E,$45,$00,$00,$00
 macos_code_CODE_14_loc_00000206:
 	link a6,#-24
@@ -40214,7 +40214,7 @@ macos_code_CODE_14_loc_0000030e:
 	movea.l (a7)+,a0
 	addq.w #6,a7
 	jmp (a0)
-macos_code_CODE_14_semantic_decode_gap_00000320:
+macos_code_CODE_14_semantic_pascal_string_gap_00000320:
 	dc.b $85,$41,$4C,$4C,$4F,$43,$00,$00
 macos_code_CODE_14_loc_00000328:
 	link a6,#-18
@@ -40282,7 +40282,7 @@ macos_code_CODE_14_loc_000003b2:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-macos_code_CODE_14_semantic_decode_gap_000003be:
+macos_code_CODE_14_semantic_pascal_string_gap_000003be:
 	dc.b $84,$46,$52,$45,$45,$00,$00,$00
 macos_code_CODE_14_loc_000003c6:
 	link a6,#-10
@@ -40341,7 +40341,7 @@ macos_code_CODE_14_loc_0000044e:
 	movea.l (a7)+,a0
 	addq.w #6,a7
 	jmp (a0)
-macos_code_CODE_14_semantic_decode_gap_0000045e:
+macos_code_CODE_14_semantic_pascal_string_gap_0000045e:
 	dc.b $88,$41,$4C,$4C,$4F,$43,$4D,$45,$4D,$00,$00,$00
 macos_code_CODE_14_loc_0000046a:
 	link a6,#0
@@ -40357,7 +40357,7 @@ macos_code_CODE_14_loc_0000046a:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-macos_code_CODE_14_semantic_decode_gap_0000048e:
+macos_code_CODE_14_semantic_pascal_string_gap_0000048e:
 	dc.b $87,$4D,$41,$52,$4B,$4D,$45,$4D,$00,$00
 macos_code_CODE_14_loc_00000498:
 	link a6,#-8
@@ -40406,7 +40406,7 @@ macos_code_CODE_14_loc_000004f4:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-macos_code_CODE_14_semantic_decode_gap_00000500:
+macos_code_CODE_14_semantic_pascal_string_gap_00000500:
 	dc.b $8A,$52,$45,$4C,$45,$41,$53,$45,$4D,$45,$4D,$00,$00,$00
 macos_code_CODE_14_loc_0000050e:
 	link a6,#-8
@@ -40573,7 +40573,7 @@ macos_code_CODE_14_loc_0000074a:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-macos_code_CODE_14_semantic_decode_gap_00000754:
+macos_code_CODE_14_semantic_pascal_string_gap_00000754:
 	dc.b $87,$46,$52,$45,$45,$42,$4C,$4B,$00,$00
 
 ; CODE 15 Errors source section
@@ -40642,7 +40642,7 @@ macos_code_CODE_15_loc_00000060:
 	movea.l (a7)+,a0
 	adda.w #$A,a7
 	jmp (a0)
-macos_code_CODE_15_semantic_decode_gap_00000068:
+macos_code_CODE_15_semantic_pascal_string_gap_00000068:
 	dc.b $85,$41,$44,$44,$43,$48,$00,$00
 macos_code_CODE_15_loc_00000070:
 	link a6,#-258
@@ -40674,7 +40674,7 @@ macos_code_CODE_15_loc_000000c0:
 	movea.l $0008(a6),a0
 	movea.l a0,a6
 	jmp macos_code_CODE_15_loc_00000474(pc)
-macos_code_CODE_15_semantic_decode_gap_000000d0:
+macos_code_CODE_15_semantic_zero_fill_gap_000000d0:
 	dc.b $00,$00
 macos_code_CODE_15_loc_000000d2:
 	move.w $0010(a6),$0012(a6)
@@ -40746,7 +40746,7 @@ macos_code_CODE_15_loc_000001a4:
 	movea.l $0008(a6),a0
 	movea.l a0,a6
 	jmp macos_code_CODE_15_loc_00000474(pc)
-macos_code_CODE_15_semantic_decode_gap_000001ae:
+macos_code_CODE_15_semantic_zero_fill_gap_000001ae:
 	dc.b $00,$00
 macos_code_CODE_15_loc_000001b0:
 	movem.l (a7)+,d4-d7/a4
@@ -40754,7 +40754,7 @@ macos_code_CODE_15_loc_000001b0:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-macos_code_CODE_15_semantic_decode_gap_000001bc:
+macos_code_CODE_15_semantic_pascal_string_gap_000001bc:
 	dc.b $89,$47,$45,$54,$4D,$53,$47,$49,$44,$58,$00,$00
 macos_code_CODE_15_loc_000001c8:
 	link a6,#-1582
@@ -41361,7 +41361,7 @@ macos_code_CODE_15_loc_000008dc:
 	movem.l (a7)+,d7/a4
 	unlk a6
 	rts
-macos_code_CODE_15_semantic_decode_gap_000008e4:
+macos_code_CODE_15_semantic_pascal_string_gap_000008e4:
 	dc.b $8E,$46,$52,$45,$45,$45,$52,$52,$49,$4E,$53,$45,$52,$54,$53,$00
 	dc.b $00,$00
 macos_code_CODE_15_loc_000008f6:
@@ -41540,7 +41540,7 @@ macos_code_CODE_15_loc_00000af2:
 	movea.l (a7)+,a0
 	addq.w #2,a7
 	jmp (a0)
-macos_code_CODE_15_semantic_decode_gap_00000b08:
+macos_code_CODE_15_semantic_pascal_string_gap_00000b08:
 	dc.b $85,$45,$52,$52,$4F,$52,$00,$00
 macos_code_CODE_15_loc_00000b10:
 	link a6,#-512
@@ -41665,7 +41665,7 @@ macos_code_CODE_15_loc_00000c5a:
 	movea.l (a7)+,a0
 	adda.w #$A,a7
 	jmp (a0)
-macos_code_CODE_15_semantic_decode_gap_00000c68:
+macos_code_CODE_15_semantic_pascal_string_gap_00000c68:
 	dc.b $8A,$47,$45,$54,$4D,$41,$43,$4C,$49,$4E,$45,$00,$00,$00
 macos_code_CODE_15_loc_00000c76:
 	link a6,#-2
@@ -41693,7 +41693,7 @@ macos_code_CODE_15_loc_00000cb6:
 	move.l (a7)+,d7
 	unlk a6
 	rts
-macos_code_CODE_15_semantic_decode_gap_00000cbc:
+macos_code_CODE_15_semantic_pascal_string_gap_00000cbc:
 	dc.b $8A,$4F,$50,$45,$4E,$45,$52,$52,$4C,$4F,$47,$00,$00,$00
 macos_code_CODE_15_loc_00000cca:
 	link a6,#0
@@ -41754,7 +41754,7 @@ macos_code_CODE_15_loc_00000d4e:
 	movea.l (a7)+,a0
 	adda.w #$E,a7
 	jmp (a0)
-macos_code_CODE_15_semantic_decode_gap_00000d6c:
+macos_code_CODE_15_semantic_pascal_string_gap_00000d6c:
 	dc.b $8C,$52,$45,$50,$4F,$52,$54,$45,$52,$52,$4F,$52,$53,$00,$00,$00
 
 ; CODE 16 New source section
@@ -41822,7 +41822,7 @@ macos_code_CODE_16_loc_000000f6:
 	movea.l (a7)+,a0
 	addq.w #2,a7
 	jmp (a0)
-macos_code_CODE_16_semantic_decode_gap_000000fc:
+macos_code_CODE_16_semantic_dispatch_table_gap_000000fc:
 	dc.b $8A,$50,$4F,$50,$49,$4E,$43,$4C,$55,$44,$45,$00,$00,$28,$13,$2E
 	dc.b $2E,$2E,$63,$6F,$6E,$74,$69,$6E,$75,$69,$6E,$67,$20,$77,$69,$74
 	dc.b $68,$20,$12,$4E,$6F,$74,$20,$65,$6E,$6F,$75,$67,$68,$20,$6D,$65
@@ -42103,7 +42103,7 @@ macos_code_CODE_17_loc_00000064:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-macos_code_CODE_17_semantic_decode_gap_0000006a:
+macos_code_CODE_17_semantic_pascal_string_gap_0000006a:
 	dc.b $8A,$43,$52,$45,$41,$54,$45,$4E,$4F,$44,$45,$00,$00,$00
 macos_code_CODE_17_loc_00000078:
 	link a6,#-526
@@ -42171,7 +42171,7 @@ macos_code_CODE_17_loc_00000112:
 	movea.l (a7)+,a0
 	adda.w #$C,a7
 	jmp (a0)
-macos_code_CODE_17_semantic_decode_gap_00000120:
+macos_code_CODE_17_semantic_pascal_string_gap_00000120:
 	dc.b $8B,$49,$4E,$53,$45,$52,$54,$4E,$45,$57,$49,$44,$00,$00
 macos_code_CODE_17_loc_0000012e:
 	link a6,#-522
@@ -42243,7 +42243,7 @@ macos_code_CODE_17_loc_000001da:
 	movea.l (a7)+,a0
 	adda.w #$C,a7
 	jmp (a0)
-macos_code_CODE_17_semantic_decode_gap_000001e8:
+macos_code_CODE_17_semantic_pascal_string_gap_000001e8:
 	dc.b $89,$49,$4E,$53,$45,$52,$54,$52,$45,$43,$00,$00
 macos_code_CODE_17_loc_000001f4:
 	link a6,#-24
@@ -42425,7 +42425,7 @@ macos_code_CODE_17_loc_000003d6:
 	movea.l (a7)+,a0
 	addq.w #4,a7
 	jmp (a0)
-macos_code_CODE_17_semantic_decode_gap_000003de:
+macos_code_CODE_17_semantic_pascal_string_gap_000003de:
 	dc.b $87,$44,$49,$53,$50,$4C,$41,$59,$00,$00
 macos_code_CODE_17_loc_000003e8:
 	link a6,#-2
@@ -42887,7 +42887,7 @@ macos_code_CODE_17_loc_0000094c:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-macos_code_CODE_17_semantic_decode_gap_00000954:
+macos_code_CODE_17_semantic_pascal_string_gap_00000954:
 	dc.b $8A,$46,$4F,$4C,$4C,$4F,$57,$54,$52,$45,$45,$00,$00,$00
 macos_code_CODE_17_loc_00000962:
 	link a6,#0
@@ -43414,7 +43414,7 @@ macos_code_CODE_18_loc_0000061a:
 	movea.l (a7)+,a0
 	addq.w #2,a7
 	jmp (a0)
-macos_code_CODE_18_semantic_decode_gap_00000620:
+macos_code_CODE_18_semantic_dispatch_table_gap_00000620:
 	dc.b $8C,$46,$49,$4E,$49,$53,$48,$4D,$4F,$44,$55,$4C,$45,$00,$00,$BC
 	dc.b $30,$55,$6E,$61,$62,$6C,$65,$20,$74,$6F,$20,$72,$65,$6F,$70,$65
 	dc.b $6E,$20,$6C,$69,$73,$74,$69,$6E,$67,$20,$73,$63,$72,$61,$74,$63
@@ -43494,7 +43494,7 @@ macos_code_CODE_18_loc_0000079c:
 	movem.l (a7)+,d5-d7
 	unlk a6
 	rts
-macos_code_CODE_18_semantic_decode_gap_000007a4:
+macos_code_CODE_18_semantic_pascal_string_gap_000007a4:
 	dc.b $8E,$46,$41,$4B,$45,$45,$4E,$44,$50,$4F,$52,$45,$4E,$44,$52,$00
 	dc.b $00,$00
 
@@ -43827,7 +43827,7 @@ macos_code_CODE_20_loc_00000b3c:
 	movea.l (a7)+,a0
 	lea.l $000C(a7),a7
 	jmp (a0)
-macos_code_CODE_20_semantic_decode_gap_00000b44:
+macos_code_CODE_20_semantic_pascal_string_gap_00000b44:
 	dc.b $89,$49,$45,$46,$41,$43,$43,$45,$53,$53,$00,$00
 macos_code_CODE_20_loc_00000b50:
 	link a6,#0
@@ -43871,7 +43871,7 @@ macos_code_CODE_20_loc_00000bb2:
 	movea.l (a7)+,a0
 	lea.l $000C(a7),a7
 	jmp (a0)
-macos_code_CODE_20_semantic_decode_gap_00000bc2:
+macos_code_CODE_20_semantic_pascal_string_gap_00000bc2:
 	dc.b $87,$49,$45,$49,$4F,$43,$54,$4C,$00,$00
 macos_code_CODE_20_loc_00000bcc:
 	link a6,#-4
@@ -43949,7 +43949,7 @@ macos_code_CODE_20_loc_00000c72:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-macos_code_CODE_20_semantic_decode_gap_00000c80:
+macos_code_CODE_20_semantic_pascal_string_gap_00000c80:
 	dc.b $88,$49,$45,$47,$45,$54,$45,$4E,$56,$00,$00,$00
 macos_code_CODE_20_loc_00000c8c:
 	jmp -$37A(pc)
@@ -43968,7 +43968,7 @@ macos_code_CODE_20_loc_00000c90:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-macos_code_CODE_20_semantic_decode_gap_00000cb8:
+macos_code_CODE_20_semantic_pascal_string_gap_00000cb8:
 	dc.b $87,$50,$4C,$50,$55,$52,$47,$45,$00,$00
 macos_code_CODE_20_loc_00000cc2:
 	link a6,#-256
@@ -43976,7 +43976,7 @@ macos_code_CODE_20_loc_00000cc2:
 	lea.l -$0100(a6),a3
 	move.l $000C(a6),d7
 	moveq.l #20,d0
-macos_code_CODE_20_semantic_decode_gap_00000cd4:
+macos_code_CODE_20_semantic_dispatch_table_gap_00000cd4:
 	dc.b $A1,$22,$28,$48,$20,$0C,$66,$0E,$42,$6D,$CD,$88,$70,$0C,$2B,$40
 	dc.b $CD,$8A,$70,$00,$60,$60,$59,$8F,$2F,$0B,$2F,$2E,$00,$08,$4E,$AD
 	dc.b $02,$A2,$59,$8F,$2F,$0B,$4E,$AD,$03,$A2,$2F,$07,$2F,$0B,$4E,$BA
@@ -44110,7 +44110,7 @@ macos_code_CODE_20_loc_00000e76:
 	movea.l (a7)+,a0
 	lea.l $000A(a7),a7
 	jmp (a0)
-macos_code_CODE_20_semantic_decode_gap_00000e86:
+macos_code_CODE_20_semantic_pascal_string_gap_00000e86:
 	dc.b $87,$5F,$5F,$46,$4F,$50,$45,$4E,$00,$00
 macos_code_CODE_20_loc_00000e90:
 	link a6,#0
@@ -44159,7 +44159,7 @@ macos_code_CODE_20_loc_00000eee:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-macos_code_CODE_20_semantic_decode_gap_00000efa:
+macos_code_CODE_20_semantic_pascal_string_gap_00000efa:
 	dc.b $87,$5F,$5F,$43,$4C,$4F,$53,$45,$00,$00
 macos_code_CODE_20_loc_00000f04:
 	link a6,#0
@@ -44242,7 +44242,7 @@ macos_code_CODE_20_loc_00000fc6:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-macos_code_CODE_20_semantic_decode_gap_00000fd2:
+macos_code_CODE_20_semantic_pascal_string_gap_00000fd2:
 	dc.b $85,$5F,$5F,$45,$4F,$46,$00,$00
 macos_code_CODE_20_loc_00000fda:
 	link a6,#0
@@ -44354,7 +44354,7 @@ macos_code_CODE_20_loc_000010dc:
 	movea.l (a7)+,a0
 	lea.l $0010(a7),a7
 	jmp (a0)
-macos_code_CODE_20_semantic_decode_gap_000010ec:
+macos_code_CODE_20_semantic_pascal_string_gap_000010ec:
 	dc.b $87,$5F,$5F,$42,$59,$54,$52,$44,$00,$00
 macos_code_CODE_20_loc_000010f6:
 	link a6,#0
@@ -44427,7 +44427,7 @@ macos_code_CODE_20_loc_00001196:
 	movea.l (a7)+,a0
 	lea.l $0010(a7),a7
 	jmp (a0)
-macos_code_CODE_20_semantic_decode_gap_000011a6:
+macos_code_CODE_20_semantic_pascal_string_gap_000011a6:
 	dc.b $87,$5F,$5F,$42,$59,$54,$57,$52,$00,$00
 macos_code_CODE_20_loc_000011b0:
 	link a6,#0
@@ -44487,7 +44487,7 @@ macos_code_CODE_20_loc_00001234:
 	movea.l (a7)+,a0
 	lea.l $000C(a7),a7
 	jmp (a0)
-macos_code_CODE_20_semantic_decode_gap_00001244:
+macos_code_CODE_20_semantic_pascal_string_gap_00001244:
 	dc.b $87,$5F,$5F,$42,$4C,$4B,$52,$44,$00,$00
 macos_code_CODE_20_loc_0000124e:
 	link a6,#0
@@ -44527,7 +44527,7 @@ macos_code_CODE_20_loc_000012a6:
 	movea.l (a7)+,a0
 	lea.l $000C(a7),a7
 	jmp (a0)
-macos_code_CODE_20_semantic_decode_gap_000012b6:
+macos_code_CODE_20_semantic_pascal_string_gap_000012b6:
 	dc.b $87,$5F,$5F,$42,$4C,$4B,$57,$52,$00,$00
 macos_code_CODE_20_loc_000012c0:
 	link a6,#0
@@ -44590,7 +44590,7 @@ macos_code_CODE_20_loc_0000134a:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-macos_code_CODE_20_semantic_decode_gap_00001358:
+macos_code_CODE_20_semantic_pascal_string_gap_00001358:
 	dc.b $86,$5F,$5F,$53,$45,$45,$4B,$00,$00,$00
 macos_code_CODE_20_loc_00001362:
 	link a6,#0
@@ -44646,7 +44646,7 @@ macos_code_CODE_20_loc_000013d8:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-macos_code_CODE_20_semantic_decode_gap_000013e4:
+macos_code_CODE_20_semantic_pascal_string_gap_000013e4:
 	dc.b $89,$50,$4C,$46,$49,$4C,$45,$50,$4F,$53,$00,$00
 macos_code_CODE_20_loc_000013f0:
 	link a6,#0
@@ -44696,7 +44696,7 @@ macos_code_CODE_20_loc_00001460:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-macos_code_CODE_20_semantic_decode_gap_0000146c:
+macos_code_CODE_20_semantic_pascal_string_gap_0000146c:
 	dc.b $88,$50,$4C,$43,$52,$55,$4E,$43,$48,$00,$00,$00
 macos_code_CODE_20_loc_00001478:
 	tst.w -$3278(a5)
@@ -45042,7 +45042,7 @@ macos_code_CODE_21_loc_000009b8:
 	movem.l -$0210(a6),d3/d7/a3-a4
 	unlk a6
 	rts
-macos_code_CODE_21_semantic_decode_gap_000009c2:
+macos_code_CODE_21_semantic_pascal_string_gap_000009c2:
 	dc.b $8A,$5F,$66,$73,$46,$41,$63,$63,$65,$73,$73,$00,$00,$00
 macos_code_CODE_21_loc_000009d0:
 	link a6,#-284
@@ -45114,7 +45114,7 @@ macos_code_CODE_21_loc_00000a7a:
 	move.l a3,-(a7)
 	pea.l -$004A(a6)
 	move.w #$1,d0
-macos_code_CODE_21_semantic_decode_gap_00000a9c:
+macos_code_CODE_21_semantic_dispatch_table_gap_00000a9c:
 	dc.b $AA,$52,$3E,$1F,$66,$3E,$4A,$04,$67,$20,$55,$8F,$48,$6E,$FF,$B6
 	dc.b $70,$01,$1F,$00,$48,$6E,$FF,$FF,$48,$6E,$FF,$FE,$70,$0C,$A8,$23
 	dc.b $3E,$1F,$1D,$6E,$FF,$FE,$FF,$FD,$60,$1A,$48,$6E,$FF,$FE,$48,$6E
@@ -45303,7 +45303,7 @@ macos_code_CODE_21_loc_00000d68:
 	tst.l d5
 	bne.w macos_code_CODE_21_loc_0000065e
 	moveq.l #14,d0
-macos_code_CODE_21_semantic_decode_gap_00000d70:
+macos_code_CODE_21_semantic_dispatch_table_gap_00000d70:
 	dc.b $A1,$22,$29,$48,$00,$08,$66,$16,$55,$8F,$48,$6E,$FE,$FA,$70,$00
 	dc.b $1F,$00,$4E,$AD,$02,$DA,$7A,$0C,$54,$4F,$60,$00,$00,$A2,$20,$6C
 	dc.b $00,$08,$20,$50,$31,$6E,$FF,$12,$00,$02,$20,$6C,$00,$08,$20,$50
@@ -45322,7 +45322,7 @@ macos_code_CODE_21_loc_00000e30:
 	movem.l -$0138(a6),d4-d7/a2-a4
 	unlk a6
 	rts
-macos_code_CODE_21_semantic_decode_gap_00000e3a:
+macos_code_CODE_21_semantic_pascal_string_gap_00000e3a:
 	dc.b $87,$5F,$66,$73,$4F,$70,$65,$6E,$00,$00
 macos_code_CODE_21_loc_00000e44:
 	link a6,#0
@@ -45380,7 +45380,7 @@ macos_code_CODE_21_loc_00000ec6:
 	movem.l -$000C(a6),d3/d7/a4
 	unlk a6
 	rts
-macos_code_CODE_21_semantic_decode_gap_00000ed0:
+macos_code_CODE_21_semantic_pascal_string_gap_00000ed0:
 	dc.b $88,$5F,$66,$73,$43,$6C,$6F,$73,$65,$00,$00,$00
 macos_code_CODE_21_loc_00000edc:
 	link a6,#-4
@@ -45421,7 +45421,7 @@ macos_code_CODE_21_loc_00000f38:
 	movem.l -$0010(a6),d3/d7/a4
 	unlk a6
 	rts
-macos_code_CODE_21_semantic_decode_gap_00000f42:
+macos_code_CODE_21_semantic_pascal_string_gap_00000f42:
 	dc.b $87,$5F,$66,$73,$52,$65,$61,$64,$00,$00
 macos_code_CODE_21_loc_00000f4c:
 	link a6,#-4
@@ -45475,7 +45475,7 @@ macos_code_CODE_21_loc_00000fc8:
 	movem.l -$0010(a6),d3/d7/a4
 	unlk a6
 	rts
-macos_code_CODE_21_semantic_decode_gap_00000fd2:
+macos_code_CODE_21_semantic_pascal_string_gap_00000fd2:
 	dc.b $88,$5F,$66,$73,$57,$72,$69,$74,$65,$00,$00,$00
 macos_code_CODE_21_loc_00000fde:
 	link a6,#0
@@ -45490,13 +45490,13 @@ macos_code_CODE_21_loc_00000fde:
 	move.w macos_code_CODE_21_loc_00000838(pc,d0.l),d0
 	jmp $0(pc,d0.w)
 macos_code_CODE_21_loc_00001008:
-macos_code_CODE_21_semantic_decode_gap_00001008:
+macos_code_CODE_21_semantic_dispatch_table_gap_00001008:
 	dc.b $00,$1A,$00,$A6,$00,$10,$00,$B2,$00,$10,$00,$BA,$00,$CC
 macos_code_CODE_21_loc_00001016:
 	clr.w $0002(a4)
 	moveq.l #22,d0
 	bra.w macos_code_CODE_21_loc_0000092e
-macos_code_CODE_21_semantic_decode_gap_00001020:
+macos_code_CODE_21_semantic_dispatch_table_gap_00001020:
 	dc.b $20,$6E,$00,$10,$20,$10,$67,$0A,$53,$80,$67,$0A,$53,$80,$67,$0A
 	dc.b $60,$0C,$7C,$01,$60,$12,$7C,$03,$60,$0E,$7C,$02,$60,$0A,$42,$6C
 	dc.b $00,$02,$70,$16,$60,$00,$00,$B8,$70,$03,$B0,$86,$66,$0E,$20,$6E
@@ -45515,7 +45515,7 @@ macos_code_CODE_21_loc_000010fe:
 	movem.l -$0010(a6),d3/d6-d7/a4
 	unlk a6
 	rts
-macos_code_CODE_21_semantic_decode_gap_00001108:
+macos_code_CODE_21_semantic_pascal_string_gap_00001108:
 	dc.b $88,$5F,$66,$73,$49,$6F,$63,$74,$6C,$00,$00,$00,$4E,$56,$FF,$FC
 	dc.b $48,$E7,$00,$18,$26,$6E,$00,$0C,$28,$6E,$00,$08,$2D,$4C,$FF,$FC
 	dc.b $18,$DB,$66,$FC,$20,$2E,$FF,$FC,$4C,$EE,$18,$00,$FF,$F4,$4E,$5E
@@ -45533,7 +45533,7 @@ macos_code_CODE_21_loc_000011a8:
 	pea.l -$0014(a6)
 	pea.l -$0020(a6)
 	pea.l -$001C(a6)
-macos_code_CODE_21_semantic_decode_gap_000011c0:
+macos_code_CODE_21_semantic_dispatch_table_gap_000011c0:
 	dc.b $A9,$8D,$48,$6E,$FF,$E4,$70,$FC,$3F,$00,$3F,$00,$A8,$A9,$48,$6E
 	dc.b $FF,$EE,$A8,$98,$70,$03,$3F,$00,$3F,$00,$A8,$9B,$48,$6E,$FF,$E4
 	dc.b $70,$10,$3F,$00,$3F,$00,$A8,$B0,$48,$6E,$FF,$EE,$A8,$99,$4E,$5E
@@ -45690,7 +45690,7 @@ macos_code_CODE_21_loc_000017a2:
 	moveq.l #0,d0
 	unlk a6
 	rts
-macos_code_CODE_21_semantic_decode_gap_000017ac:
+macos_code_CODE_21_semantic_pascal_string_gap_000017ac:
 	dc.b $88,$5F,$63,$6F,$43,$6C,$6F,$73,$65,$00,$00,$00
 macos_code_CODE_21_loc_000017b8:
 	link a6,#0
@@ -45706,7 +45706,7 @@ macos_code_CODE_21_loc_000017d2:
 	addq.w #4,a7
 	unlk a6
 	rts
-macos_code_CODE_21_semantic_decode_gap_000017e2:
+macos_code_CODE_21_semantic_pascal_string_gap_000017e2:
 	dc.b $87,$5F,$63,$6F,$52,$65,$61,$64,$00,$00
 macos_code_CODE_21_loc_000017ec:
 	link a6,#0
@@ -45722,7 +45722,7 @@ macos_code_CODE_21_loc_00001806:
 	addq.w #4,a7
 	unlk a6
 	rts
-macos_code_CODE_21_semantic_decode_gap_00001816:
+macos_code_CODE_21_semantic_pascal_string_gap_00001816:
 	dc.b $88,$5F,$63,$6F,$57,$72,$69,$74,$65,$00,$00,$00
 macos_code_CODE_21_loc_00001822:
 	link a6,#0
@@ -45743,13 +45743,13 @@ macos_code_CODE_21_loc_0000183e:
 macos_code_CODE_21_loc_0000184a:
 	unlk a6
 	rts
-macos_code_CODE_21_semantic_decode_gap_0000184e:
+macos_code_CODE_21_semantic_pascal_string_gap_0000184e:
 	dc.b $88,$5F,$63,$6F,$49,$6F,$63,$74,$6C,$00,$00,$00
 macos_code_CODE_21_loc_0000185a:
 	link a6,#0
 	unlk a6
 	rts
-macos_code_CODE_21_semantic_decode_gap_00001862:
+macos_code_CODE_21_semantic_pascal_string_gap_00001862:
 	dc.b $87,$5F,$63,$6F,$45,$78,$69,$74,$00,$00
 macos_code_CODE_21_loc_0000186c:
 	link a6,#-260
@@ -45893,14 +45893,14 @@ macos_code_CODE_21_loc_000019f0:
 	moveq.l #0,d0
 	unlk a6
 	rts
-macos_code_CODE_21_semantic_decode_gap_000019fa:
+macos_code_CODE_21_semantic_pascal_string_gap_000019fa:
 	dc.b $88,$5F,$73,$79,$43,$6C,$6F,$73,$65,$00,$00,$00
 macos_code_CODE_21_loc_00001a06:
 	link a6,#0
 	moveq.l #0,d0
 	unlk a6
 	rts
-macos_code_CODE_21_semantic_decode_gap_00001a10:
+macos_code_CODE_21_semantic_pascal_string_gap_00001a10:
 	dc.b $87,$5F,$73,$79,$52,$65,$61,$64,$00,$00
 macos_code_CODE_21_loc_00001a1a:
 	link a6,#0
@@ -45914,7 +45914,7 @@ macos_code_CODE_21_loc_00001a1a:
 	movea.l -$0004(a6),a4
 	unlk a6
 	rts
-macos_code_CODE_21_semantic_decode_gap_00001a3c:
+macos_code_CODE_21_semantic_pascal_string_gap_00001a3c:
 	dc.b $88,$5F,$73,$79,$57,$72,$69,$74,$65,$00,$00,$00
 macos_code_CODE_21_loc_00001a48:
 	link a6,#0
@@ -45941,7 +45941,7 @@ macos_code_CODE_21_loc_00001a76:
 	movea.l -$0004(a6),a4
 	unlk a6
 	rts
-macos_code_CODE_21_semantic_decode_gap_00001a7e:
+macos_code_CODE_21_semantic_pascal_string_gap_00001a7e:
 	dc.b $88,$5F,$73,$79,$49,$6F,$63,$74,$6C,$00,$00,$00
 
 ; CODE 22 SANELIB source section
@@ -46282,7 +46282,7 @@ macos_code_CODE_24_loc_00000b86:
 	movea.l (a7)+,a0
 	lea.l $000C(a7),a7
 	jmp (a0)
-macos_code_CODE_24_semantic_decode_gap_00000b8e:
+macos_code_CODE_24_semantic_pascal_string_gap_00000b8e:
 	dc.b $89,$50,$4C,$53,$45,$54,$56,$42,$55,$46,$00,$00
 macos_code_CODE_24_loc_00000b9a:
 	link a6,#0
@@ -46324,7 +46324,7 @@ macos_code_CODE_24_loc_00000bfa:
 	movem.l -$000C(a6),d7/a3-a4
 	unlk a6
 	rts
-macos_code_CODE_24_semantic_decode_gap_00000c04:
+macos_code_CODE_24_semantic_pascal_string_gap_00000c04:
 	dc.b $88,$5F,$62,$75,$66,$53,$65,$65,$6B,$00,$00,$00
 macos_code_CODE_24_loc_00000c10:
 	link a6,#0
@@ -46394,7 +46394,7 @@ macos_code_CODE_24_loc_00000ca2:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-macos_code_CODE_24_semantic_decode_gap_00000cae:
+macos_code_CODE_24_semantic_pascal_string_gap_00000cae:
 	dc.b $85,$5F,$52,$5F,$4C,$4E,$00,$00
 macos_code_CODE_24_loc_00000cb6:
 	link a6,#-4
@@ -46567,7 +46567,7 @@ macos_code_CODE_24_loc_00000e38:
 	movea.l (a7)+,a0
 	lea.l $000A(a7),a7
 	jmp (a0)
-macos_code_CODE_24_semantic_decode_gap_00000e48:
+macos_code_CODE_24_semantic_pascal_string_gap_00000e48:
 	dc.b $86,$5F,$52,$5F,$53,$54,$52,$00,$00,$00
 macos_code_CODE_24_loc_00000e52:
 	link a6,#0
@@ -46673,7 +46673,7 @@ macos_code_CODE_24_loc_00000f40:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-macos_code_CODE_24_semantic_decode_gap_00000f4e:
+macos_code_CODE_24_semantic_pascal_string_gap_00000f4e:
 	dc.b $84,$5F,$57,$5F,$43,$00,$00,$00
 macos_code_CODE_24_loc_00000f56:
 	link a6,#0
@@ -46685,7 +46685,7 @@ macos_code_CODE_24_loc_00000f56:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-macos_code_CODE_24_semantic_decode_gap_00000f70:
+macos_code_CODE_24_semantic_pascal_string_gap_00000f70:
 	dc.b $85,$5F,$57,$5F,$4C,$4E,$00,$00
 macos_code_CODE_24_loc_00000f78:
 	link a6,#0
@@ -46697,7 +46697,7 @@ macos_code_CODE_24_loc_00000f78:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-macos_code_CODE_24_semantic_decode_gap_00000f92:
+macos_code_CODE_24_semantic_pascal_string_gap_00000f92:
 	dc.b $86,$5F,$5F,$50,$41,$47,$45,$00,$00,$00
 macos_code_CODE_24_loc_00000f9c:
 	link a6,#-20
@@ -46809,7 +46809,7 @@ macos_code_CODE_24_loc_00001090:
 	movea.l (a7)+,a0
 	lea.l $000A(a7),a7
 	jmp (a0)
-macos_code_CODE_24_semantic_decode_gap_000010a0:
+macos_code_CODE_24_semantic_pascal_string_gap_000010a0:
 	dc.b $84,$5F,$57,$5F,$49,$00,$00,$00
 macos_code_CODE_24_loc_000010a8:
 	link a6,#-4
@@ -46931,7 +46931,7 @@ macos_code_CODE_24_loc_000011be:
 	movea.l (a7)+,a0
 	lea.l $000A(a7),a7
 	jmp (a0)
-macos_code_CODE_24_semantic_decode_gap_000011ce:
+macos_code_CODE_24_semantic_pascal_string_gap_000011ce:
 	dc.b $86,$5F,$57,$5F,$53,$54,$52,$00,$00,$00
 macos_code_CODE_24_loc_000011d8:
 	link a6,#0
@@ -47006,7 +47006,7 @@ macos_code_CODE_24_loc_00001276:
 	movea.l (a7)+,a0
 	addq.w #6,a7
 	jmp (a0)
-macos_code_CODE_24_semantic_decode_gap_00001284:
+macos_code_CODE_24_semantic_pascal_string_gap_00001284:
 	dc.b $87,$5F,$5F,$55,$50,$41,$52,$52,$00,$00
 macos_code_CODE_24_loc_0000128e:
 	link a6,#-16
@@ -47091,7 +47091,7 @@ macos_code_CODE_24_loc_00001354:
 	movem.l -$0024(a6),d3/d6-d7/a3-a4
 	unlk a6
 	rts
-macos_code_CODE_24_semantic_decode_gap_0000135e:
+macos_code_CODE_24_semantic_pascal_string_gap_0000135e:
 	dc.b $88,$5F,$62,$75,$66,$52,$65,$61,$64,$00,$00,$00
 
 ; CODE 25 SANELib source section
@@ -47155,7 +47155,7 @@ macos_code_CODE_25_loc_00000038:
 	addq.b #1,(a7)
 macos_code_CODE_25_loc_00000042:
 	jmp (a0)
-macos_code_CODE_25_semantic_decode_gap_00000044:
+macos_code_CODE_25_semantic_dispatch_table_gap_00000044:
 	dc.b $61,$1A,$E2,$09,$65,$06,$46,$42,$C0,$42,$34,$00
 macos_code_CODE_25_loc_00000050:
 	or.w d2,d0
@@ -47307,7 +47307,7 @@ macos_code_CODE_26_loc_000000c6:
 	movea.l (a7)+,a0
 	jsr (a0)
 	bra.b macos_code_CODE_26_loc_00000028
-macos_code_CODE_26_semantic_decode_gap_000000cc:
+macos_code_CODE_26_semantic_dispatch_table_gap_000000cc:
 	dc.b $2B,$4C,$D2,$A4,$26,$54,$70,$00,$28,$80,$28,$4B,$20,$0C,$67,$0C
 	dc.b $26,$54,$2F,$0C,$20,$5F,$A0,$1F,$28,$4B,$60,$F0,$20,$46,$2B,$50
 	dc.b $D2,$9C
@@ -47316,7 +47316,7 @@ macos_code_CODE_26_loc_000000ee:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-macos_code_CODE_26_semantic_decode_gap_000000f8:
+macos_code_CODE_26_semantic_pascal_string_gap_000000f8:
 	dc.b $88,$25,$4D,$59,$52,$45,$4C,$53,$45,$00,$00,$00
 macos_code_CODE_26_loc_00000104:
 	link a6,#-256
@@ -47367,7 +47367,7 @@ macos_code_CODE_26_loc_0000018c:
 macos_code_CODE_26_loc_000001aa:
 	unlk a6
 	rts
-macos_code_CODE_26_semantic_decode_gap_000001ae:
+macos_code_CODE_26_semantic_pascal_string_gap_000001ae:
 	dc.b $88,$53,$45,$54,$43,$48,$45,$43,$4B,$00,$00,$00
 macos_code_CODE_26_loc_000001ba:
 	link a6,#-16
@@ -47471,7 +47471,7 @@ macos_code_CODE_26_loc_000002be:
 	movea.l (a7)+,a0
 	adda.w #$10,a7
 	jmp (a0)
-macos_code_CODE_26_semantic_decode_gap_000002cc:
+macos_code_CODE_26_semantic_pascal_string_gap_000002cc:
 	dc.b $8A,$50,$4C,$48,$45,$41,$50,$49,$4E,$49,$54,$00,$00,$00
 macos_code_CODE_26_loc_000002da:
 	link a6,#0
@@ -47485,7 +47485,7 @@ macos_code_CODE_26_loc_000002da:
 	movea.l (a7)+,a0
 	adda.w #$C,a7
 	jmp (a0)
-macos_code_CODE_26_semantic_decode_gap_00000300:
+macos_code_CODE_26_semantic_pascal_string_gap_00000300:
 	dc.b $8A,$50,$4C,$49,$4E,$49,$54,$48,$45,$41,$50,$00,$00,$00
 macos_code_CODE_26_loc_0000030e:
 	link a6,#0
@@ -47497,7 +47497,7 @@ macos_code_CODE_26_loc_0000031e:
 	movea.l (a7)+,a0
 	addq.w #2,a7
 	jmp (a0)
-macos_code_CODE_26_semantic_decode_gap_00000326:
+macos_code_CODE_26_semantic_pascal_string_gap_00000326:
 	dc.b $8E,$50,$4C,$53,$45,$54,$48,$45,$41,$50,$43,$48,$45,$43,$4B,$00
 	dc.b $00,$00
 macos_code_CODE_26_loc_00000338:
@@ -47517,7 +47517,7 @@ macos_code_CODE_26_loc_00000360:
 	movea.l (a7)+,a0
 	addq.w #6,a7
 	jmp (a0)
-macos_code_CODE_26_semantic_decode_gap_00000368:
+macos_code_CODE_26_semantic_pascal_string_gap_00000368:
 	dc.b $85,$25,$5F,$4E,$45,$57,$00,$00
 macos_code_CODE_26_loc_00000370:
 	link a6,#0
@@ -47533,7 +47533,7 @@ macos_code_CODE_26_loc_0000038e:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-macos_code_CODE_26_semantic_decode_gap_00000396:
+macos_code_CODE_26_semantic_pascal_string_gap_00000396:
 	dc.b $89,$25,$5F,$4C,$4F,$4E,$47,$4E,$45,$57,$00,$00
 macos_code_CODE_26_loc_000003a2:
 	link a6,#-20
@@ -47664,7 +47664,7 @@ macos_code_CODE_26_loc_00000502:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-macos_code_CODE_26_semantic_decode_gap_0000050e:
+macos_code_CODE_26_semantic_pascal_string_gap_0000050e:
 	dc.b $86,$25,$5F,$4E,$45,$57,$4C,$00,$00,$00
 macos_code_CODE_26_loc_00000518:
 	link a6,#0
@@ -47685,7 +47685,7 @@ macos_code_CODE_26_loc_0000053e:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-macos_code_CODE_26_semantic_decode_gap_00000550:
+macos_code_CODE_26_semantic_pascal_string_gap_00000550:
 	dc.b $86,$25,$5F,$4D,$41,$52,$4B,$00,$00,$00
 macos_code_CODE_26_loc_0000055a:
 	link a6,#-12
@@ -47747,14 +47747,14 @@ macos_code_CODE_26_loc_000005de:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-macos_code_CODE_26_semantic_decode_gap_000005e8:
+macos_code_CODE_26_semantic_pascal_string_gap_000005e8:
 	dc.b $87,$25,$5F,$52,$45,$4C,$53,$45,$00,$00
 macos_code_CODE_26_loc_000005f2:
 	link a6,#0
 	move.w -$2D50(a5),$0008(a6)
 	unlk a6
 	rts
-macos_code_CODE_26_semantic_decode_gap_00000600:
+macos_code_CODE_26_semantic_pascal_string_gap_00000600:
 	dc.b $88,$5F,$5F,$48,$45,$41,$50,$52,$45,$00,$00,$00
 macos_code_CODE_26_loc_0000060c:
 	link a6,#-4
@@ -47819,7 +47819,7 @@ macos_code_CODE_26_loc_000006cc:
 	unlk a6
 	move.l (a7)+,(a7)
 	rts
-macos_code_CODE_26_semantic_decode_gap_000006d6:
+macos_code_CODE_26_semantic_pascal_string_gap_000006d6:
 	dc.b $8A,$47,$45,$54,$46,$4C,$53,$50,$41,$43,$45,$00,$00,$00
 macos_code_CODE_26_loc_000006e4:
 	link a6,#-24
@@ -47898,7 +47898,7 @@ macos_code_CODE_26_loc_000007c2:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
-macos_code_CODE_26_semantic_decode_gap_000007ca:
+macos_code_CODE_26_semantic_pascal_string_gap_000007ca:
 	dc.b $8F,$47,$45,$54,$46,$52,$4F,$4D,$46,$52,$45,$45,$4C,$49,$53,$54
 	dc.b $00,$00
 macos_code_CODE_26_loc_000007dc:
@@ -48537,109 +48537,109 @@ macos_code_CODE_27_semantic_decode_gap_000000d4:
 ;       next: decode CODE 0 dispatch target semantics only where accepted target evidence exists
 ;     CODE 1: section=macos-code-CODE-1 ownership=candidate_code,metadata coverage=True labels=120 xrefs=1902 instructions=7818 body_spans=1 byte_real_only_body=False reachable_evidence=117 residuals=149
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
-;       residual semantic_decode_gap payload[638..654) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[3988..4020) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[4708..4722) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[4984..5506) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_string_data_gap payload[638..654) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[3988..4020) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[4708..4722) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[4984..5506) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_decode_gap payload[5528..5538) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[5660..5916) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[6618..6628) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[6638..6648) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[6668..6708) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[6748..6904) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[7452..7464) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[8184..8240) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_dispatch_table_gap payload[6668..6708) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[6748..6904) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_string_data_gap payload[7452..7464) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[8184..8240) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_decode_gap payload[8248..8266) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[8280..8304) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[8332..8360) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[8370..8598) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[8676..8688) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[8884..8950) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_dispatch_table_gap payload[8332..8360) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[8370..8598) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[8676..8688) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[8884..8950) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_decode_gap payload[9326..9362) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[9604..9658) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[9790..9822) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[9836..9844) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[10020..10032) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[10194..10206) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[10276..10286) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[10414..10424) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[10518..10534) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[10684..10698) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[11112..11124) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[11158..11180) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_dispatch_table_gap payload[9790..9822) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[9836..9844) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[10020..10032) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[10194..10206) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[10276..10286) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[10414..10424) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[10518..10534) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[10684..10698) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[11112..11124) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[11158..11180) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_decode_gap payload[12348..12376) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[12742..12754) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_pascal_string_gap payload[12742..12754) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_decode_gap payload[12852..12876) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[13024..13050) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[13112..13122) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[13198..13210) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[13338..13352) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[13876..14006) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[14164..14846) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[14898..14908) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[15008..15026) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[15648..15660) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[15746..15760) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[17496..17508) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_dispatch_table_gap payload[13024..13050) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[13112..13122) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[13198..13210) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[13338..13352) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[13876..14006) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[14164..14846) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[14898..14908) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[15008..15026) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[15648..15660) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[15746..15760) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[17496..17508) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_decode_gap payload[17550..17574) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[17636..17660) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[17716..17726) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[17846..17858) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[18552..18906) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[18988..18998) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[19098..19116) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[20020..20032) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[20164..20178) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[21290..21302) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[21408..21420) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[21602..21622) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[21710..21724) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[21772..21788) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[22422..22440) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[22528..22544) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[22742..22756) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[23026..23040) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[23266..23282) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[24496..24510) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[24528..24540) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[24594..24606) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[24812..24850) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[24956..24994) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_pascal_string_gap payload[17716..17726) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[17846..17858) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[18552..18906) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[18988..18998) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[19098..19116) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[20020..20032) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[20164..20178) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[21290..21302) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[21408..21420) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[21602..21622) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[21710..21724) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[21772..21788) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[22422..22440) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[22528..22544) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[22742..22756) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[23026..23040) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[23266..23282) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[24496..24510) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[24528..24540) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[24594..24606) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[24812..24850) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[24956..24994) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_decode_gap payload[25024..25032) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[25044..25068) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[25080..25260) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[25364..25374) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[25430..25450) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[25490..25506) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[25608..25624) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[25674..25686) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[25712..25724) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_pascal_string_gap payload[25364..25374) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[25430..25450) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[25490..25506) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[25608..25624) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[25674..25686) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[25712..25724) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_decode_gap payload[25752..25926) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[25936..25992) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[26018..26106) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[26116..26170) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[26562..26644) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[26664..26674) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[26698..26706) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[26794..26804) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_dispatch_table_gap payload[26562..26644) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[26664..26674) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[26698..26706) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[26794..26804) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_decode_gap payload[26808..26814) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[26818..26828) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[26834..26852) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[26862..26872) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[26880..26884) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[26912..26920) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[26926..26948) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_dispatch_table_gap payload[26926..26948) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_decode_gap payload[26956..26966) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[26974..26984) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[26992..27002) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[27014..27028) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[27072..27100) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[27126..27154) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_dispatch_table_gap payload[27014..27028) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[27072..27100) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[27126..27154) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_decode_gap payload[27176..27190) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[27218..27234) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[27260..27292) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_dispatch_table_gap payload[27218..27234) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[27260..27292) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_decode_gap payload[27310..27324) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[27336..27358) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_dispatch_table_gap payload[27336..27358) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_decode_gap payload[27382..27396) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[27404..27414) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[27424..27428) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
@@ -48652,13 +48652,13 @@ macos_code_CODE_27_semantic_decode_gap_000000d4:
 ;       residual semantic_decode_gap payload[27520..27530) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[27538..27548) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[27556..27566) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[27628..27638) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[27692..27702) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[27784..27796) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[27906..27918) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[27928..28444) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_pascal_string_gap payload[27628..27638) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[27692..27702) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[27784..27796) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[27906..27918) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[27928..28444) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_decode_gap payload[28454..28462) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[28574..28686) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_dispatch_table_gap payload[28574..28686) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_decode_gap payload[28692..28748) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[28830..28832) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[28900..28912) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
@@ -48669,43 +48669,43 @@ macos_code_CODE_27_semantic_decode_gap_000000d4:
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual candidate_unresolved_prefix payload[40..374) status=candidate parser_use=candidate_only reason=bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached through loader/stack/fixup flow not yet modeled
 ;       residual semantic_decode_gap payload[384..392) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[456..5444) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_dispatch_table_gap payload[456..5444) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_decode_gap payload[6016..6036) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[6400..6412) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_dispatch_table_gap payload[6400..6412) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_decode_gap payload[6446..6456) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[6964..6986) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[7078..7154) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[7280..7718) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[7740..7788) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_dispatch_table_gap payload[6964..6986) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[7078..7154) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[7280..7718) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[7740..7788) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual_summary candidate_unvisited_entry_pattern count=2 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
 ;     CODE 3: section=macos-code-CODE-3 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=6 xrefs=448 instructions=2925 body_spans=1 byte_real_only_body=False reachable_evidence=5 residuals=53
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual candidate_unresolved_prefix payload[40..302) status=candidate parser_use=candidate_only reason=bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached through loader/stack/fixup flow not yet modeled
-;       residual semantic_decode_gap payload[308..324) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_pascal_string_gap payload[308..324) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_decode_gap payload[410..436) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[1476..1646) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[1760..1772) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_dispatch_table_gap payload[1476..1646) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[1760..1772) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_decode_gap payload[2144..2188) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[2296..2306) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[2830..3236) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[4182..5772) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[5836..5870) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[5948..5962) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[6086..6100) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[6274..6292) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[6650..7246) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[7316..7334) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[8368..8702) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[8878..8922) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[9318..10584) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_pascal_string_gap payload[2296..2306) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[2830..3236) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[4182..5772) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[5836..5870) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[5948..5962) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[6086..6100) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[6274..6292) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[6650..7246) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[7316..7334) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[8368..8702) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[8878..8922) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[9318..10584) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_decode_gap payload[10760..10806) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[10968..11930) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[12122..12206) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[12298..13064) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[13356..13606) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[14060..14368) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[14556..14582) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[16880..17470) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_dispatch_table_gap payload[10968..11930) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[12122..12206) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[12298..13064) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[13356..13606) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[14060..14368) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[14556..14582) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[16880..17470) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_decode_gap payload[17546..17560) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[17636..17656) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[17730..17740) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
@@ -48715,335 +48715,335 @@ macos_code_CODE_27_semantic_decode_gap_000000d4:
 ;     CODE 4: section=macos-code-CODE-4 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=22 xrefs=264 instructions=1509 body_spans=1 byte_real_only_body=False reachable_evidence=22 residuals=28
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual candidate_unresolved_prefix payload[40..468) status=candidate parser_use=candidate_only reason=bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached through loader/stack/fixup flow not yet modeled
-;       residual semantic_decode_gap payload[562..576) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[646..660) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[732..746) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[772..780) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[922..934) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[1072..1116) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[1846..1894) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[2040..2054) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[3118..3138) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[3646..3714) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[4152..4990) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[5164..5174) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[5294..5302) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[5496..5550) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[5590..5602) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[5918..5928) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[5974..5984) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_pascal_string_gap payload[562..576) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[646..660) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[732..746) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[772..780) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[922..934) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[1072..1116) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[1846..1894) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[2040..2054) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[3118..3138) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[3646..3714) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[4152..4990) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[5164..5174) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[5294..5302) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[5496..5550) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[5590..5602) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[5918..5928) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[5974..5984) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_decode_gap payload[6030..6032) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[6144..6160) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[6232..6242) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[6304..6314) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[6388..6398) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[6416..6426) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_pascal_string_gap payload[6144..6160) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[6232..6242) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[6304..6314) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[6388..6398) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[6416..6426) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual_summary candidate_unvisited_entry_pattern count=4 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
 ;     CODE 5: section=macos-code-CODE-5 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=25 xrefs=1126 instructions=5288 body_spans=1 byte_real_only_body=False reachable_evidence=25 residuals=81
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual candidate_unresolved_prefix payload[40..212) status=candidate parser_use=candidate_only reason=bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached through loader/stack/fixup flow not yet modeled
-;       residual semantic_decode_gap payload[1000..1284) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[1422..1434) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[1496..1512) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[1536..1548) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[1608..1620) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[1792..1806) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[1864..1878) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[2036..2050) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[2150..2168) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[2280..2296) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[2454..2470) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[2508..2524) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[2564..2580) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[2620..2632) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[2814..2828) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[2888..2898) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[3378..3394) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_dispatch_table_gap payload[1000..1284) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[1422..1434) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[1496..1512) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[1536..1548) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[1608..1620) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[1792..1806) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[1864..1878) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[2036..2050) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[2150..2168) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[2280..2296) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[2454..2470) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[2508..2524) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[2564..2580) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[2620..2632) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[2814..2828) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[2888..2898) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[3378..3394) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_decode_gap payload[3436..3438) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[3468..3482) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[3638..3648) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[3774..3786) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_pascal_string_gap payload[3468..3482) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[3638..3648) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[3774..3786) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_decode_gap payload[4104..4108) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[4148..4162) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[4850..4866) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[4962..4976) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[5068..5088) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[5286..5302) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[5598..5612) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[5628..5642) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[5872..5884) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_pascal_string_gap payload[4148..4162) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[4850..4866) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[4962..4976) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[5068..5088) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[5286..5302) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[5598..5612) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[5628..5642) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[5872..5884) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_decode_gap payload[6144..6174) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[6216..6230) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[6274..6288) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[6538..6552) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[7508..8114) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_pascal_string_gap payload[6216..6230) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[6274..6288) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[6538..6552) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[7508..8114) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_decode_gap payload[8184..8248) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[8380..9160) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[9266..9292) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[9410..9448) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[9562..9576) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[11070..11278) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[11342..11364) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[11864..11880) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[11956..11968) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[12120..12136) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_dispatch_table_gap payload[8380..9160) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[9266..9292) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[9410..9448) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[9562..9576) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[11070..11278) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[11342..11364) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[11864..11880) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[11956..11968) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[12120..12136) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_decode_gap payload[13166..13170) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[13648..13660) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[14210..14224) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[14354..14366) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[14480..14496) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[14568..14586) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[14734..15042) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[15120..21494) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[21552..21730) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_pascal_string_gap payload[13648..13660) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[14210..14224) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[14354..14366) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[14480..14496) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[14568..14586) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[14734..15042) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[15120..21494) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[21552..21730) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_decode_gap payload[21764..21784) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[21928..21952) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[22080..22098) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[23710..23726) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[23836..23850) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_pascal_string_gap payload[22080..22098) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[23710..23726) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[23836..23850) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_decode_gap payload[23892..23914) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[23964..23980) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[24102..24124) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[24328..24342) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[26212..26448) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[26624..26638) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_pascal_string_gap payload[23964..23980) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[24102..24124) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[24328..24342) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[26212..26448) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[26624..26638) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual_summary candidate_unvisited_entry_pattern count=15 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
 ;     CODE 6: section=macos-code-CODE-6 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=12 xrefs=824 instructions=2494 body_spans=1 byte_real_only_body=False reachable_evidence=11 residuals=23
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual candidate_unresolved_prefix payload[40..58) status=candidate parser_use=candidate_only reason=bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached through loader/stack/fixup flow not yet modeled
-;       residual semantic_decode_gap payload[266..298) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_dispatch_table_gap payload[266..298) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_decode_gap payload[316..426) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[576..656) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_dispatch_table_gap payload[576..656) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_decode_gap payload[728..736) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[844..920) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_dispatch_table_gap payload[844..920) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_decode_gap payload[952..960) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[972..976) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[984..992) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[1332..1396) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[1662..1678) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_dispatch_table_gap payload[1332..1396) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[1662..1678) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_decode_gap payload[1866..1870) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[3398..3406) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[3664..3692) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_dispatch_table_gap payload[3664..3692) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_decode_gap payload[4166..4168) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[6854..6858) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[6970..7016) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[8922..15126) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[15144..15158) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_dispatch_table_gap payload[6970..7016) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[8922..15126) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[15144..15158) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual_summary candidate_unvisited_entry_pattern count=4 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
 ;     CODE 7: section=macos-code-CODE-7 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=8 xrefs=71 instructions=339 body_spans=1 byte_real_only_body=False reachable_evidence=8 residuals=6
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual candidate_unresolved_prefix payload[40..352) status=candidate parser_use=candidate_only reason=bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached through loader/stack/fixup flow not yet modeled
 ;       residual semantic_decode_gap payload[362..370) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[434..2788) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_dispatch_table_gap payload[434..2788) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_decode_gap payload[3138..3160) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[3688..4062) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[4130..4142) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_dispatch_table_gap payload[3688..4062) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[4130..4142) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;     CODE 8: section=macos-code-CODE-8 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=11 xrefs=113 instructions=529 body_spans=1 byte_real_only_body=False reachable_evidence=9 residuals=8
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual candidate_unresolved_prefix payload[40..42) status=candidate parser_use=candidate_only reason=bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached through loader/stack/fixup flow not yet modeled
 ;       residual semantic_decode_gap payload[598..678) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[778..794) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[860..876) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[1032..1048) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[1112..1132) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[1618..1630) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[1836..1852) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_pascal_string_gap payload[778..794) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[860..876) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[1032..1048) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[1112..1132) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[1618..1630) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[1836..1852) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;     CODE 9: section=macos-code-CODE-9 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=10 xrefs=104 instructions=375 body_spans=1 byte_real_only_body=False reachable_evidence=11 residuals=38
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual candidate_unresolved_prefix payload[40..712) status=candidate parser_use=candidate_only reason=bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached through loader/stack/fixup flow not yet modeled
-;       residual semantic_decode_gap payload[720..1146) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[1462..1986) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[2030..2076) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[2478..4002) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[4132..4148) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[4276..12734) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_dispatch_table_gap payload[720..1146) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[1462..1986) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[2030..2076) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[2478..4002) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_string_data_gap payload[4132..4148) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[4276..12734) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_decode_gap payload[12798..13904) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[13934..13946) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_pascal_string_gap payload[13934..13946) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual_summary candidate_unvisited_entry_pattern count=29 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
 ;     CODE 10: section=macos-code-CODE-10 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=5 xrefs=55 instructions=305 body_spans=1 byte_real_only_body=False reachable_evidence=4 residuals=4
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual candidate_unresolved_prefix payload[40..148) status=candidate parser_use=candidate_only reason=bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached through loader/stack/fixup flow not yet modeled
-;       residual semantic_decode_gap payload[154..166) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[298..310) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[1162..1542) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_pascal_string_gap payload[154..166) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[298..310) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[1162..1542) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;     CODE 11: section=macos-code-CODE-11 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=17 xrefs=148 instructions=860 body_spans=1 byte_real_only_body=False reachable_evidence=17 residuals=20
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual candidate_unresolved_prefix payload[40..836) status=candidate parser_use=candidate_only reason=bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached through loader/stack/fixup flow not yet modeled
-;       residual semantic_decode_gap payload[842..860) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[928..946) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[1020..1032) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[1190..1206) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[1222..1234) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[1344..1354) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[1422..1434) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[1676..1688) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[1756..1770) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[1912..1926) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[2352..2366) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[2630..2642) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[2890..2902) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[3148..3166) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[3406..3424) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_pascal_string_gap payload[842..860) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[928..946) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[1020..1032) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[1190..1206) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[1222..1234) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[1344..1354) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[1422..1434) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[1676..1688) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[1756..1770) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[1912..1926) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[2352..2366) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[2630..2642) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[2890..2902) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[3148..3166) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[3406..3424) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_decode_gap payload[3494..3538) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[3616..3618) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[3636..3654) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[3668..3678) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_pascal_string_gap payload[3636..3654) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[3668..3678) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;     CODE 12: section=macos-code-CODE-12 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=6 xrefs=371 instructions=1999 body_spans=1 byte_real_only_body=False reachable_evidence=4 residuals=24
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual candidate_unresolved_prefix payload[40..44) status=candidate parser_use=candidate_only reason=bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached through loader/stack/fixup flow not yet modeled
-;       residual semantic_decode_gap payload[768..786) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[926..942) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[1164..1180) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[1312..1322) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[1490..1502) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[1700..1714) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[1824..1834) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[1938..1950) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[2168..2180) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[2320..2332) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[2388..2402) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_dispatch_table_gap payload[768..786) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[926..942) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[1164..1180) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[1312..1322) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[1490..1502) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[1700..1714) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[1824..1834) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[1938..1950) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[2168..2180) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[2320..2332) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[2388..2402) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_decode_gap payload[2436..2438) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[2502..2504) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[2624..2626) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[2702..2704) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[2716..2732) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[2828..2830) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[2862..2880) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[4502..4598) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[4690..4702) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_zero_fill_gap payload[2502..2504) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_zero_fill_gap payload[2624..2626) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_zero_fill_gap payload[2702..2704) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[2716..2732) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_zero_fill_gap payload[2828..2830) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[2862..2880) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[4502..4598) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[4690..4702) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_decode_gap payload[4864..4866) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[4902..4920) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[6770..6928) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_pascal_string_gap payload[4902..4920) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[6770..6928) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;     CODE 13: section=macos-code-CODE-13 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=16 xrefs=202 instructions=1079 body_spans=1 byte_real_only_body=False reachable_evidence=15 residuals=153
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual candidate_unresolved_prefix payload[40..44) status=candidate parser_use=candidate_only reason=bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached through loader/stack/fixup flow not yet modeled
-;       residual semantic_decode_gap payload[196..4402) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[4554..8698) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[8864..8872) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[8880..9190) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[9496..9512) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[9862..11470) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[11520..11532) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_dispatch_table_gap payload[196..4402) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[4554..8698) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[8864..8872) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[8880..9190) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[9496..9512) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[9862..11470) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[11520..11532) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_decode_gap payload[11604..11676) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[11766..11782) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_pascal_string_gap payload[11766..11782) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_decode_gap payload[12344..26534) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[27034..28486) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[29374..33138) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[33196..33318) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[33336..33354) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_dispatch_table_gap payload[27034..28486) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[29374..33138) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[33196..33318) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[33336..33354) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual_summary candidate_unvisited_entry_pattern count=138 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
 ;     CODE 14: section=macos-code-CODE-14 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=14 xrefs=97 instructions=466 body_spans=1 byte_real_only_body=False reachable_evidence=13 residuals=12
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual candidate_unresolved_prefix payload[40..236) status=candidate parser_use=candidate_only reason=bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached through loader/stack/fixup flow not yet modeled
-;       residual semantic_decode_gap payload[242..256) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[386..396) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[506..518) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[800..808) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[958..966) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[1118..1130) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[1166..1176) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[1280..1294) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[1524..1604) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[1736..1820) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[1876..1886) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_pascal_string_gap payload[242..256) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[386..396) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[506..518) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[800..808) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[958..966) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[1118..1130) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[1166..1176) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[1280..1294) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[1524..1604) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[1736..1820) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[1876..1886) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;     CODE 15: section=macos-code-CODE-15 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=11 xrefs=144 instructions=909 body_spans=1 byte_real_only_body=False reachable_evidence=9 residuals=16
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual candidate_unresolved_prefix payload[40..96) status=candidate parser_use=candidate_only reason=bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached through loader/stack/fixup flow not yet modeled
-;       residual semantic_decode_gap payload[104..112) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[208..210) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[230..290) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[430..432) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[444..456) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[1252..1398) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[1644..1662) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[2144..2198) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[2276..2294) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_pascal_string_gap payload[104..112) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_zero_fill_gap payload[208..210) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[230..290) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_zero_fill_gap payload[430..432) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[444..456) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[1252..1398) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[1644..1662) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[2144..2198) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[2276..2294) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_decode_gap payload[2712..2802) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[2824..2832) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[2912..2930) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[3176..3190) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[3260..3274) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[3436..3452) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_pascal_string_gap payload[2824..2832) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[2912..2930) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[3176..3190) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[3260..3274) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[3436..3452) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;     CODE 16: section=macos-code-CODE-16 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=6 xrefs=29 instructions=169 body_spans=1 byte_real_only_body=False reachable_evidence=5 residuals=5
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual candidate_unresolved_prefix payload[40..246) status=candidate parser_use=candidate_only reason=bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached through loader/stack/fixup flow not yet modeled
-;       residual semantic_decode_gap payload[252..306) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[480..520) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_dispatch_table_gap payload[252..306) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[480..520) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_decode_gap payload[782..866) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[964..1034) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_dispatch_table_gap payload[964..1034) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;     CODE 17: section=macos-code-CODE-17 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=5 xrefs=196 instructions=940 body_spans=1 byte_real_only_body=False reachable_evidence=3 residuals=11
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual candidate_unresolved_prefix payload[40..100) status=candidate parser_use=candidate_only reason=bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached through loader/stack/fixup flow not yet modeled
-;       residual semantic_decode_gap payload[106..120) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[288..302) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[488..500) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[908..942) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[990..1000) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[1188..1246) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[2274..2328) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[2388..2402) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_pascal_string_gap payload[106..120) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[288..302) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[488..500) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[908..942) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[990..1000) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[1188..1246) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[2274..2328) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[2388..2402) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_decode_gap payload[2540..2588) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[3348..3674) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_dispatch_table_gap payload[3348..3674) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;     CODE 18: section=macos-code-CODE-18 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=5 xrefs=12 instructions=60 body_spans=1 byte_real_only_body=False reachable_evidence=5 residuals=3
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual candidate_unresolved_prefix payload[40..1562) status=candidate parser_use=candidate_only reason=bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached through loader/stack/fixup flow not yet modeled
-;       residual semantic_decode_gap payload[1568..1772) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[1956..1974) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_dispatch_table_gap payload[1568..1772) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[1956..1974) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;     CODE 19: section=macos-code-CODE-19 ownership=deferred,metadata coverage=True labels=3 xrefs=0 instructions=0 body_spans=0 byte_real_only_body=False reachable_evidence=2 residuals=1
 ;       next: extend C-owned CODE layout and reference analysis before promoting semantic source rows
 ;       residual deferred payload[40..556) status=deferred parser_use=deferred_only reason=missing_m68k_movea_l_stack_to_a0_entry
 ;     CODE 20: section=macos-code-CODE-20 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=19 xrefs=141 instructions=738 body_spans=1 byte_real_only_body=False reachable_evidence=29 residuals=17
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual candidate_unresolved_prefix payload[40..2876) status=candidate parser_use=candidate_only reason=bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached through loader/stack/fixup flow not yet modeled
-;       residual semantic_decode_gap payload[2884..2896) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[3010..3020) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[3200..3212) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[3256..3266) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[3284..3424) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[3718..3728) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_pascal_string_gap payload[2884..2896) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[3010..3020) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[3200..3212) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[3256..3266) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[3284..3424) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[3718..3728) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_decode_gap payload[3816..3818) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[3834..3844) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[4050..4058) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[4332..4342) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[4518..4528) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[4676..4686) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[4790..4800) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[4952..4962) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[5092..5104) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[5228..5240) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_pascal_string_gap payload[3834..3844) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[4050..4058) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[4332..4342) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[4518..4528) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[4676..4686) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[4790..4800) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[4952..4962) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[5092..5104) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[5228..5240) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;     CODE 21: section=macos-code-CODE-21 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=22 xrefs=129 instructions=713 body_spans=1 byte_real_only_body=False reachable_evidence=21 residuals=39
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual candidate_unresolved_prefix payload[40..2000) status=candidate parser_use=candidate_only reason=bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached through loader/stack/fixup flow not yet modeled
 ;       residual semantic_decode_gap payload[2008..2078) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[2154..2302) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[2498..2512) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[2716..2988) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[3440..3630) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[3642..3652) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_pascal_string_gap payload[2498..2512) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[2716..2988) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[3440..3630) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[3642..3652) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_decode_gap payload[3758..3762) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[3766..3768) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[3792..3804) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[3906..3916) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[4050..4062) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[4104..4118) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[4128..4350) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[4360..4520) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[4544..4620) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[4656..5234) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[5276..5928) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_pascal_string_gap payload[3792..3804) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[3906..3916) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[4050..4062) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[4104..4118) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[4128..4350) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[4360..4520) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[4544..4620) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[4656..5234) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[5276..5928) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_decode_gap payload[6022..6050) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[6060..6072) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_pascal_string_gap payload[6060..6072) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_decode_gap payload[6086..6098) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[6114..6124) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_pascal_string_gap payload[6114..6124) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_decode_gap payload[6138..6150) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[6166..6178) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[6222..6234) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[6242..6252) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[6580..6640) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[6650..6662) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[6672..6682) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[6716..6728) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[6782..6794) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_pascal_string_gap payload[6166..6178) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[6222..6234) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[6242..6252) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_dispatch_table_gap payload[6580..6640) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[6650..6662) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[6672..6682) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[6716..6728) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[6782..6794) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual_summary candidate_unvisited_entry_pattern count=8 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
 ;     CODE 22: section=macos-code-CODE-22 ownership=deferred,metadata coverage=True labels=3 xrefs=0 instructions=0 body_spans=0 byte_real_only_body=False reachable_evidence=2 residuals=1
 ;       next: extend C-owned CODE layout and reference analysis before promoting semantic source rows
@@ -49054,21 +49054,21 @@ macos_code_CODE_27_semantic_decode_gap_000000d4:
 ;     CODE 24: section=macos-code-CODE-24 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=13 xrefs=105 instructions=709 body_spans=1 byte_real_only_body=False reachable_evidence=15 residuals=12
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual candidate_unresolved_prefix payload[40..2950) status=candidate parser_use=candidate_only reason=bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached through loader/stack/fixup flow not yet modeled
-;       residual semantic_decode_gap payload[2958..2970) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[3076..3088) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[3246..3254) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[3656..3666) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[3918..3926) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[3952..3960) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[3986..3996) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[4256..4264) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[4558..4568) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[4740..4750) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[4958..4970) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_pascal_string_gap payload[2958..2970) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[3076..3088) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[3246..3254) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[3656..3666) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[3918..3926) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[3952..3960) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[3986..3996) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[4256..4264) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[4558..4568) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[4740..4750) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[4958..4970) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;     CODE 25: section=macos-code-CODE-25 ownership=candidate_code,metadata coverage=True labels=6 xrefs=12 instructions=36 body_spans=1 byte_real_only_body=False reachable_evidence=5 residuals=13
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual semantic_decode_gap payload[48..56) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[68..80) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_dispatch_table_gap payload[68..80) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_decode_gap payload[90..108) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[116..122) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
 ;       residual semantic_decode_gap payload[140..184) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
@@ -49078,25 +49078,25 @@ macos_code_CODE_27_semantic_decode_gap_000000d4:
 ;     CODE 26: section=macos-code-CODE-26 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=27 xrefs=180 instructions=851 body_spans=1 byte_real_only_body=False reachable_evidence=26 residuals=22
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
 ;       residual candidate_unresolved_prefix payload[40..198) status=candidate parser_use=candidate_only reason=bytes precede candidate stack-entry boundary; they are not proven data and may contain code reached through loader/stack/fixup flow not yet modeled
-;       residual semantic_decode_gap payload[204..238) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[248..260) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_dispatch_table_gap payload[204..238) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[248..260) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_decode_gap payload[288..310) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[356..396) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[430..442) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[716..730) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[768..782) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[806..824) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[872..880) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[918..930) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[1294..1304) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[1360..1370) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_dispatch_table_gap payload[356..396) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[430..442) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[716..730) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[768..782) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[806..824) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[872..880) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[918..930) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[1294..1304) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[1360..1370) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_decode_gap payload[1486..1492) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[1512..1522) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[1536..1548) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[1750..1764) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[1994..2012) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_pascal_string_gap payload[1512..1522) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[1536..1548) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[1750..1764) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
+;       residual semantic_pascal_string_gap payload[1994..2012) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual semantic_decode_gap payload[2348..2350) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[2358..2392) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
+;       residual semantic_dispatch_table_gap payload[2358..2392) status=candidate parser_use=candidate_only reason=semantic decoder left a byte span that matches conservative Mac data syntax
 ;       residual_summary candidate_unvisited_entry_pattern count=2 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not rendered as source comments
 ;     CODE 27: section=macos-code-CODE-27 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=5 xrefs=2 instructions=4 body_spans=1 byte_real_only_body=False reachable_evidence=3 residuals=21
 ;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
