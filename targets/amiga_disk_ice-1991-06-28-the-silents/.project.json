@@ -1,0 +1,13 @@
+{
+  "created_at": "2026-05-13T19:57:00.094442+00:00",
+  "origin": {
+    "filename": "Ice (1991-06-28)(The Silents).adf",
+    "kind": "user_upload",
+    "platform": "amiga-disk",
+    "sha256": "d1724585130d4c4e00ac990a42c8528fc984a1fac5c5468ddbb46ae35fcdcef7",
+    "size": 901120,
+    "source_path": "C:/Data/R/git/claude-repos/amiga-reversing2/bin/Ice (1991-06-28)(The Silents).adf"
+  },
+  "schema_version": 2,
+  "updated_at": "2026-05-13T19:57:00.146498+00:00"
+}

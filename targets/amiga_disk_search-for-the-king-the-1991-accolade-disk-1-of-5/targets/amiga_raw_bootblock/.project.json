@@ -1,0 +1,12 @@
+{
+  "created_at": "2026-05-13T19:57:06.769390+00:00",
+  "origin": {
+    "kind": "disk_child",
+    "parent_disk_id": "search-for-the-king-the-1991-accolade-disk-1-of-5",
+    "source_path": "C:/Data/R/git/claude-repos/amiga-reversing2/bin/Search for the King, The (1991)(Accolade)(Disk 1 of 5).adf",
+    "target_role": "bootblock",
+    "target_type": "bootblock"
+  },
+  "schema_version": 2,
+  "updated_at": "2026-05-13T19:57:06.781115+00:00"
+}

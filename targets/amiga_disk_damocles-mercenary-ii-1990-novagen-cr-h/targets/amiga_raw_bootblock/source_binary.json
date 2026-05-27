@@ -1,0 +1,9 @@
+{
+  "address_model": "local_offset",
+  "code_start_offset": 12,
+  "entrypoint": 458764,
+  "kind": "raw_binary",
+  "load_address": 458752,
+  "parent_disk_id": "damocles-mercenary-ii-1990-novagen-cr-h",
+  "path": "targets/amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h/targets/amiga_raw_bootblock/binary.bin"
+}

@@ -1,0 +1,33 @@
+{
+  "created_at": "2026-05-14T06:00:48.039410+00:00",
+  "origin": {
+    "child_entry_path": "Damocles::tetragon_02_00000060",
+    "codec_id": "tetragon",
+    "codec_name": "Tetragon target-owned unpacker",
+    "decompressed_sha256": "241eff126d46113217bbdb5646cb228aec80d65ff7d9b852359fa5d752b508e8",
+    "decompressed_size": 504138,
+    "entrypoint": 365700,
+    "event_id": "decompression:recognized_unpacker:section:2:00000060:tetragon",
+    "kind": "derived_decompressed_payload",
+    "load_address": 4096,
+    "packed_file_offset": null,
+    "packed_section_offset": 332,
+    "parent_disk_id": "damocles-mercenary-ii-1990-novagen-cr-h",
+    "parent_entry_path": "Damocles",
+    "parent_remains_active": "false",
+    "parent_remains_active_id": 1,
+    "parent_target": "amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h__amiga_hunk_damocles_53b24620",
+    "payload_role": "primary_program",
+    "payload_role_confidence": "native_unpack_entry_validated",
+    "payload_role_confidence_id": 2,
+    "payload_role_id": 2,
+    "project_origin_kind_id": 1,
+    "provider_id": "c-tetragon-native",
+    "source_section": 2,
+    "target_role": "decompressed_payload",
+    "target_role_id": 1,
+    "target_type": "raw_binary"
+  },
+  "schema_version": 2,
+  "updated_at": "2026-05-14T06:00:48.246436+00:00"
+}

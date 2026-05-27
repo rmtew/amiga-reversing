@@ -1,0 +1,13 @@
+{
+  "created_at": "2026-05-13T19:57:06.745793+00:00",
+  "origin": {
+    "filename": "Search for the King, The (1991)(Accolade)(Disk 1 of 5).adf",
+    "kind": "user_upload",
+    "platform": "amiga-disk",
+    "sha256": "16027416d5997d71bda8bfc0ee1c34411d09f0f02516f4421b4b5888b7ceb5e4",
+    "size": 901120,
+    "source_path": "C:/Data/R/git/claude-repos/amiga-reversing2/bin/Search for the King, The (1991)(Accolade)(Disk 1 of 5).adf"
+  },
+  "schema_version": 2,
+  "updated_at": "2026-05-13T19:57:17.461883+00:00"
+}

@@ -1,0 +1,9 @@
+{
+  "address_model": "local_offset",
+  "code_start_offset": 12,
+  "entrypoint": 458764,
+  "kind": "raw_binary",
+  "load_address": 458752,
+  "parent_disk_id": "carrier-command-1994-kixx-budget",
+  "path": "targets/amiga_disk_carrier-command-1994-kixx-budget/targets/amiga_raw_bootblock/binary.bin"
+}

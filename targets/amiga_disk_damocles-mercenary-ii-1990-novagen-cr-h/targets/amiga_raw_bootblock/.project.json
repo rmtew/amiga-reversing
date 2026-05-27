@@ -1,0 +1,12 @@
+{
+  "created_at": "2026-05-13T19:56:59.655051+00:00",
+  "origin": {
+    "kind": "disk_child",
+    "parent_disk_id": "damocles-mercenary-ii-1990-novagen-cr-h",
+    "source_path": "C:/Data/R/git/claude-repos/amiga-reversing2/bin/Damocles - Mercenary II (1990)(Novagen)[cr][h ACU - Krayzi].adf",
+    "target_role": "bootblock",
+    "target_type": "bootblock"
+  },
+  "schema_version": 2,
+  "updated_at": "2026-05-13T19:56:59.665097+00:00"
+}

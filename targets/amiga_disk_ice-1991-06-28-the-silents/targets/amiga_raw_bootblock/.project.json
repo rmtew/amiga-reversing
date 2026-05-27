@@ -1,0 +1,12 @@
+{
+  "created_at": "2026-05-13T19:57:00.103243+00:00",
+  "origin": {
+    "kind": "disk_child",
+    "parent_disk_id": "ice-1991-06-28-the-silents",
+    "source_path": "C:/Data/R/git/claude-repos/amiga-reversing2/bin/Ice (1991-06-28)(The Silents).adf",
+    "target_role": "bootblock",
+    "target_type": "bootblock"
+  },
+  "schema_version": 2,
+  "updated_at": "2026-05-13T19:57:00.113546+00:00"
+}

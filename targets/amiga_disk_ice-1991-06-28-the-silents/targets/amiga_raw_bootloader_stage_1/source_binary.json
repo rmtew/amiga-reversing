@@ -1,0 +1,9 @@
+{
+  "address_model": "runtime_absolute",
+  "code_start_offset": 0,
+  "entrypoint": 262144,
+  "kind": "raw_binary",
+  "load_address": 262144,
+  "parent_disk_id": "ice-1991-06-28-the-silents",
+  "path": "targets/amiga_disk_ice-1991-06-28-the-silents/targets/amiga_raw_bootloader_stage_1/binary.bin"
+}

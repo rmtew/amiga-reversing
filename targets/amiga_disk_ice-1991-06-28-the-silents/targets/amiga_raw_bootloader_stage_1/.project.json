@@ -1,0 +1,13 @@
+{
+  "created_at": "2026-05-13T19:57:00.114821+00:00",
+  "origin": {
+    "entry_path": "bootloader/stage_1",
+    "kind": "disk_child",
+    "parent_disk_id": "ice-1991-06-28-the-silents",
+    "source_path": "C:/Data/R/git/claude-repos/amiga-reversing2/bin/Ice (1991-06-28)(The Silents).adf",
+    "target_role": "bootloader_stage",
+    "target_type": "bootloader_stage"
+  },
+  "schema_version": 2,
+  "updated_at": "2026-05-13T19:57:00.123233+00:00"
+}

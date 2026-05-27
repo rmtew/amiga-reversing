@@ -1,0 +1,12 @@
+{
+  "created_at": "2026-05-13T19:56:59.425291+00:00",
+  "origin": {
+    "kind": "disk_child",
+    "parent_disk_id": "conqueror-1990-rainbow-arts-de-en",
+    "source_path": "C:/Data/R/git/claude-repos/amiga-reversing2/bin/Conqueror (1990)(Rainbow Arts)(de-en)[cr QTX].adf",
+    "target_role": "bootblock",
+    "target_type": "bootblock"
+  },
+  "schema_version": 2,
+  "updated_at": "2026-05-13T19:56:59.433267+00:00"
+}

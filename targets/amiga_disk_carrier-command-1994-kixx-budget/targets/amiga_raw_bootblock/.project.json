@@ -1,0 +1,12 @@
+{
+  "created_at": "2026-05-13T19:56:59.372772+00:00",
+  "origin": {
+    "kind": "disk_child",
+    "parent_disk_id": "carrier-command-1994-kixx-budget",
+    "source_path": "C:/Data/R/git/claude-repos/amiga-reversing2/bin/Carrier Command (1994)(Kixx)[h][budget].adf",
+    "target_role": "bootblock",
+    "target_type": "bootblock"
+  },
+  "schema_version": 2,
+  "updated_at": "2026-05-13T19:56:59.385592+00:00"
+}

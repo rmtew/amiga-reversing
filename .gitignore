@@ -82,4 +82,14 @@ targets/amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5/targets/ami
 !targets/.disks/
 !targets/.disks/*/
 !targets/.disks/*/manifest.json
+
+# Durable target source artifacts. Target trees remain broadly ignored, but
+# imported/selected target source and stable target metadata are reviewable.
+!targets/**/
+targets/**/*
+!targets/**/
+!targets/**/*.s
+!targets/**/.project.json
+!targets/**/source_binary.json
+!targets/**/target_metadata.json
 *.analysis
