@@ -918,6 +918,12 @@ typedef struct M68kRecoveredFunctionArgIR {
   uint16_t stack_offset;
   uint8_t reg_kind;
   uint8_t reg_index;
+  uint32_t source_offset;
+  int16_t source_displacement;
+  uint8_t has_source_operand;
+  uint8_t source_reg_kind;
+  uint8_t source_reg_index;
+  uint8_t reserved[3];
   M68kPlatformTypedEffectPayloadIR typed;
 } M68kRecoveredFunctionArgIR;
 
@@ -1428,7 +1434,8 @@ int m68k_ir_section_analysis_append_recovered_local_call_summary(M68kSectionAnal
 int m68k_ir_section_analysis_append_recovered_function_arg(M68kSectionAnalysisIR *section_analysis,
     uint8_t platform_kind, uint32_t function_offset, uint16_t stack_offset, uint8_t reg_kind, uint8_t reg_index,
     const char *context_name, const char *symbol_name, const char *type_name, const char *semantic_kind,
-    const char *value_domain_name, uint8_t has_constant_value, int32_t constant_value);
+    const char *value_domain_name, uint8_t has_constant_value, int32_t constant_value, uint8_t has_source_operand,
+    uint32_t source_offset, uint8_t source_reg_kind, uint8_t source_reg_index, int16_t source_displacement);
 int m68k_ir_section_analysis_append_recovered_platform_call(M68kSectionAnalysisIR *section_analysis,
     uint8_t platform_kind, uint32_t offset, uint8_t kind, const char *symbol_name, uint8_t note_kind, const char *note_base_name,
     const char *note_symbol_name, uint8_t note_reg, int16_t note_disp, int16_t note_field_disp,

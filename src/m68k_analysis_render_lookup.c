@@ -4596,7 +4596,7 @@ static int append_render_lookup_recovered_function_args_for_section(const M68kRe
     value_domain_name = amiga_os_name(M68K_PLATFORM_NAME_VALUE_DOMAIN, input->value_domain_id);
     if (m68k_ir_section_analysis_append_recovered_function_arg(section_analysis,
         M68K_PLATFORM_BACKEND_AMIGA_HUNK, arg->function_offset, arg->stack_offset, arg->reg_kind, arg->reg_index,
-        NULL, symbol_name, type_name, semantic_kind, value_domain_name, 0U, 0) != 0) {
+        NULL, symbol_name, type_name, semantic_kind, value_domain_name, 0U, 0, 0U, 0U, 0U, 0U, 0) != 0) {
       return -1;
     }
   }

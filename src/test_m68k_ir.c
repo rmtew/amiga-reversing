@@ -3232,14 +3232,28 @@ static int test_facts_v2_macos_call_stack_args_from_generated_metadata(void) {
   analysis_section = &source_analysis.sections[0];
   M68K_C_ASSERT_U32(1U, (uint32_t)analysis_section->recovered_platform_call_count);
   M68K_C_ASSERT_U32(2U, (uint32_t)analysis_section->recovered_function_arg_count);
+  M68K_C_ASSERT_U32(1U, analysis_section->recovered_function_args[0].has_source_operand);
+  M68K_C_ASSERT_U32(4U, analysis_section->recovered_function_args[0].source_offset);
+  M68K_C_ASSERT_U32(2U, analysis_section->recovered_function_args[0].source_reg_kind);
+  M68K_C_ASSERT_U32(6U, analysis_section->recovered_function_args[0].source_reg_index);
+  M68K_C_ASSERT_INT(-256, analysis_section->recovered_function_args[0].source_displacement);
+  M68K_C_ASSERT_U32(1U, analysis_section->recovered_function_args[1].has_source_operand);
+  M68K_C_ASSERT_U32(8U, analysis_section->recovered_function_args[1].source_offset);
+  M68K_C_ASSERT_U32(2U, analysis_section->recovered_function_args[1].source_reg_kind);
+  M68K_C_ASSERT_U32(6U, analysis_section->recovered_function_args[1].source_reg_index);
+  M68K_C_ASSERT_INT(-258, analysis_section->recovered_function_args[1].source_displacement);
   M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(analysis_json != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"function_offset\":12,\"stack_offset\":8,\"reg_kind\":0,"
     "\"reg_index\":0,\"context_name\":\"GetFNum\",\"symbol_name\":\"name\","
     "\"type_name\":\"ConstStr255Param\",\"semantic_kind\":\"input_value\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"source_offset\":4,\"source_reg_kind\":2,"
+    "\"source_reg_index\":6,\"source_displacement\":-256") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"function_offset\":12,\"stack_offset\":4,\"reg_kind\":0,"
     "\"reg_index\":0,\"context_name\":\"GetFNum\",\"symbol_name\":\"familyID\","
     "\"type_name\":\"short *\",\"semantic_kind\":\"output_or_inout_pointer\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"source_offset\":8,\"source_reg_kind\":2,"
+    "\"source_reg_index\":6,\"source_displacement\":-258") != NULL);
   free(analysis_json);
   m68k_facts_v2_free_text(source);
   m68k_ir_source_analysis_destroy(&source_analysis);

@@ -3675,8 +3675,12 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
         goto oom;
       if (json_builder_append_nullable_string(&builder, value_domain_name) != 0)
         goto oom;
-      if (json_builder_appendf(&builder, ",\"has_constant_value\":%u,\"constant_value\":%d}",
-            (unsigned)arg->typed.has_constant_value, (int)arg->typed.constant_value) != 0)
+      if (json_builder_appendf(&builder,
+            ",\"has_constant_value\":%u,\"constant_value\":%d,\"has_source_operand\":%u,"
+            "\"source_offset\":%u,\"source_reg_kind\":%u,\"source_reg_index\":%u,\"source_displacement\":%d}",
+            (unsigned)arg->typed.has_constant_value, (int)arg->typed.constant_value,
+            (unsigned)arg->has_source_operand, (unsigned)arg->source_offset, (unsigned)arg->source_reg_kind,
+            (unsigned)arg->source_reg_index, (int)arg->source_displacement) != 0)
         goto oom;
     }
     if (json_builder_appendf(&builder,

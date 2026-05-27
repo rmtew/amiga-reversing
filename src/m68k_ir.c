@@ -1881,12 +1881,13 @@ int m68k_ir_section_analysis_append_recovered_local_call_summary(M68kSectionAnal
 int m68k_ir_section_analysis_append_recovered_function_arg(M68kSectionAnalysisIR *section_analysis,
     uint8_t platform_kind, uint32_t function_offset, uint16_t stack_offset, uint8_t reg_kind, uint8_t reg_index,
     const char *context_name, const char *symbol_name, const char *type_name, const char *semantic_kind,
-    const char *value_domain_name, uint8_t has_constant_value, int32_t constant_value) {
+    const char *value_domain_name, uint8_t has_constant_value, int32_t constant_value, uint8_t has_source_operand,
+    uint32_t source_offset, uint8_t source_reg_kind, uint8_t source_reg_index, int16_t source_displacement) {
   size_t index;
   char *copy_context_name, *copy_symbol_name, *copy_type_name, *copy_semantic_kind, *copy_value_domain_name;
   M68kPlatformNameRef context_ref = {0}, symbol_ref = {0}, type_ref = {0};
   M68kPlatformNameRef semantic_kind_ref = {0}, value_domain_ref = {0};
-  if (section_analysis == NULL || stack_offset == 0U || reg_index >= 8U) return -1;
+  if (section_analysis == NULL || stack_offset == 0U || reg_index >= 8U || source_reg_index >= 8U) return -1;
   if (section_analysis->arena == NULL) return -1;
   context_ref.platform_kind = platform_kind;
   context_ref.domain_kind = M68K_PLATFORM_NAME_BASE;
@@ -1926,7 +1927,11 @@ int m68k_ir_section_analysis_append_recovered_function_arg(M68kSectionAnalysisIR
         m68k_platform_name_matches(&existing->typed.value_domain_ref, existing_value_domain_name,
           &value_domain_ref, value_domain_name) &&
         existing->typed.has_constant_value == has_constant_value &&
-        (!has_constant_value || existing->typed.constant_value == constant_value)) {
+        (!has_constant_value || existing->typed.constant_value == constant_value) &&
+        existing->has_source_operand == has_source_operand &&
+        (!has_source_operand || (existing->source_offset == source_offset &&
+          existing->source_reg_kind == source_reg_kind && existing->source_reg_index == source_reg_index &&
+          existing->source_displacement == source_displacement))) {
       return 0;
     }
     return -1;
@@ -1953,6 +1958,16 @@ int m68k_ir_section_analysis_append_recovered_function_arg(M68kSectionAnalysisIR
   section_analysis->recovered_function_args[section_analysis->recovered_function_arg_count].stack_offset = stack_offset;
   section_analysis->recovered_function_args[section_analysis->recovered_function_arg_count].reg_kind = reg_kind;
   section_analysis->recovered_function_args[section_analysis->recovered_function_arg_count].reg_index = reg_index;
+  section_analysis->recovered_function_args[section_analysis->recovered_function_arg_count].has_source_operand =
+    has_source_operand;
+  section_analysis->recovered_function_args[section_analysis->recovered_function_arg_count].source_offset =
+    source_offset;
+  section_analysis->recovered_function_args[section_analysis->recovered_function_arg_count].source_reg_kind =
+    source_reg_kind;
+  section_analysis->recovered_function_args[section_analysis->recovered_function_arg_count].source_reg_index =
+    source_reg_index;
+  section_analysis->recovered_function_args[section_analysis->recovered_function_arg_count].source_displacement =
+    source_displacement;
   section_analysis->recovered_function_args[section_analysis->recovered_function_arg_count].typed.context_name =
     copy_context_name;
   section_analysis->recovered_function_args[section_analysis->recovered_function_arg_count].typed.symbol_name =
@@ -2833,7 +2848,8 @@ int m68k_ir_source_analysis_append_section(M68kSourceAnalysisIR *source_analysis
     }
     if (m68k_ir_section_analysis_append_recovered_function_arg(&copy, platform_kind, arg->function_offset,
           arg->stack_offset, arg->reg_kind, arg->reg_index, context_name, symbol_name, type_name, semantic_kind,
-          value_domain_name, arg->typed.has_constant_value, arg->typed.constant_value) != 0) {
+          value_domain_name, arg->typed.has_constant_value, arg->typed.constant_value, arg->has_source_operand,
+          arg->source_offset, arg->source_reg_kind, arg->source_reg_index, arg->source_displacement) != 0) {
       m68k_ir_section_analysis_destroy(&copy);
       return -1;
     }
