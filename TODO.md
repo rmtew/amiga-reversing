@@ -379,8 +379,8 @@ pointer-table detection now accepts a bounded gap between the table load and the
 intervening instruction preserves the loaded address register. This matches `movea.l table(pc,d2.w),a1`;
 `adda.w d0,a0`; `jmp (a1)` without hardcoding Pandora. The table then renders as `dc.l` label entries and the targets
 are materialized through the existing pointer-table target-label path. Covered by
-`facts_v2_indexed_local_base_pointer_table_survives_preserving_gap`. The base-plus-word dispatch below remains a
-separate unresolved form.
+`facts_v2_indexed_local_base_pointer_table_survives_preserving_gap`. The base-plus-word dispatch below is a separate
+word-relative table form and is covered by the later resolution note.
 
 Another jump table. In this case it is more complex and tracking registers may be harder and better to defer?
 
@@ -392,13 +392,12 @@ abs_0_0005DC20:
 	jmp $0(a3,a2.w)
 ```
 
-Resolution note: one general C auto-analysis gap is fixed. The facts pass now handles backward-sliced long target
-tables when the table load is followed by non-clobbering instructions before the indirect jump/call, instead of only
-accepting the immediately preceding instruction. If the late backward-sliced pass enqueues new table targets after
-runtime/address-ref materialization, it now runs the reachable fixed point and rebuilds accepted bytes, so discovered
-targets become real decoded source rather than renderer-only labels. This is covered by
-`facts_v2_indirect_long_table_with_gap_promotes_runtime_targets`. More complex base-plus-word dispatch forms, such as
-the `jmp $0(a3,a2.w)` example above, still need separate bounded analysis rather than being claimed by this fix.
+Resolution note: the base-plus-word form is now handled in the general C facts/render path when the table base and
+target base are both proven. Indexed word-table loads may carry a word-relative table value in either a data register
+or an address register, and indexed `jmp`/`jsr` operands consume that value using the actual index register kind. This
+matches the `movea.w $0(a2,d0.w),a2`; `jmp $0(a3,a2.w)` shape without a Pandora-specific rule. The renderer uses the
+same proof to emit `dc.w target-base` table rows instead of raw bytes. Covered by
+`facts_v2_address_register_index_word_load_promotes_relative_jump_targets`.
 
 
 ## Investigation needed: Amiga/Magicland Dizzy
