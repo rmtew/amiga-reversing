@@ -1391,11 +1391,11 @@ macos_CODE_0_jump_table_length:
 	dc.l $00000AD0
 macos_CODE_0_jump_table_offset_from_a5:
 	dc.l $00000020
-macos_CODE_0_jump_table_bytes:
+macos_CODE_0_jump_table:
 macos_CODE_0_jump_table_entry_0:
 	dc.w $0000
-	dc.w $3F3C
-	dc.l $001BA9F0
+	move.w #27,-(a7)
+	dc.w $A9F0
 macos_CODE_0_jump_table_entry_1:
 	dc.w $0000
 	dc.w $FFFF

@@ -402,28 +402,65 @@ def _code0_byte_real_source_lines(section: Mapping[str, object], *, payload_byte
         f"\tdc.l ${jump_table_length:08X}",
         "macos_CODE_0_jump_table_offset_from_a5:",
         f"\tdc.l ${jump_table_offset:08X}",
-        "macos_CODE_0_jump_table_bytes:",
+        "macos_CODE_0_jump_table:",
     ]
     jump_start = _int_value(jump_table.get("start")) or 16
     jump_end = _int_value(jump_table.get("end")) or len(payload_bytes)
     entry_size = _int_value(jump_table.get("entry_size")) or 8
+    rows_by_offset = {
+        _int_value(row.get("code0_payload_offset")): row
+        for row in (_mapping(item) for item in _sequence(context.get("jump_table_rows")))
+    }
     cursor = min(jump_start, len(payload_bytes))
     entry_index = 0
     while entry_size == 8 and cursor + entry_size <= min(jump_end, len(payload_bytes)):
         chunk = payload_bytes[cursor : cursor + entry_size]
-        lines.extend(
-            [
-                f"macos_CODE_0_jump_table_entry_{entry_index}:",
-                f"\tdc.w ${int.from_bytes(chunk[0:2], 'big'):04X}",
-                f"\tdc.w ${int.from_bytes(chunk[2:4], 'big'):04X}",
-                f"\tdc.l ${int.from_bytes(chunk[4:8], 'big'):08X}",
-            ]
-        )
+        row = rows_by_offset.get(cursor)
+        if row:
+            lines.extend(_code0_jump_table_entry_lines(row, chunk=chunk, fallback_index=entry_index))
+        else:
+            lines.extend(_code0_raw_jump_table_entry_lines(chunk, entry_index=entry_index))
         cursor += entry_size
         entry_index += 1
     if cursor < len(payload_bytes):
         lines.extend(_dc_b_lines(payload_bytes[cursor:], label=f"macos_CODE_0_trailing_metadata_{cursor:08x}", base_offset=cursor))
     return lines
+
+
+def _code0_jump_table_entry_lines(row: Mapping[str, object], *, chunk: bytes, fallback_index: int) -> list[str]:
+    entry_index = _int_value(row.get("entry_index"))
+    if entry_index is None:
+        entry_index = fallback_index
+    label = f"macos_CODE_0_jump_table_entry_{entry_index}"
+    target_resource_id = _int_value(row.get("target_resource_id"))
+    routine_offset = _int_value(row.get("routine_offset_from_segment"))
+    if target_resource_id is None or routine_offset is None:
+        return _code0_raw_jump_table_entry_lines(chunk, entry_index=entry_index)
+    if int.from_bytes(chunk[2:4], "big") == 0x3F3C and int.from_bytes(chunk[6:8], "big") == 0xA9F0:
+        return [
+            f"{label}:",
+            f"\tdc.w ${routine_offset:04X}",
+            f"\tmove.w #{target_resource_id},-(a7)",
+            "\tdc.w $A9F0",
+        ]
+    trap_word = int.from_bytes(chunk[2:4], "big")
+    if trap_word == 0xA9F0:
+        return [
+            f"{label}:",
+            f"\tdc.w ${target_resource_id & 0xFFFF:04X}",
+            "\tdc.w $A9F0",
+            f"\tdc.l ${routine_offset:08X}",
+        ]
+    return _code0_raw_jump_table_entry_lines(chunk, entry_index=entry_index)
+
+
+def _code0_raw_jump_table_entry_lines(chunk: bytes, *, entry_index: int) -> list[str]:
+    return [
+        f"macos_CODE_0_jump_table_entry_{entry_index}:",
+        f"\tdc.w ${int.from_bytes(chunk[0:2], 'big'):04X}",
+        f"\tdc.w ${int.from_bytes(chunk[2:4], 'big'):04X}",
+        f"\tdc.l ${int.from_bytes(chunk[4:8], 'big'):08X}",
+    ]
 
 
 def _semantic_source_lines(

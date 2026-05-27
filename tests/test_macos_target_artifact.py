@@ -261,9 +261,10 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     assert "macos_code_CODE_0:" in asm_text
     assert "macos_code_CODE_27:" in asm_text
     assert "macos_CODE_0_above_a5_size:" in asm_text
-    assert "macos_CODE_0_jump_table_bytes:" in asm_text
+    assert "macos_CODE_0_jump_table:" in asm_text
     assert "macos_CODE_0_jump_table_entry_0:" in asm_text
-    assert "\tdc.l $00000AF0" in asm_text
+    assert "\tmove.w #27,-(a7)" in asm_text
+    assert "\tdc.l $0000601E" in asm_text
     assert "jump_table payload[16..2784) entry_size=8 entry_count=346 status=validated" in asm_text
     assert (
         "candidate_target target_section=macos_code_CODE_27 target_resource_id=27 "
