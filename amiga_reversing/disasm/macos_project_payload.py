@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import tempfile
 from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
@@ -30,6 +31,7 @@ MACOS_CODE_PREVIEW_MAX_BYTES = 64
 MACOS_APPLICATION_KB_RECORD_ID = "macos.hfs_resource_fork.code_resources.mpw_application"
 MACOS_NON_CODE_RESOURCE_FACT_ID = "macos.resource_fork.non_code_metadata.inventory.candidate"
 MACOS_CURS_RESOURCE_FACT_ID = "macos.resource_fork.curs.layout.accepted"
+_RAW_LOCAL_LABEL_RE = re.compile(r"\bloc_0_([0-9A-Fa-f]{8})\b")
 
 
 def build_macos_project_payload(project: object, *, project_root: Path = PROJECT_ROOT) -> dict[str, object]:
@@ -1578,16 +1580,17 @@ def _semantic_source_row(
     payload_end = payload_base + end if end is not None else payload_start
     label = row_map.get("label") if isinstance(row_map.get("label"), str) else None
     xrefs = _semantic_source_xrefs(row_map, payload_base=payload_base)
+    resource_id = resource.get("id")
     semantic_row = {
         "kind": kind,
         "resource_type": "CODE",
-        "resource_id": resource.get("id"),
+        "resource_id": resource_id,
         "resource_name": resource.get("name"),
         "payload_offset": payload_start,
         "payload_end": payload_end,
         "size": (payload_end - payload_start) if isinstance(payload_start, int) and isinstance(payload_end, int) else 0,
         "bytes": row_map.get("bytes"),
-        "text": str(row_map.get("text") or "").rstrip(),
+        "text": _macos_semantic_row_text(str(row_map.get("text") or "").rstrip(), resource_id=resource_id),
         "label": label,
         "opcode_or_directive": row_map.get("opcode_or_directive"),
         "operand_text": row_map.get("operand_text"),
@@ -1603,6 +1606,13 @@ def _semantic_source_row(
         "parser_use": code_range.get("parser_use"),
     }
     return {key: value for key, value in semantic_row.items() if value not in (None, "")}
+
+
+def _macos_semantic_row_text(text: str, *, resource_id: object) -> str:
+    def replace(match: re.Match[str]) -> str:
+        return f"CODE_{_text(resource_id)}_loc_{int(match.group(1), 16):08x}"
+
+    return _RAW_LOCAL_LABEL_RE.sub(replace, text)
 
 
 def _semantic_source_xrefs(row: Mapping[str, object], *, payload_base: int) -> list[dict[str, object]]:

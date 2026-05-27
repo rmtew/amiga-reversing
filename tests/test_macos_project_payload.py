@@ -1319,6 +1319,8 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     )
     assert any(row["kind"] == "label" and row["payload_offset"] == 40 for row in semantic_source["rows"])
     assert all(row.get("payload_offset") is None or row["payload_offset"] >= 40 for row in semantic_source["rows"])
+    assert not any("loc_0_" in str(row.get("text") or "") for row in semantic_source["rows"])
+    assert any("CODE_1_loc_" in str(row.get("text") or "") for row in semantic_source["rows"])
     code2_quality = next(item for item in quality_rows if item["resource_id"] == 2)
     assert code2_quality["legacy_orphan_ranges_reclassified"] > 0
     assert code2_quality["orphan_bucket_present"] is False
