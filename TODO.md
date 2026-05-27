@@ -499,6 +499,16 @@ heuristically identify these, their inputs, outputs and perhaps even type of com
 reliably hook into them and simulate them to pass in compressed payload and get out the decompressed original
 data. 
 
+Resolution note: this is now understood well enough not to force it through the existing executable self-decrunch child
+path. The routine is reached from the trap #3 loader after the loaded block is checked for long magic `$4D4C4443`
+(`MLDC`), copies from the packed block at `a0`, writes output through caller-provided `a3`, and returns to the parent
+flow. That is an asset/data decompressor shape, not the current C self-decrunch event shape that writes an executable
+runtime image and transfers into it. Current `analyze-file amiga-hunk bin\MagiclandDizzy_MD_f26cb8133afe` therefore
+emits no `decompression_events`, which is correct for the existing model. The clean future work is a general C
+asset-decompression evidence model with packed-source provenance from the disk/resource loader and an accepted codec
+provider or simulator entry contract. For this hunk-only target, the source media/packed block bytes are not present,
+so materializing decompressed children here would be guessed and is intentionally deferred.
+
 ### String decode heuristic fail
 
 This maps to a lookup table of strings and correctly reconciles strings, but seems to stop before the end.
