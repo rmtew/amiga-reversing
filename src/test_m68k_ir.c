@@ -11767,6 +11767,55 @@ static int test_listing_navigation_suppresses_indexed_vector_duplicate_api_call(
   return 0;
 }
 
+static int test_listing_navigation_uses_mac_call_metadata(void) {
+  M68kSourceFileIR source_file;
+  M68kSectionIR section;
+  M68kSourceAnalysisIR source_analysis;
+  M68kSectionAnalysisIR section_analysis;
+  M68kRenderPlan render_plan;
+  char *rows_json = NULL;
+
+  M68K_C_ASSERT_INT(0, m68k_ir_source_file_create(&source_file));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_create(&section, test_ir_result_arena()));
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_create(&source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_create(&section_analysis, test_ir_result_arena()));
+  m68k_render_plan_init(&render_plan);
+  source_file.platform_backend_kind = M68K_PLATFORM_BACKEND_MACOS;
+  source_file.file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  source_analysis.file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE;
+  section.size = 2U;
+  section_analysis.section_index = 0U;
+  section_analysis.section_kind = M68K_SECTION_CODE;
+  section_analysis.section_size = 2U;
+
+  M68K_C_ASSERT_INT(0, test_append_parsed_instruction(&section, 0U, "nop", 0U, NULL));
+  M68K_C_ASSERT_INT(0, m68k_ir_source_file_append_section(&source_file, &section));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_recovered_platform_call(&section_analysis,
+    M68K_PLATFORM_BACKEND_MACOS, 0U, PLATFORM_RESOLVED_INDIRECT_NONE, "_GetFNum",
+    M68K_PLATFORM_CALL_NOTE_DIRECT_OS_CALL, NULL, "_GetFNum", 0U, INT16_MIN, INT16_MIN, 0U, 0U, 0U, NULL, NULL));
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
+
+  M68K_C_ASSERT_INT(0, m68k_render_plan_append_text_row(&render_plan, M68K_RENDER_PLAN_ROW_SECTION, 0U,
+    "    SECTION section_0,code\n", NULL));
+  M68K_C_ASSERT_INT(0, test_append_typed_plan_source_row(&render_plan, M68K_RENDER_PLAN_ROW_INSTRUCTION,
+    "\t_GetFNum\n", 0U, 0U, 2U));
+  M68K_C_ASSERT_INT(0, test_listing_navigation_from_render_plan_to_json(&source_file, &render_plan,
+    source_file.platform_backend_kind, NULL, &source_analysis, "full", 1, &rows_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(rows_json != NULL);
+  M68K_C_ASSERT(strstr(rows_json, "\"api-calls\":[{\"addr\":0") != NULL);
+  M68K_C_ASSERT(strstr(rows_json, "GetFNum (Fonts)") != NULL);
+  M68K_C_ASSERT(strstr(rows_json, "_GetFNum ()") == NULL);
+
+  free(rows_json);
+  m68k_render_plan_destroy(&render_plan);
+  m68k_ir_section_analysis_destroy(&section_analysis);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_ir_section_destroy(&section);
+  m68k_ir_source_file_destroy(&source_file);
+  return 0;
+}
+
 static int test_listing_json_uses_render_plan_statement_provenance(void) {
   M68kSourceFileIR source_file;
   M68kSectionIR section;
@@ -20315,6 +20364,7 @@ int m68k_c_ir_tests(void) {
       test_listing_navigation_reports_runtime_views},
     {"listing_navigation_suppresses_indexed_vector_duplicate_api_call",
       test_listing_navigation_suppresses_indexed_vector_duplicate_api_call},
+    {"listing_navigation_uses_mac_call_metadata", test_listing_navigation_uses_mac_call_metadata},
     {"listing_json_uses_render_plan_statement_provenance",
       test_listing_json_uses_render_plan_statement_provenance},
     {"listing_json_uses_render_plan_source_range_provenance",

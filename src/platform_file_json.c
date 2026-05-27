@@ -7706,9 +7706,14 @@ static int append_listing_navigation_api_call_entry(JsonBuilder *builder, const 
     size_t row_index, int section_index, const char *row_kind, const char *match_text,
     const M68kRecoveredPlatformCallIR *call) {
   const AmigaOsLibraryVectorInfo *amiga_vector = resolve_amiga_call_vector_for_json(call, NULL);
+  const MacOsCallInfo *mac_call = resolve_mac_call_for_json(call);
   const char *library_name = resolve_amiga_call_library_name_for_json(call, amiga_vector);
   const char *function_name = amiga_vector != NULL ? amiga_os_name(3U, amiga_vector->function_id) : NULL;
   char summary[256];
+  if (mac_call != NULL) {
+    if (mac_call->family != NULL && mac_call->family[0] != '\0') library_name = mac_call->family;
+    if (mac_call->c_name != NULL && mac_call->c_name[0] != '\0') function_name = mac_call->c_name;
+  }
   if (function_name == NULL) function_name = "";
   if (library_name == NULL) library_name = "";
   snprintf(summary, sizeof(summary), call->note_kind == M68K_PLATFORM_CALL_NOTE_INDEXED_VECTOR ?
