@@ -12,9 +12,6 @@ from amiga_reversing.disasm.c_backend import (
     extract_macos_hfs_code_resource_payload_bytes_with_c_backend,
 )
 from amiga_reversing.disasm.macos_asm_container import read_macos_hfs_image_bytes
-from amiga_reversing.disasm.macos_listing_source import (
-    build_macos_project_listing_artifact_profile,
-)
 from amiga_reversing.disasm.macos_project_origin import MACOS_PROJECT_ORIGIN_KIND
 from amiga_reversing.disasm.macos_project_payload import build_macos_project_payload
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT
@@ -92,115 +89,39 @@ def render_macos_example_asm(*, project_root: Path = PROJECT_ROOT) -> str:
     project = macos_example_project_record(project_root=project_root)
     payload = build_macos_project_payload(project, project_root=project_root)
     hfs_bytes = read_macos_hfs_image_bytes(project_root / MACOS_EXAMPLE_SOURCE_IMAGE)
-    total_rows, _summary_profile, artifact = build_macos_project_listing_artifact_profile(
-        project,
-        project_root=project_root,
-    )
-    try:
-        selected_code_source, _source_profile = artifact.source_text_with_profile()
-    finally:
-        artifact.close()
 
     container = _mapping(payload.get("binary_container_view"))
     finder = _mapping(container.get("finder"))
-    forks = _sequence(container.get("forks"))
-    resource_fork = _mapping(container.get("resource_fork"))
-    code0 = _mapping(container.get("code0"))
-    code0_resource = _mapping(code0.get("resource"))
-    code0_metadata = _mapping(code0.get("metadata"))
-    selected = _mapping(container.get("selected_code_segment"))
-    selected_listing = _mapping(selected.get("listing"))
-    code_resources = [_mapping(item) for item in _sequence(container.get("code_resources"))]
-    code_resource_details = [_mapping(item) for item in _sequence(container.get("code_resource_details"))]
     source_body_sections = [_mapping(item) for item in _sequence(container.get("source_body_sections"))]
-    source_quality_gate = _mapping(container.get("source_quality_gate"))
-    code_segment_map = [_mapping(item) for item in _sequence(container.get("code_segment_map"))]
-    executable_placeholders = [_mapping(item) for item in _sequence(container.get("executable_resource_placeholders"))]
-    resource_types = [_mapping(item) for item in _sequence(resource_fork.get("types"))]
-    non_code_types = [item for item in resource_types if item.get("type") != "CODE"]
-    unsupported = sorted(
-        {
-            *[str(item) for item in _sequence(container.get("unsupported"))],
-            "complete Segment Loader behavior",
-            "source-to-CODE segment mapping",
-            "byte-for-byte MPW Link/Rez roundtrip",
-        }
-    )
+    includes = _asm_source_includes(source_body_sections)
     header_lines: list[str] = [
         "; Classic Mac OS target artifact: MPW Tools Asm",
-        "; Renderer: amiga_reversing.disasm.macos_target_artifact",
-        "; Source image: resources/platform_macos/MPW-GM.img.bin",
         f"; HFS path: {MACOS_EXAMPLE_HFS_PATH}",
         f"; Finder type: {_text(finder.get('type'))}",
         f"; Finder creator: {_text(finder.get('creator'))}",
-        f"; CNID: {_text(finder.get('cnid'))}",
-        ";",
-        "; This is an illustrative source artifact, not an MPW round-trip contract.",
-        "; Durable input comes from the C-backed HFS/resource/CODE summary and shared m68k listing renderer.",
+        "",
+        *(f'\tINCLUDE "{include}"' for include in includes),
         "",
     ]
     source_sections = _code_source_body_section_lines(
         source_body_sections,
-        selected_id=selected.get("id"),
-        selected=selected,
-        selected_listing=selected_listing,
-        selected_code_source=selected_code_source,
-        selected_listing_rows=total_rows,
         hfs_bytes=hfs_bytes,
         project_root=project_root,
     )
-    report_lines: list[str] = [
-        "",
-        "; Analysis reports",
-        "",
-        "; File forks",
-        *_fork_lines(forks),
-        "",
-        "; Resource fork",
-        f";   resource_count: {_text(resource_fork.get('resource_count'))}",
-        f";   type_count: {_text(resource_fork.get('type_count'))}",
-        *_resource_type_lines(resource_types),
-        "",
-        "; CODE 0 jump-table/application metadata",
-        _resource_line(code0_resource),
-        f";   above_a5_size: {_text(code0_metadata.get('above_a5_size'))}",
-        f";   below_a5_size: {_text(code0_metadata.get('below_a5_size'))}",
-        f";   jump_table_length: {_text(code0_metadata.get('jump_table_length'))}",
-        f";   jump_table_offset_from_a5: {_text(code0_metadata.get('jump_table_offset_from_a5'))}",
-        "",
-        "; CODE resources",
-        *_code_resource_lines(code_resources, selected_id=selected.get("id")),
-        "",
-        "; CODE resource coverage",
-        f";   total_code_resources: {len(code_resources)}",
-        *_code_resource_coverage_lines(
-            code_resources,
-            source_sections=source_body_sections,
-            selected_id=selected.get("id"),
-        ),
-        "",
-        "; CODE segment/routine map",
-        *_code_segment_map_lines(code_segment_map),
-        "",
-        "; CODE resource detail subviews",
-        *_code_resource_detail_lines(code_resource_details),
-        "",
-        "; Non-CODE resource placeholders",
-        *(
-            _resource_type_placeholder_lines(non_code_types)
-            if non_code_types
-            else [";   none reported by the C-backed resource summary"]
-        ),
-        "; Executable resource placeholders",
-        *_executable_resource_placeholder_lines(executable_placeholders),
-        "",
-        "; Unsupported Mac Segment Loader/runtime areas",
-        *[f";   {item}" for item in unsupported],
-    ]
-    lines = [*header_lines, *source_sections, *_source_quality_gate_lines(source_quality_gate)]
-    lines.extend(report_lines)
-    lines.append("")
-    return "\n".join(lines)
+    return "\n".join([*header_lines, *source_sections])
+
+
+def _asm_source_includes(sections: Sequence[Mapping[str, object]]) -> list[str]:
+    includes: list[str] = []
+    seen: set[str] = set()
+    for section in sections:
+        semantic_source = _mapping(section.get("semantic_source"))
+        for include in _sequence(semantic_source.get("asm_source_includes")):
+            include_path = _text(include)
+            if include_path and include_path not in seen:
+                seen.add(include_path)
+                includes.append(include_path)
+    return includes
 
 
 def write_macos_example_target(*, project_root: Path = PROJECT_ROOT) -> None:
@@ -250,67 +171,21 @@ def _resource_type_placeholder_lines(types: Sequence[Mapping[str, object]]) -> l
 def _code_source_body_section_lines(
     sections: Sequence[Mapping[str, object]],
     *,
-    selected_id: object,
-    selected: Mapping[str, object],
-    selected_listing: Mapping[str, object],
-    selected_code_source: str,
-    selected_listing_rows: int,
     hfs_bytes: bytes,
     project_root: Path,
 ) -> list[str]:
-    lines = ["; CODE source body sections"]
+    lines: list[str] = []
     for section in sections:
         resource_id = section.get("id")
         payload_bytes = _code_resource_payload_bytes(section, hfs_bytes=hfs_bytes, project_root=project_root)
-        restored_source = _mapping(section.get("restored_source"))
-        presentation = _mapping(section.get("presentation"))
-        listing = _mapping(section.get("listing"))
         lines.extend(
             [
                 "",
-                f"; CODE {_text(resource_id)} {_text(section.get('name'))} source section",
+                f"; CODE {_text(resource_id)} {_text(section.get('name'))}",
                 f"{_text(section.get('label'))}:",
-                f";   source_section_id: {_text(section.get('source_section_id'))}",
-                f";   source_kind: {_text(section.get('source_kind'))}",
-                f";   backend: {_text(section.get('backend'))}",
-                f";   status: {_text(section.get('status'))}",
-                f";   resource_type: {_text(section.get('resource_type'))}",
-                f";   id: {_text(resource_id)}",
-                f";   name: {_text(section.get('name'))}",
-                f";   role: {_text(section.get('role'))}",
-                f";   code_kind: {_text(section.get('code_kind'))}",
-                f";   payload_size: {_text(section.get('payload_size'))}",
-                f";   payload_sha256: {_text(section.get('payload_sha256'))}",
-                f";   presentation: kind={_text(presentation.get('kind'))} "
-                f"status={_text(presentation.get('status'))} "
-                f"visible={_text(presentation.get('source_visible'))} "
-                f"identity={_text(presentation.get('stable_identity'))}",
-                f";   listing: kind={_text(listing.get('kind'))} available={_text(listing.get('available'))} "
-                f"reason={_text(listing.get('reason'))}",
-                ";   restored_source_model:",
-                *_restored_source_model_lines(restored_source),
-                ";   source_body_ranges:",
-                *_code_source_body_range_lines(section),
             ]
         )
-        if resource_id == 0:
-            lines.extend(_code0_structured_source_lines(section))
-        if resource_id == selected_id:
-            selected_context = _mapping(section.get("selected_listing_context"))
-            lines.extend(
-                [
-                    f";   selected_code_entry_offset: {_text(selected_context.get('code_entry_offset'))}",
-                    f";   selected_code_bytes_size: {_text(selected_context.get('code_bytes_size'))}",
-                    f";   code_bytes_sha256: {_text(selected_context.get('code_bytes_sha256'))}",
-                    f";   listing_rows: {selected_listing_rows}",
-                    *_code1_entry_stub_context_lines(section),
-                    "",
-                    f"; CODE {_text(resource_id)} {_text(section.get('name'))} restored source follows.",
-                ]
-            )
-            lines.extend(_code_source_restored_lines(section, payload_bytes=payload_bytes))
-        else:
-            lines.extend(_code_source_restored_lines(section, payload_bytes=payload_bytes))
+        lines.extend(_code_source_restored_lines(section, payload_bytes=payload_bytes))
     lines.append("")
     return lines
 
@@ -345,19 +220,9 @@ def _code_source_body_range_lines(section: Mapping[str, object]) -> list[str]:
 
 
 def _code_source_restored_lines(section: Mapping[str, object], *, payload_bytes: bytes) -> list[str]:
-    source_envelope = _mapping(section.get("source_envelope"))
     semantic_source = _mapping(section.get("semantic_source"))
     semantic_rows = [_mapping(item) for item in _sequence(semantic_source.get("rows"))]
-    source_status = "semantic_rows" if semantic_source.get("status") == "decoded" else "byte_preserved"
-    lines = [
-        (
-            f";   rendered_source: CODE {_text(section.get('id'))} status={source_status} "
-            f"payload[{_text(source_envelope.get('start'))}..{_text(source_envelope.get('end'))}) "
-            f"sha256={_text(source_envelope.get('payload_sha256'))}"
-        ),
-        f";   residual_policy: {_text(source_envelope.get('reason'))}",
-        ";   source_rows:",
-    ]
+    lines: list[str] = []
     if section.get("id") == 0:
         lines.extend(_code0_byte_real_source_lines(section, payload_bytes=payload_bytes))
         return lines
@@ -370,7 +235,6 @@ def _code_source_restored_lines(section: Mapping[str, object], *, payload_bytes:
         end = _int_value(item.get("end")) or start
         kind = _text(item.get("kind"))
         label = f"{_text(section.get('label'))}_{kind}_{start:08x}"
-        lines.append(f";     {kind} payload[{start}..{end})")
         if kind in {"candidate_code", "candidate_unresolved_prefix", "confirmed_code", "code"} and semantic_rows:
             lines.extend(_semantic_source_lines(section, semantic_source, payload_bytes=payload_bytes, start=start, end=end))
             continue
@@ -413,7 +277,13 @@ def _code0_byte_real_source_lines(section: Mapping[str, object], *, payload_byte
         chunk = payload_bytes[cursor : cursor + entry_size]
         row = rows_by_offset.get(cursor)
         if row:
-            lines.extend(_code0_jump_table_entry_lines(row, chunk=chunk, fallback_index=entry_index))
+            lines.extend(
+                _code0_jump_table_entry_lines(
+                    row,
+                    chunk=chunk,
+                    fallback_index=entry_index,
+                )
+            )
         else:
             lines.extend(_code0_raw_jump_table_entry_lines(chunk, entry_index=entry_index))
         cursor += entry_size
@@ -423,7 +293,12 @@ def _code0_byte_real_source_lines(section: Mapping[str, object], *, payload_byte
     return lines
 
 
-def _code0_jump_table_entry_lines(row: Mapping[str, object], *, chunk: bytes, fallback_index: int) -> list[str]:
+def _code0_jump_table_entry_lines(
+    row: Mapping[str, object],
+    *,
+    chunk: bytes,
+    fallback_index: int,
+) -> list[str]:
     entry_index = _int_value(row.get("entry_index"))
     if entry_index is None:
         entry_index = fallback_index
@@ -437,15 +312,15 @@ def _code0_jump_table_entry_lines(row: Mapping[str, object], *, chunk: bytes, fa
             f"{label}:",
             f"\tdc.w ${routine_offset:04X}",
             f"\tmove.w #{target_resource_id},-(a7)",
-            "\tdc.w $A9F0",
+            f"\t{_code0_platform_call_symbol(row, fallback='dc.w $A9F0')}",
         ]
     trap_word = int.from_bytes(chunk[2:4], "big")
     if trap_word == 0xA9F0:
         return [
             f"{label}:",
             f"\tdc.w ${target_resource_id & 0xFFFF:04X}",
-            "\tdc.w $A9F0",
-            f"\tdc.l ${routine_offset:08X}",
+            f"\t{_code0_platform_call_symbol(row, fallback='dc.w $A9F0')}",
+            f"\tdc.l {_stored_offset_expression_text(row, fallback=f'${routine_offset:08X}')}",
         ]
     return _code0_raw_jump_table_entry_lines(chunk, entry_index=entry_index)
 
@@ -457,6 +332,29 @@ def _code0_raw_jump_table_entry_lines(chunk: bytes, *, entry_index: int) -> list
         f"\tdc.w ${int.from_bytes(chunk[2:4], 'big'):04X}",
         f"\tdc.l ${int.from_bytes(chunk[4:8], 'big'):08X}",
     ]
+
+
+def _code0_platform_call_symbol(row: Mapping[str, object], *, fallback: str) -> str:
+    call = _mapping(row.get("platform_call"))
+    symbol = str(call.get("symbol_name") or call.get("note_symbol_name") or "")
+    return symbol if symbol else fallback
+
+
+def _stored_offset_expression_text(row: Mapping[str, object], *, fallback: str) -> str:
+    expression = _mapping(row.get("stored_offset_expression"))
+    if expression.get("kind") != "label_relative_offset":
+        return fallback
+    target_resource_id = _int_value(expression.get("target_resource_id"))
+    target_offset = _int_value(expression.get("target_payload_offset"))
+    base_resource_id = _int_value(expression.get("base_resource_id"))
+    base_offset = _int_value(expression.get("base_payload_offset"))
+    if target_resource_id is None or target_offset is None or base_resource_id is None:
+        return fallback
+    target_label = f"CODE_{target_resource_id}_loc_{target_offset:08x}"
+    base_label = f"CODE_{base_resource_id}"
+    if base_offset:
+        base_label = f"CODE_{base_resource_id}_loc_{base_offset:08x}"
+    return f"{target_label}-{base_label}"
 
 
 def _semantic_source_lines(
@@ -476,43 +374,56 @@ def _semantic_source_lines(
         (_int_value(item.get("start")), _int_value(item.get("end"))): _text(item.get("kind"))
         for item in (_mapping(value) for value in _sequence(semantic_source.get("semantic_gap_residuals")))
     }
-    lines = [
-        (
-            f";     semantic_source: kind={_text(semantic_source.get('kind'))} "
-            f"status={_text(semantic_source.get('status'))} "
-            f"instructions={_text(semantic_source.get('instruction_row_count'))} "
-            f"labels={_text(semantic_source.get('generated_label_count'))} "
-            f"xrefs={_text(semantic_source.get('generated_xref_count'))}"
-        )
-    ]
+    lines: list[str] = []
     resource_id = section.get("id")
     cursor = start
+    pending_labels: dict[int, list[str]] = {}
+
+    def consume_labels(offset: int) -> list[str]:
+        return pending_labels.pop(offset, [])
+
+    def first_label_or_default(offset: int, default: str) -> str:
+        labels = consume_labels(offset)
+        if labels:
+            lines.extend(labels[:-1])
+            return labels[-1].rstrip(":")
+        return default
+
     for row in rows:
         kind = row.get("kind")
         payload_offset = _int_value(row.get("payload_offset"))
         payload_end = _int_value(row.get("payload_end")) or payload_offset
+        if kind == "label":
+            label_offset = payload_offset if payload_offset is not None else start
+            if label_offset >= cursor:
+                pending_labels.setdefault(label_offset, []).append(f"CODE_{_text(resource_id)}_loc_{label_offset:08x}:")
+            continue
         if payload_offset is not None and payload_offset > cursor:
+            label = first_label_or_default(
+                cursor,
+                f"{_text(section.get('label'))}_{_semantic_gap_kind(gap_kinds, cursor, payload_offset)}_{cursor:08x}",
+            )
             lines.extend(
                 _semantic_gap_lines(
                     payload_bytes[cursor:payload_offset],
-                    label=f"{_text(section.get('label'))}_{_semantic_gap_kind(gap_kinds, cursor, payload_offset)}_{cursor:08x}",
+                    label=label,
                     kind=_semantic_gap_kind(gap_kinds, cursor, payload_offset),
                     base_offset=cursor,
                 )
             )
             cursor = payload_offset
-        if kind == "label":
-            label_offset = payload_offset if payload_offset is not None else start
-            lines.append(f"CODE_{_text(resource_id)}_loc_{label_offset:08x}:")
-            continue
         if kind == "data" and payload_offset is not None and payload_end is not None:
+            label = first_label_or_default(
+                payload_offset,
+                (
+                    f"{_text(section.get('label'))}_"
+                    f"{_semantic_data_label_kind(str(row.get('data_kind') or 'data'))}_{payload_offset:08x}"
+                ),
+            )
             lines.extend(
                 _semantic_data_row_lines(
                     row,
-                    label=(
-                        f"{_text(section.get('label'))}_"
-                        f"{_semantic_data_label_kind(str(row.get('data_kind') or 'data'))}_{payload_offset:08x}"
-                    ),
+                    label=label,
                     base_offset=payload_offset,
                 )
             )
@@ -521,6 +432,8 @@ def _semantic_source_lines(
         text = str(row.get("text") or "").rstrip()
         if not text:
             continue
+        if payload_offset is not None:
+            lines.extend(consume_labels(payload_offset))
         if row.get("kind") == "instruction":
             lines.append(text)
         else:
@@ -528,10 +441,14 @@ def _semantic_source_lines(
         if payload_end is not None:
             cursor = max(cursor, payload_end)
     if cursor < end:
+        label = first_label_or_default(
+            cursor,
+            f"{_text(section.get('label'))}_{_semantic_gap_kind(gap_kinds, cursor, end)}_{cursor:08x}",
+        )
         lines.extend(
             _semantic_gap_lines(
                 payload_bytes[cursor:end],
-                label=f"{_text(section.get('label'))}_{_semantic_gap_kind(gap_kinds, cursor, end)}_{cursor:08x}",
+                label=label,
                 kind=_semantic_gap_kind(gap_kinds, cursor, end),
                 base_offset=cursor,
             )
@@ -557,6 +474,10 @@ def _semantic_gap_lines(data: bytes, *, label: str, kind: str, base_offset: int)
 
 def _semantic_data_row_lines(row: Mapping[str, object], *, label: str, base_offset: int) -> list[str]:
     data = _bytes_from_hex(str(row.get("bytes") or ""))
+    opcode = str(row.get("opcode_or_directive") or "").lower()
+    text = str(row.get("text") or "").rstrip()
+    if text and opcode not in {"", "dc.b", "dcb.b"}:
+        return [f"{label}:", text]
     if row.get("data_kind") == "semantic_alignment_padding_gap" and data and all(byte == 0 for byte in data):
         return [f"{label}:", f"\tds.b {len(data)}"]
     return _dc_b_lines(data, label=label, base_offset=base_offset)
@@ -835,7 +756,7 @@ def _code_resource_coverage_line(
     code = _mapping(resource.get("code"))
     ranges = [_mapping(item) for item in _sequence(code.get("layout_ranges"))]
     kinds = ",".join(_text(item.get("kind")) for item in ranges) or "none"
-    candidate = next((item for item in ranges if item.get("kind") in {"confirmed_code", "candidate_code"}), None)
+    candidate = next((item for item in ranges if item.get("kind") in {"code", "confirmed_code", "candidate_code"}), None)
     deferred = next((item for item in ranges if item.get("kind") == "deferred"), None)
     if resource_id == 0:
         status = "metadata-only"

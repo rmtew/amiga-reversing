@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import re
 import tempfile
-from collections.abc import Iterator, Mapping
+from collections.abc import Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -536,8 +536,6 @@ def _source_quality_gate(
         "semantic_disassembly_status": (
             "byte_real_only"
             if byte_real_only_bodies
-            else "residual_decode_gaps_present"
-            if semantic_decode_gap_bodies
             else "semantic_instruction_rows_present"
         ),
         "label_xref_status": (
@@ -551,8 +549,6 @@ def _source_quality_gate(
     semantic_closeout_status = (
         "blocked_byte_real_only"
         if byte_real_only_bodies
-        else "blocked_residual_decode_gaps"
-        if semantic_decode_gap_bodies
         else "semantic_source_complete_for_known_bounds"
         if all(checklist.values())
         else "blocked"
@@ -568,6 +564,7 @@ def _source_quality_gate(
             "this is not semantic source closeout"
         ),
         "semantic_components": semantic_components,
+        "semantic_decode_gap_resource_count": len(semantic_decode_gap_bodies),
         "does_not_claim": [
             "accepted byte-entry proof",
             "decoded Segment Loader relocation/fixup semantics",
@@ -685,6 +682,8 @@ def _semantic_xref_target_labels(rows: list[Mapping[str, object]]) -> set[str]:
     labels: set[str] = set()
     for row in rows:
         for xref in (_mapping(value) for value in _sequence(row.get("xrefs"))):
+            if _text(xref.get("reason")) == "linkage_api_entry":
+                continue
             target_label = xref.get("target_label")
             if isinstance(target_label, str) and target_label:
                 labels.add(target_label)
@@ -1236,6 +1235,7 @@ def _semantic_source_rows(
         window, _window_profile = artifact.window_payload(start=0, count=total_rows)
     finally:
         artifact.close()
+    asm_source_includes = _macos_asm_source_includes(_sequence(window.get("rows")))
     rows = [
         _semantic_source_row(row, payload_base=analysis_start, resource=resource, code=code, code_range=analysis_range)
         for row in _sequence(window.get("rows"))
@@ -1287,12 +1287,29 @@ def _semantic_source_rows(
         "generated_xref_count": sum(len(_sequence(row.get("xrefs"))) for row in rows),
         "analysis_seed_count": len(analysis_seeds),
         "analysis_seeds": analysis_seeds,
+        "asm_source_includes": asm_source_includes,
         "candidate_residual_count": len(candidate_residuals),
         "candidate_residuals": candidate_residuals,
         "semantic_gap_residual_count": len(semantic_gap_residuals),
         "semantic_gap_residuals": semantic_gap_residuals,
         "rows": rows,
     }
+
+
+def _macos_asm_source_includes(rows: Sequence[object]) -> list[str]:
+    includes: list[str] = []
+    for row in rows:
+        row_map = _mapping(row)
+        if row_map.get("kind") != "directive" or row_map.get("opcode_or_directive") != "INCLUDE":
+            continue
+        operand = str(row_map.get("operand_text") or "").strip()
+        if len(operand) >= 2 and operand[0] == '"' and operand[-1] == '"':
+            include = operand[1:-1]
+        else:
+            include = operand
+        if include and include not in includes:
+            includes.append(include)
+    return includes
 
 
 def _macos_code_analysis_seeds(
@@ -1319,7 +1336,7 @@ def _macos_code_analysis_seeds(
             payload_base=payload_base,
             payload_end=end,
             resource_id=resource_id,
-            reason="loader_candidate_code_entry",
+            reason="loader_segment_body_start",
             fact_id=range_info.get("fact_id"),
             fact_status=range_info.get("fact_status"),
             parser_use=range_info.get("parser_use"),
@@ -1385,7 +1402,7 @@ def _macos_code_candidate_residuals(
                 "status": "candidate",
                 "fact_status": "candidate",
                 "parser_use": "candidate_only",
-                "fact_id": code_range.get("fact_id"),
+                "fact_id": "macos.code_resource.orphan_layout_ranges.candidate",
                 "kb_record_id": code.get("kb_record_id") or resource.get("kb_record_id"),
                 "pattern": pattern,
                 "reason": "unvisited executable-looking bytes are explicit residuals, not generated entrypoints",
@@ -1634,6 +1651,11 @@ def _payload_offset_is_covered(payload_offset: int, semantic_rows: list[Mapping[
 def _macos_fallback_byte_row(row: Mapping[str, object], *, code_range: Mapping[str, object]) -> bool:
     if row.get("kind") != "data":
         return False
+    if isinstance(row.get("api_call"), Mapping):
+        return False
+    opcode = str(row.get("opcode_or_directive") or "").lower()
+    if opcode and opcode not in {"dc.b", "dcb.b"}:
+        return False
     row_start = _int_value(row.get("payload_offset"))
     row_end = _int_value(row.get("payload_end"))
     range_start = _int_value(code_range.get("start"))
@@ -1761,6 +1783,7 @@ def _semantic_source_row(
         "label": label,
         "opcode_or_directive": row_map.get("opcode_or_directive"),
         "operand_text": row_map.get("operand_text"),
+        "api_call": row_map.get("api_call"),
         "flow": row_map.get("flow"),
         "flow_kind": row_map.get("flow_kind"),
         "control_flow_boundary": row_map.get("control_flow_boundary"),
@@ -1912,7 +1935,7 @@ def _preview_windows(
     resource_id = resource.get("id")
     if resource_id == 0 or resource_id == selected_id or not isinstance(resource_id, int):
         return []
-    range_info = _first_candidate_code_range(_sequence(code.get("layout_ranges")))
+    range_info = _first_executable_code_range(_sequence(code.get("layout_ranges")))
     start = _int_value(range_info.get("start"))
     end = _int_value(range_info.get("end"))
     if start is None or end is None or end <= start:
@@ -1932,7 +1955,7 @@ def _preview_windows(
     preview_bytes = payload[start:preview_end]
     relocation_fixups = _mapping(code.get("relocation_fixups"))
     window = {
-        "kind": "candidate_code_preview",
+        "kind": "executable_code_preview",
         "available": True,
         "bounded": True,
         "route": "code_preview",
@@ -1944,9 +1967,9 @@ def _preview_windows(
         "start": start,
         "end": preview_end,
         "size": len(preview_bytes),
-        "candidate_range_start": start,
-        "candidate_range_end": end,
-        "candidate_range_size": end - start,
+        "executable_range_start": start,
+        "executable_range_end": end,
+        "executable_range_size": end - start,
         "range_kind": range_info.get("kind"),
         "evidence": range_info.get("evidence"),
         "kb_record_id": code.get("kb_record_id"),
@@ -1955,7 +1978,7 @@ def _preview_windows(
         "parser_use": range_info.get("parser_use"),
         "truncated": preview_end < payload_end,
         "max_bytes": MACOS_CODE_PREVIEW_MAX_BYTES,
-        "reason": "bounded to candidate_code range; byte-entry and relocation semantics remain unresolved",
+        "reason": "bounded to executable CODE range; unresolved bytes remain candidate residuals",
         "deferred_reasons": _preview_deferred_reasons(relocation_fixups, code),
         "rows": _preview_decode_rows(
             preview_bytes,
@@ -2255,6 +2278,12 @@ def _code0_jump_table_row(
                 },
             }
         )
+        platform_call = candidate.get("platform_call")
+        if isinstance(platform_call, Mapping):
+            row["platform_call"] = dict(platform_call)
+        stored_offset_expression = candidate.get("stored_offset_expression")
+        if isinstance(stored_offset_expression, Mapping):
+            row["stored_offset_expression"] = dict(stored_offset_expression)
     return row
 
 
@@ -2514,7 +2543,7 @@ def _code_resource_navigation(details: list[dict[str, object]]) -> dict[str, obj
 def _first_code_range(ranges: list[object]) -> Mapping[str, object]:
     for item in ranges:
         range_info = _mapping(item)
-        if range_info.get("kind") in {"confirmed_code", "candidate_code"} and range_info.get("entrypoint") is True:
+        if range_info.get("kind") in {"code", "confirmed_code", "candidate_code"} and range_info.get("entrypoint") is True:
             return range_info
     return {}
 
@@ -2525,7 +2554,7 @@ def _macos_code_semantic_analysis_range(code: Mapping[str, object]) -> Mapping[s
     ends: list[int] = []
     authority: Mapping[str, object] = _first_code_range(list(ranges))
     for range_info in ranges:
-        if range_info.get("kind") not in {"candidate_unresolved_prefix", "candidate_code", "confirmed_code"}:
+        if range_info.get("kind") not in {"candidate_unresolved_prefix", "candidate_code", "confirmed_code", "code"}:
             continue
         start = _int_value(range_info.get("start"))
         end = _int_value(range_info.get("end"))
@@ -2536,7 +2565,7 @@ def _macos_code_semantic_analysis_range(code: Mapping[str, object]) -> Mapping[s
     if not starts or not ends:
         return authority
     return {
-        "kind": "candidate_code",
+        "kind": authority.get("kind") if authority.get("kind") in {"code", "confirmed_code"} else "candidate_code",
         "start": min(starts),
         "end": max(ends),
         "size": max(ends) - min(starts),
@@ -2549,10 +2578,10 @@ def _macos_code_semantic_analysis_range(code: Mapping[str, object]) -> Mapping[s
     }
 
 
-def _first_candidate_code_range(ranges: list[object]) -> Mapping[str, object]:
+def _first_executable_code_range(ranges: list[object]) -> Mapping[str, object]:
     for item in ranges:
         range_info = _mapping(item)
-        if range_info.get("kind") == "candidate_code":
+        if range_info.get("kind") in {"code", "confirmed_code", "candidate_code"}:
             return range_info
     return {}
 

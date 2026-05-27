@@ -67,6 +67,9 @@ def test_record_extraction_covers_baseline_structs_with_source_evidence() -> Non
 def test_trap_extraction_covers_baseline_calls_with_register_protocol() -> None:
     generator = _load_generator()
     metadata = generator.extract_baseline_metadata()
+    calls = metadata["calls"]
+    assert isinstance(calls, list)
+    assert len(calls) > 800
 
     get_resource = _call_by_name(metadata, "_GetResource")
     assert get_resource["kind"] == "opword"
@@ -81,13 +84,31 @@ def test_trap_extraction_covers_baseline_calls_with_register_protocol() -> None:
 
     unload_seg = _call_by_name(metadata, "_UnloadSeg")
     assert unload_seg["opword"] == 0xA9F1
-    assert unload_seg["family"] == "SegmentLoader"
+    assert unload_seg["family"] == "SegLoad"
+    assert unload_seg["kind"] == "opword"
+
+    load_seg = _call_by_name(metadata, "_LoadSeg")
+    assert load_seg["kind"] == "trap_constant"
+    assert load_seg["opword"] == 0xA9F0
+    assert load_seg["family"] == "Traps"
+    assert load_seg["source"] == "ext/macos_includes/mpw_gm/Interfaces/CIncludes/Traps.h"
 
     hget_vinfo = _call_by_name(metadata, "_PBHGetVInfoSync")
     assert hget_vinfo["opword"] == 0xA207
     assert hget_vinfo["parameter_register"] == "A0"
     assert hget_vinfo["result_register"] == "D0"
     assert "PBHGetVInfoSync(HParmBlkPtr paramBlock)" in hget_vinfo["prototype"]
+
+    new_ptr = _call_by_name(metadata, "_NewPtr")
+    assert new_ptr["opword"] == 0xA11E
+    assert new_ptr["source"] == "ext/macos_includes/mpw_gm/Interfaces/AIncludes/MacMemory.a"
+    assert new_ptr["parameter_register"] == "D0"
+    assert new_ptr["result_register"] == "A0"
+
+    close_sync = _call_by_name(metadata, "_PBCloseSync")
+    assert close_sync["opword"] == 0xA001
+    assert close_sync["parameter_register"] == "A0"
+    assert close_sync["result_register"] == "D0"
 
 
 def test_num_to_string_is_package_macro_not_opword_alias() -> None:

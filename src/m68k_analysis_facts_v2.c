@@ -8513,6 +8513,51 @@ static int target_prefix_uses_trace_runtime_sink(M68kDecodeIR *decode, const M68
   return 0;
 }
 
+static int accept_platform_opcode_call(const M68kObject *object, const M68kDecodeSectionIR *section,
+    M68kFactIR *facts, M68kFactsV2WorkQueue *queue, M68kFactsV2Profile *profile,
+    const M68kFactsV2WorkItem *item, uint8_t **accepted_start, uint8_t **accepted_bytes) {
+  PlatformFactsV2ResolvedCall call_info;
+  M68kFact fact;
+  uint32_t fallthrough;
+  uint16_t opcode;
+  if (object == NULL || section == NULL || facts == NULL || queue == NULL || item == NULL ||
+      accepted_start == NULL || accepted_bytes == NULL || section->data == NULL ||
+      item->offset + 2U > section->size) {
+    return 0;
+  }
+  opcode = m68k_read_u16be(section->data + item->offset);
+  if (!platform_facts_v2_resolve_opcode_call(object->platform_backend_kind, opcode, &call_info)) return 0;
+  accepted_start[item->section_index][item->offset] = 1U;
+  accepted_bytes[item->section_index][item->offset] = 1U;
+  accepted_bytes[item->section_index][item->offset + 1U] = 1U;
+  memset(&fact, 0, sizeof(fact));
+  fact.kind = M68K_FACT_CODE_ACCEPTED;
+  fact.confidence = item->confidence;
+  fact.section_index = item->section_index;
+  fact.offset = item->offset;
+  fact.reason = item->reason;
+  fact.has_runtime_address = item->has_runtime_address;
+  fact.runtime_address = item->runtime_address;
+  fact.source_section_index = item->source_section_index;
+  fact.source_offset = item->source_offset;
+  fact.size = 2U;
+  fact.platform_record_kind = opcode;
+  if (m68k_fact_ir_append(facts, &fact) != 0) return -1;
+  if (profile != NULL) ++profile->platform_call_count;
+  fallthrough = item->offset + 2U;
+  if (fallthrough < section->size) {
+    uint8_t has_runtime = item->has_runtime_address;
+    uint32_t runtime = item->runtime_address;
+    if (has_runtime && runtime <= UINT32_MAX - 2U) runtime += 2U;
+    if (enqueue_code_start_runtime(facts, queue, profile, item->section_index, fallthrough,
+        M68K_FACT_CONFIDENCE_TOOL_INFERRED, M68K_FACT_CODE_START_REASON_LINKAGE_API_ENTRY,
+        item->section_index, item->offset, has_runtime, runtime, &item->trace_state) != 0) {
+      return -1;
+    }
+  }
+  return 1;
+}
+
 static int run_reachable_fixed_point(const M68kObject *object, M68kDecodeIR *decode, M68kFactIR *facts,
     const M68kAnalysisPolicy *policy,
     const M68kFactsV2RelocationLookup *relocation_lookup, M68kFactsV2WorkQueue *queue,
@@ -8554,6 +8599,10 @@ static int run_reachable_fixed_point(const M68kObject *object, M68kDecodeIR *dec
     profile_phase_add_local(profile_reachable_phases, &profile->fixed_point_reachable_decode_seconds,
       phase_start);
     if (candidate == NULL) {
+      int platform_opcode_result = accept_platform_opcode_call(object, section, facts, queue, profile, &item,
+        accepted_start, accepted_bytes);
+      if (platform_opcode_result < 0) return -1;
+      if (platform_opcode_result > 0) continue;
       int appended_violation = 0;
       if (accepted_offset_is_interior(section, accepted_start[item.section_index],
           accepted_bytes[item.section_index], item.offset)) {

@@ -1,1087 +1,30 @@
 ; Classic Mac OS target artifact: MPW Tools Asm
-; Renderer: amiga_reversing.disasm.macos_target_artifact
-; Source image: resources/platform_macos/MPW-GM.img.bin
 ; HFS path: MPW-GM/MPW/Tools/Asm
 ; Finder type: MPST
 ; Finder creator: MPS 
-; CNID: 2310
-;
-; This is an illustrative source artifact, not an MPW round-trip contract.
-; Durable input comes from the C-backed HFS/resource/CODE summary and shared m68k listing renderer.
 
-; CODE source body sections
+	INCLUDE "DateTimeUtils.a"
+	INCLUDE "Devices.a"
+	INCLUDE "Files.a"
+	INCLUDE "Fonts.a"
+	INCLUDE "Gestalt.a"
+	INCLUDE "MacErrors.a"
+	INCLUDE "MacMemory.a"
+	INCLUDE "OSUtils.a"
+	INCLUDE "Patches.a"
+	INCLUDE "Quickdraw.a"
+	INCLUDE "Resources.a"
+	INCLUDE "SegLoad.a"
+	INCLUDE "StringCompare.a"
+	INCLUDE "Traps.a"
+	INCLUDE "Traps.h"
+	INCLUDE "MacTypes.a"
+	INCLUDE "Dialogs.a"
+	INCLUDE "MacWindows.a"
 
-; CODE 0 unknown source section
+
+; CODE 0 unknown
 CODE_0:
-;   source_section_id: macos-code-CODE-0
-;   source_kind: macos_code_resource
-;   backend: macos-code
-;   status: covered_placeholder
-;   resource_type: CODE
-;   id: 0
-;   name: unknown
-;   role: code0_metadata
-;   code_kind: jump_table_segment
-;   payload_size: 2784
-;   payload_sha256: 8413f3bca1604845bb778c2a7701a067aa8b84853e7c77a60e63166d5b6399c1
-;   presentation: kind=c_owned_restored_source_packet status=covered visible=True identity=macos-code:CODE:0
-;   listing: kind=metadata available=False reason=CODE 0 is jump-table/application metadata, not ordinary m68k code
-;   restored_source_model:
-;     model=restored_source_model_v1 round_trip_required=false
-;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 0 name=unknown
-;     a5_world status=deferred parser_use=unknown
-;     ownership_ranges:
-;       0: role=metadata span=0..2784 status=validated parser_use=accepted_parser_output reason=code0_jump_table_metadata
-;     source_reference_records:
-;       0: kind=code0_routing_table ownership=unknown status=validated parser_use=accepted_parser_output target=CODE resource dispatch table
-;       1: kind=a5_world_context_placeholder ownership=0 status=deferred parser_use=unknown target=classic_mac_a5_world
-;   source_body_ranges:
-;     metadata payload[0..2784) size=2784 entrypoint=False
-;   structured_CODE0_context:
-;     above/below A5 metadata and jump-table header are accepted CODE 0 metadata.
-;     jump_table payload[16..2784) entry_size=8 entry_count=346 status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     CODE_0_jump_table_entry_0: payload_offset=16 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_27 target_resource_id=27 routine_offset=0 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_1: payload_offset=24 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     no decoded routine target for this accepted jump-table entry
-;     CODE_0_jump_table_entry_2: payload_offset=32 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=24606 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_3: payload_offset=40 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=62 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_4: payload_offset=48 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=70 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_5: payload_offset=56 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=94 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_6: payload_offset=64 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=118 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_7: payload_offset=72 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=154 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_8: payload_offset=80 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=190 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_9: payload_offset=88 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=190 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_10: payload_offset=96 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=264 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_11: payload_offset=104 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=322 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_12: payload_offset=112 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=358 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_13: payload_offset=120 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=370 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_14: payload_offset=128 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=400 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_15: payload_offset=136 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=420 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_16: payload_offset=144 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=446 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_17: payload_offset=152 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=468 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_18: payload_offset=160 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=472 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_19: payload_offset=168 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=580 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_20: payload_offset=176 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=574 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_21: payload_offset=184 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=796 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_22: payload_offset=192 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=984 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_23: payload_offset=200 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=1036 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_24: payload_offset=208 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=1174 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_25: payload_offset=216 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=1182 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_26: payload_offset=224 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=1400 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_27: payload_offset=232 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=1408 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_28: payload_offset=240 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=1542 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_29: payload_offset=248 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=1550 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_30: payload_offset=256 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=1812 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_31: payload_offset=264 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=1820 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_32: payload_offset=272 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=1992 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_33: payload_offset=280 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=2020 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_34: payload_offset=288 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=2814 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_35: payload_offset=296 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=3936 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_36: payload_offset=304 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=3962 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_37: payload_offset=312 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=4572 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_38: payload_offset=320 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=4596 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_39: payload_offset=328 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=4722 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_40: payload_offset=336 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=4802 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_41: payload_offset=344 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=4884 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_42: payload_offset=352 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=4926 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_43: payload_offset=360 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=7008 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_44: payload_offset=368 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=6950 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_45: payload_offset=376 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=7282 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_46: payload_offset=384 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=7464 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_47: payload_offset=392 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=8240 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_48: payload_offset=400 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=8266 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_49: payload_offset=408 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=8304 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_50: payload_offset=416 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=8360 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_51: payload_offset=424 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=8688 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_52: payload_offset=432 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=8950 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_53: payload_offset=440 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=9062 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_54: payload_offset=448 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=9362 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_55: payload_offset=456 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=9658 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_56: payload_offset=464 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=9822 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_57: payload_offset=472 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=9844 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_58: payload_offset=480 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=10032 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_59: payload_offset=488 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=10206 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_60: payload_offset=496 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=10286 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_61: payload_offset=504 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=10424 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_62: payload_offset=512 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=10698 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_63: payload_offset=520 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=11180 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_64: payload_offset=528 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=12376 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_65: payload_offset=536 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=15760 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_66: payload_offset=544 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=20178 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_67: payload_offset=552 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=21302 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_68: payload_offset=560 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=21420 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_69: payload_offset=568 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=21622 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_70: payload_offset=576 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=21788 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_71: payload_offset=584 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=22440 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_72: payload_offset=592 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=24510 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_73: payload_offset=600 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=24850 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_74: payload_offset=608 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=24994 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_75: payload_offset=616 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=25032 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_76: payload_offset=624 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=25068 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_77: payload_offset=632 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=25290 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_78: payload_offset=640 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=25506 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_79: payload_offset=648 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=25624 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_80: payload_offset=656 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=25686 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_81: payload_offset=664 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=25992 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_82: payload_offset=672 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=26674 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_83: payload_offset=680 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=26804 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_84: payload_offset=688 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=26814 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_85: payload_offset=696 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=26828 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_86: payload_offset=704 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=26884 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_87: payload_offset=712 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=26948 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_88: payload_offset=720 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=26966 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_89: payload_offset=728 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=26984 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_90: payload_offset=736 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=27002 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_91: payload_offset=744 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=27028 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_92: payload_offset=752 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=27032 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_93: payload_offset=760 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=27100 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_94: payload_offset=768 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=27154 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_95: payload_offset=776 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=27190 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_96: payload_offset=784 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=27234 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_97: payload_offset=792 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=27292 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_98: payload_offset=800 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=27324 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_99: payload_offset=808 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=27358 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_100: payload_offset=816 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=27414 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_101: payload_offset=824 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=27436 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_102: payload_offset=832 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=27458 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_103: payload_offset=840 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=27476 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_104: payload_offset=848 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=27494 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_105: payload_offset=856 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=27566 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_106: payload_offset=864 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=27638 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_107: payload_offset=872 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=27702 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_108: payload_offset=880 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=27796 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_109: payload_offset=888 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=27918 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_110: payload_offset=896 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=28444 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_111: payload_offset=904 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=28462 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_112: payload_offset=912 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=28516 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_113: payload_offset=920 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=28748 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_114: payload_offset=928 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=28834 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_115: payload_offset=936 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_1 target_resource_id=1 routine_offset=28870 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_116: payload_offset=944 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_2 target_resource_id=2 routine_offset=40 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_117: payload_offset=952 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_2 target_resource_id=2 routine_offset=172 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_118: payload_offset=960 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_2 target_resource_id=2 routine_offset=392 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_119: payload_offset=968 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_2 target_resource_id=2 routine_offset=450 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_120: payload_offset=976 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_2 target_resource_id=2 routine_offset=6106 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_121: payload_offset=984 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_2 target_resource_id=2 routine_offset=6986 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_122: payload_offset=992 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_2 target_resource_id=2 routine_offset=7154 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_123: payload_offset=1000 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_3 target_resource_id=3 routine_offset=64 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_124: payload_offset=1008 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_3 target_resource_id=3 routine_offset=14582 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_125: payload_offset=1016 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_3 target_resource_id=3 routine_offset=17470 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_126: payload_offset=1024 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_4 target_resource_id=4 routine_offset=40 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_127: payload_offset=1032 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_4 target_resource_id=4 routine_offset=308 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_128: payload_offset=1040 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_4 target_resource_id=4 routine_offset=494 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_129: payload_offset=1048 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_4 target_resource_id=4 routine_offset=576 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_130: payload_offset=1056 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_4 target_resource_id=4 routine_offset=660 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_131: payload_offset=1064 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_4 target_resource_id=4 routine_offset=746 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_132: payload_offset=1072 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_4 target_resource_id=4 routine_offset=780 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_133: payload_offset=1080 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_4 target_resource_id=4 routine_offset=934 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_134: payload_offset=1088 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_4 target_resource_id=4 routine_offset=2054 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_135: payload_offset=1096 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_4 target_resource_id=4 routine_offset=3138 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_136: payload_offset=1104 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_4 target_resource_id=4 routine_offset=3714 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_137: payload_offset=1112 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_4 target_resource_id=4 routine_offset=5174 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_138: payload_offset=1120 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_4 target_resource_id=4 routine_offset=5550 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_139: payload_offset=1128 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_4 target_resource_id=4 routine_offset=5602 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_140: payload_offset=1136 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_4 target_resource_id=4 routine_offset=5928 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_141: payload_offset=1144 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_4 target_resource_id=4 routine_offset=5984 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_142: payload_offset=1152 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_4 target_resource_id=4 routine_offset=6160 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_143: payload_offset=1160 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_4 target_resource_id=4 routine_offset=6242 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_144: payload_offset=1168 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_4 target_resource_id=4 routine_offset=6314 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_145: payload_offset=1176 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_4 target_resource_id=4 routine_offset=6398 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_146: payload_offset=1184 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_5 target_resource_id=5 routine_offset=40 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_147: payload_offset=1192 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_5 target_resource_id=5 routine_offset=210 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_148: payload_offset=1200 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_5 target_resource_id=5 routine_offset=234 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_149: payload_offset=1208 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_5 target_resource_id=5 routine_offset=872 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_150: payload_offset=1216 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_5 target_resource_id=5 routine_offset=876 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_151: payload_offset=1224 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_5 target_resource_id=5 routine_offset=1434 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_152: payload_offset=1232 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_5 target_resource_id=5 routine_offset=1512 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_153: payload_offset=1240 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_5 target_resource_id=5 routine_offset=2632 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_154: payload_offset=1248 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_5 target_resource_id=5 routine_offset=5088 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_155: payload_offset=1256 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_5 target_resource_id=5 routine_offset=5302 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_156: payload_offset=1264 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_5 target_resource_id=5 routine_offset=5612 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_157: payload_offset=1272 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_5 target_resource_id=5 routine_offset=5884 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_158: payload_offset=1280 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_5 target_resource_id=5 routine_offset=6230 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_159: payload_offset=1288 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_5 target_resource_id=5 routine_offset=6288 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_160: payload_offset=1296 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_5 target_resource_id=5 routine_offset=6552 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_161: payload_offset=1304 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_5 target_resource_id=5 routine_offset=8248 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_162: payload_offset=1312 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_5 target_resource_id=5 routine_offset=9576 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_163: payload_offset=1320 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_5 target_resource_id=5 routine_offset=12136 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_164: payload_offset=1328 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_5 target_resource_id=5 routine_offset=15042 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_165: payload_offset=1336 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_5 target_resource_id=5 routine_offset=22098 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_166: payload_offset=1344 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_5 target_resource_id=5 routine_offset=23726 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_167: payload_offset=1352 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_5 target_resource_id=5 routine_offset=24342 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_168: payload_offset=1360 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_5 target_resource_id=5 routine_offset=26448 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_169: payload_offset=1368 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_6 target_resource_id=6 routine_offset=40 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_170: payload_offset=1376 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_6 target_resource_id=6 routine_offset=240 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_171: payload_offset=1384 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_6 target_resource_id=6 routine_offset=298 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_172: payload_offset=1392 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_6 target_resource_id=6 routine_offset=736 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_173: payload_offset=1400 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_6 target_resource_id=6 routine_offset=5724 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_174: payload_offset=1408 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_6 target_resource_id=6 routine_offset=1396 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_175: payload_offset=1416 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_6 target_resource_id=6 routine_offset=1160 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_176: payload_offset=1424 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_6 target_resource_id=6 routine_offset=5774 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_177: payload_offset=1432 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_6 target_resource_id=6 routine_offset=15126 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_178: payload_offset=1440 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_7 target_resource_id=7 routine_offset=40 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_179: payload_offset=1448 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_7 target_resource_id=7 routine_offset=172 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_180: payload_offset=1456 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_7 target_resource_id=7 routine_offset=370 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_181: payload_offset=1464 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_7 target_resource_id=7 routine_offset=428 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_182: payload_offset=1472 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_7 target_resource_id=7 routine_offset=3160 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_183: payload_offset=1480 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_7 target_resource_id=7 routine_offset=4062 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_184: payload_offset=1488 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_8 target_resource_id=8 routine_offset=220 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_185: payload_offset=1496 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_8 target_resource_id=8 routine_offset=260 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_186: payload_offset=1504 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_8 target_resource_id=8 routine_offset=678 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_187: payload_offset=1512 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_8 target_resource_id=8 routine_offset=794 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_188: payload_offset=1520 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_8 target_resource_id=8 routine_offset=1048 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_189: payload_offset=1528 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_8 target_resource_id=8 routine_offset=1132 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_190: payload_offset=1536 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_8 target_resource_id=8 routine_offset=1630 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_191: payload_offset=1544 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_9 target_resource_id=9 routine_offset=40 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_192: payload_offset=1552 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_9 target_resource_id=9 routine_offset=206 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_193: payload_offset=1560 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_9 target_resource_id=9 routine_offset=238 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_194: payload_offset=1568 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_9 target_resource_id=9 routine_offset=1146 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_195: payload_offset=1576 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_9 target_resource_id=9 routine_offset=4256 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_196: payload_offset=1584 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_9 target_resource_id=9 routine_offset=4148 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_197: payload_offset=1592 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_9 target_resource_id=9 routine_offset=4002 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_198: payload_offset=1600 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_9 target_resource_id=9 routine_offset=12734 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_199: payload_offset=1608 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_9 target_resource_id=9 routine_offset=13904 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_200: payload_offset=1616 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_10 target_resource_id=10 routine_offset=40 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_201: payload_offset=1624 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_10 target_resource_id=10 routine_offset=310 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_202: payload_offset=1632 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_11 target_resource_id=11 routine_offset=144 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_203: payload_offset=1640 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_11 target_resource_id=11 routine_offset=220 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_204: payload_offset=1648 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_11 target_resource_id=11 routine_offset=946 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_205: payload_offset=1656 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_11 target_resource_id=11 routine_offset=1032 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_206: payload_offset=1664 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_11 target_resource_id=11 routine_offset=1206 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_207: payload_offset=1672 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_11 target_resource_id=11 routine_offset=1234 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_208: payload_offset=1680 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_11 target_resource_id=11 routine_offset=1354 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_209: payload_offset=1688 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_11 target_resource_id=11 routine_offset=1434 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_210: payload_offset=1696 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_11 target_resource_id=11 routine_offset=1688 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_211: payload_offset=1704 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_11 target_resource_id=11 routine_offset=1926 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_212: payload_offset=1712 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_11 target_resource_id=11 routine_offset=2642 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_213: payload_offset=1720 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_11 target_resource_id=11 routine_offset=3166 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_214: payload_offset=1728 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_11 target_resource_id=11 routine_offset=3424 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_215: payload_offset=1736 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_11 target_resource_id=11 routine_offset=3538 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_216: payload_offset=1744 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_11 target_resource_id=11 routine_offset=3654 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_217: payload_offset=1752 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_12 target_resource_id=12 routine_offset=2880 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_218: payload_offset=1760 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_12 target_resource_id=12 routine_offset=4920 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_219: payload_offset=1768 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_13 target_resource_id=13 routine_offset=40 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_220: payload_offset=1776 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_13 target_resource_id=13 routine_offset=4402 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_221: payload_offset=1784 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_13 target_resource_id=13 routine_offset=8698 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_222: payload_offset=1792 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_13 target_resource_id=13 routine_offset=8872 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_223: payload_offset=1800 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_13 target_resource_id=13 routine_offset=9190 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_224: payload_offset=1808 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_13 target_resource_id=13 routine_offset=9512 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_225: payload_offset=1816 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_13 target_resource_id=13 routine_offset=11470 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_226: payload_offset=1824 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_13 target_resource_id=13 routine_offset=11532 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_227: payload_offset=1832 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_13 target_resource_id=13 routine_offset=11676 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_228: payload_offset=1840 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_13 target_resource_id=13 routine_offset=11782 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_229: payload_offset=1848 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_13 target_resource_id=13 routine_offset=26534 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_230: payload_offset=1856 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_13 target_resource_id=13 routine_offset=28486 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_231: payload_offset=1864 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_13 target_resource_id=13 routine_offset=33318 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_232: payload_offset=1872 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_14 target_resource_id=14 routine_offset=40 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_233: payload_offset=1880 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_14 target_resource_id=14 routine_offset=256 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_234: payload_offset=1888 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_14 target_resource_id=14 routine_offset=396 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_235: payload_offset=1896 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_14 target_resource_id=14 routine_offset=518 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_236: payload_offset=1904 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_14 target_resource_id=14 routine_offset=808 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_237: payload_offset=1912 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_14 target_resource_id=14 routine_offset=966 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_238: payload_offset=1920 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_14 target_resource_id=14 routine_offset=1130 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_239: payload_offset=1928 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_14 target_resource_id=14 routine_offset=1176 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_240: payload_offset=1936 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_14 target_resource_id=14 routine_offset=1294 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_241: payload_offset=1944 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_14 target_resource_id=14 routine_offset=1604 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_242: payload_offset=1952 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_14 target_resource_id=14 routine_offset=1820 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_243: payload_offset=1960 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_15 target_resource_id=15 routine_offset=456 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_244: payload_offset=1968 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_15 target_resource_id=15 routine_offset=2294 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_245: payload_offset=1976 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_15 target_resource_id=15 routine_offset=2802 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_246: payload_offset=1984 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_15 target_resource_id=15 routine_offset=2832 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_247: payload_offset=1992 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_15 target_resource_id=15 routine_offset=2930 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_248: payload_offset=2000 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_15 target_resource_id=15 routine_offset=3190 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_249: payload_offset=2008 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_15 target_resource_id=15 routine_offset=3274 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_250: payload_offset=2016 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_16 target_resource_id=16 routine_offset=40 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_251: payload_offset=2024 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_16 target_resource_id=16 routine_offset=306 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_252: payload_offset=2032 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_16 target_resource_id=16 routine_offset=866 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_253: payload_offset=2040 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_17 target_resource_id=17 routine_offset=2588 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_254: payload_offset=2048 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_18 target_resource_id=18 routine_offset=40 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_255: payload_offset=2056 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_18 target_resource_id=18 routine_offset=154 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_256: payload_offset=2064 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_18 target_resource_id=18 routine_offset=1772 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_257: payload_offset=2072 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_19 target_resource_id=19 routine_offset=40 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_258: payload_offset=2080 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_20 target_resource_id=20 routine_offset=196 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_259: payload_offset=2088 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_20 target_resource_id=20 routine_offset=310 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_260: payload_offset=2096 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_20 target_resource_id=20 routine_offset=462 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_261: payload_offset=2104 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_20 target_resource_id=20 routine_offset=614 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_262: payload_offset=2112 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_20 target_resource_id=20 routine_offset=882 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_263: payload_offset=2120 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_20 target_resource_id=20 routine_offset=1408 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_264: payload_offset=2128 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_20 target_resource_id=20 routine_offset=1854 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_265: payload_offset=2136 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_20 target_resource_id=20 routine_offset=2062 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_266: payload_offset=2144 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_20 target_resource_id=20 routine_offset=2578 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_267: payload_offset=2152 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_20 target_resource_id=20 routine_offset=2712 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_268: payload_offset=2160 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_20 target_resource_id=20 routine_offset=2716 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_269: payload_offset=2168 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_20 target_resource_id=20 routine_offset=2756 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_270: payload_offset=2176 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_20 target_resource_id=20 routine_offset=2896 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_271: payload_offset=2184 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_20 target_resource_id=20 routine_offset=3020 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_272: payload_offset=2192 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_20 target_resource_id=20 routine_offset=3212 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_273: payload_offset=2200 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_20 target_resource_id=20 routine_offset=3216 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_274: payload_offset=2208 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_20 target_resource_id=20 routine_offset=3424 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_275: payload_offset=2216 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_20 target_resource_id=20 routine_offset=3728 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_276: payload_offset=2224 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_20 target_resource_id=20 routine_offset=3844 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_277: payload_offset=2232 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_20 target_resource_id=20 routine_offset=4058 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_278: payload_offset=2240 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_20 target_resource_id=20 routine_offset=4342 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_279: payload_offset=2248 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_20 target_resource_id=20 routine_offset=4528 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_280: payload_offset=2256 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_20 target_resource_id=20 routine_offset=4686 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_281: payload_offset=2264 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_20 target_resource_id=20 routine_offset=4800 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_282: payload_offset=2272 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_20 target_resource_id=20 routine_offset=4962 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_283: payload_offset=2280 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_20 target_resource_id=20 routine_offset=5104 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_284: payload_offset=2288 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_20 target_resource_id=20 routine_offset=5240 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_285: payload_offset=2296 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_21 target_resource_id=21 routine_offset=1826 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_286: payload_offset=2304 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_21 target_resource_id=21 routine_offset=2078 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_287: payload_offset=2312 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_21 target_resource_id=21 routine_offset=2302 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_288: payload_offset=2320 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_21 target_resource_id=21 routine_offset=3652 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_289: payload_offset=2328 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_21 target_resource_id=21 routine_offset=3804 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_290: payload_offset=2336 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_21 target_resource_id=21 routine_offset=3916 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_291: payload_offset=2344 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_21 target_resource_id=21 routine_offset=4062 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_292: payload_offset=2352 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_21 target_resource_id=21 routine_offset=4520 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_293: payload_offset=2360 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_21 target_resource_id=21 routine_offset=5928 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_294: payload_offset=2368 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_21 target_resource_id=21 routine_offset=6050 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_295: payload_offset=2376 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_21 target_resource_id=21 routine_offset=6072 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_296: payload_offset=2384 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_21 target_resource_id=21 routine_offset=6124 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_297: payload_offset=2392 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_21 target_resource_id=21 routine_offset=6178 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_298: payload_offset=2400 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_21 target_resource_id=21 routine_offset=6234 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_299: payload_offset=2408 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_21 target_resource_id=21 routine_offset=6252 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_300: payload_offset=2416 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_21 target_resource_id=21 routine_offset=6640 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_301: payload_offset=2424 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_21 target_resource_id=21 routine_offset=6662 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_302: payload_offset=2432 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_21 target_resource_id=21 routine_offset=6682 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_303: payload_offset=2440 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_21 target_resource_id=21 routine_offset=6728 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_304: payload_offset=2448 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_22 target_resource_id=22 routine_offset=68 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_305: payload_offset=2456 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_23 target_resource_id=23 routine_offset=40 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_306: payload_offset=2464 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_24 target_resource_id=24 routine_offset=40 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_307: payload_offset=2472 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_24 target_resource_id=24 routine_offset=2604 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_308: payload_offset=2480 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_24 target_resource_id=24 routine_offset=2668 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_309: payload_offset=2488 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_24 target_resource_id=24 routine_offset=2872 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_310: payload_offset=2496 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_24 target_resource_id=24 routine_offset=2970 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_311: payload_offset=2504 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_24 target_resource_id=24 routine_offset=3088 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_312: payload_offset=2512 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_24 target_resource_id=24 routine_offset=3254 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_313: payload_offset=2520 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_24 target_resource_id=24 routine_offset=3666 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_314: payload_offset=2528 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_24 target_resource_id=24 routine_offset=3926 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_315: payload_offset=2536 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_24 target_resource_id=24 routine_offset=3960 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_316: payload_offset=2544 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_24 target_resource_id=24 routine_offset=3996 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_317: payload_offset=2552 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_24 target_resource_id=24 routine_offset=4264 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_318: payload_offset=2560 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_24 target_resource_id=24 routine_offset=4568 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_319: payload_offset=2568 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_25 target_resource_id=25 routine_offset=184 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_320: payload_offset=2576 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_25 target_resource_id=25 routine_offset=122 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_321: payload_offset=2584 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_25 target_resource_id=25 routine_offset=228 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_322: payload_offset=2592 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_26 target_resource_id=26 routine_offset=40 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_323: payload_offset=2600 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_26 target_resource_id=26 routine_offset=442 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_324: payload_offset=2608 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_26 target_resource_id=26 routine_offset=782 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_325: payload_offset=2616 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_26 target_resource_id=26 routine_offset=824 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_326: payload_offset=2624 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_26 target_resource_id=26 routine_offset=880 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_327: payload_offset=2632 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_26 target_resource_id=26 routine_offset=1304 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_328: payload_offset=2640 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_26 target_resource_id=26 routine_offset=1370 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_329: payload_offset=2648 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_26 target_resource_id=26 routine_offset=1522 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_330: payload_offset=2656 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_26 target_resource_id=26 routine_offset=2012 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_331: payload_offset=2664 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_26 target_resource_id=26 routine_offset=2064 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_332: payload_offset=2672 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_26 target_resource_id=26 routine_offset=2102 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_333: payload_offset=2680 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_26 target_resource_id=26 routine_offset=2244 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_334: payload_offset=2688 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_26 target_resource_id=26 routine_offset=2322 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_335: payload_offset=2696 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_26 target_resource_id=26 routine_offset=2392 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_336: payload_offset=2704 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_26 target_resource_id=26 routine_offset=2470 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_337: payload_offset=2712 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_26 target_resource_id=26 routine_offset=2560 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_338: payload_offset=2720 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_26 target_resource_id=26 routine_offset=2632 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_339: payload_offset=2728 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_26 target_resource_id=26 routine_offset=2686 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_340: payload_offset=2736 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_26 target_resource_id=26 routine_offset=2756 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_341: payload_offset=2744 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_26 target_resource_id=26 routine_offset=2764 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_342: payload_offset=2752 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_26 target_resource_id=26 routine_offset=2812 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_343: payload_offset=2760 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_26 target_resource_id=26 routine_offset=2830 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_344: payload_offset=2768 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_26 target_resource_id=26 routine_offset=2848 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;     CODE_0_jump_table_entry_345: payload_offset=2776 size=8
-;     accepted_layout status=validated parser_use=accepted_parser_output fact=macos.jump_table.entries.accepted
-;     candidate_target target_section=CODE_26 target_resource_id=26 routine_offset=2866 status=candidate parser_use=candidate_only fact=macos.code_resource.jump_table.routine_offsets.candidate
-;   rendered_source: CODE 0 status=byte_preserved payload[0..2784) sha256=8413f3bca1604845bb778c2a7701a067aa8b84853e7c77a60e63166d5b6399c1
-;   residual_policy: CODE 0 is accepted routing/application metadata; source rows render metadata and jump-table entries.
-;   source_rows:
 CODE_0_metadata_00000000:
 CODE_0_above_a5_size:
 	dc.l $00000AF0
@@ -1095,1440 +38,1394 @@ CODE_0_jump_table:
 CODE_0_jump_table_entry_0:
 	dc.w $0000
 	move.w #27,-(a7)
-	dc.w $A9F0
+	_LoadSeg
 CODE_0_jump_table_entry_1:
 	dc.w $0000
 	dc.w $FFFF
 	dc.l $00000000
 CODE_0_jump_table_entry_2:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $0000601E
+	_LoadSeg
+	dc.l CODE_1_loc_0000601e-CODE_1
 CODE_0_jump_table_entry_3:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $0000003E
+	_LoadSeg
+	dc.l CODE_1_loc_0000003e-CODE_1
 CODE_0_jump_table_entry_4:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00000046
+	_LoadSeg
+	dc.l CODE_1_loc_00000046-CODE_1
 CODE_0_jump_table_entry_5:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $0000005E
+	_LoadSeg
+	dc.l CODE_1_loc_0000005e-CODE_1
 CODE_0_jump_table_entry_6:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00000076
+	_LoadSeg
+	dc.l CODE_1_loc_00000076-CODE_1
 CODE_0_jump_table_entry_7:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $0000009A
+	_LoadSeg
+	dc.l CODE_1_loc_0000009a-CODE_1
 CODE_0_jump_table_entry_8:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $000000BE
+	_LoadSeg
+	dc.l CODE_1_loc_000000be-CODE_1
 CODE_0_jump_table_entry_9:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $000000BE
+	_LoadSeg
+	dc.l CODE_1_loc_000000be-CODE_1
 CODE_0_jump_table_entry_10:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00000108
+	_LoadSeg
+	dc.l CODE_1_loc_00000108-CODE_1
 CODE_0_jump_table_entry_11:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00000142
+	_LoadSeg
+	dc.l CODE_1_loc_00000142-CODE_1
 CODE_0_jump_table_entry_12:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00000166
+	_LoadSeg
+	dc.l CODE_1_loc_00000166-CODE_1
 CODE_0_jump_table_entry_13:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00000172
+	_LoadSeg
+	dc.l CODE_1_loc_00000172-CODE_1
 CODE_0_jump_table_entry_14:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00000190
+	_LoadSeg
+	dc.l CODE_1_loc_00000190-CODE_1
 CODE_0_jump_table_entry_15:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $000001A4
+	_LoadSeg
+	dc.l CODE_1_loc_000001a4-CODE_1
 CODE_0_jump_table_entry_16:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $000001BE
+	_LoadSeg
+	dc.l CODE_1_loc_000001be-CODE_1
 CODE_0_jump_table_entry_17:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $000001D4
+	_LoadSeg
+	dc.l CODE_1_loc_000001d4-CODE_1
 CODE_0_jump_table_entry_18:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $000001D8
+	_LoadSeg
+	dc.l CODE_1_loc_000001d8-CODE_1
 CODE_0_jump_table_entry_19:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00000244
+	_LoadSeg
+	dc.l CODE_1_loc_00000244-CODE_1
 CODE_0_jump_table_entry_20:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $0000023E
+	_LoadSeg
+	dc.l CODE_1_loc_0000023e-CODE_1
 CODE_0_jump_table_entry_21:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $0000031C
+	_LoadSeg
+	dc.l CODE_1_loc_0000031c-CODE_1
 CODE_0_jump_table_entry_22:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $000003D8
+	_LoadSeg
+	dc.l CODE_1_loc_000003d8-CODE_1
 CODE_0_jump_table_entry_23:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $0000040C
+	_LoadSeg
+	dc.l CODE_1_loc_0000040c-CODE_1
 CODE_0_jump_table_entry_24:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00000496
+	_LoadSeg
+	dc.l CODE_1_loc_00000496-CODE_1
 CODE_0_jump_table_entry_25:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $0000049E
+	_LoadSeg
+	dc.l CODE_1_loc_0000049e-CODE_1
 CODE_0_jump_table_entry_26:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00000578
+	_LoadSeg
+	dc.l CODE_1_loc_00000578-CODE_1
 CODE_0_jump_table_entry_27:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00000580
+	_LoadSeg
+	dc.l CODE_1_loc_00000580-CODE_1
 CODE_0_jump_table_entry_28:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00000606
+	_LoadSeg
+	dc.l CODE_1_loc_00000606-CODE_1
 CODE_0_jump_table_entry_29:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $0000060E
+	_LoadSeg
+	dc.l CODE_1_loc_0000060e-CODE_1
 CODE_0_jump_table_entry_30:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00000714
+	_LoadSeg
+	dc.l CODE_1_loc_00000714-CODE_1
 CODE_0_jump_table_entry_31:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $0000071C
+	_LoadSeg
+	dc.l CODE_1_loc_0000071c-CODE_1
 CODE_0_jump_table_entry_32:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $000007C8
+	_LoadSeg
+	dc.l CODE_1_loc_000007c8-CODE_1
 CODE_0_jump_table_entry_33:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $000007E4
+	_LoadSeg
+	dc.l CODE_1_loc_000007e4-CODE_1
 CODE_0_jump_table_entry_34:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00000AFE
+	_LoadSeg
+	dc.l CODE_1_loc_00000afe-CODE_1
 CODE_0_jump_table_entry_35:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00000F60
+	_LoadSeg
+	dc.l CODE_1_loc_00000f60-CODE_1
 CODE_0_jump_table_entry_36:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00000F7A
+	_LoadSeg
+	dc.l CODE_1_loc_00000f7a-CODE_1
 CODE_0_jump_table_entry_37:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $000011DC
+	_LoadSeg
+	dc.l CODE_1_loc_000011dc-CODE_1
 CODE_0_jump_table_entry_38:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $000011F4
+	_LoadSeg
+	dc.l CODE_1_loc_000011f4-CODE_1
 CODE_0_jump_table_entry_39:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00001272
+	_LoadSeg
+	dc.l CODE_1_loc_00001272-CODE_1
 CODE_0_jump_table_entry_40:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $000012C2
+	_LoadSeg
+	dc.l CODE_1_loc_000012c2-CODE_1
 CODE_0_jump_table_entry_41:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00001314
+	_LoadSeg
+	dc.l CODE_1_loc_00001314-CODE_1
 CODE_0_jump_table_entry_42:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $0000133E
+	_LoadSeg
+	dc.l CODE_1_loc_0000133e-CODE_1
 CODE_0_jump_table_entry_43:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00001B60
+	_LoadSeg
+	dc.l CODE_1_loc_00001b60-CODE_1
 CODE_0_jump_table_entry_44:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00001B26
+	_LoadSeg
+	dc.l CODE_1_loc_00001b26-CODE_1
 CODE_0_jump_table_entry_45:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00001C72
+	_LoadSeg
+	dc.l CODE_1_loc_00001c72-CODE_1
 CODE_0_jump_table_entry_46:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00001D28
+	_LoadSeg
+	dc.l CODE_1_loc_00001d28-CODE_1
 CODE_0_jump_table_entry_47:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00002030
+	_LoadSeg
+	dc.l CODE_1_loc_00002030-CODE_1
 CODE_0_jump_table_entry_48:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $0000204A
+	_LoadSeg
+	dc.l CODE_1_loc_0000204a-CODE_1
 CODE_0_jump_table_entry_49:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00002070
+	_LoadSeg
+	dc.l CODE_1_loc_00002070-CODE_1
 CODE_0_jump_table_entry_50:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $000020A8
+	_LoadSeg
+	dc.l CODE_1_loc_000020a8-CODE_1
 CODE_0_jump_table_entry_51:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $000021F0
+	_LoadSeg
+	dc.l CODE_1_loc_000021f0-CODE_1
 CODE_0_jump_table_entry_52:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $000022F6
+	_LoadSeg
+	dc.l CODE_1_loc_000022f6-CODE_1
 CODE_0_jump_table_entry_53:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00002366
+	_LoadSeg
+	dc.l CODE_1_loc_00002366-CODE_1
 CODE_0_jump_table_entry_54:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00002492
+	_LoadSeg
+	dc.l CODE_1_loc_00002492-CODE_1
 CODE_0_jump_table_entry_55:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $000025BA
+	_LoadSeg
+	dc.l CODE_1_loc_000025ba-CODE_1
 CODE_0_jump_table_entry_56:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $0000265E
+	_LoadSeg
+	dc.l CODE_1_loc_0000265e-CODE_1
 CODE_0_jump_table_entry_57:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00002674
+	_LoadSeg
+	dc.l CODE_1_loc_00002674-CODE_1
 CODE_0_jump_table_entry_58:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00002730
+	_LoadSeg
+	dc.l CODE_1_loc_00002730-CODE_1
 CODE_0_jump_table_entry_59:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $000027DE
+	_LoadSeg
+	dc.l CODE_1_loc_000027de-CODE_1
 CODE_0_jump_table_entry_60:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $0000282E
+	_LoadSeg
+	dc.l CODE_1_loc_0000282e-CODE_1
 CODE_0_jump_table_entry_61:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $000028B8
+	_LoadSeg
+	dc.l CODE_1_loc_000028b8-CODE_1
 CODE_0_jump_table_entry_62:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $000029CA
+	_LoadSeg
+	dc.l CODE_1_loc_000029ca-CODE_1
 CODE_0_jump_table_entry_63:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00002BAC
+	_LoadSeg
+	dc.l CODE_1_loc_00002bac-CODE_1
 CODE_0_jump_table_entry_64:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00003058
+	_LoadSeg
+	dc.l CODE_1_loc_00003058-CODE_1
 CODE_0_jump_table_entry_65:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00003D90
+	_LoadSeg
+	dc.l CODE_1_loc_00003d90-CODE_1
 CODE_0_jump_table_entry_66:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00004ED2
+	_LoadSeg
+	dc.l CODE_1_loc_00004ed2-CODE_1
 CODE_0_jump_table_entry_67:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00005336
+	_LoadSeg
+	dc.l CODE_1_loc_00005336-CODE_1
 CODE_0_jump_table_entry_68:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $000053AC
+	_LoadSeg
+	dc.l CODE_1_loc_000053ac-CODE_1
 CODE_0_jump_table_entry_69:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00005476
+	_LoadSeg
+	dc.l CODE_1_loc_00005476-CODE_1
 CODE_0_jump_table_entry_70:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $0000551C
+	_LoadSeg
+	dc.l CODE_1_loc_0000551c-CODE_1
 CODE_0_jump_table_entry_71:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $000057A8
+	_LoadSeg
+	dc.l CODE_1_loc_000057a8-CODE_1
 CODE_0_jump_table_entry_72:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00005FBE
+	_LoadSeg
+	dc.l CODE_1_loc_00005fbe-CODE_1
 CODE_0_jump_table_entry_73:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00006112
+	_LoadSeg
+	dc.l CODE_1_loc_00006112-CODE_1
 CODE_0_jump_table_entry_74:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $000061A2
+	_LoadSeg
+	dc.l CODE_1_loc_000061a2-CODE_1
 CODE_0_jump_table_entry_75:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $000061C8
+	_LoadSeg
+	dc.l CODE_1_loc_000061c8-CODE_1
 CODE_0_jump_table_entry_76:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $000061EC
+	_LoadSeg
+	dc.l CODE_1_loc_000061ec-CODE_1
 CODE_0_jump_table_entry_77:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $000062CA
+	_LoadSeg
+	dc.l CODE_1_loc_000062ca-CODE_1
 CODE_0_jump_table_entry_78:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $000063A2
+	_LoadSeg
+	dc.l CODE_1_loc_000063a2-CODE_1
 CODE_0_jump_table_entry_79:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00006418
+	_LoadSeg
+	dc.l CODE_1_loc_00006418-CODE_1
 CODE_0_jump_table_entry_80:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00006456
+	_LoadSeg
+	dc.l CODE_1_loc_00006456-CODE_1
 CODE_0_jump_table_entry_81:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00006588
+	_LoadSeg
+	dc.l CODE_1_loc_00006588-CODE_1
 CODE_0_jump_table_entry_82:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00006832
+	_LoadSeg
+	dc.l CODE_1_loc_00006832-CODE_1
 CODE_0_jump_table_entry_83:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $000068B4
+	_LoadSeg
+	dc.l CODE_1_loc_000068b4-CODE_1
 CODE_0_jump_table_entry_84:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $000068BE
+	_LoadSeg
+	dc.l CODE_1_loc_000068be-CODE_1
 CODE_0_jump_table_entry_85:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $000068CC
+	_LoadSeg
+	dc.l CODE_1_loc_000068cc-CODE_1
 CODE_0_jump_table_entry_86:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00006904
+	_LoadSeg
+	dc.l CODE_1_loc_00006904-CODE_1
 CODE_0_jump_table_entry_87:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00006944
+	_LoadSeg
+	dc.l CODE_1_loc_00006944-CODE_1
 CODE_0_jump_table_entry_88:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00006956
+	_LoadSeg
+	dc.l CODE_1_loc_00006956-CODE_1
 CODE_0_jump_table_entry_89:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00006968
+	_LoadSeg
+	dc.l CODE_1_loc_00006968-CODE_1
 CODE_0_jump_table_entry_90:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $0000697A
+	_LoadSeg
+	dc.l CODE_1_loc_0000697a-CODE_1
 CODE_0_jump_table_entry_91:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00006994
+	_LoadSeg
+	dc.l CODE_1_loc_00006994-CODE_1
 CODE_0_jump_table_entry_92:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00006998
+	_LoadSeg
+	dc.l CODE_1_loc_00006998-CODE_1
 CODE_0_jump_table_entry_93:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $000069DC
+	_LoadSeg
+	dc.l CODE_1_loc_000069dc-CODE_1
 CODE_0_jump_table_entry_94:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00006A12
+	_LoadSeg
+	dc.l CODE_1_loc_00006a12-CODE_1
 CODE_0_jump_table_entry_95:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00006A36
+	_LoadSeg
+	dc.l CODE_1_loc_00006a36-CODE_1
 CODE_0_jump_table_entry_96:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00006A62
+	_LoadSeg
+	dc.l CODE_1_loc_00006a62-CODE_1
 CODE_0_jump_table_entry_97:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00006A9C
+	_LoadSeg
+	dc.l CODE_1_loc_00006a9c-CODE_1
 CODE_0_jump_table_entry_98:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00006ABC
+	_LoadSeg
+	dc.l CODE_1_loc_00006abc-CODE_1
 CODE_0_jump_table_entry_99:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00006ADE
+	_LoadSeg
+	dc.l CODE_1_loc_00006ade-CODE_1
 CODE_0_jump_table_entry_100:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00006B16
+	_LoadSeg
+	dc.l CODE_1_loc_00006b16-CODE_1
 CODE_0_jump_table_entry_101:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00006B2C
+	_LoadSeg
+	dc.l CODE_1_loc_00006b2c-CODE_1
 CODE_0_jump_table_entry_102:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00006B42
+	_LoadSeg
+	dc.l CODE_1_loc_00006b42-CODE_1
 CODE_0_jump_table_entry_103:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00006B54
+	_LoadSeg
+	dc.l CODE_1_loc_00006b54-CODE_1
 CODE_0_jump_table_entry_104:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00006B66
+	_LoadSeg
+	dc.l CODE_1_loc_00006b66-CODE_1
 CODE_0_jump_table_entry_105:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00006BAE
+	_LoadSeg
+	dc.l CODE_1_loc_00006bae-CODE_1
 CODE_0_jump_table_entry_106:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00006BF6
+	_LoadSeg
+	dc.l CODE_1_loc_00006bf6-CODE_1
 CODE_0_jump_table_entry_107:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00006C36
+	_LoadSeg
+	dc.l CODE_1_loc_00006c36-CODE_1
 CODE_0_jump_table_entry_108:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00006C94
+	_LoadSeg
+	dc.l CODE_1_loc_00006c94-CODE_1
 CODE_0_jump_table_entry_109:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00006D0E
+	_LoadSeg
+	dc.l CODE_1_loc_00006d0e-CODE_1
 CODE_0_jump_table_entry_110:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00006F1C
+	_LoadSeg
+	dc.l CODE_1_loc_00006f1c-CODE_1
 CODE_0_jump_table_entry_111:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00006F2E
+	_LoadSeg
+	dc.l CODE_1_loc_00006f2e-CODE_1
 CODE_0_jump_table_entry_112:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $00006F64
+	_LoadSeg
+	dc.l CODE_1_loc_00006f64-CODE_1
 CODE_0_jump_table_entry_113:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $0000704C
+	_LoadSeg
+	dc.l CODE_1_loc_0000704c-CODE_1
 CODE_0_jump_table_entry_114:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $000070A2
+	_LoadSeg
+	dc.l CODE_1_loc_000070a2-CODE_1
 CODE_0_jump_table_entry_115:
 	dc.w $0001
-	dc.w $A9F0
-	dc.l $000070C6
+	_LoadSeg
+	dc.l CODE_1_loc_000070c6-CODE_1
 CODE_0_jump_table_entry_116:
 	dc.w $0002
-	dc.w $A9F0
-	dc.l $00000028
+	_LoadSeg
+	dc.l CODE_2_loc_00000028-CODE_2
 CODE_0_jump_table_entry_117:
 	dc.w $0002
-	dc.w $A9F0
-	dc.l $000000AC
+	_LoadSeg
+	dc.l CODE_2_loc_000000ac-CODE_2
 CODE_0_jump_table_entry_118:
 	dc.w $0002
-	dc.w $A9F0
-	dc.l $00000188
+	_LoadSeg
+	dc.l CODE_2_loc_00000188-CODE_2
 CODE_0_jump_table_entry_119:
 	dc.w $0002
-	dc.w $A9F0
-	dc.l $000001C2
+	_LoadSeg
+	dc.l CODE_2_loc_000001c2-CODE_2
 CODE_0_jump_table_entry_120:
 	dc.w $0002
-	dc.w $A9F0
-	dc.l $000017DA
+	_LoadSeg
+	dc.l CODE_2_loc_000017da-CODE_2
 CODE_0_jump_table_entry_121:
 	dc.w $0002
-	dc.w $A9F0
-	dc.l $00001B4A
+	_LoadSeg
+	dc.l CODE_2_loc_00001b4a-CODE_2
 CODE_0_jump_table_entry_122:
 	dc.w $0002
-	dc.w $A9F0
-	dc.l $00001BF2
+	_LoadSeg
+	dc.l CODE_2_loc_00001bf2-CODE_2
 CODE_0_jump_table_entry_123:
 	dc.w $0003
-	dc.w $A9F0
-	dc.l $00000040
+	_LoadSeg
+	dc.l CODE_3_loc_00000040-CODE_3
 CODE_0_jump_table_entry_124:
 	dc.w $0003
-	dc.w $A9F0
-	dc.l $000038F6
+	_LoadSeg
+	dc.l CODE_3_loc_000038f6-CODE_3
 CODE_0_jump_table_entry_125:
 	dc.w $0003
-	dc.w $A9F0
-	dc.l $0000443E
+	_LoadSeg
+	dc.l CODE_3_loc_0000443e-CODE_3
 CODE_0_jump_table_entry_126:
 	dc.w $0004
-	dc.w $A9F0
-	dc.l $00000028
+	_LoadSeg
+	dc.l CODE_4_loc_00000028-CODE_4
 CODE_0_jump_table_entry_127:
 	dc.w $0004
-	dc.w $A9F0
-	dc.l $00000134
+	_LoadSeg
+	dc.l CODE_4_loc_00000134-CODE_4
 CODE_0_jump_table_entry_128:
 	dc.w $0004
-	dc.w $A9F0
-	dc.l $000001EE
+	_LoadSeg
+	dc.l CODE_4_loc_000001ee-CODE_4
 CODE_0_jump_table_entry_129:
 	dc.w $0004
-	dc.w $A9F0
-	dc.l $00000240
+	_LoadSeg
+	dc.l CODE_4_loc_00000240-CODE_4
 CODE_0_jump_table_entry_130:
 	dc.w $0004
-	dc.w $A9F0
-	dc.l $00000294
+	_LoadSeg
+	dc.l CODE_4_loc_00000294-CODE_4
 CODE_0_jump_table_entry_131:
 	dc.w $0004
-	dc.w $A9F0
-	dc.l $000002EA
+	_LoadSeg
+	dc.l CODE_4_loc_000002ea-CODE_4
 CODE_0_jump_table_entry_132:
 	dc.w $0004
-	dc.w $A9F0
-	dc.l $0000030C
+	_LoadSeg
+	dc.l CODE_4_loc_0000030c-CODE_4
 CODE_0_jump_table_entry_133:
 	dc.w $0004
-	dc.w $A9F0
-	dc.l $000003A6
+	_LoadSeg
+	dc.l CODE_4_loc_000003a6-CODE_4
 CODE_0_jump_table_entry_134:
 	dc.w $0004
-	dc.w $A9F0
-	dc.l $00000806
+	_LoadSeg
+	dc.l CODE_4_loc_00000806-CODE_4
 CODE_0_jump_table_entry_135:
 	dc.w $0004
-	dc.w $A9F0
-	dc.l $00000C42
+	_LoadSeg
+	dc.l CODE_4_loc_00000c42-CODE_4
 CODE_0_jump_table_entry_136:
 	dc.w $0004
-	dc.w $A9F0
-	dc.l $00000E82
+	_LoadSeg
+	dc.l CODE_4_loc_00000e82-CODE_4
 CODE_0_jump_table_entry_137:
 	dc.w $0004
-	dc.w $A9F0
-	dc.l $00001436
+	_LoadSeg
+	dc.l CODE_4_loc_00001436-CODE_4
 CODE_0_jump_table_entry_138:
 	dc.w $0004
-	dc.w $A9F0
-	dc.l $000015AE
+	_LoadSeg
+	dc.l CODE_4_loc_000015ae-CODE_4
 CODE_0_jump_table_entry_139:
 	dc.w $0004
-	dc.w $A9F0
-	dc.l $000015E2
+	_LoadSeg
+	dc.l CODE_4_loc_000015e2-CODE_4
 CODE_0_jump_table_entry_140:
 	dc.w $0004
-	dc.w $A9F0
-	dc.l $00001728
+	_LoadSeg
+	dc.l CODE_4_loc_00001728-CODE_4
 CODE_0_jump_table_entry_141:
 	dc.w $0004
-	dc.w $A9F0
-	dc.l $00001760
+	_LoadSeg
+	dc.l CODE_4_loc_00001760-CODE_4
 CODE_0_jump_table_entry_142:
 	dc.w $0004
-	dc.w $A9F0
-	dc.l $00001810
+	_LoadSeg
+	dc.l CODE_4_loc_00001810-CODE_4
 CODE_0_jump_table_entry_143:
 	dc.w $0004
-	dc.w $A9F0
-	dc.l $00001862
+	_LoadSeg
+	dc.l CODE_4_loc_00001862-CODE_4
 CODE_0_jump_table_entry_144:
 	dc.w $0004
-	dc.w $A9F0
-	dc.l $000018AA
+	_LoadSeg
+	dc.l CODE_4_loc_000018aa-CODE_4
 CODE_0_jump_table_entry_145:
 	dc.w $0004
-	dc.w $A9F0
-	dc.l $000018FE
+	_LoadSeg
+	dc.l CODE_4_loc_000018fe-CODE_4
 CODE_0_jump_table_entry_146:
 	dc.w $0005
-	dc.w $A9F0
-	dc.l $00000028
+	_LoadSeg
+	dc.l CODE_5_loc_00000028-CODE_5
 CODE_0_jump_table_entry_147:
 	dc.w $0005
-	dc.w $A9F0
-	dc.l $000000D2
+	_LoadSeg
+	dc.l CODE_5_loc_000000d2-CODE_5
 CODE_0_jump_table_entry_148:
 	dc.w $0005
-	dc.w $A9F0
-	dc.l $000000EA
+	_LoadSeg
+	dc.l CODE_5_loc_000000ea-CODE_5
 CODE_0_jump_table_entry_149:
 	dc.w $0005
-	dc.w $A9F0
-	dc.l $00000368
+	_LoadSeg
+	dc.l CODE_5_loc_00000368-CODE_5
 CODE_0_jump_table_entry_150:
 	dc.w $0005
-	dc.w $A9F0
-	dc.l $0000036C
+	_LoadSeg
+	dc.l CODE_5_loc_0000036c-CODE_5
 CODE_0_jump_table_entry_151:
 	dc.w $0005
-	dc.w $A9F0
-	dc.l $0000059A
+	_LoadSeg
+	dc.l CODE_5_loc_0000059a-CODE_5
 CODE_0_jump_table_entry_152:
 	dc.w $0005
-	dc.w $A9F0
-	dc.l $000005E8
+	_LoadSeg
+	dc.l CODE_5_loc_000005e8-CODE_5
 CODE_0_jump_table_entry_153:
 	dc.w $0005
-	dc.w $A9F0
-	dc.l $00000A48
+	_LoadSeg
+	dc.l CODE_5_loc_00000a48-CODE_5
 CODE_0_jump_table_entry_154:
 	dc.w $0005
-	dc.w $A9F0
-	dc.l $000013E0
+	_LoadSeg
+	dc.l CODE_5_loc_000013e0-CODE_5
 CODE_0_jump_table_entry_155:
 	dc.w $0005
-	dc.w $A9F0
-	dc.l $000014B6
+	_LoadSeg
+	dc.l CODE_5_loc_000014b6-CODE_5
 CODE_0_jump_table_entry_156:
 	dc.w $0005
-	dc.w $A9F0
-	dc.l $000015EC
+	_LoadSeg
+	dc.l CODE_5_loc_000015ec-CODE_5
 CODE_0_jump_table_entry_157:
 	dc.w $0005
-	dc.w $A9F0
-	dc.l $000016FC
+	_LoadSeg
+	dc.l CODE_5_loc_000016fc-CODE_5
 CODE_0_jump_table_entry_158:
 	dc.w $0005
-	dc.w $A9F0
-	dc.l $00001856
+	_LoadSeg
+	dc.l CODE_5_loc_00001856-CODE_5
 CODE_0_jump_table_entry_159:
 	dc.w $0005
-	dc.w $A9F0
-	dc.l $00001890
+	_LoadSeg
+	dc.l CODE_5_loc_00001890-CODE_5
 CODE_0_jump_table_entry_160:
 	dc.w $0005
-	dc.w $A9F0
-	dc.l $00001998
+	_LoadSeg
+	dc.l CODE_5_loc_00001998-CODE_5
 CODE_0_jump_table_entry_161:
 	dc.w $0005
-	dc.w $A9F0
-	dc.l $00002038
+	_LoadSeg
+	dc.l CODE_5_loc_00002038-CODE_5
 CODE_0_jump_table_entry_162:
 	dc.w $0005
-	dc.w $A9F0
-	dc.l $00002568
+	_LoadSeg
+	dc.l CODE_5_loc_00002568-CODE_5
 CODE_0_jump_table_entry_163:
 	dc.w $0005
-	dc.w $A9F0
-	dc.l $00002F68
+	_LoadSeg
+	dc.l CODE_5_loc_00002f68-CODE_5
 CODE_0_jump_table_entry_164:
 	dc.w $0005
-	dc.w $A9F0
-	dc.l $00003AC2
+	_LoadSeg
+	dc.l CODE_5_loc_00003ac2-CODE_5
 CODE_0_jump_table_entry_165:
 	dc.w $0005
-	dc.w $A9F0
-	dc.l $00005652
+	_LoadSeg
+	dc.l CODE_5_loc_00005652-CODE_5
 CODE_0_jump_table_entry_166:
 	dc.w $0005
-	dc.w $A9F0
-	dc.l $00005CAE
+	_LoadSeg
+	dc.l CODE_5_loc_00005cae-CODE_5
 CODE_0_jump_table_entry_167:
 	dc.w $0005
-	dc.w $A9F0
-	dc.l $00005F16
+	_LoadSeg
+	dc.l CODE_5_loc_00005f16-CODE_5
 CODE_0_jump_table_entry_168:
 	dc.w $0005
-	dc.w $A9F0
-	dc.l $00006750
+	_LoadSeg
+	dc.l CODE_5_loc_00006750-CODE_5
 CODE_0_jump_table_entry_169:
 	dc.w $0006
-	dc.w $A9F0
-	dc.l $00000028
+	_LoadSeg
+	dc.l CODE_6_loc_00000028-CODE_6
 CODE_0_jump_table_entry_170:
 	dc.w $0006
-	dc.w $A9F0
-	dc.l $000000F0
+	_LoadSeg
+	dc.l CODE_6_loc_000000f0-CODE_6
 CODE_0_jump_table_entry_171:
 	dc.w $0006
-	dc.w $A9F0
-	dc.l $0000012A
+	_LoadSeg
+	dc.l CODE_6_loc_0000012a-CODE_6
 CODE_0_jump_table_entry_172:
 	dc.w $0006
-	dc.w $A9F0
-	dc.l $000002E0
+	_LoadSeg
+	dc.l CODE_6_loc_000002e0-CODE_6
 CODE_0_jump_table_entry_173:
 	dc.w $0006
-	dc.w $A9F0
-	dc.l $0000165C
+	_LoadSeg
+	dc.l CODE_6_loc_0000165c-CODE_6
 CODE_0_jump_table_entry_174:
 	dc.w $0006
-	dc.w $A9F0
-	dc.l $00000574
+	_LoadSeg
+	dc.l CODE_6_loc_00000574-CODE_6
 CODE_0_jump_table_entry_175:
 	dc.w $0006
-	dc.w $A9F0
-	dc.l $00000488
+	_LoadSeg
+	dc.l CODE_6_loc_00000488-CODE_6
 CODE_0_jump_table_entry_176:
 	dc.w $0006
-	dc.w $A9F0
-	dc.l $0000168E
+	_LoadSeg
+	dc.l CODE_6_loc_0000168e-CODE_6
 CODE_0_jump_table_entry_177:
 	dc.w $0006
-	dc.w $A9F0
-	dc.l $00003B16
+	_LoadSeg
+	dc.l CODE_6_loc_00003b16-CODE_6
 CODE_0_jump_table_entry_178:
 	dc.w $0007
-	dc.w $A9F0
-	dc.l $00000028
+	_LoadSeg
+	dc.l CODE_7_loc_00000028-CODE_7
 CODE_0_jump_table_entry_179:
 	dc.w $0007
-	dc.w $A9F0
-	dc.l $000000AC
+	_LoadSeg
+	dc.l CODE_7_loc_000000ac-CODE_7
 CODE_0_jump_table_entry_180:
 	dc.w $0007
-	dc.w $A9F0
-	dc.l $00000172
+	_LoadSeg
+	dc.l CODE_7_loc_00000172-CODE_7
 CODE_0_jump_table_entry_181:
 	dc.w $0007
-	dc.w $A9F0
-	dc.l $000001AC
+	_LoadSeg
+	dc.l CODE_7_loc_000001ac-CODE_7
 CODE_0_jump_table_entry_182:
 	dc.w $0007
-	dc.w $A9F0
-	dc.l $00000C58
+	_LoadSeg
+	dc.l CODE_7_loc_00000c58-CODE_7
 CODE_0_jump_table_entry_183:
 	dc.w $0007
-	dc.w $A9F0
-	dc.l $00000FDE
+	_LoadSeg
+	dc.l CODE_7_loc_00000fde-CODE_7
 CODE_0_jump_table_entry_184:
 	dc.w $0008
-	dc.w $A9F0
-	dc.l $000000DC
+	_LoadSeg
+	dc.l CODE_8_loc_000000dc-CODE_8
 CODE_0_jump_table_entry_185:
 	dc.w $0008
-	dc.w $A9F0
-	dc.l $00000104
+	_LoadSeg
+	dc.l CODE_8_loc_00000104-CODE_8
 CODE_0_jump_table_entry_186:
 	dc.w $0008
-	dc.w $A9F0
-	dc.l $000002A6
+	_LoadSeg
+	dc.l CODE_8_loc_000002a6-CODE_8
 CODE_0_jump_table_entry_187:
 	dc.w $0008
-	dc.w $A9F0
-	dc.l $0000031A
+	_LoadSeg
+	dc.l CODE_8_loc_0000031a-CODE_8
 CODE_0_jump_table_entry_188:
 	dc.w $0008
-	dc.w $A9F0
-	dc.l $00000418
+	_LoadSeg
+	dc.l CODE_8_loc_00000418-CODE_8
 CODE_0_jump_table_entry_189:
 	dc.w $0008
-	dc.w $A9F0
-	dc.l $0000046C
+	_LoadSeg
+	dc.l CODE_8_loc_0000046c-CODE_8
 CODE_0_jump_table_entry_190:
 	dc.w $0008
-	dc.w $A9F0
-	dc.l $0000065E
+	_LoadSeg
+	dc.l CODE_8_loc_0000065e-CODE_8
 CODE_0_jump_table_entry_191:
 	dc.w $0009
-	dc.w $A9F0
-	dc.l $00000028
+	_LoadSeg
+	dc.l CODE_9_loc_00000028-CODE_9
 CODE_0_jump_table_entry_192:
 	dc.w $0009
-	dc.w $A9F0
-	dc.l $000000CE
+	_LoadSeg
+	dc.l CODE_9_loc_000000ce-CODE_9
 CODE_0_jump_table_entry_193:
 	dc.w $0009
-	dc.w $A9F0
-	dc.l $000000EE
+	_LoadSeg
+	dc.l CODE_9_loc_000000ee-CODE_9
 CODE_0_jump_table_entry_194:
 	dc.w $0009
-	dc.w $A9F0
-	dc.l $0000047A
+	_LoadSeg
+	dc.l CODE_9_loc_0000047a-CODE_9
 CODE_0_jump_table_entry_195:
 	dc.w $0009
-	dc.w $A9F0
-	dc.l $000010A0
+	_LoadSeg
+	dc.l CODE_9_loc_000010a0-CODE_9
 CODE_0_jump_table_entry_196:
 	dc.w $0009
-	dc.w $A9F0
-	dc.l $00001034
+	_LoadSeg
+	dc.l CODE_9_loc_00001034-CODE_9
 CODE_0_jump_table_entry_197:
 	dc.w $0009
-	dc.w $A9F0
-	dc.l $00000FA2
+	_LoadSeg
+	dc.l CODE_9_loc_00000fa2-CODE_9
 CODE_0_jump_table_entry_198:
 	dc.w $0009
-	dc.w $A9F0
-	dc.l $000031BE
+	_LoadSeg
+	dc.l CODE_9_loc_000031be-CODE_9
 CODE_0_jump_table_entry_199:
 	dc.w $0009
-	dc.w $A9F0
-	dc.l $00003650
+	_LoadSeg
+	dc.l CODE_9_loc_00003650-CODE_9
 CODE_0_jump_table_entry_200:
 	dc.w $000A
-	dc.w $A9F0
-	dc.l $00000028
+	_LoadSeg
+	dc.l CODE_10_loc_00000028-CODE_10
 CODE_0_jump_table_entry_201:
 	dc.w $000A
-	dc.w $A9F0
-	dc.l $00000136
+	_LoadSeg
+	dc.l CODE_10_loc_00000136-CODE_10
 CODE_0_jump_table_entry_202:
 	dc.w $000B
-	dc.w $A9F0
-	dc.l $00000090
+	_LoadSeg
+	dc.l CODE_11_loc_00000090-CODE_11
 CODE_0_jump_table_entry_203:
 	dc.w $000B
-	dc.w $A9F0
-	dc.l $000000DC
+	_LoadSeg
+	dc.l CODE_11_loc_000000dc-CODE_11
 CODE_0_jump_table_entry_204:
 	dc.w $000B
-	dc.w $A9F0
-	dc.l $000003B2
+	_LoadSeg
+	dc.l CODE_11_loc_000003b2-CODE_11
 CODE_0_jump_table_entry_205:
 	dc.w $000B
-	dc.w $A9F0
-	dc.l $00000408
+	_LoadSeg
+	dc.l CODE_11_loc_00000408-CODE_11
 CODE_0_jump_table_entry_206:
 	dc.w $000B
-	dc.w $A9F0
-	dc.l $000004B6
+	_LoadSeg
+	dc.l CODE_11_loc_000004b6-CODE_11
 CODE_0_jump_table_entry_207:
 	dc.w $000B
-	dc.w $A9F0
-	dc.l $000004D2
+	_LoadSeg
+	dc.l CODE_11_loc_000004d2-CODE_11
 CODE_0_jump_table_entry_208:
 	dc.w $000B
-	dc.w $A9F0
-	dc.l $0000054A
+	_LoadSeg
+	dc.l CODE_11_loc_0000054a-CODE_11
 CODE_0_jump_table_entry_209:
 	dc.w $000B
-	dc.w $A9F0
-	dc.l $0000059A
+	_LoadSeg
+	dc.l CODE_11_loc_0000059a-CODE_11
 CODE_0_jump_table_entry_210:
 	dc.w $000B
-	dc.w $A9F0
-	dc.l $00000698
+	_LoadSeg
+	dc.l CODE_11_loc_00000698-CODE_11
 CODE_0_jump_table_entry_211:
 	dc.w $000B
-	dc.w $A9F0
-	dc.l $00000786
+	_LoadSeg
+	dc.l CODE_11_loc_00000786-CODE_11
 CODE_0_jump_table_entry_212:
 	dc.w $000B
-	dc.w $A9F0
-	dc.l $00000A52
+	_LoadSeg
+	dc.l CODE_11_loc_00000a52-CODE_11
 CODE_0_jump_table_entry_213:
 	dc.w $000B
-	dc.w $A9F0
-	dc.l $00000C5E
+	_LoadSeg
+	dc.l CODE_11_loc_00000c5e-CODE_11
 CODE_0_jump_table_entry_214:
 	dc.w $000B
-	dc.w $A9F0
-	dc.l $00000D60
+	_LoadSeg
+	dc.l CODE_11_loc_00000d60-CODE_11
 CODE_0_jump_table_entry_215:
 	dc.w $000B
-	dc.w $A9F0
-	dc.l $00000DD2
+	_LoadSeg
+	dc.l CODE_11_loc_00000dd2-CODE_11
 CODE_0_jump_table_entry_216:
 	dc.w $000B
-	dc.w $A9F0
-	dc.l $00000E46
+	_LoadSeg
+	dc.l CODE_11_loc_00000e46-CODE_11
 CODE_0_jump_table_entry_217:
 	dc.w $000C
-	dc.w $A9F0
-	dc.l $00000B40
+	_LoadSeg
+	dc.l CODE_12_loc_00000b40-CODE_12
 CODE_0_jump_table_entry_218:
 	dc.w $000C
-	dc.w $A9F0
-	dc.l $00001338
+	_LoadSeg
+	dc.l CODE_12_loc_00001338-CODE_12
 CODE_0_jump_table_entry_219:
 	dc.w $000D
-	dc.w $A9F0
-	dc.l $00000028
+	_LoadSeg
+	dc.l CODE_13_loc_00000028-CODE_13
 CODE_0_jump_table_entry_220:
 	dc.w $000D
-	dc.w $A9F0
-	dc.l $00001132
+	_LoadSeg
+	dc.l CODE_13_loc_00001132-CODE_13
 CODE_0_jump_table_entry_221:
 	dc.w $000D
-	dc.w $A9F0
-	dc.l $000021FA
+	_LoadSeg
+	dc.l CODE_13_loc_000021fa-CODE_13
 CODE_0_jump_table_entry_222:
 	dc.w $000D
-	dc.w $A9F0
-	dc.l $000022A8
+	_LoadSeg
+	dc.l CODE_13_loc_000022a8-CODE_13
 CODE_0_jump_table_entry_223:
 	dc.w $000D
-	dc.w $A9F0
-	dc.l $000023E6
+	_LoadSeg
+	dc.l CODE_13_loc_000023e6-CODE_13
 CODE_0_jump_table_entry_224:
 	dc.w $000D
-	dc.w $A9F0
-	dc.l $00002528
+	_LoadSeg
+	dc.l CODE_13_loc_00002528-CODE_13
 CODE_0_jump_table_entry_225:
 	dc.w $000D
-	dc.w $A9F0
-	dc.l $00002CCE
+	_LoadSeg
+	dc.l CODE_13_loc_00002cce-CODE_13
 CODE_0_jump_table_entry_226:
 	dc.w $000D
-	dc.w $A9F0
-	dc.l $00002D0C
+	_LoadSeg
+	dc.l CODE_13_loc_00002d0c-CODE_13
 CODE_0_jump_table_entry_227:
 	dc.w $000D
-	dc.w $A9F0
-	dc.l $00002D9C
+	_LoadSeg
+	dc.l CODE_13_loc_00002d9c-CODE_13
 CODE_0_jump_table_entry_228:
 	dc.w $000D
-	dc.w $A9F0
-	dc.l $00002E06
+	_LoadSeg
+	dc.l CODE_13_loc_00002e06-CODE_13
 CODE_0_jump_table_entry_229:
 	dc.w $000D
-	dc.w $A9F0
-	dc.l $000067A6
+	_LoadSeg
+	dc.l CODE_13_loc_000067a6-CODE_13
 CODE_0_jump_table_entry_230:
 	dc.w $000D
-	dc.w $A9F0
-	dc.l $00006F46
+	_LoadSeg
+	dc.l CODE_13_loc_00006f46-CODE_13
 CODE_0_jump_table_entry_231:
 	dc.w $000D
-	dc.w $A9F0
-	dc.l $00008226
+	_LoadSeg
+	dc.l CODE_13_loc_00008226-CODE_13
 CODE_0_jump_table_entry_232:
 	dc.w $000E
-	dc.w $A9F0
-	dc.l $00000028
+	_LoadSeg
+	dc.l CODE_14_loc_00000028-CODE_14
 CODE_0_jump_table_entry_233:
 	dc.w $000E
-	dc.w $A9F0
-	dc.l $00000100
+	_LoadSeg
+	dc.l CODE_14_loc_00000100-CODE_14
 CODE_0_jump_table_entry_234:
 	dc.w $000E
-	dc.w $A9F0
-	dc.l $0000018C
+	_LoadSeg
+	dc.l CODE_14_loc_0000018c-CODE_14
 CODE_0_jump_table_entry_235:
 	dc.w $000E
-	dc.w $A9F0
-	dc.l $00000206
+	_LoadSeg
+	dc.l CODE_14_loc_00000206-CODE_14
 CODE_0_jump_table_entry_236:
 	dc.w $000E
-	dc.w $A9F0
-	dc.l $00000328
+	_LoadSeg
+	dc.l CODE_14_loc_00000328-CODE_14
 CODE_0_jump_table_entry_237:
 	dc.w $000E
-	dc.w $A9F0
-	dc.l $000003C6
+	_LoadSeg
+	dc.l CODE_14_loc_000003c6-CODE_14
 CODE_0_jump_table_entry_238:
 	dc.w $000E
-	dc.w $A9F0
-	dc.l $0000046A
+	_LoadSeg
+	dc.l CODE_14_loc_0000046a-CODE_14
 CODE_0_jump_table_entry_239:
 	dc.w $000E
-	dc.w $A9F0
-	dc.l $00000498
+	_LoadSeg
+	dc.l CODE_14_loc_00000498-CODE_14
 CODE_0_jump_table_entry_240:
 	dc.w $000E
-	dc.w $A9F0
-	dc.l $0000050E
+	_LoadSeg
+	dc.l CODE_14_loc_0000050e-CODE_14
 CODE_0_jump_table_entry_241:
 	dc.w $000E
-	dc.w $A9F0
-	dc.l $00000644
+	_LoadSeg
+	dc.l CODE_14_loc_00000644-CODE_14
 CODE_0_jump_table_entry_242:
 	dc.w $000E
-	dc.w $A9F0
-	dc.l $0000071C
+	_LoadSeg
+	dc.l CODE_14_loc_0000071c-CODE_14
 CODE_0_jump_table_entry_243:
 	dc.w $000F
-	dc.w $A9F0
-	dc.l $000001C8
+	_LoadSeg
+	dc.l CODE_15_loc_000001c8-CODE_15
 CODE_0_jump_table_entry_244:
 	dc.w $000F
-	dc.w $A9F0
-	dc.l $000008F6
+	_LoadSeg
+	dc.l CODE_15_loc_000008f6-CODE_15
 CODE_0_jump_table_entry_245:
 	dc.w $000F
-	dc.w $A9F0
-	dc.l $00000AF2
+	_LoadSeg
+	dc.l CODE_15_loc_00000af2-CODE_15
 CODE_0_jump_table_entry_246:
 	dc.w $000F
-	dc.w $A9F0
-	dc.l $00000B10
+	_LoadSeg
+	dc.l CODE_15_loc_00000b10-CODE_15
 CODE_0_jump_table_entry_247:
 	dc.w $000F
-	dc.w $A9F0
-	dc.l $00000B72
+	_LoadSeg
+	dc.l CODE_15_loc_00000b72-CODE_15
 CODE_0_jump_table_entry_248:
 	dc.w $000F
-	dc.w $A9F0
-	dc.l $00000C76
+	_LoadSeg
+	dc.l CODE_15_loc_00000c76-CODE_15
 CODE_0_jump_table_entry_249:
 	dc.w $000F
-	dc.w $A9F0
-	dc.l $00000CCA
+	_LoadSeg
+	dc.l CODE_15_loc_00000cca-CODE_15
 CODE_0_jump_table_entry_250:
 	dc.w $0010
-	dc.w $A9F0
-	dc.l $00000028
+	_LoadSeg
+	dc.l CODE_16_loc_00000028-CODE_16
 CODE_0_jump_table_entry_251:
 	dc.w $0010
-	dc.w $A9F0
-	dc.l $00000132
+	_LoadSeg
+	dc.l CODE_16_loc_00000132-CODE_16
 CODE_0_jump_table_entry_252:
 	dc.w $0010
-	dc.w $A9F0
-	dc.l $00000362
+	_LoadSeg
+	dc.l CODE_16_loc_00000362-CODE_16
 CODE_0_jump_table_entry_253:
 	dc.w $0011
-	dc.w $A9F0
-	dc.l $00000A1C
+	_LoadSeg
+	dc.l CODE_17_loc_00000a1c-CODE_17
 CODE_0_jump_table_entry_254:
 	dc.w $0012
-	dc.w $A9F0
-	dc.l $00000028
+	_LoadSeg
+	dc.l CODE_18_loc_00000028-CODE_18
 CODE_0_jump_table_entry_255:
 	dc.w $0012
-	dc.w $A9F0
-	dc.l $0000009A
+	_LoadSeg
+	dc.l CODE_18_loc_0000009a-CODE_18
 CODE_0_jump_table_entry_256:
 	dc.w $0012
-	dc.w $A9F0
-	dc.l $000006EC
+	_LoadSeg
+	dc.l CODE_18_loc_000006ec-CODE_18
 CODE_0_jump_table_entry_257:
 	dc.w $0013
-	dc.w $A9F0
-	dc.l $00000028
+	_LoadSeg
+	dc.l CODE_19_loc_00000028-CODE_19
 CODE_0_jump_table_entry_258:
 	dc.w $0014
-	dc.w $A9F0
-	dc.l $000000C4
+	_LoadSeg
+	dc.l CODE_20_loc_000000c4-CODE_20
 CODE_0_jump_table_entry_259:
 	dc.w $0014
-	dc.w $A9F0
-	dc.l $00000136
+	_LoadSeg
+	dc.l CODE_20_loc_00000136-CODE_20
 CODE_0_jump_table_entry_260:
 	dc.w $0014
-	dc.w $A9F0
-	dc.l $000001CE
+	_LoadSeg
+	dc.l CODE_20_loc_000001ce-CODE_20
 CODE_0_jump_table_entry_261:
 	dc.w $0014
-	dc.w $A9F0
-	dc.l $00000266
+	_LoadSeg
+	dc.l CODE_20_loc_00000266-CODE_20
 CODE_0_jump_table_entry_262:
 	dc.w $0014
-	dc.w $A9F0
-	dc.l $00000372
+	_LoadSeg
+	dc.l CODE_20_loc_00000372-CODE_20
 CODE_0_jump_table_entry_263:
 	dc.w $0014
-	dc.w $A9F0
-	dc.l $00000580
+	_LoadSeg
+	dc.l CODE_20_loc_00000580-CODE_20
 CODE_0_jump_table_entry_264:
 	dc.w $0014
-	dc.w $A9F0
-	dc.l $0000073E
+	_LoadSeg
+	dc.l CODE_20_loc_0000073e-CODE_20
 CODE_0_jump_table_entry_265:
 	dc.w $0014
-	dc.w $A9F0
-	dc.l $0000080E
+	_LoadSeg
+	dc.l CODE_20_loc_0000080e-CODE_20
 CODE_0_jump_table_entry_266:
 	dc.w $0014
-	dc.w $A9F0
-	dc.l $00000A12
+	_LoadSeg
+	dc.l CODE_20_loc_00000a12-CODE_20
 CODE_0_jump_table_entry_267:
 	dc.w $0014
-	dc.w $A9F0
-	dc.l $00000A98
+	_LoadSeg
+	dc.l CODE_20_loc_00000a98-CODE_20
 CODE_0_jump_table_entry_268:
 	dc.w $0014
-	dc.w $A9F0
-	dc.l $00000A9C
+	_LoadSeg
+	dc.l CODE_20_loc_00000a9c-CODE_20
 CODE_0_jump_table_entry_269:
 	dc.w $0014
-	dc.w $A9F0
-	dc.l $00000AC4
+	_LoadSeg
+	dc.l CODE_20_loc_00000ac4-CODE_20
 CODE_0_jump_table_entry_270:
 	dc.w $0014
-	dc.w $A9F0
-	dc.l $00000B50
+	_LoadSeg
+	dc.l CODE_20_loc_00000b50-CODE_20
 CODE_0_jump_table_entry_271:
 	dc.w $0014
-	dc.w $A9F0
-	dc.l $00000BCC
+	_LoadSeg
+	dc.l CODE_20_loc_00000bcc-CODE_20
 CODE_0_jump_table_entry_272:
 	dc.w $0014
-	dc.w $A9F0
-	dc.l $00000C8C
+	_LoadSeg
+	dc.l CODE_20_loc_00000c8c-CODE_20
 CODE_0_jump_table_entry_273:
 	dc.w $0014
-	dc.w $A9F0
-	dc.l $00000C90
+	_LoadSeg
+	dc.l CODE_20_loc_00000c90-CODE_20
 CODE_0_jump_table_entry_274:
 	dc.w $0014
-	dc.w $A9F0
-	dc.l $00000D60
+	_LoadSeg
+	dc.l CODE_20_loc_00000d60-CODE_20
 CODE_0_jump_table_entry_275:
 	dc.w $0014
-	dc.w $A9F0
-	dc.l $00000E90
+	_LoadSeg
+	dc.l CODE_20_loc_00000e90-CODE_20
 CODE_0_jump_table_entry_276:
 	dc.w $0014
-	dc.w $A9F0
-	dc.l $00000F04
+	_LoadSeg
+	dc.l CODE_20_loc_00000f04-CODE_20
 CODE_0_jump_table_entry_277:
 	dc.w $0014
-	dc.w $A9F0
-	dc.l $00000FDA
+	_LoadSeg
+	dc.l CODE_20_loc_00000fda-CODE_20
 CODE_0_jump_table_entry_278:
 	dc.w $0014
-	dc.w $A9F0
-	dc.l $000010F6
+	_LoadSeg
+	dc.l CODE_20_loc_000010f6-CODE_20
 CODE_0_jump_table_entry_279:
 	dc.w $0014
-	dc.w $A9F0
-	dc.l $000011B0
+	_LoadSeg
+	dc.l CODE_20_loc_000011b0-CODE_20
 CODE_0_jump_table_entry_280:
 	dc.w $0014
-	dc.w $A9F0
-	dc.l $0000124E
+	_LoadSeg
+	dc.l CODE_20_loc_0000124e-CODE_20
 CODE_0_jump_table_entry_281:
 	dc.w $0014
-	dc.w $A9F0
-	dc.l $000012C0
+	_LoadSeg
+	dc.l CODE_20_loc_000012c0-CODE_20
 CODE_0_jump_table_entry_282:
 	dc.w $0014
-	dc.w $A9F0
-	dc.l $00001362
+	_LoadSeg
+	dc.l CODE_20_loc_00001362-CODE_20
 CODE_0_jump_table_entry_283:
 	dc.w $0014
-	dc.w $A9F0
-	dc.l $000013F0
+	_LoadSeg
+	dc.l CODE_20_loc_000013f0-CODE_20
 CODE_0_jump_table_entry_284:
 	dc.w $0014
-	dc.w $A9F0
-	dc.l $00001478
+	_LoadSeg
+	dc.l CODE_20_loc_00001478-CODE_20
 CODE_0_jump_table_entry_285:
 	dc.w $0015
-	dc.w $A9F0
-	dc.l $00000722
+	_LoadSeg
+	dc.l CODE_21_loc_00000722-CODE_21
 CODE_0_jump_table_entry_286:
 	dc.w $0015
-	dc.w $A9F0
-	dc.l $0000081E
+	_LoadSeg
+	dc.l CODE_21_loc_0000081e-CODE_21
 CODE_0_jump_table_entry_287:
 	dc.w $0015
-	dc.w $A9F0
-	dc.l $000008FE
+	_LoadSeg
+	dc.l CODE_21_loc_000008fe-CODE_21
 CODE_0_jump_table_entry_288:
 	dc.w $0015
-	dc.w $A9F0
-	dc.l $00000E44
+	_LoadSeg
+	dc.l CODE_21_loc_00000e44-CODE_21
 CODE_0_jump_table_entry_289:
 	dc.w $0015
-	dc.w $A9F0
-	dc.l $00000EDC
+	_LoadSeg
+	dc.l CODE_21_loc_00000edc-CODE_21
 CODE_0_jump_table_entry_290:
 	dc.w $0015
-	dc.w $A9F0
-	dc.l $00000F4C
+	_LoadSeg
+	dc.l CODE_21_loc_00000f4c-CODE_21
 CODE_0_jump_table_entry_291:
 	dc.w $0015
-	dc.w $A9F0
-	dc.l $00000FDE
+	_LoadSeg
+	dc.l CODE_21_loc_00000fde-CODE_21
 CODE_0_jump_table_entry_292:
 	dc.w $0015
-	dc.w $A9F0
-	dc.l $000011A8
+	_LoadSeg
+	dc.l CODE_21_loc_000011a8-CODE_21
 CODE_0_jump_table_entry_293:
 	dc.w $0015
-	dc.w $A9F0
-	dc.l $00001728
+	_LoadSeg
+	dc.l CODE_21_loc_00001728-CODE_21
 CODE_0_jump_table_entry_294:
 	dc.w $0015
-	dc.w $A9F0
-	dc.l $000017A2
+	_LoadSeg
+	dc.l CODE_21_loc_000017a2-CODE_21
 CODE_0_jump_table_entry_295:
 	dc.w $0015
-	dc.w $A9F0
-	dc.l $000017B8
+	_LoadSeg
+	dc.l CODE_21_loc_000017b8-CODE_21
 CODE_0_jump_table_entry_296:
 	dc.w $0015
-	dc.w $A9F0
-	dc.l $000017EC
+	_LoadSeg
+	dc.l CODE_21_loc_000017ec-CODE_21
 CODE_0_jump_table_entry_297:
 	dc.w $0015
-	dc.w $A9F0
-	dc.l $00001822
+	_LoadSeg
+	dc.l CODE_21_loc_00001822-CODE_21
 CODE_0_jump_table_entry_298:
 	dc.w $0015
-	dc.w $A9F0
-	dc.l $0000185A
+	_LoadSeg
+	dc.l CODE_21_loc_0000185a-CODE_21
 CODE_0_jump_table_entry_299:
 	dc.w $0015
-	dc.w $A9F0
-	dc.l $0000186C
+	_LoadSeg
+	dc.l CODE_21_loc_0000186c-CODE_21
 CODE_0_jump_table_entry_300:
 	dc.w $0015
-	dc.w $A9F0
-	dc.l $000019F0
+	_LoadSeg
+	dc.l CODE_21_loc_000019f0-CODE_21
 CODE_0_jump_table_entry_301:
 	dc.w $0015
-	dc.w $A9F0
-	dc.l $00001A06
+	_LoadSeg
+	dc.l CODE_21_loc_00001a06-CODE_21
 CODE_0_jump_table_entry_302:
 	dc.w $0015
-	dc.w $A9F0
-	dc.l $00001A1A
+	_LoadSeg
+	dc.l CODE_21_loc_00001a1a-CODE_21
 CODE_0_jump_table_entry_303:
 	dc.w $0015
-	dc.w $A9F0
-	dc.l $00001A48
+	_LoadSeg
+	dc.l CODE_21_loc_00001a48-CODE_21
 CODE_0_jump_table_entry_304:
 	dc.w $0016
-	dc.w $A9F0
-	dc.l $00000044
+	_LoadSeg
+	dc.l CODE_22_loc_00000044-CODE_22
 CODE_0_jump_table_entry_305:
 	dc.w $0017
-	dc.w $A9F0
-	dc.l $00000028
+	_LoadSeg
+	dc.l CODE_23_loc_00000028-CODE_23
 CODE_0_jump_table_entry_306:
 	dc.w $0018
-	dc.w $A9F0
-	dc.l $00000028
+	_LoadSeg
+	dc.l CODE_24_loc_00000028-CODE_24
 CODE_0_jump_table_entry_307:
 	dc.w $0018
-	dc.w $A9F0
-	dc.l $00000A2C
+	_LoadSeg
+	dc.l CODE_24_loc_00000a2c-CODE_24
 CODE_0_jump_table_entry_308:
 	dc.w $0018
-	dc.w $A9F0
-	dc.l $00000A6C
+	_LoadSeg
+	dc.l CODE_24_loc_00000a6c-CODE_24
 CODE_0_jump_table_entry_309:
 	dc.w $0018
-	dc.w $A9F0
-	dc.l $00000B38
+	_LoadSeg
+	dc.l CODE_24_loc_00000b38-CODE_24
 CODE_0_jump_table_entry_310:
 	dc.w $0018
-	dc.w $A9F0
-	dc.l $00000B9A
+	_LoadSeg
+	dc.l CODE_24_loc_00000b9a-CODE_24
 CODE_0_jump_table_entry_311:
 	dc.w $0018
-	dc.w $A9F0
-	dc.l $00000C10
+	_LoadSeg
+	dc.l CODE_24_loc_00000c10-CODE_24
 CODE_0_jump_table_entry_312:
 	dc.w $0018
-	dc.w $A9F0
-	dc.l $00000CB6
+	_LoadSeg
+	dc.l CODE_24_loc_00000cb6-CODE_24
 CODE_0_jump_table_entry_313:
 	dc.w $0018
-	dc.w $A9F0
-	dc.l $00000E52
+	_LoadSeg
+	dc.l CODE_24_loc_00000e52-CODE_24
 CODE_0_jump_table_entry_314:
 	dc.w $0018
-	dc.w $A9F0
-	dc.l $00000F56
+	_LoadSeg
+	dc.l CODE_24_loc_00000f56-CODE_24
 CODE_0_jump_table_entry_315:
 	dc.w $0018
-	dc.w $A9F0
-	dc.l $00000F78
+	_LoadSeg
+	dc.l CODE_24_loc_00000f78-CODE_24
 CODE_0_jump_table_entry_316:
 	dc.w $0018
-	dc.w $A9F0
-	dc.l $00000F9C
+	_LoadSeg
+	dc.l CODE_24_loc_00000f9c-CODE_24
 CODE_0_jump_table_entry_317:
 	dc.w $0018
-	dc.w $A9F0
-	dc.l $000010A8
+	_LoadSeg
+	dc.l CODE_24_loc_000010a8-CODE_24
 CODE_0_jump_table_entry_318:
 	dc.w $0018
-	dc.w $A9F0
-	dc.l $000011D8
+	_LoadSeg
+	dc.l CODE_24_loc_000011d8-CODE_24
 CODE_0_jump_table_entry_319:
 	dc.w $0019
-	dc.w $A9F0
-	dc.l $000000B8
+	_LoadSeg
+	dc.l CODE_25_loc_000000b8-CODE_25
 CODE_0_jump_table_entry_320:
 	dc.w $0019
-	dc.w $A9F0
-	dc.l $0000007A
+	_LoadSeg
+	dc.l CODE_25_loc_0000007a-CODE_25
 CODE_0_jump_table_entry_321:
 	dc.w $0019
-	dc.w $A9F0
-	dc.l $000000E4
+	_LoadSeg
+	dc.l CODE_25_loc_000000e4-CODE_25
 CODE_0_jump_table_entry_322:
 	dc.w $001A
-	dc.w $A9F0
-	dc.l $00000028
+	_LoadSeg
+	dc.l CODE_26_loc_00000028-CODE_26
 CODE_0_jump_table_entry_323:
 	dc.w $001A
-	dc.w $A9F0
-	dc.l $000001BA
+	_LoadSeg
+	dc.l CODE_26_loc_000001ba-CODE_26
 CODE_0_jump_table_entry_324:
 	dc.w $001A
-	dc.w $A9F0
-	dc.l $0000030E
+	_LoadSeg
+	dc.l CODE_26_loc_0000030e-CODE_26
 CODE_0_jump_table_entry_325:
 	dc.w $001A
-	dc.w $A9F0
-	dc.l $00000338
+	_LoadSeg
+	dc.l CODE_26_loc_00000338-CODE_26
 CODE_0_jump_table_entry_326:
 	dc.w $001A
-	dc.w $A9F0
-	dc.l $00000370
+	_LoadSeg
+	dc.l CODE_26_loc_00000370-CODE_26
 CODE_0_jump_table_entry_327:
 	dc.w $001A
-	dc.w $A9F0
-	dc.l $00000518
+	_LoadSeg
+	dc.l CODE_26_loc_00000518-CODE_26
 CODE_0_jump_table_entry_328:
 	dc.w $001A
-	dc.w $A9F0
-	dc.l $0000055A
+	_LoadSeg
+	dc.l CODE_26_loc_0000055a-CODE_26
 CODE_0_jump_table_entry_329:
 	dc.w $001A
-	dc.w $A9F0
-	dc.l $000005F2
+	_LoadSeg
+	dc.l CODE_26_loc_000005f2-CODE_26
 CODE_0_jump_table_entry_330:
 	dc.w $001A
-	dc.w $A9F0
-	dc.l $000007DC
+	_LoadSeg
+	dc.l CODE_26_loc_000007dc-CODE_26
 CODE_0_jump_table_entry_331:
 	dc.w $001A
-	dc.w $A9F0
-	dc.l $00000810
+	_LoadSeg
+	dc.l CODE_26_loc_00000810-CODE_26
 CODE_0_jump_table_entry_332:
 	dc.w $001A
-	dc.w $A9F0
-	dc.l $00000836
+	_LoadSeg
+	dc.l CODE_26_loc_00000836-CODE_26
 CODE_0_jump_table_entry_333:
 	dc.w $001A
-	dc.w $A9F0
-	dc.l $000008C4
+	_LoadSeg
+	dc.l CODE_26_loc_000008c4-CODE_26
 CODE_0_jump_table_entry_334:
 	dc.w $001A
-	dc.w $A9F0
-	dc.l $00000912
+	_LoadSeg
+	dc.l CODE_26_loc_00000912-CODE_26
 CODE_0_jump_table_entry_335:
 	dc.w $001A
-	dc.w $A9F0
-	dc.l $00000958
+	_LoadSeg
+	dc.l CODE_26_loc_00000958-CODE_26
 CODE_0_jump_table_entry_336:
 	dc.w $001A
-	dc.w $A9F0
-	dc.l $000009A6
+	_LoadSeg
+	dc.l CODE_26_loc_000009a6-CODE_26
 CODE_0_jump_table_entry_337:
 	dc.w $001A
-	dc.w $A9F0
-	dc.l $00000A00
+	_LoadSeg
+	dc.l CODE_26_loc_00000a00-CODE_26
 CODE_0_jump_table_entry_338:
 	dc.w $001A
-	dc.w $A9F0
-	dc.l $00000A48
+	_LoadSeg
+	dc.l CODE_26_loc_00000a48-CODE_26
 CODE_0_jump_table_entry_339:
 	dc.w $001A
-	dc.w $A9F0
-	dc.l $00000A7E
+	_LoadSeg
+	dc.l CODE_26_loc_00000a7e-CODE_26
 CODE_0_jump_table_entry_340:
 	dc.w $001A
-	dc.w $A9F0
-	dc.l $00000AC4
+	_LoadSeg
+	dc.l CODE_26_loc_00000ac4-CODE_26
 CODE_0_jump_table_entry_341:
 	dc.w $001A
-	dc.w $A9F0
-	dc.l $00000ACC
+	_LoadSeg
+	dc.l CODE_26_loc_00000acc-CODE_26
 CODE_0_jump_table_entry_342:
 	dc.w $001A
-	dc.w $A9F0
-	dc.l $00000AFC
+	_LoadSeg
+	dc.l CODE_26_loc_00000afc-CODE_26
 CODE_0_jump_table_entry_343:
 	dc.w $001A
-	dc.w $A9F0
-	dc.l $00000B0E
+	_LoadSeg
+	dc.l CODE_26_loc_00000b0e-CODE_26
 CODE_0_jump_table_entry_344:
 	dc.w $001A
-	dc.w $A9F0
-	dc.l $00000B20
+	_LoadSeg
+	dc.l CODE_26_loc_00000b20-CODE_26
 CODE_0_jump_table_entry_345:
 	dc.w $001A
-	dc.w $A9F0
-	dc.l $00000B32
+	_LoadSeg
+	dc.l CODE_26_loc_00000b32-CODE_26
 
-; CODE 1 Main source section
+; CODE 1 Main
 CODE_1:
-;   source_section_id: macos-code-CODE-1
-;   source_kind: macos_code_resource
-;   backend: macos-code
-;   status: selected_full_listing
-;   resource_type: CODE
-;   id: 1
-;   name: Main
-;   role: code_segment
-;   code_kind: code_segment
-;   payload_size: 29024
-;   payload_sha256: 4a543f6fd1c542fccd38ec9f469b06f65c797dfd8b226fefc9f576faafbe70f5
-;   presentation: kind=c_owned_restored_source_packet status=covered visible=True identity=macos-code:CODE:1
-;   listing: kind=full_listing available=True reason=unknown
-;   restored_source_model:
-;     model=restored_source_model_v1 round_trip_required=false
-;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 1 name=unknown
-;     a5_world status=deferred parser_use=unknown
-;     ownership_ranges:
-;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
-;       1: role=candidate_code span=40..29024 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
-;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
-;       1: kind=a5_world_context_placeholder ownership=1 status=deferred parser_use=unknown target=classic_mac_a5_world
-;   source_body_ranges:
-;     metadata payload[0..40) size=40 entrypoint=False
-;     candidate_code payload[40..29024) size=28984 entrypoint=True
-;   selected_code_entry_offset: 40
-;   selected_code_bytes_size: 28984
-;   code_bytes_sha256: 4633044ba0d2a816a0e482a9fb3b65bcd8daf699882df8f95939ad018f51879c
-;   listing_rows: 1814
-;   CODE_1_layout_context:
-CODE_1_far_model_header:
-;     payload[0..40) status=validated parser_use=accepted_parser_output reason=far_model_segment_header; documented far-model header, not executable source rows
-CODE_1_candidate_entry_stub:
-;     payload[40..62) selected_code_bytes[0..22) status=candidate parser_use=candidate_only reason=entry/stub bytes begin at candidate movea.l (a7)+,a0 boundary; accepted byte-entry proof remains deferred
-CODE_1_candidate_body_after_stub:
-;     payload[62..29024) status=candidate parser_use=candidate_only reason=remaining CODE 1 bytes are owned by candidate executable body; Segment Loader relocation/fixup semantics remain deferred
-
-; CODE 1 Main restored source follows.
-;   rendered_source: CODE 1 status=semantic_rows payload[0..29024) sha256=4a543f6fd1c542fccd38ec9f469b06f65c797dfd8b226fefc9f576faafbe70f5
-;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
-;   source_rows:
-;     metadata payload[0..40)
 CODE_1_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$00,$10,$00,$00,$00,$72,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00
-;     candidate_code payload[40..29024)
-;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=7818 labels=1077 xrefs=1902
 CODE_1_loc_00000028:
 	movea.l (a7)+,a0
 	move.l a7,d0
@@ -2840,7 +1737,6 @@ CODE_1_loc_00000268:
 	dbf.w d1,CODE_1_loc_00000268
 	bra.b CODE_1_loc_000002c4
 CODE_1_loc_0000027e:
-CODE_1_data_string_0000027e:
 	dc.b $30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$41,$42,$43,$44,$45,$46
 CODE_1_loc_0000028e:
 	moveq.l #10,d7
@@ -4280,9 +3176,37 @@ CODE_1_loc_00000f7a:
 	move.w CODE_1_loc_00000f94(pc,d0.w),d0
 	jmp CODE_1_loc_00000f94(pc,d0.w)
 CODE_1_loc_00000f94:
-CODE_1_data_dispatch_table_00000f94:
-	dc.b $00,$20,$00,$3A,$00,$72,$00,$8C,$00,$E2,$01,$2C,$01,$8E,$01,$7C
-	dc.b $01,$6A,$01,$46,$01,$58,$00,$54,$00,$A6,$00,$C4,$00,$FC,$01,$14
+	dc.w CODE_1_loc_00000fb4-CODE_1_loc_00000f94	; lookup_table
+CODE_1_data_00000f96:
+	dc.w CODE_1_loc_00000fce-CODE_1_loc_00000f94
+CODE_1_data_00000f98:
+	dc.w CODE_1_loc_00001006-CODE_1_loc_00000f94
+CODE_1_data_00000f9a:
+	dc.w CODE_1_loc_00001020-CODE_1_loc_00000f94
+CODE_1_data_00000f9c:
+	dc.w CODE_1_loc_00001076-CODE_1_loc_00000f94
+CODE_1_data_00000f9e:
+	dc.w CODE_1_loc_000010c0-CODE_1_loc_00000f94
+CODE_1_data_00000fa0:
+	dc.w CODE_1_loc_00001122-CODE_1_loc_00000f94
+CODE_1_data_00000fa2:
+	dc.w CODE_1_loc_00001110-CODE_1_loc_00000f94
+CODE_1_data_00000fa4:
+	dc.w CODE_1_loc_000010fe-CODE_1_loc_00000f94
+CODE_1_data_00000fa6:
+	dc.w CODE_1_loc_000010da-CODE_1_loc_00000f94
+CODE_1_data_00000fa8:
+	dc.w CODE_1_loc_000010ec-CODE_1_loc_00000f94
+CODE_1_data_00000faa:
+	dc.w CODE_1_loc_00000fe8-CODE_1_loc_00000f94
+CODE_1_data_00000fac:
+	dc.w CODE_1_loc_0000103a-CODE_1_loc_00000f94
+CODE_1_data_00000fae:
+	dc.w CODE_1_loc_00001058-CODE_1_loc_00000f94
+CODE_1_data_00000fb0:
+	dc.w CODE_1_loc_00001090-CODE_1_loc_00000f94
+CODE_1_data_00000fb2:
+	dc.w CODE_1_loc_000010a8-CODE_1_loc_00000f94
 CODE_1_loc_00000fb4:
 	subq.w #4,a7
 	move.w #$1,-(a7)
@@ -4542,7 +3466,6 @@ CODE_1_loc_00001250:
 	movea.l a0,a7
 	jmp (a1)
 CODE_1_loc_00001264:
-CODE_1_data_dispatch_table_00001264:
 	dc.b $00,$01,$02,$00,$03,$00,$00,$00,$04,$05,$06,$00,$07,$00
 CODE_1_loc_00001272:
 	subq.w #4,a7
@@ -4661,11 +3584,70 @@ CODE_1_loc_0000136c:
 	move.w CODE_1_loc_00001378(pc,d0.w),d0
 	jmp CODE_1_loc_00001378(pc,d0.w)
 CODE_1_loc_00001378:
-CODE_1_data_dispatch_table_00001378:
-	dc.b $07,$80,$07,$8E,$07,$8E,$07,$80,$07,$8E,$07,$8E,$07,$8E,$07,$8E
-	dc.b $07,$8E,$07,$80,$07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E
-	dc.b $07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E
-	dc.b $07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E
+	dc.w CODE_1_loc_00001af8-CODE_1_loc_00001378	; lookup_table
+CODE_1_data_0000137a:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_0000137c:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_0000137e:
+	dc.w CODE_1_loc_00001af8-CODE_1_loc_00001378
+CODE_1_data_00001380:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_00001382:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_00001384:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_00001386:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_00001388:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_0000138a:
+	dc.w CODE_1_loc_00001af8-CODE_1_loc_00001378
+CODE_1_data_0000138c:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_0000138e:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_00001390:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_00001392:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_00001394:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_00001396:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_00001398:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_0000139a:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_0000139c:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_0000139e:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_000013a0:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_000013a2:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_000013a4:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_000013a6:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_000013a8:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_000013aa:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_000013ac:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_000013ae:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_000013b0:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_000013b2:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_000013b4:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_000013b6:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_dispatch_table_000013b8:
 	dc.b $07,$80,$06,$58,$04,$E2,$06,$DA,$04,$7C,$04,$34,$02,$2A,$05,$22
 	dc.b $06,$80,$06,$8A,$05,$B0,$05,$74,$06,$BC,$05,$92,$06,$C6,$05,$CE
 	dc.b $03,$A4,$03,$C8,$03,$C8,$03,$C8,$03,$C8,$03,$C8,$03,$C8,$03,$C8
@@ -4757,7 +3739,6 @@ CODE_1_loc_00001608:
 	move.b #$40,-$0105(a5)
 	bra.w CODE_1_loc_00001b10
 CODE_1_loc_0000161c:
-CODE_1_semantic_decode_gap_0000161c:
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 	dc.b $00,$00,$00,$FF,$FF,$FF,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
@@ -5319,7 +4300,6 @@ CODE_1_loc_00001d06:
 	move.b #$1,(a7)
 	jmp (a1)
 CODE_1_loc_00001d1c:
-CODE_1_data_string_00001d1c:
 	dc.b $0A,$3C,$3C,$3C,$49,$4E,$54,$52,$3E,$3E,$3E,$00
 CODE_1_loc_00001d28:
 	link a6,#-4
@@ -5585,7 +4565,6 @@ CODE_1_loc_00001ff0:
 CODE_1_loc_00001ff6:
 	rts
 CODE_1_loc_00001ff8:
-CODE_1_data_dispatch_table_00001ff8:
 	dc.b $02,$4F,$52,$00,$03,$4E,$4F,$54,$03,$41,$4E,$44,$03,$45,$4F,$52
 	dc.b $03,$44,$49,$56,$03,$4D,$4F,$44,$03,$58,$4F,$52,$00,$00,$00,$09
 	dc.b $00,$00,$00,$14,$00,$00,$00,$0B,$00,$00,$00,$0A,$00,$00,$00,$07
@@ -5593,17 +4572,27 @@ CODE_1_data_dispatch_table_00001ff8:
 CODE_1_loc_00002030:
 	link a6,#0
 	move.l $0008(a6),-(a7)
-CODE_1_semantic_decode_gap_00002038:
-	dc.b $A9,$F1,$4E,$5E,$2E,$9F,$4E,$75,$87,$55,$4E,$4C,$44,$53,$45,$47
-	dc.b $00,$00
+CODE_1_data_00002038:
+	_UnloadSeg
+	unlk a6
+	move.l (a7)+,(a7)
+	rts
+CODE_1_data_pascal_string_00002040:
+	dc.b $87,$55,$4E,$4C,$44,$53,$45,$47,$00,$00
 CODE_1_loc_0000204a:
 	link a6,#0
 	clr.l -(a7)
 	move.l $000A(a6),-(a7)
 	move.w $0008(a6),-(a7)
-CODE_1_semantic_decode_gap_00002058:
-	dc.b $A9,$A0,$2D,$5F,$00,$0E,$4E,$5E,$20,$5F,$5C,$4F,$4E,$D0,$87,$47
-	dc.b $45,$54,$52,$53,$52,$43,$00,$00
+CODE_1_data_00002058:
+	_GetResource
+	move.l (a7)+,$000E(a6)
+	unlk a6
+	movea.l (a7)+,a0
+	addq.w #6,a7
+	jmp (a0)
+CODE_1_data_pascal_string_00002066:
+	dc.b $87,$47,$45,$54,$52,$53,$52,$43,$00,$00
 CODE_1_loc_00002070:
 	link a6,#-258
 	movea.l $0008(a6),a0
@@ -5614,29 +4603,103 @@ CODE_1_loc_0000207e:
 	dbf.w d0,CODE_1_loc_0000207e
 	pea.l -$0100(a6)
 	pea.l -$0102(a6)
-CODE_1_data_dispatch_table_0000208c:
-	dc.b $A9,$00,$3D,$6E,$FE,$FE,$00,$0C,$4E,$5E,$2E,$9F,$4E,$75,$8A,$47
-	dc.b $45,$54,$46,$4F,$4E,$54,$4E,$42,$52,$00,$00,$00
+CODE_1_data_0000208c:
+	_GetFNum
+	move.w -$0102(a6),$000C(a6)
+	unlk a6
+	move.l (a7)+,(a7)
+	rts
+CODE_1_data_pascal_string_0000209a:
+	dc.b $8A,$47,$45,$54,$46,$4F,$4E,$54,$4E,$42,$52,$00,$00,$00
 CODE_1_loc_000020a8:
 	link a6,#-42
 	movem.l d4-d7,-(a7)
 	clr.l -(a7)
-CODE_1_data_dispatch_table_000020b2:
-	dc.b $A9,$75,$28,$1F,$98,$AE,$00,$0C,$2D,$44,$00,$10,$4A,$AE,$00,$08
-	dc.b $67,$00,$00,$BE,$2F,$04,$70,$3C,$2F,$00,$4E,$AD,$0A,$7A,$20,$1F
-	dc.b $3C,$00,$1D,$7C,$00,$0B,$FF,$EA,$7E,$0B,$30,$06,$48,$C0,$81,$FC
-	dc.b $00,$0A,$48,$40,$4A,$40,$D0,$7C,$00,$30,$1D,$80,$70,$EA,$53,$47
-	dc.b $30,$06,$48,$C0,$81,$FC,$00,$0A,$3C,$00,$66,$DE,$48,$6E,$FF,$EA
-	dc.b $3F,$3C,$00,$01,$3F,$07,$4E,$AD,$0A,$B2,$2F,$04,$70,$3C,$2F,$00
-	dc.b $4E,$AD,$0A,$82,$70,$64,$2F,$00,$4E,$AD,$0A,$72,$70,$3C,$2F,$00
-	dc.b $4E,$AD,$0A,$7A,$20,$1F,$3A,$00,$2D,$7C,$03,$2E,$30,$30,$FF,$E6
-	dc.b $7E,$03,$4A,$45,$67,$22,$30,$05,$48,$C0,$81,$FC,$00,$0A,$48,$40
-	dc.b $4A,$40,$D0,$7C,$00,$30,$1D,$80,$70,$E6,$53,$47,$30,$05,$48,$C0
-	dc.b $81,$FC,$00,$0A,$3A,$00,$60,$DA,$20,$6E,$00,$08,$2F,$08,$48,$6E
-	dc.b $FF,$EA,$48,$6E,$FF,$E6,$48,$6E,$FF,$D6,$3F,$3C,$00,$02,$4E,$AD
-	dc.b $0A,$A2,$20,$5F,$43,$EE,$FF,$D6,$70,$07,$30,$D9,$51,$C8,$FF,$FC
-	dc.b $4C,$DF,$00,$F0,$4E,$5E,$20,$5F,$50,$4F,$4E,$D0,$85,$43,$4C,$4F
-	dc.b $43,$4B,$00,$00
+CODE_1_data_000020b2:
+	_TickCount
+	move.l (a7)+,d4
+	sub.l $000C(a6),d4
+	move.l d4,$0010(a6)
+	tst.l $0008(a6)
+	beq.w CODE_1_loc_00002182
+	move.l d4,-(a7)
+	moveq.l #60,d0
+	move.l d0,-(a7)
+	jsr $0A7A(a5)
+	move.l (a7)+,d0
+	move.w d0,d6
+	move.b #$B,-$0016(a6)
+	moveq.l #11,d7
+CODE_1_loc_000020dc:
+	move.w d6,d0
+	ext.l d0
+	divs.w #$A,d0
+	swap.w d0
+	tst.w d0
+	add.w #$30,d0
+	move.b d0,-$16(a6,d7.w)
+	subq.w #1,d7
+	move.w d6,d0
+	ext.l d0
+	divs.w #$A,d0
+	move.w d0,d6
+	bne.b CODE_1_loc_000020dc
+	pea.l -$0016(a6)
+	move.w #$1,-(a7)
+	move.w d7,-(a7)
+	jsr $0AB2(a5)
+	move.l d4,-(a7)
+	moveq.l #60,d0
+	move.l d0,-(a7)
+	jsr $0A82(a5)
+	moveq.l #100,d0
+	move.l d0,-(a7)
+	jsr $0A72(a5)
+	moveq.l #60,d0
+	move.l d0,-(a7)
+	jsr $0A7A(a5)
+	move.l (a7)+,d0
+	move.w d0,d5
+	move.l #$32E3030,-$001A(a6)
+	moveq.l #3,d7
+CODE_1_loc_00002134:
+	tst.w d5
+	beq.b CODE_1_loc_0000215a
+	move.w d5,d0
+	ext.l d0
+	divs.w #$A,d0
+	swap.w d0
+	tst.w d0
+	add.w #$30,d0
+	move.b d0,-$1A(a6,d7.w)
+	subq.w #1,d7
+	move.w d5,d0
+	ext.l d0
+	divs.w #$A,d0
+	move.w d0,d5
+	bra.b CODE_1_loc_00002134
+CODE_1_loc_0000215a:
+	movea.l $0008(a6),a0
+	move.l a0,-(a7)
+	pea.l -$0016(a6)
+	pea.l -$001A(a6)
+	pea.l -$002A(a6)
+	move.w #$2,-(a7)
+	jsr $0AA2(a5)
+	movea.l (a7)+,a0
+	lea.l -$002A(a6),a1
+	moveq.l #7,d0
+CODE_1_loc_0000217c:
+	move.w (a1)+,(a0)+
+	dbf.w d0,CODE_1_loc_0000217c
+CODE_1_loc_00002182:
+	movem.l (a7)+,d4-d7
+	unlk a6
+	movea.l (a7)+,a0
+	addq.w #8,a7
+	jmp (a0)
+CODE_1_data_pascal_string_0000218e:
+	dc.b $85,$43,$4C,$4F,$43,$4B,$00,$00
 CODE_1_loc_00002196:
 	link a6,#0
 	movea.l $0008(a6),a1
@@ -5735,8 +4798,6 @@ CODE_1_data_dispatch_table_000022b4:
 	dc.b $67,$53,$65,$70,$4F,$63,$74,$4E,$6F,$76,$44,$65,$63,$00,$12,$48
 	dc.b $48,$3A,$4D,$4D,$3A,$53,$53,$20,$44,$44,$2D,$4D,$4D,$4D,$2D,$59
 	dc.b $59,$00
-CODE_1_loc_000022bc:
-CODE_1_loc_000022e2:
 CODE_1_loc_000022f6:
 	link a6,#-8
 	movem.l d7/a3-a4,-(a7)
@@ -5870,10 +4931,8 @@ CODE_1_loc_00002462:
 	jmp (a0)
 CODE_1_semantic_decode_gap_0000246e:
 	dc.b $90,$43,$4C,$4F,$53,$45,$41,$4C,$4C,$41,$53,$4D,$46,$49,$4C,$45
-	dc.b $53,$00,$00,$10
-CODE_1_loc_00002482:
-CODE_1_semantic_decode_gap_00002482:
-	dc.b $0E,$23,$41,$73,$6D,$53,$70,$69,$6C,$6C,$46,$69,$6C,$65,$23,$00
+	dc.b $53,$00,$00,$10,$0E,$23,$41,$73,$6D,$53,$70,$69,$6C,$6C,$46,$69
+	dc.b $6C,$65,$23,$00
 CODE_1_loc_00002492:
 	link a6,#-258
 	move.l d7,-(a7)
@@ -5962,17 +5021,10 @@ CODE_1_loc_0000256c:
 	move.l (a7)+,(a7)
 	rts
 CODE_1_semantic_decode_gap_00002584:
-	dc.b $85,$41,$42,$4F,$52,$54,$00,$2E
-CODE_1_loc_0000258c:
-CODE_1_semantic_decode_gap_0000258c:
-	dc.b $1B,$41,$73,$6D,$20,$2D,$20,$45,$78,$65,$63,$75,$74,$69,$6F,$6E
-	dc.b $20,$74,$65,$72,$6D,$69,$6E,$61,$74,$65,$64,$21
-CODE_1_loc_000025a8:
-CODE_1_semantic_decode_gap_000025a8:
-	dc.b $04,$23,$23,$23,$20,$00
-CODE_1_loc_000025ae:
-CODE_1_semantic_decode_gap_000025ae:
-	dc.b $0A,$3C,$3C,$3C,$49,$4E,$54,$52,$3E,$3E,$3E,$00
+	dc.b $85,$41,$42,$4F,$52,$54,$00,$2E,$1B,$41,$73,$6D,$20,$2D,$20,$45
+	dc.b $78,$65,$63,$75,$74,$69,$6F,$6E,$20,$74,$65,$72,$6D,$69,$6E,$61
+	dc.b $74,$65,$64,$21,$04,$23,$23,$23,$20,$00,$0A,$3C,$3C,$3C,$49,$4E
+	dc.b $54,$52,$3E,$3E,$3E,$00
 CODE_1_loc_000025ba:
 	link a6,#-512
 	movea.l $0008(a6),a0
@@ -6016,9 +5068,6 @@ CODE_1_loc_000025c8:
 CODE_1_data_dispatch_table_0000263e:
 	dc.b $87,$49,$4F,$41,$42,$4F,$52,$54,$00,$16,$0A,$3C,$3C,$3C,$49,$4E
 	dc.b $54,$52,$3E,$3E,$3E,$00,$02,$23,$20,$00,$04,$23,$23,$23,$20,$00
-CODE_1_loc_00002648:
-CODE_1_loc_00002654:
-CODE_1_loc_00002658:
 CODE_1_loc_0000265e:
 	link a6,#0
 	move.b #$1,-$133F(a5)
@@ -6915,13 +5964,7 @@ CODE_1_loc_0000302e:
 	jmp (a0)
 CODE_1_semantic_decode_gap_0000303c:
 	dc.b $92,$53,$43,$41,$4E,$51,$55,$41,$4C,$49,$46,$49,$43,$41,$54,$49
-	dc.b $4F,$4E,$53,$00,$00,$06
-CODE_1_loc_00003052:
-CODE_1_semantic_decode_gap_00003052:
-	dc.b $03,$2E,$2E,$2E
-CODE_1_loc_00003056:
-CODE_1_semantic_decode_gap_00003056:
-	dc.b $01,$2E
+	dc.b $4F,$4E,$53,$00,$00,$06,$03,$2E,$2E,$2E,$01,$2E
 CODE_1_loc_00003058:
 	link a6,#-18
 	movem.l d7/a4,-(a7)
@@ -7423,11 +6466,14 @@ CODE_1_loc_00003616:
 	move.w CODE_1_loc_00003634(pc,d0.w),d0
 	jmp $0(pc,d0.w)
 CODE_1_loc_00003634:
-CODE_1_data_dispatch_table_00003634:
-	dc.b $00,$0E,$00,$22,$00,$36,$00,$4A,$00,$5E,$00,$72,$2F,$0C,$2F,$0B
-	dc.b $4E,$AD,$0A,$CA,$10,$1F,$48,$80,$48,$C0,$2D,$40,$FF,$F8,$60,$62
-	dc.b $2F,$0C,$2F,$0B,$4E,$AD,$0A,$C2,$10,$1F,$48,$80,$48,$C0,$2D,$40
-	dc.b $FF,$F8,$60,$4E,$2F,$0C,$2F,$0B,$4E,$AD,$0A,$E2,$10,$1F,$48,$80
+	dc.w $000E,$0022,$0036,$004A,$005E,$0072,$2F0C,$2F0B	; lookup_table
+CODE_1_data_00003634:
+	dc.w $4EAD,$0ACA,$101F,$4880,$48C0,$2D40,$FFF8,$6062	; lookup_table
+CODE_1_data_00003634:
+	dc.w $2F0C,$2F0B,$4EAD,$0AC2,$101F,$4880,$48C0,$2D40	; lookup_table
+CODE_1_data_00003634:
+	dc.w $FFF8,$604E,$2F0C,$2F0B,$4EAD,$0AE2,$101F,$4880	; lookup_table
+CODE_1_data_dispatch_table_00003674:
 	dc.b $48,$C0,$2D,$40,$FF,$F8,$60,$3A,$2F,$0C,$2F,$0B,$4E,$AD,$0A,$D2
 	dc.b $10,$1F,$48,$80,$48,$C0,$2D,$40,$FF,$F8,$60,$26,$2F,$0C,$2F,$0B
 	dc.b $4E,$AD,$0A,$EA,$10,$1F,$48,$80,$48,$C0,$2D,$40,$FF,$F8,$60,$12
@@ -7499,11 +6545,14 @@ CODE_1_loc_00003738:
 	move.w CODE_1_loc_00003754(pc,d0.w),d0
 	jmp $0(pc,d0.w)
 CODE_1_loc_00003754:
-CODE_1_data_dispatch_table_00003754:
-	dc.b $00,$34,$00,$9C,$01,$1E,$01,$32,$01,$56,$01,$7A,$01,$8A,$01,$9C
-	dc.b $01,$AC,$01,$C4,$01,$DC,$01,$F4,$02,$0C,$02,$24,$02,$3A,$02,$4A
-	dc.b $02,$AC,$02,$AC,$02,$AC,$02,$AC,$02,$AC,$02,$AC,$02,$AC,$02,$AC
-	dc.b $02,$5A,$70,$01,$B0,$2E,$FF,$F6,$57,$C0,$4A,$00,$67,$2C,$72,$01
+	dc.w $0034,$009C,$011E,$0132,$0156,$017A,$018A,$019C	; lookup_table
+CODE_1_data_00003754:
+	dc.w $01AC,$01C4,$01DC,$01F4,$020C,$0224,$023A,$024A	; lookup_table
+CODE_1_data_00003754:
+	dc.w $02AC,$02AC,$02AC,$02AC,$02AC,$02AC,$02AC,$02AC	; lookup_table
+CODE_1_data_00003754:
+	dc.w $025A,$7001,$B02E,$FFF6,$57C0,$4A00,$672C,$7201	; lookup_table
+CODE_1_data_dispatch_table_00003794:
 	dc.b $B2,$2E,$FF,$F7,$57,$C1,$C0,$01,$67,$20,$20,$2E,$FF,$FC,$22,$2E
 	dc.b $FF,$F8,$B3,$80,$4A,$80,$6D,$0C,$3F,$3C,$00,$14,$2F,$2E,$00,$08
 	dc.b $4E,$BA,$FA,$1C,$42,$2E,$FF,$F6,$60,$24,$70,$01,$B0,$2E,$FF,$F6
@@ -8806,11 +7855,14 @@ CODE_1_loc_00004852:
 	move.w CODE_1_loc_00004878(pc,d0.w),d0
 	jmp $0(pc,d0.w)
 CODE_1_loc_00004878:
-CODE_1_data_dispatch_table_00004878:
-	dc.b $00,$22,$00,$70,$00,$BE,$00,$CC,$00,$E4,$00,$F8,$00,$FC,$01,$02
-	dc.b $01,$06,$01,$14,$01,$22,$01,$30,$01,$3E,$01,$4C,$01,$5A,$01,$60
-	dc.b $70,$01,$B0,$05,$57,$C0,$4A,$00,$67,$24,$72,$01,$B2,$04,$57,$C1
-	dc.b $C0,$01,$67,$1A,$20,$07,$22,$06,$B3,$80,$4A,$80,$6D,$0C,$3F,$3C
+	dc.w $0022,$0070,$00BE,$00CC,$00E4,$00F8,$00FC,$0102	; lookup_table
+CODE_1_data_00004878:
+	dc.w $0106,$0114,$0122,$0130,$013E,$014C,$015A,$0160	; lookup_table
+CODE_1_data_00004878:
+	dc.w $7001,$B005,$57C0,$4A00,$6724,$7201,$B204,$57C1	; lookup_table
+CODE_1_data_00004878:
+	dc.w $C001,$671A,$2007,$2206,$B380,$4A80,$6D0C,$3F3C	; lookup_table
+CODE_1_data_dispatch_table_000048b8:
 	dc.b $00,$14,$2F,$2E,$00,$08,$4E,$BA,$FB,$A4,$42,$05,$60,$1A,$70,$01
 	dc.b $B0,$05,$57,$C0,$4A,$00,$66,$0A,$72,$01,$B2,$04,$57,$C1,$80,$01
 	dc.b $67,$04,$7A,$01,$60,$02,$42,$05,$DE,$86,$60,$00,$00,$F6,$70,$01
@@ -9665,7 +8717,6 @@ CODE_1_loc_00005318:
 	jmp (a0)
 CODE_1_data_dispatch_table_0000532a:
 	dc.b $87,$4F,$55,$54,$45,$58,$50,$52,$00,$02,$01,$23
-CODE_1_loc_00005334:
 CODE_1_loc_00005336:
 	link a6,#-2
 	move.l d7,-(a7)
@@ -10051,9 +9102,6 @@ CODE_1_loc_0000578c:
 CODE_1_data_dispatch_table_00005796:
 	dc.b $89,$45,$4E,$44,$4F,$46,$4C,$49,$4E,$45,$00,$06,$01,$09,$01,$3A
 	dc.b $01,$23
-CODE_1_loc_000057a2:
-CODE_1_loc_000057a4:
-CODE_1_loc_000057a6:
 CODE_1_loc_000057a8:
 	link a6,#0
 	move.b -$0440(a5),d0
@@ -10846,8 +9894,6 @@ CODE_1_data_dispatch_table_000060ec:
 	dc.b $4E,$BA,$10,$66,$4E,$BA,$10,$68,$4E,$75,$4E,$5E,$4E,$75,$89,$41
 	dc.b $53,$53,$45,$4D,$42,$4C,$45,$52,$00,$0C,$07,$43,$6F,$6D,$6D,$61
 	dc.b $6E,$64,$03,$41,$73,$6D
-CODE_1_loc_00006106:
-CODE_1_loc_0000610e:
 CODE_1_loc_00006112:
 	link a6,#-336
 	movea.l $000C(a6),a0
@@ -10889,9 +9935,6 @@ CODE_1_data_dispatch_table_0000617c:
 	dc.b $8B,$47,$45,$54,$43,$4F,$4D,$50,$44,$41,$54,$45,$00,$10,$01,$29
 	dc.b $08,$30,$32,$2F,$31,$33,$2F,$39,$35,$00,$02,$20,$28,$00,$20,$2F
 	dc.b $00,$04,$22,$2F,$00,$08
-CODE_1_loc_0000618a:
-CODE_1_loc_0000618c:
-CODE_1_loc_00006196:
 CODE_1_loc_000061a2:
 	move.l d0,-(a7)
 	mulu.w d1,d0
@@ -10916,7 +9959,6 @@ CODE_1_loc_000061c8:
 	movea.w #$2,a1
 	jmp -$2(a0,a1.w*2)
 CODE_1_loc_000061d4:
-CODE_1_semantic_decode_gap_000061d4:
 	dc.b $60,$06,$4C,$41,$08,$01,$4E,$75,$4E,$BA,$00,$24,$20,$01,$4E,$75
 	dc.b $22,$2F,$00,$04,$20,$2F,$00,$08
 CODE_1_loc_000061ec:
@@ -10924,7 +9966,6 @@ CODE_1_loc_000061ec:
 	movea.w #$2,a1
 	jmp -$2(a0,a1.w*2)
 CODE_1_loc_000061f8:
-CODE_1_semantic_decode_gap_000061f8:
 	dc.b $60,$08,$4C,$41,$08,$01,$C3,$40,$4E,$75,$4A,$80,$6B,$14,$4A,$81
 	dc.b $6B,$06,$4E,$BA,$00,$46,$4E,$75,$44,$81,$4E,$BA,$00,$3E,$44,$81
 	dc.b $4E,$75,$44,$80,$4A,$81,$6B,$0A,$4E,$BA,$00,$30,$44,$80,$44,$81
@@ -11121,29 +10162,93 @@ CODE_1_loc_0000647c:
 	subq.l #4,a7
 	move.l #$434F4445,-(a7)
 	pea.l CODE_1_loc_0000655e(pc)
-CODE_1_semantic_decode_gap_00006498:
-	dc.b $A8,$20,$28,$5F,$20,$0C,$67,$00,$00,$A6,$55,$8F,$A9,$94,$55,$8F
-	dc.b $2F,$0C,$A9,$A4,$30,$1F,$B0,$5F,$66,$00,$00,$94,$41,$ED,$02,$AA
-	dc.b $22,$6D,$CF,$8E,$23,$48,$00,$0C,$26,$54,$30,$13,$08,$00,$00,$00
-	dc.b $67,$08,$3B,$7C,$00,$28,$CF,$70,$60,$06,$3B,$7C,$00,$04,$CF,$70
-	dc.b $59,$8F,$2F,$0C,$4E,$BA,$03,$F8,$30,$2D,$CF,$70,$48,$C0,$22,$1F
-	dc.b $92,$80,$20,$01,$72,$04,$4E,$BA,$FC,$D8,$2C,$00,$70,$00,$26,$40
-	dc.b $60,$36,$2F,$0C,$A9,$A2,$30,$2D,$CF,$70,$48,$C0,$D0,$94,$2D,$40
-	dc.b $FF,$FC,$30,$2D,$CF,$72,$48,$C0,$20,$6E,$FF,$FC,$E5,$80,$30,$30
-	dc.b $08,$00,$48,$C0,$2E,$00,$67,$08,$20,$0D,$26,$40,$D7,$C7,$4E,$93
-	dc.b $30,$2D,$CF,$72,$52,$6D,$CF,$72,$30,$2D,$CF,$72,$48,$C0,$BC,$80
-	dc.b $6E,$C0,$20,$0B,$67,$04,$2F,$0B,$A9,$F1,$2F,$0C,$A9,$A3
+CODE_1_data_00006498:
+	_Get1NamedResource
+	movea.l (a7)+,a4
+	move.l a4,d0
+	beq.w CODE_1_loc_00006546
+	subq.l #2,a7
+CODE_1_data_000064a4:
+	_CurResFile
+	subq.l #2,a7
+	move.l a4,-(a7)
+CODE_1_data_000064aa:
+	_HomeResFile
+	move.w (a7)+,d0
+	cmp.w (a7)+,d0
+	bne.w CODE_1_loc_00006546
+	lea.l $02AA(a5),a0
+	movea.l -$3072(a5),a1
+	move.l a0,$000C(a1)
+	movea.l (a4),a3
+	move.w (a3),d0
+	btst #0,d0
+	beq.b CODE_1_loc_000064d2
+	move.w #$28,-$3090(a5)
+	bra.b CODE_1_loc_000064d8
+CODE_1_loc_000064d2:
+	move.w #$4,-$3090(a5)
+CODE_1_loc_000064d8:
+	subq.l #4,a7
+	move.l a4,-(a7)
+	jsr CODE_1_loc_000068d6(pc)
+	move.w -$3090(a5),d0
+	ext.l d0
+	move.l (a7)+,d1
+	sub.l d0,d1
+	move.l d1,d0
+	moveq.l #4,d1
+	jsr CODE_1_loc_000061c8(pc)
+	move.l d0,d6
+	moveq.l #0,d0
+	movea.l d0,a3
+	bra.b CODE_1_loc_00006530
+CODE_1_loc_000064fa:
+	move.l a4,-(a7)
+CODE_1_data_000064fc:
+	_LoadResource
+	move.w -$3090(a5),d0
+	ext.l d0
+	add.l (a4),d0
+	move.l d0,-$0004(a6)
+	move.w -$308E(a5),d0
+	ext.l d0
+	movea.l -$0004(a6),a0
+	asl.l #2,d0
+	move.w $0(a0,d0.l),d0
+	ext.l d0
+	move.l d0,d7
+	beq.b CODE_1_loc_00006528
+	move.l a5,d0
+	movea.l d0,a3
+	adda.l d7,a3
+	jsr (a3)
+CODE_1_loc_00006528:
+	move.w -$308E(a5),d0
+	addq.w #1,-$308E(a5)
+CODE_1_loc_00006530:
+	move.w -$308E(a5),d0
+	ext.l d0
+	cmp.l d0,d6
+	bgt.b CODE_1_loc_000064fa
+	move.l a3,d0
+	beq.b CODE_1_loc_00006542
+	move.l a3,-(a7)
+CODE_1_data_00006540:
+	_UnloadSeg
+CODE_1_loc_00006542:
+	move.l a4,-(a7)
+CODE_1_data_00006544:
+	_ReleaseResource
 CODE_1_loc_00006546:
 	movem.l -$0014(a6),d6-d7/a3-a4
 	unlk a6
 	rts
 CODE_1_semantic_decode_gap_00006550:
-	dc.b $8B,$5F,$5F,$43,$70,$6C,$75,$73,$49,$6E,$69,$74,$00,$2A
-CODE_1_loc_0000655e:
-CODE_1_semantic_decode_gap_0000655e:
-	dc.b $28,$25,$5F,$53,$74,$61,$74,$69,$63,$5F,$43,$6F,$6E,$73,$74,$72
-	dc.b $75,$63,$74,$6F,$72,$5F,$44,$65,$73,$74,$72,$75,$63,$74,$6F,$72
-	dc.b $5F,$50,$6F,$69,$6E,$74,$65,$72,$73,$00
+	dc.b $8B,$5F,$5F,$43,$70,$6C,$75,$73,$49,$6E,$69,$74,$00,$2A,$28,$25
+	dc.b $5F,$53,$74,$61,$74,$69,$63,$5F,$43,$6F,$6E,$73,$74,$72,$75,$63
+	dc.b $74,$6F,$72,$5F,$44,$65,$73,$74,$72,$75,$63,$74,$6F,$72,$5F,$50
+	dc.b $6F,$69,$6E,$74,$65,$72,$73,$00
 CODE_1_loc_00006588:
 	link a6,#-4
 	movem.l d7/a3-a4,-(a7)
@@ -11152,24 +10257,59 @@ CODE_1_loc_00006588:
 	subq.l #4,a7
 	move.l #$434F4445,-(a7)
 	pea.l CODE_1_loc_00006610(pc)
-CODE_1_semantic_decode_gap_000065a2:
-	dc.b $A9,$A1,$28,$5F,$20,$0C,$67,$50,$55,$8F,$A9,$94,$55,$8F,$2F,$0C
-	dc.b $A9,$A4,$30,$1F,$B0,$5F,$66,$40,$60,$34,$2F,$0C,$A9,$A2,$30,$2D
-	dc.b $CF,$70,$48,$C0,$D0,$94,$2D,$40,$FF,$FC,$53,$6D,$CF,$72,$30,$2D
-	dc.b $CF,$72,$48,$C0,$20,$6E,$FF,$FC,$E5,$80,$30,$30,$08,$02,$48,$C0
-	dc.b $2E,$00,$20,$0D,$26,$40,$D7,$C7,$4A,$87,$67,$02,$4E,$93,$4A,$6D
-	dc.b $CF,$72,$6E,$C6,$2F,$0C,$A9,$A3
+CODE_1_data_000065a2:
+	_GetNamedResource
+	movea.l (a7)+,a4
+	move.l a4,d0
+	beq.b CODE_1_loc_000065fa
+	subq.l #2,a7
+CODE_1_data_000065ac:
+	_CurResFile
+	subq.l #2,a7
+	move.l a4,-(a7)
+CODE_1_data_000065b2:
+	_HomeResFile
+	move.w (a7)+,d0
+	cmp.w (a7)+,d0
+	bne.b CODE_1_loc_000065fa
+	bra.b CODE_1_loc_000065f0
+CODE_1_loc_000065bc:
+	move.l a4,-(a7)
+CODE_1_data_000065be:
+	_LoadResource
+	move.w -$3090(a5),d0
+	ext.l d0
+	add.l (a4),d0
+	move.l d0,-$0004(a6)
+	subq.w #1,-$308E(a5)
+	move.w -$308E(a5),d0
+	ext.l d0
+	movea.l -$0004(a6),a0
+	asl.l #2,d0
+	move.w $2(a0,d0.l),d0
+	ext.l d0
+	move.l d0,d7
+	move.l a5,d0
+	movea.l d0,a3
+	adda.l d7,a3
+	tst.l d7
+	beq.b CODE_1_loc_000065f0
+	jsr (a3)
+CODE_1_loc_000065f0:
+	tst.w -$308E(a5)
+	bgt.b CODE_1_loc_000065bc
+	move.l a4,-(a7)
+CODE_1_data_000065f8:
+	_ReleaseResource
 CODE_1_loc_000065fa:
 	movem.l -$0010(a6),d7/a3-a4
 	unlk a6
 	rts
 CODE_1_semantic_decode_gap_00006604:
-	dc.b $89,$64,$74,$6F,$72,$73,$5F,$5F,$46,$76,$00,$2A
-CODE_1_loc_00006610:
-CODE_1_semantic_decode_gap_00006610:
-	dc.b $28,$25,$5F,$53,$74,$61,$74,$69,$63,$5F,$43,$6F,$6E,$73,$74,$72
-	dc.b $75,$63,$74,$6F,$72,$5F,$44,$65,$73,$74,$72,$75,$63,$74,$6F,$72
-	dc.b $5F,$50,$6F,$69,$6E,$74,$65,$72,$73,$00
+	dc.b $89,$64,$74,$6F,$72,$73,$5F,$5F,$46,$76,$00,$2A,$28,$25,$5F,$53
+	dc.b $74,$61,$74,$69,$63,$5F,$43,$6F,$6E,$73,$74,$72,$75,$63,$74,$6F
+	dc.b $72,$5F,$44,$65,$73,$74,$72,$75,$63,$74,$6F,$72,$5F,$50,$6F,$69
+	dc.b $6E,$74,$65,$72,$73,$00
 CODE_1_loc_0000663a:
 	link a6,#0
 	movem.l d3/d6-d7/a2-a4,-(a7)
@@ -11311,13 +10451,40 @@ CODE_1_loc_000067b2:
 	tst.l $0020(a0)
 	beq.b CODE_1_loc_00006814
 	moveq.l #120,d0
-CODE_1_data_dispatch_table_000067c2:
-	dc.b $A1,$1E,$2B,$48,$CF,$98,$66,$0A,$70,$02,$2F,$00,$4E,$BA,$00,$82
-	dc.b $58,$4F,$20,$78,$03,$16,$20,$68,$00,$04,$26,$68,$00,$20,$7E,$00
-	dc.b $76,$05,$22,$07,$20,$01,$C2,$FC,$00,$18,$48,$40,$C0,$FC,$00,$18
-	dc.b $48,$40,$42,$40,$D2,$80,$2C,$01,$20,$6D,$CF,$98,$43,$F3,$68,$00
-	dc.b $45,$F0,$68,$00,$70,$05,$24,$D9,$51,$C8,$FF,$FC,$52,$87,$B6,$87
-	dc.b $6E,$D0
+CODE_1_data_000067c2:
+	_NewPtr
+	move.l a0,-$3068(a5)
+	bne.b CODE_1_loc_000067d4
+	moveq.l #2,d0
+	move.l d0,-(a7)
+	jsr CODE_1_loc_00006852(pc)
+	addq.w #4,a7
+CODE_1_loc_000067d4:
+	movea.l $0316.w,a0
+	movea.l $0004(a0),a0
+	movea.l $0020(a0),a3
+	moveq.l #0,d7
+	moveq.l #5,d3
+CODE_1_loc_000067e4:
+	move.l d7,d1
+	move.l d1,d0
+	mulu.w #$18,d1
+	swap.w d0
+	mulu.w #$18,d0
+	swap.w d0
+	clr.w d0
+	add.l d0,d1
+	move.l d1,d6
+	movea.l -$3068(a5),a0
+	lea.l $0(a3,d6.l),a1
+	lea.l $0(a0,d6.l),a2
+	moveq.l #5,d0
+CODE_1_loc_00006808:
+	move.l (a1)+,(a2)+
+	dbf.w d0,CODE_1_loc_00006808
+	addq.l #1,d7
+	cmp.l d7,d3
+	bgt.b CODE_1_loc_000067e4
 CODE_1_loc_00006814:
 	jsr CODE_1_loc_0000647c(pc)
 	moveq.l #0,d0
@@ -11381,37 +10548,58 @@ CODE_1_data_pascal_string_000068aa:
 CODE_1_loc_000068b4:
 	movea.l (a7)+,a1
 	move.l (a7)+,d0
-CODE_1_semantic_decode_gap_000068b8:
-	dc.b $A1,$1E,$2E,$88,$4E,$D1
+CODE_1_data_000068b8:
+	_NewPtr
+	move.l a0,(a7)
+	jmp (a1)
 CODE_1_loc_000068be:
 	movea.l (a7)+,a1
 	movea.l (a7)+,a0
-CODE_1_semantic_decode_gap_000068c2:
-	dc.b $A0,$21,$2E,$80,$6A,$02,$42,$97,$4E,$D1
+CODE_1_data_000068c2:
+	_GetPtrSize
+	move.l d0,(a7)
+	bpl.b CODE_1_loc_000068ca
+	clr.l (a7)
+CODE_1_loc_000068ca:
+	jmp (a1)
 CODE_1_loc_000068cc:
 	movea.l (a7)+,a1
 	move.l (a7)+,d0
 	movea.l (a7)+,a0
-CODE_1_semantic_decode_gap_000068d2:
-	dc.b $A0,$20,$4E,$D1,$22,$5F,$20,$5F,$A0,$25,$2E,$80,$6A,$02,$42,$97
-	dc.b $4E,$D1
+CODE_1_data_000068d2:
+	_SetPtrSize
+	jmp (a1)
+CODE_1_loc_000068d6:
+	movea.l (a7)+,a1
+	movea.l (a7)+,a0
+CODE_1_data_000068da:
+	_GetHandleSize
+	move.l d0,(a7)
+	bpl.b CODE_1_loc_000068e2
+	clr.l (a7)
+CODE_1_loc_000068e2:
+	jmp (a1)
 CODE_1_loc_000068e4:
 	movea.l (a7)+,a1
 	move.b (a7)+,d1
 	move.w (a7)+,d0
 	tst.b d1
 	beq.b CODE_1_loc_000068f2
-CODE_1_semantic_decode_gap_000068ee:
-	dc.b $A7,$46,$60,$02
+CODE_1_data_000068ee:
+	_GetToolTrapAddress
+	bra.b CODE_1_loc_000068f4
 CODE_1_loc_000068f2:
-CODE_1_semantic_decode_gap_000068f2:
-	dc.b $A3,$46,$2E,$88,$4E,$D1
+	dc.b $A3,$46
+CODE_1_loc_000068f4:
+	move.l a0,(a7)
+	jmp (a1)
 CODE_1_loc_000068f8:
 	movea.l (a7)+,a1
 	movea.l (a7)+,a0
 	move.l $020C.w,d0
-CODE_1_semantic_decode_gap_00006900:
-	dc.b $A9,$C6,$4E,$D1
+CODE_1_data_00006900:
+	_SecondsToDate
+	jmp (a1)
 CODE_1_loc_00006904:
 	movea.l $000C(a7),a0
 	movea.l $0008(a7),a1
@@ -11423,54 +10611,75 @@ CODE_1_loc_00006904:
 	beq.b CODE_1_loc_00006928
 	tst.b $0006(a7)
 	beq.b CODE_1_loc_00006924
-CODE_1_semantic_decode_gap_00006920:
-	dc.b $A4,$3C,$60,$10
+CODE_1_data_00006920:
+	_CmpStringCase
+	bra.b CODE_1_loc_00006934
 CODE_1_loc_00006924:
-CODE_1_semantic_decode_gap_00006924:
 	dc.b $A0,$3C,$60,$0C
 CODE_1_loc_00006928:
 	tst.b $0006(a7)
 	beq.b CODE_1_loc_00006932
-CODE_1_data_dispatch_table_0000692e:
-	dc.b $A6,$3C,$60,$02,$A2,$3C,$0A,$00,$00,$01,$1F,$40,$00,$10,$20,$5F
-	dc.b $4F,$EF,$00,$0C,$4E,$D0
+CODE_1_data_0000692e:
+	_CmpStringMarksCase
+	bra.b CODE_1_loc_00006934
 CODE_1_loc_00006932:
+	dc.b $A2,$3C
+CODE_1_loc_00006934:
+	eori.b #1,d0
+	move.b d0,$0010(a7)
+	movea.l (a7)+,a0
+	lea.l $000C(a7),a7
+	jmp (a0)
 CODE_1_loc_00006944:
 	movea.l (a7)+,a1
 	move.b (a7)+,d0
 	movea.l (a7)+,a0
 	bne.b CODE_1_loc_00006950
-CODE_1_semantic_decode_gap_0000694c:
-	dc.b $A0,$01,$60,$02
+CODE_1_data_0000694c:
+	_PBCloseSync
+	bra.b CODE_1_loc_00006952
 CODE_1_loc_00006950:
-CODE_1_semantic_decode_gap_00006950:
-	dc.b $A4,$01,$3E,$80,$4E,$D1
+	dc.b $A4,$01
+CODE_1_loc_00006952:
+	move.w d0,(a7)
+	jmp (a1)
 CODE_1_loc_00006956:
 	movea.l (a7)+,a1
 	move.b (a7)+,d0
 	movea.l (a7)+,a0
 	bne.b CODE_1_loc_00006962
-CODE_1_semantic_decode_gap_0000695e:
-	dc.b $A0,$0C,$60,$02
+CODE_1_data_0000695e:
+	_PBGetFInfoSync
+	bra.b CODE_1_loc_00006964
 CODE_1_loc_00006962:
-CODE_1_semantic_decode_gap_00006962:
-	dc.b $A4,$0C,$3E,$80,$4E,$D1
+	dc.b $A4,$0C
+CODE_1_loc_00006964:
+	move.w d0,(a7)
+	jmp (a1)
 CODE_1_loc_00006968:
 	movea.l (a7)+,a1
 	move.b (a7)+,d0
 	movea.l (a7)+,a0
 	bne.b CODE_1_loc_00006974
-CODE_1_semantic_decode_gap_00006970:
-	dc.b $A0,$12,$60,$02
+CODE_1_data_00006970:
+	_PBSetEOFSync
+	bra.b CODE_1_loc_00006976
 CODE_1_loc_00006974:
-CODE_1_semantic_decode_gap_00006974:
-	dc.b $A4,$12,$3E,$80,$4E,$D1
+	dc.b $A4,$12
+CODE_1_loc_00006976:
+	move.w d0,(a7)
+	jmp (a1)
 CODE_1_loc_0000697a:
 	link a6,#-50
 	movea.l a7,a0
 	move.w $0008(a6),$0018(a0)
-CODE_1_data_dispatch_table_00006986:
-	dc.b $A0,$01,$3D,$40,$00,$0A,$4E,$5E,$20,$5F,$54,$8F,$4E,$D0
+CODE_1_data_00006986:
+	_PBCloseSync
+	move.w d0,$000A(a6)
+	unlk a6
+	movea.l (a7)+,a0
+	addq.l #2,a7
+	jmp (a0)
 CODE_1_loc_00006994:
 	sf.b d1
 	bra.b CODE_1_loc_0000699a
@@ -11487,10 +10696,19 @@ CODE_1_loc_0000699a:
 	clr.l $002E(a0)
 	tst.b d1
 	bne.b CODE_1_loc_000069c4
-CODE_1_data_dispatch_table_000069c0:
-	dc.b $A0,$02,$60,$02,$A0,$03,$3D,$40,$00,$12,$22,$6E,$00,$0C,$22,$A8
-	dc.b $00,$28,$4E,$5E,$22,$5F,$4F,$EF,$00,$0A,$4E,$D1
+CODE_1_data_000069c0:
+	_PBReadSync
+	bra.b CODE_1_loc_000069c6
 CODE_1_loc_000069c4:
+	dc.b $A0,$03
+CODE_1_loc_000069c6:
+	move.w d0,$0012(a6)
+	movea.l $000C(a6),a1
+	move.l $0028(a0),(a1)
+	unlk a6
+	movea.l (a7)+,a1
+	lea.l $000A(a7),a7
+	jmp (a1)
 CODE_1_loc_000069dc:
 	link a6,#-80
 	movea.l a7,a0
@@ -11498,17 +10716,31 @@ CODE_1_loc_000069dc:
 	move.w $000C(a6),$0016(a0)
 	clr.b $001A(a0)
 	clr.w $001C(a0)
-CODE_1_data_dispatch_table_000069f6:
-	dc.b $A0,$0C,$3D,$40,$00,$12,$41,$E8,$00,$20,$22,$6E,$00,$08,$70,$10
-	dc.b $A0,$2E,$4E,$5E,$22,$5F,$4F,$EF,$00,$0A,$4E,$D1
+CODE_1_data_000069f6:
+	_PBGetFInfoSync
+	move.w d0,$0012(a6)
+	lea.l $0020(a0),a0
+	movea.l $0008(a6),a1
+	moveq.l #16,d0
+CODE_1_data_00006a06:
+	_BlockMove
+	unlk a6
+	movea.l (a7)+,a1
+	lea.l $000A(a7),a7
+	jmp (a1)
 CODE_1_loc_00006a12:
 	link a6,#-50
 	movea.l a7,a0
 	move.l $000A(a6),$0012(a0)
 	move.w $0008(a6),$0016(a0)
 	clr.b $001A(a0)
-CODE_1_semantic_decode_gap_00006a28:
-	dc.b $A0,$09,$3D,$40,$00,$0E,$4E,$5E,$22,$5F,$5C,$8F,$4E,$D1
+CODE_1_data_00006a28:
+	_PBDeleteSync
+	move.w d0,$000E(a6)
+	unlk a6
+	movea.l (a7)+,a1
+	addq.l #6,a7
+	jmp (a1)
 CODE_1_loc_00006a36:
 	link a6,#-50
 	movea.l a7,a0
@@ -11516,8 +10748,13 @@ CODE_1_loc_00006a36:
 	move.w $000C(a6),$0016(a0)
 	clr.b $001A(a0)
 	move.l $0008(a6),$001C(a0)
-CODE_1_data_dispatch_table_00006a52:
-	dc.b $A0,$0B,$3D,$40,$00,$12,$4E,$5E,$22,$5F,$4F,$EF,$00,$0A,$4E,$D1
+CODE_1_data_00006a52:
+	_PBRenameSync
+	move.w d0,$0012(a6)
+	unlk a6
+	movea.l (a7)+,a1
+	lea.l $000A(a7),a7
+	jmp (a1)
 CODE_1_loc_00006a62:
 	link a6,#-80
 	movea.l a7,a0
@@ -11525,125 +10762,182 @@ CODE_1_loc_00006a62:
 	move.w $000C(a6),$0016(a0)
 	clr.b $001A(a0)
 	clr.w $001C(a0)
-CODE_1_data_dispatch_table_00006a7c:
-	dc.b $A0,$0C,$43,$E8,$00,$20,$20,$6E,$00,$08,$70,$10,$A0,$2E,$20,$4F
-	dc.b $A0,$0D,$3D,$40,$00,$12,$4E,$5E,$22,$5F,$4F,$EF,$00,$0A,$4E,$D1
+CODE_1_data_00006a7c:
+	_PBGetFInfoSync
+	lea.l $0020(a0),a1
+	movea.l $0008(a6),a0
+	moveq.l #16,d0
+CODE_1_data_00006a88:
+	_BlockMove
+	movea.l a7,a0
+CODE_1_data_00006a8c:
+	_PBSetFInfoSync
+	move.w d0,$0012(a6)
+	unlk a6
+	movea.l (a7)+,a1
+	lea.l $000A(a7),a7
+	jmp (a1)
 CODE_1_loc_00006a9c:
 	link a6,#-50
 	movea.l a7,a0
 	move.w $000C(a6),$0018(a0)
 	move.l $0008(a6),$001C(a0)
-CODE_1_semantic_decode_gap_00006aae:
-	dc.b $A0,$12,$3D,$40,$00,$0E,$4E,$5E,$22,$5F,$5C,$8F,$4E,$D1
+CODE_1_data_00006aae:
+	_PBSetEOFSync
+	move.w d0,$000E(a6)
+	unlk a6
+	movea.l (a7)+,a1
+	addq.l #6,a7
+	jmp (a1)
 CODE_1_loc_00006abc:
 	link a6,#-50
 	movea.l a7,a0
 	move.w $000C(a6),$0018(a0)
-CODE_1_data_dispatch_table_00006ac8:
-	dc.b $A0,$18,$3D,$40,$00,$0E,$22,$6E,$00,$08,$22,$A8,$00,$2E,$4E,$5E
-	dc.b $22,$5F,$5C,$8F,$4E,$D1
+CODE_1_data_00006ac8:
+	_PBGetFPosSync
+	move.w d0,$000E(a6)
+	movea.l $0008(a6),a1
+	move.l $002E(a0),(a1)
+	unlk a6
+	movea.l (a7)+,a1
+	addq.l #6,a7
+	jmp (a1)
 CODE_1_loc_00006ade:
 	link a6,#-50
 	movea.l a7,a0
 	move.w $000E(a6),$0018(a0)
 	move.w $000C(a6),$002C(a0)
 	move.l $0008(a6),$002E(a0)
-CODE_1_semantic_decode_gap_00006af6:
-	dc.b $A0,$44,$3D,$40,$00,$10,$4E,$5E,$22,$5F,$50,$8F,$4E,$D1
+CODE_1_data_00006af6:
+	_PBSetFPosSync
+	move.w d0,$0010(a6)
+	unlk a6
+	movea.l (a7)+,a1
+	addq.l #8,a7
+	jmp (a1)
 CODE_1_loc_00006b04:
 	movea.l (a7)+,a1
 	move.b (a7)+,d0
 	movea.l (a7)+,a0
 	bne.b CODE_1_loc_00006b10
-CODE_1_semantic_decode_gap_00006b0c:
-	dc.b $A2,$14,$60,$02
+CODE_1_data_00006b0c:
+	_PBHGetVolSync
+	bra.b CODE_1_loc_00006b12
 CODE_1_loc_00006b10:
-CODE_1_semantic_decode_gap_00006b10:
-	dc.b $A6,$14,$3E,$80,$4E,$D1
+	dc.b $A6,$14
+CODE_1_loc_00006b12:
+	move.w d0,(a7)
+	jmp (a1)
 CODE_1_loc_00006b16:
 	movea.l (a7)+,a1
 	move.b (a7)+,d0
 	movea.l (a7)+,a0
 	bne.b CODE_1_loc_00006b24
 	moveq.l #8,d0
-CODE_1_semantic_decode_gap_00006b20:
-	dc.b $A2,$60,$60,$04
+CODE_1_data_00006b20:
+	_HFSDispatch
+	bra.b CODE_1_loc_00006b28
 CODE_1_loc_00006b24:
 	moveq.l #8,d0
 CODE_1_semantic_decode_gap_00006b26:
-	dc.b $A6,$60,$3E,$80,$4E,$D1
+	dc.b $A6,$60
+CODE_1_loc_00006b28:
+	move.w d0,(a7)
+	jmp (a1)
 CODE_1_loc_00006b2c:
 	movea.l (a7)+,a1
 	move.b (a7)+,d0
 	movea.l (a7)+,a0
 	bne.b CODE_1_loc_00006b3a
 	moveq.l #9,d0
-CODE_1_semantic_decode_gap_00006b36:
-	dc.b $A2,$60,$60,$04
+CODE_1_data_00006b36:
+	_HFSDispatch
+	bra.b CODE_1_loc_00006b3e
 CODE_1_loc_00006b3a:
 	moveq.l #9,d0
 CODE_1_semantic_decode_gap_00006b3c:
-	dc.b $A6,$60,$3E,$80,$4E,$D1
+	dc.b $A6,$60
+CODE_1_loc_00006b3e:
+	move.w d0,(a7)
+	jmp (a1)
 CODE_1_loc_00006b42:
 	movea.l (a7)+,a1
 	move.b (a7)+,d0
 	movea.l (a7)+,a0
 	bne.b CODE_1_loc_00006b4e
-CODE_1_semantic_decode_gap_00006b4a:
-	dc.b $A2,$00,$60,$02
+CODE_1_data_00006b4a:
+	_PBOpenImmed
+	bra.b CODE_1_loc_00006b50
 CODE_1_loc_00006b4e:
-CODE_1_semantic_decode_gap_00006b4e:
-	dc.b $A6,$00,$3E,$80,$4E,$D1
+	dc.b $A6,$00
+CODE_1_loc_00006b50:
+	move.w d0,(a7)
+	jmp (a1)
 CODE_1_loc_00006b54:
 	movea.l (a7)+,a1
 	move.b (a7)+,d0
 	movea.l (a7)+,a0
 	bne.b CODE_1_loc_00006b60
-CODE_1_semantic_decode_gap_00006b5c:
-	dc.b $A2,$0A,$60,$02
+CODE_1_data_00006b5c:
+	_PBHOpenRFSync
+	bra.b CODE_1_loc_00006b62
 CODE_1_loc_00006b60:
-CODE_1_semantic_decode_gap_00006b60:
-	dc.b $A6,$0A,$3E,$80,$4E,$D1
+	dc.b $A6,$0A
+CODE_1_loc_00006b62:
+	move.w d0,(a7)
+	jmp (a1)
 CODE_1_loc_00006b66:
 	movea.l (a7)+,a1
 	move.b (a7)+,d0
 	movea.l (a7)+,a0
 	bne.b CODE_1_loc_00006b72
-CODE_1_semantic_decode_gap_00006b6e:
-	dc.b $A2,$08,$60,$02
+CODE_1_data_00006b6e:
+	_PBHCreateSync
+	bra.b CODE_1_loc_00006b74
 CODE_1_loc_00006b72:
-CODE_1_semantic_decode_gap_00006b72:
-	dc.b $A6,$08,$3E,$80,$4E,$D1
+	dc.b $A6,$08
+CODE_1_loc_00006b74:
+	move.w d0,(a7)
+	jmp (a1)
 CODE_1_loc_00006b78:
 	movea.l (a7)+,a1
 	move.b (a7)+,d0
 	movea.l (a7)+,a0
 	bne.b CODE_1_loc_00006b84
-CODE_1_semantic_decode_gap_00006b80:
-	dc.b $A2,$09,$60,$02
+CODE_1_data_00006b80:
+	_PBHDeleteSync
+	bra.b CODE_1_loc_00006b86
 CODE_1_loc_00006b84:
-CODE_1_semantic_decode_gap_00006b84:
-	dc.b $A6,$09,$3E,$80,$4E,$D1
+	dc.b $A6,$09
+CODE_1_loc_00006b86:
+	move.w d0,(a7)
+	jmp (a1)
 CODE_1_loc_00006b8a:
 	movea.l (a7)+,a1
 	move.b (a7)+,d0
 	movea.l (a7)+,a0
 	bne.b CODE_1_loc_00006b96
-CODE_1_semantic_decode_gap_00006b92:
-	dc.b $A2,$0C,$60,$02
+CODE_1_data_00006b92:
+	_PBHGetFInfoSync
+	bra.b CODE_1_loc_00006b98
 CODE_1_loc_00006b96:
-CODE_1_semantic_decode_gap_00006b96:
-	dc.b $A6,$0C,$3E,$80,$4E,$D1
+	dc.b $A6,$0C
+CODE_1_loc_00006b98:
+	move.w d0,(a7)
+	jmp (a1)
 CODE_1_loc_00006b9c:
 	movea.l (a7)+,a1
 	move.b (a7)+,d0
 	movea.l (a7)+,a0
 	bne.b CODE_1_loc_00006ba8
-CODE_1_semantic_decode_gap_00006ba4:
-	dc.b $A2,$0D,$60,$02
+CODE_1_data_00006ba4:
+	_PBHSetFInfoSync
+	bra.b CODE_1_loc_00006baa
 CODE_1_loc_00006ba8:
-CODE_1_semantic_decode_gap_00006ba8:
-	dc.b $A6,$0D,$3E,$80,$4E,$D1
+	dc.b $A6,$0D
+CODE_1_loc_00006baa:
+	move.w d0,(a7)
+	jmp (a1)
 CODE_1_loc_00006bae:
 	link a6,#-52
 	move.l d7,-(a7)
@@ -11753,12 +11047,43 @@ CODE_1_data_pascal_string_00006d02:
 CODE_1_loc_00006d0e:
 	link a6,#0
 	move.l #$A89F,d0
-CODE_1_data_dispatch_table_00006d18:
-	dc.b $A7,$46,$2F,$08,$20,$3C,$00,$00,$A0,$AD,$A3,$46,$B1,$DF,$67,$0E
-	dc.b $20,$2E,$00,$0C,$A1,$AD,$22,$6E,$00,$08,$22,$88,$60,$26,$41,$FA
-	dc.b $00,$36,$30,$3C,$EA,$51,$22,$2E,$00,$0C,$B2,$98,$67,$06,$4A,$98
-	dc.b $67,$12,$60,$F6,$43,$FA,$00,$20,$D3,$D0,$4E,$D1,$22,$6E,$00,$08
-	dc.b $22,$80,$42,$40,$3D,$40,$00,$10,$4E,$5E,$20,$5F,$50,$8F,$4E,$D0
+CODE_1_data_00006d18:
+	_GetToolTrapAddress
+	move.l a0,-(a7)
+	move.l #$A0AD,d0
+CODE_1_data_00006d22:
+	_GetOSTrapAddress
+	cmpa.l (a7)+,a0
+	beq.b CODE_1_loc_00006d36
+	move.l $000C(a6),d0
+CODE_1_data_00006d2c:
+	_Gestalt
+	movea.l $0008(a6),a1
+	move.l a0,(a1)
+	bra.b CODE_1_loc_00006d5c
+CODE_1_loc_00006d36:
+	lea.l CODE_1_loc_00006d6e(pc),a0
+	move.w #$EA51,d0
+	move.l $000C(a6),d1
+CODE_1_loc_00006d42:
+	cmp.l (a0)+,d1
+	beq.b CODE_1_loc_00006d4c
+	tst.l (a0)+
+	beq.b CODE_1_loc_00006d5c
+	bra.b CODE_1_loc_00006d42
+CODE_1_loc_00006d4c:
+	lea.l CODE_1_loc_00006d6e(pc),a1
+	adda.l (a0),a1
+	jmp (a1)
+CODE_1_data_dispatch_table_00006d54:
+	dc.b $22,$6E,$00,$08,$22,$80,$42,$40
+CODE_1_loc_00006d5c:
+	move.w d0,$0010(a6)
+	unlk a6
+	movea.l (a7)+,a0
+	addq.l #8,a7
+	jmp (a0)
+CODE_1_data_dispatch_table_00006d68:
 	dc.b $30,$3C,$EA,$52,$60,$EE,$76,$65,$72,$73,$00,$00,$00,$60,$6D,$61
 	dc.b $63,$68,$00,$00,$00,$64,$73,$79,$73,$76,$00,$00,$00,$88,$70,$72
 	dc.b $6F,$63,$00,$00,$00,$92,$66,$70,$75,$20,$00,$00,$00,$9E,$71,$64
@@ -11791,8 +11116,11 @@ CODE_1_loc_00006f1c:
 	movea.l $0004(a7),a0
 	move.l $0008(a7),d0
 	clr.w -(a7)
-CODE_1_semantic_decode_gap_00006f26:
-	dc.b $A9,$EE,$20,$5F,$50,$4F,$4E,$D0
+CODE_1_data_00006f26:
+	_DecStr68K
+	movea.l (a7)+,a0
+	addq.w #8,a7
+	jmp (a0)
 CODE_1_loc_00006f2e:
 	move.l $0004(a7),d0
 	move.l d0,$0008(a7)
@@ -11846,22 +11174,91 @@ CODE_1_loc_00006f80:
 	subq.w #4,a7
 	move.l #$61637572,-(a7)
 	clr.w -(a7)
-CODE_1_data_dispatch_table_00006f9e:
-	dc.b $A9,$A0,$20,$1F,$67,$12,$26,$40,$42,$43,$55,$4F,$A9,$94,$55,$4F
-	dc.b $2F,$0B,$A9,$A4,$BF,$4F,$67,$3C,$59,$4F,$2F,$3C,$61,$63,$75,$72
-	dc.b $3F,$3C,$00,$01,$A9,$A0,$20,$1F,$67,$0A,$50,$F8,$0A,$5E,$2B,$40
-	dc.b $D0,$A6,$60,$74,$59,$4F,$2F,$3C,$61,$63,$75,$72,$3F,$3C,$00,$02
-	dc.b $A9,$A0,$20,$1F,$67,$08,$26,$40,$36,$3C,$00,$02,$60,$06,$50,$F8
-	dc.b $0A,$5E,$60,$54,$50,$F8,$0A,$5E,$22,$13,$67,$04,$2F,$0B,$A9,$A3
-	dc.b $59,$4F,$2F,$3C,$61,$63,$75,$72,$3F,$03,$A9,$A0,$20,$1F,$67,$38
+CODE_1_data_00006f9e:
+	_GetResource
+	move.l (a7)+,d0
+	beq.b CODE_1_loc_00006fb6
+	movea.l d0,a3
+	clr.w d3
+	subq.w #2,a7
+CODE_1_data_00006faa:
+	_CurResFile
+	subq.w #2,a7
+	move.l a3,-(a7)
+CODE_1_data_00006fb0:
+	_HomeResFile
+	cmpm.w (a7)+,(a7)+
+	beq.b CODE_1_loc_00006ff2
+CODE_1_loc_00006fb6:
+	subq.w #4,a7
+	move.l #$61637572,-(a7)
+	move.w #$1,-(a7)
+CODE_1_data_00006fc2:
+	_GetResource
+	move.l (a7)+,d0
+	beq.b CODE_1_loc_00006fd2
+	st.b $0A5E.w
+	move.l d0,-$2F5A(a5)
+	bra.b CODE_1_loc_00007046
+CODE_1_loc_00006fd2:
+	subq.w #4,a7
+	move.l #$61637572,-(a7)
+	move.w #$2,-(a7)
+CODE_1_data_00006fde:
+	_GetResource
+	move.l (a7)+,d0
+	beq.b CODE_1_loc_00006fec
+	movea.l d0,a3
+	move.w #$2,d3
+	bra.b CODE_1_loc_00006ff2
+CODE_1_loc_00006fec:
+	st.b $0A5E.w
+	bra.b CODE_1_loc_00007046
+CODE_1_loc_00006ff2:
+	st.b $0A5E.w
+	move.l (a3),d1
+	beq.b CODE_1_loc_00006ffe
+	move.l a3,-(a7)
+CODE_1_data_00006ffc:
+	_ReleaseResource
+CODE_1_loc_00006ffe:
+	subq.w #4,a7
+	move.l #$61637572,-(a7)
+	move.w d3,-(a7)
+CODE_1_data_00007008:
+	_GetResource
+	move.l (a7)+,d0
+	beq.b CODE_1_loc_00007046
 CODE_1_loc_0000700e:
 	move.l d0,-$2F5A(a5)
 	movea.l d0,a0
-CODE_1_semantic_decode_gap_00007014:
-	dc.b $A0,$29,$26,$6D,$D0,$A6,$26,$53,$36,$13,$6F,$26,$30,$03,$D0,$40
-	dc.b $D0,$40,$36,$C0,$58,$40,$36,$C0,$53,$43,$59,$4F,$2F,$3C,$43,$55
-	dc.b $52,$53,$3F,$13,$A9,$A0,$26,$DF,$57,$CB,$FF,$F0,$66,$04,$42,$AD
-	dc.b $D0,$A6,$36,$1F,$26,$5F,$4E,$75
+CODE_1_data_00007014:
+	_HLock
+	movea.l -$2F5A(a5),a3
+	movea.l (a3),a3
+	move.w (a3),d3
+	ble.b CODE_1_loc_00007046
+	move.w d3,d0
+	add.w d0,d0
+	add.w d0,d0
+	move.w d0,(a3)+
+	addq.w #4,d0
+	move.w d0,(a3)+
+	subq.w #1,d3
+CODE_1_loc_0000702e:
+	subq.w #4,a7
+	move.l #$43555253,-(a7)
+	move.w (a3),-(a7)
+CODE_1_data_00007038:
+	_GetResource
+	move.l (a7)+,(a3)+
+	dbeq.w d3,CODE_1_loc_0000702e
+	bne.b CODE_1_loc_00007046
+	clr.l -$2F5A(a5)
+CODE_1_loc_00007046:
+	move.w (a7)+,d3
+	movea.l (a7)+,a3
+	rts
 CODE_1_loc_0000704c:
 	movea.l (a7)+,a0
 	move.l (a7)+,d2
@@ -11903,8 +11300,8 @@ CODE_1_loc_00007094:
 	move.w d2,$0002(a1)
 	movea.l $0(a1,d2.w),a1
 	move.l (a1),-(a7)
-CODE_1_semantic_decode_gap_0000709e:
-	dc.b $A8,$51
+CODE_1_data_0000709e:
+	_SetCursor
 CODE_1_loc_000070a0:
 	rts
 CODE_1_loc_000070a2:
@@ -11938,14 +11335,15 @@ CODE_1_loc_000070c6:
 CODE_1_loc_000070e0:
 	subq.w #4,a7
 	move.w d0,-(a7)
-CODE_1_semantic_decode_gap_000070e4:
-	dc.b $A9,$B9,$22,$57,$2E,$91
+CODE_1_data_000070e4:
+	_GetCursor
+	movea.l (a7),a1
+	move.l (a1),(a7)
 CODE_1_loc_000070ea:
-CODE_1_semantic_decode_gap_000070ea:
-	dc.b $A8,$51
+	_SetCursor
 CODE_1_loc_000070ec:
-CODE_1_semantic_decode_gap_000070ec:
-	dc.b $A8,$53,$4E,$75
+	_ShowCursor
+	rts
 CODE_1_loc_000070f0:
 	rts
 CODE_1_loc_000070f2:
@@ -11970,58 +11368,22 @@ CODE_1_loc_000070f2:
 CODE_1_loc_0000712a:
 	pea.l CODE_1_loc_00007138(pc)
 	move.w #$FE15,d0
-CODE_1_semantic_decode_gap_00007132:
-	dc.b $A9,$C9
+CODE_1_data_00007132:
+	_SysError
 CODE_1_loc_00007134:
 	addq.w #4,a7
 	rts
 CODE_1_loc_00007138:
-CODE_1_semantic_decode_gap_00007138:
 	dc.b $1B,$44,$61,$74,$61,$20,$69,$6E,$69,$74,$69,$61,$6C,$69,$7A,$61
 	dc.b $74,$69,$6F,$6E,$20,$66,$61,$69,$6C,$65,$64,$21,$42,$A7,$4E,$BA
 	dc.b $F6,$DA,$42,$A7,$4E,$BA,$F6,$D4
 
-; CODE 2 FPOpTable source section
+; CODE 2 FPOpTable
 CODE_2:
-;   source_section_id: macos-code-CODE-2
-;   source_kind: macos_code_resource
-;   backend: macos-code
-;   status: semantic_source
-;   resource_type: CODE
-;   id: 2
-;   name: FPOpTable
-;   role: code_segment
-;   code_kind: code_segment
-;   payload_size: 7788
-;   payload_sha256: a33f1dfe28237a5ee6f9ba7a96540e8e4842a7e6207575db5f0479b8c622a4f2
-;   presentation: kind=c_owned_restored_source_packet status=covered visible=True identity=macos-code:CODE:2
-;   listing: kind=semantic_listing available=True reason=C-owned semantic rows from generated loader/CODE0 entry seeds
-;   restored_source_model:
-;     model=restored_source_model_v1 round_trip_required=false
-;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 2 name=unknown
-;     a5_world status=deferred parser_use=unknown
-;     ownership_ranges:
-;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
-;       1: role=candidate_unresolved_prefix span=40..374 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
-;       2: role=candidate_code span=374..7788 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
-;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
-;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
-;   source_body_ranges:
-;     metadata payload[0..40) size=40 entrypoint=False
-;     candidate_unresolved_prefix payload[40..374) size=334 entrypoint=False
-;     candidate_code payload[374..7788) size=7414 entrypoint=True
-;   rendered_source: CODE 2 status=semantic_rows payload[0..7788) sha256=a33f1dfe28237a5ee6f9ba7a96540e8e4842a7e6207575db5f0479b8c622a4f2
-;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
-;   source_rows:
-;     metadata payload[0..40)
 CODE_2_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$03,$A0,$00,$00,$00,$07,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00
-;     candidate_unresolved_prefix payload[40..374)
-;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=659 labels=80 xrefs=94
 CODE_2_loc_00000028:
 	move.l (a7)+,d0
 	move.l d0,$0010(a7)
@@ -12089,28 +11451,98 @@ CODE_2_loc_000000a6:
 	movea.l (a7),a0
 	move.l d2,(a7)
 	jmp (a0)
-CODE_2_data_dispatch_table_000000ac:
-	dc.b $4E,$56,$00,$00,$48,$E7,$1E,$00,$22,$6E,$00,$20,$36,$2E,$00,$1A
-	dc.b $38,$2E,$00,$18,$20,$6E,$00,$10,$3A,$10,$20,$49,$54,$48,$0C,$6E
-	dc.b $18,$00,$00,$1E,$67,$0C,$30,$10,$02,$40,$08,$00,$C0,$6E,$00,$1E
-	dc.b $66,$38,$10,$18,$02,$40,$00,$01,$67,$08,$0C,$6D,$00,$20,$F3,$98
-	dc.b $6D,$28,$42,$46,$10,$10,$67,$06,$3C,$05,$CC,$40,$67,$1C,$4E,$AD
-	dc.b $05,$7A,$4A,$43,$66,$04,$4A,$81,$67,$04,$07,$01,$67,$0C,$4A,$44
-	dc.b $66,$04,$4A,$82,$67,$14,$09,$02,$66,$10,$59,$4F,$2F,$09,$4E,$AD
-	dc.b $05,$72,$22,$5F,$66,$A4,$42,$40,$60,$4A,$20,$09,$41,$FA,$00,$9E
-	dc.b $90,$88,$20,$6E,$00,$08,$30,$80,$42,$40,$52,$49,$20,$6E,$00,$0C
-	dc.b $10,$11,$30,$80,$0C,$06,$00,$07,$6E,$06,$1C,$3B,$60,$38,$60,$1C
-	dc.b $0C,$06,$00,$08,$67,$16,$0C,$06,$00,$10,$67,$10,$0C,$06,$00,$20
-	dc.b $67,$0A,$0C,$06,$00,$40,$67,$04,$1C,$3C,$00,$20,$20,$6E,$00,$10
-	dc.b $30,$86,$70,$01,$4C,$DF,$00,$78,$4E,$5E
-;     candidate_code payload[374..7788)
-;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=659 labels=80 xrefs=94
-CODE_2_loc_00000176:
+CODE_2_loc_000000ac:
+	link a6,#0
+	movem.l d3-d6,-(a7)
+	movea.l $0020(a6),a1
+	move.w $001A(a6),d3
+	move.w $0018(a6),d4
+	movea.l $0010(a6),a0
+	move.w (a0),d5
+CODE_2_loc_000000c6:
+	movea.l a1,a0
+	addq.w #2,a0
+	cmpi.w #6144,$001E(a6)
+	beq.b CODE_2_loc_000000de
+	move.w (a0),d0
+	andi.w #2048,d0
+	and.w $001E(a6),d0
+	bne.b CODE_2_loc_00000116
+CODE_2_loc_000000de:
+	move.b (a0)+,d0
+	andi.w #1,d0
+	beq.b CODE_2_loc_000000ee
+	cmpi.w #32,-$0C68(a5)
+	blt.b CODE_2_loc_00000116
+CODE_2_loc_000000ee:
+	clr.w d6
+	move.b (a0),d0
+	beq.b CODE_2_loc_000000fa
+	move.w d5,d6
+	and.w d0,d6
+	beq.b CODE_2_loc_00000116
+CODE_2_loc_000000fa:
+	jsr $057A(a5)
+	tst.w d3
+	bne.b CODE_2_loc_00000106
+	tst.l d1
+	beq.b CODE_2_loc_0000010a
+CODE_2_loc_00000106:
+	btst d3,d1
+	beq.b CODE_2_loc_00000116
+CODE_2_loc_0000010a:
+	tst.w d4
+	bne.b CODE_2_loc_00000112
+	tst.l d2
+	beq.b CODE_2_loc_00000126
+CODE_2_loc_00000112:
+	btst d4,d2
+	bne.b CODE_2_loc_00000126
+CODE_2_loc_00000116:
+	subq.w #4,a7
+	move.l a1,-(a7)
+	jsr $0572(a5)
+	movea.l (a7)+,a1
+	bne.b CODE_2_loc_000000c6
+	clr.w d0
+	bra.b CODE_2_loc_00000170
+CODE_2_loc_00000126:
+	move.l a1,d0
+	lea.l CODE_2_loc_000001c8(pc),a0
+	sub.l a0,d0
+	movea.l $0008(a6),a0
+	move.w d0,(a0)
+	clr.w d0
+	addq.w #1,a1
+	movea.l $000C(a6),a0
+	move.b (a1),d0
+	move.w d0,(a0)
+	cmpi.b #7,d6
+	bgt.b CODE_2_loc_0000014c
+	move.b CODE_2_loc_00000180(pc,d6.w),d6
+	bra.b CODE_2_loc_00000168
+CODE_2_loc_0000014c:
+	cmpi.b #8,d6
+	beq.b CODE_2_loc_00000168
+	cmpi.b #16,d6
+	beq.b CODE_2_loc_00000168
+	cmpi.b #32,d6
+	beq.b CODE_2_loc_00000168
+	cmpi.b #64,d6
+	beq.b CODE_2_loc_00000168
+	move.b #$20,d6
+CODE_2_loc_00000168:
+	movea.l $0010(a6),a0
+	move.w d6,(a0)
+	moveq.l #1,d0
+CODE_2_loc_00000170:
+	movem.l (a7)+,d3-d6
+	unlk a6
 	movea.l (a7)+,a0
 	lea.l $001C(a7),a7
 	move.b d0,(a7)
 	jmp (a0)
-CODE_2_semantic_decode_gap_00000180:
+CODE_2_loc_00000180:
 	dc.b $00,$01,$02,$02,$04,$04,$02,$02
 CODE_2_loc_00000188:
 	move.l (a7)+,d2
@@ -12143,7 +11575,6 @@ CODE_2_loc_000001c2:
 	lea.l CODE_2_loc_000001c8(pc),a0
 	rts
 CODE_2_loc_000001c8:
-CODE_2_data_dispatch_table_000001c8:
 	dc.b $01,$F6,$00,$00,$00,$00,$02,$08,$02,$18,$02,$38,$02,$4A,$02,$5A
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$02,$AC,$00,$00,$02,$BC
 	dc.b $02,$CE,$02,$E0,$02,$EE,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
@@ -12667,11 +12098,8 @@ CODE_2_loc_00001776:
 	move.l (a7)+,(a7)
 	rts
 CODE_2_loc_00001780:
-CODE_2_semantic_decode_gap_00001780:
-	dc.b $00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-CODE_2_loc_0000178a:
-CODE_2_semantic_decode_gap_0000178a:
-	dc.b $80,$00,$00,$00,$00,$00,$00,$00,$00,$00
+	dc.b $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$80,$00,$00,$00,$00,$00
+	dc.b $00,$00,$00,$00
 CODE_2_loc_00001794:
 	link a6,#0
 	move.l a4,-(a7)
@@ -12810,8 +12238,11 @@ CODE_2_loc_000018d4:
 	pea.l -$003E(a6)
 	pea.l $0002(a4)
 	move.w #$1010,-(a7)
-CODE_2_data_dispatch_table_00001900:
-	dc.b $A9,$EB,$18,$BC,$00,$05,$7A,$08,$60,$00,$00,$92
+CODE_2_data_00001900:
+	_FP68K
+	move.b #$5,(a4)
+	moveq.l #8,d5
+	bra.w CODE_2_loc_0000199c
 CODE_2_loc_0000190c:
 	moveq.l #16,d0
 	cmp.w $0010(a6),d0
@@ -12823,8 +12254,11 @@ CODE_2_loc_0000190c:
 	pea.l -$003E(a6)
 	pea.l $0002(a4)
 	move.w #$810,-(a7)
-CODE_2_semantic_decode_gap_0000192e:
-	dc.b $A9,$EB,$18,$BC,$00,$09,$7A,$10,$60,$64
+CODE_2_data_0000192e:
+	_FP68K
+	move.b #$9,(a4)
+	moveq.l #16,d5
+	bra.b CODE_2_loc_0000199c
 CODE_2_loc_00001938:
 	clr.w d0
 	move.b -$0029(a6),d0
@@ -12868,6 +12302,7 @@ CODE_2_loc_0000198a:
 CODE_2_loc_00001996:
 	move.b #$D,(a4)
 	moveq.l #24,d5
+CODE_2_loc_0000199c:
 	move.b -$0033(a6),d0
 	beq.w CODE_2_loc_00001a4a
 	moveq.l #0,d0
@@ -13018,8 +12453,6 @@ CODE_2_loc_00001b24:
 CODE_2_data_dispatch_table_00001b34:
 	dc.b $87,$44,$45,$43,$4C,$41,$52,$45,$00,$0C,$05,$46,$50,$49,$41,$52
 	dc.b $04,$46,$50,$49,$41,$00
-CODE_2_loc_00001b3e:
-CODE_2_loc_00001b44:
 CODE_2_loc_00001b4a:
 	link a6,#-12
 	move.w #$8014,-$0002(a6)
@@ -13054,9 +12487,6 @@ CODE_2_data_dispatch_table_00001ba6:
 	dc.b $FF,$00,$20,$6E,$00,$08,$43,$EE,$FF,$00,$70,$7F,$32,$D8,$51,$C8
 	dc.b $FF,$FC,$3F,$3C,$00,$BF,$48,$6E,$FF,$00,$4E,$AD,$07,$C2,$4E,$5E
 	dc.b $20,$5F,$58,$4F,$4E,$D0,$83,$45,$52,$52,$00,$00
-CODE_2_loc_00001bb2:
-CODE_2_loc_00001bb8:
-CODE_2_loc_00001bbe:
 CODE_2_loc_00001bf2:
 	link a6,#-10
 	move.l d7,-(a7)
@@ -13099,11 +12529,14 @@ CODE_2_loc_00001c50:
 	move.w CODE_2_loc_00001c70(pc,d0.w),d0
 	jmp $0(pc,d0.w)
 CODE_2_loc_00001c70:
-CODE_2_data_dispatch_table_00001c70:
-	dc.b $00,$0E,$00,$98,$00,$98,$01,$02,$01,$02,$01,$78,$42,$67,$48,$6E
-	dc.b $FF,$FA,$4E,$AD,$02,$02,$10,$1F,$67,$70,$4A,$AE,$FF,$FA,$5F,$C0
-	dc.b $4A,$00,$66,$0C,$72,$07,$B2,$AE,$FF,$FA,$5D,$C1,$80,$01,$67,$0C
-	dc.b $48,$7A,$01,$C4,$4E,$BA,$FF,$1E,$60,$00,$01,$7C,$70,$09,$22,$2E
+	dc.w $000E,$0098,$0098,$0102,$0102,$0178,$4267,$486E	; lookup_table
+CODE_2_data_00001c70:
+	dc.w $FFFA,$4EAD,$0202,$101F,$6770,$4AAE,$FFFA,$5FC0	; lookup_table
+CODE_2_data_00001c70:
+	dc.w $4A00,$660C,$7207,$B2AE,$FFFA,$5DC1,$8001,$670C	; lookup_table
+CODE_2_data_00001c70:
+	dc.w $487A,$01C4,$4EBA,$FF1E,$6000,$017C,$7009,$222E	; lookup_table
+CODE_2_data_dispatch_table_00001cb0:
 	dc.b $FF,$FA,$E1,$A9,$3B,$41,$F3,$C2,$70,$20,$B0,$6D,$F3,$98,$5F,$C0
 	dc.b $4A,$00,$67,$1A,$0C,$6D,$02,$00,$F3,$C2,$56,$C1,$C0,$01,$67,$0E
 	dc.b $3F,$3C,$00,$F0,$4E,$AD,$07,$CA,$3B,$7C,$02,$00,$F3,$C2,$3F,$3C
@@ -13143,47 +12576,12 @@ CODE_2_data_dispatch_table_00001e3c:
 	dc.b $61,$63,$74,$6F,$72,$00,$08,$52,$6F,$75,$6E,$64,$69,$6E,$67,$00
 	dc.b $09,$50,$72,$65,$63,$69,$73,$69,$6F,$6E,$04,$43,$6F,$49,$64,$00
 
-; CODE 3 Init source section
+; CODE 3 Init
 CODE_3:
-;   source_section_id: macos-code-CODE-3
-;   source_kind: macos_code_resource
-;   backend: macos-code
-;   status: semantic_source
-;   resource_type: CODE
-;   id: 3
-;   name: Init
-;   role: code_segment
-;   code_kind: code_segment
-;   payload_size: 18252
-;   payload_sha256: 331fc8e7daf79d4e733760cb8ad413ade51431a01dd6c19c4f73720f562b08e4
-;   presentation: kind=c_owned_restored_source_packet status=covered visible=True identity=macos-code:CODE:3
-;   listing: kind=semantic_listing available=True reason=C-owned semantic rows from generated loader/CODE0 entry seeds
-;   restored_source_model:
-;     model=restored_source_model_v1 round_trip_required=false
-;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 3 name=unknown
-;     a5_world status=deferred parser_use=unknown
-;     ownership_ranges:
-;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
-;       1: role=candidate_unresolved_prefix span=40..302 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
-;       2: role=candidate_code span=302..18252 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
-;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
-;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
-;   source_body_ranges:
-;     metadata payload[0..40) size=40 entrypoint=False
-;     candidate_unresolved_prefix payload[40..302) size=262 entrypoint=False
-;     candidate_code payload[302..18252) size=17950 entrypoint=True
-;   rendered_source: CODE 3 status=semantic_rows payload[0..18252) sha256=331fc8e7daf79d4e733760cb8ad413ade51431a01dd6c19c4f73720f562b08e4
-;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
-;   source_rows:
-;     metadata payload[0..40)
 CODE_3_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$03,$D8,$00,$00,$00,$03,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00
-;     candidate_unresolved_prefix payload[40..302)
-;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=2999 labels=449 xrefs=457
 CODE_3_loc_00000028:
 	suba.l a0,a0
 	jsr $061A(a5)
@@ -13193,8 +12591,13 @@ CODE_3_loc_00000028:
 	move.w #$100,(a0)+
 	move.w (a7)+,(a0)
 	jmp (a1)
-CODE_3_semantic_decode_gap_00000040:
-	dc.b $4E,$56,$FF,$F8,$48,$6D,$D2,$72,$4E,$AD,$09,$FA,$4E,$5E,$4E,$75
+CODE_3_loc_00000040:
+	link a6,#-8
+	pea.l -$2D8E(a5)
+	jsr $09FA(a5)
+	unlk a6
+	rts
+CODE_3_data_pascal_string_00000050:
 	dc.b $8B,$43,$4C,$45,$41,$52,$53,$43,$52,$45,$45,$4E,$00,$00
 CODE_3_loc_0000005e:
 	link a6,#-2
@@ -13270,9 +12673,6 @@ CODE_3_loc_00000112:
 CODE_3_loc_0000012a:
 	move.l (a7)+,d7
 	unlk a6
-;     candidate_code payload[302..18252)
-;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=2999 labels=449 xrefs=457
-CODE_3_loc_0000012e:
 	movea.l (a7)+,a0
 	addq.w #2,a7
 	jmp (a0)
@@ -13303,10 +12703,8 @@ CODE_3_loc_00000178:
 	adda.w #$C,a7
 	jmp (a0)
 CODE_3_semantic_decode_gap_0000019a:
-	dc.b $8A,$49,$4E,$49,$54,$45,$52,$52,$4D,$47,$52,$00,$00,$0C
-CODE_3_loc_000001a8:
-CODE_3_semantic_decode_gap_000001a8:
-	dc.b $0B,$53,$79,$73,$45,$72,$72,$73,$2E,$45,$72,$72
+	dc.b $8A,$49,$4E,$49,$54,$45,$52,$52,$4D,$47,$52,$00,$00,$0C,$0B,$53
+	dc.b $79,$73,$45,$72,$72,$73,$2E,$45,$72,$72
 CODE_3_loc_000001b4:
 	link a6,#-1028
 	movem.l d6-d7/a3-a4,-(a7)
@@ -13661,16 +13059,6 @@ CODE_3_data_dispatch_table_000005c4:
 	dc.b $11,$3C,$53,$74,$61,$6E,$64,$61,$72,$64,$20,$4F,$75,$74,$70,$75
 	dc.b $74,$3E,$04,$2E,$6C,$73,$74,$00,$10,$3C,$53,$74,$61,$6E,$64,$61
 	dc.b $72,$64,$20,$49,$6E,$70,$75,$74,$3E,$00
-CODE_3_loc_000005d2:
-CODE_3_loc_000005d4:
-CODE_3_loc_000005e2:
-CODE_3_loc_000005e6:
-CODE_3_loc_000005ea:
-CODE_3_loc_00000612:
-CODE_3_loc_00000636:
-CODE_3_loc_00000644:
-CODE_3_loc_00000656:
-CODE_3_loc_0000065c:
 CODE_3_loc_0000066e:
 	link a6,#0
 	clr.b -$0C90(a5)
@@ -13799,15 +13187,8 @@ CODE_3_loc_00000854:
 	rts
 CODE_3_semantic_decode_gap_00000860:
 	dc.b $8C,$49,$4E,$49,$54,$4D,$41,$43,$52,$4F,$4D,$47,$52,$00,$00,$1C
-CODE_3_loc_00000870:
-CODE_3_semantic_decode_gap_00000870:
-	dc.b $0C,$31,$32,$33,$34,$35,$36,$37,$38,$39,$30,$31,$32,$00
-CODE_3_loc_0000087e:
-CODE_3_semantic_decode_gap_0000087e:
-	dc.b $06,$31,$32,$33,$34,$35,$36,$00
-CODE_3_loc_00000886:
-CODE_3_semantic_decode_gap_00000886:
-	dc.b $05,$57,$48,$49,$4C,$45
+	dc.b $0C,$31,$32,$33,$34,$35,$36,$37,$38,$39,$30,$31,$32,$00,$06,$31
+	dc.b $32,$33,$34,$35,$36,$00,$05,$57,$48,$49,$4C,$45
 CODE_3_loc_0000088c:
 	link a6,#-12
 	movem.l a3-a4,-(a7)
@@ -14034,27 +13415,6 @@ CODE_3_data_dispatch_table_00000b0e:
 	dc.b $6F,$75,$6C,$64,$20,$6E,$6F,$74,$20,$61,$6C,$6C,$6F,$63,$61,$74
 	dc.b $65,$20,$67,$6C,$6F,$62,$61,$6C,$20,$73,$79,$6D,$62,$6F,$6C,$20
 	dc.b $74,$61,$62,$6C,$65,$2E
-CODE_3_loc_00000b1e:
-CODE_3_loc_00000b52:
-CODE_3_loc_00000b8a:
-CODE_3_loc_00000bb4:
-CODE_3_loc_00000be2:
-CODE_3_loc_00000c0c:
-CODE_3_loc_00000c40:
-CODE_3_loc_00000c44:
-CODE_3_loc_00000c48:
-CODE_3_loc_00000c4e:
-CODE_3_loc_00000c52:
-CODE_3_loc_00000c58:
-CODE_3_loc_00000c5c:
-CODE_3_loc_00000c60:
-CODE_3_loc_00000c64:
-CODE_3_loc_00000c68:
-CODE_3_loc_00000c6c:
-CODE_3_loc_00000c70:
-CODE_3_loc_00000c74:
-CODE_3_loc_00000c78:
-CODE_3_loc_00000c7c:
 CODE_3_loc_00000ca4:
 	link a6,#-766
 	lea.l -$01FE(a6),a0
@@ -14439,35 +13799,6 @@ CODE_3_data_dispatch_table_00001056:
 	dc.b $45,$4E,$20,$20,$2E,$50,$41,$47,$45,$20,$20,$20,$2E,$4E,$4F,$50
 	dc.b $41,$47,$45,$20,$2E,$57,$41,$52,$4E,$20,$20,$20,$2E,$4E,$4F,$57
 	dc.b $41,$52,$4E,$20,$2E,$00
-CODE_3_loc_00001066:
-CODE_3_loc_00001088:
-CODE_3_loc_000010b6:
-CODE_3_loc_000010ce:
-CODE_3_loc_00001106:
-CODE_3_loc_0000113e:
-CODE_3_loc_00001176:
-CODE_3_loc_00001182:
-CODE_3_loc_000011c0:
-CODE_3_loc_000011fe:
-CODE_3_loc_0000123c:
-CODE_3_loc_0000127a:
-CODE_3_loc_000012b8:
-CODE_3_loc_000012f6:
-CODE_3_loc_00001334:
-CODE_3_loc_00001344:
-CODE_3_loc_0000136e:
-CODE_3_loc_000013a6:
-CODE_3_loc_000013be:
-CODE_3_loc_00001402:
-CODE_3_loc_00001418:
-CODE_3_loc_0000144a:
-CODE_3_loc_00001464:
-CODE_3_loc_00001496:
-CODE_3_loc_0000158a:
-CODE_3_loc_000015a4:
-CODE_3_loc_000015c6:
-CODE_3_loc_00001608:
-CODE_3_loc_0000164a:
 CODE_3_loc_0000168c:
 	link a6,#-512
 	movea.l $0008(a6),a0
@@ -14493,8 +13824,6 @@ CODE_3_data_dispatch_table_000016cc:
 	dc.b $8B,$53,$59,$4E,$54,$41,$58,$45,$52,$52,$4F,$52,$00,$14,$01,$29
 	dc.b $10,$3A,$20,$53,$79,$6E,$74,$61,$78,$20,$65,$72,$72,$6F,$72,$20
 	dc.b $28,$00
-CODE_3_loc_000016da:
-CODE_3_loc_000016dc:
 CODE_3_loc_000016ee:
 	link a6,#0
 	lea.l -$0106(a5),a0
@@ -14640,7 +13969,6 @@ CODE_3_loc_00001874:
 CODE_3_data_dispatch_table_00001882:
 	dc.b $8C,$4E,$45,$58,$54,$4C,$49,$53,$54,$49,$54,$45,$4D,$00,$00,$02
 	dc.b $01,$2C
-CODE_3_loc_00001892:
 CODE_3_loc_00001894:
 	link a6,#-270
 	movem.l d4-d7/a4,-(a7)
@@ -14836,7 +14164,6 @@ CODE_3_data_dispatch_table_000019fa:
 	dc.b $10,$80,$4E,$5E,$20,$5F,$DE,$FC,$00,$10,$4E,$D0,$88,$53,$45,$54
 	dc.b $56,$41,$4C,$55,$45,$00,$00,$0C,$08,$4F,$70,$74,$69,$6F,$6E,$3A
 	dc.b $20,$00,$01,$20
-CODE_3_loc_00001a08:
 CODE_3_loc_00001c4e:
 	link a6,#0
 	move.l -$12A6(a5),d0
@@ -15245,21 +14572,6 @@ CODE_3_data_dispatch_table_000020b0:
 	dc.b $65,$00,$01,$24,$13,$2D,$64,$20,$5B,$26,$5D,$6E,$61,$6D,$65,$3D
 	dc.b $27,$73,$74,$72,$69,$6E,$67,$27,$12,$2D,$64,$20,$5B,$26,$5D,$6E
 	dc.b $61,$6D,$65,$5B,$3D,$76,$61,$6C,$75,$65,$5D,$00,$01,$3D
-CODE_3_loc_000020be:
-CODE_3_loc_000020ca:
-CODE_3_loc_000020ec:
-CODE_3_loc_0000210c:
-CODE_3_loc_00002132:
-CODE_3_loc_00002144:
-CODE_3_loc_00002156:
-CODE_3_loc_0000215a:
-CODE_3_loc_00002178:
-CODE_3_loc_0000219c:
-CODE_3_loc_000021b2:
-CODE_3_loc_000021d2:
-CODE_3_loc_000021d4:
-CODE_3_loc_000021e8:
-CODE_3_loc_000021fc:
 CODE_3_loc_000021fe:
 	link a6,#-2
 	movem.l d7/a4,-(a7)
@@ -15322,8 +14634,6 @@ CODE_3_data_dispatch_table_000022ae:
 	dc.b $8F,$53,$45,$54,$55,$50,$45,$52,$52,$4C,$4F,$47,$46,$49,$4C,$45
 	dc.b $00,$1A,$0B,$4F,$70,$74,$69,$6F,$6E,$3A,$20,$2D,$65,$20,$0D,$2D
 	dc.b $65,$20,$3C,$66,$69,$6C,$65,$6E,$61,$6D,$65,$3E
-CODE_3_loc_000022c0:
-CODE_3_loc_000022cc:
 CODE_3_loc_000022da:
 	link a6,#-774
 	movem.l d6-d7/a4,-(a7)
@@ -15535,13 +14845,6 @@ CODE_3_data_dispatch_table_00002466:
 	dc.b $20,$73,$69,$7A,$65,$20,$20,$69,$6E,$76,$61,$6C,$69,$64,$20,$66
 	dc.b $6F,$6E,$74,$20,$73,$69,$7A,$65,$08,$2D,$66,$73,$20,$73,$69,$7A
 	dc.b $65,$00
-CODE_3_loc_00002474:
-CODE_3_loc_00002488:
-CODE_3_loc_000024a6:
-CODE_3_loc_000024d2:
-CODE_3_loc_000024ee:
-CODE_3_loc_00002512:
-CODE_3_loc_0000252e:
 CODE_3_loc_00002958:
 	link a6,#-262
 	move.l d7,-(a7)
@@ -15607,12 +14910,7 @@ CODE_3_loc_00002a00:
 	rts
 CODE_3_semantic_decode_gap_00002a08:
 	dc.b $90,$53,$45,$54,$44,$45,$42,$55,$47,$47,$49,$4E,$47,$49,$4E,$46
-	dc.b $4F,$00,$00,$1A
-CODE_3_loc_00002a1c:
-CODE_3_semantic_decode_gap_00002a1c:
-	dc.b $0B,$4F,$70,$74,$69,$6F,$6E,$3A,$20,$2D,$C6,$20
-CODE_3_loc_00002a28:
-CODE_3_semantic_decode_gap_00002a28:
+	dc.b $4F,$00,$00,$1A,$0B,$4F,$70,$74,$69,$6F,$6E,$3A,$20,$2D,$C6,$20
 	dc.b $0D,$2D,$C6,$20,$64,$65,$62,$75,$67,$66,$6C,$61,$67,$73
 CODE_3_loc_00002a36:
 	link a6,#-770
@@ -15727,10 +15025,6 @@ CODE_3_data_dispatch_table_00002ad8:
 	dc.b $6E,$3A,$20,$2D,$6D,$65,$6D,$73,$69,$7A,$65,$20,$0F,$2D,$6D,$65
 	dc.b $6D,$73,$69,$7A,$65,$20,$3C,$73,$69,$7A,$65,$3E,$01,$42,$01,$4B
 	dc.b $01,$3F
-CODE_3_loc_00002aea:
-CODE_3_loc_00002af6:
-CODE_3_loc_00002af8:
-CODE_3_loc_00002b06:
 CODE_3_loc_00002e9a:
 	link a6,#-512
 	movem.l a3-a4,-(a7)
@@ -15797,10 +15091,6 @@ CODE_3_data_dispatch_table_00002f5a:
 	dc.b $2D,$69,$20,$70,$61,$74,$68,$2C,$2E,$2E,$2E,$20,$28,$6D,$6F,$72
 	dc.b $65,$20,$74,$68,$61,$6E,$20,$00,$0B,$2D,$69,$20,$70,$61,$74,$68
 	dc.b $2C,$2E,$2E,$2E
-CODE_3_loc_00002f70:
-CODE_3_loc_00002f7c:
-CODE_3_loc_00002f88:
-CODE_3_loc_00002fa2:
 CODE_3_loc_00002fae:
 	link a6,#0
 	move.l a4,-(a7)
@@ -15878,8 +15168,6 @@ CODE_3_data_dispatch_table_0000300a:
 	dc.b $03,$46,$41,$52,$04,$4E,$45,$41,$52,$00,$0F,$4F,$70,$74,$69,$6F
 	dc.b $6E,$3A,$20,$2D,$6D,$6F,$64,$65,$6C,$20,$13,$2D,$6D,$6F,$64,$65
 	dc.b $6C,$20,$3C,$46,$41,$52,$20,$7C,$20,$4E,$45,$41,$52,$3E
-CODE_3_loc_00003022:
-CODE_3_loc_0000302e:
 CODE_3_loc_00003308:
 	link a6,#-568
 	movem.l d3-d7/a2-a4,-(a7)
@@ -15976,11 +15264,14 @@ CODE_3_loc_000033ea:
 	move.w CODE_3_loc_0000342c(pc,d0.w),d0
 	jmp $0(pc,d0.w)
 CODE_3_loc_0000342c:
-CODE_3_data_dispatch_table_0000342c:
-	dc.b $00,$26,$00,$30,$00,$3A,$00,$44,$00,$4E,$00,$58,$00,$62,$00,$7A
-	dc.b $00,$82,$00,$9A,$00,$A2,$00,$AA,$00,$CA,$00,$D2,$00,$DC,$00,$E4
-	dc.b $00,$EC,$00,$F4,$3D,$7C,$00,$C5,$FF,$FA,$60,$00,$00,$D2,$3D,$7C
-	dc.b $00,$65,$FF,$FA,$60,$00,$00,$C8,$3D,$7C,$00,$64,$FF,$FA,$60,$00
+	dc.w $0026,$0030,$003A,$0044,$004E,$0058,$0062,$007A	; lookup_table
+CODE_3_data_0000342c:
+	dc.w $0082,$009A,$00A2,$00AA,$00CA,$00D2,$00DC,$00E4	; lookup_table
+CODE_3_data_0000342c:
+	dc.w $00EC,$00F4,$3D7C,$00C5,$FFFA,$6000,$00D2,$3D7C	; lookup_table
+CODE_3_data_0000342c:
+	dc.w $0065,$FFFA,$6000,$00C8,$3D7C,$0064,$FFFA,$6000	; lookup_table
+CODE_3_data_dispatch_table_0000346c:
 	dc.b $00,$BE,$2F,$0E,$4E,$BA,$F6,$A2,$60,$00,$00,$B4,$2F,$0E,$4E,$BA
 	dc.b $F7,$A6,$60,$00,$00,$AA,$3D,$7C,$00,$63,$FF,$FA,$60,$00,$00,$A0
 	dc.b $48,$6D,$F3,$8E,$48,$7A,$02,$BE,$2F,$3C,$00,$FB,$00,$06,$2F,$0E
@@ -16174,13 +15465,6 @@ CODE_3_data_dispatch_table_000036ec:
 	dc.b $2E,$49,$44,$4C,$45,$4E,$20,$20,$20,$2E,$19,$73,$69,$6E,$67,$6C
 	dc.b $65,$20,$22,$2D,$22,$20,$69,$73,$20,$6E,$6F,$74,$20,$61,$6C,$6C
 	dc.b $6F,$77,$65,$64
-CODE_3_loc_000036fc:
-CODE_3_loc_00003706:
-CODE_3_loc_00003708:
-CODE_3_loc_00003760:
-CODE_3_loc_00003786:
-CODE_3_loc_000037c6:
-CODE_3_loc_00003806:
 CODE_3_loc_00003820:
 	link a6,#-10
 	movem.l a3-a4,-(a7)
@@ -16250,7 +15534,6 @@ CODE_3_loc_000038ce:
 CODE_3_data_dispatch_table_000038dc:
 	dc.b $8B,$53,$43,$41,$4E,$41,$52,$47,$4C,$49,$53,$54,$00,$0C,$0A,$46
 	dc.b $69,$6C,$65,$20,$61,$72,$67,$3A,$20,$00
-CODE_3_loc_000038ea:
 CODE_3_loc_000038f6:
 	link a6,#-1394
 	movem.l d4-d7/a3-a4,-(a7)
@@ -16957,35 +16240,14 @@ CODE_3_data_dispatch_table_000041f0:
 	dc.b $2D,$31,$39,$39,$35,$00,$14,$20,$20,$20,$20,$20,$20,$20,$20,$20
 	dc.b $20,$20,$20,$20,$20,$20,$20,$20,$20,$20,$20,$00,$18,$4D,$43,$36
 	dc.b $38,$30,$78,$78,$20,$41,$73,$73,$65,$6D,$62,$6C,$65,$72,$20,$2D
-	dc.b $20,$56,$65,$72,$20,$00,$00,$00,$04,$50,$61,$67,$65,$00,$06,$4D
-	dc.b $6F,$6E,$61,$63,$6F,$00,$27,$43,$6F,$75,$6C,$64,$20,$6E,$6F,$74
-	dc.b $20,$61,$6C,$6C,$6F,$63,$61,$74,$65,$20,$67,$65,$6E,$65,$72,$61
-	dc.b $6C,$20,$6D,$65,$6D,$6F,$72,$79,$20,$7A,$6F,$6E,$65,$2E
-CODE_3_loc_000041fa:
-CODE_3_loc_00004206:
-CODE_3_loc_00004212:
-CODE_3_loc_00004214:
-CODE_3_loc_0000423a:
-CODE_3_loc_0000425c:
-CODE_3_loc_00004284:
-CODE_3_loc_000042a6:
-CODE_3_loc_000042c2:
-CODE_3_loc_000042fa:
-CODE_3_loc_00004300:
-CODE_3_loc_00004306:
-CODE_3_loc_00004328:
-CODE_3_loc_00004346:
-CODE_3_loc_00004350:
-CODE_3_loc_00004362:
-CODE_3_loc_00004372:
-CODE_3_loc_00004396:
-CODE_3_loc_000043ac:
-CODE_3_loc_000043d6:
-CODE_3_loc_000043ec:
+	dc.b $20,$56,$65,$72,$20,$00
 CODE_3_loc_00004406:
+	dc.w $0000
 CODE_3_loc_00004408:
-CODE_3_loc_0000440e:
-CODE_3_loc_00004416:
+	dc.b $04,$50,$61,$67,$65,$00,$06,$4D,$6F,$6E,$61,$63,$6F,$00,$27,$43
+	dc.b $6F,$75,$6C,$64,$20,$6E,$6F,$74,$20,$61,$6C,$6C,$6F,$63,$61,$74
+	dc.b $65,$20,$67,$65,$6E,$65,$72,$61,$6C,$20,$6D,$65,$6D,$6F,$72,$79
+	dc.b $20,$7A,$6F,$6E,$65,$2E
 CODE_3_loc_0000443e:
 	movem.l d1-d7/a0-a4,-(a7)
 	lea.l CODE_3_loc_000045ec(pc),a4
@@ -17172,8 +16434,6 @@ CODE_3_loc_000045da:
 	jmp (a0)
 CODE_3_semantic_decode_gap_000045dc:
 	dc.b $80,$0A,$5A,$45,$52,$4F,$42,$55,$46,$46,$45,$52,$00,$00,$00,$00
-CODE_3_loc_000045ec:
-CODE_3_semantic_decode_gap_000045ec:
 	dc.b $00,$00,$39,$20,$00,$01,$00,$00,$00,$00,$00,$14,$00,$00,$01,$28
 	dc.b $00,$00,$00,$00,$06,$00,$FF,$FF,$C6,$EC,$FF,$FF,$C7,$00,$FF,$FF
 	dc.b $C7,$14,$00,$F0,$11,$02,$03,$02,$FF,$FF,$D0,$DE,$FF,$FF,$D2,$7A
@@ -17197,47 +16457,12 @@ CODE_3_semantic_decode_gap_000045ec:
 	dc.b $02,$04,$1A,$00,$02,$0F,$04,$00,$02,$0F,$7C,$02,$06,$80,$90,$80
 	dc.b $E0,$00,$02,$04,$06,$00,$00,$00,$00,$00,$45,$EC,$6D,$70,$77,$64
 
-; CODE 4 IOMgr source section
+; CODE 4 IOMgr
 CODE_4:
-;   source_section_id: macos-code-CODE-4
-;   source_kind: macos_code_resource
-;   backend: macos-code
-;   status: semantic_source
-;   resource_type: CODE
-;   id: 4
-;   name: IOMgr
-;   role: code_segment
-;   code_kind: code_segment
-;   payload_size: 6426
-;   payload_sha256: a697293e579b91031cb9bb37cd80a4f47d2acb9eff60a4f4b7e3cb9a18fd4fca
-;   presentation: kind=c_owned_restored_source_packet status=covered visible=True identity=macos-code:CODE:4
-;   listing: kind=semantic_listing available=True reason=C-owned semantic rows from generated loader/CODE0 entry seeds
-;   restored_source_model:
-;     model=restored_source_model_v1 round_trip_required=false
-;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 4 name=unknown
-;     a5_world status=deferred parser_use=unknown
-;     ownership_ranges:
-;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
-;       1: role=candidate_unresolved_prefix span=40..468 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
-;       2: role=candidate_code span=468..6426 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
-;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
-;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
-;   source_body_ranges:
-;     metadata payload[0..40) size=40 entrypoint=False
-;     candidate_unresolved_prefix payload[40..468) size=428 entrypoint=False
-;     candidate_code payload[468..6426) size=5958 entrypoint=True
-;   rendered_source: CODE 4 status=semantic_rows payload[0..6426) sha256=a697293e579b91031cb9bb37cd80a4f47d2acb9eff60a4f4b7e3cb9a18fd4fca
-;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
-;   source_rows:
-;     metadata payload[0..40)
 CODE_4_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$03,$F0,$00,$00,$00,$14,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00
-;     candidate_unresolved_prefix payload[40..468)
-;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=1874 labels=234 xrefs=326
 CODE_4_loc_00000028:
 	movea.l (a7)+,a1
 	move.l (a7)+,d0
@@ -17416,8 +16641,6 @@ CODE_4_loc_000001be:
 CODE_4_loc_000001ce:
 	movem.l (a7)+,d5/a1-a4
 	jmp (a1)
-;     candidate_code payload[468..6426)
-;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=1874 labels=234 xrefs=326
 CODE_4_loc_000001d4:
 	movea.l (a7)+,a0
 	move.w (a7)+,d0
@@ -17641,8 +16864,6 @@ CODE_4_data_dispatch_table_00000430:
 	dc.b $8D,$4D,$59,$52,$45,$53,$4F,$4C,$56,$45,$50,$41,$54,$48,$00,$1C
 	dc.b $01,$22,$18,$43,$61,$6E,$6E,$6F,$74,$20,$72,$65,$73,$6F,$6C,$76
 	dc.b $65,$20,$61,$6C,$69,$61,$73,$20,$69,$6E,$22,$00
-CODE_4_loc_00000440:
-CODE_4_loc_00000442:
 CODE_4_loc_0000045c:
 	link a6,#-12
 	movem.l d4-d7/a3-a4,-(a7)
@@ -17913,8 +17134,6 @@ CODE_4_data_dispatch_table_00000736:
 	dc.b $88,$41,$4C,$4C,$4F,$43,$46,$43,$42,$00,$00,$24,$11,$3C,$53,$74
 	dc.b $61,$6E,$64,$61,$72,$64,$20,$4F,$75,$74,$70,$75,$74,$3E,$10,$3C
 	dc.b $53,$74,$61,$6E,$64,$61,$72,$64,$20,$49,$6E,$70,$75,$74,$3E,$00
-CODE_4_loc_00000742:
-CODE_4_loc_00000754:
 CODE_4_loc_00000766:
 	link a6,#0
 	movem.l a3-a4,-(a7)
@@ -18333,8 +17552,6 @@ CODE_4_loc_00000c20:
 CODE_4_data_dispatch_table_00000c2e:
 	dc.b $85,$4F,$50,$45,$4E,$46,$00,$0C,$01,$3A,$08,$4D,$50,$57,$2E,$50
 	dc.b $69,$70,$65,$00
-CODE_4_loc_00000c36:
-CODE_4_loc_00000c38:
 CODE_4_loc_00000c42:
 	link a6,#-8
 	movem.l d6-d7/a3-a4,-(a7)
@@ -18528,10 +17745,6 @@ CODE_4_data_dispatch_table_00000e3e:
 	dc.b $63,$6B,$28,$73,$29,$20,$74,$6F,$20,$00,$19,$46,$61,$74,$61,$6C
 	dc.b $20,$65,$72,$72,$6F,$72,$20,$77,$72,$69,$74,$69,$6E,$67,$20,$6C
 	dc.b $61,$73,$74,$20
-CODE_4_loc_00000e48:
-CODE_4_loc_00000e4c:
-CODE_4_loc_00000e5a:
-CODE_4_loc_00000e68:
 CODE_4_loc_00000e82:
 	link a6,#-522
 	movem.l d6-d7/a3-a4,-(a7)
@@ -18798,10 +18011,6 @@ CODE_4_data_dispatch_table_000011c6:
 	dc.b $6C,$6F,$63,$6B,$20,$6F,$66,$20,$1F,$46,$61,$74,$61,$6C,$20,$65
 	dc.b $72,$72,$6F,$72,$20,$72,$65,$72,$65,$61,$64,$69,$6E,$67,$20,$70
 	dc.b $72,$65,$76,$69,$6F,$75,$73,$20
-CODE_4_loc_000011d2:
-CODE_4_loc_000011d6:
-CODE_4_loc_000011e4:
-CODE_4_loc_000011ee:
 CODE_4_loc_0000120e:
 	link a6,#-258
 	movem.l d7/a4,-(a7)
@@ -19094,9 +18303,6 @@ CODE_4_data_dispatch_table_00001578:
 	dc.b $0C,$20,$28,$49,$2F,$4F,$20,$45,$72,$72,$6F,$72,$20,$00,$17,$46
 	dc.b $61,$74,$61,$6C,$20,$65,$72,$72,$6F,$72,$20,$77,$72,$69,$74,$69
 	dc.b $6E,$67,$20,$74,$6F,$20
-CODE_4_loc_00001584:
-CODE_4_loc_00001588:
-CODE_4_loc_00001596:
 CODE_4_loc_000015ae:
 	link a6,#-256
 	movea.l $0008(a6),a0
@@ -19415,47 +18621,12 @@ CODE_4_loc_000018fe:
 CODE_4_data_pascal_string_00001910:
 	dc.b $86,$4C,$4F,$41,$44,$49,$4F,$00,$00,$00
 
-; CODE 5 Macros source section
+; CODE 5 Macros
 CODE_5:
-;   source_section_id: macos-code-CODE-5
-;   source_kind: macos_code_resource
-;   backend: macos-code
-;   status: semantic_source
-;   resource_type: CODE
-;   id: 5
-;   name: Macros
-;   role: code_segment
-;   code_kind: code_segment
-;   payload_size: 26638
-;   payload_sha256: 90b898d2148ba2c3b798bed0c8c5dc936fba9ed3e8b958d279db4b279a033dfc
-;   presentation: kind=c_owned_restored_source_packet status=covered visible=True identity=macos-code:CODE:5
-;   listing: kind=semantic_listing available=True reason=C-owned semantic rows from generated loader/CODE0 entry seeds
-;   restored_source_model:
-;     model=restored_source_model_v1 round_trip_required=false
-;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 5 name=unknown
-;     a5_world status=deferred parser_use=unknown
-;     ownership_ranges:
-;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
-;       1: role=candidate_unresolved_prefix span=40..212 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
-;       2: role=candidate_code span=212..26638 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
-;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
-;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
-;   source_body_ranges:
-;     metadata payload[0..40) size=40 entrypoint=False
-;     candidate_unresolved_prefix payload[40..212) size=172 entrypoint=False
-;     candidate_code payload[212..26638) size=26426 entrypoint=True
-;   rendered_source: CODE 5 status=semantic_rows payload[0..26638) sha256=90b898d2148ba2c3b798bed0c8c5dc936fba9ed3e8b958d279db4b279a033dfc
-;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
-;   source_rows:
-;     metadata payload[0..40)
 CODE_5_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$04,$90,$00,$00,$00,$17,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00
-;     candidate_unresolved_prefix payload[40..212)
-;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=5358 labels=749 xrefs=1140
 CODE_5_loc_00000028:
 	move.l (a7)+,d2
 	movea.l (a7)+,a1
@@ -19538,9 +18709,6 @@ CODE_5_loc_000000cc:
 	jmp (a0)
 CODE_5_loc_000000d2:
 	move.l (a7)+,d2
-;     candidate_code payload[212..26638)
-;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=5358 labels=749 xrefs=1140
-CODE_5_loc_000000d4:
 	movea.l (a7)+,a0
 	movea.l a7,a1
 	move.b (a1)+,(a0)+
@@ -20446,7 +19614,6 @@ CODE_5_loc_00000af8:
 	rts
 CODE_5_data_dispatch_table_00000afe:
 	dc.b $88,$53,$43,$41,$4E,$4D,$4C,$42,$4C,$00,$00,$02,$01,$2E
-CODE_5_loc_00000b0a:
 CODE_5_loc_00000b0c:
 	link a6,#0
 	cmpi.w #255,-$290C(a5)
@@ -21192,7 +20359,6 @@ CODE_5_loc_000012e4:
 	jmp (a0)
 CODE_5_data_dispatch_table_000012f2:
 	dc.b $8B,$53,$43,$41,$4E,$50,$41,$52,$4D,$56,$41,$4C,$00,$02,$01,$26
-CODE_5_loc_00001300:
 CODE_5_loc_00001302:
 	link a6,#0
 	clr.b -$290A(a5)
@@ -21578,11 +20744,8 @@ CODE_5_loc_000017f8:
 	unlk a6
 	rts
 CODE_5_semantic_decode_gap_00001800:
-	dc.b $87,$4B,$49,$4C,$4C,$4D,$41,$43,$00,$14
-CODE_5_loc_0000180a:
-CODE_5_semantic_decode_gap_0000180a:
-	dc.b $12,$4E,$6F,$74,$20,$65,$6E,$6F,$75,$67,$68,$20,$6D,$65,$6D,$6F
-	dc.b $72,$79,$21,$00
+	dc.b $87,$4B,$49,$4C,$4C,$4D,$41,$43,$00,$14,$12,$4E,$6F,$74,$20,$65
+	dc.b $6E,$6F,$75,$67,$68,$20,$6D,$65,$6D,$6F,$72,$79,$21,$00
 CODE_5_loc_0000181e:
 	link a6,#0
 	moveq.l #1,d0
@@ -22066,11 +21229,14 @@ CODE_5_loc_00001d38:
 	move.w CODE_5_loc_00001d54(pc,d0.w),d0
 	jmp $0(pc,d0.w)
 CODE_5_loc_00001d54:
-CODE_5_data_dispatch_table_00001d54:
-	dc.b $00,$20,$00,$20,$00,$6C,$00,$8A,$00,$A8,$00,$CE,$00,$DE,$00,$EE
-	dc.b $00,$FA,$01,$1C,$01,$28,$01,$3E,$01,$46,$01,$9A,$01,$F8,$4A,$AD
-	dc.b $EC,$E6,$66,$1E,$42,$A7,$30,$2D,$DA,$52,$48,$C0,$2F,$00,$2F,$3C
-	dc.b $00,$00,$FF,$FC,$4E,$AD,$00,$BA,$48,$6D,$D4,$E4,$4E,$AD,$00,$92
+	dc.w $0020,$0020,$006C,$008A,$00A8,$00CE,$00DE,$00EE	; lookup_table
+CODE_5_data_00001d54:
+	dc.w $00FA,$011C,$0128,$013E,$0146,$019A,$01F8,$4AAD	; lookup_table
+CODE_5_data_00001d54:
+	dc.w $ECE6,$661E,$42A7,$302D,$DA52,$48C0,$2F00,$2F3C	; lookup_table
+CODE_5_data_00001d54:
+	dc.w $0000,$FFFC,$4EAD,$00BA,$486D,$D4E4,$4EAD,$0092	; lookup_table
+CODE_5_semantic_decode_gap_00001d94:
 	dc.b $60,$20,$42,$A7,$20,$6D,$EC,$E6,$30,$28,$00,$1A,$48,$C0,$2F,$00
 	dc.b $2F,$3C,$00,$00,$FF,$FC,$4E,$AD,$00,$BA,$48,$6D,$D4,$E4,$4E,$AD
 	dc.b $00,$92,$16,$BC,$00,$05,$60,$00,$01,$F6,$48,$6E,$FF,$8E,$4E,$AD
@@ -22239,8 +21405,6 @@ CODE_5_data_dispatch_table_000020bc:
 	dc.b $04,$20,$49,$4E,$54,$00,$04,$20,$53,$54,$52,$00,$04,$50,$41,$52
 	dc.b $4D,$00,$0F,$50,$41,$52,$4D,$20,$53,$54,$52,$55,$43,$54,$55,$52
 	dc.b $45,$44,$09,$55,$4E,$44,$45,$46,$49,$4E,$45,$44
-CODE_5_loc_000020ca:
-CODE_5_loc_000020cc:
 CODE_5_loc_000023c8:
 	link a6,#-12
 	move.l a4,-(a7)
@@ -22283,8 +21447,6 @@ CODE_5_loc_00002414:
 CODE_5_data_dispatch_table_00002432:
 	dc.b $8A,$43,$4F,$44,$45,$4F,$52,$44,$41,$54,$41,$00,$00,$0C,$05,$44
 	dc.b $41,$54,$41,$20,$05,$43,$4F,$44,$45,$20
-CODE_5_loc_00002440:
-CODE_5_loc_00002446:
 CODE_5_loc_0000244c:
 	link a6,#-8
 	move.l a4,-(a7)
@@ -22332,9 +21494,6 @@ CODE_5_data_dispatch_table_000024c2:
 	dc.b $8A,$56,$49,$53,$49,$42,$49,$4C,$49,$54,$59,$00,$00,$18,$07,$20
 	dc.b $49,$4D,$50,$4F,$52,$54,$06,$20,$45,$4E,$54,$52,$59,$00,$07,$20
 	dc.b $45,$58,$50,$4F,$52,$54
-CODE_5_loc_000024d0:
-CODE_5_loc_000024d8:
-CODE_5_loc_000024e0:
 CODE_5_loc_000024e8:
 	link a6,#-260
 	movem.l a3-a4,-(a7)
@@ -22378,8 +21537,6 @@ CODE_5_loc_0000254e:
 	jmp (a0)
 CODE_5_data_dispatch_table_0000255a:
 	dc.b $84,$54,$49,$50,$45,$00,$00,$06,$01,$29,$02,$20,$28,$00
-CODE_5_loc_00002562:
-CODE_5_loc_00002564:
 CODE_5_loc_00002568:
 	link a6,#-786
 	movem.l d7/a3-a4,-(a7)
@@ -22927,30 +22084,6 @@ CODE_5_data_dispatch_table_00002b3e:
 	dc.b $04,$42,$41,$44,$6E,$00,$06,$49,$4D,$50,$4F,$52,$54,$00,$01,$29
 	dc.b $06,$20,$45,$51,$55,$20,$28,$00,$06,$20,$53,$45,$54,$20,$28,$00
 	dc.b $05,$4D,$41,$43,$52,$4F,$09,$55,$4E,$44,$45,$46,$49,$4E,$45,$44
-CODE_5_loc_00002b4a:
-CODE_5_loc_00002b52:
-CODE_5_loc_00002b58:
-CODE_5_loc_00002b5e:
-CODE_5_loc_00002b6e:
-CODE_5_loc_00002b7a:
-CODE_5_loc_00002b84:
-CODE_5_loc_00002b9a:
-CODE_5_loc_00002ba2:
-CODE_5_loc_00002ba8:
-CODE_5_loc_00002bb0:
-CODE_5_loc_00002bb8:
-CODE_5_loc_00002bbe:
-CODE_5_loc_00002bc6:
-CODE_5_loc_00002bcc:
-CODE_5_loc_00002bd2:
-CODE_5_loc_00002bd8:
-CODE_5_loc_00002bde:
-CODE_5_loc_00002be4:
-CODE_5_loc_00002bec:
-CODE_5_loc_00002bee:
-CODE_5_loc_00002bf6:
-CODE_5_loc_00002bfe:
-CODE_5_loc_00002c04:
 CODE_5_loc_00002c0e:
 	link a6,#0
 	tst.l $000C(a6)
@@ -24254,11 +23387,14 @@ CODE_5_loc_00003ac2:
 	move.w CODE_5_loc_00003b10(pc,d0.w),d0
 	jmp $0(pc,d0.w)
 CODE_5_loc_00003b10:
-CODE_5_data_dispatch_table_00003b10:
-	dc.b $00,$42,$00,$B6,$01,$2A,$01,$64,$01,$64,$02,$70,$02,$70,$02,$FE
-	dc.b $03,$B8,$08,$C4,$05,$BA,$05,$BA,$03,$6A,$05,$14,$10,$22,$06,$34
-	dc.b $0E,$84,$04,$A6,$06,$80,$0D,$AC,$0F,$38,$0F,$B6,$05,$BA,$05,$BA
-	dc.b $08,$50,$11,$FA,$11,$42,$11,$42,$15,$96,$13,$72,$16,$B4,$17,$8A
+	dc.w $0042,$00B6,$012A,$0164,$0164,$0270,$0270,$02FE	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $03B8,$08C4,$05BA,$05BA,$036A,$0514,$1022,$0634	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $0E84,$04A6,$0680,$0DAC,$0F38,$0FB6,$05BA,$05BA	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $0850,$11FA,$1142,$1142,$1596,$1372,$16B4,$178A	; lookup_table
+CODE_5_data_dispatch_table_00003b50:
 	dc.b $2D,$7C,$80,$00,$00,$00,$FF,$D8,$3D,$7C,$00,$01,$FB,$7C,$10,$2E
 	dc.b $00,$0C,$48,$80,$3D,$40,$FB,$7A,$3D,$6E,$FB,$7C,$FF,$F6,$60,$3A
 	dc.b $42,$67,$48,$6E,$FF,$DC,$4E,$BA,$FC,$18,$10,$1F,$66,$0A,$3F,$3C
@@ -25389,7 +24525,6 @@ CODE_5_loc_00005d16:
 	rts
 CODE_5_data_dispatch_table_00005d1c:
 	dc.b $88,$45,$58,$50,$41,$4E,$44,$4F,$50,$00,$00,$02,$01,$2E
-CODE_5_loc_00005d28:
 CODE_5_loc_00005d2a:
 	link a6,#0
 	lea.l -$042E(a5),a0
@@ -25471,7 +24606,6 @@ CODE_5_loc_00005e04:
 CODE_5_data_dispatch_table_00005e26:
 	dc.b $8F,$46,$4F,$52,$4D,$41,$4C,$4C,$49,$53,$54,$45,$52,$52,$4F,$52
 	dc.b $00,$04,$03,$29,$3A,$20
-CODE_5_loc_00005e38:
 CODE_5_loc_00005e3c:
 	link a6,#0
 	move.l a4,-(a7)
@@ -26194,16 +25328,6 @@ CODE_5_data_dispatch_table_00006664:
 	dc.b $20,$6E,$6F,$74,$20,$62,$65,$67,$69,$6E,$20,$77,$69,$74,$68,$20
 	dc.b $22,$26,$22,$00,$16,$4E,$61,$6D,$65,$20,$69,$73,$20,$6E,$6F,$74
 	dc.b $20,$61,$20,$76,$61,$6C,$69,$64,$20,$69,$64,$00
-CODE_5_loc_00006672:
-CODE_5_loc_000066a2:
-CODE_5_loc_000066ca:
-CODE_5_loc_000066ce:
-CODE_5_loc_000066d0:
-CODE_5_loc_000066d4:
-CODE_5_loc_000066d6:
-CODE_5_loc_00006700:
-CODE_5_loc_0000671a:
-CODE_5_loc_00006738:
 CODE_5_loc_00006750:
 	link a6,#-4
 	movem.l a3-a4,-(a7)
@@ -26270,47 +25394,12 @@ CODE_5_loc_000067f8:
 CODE_5_data_pascal_string_00006800:
 	dc.b $8A,$44,$4F,$4D,$41,$43,$52,$4F,$4C,$42,$4C,$00,$00,$00
 
-; CODE 6 OpTable source section
+; CODE 6 OpTable
 CODE_6:
-;   source_section_id: macos-code-CODE-6
-;   source_kind: macos_code_resource
-;   backend: macos-code
-;   status: semantic_source
-;   resource_type: CODE
-;   id: 6
-;   name: OpTable
-;   role: code_segment
-;   code_kind: code_segment
-;   payload_size: 15158
-;   payload_sha256: 75005bca2e9e007ce374020416127735d9096e064806e4e1e1b888cd3ba8a9cf
-;   presentation: kind=c_owned_restored_source_packet status=covered visible=True identity=macos-code:CODE:6
-;   listing: kind=semantic_listing available=True reason=C-owned semantic rows from generated loader/CODE0 entry seeds
-;   restored_source_model:
-;     model=restored_source_model_v1 round_trip_required=false
-;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 6 name=unknown
-;     a5_world status=deferred parser_use=unknown
-;     ownership_ranges:
-;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
-;       1: role=candidate_unresolved_prefix span=40..58 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
-;       2: role=candidate_code span=58..15158 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
-;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
-;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
-;   source_body_ranges:
-;     metadata payload[0..40) size=40 entrypoint=False
-;     candidate_unresolved_prefix payload[40..58) size=18 entrypoint=False
-;     candidate_code payload[58..15158) size=15100 entrypoint=True
-;   rendered_source: CODE 6 status=semantic_rows payload[0..15158) sha256=75005bca2e9e007ce374020416127735d9096e064806e4e1e1b888cd3ba8a9cf
-;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
-;   source_rows:
-;     metadata payload[0..40)
 CODE_6_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$05,$48,$00,$00,$00,$09,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00
-;     candidate_unresolved_prefix payload[40..58)
-;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=2500 labels=382 xrefs=824
 CODE_6_loc_00000028:
 	move.l (a7)+,d0
 	move.l d0,$0018(a7)
@@ -26318,9 +25407,6 @@ CODE_6_loc_00000028:
 	move.l $0006(a7),-(a7)
 	jsr $00D2(a5)
 	move.w (a7)+,d0
-;     candidate_code payload[58..15158)
-;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=2500 labels=382 xrefs=824
-CODE_6_loc_0000003a:
 	movea.l (a7)+,a0
 	move.w d0,(a0)
 	add.w d0,d0
@@ -26424,7 +25510,6 @@ CODE_6_loc_00000106:
 	clr.l (a7)
 	jmp (a1)
 CODE_6_loc_0000010a:
-CODE_6_data_dispatch_table_0000010a:
 	dc.b $06,$00,$00,$00,$08,$0A,$0C,$08,$0A,$0C,$0E,$0A,$06,$08,$0A,$06
 	dc.b $20,$5F,$22,$5F,$61,$0A,$22,$5F,$22,$82,$22,$5F,$22,$81,$4E,$D0
 CODE_6_loc_0000012a:
@@ -26440,10 +25525,8 @@ CODE_6_semantic_decode_gap_0000013c:
 	dc.b $00,$19,$22,$29,$00,$06,$4E,$75,$22,$29,$00,$06,$34,$29,$00,$0A
 	dc.b $4E,$75,$22,$29,$00,$06,$24,$29,$00,$0A,$4E,$75,$08,$C1,$00,$19
 	dc.b $4E,$75,$08,$C1,$00,$19,$34,$29,$00,$06,$4E,$75,$08,$C1,$00,$19
-	dc.b $24,$29,$00,$06,$4E,$75,$08,$C1,$00,$19,$24,$01,$4E,$75
-CODE_6_loc_0000019a:
-CODE_6_semantic_decode_gap_0000019a:
-	dc.b $6E,$6E,$6E,$6E,$16,$1C,$26,$12,$34,$3A,$44,$30,$4E,$54,$5E,$68
+	dc.b $24,$29,$00,$06,$4E,$75,$08,$C1,$00,$19,$24,$01,$4E,$75,$6E,$6E
+	dc.b $6E,$6E,$16,$1C,$26,$12,$34,$3A,$44,$30,$4E,$54,$5E,$68
 CODE_6_loc_000001aa:
 	link a6,#0
 	movem.l d3-d6,-(a7)
@@ -26514,7 +25597,6 @@ CODE_6_data_dispatch_table_00000240:
 	dc.b $67,$40,$60,$2C,$06,$81,$00,$00,$00,$80,$E0,$81,$67,$34,$60,$20
 	dc.b $06,$81,$00,$00,$80,$00,$02,$81,$FF,$FF,$00,$00,$67,$24,$60,$10
 	dc.b $62,$04,$16,$08,$22,$2E,$28,$3A,$34,$62,$62,$62,$62,$62,$62,$62
-CODE_6_loc_00000280:
 CODE_6_loc_00000290:
 	subq.w #4,a7
 	move.l a1,-(a7)
@@ -26546,7 +25628,6 @@ CODE_6_loc_000002c8:
 	move.b d0,(a7)
 	jmp (a0)
 CODE_6_loc_000002d8:
-CODE_6_semantic_decode_gap_000002d8:
 	dc.b $00,$01,$02,$02,$04,$04,$02,$02
 CODE_6_loc_000002e0:
 	move.l (a7)+,d2
@@ -26589,11 +25670,70 @@ CODE_6_loc_00000312:
 	move.w CODE_6_loc_0000034c(pc,d0.w),d0
 	jmp CODE_6_loc_0000034c(pc,d0.w)
 CODE_6_loc_0000034c:
-CODE_6_data_dispatch_table_0000034c:
-	dc.b $07,$FA,$0B,$20,$00,$4C,$0B,$20,$0B,$20,$07,$6A,$0B,$20,$00,$4C
-	dc.b $00,$4C,$00,$4C,$00,$4C,$00,$4C,$00,$4C,$00,$4C,$00,$4C,$00,$4C
-	dc.b $00,$4C,$00,$4C,$00,$4C,$00,$4C,$0B,$20,$0B,$20,$0E,$7C,$00,$4C
-	dc.b $00,$4C,$00,$4C,$00,$4C,$00,$4C,$00,$4C,$00,$4C,$00,$4C,$00,$4C
+	dc.w CODE_6_loc_00000b46-CODE_6_loc_0000034c	; lookup_table
+CODE_6_data_0000034e:
+	dc.w CODE_6_loc_00000e6c-CODE_6_loc_0000034c
+CODE_6_data_00000350:
+	dc.w CODE_6_loc_00000398-CODE_6_loc_0000034c
+CODE_6_data_00000352:
+	dc.w CODE_6_loc_00000e6c-CODE_6_loc_0000034c
+CODE_6_data_00000354:
+	dc.w CODE_6_loc_00000e6c-CODE_6_loc_0000034c
+CODE_6_data_00000356:
+	dc.w CODE_6_loc_00000ab6-CODE_6_loc_0000034c
+CODE_6_data_00000358:
+	dc.w CODE_6_loc_00000e6c-CODE_6_loc_0000034c
+CODE_6_data_0000035a:
+	dc.w CODE_6_loc_00000398-CODE_6_loc_0000034c
+CODE_6_data_0000035c:
+	dc.w CODE_6_loc_00000398-CODE_6_loc_0000034c
+CODE_6_data_0000035e:
+	dc.w CODE_6_loc_00000398-CODE_6_loc_0000034c
+CODE_6_data_00000360:
+	dc.w CODE_6_loc_00000398-CODE_6_loc_0000034c
+CODE_6_data_00000362:
+	dc.w CODE_6_loc_00000398-CODE_6_loc_0000034c
+CODE_6_data_00000364:
+	dc.w CODE_6_loc_00000398-CODE_6_loc_0000034c
+CODE_6_data_00000366:
+	dc.w CODE_6_loc_00000398-CODE_6_loc_0000034c
+CODE_6_data_00000368:
+	dc.w CODE_6_loc_00000398-CODE_6_loc_0000034c
+CODE_6_data_0000036a:
+	dc.w CODE_6_loc_00000398-CODE_6_loc_0000034c
+CODE_6_data_0000036c:
+	dc.w CODE_6_loc_00000398-CODE_6_loc_0000034c
+CODE_6_data_0000036e:
+	dc.w CODE_6_loc_00000398-CODE_6_loc_0000034c
+CODE_6_data_00000370:
+	dc.w CODE_6_loc_00000398-CODE_6_loc_0000034c
+CODE_6_data_00000372:
+	dc.w CODE_6_loc_00000398-CODE_6_loc_0000034c
+CODE_6_data_00000374:
+	dc.w CODE_6_loc_00000e6c-CODE_6_loc_0000034c
+CODE_6_data_00000376:
+	dc.w CODE_6_loc_00000e6c-CODE_6_loc_0000034c
+CODE_6_data_00000378:
+	dc.w CODE_6_loc_000011c8-CODE_6_loc_0000034c
+CODE_6_data_0000037a:
+	dc.w CODE_6_loc_00000398-CODE_6_loc_0000034c
+CODE_6_data_0000037c:
+	dc.w CODE_6_loc_00000398-CODE_6_loc_0000034c
+CODE_6_data_0000037e:
+	dc.w CODE_6_loc_00000398-CODE_6_loc_0000034c
+CODE_6_data_00000380:
+	dc.w CODE_6_loc_00000398-CODE_6_loc_0000034c
+CODE_6_data_00000382:
+	dc.w CODE_6_loc_00000398-CODE_6_loc_0000034c
+CODE_6_data_00000384:
+	dc.w CODE_6_loc_00000398-CODE_6_loc_0000034c
+CODE_6_data_00000386:
+	dc.w CODE_6_loc_00000398-CODE_6_loc_0000034c
+CODE_6_data_00000388:
+	dc.w CODE_6_loc_00000398-CODE_6_loc_0000034c
+CODE_6_data_0000038a:
+	dc.w CODE_6_loc_00000398-CODE_6_loc_0000034c
+CODE_6_data_dispatch_table_0000038c:
 	dc.b $05,$C2,$00,$4C,$00,$4C,$00,$4C,$00,$4C,$00,$4C
 CODE_6_loc_00000398:
 	moveq.l #0,d0
@@ -26775,11 +25915,13 @@ CODE_6_loc_00000526:
 	move.b d0,(a7)
 	jmp (a0)
 CODE_6_loc_00000534:
-CODE_6_data_dispatch_table_00000534:
-	dc.b $00,$01,$80,$00,$00,$02,$40,$00,$00,$04,$20,$00,$00,$08,$10,$00
-	dc.b $00,$10,$08,$00,$00,$20,$04,$00,$00,$40,$02,$00,$00,$80,$01,$00
-	dc.b $01,$00,$00,$80,$02,$00,$00,$40,$04,$00,$00,$20,$08,$00,$00,$10
-	dc.b $10,$00,$00,$08,$20,$00,$00,$04,$40,$00,$00,$02,$80,$00,$00,$01
+	dc.l $00018000,$00024000,$00042000,$00081000	; lookup_table
+CODE_6_data_00000534:
+	dc.l $00100800,$00200400,$00400200,$00800100	; lookup_table
+CODE_6_data_00000534:
+	dc.l $01000080,$02000040,$04000020,$08000010	; lookup_table
+CODE_6_data_00000534:
+	dc.l $10000008,$20000004,$40000002,$80000001	; lookup_table
 CODE_6_loc_00000574:
 	link a6,#0
 	movem.l d4-d7/a3-a4,-(a7)
@@ -26890,8 +26032,7 @@ CODE_6_loc_00000670:
 	move.b d0,(a7)
 	jmp (a0)
 CODE_6_loc_0000067e:
-CODE_6_data_dispatch_table_0000067e:
-	dc.b $80,$01,$40,$02,$20,$04,$10,$08,$08,$10,$04,$20,$02,$40,$01,$80
+	dc.w $8001,$4002,$2004,$1008,$0810,$0420,$0240,$0180	; lookup_table
 CODE_6_loc_0000068e:
 	cmpi.b #15,d5
 	bgt.w CODE_6_loc_00000742
@@ -27487,7 +26628,6 @@ CODE_6_loc_00000d26:
 	move.l d0,(a0)
 	bra.w CODE_6_loc_000003fc
 CODE_6_loc_00000d46:
-CODE_6_semantic_decode_gap_00000d46:
 	dc.b $00,$01,$01,$02,$01,$02,$02,$03
 CODE_6_loc_00000d4e:
 	move.l #$CC00,d1
@@ -27574,7 +26714,6 @@ CODE_6_loc_00000e38:
 	jsr $0142(a5)
 	bra.w CODE_6_loc_000003f2
 CODE_6_loc_00000e50:
-CODE_6_data_dispatch_table_00000e50:
 	dc.b $33,$34,$35,$36,$37,$38,$39,$3A,$3B,$3C,$14,$15,$3D,$3E,$15,$16
 	dc.b $17,$19,$19,$19,$1A,$1B,$1C,$1C,$18,$18,$14,$14
 CODE_6_loc_00000e6c:
@@ -28632,11 +27771,45 @@ CODE_6_loc_00001afc:
 	move.w CODE_6_loc_00001afc(pc,d0.w),d0
 	jmp CODE_6_loc_00001b3a(pc,d0.w)
 CODE_6_loc_00001b3a:
-CODE_6_data_dispatch_table_00001b3a:
-	dc.b $00,$3A,$00,$3A,$00,$2E,$00,$9E,$00,$CC,$FF,$9C,$FF,$9C,$01,$68
-	dc.b $01,$68,$01,$88,$01,$88,$FF,$9C,$FF,$9C,$01,$DC,$FF,$9C,$FF,$9C
-	dc.b $FF,$9C,$FF,$9C,$02,$48,$00,$01,$02,$02,$04,$04,$02,$02
+	dc.w CODE_6_loc_00001b74-CODE_6_loc_00001b3a	; lookup_table
+CODE_6_data_00001b3c:
+	dc.w CODE_6_loc_00001b74-CODE_6_loc_00001b3a
+CODE_6_data_00001b3e:
+	dc.w CODE_6_loc_00001b68-CODE_6_loc_00001b3a
+CODE_6_data_00001b40:
+	dc.w CODE_6_loc_00001bd8-CODE_6_loc_00001b3a
+CODE_6_data_00001b42:
+	dc.w CODE_6_loc_00001c06-CODE_6_loc_00001b3a
+CODE_6_data_00001b44:
+	dc.w CODE_6_loc_00001ad6-CODE_6_loc_00001b3a
+CODE_6_data_00001b46:
+	dc.w CODE_6_loc_00001ad6-CODE_6_loc_00001b3a
+CODE_6_data_00001b48:
+	dc.w CODE_6_loc_00001ca2-CODE_6_loc_00001b3a
+CODE_6_data_00001b4a:
+	dc.w CODE_6_loc_00001ca2-CODE_6_loc_00001b3a
+CODE_6_data_00001b4c:
+	dc.w CODE_6_loc_00001cc2-CODE_6_loc_00001b3a
+CODE_6_data_00001b4e:
+	dc.w CODE_6_loc_00001cc2-CODE_6_loc_00001b3a
+CODE_6_data_00001b50:
+	dc.w CODE_6_loc_00001ad6-CODE_6_loc_00001b3a
+CODE_6_data_00001b52:
+	dc.w CODE_6_loc_00001ad6-CODE_6_loc_00001b3a
+CODE_6_data_00001b54:
+	dc.w CODE_6_loc_00001d16-CODE_6_loc_00001b3a
+CODE_6_data_00001b56:
+	dc.w CODE_6_loc_00001ad6-CODE_6_loc_00001b3a
+CODE_6_data_00001b58:
+	dc.w CODE_6_loc_00001ad6-CODE_6_loc_00001b3a
+CODE_6_data_00001b5a:
+	dc.w CODE_6_loc_00001ad6-CODE_6_loc_00001b3a
+CODE_6_data_00001b5c:
+	dc.w CODE_6_loc_00001ad6-CODE_6_loc_00001b3a
+CODE_6_data_00001b5e:
+	dc.w CODE_6_loc_00001d82-CODE_6_loc_00001b3a
 CODE_6_loc_00001b60:
+	dc.b $00,$01,$02,$02,$04,$04,$02,$02
 CODE_6_loc_00001b68:
 	bsr.w CODE_6_loc_0000212c
 	btst d3,d0
@@ -29242,7 +28415,6 @@ CODE_6_loc_000022c6:
 	jsr $0172(a5)
 	jmp (a3)
 CODE_6_loc_000022da:
-CODE_6_data_dispatch_table_000022da:
 	dc.b $01,$F6,$02,$02,$02,$1C,$02,$7E,$00,$00,$02,$8C,$02,$9A,$02,$D0
 	dc.b $00,$00,$02,$E6,$03,$0A,$00,$00,$03,$16,$03,$24,$00,$00,$00,$00
 	dc.b $03,$D2,$03,$DC,$04,$22,$00,$00,$04,$4A,$04,$90,$00,$00,$04,$A6
@@ -29641,47 +28813,12 @@ CODE_6_loc_00003b16:
 CODE_6_data_pascal_string_00003b28:
 	dc.b $8B,$4C,$4F,$41,$44,$4F,$50,$54,$41,$42,$4C,$45,$00,$00
 
-; CODE 7 POpTable source section
+; CODE 7 POpTable
 CODE_7:
-;   source_section_id: macos-code-CODE-7
-;   source_kind: macos_code_resource
-;   backend: macos-code
-;   status: semantic_source
-;   resource_type: CODE
-;   id: 7
-;   name: POpTable
-;   role: code_segment
-;   code_kind: code_segment
-;   payload_size: 4142
-;   payload_sha256: 3bc5de90c439ad5e0f7e5d4635b445022db8ab231a9b43981dbd95673ac0b78e
-;   presentation: kind=c_owned_restored_source_packet status=covered visible=True identity=macos-code:CODE:7
-;   listing: kind=semantic_listing available=True reason=C-owned semantic rows from generated loader/CODE0 entry seeds
-;   restored_source_model:
-;     model=restored_source_model_v1 round_trip_required=false
-;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 7 name=unknown
-;     a5_world status=deferred parser_use=unknown
-;     ownership_ranges:
-;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
-;       1: role=candidate_unresolved_prefix span=40..352 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
-;       2: role=candidate_code span=352..4142 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
-;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
-;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
-;   source_body_ranges:
-;     metadata payload[0..40) size=40 entrypoint=False
-;     candidate_unresolved_prefix payload[40..352) size=312 entrypoint=False
-;     candidate_code payload[352..4142) size=3790 entrypoint=True
-;   rendered_source: CODE 7 status=semantic_rows payload[0..4142) sha256=3bc5de90c439ad5e0f7e5d4635b445022db8ab231a9b43981dbd95673ac0b78e
-;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
-;   source_rows:
-;     metadata payload[0..40)
 CODE_7_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$05,$90,$00,$00,$00,$06,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00
-;     candidate_unresolved_prefix payload[40..352)
-;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=395 labels=77 xrefs=83
 CODE_7_loc_00000028:
 	move.l (a7)+,d0
 	move.l d0,$0010(a7)
@@ -29749,27 +28886,92 @@ CODE_7_loc_000000a6:
 	movea.l (a7),a0
 	move.l d2,(a7)
 	jmp (a0)
-CODE_7_data_dispatch_table_000000ac:
-	dc.b $4E,$56,$00,$00,$48,$E7,$1E,$00,$22,$6E,$00,$22,$36,$2E,$00,$1C
-	dc.b $38,$2E,$00,$1A,$20,$6E,$00,$12,$3A,$10,$20,$49,$54,$48,$0C,$6E
-	dc.b $18,$00,$00,$20,$67,$0C,$30,$10,$02,$40,$08,$00,$C0,$6E,$00,$20
-	dc.b $66,$34,$10,$18,$12,$2E,$00,$08,$67,$04,$C0,$01,$67,$28,$42,$46
-	dc.b $10,$10,$67,$06,$3C,$05,$CC,$40,$67,$1C,$4E,$AD,$05,$7A,$4A,$43
-	dc.b $66,$04,$4A,$81,$67,$04,$07,$01,$67,$0C,$4A,$44,$66,$04,$4A,$82
-	dc.b $67,$14,$09,$02,$66,$10,$59,$4F,$2F,$09,$4E,$AD,$05,$72,$22,$5F
-	dc.b $66,$A8,$42,$40,$60,$38,$20,$09,$41,$FA,$00,$8C,$90,$88,$20,$6E
-	dc.b $00,$0A,$30,$80,$42,$40,$52,$49,$20,$6E,$00,$0E,$10,$11,$30,$80
-	dc.b $0C,$06,$00,$07,$6E,$06,$1C,$3B,$60,$26,$60,$0A,$0C,$06,$00,$10
-	dc.b $67,$04,$1C,$3C,$00,$02,$20,$6E,$00,$12,$30,$86,$70,$01,$4C,$DF
-	dc.b $00,$78,$4E,$5E
-;     candidate_code payload[352..4142)
-;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=395 labels=77 xrefs=83
-CODE_7_loc_00000160:
+CODE_7_loc_000000ac:
+	link a6,#0
+	movem.l d3-d6,-(a7)
+	movea.l $0022(a6),a1
+	move.w $001C(a6),d3
+	move.w $001A(a6),d4
+	movea.l $0012(a6),a0
+	move.w (a0),d5
+CODE_7_loc_000000c6:
+	movea.l a1,a0
+	addq.w #2,a0
+	cmpi.w #6144,$0020(a6)
+	beq.b CODE_7_loc_000000de
+	move.w (a0),d0
+	andi.w #2048,d0
+	and.w $0020(a6),d0
+	bne.b CODE_7_loc_00000112
+CODE_7_loc_000000de:
+	move.b (a0)+,d0
+	move.b $0008(a6),d1
+	beq.b CODE_7_loc_000000ea
+	and.b d1,d0
+	beq.b CODE_7_loc_00000112
+CODE_7_loc_000000ea:
+	clr.w d6
+	move.b (a0),d0
+	beq.b CODE_7_loc_000000f6
+	move.w d5,d6
+	and.w d0,d6
+	beq.b CODE_7_loc_00000112
+CODE_7_loc_000000f6:
+	jsr $057A(a5)
+	tst.w d3
+	bne.b CODE_7_loc_00000102
+	tst.l d1
+	beq.b CODE_7_loc_00000106
+CODE_7_loc_00000102:
+	btst d3,d1
+	beq.b CODE_7_loc_00000112
+CODE_7_loc_00000106:
+	tst.w d4
+	bne.b CODE_7_loc_0000010e
+	tst.l d2
+	beq.b CODE_7_loc_00000122
+CODE_7_loc_0000010e:
+	btst d4,d2
+	bne.b CODE_7_loc_00000122
+CODE_7_loc_00000112:
+	subq.w #4,a7
+	move.l a1,-(a7)
+	jsr $0572(a5)
+	movea.l (a7)+,a1
+	bne.b CODE_7_loc_000000c6
+	clr.w d0
+	bra.b CODE_7_loc_0000015a
+CODE_7_loc_00000122:
+	move.l a1,d0
+	lea.l CODE_7_loc_000001b2(pc),a0
+	sub.l a0,d0
+	movea.l $000A(a6),a0
+	move.w d0,(a0)
+	clr.w d0
+	addq.w #1,a1
+	movea.l $000E(a6),a0
+	move.b (a1),d0
+	move.w d0,(a0)
+	cmpi.b #7,d6
+	bgt.b CODE_7_loc_00000148
+	move.b CODE_7_loc_0000016a(pc,d6.w),d6
+	bra.b CODE_7_loc_00000152
+CODE_7_loc_00000148:
+	cmpi.b #16,d6
+	beq.b CODE_7_loc_00000152
+	move.b #$2,d6
+CODE_7_loc_00000152:
+	movea.l $0012(a6),a0
+	move.w d6,(a0)
+	moveq.l #1,d0
+CODE_7_loc_0000015a:
+	movem.l (a7)+,d3-d6
+	unlk a6
 	movea.l (a7)+,a0
 	lea.l $001E(a7),a7
 	move.b d0,(a7)
 	jmp (a0)
-CODE_7_semantic_decode_gap_0000016a:
+CODE_7_loc_0000016a:
 	dc.b $00,$01,$02,$02,$04,$04,$02,$02
 CODE_7_loc_00000172:
 	move.l (a7)+,d2
@@ -29802,7 +29004,6 @@ CODE_7_loc_000001ac:
 	lea.l CODE_7_loc_000001b2(pc),a0
 	rts
 CODE_7_loc_000001b2:
-CODE_7_data_dispatch_table_000001b2:
 	dc.b $01,$F6,$02,$12,$02,$22,$00,$00,$00,$00,$02,$34,$00,$00,$02,$62
 	dc.b $02,$74,$00,$00,$00,$00,$02,$A2,$00,$00,$02,$B2,$00,$00,$00,$00
 	dc.b $02,$C4,$02,$D2,$02,$F2,$00,$00,$00,$00,$03,$04,$00,$00,$03,$14
@@ -30081,12 +29282,7 @@ CODE_7_loc_00000c30:
 	adda.w #$A,a7
 	jmp (a0)
 CODE_7_semantic_decode_gap_00000c42:
-	dc.b $87,$44,$45,$43,$4C,$41,$52,$45,$00,$0C
-CODE_7_loc_00000c4c:
-CODE_7_semantic_decode_gap_00000c4c:
-	dc.b $05,$4D,$4D,$55,$53,$52
-CODE_7_loc_00000c52:
-CODE_7_semantic_decode_gap_00000c52:
+	dc.b $87,$44,$45,$43,$4C,$41,$52,$45,$00,$0C,$05,$4D,$4D,$55,$53,$52
 	dc.b $04,$4D,$4D,$55,$53,$00
 CODE_7_loc_00000c58:
 	link a6,#-374
@@ -30293,39 +29489,6 @@ CODE_7_data_dispatch_table_00000e68:
 	dc.b $43,$00,$02,$54,$43,$00,$03,$44,$52,$50,$03,$53,$52,$50,$03,$43
 	dc.b $52,$50,$03,$56,$41,$4C,$04,$50,$43,$53,$52,$00,$03,$50,$53,$52
 	dc.b $04,$4D,$4D,$55,$53,$00
-CODE_7_loc_00000e76:
-CODE_7_loc_00000eb4:
-CODE_7_loc_00000ede:
-CODE_7_loc_00000f08:
-CODE_7_loc_00000f46:
-CODE_7_loc_00000f4c:
-CODE_7_loc_00000f52:
-CODE_7_loc_00000f58:
-CODE_7_loc_00000f5e:
-CODE_7_loc_00000f64:
-CODE_7_loc_00000f6a:
-CODE_7_loc_00000f70:
-CODE_7_loc_00000f76:
-CODE_7_loc_00000f7c:
-CODE_7_loc_00000f82:
-CODE_7_loc_00000f88:
-CODE_7_loc_00000f8e:
-CODE_7_loc_00000f94:
-CODE_7_loc_00000f9a:
-CODE_7_loc_00000fa0:
-CODE_7_loc_00000fa6:
-CODE_7_loc_00000faa:
-CODE_7_loc_00000fae:
-CODE_7_loc_00000fb2:
-CODE_7_loc_00000fb6:
-CODE_7_loc_00000fba:
-CODE_7_loc_00000fbe:
-CODE_7_loc_00000fc2:
-CODE_7_loc_00000fc6:
-CODE_7_loc_00000fca:
-CODE_7_loc_00000fce:
-CODE_7_loc_00000fd4:
-CODE_7_loc_00000fd8:
 CODE_7_loc_00000fde:
 	link a6,#-14
 	moveq.l #1,d0
@@ -30354,52 +29517,14 @@ CODE_7_loc_0000101e:
 CODE_7_data_pascal_string_00001022:
 	dc.b $89,$44,$4F,$4D,$43,$36,$38,$38,$35,$31,$00,$00
 
-; CODE 8 Listing source section
+; CODE 8 Listing
 CODE_8:
-;   source_section_id: macos-code-CODE-8
-;   source_kind: macos_code_resource
-;   backend: macos-code
-;   status: semantic_source
-;   resource_type: CODE
-;   id: 8
-;   name: Listing
-;   role: code_segment
-;   code_kind: code_segment
-;   payload_size: 1852
-;   payload_sha256: 5b3cd8756213ba73870bb353160d4e5dbb1a3bdd2da93157146d091b6949a2e9
-;   presentation: kind=c_owned_restored_source_packet status=covered visible=True identity=macos-code:CODE:8
-;   listing: kind=semantic_listing available=True reason=C-owned semantic rows from generated loader/CODE0 entry seeds
-;   restored_source_model:
-;     model=restored_source_model_v1 round_trip_required=false
-;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 8 name=unknown
-;     a5_world status=deferred parser_use=unknown
-;     ownership_ranges:
-;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
-;       1: role=candidate_unresolved_prefix span=40..42 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
-;       2: role=candidate_code span=42..1852 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
-;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
-;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
-;   source_body_ranges:
-;     metadata payload[0..40) size=40 entrypoint=False
-;     candidate_unresolved_prefix payload[40..42) size=2 entrypoint=False
-;     candidate_code payload[42..1852) size=1810 entrypoint=True
-;   rendered_source: CODE 8 status=semantic_rows payload[0..1852) sha256=5b3cd8756213ba73870bb353160d4e5dbb1a3bdd2da93157146d091b6949a2e9
-;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
-;   source_rows:
-;     metadata payload[0..40)
 CODE_8_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$05,$C0,$00,$00,$00,$07,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00
-;     candidate_unresolved_prefix payload[40..42)
-;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=530 labels=73 xrefs=115
 CODE_8_loc_00000028:
 	movea.l (a7)+,a1
-;     candidate_code payload[42..1852)
-;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=530 labels=73 xrefs=115
-CODE_8_loc_0000002a:
 	movea.l (a7)+,a0
 	movem.l a1-a3,-(a7)
 	movea.l a0,a2
@@ -30602,16 +29727,11 @@ CODE_8_loc_00000252:
 	unlk a6
 	rts
 CODE_8_semantic_decode_gap_00000256:
-	dc.b $89,$43,$4F,$55,$4E,$54,$4C,$49,$4E,$45,$00,$44
-CODE_8_loc_00000262:
-CODE_8_semantic_decode_gap_00000262:
-	dc.b $28,$43,$6F,$70,$79,$72,$69,$67,$68,$74,$20,$41,$70,$70,$6C,$65
-	dc.b $20,$43,$6F,$6D,$70,$75,$74,$65,$72,$2C,$20,$49,$6E,$63,$2E,$20
-	dc.b $31,$39,$38,$34,$2D,$31,$39,$39,$35,$00
-CODE_8_loc_0000028c:
-CODE_8_semantic_decode_gap_0000028c:
-	dc.b $18,$4D,$43,$36,$38,$30,$78,$78,$20,$41,$73,$73,$65,$6D,$62,$6C
-	dc.b $65,$72,$20,$2D,$20,$56,$65,$72,$20,$00
+	dc.b $89,$43,$4F,$55,$4E,$54,$4C,$49,$4E,$45,$00,$44,$28,$43,$6F,$70
+	dc.b $79,$72,$69,$67,$68,$74,$20,$41,$70,$70,$6C,$65,$20,$43,$6F,$6D
+	dc.b $70,$75,$74,$65,$72,$2C,$20,$49,$6E,$63,$2E,$20,$31,$39,$38,$34
+	dc.b $2D,$31,$39,$39,$35,$00,$18,$4D,$43,$36,$38,$30,$78,$78,$20,$41
+	dc.b $73,$73,$65,$6D,$62,$6C,$65,$72,$20,$2D,$20,$56,$65,$72,$20,$00
 CODE_8_loc_000002a6:
 	link a6,#-2
 	move.l d7,-(a7)
@@ -31023,47 +30143,12 @@ CODE_8_loc_0000071e:
 CODE_8_data_pascal_string_0000072c:
 	dc.b $8C,$4C,$49,$4E,$45,$4F,$4B,$54,$4F,$4C,$49,$53,$54,$00,$00,$00
 
-; CODE 9 Pass2 source section
+; CODE 9 Pass2
 CODE_9:
-;   source_section_id: macos-code-CODE-9
-;   source_kind: macos_code_resource
-;   backend: macos-code
-;   status: semantic_source
-;   resource_type: CODE
-;   id: 9
-;   name: Pass2
-;   role: code_segment
-;   code_kind: code_segment
-;   payload_size: 13946
-;   payload_sha256: 0361ae9dcb47f31cf559372a3e42c672dcfb8920b332d4f900a7124ab6c70bf3
-;   presentation: kind=c_owned_restored_source_packet status=covered visible=True identity=macos-code:CODE:9
-;   listing: kind=semantic_listing available=True reason=C-owned semantic rows from generated loader/CODE0 entry seeds
-;   restored_source_model:
-;     model=restored_source_model_v1 round_trip_required=false
-;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 9 name=unknown
-;     a5_world status=deferred parser_use=unknown
-;     ownership_ranges:
-;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
-;       1: role=candidate_unresolved_prefix span=40..712 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
-;       2: role=candidate_code span=712..13946 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
-;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
-;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
-;   source_body_ranges:
-;     metadata payload[0..40) size=40 entrypoint=False
-;     candidate_unresolved_prefix payload[40..712) size=672 entrypoint=False
-;     candidate_code payload[712..13946) size=13234 entrypoint=True
-;   rendered_source: CODE 9 status=semantic_rows payload[0..13946) sha256=0361ae9dcb47f31cf559372a3e42c672dcfb8920b332d4f900a7124ab6c70bf3
-;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
-;   source_rows:
-;     metadata payload[0..40)
 CODE_9_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$05,$F8,$00,$00,$00,$09,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00
-;     candidate_unresolved_prefix payload[40..712)
-;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=431 labels=83 xrefs=114
 CODE_9_loc_00000028:
 	move.l a0,-$0F42(a5)
 	movea.l -$0F32(a5),a1
@@ -31128,73 +30213,96 @@ CODE_9_loc_000000b0:
 	jsr $06D2(a5)
 CODE_9_loc_000000cc:
 	rts
-CODE_9_semantic_decode_gap_000000ce:
-	dc.b $20,$6D,$F0,$CE,$22,$48,$D2,$C0,$B3,$ED,$F0,$C2,$6D,$0C,$3F,$00
-	dc.b $20,$6D,$F0,$BE,$4E,$90,$30,$1F,$60,$E6,$2B,$49,$F0,$CE,$4E,$75
-	dc.b $91,$C8,$4E,$BA,$FF,$36,$22,$1F,$22,$57,$2E,$81,$2F,$09,$42,$40
-	dc.b $10,$11,$58,$40,$4E,$BA,$FF,$CA,$20,$FC,$03,$00,$00,$00,$22,$5F
-	dc.b $42,$40,$10,$19,$60,$02,$10,$D9,$51,$C8,$FF,$FC,$4E,$75,$91,$C8
-	dc.b $4E,$BA,$FF,$08,$30,$3C,$00,$06,$4E,$BA,$FF,$A6,$22,$5F,$34,$1F
-	dc.b $32,$1F,$30,$1F,$00,$40,$05,$00,$30,$C0,$30,$C1,$30,$82,$4E,$D1
-	dc.b $91,$C8,$4E,$BA,$FE,$E6,$30,$3C,$00,$08,$4E,$BA,$FF,$84,$22,$5F
-	dc.b $24,$1F,$32,$1F,$30,$1F,$00,$40,$06,$00,$30,$C0,$30,$C1,$20,$82
-	dc.b $4E,$D1,$91,$C8,$4E,$BA,$FE,$C4,$30,$3C,$00,$06,$4E,$BA,$FF,$62
-	dc.b $22,$5F,$22,$1F,$30,$1F,$00,$40,$07,$00,$30,$C0,$20,$81,$4E,$D1
+CODE_9_loc_000000ce:
+	movea.l -$0F32(a5),a0
+	movea.l a0,a1
+	adda.w d0,a1
+	cmpa.l -$0F3E(a5),a1
+	blt.b CODE_9_loc_000000e8
+	move.w d0,-(a7)
+	movea.l -$0F42(a5),a0
+	jsr (a0)
+	move.w (a7)+,d0
+	bra.b CODE_9_loc_000000ce
+CODE_9_loc_000000e8:
+	move.l a1,-$0F32(a5)
+	rts
+CODE_9_loc_000000ee:
+	suba.l a0,a0
+	jsr CODE_9_loc_00000028(pc)
+	move.l (a7)+,d1
+	movea.l (a7),a1
+	move.l d1,(a7)
+	move.l a1,-(a7)
+	clr.w d0
+	move.b (a1),d0
+	addq.w #4,d0
+	jsr CODE_9_loc_000000ce(pc)
+	move.l #$3000000,(a0)+
+	movea.l (a7)+,a1
+	clr.w d0
+	move.b (a1)+,d0
+	bra.b CODE_9_loc_00000116
+CODE_9_loc_00000114:
+	move.b (a1)+,(a0)+
+CODE_9_loc_00000116:
+	dbf.w d0,CODE_9_loc_00000114
+	rts
+CODE_9_semantic_decode_gap_0000011c:
+	dc.b $91,$C8,$4E,$BA,$FF,$08,$30,$3C,$00,$06,$4E,$BA,$FF,$A6,$22,$5F
+	dc.b $34,$1F,$32,$1F,$30,$1F,$00,$40,$05,$00,$30,$C0,$30,$C1,$30,$82
+	dc.b $4E,$D1,$91,$C8,$4E,$BA,$FE,$E6,$30,$3C,$00,$08,$4E,$BA,$FF,$84
+	dc.b $22,$5F,$24,$1F,$32,$1F,$30,$1F,$00,$40,$06,$00,$30,$C0,$30,$C1
+	dc.b $20,$82,$4E,$D1,$91,$C8,$4E,$BA,$FE,$C4,$30,$3C,$00,$06,$4E,$BA
+	dc.b $FF,$62,$22,$5F,$22,$1F,$30,$1F,$00,$40,$07,$00,$30,$C0,$20,$81
+	dc.b $4E,$D1,$2B,$4F,$F0,$BA,$20,$2F,$00,$04,$22,$2D,$F0,$CA,$67,$0E
+	dc.b $20,$41,$34,$2F,$00,$08,$00,$42,$08,$08,$B4,$50,$67,$08,$2B,$40
+	dc.b $F0,$B2,$61,$26,$60,$06,$B0,$AD,$F0,$B2,$66,$F2,$30,$3C,$00,$04
+	dc.b $4E,$BA,$FF,$20,$58,$AD,$F0,$B2,$43,$EF,$00,$0A,$10,$D9,$10,$D9
+	dc.b $10,$D9,$10,$99,$20,$57,$2E,$49,$4E,$D0,$41,$FA,$FF,$FE,$4E,$BA
+	dc.b $FE,$5C,$30,$3C,$00,$08,$4E,$BA,$FE,$FA,$22,$6D,$F0,$BA,$30,$29
+	dc.b $00,$08,$00,$40,$08,$08,$48,$40,$20,$C0,$20,$AD,$F0,$B2,$4E,$75
 	dc.b $2B,$4F,$F0,$BA,$20,$2F,$00,$04,$22,$2D,$F0,$CA,$67,$0E,$20,$41
 	dc.b $34,$2F,$00,$08,$00,$42,$08,$08,$B4,$50,$67,$08,$2B,$40,$F0,$B2
-	dc.b $61,$26,$60,$06,$B0,$AD,$F0,$B2,$66,$F2,$30,$3C,$00,$04,$4E,$BA
-	dc.b $FF,$20,$58,$AD,$F0,$B2,$43,$EF,$00,$0A,$10,$D9,$10,$D9,$10,$D9
-	dc.b $10,$99,$20,$57,$2E,$49,$4E,$D0,$41,$FA,$FF,$FE,$4E,$BA,$FE,$5C
-	dc.b $30,$3C,$00,$08,$4E,$BA,$FE,$FA,$22,$6D,$F0,$BA,$30,$29,$00,$08
-	dc.b $00,$40,$08,$08,$48,$40,$20,$C0,$20,$AD,$F0,$B2,$4E,$75,$2B,$4F
-	dc.b $F0,$BA,$20,$2F,$00,$04,$22,$2D,$F0,$CA,$67,$0E,$20,$41,$34,$2F
-	dc.b $00,$08,$00,$42,$08,$08,$B4,$50,$67,$08,$2B,$40,$F0,$B2,$61,$B8
-	dc.b $60,$06,$B0,$AD,$F0,$B2,$66,$F2,$30,$3C,$00,$02,$4E,$BA,$FE,$B2
-	dc.b $54,$AD,$F0,$B2,$43,$EF,$00,$0A,$10,$D9,$10,$99,$20,$57,$2E,$49
-	dc.b $4E,$D0,$2B,$4F,$F0,$BA,$20,$2F,$00,$04,$22,$2D,$F0,$CA,$67,$0E
-	dc.b $20,$41,$34,$2F,$00,$08,$00,$42,$08,$08,$B4,$50,$67,$0A,$2B,$40
-	dc.b $F0,$B2,$61,$00,$FF,$74,$60,$06,$B0,$AD,$F0,$B2,$66,$F0,$30,$3C
-	dc.b $00,$01,$4E,$BA,$FE,$6C,$52,$AD,$F0,$B2,$22,$5F,$5C,$4F,$10,$9F
-	dc.b $4E,$D1,$2B,$4F,$F0,$BA,$20,$2F,$00,$04,$0C,$6F,$00,$01,$00,$0A
-	dc.b $66,$14,$22,$2D,$F0,$CA,$67,$0E,$20,$41,$34,$2F,$00,$08,$00,$42
-	dc.b $08,$08,$B4,$50,$67,$08,$2B,$40,$F0,$B2,$61,$66,$60,$06,$B0,$AD
-	dc.b $F0,$B2,$66,$F2,$30,$2F,$00,$0C,$6E,$02,$44,$40,$4E,$BA,$FE,$22
-	dc.b $30,$2F,$00,$0C,$6E,$1C,$44,$40,$48,$C0,$D1,$AD,$F0,$B2,$22,$6F
-	dc.b $00,$0E,$60,$02,$10,$D9,$51,$C8,$FF,$FC
-;     candidate_code payload[712..13946)
-;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=431 labels=83 xrefs=114
-CODE_9_loc_000002c8:
-	movea.l (a7)+,a0
-	lea.l $000E(a7),a7
-	jmp (a0)
-CODE_9_data_dispatch_table_000002d0:
-	dc.b $53,$40,$66,$08,$72,$01,$43,$EF,$00,$11,$60,$18,$53,$40,$66,$08
-	dc.b $72,$02,$43,$EF,$00,$10,$60,$0A,$72,$04,$43,$EF,$00,$0E,$10,$D9
-	dc.b $10,$D9,$10,$D9,$10,$99,$D3,$AD,$F0,$B2,$20,$57,$2E,$49,$4E,$D0
-	dc.b $41,$FA,$FF,$FE,$4E,$BA,$FD,$22,$22,$6D,$F0,$BA,$0C,$69,$00,$01
-	dc.b $00,$0A,$67,$04,$70,$0A,$60,$0A,$70,$08,$41,$FA,$FE,$AA,$2B,$48
-	dc.b $F0,$BE,$4E,$BA,$FD,$AA,$22,$6D,$F0,$BA,$30,$29,$00,$08,$32,$29
-	dc.b $00,$0A,$0C,$41,$00,$01,$67,$04,$00,$40,$00,$10,$00,$40,$08,$08
-	dc.b $48,$40,$20,$C0,$20,$ED,$F0,$B2,$0C,$41,$00,$01,$67,$02,$30,$81
-	dc.b $4E,$75,$2B,$4F,$F0,$BA,$20,$2D,$F0,$CA,$67,$0E,$20,$40,$30,$2F
-	dc.b $00,$0A,$00,$40,$09,$00,$B0,$50,$67,$04,$61,$38,$60,$0A,$30,$2F
-	dc.b $00,$08,$B0,$68,$00,$04,$66,$F2,$20,$6D,$F0,$CA,$08,$28,$00,$03
-	dc.b $00,$01,$67,$0E,$30,$3C,$00,$04,$4E,$BA,$FD,$44,$20,$AF,$00,$04
-	dc.b $60,$0C,$30,$3C,$00,$02,$4E,$BA,$FD,$36,$30,$AF,$00,$06,$20,$5F
-	dc.b $50,$4F,$4E,$D0,$41,$FA,$FF,$FE,$4E,$BA,$FC,$7E,$30,$3C,$00,$06
-	dc.b $4E,$BA,$FD,$1C,$22,$6D,$F0,$BA,$30,$29,$00,$0A,$00,$40,$09,$00
-	dc.b $48,$40,$20,$C0,$30,$A9,$00,$08,$4E,$75,$2B,$4F,$F0,$BA,$20,$2D
-	dc.b $F0,$CA,$67,$0E,$20,$40,$30,$2F,$00,$0C,$00,$40,$0A,$80,$B0,$50
-	dc.b $67,$04,$61,$44,$60,$14,$30,$2F,$00,$0A,$B0,$68,$00,$04,$66,$F2
-	dc.b $30,$2F,$00,$08,$B0,$68,$00,$06,$66,$E8,$20,$6D,$F0,$CA,$08,$28
-	dc.b $00,$03,$00,$01,$67,$0E,$30,$3C,$00,$04,$4E,$BA,$FC,$C2,$20,$AF
-	dc.b $00,$04,$60,$0C,$30,$3C,$00,$02,$4E,$BA,$FC,$B4,$30,$AF,$00,$06
-	dc.b $20,$5F,$4F,$EF,$00,$0A,$4E,$D0,$41,$FA,$FF,$FE,$4E,$BA,$FB,$FA
-	dc.b $30,$3C,$00,$08,$4E,$BA,$FC,$98,$22,$6D,$F0,$BA,$30,$29,$00,$0C
-	dc.b $00,$40,$0A,$80,$48,$40,$20,$C0,$30,$E9,$00,$0A,$30,$A9,$00,$08
-	dc.b $4E,$75,$91,$C8,$4E,$BA,$FB,$D2,$42,$AD,$F0,$CA,$30,$2F,$00,$04
-	dc.b $D0,$40,$4E,$BA,$FC,$6A,$24,$1F,$32,$1F,$22,$5F,$60,$04,$20,$19
-	dc.b $30,$C0,$51,$C9,$FF,$FA,$20,$42,$4E,$D0
+	dc.b $61,$B8,$60,$06,$B0,$AD,$F0,$B2,$66,$F2,$30,$3C,$00,$02,$4E,$BA
+	dc.b $FE,$B2,$54,$AD,$F0,$B2,$43,$EF,$00,$0A,$10,$D9,$10,$99,$20,$57
+	dc.b $2E,$49,$4E,$D0,$2B,$4F,$F0,$BA,$20,$2F,$00,$04,$22,$2D,$F0,$CA
+	dc.b $67,$0E,$20,$41,$34,$2F,$00,$08,$00,$42,$08,$08,$B4,$50,$67,$0A
+	dc.b $2B,$40,$F0,$B2,$61,$00,$FF,$74,$60,$06,$B0,$AD,$F0,$B2,$66,$F0
+	dc.b $30,$3C,$00,$01,$4E,$BA,$FE,$6C,$52,$AD,$F0,$B2,$22,$5F,$5C,$4F
+	dc.b $10,$9F,$4E,$D1,$2B,$4F,$F0,$BA,$20,$2F,$00,$04,$0C,$6F,$00,$01
+	dc.b $00,$0A,$66,$14,$22,$2D,$F0,$CA,$67,$0E,$20,$41,$34,$2F,$00,$08
+	dc.b $00,$42,$08,$08,$B4,$50,$67,$08,$2B,$40,$F0,$B2,$61,$66,$60,$06
+	dc.b $B0,$AD,$F0,$B2,$66,$F2,$30,$2F,$00,$0C,$6E,$02,$44,$40,$4E,$BA
+	dc.b $FE,$22,$30,$2F,$00,$0C,$6E,$1C,$44,$40,$48,$C0,$D1,$AD,$F0,$B2
+	dc.b $22,$6F,$00,$0E,$60,$02,$10,$D9,$51,$C8,$FF,$FC,$20,$5F,$4F,$EF
+	dc.b $00,$0E,$4E,$D0,$53,$40,$66,$08,$72,$01,$43,$EF,$00,$11,$60,$18
+	dc.b $53,$40,$66,$08,$72,$02,$43,$EF,$00,$10,$60,$0A,$72,$04,$43,$EF
+	dc.b $00,$0E,$10,$D9,$10,$D9,$10,$D9,$10,$99,$D3,$AD,$F0,$B2,$20,$57
+	dc.b $2E,$49,$4E,$D0,$41,$FA,$FF,$FE,$4E,$BA,$FD,$22,$22,$6D,$F0,$BA
+	dc.b $0C,$69,$00,$01,$00,$0A,$67,$04,$70,$0A,$60,$0A,$70,$08,$41,$FA
+	dc.b $FE,$AA,$2B,$48,$F0,$BE,$4E,$BA,$FD,$AA,$22,$6D,$F0,$BA,$30,$29
+	dc.b $00,$08,$32,$29,$00,$0A,$0C,$41,$00,$01,$67,$04,$00,$40,$00,$10
+	dc.b $00,$40,$08,$08,$48,$40,$20,$C0,$20,$ED,$F0,$B2,$0C,$41,$00,$01
+	dc.b $67,$02,$30,$81,$4E,$75,$2B,$4F,$F0,$BA,$20,$2D,$F0,$CA,$67,$0E
+	dc.b $20,$40,$30,$2F,$00,$0A,$00,$40,$09,$00,$B0,$50,$67,$04,$61,$38
+	dc.b $60,$0A,$30,$2F,$00,$08,$B0,$68,$00,$04,$66,$F2,$20,$6D,$F0,$CA
+	dc.b $08,$28,$00,$03,$00,$01,$67,$0E,$30,$3C,$00,$04,$4E,$BA,$FD,$44
+	dc.b $20,$AF,$00,$04,$60,$0C,$30,$3C,$00,$02,$4E,$BA,$FD,$36,$30,$AF
+	dc.b $00,$06,$20,$5F,$50,$4F,$4E,$D0,$41,$FA,$FF,$FE,$4E,$BA,$FC,$7E
+	dc.b $30,$3C,$00,$06,$4E,$BA,$FD,$1C,$22,$6D,$F0,$BA,$30,$29,$00,$0A
+	dc.b $00,$40,$09,$00,$48,$40,$20,$C0,$30,$A9,$00,$08,$4E,$75,$2B,$4F
+	dc.b $F0,$BA,$20,$2D,$F0,$CA,$67,$0E,$20,$40,$30,$2F,$00,$0C,$00,$40
+	dc.b $0A,$80,$B0,$50,$67,$04,$61,$44,$60,$14,$30,$2F,$00,$0A,$B0,$68
+	dc.b $00,$04,$66,$F2,$30,$2F,$00,$08,$B0,$68,$00,$06,$66,$E8,$20,$6D
+	dc.b $F0,$CA,$08,$28,$00,$03,$00,$01,$67,$0E,$30,$3C,$00,$04,$4E,$BA
+	dc.b $FC,$C2,$20,$AF,$00,$04,$60,$0C,$30,$3C,$00,$02,$4E,$BA,$FC,$B4
+	dc.b $30,$AF,$00,$06,$20,$5F,$4F,$EF,$00,$0A,$4E,$D0,$41,$FA,$FF,$FE
+	dc.b $4E,$BA,$FB,$FA,$30,$3C,$00,$08,$4E,$BA,$FC,$98,$22,$6D,$F0,$BA
+	dc.b $30,$29,$00,$0C,$00,$40,$0A,$80,$48,$40,$20,$C0,$30,$E9,$00,$0A
+	dc.b $30,$A9,$00,$08,$4E,$75,$91,$C8,$4E,$BA,$FB,$D2,$42,$AD,$F0,$CA
+	dc.b $30,$2F,$00,$04,$D0,$40,$4E,$BA,$FC,$6A,$24,$1F,$32,$1F,$22,$5F
+	dc.b $60,$04,$20,$19,$30,$C0,$51,$C9,$FF,$FA,$20,$42,$4E,$D0
 CODE_9_loc_0000047a:
 	link a6,#-110
 	movem.l d3-d7/a2-a4,-(a7)
@@ -31310,40 +30418,60 @@ CODE_9_loc_000005a6:
 	move.w CODE_9_loc_000005b6(pc,d6.w),d6
 	jmp CODE_9_loc_000005b6(pc,d6.w)
 CODE_9_loc_000005b6:
-CODE_9_data_dispatch_table_000005b6:
-	dc.b $02,$66,$03,$7C,$03,$88,$03,$9C,$03,$B4,$03,$CA,$03,$D0,$03,$D6
-	dc.b $03,$DA,$03,$E0,$03,$EC,$29,$10,$29,$10,$29,$10,$29,$10,$29,$10
-	dc.b $29,$10,$29,$10,$25,$A0,$14,$98,$14,$9E,$03,$F8,$04,$BA,$04,$FE
-	dc.b $26,$3E,$27,$C0,$04,$98,$23,$D4,$05,$20,$05,$7E,$05,$9A,$05,$A4
-	dc.b $05,$AE,$05,$C0,$05,$DC,$05,$F2,$05,$FC,$06,$06,$06,$10,$06,$24
-	dc.b $06,$2E,$06,$38,$06,$42,$06,$4C,$06,$56,$06,$60,$06,$6A,$06,$82
-	dc.b $06,$94,$29,$10,$29,$10,$29,$10,$29,$10,$29,$10,$29,$10,$27,$DC
-	dc.b $27,$EE,$28,$00,$25,$D2,$27,$42,$27,$2C,$27,$6C,$28,$20,$29,$10
-	dc.b $28,$16,$28,$80,$28,$6C,$28,$4A,$28,$32,$28,$94,$27,$9C,$27,$AE
-	dc.b $27,$8A,$42,$40,$10,$2D,$F3,$57,$41,$ED,$F2,$24,$42,$45,$1A,$30
-	dc.b $00,$00,$41,$ED,$F2,$62,$D0,$40,$D0,$40,$2C,$30,$00,$00,$10,$05
-	dc.b $67,$18,$53,$00,$66,$08,$26,$46,$2C,$2B,$00,$04,$4E,$75,$53,$00
-	dc.b $66,$08,$26,$46,$2C,$2B,$00,$08,$4E,$75,$97,$CB,$4E,$75,$61,$C2
-	dc.b $28,$06,$36,$05,$24,$4B,$53,$2D,$F3,$57,$61,$B6,$22,$05,$E5,$49
-	dc.b $D6,$41,$67,$40,$0C,$43,$00,$0A,$6E,$00,$00,$EC,$10,$2E,$FF,$FF
-	dc.b $0C,$00,$00,$1E,$66,$04,$74,$01,$60,$0A,$0C,$00,$00,$1F,$66,$00
-	dc.b $00,$DA,$74,$02,$D6,$43,$36,$3B,$30,$06,$4E,$FB,$30,$02,$00,$16
-	dc.b $00,$18,$00,$48,$00,$C8,$00,$16,$00,$50,$00,$80,$00,$C8,$00,$16
-	dc.b $00,$94,$00,$A8,$4E,$75,$55,$02,$67,$08,$1A,$3C,$00,$01,$26,$4A
-	dc.b $4E,$75,$2F,$12,$24,$AE,$FF,$B4,$2D,$4A,$FF,$B4,$61,$00,$00,$FA
-	dc.b $66,$06,$58,$4F,$60,$00,$00,$8C,$26,$40,$42,$93,$27,$5F,$00,$04
-	dc.b $1A,$3C,$00,$02,$4E,$75,$1A,$3C,$00,$02,$26,$4A,$4E,$75,$55,$02
-	dc.b $66,$78,$2F,$12,$2F,$13,$24,$AE,$FF,$B4,$2D,$4A,$FF,$B4,$26,$AE
-	dc.b $FF,$B4,$2D,$4B,$FF,$B4,$61,$00,$00,$C0,$66,$04,$50,$4F,$60,$52
-	dc.b $26,$40,$26,$9F,$27,$5F,$00,$04,$1A,$3C,$00,$02,$4E,$75,$53,$02
-	dc.b $66,$48,$4A,$92,$66,$44,$24,$93,$26,$AE,$FF,$B4,$2D,$4B,$FF,$B4
-	dc.b $60,$B4,$53,$02,$66,$34,$4A,$93,$66,$30,$26,$92,$24,$AE,$FF,$B4
-	dc.b $2D,$4A,$FF,$B4,$4E,$75,$55,$02,$66,$20,$4A,$93,$66,$1C,$4A,$92
-	dc.b $66,$18,$26,$AA,$00,$04,$25,$6E,$FF,$B0,$00,$0C,$2D,$4A,$FF,$B0
-	dc.b $4E,$75,$70,$3D,$60,$06,$70,$3E,$60,$02,$70,$3F,$58,$4F,$60,$00
-	dc.b $FD,$32,$10,$05,$67,$00,$00,$1C,$53,$00,$66,$00,$00,$0A,$27,$46
-	dc.b $00,$04,$60,$00,$00,$0C,$53,$00,$66,$00,$00,$08,$27,$46,$00,$08
-	dc.b $2C,$0B,$42,$40,$10,$2D,$F3,$57,$60,$00,$FD,$C0
+	dc.w CODE_9_loc_0000081c-CODE_9_loc_000005b6	; lookup_table
+CODE_9_data_000005b8:
+	dc.w CODE_9_loc_00000932-CODE_9_loc_000005b6
+CODE_9_data_000005ba:
+	dc.w CODE_9_loc_0000093e-CODE_9_loc_000005b6
+CODE_9_data_000005bc:
+	dc.w CODE_9_loc_00000952-CODE_9_loc_000005b6
+CODE_9_data_000005be:
+	dc.w CODE_9_loc_0000096a-CODE_9_loc_000005b6
+CODE_9_data_000005c0:
+	dc.w CODE_9_loc_00000980-CODE_9_loc_000005b6
+CODE_9_data_000005c2:
+	dc.w CODE_9_loc_00000986-CODE_9_loc_000005b6
+CODE_9_data_000005c4:
+	dc.w CODE_9_loc_0000098c-CODE_9_loc_000005b6
+CODE_9_data_000005c6:
+	dc.w CODE_9_loc_00000990-CODE_9_loc_000005b6
+CODE_9_data_000005c8:
+	dc.w CODE_9_loc_00000996-CODE_9_loc_000005b6
+CODE_9_data_000005ca:
+	dc.w CODE_9_loc_000009a2-CODE_9_loc_000005b6
+CODE_9_data_dispatch_table_000005cc:
+	dc.b $29,$10,$29,$10,$29,$10,$29,$10,$29,$10,$29,$10,$29,$10,$25,$A0
+	dc.b $14,$98,$14,$9E,$03,$F8,$04,$BA,$04,$FE,$26,$3E,$27,$C0,$04,$98
+	dc.b $23,$D4,$05,$20,$05,$7E,$05,$9A,$05,$A4,$05,$AE,$05,$C0,$05,$DC
+	dc.b $05,$F2,$05,$FC,$06,$06,$06,$10,$06,$24,$06,$2E,$06,$38,$06,$42
+	dc.b $06,$4C,$06,$56,$06,$60,$06,$6A,$06,$82,$06,$94,$29,$10,$29,$10
+	dc.b $29,$10,$29,$10,$29,$10,$29,$10,$27,$DC,$27,$EE,$28,$00,$25,$D2
+	dc.b $27,$42,$27,$2C,$27,$6C,$28,$20,$29,$10,$28,$16,$28,$80,$28,$6C
+	dc.b $28,$4A,$28,$32,$28,$94,$27,$9C,$27,$AE,$27,$8A,$42,$40,$10,$2D
+	dc.b $F3,$57,$41,$ED,$F2,$24,$42,$45,$1A,$30,$00,$00,$41,$ED,$F2,$62
+	dc.b $D0,$40,$D0,$40,$2C,$30,$00,$00,$10,$05,$67,$18,$53,$00,$66,$08
+	dc.b $26,$46,$2C,$2B,$00,$04,$4E,$75,$53,$00,$66,$08,$26,$46,$2C,$2B
+	dc.b $00,$08,$4E,$75,$97,$CB,$4E,$75,$61,$C2,$28,$06,$36,$05,$24,$4B
+	dc.b $53,$2D,$F3,$57,$61,$B6,$22,$05,$E5,$49,$D6,$41,$67,$40,$0C,$43
+	dc.b $00,$0A,$6E,$00,$00,$EC,$10,$2E,$FF,$FF,$0C,$00,$00,$1E,$66,$04
+	dc.b $74,$01,$60,$0A,$0C,$00,$00,$1F,$66,$00,$00,$DA,$74,$02,$D6,$43
+	dc.b $36,$3B,$30,$06,$4E,$FB,$30,$02,$00,$16,$00,$18,$00,$48,$00,$C8
+	dc.b $00,$16,$00,$50,$00,$80,$00,$C8,$00,$16,$00,$94,$00,$A8,$4E,$75
+	dc.b $55,$02,$67,$08,$1A,$3C,$00,$01,$26,$4A,$4E,$75,$2F,$12,$24,$AE
+	dc.b $FF,$B4,$2D,$4A,$FF,$B4,$61,$00,$00,$FA,$66,$06,$58,$4F,$60,$00
+	dc.b $00,$8C,$26,$40,$42,$93,$27,$5F,$00,$04,$1A,$3C,$00,$02,$4E,$75
+	dc.b $1A,$3C,$00,$02,$26,$4A,$4E,$75,$55,$02,$66,$78,$2F,$12,$2F,$13
+	dc.b $24,$AE,$FF,$B4,$2D,$4A,$FF,$B4,$26,$AE,$FF,$B4,$2D,$4B,$FF,$B4
+	dc.b $61,$00,$00,$C0,$66,$04,$50,$4F,$60,$52,$26,$40,$26,$9F,$27,$5F
+	dc.b $00,$04,$1A,$3C,$00,$02,$4E,$75,$53,$02,$66,$48,$4A,$92,$66,$44
+	dc.b $24,$93,$26,$AE,$FF,$B4,$2D,$4B,$FF,$B4,$60,$B4,$53,$02,$66,$34
+	dc.b $4A,$93,$66,$30,$26,$92,$24,$AE,$FF,$B4,$2D,$4A,$FF,$B4,$4E,$75
+	dc.b $55,$02,$66,$20,$4A,$93,$66,$1C,$4A,$92,$66,$18,$26,$AA,$00,$04
+	dc.b $25,$6E,$FF,$B0,$00,$0C,$2D,$4A,$FF,$B0,$4E,$75,$70,$3D,$60,$06
+	dc.b $70,$3E,$60,$02,$70,$3F,$58,$4F,$60,$00,$FD,$32,$10,$05,$67,$00
+	dc.b $00,$1C,$53,$00,$66,$00,$00,$0A,$27,$46,$00,$04,$60,$00,$00,$0C
+	dc.b $53,$00,$66,$00,$00,$08,$27,$46,$00,$08,$2C,$0B,$42,$40,$10,$2D
+	dc.b $F3,$57,$60,$00,$FD,$C0
 CODE_9_loc_000007c2:
 	move.l -$004C(a6),d0
 	beq.b CODE_9_loc_000007d0
@@ -31680,7 +30808,6 @@ CODE_9_loc_0000101c:
 CODE_9_loc_00001022:
 	rts
 CODE_9_loc_00001024:
-CODE_9_data_string_00001024:
 	dc.b $30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$41,$42,$43,$44,$45,$46
 CODE_9_loc_00001034:
 	movea.l (a7)+,a0
@@ -32295,78 +31422,76 @@ CODE_9_loc_000031f8:
 	move.l (a7)+,(a7)
 	rts
 CODE_9_semantic_decode_gap_000031fe:
-	dc.b $8A,$44,$55,$4D,$50,$4F,$46,$42,$55,$46,$52,$00,$00,$18
-CODE_9_loc_0000320c:
-CODE_9_semantic_decode_gap_0000320c:
-	dc.b $17,$4F,$62,$6A,$65,$63,$74,$20,$66,$69,$6C,$65,$20,$77,$72,$69
-	dc.b $74,$65,$20,$65,$72,$72,$6F,$72,$4E,$56,$FE,$FE,$2F,$07,$10,$2D
-	dc.b $EB,$69,$67,$08,$42,$2E,$00,$0E,$60,$00,$00,$F0,$1D,$7C,$00,$01
-	dc.b $00,$0E,$4A,$6D,$ED,$6C,$6F,$1A,$42,$67,$2F,$2D,$ED,$68,$3F,$2E
-	dc.b $00,$0C,$2F,$2E,$00,$08,$4E,$AD,$07,$DA,$1D,$5F,$00,$0E,$60,$00
-	dc.b $00,$CA,$10,$2D,$EE,$70,$67,$00,$00,$9C,$4A,$AD,$ED,$62,$67,$0A
-	dc.b $2F,$2D,$ED,$62,$42,$67,$4E,$AD,$04,$5A,$70,$01,$B0,$6D,$CB,$1C
-	dc.b $6C,$16,$30,$2D,$CB,$1C,$53,$40,$53,$40,$41,$ED,$CA,$D2,$E5,$40
-	dc.b $20,$70,$00,$00,$42,$28,$02,$25,$48,$6D,$ED,$70,$48,$7A,$00,$CE
-	dc.b $4E,$AD,$0A,$CA,$10,$1F,$67,$18,$42,$67,$48,$7A,$00,$BE,$48,$6D
-	dc.b $ED,$62,$42,$67,$2F,$2D,$CB,$0E,$4E,$AD,$04,$52,$3E,$1F,$60,$16
-	dc.b $42,$67,$48,$6D,$ED,$70,$48,$6D,$ED,$62,$42,$67,$2F,$2D,$CB,$0E
-	dc.b $4E,$AD,$04,$52,$3E,$1F,$4A,$47,$67,$22,$3F,$07,$48,$7A,$00,$7A
-	dc.b $48,$6D,$ED,$70,$48,$7A,$00,$5E,$48,$6E,$FE,$FE,$3F,$3C,$00,$03
-	dc.b $4E,$AD,$0A,$A2,$48,$6E,$FE,$FE,$4E,$AD,$01,$DA,$42,$2D,$EE,$70
-	dc.b $42,$6D,$ED,$6E,$30,$2D,$ED,$6E,$B0,$6E,$00,$0C,$6C,$1C,$42,$67
-	dc.b $2F,$2D,$ED,$62,$2F,$2E,$00,$08,$4E,$AD,$04,$12,$10,$1F,$67,$06
-	dc.b $52,$6D,$ED,$6E,$60,$DE,$42,$2E,$00,$0E,$2E,$1F,$4E,$5E,$20,$5F
-	dc.b $5C,$4F,$4E,$D0,$8C,$47,$45,$54,$49,$4E,$50,$55,$54,$4C,$49,$4E
-	dc.b $45,$00,$00,$3A,$12,$22,$20,$74,$6F,$20,$72,$65,$70,$6F,$72,$74
-	dc.b $20,$65,$72,$72,$6F,$72,$73,$00,$10,$55,$6E,$61,$62,$6C,$65,$20
-	dc.b $74,$6F,$20,$6F,$70,$65,$6E,$20,$22,$00,$00,$00,$10,$3C,$53,$74
-	dc.b $61,$6E,$64,$61,$72,$64,$20,$49,$6E,$70,$75,$74,$3E,$00,$4E,$56
-	dc.b $FD,$F2,$48,$E7,$1F,$00,$10,$2D,$EC,$C1,$67,$08,$48,$7A,$02,$BA
-	dc.b $4E,$AD,$01,$D2,$3E,$2E,$00,$08,$4A,$6D,$CD,$60,$5E,$C6,$44,$06
-	dc.b $1D,$7C,$00,$01,$FF,$FF,$10,$2D,$EC,$FF,$66,$06,$80,$06,$67,$00
-	dc.b $02,$50,$70,$00,$30,$2D,$FB,$DE,$C0,$BC,$00,$00,$00,$FF,$3D,$40
-	dc.b $FF,$F6,$42,$6D,$FB,$DE,$42,$05,$10,$2D,$EC,$FF,$67,$2A,$12,$06
-	dc.b $66,$24,$08,$2D,$00,$00,$ED,$5D,$56,$C2,$4A,$02,$67,$16,$48,$E7
-	dc.b $E0,$00,$42,$67,$3F,$2D,$ED,$6C,$4E,$AD,$06,$12,$16,$1F,$4C,$DF
-	dc.b $00,$07,$C4,$03,$82,$02,$C0,$01,$18,$00,$67,$34,$2D,$6D,$F4,$14
-	dc.b $FF,$F2,$70,$F6,$B0,$6D,$F4,$2E,$5F,$C0,$4A,$00,$67,$14,$72,$F9
-	dc.b $B2,$6D,$F4,$2E,$5C,$C1,$C0,$01,$67,$08,$2D,$6D,$F4,$18,$FF,$F2
-	dc.b $60,$0E,$70,$CD,$B0,$6D,$F4,$2E,$66,$06,$42,$04,$42,$2E,$FF,$FF
-	dc.b $30,$2D,$FB,$DE,$B0,$6E,$FF,$F6,$6E,$00,$01,$6A,$10,$2D,$EC,$FF
-	dc.b $67,$5A,$10,$2D,$EC,$FE,$67,$40,$08,$2D,$00,$00,$ED,$5D,$56,$C0
-	dc.b $4A,$00,$67,$2E,$08,$2D,$00,$02,$ED,$5C,$56,$C1,$C0,$01,$67,$22
-	dc.b $08,$2D,$00,$00,$ED,$5A,$56,$C1,$C0,$01,$67,$16,$42,$2D,$EB,$25
-	dc.b $2F,$2D,$F4,$14,$1F,$3C,$00,$01,$42,$A7,$42,$A7,$4E,$AD,$06,$0A
-	dc.b $7A,$01,$42,$2E,$FF,$FB,$60,$24,$42,$67,$2F,$2D,$EB,$60,$48,$6E
-	dc.b $FE,$F2,$4E,$AD,$04,$12,$1D,$5F,$FF,$FB,$60,$10,$42,$67,$3F,$07
-	dc.b $48,$6E,$FE,$F2,$4E,$BA,$FD,$82,$1D,$5F,$FF,$FB,$10,$2E,$FF,$FB
-	dc.b $67,$00,$00,$E8,$42,$2D,$EB,$25,$10,$04,$67,$32,$7A,$01,$4A,$6D
-	dc.b $FB,$DE,$66,$18,$2F,$2E,$FF,$F2,$1F,$3C,$00,$01,$3F,$2D,$ED,$6C
-	dc.b $3F,$07,$48,$6E,$FE,$F2,$4E,$AD,$06,$0A,$60,$12,$42,$A7,$42,$67
-	dc.b $3F,$2D,$ED,$6C,$3F,$07,$48,$6E,$FE,$F2,$4E,$AD,$06,$0A,$10,$06
-	dc.b $67,$00,$00,$A8,$C0,$2E,$FF,$FF,$67,$00,$00,$A0,$4A,$6D,$FB,$DE
-	dc.b $66,$3C,$48,$7A,$01,$42,$42,$A7,$30,$07,$48,$C0,$2F,$00,$2F,$3C
-	dc.b $00,$00,$00,$04,$4E,$AD,$00,$BA,$48,$7A,$01,$28,$48,$6E,$FE,$F2
-	dc.b $48,$6E,$FD,$F2,$3F,$3C,$00,$04,$4E,$AD,$0A,$A2,$41,$EE,$FE,$F2
-	dc.b $43,$EE,$FD,$F2,$70,$7F,$30,$D9,$51,$C8,$FF,$FC,$60,$24,$48,$7A
-	dc.b $00,$FA,$48,$6E,$FE,$F2,$48,$6E,$FD,$F2,$3F,$3C,$00,$02,$4E,$AD
-	dc.b $0A,$A2,$41,$EE,$FE,$F2,$43,$EE,$FD,$F2,$70,$7F,$30,$D9,$51,$C8
-	dc.b $FF,$FC,$1D,$7C,$00,$09,$FE,$F9,$10,$2D,$EB,$68,$66,$16,$48,$6D
-	dc.b $D2,$6E,$48,$6E,$FE,$F2,$42,$67,$4E,$AD,$0A,$0A,$48,$6D,$D2,$6E
-	dc.b $4E,$AD,$09,$F2,$4E,$AD,$07,$E2,$4A,$AD,$CD,$4E,$67,$0C,$2F,$2D
-	dc.b $CD,$4E,$48,$6E,$FE,$F2,$4E,$AD,$04,$1A,$52,$47,$52,$6D,$FB,$DE
-	dc.b $60,$00,$FE,$8E,$10,$05,$67,$36,$08,$2D,$00,$02,$ED,$5C,$56,$C1
-	dc.b $C0,$01,$67,$2A,$4A,$6D,$F4,$2E,$6D,$0A,$3F,$3C,$00,$09,$4E,$AD
-	dc.b $06,$02,$60,$20,$08,$2D,$00,$06,$ED,$5C,$67,$0A,$3F,$3C,$00,$0E
-	dc.b $4E,$AD,$06,$02,$60,$0E,$20,$6D,$EC,$F8,$42,$10,$60,$06,$20,$6D
-	dc.b $EC,$F8,$42,$10,$2B,$6D,$F4,$18,$F4,$14,$42,$6D,$FB,$DE,$10,$2D
-	dc.b $E3,$E5,$67,$0C,$53,$AD,$E3,$E6,$2F,$2D,$E3,$E6,$4E,$AD,$03,$AA
-	dc.b $10,$06,$67,$18,$48,$6D,$ED,$70,$3F,$2E,$00,$08,$2F,$2D,$ED,$68
-	dc.b $3F,$2D,$ED,$66,$1F,$3C,$00,$01,$4E,$AD,$07,$EA,$4C,$DF,$00,$F8
-	dc.b $4E,$5E,$20,$5F,$54,$4F,$4E,$D0,$8E,$50,$41,$53,$53,$32,$45,$4E
-	dc.b $44,$4F,$46,$4C,$49,$4E,$45,$00,$00,$1A,$07,$23,$20,$20,$20,$20
-	dc.b $20,$20,$02,$3A,$20,$00,$01,$23,$0A,$3C,$3C,$3C,$49,$4E,$54,$52
-	dc.b $3E,$3E,$3E,$00
+	dc.b $8A,$44,$55,$4D,$50,$4F,$46,$42,$55,$46,$52,$00,$00,$18,$17,$4F
+	dc.b $62,$6A,$65,$63,$74,$20,$66,$69,$6C,$65,$20,$77,$72,$69,$74,$65
+	dc.b $20,$65,$72,$72,$6F,$72,$4E,$56,$FE,$FE,$2F,$07,$10,$2D,$EB,$69
+	dc.b $67,$08,$42,$2E,$00,$0E,$60,$00,$00,$F0,$1D,$7C,$00,$01,$00,$0E
+	dc.b $4A,$6D,$ED,$6C,$6F,$1A,$42,$67,$2F,$2D,$ED,$68,$3F,$2E,$00,$0C
+	dc.b $2F,$2E,$00,$08,$4E,$AD,$07,$DA,$1D,$5F,$00,$0E,$60,$00,$00,$CA
+	dc.b $10,$2D,$EE,$70,$67,$00,$00,$9C,$4A,$AD,$ED,$62,$67,$0A,$2F,$2D
+	dc.b $ED,$62,$42,$67,$4E,$AD,$04,$5A,$70,$01,$B0,$6D,$CB,$1C,$6C,$16
+	dc.b $30,$2D,$CB,$1C,$53,$40,$53,$40,$41,$ED,$CA,$D2,$E5,$40,$20,$70
+	dc.b $00,$00,$42,$28,$02,$25,$48,$6D,$ED,$70,$48,$7A,$00,$CE,$4E,$AD
+	dc.b $0A,$CA,$10,$1F,$67,$18,$42,$67,$48,$7A,$00,$BE,$48,$6D,$ED,$62
+	dc.b $42,$67,$2F,$2D,$CB,$0E,$4E,$AD,$04,$52,$3E,$1F,$60,$16,$42,$67
+	dc.b $48,$6D,$ED,$70,$48,$6D,$ED,$62,$42,$67,$2F,$2D,$CB,$0E,$4E,$AD
+	dc.b $04,$52,$3E,$1F,$4A,$47,$67,$22,$3F,$07,$48,$7A,$00,$7A,$48,$6D
+	dc.b $ED,$70,$48,$7A,$00,$5E,$48,$6E,$FE,$FE,$3F,$3C,$00,$03,$4E,$AD
+	dc.b $0A,$A2,$48,$6E,$FE,$FE,$4E,$AD,$01,$DA,$42,$2D,$EE,$70,$42,$6D
+	dc.b $ED,$6E,$30,$2D,$ED,$6E,$B0,$6E,$00,$0C,$6C,$1C,$42,$67,$2F,$2D
+	dc.b $ED,$62,$2F,$2E,$00,$08,$4E,$AD,$04,$12,$10,$1F,$67,$06,$52,$6D
+	dc.b $ED,$6E,$60,$DE,$42,$2E,$00,$0E,$2E,$1F,$4E,$5E,$20,$5F,$5C,$4F
+	dc.b $4E,$D0,$8C,$47,$45,$54,$49,$4E,$50,$55,$54,$4C,$49,$4E,$45,$00
+	dc.b $00,$3A,$12,$22,$20,$74,$6F,$20,$72,$65,$70,$6F,$72,$74,$20,$65
+	dc.b $72,$72,$6F,$72,$73,$00,$10,$55,$6E,$61,$62,$6C,$65,$20,$74,$6F
+	dc.b $20,$6F,$70,$65,$6E,$20,$22,$00,$00,$00,$10,$3C,$53,$74,$61,$6E
+	dc.b $64,$61,$72,$64,$20,$49,$6E,$70,$75,$74,$3E,$00,$4E,$56,$FD,$F2
+	dc.b $48,$E7,$1F,$00,$10,$2D,$EC,$C1,$67,$08,$48,$7A,$02,$BA,$4E,$AD
+	dc.b $01,$D2,$3E,$2E,$00,$08,$4A,$6D,$CD,$60,$5E,$C6,$44,$06,$1D,$7C
+	dc.b $00,$01,$FF,$FF,$10,$2D,$EC,$FF,$66,$06,$80,$06,$67,$00,$02,$50
+	dc.b $70,$00,$30,$2D,$FB,$DE,$C0,$BC,$00,$00,$00,$FF,$3D,$40,$FF,$F6
+	dc.b $42,$6D,$FB,$DE,$42,$05,$10,$2D,$EC,$FF,$67,$2A,$12,$06,$66,$24
+	dc.b $08,$2D,$00,$00,$ED,$5D,$56,$C2,$4A,$02,$67,$16,$48,$E7,$E0,$00
+	dc.b $42,$67,$3F,$2D,$ED,$6C,$4E,$AD,$06,$12,$16,$1F,$4C,$DF,$00,$07
+	dc.b $C4,$03,$82,$02,$C0,$01,$18,$00,$67,$34,$2D,$6D,$F4,$14,$FF,$F2
+	dc.b $70,$F6,$B0,$6D,$F4,$2E,$5F,$C0,$4A,$00,$67,$14,$72,$F9,$B2,$6D
+	dc.b $F4,$2E,$5C,$C1,$C0,$01,$67,$08,$2D,$6D,$F4,$18,$FF,$F2,$60,$0E
+	dc.b $70,$CD,$B0,$6D,$F4,$2E,$66,$06,$42,$04,$42,$2E,$FF,$FF,$30,$2D
+	dc.b $FB,$DE,$B0,$6E,$FF,$F6,$6E,$00,$01,$6A,$10,$2D,$EC,$FF,$67,$5A
+	dc.b $10,$2D,$EC,$FE,$67,$40,$08,$2D,$00,$00,$ED,$5D,$56,$C0,$4A,$00
+	dc.b $67,$2E,$08,$2D,$00,$02,$ED,$5C,$56,$C1,$C0,$01,$67,$22,$08,$2D
+	dc.b $00,$00,$ED,$5A,$56,$C1,$C0,$01,$67,$16,$42,$2D,$EB,$25,$2F,$2D
+	dc.b $F4,$14,$1F,$3C,$00,$01,$42,$A7,$42,$A7,$4E,$AD,$06,$0A,$7A,$01
+	dc.b $42,$2E,$FF,$FB,$60,$24,$42,$67,$2F,$2D,$EB,$60,$48,$6E,$FE,$F2
+	dc.b $4E,$AD,$04,$12,$1D,$5F,$FF,$FB,$60,$10,$42,$67,$3F,$07,$48,$6E
+	dc.b $FE,$F2,$4E,$BA,$FD,$82,$1D,$5F,$FF,$FB,$10,$2E,$FF,$FB,$67,$00
+	dc.b $00,$E8,$42,$2D,$EB,$25,$10,$04,$67,$32,$7A,$01,$4A,$6D,$FB,$DE
+	dc.b $66,$18,$2F,$2E,$FF,$F2,$1F,$3C,$00,$01,$3F,$2D,$ED,$6C,$3F,$07
+	dc.b $48,$6E,$FE,$F2,$4E,$AD,$06,$0A,$60,$12,$42,$A7,$42,$67,$3F,$2D
+	dc.b $ED,$6C,$3F,$07,$48,$6E,$FE,$F2,$4E,$AD,$06,$0A,$10,$06,$67,$00
+	dc.b $00,$A8,$C0,$2E,$FF,$FF,$67,$00,$00,$A0,$4A,$6D,$FB,$DE,$66,$3C
+	dc.b $48,$7A,$01,$42,$42,$A7,$30,$07,$48,$C0,$2F,$00,$2F,$3C,$00,$00
+	dc.b $00,$04,$4E,$AD,$00,$BA,$48,$7A,$01,$28,$48,$6E,$FE,$F2,$48,$6E
+	dc.b $FD,$F2,$3F,$3C,$00,$04,$4E,$AD,$0A,$A2,$41,$EE,$FE,$F2,$43,$EE
+	dc.b $FD,$F2,$70,$7F,$30,$D9,$51,$C8,$FF,$FC,$60,$24,$48,$7A,$00,$FA
+	dc.b $48,$6E,$FE,$F2,$48,$6E,$FD,$F2,$3F,$3C,$00,$02,$4E,$AD,$0A,$A2
+	dc.b $41,$EE,$FE,$F2,$43,$EE,$FD,$F2,$70,$7F,$30,$D9,$51,$C8,$FF,$FC
+	dc.b $1D,$7C,$00,$09,$FE,$F9,$10,$2D,$EB,$68,$66,$16,$48,$6D,$D2,$6E
+	dc.b $48,$6E,$FE,$F2,$42,$67,$4E,$AD,$0A,$0A,$48,$6D,$D2,$6E,$4E,$AD
+	dc.b $09,$F2,$4E,$AD,$07,$E2,$4A,$AD,$CD,$4E,$67,$0C,$2F,$2D,$CD,$4E
+	dc.b $48,$6E,$FE,$F2,$4E,$AD,$04,$1A,$52,$47,$52,$6D,$FB,$DE,$60,$00
+	dc.b $FE,$8E,$10,$05,$67,$36,$08,$2D,$00,$02,$ED,$5C,$56,$C1,$C0,$01
+	dc.b $67,$2A,$4A,$6D,$F4,$2E,$6D,$0A,$3F,$3C,$00,$09,$4E,$AD,$06,$02
+	dc.b $60,$20,$08,$2D,$00,$06,$ED,$5C,$67,$0A,$3F,$3C,$00,$0E,$4E,$AD
+	dc.b $06,$02,$60,$0E,$20,$6D,$EC,$F8,$42,$10,$60,$06,$20,$6D,$EC,$F8
+	dc.b $42,$10,$2B,$6D,$F4,$18,$F4,$14,$42,$6D,$FB,$DE,$10,$2D,$E3,$E5
+	dc.b $67,$0C,$53,$AD,$E3,$E6,$2F,$2D,$E3,$E6,$4E,$AD,$03,$AA,$10,$06
+	dc.b $67,$18,$48,$6D,$ED,$70,$3F,$2E,$00,$08,$2F,$2D,$ED,$68,$3F,$2D
+	dc.b $ED,$66,$1F,$3C,$00,$01,$4E,$AD,$07,$EA,$4C,$DF,$00,$F8,$4E,$5E
+	dc.b $20,$5F,$54,$4F,$4E,$D0,$8E,$50,$41,$53,$53,$32,$45,$4E,$44,$4F
+	dc.b $46,$4C,$49,$4E,$45,$00,$00,$1A,$07,$23,$20,$20,$20,$20,$20,$20
+	dc.b $02,$3A,$20,$00,$01,$23,$0A,$3C,$3C,$3C,$49,$4E,$54,$52,$3E,$3E
+	dc.b $3E,$00
 CODE_9_loc_00003650:
 	link a6,#0
 	move.b -$0F4F(a5),d0
@@ -32383,47 +31508,12 @@ CODE_9_loc_00003668:
 CODE_9_data_pascal_string_0000366e:
 	dc.b $89,$4C,$4F,$41,$44,$50,$41,$53,$53,$32,$00,$00
 
-; CODE 10 FinishUp source section
+; CODE 10 FinishUp
 CODE_10:
-;   source_section_id: macos-code-CODE-10
-;   source_kind: macos_code_resource
-;   backend: macos-code
-;   status: semantic_source
-;   resource_type: CODE
-;   id: 10
-;   name: FinishUp
-;   role: code_segment
-;   code_kind: code_segment
-;   payload_size: 1542
-;   payload_sha256: 2d5d27affd131aaa28eb0bd33157051e8f30ee3cdc054df4aad3011bdb22c1e1
-;   presentation: kind=c_owned_restored_source_packet status=covered visible=True identity=macos-code:CODE:10
-;   listing: kind=semantic_listing available=True reason=C-owned semantic rows from generated loader/CODE0 entry seeds
-;   restored_source_model:
-;     model=restored_source_model_v1 round_trip_required=false
-;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 10 name=unknown
-;     a5_world status=deferred parser_use=unknown
-;     ownership_ranges:
-;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
-;       1: role=candidate_unresolved_prefix span=40..148 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
-;       2: role=candidate_code span=148..1542 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
-;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
-;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
-;   source_body_ranges:
-;     metadata payload[0..40) size=40 entrypoint=False
-;     candidate_unresolved_prefix payload[40..148) size=108 entrypoint=False
-;     candidate_code payload[148..1542) size=1394 entrypoint=True
-;   rendered_source: CODE 10 status=semantic_rows payload[0..1542) sha256=2d5d27affd131aaa28eb0bd33157051e8f30ee3cdc054df4aad3011bdb22c1e1
-;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
-;   source_rows:
-;     metadata payload[0..40)
 CODE_10_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$06,$40,$00,$00,$00,$02,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00
-;     candidate_unresolved_prefix payload[40..148)
-;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=338 labels=58 xrefs=62
 CODE_10_loc_00000028:
 	suba.l a0,a0
 	jsr $061A(a5)
@@ -32463,9 +31553,6 @@ CODE_10_loc_00000078:
 	pea.l -$2D92(a5)
 	jsr $09F2(a5)
 	unlk a6
-;     candidate_code payload[148..1542)
-;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=338 labels=58 xrefs=62
-CODE_10_loc_00000094:
 	movea.l (a7)+,a0
 	addq.w #6,a7
 	jmp (a0)
@@ -32836,63 +31923,13 @@ CODE_10_data_dispatch_table_0000048a:
 	dc.b $75,$6C,$65,$73,$20,$77,$61,$73,$20,$73,$6F,$20,$6C,$61,$72,$67
 	dc.b $65,$20,$74,$68,$61,$74,$20,$74,$68,$65,$20,$41,$73,$73,$65,$6D
 	dc.b $62,$6C,$65,$72,$20,$68,$61,$64,$20,$74,$6F,$00
-CODE_10_loc_00000496:
-CODE_10_loc_0000049e:
-CODE_10_loc_000004a8:
-CODE_10_loc_000004aa:
-CODE_10_loc_000004b4:
-CODE_10_loc_000004ba:
-CODE_10_loc_000004c2:
-CODE_10_loc_000004cc:
-CODE_10_loc_000004e2:
-CODE_10_loc_000004e6:
-CODE_10_loc_000004f0:
-CODE_10_loc_00000500:
-CODE_10_loc_00000520:
-CODE_10_loc_0000056c:
-CODE_10_loc_000005b8:
 
-; CODE 11 Dbg source section
+; CODE 11 Dbg
 CODE_11:
-;   source_section_id: macos-code-CODE-11
-;   source_kind: macos_code_resource
-;   backend: macos-code
-;   status: semantic_source
-;   resource_type: CODE
-;   id: 11
-;   name: Dbg
-;   role: code_segment
-;   code_kind: code_segment
-;   payload_size: 3678
-;   payload_sha256: 04097ca27d77f09604177ac5e85019ecaed552d68ae2e9d50ae3b5a4e394c503
-;   presentation: kind=c_owned_restored_source_packet status=covered visible=True identity=macos-code:CODE:11
-;   listing: kind=semantic_listing available=True reason=C-owned semantic rows from generated loader/CODE0 entry seeds
-;   restored_source_model:
-;     model=restored_source_model_v1 round_trip_required=false
-;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 11 name=unknown
-;     a5_world status=deferred parser_use=unknown
-;     ownership_ranges:
-;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
-;       1: role=candidate_unresolved_prefix span=40..836 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
-;       2: role=candidate_code span=836..3678 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
-;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
-;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
-;   source_body_ranges:
-;     metadata payload[0..40) size=40 entrypoint=False
-;     candidate_unresolved_prefix payload[40..836) size=796 entrypoint=False
-;     candidate_code payload[836..3678) size=2842 entrypoint=True
-;   rendered_source: CODE 11 status=semantic_rows payload[0..3678) sha256=04097ca27d77f09604177ac5e85019ecaed552d68ae2e9d50ae3b5a4e394c503
-;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
-;   source_rows:
-;     metadata payload[0..40)
 CODE_11_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$06,$50,$00,$00,$00,$0F,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00
-;     candidate_unresolved_prefix payload[40..836)
-;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=1080 labels=118 xrefs=193
 CODE_11_loc_00000028:
 	move.l a0,-$0F6A(a5)
 	jsr CODE_11_loc_00000090(pc)
@@ -32953,12 +31990,33 @@ CODE_11_loc_000000b0:
 	clr.b (a1)+
 CODE_11_loc_000000ba:
 	rts
-CODE_11_semantic_decode_gap_000000bc:
-	dc.b $20,$6D,$F0,$A6,$22,$48,$D2,$C0,$B3,$ED,$F0,$9A,$6D,$0C,$3F,$00
-	dc.b $20,$6D,$F0,$96,$4E,$90,$30,$1F,$60,$E6,$2B,$49,$F0,$A6,$4E,$75
-	dc.b $91,$C8,$4E,$BA,$FF,$48,$30,$3C,$00,$02,$4E,$BA,$FF,$D4,$30,$FC
-	dc.b $02,$00,$20,$09,$90,$AD,$F0,$AA,$6F,$06,$2F,$00,$4E,$BA,$0C,$66
-	dc.b $4E,$75
+CODE_11_loc_000000bc:
+	movea.l -$0F5A(a5),a0
+	movea.l a0,a1
+	adda.w d0,a1
+	cmpa.l -$0F66(a5),a1
+	blt.b CODE_11_loc_000000d6
+	move.w d0,-(a7)
+	movea.l -$0F6A(a5),a0
+	jsr (a0)
+	move.w (a7)+,d0
+	bra.b CODE_11_loc_000000bc
+CODE_11_loc_000000d6:
+	move.l a1,-$0F5A(a5)
+	rts
+CODE_11_loc_000000dc:
+	suba.l a0,a0
+	jsr CODE_11_loc_00000028(pc)
+	move.w #$2,d0
+	jsr CODE_11_loc_000000bc(pc)
+	move.w #$200,(a0)+
+	move.l a1,d0
+	sub.l -$0F56(a5),d0
+	ble.b CODE_11_loc_000000fc
+	move.l d0,-(a7)
+	jsr CODE_11_loc_00000d60(pc)
+CODE_11_loc_000000fc:
+	rts
 CODE_11_loc_000000fe:
 	link a6,#0
 	movem.l d7/a4,-(a7)
@@ -33151,9 +32209,6 @@ CODE_11_loc_00000328:
 	move.l a4,$000A(a6)
 	movem.l -$0008(a6),d7/a4
 	unlk a6
-;     candidate_code payload[836..3678)
-;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=1080 labels=118 xrefs=193
-CODE_11_loc_00000344:
 	movea.l (a7)+,a0
 	addq.w #2,a7
 	jmp (a0)
@@ -34093,11 +33148,9 @@ CODE_11_loc_00000da0:
 	move.l (a7)+,(a7)
 	rts
 CODE_11_semantic_decode_gap_00000da6:
-	dc.b $8B,$44,$55,$4D,$50,$44,$42,$47,$42,$55,$46,$52,$00,$1E
-CODE_11_loc_00000db4:
-CODE_11_semantic_decode_gap_00000db4:
-	dc.b $1D,$44,$65,$62,$75,$67,$20,$6F,$62,$6A,$65,$63,$74,$20,$66,$69
-	dc.b $6C,$65,$20,$77,$72,$69,$74,$65,$20,$65,$72,$72,$6F,$72
+	dc.b $8B,$44,$55,$4D,$50,$44,$42,$47,$42,$55,$46,$52,$00,$1E,$1D,$44
+	dc.b $65,$62,$75,$67,$20,$6F,$62,$6A,$65,$63,$74,$20,$66,$69,$6C,$65
+	dc.b $20,$77,$72,$69,$74,$65,$20,$65,$72,$72,$6F,$72
 CODE_11_loc_00000dd2:
 	link a6,#-14
 	movem.l a3-a4,-(a7)
@@ -34153,53 +33206,15 @@ CODE_11_loc_00000e46:
 CODE_11_data_pascal_string_00000e54:
 	dc.b $87,$4C,$4F,$41,$44,$44,$42,$47,$00,$00
 
-; CODE 12 LoadDump source section
+; CODE 12 LoadDump
 CODE_12:
-;   source_section_id: macos-code-CODE-12
-;   source_kind: macos_code_resource
-;   backend: macos-code
-;   status: semantic_source
-;   resource_type: CODE
-;   id: 12
-;   name: LoadDump
-;   role: code_segment
-;   code_kind: code_segment
-;   payload_size: 6928
-;   payload_sha256: 9c563d29bea4465730181b661ea9a3a60d15276aa71a6be399b02b9a4091cbdb
-;   presentation: kind=c_owned_restored_source_packet status=covered visible=True identity=macos-code:CODE:12
-;   listing: kind=semantic_listing available=True reason=C-owned semantic rows from generated loader/CODE0 entry seeds
-;   restored_source_model:
-;     model=restored_source_model_v1 round_trip_required=false
-;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 12 name=unknown
-;     a5_world status=deferred parser_use=unknown
-;     ownership_ranges:
-;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
-;       1: role=candidate_unresolved_prefix span=40..44 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
-;       2: role=candidate_code span=44..6928 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
-;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
-;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
-;   source_body_ranges:
-;     metadata payload[0..40) size=40 entrypoint=False
-;     candidate_unresolved_prefix payload[40..44) size=4 entrypoint=False
-;     candidate_code payload[44..6928) size=6884 entrypoint=True
-;   rendered_source: CODE 12 status=semantic_rows payload[0..6928) sha256=9c563d29bea4465730181b661ea9a3a60d15276aa71a6be399b02b9a4091cbdb
-;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
-;   source_rows:
-;     metadata payload[0..40)
 CODE_12_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$06,$C8,$00,$00,$00,$02,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00
-;     candidate_unresolved_prefix payload[40..44)
-;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=2001 labels=226 xrefs=372
 CODE_12_loc_00000028:
 	move.l (a7)+,d2
 	movea.l (a7)+,a1
-;     candidate_code payload[44..6928)
-;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=2001 labels=226 xrefs=372
-CODE_12_loc_0000002c:
 	movea.l (a7)+,a0
 	clr.w d0
 	move.b (a1),d0
@@ -34463,7 +33478,6 @@ CODE_12_loc_000002e4:
 CODE_12_data_dispatch_table_00000300:
 	dc.b $8C,$4F,$50,$45,$4E,$44,$55,$4D,$50,$46,$49,$4C,$45,$00,$00,$02
 	dc.b $01,$3A
-CODE_12_loc_00000310:
 CODE_12_loc_00000312:
 	link a6,#-6
 	movem.l d7/a4,-(a7)
@@ -35075,8 +34089,8 @@ CODE_12_loc_00000986:
 	movea.l $0008(a6),a0
 	movea.l a0,a6
 	jmp CODE_12_loc_00001188(pc)
-CODE_12_data_alignment_padding_000009c6:
-	ds.b 2
+CODE_12_data_000009c6:
+	dc.w $0000
 CODE_12_loc_000009c8:
 	move.l -$0018(a4),$0004(a3)
 	move.l a3,-$0018(a4)
@@ -35118,8 +34132,8 @@ CODE_12_loc_00000a00:
 	movea.l $0008(a6),a0
 	movea.l a0,a6
 	jmp CODE_12_loc_00001188(pc)
-CODE_12_data_zero_fill_00000a40:
-	dc.b $00,$00
+CODE_12_data_00000a40:
+	dc.w $0000
 CODE_12_loc_00000a42:
 	clr.l -(a7)
 	move.l d7,-(a7)
@@ -35147,8 +34161,8 @@ CODE_12_loc_00000a42:
 	movea.l $0008(a6),a0
 	movea.l a0,a6
 	jmp CODE_12_loc_00001188(pc)
-CODE_12_data_alignment_padding_00000a8e:
-	ds.b 2
+CODE_12_data_00000a8e:
+	dc.w $0000
 CODE_12_loc_00000a90:
 	movem.l (a7)+,d5-d7/a3-a4
 	unlk a6
@@ -35191,8 +34205,8 @@ CODE_12_loc_00000ad4:
 	movea.l $0008(a6),a0
 	movea.l a0,a6
 	jmp CODE_12_loc_00001188(pc)
-CODE_12_data_zero_fill_00000b0c:
-	dc.b $00,$00
+CODE_12_data_00000b0c:
+	dc.w $0000
 CODE_12_loc_00000b0e:
 	move.l -$0014(a4),$0004(a3)
 	move.l a3,-$0014(a4)
@@ -35723,13 +34737,6 @@ CODE_12_data_dispatch_table_00001196:
 	dc.b $20,$6E,$6F,$74,$20,$61,$6C,$6C,$6F,$63,$61,$74,$65,$20,$6D,$65
 	dc.b $6D,$6F,$72,$79,$20,$7A,$6F,$6E,$65,$20,$66,$6F,$72,$20,$44,$55
 	dc.b $4D,$50,$2E,$00,$0B,$2E,$2E,$2E,$64,$75,$6D,$70,$69,$6E,$67,$20
-CODE_12_loc_000011a0:
-CODE_12_loc_000011ac:
-CODE_12_loc_000011b2:
-CODE_12_loc_000011b8:
-CODE_12_loc_000011be:
-CODE_12_loc_000011c0:
-CODE_12_loc_000011ea:
 CODE_12_loc_000011f6:
 	link a6,#-4
 	movem.l a3-a4,-(a7)
@@ -36479,61 +35486,16 @@ CODE_12_data_dispatch_table_00001a72:
 	dc.b $62,$6C,$65,$72,$21,$29,$23,$46,$69,$6C,$65,$20,$77,$61,$73,$20
 	dc.b $44,$55,$4D,$50,$65,$64,$20,$62,$79,$20,$6E,$65,$77,$65,$72,$20
 	dc.b $41,$73,$73,$65,$6D,$62,$6C,$65,$72,$29,$03,$22,$20,$28
-CODE_12_loc_00001a7c:
-CODE_12_loc_00001a88:
-CODE_12_loc_00001a8a:
-CODE_12_loc_00001ab4:
-CODE_12_loc_00001ac0:
-CODE_12_loc_00001ae8:
-CODE_12_loc_00001b0c:
 
-; CODE 13 Directives source section
+; CODE 13 Directives
 CODE_13:
-;   source_section_id: macos-code-CODE-13
-;   source_kind: macos_code_resource
-;   backend: macos-code
-;   status: semantic_source
-;   resource_type: CODE
-;   id: 13
-;   name: Directives
-;   role: code_segment
-;   code_kind: code_segment
-;   payload_size: 33354
-;   payload_sha256: 1358e27cbf9cb7da402416dfa830bd93f99a23e16da5c9972f63549d171a30c8
-;   presentation: kind=c_owned_restored_source_packet status=covered visible=True identity=macos-code:CODE:13
-;   listing: kind=semantic_listing available=True reason=C-owned semantic rows from generated loader/CODE0 entry seeds
-;   restored_source_model:
-;     model=restored_source_model_v1 round_trip_required=false
-;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 13 name=unknown
-;     a5_world status=deferred parser_use=unknown
-;     ownership_ranges:
-;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
-;       1: role=candidate_unresolved_prefix span=40..44 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
-;       2: role=candidate_code span=44..33354 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
-;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
-;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
-;   source_body_ranges:
-;     metadata payload[0..40) size=40 entrypoint=False
-;     candidate_unresolved_prefix payload[40..44) size=4 entrypoint=False
-;     candidate_code payload[44..33354) size=33310 entrypoint=True
-;   rendered_source: CODE 13 status=semantic_rows payload[0..33354) sha256=1358e27cbf9cb7da402416dfa830bd93f99a23e16da5c9972f63549d171a30c8
-;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
-;   source_rows:
-;     metadata payload[0..40)
 CODE_13_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$06,$D8,$00,$00,$00,$0D,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00
-;     candidate_unresolved_prefix payload[40..44)
-;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=1081 labels=144 xrefs=203
 CODE_13_loc_00000028:
 	movea.l (a7)+,a1
 	move.w (a7)+,d1
-;     candidate_code payload[44..33354)
-;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=1081 labels=144 xrefs=203
-CODE_13_loc_0000002c:
 	movea.l (a7)+,a0
 	move.l a1,-(a7)
 	lea.l -$0106(a5),a1
@@ -37598,11 +36560,6 @@ CODE_13_data_dispatch_table_00002686:
 	dc.b $20,$61,$6C,$6C,$6F,$63,$61,$74,$65,$20,$6F,$62,$6A,$65,$63,$74
 	dc.b $20,$66,$69,$6C,$65,$20,$72,$65,$66,$65,$72,$65,$6E,$63,$65,$20
 	dc.b $7A,$6F,$6E,$65,$2E,$00,$01,$23
-CODE_13_loc_00002692:
-CODE_13_loc_000026a6:
-CODE_13_loc_000026b6:
-CODE_13_loc_000026ca:
-CODE_13_loc_000026d4:
 CODE_13_loc_00002cce:
 	link a6,#0
 	move.b -$0005(a5),d0
@@ -37881,896 +36838,893 @@ CODE_13_loc_00003030:
 	unlk a6
 	rts
 CODE_13_semantic_decode_gap_00003038:
-	dc.b $88,$44,$4F,$4F,$50,$57,$4F,$52,$44,$00,$00,$02
-CODE_13_loc_00003044:
-CODE_13_semantic_decode_gap_00003044:
-	dc.b $01,$40,$4E,$56,$FF,$D2,$48,$E7,$0F,$08,$42,$2E,$FF,$EC,$70,$00
-	dc.b $28,$40,$1D,$7C,$00,$01,$FF,$ED,$3D,$7C,$00,$04,$FF,$FE,$7A,$00
-	dc.b $42,$46,$42,$47,$1D,$7C,$00,$01,$FF,$EF,$10,$2D,$F0,$B1,$67,$42
-	dc.b $12,$2D,$CB,$1B,$0A,$01,$00,$01,$C0,$01,$67,$36,$70,$00,$30,$2D
-	dc.b $F0,$AE,$C0,$BC,$00,$00,$00,$08,$4A,$80,$66,$26,$42,$40,$10,$2D
-	dc.b $FA,$BF,$72,$40,$B2,$40,$67,$1A,$3D,$6D,$EC,$B8,$FF,$D8,$3F,$2D
-	dc.b $EC,$B8,$48,$6D,$FA,$BE,$1F,$3C,$00,$01,$4E,$AD,$06,$8A,$52,$6D
-	dc.b $EC,$B8,$70,$06,$B0,$6D,$F4,$2E,$66,$74,$10,$2D,$F3,$A4,$66,$06
-	dc.b $80,$2D,$F3,$A2,$67,$0C,$3F,$3C,$00,$B0,$4E,$AD,$07,$CA,$60,$00
-	dc.b $05,$2E,$4A,$6D,$F3,$BA,$66,$22,$42,$67,$48,$6E,$FF,$F0,$4E,$AD
-	dc.b $05,$9A,$10,$1F,$67,$08,$3D,$7C,$80,$20,$FF,$F8,$60,$38,$3F,$3C
-	dc.b $00,$22,$4E,$AD,$07,$CA,$60,$00,$05,$06,$42,$67,$48,$6E,$FF,$F0
-	dc.b $48,$6E,$FF,$EE,$4E,$AD,$05,$92,$10,$1F,$67,$0E,$3D,$7C,$80,$30
-	dc.b $FF,$F8,$3D,$7C,$00,$02,$FF,$FE,$60,$0C,$3F,$3C,$00,$22,$4E,$AD
-	dc.b $07,$CA,$60,$00,$04,$DA,$28,$2E,$FF,$F0,$60,$00,$04,$2C,$42,$67
-	dc.b $48,$6E,$FF,$F0,$48,$6E,$FF,$F8,$4E,$AD,$05,$8A,$10,$1F,$67,$74
-	dc.b $70,$2E,$B0,$6D,$F4,$2E,$66,$08,$3F,$3C,$00,$99,$4E,$AD,$07,$CA
-	dc.b $10,$2D,$F3,$A4,$66,$06,$80,$2D,$F3,$A2,$67,$0C,$3F,$3C,$00,$B0
-	dc.b $4E,$AD,$07,$CA,$60,$00,$04,$98,$4E,$AD,$01,$72,$7C,$40,$2A,$2E
-	dc.b $FF,$F0,$10,$2D,$EC,$FF,$67,$00,$03,$E0,$28,$2E,$FF,$F0,$3D,$7C
-	dc.b $00,$01,$FF,$FE,$70,$0F,$B0,$84,$6C,$08,$42,$2E,$FF,$ED,$60,$00
-	dc.b $03,$C8,$70,$07,$B0,$84,$6C,$10,$20,$04,$51,$80,$28,$00,$D8,$BC
-	dc.b $00,$00,$00,$A0,$60,$00,$03,$B2,$20,$04,$D8,$BC,$00,$00,$00,$D0
-	dc.b $60,$00,$03,$A6,$28,$6D,$F3,$E2,$3D,$6D,$F3,$E0,$FF,$F8,$10,$2D
-	dc.b $F3,$C5,$67,$06,$3B,$7C,$81,$00,$F3,$BA,$10,$2D,$F3,$A2,$66,$04
-	dc.b $80,$2D,$F3,$A4,$0A,$00,$00,$01,$1B,$40,$EC,$A3,$42,$67,$48,$6E
-	dc.b $FF,$F0,$48,$6E,$FF,$EC,$48,$6E,$FF,$FA,$4E,$AD,$02,$2A,$10,$1F
-	dc.b $66,$08,$3F,$2E,$FF,$FA,$4E,$AD,$07,$CA,$42,$2D,$EC,$A3,$70,$04
-	dc.b $B0,$2E,$FF,$EC,$6E,$00,$00,$82,$70,$10,$B0,$2E,$FF,$EC,$66,$5E
-	dc.b $2D,$6E,$FF,$F0,$FF,$E0,$42,$A7,$2F,$2D,$F3,$AC,$20,$6E,$FF,$E0
-	dc.b $42,$40,$10,$10,$52,$40,$3F,$00,$4E,$AD,$07,$8A,$2D,$5F,$FF,$F0
-	dc.b $66,$0E,$3F,$3C,$00,$1C,$4E,$AD,$07,$CA,$42,$2E,$FF,$EC,$60,$20
-	dc.b $2F,$2E,$FF,$E0,$2F,$2E,$FF,$F0,$4E,$AD,$00,$92,$70,$00,$30,$2E
-	dc.b $FF,$F8,$80,$BC,$00,$00,$00,$10,$3D,$40,$FF,$F8,$42,$2E,$FF,$ED
-	dc.b $2F,$2D,$F0,$D6,$2F,$2E,$FF,$E0,$4E,$AD,$07,$82,$60,$1A,$42,$A7
-	dc.b $2F,$2E,$FF,$F0,$1F,$2E,$FF,$EC,$4E,$AD,$01,$F2,$2D,$5F,$FF,$F0
-	dc.b $42,$2E,$FF,$EC,$42,$2E,$FF,$EF,$4A,$2E,$FF,$EC,$66,$58,$2A,$2E
-	dc.b $FF,$F0,$7C,$05,$10,$2E,$FF,$EF,$67,$04,$7E,$03,$60,$02,$7E,$02
-	dc.b $0C,$85,$FF,$FF,$80,$00,$5C,$C0,$4A,$00,$67,$2A,$0C,$85,$00,$00
-	dc.b $7F,$FF,$5F,$C1,$C0,$01,$67,$1E,$70,$00,$30,$06,$80,$BC,$00,$00
-	dc.b $00,$40,$3C,$00,$10,$2E,$FF,$EF,$67,$06,$7E,$0B,$60,$00,$00,$C0
-	dc.b $7E,$0A,$60,$00,$00,$BA,$70,$00,$30,$06,$80,$BC,$00,$00,$00,$80
-	dc.b $3C,$00,$60,$00,$00,$AA,$70,$01,$B0,$2E,$FF,$EC,$66,$04,$60,$00
-	dc.b $00,$9E,$70,$02,$B0,$2E,$FF,$EC,$66,$18,$7C,$41,$2D,$6E,$FF,$F0
-	dc.b $FF,$E4,$20,$6E,$FF,$E4,$20,$68,$00,$04,$30,$10,$48,$C0,$2A,$00
-	dc.b $60,$7C,$70,$04,$B0,$2E,$FF,$EC,$66,$22,$3C,$3C,$00,$C5,$2A,$2E
-	dc.b $FF,$F0,$70,$01,$B0,$2D,$F3,$95,$66,$04,$7E,$11,$60,$60,$4A,$2D
-	dc.b $F3,$95,$66,$04,$7E,$01,$60,$56,$7E,$10,$60,$52,$70,$10,$B0,$2E
-	dc.b $FF,$EC,$66,$22,$3C,$3C,$00,$C5,$2A,$2E,$FF,$F0,$70,$01,$B0,$2D
-	dc.b $F3,$95,$66,$04,$7E,$11,$60,$36,$4A,$2D,$F3,$95,$66,$04,$7E,$01
-	dc.b $60,$2C,$7E,$10,$60,$28,$70,$11,$B0,$2E,$FF,$EC,$66,$20,$3C,$3C
-	dc.b $00,$C5,$2A,$2E,$FF,$F0,$70,$01,$B0,$2D,$F3,$95,$66,$04,$7E,$11
-	dc.b $60,$0C,$4A,$2D,$F3,$95,$66,$04,$7E,$01,$60,$02,$7E,$10,$70,$01
-	dc.b $B0,$2E,$FF,$EC,$66,$62,$70,$2E,$B0,$6D,$F4,$2E,$66,$0C,$3F,$3C
-	dc.b $00,$9A,$4E,$AD,$07,$CA,$60,$00,$01,$06,$10,$2D,$F3,$A2,$67,$16
-	dc.b $4A,$AD,$F3,$D8,$57,$C1,$C0,$01,$67,$0C,$3F,$3C,$00,$2E,$4E,$AD
-	dc.b $07,$CA,$60,$00,$00,$EA,$10,$2D,$F3,$A7,$67,$00,$00,$E2,$12,$2D
-	dc.b $F3,$A2,$0A,$01,$00,$01,$C0,$01,$4A,$00,$67,$00,$00,$D2,$72,$04
-	dc.b $B2,$6D,$F4,$2E,$57,$C1,$C0,$01,$67,$00,$00,$C4,$3F,$3C,$00,$9A
-	dc.b $4E,$AD,$07,$CA,$60,$00,$00,$B8,$70,$02,$B0,$2E,$FF,$EC,$67,$18
-	dc.b $70,$00,$30,$2E,$FF,$F8,$72,$00,$32,$3C,$30,$00,$46,$81,$C0,$81
-	dc.b $3D,$40,$FF,$F8,$60,$00,$00,$98,$70,$2E,$B0,$6D,$F4,$2E,$66,$16
-	dc.b $2D,$6E,$FF,$F0,$FF,$E4,$3F,$3C,$00,$12,$20,$6E,$FF,$E4,$48,$68
-	dc.b $00,$0C,$4E,$AD,$07,$C2,$3D,$7C,$04,$00,$FF,$F8,$70,$05,$B0,$6D
-	dc.b $F4,$2E,$66,$10,$70,$00,$30,$2E,$FF,$F8,$80,$BC,$00,$00,$00,$40
-	dc.b $3D,$40,$FF,$F8,$2F,$2E,$FF,$F0,$3F,$2E,$FF,$F8,$2F,$0C,$4E,$AD
-	dc.b $01,$92,$1B,$7C,$00,$01,$EC,$A2,$10,$2D,$F0,$B1,$67,$00,$01,$90
-	dc.b $12,$2D,$CB,$1B,$0A,$01,$00,$01,$C0,$01,$67,$00,$01,$82,$70,$00
-	dc.b $30,$2D,$F0,$AE,$C0,$BC,$00,$00,$00,$08,$4A,$80,$66,$00,$01,$70
-	dc.b $2F,$2D,$EB,$5C,$3F,$06,$42,$67,$3F,$2E,$FF,$D8,$3F,$2D,$EB,$5A
-	dc.b $3F,$2D,$DA,$5E,$2F,$05,$4E,$AD,$06,$BA,$60,$00,$01,$52,$10,$2D
-	dc.b $F3,$A4,$66,$06,$80,$2D,$F3,$A2,$67,$4C,$70,$2E,$B0,$6D,$F4,$2E
-	dc.b $57,$C0,$4A,$00,$66,$0C,$72,$10,$B2,$2E,$FF,$EC,$57,$C1,$80,$01
-	dc.b $67,$08,$3F,$3C,$00,$B0,$4E,$AD,$07,$CA,$3D,$7C,$00,$02,$FF,$FE
-	dc.b $0C,$AE,$FF,$FF,$80,$00,$FF,$F0,$5D,$C0,$4A,$00,$66,$0E,$0C,$AE
-	dc.b $00,$00,$7F,$FF,$FF,$F0,$5E,$C1,$80,$01,$67,$4C,$3F,$3C,$00,$41
-	dc.b $4E,$AD,$07,$CA,$60,$42,$70,$2E,$B0,$6D,$F4,$2E,$66,$3A,$3D,$7C
-	dc.b $00,$02,$FF,$FE,$0C,$AE,$FF,$FF,$80,$00,$FF,$F0,$5D,$C0,$4A,$00
-	dc.b $66,$0E,$0C,$AE,$00,$00,$FF,$FF,$FF,$F0,$5E,$C1,$80,$01,$67,$08
-	dc.b $3F,$3C,$00,$41,$4E,$AD,$07,$CA,$70,$00,$30,$2E,$FF,$F8,$80,$BC
-	dc.b $00,$00,$00,$80,$3D,$40,$FF,$F8,$4A,$6D,$CD,$68,$6F,$06,$70,$00
-	dc.b $2D,$40,$FF,$F0,$28,$2E,$FF,$F0,$70,$05,$B0,$6D,$F4,$2E,$66,$12
+	dc.b $88,$44,$4F,$4F,$50,$57,$4F,$52,$44,$00,$00,$02,$01,$40,$4E,$56
+	dc.b $FF,$D2,$48,$E7,$0F,$08,$42,$2E,$FF,$EC,$70,$00,$28,$40,$1D,$7C
+	dc.b $00,$01,$FF,$ED,$3D,$7C,$00,$04,$FF,$FE,$7A,$00,$42,$46,$42,$47
+	dc.b $1D,$7C,$00,$01,$FF,$EF,$10,$2D,$F0,$B1,$67,$42,$12,$2D,$CB,$1B
+	dc.b $0A,$01,$00,$01,$C0,$01,$67,$36,$70,$00,$30,$2D,$F0,$AE,$C0,$BC
+	dc.b $00,$00,$00,$08,$4A,$80,$66,$26,$42,$40,$10,$2D,$FA,$BF,$72,$40
+	dc.b $B2,$40,$67,$1A,$3D,$6D,$EC,$B8,$FF,$D8,$3F,$2D,$EC,$B8,$48,$6D
+	dc.b $FA,$BE,$1F,$3C,$00,$01,$4E,$AD,$06,$8A,$52,$6D,$EC,$B8,$70,$06
+	dc.b $B0,$6D,$F4,$2E,$66,$74,$10,$2D,$F3,$A4,$66,$06,$80,$2D,$F3,$A2
+	dc.b $67,$0C,$3F,$3C,$00,$B0,$4E,$AD,$07,$CA,$60,$00,$05,$2E,$4A,$6D
+	dc.b $F3,$BA,$66,$22,$42,$67,$48,$6E,$FF,$F0,$4E,$AD,$05,$9A,$10,$1F
+	dc.b $67,$08,$3D,$7C,$80,$20,$FF,$F8,$60,$38,$3F,$3C,$00,$22,$4E,$AD
+	dc.b $07,$CA,$60,$00,$05,$06,$42,$67,$48,$6E,$FF,$F0,$48,$6E,$FF,$EE
+	dc.b $4E,$AD,$05,$92,$10,$1F,$67,$0E,$3D,$7C,$80,$30,$FF,$F8,$3D,$7C
+	dc.b $00,$02,$FF,$FE,$60,$0C,$3F,$3C,$00,$22,$4E,$AD,$07,$CA,$60,$00
+	dc.b $04,$DA,$28,$2E,$FF,$F0,$60,$00,$04,$2C,$42,$67,$48,$6E,$FF,$F0
+	dc.b $48,$6E,$FF,$F8,$4E,$AD,$05,$8A,$10,$1F,$67,$74,$70,$2E,$B0,$6D
+	dc.b $F4,$2E,$66,$08,$3F,$3C,$00,$99,$4E,$AD,$07,$CA,$10,$2D,$F3,$A4
+	dc.b $66,$06,$80,$2D,$F3,$A2,$67,$0C,$3F,$3C,$00,$B0,$4E,$AD,$07,$CA
+	dc.b $60,$00,$04,$98,$4E,$AD,$01,$72,$7C,$40,$2A,$2E,$FF,$F0,$10,$2D
+	dc.b $EC,$FF,$67,$00,$03,$E0,$28,$2E,$FF,$F0,$3D,$7C,$00,$01,$FF,$FE
+	dc.b $70,$0F,$B0,$84,$6C,$08,$42,$2E,$FF,$ED,$60,$00,$03,$C8,$70,$07
+	dc.b $B0,$84,$6C,$10,$20,$04,$51,$80,$28,$00,$D8,$BC,$00,$00,$00,$A0
+	dc.b $60,$00,$03,$B2,$20,$04,$D8,$BC,$00,$00,$00,$D0,$60,$00,$03,$A6
+	dc.b $28,$6D,$F3,$E2,$3D,$6D,$F3,$E0,$FF,$F8,$10,$2D,$F3,$C5,$67,$06
+	dc.b $3B,$7C,$81,$00,$F3,$BA,$10,$2D,$F3,$A2,$66,$04,$80,$2D,$F3,$A4
+	dc.b $0A,$00,$00,$01,$1B,$40,$EC,$A3,$42,$67,$48,$6E,$FF,$F0,$48,$6E
+	dc.b $FF,$EC,$48,$6E,$FF,$FA,$4E,$AD,$02,$2A,$10,$1F,$66,$08,$3F,$2E
+	dc.b $FF,$FA,$4E,$AD,$07,$CA,$42,$2D,$EC,$A3,$70,$04,$B0,$2E,$FF,$EC
+	dc.b $6E,$00,$00,$82,$70,$10,$B0,$2E,$FF,$EC,$66,$5E,$2D,$6E,$FF,$F0
+	dc.b $FF,$E0,$42,$A7,$2F,$2D,$F3,$AC,$20,$6E,$FF,$E0,$42,$40,$10,$10
+	dc.b $52,$40,$3F,$00,$4E,$AD,$07,$8A,$2D,$5F,$FF,$F0,$66,$0E,$3F,$3C
+	dc.b $00,$1C,$4E,$AD,$07,$CA,$42,$2E,$FF,$EC,$60,$20,$2F,$2E,$FF,$E0
+	dc.b $2F,$2E,$FF,$F0,$4E,$AD,$00,$92,$70,$00,$30,$2E,$FF,$F8,$80,$BC
+	dc.b $00,$00,$00,$10,$3D,$40,$FF,$F8,$42,$2E,$FF,$ED,$2F,$2D,$F0,$D6
+	dc.b $2F,$2E,$FF,$E0,$4E,$AD,$07,$82,$60,$1A,$42,$A7,$2F,$2E,$FF,$F0
+	dc.b $1F,$2E,$FF,$EC,$4E,$AD,$01,$F2,$2D,$5F,$FF,$F0,$42,$2E,$FF,$EC
+	dc.b $42,$2E,$FF,$EF,$4A,$2E,$FF,$EC,$66,$58,$2A,$2E,$FF,$F0,$7C,$05
+	dc.b $10,$2E,$FF,$EF,$67,$04,$7E,$03,$60,$02,$7E,$02,$0C,$85,$FF,$FF
+	dc.b $80,$00,$5C,$C0,$4A,$00,$67,$2A,$0C,$85,$00,$00,$7F,$FF,$5F,$C1
+	dc.b $C0,$01,$67,$1E,$70,$00,$30,$06,$80,$BC,$00,$00,$00,$40,$3C,$00
+	dc.b $10,$2E,$FF,$EF,$67,$06,$7E,$0B,$60,$00,$00,$C0,$7E,$0A,$60,$00
+	dc.b $00,$BA,$70,$00,$30,$06,$80,$BC,$00,$00,$00,$80,$3C,$00,$60,$00
+	dc.b $00,$AA,$70,$01,$B0,$2E,$FF,$EC,$66,$04,$60,$00,$00,$9E,$70,$02
+	dc.b $B0,$2E,$FF,$EC,$66,$18,$7C,$41,$2D,$6E,$FF,$F0,$FF,$E4,$20,$6E
+	dc.b $FF,$E4,$20,$68,$00,$04,$30,$10,$48,$C0,$2A,$00,$60,$7C,$70,$04
+	dc.b $B0,$2E,$FF,$EC,$66,$22,$3C,$3C,$00,$C5,$2A,$2E,$FF,$F0,$70,$01
+	dc.b $B0,$2D,$F3,$95,$66,$04,$7E,$11,$60,$60,$4A,$2D,$F3,$95,$66,$04
+	dc.b $7E,$01,$60,$56,$7E,$10,$60,$52,$70,$10,$B0,$2E,$FF,$EC,$66,$22
+	dc.b $3C,$3C,$00,$C5,$2A,$2E,$FF,$F0,$70,$01,$B0,$2D,$F3,$95,$66,$04
+	dc.b $7E,$11,$60,$36,$4A,$2D,$F3,$95,$66,$04,$7E,$01,$60,$2C,$7E,$10
+	dc.b $60,$28,$70,$11,$B0,$2E,$FF,$EC,$66,$20,$3C,$3C,$00,$C5,$2A,$2E
+	dc.b $FF,$F0,$70,$01,$B0,$2D,$F3,$95,$66,$04,$7E,$11,$60,$0C,$4A,$2D
+	dc.b $F3,$95,$66,$04,$7E,$01,$60,$02,$7E,$10,$70,$01,$B0,$2E,$FF,$EC
+	dc.b $66,$62,$70,$2E,$B0,$6D,$F4,$2E,$66,$0C,$3F,$3C,$00,$9A,$4E,$AD
+	dc.b $07,$CA,$60,$00,$01,$06,$10,$2D,$F3,$A2,$67,$16,$4A,$AD,$F3,$D8
+	dc.b $57,$C1,$C0,$01,$67,$0C,$3F,$3C,$00,$2E,$4E,$AD,$07,$CA,$60,$00
+	dc.b $00,$EA,$10,$2D,$F3,$A7,$67,$00,$00,$E2,$12,$2D,$F3,$A2,$0A,$01
+	dc.b $00,$01,$C0,$01,$4A,$00,$67,$00,$00,$D2,$72,$04,$B2,$6D,$F4,$2E
+	dc.b $57,$C1,$C0,$01,$67,$00,$00,$C4,$3F,$3C,$00,$9A,$4E,$AD,$07,$CA
+	dc.b $60,$00,$00,$B8,$70,$02,$B0,$2E,$FF,$EC,$67,$18,$70,$00,$30,$2E
+	dc.b $FF,$F8,$72,$00,$32,$3C,$30,$00,$46,$81,$C0,$81,$3D,$40,$FF,$F8
+	dc.b $60,$00,$00,$98,$70,$2E,$B0,$6D,$F4,$2E,$66,$16,$2D,$6E,$FF,$F0
+	dc.b $FF,$E4,$3F,$3C,$00,$12,$20,$6E,$FF,$E4,$48,$68,$00,$0C,$4E,$AD
+	dc.b $07,$C2,$3D,$7C,$04,$00,$FF,$F8,$70,$05,$B0,$6D,$F4,$2E,$66,$10
 	dc.b $70,$00,$30,$2E,$FF,$F8,$80,$BC,$00,$00,$00,$40,$3D,$40,$FF,$F8
-	dc.b $60,$10,$70,$2E,$B0,$6D,$F4,$2E,$66,$08,$48,$6D,$FA,$BE,$4E,$AD
-	dc.b $00,$52,$10,$2D,$F0,$B1,$67,$48,$12,$2D,$CB,$1B,$0A,$01,$00,$01
-	dc.b $C0,$01,$4A,$00,$67,$3A,$42,$41,$12,$2D,$FA,$BF,$74,$40,$B4,$41
-	dc.b $56,$C1,$C0,$01,$67,$2A,$70,$00,$30,$2D,$F0,$AE,$C0,$BC,$00,$00
-	dc.b $00,$08,$4A,$80,$66,$1A,$2F,$2D,$EB,$5C,$3F,$06,$3F,$07,$3F,$2E
-	dc.b $FF,$D8,$3F,$2D,$EB,$5A,$3F,$2D,$DA,$5E,$2F,$05,$4E,$AD,$06,$BA
-	dc.b $10,$2E,$FF,$ED,$67,$10,$C0,$2D,$EC,$FF,$67,$0A,$2F,$04,$3F,$2E
-	dc.b $FF,$FE,$4E,$BA,$EC,$F2,$2F,$2E,$FF,$F0,$70,$00,$30,$2E,$FF,$F8
-	dc.b $80,$BC,$FF,$FF,$80,$00,$3F,$00,$2F,$0C,$4E,$AD,$01,$92,$4C,$DF
-	dc.b $10,$F0,$4E,$5E,$4E,$75,$8B,$44,$4F,$45,$51,$55,$41,$4E,$44,$53
-	dc.b $45,$54,$00,$00,$4E,$56,$FF,$CC,$48,$E7,$01,$18,$26,$6E,$00,$08
-	dc.b $42,$6E,$FF,$FA,$42,$53,$70,$03,$B0,$2D,$FF,$FB,$66,$64,$70,$04
-	dc.b $B0,$6D,$F4,$2C,$6D,$4E,$3F,$2D,$F4,$2C,$4E,$AD,$01,$EA,$42,$A7
-	dc.b $2F,$2D,$F0,$D6,$30,$2D,$FD,$EA,$52,$40,$3F,$00,$4E,$AD,$07,$7A
-	dc.b $28,$5F,$20,$0C,$66,$08,$3D,$7C,$00,$1C,$FF,$FA,$60,$2C,$48,$6D
-	dc.b $FD,$EC,$2F,$0C,$4E,$AD,$00,$92,$3F,$3C,$00,$08,$2F,$0C,$4E,$AD
-	dc.b $01,$42,$3F,$3C,$00,$06,$70,$04,$2F,$00,$4E,$AD,$01,$42,$36,$AD
-	dc.b $FD,$EA,$60,$06,$3D,$7C,$00,$40,$FF,$FA,$4E,$AD,$01,$72,$60,$00
-	dc.b $01,$40,$4A,$2D,$FF,$FB,$66,$50,$48,$6D,$FE,$FA,$48,$6E,$FF,$CE
-	dc.b $48,$6E,$FF,$F0,$48,$6E,$FF,$FE,$48,$6E,$FF,$CD,$4E,$AD,$02,$22
-	dc.b $4A,$AE,$FF,$CE,$67,$32,$70,$00,$30,$2E,$FF,$FE,$C0,$BC,$00,$00
-	dc.b $00,$10,$4A,$80,$67,$22,$70,$00,$30,$2E,$FF,$FE,$C0,$BC,$00,$00
-	dc.b $00,$2C,$4A,$80,$66,$12,$2F,$2E,$FF,$F0,$48,$6D,$FD,$EC,$4E,$AD
-	dc.b $00,$92,$1B,$7C,$00,$02,$FF,$FB,$70,$02,$B0,$2D,$FF,$FB,$66,$00
-	dc.b $00,$9A,$70,$08,$B0,$6D,$F4,$2C,$6E,$00,$00,$84,$42,$67,$48,$6D
-	dc.b $FD,$EC,$48,$6E,$FF,$D2,$3F,$2D,$F4,$2C,$2F,$2D,$F3,$BE,$48,$6E
-	dc.b $FF,$FA,$4E,$AD,$03,$E2,$10,$1F,$67,$6A,$42,$47,$1E,$2E,$FF,$D2
-	dc.b $42,$A7,$2F,$2D,$F0,$D6,$30,$07,$52,$40,$3F,$00,$4E,$AD,$07,$7A
-	dc.b $28,$5F,$20,$0C,$66,$08,$3D,$7C,$00,$1C,$FF,$FA,$60,$46,$70,$01
-	dc.b $B0,$2D,$F3,$95,$67,$14,$3F,$3C,$00,$06,$70,$01,$2F,$00,$4E,$AD
-	dc.b $01,$42,$3F,$3C,$00,$37,$4E,$AD,$01,$4A,$48,$6E,$FF,$D2,$2F,$0C
+	dc.b $2F,$2E,$FF,$F0,$3F,$2E,$FF,$F8,$2F,$0C,$4E,$AD,$01,$92,$1B,$7C
+	dc.b $00,$01,$EC,$A2,$10,$2D,$F0,$B1,$67,$00,$01,$90,$12,$2D,$CB,$1B
+	dc.b $0A,$01,$00,$01,$C0,$01,$67,$00,$01,$82,$70,$00,$30,$2D,$F0,$AE
+	dc.b $C0,$BC,$00,$00,$00,$08,$4A,$80,$66,$00,$01,$70,$2F,$2D,$EB,$5C
+	dc.b $3F,$06,$42,$67,$3F,$2E,$FF,$D8,$3F,$2D,$EB,$5A,$3F,$2D,$DA,$5E
+	dc.b $2F,$05,$4E,$AD,$06,$BA,$60,$00,$01,$52,$10,$2D,$F3,$A4,$66,$06
+	dc.b $80,$2D,$F3,$A2,$67,$4C,$70,$2E,$B0,$6D,$F4,$2E,$57,$C0,$4A,$00
+	dc.b $66,$0C,$72,$10,$B2,$2E,$FF,$EC,$57,$C1,$80,$01,$67,$08,$3F,$3C
+	dc.b $00,$B0,$4E,$AD,$07,$CA,$3D,$7C,$00,$02,$FF,$FE,$0C,$AE,$FF,$FF
+	dc.b $80,$00,$FF,$F0,$5D,$C0,$4A,$00,$66,$0E,$0C,$AE,$00,$00,$7F,$FF
+	dc.b $FF,$F0,$5E,$C1,$80,$01,$67,$4C,$3F,$3C,$00,$41,$4E,$AD,$07,$CA
+	dc.b $60,$42,$70,$2E,$B0,$6D,$F4,$2E,$66,$3A,$3D,$7C,$00,$02,$FF,$FE
+	dc.b $0C,$AE,$FF,$FF,$80,$00,$FF,$F0,$5D,$C0,$4A,$00,$66,$0E,$0C,$AE
+	dc.b $00,$00,$FF,$FF,$FF,$F0,$5E,$C1,$80,$01,$67,$08,$3F,$3C,$00,$41
+	dc.b $4E,$AD,$07,$CA,$70,$00,$30,$2E,$FF,$F8,$80,$BC,$00,$00,$00,$80
+	dc.b $3D,$40,$FF,$F8,$4A,$6D,$CD,$68,$6F,$06,$70,$00,$2D,$40,$FF,$F0
+	dc.b $28,$2E,$FF,$F0,$70,$05,$B0,$6D,$F4,$2E,$66,$12,$70,$00,$30,$2E
+	dc.b $FF,$F8,$80,$BC,$00,$00,$00,$40,$3D,$40,$FF,$F8,$60,$10,$70,$2E
+	dc.b $B0,$6D,$F4,$2E,$66,$08,$48,$6D,$FA,$BE,$4E,$AD,$00,$52,$10,$2D
+	dc.b $F0,$B1,$67,$48,$12,$2D,$CB,$1B,$0A,$01,$00,$01,$C0,$01,$4A,$00
+	dc.b $67,$3A,$42,$41,$12,$2D,$FA,$BF,$74,$40,$B4,$41,$56,$C1,$C0,$01
+	dc.b $67,$2A,$70,$00,$30,$2D,$F0,$AE,$C0,$BC,$00,$00,$00,$08,$4A,$80
+	dc.b $66,$1A,$2F,$2D,$EB,$5C,$3F,$06,$3F,$07,$3F,$2E,$FF,$D8,$3F,$2D
+	dc.b $EB,$5A,$3F,$2D,$DA,$5E,$2F,$05,$4E,$AD,$06,$BA,$10,$2E,$FF,$ED
+	dc.b $67,$10,$C0,$2D,$EC,$FF,$67,$0A,$2F,$04,$3F,$2E,$FF,$FE,$4E,$BA
+	dc.b $EC,$F2,$2F,$2E,$FF,$F0,$70,$00,$30,$2E,$FF,$F8,$80,$BC,$FF,$FF
+	dc.b $80,$00,$3F,$00,$2F,$0C,$4E,$AD,$01,$92,$4C,$DF,$10,$F0,$4E,$5E
+	dc.b $4E,$75,$8B,$44,$4F,$45,$51,$55,$41,$4E,$44,$53,$45,$54,$00,$00
+	dc.b $4E,$56,$FF,$CC,$48,$E7,$01,$18,$26,$6E,$00,$08,$42,$6E,$FF,$FA
+	dc.b $42,$53,$70,$03,$B0,$2D,$FF,$FB,$66,$64,$70,$04,$B0,$6D,$F4,$2C
+	dc.b $6D,$4E,$3F,$2D,$F4,$2C,$4E,$AD,$01,$EA,$42,$A7,$2F,$2D,$F0,$D6
+	dc.b $30,$2D,$FD,$EA,$52,$40,$3F,$00,$4E,$AD,$07,$7A,$28,$5F,$20,$0C
+	dc.b $66,$08,$3D,$7C,$00,$1C,$FF,$FA,$60,$2C,$48,$6D,$FD,$EC,$2F,$0C
 	dc.b $4E,$AD,$00,$92,$3F,$3C,$00,$08,$2F,$0C,$4E,$AD,$01,$42,$3F,$3C
-	dc.b $00,$06,$70,$04,$2F,$00,$4E,$AD,$01,$42,$36,$87,$60,$06,$3D,$7C
-	dc.b $00,$40,$FF,$FA,$4E,$AD,$01,$72,$60,$46,$42,$2D,$F3,$6F,$42,$2D
-	dc.b $F3,$58,$42,$67,$48,$6E,$FF,$F9,$48,$6E,$FF,$E8,$48,$6E,$FF,$FA
-	dc.b $4E,$AD,$02,$32,$10,$1F,$67,$1A,$3F,$3C,$00,$06,$10,$2E,$FF,$F9
-	dc.b $48,$80,$48,$C0,$2F,$00,$4E,$AD,$01,$42,$36,$AD,$F4,$2C,$42,$6E
-	dc.b $FF,$FA,$70,$04,$B0,$6D,$F4,$2C,$6C,$06,$3D,$7C,$00,$40,$FF,$FA
-	dc.b $4A,$6E,$FF,$FA,$67,$08,$3F,$2E,$FF,$FA,$4E,$AD,$07,$CA,$4C,$DF
-	dc.b $18,$80,$4E,$5E,$2E,$9F,$4E,$75,$8E,$44,$45,$46,$49,$4E,$45,$43
-	dc.b $4F,$4E,$53,$54,$41,$4E,$54,$00,$00,$00,$4E,$56,$FF,$E6,$48,$E7
-	dc.b $0F,$00,$10,$2D,$F3,$A2,$67,$0C,$3F,$3C,$00,$A3,$4E,$AD,$07,$CA
-	dc.b $60,$00,$02,$40,$18,$2D,$F3,$A7,$10,$04,$67,$18,$2F,$3C,$00,$01
-	dc.b $02,$00,$1F,$3C,$00,$01,$42,$67,$4E,$BA,$EF,$F2,$42,$2D,$F4,$0F
-	dc.b $42,$2D,$FA,$BE,$10,$2D,$F4,$0F,$66,$6A,$70,$01,$B0,$6D,$F4,$2C
-	dc.b $56,$C0,$4A,$00,$67,$34,$12,$2D,$F4,$1B,$02,$41,$00,$01,$C0,$01
-	dc.b $67,$28,$10,$2D,$EB,$93,$67,$1A,$52,$AD,$F4,$18,$10,$2D,$F3,$A4
-	dc.b $66,$04,$80,$2D,$F3,$A3,$1F,$00,$1F,$3C,$00,$01,$4E,$BA,$E9,$88
-	dc.b $60,$08,$3F,$3C,$00,$CC,$4E,$AD,$07,$CA,$2B,$6D,$F4,$18,$F4,$14
-	dc.b $42,$40,$10,$2D,$FA,$BE,$4A,$40,$6F,$1A,$2F,$2D,$F4,$18,$3F,$2D
-	dc.b $F3,$E0,$2F,$2D,$F3,$E2,$4E,$AD,$01,$92,$10,$2D,$F0,$B1,$67,$04
-	dc.b $4E,$AD,$02,$3A,$42,$47,$42,$05,$42,$46,$48,$6E,$FF,$FC,$4E,$BA
-	dc.b $FD,$64,$52,$47,$DC,$6E,$FF,$FC,$10,$05,$0A,$00,$00,$01,$4A,$00
-	dc.b $67,$1E,$72,$19,$B2,$47,$5D,$C1,$C0,$01,$67,$14,$7A,$01,$3F,$3C
-	dc.b $00,$A9,$42,$A7,$70,$19,$2F,$00,$4E,$AD,$00,$C2,$4E,$AD,$07,$C2
-	dc.b $42,$67,$1F,$3C,$00,$1C,$4E,$BA,$F3,$E2,$10,$1F,$66,$BC,$4A,$6D
-	dc.b $CD,$68,$66,$00,$01,$3E,$70,$1E,$B0,$2D,$FF,$FB,$67,$0C,$3F,$3C
-	dc.b $00,$33,$4E,$AD,$07,$CA,$60,$00,$01,$2A,$10,$2D,$F4,$0F,$67,$00
-	dc.b $00,$8C,$30,$06,$48,$C0,$91,$AD,$F4,$18,$70,$01,$B0,$6D,$F4,$2C
-	dc.b $56,$C0,$4A,$00,$67,$20,$12,$2D,$F4,$1B,$02,$41,$00,$01,$C0,$01
-	dc.b $67,$14,$10,$2D,$EB,$93,$67,$06,$53,$AD,$F4,$18,$60,$08,$3F,$3C
+	dc.b $00,$06,$70,$04,$2F,$00,$4E,$AD,$01,$42,$36,$AD,$FD,$EA,$60,$06
+	dc.b $3D,$7C,$00,$40,$FF,$FA,$4E,$AD,$01,$72,$60,$00,$01,$40,$4A,$2D
+	dc.b $FF,$FB,$66,$50,$48,$6D,$FE,$FA,$48,$6E,$FF,$CE,$48,$6E,$FF,$F0
+	dc.b $48,$6E,$FF,$FE,$48,$6E,$FF,$CD,$4E,$AD,$02,$22,$4A,$AE,$FF,$CE
+	dc.b $67,$32,$70,$00,$30,$2E,$FF,$FE,$C0,$BC,$00,$00,$00,$10,$4A,$80
+	dc.b $67,$22,$70,$00,$30,$2E,$FF,$FE,$C0,$BC,$00,$00,$00,$2C,$4A,$80
+	dc.b $66,$12,$2F,$2E,$FF,$F0,$48,$6D,$FD,$EC,$4E,$AD,$00,$92,$1B,$7C
+	dc.b $00,$02,$FF,$FB,$70,$02,$B0,$2D,$FF,$FB,$66,$00,$00,$9A,$70,$08
+	dc.b $B0,$6D,$F4,$2C,$6E,$00,$00,$84,$42,$67,$48,$6D,$FD,$EC,$48,$6E
+	dc.b $FF,$D2,$3F,$2D,$F4,$2C,$2F,$2D,$F3,$BE,$48,$6E,$FF,$FA,$4E,$AD
+	dc.b $03,$E2,$10,$1F,$67,$6A,$42,$47,$1E,$2E,$FF,$D2,$42,$A7,$2F,$2D
+	dc.b $F0,$D6,$30,$07,$52,$40,$3F,$00,$4E,$AD,$07,$7A,$28,$5F,$20,$0C
+	dc.b $66,$08,$3D,$7C,$00,$1C,$FF,$FA,$60,$46,$70,$01,$B0,$2D,$F3,$95
+	dc.b $67,$14,$3F,$3C,$00,$06,$70,$01,$2F,$00,$4E,$AD,$01,$42,$3F,$3C
+	dc.b $00,$37,$4E,$AD,$01,$4A,$48,$6E,$FF,$D2,$2F,$0C,$4E,$AD,$00,$92
+	dc.b $3F,$3C,$00,$08,$2F,$0C,$4E,$AD,$01,$42,$3F,$3C,$00,$06,$70,$04
+	dc.b $2F,$00,$4E,$AD,$01,$42,$36,$87,$60,$06,$3D,$7C,$00,$40,$FF,$FA
+	dc.b $4E,$AD,$01,$72,$60,$46,$42,$2D,$F3,$6F,$42,$2D,$F3,$58,$42,$67
+	dc.b $48,$6E,$FF,$F9,$48,$6E,$FF,$E8,$48,$6E,$FF,$FA,$4E,$AD,$02,$32
+	dc.b $10,$1F,$67,$1A,$3F,$3C,$00,$06,$10,$2E,$FF,$F9,$48,$80,$48,$C0
+	dc.b $2F,$00,$4E,$AD,$01,$42,$36,$AD,$F4,$2C,$42,$6E,$FF,$FA,$70,$04
+	dc.b $B0,$6D,$F4,$2C,$6C,$06,$3D,$7C,$00,$40,$FF,$FA,$4A,$6E,$FF,$FA
+	dc.b $67,$08,$3F,$2E,$FF,$FA,$4E,$AD,$07,$CA,$4C,$DF,$18,$80,$4E,$5E
+	dc.b $2E,$9F,$4E,$75,$8E,$44,$45,$46,$49,$4E,$45,$43,$4F,$4E,$53,$54
+	dc.b $41,$4E,$54,$00,$00,$00,$4E,$56,$FF,$E6,$48,$E7,$0F,$00,$10,$2D
+	dc.b $F3,$A2,$67,$0C,$3F,$3C,$00,$A3,$4E,$AD,$07,$CA,$60,$00,$02,$40
+	dc.b $18,$2D,$F3,$A7,$10,$04,$67,$18,$2F,$3C,$00,$01,$02,$00,$1F,$3C
+	dc.b $00,$01,$42,$67,$4E,$BA,$EF,$F2,$42,$2D,$F4,$0F,$42,$2D,$FA,$BE
+	dc.b $10,$2D,$F4,$0F,$66,$6A,$70,$01,$B0,$6D,$F4,$2C,$56,$C0,$4A,$00
+	dc.b $67,$34,$12,$2D,$F4,$1B,$02,$41,$00,$01,$C0,$01,$67,$28,$10,$2D
+	dc.b $EB,$93,$67,$1A,$52,$AD,$F4,$18,$10,$2D,$F3,$A4,$66,$04,$80,$2D
+	dc.b $F3,$A3,$1F,$00,$1F,$3C,$00,$01,$4E,$BA,$E9,$88,$60,$08,$3F,$3C
 	dc.b $00,$CC,$4E,$AD,$07,$CA,$2B,$6D,$F4,$18,$F4,$14,$42,$40,$10,$2D
 	dc.b $FA,$BE,$4A,$40,$6F,$1A,$2F,$2D,$F4,$18,$3F,$2D,$F3,$E0,$2F,$2D
 	dc.b $F3,$E2,$4E,$AD,$01,$92,$10,$2D,$F0,$B1,$67,$04,$4E,$AD,$02,$3A
-	dc.b $20,$2D,$F4,$18,$B0,$AD,$F4,$10,$6C,$06,$2B,$6D,$F4,$18,$F4,$10
-	dc.b $10,$2D,$F3,$A6,$67,$2E,$10,$2D,$F3,$A4,$66,$04,$80,$2D,$F3,$A3
-	dc.b $1F,$00,$1F,$3C,$00,$01,$4E,$BA,$E8,$5E,$60,$18,$30,$06,$48,$C0
-	dc.b $D1,$AD,$F4,$18,$20,$2D,$F4,$18,$B0,$AD,$F4,$10,$6F,$06,$2B,$6D
-	dc.b $F4,$18,$F4,$10,$4E,$BA,$E8,$EE,$4A,$6D,$CD,$66,$6F,$14,$3F,$2D
-	dc.b $FB,$DE,$3F,$2D,$EB,$6E,$30,$2D,$F4,$2E,$44,$40,$3F,$00,$4E,$AD
-	dc.b $01,$62,$3F,$07,$3F,$2D,$F4,$2C,$3F,$2D,$FB,$DE,$3F,$2D,$EB,$6E
-	dc.b $4E,$AD,$01,$5A,$70,$01,$B0,$2D,$F3,$95,$67,$1A,$3F,$3C,$00,$06
-	dc.b $10,$2D,$F3,$95,$48,$80,$48,$C0,$2F,$00,$4E,$AD,$01,$42,$3F,$3C
-	dc.b $00,$37,$4E,$AD,$01,$4A,$4A,$6D,$CD,$68,$5E,$C0,$44,$00,$1B,$40
-	dc.b $EE,$71,$10,$2D,$F4,$0F,$67,$1A,$C0,$2D,$F3,$A6,$67,$14,$10,$2D
-	dc.b $F3,$A4,$66,$04,$80,$2D,$F3,$A3,$1F,$00,$1F,$3C,$00,$01,$4E,$BA
-	dc.b $E7,$C6,$10,$04,$67,$1C,$42,$A7,$4E,$AD,$02,$4A,$1B,$7C,$00,$01
-	dc.b $EC,$C5,$2F,$2D,$EB,$6A,$4E,$AD,$02,$52,$1F,$3C,$00,$01,$4E,$AD
-	dc.b $08,$1A,$4C,$DF,$00,$F0,$4E,$5E,$4E,$75,$84,$44,$4F,$44,$43,$00
-	dc.b $00,$00,$4E,$56,$FF,$DE,$48,$E7,$0F,$18,$42,$67,$48,$6E,$FF,$F0
-	dc.b $4E,$AD,$02,$02,$10,$1F,$66,$0C,$70,$00,$2B,$40,$F3,$CE,$70,$01
-	dc.b $2D,$40,$FF,$F0,$10,$2D,$F3,$A7,$67,$0A,$12,$2D,$F3,$A2,$0A,$01
-	dc.b $00,$01,$C0,$01,$1A,$00,$67,$04,$42,$2D,$F4,$0F,$42,$46,$78,$01
-	dc.b $70,$02,$B0,$6D,$F4,$2E,$66,$00,$00,$C0,$30,$2D,$F4,$2C,$48,$C0
-	dc.b $2E,$00,$70,$04,$B0,$6D,$F4,$2C,$6C,$1A,$70,$08,$B0,$6D,$F4,$2C
-	dc.b $66,$04,$7E,$04,$60,$0E,$70,$10,$B0,$6D,$F4,$2C,$66,$04,$7E,$08
-	dc.b $60,$02,$7E,$0C,$4A,$AD,$F3,$CE,$67,$7A,$10,$2D,$F3,$A2,$67,$24
-	dc.b $22,$2D,$F3,$CE,$B2,$AD,$F3,$EA,$57,$C1,$C0,$01,$67,$16,$3F,$3C
-	dc.b $00,$B8,$4E,$AD,$07,$CA,$70,$00,$2B,$40,$F3,$CE,$70,$01,$2D,$40
-	dc.b $FF,$F0,$60,$64,$42,$A7,$2F,$2D,$F3,$CE,$4E,$AD,$01,$22,$20,$5F
-	dc.b $2D,$50,$FF,$F0,$6C,$14,$10,$05,$67,$06,$1B,$7C,$00,$01,$F4,$0F
-	dc.b $20,$2E,$FF,$F0,$44,$80,$2D,$40,$FF,$F0,$7E,$01,$10,$2D,$F3,$A2
-	dc.b $66,$16,$80,$2D,$F3,$A7,$4A,$00,$66,$0E,$80,$2D,$F3,$A4,$4A,$00
-	dc.b $66,$06,$80,$2D,$F3,$A3,$67,$04,$7C,$02,$60,$1C,$70,$00,$2B,$40
-	dc.b $F3,$CE,$60,$14,$4A,$AE,$FF,$F0,$6C,$0E,$3F,$3C,$00,$99,$4E,$AD
-	dc.b $07,$CA,$70,$01,$2D,$40,$FF,$F0,$10,$05,$67,$1C,$2F,$3C,$00,$01
-	dc.b $02,$00,$1F,$3C,$00,$01,$42,$67,$4E,$BA,$EC,$A2,$2B,$6D,$F3,$EE
-	dc.b $F3,$CA,$42,$2D,$FA,$BE,$60,$06,$70,$00,$2B,$40,$F3,$CA,$70,$00
-	dc.b $30,$06,$72,$00,$32,$2D,$F3,$E0,$80,$81,$3C,$00,$10,$2D,$F4,$0F
-	dc.b $66,$00,$00,$A4,$70,$01,$B0,$6D,$F4,$2C,$56,$C0,$4A,$00,$67,$6E
-	dc.b $12,$2D,$F4,$1B,$02,$41,$00,$01,$C0,$01,$67,$62,$10,$2D,$EB,$93
-	dc.b $66,$0E,$4A,$AE,$FF,$F0,$57,$C1,$80,$01,$02,$40,$00,$01,$67,$46
-	dc.b $52,$AD,$F4,$18,$10,$2D,$F3,$A6,$67,$44,$12,$2D,$F3,$A2,$0A,$01
-	dc.b $00,$01,$C0,$01,$4A,$00,$67,$36,$72,$03,$B2,$6D,$F4,$2E,$57,$C1
-	dc.b $4A,$01,$66,$0C,$4A,$AE,$FF,$F0,$57,$C2,$82,$02,$C0,$01,$67,$1E
-	dc.b $10,$2D,$F3,$A4,$66,$04,$80,$2D,$F3,$A3,$1F,$00,$1F,$3C,$00,$01
-	dc.b $4E,$BA,$E5,$E4,$60,$08,$3F,$3C,$00,$CC,$4E,$AD,$07,$CA,$2B,$6D
-	dc.b $F4,$18,$F4,$14,$42,$40,$10,$2D,$FA,$BE,$4A,$40,$6F,$18,$2F,$2D
-	dc.b $F4,$18,$3F,$06,$2F,$2D,$F3,$E2,$4E,$AD,$01,$92,$10,$2D,$F0,$B1
-	dc.b $67,$04,$4E,$AD,$02,$3A,$70,$02,$B0,$6D,$F4,$2E,$66,$00,$01,$DC
-	dc.b $10,$2D,$F4,$0F,$67,$00,$00,$C2,$2F,$2E,$FF,$F0,$2F,$07,$4E,$AD
-	dc.b $0A,$72,$20,$1F,$91,$AD,$F4,$18,$10,$2D,$F4,$1B,$02,$40,$00,$01
-	dc.b $67,$42,$30,$2D,$F4,$2C,$53,$40,$67,$02,$60,$16,$4A,$AD,$F3,$CE
-	dc.b $67,$32,$10,$2D,$EB,$93,$66,$2C,$3F,$3C,$00,$CF,$4E,$AD,$07,$CA
-	dc.b $60,$22,$10,$2D,$EB,$93,$66,$0E,$4A,$AE,$FF,$F0,$57,$C1,$80,$01
-	dc.b $02,$40,$00,$01,$67,$06,$53,$AD,$F4,$18,$60,$08,$3F,$3C,$00,$CC
-	dc.b $4E,$AD,$07,$CA,$2B,$6D,$F4,$18,$F4,$14,$42,$40,$10,$2D,$FA,$BE
-	dc.b $4A,$40,$6F,$18,$2F,$2D,$F4,$18,$3F,$06,$2F,$2D,$F3,$E2,$4E,$AD
+	dc.b $42,$47,$42,$05,$42,$46,$48,$6E,$FF,$FC,$4E,$BA,$FD,$64,$52,$47
+	dc.b $DC,$6E,$FF,$FC,$10,$05,$0A,$00,$00,$01,$4A,$00,$67,$1E,$72,$19
+	dc.b $B2,$47,$5D,$C1,$C0,$01,$67,$14,$7A,$01,$3F,$3C,$00,$A9,$42,$A7
+	dc.b $70,$19,$2F,$00,$4E,$AD,$00,$C2,$4E,$AD,$07,$C2,$42,$67,$1F,$3C
+	dc.b $00,$1C,$4E,$BA,$F3,$E2,$10,$1F,$66,$BC,$4A,$6D,$CD,$68,$66,$00
+	dc.b $01,$3E,$70,$1E,$B0,$2D,$FF,$FB,$67,$0C,$3F,$3C,$00,$33,$4E,$AD
+	dc.b $07,$CA,$60,$00,$01,$2A,$10,$2D,$F4,$0F,$67,$00,$00,$8C,$30,$06
+	dc.b $48,$C0,$91,$AD,$F4,$18,$70,$01,$B0,$6D,$F4,$2C,$56,$C0,$4A,$00
+	dc.b $67,$20,$12,$2D,$F4,$1B,$02,$41,$00,$01,$C0,$01,$67,$14,$10,$2D
+	dc.b $EB,$93,$67,$06,$53,$AD,$F4,$18,$60,$08,$3F,$3C,$00,$CC,$4E,$AD
+	dc.b $07,$CA,$2B,$6D,$F4,$18,$F4,$14,$42,$40,$10,$2D,$FA,$BE,$4A,$40
+	dc.b $6F,$1A,$2F,$2D,$F4,$18,$3F,$2D,$F3,$E0,$2F,$2D,$F3,$E2,$4E,$AD
 	dc.b $01,$92,$10,$2D,$F0,$B1,$67,$04,$4E,$AD,$02,$3A,$20,$2D,$F4,$18
-	dc.b $B0,$AD,$F4,$10,$6C,$06,$2B,$6D,$F4,$18,$F4,$10,$10,$2D,$F4,$1B
-	dc.b $02,$40,$00,$01,$4A,$00,$67,$40,$4A,$AD,$F3,$CE,$56,$C1,$C0,$01
-	dc.b $4A,$00,$67,$34,$C0,$2D,$EB,$93,$67,$2E,$52,$AD,$F4,$10,$3F,$3C
-	dc.b $00,$D0,$4E,$AD,$07,$CA,$60,$20,$2F,$2E,$FF,$F0,$2F,$07,$4E,$AD
-	dc.b $0A,$72,$20,$1F,$D1,$AD,$F4,$18,$20,$2D,$F4,$18,$B0,$AD,$F4,$10
-	dc.b $6F,$06,$2B,$6D,$F4,$18,$F4,$10,$4E,$BA,$E5,$6A,$4A,$AD,$F3,$CA
-	dc.b $56,$C0,$4A,$00,$67,$00,$00,$A4,$4A,$AD,$F3,$CE,$56,$C1,$C0,$01
-	dc.b $67,$00,$00,$98,$4A,$6D,$CD,$68,$57,$C1,$C0,$01,$67,$00,$00,$8C
-	dc.b $42,$A7,$2F,$2D,$F3,$CA,$4E,$AD,$01,$22,$28,$5F,$58,$8C,$28,$AD
-	dc.b $F3,$CE,$10,$05,$0A,$00,$00,$01,$4A,$00,$67,$6C,$72,$00,$20,$6D
-	dc.b $F3,$CA,$32,$28,$00,$08,$74,$00,$34,$3C,$0A,$00,$C2,$82,$4A,$81
-	dc.b $56,$C1,$C0,$01,$67,$52,$26,$68,$00,$04,$70,$00,$30,$2B,$00,$08
-	dc.b $80,$BC,$00,$00,$40,$00,$37,$40,$00,$08,$42,$A7,$2F,$0B,$4E,$AD
-	dc.b $01,$22,$28,$5F,$58,$8C,$42,$A7,$2F,$2D,$F3,$CE,$4E,$AD,$01,$22
-	dc.b $20,$1F,$58,$80,$2D,$40,$FF,$DE,$10,$2D,$F3,$A5,$67,$16,$20,$6E
-	dc.b $FF,$DE,$22,$10,$B2,$AD,$F3,$AC,$57,$C1,$C0,$01,$67,$06,$70,$00
-	dc.b $28,$80,$60,$04,$28,$AD,$F3,$CE,$42,$04,$10,$2D,$F3,$A6,$67,$14
-	dc.b $10,$2D,$F3,$A4,$66,$04,$80,$2D,$F3,$A3,$1F,$00,$1F,$2D,$F4,$0F
-	dc.b $4E,$BA,$E3,$F4,$4A,$6D,$CD,$68,$57,$C0,$4A,$00,$67,$00,$01,$B8
-	dc.b $72,$1E,$B2,$2D,$FF,$FB,$56,$C1,$C0,$01,$67,$00,$01,$AA,$3F,$3C
-	dc.b $00,$33,$4E,$AD,$07,$CA,$60,$00,$01,$9E,$42,$67,$1F,$3C,$00,$1C
-	dc.b $4E,$BA,$EE,$98,$10,$1F,$67,$00,$01,$86,$4A,$AE,$FF,$F0,$6E,$0E
-	dc.b $3F,$3C,$00,$99,$4E,$AD,$07,$CA,$70,$01,$2D,$40,$FF,$F0,$48,$6E
-	dc.b $FF,$FE,$4E,$BA,$F7,$C0,$4A,$6D,$CD,$68,$66,$00,$01,$6A,$70,$1E
-	dc.b $B0,$2D,$FF,$FB,$67,$0C,$3F,$3C,$00,$33,$4E,$AD,$07,$CA,$60,$00
-	dc.b $01,$56,$10,$2D,$F4,$0F,$67,$00,$00,$9A,$30,$2E,$FF,$FE,$48,$C0
-	dc.b $2F,$2E,$FF,$F0,$2F,$00,$4E,$AD,$0A,$72,$20,$1F,$91,$AD,$F4,$18
-	dc.b $70,$01,$B0,$6D,$F4,$2C,$56,$C0,$4A,$00,$67,$20,$12,$2D,$F4,$1B
-	dc.b $02,$41,$00,$01,$C0,$01,$67,$14,$10,$2D,$EB,$93,$67,$06,$53,$AD
-	dc.b $F4,$18,$60,$08,$3F,$3C,$00,$CC,$4E,$AD,$07,$CA,$2B,$6D,$F4,$18
-	dc.b $F4,$14,$42,$40,$10,$2D,$FA,$BE,$4A,$40,$6F,$1A,$2F,$2D,$F4,$18
-	dc.b $3F,$2D,$F3,$E0,$2F,$2D,$F3,$E2,$4E,$AD,$01,$92,$10,$2D,$F0,$B1
-	dc.b $67,$04,$4E,$AD,$02,$3A,$20,$2D,$F4,$18,$B0,$AD,$F4,$10,$6C,$06
-	dc.b $2B,$6D,$F4,$18,$F4,$10,$10,$2D,$F3,$A6,$67,$3C,$10,$2D,$F3,$A4
-	dc.b $66,$04,$80,$2D,$F3,$A3,$1F,$00,$1F,$3C,$00,$01,$4E,$BA,$E2,$E8
-	dc.b $60,$26,$30,$2E,$FF,$FE,$48,$C0,$2F,$2E,$FF,$F0,$2F,$00,$4E,$AD
-	dc.b $0A,$72,$20,$1F,$D1,$AD,$F4,$18,$20,$2D,$F4,$18,$B0,$AD,$F4,$10
-	dc.b $6F,$06,$2B,$6D,$F4,$18,$F4,$10,$4E,$BA,$E3,$6A,$4A,$6D,$CD,$66
-	dc.b $6F,$14,$3F,$2D,$FB,$DE,$3F,$2D,$EB,$6E,$30,$2D,$F4,$2E,$44,$40
-	dc.b $3F,$00,$4E,$AD,$01,$62,$20,$2E,$FF,$F0,$44,$80,$3F,$00,$3F,$2D
-	dc.b $F4,$2C,$3F,$2D,$FB,$DE,$3F,$2D,$EB,$6E,$4E,$AD,$01,$5A,$70,$01
-	dc.b $B0,$2D,$F3,$95,$67,$1A,$3F,$3C,$00,$06,$10,$2D,$F3,$95,$48,$80
-	dc.b $48,$C0,$2F,$00,$4E,$AD,$01,$42,$3F,$3C,$00,$37,$4E,$AD,$01,$4A
-	dc.b $4A,$6D,$CD,$68,$5E,$C0,$44,$00,$1B,$40,$EE,$71,$10,$2D,$F4,$0F
-	dc.b $67,$24,$C0,$2D,$F3,$A6,$67,$1E,$10,$2D,$F3,$A4,$66,$04,$80,$2D
-	dc.b $F3,$A3,$1F,$00,$1F,$3C,$00,$01,$4E,$BA,$E2,$3C,$60,$08,$3F,$3C
-	dc.b $00,$9C,$4E,$AD,$07,$CA,$10,$05,$67,$1A,$42,$A7,$4E,$AD,$02,$4A
-	dc.b $1B,$7C,$00,$01,$EC,$C5,$2F,$2D,$EB,$6A,$4E,$AD,$02,$52,$1F,$04
-	dc.b $4E,$AD,$08,$1A,$4C,$DF,$18,$F0,$4E,$5E,$4E,$75,$8A,$44,$4F,$44
-	dc.b $53,$41,$4E,$44,$44,$43,$42,$00,$00,$00,$4E,$56,$FE,$FC,$48,$E7
-	dc.b $01,$08,$28,$6E,$00,$08,$42,$6C,$FF,$FA,$42,$2C,$FF,$FC,$42,$2D
-	dc.b $F4,$0F,$7E,$01,$70,$1E,$B0,$2D,$FF,$FB,$67,$00,$02,$7C,$10,$2D
-	dc.b $FF,$FB,$48,$80,$67,$12,$04,$40,$00,$1C,$67,$00,$02,$56,$55,$40
-	dc.b $67,$00,$02,$50,$60,$00,$02,$2A,$48,$6D,$FE,$FA,$48,$6E,$FE,$FC
-	dc.b $4E,$AD,$00,$92,$10,$2D,$F3,$A1,$66,$08,$48,$6E,$FE,$FC,$4E,$AD
-	dc.b $00,$52,$42,$67,$48,$6E,$FF,$FC,$48,$6D,$E0,$60,$3F,$3C,$00,$07
-	dc.b $4E,$BA,$BF,$C2,$10,$1F,$67,$00,$00,$A8,$70,$01,$B0,$2C,$FF,$F6
-	dc.b $66,$5C,$70,$00,$32,$2E,$FF,$FC,$D2,$41,$41,$ED,$E0,$5A,$30,$30
-	dc.b $10,$00,$72,$00,$22,$6C,$00,$0C,$32,$11,$C0,$81,$4A,$80,$66,$56
-	dc.b $20,$49,$08,$10,$00,$03,$67,$0A,$3F,$3C,$00,$EC,$4E,$AD,$07,$CA
-	dc.b $60,$44,$20,$6C,$00,$0C,$08,$10,$00,$01,$67,$3A,$3F,$3C,$00,$D1
-	dc.b $4E,$AD,$07,$CA,$70,$00,$20,$6C,$00,$0C,$30,$10,$22,$3C,$00,$00
-	dc.b $02,$00,$46,$81,$C0,$81,$20,$6C,$00,$0C,$30,$80,$60,$18,$70,$00
-	dc.b $20,$6C,$00,$0C,$30,$10,$22,$3C,$00,$00,$02,$00,$46,$81,$C0,$81
-	dc.b $20,$6C,$00,$0C,$30,$80,$19,$7C,$00,$01,$FF,$F6,$70,$00,$20,$6C
-	dc.b $00,$0C,$30,$10,$72,$00,$34,$2E,$FF,$FC,$D4,$42,$41,$ED,$E0,$5A
-	dc.b $32,$30,$20,$00,$80,$81,$22,$6C,$00,$0C,$32,$80,$60,$00,$01,$74
-	dc.b $42,$67,$48,$6E,$FF,$FC,$48,$6D,$E0,$74,$3F,$3C,$00,$0A,$4E,$BA
-	dc.b $BF,$04,$10,$1F,$67,$3A,$4A,$2C,$FF,$FB,$66,$08,$19,$7C,$00,$01
-	dc.b $FF,$FB,$60,$1A,$30,$2E,$FF,$FC,$12,$2D,$F4,$0F,$41,$ED,$E0,$6F
-	dc.b $B2,$30,$00,$00,$67,$08,$3F,$3C,$00,$D1,$4E,$AD,$07,$CA,$30,$2E
-	dc.b $FF,$FC,$41,$ED,$E0,$6F,$1B,$70,$00,$00,$F4,$0F,$60,$00,$01,$24
-	dc.b $42,$67,$48,$6E,$FF,$FC,$48,$6D,$DF,$E2,$3F,$3C,$00,$0F,$4E,$BA
-	dc.b $BE,$B4,$10,$1F,$67,$78,$70,$01,$B0,$2C,$FF,$F7,$66,$46,$70,$05
-	dc.b $B0,$6E,$FF,$FC,$6E,$3E,$70,$00,$20,$6C,$00,$08,$30,$10,$72,$00
-	dc.b $34,$2E,$FF,$FC,$D4,$42,$41,$ED,$DF,$D0,$32,$30,$20,$00,$C0,$81
-	dc.b $4A,$80,$66,$20,$3F,$3C,$00,$D1,$4E,$AD,$07,$CA,$70,$00,$20,$6C
-	dc.b $00,$08,$30,$10,$72,$00,$32,$3C,$00,$06,$46,$81,$C0,$81,$20,$6C
-	dc.b $00,$08,$30,$80,$70,$00,$20,$6C,$00,$08,$30,$10,$72,$00,$34,$2E
-	dc.b $FF,$FC,$D4,$42,$41,$ED,$DF,$D0,$32,$30,$20,$00,$80,$81,$22,$6C
-	dc.b $00,$08,$32,$80,$19,$7C,$00,$01,$FF,$F7,$60,$00,$00,$96,$48,$6E
-	dc.b $FE,$FC,$48,$7A,$00,$BE,$4E,$AD,$0A,$CA,$10,$1F,$67,$3C,$4A,$2C
-	dc.b $FF,$FC,$66,$7E,$10,$2D,$EB,$20,$67,$08,$3F,$3C,$00,$A4,$4E,$AD
-	dc.b $07,$CA,$70,$00,$20,$6C,$00,$0C,$30,$10,$80,$BC,$00,$00,$01,$00
-	dc.b $20,$6C,$00,$0C,$30,$80,$1B,$7C,$00,$01,$EB,$20,$1B,$7C,$00,$01
-	dc.b $F4,$0F,$19,$7C,$00,$01,$FF,$FC,$60,$48,$10,$07,$67,$16,$20,$6C
-	dc.b $00,$0C,$30,$BC,$00,$02,$20,$6E,$00,$08,$2C,$48,$4E,$FA,$03,$86
-	dc.b $00,$00,$60,$2E,$3F,$3C,$00,$99,$4E,$AD,$07,$CA,$60,$24,$60,$22
-	dc.b $10,$07,$67,$16,$20,$6C,$00,$0C,$30,$BC,$00,$02,$20,$6E,$00,$08
-	dc.b $2C,$48,$4E,$FA,$03,$60,$00,$00,$60,$08,$3F,$3C,$00,$99,$4E,$AD
-	dc.b $07,$CA,$42,$07,$1B,$7C,$00,$01,$F3,$A0,$4E,$AD,$01,$72,$1B,$6D
-	dc.b $F3,$9F,$F3,$A0,$60,$00,$FD,$7E,$4C,$DF,$10,$80,$4E,$5E,$2E,$9F
-	dc.b $4E,$75,$8C,$47,$45,$54,$52,$45,$43,$50,$41,$52,$41,$4D,$53,$00
-	dc.b $00,$06,$04,$4D,$41,$49,$4E,$00,$4E,$56,$00,$00,$2F,$0C,$28,$6E
-	dc.b $00,$08,$70,$1E,$B0,$2D,$FF,$FB,$67,$00,$02,$52,$4A,$2D,$FF,$FB
-	dc.b $66,$00,$02,$1E,$10,$2D,$F3,$A1,$66,$08,$48,$6D,$FE,$FA,$4E,$AD
-	dc.b $00,$52,$48,$6D,$FE,$FA,$48,$7A,$02,$86,$4E,$AD,$0A,$CA,$10,$1F
-	dc.b $67,$52,$70,$01,$B0,$2C,$FF,$F6,$66,$26,$4A,$2C,$FF,$F4,$66,$20
-	dc.b $3F,$3C,$00,$D1,$4E,$AD,$07,$CA,$70,$00,$20,$6C,$00,$0C,$30,$10
-	dc.b $22,$3C,$00,$00,$02,$00,$46,$81,$C0,$81,$20,$6C,$00,$0C,$30,$80
-	dc.b $19,$7C,$00,$01,$FF,$F4,$19,$7C,$00,$01,$FF,$F6,$70,$00,$20,$6C
-	dc.b $00,$0C,$30,$10,$80,$BC,$00,$00,$08,$00,$20,$6C,$00,$0C,$30,$80
-	dc.b $60,$00,$01,$78,$48,$6D,$FE,$FA,$48,$7A,$02,$1E,$4E,$AD,$0A,$CA
-	dc.b $10,$1F,$67,$2C,$70,$01,$B0,$2C,$FF,$F6,$66,$16,$70,$01,$B0,$2C
-	dc.b $FF,$F4,$66,$00,$01,$56,$3F,$3C,$00,$EC,$4E,$AD,$07,$CA,$60,$00
-	dc.b $01,$4A,$42,$2C,$FF,$F4,$19,$7C,$00,$01,$FF,$F6,$60,$00,$01,$3C
-	dc.b $48,$6D,$FE,$FA,$48,$7A,$01,$D8,$4E,$AD,$0A,$CA,$10,$1F,$67,$26
-	dc.b $4A,$2C,$FF,$F8,$66,$00,$01,$24,$70,$00,$20,$6C,$00,$08,$30,$10
-	dc.b $80,$BC,$00,$00,$00,$40,$20,$6C,$00,$08,$30,$80,$19,$7C,$00,$01
-	dc.b $FF,$F8,$60,$00,$01,$06,$48,$6D,$FE,$FA,$48,$7A,$01,$96,$4E,$AD
-	dc.b $0A,$CA,$10,$1F,$67,$30,$4A,$2C,$FF,$F9,$66,$00,$00,$EE,$70,$0A
-	dc.b $B0,$6D,$F4,$2E,$67,$00,$00,$E4,$70,$00,$20,$6C,$00,$08,$30,$10
-	dc.b $80,$BC,$00,$00,$00,$80,$20,$6C,$00,$08,$30,$80,$19,$7C,$00,$01
-	dc.b $FF,$F9,$60,$00,$00,$C6,$48,$6D,$FE,$FA,$48,$7A,$01,$48,$4E,$AD
-	dc.b $0A,$CA,$10,$1F,$67,$4E,$70,$01,$B0,$2C,$FF,$F7,$66,$24,$70,$02
-	dc.b $B0,$2C,$FF,$F5,$67,$1C,$3F,$3C,$00,$D1,$4E,$AD,$07,$CA,$70,$00
-	dc.b $20,$6C,$00,$08,$30,$10,$72,$02,$46,$81,$C0,$81,$20,$6C,$00,$08
-	dc.b $30,$80,$70,$00,$20,$6C,$00,$08,$30,$10,$80,$BC,$00,$00,$00,$04
-	dc.b $20,$6C,$00,$08,$30,$80,$19,$7C,$00,$02,$FF,$F5,$19,$7C,$00,$01
-	dc.b $FF,$F7,$60,$66,$48,$6D,$FE,$FA,$48,$7A,$00,$DA,$4E,$AD,$0A,$CA
-	dc.b $10,$1F,$67,$4E,$70,$01,$B0,$2C,$FF,$F7,$66,$24,$70,$01,$B0,$2C
-	dc.b $FF,$F5,$67,$1C,$3F,$3C,$00,$D1,$4E,$AD,$07,$CA,$70,$00,$20,$6C
-	dc.b $00,$08,$30,$10,$72,$04,$46,$81,$C0,$81,$20,$6C,$00,$08,$30,$80
-	dc.b $70,$00,$20,$6C,$00,$08,$30,$10,$80,$BC,$00,$00,$00,$02,$20,$6C
-	dc.b $00,$08,$30,$80,$19,$7C,$00,$01,$FF,$F5,$19,$7C,$00,$01,$FF,$F7
-	dc.b $60,$08,$3F,$3C,$00,$99,$4E,$AD,$07,$CA,$1B,$7C,$00,$01,$F3,$A0
-	dc.b $4E,$AD,$01,$72,$1B,$6D,$F3,$9F,$F3,$A0,$70,$1E,$B0,$2D,$FF,$FB
-	dc.b $67,$00,$FD,$F0,$42,$67,$1F,$3C,$00,$1C,$4E,$BA,$E7,$EE,$10,$1F
-	dc.b $66,$00,$FD,$E0,$3F,$3C,$00,$99,$4E,$AD,$07,$CA,$60,$00,$FD,$D4
-	dc.b $19,$6D,$FF,$FB,$FF,$F3,$1B,$7C,$00,$01,$F3,$A0,$4E,$AD,$01,$72
-	dc.b $1B,$6D,$F3,$9F,$F3,$A0,$70,$1C,$B0,$2C,$FF,$F3,$67,$00,$FD,$B4
-	dc.b $3F,$3C,$00,$99,$4E,$AD,$07,$CA,$60,$00,$FD,$A8,$28,$5F,$4E,$5E
-	dc.b $2E,$9F,$4E,$75,$8D,$47,$45,$54,$50,$52,$4F,$43,$50,$41,$52,$41
-	dc.b $4D,$53,$00,$42,$0E,$55,$53,$45,$53,$4E,$45,$41,$52,$4F,$42,$4A
-	dc.b $45,$43,$54,$00,$0D,$55,$53,$45,$53,$46,$41,$52,$4F,$42,$4A,$45
-	dc.b $43,$54,$0B,$46,$4F,$52,$43,$45,$41,$43,$54,$49,$56,$45,$09,$53
-	dc.b $48,$41,$52,$45,$44,$4C,$49,$42,$05,$45,$4E,$54,$52,$59,$06,$45
-	dc.b $58,$50,$4F,$52,$54,$00,$4E,$56,$FE,$EE,$48,$E7,$1F,$38,$70,$00
-	dc.b $20,$6E,$00,$0C,$30,$10,$80,$BC,$00,$00,$02,$00,$20,$6E,$00,$0C
-	dc.b $30,$80,$42,$AE,$FF,$F4,$42,$2E,$FF,$F9,$42,$2E,$FF,$F8,$1D,$7C
-	dc.b $00,$01,$00,$10,$30,$2D,$F4,$2E,$5F,$40,$67,$1C,$53,$40,$67,$0A
-	dc.b $53,$40,$67,$06,$53,$40,$67,$02,$60,$1A,$3D,$7C,$00,$08,$FF,$FE
-	dc.b $2F,$0E,$4E,$BA,$FC,$F4,$60,$0C,$3D,$7C,$00,$07,$FF,$FE,$2F,$0E
-	dc.b $4E,$BA,$FA,$28,$4F,$EE,$FE,$CE,$4C,$DF,$1C,$F8,$4E,$5E,$20,$5F
-	dc.b $50,$4F,$4E,$D0,$8F,$47,$45,$54,$4D,$4F,$44,$55,$4C,$45,$50,$41
-	dc.b $52,$41,$4D,$53,$00,$00,$4E,$56,$00,$00,$2F,$0C,$28,$6E,$00,$08
-	dc.b $28,$6C,$00,$08,$4A,$2D,$FF,$FB,$66,$50,$48,$6D,$FE,$FA,$48,$7A
-	dc.b $01,$4A,$4E,$AD,$0A,$CA,$10,$1F,$67,$14,$39,$7C,$94,$02,$FF,$FC
-	dc.b $70,$00,$29,$40,$FF,$F8,$4E,$AD,$01,$72,$60,$00,$01,$10,$42,$67
-	dc.b $48,$6C,$FF,$F8,$4E,$AD,$02,$02,$10,$1F,$67,$0A,$39,$7C,$80,$02
-	dc.b $FF,$FC,$60,$00,$00,$F8,$20,$6E,$00,$08,$20,$68,$00,$08,$2C,$48
-	dc.b $4E,$FA,$03,$F6,$00,$00,$60,$00,$00,$E4,$70,$1A,$B0,$2D,$FF,$FB
-	dc.b $66,$00,$00,$B4,$70,$00,$29,$40,$FF,$F8,$39,$7C,$80,$02,$FF,$FC
-	dc.b $1B,$7C,$00,$01,$F3,$A0,$4E,$AD,$01,$72,$4A,$2D,$FF,$FB,$67,$0A
-	dc.b $3F,$3C,$00,$99,$4E,$AD,$07,$CA,$60,$6E,$70,$00,$2B,$40,$F3,$D4
-	dc.b $42,$A7,$4E,$AD,$07,$6A,$2B,$5F,$F3,$DC,$66,$0A,$3F,$3C,$00,$B3
-	dc.b $4E,$AD,$07,$CA,$60,$4E,$42,$A7,$2F,$2D,$F3,$DC,$30,$2D,$FE,$F8
-	dc.b $52,$40,$3F,$00,$4E,$AD,$07,$8A,$2B,$5F,$F3,$D8,$67,$20,$48,$6D
-	dc.b $FE,$FA,$2F,$2D,$F3,$D8,$4E,$AD,$00,$92,$70,$00,$30,$2C,$FF,$FC
-	dc.b $72,$00,$32,$3C,$30,$00,$80,$81,$39,$40,$FF,$FC,$60,$16,$3F,$3C
-	dc.b $00,$B3,$4E,$AD,$07,$CA,$2F,$2D,$F3,$DC,$4E,$AD,$07,$72,$70,$00
-	dc.b $2B,$40,$F3,$DC,$4E,$AD,$01,$72,$70,$1B,$B0,$2D,$FF,$FB,$67,$0A
-	dc.b $3F,$3C,$00,$99,$4E,$AD,$07,$CA,$60,$04,$4E,$AD,$01,$72,$1B,$6D
-	dc.b $F3,$9F,$F3,$A0,$60,$26,$42,$67,$48,$6C,$FF,$F8,$4E,$AD,$02,$02
-	dc.b $10,$1F,$67,$08,$39,$7C,$80,$02,$FF,$FC,$60,$10,$20,$6E,$00,$08
-	dc.b $20,$68,$00,$08,$2C,$48,$4E,$FA,$03,$10,$00,$00,$28,$5F,$4E,$5E
-	dc.b $2E,$9F,$4E,$75,$93,$43,$48,$45,$43,$4B,$54,$45,$4D,$50,$4C,$41
-	dc.b $54,$45,$50,$41,$52,$41,$4D,$53,$00,$08,$06,$49,$4D,$50,$4F,$52
-	dc.b $54,$00,$4E,$56,$00,$00,$2F,$0C,$28,$6E,$00,$08,$2F,$0E,$4E,$BA
-	dc.b $FE,$86,$42,$40,$10,$2D,$FA,$BF,$39,$40,$FE,$F2,$70,$40,$B0,$6C
-	dc.b $FE,$F2,$66,$10,$3F,$3C,$00,$07,$48,$6D,$FA,$BE,$4E,$AD,$07,$C2
-	dc.b $60,$00,$02,$04,$42,$A7,$2F,$2D,$F3,$AC,$48,$6D,$FA,$BE,$2F,$2C
-	dc.b $FF,$F8,$3F,$2C,$FF,$FC,$48,$6C,$FF,$F6,$4E,$AD,$00,$EA,$2B,$5F
-	dc.b $F3,$EA,$66,$16,$3F,$3C,$00,$16,$48,$6D,$FA,$BE,$4E,$AD,$07,$C2
-	dc.b $19,$7C,$00,$01,$FF,$F6,$60,$00,$01,$08,$10,$2C,$FF,$F6,$67,$62
-	dc.b $20,$6D,$F3,$EA,$08,$28,$00,$07,$00,$08,$57,$C0,$4A,$00,$67,$42
-	dc.b $08,$28,$00,$02,$00,$08,$56,$C1,$C0,$01,$67,$36,$08,$28,$00,$04
-	dc.b $00,$08,$56,$C1,$C0,$01,$67,$2A,$4A,$AC,$FF,$F8,$67,$0C,$3F,$3C
-	dc.b $00,$99,$4E,$AD,$07,$CA,$60,$00,$00,$C8,$39,$7C,$94,$02,$FF,$FC
-	dc.b $20,$6D,$F3,$EA,$31,$6C,$FF,$FC,$00,$08,$42,$2C,$FF,$F6,$60,$00
-	dc.b $00,$B0,$3F,$3C,$00,$08,$48,$6D,$FA,$BE,$4E,$AD,$07,$C2,$60,$00
-	dc.b $00,$A0,$08,$2C,$00,$02,$FF,$FC,$67,$00,$00,$96,$10,$2D,$EB,$99
-	dc.b $67,$36,$42,$41,$12,$2D,$EF,$72,$4A,$41,$5E,$C1,$C0,$01,$67,$28
-	dc.b $48,$6D,$EF,$72,$48,$6C,$FE,$F4,$4E,$AD,$00,$92,$42,$40,$10,$2C
-	dc.b $FE,$F4,$B0,$6D,$F3,$8E,$6F,$1C,$19,$6D,$F3,$8F,$FE,$F4,$3F,$3C
-	dc.b $00,$CE,$4E,$AD,$07,$CA,$60,$0C,$48,$6D,$FA,$BE,$48,$6C,$FE,$F4
-	dc.b $4E,$AD,$00,$92,$42,$67,$2F,$2D,$F3,$EA,$42,$A7,$48,$6C,$FE,$F4
-	dc.b $4E,$BA,$DC,$92,$10,$1F,$0A,$00,$00,$01,$19,$40,$FF,$F6,$66,$30
-	dc.b $10,$2D,$F3,$A7,$67,$2A,$10,$2D,$EB,$99,$67,$24,$42,$67,$2F,$2D
-	dc.b $F3,$EA,$48,$6C,$FE,$F4,$4E,$BA,$E4,$E0,$10,$1F,$66,$12,$3F,$3C
-	dc.b $00,$16,$48,$6D,$FA,$BE,$4E,$AD,$07,$C2,$19,$7C,$00,$01,$FF,$F6
-	dc.b $10,$2C,$FF,$F6,$66,$00,$00,$C0,$1B,$6D,$F4,$0F,$F3,$D3,$42,$2D
-	dc.b $F4,$0F,$42,$67,$1F,$3C,$00,$1C,$4E,$BA,$E3,$E0,$10,$1F,$67,$24
-	dc.b $42,$67,$48,$6D,$E0,$74,$3F,$3C,$00,$0A,$48,$6C,$FF,$FE,$4E,$BA
-	dc.b $E4,$08,$10,$1F,$67,$0E,$30,$2C,$FF,$FE,$41,$ED,$E0,$6F,$1B,$70
-	dc.b $00,$00,$F4,$0F,$1B,$7C,$00,$01,$F3,$A2,$2B,$6D,$F4,$18,$F3,$FA
-	dc.b $2B,$6D,$F4,$10,$F3,$F6,$2B,$6C,$FF,$F8,$F4,$18,$2B,$6C,$FF,$F8
-	dc.b $F4,$14,$2B,$6C,$FF,$F8,$F4,$10,$2B,$6C,$FF,$F8,$F3,$C6,$2B,$6D
-	dc.b $F3,$EA,$F3,$E2,$3B,$7C,$80,$01,$F3,$E0,$4A,$AD,$F3,$D8,$67,$14
-	dc.b $70,$00,$30,$2D,$F3,$E0,$72,$00,$32,$3C,$30,$00,$80,$81,$3B,$40
-	dc.b $F3,$E0,$60,$18,$08,$2C,$00,$04,$FF,$FC,$67,$10,$70,$00,$30,$2D
-	dc.b $F3,$E0,$80,$BC,$00,$00,$10,$00,$3B,$40,$F3,$E0,$10,$2D,$F3,$A6
-	dc.b $67,$14,$10,$2D,$F3,$A4,$66,$04,$80,$2D,$F3,$A3,$1F,$00,$1F,$2D
-	dc.b $F4,$0F,$4E,$BA,$D8,$62,$28,$5F,$4E,$5E,$2E,$9F,$4E,$75,$8F,$50
-	dc.b $52,$4F,$43,$45,$53,$53,$54,$45,$4D,$50,$4C,$41,$54,$45,$00,$00
-	dc.b $4E,$56,$00,$00,$10,$2D,$F3,$A6,$67,$04,$4E,$AD,$08,$22,$20,$6E
-	dc.b $00,$08,$3F,$28,$FF,$FC,$70,$00,$30,$28,$FE,$F0,$80,$BC,$00,$00
-	dc.b $00,$01,$3F,$00,$42,$67,$1F,$3C,$00,$01,$4E,$BA,$DE,$40,$4E,$5E
-	dc.b $2E,$9F,$4E,$75,$8E,$50,$52,$4F,$43,$45,$53,$53,$52,$45,$43,$44
-	dc.b $41,$54,$41,$00,$00,$00,$4E,$56,$FE,$EA,$48,$E7,$1F,$38,$10,$2D
-	dc.b $F3,$A2,$67,$04,$4E,$AD,$08,$12,$10,$2D,$F3,$A4,$67,$04,$4E,$AD
-	dc.b $08,$22,$42,$6E,$FF,$FC,$70,$00,$2B,$40,$F3,$D8,$42,$6E,$FE,$F0
-	dc.b $42,$67,$48,$6E,$FF,$FC,$48,$6E,$FE,$F0,$4E,$BA,$FB,$4A,$10,$1F
-	dc.b $67,$16,$08,$2E,$00,$01,$FF,$FD,$67,$08,$2F,$0E,$4E,$BA,$FD,$24
-	dc.b $60,$06,$2F,$0E,$4E,$BA,$FF,$6A,$4F,$EE,$FE,$CA,$4C,$DF,$1C,$F8
-	dc.b $4E,$5E,$4E,$75,$88,$44,$4F,$52,$45,$43,$4F,$52,$44,$00,$00,$00
-	dc.b $4E,$56,$00,$00,$10,$2D,$F4,$0F,$67,$28,$C0,$2D,$EC,$FF,$4A,$00
-	dc.b $67,$20,$C0,$2D,$F3,$A6,$67,$1A,$2B,$6D,$F4,$10,$F4,$18,$10,$2D
-	dc.b $F3,$A4,$66,$04,$80,$2D,$F3,$A3,$1F,$00,$1F,$2D,$F4,$0F,$4E,$BA
-	dc.b $D7,$66,$4E,$BA,$D8,$10,$10,$2D,$F3,$A2,$67,$00,$00,$8E,$10,$2D
-	dc.b $F4,$0F,$67,$28,$12,$2D,$F4,$13,$02,$41,$00,$01,$C0,$01,$67,$1C
-	dc.b $10,$2D,$EB,$93,$67,$0E,$53,$AD,$F4,$10,$3F,$3C,$00,$D0,$4E,$AD
-	dc.b $07,$CA,$60,$08,$3F,$3C,$00,$CF,$4E,$AD,$07,$CA,$4E,$BA,$D7,$F0
-	dc.b $4E,$AD,$08,$12,$1B,$7C,$00,$01,$F3,$A2,$2F,$2D,$EB,$6A,$4E,$AD
-	dc.b $02,$52,$42,$2D,$F3,$A2,$42,$6D,$CD,$68,$42,$6D,$CD,$66,$42,$6D
-	dc.b $CD,$60,$42,$2D,$F4,$0F,$10,$2D,$F3,$A5,$67,$22,$10,$2D,$F3,$A3
-	dc.b $67,$08,$3B,$7C,$90,$00,$F3,$E0,$60,$06,$3B,$7C,$A0,$00,$F3,$E0
-	dc.b $1F,$2D,$F3,$A3,$1F,$3C,$00,$01,$4E,$BA,$D6,$DC,$60,$04,$42,$6D
-	dc.b $F3,$E0,$70,$00,$2B,$40,$F3,$E2,$60,$4E,$10,$2D,$F3,$A4,$67,$40
-	dc.b $10,$2D,$F4,$0F,$67,$28,$12,$2D,$F4,$13,$02,$41,$00,$01,$C0,$01
-	dc.b $67,$1C,$10,$2D,$EB,$93,$67,$0E,$53,$AD,$F4,$10,$3F,$3C,$00,$D0
-	dc.b $4E,$AD,$07,$CA,$60,$08,$3F,$3C,$00,$CF,$4E,$AD,$07,$CA,$2F,$2D
-	dc.b $EB,$6A,$4E,$AD,$02,$52,$1F,$3C,$00,$01,$4E,$AD,$08,$1A,$60,$08
-	dc.b $3F,$3C,$00,$A6,$4E,$AD,$07,$CA,$4E,$5E,$4E,$75,$86,$44,$4F,$45
-	dc.b $4E,$44,$52,$00,$00,$00,$4E,$56,$00,$00,$4A,$AD,$EC,$A4,$66,$14
-	dc.b $42,$A7,$2F,$2D,$F3,$AC,$3F,$3C,$00,$16,$4E,$AD,$07,$8A,$2D,$5F
-	dc.b $00,$08,$60,$10,$2D,$6D,$EC,$A4,$00,$08,$20,$6D,$EC,$A4,$2B,$68
-	dc.b $00,$04,$EC,$A4,$4E,$5E,$4E,$75,$89,$41,$4C,$4C,$4F,$43,$51,$55
-	dc.b $41,$4C,$00,$00,$4E,$56,$FF,$F8,$48,$E7,$01,$18,$2E,$2E,$00,$0C
-	dc.b $42,$A7,$20,$47,$2F,$10,$4E,$AD,$01,$22,$28,$5F,$58,$8C,$20,$47
-	dc.b $20,$94,$42,$A7,$20,$47,$2F,$10,$4E,$AD,$01,$22,$26,$5F,$58,$8B
-	dc.b $20,$6E,$00,$08,$20,$93,$4C,$DF,$18,$80,$4E,$5E,$20,$5F,$50,$4F
-	dc.b $4E,$D0,$8A,$51,$55,$41,$4C,$57,$49,$54,$48,$49,$44,$00,$00,$00
-	dc.b $4E,$56,$FE,$CE,$48,$E7,$0F,$18,$42,$A7,$4E,$BA,$FF,$6A,$26,$5F
-	dc.b $20,$0B,$66,$20,$41,$EE,$FF,$D2,$43,$FA,$02,$CC,$70,$02,$30,$D9
-	dc.b $51,$C8,$FF,$FC,$3F,$3C,$00,$9F,$48,$6E,$FF,$D2,$4E,$AD,$07,$C2
-	dc.b $60,$00,$02,$A2,$27,$6D,$EC,$A8,$00,$04,$2B,$4B,$EC,$A8,$70,$00
-	dc.b $26,$80,$4A,$2D,$FF,$FB,$67,$10,$3F,$3C,$00,$99,$4E,$AD,$07,$CA
-	dc.b $4E,$AD,$01,$72,$60,$00,$02,$6E,$70,$00,$2D,$40,$FF,$E8,$48,$6D
-	dc.b $FE,$FA,$48,$6E,$FE,$D2,$4E,$AD,$00,$92,$42,$47,$4E,$AD,$01,$72
-	dc.b $70,$1D,$B0,$2D,$FF,$FB,$57,$C6,$44,$06,$10,$06,$67,$42,$42,$67
-	dc.b $48,$6E,$FE,$D2,$48,$6E,$FF,$F2,$48,$6E,$FF,$E4,$48,$6E,$FF,$FA
-	dc.b $48,$6E,$FF,$E8,$4E,$AD,$02,$1A,$10,$1F,$66,$04,$60,$00,$02,$26
-	dc.b $08,$2E,$00,$01,$FF,$FB,$67,$10,$48,$6E,$FF,$E4,$48,$6E,$FF,$E0
-	dc.b $4E,$BA,$FF,$02,$60,$00,$01,$84,$3E,$3C,$00,$B7,$60,$00,$01,$7C
-	dc.b $42,$67,$48,$6E,$FE,$D2,$4E,$AD,$00,$D2,$38,$1F,$4A,$AD,$EC,$A8
-	dc.b $67,$4C,$48,$6E,$FE,$D2,$3F,$04,$48,$6E,$FF,$E4,$48,$6E,$FF,$EE
-	dc.b $48,$6E,$FF,$FA,$48,$6E,$FF,$F6,$48,$6E,$FF,$E8,$4E,$AD,$02,$12
-	dc.b $4A,$AE,$FF,$E4,$67,$28,$08,$2E,$00,$01,$FF,$FB,$67,$18,$2D,$6E
-	dc.b $FF,$F6,$FF,$F2,$48,$6E,$FF,$E4,$48,$6E,$FF,$E0,$4E,$BA,$FE,$A6
-	dc.b $7C,$01,$60,$00,$01,$26,$3E,$3C,$00,$B7,$60,$00,$01,$1E,$2D,$6D
-	dc.b $F3,$AC,$FF,$E0,$42,$A7,$2F,$2D,$F3,$AC,$48,$6E,$FE,$D2,$48,$6E
-	dc.b $FF,$EE,$48,$6E,$FF,$FA,$3F,$04,$4E,$AD,$00,$F2,$2D,$5F,$FF,$E4
-	dc.b $70,$00,$2D,$40,$FF,$F2,$10,$2D,$F3,$A5,$67,$00,$00,$B4,$4A,$AE
-	dc.b $FF,$E4,$56,$C0,$4A,$00,$67,$00,$00,$86,$08,$2E,$00,$07,$FF,$FA
-	dc.b $56,$C1,$C0,$01,$67,$78,$70,$00,$30,$2E,$FF,$FA,$C0,$BC,$00,$00
-	dc.b $90,$02,$0C,$80,$00,$00,$90,$02,$66,$00,$00,$86,$2D,$6E,$FF,$E4
-	dc.b $FF,$E8,$08,$2E,$00,$02,$FF,$FA,$67,$44,$42,$A7,$2F,$2E,$FF,$E4
-	dc.b $4E,$AD,$01,$22,$2A,$1F,$58,$85,$56,$C0,$4A,$00,$67,$62,$20,$45
-	dc.b $22,$10,$B2,$AD,$F3,$AC,$56,$C1,$C0,$01,$67,$54,$20,$45,$22,$10
-	dc.b $B2,$AD,$F3,$B0,$56,$C1,$C0,$01,$67,$46,$2D,$6E,$FF,$E4,$FF,$E8
-	dc.b $48,$6E,$FF,$E4,$48,$6E,$FF,$E0,$4E,$BA,$FD,$EA,$60,$6C,$7C,$01
-	dc.b $48,$6E,$FF,$E4,$48,$6E,$FF,$E0,$4E,$BA,$FD,$DA,$60,$22,$2D,$6D
-	dc.b $F3,$B0,$FF,$E0,$42,$A7,$2F,$2D,$F3,$B0,$48,$6E,$FE,$D2,$48,$6E
-	dc.b $FF,$EE,$48,$6E,$FF,$FA,$3F,$04,$4E,$AD,$00,$F2,$2D,$5F,$FF,$E4
-	dc.b $4A,$AE,$FF,$E4,$67,$34,$08,$2E,$00,$04,$FF,$FA,$67,$2C,$08,$2E
-	dc.b $00,$06,$FF,$FA,$56,$C0,$4A,$00,$66,$1A,$72,$00,$32,$2E,$FF,$FA
-	dc.b $74,$00,$34,$3C,$04,$02,$C2,$82,$0C,$81,$00,$00,$04,$02,$57,$C1
-	dc.b $80,$01,$67,$06,$2D,$6E,$FF,$E4,$FF,$E8,$4A,$47,$66,$78,$4A,$AE
-	dc.b $FF,$E4,$57,$C0,$4A,$00,$66,$0C,$08,$2E,$00,$07,$FF,$FA,$57,$C1
-	dc.b $80,$01,$67,$04,$7E,$10,$60,$5E,$08,$2E,$00,$01,$FF,$FB,$57,$C0
-	dc.b $4A,$00,$67,$20,$72,$00,$32,$2E,$FF,$FA,$74,$00,$34,$3C,$50,$00
-	dc.b $C2,$82,$0C,$81,$00,$00,$50,$00,$56,$C1,$C0,$01,$67,$06,$3E,$3C
-	dc.b $00,$B4,$60,$32,$42,$A7,$4E,$BA,$FC,$EE,$28,$5F,$20,$0C,$66,$06
-	dc.b $3E,$3C,$00,$9F,$60,$20,$28,$AE,$FF,$E4,$29,$6E,$FF,$E0,$00,$04
-	dc.b $19,$46,$00,$08,$29,$6E,$FF,$E8,$00,$0A,$29,$6E,$FF,$F2,$00,$0E
-	dc.b $29,$53,$00,$12,$26,$8C,$4A,$47,$6F,$0A,$3F,$07,$48,$6E,$FE,$D2
-	dc.b $4E,$AD,$07,$C2,$42,$67,$1F,$3C,$00,$1C,$4E,$BA,$DD,$EE,$10,$1F
-	dc.b $66,$00,$FD,$70,$4C,$DF,$18,$F0,$4E,$5E,$4E,$75,$86,$44,$4F,$57
-	dc.b $49,$54,$48,$00,$00,$06,$04,$57,$49,$54,$48,$00,$4E,$56,$FD,$DE
-	dc.b $48,$E7,$0F,$08,$10,$2D,$F3,$A2,$67,$04,$4E,$AD,$08,$12,$10,$2D
-	dc.b $F3,$A6,$67,$04,$4E,$AD,$08,$22,$3D,$7C,$E0,$00,$FF,$F4,$42,$47
-	dc.b $42,$6E,$FF,$F6,$70,$0A,$B0,$6D,$F4,$2E,$66,$10,$70,$00,$30,$2E
-	dc.b $FF,$F4,$80,$BC,$00,$00,$01,$00,$3D,$40,$FF,$F4,$42,$67,$48,$6E
-	dc.b $FF,$F4,$48,$6E,$FF,$F6,$4E,$BA,$F6,$2E,$10,$1F,$42,$40,$10,$2D
-	dc.b $FA,$BE,$4A,$40,$6F,$48,$48,$6D,$FA,$BE,$48,$6D,$E9,$1E,$4E,$AD
-	dc.b $00,$92,$10,$2D,$EB,$99,$67,$28,$48,$6D,$EF,$72,$48,$6E,$FE,$E6
-	dc.b $4E,$AD,$00,$92,$42,$40,$10,$2E,$FE,$E6,$B0,$6D,$F3,$8E,$6F,$76
-	dc.b $1D,$6D,$F3,$8F,$FE,$E6,$3F,$3C,$00,$CE,$4E,$AD,$07,$CA,$60,$66
-	dc.b $48,$6D,$FA,$BE,$48,$6E,$FE,$E6,$4E,$AD,$00,$92,$60,$58,$52,$6D
-	dc.b $E7,$1A,$48,$7A,$05,$54,$42,$A7,$30,$2D,$E7,$1A,$48,$C0,$2F,$00
-	dc.b $2F,$3C,$00,$00,$FF,$FC,$4E,$AD,$00,$BA,$48,$6E,$FD,$DE,$3F,$3C
-	dc.b $00,$02,$4E,$AD,$0A,$A2,$41,$ED,$FA,$BE,$43,$EE,$FD,$DE,$70,$7F
-	dc.b $30,$D9,$51,$C8,$FF,$FC,$42,$2D,$E9,$1E,$08,$2E,$00,$03,$FF,$F4
-	dc.b $67,$08,$3F,$3C,$00,$17,$4E,$AD,$07,$CA,$48,$6D,$FA,$BE,$48,$6E
-	dc.b $FE,$E6,$4E,$AD,$00,$92,$42,$67,$48,$6D,$FA,$BE,$4E,$AD,$00,$D2
-	dc.b $3C,$1F,$42,$A7,$2F,$2D,$F3,$B0,$48,$6D,$FA,$BE,$42,$A7,$3F,$2E
-	dc.b $FF,$F4,$48,$6E,$FF,$EF,$3F,$06,$4E,$AD,$00,$E2,$2B,$5F,$F3,$F2
-	dc.b $66,$10,$3F,$3C,$00,$16,$48,$6D,$FA,$BE,$4E,$AD,$07,$C2,$60,$00
-	dc.b $01,$E4,$10,$2E,$FF,$EF,$67,$00,$01,$4C,$20,$6D,$F3,$F2,$08,$28
-	dc.b $00,$07,$00,$08,$57,$C0,$4A,$00,$67,$00,$01,$10,$72,$00,$32,$28
+	dc.b $B0,$AD,$F4,$10,$6C,$06,$2B,$6D,$F4,$18,$F4,$10,$10,$2D,$F3,$A6
+	dc.b $67,$2E,$10,$2D,$F3,$A4,$66,$04,$80,$2D,$F3,$A3,$1F,$00,$1F,$3C
+	dc.b $00,$01,$4E,$BA,$E8,$5E,$60,$18,$30,$06,$48,$C0,$D1,$AD,$F4,$18
+	dc.b $20,$2D,$F4,$18,$B0,$AD,$F4,$10,$6F,$06,$2B,$6D,$F4,$18,$F4,$10
+	dc.b $4E,$BA,$E8,$EE,$4A,$6D,$CD,$66,$6F,$14,$3F,$2D,$FB,$DE,$3F,$2D
+	dc.b $EB,$6E,$30,$2D,$F4,$2E,$44,$40,$3F,$00,$4E,$AD,$01,$62,$3F,$07
+	dc.b $3F,$2D,$F4,$2C,$3F,$2D,$FB,$DE,$3F,$2D,$EB,$6E,$4E,$AD,$01,$5A
+	dc.b $70,$01,$B0,$2D,$F3,$95,$67,$1A,$3F,$3C,$00,$06,$10,$2D,$F3,$95
+	dc.b $48,$80,$48,$C0,$2F,$00,$4E,$AD,$01,$42,$3F,$3C,$00,$37,$4E,$AD
+	dc.b $01,$4A,$4A,$6D,$CD,$68,$5E,$C0,$44,$00,$1B,$40,$EE,$71,$10,$2D
+	dc.b $F4,$0F,$67,$1A,$C0,$2D,$F3,$A6,$67,$14,$10,$2D,$F3,$A4,$66,$04
+	dc.b $80,$2D,$F3,$A3,$1F,$00,$1F,$3C,$00,$01,$4E,$BA,$E7,$C6,$10,$04
+	dc.b $67,$1C,$42,$A7,$4E,$AD,$02,$4A,$1B,$7C,$00,$01,$EC,$C5,$2F,$2D
+	dc.b $EB,$6A,$4E,$AD,$02,$52,$1F,$3C,$00,$01,$4E,$AD,$08,$1A,$4C,$DF
+	dc.b $00,$F0,$4E,$5E,$4E,$75,$84,$44,$4F,$44,$43,$00,$00,$00,$4E,$56
+	dc.b $FF,$DE,$48,$E7,$0F,$18,$42,$67,$48,$6E,$FF,$F0,$4E,$AD,$02,$02
+	dc.b $10,$1F,$66,$0C,$70,$00,$2B,$40,$F3,$CE,$70,$01,$2D,$40,$FF,$F0
+	dc.b $10,$2D,$F3,$A7,$67,$0A,$12,$2D,$F3,$A2,$0A,$01,$00,$01,$C0,$01
+	dc.b $1A,$00,$67,$04,$42,$2D,$F4,$0F,$42,$46,$78,$01,$70,$02,$B0,$6D
+	dc.b $F4,$2E,$66,$00,$00,$C0,$30,$2D,$F4,$2C,$48,$C0,$2E,$00,$70,$04
+	dc.b $B0,$6D,$F4,$2C,$6C,$1A,$70,$08,$B0,$6D,$F4,$2C,$66,$04,$7E,$04
+	dc.b $60,$0E,$70,$10,$B0,$6D,$F4,$2C,$66,$04,$7E,$08,$60,$02,$7E,$0C
+	dc.b $4A,$AD,$F3,$CE,$67,$7A,$10,$2D,$F3,$A2,$67,$24,$22,$2D,$F3,$CE
+	dc.b $B2,$AD,$F3,$EA,$57,$C1,$C0,$01,$67,$16,$3F,$3C,$00,$B8,$4E,$AD
+	dc.b $07,$CA,$70,$00,$2B,$40,$F3,$CE,$70,$01,$2D,$40,$FF,$F0,$60,$64
+	dc.b $42,$A7,$2F,$2D,$F3,$CE,$4E,$AD,$01,$22,$20,$5F,$2D,$50,$FF,$F0
+	dc.b $6C,$14,$10,$05,$67,$06,$1B,$7C,$00,$01,$F4,$0F,$20,$2E,$FF,$F0
+	dc.b $44,$80,$2D,$40,$FF,$F0,$7E,$01,$10,$2D,$F3,$A2,$66,$16,$80,$2D
+	dc.b $F3,$A7,$4A,$00,$66,$0E,$80,$2D,$F3,$A4,$4A,$00,$66,$06,$80,$2D
+	dc.b $F3,$A3,$67,$04,$7C,$02,$60,$1C,$70,$00,$2B,$40,$F3,$CE,$60,$14
+	dc.b $4A,$AE,$FF,$F0,$6C,$0E,$3F,$3C,$00,$99,$4E,$AD,$07,$CA,$70,$01
+	dc.b $2D,$40,$FF,$F0,$10,$05,$67,$1C,$2F,$3C,$00,$01,$02,$00,$1F,$3C
+	dc.b $00,$01,$42,$67,$4E,$BA,$EC,$A2,$2B,$6D,$F3,$EE,$F3,$CA,$42,$2D
+	dc.b $FA,$BE,$60,$06,$70,$00,$2B,$40,$F3,$CA,$70,$00,$30,$06,$72,$00
+	dc.b $32,$2D,$F3,$E0,$80,$81,$3C,$00,$10,$2D,$F4,$0F,$66,$00,$00,$A4
+	dc.b $70,$01,$B0,$6D,$F4,$2C,$56,$C0,$4A,$00,$67,$6E,$12,$2D,$F4,$1B
+	dc.b $02,$41,$00,$01,$C0,$01,$67,$62,$10,$2D,$EB,$93,$66,$0E,$4A,$AE
+	dc.b $FF,$F0,$57,$C1,$80,$01,$02,$40,$00,$01,$67,$46,$52,$AD,$F4,$18
+	dc.b $10,$2D,$F3,$A6,$67,$44,$12,$2D,$F3,$A2,$0A,$01,$00,$01,$C0,$01
+	dc.b $4A,$00,$67,$36,$72,$03,$B2,$6D,$F4,$2E,$57,$C1,$4A,$01,$66,$0C
+	dc.b $4A,$AE,$FF,$F0,$57,$C2,$82,$02,$C0,$01,$67,$1E,$10,$2D,$F3,$A4
+	dc.b $66,$04,$80,$2D,$F3,$A3,$1F,$00,$1F,$3C,$00,$01,$4E,$BA,$E5,$E4
+	dc.b $60,$08,$3F,$3C,$00,$CC,$4E,$AD,$07,$CA,$2B,$6D,$F4,$18,$F4,$14
+	dc.b $42,$40,$10,$2D,$FA,$BE,$4A,$40,$6F,$18,$2F,$2D,$F4,$18,$3F,$06
+	dc.b $2F,$2D,$F3,$E2,$4E,$AD,$01,$92,$10,$2D,$F0,$B1,$67,$04,$4E,$AD
+	dc.b $02,$3A,$70,$02,$B0,$6D,$F4,$2E,$66,$00,$01,$DC,$10,$2D,$F4,$0F
+	dc.b $67,$00,$00,$C2,$2F,$2E,$FF,$F0,$2F,$07,$4E,$AD,$0A,$72,$20,$1F
+	dc.b $91,$AD,$F4,$18,$10,$2D,$F4,$1B,$02,$40,$00,$01,$67,$42,$30,$2D
+	dc.b $F4,$2C,$53,$40,$67,$02,$60,$16,$4A,$AD,$F3,$CE,$67,$32,$10,$2D
+	dc.b $EB,$93,$66,$2C,$3F,$3C,$00,$CF,$4E,$AD,$07,$CA,$60,$22,$10,$2D
+	dc.b $EB,$93,$66,$0E,$4A,$AE,$FF,$F0,$57,$C1,$80,$01,$02,$40,$00,$01
+	dc.b $67,$06,$53,$AD,$F4,$18,$60,$08,$3F,$3C,$00,$CC,$4E,$AD,$07,$CA
+	dc.b $2B,$6D,$F4,$18,$F4,$14,$42,$40,$10,$2D,$FA,$BE,$4A,$40,$6F,$18
+	dc.b $2F,$2D,$F4,$18,$3F,$06,$2F,$2D,$F3,$E2,$4E,$AD,$01,$92,$10,$2D
+	dc.b $F0,$B1,$67,$04,$4E,$AD,$02,$3A,$20,$2D,$F4,$18,$B0,$AD,$F4,$10
+	dc.b $6C,$06,$2B,$6D,$F4,$18,$F4,$10,$10,$2D,$F4,$1B,$02,$40,$00,$01
+	dc.b $4A,$00,$67,$40,$4A,$AD,$F3,$CE,$56,$C1,$C0,$01,$4A,$00,$67,$34
+	dc.b $C0,$2D,$EB,$93,$67,$2E,$52,$AD,$F4,$10,$3F,$3C,$00,$D0,$4E,$AD
+	dc.b $07,$CA,$60,$20,$2F,$2E,$FF,$F0,$2F,$07,$4E,$AD,$0A,$72,$20,$1F
+	dc.b $D1,$AD,$F4,$18,$20,$2D,$F4,$18,$B0,$AD,$F4,$10,$6F,$06,$2B,$6D
+	dc.b $F4,$18,$F4,$10,$4E,$BA,$E5,$6A,$4A,$AD,$F3,$CA,$56,$C0,$4A,$00
+	dc.b $67,$00,$00,$A4,$4A,$AD,$F3,$CE,$56,$C1,$C0,$01,$67,$00,$00,$98
+	dc.b $4A,$6D,$CD,$68,$57,$C1,$C0,$01,$67,$00,$00,$8C,$42,$A7,$2F,$2D
+	dc.b $F3,$CA,$4E,$AD,$01,$22,$28,$5F,$58,$8C,$28,$AD,$F3,$CE,$10,$05
+	dc.b $0A,$00,$00,$01,$4A,$00,$67,$6C,$72,$00,$20,$6D,$F3,$CA,$32,$28
 	dc.b $00,$08,$74,$00,$34,$3C,$0A,$00,$C2,$82,$4A,$81,$56,$C1,$C0,$01
-	dc.b $67,$00,$00,$F8,$08,$28,$00,$05,$00,$08,$56,$C1,$C0,$01,$67,$00
-	dc.b $00,$EA,$08,$2E,$00,$03,$FF,$F4,$67,$28,$20,$6D,$F3,$F2,$08,$28
-	dc.b $00,$00,$00,$08,$67,$10,$70,$00,$30,$2E,$FF,$F4,$80,$BC,$00,$00
-	dc.b $01,$00,$3D,$40,$FF,$F4,$20,$6D,$F3,$F2,$31,$6E,$FF,$F4,$00,$08
-	dc.b $60,$24,$70,$00,$20,$6D,$F3,$F2,$30,$28,$00,$08,$72,$00,$32,$2E
-	dc.b $FF,$F4,$74,$00,$34,$3C,$0A,$00,$46,$82,$C2,$82,$80,$81,$20,$6D
-	dc.b $F3,$F2,$31,$40,$00,$08,$70,$00,$30,$2E,$FF,$F6,$72,$00,$32,$3C
-	dc.b $00,$06,$C0,$81,$3A,$00,$70,$00,$20,$6D,$F3,$F2,$30,$28,$00,$0A
-	dc.b $72,$00,$32,$3C,$00,$06,$C0,$81,$38,$00,$4A,$45,$56,$C0,$4A,$00
-	dc.b $67,$3A,$4A,$44,$56,$C1,$C0,$01,$67,$32,$70,$00,$30,$05,$72,$00
-	dc.b $32,$04,$C0,$81,$4A,$80,$66,$24,$3F,$3C,$00,$D1,$4E,$AD,$07,$CA
-	dc.b $70,$00,$20,$6D,$F3,$F2,$30,$28,$00,$0A,$72,$00,$32,$3C,$00,$03
-	dc.b $46,$81,$C0,$81,$20,$6D,$F3,$F2,$31,$40,$00,$0A,$70,$00,$20,$6D
-	dc.b $F3,$F2,$30,$28,$00,$0A,$72,$00,$32,$2E,$FF,$F6,$C2,$BC,$00,$00
-	dc.b $00,$C6,$80,$81,$20,$6D,$F3,$F2,$31,$40,$00,$0A,$20,$6D,$F3,$F2
-	dc.b $3D,$68,$00,$0A,$FF,$F6,$60,$00,$00,$BC,$3F,$3C,$00,$08,$48,$6D
-	dc.b $FA,$BE,$4E,$AD,$07,$C2,$70,$00,$30,$2E,$FF,$F4,$72,$00,$32,$3C
-	dc.b $09,$00,$46,$81,$C0,$81,$80,$BC,$00,$00,$02,$00,$3D,$40,$FF,$F4
-	dc.b $60,$00,$FE,$1C,$42,$67,$2F,$2D,$F3,$F2,$42,$A7,$48,$6E,$FE,$E6
-	dc.b $4E,$BA,$D3,$92,$10,$1F,$0A,$00,$00,$01,$1D,$40,$FF,$EF,$66,$74
-	dc.b $3D,$6D,$DA,$5C,$FE,$E4,$30,$2D,$EC,$B8,$53,$40,$3B,$40,$DA,$5E
-	dc.b $3B,$6D,$DA,$5E,$DA,$5A,$10,$2D,$F0,$B1,$67,$58,$12,$2D,$CB,$1B
-	dc.b $0A,$01,$00,$01,$C0,$01,$67,$4C,$70,$00,$30,$2D,$F0,$AE,$C0,$BC
-	dc.b $00,$00,$00,$08,$4A,$80,$66,$3C,$3D,$6D,$F0,$80,$FF,$FE,$53,$6D
-	dc.b $F0,$80,$3F,$2E,$FF,$FE,$48,$6E,$FE,$E6,$1F,$3C,$00,$01,$4E,$AD
-	dc.b $06,$8A,$2F,$2D,$EB,$5C,$2F,$3C,$00,$00,$00,$41,$3F,$2E,$FF,$FE
-	dc.b $3F,$2D,$EB,$5A,$3F,$2E,$FE,$E4,$30,$2D,$DA,$5E,$48,$C0,$2F,$00
-	dc.b $4E,$AD,$06,$BA,$48,$6D,$F3,$AC,$42,$67,$4E,$AD,$01,$C2,$4A,$AD
-	dc.b $F3,$AC,$66,$08,$48,$7A,$02,$AA,$4E,$AD,$01,$D2,$42,$A7,$2F,$2D
-	dc.b $F3,$AC,$48,$6D,$FA,$BE,$42,$A7,$3F,$3C,$A0,$00,$3F,$06,$4E,$AD
-	dc.b $00,$DA,$28,$5F,$20,$0C,$66,$0C,$3F,$3C,$00,$16,$48,$6D,$FA,$BE
-	dc.b $4E,$AD,$07,$C2,$42,$A7,$4E,$AD,$07,$6A,$2B,$5F,$F0,$7C,$66,$08
-	dc.b $48,$7A,$02,$3E,$4E,$AD,$01,$D2,$42,$A7,$4E,$AD,$07,$A2,$2B,$5F
-	dc.b $DA,$60,$42,$A7,$4E,$AD,$07,$A2,$2B,$5F,$DA,$64,$42,$2D,$F3,$A7
-	dc.b $1B,$7C,$00,$01,$F3,$A6,$1B,$7C,$00,$01,$F3,$A5,$42,$2D,$F3,$A4
-	dc.b $70,$00,$2B,$40,$F4,$0A,$70,$00,$2B,$40,$F4,$06,$70,$00,$2B,$40
-	dc.b $F4,$18,$70,$00,$2B,$40,$F4,$10,$70,$00,$2B,$40,$F4,$14,$70,$00
-	dc.b $2B,$40,$EC,$AC,$3B,$7C,$A0,$00,$F3,$E0,$70,$00,$2B,$40,$F3,$E2
-	dc.b $48,$6D,$E7,$1E,$48,$6D,$E8,$1E,$4E,$AD,$0A,$C2,$10,$1F,$67,$28
-	dc.b $41,$ED,$E8,$1E,$43,$ED,$E7,$1E,$70,$7F,$30,$D9,$51,$C8,$FF,$FC
-	dc.b $3F,$2D,$EC,$B8,$48,$6D,$E8,$1E,$42,$67,$4E,$AD,$06,$8A,$3B,$6D
-	dc.b $EC,$B8,$E7,$1C,$52,$6D,$EC,$B8,$4A,$AD,$F3,$F2,$56,$C0,$4A,$00
-	dc.b $67,$00,$01,$8C,$22,$0C,$56,$C1,$C0,$01,$67,$00,$01,$82,$20,$6D
-	dc.b $F3,$F2,$08,$28,$00,$03,$00,$08,$67,$0C,$70,$00,$30,$07,$80,$BC
-	dc.b $00,$00,$00,$08,$3E,$00,$70,$00,$30,$07,$72,$00,$32,$2E,$FF,$F6
-	dc.b $C2,$BC,$00,$00,$00,$C6,$80,$81,$3E,$00,$20,$6D,$F3,$F2,$08,$28
-	dc.b $00,$00,$00,$08,$67,$3E,$70,$00,$30,$07,$80,$BC,$00,$00,$00,$10
-	dc.b $3E,$00,$10,$2D,$EB,$1F,$67,$1A,$48,$6D,$EA,$1E,$48,$6D,$FA,$BE
-	dc.b $4E,$AD,$0A,$C2,$10,$1F,$67,$1C,$3F,$3C,$00,$A4,$4E,$AD,$07,$CA
-	dc.b $60,$12,$1B,$7C,$00,$01,$EB,$1F,$48,$6D,$FA,$BE,$48,$6D,$EA,$1E
-	dc.b $4E,$AD,$00,$92,$3F,$3C,$00,$17,$4E,$AD,$01,$4A,$3F,$3C,$00,$06
-	dc.b $30,$07,$48,$C0,$2F,$00,$4E,$AD,$01,$42,$3F,$3C,$00,$06,$20,$6D
-	dc.b $F3,$F2,$20,$68,$00,$04,$30,$10,$48,$C0,$2F,$00,$4E,$AD,$01,$42
-	dc.b $3F,$3C,$00,$06,$30,$2D,$E7,$1C,$48,$C0,$2F,$00,$4E,$AD,$01,$42
-	dc.b $3F,$3C,$00,$06,$42,$A7,$4E,$AD,$01,$42,$3F,$3C,$00,$3A,$4E,$AD
-	dc.b $01,$4A,$3F,$2D,$F3,$98,$4E,$BA,$CF,$84,$3F,$2D,$F3,$96,$4E,$BA
-	dc.b $CF,$C0,$3F,$3C,$00,$06,$30,$2D,$F3,$92,$48,$C0,$2F,$00,$4E,$AD
-	dc.b $01,$42,$3F,$3C,$00,$38,$4E,$AD,$01,$4A,$3F,$3C,$00,$06,$30,$2D
-	dc.b $F3,$90,$44,$40,$48,$C0,$2F,$00,$4E,$AD,$01,$42,$3F,$3C,$00,$39
-	dc.b $4E,$AD,$01,$4A,$3F,$3C,$00,$06,$10,$2D,$F3,$95,$48,$80,$48,$C0
-	dc.b $2F,$00,$4E,$AD,$01,$42,$3F,$3C,$00,$37,$4E,$AD,$01,$4A,$4E,$BA
-	dc.b $D3,$68,$10,$2D,$EC,$FF,$67,$04,$4E,$BA,$D2,$A6,$08,$2D,$00,$02
-	dc.b $ED,$5A,$67,$22,$10,$2D,$EB,$68,$66,$1C,$80,$2D,$EB,$69,$66,$16
-	dc.b $48,$6D,$D2,$6E,$48,$6D,$FA,$BE,$42,$67,$4E,$AD,$0A,$0A,$48,$6D
-	dc.b $D2,$6E,$4E,$AD,$09,$F2,$10,$2D,$F0,$B1,$67,$22,$3F,$3C,$00,$03
-	dc.b $2F,$2D,$EB,$5C,$3F,$2D,$EB,$5A,$20,$6D,$F3,$F2,$20,$68,$00,$04
-	dc.b $30,$10,$48,$C0,$3F,$00,$3F,$2D,$DA,$5C,$4E,$AD,$06,$AA,$4C,$DF
-	dc.b $10,$F0,$4E,$5E,$4E,$75,$86,$44,$4F,$50,$52,$4F,$43,$00,$00,$5A
-	dc.b $2E,$43,$6F,$75,$6C,$64,$20,$6E,$6F,$74,$20,$61,$6C,$6C,$6F,$63
-	dc.b $61,$74,$65,$20,$6F,$62,$6A,$65,$63,$74,$20,$66,$69,$6C,$65,$20
-	dc.b $72,$65,$66,$65,$72,$65,$6E,$63,$65,$20,$7A,$6F,$6E,$65,$2E,$00
-	dc.b $26,$43,$6F,$75,$6C,$64,$20,$6E,$6F,$74,$20,$61,$6C,$6C,$6F,$63
-	dc.b $61,$74,$65,$20,$6C,$6F,$63,$61,$6C,$20,$73,$79,$6D,$62,$6F,$6C
-	dc.b $20,$74,$61,$62,$6C,$65,$2E,$00,$01,$23,$4E,$56,$FC,$F2,$48,$E7
-	dc.b $07,$08,$1B,$7C,$00,$01,$F3,$A3,$2B,$6D,$F4,$18,$F4,$02,$2B,$6D
-	dc.b $F4,$10,$F3,$FE,$2B,$6D,$F4,$0A,$F4,$18,$2B,$6D,$F4,$06,$F4,$10
-	dc.b $2B,$6D,$F4,$18,$F4,$14,$3B,$7C,$90,$00,$F3,$E0,$4A,$AD,$F3,$E6
-	dc.b $67,$22,$70,$1E,$B0,$2D,$FF,$FB,$67,$04,$4E,$AD,$01,$72,$1B,$6D
-	dc.b $F4,$0E,$F4,$0F,$1F,$3C,$00,$01,$1F,$3C,$00,$01,$4E,$BA,$CC,$A8
-	dc.b $60,$00,$01,$9C,$7A,$01,$42,$2D,$F4,$0F,$3E,$3C,$D2,$00,$70,$1E
-	dc.b $B0,$2D,$FF,$FB,$67,$74,$4A,$2D,$FF,$FB,$66,$6E,$42,$67,$48,$6D
-	dc.b $FE,$FA,$48,$7A,$01,$8E,$4E,$AD,$00,$6A,$10,$1F,$67,$38,$10,$2D
-	dc.b $EB,$20,$67,$08,$3F,$3C,$00,$A4,$4E,$AD,$07,$CA,$70,$00,$30,$07
-	dc.b $80,$BC,$00,$00,$01,$00,$3E,$00,$70,$00,$30,$05,$80,$BC,$00,$00
-	dc.b $00,$10,$3A,$00,$1B,$7C,$00,$01,$EB,$20,$1B,$7C,$00,$01,$F4,$0F
-	dc.b $4E,$AD,$01,$72,$60,$24,$42,$67,$48,$6D,$E0,$74,$3F,$3C,$00,$0A
-	dc.b $48,$6E,$FF,$F8,$4E,$BA,$D7,$42,$10,$1F,$67,$0E,$30,$2E,$FF,$F8
-	dc.b $41,$ED,$E0,$6F,$1B,$70,$00,$00,$F4,$0F,$1B,$6D,$F4,$0F,$F4,$0E
-	dc.b $52,$6D,$E7,$1A,$48,$7A,$01,$1A,$42,$A7,$30,$2D,$E7,$1A,$48,$C0
-	dc.b $2F,$00,$2F,$3C,$00,$00,$FF,$FC,$4E,$AD,$00,$BA,$48,$6E,$FC,$F2
-	dc.b $3F,$3C,$00,$02,$4E,$AD,$0A,$A2,$41,$EE,$FD,$F6,$43,$EE,$FC,$F2
-	dc.b $70,$7F,$30,$D9,$51,$C8,$FF,$FC,$42,$A7,$2F,$2D,$F3,$AC,$48,$6E
-	dc.b $FD,$F6,$42,$A7,$3F,$07,$48,$6E,$FF,$F7,$4E,$AD,$00,$EA,$2B,$5F
-	dc.b $F3,$E6,$66,$10,$3F,$3C,$00,$16,$48,$6E,$FD,$F6,$4E,$AD,$07,$C2
-	dc.b $60,$00,$00,$AC,$42,$67,$2F,$2D,$F3,$E6,$42,$A7,$48,$6E,$FD,$F6
-	dc.b $4E,$BA,$CE,$D2,$10,$1F,$67,$00,$00,$96,$10,$2D,$F4,$0F,$67,$4A
-	dc.b $3C,$2D,$EC,$B8,$52,$6D,$EC,$B8,$42,$2E,$FE,$F6,$3F,$06,$48,$6E
-	dc.b $FE,$F6,$42,$67,$4E,$AD,$06,$8A,$42,$A7,$2F,$2D,$F0,$7C,$3F,$3C
-	dc.b $00,$08,$4E,$AD,$07,$8A,$28,$5F,$20,$0C,$66,$0E,$3F,$3C,$00,$16
-	dc.b $48,$6E,$FD,$F6,$4E,$AD,$07,$C2,$60,$1A,$28,$AD,$F3,$E6,$29,$6D
-	dc.b $F0,$78,$00,$04,$2B,$4C,$F0,$78,$60,$0A,$20,$6D,$F3,$E6,$20,$68
-	dc.b $00,$04,$3C,$10,$3F,$3C,$00,$06,$30,$05,$48,$C0,$2F,$00,$4E,$AD
-	dc.b $01,$42,$3F,$3C,$00,$06,$30,$06,$48,$C0,$2F,$00,$4E,$AD,$01,$42
-	dc.b $3F,$3C,$00,$06,$42,$A7,$4E,$AD,$01,$42,$3F,$3C,$00,$06,$70,$01
-	dc.b $2F,$00,$4E,$AD,$01,$42,$3F,$3C,$00,$3A,$4E,$AD,$01,$4A,$4C,$DF
-	dc.b $10,$E0,$4E,$5E,$4E,$75,$86,$44,$4F,$44,$41,$54,$41,$00,$00,$08
-	dc.b $01,$23,$04,$4D,$41,$49,$4E,$00,$4E,$56,$FF,$F8,$48,$E7,$03,$18
-	dc.b $2C,$2E,$00,$0C,$28,$6E,$00,$08,$20,$46,$70,$00,$20,$80,$4A,$2D
-	dc.b $FF,$FB,$67,$0A,$3F,$3C,$00,$99,$4E,$AD,$07,$CA,$60,$64,$42,$40
-	dc.b $10,$2D,$FE,$FB,$72,$40,$B2,$40,$66,$08,$39,$7C,$00,$04,$FF,$C4
-	dc.b $60,$04,$42,$6C,$FF,$C4,$42,$A7,$2F,$2D,$F0,$D6,$30,$2C,$FF,$C4
-	dc.b $D0,$6D,$FE,$F8,$5C,$40,$3F,$00,$4E,$AD,$07,$7A,$26,$5F,$20,$0B
-	dc.b $66,$0E,$3F,$3C,$00,$16,$48,$6D,$FE,$FA,$4E,$AD,$07,$C2,$60,$22
-	dc.b $20,$46,$4A,$90,$66,$06,$20,$46,$20,$8B,$60,$04,$20,$47,$20,$8B
-	dc.b $2E,$0B,$70,$00,$26,$80,$48,$6D,$FE,$FA,$48,$6B,$00,$04,$4E,$AD
-	dc.b $00,$92,$1B,$7C,$00,$01,$F3,$A0,$4E,$AD,$01,$72,$42,$67,$1F,$3C
-	dc.b $00,$1C,$4E,$BA,$D5,$26,$10,$1F,$66,$00,$FF,$74,$1B,$6D,$F3,$9F
-	dc.b $F3,$A0,$4C,$DF,$18,$C0,$4E,$5E,$20,$5F,$50,$4F,$4E,$D0,$8A,$43
-	dc.b $4F,$4C,$4C,$45,$43,$54,$49,$44,$53,$00,$00,$00,$4E,$56,$FE,$F8
-	dc.b $48,$E7,$00,$18,$26,$6E,$00,$10,$28,$6E,$00,$08,$42,$54,$4A,$2D
-	dc.b $FF,$FB,$67,$08,$38,$BC,$00,$99,$60,$00,$00,$F6,$20,$6E,$00,$0C
-	dc.b $70,$00,$20,$80,$48,$6D,$FE,$FA,$48,$6E,$FE,$F8,$4E,$AD,$00,$92
-	dc.b $10,$2D,$F3,$A1,$66,$08,$48,$6E,$FE,$F8,$4E,$AD,$00,$52,$48,$6E
-	dc.b $FE,$F8,$48,$7A,$00,$F0,$4E,$AD,$0A,$CA,$10,$1F,$67,$0A,$26,$BC
-	dc.b $00,$00,$10,$00,$60,$00,$00,$B6,$48,$6E,$FE,$F8,$48,$7A,$00,$D0
-	dc.b $4E,$AD,$0A,$CA,$10,$1F,$67,$0A,$26,$BC,$00,$00,$20,$00,$60,$00
-	dc.b $00,$9C,$70,$0D,$B0,$6D,$F4,$2E,$56,$C0,$4A,$00,$67,$24,$48,$6E
-	dc.b $FE,$F8,$48,$7A,$00,$A4,$4E,$AD,$0A,$CA,$C0,$1F,$67,$14,$10,$2D
-	dc.b $F3,$A4,$67,$06,$38,$BC,$00,$A2,$60,$72,$26,$BC,$00,$00,$21,$00
-	dc.b $60,$6A,$70,$0D,$B0,$6D,$F4,$2E,$67,$06,$38,$BC,$00,$99,$60,$5C
-	dc.b $48,$6D,$FE,$FA,$2F,$2E,$00,$0C,$48,$6E,$FF,$FA,$48,$6E,$FF,$FE
-	dc.b $48,$6E,$FF,$F9,$4E,$AD,$02,$22,$20,$6E,$00,$0C,$4A,$90,$66,$06
-	dc.b $38,$BC,$00,$10,$60,$36,$08,$2E,$00,$01,$FF,$FF,$56,$C0,$4A,$00
-	dc.b $67,$26,$08,$2E,$00,$00,$FF,$FF,$57,$C1,$C0,$01,$67,$1A,$10,$2E
-	dc.b $FF,$F9,$67,$0C,$C0,$2D,$F3,$A5,$67,$06,$38,$BC,$00,$BD,$60,$0C
-	dc.b $26,$BC,$00,$00,$10,$00,$60,$04,$38,$BC,$00,$B7,$4E,$AD,$01,$72
-	dc.b $4C,$DF,$18,$00,$4E,$5E,$20,$5F,$DE,$FC,$00,$0C,$4E,$D0,$87,$47
-	dc.b $45,$54,$54,$59,$50,$45,$00,$12,$04,$4D,$41,$49,$4E,$00,$04,$43
-	dc.b $4F,$44,$45,$00,$04,$44,$41,$54,$41,$00,$4E,$56,$00,$00,$48,$E7
-	dc.b $03,$18,$26,$6E,$00,$1E,$3C,$2E,$00,$18,$2E,$2E,$00,$14,$28,$6E
-	dc.b $00,$08,$20,$6E,$00,$10,$10,$BC,$00,$01,$70,$00,$30,$2B,$00,$08
-	dc.b $72,$00,$32,$3C,$30,$00,$C0,$81,$72,$00,$32,$3C,$30,$00,$C2,$AC
-	dc.b $FF,$D0,$B2,$80,$66,$00,$00,$BC,$20,$6E,$00,$0C,$42,$10,$08,$2B
-	dc.b $00,$03,$00,$08,$67,$26,$20,$47,$42,$10,$08,$2C,$00,$00,$FF,$D2
-	dc.b $67,$10,$70,$00,$30,$2B,$00,$08,$80,$BC,$00,$00,$01,$00,$37,$40
-	dc.b $00,$08,$20,$6E,$00,$10,$42,$10,$60,$00,$00,$88,$70,$0C,$B0,$6D
-	dc.b $F4,$2E,$57,$C0,$4A,$00,$67,$46,$08,$2B,$00,$01,$00,$08,$56,$C1
-	dc.b $C0,$01,$67,$3A,$20,$47,$42,$10,$08,$2B,$00,$00,$00,$08,$67,$10
-	dc.b $70,$00,$30,$06,$80,$BC,$00,$00,$01,$00,$37,$40,$00,$08,$60,$04
-	dc.b $37,$46,$00,$08,$10,$2D,$F3,$A4,$67,$48,$70,$00,$30,$06,$80,$BC
-	dc.b $00,$00,$00,$01,$20,$6E,$00,$1A,$31,$40,$00,$08,$60,$34,$70,$0E
-	dc.b $B0,$6D,$F4,$2E,$57,$C0,$4A,$00,$67,$28,$08,$2B,$00,$01,$00,$08
-	dc.b $56,$C1,$C0,$01,$67,$1C,$20,$47,$42,$10,$08,$2C,$00,$00,$FF,$D2
-	dc.b $67,$10,$70,$00,$30,$2B,$00,$08,$80,$BC,$00,$00,$01,$00,$37,$40
-	dc.b $00,$08,$4C,$DF,$18,$C0,$4E,$5E,$20,$5F,$DE,$FC,$00,$1A,$4E,$D0
-	dc.b $91,$43,$48,$45,$43,$4B,$49,$46,$43,$4F,$4E,$53,$49,$53,$54,$45
-	dc.b $4E,$54,$00,$00,$4E,$56,$FE,$B2,$48,$E7,$0F,$18,$10,$2D,$F3,$A2
-	dc.b $67,$0C,$3F,$3C,$00,$A3,$4E,$AD,$07,$CA,$60,$00,$07,$DA,$1D,$6D
-	dc.b $F3,$A1,$FF,$C6,$10,$2D,$EB,$99,$67,$04,$42,$2D,$F3,$A1,$4E,$AD
-	dc.b $01,$72,$7E,$00,$42,$6E,$FF,$BA,$70,$00,$2D,$40,$FF,$DC,$4A,$2D
-	dc.b $FF,$FB,$67,$00,$00,$98,$70,$16,$B0,$2D,$FF,$FB,$67,$0A,$3D,$7C
-	dc.b $00,$99,$FF,$BA,$60,$00,$01,$32,$1B,$7C,$00,$01,$F3,$A0,$4E,$AD
-	dc.b $01,$72,$48,$6E,$FF,$DC,$2F,$0E,$4E,$BA,$FC,$7E,$4A,$AE,$FF,$DC
-	dc.b $57,$C0,$4A,$00,$66,$0C,$72,$17,$B2,$2D,$FF,$FB,$56,$C1,$80,$01
-	dc.b $67,$0A,$3D,$7C,$00,$99,$FF,$BA,$60,$00,$00,$FE,$1B,$7C,$00,$01
-	dc.b $F3,$A0,$4E,$AD,$01,$72,$1B,$6D,$F3,$9F,$F3,$A0,$42,$67,$1F,$3C
-	dc.b $00,$1F,$4E,$BA,$D2,$06,$10,$1F,$67,$28,$48,$6E,$FF,$D0,$48,$6E
-	dc.b $FF,$FC,$48,$6E,$FF,$BA,$4E,$BA,$FC,$F4,$4A,$6E,$FF,$BA,$66,$00
-	dc.b $00,$C8,$70,$00,$30,$2E,$00,$08,$80,$AE,$FF,$D0,$3C,$00,$60,$00
-	dc.b $00,$B8,$3D,$7C,$00,$99,$FF,$BA,$60,$00,$00,$AE,$42,$40,$10,$2D
-	dc.b $FE,$FB,$72,$40,$B2,$40,$66,$08,$3D,$7C,$00,$04,$FF,$C4,$60,$04
-	dc.b $42,$6E,$FF,$C4,$42,$A7,$2F,$2D,$F0,$D6,$30,$2E,$FF,$C4,$D0,$6D
-	dc.b $FE,$F8,$5C,$40,$3F,$00,$4E,$AD,$07,$7A,$2D,$5F,$FF,$DC,$66,$08
-	dc.b $3D,$7C,$00,$16,$FF,$BA,$60,$18,$20,$6E,$FF,$DC,$70,$00,$20,$80
-	dc.b $48,$6D,$FE,$FA,$20,$6E,$FF,$DC,$48,$68,$00,$04,$4E,$AD,$00,$92
-	dc.b $10,$2D,$F3,$A4,$66,$06,$80,$2D,$F3,$A3,$67,$0A,$2D,$7C,$00,$00
-	dc.b $10,$00,$FF,$D0,$60,$08,$2D,$7C,$00,$00,$20,$00,$FF,$D0,$70,$00
-	dc.b $2D,$40,$FF,$FC,$4E,$AD,$01,$72,$42,$67,$1F,$3C,$00,$1F,$4E,$BA
-	dc.b $D1,$4A,$10,$1F,$67,$10,$48,$6E,$FF,$D0,$48,$6E,$FF,$FC,$48,$6E
-	dc.b $FF,$BA,$4E,$BA,$FC,$38,$4A,$6E,$FF,$BA,$66,$0C,$70,$00,$30,$2E
-	dc.b $00,$08,$80,$AE,$FF,$D0,$3C,$00,$4A,$6E,$FF,$BA,$67,$52,$0C,$6E
-	dc.b $00,$99,$FF,$BA,$57,$C0,$4A,$00,$66,$0C,$0C,$6E,$00,$A2,$FF,$BA
-	dc.b $57,$C1,$80,$01,$67,$0A,$3F,$2E,$FF,$BA,$4E,$AD,$07,$CA,$60,$0C
-	dc.b $3F,$2E,$FF,$BA,$48,$6D,$FE,$FA,$4E,$AD,$07,$C2,$4A,$AE,$FF,$DC
-	dc.b $67,$00,$06,$1E,$2D,$6E,$FF,$DC,$FF,$E0,$20,$6E,$FF,$DC,$2D,$50
-	dc.b $FF,$DC,$2F,$2D,$F0,$D6,$2F,$2E,$FF,$E0,$4E,$AD,$07,$82,$60,$DC
-	dc.b $4A,$AE,$FF,$DC,$67,$00,$05,$FA,$1D,$7C,$00,$01,$FF,$C8,$70,$00
-	dc.b $26,$40,$70,$00,$2D,$40,$FF,$F8,$20,$6E,$FF,$DC,$48,$68,$00,$04
-	dc.b $48,$6E,$FE,$BA,$4E,$AD,$00,$92,$10,$2D,$EB,$99,$67,$08,$48,$6E
-	dc.b $FE,$BA,$4E,$AD,$00,$52,$42,$40,$10,$2E,$FE,$BB,$72,$40,$B2,$40
-	dc.b $66,$0C,$3D,$7C,$00,$99,$FF,$BA,$78,$01,$60,$00,$04,$DA,$42,$67
-	dc.b $48,$6E,$FE,$BA,$4E,$AD,$00,$D2,$3D,$5F,$FF,$C0,$30,$2D,$F4,$2E
-	dc.b $04,$40,$00,$0C,$67,$00,$02,$0C,$53,$40,$67,$0A,$53,$40,$67,$00
-	dc.b $02,$02,$60,$00,$04,$B2,$10,$2D,$F3,$A4,$48,$80,$67,$00,$00,$BC
-	dc.b $53,$40,$67,$04,$60,$00,$01,$0C,$42,$A7,$2F,$2D,$F3,$A8,$48,$6E
-	dc.b $FE,$BA,$42,$A7,$3F,$06,$48,$6E,$FF,$C7,$3F,$2E,$FF,$C0,$4E,$AD
-	dc.b $00,$E2,$28,$5F,$10,$2E,$FF,$C7,$67,$1E,$08,$2C,$00,$01,$00,$09
-	dc.b $66,$16,$70,$00,$30,$2C,$00,$08,$C0,$AE,$FF,$D0,$B0,$AE,$FF,$D0
-	dc.b $56,$C0,$44,$00,$1D,$40,$FF,$C7,$10,$2E,$FF,$C7,$66,$00,$00,$C4
-	dc.b $10,$2E,$FF,$C7,$0A,$00,$00,$01,$1D,$40,$FF,$C8,$42,$A7,$2F,$2D
-	dc.b $F3,$B0,$20,$6D,$F3,$EE,$48,$68,$00,$0C,$48,$6E,$FE,$BA,$48,$6E
-	dc.b $FF,$D4,$48,$6E,$FF,$C2,$48,$6E,$FF,$D8,$3F,$2E,$FF,$C0,$4E,$AD
-	dc.b $01,$12,$4A,$9F,$67,$00,$00,$8C,$08,$2E,$00,$07,$FF,$C2,$56,$C0
-	dc.b $4A,$00,$66,$16,$72,$00,$32,$2E,$FF,$C2,$74,$00,$34,$3C,$0A,$00
-	dc.b $C2,$82,$4A,$81,$56,$C1,$80,$01,$67,$08,$1D,$7C,$00,$01,$FF,$C7
-	dc.b $60,$60,$3D,$7C,$00,$B1,$FF,$BA,$60,$58,$42,$A7,$2F,$2D,$F3,$AC
-	dc.b $48,$6E,$FE,$BA,$42,$A7,$3F,$06,$48,$6E,$FF,$C7,$3F,$2E,$FF,$C0
-	dc.b $4E,$AD,$00,$E2,$28,$5F,$10,$2E,$FF,$C7,$67,$36,$08,$2C,$00,$07
-	dc.b $00,$08,$56,$C0,$4A,$00,$66,$22,$08,$2C,$00,$02,$00,$08,$56,$C1
-	dc.b $4A,$01,$67,$12,$74,$00,$34,$2C,$00,$08,$C4,$AE,$FF,$D0,$B4,$AE
-	dc.b $FF,$D0,$57,$C2,$C2,$02,$52,$01,$80,$01,$02,$40,$00,$01,$1D,$40
-	dc.b $FF,$C7,$4A,$6E,$FF,$BA,$66,$0A,$20,$0C,$66,$06,$3D,$7C,$00,$16
-	dc.b $FF,$BA,$78,$01,$10,$2E,$FF,$C7,$67,$14,$4A,$6E,$FF,$BA,$57,$C1
-	dc.b $C0,$01,$67,$0A,$3D,$7C,$00,$A1,$FF,$BA,$60,$00,$03,$6A,$4A,$6E
-	dc.b $FF,$BA,$66,$00,$03,$62,$10,$2E,$FF,$C8,$67,$14,$42,$67,$2F,$0C
-	dc.b $2F,$07,$20,$6E,$FF,$DC,$48,$68,$00,$04,$4E,$BA,$C7,$48,$18,$1F
-	dc.b $10,$04,$67,$00,$03,$42,$08,$2C,$00,$07,$00,$08,$66,$04,$39,$46
-	dc.b $00,$08,$10,$2D,$F3,$A7,$67,$20,$10,$2D,$EB,$99,$67,$1A,$42,$67
-	dc.b $2F,$0C,$20,$6E,$FF,$DC,$48,$68,$00,$04,$4E,$BA,$CF,$8C,$10,$1F
-	dc.b $66,$06,$3D,$7C,$00,$16,$FF,$BA,$4A,$6E,$FF,$BA,$57,$C0,$4A,$00
-	dc.b $67,$00,$03,$04,$08,$2E,$00,$04,$FF,$D2,$56,$C1,$C0,$01,$67,$00
-	dc.b $02,$F6,$42,$A7,$2F,$0C,$4E,$AD,$01,$22,$2D,$5F,$FE,$B6,$20,$6E
-	dc.b $FE,$B6,$70,$00,$20,$80,$20,$2E,$FE,$B6,$58,$80,$2D,$40,$FE,$B2
-	dc.b $20,$6E,$FE,$B2,$20,$AE,$FF,$FC,$67,$00,$02,$CC,$70,$00,$30,$2C
-	dc.b $00,$08,$72,$00,$32,$3C,$80,$02,$80,$81,$39,$40,$00,$08,$60,$00
-	dc.b $02,$B6,$10,$2D,$F3,$A4,$48,$80,$67,$00,$00,$8C,$53,$40,$67,$04
-	dc.b $60,$00,$00,$A2,$42,$A7,$2F,$2D,$F3,$B0,$48,$6E,$FE,$BA,$2F,$2D
-	dc.b $F3,$EE,$30,$06,$52,$40,$3F,$00,$42,$A7,$48,$6E,$FF,$C7,$3F,$2E
-	dc.b $FF,$C0,$4E,$AD,$01,$02,$26,$5F,$2E,$0B,$28,$4B,$20,$0B,$67,$74
-	dc.b $10,$2E,$FF,$C7,$67,$24,$08,$2B,$00,$07,$00,$08,$57,$C1,$C0,$01
-	dc.b $67,$18,$70,$00,$30,$2B,$00,$08,$72,$00,$32,$3C,$0A,$00,$C0,$81
-	dc.b $4A,$80,$57,$C0,$44,$00,$1D,$40,$FF,$C7,$10,$2E,$FF,$C7,$67,$08
-	dc.b $3D,$7C,$00,$A1,$FF,$BA,$60,$3C,$42,$A7,$2F,$2D,$F3,$B0,$48,$6E
-	dc.b $FE,$BA,$42,$A7,$3F,$06,$48,$6E,$FF,$C7,$3F,$2E,$FF,$C0,$4E,$AD
-	dc.b $00,$E2,$28,$5F,$60,$1E,$42,$A7,$2F,$2D,$F3,$B0,$48,$6E,$FE,$BA
+	dc.b $67,$52,$26,$68,$00,$04,$70,$00,$30,$2B,$00,$08,$80,$BC,$00,$00
+	dc.b $40,$00,$37,$40,$00,$08,$42,$A7,$2F,$0B,$4E,$AD,$01,$22,$28,$5F
+	dc.b $58,$8C,$42,$A7,$2F,$2D,$F3,$CE,$4E,$AD,$01,$22,$20,$1F,$58,$80
+	dc.b $2D,$40,$FF,$DE,$10,$2D,$F3,$A5,$67,$16,$20,$6E,$FF,$DE,$22,$10
+	dc.b $B2,$AD,$F3,$AC,$57,$C1,$C0,$01,$67,$06,$70,$00,$28,$80,$60,$04
+	dc.b $28,$AD,$F3,$CE,$42,$04,$10,$2D,$F3,$A6,$67,$14,$10,$2D,$F3,$A4
+	dc.b $66,$04,$80,$2D,$F3,$A3,$1F,$00,$1F,$2D,$F4,$0F,$4E,$BA,$E3,$F4
+	dc.b $4A,$6D,$CD,$68,$57,$C0,$4A,$00,$67,$00,$01,$B8,$72,$1E,$B2,$2D
+	dc.b $FF,$FB,$56,$C1,$C0,$01,$67,$00,$01,$AA,$3F,$3C,$00,$33,$4E,$AD
+	dc.b $07,$CA,$60,$00,$01,$9E,$42,$67,$1F,$3C,$00,$1C,$4E,$BA,$EE,$98
+	dc.b $10,$1F,$67,$00,$01,$86,$4A,$AE,$FF,$F0,$6E,$0E,$3F,$3C,$00,$99
+	dc.b $4E,$AD,$07,$CA,$70,$01,$2D,$40,$FF,$F0,$48,$6E,$FF,$FE,$4E,$BA
+	dc.b $F7,$C0,$4A,$6D,$CD,$68,$66,$00,$01,$6A,$70,$1E,$B0,$2D,$FF,$FB
+	dc.b $67,$0C,$3F,$3C,$00,$33,$4E,$AD,$07,$CA,$60,$00,$01,$56,$10,$2D
+	dc.b $F4,$0F,$67,$00,$00,$9A,$30,$2E,$FF,$FE,$48,$C0,$2F,$2E,$FF,$F0
+	dc.b $2F,$00,$4E,$AD,$0A,$72,$20,$1F,$91,$AD,$F4,$18,$70,$01,$B0,$6D
+	dc.b $F4,$2C,$56,$C0,$4A,$00,$67,$20,$12,$2D,$F4,$1B,$02,$41,$00,$01
+	dc.b $C0,$01,$67,$14,$10,$2D,$EB,$93,$67,$06,$53,$AD,$F4,$18,$60,$08
+	dc.b $3F,$3C,$00,$CC,$4E,$AD,$07,$CA,$2B,$6D,$F4,$18,$F4,$14,$42,$40
+	dc.b $10,$2D,$FA,$BE,$4A,$40,$6F,$1A,$2F,$2D,$F4,$18,$3F,$2D,$F3,$E0
+	dc.b $2F,$2D,$F3,$E2,$4E,$AD,$01,$92,$10,$2D,$F0,$B1,$67,$04,$4E,$AD
+	dc.b $02,$3A,$20,$2D,$F4,$18,$B0,$AD,$F4,$10,$6C,$06,$2B,$6D,$F4,$18
+	dc.b $F4,$10,$10,$2D,$F3,$A6,$67,$3C,$10,$2D,$F3,$A4,$66,$04,$80,$2D
+	dc.b $F3,$A3,$1F,$00,$1F,$3C,$00,$01,$4E,$BA,$E2,$E8,$60,$26,$30,$2E
+	dc.b $FF,$FE,$48,$C0,$2F,$2E,$FF,$F0,$2F,$00,$4E,$AD,$0A,$72,$20,$1F
+	dc.b $D1,$AD,$F4,$18,$20,$2D,$F4,$18,$B0,$AD,$F4,$10,$6F,$06,$2B,$6D
+	dc.b $F4,$18,$F4,$10,$4E,$BA,$E3,$6A,$4A,$6D,$CD,$66,$6F,$14,$3F,$2D
+	dc.b $FB,$DE,$3F,$2D,$EB,$6E,$30,$2D,$F4,$2E,$44,$40,$3F,$00,$4E,$AD
+	dc.b $01,$62,$20,$2E,$FF,$F0,$44,$80,$3F,$00,$3F,$2D,$F4,$2C,$3F,$2D
+	dc.b $FB,$DE,$3F,$2D,$EB,$6E,$4E,$AD,$01,$5A,$70,$01,$B0,$2D,$F3,$95
+	dc.b $67,$1A,$3F,$3C,$00,$06,$10,$2D,$F3,$95,$48,$80,$48,$C0,$2F,$00
+	dc.b $4E,$AD,$01,$42,$3F,$3C,$00,$37,$4E,$AD,$01,$4A,$4A,$6D,$CD,$68
+	dc.b $5E,$C0,$44,$00,$1B,$40,$EE,$71,$10,$2D,$F4,$0F,$67,$24,$C0,$2D
+	dc.b $F3,$A6,$67,$1E,$10,$2D,$F3,$A4,$66,$04,$80,$2D,$F3,$A3,$1F,$00
+	dc.b $1F,$3C,$00,$01,$4E,$BA,$E2,$3C,$60,$08,$3F,$3C,$00,$9C,$4E,$AD
+	dc.b $07,$CA,$10,$05,$67,$1A,$42,$A7,$4E,$AD,$02,$4A,$1B,$7C,$00,$01
+	dc.b $EC,$C5,$2F,$2D,$EB,$6A,$4E,$AD,$02,$52,$1F,$04,$4E,$AD,$08,$1A
+	dc.b $4C,$DF,$18,$F0,$4E,$5E,$4E,$75,$8A,$44,$4F,$44,$53,$41,$4E,$44
+	dc.b $44,$43,$42,$00,$00,$00,$4E,$56,$FE,$FC,$48,$E7,$01,$08,$28,$6E
+	dc.b $00,$08,$42,$6C,$FF,$FA,$42,$2C,$FF,$FC,$42,$2D,$F4,$0F,$7E,$01
+	dc.b $70,$1E,$B0,$2D,$FF,$FB,$67,$00,$02,$7C,$10,$2D,$FF,$FB,$48,$80
+	dc.b $67,$12,$04,$40,$00,$1C,$67,$00,$02,$56,$55,$40,$67,$00,$02,$50
+	dc.b $60,$00,$02,$2A,$48,$6D,$FE,$FA,$48,$6E,$FE,$FC,$4E,$AD,$00,$92
+	dc.b $10,$2D,$F3,$A1,$66,$08,$48,$6E,$FE,$FC,$4E,$AD,$00,$52,$42,$67
+	dc.b $48,$6E,$FF,$FC,$48,$6D,$E0,$60,$3F,$3C,$00,$07,$4E,$BA,$BF,$C2
+	dc.b $10,$1F,$67,$00,$00,$A8,$70,$01,$B0,$2C,$FF,$F6,$66,$5C,$70,$00
+	dc.b $32,$2E,$FF,$FC,$D2,$41,$41,$ED,$E0,$5A,$30,$30,$10,$00,$72,$00
+	dc.b $22,$6C,$00,$0C,$32,$11,$C0,$81,$4A,$80,$66,$56,$20,$49,$08,$10
+	dc.b $00,$03,$67,$0A,$3F,$3C,$00,$EC,$4E,$AD,$07,$CA,$60,$44,$20,$6C
+	dc.b $00,$0C,$08,$10,$00,$01,$67,$3A,$3F,$3C,$00,$D1,$4E,$AD,$07,$CA
+	dc.b $70,$00,$20,$6C,$00,$0C,$30,$10,$22,$3C,$00,$00,$02,$00,$46,$81
+	dc.b $C0,$81,$20,$6C,$00,$0C,$30,$80,$60,$18,$70,$00,$20,$6C,$00,$0C
+	dc.b $30,$10,$22,$3C,$00,$00,$02,$00,$46,$81,$C0,$81,$20,$6C,$00,$0C
+	dc.b $30,$80,$19,$7C,$00,$01,$FF,$F6,$70,$00,$20,$6C,$00,$0C,$30,$10
+	dc.b $72,$00,$34,$2E,$FF,$FC,$D4,$42,$41,$ED,$E0,$5A,$32,$30,$20,$00
+	dc.b $80,$81,$22,$6C,$00,$0C,$32,$80,$60,$00,$01,$74,$42,$67,$48,$6E
+	dc.b $FF,$FC,$48,$6D,$E0,$74,$3F,$3C,$00,$0A,$4E,$BA,$BF,$04,$10,$1F
+	dc.b $67,$3A,$4A,$2C,$FF,$FB,$66,$08,$19,$7C,$00,$01,$FF,$FB,$60,$1A
+	dc.b $30,$2E,$FF,$FC,$12,$2D,$F4,$0F,$41,$ED,$E0,$6F,$B2,$30,$00,$00
+	dc.b $67,$08,$3F,$3C,$00,$D1,$4E,$AD,$07,$CA,$30,$2E,$FF,$FC,$41,$ED
+	dc.b $E0,$6F,$1B,$70,$00,$00,$F4,$0F,$60,$00,$01,$24,$42,$67,$48,$6E
+	dc.b $FF,$FC,$48,$6D,$DF,$E2,$3F,$3C,$00,$0F,$4E,$BA,$BE,$B4,$10,$1F
+	dc.b $67,$78,$70,$01,$B0,$2C,$FF,$F7,$66,$46,$70,$05,$B0,$6E,$FF,$FC
+	dc.b $6E,$3E,$70,$00,$20,$6C,$00,$08,$30,$10,$72,$00,$34,$2E,$FF,$FC
+	dc.b $D4,$42,$41,$ED,$DF,$D0,$32,$30,$20,$00,$C0,$81,$4A,$80,$66,$20
+	dc.b $3F,$3C,$00,$D1,$4E,$AD,$07,$CA,$70,$00,$20,$6C,$00,$08,$30,$10
+	dc.b $72,$00,$32,$3C,$00,$06,$46,$81,$C0,$81,$20,$6C,$00,$08,$30,$80
+	dc.b $70,$00,$20,$6C,$00,$08,$30,$10,$72,$00,$34,$2E,$FF,$FC,$D4,$42
+	dc.b $41,$ED,$DF,$D0,$32,$30,$20,$00,$80,$81,$22,$6C,$00,$08,$32,$80
+	dc.b $19,$7C,$00,$01,$FF,$F7,$60,$00,$00,$96,$48,$6E,$FE,$FC,$48,$7A
+	dc.b $00,$BE,$4E,$AD,$0A,$CA,$10,$1F,$67,$3C,$4A,$2C,$FF,$FC,$66,$7E
+	dc.b $10,$2D,$EB,$20,$67,$08,$3F,$3C,$00,$A4,$4E,$AD,$07,$CA,$70,$00
+	dc.b $20,$6C,$00,$0C,$30,$10,$80,$BC,$00,$00,$01,$00,$20,$6C,$00,$0C
+	dc.b $30,$80,$1B,$7C,$00,$01,$EB,$20,$1B,$7C,$00,$01,$F4,$0F,$19,$7C
+	dc.b $00,$01,$FF,$FC,$60,$48,$10,$07,$67,$16,$20,$6C,$00,$0C,$30,$BC
+	dc.b $00,$02,$20,$6E,$00,$08,$2C,$48,$4E,$FA,$03,$86,$00,$00,$60,$2E
+	dc.b $3F,$3C,$00,$99,$4E,$AD,$07,$CA,$60,$24,$60,$22,$10,$07,$67,$16
+	dc.b $20,$6C,$00,$0C,$30,$BC,$00,$02,$20,$6E,$00,$08,$2C,$48,$4E,$FA
+	dc.b $03,$60,$00,$00,$60,$08,$3F,$3C,$00,$99,$4E,$AD,$07,$CA,$42,$07
+	dc.b $1B,$7C,$00,$01,$F3,$A0,$4E,$AD,$01,$72,$1B,$6D,$F3,$9F,$F3,$A0
+	dc.b $60,$00,$FD,$7E,$4C,$DF,$10,$80,$4E,$5E,$2E,$9F,$4E,$75,$8C,$47
+	dc.b $45,$54,$52,$45,$43,$50,$41,$52,$41,$4D,$53,$00,$00,$06,$04,$4D
+	dc.b $41,$49,$4E,$00,$4E,$56,$00,$00,$2F,$0C,$28,$6E,$00,$08,$70,$1E
+	dc.b $B0,$2D,$FF,$FB,$67,$00,$02,$52,$4A,$2D,$FF,$FB,$66,$00,$02,$1E
+	dc.b $10,$2D,$F3,$A1,$66,$08,$48,$6D,$FE,$FA,$4E,$AD,$00,$52,$48,$6D
+	dc.b $FE,$FA,$48,$7A,$02,$86,$4E,$AD,$0A,$CA,$10,$1F,$67,$52,$70,$01
+	dc.b $B0,$2C,$FF,$F6,$66,$26,$4A,$2C,$FF,$F4,$66,$20,$3F,$3C,$00,$D1
+	dc.b $4E,$AD,$07,$CA,$70,$00,$20,$6C,$00,$0C,$30,$10,$22,$3C,$00,$00
+	dc.b $02,$00,$46,$81,$C0,$81,$20,$6C,$00,$0C,$30,$80,$19,$7C,$00,$01
+	dc.b $FF,$F4,$19,$7C,$00,$01,$FF,$F6,$70,$00,$20,$6C,$00,$0C,$30,$10
+	dc.b $80,$BC,$00,$00,$08,$00,$20,$6C,$00,$0C,$30,$80,$60,$00,$01,$78
+	dc.b $48,$6D,$FE,$FA,$48,$7A,$02,$1E,$4E,$AD,$0A,$CA,$10,$1F,$67,$2C
+	dc.b $70,$01,$B0,$2C,$FF,$F6,$66,$16,$70,$01,$B0,$2C,$FF,$F4,$66,$00
+	dc.b $01,$56,$3F,$3C,$00,$EC,$4E,$AD,$07,$CA,$60,$00,$01,$4A,$42,$2C
+	dc.b $FF,$F4,$19,$7C,$00,$01,$FF,$F6,$60,$00,$01,$3C,$48,$6D,$FE,$FA
+	dc.b $48,$7A,$01,$D8,$4E,$AD,$0A,$CA,$10,$1F,$67,$26,$4A,$2C,$FF,$F8
+	dc.b $66,$00,$01,$24,$70,$00,$20,$6C,$00,$08,$30,$10,$80,$BC,$00,$00
+	dc.b $00,$40,$20,$6C,$00,$08,$30,$80,$19,$7C,$00,$01,$FF,$F8,$60,$00
+	dc.b $01,$06,$48,$6D,$FE,$FA,$48,$7A,$01,$96,$4E,$AD,$0A,$CA,$10,$1F
+	dc.b $67,$30,$4A,$2C,$FF,$F9,$66,$00,$00,$EE,$70,$0A,$B0,$6D,$F4,$2E
+	dc.b $67,$00,$00,$E4,$70,$00,$20,$6C,$00,$08,$30,$10,$80,$BC,$00,$00
+	dc.b $00,$80,$20,$6C,$00,$08,$30,$80,$19,$7C,$00,$01,$FF,$F9,$60,$00
+	dc.b $00,$C6,$48,$6D,$FE,$FA,$48,$7A,$01,$48,$4E,$AD,$0A,$CA,$10,$1F
+	dc.b $67,$4E,$70,$01,$B0,$2C,$FF,$F7,$66,$24,$70,$02,$B0,$2C,$FF,$F5
+	dc.b $67,$1C,$3F,$3C,$00,$D1,$4E,$AD,$07,$CA,$70,$00,$20,$6C,$00,$08
+	dc.b $30,$10,$72,$02,$46,$81,$C0,$81,$20,$6C,$00,$08,$30,$80,$70,$00
+	dc.b $20,$6C,$00,$08,$30,$10,$80,$BC,$00,$00,$00,$04,$20,$6C,$00,$08
+	dc.b $30,$80,$19,$7C,$00,$02,$FF,$F5,$19,$7C,$00,$01,$FF,$F7,$60,$66
+	dc.b $48,$6D,$FE,$FA,$48,$7A,$00,$DA,$4E,$AD,$0A,$CA,$10,$1F,$67,$4E
+	dc.b $70,$01,$B0,$2C,$FF,$F7,$66,$24,$70,$01,$B0,$2C,$FF,$F5,$67,$1C
+	dc.b $3F,$3C,$00,$D1,$4E,$AD,$07,$CA,$70,$00,$20,$6C,$00,$08,$30,$10
+	dc.b $72,$04,$46,$81,$C0,$81,$20,$6C,$00,$08,$30,$80,$70,$00,$20,$6C
+	dc.b $00,$08,$30,$10,$80,$BC,$00,$00,$00,$02,$20,$6C,$00,$08,$30,$80
+	dc.b $19,$7C,$00,$01,$FF,$F5,$19,$7C,$00,$01,$FF,$F7,$60,$08,$3F,$3C
+	dc.b $00,$99,$4E,$AD,$07,$CA,$1B,$7C,$00,$01,$F3,$A0,$4E,$AD,$01,$72
+	dc.b $1B,$6D,$F3,$9F,$F3,$A0,$70,$1E,$B0,$2D,$FF,$FB,$67,$00,$FD,$F0
+	dc.b $42,$67,$1F,$3C,$00,$1C,$4E,$BA,$E7,$EE,$10,$1F,$66,$00,$FD,$E0
+	dc.b $3F,$3C,$00,$99,$4E,$AD,$07,$CA,$60,$00,$FD,$D4,$19,$6D,$FF,$FB
+	dc.b $FF,$F3,$1B,$7C,$00,$01,$F3,$A0,$4E,$AD,$01,$72,$1B,$6D,$F3,$9F
+	dc.b $F3,$A0,$70,$1C,$B0,$2C,$FF,$F3,$67,$00,$FD,$B4,$3F,$3C,$00,$99
+	dc.b $4E,$AD,$07,$CA,$60,$00,$FD,$A8,$28,$5F,$4E,$5E,$2E,$9F,$4E,$75
+	dc.b $8D,$47,$45,$54,$50,$52,$4F,$43,$50,$41,$52,$41,$4D,$53,$00,$42
+	dc.b $0E,$55,$53,$45,$53,$4E,$45,$41,$52,$4F,$42,$4A,$45,$43,$54,$00
+	dc.b $0D,$55,$53,$45,$53,$46,$41,$52,$4F,$42,$4A,$45,$43,$54,$0B,$46
+	dc.b $4F,$52,$43,$45,$41,$43,$54,$49,$56,$45,$09,$53,$48,$41,$52,$45
+	dc.b $44,$4C,$49,$42,$05,$45,$4E,$54,$52,$59,$06,$45,$58,$50,$4F,$52
+	dc.b $54,$00,$4E,$56,$FE,$EE,$48,$E7,$1F,$38,$70,$00,$20,$6E,$00,$0C
+	dc.b $30,$10,$80,$BC,$00,$00,$02,$00,$20,$6E,$00,$0C,$30,$80,$42,$AE
+	dc.b $FF,$F4,$42,$2E,$FF,$F9,$42,$2E,$FF,$F8,$1D,$7C,$00,$01,$00,$10
+	dc.b $30,$2D,$F4,$2E,$5F,$40,$67,$1C,$53,$40,$67,$0A,$53,$40,$67,$06
+	dc.b $53,$40,$67,$02,$60,$1A,$3D,$7C,$00,$08,$FF,$FE,$2F,$0E,$4E,$BA
+	dc.b $FC,$F4,$60,$0C,$3D,$7C,$00,$07,$FF,$FE,$2F,$0E,$4E,$BA,$FA,$28
+	dc.b $4F,$EE,$FE,$CE,$4C,$DF,$1C,$F8,$4E,$5E,$20,$5F,$50,$4F,$4E,$D0
+	dc.b $8F,$47,$45,$54,$4D,$4F,$44,$55,$4C,$45,$50,$41,$52,$41,$4D,$53
+	dc.b $00,$00,$4E,$56,$00,$00,$2F,$0C,$28,$6E,$00,$08,$28,$6C,$00,$08
+	dc.b $4A,$2D,$FF,$FB,$66,$50,$48,$6D,$FE,$FA,$48,$7A,$01,$4A,$4E,$AD
+	dc.b $0A,$CA,$10,$1F,$67,$14,$39,$7C,$94,$02,$FF,$FC,$70,$00,$29,$40
+	dc.b $FF,$F8,$4E,$AD,$01,$72,$60,$00,$01,$10,$42,$67,$48,$6C,$FF,$F8
+	dc.b $4E,$AD,$02,$02,$10,$1F,$67,$0A,$39,$7C,$80,$02,$FF,$FC,$60,$00
+	dc.b $00,$F8,$20,$6E,$00,$08,$20,$68,$00,$08,$2C,$48,$4E,$FA,$03,$F6
+	dc.b $00,$00,$60,$00,$00,$E4,$70,$1A,$B0,$2D,$FF,$FB,$66,$00,$00,$B4
+	dc.b $70,$00,$29,$40,$FF,$F8,$39,$7C,$80,$02,$FF,$FC,$1B,$7C,$00,$01
+	dc.b $F3,$A0,$4E,$AD,$01,$72,$4A,$2D,$FF,$FB,$67,$0A,$3F,$3C,$00,$99
+	dc.b $4E,$AD,$07,$CA,$60,$6E,$70,$00,$2B,$40,$F3,$D4,$42,$A7,$4E,$AD
+	dc.b $07,$6A,$2B,$5F,$F3,$DC,$66,$0A,$3F,$3C,$00,$B3,$4E,$AD,$07,$CA
+	dc.b $60,$4E,$42,$A7,$2F,$2D,$F3,$DC,$30,$2D,$FE,$F8,$52,$40,$3F,$00
+	dc.b $4E,$AD,$07,$8A,$2B,$5F,$F3,$D8,$67,$20,$48,$6D,$FE,$FA,$2F,$2D
+	dc.b $F3,$D8,$4E,$AD,$00,$92,$70,$00,$30,$2C,$FF,$FC,$72,$00,$32,$3C
+	dc.b $30,$00,$80,$81,$39,$40,$FF,$FC,$60,$16,$3F,$3C,$00,$B3,$4E,$AD
+	dc.b $07,$CA,$2F,$2D,$F3,$DC,$4E,$AD,$07,$72,$70,$00,$2B,$40,$F3,$DC
+	dc.b $4E,$AD,$01,$72,$70,$1B,$B0,$2D,$FF,$FB,$67,$0A,$3F,$3C,$00,$99
+	dc.b $4E,$AD,$07,$CA,$60,$04,$4E,$AD,$01,$72,$1B,$6D,$F3,$9F,$F3,$A0
+	dc.b $60,$26,$42,$67,$48,$6C,$FF,$F8,$4E,$AD,$02,$02,$10,$1F,$67,$08
+	dc.b $39,$7C,$80,$02,$FF,$FC,$60,$10,$20,$6E,$00,$08,$20,$68,$00,$08
+	dc.b $2C,$48,$4E,$FA,$03,$10,$00,$00,$28,$5F,$4E,$5E,$2E,$9F,$4E,$75
+	dc.b $93,$43,$48,$45,$43,$4B,$54,$45,$4D,$50,$4C,$41,$54,$45,$50,$41
+	dc.b $52,$41,$4D,$53,$00,$08,$06,$49,$4D,$50,$4F,$52,$54,$00,$4E,$56
+	dc.b $00,$00,$2F,$0C,$28,$6E,$00,$08,$2F,$0E,$4E,$BA,$FE,$86,$42,$40
+	dc.b $10,$2D,$FA,$BF,$39,$40,$FE,$F2,$70,$40,$B0,$6C,$FE,$F2,$66,$10
+	dc.b $3F,$3C,$00,$07,$48,$6D,$FA,$BE,$4E,$AD,$07,$C2,$60,$00,$02,$04
+	dc.b $42,$A7,$2F,$2D,$F3,$AC,$48,$6D,$FA,$BE,$2F,$2C,$FF,$F8,$3F,$2C
+	dc.b $FF,$FC,$48,$6C,$FF,$F6,$4E,$AD,$00,$EA,$2B,$5F,$F3,$EA,$66,$16
+	dc.b $3F,$3C,$00,$16,$48,$6D,$FA,$BE,$4E,$AD,$07,$C2,$19,$7C,$00,$01
+	dc.b $FF,$F6,$60,$00,$01,$08,$10,$2C,$FF,$F6,$67,$62,$20,$6D,$F3,$EA
+	dc.b $08,$28,$00,$07,$00,$08,$57,$C0,$4A,$00,$67,$42,$08,$28,$00,$02
+	dc.b $00,$08,$56,$C1,$C0,$01,$67,$36,$08,$28,$00,$04,$00,$08,$56,$C1
+	dc.b $C0,$01,$67,$2A,$4A,$AC,$FF,$F8,$67,$0C,$3F,$3C,$00,$99,$4E,$AD
+	dc.b $07,$CA,$60,$00,$00,$C8,$39,$7C,$94,$02,$FF,$FC,$20,$6D,$F3,$EA
+	dc.b $31,$6C,$FF,$FC,$00,$08,$42,$2C,$FF,$F6,$60,$00,$00,$B0,$3F,$3C
+	dc.b $00,$08,$48,$6D,$FA,$BE,$4E,$AD,$07,$C2,$60,$00,$00,$A0,$08,$2C
+	dc.b $00,$02,$FF,$FC,$67,$00,$00,$96,$10,$2D,$EB,$99,$67,$36,$42,$41
+	dc.b $12,$2D,$EF,$72,$4A,$41,$5E,$C1,$C0,$01,$67,$28,$48,$6D,$EF,$72
+	dc.b $48,$6C,$FE,$F4,$4E,$AD,$00,$92,$42,$40,$10,$2C,$FE,$F4,$B0,$6D
+	dc.b $F3,$8E,$6F,$1C,$19,$6D,$F3,$8F,$FE,$F4,$3F,$3C,$00,$CE,$4E,$AD
+	dc.b $07,$CA,$60,$0C,$48,$6D,$FA,$BE,$48,$6C,$FE,$F4,$4E,$AD,$00,$92
+	dc.b $42,$67,$2F,$2D,$F3,$EA,$42,$A7,$48,$6C,$FE,$F4,$4E,$BA,$DC,$92
+	dc.b $10,$1F,$0A,$00,$00,$01,$19,$40,$FF,$F6,$66,$30,$10,$2D,$F3,$A7
+	dc.b $67,$2A,$10,$2D,$EB,$99,$67,$24,$42,$67,$2F,$2D,$F3,$EA,$48,$6C
+	dc.b $FE,$F4,$4E,$BA,$E4,$E0,$10,$1F,$66,$12,$3F,$3C,$00,$16,$48,$6D
+	dc.b $FA,$BE,$4E,$AD,$07,$C2,$19,$7C,$00,$01,$FF,$F6,$10,$2C,$FF,$F6
+	dc.b $66,$00,$00,$C0,$1B,$6D,$F4,$0F,$F3,$D3,$42,$2D,$F4,$0F,$42,$67
+	dc.b $1F,$3C,$00,$1C,$4E,$BA,$E3,$E0,$10,$1F,$67,$24,$42,$67,$48,$6D
+	dc.b $E0,$74,$3F,$3C,$00,$0A,$48,$6C,$FF,$FE,$4E,$BA,$E4,$08,$10,$1F
+	dc.b $67,$0E,$30,$2C,$FF,$FE,$41,$ED,$E0,$6F,$1B,$70,$00,$00,$F4,$0F
+	dc.b $1B,$7C,$00,$01,$F3,$A2,$2B,$6D,$F4,$18,$F3,$FA,$2B,$6D,$F4,$10
+	dc.b $F3,$F6,$2B,$6C,$FF,$F8,$F4,$18,$2B,$6C,$FF,$F8,$F4,$14,$2B,$6C
+	dc.b $FF,$F8,$F4,$10,$2B,$6C,$FF,$F8,$F3,$C6,$2B,$6D,$F3,$EA,$F3,$E2
+	dc.b $3B,$7C,$80,$01,$F3,$E0,$4A,$AD,$F3,$D8,$67,$14,$70,$00,$30,$2D
+	dc.b $F3,$E0,$72,$00,$32,$3C,$30,$00,$80,$81,$3B,$40,$F3,$E0,$60,$18
+	dc.b $08,$2C,$00,$04,$FF,$FC,$67,$10,$70,$00,$30,$2D,$F3,$E0,$80,$BC
+	dc.b $00,$00,$10,$00,$3B,$40,$F3,$E0,$10,$2D,$F3,$A6,$67,$14,$10,$2D
+	dc.b $F3,$A4,$66,$04,$80,$2D,$F3,$A3,$1F,$00,$1F,$2D,$F4,$0F,$4E,$BA
+	dc.b $D8,$62,$28,$5F,$4E,$5E,$2E,$9F,$4E,$75,$8F,$50,$52,$4F,$43,$45
+	dc.b $53,$53,$54,$45,$4D,$50,$4C,$41,$54,$45,$00,$00,$4E,$56,$00,$00
+	dc.b $10,$2D,$F3,$A6,$67,$04,$4E,$AD,$08,$22,$20,$6E,$00,$08,$3F,$28
+	dc.b $FF,$FC,$70,$00,$30,$28,$FE,$F0,$80,$BC,$00,$00,$00,$01,$3F,$00
+	dc.b $42,$67,$1F,$3C,$00,$01,$4E,$BA,$DE,$40,$4E,$5E,$2E,$9F,$4E,$75
+	dc.b $8E,$50,$52,$4F,$43,$45,$53,$53,$52,$45,$43,$44,$41,$54,$41,$00
+	dc.b $00,$00,$4E,$56,$FE,$EA,$48,$E7,$1F,$38,$10,$2D,$F3,$A2,$67,$04
+	dc.b $4E,$AD,$08,$12,$10,$2D,$F3,$A4,$67,$04,$4E,$AD,$08,$22,$42,$6E
+	dc.b $FF,$FC,$70,$00,$2B,$40,$F3,$D8,$42,$6E,$FE,$F0,$42,$67,$48,$6E
+	dc.b $FF,$FC,$48,$6E,$FE,$F0,$4E,$BA,$FB,$4A,$10,$1F,$67,$16,$08,$2E
+	dc.b $00,$01,$FF,$FD,$67,$08,$2F,$0E,$4E,$BA,$FD,$24,$60,$06,$2F,$0E
+	dc.b $4E,$BA,$FF,$6A,$4F,$EE,$FE,$CA,$4C,$DF,$1C,$F8,$4E,$5E,$4E,$75
+	dc.b $88,$44,$4F,$52,$45,$43,$4F,$52,$44,$00,$00,$00,$4E,$56,$00,$00
+	dc.b $10,$2D,$F4,$0F,$67,$28,$C0,$2D,$EC,$FF,$4A,$00,$67,$20,$C0,$2D
+	dc.b $F3,$A6,$67,$1A,$2B,$6D,$F4,$10,$F4,$18,$10,$2D,$F3,$A4,$66,$04
+	dc.b $80,$2D,$F3,$A3,$1F,$00,$1F,$2D,$F4,$0F,$4E,$BA,$D7,$66,$4E,$BA
+	dc.b $D8,$10,$10,$2D,$F3,$A2,$67,$00,$00,$8E,$10,$2D,$F4,$0F,$67,$28
+	dc.b $12,$2D,$F4,$13,$02,$41,$00,$01,$C0,$01,$67,$1C,$10,$2D,$EB,$93
+	dc.b $67,$0E,$53,$AD,$F4,$10,$3F,$3C,$00,$D0,$4E,$AD,$07,$CA,$60,$08
+	dc.b $3F,$3C,$00,$CF,$4E,$AD,$07,$CA,$4E,$BA,$D7,$F0,$4E,$AD,$08,$12
+	dc.b $1B,$7C,$00,$01,$F3,$A2,$2F,$2D,$EB,$6A,$4E,$AD,$02,$52,$42,$2D
+	dc.b $F3,$A2,$42,$6D,$CD,$68,$42,$6D,$CD,$66,$42,$6D,$CD,$60,$42,$2D
+	dc.b $F4,$0F,$10,$2D,$F3,$A5,$67,$22,$10,$2D,$F3,$A3,$67,$08,$3B,$7C
+	dc.b $90,$00,$F3,$E0,$60,$06,$3B,$7C,$A0,$00,$F3,$E0,$1F,$2D,$F3,$A3
+	dc.b $1F,$3C,$00,$01,$4E,$BA,$D6,$DC,$60,$04,$42,$6D,$F3,$E0,$70,$00
+	dc.b $2B,$40,$F3,$E2,$60,$4E,$10,$2D,$F3,$A4,$67,$40,$10,$2D,$F4,$0F
+	dc.b $67,$28,$12,$2D,$F4,$13,$02,$41,$00,$01,$C0,$01,$67,$1C,$10,$2D
+	dc.b $EB,$93,$67,$0E,$53,$AD,$F4,$10,$3F,$3C,$00,$D0,$4E,$AD,$07,$CA
+	dc.b $60,$08,$3F,$3C,$00,$CF,$4E,$AD,$07,$CA,$2F,$2D,$EB,$6A,$4E,$AD
+	dc.b $02,$52,$1F,$3C,$00,$01,$4E,$AD,$08,$1A,$60,$08,$3F,$3C,$00,$A6
+	dc.b $4E,$AD,$07,$CA,$4E,$5E,$4E,$75,$86,$44,$4F,$45,$4E,$44,$52,$00
+	dc.b $00,$00,$4E,$56,$00,$00,$4A,$AD,$EC,$A4,$66,$14,$42,$A7,$2F,$2D
+	dc.b $F3,$AC,$3F,$3C,$00,$16,$4E,$AD,$07,$8A,$2D,$5F,$00,$08,$60,$10
+	dc.b $2D,$6D,$EC,$A4,$00,$08,$20,$6D,$EC,$A4,$2B,$68,$00,$04,$EC,$A4
+	dc.b $4E,$5E,$4E,$75,$89,$41,$4C,$4C,$4F,$43,$51,$55,$41,$4C,$00,$00
+	dc.b $4E,$56,$FF,$F8,$48,$E7,$01,$18,$2E,$2E,$00,$0C,$42,$A7,$20,$47
+	dc.b $2F,$10,$4E,$AD,$01,$22,$28,$5F,$58,$8C,$20,$47,$20,$94,$42,$A7
+	dc.b $20,$47,$2F,$10,$4E,$AD,$01,$22,$26,$5F,$58,$8B,$20,$6E,$00,$08
+	dc.b $20,$93,$4C,$DF,$18,$80,$4E,$5E,$20,$5F,$50,$4F,$4E,$D0,$8A,$51
+	dc.b $55,$41,$4C,$57,$49,$54,$48,$49,$44,$00,$00,$00,$4E,$56,$FE,$CE
+	dc.b $48,$E7,$0F,$18,$42,$A7,$4E,$BA,$FF,$6A,$26,$5F,$20,$0B,$66,$20
+	dc.b $41,$EE,$FF,$D2,$43,$FA,$02,$CC,$70,$02,$30,$D9,$51,$C8,$FF,$FC
+	dc.b $3F,$3C,$00,$9F,$48,$6E,$FF,$D2,$4E,$AD,$07,$C2,$60,$00,$02,$A2
+	dc.b $27,$6D,$EC,$A8,$00,$04,$2B,$4B,$EC,$A8,$70,$00,$26,$80,$4A,$2D
+	dc.b $FF,$FB,$67,$10,$3F,$3C,$00,$99,$4E,$AD,$07,$CA,$4E,$AD,$01,$72
+	dc.b $60,$00,$02,$6E,$70,$00,$2D,$40,$FF,$E8,$48,$6D,$FE,$FA,$48,$6E
+	dc.b $FE,$D2,$4E,$AD,$00,$92,$42,$47,$4E,$AD,$01,$72,$70,$1D,$B0,$2D
+	dc.b $FF,$FB,$57,$C6,$44,$06,$10,$06,$67,$42,$42,$67,$48,$6E,$FE,$D2
+	dc.b $48,$6E,$FF,$F2,$48,$6E,$FF,$E4,$48,$6E,$FF,$FA,$48,$6E,$FF,$E8
+	dc.b $4E,$AD,$02,$1A,$10,$1F,$66,$04,$60,$00,$02,$26,$08,$2E,$00,$01
+	dc.b $FF,$FB,$67,$10,$48,$6E,$FF,$E4,$48,$6E,$FF,$E0,$4E,$BA,$FF,$02
+	dc.b $60,$00,$01,$84,$3E,$3C,$00,$B7,$60,$00,$01,$7C,$42,$67,$48,$6E
+	dc.b $FE,$D2,$4E,$AD,$00,$D2,$38,$1F,$4A,$AD,$EC,$A8,$67,$4C,$48,$6E
+	dc.b $FE,$D2,$3F,$04,$48,$6E,$FF,$E4,$48,$6E,$FF,$EE,$48,$6E,$FF,$FA
+	dc.b $48,$6E,$FF,$F6,$48,$6E,$FF,$E8,$4E,$AD,$02,$12,$4A,$AE,$FF,$E4
+	dc.b $67,$28,$08,$2E,$00,$01,$FF,$FB,$67,$18,$2D,$6E,$FF,$F6,$FF,$F2
+	dc.b $48,$6E,$FF,$E4,$48,$6E,$FF,$E0,$4E,$BA,$FE,$A6,$7C,$01,$60,$00
+	dc.b $01,$26,$3E,$3C,$00,$B7,$60,$00,$01,$1E,$2D,$6D,$F3,$AC,$FF,$E0
+	dc.b $42,$A7,$2F,$2D,$F3,$AC,$48,$6E,$FE,$D2,$48,$6E,$FF,$EE,$48,$6E
+	dc.b $FF,$FA,$3F,$04,$4E,$AD,$00,$F2,$2D,$5F,$FF,$E4,$70,$00,$2D,$40
+	dc.b $FF,$F2,$10,$2D,$F3,$A5,$67,$00,$00,$B4,$4A,$AE,$FF,$E4,$56,$C0
+	dc.b $4A,$00,$67,$00,$00,$86,$08,$2E,$00,$07,$FF,$FA,$56,$C1,$C0,$01
+	dc.b $67,$78,$70,$00,$30,$2E,$FF,$FA,$C0,$BC,$00,$00,$90,$02,$0C,$80
+	dc.b $00,$00,$90,$02,$66,$00,$00,$86,$2D,$6E,$FF,$E4,$FF,$E8,$08,$2E
+	dc.b $00,$02,$FF,$FA,$67,$44,$42,$A7,$2F,$2E,$FF,$E4,$4E,$AD,$01,$22
+	dc.b $2A,$1F,$58,$85,$56,$C0,$4A,$00,$67,$62,$20,$45,$22,$10,$B2,$AD
+	dc.b $F3,$AC,$56,$C1,$C0,$01,$67,$54,$20,$45,$22,$10,$B2,$AD,$F3,$B0
+	dc.b $56,$C1,$C0,$01,$67,$46,$2D,$6E,$FF,$E4,$FF,$E8,$48,$6E,$FF,$E4
+	dc.b $48,$6E,$FF,$E0,$4E,$BA,$FD,$EA,$60,$6C,$7C,$01,$48,$6E,$FF,$E4
+	dc.b $48,$6E,$FF,$E0,$4E,$BA,$FD,$DA,$60,$22,$2D,$6D,$F3,$B0,$FF,$E0
+	dc.b $42,$A7,$2F,$2D,$F3,$B0,$48,$6E,$FE,$D2,$48,$6E,$FF,$EE,$48,$6E
+	dc.b $FF,$FA,$3F,$04,$4E,$AD,$00,$F2,$2D,$5F,$FF,$E4,$4A,$AE,$FF,$E4
+	dc.b $67,$34,$08,$2E,$00,$04,$FF,$FA,$67,$2C,$08,$2E,$00,$06,$FF,$FA
+	dc.b $56,$C0,$4A,$00,$66,$1A,$72,$00,$32,$2E,$FF,$FA,$74,$00,$34,$3C
+	dc.b $04,$02,$C2,$82,$0C,$81,$00,$00,$04,$02,$57,$C1,$80,$01,$67,$06
+	dc.b $2D,$6E,$FF,$E4,$FF,$E8,$4A,$47,$66,$78,$4A,$AE,$FF,$E4,$57,$C0
+	dc.b $4A,$00,$66,$0C,$08,$2E,$00,$07,$FF,$FA,$57,$C1,$80,$01,$67,$04
+	dc.b $7E,$10,$60,$5E,$08,$2E,$00,$01,$FF,$FB,$57,$C0,$4A,$00,$67,$20
+	dc.b $72,$00,$32,$2E,$FF,$FA,$74,$00,$34,$3C,$50,$00,$C2,$82,$0C,$81
+	dc.b $00,$00,$50,$00,$56,$C1,$C0,$01,$67,$06,$3E,$3C,$00,$B4,$60,$32
+	dc.b $42,$A7,$4E,$BA,$FC,$EE,$28,$5F,$20,$0C,$66,$06,$3E,$3C,$00,$9F
+	dc.b $60,$20,$28,$AE,$FF,$E4,$29,$6E,$FF,$E0,$00,$04,$19,$46,$00,$08
+	dc.b $29,$6E,$FF,$E8,$00,$0A,$29,$6E,$FF,$F2,$00,$0E,$29,$53,$00,$12
+	dc.b $26,$8C,$4A,$47,$6F,$0A,$3F,$07,$48,$6E,$FE,$D2,$4E,$AD,$07,$C2
+	dc.b $42,$67,$1F,$3C,$00,$1C,$4E,$BA,$DD,$EE,$10,$1F,$66,$00,$FD,$70
+	dc.b $4C,$DF,$18,$F0,$4E,$5E,$4E,$75,$86,$44,$4F,$57,$49,$54,$48,$00
+	dc.b $00,$06,$04,$57,$49,$54,$48,$00,$4E,$56,$FD,$DE,$48,$E7,$0F,$08
+	dc.b $10,$2D,$F3,$A2,$67,$04,$4E,$AD,$08,$12,$10,$2D,$F3,$A6,$67,$04
+	dc.b $4E,$AD,$08,$22,$3D,$7C,$E0,$00,$FF,$F4,$42,$47,$42,$6E,$FF,$F6
+	dc.b $70,$0A,$B0,$6D,$F4,$2E,$66,$10,$70,$00,$30,$2E,$FF,$F4,$80,$BC
+	dc.b $00,$00,$01,$00,$3D,$40,$FF,$F4,$42,$67,$48,$6E,$FF,$F4,$48,$6E
+	dc.b $FF,$F6,$4E,$BA,$F6,$2E,$10,$1F,$42,$40,$10,$2D,$FA,$BE,$4A,$40
+	dc.b $6F,$48,$48,$6D,$FA,$BE,$48,$6D,$E9,$1E,$4E,$AD,$00,$92,$10,$2D
+	dc.b $EB,$99,$67,$28,$48,$6D,$EF,$72,$48,$6E,$FE,$E6,$4E,$AD,$00,$92
+	dc.b $42,$40,$10,$2E,$FE,$E6,$B0,$6D,$F3,$8E,$6F,$76,$1D,$6D,$F3,$8F
+	dc.b $FE,$E6,$3F,$3C,$00,$CE,$4E,$AD,$07,$CA,$60,$66,$48,$6D,$FA,$BE
+	dc.b $48,$6E,$FE,$E6,$4E,$AD,$00,$92,$60,$58,$52,$6D,$E7,$1A,$48,$7A
+	dc.b $05,$54,$42,$A7,$30,$2D,$E7,$1A,$48,$C0,$2F,$00,$2F,$3C,$00,$00
+	dc.b $FF,$FC,$4E,$AD,$00,$BA,$48,$6E,$FD,$DE,$3F,$3C,$00,$02,$4E,$AD
+	dc.b $0A,$A2,$41,$ED,$FA,$BE,$43,$EE,$FD,$DE,$70,$7F,$30,$D9,$51,$C8
+	dc.b $FF,$FC,$42,$2D,$E9,$1E,$08,$2E,$00,$03,$FF,$F4,$67,$08,$3F,$3C
+	dc.b $00,$17,$4E,$AD,$07,$CA,$48,$6D,$FA,$BE,$48,$6E,$FE,$E6,$4E,$AD
+	dc.b $00,$92,$42,$67,$48,$6D,$FA,$BE,$4E,$AD,$00,$D2,$3C,$1F,$42,$A7
+	dc.b $2F,$2D,$F3,$B0,$48,$6D,$FA,$BE,$42,$A7,$3F,$2E,$FF,$F4,$48,$6E
+	dc.b $FF,$EF,$3F,$06,$4E,$AD,$00,$E2,$2B,$5F,$F3,$F2,$66,$10,$3F,$3C
+	dc.b $00,$16,$48,$6D,$FA,$BE,$4E,$AD,$07,$C2,$60,$00,$01,$E4,$10,$2E
+	dc.b $FF,$EF,$67,$00,$01,$4C,$20,$6D,$F3,$F2,$08,$28,$00,$07,$00,$08
+	dc.b $57,$C0,$4A,$00,$67,$00,$01,$10,$72,$00,$32,$28,$00,$08,$74,$00
+	dc.b $34,$3C,$0A,$00,$C2,$82,$4A,$81,$56,$C1,$C0,$01,$67,$00,$00,$F8
+	dc.b $08,$28,$00,$05,$00,$08,$56,$C1,$C0,$01,$67,$00,$00,$EA,$08,$2E
+	dc.b $00,$03,$FF,$F4,$67,$28,$20,$6D,$F3,$F2,$08,$28,$00,$00,$00,$08
+	dc.b $67,$10,$70,$00,$30,$2E,$FF,$F4,$80,$BC,$00,$00,$01,$00,$3D,$40
+	dc.b $FF,$F4,$20,$6D,$F3,$F2,$31,$6E,$FF,$F4,$00,$08,$60,$24,$70,$00
+	dc.b $20,$6D,$F3,$F2,$30,$28,$00,$08,$72,$00,$32,$2E,$FF,$F4,$74,$00
+	dc.b $34,$3C,$0A,$00,$46,$82,$C2,$82,$80,$81,$20,$6D,$F3,$F2,$31,$40
+	dc.b $00,$08,$70,$00,$30,$2E,$FF,$F6,$72,$00,$32,$3C,$00,$06,$C0,$81
+	dc.b $3A,$00,$70,$00,$20,$6D,$F3,$F2,$30,$28,$00,$0A,$72,$00,$32,$3C
+	dc.b $00,$06,$C0,$81,$38,$00,$4A,$45,$56,$C0,$4A,$00,$67,$3A,$4A,$44
+	dc.b $56,$C1,$C0,$01,$67,$32,$70,$00,$30,$05,$72,$00,$32,$04,$C0,$81
+	dc.b $4A,$80,$66,$24,$3F,$3C,$00,$D1,$4E,$AD,$07,$CA,$70,$00,$20,$6D
+	dc.b $F3,$F2,$30,$28,$00,$0A,$72,$00,$32,$3C,$00,$03,$46,$81,$C0,$81
+	dc.b $20,$6D,$F3,$F2,$31,$40,$00,$0A,$70,$00,$20,$6D,$F3,$F2,$30,$28
+	dc.b $00,$0A,$72,$00,$32,$2E,$FF,$F6,$C2,$BC,$00,$00,$00,$C6,$80,$81
+	dc.b $20,$6D,$F3,$F2,$31,$40,$00,$0A,$20,$6D,$F3,$F2,$3D,$68,$00,$0A
+	dc.b $FF,$F6,$60,$00,$00,$BC,$3F,$3C,$00,$08,$48,$6D,$FA,$BE,$4E,$AD
+	dc.b $07,$C2,$70,$00,$30,$2E,$FF,$F4,$72,$00,$32,$3C,$09,$00,$46,$81
+	dc.b $C0,$81,$80,$BC,$00,$00,$02,$00,$3D,$40,$FF,$F4,$60,$00,$FE,$1C
+	dc.b $42,$67,$2F,$2D,$F3,$F2,$42,$A7,$48,$6E,$FE,$E6,$4E,$BA,$D3,$92
+	dc.b $10,$1F,$0A,$00,$00,$01,$1D,$40,$FF,$EF,$66,$74,$3D,$6D,$DA,$5C
+	dc.b $FE,$E4,$30,$2D,$EC,$B8,$53,$40,$3B,$40,$DA,$5E,$3B,$6D,$DA,$5E
+	dc.b $DA,$5A,$10,$2D,$F0,$B1,$67,$58,$12,$2D,$CB,$1B,$0A,$01,$00,$01
+	dc.b $C0,$01,$67,$4C,$70,$00,$30,$2D,$F0,$AE,$C0,$BC,$00,$00,$00,$08
+	dc.b $4A,$80,$66,$3C,$3D,$6D,$F0,$80,$FF,$FE,$53,$6D,$F0,$80,$3F,$2E
+	dc.b $FF,$FE,$48,$6E,$FE,$E6,$1F,$3C,$00,$01,$4E,$AD,$06,$8A,$2F,$2D
+	dc.b $EB,$5C,$2F,$3C,$00,$00,$00,$41,$3F,$2E,$FF,$FE,$3F,$2D,$EB,$5A
+	dc.b $3F,$2E,$FE,$E4,$30,$2D,$DA,$5E,$48,$C0,$2F,$00,$4E,$AD,$06,$BA
+	dc.b $48,$6D,$F3,$AC,$42,$67,$4E,$AD,$01,$C2,$4A,$AD,$F3,$AC,$66,$08
+	dc.b $48,$7A,$02,$AA,$4E,$AD,$01,$D2,$42,$A7,$2F,$2D,$F3,$AC,$48,$6D
+	dc.b $FA,$BE,$42,$A7,$3F,$3C,$A0,$00,$3F,$06,$4E,$AD,$00,$DA,$28,$5F
+	dc.b $20,$0C,$66,$0C,$3F,$3C,$00,$16,$48,$6D,$FA,$BE,$4E,$AD,$07,$C2
+	dc.b $42,$A7,$4E,$AD,$07,$6A,$2B,$5F,$F0,$7C,$66,$08,$48,$7A,$02,$3E
+	dc.b $4E,$AD,$01,$D2,$42,$A7,$4E,$AD,$07,$A2,$2B,$5F,$DA,$60,$42,$A7
+	dc.b $4E,$AD,$07,$A2,$2B,$5F,$DA,$64,$42,$2D,$F3,$A7,$1B,$7C,$00,$01
+	dc.b $F3,$A6,$1B,$7C,$00,$01,$F3,$A5,$42,$2D,$F3,$A4,$70,$00,$2B,$40
+	dc.b $F4,$0A,$70,$00,$2B,$40,$F4,$06,$70,$00,$2B,$40,$F4,$18,$70,$00
+	dc.b $2B,$40,$F4,$10,$70,$00,$2B,$40,$F4,$14,$70,$00,$2B,$40,$EC,$AC
+	dc.b $3B,$7C,$A0,$00,$F3,$E0,$70,$00,$2B,$40,$F3,$E2,$48,$6D,$E7,$1E
+	dc.b $48,$6D,$E8,$1E,$4E,$AD,$0A,$C2,$10,$1F,$67,$28,$41,$ED,$E8,$1E
+	dc.b $43,$ED,$E7,$1E,$70,$7F,$30,$D9,$51,$C8,$FF,$FC,$3F,$2D,$EC,$B8
+	dc.b $48,$6D,$E8,$1E,$42,$67,$4E,$AD,$06,$8A,$3B,$6D,$EC,$B8,$E7,$1C
+	dc.b $52,$6D,$EC,$B8,$4A,$AD,$F3,$F2,$56,$C0,$4A,$00,$67,$00,$01,$8C
+	dc.b $22,$0C,$56,$C1,$C0,$01,$67,$00,$01,$82,$20,$6D,$F3,$F2,$08,$28
+	dc.b $00,$03,$00,$08,$67,$0C,$70,$00,$30,$07,$80,$BC,$00,$00,$00,$08
+	dc.b $3E,$00,$70,$00,$30,$07,$72,$00,$32,$2E,$FF,$F6,$C2,$BC,$00,$00
+	dc.b $00,$C6,$80,$81,$3E,$00,$20,$6D,$F3,$F2,$08,$28,$00,$00,$00,$08
+	dc.b $67,$3E,$70,$00,$30,$07,$80,$BC,$00,$00,$00,$10,$3E,$00,$10,$2D
+	dc.b $EB,$1F,$67,$1A,$48,$6D,$EA,$1E,$48,$6D,$FA,$BE,$4E,$AD,$0A,$C2
+	dc.b $10,$1F,$67,$1C,$3F,$3C,$00,$A4,$4E,$AD,$07,$CA,$60,$12,$1B,$7C
+	dc.b $00,$01,$EB,$1F,$48,$6D,$FA,$BE,$48,$6D,$EA,$1E,$4E,$AD,$00,$92
+	dc.b $3F,$3C,$00,$17,$4E,$AD,$01,$4A,$3F,$3C,$00,$06,$30,$07,$48,$C0
+	dc.b $2F,$00,$4E,$AD,$01,$42,$3F,$3C,$00,$06,$20,$6D,$F3,$F2,$20,$68
+	dc.b $00,$04,$30,$10,$48,$C0,$2F,$00,$4E,$AD,$01,$42,$3F,$3C,$00,$06
+	dc.b $30,$2D,$E7,$1C,$48,$C0,$2F,$00,$4E,$AD,$01,$42,$3F,$3C,$00,$06
+	dc.b $42,$A7,$4E,$AD,$01,$42,$3F,$3C,$00,$3A,$4E,$AD,$01,$4A,$3F,$2D
+	dc.b $F3,$98,$4E,$BA,$CF,$84,$3F,$2D,$F3,$96,$4E,$BA,$CF,$C0,$3F,$3C
+	dc.b $00,$06,$30,$2D,$F3,$92,$48,$C0,$2F,$00,$4E,$AD,$01,$42,$3F,$3C
+	dc.b $00,$38,$4E,$AD,$01,$4A,$3F,$3C,$00,$06,$30,$2D,$F3,$90,$44,$40
+	dc.b $48,$C0,$2F,$00,$4E,$AD,$01,$42,$3F,$3C,$00,$39,$4E,$AD,$01,$4A
+	dc.b $3F,$3C,$00,$06,$10,$2D,$F3,$95,$48,$80,$48,$C0,$2F,$00,$4E,$AD
+	dc.b $01,$42,$3F,$3C,$00,$37,$4E,$AD,$01,$4A,$4E,$BA,$D3,$68,$10,$2D
+	dc.b $EC,$FF,$67,$04,$4E,$BA,$D2,$A6,$08,$2D,$00,$02,$ED,$5A,$67,$22
+	dc.b $10,$2D,$EB,$68,$66,$1C,$80,$2D,$EB,$69,$66,$16,$48,$6D,$D2,$6E
+	dc.b $48,$6D,$FA,$BE,$42,$67,$4E,$AD,$0A,$0A,$48,$6D,$D2,$6E,$4E,$AD
+	dc.b $09,$F2,$10,$2D,$F0,$B1,$67,$22,$3F,$3C,$00,$03,$2F,$2D,$EB,$5C
+	dc.b $3F,$2D,$EB,$5A,$20,$6D,$F3,$F2,$20,$68,$00,$04,$30,$10,$48,$C0
+	dc.b $3F,$00,$3F,$2D,$DA,$5C,$4E,$AD,$06,$AA,$4C,$DF,$10,$F0,$4E,$5E
+	dc.b $4E,$75,$86,$44,$4F,$50,$52,$4F,$43,$00,$00,$5A,$2E,$43,$6F,$75
+	dc.b $6C,$64,$20,$6E,$6F,$74,$20,$61,$6C,$6C,$6F,$63,$61,$74,$65,$20
+	dc.b $6F,$62,$6A,$65,$63,$74,$20,$66,$69,$6C,$65,$20,$72,$65,$66,$65
+	dc.b $72,$65,$6E,$63,$65,$20,$7A,$6F,$6E,$65,$2E,$00,$26,$43,$6F,$75
+	dc.b $6C,$64,$20,$6E,$6F,$74,$20,$61,$6C,$6C,$6F,$63,$61,$74,$65,$20
+	dc.b $6C,$6F,$63,$61,$6C,$20,$73,$79,$6D,$62,$6F,$6C,$20,$74,$61,$62
+	dc.b $6C,$65,$2E,$00,$01,$23,$4E,$56,$FC,$F2,$48,$E7,$07,$08,$1B,$7C
+	dc.b $00,$01,$F3,$A3,$2B,$6D,$F4,$18,$F4,$02,$2B,$6D,$F4,$10,$F3,$FE
+	dc.b $2B,$6D,$F4,$0A,$F4,$18,$2B,$6D,$F4,$06,$F4,$10,$2B,$6D,$F4,$18
+	dc.b $F4,$14,$3B,$7C,$90,$00,$F3,$E0,$4A,$AD,$F3,$E6,$67,$22,$70,$1E
+	dc.b $B0,$2D,$FF,$FB,$67,$04,$4E,$AD,$01,$72,$1B,$6D,$F4,$0E,$F4,$0F
+	dc.b $1F,$3C,$00,$01,$1F,$3C,$00,$01,$4E,$BA,$CC,$A8,$60,$00,$01,$9C
+	dc.b $7A,$01,$42,$2D,$F4,$0F,$3E,$3C,$D2,$00,$70,$1E,$B0,$2D,$FF,$FB
+	dc.b $67,$74,$4A,$2D,$FF,$FB,$66,$6E,$42,$67,$48,$6D,$FE,$FA,$48,$7A
+	dc.b $01,$8E,$4E,$AD,$00,$6A,$10,$1F,$67,$38,$10,$2D,$EB,$20,$67,$08
+	dc.b $3F,$3C,$00,$A4,$4E,$AD,$07,$CA,$70,$00,$30,$07,$80,$BC,$00,$00
+	dc.b $01,$00,$3E,$00,$70,$00,$30,$05,$80,$BC,$00,$00,$00,$10,$3A,$00
+	dc.b $1B,$7C,$00,$01,$EB,$20,$1B,$7C,$00,$01,$F4,$0F,$4E,$AD,$01,$72
+	dc.b $60,$24,$42,$67,$48,$6D,$E0,$74,$3F,$3C,$00,$0A,$48,$6E,$FF,$F8
+	dc.b $4E,$BA,$D7,$42,$10,$1F,$67,$0E,$30,$2E,$FF,$F8,$41,$ED,$E0,$6F
+	dc.b $1B,$70,$00,$00,$F4,$0F,$1B,$6D,$F4,$0F,$F4,$0E,$52,$6D,$E7,$1A
+	dc.b $48,$7A,$01,$1A,$42,$A7,$30,$2D,$E7,$1A,$48,$C0,$2F,$00,$2F,$3C
+	dc.b $00,$00,$FF,$FC,$4E,$AD,$00,$BA,$48,$6E,$FC,$F2,$3F,$3C,$00,$02
+	dc.b $4E,$AD,$0A,$A2,$41,$EE,$FD,$F6,$43,$EE,$FC,$F2,$70,$7F,$30,$D9
+	dc.b $51,$C8,$FF,$FC,$42,$A7,$2F,$2D,$F3,$AC,$48,$6E,$FD,$F6,$42,$A7
+	dc.b $3F,$07,$48,$6E,$FF,$F7,$4E,$AD,$00,$EA,$2B,$5F,$F3,$E6,$66,$10
+	dc.b $3F,$3C,$00,$16,$48,$6E,$FD,$F6,$4E,$AD,$07,$C2,$60,$00,$00,$AC
+	dc.b $42,$67,$2F,$2D,$F3,$E6,$42,$A7,$48,$6E,$FD,$F6,$4E,$BA,$CE,$D2
+	dc.b $10,$1F,$67,$00,$00,$96,$10,$2D,$F4,$0F,$67,$4A,$3C,$2D,$EC,$B8
+	dc.b $52,$6D,$EC,$B8,$42,$2E,$FE,$F6,$3F,$06,$48,$6E,$FE,$F6,$42,$67
+	dc.b $4E,$AD,$06,$8A,$42,$A7,$2F,$2D,$F0,$7C,$3F,$3C,$00,$08,$4E,$AD
+	dc.b $07,$8A,$28,$5F,$20,$0C,$66,$0E,$3F,$3C,$00,$16,$48,$6E,$FD,$F6
+	dc.b $4E,$AD,$07,$C2,$60,$1A,$28,$AD,$F3,$E6,$29,$6D,$F0,$78,$00,$04
+	dc.b $2B,$4C,$F0,$78,$60,$0A,$20,$6D,$F3,$E6,$20,$68,$00,$04,$3C,$10
+	dc.b $3F,$3C,$00,$06,$30,$05,$48,$C0,$2F,$00,$4E,$AD,$01,$42,$3F,$3C
+	dc.b $00,$06,$30,$06,$48,$C0,$2F,$00,$4E,$AD,$01,$42,$3F,$3C,$00,$06
+	dc.b $42,$A7,$4E,$AD,$01,$42,$3F,$3C,$00,$06,$70,$01,$2F,$00,$4E,$AD
+	dc.b $01,$42,$3F,$3C,$00,$3A,$4E,$AD,$01,$4A,$4C,$DF,$10,$E0,$4E,$5E
+	dc.b $4E,$75,$86,$44,$4F,$44,$41,$54,$41,$00,$00,$08,$01,$23,$04,$4D
+	dc.b $41,$49,$4E,$00,$4E,$56,$FF,$F8,$48,$E7,$03,$18,$2C,$2E,$00,$0C
+	dc.b $28,$6E,$00,$08,$20,$46,$70,$00,$20,$80,$4A,$2D,$FF,$FB,$67,$0A
+	dc.b $3F,$3C,$00,$99,$4E,$AD,$07,$CA,$60,$64,$42,$40,$10,$2D,$FE,$FB
+	dc.b $72,$40,$B2,$40,$66,$08,$39,$7C,$00,$04,$FF,$C4,$60,$04,$42,$6C
+	dc.b $FF,$C4,$42,$A7,$2F,$2D,$F0,$D6,$30,$2C,$FF,$C4,$D0,$6D,$FE,$F8
+	dc.b $5C,$40,$3F,$00,$4E,$AD,$07,$7A,$26,$5F,$20,$0B,$66,$0E,$3F,$3C
+	dc.b $00,$16,$48,$6D,$FE,$FA,$4E,$AD,$07,$C2,$60,$22,$20,$46,$4A,$90
+	dc.b $66,$06,$20,$46,$20,$8B,$60,$04,$20,$47,$20,$8B,$2E,$0B,$70,$00
+	dc.b $26,$80,$48,$6D,$FE,$FA,$48,$6B,$00,$04,$4E,$AD,$00,$92,$1B,$7C
+	dc.b $00,$01,$F3,$A0,$4E,$AD,$01,$72,$42,$67,$1F,$3C,$00,$1C,$4E,$BA
+	dc.b $D5,$26,$10,$1F,$66,$00,$FF,$74,$1B,$6D,$F3,$9F,$F3,$A0,$4C,$DF
+	dc.b $18,$C0,$4E,$5E,$20,$5F,$50,$4F,$4E,$D0,$8A,$43,$4F,$4C,$4C,$45
+	dc.b $43,$54,$49,$44,$53,$00,$00,$00,$4E,$56,$FE,$F8,$48,$E7,$00,$18
+	dc.b $26,$6E,$00,$10,$28,$6E,$00,$08,$42,$54,$4A,$2D,$FF,$FB,$67,$08
+	dc.b $38,$BC,$00,$99,$60,$00,$00,$F6,$20,$6E,$00,$0C,$70,$00,$20,$80
+	dc.b $48,$6D,$FE,$FA,$48,$6E,$FE,$F8,$4E,$AD,$00,$92,$10,$2D,$F3,$A1
+	dc.b $66,$08,$48,$6E,$FE,$F8,$4E,$AD,$00,$52,$48,$6E,$FE,$F8,$48,$7A
+	dc.b $00,$F0,$4E,$AD,$0A,$CA,$10,$1F,$67,$0A,$26,$BC,$00,$00,$10,$00
+	dc.b $60,$00,$00,$B6,$48,$6E,$FE,$F8,$48,$7A,$00,$D0,$4E,$AD,$0A,$CA
+	dc.b $10,$1F,$67,$0A,$26,$BC,$00,$00,$20,$00,$60,$00,$00,$9C,$70,$0D
+	dc.b $B0,$6D,$F4,$2E,$56,$C0,$4A,$00,$67,$24,$48,$6E,$FE,$F8,$48,$7A
+	dc.b $00,$A4,$4E,$AD,$0A,$CA,$C0,$1F,$67,$14,$10,$2D,$F3,$A4,$67,$06
+	dc.b $38,$BC,$00,$A2,$60,$72,$26,$BC,$00,$00,$21,$00,$60,$6A,$70,$0D
+	dc.b $B0,$6D,$F4,$2E,$67,$06,$38,$BC,$00,$99,$60,$5C,$48,$6D,$FE,$FA
+	dc.b $2F,$2E,$00,$0C,$48,$6E,$FF,$FA,$48,$6E,$FF,$FE,$48,$6E,$FF,$F9
+	dc.b $4E,$AD,$02,$22,$20,$6E,$00,$0C,$4A,$90,$66,$06,$38,$BC,$00,$10
+	dc.b $60,$36,$08,$2E,$00,$01,$FF,$FF,$56,$C0,$4A,$00,$67,$26,$08,$2E
+	dc.b $00,$00,$FF,$FF,$57,$C1,$C0,$01,$67,$1A,$10,$2E,$FF,$F9,$67,$0C
+	dc.b $C0,$2D,$F3,$A5,$67,$06,$38,$BC,$00,$BD,$60,$0C,$26,$BC,$00,$00
+	dc.b $10,$00,$60,$04,$38,$BC,$00,$B7,$4E,$AD,$01,$72,$4C,$DF,$18,$00
+	dc.b $4E,$5E,$20,$5F,$DE,$FC,$00,$0C,$4E,$D0,$87,$47,$45,$54,$54,$59
+	dc.b $50,$45,$00,$12,$04,$4D,$41,$49,$4E,$00,$04,$43,$4F,$44,$45,$00
+	dc.b $04,$44,$41,$54,$41,$00,$4E,$56,$00,$00,$48,$E7,$03,$18,$26,$6E
+	dc.b $00,$1E,$3C,$2E,$00,$18,$2E,$2E,$00,$14,$28,$6E,$00,$08,$20,$6E
+	dc.b $00,$10,$10,$BC,$00,$01,$70,$00,$30,$2B,$00,$08,$72,$00,$32,$3C
+	dc.b $30,$00,$C0,$81,$72,$00,$32,$3C,$30,$00,$C2,$AC,$FF,$D0,$B2,$80
+	dc.b $66,$00,$00,$BC,$20,$6E,$00,$0C,$42,$10,$08,$2B,$00,$03,$00,$08
+	dc.b $67,$26,$20,$47,$42,$10,$08,$2C,$00,$00,$FF,$D2,$67,$10,$70,$00
+	dc.b $30,$2B,$00,$08,$80,$BC,$00,$00,$01,$00,$37,$40,$00,$08,$20,$6E
+	dc.b $00,$10,$42,$10,$60,$00,$00,$88,$70,$0C,$B0,$6D,$F4,$2E,$57,$C0
+	dc.b $4A,$00,$67,$46,$08,$2B,$00,$01,$00,$08,$56,$C1,$C0,$01,$67,$3A
+	dc.b $20,$47,$42,$10,$08,$2B,$00,$00,$00,$08,$67,$10,$70,$00,$30,$06
+	dc.b $80,$BC,$00,$00,$01,$00,$37,$40,$00,$08,$60,$04,$37,$46,$00,$08
+	dc.b $10,$2D,$F3,$A4,$67,$48,$70,$00,$30,$06,$80,$BC,$00,$00,$00,$01
+	dc.b $20,$6E,$00,$1A,$31,$40,$00,$08,$60,$34,$70,$0E,$B0,$6D,$F4,$2E
+	dc.b $57,$C0,$4A,$00,$67,$28,$08,$2B,$00,$01,$00,$08,$56,$C1,$C0,$01
+	dc.b $67,$1C,$20,$47,$42,$10,$08,$2C,$00,$00,$FF,$D2,$67,$10,$70,$00
+	dc.b $30,$2B,$00,$08,$80,$BC,$00,$00,$01,$00,$37,$40,$00,$08,$4C,$DF
+	dc.b $18,$C0,$4E,$5E,$20,$5F,$DE,$FC,$00,$1A,$4E,$D0,$91,$43,$48,$45
+	dc.b $43,$4B,$49,$46,$43,$4F,$4E,$53,$49,$53,$54,$45,$4E,$54,$00,$00
+	dc.b $4E,$56,$FE,$B2,$48,$E7,$0F,$18,$10,$2D,$F3,$A2,$67,$0C,$3F,$3C
+	dc.b $00,$A3,$4E,$AD,$07,$CA,$60,$00,$07,$DA,$1D,$6D,$F3,$A1,$FF,$C6
+	dc.b $10,$2D,$EB,$99,$67,$04,$42,$2D,$F3,$A1,$4E,$AD,$01,$72,$7E,$00
+	dc.b $42,$6E,$FF,$BA,$70,$00,$2D,$40,$FF,$DC,$4A,$2D,$FF,$FB,$67,$00
+	dc.b $00,$98,$70,$16,$B0,$2D,$FF,$FB,$67,$0A,$3D,$7C,$00,$99,$FF,$BA
+	dc.b $60,$00,$01,$32,$1B,$7C,$00,$01,$F3,$A0,$4E,$AD,$01,$72,$48,$6E
+	dc.b $FF,$DC,$2F,$0E,$4E,$BA,$FC,$7E,$4A,$AE,$FF,$DC,$57,$C0,$4A,$00
+	dc.b $66,$0C,$72,$17,$B2,$2D,$FF,$FB,$56,$C1,$80,$01,$67,$0A,$3D,$7C
+	dc.b $00,$99,$FF,$BA,$60,$00,$00,$FE,$1B,$7C,$00,$01,$F3,$A0,$4E,$AD
+	dc.b $01,$72,$1B,$6D,$F3,$9F,$F3,$A0,$42,$67,$1F,$3C,$00,$1F,$4E,$BA
+	dc.b $D2,$06,$10,$1F,$67,$28,$48,$6E,$FF,$D0,$48,$6E,$FF,$FC,$48,$6E
+	dc.b $FF,$BA,$4E,$BA,$FC,$F4,$4A,$6E,$FF,$BA,$66,$00,$00,$C8,$70,$00
+	dc.b $30,$2E,$00,$08,$80,$AE,$FF,$D0,$3C,$00,$60,$00,$00,$B8,$3D,$7C
+	dc.b $00,$99,$FF,$BA,$60,$00,$00,$AE,$42,$40,$10,$2D,$FE,$FB,$72,$40
+	dc.b $B2,$40,$66,$08,$3D,$7C,$00,$04,$FF,$C4,$60,$04,$42,$6E,$FF,$C4
+	dc.b $42,$A7,$2F,$2D,$F0,$D6,$30,$2E,$FF,$C4,$D0,$6D,$FE,$F8,$5C,$40
+	dc.b $3F,$00,$4E,$AD,$07,$7A,$2D,$5F,$FF,$DC,$66,$08,$3D,$7C,$00,$16
+	dc.b $FF,$BA,$60,$18,$20,$6E,$FF,$DC,$70,$00,$20,$80,$48,$6D,$FE,$FA
+	dc.b $20,$6E,$FF,$DC,$48,$68,$00,$04,$4E,$AD,$00,$92,$10,$2D,$F3,$A4
+	dc.b $66,$06,$80,$2D,$F3,$A3,$67,$0A,$2D,$7C,$00,$00,$10,$00,$FF,$D0
+	dc.b $60,$08,$2D,$7C,$00,$00,$20,$00,$FF,$D0,$70,$00,$2D,$40,$FF,$FC
+	dc.b $4E,$AD,$01,$72,$42,$67,$1F,$3C,$00,$1F,$4E,$BA,$D1,$4A,$10,$1F
+	dc.b $67,$10,$48,$6E,$FF,$D0,$48,$6E,$FF,$FC,$48,$6E,$FF,$BA,$4E,$BA
+	dc.b $FC,$38,$4A,$6E,$FF,$BA,$66,$0C,$70,$00,$30,$2E,$00,$08,$80,$AE
+	dc.b $FF,$D0,$3C,$00,$4A,$6E,$FF,$BA,$67,$52,$0C,$6E,$00,$99,$FF,$BA
+	dc.b $57,$C0,$4A,$00,$66,$0C,$0C,$6E,$00,$A2,$FF,$BA,$57,$C1,$80,$01
+	dc.b $67,$0A,$3F,$2E,$FF,$BA,$4E,$AD,$07,$CA,$60,$0C,$3F,$2E,$FF,$BA
+	dc.b $48,$6D,$FE,$FA,$4E,$AD,$07,$C2,$4A,$AE,$FF,$DC,$67,$00,$06,$1E
+	dc.b $2D,$6E,$FF,$DC,$FF,$E0,$20,$6E,$FF,$DC,$2D,$50,$FF,$DC,$2F,$2D
+	dc.b $F0,$D6,$2F,$2E,$FF,$E0,$4E,$AD,$07,$82,$60,$DC,$4A,$AE,$FF,$DC
+	dc.b $67,$00,$05,$FA,$1D,$7C,$00,$01,$FF,$C8,$70,$00,$26,$40,$70,$00
+	dc.b $2D,$40,$FF,$F8,$20,$6E,$FF,$DC,$48,$68,$00,$04,$48,$6E,$FE,$BA
+	dc.b $4E,$AD,$00,$92,$10,$2D,$EB,$99,$67,$08,$48,$6E,$FE,$BA,$4E,$AD
+	dc.b $00,$52,$42,$40,$10,$2E,$FE,$BB,$72,$40,$B2,$40,$66,$0C,$3D,$7C
+	dc.b $00,$99,$FF,$BA,$78,$01,$60,$00,$04,$DA,$42,$67,$48,$6E,$FE,$BA
+	dc.b $4E,$AD,$00,$D2,$3D,$5F,$FF,$C0,$30,$2D,$F4,$2E,$04,$40,$00,$0C
+	dc.b $67,$00,$02,$0C,$53,$40,$67,$0A,$53,$40,$67,$00,$02,$02,$60,$00
+	dc.b $04,$B2,$10,$2D,$F3,$A4,$48,$80,$67,$00,$00,$BC,$53,$40,$67,$04
+	dc.b $60,$00,$01,$0C,$42,$A7,$2F,$2D,$F3,$A8,$48,$6E,$FE,$BA,$42,$A7
+	dc.b $3F,$06,$48,$6E,$FF,$C7,$3F,$2E,$FF,$C0,$4E,$AD,$00,$E2,$28,$5F
+	dc.b $10,$2E,$FF,$C7,$67,$1E,$08,$2C,$00,$01,$00,$09,$66,$16,$70,$00
+	dc.b $30,$2C,$00,$08,$C0,$AE,$FF,$D0,$B0,$AE,$FF,$D0,$56,$C0,$44,$00
+	dc.b $1D,$40,$FF,$C7,$10,$2E,$FF,$C7,$66,$00,$00,$C4,$10,$2E,$FF,$C7
+	dc.b $0A,$00,$00,$01,$1D,$40,$FF,$C8,$42,$A7,$2F,$2D,$F3,$B0,$20,$6D
+	dc.b $F3,$EE,$48,$68,$00,$0C,$48,$6E,$FE,$BA,$48,$6E,$FF,$D4,$48,$6E
+	dc.b $FF,$C2,$48,$6E,$FF,$D8,$3F,$2E,$FF,$C0,$4E,$AD,$01,$12,$4A,$9F
+	dc.b $67,$00,$00,$8C,$08,$2E,$00,$07,$FF,$C2,$56,$C0,$4A,$00,$66,$16
+	dc.b $72,$00,$32,$2E,$FF,$C2,$74,$00,$34,$3C,$0A,$00,$C2,$82,$4A,$81
+	dc.b $56,$C1,$80,$01,$67,$08,$1D,$7C,$00,$01,$FF,$C7,$60,$60,$3D,$7C
+	dc.b $00,$B1,$FF,$BA,$60,$58,$42,$A7,$2F,$2D,$F3,$AC,$48,$6E,$FE,$BA
 	dc.b $42,$A7,$3F,$06,$48,$6E,$FF,$C7,$3F,$2E,$FF,$C0,$4E,$AD,$00,$E2
-	dc.b $28,$5F,$2E,$0C,$4A,$6E,$FF,$BA,$66,$36,$20,$0C,$66,$08,$3D,$7C
-	dc.b $00,$16,$FF,$BA,$60,$2A,$10,$2E,$FF,$C7,$67,$24,$08,$2C,$00,$07
-	dc.b $00,$08,$57,$C1,$C0,$01,$67,$18,$2F,$0C,$2F,$0B,$3F,$06,$48,$6E
-	dc.b $FF,$C7,$48,$6E,$FF,$CA,$48,$6E,$FF,$C8,$2F,$0E,$4E,$BA,$F9,$AC
-	dc.b $78,$01,$10,$2E,$FF,$C7,$67,$14,$4A,$6E,$FF,$BA,$57,$C1,$C0,$01
-	dc.b $67,$0A,$3D,$7C,$00,$A1,$FF,$BA,$60,$00,$01,$AC,$4A,$6E,$FF,$BA
-	dc.b $66,$00,$01,$A4,$10,$2E,$FF,$C8,$67,$14,$42,$67,$2F,$0C,$2F,$07
-	dc.b $20,$6E,$FF,$DC,$48,$68,$00,$04,$4E,$BA,$C5,$8A,$18,$1F,$10,$04
-	dc.b $67,$00,$01,$84,$10,$2E,$FF,$C8,$0A,$00,$00,$01,$4A,$00,$67,$56
-	dc.b $C0,$2D,$F3,$A6,$67,$50,$1D,$7C,$00,$01,$FF,$CB,$2A,$2D,$F0,$78
-	dc.b $4A,$85,$67,$12,$20,$45,$BE,$90,$67,$08,$20,$45,$2A,$28,$00,$04
-	dc.b $60,$EE,$42,$2E,$FF,$CB,$10,$2E,$FF,$CB,$67,$2A,$42,$A7,$2F,$2D
-	dc.b $F0,$7C,$3F,$3C,$00,$08,$4E,$AD,$07,$8A,$2A,$1F,$66,$08,$3D,$7C
-	dc.b $00,$16,$FF,$BA,$60,$10,$20,$45,$20,$87,$20,$45,$21,$6D,$F0,$78
-	dc.b $00,$04,$2B,$45,$F0,$78,$4A,$6E,$FF,$BA,$66,$00,$01,$1A,$10,$2D
-	dc.b $F3,$A4,$67,$38,$27,$4C,$00,$04,$20,$6C,$00,$04,$21,$6D,$F3,$EE
-	dc.b $00,$02,$08,$2C,$00,$03,$00,$08,$67,$1A,$70,$00,$30,$2B,$00,$08
-	dc.b $22,$3C,$00,$00,$02,$00,$46,$81,$C0,$81,$80,$BC,$00,$00,$08,$00
-	dc.b $37,$40,$00,$08,$2D,$4B,$FF,$F8,$60,$00,$00,$DC,$10,$2D,$F3,$A5
-	dc.b $67,$7C,$42,$A7,$2F,$2D,$F3,$AC,$48,$6E,$FE,$BA,$2F,$07,$3F,$06
-	dc.b $48,$6E,$FF,$C7,$3F,$2E,$FF,$C0,$4E,$AD,$00,$E2,$28,$5F,$20,$0C
-	dc.b $66,$08,$3D,$7C,$00,$16,$FF,$BA,$60,$54,$10,$2E,$FF,$C7,$67,$10
-	dc.b $08,$2C,$00,$07,$00,$08,$57,$C1,$C0,$01,$67,$04,$42,$2E,$FF,$C7
-	dc.b $10,$2E,$FF,$C7,$67,$08,$3D,$7C,$00,$A1,$FF,$BA,$60,$30,$39,$46
-	dc.b $00,$08,$20,$47,$08,$28,$00,$03,$00,$08,$67,$1A,$70,$00,$30,$2C
-	dc.b $00,$08,$22,$3C,$00,$00,$02,$00,$46,$81,$C0,$81,$80,$BC,$00,$00
-	dc.b $08,$00,$39,$40,$00,$08,$29,$47,$00,$04,$2D,$4C,$FF,$F8,$4A,$6E
-	dc.b $FF,$BA,$66,$52,$20,$47,$08,$28,$00,$00,$00,$08,$67,$48,$10,$2D
-	dc.b $EB,$1F,$67,$30,$48,$6D,$EA,$1E,$48,$6E,$FE,$BA,$4E,$AD,$0A,$C2
-	dc.b $10,$1F,$67,$32,$3D,$7C,$00,$A4,$FF,$BA,$70,$00,$20,$47,$30,$28
-	dc.b $00,$08,$22,$3C,$00,$00,$01,$00,$46,$81,$C0,$81,$20,$47,$31,$40
-	dc.b $00,$08,$60,$12,$1B,$7C,$00,$01,$EB,$1F,$48,$6E,$FE,$BA,$48,$6D
-	dc.b $EA,$1E,$4E,$AD,$00,$92,$10,$04,$67,$5A,$4A,$6E,$FF,$BA,$5E,$C1
-	dc.b $C0,$01,$67,$50,$0C,$6E,$00,$A4,$FF,$BA,$66,$0A,$3F,$3C,$00,$A4
-	dc.b $4E,$AD,$07,$CA,$60,$0C,$3F,$2E,$FF,$BA,$48,$6E,$FE,$BA,$4E,$AD
-	dc.b $07,$C2,$20,$0B,$67,$2E,$27,$6D,$F3,$EE,$00,$04,$20,$2E,$FF,$D0
-	dc.b $52,$80,$3D,$40,$FF,$BE,$08,$2B,$00,$07,$00,$08,$67,$10,$70,$00
-	dc.b $30,$2E,$FF,$BE,$80,$BC,$FF,$FF,$80,$00,$3D,$40,$FF,$BE,$37,$6E
-	dc.b $FF,$BE,$00,$08,$10,$2D,$EC,$FF,$67,$54,$C0,$2D,$F3,$A6,$4A,$00
-	dc.b $67,$4C,$72,$0D,$B2,$6D,$F4,$2E,$56,$C1,$C0,$01,$67,$40,$10,$04
-	dc.b $0A,$00,$00,$01,$4A,$00,$66,$1C,$4A,$6E,$FF,$BA,$5E,$C1,$80,$01
-	dc.b $02,$40,$00,$01,$66,$0E,$4A,$AE,$FF,$F8,$57,$C1,$80,$01,$02,$40
-	dc.b $00,$01,$67,$0E,$70,$FF,$2F,$00,$3F,$3C,$00,$04,$4E,$BA,$C1,$08
-	dc.b $60,$0C,$2F,$2E,$FF,$F8,$3F,$3C,$FF,$FC,$4E,$BA,$C0,$FA,$42,$6E
-	dc.b $FF,$BA,$2D,$6E,$FF,$DC,$FF,$E0,$20,$6E,$FF,$DC,$2D,$50,$FF,$DC
-	dc.b $2F,$2D,$F0,$D6,$2F,$2E,$FF,$E0,$4E,$AD,$07,$82,$60,$00,$FA,$02
-	dc.b $42,$67,$1F,$3C,$00,$1C,$4E,$BA,$CA,$C2,$10,$1F,$66,$00,$F8,$46
-	dc.b $1B,$6E,$FF,$C6,$F3,$A1,$4C,$DF,$18,$F0,$4E,$5E,$20,$5F,$54,$4F
-	dc.b $4E,$D0,$8D,$53,$45,$54,$56,$49,$53,$49,$42,$49,$4C,$49,$54,$59
-	dc.b $00,$00,$4E,$56,$FE,$F4,$48,$E7,$03,$00,$7E,$00,$42,$67,$48,$6D
-	dc.b $E3,$02,$3F,$3C,$00,$08,$48,$6E,$FF,$FC,$4E,$BA,$CA,$BC,$10,$1F
-	dc.b $67,$0E,$30,$2E,$FF,$FC,$53,$40,$22,$07,$01,$C1,$2E,$01,$60,$08
-	dc.b $3F,$3C,$00,$99,$4E,$AD,$07,$CA,$42,$67,$1F,$3C,$00,$1C,$4E,$BA
-	dc.b $CA,$5A,$10,$1F,$66,$C6,$42,$06,$20,$07,$08,$00,$00,$12,$67,$30
-	dc.b $70,$05,$B0,$6D,$EB,$26,$66,$0A,$3F,$3C,$00,$A7,$4E,$AD,$07,$CA
-	dc.b $60,$52,$1B,$7C,$00,$01,$EB,$25,$52,$6D,$EB,$26,$30,$2D,$EB,$26
-	dc.b $E5,$40,$41,$ED,$EB,$24,$21,$AD,$ED,$5A,$00,$00,$7C,$01,$60,$34
-	dc.b $20,$07,$08,$00,$00,$13,$67,$2C,$4A,$6D,$EB,$26,$66,$0A,$3F,$3C
-	dc.b $00,$A8,$4E,$AD,$07,$CA,$60,$1C,$1B,$7C,$00,$01,$EB,$25,$30,$2D
-	dc.b $EB,$26,$E5,$40,$41,$ED,$EB,$24,$2B,$70,$00,$00,$ED,$5A,$53,$6D
-	dc.b $EB,$26,$7C,$01,$42,$6E,$FE,$F4,$3D,$6E,$FE,$F4,$FF,$FC,$60,$48
-	dc.b $20,$07,$32,$2E,$FF,$FC,$03,$00,$67,$3A,$20,$2D,$ED,$5A,$32,$2E
-	dc.b $FF,$FC,$03,$C0,$2B,$40,$ED,$5A,$10,$2E,$FF,$FD,$02,$40,$00,$01
-	dc.b $67,$12,$30,$2E,$FF,$FC,$53,$40,$22,$2D,$ED,$5A,$01,$81,$2B,$41
-	dc.b $ED,$5A,$60,$10,$30,$2E,$FF,$FC,$52,$40,$22,$2D,$ED,$5A,$01,$81
-	dc.b $2B,$41,$ED,$5A,$52,$6E,$FF,$FC,$70,$1F,$B0,$6E,$FF,$FC,$6C,$B0
-	dc.b $08,$2D,$00,$04,$ED,$5B,$56,$C0,$44,$00,$1B,$40,$F0,$DB,$67,$22
-	dc.b $4A,$AD,$F0,$DC,$57,$C1,$C0,$01,$67,$18,$08,$ED,$00,$05,$ED,$5B
-	dc.b $08,$AD,$00,$04,$ED,$5B,$42,$2D,$F0,$DB,$3F,$3C,$00,$FA,$4E,$AD
-	dc.b $07,$CA,$10,$2D,$F3,$A6,$67,$1A,$3F,$3C,$00,$06,$10,$2D,$F0,$DB
-	dc.b $48,$80,$48,$C0,$2F,$00,$4E,$AD,$01,$42,$3F,$3C,$00,$19,$4E,$AD
-	dc.b $01,$4A,$10,$2D,$F3,$A6,$67,$20,$12,$06,$66,$08,$82,$2D,$EC,$FF
-	dc.b $C0,$01,$67,$14,$3F,$3C,$00,$06,$2F,$2D,$ED,$5A,$4E,$AD,$01,$42
-	dc.b $3F,$3C,$00,$3E,$4E,$AD,$01,$4A,$08,$AD,$00,$02,$ED,$5B,$08,$AD
-	dc.b $00,$03,$ED,$5B,$20,$07,$08,$00,$00,$0A,$67,$12,$41,$ED,$E5,$F8
-	dc.b $43,$ED,$E5,$C0,$70,$1B,$30,$D9,$51,$C8,$FF,$FC,$60,$18,$20,$07
-	dc.b $08,$00,$00,$0B,$67,$10,$41,$ED,$E5,$F8,$43,$ED,$E5,$88,$70,$1B
-	dc.b $30,$D9,$51,$C8,$FF,$FC,$4C,$DF,$00,$C0,$4E,$5E,$4E,$75,$87,$44
-	dc.b $4F,$50,$52,$49,$4E,$54,$00,$00,$4E,$56,$FF,$FC,$70,$1E,$B0,$2D
-	dc.b $FF,$FB,$66,$10,$3B,$7C,$00,$4B,$ED,$58,$3B,$7C,$00,$7E,$ED,$56
-	dc.b $60,$00,$00,$A4,$70,$1C,$B0,$2D,$FF,$FB,$67,$46,$42,$67,$48,$6E
-	dc.b $FF,$FC,$4E,$AD,$02,$02,$10,$1F,$67,$3E,$70,$1E,$B0,$AE,$FF,$FC
-	dc.b $6F,$0A,$3F,$3C,$00,$99,$4E,$AD,$07,$CA,$60,$2C,$3B,$6E,$FF,$FE
-	dc.b $ED,$58,$4A,$6D,$ED,$02,$57,$C0,$4A,$00,$66,$0E,$32,$2D,$ED,$00
-	dc.b $B2,$6D,$ED,$58,$5E,$C1,$80,$01,$67,$0E,$3B,$6D,$ED,$58,$ED,$00
-	dc.b $60,$06,$3B,$7C,$00,$4B,$ED,$58,$42,$67,$1F,$3C,$00,$1C,$4E,$BA
-	dc.b $C8,$4A,$10,$1F,$67,$3A,$42,$67,$48,$6E,$FF,$FC,$4E,$AD,$02,$02
-	dc.b $10,$1F,$67,$32,$70,$46,$B0,$AE,$FF,$FC,$5E,$C0,$4A,$00,$66,$0E
-	dc.b $0C,$AE,$00,$00,$00,$A0,$FF,$FC,$5E,$C1,$80,$01,$67,$0A,$3F,$3C
-	dc.b $00,$99,$4E,$AD,$07,$CA,$60,$0E,$3B,$6E,$FF,$FE,$ED,$56,$60,$06
-	dc.b $3B,$7C,$00,$7E,$ED,$56,$10,$2D,$F3,$A6,$67,$3A,$C0,$2D,$EC,$FF
-	dc.b $4A,$00,$67,$32,$4A,$6D,$CD,$68,$57,$C1,$C0,$01,$67,$28,$3F,$3C
-	dc.b $00,$06,$30,$2D,$ED,$58,$48,$C0,$2F,$00,$4E,$AD,$01,$42,$3F,$3C
-	dc.b $00,$06,$30,$2D,$ED,$56,$48,$C0,$2F,$00,$4E,$AD,$01,$42,$3F,$3C
-	dc.b $00,$44,$4E,$AD,$01,$4A,$4E,$5E,$4E,$75,$8A,$44,$4F,$50,$41,$47
-	dc.b $45,$53,$49,$5A,$45,$00,$00,$00,$4E,$56,$FF,$E8,$48,$E7,$00,$18
-	dc.b $20,$6E,$00,$0C,$43,$EE,$FF,$FA,$70,$02,$32,$D8,$51,$C8,$FF,$FC
-	dc.b $28,$6E,$00,$08,$48,$6E,$FF,$FA,$48,$7A,$00,$F8,$4E,$AD,$0A,$C2
-	dc.b $10,$1F,$67,$0E,$48,$6E,$FF,$FA,$48,$6E,$FF,$E8,$4E,$AD,$00,$92
-	dc.b $60,$10,$41,$EE,$FF,$E8,$43,$FA,$00,$D4,$70,$02,$30,$D9,$51,$C8
-	dc.b $FF,$FC,$42,$A7,$2F,$2D,$F3,$B0,$48,$6E,$FF,$E8,$2F,$2C,$FF,$FA
-	dc.b $3F,$2C,$FF,$FE,$48,$6E,$FF,$F5,$4E,$AD,$00,$EA,$26,$5F,$10,$2E
-	dc.b $FF,$F5,$67,$20,$72,$33,$B2,$AC,$FF,$FA,$5F,$C1,$C0,$01,$4A,$00
-	dc.b $67,$12,$32,$2C,$FF,$FE,$B2,$6B,$00,$08,$57,$C1,$C0,$01,$67,$04
-	dc.b $42,$2E,$FF,$F5,$10,$2E,$FF,$F5,$67,$0C,$3F,$3C,$00,$C0,$48,$6E
-	dc.b $FF,$E8,$4E,$AD,$07,$C2,$48,$6E,$FF,$E8,$4E,$AD,$00,$5A,$42,$A7
+	dc.b $28,$5F,$10,$2E,$FF,$C7,$67,$36,$08,$2C,$00,$07,$00,$08,$56,$C0
+	dc.b $4A,$00,$66,$22,$08,$2C,$00,$02,$00,$08,$56,$C1,$4A,$01,$67,$12
+	dc.b $74,$00,$34,$2C,$00,$08,$C4,$AE,$FF,$D0,$B4,$AE,$FF,$D0,$57,$C2
+	dc.b $C2,$02,$52,$01,$80,$01,$02,$40,$00,$01,$1D,$40,$FF,$C7,$4A,$6E
+	dc.b $FF,$BA,$66,$0A,$20,$0C,$66,$06,$3D,$7C,$00,$16,$FF,$BA,$78,$01
+	dc.b $10,$2E,$FF,$C7,$67,$14,$4A,$6E,$FF,$BA,$57,$C1,$C0,$01,$67,$0A
+	dc.b $3D,$7C,$00,$A1,$FF,$BA,$60,$00,$03,$6A,$4A,$6E,$FF,$BA,$66,$00
+	dc.b $03,$62,$10,$2E,$FF,$C8,$67,$14,$42,$67,$2F,$0C,$2F,$07,$20,$6E
+	dc.b $FF,$DC,$48,$68,$00,$04,$4E,$BA,$C7,$48,$18,$1F,$10,$04,$67,$00
+	dc.b $03,$42,$08,$2C,$00,$07,$00,$08,$66,$04,$39,$46,$00,$08,$10,$2D
+	dc.b $F3,$A7,$67,$20,$10,$2D,$EB,$99,$67,$1A,$42,$67,$2F,$0C,$20,$6E
+	dc.b $FF,$DC,$48,$68,$00,$04,$4E,$BA,$CF,$8C,$10,$1F,$66,$06,$3D,$7C
+	dc.b $00,$16,$FF,$BA,$4A,$6E,$FF,$BA,$57,$C0,$4A,$00,$67,$00,$03,$04
+	dc.b $08,$2E,$00,$04,$FF,$D2,$56,$C1,$C0,$01,$67,$00,$02,$F6,$42,$A7
+	dc.b $2F,$0C,$4E,$AD,$01,$22,$2D,$5F,$FE,$B6,$20,$6E,$FE,$B6,$70,$00
+	dc.b $20,$80,$20,$2E,$FE,$B6,$58,$80,$2D,$40,$FE,$B2,$20,$6E,$FE,$B2
+	dc.b $20,$AE,$FF,$FC,$67,$00,$02,$CC,$70,$00,$30,$2C,$00,$08,$72,$00
+	dc.b $32,$3C,$80,$02,$80,$81,$39,$40,$00,$08,$60,$00,$02,$B6,$10,$2D
+	dc.b $F3,$A4,$48,$80,$67,$00,$00,$8C,$53,$40,$67,$04,$60,$00,$00,$A2
+	dc.b $42,$A7,$2F,$2D,$F3,$B0,$48,$6E,$FE,$BA,$2F,$2D,$F3,$EE,$30,$06
+	dc.b $52,$40,$3F,$00,$42,$A7,$48,$6E,$FF,$C7,$3F,$2E,$FF,$C0,$4E,$AD
+	dc.b $01,$02,$26,$5F,$2E,$0B,$28,$4B,$20,$0B,$67,$74,$10,$2E,$FF,$C7
+	dc.b $67,$24,$08,$2B,$00,$07,$00,$08,$57,$C1,$C0,$01,$67,$18,$70,$00
+	dc.b $30,$2B,$00,$08,$72,$00,$32,$3C,$0A,$00,$C0,$81,$4A,$80,$57,$C0
+	dc.b $44,$00,$1D,$40,$FF,$C7,$10,$2E,$FF,$C7,$67,$08,$3D,$7C,$00,$A1
+	dc.b $FF,$BA,$60,$3C,$42,$A7,$2F,$2D,$F3,$B0,$48,$6E,$FE,$BA,$42,$A7
+	dc.b $3F,$06,$48,$6E,$FF,$C7,$3F,$2E,$FF,$C0,$4E,$AD,$00,$E2,$28,$5F
+	dc.b $60,$1E,$42,$A7,$2F,$2D,$F3,$B0,$48,$6E,$FE,$BA,$42,$A7,$3F,$06
+	dc.b $48,$6E,$FF,$C7,$3F,$2E,$FF,$C0,$4E,$AD,$00,$E2,$28,$5F,$2E,$0C
+	dc.b $4A,$6E,$FF,$BA,$66,$36,$20,$0C,$66,$08,$3D,$7C,$00,$16,$FF,$BA
+	dc.b $60,$2A,$10,$2E,$FF,$C7,$67,$24,$08,$2C,$00,$07,$00,$08,$57,$C1
+	dc.b $C0,$01,$67,$18,$2F,$0C,$2F,$0B,$3F,$06,$48,$6E,$FF,$C7,$48,$6E
+	dc.b $FF,$CA,$48,$6E,$FF,$C8,$2F,$0E,$4E,$BA,$F9,$AC,$78,$01,$10,$2E
+	dc.b $FF,$C7,$67,$14,$4A,$6E,$FF,$BA,$57,$C1,$C0,$01,$67,$0A,$3D,$7C
+	dc.b $00,$A1,$FF,$BA,$60,$00,$01,$AC,$4A,$6E,$FF,$BA,$66,$00,$01,$A4
+	dc.b $10,$2E,$FF,$C8,$67,$14,$42,$67,$2F,$0C,$2F,$07,$20,$6E,$FF,$DC
+	dc.b $48,$68,$00,$04,$4E,$BA,$C5,$8A,$18,$1F,$10,$04,$67,$00,$01,$84
+	dc.b $10,$2E,$FF,$C8,$0A,$00,$00,$01,$4A,$00,$67,$56,$C0,$2D,$F3,$A6
+	dc.b $67,$50,$1D,$7C,$00,$01,$FF,$CB,$2A,$2D,$F0,$78,$4A,$85,$67,$12
+	dc.b $20,$45,$BE,$90,$67,$08,$20,$45,$2A,$28,$00,$04,$60,$EE,$42,$2E
+	dc.b $FF,$CB,$10,$2E,$FF,$CB,$67,$2A,$42,$A7,$2F,$2D,$F0,$7C,$3F,$3C
+	dc.b $00,$08,$4E,$AD,$07,$8A,$2A,$1F,$66,$08,$3D,$7C,$00,$16,$FF,$BA
+	dc.b $60,$10,$20,$45,$20,$87,$20,$45,$21,$6D,$F0,$78,$00,$04,$2B,$45
+	dc.b $F0,$78,$4A,$6E,$FF,$BA,$66,$00,$01,$1A,$10,$2D,$F3,$A4,$67,$38
+	dc.b $27,$4C,$00,$04,$20,$6C,$00,$04,$21,$6D,$F3,$EE,$00,$02,$08,$2C
+	dc.b $00,$03,$00,$08,$67,$1A,$70,$00,$30,$2B,$00,$08,$22,$3C,$00,$00
+	dc.b $02,$00,$46,$81,$C0,$81,$80,$BC,$00,$00,$08,$00,$37,$40,$00,$08
+	dc.b $2D,$4B,$FF,$F8,$60,$00,$00,$DC,$10,$2D,$F3,$A5,$67,$7C,$42,$A7
+	dc.b $2F,$2D,$F3,$AC,$48,$6E,$FE,$BA,$2F,$07,$3F,$06,$48,$6E,$FF,$C7
+	dc.b $3F,$2E,$FF,$C0,$4E,$AD,$00,$E2,$28,$5F,$20,$0C,$66,$08,$3D,$7C
+	dc.b $00,$16,$FF,$BA,$60,$54,$10,$2E,$FF,$C7,$67,$10,$08,$2C,$00,$07
+	dc.b $00,$08,$57,$C1,$C0,$01,$67,$04,$42,$2E,$FF,$C7,$10,$2E,$FF,$C7
+	dc.b $67,$08,$3D,$7C,$00,$A1,$FF,$BA,$60,$30,$39,$46,$00,$08,$20,$47
+	dc.b $08,$28,$00,$03,$00,$08,$67,$1A,$70,$00,$30,$2C,$00,$08,$22,$3C
+	dc.b $00,$00,$02,$00,$46,$81,$C0,$81,$80,$BC,$00,$00,$08,$00,$39,$40
+	dc.b $00,$08,$29,$47,$00,$04,$2D,$4C,$FF,$F8,$4A,$6E,$FF,$BA,$66,$52
+	dc.b $20,$47,$08,$28,$00,$00,$00,$08,$67,$48,$10,$2D,$EB,$1F,$67,$30
+	dc.b $48,$6D,$EA,$1E,$48,$6E,$FE,$BA,$4E,$AD,$0A,$C2,$10,$1F,$67,$32
+	dc.b $3D,$7C,$00,$A4,$FF,$BA,$70,$00,$20,$47,$30,$28,$00,$08,$22,$3C
+	dc.b $00,$00,$01,$00,$46,$81,$C0,$81,$20,$47,$31,$40,$00,$08,$60,$12
+	dc.b $1B,$7C,$00,$01,$EB,$1F,$48,$6E,$FE,$BA,$48,$6D,$EA,$1E,$4E,$AD
+	dc.b $00,$92,$10,$04,$67,$5A,$4A,$6E,$FF,$BA,$5E,$C1,$C0,$01,$67,$50
+	dc.b $0C,$6E,$00,$A4,$FF,$BA,$66,$0A,$3F,$3C,$00,$A4,$4E,$AD,$07,$CA
+	dc.b $60,$0C,$3F,$2E,$FF,$BA,$48,$6E,$FE,$BA,$4E,$AD,$07,$C2,$20,$0B
+	dc.b $67,$2E,$27,$6D,$F3,$EE,$00,$04,$20,$2E,$FF,$D0,$52,$80,$3D,$40
+	dc.b $FF,$BE,$08,$2B,$00,$07,$00,$08,$67,$10,$70,$00,$30,$2E,$FF,$BE
+	dc.b $80,$BC,$FF,$FF,$80,$00,$3D,$40,$FF,$BE,$37,$6E,$FF,$BE,$00,$08
+	dc.b $10,$2D,$EC,$FF,$67,$54,$C0,$2D,$F3,$A6,$4A,$00,$67,$4C,$72,$0D
+	dc.b $B2,$6D,$F4,$2E,$56,$C1,$C0,$01,$67,$40,$10,$04,$0A,$00,$00,$01
+	dc.b $4A,$00,$66,$1C,$4A,$6E,$FF,$BA,$5E,$C1,$80,$01,$02,$40,$00,$01
+	dc.b $66,$0E,$4A,$AE,$FF,$F8,$57,$C1,$80,$01,$02,$40,$00,$01,$67,$0E
+	dc.b $70,$FF,$2F,$00,$3F,$3C,$00,$04,$4E,$BA,$C1,$08,$60,$0C,$2F,$2E
+	dc.b $FF,$F8,$3F,$3C,$FF,$FC,$4E,$BA,$C0,$FA,$42,$6E,$FF,$BA,$2D,$6E
+	dc.b $FF,$DC,$FF,$E0,$20,$6E,$FF,$DC,$2D,$50,$FF,$DC,$2F,$2D,$F0,$D6
+	dc.b $2F,$2E,$FF,$E0,$4E,$AD,$07,$82,$60,$00,$FA,$02,$42,$67,$1F,$3C
+	dc.b $00,$1C,$4E,$BA,$CA,$C2,$10,$1F,$66,$00,$F8,$46,$1B,$6E,$FF,$C6
+	dc.b $F3,$A1,$4C,$DF,$18,$F0,$4E,$5E,$20,$5F,$54,$4F,$4E,$D0,$8D,$53
+	dc.b $45,$54,$56,$49,$53,$49,$42,$49,$4C,$49,$54,$59,$00,$00,$4E,$56
+	dc.b $FE,$F4,$48,$E7,$03,$00,$7E,$00,$42,$67,$48,$6D,$E3,$02,$3F,$3C
+	dc.b $00,$08,$48,$6E,$FF,$FC,$4E,$BA,$CA,$BC,$10,$1F,$67,$0E,$30,$2E
+	dc.b $FF,$FC,$53,$40,$22,$07,$01,$C1,$2E,$01,$60,$08,$3F,$3C,$00,$99
+	dc.b $4E,$AD,$07,$CA,$42,$67,$1F,$3C,$00,$1C,$4E,$BA,$CA,$5A,$10,$1F
+	dc.b $66,$C6,$42,$06,$20,$07,$08,$00,$00,$12,$67,$30,$70,$05,$B0,$6D
+	dc.b $EB,$26,$66,$0A,$3F,$3C,$00,$A7,$4E,$AD,$07,$CA,$60,$52,$1B,$7C
+	dc.b $00,$01,$EB,$25,$52,$6D,$EB,$26,$30,$2D,$EB,$26,$E5,$40,$41,$ED
+	dc.b $EB,$24,$21,$AD,$ED,$5A,$00,$00,$7C,$01,$60,$34,$20,$07,$08,$00
+	dc.b $00,$13,$67,$2C,$4A,$6D,$EB,$26,$66,$0A,$3F,$3C,$00,$A8,$4E,$AD
+	dc.b $07,$CA,$60,$1C,$1B,$7C,$00,$01,$EB,$25,$30,$2D,$EB,$26,$E5,$40
+	dc.b $41,$ED,$EB,$24,$2B,$70,$00,$00,$ED,$5A,$53,$6D,$EB,$26,$7C,$01
+	dc.b $42,$6E,$FE,$F4,$3D,$6E,$FE,$F4,$FF,$FC,$60,$48,$20,$07,$32,$2E
+	dc.b $FF,$FC,$03,$00,$67,$3A,$20,$2D,$ED,$5A,$32,$2E,$FF,$FC,$03,$C0
+	dc.b $2B,$40,$ED,$5A,$10,$2E,$FF,$FD,$02,$40,$00,$01,$67,$12,$30,$2E
+	dc.b $FF,$FC,$53,$40,$22,$2D,$ED,$5A,$01,$81,$2B,$41,$ED,$5A,$60,$10
+	dc.b $30,$2E,$FF,$FC,$52,$40,$22,$2D,$ED,$5A,$01,$81,$2B,$41,$ED,$5A
+	dc.b $52,$6E,$FF,$FC,$70,$1F,$B0,$6E,$FF,$FC,$6C,$B0,$08,$2D,$00,$04
+	dc.b $ED,$5B,$56,$C0,$44,$00,$1B,$40,$F0,$DB,$67,$22,$4A,$AD,$F0,$DC
+	dc.b $57,$C1,$C0,$01,$67,$18,$08,$ED,$00,$05,$ED,$5B,$08,$AD,$00,$04
+	dc.b $ED,$5B,$42,$2D,$F0,$DB,$3F,$3C,$00,$FA,$4E,$AD,$07,$CA,$10,$2D
+	dc.b $F3,$A6,$67,$1A,$3F,$3C,$00,$06,$10,$2D,$F0,$DB,$48,$80,$48,$C0
+	dc.b $2F,$00,$4E,$AD,$01,$42,$3F,$3C,$00,$19,$4E,$AD,$01,$4A,$10,$2D
+	dc.b $F3,$A6,$67,$20,$12,$06,$66,$08,$82,$2D,$EC,$FF,$C0,$01,$67,$14
+	dc.b $3F,$3C,$00,$06,$2F,$2D,$ED,$5A,$4E,$AD,$01,$42,$3F,$3C,$00,$3E
+	dc.b $4E,$AD,$01,$4A,$08,$AD,$00,$02,$ED,$5B,$08,$AD,$00,$03,$ED,$5B
+	dc.b $20,$07,$08,$00,$00,$0A,$67,$12,$41,$ED,$E5,$F8,$43,$ED,$E5,$C0
+	dc.b $70,$1B,$30,$D9,$51,$C8,$FF,$FC,$60,$18,$20,$07,$08,$00,$00,$0B
+	dc.b $67,$10,$41,$ED,$E5,$F8,$43,$ED,$E5,$88,$70,$1B,$30,$D9,$51,$C8
+	dc.b $FF,$FC,$4C,$DF,$00,$C0,$4E,$5E,$4E,$75,$87,$44,$4F,$50,$52,$49
+	dc.b $4E,$54,$00,$00,$4E,$56,$FF,$FC,$70,$1E,$B0,$2D,$FF,$FB,$66,$10
+	dc.b $3B,$7C,$00,$4B,$ED,$58,$3B,$7C,$00,$7E,$ED,$56,$60,$00,$00,$A4
+	dc.b $70,$1C,$B0,$2D,$FF,$FB,$67,$46,$42,$67,$48,$6E,$FF,$FC,$4E,$AD
+	dc.b $02,$02,$10,$1F,$67,$3E,$70,$1E,$B0,$AE,$FF,$FC,$6F,$0A,$3F,$3C
+	dc.b $00,$99,$4E,$AD,$07,$CA,$60,$2C,$3B,$6E,$FF,$FE,$ED,$58,$4A,$6D
+	dc.b $ED,$02,$57,$C0,$4A,$00,$66,$0E,$32,$2D,$ED,$00,$B2,$6D,$ED,$58
+	dc.b $5E,$C1,$80,$01,$67,$0E,$3B,$6D,$ED,$58,$ED,$00,$60,$06,$3B,$7C
+	dc.b $00,$4B,$ED,$58,$42,$67,$1F,$3C,$00,$1C,$4E,$BA,$C8,$4A,$10,$1F
+	dc.b $67,$3A,$42,$67,$48,$6E,$FF,$FC,$4E,$AD,$02,$02,$10,$1F,$67,$32
+	dc.b $70,$46,$B0,$AE,$FF,$FC,$5E,$C0,$4A,$00,$66,$0E,$0C,$AE,$00,$00
+	dc.b $00,$A0,$FF,$FC,$5E,$C1,$80,$01,$67,$0A,$3F,$3C,$00,$99,$4E,$AD
+	dc.b $07,$CA,$60,$0E,$3B,$6E,$FF,$FE,$ED,$56,$60,$06,$3B,$7C,$00,$7E
+	dc.b $ED,$56,$10,$2D,$F3,$A6,$67,$3A,$C0,$2D,$EC,$FF,$4A,$00,$67,$32
+	dc.b $4A,$6D,$CD,$68,$57,$C1,$C0,$01,$67,$28,$3F,$3C,$00,$06,$30,$2D
+	dc.b $ED,$58,$48,$C0,$2F,$00,$4E,$AD,$01,$42,$3F,$3C,$00,$06,$30,$2D
+	dc.b $ED,$56,$48,$C0,$2F,$00,$4E,$AD,$01,$42,$3F,$3C,$00,$44,$4E,$AD
+	dc.b $01,$4A,$4E,$5E,$4E,$75,$8A,$44,$4F,$50,$41,$47,$45,$53,$49,$5A
+	dc.b $45,$00,$00,$00,$4E,$56,$FF,$E8,$48,$E7,$00,$18,$20,$6E,$00,$0C
+	dc.b $43,$EE,$FF,$FA,$70,$02,$32,$D8,$51,$C8,$FF,$FC,$28,$6E,$00,$08
+	dc.b $48,$6E,$FF,$FA,$48,$7A,$00,$F8,$4E,$AD,$0A,$C2,$10,$1F,$67,$0E
+	dc.b $48,$6E,$FF,$FA,$48,$6E,$FF,$E8,$4E,$AD,$00,$92,$60,$10,$41,$EE
+	dc.b $FF,$E8,$43,$FA,$00,$D4,$70,$02,$30,$D9,$51,$C8,$FF,$FC,$42,$A7
 	dc.b $2F,$2D,$F3,$B0,$48,$6E,$FF,$E8,$2F,$2C,$FF,$FA,$3F,$2C,$FF,$FE
 	dc.b $48,$6E,$FF,$F5,$4E,$AD,$00,$EA,$26,$5F,$10,$2E,$FF,$F5,$67,$20
 	dc.b $72,$33,$B2,$AC,$FF,$FA,$5F,$C1,$C0,$01,$4A,$00,$67,$12,$32,$2C
 	dc.b $FF,$FE,$B2,$6B,$00,$08,$57,$C1,$C0,$01,$67,$04,$42,$2E,$FF,$F5
 	dc.b $10,$2E,$FF,$F5,$67,$0C,$3F,$3C,$00,$C0,$48,$6E,$FF,$E8,$4E,$AD
-	dc.b $07,$C2,$52,$AC,$FF,$FA,$4C,$DF,$18,$00,$4E,$5E,$20,$5F,$50,$4F
-	dc.b $4E,$D0,$87,$44,$45,$43,$4C,$41,$52,$45,$00,$0C,$05,$4D,$4D,$55
-	dc.b $53,$52,$04,$4D,$4D,$55,$53,$00,$4E,$56,$FF,$FA,$70,$02,$B0,$2D
-	dc.b $F3,$B6,$66,$0C,$3F,$3C,$00,$C4,$4E,$AD,$07,$CA,$60,$00,$00,$DC
-	dc.b $10,$2D,$F3,$C5,$67,$30,$0C,$6D,$02,$00,$F3,$C2,$67,$40,$3F,$3C
-	dc.b $00,$F0,$4E,$AD,$07,$CA,$3B,$7C,$02,$00,$F3,$C2,$3F,$3C,$00,$06
-	dc.b $30,$2D,$F3,$C2,$48,$C0,$2F,$00,$4E,$AD,$01,$42,$3F,$3C,$00,$48
-	dc.b $4E,$AD,$01,$4A,$60,$18,$4E,$AD,$03,$EA,$3B,$7C,$02,$00,$F3,$C2
-	dc.b $42,$6D,$F3,$C0,$42,$6D,$F3,$BE,$3B,$7C,$FF,$F0,$F3,$BC,$10,$2D
-	dc.b $F3,$B5,$66,$00,$00,$86,$3D,$7C,$80,$04,$FF,$FE,$70,$2E,$2D,$40
-	dc.b $FF,$FA,$48,$7A,$00,$E8,$2F,$0E,$4E,$BA,$FE,$5E,$48,$7A,$00,$D8
-	dc.b $2F,$0E,$4E,$BA,$FE,$54,$48,$7A,$00,$C8,$2F,$0E,$4E,$BA,$FE,$4A
-	dc.b $48,$7A,$00,$B8,$2F,$0E,$4E,$BA,$FE,$40,$48,$7A,$00,$AA,$2F,$0E
-	dc.b $4E,$BA,$FE,$36,$70,$33,$2D,$40,$FF,$FA,$48,$7A,$00,$94,$2F,$0E
-	dc.b $4E,$BA,$FE,$26,$70,$37,$2D,$40,$FF,$FA,$48,$7A,$00,$80,$2F,$0E
-	dc.b $4E,$BA,$FE,$16,$70,$39,$2D,$40,$FF,$FA,$48,$7A,$00,$6C,$2F,$0E
-	dc.b $4E,$BA,$FE,$06,$41,$ED,$DB,$18,$43,$FA,$00,$20,$70,$1E,$30,$D9
-	dc.b $51,$C8,$FF,$FC,$1B,$7C,$00,$01,$F3,$B5,$4E,$5E,$4E,$75,$89,$44
-	dc.b $43,$4C,$34,$30,$52,$45,$47,$53,$00,$68,$3C,$49,$54,$54,$30,$2E
-	dc.b $49,$54,$54,$31,$2E,$44,$54,$54,$30,$2E,$44,$54,$54,$31,$2E,$55
-	dc.b $52,$50,$20,$2E,$50,$53,$52,$20,$2E,$20,$20,$20,$20,$2E,$20,$20
-	dc.b $20,$20,$2E,$20,$20,$20,$20,$2E,$53,$52,$50,$20,$2E,$20,$20,$20
-	dc.b $20,$2E,$54,$43,$20,$20,$2E,$00,$02,$54,$43,$00,$03,$53,$52,$50
-	dc.b $04,$4D,$4D,$55,$53,$00,$03,$55,$52,$50,$04,$44,$54,$54,$31,$00
-	dc.b $04,$44,$54,$54,$30,$00,$04,$49,$54,$54,$31,$00,$04,$49,$54,$54
-	dc.b $30,$00
+	dc.b $07,$C2,$48,$6E,$FF,$E8,$4E,$AD,$00,$5A,$42,$A7,$2F,$2D,$F3,$B0
+	dc.b $48,$6E,$FF,$E8,$2F,$2C,$FF,$FA,$3F,$2C,$FF,$FE,$48,$6E,$FF,$F5
+	dc.b $4E,$AD,$00,$EA,$26,$5F,$10,$2E,$FF,$F5,$67,$20,$72,$33,$B2,$AC
+	dc.b $FF,$FA,$5F,$C1,$C0,$01,$4A,$00,$67,$12,$32,$2C,$FF,$FE,$B2,$6B
+	dc.b $00,$08,$57,$C1,$C0,$01,$67,$04,$42,$2E,$FF,$F5,$10,$2E,$FF,$F5
+	dc.b $67,$0C,$3F,$3C,$00,$C0,$48,$6E,$FF,$E8,$4E,$AD,$07,$C2,$52,$AC
+	dc.b $FF,$FA,$4C,$DF,$18,$00,$4E,$5E,$20,$5F,$50,$4F,$4E,$D0,$87,$44
+	dc.b $45,$43,$4C,$41,$52,$45,$00,$0C,$05,$4D,$4D,$55,$53,$52,$04,$4D
+	dc.b $4D,$55,$53,$00,$4E,$56,$FF,$FA,$70,$02,$B0,$2D,$F3,$B6,$66,$0C
+	dc.b $3F,$3C,$00,$C4,$4E,$AD,$07,$CA,$60,$00,$00,$DC,$10,$2D,$F3,$C5
+	dc.b $67,$30,$0C,$6D,$02,$00,$F3,$C2,$67,$40,$3F,$3C,$00,$F0,$4E,$AD
+	dc.b $07,$CA,$3B,$7C,$02,$00,$F3,$C2,$3F,$3C,$00,$06,$30,$2D,$F3,$C2
+	dc.b $48,$C0,$2F,$00,$4E,$AD,$01,$42,$3F,$3C,$00,$48,$4E,$AD,$01,$4A
+	dc.b $60,$18,$4E,$AD,$03,$EA,$3B,$7C,$02,$00,$F3,$C2,$42,$6D,$F3,$C0
+	dc.b $42,$6D,$F3,$BE,$3B,$7C,$FF,$F0,$F3,$BC,$10,$2D,$F3,$B5,$66,$00
+	dc.b $00,$86,$3D,$7C,$80,$04,$FF,$FE,$70,$2E,$2D,$40,$FF,$FA,$48,$7A
+	dc.b $00,$E8,$2F,$0E,$4E,$BA,$FE,$5E,$48,$7A,$00,$D8,$2F,$0E,$4E,$BA
+	dc.b $FE,$54,$48,$7A,$00,$C8,$2F,$0E,$4E,$BA,$FE,$4A,$48,$7A,$00,$B8
+	dc.b $2F,$0E,$4E,$BA,$FE,$40,$48,$7A,$00,$AA,$2F,$0E,$4E,$BA,$FE,$36
+	dc.b $70,$33,$2D,$40,$FF,$FA,$48,$7A,$00,$94,$2F,$0E,$4E,$BA,$FE,$26
+	dc.b $70,$37,$2D,$40,$FF,$FA,$48,$7A,$00,$80,$2F,$0E,$4E,$BA,$FE,$16
+	dc.b $70,$39,$2D,$40,$FF,$FA,$48,$7A,$00,$6C,$2F,$0E,$4E,$BA,$FE,$06
+	dc.b $41,$ED,$DB,$18,$43,$FA,$00,$20,$70,$1E,$30,$D9,$51,$C8,$FF,$FC
+	dc.b $1B,$7C,$00,$01,$F3,$B5,$4E,$5E,$4E,$75,$89,$44,$43,$4C,$34,$30
+	dc.b $52,$45,$47,$53,$00,$68,$3C,$49,$54,$54,$30,$2E,$49,$54,$54,$31
+	dc.b $2E,$44,$54,$54,$30,$2E,$44,$54,$54,$31,$2E,$55,$52,$50,$20,$2E
+	dc.b $50,$53,$52,$20,$2E,$20,$20,$20,$20,$2E,$20,$20,$20,$20,$2E,$20
+	dc.b $20,$20,$20,$2E,$53,$52,$50,$20,$2E,$20,$20,$20,$20,$2E,$54,$43
+	dc.b $20,$20,$2E,$00,$02,$54,$43,$00,$03,$53,$52,$50,$04,$4D,$4D,$55
+	dc.b $53,$00,$03,$55,$52,$50,$04,$44,$54,$54,$31,$00,$04,$44,$54,$54
+	dc.b $30,$00,$04,$49,$54,$54,$31,$00,$04,$49,$54,$54,$30,$00
 CODE_13_loc_000067a6:
 	link a6,#-260
 	movem.l d6-d7/a4,-(a7)
@@ -39029,7 +37983,6 @@ CODE_13_data_dispatch_table_0000699a:
 	dc.b $66,$00,$FB,$EA,$1B,$6E,$FD,$E5,$F3,$A1,$4C,$DF,$18,$F8,$4E,$5E
 	dc.b $20,$5F,$54,$4F,$4E,$D0,$93,$44,$4F,$58,$56,$45,$43,$54,$4F,$52
 	dc.b $4F,$52,$58,$50,$4F,$49,$4E,$54,$45,$52,$00,$00
-CODE_13_loc_000069a2:
 CODE_13_loc_00006f46:
 	link a6,#-1058
 	movem.l d3-d7/a4,-(a7)
@@ -39368,11 +38321,14 @@ CODE_13_loc_0000729c:
 	move.w CODE_13_loc_000072be(pc,d0.w),d0
 	jmp $0(pc,d0.w)
 CODE_13_loc_000072be:
-CODE_13_data_dispatch_table_000072be:
-	dc.b $00,$B0,$00,$B8,$00,$C0,$00,$DA,$00,$DA,$00,$DA,$00,$E2,$00,$EA
-	dc.b $00,$EA,$00,$EA,$00,$F2,$01,$1A,$01,$26,$01,$32,$01,$3E,$01,$8C
-	dc.b $01,$DA,$01,$E6,$03,$88,$03,$D0,$04,$42,$04,$42,$04,$42,$04,$C8
-	dc.b $04,$D4,$04,$DC,$05,$32,$05,$62,$05,$E2,$05,$EA,$07,$10,$07,$3E
+	dc.w $00B0,$00B8,$00C0,$00DA,$00DA,$00DA,$00E2,$00EA	; lookup_table
+CODE_13_data_000072be:
+	dc.w $00EA,$00EA,$00F2,$011A,$0126,$0132,$013E,$018C	; lookup_table
+CODE_13_data_000072be:
+	dc.w $01DA,$01E6,$0388,$03D0,$0442,$0442,$0442,$04C8	; lookup_table
+CODE_13_data_000072be:
+	dc.w $04D4,$04DC,$0532,$0562,$05E2,$05EA,$0710,$073E	; lookup_table
+CODE_13_semantic_decode_gap_000072fe:
 	dc.b $07,$80,$08,$02,$08,$3C,$08,$6C,$08,$DA,$09,$1A,$0A,$9A,$0A,$A2
 	dc.b $0A,$AA,$0B,$16,$0B,$62,$0C,$1A,$0C,$64,$00,$DA,$0C,$B0,$0D,$32
 	dc.b $0E,$B6,$0D,$3A,$0D,$42,$0D,$4A,$0D,$52,$0D,$5A,$0D,$62,$0D,$6A
@@ -39637,7 +38593,6 @@ CODE_13_data_dispatch_table_000081ac:
 	dc.b $20,$4E,$6F,$74,$20,$65,$6E,$6F,$75,$67,$68,$20,$6D,$65,$6D,$6F
 	dc.b $72,$79,$20,$74,$6F,$20,$64,$6F,$20,$69,$6E,$63,$6C,$75,$64,$65
 	dc.b $21,$00,$04,$4D,$61,$69,$6E,$00,$01,$23
-CODE_13_loc_00008224:
 CODE_13_loc_00008226:
 	link a6,#0
 	move.l $0008(a6),-(a7)
@@ -39649,47 +38604,12 @@ CODE_13_data_pascal_string_00008238:
 	dc.b $8E,$4C,$4F,$41,$44,$44,$49,$52,$45,$43,$54,$49,$56,$45,$53,$00
 	dc.b $00,$00
 
-; CODE 14 MemMgr source section
+; CODE 14 MemMgr
 CODE_14:
-;   source_section_id: macos-code-CODE-14
-;   source_kind: macos_code_resource
-;   backend: macos-code
-;   status: semantic_source
-;   resource_type: CODE
-;   id: 14
-;   name: MemMgr
-;   role: code_segment
-;   code_kind: code_segment
-;   payload_size: 1886
-;   payload_sha256: 14e851122fdae5910c2772def35a8b36c30dc7133cb92df8524f8a42ff5f8c70
-;   presentation: kind=c_owned_restored_source_packet status=covered visible=True identity=macos-code:CODE:14
-;   listing: kind=semantic_listing available=True reason=C-owned semantic rows from generated loader/CODE0 entry seeds
-;   restored_source_model:
-;     model=restored_source_model_v1 round_trip_required=false
-;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 14 name=unknown
-;     a5_world status=deferred parser_use=unknown
-;     ownership_ranges:
-;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
-;       1: role=candidate_unresolved_prefix span=40..236 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
-;       2: role=candidate_code span=236..1886 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
-;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
-;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
-;   source_body_ranges:
-;     metadata payload[0..40) size=40 entrypoint=False
-;     candidate_unresolved_prefix payload[40..236) size=196 entrypoint=False
-;     candidate_code payload[236..1886) size=1650 entrypoint=True
-;   rendered_source: CODE 14 status=semantic_rows payload[0..1886) sha256=14e851122fdae5910c2772def35a8b36c30dc7133cb92df8524f8a42ff5f8c70
-;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
-;   source_rows:
-;     metadata payload[0..40)
 CODE_14_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$07,$40,$00,$00,$00,$0B,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00
-;     candidate_unresolved_prefix payload[40..236)
-;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=523 labels=84 xrefs=102
 CODE_14_loc_00000028:
 	link a6,#-4
 	move.l d7,-(a7)
@@ -39752,9 +38672,6 @@ CODE_14_loc_000000d0:
 CODE_14_loc_000000e8:
 	move.l (a7)+,d7
 	unlk a6
-;     candidate_code payload[236..1886)
-;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=523 labels=84 xrefs=102
-CODE_14_loc_000000ec:
 	movea.l (a7)+,a0
 	addq.w #2,a7
 	jmp (a0)
@@ -40252,7 +39169,6 @@ CODE_14_data_dispatch_table_000005f4:
 	dc.b $67,$6D,$65,$6E,$74,$65,$64,$20,$6D,$65,$6D,$6F,$72,$79,$20,$2D
 	dc.b $2D,$20,$69,$74,$20,$69,$73,$20,$69,$6D,$70,$6F,$73,$73,$69,$62
 	dc.b $6C,$65,$20,$74,$6F,$20,$63,$6F,$6E,$74,$69,$6E,$75,$65,$2E,$00
-CODE_14_loc_00000600:
 CODE_14_loc_00000644:
 	link a6,#-4
 	tst.l -$37CA(a5)
@@ -40304,7 +39220,6 @@ CODE_14_data_dispatch_table_000006c8:
 	dc.b $72,$79,$20,$2D,$2D,$20,$69,$74,$20,$69,$73,$20,$69,$6D,$70,$6F
 	dc.b $73,$73,$69,$62,$6C,$65,$20,$74,$6F,$20,$63,$6F,$6E,$74,$69,$6E
 	dc.b $75,$65,$2E,$00
-CODE_14_loc_000006d8:
 CODE_14_loc_0000071c:
 	link a6,#-4
 	movem.l a3-a4,-(a7)
@@ -40331,47 +39246,12 @@ CODE_14_loc_0000074a:
 CODE_14_data_pascal_string_00000754:
 	dc.b $87,$46,$52,$45,$45,$42,$4C,$4B,$00,$00
 
-; CODE 15 Errors source section
+; CODE 15 Errors
 CODE_15:
-;   source_section_id: macos-code-CODE-15
-;   source_kind: macos_code_resource
-;   backend: macos-code
-;   status: semantic_source
-;   resource_type: CODE
-;   id: 15
-;   name: Errors
-;   role: code_segment
-;   code_kind: code_segment
-;   payload_size: 3452
-;   payload_sha256: ebe2c26fe6fffb8585f7e9e0ebfffa73ca877946c26eab44f0efbd96678018cd
-;   presentation: kind=c_owned_restored_source_packet status=covered visible=True identity=macos-code:CODE:15
-;   listing: kind=semantic_listing available=True reason=C-owned semantic rows from generated loader/CODE0 entry seeds
-;   restored_source_model:
-;     model=restored_source_model_v1 round_trip_required=false
-;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 15 name=unknown
-;     a5_world status=deferred parser_use=unknown
-;     ownership_ranges:
-;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
-;       1: role=candidate_unresolved_prefix span=40..96 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
-;       2: role=candidate_code span=96..3452 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
-;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
-;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
-;   source_body_ranges:
-;     metadata payload[0..40) size=40 entrypoint=False
-;     candidate_unresolved_prefix payload[40..96) size=56 entrypoint=False
-;     candidate_code payload[96..3452) size=3356 entrypoint=True
-;   rendered_source: CODE 15 status=semantic_rows payload[0..3452) sha256=ebe2c26fe6fffb8585f7e9e0ebfffa73ca877946c26eab44f0efbd96678018cd
-;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
-;   source_rows:
-;     metadata payload[0..40)
 CODE_15_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$07,$98,$00,$00,$00,$07,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00
-;     candidate_unresolved_prefix payload[40..96)
-;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=929 labels=126 xrefs=147
 CODE_15_loc_00000028:
 	link a6,#0
 	move.l a4,-(a7)
@@ -40394,9 +39274,6 @@ CODE_15_loc_00000028:
 CODE_15_loc_0000005c:
 	movea.l (a7)+,a4
 	unlk a6
-;     candidate_code payload[96..3452)
-;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=929 labels=126 xrefs=147
-CODE_15_loc_00000060:
 	movea.l (a7)+,a0
 	adda.w #$A,a7
 	jmp (a0)
@@ -40432,8 +39309,8 @@ CODE_15_loc_000000c0:
 	movea.l $0008(a6),a0
 	movea.l a0,a6
 	jmp CODE_15_loc_000004d4(pc)
-CODE_15_data_zero_fill_000000d0:
-	dc.b $00,$00
+CODE_15_data_000000d0:
+	dc.w $0000
 CODE_15_loc_000000d2:
 	move.w $0010(a6),$0012(a6)
 	movem.l (a7)+,d7/a4
@@ -40446,8 +39323,6 @@ CODE_15_data_dispatch_table_000000e6:
 	dc.b $29,$00,$28,$20,$28,$42,$61,$64,$20,$62,$6C,$6F,$63,$6B,$20,$72
 	dc.b $65,$61,$64,$20,$6F,$6E,$20,$65,$72,$72,$6F,$72,$20,$6D,$65,$73
 	dc.b $73,$61,$67,$65,$20,$66,$69,$6C,$65,$20,$22,$00
-CODE_15_loc_000000f4:
-CODE_15_loc_000000f8:
 CODE_15_loc_00000122:
 	link a6,#-8
 	movem.l d4-d7/a4,-(a7)
@@ -40501,8 +39376,8 @@ CODE_15_loc_000001a4:
 	movea.l $0008(a6),a0
 	movea.l a0,a6
 	jmp CODE_15_loc_000004d4(pc)
-CODE_15_data_alignment_padding_000001ae:
-	ds.b 2
+CODE_15_data_000001ae:
+	dc.w $0000
 CODE_15_loc_000001b0:
 	movem.l (a7)+,d4-d7/a4
 	unlk a6
@@ -40781,17 +39656,6 @@ CODE_15_data_dispatch_table_000004e4:
 	dc.b $45,$72,$72,$73,$2E,$45,$72,$72,$0E,$53,$68,$65,$6C,$6C,$44,$69
 	dc.b $72,$65,$63,$74,$6F,$72,$79,$00,$09,$4F,$53,$20,$45,$72,$72,$6F
 	dc.b $72,$20
-CODE_15_loc_000004f2:
-CODE_15_loc_000004f4:
-CODE_15_loc_000004f8:
-CODE_15_loc_0000050a:
-CODE_15_loc_00000522:
-CODE_15_loc_00000528:
-CODE_15_loc_00000536:
-CODE_15_loc_00000542:
-CODE_15_loc_00000550:
-CODE_15_loc_0000055c:
-CODE_15_loc_0000056c:
 CODE_15_loc_00000576:
 	link a6,#-1034
 	movem.l d6-d7/a4,-(a7)
@@ -40886,8 +39750,6 @@ CODE_15_loc_00000660:
 CODE_15_data_dispatch_table_0000066c:
 	dc.b $8B,$42,$55,$49,$4C,$44,$45,$52,$52,$4D,$53,$47,$00,$04,$01,$20
 	dc.b $01,$5E
-CODE_15_loc_0000067a:
-CODE_15_loc_0000067c:
 CODE_15_loc_0000067e:
 	link a6,#-520
 	movem.l d7/a3-a4,-(a7)
@@ -41061,10 +39923,6 @@ CODE_15_data_dispatch_table_00000860:
 	dc.b $3B,$20,$6C,$69,$6E,$65,$20,$00,$0B,$23,$23,$23,$20,$4D,$61,$63
 	dc.b $72,$6F,$20,$22,$07,$3B,$20,$6C,$69,$6E,$65,$20,$09,$20,$20,$20
 	dc.b $20,$46,$69,$6C,$65,$20
-CODE_15_loc_0000086e:
-CODE_15_loc_00000878:
-CODE_15_loc_00000884:
-CODE_15_loc_0000088c:
 CODE_15_loc_00000896:
 	link a6,#-6
 	movem.l d7/a4,-(a7)
@@ -41249,20 +40107,12 @@ CODE_15_loc_00000a8c:
 	addq.w #6,a7
 	jmp (a0)
 CODE_15_semantic_decode_gap_00000a98:
-	dc.b $88,$49,$4E,$53,$45,$52,$52,$4F,$52,$00,$00,$4E
-CODE_15_loc_00000aa4:
-CODE_15_semantic_decode_gap_00000aa4:
-	dc.b $04,$41,$73,$6D,$3A,$00
-CODE_15_loc_00000aaa:
-CODE_15_semantic_decode_gap_00000aaa:
-	dc.b $04,$20,$2A,$2A,$2A,$00
-CODE_15_loc_00000ab0:
-CODE_15_semantic_decode_gap_00000ab0:
-	dc.b $41,$49,$6E,$73,$75,$66,$66,$69,$63,$69,$65,$6E,$74,$20,$6F,$72
-	dc.b $20,$66,$72,$61,$67,$6D,$65,$6E,$74,$65,$64,$20,$6D,$65,$6D,$6F
-	dc.b $72,$79,$20,$2D,$20,$69,$74,$20,$69,$73,$20,$69,$6D,$70,$6F,$73
-	dc.b $73,$69,$62,$6C,$65,$20,$74,$6F,$20,$63,$6F,$6E,$74,$69,$6E,$75
-	dc.b $65,$2E
+	dc.b $88,$49,$4E,$53,$45,$52,$52,$4F,$52,$00,$00,$4E,$04,$41,$73,$6D
+	dc.b $3A,$00,$04,$20,$2A,$2A,$2A,$00,$41,$49,$6E,$73,$75,$66,$66,$69
+	dc.b $63,$69,$65,$6E,$74,$20,$6F,$72,$20,$66,$72,$61,$67,$6D,$65,$6E
+	dc.b $74,$65,$64,$20,$6D,$65,$6D,$6F,$72,$79,$20,$2D,$20,$69,$74,$20
+	dc.b $69,$73,$20,$69,$6D,$70,$6F,$73,$73,$69,$62,$6C,$65,$20,$74,$6F
+	dc.b $20,$63,$6F,$6E,$74,$69,$6E,$75,$65,$2E
 CODE_15_loc_00000af2:
 	link a6,#0
 	move.w $0008(a6),-(a7)
@@ -41302,7 +40152,6 @@ CODE_15_loc_00000b46:
 CODE_15_data_dispatch_table_00000b60:
 	dc.b $88,$49,$4E,$53,$49,$4F,$45,$52,$52,$00,$00,$06,$05,$22,$20,$2D
 	dc.b $2D,$20
-CODE_15_loc_00000b6c:
 CODE_15_loc_00000b72:
 	link a6,#-24
 	movem.l d4-d7/a3-a4,-(a7)
@@ -41488,47 +40337,12 @@ CODE_15_loc_00000d4e:
 CODE_15_data_pascal_string_00000d6c:
 	dc.b $8C,$52,$45,$50,$4F,$52,$54,$45,$52,$52,$4F,$52,$53,$00,$00,$00
 
-; CODE 16 New source section
+; CODE 16 New
 CODE_16:
-;   source_section_id: macos-code-CODE-16
-;   source_kind: macos_code_resource
-;   backend: macos-code
-;   status: semantic_source
-;   resource_type: CODE
-;   id: 16
-;   name: New
-;   role: code_segment
-;   code_kind: code_segment
-;   payload_size: 1034
-;   payload_sha256: 51e7a7d264825cd4103b31a0bff37ff49fdb64e8ddb299b2a46d4bd3c07f6a37
-;   presentation: kind=c_owned_restored_source_packet status=covered visible=True identity=macos-code:CODE:16
-;   listing: kind=semantic_listing available=True reason=C-owned semantic rows from generated loader/CODE0 entry seeds
-;   restored_source_model:
-;     model=restored_source_model_v1 round_trip_required=false
-;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 16 name=unknown
-;     a5_world status=deferred parser_use=unknown
-;     ownership_ranges:
-;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
-;       1: role=candidate_unresolved_prefix span=40..246 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
-;       2: role=candidate_code span=246..1034 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
-;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
-;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
-;   source_body_ranges:
-;     metadata payload[0..40) size=40 entrypoint=False
-;     candidate_unresolved_prefix payload[40..246) size=206 entrypoint=False
-;     candidate_code payload[246..1034) size=788 entrypoint=True
-;   rendered_source: CODE 16 status=semantic_rows payload[0..1034) sha256=51e7a7d264825cd4103b31a0bff37ff49fdb64e8ddb299b2a46d4bd3c07f6a37
-;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
-;   source_rows:
-;     metadata payload[0..40)
 CODE_16_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$07,$D0,$00,$00,$00,$03,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00
-;     candidate_unresolved_prefix payload[40..246)
-;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=231 labels=37 xrefs=35
 CODE_16_loc_00000028:
 	link a6,#-4
 	movem.l d7/a4,-(a7)
@@ -41596,9 +40410,6 @@ CODE_16_loc_000000b8:
 CODE_16_loc_000000f0:
 	movem.l (a7)+,d7/a4
 	unlk a6
-;     candidate_code payload[246..1034)
-;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=231 labels=37 xrefs=35
-CODE_16_loc_000000f6:
 	movea.l (a7)+,a0
 	addq.w #2,a7
 	jmp (a0)
@@ -41607,8 +40418,6 @@ CODE_16_data_dispatch_table_000000fc:
 	dc.b $2E,$2E,$63,$6F,$6E,$74,$69,$6E,$75,$69,$6E,$67,$20,$77,$69,$74
 	dc.b $68,$20,$12,$4E,$6F,$74,$20,$65,$6E,$6F,$75,$67,$68,$20,$6D,$65
 	dc.b $6D,$6F,$72,$79,$21,$00
-CODE_16_loc_0000010a:
-CODE_16_loc_0000011e:
 CODE_16_loc_00000132:
 	link a6,#-18
 	movem.l d4-d7/a3-a4,-(a7)
@@ -41683,7 +40492,6 @@ CODE_16_data_dispatch_table_000001e0:
 	dc.b $8C,$46,$4C,$55,$53,$48,$50,$4F,$53,$54,$46,$49,$58,$00,$00,$18
 	dc.b $16,$53,$70,$69,$6C,$6C,$20,$66,$69,$6C,$65,$20,$77,$72,$69,$74
 	dc.b $65,$20,$65,$72,$72,$6F,$72,$00
-CODE_16_loc_000001f0:
 CODE_16_loc_00000208:
 	link a6,#-176
 	btst.b #2,-$12A6(a5)
@@ -41766,21 +40574,12 @@ CODE_16_loc_00000304:
 	unlk a6
 	rts
 CODE_16_semantic_decode_gap_0000030e:
-	dc.b $8A,$53,$48,$4F,$57,$53,$54,$41,$54,$55,$53,$00,$00,$46
-CODE_16_loc_0000031c:
-CODE_16_semantic_decode_gap_0000031c:
-	dc.b $0D,$20,$74,$6F,$74,$61,$6C,$20,$62,$79,$74,$65,$73,$29
-CODE_16_loc_0000032a:
-CODE_16_semantic_decode_gap_0000032a:
-	dc.b $08,$20,$62,$79,$74,$65,$73,$2C,$20,$00
-CODE_16_loc_00000334:
-CODE_16_semantic_decode_gap_00000334:
-	dc.b $07,$20,$62,$79,$74,$65,$73,$29
-CODE_16_loc_0000033c:
-CODE_16_semantic_decode_gap_0000033c:
-	dc.b $24,$2E,$2E,$2E,$73,$70,$69,$6C,$6C,$69,$6E,$67,$20,$70,$6F,$73
-	dc.b $74,$66,$69,$78,$20,$6F,$6E,$74,$6F,$20,$77,$6F,$72,$6B,$66,$69
-	dc.b $6C,$65,$21,$20,$28,$00
+	dc.b $8A,$53,$48,$4F,$57,$53,$54,$41,$54,$55,$53,$00,$00,$46,$0D,$20
+	dc.b $74,$6F,$74,$61,$6C,$20,$62,$79,$74,$65,$73,$29,$08,$20,$62,$79
+	dc.b $74,$65,$73,$2C,$20,$00,$07,$20,$62,$79,$74,$65,$73,$29,$24,$2E
+	dc.b $2E,$2E,$73,$70,$69,$6C,$6C,$69,$6E,$67,$20,$70,$6F,$73,$74,$66
+	dc.b $69,$78,$20,$6F,$6E,$74,$6F,$20,$77,$6F,$72,$6B,$66,$69,$6C,$65
+	dc.b $21,$20,$28,$00
 CODE_16_loc_00000362:
 	link a6,#-4
 	move.l d7,-(a7)
@@ -41824,50 +40623,13 @@ CODE_16_data_dispatch_table_000003c4:
 	dc.b $68,$65,$20,$50,$6F,$73,$74,$66,$69,$78,$20,$73,$70,$69,$6C,$6C
 	dc.b $20,$66,$69,$6C,$65,$00,$0E,$23,$41,$73,$6D,$53,$70,$69,$6C,$6C
 	dc.b $46,$69,$6C,$65,$23,$00
-CODE_16_loc_000003d6:
-CODE_16_loc_000003fa:
 
-; CODE 17 DispSymTbl source section
+; CODE 17 DispSymTbl
 CODE_17:
-;   source_section_id: macos-code-CODE-17
-;   source_kind: macos_code_resource
-;   backend: macos-code
-;   status: semantic_source
-;   resource_type: CODE
-;   id: 17
-;   name: DispSymTbl
-;   role: code_segment
-;   code_kind: code_segment
-;   payload_size: 3674
-;   payload_sha256: e4c8e735bff587b55b1482bde5137deec3ae177ea802b09aac3e97401f2905b9
-;   presentation: kind=c_owned_restored_source_packet status=covered visible=True identity=macos-code:CODE:17
-;   listing: kind=semantic_listing available=True reason=C-owned semantic rows from generated loader/CODE0 entry seeds
-;   restored_source_model:
-;     model=restored_source_model_v1 round_trip_required=false
-;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 17 name=unknown
-;     a5_world status=deferred parser_use=unknown
-;     ownership_ranges:
-;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
-;       1: role=candidate_unresolved_prefix span=40..100 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
-;       2: role=candidate_code span=100..3674 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
-;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
-;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
-;   source_body_ranges:
-;     metadata payload[0..40) size=40 entrypoint=False
-;     candidate_unresolved_prefix payload[40..100) size=60 entrypoint=False
-;     candidate_code payload[100..3674) size=3574 entrypoint=True
-;   rendered_source: CODE 17 status=semantic_rows payload[0..3674) sha256=e4c8e735bff587b55b1482bde5137deec3ae177ea802b09aac3e97401f2905b9
-;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
-;   source_rows:
-;     metadata payload[0..40)
 CODE_17_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$07,$E8,$00,$00,$00,$01,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00
-;     candidate_unresolved_prefix payload[40..100)
-;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=960 labels=144 xrefs=199
 CODE_17_loc_00000028:
 	link a6,#-4
 	move.l a4,-(a7)
@@ -41890,9 +40652,6 @@ CODE_17_loc_00000028:
 CODE_17_loc_00000060:
 	movea.l (a7)+,a4
 	unlk a6
-;     candidate_code payload[100..3674)
-;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=960 labels=144 xrefs=199
-CODE_17_loc_00000064:
 	movea.l (a7)+,a0
 	addq.w #8,a7
 	jmp (a0)
@@ -42198,7 +40957,6 @@ CODE_17_data_dispatch_table_0000038c:
 	dc.b $92,$53,$4F,$52,$54,$49,$4E,$54,$4F,$42,$49,$4E,$41,$52,$59,$54
 	dc.b $52,$45,$45,$00,$00,$0C,$0A,$3C,$3C,$3C,$49,$4E,$54,$52,$3E,$3E
 	dc.b $3E,$00
-CODE_17_loc_000003a2:
 CODE_17_loc_000003ae:
 	link a6,#0
 	jsr $05EA(a5)
@@ -42300,10 +41058,6 @@ CODE_17_data_dispatch_table_000004a4:
 	dc.b $45,$54,$43,$20,$41,$52,$52,$41,$59,$00,$0A,$53,$45,$54,$41,$20
 	dc.b $41,$52,$52,$41,$59,$00,$08,$53,$45,$54,$43,$20,$20,$20,$20,$00
 	dc.b $08,$53,$45,$54,$41,$20,$20,$20,$20,$00
-CODE_17_loc_000004b2:
-CODE_17_loc_000004be:
-CODE_17_loc_000004ca:
-CODE_17_loc_000004d4:
 CODE_17_loc_000004de:
 	link a6,#-802
 	movem.l d4-d7/a3-a4,-(a7)
@@ -42639,12 +41393,6 @@ CODE_17_data_dispatch_table_000008e2:
 	dc.b $06,$46,$50,$20,$52,$45,$47,$00,$05,$4D,$4D,$55,$53,$52,$05,$46
 	dc.b $50,$49,$41,$52,$05,$20,$20,$20,$20,$20,$0A,$3C,$3C,$3C,$49,$4E
 	dc.b $54,$52,$3E,$3E,$3E,$00
-CODE_17_loc_000008ec:
-CODE_17_loc_000008f2:
-CODE_17_loc_000008fa:
-CODE_17_loc_00000900:
-CODE_17_loc_00000906:
-CODE_17_loc_0000090c:
 CODE_17_loc_00000918:
 	link a6,#0
 	tst.l $000C(a6)
@@ -42716,13 +41464,8 @@ CODE_17_loc_000009e4:
 	addq.w #2,a7
 	jmp (a0)
 CODE_17_semantic_decode_gap_000009ec:
-	dc.b $8A,$53,$48,$4F,$57,$53,$54,$41,$54,$55,$53,$00,$00,$22
-CODE_17_loc_000009fa:
-CODE_17_semantic_decode_gap_000009fa:
-	dc.b $10,$20,$28,$73,$70,$6C,$69,$74,$20,$6C,$69,$73,$74,$69,$6E,$67
-	dc.b $29,$00
-CODE_17_loc_00000a0c:
-CODE_17_semantic_decode_gap_00000a0c:
+	dc.b $8A,$53,$48,$4F,$57,$53,$54,$41,$54,$55,$53,$00,$00,$22,$10,$20
+	dc.b $28,$73,$70,$6C,$69,$74,$20,$6C,$69,$73,$74,$69,$6E,$67,$29,$00
 	dc.b $0E,$2E,$2E,$2E,$64,$69,$73,$70,$6C,$61,$79,$69,$6E,$67,$20,$00
 CODE_17_loc_00000a1c:
 	link a6,#-816
@@ -43015,60 +41758,13 @@ CODE_17_data_dispatch_table_00000d14:
 	dc.b $20,$73,$79,$6D,$62,$6F,$6C,$20,$74,$61,$62,$6C,$65,$20,$66,$6F
 	dc.b $72,$20,$08,$20,$20,$20,$20,$20,$20,$20,$20,$00,$08,$2D,$2D,$2D
 	dc.b $2D,$2D,$2D,$2D,$2D,$00
-CODE_17_loc_00000d22:
-CODE_17_loc_00000d6c:
-CODE_17_loc_00000d72:
-CODE_17_loc_00000d84:
-CODE_17_loc_00000d8a:
-CODE_17_loc_00000dc6:
-CODE_17_loc_00000dd2:
-CODE_17_loc_00000df6:
-CODE_17_loc_00000e1a:
-CODE_17_loc_00000e2e:
-CODE_17_loc_00000e46:
-CODE_17_loc_00000e50:
 
-; CODE 18 FinishDirectives source section
+; CODE 18 FinishDirectives
 CODE_18:
-;   source_section_id: macos-code-CODE-18
-;   source_kind: macos_code_resource
-;   backend: macos-code
-;   status: semantic_source
-;   resource_type: CODE
-;   id: 18
-;   name: FinishDirectives
-;   role: code_segment
-;   code_kind: code_segment
-;   payload_size: 1974
-;   payload_sha256: 96d836fa8382f88453204a38fddb5da2e46867767f572482abb8f9cbb5e431c6
-;   presentation: kind=c_owned_restored_source_packet status=covered visible=True identity=macos-code:CODE:18
-;   listing: kind=semantic_listing available=True reason=C-owned semantic rows from generated loader/CODE0 entry seeds
-;   restored_source_model:
-;     model=restored_source_model_v1 round_trip_required=false
-;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 18 name=unknown
-;     a5_world status=deferred parser_use=unknown
-;     ownership_ranges:
-;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
-;       1: role=candidate_unresolved_prefix span=40..1562 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
-;       2: role=candidate_code span=1562..1974 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
-;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
-;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
-;   source_body_ranges:
-;     metadata payload[0..40) size=40 entrypoint=False
-;     candidate_unresolved_prefix payload[40..1562) size=1522 entrypoint=False
-;     candidate_code payload[1562..1974) size=412 entrypoint=True
-;   rendered_source: CODE 18 status=semantic_rows payload[0..1974) sha256=96d836fa8382f88453204a38fddb5da2e46867767f572482abb8f9cbb5e431c6
-;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
-;   source_rows:
-;     metadata payload[0..40)
 CODE_18_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$07,$F0,$00,$00,$00,$03,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00
-;     candidate_unresolved_prefix payload[40..1562)
-;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=488 labels=58 xrefs=66
 CODE_18_loc_00000028:
 	link a6,#-8
 	movem.l a3-a4,-(a7)
@@ -43423,8 +42119,8 @@ CODE_18_loc_0000047c:
 	move.b -$1AE9(a5),d0
 	beq.b CODE_18_loc_00000488
 	pea.l CODE_18_loc_00000680(pc)
-CODE_18_semantic_decode_gap_00000486:
-	dc.b $AB,$FF
+CODE_18_data_00000486:
+	_DebugStr
 CODE_18_loc_00000488:
 	move.w -$0BD2(a5),-$0002(a6)
 	clr.b -$37A3(a5)
@@ -43544,9 +42240,6 @@ CODE_18_loc_000005d6:
 	clr.b -$16E2(a5)
 	movem.l (a7)+,d4-d7/a3-a4
 	unlk a6
-;     candidate_code payload[1562..1974)
-;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=488 labels=58 xrefs=66
-CODE_18_loc_0000061a:
 	movea.l (a7)+,a0
 	addq.w #2,a7
 	jmp (a0)
@@ -43564,12 +42257,6 @@ CODE_18_data_dispatch_table_00000620:
 	dc.b $72,$61,$74,$63,$68,$20,$66,$69,$6C,$65,$20,$66,$6F,$72,$20,$50
 	dc.b $61,$73,$73,$32,$2E,$00,$15,$53,$70,$69,$6C,$6C,$20,$66,$69,$6C
 	dc.b $65,$20,$72,$65,$61,$64,$20,$65,$72,$72,$6F,$72
-CODE_18_loc_00000630:
-CODE_18_loc_00000662:
-CODE_18_loc_00000670:
-CODE_18_loc_00000680:
-CODE_18_loc_000006a4:
-CODE_18_loc_000006d6:
 CODE_18_loc_000006ec:
 	link a6,#-36
 	movem.l d5-d7,-(a7)
@@ -43640,120 +42327,200 @@ CODE_18_data_pascal_string_000007a4:
 	dc.b $8E,$46,$41,$4B,$45,$45,$4E,$44,$50,$4F,$52,$45,$4E,$44,$52,$00
 	dc.b $00,$00
 
-; CODE 19 SetupArgV source section
+; CODE 19 SetupArgV
 CODE_19:
-;   source_section_id: macos-code-CODE-19
-;   source_kind: macos_code_resource
-;   backend: macos-code
-;   status: covered_placeholder
-;   resource_type: CODE
-;   id: 19
-;   name: SetupArgV
-;   role: code_segment
-;   code_kind: code_segment
-;   payload_size: 556
-;   payload_sha256: 46027b8ec8f830b28abc470f5e942b54f7845efd9cf136f68e3b2b8a9873f3ce
-;   presentation: kind=c_owned_restored_source_packet status=covered visible=True identity=macos-code:CODE:19
-;   listing: kind=structured_placeholder available=False reason=no candidate preview range; classifier deferred byte-entry evidence: missing_m68k_movea_l_stack_to_a0_entry
-;   restored_source_model:
-;     model=restored_source_model_v1 round_trip_required=false
-;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 19 name=unknown
-;     a5_world status=deferred parser_use=unknown
-;     ownership_ranges:
-;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
-;       1: role=unknown span=40..556 status=deferred parser_use=deferred_only reason=missing_m68k_movea_l_stack_to_a0_entry
-;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
-;       1: kind=a5_world_context_placeholder ownership=0 status=deferred parser_use=unknown target=classic_mac_a5_world
-;   source_body_ranges:
-;     metadata payload[0..40) size=40 entrypoint=False
-;     deferred payload[40..556) size=516 entrypoint=False
-;   rendered_source: CODE 19 status=byte_preserved payload[0..556) sha256=46027b8ec8f830b28abc470f5e942b54f7845efd9cf136f68e3b2b8a9873f3ce
-;   residual_policy: semantic source rows are not available for this CODE resource; the source body keeps exact bytes and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
-;   source_rows:
-;     metadata payload[0..40)
 CODE_19_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$08,$08,$00,$00,$00,$01,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00
-;     deferred payload[40..556)
-CODE_19_deferred_00000028:
-	dc.b $4E,$56,$FD,$F6,$48,$E7,$07,$00,$20,$6E,$00,$08,$43,$EE,$FF,$00
-	dc.b $70,$7F,$32,$D8,$51,$C8,$FF,$FC,$48,$6D,$D2,$72,$48,$6E,$FF,$00
-	dc.b $42,$67,$4E,$AD,$0A,$0A,$48,$6D,$D2,$72,$48,$7A,$01,$D4,$42,$67
-	dc.b $4E,$AD,$0A,$0A,$48,$6D,$D2,$76,$48,$6E,$FD,$F6,$3F,$3C,$00,$FF
-	dc.b $4E,$AD,$09,$E2,$48,$6D,$D2,$76,$4E,$AD,$09,$DA,$48,$6E,$FE,$F6
-	dc.b $2F,$3C,$00,$00,$00,$80,$4E,$AD,$0A,$52,$2B,$6E,$FE,$F6,$D2,$C0
-	dc.b $70,$00,$2B,$40,$D2,$BC,$42,$40,$10,$2E,$FD,$F6,$52,$40,$41,$EE
-	dc.b $FD,$F6,$42,$30,$00,$00,$7C,$01,$42,$40,$10,$2E,$FD,$F7,$3E,$00
-	dc.b $70,$1F,$B0,$AD,$D2,$BC,$5E,$C0,$4A,$00,$67,$00,$01,$28,$4A,$47
-	dc.b $56,$C1,$C0,$01,$67,$00,$01,$1E,$70,$20,$B0,$47,$57,$C0,$4A,$00
-	dc.b $66,$0A,$72,$09,$B2,$47,$57,$C1,$80,$01,$67,$10,$52,$46,$42,$40
-	dc.b $41,$EE,$FD,$F6,$10,$30,$60,$00,$3E,$00,$60,$DC,$4A,$47,$67,$C0
-	dc.b $52,$AD,$D2,$BC,$20,$6D,$D2,$C0,$20,$2D,$D2,$BC,$E5,$80,$48,$70
-	dc.b $08,$00,$2F,$3C,$00,$00,$01,$00,$4E,$AD,$0A,$52,$42,$45,$70,$20
-	dc.b $B0,$47,$56,$C0,$4A,$00,$67,$00,$00,$B8,$72,$09,$B2,$47,$56,$C1
-	dc.b $C0,$01,$67,$00,$00,$AC,$4A,$47,$56,$C1,$C0,$01,$67,$00,$00,$A2
-	dc.b $52,$45,$0C,$47,$00,$B6,$57,$C0,$4A,$00,$67,$70,$32,$06,$52,$41
-	dc.b $42,$42,$41,$EE,$FD,$F6,$14,$30,$10,$00,$4A,$42,$56,$C1,$C0,$01
-	dc.b $67,$5A,$52,$46,$42,$40,$41,$EE,$FD,$F6,$10,$30,$60,$00,$3E,$00
-	dc.b $70,$6E,$B0,$47,$66,$16,$20,$6D,$D2,$C0,$20,$2D,$D2,$BC,$E5,$80
-	dc.b $20,$70,$08,$00,$11,$BC,$00,$0D,$50,$00,$60,$42,$70,$74,$B0,$47
-	dc.b $66,$16,$20,$6D,$D2,$C0,$20,$2D,$D2,$BC,$E5,$80,$20,$70,$08,$00
-	dc.b $11,$BC,$00,$09,$50,$00,$60,$26,$20,$6D,$D2,$C0,$20,$2D,$D2,$BC
-	dc.b $E5,$80,$20,$70,$08,$00,$11,$87,$50,$00,$60,$12,$20,$6D,$D2,$C0
-	dc.b $20,$2D,$D2,$BC,$E5,$80,$20,$70,$08,$00,$11,$87,$50,$00,$52,$46
-	dc.b $42,$40,$41,$EE,$FD,$F6,$10,$30,$60,$00,$3E,$00,$60,$00,$FF,$40
-	dc.b $20,$6D,$D2,$C0,$20,$2D,$D2,$BC,$E5,$80,$20,$70,$08,$00,$10,$85
-	dc.b $60,$00,$FE,$CE,$52,$AD,$D2,$BC,$20,$6D,$D2,$C0,$20,$2D,$D2,$BC
-	dc.b $E5,$80,$72,$00,$21,$81,$08,$00,$20,$6D,$D2,$C0,$2F,$08,$2F,$3C
-	dc.b $00,$00,$01,$00,$4E,$AD,$0A,$52,$20,$6D,$D2,$C0,$20,$50,$43,$EE
-	dc.b $FF,$00,$70,$7F,$30,$D9,$51,$C8,$FF,$FC,$4C,$DF,$00,$E0,$4E,$5E
-	dc.b $2E,$9F,$4E,$75,$89,$53,$45,$54,$55,$50,$41,$52,$47,$56,$00,$04
-	dc.b $02,$3F,$20,$00
+CODE_19_loc_00000028:
+	link a6,#-522
+	movem.l d5-d7,-(a7)
+	movea.l $0008(a6),a0
+	lea.l -$0100(a6),a1
+	moveq.l #127,d0
+CODE_19_loc_0000003a:
+	move.w (a0)+,(a1)+
+	dbf.w d0,CODE_19_loc_0000003a
+	pea.l -$2D8E(a5)
+	pea.l -$0100(a6)
+	clr.w -(a7)
+	jsr $0A0A(a5)
+	pea.l -$2D8E(a5)
+	pea.l CODE_19_loc_00000228(pc)
+	clr.w -(a7)
+	jsr $0A0A(a5)
+	pea.l -$2D8A(a5)
+	pea.l -$020A(a6)
+	move.w #$FF,-(a7)
+	jsr $09E2(a5)
+	pea.l -$2D8A(a5)
+	jsr $09DA(a5)
+	pea.l -$010A(a6)
+	move.l #$80,-(a7)
+	jsr $0A52(a5)
+	move.l -$010A(a6),-$2D40(a5)
+	moveq.l #0,d0
+	move.l d0,-$2D44(a5)
+	clr.w d0
+	move.b -$020A(a6),d0
+	addq.w #1,d0
+	lea.l -$020A(a6),a0
+	clr.b $0(a0,d0.w)
+	moveq.l #1,d6
+	clr.w d0
+	move.b -$0209(a6),d0
+	move.w d0,d7
+CODE_19_loc_000000a8:
+	moveq.l #31,d0
+	cmp.l -$2D44(a5),d0
+	sgt.b d0
+	tst.b d0
+	beq.w CODE_19_loc_000001dc
+	tst.w d7
+	sne.b d1
+	and.b d1,d0
+	beq.w CODE_19_loc_000001dc
+CODE_19_loc_000000c0:
+	moveq.l #32,d0
+	cmp.w d7,d0
+	seq.b d0
+	tst.b d0
+	bne.b CODE_19_loc_000000d4
+	moveq.l #9,d1
+	cmp.w d7,d1
+	seq.b d1
+	or.b d1,d0
+	beq.b CODE_19_loc_000000e4
+CODE_19_loc_000000d4:
+	addq.w #1,d6
+	clr.w d0
+	lea.l -$020A(a6),a0
+	move.b $0(a0,d6.w),d0
+	move.w d0,d7
+	bra.b CODE_19_loc_000000c0
+CODE_19_loc_000000e4:
+	tst.w d7
+	beq.b CODE_19_loc_000000a8
+	addq.l #1,-$2D44(a5)
+	movea.l -$2D40(a5),a0
+	move.l -$2D44(a5),d0
+	asl.l #2,d0
+	pea.l $0(a0,d0.l)
+	move.l #$100,-(a7)
+	jsr $0A52(a5)
+	clr.w d5
+CODE_19_loc_00000106:
+	moveq.l #32,d0
+	cmp.w d7,d0
+	sne.b d0
+	tst.b d0
+	beq.w CODE_19_loc_000001c8
+	moveq.l #9,d1
+	cmp.w d7,d1
+	sne.b d1
+	and.b d1,d0
+	beq.w CODE_19_loc_000001c8
+	tst.w d7
+	sne.b d1
+	and.b d1,d0
+	beq.w CODE_19_loc_000001c8
+	addq.w #1,d5
+	cmpi.w #182,d7
+	seq.b d0
+	tst.b d0
+	beq.b CODE_19_loc_000001a4
+	move.w d6,d1
+	addq.w #1,d1
+	clr.w d2
+	lea.l -$020A(a6),a0
+	move.b $0(a0,d1.w),d2
+	tst.w d2
+	sne.b d1
+	and.b d1,d0
+	beq.b CODE_19_loc_000001a4
+	addq.w #1,d6
+	clr.w d0
+	lea.l -$020A(a6),a0
+	move.b $0(a0,d6.w),d0
+	move.w d0,d7
+	moveq.l #110,d0
+	cmp.w d7,d0
+	bne.b CODE_19_loc_00000174
+	movea.l -$2D40(a5),a0
+	move.l -$2D44(a5),d0
+	asl.l #2,d0
+	movea.l $0(a0,d0.l),a0
+	move.b #$D,$0(a0,d5.w)
+	bra.b CODE_19_loc_000001b6
+CODE_19_loc_00000174:
+	moveq.l #116,d0
+	cmp.w d7,d0
+	bne.b CODE_19_loc_00000190
+	movea.l -$2D40(a5),a0
+	move.l -$2D44(a5),d0
+	asl.l #2,d0
+	movea.l $0(a0,d0.l),a0
+	move.b #$9,$0(a0,d5.w)
+	bra.b CODE_19_loc_000001b6
+CODE_19_loc_00000190:
+	movea.l -$2D40(a5),a0
+	move.l -$2D44(a5),d0
+	asl.l #2,d0
+	movea.l $0(a0,d0.l),a0
+	move.b d7,$0(a0,d5.w)
+	bra.b CODE_19_loc_000001b6
+CODE_19_loc_000001a4:
+	movea.l -$2D40(a5),a0
+	move.l -$2D44(a5),d0
+	asl.l #2,d0
+	movea.l $0(a0,d0.l),a0
+	move.b d7,$0(a0,d5.w)
+CODE_19_loc_000001b6:
+	addq.w #1,d6
+	clr.w d0
+	lea.l -$020A(a6),a0
+	move.b $0(a0,d6.w),d0
+	move.w d0,d7
+	bra.w CODE_19_loc_00000106
+CODE_19_loc_000001c8:
+	movea.l -$2D40(a5),a0
+	move.l -$2D44(a5),d0
+	asl.l #2,d0
+	movea.l $0(a0,d0.l),a0
+	move.b d5,(a0)
+	bra.w CODE_19_loc_000000a8
+CODE_19_loc_000001dc:
+	addq.l #1,-$2D44(a5)
+	movea.l -$2D40(a5),a0
+	move.l -$2D44(a5),d0
+	asl.l #2,d0
+	moveq.l #0,d1
+	move.l d1,$0(a0,d0.l)
+	movea.l -$2D40(a5),a0
+	move.l a0,-(a7)
+	move.l #$100,-(a7)
+	jsr $0A52(a5)
+	movea.l -$2D40(a5),a0
+	movea.l (a0),a0
+	lea.l -$0100(a6),a1
+	moveq.l #127,d0
+CODE_19_loc_0000020c:
+	move.w (a1)+,(a0)+
+	dbf.w d0,CODE_19_loc_0000020c
+	movem.l (a7)+,d5-d7
+	unlk a6
+	move.l (a7)+,(a7)
+	rts
+CODE_19_data_dispatch_table_0000021c:
+	dc.b $89,$53,$45,$54,$55,$50,$41,$52,$47,$56,$00,$04,$02,$3F,$20,$00
 
-; CODE 20 INTENV source section
+; CODE 20 INTENV
 CODE_20:
-;   source_section_id: macos-code-CODE-20
-;   source_kind: macos_code_resource
-;   backend: macos-code
-;   status: semantic_source
-;   resource_type: CODE
-;   id: 20
-;   name: INTENV
-;   role: code_segment
-;   code_kind: code_segment
-;   payload_size: 5262
-;   payload_sha256: de9f4a82222f3ff12586a0bb691cc6b5d513777d498d223dfa45311d4a7dc84a
-;   presentation: kind=c_owned_restored_source_packet status=covered visible=True identity=macos-code:CODE:20
-;   listing: kind=semantic_listing available=True reason=C-owned semantic rows from generated loader/CODE0 entry seeds
-;   restored_source_model:
-;     model=restored_source_model_v1 round_trip_required=false
-;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 20 name=unknown
-;     a5_world status=deferred parser_use=unknown
-;     ownership_ranges:
-;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
-;       1: role=candidate_unresolved_prefix span=40..2876 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
-;       2: role=candidate_code span=2876..5262 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
-;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
-;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
-;   source_body_ranges:
-;     metadata payload[0..40) size=40 entrypoint=False
-;     candidate_unresolved_prefix payload[40..2876) size=2836 entrypoint=False
-;     candidate_code payload[2876..5262) size=2386 entrypoint=True
-;   rendered_source: CODE 20 status=semantic_rows payload[0..5262) sha256=de9f4a82222f3ff12586a0bb691cc6b5d513777d498d223dfa45311d4a7dc84a
-;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
-;   source_rows:
-;     metadata payload[0..40)
 CODE_20_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$08,$10,$00,$00,$00,$1B,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00
-;     candidate_unresolved_prefix payload[40..2876)
-;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=1594 labels=235 xrefs=353
 CODE_20_loc_00000028:
 	link a6,#0
 	move.l $0010(a6),-(a7)
@@ -44237,11 +43004,30 @@ CODE_20_loc_000004b0:
 	movea.l $001C(a1),a0
 	movea.l -$306C(a5),a1
 	moveq.l #60,d0
-CODE_20_data_dispatch_table_000004e2:
-	dc.b $A0,$2E,$20,$6D,$CF,$94,$49,$D0,$60,$20,$4A,$54,$67,$18,$70,$00
-	dc.b $2F,$00,$48,$78,$66,$01,$2F,$0C,$20,$6C,$00,$04,$22,$68,$00,$14
-	dc.b $4E,$91,$4F,$EF,$00,$0C,$49,$EC,$00,$14,$20,$6D,$CF,$94,$41,$E8
-	dc.b $00,$28,$B1,$CC,$64,$D4,$60,$28
+CODE_20_data_000004e2:
+	_BlockMove
+	movea.l -$306C(a5),a0
+	lea.l (a0),a4
+	bra.b CODE_20_loc_0000050c
+CODE_20_loc_000004ec:
+	tst.w (a4)
+	beq.b CODE_20_loc_00000508
+	moveq.l #0,d0
+	move.l d0,-(a7)
+	pea.l $6601.w
+	move.l a4,-(a7)
+	movea.l $0004(a4),a0
+	movea.l $0014(a0),a1
+	jsr (a1)
+	lea.l $000C(a7),a7
+CODE_20_loc_00000508:
+	lea.l $0014(a4),a4
+CODE_20_loc_0000050c:
+	movea.l -$306C(a5),a0
+	lea.l $0028(a0),a0
+	cmpa.l a4,a0
+	bcc.b CODE_20_loc_000004ec
+	bra.b CODE_20_loc_00000542
 CODE_20_loc_0000051a:
 	moveq.l #0,d0
 	move.l d0,-(a7)
@@ -44256,6 +43042,7 @@ CODE_20_loc_0000051a:
 	pea.l CODE_20_loc_00000574(pc)
 	jsr CODE_20_loc_0000004e(pc)
 	lea.l $0018(a7),a7
+CODE_20_loc_00000542:
 	lea.l $085A(a5),a0
 	movea.l -$3072(a5),a1
 	move.l a0,$0004(a1)
@@ -44269,13 +43056,35 @@ CODE_20_loc_0000055c:
 	rts
 CODE_20_data_dispatch_table_00000564:
 	dc.b $8D,$5F,$69,$6E,$69,$74,$49,$4F,$50,$74,$61,$62,$6C,$65,$00,$0C
-	dc.b $64,$65,$76,$3A,$63,$6F,$6E,$73,$6F,$6C,$65,$00,$4E,$56,$00,$00
-	dc.b $48,$E7,$03,$00,$30,$2D,$CF,$92,$48,$C0,$81,$FC,$00,$14,$48,$C0
-	dc.b $2C,$00,$53,$86,$7E,$00,$60,$0A,$2F,$07,$4E,$BA,$FB,$24,$58,$4F
-	dc.b $52,$87,$BC,$87,$6C,$F2,$4A,$AD,$CF,$74,$67,$04,$4E,$AD,$09,$72
-	dc.b $4C,$EE,$00,$C0,$FF,$F8,$4E,$5E,$4E,$75,$8B,$5F,$63,$6F,$72,$65
-	dc.b $49,$4F,$45,$78,$69,$74,$00,$00
-CODE_20_loc_00000574:
+	dc.b $64,$65,$76,$3A,$63,$6F,$6E,$73,$6F,$6C,$65,$00
+CODE_20_loc_00000580:
+	link a6,#0
+	movem.l d6-d7,-(a7)
+	move.w -$306E(a5),d0
+	ext.l d0
+	divs.w #$14,d0
+	ext.l d0
+	move.l d0,d6
+	subq.l #1,d6
+	moveq.l #0,d7
+	bra.b CODE_20_loc_000005a6
+CODE_20_loc_0000059c:
+	move.l d7,-(a7)
+	jsr CODE_20_loc_000000c4(pc)
+	addq.w #4,a7
+	addq.l #1,d7
+CODE_20_loc_000005a6:
+	cmp.l d7,d6
+	bge.b CODE_20_loc_0000059c
+	tst.l -$308C(a5)
+	beq.b CODE_20_loc_000005b4
+	jsr $0972(a5)
+CODE_20_loc_000005b4:
+	movem.l -$0008(a6),d6-d7
+	unlk a6
+	rts
+CODE_20_data_pascal_string_000005be:
+	dc.b $8B,$5F,$63,$6F,$72,$65,$49,$4F,$45,$78,$69,$74,$00,$00
 CODE_20_loc_000005cc:
 	link a6,#0
 	move.l d7,-(a7)
@@ -44495,20 +43304,76 @@ CODE_20_loc_00000788:
 	ble.b CODE_20_loc_000007b6
 	movea.l a4,a0
 	move.l d6,d0
-CODE_20_semantic_decode_gap_000007b0:
-	dc.b $A0,$20,$20,$0C,$60,$3C
+CODE_20_data_000007b0:
+	_SetPtrSize
+	move.l a4,d0
+	bra.b CODE_20_loc_000007f2
 CODE_20_loc_000007b6:
 	move.l d6,d0
-CODE_20_data_dispatch_table_000007b8:
-	dc.b $A1,$1E,$2D,$48,$FF,$FC,$4A,$78,$02,$20,$67,$04,$70,$00,$60,$2A
-	dc.b $20,$0C,$67,$0E,$20,$4C,$22,$6E,$FF,$FC,$20,$07,$A0,$2E,$20,$4C
-	dc.b $A0,$1F,$2A,$2E,$FF,$FC,$28,$45,$D9,$C7,$26,$45,$D7,$C6,$60,$02
-	dc.b $42,$1C,$B7,$CC,$62,$FA,$20,$2E,$FF,$FC,$4C,$EE,$18,$E0,$FF,$E8
-	dc.b $4E,$5E,$4E,$75,$8F,$5F,$5F,$67,$72,$6F,$77,$46,$69,$6C,$65,$54
-	dc.b $61,$62,$6C,$65,$00,$00,$4E,$56,$FF,$FC,$48,$E7,$01,$18,$26,$6E
-	dc.b $00,$0C,$2E,$2E,$00,$10,$28,$6E,$00,$08,$2D,$4C,$FF,$FC,$60,$0E
-	dc.b $18,$9B,$4A,$1C,$66,$08,$60,$02,$42,$1C,$53,$87,$6C,$FA,$53,$87
-	dc.b $6C,$EE,$20,$2E,$FF,$FC,$4C,$EE,$18,$80,$FF,$F0,$4E,$5E,$4E,$75
+CODE_20_data_000007b8:
+	_NewPtr
+	move.l a0,-$0004(a6)
+	tst.w $0220.w
+	beq.b CODE_20_loc_000007c8
+	moveq.l #0,d0
+	bra.b CODE_20_loc_000007f2
+CODE_20_loc_000007c8:
+	move.l a4,d0
+	beq.b CODE_20_loc_000007da
+	movea.l a4,a0
+	movea.l -$0004(a6),a1
+	move.l d7,d0
+CODE_20_data_000007d4:
+	_BlockMove
+	movea.l a4,a0
+CODE_20_data_000007d8:
+	_DisposePtr
+CODE_20_loc_000007da:
+	move.l -$0004(a6),d5
+	movea.l d5,a4
+	adda.l d7,a4
+	movea.l d5,a3
+	adda.l d6,a3
+	bra.b CODE_20_loc_000007ea
+CODE_20_loc_000007e8:
+	clr.b (a4)+
+CODE_20_loc_000007ea:
+	cmpa.l a4,a3
+	bhi.b CODE_20_loc_000007e8
+	move.l -$0004(a6),d0
+CODE_20_loc_000007f2:
+	movem.l -$0018(a6),d5-d7/a3-a4
+	unlk a6
+	rts
+CODE_20_data_pascal_string_000007fc:
+	dc.b $8F,$5F,$5F,$67,$72,$6F,$77,$46,$69,$6C,$65,$54,$61,$62,$6C,$65
+	dc.b $00,$00
+CODE_20_loc_0000080e:
+	link a6,#-4
+	movem.l d7/a3-a4,-(a7)
+	movea.l $000C(a6),a3
+	move.l $0010(a6),d7
+	movea.l $0008(a6),a4
+	move.l a4,-$0004(a6)
+	bra.b CODE_20_loc_00000836
+CODE_20_loc_00000828:
+	move.b (a3)+,(a4)
+	tst.b (a4)+
+	bne.b CODE_20_loc_00000836
+	bra.b CODE_20_loc_00000832
+CODE_20_loc_00000830:
+	clr.b (a4)+
+CODE_20_loc_00000832:
+	subq.l #1,d7
+	bge.b CODE_20_loc_00000830
+CODE_20_loc_00000836:
+	subq.l #1,d7
+	bge.b CODE_20_loc_00000828
+	move.l -$0004(a6),d0
+	movem.l -$0010(a6),d7/a3-a4
+	unlk a6
+	rts
+CODE_20_data_pascal_string_00000848:
 	dc.b $8D,$5F,$6C,$69,$62,$5F,$43,$73,$74,$72,$6E,$63,$70,$79,$00,$00
 CODE_20_loc_00000858:
 	link a6,#0
@@ -44749,11 +43614,24 @@ CODE_20_loc_00000a86:
 	movem.l -$0010(a6),d5-d7/a4
 	unlk a6
 	rts
-CODE_20_semantic_decode_gap_00000a90:
-	dc.b $85,$72,$61,$69,$73,$65,$00,$00,$4E,$ED,$02,$B2,$4E,$56,$00,$00
-	dc.b $4A,$AD,$CF,$74,$67,$04,$70,$01,$60,$02,$70,$00,$1D,$40,$00,$08
-	dc.b $4E,$5E,$4E,$75,$8C,$49,$45,$53,$54,$41,$4E,$44,$41,$4C,$4F,$4E
-	dc.b $45,$00,$00,$00
+CODE_20_data_pascal_string_00000a90:
+	dc.b $85,$72,$61,$69,$73,$65,$00,$00
+CODE_20_loc_00000a98:
+	jmp $02B2(a5)
+CODE_20_loc_00000a9c:
+	link a6,#0
+	tst.l -$308C(a5)
+	beq.b CODE_20_loc_00000aaa
+	moveq.l #1,d0
+	bra.b CODE_20_loc_00000aac
+CODE_20_loc_00000aaa:
+	moveq.l #0,d0
+CODE_20_loc_00000aac:
+	move.b d0,$0008(a6)
+	unlk a6
+	rts
+CODE_20_data_pascal_string_00000ab4:
+	dc.b $8C,$49,$45,$53,$54,$41,$4E,$44,$41,$4C,$4F,$4E,$45,$00,$00,$00
 CODE_20_loc_00000ac4:
 	link a6,#-512
 	movem.l d6-d7/a3-a4,-(a7)
@@ -44794,9 +43672,6 @@ CODE_20_loc_00000b1e:
 	lea.l $000C(a7),a7
 	movem.l -$0210(a6),d6-d7/a3-a4
 	unlk a6
-;     candidate_code payload[2876..5262)
-;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=1594 labels=235 xrefs=353
-CODE_20_loc_00000b3c:
 	movea.l (a7)+,a0
 	lea.l $000C(a7),a7
 	jmp (a0)
@@ -44949,15 +43824,66 @@ CODE_20_loc_00000cc2:
 	lea.l -$0100(a6),a3
 	move.l $000C(a6),d7
 	moveq.l #20,d0
-CODE_20_data_dispatch_table_00000cd4:
-	dc.b $A1,$22,$28,$48,$20,$0C,$66,$0E,$42,$6D,$CD,$88,$70,$0C,$2B,$40
-	dc.b $CD,$8A,$70,$00,$60,$60,$59,$8F,$2F,$0B,$2F,$2E,$00,$08,$4E,$AD
-	dc.b $02,$A2,$59,$8F,$2F,$0B,$4E,$AD,$03,$A2,$2F,$07,$2F,$0B,$4E,$BA
-	dc.b $F3,$4A,$2C,$00,$4F,$EF,$00,$10,$6C,$08,$20,$4C,$A0,$23,$70,$00
-	dc.b $60,$34,$20,$54,$20,$86,$20,$07,$52,$80,$72,$02,$B2,$87,$57,$C3
-	dc.b $44,$03,$67,$04,$72,$04,$60,$02,$72,$00,$48,$81,$48,$C1,$82,$80
-	dc.b $20,$54,$31,$41,$00,$0C,$20,$54,$42,$68,$00,$0E,$20,$54,$70,$00
-	dc.b $21,$40,$00,$08,$20,$0C,$4C,$EE,$18,$C8,$FE,$EC,$4E,$5E,$4E,$75
+CODE_20_data_00000cd4:
+	_NewHandle
+	movea.l a0,a4
+	move.l a4,d0
+	bne.b CODE_20_loc_00000cea
+	clr.w -$3278(a5)
+	moveq.l #12,d0
+	move.l d0,-$3276(a5)
+	moveq.l #0,d0
+	bra.b CODE_20_loc_00000d4a
+CODE_20_loc_00000cea:
+	subq.l #4,a7
+	move.l a3,-(a7)
+	move.l $0008(a6),-(a7)
+	jsr $02A2(a5)
+	subq.l #4,a7
+	move.l a3,-(a7)
+	jsr $03A2(a5)
+	move.l d7,-(a7)
+	move.l a3,-(a7)
+	jsr CODE_20_loc_0000004e(pc)
+	move.l d0,d6
+	lea.l $0010(a7),a7
+	bge.b CODE_20_loc_00000d16
+	movea.l a4,a0
+CODE_20_data_00000d10:
+	_DisposeHandle
+	moveq.l #0,d0
+	bra.b CODE_20_loc_00000d4a
+CODE_20_loc_00000d16:
+	movea.l (a4),a0
+	move.l d6,(a0)
+	move.l d7,d0
+	addq.l #1,d0
+	moveq.l #2,d1
+	cmp.l d7,d1
+	seq.b d3
+	neg.b d3
+	beq.b CODE_20_loc_00000d2c
+	moveq.l #4,d1
+	bra.b CODE_20_loc_00000d2e
+CODE_20_loc_00000d2c:
+	moveq.l #0,d1
+CODE_20_loc_00000d2e:
+	ext.w d1
+	ext.l d1
+	or.l d0,d1
+	movea.l (a4),a0
+	move.w d1,$000C(a0)
+	movea.l (a4),a0
+	clr.w $000E(a0)
+	movea.l (a4),a0
+	moveq.l #0,d0
+	move.l d0,$0008(a0)
+	move.l a4,d0
+CODE_20_loc_00000d4a:
+	movem.l -$0114(a6),d3/d6-d7/a3-a4
+	unlk a6
+	rts
+CODE_20_data_pascal_string_00000d54:
 	dc.b $88,$5F,$6F,$70,$65,$6E,$46,$49,$42,$00,$00,$00
 CODE_20_loc_00000d60:
 	link a6,#0
@@ -45122,8 +44048,8 @@ CODE_20_loc_00000ed8:
 	and.w d0,d1
 	bne.b CODE_20_loc_00000eea
 	movea.l a4,a0
-CODE_20_semantic_decode_gap_00000ee8:
-	dc.b $A0,$23
+CODE_20_data_00000ee8:
+	_DisposeHandle
 CODE_20_loc_00000eea:
 	moveq.l #0,d0
 	move.l d0,(a3)
@@ -45681,47 +44607,12 @@ CODE_20_loc_00001486:
 CODE_20_loc_0000148c:
 	rts
 
-; CODE 21 SADEV source section
+; CODE 21 SADEV
 CODE_21:
-;   source_section_id: macos-code-CODE-21
-;   source_kind: macos_code_resource
-;   backend: macos-code
-;   status: semantic_source
-;   resource_type: CODE
-;   id: 21
-;   name: SADEV
-;   role: code_segment
-;   code_kind: code_segment
-;   payload_size: 6794
-;   payload_sha256: 927c28db98eadbc5501e570ada73af8afca05964552a831c02051f6e6fa3b687
-;   presentation: kind=c_owned_restored_source_packet status=covered visible=True identity=macos-code:CODE:21
-;   listing: kind=semantic_listing available=True reason=C-owned semantic rows from generated loader/CODE0 entry seeds
-;   restored_source_model:
-;     model=restored_source_model_v1 round_trip_required=false
-;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 21 name=unknown
-;     a5_world status=deferred parser_use=unknown
-;     ownership_ranges:
-;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
-;       1: role=candidate_unresolved_prefix span=40..2000 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
-;       2: role=candidate_code span=2000..6794 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
-;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
-;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
-;   source_body_ranges:
-;     metadata payload[0..40) size=40 entrypoint=False
-;     candidate_unresolved_prefix payload[40..2000) size=1960 entrypoint=False
-;     candidate_code payload[2000..6794) size=4794 entrypoint=True
-;   rendered_source: CODE 21 status=semantic_rows payload[0..6794) sha256=927c28db98eadbc5501e570ada73af8afca05964552a831c02051f6e6fa3b687
-;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
-;   source_rows:
-;     metadata payload[0..40)
 CODE_21_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$08,$E8,$00,$00,$00,$13,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00
-;     candidate_unresolved_prefix payload[40..2000)
-;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=801 labels=110 xrefs=152
 CODE_21_loc_00000028:
 	link a6,#-108
 	movem.l d3/d7/a3-a4,-(a7)
@@ -45816,124 +44707,671 @@ CODE_21_loc_0000013a:
 	movem.l -$007C(a6),d3/d7/a3-a4
 	unlk a6
 	rts
-CODE_21_data_dispatch_table_00000146:
+CODE_21_data_pascal_string_00000146:
 	dc.b $8D,$5F,$47,$65,$74,$41,$6C,$69,$61,$73,$49,$6E,$66,$6F,$00,$00
-	dc.b $4E,$56,$FF,$BA,$48,$E7,$17,$18,$1A,$2E,$00,$17,$1C,$2E,$00,$1B
-	dc.b $26,$6E,$00,$28,$28,$6E,$00,$1C,$55,$8F,$3F,$2E,$00,$0A,$2F,$2E
-	dc.b $00,$0C,$2F,$2E,$00,$10,$2F,$0C,$30,$3C,$00,$01,$AA,$52,$3E,$1F
-	dc.b $67,$0C,$0C,$47,$FF,$D5,$67,$06,$30,$07,$60,$00,$00,$BC,$4A,$05
-	dc.b $66,$1C,$4A,$06,$67,$18,$2F,$0B,$2F,$2E,$00,$20,$70,$01,$2F,$00
-	dc.b $2F,$0C,$4E,$BA,$FE,$7E,$3E,$00,$4F,$EF,$00,$10,$60,$54,$41,$EE
-	dc.b $FF,$BA,$22,$4C,$70,$10,$20,$D9,$51,$C8,$FF,$FC,$30,$D9,$55,$8F
-	dc.b $2F,$0C,$70,$01,$1F,$00,$2F,$2E,$00,$20,$2F,$0B,$70,$0C,$A8,$23
-	dc.b $3E,$1F,$4A,$13,$67,$2C,$0C,$47,$FF,$D5,$66,$26,$30,$2E,$FF,$BA
-	dc.b $B0,$54,$66,$1E,$20,$2E,$FF,$BC,$B0,$AC,$00,$02,$66,$14,$55,$8F
-	dc.b $48,$6E,$FF,$C0,$48,$6C,$00,$06,$4E,$AD,$02,$9A,$4A,$5F,$66,$02
-	dc.b $7E,$F7,$4A,$47,$67,$0A,$0C,$47,$FF,$D5,$67,$04,$30,$07,$60,$38
-	dc.b $0C,$47,$FF,$D5,$66,$08,$4A,$06,$66,$04,$70,$88,$60,$2A,$4A,$05
-	dc.b $66,$0E,$4A,$06,$67,$0A,$4A,$13,$67,$06,$20,$6E,$00,$20,$42,$10
-	dc.b $76,$01,$20,$6E,$00,$24,$4A,$10,$66,$06,$4A,$13,$66,$02,$76,$00
-	dc.b $20,$6E,$00,$24,$10,$83,$30,$07,$4C,$EE,$18,$E8,$FF,$A2,$4E,$5E
-	dc.b $4E,$75,$91,$5F,$52,$65,$73,$6F,$6C,$76,$65,$46,$69,$6C,$65,$41
-	dc.b $6C,$69,$61,$73,$00,$00,$4E,$56,$FF,$6E,$48,$E7,$1F,$18,$28,$2E
-	dc.b $00,$0C,$3A,$2E,$00,$0A,$4A,$AE,$00,$10,$67,$08,$20,$6E,$00,$10
-	dc.b $4A,$10,$66,$4A,$20,$6E,$00,$1C,$42,$10,$20,$6E,$00,$20,$42,$10
-	dc.b $20,$6E,$00,$24,$42,$10,$55,$8F,$3F,$05,$2F,$04,$2F,$2E,$00,$10
-	dc.b $2F,$2E,$00,$18,$30,$3C,$00,$01,$AA,$52,$3E,$1F,$66,$1A,$2F,$2E
-	dc.b $00,$24,$2F,$2E,$00,$1C,$70,$00,$2F,$00,$2F,$2E,$00,$18,$4E,$BA
-	dc.b $FD,$62,$3E,$00,$4F,$EF,$00,$10,$30,$07,$60,$00,$02,$46,$42,$47
-	dc.b $70,$00,$2D,$40,$FF,$72,$20,$6E,$00,$10,$1D,$50,$FF,$79,$28,$48
-	dc.b $41,$EE,$FF,$7A,$2D,$48,$FF,$FC,$42,$10,$20,$6E,$00,$20,$42,$10
-	dc.b $42,$06,$60,$00,$01,$FC,$26,$4C,$52,$4B,$60,$02,$52,$4B,$70,$00
-	dc.b $10,$14,$D0,$8C,$B0,$8B,$63,$0A,$70,$00,$10,$13,$0C,$40,$00,$3A
-	dc.b $67,$EA,$53,$4B,$B9,$CB,$67,$10,$1D,$53,$FF,$77,$70,$00,$10,$14
-	dc.b $22,$0B,$92,$8C,$90,$81,$16,$80,$70,$00,$10,$13,$0C,$00,$00,$01
-	dc.b $53,$C3,$44,$03,$67,$04,$70,$00,$60,$1A,$70,$00,$10,$13,$2F,$00
-	dc.b $70,$3A,$2F,$00,$22,$0B,$52,$81,$2F,$01,$4E,$BA,$04,$96,$4A,$80
-	dc.b $4F,$EF,$00,$0C,$2D,$40,$FF,$72,$B9,$CB,$67,$06,$16,$AE,$FF,$77
-	dc.b $60,$48,$70,$00,$10,$06,$4A,$80,$66,$40,$70,$00,$10,$2E,$FF,$79
-	dc.b $D0,$AE,$00,$10,$B0,$AE,$FF,$72,$66,$30,$55,$8F,$3F,$05,$2F,$04
-	dc.b $2F,$0C,$2F,$2E,$00,$18,$30,$3C,$00,$01,$AA,$52,$3E,$1F,$57,$C3
-	dc.b $44,$03,$20,$6E,$00,$1C,$10,$83,$20,$6E,$00,$24,$42,$10,$20,$6E
-	dc.b $00,$20,$42,$10,$30,$07,$60,$00,$01,$6A,$4A,$AE,$FF,$72,$67,$22
-	dc.b $1D,$54,$FF,$78,$20,$2E,$FF,$72,$90,$8C,$53,$80,$18,$80,$70,$00
-	dc.b $10,$2E,$FF,$78,$72,$00,$12,$14,$90,$41,$53,$40,$20,$6E,$FF,$72
-	dc.b $10,$80,$70,$00,$10,$06,$4A,$80,$66,$3E,$B9,$CB,$66,$3A,$4A,$AE
-	dc.b $FF,$72,$67,$34,$70,$00,$10,$14,$52,$40,$48,$C0,$2F,$00,$2F,$0C
-	dc.b $48,$6E,$FF,$7A,$4E,$BA,$04,$22,$10,$2E,$FF,$7A,$52,$2E,$FF,$7A
-	dc.b $41,$EE,$FF,$7A,$70,$00,$10,$2E,$FF,$7A,$D0,$88,$20,$40,$10,$BC
-	dc.b $00,$3A,$4F,$EF,$00,$0C,$60,$32,$70,$00,$10,$14,$52,$40,$48,$C0
-	dc.b $2F,$00,$2F,$0C,$2F,$2E,$FF,$FC,$4E,$BA,$03,$EE,$41,$EE,$FF,$7A
-	dc.b $B1,$EE,$FF,$FC,$4F,$EF,$00,$0C,$67,$10,$20,$6E,$FF,$FC,$10,$10
-	dc.b $52,$00,$D1,$2E,$FF,$7A,$10,$BC,$00,$3A,$2F,$2E,$00,$24,$2F,$2E
-	dc.b $00,$20,$2F,$2E,$00,$1C,$2F,$2E,$00,$18,$4A,$AE,$FF,$72,$57,$C3
-	dc.b $44,$03,$48,$83,$48,$C3,$2F,$03,$70,$00,$10,$2E,$00,$17,$2F,$00
-	dc.b $48,$6E,$FF,$7A,$2F,$04,$48,$C5,$2F,$05,$4E,$BA,$FC,$D4,$3E,$00
-	dc.b $18,$BC,$00,$3A,$4A,$47,$4F,$EF,$00,$24,$67,$06,$0C,$47,$FF,$D5
-	dc.b $66,$64,$28,$6E,$FF,$72,$20,$0C,$67,$52,$20,$6E,$00,$18,$3A,$10
-	dc.b $28,$28,$00,$02,$70,$00,$10,$28,$00,$06,$52,$40,$48,$C0,$2F,$00
-	dc.b $48,$68,$00,$06,$41,$EE,$FF,$7A,$52,$48,$2F,$08,$4E,$BA,$03,$5A
-	dc.b $41,$EE,$FF,$7A,$52,$48,$2D,$48,$FF,$6E,$10,$10,$52,$00,$1D,$40
-	dc.b $FF,$7A,$10,$BC,$00,$3A,$41,$EE,$FF,$7A,$70,$00,$10,$2E,$FF,$7A
-	dc.b $D0,$88,$52,$80,$2D,$40,$FF,$FC,$4F,$EF,$00,$0C,$10,$06,$52,$06
-	dc.b $20,$0C,$66,$00,$FE,$02,$4A,$47,$67,$0E,$4A,$AE,$FF,$72,$67,$08
-	dc.b $20,$6E,$FF,$72,$10,$BC,$00,$3A,$20,$6E,$00,$10,$10,$AE,$FF,$79
-	dc.b $30,$07,$4C,$EE,$18,$F8,$FF,$52,$4E,$5E,$4E,$75,$94,$52,$65,$73
-	dc.b $6F,$6C,$76,$65,$46,$6F,$6C,$64,$65,$72,$41,$6C,$69,$61,$73,$65
-	dc.b $73,$00,$00,$00,$4E,$56,$FF,$BA,$48,$E7,$07,$18,$2A,$2E,$00,$0C
-	dc.b $3C,$2E,$00,$0A,$26,$6E,$00,$20,$28,$6E,$00,$14,$55,$8F,$3F,$06
-	dc.b $2F,$05,$2F,$2E,$00,$10,$2F,$0C,$30,$3C,$00,$01,$AA,$52,$3E,$1F
-	dc.b $30,$07,$04,$40,$FF,$D5,$67,$62,$04,$40,$00,$2B,$66,$6C,$41,$EE
-	dc.b $FF,$BA,$22,$4C,$70,$10,$20,$D9,$51,$C8,$FF,$FC,$30,$D9,$55,$8F
-	dc.b $2F,$0C,$70,$01,$1F,$00,$2F,$2E,$00,$18,$2F,$0B,$70,$0C,$A8,$23
-	dc.b $3E,$1F,$4A,$13,$67,$2C,$0C,$47,$FF,$D5,$66,$26,$30,$2E,$FF,$BA
-	dc.b $B0,$54,$66,$1E,$20,$2E,$FF,$BC,$B0,$AC,$00,$02,$66,$14,$55,$8F
-	dc.b $48,$6E,$FF,$C0,$48,$6C,$00,$06,$4E,$AD,$02,$9A,$4A,$5F,$66,$02
-	dc.b $7E,$F7,$20,$6E,$00,$1C,$10,$93,$60,$34,$42,$13,$20,$6E,$00,$1C
-	dc.b $42,$10,$20,$6E,$00,$18,$42,$10,$60,$24,$2F,$0B,$2F,$2E,$00,$1C
-	dc.b $2F,$2E,$00,$18,$2F,$0C,$70,$01,$2F,$00,$2F,$2E,$00,$10,$2F,$05
-	dc.b $48,$C6,$2F,$06,$4E,$BA,$FC,$70,$3E,$00,$4F,$EF,$00,$20,$30,$07
-	dc.b $4C,$EE,$18,$E0,$FF,$A6,$4E,$5E,$4E,$75,$92,$4D,$61,$6B,$65,$52
-	dc.b $65,$73,$6F,$6C,$76,$65,$64,$46,$53,$53,$70,$65,$63,$00,$00,$00
-	dc.b $4E,$56,$FF,$54,$48,$E7,$07,$18,$47,$EE,$FF,$54,$28,$6E,$00,$4E
-	dc.b $70,$00,$10,$2E,$00,$0E,$52,$40,$48,$C0,$2F,$00,$48,$6E,$00,$0E
-	dc.b $2F,$0C,$4E,$BA,$01,$D4,$70,$00,$10,$2E,$00,$0E,$52,$40,$48,$C0
-	dc.b $2F,$00,$48,$6E,$00,$0E,$2F,$0B,$4E,$BA,$01,$BE,$3D,$6E,$00,$08
-	dc.b $FF,$AA,$70,$00,$2D,$40,$FF,$A0,$3D,$7C,$FF,$FF,$FF,$B0,$2D,$4B
-	dc.b $FF,$A6,$2D,$6E,$00,$0A,$FF,$C4,$4F,$EF,$00,$18,$55,$8F,$48,$6E
-	dc.b $FF,$94,$70,$00,$1F,$00,$4E,$AD,$03,$4A,$3A,$1F,$2D,$6E,$FF,$F8
-	dc.b $FF,$C4,$4A,$45,$67,$04,$30,$05,$60,$68,$10,$13,$52,$00,$1E,$00
-	dc.b $10,$14,$48,$80,$72,$00,$12,$07,$3C,$01,$DC,$40,$70,$00,$30,$06
-	dc.b $0C,$40,$00,$FF,$63,$04,$70,$DB,$60,$48,$10,$14,$48,$80,$48,$C0
-	dc.b $2F,$00,$20,$0C,$52,$80,$2F,$00,$70,$00,$10,$07,$D0,$8C,$52,$80
-	dc.b $2F,$00,$4E,$BA,$01,$9A,$70,$00,$10,$07,$2F,$00,$2F,$0B,$2F,$0C
-	dc.b $4E,$BA,$01,$36,$70,$00,$10,$07,$D0,$8C,$20,$40,$10,$BC,$00,$3A
-	dc.b $18,$86,$4F,$EF,$00,$18,$70,$01,$B0,$AE,$FF,$F8,$66,$00,$FF,$7E
-	dc.b $70,$00,$4C,$EE,$18,$E0,$FF,$40,$4E,$5E,$4E,$75,$8C,$5F,$46,$53
-	dc.b $53,$70,$65,$63,$32,$50,$61,$74,$68,$00,$00,$00,$4E,$56,$FF,$B2
-	dc.b $48,$E7,$13,$18,$26,$6E,$00,$10,$28,$6E,$00,$14,$42,$47,$55,$8F
-	dc.b $70,$00,$2F,$00,$48,$6E,$FF,$B6,$48,$6E,$FF,$B2,$4E,$AD,$03,$6A
-	dc.b $48,$6E,$FF,$FE,$48,$6E,$FF,$FF,$2F,$2E,$00,$0C,$48,$6E,$FF,$B8
-	dc.b $2F,$0C,$2F,$2E,$FF,$B2,$30,$2E,$FF,$B6,$48,$C0,$2F,$00,$4E,$BA
-	dc.b $FD,$D4,$3C,$00,$20,$6E,$00,$08,$10,$AE,$FF,$FF,$4A,$46,$4F,$EF
-	dc.b $00,$1E,$67,$06,$0C,$46,$FF,$D5,$66,$36,$4A,$2E,$FF,$FF,$67,$1A
-	dc.b $2F,$0B,$41,$EE,$FF,$FE,$70,$22,$3F,$20,$51,$C8,$FF,$FC,$4E,$BA
-	dc.b $FE,$90,$3E,$00,$4F,$EF,$00,$4A,$60,$16,$70,$00,$10,$14,$52,$40
-	dc.b $48,$C0,$2F,$00,$2F,$0C,$2F,$0B,$4E,$BA,$00,$6E,$4F,$EF,$00,$0C
-	dc.b $4A,$47,$57,$C3,$44,$03,$67,$04,$30,$06,$60,$02,$30,$07,$3D,$40
-	dc.b $00,$18,$4C,$EE,$18,$C8,$FF,$9E,$4E,$5E
-;     candidate_code payload[2000..6794)
-;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=801 labels=110 xrefs=152
-CODE_21_loc_000007d0:
+CODE_21_loc_00000156:
+	link a6,#-70
+	movem.l d3/d5-d7/a3-a4,-(a7)
+	move.b $0017(a6),d5
+	move.b $001B(a6),d6
+	movea.l $0028(a6),a3
+	movea.l $001C(a6),a4
+	subq.l #2,a7
+	move.w $000A(a6),-(a7)
+	move.l $000C(a6),-(a7)
+	move.l $0010(a6),-(a7)
+	move.l a4,-(a7)
+	move.w #$1,d0
+CODE_21_data_00000182:
+	_HighLevelFSDispatch
+	move.w (a7)+,d7
+	beq.b CODE_21_loc_00000194
+	cmpi.w #65493,d7
+	beq.b CODE_21_loc_00000194
+	move.w d7,d0
+	bra.w CODE_21_loc_0000024e
+CODE_21_loc_00000194:
+	tst.b d5
+	bne.b CODE_21_loc_000001b4
+	tst.b d6
+	beq.b CODE_21_loc_000001b4
+	move.l a3,-(a7)
+	move.l $0020(a6),-(a7)
+	moveq.l #1,d0
+	move.l d0,-(a7)
+	move.l a4,-(a7)
+	jsr CODE_21_loc_00000028(pc)
+	move.w d0,d7
+	lea.l $0010(a7),a7
+	bra.b CODE_21_loc_00000208
+CODE_21_loc_000001b4:
+	lea.l -$0046(a6),a0
+	movea.l a4,a1
+	moveq.l #16,d0
+CODE_21_loc_000001bc:
+	move.l (a1)+,(a0)+
+	dbf.w d0,CODE_21_loc_000001bc
+	move.w (a1)+,(a0)+
+	subq.l #2,a7
+	move.l a4,-(a7)
+	moveq.l #1,d0
+	move.b d0,-(a7)
+	move.l $0020(a6),-(a7)
+	move.l a3,-(a7)
+	moveq.l #12,d0
+CODE_21_data_000001d4:
+	_AliasDispatch
+	move.w (a7)+,d7
+	tst.b (a3)
+	beq.b CODE_21_loc_00000208
+	cmpi.w #65493,d7
+	bne.b CODE_21_loc_00000208
+	move.w -$0046(a6),d0
+	cmp.w (a4),d0
+	bne.b CODE_21_loc_00000208
+	move.l -$0044(a6),d0
+	cmp.l $0002(a4),d0
+	bne.b CODE_21_loc_00000208
+	subq.l #2,a7
+	pea.l -$0040(a6)
+	pea.l $0006(a4)
+	jsr $029A(a5)
+	tst.w (a7)+
+	bne.b CODE_21_loc_00000208
+	moveq.l #-9,d7
+CODE_21_loc_00000208:
+	tst.w d7
+	beq.b CODE_21_loc_00000216
+	cmpi.w #65493,d7
+	beq.b CODE_21_loc_00000216
+	move.w d7,d0
+	bra.b CODE_21_loc_0000024e
+CODE_21_loc_00000216:
+	cmpi.w #65493,d7
+	bne.b CODE_21_loc_00000224
+	tst.b d6
+	bne.b CODE_21_loc_00000224
+	moveq.l #-120,d0
+	bra.b CODE_21_loc_0000024e
+CODE_21_loc_00000224:
+	tst.b d5
+	bne.b CODE_21_loc_00000236
+	tst.b d6
+	beq.b CODE_21_loc_00000236
+	tst.b (a3)
+	beq.b CODE_21_loc_00000236
+	movea.l $0020(a6),a0
+	clr.b (a0)
+CODE_21_loc_00000236:
+	moveq.l #1,d3
+	movea.l $0024(a6),a0
+	tst.b (a0)
+	bne.b CODE_21_loc_00000246
+	tst.b (a3)
+	bne.b CODE_21_loc_00000246
+	moveq.l #0,d3
+CODE_21_loc_00000246:
+	movea.l $0024(a6),a0
+	move.b d3,(a0)
+	move.w d7,d0
+CODE_21_loc_0000024e:
+	movem.l -$005E(a6),d3/d5-d7/a3-a4
+	unlk a6
+	rts
+CODE_21_data_pascal_string_00000258:
+	dc.b $91,$5F,$52,$65,$73,$6F,$6C,$76,$65,$46,$69,$6C,$65,$41,$6C,$69
+	dc.b $61,$73,$00,$00
+CODE_21_loc_0000026c:
+	link a6,#-146
+	movem.l d3-d7/a3-a4,-(a7)
+	move.l $000C(a6),d4
+	move.w $000A(a6),d5
+	tst.l $0010(a6)
+	beq.b CODE_21_loc_0000028a
+	movea.l $0010(a6),a0
+	tst.b (a0)
+	bne.b CODE_21_loc_000002d4
+CODE_21_loc_0000028a:
+	movea.l $001C(a6),a0
+	clr.b (a0)
+	movea.l $0020(a6),a0
+	clr.b (a0)
+	movea.l $0024(a6),a0
+	clr.b (a0)
+	subq.l #2,a7
+	move.w d5,-(a7)
+	move.l d4,-(a7)
+	move.l $0010(a6),-(a7)
+	move.l $0018(a6),-(a7)
+	move.w #$1,d0
+CODE_21_data_000002ae:
+	_HighLevelFSDispatch
+	move.w (a7)+,d7
+	bne.b CODE_21_loc_000002ce
+	move.l $0024(a6),-(a7)
+	move.l $001C(a6),-(a7)
+	moveq.l #0,d0
+	move.l d0,-(a7)
+	move.l $0018(a6),-(a7)
+	jsr CODE_21_loc_00000028(pc)
+	move.w d0,d7
+	lea.l $0010(a7),a7
+CODE_21_loc_000002ce:
+	move.w d7,d0
+	bra.w CODE_21_loc_00000518
+CODE_21_loc_000002d4:
+	clr.w d7
+	moveq.l #0,d0
+	move.l d0,-$008E(a6)
+	movea.l $0010(a6),a0
+	move.b (a0),-$0087(a6)
+	movea.l a0,a4
+	lea.l -$0086(a6),a0
+	move.l a0,-$0004(a6)
+	clr.b (a0)
+	movea.l $0020(a6),a0
+	clr.b (a0)
+	clr.b d6
+	bra.w CODE_21_loc_000004f6
+CODE_21_loc_000002fc:
+	movea.l a4,a3
+	addq.w #1,a3
+	bra.b CODE_21_loc_00000304
+CODE_21_loc_00000302:
+	addq.w #1,a3
+CODE_21_loc_00000304:
+	moveq.l #0,d0
+	move.b (a4),d0
+	add.l a4,d0
+	cmp.l a3,d0
+	bls.b CODE_21_loc_00000318
+	moveq.l #0,d0
+	move.b (a3),d0
+	cmpi.w #58,d0
+	beq.b CODE_21_loc_00000302
+CODE_21_loc_00000318:
+	subq.w #1,a3
+	cmpa.l a3,a4
+	beq.b CODE_21_loc_0000032e
+	move.b (a3),-$0089(a6)
+	moveq.l #0,d0
+	move.b (a4),d0
+	move.l a3,d1
+	sub.l a4,d1
+	sub.l d1,d0
+	move.b d0,(a3)
+CODE_21_loc_0000032e:
+	moveq.l #0,d0
+	move.b (a3),d0
+	cmpi.b #1,d0
+	sls.b d3
+	neg.b d3
+	beq.b CODE_21_loc_00000340
+	moveq.l #0,d0
+	bra.b CODE_21_loc_0000035a
+CODE_21_loc_00000340:
+	moveq.l #0,d0
+	move.b (a3),d0
+	move.l d0,-(a7)
+	moveq.l #58,d0
+	move.l d0,-(a7)
+	move.l a3,d1
+	addq.l #1,d1
+	move.l d1,-(a7)
+	jsr CODE_21_loc_000007e8(pc)
+	tst.l d0
+	lea.l $000C(a7),a7
+CODE_21_loc_0000035a:
+	move.l d0,-$008E(a6)
+	cmpa.l a3,a4
+	beq.b CODE_21_loc_00000368
+	move.b -$0089(a6),(a3)
+	bra.b CODE_21_loc_000003b0
+CODE_21_loc_00000368:
+	moveq.l #0,d0
+	move.b d6,d0
+	tst.l d0
+	bne.b CODE_21_loc_000003b0
+	moveq.l #0,d0
+	move.b -$0087(a6),d0
+	add.l $0010(a6),d0
+	cmp.l -$008E(a6),d0
+	bne.b CODE_21_loc_000003b0
+	subq.l #2,a7
+	move.w d5,-(a7)
+	move.l d4,-(a7)
+	move.l a4,-(a7)
+	move.l $0018(a6),-(a7)
+	move.w #$1,d0
+CODE_21_data_00000390:
+	_HighLevelFSDispatch
+	move.w (a7)+,d7
+	seq.b d3
+	neg.b d3
+	movea.l $001C(a6),a0
+	move.b d3,(a0)
+	movea.l $0024(a6),a0
+	clr.b (a0)
+	movea.l $0020(a6),a0
+	clr.b (a0)
+	move.w d7,d0
+	bra.w CODE_21_loc_00000518
+CODE_21_loc_000003b0:
+	tst.l -$008E(a6)
+	beq.b CODE_21_loc_000003d8
+	move.b (a4),-$0088(a6)
+	move.l -$008E(a6),d0
+	sub.l a4,d0
+	subq.l #1,d0
+	move.b d0,(a4)
+	moveq.l #0,d0
+	move.b -$0088(a6),d0
+	moveq.l #0,d1
+	move.b (a4),d1
+	sub.w d1,d0
+	subq.w #1,d0
+	movea.l -$008E(a6),a0
+	move.b d0,(a0)
+CODE_21_loc_000003d8:
+	moveq.l #0,d0
+	move.b d6,d0
+	tst.l d0
+	bne.b CODE_21_loc_0000041e
+	cmpa.l a3,a4
+	bne.b CODE_21_loc_0000041e
+	tst.l -$008E(a6)
+	beq.b CODE_21_loc_0000041e
+	moveq.l #0,d0
+	move.b (a4),d0
+	addq.w #1,d0
+	ext.l d0
+	move.l d0,-(a7)
+	move.l a4,-(a7)
+	pea.l -$0086(a6)
+	jsr CODE_21_loc_0000081e(pc)
+	move.b -$0086(a6),d0
+	addq.b #1,-$0086(a6)
+	lea.l -$0086(a6),a0
+	moveq.l #0,d0
+	move.b -$0086(a6),d0
+	add.l a0,d0
+	movea.l d0,a0
+	move.b #$3A,(a0)
+	lea.l $000C(a7),a7
+	bra.b CODE_21_loc_00000450
+CODE_21_loc_0000041e:
+	moveq.l #0,d0
+	move.b (a4),d0
+	addq.w #1,d0
+	ext.l d0
+	move.l d0,-(a7)
+	move.l a4,-(a7)
+	move.l -$0004(a6),-(a7)
+	jsr CODE_21_loc_0000081e(pc)
+	lea.l -$0086(a6),a0
+	cmpa.l -$0004(a6),a0
+	lea.l $000C(a7),a7
+	beq.b CODE_21_loc_00000450
+	movea.l -$0004(a6),a0
+	move.b (a0),d0
+	addq.b #1,d0
+	add.b d0,-$0086(a6)
+	move.b #$3A,(a0)
+CODE_21_loc_00000450:
+	move.l $0024(a6),-(a7)
+	move.l $0020(a6),-(a7)
+	move.l $001C(a6),-(a7)
+	move.l $0018(a6),-(a7)
+	tst.l -$008E(a6)
+	seq.b d3
+	neg.b d3
+	ext.w d3
+	ext.l d3
+	move.l d3,-(a7)
+	moveq.l #0,d0
+	move.b $0017(a6),d0
+	move.l d0,-(a7)
+	pea.l -$0086(a6)
+	move.l d4,-(a7)
+	ext.l d5
+	move.l d5,-(a7)
+	jsr CODE_21_loc_00000156(pc)
+	move.w d0,d7
+	move.b #$3A,(a4)
+	tst.w d7
+	lea.l $0024(a7),a7
+	beq.b CODE_21_loc_00000498
+	cmpi.w #65493,d7
+	bne.b CODE_21_loc_000004fc
+CODE_21_loc_00000498:
+	movea.l -$008E(a6),a4
+	move.l a4,d0
+	beq.b CODE_21_loc_000004f2
+	movea.l $0018(a6),a0
+	move.w (a0),d5
+	move.l $0002(a0),d4
+	moveq.l #0,d0
+	move.b $0006(a0),d0
+	addq.w #1,d0
+	ext.l d0
+	move.l d0,-(a7)
+	pea.l $0006(a0)
+	lea.l -$0086(a6),a0
+	addq.w #1,a0
+	move.l a0,-(a7)
+	jsr CODE_21_loc_0000081e(pc)
+	lea.l -$0086(a6),a0
+	addq.w #1,a0
+	move.l a0,-$0092(a6)
+	move.b (a0),d0
+	addq.b #1,d0
+	move.b d0,-$0086(a6)
+	move.b #$3A,(a0)
+	lea.l -$0086(a6),a0
+	moveq.l #0,d0
+	move.b -$0086(a6),d0
+	add.l a0,d0
+	addq.l #1,d0
+	move.l d0,-$0004(a6)
+	lea.l $000C(a7),a7
+CODE_21_loc_000004f2:
+	move.b d6,d0
+	addq.b #1,d6
+CODE_21_loc_000004f6:
+	move.l a4,d0
+	bne.w CODE_21_loc_000002fc
+CODE_21_loc_000004fc:
+	tst.w d7
+	beq.b CODE_21_loc_0000050e
+	tst.l -$008E(a6)
+	beq.b CODE_21_loc_0000050e
+	movea.l -$008E(a6),a0
+	move.b #$3A,(a0)
+CODE_21_loc_0000050e:
+	movea.l $0010(a6),a0
+	move.b -$0087(a6),(a0)
+	move.w d7,d0
+CODE_21_loc_00000518:
+	movem.l -$00AE(a6),d3-d7/a3-a4
+	unlk a6
+	rts
+CODE_21_data_pascal_string_00000522:
+	dc.b $94,$52,$65,$73,$6F,$6C,$76,$65,$46,$6F,$6C,$64,$65,$72,$41,$6C
+	dc.b $69,$61,$73,$65,$73,$00,$00,$00
+CODE_21_loc_0000053a:
+	link a6,#-70
+	movem.l d5-d7/a3-a4,-(a7)
+	move.l $000C(a6),d5
+	move.w $000A(a6),d6
+	movea.l $0020(a6),a3
+	movea.l $0014(a6),a4
+	subq.l #2,a7
+	move.w d6,-(a7)
+	move.l d5,-(a7)
+	move.l $0010(a6),-(a7)
+	move.l a4,-(a7)
+	move.w #$1,d0
+CODE_21_data_00000562:
+	_HighLevelFSDispatch
+	move.w (a7)+,d7
+	move.w d7,d0
+	subi.w #65493,d0
+	beq.b CODE_21_loc_000005d0
+	subi.w #43,d0
+	bne.b CODE_21_loc_000005e0
+	lea.l -$0046(a6),a0
+	movea.l a4,a1
+	moveq.l #16,d0
+CODE_21_loc_0000057c:
+	move.l (a1)+,(a0)+
+	dbf.w d0,CODE_21_loc_0000057c
+	move.w (a1)+,(a0)+
+	subq.l #2,a7
+	move.l a4,-(a7)
+	moveq.l #1,d0
+	move.b d0,-(a7)
+	move.l $0018(a6),-(a7)
+	move.l a3,-(a7)
+	moveq.l #12,d0
+CODE_21_data_00000594:
+	_AliasDispatch
+	move.w (a7)+,d7
+	tst.b (a3)
+	beq.b CODE_21_loc_000005c8
+	cmpi.w #65493,d7
+	bne.b CODE_21_loc_000005c8
+	move.w -$0046(a6),d0
+	cmp.w (a4),d0
+	bne.b CODE_21_loc_000005c8
+	move.l -$0044(a6),d0
+	cmp.l $0002(a4),d0
+	bne.b CODE_21_loc_000005c8
+	subq.l #2,a7
+	pea.l -$0040(a6)
+	pea.l $0006(a4)
+	jsr $029A(a5)
+	tst.w (a7)+
+	bne.b CODE_21_loc_000005c8
+	moveq.l #-9,d7
+CODE_21_loc_000005c8:
+	movea.l $001C(a6),a0
+	move.b (a3),(a0)
+	bra.b CODE_21_loc_00000604
+CODE_21_loc_000005d0:
+	clr.b (a3)
+	movea.l $001C(a6),a0
+	clr.b (a0)
+	movea.l $0018(a6),a0
+	clr.b (a0)
+	bra.b CODE_21_loc_00000604
+CODE_21_loc_000005e0:
+	move.l a3,-(a7)
+	move.l $001C(a6),-(a7)
+	move.l $0018(a6),-(a7)
+	move.l a4,-(a7)
+	moveq.l #1,d0
+	move.l d0,-(a7)
+	move.l $0010(a6),-(a7)
+	move.l d5,-(a7)
+	ext.l d6
+	move.l d6,-(a7)
+	jsr CODE_21_loc_0000026c(pc)
+	move.w d0,d7
+	lea.l $0020(a7),a7
+CODE_21_loc_00000604:
+	move.w d7,d0
+	movem.l -$005A(a6),d5-d7/a3-a4
+	unlk a6
+	rts
+CODE_21_data_pascal_string_00000610:
+	dc.b $92,$4D,$61,$6B,$65,$52,$65,$73,$6F,$6C,$76,$65,$64,$46,$53,$53
+	dc.b $70,$65,$63,$00,$00,$00
+CODE_21_loc_00000626:
+	link a6,#-172
+	movem.l d5-d7/a3-a4,-(a7)
+	lea.l -$00AC(a6),a3
+	movea.l $004E(a6),a4
+	moveq.l #0,d0
+	move.b $000E(a6),d0
+	addq.w #1,d0
+	ext.l d0
+	move.l d0,-(a7)
+	pea.l $000E(a6)
+	move.l a4,-(a7)
+	jsr CODE_21_loc_0000081e(pc)
+	moveq.l #0,d0
+	move.b $000E(a6),d0
+	addq.w #1,d0
+	ext.l d0
+	move.l d0,-(a7)
+	pea.l $000E(a6)
+	move.l a3,-(a7)
+	jsr CODE_21_loc_0000081e(pc)
+	move.w $0008(a6),-$0056(a6)
+	moveq.l #0,d0
+	move.l d0,-$0060(a6)
+	move.w #$FFFF,-$0050(a6)
+	move.l a3,-$005A(a6)
+	move.l $000A(a6),-$003C(a6)
+	lea.l $0018(a7),a7
+CODE_21_loc_00000682:
+	subq.l #2,a7
+	pea.l -$006C(a6)
+	moveq.l #0,d0
+	move.b d0,-(a7)
+	jsr $034A(a5)
+	move.w (a7)+,d5
+	move.l -$0008(a6),-$003C(a6)
+	tst.w d5
+	beq.b CODE_21_loc_000006a0
+	move.w d5,d0
+	bra.b CODE_21_loc_00000708
+CODE_21_loc_000006a0:
+	move.b (a3),d0
+	addq.b #1,d0
+	move.b d0,d7
+	move.b (a4),d0
+	ext.w d0
+	moveq.l #0,d1
+	move.b d7,d1
+	move.w d1,d6
+	add.w d0,d6
+	moveq.l #0,d0
+	move.w d6,d0
+	cmpi.w #255,d0
+	bls.b CODE_21_loc_000006c0
+	moveq.l #-37,d0
+	bra.b CODE_21_loc_00000708
+CODE_21_loc_000006c0:
+	move.b (a4),d0
+	ext.w d0
+	ext.l d0
+	move.l d0,-(a7)
+	move.l a4,d0
+	addq.l #1,d0
+	move.l d0,-(a7)
+	moveq.l #0,d0
+	move.b d7,d0
+	add.l a4,d0
+	addq.l #1,d0
+	move.l d0,-(a7)
+	jsr CODE_21_loc_00000874(pc)
+	moveq.l #0,d0
+	move.b d7,d0
+	move.l d0,-(a7)
+	move.l a3,-(a7)
+	move.l a4,-(a7)
+	jsr CODE_21_loc_0000081e(pc)
+	moveq.l #0,d0
+	move.b d7,d0
+	add.l a4,d0
+	movea.l d0,a0
+	move.b #$3A,(a0)
+	move.b d6,(a4)
+	lea.l $0018(a7),a7
+	moveq.l #1,d0
+	cmp.l -$0008(a6),d0
+	bne.w CODE_21_loc_00000682
+	moveq.l #0,d0
+CODE_21_loc_00000708:
+	movem.l -$00C0(a6),d5-d7/a3-a4
+	unlk a6
+	rts
+CODE_21_data_pascal_string_00000712:
+	dc.b $8C,$5F,$46,$53,$53,$70,$65,$63,$32,$50,$61,$74,$68,$00,$00,$00
+CODE_21_loc_00000722:
+	link a6,#-78
+	movem.l d3/d6-d7/a3-a4,-(a7)
+	movea.l $0010(a6),a3
+	movea.l $0014(a6),a4
+	clr.w d7
+	subq.l #2,a7
+	moveq.l #0,d0
+	move.l d0,-(a7)
+	pea.l -$004A(a6)
+	pea.l -$004E(a6)
+	jsr $036A(a5)
+	pea.l -$0002(a6)
+	pea.l -$0001(a6)
+	move.l $000C(a6),-(a7)
+	pea.l -$0048(a6)
+	move.l a4,-(a7)
+	move.l -$004E(a6),-(a7)
+	move.w -$004A(a6),d0
+	ext.l d0
+	move.l d0,-(a7)
+	jsr CODE_21_loc_0000053a(pc)
+	move.w d0,d6
+	movea.l $0008(a6),a0
+	move.b -$0001(a6),(a0)
+	tst.w d6
+	lea.l $001E(a7),a7
+	beq.b CODE_21_loc_00000780
+	cmpi.w #65493,d6
+	bne.b CODE_21_loc_000007b6
+CODE_21_loc_00000780:
+	tst.b -$0001(a6)
+	beq.b CODE_21_loc_000007a0
+	move.l a3,-(a7)
+	lea.l -$0002(a6),a0
+	moveq.l #34,d0
+CODE_21_loc_0000078e:
+	move.w -(a0),-(a7)
+	dbf.w d0,CODE_21_loc_0000078e
+	jsr CODE_21_loc_00000626(pc)
+	move.w d0,d7
+	lea.l $004A(a7),a7
+	bra.b CODE_21_loc_000007b6
+CODE_21_loc_000007a0:
+	moveq.l #0,d0
+	move.b (a4),d0
+	addq.w #1,d0
+	ext.l d0
+	move.l d0,-(a7)
+	move.l a4,-(a7)
+	move.l a3,-(a7)
+	jsr CODE_21_loc_0000081e(pc)
+	lea.l $000C(a7),a7
+CODE_21_loc_000007b6:
+	tst.w d7
+	seq.b d3
+	neg.b d3
+	beq.b CODE_21_loc_000007c2
+	move.w d6,d0
+	bra.b CODE_21_loc_000007c4
+CODE_21_loc_000007c2:
+	move.w d7,d0
+CODE_21_loc_000007c4:
+	move.w d0,$0018(a6)
+	movem.l -$0062(a6),d3/d6-d7/a3-a4
+	unlk a6
 	movea.l (a7)+,a0
 	lea.l $0010(a7),a7
 	jmp (a0)
-CODE_21_semantic_decode_gap_000007d8:
+CODE_21_data_pascal_string_000007d8:
 	dc.b $8D,$49,$45,$52,$45,$53,$4F,$4C,$56,$45,$50,$41,$54,$48,$00,$00
-	dc.b $20,$6F,$00,$04,$10,$2F,$00,$0B,$22,$2F,$00,$0C,$44,$FC,$00,$00
-	dc.b $60,$04,$48,$41,$B0,$18,$57,$C9,$FF,$FC,$67,$0A,$48,$41,$51,$C9
-	dc.b $FF,$F2,$30,$7C,$00,$01,$20,$08,$53,$80,$4E,$75,$87,$5F,$6D,$65
-	dc.b $6D,$63,$68,$72,$00,$00
+CODE_21_loc_000007e8:
+	movea.l $0004(a7),a0
+	move.b $000B(a7),d0
+	move.l $000C(a7),d1
+	move #$0,ccr
+	bra.b CODE_21_loc_000007fe
+CODE_21_loc_000007fa:
+	swap.w d1
+CODE_21_loc_000007fc:
+	cmp.b (a0)+,d0
+CODE_21_loc_000007fe:
+	dbeq.w d1,CODE_21_loc_000007fc
+	beq.b CODE_21_loc_0000080e
+	swap.w d1
+	dbf.w d1,CODE_21_loc_000007fa
+	movea.w #$1,a0
+CODE_21_loc_0000080e:
+	move.l a0,d0
+	subq.l #1,d0
+	rts
+CODE_21_data_pascal_string_00000814:
+	dc.b $87,$5F,$6D,$65,$6D,$63,$68,$72,$00,$00
 CODE_21_loc_0000081e:
 	movem.l $0004(a7),a0-a1
 	move.l a0,d0
@@ -45969,17 +45407,72 @@ CODE_21_loc_00000862:
 	bcc.b CODE_21_loc_00000860
 	move.l (a7)+,d2
 	rts
-CODE_21_semantic_decode_gap_0000086a:
-	dc.b $87,$5F,$6D,$65,$6D,$63,$70,$79,$00,$00,$4C,$EF,$03,$00,$00,$04
-	dc.b $24,$2F,$00,$0C,$20,$08,$D1,$C2,$D3,$C2,$0C,$82,$00,$00,$00,$11
-	dc.b $65,$3A,$22,$09,$D2,$48,$E2,$09,$65,$32,$22,$08,$E2,$09,$64,$04
-	dc.b $11,$21,$53,$82,$22,$02,$E8,$89,$53,$81,$21,$21,$21,$21,$21,$21
-	dc.b $21,$21,$51,$C9,$FF,$F6,$48,$41,$4A,$41,$67,$06,$53,$41,$48,$41
-	dc.b $60,$E8,$02,$82,$00,$00,$00,$0F,$60,$02,$11,$21,$51,$CA,$FF,$FC
-	dc.b $48,$42,$4A,$42,$67,$20,$48,$42,$42,$42,$E4,$8A,$60,$08,$11,$21
-	dc.b $11,$21,$11,$21,$11,$21,$51,$CA,$FF,$F6,$48,$42,$4A,$42,$67,$06
-	dc.b $53,$42,$48,$42,$60,$E8,$4E,$75,$88,$5F,$72,$6D,$65,$6D,$63,$70
-	dc.b $79,$00,$00,$00
+CODE_21_data_pascal_string_0000086a:
+	dc.b $87,$5F,$6D,$65,$6D,$63,$70,$79,$00,$00
+CODE_21_loc_00000874:
+	movem.l $0004(a7),a0-a1
+	move.l $000C(a7),d2
+	move.l a0,d0
+	adda.l d2,a0
+	adda.l d2,a1
+	cmpi.l #17,d2
+	bcs.b CODE_21_loc_000008c6
+	move.l a1,d1
+	add.w a0,d1
+	lsr.b #1,d1
+	bcs.b CODE_21_loc_000008c6
+	move.l a0,d1
+	lsr.b #1,d1
+	bcc.b CODE_21_loc_0000089e
+	move.b -(a1),-(a0)
+	subq.l #1,d2
+CODE_21_loc_0000089e:
+	move.l d2,d1
+	lsr.l #4,d1
+	subq.l #1,d1
+CODE_21_loc_000008a4:
+	move.l -(a1),-(a0)
+	move.l -(a1),-(a0)
+	move.l -(a1),-(a0)
+	move.l -(a1),-(a0)
+	dbf.w d1,CODE_21_loc_000008a4
+	swap.w d1
+	tst.w d1
+	beq.b CODE_21_loc_000008bc
+	subq.w #1,d1
+	swap.w d1
+	bra.b CODE_21_loc_000008a4
+CODE_21_loc_000008bc:
+	andi.l #15,d2
+	bra.b CODE_21_loc_000008c6
+CODE_21_loc_000008c4:
+	move.b -(a1),-(a0)
+CODE_21_loc_000008c6:
+	dbf.w d2,CODE_21_loc_000008c4
+	swap.w d2
+	tst.w d2
+	beq.b CODE_21_loc_000008f0
+	swap.w d2
+	clr.w d2
+	lsr.l #2,d2
+	bra.b CODE_21_loc_000008e0
+CODE_21_loc_000008d8:
+	move.b -(a1),-(a0)
+	move.b -(a1),-(a0)
+	move.b -(a1),-(a0)
+	move.b -(a1),-(a0)
+CODE_21_loc_000008e0:
+	dbf.w d2,CODE_21_loc_000008d8
+	swap.w d2
+	tst.w d2
+	beq.b CODE_21_loc_000008f0
+	subq.w #1,d2
+	swap.w d2
+	bra.b CODE_21_loc_000008d8
+CODE_21_loc_000008f0:
+	rts
+CODE_21_data_pascal_string_000008f2:
+	dc.b $88,$5F,$72,$6D,$65,$6D,$63,$70,$79,$00,$00,$00
 CODE_21_loc_000008fe:
 	link a6,#-512
 	movem.l d3/d7/a3-a4,-(a7)
@@ -46127,24 +45620,101 @@ CODE_21_loc_00000a7a:
 	move.l a3,-(a7)
 	pea.l -$004A(a6)
 	move.w #$1,d0
-CODE_21_data_dispatch_table_00000a9c:
-	dc.b $AA,$52,$3E,$1F,$66,$3E,$4A,$04,$67,$20,$55,$8F,$48,$6E,$FF,$B6
-	dc.b $70,$01,$1F,$00,$48,$6E,$FF,$FF,$48,$6E,$FF,$FE,$70,$0C,$A8,$23
-	dc.b $3E,$1F,$1D,$6E,$FF,$FE,$FF,$FD,$60,$1A,$48,$6E,$FF,$FE,$48,$6E
-	dc.b $FF,$FF,$70,$00,$2F,$00,$48,$6E,$FF,$B6,$4E,$BA,$F5,$50,$3E,$00
-	dc.b $4F,$EF,$00,$10,$0C,$47,$FF,$D5,$66,$0C,$20,$3C,$00,$00,$01,$00
-	dc.b $C0,$86,$67,$02,$42,$47,$0C,$47,$FF,$D5,$67,$0C,$0C,$47,$FF,$88
-	dc.b $67,$06,$0C,$47,$FF,$DD,$66,$40,$48,$6E,$FF,$FE,$48,$6E,$FF,$FD
-	dc.b $48,$6E,$FF,$FF,$48,$6E,$FF,$B6,$70,$00,$10,$04,$2F,$00,$2F,$0B
-	dc.b $2F,$2E,$FE,$E4,$30,$2E,$FF,$10,$48,$C0,$2F,$00,$4E,$BA,$F7,$42
-	dc.b $3E,$00,$0C,$47,$FF,$D5,$4F,$EF,$00,$20,$66,$0C,$20,$3C,$00,$00
-	dc.b $01,$00,$C0,$86,$67,$02,$42,$47,$4A,$47,$67,$16,$70,$00,$30,$07
-	dc.b $2A,$00,$8A,$BC,$40,$00,$00,$00,$39,$47,$00,$02,$20,$05,$60,$00
-	dc.b $02,$D4,$4A,$2E,$FF,$FF,$67,$0A,$20,$3C,$40,$00,$00,$15,$60,$00
-	dc.b $02,$C4,$4A,$04,$66,$10,$4A,$2E,$FF,$FE,$66,$0A,$20,$3C,$40,$00
-	dc.b $00,$03,$60,$00,$02,$B0,$4A,$2E,$FF,$FD,$67,$24,$3D,$6E,$FF,$B6
-	dc.b $FF,$10,$2D,$6E,$FF,$B8,$FF,$2A,$41,$EE,$FF,$BC,$2D,$48,$FF,$0C
-	dc.b $2D,$6E,$FF,$B8,$FE,$E4,$47,$EE,$FF,$BC,$3D,$6E,$FF,$B6,$FE,$E8
+CODE_21_data_00000a9c:
+	_HighLevelFSDispatch
+	move.w (a7)+,d7
+	bne.b CODE_21_loc_00000ae0
+	tst.b d4
+	beq.b CODE_21_loc_00000ac6
+	subq.l #2,a7
+	pea.l -$004A(a6)
+	moveq.l #1,d0
+	move.b d0,-(a7)
+	pea.l -$0001(a6)
+	pea.l -$0002(a6)
+	moveq.l #12,d0
+CODE_21_data_00000aba:
+	_AliasDispatch
+	move.w (a7)+,d7
+	move.b -$0002(a6),-$0003(a6)
+	bra.b CODE_21_loc_00000ae0
+CODE_21_loc_00000ac6:
+	pea.l -$0002(a6)
+	pea.l -$0001(a6)
+	moveq.l #0,d0
+	move.l d0,-(a7)
+	pea.l -$004A(a6)
+	jsr CODE_21_loc_00000028(pc)
+	move.w d0,d7
+	lea.l $0010(a7),a7
+CODE_21_loc_00000ae0:
+	cmpi.w #65493,d7
+	bne.b CODE_21_loc_00000af2
+	move.l #$100,d0
+	and.l d6,d0
+	beq.b CODE_21_loc_00000af2
+	clr.w d7
+CODE_21_loc_00000af2:
+	cmpi.w #65493,d7
+	beq.b CODE_21_loc_00000b04
+	cmpi.w #65416,d7
+	beq.b CODE_21_loc_00000b04
+	cmpi.w #65501,d7
+	bne.b CODE_21_loc_00000b44
+CODE_21_loc_00000b04:
+	pea.l -$0002(a6)
+	pea.l -$0003(a6)
+	pea.l -$0001(a6)
+	pea.l -$004A(a6)
+	moveq.l #0,d0
+	move.b d4,d0
+	move.l d0,-(a7)
+	move.l a3,-(a7)
+	move.l -$011C(a6),-(a7)
+	move.w -$00F0(a6),d0
+	ext.l d0
+	move.l d0,-(a7)
+	jsr CODE_21_loc_0000026c(pc)
+	move.w d0,d7
+	cmpi.w #65493,d7
+	lea.l $0020(a7),a7
+	bne.b CODE_21_loc_00000b44
+	move.l #$100,d0
+	and.l d6,d0
+	beq.b CODE_21_loc_00000b44
+	clr.w d7
+CODE_21_loc_00000b44:
+	tst.w d7
+	beq.b CODE_21_loc_00000b5e
+	moveq.l #0,d0
+	move.w d7,d0
+	move.l d0,d5
+	or.l #$40000000,d5
+	move.w d7,$0002(a4)
+	move.l d5,d0
+	bra.w CODE_21_loc_00000e30
+CODE_21_loc_00000b5e:
+	tst.b -$0001(a6)
+	beq.b CODE_21_loc_00000b6e
+	move.l #$40000015,d0
+	bra.w CODE_21_loc_00000e30
+CODE_21_loc_00000b6e:
+	tst.b d4
+	bne.b CODE_21_loc_00000b82
+	tst.b -$0002(a6)
+	bne.b CODE_21_loc_00000b82
+	move.l #$40000003,d0
+	bra.w CODE_21_loc_00000e30
+CODE_21_loc_00000b82:
+	tst.b -$0003(a6)
+	beq.b CODE_21_loc_00000bac
+	move.w -$004A(a6),-$00F0(a6)
+	move.l -$0048(a6),-$00D6(a6)
+	lea.l -$0044(a6),a0
+	move.l a0,-$00F4(a6)
+	move.l -$0048(a6),-$011C(a6)
+	lea.l -$0044(a6),a3
+	move.w -$004A(a6),-$0118(a6)
 CODE_21_loc_00000bac:
 	clr.b -$00EC(a6)
 	moveq.l #0,d0
@@ -46316,19 +45886,80 @@ CODE_21_loc_00000d68:
 	tst.l d5
 	bne.w CODE_21_loc_00000e2e
 	moveq.l #14,d0
-CODE_21_data_dispatch_table_00000d70:
-	dc.b $A1,$22,$29,$48,$00,$08,$66,$16,$55,$8F,$48,$6E,$FE,$FA,$70,$00
-	dc.b $1F,$00,$4E,$AD,$02,$DA,$7A,$0C,$54,$4F,$60,$00,$00,$A2,$20,$6C
-	dc.b $00,$08,$20,$50,$31,$6E,$FF,$12,$00,$02,$20,$6C,$00,$08,$20,$50
-	dc.b $30,$BC,$00,$01,$20,$3C,$00,$00,$20,$00,$C0,$86,$67,$6C,$12,$13
-	dc.b $48,$81,$52,$41,$48,$C1,$20,$01,$A1,$1E,$22,$6C,$00,$08,$22,$51
-	dc.b $23,$48,$00,$0A,$20,$6C,$00,$08,$20,$50,$4A,$A8,$00,$0A,$66,$1A
-	dc.b $20,$6C,$00,$08,$A0,$23,$55,$8F,$48,$6E,$FE,$FA,$70,$00,$1F,$00
-	dc.b $4E,$AD,$02,$DA,$7A,$0C,$54,$4F,$60,$30,$20,$4B,$24,$6C,$00,$08
-	dc.b $24,$52,$22,$6A,$00,$0A,$12,$13,$48,$81,$52,$41,$48,$C1,$20,$01
-	dc.b $A0,$2E,$20,$6C,$00,$08,$20,$50,$31,$6E,$FE,$E8,$00,$04,$20,$6C
-	dc.b $00,$08,$20,$50,$21,$6E,$FE,$E4,$00,$06,$55,$8F,$3F,$2E,$FF,$12
-	dc.b $70,$01,$3F,$00,$72,$00,$2F,$01,$4E,$AD,$03,$3A,$54,$4F
+CODE_21_data_00000d70:
+	_NewHandle
+	move.l a0,$0008(a4)
+	bne.b CODE_21_loc_00000d8e
+	subq.l #2,a7
+	pea.l -$0106(a6)
+	moveq.l #0,d0
+	move.b d0,-(a7)
+	jsr $02DA(a5)
+	moveq.l #12,d5
+	addq.w #2,a7
+	bra.w CODE_21_loc_00000e2e
+CODE_21_loc_00000d8e:
+	movea.l $0008(a4),a0
+	movea.l (a0),a0
+	move.w -$00EE(a6),$0002(a0)
+	movea.l $0008(a4),a0
+	movea.l (a0),a0
+	move.w #$1,(a0)
+	move.l #$2000,d0
+	and.l d6,d0
+	beq.b CODE_21_loc_00000e1a
+	move.b (a3),d1
+	ext.w d1
+	addq.w #1,d1
+	ext.l d1
+	move.l d1,d0
+CODE_21_data_00000db8:
+	_NewPtr
+	movea.l $0008(a4),a1
+	movea.l (a1),a1
+	move.l a0,$000A(a1)
+	movea.l $0008(a4),a0
+	movea.l (a0),a0
+	tst.l $000A(a0)
+	bne.b CODE_21_loc_00000dea
+	movea.l $0008(a4),a0
+CODE_21_data_00000dd4:
+	_DisposeHandle
+	subq.l #2,a7
+	pea.l -$0106(a6)
+	moveq.l #0,d0
+	move.b d0,-(a7)
+	jsr $02DA(a5)
+	moveq.l #12,d5
+	addq.w #2,a7
+	bra.b CODE_21_loc_00000e1a
+CODE_21_loc_00000dea:
+	movea.l a3,a0
+	movea.l $0008(a4),a2
+	movea.l (a2),a2
+	movea.l $000A(a2),a1
+	move.b (a3),d1
+	ext.w d1
+	addq.w #1,d1
+	ext.l d1
+	move.l d1,d0
+CODE_21_data_00000e00:
+	_BlockMove
+	movea.l $0008(a4),a0
+	movea.l (a0),a0
+	move.w -$0118(a6),$0004(a0)
+	movea.l $0008(a4),a0
+	movea.l (a0),a0
+	move.l -$011C(a6),$0006(a0)
+CODE_21_loc_00000e1a:
+	subq.l #2,a7
+	move.w -$00EE(a6),-(a7)
+	moveq.l #1,d0
+	move.w d0,-(a7)
+	moveq.l #0,d1
+	move.l d1,-(a7)
+	jsr $033A(a5)
+	addq.w #2,a7
 CODE_21_loc_00000e2e:
 	move.l d5,d0
 CODE_21_loc_00000e30:
@@ -46374,12 +46005,13 @@ CODE_21_loc_00000e78:
 	movea.l $0008(a4),a1
 	movea.l (a1),a1
 	movea.l $000A(a1),a0
-CODE_21_semantic_decode_gap_00000eae:
-	dc.b $A0,$1F,$54,$4F
+CODE_21_data_00000eae:
+	_DisposePtr
+	addq.w #2,a7
 CODE_21_loc_00000eb2:
 	movea.l $0008(a4),a0
-CODE_21_semantic_decode_gap_00000eb6:
-	dc.b $A0,$23
+CODE_21_data_00000eb6:
+	_DisposeHandle
 CODE_21_loc_00000eb8:
 	tst.w d7
 	seq.b d3
@@ -46503,8 +46135,7 @@ CODE_21_loc_00000fde:
 	move.w CODE_21_loc_00001008(pc,d0.l),d0
 	jmp $0(pc,d0.w)
 CODE_21_loc_00001008:
-CODE_21_data_dispatch_table_00001008:
-	dc.b $00,$1A,$00,$A6,$00,$10,$00,$B2,$00,$10,$00,$BA,$00,$CC
+	dc.w $001A,$00A6,$0010,$00B2,$0010,$00BA,$00CC	; lookup_table
 CODE_21_loc_00001016:
 	clr.w $0002(a4)
 	moveq.l #22,d0
@@ -46529,16 +46160,57 @@ CODE_21_loc_000010fe:
 	unlk a6
 	rts
 CODE_21_data_pascal_string_00001108:
-	dc.b $88,$5F,$66,$73,$49,$6F,$63,$74,$6C,$00,$00,$00,$4E,$56,$FF,$FC
-	dc.b $48,$E7,$00,$18,$26,$6E,$00,$0C,$28,$6E,$00,$08,$2D,$4C,$FF,$FC
-	dc.b $18,$DB,$66,$FC,$20,$2E,$FF,$FC,$4C,$EE,$18,$00,$FF,$F4,$4E,$5E
-	dc.b $4E,$75,$86,$73,$74,$72,$63,$70,$79,$00,$00,$00,$4E,$56,$00,$00
-	dc.b $48,$E7,$00,$18,$28,$6E,$00,$08,$26,$4C,$52,$4B,$4A,$1C,$66,$FC
-	dc.b $20,$0C,$90,$8B,$4C,$EE,$18,$00,$FF,$F8,$4E,$5E,$4E,$75,$86,$73
-	dc.b $74,$72,$6C,$65,$6E,$00,$00,$00,$4E,$56,$FF,$FC,$48,$E7,$01,$18
-	dc.b $2E,$2E,$00,$10,$26,$6E,$00,$0C,$28,$6E,$00,$08,$2D,$4C,$FF,$FC
-	dc.b $60,$02,$18,$DB,$53,$87,$6C,$FA,$20,$2E,$FF,$FC,$4C,$EE,$18,$80
-	dc.b $FF,$F0,$4E,$5E,$4E,$75,$86,$6D,$65,$6D,$63,$70,$79,$00,$00,$00
+	dc.b $88,$5F,$66,$73,$49,$6F,$63,$74,$6C,$00,$00,$00
+CODE_21_loc_00001114:
+	link a6,#-4
+	movem.l a3-a4,-(a7)
+	movea.l $000C(a6),a3
+	movea.l $0008(a6),a4
+	move.l a4,-$0004(a6)
+CODE_21_loc_00001128:
+	move.b (a3)+,(a4)+
+	bne.b CODE_21_loc_00001128
+	move.l -$0004(a6),d0
+	movem.l -$000C(a6),a3-a4
+	unlk a6
+	rts
+CODE_21_data_pascal_string_0000113a:
+	dc.b $86,$73,$74,$72,$63,$70,$79,$00,$00,$00
+CODE_21_loc_00001144:
+	link a6,#0
+	movem.l a3-a4,-(a7)
+	movea.l $0008(a6),a4
+	movea.l a4,a3
+	addq.w #1,a3
+CODE_21_loc_00001154:
+	tst.b (a4)+
+	bne.b CODE_21_loc_00001154
+	move.l a4,d0
+	sub.l a3,d0
+	movem.l -$0008(a6),a3-a4
+	unlk a6
+	rts
+CODE_21_data_pascal_string_00001166:
+	dc.b $86,$73,$74,$72,$6C,$65,$6E,$00,$00,$00
+CODE_21_loc_00001170:
+	link a6,#-4
+	movem.l d7/a3-a4,-(a7)
+	move.l $0010(a6),d7
+	movea.l $000C(a6),a3
+	movea.l $0008(a6),a4
+	move.l a4,-$0004(a6)
+	bra.b CODE_21_loc_0000118c
+CODE_21_loc_0000118a:
+	move.b (a3)+,(a4)+
+CODE_21_loc_0000118c:
+	subq.l #1,d7
+	bge.b CODE_21_loc_0000118a
+	move.l -$0004(a6),d0
+	movem.l -$0010(a6),d7/a3-a4
+	unlk a6
+	rts
+CODE_21_data_pascal_string_0000119e:
+	dc.b $86,$6D,$65,$6D,$63,$70,$79,$00,$00,$00
 CODE_21_loc_000011a8:
 	link a6,#-32
 	move.l $000A(a6),-(a7)
@@ -46546,12 +46218,38 @@ CODE_21_loc_000011a8:
 	pea.l -$0014(a6)
 	pea.l -$0020(a6)
 	pea.l -$001C(a6)
-CODE_21_data_dispatch_table_000011c0:
-	dc.b $A9,$8D,$48,$6E,$FF,$E4,$70,$FC,$3F,$00,$3F,$00,$A8,$A9,$48,$6E
-	dc.b $FF,$EE,$A8,$98,$70,$03,$3F,$00,$3F,$00,$A8,$9B,$48,$6E,$FF,$E4
-	dc.b $70,$10,$3F,$00,$3F,$00,$A8,$B0,$48,$6E,$FF,$EE,$A8,$99,$4E,$5E
-	dc.b $20,$5F,$5C,$4F,$4E,$D0,$92,$48,$49,$4C,$49,$54,$45,$44,$49,$41
-	dc.b $4C,$4F,$47,$42,$55,$54,$54,$4F,$4E,$00,$00,$00
+CODE_21_data_000011c0:
+	_GetDialogItem
+	pea.l -$001C(a6)
+	moveq.l #-4,d0
+	move.w d0,-(a7)
+	move.w d0,-(a7)
+CODE_21_data_000011cc:
+	_InsetRect
+	pea.l -$0012(a6)
+CODE_21_data_000011d2:
+	_GetPenState
+	moveq.l #3,d0
+	move.w d0,-(a7)
+	move.w d0,-(a7)
+CODE_21_data_000011da:
+	_PenSize
+	pea.l -$001C(a6)
+	moveq.l #16,d0
+	move.w d0,-(a7)
+	move.w d0,-(a7)
+CODE_21_data_000011e6:
+	_FrameRoundRect
+	pea.l -$0012(a6)
+CODE_21_data_000011ec:
+	_SetPenState
+	unlk a6
+	movea.l (a7)+,a0
+	addq.w #6,a7
+	jmp (a0)
+CODE_21_data_pascal_string_000011f6:
+	dc.b $92,$48,$49,$4C,$49,$54,$45,$44,$49,$41,$4C,$4F,$47,$42,$55,$54
+	dc.b $54,$4F,$4E,$00,$00,$00
 CODE_21_loc_0000120c:
 	link a6,#-22
 	movem.l d3-d7/a2-a4,-(a7)
@@ -46561,45 +46259,204 @@ CODE_21_loc_0000120c:
 	pea.l -$3166(a5)
 	move.l #$8A0142,-(a7)
 	move.l #$9E017E,-(a7)
-CODE_21_data_dispatch_table_00001230:
-	dc.b $A8,$A7,$48,$6D,$CE,$92,$70,$0C,$3F,$00,$72,$08,$3F,$01,$3F,$3C
-	dc.b $01,$9B,$70,$2C,$3F,$00,$A8,$A7,$48,$6D,$CE,$8A,$70,$0C,$3F,$00
-	dc.b $72,$2E,$3F,$01,$3F,$3C,$01,$9B,$70,$7D,$3F,$00,$A8,$A7,$0C,$AB
-	dc.b $00,$00,$00,$FF,$00,$0C,$5F,$C3,$44,$03,$67,$06,$20,$2B,$00,$0C
-	dc.b $60,$06,$20,$3C,$00,$00,$00,$FF,$3E,$00,$70,$00,$27,$40,$00,$0C
-	dc.b $48,$C7,$22,$07,$D2,$BC,$00,$00,$00,$80,$20,$01,$A1,$22,$28,$48
-	dc.b $20,$0C,$66,$06,$70,$FF,$60,$00,$01,$7C,$20,$54,$30,$BC,$00,$03
-	dc.b $20,$54,$70,$00,$21,$40,$00,$02,$20,$54,$5C,$88,$43,$ED,$CE,$9A
-	dc.b $20,$D9,$20,$D9,$20,$54,$11,$7C,$00,$04,$00,$0E,$20,$54,$11,$7C
-	dc.b $00,$02,$00,$0F,$20,$54,$11,$7C,$00,$4F,$00,$10,$20,$54,$11,$7C
-	dc.b $00,$4B,$00,$11,$41,$ED,$09,$42,$22,$54,$23,$48,$00,$12,$20,$54
-	dc.b $2D,$48,$FF,$FC,$22,$48,$5C,$88,$45,$E9,$00,$16,$24,$D8,$24,$D8
-	dc.b $20,$54,$42,$28,$00,$1E,$20,$54,$42,$28,$00,$1F,$20,$54,$21,$40
-	dc.b $00,$20,$20,$54,$41,$E8,$00,$24,$43,$ED,$CE,$92,$20,$D9,$20,$D9
-	dc.b $20,$54,$11,$7C,$00,$08,$00,$2C,$2F,$2E,$FF,$F8,$4E,$BA,$FE,$26
-	dc.b $20,$54,$11,$40,$00,$2D,$2F,$2E,$FF,$F8,$20,$54,$48,$68,$00,$2E
-	dc.b $4E,$BA,$FD,$E2,$20,$54,$70,$00,$21,$40,$00,$70,$20,$54,$41,$E8
-	dc.b $00,$74,$43,$ED,$CE,$8A,$20,$D9,$20,$D9,$20,$54,$11,$7C,$00,$08
-	dc.b $00,$7C,$20,$54,$11,$47,$00,$7D,$48,$C7,$2F,$07,$2F,$2B,$00,$10
-	dc.b $20,$54,$48,$68,$00,$7E,$4E,$BA,$FE,$08,$3C,$3C,$01,$A8,$3E,$3C
-	dc.b $00,$AA,$38,$2D,$CE,$FE,$98,$6D,$CE,$FA,$3A,$2D,$CE,$FC,$9A,$6D
-	dc.b $CE,$F8,$48,$C4,$48,$C6,$20,$04,$90,$86,$72,$02,$4E,$AD,$02,$7A
-	dc.b $3D,$40,$FF,$EC,$30,$06,$D0,$6E,$FF,$EC,$3D,$40,$FF,$F0,$48,$C5
-	dc.b $48,$C7,$20,$05,$90,$87,$72,$04,$4E,$AD,$02,$7A,$3D,$40,$FF,$EA
-	dc.b $30,$07,$D0,$6E,$FF,$EA,$3D,$40,$FF,$EE,$48,$6E,$FF,$F2,$A8,$74
-	dc.b $59,$8F,$70,$00,$2F,$00,$48,$6E,$FF,$EA,$2F,$00,$72,$00,$1F,$01
-	dc.b $70,$01,$3F,$00,$70,$FF,$2F,$00,$1F,$01,$70,$00,$2F,$00,$2F,$0C
-	dc.b $A9,$7D,$26,$5F,$20,$0B,$4F,$EF,$00,$18,$66,$04,$70,$FF,$60,$24
-	dc.b $2F,$0B,$A9,$15,$2F,$0B,$A9,$1F,$70,$00,$2F,$00,$48,$6E,$FF,$F6
-	dc.b $A9,$91,$70,$01,$B0,$6E,$FF,$F6,$66,$EE,$2F,$0B,$A9,$83,$2F,$2E
-	dc.b $FF,$F2,$A8,$73,$4C,$EE,$1C,$F8,$FF,$CA,$4E,$5E,$4E,$75,$8C,$44
-	dc.b $6F,$50,$72,$69,$6E,$74,$41,$6C,$65,$72,$74,$00,$00,$44,$57,$61
-	dc.b $72,$6E,$69,$6E,$67,$21,$20,$57,$72,$69,$74,$69,$6E,$67,$20,$74
-	dc.b $6F,$20,$74,$68,$65,$20,$63,$6F,$6E,$73,$6F,$6C,$65,$20,$69,$6E
-	dc.b $20,$61,$70,$70,$6C,$69,$63,$61,$74,$69,$6F,$6E,$73,$20,$69,$73
-	dc.b $20,$4E,$4F,$54,$20,$73,$75,$70,$70,$6F,$72,$74,$65,$64,$21,$0D
-	dc.b $00,$00
-CODE_21_loc_0000142e:
+CODE_21_data_00001230:
+	_SetRect
+	pea.l -$316E(a5)
+	moveq.l #12,d0
+	move.w d0,-(a7)
+	moveq.l #8,d1
+	move.w d1,-(a7)
+	move.w #$19B,-(a7)
+	moveq.l #44,d0
+	move.w d0,-(a7)
+CODE_21_data_00001246:
+	_SetRect
+	pea.l -$3176(a5)
+	moveq.l #12,d0
+	move.w d0,-(a7)
+	moveq.l #46,d1
+	move.w d1,-(a7)
+	move.w #$19B,-(a7)
+	moveq.l #125,d0
+	move.w d0,-(a7)
+CODE_21_data_0000125c:
+	_SetRect
+	cmpi.l #255,$000C(a3)
+	sle.b d3
+	neg.b d3
+	beq.b CODE_21_loc_00001272
+	move.l $000C(a3),d0
+	bra.b CODE_21_loc_00001278
+CODE_21_loc_00001272:
+	move.l #$FF,d0
+CODE_21_loc_00001278:
+	move.w d0,d7
+	moveq.l #0,d0
+	move.l d0,$000C(a3)
+	ext.l d7
+	move.l d7,d1
+	add.l #$80,d1
+	move.l d1,d0
+CODE_21_data_0000128c:
+	_NewHandle
+	movea.l a0,a4
+	move.l a4,d0
+	bne.b CODE_21_loc_0000129a
+	moveq.l #-1,d0
+	bra.w CODE_21_loc_00001414
+CODE_21_loc_0000129a:
+	movea.l (a4),a0
+	move.w #$3,(a0)
+	movea.l (a4),a0
+	moveq.l #0,d0
+	move.l d0,$0002(a0)
+	movea.l (a4),a0
+	addq.l #6,a0
+	lea.l -$3166(a5),a1
+	move.l (a1)+,(a0)+
+	move.l (a1)+,(a0)+
+	movea.l (a4),a0
+	move.b #$4,$000E(a0)
+	movea.l (a4),a0
+	move.b #$2,$000F(a0)
+	movea.l (a4),a0
+	move.b #$4F,$0010(a0)
+	movea.l (a4),a0
+	move.b #$4B,$0011(a0)
+	lea.l $0942(a5),a0
+	movea.l (a4),a1
+	move.l a0,$0012(a1)
+	movea.l (a4),a0
+	move.l a0,-$0004(a6)
+	movea.l a0,a1
+	addq.l #6,a0
+	lea.l $0016(a1),a2
+	move.l (a0)+,(a2)+
+	move.l (a0)+,(a2)+
+	movea.l (a4),a0
+	clr.b $001E(a0)
+	movea.l (a4),a0
+	clr.b $001F(a0)
+	movea.l (a4),a0
+	move.l d0,$0020(a0)
+	movea.l (a4),a0
+	lea.l $0024(a0),a0
+	lea.l -$316E(a5),a1
+	move.l (a1)+,(a0)+
+	move.l (a1)+,(a0)+
+	movea.l (a4),a0
+	move.b #$8,$002C(a0)
+	move.l -$0008(a6),-(a7)
+	jsr CODE_21_loc_00001144(pc)
+	movea.l (a4),a0
+	move.b d0,$002D(a0)
+	move.l -$0008(a6),-(a7)
+	movea.l (a4),a0
+	pea.l $002E(a0)
+	jsr CODE_21_loc_00001114(pc)
+	movea.l (a4),a0
+	moveq.l #0,d0
+	move.l d0,$0070(a0)
+	movea.l (a4),a0
+	lea.l $0074(a0),a0
+	lea.l -$3176(a5),a1
+	move.l (a1)+,(a0)+
+	move.l (a1)+,(a0)+
+	movea.l (a4),a0
+	move.b #$8,$007C(a0)
+	movea.l (a4),a0
+	move.b d7,$007D(a0)
+	ext.l d7
+	move.l d7,-(a7)
+	move.l $0010(a3),-(a7)
+	movea.l (a4),a0
+	pea.l $007E(a0)
+	jsr CODE_21_loc_00001170(pc)
+	move.w #$1A8,d6
+	move.w #$AA,d7
+	move.w -$3102(a5),d4
+	sub.w -$3106(a5),d4
+	move.w -$3104(a5),d5
+	sub.w -$3108(a5),d5
+	ext.l d4
+	ext.l d6
+	move.l d4,d0
+	sub.l d6,d0
+	moveq.l #2,d1
+	jsr $027A(a5)
+	move.w d0,-$0014(a6)
+	move.w d6,d0
+	add.w -$0014(a6),d0
+	move.w d0,-$0010(a6)
+	ext.l d5
+	ext.l d7
+	move.l d5,d0
+	sub.l d7,d0
+	moveq.l #4,d1
+	jsr $027A(a5)
+	move.w d0,-$0016(a6)
+	move.w d7,d0
+	add.w -$0016(a6),d0
+	move.w d0,-$0012(a6)
+	pea.l -$000E(a6)
+CODE_21_data_000013be:
+	_GetPort
+	subq.l #4,a7
+	moveq.l #0,d0
+	move.l d0,-(a7)
+	pea.l -$0016(a6)
+	move.l d0,-(a7)
+	moveq.l #0,d1
+	move.b d1,-(a7)
+	moveq.l #1,d0
+	move.w d0,-(a7)
+	moveq.l #-1,d0
+	move.l d0,-(a7)
+	move.b d1,-(a7)
+	moveq.l #0,d0
+	move.l d0,-(a7)
+	move.l a4,-(a7)
+CODE_21_data_000013e0:
+	_NewDialog
+	movea.l (a7)+,a3
+	move.l a3,d0
+	lea.l $0018(a7),a7
+	bne.b CODE_21_loc_000013f0
+	moveq.l #-1,d0
+	bra.b CODE_21_loc_00001414
+CODE_21_loc_000013f0:
+	move.l a3,-(a7)
+CODE_21_data_000013f2:
+	_ShowWindow
+	move.l a3,-(a7)
+CODE_21_data_000013f6:
+	_SelectWindow
+CODE_21_loc_000013f8:
+	moveq.l #0,d0
+	move.l d0,-(a7)
+	pea.l -$000A(a6)
+CODE_21_data_00001400:
+	_ModalDialog
+	moveq.l #1,d0
+	cmp.w -$000A(a6),d0
+	bne.b CODE_21_loc_000013f8
+	move.l a3,-(a7)
+CODE_21_data_0000140c:
+	_DisposeDialog
+	move.l -$000E(a6),-(a7)
+CODE_21_data_00001412:
+	_SetPort
+CODE_21_loc_00001414:
+	movem.l -$0036(a6),d3-d7/a2-a4
+	unlk a6
+	rts
+CODE_21_data_dispatch_table_0000141e:
+	dc.b $8C,$44,$6F,$50,$72,$69,$6E,$74,$41,$6C,$65,$72,$74,$00,$00,$44
+	dc.b $57,$61,$72,$6E,$69,$6E,$67,$21,$20,$57,$72,$69,$74,$69,$6E,$67
+	dc.b $20,$74,$6F,$20,$74,$68,$65,$20,$63,$6F,$6E,$73,$6F,$6C,$65,$20
+	dc.b $69,$6E,$20,$61,$70,$70,$6C,$69,$63,$61,$74,$69,$6F,$6E,$73,$20
+	dc.b $69,$73,$20,$4E,$4F,$54,$20,$73,$75,$70,$70,$6F,$72,$74,$65,$64
+	dc.b $21,$0D,$00,$00
 CODE_21_loc_00001472:
 	link a6,#-288
 	movem.l d4-d7/a2-a4,-(a7)
@@ -46611,49 +46468,222 @@ CODE_21_loc_00001472:
 	pea.l -$3166(a5)
 	move.l #$8A0142,-(a7)
 	move.l #$9E017E,-(a7)
-CODE_21_data_dispatch_table_0000149c:
-	dc.b $A8,$A7,$48,$6D,$CE,$92,$70,$0C,$3F,$00,$72,$08,$3F,$01,$3F,$3C
-	dc.b $01,$9B,$70,$2C,$3F,$00,$A8,$A7,$48,$6D,$CE,$8A,$70,$0C,$3F,$00
-	dc.b $72,$2E,$3F,$01,$3F,$3C,$01,$9B,$70,$7D,$3F,$00,$A8,$A7,$3E,$06
-	dc.b $48,$C7,$22,$07,$D2,$BC,$00,$00,$01,$94,$20,$01,$A1,$22,$28,$48
-	dc.b $20,$0C,$66,$06,$70,$FF,$60,$00,$01,$D4,$20,$54,$30,$BC,$00,$03
-	dc.b $20,$54,$70,$00,$21,$40,$00,$02,$20,$54,$5C,$88,$43,$ED,$CE,$9A
-	dc.b $20,$D9,$20,$D9,$20,$54,$11,$7C,$00,$04,$00,$0E,$20,$54,$11,$7C
-	dc.b $00,$02,$00,$0F,$20,$54,$11,$7C,$00,$4F,$00,$10,$20,$54,$11,$7C
-	dc.b $00,$4B,$00,$11,$41,$ED,$09,$42,$22,$54,$23,$48,$00,$12,$20,$54
-	dc.b $2D,$48,$FF,$FC,$22,$48,$5C,$88,$45,$E9,$00,$16,$24,$D8,$24,$D8
-	dc.b $20,$54,$42,$28,$00,$1E,$20,$54,$42,$28,$00,$1F,$20,$54,$21,$40
-	dc.b $00,$20,$20,$54,$41,$E8,$00,$24,$43,$ED,$CE,$92,$20,$D9,$20,$D9
-	dc.b $20,$54,$11,$7C,$00,$08,$00,$2C,$2F,$2E,$FF,$F8,$4E,$BA,$FB,$DA
-	dc.b $20,$54,$11,$40,$00,$2D,$2F,$2E,$FF,$F8,$20,$54,$48,$68,$00,$2E
-	dc.b $4E,$BA,$FB,$96,$20,$54,$70,$00,$21,$40,$00,$86,$20,$54,$41,$E8
-	dc.b $00,$8A,$43,$ED,$CE,$8A,$20,$D9,$20,$D9,$20,$54,$11,$7C,$00,$10
-	dc.b $00,$92,$20,$54,$42,$28,$00,$93,$20,$54,$42,$28,$00,$94,$3C,$3C
-	dc.b $01,$A8,$3E,$3C,$00,$AA,$38,$2D,$CE,$FE,$98,$6D,$CE,$FA,$3A,$2D
-	dc.b $CE,$FC,$9A,$6D,$CE,$F8,$48,$C4,$48,$C6,$22,$04,$92,$86,$20,$01
-	dc.b $72,$02,$4E,$AD,$02,$7A,$3D,$40,$FE,$E2,$30,$06,$D0,$6E,$FE,$E2
-	dc.b $3D,$40,$FE,$E6,$48,$C5,$48,$C7,$20,$05,$90,$87,$72,$04,$4E,$AD
-	dc.b $02,$7A,$3D,$40,$FE,$E0,$30,$07,$D0,$6E,$FE,$E0,$3D,$40,$FE,$E4
-	dc.b $48,$6E,$FE,$E8,$A8,$74,$59,$8F,$70,$00,$2F,$00,$48,$6E,$FE,$E0
-	dc.b $2F,$00,$72,$00,$1F,$01,$70,$01,$3F,$00,$70,$FF,$2F,$00,$1F,$01
-	dc.b $70,$00,$2F,$00,$2F,$0C,$A9,$7D,$2D,$5F,$FE,$EC,$4F,$EF,$00,$0C
-	dc.b $66,$06,$70,$FF,$60,$00,$00,$86,$2F,$2E,$FE,$EC,$A9,$15,$2F,$2E
-	dc.b $FE,$EC,$A9,$1F,$70,$00,$2F,$00,$48,$6E,$FF,$F6,$A9,$91,$70,$01
-	dc.b $B0,$6E,$FF,$F6,$66,$EE,$2F,$2E,$FE,$EC,$70,$04,$3F,$00,$48,$6E
-	dc.b $FF,$F4,$48,$6E,$FF,$F0,$48,$6D,$CE,$8A,$A9,$8D,$2F,$2E,$FF,$F0
-	dc.b $2F,$0B,$A9,$90,$70,$00,$10,$13,$2F,$00,$48,$6B,$00,$01,$20,$6E
-	dc.b $00,$08,$2F,$28,$00,$10,$4E,$BA,$FA,$EC,$20,$6E,$00,$08,$70,$00
-	dc.b $10,$13,$D0,$A8,$00,$10,$20,$40,$10,$BC,$00,$0D,$20,$6E,$00,$08
-	dc.b $70,$00,$10,$13,$52,$40,$48,$C0,$91,$A8,$00,$0C,$2F,$2E,$FE,$EC
-	dc.b $A9,$83,$2F,$2E,$FE,$E8,$A8,$73,$4F,$EF,$00,$0C,$4C,$EE,$1C,$F0
-	dc.b $FE,$C4,$4E,$5E,$4E,$75,$8B,$44,$6F,$52,$65,$61,$64,$41,$6C,$65
-	dc.b $72,$74,$00,$58,$41,$6C,$65,$72,$74,$21,$20,$52,$65,$61,$64,$69
-	dc.b $6E,$67,$20,$66,$72,$6F,$6D,$20,$74,$68,$65,$20,$63,$6F,$6E,$73
-	dc.b $6F,$6C,$65,$20,$69,$6E,$20,$61,$70,$70,$6C,$69,$63,$61,$74,$69
-	dc.b $6F,$6E,$73,$20,$69,$73,$20,$4E,$4F,$54,$20,$73,$75,$70,$70,$6F
-	dc.b $72,$74,$65,$64,$21,$20,$20,$59,$6F,$75,$20,$6D,$61,$79,$20,$74
-	dc.b $79,$70,$65,$20,$62,$65,$6C,$6F,$77,$3A,$0D,$00
-CODE_21_loc_000016d0:
+CODE_21_data_0000149c:
+	_SetRect
+	pea.l -$316E(a5)
+	moveq.l #12,d0
+	move.w d0,-(a7)
+	moveq.l #8,d1
+	move.w d1,-(a7)
+	move.w #$19B,-(a7)
+	moveq.l #44,d0
+	move.w d0,-(a7)
+CODE_21_data_000014b2:
+	_SetRect
+	pea.l -$3176(a5)
+	moveq.l #12,d0
+	move.w d0,-(a7)
+	moveq.l #46,d1
+	move.w d1,-(a7)
+	move.w #$19B,-(a7)
+	moveq.l #125,d0
+	move.w d0,-(a7)
+CODE_21_data_000014c8:
+	_SetRect
+	move.w d6,d7
+	ext.l d7
+	move.l d7,d1
+	add.l #$194,d1
+	move.l d1,d0
+CODE_21_data_000014d8:
+	_NewHandle
+	movea.l a0,a4
+	move.l a4,d0
+	bne.b CODE_21_loc_000014e6
+	moveq.l #-1,d0
+	bra.w CODE_21_loc_000016b8
+CODE_21_loc_000014e6:
+	movea.l (a4),a0
+	move.w #$3,(a0)
+	movea.l (a4),a0
+	moveq.l #0,d0
+	move.l d0,$0002(a0)
+	movea.l (a4),a0
+	addq.l #6,a0
+	lea.l -$3166(a5),a1
+	move.l (a1)+,(a0)+
+	move.l (a1)+,(a0)+
+	movea.l (a4),a0
+	move.b #$4,$000E(a0)
+	movea.l (a4),a0
+	move.b #$2,$000F(a0)
+	movea.l (a4),a0
+	move.b #$4F,$0010(a0)
+	movea.l (a4),a0
+	move.b #$4B,$0011(a0)
+	lea.l $0942(a5),a0
+	movea.l (a4),a1
+	move.l a0,$0012(a1)
+	movea.l (a4),a0
+	move.l a0,-$0004(a6)
+	movea.l a0,a1
+	addq.l #6,a0
+	lea.l $0016(a1),a2
+	move.l (a0)+,(a2)+
+	move.l (a0)+,(a2)+
+	movea.l (a4),a0
+	clr.b $001E(a0)
+	movea.l (a4),a0
+	clr.b $001F(a0)
+	movea.l (a4),a0
+	move.l d0,$0020(a0)
+	movea.l (a4),a0
+	lea.l $0024(a0),a0
+	lea.l -$316E(a5),a1
+	move.l (a1)+,(a0)+
+	move.l (a1)+,(a0)+
+	movea.l (a4),a0
+	move.b #$8,$002C(a0)
+	move.l -$0008(a6),-(a7)
+	jsr CODE_21_loc_00001144(pc)
+	movea.l (a4),a0
+	move.b d0,$002D(a0)
+	move.l -$0008(a6),-(a7)
+	movea.l (a4),a0
+	pea.l $002E(a0)
+	jsr CODE_21_loc_00001114(pc)
+	movea.l (a4),a0
+	moveq.l #0,d0
+	move.l d0,$0086(a0)
+	movea.l (a4),a0
+	lea.l $008A(a0),a0
+	lea.l -$3176(a5),a1
+	move.l (a1)+,(a0)+
+	move.l (a1)+,(a0)+
+	movea.l (a4),a0
+	move.b #$10,$0092(a0)
+	movea.l (a4),a0
+	clr.b $0093(a0)
+	movea.l (a4),a0
+	clr.b $0094(a0)
+	move.w #$1A8,d6
+	move.w #$AA,d7
+	move.w -$3102(a5),d4
+	sub.w -$3106(a5),d4
+	move.w -$3104(a5),d5
+	sub.w -$3108(a5),d5
+	ext.l d4
+	ext.l d6
+	move.l d4,d1
+	sub.l d6,d1
+	move.l d1,d0
+	moveq.l #2,d1
+	jsr $027A(a5)
+	move.w d0,-$011E(a6)
+	move.w d6,d0
+	add.w -$011E(a6),d0
+	move.w d0,-$011A(a6)
+	ext.l d5
+	ext.l d7
+	move.l d5,d0
+	sub.l d7,d0
+	moveq.l #4,d1
+	jsr $027A(a5)
+	move.w d0,-$0120(a6)
+	move.w d7,d0
+	add.w -$0120(a6),d0
+	move.w d0,-$011C(a6)
+	pea.l -$0118(a6)
+CODE_21_data_00001600:
+	_GetPort
+	subq.l #4,a7
+	moveq.l #0,d0
+	move.l d0,-(a7)
+	pea.l -$0120(a6)
+	move.l d0,-(a7)
+	moveq.l #0,d1
+	move.b d1,-(a7)
+	moveq.l #1,d0
+	move.w d0,-(a7)
+	moveq.l #-1,d0
+	move.l d0,-(a7)
+	move.b d1,-(a7)
+	moveq.l #0,d0
+	move.l d0,-(a7)
+	move.l a4,-(a7)
+CODE_21_data_00001622:
+	_NewDialog
+	move.l (a7)+,-$0114(a6)
+	lea.l $000C(a7),a7
+	bne.b CODE_21_loc_00001634
+	moveq.l #-1,d0
+	bra.w CODE_21_loc_000016b8
+CODE_21_loc_00001634:
+	move.l -$0114(a6),-(a7)
+CODE_21_data_00001638:
+	_ShowWindow
+	move.l -$0114(a6),-(a7)
+CODE_21_data_0000163e:
+	_SelectWindow
+CODE_21_loc_00001640:
+	moveq.l #0,d0
+	move.l d0,-(a7)
+	pea.l -$000A(a6)
+CODE_21_data_00001648:
+	_ModalDialog
+	moveq.l #1,d0
+	cmp.w -$000A(a6),d0
+	bne.b CODE_21_loc_00001640
+	move.l -$0114(a6),-(a7)
+	moveq.l #4,d0
+	move.w d0,-(a7)
+	pea.l -$000C(a6)
+	pea.l -$0010(a6)
+	pea.l -$3176(a5)
+CODE_21_data_00001666:
+	_GetDialogItem
+	move.l -$0010(a6),-(a7)
+	move.l a3,-(a7)
+CODE_21_data_0000166e:
+	_GetDialogItemText
+	moveq.l #0,d0
+	move.b (a3),d0
+	move.l d0,-(a7)
+	pea.l $0001(a3)
+	movea.l $0008(a6),a0
+	move.l $0010(a0),-(a7)
+	jsr CODE_21_loc_00001170(pc)
+	movea.l $0008(a6),a0
+	moveq.l #0,d0
+	move.b (a3),d0
+	add.l $0010(a0),d0
+	movea.l d0,a0
+	move.b #$D,(a0)
+	movea.l $0008(a6),a0
+	moveq.l #0,d0
+	move.b (a3),d0
+	addq.w #1,d0
+	ext.l d0
+	sub.l d0,$000C(a0)
+	move.l -$0114(a6),-(a7)
+CODE_21_data_000016ac:
+	_DisposeDialog
+	move.l -$0118(a6),-(a7)
+CODE_21_data_000016b2:
+	_SetPort
+	lea.l $000C(a7),a7
+CODE_21_loc_000016b8:
+	movem.l -$013C(a6),d4-d7/a2-a4
+	unlk a6
+	rts
+CODE_21_data_dispatch_table_000016c2:
+	dc.b $8B,$44,$6F,$52,$65,$61,$64,$41,$6C,$65,$72,$74,$00,$58,$41,$6C
+	dc.b $65,$72,$74,$21,$20,$52,$65,$61,$64,$69,$6E,$67,$20,$66,$72,$6F
+	dc.b $6D,$20,$74,$68,$65,$20,$63,$6F,$6E,$73,$6F,$6C,$65,$20,$69,$6E
+	dc.b $20,$61,$70,$70,$6C,$69,$63,$61,$74,$69,$6F,$6E,$73,$20,$69,$73
+	dc.b $20,$4E,$4F,$54,$20,$73,$75,$70,$70,$6F,$72,$74,$65,$64,$21,$20
+	dc.b $20,$59,$6F,$75,$20,$6D,$61,$79,$20,$74,$79,$70,$65,$20,$62,$65
+	dc.b $6C,$6F,$77,$3A,$0D,$00
 CODE_21_loc_00001728:
 	link a6,#-256
 	move.l a4,-(a7)
@@ -46691,10 +46721,8 @@ CODE_21_loc_0000177e:
 	unlk a6
 	rts
 CODE_21_semantic_decode_gap_00001786:
-	dc.b $8A,$5F,$63,$6F,$46,$41,$63,$63,$65,$73,$73,$00,$00,$0E
-CODE_21_loc_00001794:
-CODE_21_semantic_decode_gap_00001794:
-	dc.b $0B,$64,$65,$76,$3A,$63,$6F,$6E,$73,$6F,$6C,$65,$00,$00
+	dc.b $8A,$5F,$63,$6F,$46,$41,$63,$63,$65,$73,$73,$00,$00,$0E,$0B,$64
+	dc.b $65,$76,$3A,$63,$6F,$6E,$73,$6F,$6C,$65,$00,$00
 CODE_21_loc_000017a2:
 	link a6,#0
 	moveq.l #0,d0
@@ -46707,8 +46735,14 @@ CODE_21_loc_000017b8:
 	tst.b $08F3.w
 	beq.b CODE_21_loc_000017d2
 	pea.l -$3094(a5)
-CODE_21_semantic_decode_gap_000017c6:
-	dc.b $A8,$6E,$4A,$38,$08,$F2,$67,$04,$A9,$12,$A8,$FE
+CODE_21_data_000017c6:
+	_InitGraf
+	tst.b $08F2.w
+	beq.b CODE_21_loc_000017d2
+CODE_21_data_000017ce:
+	_InitWindows
+CODE_21_data_000017d0:
+	_InitFonts
 CODE_21_loc_000017d2:
 	move.l $0008(a6),-(a7)
 	jsr CODE_21_loc_00001472(pc)
@@ -46723,8 +46757,14 @@ CODE_21_loc_000017ec:
 	tst.b $08F3.w
 	beq.b CODE_21_loc_00001806
 	pea.l -$3094(a5)
-CODE_21_semantic_decode_gap_000017fa:
-	dc.b $A8,$6E,$4A,$38,$08,$F2,$67,$04,$A9,$12,$A8,$FE
+CODE_21_data_000017fa:
+	_InitGraf
+	tst.b $08F2.w
+	beq.b CODE_21_loc_00001806
+CODE_21_data_00001802:
+	_InitWindows
+CODE_21_data_00001804:
+	_InitFonts
 CODE_21_loc_00001806:
 	move.l $0008(a6),-(a7)
 	jsr CODE_21_loc_0000120c(pc)
@@ -46889,10 +46929,6 @@ CODE_21_data_dispatch_table_000019b4:
 	dc.b $65,$76,$3A,$73,$74,$64,$65,$72,$72,$00,$0A,$64,$65,$76,$3A,$73
 	dc.b $74,$64,$6F,$75,$74,$00,$09,$64,$65,$76,$3A,$73,$74,$64,$69,$6E
 	dc.b $00,$00,$08,$64,$65,$76,$3A,$6E,$75,$6C,$6C,$00
-CODE_21_loc_000019c2:
-CODE_21_loc_000019ce:
-CODE_21_loc_000019da:
-CODE_21_loc_000019e6:
 CODE_21_loc_000019f0:
 	link a6,#0
 	moveq.l #0,d0
@@ -46949,137 +46985,83 @@ CODE_21_loc_00001a76:
 CODE_21_data_pascal_string_00001a7e:
 	dc.b $88,$5F,$73,$79,$49,$6F,$63,$74,$6C,$00,$00,$00
 
-; CODE 22 SANELIB source section
+; CODE 22 SANELIB
 CODE_22:
-;   source_section_id: macos-code-CODE-22
-;   source_kind: macos_code_resource
-;   backend: macos-code
-;   status: covered_placeholder
-;   resource_type: CODE
-;   id: 22
-;   name: SANELIB
-;   role: code_segment
-;   code_kind: code_segment
-;   payload_size: 96
-;   payload_sha256: 6929f16d82666fe0f31993c30f2750798bf934a0dcddf3c6eb0adc2c552484f8
-;   presentation: kind=c_owned_restored_source_packet status=covered visible=True identity=macos-code:CODE:22
-;   listing: kind=structured_placeholder available=False reason=no candidate preview range; classifier deferred byte-entry evidence: missing_m68k_movea_l_stack_to_a0_entry
-;   restored_source_model:
-;     model=restored_source_model_v1 round_trip_required=false
-;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 22 name=unknown
-;     a5_world status=deferred parser_use=unknown
-;     ownership_ranges:
-;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
-;       1: role=unknown span=40..96 status=deferred parser_use=deferred_only reason=missing_m68k_movea_l_stack_to_a0_entry
-;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
-;       1: kind=a5_world_context_placeholder ownership=0 status=deferred parser_use=unknown target=classic_mac_a5_world
-;   source_body_ranges:
-;     metadata payload[0..40) size=40 entrypoint=False
-;     deferred payload[40..96) size=56 entrypoint=False
-;   rendered_source: CODE 22 status=byte_preserved payload[0..96) sha256=6929f16d82666fe0f31993c30f2750798bf934a0dcddf3c6eb0adc2c552484f8
-;   residual_policy: semantic source rows are not available for this CODE resource; the source body keeps exact bytes and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
-;   source_rows:
-;     metadata payload[0..40)
 CODE_22_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$09,$80,$00,$00,$00,$01,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00
-;     deferred payload[40..96)
-CODE_22_deferred_00000028:
-	dc.b $4C,$D7,$03,$01,$2F,$00,$48,$6F,$00,$10,$48,$E7,$00,$C0,$70,$03
-	dc.b $3F,$00,$A9,$EE,$20,$57,$DE,$FC,$00,$14,$4E,$D0,$4C,$EF,$03,$03
-	dc.b $00,$04,$48,$E7,$C0,$C0,$70,$02,$60,$E6,$4C,$EF,$03,$03,$00,$04
-	dc.b $48,$E7,$C0,$C0,$70,$04,$60,$D8
+CODE_22_loc_00000028:
+	movem.l (a7),d0/a0-a1
+	move.l d0,-(a7)
+	pea.l $0010(a7)
+	movem.l a0-a1,-(a7)
+	moveq.l #3,d0
+CODE_22_loc_00000038:
+	move.w d0,-(a7)
+CODE_22_data_0000003a:
+	_DecStr68K
+	movea.l (a7),a0
+	adda.w #$14,a7
+	jmp (a0)
+CODE_22_loc_00000044:
+	movem.l $0004(a7),d0-d1/a0-a1
+	movem.l d0-d1/a0-a1,-(a7)
+	moveq.l #2,d0
+	bra.b CODE_22_loc_00000038
+CODE_22_semantic_decode_gap_00000052:
+	dc.b $4C,$EF,$03,$03,$00,$04,$48,$E7,$C0,$C0,$70,$04,$60,$D8
 
-; CODE 23 STDCLIB source section
+; CODE 23 STDCLIB
 CODE_23:
-;   source_section_id: macos-code-CODE-23
-;   source_kind: macos_code_resource
-;   backend: macos-code
-;   status: covered_placeholder
-;   resource_type: CODE
-;   id: 23
-;   name: STDCLIB
-;   role: code_segment
-;   code_kind: code_segment
-;   payload_size: 126
-;   payload_sha256: ce2eaab2bd782055c6aaaefc223f2e72d4f746e25a05cc8b3599836ecbd41969
-;   presentation: kind=c_owned_restored_source_packet status=covered visible=True identity=macos-code:CODE:23
-;   listing: kind=structured_placeholder available=False reason=no candidate preview range; classifier deferred byte-entry evidence: missing_m68k_movea_l_stack_to_a0_entry
-;   restored_source_model:
-;     model=restored_source_model_v1 round_trip_required=false
-;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 23 name=unknown
-;     a5_world status=deferred parser_use=unknown
-;     ownership_ranges:
-;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
-;       1: role=unknown span=40..126 status=deferred parser_use=deferred_only reason=missing_m68k_movea_l_stack_to_a0_entry
-;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
-;       1: kind=a5_world_context_placeholder ownership=0 status=deferred parser_use=unknown target=classic_mac_a5_world
-;   source_body_ranges:
-;     metadata payload[0..40) size=40 entrypoint=False
-;     deferred payload[40..126) size=86 entrypoint=False
-;   rendered_source: CODE 23 status=byte_preserved payload[0..126) sha256=ce2eaab2bd782055c6aaaefc223f2e72d4f746e25a05cc8b3599836ecbd41969
-;   residual_policy: semantic source rows are not available for this CODE resource; the source body keeps exact bytes and evidence status without promoting byte-entry, A5, or Segment Loader semantics.
-;   source_rows:
-;     metadata payload[0..40)
 CODE_23_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$09,$88,$00,$00,$00,$01,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00
-;     deferred payload[40..126)
-CODE_23_deferred_00000028:
-	dc.b $4C,$EF,$03,$00,$00,$04,$20,$08,$2F,$02,$22,$2F,$00,$10,$0C,$81
-	dc.b $00,$00,$00,$11,$6D,$2E,$24,$09,$B1,$02,$E2,$0A,$65,$26,$08,$00
-	dc.b $00,$00,$67,$04,$10,$D9,$53,$81,$24,$01,$E8,$8A,$53,$82,$20,$D9
-	dc.b $20,$D9,$20,$D9,$20,$D9,$53,$82,$64,$F4,$02,$81,$00,$00,$00,$0F
-	dc.b $60,$02,$10,$D9,$53,$81,$64,$FA,$24,$1F,$4E,$75,$86,$6D,$65,$6D
-	dc.b $63,$70,$79,$00,$00,$00
+CODE_23_loc_00000028:
+	movem.l $0004(a7),a0-a1
+	move.l a0,d0
+	move.l d2,-(a7)
+	move.l $0010(a7),d1
+	cmpi.l #17,d1
+	blt.b CODE_23_loc_0000006c
+	move.l a1,d2
+	eor.b d0,d2
+	lsr.b #1,d2
+	bcs.b CODE_23_loc_0000006c
+	btst #0,d0
+	beq.b CODE_23_loc_00000050
+	move.b (a1)+,(a0)+
+	subq.l #1,d1
+CODE_23_loc_00000050:
+	move.l d1,d2
+	lsr.l #4,d2
+	subq.l #1,d2
+CODE_23_loc_00000056:
+	move.l (a1)+,(a0)+
+	move.l (a1)+,(a0)+
+	move.l (a1)+,(a0)+
+	move.l (a1)+,(a0)+
+	subq.l #1,d2
+	bcc.b CODE_23_loc_00000056
+	andi.l #15,d1
+	bra.b CODE_23_loc_0000006c
+CODE_23_loc_0000006a:
+	move.b (a1)+,(a0)+
+CODE_23_loc_0000006c:
+	subq.l #1,d1
+	bcc.b CODE_23_loc_0000006a
+	move.l (a7)+,d2
+	rts
+CODE_23_data_pascal_string_00000074:
+	dc.b $86,$6D,$65,$6D,$63,$70,$79,$00,$00,$00
 
-; CODE 24 STDIO source section
+; CODE 24 STDIO
 CODE_24:
-;   source_section_id: macos-code-CODE-24
-;   source_kind: macos_code_resource
-;   backend: macos-code
-;   status: semantic_source
-;   resource_type: CODE
-;   id: 24
-;   name: STDIO
-;   role: code_segment
-;   code_kind: code_segment
-;   payload_size: 4970
-;   payload_sha256: f98dfc823a565d6502fa4ac1feb7b616b397ba9a918ce2c5f47b274e99a9026a
-;   presentation: kind=c_owned_restored_source_packet status=covered visible=True identity=macos-code:CODE:24
-;   listing: kind=semantic_listing available=True reason=C-owned semantic rows from generated loader/CODE0 entry seeds
-;   restored_source_model:
-;     model=restored_source_model_v1 round_trip_required=false
-;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 24 name=unknown
-;     a5_world status=deferred parser_use=unknown
-;     ownership_ranges:
-;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
-;       1: role=candidate_unresolved_prefix span=40..2950 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
-;       2: role=candidate_code span=2950..4970 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
-;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
-;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
-;   source_body_ranges:
-;     metadata payload[0..40) size=40 entrypoint=False
-;     candidate_unresolved_prefix payload[40..2950) size=2910 entrypoint=False
-;     candidate_code payload[2950..4970) size=2020 entrypoint=True
-;   rendered_source: CODE 24 status=semantic_rows payload[0..4970) sha256=f98dfc823a565d6502fa4ac1feb7b616b397ba9a918ce2c5f47b274e99a9026a
-;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
-;   source_rows:
-;     metadata payload[0..40)
 CODE_24_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$09,$90,$00,$00,$00,$0D,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00
-;     candidate_unresolved_prefix payload[40..2950)
-;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=1514 labels=188 xrefs=277
 CODE_24_loc_00000028:
 	link a6,#0
 	move.l a4,-(a7)
@@ -47150,13 +47132,39 @@ CODE_24_loc_000000e4:
 	moveq.l #0,d1
 	move.w $0010(a4),d1
 	move.l d1,d0
-CODE_24_data_dispatch_table_000000f2:
-	dc.b $A1,$1E,$29,$48,$00,$08,$66,$38,$70,$00,$30,$2C,$00,$10,$0C,$40
-	dc.b $00,$64,$63,$2C,$70,$00,$30,$2C,$00,$10,$0C,$40,$04,$00,$52,$C3
-	dc.b $44,$03,$67,$08,$20,$3C,$00,$00,$04,$00,$60,$02,$70,$64,$39,$40
-	dc.b $00,$10,$72,$00,$32,$2C,$00,$10,$20,$01,$A1,$1E,$29,$48,$00,$08
-	dc.b $4A,$AC,$00,$08,$67,$08,$00,$6C,$00,$08,$00,$12,$60,$06,$00,$6C
-	dc.b $00,$04,$00,$12
+CODE_24_data_000000f2:
+	_NewPtr
+	move.l a0,$0008(a4)
+	bne.b CODE_24_loc_00000132
+	moveq.l #0,d0
+	move.w $0010(a4),d0
+	cmpi.w #100,d0
+	bls.b CODE_24_loc_00000132
+	moveq.l #0,d0
+	move.w $0010(a4),d0
+	cmpi.w #1024,d0
+	shi.b d3
+	neg.b d3
+	beq.b CODE_24_loc_0000011e
+	move.l #$400,d0
+	bra.b CODE_24_loc_00000120
+CODE_24_loc_0000011e:
+	moveq.l #100,d0
+CODE_24_loc_00000120:
+	move.w d0,$0010(a4)
+	moveq.l #0,d1
+	move.w $0010(a4),d1
+	move.l d1,d0
+CODE_24_data_0000012c:
+	_NewPtr
+	move.l a0,$0008(a4)
+CODE_24_loc_00000132:
+	tst.l $0008(a4)
+	beq.b CODE_24_loc_00000140
+	ori.w #8,$0012(a4)
+	bra.b CODE_24_loc_00000146
+CODE_24_loc_00000140:
+	ori.w #4,$0012(a4)
 CODE_24_loc_00000146:
 	moveq.l #0,d0
 	move.w $0010(a4),d0
@@ -47342,8 +47350,10 @@ CODE_24_loc_00000318:
 	and.w d0,d1
 	beq.b CODE_24_loc_00000330
 	movea.l $0008(a4),a0
-CODE_24_semantic_decode_gap_00000328:
-	dc.b $A0,$1F,$70,$00,$29,$40,$00,$08
+CODE_24_data_00000328:
+	_DisposePtr
+	moveq.l #0,d0
+	move.l d0,$0008(a4)
 CODE_24_loc_00000330:
 	clr.w $0012(a4)
 	moveq.l #0,d0
@@ -47975,16 +47985,53 @@ CODE_24_loc_00000924:
 	movem.l -$000C(a6),d6-d7/a4
 	unlk a6
 	rts
-CODE_24_data_dispatch_table_0000092e:
-	dc.b $85,$66,$74,$65,$6C,$6C,$00,$00,$4E,$56,$00,$00,$48,$E7,$01,$08
-	dc.b $2E,$2E,$00,$14,$28,$6E,$00,$08,$4A,$AC,$00,$08,$67,$1A,$70,$00
-	dc.b $30,$2C,$00,$12,$72,$08,$C2,$40,$67,$0E,$2F,$0C,$4E,$BA,$F9,$F8
-	dc.b $20,$6C,$00,$08,$A0,$1F,$58,$4F,$02,$6C,$FE,$B3,$00,$12,$30,$2E
-	dc.b $00,$12,$81,$6C,$00,$12,$0C,$87,$00,$00,$FF,$FF,$63,$08,$39,$7C
-	dc.b $FF,$FF,$00,$10,$60,$04,$39,$47,$00,$10,$29,$6E,$00,$0C,$00,$08
-	dc.b $2F,$0C,$4E,$BA,$F6,$C8,$0C,$87,$00,$00,$FF,$FF,$58,$4F,$63,$08
-	dc.b $20,$3C,$00,$00,$FF,$FF,$60,$02,$70,$00,$4C,$EE,$10,$80,$FF,$F8
-	dc.b $4E,$5E,$4E,$75,$87,$73,$65,$74,$76,$62,$75,$66,$00,$00
+CODE_24_data_pascal_string_0000092e:
+	dc.b $85,$66,$74,$65,$6C,$6C,$00,$00
+CODE_24_loc_00000936:
+	link a6,#0
+	movem.l d7/a4,-(a7)
+	move.l $0014(a6),d7
+	movea.l $0008(a6),a4
+	tst.l $0008(a4)
+	beq.b CODE_24_loc_00000966
+	moveq.l #0,d0
+	move.w $0012(a4),d0
+	moveq.l #8,d1
+	and.w d0,d1
+	beq.b CODE_24_loc_00000966
+	move.l a4,-(a7)
+	jsr CODE_24_loc_00000354(pc)
+	movea.l $0008(a4),a0
+CODE_24_data_00000962:
+	_DisposePtr
+	addq.w #4,a7
+CODE_24_loc_00000966:
+	andi.w #65203,$0012(a4)
+	move.w $0012(a6),d0
+	or.w d0,$0012(a4)
+	cmpi.l #65535,d7
+	bls.b CODE_24_loc_00000984
+	move.w #$FFFF,$0010(a4)
+	bra.b CODE_24_loc_00000988
+CODE_24_loc_00000984:
+	move.w d7,$0010(a4)
+CODE_24_loc_00000988:
+	move.l $000C(a6),$0008(a4)
+	move.l a4,-(a7)
+	jsr CODE_24_loc_0000005a(pc)
+	cmpi.l #65535,d7
+	addq.w #4,a7
+	bls.b CODE_24_loc_000009a6
+	move.l #$FFFF,d0
+	bra.b CODE_24_loc_000009a8
+CODE_24_loc_000009a6:
+	moveq.l #0,d0
+CODE_24_loc_000009a8:
+	movem.l -$0008(a6),d7/a4
+	unlk a6
+	rts
+CODE_24_data_pascal_string_000009b2:
+	dc.b $87,$73,$65,$74,$76,$62,$75,$66,$00,$00
 CODE_24_loc_000009bc:
 	link a6,#0
 	movem.l d7/a4,-(a7)
@@ -48029,32 +48076,149 @@ CODE_24_loc_00000a18:
 	unlk a6
 	rts
 CODE_24_data_pascal_string_00000a22:
-	dc.b $86,$75,$6E,$67,$65,$74,$63,$00,$00,$00,$4E,$56,$00,$00,$2F,$0C
-	dc.b $28,$6E,$00,$08,$20,$54,$2F,$28,$00,$04,$4E,$BA,$F8,$80,$20,$54
-	dc.b $70,$00,$30,$28,$00,$0C,$72,$08,$C2,$40,$58,$4F,$66,$08,$22,$48
-	dc.b $20,$69,$00,$10,$A0,$1F,$28,$6E,$FF,$FC,$4E,$5E,$4E,$75,$89,$5F
-	dc.b $62,$75,$66,$43,$6C,$6F,$73,$65,$00,$00,$4E,$56,$00,$00,$48,$E7
-	dc.b $11,$18,$28,$6E,$00,$08,$20,$54,$20,$68,$00,$08,$26,$68,$00,$08
-	dc.b $20,$0B,$67,$30,$20,$54,$70,$00,$30,$28,$00,$0C,$72,$10,$C2,$40
-	dc.b $70,$00,$30,$01,$4A,$80,$66,$06,$2F,$0C,$4E,$93,$58,$4F,$20,$54
-	dc.b $70,$00,$30,$28,$00,$0C,$72,$10,$C2,$40,$67,$04,$70,$00,$60,$72
-	dc.b $70,$01,$60,$6E,$20,$54,$26,$68,$00,$04,$70,$00,$30,$2B,$00,$12
-	dc.b $32,$3C,$00,$80,$C2,$40,$67,$1E,$70,$00,$30,$2B,$00,$12,$72,$02
-	dc.b $C2,$40,$67,$12,$70,$01,$2F,$00,$72,$00,$2F,$01,$2F,$0B,$4E,$BA
-	dc.b $FC,$6C,$4F,$EF,$00,$0C,$53,$93,$4A,$93,$5C,$C3,$44,$03,$67,$10
-	dc.b $20,$6B,$00,$04,$52,$AB,$00,$04,$70,$00,$10,$10,$4A,$80,$60,$0A
-	dc.b $2F,$0B,$4E,$BA,$F6,$94,$4A,$80,$58,$4F,$2E,$00,$70,$FF,$B0,$87
-	dc.b $66,$04,$70,$01,$60,$0C,$2F,$0B,$2F,$07,$4E,$BA,$FE,$9E,$70,$00
-	dc.b $50,$4F,$4C,$EE,$18,$88,$FF,$F0,$4E,$5E,$4E,$75,$87,$5F,$62,$75
-	dc.b $66,$45,$4F,$46,$00,$00,$4E,$56,$00,$00,$2F,$0C,$28,$6E,$00,$10
-	dc.b $4A,$94,$66,$0C,$42,$6D,$CD,$88,$70,$09,$2B,$40,$CD,$8A,$60,$2E
-	dc.b $42,$6D,$CD,$88,$70,$00,$2B,$40,$CD,$8A,$30,$2E,$00,$08,$48,$C0
-	dc.b $2F,$00,$70,$00,$30,$2E,$00,$0A,$2F,$00,$2F,$2E,$00,$0C,$20,$54
-	dc.b $20,$50,$2F,$28,$00,$04,$4E,$BA,$FD,$BC,$4F,$EF,$00,$10,$28,$6E
-	dc.b $FF,$FC,$4E,$5E
-;     candidate_code payload[2950..4970)
-;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=1514 labels=188 xrefs=277
-CODE_24_loc_00000b86:
+	dc.b $86,$75,$6E,$67,$65,$74,$63,$00,$00,$00
+CODE_24_loc_00000a2c:
+	link a6,#0
+	move.l a4,-(a7)
+	movea.l $0008(a6),a4
+	movea.l (a4),a0
+	move.l $0004(a0),-(a7)
+	jsr CODE_24_loc_000002be(pc)
+	movea.l (a4),a0
+	moveq.l #0,d0
+	move.w $000C(a0),d0
+	moveq.l #8,d1
+	and.w d0,d1
+	addq.w #4,a7
+	bne.b CODE_24_loc_00000a58
+	movea.l a0,a1
+	movea.l $0010(a1),a0
+CODE_24_data_00000a56:
+	_DisposePtr
+CODE_24_loc_00000a58:
+	movea.l -$0004(a6),a4
+	unlk a6
+	rts
+CODE_24_data_pascal_string_00000a60:
+	dc.b $89,$5F,$62,$75,$66,$43,$6C,$6F,$73,$65,$00,$00
+CODE_24_loc_00000a6c:
+	link a6,#0
+	movem.l d3/d7/a3-a4,-(a7)
+	movea.l $0008(a6),a4
+	movea.l (a4),a0
+	movea.l $0008(a0),a0
+	movea.l $0008(a0),a3
+	move.l a3,d0
+	beq.b CODE_24_loc_00000ab6
+	movea.l (a4),a0
+	moveq.l #0,d0
+	move.w $000C(a0),d0
+	moveq.l #16,d1
+	and.w d0,d1
+	moveq.l #0,d0
+	move.w d1,d0
+	tst.l d0
+	bne.b CODE_24_loc_00000aa0
+	move.l a4,-(a7)
+	jsr (a3)
+	addq.w #4,a7
+CODE_24_loc_00000aa0:
+	movea.l (a4),a0
+	moveq.l #0,d0
+	move.w $000C(a0),d0
+	moveq.l #16,d1
+	and.w d0,d1
+	beq.b CODE_24_loc_00000ab2
+	moveq.l #0,d0
+	bra.b CODE_24_loc_00000b24
+CODE_24_loc_00000ab2:
+	moveq.l #1,d0
+	bra.b CODE_24_loc_00000b24
+CODE_24_loc_00000ab6:
+	movea.l (a4),a0
+	movea.l $0004(a0),a3
+	moveq.l #0,d0
+	move.w $0012(a3),d0
+	move.w #$80,d1
+	and.w d0,d1
+	beq.b CODE_24_loc_00000ae8
+	moveq.l #0,d0
+	move.w $0012(a3),d0
+	moveq.l #2,d1
+	and.w d0,d1
+	beq.b CODE_24_loc_00000ae8
+	moveq.l #1,d0
+	move.l d0,-(a7)
+	moveq.l #0,d1
+	move.l d1,-(a7)
+	move.l a3,-(a7)
+	jsr CODE_24_loc_0000074e(pc)
+	lea.l $000C(a7),a7
+CODE_24_loc_00000ae8:
+	subq.l #1,(a3)
+	tst.l (a3)
+	sge.b d3
+	neg.b d3
+	beq.b CODE_24_loc_00000b02
+	movea.l $0004(a3),a0
+	addq.l #1,$0004(a3)
+	moveq.l #0,d0
+	move.b (a0),d0
+	tst.l d0
+	bra.b CODE_24_loc_00000b0c
+CODE_24_loc_00000b02:
+	move.l a3,-(a7)
+	jsr CODE_24_loc_0000019a(pc)
+	tst.l d0
+	addq.w #4,a7
+CODE_24_loc_00000b0c:
+	move.l d0,d7
+	moveq.l #-1,d0
+	cmp.l d7,d0
+	bne.b CODE_24_loc_00000b18
+	moveq.l #1,d0
+	bra.b CODE_24_loc_00000b24
+CODE_24_loc_00000b18:
+	move.l a3,-(a7)
+	move.l d7,-(a7)
+	jsr CODE_24_loc_000009bc(pc)
+	moveq.l #0,d0
+	addq.w #8,a7
+CODE_24_loc_00000b24:
+	movem.l -$0010(a6),d3/d7/a3-a4
+	unlk a6
+	rts
+CODE_24_data_pascal_string_00000b2e:
+	dc.b $87,$5F,$62,$75,$66,$45,$4F,$46,$00,$00
+CODE_24_loc_00000b38:
+	link a6,#0
+	move.l a4,-(a7)
+	movea.l $0010(a6),a4
+	tst.l (a4)
+	bne.b CODE_24_loc_00000b52
+	clr.w -$3278(a5)
+	moveq.l #9,d0
+	move.l d0,-$3276(a5)
+	bra.b CODE_24_loc_00000b80
+CODE_24_loc_00000b52:
+	clr.w -$3278(a5)
+	moveq.l #0,d0
+	move.l d0,-$3276(a5)
+	move.w $0008(a6),d0
+	ext.l d0
+	move.l d0,-(a7)
+	moveq.l #0,d0
+	move.w $000A(a6),d0
+	move.l d0,-(a7)
+	move.l $000C(a6),-(a7)
+	movea.l (a4),a0
+	movea.l (a0),a0
+	move.l $0004(a0),-(a7)
+	jsr CODE_24_loc_00000936(pc)
+	lea.l $0010(a7),a7
+CODE_24_loc_00000b80:
+	movea.l -$0004(a6),a4
+	unlk a6
 	movea.l (a7)+,a0
 	lea.l $000C(a7),a7
 	jmp (a0)
@@ -48870,45 +49034,12 @@ CODE_24_loc_00001354:
 CODE_24_data_pascal_string_0000135e:
 	dc.b $88,$5F,$62,$75,$66,$52,$65,$61,$64,$00,$00,$00
 
-; CODE 25 SANELib source section
+; CODE 25 SANELib
 CODE_25:
-;   source_section_id: macos-code-CODE-25
-;   source_kind: macos_code_resource
-;   backend: macos-code
-;   status: semantic_source
-;   resource_type: CODE
-;   id: 25
-;   name: SANELib
-;   role: code_segment
-;   code_kind: code_segment
-;   payload_size: 246
-;   payload_sha256: c87908dd286d0e5fdcab70725ec20e98a37cca1357f18132809c3ab9e7562090
-;   presentation: kind=c_owned_restored_source_packet status=covered visible=True identity=macos-code:CODE:25
-;   listing: kind=semantic_listing available=True reason=C-owned semantic rows from generated loader/CODE0 entry seeds
-;   restored_source_model:
-;     model=restored_source_model_v1 round_trip_required=false
-;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 25 name=unknown
-;     a5_world status=deferred parser_use=unknown
-;     ownership_ranges:
-;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
-;       1: role=candidate_code span=40..246 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
-;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
-;       1: kind=a5_world_context_placeholder ownership=1 status=deferred parser_use=unknown target=classic_mac_a5_world
-;   source_body_ranges:
-;     metadata payload[0..40) size=40 entrypoint=False
-;     candidate_code payload[40..246) size=206 entrypoint=True
-;   rendered_source: CODE 25 status=semantic_rows payload[0..246) sha256=c87908dd286d0e5fdcab70725ec20e98a37cca1357f18132809c3ab9e7562090
-;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
-;   source_rows:
-;     metadata payload[0..40)
 CODE_25_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$09,$F8,$00,$00,$00,$03,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00
-;     candidate_code payload[40..246)
-;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=36 labels=8 xrefs=12
 CODE_25_loc_00000028:
 	movea.l (a7)+,a0
 	moveq.l #31,d2
@@ -48931,15 +49062,20 @@ CODE_25_loc_00000050:
 	move.w d0,-(a7)
 	pea.l (a7)
 	move.w #$1,-(a7)
-CODE_25_semantic_decode_gap_0000005a:
-	dc.b $A9,$EB,$54,$8F,$4E,$D0,$22,$5F,$20,$5F,$12,$1F,$74,$1F,$C4,$5F
-	dc.b $2F,$09
+CODE_25_data_0000005a:
+	_FP68K
+	addq.l #2,a7
+	jmp (a0)
+CODE_25_semantic_decode_gap_00000060:
+	dc.b $22,$5F,$20,$5F,$12,$1F,$74,$1F,$C4,$5F,$2F,$09
 CODE_25_loc_0000006c:
 	subq.l #2,a7
 	pea.l (a7)
 	move.w #$3,-(a7)
-CODE_25_semantic_decode_gap_00000074:
-	dc.b $A9,$EB,$30,$1F,$4E,$75
+CODE_25_data_00000074:
+	_FP68K
+	move.w (a7)+,d0
+	rts
 CODE_25_loc_0000007a:
 	movea.l (a7)+,a0
 	bsr.b CODE_25_loc_0000006c
@@ -48969,50 +49105,16 @@ CODE_25_loc_000000e4:
 	move.l (a7),d1
 	movem.l d1-d2,-(a7)
 	move.w #$9,-(a7)
-CODE_25_semantic_decode_gap_000000f2:
-	dc.b $A9,$EB,$4E,$D0
+CODE_25_data_000000f2:
+	_FP68K
+	jmp (a0)
 
-; CODE 26 PASLIB source section
+; CODE 26 PASLIB
 CODE_26:
-;   source_section_id: macos-code-CODE-26
-;   source_kind: macos_code_resource
-;   backend: macos-code
-;   status: semantic_source
-;   resource_type: CODE
-;   id: 26
-;   name: PASLIB
-;   role: code_segment
-;   code_kind: code_segment
-;   payload_size: 2940
-;   payload_sha256: 62b8ca8b968fab6a003f39717b671f9c6cae8d20a9c77cb7ab41fd0315a229ae
-;   presentation: kind=c_owned_restored_source_packet status=covered visible=True identity=macos-code:CODE:26
-;   listing: kind=semantic_listing available=True reason=C-owned semantic rows from generated loader/CODE0 entry seeds
-;   restored_source_model:
-;     model=restored_source_model_v1 round_trip_required=false
-;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 26 name=unknown
-;     a5_world status=deferred parser_use=unknown
-;     ownership_ranges:
-;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
-;       1: role=candidate_unresolved_prefix span=40..198 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
-;       2: role=candidate_code span=198..2940 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
-;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
-;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
-;   source_body_ranges:
-;     metadata payload[0..40) size=40 entrypoint=False
-;     candidate_unresolved_prefix payload[40..198) size=158 entrypoint=False
-;     candidate_code payload[198..2940) size=2742 entrypoint=True
-;   rendered_source: CODE 26 status=semantic_rows payload[0..2940) sha256=62b8ca8b968fab6a003f39717b671f9c6cae8d20a9c77cb7ab41fd0315a229ae
-;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
-;   source_rows:
-;     metadata payload[0..40)
 CODE_26_metadata_00000000:
 	dc.b $FF,$FF,$00,$00,$00,$00,$0A,$10,$00,$00,$00,$18,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
 	dc.b $00,$00,$00,$00,$00,$00,$00,$00
-;     candidate_unresolved_prefix payload[40..198)
-;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=911 labels=131 xrefs=187
 CODE_26_loc_00000028:
 	link a6,#0
 	move.l #$1388,-$2D48(a5)
@@ -49067,9 +49169,6 @@ CODE_26_loc_000000b6:
 	tst.l -$2D4C(a5)
 	beq.b CODE_26_loc_000000ee
 	move.l -$2D4C(a5),-(a7)
-;     candidate_code payload[198..2940)
-;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=911 labels=131 xrefs=187
-CODE_26_loc_000000c6:
 	movea.l (a7)+,a0
 	jsr (a0)
 	bra.b CODE_26_loc_000000ee
@@ -49079,13 +49178,16 @@ CODE_26_loc_000000cc:
 	moveq.l #0,d0
 	move.l d0,(a4)
 	movea.l a3,a4
+CODE_26_loc_000000d8:
 	move.l a4,d0
 	beq.b CODE_26_loc_000000e8
 	movea.l (a4),a3
 	move.l a4,-(a7)
 	movea.l (a7)+,a0
-CODE_26_semantic_decode_gap_000000e2:
-	dc.b $A0,$1F,$28,$4B,$60,$F0
+CODE_26_data_000000e2:
+	_DisposePtr
+	movea.l a3,a4
+	bra.b CODE_26_loc_000000d8
 CODE_26_loc_000000e8:
 	movea.l d6,a0
 	move.l (a0),-$2D64(a5)
@@ -49106,9 +49208,14 @@ CODE_26_loc_00000112:
 	dbf.w d0,CODE_26_loc_00000112
 	pea.l -$0100(a6)
 	move.w #$FE15,d0
-CODE_26_semantic_decode_gap_00000120:
-	dc.b $A9,$C9,$4E,$5E,$20,$5F,$58,$4F,$4E,$D0,$88,$50,$42,$41,$44,$48
-	dc.b $45,$41,$50,$00,$00,$00
+CODE_26_data_00000120:
+	_SysError
+	unlk a6
+	movea.l (a7)+,a0
+	addq.w #4,a7
+	jmp (a0)
+CODE_26_data_pascal_string_0000012a:
+	dc.b $88,$50,$42,$41,$44,$48,$45,$41,$50,$00,$00,$00
 CODE_26_loc_00000136:
 	link a6,#0
 	move.b -$2D69(a5),d0
@@ -49130,7 +49237,6 @@ CODE_26_data_dispatch_table_00000164:
 	dc.b $89,$43,$48,$45,$43,$4B,$48,$45,$41,$50,$00,$1C,$1A,$54,$68,$65
 	dc.b $20,$50,$61,$73,$63,$61,$6C,$20,$48,$65,$61,$70,$20,$69,$73,$20
 	dc.b $63,$6F,$72,$72,$75,$70,$74,$00
-CODE_26_loc_00000170:
 CODE_26_loc_0000018c:
 	link a6,#0
 	move.b -$2D69(a5),d0
@@ -49508,13 +49614,16 @@ CODE_26_loc_000005b8:
 	moveq.l #0,d0
 	move.l d0,(a4)
 	movea.l a3,a4
+CODE_26_loc_000005c4:
 	move.l a4,d0
 	beq.b CODE_26_loc_000005d4
 	movea.l (a4),a3
 	move.l a4,-(a7)
 	movea.l (a7)+,a0
-CODE_26_semantic_decode_gap_000005ce:
-	dc.b $A0,$1F,$28,$4B,$60,$F0
+CODE_26_data_000005ce:
+	_DisposePtr
+	movea.l a3,a4
+	bra.b CODE_26_loc_000005c4
 CODE_26_loc_000005d4:
 	movea.l d6,a0
 	move.l (a0),-$2D64(a5)
@@ -49832,8 +49941,8 @@ CODE_26_loc_00000912:
 	ble.b CODE_26_loc_0000092e
 	pea.l CODE_26_loc_0000093e(pc)
 	move.w #$FE15,d0
-CODE_26_semantic_decode_gap_0000092c:
-	dc.b $A9,$C9
+CODE_26_data_0000092c:
+	_SysError
 CODE_26_loc_0000092e:
 	move.l (a7)+,d0
 	unlk a6
@@ -49843,7 +49952,6 @@ CODE_26_data_dispatch_table_00000936:
 	dc.b $53,$54,$52,$52,$47,$43,$48,$4B,$18,$53,$74,$72,$69,$6E,$67,$20
 	dc.b $52,$61,$6E,$67,$65,$20,$43,$68,$65,$63,$6B,$20,$41,$62,$6F,$72
 	dc.b $74,$00
-CODE_26_loc_0000093e:
 CODE_26_loc_00000958:
 	movem.l d0-d2/a0-a3,-(a7)
 	movea.l $0020(a7),a0
@@ -50105,2450 +50213,271 @@ CODE_26_loc_00000b6c:
 	addq.w #6,a7
 	rts
 
-; CODE 27 32-bit bootstrap source section
+; CODE 27 32-bit bootstrap
 CODE_27:
-;   source_section_id: macos-code-CODE-27
-;   source_kind: macos_code_resource
-;   backend: macos-code
-;   status: semantic_source
-;   resource_type: CODE
-;   id: 27
-;   name: 32-bit bootstrap
-;   role: code_segment
-;   code_kind: code_segment
-;   payload_size: 1882
-;   payload_sha256: f683b4c722b40eda686a3074d68910f8316ecd373798c1a5834df64d8b757352
-;   presentation: kind=c_owned_restored_source_packet status=covered visible=True identity=macos-code:CODE:27
-;   listing: kind=semantic_listing available=True reason=C-owned semantic rows from generated loader/CODE0 entry seeds
-;   restored_source_model:
-;     model=restored_source_model_v1 round_trip_required=false
-;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 27 name=unknown
-;     a5_world status=deferred parser_use=unknown
-;     ownership_ranges:
-;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
-;       1: role=candidate_unresolved_prefix span=4..204 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
-;       2: role=candidate_code span=204..1882 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
-;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
-;       1: kind=code0_dispatch_reference ownership=unknown status=validated parser_use=accepted_parser_output target=CODE:27
-;       2: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
-;   source_body_ranges:
-;     metadata payload[0..4) size=4 entrypoint=False
-;     candidate_unresolved_prefix payload[4..204) size=200 entrypoint=False
-;     candidate_code payload[204..1882) size=1678 entrypoint=True
-;   rendered_source: CODE 27 status=semantic_rows payload[0..1882) sha256=f683b4c722b40eda686a3074d68910f8316ecd373798c1a5834df64d8b757352
-;   residual_policy: semantic source rows are rendered for decoded C-owned ranges; remaining byte gaps stay explicit without promoting byte-entry, A5, or Segment Loader semantics.
-;   source_rows:
-;     metadata payload[0..4)
 CODE_27_metadata_00000000:
 	dc.b $00,$00,$00,$01
-;     candidate_unresolved_prefix payload[4..204)
-;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=5 labels=2 xrefs=2
 CODE_27_loc_00000004:
 	moveq.l #48,d0
-CODE_27_data_dispatch_table_00000006:
-	dc.b $A3,$1E,$4A,$40,$66,$72,$30,$38,$09,$34,$2B,$88,$00,$0C,$4A,$78
-	dc.b $02,$8E,$6D,$2E,$30,$3C,$A8,$9F,$A7,$46,$22,$48,$30,$3C,$A0,$90
-	dc.b $A3,$46,$B3,$C8,$67,$1C,$9E,$FC,$00,$10,$41,$D7,$70,$02,$A0,$90
-	dc.b $0C,$68,$00,$01,$00,$06,$56,$C0,$41,$FA,$00,$52,$10,$80,$4F,$EF
-	dc.b $00,$10,$61,$00,$01,$BC,$61,$00,$00,$F4,$61,$00,$01,$46,$41,$FA
-	dc.b $00,$24,$20,$97,$20,$4D,$D0,$F8,$09,$34,$4E,$A8,$00,$12,$61,$00
-	dc.b $01,$EC,$20,$4D,$D0,$F8,$09,$34,$20,$68,$00,$0C,$A0,$1F,$20,$7A
-	dc.b $00,$04,$4E,$D0,$00,$00,$00,$00,$4E,$75,$80,$0E,$33,$32,$5F,$62
-	dc.b $69,$74,$5F,$73,$74,$61,$72,$74,$75,$70,$00,$00,$00,$00,$08,$3A
-	dc.b $00,$00,$FF,$FA,$67,$1E,$0C,$38,$00,$00,$01,$2F,$67,$16,$30,$3C
-	dc.b $A1,$98,$A3,$46,$22,$48,$30,$3C,$A8,$9F,$A7,$46,$B3,$C8,$67,$04
-	dc.b $70,$01,$A1,$98,$4E,$75,$80,$0B,$66,$6C,$75,$73,$68,$5F,$63,$61
-	dc.b $63,$68,$65,$00,$00,$00
-;     candidate_code payload[204..1882)
-;     semantic_source: kind=macos_code_semantic_source_v1 status=decoded instructions=5 labels=2 xrefs=2
-CODE_27_loc_000000cc:
-	movea.l (a7)+,a0
-	addq.w #4,a7
-	clr.w (a7)
+CODE_27_data_00000006:
+	_NewPtrClear
+	tst.w d0
+	bne.b CODE_27_loc_0000007e
+	move.w $0934.w,d0
+	move.l a0,$C(a5,d0.w)
+	tst.w $028E.w
+	blt.b CODE_27_loc_00000048
+	move.w #$A89F,d0
+CODE_27_data_0000001e:
+	_GetToolTrapAddress
+	movea.l a0,a1
+	move.w #$A090,d0
+CODE_27_data_00000026:
+	_GetOSTrapAddress
+	cmpa.l a0,a1
+	beq.b CODE_27_loc_00000048
+	suba.w #$10,a7
+	lea.l (a7),a0
+	moveq.l #2,d0
+CODE_27_data_00000034:
+	_SysEnvirons
+	cmpi.w #1,$0006(a0)
+	sne.b d0
+	lea.l CODE_27_loc_00000092(pc),a0
+	move.b d0,(a0)
+	lea.l $0010(a7),a7
+CODE_27_loc_00000048:
+	bsr.w CODE_27_loc_00000206
+	bsr.w CODE_27_loc_00000142
+	bsr.w CODE_27_loc_00000198
+	lea.l CODE_27_loc_0000007a(pc),a0
+	move.l (a7),(a0)
+	movea.l a5,a0
+	adda.w $0934.w,a0
+	jsr $0012(a0)
+	bsr.w CODE_27_loc_00000252
+	movea.l a5,a0
+	adda.w $0934.w,a0
+	movea.l $000C(a0),a0
+CODE_27_data_00000072:
+	_DisposePtr
+	movea.l CODE_27_loc_0000007a(pc),a0
 	jmp (a0)
-CODE_27_data_symbol_record_000000d4:
-	dc.b $80,$0B,$70,$72,$65,$5F,$4C,$6F,$61,$64,$53,$65,$67,$00,$00,$00
-CODE_27_semantic_decode_gap_000000e4:
-	dc.b $20,$5F,$58,$4F,$42,$57,$4E,$D0,$80,$0C,$70,$6F,$73,$74,$5F,$4C
-	dc.b $6F,$61,$64,$53,$65,$67,$00,$00,$20,$5F,$58,$4F,$42,$57,$4E,$D0
-	dc.b $80,$0D,$70,$72,$65,$5F,$55,$6E,$6C,$6F,$61,$64,$53,$65,$67,$00
-	dc.b $00,$00,$20,$5F,$58,$4F,$42,$57,$4E,$D0,$80,$0D,$65,$72,$72,$6F
-	dc.b $72,$5F,$68,$61,$6E,$64,$6C,$65,$72,$00,$00,$00,$00,$01,$FF,$9C
-	dc.b $00,$02,$FF,$B4,$00,$03,$FF,$CC,$00,$04,$FF,$E6,$00,$00,$48,$E7
-	dc.b $80,$E0,$22,$4D,$D2,$F8,$09,$34,$22,$69,$00,$0C,$45,$FA,$FF,$DE
-	dc.b $30,$1A,$67,$0A,$30,$5A,$41,$FB,$80,$D4,$61,$1A,$60,$F2,$4C,$DF
-	dc.b $07,$01,$4E,$75,$80,$0D,$73,$65,$74,$75,$70,$5F,$76,$65,$63,$74
-	dc.b $6F,$72,$73,$00,$00,$00,$D0,$40,$D0,$40,$2F,$31,$00,$00,$23,$88
-	dc.b $00,$00,$20,$5F,$4E,$75,$80,$0A,$73,$65,$74,$5F,$76,$65,$63,$74
-	dc.b $6F,$72,$00,$00,$48,$E7,$80,$C0,$42,$40,$61,$00,$04,$D0,$B0,$FC
-	dc.b $00,$00,$66,$02,$A9,$FF,$59,$8F,$2F,$08,$A9,$A5,$20,$5F,$D0,$F8
-	dc.b $09,$34,$90,$FC,$00,$10,$43,$FA,$00,$46,$22,$88,$4C,$DF,$03,$01
-	dc.b $4E,$75,$80,$0E,$73,$65,$74,$75,$70,$5F,$6A,$74,$5F,$6C,$69,$6D
-	dc.b $69,$74,$00,$00,$01,$F3,$00,$DC,$00,$00,$00,$00,$01,$F2,$00,$C4
-	dc.b $00,$00,$00,$00,$01,$F0,$01,$12,$00,$00,$00,$00,$01,$F1,$03,$72
-	dc.b $00,$00,$00,$00,$01,$F4,$00,$F4,$00,$00,$00,$00,$00,$00,$00,$00
-	dc.b $00,$00,$30,$3C,$A8,$8F,$A3,$46,$22,$48,$30,$3C,$A8,$9F,$A7,$46
-	dc.b $B3,$C8,$67,$06,$43,$FA,$FF,$CE,$60,$04,$43,$FA,$FF,$B8,$30,$11
-	dc.b $67,$16,$A7,$46,$23,$48,$00,$04,$30,$69,$00,$02,$41,$FB,$80,$A6
-	dc.b $30,$11,$A6,$47,$50,$49,$60,$E6,$4E,$75,$80,$0F,$69,$6E,$73,$74
-	dc.b $61,$6C,$6C,$5F,$70,$61,$74,$63,$68,$65,$73,$00,$00,$00,$48,$E7
-	dc.b $00,$C0,$30,$3C,$A8,$8F,$A3,$46,$22,$48,$30,$3C,$A8,$9F,$A7,$46
-	dc.b $B3,$C8,$67,$06,$43,$FA,$FF,$7E,$60,$04,$43,$FA,$FF,$68,$30,$11
-	dc.b $67,$0A,$20,$69,$00,$04,$A6,$47,$50,$49,$60,$F2,$4C,$DF,$03,$00
-	dc.b $4E,$75,$80,$11,$75,$6E,$69,$6E,$73,$74,$61,$6C,$6C,$5F,$70,$61
-	dc.b $74,$63,$68,$65,$73,$00,$00,$00,$2F,$3A,$FF,$46,$61,$B0,$4E,$75
-	dc.b $80,$0C,$70,$61,$74,$63,$68,$5F,$4C,$61,$75,$6E,$63,$68,$00,$00
-	dc.b $2F,$3A,$FF,$26,$61,$98,$4E,$75,$80,$0B,$70,$61,$74,$63,$68,$5F
-	dc.b $43,$68,$61,$69,$6E,$00,$00,$00,$2F,$3A,$FF,$2E,$61,$80,$4E,$75
-	dc.b $80,$11,$70,$61,$74,$63,$68,$5F,$45,$78,$69,$74,$54,$6F,$53,$68
-	dc.b $65,$6C,$6C,$00,$00,$00,$48,$E7,$F0,$C0,$20,$4D,$D0,$F8,$09,$34
-	dc.b $0C,$68,$FF,$FF,$00,$0A,$66,$00,$01,$4E,$76,$00,$22,$6F,$00,$18
-	dc.b $B3,$CD,$6D,$0C,$41,$FA,$FE,$F8,$20,$50,$D1,$CD,$B3,$C8,$6F,$02
-	dc.b $76,$01,$4A,$03,$66,$0E,$30,$3C,$00,$01,$41,$EF,$00,$18,$61,$00
-	dc.b $01,$42,$60,$14,$30,$2F,$00,$1C,$61,$00,$03,$6E,$22,$50,$0C,$51
-	dc.b $FF,$FF,$66,$00,$01,$12,$60,$16,$22,$6F,$00,$18,$30,$29,$FF,$FC
-	dc.b $61,$00,$03,$56,$22,$50,$0C,$51,$FF,$FF,$66,$00,$00,$EE,$A0,$69
-	dc.b $08,$00,$00,$07,$66,$08,$4A,$38,$0B,$B2,$67,$02,$A0,$64,$A0,$29
-	dc.b $20,$10,$A0,$55,$20,$40,$22,$4D,$D2,$F8,$09,$34,$22,$28,$00,$08
-	dc.b $67,$1E,$D3,$E8,$00,$04,$0C,$69,$4E,$F9,$00,$02,$67,$00,$00,$94
-	dc.b $D1,$A9,$00,$04,$33,$7C,$4E,$F9,$00,$02,$50,$49,$53,$81,$66,$F0
-	dc.b $22,$4D,$D2,$F8,$09,$34,$22,$28,$00,$10,$67,$1C,$D3,$E8,$00,$0C
-	dc.b $0C,$69,$4E,$F9,$00,$02,$67,$6A,$D1,$A9,$00,$04,$33,$7C,$4E,$F9
-	dc.b $00,$02,$50,$49,$53,$81,$66,$F0,$22,$0D,$92,$A8,$00,$18,$67,$18
-	dc.b $4A,$A8,$00,$14,$67,$12,$21,$4D,$00,$18,$2F,$08,$22,$48,$D1,$E8
-	dc.b $00,$14,$61,$00,$03,$4E,$20,$5F,$22,$08,$92,$A8,$00,$20,$67,$24
-	dc.b $4A,$A8,$00,$20,$66,$06,$06,$81,$00,$00,$00,$28,$4A,$A8,$00,$1C
-	dc.b $67,$12,$21,$48,$00,$20,$2F,$08,$22,$48,$D1,$E8,$00,$1C,$61,$00
-	dc.b $03,$22,$20,$5F,$4A,$03,$66,$0A,$30,$3C,$00,$02,$41,$EF,$00,$18
-	dc.b $61,$50,$4E,$BA,$FC,$7C,$4A,$03,$67,$10,$4C,$DF,$03,$0F,$5D,$97
-	dc.b $2F,$57,$00,$02,$4F,$EF,$00,$02,$60,$06,$4C,$DF,$03,$0F,$55,$97
-	dc.b $4A,$38,$01,$2D,$67,$02,$A9,$FF,$4E,$75,$30,$3C,$00,$02,$20,$4F
-	dc.b $41,$E8,$00,$18,$61,$1C,$4C,$DF,$03,$0F,$2F,$3A,$FD,$9C,$4E,$75
-	dc.b $80,$0D,$70,$61,$74,$63,$68,$5F,$4C,$6F,$61,$64,$53,$65,$67,$00
-	dc.b $00,$00,$48,$E7,$F0,$C0,$4C,$EF,$03,$0F,$00,$1C,$9E,$FC,$00,$58
-	dc.b $48,$EF,$7F,$FF,$00,$0A,$22,$4F,$41,$EF,$00,$68,$20,$50,$42,$40
-	dc.b $61,$60,$43,$E9,$00,$58,$20,$11,$61,$28,$55,$4F,$48,$6F,$00,$02
-	dc.b $4E,$90,$4F,$EF,$00,$5A,$4C,$DF,$03,$0F,$4E,$75,$80,$11,$63,$61
-	dc.b $6C,$6C,$5F,$75,$73,$65,$72,$5F,$68,$61,$6E,$64,$6C,$65,$72,$00
-	dc.b $00,$00,$2F,$09,$22,$4D,$D2,$F8,$09,$34,$22,$69,$00,$0C,$D0,$40
-	dc.b $D0,$40,$41,$F1,$00,$00,$20,$50,$22,$5F,$4E,$75,$80,$12,$73,$65
-	dc.b $74,$5F,$76,$65,$63,$74,$6F,$72,$5F,$61,$64,$64,$72,$65,$73,$73
-	dc.b $00,$00,$48,$E7,$80,$80,$32,$BC,$FF,$FF,$42,$A9,$00,$54,$33,$40
-	dc.b $00,$52,$23,$48,$00,$02,$58,$A9,$00,$02,$20,$50,$55,$48,$23,$48
-	dc.b $00,$06,$33,$68,$FF,$FE,$00,$46,$23,$7C,$43,$4F,$44,$45,$00,$48
-	dc.b $30,$28,$FF,$FE,$61,$00,$01,$56,$42,$69,$00,$50,$4A,$90,$67,$06
-	dc.b $13,$7C,$00,$FF,$00,$50,$59,$8F,$2F,$08,$A9,$A5,$23,$5F,$00,$4C
-	dc.b $4C,$DF,$01,$01,$4E,$75,$80,$0B,$66,$69,$6C,$6C,$5F,$73,$74,$72
-	dc.b $75,$63,$74,$00,$00,$00,$48,$E7,$E0,$C0,$20,$6F,$00,$18,$0C,$50
-	dc.b $4E,$F9,$66,$00,$00,$FA,$22,$4D,$D2,$F8,$09,$34,$0C,$69,$FF,$FF
-	dc.b $00,$0A,$66,$00,$00,$EA,$30,$28,$FF,$FE,$61,$00,$01,$00,$2F,$08
-	dc.b $20,$50,$0C,$50,$FF,$FF,$20,$5F,$66,$00,$00,$D4,$48,$E7,$00,$C0
-	dc.b $4C,$EF,$03,$07,$00,$08,$9E,$FC,$00,$58,$48,$EF,$7F,$FF,$00,$0A
-	dc.b $3E,$BC,$FF,$FF,$42,$AF,$00,$54,$42,$6F,$00,$52,$20,$4F,$41,$E8
-	dc.b $00,$58,$22,$50,$41,$E8,$00,$1C,$2F,$48,$00,$02,$20,$68,$00,$04
-	dc.b $2F,$48,$00,$06,$3F,$68,$FF,$FE,$00,$46,$2F,$7C,$43,$4F,$44,$45
-	dc.b $00,$48,$42,$6F,$00,$50,$4A,$91,$67,$06,$1F,$7C,$00,$FF,$00,$50
-	dc.b $59,$8F,$2F,$09,$A9,$A5,$2F,$5F,$00,$4C,$30,$3C,$00,$03,$61,$00
-	dc.b $FE,$D2,$55,$4F,$48,$6F,$00,$02,$4E,$90,$54,$4F,$DE,$FC,$00,$58
-	dc.b $4C,$DF,$03,$00,$A0,$2A,$20,$10,$A0,$55,$20,$40,$22,$28,$00,$08
-	dc.b $67,$16,$D3,$E8,$00,$04,$20,$08,$91,$A9,$00,$04,$33,$7C,$A9,$F0
-	dc.b $00,$02,$50,$49,$53,$81,$66,$F0,$22,$4D,$D2,$F8,$09,$34,$22,$28
-	dc.b $00,$10,$67,$18,$D3,$E8,$00,$0C,$20,$08,$91,$A9,$00,$04,$33,$7C
-	dc.b $A9,$F0,$00,$02,$50,$49,$53,$81,$66,$F0,$60,$06,$22,$28,$00,$08
-	dc.b $67,$0C,$61,$00,$FA,$4C,$4C,$DF,$03,$07,$2E,$9F,$4E,$75,$4C,$DF
-	dc.b $03,$07,$2F,$3A,$FB,$9C,$4E,$75,$80,$0F,$70,$61,$74,$63,$68,$5F
-	dc.b $55,$6E,$6C,$6F,$61,$64,$53,$65,$67,$00,$00,$00,$51,$F8,$0A,$5E
-	dc.b $59,$4F,$2F,$3C,$43,$4F,$44,$45,$3F,$00,$A9,$A0,$30,$38,$0A,$60
-	dc.b $20,$5F,$50,$F8,$0A,$5E,$4E,$75,$80,$0B,$67,$65,$74,$5F,$72,$65
-	dc.b $73,$5F,$68,$64,$6C,$00,$00,$00,$50,$F8,$0A,$5E,$59,$4F,$2F,$3C
-	dc.b $43,$4F,$44,$45,$3F,$00,$A9,$A0,$20,$5F,$4A,$78,$0A,$60,$67,$62
-	dc.b $4C,$EF,$03,$0F,$00,$04,$9E,$FC,$00,$58,$48,$EF,$7F,$FF,$00,$0A
-	dc.b $22,$4F,$30,$38,$0A,$60,$41,$EF,$00,$74,$61,$00,$FE,$16,$30,$3C
-	dc.b $00,$04,$61,$00,$FD,$DE,$55,$4F,$48,$6F,$00,$02,$4E,$90,$30,$1F
-	dc.b $0C,$40,$00,$01,$66,$10,$2F,$6F,$00,$06,$00,$74,$4F,$EF,$00,$5C
-	dc.b $4C,$DF,$03,$0F,$60,$1C,$0C,$40,$00,$02,$66,$0C,$4F,$EF,$00,$5C
-	dc.b $4C,$DF,$03,$0F,$58,$4F,$60,$0A,$61,$00,$FB,$44,$70,$0F,$A9,$C9
-	dc.b $A9,$FF,$4E,$75,$80,$09,$6C,$6F,$61,$64,$5F,$63,$6F,$64,$65,$00
-	dc.b $00,$00,$70,$00,$10,$18,$67,$0A,$6A,$12,$08,$80,$00,$07,$61,$14
-	dc.b $60,$0A,$61,$10,$67,$12,$61,$0C,$61,$0A,$61,$08,$D0,$80,$D3,$C0
-	dc.b $D3,$91,$60,$DE,$E1,$88,$10,$18,$4E,$75,$80,$08,$52,$65,$6C,$6F
-	dc.b $63,$61,$74,$65,$00,$00
-
-
-; Source quality gate
-;   kind: macos_source_quality_gate_v1
-;   status: byte_real_baseline
-;   semantic_closeout_status: blocked_residual_decode_gaps
-;   baseline_status: passed_with_deferred_semantics
-;   baseline_status_meaning: byte preservation, source ordering, labels, and residual accounting are present; this is not semantic source closeout
-;   scope: current MPW Tools Asm fixture
-;   semantic_components:
-;     byte_preservation_status: byte_real_complete
-;     label_xref_status: generated_labels_and_xrefs_present
-;     residual_status: explicit
-;     semantic_disassembly_status: residual_decode_gaps_present
-;     source_ordering_status: source_first
-;   checklist:
-;     all_code_sections_visible: True
-;     no_vague_orphan_bucket: True
-;     range_ownership_complete: True
-;     reachable_code_evidence_recorded: True
-;     recursive_control_target_xrefs_present: True
-;     renderer_uses_durable_rows: True
-;     residuals_explicit: True
-;     source_first_artifact: True
-;     stable_labels_present: True
-;     xref_target_labels_resolved: True
-;   does_not_claim:
-;     accepted byte-entry proof
-;     decoded Segment Loader relocation/fixup semantics
-;     A5 lifetime proof
-;     resource-fork round trip
-;   non_blocking_for_semantic_disassembly:
-;     missing human semantic names
-;     missing original source symbols
-;     deferred A5 lifetime proof
-;     deferred Segment Loader fixup decoding for current zero-offset fixture spans
-;   resource_review:
-;     CODE 0: section=macos-code-CODE-0 ownership=metadata coverage=True labels=350 xrefs=0 control_target_xrefs=0 xref_targets=0 unresolved_xref_targets=0 instructions=0 body_spans=0 byte_real_only_body=False reachable_evidence=348 residuals=0
-;       next: decode CODE 0 dispatch target semantics only where accepted target evidence exists
-;     CODE 1: section=macos-code-CODE-1 ownership=candidate_code,metadata coverage=True labels=120 xrefs=1902 control_target_xrefs=1787 xref_targets=1026 unresolved_xref_targets=0 instructions=7818 body_spans=1 byte_real_only_body=False reachable_evidence=117 residuals=59
-;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
-;       residual semantic_decode_gap payload[5528..5538) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[5660..5916) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[6618..6628) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[6638..6648) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[8248..8266) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[8280..8304) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[9326..9362) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[9604..9658) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[12348..12376) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[12852..12876) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[17550..17574) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[17636..17660) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[25024..25032) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[25044..25068) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[25080..25260) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[25752..25926) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[25936..25992) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[26018..26106) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[26116..26170) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[26808..26814) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[26818..26828) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[26834..26852) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[26862..26872) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[26880..26884) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[26912..26920) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[26956..26966) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[26974..26984) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[26992..27002) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[27176..27190) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[27310..27324) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[27382..27396) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[27404..27414) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[27424..27428) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[27430..27436) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[27446..27450) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[27452..27458) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[27466..27476) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[27484..27494) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[27502..27512) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[27520..27530) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[27538..27548) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[27556..27566) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[28454..28462) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[28692..28748) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[28830..28832) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[28900..28912) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[28978..28980) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[28984..29024) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual candidate_unvisited_entry_pattern island[8280..8304) count=1 payload_offsets=8288 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
-;       residual candidate_unvisited_entry_pattern island[12852..12876) count=1 payload_offsets=12858 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
-;       residual candidate_unvisited_entry_pattern island[17550..17574) count=1 payload_offsets=17556 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
-;       residual candidate_unvisited_entry_pattern island[17636..17660) count=1 payload_offsets=17652 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
-;       residual candidate_unvisited_entry_pattern island[26834..26852) count=2 payload_offsets=26838,26840 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
-;       residual candidate_unvisited_entry_pattern island[27176..27190) count=1 payload_offsets=27184 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
-;       residual candidate_unvisited_entry_pattern island[27310..27324) count=1 payload_offsets=27318 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
-;       residual candidate_unvisited_entry_pattern island[27382..27396) count=1 payload_offsets=27390 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
-;       residual candidate_unvisited_entry_pattern island[28454..28462) count=1 payload_offsets=28456 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
-;       residual candidate_unvisited_entry_pattern island[28692..28748) count=1 payload_offsets=28744 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
-;     CODE 2: section=macos-code-CODE-2 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=9 xrefs=94 control_target_xrefs=87 xref_targets=71 unresolved_xref_targets=0 instructions=659 body_spans=1 byte_real_only_body=False reachable_evidence=9 residuals=3
-;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
-;       residual semantic_decode_gap payload[384..392) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[6016..6036) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[6446..6456) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;     CODE 3: section=macos-code-CODE-3 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=6 xrefs=457 control_target_xrefs=453 xref_targets=310 unresolved_xref_targets=0 instructions=2999 body_spans=1 byte_real_only_body=False reachable_evidence=5 residuals=10
-;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
-;       residual semantic_decode_gap payload[64..94) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[410..436) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[2144..2188) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[10760..10806) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[17546..17560) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[17636..17656) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[17730..17740) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[17814..17832) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[17884..18252) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual candidate_unvisited_entry_pattern island[64..94) count=1 payload_offsets=64 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
-;     CODE 4: section=macos-code-CODE-4 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=22 xrefs=326 control_target_xrefs=306 xref_targets=217 unresolved_xref_targets=0 instructions=1874 body_spans=1 byte_real_only_body=False reachable_evidence=22 residuals=1
-;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
-;       residual semantic_decode_gap payload[6030..6032) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;     CODE 5: section=macos-code-CODE-5 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=25 xrefs=1140 control_target_xrefs=1117 xref_targets=699 unresolved_xref_targets=0 instructions=5358 body_spans=1 byte_real_only_body=False reachable_evidence=25 residuals=9
-;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
-;       residual semantic_decode_gap payload[3436..3438) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[4104..4108) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[6144..6174) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[8184..8248) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[13166..13170) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[21764..21784) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[21928..21952) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[23892..23914) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual candidate_unvisited_entry_pattern island[21764..21784) count=1 payload_offsets=21768 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
-;     CODE 6: section=macos-code-CODE-6 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=12 xrefs=824 control_target_xrefs=814 xref_targets=368 unresolved_xref_targets=0 instructions=2500 body_spans=1 byte_real_only_body=False reachable_evidence=11 residuals=9
-;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
-;       residual semantic_decode_gap payload[316..426) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[728..736) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[952..960) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[972..976) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[984..992) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[1866..1870) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[3398..3406) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[4166..4168) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[6854..6858) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;     CODE 7: section=macos-code-CODE-7 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=8 xrefs=83 control_target_xrefs=77 xref_targets=41 unresolved_xref_targets=0 instructions=395 body_spans=1 byte_real_only_body=False reachable_evidence=8 residuals=2
-;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
-;       residual semantic_decode_gap payload[362..370) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[3138..3160) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;     CODE 8: section=macos-code-CODE-8 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=11 xrefs=115 control_target_xrefs=106 xref_targets=71 unresolved_xref_targets=0 instructions=530 body_spans=1 byte_real_only_body=False reachable_evidence=9 residuals=1
-;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
-;       residual semantic_decode_gap payload[598..678) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;     CODE 9: section=macos-code-CODE-9 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=10 xrefs=114 control_target_xrefs=106 xref_targets=80 unresolved_xref_targets=0 instructions=431 body_spans=1 byte_real_only_body=False reachable_evidence=11 residuals=13
-;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
-;       residual semantic_decode_gap payload[206..712) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[12798..13904) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual candidate_unvisited_entry_pattern island[206..712) count=5 payload_offsets=268,298,332,366,616 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
-;       residual candidate_unvisited_entry_pattern island[12798..13904) count=6 payload_offsets=12836,13098,13178,13182,13274,13854 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
-;     CODE 10: section=macos-code-CODE-10 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=5 xrefs=62 control_target_xrefs=59 xref_targets=43 unresolved_xref_targets=0 instructions=338 body_spans=1 byte_real_only_body=False reachable_evidence=4 residuals=0
-;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
-;     CODE 11: section=macos-code-CODE-11 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=17 xrefs=193 control_target_xrefs=178 xref_targets=117 unresolved_xref_targets=0 instructions=1080 body_spans=1 byte_real_only_body=False reachable_evidence=17 residuals=3
-;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
-;       residual semantic_decode_gap payload[188..254) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[3494..3538) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[3616..3618) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;     CODE 12: section=macos-code-CODE-12 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=6 xrefs=372 control_target_xrefs=368 xref_targets=211 unresolved_xref_targets=0 instructions=2001 body_spans=1 byte_real_only_body=False reachable_evidence=4 residuals=2
-;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
-;       residual semantic_decode_gap payload[2436..2438) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[4864..4866) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;     CODE 13: section=macos-code-CODE-13 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=16 xrefs=203 control_target_xrefs=189 xref_targets=135 unresolved_xref_targets=0 instructions=1081 body_spans=1 byte_real_only_body=False reachable_evidence=15 residuals=59
-;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
-;       residual semantic_decode_gap payload[11616..11676) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[12344..26534) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual candidate_unvisited_entry_pattern island[11616..11676) count=1 payload_offsets=11616 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
-;       residual candidate_unvisited_entry_pattern island[12344..26534) count=56 payload_offsets=12358,12362,13848,13852,14334,14338,14950,14954,15122,16382,16386,17084,... status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
-;     CODE 14: section=macos-code-CODE-14 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=14 xrefs=102 control_target_xrefs=90 xref_targets=82 unresolved_xref_targets=0 instructions=523 body_spans=1 byte_real_only_body=False reachable_evidence=13 residuals=0
-;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
-;     CODE 15: section=macos-code-CODE-15 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=11 xrefs=147 control_target_xrefs=138 xref_targets=103 unresolved_xref_targets=0 instructions=929 body_spans=1 byte_real_only_body=False reachable_evidence=9 residuals=1
-;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
-;       residual semantic_decode_gap payload[2712..2802) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;     CODE 16: section=macos-code-CODE-16 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=6 xrefs=35 control_target_xrefs=31 xref_targets=28 unresolved_xref_targets=0 instructions=231 body_spans=1 byte_real_only_body=False reachable_evidence=5 residuals=1
-;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
-;       residual semantic_decode_gap payload[782..866) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;     CODE 17: section=macos-code-CODE-17 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=5 xrefs=199 control_target_xrefs=196 xref_targets=119 unresolved_xref_targets=0 instructions=960 body_spans=1 byte_real_only_body=False reachable_evidence=3 residuals=1
-;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
-;       residual semantic_decode_gap payload[2540..2588) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;     CODE 18: section=macos-code-CODE-18 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=5 xrefs=66 control_target_xrefs=63 xref_targets=52 unresolved_xref_targets=0 instructions=488 body_spans=1 byte_real_only_body=False reachable_evidence=5 residuals=1
-;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
-;       residual semantic_decode_gap payload[1158..1160) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;     CODE 19: section=macos-code-CODE-19 ownership=deferred,metadata coverage=True labels=3 xrefs=0 control_target_xrefs=0 xref_targets=0 unresolved_xref_targets=0 instructions=0 body_spans=0 byte_real_only_body=False reachable_evidence=2 residuals=1
-;       next: extend C-owned CODE layout and reference analysis before promoting semantic source rows
-;       residual deferred payload[40..556) status=deferred parser_use=deferred_only reason=missing_m68k_movea_l_stack_to_a0_entry
-;     CODE 20: section=macos-code-CODE-20 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=19 xrefs=353 control_target_xrefs=336 xref_targets=234 unresolved_xref_targets=0 instructions=1594 body_spans=1 byte_real_only_body=False reachable_evidence=29 residuals=4
-;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
-;       residual semantic_decode_gap payload[1968..1974) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[2704..2756) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[3816..3818) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual candidate_unvisited_entry_pattern island[2704..2756) count=1 payload_offsets=2716 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
-;     CODE 21: section=macos-code-CODE-21 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=22 xrefs=152 control_target_xrefs=132 xref_targets=102 unresolved_xref_targets=0 instructions=801 body_spans=1 byte_real_only_body=False reachable_evidence=21 residuals=7
-;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
-;       residual semantic_decode_gap payload[2008..2078) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[2154..2302) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[3758..3762) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[3766..3768) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[6022..6050) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[6086..6098) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[6138..6150) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;     CODE 22: section=macos-code-CODE-22 ownership=deferred,metadata coverage=True labels=3 xrefs=0 control_target_xrefs=0 xref_targets=0 unresolved_xref_targets=0 instructions=0 body_spans=0 byte_real_only_body=False reachable_evidence=2 residuals=1
-;       next: extend C-owned CODE layout and reference analysis before promoting semantic source rows
-;       residual deferred payload[40..96) status=deferred parser_use=deferred_only reason=missing_m68k_movea_l_stack_to_a0_entry
-;     CODE 23: section=macos-code-CODE-23 ownership=deferred,metadata coverage=True labels=3 xrefs=0 control_target_xrefs=0 xref_targets=0 unresolved_xref_targets=0 instructions=0 body_spans=0 byte_real_only_body=False reachable_evidence=2 residuals=1
-;       next: extend C-owned CODE layout and reference analysis before promoting semantic source rows
-;       residual deferred payload[40..126) status=deferred parser_use=deferred_only reason=missing_m68k_movea_l_stack_to_a0_entry
-;     CODE 24: section=macos-code-CODE-24 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=13 xrefs=277 control_target_xrefs=266 xref_targets=188 unresolved_xref_targets=0 instructions=1514 body_spans=1 byte_real_only_body=False reachable_evidence=15 residuals=1
-;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
-;       residual semantic_decode_gap payload[808..816) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;     CODE 25: section=macos-code-CODE-25 ownership=candidate_code,metadata coverage=True labels=6 xrefs=12 control_target_xrefs=7 xref_targets=8 unresolved_xref_targets=0 instructions=36 body_spans=1 byte_real_only_body=False reachable_evidence=5 residuals=12
-;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
-;       residual semantic_decode_gap payload[48..56) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[90..108) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[116..122) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[140..184) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[200..228) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[242..246) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual candidate_unvisited_entry_pattern island[48..56) count=1 payload_offsets=48 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
-;       residual candidate_unvisited_entry_pattern island[90..108) count=2 payload_offsets=96,98 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
-;       residual candidate_unvisited_entry_pattern island[140..184) count=1 payload_offsets=176 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
-;       residual candidate_unvisited_entry_pattern island[200..228) count=2 payload_offsets=200,214 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
-;     CODE 26: section=macos-code-CODE-26 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=27 xrefs=187 control_target_xrefs=162 xref_targets=129 unresolved_xref_targets=0 instructions=911 body_spans=1 byte_real_only_body=False reachable_evidence=26 residuals=5
-;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
-;       residual semantic_decode_gap payload[226..232) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[288..310) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[1486..1492) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual semantic_decode_gap payload[2348..2350) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual candidate_unvisited_entry_pattern island[288..310) count=1 payload_offsets=292 status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
-;     CODE 27: section=macos-code-CODE-27 ownership=candidate_code,candidate_unresolved_prefix,metadata coverage=True labels=5 xrefs=2 control_target_xrefs=0 xref_targets=2 unresolved_xref_targets=0 instructions=5 body_spans=1 byte_real_only_body=False reachable_evidence=3 residuals=20
-;       next: extend flow following, generated xrefs, and data/residual classification for remaining CODE body spans
-;       residual semantic_decode_gap payload[228..1882) status=candidate parser_use=candidate_only reason=decoder did not emit an instruction/data row for this exact executable subrange
-;       residual candidate_unvisited_entry_pattern island[228..1882) count=19 payload_offsets=228,252,278,322,390,408,432,594,746,986,1030,1126,... status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain structured residuals, not promoted to source rows
-
-
-; Analysis reports
-
-; File forks
-;   data: role=data_fork size=10752 sha256=ac751c25db1546ffcf35acae2873379816323de4910d3481eae5528841d85eb0
-;   resource: role=executable_resource_fork size=213850 sha256=c2f0dba686c522ce8c912b872e8b119e2377daf45a13061d2986b84253ccba26
-
-; Resource fork
-;   resource_count: 35
-;   type_count: 5
-;   type CODE: count=28
-;   type acur: count=1
-;   type CURS: count=4
-;   type cmdo: count=1
-;   type vers: count=1
-
-; CODE 0 jump-table/application metadata
-CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b84853e7c77a60e63166d5b6399c1
-;   above_a5_size: 2800
-;   below_a5_size: 14624
-;   jump_table_length: 2768
-;   jump_table_offset_from_a5: 32
-
-; CODE resources
-;   CODE 0 unknown: payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b84853e7c77a60e63166d5b6399c1
-;   CODE 27 32-bit bootstrap: payload_size=1882 sha256=f683b4c722b40eda686a3074d68910f8316ecd373798c1a5834df64d8b757352
-;   CODE 1 Main: payload_size=29024 sha256=4a543f6fd1c542fccd38ec9f469b06f65c797dfd8b226fefc9f576faafbe70f5 selected
-;   CODE 2 FPOpTable: payload_size=7788 sha256=a33f1dfe28237a5ee6f9ba7a96540e8e4842a7e6207575db5f0479b8c622a4f2
-;   CODE 3 Init: payload_size=18252 sha256=331fc8e7daf79d4e733760cb8ad413ade51431a01dd6c19c4f73720f562b08e4
-;   CODE 4 IOMgr: payload_size=6426 sha256=a697293e579b91031cb9bb37cd80a4f47d2acb9eff60a4f4b7e3cb9a18fd4fca
-;   CODE 5 Macros: payload_size=26638 sha256=90b898d2148ba2c3b798bed0c8c5dc936fba9ed3e8b958d279db4b279a033dfc
-;   CODE 6 OpTable: payload_size=15158 sha256=75005bca2e9e007ce374020416127735d9096e064806e4e1e1b888cd3ba8a9cf
-;   CODE 7 POpTable: payload_size=4142 sha256=3bc5de90c439ad5e0f7e5d4635b445022db8ab231a9b43981dbd95673ac0b78e
-;   CODE 8 Listing: payload_size=1852 sha256=5b3cd8756213ba73870bb353160d4e5dbb1a3bdd2da93157146d091b6949a2e9
-;   CODE 9 Pass2: payload_size=13946 sha256=0361ae9dcb47f31cf559372a3e42c672dcfb8920b332d4f900a7124ab6c70bf3
-;   CODE 10 FinishUp: payload_size=1542 sha256=2d5d27affd131aaa28eb0bd33157051e8f30ee3cdc054df4aad3011bdb22c1e1
-;   CODE 11 Dbg: payload_size=3678 sha256=04097ca27d77f09604177ac5e85019ecaed552d68ae2e9d50ae3b5a4e394c503
-;   CODE 12 LoadDump: payload_size=6928 sha256=9c563d29bea4465730181b661ea9a3a60d15276aa71a6be399b02b9a4091cbdb
-;   CODE 13 Directives: payload_size=33354 sha256=1358e27cbf9cb7da402416dfa830bd93f99a23e16da5c9972f63549d171a30c8
-;   CODE 14 MemMgr: payload_size=1886 sha256=14e851122fdae5910c2772def35a8b36c30dc7133cb92df8524f8a42ff5f8c70
-;   CODE 15 Errors: payload_size=3452 sha256=ebe2c26fe6fffb8585f7e9e0ebfffa73ca877946c26eab44f0efbd96678018cd
-;   CODE 16 New: payload_size=1034 sha256=51e7a7d264825cd4103b31a0bff37ff49fdb64e8ddb299b2a46d4bd3c07f6a37
-;   CODE 17 DispSymTbl: payload_size=3674 sha256=e4c8e735bff587b55b1482bde5137deec3ae177ea802b09aac3e97401f2905b9
-;   CODE 18 FinishDirectives: payload_size=1974 sha256=96d836fa8382f88453204a38fddb5da2e46867767f572482abb8f9cbb5e431c6
-;   CODE 19 SetupArgV: payload_size=556 sha256=46027b8ec8f830b28abc470f5e942b54f7845efd9cf136f68e3b2b8a9873f3ce
-;   CODE 20 INTENV: payload_size=5262 sha256=de9f4a82222f3ff12586a0bb691cc6b5d513777d498d223dfa45311d4a7dc84a
-;   CODE 21 SADEV: payload_size=6794 sha256=927c28db98eadbc5501e570ada73af8afca05964552a831c02051f6e6fa3b687
-;   CODE 22 SANELIB: payload_size=96 sha256=6929f16d82666fe0f31993c30f2750798bf934a0dcddf3c6eb0adc2c552484f8
-;   CODE 23 STDCLIB: payload_size=126 sha256=ce2eaab2bd782055c6aaaefc223f2e72d4f746e25a05cc8b3599836ecbd41969
-;   CODE 24 STDIO: payload_size=4970 sha256=f98dfc823a565d6502fa4ac1feb7b616b397ba9a918ce2c5f47b274e99a9026a
-;   CODE 25 SANELib: payload_size=246 sha256=c87908dd286d0e5fdcab70725ec20e98a37cca1357f18132809c3ab9e7562090
-;   CODE 26 PASLIB: payload_size=2940 sha256=62b8ca8b968fab6a003f39717b671f9c6cae8d20a9c77cb7ab41fd0315a229ae
-
-; CODE resource coverage
-;   total_code_resources: 28
-;   CODE 0 unknown: status=metadata-only layout=metadata reason=CODE 0 jump-table/application metadata
-;   CODE 27 32-bit bootstrap: status=rendered layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[204..1882); semantic rows rendered from generated loader/CODE0 entry seeds
-;   CODE 1 Main: status=rendered layout=metadata,candidate_code reason=expanded below through macos-code listing backend
-;   CODE 2 FPOpTable: status=rendered layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[374..7788); semantic rows rendered from generated loader/CODE0 entry seeds
-;   CODE 3 Init: status=rendered layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[302..18252); semantic rows rendered from generated loader/CODE0 entry seeds
-;   CODE 4 IOMgr: status=rendered layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[468..6426); semantic rows rendered from generated loader/CODE0 entry seeds
-;   CODE 5 Macros: status=rendered layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[212..26638); semantic rows rendered from generated loader/CODE0 entry seeds
-;   CODE 6 OpTable: status=rendered layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[58..15158); semantic rows rendered from generated loader/CODE0 entry seeds
-;   CODE 7 POpTable: status=rendered layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[352..4142); semantic rows rendered from generated loader/CODE0 entry seeds
-;   CODE 8 Listing: status=rendered layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[42..1852); semantic rows rendered from generated loader/CODE0 entry seeds
-;   CODE 9 Pass2: status=rendered layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[712..13946); semantic rows rendered from generated loader/CODE0 entry seeds
-;   CODE 10 FinishUp: status=rendered layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[148..1542); semantic rows rendered from generated loader/CODE0 entry seeds
-;   CODE 11 Dbg: status=rendered layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[836..3678); semantic rows rendered from generated loader/CODE0 entry seeds
-;   CODE 12 LoadDump: status=rendered layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[44..6928); semantic rows rendered from generated loader/CODE0 entry seeds
-;   CODE 13 Directives: status=rendered layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[44..33354); semantic rows rendered from generated loader/CODE0 entry seeds
-;   CODE 14 MemMgr: status=rendered layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[236..1886); semantic rows rendered from generated loader/CODE0 entry seeds
-;   CODE 15 Errors: status=rendered layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[96..3452); semantic rows rendered from generated loader/CODE0 entry seeds
-;   CODE 16 New: status=rendered layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[246..1034); semantic rows rendered from generated loader/CODE0 entry seeds
-;   CODE 17 DispSymTbl: status=rendered layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[100..3674); semantic rows rendered from generated loader/CODE0 entry seeds
-;   CODE 18 FinishDirectives: status=rendered layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[1562..1974); semantic rows rendered from generated loader/CODE0 entry seeds
-;   CODE 19 SetupArgV: status=deferred layout=metadata,deferred reason=classifier deferred range: missing_m68k_movea_l_stack_to_a0_entry
-;   CODE 20 INTENV: status=rendered layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[2876..5262); semantic rows rendered from generated loader/CODE0 entry seeds
-;   CODE 21 SADEV: status=rendered layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[2000..6794); semantic rows rendered from generated loader/CODE0 entry seeds
-;   CODE 22 SANELIB: status=deferred layout=metadata,deferred reason=classifier deferred range: missing_m68k_movea_l_stack_to_a0_entry
-;   CODE 23 STDCLIB: status=deferred layout=metadata,deferred reason=classifier deferred range: missing_m68k_movea_l_stack_to_a0_entry
-;   CODE 24 STDIO: status=rendered layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[2950..4970); semantic rows rendered from generated loader/CODE0 entry seeds
-;   CODE 25 SANELib: status=rendered layout=metadata,candidate_code reason=candidate_code entry payload[40..246); semantic rows rendered from generated loader/CODE0 entry seeds
-;   CODE 26 PASLIB: status=rendered layout=metadata,candidate_unresolved_prefix,candidate_code reason=candidate_code entry payload[198..2940); semantic rows rendered from generated loader/CODE0 entry seeds
-
-; CODE segment/routine map
-;   CODE 27: jt_first=0 jt_count=1 jt_span_size=8 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
-;     routine_candidate index=0 jt_offset=0 code0_offset=16 routine_offset=0 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;   CODE 1: jt_first=65535 jt_count=0 jt_span_size=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
-;     routine_candidate index=0 jt_offset=16 code0_offset=32 routine_offset=24606 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=1 jt_offset=24 code0_offset=40 routine_offset=62 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=2 jt_offset=32 code0_offset=48 routine_offset=70 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=3 jt_offset=40 code0_offset=56 routine_offset=94 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=4 jt_offset=48 code0_offset=64 routine_offset=118 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=5 jt_offset=56 code0_offset=72 routine_offset=154 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=6 jt_offset=64 code0_offset=80 routine_offset=190 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=7 jt_offset=72 code0_offset=88 routine_offset=190 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=8 jt_offset=80 code0_offset=96 routine_offset=264 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=9 jt_offset=88 code0_offset=104 routine_offset=322 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=10 jt_offset=96 code0_offset=112 routine_offset=358 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=11 jt_offset=104 code0_offset=120 routine_offset=370 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=12 jt_offset=112 code0_offset=128 routine_offset=400 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=13 jt_offset=120 code0_offset=136 routine_offset=420 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=14 jt_offset=128 code0_offset=144 routine_offset=446 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=15 jt_offset=136 code0_offset=152 routine_offset=468 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=16 jt_offset=144 code0_offset=160 routine_offset=472 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=17 jt_offset=152 code0_offset=168 routine_offset=580 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=18 jt_offset=160 code0_offset=176 routine_offset=574 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=19 jt_offset=168 code0_offset=184 routine_offset=796 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=20 jt_offset=176 code0_offset=192 routine_offset=984 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=21 jt_offset=184 code0_offset=200 routine_offset=1036 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=22 jt_offset=192 code0_offset=208 routine_offset=1174 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=23 jt_offset=200 code0_offset=216 routine_offset=1182 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=24 jt_offset=208 code0_offset=224 routine_offset=1400 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=25 jt_offset=216 code0_offset=232 routine_offset=1408 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=26 jt_offset=224 code0_offset=240 routine_offset=1542 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=27 jt_offset=232 code0_offset=248 routine_offset=1550 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=28 jt_offset=240 code0_offset=256 routine_offset=1812 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=29 jt_offset=248 code0_offset=264 routine_offset=1820 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=30 jt_offset=256 code0_offset=272 routine_offset=1992 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=31 jt_offset=264 code0_offset=280 routine_offset=2020 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=32 jt_offset=272 code0_offset=288 routine_offset=2814 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=33 jt_offset=280 code0_offset=296 routine_offset=3936 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=34 jt_offset=288 code0_offset=304 routine_offset=3962 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=35 jt_offset=296 code0_offset=312 routine_offset=4572 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=36 jt_offset=304 code0_offset=320 routine_offset=4596 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=37 jt_offset=312 code0_offset=328 routine_offset=4722 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=38 jt_offset=320 code0_offset=336 routine_offset=4802 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=39 jt_offset=328 code0_offset=344 routine_offset=4884 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=40 jt_offset=336 code0_offset=352 routine_offset=4926 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=41 jt_offset=344 code0_offset=360 routine_offset=7008 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=42 jt_offset=352 code0_offset=368 routine_offset=6950 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=43 jt_offset=360 code0_offset=376 routine_offset=7282 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=44 jt_offset=368 code0_offset=384 routine_offset=7464 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=45 jt_offset=376 code0_offset=392 routine_offset=8240 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=46 jt_offset=384 code0_offset=400 routine_offset=8266 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=47 jt_offset=392 code0_offset=408 routine_offset=8304 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=48 jt_offset=400 code0_offset=416 routine_offset=8360 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=49 jt_offset=408 code0_offset=424 routine_offset=8688 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=50 jt_offset=416 code0_offset=432 routine_offset=8950 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=51 jt_offset=424 code0_offset=440 routine_offset=9062 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=52 jt_offset=432 code0_offset=448 routine_offset=9362 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=53 jt_offset=440 code0_offset=456 routine_offset=9658 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=54 jt_offset=448 code0_offset=464 routine_offset=9822 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=55 jt_offset=456 code0_offset=472 routine_offset=9844 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=56 jt_offset=464 code0_offset=480 routine_offset=10032 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=57 jt_offset=472 code0_offset=488 routine_offset=10206 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=58 jt_offset=480 code0_offset=496 routine_offset=10286 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=59 jt_offset=488 code0_offset=504 routine_offset=10424 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=60 jt_offset=496 code0_offset=512 routine_offset=10698 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=61 jt_offset=504 code0_offset=520 routine_offset=11180 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=62 jt_offset=512 code0_offset=528 routine_offset=12376 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=63 jt_offset=520 code0_offset=536 routine_offset=15760 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=64 jt_offset=528 code0_offset=544 routine_offset=20178 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=65 jt_offset=536 code0_offset=552 routine_offset=21302 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=66 jt_offset=544 code0_offset=560 routine_offset=21420 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=67 jt_offset=552 code0_offset=568 routine_offset=21622 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=68 jt_offset=560 code0_offset=576 routine_offset=21788 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=69 jt_offset=568 code0_offset=584 routine_offset=22440 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=70 jt_offset=576 code0_offset=592 routine_offset=24510 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=71 jt_offset=584 code0_offset=600 routine_offset=24850 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=72 jt_offset=592 code0_offset=608 routine_offset=24994 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=73 jt_offset=600 code0_offset=616 routine_offset=25032 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=74 jt_offset=608 code0_offset=624 routine_offset=25068 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=75 jt_offset=616 code0_offset=632 routine_offset=25290 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=76 jt_offset=624 code0_offset=640 routine_offset=25506 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=77 jt_offset=632 code0_offset=648 routine_offset=25624 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=78 jt_offset=640 code0_offset=656 routine_offset=25686 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=79 jt_offset=648 code0_offset=664 routine_offset=25992 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=80 jt_offset=656 code0_offset=672 routine_offset=26674 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=81 jt_offset=664 code0_offset=680 routine_offset=26804 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=82 jt_offset=672 code0_offset=688 routine_offset=26814 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=83 jt_offset=680 code0_offset=696 routine_offset=26828 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=84 jt_offset=688 code0_offset=704 routine_offset=26884 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=85 jt_offset=696 code0_offset=712 routine_offset=26948 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=86 jt_offset=704 code0_offset=720 routine_offset=26966 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=87 jt_offset=712 code0_offset=728 routine_offset=26984 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=88 jt_offset=720 code0_offset=736 routine_offset=27002 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=89 jt_offset=728 code0_offset=744 routine_offset=27028 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=90 jt_offset=736 code0_offset=752 routine_offset=27032 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=91 jt_offset=744 code0_offset=760 routine_offset=27100 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=92 jt_offset=752 code0_offset=768 routine_offset=27154 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=93 jt_offset=760 code0_offset=776 routine_offset=27190 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=94 jt_offset=768 code0_offset=784 routine_offset=27234 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=95 jt_offset=776 code0_offset=792 routine_offset=27292 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=96 jt_offset=784 code0_offset=800 routine_offset=27324 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=97 jt_offset=792 code0_offset=808 routine_offset=27358 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=98 jt_offset=800 code0_offset=816 routine_offset=27414 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=99 jt_offset=808 code0_offset=824 routine_offset=27436 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=100 jt_offset=816 code0_offset=832 routine_offset=27458 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=101 jt_offset=824 code0_offset=840 routine_offset=27476 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=102 jt_offset=832 code0_offset=848 routine_offset=27494 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=103 jt_offset=840 code0_offset=856 routine_offset=27566 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=104 jt_offset=848 code0_offset=864 routine_offset=27638 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=105 jt_offset=856 code0_offset=872 routine_offset=27702 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=106 jt_offset=864 code0_offset=880 routine_offset=27796 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=107 jt_offset=872 code0_offset=888 routine_offset=27918 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=108 jt_offset=880 code0_offset=896 routine_offset=28444 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=109 jt_offset=888 code0_offset=904 routine_offset=28462 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=110 jt_offset=896 code0_offset=912 routine_offset=28516 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=111 jt_offset=904 code0_offset=920 routine_offset=28748 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=112 jt_offset=912 code0_offset=928 routine_offset=28834 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=113 jt_offset=920 code0_offset=936 routine_offset=28870 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;   CODE 2: jt_first=65535 jt_count=0 jt_span_size=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
-;     routine_candidate index=0 jt_offset=928 code0_offset=944 routine_offset=40 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=1 jt_offset=936 code0_offset=952 routine_offset=172 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=2 jt_offset=944 code0_offset=960 routine_offset=392 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=3 jt_offset=952 code0_offset=968 routine_offset=450 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=4 jt_offset=960 code0_offset=976 routine_offset=6106 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=5 jt_offset=968 code0_offset=984 routine_offset=6986 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=6 jt_offset=976 code0_offset=992 routine_offset=7154 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;   CODE 3: jt_first=65535 jt_count=0 jt_span_size=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
-;     routine_candidate index=0 jt_offset=984 code0_offset=1000 routine_offset=64 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=1 jt_offset=992 code0_offset=1008 routine_offset=14582 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=2 jt_offset=1000 code0_offset=1016 routine_offset=17470 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;   CODE 4: jt_first=65535 jt_count=0 jt_span_size=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
-;     routine_candidate index=0 jt_offset=1008 code0_offset=1024 routine_offset=40 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=1 jt_offset=1016 code0_offset=1032 routine_offset=308 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=2 jt_offset=1024 code0_offset=1040 routine_offset=494 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=3 jt_offset=1032 code0_offset=1048 routine_offset=576 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=4 jt_offset=1040 code0_offset=1056 routine_offset=660 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=5 jt_offset=1048 code0_offset=1064 routine_offset=746 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=6 jt_offset=1056 code0_offset=1072 routine_offset=780 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=7 jt_offset=1064 code0_offset=1080 routine_offset=934 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=8 jt_offset=1072 code0_offset=1088 routine_offset=2054 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=9 jt_offset=1080 code0_offset=1096 routine_offset=3138 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=10 jt_offset=1088 code0_offset=1104 routine_offset=3714 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=11 jt_offset=1096 code0_offset=1112 routine_offset=5174 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=12 jt_offset=1104 code0_offset=1120 routine_offset=5550 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=13 jt_offset=1112 code0_offset=1128 routine_offset=5602 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=14 jt_offset=1120 code0_offset=1136 routine_offset=5928 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=15 jt_offset=1128 code0_offset=1144 routine_offset=5984 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=16 jt_offset=1136 code0_offset=1152 routine_offset=6160 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=17 jt_offset=1144 code0_offset=1160 routine_offset=6242 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=18 jt_offset=1152 code0_offset=1168 routine_offset=6314 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=19 jt_offset=1160 code0_offset=1176 routine_offset=6398 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;   CODE 5: jt_first=65535 jt_count=0 jt_span_size=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
-;     routine_candidate index=0 jt_offset=1168 code0_offset=1184 routine_offset=40 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=1 jt_offset=1176 code0_offset=1192 routine_offset=210 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=2 jt_offset=1184 code0_offset=1200 routine_offset=234 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=3 jt_offset=1192 code0_offset=1208 routine_offset=872 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=4 jt_offset=1200 code0_offset=1216 routine_offset=876 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=5 jt_offset=1208 code0_offset=1224 routine_offset=1434 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=6 jt_offset=1216 code0_offset=1232 routine_offset=1512 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=7 jt_offset=1224 code0_offset=1240 routine_offset=2632 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=8 jt_offset=1232 code0_offset=1248 routine_offset=5088 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=9 jt_offset=1240 code0_offset=1256 routine_offset=5302 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=10 jt_offset=1248 code0_offset=1264 routine_offset=5612 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=11 jt_offset=1256 code0_offset=1272 routine_offset=5884 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=12 jt_offset=1264 code0_offset=1280 routine_offset=6230 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=13 jt_offset=1272 code0_offset=1288 routine_offset=6288 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=14 jt_offset=1280 code0_offset=1296 routine_offset=6552 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=15 jt_offset=1288 code0_offset=1304 routine_offset=8248 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=16 jt_offset=1296 code0_offset=1312 routine_offset=9576 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=17 jt_offset=1304 code0_offset=1320 routine_offset=12136 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=18 jt_offset=1312 code0_offset=1328 routine_offset=15042 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=19 jt_offset=1320 code0_offset=1336 routine_offset=22098 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=20 jt_offset=1328 code0_offset=1344 routine_offset=23726 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=21 jt_offset=1336 code0_offset=1352 routine_offset=24342 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=22 jt_offset=1344 code0_offset=1360 routine_offset=26448 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;   CODE 6: jt_first=65535 jt_count=0 jt_span_size=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
-;     routine_candidate index=0 jt_offset=1352 code0_offset=1368 routine_offset=40 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=1 jt_offset=1360 code0_offset=1376 routine_offset=240 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=2 jt_offset=1368 code0_offset=1384 routine_offset=298 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=3 jt_offset=1376 code0_offset=1392 routine_offset=736 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=4 jt_offset=1384 code0_offset=1400 routine_offset=5724 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=5 jt_offset=1392 code0_offset=1408 routine_offset=1396 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=6 jt_offset=1400 code0_offset=1416 routine_offset=1160 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=7 jt_offset=1408 code0_offset=1424 routine_offset=5774 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=8 jt_offset=1416 code0_offset=1432 routine_offset=15126 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;   CODE 7: jt_first=65535 jt_count=0 jt_span_size=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
-;     routine_candidate index=0 jt_offset=1424 code0_offset=1440 routine_offset=40 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=1 jt_offset=1432 code0_offset=1448 routine_offset=172 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=2 jt_offset=1440 code0_offset=1456 routine_offset=370 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=3 jt_offset=1448 code0_offset=1464 routine_offset=428 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=4 jt_offset=1456 code0_offset=1472 routine_offset=3160 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=5 jt_offset=1464 code0_offset=1480 routine_offset=4062 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;   CODE 8: jt_first=65535 jt_count=0 jt_span_size=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
-;     routine_candidate index=0 jt_offset=1472 code0_offset=1488 routine_offset=220 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=1 jt_offset=1480 code0_offset=1496 routine_offset=260 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=2 jt_offset=1488 code0_offset=1504 routine_offset=678 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=3 jt_offset=1496 code0_offset=1512 routine_offset=794 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=4 jt_offset=1504 code0_offset=1520 routine_offset=1048 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=5 jt_offset=1512 code0_offset=1528 routine_offset=1132 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=6 jt_offset=1520 code0_offset=1536 routine_offset=1630 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;   CODE 9: jt_first=65535 jt_count=0 jt_span_size=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
-;     routine_candidate index=0 jt_offset=1528 code0_offset=1544 routine_offset=40 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=1 jt_offset=1536 code0_offset=1552 routine_offset=206 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=2 jt_offset=1544 code0_offset=1560 routine_offset=238 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=3 jt_offset=1552 code0_offset=1568 routine_offset=1146 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=4 jt_offset=1560 code0_offset=1576 routine_offset=4256 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=5 jt_offset=1568 code0_offset=1584 routine_offset=4148 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=6 jt_offset=1576 code0_offset=1592 routine_offset=4002 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=7 jt_offset=1584 code0_offset=1600 routine_offset=12734 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=8 jt_offset=1592 code0_offset=1608 routine_offset=13904 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;   CODE 10: jt_first=65535 jt_count=0 jt_span_size=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
-;     routine_candidate index=0 jt_offset=1600 code0_offset=1616 routine_offset=40 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=1 jt_offset=1608 code0_offset=1624 routine_offset=310 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;   CODE 11: jt_first=65535 jt_count=0 jt_span_size=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
-;     routine_candidate index=0 jt_offset=1616 code0_offset=1632 routine_offset=144 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=1 jt_offset=1624 code0_offset=1640 routine_offset=220 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=2 jt_offset=1632 code0_offset=1648 routine_offset=946 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=3 jt_offset=1640 code0_offset=1656 routine_offset=1032 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=4 jt_offset=1648 code0_offset=1664 routine_offset=1206 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=5 jt_offset=1656 code0_offset=1672 routine_offset=1234 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=6 jt_offset=1664 code0_offset=1680 routine_offset=1354 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=7 jt_offset=1672 code0_offset=1688 routine_offset=1434 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=8 jt_offset=1680 code0_offset=1696 routine_offset=1688 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=9 jt_offset=1688 code0_offset=1704 routine_offset=1926 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=10 jt_offset=1696 code0_offset=1712 routine_offset=2642 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=11 jt_offset=1704 code0_offset=1720 routine_offset=3166 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=12 jt_offset=1712 code0_offset=1728 routine_offset=3424 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=13 jt_offset=1720 code0_offset=1736 routine_offset=3538 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=14 jt_offset=1728 code0_offset=1744 routine_offset=3654 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;   CODE 12: jt_first=65535 jt_count=0 jt_span_size=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
-;     routine_candidate index=0 jt_offset=1736 code0_offset=1752 routine_offset=2880 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=1 jt_offset=1744 code0_offset=1760 routine_offset=4920 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;   CODE 13: jt_first=65535 jt_count=0 jt_span_size=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
-;     routine_candidate index=0 jt_offset=1752 code0_offset=1768 routine_offset=40 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=1 jt_offset=1760 code0_offset=1776 routine_offset=4402 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=2 jt_offset=1768 code0_offset=1784 routine_offset=8698 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=3 jt_offset=1776 code0_offset=1792 routine_offset=8872 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=4 jt_offset=1784 code0_offset=1800 routine_offset=9190 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=5 jt_offset=1792 code0_offset=1808 routine_offset=9512 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=6 jt_offset=1800 code0_offset=1816 routine_offset=11470 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=7 jt_offset=1808 code0_offset=1824 routine_offset=11532 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=8 jt_offset=1816 code0_offset=1832 routine_offset=11676 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=9 jt_offset=1824 code0_offset=1840 routine_offset=11782 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=10 jt_offset=1832 code0_offset=1848 routine_offset=26534 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=11 jt_offset=1840 code0_offset=1856 routine_offset=28486 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=12 jt_offset=1848 code0_offset=1864 routine_offset=33318 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;   CODE 14: jt_first=65535 jt_count=0 jt_span_size=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
-;     routine_candidate index=0 jt_offset=1856 code0_offset=1872 routine_offset=40 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=1 jt_offset=1864 code0_offset=1880 routine_offset=256 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=2 jt_offset=1872 code0_offset=1888 routine_offset=396 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=3 jt_offset=1880 code0_offset=1896 routine_offset=518 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=4 jt_offset=1888 code0_offset=1904 routine_offset=808 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=5 jt_offset=1896 code0_offset=1912 routine_offset=966 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=6 jt_offset=1904 code0_offset=1920 routine_offset=1130 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=7 jt_offset=1912 code0_offset=1928 routine_offset=1176 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=8 jt_offset=1920 code0_offset=1936 routine_offset=1294 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=9 jt_offset=1928 code0_offset=1944 routine_offset=1604 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=10 jt_offset=1936 code0_offset=1952 routine_offset=1820 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;   CODE 15: jt_first=65535 jt_count=0 jt_span_size=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
-;     routine_candidate index=0 jt_offset=1944 code0_offset=1960 routine_offset=456 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=1 jt_offset=1952 code0_offset=1968 routine_offset=2294 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=2 jt_offset=1960 code0_offset=1976 routine_offset=2802 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=3 jt_offset=1968 code0_offset=1984 routine_offset=2832 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=4 jt_offset=1976 code0_offset=1992 routine_offset=2930 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=5 jt_offset=1984 code0_offset=2000 routine_offset=3190 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=6 jt_offset=1992 code0_offset=2008 routine_offset=3274 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;   CODE 16: jt_first=65535 jt_count=0 jt_span_size=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
-;     routine_candidate index=0 jt_offset=2000 code0_offset=2016 routine_offset=40 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=1 jt_offset=2008 code0_offset=2024 routine_offset=306 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=2 jt_offset=2016 code0_offset=2032 routine_offset=866 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;   CODE 17: jt_first=65535 jt_count=0 jt_span_size=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
-;     routine_candidate index=0 jt_offset=2024 code0_offset=2040 routine_offset=2588 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;   CODE 18: jt_first=65535 jt_count=0 jt_span_size=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
-;     routine_candidate index=0 jt_offset=2032 code0_offset=2048 routine_offset=40 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=1 jt_offset=2040 code0_offset=2056 routine_offset=154 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=2 jt_offset=2048 code0_offset=2064 routine_offset=1772 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;   CODE 19: jt_first=65535 jt_count=0 jt_span_size=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
-;     routine_candidate index=0 jt_offset=2056 code0_offset=2072 routine_offset=40 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;   CODE 20: jt_first=65535 jt_count=0 jt_span_size=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
-;     routine_candidate index=0 jt_offset=2064 code0_offset=2080 routine_offset=196 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=1 jt_offset=2072 code0_offset=2088 routine_offset=310 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=2 jt_offset=2080 code0_offset=2096 routine_offset=462 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=3 jt_offset=2088 code0_offset=2104 routine_offset=614 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=4 jt_offset=2096 code0_offset=2112 routine_offset=882 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=5 jt_offset=2104 code0_offset=2120 routine_offset=1408 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=6 jt_offset=2112 code0_offset=2128 routine_offset=1854 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=7 jt_offset=2120 code0_offset=2136 routine_offset=2062 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=8 jt_offset=2128 code0_offset=2144 routine_offset=2578 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=9 jt_offset=2136 code0_offset=2152 routine_offset=2712 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=10 jt_offset=2144 code0_offset=2160 routine_offset=2716 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=11 jt_offset=2152 code0_offset=2168 routine_offset=2756 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=12 jt_offset=2160 code0_offset=2176 routine_offset=2896 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=13 jt_offset=2168 code0_offset=2184 routine_offset=3020 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=14 jt_offset=2176 code0_offset=2192 routine_offset=3212 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=15 jt_offset=2184 code0_offset=2200 routine_offset=3216 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=16 jt_offset=2192 code0_offset=2208 routine_offset=3424 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=17 jt_offset=2200 code0_offset=2216 routine_offset=3728 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=18 jt_offset=2208 code0_offset=2224 routine_offset=3844 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=19 jt_offset=2216 code0_offset=2232 routine_offset=4058 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=20 jt_offset=2224 code0_offset=2240 routine_offset=4342 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=21 jt_offset=2232 code0_offset=2248 routine_offset=4528 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=22 jt_offset=2240 code0_offset=2256 routine_offset=4686 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=23 jt_offset=2248 code0_offset=2264 routine_offset=4800 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=24 jt_offset=2256 code0_offset=2272 routine_offset=4962 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=25 jt_offset=2264 code0_offset=2280 routine_offset=5104 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=26 jt_offset=2272 code0_offset=2288 routine_offset=5240 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;   CODE 21: jt_first=65535 jt_count=0 jt_span_size=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
-;     routine_candidate index=0 jt_offset=2280 code0_offset=2296 routine_offset=1826 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=1 jt_offset=2288 code0_offset=2304 routine_offset=2078 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=2 jt_offset=2296 code0_offset=2312 routine_offset=2302 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=3 jt_offset=2304 code0_offset=2320 routine_offset=3652 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=4 jt_offset=2312 code0_offset=2328 routine_offset=3804 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=5 jt_offset=2320 code0_offset=2336 routine_offset=3916 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=6 jt_offset=2328 code0_offset=2344 routine_offset=4062 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=7 jt_offset=2336 code0_offset=2352 routine_offset=4520 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=8 jt_offset=2344 code0_offset=2360 routine_offset=5928 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=9 jt_offset=2352 code0_offset=2368 routine_offset=6050 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=10 jt_offset=2360 code0_offset=2376 routine_offset=6072 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=11 jt_offset=2368 code0_offset=2384 routine_offset=6124 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=12 jt_offset=2376 code0_offset=2392 routine_offset=6178 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=13 jt_offset=2384 code0_offset=2400 routine_offset=6234 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=14 jt_offset=2392 code0_offset=2408 routine_offset=6252 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=15 jt_offset=2400 code0_offset=2416 routine_offset=6640 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=16 jt_offset=2408 code0_offset=2424 routine_offset=6662 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=17 jt_offset=2416 code0_offset=2432 routine_offset=6682 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=18 jt_offset=2424 code0_offset=2440 routine_offset=6728 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;   CODE 22: jt_first=65535 jt_count=0 jt_span_size=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
-;     routine_candidate index=0 jt_offset=2432 code0_offset=2448 routine_offset=68 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;   CODE 23: jt_first=65535 jt_count=0 jt_span_size=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
-;     routine_candidate index=0 jt_offset=2440 code0_offset=2456 routine_offset=40 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;   CODE 24: jt_first=65535 jt_count=0 jt_span_size=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
-;     routine_candidate index=0 jt_offset=2448 code0_offset=2464 routine_offset=40 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=1 jt_offset=2456 code0_offset=2472 routine_offset=2604 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=2 jt_offset=2464 code0_offset=2480 routine_offset=2668 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=3 jt_offset=2472 code0_offset=2488 routine_offset=2872 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=4 jt_offset=2480 code0_offset=2496 routine_offset=2970 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=5 jt_offset=2488 code0_offset=2504 routine_offset=3088 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=6 jt_offset=2496 code0_offset=2512 routine_offset=3254 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=7 jt_offset=2504 code0_offset=2520 routine_offset=3666 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=8 jt_offset=2512 code0_offset=2528 routine_offset=3926 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=9 jt_offset=2520 code0_offset=2536 routine_offset=3960 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=10 jt_offset=2528 code0_offset=2544 routine_offset=3996 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=11 jt_offset=2536 code0_offset=2552 routine_offset=4264 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=12 jt_offset=2544 code0_offset=2560 routine_offset=4568 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;   CODE 25: jt_first=65535 jt_count=0 jt_span_size=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
-;     routine_candidate index=0 jt_offset=2552 code0_offset=2568 routine_offset=184 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=1 jt_offset=2560 code0_offset=2576 routine_offset=122 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=2 jt_offset=2568 code0_offset=2584 routine_offset=228 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;   CODE 26: jt_first=65535 jt_count=0 jt_span_size=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
-;     routine_candidate index=0 jt_offset=2576 code0_offset=2592 routine_offset=40 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=1 jt_offset=2584 code0_offset=2600 routine_offset=442 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=2 jt_offset=2592 code0_offset=2608 routine_offset=782 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=3 jt_offset=2600 code0_offset=2616 routine_offset=824 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=4 jt_offset=2608 code0_offset=2624 routine_offset=880 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=5 jt_offset=2616 code0_offset=2632 routine_offset=1304 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=6 jt_offset=2624 code0_offset=2640 routine_offset=1370 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=7 jt_offset=2632 code0_offset=2648 routine_offset=1522 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=8 jt_offset=2640 code0_offset=2656 routine_offset=2012 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=9 jt_offset=2648 code0_offset=2664 routine_offset=2064 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=10 jt_offset=2656 code0_offset=2672 routine_offset=2102 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=11 jt_offset=2664 code0_offset=2680 routine_offset=2244 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=12 jt_offset=2672 code0_offset=2688 routine_offset=2322 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=13 jt_offset=2680 code0_offset=2696 routine_offset=2392 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=14 jt_offset=2688 code0_offset=2704 routine_offset=2470 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=15 jt_offset=2696 code0_offset=2712 routine_offset=2560 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=16 jt_offset=2704 code0_offset=2720 routine_offset=2632 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=17 jt_offset=2712 code0_offset=2728 routine_offset=2686 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=18 jt_offset=2720 code0_offset=2736 routine_offset=2756 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=19 jt_offset=2728 code0_offset=2744 routine_offset=2764 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=20 jt_offset=2736 code0_offset=2752 routine_offset=2812 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=21 jt_offset=2744 code0_offset=2760 routine_offset=2830 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=22 jt_offset=2752 code0_offset=2768 routine_offset=2848 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-;     routine_candidate index=23 jt_offset=2760 code0_offset=2776 routine_offset=2866 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate
-
-; CODE resource detail subviews
-;   CODE 0 unknown: role=code0_metadata kind=jump_table_segment payload_size=2784 sha256=8413f3bca1604845bb778c2a7701a067aa8b84853e7c77a60e63166d5b6399c1 fact=macos.code_resource.0.jump_table_metadata status=validated
-;     jump_table: start=16 size=2768 entries=346 fact=macos.jump_table.entries.accepted status=validated
-;     jump_table_rows:
-;       entry=0 code0_offset=16 entry_size=8 target_CODE=27 routine_offset=0 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=1 code0_offset=24 entry_size=8 target_CODE=unknown routine_offset=unknown layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=unknown target_status=unknown target_parser_use=unknown
-;       entry=2 code0_offset=32 entry_size=8 target_CODE=1 routine_offset=24606 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=3 code0_offset=40 entry_size=8 target_CODE=1 routine_offset=62 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=4 code0_offset=48 entry_size=8 target_CODE=1 routine_offset=70 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=5 code0_offset=56 entry_size=8 target_CODE=1 routine_offset=94 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=6 code0_offset=64 entry_size=8 target_CODE=1 routine_offset=118 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=7 code0_offset=72 entry_size=8 target_CODE=1 routine_offset=154 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=8 code0_offset=80 entry_size=8 target_CODE=1 routine_offset=190 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=9 code0_offset=88 entry_size=8 target_CODE=1 routine_offset=190 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=10 code0_offset=96 entry_size=8 target_CODE=1 routine_offset=264 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=11 code0_offset=104 entry_size=8 target_CODE=1 routine_offset=322 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=12 code0_offset=112 entry_size=8 target_CODE=1 routine_offset=358 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=13 code0_offset=120 entry_size=8 target_CODE=1 routine_offset=370 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=14 code0_offset=128 entry_size=8 target_CODE=1 routine_offset=400 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=15 code0_offset=136 entry_size=8 target_CODE=1 routine_offset=420 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=16 code0_offset=144 entry_size=8 target_CODE=1 routine_offset=446 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=17 code0_offset=152 entry_size=8 target_CODE=1 routine_offset=468 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=18 code0_offset=160 entry_size=8 target_CODE=1 routine_offset=472 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=19 code0_offset=168 entry_size=8 target_CODE=1 routine_offset=580 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=20 code0_offset=176 entry_size=8 target_CODE=1 routine_offset=574 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=21 code0_offset=184 entry_size=8 target_CODE=1 routine_offset=796 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=22 code0_offset=192 entry_size=8 target_CODE=1 routine_offset=984 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=23 code0_offset=200 entry_size=8 target_CODE=1 routine_offset=1036 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=24 code0_offset=208 entry_size=8 target_CODE=1 routine_offset=1174 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=25 code0_offset=216 entry_size=8 target_CODE=1 routine_offset=1182 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=26 code0_offset=224 entry_size=8 target_CODE=1 routine_offset=1400 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=27 code0_offset=232 entry_size=8 target_CODE=1 routine_offset=1408 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=28 code0_offset=240 entry_size=8 target_CODE=1 routine_offset=1542 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=29 code0_offset=248 entry_size=8 target_CODE=1 routine_offset=1550 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=30 code0_offset=256 entry_size=8 target_CODE=1 routine_offset=1812 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=31 code0_offset=264 entry_size=8 target_CODE=1 routine_offset=1820 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=32 code0_offset=272 entry_size=8 target_CODE=1 routine_offset=1992 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=33 code0_offset=280 entry_size=8 target_CODE=1 routine_offset=2020 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=34 code0_offset=288 entry_size=8 target_CODE=1 routine_offset=2814 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=35 code0_offset=296 entry_size=8 target_CODE=1 routine_offset=3936 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=36 code0_offset=304 entry_size=8 target_CODE=1 routine_offset=3962 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=37 code0_offset=312 entry_size=8 target_CODE=1 routine_offset=4572 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=38 code0_offset=320 entry_size=8 target_CODE=1 routine_offset=4596 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=39 code0_offset=328 entry_size=8 target_CODE=1 routine_offset=4722 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=40 code0_offset=336 entry_size=8 target_CODE=1 routine_offset=4802 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=41 code0_offset=344 entry_size=8 target_CODE=1 routine_offset=4884 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=42 code0_offset=352 entry_size=8 target_CODE=1 routine_offset=4926 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=43 code0_offset=360 entry_size=8 target_CODE=1 routine_offset=7008 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=44 code0_offset=368 entry_size=8 target_CODE=1 routine_offset=6950 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=45 code0_offset=376 entry_size=8 target_CODE=1 routine_offset=7282 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=46 code0_offset=384 entry_size=8 target_CODE=1 routine_offset=7464 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=47 code0_offset=392 entry_size=8 target_CODE=1 routine_offset=8240 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=48 code0_offset=400 entry_size=8 target_CODE=1 routine_offset=8266 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=49 code0_offset=408 entry_size=8 target_CODE=1 routine_offset=8304 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=50 code0_offset=416 entry_size=8 target_CODE=1 routine_offset=8360 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=51 code0_offset=424 entry_size=8 target_CODE=1 routine_offset=8688 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=52 code0_offset=432 entry_size=8 target_CODE=1 routine_offset=8950 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=53 code0_offset=440 entry_size=8 target_CODE=1 routine_offset=9062 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=54 code0_offset=448 entry_size=8 target_CODE=1 routine_offset=9362 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=55 code0_offset=456 entry_size=8 target_CODE=1 routine_offset=9658 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=56 code0_offset=464 entry_size=8 target_CODE=1 routine_offset=9822 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=57 code0_offset=472 entry_size=8 target_CODE=1 routine_offset=9844 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=58 code0_offset=480 entry_size=8 target_CODE=1 routine_offset=10032 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=59 code0_offset=488 entry_size=8 target_CODE=1 routine_offset=10206 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=60 code0_offset=496 entry_size=8 target_CODE=1 routine_offset=10286 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=61 code0_offset=504 entry_size=8 target_CODE=1 routine_offset=10424 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=62 code0_offset=512 entry_size=8 target_CODE=1 routine_offset=10698 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=63 code0_offset=520 entry_size=8 target_CODE=1 routine_offset=11180 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=64 code0_offset=528 entry_size=8 target_CODE=1 routine_offset=12376 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=65 code0_offset=536 entry_size=8 target_CODE=1 routine_offset=15760 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=66 code0_offset=544 entry_size=8 target_CODE=1 routine_offset=20178 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=67 code0_offset=552 entry_size=8 target_CODE=1 routine_offset=21302 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=68 code0_offset=560 entry_size=8 target_CODE=1 routine_offset=21420 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=69 code0_offset=568 entry_size=8 target_CODE=1 routine_offset=21622 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=70 code0_offset=576 entry_size=8 target_CODE=1 routine_offset=21788 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=71 code0_offset=584 entry_size=8 target_CODE=1 routine_offset=22440 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=72 code0_offset=592 entry_size=8 target_CODE=1 routine_offset=24510 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=73 code0_offset=600 entry_size=8 target_CODE=1 routine_offset=24850 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=74 code0_offset=608 entry_size=8 target_CODE=1 routine_offset=24994 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=75 code0_offset=616 entry_size=8 target_CODE=1 routine_offset=25032 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=76 code0_offset=624 entry_size=8 target_CODE=1 routine_offset=25068 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=77 code0_offset=632 entry_size=8 target_CODE=1 routine_offset=25290 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=78 code0_offset=640 entry_size=8 target_CODE=1 routine_offset=25506 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=79 code0_offset=648 entry_size=8 target_CODE=1 routine_offset=25624 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=80 code0_offset=656 entry_size=8 target_CODE=1 routine_offset=25686 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=81 code0_offset=664 entry_size=8 target_CODE=1 routine_offset=25992 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=82 code0_offset=672 entry_size=8 target_CODE=1 routine_offset=26674 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=83 code0_offset=680 entry_size=8 target_CODE=1 routine_offset=26804 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=84 code0_offset=688 entry_size=8 target_CODE=1 routine_offset=26814 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=85 code0_offset=696 entry_size=8 target_CODE=1 routine_offset=26828 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=86 code0_offset=704 entry_size=8 target_CODE=1 routine_offset=26884 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=87 code0_offset=712 entry_size=8 target_CODE=1 routine_offset=26948 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=88 code0_offset=720 entry_size=8 target_CODE=1 routine_offset=26966 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=89 code0_offset=728 entry_size=8 target_CODE=1 routine_offset=26984 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=90 code0_offset=736 entry_size=8 target_CODE=1 routine_offset=27002 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=91 code0_offset=744 entry_size=8 target_CODE=1 routine_offset=27028 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=92 code0_offset=752 entry_size=8 target_CODE=1 routine_offset=27032 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=93 code0_offset=760 entry_size=8 target_CODE=1 routine_offset=27100 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=94 code0_offset=768 entry_size=8 target_CODE=1 routine_offset=27154 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=95 code0_offset=776 entry_size=8 target_CODE=1 routine_offset=27190 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=96 code0_offset=784 entry_size=8 target_CODE=1 routine_offset=27234 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=97 code0_offset=792 entry_size=8 target_CODE=1 routine_offset=27292 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=98 code0_offset=800 entry_size=8 target_CODE=1 routine_offset=27324 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=99 code0_offset=808 entry_size=8 target_CODE=1 routine_offset=27358 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=100 code0_offset=816 entry_size=8 target_CODE=1 routine_offset=27414 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=101 code0_offset=824 entry_size=8 target_CODE=1 routine_offset=27436 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=102 code0_offset=832 entry_size=8 target_CODE=1 routine_offset=27458 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=103 code0_offset=840 entry_size=8 target_CODE=1 routine_offset=27476 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=104 code0_offset=848 entry_size=8 target_CODE=1 routine_offset=27494 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=105 code0_offset=856 entry_size=8 target_CODE=1 routine_offset=27566 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=106 code0_offset=864 entry_size=8 target_CODE=1 routine_offset=27638 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=107 code0_offset=872 entry_size=8 target_CODE=1 routine_offset=27702 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=108 code0_offset=880 entry_size=8 target_CODE=1 routine_offset=27796 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=109 code0_offset=888 entry_size=8 target_CODE=1 routine_offset=27918 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=110 code0_offset=896 entry_size=8 target_CODE=1 routine_offset=28444 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=111 code0_offset=904 entry_size=8 target_CODE=1 routine_offset=28462 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=112 code0_offset=912 entry_size=8 target_CODE=1 routine_offset=28516 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=113 code0_offset=920 entry_size=8 target_CODE=1 routine_offset=28748 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=114 code0_offset=928 entry_size=8 target_CODE=1 routine_offset=28834 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=115 code0_offset=936 entry_size=8 target_CODE=1 routine_offset=28870 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=116 code0_offset=944 entry_size=8 target_CODE=2 routine_offset=40 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=117 code0_offset=952 entry_size=8 target_CODE=2 routine_offset=172 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=118 code0_offset=960 entry_size=8 target_CODE=2 routine_offset=392 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=119 code0_offset=968 entry_size=8 target_CODE=2 routine_offset=450 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=120 code0_offset=976 entry_size=8 target_CODE=2 routine_offset=6106 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=121 code0_offset=984 entry_size=8 target_CODE=2 routine_offset=6986 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=122 code0_offset=992 entry_size=8 target_CODE=2 routine_offset=7154 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=123 code0_offset=1000 entry_size=8 target_CODE=3 routine_offset=64 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=124 code0_offset=1008 entry_size=8 target_CODE=3 routine_offset=14582 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=125 code0_offset=1016 entry_size=8 target_CODE=3 routine_offset=17470 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=126 code0_offset=1024 entry_size=8 target_CODE=4 routine_offset=40 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=127 code0_offset=1032 entry_size=8 target_CODE=4 routine_offset=308 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=128 code0_offset=1040 entry_size=8 target_CODE=4 routine_offset=494 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=129 code0_offset=1048 entry_size=8 target_CODE=4 routine_offset=576 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=130 code0_offset=1056 entry_size=8 target_CODE=4 routine_offset=660 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=131 code0_offset=1064 entry_size=8 target_CODE=4 routine_offset=746 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=132 code0_offset=1072 entry_size=8 target_CODE=4 routine_offset=780 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=133 code0_offset=1080 entry_size=8 target_CODE=4 routine_offset=934 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=134 code0_offset=1088 entry_size=8 target_CODE=4 routine_offset=2054 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=135 code0_offset=1096 entry_size=8 target_CODE=4 routine_offset=3138 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=136 code0_offset=1104 entry_size=8 target_CODE=4 routine_offset=3714 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=137 code0_offset=1112 entry_size=8 target_CODE=4 routine_offset=5174 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=138 code0_offset=1120 entry_size=8 target_CODE=4 routine_offset=5550 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=139 code0_offset=1128 entry_size=8 target_CODE=4 routine_offset=5602 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=140 code0_offset=1136 entry_size=8 target_CODE=4 routine_offset=5928 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=141 code0_offset=1144 entry_size=8 target_CODE=4 routine_offset=5984 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=142 code0_offset=1152 entry_size=8 target_CODE=4 routine_offset=6160 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=143 code0_offset=1160 entry_size=8 target_CODE=4 routine_offset=6242 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=144 code0_offset=1168 entry_size=8 target_CODE=4 routine_offset=6314 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=145 code0_offset=1176 entry_size=8 target_CODE=4 routine_offset=6398 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=146 code0_offset=1184 entry_size=8 target_CODE=5 routine_offset=40 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=147 code0_offset=1192 entry_size=8 target_CODE=5 routine_offset=210 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=148 code0_offset=1200 entry_size=8 target_CODE=5 routine_offset=234 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=149 code0_offset=1208 entry_size=8 target_CODE=5 routine_offset=872 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=150 code0_offset=1216 entry_size=8 target_CODE=5 routine_offset=876 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=151 code0_offset=1224 entry_size=8 target_CODE=5 routine_offset=1434 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=152 code0_offset=1232 entry_size=8 target_CODE=5 routine_offset=1512 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=153 code0_offset=1240 entry_size=8 target_CODE=5 routine_offset=2632 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=154 code0_offset=1248 entry_size=8 target_CODE=5 routine_offset=5088 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=155 code0_offset=1256 entry_size=8 target_CODE=5 routine_offset=5302 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=156 code0_offset=1264 entry_size=8 target_CODE=5 routine_offset=5612 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=157 code0_offset=1272 entry_size=8 target_CODE=5 routine_offset=5884 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=158 code0_offset=1280 entry_size=8 target_CODE=5 routine_offset=6230 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=159 code0_offset=1288 entry_size=8 target_CODE=5 routine_offset=6288 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=160 code0_offset=1296 entry_size=8 target_CODE=5 routine_offset=6552 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=161 code0_offset=1304 entry_size=8 target_CODE=5 routine_offset=8248 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=162 code0_offset=1312 entry_size=8 target_CODE=5 routine_offset=9576 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=163 code0_offset=1320 entry_size=8 target_CODE=5 routine_offset=12136 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=164 code0_offset=1328 entry_size=8 target_CODE=5 routine_offset=15042 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=165 code0_offset=1336 entry_size=8 target_CODE=5 routine_offset=22098 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=166 code0_offset=1344 entry_size=8 target_CODE=5 routine_offset=23726 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=167 code0_offset=1352 entry_size=8 target_CODE=5 routine_offset=24342 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=168 code0_offset=1360 entry_size=8 target_CODE=5 routine_offset=26448 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=169 code0_offset=1368 entry_size=8 target_CODE=6 routine_offset=40 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=170 code0_offset=1376 entry_size=8 target_CODE=6 routine_offset=240 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=171 code0_offset=1384 entry_size=8 target_CODE=6 routine_offset=298 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=172 code0_offset=1392 entry_size=8 target_CODE=6 routine_offset=736 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=173 code0_offset=1400 entry_size=8 target_CODE=6 routine_offset=5724 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=174 code0_offset=1408 entry_size=8 target_CODE=6 routine_offset=1396 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=175 code0_offset=1416 entry_size=8 target_CODE=6 routine_offset=1160 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=176 code0_offset=1424 entry_size=8 target_CODE=6 routine_offset=5774 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=177 code0_offset=1432 entry_size=8 target_CODE=6 routine_offset=15126 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=178 code0_offset=1440 entry_size=8 target_CODE=7 routine_offset=40 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=179 code0_offset=1448 entry_size=8 target_CODE=7 routine_offset=172 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=180 code0_offset=1456 entry_size=8 target_CODE=7 routine_offset=370 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=181 code0_offset=1464 entry_size=8 target_CODE=7 routine_offset=428 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=182 code0_offset=1472 entry_size=8 target_CODE=7 routine_offset=3160 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=183 code0_offset=1480 entry_size=8 target_CODE=7 routine_offset=4062 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=184 code0_offset=1488 entry_size=8 target_CODE=8 routine_offset=220 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=185 code0_offset=1496 entry_size=8 target_CODE=8 routine_offset=260 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=186 code0_offset=1504 entry_size=8 target_CODE=8 routine_offset=678 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=187 code0_offset=1512 entry_size=8 target_CODE=8 routine_offset=794 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=188 code0_offset=1520 entry_size=8 target_CODE=8 routine_offset=1048 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=189 code0_offset=1528 entry_size=8 target_CODE=8 routine_offset=1132 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=190 code0_offset=1536 entry_size=8 target_CODE=8 routine_offset=1630 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=191 code0_offset=1544 entry_size=8 target_CODE=9 routine_offset=40 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=192 code0_offset=1552 entry_size=8 target_CODE=9 routine_offset=206 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=193 code0_offset=1560 entry_size=8 target_CODE=9 routine_offset=238 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=194 code0_offset=1568 entry_size=8 target_CODE=9 routine_offset=1146 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=195 code0_offset=1576 entry_size=8 target_CODE=9 routine_offset=4256 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=196 code0_offset=1584 entry_size=8 target_CODE=9 routine_offset=4148 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=197 code0_offset=1592 entry_size=8 target_CODE=9 routine_offset=4002 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=198 code0_offset=1600 entry_size=8 target_CODE=9 routine_offset=12734 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=199 code0_offset=1608 entry_size=8 target_CODE=9 routine_offset=13904 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=200 code0_offset=1616 entry_size=8 target_CODE=10 routine_offset=40 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=201 code0_offset=1624 entry_size=8 target_CODE=10 routine_offset=310 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=202 code0_offset=1632 entry_size=8 target_CODE=11 routine_offset=144 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=203 code0_offset=1640 entry_size=8 target_CODE=11 routine_offset=220 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=204 code0_offset=1648 entry_size=8 target_CODE=11 routine_offset=946 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=205 code0_offset=1656 entry_size=8 target_CODE=11 routine_offset=1032 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=206 code0_offset=1664 entry_size=8 target_CODE=11 routine_offset=1206 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=207 code0_offset=1672 entry_size=8 target_CODE=11 routine_offset=1234 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=208 code0_offset=1680 entry_size=8 target_CODE=11 routine_offset=1354 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=209 code0_offset=1688 entry_size=8 target_CODE=11 routine_offset=1434 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=210 code0_offset=1696 entry_size=8 target_CODE=11 routine_offset=1688 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=211 code0_offset=1704 entry_size=8 target_CODE=11 routine_offset=1926 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=212 code0_offset=1712 entry_size=8 target_CODE=11 routine_offset=2642 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=213 code0_offset=1720 entry_size=8 target_CODE=11 routine_offset=3166 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=214 code0_offset=1728 entry_size=8 target_CODE=11 routine_offset=3424 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=215 code0_offset=1736 entry_size=8 target_CODE=11 routine_offset=3538 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=216 code0_offset=1744 entry_size=8 target_CODE=11 routine_offset=3654 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=217 code0_offset=1752 entry_size=8 target_CODE=12 routine_offset=2880 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=218 code0_offset=1760 entry_size=8 target_CODE=12 routine_offset=4920 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=219 code0_offset=1768 entry_size=8 target_CODE=13 routine_offset=40 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=220 code0_offset=1776 entry_size=8 target_CODE=13 routine_offset=4402 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=221 code0_offset=1784 entry_size=8 target_CODE=13 routine_offset=8698 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=222 code0_offset=1792 entry_size=8 target_CODE=13 routine_offset=8872 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=223 code0_offset=1800 entry_size=8 target_CODE=13 routine_offset=9190 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=224 code0_offset=1808 entry_size=8 target_CODE=13 routine_offset=9512 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=225 code0_offset=1816 entry_size=8 target_CODE=13 routine_offset=11470 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=226 code0_offset=1824 entry_size=8 target_CODE=13 routine_offset=11532 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=227 code0_offset=1832 entry_size=8 target_CODE=13 routine_offset=11676 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=228 code0_offset=1840 entry_size=8 target_CODE=13 routine_offset=11782 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=229 code0_offset=1848 entry_size=8 target_CODE=13 routine_offset=26534 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=230 code0_offset=1856 entry_size=8 target_CODE=13 routine_offset=28486 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=231 code0_offset=1864 entry_size=8 target_CODE=13 routine_offset=33318 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=232 code0_offset=1872 entry_size=8 target_CODE=14 routine_offset=40 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=233 code0_offset=1880 entry_size=8 target_CODE=14 routine_offset=256 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=234 code0_offset=1888 entry_size=8 target_CODE=14 routine_offset=396 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=235 code0_offset=1896 entry_size=8 target_CODE=14 routine_offset=518 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=236 code0_offset=1904 entry_size=8 target_CODE=14 routine_offset=808 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=237 code0_offset=1912 entry_size=8 target_CODE=14 routine_offset=966 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=238 code0_offset=1920 entry_size=8 target_CODE=14 routine_offset=1130 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=239 code0_offset=1928 entry_size=8 target_CODE=14 routine_offset=1176 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=240 code0_offset=1936 entry_size=8 target_CODE=14 routine_offset=1294 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=241 code0_offset=1944 entry_size=8 target_CODE=14 routine_offset=1604 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=242 code0_offset=1952 entry_size=8 target_CODE=14 routine_offset=1820 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=243 code0_offset=1960 entry_size=8 target_CODE=15 routine_offset=456 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=244 code0_offset=1968 entry_size=8 target_CODE=15 routine_offset=2294 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=245 code0_offset=1976 entry_size=8 target_CODE=15 routine_offset=2802 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=246 code0_offset=1984 entry_size=8 target_CODE=15 routine_offset=2832 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=247 code0_offset=1992 entry_size=8 target_CODE=15 routine_offset=2930 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=248 code0_offset=2000 entry_size=8 target_CODE=15 routine_offset=3190 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=249 code0_offset=2008 entry_size=8 target_CODE=15 routine_offset=3274 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=250 code0_offset=2016 entry_size=8 target_CODE=16 routine_offset=40 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=251 code0_offset=2024 entry_size=8 target_CODE=16 routine_offset=306 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=252 code0_offset=2032 entry_size=8 target_CODE=16 routine_offset=866 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=253 code0_offset=2040 entry_size=8 target_CODE=17 routine_offset=2588 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=254 code0_offset=2048 entry_size=8 target_CODE=18 routine_offset=40 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=255 code0_offset=2056 entry_size=8 target_CODE=18 routine_offset=154 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=256 code0_offset=2064 entry_size=8 target_CODE=18 routine_offset=1772 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=257 code0_offset=2072 entry_size=8 target_CODE=19 routine_offset=40 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=258 code0_offset=2080 entry_size=8 target_CODE=20 routine_offset=196 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=259 code0_offset=2088 entry_size=8 target_CODE=20 routine_offset=310 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=260 code0_offset=2096 entry_size=8 target_CODE=20 routine_offset=462 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=261 code0_offset=2104 entry_size=8 target_CODE=20 routine_offset=614 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=262 code0_offset=2112 entry_size=8 target_CODE=20 routine_offset=882 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=263 code0_offset=2120 entry_size=8 target_CODE=20 routine_offset=1408 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=264 code0_offset=2128 entry_size=8 target_CODE=20 routine_offset=1854 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=265 code0_offset=2136 entry_size=8 target_CODE=20 routine_offset=2062 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=266 code0_offset=2144 entry_size=8 target_CODE=20 routine_offset=2578 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=267 code0_offset=2152 entry_size=8 target_CODE=20 routine_offset=2712 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=268 code0_offset=2160 entry_size=8 target_CODE=20 routine_offset=2716 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=269 code0_offset=2168 entry_size=8 target_CODE=20 routine_offset=2756 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=270 code0_offset=2176 entry_size=8 target_CODE=20 routine_offset=2896 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=271 code0_offset=2184 entry_size=8 target_CODE=20 routine_offset=3020 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=272 code0_offset=2192 entry_size=8 target_CODE=20 routine_offset=3212 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=273 code0_offset=2200 entry_size=8 target_CODE=20 routine_offset=3216 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=274 code0_offset=2208 entry_size=8 target_CODE=20 routine_offset=3424 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=275 code0_offset=2216 entry_size=8 target_CODE=20 routine_offset=3728 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=276 code0_offset=2224 entry_size=8 target_CODE=20 routine_offset=3844 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=277 code0_offset=2232 entry_size=8 target_CODE=20 routine_offset=4058 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=278 code0_offset=2240 entry_size=8 target_CODE=20 routine_offset=4342 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=279 code0_offset=2248 entry_size=8 target_CODE=20 routine_offset=4528 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=280 code0_offset=2256 entry_size=8 target_CODE=20 routine_offset=4686 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=281 code0_offset=2264 entry_size=8 target_CODE=20 routine_offset=4800 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=282 code0_offset=2272 entry_size=8 target_CODE=20 routine_offset=4962 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=283 code0_offset=2280 entry_size=8 target_CODE=20 routine_offset=5104 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=284 code0_offset=2288 entry_size=8 target_CODE=20 routine_offset=5240 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=285 code0_offset=2296 entry_size=8 target_CODE=21 routine_offset=1826 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=286 code0_offset=2304 entry_size=8 target_CODE=21 routine_offset=2078 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=287 code0_offset=2312 entry_size=8 target_CODE=21 routine_offset=2302 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=288 code0_offset=2320 entry_size=8 target_CODE=21 routine_offset=3652 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=289 code0_offset=2328 entry_size=8 target_CODE=21 routine_offset=3804 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=290 code0_offset=2336 entry_size=8 target_CODE=21 routine_offset=3916 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=291 code0_offset=2344 entry_size=8 target_CODE=21 routine_offset=4062 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=292 code0_offset=2352 entry_size=8 target_CODE=21 routine_offset=4520 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=293 code0_offset=2360 entry_size=8 target_CODE=21 routine_offset=5928 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=294 code0_offset=2368 entry_size=8 target_CODE=21 routine_offset=6050 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=295 code0_offset=2376 entry_size=8 target_CODE=21 routine_offset=6072 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=296 code0_offset=2384 entry_size=8 target_CODE=21 routine_offset=6124 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=297 code0_offset=2392 entry_size=8 target_CODE=21 routine_offset=6178 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=298 code0_offset=2400 entry_size=8 target_CODE=21 routine_offset=6234 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=299 code0_offset=2408 entry_size=8 target_CODE=21 routine_offset=6252 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=300 code0_offset=2416 entry_size=8 target_CODE=21 routine_offset=6640 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=301 code0_offset=2424 entry_size=8 target_CODE=21 routine_offset=6662 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=302 code0_offset=2432 entry_size=8 target_CODE=21 routine_offset=6682 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=303 code0_offset=2440 entry_size=8 target_CODE=21 routine_offset=6728 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=304 code0_offset=2448 entry_size=8 target_CODE=22 routine_offset=68 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=305 code0_offset=2456 entry_size=8 target_CODE=23 routine_offset=40 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=306 code0_offset=2464 entry_size=8 target_CODE=24 routine_offset=40 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=307 code0_offset=2472 entry_size=8 target_CODE=24 routine_offset=2604 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=308 code0_offset=2480 entry_size=8 target_CODE=24 routine_offset=2668 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=309 code0_offset=2488 entry_size=8 target_CODE=24 routine_offset=2872 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=310 code0_offset=2496 entry_size=8 target_CODE=24 routine_offset=2970 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=311 code0_offset=2504 entry_size=8 target_CODE=24 routine_offset=3088 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=312 code0_offset=2512 entry_size=8 target_CODE=24 routine_offset=3254 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=313 code0_offset=2520 entry_size=8 target_CODE=24 routine_offset=3666 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=314 code0_offset=2528 entry_size=8 target_CODE=24 routine_offset=3926 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=315 code0_offset=2536 entry_size=8 target_CODE=24 routine_offset=3960 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=316 code0_offset=2544 entry_size=8 target_CODE=24 routine_offset=3996 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=317 code0_offset=2552 entry_size=8 target_CODE=24 routine_offset=4264 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=318 code0_offset=2560 entry_size=8 target_CODE=24 routine_offset=4568 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=319 code0_offset=2568 entry_size=8 target_CODE=25 routine_offset=184 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=320 code0_offset=2576 entry_size=8 target_CODE=25 routine_offset=122 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=321 code0_offset=2584 entry_size=8 target_CODE=25 routine_offset=228 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=322 code0_offset=2592 entry_size=8 target_CODE=26 routine_offset=40 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=323 code0_offset=2600 entry_size=8 target_CODE=26 routine_offset=442 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=324 code0_offset=2608 entry_size=8 target_CODE=26 routine_offset=782 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=325 code0_offset=2616 entry_size=8 target_CODE=26 routine_offset=824 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=326 code0_offset=2624 entry_size=8 target_CODE=26 routine_offset=880 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=327 code0_offset=2632 entry_size=8 target_CODE=26 routine_offset=1304 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=328 code0_offset=2640 entry_size=8 target_CODE=26 routine_offset=1370 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=329 code0_offset=2648 entry_size=8 target_CODE=26 routine_offset=1522 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=330 code0_offset=2656 entry_size=8 target_CODE=26 routine_offset=2012 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=331 code0_offset=2664 entry_size=8 target_CODE=26 routine_offset=2064 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=332 code0_offset=2672 entry_size=8 target_CODE=26 routine_offset=2102 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=333 code0_offset=2680 entry_size=8 target_CODE=26 routine_offset=2244 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=334 code0_offset=2688 entry_size=8 target_CODE=26 routine_offset=2322 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=335 code0_offset=2696 entry_size=8 target_CODE=26 routine_offset=2392 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=336 code0_offset=2704 entry_size=8 target_CODE=26 routine_offset=2470 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=337 code0_offset=2712 entry_size=8 target_CODE=26 routine_offset=2560 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=338 code0_offset=2720 entry_size=8 target_CODE=26 routine_offset=2632 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=339 code0_offset=2728 entry_size=8 target_CODE=26 routine_offset=2686 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=340 code0_offset=2736 entry_size=8 target_CODE=26 routine_offset=2756 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=341 code0_offset=2744 entry_size=8 target_CODE=26 routine_offset=2764 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=342 code0_offset=2752 entry_size=8 target_CODE=26 routine_offset=2812 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=343 code0_offset=2760 entry_size=8 target_CODE=26 routine_offset=2830 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=344 code0_offset=2768 entry_size=8 target_CODE=26 routine_offset=2848 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;       entry=345 code0_offset=2776 entry_size=8 target_CODE=26 routine_offset=2866 layout_fact=macos.jump_table.entries.accepted layout_status=validated target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate target_parser_use=candidate_only
-;     source_presentation: kind=c_owned_restored_source_packet status=covered stable_identity=macos-code:CODE:0 visible=True
-;     anchors:
-;       accepted_metadata: label=CODE 0 metadata offset=unknown fact=macos.code_resource.0.jump_table_metadata status=validated parser_use=accepted_parser_output
-;       accepted_jump_table: label=CODE 0 jump table offset=16 fact=macos.jump_table.entries.accepted status=validated parser_use=accepted_parser_output
-;       candidate_routine_jump_table_entry: label=CODE 27 routine candidate 0 offset=16 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 0 offset=32 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 1 offset=40 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 2 offset=48 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 3 offset=56 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 4 offset=64 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 5 offset=72 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 6 offset=80 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 7 offset=88 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 8 offset=96 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 9 offset=104 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 10 offset=112 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 11 offset=120 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 12 offset=128 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 13 offset=136 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 14 offset=144 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 15 offset=152 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 16 offset=160 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 17 offset=168 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 18 offset=176 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 19 offset=184 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 20 offset=192 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 21 offset=200 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 22 offset=208 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 23 offset=216 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 24 offset=224 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 25 offset=232 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 26 offset=240 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 27 offset=248 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 28 offset=256 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 29 offset=264 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 30 offset=272 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 31 offset=280 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 32 offset=288 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 33 offset=296 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 34 offset=304 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 35 offset=312 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 36 offset=320 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 37 offset=328 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 38 offset=336 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 39 offset=344 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 40 offset=352 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 41 offset=360 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 42 offset=368 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 43 offset=376 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 44 offset=384 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 45 offset=392 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 46 offset=400 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 47 offset=408 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 48 offset=416 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 49 offset=424 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 50 offset=432 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 51 offset=440 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 52 offset=448 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 53 offset=456 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 54 offset=464 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 55 offset=472 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 56 offset=480 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 57 offset=488 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 58 offset=496 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 59 offset=504 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 60 offset=512 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 61 offset=520 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 62 offset=528 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 63 offset=536 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 64 offset=544 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 65 offset=552 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 66 offset=560 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 67 offset=568 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 68 offset=576 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 69 offset=584 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 70 offset=592 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 71 offset=600 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 72 offset=608 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 73 offset=616 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 74 offset=624 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 75 offset=632 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 76 offset=640 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 77 offset=648 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 78 offset=656 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 79 offset=664 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 80 offset=672 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 81 offset=680 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 82 offset=688 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 83 offset=696 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 84 offset=704 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 85 offset=712 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 86 offset=720 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 87 offset=728 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 88 offset=736 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 89 offset=744 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 90 offset=752 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 91 offset=760 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 92 offset=768 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 93 offset=776 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 94 offset=784 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 95 offset=792 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 96 offset=800 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 97 offset=808 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 98 offset=816 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 99 offset=824 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 100 offset=832 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 101 offset=840 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 102 offset=848 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 103 offset=856 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 104 offset=864 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 105 offset=872 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 106 offset=880 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 107 offset=888 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 108 offset=896 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 109 offset=904 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 110 offset=912 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 111 offset=920 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 112 offset=928 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 1 routine candidate 113 offset=936 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 2 routine candidate 0 offset=944 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 2 routine candidate 1 offset=952 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 2 routine candidate 2 offset=960 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 2 routine candidate 3 offset=968 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 2 routine candidate 4 offset=976 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 2 routine candidate 5 offset=984 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 2 routine candidate 6 offset=992 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 3 routine candidate 0 offset=1000 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 3 routine candidate 1 offset=1008 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 3 routine candidate 2 offset=1016 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 4 routine candidate 0 offset=1024 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 4 routine candidate 1 offset=1032 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 4 routine candidate 2 offset=1040 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 4 routine candidate 3 offset=1048 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 4 routine candidate 4 offset=1056 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 4 routine candidate 5 offset=1064 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 4 routine candidate 6 offset=1072 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 4 routine candidate 7 offset=1080 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 4 routine candidate 8 offset=1088 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 4 routine candidate 9 offset=1096 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 4 routine candidate 10 offset=1104 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 4 routine candidate 11 offset=1112 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 4 routine candidate 12 offset=1120 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 4 routine candidate 13 offset=1128 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 4 routine candidate 14 offset=1136 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 4 routine candidate 15 offset=1144 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 4 routine candidate 16 offset=1152 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 4 routine candidate 17 offset=1160 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 4 routine candidate 18 offset=1168 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 4 routine candidate 19 offset=1176 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 5 routine candidate 0 offset=1184 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 5 routine candidate 1 offset=1192 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 5 routine candidate 2 offset=1200 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 5 routine candidate 3 offset=1208 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 5 routine candidate 4 offset=1216 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 5 routine candidate 5 offset=1224 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 5 routine candidate 6 offset=1232 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 5 routine candidate 7 offset=1240 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 5 routine candidate 8 offset=1248 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 5 routine candidate 9 offset=1256 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 5 routine candidate 10 offset=1264 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 5 routine candidate 11 offset=1272 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 5 routine candidate 12 offset=1280 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 5 routine candidate 13 offset=1288 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 5 routine candidate 14 offset=1296 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 5 routine candidate 15 offset=1304 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 5 routine candidate 16 offset=1312 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 5 routine candidate 17 offset=1320 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 5 routine candidate 18 offset=1328 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 5 routine candidate 19 offset=1336 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 5 routine candidate 20 offset=1344 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 5 routine candidate 21 offset=1352 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 5 routine candidate 22 offset=1360 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 6 routine candidate 0 offset=1368 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 6 routine candidate 1 offset=1376 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 6 routine candidate 2 offset=1384 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 6 routine candidate 3 offset=1392 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 6 routine candidate 4 offset=1400 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 6 routine candidate 5 offset=1408 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 6 routine candidate 6 offset=1416 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 6 routine candidate 7 offset=1424 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 6 routine candidate 8 offset=1432 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 7 routine candidate 0 offset=1440 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 7 routine candidate 1 offset=1448 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 7 routine candidate 2 offset=1456 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 7 routine candidate 3 offset=1464 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 7 routine candidate 4 offset=1472 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 7 routine candidate 5 offset=1480 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 8 routine candidate 0 offset=1488 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 8 routine candidate 1 offset=1496 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 8 routine candidate 2 offset=1504 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 8 routine candidate 3 offset=1512 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 8 routine candidate 4 offset=1520 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 8 routine candidate 5 offset=1528 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 8 routine candidate 6 offset=1536 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 9 routine candidate 0 offset=1544 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 9 routine candidate 1 offset=1552 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 9 routine candidate 2 offset=1560 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 9 routine candidate 3 offset=1568 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 9 routine candidate 4 offset=1576 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 9 routine candidate 5 offset=1584 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 9 routine candidate 6 offset=1592 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 9 routine candidate 7 offset=1600 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 9 routine candidate 8 offset=1608 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 10 routine candidate 0 offset=1616 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 10 routine candidate 1 offset=1624 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 11 routine candidate 0 offset=1632 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 11 routine candidate 1 offset=1640 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 11 routine candidate 2 offset=1648 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 11 routine candidate 3 offset=1656 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 11 routine candidate 4 offset=1664 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 11 routine candidate 5 offset=1672 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 11 routine candidate 6 offset=1680 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 11 routine candidate 7 offset=1688 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 11 routine candidate 8 offset=1696 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 11 routine candidate 9 offset=1704 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 11 routine candidate 10 offset=1712 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 11 routine candidate 11 offset=1720 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 11 routine candidate 12 offset=1728 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 11 routine candidate 13 offset=1736 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 11 routine candidate 14 offset=1744 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 12 routine candidate 0 offset=1752 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 12 routine candidate 1 offset=1760 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 13 routine candidate 0 offset=1768 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 13 routine candidate 1 offset=1776 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 13 routine candidate 2 offset=1784 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 13 routine candidate 3 offset=1792 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 13 routine candidate 4 offset=1800 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 13 routine candidate 5 offset=1808 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 13 routine candidate 6 offset=1816 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 13 routine candidate 7 offset=1824 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 13 routine candidate 8 offset=1832 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 13 routine candidate 9 offset=1840 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 13 routine candidate 10 offset=1848 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 13 routine candidate 11 offset=1856 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 13 routine candidate 12 offset=1864 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 14 routine candidate 0 offset=1872 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 14 routine candidate 1 offset=1880 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 14 routine candidate 2 offset=1888 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 14 routine candidate 3 offset=1896 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 14 routine candidate 4 offset=1904 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 14 routine candidate 5 offset=1912 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 14 routine candidate 6 offset=1920 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 14 routine candidate 7 offset=1928 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 14 routine candidate 8 offset=1936 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 14 routine candidate 9 offset=1944 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 14 routine candidate 10 offset=1952 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 15 routine candidate 0 offset=1960 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 15 routine candidate 1 offset=1968 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 15 routine candidate 2 offset=1976 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 15 routine candidate 3 offset=1984 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 15 routine candidate 4 offset=1992 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 15 routine candidate 5 offset=2000 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 15 routine candidate 6 offset=2008 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 16 routine candidate 0 offset=2016 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 16 routine candidate 1 offset=2024 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 16 routine candidate 2 offset=2032 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 17 routine candidate 0 offset=2040 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 18 routine candidate 0 offset=2048 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 18 routine candidate 1 offset=2056 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 18 routine candidate 2 offset=2064 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 19 routine candidate 0 offset=2072 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 20 routine candidate 0 offset=2080 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 20 routine candidate 1 offset=2088 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 20 routine candidate 2 offset=2096 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 20 routine candidate 3 offset=2104 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 20 routine candidate 4 offset=2112 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 20 routine candidate 5 offset=2120 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 20 routine candidate 6 offset=2128 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 20 routine candidate 7 offset=2136 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 20 routine candidate 8 offset=2144 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 20 routine candidate 9 offset=2152 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 20 routine candidate 10 offset=2160 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 20 routine candidate 11 offset=2168 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 20 routine candidate 12 offset=2176 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 20 routine candidate 13 offset=2184 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 20 routine candidate 14 offset=2192 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 20 routine candidate 15 offset=2200 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 20 routine candidate 16 offset=2208 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 20 routine candidate 17 offset=2216 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 20 routine candidate 18 offset=2224 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 20 routine candidate 19 offset=2232 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 20 routine candidate 20 offset=2240 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 20 routine candidate 21 offset=2248 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 20 routine candidate 22 offset=2256 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 20 routine candidate 23 offset=2264 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 20 routine candidate 24 offset=2272 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 20 routine candidate 25 offset=2280 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 20 routine candidate 26 offset=2288 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 21 routine candidate 0 offset=2296 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 21 routine candidate 1 offset=2304 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 21 routine candidate 2 offset=2312 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 21 routine candidate 3 offset=2320 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 21 routine candidate 4 offset=2328 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 21 routine candidate 5 offset=2336 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 21 routine candidate 6 offset=2344 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 21 routine candidate 7 offset=2352 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 21 routine candidate 8 offset=2360 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 21 routine candidate 9 offset=2368 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 21 routine candidate 10 offset=2376 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 21 routine candidate 11 offset=2384 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 21 routine candidate 12 offset=2392 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 21 routine candidate 13 offset=2400 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 21 routine candidate 14 offset=2408 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 21 routine candidate 15 offset=2416 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 21 routine candidate 16 offset=2424 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 21 routine candidate 17 offset=2432 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 21 routine candidate 18 offset=2440 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 22 routine candidate 0 offset=2448 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 23 routine candidate 0 offset=2456 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 24 routine candidate 0 offset=2464 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 24 routine candidate 1 offset=2472 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 24 routine candidate 2 offset=2480 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 24 routine candidate 3 offset=2488 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 24 routine candidate 4 offset=2496 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 24 routine candidate 5 offset=2504 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 24 routine candidate 6 offset=2512 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 24 routine candidate 7 offset=2520 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 24 routine candidate 8 offset=2528 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 24 routine candidate 9 offset=2536 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 24 routine candidate 10 offset=2544 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 24 routine candidate 11 offset=2552 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 24 routine candidate 12 offset=2560 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 25 routine candidate 0 offset=2568 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 25 routine candidate 1 offset=2576 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 25 routine candidate 2 offset=2584 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 26 routine candidate 0 offset=2592 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 26 routine candidate 1 offset=2600 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 26 routine candidate 2 offset=2608 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 26 routine candidate 3 offset=2616 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 26 routine candidate 4 offset=2624 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 26 routine candidate 5 offset=2632 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 26 routine candidate 6 offset=2640 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 26 routine candidate 7 offset=2648 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 26 routine candidate 8 offset=2656 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 26 routine candidate 9 offset=2664 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 26 routine candidate 10 offset=2672 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 26 routine candidate 11 offset=2680 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 26 routine candidate 12 offset=2688 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 26 routine candidate 13 offset=2696 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 26 routine candidate 14 offset=2704 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 26 routine candidate 15 offset=2712 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 26 routine candidate 16 offset=2720 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 26 routine candidate 17 offset=2728 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 26 routine candidate 18 offset=2736 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 26 routine candidate 19 offset=2744 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 26 routine candidate 20 offset=2752 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 26 routine candidate 21 offset=2760 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 26 routine candidate 22 offset=2768 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_jump_table_entry: label=CODE 26 routine candidate 23 offset=2776 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;     restored_source_model:
-;     model=restored_source_model_v1 round_trip_required=false
-;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 0 name=unknown
-;     a5_world status=deferred parser_use=unknown
-;     ownership_ranges:
-;       0: role=metadata span=0..2784 status=validated parser_use=accepted_parser_output reason=code0_jump_table_metadata
-;     source_reference_records:
-;       0: kind=code0_routing_table ownership=unknown status=validated parser_use=accepted_parser_output target=CODE resource dispatch table
-;       1: kind=a5_world_context_placeholder ownership=0 status=deferred parser_use=unknown target=classic_mac_a5_world
-;     listing: kind=metadata available=False route=unknown reason=CODE 0 is jump-table/application metadata, not ordinary m68k code
-;   CODE 1 Main: role=code_segment kind=code_segment payload_size=29024 sha256=4a543f6fd1c542fccd38ec9f469b06f65c797dfd8b226fefc9f576faafbe70f5 fact=macos.resource_fork.code_resources.accepted status=validated
-;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
-;     source_presentation: kind=c_owned_restored_source_packet status=covered stable_identity=macos-code:CODE:1 visible=True
-;     anchors:
-;       accepted_segment_metadata: label=CODE 1 segment metadata offset=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated parser_use=accepted_parser_output
-;       candidate_routine_entry: label=CODE 1 routine candidate 0 offset=24606 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 1 offset=62 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 2 offset=70 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 3 offset=94 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 4 offset=118 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 5 offset=154 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 6 offset=190 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 7 offset=190 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 8 offset=264 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 9 offset=322 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 10 offset=358 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 11 offset=370 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 12 offset=400 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 13 offset=420 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 14 offset=446 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 15 offset=468 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 16 offset=472 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 17 offset=580 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 18 offset=574 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 19 offset=796 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 20 offset=984 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 21 offset=1036 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 22 offset=1174 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 23 offset=1182 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 24 offset=1400 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 25 offset=1408 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 26 offset=1542 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 27 offset=1550 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 28 offset=1812 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 29 offset=1820 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 30 offset=1992 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 31 offset=2020 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 32 offset=2814 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 33 offset=3936 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 34 offset=3962 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 35 offset=4572 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 36 offset=4596 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 37 offset=4722 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 38 offset=4802 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 39 offset=4884 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 40 offset=4926 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 41 offset=7008 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 42 offset=6950 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 43 offset=7282 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 44 offset=7464 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 45 offset=8240 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 46 offset=8266 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 47 offset=8304 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 48 offset=8360 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 49 offset=8688 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 50 offset=8950 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 51 offset=9062 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 52 offset=9362 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 53 offset=9658 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 54 offset=9822 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 55 offset=9844 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 56 offset=10032 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 57 offset=10206 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 58 offset=10286 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 59 offset=10424 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 60 offset=10698 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 61 offset=11180 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 62 offset=12376 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 63 offset=15760 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 64 offset=20178 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 65 offset=21302 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 66 offset=21420 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 67 offset=21622 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 68 offset=21788 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 69 offset=22440 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 70 offset=24510 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 71 offset=24850 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 72 offset=24994 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 73 offset=25032 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 74 offset=25068 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 75 offset=25290 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 76 offset=25506 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 77 offset=25624 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 78 offset=25686 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 79 offset=25992 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 80 offset=26674 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 81 offset=26804 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 82 offset=26814 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 83 offset=26828 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 84 offset=26884 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 85 offset=26948 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 86 offset=26966 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 87 offset=26984 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 88 offset=27002 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 89 offset=27028 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 90 offset=27032 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 91 offset=27100 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 92 offset=27154 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 93 offset=27190 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 94 offset=27234 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 95 offset=27292 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 96 offset=27324 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 97 offset=27358 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 98 offset=27414 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 99 offset=27436 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 100 offset=27458 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 101 offset=27476 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 102 offset=27494 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 103 offset=27566 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 104 offset=27638 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 105 offset=27702 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 106 offset=27796 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 107 offset=27918 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 108 offset=28444 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 109 offset=28462 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 110 offset=28516 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 111 offset=28748 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 112 offset=28834 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 1 routine candidate 113 offset=28870 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_code_range: label=CODE 1 candidate code offset=40 fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
-;     restored_source_model:
-;     model=restored_source_model_v1 round_trip_required=false
-;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 1 name=unknown
-;     a5_world status=deferred parser_use=unknown
-;     ownership_ranges:
-;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
-;       1: role=candidate_code span=40..29024 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
-;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
-;       1: kind=a5_world_context_placeholder ownership=1 status=deferred parser_use=unknown target=classic_mac_a5_world
-;     listing: kind=full_listing available=True route=listing reason=unknown
-;   CODE 2 FPOpTable: role=code_segment kind=code_segment payload_size=7788 sha256=a33f1dfe28237a5ee6f9ba7a96540e8e4842a7e6207575db5f0479b8c622a4f2 fact=macos.resource_fork.code_resources.accepted status=validated
-;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
-;     source_presentation: kind=c_owned_restored_source_packet status=covered stable_identity=macos-code:CODE:2 visible=True
-;     anchors:
-;       accepted_segment_metadata: label=CODE 2 segment metadata offset=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated parser_use=accepted_parser_output
-;       candidate_routine_entry: label=CODE 2 routine candidate 0 offset=40 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 2 routine candidate 1 offset=172 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 2 routine candidate 2 offset=392 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 2 routine candidate 3 offset=450 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 2 routine candidate 4 offset=6106 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 2 routine candidate 5 offset=6986 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 2 routine candidate 6 offset=7154 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_code_range: label=CODE 2 candidate code offset=374 fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
-;     restored_source_model:
-;     model=restored_source_model_v1 round_trip_required=false
-;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 2 name=unknown
-;     a5_world status=deferred parser_use=unknown
-;     ownership_ranges:
-;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
-;       1: role=candidate_unresolved_prefix span=40..374 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
-;       2: role=candidate_code span=374..7788 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
-;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
-;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
-;     listing: kind=semantic_listing available=True route=listing reason=C-owned semantic rows from generated loader/CODE0 entry seeds
-;   CODE 3 Init: role=code_segment kind=code_segment payload_size=18252 sha256=331fc8e7daf79d4e733760cb8ad413ade51431a01dd6c19c4f73720f562b08e4 fact=macos.resource_fork.code_resources.accepted status=validated
-;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
-;     source_presentation: kind=c_owned_restored_source_packet status=covered stable_identity=macos-code:CODE:3 visible=True
-;     anchors:
-;       accepted_segment_metadata: label=CODE 3 segment metadata offset=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated parser_use=accepted_parser_output
-;       candidate_routine_entry: label=CODE 3 routine candidate 0 offset=64 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 3 routine candidate 1 offset=14582 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 3 routine candidate 2 offset=17470 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_code_range: label=CODE 3 candidate code offset=302 fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
-;     restored_source_model:
-;     model=restored_source_model_v1 round_trip_required=false
-;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 3 name=unknown
-;     a5_world status=deferred parser_use=unknown
-;     ownership_ranges:
-;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
-;       1: role=candidate_unresolved_prefix span=40..302 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
-;       2: role=candidate_code span=302..18252 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
-;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
-;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
-;     listing: kind=semantic_listing available=True route=listing reason=C-owned semantic rows from generated loader/CODE0 entry seeds
-;   CODE 4 IOMgr: role=code_segment kind=code_segment payload_size=6426 sha256=a697293e579b91031cb9bb37cd80a4f47d2acb9eff60a4f4b7e3cb9a18fd4fca fact=macos.resource_fork.code_resources.accepted status=validated
-;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
-;     source_presentation: kind=c_owned_restored_source_packet status=covered stable_identity=macos-code:CODE:4 visible=True
-;     anchors:
-;       accepted_segment_metadata: label=CODE 4 segment metadata offset=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated parser_use=accepted_parser_output
-;       candidate_routine_entry: label=CODE 4 routine candidate 0 offset=40 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 4 routine candidate 1 offset=308 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 4 routine candidate 2 offset=494 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 4 routine candidate 3 offset=576 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 4 routine candidate 4 offset=660 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 4 routine candidate 5 offset=746 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 4 routine candidate 6 offset=780 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 4 routine candidate 7 offset=934 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 4 routine candidate 8 offset=2054 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 4 routine candidate 9 offset=3138 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 4 routine candidate 10 offset=3714 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 4 routine candidate 11 offset=5174 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 4 routine candidate 12 offset=5550 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 4 routine candidate 13 offset=5602 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 4 routine candidate 14 offset=5928 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 4 routine candidate 15 offset=5984 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 4 routine candidate 16 offset=6160 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 4 routine candidate 17 offset=6242 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 4 routine candidate 18 offset=6314 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 4 routine candidate 19 offset=6398 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_code_range: label=CODE 4 candidate code offset=468 fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
-;     restored_source_model:
-;     model=restored_source_model_v1 round_trip_required=false
-;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 4 name=unknown
-;     a5_world status=deferred parser_use=unknown
-;     ownership_ranges:
-;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
-;       1: role=candidate_unresolved_prefix span=40..468 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
-;       2: role=candidate_code span=468..6426 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
-;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
-;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
-;     listing: kind=semantic_listing available=True route=listing reason=C-owned semantic rows from generated loader/CODE0 entry seeds
-;   CODE 5 Macros: role=code_segment kind=code_segment payload_size=26638 sha256=90b898d2148ba2c3b798bed0c8c5dc936fba9ed3e8b958d279db4b279a033dfc fact=macos.resource_fork.code_resources.accepted status=validated
-;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
-;     source_presentation: kind=c_owned_restored_source_packet status=covered stable_identity=macos-code:CODE:5 visible=True
-;     anchors:
-;       accepted_segment_metadata: label=CODE 5 segment metadata offset=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated parser_use=accepted_parser_output
-;       candidate_routine_entry: label=CODE 5 routine candidate 0 offset=40 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 5 routine candidate 1 offset=210 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 5 routine candidate 2 offset=234 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 5 routine candidate 3 offset=872 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 5 routine candidate 4 offset=876 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 5 routine candidate 5 offset=1434 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 5 routine candidate 6 offset=1512 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 5 routine candidate 7 offset=2632 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 5 routine candidate 8 offset=5088 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 5 routine candidate 9 offset=5302 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 5 routine candidate 10 offset=5612 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 5 routine candidate 11 offset=5884 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 5 routine candidate 12 offset=6230 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 5 routine candidate 13 offset=6288 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 5 routine candidate 14 offset=6552 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 5 routine candidate 15 offset=8248 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 5 routine candidate 16 offset=9576 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 5 routine candidate 17 offset=12136 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 5 routine candidate 18 offset=15042 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 5 routine candidate 19 offset=22098 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 5 routine candidate 20 offset=23726 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 5 routine candidate 21 offset=24342 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 5 routine candidate 22 offset=26448 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_code_range: label=CODE 5 candidate code offset=212 fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
-;     restored_source_model:
-;     model=restored_source_model_v1 round_trip_required=false
-;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 5 name=unknown
-;     a5_world status=deferred parser_use=unknown
-;     ownership_ranges:
-;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
-;       1: role=candidate_unresolved_prefix span=40..212 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
-;       2: role=candidate_code span=212..26638 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
-;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
-;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
-;     listing: kind=semantic_listing available=True route=listing reason=C-owned semantic rows from generated loader/CODE0 entry seeds
-;   CODE 6 OpTable: role=code_segment kind=code_segment payload_size=15158 sha256=75005bca2e9e007ce374020416127735d9096e064806e4e1e1b888cd3ba8a9cf fact=macos.resource_fork.code_resources.accepted status=validated
-;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
-;     source_presentation: kind=c_owned_restored_source_packet status=covered stable_identity=macos-code:CODE:6 visible=True
-;     anchors:
-;       accepted_segment_metadata: label=CODE 6 segment metadata offset=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated parser_use=accepted_parser_output
-;       candidate_routine_entry: label=CODE 6 routine candidate 0 offset=40 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 6 routine candidate 1 offset=240 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 6 routine candidate 2 offset=298 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 6 routine candidate 3 offset=736 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 6 routine candidate 4 offset=5724 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 6 routine candidate 5 offset=1396 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 6 routine candidate 6 offset=1160 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 6 routine candidate 7 offset=5774 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 6 routine candidate 8 offset=15126 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_code_range: label=CODE 6 candidate code offset=58 fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
-;     restored_source_model:
-;     model=restored_source_model_v1 round_trip_required=false
-;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 6 name=unknown
-;     a5_world status=deferred parser_use=unknown
-;     ownership_ranges:
-;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
-;       1: role=candidate_unresolved_prefix span=40..58 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
-;       2: role=candidate_code span=58..15158 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
-;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
-;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
-;     listing: kind=semantic_listing available=True route=listing reason=C-owned semantic rows from generated loader/CODE0 entry seeds
-;   CODE 7 POpTable: role=code_segment kind=code_segment payload_size=4142 sha256=3bc5de90c439ad5e0f7e5d4635b445022db8ab231a9b43981dbd95673ac0b78e fact=macos.resource_fork.code_resources.accepted status=validated
-;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
-;     source_presentation: kind=c_owned_restored_source_packet status=covered stable_identity=macos-code:CODE:7 visible=True
-;     anchors:
-;       accepted_segment_metadata: label=CODE 7 segment metadata offset=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated parser_use=accepted_parser_output
-;       candidate_routine_entry: label=CODE 7 routine candidate 0 offset=40 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 7 routine candidate 1 offset=172 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 7 routine candidate 2 offset=370 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 7 routine candidate 3 offset=428 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 7 routine candidate 4 offset=3160 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 7 routine candidate 5 offset=4062 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_code_range: label=CODE 7 candidate code offset=352 fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
-;     restored_source_model:
-;     model=restored_source_model_v1 round_trip_required=false
-;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 7 name=unknown
-;     a5_world status=deferred parser_use=unknown
-;     ownership_ranges:
-;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
-;       1: role=candidate_unresolved_prefix span=40..352 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
-;       2: role=candidate_code span=352..4142 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
-;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
-;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
-;     listing: kind=semantic_listing available=True route=listing reason=C-owned semantic rows from generated loader/CODE0 entry seeds
-;   CODE 8 Listing: role=code_segment kind=code_segment payload_size=1852 sha256=5b3cd8756213ba73870bb353160d4e5dbb1a3bdd2da93157146d091b6949a2e9 fact=macos.resource_fork.code_resources.accepted status=validated
-;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
-;     source_presentation: kind=c_owned_restored_source_packet status=covered stable_identity=macos-code:CODE:8 visible=True
-;     anchors:
-;       accepted_segment_metadata: label=CODE 8 segment metadata offset=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated parser_use=accepted_parser_output
-;       candidate_routine_entry: label=CODE 8 routine candidate 0 offset=220 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 8 routine candidate 1 offset=260 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 8 routine candidate 2 offset=678 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 8 routine candidate 3 offset=794 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 8 routine candidate 4 offset=1048 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 8 routine candidate 5 offset=1132 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 8 routine candidate 6 offset=1630 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_code_range: label=CODE 8 candidate code offset=42 fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
-;     restored_source_model:
-;     model=restored_source_model_v1 round_trip_required=false
-;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 8 name=unknown
-;     a5_world status=deferred parser_use=unknown
-;     ownership_ranges:
-;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
-;       1: role=candidate_unresolved_prefix span=40..42 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
-;       2: role=candidate_code span=42..1852 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
-;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
-;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
-;     listing: kind=semantic_listing available=True route=listing reason=C-owned semantic rows from generated loader/CODE0 entry seeds
-;   CODE 9 Pass2: role=code_segment kind=code_segment payload_size=13946 sha256=0361ae9dcb47f31cf559372a3e42c672dcfb8920b332d4f900a7124ab6c70bf3 fact=macos.resource_fork.code_resources.accepted status=validated
-;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
-;     source_presentation: kind=c_owned_restored_source_packet status=covered stable_identity=macos-code:CODE:9 visible=True
-;     anchors:
-;       accepted_segment_metadata: label=CODE 9 segment metadata offset=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated parser_use=accepted_parser_output
-;       candidate_routine_entry: label=CODE 9 routine candidate 0 offset=40 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 9 routine candidate 1 offset=206 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 9 routine candidate 2 offset=238 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 9 routine candidate 3 offset=1146 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 9 routine candidate 4 offset=4256 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 9 routine candidate 5 offset=4148 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 9 routine candidate 6 offset=4002 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 9 routine candidate 7 offset=12734 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 9 routine candidate 8 offset=13904 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_code_range: label=CODE 9 candidate code offset=712 fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
-;     restored_source_model:
-;     model=restored_source_model_v1 round_trip_required=false
-;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 9 name=unknown
-;     a5_world status=deferred parser_use=unknown
-;     ownership_ranges:
-;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
-;       1: role=candidate_unresolved_prefix span=40..712 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
-;       2: role=candidate_code span=712..13946 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
-;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
-;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
-;     listing: kind=semantic_listing available=True route=listing reason=C-owned semantic rows from generated loader/CODE0 entry seeds
-;   CODE 10 FinishUp: role=code_segment kind=code_segment payload_size=1542 sha256=2d5d27affd131aaa28eb0bd33157051e8f30ee3cdc054df4aad3011bdb22c1e1 fact=macos.resource_fork.code_resources.accepted status=validated
-;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
-;     source_presentation: kind=c_owned_restored_source_packet status=covered stable_identity=macos-code:CODE:10 visible=True
-;     anchors:
-;       accepted_segment_metadata: label=CODE 10 segment metadata offset=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated parser_use=accepted_parser_output
-;       candidate_routine_entry: label=CODE 10 routine candidate 0 offset=40 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 10 routine candidate 1 offset=310 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_code_range: label=CODE 10 candidate code offset=148 fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
-;     restored_source_model:
-;     model=restored_source_model_v1 round_trip_required=false
-;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 10 name=unknown
-;     a5_world status=deferred parser_use=unknown
-;     ownership_ranges:
-;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
-;       1: role=candidate_unresolved_prefix span=40..148 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
-;       2: role=candidate_code span=148..1542 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
-;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
-;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
-;     listing: kind=semantic_listing available=True route=listing reason=C-owned semantic rows from generated loader/CODE0 entry seeds
-;   CODE 11 Dbg: role=code_segment kind=code_segment payload_size=3678 sha256=04097ca27d77f09604177ac5e85019ecaed552d68ae2e9d50ae3b5a4e394c503 fact=macos.resource_fork.code_resources.accepted status=validated
-;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
-;     source_presentation: kind=c_owned_restored_source_packet status=covered stable_identity=macos-code:CODE:11 visible=True
-;     anchors:
-;       accepted_segment_metadata: label=CODE 11 segment metadata offset=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated parser_use=accepted_parser_output
-;       candidate_routine_entry: label=CODE 11 routine candidate 0 offset=144 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 11 routine candidate 1 offset=220 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 11 routine candidate 2 offset=946 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 11 routine candidate 3 offset=1032 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 11 routine candidate 4 offset=1206 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 11 routine candidate 5 offset=1234 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 11 routine candidate 6 offset=1354 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 11 routine candidate 7 offset=1434 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 11 routine candidate 8 offset=1688 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 11 routine candidate 9 offset=1926 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 11 routine candidate 10 offset=2642 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 11 routine candidate 11 offset=3166 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 11 routine candidate 12 offset=3424 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 11 routine candidate 13 offset=3538 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 11 routine candidate 14 offset=3654 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_code_range: label=CODE 11 candidate code offset=836 fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
-;     restored_source_model:
-;     model=restored_source_model_v1 round_trip_required=false
-;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 11 name=unknown
-;     a5_world status=deferred parser_use=unknown
-;     ownership_ranges:
-;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
-;       1: role=candidate_unresolved_prefix span=40..836 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
-;       2: role=candidate_code span=836..3678 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
-;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
-;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
-;     listing: kind=semantic_listing available=True route=listing reason=C-owned semantic rows from generated loader/CODE0 entry seeds
-;   CODE 12 LoadDump: role=code_segment kind=code_segment payload_size=6928 sha256=9c563d29bea4465730181b661ea9a3a60d15276aa71a6be399b02b9a4091cbdb fact=macos.resource_fork.code_resources.accepted status=validated
-;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
-;     source_presentation: kind=c_owned_restored_source_packet status=covered stable_identity=macos-code:CODE:12 visible=True
-;     anchors:
-;       accepted_segment_metadata: label=CODE 12 segment metadata offset=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated parser_use=accepted_parser_output
-;       candidate_routine_entry: label=CODE 12 routine candidate 0 offset=2880 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 12 routine candidate 1 offset=4920 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_code_range: label=CODE 12 candidate code offset=44 fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
-;     restored_source_model:
-;     model=restored_source_model_v1 round_trip_required=false
-;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 12 name=unknown
-;     a5_world status=deferred parser_use=unknown
-;     ownership_ranges:
-;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
-;       1: role=candidate_unresolved_prefix span=40..44 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
-;       2: role=candidate_code span=44..6928 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
-;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
-;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
-;     listing: kind=semantic_listing available=True route=listing reason=C-owned semantic rows from generated loader/CODE0 entry seeds
-;   CODE 13 Directives: role=code_segment kind=code_segment payload_size=33354 sha256=1358e27cbf9cb7da402416dfa830bd93f99a23e16da5c9972f63549d171a30c8 fact=macos.resource_fork.code_resources.accepted status=validated
-;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
-;     source_presentation: kind=c_owned_restored_source_packet status=covered stable_identity=macos-code:CODE:13 visible=True
-;     anchors:
-;       accepted_segment_metadata: label=CODE 13 segment metadata offset=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated parser_use=accepted_parser_output
-;       candidate_routine_entry: label=CODE 13 routine candidate 0 offset=40 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 13 routine candidate 1 offset=4402 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 13 routine candidate 2 offset=8698 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 13 routine candidate 3 offset=8872 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 13 routine candidate 4 offset=9190 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 13 routine candidate 5 offset=9512 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 13 routine candidate 6 offset=11470 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 13 routine candidate 7 offset=11532 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 13 routine candidate 8 offset=11676 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 13 routine candidate 9 offset=11782 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 13 routine candidate 10 offset=26534 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 13 routine candidate 11 offset=28486 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 13 routine candidate 12 offset=33318 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_code_range: label=CODE 13 candidate code offset=44 fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
-;     restored_source_model:
-;     model=restored_source_model_v1 round_trip_required=false
-;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 13 name=unknown
-;     a5_world status=deferred parser_use=unknown
-;     ownership_ranges:
-;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
-;       1: role=candidate_unresolved_prefix span=40..44 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
-;       2: role=candidate_code span=44..33354 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
-;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
-;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
-;     listing: kind=semantic_listing available=True route=listing reason=C-owned semantic rows from generated loader/CODE0 entry seeds
-;   CODE 14 MemMgr: role=code_segment kind=code_segment payload_size=1886 sha256=14e851122fdae5910c2772def35a8b36c30dc7133cb92df8524f8a42ff5f8c70 fact=macos.resource_fork.code_resources.accepted status=validated
-;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
-;     source_presentation: kind=c_owned_restored_source_packet status=covered stable_identity=macos-code:CODE:14 visible=True
-;     anchors:
-;       accepted_segment_metadata: label=CODE 14 segment metadata offset=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated parser_use=accepted_parser_output
-;       candidate_routine_entry: label=CODE 14 routine candidate 0 offset=40 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 14 routine candidate 1 offset=256 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 14 routine candidate 2 offset=396 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 14 routine candidate 3 offset=518 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 14 routine candidate 4 offset=808 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 14 routine candidate 5 offset=966 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 14 routine candidate 6 offset=1130 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 14 routine candidate 7 offset=1176 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 14 routine candidate 8 offset=1294 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 14 routine candidate 9 offset=1604 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 14 routine candidate 10 offset=1820 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_code_range: label=CODE 14 candidate code offset=236 fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
-;     restored_source_model:
-;     model=restored_source_model_v1 round_trip_required=false
-;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 14 name=unknown
-;     a5_world status=deferred parser_use=unknown
-;     ownership_ranges:
-;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
-;       1: role=candidate_unresolved_prefix span=40..236 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
-;       2: role=candidate_code span=236..1886 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
-;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
-;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
-;     listing: kind=semantic_listing available=True route=listing reason=C-owned semantic rows from generated loader/CODE0 entry seeds
-;   CODE 15 Errors: role=code_segment kind=code_segment payload_size=3452 sha256=ebe2c26fe6fffb8585f7e9e0ebfffa73ca877946c26eab44f0efbd96678018cd fact=macos.resource_fork.code_resources.accepted status=validated
-;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
-;     source_presentation: kind=c_owned_restored_source_packet status=covered stable_identity=macos-code:CODE:15 visible=True
-;     anchors:
-;       accepted_segment_metadata: label=CODE 15 segment metadata offset=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated parser_use=accepted_parser_output
-;       candidate_routine_entry: label=CODE 15 routine candidate 0 offset=456 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 15 routine candidate 1 offset=2294 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 15 routine candidate 2 offset=2802 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 15 routine candidate 3 offset=2832 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 15 routine candidate 4 offset=2930 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 15 routine candidate 5 offset=3190 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 15 routine candidate 6 offset=3274 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_code_range: label=CODE 15 candidate code offset=96 fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
-;     restored_source_model:
-;     model=restored_source_model_v1 round_trip_required=false
-;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 15 name=unknown
-;     a5_world status=deferred parser_use=unknown
-;     ownership_ranges:
-;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
-;       1: role=candidate_unresolved_prefix span=40..96 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
-;       2: role=candidate_code span=96..3452 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
-;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
-;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
-;     listing: kind=semantic_listing available=True route=listing reason=C-owned semantic rows from generated loader/CODE0 entry seeds
-;   CODE 16 New: role=code_segment kind=code_segment payload_size=1034 sha256=51e7a7d264825cd4103b31a0bff37ff49fdb64e8ddb299b2a46d4bd3c07f6a37 fact=macos.resource_fork.code_resources.accepted status=validated
-;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
-;     source_presentation: kind=c_owned_restored_source_packet status=covered stable_identity=macos-code:CODE:16 visible=True
-;     anchors:
-;       accepted_segment_metadata: label=CODE 16 segment metadata offset=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated parser_use=accepted_parser_output
-;       candidate_routine_entry: label=CODE 16 routine candidate 0 offset=40 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 16 routine candidate 1 offset=306 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 16 routine candidate 2 offset=866 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_code_range: label=CODE 16 candidate code offset=246 fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
-;     restored_source_model:
-;     model=restored_source_model_v1 round_trip_required=false
-;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 16 name=unknown
-;     a5_world status=deferred parser_use=unknown
-;     ownership_ranges:
-;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
-;       1: role=candidate_unresolved_prefix span=40..246 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
-;       2: role=candidate_code span=246..1034 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
-;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
-;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
-;     listing: kind=semantic_listing available=True route=listing reason=C-owned semantic rows from generated loader/CODE0 entry seeds
-;   CODE 17 DispSymTbl: role=code_segment kind=code_segment payload_size=3674 sha256=e4c8e735bff587b55b1482bde5137deec3ae177ea802b09aac3e97401f2905b9 fact=macos.resource_fork.code_resources.accepted status=validated
-;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
-;     source_presentation: kind=c_owned_restored_source_packet status=covered stable_identity=macos-code:CODE:17 visible=True
-;     anchors:
-;       accepted_segment_metadata: label=CODE 17 segment metadata offset=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated parser_use=accepted_parser_output
-;       candidate_routine_entry: label=CODE 17 routine candidate 0 offset=2588 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_code_range: label=CODE 17 candidate code offset=100 fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
-;     restored_source_model:
-;     model=restored_source_model_v1 round_trip_required=false
-;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 17 name=unknown
-;     a5_world status=deferred parser_use=unknown
-;     ownership_ranges:
-;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
-;       1: role=candidate_unresolved_prefix span=40..100 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
-;       2: role=candidate_code span=100..3674 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
-;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
-;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
-;     listing: kind=semantic_listing available=True route=listing reason=C-owned semantic rows from generated loader/CODE0 entry seeds
-;   CODE 18 FinishDirectives: role=code_segment kind=code_segment payload_size=1974 sha256=96d836fa8382f88453204a38fddb5da2e46867767f572482abb8f9cbb5e431c6 fact=macos.resource_fork.code_resources.accepted status=validated
-;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
-;     source_presentation: kind=c_owned_restored_source_packet status=covered stable_identity=macos-code:CODE:18 visible=True
-;     anchors:
-;       accepted_segment_metadata: label=CODE 18 segment metadata offset=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated parser_use=accepted_parser_output
-;       candidate_routine_entry: label=CODE 18 routine candidate 0 offset=40 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 18 routine candidate 1 offset=154 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 18 routine candidate 2 offset=1772 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_code_range: label=CODE 18 candidate code offset=1562 fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
-;     restored_source_model:
-;     model=restored_source_model_v1 round_trip_required=false
-;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 18 name=unknown
-;     a5_world status=deferred parser_use=unknown
-;     ownership_ranges:
-;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
-;       1: role=candidate_unresolved_prefix span=40..1562 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
-;       2: role=candidate_code span=1562..1974 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
-;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
-;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
-;     listing: kind=semantic_listing available=True route=listing reason=C-owned semantic rows from generated loader/CODE0 entry seeds
-;   CODE 19 SetupArgV: role=code_segment kind=code_segment payload_size=556 sha256=46027b8ec8f830b28abc470f5e942b54f7845efd9cf136f68e3b2b8a9873f3ce fact=macos.resource_fork.code_resources.accepted status=validated
-;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
-;     source_presentation: kind=c_owned_restored_source_packet status=covered stable_identity=macos-code:CODE:19 visible=True
-;     anchors:
-;       accepted_segment_metadata: label=CODE 19 segment metadata offset=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated parser_use=accepted_parser_output
-;       candidate_routine_entry: label=CODE 19 routine candidate 0 offset=40 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;     restored_source_model:
-;     model=restored_source_model_v1 round_trip_required=false
-;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 19 name=unknown
-;     a5_world status=deferred parser_use=unknown
-;     ownership_ranges:
-;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
-;       1: role=unknown span=40..556 status=deferred parser_use=deferred_only reason=missing_m68k_movea_l_stack_to_a0_entry
-;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
-;       1: kind=a5_world_context_placeholder ownership=0 status=deferred parser_use=unknown target=classic_mac_a5_world
-;     listing: kind=structured_placeholder available=False route=unknown reason=no candidate preview range; classifier deferred byte-entry evidence: missing_m68k_movea_l_stack_to_a0_entry
-;   CODE 20 INTENV: role=code_segment kind=code_segment payload_size=5262 sha256=de9f4a82222f3ff12586a0bb691cc6b5d513777d498d223dfa45311d4a7dc84a fact=macos.resource_fork.code_resources.accepted status=validated
-;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
-;     source_presentation: kind=c_owned_restored_source_packet status=covered stable_identity=macos-code:CODE:20 visible=True
-;     anchors:
-;       accepted_segment_metadata: label=CODE 20 segment metadata offset=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated parser_use=accepted_parser_output
-;       candidate_routine_entry: label=CODE 20 routine candidate 0 offset=196 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 20 routine candidate 1 offset=310 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 20 routine candidate 2 offset=462 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 20 routine candidate 3 offset=614 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 20 routine candidate 4 offset=882 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 20 routine candidate 5 offset=1408 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 20 routine candidate 6 offset=1854 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 20 routine candidate 7 offset=2062 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 20 routine candidate 8 offset=2578 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 20 routine candidate 9 offset=2712 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 20 routine candidate 10 offset=2716 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 20 routine candidate 11 offset=2756 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 20 routine candidate 12 offset=2896 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 20 routine candidate 13 offset=3020 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 20 routine candidate 14 offset=3212 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 20 routine candidate 15 offset=3216 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 20 routine candidate 16 offset=3424 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 20 routine candidate 17 offset=3728 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 20 routine candidate 18 offset=3844 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 20 routine candidate 19 offset=4058 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 20 routine candidate 20 offset=4342 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 20 routine candidate 21 offset=4528 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 20 routine candidate 22 offset=4686 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 20 routine candidate 23 offset=4800 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 20 routine candidate 24 offset=4962 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 20 routine candidate 25 offset=5104 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 20 routine candidate 26 offset=5240 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_code_range: label=CODE 20 candidate code offset=2876 fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
-;     restored_source_model:
-;     model=restored_source_model_v1 round_trip_required=false
-;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 20 name=unknown
-;     a5_world status=deferred parser_use=unknown
-;     ownership_ranges:
-;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
-;       1: role=candidate_unresolved_prefix span=40..2876 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
-;       2: role=candidate_code span=2876..5262 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
-;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
-;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
-;     listing: kind=semantic_listing available=True route=listing reason=C-owned semantic rows from generated loader/CODE0 entry seeds
-;   CODE 21 SADEV: role=code_segment kind=code_segment payload_size=6794 sha256=927c28db98eadbc5501e570ada73af8afca05964552a831c02051f6e6fa3b687 fact=macos.resource_fork.code_resources.accepted status=validated
-;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
-;     source_presentation: kind=c_owned_restored_source_packet status=covered stable_identity=macos-code:CODE:21 visible=True
-;     anchors:
-;       accepted_segment_metadata: label=CODE 21 segment metadata offset=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated parser_use=accepted_parser_output
-;       candidate_routine_entry: label=CODE 21 routine candidate 0 offset=1826 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 21 routine candidate 1 offset=2078 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 21 routine candidate 2 offset=2302 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 21 routine candidate 3 offset=3652 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 21 routine candidate 4 offset=3804 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 21 routine candidate 5 offset=3916 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 21 routine candidate 6 offset=4062 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 21 routine candidate 7 offset=4520 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 21 routine candidate 8 offset=5928 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 21 routine candidate 9 offset=6050 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 21 routine candidate 10 offset=6072 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 21 routine candidate 11 offset=6124 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 21 routine candidate 12 offset=6178 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 21 routine candidate 13 offset=6234 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 21 routine candidate 14 offset=6252 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 21 routine candidate 15 offset=6640 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 21 routine candidate 16 offset=6662 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 21 routine candidate 17 offset=6682 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 21 routine candidate 18 offset=6728 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_code_range: label=CODE 21 candidate code offset=2000 fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
-;     restored_source_model:
-;     model=restored_source_model_v1 round_trip_required=false
-;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 21 name=unknown
-;     a5_world status=deferred parser_use=unknown
-;     ownership_ranges:
-;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
-;       1: role=candidate_unresolved_prefix span=40..2000 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
-;       2: role=candidate_code span=2000..6794 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
-;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
-;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
-;     listing: kind=semantic_listing available=True route=listing reason=C-owned semantic rows from generated loader/CODE0 entry seeds
-;   CODE 22 SANELIB: role=code_segment kind=code_segment payload_size=96 sha256=6929f16d82666fe0f31993c30f2750798bf934a0dcddf3c6eb0adc2c552484f8 fact=macos.resource_fork.code_resources.accepted status=validated
-;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
-;     source_presentation: kind=c_owned_restored_source_packet status=covered stable_identity=macos-code:CODE:22 visible=True
-;     anchors:
-;       accepted_segment_metadata: label=CODE 22 segment metadata offset=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated parser_use=accepted_parser_output
-;       candidate_routine_entry: label=CODE 22 routine candidate 0 offset=68 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;     restored_source_model:
-;     model=restored_source_model_v1 round_trip_required=false
-;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 22 name=unknown
-;     a5_world status=deferred parser_use=unknown
-;     ownership_ranges:
-;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
-;       1: role=unknown span=40..96 status=deferred parser_use=deferred_only reason=missing_m68k_movea_l_stack_to_a0_entry
-;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
-;       1: kind=a5_world_context_placeholder ownership=0 status=deferred parser_use=unknown target=classic_mac_a5_world
-;     listing: kind=structured_placeholder available=False route=unknown reason=no candidate preview range; classifier deferred byte-entry evidence: missing_m68k_movea_l_stack_to_a0_entry
-;   CODE 23 STDCLIB: role=code_segment kind=code_segment payload_size=126 sha256=ce2eaab2bd782055c6aaaefc223f2e72d4f746e25a05cc8b3599836ecbd41969 fact=macos.resource_fork.code_resources.accepted status=validated
-;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
-;     source_presentation: kind=c_owned_restored_source_packet status=covered stable_identity=macos-code:CODE:23 visible=True
-;     anchors:
-;       accepted_segment_metadata: label=CODE 23 segment metadata offset=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated parser_use=accepted_parser_output
-;       candidate_routine_entry: label=CODE 23 routine candidate 0 offset=40 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;     restored_source_model:
-;     model=restored_source_model_v1 round_trip_required=false
-;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 23 name=unknown
-;     a5_world status=deferred parser_use=unknown
-;     ownership_ranges:
-;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
-;       1: role=unknown span=40..126 status=deferred parser_use=deferred_only reason=missing_m68k_movea_l_stack_to_a0_entry
-;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
-;       1: kind=a5_world_context_placeholder ownership=0 status=deferred parser_use=unknown target=classic_mac_a5_world
-;     listing: kind=structured_placeholder available=False route=unknown reason=no candidate preview range; classifier deferred byte-entry evidence: missing_m68k_movea_l_stack_to_a0_entry
-;   CODE 24 STDIO: role=code_segment kind=code_segment payload_size=4970 sha256=f98dfc823a565d6502fa4ac1feb7b616b397ba9a918ce2c5f47b274e99a9026a fact=macos.resource_fork.code_resources.accepted status=validated
-;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
-;     source_presentation: kind=c_owned_restored_source_packet status=covered stable_identity=macos-code:CODE:24 visible=True
-;     anchors:
-;       accepted_segment_metadata: label=CODE 24 segment metadata offset=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated parser_use=accepted_parser_output
-;       candidate_routine_entry: label=CODE 24 routine candidate 0 offset=40 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 24 routine candidate 1 offset=2604 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 24 routine candidate 2 offset=2668 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 24 routine candidate 3 offset=2872 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 24 routine candidate 4 offset=2970 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 24 routine candidate 5 offset=3088 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 24 routine candidate 6 offset=3254 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 24 routine candidate 7 offset=3666 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 24 routine candidate 8 offset=3926 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 24 routine candidate 9 offset=3960 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 24 routine candidate 10 offset=3996 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 24 routine candidate 11 offset=4264 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 24 routine candidate 12 offset=4568 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_code_range: label=CODE 24 candidate code offset=2950 fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
-;     restored_source_model:
-;     model=restored_source_model_v1 round_trip_required=false
-;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 24 name=unknown
-;     a5_world status=deferred parser_use=unknown
-;     ownership_ranges:
-;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
-;       1: role=candidate_unresolved_prefix span=40..2950 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
-;       2: role=candidate_code span=2950..4970 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
-;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
-;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
-;     listing: kind=semantic_listing available=True route=listing reason=C-owned semantic rows from generated loader/CODE0 entry seeds
-;   CODE 25 SANELib: role=code_segment kind=code_segment payload_size=246 sha256=c87908dd286d0e5fdcab70725ec20e98a37cca1357f18132809c3ab9e7562090 fact=macos.resource_fork.code_resources.accepted status=validated
-;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
-;     source_presentation: kind=c_owned_restored_source_packet status=covered stable_identity=macos-code:CODE:25 visible=True
-;     anchors:
-;       accepted_segment_metadata: label=CODE 25 segment metadata offset=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated parser_use=accepted_parser_output
-;       candidate_routine_entry: label=CODE 25 routine candidate 0 offset=184 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 25 routine candidate 1 offset=122 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 25 routine candidate 2 offset=228 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_code_range: label=CODE 25 candidate code offset=40 fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
-;     restored_source_model:
-;     model=restored_source_model_v1 round_trip_required=false
-;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 25 name=unknown
-;     a5_world status=deferred parser_use=unknown
-;     ownership_ranges:
-;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
-;       1: role=candidate_code span=40..246 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
-;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
-;       1: kind=a5_world_context_placeholder ownership=1 status=deferred parser_use=unknown target=classic_mac_a5_world
-;     listing: kind=semantic_listing available=True route=listing reason=C-owned semantic rows from generated loader/CODE0 entry seeds
-;   CODE 26 PASLIB: role=code_segment kind=code_segment payload_size=2940 sha256=62b8ca8b968fab6a003f39717b671f9c6cae8d20a9c77cb7ab41fd0315a229ae fact=macos.resource_fork.code_resources.accepted status=validated
-;     segment: jt_first=65535 jt_count=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
-;     source_presentation: kind=c_owned_restored_source_packet status=covered stable_identity=macos-code:CODE:26 visible=True
-;     anchors:
-;       accepted_segment_metadata: label=CODE 26 segment metadata offset=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated parser_use=accepted_parser_output
-;       candidate_routine_entry: label=CODE 26 routine candidate 0 offset=40 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 26 routine candidate 1 offset=442 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 26 routine candidate 2 offset=782 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 26 routine candidate 3 offset=824 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 26 routine candidate 4 offset=880 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 26 routine candidate 5 offset=1304 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 26 routine candidate 6 offset=1370 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 26 routine candidate 7 offset=1522 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 26 routine candidate 8 offset=2012 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 26 routine candidate 9 offset=2064 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 26 routine candidate 10 offset=2102 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 26 routine candidate 11 offset=2244 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 26 routine candidate 12 offset=2322 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 26 routine candidate 13 offset=2392 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 26 routine candidate 14 offset=2470 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 26 routine candidate 15 offset=2560 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 26 routine candidate 16 offset=2632 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 26 routine candidate 17 offset=2686 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 26 routine candidate 18 offset=2756 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 26 routine candidate 19 offset=2764 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 26 routine candidate 20 offset=2812 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 26 routine candidate 21 offset=2830 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 26 routine candidate 22 offset=2848 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_routine_entry: label=CODE 26 routine candidate 23 offset=2866 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_code_range: label=CODE 26 candidate code offset=198 fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
-;     restored_source_model:
-;     model=restored_source_model_v1 round_trip_required=false
-;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 26 name=unknown
-;     a5_world status=deferred parser_use=unknown
-;     ownership_ranges:
-;       0: role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header
-;       1: role=candidate_unresolved_prefix span=40..198 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
-;       2: role=candidate_code span=198..2940 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
-;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
-;       1: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
-;     listing: kind=semantic_listing available=True route=listing reason=C-owned semantic rows from generated loader/CODE0 entry seeds
-;   CODE 27 32-bit bootstrap: role=code_segment kind=code_segment payload_size=1882 sha256=f683b4c722b40eda686a3074d68910f8316ecd373798c1a5834df64d8b757352 fact=macos.resource_fork.code_resources.accepted status=validated
-;     segment: jt_first=0 jt_count=1 fact=macos.code_resource.segment_jump_table_span.accepted status=validated
-;     source_presentation: kind=c_owned_restored_source_packet status=covered stable_identity=macos-code:CODE:27 visible=True
-;     anchors:
-;       accepted_segment_metadata: label=CODE 27 segment metadata offset=0 fact=macos.code_resource.segment_jump_table_span.accepted status=validated parser_use=accepted_parser_output
-;       candidate_routine_entry: label=CODE 27 routine candidate 0 offset=0 fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate parser_use=candidate_only
-;       candidate_code_range: label=CODE 27 candidate code offset=204 fact=macos.code_resource.movea_stack_a0.boundary.candidate status=candidate parser_use=candidate_only
-;     restored_source_model:
-;     model=restored_source_model_v1 round_trip_required=false
-;     coverage ok=true gaps=0 overlaps=0 unknown_detail=0
-;     code_resource=CODE 27 name=unknown
-;     a5_world status=deferred parser_use=unknown
-;     ownership_ranges:
-;       0: role=metadata span=0..4 status=validated parser_use=accepted_parser_output reason=nonzero_code_segment_header
-;       1: role=candidate_unresolved_prefix span=4..204 status=candidate parser_use=candidate_only reason=prefix_before_stack_entry
-;       2: role=candidate_code span=204..1882 status=candidate parser_use=candidate_only reason=m68k_movea_l_stack_to_a0_entry
-;     source_reference_records:
-;       0: kind=segment_loader_fixup_placeholder ownership=0 status=deferred parser_use=deferred_only target=unresolved_segment_loader_fixup
-;       1: kind=code0_dispatch_reference ownership=unknown status=validated parser_use=accepted_parser_output target=CODE:27
-;       2: kind=a5_world_context_placeholder ownership=2 status=deferred parser_use=unknown target=classic_mac_a5_world
-;     listing: kind=semantic_listing available=True route=listing reason=C-owned semantic rows from generated loader/CODE0 entry seeds
-
-; Non-CODE resource placeholders
-;   type acur: 1 resource(s), structured placeholder
-;   type CURS: 4 resource(s), structured placeholder
-;   type cmdo: 1 resource(s), structured placeholder
-;   type vers: 1 resource(s), structured placeholder
-; Executable resource placeholders
-;   executable_resource_placeholder: type=acur id=unknown name=unknown count=1 size=unknown sha256=unknown identity=macos-resource:resources/platform_macos/MPW-GM.img.bin:MPW-GM/MPW/Tools/Asm:acur:* status=candidate source_context=unlinked reason=non-CODE resource metadata is inventory-only and not executable CODE
-;     reference_site=resource_type_inventory type=acur id=unknown identity=macos-resource:resources/platform_macos/MPW-GM.img.bin:MPW-GM/MPW/Tools/Asm:acur:* link_status=unlinked source_offset=unknown reason=No direct CODE routing, fixup, or restored-source reference targets this resource type yet.
-;   executable_resource_placeholder: type=CURS id=unknown name=unknown count=4 size=unknown sha256=unknown identity=macos-resource:resources/platform_macos/MPW-GM.img.bin:MPW-GM/MPW/Tools/Asm:CURS:* status=validated source_context=unlinked reason=CURS type-level layout is cited; payload bitmap/hotspot bytes are not decoded
-;     reference_site=resource_type_inventory type=CURS id=unknown identity=macos-resource:resources/platform_macos/MPW-GM.img.bin:MPW-GM/MPW/Tools/Asm:CURS:* link_status=unlinked source_offset=unknown reason=No direct CODE routing, fixup, or restored-source reference targets this resource type yet.
-;   executable_resource_placeholder: type=cmdo id=unknown name=unknown count=1 size=unknown sha256=unknown identity=macos-resource:resources/platform_macos/MPW-GM.img.bin:MPW-GM/MPW/Tools/Asm:cmdo:* status=candidate source_context=unlinked reason=non-CODE resource metadata is inventory-only and not executable CODE
-;     reference_site=resource_type_inventory type=cmdo id=unknown identity=macos-resource:resources/platform_macos/MPW-GM.img.bin:MPW-GM/MPW/Tools/Asm:cmdo:* link_status=unlinked source_offset=unknown reason=No direct CODE routing, fixup, or restored-source reference targets this resource type yet.
-;   executable_resource_placeholder: type=vers id=unknown name=unknown count=1 size=unknown sha256=unknown identity=macos-resource:resources/platform_macos/MPW-GM.img.bin:MPW-GM/MPW/Tools/Asm:vers:* status=candidate source_context=unlinked reason=non-CODE resource metadata is inventory-only and not executable CODE
-;     reference_site=resource_type_inventory type=vers id=unknown identity=macos-resource:resources/platform_macos/MPW-GM.img.bin:MPW-GM/MPW/Tools/Asm:vers:* link_status=unlinked source_offset=unknown reason=No direct CODE routing, fixup, or restored-source reference targets this resource type yet.
-
-; Unsupported Mac Segment Loader/runtime areas
-;   byte-for-byte MPW Link/Rez roundtrip
-;   complete Segment Loader behavior
-;   overflow_extents
-;   segment_loader_relocations
-;   source-to-CODE segment mapping
+CODE_27_loc_0000007a:
+	dc.l $00000000	; lookup_table
+CODE_27_loc_0000007e:
+	rts
+CODE_27_semantic_decode_gap_00000080:
+	dc.b $80,$0E,$33,$32,$5F,$62,$69,$74,$5F,$73,$74,$61,$72,$74,$75,$70
+	dc.b $00,$00,$00,$00,$08,$3A,$00,$00,$FF,$FA,$67,$1E,$0C,$38,$00,$00
+	dc.b $01,$2F,$67,$16,$30,$3C,$A1,$98,$A3,$46,$22,$48,$30,$3C,$A8,$9F
+	dc.b $A7,$46,$B3,$C8,$67,$04,$70,$01,$A1,$98,$4E,$75,$80,$0B,$66,$6C
+	dc.b $75,$73,$68,$5F,$63,$61,$63,$68,$65,$00,$00,$00,$20,$5F,$58,$4F
+	dc.b $42,$57,$4E,$D0,$80,$0B,$70,$72,$65,$5F,$4C,$6F,$61,$64,$53,$65
+	dc.b $67,$00,$00,$00,$20,$5F,$58,$4F,$42,$57,$4E,$D0,$80,$0C,$70,$6F
+	dc.b $73,$74,$5F,$4C,$6F,$61,$64,$53,$65,$67,$00,$00,$20,$5F,$58,$4F
+	dc.b $42,$57,$4E,$D0,$80,$0D,$70,$72,$65,$5F,$55,$6E,$6C,$6F,$61,$64
+	dc.b $53,$65,$67,$00,$00,$00,$20,$5F,$58,$4F,$42,$57,$4E,$D0,$80,$0D
+	dc.b $65,$72,$72,$6F,$72,$5F,$68,$61,$6E,$64,$6C,$65,$72,$00,$00,$00
+	dc.b $00,$01,$FF,$9C,$00,$02,$FF,$B4,$00,$03,$FF,$CC,$00,$04,$FF,$E6
+	dc.b $00,$00
+CODE_27_loc_00000142:
+	movem.l d0/a0-a2,-(a7)
+	movea.l a5,a1
+	adda.w $0934.w,a1
+	movea.l $000C(a1),a1
+	lea.l CODE_27_loc_00000130(pc),a2
+CODE_27_loc_00000154:
+	move.w (a2)+,d0
+	beq.b CODE_27_loc_00000162
+	movea.w (a2)+,a0
+	lea.l CODE_27_loc_00000130(pc,a0.w),a0
+	bsr.b CODE_27_loc_0000017a
+	bra.b CODE_27_loc_00000154
+CODE_27_loc_00000162:
+	movem.l (a7)+,d0/a0-a2
+	rts
+CODE_27_semantic_decode_gap_00000168:
+	dc.b $80,$0D,$73,$65,$74,$75,$70,$5F,$76,$65,$63,$74,$6F,$72,$73,$00
+	dc.b $00,$00
+CODE_27_loc_0000017a:
+	add.w d0,d0
+	add.w d0,d0
+	move.l $0(a1,d0.w),-(a7)
+	move.l a0,$0(a1,d0.w)
+	movea.l (a7)+,a0
+	rts
+CODE_27_semantic_decode_gap_0000018a:
+	dc.b $80,$0A,$73,$65,$74,$5F,$76,$65,$63,$74,$6F,$72,$00,$00
+CODE_27_loc_00000198:
+	movem.l d0/a0-a1,-(a7)
+	clr.w d0
+	bsr.w CODE_27_loc_00000670
+	cmpa.w #$0,a0
+	bne.b CODE_27_loc_000001aa
+CODE_27_data_000001a8:
+	_Debugger
+CODE_27_loc_000001aa:
+	subq.l #4,a7
+	move.l a0,-(a7)
+CODE_27_data_000001ae:
+	_GetResourceSizeOnDisk
+	movea.l (a7)+,a0
+	adda.w $0934.w,a0
+	suba.w #$10,a0
+	lea.l CODE_27_loc_00000202(pc),a1
+	move.l a0,(a1)
+	movem.l (a7)+,d0/a0-a1
+	rts
+CODE_27_semantic_decode_gap_000001c6:
+	dc.b $80,$0E,$73,$65,$74,$75,$70,$5F,$6A,$74,$5F,$6C,$69,$6D,$69,$74
+	dc.b $00,$00,$01,$F3,$00,$DC,$00,$00,$00,$00,$01,$F2,$00,$C4,$00,$00
+	dc.b $00,$00,$01,$F0,$01,$12,$00,$00,$00,$00,$01,$F1,$03,$72,$00,$00
+	dc.b $00,$00,$01,$F4,$00,$F4,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
+CODE_27_loc_00000206:
+	move.w #$A88F,d0
+CODE_27_data_0000020a:
+	_GetOSTrapAddress
+	movea.l a0,a1
+	move.w #$A89F,d0
+CODE_27_data_00000212:
+	_GetToolTrapAddress
+	cmpa.l a0,a1
+	beq.b CODE_27_loc_0000021e
+	lea.l CODE_27_loc_000001e8(pc),a1
+	bra.b CODE_27_loc_00000222
+CODE_27_loc_0000021e:
+	lea.l CODE_27_loc_000001d8(pc),a1
+CODE_27_loc_00000222:
+	move.w (a1),d0
+	beq.b CODE_27_loc_0000023c
+CODE_27_data_00000226:
+	_GetToolTrapAddress
+	move.l a0,$0004(a1)
+	movea.w $0002(a1),a0
+	lea.l CODE_27_loc_000001d8(pc,a0.w),a0
+	move.w (a1),d0
+CODE_27_data_00000236:
+	_SetToolTrapAddress
+	addq.w #8,a1
+	bra.b CODE_27_loc_00000222
+CODE_27_loc_0000023c:
+	rts
+CODE_27_semantic_decode_gap_0000023e:
+	dc.b $80,$0F,$69,$6E,$73,$74,$61,$6C,$6C,$5F,$70,$61,$74,$63,$68,$65
+	dc.b $73,$00,$00,$00
+CODE_27_loc_00000252:
+	movem.l a0-a1,-(a7)
+	move.w #$A88F,d0
+CODE_27_data_0000025a:
+	_GetOSTrapAddress
+	movea.l a0,a1
+	move.w #$A89F,d0
+CODE_27_data_00000262:
+	_GetToolTrapAddress
+	cmpa.l a0,a1
+	beq.b CODE_27_loc_0000026e
+	lea.l CODE_27_loc_000001e8(pc),a1
+	bra.b CODE_27_loc_00000272
+CODE_27_loc_0000026e:
+	lea.l CODE_27_loc_000001d8(pc),a1
+CODE_27_loc_00000272:
+	move.w (a1),d0
+	beq.b CODE_27_loc_00000280
+	movea.l $0004(a1),a0
+CODE_27_data_0000027a:
+	_SetToolTrapAddress
+	addq.w #8,a1
+	bra.b CODE_27_loc_00000272
+CODE_27_loc_00000280:
+	movem.l (a7)+,a0-a1
+	rts
+CODE_27_data_dispatch_table_00000286:
+	dc.b $80,$11,$75,$6E,$69,$6E,$73,$74,$61,$6C,$6C,$5F,$70,$61,$74,$63
+	dc.b $68,$65,$73,$00,$00,$00,$2F,$3A,$FF,$46,$61,$B0,$4E,$75,$80,$0C
+	dc.b $70,$61,$74,$63,$68,$5F,$4C,$61,$75,$6E,$63,$68,$00,$00,$2F,$3A
+	dc.b $FF,$26,$61,$98,$4E,$75,$80,$0B,$70,$61,$74,$63,$68,$5F,$43,$68
+	dc.b $61,$69,$6E,$00,$00,$00,$2F,$3A,$FF,$2E,$61,$80,$4E,$75,$80,$11
+	dc.b $70,$61,$74,$63,$68,$5F,$45,$78,$69,$74,$54,$6F,$53,$68,$65,$6C
+	dc.b $6C,$00,$00,$00,$48,$E7,$F0,$C0,$20,$4D,$D0,$F8,$09,$34,$0C,$68
+	dc.b $FF,$FF,$00,$0A,$66,$00,$01,$4E,$76,$00,$22,$6F,$00,$18,$B3,$CD
+	dc.b $6D,$0C,$41,$FA,$FE,$F8,$20,$50,$D1,$CD,$B3,$C8,$6F,$02,$76,$01
+	dc.b $4A,$03,$66,$0E,$30,$3C,$00,$01,$41,$EF,$00,$18,$61,$00,$01,$42
+	dc.b $60,$14,$30,$2F,$00,$1C,$61,$00,$03,$6E,$22,$50,$0C,$51,$FF,$FF
+	dc.b $66,$00,$01,$12,$60,$16,$22,$6F,$00,$18,$30,$29,$FF,$FC,$61,$00
+	dc.b $03,$56,$22,$50,$0C,$51,$FF,$FF,$66,$00,$00,$EE,$A0,$69,$08,$00
+	dc.b $00,$07,$66,$08,$4A,$38,$0B,$B2,$67,$02,$A0,$64,$A0,$29,$20,$10
+	dc.b $A0,$55,$20,$40,$22,$4D,$D2,$F8,$09,$34,$22,$28,$00,$08,$67,$1E
+	dc.b $D3,$E8,$00,$04,$0C,$69,$4E,$F9,$00,$02,$67,$00,$00,$94,$D1,$A9
+	dc.b $00,$04,$33,$7C,$4E,$F9,$00,$02,$50,$49,$53,$81,$66,$F0,$22,$4D
+	dc.b $D2,$F8,$09,$34,$22,$28,$00,$10,$67,$1C,$D3,$E8,$00,$0C,$0C,$69
+	dc.b $4E,$F9,$00,$02,$67,$6A,$D1,$A9,$00,$04,$33,$7C,$4E,$F9,$00,$02
+	dc.b $50,$49,$53,$81,$66,$F0,$22,$0D,$92,$A8,$00,$18,$67,$18,$4A,$A8
+	dc.b $00,$14,$67,$12,$21,$4D,$00,$18,$2F,$08,$22,$48,$D1,$E8,$00,$14
+	dc.b $61,$00,$03,$4E,$20,$5F,$22,$08,$92,$A8,$00,$20,$67,$24,$4A,$A8
+	dc.b $00,$20,$66,$06,$06,$81,$00,$00,$00,$28,$4A,$A8,$00,$1C,$67,$12
+	dc.b $21,$48,$00,$20,$2F,$08,$22,$48,$D1,$E8,$00,$1C,$61,$00,$03,$22
+	dc.b $20,$5F,$4A,$03,$66,$0A,$30,$3C,$00,$02,$41,$EF,$00,$18,$61,$50
+	dc.b $4E,$BA,$FC,$7C,$4A,$03,$67,$10,$4C,$DF,$03,$0F,$5D,$97,$2F,$57
+	dc.b $00,$02,$4F,$EF,$00,$02,$60,$06,$4C,$DF,$03,$0F,$55,$97,$4A,$38
+	dc.b $01,$2D,$67,$02,$A9,$FF,$4E,$75,$30,$3C,$00,$02,$20,$4F,$41,$E8
+	dc.b $00,$18,$61,$1C,$4C,$DF,$03,$0F,$2F,$3A,$FD,$9C,$4E,$75,$80,$0D
+	dc.b $70,$61,$74,$63,$68,$5F,$4C,$6F,$61,$64,$53,$65,$67,$00,$00,$00
+	dc.b $48,$E7,$F0,$C0,$4C,$EF,$03,$0F,$00,$1C,$9E,$FC,$00,$58,$48,$EF
+	dc.b $7F,$FF,$00,$0A,$22,$4F,$41,$EF,$00,$68,$20,$50,$42,$40,$61,$60
+	dc.b $43,$E9,$00,$58,$20,$11,$61,$28,$55,$4F,$48,$6F,$00,$02,$4E,$90
+	dc.b $4F,$EF,$00,$5A,$4C,$DF,$03,$0F,$4E,$75,$80,$11,$63,$61,$6C,$6C
+	dc.b $5F,$75,$73,$65,$72,$5F,$68,$61,$6E,$64,$6C,$65,$72,$00,$00,$00
+	dc.b $2F,$09,$22,$4D,$D2,$F8,$09,$34,$22,$69,$00,$0C,$D0,$40,$D0,$40
+	dc.b $41,$F1,$00,$00,$20,$50,$22,$5F,$4E,$75,$80,$12,$73,$65,$74,$5F
+	dc.b $76,$65,$63,$74,$6F,$72,$5F,$61,$64,$64,$72,$65,$73,$73,$00,$00
+	dc.b $48,$E7,$80,$80,$32,$BC,$FF,$FF,$42,$A9,$00,$54,$33,$40,$00,$52
+	dc.b $23,$48,$00,$02,$58,$A9,$00,$02,$20,$50,$55,$48,$23,$48,$00,$06
+	dc.b $33,$68,$FF,$FE,$00,$46,$23,$7C,$43,$4F,$44,$45,$00,$48,$30,$28
+	dc.b $FF,$FE,$61,$00,$01,$56,$42,$69,$00,$50,$4A,$90,$67,$06,$13,$7C
+	dc.b $00,$FF,$00,$50,$59,$8F,$2F,$08,$A9,$A5,$23,$5F,$00,$4C,$4C,$DF
+	dc.b $01,$01,$4E,$75,$80,$0B,$66,$69,$6C,$6C,$5F,$73,$74,$72,$75,$63
+	dc.b $74,$00,$00,$00,$48,$E7,$E0,$C0,$20,$6F,$00,$18,$0C,$50,$4E,$F9
+	dc.b $66,$00,$00,$FA,$22,$4D,$D2,$F8,$09,$34,$0C,$69,$FF,$FF,$00,$0A
+	dc.b $66,$00,$00,$EA,$30,$28,$FF,$FE,$61,$00,$01,$00,$2F,$08,$20,$50
+	dc.b $0C,$50,$FF,$FF,$20,$5F,$66,$00,$00,$D4,$48,$E7,$00,$C0,$4C,$EF
+	dc.b $03,$07,$00,$08,$9E,$FC,$00,$58,$48,$EF,$7F,$FF,$00,$0A,$3E,$BC
+	dc.b $FF,$FF,$42,$AF,$00,$54,$42,$6F,$00,$52,$20,$4F,$41,$E8,$00,$58
+	dc.b $22,$50,$41,$E8,$00,$1C,$2F,$48,$00,$02,$20,$68,$00,$04,$2F,$48
+	dc.b $00,$06,$3F,$68,$FF,$FE,$00,$46,$2F,$7C,$43,$4F,$44,$45,$00,$48
+	dc.b $42,$6F,$00,$50,$4A,$91,$67,$06,$1F,$7C,$00,$FF,$00,$50,$59,$8F
+	dc.b $2F,$09,$A9,$A5,$2F,$5F,$00,$4C,$30,$3C,$00,$03,$61,$00,$FE,$D2
+	dc.b $55,$4F,$48,$6F,$00,$02,$4E,$90,$54,$4F,$DE,$FC,$00,$58,$4C,$DF
+	dc.b $03,$00,$A0,$2A,$20,$10,$A0,$55,$20,$40,$22,$28,$00,$08,$67,$16
+	dc.b $D3,$E8,$00,$04,$20,$08,$91,$A9,$00,$04,$33,$7C,$A9,$F0,$00,$02
+	dc.b $50,$49,$53,$81,$66,$F0,$22,$4D,$D2,$F8,$09,$34,$22,$28,$00,$10
+	dc.b $67,$18,$D3,$E8,$00,$0C,$20,$08,$91,$A9,$00,$04,$33,$7C,$A9,$F0
+	dc.b $00,$02,$50,$49,$53,$81,$66,$F0,$60,$06,$22,$28,$00,$08,$67,$0C
+	dc.b $61,$00,$FA,$4C,$4C,$DF,$03,$07,$2E,$9F,$4E,$75,$4C,$DF,$03,$07
+	dc.b $2F,$3A,$FB,$9C,$4E,$75,$80,$0F,$70,$61,$74,$63,$68,$5F,$55,$6E
+	dc.b $6C,$6F,$61,$64,$53,$65,$67,$00,$00,$00
+CODE_27_loc_00000670:
+	sf.b $0A5E.w
+	subq.w #4,a7
+	move.l #$434F4445,-(a7)
+	move.w d0,-(a7)
+CODE_27_data_0000067e:
+	_GetResource
+	move.w $0A60.w,d0
+	movea.l (a7)+,a0
+	st.b $0A5E.w
+	rts
+CODE_27_semantic_decode_gap_0000068c:
+	dc.b $80,$0B,$67,$65,$74,$5F,$72,$65,$73,$5F,$68,$64,$6C,$00,$00,$00
+	dc.b $50,$F8,$0A,$5E,$59,$4F,$2F,$3C,$43,$4F,$44,$45,$3F,$00,$A9,$A0
+	dc.b $20,$5F,$4A,$78,$0A,$60,$67,$62,$4C,$EF,$03,$0F,$00,$04,$9E,$FC
+	dc.b $00,$58,$48,$EF,$7F,$FF,$00,$0A,$22,$4F,$30,$38,$0A,$60,$41,$EF
+	dc.b $00,$74,$61,$00,$FE,$16,$30,$3C,$00,$04,$61,$00,$FD,$DE,$55,$4F
+	dc.b $48,$6F,$00,$02,$4E,$90,$30,$1F,$0C,$40,$00,$01,$66,$10,$2F,$6F
+	dc.b $00,$06,$00,$74,$4F,$EF,$00,$5C,$4C,$DF,$03,$0F,$60,$1C,$0C,$40
+	dc.b $00,$02,$66,$0C,$4F,$EF,$00,$5C,$4C,$DF,$03,$0F,$58,$4F,$60,$0A
+	dc.b $61,$00,$FB,$44,$70,$0F,$A9,$C9,$A9,$FF,$4E,$75,$80,$09,$6C,$6F
+	dc.b $61,$64,$5F,$63,$6F,$64,$65,$00,$00,$00,$70,$00,$10,$18,$67,$0A
+	dc.b $6A,$12,$08,$80,$00,$07,$61,$14,$60,$0A,$61,$10,$67,$12,$61,$0C
+	dc.b $61,$0A,$61,$08,$D0,$80,$D3,$C0,$D3,$91,$60,$DE,$E1,$88,$10,$18
+	dc.b $4E,$75,$80,$08,$52,$65,$6C,$6F,$63,$61,$74,$65,$00,$00

@@ -52,17 +52,6 @@ static int append_code_range(PlatformMacosCodeMetadata *code, uint8_t kind, uint
   return 0;
 }
 
-static uint32_t find_stack_entry_to_a0_pattern(const unsigned char *payload, uint32_t payload_size,
-    uint32_t start_offset, uint32_t end_offset) {
-  uint32_t offset;
-  if (payload == NULL || start_offset >= payload_size) return UINT32_MAX;
-  if (end_offset > payload_size) end_offset = payload_size;
-  for (offset = start_offset; offset + 1U < end_offset; offset += 2U) {
-    if (payload[offset] == 0x20U && payload[offset + 1U] == 0x5FU) return offset;
-  }
-  return UINT32_MAX;
-}
-
 static uint32_t code_relocation_limit(uint32_t payload_size, uint32_t a5_offset, uint32_t segment_offset) {
   uint32_t limit = payload_size;
   if (a5_offset != 0U && a5_offset < limit) limit = a5_offset;
@@ -72,7 +61,6 @@ static uint32_t code_relocation_limit(uint32_t payload_size, uint32_t a5_offset,
 
 int platform_macos_code_metadata_parse(const unsigned char *payload, uint32_t payload_size,
     int16_t resource_id, PlatformMacosCodeMetadata *out_code) {
-  uint32_t entry_offset;
   if (out_code == NULL) return -1;
   memset(out_code, 0, sizeof(*out_code));
   if (resource_id == 0) {
@@ -119,18 +107,8 @@ int platform_macos_code_metadata_parse(const unsigned char *payload, uint32_t pa
       out_code->segment_relocation_info_offset);
     if (code_end < code_start) code_end = code_start;
     if (code_start >= payload_size) return 0;
-    entry_offset = find_stack_entry_to_a0_pattern(payload, payload_size, code_start, code_end);
-    if (entry_offset == UINT32_MAX) {
-      return append_code_range(out_code, PLATFORM_MACOS_CODE_RANGE_DEFERRED,
-        PLATFORM_MACOS_CODE_EVIDENCE_MISSING_STACK_ENTRY, code_start, code_end - code_start, 0U);
-    }
-    if (entry_offset > code_start &&
-        append_code_range(out_code, PLATFORM_MACOS_CODE_RANGE_CANDIDATE_UNRESOLVED_PREFIX,
-          PLATFORM_MACOS_CODE_EVIDENCE_PREFIX_BEFORE_STACK_ENTRY, code_start, entry_offset - code_start, 0U) != 0) {
-      return -1;
-    }
-    return append_code_range(out_code, PLATFORM_MACOS_CODE_RANGE_CANDIDATE_CODE,
-      PLATFORM_MACOS_CODE_EVIDENCE_M68K_STACK_ENTRY_TO_A0, entry_offset, code_end - entry_offset, 1U);
+    return append_code_range(out_code, PLATFORM_MACOS_CODE_RANGE_CODE,
+      PLATFORM_MACOS_CODE_EVIDENCE_SEGMENT_BODY_START, code_start, code_end - code_start, 1U);
   }
 }
 
@@ -142,7 +120,8 @@ int platform_macos_code_metadata_executable_range(const PlatformMacosCodeMetadat
   if (code == NULL) return -1;
   for (index = 0U; index < code->layout_range_count; ++index) {
     const PlatformMacosCodeRange *range = &code->layout_ranges[index];
-    if ((range->kind == PLATFORM_MACOS_CODE_RANGE_CONFIRMED_CODE ||
+    if ((range->kind == PLATFORM_MACOS_CODE_RANGE_CODE ||
+         range->kind == PLATFORM_MACOS_CODE_RANGE_CONFIRMED_CODE ||
          range->kind == PLATFORM_MACOS_CODE_RANGE_CANDIDATE_CODE) && range->entrypoint) {
       if (out_start_offset != NULL) *out_start_offset = range->start_offset;
       if (out_size != NULL) *out_size = range->size;
@@ -265,6 +244,7 @@ const char *platform_macos_code_range_kind_name(uint8_t kind) {
   switch (kind) {
     case PLATFORM_MACOS_CODE_RANGE_METADATA: return "metadata";
     case PLATFORM_MACOS_CODE_RANGE_DATA: return "data";
+    case PLATFORM_MACOS_CODE_RANGE_CODE: return "code";
     case PLATFORM_MACOS_CODE_RANGE_CANDIDATE_CODE: return "candidate_code";
     case PLATFORM_MACOS_CODE_RANGE_CONFIRMED_CODE: return "confirmed_code";
     case PLATFORM_MACOS_CODE_RANGE_DEFERRED: return "deferred";
@@ -281,6 +261,7 @@ const char *platform_macos_code_range_evidence_name(uint8_t evidence) {
     case PLATFORM_MACOS_CODE_EVIDENCE_PREFIX_BEFORE_STACK_ENTRY: return "prefix_before_stack_entry";
     case PLATFORM_MACOS_CODE_EVIDENCE_M68K_STACK_ENTRY_TO_A0: return "m68k_movea_l_stack_to_a0_entry";
     case PLATFORM_MACOS_CODE_EVIDENCE_MISSING_STACK_ENTRY: return "missing_m68k_movea_l_stack_to_a0_entry";
+    case PLATFORM_MACOS_CODE_EVIDENCE_SEGMENT_BODY_START: return "nonzero_code_segment_body";
     default: return "none";
   }
 }
@@ -291,6 +272,7 @@ const char *platform_macos_code_range_fact_id(uint8_t evidence) {
       return PLATFORM_EXECUTABLE_FORMAT_FACT_MACOS_CODE_RESOURCE_0_JUMP_TABLE_METADATA;
     case PLATFORM_MACOS_CODE_EVIDENCE_NONZERO_SEGMENT_HEADER:
     case PLATFORM_MACOS_CODE_EVIDENCE_FAR_MODEL_SEGMENT_HEADER:
+    case PLATFORM_MACOS_CODE_EVIDENCE_SEGMENT_BODY_START:
       return PLATFORM_EXECUTABLE_FORMAT_FACT_MACOS_CODE_RESOURCE_NONZERO_SEGMENT_HEADER;
     case PLATFORM_MACOS_CODE_EVIDENCE_PREFIX_BEFORE_STACK_ENTRY:
     case PLATFORM_MACOS_CODE_EVIDENCE_M68K_STACK_ENTRY_TO_A0:
@@ -307,6 +289,7 @@ const char *platform_macos_code_range_fact_status(uint8_t evidence) {
     case PLATFORM_MACOS_CODE_EVIDENCE_CODE0_JUMP_TABLE_METADATA:
     case PLATFORM_MACOS_CODE_EVIDENCE_NONZERO_SEGMENT_HEADER:
     case PLATFORM_MACOS_CODE_EVIDENCE_FAR_MODEL_SEGMENT_HEADER:
+    case PLATFORM_MACOS_CODE_EVIDENCE_SEGMENT_BODY_START:
       return "validated";
     case PLATFORM_MACOS_CODE_EVIDENCE_PREFIX_BEFORE_STACK_ENTRY:
     case PLATFORM_MACOS_CODE_EVIDENCE_M68K_STACK_ENTRY_TO_A0:
@@ -323,6 +306,7 @@ const char *platform_macos_code_range_parser_use(uint8_t evidence) {
     case PLATFORM_MACOS_CODE_EVIDENCE_CODE0_JUMP_TABLE_METADATA:
     case PLATFORM_MACOS_CODE_EVIDENCE_NONZERO_SEGMENT_HEADER:
     case PLATFORM_MACOS_CODE_EVIDENCE_FAR_MODEL_SEGMENT_HEADER:
+    case PLATFORM_MACOS_CODE_EVIDENCE_SEGMENT_BODY_START:
       return "accepted_parser_output";
     case PLATFORM_MACOS_CODE_EVIDENCE_PREFIX_BEFORE_STACK_ENTRY:
     case PLATFORM_MACOS_CODE_EVIDENCE_M68K_STACK_ENTRY_TO_A0:

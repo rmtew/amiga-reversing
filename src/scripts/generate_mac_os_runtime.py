@@ -24,11 +24,7 @@ BASELINE_RECORDS = {
     "SysEnvRec": "OSUtils.a",
 }
 
-BASELINE_CALLS = {
-    "_GetResource": ("Resources", "Resources.a", "Resources.h", "GetResource"),
-    "_WaitNextEvent": ("Events", "Events.a", "Events.h", "WaitNextEvent"),
-    "_UnloadSeg": ("SegmentLoader", "SegLoad.a", "SegLoad.h", "UnloadSeg"),
-    "_PBHGetVInfoSync": ("FileManager", "Files.a", "Files.h", "PBHGetVInfoSync"),
+PACKAGE_MACRO_CALLS = {
     "_NumToString": ("NumberFormatting", "NumberFormatting.a", "NumberFormatting.h", "NumToString"),
 }
 
@@ -152,8 +148,10 @@ def field_declared_size(field: dict[str, object], record_sizes: dict[str, int], 
 
 
 def parse_calls() -> list[dict[str, object]]:
-    calls: list[dict[str, object]] = []
-    for asm_name, (family, asm_file, c_file, c_name) in BASELINE_CALLS.items():
+    c_prototypes = parse_c_onewordinline_prototypes()
+    calls = parse_opword_calls(c_prototypes)
+    calls.extend(parse_trap_constants())
+    for asm_name, (family, asm_file, c_file, c_name) in PACKAGE_MACRO_CALLS.items():
         asm_path = AINCLUDES / asm_file
         c_path = CINCLUDES / c_file
         asm_lines = read_mac(asm_path)
@@ -163,7 +161,92 @@ def parse_calls() -> list[dict[str, object]]:
         call["prototype_source"] = rel(c_path)
         call["prototype_line"] = find_c_name_line(c_lines, c_name)
         calls.append(call)
+    return sorted(calls, key=lambda call: (str(call["kind"]), str(call["source"]), int(call["line"]), str(call["name"])))
+
+
+def parse_trap_constants() -> list[dict[str, object]]:
+    path = CINCLUDES / "Traps.h"
+    lines = read_mac(path)
+    calls: list[dict[str, object]] = []
+    for index, line in enumerate(lines):
+        match = re.match(r"^\s*(_[A-Za-z][A-Za-z0-9_]*)\s*=\s*0x([0-9A-Fa-f]{4})\b", line)
+        if not match:
+            continue
+        calls.append(
+            {
+                "name": match.group(1),
+                "family": "Traps",
+                "kind": "trap_constant",
+                "opword": int(match.group(2), 16),
+                "package_word": 0,
+                "source": rel(path),
+                "line": index + 1,
+                "parameter_register": None,
+                "result_register": None,
+                "prototype": None,
+                "prototype_source": "",
+                "prototype_line": 0,
+            }
+        )
     return calls
+
+
+def parse_opword_calls(c_prototypes: dict[int, dict[str, object]]) -> list[dict[str, object]]:
+    calls: list[dict[str, object]] = []
+    seen: set[tuple[str, int]] = set()
+    for asm_path in sorted(AINCLUDES.glob("*.a")):
+        asm_lines = read_mac(asm_path)
+        family = asm_path.stem
+        for index, line in enumerate(asm_lines):
+            match = re.search(r"\b([A-Za-z_][A-Za-z0-9_]*):\s*OPWORD\s+\$([0-9A-Fa-f]{4})\b", line)
+            if not match:
+                continue
+            asm_name = match.group(1)
+            opword = int(match.group(2), 16)
+            key = (asm_name, opword)
+            if key in seen:
+                continue
+            seen.add(key)
+            window = asm_lines[max(0, index - 8) : index + 1]
+            prototype = c_prototypes.get(opword)
+            calls.append(
+                {
+                    "name": asm_name,
+                    "family": family,
+                    "kind": "opword",
+                    "opword": opword,
+                    "package_word": 0,
+                    "source": rel(asm_path),
+                    "line": index + 1,
+                    "parameter_register": _parameter_register(window),
+                    "result_register": _result_register(window),
+                    "prototype": prototype["prototype"] if prototype is not None else None,
+                    "prototype_source": prototype["source"] if prototype is not None else "",
+                    "prototype_line": prototype["line"] if prototype is not None else 0,
+                }
+            )
+    return calls
+
+
+def parse_c_onewordinline_prototypes() -> dict[int, dict[str, object]]:
+    prototypes: dict[int, dict[str, object]] = {}
+    for c_path in sorted(CINCLUDES.glob("*.h")):
+        lines = read_mac(c_path)
+        for start, end in iter_c_prototype_blocks(lines):
+            block = " ".join(line.strip() for line in lines[start : end + 1])
+            inline_match = re.search(r"\bONEWORDINLINE\s*\(\s*0x([0-9A-Fa-f]{4})\s*\)", block)
+            if not inline_match:
+                continue
+            opword = int(inline_match.group(1), 16)
+            prototypes.setdefault(
+                opword,
+                {
+                    "prototype": re.sub(r"\s+", " ", block).strip(),
+                    "source": rel(c_path),
+                    "line": start + 1,
+                },
+            )
+    return prototypes
 
 
 def parse_call_asm(lines: list[str], asm_name: str, family: str, source_path: str) -> dict[str, object]:
@@ -269,7 +352,8 @@ def render_header(metadata: dict[str, object]) -> str:
         "",
         "typedef enum MacOsCallKind {",
         "  MAC_OS_CALL_KIND_OPWORD = 1,",
-        "  MAC_OS_CALL_KIND_PACKAGE_MACRO = 2",
+        "  MAC_OS_CALL_KIND_PACKAGE_MACRO = 2,",
+        "  MAC_OS_CALL_KIND_TRAP_CONSTANT = 3",
         "} MacOsCallKind;",
         "",
         "typedef struct MacOsRecordInfo {",
@@ -359,7 +443,7 @@ def render_source(metadata: dict[str, object]) -> str:
     ]
     call_rows = [
         f"  {{ {c_string(str(call['name']))}, {c_string(str(call['family']))}, "
-        f"{'MAC_OS_CALL_KIND_PACKAGE_MACRO' if call['kind'] == 'package_macro' else 'MAC_OS_CALL_KIND_OPWORD'}, "
+        f"{mac_os_call_kind_c_name(str(call['kind']))}, "
         f"{int(call['opword'])}u, {int(call['package_word'])}u, {c_string(str(call['source']))}, "
         f"{int(call['line'])}u, "
         f"{c_string(call.get('prototype') if isinstance(call.get('prototype'), str) else None)}, "
@@ -417,13 +501,23 @@ def render_source(metadata: dict[str, object]) -> str:
         "const MacOsCallInfo *mac_os_find_call_by_opword(uint16_t opword) {",
         "  size_t index;",
         "  for (index = 0U; index < MAC_OS_CALL_COUNT; ++index) {",
-        "    if (g_mac_os_calls[index].kind == MAC_OS_CALL_KIND_OPWORD && g_mac_os_calls[index].opword == opword) return &g_mac_os_calls[index];",
+        "    if ((g_mac_os_calls[index].kind == MAC_OS_CALL_KIND_OPWORD ||",
+        "         g_mac_os_calls[index].kind == MAC_OS_CALL_KIND_TRAP_CONSTANT) &&",
+        "        g_mac_os_calls[index].opword == opword) return &g_mac_os_calls[index];",
         "  }",
         "  return NULL;",
         "}",
         "",
     ]
     return "\n".join(lines)
+
+
+def mac_os_call_kind_c_name(kind: str) -> str:
+    if kind == "package_macro":
+        return "MAC_OS_CALL_KIND_PACKAGE_MACRO"
+    if kind == "trap_constant":
+        return "MAC_OS_CALL_KIND_TRAP_CONSTANT"
+    return "MAC_OS_CALL_KIND_OPWORD"
 
 
 def write_source(metadata: dict[str, object]) -> str:

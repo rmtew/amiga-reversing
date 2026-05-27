@@ -6690,7 +6690,8 @@ static int append_listing_row_json_parsed(JsonBuilder *builder, size_t row_index
       if (json_builder_append(builder, ",\"unresolved_typed_accesses\":") != 0) return -1;
       if (append_listing_unresolved_typed_accesses_json(builder, stmt, section_analysis) != 0) return -1;
     }
-    if (stmt != NULL && stmt->kind == M68K_STATEMENT_INSTRUCTION) {
+    if (stmt != NULL &&
+        (stmt->kind == M68K_STATEMENT_INSTRUCTION || stmt->kind == M68K_STATEMENT_DATA)) {
       const M68kRecoveredPlatformCallIR *call = listing_platform_call_at_offset(section_analysis, stmt->offset);
       if (call != NULL) {
         if (json_builder_append(builder, ",\"api_call\":") != 0) return -1;

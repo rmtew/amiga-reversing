@@ -28,6 +28,7 @@
 #include "util_arena.h"
 #include "generated/amiga_hunk_file_runtime.h"
 #include "generated/amiga_os_runtime.h"
+#include "generated/mac_os_runtime.h"
 #include "generated/platform_executable_formats.h"
 
 #include <inttypes.h>
@@ -184,6 +185,7 @@ static int macos_append_relocation_fixup_placeholder(JsonBuilder *builder) {
 static const char *macos_restored_source_role_for_range(const PlatformMacosCodeRange *range) {
   if (range == NULL) return "unknown";
   switch (range->kind) {
+  case PLATFORM_MACOS_CODE_RANGE_CODE:
   case PLATFORM_MACOS_CODE_RANGE_CONFIRMED_CODE:
     return "code";
   case PLATFORM_MACOS_CODE_RANGE_CANDIDATE_CODE:
@@ -340,7 +342,8 @@ static int macos_restored_source_add_layout_range(MacosRestoredSourceRangeRecord
   record->view.provenance = "platform_file_lib.macos_hfs_code_summary";
   record->view.source_visible = 1U;
   record->view.contains_instruction =
-    (range->kind == PLATFORM_MACOS_CODE_RANGE_CONFIRMED_CODE || range->kind == PLATFORM_MACOS_CODE_RANGE_CANDIDATE_CODE)
+    (range->kind == PLATFORM_MACOS_CODE_RANGE_CODE || range->kind == PLATFORM_MACOS_CODE_RANGE_CONFIRMED_CODE ||
+      range->kind == PLATFORM_MACOS_CODE_RANGE_CANDIDATE_CODE)
       ? 1U
       : 0U;
   record->rendering_kind = "layout_range";
@@ -581,6 +584,7 @@ static int macos_append_restored_source_packet(JsonBuilder *builder, const Platf
 
 static const char *macos_shared_executable_role(uint8_t kind) {
   switch (kind) {
+  case PLATFORM_MACOS_CODE_RANGE_CODE:
   case PLATFORM_MACOS_CODE_RANGE_CONFIRMED_CODE:
     return "code";
   case PLATFORM_MACOS_CODE_RANGE_CANDIDATE_CODE:
@@ -931,6 +935,9 @@ static int macos_append_segment_routine_candidate(JsonBuilder *builder, uint32_t
     uint32_t jump_table_entry_index, uint32_t jump_table_offset, uint32_t code0_entry_offset,
     uint32_t routine_offset, int16_t segment_id, const char *entry_state, const char *routine_offset_space,
     int needs_comma) {
+  const MacOsCallInfo *loadseg_call = mac_os_find_call_by_opword(0xA9F0U);
+  int has_payload_relative_expression =
+    routine_offset_space != NULL && strcmp(routine_offset_space, "code_resource_payload") == 0;
   if (needs_comma && json_builder_append(builder, ",") != 0) return -1;
   if (json_builder_appendf(builder,
         "{\"index\":%u,\"jump_table_entry_index\":%u,\"jump_table_offset\":%u,"
@@ -941,7 +948,31 @@ static int macos_append_segment_routine_candidate(JsonBuilder *builder, uint32_t
         (unsigned)candidate_index, (unsigned)jump_table_entry_index, (unsigned)jump_table_offset,
         (unsigned)code0_entry_offset, (unsigned)(code0_entry_offset + 2U),
         (unsigned)routine_offset, (int)segment_id, entry_state, routine_offset_space) != 0 ||
-      macos_append_fact_ref(builder, "macos.code_resource.jump_table.routine_offsets.candidate",
+      json_builder_append(builder, "\"platform_call\":{\"platform\":\"macos\",\"kind\":\"trap_constant\","
+        "\"opword\":43504,\"symbol_name\":") != 0 ||
+      json_builder_append_json_string(builder, loadseg_call != NULL ? loadseg_call->name : "_LoadSeg") != 0 ||
+      json_builder_append(builder, ",\"family\":") != 0 ||
+      json_builder_append_json_string(builder, loadseg_call != NULL ? loadseg_call->family : "Traps") != 0 ||
+      json_builder_append(builder, ",\"source\":") != 0 ||
+      json_builder_append_json_string(builder, loadseg_call != NULL ? loadseg_call->source_path : "") != 0 ||
+      json_builder_appendf(builder, ",\"line\":%u},", loadseg_call != NULL ? (unsigned)loadseg_call->line : 0U) != 0) {
+    return -1;
+  }
+  if (has_payload_relative_expression) {
+    if (json_builder_appendf(builder,
+          "\"stored_offset_expression\":{\"kind\":\"label_relative_offset\","
+          "\"encoded_width\":4,\"byte_order\":\"big\",\"directive\":\"dc.l\","
+          "\"source_resource_id\":0,\"source_payload_offset\":%u,"
+          "\"target_resource_id\":%d,\"target_payload_offset\":%u,"
+          "\"base_resource_id\":%d,\"base_payload_offset\":0,"
+          "\"value\":%u,\"value_space\":\"code_resource_payload\","
+          "\"renderer\":\"generic_label_minus_base\"},",
+          (unsigned)(code0_entry_offset + 4U), (int)segment_id, (unsigned)routine_offset,
+          (int)segment_id, (unsigned)routine_offset) != 0) {
+      return -1;
+    }
+  }
+  if (macos_append_fact_ref(builder, "macos.code_resource.jump_table.routine_offsets.candidate",
         "candidate", "candidate_only") != 0 ||
       json_builder_append(builder, "}") != 0) {
     return -1;
@@ -9893,6 +9924,18 @@ static int listing_artifact_set_error(char **out_error, const M68kDiagList *diag
   return -1;
 }
 
+static int listing_artifact_append_profile_identity(JsonBuilder *builder,
+    const PlatformFileListingArtifact *artifact) {
+  if (builder == NULL || artifact == NULL) return -1;
+  if (json_builder_append(builder, ",\"backend\":") != 0 ||
+      json_builder_append_json_string(builder, artifact->backend_name) != 0)
+    return -1;
+  if (strcmp(artifact->backend_name, "macos-code") == 0 &&
+      json_builder_append(builder, ",\"source_kind\":\"macos_code_resource\"") != 0)
+    return -1;
+  return 0;
+}
+
 static PlatformFileListingArtifact *listing_artifact_alloc_base(const char *backend_name, const char *path,
     M68kDiagList *diagnostics) {
   PlatformFileListingArtifact *artifact =
@@ -10116,8 +10159,7 @@ static char *listing_artifact_profile_json_alloc(const PlatformFileListingArtifa
   if (json_builder_create(&builder) != 0 ||
       json_builder_append(&builder, "{\"generation\":") != 0 ||
       json_builder_append_json_string(&builder, generation) != 0 ||
-      json_builder_append(&builder, ",\"backend\":") != 0 ||
-      json_builder_append_json_string(&builder, artifact->backend_name) != 0 ||
+      listing_artifact_append_profile_identity(&builder, artifact) != 0 ||
       json_builder_append(&builder, ",\"analysis_backend\":\"facts_v2\",\"path\":") != 0 ||
       json_builder_append_json_string(&builder, artifact->path) != 0 ||
       json_builder_append(&builder, ",\"facts_v2\":") != 0 ||
@@ -10622,6 +10664,7 @@ int platform_file_facts_v2_listing_artifact_flat_m68k_buffer_create(
   if (artifact == NULL) goto fail;
   if (load_flat_m68k_object_from_buffer(data, size, &artifact->object, m68k_diag_sink(&diagnostics)) != 0)
     goto fail;
+  artifact->object.platform_backend_kind = M68K_PLATFORM_BACKEND_MACOS;
   if (configure_flat_m68k_buffer_policy(&artifact->policy, &artifact->object, metadata_path, &diagnostics) != 0)
     goto fail;
   enrich_policy_pointer_targets_from_object_local(&artifact->policy, &artifact->object);
@@ -10651,6 +10694,7 @@ int platform_file_facts_v2_listing_artifact_macos_code_buffer_create(
   if (artifact == NULL) goto fail;
   if (load_flat_m68k_object_from_buffer(data, size, &artifact->object, m68k_diag_sink(&diagnostics)) != 0)
     goto fail;
+  artifact->object.platform_backend_kind = M68K_PLATFORM_BACKEND_MACOS;
   if (configure_flat_m68k_buffer_policy(&artifact->policy, &artifact->object, metadata_path, &diagnostics) != 0)
     goto fail;
   enrich_policy_pointer_targets_from_object_local(&artifact->policy, &artifact->object);
@@ -10692,9 +10736,9 @@ int platform_file_facts_v2_listing_artifact_window_json_alloc(PlatformFileListin
     goto cleanup;
   }
   window_end = clock();
-  if (json_builder_append(&builder, ",\"profile\":{\"generation\":\"facts_v2_listing_artifact_window\","
-        "\"backend\":") != 0 ||
-      json_builder_append_json_string(&builder, artifact->backend_name) != 0 ||
+  if (json_builder_append(&builder, ",\"profile\":{\"generation\":\"facts_v2_listing_artifact_window\""
+      ) != 0 ||
+      listing_artifact_append_profile_identity(&builder, artifact) != 0 ||
       json_builder_append(&builder, ",\"analysis_backend\":\"facts_v2\",\"path\":") != 0 ||
       json_builder_append_json_string(&builder, artifact->path) != 0 ||
       json_builder_append(&builder, ",\"facts_v2\":") != 0 ||
@@ -11037,9 +11081,8 @@ int platform_file_facts_v2_listing_artifact_summary_json_alloc(PlatformFileListi
   if (json_builder_create(&builder) != 0 ||
       json_builder_append(&builder, "{\"summary\":{\"total_rows\":") != 0 ||
       json_builder_appendf(&builder, "%u", (unsigned)artifact->listing_total_rows) != 0 ||
-      json_builder_append(&builder, "},\"profile\":{\"generation\":\"facts_v2_listing_artifact_summary\","
-        "\"backend\":") != 0 ||
-      json_builder_append_json_string(&builder, artifact->backend_name) != 0 ||
+      json_builder_append(&builder, "},\"profile\":{\"generation\":\"facts_v2_listing_artifact_summary\"") != 0 ||
+      listing_artifact_append_profile_identity(&builder, artifact) != 0 ||
       json_builder_append(&builder, ",\"analysis_backend\":\"facts_v2\",\"path\":") != 0 ||
       json_builder_append_json_string(&builder, artifact->path) != 0 ||
       json_builder_append(&builder, ",\"facts_v2\":") != 0 ||

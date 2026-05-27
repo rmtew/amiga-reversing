@@ -17,6 +17,7 @@
 #include "generated/amiga_hunk_file_runtime.h"
 #include "generated/m68k_cpu_runtime.h"
 #include "generated/amiga_os_runtime.h"
+#include "generated/mac_os_runtime.h"
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -509,7 +510,8 @@ static int render_asm_include_once(M68kRenderIRPreview *preview, const char *inc
   uint16_t index;
   char line[128];
   if (preview == NULL || include_path == NULL || include_path[0] == '\0') return 1;
-  if (preview->platform_backend_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK) return 1;
+  if (preview->platform_backend_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK &&
+      preview->platform_backend_kind != M68K_PLATFORM_BACKEND_MACOS) return 1;
   for (index = 0U; index < preview->asm_source_include_count; ++index) {
     if (strcmp(preview->asm_source_includes[index], include_path) == 0) return 1;
   }
@@ -2164,6 +2166,35 @@ static void render_asm_dc_symbol_expr(M68kRenderIRPreview *preview, uint32_t siz
     snprintf(line, sizeof(line), "\t%s %s\n", directive, expr);
   hash_asm_text(preview, line);
   ++preview->asm_source_lines;
+}
+
+static const char *path_basename_local(const char *path) {
+  const char *last_slash;
+  const char *last_backslash;
+  if (path == NULL) return NULL;
+  last_slash = strrchr(path, '/');
+  last_backslash = strrchr(path, '\\');
+  if (last_backslash != NULL && (last_slash == NULL || last_backslash > last_slash)) last_slash = last_backslash;
+  return last_slash != NULL ? last_slash + 1 : path;
+}
+
+static int render_asm_platform_opcode_call(M68kRenderIRPreview *preview, uint16_t opcode,
+    const PlatformFactsV2ResolvedCall *call_info) {
+  const MacOsCallInfo *mac_call;
+  const char *include_path;
+  char line[128];
+  if (preview == NULL || call_info == NULL || call_info->platform_kind != M68K_PLATFORM_BACKEND_MACOS ||
+      call_info->note_symbol_name[0] == '\0') {
+    return 0;
+  }
+  if (!asm_symbol_name_is_safe_local(call_info->note_symbol_name)) return 0;
+  mac_call = mac_os_find_call_by_opword(opcode);
+  include_path = mac_call != NULL ? path_basename_local(mac_call->source_path) : NULL;
+  if (!render_asm_include_once(preview, include_path)) return 0;
+  snprintf(line, sizeof(line), "\t%s\n", call_info->note_symbol_name);
+  hash_asm_text(preview, line);
+  ++preview->asm_source_lines;
+  return 1;
 }
 
 static void render_asm_ds_best_fit(M68kRenderIRPreview *preview, uint32_t offset, uint32_t size) {
@@ -7281,6 +7312,18 @@ int accepted_start_at(const M68kDecodeSectionIR *section, const uint8_t *accepte
   return section != NULL && accepted_start != NULL && offset < section->size && accepted_start[offset] != 0U;
 }
 
+static uint32_t accepted_platform_opcode_size_at(const M68kRenderLookup *lookup,
+    const M68kDecodeSectionIR *section, uint32_t offset) {
+  PlatformFactsV2ResolvedCall call_info;
+  uint16_t opcode;
+  if (lookup == NULL || lookup->object == NULL || section == NULL || section->data == NULL ||
+      offset + 2U > section->size) {
+    return 0U;
+  }
+  opcode = m68k_read_u16be(section->data + offset);
+  return platform_facts_v2_resolve_opcode_call(lookup->object->platform_backend_kind, opcode, &call_info) ? 2U : 0U;
+}
+
 int candidate_is_accepted_start(const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
     const M68kDecodeCandidate *candidate) {
   return candidate != NULL && candidate->byte_count != 0U &&
@@ -7400,8 +7443,16 @@ static int render_cfg_build_block_start_map(const M68kRenderLookup *lookup, cons
       continue;
     }
     candidate = find_candidate_at_offset_local(section, offset);
-    if (candidate == NULL || candidate->byte_count == 0U || candidate->byte_count > render_extent - offset)
-      return -1;
+    if (candidate == NULL || candidate->byte_count == 0U || candidate->byte_count > render_extent - offset) {
+      uint32_t platform_opcode_size = accepted_platform_opcode_size_at(lookup, section, offset);
+      if (platform_opcode_size == 0U || platform_opcode_size > render_extent - offset) return -1;
+      if (offset == 0U || !accepted_byte_at(section, accepted_bytes, offset - 1U) ||
+          render_cfg_lookup_block_start_at(lookup, section->section_index, offset)) {
+        block_starts[offset] = 1U;
+      }
+      offset += platform_opcode_size;
+      continue;
+    }
     if (offset == 0U || !accepted_byte_at(section, accepted_bytes, offset - 1U) ||
         render_cfg_lookup_block_start_at(lookup, section->section_index, offset)) {
       block_starts[offset] = 1U;
@@ -7461,8 +7512,12 @@ static int render_analysis_append_cfg_for_section(const M68kRenderLookup *lookup
       size_t target_index;
       int has_control_target;
       int has_fallthrough;
-      if (candidate == NULL || candidate->byte_count == 0U || candidate->byte_count > render_extent - cursor)
-        goto cleanup;
+      if (candidate == NULL || candidate->byte_count == 0U || candidate->byte_count > render_extent - cursor) {
+        uint32_t platform_opcode_size = accepted_platform_opcode_size_at(lookup, section, cursor);
+        if (platform_opcode_size == 0U || platform_opcode_size > render_extent - cursor) goto cleanup;
+        cursor += platform_opcode_size;
+        continue;
+      }
       next_offset = cursor + candidate->byte_count;
       has_control_target = render_cfg_candidate_has_control_target(candidate);
       has_fallthrough = render_cfg_candidate_has_fallthrough(candidate);
@@ -9961,7 +10016,33 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
             section->candidates[render_candidate_index].offset == offset) {
           candidate = &section->candidates[render_candidate_index];
         }
-        if (candidate == NULL || candidate->byte_count == 0U) goto cleanup;
+        if (candidate == NULL || candidate->byte_count == 0U) {
+          PlatformFactsV2ResolvedCall call_info;
+          uint16_t opcode = section->data != NULL && offset + 2U <= section->size
+            ? m68k_read_u16be(section->data + offset) : 0U;
+          if (platform_facts_v2_resolve_opcode_call(object->platform_backend_kind, opcode, &call_info) &&
+              offset + 2U <= render_extent) {
+            ++out_preview->statement_count;
+            ++out_preview->data_statement_count;
+            hash_statement(out_preview, 'I', section->section_index, offset, 2U, opcode);
+            if (render_text_preview) render_text_line(out_preview, 'I', section->section_index, offset, 2U, opcode);
+            if (render_asm_source) {
+              M68kRenderPlanRow *row;
+              begin_asm_source_plan_row(out_preview, M68K_RENDER_PLAN_ROW_DATA, (uint32_t)section_index);
+              render_asm_sync_logical_pc(out_preview, &lookup, section->section_index, offset, &asm_logical_pc);
+              if (!render_asm_platform_opcode_call(out_preview, opcode, &call_info)) {
+                render_asm_dc_w_values(out_preview, section->data, offset, 2U, NULL);
+              }
+              row = finish_asm_source_plan_row(out_preview, section->section_index, offset, 2U, 1);
+              set_asm_source_plan_row_statement_from_section(row, M68K_STATEMENT_DATA, NULL, section, offset, 2U);
+              record_facts_v2_platform_call(out_preview, current_section_analysis, offset, &call_info);
+              asm_logical_pc += 2U;
+            }
+            offset += 2U;
+            continue;
+          }
+          goto cleanup;
+        }
         ++out_preview->statement_count;
         ++out_preview->instruction_statement_count;
         hash_statement(out_preview, 'I', section->section_index, offset, candidate->byte_count,

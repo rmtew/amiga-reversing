@@ -9,6 +9,7 @@ import pytest
 from amiga_reversing.disasm import macos_listing_source
 from amiga_reversing.disasm.binary_source import MacosCodeResourceSource
 from amiga_reversing.disasm.c_backend import (
+    build_macos_code_bytes_listing_artifact_profile,
     inspect_macos_hfs_code_summary_with_c_backend,
 )
 from amiga_reversing.disasm.macos_asm_container import read_macos_hfs_image_bytes
@@ -86,7 +87,32 @@ def test_021_001_macos_listing_source_sits_behind_native_descriptor() -> None:
     assert descriptor["cache_identity"] == (
         "macos-code-resource:resources/platform_macos/MPW-GM.img.bin:MPW-GM/MPW/Tools/Asm:CODE:1"
     )
-    assert classified_range["fact_status"] == "candidate"
+    assert classified_range["fact_status"] == "validated"
+
+
+def test_macos_code_listing_artifact_uses_macos_platform_backend_for_opword_calls() -> None:
+    _total_rows, profile, artifact = build_macos_code_bytes_listing_artifact_profile(
+        b"\xA9\xF1\x4E\x75",
+        display_path="synthetic CODE trap",
+    )
+    try:
+        source_text, source_profile = artifact.source_text_with_profile()
+        window, window_profile = artifact.window_payload(start=0, count=8)
+    finally:
+        artifact.close()
+
+    for observed in (profile, source_profile, window_profile):
+        assert observed["backend"] == "macos-code"
+        assert observed["source_kind"] == "macos_code_resource"
+    assert 'INCLUDE "SegLoad.a"' in source_text
+    assert "\t_UnloadSeg\n" in source_text
+    assert "\trts\n" in source_text
+    assert "dc.w $A9F1" not in source_text
+    trap_row = next(row for row in window["rows"] if str(row.get("text") or "").strip() == "_UnloadSeg")
+    api_call = trap_row.get("api_call")
+    assert isinstance(api_call, dict)
+    assert api_call["function"] == "_UnloadSeg"
+    assert api_call["note_symbol_name"] == "_UnloadSeg"
 
 
 def test_021_005_macos_listing_profile_uses_native_descriptor_not_raw_bridge(
@@ -196,99 +222,30 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     assert MACOS_EXAMPLE_SUBTARGET_ID in str(MACOS_EXAMPLE_SUBTARGET_RELPATH)
     assert "; Finder type: MPST" in asm_text
     assert "; HFS path: MPW-GM/MPW/Tools/Asm" in asm_text
-    assert "; CODE 0 jump-table/application metadata" in asm_text
-    assert "CODE 1 Main:" in asm_text
-    assert "; Non-CODE resource placeholders" in asm_text
-    assert "; CODE source body sections" in asm_text
-    assert "; CODE 1 Main restored source follows." in asm_text
-    assert ";   source_kind: macos_code_resource" in asm_text
-    assert ";   backend: macos-code" in asm_text
-    assert ";   selected_code_entry_offset: 40" in asm_text
-    assert "role=metadata span=0..40 status=validated parser_use=accepted_parser_output reason=far_model_segment_header" in asm_text
-    assert "role=candidate_code span=40..29024 status=candidate parser_use=candidate_only" in asm_text
-    assert "; CODE resource coverage" in asm_text
-    assert ";   CODE 0 unknown: status=metadata-only" in asm_text
-    assert ";   CODE 1 Main: status=rendered" in asm_text
-    assert ";   CODE 2 FPOpTable: status=rendered" in asm_text
-    assert ";   CODE 19 SetupArgV: status=deferred" in asm_text
-    assert "; CODE segment/routine map" in asm_text
-    assert "fact=macos.code_resource.segment_jump_table_span.accepted status=validated" in asm_text
-    assert "fact=macos.code_resource.jump_table.routine_offsets.candidate status=candidate" in asm_text
-    assert "; CODE resource detail subviews" in asm_text
-    assert ";   CODE 0 unknown: role=code0_metadata" in asm_text
-    assert "listing: kind=metadata available=False" in asm_text
-    assert "reason=CODE 0 is jump-table/application metadata, not ordinary m68k code" in asm_text
-    assert ";     jump_table_rows:" in asm_text
-    assert "layout_fact=macos.jump_table.entries.accepted layout_status=validated" in asm_text
-    assert "target_fact=macos.code_resource.jump_table.routine_offsets.candidate target_status=candidate" in asm_text
-    assert ";   CODE 1 Main: role=code_segment" in asm_text
-    assert "listing: kind=full_listing available=True route=listing" in asm_text
-    assert "listing: kind=semantic_listing available=True route=listing" in asm_text
-    assert "listing: kind=candidate_preview available=True route=code_preview" not in asm_text
-    assert "listing: kind=structured_placeholder available=False" in asm_text
-    assert "candidate_code_preview: start=" not in asm_text
-    assert "candidate_code payload[" in asm_text
-    assert "bounded=True" not in asm_text
-    assert "row: offset=" not in asm_text
-    assert "decode=decoded row_kind=instruction" not in asm_text
-    assert "accepted_segment_metadata" in asm_text
-    assert "candidate_routine_entry" in asm_text
-    assert "status=candidate parser_use=candidate_only" in asm_text
-    assert ";   orphan_ranges:" not in asm_text
-    assert "candidate_data_island: start=4 end=40" not in asm_text
-    assert ";   relocation_fixups:" not in asm_text
-    assert "; Executable resource placeholders" in asm_text
-    assert "executable_resource_placeholder: type=CURS" in asm_text
-    assert "reference_site=resource_type_inventory" in asm_text
-    assert "source_context=unlinked" in asm_text
-    assert "link_status=unlinked" in asm_text
-    assert "identity=macos-resource:" in asm_text
-    assert ";   restored_source_model:" in asm_text
-    assert asm_text.count("source_presentation: kind=c_owned_restored_source_packet status=covered") >= 28
-    assert "model=restored_source_model_v1 round_trip_required=false" in asm_text
-    assert asm_text.count("model=restored_source_model_v1 round_trip_required=false") >= 28
-    assert asm_text.count("coverage ok=true gaps=0 overlaps=0 unknown_detail=0") >= 28
-    assert asm_text.count("source_reference_records:") >= 28
-    assert "ownership_ranges:" in asm_text
-    assert "role=candidate_code" in asm_text
-    assert "kind=segment_loader_fixup_placeholder" in asm_text
-    assert "kind=code0_dispatch_reference" in asm_text
-    assert "target=CODE:27" in asm_text
-    assert "target=CODE:1" not in asm_text
-    assert "kind=code0_routing_table" in asm_text
-    assert "kind=a5_world_context_placeholder" in asm_text
-    assert "a5_world status=deferred" in asm_text
+    assert asm_text.index('\tINCLUDE "SegLoad.a"\n') < asm_text.index("CODE_0:")
     assert "CODE_0:" in asm_text
     assert "CODE_27:" in asm_text
     assert "CODE_0_above_a5_size:" in asm_text
     assert "CODE_0_jump_table:" in asm_text
     assert "CODE_0_jump_table_entry_0:" in asm_text
     assert "\tmove.w #27,-(a7)" in asm_text
-    assert "\tdc.l $0000601E" in asm_text
-    assert "jump_table payload[16..2784) entry_size=8 entry_count=346 status=validated" in asm_text
-    assert (
-        "candidate_target target_section=CODE_27 target_resource_id=27 "
-        "routine_offset=0 status=candidate parser_use=candidate_only"
-    ) in asm_text
+    assert "\t_LoadSeg\n" in asm_text
+    assert "\tdc.w $A9F0" not in asm_text
+    assert "\tdc.l CODE_1_loc_0000601e-CODE_1" in asm_text
+    assert "\tdc.l CODE_1_loc_0000003e-CODE_1" in asm_text
+    assert "\tdc.l $0000601E" not in asm_text
     assert "generated_xref source=CODE_0_jump_table_entry_0" not in asm_text
-    assert ";     CODE_0_jump_table_entry_1: payload_offset=24 size=8" in asm_text
-    assert ";     no decoded routine target for this accepted jump-table entry" in asm_text
     assert "candidate_target target_section=CODE_unknown" not in asm_text
     assert "CODE_27_routine_candidate_000000cc:" not in asm_text
-    assert "CODE_27_loc_000000cc:" in asm_text
+    assert "CODE_27_loc_00000004:" in asm_text
     assert "incoming_CODE0_xrefs:" not in asm_text
     assert "raw_entry_bytes=" not in asm_text
     assert "raw_byte_gap" not in asm_text
-    assert "target_section=CODE_1 target_resource_id=1" in asm_text
+    assert "target_section=CODE_1 target_resource_id=1" not in asm_text
     assert "target=CODE_1_loc_0000003e link_status=linked_candidate" not in asm_text
     assert "CODE_1_loc_0000003e:" in asm_text
     assert "CODE_1_routine_candidate_0000003e:" not in asm_text
     assert "target_section=CODE_1 target_resource_id=1 routine_offset=0 status=validated" not in asm_text
-    code0_start = asm_text.index(";   CODE 0 unknown: role=code0_metadata")
-    code1_start = asm_text.index(";   CODE 1 Main: role=code_segment")
-    code0_block = asm_text[code0_start:code1_start]
-    assert "kind=code0_routing_table" in code0_block
-    assert "kind=segment_loader_fixup_placeholder" not in code0_block
     assert not any(
         "macos.code_resource.movea_stack_a0.boundary.candidate" in line and "accepted_parser_output" in line
         for line in asm_text.splitlines()
@@ -297,53 +254,23 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
         "macos.segment_loader.relocation_fixups.deferred" in line and "accepted_parser_output" in line
         for line in asm_text.splitlines()
     )
-    assert "no candidate preview range; classifier deferred byte-entry evidence" in asm_text
-    assert "missing_m68k_movea_l_stack_to_a0_entry" in asm_text
-    assert ";   source_rows:" in asm_text
+    assert "no candidate preview range; classifier deferred byte-entry evidence" not in asm_text
+    assert "missing_m68k_movea_l_stack_to_a0_entry" not in asm_text
+    assert ";   source_rows:" not in asm_text
     assert "placeholder_reason: semantic CODE disassembly remains deferred" not in asm_text
-    assert "residual_policy: semantic source rows are rendered for decoded C-owned ranges" in asm_text
-    assert "residual_policy: CODE 0 is accepted routing/application metadata" in asm_text
-    assert "CODE_2_loc_00000176:" in asm_text
+    assert "CODE_2_loc_00000028:" in asm_text
     assert "\tmovea.l (a7)+,a0\n" in asm_text
     assert "CODE_1_loc_00000028:" in asm_text
     assert "\tmovea.l (a7)+,a0\n" in asm_text
     assert "CODE_1_candidate_code_00000028:\n\tdc.b $20,$5F" not in asm_text
-    assert "; CODE 1 Main restored source follows." in asm_text
-    assert "; Source quality gate" in asm_text
-    assert ";   status: byte_real_baseline" in asm_text
-    assert ";   semantic_closeout_status: blocked_residual_decode_gaps" in asm_text
-    assert ";   baseline_status: passed_with_deferred_semantics" in asm_text
-    assert "this is not semantic source closeout" in asm_text
-    assert ";     semantic_disassembly_status: residual_decode_gaps_present" in asm_text
-    assert ";     label_xref_status: generated_labels_and_xrefs_present" in asm_text
-    assert ";     renderer_uses_durable_rows: True" in asm_text
-    assert ";     no_vague_orphan_bucket: True" in asm_text
-    assert ";     range_ownership_complete: True" in asm_text
-    assert ";     reachable_code_evidence_recorded: True" in asm_text
-    assert ";     recursive_control_target_xrefs_present: True" in asm_text
-    assert ";     residuals_explicit: True" in asm_text
-    assert ";     stable_labels_present: True" in asm_text
-    assert ";     xref_target_labels_resolved: True" in asm_text
-    assert ";     accepted byte-entry proof" in asm_text
-    assert ";     decoded Segment Loader relocation/fixup semantics" in asm_text
-    assert ";     A5 lifetime proof" in asm_text
-    assert ";   non_blocking_for_semantic_disassembly:" in asm_text
-    assert ";     missing human semantic names" in asm_text
-    assert ";     deferred A5 lifetime proof" in asm_text
-    assert (
-        ";     CODE 1: section=macos-code-CODE-1 ownership=candidate_code,metadata "
-        "coverage=True labels=120 xrefs=1902 control_target_xrefs=1787 "
-        "xref_targets=1026 unresolved_xref_targets=0 "
-        "instructions=7818 body_spans=1 byte_real_only_body=False "
-        "reachable_evidence=117 residuals=59"
-    ) in asm_text
+    assert "; CODE 1 Main restored source follows." not in asm_text
+    assert "; Source quality gate" not in asm_text
+    assert "this is not semantic source closeout" not in asm_text
     assert "residual semantic_decode_gap payload[62..29024)" not in asm_text
-    assert "residual candidate_unvisited_entry_pattern island[" in asm_text
-    assert "island[8280..8304) count=1 payload_offsets=8288" in asm_text
-    assert "island[12852..12876) count=1 payload_offsets=12858" in asm_text
-    assert "island[17550..17574) count=1 payload_offsets=17556" in asm_text
     assert "residual candidate_unvisited_entry_pattern payload[" not in asm_text
-    assert ";     semantic_source: kind=macos_code_semantic_source_v1 status=decoded" in asm_text
+    assert asm_text.count('\tINCLUDE "SegLoad.a"\n') == 1
+    assert "\t_UnloadSeg\n" in asm_text
+    assert "CODE_1_data_00002038:\n\tdc.b $A9,$F1" not in asm_text
     assert "CODE_1_loc_00000028:" in asm_text
     assert "\tmovea.l (a7)+,a0\n" in asm_text
     assert "\tmove.l a7,d0\n" in asm_text
@@ -351,9 +278,23 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     assert " bytes=20 5F" not in asm_text
     assert "CODE_1_loc_0000003e:" in asm_text
     assert "CODE_1_semantic_decode_gap_0000003e:" not in asm_text
-    assert "CODE_1_data_string_0000027e:" in asm_text
-    assert "CODE_1_data_dispatch_table_00000f94:" in asm_text
-    assert "CODE_12_data_alignment_padding_000009c6:\n\tds.b 2" in asm_text
+    assert "CODE_1_loc_0000027e:\n\tdc.b $30,$31,$32,$33" in asm_text
+    assert "CODE_1_loc_00000f94:\n\tdc.w CODE_1_loc_00000fb4-CODE_1_loc_00000f94" in asm_text
+    assert "CODE_12_data_000009c6:\n\tdc.w $0000" in asm_text
+    asm_lines = asm_text.splitlines()
+    consecutive_label_pairs = [
+        (line, next_line)
+        for line, next_line in zip(asm_lines, asm_lines[1:])
+        if line.startswith("CODE_")
+        and line.endswith(":")
+        and next_line.startswith("CODE_")
+        and next_line.endswith(":")
+        and not line.removeprefix("CODE_").removesuffix(":").isdigit()
+    ]
+    assert consecutive_label_pairs == [
+        ("CODE_0_metadata_00000000:", "CODE_0_above_a5_size:"),
+        ("CODE_0_jump_table:", "CODE_0_jump_table_entry_0:"),
+    ]
     assert "CODE_1_semantic_string_data_gap_0000027e:" not in asm_text
     assert "CODE_1_semantic_dispatch_table_gap_00000f94:" not in asm_text
     assert "loc_0_" not in asm_text
@@ -364,38 +305,23 @@ def test_committed_macos_subtarget_metadata_and_asm_shape() -> None:
     assert "candidate_data_island" not in asm_text
     assert "SECTION code,code" not in asm_text
     assert "\tori.b #16,d0" not in asm_text
-    assert "CODE_1_far_model_header:" in asm_text
-    assert "payload[0..40) status=validated parser_use=accepted_parser_output reason=far_model_segment_header" in asm_text
-    assert "CODE_1_candidate_entry_stub:" in asm_text
-    assert (
-        "payload[40..62) selected_code_bytes[0..22) status=candidate parser_use=candidate_only "
-        "reason=entry/stub bytes begin at candidate movea.l (a7)+,a0 boundary"
-    ) in asm_text
-    assert "CODE_1_candidate_body_after_stub:" in asm_text
-    assert "payload[62..29024) status=candidate parser_use=candidate_only" in asm_text
-    assert "accepted byte-entry proof remains deferred" in asm_text
+    assert "CODE_1_metadata_00000000:" in asm_text
+    assert "CODE_1_far_model_header:" not in asm_text
+    assert "CODE_1_candidate_entry_stub:" not in asm_text
+    assert "CODE_1_candidate_body_after_stub:" not in asm_text
+    assert "accepted byte-entry proof remains deferred" not in asm_text
     assert "orphan code" not in asm_text.lower()
-    source_start = asm_text.index("; CODE source body sections")
-    code0_source_start = asm_text.index("; CODE 0 unknown source section")
-    code1_header = asm_text.index("CODE_1_far_model_header:")
-    code1_stub = asm_text.index("CODE_1_candidate_entry_stub:")
-    listing_start = asm_text.index("; CODE 1 Main restored source follows.")
-    first_instruction = asm_text.index("\tmovea.l (a7)+,a0\n", listing_start)
-    quality_start = asm_text.index("; Source quality gate")
-    evidence_start = asm_text.index("; Analysis reports")
-    assert (
-        source_start
-        < code0_source_start
-        < code1_header
-        < code1_stub
-        < listing_start
-        < first_instruction
-        < quality_start
-        < evidence_start
-    )
-    assert evidence_start < asm_text.index("; File forks")
-    assert asm_text.index("; Resource fork") > evidence_start
-    assert asm_text.index("; CODE resources") > evidence_start
+    assert "; Analysis reports" not in asm_text
+    assert "; File forks" not in asm_text
+    assert "; Resource fork" not in asm_text
+    assert "; CODE resources" not in asm_text
+    assert "source_presentation:" not in asm_text
+    assert "restored_source_model" not in asm_text
+    assert "candidate_target" not in asm_text
+    assert "payload[" not in asm_text
+    assert " bytes=" not in asm_text
+    assert "row: offset=" not in asm_text
+    assert asm_text.index("CODE_0:") < asm_text.index("CODE_1:") < asm_text.index("\tmovea.l (a7)+,a0\n")
 
 
 def test_committed_macos_asm_artifact_matches_renderer() -> None:
@@ -425,52 +351,28 @@ def test_committed_macos_asm_artifact_covers_every_code_resource() -> None:
     )
     expected = summary["resource_fork"]["code_resources"]
     asm_lines = asm_path.read_text(encoding="utf-8").splitlines()
-    source_start = asm_lines.index("; CODE source body sections")
-    evidence_start = asm_lines.index("; Analysis reports")
-    coverage_start = asm_lines.index("; CODE resource coverage")
-    segment_map_start = asm_lines.index("; CODE segment/routine map")
-    detail_start = asm_lines.index("; CODE resource detail subviews")
-    non_code_start = asm_lines.index("; Non-CODE resource placeholders")
     source_lines = [
         line
-        for line in asm_lines[source_start:evidence_start]
-        if line.startswith("; CODE ") and line.endswith(" source section")
-    ]
-    coverage_lines = [
-        line for line in asm_lines[coverage_start:segment_map_start] if line.startswith(";   CODE ") and "status=" in line
-    ]
-    detail_lines = [
-        line
-        for line in asm_lines[detail_start:non_code_start]
-        if line.startswith(";   CODE ") and "role=" in line and "payload_size=" in line
+        for line in asm_lines
+        if line.startswith("; CODE ") and not line.startswith("; CODE source")
     ]
 
     assert len(source_lines) == len(expected)
-    assert len(coverage_lines) == len(expected)
-    assert len(detail_lines) == len(expected)
     for resource in expected:
         source_prefix = f"; CODE {resource['id']} "
-        report_prefix = f";   CODE {resource['id']} "
         assert any(line.startswith(source_prefix) for line in source_lines), source_prefix
         source_index = next(index for index, line in enumerate(asm_lines) if line.startswith(source_prefix))
-        assert source_start < source_index < evidence_start
         source_block_end = next(
             (
                 index
-                for index in range(source_index + 1, evidence_start)
-                if asm_lines[index].startswith("; CODE ") and asm_lines[index].endswith(" source section")
+                for index in range(source_index + 1, len(asm_lines))
+                if asm_lines[index].startswith("; CODE ")
             ),
-            evidence_start,
+            len(asm_lines),
         )
         source_block = "\n".join(asm_lines[source_index:source_block_end])
-        assert f";   source_section_id: macos-code-CODE-{resource['id']}" in source_block
-        assert f";   payload_size: {resource['payload_size']}" in source_block
-        assert ";   source_body_ranges:" in source_block
-        assert "rendered_source:" in source_block
-        assert ";   source_rows:" in source_block
-        prefix = report_prefix
-        assert any(line.startswith(prefix) for line in coverage_lines), prefix
-        assert any(line.startswith(prefix) for line in detail_lines), prefix
+        assert f"CODE_{resource['id']}:" in source_block
+        assert "\tdc.b " in source_block or "\tdc.w " in source_block or "\tdc.l " in source_block or "\tmove" in source_block
 
 
 def test_macos_listing_artifact_uses_macos_source_and_row_provenance() -> None:
@@ -508,9 +410,9 @@ def test_macos_listing_artifact_uses_macos_source_and_row_provenance() -> None:
     assert summary["total_rows"] > 0
     assert navigation["groups"]
     assert analysis["executable_model"] == "platform_executable_summary_v1"
-    assert analysis_ranges[0]["role"] == "candidate_code"
-    assert analysis_ranges[0]["fact_status"] == "candidate"
-    assert analysis_ranges[0]["parser_use"] == "candidate_only"
+    assert analysis_ranges[0]["role"] == "code"
+    assert analysis_ranges[0]["fact_status"] == "validated"
+    assert analysis_ranges[0]["parser_use"] == "accepted_parser_output"
     assert analysis_deferred[0]["fact_status"] == "deferred"
     assert "; Classic Mac OS CODE resource listing" in source_text
     assert "; source kind: macos_code_resource" in source_text
@@ -527,5 +429,5 @@ def test_macos_listing_artifact_uses_macos_source_and_row_provenance() -> None:
     assert macos["resource_id"] == 1
     assert macos["resource_name"] == "Main"
     assert macos["classified_range"]["load_offset"] == 40
-    assert macos["classified_range"]["role"] == "candidate_code"
-    assert macos["classified_range"]["fact_status"] == "candidate"
+    assert macos["classified_range"]["role"] == "code"
+    assert macos["classified_range"]["fact_status"] == "validated"

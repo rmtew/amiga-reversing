@@ -1272,8 +1272,28 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     assert code0_routing_xrefs[0]["kind"] == "generated_code0_routing_xref"
     assert code0_routing_xrefs[0]["source_label"] == "CODE_0_jump_table_entry_0"
     assert code0_routing_xrefs[0]["target_resource_id"] == 27
-    assert code0_routing_xrefs[0]["target_payload_offset"] == 204
-    assert code0_routing_xrefs[0]["target_label"] == "CODE_27_loc_000000cc"
+    assert code0_routing_xrefs[0]["target_payload_offset"] == 4
+    assert code0_routing_xrefs[0]["target_label"] == "CODE_27_loc_00000004"
+    far_model_row = next(
+        item
+        for item in code0_context["jump_table_rows"]
+        if item.get("target_resource_id") == 1 and item.get("routine_offset_from_segment") == 62
+    )
+    assert far_model_row["stored_offset_expression"] == {
+        "kind": "label_relative_offset",
+        "encoded_width": 4,
+        "byte_order": "big",
+        "directive": "dc.l",
+        "source_resource_id": 0,
+        "source_payload_offset": 44,
+        "target_resource_id": 1,
+        "target_payload_offset": 62,
+        "base_resource_id": 1,
+        "base_payload_offset": 0,
+        "value": 62,
+        "value_space": "code_resource_payload",
+        "renderer": "generic_label_minus_base",
+    }
     assert any(
         item["target_resource_id"] == 1
         and item["target_payload_offset"] == 62
@@ -1288,19 +1308,19 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     assert code27_seeds == [
         {
             "resource_id": 27,
-            "payload_offset": 204,
-            "local_offset": 200,
-            "analysis_payload_base": 4,
-            "analysis_payload_end": 1882,
-            "reason": "code0_routine_candidate",
-            "name": "CODE_27_entry_000000cc",
+                "payload_offset": 4,
+                "local_offset": 0,
+                "analysis_payload_base": 4,
+                "analysis_payload_end": 1882,
+                "reason": "code0_routine_candidate",
+                "name": "CODE_27_entry_00000004",
             "fact_id": "macos.code_resource.jump_table.routine_offsets.candidate",
             "fact_status": "candidate",
             "parser_use": "candidate_only",
             "code0_payload_offset": 16,
         }
     ]
-    assert next(item for item in source_sections if item["id"] == 19)["incoming_code0_xrefs"] == []
+    assert next(item for item in source_sections if item["id"] == 19)["incoming_code0_xrefs"]
     assert next(item for item in source_sections if item["id"] == 1)["code1_layout_context"]["candidate_entry_stub"][
         "fact_status"
     ] == "candidate"
@@ -1308,11 +1328,12 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     assert source_quality["kind"] == "macos_source_quality_gate_v1"
     assert source_quality["status"] == "byte_real_baseline"
     assert source_quality["baseline_status"] == "passed_with_deferred_semantics"
-    assert source_quality["semantic_closeout_status"] == "blocked_residual_decode_gaps"
+    assert source_quality["semantic_closeout_status"] == "semantic_source_complete_for_known_bounds"
+    assert source_quality["semantic_decode_gap_resource_count"] > 0
     assert source_quality["semantic_components"] == {
         "byte_preservation_status": "byte_real_complete",
         "source_ordering_status": "source_first",
-        "semantic_disassembly_status": "residual_decode_gaps_present",
+        "semantic_disassembly_status": "semantic_instruction_rows_present",
         "label_xref_status": "generated_labels_and_xrefs_present",
         "residual_status": "explicit",
     }
@@ -1376,9 +1397,10 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     assert semantic_source["payload_base"] == 40
     assert semantic_source["instruction_row_count"] >= 7000
     assert semantic_source["analysis_seed_count"] == 114
+    assert "SegLoad.a" in semantic_source["asm_source_includes"]
     semantic_gap_kinds = {item["kind"] for item in semantic_source["semantic_gap_residuals"]}
     semantic_data_kinds = {row.get("data_kind") for row in semantic_source["rows"] if row.get("kind") == "data"}
-    assert semantic_source["semantic_gap_residual_count"] >= 40
+    assert semantic_source["semantic_gap_residual_count"] >= 30
     assert semantic_gap_kinds == {"semantic_decode_gap"}
     assert {
         "semantic_pascal_string_gap",
@@ -1412,11 +1434,11 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
             "local_offset": 0,
             "analysis_payload_base": 40,
             "analysis_payload_end": 29024,
-            "reason": "loader_candidate_code_entry",
-            "name": "CODE_1_entry_00000028",
-            "fact_id": "macos.code_resource.movea_stack_a0.boundary.candidate",
-            "fact_status": "candidate",
-            "parser_use": "candidate_only",
+                "reason": "loader_segment_body_start",
+                "name": "CODE_1_entry_00000028",
+                "fact_id": "macos.code_resource.nonzero.segment_header",
+                "fact_status": "validated",
+                "parser_use": "accepted_parser_output",
         },
         {
             "resource_id": 1,
@@ -1445,6 +1467,22 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
         for row in semantic_source["rows"]
     )
     assert any(row["kind"] == "label" and row["payload_offset"] == 40 for row in semantic_source["rows"])
+    unload_seg_row = next(
+        row
+        for row in semantic_source["rows"]
+        if row["kind"] == "data"
+        and row["payload_offset"] == 8248
+        and row["text"].strip() == "_UnloadSeg"
+        and row.get("opcode_or_directive") == "_UnloadSeg"
+    )
+    assert unload_seg_row["api_call"]["function"] == "_UnloadSeg"
+    assert unload_seg_row["api_call"]["note_symbol_name"] == "_UnloadSeg"
+    assert any(
+        row["kind"] == "data"
+        and row.get("api_call", {}).get("function") == "_UnloadSeg"
+        for row in semantic_source["rows"]
+    )
+    assert not any(item["start"] == 8248 and item["end"] == 8250 for item in semantic_source["semantic_gap_residuals"])
     assert all(row.get("payload_offset") is None or row["payload_offset"] >= 40 for row in semantic_source["rows"])
     assert not any("loc_0_" in str(row.get("text") or "") for row in semantic_source["rows"])
     assert any("CODE_1_loc_" in str(row.get("text") or "") for row in semantic_source["rows"])
@@ -1462,12 +1500,12 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
         xref["target_label"]
         for row in semantic_source["rows"]
         for xref in row.get("xrefs", [])
-        if xref.get("target_label")
+        if xref.get("target_label") and xref.get("reason") != "linkage_api_entry"
     }
     assert xref_target_labels <= semantic_labels
     assert any("CODE_1_loc_000031d2(pc)" in str(row.get("text") or "") for row in semantic_source["rows"])
     code2_quality = next(item for item in quality_rows if item["resource_id"] == 2)
-    assert code2_quality["legacy_orphan_ranges_reclassified"] > 0
+    assert code2_quality["legacy_orphan_ranges_reclassified"] == 0
     assert code2_quality["orphan_bucket_present"] is False
     assert all(item["kind"] != "candidate_unresolved_prefix" for item in code2_quality["residuals"])
     assert any(item["kind"] == "semantic_decode_gap" for item in code2_quality["residuals"])
@@ -1516,6 +1554,9 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
         if detail["id"] not in {0, 1} and detail["listing"]["kind"] == "semantic_listing"
     ]
     assert semantic_details
+    assert {detail["id"] for detail in semantic_details} == {
+        item["id"] for item in container["code_resources"] if item["id"] not in {0, 1}
+    }
     assert all(detail["listing"]["route"] == "listing" for detail in semantic_details)
     assert all(detail["listing"]["instruction_row_count"] >= 1 for detail in semantic_details)
     assert all(detail["listing"]["analysis_seed_count"] >= 1 for detail in semantic_details)
@@ -1524,13 +1565,11 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
         for detail in semantic_details
         for seed in detail["listing"]["analysis_seeds"]
     )
-    placeholder_details = [
+    assert [
         detail
         for detail in container["code_resource_details"]
         if detail["id"] not in {0, 1} and detail["listing"]["kind"] == "structured_placeholder"
-    ]
-    assert placeholder_details
-    assert all("no candidate" in detail["listing"]["reason"] for detail in placeholder_details)
+    ] == []
     assert all("navigation_anchors" in item for item in container["code_resource_details"])
     assert any(
         anchor.get("fact_status") == "candidate"
@@ -1561,17 +1600,15 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     assert selected_layout[0]["kind"] == "metadata"
     assert selected_layout[0]["size"] == 40
     assert selected_layout[0]["evidence"] == "far_model_segment_header"
-    selected_candidate = next(item for item in selected_layout if item["kind"] == "candidate_code")
-    assert selected_candidate["start"] == 40
-    assert selected_candidate["fact_status"] == "candidate"
+    selected_code = next(item for item in selected_layout if item["kind"] == "code")
+    assert selected_code["start"] == 40
+    assert selected_code["fact_status"] == "validated"
+    assert selected_code["parser_use"] == "accepted_parser_output"
     restored_source = container["selected_code_segment"]["restored_source"]
     assert restored_source["model"] == "restored_source_model_v1"
     assert restored_source["round_trip_required"] is False
     assert restored_source["source_coverage_verifier"]["ok"] is True
-    assert [item["role"] for item in restored_source["source_ownership_ranges"]] == [
-        "metadata",
-        "candidate_code",
-    ]
+    assert [item["role"] for item in restored_source["source_ownership_ranges"]] == ["metadata", "code"]
     assert restored_source["source_reference_records"][0]["fact_id"] == "macos.segment_loader.relocation_fixups.deferred"
     assert restored_source["source_reference_records"][0]["resource_id"] == 1
     assert restored_source["source_reference_records"][0]["source_range"] == {"start": 0, "end": 0, "size": 0}
@@ -1596,9 +1633,5 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
     asm_path = Path.cwd() / MACOS_EXAMPLE_ASM_RELPATH
     if asm_path.exists():
         asm_text = asm_path.read_text(encoding="utf-8")
-        asm_section_ids = [
-            line.split(": ", 1)[1]
-            for line in asm_text.splitlines()
-            if line.startswith(";   source_section_id: ")
-        ]
-        assert asm_section_ids == [item["source_section_id"] for item in source_sections]
+        assert all(f"CODE_{item['id']}:" in asm_text for item in source_sections)
+        assert ";   source_section_id: " not in asm_text

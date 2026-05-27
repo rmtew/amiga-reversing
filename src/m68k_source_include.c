@@ -295,6 +295,19 @@ static int parse_libent_builtin(const M68kSourceIncludeContext *context,
                                context->user_data);
 }
 
+static int parse_opword_definition(const M68kSourceIncludeContext *context,
+                                   char *name, char *expr_text) {
+  size_t name_length;
+  M68kSourceConstantResult value;
+  name = m68k_trim_in_place(name);
+  name_length = strlen(name);
+  if (name_length != 0U && name[name_length - 1U] == ':') name[name_length - 1U] = '\0';
+  if (name[0] == '\0') return 0;
+  value = context->parse_constant(m68k_trim_in_place(expr_text), context->user_data);
+  if (!value.ok) return 0;
+  return context->set_constant(name, value.value, 0, context->user_data);
+}
+
 static int process_include_line(const M68kSourceIncludeContext *context,
                                 M68kSourceIncludeState *state, char *line,
                                 M68kDiagSink diagnostics);
@@ -421,6 +434,8 @@ static int process_include_line(const M68kSourceIncludeContext *context,
         return context->set_constant(token0, value.value, directive1 == M68K_SOURCE_DIRECTIVE_SET,
           context->user_data);
       }
+      if (directive1 == M68K_SOURCE_DIRECTIVE_OPWORD)
+        return parse_opword_definition(context, token0, cursor1);
     }
     /* Supported include builtins are an explicit subset pinned by regression
      * coverage against Amiga NDK includes and Atari Devpac includes. */

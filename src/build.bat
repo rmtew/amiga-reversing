@@ -182,6 +182,7 @@ link %LDFLAGS% /OUT:%EXE% ^
     %OUTDIR%\platform_atari_st.obj ^
     %OUTDIR%\amiga_os_runtime.obj ^
     %OUTDIR%\atari_st_os_runtime.obj ^
+    %OUTDIR%\mac_os_runtime.obj ^
     %OUTDIR%\amiga_hunk_file_runtime.obj ^
     %OUTDIR%\atari_st_prg_file_runtime.obj || exit /b %errorlevel%
 
@@ -298,6 +299,7 @@ link %LDFLAGS% /DLL /OUT:%ASM_DLL% /EXPORT:m68k_source_ir_parse_file /EXPORT:m68
     %OUTDIR%\platform_atari_st.obj ^
     %OUTDIR%\amiga_os_runtime.obj ^
     %OUTDIR%\atari_st_os_runtime.obj ^
+    %OUTDIR%\mac_os_runtime.obj ^
     %OUTDIR%\amiga_hunk_file_runtime.obj ^
     %OUTDIR%\atari_st_prg_file_runtime.obj || exit /b %errorlevel%
 
@@ -382,6 +384,7 @@ link %LDFLAGS% /OUT:%DISK_EXE% ^
     %OUTDIR%\platform_name_table.obj ^
     %OUTDIR%\amiga_os_runtime.obj ^
     %OUTDIR%\atari_st_os_runtime.obj ^
+    %OUTDIR%\mac_os_runtime.obj ^
     %OUTDIR%\m68k_diagnostics.obj ^
     %OUTDIR%\util_arena.obj ^
     %OUTDIR%\json_builder.obj ^
@@ -452,6 +455,7 @@ link %LDFLAGS% /DLL /OUT:%DISK_DLL% ^
     %OUTDIR%\platform_name_table.obj ^
     %OUTDIR%\amiga_os_runtime.obj ^
     %OUTDIR%\atari_st_os_runtime.obj ^
+    %OUTDIR%\mac_os_runtime.obj ^
     %OUTDIR%\m68k_diagnostics.obj ^
     %OUTDIR%\util_arena.obj ^
     %OUTDIR%\json_builder.obj ^
@@ -525,6 +529,7 @@ link %LDFLAGS% /OUT:%FILE_EXE% ^
     %OUTDIR%\platform_atari_st.obj ^
     %OUTDIR%\amiga_os_runtime.obj ^
     %OUTDIR%\atari_st_os_runtime.obj ^
+    %OUTDIR%\mac_os_runtime.obj ^
     %OUTDIR%\amiga_hunk_file_runtime.obj ^
     %OUTDIR%\atari_st_prg_file_runtime.obj || exit /b %errorlevel%
 
@@ -589,6 +594,7 @@ link %LDFLAGS% /DLL /OUT:%FILE_DLL% ^
     %OUTDIR%\platform_atari_st.obj ^
     %OUTDIR%\amiga_os_runtime.obj ^
     %OUTDIR%\atari_st_os_runtime.obj ^
+    %OUTDIR%\mac_os_runtime.obj ^
     %OUTDIR%\amiga_hunk_file_runtime.obj ^
     %OUTDIR%\atari_st_prg_file_runtime.obj || exit /b %errorlevel%
 

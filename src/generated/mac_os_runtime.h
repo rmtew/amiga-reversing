@@ -7,7 +7,8 @@
 
 typedef enum MacOsCallKind {
   MAC_OS_CALL_KIND_OPWORD = 1,
-  MAC_OS_CALL_KIND_PACKAGE_MACRO = 2
+  MAC_OS_CALL_KIND_PACKAGE_MACRO = 2,
+  MAC_OS_CALL_KIND_TRAP_CONSTANT = 3
 } MacOsCallKind;
 
 typedef struct MacOsRecordInfo {
@@ -47,7 +48,7 @@ typedef struct MacOsCallInfo {
 } MacOsCallInfo;
 
 #define MAC_OS_RECORD_COUNT 8u
-#define MAC_OS_CALL_COUNT 5u
+#define MAC_OS_CALL_COUNT 1733u
 
 const MacOsRecordInfo *mac_os_find_record(const char *name);
 const MacOsRecordFieldInfo *mac_os_find_record_field(const char *record_name, const char *field_name);

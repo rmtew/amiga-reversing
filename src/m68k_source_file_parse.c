@@ -889,6 +889,30 @@ static int m68k_source_file_parse_reader(AsmSourceFile *source, M68kSourceLineRe
         continue;
       }
     }
+    if (source->platform_backend_kind == M68K_PLATFORM_BACKEND_MACOS && directive0 == M68K_SOURCE_DIRECTIVE_NONE &&
+        *rest == '\0') {
+      M68kSourceLookupResult trap_word = lookup_defined_symbol_value(source, token0, 1);
+      if (trap_word.ok && trap_word.defined && trap_word.value <= 0xFFFFU) {
+        M68kSourceModelIndexResult stmt_result =
+          m68k_source_model_append_statement(source, ASM_SOURCE_STMT_DATA, line_number);
+        AsmSourceStmt *stmt = NULL;
+        char expr[128];
+        if (!stmt_result.ok) {
+          source_line_reader_close(reader);
+          source_parse_error(diagnostics, "out of memory");
+          return 0;
+        }
+        stmt = &source->statements[stmt_result.index];
+        stmt->section_index = current_section_index;
+        snprintf(expr, sizeof(expr), "%s", token0);
+        if (!m68k_source_parse_data_statement("DC.W", expr, &stmt->u.data, &data_parse_context)) {
+          source_line_reader_close(reader);
+          source_parse_errorf(diagnostics, "bad OPWORD reference at line %u", (unsigned)line_number);
+          return 0;
+        }
+        continue;
+      }
+    }
     {
       M68kSourceModelIndexResult stmt_result;
       AsmSourceStmt *stmt = NULL;

@@ -6,6 +6,7 @@
 #include "generated/m68k_cpu_runtime.h"
 #include "generated/amiga_os_runtime.h"
 #include "generated/atari_st_os_runtime.h"
+#include "generated/mac_os_runtime.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -217,6 +218,20 @@ static void atari_populate_resolved_call(const AtariStOsCallInfo *call_info, uin
     snprintf(out_info->note_symbol_name, sizeof(out_info->note_symbol_name), "%s", symbol_name);
 }
 
+static void macos_populate_resolved_call(const MacOsCallInfo *call_info,
+    PlatformFactsV2ResolvedCall *out_info) {
+  if (out_info == NULL) return;
+  platform_facts_v2_resolved_call_init(out_info);
+  if (call_info == NULL) return;
+  out_info->platform_kind = M68K_PLATFORM_BACKEND_MACOS;
+  out_info->kind = 0U;
+  out_info->note_kind = M68K_PLATFORM_CALL_NOTE_DIRECT_OS_CALL;
+  if (call_info->family != NULL)
+    snprintf(out_info->note_base_name, sizeof(out_info->note_base_name), "%s", call_info->family);
+  if (call_info->name != NULL)
+    snprintf(out_info->note_symbol_name, sizeof(out_info->note_symbol_name), "%s", call_info->name);
+}
+
 static int atari_resolve_trap_call(const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
     uint32_t block_start, uint32_t trap_offset, PlatformFactsV2ResolvedCall *out_info) {
   const M68kDecodeCandidate *trap_candidate;
@@ -304,6 +319,22 @@ int platform_facts_v2_resolve_trap_call(uint8_t platform_kind,
   switch (platform_kind) {
   case M68K_PLATFORM_BACKEND_ATARI_ST:
     return atari_resolve_trap_call(section, accepted_start, block_start, trap_offset, out_info);
+  default:
+    return 0;
+  }
+}
+
+int platform_facts_v2_resolve_opcode_call(uint8_t platform_kind, uint16_t opcode,
+    PlatformFactsV2ResolvedCall *out_info) {
+  if (out_info != NULL) platform_facts_v2_resolved_call_init(out_info);
+  switch (platform_kind) {
+  case M68K_PLATFORM_BACKEND_MACOS:
+  {
+    const MacOsCallInfo *call_info = mac_os_find_call_by_opword(opcode);
+    if (call_info == NULL) return 0;
+    macos_populate_resolved_call(call_info, out_info);
+    return 1;
+  }
   default:
     return 0;
   }

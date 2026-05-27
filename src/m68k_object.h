@@ -16,7 +16,8 @@ typedef enum M68kPlatformFileKind {
 typedef enum M68kPlatformBackendKind {
   M68K_PLATFORM_BACKEND_UNKNOWN = 0,
   M68K_PLATFORM_BACKEND_AMIGA_HUNK = 1,
-  M68K_PLATFORM_BACKEND_ATARI_ST = 2
+  M68K_PLATFORM_BACKEND_ATARI_ST = 2,
+  M68K_PLATFORM_BACKEND_MACOS = 3
 } M68kPlatformBackendKind;
 
 typedef enum M68kSectionKind {

@@ -43,7 +43,11 @@ static int test_mac_os_call_lookup_distinguishes_opword_and_package_macro(void) 
   const MacOsCallInfo *get_resource = mac_os_find_call_by_opword(0xA9A0U);
   const MacOsCallInfo *wait_next_event = mac_os_find_call_by_name("_WaitNextEvent");
   const MacOsCallInfo *unload_seg = mac_os_find_call_by_opword(0xA9F1U);
+  const MacOsCallInfo *load_seg = mac_os_find_call_by_opword(0xA9F0U);
   const MacOsCallInfo *hget_vinfo = mac_os_find_call_by_name("_PBHGetVInfoSync");
+  const MacOsCallInfo *new_ptr = mac_os_find_call_by_opword(0xA11EU);
+  const MacOsCallInfo *close_sync = mac_os_find_call_by_opword(0xA001U);
+  const MacOsCallInfo *dec_str = mac_os_find_call_by_opword(0xA9EEU);
   const MacOsCallInfo *num_to_string = mac_os_find_call_by_name("_NumToString");
 
   M68K_C_ASSERT(get_resource != NULL);
@@ -57,17 +61,34 @@ static int test_mac_os_call_lookup_distinguishes_opword_and_package_macro(void) 
   M68K_C_ASSERT_STR("Events", wait_next_event->family);
   M68K_C_ASSERT(unload_seg != NULL);
   M68K_C_ASSERT_STR("_UnloadSeg", unload_seg->name);
+  M68K_C_ASSERT_U32(MAC_OS_CALL_KIND_OPWORD, unload_seg->kind);
+
+  M68K_C_ASSERT(load_seg != NULL);
+  M68K_C_ASSERT_STR("_LoadSeg", load_seg->name);
+  M68K_C_ASSERT_U32(MAC_OS_CALL_KIND_TRAP_CONSTANT, load_seg->kind);
+  M68K_C_ASSERT_STR("Traps", load_seg->family);
 
   M68K_C_ASSERT(hget_vinfo != NULL);
   M68K_C_ASSERT_U32(0xA207U, hget_vinfo->opword);
   M68K_C_ASSERT_STR("A0", hget_vinfo->parameter_register);
   M68K_C_ASSERT_STR("D0", hget_vinfo->result_register);
 
+  M68K_C_ASSERT(new_ptr != NULL);
+  M68K_C_ASSERT_STR("_NewPtr", new_ptr->name);
+  M68K_C_ASSERT_STR("D0", new_ptr->parameter_register);
+  M68K_C_ASSERT_STR("A0", new_ptr->result_register);
+
+  M68K_C_ASSERT(close_sync != NULL);
+  M68K_C_ASSERT_STR("_PBCloseSync", close_sync->name);
+  M68K_C_ASSERT_STR("A0", close_sync->parameter_register);
+  M68K_C_ASSERT_STR("D0", close_sync->result_register);
+
   M68K_C_ASSERT(num_to_string != NULL);
   M68K_C_ASSERT_U32(MAC_OS_CALL_KIND_PACKAGE_MACRO, num_to_string->kind);
   M68K_C_ASSERT_U32(0U, num_to_string->opword);
   M68K_C_ASSERT_U32(0xA9EEU, num_to_string->package_word);
-  M68K_C_ASSERT(mac_os_find_call_by_opword(0xA9EEU) == NULL);
+  M68K_C_ASSERT(dec_str != NULL);
+  M68K_C_ASSERT_STR("_DecStr68K", dec_str->name);
   return 0;
 }
 
