@@ -19,6 +19,21 @@
   arguments which we know by register and type from KB data, and it should happen for MacOS OS calls which we should
   have the metadata for from it's own KB and parsed include files and generated C .c/.h metadata similar to Amiga.
 
+Current status map:
+
+- Jump-table auto-analysis: the Pandora absolute-long, local indexed-long, and base-plus-word cases are now covered by
+  reusable C facts/render tests. Remaining work should be driven by new target evidence, not another Pandora-specific
+  rule.
+- Absolute address processing: Magicland low absolute RAM classification, source-header summaries, and stable generated
+  low-slot symbols are covered. Stronger semantic names/lifetimes remain future type-propagation work unless the
+  analysis proves roles.
+- Label correctness: the known Pandora orphan-label case is covered by the generated-label emission split. New label
+  issues should be reduced to expression eligibility versus standalone definition proof.
+- Type propagation: Amiga/Atari-style platform call/type propagation remains the general model. Mac `_GetFNum` now has
+  generated metadata, stack-argument binding, and an output-pointer local typed-access bridge. Mac A5-world slot typing
+  is intentionally not closed until CODE 0 layout is carried into C `M68kObject` platform data and a signed A5 storage
+  layout IR.
+
 ## Investigation needed: MacOS/MPW asm
 
 We don't support the way that official MacOS .a files work. This is to limit the investment of MacOS targets to
