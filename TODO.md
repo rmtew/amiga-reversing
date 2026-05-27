@@ -374,6 +374,14 @@ abs_0_00010CC0:
 	jmp (a3)
 ```
 
+Resolution note: the `lookup_table_00020CA0` shape is covered by a general C classifier fix. Indexed local long
+pointer-table detection now accepts a bounded gap between the table load and the indirect `jmp`/`jsr` when each
+intervening instruction preserves the loaded address register. This matches `movea.l table(pc,d2.w),a1`;
+`adda.w d0,a0`; `jmp (a1)` without hardcoding Pandora. The table then renders as `dc.l` label entries and the targets
+are materialized through the existing pointer-table target-label path. Covered by
+`facts_v2_indexed_local_base_pointer_table_survives_preserving_gap`. The base-plus-word dispatch below remains a
+separate unresolved form.
+
 Another jump table. In this case it is more complex and tracking registers may be harder and better to defer?
 
 ```

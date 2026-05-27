@@ -9329,7 +9329,7 @@ static int render_lookup_infer_indexed_local_pointer_tables(M68kRenderLookup *lo
         }
         if (span == 0U && table_offset_is_code &&
             candidate_indexed_read_dest_address_reg(candidate, &instruction, &dest_reg) &&
-            candidate_next_is_indirect_control_through_addr_reg(section, accepted_start[section_index], candidate,
+            candidate_later_is_indirect_control_through_addr_reg(section, accepted_start[section_index], candidate,
               dest_reg) &&
             table_offset <= UINT32_MAX - item_size &&
             table_offset + item_size <= decode->sections[target_section_index].size &&
