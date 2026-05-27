@@ -575,8 +575,12 @@ and materialized runtime labels keep their more specific rendering. Covered by
 
 ### Disk access
 
-This is a hunk file project. The broader disk-project idea is formally deferred for this target: without the source
-disk image, the executable cannot be bound to real external disk bytes or child payloads without guessing.
+The standalone `amiga_hunk_magicland_dizzy_md` target remains a hunk file project. A source disk is now available in the
+local corpus as `resources/platform_amiga/Magicland Dizzy (1991)(Codemasters)[cr TRSI][t +2 LSD].zip`, and a disk-project
+baseline has been imported as `targets/amiga_disk_magicland-dizzy-1991-codemasters-trsi-lsd/` with the `MD` executable
+child rendered at `targets/amiga_disk_magicland-dizzy-1991-codemasters-trsi-lsd/targets/amiga_hunk_md_e066dc14/md.s`.
+The broader disk-access/child-payload mapping remains deferred until analysis can bind track reads to exact disk bytes
+and payload roles without guessing.
 
 ```
 abs_0_000646BA:
@@ -594,11 +598,9 @@ Resolution note: the actionable source-quality part is now covered by the curren
 Magicland-specific post-process. Regenerating the target with the current engine renders the disk helper through
 platform hardware names: `_ciaa`/`_ciab` register bits, `dmacon`, `adkcon`, `dsksync`, `dskpt`, `dsklen`, and `intreq`,
 including `dskpt(a6)` as a `disk_buffer` pointer sink. That makes the disk DMA setup, sync word, ready/block polling,
-and read length visible from accepted instructions in the source. The broader parent disk-project/child payload mapping
-is formally deferred for this target because the repo contains `bin/MagiclandDizzy_MD_f26cb8133afe` as an extracted
-hunk file plus rebuilt/cache artifacts, but no source Magicland disk image to bind track reads back to real disk bytes.
-The correct future work needs actual source media and a general external-resource relationship model, not guessed child
-payloads from a standalone executable.
+and read length visible from accepted instructions in the source. The newly imported disk project supplies the durable
+parent/child target scaffold for future work, but the correct child-payload work still needs a general external-resource
+relationship model that proves which disk bytes each routine reads and how those bytes should be interpreted.
 
 ### Unrecognised decompression routine
 

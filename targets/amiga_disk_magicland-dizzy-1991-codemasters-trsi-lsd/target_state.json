@@ -1,0 +1,103 @@
+{
+  "candidate_rejects": [],
+  "import_mode": "amiga_dos_startup_sequence",
+  "imported_at": "2026-05-27T20:09:54+00:00",
+  "payload_nodes": [],
+  "schema_version": 1,
+  "startup_sequence_parse": {
+    "command": null,
+    "error": null,
+    "line": null,
+    "reason": "startup-sequence parsed",
+    "source_path": "s/startup-sequence",
+    "startup_sequence_entries": [
+      {
+        "command": "TRSI!",
+        "line": 1,
+        "path": "TRSI!",
+        "status": "imported",
+        "target_name": "amiga_disk_magicland-dizzy-1991-codemasters-trsi-lsd__amiga_hunk_trsi_4892c70e"
+      },
+      {
+        "command": "CacheOFF",
+        "line": 2,
+        "path": "CacheOFF",
+        "status": "imported",
+        "target_name": "amiga_disk_magicland-dizzy-1991-codemasters-trsi-lsd__amiga_hunk_cacheoff_77b2e4f4"
+      },
+      {
+        "command": "TRAINER",
+        "line": 3,
+        "path": "TRAINER",
+        "status": "imported",
+        "target_name": "amiga_disk_magicland-dizzy-1991-codemasters-trsi-lsd__amiga_hunk_trainer_6df205cc"
+      },
+      {
+        "command": "MD",
+        "line": 4,
+        "path": "MD",
+        "status": "imported",
+        "target_name": "amiga_disk_magicland-dizzy-1991-codemasters-trsi-lsd__amiga_hunk_md_e066dc14"
+      }
+    ],
+    "startup_sequence_lines": [
+      "TRSI!\t\t\t\t;cracked! by beermacht! / trsi",
+      "CacheOFF",
+      "TRAINER\t\t\t\t;trained! by data / lsd",
+      "MD"
+    ],
+    "status": "ok"
+  },
+  "subtargets": [
+    {
+      "added_by_import": true,
+      "id": "amiga_disk_magicland-dizzy-1991-codemasters-trsi-lsd__amiga_hunk_cacheoff_77b2e4f4",
+      "imported_at": "2026-05-27T20:09:54+00:00",
+      "origin": "auto",
+      "path": "targets/amiga_disk_magicland-dizzy-1991-codemasters-trsi-lsd/targets/amiga_hunk_cacheoff_77b2e4f4",
+      "reason_code": null,
+      "reason_detail": null,
+      "state": "added"
+    },
+    {
+      "added_by_import": true,
+      "id": "amiga_disk_magicland-dizzy-1991-codemasters-trsi-lsd__amiga_hunk_md_e066dc14",
+      "imported_at": "2026-05-27T20:09:54+00:00",
+      "origin": "auto",
+      "path": "targets/amiga_disk_magicland-dizzy-1991-codemasters-trsi-lsd/targets/amiga_hunk_md_e066dc14",
+      "reason_code": null,
+      "reason_detail": null,
+      "state": "added"
+    },
+    {
+      "added_by_import": true,
+      "id": "amiga_disk_magicland-dizzy-1991-codemasters-trsi-lsd__amiga_hunk_trainer_6df205cc",
+      "imported_at": "2026-05-27T20:09:54+00:00",
+      "origin": "auto",
+      "path": "targets/amiga_disk_magicland-dizzy-1991-codemasters-trsi-lsd/targets/amiga_hunk_trainer_6df205cc",
+      "reason_code": null,
+      "reason_detail": null,
+      "state": "added"
+    },
+    {
+      "added_by_import": true,
+      "id": "amiga_disk_magicland-dizzy-1991-codemasters-trsi-lsd__amiga_hunk_trsi_4892c70e",
+      "imported_at": "2026-05-27T20:09:54+00:00",
+      "origin": "auto",
+      "path": "targets/amiga_disk_magicland-dizzy-1991-codemasters-trsi-lsd/targets/amiga_hunk_trsi_4892c70e",
+      "reason_code": null,
+      "reason_detail": null,
+      "state": "added"
+    },
+    {
+      "added_by_import": true,
+      "id": "amiga_disk_magicland-dizzy-1991-codemasters-trsi-lsd__amiga_raw_bootblock",
+      "imported_at": "2026-05-27T20:09:54+00:00",
+      "origin": "auto",
+      "path": "targets/amiga_disk_magicland-dizzy-1991-codemasters-trsi-lsd/targets/amiga_raw_bootblock",
+      "reason_code": null,
+      "reason_detail": null,
+      "state": "added"
+    }
+  ]
+}
