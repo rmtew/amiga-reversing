@@ -24,9 +24,9 @@ Current status map:
 - Jump-table auto-analysis: the Pandora absolute-long, local indexed-long, and base-plus-word cases are now covered by
   reusable C facts/render tests. Remaining work should be driven by new target evidence, not another Pandora-specific
   rule.
-- Absolute address processing: Magicland low absolute RAM classification, source-header summaries, and stable generated
-  low-slot symbols are covered. Stronger semantic names/lifetimes remain future type-propagation work unless the
-  analysis proves roles.
+- Absolute address processing: Magicland low absolute RAM classification, source-header summaries, stable generated
+  low-slot symbols, and ordinary absolute-long address-use symbols are covered. Stronger semantic names/lifetimes
+  remain future type-propagation work unless the analysis proves roles.
 - Label correctness: the known Pandora orphan-label case is covered by the generated-label emission split. New label
   issues should be reduced to expression eligibility versus standalone definition proof.
 - Type propagation: Amiga/Atari-style platform call/type propagation remains the general model. Mac `_GetFNum` now has
@@ -551,9 +551,9 @@ Progress note: the rendered source header now includes a bounded, coalesced `Abs
 from accepted C decode candidates. It summarizes absolute RAM ranges by address span, reference count, and read/write/
 address-use kind, while filtering platform hardware and low address-only constants out of the overview. The Magicland
 header now exposes the low RAM slot cluster (`$00000112-$00000318`) and high buffer/pointer addresses such as
-`$0002F490`, `$00032DD0`, and `$0004B470` directly in the human-facing memory map. Remaining work: promote stable
-slot/range names and stronger size/lifetime evidence where analysis can prove them, instead of only using
-address-span summaries.
+`$0002F490`, `$00032DD0`, and `$0004B470` directly in the human-facing memory map. The later resolution notes promote
+ordinary absolute memory operands to stable generated slot symbols where the C owner model proves they are safe.
+Stronger semantic names and size/lifetime evidence still require analysis proof, not address-span summaries alone.
 
 Resolution note: repeated low absolute RAM operands now render through stable generated symbols when the C owner model
 proves they are absolute memory, not hardware registers, CPU vectors, section storage, or materialized runtime ranges.
