@@ -636,24 +636,28 @@ def _source_quality_gate_lines(gate: Mapping[str, object]) -> list[str]:
                 f";       next: {_text(item.get('next_required_implementation'))}",
             ]
         )
-        residual_lines, summarized_residual_count = _human_residual_lines(item)
+        residual_lines, candidate_offsets = _human_residual_lines(item)
         lines.extend(residual_lines)
-        if summarized_residual_count:
+        if candidate_offsets:
             lines.append(
-                f";       residual_summary candidate_unvisited_entry_pattern count={summarized_residual_count} "
+                f";       residual candidate_unvisited_entry_pattern count={len(candidate_offsets)} "
+                f"payload_offsets={','.join(candidate_offsets[:12])}"
+                f"{',...' if len(candidate_offsets) > 12 else ''} "
                 "status=candidate parser_use=candidate_only reason=unvisited executable-looking bytes remain "
-                "structured residuals, not rendered as source comments"
+                "structured residuals, not promoted to source rows"
             )
     lines.append("")
     return lines
 
 
-def _human_residual_lines(item: Mapping[str, object]) -> tuple[list[str], int]:
+def _human_residual_lines(item: Mapping[str, object]) -> tuple[list[str], list[str]]:
     lines: list[str] = []
-    summarized_residual_count = 0
+    candidate_offsets: list[str] = []
     for residual in [_mapping(value) for value in _sequence(item.get("residuals"))]:
         if residual.get("kind") == "candidate_unvisited_entry_pattern":
-            summarized_residual_count += 1
+            start = _int_value(residual.get("start"))
+            if start is not None:
+                candidate_offsets.append(f"{start}")
             continue
         lines.append(
             f";       residual { _text(residual.get('kind')) } "
@@ -661,7 +665,7 @@ def _human_residual_lines(item: Mapping[str, object]) -> tuple[list[str], int]:
             f"status={_text(residual.get('status'))} parser_use={_text(residual.get('parser_use'))} "
             f"reason={_text(residual.get('reason'))}"
         )
-    return lines, summarized_residual_count
+    return lines, candidate_offsets
 
 
 def _dc_b_lines(data: bytes, *, label: str, base_offset: int = 0) -> list[str]:
