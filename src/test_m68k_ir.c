@@ -18272,6 +18272,8 @@ static int test_facts_v2_runtime_mapped_section_keeps_low_absolute_refs_absolute
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
     &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, ";   Absolute memory refs:\n") != NULL);
+  M68K_C_ASSERT(strstr(source, ";     absolute[$0000012A-$0000012E] refs=1 access=r\n") != NULL);
   for (index = 0U; index < source_analysis.sections[0].absolute_memory_ref_count; ++index) {
     const M68kAbsoluteMemoryRefIR *ref = &source_analysis.sections[0].absolute_memory_refs[index];
     if (ref->address == 0x12AU) low_ref = ref;

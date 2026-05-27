@@ -451,8 +451,13 @@ explicit section-storage owner. Magicland's example addresses now classify as `a
 `$012A` (21 refs), `$012E` (4 refs), `$0132` (6 refs), `$00006F50` (14 refs), `$0002F490` (2 refs), `$00032DD0`
 (1 ref), and `$0004B470` (1 ref). Covered by
 `facts_v2_runtime_mapped_section_keeps_low_absolute_refs_absolute` and `cmd /c src\precommit.bat m68k_ir`.
-Remaining work: aggregate these absolute-memory refs into a human useful rendered/source-header memory map with stable
-slot/range names and size/lifetime evidence, rather than only exposing per-reference JSON records.
+Progress note: the rendered source header now includes a bounded, coalesced `Absolute memory refs` subsection built
+from accepted C decode candidates. It summarizes absolute RAM ranges by address span, reference count, and read/write/
+address-use kind, while filtering platform hardware and low address-only constants out of the overview. The Magicland
+header now exposes the low RAM slot cluster (`$00000112-$00000318`) and high buffer/pointer addresses such as
+`$0002F490`, `$00032DD0`, and `$0004B470` directly in the human-facing memory map. Remaining work: promote stable
+slot/range names and stronger size/lifetime evidence where analysis can prove them, instead of only using
+address-span summaries.
 
 ### Disk access
 
