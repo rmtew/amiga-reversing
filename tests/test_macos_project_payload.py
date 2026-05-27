@@ -1113,6 +1113,49 @@ def test_macos_source_quality_residuals_are_split_by_ownership_range() -> None:
     ]
 
 
+def test_macos_analysis_seeds_are_bounded_to_analysis_window() -> None:
+    seeds = macos_project_payload._macos_code_analysis_seeds(
+        {"id": 1},
+        code={
+            "layout_ranges": [
+                {
+                    "kind": "candidate_code",
+                    "start": 40,
+                    "end": 48,
+                    "fact_id": "macos.code_resource.movea_stack_a0.boundary.candidate",
+                    "fact_status": "candidate",
+                    "parser_use": "candidate_only",
+                }
+            ]
+        },
+        payload_base=40,
+        all_routine_candidates=[
+            {
+                "target_resource_id": 1,
+                "routine_offset_from_segment": 6,
+                "routine_offset_space": "candidate_code_range",
+                "fact_id": "macos.code_resource.jump_table.routine_offsets.candidate",
+                "fact_status": "candidate",
+                "parser_use": "candidate_only",
+                "code0_payload_offset": 16,
+            },
+            {
+                "target_resource_id": 1,
+                "routine_offset_from_segment": 8,
+                "routine_offset_space": "candidate_code_range",
+                "fact_id": "macos.code_resource.jump_table.routine_offsets.candidate",
+                "fact_status": "candidate",
+                "parser_use": "candidate_only",
+                "code0_payload_offset": 24,
+            },
+        ],
+    )
+
+    assert [seed["payload_offset"] for seed in seeds] == [40, 46]
+    assert all(seed["analysis_payload_base"] == 40 for seed in seeds)
+    assert all(seed["analysis_payload_end"] == 48 for seed in seeds)
+
+
 def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> None:
     if not IMAGE_PATH.exists():
         pytest.skip("MPW-GM image fixture is not available")
@@ -1231,6 +1274,8 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
             "resource_id": 27,
             "payload_offset": 204,
             "local_offset": 200,
+            "analysis_payload_base": 4,
+            "analysis_payload_end": 1882,
             "reason": "code0_routine_candidate",
             "name": "CODE_27_entry_000000cc",
             "fact_id": "macos.code_resource.jump_table.routine_offsets.candidate",
@@ -1335,6 +1380,8 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
             "resource_id": 1,
             "payload_offset": 40,
             "local_offset": 0,
+            "analysis_payload_base": 40,
+            "analysis_payload_end": 29024,
             "reason": "loader_candidate_code_entry",
             "name": "CODE_1_entry_00000028",
             "fact_id": "macos.code_resource.movea_stack_a0.boundary.candidate",
@@ -1345,6 +1392,8 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
             "resource_id": 1,
             "payload_offset": 62,
             "local_offset": 22,
+            "analysis_payload_base": 40,
+            "analysis_payload_end": 29024,
             "reason": "code0_routine_candidate",
             "name": "CODE_1_entry_0000003e",
             "fact_id": "macos.code_resource.jump_table.routine_offsets.candidate",

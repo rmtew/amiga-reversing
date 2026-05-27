@@ -1265,6 +1265,7 @@ def _macos_code_analysis_seeds(
             seeds,
             payload_offset=start,
             payload_base=payload_base,
+            payload_end=end,
             resource_id=resource_id,
             reason="loader_candidate_code_entry",
             fact_id=range_info.get("fact_id"),
@@ -1285,6 +1286,7 @@ def _macos_code_analysis_seeds(
                 seeds,
                 payload_offset=target_offset,
                 payload_base=payload_base,
+                payload_end=end,
                 resource_id=resource_id,
                 reason="code0_routine_candidate",
                 fact_id=candidate.get("fact_id"),
@@ -1586,6 +1588,7 @@ def _add_macos_code_analysis_seed(
     *,
     payload_offset: int,
     payload_base: int,
+    payload_end: int,
     resource_id: int,
     reason: str,
     fact_id: object,
@@ -1593,9 +1596,9 @@ def _add_macos_code_analysis_seed(
     parser_use: object,
     code0_payload_offset: object | None = None,
 ) -> None:
-    local_offset = payload_offset - payload_base
-    if local_offset < 0:
+    if payload_offset < payload_base or payload_offset >= payload_end:
         return
+    local_offset = payload_offset - payload_base
     existing = seeds.get(local_offset)
     if existing is not None and existing.get("reason") == "code0_routine_candidate":
         return
@@ -1603,6 +1606,8 @@ def _add_macos_code_analysis_seed(
         "resource_id": resource_id,
         "payload_offset": payload_offset,
         "local_offset": local_offset,
+        "analysis_payload_base": payload_base,
+        "analysis_payload_end": payload_end,
         "reason": reason,
         "name": f"CODE_{resource_id}_entry_{payload_offset:08x}",
         "fact_id": fact_id,
