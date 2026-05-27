@@ -31,9 +31,9 @@ Current status map:
   issues should be reduced to expression eligibility versus standalone definition proof.
 - Type propagation: Amiga/Atari-style platform call/type propagation remains the general model. Mac `_GetFNum` now has
   generated metadata, stack-argument binding, API-input local typed-access facts, and an output-pointer local typed-access
-  bridge that propagates the direct output-value move into the caller-visible local. Mac A5-world slot typing is
-  intentionally not closed until accepted A5 lifetime evidence can connect ordinary instruction reads/writes to the
-  signed A5 storage-layout regions now carried by C analysis.
+  bridge that propagates the direct output-value move into the caller-visible local. Mac A5-world layout is carried as
+  platform storage metadata, but individual slot typing is formally deferred until a neutral A5 storage-use IR plus
+  accepted A5 lifetime proof exists; the current typed-access carrier would overclaim a root type for raw globals.
 
 ## Investigation needed: MacOS/MPW asm
 
@@ -229,8 +229,16 @@ populates generic `M68kObject` platform-storage rows for below-A5 globals, the A
 globals; the C facts pipeline copies those rows into `memory_layout_records` with signed A5 coordinates. Covered by
 `facts_v2_macos_a5_world_layout_reaches_source_analysis`,
 `test_021_007_macos_hfs_code_artifact_carries_code0_a5_world_layout`,
-`tests/test_macos_c_backend.py`, and `cmd /c src\precommit.bat m68k_ir`. Remaining work is A5 lifetime/type
-propagation: only accesses proven to have A5 live should become typed A5 storage facts.
+`tests/test_macos_c_backend.py`, and `cmd /c src\precommit.bat m68k_ir`.
+
+Formal deferral: individual A5-world slot typing is intentionally not closed in this TODO. The current C carriers split
+cleanly between `platform_storage_layout` for known storage windows and `platform_typed_access` for accesses with a
+known root struct/type. Raw A5-world operands have a proven storage region but no proven slot type, and the current
+analysis does not yet have an accepted A5 lifetime proof tying each ordinary `(a5)` use to CODE 0's A5 world. Forcing
+those operands into `platform_typed_access` or the Amiga app-slot model would hide the distinction between below-A5
+globals, jump-table entries, and above-A5 globals. The correct future work is a neutral Mac platform storage-use IR
+that records base register, displacement, width, region kind, and lifetime confidence without claiming a type, followed
+by a later type-propagation pass that promotes only proven slots.
 
 
 ### Pascal strings
