@@ -31,15 +31,16 @@ Current status map:
   issues should be reduced to expression eligibility versus standalone definition proof.
 - Type propagation: Amiga/Atari-style platform call/type propagation remains the general model. Mac `_GetFNum` now has
   generated metadata, stack-argument binding, API-input local typed-access facts, and an output-pointer local typed-access
-  bridge. Mac A5-world slot typing is intentionally not closed until accepted A5 lifetime evidence can connect ordinary
-  instruction reads/writes to the signed A5 storage-layout regions now carried by C analysis.
+  bridge that propagates the direct output-value move into the caller-visible local. Mac A5-world slot typing is
+  intentionally not closed until accepted A5 lifetime evidence can connect ordinary instruction reads/writes to the
+  signed A5 storage-layout regions now carried by C analysis.
 
 ## Investigation needed: MacOS/MPW asm
 
-We don't support the way that official MacOS .a files work. This is to limit the investment of MacOS targets to
-that required to support Amiga developers who might want to port a project to the Amiga. This means that if we need
-to define something like structs and data types in ranges, we might do so with the Amiga structs and RSSET ranges
-for now.
+Mac restored source now includes the relevant official MPW `.a` interface files for known traps, while generated C
+metadata consumes the corresponding interface declarations for analysis. The remaining Mac support in this TODO is
+about conservative type/storage propagation from that platform knowledge, not local EQU substitutes or Python-side
+rendering shortcuts.
 
 ### System calls
 
@@ -59,11 +60,10 @@ CODE_1_data_0000208c:
 	rts
 ```
 
-In this case, presumably we know the input registers to _GetFNum or what is expected on the stack. Similar to Amiga
-or Atari potentially in that we should be able to do type inference on the inputs and outputs. Amiga and Atari and
-MacOS should have data on these calls and their inputs and outputs garnered from includes and other platform data
-sources into the knowledge base as JSON which is used to generate platform-specific includes. This should be extended
-to give us type analysis.
+This case is now resolved for the reached `_GetFNum` pattern: generated Mac call metadata knows the stack parameters,
+and the C analysis bridge records the concrete stack/local operands and typed input/output value flow. The original
+question was whether this should be driven like Amiga/Atari platform call metadata rather than comments; that is now
+the implemented direction.
 
 `_GetFNum` is present in the MPW GM interfaces, but not where a quick top-level glance tends to find it. It is in
 `ext\macos_includes\mpw_gm\Interfaces\AIncludes\Fonts.a` as an `OPWORD $A900` macro, with the adjacent interface
