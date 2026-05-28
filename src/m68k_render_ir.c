@@ -5215,16 +5215,27 @@ static int structured_item_matches_section(const M68kAnalysisStructuredDataItem 
   return section_index == 0U;
 }
 
+static int structured_data_item_is_untyped_bytes_placeholder_local(const M68kAnalysisStructuredDataItem *item) {
+  return item != NULL && item->kind == M68K_ANALYSIS_STRUCTURED_DATA_BYTES &&
+    item->semantic_role_flags == 0U && item->source_pattern_id == 0U && item->size != 0U;
+}
+
 const M68kAnalysisStructuredDataItem *lookup_structured_data_item_at_offset(
     const M68kRenderLookup *lookup, size_t section_index, uint32_t offset) {
   uint16_t index;
   const M68kAnalysisPolicy *policy = lookup != NULL ? lookup->policy : NULL;
+  const M68kAnalysisStructuredDataItem *untyped_placeholder = NULL;
   if (policy != NULL) {
     for (index = 0U; index < policy->structured_data_item_count &&
          index < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT; ++index) {
       const M68kAnalysisStructuredDataItem *item = &policy->structured_data_items[index];
-      if (item->offset == offset && item->size != 0U && structured_item_matches_section(item, section_index))
+      if (item->offset == offset && item->size != 0U && structured_item_matches_section(item, section_index)) {
+        if (structured_data_item_is_untyped_bytes_placeholder_local(item)) {
+          untyped_placeholder = item;
+          continue;
+        }
         return item;
+      }
     }
   }
   if (lookup != NULL) {
@@ -5235,6 +5246,7 @@ const M68kAnalysisStructuredDataItem *lookup_structured_data_item_at_offset(
         return item;
     }
   }
+  if (untyped_placeholder != NULL) return untyped_placeholder;
   return NULL;
 }
 

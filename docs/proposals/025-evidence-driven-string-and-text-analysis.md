@@ -841,3 +841,63 @@ Remaining observation for later presentation work: the renderer currently emits
 LF-plus-nul as two rows (`"text",$0A` then `$00`). This is byte-exact and
 round-trips, but a future source presentation pass could keep `$0A,$00` on one
 row when width allows.
+
+### 2026-05-28 table bounds and placeholder refinement pass
+
+Two review points were resolved in the C analysis path.
+
+First, target-validated indexed long pointer tables no longer stop at a fixed
+64-byte span. That cap was not semantic evidence. The scanner now continues
+while each entry is a valid even pointer to an accepted source target and stops
+at normal blockers: labels, interior labels, accepted code bytes, invalid
+targets, or section end. Scalar tables still need consumer-derived bounds
+before they can safely grow without a small proof; arbitrary widening would be
+guessing.
+
+This improves Bloodwych from a partly symbolic table followed by raw bytes to a
+single symbolic table:
+
+```asm
+    dc.l abs_0_0000588E
+    dc.l abs_0_00006C0A
+    dc.l abs_0_00006A46
+    ...
+    dc.l abs_0_000064D0
+```
+
+Second, untyped same-start byte placeholders no longer suppress stronger C
+evidence. A placeholder from a legacy/manual data symbol can be refined into an
+auto structured string when the evidence proves the same start offset. Typed
+items, offset-mismatched overlaps, relocations, code bytes, labels, and anchors
+still block. This is a general precedence rule, not a Pandora name heuristic.
+
+The Pandora credits block now renders as readable text while preserving the
+existing later string boundary:
+
+```asm
+string_0002109E:
+    dc.b "   CREATED BY: SHAHID AHMAD",$0D
+    dc.b "               DAVID EASTMAN",$0D
+    dc.b "               TERRY GREER",$0D,$0D
+    dc.b "PUBLISHED BY: FIREBIRD SOFTWARE",$00
+```
+
+No-fixture C tests cover both behaviours:
+
+- a 20-entry indexed pointer table remains symbolic beyond 64 bytes because all
+  entries resolve to accepted targets;
+- printable multiline text can refine a same-start untyped bytes placeholder
+  and stop at an existing structured string boundary.
+
+Verification:
+
+```text
+cmd /c src\precommit.bat m68k_ir
+amiga-source-export --output for all tracked target .s files
+uv run platform-rendered-source-roundtrip
+```
+
+Round-trip remained `34/36 full-file exact`, `1/36 content-exact-only`
+(`amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h__amiga_hunk_menu_252a2566`),
+`1/36 unsupported` (`macos_hfs_mpw_gm__macos_file_mpw_tools_asm`), and
+`0 failures`.

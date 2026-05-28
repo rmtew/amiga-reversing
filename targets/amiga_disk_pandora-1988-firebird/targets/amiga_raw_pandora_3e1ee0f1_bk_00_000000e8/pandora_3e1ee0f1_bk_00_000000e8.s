@@ -229,6 +229,18 @@ bitmap_00075050_lo	EQU	bitmap_00075050-(bitmap_00075050_hi*$10000)
 bitmap_00075078	EQU	$75078
 bitmap_00075078_hi	EQU	bitmap_00075078/$10000
 bitmap_00075078_lo	EQU	bitmap_00075078-(bitmap_00075078_hi*$10000)
+bitmap_00070000	EQU	$70000
+bitmap_00070000_hi	EQU	bitmap_00070000/$10000
+bitmap_00070000_lo	EQU	bitmap_00070000-(bitmap_00070000_hi*$10000)
+bitmap_00070028	EQU	$70028
+bitmap_00070028_hi	EQU	bitmap_00070028/$10000
+bitmap_00070028_lo	EQU	bitmap_00070028-(bitmap_00070028_hi*$10000)
+bitmap_00070050	EQU	$70050
+bitmap_00070050_hi	EQU	bitmap_00070050/$10000
+bitmap_00070050_lo	EQU	bitmap_00070050-(bitmap_00070050_hi*$10000)
+bitmap_00070078	EQU	$70078
+bitmap_00070078_hi	EQU	bitmap_00070078/$10000
+bitmap_00070078_lo	EQU	bitmap_00070078-(bitmap_00070078_hi*$10000)
 absolute_slot_000039BC	EQU	$39BC
 runtime_address_000778A0	EQU	$778A0
 absolute_slot_000039CC	EQU	$39CC
@@ -904,8 +916,9 @@ abs_0_00010C6A:
 	adda.w d0,a0
 	jmp (a1)
 lookup_table_00020CA0:
-	dc.b $00,$01,$0C,$C0,$00,$01,$0C,$CC,$00,$01,$0C,$D8,$00,$01,$0C,$E4
-	dc.b $00,$01,$0C,$F0,$00,$01,$0C,$FC,$00,$01,$0D,$08,$00,$01,$0D,$14
+	dc.l $00010CC0	; lookup_table
+	dc.b $00,$01,$0C,$CC,$00,$01,$0C,$D8,$00,$01,$0C,$E4,$00,$01,$0C,$F0
+	dc.b $00,$01,$0C,$FC,$00,$01,$0D,$08,$00,$01,$0D,$14
 abs_0_00010CC0:
 	bclr.b d1,(a0)
 	bclr.b d1,$0028(a0)
@@ -1053,14 +1066,37 @@ abs_0_00010EB8:
 	dc.b $07,$66,$05,$66,$04,$66,$03,$66,$06,$66,$09,$66,$0C,$66,$0F,$66
 copper_list_00020ED8:
     ; display layout 4 bitmap planes $00070000..$00070078 step $28
-	dc.b $00,$E0,$00,$07,$00,$E2,$00,$00,$00,$E4,$00,$07,$00,$E6,$00,$28
-	dc.b $00,$E8,$00,$07,$00,$EA,$00,$50,$00,$EC,$00,$07,$00,$EE,$00,$78
-	dc.b $01,$20,$00,$05,$01,$22,$D5,$DE,$01,$24,$00,$05,$01,$26,$D5,$DE
-	dc.b $01,$28,$00,$05,$01,$2A,$D5,$DE,$01,$2C,$00,$05,$01,$2E,$D5,$DE
-	dc.b $01,$30,$00,$05,$01,$32,$D5,$DE,$01,$34,$00,$05,$01,$36,$D5,$DE
-	dc.b $01,$38,$00,$05,$01,$3A,$D5,$DE,$01,$3C,$00,$05,$01,$3E,$D5,$DE
-	dc.b $33,$D3,$FF,$FE,$00,$9C,$80,$10,$CA,$01,$FF,$FE,$00,$9C,$80,$10
-	dc.b $EB,$01,$FF,$FE,$00,$9C,$80,$10,$FF,$FF,$FF,$FE
+	dc.w bplpt,bitmap_00070000_hi	; bitmap pointer $00070000
+	dc.w bplpt+$02,bitmap_00070000_lo
+	dc.w bplpt+$04,bitmap_00070028_hi	; bitmap pointer $00070028
+	dc.w bplpt+$06,bitmap_00070028_lo
+	dc.w bplpt+$08,bitmap_00070050_hi	; bitmap pointer $00070050
+	dc.w bplpt+$0A,bitmap_00070050_lo
+	dc.w bplpt+$0C,bitmap_00070078_hi	; bitmap pointer $00070078
+	dc.w bplpt+$0E,bitmap_00070078_lo
+	dc.w sprpt,sprite_0005D5DE_hi	; sprite pointer $0005D5DE
+	dc.w sprpt+$02,sprite_0005D5DE_lo
+	dc.w sprpt+$04,sprite_0005D5DE_hi	; sprite pointer $0005D5DE
+	dc.w sprpt+$06,sprite_0005D5DE_lo
+	dc.w sprpt+$08,sprite_0005D5DE_hi	; sprite pointer $0005D5DE
+	dc.w sprpt+$0A,sprite_0005D5DE_lo
+	dc.w sprpt+$0C,sprite_0005D5DE_hi	; sprite pointer $0005D5DE
+	dc.w sprpt+$0E,sprite_0005D5DE_lo
+	dc.w sprpt+$10,sprite_0005D5DE_hi	; sprite pointer $0005D5DE
+	dc.w sprpt+$12,sprite_0005D5DE_lo
+	dc.w sprpt+$14,sprite_0005D5DE_hi	; sprite pointer $0005D5DE
+	dc.w sprpt+$16,sprite_0005D5DE_lo
+	dc.w sprpt+$18,sprite_0005D5DE_hi	; sprite pointer $0005D5DE
+	dc.w sprpt+$1A,sprite_0005D5DE_lo
+	dc.w sprpt+$1C,sprite_0005D5DE_hi	; sprite pointer $0005D5DE
+	dc.w sprpt+$1E,sprite_0005D5DE_lo
+	dc.w COPPER_WAIT|$33D2,$FFFE	; copper wait v=$33 h=$D2 mask $FFFE
+	dc.w intreq,INTF_SETCLR|INTF_COPER
+	dc.w COPPER_WAIT|$CA00,$FFFE	; copper wait v=$CA h=$00 mask $FFFE
+	dc.w intreq,INTF_SETCLR|INTF_COPER
+	dc.w COPPER_WAIT|$EB00,$FFFE	; copper wait v=$EB h=$00 mask $FFFE
+	dc.w intreq,INTF_SETCLR|INTF_COPER
+	dc.w $FFFF,$FFFE
 abs_0_00010F54:
 	addq.l #1,app_frame_counter(a6)
 	bsr.w abs_0_00010752
@@ -1153,13 +1189,9 @@ abs_0_00011070:
 	rts
 	dc.b $33,$EE,$01,$AC,$00,$DF,$F1,$80,$60,$F6
 string_0002109E:
-	dc.b $20,$20,$20,$43,$52,$45,$41,$54,$45,$44,$20,$42,$59,$3A,$20,$53
-	dc.b $48,$41,$48,$49,$44,$20,$41,$48,$4D,$41,$44
-	dc.b $0D
-	dcb.b $F,$20
-	dc.b $44,$41,$56,$49,$44,$20,$45,$41,$53,$54,$4D,$41,$4E,$0D
-	dcb.b $F,$20
-	dc.b $54,$45,$52,$52,$59,$20,$47,$52,$45,$45,$52,$0D,$0D
+	dc.b "   CREATED BY: SHAHID AHMAD",$0D
+	dc.b "               DAVID EASTMAN",$0D
+	dc.b "               TERRY GREER",$0D,$0D
 	dc.b "PUBLISHED BY: FIREBIRD SOFTWARE",$00
 	dc.b $00
 abs_0_00011114:
