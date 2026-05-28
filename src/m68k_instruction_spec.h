@@ -24,6 +24,7 @@ typedef struct {
   M68kAsmOperandValue operands[M68K_INSTRUCTION_SPEC_MAX_OPERANDS];
   char operand_label_names[M68K_INSTRUCTION_SPEC_MAX_OPERANDS][M68K_INSTRUCTION_SPEC_MAX_LABEL_NAME];
   int32_t operand_label_addends[M68K_INSTRUCTION_SPEC_MAX_OPERANDS];
+  uint8_t operand_label_ref_kinds[M68K_INSTRUCTION_SPEC_MAX_OPERANDS];
 } InstructionSpec;
 
 const char *m68k_instruction_spec_mnemonic_name(const InstructionSpec *instruction);

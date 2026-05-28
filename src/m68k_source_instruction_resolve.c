@@ -74,6 +74,16 @@ M68kSourceResolvedInstruction m68k_source_resolve_instruction_operands(const M68
         instruction_offset, line_number, allow_undefined, diagnostics);
     if (!symbol_result.ok) return result;
     result.instruction = symbol_result.instruction;
+    for (operand_index = 0; operand_index < result.instruction.operand_count && operand_index < 4U; ++operand_index) {
+        form_operands[operand_index] = result.instruction.operands[operand_index].value;
+    }
+    asm_form_index = m68k_asm_form_index_for_operands_id(result.instruction.mnemonic_id, form_operands,
+        result.instruction.operand_count, requested_size_suffix, result.instruction.target_cpu);
+    if (g_m68k_asm_forms[asm_form_index].mnemonic_id == M68K_ASM_MNEMONIC_NONE) {
+        m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_SOURCE_FAILED,
+            "failed resolving symbolic instruction form");
+        return result;
+    }
     if (normalize_symbolic_zero_address_displacements_local(context, &result.instruction)) {
         for (operand_index = 0; operand_index < result.instruction.operand_count && operand_index < 4U; ++operand_index) {
             form_operands[operand_index] = result.instruction.operands[operand_index].value;

@@ -245,6 +245,7 @@ int m68k_parse_instruction_with_symbol_fallback_spec(const M68kSymbolicParseCont
   char rewritten_operands[M68K_INSTRUCTION_SPEC_MAX_OPERANDS][64];
   char symbolic_names[M68K_INSTRUCTION_SPEC_MAX_OPERANDS][M68K_INSTRUCTION_SPEC_MAX_LABEL_NAME];
   int32_t symbolic_addends[M68K_INSTRUCTION_SPEC_MAX_OPERANDS] = {0, 0, 0, 0};
+  uint8_t symbolic_ref_kinds[M68K_INSTRUCTION_SPEC_MAX_OPERANDS] = {0, 0, 0, 0};
   size_t operand_count = 0;
   size_t operand_index;
   char *dot = NULL;
@@ -272,6 +273,7 @@ int m68k_parse_instruction_with_symbol_fallback_spec(const M68kSymbolicParseCont
     const char *operand = operands[operand_index];
     symbolic_names[operand_index][0] = '\0';
     symbolic_addends[operand_index] = 0;
+    symbolic_ref_kinds[operand_index] = M68K_IR_SYMBOL_REF_ABS;
     if (operand[0] == '#') {
       M68kSourceConstantResult immediate_value = m68k_source_parse_constant_expression(operand + 1,
         lookup_constant_symbol_for_expression, (void *)context);
@@ -292,6 +294,7 @@ int m68k_parse_instruction_with_symbol_fallback_spec(const M68kSymbolicParseCont
     } else if (rewrite_absolute_symbol_operand(context, operand, rewritten_operands[operand_index],
         sizeof(rewritten_operands[operand_index]), symbolic_names[operand_index],
         sizeof(symbolic_names[operand_index]), &symbolic_addends[operand_index])) {
+      symbolic_ref_kinds[operand_index] = M68K_IR_SYMBOL_REF_ABS;
     } else if (rewrite_current_relative_label_operand(mnemonic_text, operand, rewritten_operands[operand_index],
         sizeof(rewritten_operands[operand_index]))) {
     } else if (context->is_symbol_name != NULL && context->is_symbol_name(operand, context->user_data) &&
@@ -300,9 +303,12 @@ int m68k_parse_instruction_with_symbol_fallback_spec(const M68kSymbolicParseCont
       snprintf(rewritten_operands[operand_index], sizeof(rewritten_operands[operand_index]), "%s",
                mnemonic_uses_relative_label_operand(mnemonic_text) ? "2" : "$0.l");
       snprintf(symbolic_names[operand_index], sizeof(symbolic_names[operand_index]), "%s", operand);
+      symbolic_ref_kinds[operand_index] = mnemonic_uses_relative_label_operand(mnemonic_text)
+        ? M68K_IR_SYMBOL_REF_PC_REL : M68K_IR_SYMBOL_REF_ABS;
     } else if (rewrite_pc_relative_symbol_operand(context, operand, rewritten_operands[operand_index],
         sizeof(rewritten_operands[operand_index]), symbolic_names[operand_index], sizeof(symbolic_names[operand_index]),
         &symbolic_addends[operand_index])) {
+      symbolic_ref_kinds[operand_index] = M68K_IR_SYMBOL_REF_PC_REL;
     } else if (rewrite_base_relative_symbol_operand(context, operand, rewritten_operands[operand_index],
         sizeof(rewritten_operands[operand_index]), symbolic_names[operand_index],
         sizeof(symbolic_names[operand_index]), &symbolic_addends[operand_index])) {
@@ -330,6 +336,7 @@ int m68k_parse_instruction_with_symbol_fallback_spec(const M68kSymbolicParseCont
     snprintf(out_instruction->operand_label_names[operand_index],
       sizeof(out_instruction->operand_label_names[operand_index]), "%s", symbolic_names[operand_index]);
     out_instruction->operand_label_addends[operand_index] = symbolic_addends[operand_index];
+    out_instruction->operand_label_ref_kinds[operand_index] = symbolic_ref_kinds[operand_index];
   }
   return 1;
 }
@@ -353,6 +360,8 @@ int m68k_parse_instruction_with_symbol_fallback_ir( const M68kSymbolicParseConte
              sizeof(out_instruction->operands[operand_index].symbol_ref.name),
              "%s", parsed.operand_label_names[operand_index]);
     mark_ir_symbol_ref_kind(&out_instruction->operands[operand_index]);
+    if (parsed.operand_label_ref_kinds[operand_index] != 0U)
+      out_instruction->operands[operand_index].symbol_ref.kind = parsed.operand_label_ref_kinds[operand_index];
   }
   return 1;
 }

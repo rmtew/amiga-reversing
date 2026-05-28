@@ -461,6 +461,10 @@ static int m68k_asm_append_long_words(uint16_t *out_words, size_t max_words, siz
   return 0;
 }
 
+static int m68k_asm_value_fits_signed_word(uint32_t value) {
+  return value <= 0x7FFFU || value >= 0xFFFF8000U;
+}
+
 static int m68k_asm_emit_bound_extension_word(const M68kAsmFormDef *form, uint8_t word_index,
     const uint16_t *field_values, uint16_t *out_words, size_t max_words, size_t *word_count) {
   size_t patch_index;
@@ -527,8 +531,11 @@ static int m68k_asm_emit_one_extension(uint16_t asm_form_index, const M68kAsmExt
     case M68K_ASM_EXTENSION_EA_SINGLE_WORD:
       if (((operand->kind == M68K_ASM_OPERAND_EA || operand->kind == M68K_ASM_OPERAND_BF_EA) &&
           ((operand->ea_mode == 5) || (operand->ea_mode == 7 && operand->ea_reg == 0) ||
-          (operand->ea_mode == 7 && operand->ea_reg == 2))))
+          (operand->ea_mode == 7 && operand->ea_reg == 2)))) {
+        if (operand->ea_mode == 7 && operand->ea_reg == 0 &&
+            !m68k_asm_value_fits_signed_word(operand->value)) return -7;
         return m68k_asm_append_word(out_words, max_words, word_count, (uint16_t)(operand->value & 0xFFFF));
+      }
       return 0;
     case M68K_ASM_EXTENSION_EA_LONG_ADDRESS:
       if ((operand->kind == M68K_ASM_OPERAND_EA || operand->kind == M68K_ASM_OPERAND_BF_EA) &&

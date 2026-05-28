@@ -96,7 +96,14 @@ static int resolve_instruction_labels(InstructionSpec *instruction, size_t instr
         if (instruction->operand_label_names[operand_index][0] == '\0') continue;
         target_offset = find_label_offset(labels, label_count, instruction->operand_label_names[operand_index], &found);
         if (!found) return 0;
-        if (operand->kind == M68K_ASM_OPERAND_EA &&
+        if (instruction->operand_label_ref_kinds[operand_index] == M68K_IR_SYMBOL_REF_ABS) {
+            if (operand->kind == M68K_ASM_OPERAND_LABEL) {
+                operand->kind = M68K_ASM_OPERAND_EA;
+                operand->ea_mode = 7;
+                operand->ea_reg = instruction->size_suffix == 'l' ? 1 : 0;
+            }
+            operand->value = (uint32_t)target_offset;
+        } else if (operand->kind == M68K_ASM_OPERAND_EA &&
             ((operand->ea_mode == 7 && operand->ea_reg == 2) || (operand->ea_mode == 7 && operand->ea_reg == 3))) {
             operand->value = (uint32_t)(target_offset - (instruction_offset +
                 m68k_asm_operand_relative_base_offset(asm_form_index, instruction->operands,
@@ -105,6 +112,10 @@ static int resolve_instruction_labels(InstructionSpec *instruction, size_t instr
             operand->value = (uint32_t)(target_offset - (instruction_offset + 2U));
         }
     }
+    asm_form_index = m68k_asm_form_index_for_operands_id(instruction->mnemonic_id,
+        instruction->operands, instruction->operand_count, instruction->size_suffix, instruction->target_cpu);
+    form = &g_m68k_asm_forms[asm_form_index];
+    if (form->mnemonic_id == M68K_ASM_MNEMONIC_NONE) return 0;
     if (m68k_asm_build_patch_values(asm_form_index, instruction->size_suffix, instruction->operands,
         instruction->operand_count, instruction->patch_values, M68K_INSTRUCTION_SPEC_MAX_PATCH_VALUES) != 0) {
         return 0;

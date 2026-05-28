@@ -185,7 +185,7 @@ static uint8_t structured_data_item_infer_table_kind_id(const M68kAnalysisStruct
   if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_LONGS && item->has_target &&
       item->source_pattern_id == M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_KEYED_LONG_RELATIVE_DISPATCH)
     return M68K_ANALYSIS_TABLE_KIND_RELATIVE_CODE_DISPATCH;
-  if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_LONGS)
+  if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_LONGS && item->has_target)
     return M68K_ANALYSIS_TABLE_KIND_ABSOLUTE_CODE_DISPATCH;
   return M68K_ANALYSIS_TABLE_KIND_SCALAR;
 }
