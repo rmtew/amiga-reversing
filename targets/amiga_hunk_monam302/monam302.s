@@ -8200,15 +8200,16 @@ loc_0_00008217:
 	dc.b "Text: ",$00
 	dc.b "Data: ",$00
 	dc.b "BSS : ",$00
-	dc.b $43,$75,$72,$72,$65,$6E,$74,$20,$42,$72,$65,$61,$6B,$70,$6F,$69
-	dc.b $6E,$74,$73,$3A,$0A,$00
+	dc.b "Current Breakpoints:",$0A
+	dc.b $00
 	dc.b "Data start,end<,size>",$00
 	dc.b "Cross-reference list",$00
 	dc.b "Filename",$00
 	dc.b "Checking for symbols..",$00
-	dc.b $43,$68,$65,$63,$6B,$69,$6E,$67,$20,$66,$6F,$72,$20,$6C,$69,$62
-	dc.b $66,$69,$6C,$65,$2E,$2E,$0A,$00,$4C,$6F,$61,$64,$69,$6E,$67,$20
-	dc.b $6C,$69,$62,$66,$69,$6C,$65,$2E,$2E,$0A,$00
+	dc.b "Checking for libfile..",$0A
+	dc.b $00
+	dc.b "Loading libfile..",$0A
+	dc.b $00
 	dc.b "Task terminated",$00
 	dc.b "Unknown exception",$00
 	dc.b "Line A exception",$00

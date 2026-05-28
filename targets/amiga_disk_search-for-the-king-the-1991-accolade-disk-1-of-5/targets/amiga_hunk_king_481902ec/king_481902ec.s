@@ -4150,8 +4150,8 @@ loc_1_00000722:
 	dc.b "Too many nouns, man.",$00
 	dc.b $00
 loc_1_00000738:
-	dc.b "Les isn't sure what all you're referring to."
-	dc.b $0A,$00
+	dc.b "Les isn't sure what all you're referring to.",$0A
+	dc.b $00
 loc_1_00000766:
 	dc.b "You're not close enough to %r.",$00
 	dc.b $00
@@ -4200,8 +4200,9 @@ loc_1_000008D0:
 loc_1_000008D4:
 	dc.b $43,$53,$33,$00
 loc_1_000008D8:
-	dc.b "Your score is %n."
-	dc.b $0A,$00,$00
+	dc.b "Your score is %n.",$0A
+	dc.b $00
+	dc.b $00
 loc_1_000008EC:
 	dc.b $57,$68,$61,$3F,$00,$00
 loc_1_000008F2:
@@ -9996,8 +9997,8 @@ loc_7_00000206:
 loc_7_00000222:
 	dc.b $44,$41,$30,$00
 loc_7_00000226:
-	dc.b "Pdebug: wd_type=%n"
-	dc.b $0A,$00
+	dc.b "Pdebug: wd_type=%n",$0A
+	dc.b $00
 loc_7_0000023A:
 	dc.b $47,$49,$30,$00
 loc_7_0000023E:
@@ -13152,11 +13153,12 @@ loc_8_000002EA:
 	dc.b $00,$2C,$20,$6F,$6E,$20,$74,$68,$65,$20,$00,$2C,$20,$69,$6E,$20
 	dc.b $74,$68,$65,$20,$00,$25,$73,$2E,$00
 loc_8_00000308:
-	dc.b "Error in Get_Spr_Attr mini_take"
-	dc.b $0A,$00,$00
+	dc.b "Error in Get_Spr_Attr mini_take",$0A
+	dc.b $00
+	dc.b $00
 loc_8_0000032A:
-	dc.b "Ooops. Error in SetSprAttr mini_take"
-	dc.b $0A,$00
+	dc.b "Ooops. Error in SetSprAttr mini_take",$0A
+	dc.b $00
 loc_8_00000350:
 	dc.b "Error in SetSprAttr mini_drop",$00
 loc_8_0000036E:
@@ -15155,11 +15157,12 @@ loc_9_0000003E:
 	move.l (a7)+,d7
 	rts
 loc_9_00000048:
-	dc.b "Type Something"
-	dc.b $0A,$00
+	dc.b "Type Something",$0A
+	dc.b $00
 loc_9_00000058:
-	dc.b "Enter New Directory"
-	dc.b $0A,$00,$00
+	dc.b "Enter New Directory",$0A
+	dc.b $00
+	dc.b $00
 loc_9_0000006E:
 	dc.b $0A,$6C
 	dc.b "en is %ld",$00
@@ -53597,23 +53600,26 @@ loc_43_0000000E:
 	dc.b "AudioTimer",$00
 	dc.b $00
 loc_43_0000001A:
-	dc.b "Can't AllocMem MsgPort."
-	dc.b $0A,$00,$00
+	dc.b "Can't AllocMem MsgPort.",$0A
+	dc.b $00
+	dc.b $00
 loc_43_00000034:
-	dc.b "Can't AllocMem Interrupt."
-	dc.b $0A,$00,$00
+	dc.b "Can't AllocMem Interrupt.",$0A
+	dc.b $00
+	dc.b $00
 loc_43_00000050:
-	dc.b "Can't create IOReq"
-	dc.b $0A,$00
+	dc.b "Can't create IOReq",$0A
+	dc.b $00
 loc_43_00000064:
 	dc.b "timer.device",$00
 	dc.b $00
 loc_43_00000072:
-	dc.b "Can't open timer.device"
-	dc.b $0A,$00,$00
+	dc.b "Can't open timer.device",$0A
+	dc.b $00
+	dc.b $00
 loc_43_0000008C:
-	dc.b "open_vblank: Can't alloc int structure"
-	dc.b $0A,$00
+	dc.b "open_vblank: Can't alloc int structure",$0A
+	dc.b $00
 loc_43_000000B4:
 	dc.b "VertB-Music",$00
 loc_43_000000C0:
@@ -53996,8 +54002,8 @@ loc_44_00000196:
 	dc.b $75,$6D,$65,$6E,$74,$3A,$20,$63,$61,$6E,$27,$74,$20,$66,$69,$6E
 	dc.b $64,$20,$42,$4F,$44,$59,$20,$69,$6E,$20,$00,$00
 loc_44_000001BA:
-	dc.b "Prepping for song (hash) %lX"
-	dc.b $0A,$00
+	dc.b "Prepping for song (hash) %lX",$0A
+	dc.b $00
 loc_44_000001D8:
 	dc.b "Blech! prep_"
 loc_44_000001E4:

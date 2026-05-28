@@ -46,14 +46,14 @@
   "file_layout": [],
   "file_shape_adjustments": [],
   "file_shape_diagnostics": [],
-  "finished_at": 1779953120.3817146,
+  "finished_at": 1779955235.406354,
   "first_diff": null,
   "input_stamp": {
     "analysis_backend": "facts_v2",
     "assembler": "our",
     "assembler_cpu": "any",
     "assembler_tool_path": "C:\\Data\\R\\git\\claude-repos\\amiga-reversing2\\src\\build\\platform_file_lib.dll",
-    "assembler_tool_stamp": "2635776:1779952880027891900",
+    "assembler_tool_stamp": "2636800:1779954977004534800",
     "backend": "amiga-hunk",
     "effective_metadata_sha256": "2dc738453d7edcbc050659715a0058ca28d95d4338c8853142856305d94ed665",
     "oracle_tool_availability": [],
@@ -90,8 +90,8 @@
     "source_renderer": "c-backend",
     "source_renderer_tool_stamps": {
       "c_backend.py": "72569:1779900302956229800",
-      "platform_disk_lib.dll": "2701312:1779952879775718800",
-      "platform_file_lib.dll": "2635776:1779952880027891900"
+      "platform_disk_lib.dll": "2702336:1779954976755796300",
+      "platform_file_lib.dll": "2636800:1779954977004534800"
     }
   },
   "issues": [],
@@ -177,21 +177,21 @@
       "fixed_point_data_span_seconds": 0.0,
       "fixed_point_index_seconds": 0.0,
       "fixed_point_invariant_seconds": 0.0,
-      "fixed_point_materialize_labels_seconds": 0.189,
+      "fixed_point_materialize_labels_seconds": 0.186,
       "fixed_point_opcode_relocation_conflict_seconds": 0.0,
       "fixed_point_reachable_accept_seconds": 0.0,
       "fixed_point_reachable_decode_seconds": 0.0,
       "fixed_point_reachable_fallthrough_seconds": 0.0,
       "fixed_point_reachable_relocation_seconds": 0.0,
-      "fixed_point_reachable_seconds": 0.001,
+      "fixed_point_reachable_seconds": 0.0,
       "fixed_point_reachable_target_seconds": 0.0,
       "fixed_point_reachable_validate_seconds": 0.0,
       "fixed_point_rebuild_accepted_seconds": 0.0,
       "fixed_point_relocation_anchor_seconds": 0.0,
       "fixed_point_required_label_conflict_seconds": 0.0,
       "fixed_point_required_label_materialize_seconds": 0.002,
-      "fixed_point_runtime_address_ref_seconds": 0.187,
-      "fixed_point_seconds": 0.19,
+      "fixed_point_runtime_address_ref_seconds": 0.184,
+      "fixed_point_seconds": 0.186,
       "interior_conflicts": 0,
       "interior_conflicts_resolved_by_demote": 0,
       "interior_conflicts_unresolved": 0,
@@ -219,7 +219,7 @@
       "render_ir_header_seconds": 0.0,
       "render_ir_instructions": 7197,
       "render_ir_labels": 1358,
-      "render_ir_lookup_seconds": 0.01,
+      "render_ir_lookup_seconds": 0.009,
       "render_ir_platform_app_slot_seconds": 0.0,
       "render_ir_platform_base_slot_seconds": 0.0,
       "render_ir_platform_call_comment_seconds": 0.0,
@@ -229,9 +229,9 @@
       "render_ir_platform_pass_seconds": 0.0,
       "render_ir_platform_runtime_data_seconds": 0.0,
       "render_ir_platform_typed_ref_seconds": 0.0,
-      "render_ir_seconds": 0.011,
+      "render_ir_seconds": 0.01,
       "render_ir_statements": 8765,
-      "render_ir_walk_seconds": 0.0,
+      "render_ir_walk_seconds": 0.001,
       "required_instruction_failures": 0,
       "runtime_address_range_conflicts": 0,
       "runtime_address_ranges": 8,
@@ -248,7 +248,7 @@
     "generation": "facts_v2_asm_source",
     "path": "bin/imported/magicland_dizzy_zip/Magicland Dizzy (1991)(Codemasters)[cr TRSI][t +2 LSD].adf::MD",
     "timing": {
-      "total_seconds": 0.21
+      "total_seconds": 0.206
     }
   },
   "original_sha256": "f26cb8133afe589cac0259471a9eb2c94d96817520f91739a609af2f09a6c622",
@@ -256,7 +256,7 @@
   "profile": {
     "assemble_seconds": 0.0,
     "diff_phase_seconds": 0.0,
-    "direct_rebuild_seconds": 0.2153,
+    "direct_rebuild_seconds": 0.2105,
     "facts_v2_direct_assembler_policy_flags": 3.0,
     "facts_v2_direct_assembler_policy_hunk_relocation_record_count": 0.0,
     "facts_v2_direct_assembler_policy_kind": 2.0,
@@ -289,10 +289,10 @@
     "facts_v2_direct_total_seconds": 0.001,
     "facts_v2_direct_write_buffer_seconds": 0.0,
     "facts_v2_direct_write_file_seconds": 0.001,
-    "prepare_seconds": 0.0347,
-    "render_seconds": 0.21,
+    "prepare_seconds": 0.035,
+    "render_seconds": 0.206,
     "source_file_rewritten": 0.0,
-    "total_seconds": 0.2505,
+    "total_seconds": 0.246,
     "write_source_seconds": 0.0
   },
   "rebuilt_path": "C:\\Data\\R\\git\\claude-repos\\amiga-reversing2\\bin\\rebuilt\\amiga_disk_magicland-dizzy-1991-codemasters-trsi-lsd__amiga_hunk_md_e066dc14\\rebuilt.bin",
@@ -301,7 +301,7 @@
   "row_mappings": [],
   "source_path": "C:\\Data\\R\\git\\claude-repos\\amiga-reversing2\\bin\\rebuilt\\amiga_disk_magicland-dizzy-1991-codemasters-trsi-lsd__amiga_hunk_md_e066dc14\\source.s",
   "stale": false,
-  "started_at": 1779953120.131111,
+  "started_at": 1779955235.1603205,
   "status": "exact",
   "target": "amiga_disk_magicland-dizzy-1991-codemasters-trsi-lsd__amiga_hunk_md_e066dc14",
   "tool_error": null,
@@ -309,7 +309,7 @@
     "counters": {
       "assemble_seconds": 0.0,
       "diff_phase_seconds": 0.0,
-      "direct_rebuild_seconds": 0.2153,
+      "direct_rebuild_seconds": 0.2105,
       "facts_v2_direct_assembler_policy_flags": 3.0,
       "facts_v2_direct_assembler_policy_hunk_relocation_record_count": 0.0,
       "facts_v2_direct_assembler_policy_kind": 2.0,
@@ -342,8 +342,8 @@
       "facts_v2_direct_total_seconds": 0.001,
       "facts_v2_direct_write_buffer_seconds": 0.0,
       "facts_v2_direct_write_file_seconds": 0.001,
-      "prepare_seconds": 0.0347,
-      "render_seconds": 0.21,
+      "prepare_seconds": 0.035,
+      "render_seconds": 0.206,
       "source_file_rewritten": 0.0,
       "write_source_seconds": 0.0
     },
@@ -352,7 +352,7 @@
       "assembler": "our",
       "assembler_cpu": "any",
       "assembler_tool_path": "C:\\Data\\R\\git\\claude-repos\\amiga-reversing2\\src\\build\\platform_file_lib.dll",
-      "assembler_tool_stamp": "2635776:1779952880027891900",
+      "assembler_tool_stamp": "2636800:1779954977004534800",
       "backend": "amiga-hunk",
       "effective_metadata_sha256": "2dc738453d7edcbc050659715a0058ca28d95d4338c8853142856305d94ed665",
       "oracle_tool_availability": [],
@@ -389,8 +389,8 @@
       "source_renderer": "c-backend",
       "source_renderer_tool_stamps": {
         "c_backend.py": "72569:1779900302956229800",
-        "platform_disk_lib.dll": "2701312:1779952879775718800",
-        "platform_file_lib.dll": "2635776:1779952880027891900"
+        "platform_disk_lib.dll": "2702336:1779954976755796300",
+        "platform_file_lib.dll": "2636800:1779954977004534800"
       }
     },
     "spans": [
@@ -469,7 +469,7 @@
         },
         "module": "c_backend",
         "name": "direct_rebuild",
-        "seconds": 0.2153
+        "seconds": 0.2105
       },
       {
         "detail": {

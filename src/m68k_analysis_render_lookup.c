@@ -8637,6 +8637,62 @@ static uint32_t auto_renderable_string_span(const M68kRenderLookup *lookup,
   return auto_renderable_string_span_with_options(lookup, section, accepted_bytes, offset, 8U, 1);
 }
 
+static int auto_string_line_break_byte(uint8_t value) {
+  return value == 0x0dU || value == 0x0aU;
+}
+
+static uint32_t auto_renderable_line_terminated_string_span(const M68kRenderLookup *lookup,
+    const M68kDecodeSectionIR *section, const uint8_t *accepted_bytes, uint32_t offset,
+    uint32_t min_text_size, int require_space, int record_context_kind) {
+  uint32_t cursor;
+  uint32_t text_size = 0U;
+  uint32_t break_count = 0U;
+  int has_space = 0;
+  int has_lowercase = 0;
+  int has_boundary_evidence;
+  if (lookup == NULL || section == NULL || section->data == NULL || offset >= section->size ||
+      !byte_is_quoted_string_safe(section->data[offset]) || !auto_string_start_byte(section->data[offset])) {
+    return 0U;
+  }
+  has_boundary_evidence = record_context_kind == AUTO_STRING_RECORD_CONTEXT_ADJACENT_TABLE ||
+    lookup_has_label(lookup, section->section_index, offset) ||
+    lookup_has_anchor_local(lookup, section->section_index, offset);
+  if (!has_boundary_evidence) return 0U;
+  if (offset > 0U && byte_is_quoted_string_safe(section->data[offset - 1U]) &&
+      !lookup_has_label(lookup, section->section_index, offset) &&
+      !lookup_has_anchor_local(lookup, section->section_index, offset)) {
+    return 0U;
+  }
+  if (!lookup_has_label(lookup, section->section_index, offset) &&
+      !lookup_has_anchor_local(lookup, section->section_index, offset) &&
+      auto_string_has_nearby_terminal_code_context(section, offset)) {
+    return 0U;
+  }
+  cursor = offset;
+  while (cursor < section->size && byte_is_quoted_string_safe(section->data[cursor])) {
+    if (cursor != offset && !auto_string_interior_clear(lookup, section->section_index, cursor)) return 0U;
+    if (section->data[cursor] == ' ') has_space = 1;
+    if (auto_string_lowercase_byte(section->data[cursor])) has_lowercase = 1;
+    ++cursor;
+    ++text_size;
+  }
+  while (cursor < section->size && auto_string_line_break_byte(section->data[cursor]) && break_count < 2U) {
+    if (!auto_string_interior_clear(lookup, section->section_index, cursor)) return 0U;
+    ++cursor;
+    ++break_count;
+  }
+  if (break_count == 0U || cursor >= section->size || !auto_string_terminator_byte(section->data[cursor]) ||
+      text_size < min_text_size || (require_space && !has_space && record_context_kind == AUTO_STRING_RECORD_CONTEXT_NONE)) {
+    return 0U;
+  }
+  if (auto_string_looks_length_prefixed(lookup, section, offset, text_size)) return 0U;
+  if (auto_string_looks_length_prefixed_sequence(lookup, section, offset, cursor)) return 0U;
+  if (section->data[cursor] == 0xffU && has_lowercase) return 0U;
+  if (!auto_string_interior_clear(lookup, section->section_index, cursor)) return 0U;
+  if (auto_string_range_has_code_byte(section, accepted_bytes, offset, cursor - offset + 1U)) return 0U;
+  return cursor - offset + 1U;
+}
+
 static int auto_multiline_text_byte(uint8_t value) {
   return byte_is_quoted_string_safe(value) || value == 0x0dU || value == 0x0aU || value == 0x09U;
 }
@@ -8903,6 +8959,15 @@ static int render_lookup_infer_data_strings(M68kRenderLookup *lookup, const M68k
       }
       record_context_kind = auto_string_record_sequence_context_kind(lookup, section, offset);
       if ((span = auto_renderable_string_span(lookup, section, accepted_bytes[section_index], offset)) != 0U) {
+        if (render_lookup_add_auto_string_item(lookup, section_index, offset, span,
+            role_flags_for_string_record_context(record_context_kind),
+            source_pattern_for_string_record_context(record_context_kind,
+              M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_TERMINATED_TEXT)) != 0) {
+          return -1;
+        }
+        offset += span;
+      } else if ((span = auto_renderable_line_terminated_string_span(lookup, section,
+          accepted_bytes[section_index], offset, 8U, 1, record_context_kind)) != 0U) {
         if (render_lookup_add_auto_string_item(lookup, section_index, offset, span,
             role_flags_for_string_record_context(record_context_kind),
             source_pattern_for_string_record_context(record_context_kind,

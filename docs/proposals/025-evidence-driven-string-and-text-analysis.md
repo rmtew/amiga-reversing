@@ -780,3 +780,64 @@ Round-trip remained `34/36 full-file exact`, `1/36 content-exact-only`
 (`amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h__amiga_hunk_menu_252a2566`),
 `1/36 unsupported` (`macos_hfs_mpw_gm__macos_file_mpw_tools_asm`), and
 `0 failures`.
+
+### 2026-05-28 adjacent line-terminated string pass
+
+MonAm and GenAm exposed a narrow table-context gap: printable message rows that
+end with LF before their nul terminator were still rendered as raw hex even
+though the same cluster already contained adjacent structured strings.
+
+The C analysis now accepts `text + CR/LF + terminator` as a string only when a
+real boundary is proven by an adjacent structured string-table sequence, label,
+or anchor. It does not use the looser control-stream context for this shape.
+That distinction matters for formatted text: a Search for the King row contains
+`%r's location is: %s\n\0`, and the engine must not split it after `%` merely
+because previous nearby strings exist.
+
+Representative output now improves from raw bytes to source text:
+
+```asm
+    dc.b "Current Breakpoints:",$0A
+    dc.b $00
+    dc.b "Checking for libfile..",$0A
+    dc.b $00
+    dc.b "Loading libfile..",$0A
+    dc.b $00
+```
+
+Additional target examples improved by the same general rule:
+
+```asm
+    dc.b "Could not open listing device",$0A
+    dc.b $00
+
+    dc.b "Les isn't sure what all you're referring to.",$0A
+    dc.b $00
+```
+
+No-fixture C tests cover both directions:
+
+- adjacent LF-terminated rows are promoted when table evidence exists;
+- a `%` format placeholder is not treated as a valid split boundary.
+
+All 36 tracked target `.s` files were re-exported with the target source-export
+command. Diffs were limited to MonAm, GenAm, and Search for the King text rows.
+
+Verification:
+
+```text
+cmd /c src\precommit.bat m68k_ir
+amiga-source-export --output for all tracked target .s files
+uv run platform-rendered-source-roundtrip
+git diff --check -- . ':(exclude)TODO.md'
+```
+
+Round-trip remained `34/36 full-file exact`, `1/36 content-exact-only`
+(`amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h__amiga_hunk_menu_252a2566`),
+`1/36 unsupported` (`macos_hfs_mpw_gm__macos_file_mpw_tools_asm`), and
+`0 failures`.
+
+Remaining observation for later presentation work: the renderer currently emits
+LF-plus-nul as two rows (`"text",$0A` then `$00`). This is byte-exact and
+round-trips, but a future source presentation pass could keep `$0A,$00` on one
+row when width allows.
