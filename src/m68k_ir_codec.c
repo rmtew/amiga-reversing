@@ -40,6 +40,10 @@ static int append_text(char *out_text, size_t out_text_size, size_t *inout_used,
   return append_format(out_text, out_text_size, inout_used, "%s", text);
 }
 
+static int ir_value_fits_signed_word(uint32_t value) {
+  return value <= 0x7FFFU || value >= 0xFFFF8000U;
+}
+
 static int append_current_relative_expr(char *out_text, size_t out_text_size, size_t *inout_used, int32_t delta) {
   if (delta == 0) return append_text(out_text, out_text_size, inout_used, "*");
   if (delta > 0) return append_format(out_text, out_text_size, inout_used, "*+%d", (int)delta);
@@ -70,6 +74,21 @@ static int append_immediate_text(char *out_text, size_t out_text_size, size_t *i
   if (value == mask && mask >= 0xFFFFU)
     return append_format(out_text, out_text_size, inout_used, "#$%X", (unsigned)value);
   return append_format(out_text, out_text_size, inout_used, "#%u", (unsigned)value);
+}
+
+static int instruction_has_out_of_range_absolute_short(const M68kInstructionIR *instruction) {
+  size_t operand_index;
+  if (instruction == NULL) return 0;
+  for (operand_index = 0U; operand_index < instruction->operand_count; ++operand_index) {
+    const M68kOperandIR *operand = &instruction->operands[operand_index];
+    if (operand->value.kind == M68K_ASM_OPERAND_EA &&
+        operand->value.ea_mode == 7U &&
+        operand->value.ea_reg == 0U &&
+        !ir_value_fits_signed_word(operand->value.value)) {
+      return 1;
+    }
+  }
+  return 0;
 }
 
 static int append_signed_immediate_text(char *out_text, size_t out_text_size, size_t *inout_used, uint32_t value,
@@ -643,8 +662,13 @@ M68kIrEncodeResult m68k_ir_encode_one(const M68kInstructionIR *instruction, uint
   spec.patch_value_count = form->patch_count;
   spec.operands = operands;
   if (m68k_asm_assemble_instruction(&spec, out_bytes, max_bytes, &byte_count) != 0) {
-    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_ENCODE_FAILED,
-      "unable to encode instruction");
+    if (instruction_has_out_of_range_absolute_short(instruction)) {
+      m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_ENCODE_FAILED,
+        "absolute short address is out of 16-bit range");
+    } else {
+      m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_ENCODE_FAILED,
+        "unable to encode instruction");
+    }
     return result;
   }
   result.byte_count = byte_count;
