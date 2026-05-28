@@ -2307,6 +2307,8 @@ static int test_facts_v2_data_ascii_span_auto_classifies_ff_string(void) {
   M68K_C_ASSERT_U32(11U, auto_item->size);
   M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_STRING, auto_item->kind);
   M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING, auto_item->semantic_role_flags);
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_TERMINATED_TEXT, auto_item->source_pattern_id);
+  M68K_C_ASSERT_STR("terminated_text", auto_item->source_pattern);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
   m68k_facts_v2_free_text(source);
@@ -2445,6 +2447,7 @@ static int test_facts_v2_adjacent_short_ascii_spans_auto_classify_string_sequenc
   char *source = NULL;
   uint16_t index;
   uint32_t string_items = 0U;
+  uint32_t sequence_items = 0U;
   uint8_t bytes[] = {
     'M', 'I', 'S', 'S', 0xffu,
     'H', 'I', 'T', 'S', 0xffu,
@@ -2468,10 +2471,15 @@ static int test_facts_v2_adjacent_short_ascii_spans_auto_classify_string_sequenc
   for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
     const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
     if (item->has_section_index && item->section_index == 0U &&
-        structured_data_item_has_role(item, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING))
+        structured_data_item_has_role(item, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING)) {
       ++string_items;
+      if (item->source_pattern_id == M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_STRING_TABLE_SEQUENCE &&
+          strcmp(item->source_pattern, "string_table_sequence") == 0)
+        ++sequence_items;
+    }
   }
   M68K_C_ASSERT_U32(3U, string_items);
+  M68K_C_ASSERT_U32(3U, sequence_items);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
   m68k_facts_v2_free_text(source);
@@ -2490,6 +2498,7 @@ static int test_facts_v2_table_context_promotes_plain_entry_without_space(void) 
   char *source = NULL;
   uint16_t index;
   uint32_t string_items = 0U;
+  uint32_t sequence_items = 0U;
   uint8_t bytes[] = {
     'E', 'A', 'R', 'T', 'H', ' ', 'O', 'R', 'B', 'I', 'T', ' ', 'E', 'S', 'T', 'A', 'B', 'L', 'I',
     'S', 'H', 'E', 'D', 0x00u,
@@ -2512,10 +2521,15 @@ static int test_facts_v2_table_context_promotes_plain_entry_without_space(void) 
   for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
     const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
     if (item->has_section_index && item->section_index == 0U &&
-        structured_data_item_has_role(item, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING))
+        structured_data_item_has_role(item, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING)) {
       ++string_items;
+      if (item->source_pattern_id == M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_STRING_TABLE_SEQUENCE &&
+          strcmp(item->source_pattern, "string_table_sequence") == 0)
+        ++sequence_items;
+    }
   }
   M68K_C_ASSERT_U32(3U, string_items);
+  M68K_C_ASSERT_U32(1U, sequence_items);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
   m68k_facts_v2_free_text(source);
@@ -2630,6 +2644,7 @@ static int test_facts_v2_control_separated_ascii_sequence_keeps_printable_separa
   char *source = NULL;
   uint16_t index;
   uint32_t string_items = 0U;
+  const M68kAnalysisStructuredDataItem *stream_item = NULL;
   uint8_t bytes[] = {
     'M', 'A', 'G', 'I', 'C', 'L', 'A', 'N', 'D', ' ', 'D', 'I', 'Z', 'Z', 'Y', '!', 0x00u,
     0x00u, 0x00u, 0x05u, 0x15u, 0x00u,
@@ -2665,8 +2680,16 @@ static int test_facts_v2_control_separated_ascii_sequence_keeps_printable_separa
     if (item->has_section_index && item->section_index == 0U &&
         structured_data_item_has_role(item, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING))
       ++string_items;
+    if (item->has_section_index && item->section_index == 0U &&
+        item->source_pattern_id == M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_CONTROL_STRING_STREAM) {
+      stream_item = item;
+    }
   }
   M68K_C_ASSERT_U32(6U, string_items);
+  M68K_C_ASSERT(stream_item != NULL);
+  M68K_C_ASSERT_STR("control_string_stream", stream_item->source_pattern);
+  M68K_C_ASSERT(structured_data_item_has_role(stream_item,
+    M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING_CONTROL_STREAM));
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
   m68k_facts_v2_free_text(source);

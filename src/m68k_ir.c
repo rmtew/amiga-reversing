@@ -90,6 +90,14 @@ const char *m68k_analysis_structured_data_source_pattern_name(uint8_t source_pat
       return "macos_symbol_record";
     case M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_MULTILINE_TEXT:
       return "multiline_text";
+    case M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_TERMINATED_TEXT:
+      return "terminated_text";
+    case M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_BOUNDED_TEXT:
+      return "bounded_text";
+    case M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_STRING_TABLE_SEQUENCE:
+      return "string_table_sequence";
+    case M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_CONTROL_STRING_STREAM:
+      return "control_string_stream";
     default:
       return NULL;
   }

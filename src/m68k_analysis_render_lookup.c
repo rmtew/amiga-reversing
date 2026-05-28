@@ -8414,7 +8414,13 @@ static int auto_string_looks_length_prefixed_sequence(const M68kRenderLookup *lo
   return cursor == text_end && record_count > 1U;
 }
 
-static int auto_string_has_record_sequence_context(const M68kRenderLookup *lookup,
+enum {
+  AUTO_STRING_RECORD_CONTEXT_NONE = 0,
+  AUTO_STRING_RECORD_CONTEXT_ADJACENT_TABLE = 1,
+  AUTO_STRING_RECORD_CONTEXT_CONTROL_STREAM = 2
+};
+
+static int auto_string_record_sequence_context_kind(const M68kRenderLookup *lookup,
     const M68kDecodeSectionIR *section, uint32_t offset) {
   size_t index;
   uint32_t prior_count = 0U;
@@ -8434,13 +8440,18 @@ static int auto_string_has_record_sequence_context(const M68kRenderLookup *looku
     if (item_end > nearest_end) nearest_end = item_end;
   }
   if (prior_count < 2U || nearest_end == 0U || nearest_end > offset || offset - nearest_end > 8U) return 0;
-  if (nearest_end == offset) return 1;
+  if (nearest_end == offset) return AUTO_STRING_RECORD_CONTEXT_ADJACENT_TABLE;
   for (index = nearest_end; index < offset; ++index) {
     if (!byte_is_quoted_string_safe(section->data[index]) || auto_string_terminator_byte(section->data[index])) {
-      return 1;
+      return AUTO_STRING_RECORD_CONTEXT_CONTROL_STREAM;
     }
   }
-  return 0;
+  return AUTO_STRING_RECORD_CONTEXT_NONE;
+}
+
+static int auto_string_has_record_sequence_context(const M68kRenderLookup *lookup,
+    const M68kDecodeSectionIR *section, uint32_t offset) {
+  return auto_string_record_sequence_context_kind(lookup, section, offset) != AUTO_STRING_RECORD_CONTEXT_NONE;
 }
 
 static int auto_string_has_nearby_terminal_code_context(const M68kDecodeSectionIR *section, uint32_t offset) {
@@ -8557,6 +8568,31 @@ static uint32_t auto_renderable_multiline_string_span(const M68kRenderLookup *lo
   return cursor - offset + 1U;
 }
 
+static int render_lookup_add_auto_string_item(M68kRenderLookup *lookup, size_t section_index, uint32_t offset,
+    uint32_t span, uint32_t role_flags, uint8_t source_pattern_id) {
+  if (render_lookup_add_auto_structured_data_item(lookup, section_index, offset, span, role_flags,
+      M68K_ANALYSIS_STRUCTURED_DATA_STRING) != 0) {
+    return -1;
+  }
+  render_lookup_set_auto_structured_data_item_source_pattern(lookup, section_index, offset, source_pattern_id);
+  return 0;
+}
+
+static uint8_t source_pattern_for_string_record_context(int context_kind, uint8_t fallback_pattern_id) {
+  if (context_kind == AUTO_STRING_RECORD_CONTEXT_CONTROL_STREAM)
+    return M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_CONTROL_STRING_STREAM;
+  if (context_kind == AUTO_STRING_RECORD_CONTEXT_ADJACENT_TABLE)
+    return M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_STRING_TABLE_SEQUENCE;
+  return fallback_pattern_id;
+}
+
+static uint32_t role_flags_for_string_record_context(int context_kind) {
+  uint32_t role_flags = M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING;
+  if (context_kind == AUTO_STRING_RECORD_CONTEXT_CONTROL_STREAM)
+    role_flags |= M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING_CONTROL_STREAM;
+  return role_flags;
+}
+
 static int auto_bounded_string_has_text_shape(const M68kDecodeSectionIR *section, uint32_t offset,
     uint32_t size) {
   uint32_t cursor;
@@ -8637,8 +8673,9 @@ static int render_lookup_maybe_add_string_sequence(M68kRenderLookup *lookup, con
   }
   if (count < 3U) return 0;
   for (index = 0U; index < count; ++index) {
-    if (render_lookup_add_auto_structured_data_item(lookup, section->section_index, offsets[index], spans[index],
-        M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING, M68K_ANALYSIS_STRUCTURED_DATA_STRING) != 0) {
+    if (render_lookup_add_auto_string_item(lookup, section->section_index, offsets[index], spans[index],
+        M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING,
+        M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_STRING_TABLE_SEQUENCE) != 0) {
       return -1;
     }
   }
@@ -8656,6 +8693,7 @@ static int render_lookup_infer_data_strings(M68kRenderLookup *lookup, const M68k
     if (section->data == NULL) continue;
     while (offset < section->size) {
       uint32_t span;
+      int record_context_kind;
       if ((accepted_bytes[section_index] == NULL || accepted_bytes[section_index][offset] == 0U) &&
           lookup_structured_data_item_covering_offset(lookup, section_index, offset) == NULL) {
         if (render_lookup_maybe_add_macos_symbol_string(lookup, section, accepted_bytes[section_index], offset,
@@ -8668,12 +8706,11 @@ static int render_lookup_infer_data_strings(M68kRenderLookup *lookup, const M68k
       }
       span = auto_renderable_multiline_string_span(lookup, section, accepted_bytes[section_index], offset);
       if (span != 0U) {
-        if (render_lookup_add_auto_structured_data_item(lookup, section_index, offset, span,
-            M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING, M68K_ANALYSIS_STRUCTURED_DATA_STRING) != 0) {
+        if (render_lookup_add_auto_string_item(lookup, section_index, offset, span,
+            M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING,
+            M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_MULTILINE_TEXT) != 0) {
           return -1;
         }
-        render_lookup_set_auto_structured_data_item_source_pattern(lookup, section_index, offset,
-          M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_MULTILINE_TEXT);
         offset += span;
         continue;
       }
@@ -8688,16 +8725,21 @@ static int render_lookup_infer_data_strings(M68kRenderLookup *lookup, const M68k
         ++offset;
         continue;
       }
+      record_context_kind = auto_string_record_sequence_context_kind(lookup, section, offset);
       if ((span = auto_renderable_string_span(lookup, section, accepted_bytes[section_index], offset)) != 0U) {
-        if (render_lookup_add_auto_structured_data_item(lookup, section_index, offset, span,
-            M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING, M68K_ANALYSIS_STRUCTURED_DATA_STRING) != 0) {
+        if (render_lookup_add_auto_string_item(lookup, section_index, offset, span,
+            role_flags_for_string_record_context(record_context_kind),
+            source_pattern_for_string_record_context(record_context_kind,
+              M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_TERMINATED_TEXT)) != 0) {
           return -1;
         }
         offset += span;
       } else if ((span = auto_renderable_bounded_string_span(lookup, section, accepted_bytes[section_index],
           offset)) != 0U) {
-        if (render_lookup_add_auto_structured_data_item(lookup, section_index, offset, span,
-            M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING, M68K_ANALYSIS_STRUCTURED_DATA_STRING) != 0) {
+        if (render_lookup_add_auto_string_item(lookup, section_index, offset, span,
+            role_flags_for_string_record_context(record_context_kind),
+            source_pattern_for_string_record_context(record_context_kind,
+              M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_BOUNDED_TEXT)) != 0) {
           return -1;
         }
         offset += span;

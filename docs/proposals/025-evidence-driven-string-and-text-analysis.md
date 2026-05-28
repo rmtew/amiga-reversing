@@ -598,3 +598,41 @@ Remaining observations for later 025 passes:
 - The code-context negative evidence is intentionally narrow. A fuller orphan
   code/text arbitration pass should use explicit C analysis records rather than
   widening byte-neighborhood rules.
+
+### 2026-05-28 evidence metadata pass
+
+The string inference path now records explicit source-pattern evidence for the
+major accepted auto-string classes that previously remained `unknown`:
+
+- isolated nul/`$FF` terminated text records use `terminated_text`;
+- label/anchor-bounded text records use `bounded_text`;
+- adjacent short string clusters and table-context promotions use
+  `string_table_sequence`;
+- Magicland-style separator/control-byte record continuations use
+  `control_string_stream` and carry the `STRING_CONTROL_STREAM` role flag;
+- Mac high-bit symbol records and CR/LF multiline records keep their existing
+  `macos_symbol_record` and `multiline_text` evidence.
+
+This is deliberately metadata-only for rendered source: all 36 tracked `.s`
+files re-exported successfully and no committed target source text changed. The
+benefit is in `source_analysis.policy.structured_data_items[]` and JSON/listing
+metadata, where reviewers and downstream tools can now distinguish shape-only
+terminated text from sequence/table/stream evidence.
+
+Verification:
+
+```text
+cmd /c src\precommit.bat m68k_ir
+amiga-source-export --output for all tracked target .s files
+platform-rendered-source-roundtrip
+git diff --check -- . ':(exclude)TODO.md'
+```
+
+Round-trip result after this pass remained:
+
+```text
+34/36 full-file exact
+1/36 content-exact-only: amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h__amiga_hunk_menu_252a2566
+1/36 unsupported: macos_hfs_mpw_gm__macos_file_mpw_tools_asm
+0 failures
+```
