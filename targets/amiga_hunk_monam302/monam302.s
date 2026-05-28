@@ -8168,7 +8168,7 @@ loc_0_000081B6:
 loc_0_000081C4:
 	rts
 loc_0_000081C6:
-	dc.b $4C,$49,$42,$53,$3A
+	dc.b "LIBS:"
 loc_0_000081CB:
 	dc.b "monam.libfile",$00
 loc_0_000081D9:

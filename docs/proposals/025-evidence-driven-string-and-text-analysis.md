@@ -732,3 +732,51 @@ Remaining observations for later 025/general analysis passes:
 - Rendering labels inside dense data is now driven by statement references, not
   by arbitrary analysis labels. That is the right invariant for all platforms:
   if an emitted expression names a label, the definition must be emitted.
+
+### 2026-05-28 API data-register string pass
+
+The MonAm `LIBS:monam.libfile` case showed a different evidence shape from the
+Pandora relative table. DOS `Open` takes its filename pointer in `D1`, and the
+target loads that pointer with relocated `move.l #label,d1` instructions. The
+rendered instruction already had a real label expression, but the C
+data-pointer state only tracked address-register loads and register copies.
+
+The C analysis now treats relocated immediate moves into data registers as
+exact data pointers. API string input metadata can therefore consume those
+values exactly as it already consumes address-register pointers. API-proven C
+strings are split at existing labels, anchors, or structured data boundaries,
+so a shared or interior label stays visible without rendering the leading bytes
+as raw hex:
+
+```asm
+loc_0_000081C6:
+    dc.b "LIBS:"
+loc_0_000081CB:
+    dc.b "monam.libfile",$00
+```
+
+This is not a MonAm rule. It is the general contract: when relocation evidence
+proves a data-register pointer and platform API metadata says that register is
+a string pointer, the target bytes can be rendered as string segments bounded
+by the existing structured model.
+
+The Pandora endpoint concern remains separate. The first table word really
+targets `base+1`, not `base+0`; the `base+0` byte is labelled because it is the
+relative table base, not because it is a table entry. The table stops before
+`abs_0_0001A7C0` because that address is already a separate string block and
+there is no validated table-entry evidence through it. An `andi.w #127` mask is
+range evidence, not proof that all 128 possible indices are valid entries, so
+the scanner must not synthesize missing first or last entries from the mask
+alone.
+
+Verification:
+
+```text
+cmd /c src\precommit.bat m68k_ir
+uv run platform-rendered-source-roundtrip
+```
+
+Round-trip remained `34/36 full-file exact`, `1/36 content-exact-only`
+(`amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h__amiga_hunk_menu_252a2566`),
+`1/36 unsupported` (`macos_hfs_mpw_gm__macos_file_mpw_tools_asm`), and
+`0 failures`.

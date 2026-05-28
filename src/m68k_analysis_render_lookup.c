@@ -4257,6 +4257,22 @@ static int candidate_loads_data_target_to_address_reg(const M68kDecodeCandidate 
   return 0;
 }
 
+static int candidate_moves_data_target_to_data_reg(const M68kDecodeCandidate *candidate,
+    const M68kInstructionIR *instruction, size_t *out_section_index, uint32_t *out_offset, uint8_t *out_reg) {
+  uint8_t dest_reg = 0U;
+  if (candidate == NULL || instruction == NULL || out_section_index == NULL || out_offset == NULL ||
+      out_reg == NULL || instruction->mnemonic_id != M68K_ASM_MNEMONIC_MOVE ||
+      instruction->size_suffix != 'l' || instruction->operand_count != 2U ||
+      !operand_is_data_register_local(&instruction->operands[1], &dest_reg)) {
+    return 0;
+  }
+  if (candidate_data_target_for_operand(candidate, 0U, out_section_index, out_offset)) {
+    *out_reg = dest_reg;
+    return 1;
+  }
+  return 0;
+}
+
 static int candidate_loads_relocated_data_target_to_address_reg(const M68kRenderLookup *lookup,
     const M68kDecodeSectionIR *section, const M68kDecodeCandidate *candidate,
     const M68kInstructionIR *instruction, size_t *out_section_index, uint32_t *out_offset, uint8_t *out_reg) {
@@ -4307,6 +4323,40 @@ static int candidate_moves_relocated_immediate_target_to_address_reg(const M68kR
       candidate->operand_count != 2U || instruction->operand_count != 2U ||
       !candidate_operand_is_immediate_form(candidate, 0U) ||
       !operand_address_register_index_local(&instruction->operands[1], &dest_reg) || dest_reg == 7U) {
+    return 0;
+  }
+  relocation_end = candidate->offset + candidate->byte_count;
+  for (relocation_offset = candidate->offset + 2U; relocation_offset < relocation_end; ++relocation_offset) {
+    const M68kFact *relocation = lookup_relocation_at(lookup, section->section_index, relocation_offset);
+    size_t operand_index = 0U;
+    if (relocation == NULL || relocation->size != 4U ||
+        relocation->target_section_index >= lookup->section_count) {
+      continue;
+    }
+    if (!find_unique_relocation_operand(candidate, relocation, &operand_index) || operand_index != 0U) continue;
+    *out_section_index = relocation->target_section_index;
+    *out_offset = relocation->target_offset;
+    *out_reg = dest_reg;
+    return 1;
+  }
+  return 0;
+}
+
+static int candidate_moves_relocated_immediate_target_to_data_reg(const M68kRenderLookup *lookup,
+    const M68kDecodeSectionIR *section, const M68kDecodeCandidate *candidate,
+    const M68kInstructionIR *instruction, size_t *out_section_index, uint32_t *out_offset, uint8_t *out_reg) {
+  uint8_t dest_reg = 0U;
+  uint32_t relocation_offset;
+  uint32_t relocation_end;
+  if (out_section_index != NULL) *out_section_index = 0U;
+  if (out_offset != NULL) *out_offset = 0U;
+  if (out_reg != NULL) *out_reg = 0U;
+  if (lookup == NULL || section == NULL || candidate == NULL || instruction == NULL ||
+      out_section_index == NULL || out_offset == NULL || out_reg == NULL ||
+      candidate->byte_count > section->size || candidate->offset > section->size - candidate->byte_count ||
+      candidate->mnemonic_id != M68K_ASM_MNEMONIC_MOVE || candidate->operand_count != 2U ||
+      instruction->operand_count != 2U || !candidate_operand_is_immediate_form(candidate, 0U) ||
+      !operand_is_data_register_local(&instruction->operands[1], &dest_reg)) {
     return 0;
   }
   relocation_end = candidate->offset + candidate->byte_count;
@@ -4408,6 +4458,11 @@ static void data_pointer_state_update_after_instruction_ex(M68kRenderDataPointer
     data_pointer_state_set_reg(state, AMIGA_OS_REGISTER_ADDRESS, dest_reg, target_section_index, target_offset);
     return;
   }
+  if (candidate_moves_data_target_to_data_reg(candidate, instruction, &target_section_index, &target_offset,
+      &dest_reg)) {
+    data_pointer_state_set_reg(state, AMIGA_OS_REGISTER_DATA, dest_reg, target_section_index, target_offset);
+    return;
+  }
   if (prefer_local_absolute && section != NULL && instruction->mnemonic_id == M68K_ASM_MNEMONIC_LEA &&
       instruction->operand_count == 2U &&
       operand_address_register_index_local(&instruction->operands[1], &dest_reg) &&
@@ -4422,6 +4477,11 @@ static void data_pointer_state_update_after_instruction_ex(M68kRenderDataPointer
       candidate_loads_relocated_data_target_to_address_reg(lookup, section, candidate, instruction,
         &target_section_index, &target_offset, &dest_reg)) {
     data_pointer_state_set_reg(state, AMIGA_OS_REGISTER_ADDRESS, dest_reg, target_section_index, target_offset);
+    return;
+  }
+  if (candidate_moves_relocated_immediate_target_to_data_reg(lookup, section, candidate, instruction,
+      &target_section_index, &target_offset, &dest_reg)) {
+    data_pointer_state_set_reg(state, AMIGA_OS_REGISTER_DATA, dest_reg, target_section_index, target_offset);
     return;
   }
   if (!prefer_local_absolute && section != NULL && instruction->mnemonic_id == M68K_ASM_MNEMONIC_LEA &&
@@ -4515,6 +4575,30 @@ static int render_find_c_string_span(const M68kDecodeSectionIR *section, uint32_
   return 1;
 }
 
+static int render_lookup_api_string_segment_boundary_at(const M68kRenderLookup *lookup,
+    size_t section_index, uint32_t offset) {
+  if (lookup == NULL) return 0;
+  return lookup_has_label(lookup, section_index, offset) ||
+    lookup_has_anchor_local(lookup, section_index, offset) ||
+    lookup_structured_data_item_covering_offset(lookup, section_index, offset) != NULL;
+}
+
+static int render_lookup_add_api_string_segment(M68kRenderLookup *lookup, size_t section_index,
+    uint32_t offset, uint32_t size) {
+  const M68kAnalysisStructuredDataItem *covering_item;
+  if (lookup == NULL || size == 0U) return 0;
+  covering_item = lookup_structured_data_item_covering_offset(lookup, section_index, offset);
+  if (covering_item != NULL) {
+    return (covering_item->semantic_role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING) != 0U ? 0 : -1;
+  }
+  if (render_lookup_add_auto_string_item(lookup, section_index, offset, size,
+      M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING,
+      M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_API_STRING_POINTER) != 0) {
+    return -1;
+  }
+  return render_lookup_add_string_span(lookup, section_index, offset, size);
+}
+
 static int render_lookup_add_string_spans_for_vector_inputs(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
     const AmigaOsLibraryVectorInfo *vector, const M68kRenderDataPointerState *state) {
   const AmigaOsCallInputInfo *inputs;
@@ -4545,12 +4629,26 @@ static int render_lookup_add_string_spans_for_vector_inputs(M68kRenderLookup *lo
         --string_size;
       }
     }
-    if (render_lookup_add_auto_string_item(lookup, value->section_index, value->offset, string_size,
-        M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING,
-        M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_API_STRING_POINTER) != 0) {
-      return -1;
+    {
+      uint32_t cursor = value->offset;
+      uint32_t string_end = value->offset + string_size;
+      while (cursor < string_end) {
+        uint32_t segment_end = string_end;
+        uint32_t probe;
+        for (probe = cursor + 1U; probe < string_end; ++probe) {
+          if (render_lookup_api_string_segment_boundary_at(lookup, value->section_index, probe)) {
+            segment_end = probe;
+            break;
+          }
+        }
+        if (segment_end <= cursor) break;
+        if (render_lookup_add_api_string_segment(lookup, value->section_index, cursor,
+            segment_end - cursor) != 0) {
+          return -1;
+        }
+        cursor = segment_end;
+      }
     }
-    if (render_lookup_add_string_span(lookup, value->section_index, value->offset, string_size) != 0) return -1;
   }
   return 0;
 }

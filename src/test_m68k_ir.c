@@ -6951,6 +6951,119 @@ static int test_facts_v2_open_library_name_shared_terminator_renders_bounded_tex
   return 0;
 }
 
+static int test_facts_v2_api_string_pointer_with_internal_label_renders_segments(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  char *source = NULL;
+  uint8_t bytes[] = {
+    0x2cu, 0x78u, 0x00u, 0x04u,
+    0x43u, 0xfau, 0x00u, 0x0cu,
+    0x41u, 0xfau, 0x00u, 0x11u,
+    0x4eu, 0xaeu, 0xfeu, 0x68u,
+    0x4eu, 0x75u,
+    'g', 'r', 'a', 'p', 'h', 'i', 'c', 's', '.',
+    'l', 'i', 'b', 'r', 'a', 'r', 'y', 0x00u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  memset(&source_analysis, 0, sizeof(source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tjsr _LVOOldOpenLibrary(a6)\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "loc_0_00000012:\n\tdc.b \"graphics.\"\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "loc_0_0000001B:\n\tdc.b \"library\",$00\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.b $67,$72,$61,$70,$68,$69,$63,$73,$2E\n") == NULL);
+  M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.sections[0].recovered_platform_call_count);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_api_data_register_string_pointer_renders_bounded_segments(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kFixup fixup;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  char *source = NULL;
+  uint8_t bytes[] = {
+    0x22u, 0x3cu, 0x00u, 0x00u, 0x00u, 0x21u,
+    0x24u, 0x3cu, 0x00u, 0x00u, 0x03u, 0xedu,
+    0x4eu, 0xaeu, 0xffu, 0xe2u,
+    0x22u, 0x3cu, 0x00u, 0x00u, 0x00u, 0x1cu,
+    0x4eu, 0xaeu, 0xffu, 0xe2u,
+    0x4eu, 0x75u,
+    'L', 'I', 'B', 'S', ':',
+    'm', 'o', 'n', 'a', 'm', '.', 'l', 'i', 'b', 'f', 'i', 'l', 'e', 0x00u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  memset(&fixup, 0, sizeof(fixup));
+  fixup.section_index = 0U;
+  fixup.offset = 2U;
+  fixup.kind = M68K_FIXUP_ABS;
+  fixup.width = M68K_FIXUP_WIDTH_32;
+  fixup.has_target_section = 1;
+  fixup.target_section_index = 0U;
+  fixup.addend = 0x21;
+  added = m68k_object_add_fixup(&object, &fixup);
+  M68K_C_ASSERT(added.ok);
+  fixup.offset = 18U;
+  fixup.addend = 0x1c;
+  added = m68k_object_add_fixup(&object, &fixup);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.register_seed_count = 1U;
+  policy.register_seeds[0].kind = M68K_ANALYSIS_REGISTER_SEED_LIBRARY_BASE;
+  policy.register_seeds[0].reg_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+  policy.register_seeds[0].reg_index = 6U;
+  policy.register_seeds[0].has_entry_offset = 1U;
+  policy.register_seeds[0].has_section_index = 1U;
+  policy.register_seeds[0].entry_offset = 0U;
+  policy.register_seeds[0].section_index = 0U;
+  snprintf(policy.register_seeds[0].name, sizeof(policy.register_seeds[0].name), "dos.library");
+  memset(&source_analysis, 0, sizeof(source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tjsr _LVOOpen(a6)\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "loc_0_0000001C:\n\tdc.b \"LIBS:\"\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "loc_0_00000021:\n\tdc.b \"monam.libfile\",$00\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.b $4C,$49,$42,$53,$3A\n") == NULL);
+  M68K_C_ASSERT_U32(2U, (uint32_t)source_analysis.sections[0].recovered_platform_call_count);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_open_library_cross_section_name_promotes_a6_base(void) {
   M68kObject object;
   M68kSection code_section;
@@ -21145,6 +21258,10 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_open_library_d0_movea_promotes_a6_base},
     {"facts_v2_open_library_name_shared_terminator_renders_bounded_text",
       test_facts_v2_open_library_name_shared_terminator_renders_bounded_text},
+    {"facts_v2_api_string_pointer_with_internal_label_renders_segments",
+      test_facts_v2_api_string_pointer_with_internal_label_renders_segments},
+    {"facts_v2_api_data_register_string_pointer_renders_bounded_segments",
+      test_facts_v2_api_data_register_string_pointer_renders_bounded_segments},
     {"facts_v2_open_library_cross_section_name_promotes_a6_base",
       test_facts_v2_open_library_cross_section_name_promotes_a6_base},
     {"facts_v2_stack_stored_callback_vector_promotes_target",
