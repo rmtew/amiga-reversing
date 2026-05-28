@@ -537,3 +537,57 @@ Use these examples:
 - Do not sacrifice byte-exact rendered-source round-trip for readability.
 - Do not create issue files for this proposal.
 
+## Implementation Notes and Later Observations
+
+### 2026-05-28 pass
+
+Implemented the first C-owned acceptance improvements in
+`src/m68k_analysis_render_lookup.c`.
+
+- Existing string-table context can now promote a later plain entry without
+  spaces. This fixes the Pandora `0123456789ABCDEF` table row without making
+  numeric-looking text globally valid.
+- Shape-only strings adjacent to nearby terminal code context are rejected
+  unless there is stronger boundary evidence. This removes the Starglider
+  `NuNu    ` and `NuD0        00000000` false-positive rows while preserving
+  Magicland display text streams and Pandora item-table strings.
+- The new behavior is covered by no-fixture C tests for table-context promotion
+  and unlabeled orphan-code-shaped text rejection.
+
+Target source was re-exported through `amiga-source-export --output` for every
+non-Mac committed `.s` file. Mac source export currently refuses
+`macos_hfs_mpw_gm__macos_file_mpw_tools_asm` because that target does not expose
+the `source_binary.json` path required by the generic exporter; the rendered
+source round-trip report classifies it as `unsupported_platform_source_assembly`.
+
+Verification:
+
+```text
+cmd /c src\precommit.bat m68k_ir
+platform-rendered-source-roundtrip
+```
+
+Round-trip result after this pass:
+
+```text
+34/36 full-file exact
+1/36 content-exact-only: amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h__amiga_hunk_menu_252a2566
+1/36 unsupported: macos_hfs_mpw_gm__macos_file_mpw_tools_asm
+0 failures
+```
+
+Remaining observations for later 025 passes:
+
+- The Starglider CR/LF credits block still needs a proper multiline text
+  renderer. Current output remains byte-exact but is not human-readable enough.
+- Some target diffs include unrelated current-analysis improvements such as
+  branch target symbolization and generated source-export headers. Those are
+  useful but are not string-evidence semantics.
+- The repeated `; string` comment remains noisy. It should be removed only
+  after row metadata and role-specific comments still make string/data meaning
+  inspectable.
+- Magicland-style control/display streams are improved by table context but are
+  not yet first-class `control_string_stream` records.
+- The code-context negative evidence is intentionally narrow. A fuller orphan
+  code/text arbitration pass should use explicit C analysis records rather than
+  widening byte-neighborhood rules.

@@ -3,7 +3,7 @@
 ; Assembler profile: vasm
 ; Metadata hash: 1371c0b5b2d0171e04be4b750e9b4408de03075aa0eb977369c5aaa7dd666fee
 ; Target identity sha256: 70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f
-; Generated at: 2026-05-27T19:29:48+00:00
+; Generated at: 2026-05-28T03:45:24+00:00
 ; Export is not verification; run reproduction or oracle checks separately.
 
 ; Memory map
@@ -1466,10 +1466,10 @@ abs_0_00011412:
 	beq.b abs_0_00011412
 	rts
 abs_0_00011432:
-	dc.l abs_0_00011150,abs_0_0001115C,abs_0_00011168,abs_0_00011174	; lookup_table
-	dc.l abs_0_00011190,abs_0_000111A4,abs_0_000111BC,abs_0_000111D6	; lookup_table
-	dc.l abs_0_000111FC,abs_0_00011206,abs_0_00011216,abs_0_0001122E	; lookup_table
-	dc.l abs_0_0001123C,abs_0_0001124A,abs_0_00011258,abs_0_00011266	; lookup_table
+	dc.l $00011150,$0001115C,$00011168,$00011174	; lookup_table
+	dc.l $00011190,$000111A4,$000111BC,$000111D6	; lookup_table
+	dc.l $000111FC,$00011206,$00011216,$0001122E	; lookup_table
+	dc.l $0001123C,$0001124A,$00011258,$00011266	; lookup_table
 	dc.b $00,$01,$11,$24,$00,$01,$11,$38,$00,$01,$11,$2E,$00,$01,$11,$44
 	dc.b $00,$01,$12,$74,$00,$01,$11,$AE,$00,$01,$11,$E8,$00,$01,$11,$14
 	dc.b $00,$01,$12,$7A,$00,$01,$12,$80,$00,$01,$12,$A6,$00,$01,$12,$D6
@@ -2515,8 +2515,7 @@ abs_0_00012E20:
 abs_0_00012E51:
 	dc.b "TOTAL DESTRUCTION OF HUMANITY IMMINENT.",$00	; string
 abs_0_00012E79:
-	dc.b $30,$31,$32,$33,$34,$35,$36,$37,$38,$39,$41,$42,$43,$44,$45,$46
-	dc.b $00
+	dc.b "0123456789ABCDEF",$00	; string
 abs_0_00012E8A:
 	movem.l d0-d2/d7/a0-a1,-(a7)
 	moveq.l #3,d7

@@ -3,7 +3,7 @@
 ; Assembler profile: vasm
 ; Metadata hash: b4af0fb9878fed72e96c77673f40dfce5ab5788dea045f5ac6d3dae40f632fc5
 ; Target identity sha256: 6fa11625a70f82fc4df5f318ccb149ceeb2687f4af36643c5089090d37a2c0b9
-; Generated at: 2026-05-27T22:53:55+00:00
+; Generated at: 2026-05-28T03:45:16+00:00
 ; Export is not verification; run reproduction or oracle checks separately.
 
 ; Memory map
@@ -54,9 +54,11 @@ abs_0_00040000:
 	moveq.l #0,d0
 	rts
 abs_0_00040024:
-	dc.b "dos.library",$00	; string
+	dc.b "dos.library",$00
 abs_0_00040030:
-	dc.b "        PRESENTS NEW STUFF    "	; string
+	dcb.b $8,$20
+	dc.b $50,$52,$45,$53,$45,$4E,$54,$53,$20,$4E,$45,$57,$20,$53,$54,$55
+	dc.b $46,$46,$20,$20,$20,$20
 abs_0_0004004E:
 	dc.b $4D,$4C
 abs_0_00040050:

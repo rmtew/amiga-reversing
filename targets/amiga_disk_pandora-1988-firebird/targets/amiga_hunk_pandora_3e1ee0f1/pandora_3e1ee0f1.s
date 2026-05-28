@@ -3,7 +3,7 @@
 ; Assembler profile: vasm
 ; Metadata hash: 2dc738453d7edcbc050659715a0058ca28d95d4338c8853142856305d94ed665
 ; Target identity sha256: 5d746cea95ca5df9429575feb237dfc5d53713bb090f276f939b107fd8fceb83
-; Generated at: 2026-05-27T22:54:15+00:00
+; Generated at: 2026-05-28T03:45:22+00:00
 ; Export is not verification; run reproduction or oracle checks separately.
 
 ; OS compatibility
@@ -119,7 +119,7 @@ loc_0_000000E0:
 	dbf.w d1,loc_0_000000D2
 	rts
 loc_0_000000E8:
-	dc.l loc_0_0002E23C,$0005C000,$23F12ECD,$100606B3	; lookup_table
+	dc.l $0002E23C,$0005C000,$23F12ECD,$100606B3	; lookup_table
 	dc.l $987FFDFE,$01F61ED3,$04BE00D1,$84BFFEAF	; lookup_table
 	dc.l $4521CC04,$3A50A06E,$284FFCFD,$C87F0002	; lookup_table
 	dc.l $8883B00B,$25C53E01,$0040AC08,$78014194	; lookup_table

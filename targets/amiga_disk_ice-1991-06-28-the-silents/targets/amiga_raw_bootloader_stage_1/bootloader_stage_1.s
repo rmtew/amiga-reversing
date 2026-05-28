@@ -3,7 +3,7 @@
 ; Assembler profile: vasm
 ; Metadata hash: 00731901684269ddac79f413555e3d7ecbb8a75394b8ba2337af25ed574a2298
 ; Target identity sha256: 6fe16fd4f875aba249b3c8ab2d3d6f20c07610fbd72b00eb9a714008832f3469
-; Generated at: 2026-05-27T22:53:56+00:00
+; Generated at: 2026-05-28T03:45:18+00:00
 ; Export is not verification; run reproduction or oracle checks separately.
 
 ; Memory map
@@ -652,39 +652,73 @@ abs_0_0004075A:
 	dc.w bplcon1,$0000	; display scroll pf1=0 pf2=0
 	dc.w bplcon2,$0000
 	dc.w color,$0000
-	dc.w color+$02,$0000
-	dc.w color+$04,$0000
-	dc.w color+$06,$0000
-	dc.w color+$08,$0000
-	dc.w color+$0A,$0000
-	dc.w color+$0C,$0000
-	dc.w color+$0E,$0000
-	dc.w color+$10,$0000
-	dc.w color+$12,$0000
-	dc.w color+$14,$0000
-	dc.w color+$16,$0000
-	dc.w color+$18,$0000
-	dc.w color+$1A,$0000
-	dc.w color+$1C,$0000
-	dc.w color+$1E,$0000
-	dc.w color+$20,$0000
-	dc.w color+$22,$0000
-	dc.w color+$24,$0000
-	dc.w color+$26,$0000
-	dc.w color+$28,$0000
-	dc.w color+$2A,$0000
-	dc.w color+$2C,$0000
-	dc.w color+$2E,$0000
-	dc.w color+$30,$0000
-	dc.w color+$32,$0000
-	dc.w color+$34,$0000
-	dc.w color+$36,$0000
-	dc.w color+$38,$0000
-	dc.w color+$3A,$0000
-	dc.w color+$3C,$0000
-	dc.w color+$3E,$0000
-	dc.w intreq,INTF_SETCLR|INTF_COPER
-	dc.w $FFFF,$FFFE
+	dc.w $0182
+abs_0_000407A0:
+	dc.w $0000
+	dc.w $0184
+	dc.w $0000
+	dc.w $0186
+	dc.w $0000
+	dc.w $0188
+	dc.w $0000
+	dc.w $018A
+	dc.w $0000
+	dc.w $018C
+	dc.w $0000
+	dc.w $018E
+	dc.w $0000
+	dc.w $0190
+	dc.w $0000
+	dc.w $0192
+	dc.w $0000
+	dc.w $0194
+	dc.w $0000
+	dc.w $0196
+	dc.w $0000
+	dc.w $0198
+	dc.w $0000
+	dc.w $019A
+	dc.w $0000
+	dc.w $019C
+	dc.w $0000
+	dc.w $019E
+	dc.w $0000
+	dc.w $01A0
+	dc.w $0000
+	dc.w $01A2
+	dc.w $0000
+	dc.w $01A4
+	dc.w $0000
+	dc.w $01A6
+	dc.w $0000
+	dc.w $01A8
+	dc.w $0000
+	dc.w $01AA
+	dc.w $0000
+	dc.w $01AC
+	dc.w $0000
+	dc.w $01AE
+	dc.w $0000
+	dc.w $01B0
+	dc.w $0000
+	dc.w $01B2
+	dc.w $0000
+	dc.w $01B4
+	dc.w $0000
+	dc.w $01B6
+	dc.w $0000
+	dc.w $01B8
+	dc.w $0000
+	dc.w $01BA
+	dc.w $0000
+	dc.w $01BC
+	dc.w $0000
+	dc.w $01BE
+	dc.w $0000
+	dc.w $009C
+	dc.w $8010
+	dc.w $FFFF
+	dc.w $FFFE
 abs_0_00040822:
 	dc.b $00,$00,$23,$60,$00,$00,$4C,$90,$00,$E5,$38,$73,$F0,$03,$06,$81
 	dc.b $5B,$03,$80,$98,$68,$16,$70,$1C,$05,$86,$7E,$03,$80,$98,$78,$18

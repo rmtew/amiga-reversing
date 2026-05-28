@@ -3,7 +3,7 @@
 ; Assembler profile: vasm
 ; Metadata hash: 2dc738453d7edcbc050659715a0058ca28d95d4338c8853142856305d94ed665
 ; Target identity sha256: 5ae7e4212bd8a667f13b686f36f16a109c32b8e4d7e24ae143074592b0d0a12e
-; Generated at: 2026-05-27T22:53:55+00:00
+; Generated at: 2026-05-28T03:45:14+00:00
 ; Export is not verification; run reproduction or oracle checks separately.
 
 ; OS compatibility

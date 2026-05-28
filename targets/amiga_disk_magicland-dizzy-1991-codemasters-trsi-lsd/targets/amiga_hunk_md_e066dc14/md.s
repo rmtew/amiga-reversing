@@ -3,7 +3,7 @@
 ; Assembler profile: vasm
 ; Metadata hash: 2dc738453d7edcbc050659715a0058ca28d95d4338c8853142856305d94ed665
 ; Target identity sha256: f26cb8133afe589cac0259471a9eb2c94d96817520f91739a609af2f09a6c622
-; Generated at: 2026-05-27T20:10:39+00:00
+; Generated at: 2026-05-28T03:45:19+00:00
 ; Export is not verification; run reproduction or oracle checks separately.
 
 ; Memory map
@@ -8338,7 +8338,9 @@ abs_0_00062BEE:
 	dc.b "WELL DONE!",$00	; string
 	dc.b $00,$00,$0D,$22,$20
 	dc.b "YOU'VE FOUND A",$00	; string
-	dc.b $00,$00,$10,$27,$60,$44,$49,$41,$4D,$4F,$4E,$44,$21,$FF,$00
+	dc.b $00,$00,$10,$27,$60
+	dc.b "DIAMOND!",$FF	; string
+	dc.b $00
 abs_0_00062C2C:
 	dc.b $00,$06,$2C,$7E,$00,$04,$00,$04,$00,$14,$00,$05,$00,$06,$17,$A0
 	dc.b "THE BUSH SPEAKS!",$00	; string
@@ -8735,11 +8737,12 @@ abs_0_00063EF4:
 	dc.b $27,$45,$58,$43,$45,$4C,$4C,$45,$4E,$54,$21,$20,$4E,$4F,$57,$00
 	dc.b $00,$07,$1C,$E0
 	dc.b "CAST THE RING",$00	; string
-	dc.b $00,$04,$22,$20,$49,$4E,$54,$4F,$20,$54,$48,$45,$20,$43,$52,$41
-	dc.b $43,$4B,$53,$20,$4F,$46,$00,$00,$00,$04,$27,$60,$47,$45,$48,$45
-	dc.b $4E,$4E,$41,$20,$41,$4E,$44,$20,$44,$45,$53,$54,$52,$4F,$59,$00
-	dc.b $00,$04,$2D,$48,$5A,$41,$4B,$53,$20,$53,$4F,$55,$4C,$20,$46,$4F
-	dc.b $52,$45,$56,$45,$52,$21,$27,$FF
+	dc.b $00,$04,$22,$20
+	dc.b "INTO THE CRACKS OF",$00	; string
+	dc.b $00,$00,$04,$27,$60
+	dc.b "GEHENNA AND DESTROY",$00	; string
+	dc.b $00,$04,$2D
+	dc.b "HZAKS SOUL FOREVER!'",$FF	; string
 abs_0_00063F6E:
 	dc.b $00,$00,$00,$00,$00,$03,$00,$03,$00,$14,$00,$06,$00,$04,$12,$60
 	dc.b $59,$4F,$55,$20,$43,$41,$53,$54,$20,$5A,$41,$4B,$53,$20,$52,$49

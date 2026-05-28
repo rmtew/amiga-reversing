@@ -3,7 +3,7 @@
 ; Assembler profile: vasm
 ; Metadata hash: 2dc738453d7edcbc050659715a0058ca28d95d4338c8853142856305d94ed665
 ; Target identity sha256: a58b0de683482b5a7ce24c524c9f3e56f17ef9da79d05e263042a2143b7fca4f
-; Generated at: 2026-05-27T22:54:14+00:00
+; Generated at: 2026-05-28T03:45:20+00:00
 ; Export is not verification; run reproduction or oracle checks separately.
 
 ; Memory map
@@ -28,14 +28,14 @@ loc_0_00000000:
 	moveq.l #0,d7
 	lea.l loc_0_00000290(pc),a1
 	lea.l _custom+color+$24.l,a5
-	movea.l loc_0_0000015E+2(pc),a4
+	movea.l loc_0_00000160(pc),a4
 	movea.l a4,a0
 loc_0_00000012:
 	adda.l #$7A9C,a0
 	cmpa.l a4,a1
 	bgt.b loc_0_00000024
 	movea.l a1,a0
-	adda.l loc_0_00000012+2(pc),a0
+	adda.l loc_0_00000014(pc),a0
 	bra.b loc_0_0000002A
 loc_0_00000024:
 	move.b (a1)+,(a4)+

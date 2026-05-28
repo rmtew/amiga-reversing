@@ -8429,13 +8429,34 @@ static int auto_string_has_record_sequence_context(const M68kRenderLookup *looku
     ++prior_count;
     if (item_end > nearest_end) nearest_end = item_end;
   }
-  if (prior_count < 3U || nearest_end == 0U || nearest_end >= offset || offset - nearest_end > 8U) return 0;
+  if (prior_count < 2U || nearest_end == 0U || nearest_end > offset || offset - nearest_end > 8U) return 0;
+  if (nearest_end == offset) return 1;
   for (index = nearest_end; index < offset; ++index) {
     if (!byte_is_quoted_string_safe(section->data[index]) || auto_string_terminator_byte(section->data[index])) {
       return 1;
     }
   }
   return 0;
+}
+
+static int auto_string_has_nearby_terminal_code_context(const M68kDecodeSectionIR *section, uint32_t offset) {
+  uint32_t start;
+  uint32_t cursor;
+  uint32_t immediate_store_terminal_count = 0U;
+  int has_epilogue_context = 0;
+  if (section == NULL || section->data == NULL || section->kind != M68K_SECTION_CODE || offset < 2U) return 0;
+  start = offset > 64U ? offset - 64U : 0U;
+  for (cursor = start; cursor + 1U < offset; ++cursor) {
+    if (section->data[cursor] == 0x4eU && section->data[cursor + 1U] == 0x75U) {
+      if (cursor >= start + 8U && section->data[cursor - 8U] == 0x2dU && section->data[cursor - 7U] == 0x7cU) {
+        ++immediate_store_terminal_count;
+      }
+    }
+    if (cursor + 3U < offset && section->data[cursor] == 0x4cU && section->data[cursor + 1U] == 0xdfU) {
+      has_epilogue_context = 1;
+    }
+  }
+  return immediate_store_terminal_count >= 1U || has_epilogue_context;
 }
 
 static uint32_t auto_renderable_string_span_with_options(const M68kRenderLookup *lookup,
@@ -8445,13 +8466,20 @@ static uint32_t auto_renderable_string_span_with_options(const M68kRenderLookup 
   uint32_t text_size = 0U;
   int has_space = 0;
   int has_lowercase = 0;
+  int has_record_sequence_context;
   if (lookup == NULL || section == NULL || section->data == NULL || offset >= section->size ||
       !byte_is_quoted_string_safe(section->data[offset]) || !auto_string_start_byte(section->data[offset])) {
     return 0U;
   }
+  has_record_sequence_context = auto_string_has_record_sequence_context(lookup, section, offset);
   if (offset > 0U && byte_is_quoted_string_safe(section->data[offset - 1U]) &&
       !lookup_has_label(lookup, section->section_index, offset) &&
-      !auto_string_has_record_sequence_context(lookup, section, offset)) {
+      !has_record_sequence_context) {
+    return 0U;
+  }
+  if (!lookup_has_label(lookup, section->section_index, offset) &&
+      !lookup_has_anchor_local(lookup, section->section_index, offset) &&
+      auto_string_has_nearby_terminal_code_context(section, offset)) {
     return 0U;
   }
   cursor = offset;
@@ -8463,7 +8491,7 @@ static uint32_t auto_renderable_string_span_with_options(const M68kRenderLookup 
     ++text_size;
   }
   if (cursor >= section->size || !auto_string_terminator_byte(section->data[cursor]) ||
-      text_size < min_text_size || (require_space && !has_space))
+      text_size < min_text_size || (require_space && !has_space && !has_record_sequence_context))
     return 0U;
   if (auto_string_looks_length_prefixed(lookup, section, offset, text_size)) return 0U;
   if (auto_string_looks_length_prefixed_sequence(lookup, section, offset, cursor)) return 0U;
@@ -8526,6 +8554,10 @@ static uint32_t auto_renderable_bounded_string_span(const M68kRenderLookup *look
     ++span;
   }
   if (!auto_bounded_string_has_text_shape(section, offset, span)) return 0U;
+  if (!auto_string_has_record_sequence_context(lookup, section, offset) &&
+      auto_string_has_nearby_terminal_code_context(section, offset)) {
+    return 0U;
+  }
   return span;
 }
 
