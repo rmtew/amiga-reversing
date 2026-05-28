@@ -62,7 +62,7 @@ loc_0_00000000:
 	clr.l (a4)
 	lea.l $003C(a0),a4
 loc_0_0000005C:
-	lea.l loc_0_000000F2(pc),a5
+	lea.l loc_0_000000F0+2(pc),a5
 	moveq.l #1,d2
 loc_0_00000062:
 	move.l (a3)+,d0

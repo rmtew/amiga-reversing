@@ -135,7 +135,8 @@ typedef enum M68kAnalysisStructuredDataSourcePattern {
   M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_API_STRING_POINTER = 14,
   M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_POINTER_STRING_TABLE = 15,
   M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_WORD_OFFSET_STRING_TABLE = 16,
-  M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_API_TEXT_BUFFER = 17
+  M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_API_TEXT_BUFFER = 17,
+  M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_PC_RELATIVE_INDEXED_INDIRECT_DISPATCH = 18
 } M68kAnalysisStructuredDataSourcePattern;
 
 typedef enum M68kAnalysisTableKind {
@@ -1129,7 +1130,8 @@ typedef enum M68kAnalysisConflictState {
   M68K_ANALYSIS_CONFLICT_STATE_CLEAN = 0,
   M68K_ANALYSIS_CONFLICT_STATE_CODE_OVERLAP = 1,
   M68K_ANALYSIS_CONFLICT_STATE_UNRESOLVED = 2,
-  M68K_ANALYSIS_CONFLICT_STATE_CONFLICTED = 3
+  M68K_ANALYSIS_CONFLICT_STATE_CONFLICTED = 3,
+  M68K_ANALYSIS_CONFLICT_STATE_UNRESOLVED_CODE_TARGET = 4
 } M68kAnalysisConflictState;
 
 typedef enum M68kMemoryLayoutRecordKind {
@@ -1214,6 +1216,84 @@ typedef struct M68kBaseLayoutFieldIR {
   uint32_t source_offset;
 } M68kBaseLayoutFieldIR;
 
+typedef enum M68kRangeOwnershipKind {
+  M68K_RANGE_OWNERSHIP_UNKNOWN = 0,
+  M68K_RANGE_OWNERSHIP_CODE = 1,
+  M68K_RANGE_OWNERSHIP_TEXT = 2,
+  M68K_RANGE_OWNERSHIP_TABLE = 3,
+  M68K_RANGE_OWNERSHIP_STRUCTURED_DATA = 4,
+  M68K_RANGE_OWNERSHIP_PLATFORM_METADATA = 5,
+  M68K_RANGE_OWNERSHIP_RESIDUAL = 6,
+  M68K_RANGE_OWNERSHIP_CONFLICT = 7
+} M68kRangeOwnershipKind;
+
+typedef enum M68kRangeOwnershipStatus {
+  M68K_RANGE_OWNERSHIP_STATUS_UNKNOWN = 0,
+  M68K_RANGE_OWNERSHIP_STATUS_CANDIDATE = 1,
+  M68K_RANGE_OWNERSHIP_STATUS_ACCEPTED = 2,
+  M68K_RANGE_OWNERSHIP_STATUS_CONFLICT = 3,
+  M68K_RANGE_OWNERSHIP_STATUS_BLOCKED = 4,
+  M68K_RANGE_OWNERSHIP_STATUS_DEFERRED = 5
+} M68kRangeOwnershipStatus;
+
+typedef enum M68kRangeOwnershipEvidenceFlag {
+  M68K_RANGE_EVIDENCE_ACCEPTED_CODE = 1U << 0,
+  M68K_RANGE_EVIDENCE_BRANCH_TARGET = 1U << 1,
+  M68K_RANGE_EVIDENCE_POINTER_TARGET = 1U << 2,
+  M68K_RANGE_EVIDENCE_INDEXED_TABLE_ACCESS = 1U << 3,
+  M68K_RANGE_EVIDENCE_API_ARGUMENT = 1U << 4,
+  M68K_RANGE_EVIDENCE_PLATFORM_RECORD = 1U << 5,
+  M68K_RANGE_EVIDENCE_TEXT_SHAPE = 1U << 6,
+  M68K_RANGE_EVIDENCE_TERMINATOR_SHAPE = 1U << 7,
+  M68K_RANGE_EVIDENCE_CODE_SHAPE = 1U << 8,
+  M68K_RANGE_EVIDENCE_STRUCTURED_DATA = 1U << 9
+} M68kRangeOwnershipEvidenceFlag;
+
+typedef enum M68kRangeOwnershipNegativeEvidenceFlag {
+  M68K_RANGE_NEGATIVE_MISSING_INBOUND = 1U << 0,
+  M68K_RANGE_NEGATIVE_STRUCTURED_DATA_OVERLAP = 1U << 1,
+  M68K_RANGE_NEGATIVE_CODE_OVERLAP = 1U << 2,
+  M68K_RANGE_NEGATIVE_UNRESOLVED_CODE_TARGET = 1U << 3
+} M68kRangeOwnershipNegativeEvidenceFlag;
+
+typedef struct M68kRangeOwnershipIR {
+  uint32_t start_offset;
+  uint32_t end_offset;
+  uint8_t kind;
+  uint8_t status;
+  uint8_t data_kind;
+  uint8_t conflict_state;
+  uint32_t positive_evidence_flags;
+  uint32_t negative_evidence_flags;
+  uint32_t source_offset;
+  uint8_t has_source;
+  uint8_t table_kind_id;
+  uint8_t source_pattern_id;
+  uint8_t reserved[1];
+  char *role;
+  char *source_pattern;
+} M68kRangeOwnershipIR;
+
+typedef struct M68kTableDescriptorIR {
+  uint32_t start_offset;
+  uint32_t end_offset;
+  uint32_t entry_size;
+  uint32_t entry_count;
+  uint8_t table_kind_id;
+  uint8_t base_expression_id;
+  uint8_t source_pattern_id;
+  uint8_t status;
+  uint32_t role_flags;
+  uint8_t has_target;
+  uint8_t has_consumer;
+  uint8_t conflict_state;
+  uint8_t reserved[1];
+  uint32_t target_section_index;
+  uint32_t target_offset;
+  uint32_t consumer_section_index;
+  uint32_t consumer_offset;
+} M68kTableDescriptorIR;
+
 typedef struct M68kSectionAnalysisIR {
   size_t section_index;
   char *section_name;
@@ -1246,6 +1326,12 @@ typedef struct M68kSectionAnalysisIR {
   size_t violation_offset_lookup_size;
   uint32_t *violation_next_lookup;
   size_t violation_next_lookup_size;
+  M68kRangeOwnershipIR *range_ownerships;
+  size_t range_ownership_count;
+  size_t range_ownership_capacity;
+  M68kTableDescriptorIR *table_descriptors;
+  size_t table_descriptor_count;
+  size_t table_descriptor_capacity;
   M68kRecoveredPlatformCallIR **recovered_platform_call_lookup;
   size_t recovered_platform_call_lookup_size;
   uint32_t *recovered_platform_call_next_lookup;
@@ -1402,6 +1488,10 @@ int m68k_ir_section_analysis_set_long_exprs(M68kSectionAnalysisIR *section_analy
 int m68k_ir_section_analysis_add_label(M68kSectionAnalysisIR *section_analysis, uint32_t offset);
 int m68k_ir_section_analysis_append_block(M68kSectionAnalysisIR *section_analysis, const M68kCfgBlockIR *block);
 int m68k_ir_section_analysis_append_edge(M68kSectionAnalysisIR *section_analysis, const M68kCfgEdgeIR *edge);
+int m68k_ir_section_analysis_append_range_ownership(M68kSectionAnalysisIR *section_analysis,
+    const M68kRangeOwnershipIR *range);
+int m68k_ir_section_analysis_append_table_descriptor(M68kSectionAnalysisIR *section_analysis,
+    const M68kTableDescriptorIR *descriptor);
 int m68k_ir_section_analysis_add_violation(M68kSectionAnalysisIR *section_analysis, uint32_t offset, uint8_t kind, const char *message);
 int m68k_ir_section_analysis_append_recovered_word_dispatch(M68kSectionAnalysisIR *section_analysis,
   const M68kRecoveredWordDispatchIR *dispatch);

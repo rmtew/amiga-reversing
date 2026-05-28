@@ -1204,7 +1204,7 @@ class _M68kAnalysisPolicy(ctypes.Structure):
         ("reserved1", ctypes.c_uint8 * 1),
         ("entry_offset", ctypes.c_uint32),
         ("register_seeds", _M68kAnalysisRegisterSeed * 64),
-        ("entry_points", _M68kAnalysisEntryPoint * 64),
+        ("entry_points", _M68kAnalysisEntryPoint * 256),
         ("structured_data_items", _M68kAnalysisStructuredDataItem * 256),
         ("named_labels", _M68kAnalysisNamedLabel * 128),
         ("entry_comments", _M68kAnalysisEntryComment * 128),
@@ -6327,7 +6327,7 @@ def test_project_source_facts_v2_direct_rebuild_compare_uses_compare_c_api(monke
     ]
 
 
-def test_project_source_facts_v2_direct_compare_classifies_hunk_container_oddity(
+def test_project_source_facts_v2_direct_compare_preserves_hunk_trailing_layout(
     tmp_path: Path,
 ) -> None:
     _requires_c_backend_dlls()
@@ -6346,17 +6346,17 @@ def test_project_source_facts_v2_direct_compare_classifies_hunk_container_oddity
         project_root=PROJECT_ROOT,
     )
 
-    assert rebuilt != binary_path.read_bytes()
-    assert direct_profile["direct_rebuild_exact"] is False
+    assert rebuilt == binary_path.read_bytes()
+    assert direct_profile["direct_rebuild_exact"] is True
     assert direct_profile["direct_compare_semantic_exact"] is True
     assert direct_profile["direct_compare_payload_exact"] is True
     assert direct_profile["direct_compare_relocation_semantics_exact"] is True
-    assert direct_profile["direct_compare_container_oddity"] is True
-    assert direct_profile["direct_compare_status"] == "semantic_container_oddity"
-    assert direct_profile["direct_compare_status_id"] == 2
-    assert direct_profile["direct_compare_exactness_id"] == 2
-    assert direct_profile["direct_compare_issue_group_flags"] & 0x4 == 0x4
-    assert direct_profile["direct_compare_range_count"] >= 1
+    assert direct_profile["direct_compare_container_oddity"] is False
+    assert direct_profile["direct_compare_status"] == "full_file_exact"
+    assert direct_profile["direct_compare_status_id"] == 1
+    assert direct_profile["direct_compare_exactness_id"] == 1
+    assert direct_profile["direct_compare_issue_group_flags"] == 0
+    assert direct_profile["direct_compare_range_count"] == 0
     assert any(item["kind"] == "section_payload" for item in direct_profile["direct_compare_file_layout"])
     payload_layout = next(item for item in direct_profile["direct_compare_file_layout"] if item["kind"] == "section_payload")
     assert payload_layout["section_index"] == 0
@@ -7539,7 +7539,7 @@ def test_real_dll_pandora_bootstrap_does_not_promote_zero_padding_as_code() -> N
     assert "    ORG $10000\nabs_0_00010000:\n" in source_text
     assert "\tlea.l abs_0_00010000.l,a2\n" in source_text
     assert "\tlea.l abs_0_0001046A.l,a3\n" in source_text
-    assert "abs_0_0001046A:\n\tlea.l $000039FC.l,a0\n" in source_text
+    assert "abs_0_0001046A:\n\tlea.l absolute_slot_000039FC.l,a0\n" in source_text
     assert "runtime_code_0001046A\tEQU\t$1046A\n" not in source_text
     assert "\tmove.l #abs_0_0005D5DE,bltapt(a5)" in source_text
     assert "\tmovea.l #abs_0_0001C3A8,a0\n" in source_text
@@ -7619,7 +7619,10 @@ def test_real_dll_monam_callback_field_targets_decode_from_indirect_call() -> No
 
 def test_real_dll_magicland_org_bootstrap_decodes_copied_runtime_entry() -> None:
     _requires_c_backend_dlls()
-    paths = resolve_project_paths("amiga_hunk_magicland_dizzy_md", project_root=PROJECT_ROOT)
+    paths = resolve_project_paths(
+        "amiga_disk_magicland-dizzy-1991-codemasters-trsi-lsd__amiga_hunk_md_e066dc14",
+        project_root=PROJECT_ROOT,
+    )
 
     source_text, source_text_profile = listing_artifact_source_text_with_c_backend_profile(
         paths.binary_source,
@@ -10141,13 +10144,13 @@ def test_real_dll_damocles_register_copied_target_promotes_decompressor_code(tmp
     assert "\tadda.l loc_1_00000012+2(pc),a0\n" in source_text
     assert "\tmovea.l $C4(pc),a4\n" not in source_text
     assert "\tadda.l -$C(pc),a0\n" not in source_text
-    assert "runtime_address_0004F92B\tEQU\t$4F92B\n" in source_text
-    assert "\tlea.l runtime_address_0004F92B.l,a1\n" in source_text
+    assert "absolute_slot_0004F92B\tEQU\t$4F92B\n" in source_text
+    assert "\tlea.l absolute_slot_0004F92B.l,a1\n" in source_text
     assert "\tlea.l $0004F92B.l,a1\n" not in source_text
     assert "runtime_address_00040000\tEQU\t$40000\n" in source_text
-    assert "runtime_address_00050000\tEQU\t$50000\n" in source_text
-    assert "\tlea.l runtime_address_00040000.l,a0\n" in source_text
-    assert "\tlea.l runtime_address_00050000.l,a2\n" in source_text
+    assert "absolute_slot_00050000\tEQU\t$50000\n" in source_text
+    assert "\tlea.l absolute_slot_00040000.l,a0\n" in source_text
+    assert "\tlea.l absolute_slot_00050000.l,a2\n" in source_text
     assert "\tlea.l $00040000.l,a0\n" not in source_text
     assert "\tlea.l $00050000.l,a2\n" not in source_text
     assert "\tlea.l abs_2_00000100.l,a1\n" in source_text
@@ -10156,14 +10159,14 @@ def test_real_dll_damocles_register_copied_target_promotes_decompressor_code(tmp
         "    ORG $100\n"
         "abs_2_00000100:\n"
         "\tmoveq.l #-83,d7\n"
-        "\tlea.l $00001000.l,a0\n"
-        "\tlea.l runtime_address_0007FFFF.l,a2\n"
+        "\tlea.l absolute_slot_00001000.l,a0\n"
+        "\tlea.l absolute_slot_0007FFFF.l,a2\n"
     ) in source_text
     assert "loc_2_0000006A:\n\tdc.b $7E,$AD,$41,$F9" not in source_text
     assert (
         "abs_2_00000140:\n"
         "\tadda.l #$47368,a0\n"
-        "\tlea.l runtime_address_000130B6.l,a1\n"
+        "\tlea.l absolute_slot_000130B6.l,a1\n"
     ) in source_text
     assert "\tlea.l loc_2_0000014C-(*+2)(pc),a0\n" in source_text
     assert "\tlea.l loc_2_0000014C(pc),a0\n" not in source_text
@@ -11582,6 +11585,15 @@ def test_real_dll_renders_pmove_form_specific_control_register_and_reassembles(t
 
     assert "pmove psr,(a7)" in rendered
     assert "pmove sfc,(a7)" not in rendered
+    analysis = analyze_project_source_with_c_backend(source, project_root=PROJECT_ROOT)
+    dispatch_table = next(
+        record
+        for record in analysis["table_records"]
+        if record.get("section_index") == 0 and record.get("offset") == 0x788
+    )
+    assert dispatch_table["table_kind"] == "relative_code_dispatch"
+    assert dispatch_table["conflicted"] is True
+    assert dispatch_table["conflict_state"] == "unresolved_code_target"
     result = subprocess.run(
         [
             str(assembler),

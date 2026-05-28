@@ -906,13 +906,14 @@ def test_run_reproduction_delegates_to_round_trip_workflow(monkeypatch, tmp_path
 
     monkeypatch.setattr(reproduction.RoundTripVerificationWorkflow, "run", run_workflow)
 
-    report = run_reproduction("demo", project_root=tmp_path, profile=True)
+    report = run_reproduction("demo", project_root=tmp_path, profile=True, persist_report=False)
 
     assert report == {"status": "delegated"}
     assert isinstance(calls[0]["self"], reproduction.RoundTripVerificationWorkflow)
     assert calls[0]["target_name"] == "demo"
     assert cast(dict[str, object], calls[0]["kwargs"])["project_root"] == tmp_path
     assert cast(dict[str, object], calls[0]["kwargs"])["profile"] is True
+    assert cast(dict[str, object], calls[0]["kwargs"])["persist_report"] is False
 
 
 def test_run_reproduction_accepts_lossy_hunk_reloc32_direct_rebuild_refusal(

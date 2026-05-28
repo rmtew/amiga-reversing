@@ -5594,6 +5594,13 @@ static int render_lookup_add_auto_structured_data_item(M68kRenderLookup *lookup,
   item->kind = kind;
   m68k_analysis_structured_data_item_set_semantic_role_flags(item, semantic_role_flags);
   ++lookup->auto_structured_data_item_count;
+  render_lookup_mark_boundary_flag(lookup, section_index, offset, M68K_RENDER_BOUNDARY_STRUCTURED_DATA);
+  if (section_index < lookup->section_count && lookup->auto_structured_data_item_indices != NULL &&
+      lookup->auto_structured_data_item_index_extents != NULL &&
+      offset <= lookup->auto_structured_data_item_index_extents[section_index] &&
+      lookup->auto_structured_data_item_indices[section_index] != NULL) {
+    lookup->auto_structured_data_item_indices[section_index][offset] = lookup->auto_structured_data_item_count;
+  }
   (void)render_lookup_mark_label(lookup, section_index, offset);
   return 0;
 }
@@ -5851,6 +5858,7 @@ int render_lookup_add_instruction_comment(M68kRenderLookup *lookup, size_t secti
     M68kRenderInstructionComment *entry = &lookup->instruction_comments[*index_slot - 1U];
     if (entry->section_index == section_index && entry->offset == offset) {
       (void)append_comment_part_local(entry->comment, sizeof(entry->comment), comment);
+      render_lookup_mark_boundary_flag(lookup, section_index, offset, M68K_RENDER_BOUNDARY_COMMENT);
       return 0;
     }
     *index_slot = 0U;
@@ -5860,6 +5868,7 @@ int render_lookup_add_instruction_comment(M68kRenderLookup *lookup, size_t secti
     if (entry->section_index != section_index || entry->offset != offset) continue;
     if (index_slot != NULL) *index_slot = index + 1U;
     (void)append_comment_part_local(entry->comment, sizeof(entry->comment), comment);
+    render_lookup_mark_boundary_flag(lookup, section_index, offset, M68K_RENDER_BOUNDARY_COMMENT);
     return 0;
   }
   if (lookup->instruction_comment_count == lookup->instruction_comment_capacity) {
@@ -5878,6 +5887,7 @@ int render_lookup_add_instruction_comment(M68kRenderLookup *lookup, size_t secti
     sizeof(lookup->instruction_comments[lookup->instruction_comment_count].comment), "%s", comment);
   if (index_slot != NULL) *index_slot = lookup->instruction_comment_count + 1U;
   ++lookup->instruction_comment_count;
+  render_lookup_mark_boundary_flag(lookup, section_index, offset, M68K_RENDER_BOUNDARY_COMMENT);
   return 0;
 }
 
@@ -6407,6 +6417,12 @@ int render_lookup_add_string_span(M68kRenderLookup *lookup, size_t section_index
   lookup->string_spans[lookup->string_span_count].offset = offset;
   lookup->string_spans[lookup->string_span_count].size = size;
   ++lookup->string_span_count;
+  render_lookup_mark_boundary_flag(lookup, section_index, offset, M68K_RENDER_BOUNDARY_STRING_SPAN);
+  if (section_index < lookup->section_count && lookup->string_span_indices != NULL &&
+      lookup->string_span_index_extents != NULL && offset <= lookup->string_span_index_extents[section_index] &&
+      lookup->string_span_indices[section_index] != NULL) {
+    lookup->string_span_indices[section_index][offset] = lookup->string_span_count;
+  }
   return 0;
 }
 
@@ -6414,6 +6430,8 @@ const char *lookup_instruction_comment(const M68kRenderLookup *lookup, size_t se
   size_t index;
   const size_t *index_slot;
   if (lookup == NULL) return NULL;
+  if ((render_lookup_boundary_flags(lookup, section_index, offset) & M68K_RENDER_BOUNDARY_COMMENT) == 0U)
+    return NULL;
   index_slot = lookup_instruction_comment_index_slot_const(lookup, section_index, offset);
   if (index_slot != NULL && *index_slot != 0U && *index_slot <= lookup->instruction_comment_count) {
     const M68kRenderInstructionComment *entry = &lookup->instruction_comments[*index_slot - 1U];
@@ -6430,11 +6448,17 @@ const char *lookup_instruction_comment(const M68kRenderLookup *lookup, size_t se
 
 const M68kRenderStringSpan *lookup_string_span_at_offset(const M68kRenderLookup *lookup, size_t section_index,
     uint32_t offset) {
-  size_t index;
   if (lookup == NULL) return NULL;
-  for (index = 0U; index < lookup->string_span_count; ++index) {
-    const M68kRenderStringSpan *entry = &lookup->string_spans[index];
-    if (entry->section_index == section_index && entry->offset == offset && entry->size != 0U) return entry;
+  if ((render_lookup_boundary_flags(lookup, section_index, offset) & M68K_RENDER_BOUNDARY_STRING_SPAN) == 0U)
+    return NULL;
+  if (section_index < lookup->section_count && lookup->string_span_indices != NULL &&
+      lookup->string_span_index_extents != NULL && offset <= lookup->string_span_index_extents[section_index] &&
+      lookup->string_span_indices[section_index] != NULL) {
+    size_t index = lookup->string_span_indices[section_index][offset];
+    if (index != 0U && index <= lookup->string_span_count) {
+      const M68kRenderStringSpan *entry = &lookup->string_spans[index - 1U];
+      if (entry->section_index == section_index && entry->offset == offset && entry->size != 0U) return entry;
+    }
   }
   return NULL;
 }
@@ -8421,6 +8445,7 @@ static int render_lookup_mark_label(M68kRenderLookup *lookup, size_t section_ind
     return 0;
   }
   lookup->labels[section_index][offset] = 1U;
+  render_lookup_mark_boundary_flag(lookup, section_index, offset, M68K_RENDER_BOUNDARY_LABEL);
   return 1;
 }
 
@@ -10843,10 +10868,21 @@ static int render_lookup_infer_pc_relative_lookup_scalars(M68kRenderLookup *look
             return -1;
           }
           if (span != 0U) {
+            uint8_t source_pattern_id = M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_PC_RELATIVE_INDEXED_READ;
+            if (item_kind == M68K_ANALYSIS_STRUCTURED_DATA_LONGS &&
+                instruction.operand_count >= 2U &&
+                operand_address_register_index_local(&instruction.operands[instruction.operand_count - 1U],
+                  &dest_reg) &&
+                dest_reg < 8U &&
+                candidate_later_is_indirect_control_through_addr_reg(section, accepted_start[section_index],
+                  candidate, dest_reg)) {
+              source_pattern_id =
+                M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_PC_RELATIVE_INDEXED_INDIRECT_DISPATCH;
+            }
             render_lookup_set_auto_structured_data_item_consumer(lookup, target->section_index, target->offset,
               section_index, candidate->offset);
             render_lookup_set_auto_structured_data_item_source_pattern(lookup, target->section_index,
-              target->offset, M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_PC_RELATIVE_INDEXED_READ);
+              target->offset, source_pattern_id);
           }
           if (span != 0U && item_kind == M68K_ANALYSIS_STRUCTURED_DATA_WORDS &&
               instruction.operand_count >= 2U &&

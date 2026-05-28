@@ -5874,7 +5874,7 @@ loc_0_00006BD1:
 	dc.w $0112
 	dc.w $1212
 	dc.w $0202
-	dc.w loc_0_00008908-loc_0_00006BEA
+	dc.w $1D1E
 	dc.w $1F1F
 loc_0_00006BEA:
 	dc.w loc_0_00006EDA-loc_0_00006BEA	; lookup_table
@@ -6423,7 +6423,7 @@ loc_0_00007088:
 	moveq.l #0,d2
 	moveq.l #1,d0
 	exg d0,d7
-	jmp loc_0_00007094(pc,d0.w)
+	jmp $0(pc,d0.w)
 loc_0_00007096:
 	bra.b loc_0_00007112
 loc_0_00007098:

@@ -6486,7 +6486,7 @@ CODE_1_loc_00003616:
 	bgt.w CODE_1_loc_000036b6
 	add.w d0,d0
 	move.w CODE_1_loc_00003634(pc,d0.w),d0
-	jmp CODE_1_loc_00003632(pc,d0.w)
+	jmp $0(pc,d0.w)
 CODE_1_loc_00003634:
 	dc.w $000E,$0022,$0036,$004A,$005E,$0072,$2F0C,$2F0B	; lookup_table
 CODE_1_data_00003634:
@@ -6565,7 +6565,7 @@ CODE_1_loc_00003738:
 	bgt.w CODE_1_loc_000039fe
 	add.w d0,d0
 	move.w CODE_1_loc_00003754(pc,d0.w),d0
-	jmp CODE_1_loc_00003752(pc,d0.w)
+	jmp $0(pc,d0.w)
 CODE_1_loc_00003754:
 	dc.w $0034,$009C,$011E,$0132,$0156,$017A,$018A,$019C	; lookup_table
 CODE_1_data_00003754:
@@ -7874,7 +7874,7 @@ CODE_1_loc_00004852:
 	bgt.w CODE_1_loc_000049da
 	add.w d0,d0
 	move.w CODE_1_loc_00004878(pc,d0.w),d0
-	jmp CODE_1_loc_00004876(pc,d0.w)
+	jmp $0(pc,d0.w)
 CODE_1_loc_00004878:
 	dc.w $0022,$0070,$00BE,$00CC,$00E4,$00F8,$00FC,$0102	; lookup_table
 CODE_1_data_00004878:
@@ -12597,7 +12597,7 @@ CODE_2_loc_00001c50:
 	bgt.w CODE_2_loc_00001e26
 	add.w d0,d0
 	move.w CODE_2_loc_00001c70(pc,d0.w),d0
-	jmp CODE_2_loc_00001c6e(pc,d0.w)
+	jmp $0(pc,d0.w)
 CODE_2_loc_00001c70:
 	dc.w $000E,$0098,$0098,$0102,$0102,$0178,$4267,$486E	; lookup_table
 CODE_2_data_00001c70:
@@ -15460,7 +15460,7 @@ CODE_3_loc_000033ea:
 	bgt.w CODE_3_loc_0000352a
 	add.w d0,d0
 	move.w CODE_3_loc_0000342c(pc,d0.w),d0
-	jmp CODE_3_loc_0000342a(pc,d0.w)
+	jmp $0(pc,d0.w)
 CODE_3_loc_0000342c:
 	dc.w $0026,$0030,$003A,$0044,$004E,$0058,$0062,$007A	; lookup_table
 CODE_3_data_0000342c:
@@ -21478,7 +21478,7 @@ CODE_5_loc_00001d38:
 	bgt.w CODE_5_loc_00001fb2
 	add.w d0,d0
 	move.w CODE_5_loc_00001d54(pc,d0.w),d0
-	jmp CODE_5_loc_00001d52(pc,d0.w)
+	jmp $0(pc,d0.w)
 CODE_5_loc_00001d54:
 	dc.w $0020,$0020,$006C,$008A,$00A8,$00CE,$00DE,$00EE	; lookup_table
 CODE_5_data_00001d54:
@@ -23662,7 +23662,7 @@ CODE_5_loc_00003ac2:
 	bgt.w CODE_5_loc_000053f6
 	add.w d0,d0
 	move.w CODE_5_loc_00003b10(pc,d0.w),d0
-	jmp CODE_5_loc_00003b0e(pc,d0.w)
+	jmp $0(pc,d0.w)
 CODE_5_loc_00003b10:
 	dc.w $0042,$00B6,$012A,$0164,$0164,$0270,$0270,$02FE	; lookup_table
 CODE_5_data_00003b10:
@@ -38500,7 +38500,7 @@ CODE_13_loc_0000729c:
 	bgt.w CODE_13_loc_00008172
 	add.w d0,d0
 	move.w CODE_13_loc_000072be(pc,d0.w),d0
-	jmp CODE_13_loc_000072bc(pc,d0.w)
+	jmp $0(pc,d0.w)
 CODE_13_loc_000072be:
 	dc.w $00B0,$00B8,$00C0,$00DA,$00DA,$00DA,$00E2,$00EA	; lookup_table
 CODE_13_data_000072be:
@@ -46390,7 +46390,7 @@ CODE_21_loc_00000fde:
 	bgt.b CODE_21_loc_00001016
 	add.l d0,d0
 	move.w CODE_21_loc_00001008(pc,d0.l),d0
-	jmp CODE_21_loc_00001006(pc,d0.w)
+	jmp $0(pc,d0.w)
 CODE_21_loc_00001008:
 	dc.w $001A,$00A6,$0010,$00B2,$0010,$00BA,$00CC	; lookup_table
 CODE_21_loc_00001016:

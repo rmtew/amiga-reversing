@@ -10392,7 +10392,7 @@ loc_0_0000A47C:
 	adda.w #$2,a1
 	bsr.w loc_0_00005A8E
 loc_0_0000A49E:
-	bsr.w loc_0_0000AB38
+	bsr.w *+1690
 	tst.b app_0337(a6)
 	beq.b loc_0_0000A49E
 	bsr.w loc_0_00008DAA
@@ -10409,7 +10409,7 @@ loc_0_0000A4B8:
 loc_0_0000A4D6:
 	bsr.w loc_0_00008AF6
 loc_0_0000A4DA:
-	bsr.w loc_0_0000AB38
+	bsr.w *+1630
 	cmp.w #$5A,d0
 	bcc.w loc_0_0000A4DA
 	andi.l #255,d0
@@ -10487,7 +10487,7 @@ loc_0_0000A5D8:
 loc_0_0000A5E6:
 	bsr.w loc_0_00008AF6
 loc_0_0000A5EA:
-	bsr.w loc_0_0000AB38
+	bsr.w *+1358
 	cmp.w #$5A,d0
 	bcc.w loc_0_0000A5EA
 	andi.l #255,d0
@@ -10653,7 +10653,7 @@ loc_0_0000AB3E:
 	dc.l loc_0_00002068
 loc_0_0000AB44:
 	dc.b $4A,$2E
-	btst.b d1,loc_0_0000AB48(pc,d6.w*8)
+	btst.b d1,$0(pc,d6.w*8)
 	ori.w #45116,(a2)
 	ori.b #$6A0C,(a0)+
 	btst.b #0,app_0320(a6)

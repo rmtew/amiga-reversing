@@ -60,7 +60,7 @@ def _run_target(target: str, source_path: Path) -> dict[str, Any]:
             "message": "Mac OS rendered-source assembly is not currently supported.",
         }
     try:
-        result = run_reproduction(target, assembler="our", profile=True)
+        result = run_reproduction(target, assembler="our", profile=True, persist_report=False)
     except Exception as exc:
         return {
             "target": target,

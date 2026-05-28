@@ -10028,6 +10028,7 @@ static PlatformFileListingArtifact *listing_artifact_alloc_base(const char *back
 static int listing_artifact_build_analysis(PlatformFileListingArtifact *artifact, M68kDiagList *diagnostics) {
   clock_t source_start;
   clock_t source_end;
+  char failure_message[192];
   if (artifact == NULL) {
     platform_file_add_error(diagnostics, "invalid listing artifact");
     return -1;
@@ -10035,6 +10036,15 @@ static int listing_artifact_build_analysis(PlatformFileListingArtifact *artifact
   source_start = clock();
   if (m68k_facts_v2_render_asm_source_plan_analysis_profile_alloc(&artifact->object, &artifact->policy, NULL,
       &artifact->source_plan, &artifact->profile, &artifact->source_analysis, 1U, m68k_diag_sink(diagnostics)) != 0) {
+    if (artifact->profile.asm_source_first_failure_kind != M68K_RENDER_IR_ASM_SOURCE_FAILURE_NONE) {
+      snprintf(failure_message, sizeof(failure_message),
+        "facts_v2 asm source first failure: kind=%s section=%u offset=%u aux=%u",
+        facts_v2_asm_source_failure_kind_name(artifact->profile.asm_source_first_failure_kind),
+        (unsigned)artifact->profile.asm_source_first_failure_section,
+        (unsigned)artifact->profile.asm_source_first_failure_offset,
+        (unsigned)artifact->profile.asm_source_first_failure_aux_offset);
+      platform_file_add_error(diagnostics, failure_message);
+    }
     if (!m68k_diag_has_errors(diagnostics))
       platform_file_add_error(diagnostics, "facts_v2 asm source render failed");
     return -1;

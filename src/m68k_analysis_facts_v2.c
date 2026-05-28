@@ -15,6 +15,7 @@
 #include "util_arena.h"
 
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <time.h>
 
@@ -9493,8 +9494,16 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
     out_profile->asm_source_enabled = 1U;
     out_profile->asm_source_refused = 1U;
     if (fail_on_asm_refused) {
+      char failure_message[192];
+      snprintf(failure_message, sizeof(failure_message),
+        "facts_v2 asm source refused because source rendering invariants failed: "
+        "kind=%u section=%u offset=%u aux=%u",
+        (unsigned)out_profile->asm_source_first_failure_kind,
+        (unsigned)out_profile->asm_source_first_failure_section,
+        (unsigned)out_profile->asm_source_first_failure_offset,
+        (unsigned)out_profile->asm_source_first_failure_aux_offset);
       m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
-        "facts_v2 asm source refused because source rendering invariants failed");
+        failure_message);
       goto fail;
     }
   }

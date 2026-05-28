@@ -482,6 +482,18 @@ typedef struct M68kRenderBaseTraceState {
   size_t stack_value_count;
 } M68kRenderBaseTraceState;
 
+typedef enum M68kRenderBoundaryFlag {
+  M68K_RENDER_BOUNDARY_NONE = 0,
+  M68K_RENDER_BOUNDARY_LABEL = 1U << 0,
+  M68K_RENDER_BOUNDARY_RELOCATION = 1U << 1,
+  M68K_RENDER_BOUNDARY_ANCHOR = 1U << 2,
+  M68K_RENDER_BOUNDARY_BLOCK_START = 1U << 3,
+  M68K_RENDER_BOUNDARY_COMMENT = 1U << 4,
+  M68K_RENDER_BOUNDARY_STRUCTURED_DATA = 1U << 5,
+  M68K_RENDER_BOUNDARY_STRING_SPAN = 1U << 6,
+  M68K_RENDER_BOUNDARY_LONG_TABLE_TARGET = 1U << 7
+} M68kRenderBoundaryFlag;
+
 struct M68kRenderLookup {
   Arena *arena;
   uint8_t **labels;
@@ -491,6 +503,8 @@ struct M68kRenderLookup {
   const M68kFact ***relocations;
   const M68kFact ***anchors;
   uint8_t **block_starts;
+  uint32_t **block_start_before_or_at;
+  uint16_t **render_boundary_flags;
   uint32_t *label_extents;
   uint32_t *label_target_ref_extents;
   uint32_t *label_statement_ref_extents;
@@ -498,6 +512,8 @@ struct M68kRenderLookup {
   uint32_t *relocation_extents;
   uint32_t *anchor_extents;
   uint32_t *block_start_extents;
+  uint32_t *block_start_before_or_at_extents;
+  uint32_t *render_boundary_extents;
   size_t section_count;
   const M68kObject *object;
   const M68kAnalysisPolicy *policy;
@@ -582,12 +598,19 @@ struct M68kRenderLookup {
   size_t auto_structured_data_item_capacity;
   size_t **instruction_comment_indices;
   uint32_t *instruction_comment_extents;
+  size_t **auto_structured_data_item_indices;
+  uint32_t *auto_structured_data_item_index_extents;
+  size_t **string_span_indices;
+  uint32_t *string_span_index_extents;
 };
 
 Arena *render_lookup_arena(M68kRenderLookup *lookup);
 void *render_lookup_calloc(M68kRenderLookup *lookup, size_t count, size_t size);
 void *render_lookup_grow_array(M68kRenderLookup *lookup, const void *old_items, size_t old_count,
   size_t item_size, size_t new_capacity);
+void render_lookup_mark_boundary_flag(M68kRenderLookup *lookup, size_t section_index, uint32_t offset,
+  uint16_t flag);
+uint16_t render_lookup_boundary_flags(const M68kRenderLookup *lookup, size_t section_index, uint32_t offset);
 void render_lookup_mark_label_target_ref(M68kRenderLookup *lookup, size_t section_index, uint32_t offset);
 void render_lookup_mark_label_statement_ref(M68kRenderLookup *lookup, size_t section_index, uint32_t offset);
 

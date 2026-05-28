@@ -1,6 +1,6 @@
 # Proposal 026: Evidence-Driven Range and Table Analysis
 
-Status: proposed
+Status: in progress
 
 ## Purpose
 
@@ -575,12 +575,119 @@ This proposal can close when:
 - fixture tests cover the TODO-derived examples;
 - rendered source round-trip has no regressions.
 
+## Implementation Progress
+
+### Pass 1: Source-Analysis Range Ownership Records
+
+The first implementation pass adds C-owned range ownership records to section
+analysis.
+
+Current records are projected from facts the C engine already owns:
+
+```text
+accepted CFG block
+  -> range_ownership kind=code status=accepted
+
+structured data policy item
+  -> range_ownership kind=text/table/structured_data/platform_metadata
+
+orphan code signal with nearby data conflict
+  -> range_ownership kind=conflict status=conflict
+```
+
+The range record carries:
+
+- `start_offset` and `end_offset`;
+- kind and status;
+- positive and negative evidence flags;
+- source pattern and semantic role where applicable;
+- table kind where applicable;
+- conflict state where applicable.
+
+This deliberately does not change rendered source yet. The point of this pass is
+to make the C analysis output describe ownership directly so later rendering and
+review code can consume a single model instead of re-deciding ownership.
+
+Example JSON shape:
+
+```json
+{
+  "start_offset": 6,
+  "end_offset": 14,
+  "kind_name": "table",
+  "status_name": "accepted",
+  "table_kind": "pointer",
+  "source_pattern": "indexed_local_pointer_read"
+}
+```
+
+Covered by C tests:
+
+- `source_analysis_range_ownership_records_code_text_and_table`
+- `source_analysis_range_ownership_exports_conflict`
+
+This pass satisfies the first implementation-order item and creates the target
+surface for the next passes. It does not yet complete descriptor-based table
+iteration or renderer consumption.
+
+### Pass 2: Section Table Descriptors
+
+The second implementation pass adds per-section C table descriptors beside the
+range ownership records.
+
+The descriptors are projected from structured table facts the C engine already
+accepts:
+
+```text
+structured table item
+  -> table_descriptor
+      range: start_offset..end_offset
+      entry_size / entry_count
+      table_kind
+      base_expression
+      source_pattern
+      target and consumer links where proven
+      accepted/conflict status
+```
+
+This is intentionally not a renderer workaround. It gives later renderer and
+listing code a section-local table contract without having to rescan policy
+items or infer entry counts from raw bytes.
+
+Example JSON shape:
+
+```json
+{
+  "start_offset": 6,
+  "end_offset": 14,
+  "entry_size": 4,
+  "entry_count": 2,
+  "table_kind": "pointer",
+  "source_pattern": "indexed_local_pointer_read",
+  "consumer_section_index": 0,
+  "consumer_offset": 0
+}
+```
+
+Covered by C tests:
+
+- `source_analysis_range_ownership_records_code_text_and_table`
+- `source_analysis_table_descriptor_exports_conflict`
+
+This pass advances the descriptor work but does not yet replace existing
+table-entry rendering or materialize labels from descriptors. The next pass
+should consume these descriptors for label splitting and table iteration.
+
 ## Implementation Order
 
-1. Add the C range/conflict record shape without changing rendering.
+1. Add the C range/conflict record shape without changing rendering. Done in
+   Pass 1.
 2. Migrate existing string/text structured-data ownership into the range model.
+   Started in Pass 1.
 3. Add general label materialization and row splitting from accepted ranges.
 4. Replace fixed table target storage with table descriptors and iterators.
+   Started in Pass 2; descriptor records exist, iterator-driven rendering still
+   remains.
 5. Port existing pointer-table and relative-table recognizers onto descriptors.
 6. Add arbitration rules for orphan code vs weak text shape.
 7. Add platform evidence adapters for Amiga, Atari, and Mac where facts already
@@ -602,3 +709,33 @@ This proposal can close when:
 
 These are implementation questions, not reasons to keep ownership decisions in
 renderers.
+
+## Later Notes
+
+- `src/benchmark.json` is still rewritten by the C precommit path with timing
+  churn. That is unrelated to range/table analysis and should be handled as a
+  tooling hygiene item so verification does not create avoidable review noise.
+- `platform-rendered-source-roundtrip` previously rewrote target-local
+  `reproduction.json` files while only reporting status. That report command now
+  calls reproduction in non-persisting mode so volatile timestamps, timings, and
+  mtime-based tool stamps do not create review noise.
+- The current range ownership projection is intentionally a mirror of existing
+  accepted facts. Later passes should make it the primary owner model used by
+  table descriptors and renderers.
+- All tracked target `.s` files were regenerated after the C range/table changes.
+  The current `platform-rendered-source-roundtrip` result is 34/36 full-file
+  exact, 1 content-exact-only target, 1 unsupported target, and 0 failures. The
+  content-exact-only target is
+  `amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h__amiga_hunk_menu_252a2566`
+  because its rendered-source rebuild differs only in HUNK container shape/size,
+  not payload semantics. The unsupported target is the Mac MPW Asm artifact,
+  which is still intentionally excluded from source assembly.
+- Regeneration showed the useful effect of moving table facts into the C-owned
+  model: accepted absolute/pointer dispatch entries in Pandora and Bloodwych now
+  render symbolic table entries where the target is an accepted boundary.
+- Regeneration also exposed the correct conservative policy for PC-indexed
+  dispatch bases that resolve inside an instruction or to an otherwise
+  unaccepted code target. Those entries now stay numeric/exact in rendered
+  source and the C model marks the table/range with an unresolved-code-target
+  conflict. Future review UI should surface those cases for user confirmation
+  before promoting any intentional local-label expression.

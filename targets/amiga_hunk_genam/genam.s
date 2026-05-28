@@ -1936,7 +1936,7 @@ loc_0_000013B8:
 	moveq.l #2,d3
 	moveq.l #1,d0
 	exg d0,d7
-	jmp loc_0_000013C6(pc,d0.w)
+	jmp $0(pc,d0.w)
 loc_0_000013C8:
 	bra.w loc_0_0000140E
 loc_0_000013CC:

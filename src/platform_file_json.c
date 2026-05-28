@@ -14,6 +14,8 @@
 static int json_builder_append_nullable_string(JsonBuilder *builder, const char *text);
 static void amiga_struct_catalog_info(uint16_t struct_id, const char **out_source, int16_t *out_size);
 static const char *app_slot_access_kind_name(uint8_t access_kind);
+static const char *range_ownership_kind_name(uint8_t kind);
+static const char *range_ownership_status_name(uint8_t status);
 static const char *unresolved_typed_access_classification_name(uint8_t classification);
 static const char *type_provenance_kind_name(uint8_t kind);
 static const char *runtime_view_materialization_reason_name(uint8_t reason);
@@ -199,6 +201,8 @@ static const char *analysis_conflict_state_name(uint8_t conflict_state) {
     return "unresolved";
   case M68K_ANALYSIS_CONFLICT_STATE_CONFLICTED:
     return "conflicted";
+  case M68K_ANALYSIS_CONFLICT_STATE_UNRESOLVED_CODE_TARGET:
+    return "unresolved_code_target";
   default:
     return "unknown";
   }
@@ -1502,6 +1506,26 @@ static const char *base_layout_field_source_kind_name(uint8_t source_kind) {
   if (source_kind == M68K_BASE_LAYOUT_FIELD_SOURCE_APP_SLOT_ACCESS) return "app_slot_access";
   if (source_kind == M68K_BASE_LAYOUT_FIELD_SOURCE_POLICY_RSSET_REGION) return "policy_rsset_region";
   return "none";
+}
+
+static const char *range_ownership_kind_name(uint8_t kind) {
+  if (kind == M68K_RANGE_OWNERSHIP_CODE) return "code";
+  if (kind == M68K_RANGE_OWNERSHIP_TEXT) return "text";
+  if (kind == M68K_RANGE_OWNERSHIP_TABLE) return "table";
+  if (kind == M68K_RANGE_OWNERSHIP_STRUCTURED_DATA) return "structured_data";
+  if (kind == M68K_RANGE_OWNERSHIP_PLATFORM_METADATA) return "platform_metadata";
+  if (kind == M68K_RANGE_OWNERSHIP_RESIDUAL) return "residual";
+  if (kind == M68K_RANGE_OWNERSHIP_CONFLICT) return "conflict";
+  return "unknown";
+}
+
+static const char *range_ownership_status_name(uint8_t status) {
+  if (status == M68K_RANGE_OWNERSHIP_STATUS_CANDIDATE) return "candidate";
+  if (status == M68K_RANGE_OWNERSHIP_STATUS_ACCEPTED) return "accepted";
+  if (status == M68K_RANGE_OWNERSHIP_STATUS_CONFLICT) return "conflict";
+  if (status == M68K_RANGE_OWNERSHIP_STATUS_BLOCKED) return "blocked";
+  if (status == M68K_RANGE_OWNERSHIP_STATUS_DEFERRED) return "deferred";
+  return "unknown";
 }
 
 static const char *platform_storage_layout_kind_name(uint8_t layout_kind) {
@@ -3314,7 +3338,8 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
       (unsigned)source_analysis->section_count) != 0) goto oom;
   for (section_index = 0; section_index < source_analysis->section_count; ++section_index) {
     const M68kSectionAnalysisIR *section = &source_analysis->sections[section_index];
-    size_t block_index, edge_index, violation_index, app_slot_ref_index, typed_access_index;
+    size_t block_index, edge_index, violation_index, app_slot_ref_index, typed_access_index, range_index;
+    size_t table_descriptor_index;
     size_t unresolved_typed_access_index, runtime_view_index, runtime_address_ref_index, code_start_ref_index;
     size_t string_ref_index;
     size_t effect_index, call_index, disk_read_index, runtime_copy_index, indirect_site_index, orphan_signal_index;
@@ -3434,6 +3459,134 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
         if (json_builder_appendf(&builder, "%u", (unsigned)ref->runtime_address) != 0) goto oom;
       } else if (json_builder_append(&builder, "null") != 0) goto oom;
       if (json_builder_appendf(&builder, ",\"size\":%u}", (unsigned)ref->size) != 0)
+        goto oom;
+    }
+    if (json_builder_appendf(&builder, "],\"range_ownership_count\":%u,\"range_ownerships\":[",
+          (unsigned)section->range_ownership_count) != 0)
+      goto oom;
+    for (range_index = 0; range_index < section->range_ownership_count; ++range_index) {
+      const M68kRangeOwnershipIR *range = &section->range_ownerships[range_index];
+      if (range_index != 0U && json_builder_append(&builder, ",") != 0)
+        goto oom;
+      if (json_builder_appendf(&builder,
+          "{\"start_offset\":%u,\"end_offset\":%u,\"kind\":%u,\"kind_name\":",
+          (unsigned)range->start_offset, (unsigned)range->end_offset, (unsigned)range->kind) != 0)
+        goto oom;
+      if (json_builder_append_json_string(&builder, range_ownership_kind_name(range->kind)) != 0)
+        goto oom;
+      if (json_builder_appendf(&builder, ",\"status\":%u,\"status_name\":",
+          (unsigned)range->status) != 0)
+        goto oom;
+      if (json_builder_append_json_string(&builder, range_ownership_status_name(range->status)) != 0)
+        goto oom;
+      if (json_builder_appendf(&builder,
+          ",\"positive_evidence_flags\":%u,\"negative_evidence_flags\":%u,\"data_kind\":%u,"
+          "\"table_kind_id\":%u,\"table_kind\":",
+          (unsigned)range->positive_evidence_flags, (unsigned)range->negative_evidence_flags,
+          (unsigned)range->data_kind, (unsigned)range->table_kind_id) != 0)
+        goto oom;
+      if (json_builder_append_nullable_string(&builder,
+          m68k_analysis_table_kind_name(range->table_kind_id)) != 0)
+        goto oom;
+      if (json_builder_appendf(&builder,
+          ",\"source_pattern_id\":%u,\"source_pattern\":",
+          (unsigned)range->source_pattern_id) != 0)
+        goto oom;
+      if (json_builder_append_nullable_string(&builder,
+          range->source_pattern != NULL ? range->source_pattern :
+          m68k_analysis_structured_data_source_pattern_name(range->source_pattern_id)) != 0)
+        goto oom;
+      if (json_builder_append(&builder, ",\"role\":") != 0)
+        goto oom;
+      if (json_builder_append_nullable_string(&builder, range->role) != 0)
+        goto oom;
+      if (json_builder_append(&builder, ",\"source_offset\":") != 0)
+        goto oom;
+      if (range->has_source) {
+        if (json_builder_appendf(&builder, "%u", (unsigned)range->source_offset) != 0) goto oom;
+      } else if (json_builder_append(&builder, "null") != 0) goto oom;
+      if (json_builder_appendf(&builder, ",\"conflict_state\":%u,\"conflict_state_name\":",
+          (unsigned)range->conflict_state) != 0)
+        goto oom;
+      if (json_builder_append_json_string(&builder, analysis_conflict_state_name(range->conflict_state)) != 0)
+        goto oom;
+      if (json_builder_append(&builder, "}") != 0)
+        goto oom;
+    }
+    if (json_builder_appendf(&builder, "],\"table_descriptor_count\":%u,\"table_descriptors\":[",
+          (unsigned)section->table_descriptor_count) != 0)
+      goto oom;
+    for (table_descriptor_index = 0; table_descriptor_index < section->table_descriptor_count;
+        ++table_descriptor_index) {
+      const M68kTableDescriptorIR *descriptor = &section->table_descriptors[table_descriptor_index];
+      if (table_descriptor_index != 0U && json_builder_append(&builder, ",") != 0)
+        goto oom;
+      if (json_builder_appendf(&builder,
+          "{\"start_offset\":%u,\"end_offset\":%u,\"entry_size\":%u,\"entry_count\":%u,"
+          "\"table_kind_id\":%u,\"table_kind\":",
+          (unsigned)descriptor->start_offset, (unsigned)descriptor->end_offset,
+          (unsigned)descriptor->entry_size, (unsigned)descriptor->entry_count,
+          (unsigned)descriptor->table_kind_id) != 0)
+        goto oom;
+      if (json_builder_append_nullable_string(&builder,
+          m68k_analysis_table_kind_name(descriptor->table_kind_id)) != 0)
+        goto oom;
+      if (json_builder_appendf(&builder,
+          ",\"base_expression_id\":%u,\"base_expression\":",
+          (unsigned)descriptor->base_expression_id) != 0)
+        goto oom;
+      if (json_builder_append_nullable_string(&builder,
+          m68k_analysis_table_base_expression_name(descriptor->base_expression_id)) != 0)
+        goto oom;
+      if (json_builder_appendf(&builder,
+          ",\"source_pattern_id\":%u,\"source_pattern\":",
+          (unsigned)descriptor->source_pattern_id) != 0)
+        goto oom;
+      if (json_builder_append_nullable_string(&builder,
+          m68k_analysis_structured_data_source_pattern_name(descriptor->source_pattern_id)) != 0)
+        goto oom;
+      if (json_builder_appendf(&builder, ",\"role_flags\":%u,\"role\":",
+          (unsigned)descriptor->role_flags) != 0)
+        goto oom;
+      if (json_builder_append_nullable_string(&builder,
+          m68k_analysis_structured_data_role_name_for_flags(descriptor->role_flags)) != 0)
+        goto oom;
+      if (json_builder_appendf(&builder, ",\"status\":%u,\"status_name\":",
+          (unsigned)descriptor->status) != 0)
+        goto oom;
+      if (json_builder_append_json_string(&builder, range_ownership_status_name(descriptor->status)) != 0)
+        goto oom;
+      if (json_builder_append(&builder, ",\"target_section_index\":") != 0)
+        goto oom;
+      if (descriptor->has_target) {
+        if (json_builder_appendf(&builder, "%u", (unsigned)descriptor->target_section_index) != 0)
+          goto oom;
+      } else if (json_builder_append(&builder, "null") != 0) goto oom;
+      if (json_builder_append(&builder, ",\"target_offset\":") != 0)
+        goto oom;
+      if (descriptor->has_target) {
+        if (json_builder_appendf(&builder, "%u", (unsigned)descriptor->target_offset) != 0)
+          goto oom;
+      } else if (json_builder_append(&builder, "null") != 0) goto oom;
+      if (json_builder_append(&builder, ",\"consumer_section_index\":") != 0)
+        goto oom;
+      if (descriptor->has_consumer) {
+        if (json_builder_appendf(&builder, "%u", (unsigned)descriptor->consumer_section_index) != 0)
+          goto oom;
+      } else if (json_builder_append(&builder, "null") != 0) goto oom;
+      if (json_builder_append(&builder, ",\"consumer_offset\":") != 0)
+        goto oom;
+      if (descriptor->has_consumer) {
+        if (json_builder_appendf(&builder, "%u", (unsigned)descriptor->consumer_offset) != 0)
+          goto oom;
+      } else if (json_builder_append(&builder, "null") != 0) goto oom;
+      if (json_builder_appendf(&builder, ",\"conflict_state\":%u,\"conflict_state_name\":",
+          (unsigned)descriptor->conflict_state) != 0)
+        goto oom;
+      if (json_builder_append_json_string(&builder,
+          analysis_conflict_state_name(descriptor->conflict_state)) != 0)
+        goto oom;
+      if (json_builder_append(&builder, "}") != 0)
         goto oom;
     }
     if (json_builder_append(&builder, "],\"blocks\":[") != 0)

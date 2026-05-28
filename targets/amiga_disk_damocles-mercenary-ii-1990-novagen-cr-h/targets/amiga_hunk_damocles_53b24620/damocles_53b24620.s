@@ -47,14 +47,14 @@ loc_1_00000000:
 	moveq.l #0,d7
 	lea.l loc_1_00000100(pc),a1
 	lea.l _custom+color.l,a5
-	movea.l loc_1_000000D2(pc),a4
+	movea.l loc_1_000000D0+2(pc),a4
 	movea.l a4,a0
 loc_1_00000012:
 	adda.l #$328,a0
 	cmpa.l a4,a1
 	bgt.b loc_1_00000024
 	movea.l a1,a0
-	adda.l loc_1_00000014(pc),a0
+	adda.l loc_1_00000012+2(pc),a0
 	bra.b loc_1_0000002A
 loc_1_00000024:
 	move.b (a1)+,(a4)+

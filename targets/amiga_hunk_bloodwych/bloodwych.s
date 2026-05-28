@@ -5746,8 +5746,8 @@ abs_0_00004D4E:
 	movea.l abs_0_00004D78(pc,d0.w),a0
 	jmp (a0)
 abs_0_00004D78:
-	dc.l $00004DAA,$000057A4,$00004DEA,$00005628	; lookup_table
-	dc.l $000057A4	; lookup_table
+	dc.l abs_0_00004DAA,abs_0_000057A4,abs_0_00004DEA,abs_0_00005628	; lookup_table
+	dc.l abs_0_000057A4	; lookup_table
 abs_0_00004D8C:
 	bclr.b #7,$0001(a5)
 	beq.b abs_0_00004DA8
@@ -9645,9 +9645,9 @@ abs_0_00007D3E:
 	lea.l abs_0_00007C93.w,a6
 	rts
 abs_0_00007D44:
-	dc.l $00007CA0,$00007CA6,$00000000,$00007CD6	; lookup_table
-	dc.l $00007D20,$00007D26,$00007D2C,$00007D32	; lookup_table
-	dc.l $00007D38,$00007D3E	; lookup_table
+	dc.l abs_0_00007CA0,abs_0_00007CA6,$00000000,abs_0_00007CD6	; lookup_table
+	dc.l abs_0_00007D20,abs_0_00007D26,abs_0_00007D2C,abs_0_00007D32	; lookup_table
+	dc.l abs_0_00007D38,abs_0_00007D3E	; lookup_table
 abs_0_00007D6C:
 	ori.b #1,$0054(a5)
 	move.w $0044(a5),d0

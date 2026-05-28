@@ -385,6 +385,7 @@ class RoundTripVerificationWorkflow:
         pre_rendered_source_profile: Mapping[str, object] | None = None,
         row_for_section_offset: Callable[[int | None, int], Mapping[str, object] | None] | None = None,
         source_assembly_debug: bool = False,
+        persist_report: bool = True,
     ) -> dict[str, object]:
         started_at = time.time()
         workflow_profile = WorkflowProfile("round_trip_verification", target_id=target_name)
@@ -461,7 +462,12 @@ class RoundTripVerificationWorkflow:
                     tool_error=message,
                     issues=[make_issue("tool", message, None)],
                 )
-                return _write_reproduction_report(paths.target_dir, report, project_root=project_root)
+                return _complete_reproduction_report(
+                    paths.target_dir,
+                    report,
+                    project_root=project_root,
+                    persist_report=persist_report,
+                )
             use_facts_v2_native_reproduction = source_text is None
             use_facts_v2_direct_rebuild = (
                 use_facts_v2_native_reproduction
@@ -626,7 +632,12 @@ class RoundTripVerificationWorkflow:
                                     workflow_profile=workflow_profile_payload(workflow_profile),
                                 )
                             )
-                            return _write_reproduction_report(paths.target_dir, report, project_root=project_root)
+                            return _complete_reproduction_report(
+                                paths.target_dir,
+                                report,
+                                project_root=project_root,
+                                persist_report=persist_report,
+                            )
                     except FactsV2SourceRefused as exc:
                         message = str(exc)
                         _record_profile_timing(round_trip_profile, "direct_rebuild_seconds", phase_started_at)
@@ -647,7 +658,12 @@ class RoundTripVerificationWorkflow:
                             profile=round_trip_profile.payload(profile_started_at) if profile else None,
                             workflow_profile=workflow_profile_payload(workflow_profile),
                         )
-                        return _write_reproduction_report(paths.target_dir, report, project_root=project_root)
+                        return _complete_reproduction_report(
+                            paths.target_dir,
+                            report,
+                            project_root=project_root,
+                            persist_report=persist_report,
+                        )
                     except FactsV2DirectRebuildRefused as exc:
                         listing_profile = exc.source_profile
                         _merge_direct_rebuild_profile(round_trip_profile, exc.direct_profile)
@@ -678,7 +694,12 @@ class RoundTripVerificationWorkflow:
                                     "accepted_mismatch_reason": message,
                                 },
                             )
-                            return _write_reproduction_report(paths.target_dir, report, project_root=project_root)
+                            return _complete_reproduction_report(
+                                paths.target_dir,
+                                report,
+                                project_root=project_root,
+                                persist_report=persist_report,
+                            )
                         report = report_builder.error(
                             status=ReproductionReportStatus.TOOL_ERROR,
                             tool_error=message,
@@ -688,7 +709,12 @@ class RoundTripVerificationWorkflow:
                             profile=round_trip_profile.payload(profile_started_at) if profile else None,
                             workflow_profile=workflow_profile_payload(workflow_profile),
                         )
-                        return _write_reproduction_report(paths.target_dir, report, project_root=project_root)
+                        return _complete_reproduction_report(
+                            paths.target_dir,
+                            report,
+                            project_root=project_root,
+                            persist_report=persist_report,
+                        )
                     except FactsV2ProfiledOperationFailed as exc:
                         listing_profile = exc.source_profile
                         _merge_direct_rebuild_profile(round_trip_profile, exc.operation_profile)
@@ -710,7 +736,12 @@ class RoundTripVerificationWorkflow:
                             profile=round_trip_profile.payload(profile_started_at) if profile else None,
                             workflow_profile=workflow_profile_payload(workflow_profile),
                         )
-                        return _write_reproduction_report(paths.target_dir, report, project_root=project_root)
+                        return _complete_reproduction_report(
+                            paths.target_dir,
+                            report,
+                            project_root=project_root,
+                            persist_report=persist_report,
+                        )
             if use_listing_source_assembly and rebuilt_bytes is None:
                 phase = "render_source"
                 phase_started_at = time.perf_counter()
@@ -748,7 +779,12 @@ class RoundTripVerificationWorkflow:
                             listing_profile=exc.listing_profile,
                             profile=round_trip_profile.payload(profile_started_at) if profile else None,
                         )
-                        return _write_reproduction_report(paths.target_dir, report, project_root=project_root)
+                        return _complete_reproduction_report(
+                            paths.target_dir,
+                            report,
+                            project_root=project_root,
+                            persist_report=persist_report,
+                        )
                     _record_profile_timing(round_trip_profile, "render_source_seconds", phase_started_at)
                     round_trip_profile["render_seconds"] = _profile_timing_total(listing_profile)
                     source_size = _facts_v2_profile_source_bytes(listing_profile)
@@ -781,7 +817,12 @@ class RoundTripVerificationWorkflow:
                             listing_profile=listing_profile,
                             profile=round_trip_profile.payload(profile_started_at) if profile else None,
                         )
-                        return _write_reproduction_report(paths.target_dir, report, project_root=project_root)
+                        return _complete_reproduction_report(
+                            paths.target_dir,
+                            report,
+                            project_root=project_root,
+                            persist_report=persist_report,
+                        )
                 _record_profile_timing(round_trip_profile, "assemble_seconds", phase_started_at)
                 round_trip_profile["assemble_seconds"] = _flat_profile_total(assembler_profile)
                 round_trip_profile["listing_artifact_source_assembly"] = 1.0
@@ -849,7 +890,12 @@ class RoundTripVerificationWorkflow:
                         assembler_stderr=assembler_stderr,
                         profile=round_trip_profile.payload(profile_started_at) if profile else None,
                     )
-                    return _write_reproduction_report(paths.target_dir, report, project_root=project_root)
+                    return _complete_reproduction_report(
+                        paths.target_dir,
+                        report,
+                        project_root=project_root,
+                        persist_report=persist_report,
+                    )
                 _record_profile_timing(round_trip_profile, "assemble_seconds", phase_started_at)
             diagnostics = parse_assembler_diagnostics(assembler_stdout + "\n" + assembler_stderr)
 
@@ -1062,7 +1108,12 @@ class RoundTripVerificationWorkflow:
                 original_size=len(original),
                 status=report["status"],
             )
-            return _write_reproduction_report(paths.target_dir, report, project_root=project_root)
+            return _complete_reproduction_report(
+                paths.target_dir,
+                report,
+                project_root=project_root,
+                persist_report=persist_report,
+            )
         except Exception as exc:
             if target_dir is None:
                 target_dir = _best_effort_target_dir(target_name, project_root=project_root)
@@ -1100,7 +1151,12 @@ class RoundTripVerificationWorkflow:
             )
             if target_dir is None:
                 return report
-            return _write_reproduction_report(target_dir, report, project_root=project_root)
+            return _complete_reproduction_report(
+                target_dir,
+                report,
+                project_root=project_root,
+                persist_report=persist_report,
+            )
 
 
 def run_reproduction(
@@ -1114,6 +1170,7 @@ def run_reproduction(
     pre_rendered_source_profile: Mapping[str, object] | None = None,
     row_for_section_offset: Callable[[int | None, int], Mapping[str, object] | None] | None = None,
     source_assembly_debug: bool = False,
+    persist_report: bool = True,
 ) -> dict[str, object]:
     return RoundTripVerificationWorkflow().run(
         target_name,
@@ -1125,6 +1182,7 @@ def run_reproduction(
         pre_rendered_source_profile=pre_rendered_source_profile,
         row_for_section_offset=row_for_section_offset,
         source_assembly_debug=source_assembly_debug,
+        persist_report=persist_report,
     )
 
 
@@ -1946,7 +2004,19 @@ def _write_reproduction_report(
     *,
     project_root: Path = PROJECT_ROOT,
 ) -> dict[str, object]:
+    return _complete_reproduction_report(target_dir, report, project_root=project_root, persist_report=True)
+
+
+def _complete_reproduction_report(
+    target_dir: Path,
+    report: dict[str, object],
+    *,
+    project_root: Path = PROJECT_ROOT,
+    persist_report: bool,
+) -> dict[str, object]:
     report = _report_with_oracle_compatibility(report, project_root=project_root)
+    if not persist_report:
+        return report
     return write_report(reproduction_report_path(target_dir), report)
 
 
