@@ -1,6 +1,6 @@
 # Proposal 025: Evidence-Driven String and Text Analysis
 
-Status: active
+Status: complete
 
 ## Purpose
 
@@ -529,6 +529,30 @@ Use these examples:
 - rendered-source round-trip remains unchanged or improves;
 - no platform-specific string rule leaks into another platform.
 
+## Completion Audit
+
+Completed on 2026-05-28.
+
+Evidence:
+
+- explicit source-pattern evidence is emitted for accepted string classes:
+  `terminated_text`, `bounded_text`, `multiline_text`,
+  `string_table_sequence`, `control_string_stream`,
+  `api_string_pointer`, `api_text_buffer`, `pointer_string_table`,
+  `word_offset_string_table`, and `macos_symbol_record`;
+- Starglider `NuNu` and `NuD0` false-positive shapes are covered by
+  no-fixture rejection tests and by the fixture-backed Starglider target test;
+- Pandora, Starglider, MonAm, Magicland, and Conqueror representative outputs
+  are covered by fixture-backed C-backend tests over current target binaries;
+- Mac high-bit symbol records are accepted only by the Mac platform path, with
+  a no-fixture non-Mac rejection test and existing MPW fixture checks;
+- all required no-fixture cases are covered in `src/test_m68k_ir.c`;
+- all tracked target `.s` files were regenerated through source export and
+  rendered-source round-trip stayed at `34/36 full-file exact`,
+  `1/36 content-exact-only`, `1/36 unsupported`, `0 failures`;
+- generic `; string` comments were removed from human-facing source while
+  C-owned row metadata/source patterns retain inspectable evidence.
+
 ## Non-Goals
 
 - Do not build natural-language understanding.
@@ -585,19 +609,13 @@ Round-trip result after this pass:
 0 failures
 ```
 
-Remaining observations for later 025 passes:
-
-- Some target diffs include unrelated current-analysis improvements such as
-  branch target symbolization and generated source-export headers. Those are
-  useful but are not string-evidence semantics.
-- The repeated `; string` comment remains noisy. It should be removed only
-  after row metadata and role-specific comments still make string/data meaning
-  inspectable.
-- Magicland-style control/display streams are improved by table context but are
-  not yet first-class `control_string_stream` records.
-- The code-context negative evidence is intentionally narrow. A fuller orphan
-  code/text arbitration pass should use explicit C analysis records rather than
-  widening byte-neighborhood rules.
+Follow-up observations from this first pass were handled by later sections
+below: source-export timestamp churn was removed, generic `; string` comments
+were suppressed, Magicland-style rows gained `control_string_stream` evidence,
+and fixture tests now cover the target examples. The remaining broader concern
+is orphan code/text arbitration: the current negative evidence is deliberately
+narrow and should eventually be replaced by first-class C analysis records for
+orphan instruction islands rather than wider byte-neighborhood rules.
 
 ### 2026-05-28 evidence metadata pass
 
