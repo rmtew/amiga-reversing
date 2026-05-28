@@ -159,6 +159,9 @@ static int candidate_loads_runtime_address_ref_target_to_address_reg(const M68kR
 static int accepted_range_has_code_byte(const uint8_t *accepted_bytes, uint32_t section_size,
     uint32_t offset, uint32_t size);
 static int render_lookup_mark_label(M68kRenderLookup *lookup, size_t section_index, uint32_t offset);
+static int lookup_has_anchor_local(const M68kRenderLookup *lookup, size_t section_index, uint32_t offset);
+static int render_lookup_add_auto_string_item(M68kRenderLookup *lookup, size_t section_index, uint32_t offset,
+    uint32_t span, uint32_t role_flags, uint8_t source_pattern_id);
 static const AmigaOsLibraryVectorInfo *resolve_amiga_local_helper_primary_vector_at(const M68kRenderLookup *lookup,
     const M68kDecodeIR *decode, uint8_t **accepted_start, size_t section_index, uint32_t helper_offset,
     unsigned depth);
@@ -4533,6 +4536,20 @@ static int render_lookup_add_string_spans_for_vector_inputs(M68kRenderLookup *lo
     if (value == NULL || !value->exact || value->section_index >= decode->section_count) continue;
     section = &decode->sections[value->section_index];
     if (!render_find_c_string_span(section, value->offset, &string_size)) continue;
+    if (string_size > 1U) {
+      uint32_t terminator_offset = value->offset + string_size - 1U;
+      if (terminator_offset < section->size &&
+          (lookup_has_label(lookup, value->section_index, terminator_offset) ||
+           lookup_has_anchor_local(lookup, value->section_index, terminator_offset) ||
+           lookup_structured_data_item_covering_offset(lookup, value->section_index, terminator_offset) != NULL)) {
+        --string_size;
+      }
+    }
+    if (render_lookup_add_auto_string_item(lookup, value->section_index, value->offset, string_size,
+        M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING,
+        M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_API_STRING_POINTER) != 0) {
+      return -1;
+    }
     if (render_lookup_add_string_span(lookup, value->section_index, value->offset, string_size) != 0) return -1;
   }
   return 0;
@@ -8249,6 +8266,7 @@ static int render_lookup_add_pointer_table_target_labels_for_item(M68kRenderLook
     }
     render_lookup_mark_label(lookup, section_index, target_offset);
     render_lookup_mark_label_target_ref(lookup, section_index, target_offset);
+    render_lookup_mark_label_statement_ref(lookup, section_index, target_offset);
   }
   return 0;
 }
@@ -8683,6 +8701,66 @@ static int render_lookup_maybe_add_string_sequence(M68kRenderLookup *lookup, con
   return 0;
 }
 
+static int render_lookup_add_pointer_table_target_strings_for_item(M68kRenderLookup *lookup,
+    const M68kDecodeIR *decode, uint8_t **accepted_bytes, const M68kAnalysisStructuredDataItem *item) {
+  const M68kDecodeSectionIR *section;
+  size_t section_index;
+  uint32_t cursor;
+  uint32_t available;
+  if (lookup == NULL || decode == NULL || accepted_bytes == NULL ||
+      !render_lookup_structured_item_is_long_label_table_local(item)) {
+    return 0;
+  }
+  section_index = item->has_section_index ? (size_t)item->section_index : 0U;
+  if (section_index >= decode->section_count) return 0;
+  section = &decode->sections[section_index];
+  if (section->data == NULL || item->offset >= section->size) return 0;
+  available = section->size - item->offset;
+  if (available > item->size) available = item->size;
+  for (cursor = 0U; cursor + 4U <= available; cursor += 4U) {
+    uint32_t value = m68k_read_u32be(section->data + item->offset + cursor);
+    uint32_t target_offset = 0U;
+    uint32_t span;
+    if (!render_lookup_pointer_value_to_source_offset(lookup, section, value, &target_offset)) continue;
+    if (lookup_structured_data_item_covering_offset(lookup, section_index, target_offset) != NULL) continue;
+    span = auto_renderable_string_span_with_options(lookup, section, accepted_bytes[section_index],
+      target_offset, 2U, 0);
+    if (span == 0U) continue;
+    if (accepted_range_has_code_byte(accepted_bytes[section_index], section->size, target_offset, span)) continue;
+    if (render_lookup_add_auto_string_item(lookup, section_index, target_offset, span,
+        M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING,
+        M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_POINTER_STRING_TABLE) != 0) {
+      return -1;
+    }
+    render_lookup_set_auto_structured_data_item_consumer(lookup, section_index, target_offset,
+      section_index, item->offset);
+  }
+  return 0;
+}
+
+static int render_lookup_add_pointer_table_target_strings(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
+    uint8_t **accepted_bytes) {
+  size_t index;
+  const M68kAnalysisPolicy *policy = lookup != NULL ? lookup->policy : NULL;
+  if (lookup == NULL || decode == NULL || accepted_bytes == NULL) return 0;
+  if (policy != NULL) {
+    for (index = 0U; index < policy->structured_data_item_count &&
+         index < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT; ++index) {
+      if (render_lookup_add_pointer_table_target_strings_for_item(lookup, decode, accepted_bytes,
+          &policy->structured_data_items[index]) != 0) {
+        return -1;
+      }
+    }
+  }
+  for (index = 0U; index < lookup->auto_structured_data_item_count; ++index) {
+    if (render_lookup_add_pointer_table_target_strings_for_item(lookup, decode, accepted_bytes,
+        &lookup->auto_structured_data_items[index]) != 0) {
+      return -1;
+    }
+  }
+  return 0;
+}
+
 static int render_lookup_infer_data_strings(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
     uint8_t **accepted_bytes) {
   size_t section_index;
@@ -8817,6 +8895,36 @@ static uint32_t pc_relative_lookup_table_span(const M68kRenderLookup *lookup,
   return cursor - offset;
 }
 
+static uint32_t scan_indexed_word_relative_data_table_span(const M68kRenderLookup *lookup,
+    const M68kDecodeSectionIR *table_section, const uint8_t *accepted_bytes,
+    uint32_t table_offset, const M68kDecodeSectionIR *target_section,
+    uint32_t target_base_offset) {
+  uint32_t cursor;
+  if (lookup == NULL || table_section == NULL || target_section == NULL ||
+      table_section->data == NULL || accepted_bytes == NULL ||
+      table_offset > table_section->size || 2U > table_section->size - table_offset ||
+      target_base_offset >= target_section->size) {
+    return 0U;
+  }
+  for (cursor = table_offset; cursor + 2U <= table_section->size; cursor += 2U) {
+    int32_t displacement = (int32_t)(int16_t)m68k_read_u16be(table_section->data + cursor);
+    int64_t target_offset_signed = (int64_t)target_base_offset + displacement;
+    uint32_t target_offset;
+    if (cursor != table_offset && lookup_has_label(lookup, table_section->section_index, cursor)) break;
+    if (lookup_range_has_interior_label(lookup, table_section->section_index, cursor, 2U)) break;
+    if (lookup_structured_data_item_covering_offset(lookup, table_section->section_index, cursor) != NULL) break;
+    if (accepted_range_has_code_byte(accepted_bytes, table_section->size, cursor, 2U)) break;
+    if (target_offset_signed < 0 || target_offset_signed > UINT32_MAX) break;
+    target_offset = (uint32_t)target_offset_signed;
+    if (target_offset < target_base_offset || target_offset >= target_section->size) break;
+    if (table_section->section_index == target_section->section_index) {
+      if (target_base_offset < table_offset && target_offset >= table_offset) break;
+      if (table_offset < target_base_offset && cursor >= target_base_offset) break;
+    }
+  }
+  return cursor - table_offset;
+}
+
 static int candidate_indexed_read_from_known_local_base(const M68kDecodeSectionIR *section,
     const M68kDecodeCandidate *candidate, const M68kInstructionIR *instruction,
     const M68kRenderDataPointerState *state, size_t *out_section_index, uint32_t *out_offset) {
@@ -8892,6 +9000,165 @@ static uint32_t count_word_relative_table_label_targets(const M68kRenderLookup *
     if (lookup_has_label(lookup, target_section_index, (uint32_t)target_offset)) ++count;
   }
   return count;
+}
+
+static uint32_t word_relative_table_target_upper_bound(const M68kDecodeSectionIR *table_section,
+    uint32_t table_offset, uint32_t span, const M68kDecodeSectionIR *target_section,
+    uint32_t target_base_offset, uint32_t target_offset) {
+  uint32_t cursor;
+  uint32_t upper_bound;
+  if (table_section == NULL || target_section == NULL || table_section->data == NULL ||
+      table_offset > table_section->size || span > table_section->size - table_offset ||
+      target_base_offset >= target_section->size || target_offset >= target_section->size) {
+    return 0U;
+  }
+  upper_bound = target_section->size;
+  if (table_section->section_index == target_section->section_index &&
+      target_offset < table_offset && table_offset < upper_bound) {
+    upper_bound = table_offset;
+  }
+  for (cursor = 0U; cursor + 2U <= span; cursor += 2U) {
+    int32_t displacement = (int32_t)(int16_t)m68k_read_u16be(table_section->data + table_offset + cursor);
+    int64_t target_offset_signed = (int64_t)target_base_offset + displacement;
+    uint32_t other_target;
+    if (target_offset_signed < 0 || target_offset_signed > UINT32_MAX) continue;
+    other_target = (uint32_t)target_offset_signed;
+    if (other_target > target_offset && other_target < upper_bound && other_target < target_section->size) {
+      upper_bound = other_target;
+    }
+  }
+  return upper_bound > target_offset ? upper_bound : 0U;
+}
+
+static uint32_t auto_renderable_word_relative_table_bounded_string_span(const M68kRenderLookup *lookup,
+    const M68kDecodeSectionIR *section, const uint8_t *accepted_bytes, uint32_t offset, uint32_t upper_bound) {
+  uint32_t cursor;
+  uint32_t span;
+  if (lookup == NULL || section == NULL || section->data == NULL || offset >= section->size ||
+      upper_bound <= offset || upper_bound > section->size) {
+    return 0U;
+  }
+  span = upper_bound - offset;
+  for (cursor = offset; cursor < upper_bound; ++cursor) {
+    if (!byte_is_quoted_string_safe(section->data[cursor])) return 0U;
+    if (accepted_range_has_code_byte(accepted_bytes, section->size, cursor, 1U) != 0) return 0U;
+    if (lookup_relocation_at(lookup, section->section_index, cursor) != NULL) return 0U;
+    if (lookup_structured_data_item_covering_offset(lookup, section->section_index, cursor) != NULL) return 0U;
+    if (cursor != offset &&
+        (lookup_has_label(lookup, section->section_index, cursor) ||
+         lookup_has_anchor_local(lookup, section->section_index, cursor))) {
+      return 0U;
+    }
+  }
+  if (!auto_bounded_string_has_text_shape(section, offset, span)) return 0U;
+  return span;
+}
+
+static uint32_t add_word_relative_table_string_targets(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
+    uint8_t **accepted_bytes, size_t table_section_index, uint32_t table_offset, uint32_t span,
+    size_t target_section_index, uint32_t target_base_offset, size_t consumer_section_index,
+    uint32_t consumer_offset) {
+  const M68kDecodeSectionIR *table_section;
+  const M68kDecodeSectionIR *target_section;
+  uint32_t cursor;
+  uint32_t string_count = 0U;
+  if (lookup == NULL || decode == NULL || accepted_bytes == NULL ||
+      table_section_index >= decode->section_count || target_section_index >= decode->section_count) {
+    return 0U;
+  }
+  table_section = &decode->sections[table_section_index];
+  target_section = &decode->sections[target_section_index];
+  if (table_section->data == NULL || target_section->data == NULL ||
+      table_offset > table_section->size || span > table_section->size - table_offset ||
+      target_base_offset >= target_section->size || accepted_bytes[target_section_index] == NULL) {
+    return 0U;
+  }
+  for (cursor = 0U; cursor + 2U <= span; cursor += 2U) {
+    int32_t displacement = (int32_t)(int16_t)m68k_read_u16be(table_section->data + table_offset + cursor);
+    int64_t target_offset_signed = (int64_t)target_base_offset + displacement;
+    const M68kAnalysisStructuredDataItem *covering_item;
+    uint32_t target_offset;
+    uint32_t string_span;
+    if (target_offset_signed < 0 || target_offset_signed > UINT32_MAX) continue;
+    target_offset = (uint32_t)target_offset_signed;
+    if (target_offset >= target_section->size) continue;
+    covering_item = lookup_structured_data_item_covering_offset(lookup, target_section_index, target_offset);
+    if (covering_item != NULL) {
+      if ((covering_item->semantic_role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING) != 0U) {
+        ++string_count;
+      }
+      continue;
+    }
+    string_span = auto_renderable_string_span_with_options(lookup, target_section,
+      accepted_bytes[target_section_index], target_offset, 2U, 0);
+    if (string_span == 0U) {
+      uint32_t upper_bound = word_relative_table_target_upper_bound(table_section, table_offset, span, target_section,
+        target_base_offset, target_offset);
+      string_span = auto_renderable_word_relative_table_bounded_string_span(lookup, target_section,
+        accepted_bytes[target_section_index], target_offset, upper_bound);
+    }
+    if (string_span == 0U) continue;
+    if (accepted_range_has_code_byte(accepted_bytes[target_section_index], target_section->size,
+        target_offset, string_span)) {
+      continue;
+    }
+    ++string_count;
+  }
+  if (string_count < 2U) return string_count;
+  string_count = 0U;
+  for (cursor = 0U; cursor + 2U <= span; cursor += 2U) {
+    int32_t displacement = (int32_t)(int16_t)m68k_read_u16be(table_section->data + table_offset + cursor);
+    int64_t target_offset_signed = (int64_t)target_base_offset + displacement;
+    const M68kAnalysisStructuredDataItem *covering_item;
+    uint32_t target_offset;
+    uint32_t string_span;
+    if (target_offset_signed < 0 || target_offset_signed > UINT32_MAX) continue;
+    target_offset = (uint32_t)target_offset_signed;
+    if (target_offset >= target_section->size) continue;
+    render_lookup_mark_label(lookup, target_section_index, target_offset);
+    render_lookup_mark_label_target_ref(lookup, target_section_index, target_offset);
+    render_lookup_mark_label_statement_ref(lookup, target_section_index, target_offset);
+    covering_item = lookup_structured_data_item_covering_offset(lookup, target_section_index, target_offset);
+    if (covering_item != NULL) {
+      if ((covering_item->semantic_role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING) != 0U) {
+        ++string_count;
+      }
+      continue;
+    }
+    string_span = auto_renderable_string_span_with_options(lookup, target_section,
+      accepted_bytes[target_section_index], target_offset, 2U, 0);
+    if (string_span == 0U) {
+      uint32_t upper_bound = word_relative_table_target_upper_bound(table_section, table_offset, span, target_section,
+        target_base_offset, target_offset);
+      string_span = auto_renderable_word_relative_table_bounded_string_span(lookup, target_section,
+        accepted_bytes[target_section_index], target_offset, upper_bound);
+    }
+    if (string_span == 0U) continue;
+    if (accepted_range_has_code_byte(accepted_bytes[target_section_index], target_section->size,
+        target_offset, string_span)) {
+      continue;
+    }
+    if (covering_item == NULL) {
+      if (render_lookup_add_auto_string_item(lookup, target_section_index, target_offset, string_span,
+          M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING,
+          M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_WORD_OFFSET_STRING_TABLE) != 0) {
+        return 0U;
+      }
+      render_lookup_set_auto_structured_data_item_consumer(lookup, target_section_index, target_offset,
+        table_section_index, table_offset);
+    }
+    ++string_count;
+  }
+  render_lookup_set_auto_structured_data_item_target(lookup, table_section_index, table_offset,
+    target_section_index, target_base_offset);
+  render_lookup_set_auto_structured_data_item_consumer(lookup, table_section_index, table_offset,
+    consumer_section_index, consumer_offset);
+  render_lookup_set_auto_structured_data_item_source_pattern(lookup, table_section_index, table_offset,
+    M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_WORD_OFFSET_STRING_TABLE);
+  render_lookup_mark_label(lookup, target_section_index, target_base_offset);
+  render_lookup_mark_label_target_ref(lookup, target_section_index, target_base_offset);
+  render_lookup_mark_label_statement_ref(lookup, target_section_index, target_base_offset);
+  return string_count;
 }
 
 static int runtime_pointer_value_to_accepted_source_offset(const M68kRenderLookup *lookup,
@@ -9840,6 +10107,108 @@ static int render_lookup_infer_indexed_local_pointer_tables(M68kRenderLookup *lo
   return 0;
 }
 
+typedef struct M68kRenderWordOffsetValue {
+  uint8_t known;
+  size_t table_section_index;
+  uint32_t table_offset;
+} M68kRenderWordOffsetValue;
+
+typedef struct M68kRenderWordOffsetState {
+  M68kRenderWordOffsetValue data_regs[8];
+} M68kRenderWordOffsetState;
+
+static int candidate_indexed_word_read_to_data_reg(const M68kDecodeSectionIR *section,
+    const M68kDecodeCandidate *candidate, const M68kInstructionIR *instruction,
+    const M68kRenderDataPointerState *state, size_t *out_table_section_index, uint32_t *out_table_offset,
+    uint8_t *out_dest_reg) {
+  const M68kSimFormMetadata *metadata;
+  size_t dest_index;
+  uint32_t item_size = 0U;
+  uint8_t item_kind = 0U;
+  uint8_t dest_reg = 0U;
+  if (out_table_section_index != NULL) *out_table_section_index = 0U;
+  if (out_table_offset != NULL) *out_table_offset = 0U;
+  if (out_dest_reg != NULL) *out_dest_reg = 0U;
+  if (section == NULL || candidate == NULL || instruction == NULL || state == NULL ||
+      out_table_section_index == NULL || out_table_offset == NULL || out_dest_reg == NULL ||
+      !structured_data_kind_for_candidate_size(candidate, &item_size, &item_kind) || item_size != 2U ||
+      item_kind != M68K_ANALYSIS_STRUCTURED_DATA_WORDS ||
+      !candidate_indexed_read_from_known_local_base(section, candidate, instruction, state,
+        out_table_section_index, out_table_offset)) {
+    return 0;
+  }
+  metadata = m68k_sim_metadata_for_instruction(instruction);
+  if (metadata == NULL || metadata->dest_operand_index >= instruction->operand_count) return 0;
+  dest_index = metadata->dest_operand_index;
+  if (!operand_is_data_register_local(&instruction->operands[dest_index], &dest_reg) || dest_reg >= 8U) return 0;
+  *out_dest_reg = dest_reg;
+  return 1;
+}
+
+static int candidate_adds_word_offset_to_known_base(const M68kDecodeCandidate *candidate,
+    const M68kInstructionIR *instruction, const M68kRenderDataPointerState *data_state,
+    const M68kRenderWordOffsetState *word_state, size_t *out_table_section_index, uint32_t *out_table_offset,
+    size_t *out_base_section_index, uint32_t *out_base_offset) {
+  const M68kSimFormMetadata *metadata;
+  size_t source_index;
+  size_t dest_index;
+  uint8_t data_reg = 0U;
+  uint8_t addr_reg = 0U;
+  if (out_table_section_index != NULL) *out_table_section_index = 0U;
+  if (out_table_offset != NULL) *out_table_offset = 0U;
+  if (out_base_section_index != NULL) *out_base_section_index = 0U;
+  if (out_base_offset != NULL) *out_base_offset = 0U;
+  if (candidate == NULL || instruction == NULL || data_state == NULL || word_state == NULL ||
+      out_table_section_index == NULL || out_table_offset == NULL || out_base_section_index == NULL ||
+      out_base_offset == NULL) {
+    return 0;
+  }
+  metadata = m68k_sim_metadata_for_instruction(instruction);
+  if (metadata == NULL || metadata->operation_type != M68K_SIM_OP_ADD ||
+      metadata->source_operand_index >= instruction->operand_count ||
+      metadata->dest_operand_index >= instruction->operand_count) {
+    return 0;
+  }
+  source_index = metadata->source_operand_index;
+  dest_index = metadata->dest_operand_index;
+  if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_ADD && instruction->size_suffix == 'l' &&
+      operand_address_register_index_local(&instruction->operands[source_index], &addr_reg) &&
+      operand_is_data_register_local(&instruction->operands[dest_index], &data_reg) &&
+      addr_reg < 8U && data_reg < 8U && data_state->addr_regs[addr_reg].known &&
+      word_state->data_regs[data_reg].known) {
+    *out_table_section_index = word_state->data_regs[data_reg].table_section_index;
+    *out_table_offset = word_state->data_regs[data_reg].table_offset;
+    *out_base_section_index = data_state->addr_regs[addr_reg].section_index;
+    *out_base_offset = data_state->addr_regs[addr_reg].offset;
+    return 1;
+  }
+  if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_ADDA && instruction->size_suffix == 'w' &&
+      operand_is_data_register_local(&instruction->operands[source_index], &data_reg) &&
+      operand_address_register_index_local(&instruction->operands[dest_index], &addr_reg) &&
+      addr_reg < 8U && data_reg < 8U && data_state->addr_regs[addr_reg].known &&
+      word_state->data_regs[data_reg].known) {
+    *out_table_section_index = word_state->data_regs[data_reg].table_section_index;
+    *out_table_offset = word_state->data_regs[data_reg].table_offset;
+    *out_base_section_index = data_state->addr_regs[addr_reg].section_index;
+    *out_base_offset = data_state->addr_regs[addr_reg].offset;
+    return 1;
+  }
+  return 0;
+}
+
+static void word_offset_state_clear_written_data_reg(M68kRenderWordOffsetState *state,
+    const M68kInstructionIR *instruction) {
+  const M68kSimFormMetadata *metadata;
+  size_t dest_index;
+  uint8_t dest_reg = 0U;
+  if (state == NULL || instruction == NULL) return;
+  metadata = m68k_sim_metadata_for_instruction(instruction);
+  if (metadata == NULL || metadata->dest_operand_index >= instruction->operand_count) return;
+  dest_index = metadata->dest_operand_index;
+  if (operand_is_data_register_local(&instruction->operands[dest_index], &dest_reg) && dest_reg < 8U)
+    state->data_regs[dest_reg].known = 0U;
+}
+
 static int render_lookup_infer_indexed_local_scalar_tables(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
     uint8_t **accepted_start, uint8_t **accepted_bytes) {
   size_t section_index;
@@ -9847,8 +10216,10 @@ static int render_lookup_infer_indexed_local_scalar_tables(M68kRenderLookup *loo
   for (section_index = 0U; section_index < decode->section_count; ++section_index) {
     const M68kDecodeSectionIR *section = &decode->sections[section_index];
     M68kRenderDataPointerState state;
+    M68kRenderWordOffsetState word_state;
     size_t candidate_index;
     data_pointer_state_clear_all(&state);
+    memset(&word_state, 0, sizeof(word_state));
     if (accepted_start[section_index] == NULL || accepted_bytes[section_index] == NULL) return -1;
     for (candidate_index = 0U; candidate_index < section->candidate_count; ++candidate_index) {
       const M68kDecodeCandidate *candidate = &section->candidates[candidate_index];
@@ -9857,8 +10228,33 @@ static int render_lookup_infer_indexed_local_scalar_tables(M68kRenderLookup *loo
       uint32_t target_offset = 0U;
       uint32_t item_size = 0U;
       uint8_t item_kind = 0U;
+      size_t string_base_section_index = 0U;
+      uint32_t string_base_offset = 0U;
+      uint8_t dest_data_reg = 0U;
       if (!candidate_is_accepted_start(section, accepted_start[section_index], candidate)) continue;
       if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) continue;
+      if (candidate_adds_word_offset_to_known_base(candidate, &instruction, &state, &word_state,
+          &target_section_index, &target_offset, &string_base_section_index, &string_base_offset) &&
+          target_section_index < decode->section_count &&
+          accepted_bytes[target_section_index] != NULL &&
+          target_offset <= decode->sections[target_section_index].size) {
+        uint32_t span = scan_indexed_word_relative_data_table_span(lookup, &decode->sections[target_section_index],
+          accepted_bytes[target_section_index], target_offset, &decode->sections[string_base_section_index],
+          string_base_offset);
+        if (span != 0U &&
+            render_lookup_add_auto_structured_data_item(lookup, target_section_index, target_offset, span,
+              M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE, M68K_ANALYSIS_STRUCTURED_DATA_WORDS) != 0) {
+          return -1;
+        }
+        if (span != 0U &&
+            add_word_relative_table_string_targets(lookup, decode, accepted_bytes, target_section_index,
+              target_offset, span, string_base_section_index, string_base_offset, section_index,
+              candidate->offset) >= 2U) {
+          word_offset_state_clear_written_data_reg(&word_state, &instruction);
+          dispatch_pointer_state_update_after_instruction(&state, lookup, section, candidate, &instruction);
+          continue;
+        }
+      }
       if (instruction.mnemonic_id == M68K_ASM_MNEMONIC_ADDA &&
           structured_data_kind_for_candidate_size(candidate, &item_size, &item_kind) &&
           item_size == 2U &&
@@ -9892,12 +10288,20 @@ static int render_lookup_infer_indexed_local_scalar_tables(M68kRenderLookup *loo
                 &target_base_reg) &&
               target_base_reg < 8U && state.addr_regs[target_base_reg].known &&
               count_word_relative_table_label_targets(lookup, state.addr_regs[target_base_reg].section_index,
-                state.addr_regs[target_base_reg].offset, &decode->sections[target_section_index],
+              state.addr_regs[target_base_reg].offset, &decode->sections[target_section_index],
                 target_offset, span) >= 2U) {
             render_lookup_set_auto_structured_data_item_target(lookup, target_section_index, target_offset,
               state.addr_regs[target_base_reg].section_index, state.addr_regs[target_base_reg].offset);
           }
         }
+      }
+      if (candidate_indexed_word_read_to_data_reg(section, candidate, &instruction, &state,
+          &target_section_index, &target_offset, &dest_data_reg)) {
+        word_state.data_regs[dest_data_reg].known = 1U;
+        word_state.data_regs[dest_data_reg].table_section_index = target_section_index;
+        word_state.data_regs[dest_data_reg].table_offset = target_offset;
+      } else {
+        word_offset_state_clear_written_data_reg(&word_state, &instruction);
       }
       dispatch_pointer_state_update_after_instruction(&state, lookup, section, candidate, &instruction);
     }
@@ -11826,6 +12230,7 @@ int m68k_analysis_render_lookup_run_platform_passes(M68kRenderLookup *lookup, co
   if (render_lookup_infer_pc_relative_lookup_scalars(lookup, decode, accepted_start, accepted_bytes) != 0)
     return -1;
   if (render_lookup_add_pointer_table_target_labels(lookup, decode, accepted_start, accepted_bytes) != 0) return -1;
+  if (render_lookup_add_pointer_table_target_strings(lookup, decode, accepted_bytes) != 0) return -1;
   end = clock();
   if (preview != NULL) preview->platform_pass_generic_data_seconds = elapsed_seconds_local(start, end);
   return 0;

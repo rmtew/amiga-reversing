@@ -2217,7 +2217,7 @@ abs_0_00012A32:
 	cmp.b $0046(a5),d2
 	bne.b abs_0_00012A9E
 	clr.b $0046(a5)
-	move.l #$1A25D,abs_0_000133BE.l
+	move.l #abs_0_0001A25D,abs_0_000133BE.l
 abs_0_00012A9E:
 	move.l d0,-(a7)
 	bsr.w abs_0_0001283E
@@ -7478,124 +7478,328 @@ abs_0_0001A1B4:
 	movea.l (a7)+,a5
 	rts
 abs_0_0001A25C:
-	dc.b $00,$00,$20,$20,$20,$20,$20,$4E,$4F,$54,$48,$49,$4E,$47,$00
+	dc.b $00
+abs_0_0001A25D:
+	dc.b $00
+abs_0_0001A25E:
+	dc.b $20,$20,$20,$20,$20,$4E,$4F,$54,$48,$49,$4E,$47,$00
+abs_0_0001A26B:
 	dc.b "Wrench",$00
+abs_0_0001A272:
 	dc.b "Acid",$00
+abs_0_0001A277:
 	dc.b "Electroboost",$00
+abs_0_0001A284:
 	dc.b "Sonicdriver",$00
+abs_0_0001A290:
 	dc.b "Spanner",$00
+abs_0_0001A298:
 	dc.b "PHOTOSABRE",$00
+abs_0_0001A2A3:
 	dc.b "IRIDIUM MACE",$00
+abs_0_0001A2B0:
 	dc.b "ELECTRUNCHON",$00
+abs_0_0001A2BD:
 	dc.b "SHOCKWHIP",$00
+abs_0_0001A2C7:
 	dc.b "THERMOLANCE",$00
+abs_0_0001A2D3:
 	dc.b "DEATHSTING",$00
+abs_0_0001A2DE:
 	dc.b "KNUCKLEDUSTER",$00
+abs_0_0001A2EC:
 	dc.b "LASER RIFLE",$00
+abs_0_0001A2F8:
 	dc.b "PULSE CANNON",$00
+abs_0_0001A305:
 	dc.b "Ostronn egg",$00
+abs_0_0001A311:
 	dc.b "Vulcann vase",$00
+abs_0_0001A31E:
 	dc.b "Broken ORAK",$00
+abs_0_0001A32A:
 	dc.b "Instant PGGB",$00
+abs_0_0001A337:
 	dc.b "Sandworm shell",$00
+abs_0_0001A346:
 	dc.b "Wookey wig",$00
+abs_0_0001A351:
 	dc.b "Prophylactic",$00
+abs_0_0001A35E:
 	dc.b "Sonicblaster",$00
+abs_0_0001A36B:
 	dc.b "Cargo chute",$00
+abs_0_0001A377:
 	dc.b "Code WHITE",$00
+abs_0_0001A382:
 	dc.b "Code BLUE",$00
+abs_0_0001A38C:
 	dc.b "Code GREY",$00
+abs_0_0001A396:
 	dc.b "Code SCARLET",$00
+abs_0_0001A3A3:
 	dc.b "Code OCHRE",$00
+abs_0_0001A3AE:
 	dc.b "Code BLACK",$00
+abs_0_0001A3B9:
 	dc.b "SDI disk",$00
+abs_0_0001A3C2:
 	dc.b "Bottle of gin",$00
+abs_0_0001A3D0:
 	dc.b "Insulin",$00
+abs_0_0001A3D8:
 	dc.b "Hypodermic",$00
+abs_0_0001A3E3:
 	dc.b "Insecticide",$00
+abs_0_0001A3EF:
 	dc.b "Shakespeare",$00
+abs_0_0001A3FB:
 	dc.b "Bible",$00
+abs_0_0001A401:
 	dc.b "Light box",$00
+abs_0_0001A40B:
 	dc.b "Globe",$00
+abs_0_0001A411:
 	dc.b "Squash ball",$00
+abs_0_0001A41D:
 	dc.b "ID Commander",$00
+abs_0_0001A42A:
 	dc.b "ID Lt Commander",$00
+abs_0_0001A43A:
 	dc.b "ID Engineer",$00
+abs_0_0001A446:
 	dc.b "ID Scientist",$00
+abs_0_0001A453:
 	dc.b "ID Medic",$00
+abs_0_0001A45C:
 	dc.b "ID Resource ofcr",$00
+abs_0_0001A46D:
 	dc.b "ID Amy",$00
+abs_0_0001A474:
 	dc.b "ID AWOL ofcr",$00
+abs_0_0001A481:
 	dc.b "Captain",$00
+abs_0_0001A489:
 	dc.b "Commander",$00
+abs_0_0001A493:
 	dc.b "Lt Commander",$00
+abs_0_0001A4A0:
 	dc.b "Engineer",$00
+abs_0_0001A4A9:
 	dc.b "Science ofcr",$00
+abs_0_0001A4B6:
 	dc.b "Medic",$00
+abs_0_0001A4BC:
 	dc.b "AWOL officer",$00
+abs_0_0001A4C9:
 	dc.b "Rsrc officer",$00
+abs_0_0001A4D6:
 	dc.b "Musician",$00
+abs_0_0001A4DF:
 	dc.b "Robomechanic",$00
+abs_0_0001A4EC:
 	dc.b "Icelord",$00
+abs_0_0001A4F4:
 	dc.b "Sec officer",$00
+abs_0_0001A500:
 	dc.b "Thief",$00
+abs_0_0001A506:
 	dc.b "Chemist",$00
+abs_0_0001A50E:
 	dc.b "Diabetic",$00
+abs_0_0001A517:
 	dc.b "Gardener",$00
+abs_0_0001A520:
 	dc.b "Death Fly",$00
+abs_0_0001A52A:
 	dc.b "Priest",$00
+abs_0_0001A531:
 	dc.b "Driffid",$00
+abs_0_0001A539:
 	dc.b "Technician",$00
+abs_0_0001A544:
 	dc.b "Squash player",$00
+abs_0_0001A552:
 	dc.b "Doctor",$00
+abs_0_0001A559:
 	dc.b "Hooligan",$00
+abs_0_0001A562:
 	dc.b "Bank manager",$00
+abs_0_0001A56F:
 	dc.b "Cleaner robot",$00
+abs_0_0001A57D:
 	dc.b "Menial droid",$00
+abs_0_0001A58A:
 	dc.b "Entry officer",$00
+abs_0_0001A598:
 	dc.b "Secdroid ALPHA 1",$00
+abs_0_0001A5A9:
 	dc.b "Secdroid ALPHA 2",$00
+abs_0_0001A5BA:
 	dc.b "Secdroid DELTA 1",$00
+abs_0_0001A5CB:
 	dc.b "Secdroid DELTA 2",$00
+abs_0_0001A5DC:
 	dc.b "Secdroid PI",$00
+abs_0_0001A5E8:
 	dc.b "Secdroid OMEGA",$00
+abs_0_0001A5F7:
 	dc.b "Pianist",$00
+abs_0_0001A5FF:
 	dc.b "Flight ctrlr",$00
+abs_0_0001A60C:
 	dc.b "Cook",$00
+abs_0_0001A611:
 	dc.b "Barman",$00
+abs_0_0001A618:
 	dc.b "Defence ctrlr",$00
+abs_0_0001A626:
 	dc.b "Wackobrain",$00
+abs_0_0001A631:
 	dc.b "Glass",$00
+abs_0_0001A637:
 	dc.b "Bent coin",$00
+abs_0_0001A641:
 	dc.b "Kwik Kleen",$00
+abs_0_0001A64C:
 	dc.b "Gold key",$00
+abs_0_0001A655:
 	dc.b "Megabio Feed",$00
+abs_0_0001A662:
 	dc.b "Mobian brain",$00
+abs_0_0001A66F:
 	dc.b "Ice pendant",$00
+abs_0_0001A67B:
 	dc.b "Sugar cube",$00
+abs_0_0001A686:
 	dc.b "Alien egg",$00
+abs_0_0001A690:
 	dc.b "Kriptonite",$00
+abs_0_0001A69B:
 	dc.b "Deltan icon",$00
+abs_0_0001A6A7:
 	dc.b "Pool 8 ball",$00
+abs_0_0001A6B3:
 	dc.b "Araknoid eye",$00
+abs_0_0001A6C0:
 	dc.b "Kzin 97 ball",$00
-	dc.b $41,$6D,$69,$67,$61,$20,$43,$6F,$6D,$70,$75,$74,$69,$6E,$67
+abs_0_0001A6CD:
+	dc.b "Amiga Computing"
 abs_0_0001A6DC:
-	dc.b $00,$01,$00,$02,$00,$0F,$00,$16,$00,$1B,$00,$28,$00,$34,$00,$3C
-	dc.b $00,$47,$00,$54,$00,$61,$00,$6B,$00,$77,$00,$82,$00,$90,$00,$90
-	dc.b $00,$90,$00,$90,$00,$90,$00,$9C,$00,$A9,$00,$A9,$00,$A9,$00,$A9
-	dc.b $00,$B5,$00,$C2,$00,$CE,$00,$DB,$00,$EA,$00,$F5,$01,$02,$01,$0F
-	dc.b $01,$1B,$01,$26,$01,$30,$01,$3A,$01,$47,$01,$52,$01,$5D,$01,$66
-	dc.b $01,$74,$01,$7C,$01,$87,$01,$93,$01,$9F,$01,$A5,$01,$AF,$01,$B5
-	dc.b $01,$C1,$01,$CE,$01,$DE,$01,$EA,$01,$F7,$02,$00,$02,$11,$02,$18
-	dc.b $02,$25,$02,$2D,$02,$37,$02,$44,$02,$4D,$02,$5A,$02,$60,$02,$6D
-	dc.b $02,$7A,$02,$83,$02,$90,$02,$98,$02,$A4,$02,$AA,$02,$B2,$02,$BB
-	dc.b $02,$C4,$02,$CE,$02,$D5,$02,$DD,$02,$E8,$02,$F6,$02,$FD,$03,$06
-	dc.b $03,$13,$03,$21,$03,$2E,$03,$3C,$03,$4D,$03,$5E,$03,$5E,$03,$5E
-	dc.b $03,$6F,$03,$80,$03,$8C,$03,$8C,$03,$9B,$03,$9B,$03,$A3,$03,$B0
-	dc.b $03,$B5,$03,$BC,$03,$CA,$03,$D5,$03,$DB,$03,$E5,$03,$F0,$03,$F9
-	dc.b $04,$06,$04,$13,$04,$1F,$04,$2A,$04,$34,$04,$3F,$04,$4B,$04,$57
-	dc.b $04,$64,$04,$71
+	dc.w abs_0_0001A25D-abs_0_0001A25C	; lookup_table
+	dc.w abs_0_0001A25E-abs_0_0001A25C
+	dc.w abs_0_0001A26B-abs_0_0001A25C
+	dc.w abs_0_0001A272-abs_0_0001A25C
+	dc.w abs_0_0001A277-abs_0_0001A25C
+	dc.w abs_0_0001A284-abs_0_0001A25C
+	dc.w abs_0_0001A290-abs_0_0001A25C
+	dc.w abs_0_0001A298-abs_0_0001A25C
+	dc.w abs_0_0001A2A3-abs_0_0001A25C
+	dc.w abs_0_0001A2B0-abs_0_0001A25C
+	dc.w abs_0_0001A2BD-abs_0_0001A25C
+	dc.w abs_0_0001A2C7-abs_0_0001A25C
+	dc.w abs_0_0001A2D3-abs_0_0001A25C
+	dc.w abs_0_0001A2DE-abs_0_0001A25C
+	dc.w abs_0_0001A2EC-abs_0_0001A25C
+	dc.w abs_0_0001A2EC-abs_0_0001A25C
+	dc.w abs_0_0001A2EC-abs_0_0001A25C
+	dc.w abs_0_0001A2EC-abs_0_0001A25C
+	dc.w abs_0_0001A2EC-abs_0_0001A25C
+	dc.w abs_0_0001A2F8-abs_0_0001A25C
+	dc.w abs_0_0001A305-abs_0_0001A25C
+	dc.w abs_0_0001A305-abs_0_0001A25C
+	dc.w abs_0_0001A305-abs_0_0001A25C
+	dc.w abs_0_0001A305-abs_0_0001A25C
+	dc.w abs_0_0001A311-abs_0_0001A25C
+	dc.w abs_0_0001A31E-abs_0_0001A25C
+	dc.w abs_0_0001A32A-abs_0_0001A25C
+	dc.w abs_0_0001A337-abs_0_0001A25C
+	dc.w abs_0_0001A346-abs_0_0001A25C
+	dc.w abs_0_0001A351-abs_0_0001A25C
+	dc.w abs_0_0001A35E-abs_0_0001A25C
+	dc.w abs_0_0001A36B-abs_0_0001A25C
+	dc.w abs_0_0001A377-abs_0_0001A25C
+	dc.w abs_0_0001A382-abs_0_0001A25C
+	dc.w abs_0_0001A38C-abs_0_0001A25C
+	dc.w abs_0_0001A396-abs_0_0001A25C
+	dc.w abs_0_0001A3A3-abs_0_0001A25C
+	dc.w abs_0_0001A3AE-abs_0_0001A25C
+	dc.w abs_0_0001A3B9-abs_0_0001A25C
+	dc.w abs_0_0001A3C2-abs_0_0001A25C
+	dc.w abs_0_0001A3D0-abs_0_0001A25C
+	dc.w abs_0_0001A3D8-abs_0_0001A25C
+	dc.w abs_0_0001A3E3-abs_0_0001A25C
+	dc.w abs_0_0001A3EF-abs_0_0001A25C
+	dc.w abs_0_0001A3FB-abs_0_0001A25C
+	dc.w abs_0_0001A401-abs_0_0001A25C
+	dc.w abs_0_0001A40B-abs_0_0001A25C
+	dc.w abs_0_0001A411-abs_0_0001A25C
+	dc.w abs_0_0001A41D-abs_0_0001A25C
+	dc.w abs_0_0001A42A-abs_0_0001A25C
+	dc.w abs_0_0001A43A-abs_0_0001A25C
+	dc.w abs_0_0001A446-abs_0_0001A25C
+	dc.w abs_0_0001A453-abs_0_0001A25C
+	dc.w abs_0_0001A45C-abs_0_0001A25C
+	dc.w abs_0_0001A46D-abs_0_0001A25C
+	dc.w abs_0_0001A474-abs_0_0001A25C
+	dc.w abs_0_0001A481-abs_0_0001A25C
+	dc.w abs_0_0001A489-abs_0_0001A25C
+	dc.w abs_0_0001A493-abs_0_0001A25C
+	dc.w abs_0_0001A4A0-abs_0_0001A25C
+	dc.w abs_0_0001A4A9-abs_0_0001A25C
+	dc.w abs_0_0001A4B6-abs_0_0001A25C
+	dc.w abs_0_0001A4BC-abs_0_0001A25C
+	dc.w abs_0_0001A4C9-abs_0_0001A25C
+	dc.w abs_0_0001A4D6-abs_0_0001A25C
+	dc.w abs_0_0001A4DF-abs_0_0001A25C
+	dc.w abs_0_0001A4EC-abs_0_0001A25C
+	dc.w abs_0_0001A4F4-abs_0_0001A25C
+	dc.w abs_0_0001A500-abs_0_0001A25C
+	dc.w abs_0_0001A506-abs_0_0001A25C
+	dc.w abs_0_0001A50E-abs_0_0001A25C
+	dc.w abs_0_0001A517-abs_0_0001A25C
+	dc.w abs_0_0001A520-abs_0_0001A25C
+	dc.w abs_0_0001A52A-abs_0_0001A25C
+	dc.w abs_0_0001A531-abs_0_0001A25C
+	dc.w abs_0_0001A539-abs_0_0001A25C
+	dc.w abs_0_0001A544-abs_0_0001A25C
+	dc.w abs_0_0001A552-abs_0_0001A25C
+	dc.w abs_0_0001A559-abs_0_0001A25C
+	dc.w abs_0_0001A562-abs_0_0001A25C
+	dc.w abs_0_0001A56F-abs_0_0001A25C
+	dc.w abs_0_0001A57D-abs_0_0001A25C
+	dc.w abs_0_0001A58A-abs_0_0001A25C
+	dc.w abs_0_0001A598-abs_0_0001A25C
+	dc.w abs_0_0001A5A9-abs_0_0001A25C
+	dc.w abs_0_0001A5BA-abs_0_0001A25C
+	dc.w abs_0_0001A5BA-abs_0_0001A25C
+	dc.w abs_0_0001A5BA-abs_0_0001A25C
+	dc.w abs_0_0001A5CB-abs_0_0001A25C
+	dc.w abs_0_0001A5DC-abs_0_0001A25C
+	dc.w abs_0_0001A5E8-abs_0_0001A25C
+	dc.w abs_0_0001A5E8-abs_0_0001A25C
+	dc.w abs_0_0001A5F7-abs_0_0001A25C
+	dc.w abs_0_0001A5F7-abs_0_0001A25C
+	dc.w abs_0_0001A5FF-abs_0_0001A25C
+	dc.w abs_0_0001A60C-abs_0_0001A25C
+	dc.w abs_0_0001A611-abs_0_0001A25C
+	dc.w abs_0_0001A618-abs_0_0001A25C
+	dc.w abs_0_0001A626-abs_0_0001A25C
+	dc.w abs_0_0001A631-abs_0_0001A25C
+	dc.w abs_0_0001A637-abs_0_0001A25C
+	dc.w abs_0_0001A641-abs_0_0001A25C
+	dc.w abs_0_0001A64C-abs_0_0001A25C
+	dc.w abs_0_0001A655-abs_0_0001A25C
+	dc.w abs_0_0001A662-abs_0_0001A25C
+	dc.w abs_0_0001A66F-abs_0_0001A25C
+	dc.w abs_0_0001A67B-abs_0_0001A25C
+	dc.w abs_0_0001A686-abs_0_0001A25C
+	dc.w abs_0_0001A690-abs_0_0001A25C
+	dc.w abs_0_0001A69B-abs_0_0001A25C
+	dc.w abs_0_0001A6A7-abs_0_0001A25C
+	dc.w abs_0_0001A6B3-abs_0_0001A25C
+	dc.w abs_0_0001A6C0-abs_0_0001A25C
+	dc.w abs_0_0001A6CD-abs_0_0001A25C
 abs_0_0001A7C0:
 	dc.b " ITEM DEPOSITED",$00
 abs_0_0001A7D0:
@@ -26201,10 +26405,15 @@ abs_0_0005CCCA:
 	dc.b ". . MAD  PSYCHO . .",$00
 abs_0_0005CCDE:
 	dc.b ". . SON  OF  SATAN . .",$00
+abs_0_0005CCF5:
 	dc.b ". . QUITE  USEFUL . .",$00
+abs_0_0005CD0B:
 	dc.b ". . EXTREMELY  USEFUL . .",$00
+abs_0_0005CD25:
 	dc.b ". . VERY  PROFITABLE . .",$00
+abs_0_0005CD3E:
 	dc.b ". . HIGHLY  VALUABLE . .",$00
+abs_0_0005CD57:
 	dc.b ". . PRICELESS . .",$00
 	dc.b $22,$47,$69,$76,$65,$20,$6D,$65,$20,$61,$20,$64,$72,$69,$6E,$6B
 	dc.b $2C,$61,$6E,$64,$20,$49,$22,$6C,$6C,$20,$70,$6C,$61,$79,$20,$79

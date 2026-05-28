@@ -98,6 +98,12 @@ const char *m68k_analysis_structured_data_source_pattern_name(uint8_t source_pat
       return "string_table_sequence";
     case M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_CONTROL_STRING_STREAM:
       return "control_string_stream";
+    case M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_API_STRING_POINTER:
+      return "api_string_pointer";
+    case M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_POINTER_STRING_TABLE:
+      return "pointer_string_table";
+    case M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_WORD_OFFSET_STRING_TABLE:
+      return "word_offset_string_table";
     default:
       return NULL;
   }
@@ -166,6 +172,8 @@ const char *m68k_analysis_table_kind_name(uint8_t table_kind_id) {
       return "relative_code_dispatch";
     case M68K_ANALYSIS_TABLE_KIND_ABSOLUTE_CODE_DISPATCH:
       return "absolute_code_dispatch";
+    case M68K_ANALYSIS_TABLE_KIND_RELATIVE_DATA_LOOKUP:
+      return "relative_data_lookup";
     default:
       return NULL;
   }
@@ -190,6 +198,9 @@ static uint8_t structured_data_item_infer_table_kind_id(const M68kAnalysisStruct
     return M68K_ANALYSIS_TABLE_KIND_POINTER;
   if ((role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE) == 0U)
     return M68K_ANALYSIS_TABLE_KIND_UNKNOWN;
+  if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_WORDS && item->has_target &&
+      item->source_pattern_id == M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_WORD_OFFSET_STRING_TABLE)
+    return M68K_ANALYSIS_TABLE_KIND_RELATIVE_DATA_LOOKUP;
   if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_WORDS && item->has_target)
     return M68K_ANALYSIS_TABLE_KIND_RELATIVE_CODE_DISPATCH;
   if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_LONGS && item->has_target &&

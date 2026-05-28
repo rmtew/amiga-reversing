@@ -667,3 +667,68 @@ Round-trip result after this pass remained:
 1/36 unsupported: macos_hfs_mpw_gm__macos_file_mpw_tools_asm
 0 failures
 ```
+
+### 2026-05-28 relative table evidence pass
+
+The Pandora item-name table exposed a useful boundary between two facts that
+must remain separate:
+
+- a relative lookup table entry targets an offset;
+- the targeted offset may or may not be accepted as a string record.
+
+The C analysis now tracks indexed word reads whose value is added to a known
+data base, emits the table as `relative_data_lookup`, and marks every valid
+table target as a statement label. String items are promoted only when the
+target range satisfies explicit evidence: normal terminator evidence, an
+existing structured string item, or table-derived bounded text evidence. This
+keeps table symbolization complete without forcing weak target bytes to become
+strings.
+
+Representative output:
+
+```asm
+abs_0_0001A25C:
+    dc.b $00
+abs_0_0001A25D:
+    dc.b $00
+abs_0_0001A25E:
+    dc.b $20,$20,$20,$20,$20,$4E,$4F,$54,$48,$49,$4E,$47,$00
+...
+abs_0_0001A6CD:
+    dc.b "Amiga Computing"
+abs_0_0001A6DC:
+    dc.w abs_0_0001A25D-abs_0_0001A25C    ; lookup_table
+    dc.w abs_0_0001A25E-abs_0_0001A25C
+    dc.w abs_0_0001A26B-abs_0_0001A25C
+    ...
+    dc.w abs_0_0001A6CD-abs_0_0001A25C
+```
+
+This pass deliberately avoids a string-table-only workaround. The old generic
+64-byte exploratory table cap remains for weak scalar guesses, but proven
+relative data lookup tables use a typed scanner that validates each word entry
+against the known target pool and stops at structural conflicts. The same target
+pool gives each entry a concrete upper bound: the next greater table target or
+the table start when the target pool precedes the table. Bounded printable text
+inside that proven range can render as quoted text without inventing a
+terminator or consuming table bytes. A no-fixture C test now covers a table
+longer than 64 bytes, a bounded printable target, and a non-string target that
+must still render symbolically.
+
+Remaining observations for later 025/general analysis passes:
+
+- The first Pandora entries point at empty/control-leading bytes. They are valid
+  relative table targets, but not accepted strings because the bounded range
+  lacks printable text shape.
+- Target diff review also found an `OldOpenLibrary` name whose terminating zero
+  is the first byte of the following library-base storage. The C API string
+  pointer pass now keeps the printable library name as a bounded string item
+  and leaves the shared zero with the storage row, preserving source readability
+  without overlapping structured data.
+- The generic indexed-table model should grow a reusable entry-bound layer from
+  compare/mask/loop facts. The current relative-data scanner validates entries
+  against the target pool; future work should also record the proven consumer
+  index range when code supplies one.
+- Rendering labels inside dense data is now driven by statement references, not
+  by arbitrary analysis labels. That is the right invariant for all platforms:
+  if an emitted expression names a label, the definition must be emitted.
