@@ -10946,6 +10946,76 @@ def test_real_dll_starglider_main_app_slot_widths_stay_evidence_backed() -> None
     assert "app_016A RS.L 1\n" not in source_text
 
 
+def test_real_dll_025_string_text_examples_render_from_evidence() -> None:
+    _requires_c_backend_dlls()
+
+    starglider_paths = resolve_project_paths(
+        "amiga_disk_starglider-1987-rainbird__amiga_hunk_sg_9832b282",
+        project_root=PROJECT_ROOT,
+    )
+    starglider_source, starglider_profile = listing_artifact_source_text_with_c_backend_profile(
+        starglider_paths.binary_source,
+        metadata_path=starglider_paths.target_dir / "target_metadata.json",
+        project_root=PROJECT_ROOT,
+    )
+    assert starglider_profile["facts_v2"]["asm_source_refused"] is False
+    assert '\tdc.b "ACE PILOT",$00\n' in starglider_source
+    assert '\tdc.b "COMMANDER",$00\n' in starglider_source
+    assert '\tdc.b "NuNu    ",$00' not in starglider_source
+    assert '\tdc.b "NuD0        00000000",$00' not in starglider_source
+
+    pandora_paths = resolve_project_paths(
+        "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+        project_root=PROJECT_ROOT,
+    )
+    pandora_source, pandora_profile = listing_artifact_source_text_with_c_backend_profile(
+        pandora_paths.binary_source,
+        metadata_path=pandora_paths.target_dir / "target_metadata.json",
+        project_root=PROJECT_ROOT,
+    )
+    assert pandora_profile["facts_v2"]["asm_source_refused"] is False
+    assert '\tdc.b "   CREATED BY: SHAHID AHMAD",$0D\n' in pandora_source
+    assert '\tdc.b "PUBLISHED BY: FIREBIRD SOFTWARE",$00\n' in pandora_source
+    assert '\tdc.b "0123456789ABCDEF",$00\n' in pandora_source
+    assert '\tdc.w abs_0_0001A6CD-abs_0_0001A25C\n' in pandora_source
+
+    monam_paths = resolve_project_paths("amiga_hunk_monam302", project_root=PROJECT_ROOT)
+    monam_source, monam_profile = listing_artifact_source_text_with_c_backend_profile(
+        monam_paths.binary_source,
+        metadata_path=monam_paths.target_dir / "target_metadata.json",
+        project_root=PROJECT_ROOT,
+    )
+    assert monam_profile["facts_v2"]["asm_source_refused"] is False
+    assert '\tdc.b "Current Breakpoints:",$0A\n\tdc.b $00\n' in monam_source
+    assert '\tdc.b "Checking for libfile..",$0A\n\tdc.b $00\n' in monam_source
+
+    magicland_paths = resolve_project_paths(
+        "amiga_disk_magicland-dizzy-1991-codemasters-trsi-lsd__amiga_hunk_md_e066dc14",
+        project_root=PROJECT_ROOT,
+    )
+    magicland_source, magicland_profile = listing_artifact_source_text_with_c_backend_profile(
+        magicland_paths.binary_source,
+        metadata_path=magicland_paths.target_dir / "target_metadata.json",
+        project_root=PROJECT_ROOT,
+    )
+    assert magicland_profile["facts_v2"]["asm_source_refused"] is False
+    assert '\tdc.b "MAGICLAND DIZZY!",$00\n' in magicland_source
+    assert '\tdc.b "COPYRIGHT 1991 CODEMASTERS SOFTWARE LTD.",$FF\n' in magicland_source
+
+    conqueror_paths = resolve_project_paths(
+        "amiga_disk_conqueror-1990-rainbow-arts-de-en__amiga_hunk_conqueror_cf971606",
+        project_root=PROJECT_ROOT,
+    )
+    conqueror_source, conqueror_profile = listing_artifact_source_text_with_c_backend_profile(
+        conqueror_paths.binary_source,
+        metadata_path=conqueror_paths.target_dir / "target_metadata.json",
+        project_root=PROJECT_ROOT,
+    )
+    assert conqueror_profile["facts_v2"]["asm_source_refused"] is False
+    assert '\tdc.b "         Conqueror was cracked by QUARTEX in 1990",$0A\n' in conqueror_source
+    assert '\tdc.b "              Click mouse to start CONQUEROR ! "\n' in conqueror_source
+
+
 def test_real_dll_starglider_mathtrans_linkage_api_labels_promote_wrappers() -> None:
     _requires_c_backend_dlls()
 

@@ -957,3 +957,27 @@ Remaining general-analysis observation:
   through the trace state, so consumers can enumerate valid entries until a
   structural stop condition is met. This is broader control-flow analysis work,
   separate from 025's string acceptance path.
+
+### 2026-05-28 fixture proof pass
+
+025 now has an explicit fixture-backed Python test that renders current target
+binaries through the C backend and checks the representative examples from this
+proposal:
+
+- Starglider rank strings render, while the `NuNu` and `NuD0` false-positive
+  shapes do not render as accepted strings;
+- Pandora multiline credits, `0123456789ABCDEF`, and the item-name
+  word-offset table endpoint render as expected;
+- MonAm LF-terminated rows render as text;
+- Magicland control-separated intro/copyright rows render as text;
+- Conqueror DOS `Write` exact-length text buffer renders as text.
+
+This is intentionally a double-check over real fixtures, not the primary
+specification. The no-fixture C tests still own the general rules; the fixture
+test proves the target examples continue to exercise those rules.
+
+Verification:
+
+```text
+uv run python -m pytest tests\test_c_backend.py::test_real_dll_025_string_text_examples_render_from_evidence -q
+```
