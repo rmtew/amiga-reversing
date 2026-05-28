@@ -7351,6 +7351,81 @@ static int test_facts_v2_api_data_register_string_pointer_renders_bounded_segmen
   return 0;
 }
 
+static int test_facts_v2_api_write_exact_length_buffer_renders_text(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kFixup fixup;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  const M68kAnalysisStructuredDataItem *text_item = NULL;
+  char *source = NULL;
+  size_t index;
+  uint8_t bytes[] = {
+    0x24u, 0x3cu, 0x00u, 0x00u, 0x00u, 0x0eu,
+    0x76u, 0x18u,
+    0x4eu, 0xaeu, 0xffu, 0xd0u,
+    0x4eu, 0x75u,
+    'H', 'E', 'L', 'L', 'O', ' ', 'W', 'O',
+    'R', 'L', 'D', 0x0au,
+    'S', 'E', 'C', 'O', 'N', 'D', ' ', 'L',
+    'I', 'N', 'E', '!'
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  memset(&fixup, 0, sizeof(fixup));
+  fixup.section_index = 0U;
+  fixup.offset = 2U;
+  fixup.kind = M68K_FIXUP_ABS;
+  fixup.width = M68K_FIXUP_WIDTH_32;
+  fixup.has_target_section = 1;
+  fixup.target_section_index = 0U;
+  fixup.addend = 0x0e;
+  added = m68k_object_add_fixup(&object, &fixup);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.register_seed_count = 1U;
+  policy.register_seeds[0].kind = M68K_ANALYSIS_REGISTER_SEED_LIBRARY_BASE;
+  policy.register_seeds[0].reg_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+  policy.register_seeds[0].reg_index = 6U;
+  policy.register_seeds[0].has_entry_offset = 1U;
+  policy.register_seeds[0].has_section_index = 1U;
+  policy.register_seeds[0].entry_offset = 0U;
+  policy.register_seeds[0].section_index = 0U;
+  snprintf(policy.register_seeds[0].name, sizeof(policy.register_seeds[0].name), "dos.library");
+  memset(&source_analysis, 0, sizeof(source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmoveq.l #24,d3\n\tjsr _LVOWrite(a6)\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "loc_0_0000000E:\n\tdc.b \"HELLO WORLD\",$0A\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.b \"SECOND LINE!\"\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.b $48,$45,$4C,$4C,$4F,$20,$57,$4F\n") == NULL);
+  for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
+    const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
+    if (item->offset == 0x0e && item->size == 24U &&
+        item->source_pattern_id == M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_API_TEXT_BUFFER) {
+      text_item = item;
+      break;
+    }
+  }
+  M68K_C_ASSERT(text_item != NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_open_library_cross_section_name_promotes_a6_base(void) {
   M68kObject object;
   M68kSection code_section;
@@ -21621,6 +21696,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_api_string_pointer_with_internal_label_renders_segments},
     {"facts_v2_api_data_register_string_pointer_renders_bounded_segments",
       test_facts_v2_api_data_register_string_pointer_renders_bounded_segments},
+    {"facts_v2_api_write_exact_length_buffer_renders_text",
+      test_facts_v2_api_write_exact_length_buffer_renders_text},
     {"facts_v2_open_library_cross_section_name_promotes_a6_base",
       test_facts_v2_open_library_cross_section_name_promotes_a6_base},
     {"facts_v2_stack_stored_callback_vector_promotes_target",

@@ -901,3 +901,59 @@ Round-trip remained `34/36 full-file exact`, `1/36 content-exact-only`
 (`amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h__amiga_hunk_menu_252a2566`),
 `1/36 unsupported` (`macos_hfs_mpw_gm__macos_file_mpw_tools_asm`), and
 `0 failures`.
+
+### 2026-05-28 API exact text buffer pass
+
+Conqueror exposed a string/text case that is neither a C string nor a table:
+the code passes an exact buffer pointer and exact byte count to DOS
+`Write(file, buffer, length)`. The previous renderer kept most of that buffer as
+raw bytes even though the API contract proves it is text output:
+
+```asm
+    lea.l loc_0_00000066(pc),a0
+    move.l a0,d2
+    moveq.l #98,d3
+    jsr _LVOWrite(a6)
+```
+
+The C render lookup now tracks exact scalar constants in data registers beside
+exact data pointers. When generated Amiga OS metadata identifies DOS `Write`,
+the engine requires:
+
+- `buffer` in the metadata-declared data register;
+- `length` in the metadata-declared data register;
+- exact pointer provenance;
+- exact scalar length provenance;
+- no accepted-code, relocation, or structured-data overlap;
+- printable/CR/LF/TAB text shape inside the exact range.
+
+Only then does it emit an `api_text_buffer` structured string item. This keeps
+the rule evidence-driven and platform-owned by generated API metadata, not by
+target names or Python rendering.
+
+Representative output now becomes:
+
+```asm
+loc_0_00000066:
+    dc.b $0A
+    dc.b "         Conqueror was cracked by QUARTEX in 1990",$0A
+    dc.b "              Click mouse to start CONQUEROR ! "
+```
+
+The rule deliberately defers to normal NUL-terminated string evidence when the
+byte after the exact write length is `$00`, so existing C-string style output is
+not downgraded into a text fragment plus raw terminator data.
+
+No-fixture coverage:
+
+- `facts_v2_api_write_exact_length_buffer_renders_text`.
+
+Remaining general-analysis observation:
+
+- The fixed 64-entry trace target-set storage in the control-flow facts engine
+  is not the right long-term representation for large dispatches. String/table
+  rendering should not work around that with larger magic numbers. The clean
+  direction is to carry a table descriptor plus evidence-bounded iterator
+  through the trace state, so consumers can enumerate valid entries until a
+  structural stop condition is met. This is broader control-flow analysis work,
+  separate from 025's string acceptance path.

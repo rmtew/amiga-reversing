@@ -104,6 +104,8 @@ const char *m68k_analysis_structured_data_source_pattern_name(uint8_t source_pat
       return "pointer_string_table";
     case M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_WORD_OFFSET_STRING_TABLE:
       return "word_offset_string_table";
+    case M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_API_TEXT_BUFFER:
+      return "api_text_buffer";
     default:
       return NULL;
   }

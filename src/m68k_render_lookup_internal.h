@@ -419,9 +419,15 @@ typedef struct M68kRenderDataPointerValue {
   uint32_t dynamic_offset_offset;
 } M68kRenderDataPointerValue;
 
+typedef struct M68kRenderDataScalarValue {
+  uint8_t known;
+  uint32_t value;
+} M68kRenderDataScalarValue;
+
 typedef struct M68kRenderDataPointerState {
   M68kRenderDataPointerValue data_regs[8];
   M68kRenderDataPointerValue addr_regs[8];
+  M68kRenderDataScalarValue data_scalars[8];
 } M68kRenderDataPointerState;
 
 typedef struct M68kRenderStringSpan {
@@ -720,7 +726,7 @@ const M68kRenderStringSpan *lookup_string_span_at_offset(const M68kRenderLookup 
   uint32_t offset);
 int append_comment_part_local(char *comment, size_t comment_size, const char *part);
 int render_lookup_infer_amiga_call_input_comments(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
-  uint8_t **accepted_start);
+  uint8_t **accepted_start, uint8_t **accepted_bytes);
 const AmigaOsLibraryVectorInfo *resolve_amiga_direct_wrapper_vector_at(const M68kRenderLookup *lookup,
   const M68kDecodeIR *decode, uint8_t **accepted_start, size_t section_index, uint32_t wrapper_offset,
   unsigned depth);
