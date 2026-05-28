@@ -8298,6 +8298,10 @@ static int auto_string_lowercase_byte(uint8_t value) {
   return value >= 'a' && value <= 'z';
 }
 
+static int auto_string_alpha_byte(uint8_t value) {
+  return (value >= 'A' && value <= 'Z') || (value >= 'a' && value <= 'z');
+}
+
 static int lookup_has_anchor_local(const M68kRenderLookup *lookup, size_t section_index, uint32_t offset) {
   return lookup != NULL && section_index < lookup->section_count && lookup->anchors != NULL &&
     lookup->anchor_extents != NULL && offset < lookup->anchor_extents[section_index] &&
@@ -8506,6 +8510,53 @@ static uint32_t auto_renderable_string_span(const M68kRenderLookup *lookup,
   return auto_renderable_string_span_with_options(lookup, section, accepted_bytes, offset, 8U, 1);
 }
 
+static int auto_multiline_text_byte(uint8_t value) {
+  return byte_is_quoted_string_safe(value) || value == 0x0dU || value == 0x0aU || value == 0x09U;
+}
+
+static uint32_t auto_renderable_multiline_string_span(const M68kRenderLookup *lookup,
+    const M68kDecodeSectionIR *section, const uint8_t *accepted_bytes, uint32_t offset) {
+  uint32_t cursor;
+  uint32_t text_size = 0U;
+  uint32_t alpha_count = 0U;
+  uint32_t line_break_count = 0U;
+  uint32_t text_line_count = 0U;
+  int has_space = 0;
+  int previous_was_break = 1;
+  if (lookup == NULL || section == NULL || section->data == NULL || offset >= section->size ||
+      section->data[offset] != 0x0dU) {
+    return 0U;
+  }
+  if (section->kind == M68K_SECTION_CODE &&
+      !lookup_has_label(lookup, section->section_index, offset) &&
+      !lookup_has_anchor_local(lookup, section->section_index, offset)) {
+    return 0U;
+  }
+  cursor = offset;
+  while (cursor < section->size && auto_multiline_text_byte(section->data[cursor])) {
+    uint8_t value = section->data[cursor];
+    if (cursor != offset && !auto_string_interior_clear(lookup, section->section_index, cursor)) return 0U;
+    if (value == 0x0dU || value == 0x0aU) {
+      ++line_break_count;
+      previous_was_break = 1;
+    } else {
+      ++text_size;
+      if (previous_was_break && byte_is_quoted_string_safe(value)) ++text_line_count;
+      previous_was_break = 0;
+      if (value == ' ') has_space = 1;
+      if (auto_string_alpha_byte(value)) ++alpha_count;
+    }
+    ++cursor;
+  }
+  if (cursor >= section->size || section->data[cursor] != 0U || text_size < 24U || alpha_count < 12U ||
+      line_break_count < 2U || text_line_count < 2U || !has_space) {
+    return 0U;
+  }
+  if (!auto_string_interior_clear(lookup, section->section_index, cursor)) return 0U;
+  if (auto_string_range_has_code_byte(section, accepted_bytes, offset, cursor - offset + 1U)) return 0U;
+  return cursor - offset + 1U;
+}
+
 static int auto_bounded_string_has_text_shape(const M68kDecodeSectionIR *section, uint32_t offset,
     uint32_t size) {
   uint32_t cursor;
@@ -8611,13 +8662,24 @@ static int render_lookup_infer_data_strings(M68kRenderLookup *lookup, const M68k
             &span) != 0) {
           return -1;
         }
-        if (span != 0U) {
-          offset += span;
-          continue;
-        }
+      if (span != 0U) {
+        offset += span;
+        continue;
       }
-      int candidate_start = auto_string_candidate_start(section, offset) ||
-        (byte_is_quoted_string_safe(section->data[offset]) &&
+      span = auto_renderable_multiline_string_span(lookup, section, accepted_bytes[section_index], offset);
+      if (span != 0U) {
+        if (render_lookup_add_auto_structured_data_item(lookup, section_index, offset, span,
+            M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING, M68K_ANALYSIS_STRUCTURED_DATA_STRING) != 0) {
+          return -1;
+        }
+        render_lookup_set_auto_structured_data_item_source_pattern(lookup, section_index, offset,
+          M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_MULTILINE_TEXT);
+        offset += span;
+        continue;
+      }
+    }
+    int candidate_start = auto_string_candidate_start(section, offset) ||
+      (byte_is_quoted_string_safe(section->data[offset]) &&
           (lookup_has_label(lookup, section_index, offset) ||
            lookup_has_anchor_local(lookup, section_index, offset)));
       if ((accepted_bytes[section_index] != NULL && accepted_bytes[section_index][offset] != 0U) ||

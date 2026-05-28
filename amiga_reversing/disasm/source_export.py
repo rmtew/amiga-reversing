@@ -1,13 +1,18 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+import hashlib
+import json
 from pathlib import Path
 
 from amiga_reversing.disasm.assembler_profiles import load_assembler_profile
 from amiga_reversing.disasm.effective_metadata import (
     effective_metadata_file,
 )
-from amiga_reversing.disasm.project_paths import PROJECT_ROOT, resolve_project_paths
+from amiga_reversing.disasm.macos_target_artifact import (
+    MACOS_EXAMPLE_SUBTARGET_ID,
+    render_macos_example_asm,
+)
+from amiga_reversing.disasm.project_paths import PROJECT_ROOT, resolve_project_dir, resolve_project_paths
 from amiga_reversing.disasm.source_rendering import render_source_from_binary_source
 
 SOURCE_EXPORT_ASSEMBLER_PROFILES = ("vasm", "devpac")
@@ -42,6 +47,13 @@ def render_source_export(
     project_root: Path = PROJECT_ROOT,
 ) -> dict[str, object]:
     profile = _require_source_export_profile(assembler_profile)
+    macos_payload = _macos_artifact_source_export(
+        target_name,
+        assembler_profile=profile,
+        project_root=project_root,
+    )
+    if macos_payload is not None:
+        return macos_payload
     paths = resolve_project_paths(target_name, project_root=project_root)
     binary_source = paths.binary_source
     with effective_metadata_file(paths.target_dir) as metadata_path:
@@ -54,7 +66,6 @@ def render_source_export(
             workflow_id="source_export",
         )
     filename = f"{_safe_filename(target_name)}-{profile}.s"
-    generated_at = datetime.now(UTC).replace(microsecond=0).isoformat()
     if rendering.refused:
         raise SourceExportRefused(
             {
@@ -67,7 +78,6 @@ def render_source_export(
                 "workflow_profile": rendering.workflow_profile,
                 "metadata_hash": rendering.metadata_hash,
                 "target_identity_sha256": rendering.target_identity_sha256,
-                "generated_at": generated_at,
             }
         )
     header = _source_export_header(
@@ -75,7 +85,6 @@ def render_source_export(
         assembler_profile=profile,
         metadata_hash=rendering.metadata_hash,
         target_identity_sha256=rendering.target_identity_sha256,
-        generated_at=generated_at,
     )
     return {
         "status": "ok",
@@ -86,9 +95,68 @@ def render_source_export(
         "header": header,
         "metadata_hash": rendering.metadata_hash,
         "target_identity_sha256": rendering.target_identity_sha256,
-        "generated_at": generated_at,
         "listing_profile": rendering.listing_profile,
         "workflow_profile": rendering.workflow_profile,
+        "non_verification": True,
+    }
+
+
+def _macos_artifact_source_export(
+    target_name: str,
+    *,
+    assembler_profile: str,
+    project_root: Path,
+) -> dict[str, object] | None:
+    try:
+        target_dir = resolve_project_dir(target_name, project_root=project_root)
+    except FileNotFoundError:
+        return None
+    metadata_path = target_dir / ".project.json"
+    if not metadata_path.exists():
+        return None
+    metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+    if not isinstance(metadata, dict):
+        return None
+    origin = metadata.get("origin")
+    if not isinstance(origin, dict):
+        return None
+    if origin.get("kind") != "macos_hfs_resource_code_file":
+        return None
+    if origin.get("renderer") != "amiga_reversing.disasm.macos_target_artifact":
+        return None
+    if target_name.split("__")[-1] != MACOS_EXAMPLE_SUBTARGET_ID:
+        return None
+
+    source_text = render_macos_example_asm(project_root=project_root)
+    metadata_hash = hashlib.sha256(metadata_path.read_bytes()).hexdigest()
+    source_image = str(origin.get("source_image") or "")
+    identity_text = f"{target_name}\n{source_image}\n{origin.get('hfs_path')}\n{origin.get('selected_code_resource_id')}"
+    target_identity_sha256 = hashlib.sha256(identity_text.encode("utf-8")).hexdigest()
+    header = _source_export_header(
+        target_name,
+        assembler_profile=assembler_profile,
+        metadata_hash=metadata_hash,
+        target_identity_sha256=target_identity_sha256,
+    )
+    return {
+        "status": "ok",
+        "target": target_name,
+        "assembler_profile": assembler_profile,
+        "filename": f"{_safe_filename(target_name)}-{assembler_profile}.s",
+        "source_text": _join_header_and_source(header, source_text, assembler_profile=assembler_profile),
+        "header": header,
+        "metadata_hash": metadata_hash,
+        "target_identity_sha256": target_identity_sha256,
+        "listing_profile": {
+            "backend": "macos-target-artifact",
+            "source_kind": "macos_hfs_resource_code_file",
+            "path": str(target_dir),
+        },
+        "workflow_profile": {
+            "workflow_id": "source_export",
+            "target_id": target_name,
+            "spans": [{"name": "macos_target_artifact_rendering", "seconds": 0.0, "module": "python"}],
+        },
         "non_verification": True,
     }
 
@@ -107,7 +175,6 @@ def _source_export_header(
     assembler_profile: str,
     metadata_hash: str,
     target_identity_sha256: str,
-    generated_at: str,
 ) -> str:
     lines = [
         "; Generated by amiga-reversing source export",
@@ -115,7 +182,6 @@ def _source_export_header(
         f"; Assembler profile: {assembler_profile}",
         f"; Metadata hash: {metadata_hash}",
         f"; Target identity sha256: {target_identity_sha256}",
-        f"; Generated at: {generated_at}",
         "; Export is not verification; run reproduction or oracle checks separately.",
     ]
     return "\n".join(lines) + "\n"

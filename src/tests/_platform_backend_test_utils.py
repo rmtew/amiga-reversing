@@ -501,10 +501,12 @@ def _platform_backend_harness_source_text() -> str:
         #include "m68k_object.h"
 
         static int command_atari_duplicate_sections(void) {
-            char error[256];
+            M68kDiagList diagnostics;
             M68kObject object;
+            M68kObjectAddResult added;
             M68kSection section;
-            m68k_object_init(&object);
+            m68k_diag_list_reset(&diagnostics);
+            if (m68k_object_create(&object) != 0) return 2;
             object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
             memset(&section, 0, sizeof(section));
             section.name = "TEXT0";
@@ -512,20 +514,23 @@ def _platform_backend_harness_source_text() -> str:
             section.size = 4;
             section.data = (uint8_t *)"\\x4e\\x75\\x00\\x00";
             section.data_size = 4;
-            if (m68k_object_add_section(&object, &section, NULL) != 0) return 2;
+            added = m68k_object_add_section(&object, &section);
+            if (!added.ok) return 2;
             section.name = "TEXT1";
-            if (m68k_object_add_section(&object, &section, NULL) != 0) return 2;
+            added = m68k_object_add_section(&object, &section);
+            if (!added.ok) return 2;
             section.name = "DATA";
             section.kind = M68K_SECTION_DATA;
             section.data = (uint8_t *)"\\x00\\x00\\x00\\x00";
-            if (m68k_object_add_section(&object, &section, NULL) != 0) return 2;
-            if (M68K_BACKEND_ATARI_ST.write_file("NUL", &object, error, sizeof(error)) == 0) {
+            added = m68k_object_add_section(&object, &section);
+            if (!added.ok) return 2;
+            if (M68K_BACKEND_ATARI_ST.write_file("NUL", &object, m68k_diag_sink(&diagnostics)) == 0) {
                 fprintf(stderr, "unexpected success\\n");
-                m68k_object_free(&object);
+                m68k_object_destroy(&object);
                 return 1;
             }
-            puts(error);
-            m68k_object_free(&object);
+            puts(m68k_diag_first_message(&diagnostics));
+            m68k_object_destroy(&object);
             return 0;
         }
 
@@ -552,8 +557,10 @@ def _ensure_platform_backend_harness() -> Path:
         f'/I "{SRC_DIR}" "{HARNESS_SOURCE}" "{SRC_DIR / "m68k_object.c"}" "{SRC_DIR / "util_arena.c"}" '
         f'"{SRC_DIR / "platform_amiga_hunk.c"}" "{SRC_DIR / "platform_atari_st.c"}" '
         f'"{SRC_DIR / "platform_common.c"}" "{SRC_DIR / "platform_binary_io.c"}" '
+        f'"{SRC_DIR / "m68k_diagnostics.c"}" "{SRC_DIR / "m68k_assembler_policy.c"}" '
         f'"{SRC_DIR / "generated" / "amiga_hunk_file_runtime.c"}" "{SRC_DIR / "generated" / "atari_st_prg_file_runtime.c"}" '
         f'/link /OUT:"{HARNESS_EXE}" || exit /b %errorlevel%\n'
+        f'if not exist "{HARNESS_EXE}" exit /b 1\n'
     )
     if not HARNESS_COMPILE.exists() or HARNESS_COMPILE.read_text(encoding="utf-8") != compile_script:
         HARNESS_COMPILE.write_text(compile_script, encoding="utf-8")
@@ -583,4 +590,5 @@ def _ensure_platform_backend_harness() -> Path:
         check=False,
     )
     assert compile_result.returncode == 0, compile_result.stdout + compile_result.stderr
+    assert HARNESS_EXE.exists(), compile_result.stdout + compile_result.stderr
     return HARNESS_EXE

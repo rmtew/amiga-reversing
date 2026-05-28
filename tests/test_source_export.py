@@ -6,6 +6,10 @@ from types import SimpleNamespace
 import pytest
 
 from amiga_reversing.disasm import source_export
+from amiga_reversing.disasm.macos_target_artifact import (
+    MACOS_EXAMPLE_PROJECT_ID,
+    MACOS_EXAMPLE_SUBTARGET_ID,
+)
 from amiga_reversing.disasm.source_rendering import SourceRenderingResult
 from amiga_reversing.tools import source_export as source_export_cli
 
@@ -101,6 +105,39 @@ def test_source_export_returns_refusal_payload(monkeypatch, tmp_path: Path) -> N
     assert payload["listing_profile"] == profile
     assert payload["workflow_profile"]["spans"][0]["name"] == "source_rendering"
     assert "source_text" not in payload
+
+
+def test_source_export_supports_macos_artifact_renderer(monkeypatch, tmp_path: Path) -> None:
+    target_name = f"{MACOS_EXAMPLE_PROJECT_ID}__{MACOS_EXAMPLE_SUBTARGET_ID}"
+    target_dir = tmp_path / "targets" / MACOS_EXAMPLE_PROJECT_ID / "targets" / MACOS_EXAMPLE_SUBTARGET_ID
+    target_dir.mkdir(parents=True)
+    (target_dir / ".project.json").write_text(
+        """
+{
+  "created_at": "2026-05-21T00:00:00+00:00",
+  "origin": {
+    "artifact": "asm.s",
+    "hfs_path": "MPW-GM/MPW/Tools/Asm",
+    "kind": "macos_hfs_resource_code_file",
+    "renderer": "amiga_reversing.disasm.macos_target_artifact",
+    "selected_code_resource_id": 1,
+    "source_image": "resources/platform_macos/MPW-GM.img.bin"
+  },
+  "schema_version": 2,
+  "updated_at": "2026-05-21T00:00:00+00:00"
+}
+""".lstrip(),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(source_export, "render_macos_example_asm", lambda project_root: "\tINCLUDE \"SegLoad.a\"\n")
+
+    payload = source_export.source_export_payload(target_name, project_root=tmp_path)
+
+    assert payload["status"] == "ok"
+    assert payload["target"] == target_name
+    assert payload["listing_profile"]["backend"] == "macos-target-artifact"
+    assert "; Target: macos_hfs_mpw_gm__macos_file_mpw_tools_asm" in payload["source_text"]
+    assert "\tINCLUDE \"SegLoad.a\"" in payload["source_text"]
 
 
 def test_source_export_cli_writes_file_and_reports_non_verification(monkeypatch, tmp_path: Path, capsys) -> None:

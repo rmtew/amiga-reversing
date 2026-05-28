@@ -2002,7 +2002,7 @@ static int byte_is_quoted_character_safe(uint8_t value) {
   return value >= 0x20U && value <= 0x7eU && value != '\'' && value != '\\';
 }
 
-static void render_asm_dc_b_string(M68kRenderIRPreview *preview, const uint8_t *data, uint32_t offset,
+static void render_asm_dc_b_string_slice(M68kRenderIRPreview *preview, const uint8_t *data, uint32_t offset,
     uint32_t size, const char *comment) {
   uint32_t cursor;
   int wrote = 0;
@@ -2037,6 +2037,40 @@ static void render_asm_dc_b_string(M68kRenderIRPreview *preview, const uint8_t *
   }
   hash_asm_text(preview, "\n");
   ++preview->asm_source_lines;
+}
+
+static int string_span_has_line_break(const uint8_t *data, uint32_t offset, uint32_t size) {
+  uint32_t cursor;
+  if (data == NULL) return 0;
+  for (cursor = 0U; cursor < size; ++cursor) {
+    uint8_t value = data[offset + cursor];
+    if (value == 0x0dU || value == 0x0aU) return 1;
+  }
+  return 0;
+}
+
+static void render_asm_dc_b_string(M68kRenderIRPreview *preview, const uint8_t *data, uint32_t offset,
+    uint32_t size, const char *comment) {
+  uint32_t cursor = 0U;
+  if (preview == NULL || data == NULL || size == 0U) return;
+  if (!string_span_has_line_break(data, offset, size)) {
+    render_asm_dc_b_string_slice(preview, data, offset, size, comment);
+    return;
+  }
+  while (cursor < size) {
+    uint32_t line_start = cursor;
+    uint32_t line_size;
+    while (cursor < size && data[offset + cursor] != 0x0dU && data[offset + cursor] != 0x0aU) ++cursor;
+    if (cursor < size) {
+      do {
+        ++cursor;
+      } while (cursor < size && (data[offset + cursor] == 0x0dU || data[offset + cursor] == 0x0aU));
+    }
+    line_size = cursor - line_start;
+    if (line_size == 0U) line_size = size - line_start;
+    render_asm_dc_b_string_slice(preview, data, offset + line_start, line_size,
+      line_start == 0U ? comment : NULL);
+  }
 }
 
 static const M68kAnalysisManualRepresentation *lookup_manual_representation_at(

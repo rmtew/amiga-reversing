@@ -551,19 +551,28 @@ Implemented the first C-owned acceptance improvements in
   unless there is stronger boundary evidence. This removes the Starglider
   `NuNu    ` and `NuD0        00000000` false-positive rows while preserving
   Magicland display text streams and Pandora item-table strings.
-- The new behavior is covered by no-fixture C tests for table-context promotion
-  and unlabeled orphan-code-shaped text rejection.
+- CR/LF-led multiline text now records an explicit `multiline_text` source
+  pattern before it renders as a string. The rule requires bounded CR/LF text,
+  a terminator, clear interior bytes, no accepted-code overlap, and for CODE
+  sections a real label/anchor. This makes the Starglider credits and prompt
+  blocks readable without accepting arbitrary printable bytes.
+- The new behavior is covered by no-fixture C tests for table-context
+  promotion, multiline text inference/rendering, and unlabeled
+  orphan-code-shaped text rejection.
 
-Target source was re-exported through `amiga-source-export --output` for every
-non-Mac committed `.s` file. Mac source export currently refuses
-`macos_hfs_mpw_gm__macos_file_mpw_tools_asm` because that target does not expose
-the `source_binary.json` path required by the generic exporter; the rendered
-source round-trip report classifies it as `unsupported_platform_source_assembly`.
+Target source was re-exported through `amiga-source-export --output` for all 36
+tracked `.s` files. Mac artifact targets now participate in source export via
+their artifact renderer; source assembly remains intentionally classified as
+`unsupported_platform_source_assembly` by the rendered-source round-trip report.
+Generated source-export timestamps were removed from headers so routine exports
+do not churn committed target source.
 
 Verification:
 
 ```text
 cmd /c src\precommit.bat m68k_ir
+uv run python -m pytest tests\test_source_export.py -q
+amiga-source-export --output for all tracked target .s files
 platform-rendered-source-roundtrip
 ```
 
@@ -578,8 +587,6 @@ Round-trip result after this pass:
 
 Remaining observations for later 025 passes:
 
-- The Starglider CR/LF credits block still needs a proper multiline text
-  renderer. Current output remains byte-exact but is not human-readable enough.
 - Some target diffs include unrelated current-analysis improvements such as
   branch target symbolization and generated source-export headers. Those are
   useful but are not string-evidence semantics.

@@ -2524,6 +2524,102 @@ static int test_facts_v2_table_context_promotes_plain_entry_without_space(void) 
   return 0;
 }
 
+static int test_facts_v2_structured_multiline_string_renders_readable_rows(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  char *source = NULL;
+  uint8_t bytes[] = {
+    0x0du, 0x0au, 0x0au,
+    'S', 't', 'a', 'r', 'g', 'l', 'i', 'd', 'e', 'r', ' ', 'w', 'a', 's', ' ', 'w', 'r', 'i', 't', 't',
+    'e', 'n', ' ', 'b', 'y', ' ', 0x0du, 0x0au,
+    'J', 'e', 'z', ' ', 'S', 'a', 'n', 0x00u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  section.kind = M68K_SECTION_DATA;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.structured_data_item_count = 1U;
+  policy.structured_data_items[0].has_section_index = 1U;
+  policy.structured_data_items[0].section_index = 0U;
+  policy.structured_data_items[0].offset = 0U;
+  policy.structured_data_items[0].size = sizeof(bytes);
+  policy.structured_data_items[0].kind = M68K_ANALYSIS_STRUCTURED_DATA_STRING;
+  m68k_analysis_structured_data_item_set_semantic_role_flags(&policy.structured_data_items[0],
+    M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.b $0D,$0A,$0A\t; string\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.b \"Starglider was written by \",$0D,$0A\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.b \"Jez San\",$00\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "$0D,$0A,$0A,\"Starglider was written by \"") == NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_facts_v2_free_text(source);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_multiline_string_auto_classifies_crlf_text(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  const M68kAnalysisStructuredDataItem *auto_item = NULL;
+  char *source = NULL;
+  uint16_t index;
+  uint8_t bytes[] = {
+    0x0du, 0x0au, 0x0au,
+    'S', 't', 'a', 'r', 'g', 'l', 'i', 'd', 'e', 'r', ' ', 'w', 'a', 's', ' ', 'w', 'r', 'i', 't',
+    't', 'e', 'n', ' ', 'b', 'y', ' ', 0x0du, 0x0au,
+    'J', 'e', 'z', ' ', 'S', 'a', 'n', ' ', 'a', 'n', 'd', ' ', 'P', 'a', 'u', 'l', ' ', 'W', 'o',
+    'o', 'k', 'e', 'y', 0x00u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  section.kind = M68K_SECTION_DATA;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.b $0D,$0A,$0A\t; string\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.b \"Starglider was written by \",$0D,$0A\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.b \"Jez San and Paul Wookey\",$00\n") != NULL);
+  for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
+    const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
+    if (item->has_section_index && item->section_index == 0U && item->offset == 0U &&
+        structured_data_item_has_role(item, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING)) {
+      auto_item = item;
+      break;
+    }
+  }
+  M68K_C_ASSERT(auto_item != NULL);
+  M68K_C_ASSERT_U32((uint32_t)sizeof(bytes), auto_item->size);
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_MULTILINE_TEXT, auto_item->source_pattern_id);
+  M68K_C_ASSERT_STR("multiline_text", auto_item->source_pattern);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_control_separated_ascii_sequence_keeps_printable_separator_tail(void) {
   M68kObject object;
   M68kSection section;
@@ -21197,6 +21293,10 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_adjacent_short_ascii_spans_auto_classify_string_sequence},
     {"facts_v2_table_context_promotes_plain_entry_without_space",
       test_facts_v2_table_context_promotes_plain_entry_without_space},
+    {"facts_v2_structured_multiline_string_renders_readable_rows",
+      test_facts_v2_structured_multiline_string_renders_readable_rows},
+    {"facts_v2_multiline_string_auto_classifies_crlf_text",
+      test_facts_v2_multiline_string_auto_classifies_crlf_text},
     {"facts_v2_control_separated_ascii_sequence_keeps_printable_separator_tail",
       test_facts_v2_control_separated_ascii_sequence_keeps_printable_separator_tail},
     {"facts_v2_unlabeled_code_section_orphan_shape_does_not_auto_classify_string",
