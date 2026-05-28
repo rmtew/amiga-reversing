@@ -62,7 +62,7 @@ loc_0_00000052:
 h0dl_DOSBase:
 	dc.b $00,$00,$00,$00
 loc_0_0000005A:
-	dc.b "dos.library",$00	; string
+	dc.b "dos.library",$00
 loc_0_00000066:
 	dc.b $0A
 	dcb.b $9,$20

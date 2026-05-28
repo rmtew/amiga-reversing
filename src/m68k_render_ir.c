@@ -5237,16 +5237,13 @@ int structured_data_item_comment(const M68kAnalysisStructuredDataItem *item, cha
     snprintf(comment, comment_size, "%s", item->comment);
     return 1;
   }
+  if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_STRING) return 0;
   {
     const char *role_name = m68k_analysis_structured_data_role_name_for_flags(structured_data_item_role_flags(item));
     if (role_name != NULL) {
       snprintf(comment, comment_size, "%s", role_name);
       return 1;
     }
-  }
-  if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_STRING) {
-    snprintf(comment, comment_size, "string");
-    return 1;
   }
   return 0;
 }

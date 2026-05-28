@@ -1160,7 +1160,7 @@ string_0002109E:
 	dc.b $44,$41,$56,$49,$44,$20,$45,$41,$53,$54,$4D,$41,$4E,$0D
 	dcb.b $F,$20
 	dc.b $54,$45,$52,$52,$59,$20,$47,$52,$45,$45,$52,$0D,$0D
-	dc.b "PUBLISHED BY: FIREBIRD SOFTWARE",$00	; string
+	dc.b "PUBLISHED BY: FIREBIRD SOFTWARE",$00
 	dc.b $00
 abs_0_00011114:
 	move.w $0002(a4),$0030(a5)
@@ -2274,7 +2274,7 @@ abs_0_00012B34:
 	move.l #$70000,$01E0(a6)
 	bra.w abs_0_00016632
 abs_0_00012B5E:
-	dc.b " IS TOO LARGE FOR YOUR POCKETS",$00	; string
+	dc.b " IS TOO LARGE FOR YOUR POCKETS",$00
 	dc.b $00
 abs_0_00012B7E:
 	andi.w #127,d0
@@ -2510,11 +2510,11 @@ abs_0_00012E10:
 	lea.l abs_0_00012E51(pc),a0
 	bra.w abs_0_000199DE
 abs_0_00012E20:
-	dc.b "EARTH ORBIT ESTABLISHED, MUTANT SPORES RELEASED.",$00	; string
+	dc.b "EARTH ORBIT ESTABLISHED, MUTANT SPORES RELEASED.",$00
 abs_0_00012E51:
-	dc.b "TOTAL DESTRUCTION OF HUMANITY IMMINENT.",$00	; string
+	dc.b "TOTAL DESTRUCTION OF HUMANITY IMMINENT.",$00
 abs_0_00012E79:
-	dc.b "0123456789ABCDEF",$00	; string
+	dc.b "0123456789ABCDEF",$00
 abs_0_00012E8A:
 	movem.l d0-d2/d7/a0-a1,-(a7)
 	moveq.l #3,d7
@@ -5483,9 +5483,9 @@ abs_0_00017C46:
 	bsr.w abs_0_000199DE
 	bra.b abs_0_00017BF2
 abs_0_00017C50:
-	dc.b "Give me that, LET GO",$00	; string
+	dc.b "Give me that, LET GO",$00
 abs_0_00017C65:
-	dc.b "I'll give you what I'm carrying for that",$00	; string
+	dc.b "I'll give you what I'm carrying for that",$00
 abs_0_00017C8E:
 	move.b d0,d2
 	moveq.l #-1,d3
@@ -5534,7 +5534,7 @@ abs_0_00017CEC:
 abs_0_00017CFE:
 	rts
 abs_0_00017D00:
-	dc.b "..... YOU HAVE TRADED OBJECTS .....",$00	; string
+	dc.b "..... YOU HAVE TRADED OBJECTS .....",$00
 	dc.b $08,$EE,$00,$04,$02,$7B,$1D,$6E,$02,$C9,$02,$89,$4E,$75
 abs_0_00017D32:
 	bset.b #4,app_027B(a6)
@@ -5869,7 +5869,7 @@ abs_0_0001814E:
 	bclr.b #0,$0005(a3)
 	bra.w abs_0_00017F02
 abs_0_00018162:
-	dc.b "...INCORRECT OBJECT...",$00	; string
+	dc.b "...INCORRECT OBJECT...",$00
 	dc.b $00
 abs_0_0001817A:
 	lea.l abs_0_0001335A.l,a5
@@ -6287,11 +6287,11 @@ abs_0_000185C6:
 	dc.b $0D,$0D,$0D,$0D,$0E,$0E,$0E,$0E,$0E,$0E,$0F,$0F,$0F,$0F,$0F,$0F
 	dc.b $10,$10,$10,$10,$10,$10,$11,$11,$11,$11,$11,$11
 abs_0_00018632:
-	dc.b "DIRE",$00	; string
-	dc.b "POOR",$00	; string
-	dc.b "FAIR",$00	; string
-	dc.b "GOOD",$00	; string
-	dc.b "DEAD",$00	; string
+	dc.b "DIRE",$00
+	dc.b "POOR",$00
+	dc.b "FAIR",$00
+	dc.b "GOOD",$00
+	dc.b "DEAD",$00
 	dc.b $00
 abs_0_0001864C:
 	clr.w d0
@@ -6593,25 +6593,25 @@ abs_0_00018A16:
 	dc.b $00,$01,$8D,$E0,$00,$01,$8E,$2C,$00,$01,$8E,$7E,$00,$01,$8E,$BC
 	dc.b $00,$01,$8F,$0C,$00,$01,$8F,$26,$00,$01,$8F,$52,$00,$01,$8F,$A8
 	dc.b $00,$00,$00,$00
-	dc.b "CLEARANCE:",$00	; string
-	dc.b "CARD NAME:",$00	; string
-	dc.b "ENTRY:",$00	; string
-	dc.b "None ",$00	; string
-	dc.b "Alpha",$00	; string
-	dc.b "Delta",$00	; string
-	dc.b "Pi   ",$00	; string
-	dc.b "Omega",$00	; string
+	dc.b "CLEARANCE:",$00
+	dc.b "CARD NAME:",$00
+	dc.b "ENTRY:",$00
+	dc.b "None ",$00
+	dc.b "Alpha",$00
+	dc.b "Delta",$00
+	dc.b "Pi   ",$00
+	dc.b "Omega",$00
 	dcb.b $20,$20
 	dc.b $00
-	dc.b "Terminal mode",$00	; string
-	dc.b "ACCESS DENIED...",$00	; string
-	dc.b "ID REQUIRED",$00	; string
+	dc.b "Terminal mode",$00
+	dc.b "ACCESS DENIED...",$00
+	dc.b "ID REQUIRED",$00
 	dc.b $00,$00,$F0,$00,$D0,$63,$6F,$6D,$70,$75,$74,$65,$72,$20,$70,$6C
 	dc.b $61,$6E,$73,$20,$74,$6F,$20,$64,$72,$6F,$70,$0D,$67,$65,$6E,$65
 	dc.b $74,$69,$63,$20,$70,$6F,$64,$73,$20,$68,$6F,$6C,$64,$69,$6E,$67
 	dc.b $0D,$69,$6E,$76,$61,$73,$69,$6F,$6E,$20,$66,$6F,$72,$63,$65,$2E
 	dc.b $20,$6D,$75,$73,$74,$0D
-	dc.b "warn earth.",$00	; string
+	dc.b "warn earth.",$00
 	dc.b $00,$01,$B0,$00,$D0,$73,$6F,$6D,$65,$6F,$6E,$65,$20,$73,$68,$6F
 	dc.b $75,$6C,$64,$20,$63,$6F,$6E,$74,$72,$6F,$6C,$0D,$74,$68,$61,$74
 	dc.b $20,$72,$69,$64,$69,$63,$75,$6C,$6F,$75,$73,$20,$6F,$72,$61,$6E
@@ -6620,38 +6620,38 @@ abs_0_00018A16:
 	dc.b $72,$61,$75,$64,$20,$61,$6C,$6C,$20,$63,$75,$73,$74,$6F,$6D,$65
 	dc.b $72,$73,$0D,$77,$69,$74,$68,$20,$69,$6C,$6C,$65,$67,$61,$6C,$6C
 	dc.b $79,$20,$68,$69,$67,$68,$0D
-	dc.b "interest rates.",$00	; string
+	dc.b "interest rates.",$00
 	dc.b $02,$D0,$01,$C0,$6D,$6F,$72,$65,$20,$74,$61,$73,$74,$79,$20,$70
 	dc.b $72,$6F,$64,$75,$63,$74,$20,$62,$79,$0D,$50,$2E,$53,$2E,$49,$2E
 	dc.b $20,$69,$6E,$20,$74,$68,$65,$20,$6E,$6F,$74,$20,$74,$6F,$6F,$0D
 	dc.b $64,$69,$73,$74,$61,$6E,$74,$20,$66,$75,$74,$75,$72,$65,$2C,$20
 	dc.b $6C,$6F,$6F,$6B,$0D
-	dc.b "out for it.",$00	; string
+	dc.b "out for it.",$00
 	dc.b $00,$03,$90,$02,$10,$6D,$75,$74,$61,$6E,$74,$20,$69,$63,$65,$20
 	dc.b $63,$72,$65,$61,$74,$75,$72,$65,$0D,$73,$65,$65,$6D,$73,$20,$74
 	dc.b $6F,$20,$62,$65,$20,$73,$65,$6E,$73,$69,$74,$69,$76,$65,$0D
-	dc.b "to sound waves.",$00	; string
+	dc.b "to sound waves.",$00
 	dc.b $04,$50,$01,$C0,$50,$61,$6E,$64,$6F,$72,$61,$20,$73,$68,$69,$70
 	dc.b $20,$72,$61,$6E,$6B,$69,$6E,$67,$3A,$0D,$31,$2E,$20,$43,$61,$70
 	dc.b $74,$61,$69,$6E,$0D,$32,$2E,$20,$43,$6F,$6D,$6D,$61,$6E,$64,$65
 	dc.b $72,$0D,$33,$2E,$20,$4C,$74,$2E,$20,$43,$6F,$6D,$6D,$61,$6E,$64
 	dc.b $65,$72,$0D
-	dc.b "4. Engineer",$00	; string
+	dc.b "4. Engineer",$00
 	dc.b $00,$05,$10,$01,$F0
-	dc.b "Ah, a margins stain.",$00	; string
+	dc.b "Ah, a margins stain.",$00
 	dc.b $00,$02,$A0,$02,$E0,$4D,$79,$20,$73,$6F,$6E,$69,$63,$64,$72,$69
 	dc.b $76,$65,$72,$20,$73,$75,$72,$65,$20,$69,$73,$0D
-	dc.b "a flexible tool.",$00	; string
+	dc.b "a flexible tool.",$00
 	dc.b $02,$A0,$03,$D0,$43,$61,$70,$74,$61,$69,$6E,$27,$73,$20,$6C,$6F
 	dc.b $67,$3A,$0D,$49,$20,$62,$65,$6C,$69,$65,$76,$65,$20,$49,$20,$68
 	dc.b $61,$76,$65,$20,$6C,$6F,$73,$74,$0D,$63,$6F,$6E,$74,$72,$6F,$6C
 	dc.b $20,$6F,$66,$20,$74,$68,$69,$73,$20,$73,$68,$69,$70,$2E,$0D
-	dc.b "must destroy pandora..",$00	; string
+	dc.b "must destroy pandora..",$00
 	dc.b $03,$C0,$07,$00,$49,$20,$68,$61,$76,$65,$20,$64,$69,$73,$63,$6F
 	dc.b $76,$65,$72,$65,$64,$20,$74,$68,$61,$74,$0D,$49,$20,$61,$6C,$6F
 	dc.b $6E,$65,$20,$68,$61,$76,$65,$20,$74,$68,$65,$20,$6D,$65,$61,$6E
 	dc.b $73,$0D
-	dc.b "to escape from Pandora",$00	; string
+	dc.b "to escape from Pandora",$00
 	dc.b $00,$61,$00,$02,$26,$61,$00,$D7,$30,$61,$00,$94,$B2,$22,$2E,$01
 	dc.b $D4,$20,$2E,$01,$D8,$2D,$40,$01,$D4,$2D,$41,$01,$D8,$2D,$40,$01
 	dc.b $DC,$61,$00,$00,$B4,$4E,$B9,$00,$01,$07,$F0,$66,$F8,$08,$AE,$00
@@ -6862,7 +6862,7 @@ abs_0_0001942E:
 abs_0_0001944A:
 	rts
 abs_0_0001944C:
-	dc.b "P.S.I. say 'nice try, but force fields are impregnable.'",$00	; string
+	dc.b "P.S.I. say 'nice try, but force fields are impregnable.'",$00
 	dc.b $00
 abs_0_00019486:
 	lea.l abs_0_000585B2.l,a0
@@ -7151,7 +7151,7 @@ abs_0_00019ABE:
 	dc.b $44,$2E,$49,$2E,$20,$44,$49,$53,$4B,$0D,$54,$4F,$20,$49,$4E,$49
 	dc.b $54,$49,$41,$54,$45,$20,$54,$48,$45,$20,$50,$41,$4E,$44,$4F,$52
 	dc.b $41,$0D
-	dc.b "SELF DESTRUCT SEQUENCE.",$00	; string
+	dc.b "SELF DESTRUCT SEQUENCE.",$00
 	dc.b $50,$41,$4E,$44,$4F,$52,$41,$20,$53,$45,$4C,$46,$20,$44,$45,$53
 	dc.b $54,$52,$55,$43,$54,$20,$50,$52,$4F,$47,$52,$41,$4D,$2E,$0D,$0D
 	dc.b $49,$4E,$53,$45,$52,$54,$20,$54,$48,$45,$20,$54,$48,$52,$45,$45
@@ -7161,11 +7161,11 @@ abs_0_00019ABE:
 	dc.b $53,$20,$54,$41,$4B,$45,$4E,$0D,$50,$4C,$45,$41,$53,$45,$20,$43
 	dc.b $4F,$4E,$54,$41,$43,$54,$20,$59,$4F,$55,$52,$20,$42,$52,$41,$4E
 	dc.b $43,$48,$0D
-	dc.b "MANAGER FOR FURTHER DETAILS.",$00	; string
+	dc.b "MANAGER FOR FURTHER DETAILS.",$00
 	dc.b $43,$4F,$52,$52,$45,$43,$54,$20,$53,$45,$51,$55,$45,$4E,$43,$45
 	dc.b $2E,$2E,$2E,$0D,$53,$45,$4C,$46,$20,$44,$45,$53,$54,$52,$55,$43
 	dc.b $54,$20,$49,$4E,$49,$54,$49,$41,$54,$45,$44,$2E,$0D,$0D
-	dc.b "HAVE A NICE DAY, CAPTAIN.",$00	; string
+	dc.b "HAVE A NICE DAY, CAPTAIN.",$00
 	dc.b $61,$00,$F6,$18,$61,$00,$CB,$22,$61,$00,$88,$A4,$22,$2E,$01,$D4
 	dc.b $20,$2E,$01,$D8,$2D,$40,$01,$D4,$2D,$41,$01,$D8,$2D,$40,$01,$DC
 	dc.b $61,$00,$01,$A0,$1D,$7C,$00,$80,$03,$1A,$4E,$B9,$00,$01,$07,$F0
@@ -7479,106 +7479,106 @@ abs_0_0001A1B4:
 	rts
 abs_0_0001A25C:
 	dc.b $00,$00,$20,$20,$20,$20,$20,$4E,$4F,$54,$48,$49,$4E,$47,$00
-	dc.b "Wrench",$00	; string
-	dc.b "Acid",$00	; string
-	dc.b "Electroboost",$00	; string
-	dc.b "Sonicdriver",$00	; string
-	dc.b "Spanner",$00	; string
-	dc.b "PHOTOSABRE",$00	; string
-	dc.b "IRIDIUM MACE",$00	; string
-	dc.b "ELECTRUNCHON",$00	; string
-	dc.b "SHOCKWHIP",$00	; string
-	dc.b "THERMOLANCE",$00	; string
-	dc.b "DEATHSTING",$00	; string
-	dc.b "KNUCKLEDUSTER",$00	; string
-	dc.b "LASER RIFLE",$00	; string
-	dc.b "PULSE CANNON",$00	; string
-	dc.b "Ostronn egg",$00	; string
-	dc.b "Vulcann vase",$00	; string
-	dc.b "Broken ORAK",$00	; string
-	dc.b "Instant PGGB",$00	; string
-	dc.b "Sandworm shell",$00	; string
-	dc.b "Wookey wig",$00	; string
-	dc.b "Prophylactic",$00	; string
-	dc.b "Sonicblaster",$00	; string
-	dc.b "Cargo chute",$00	; string
-	dc.b "Code WHITE",$00	; string
-	dc.b "Code BLUE",$00	; string
-	dc.b "Code GREY",$00	; string
-	dc.b "Code SCARLET",$00	; string
-	dc.b "Code OCHRE",$00	; string
-	dc.b "Code BLACK",$00	; string
-	dc.b "SDI disk",$00	; string
-	dc.b "Bottle of gin",$00	; string
-	dc.b "Insulin",$00	; string
-	dc.b "Hypodermic",$00	; string
-	dc.b "Insecticide",$00	; string
-	dc.b "Shakespeare",$00	; string
-	dc.b "Bible",$00	; string
-	dc.b "Light box",$00	; string
-	dc.b "Globe",$00	; string
-	dc.b "Squash ball",$00	; string
-	dc.b "ID Commander",$00	; string
-	dc.b "ID Lt Commander",$00	; string
-	dc.b "ID Engineer",$00	; string
-	dc.b "ID Scientist",$00	; string
-	dc.b "ID Medic",$00	; string
-	dc.b "ID Resource ofcr",$00	; string
-	dc.b "ID Amy",$00	; string
-	dc.b "ID AWOL ofcr",$00	; string
-	dc.b "Captain",$00	; string
-	dc.b "Commander",$00	; string
-	dc.b "Lt Commander",$00	; string
-	dc.b "Engineer",$00	; string
-	dc.b "Science ofcr",$00	; string
-	dc.b "Medic",$00	; string
-	dc.b "AWOL officer",$00	; string
-	dc.b "Rsrc officer",$00	; string
-	dc.b "Musician",$00	; string
-	dc.b "Robomechanic",$00	; string
-	dc.b "Icelord",$00	; string
-	dc.b "Sec officer",$00	; string
-	dc.b "Thief",$00	; string
-	dc.b "Chemist",$00	; string
-	dc.b "Diabetic",$00	; string
-	dc.b "Gardener",$00	; string
-	dc.b "Death Fly",$00	; string
-	dc.b "Priest",$00	; string
-	dc.b "Driffid",$00	; string
-	dc.b "Technician",$00	; string
-	dc.b "Squash player",$00	; string
-	dc.b "Doctor",$00	; string
-	dc.b "Hooligan",$00	; string
-	dc.b "Bank manager",$00	; string
-	dc.b "Cleaner robot",$00	; string
-	dc.b "Menial droid",$00	; string
-	dc.b "Entry officer",$00	; string
-	dc.b "Secdroid ALPHA 1",$00	; string
-	dc.b "Secdroid ALPHA 2",$00	; string
-	dc.b "Secdroid DELTA 1",$00	; string
-	dc.b "Secdroid DELTA 2",$00	; string
-	dc.b "Secdroid PI",$00	; string
-	dc.b "Secdroid OMEGA",$00	; string
-	dc.b "Pianist",$00	; string
-	dc.b "Flight ctrlr",$00	; string
-	dc.b "Cook",$00	; string
-	dc.b "Barman",$00	; string
-	dc.b "Defence ctrlr",$00	; string
-	dc.b "Wackobrain",$00	; string
-	dc.b "Glass",$00	; string
-	dc.b "Bent coin",$00	; string
-	dc.b "Kwik Kleen",$00	; string
-	dc.b "Gold key",$00	; string
-	dc.b "Megabio Feed",$00	; string
-	dc.b "Mobian brain",$00	; string
-	dc.b "Ice pendant",$00	; string
-	dc.b "Sugar cube",$00	; string
-	dc.b "Alien egg",$00	; string
-	dc.b "Kriptonite",$00	; string
-	dc.b "Deltan icon",$00	; string
-	dc.b "Pool 8 ball",$00	; string
-	dc.b "Araknoid eye",$00	; string
-	dc.b "Kzin 97 ball",$00	; string
+	dc.b "Wrench",$00
+	dc.b "Acid",$00
+	dc.b "Electroboost",$00
+	dc.b "Sonicdriver",$00
+	dc.b "Spanner",$00
+	dc.b "PHOTOSABRE",$00
+	dc.b "IRIDIUM MACE",$00
+	dc.b "ELECTRUNCHON",$00
+	dc.b "SHOCKWHIP",$00
+	dc.b "THERMOLANCE",$00
+	dc.b "DEATHSTING",$00
+	dc.b "KNUCKLEDUSTER",$00
+	dc.b "LASER RIFLE",$00
+	dc.b "PULSE CANNON",$00
+	dc.b "Ostronn egg",$00
+	dc.b "Vulcann vase",$00
+	dc.b "Broken ORAK",$00
+	dc.b "Instant PGGB",$00
+	dc.b "Sandworm shell",$00
+	dc.b "Wookey wig",$00
+	dc.b "Prophylactic",$00
+	dc.b "Sonicblaster",$00
+	dc.b "Cargo chute",$00
+	dc.b "Code WHITE",$00
+	dc.b "Code BLUE",$00
+	dc.b "Code GREY",$00
+	dc.b "Code SCARLET",$00
+	dc.b "Code OCHRE",$00
+	dc.b "Code BLACK",$00
+	dc.b "SDI disk",$00
+	dc.b "Bottle of gin",$00
+	dc.b "Insulin",$00
+	dc.b "Hypodermic",$00
+	dc.b "Insecticide",$00
+	dc.b "Shakespeare",$00
+	dc.b "Bible",$00
+	dc.b "Light box",$00
+	dc.b "Globe",$00
+	dc.b "Squash ball",$00
+	dc.b "ID Commander",$00
+	dc.b "ID Lt Commander",$00
+	dc.b "ID Engineer",$00
+	dc.b "ID Scientist",$00
+	dc.b "ID Medic",$00
+	dc.b "ID Resource ofcr",$00
+	dc.b "ID Amy",$00
+	dc.b "ID AWOL ofcr",$00
+	dc.b "Captain",$00
+	dc.b "Commander",$00
+	dc.b "Lt Commander",$00
+	dc.b "Engineer",$00
+	dc.b "Science ofcr",$00
+	dc.b "Medic",$00
+	dc.b "AWOL officer",$00
+	dc.b "Rsrc officer",$00
+	dc.b "Musician",$00
+	dc.b "Robomechanic",$00
+	dc.b "Icelord",$00
+	dc.b "Sec officer",$00
+	dc.b "Thief",$00
+	dc.b "Chemist",$00
+	dc.b "Diabetic",$00
+	dc.b "Gardener",$00
+	dc.b "Death Fly",$00
+	dc.b "Priest",$00
+	dc.b "Driffid",$00
+	dc.b "Technician",$00
+	dc.b "Squash player",$00
+	dc.b "Doctor",$00
+	dc.b "Hooligan",$00
+	dc.b "Bank manager",$00
+	dc.b "Cleaner robot",$00
+	dc.b "Menial droid",$00
+	dc.b "Entry officer",$00
+	dc.b "Secdroid ALPHA 1",$00
+	dc.b "Secdroid ALPHA 2",$00
+	dc.b "Secdroid DELTA 1",$00
+	dc.b "Secdroid DELTA 2",$00
+	dc.b "Secdroid PI",$00
+	dc.b "Secdroid OMEGA",$00
+	dc.b "Pianist",$00
+	dc.b "Flight ctrlr",$00
+	dc.b "Cook",$00
+	dc.b "Barman",$00
+	dc.b "Defence ctrlr",$00
+	dc.b "Wackobrain",$00
+	dc.b "Glass",$00
+	dc.b "Bent coin",$00
+	dc.b "Kwik Kleen",$00
+	dc.b "Gold key",$00
+	dc.b "Megabio Feed",$00
+	dc.b "Mobian brain",$00
+	dc.b "Ice pendant",$00
+	dc.b "Sugar cube",$00
+	dc.b "Alien egg",$00
+	dc.b "Kriptonite",$00
+	dc.b "Deltan icon",$00
+	dc.b "Pool 8 ball",$00
+	dc.b "Araknoid eye",$00
+	dc.b "Kzin 97 ball",$00
 	dc.b $41,$6D,$69,$67,$61,$20,$43,$6F,$6D,$70,$75,$74,$69,$6E,$67
 abs_0_0001A6DC:
 	dc.b $00,$01,$00,$02,$00,$0F,$00,$16,$00,$1B,$00,$28,$00,$34,$00,$3C
@@ -7597,9 +7597,9 @@ abs_0_0001A6DC:
 	dc.b $04,$06,$04,$13,$04,$1F,$04,$2A,$04,$34,$04,$3F,$04,$4B,$04,$57
 	dc.b $04,$64,$04,$71
 abs_0_0001A7C0:
-	dc.b " ITEM DEPOSITED",$00	; string
+	dc.b " ITEM DEPOSITED",$00
 abs_0_0001A7D0:
-	dc.b "PANDORA",$00	; string
+	dc.b "PANDORA",$00
 	dc.b $63,$3A,$5C,$64,$65,$76,$70,$61,$63,$5C,$68,$61,$72,$64,$61,$5C
 	dc.b $00,$00,$00,$01,$B3,$A8,$00,$03,$E1,$FA,$67,$72,$61,$70,$68,$69
 	dc.b $63,$73,$2E,$64,$61,$74,$00,$00,$00,$00,$00,$00
@@ -7640,15 +7640,15 @@ abs_0_0001A862:
 	dc.b $66,$66,$6E,$6E,$6E,$7E,$00,$00,$66,$66,$66,$3C,$3C,$18,$00,$00
 	dc.b $63,$63,$6B,$6B,$7F,$6B,$00,$00,$66,$66,$3C,$3C,$66,$66,$00,$00
 	dc.b $66,$66,$7E,$06,$06,$7E,$00,$00,$7E,$0E,$1C,$38,$7E,$7E,$00
-	dc.b "LIFE",$00	; string
-	dc.b "DIST",$00	; string
-	dc.b "CHAR",$00	; string
-	dc.b "CARRYING",$00	; string
-	dc.b "BACKPACK",$00	; string
-	dc.b "POCKETS",$00	; string
-	dc.b "9999",$00	; string
-	dc.b "BODY",$00	; string
-	dc.b "HOLDING",$00	; string
+	dc.b "LIFE",$00
+	dc.b "DIST",$00
+	dc.b "CHAR",$00
+	dc.b "CARRYING",$00
+	dc.b "BACKPACK",$00
+	dc.b "POCKETS",$00
+	dc.b "9999",$00
+	dc.b "BODY",$00
+	dc.b "HOLDING",$00
 	dc.b $48,$49,$54,$00,$45,$4E,$4D,$59,$00,$00,$06,$38,$00,$44,$00,$44
 	dc.b $00,$44,$00,$44,$00,$38,$00,$00,$00,$00,$04,$20,$00,$60,$00,$20
 	dc.b $00,$20,$00,$20,$00,$70,$00,$00,$00,$00,$06,$38,$00,$44,$00,$08
@@ -26170,42 +26170,42 @@ abs_0_0005CA80:
 abs_0_0005CABA:
 	rts
 abs_0_0005CABC:
-	dc.b "WARNING, PLEASE  DISEMBARK  IMMEDIATELY.",$00	; string
+	dc.b "WARNING, PLEASE  DISEMBARK  IMMEDIATELY.",$00
 abs_0_0005CAE5:
-	dc.b "CONGRATULATIONS:  PANDORA  IS  DESTROYED,  EARTH  IS  SAVED.",$00	; string
+	dc.b "CONGRATULATIONS:  PANDORA  IS  DESTROYED,  EARTH  IS  SAVED.",$00
 abs_0_0005CB22:
-	dc.b "PANDORA  IS  DESTROYED, BUT  EARTH"	; string
+	dc.b "PANDORA  IS  DESTROYED, BUT  EARTH"
 	dc.b $22
-	dc.b "S  FATE  IS  UNCERTAIN.",$00	; string
+	dc.b "S  FATE  IS  UNCERTAIN.",$00
 abs_0_0005CB5D:
-	dc.b "YOU  HAVE  ESCAPED, BUT  EARTH"	; string
+	dc.b "YOU  HAVE  ESCAPED, BUT  EARTH"
 	dc.b $22
-	dc.b "S  FUTURE  IS  BLEAK.",$00	; string
+	dc.b "S  FUTURE  IS  BLEAK.",$00
 abs_0_0005CB92:
-	dc.b "YOU  HAVE  FAILED  TO  SOLVE  THE  MYSTERY  OF  PANDORA.",$00	; string
+	dc.b "YOU  HAVE  FAILED  TO  SOLVE  THE  MYSTERY  OF  PANDORA.",$00
 abs_0_0005CBCB:
-	dc.b "YOUR  POSTHUMOUS  RANK  AS  MERCENARY  SHOCK  TROOPER  IS",$00	; string
+	dc.b "YOUR  POSTHUMOUS  RANK  AS  MERCENARY  SHOCK  TROOPER  IS",$00
 abs_0_0005CC05:
-	dc.b "THE  GALACTIC  SCIENCE  AND  SALVAGE  ARCANA  RATE  YOUR  FIND  AS",$00	; string
+	dc.b "THE  GALACTIC  SCIENCE  AND  SALVAGE  ARCANA  RATE  YOUR  FIND  AS",$00
 abs_0_0005CC48:
-	dc.b "THE  MERCENARY  SHOCK  TROOPERS  GUILD  HAVE  CLASSED  YOU  AS",$00	; string
+	dc.b "THE  MERCENARY  SHOCK  TROOPERS  GUILD  HAVE  CLASSED  YOU  AS",$00
 abs_0_0005CC87:
-	dc.b ". . DOG  MEAT . .",$00	; string
+	dc.b ". . DOG  MEAT . .",$00
 abs_0_0005CC99:
-	dc.b ". . KILLER . .",$00	; string
+	dc.b ". . KILLER . .",$00
 abs_0_0005CCA8:
-	dc.b ". . ASSASSIN . .",$00	; string
+	dc.b ". . ASSASSIN . .",$00
 abs_0_0005CCB9:
-	dc.b ". . RUTHLESS . .",$00	; string
+	dc.b ". . RUTHLESS . .",$00
 abs_0_0005CCCA:
-	dc.b ". . MAD  PSYCHO . .",$00	; string
+	dc.b ". . MAD  PSYCHO . .",$00
 abs_0_0005CCDE:
-	dc.b ". . SON  OF  SATAN . .",$00	; string
-	dc.b ". . QUITE  USEFUL . .",$00	; string
-	dc.b ". . EXTREMELY  USEFUL . .",$00	; string
-	dc.b ". . VERY  PROFITABLE . .",$00	; string
-	dc.b ". . HIGHLY  VALUABLE . .",$00	; string
-	dc.b ". . PRICELESS . .",$00	; string
+	dc.b ". . SON  OF  SATAN . .",$00
+	dc.b ". . QUITE  USEFUL . .",$00
+	dc.b ". . EXTREMELY  USEFUL . .",$00
+	dc.b ". . VERY  PROFITABLE . .",$00
+	dc.b ". . HIGHLY  VALUABLE . .",$00
+	dc.b ". . PRICELESS . .",$00
 	dc.b $22,$47,$69,$76,$65,$20,$6D,$65,$20,$61,$20,$64,$72,$69,$6E,$6B
 	dc.b $2C,$61,$6E,$64,$20,$49,$22,$6C,$6C,$20,$70,$6C,$61,$79,$20,$79
 	dc.b $6F,$75,$20,$61,$20,$73,$6F,$6E,$67,$22,$00,$22,$54,$68,$65,$20
@@ -26247,7 +26247,7 @@ abs_0_0005CCDE:
 	dc.b $49,$20,$6E,$65,$65,$64,$20,$61,$20,$6E,$65,$65,$64,$6C,$65,$20
 	dc.b $66,$69,$72,$73,$74,$22,$00,$22,$55,$73,$65,$20,$74,$68,$65,$20
 	dc.b $63,$61,$70,$74,$61,$69,$6E,$22
-	dc.b "s self destruct initiation disc",$00	; string
+	dc.b "s self destruct initiation disc",$00
 	dc.b $20,$61,$6E,$64,$20,$74,$68,$65,$20,$72,$69,$67,$68,$74,$20,$63
 	dc.b $6F,$64,$65,$20,$63,$61,$72,$64,$73,$20,$74,$6F,$20,$64,$65,$73
 	dc.b $74,$72,$6F,$79,$20,$50,$61,$6E,$64,$6F,$72,$61,$2E,$22,$00,$22

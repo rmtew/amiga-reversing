@@ -636,3 +636,34 @@ Round-trip result after this pass remained:
 1/36 unsupported: macos_hfs_mpw_gm__macos_file_mpw_tools_asm
 0 failures
 ```
+
+### 2026-05-28 rendered comment cleanup pass
+
+Generic `; string` comments are no longer emitted for structured string rows.
+String acceptance evidence now lives in C-owned row metadata/source patterns,
+where listing APIs and tests can inspect it without repeating low-value prose in
+human-facing assembly. Explicit item comments, field comments, and non-string
+role comments are still rendered.
+
+All 36 tracked `.s` files were re-exported through `amiga-source-export
+--output`. The only expected target-source churn is removal of redundant
+trailing string comments.
+
+Verification:
+
+```text
+cmd /c src\precommit.bat m68k_ir
+uv run python -m pytest tests\test_c_backend.py::test_real_dll_manual_data_symbol_rename_updates_rendered_seeded_entity tests\test_c_backend.py::test_real_dll_facts_v2_bootblock_metadata_recovers_entry_context_and_pc_data_label -q
+amiga-source-export --output for all tracked target .s files
+platform-rendered-source-roundtrip
+git diff --check -- . ':(exclude)TODO.md'
+```
+
+Round-trip result after this pass remained:
+
+```text
+34/36 full-file exact
+1/36 content-exact-only: amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h__amiga_hunk_menu_252a2566
+1/36 unsupported: macos_hfs_mpw_gm__macos_file_mpw_tools_asm
+0 failures
+```

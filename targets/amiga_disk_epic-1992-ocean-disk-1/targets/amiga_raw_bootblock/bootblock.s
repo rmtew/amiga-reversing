@@ -157,7 +157,7 @@ loc_0_000001A6:
 loc_0_0000020E:
 	dc.b $00,$00,$00,$00,$4E,$71,$4E,$71
 	dcb.b $6A,$00
-	dc.b "The level codes are: Auriga, Cepheus, Apus, Musca, Pyxis,Cetus, Fornax, Caelum, Corvus !",$00	; string
+	dc.b "The level codes are: Auriga, Cepheus, Apus, Musca, Pyxis,Cetus, Fornax, Caelum, Corvus !",$00
 	dcb.b $67,$00
 	dcb.b $40,$2D
 	dcb.b $1D,$20

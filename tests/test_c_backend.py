@@ -3097,7 +3097,7 @@ after_data:
             project_root=PROJECT_ROOT,
         )
 
-    assert 'renamed_text:\n\tdc.b "TEXT",$00\t; string\n' in rendered
+    assert 'renamed_text:\n\tdc.b "TEXT",$00\n' in rendered
     assert "seeded_text:" not in rendered
     assert rebuilt == original
     assert direct_profile["direct_rebuild_refused"] is False
@@ -8147,7 +8147,7 @@ def test_real_dll_facts_v2_bootblock_metadata_recovers_entry_context_and_pc_data
     assert "\tmovea.l RT_INIT(a0),a0\n" in source_text
     assert 'INCLUDE "exec/resident.i"' in source_text
     assert "loc_0_00000026:" in source_text
-    assert '\tdc.b "dos.library",$00\t; string\n' in source_text
+    assert '\tdc.b "dos.library",$00\n' in source_text
     assert "facts_v2 data bytes" not in source_text
     assert any(row["kind"] == "instruction" and "loc_0_00000026(pc)" in str(row["text"]) for row in rows)
     assert any(

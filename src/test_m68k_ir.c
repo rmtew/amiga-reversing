@@ -2571,7 +2571,7 @@ static int test_facts_v2_structured_multiline_string_renders_readable_rows(void)
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
-  M68K_C_ASSERT(strstr(source, "\tdc.b $0D,$0A,$0A\t; string\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.b $0D,$0A,$0A\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tdc.b \"Starglider was written by \",$0D,$0A\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tdc.b \"Jez San\",$00\n") != NULL);
   M68K_C_ASSERT(strstr(source, "$0D,$0A,$0A,\"Starglider was written by \"") == NULL);
@@ -2611,7 +2611,7 @@ static int test_facts_v2_multiline_string_auto_classifies_crlf_text(void) {
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
     &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
-  M68K_C_ASSERT(strstr(source, "\tdc.b $0D,$0A,$0A\t; string\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.b $0D,$0A,$0A\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tdc.b \"Starglider was written by \",$0D,$0A\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tdc.b \"Jez San and Paul Wookey\",$00\n") != NULL);
   for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
@@ -2815,7 +2815,7 @@ static int test_facts_v2_label_bounded_ascii_span_auto_classifies_string(void) {
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
     &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
-  M68K_C_ASSERT(strstr(source, "dc.b \" TETRAGON \"\t; string\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "dc.b \" TETRAGON \"\n") != NULL);
   for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
     const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
     if (item->has_section_index && item->section_index == 0U &&

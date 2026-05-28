@@ -187,7 +187,7 @@ loc_0_00000032:
 	dcb.b $40,$00
 loc_0_00000072:
 	dc.b $FF,$FF,$FF,$00,$00,$01
-	dc.b "$VER: MonAm 3.02 (31.1.92)",$00	; string
+	dc.b "$VER: MonAm 3.02 (31.1.92)",$00
 	dc.b $00
 loc_0_00000094:
 	movem.l d0/a0,loc_0_000088EC.l
@@ -384,7 +384,7 @@ loc_0_0000031E:
 	movea.l loc_0_000088F0.l,a4
 	bra.w loc_0_0000556A
 loc_0_00000336:
-	dc.b "MEMTASK",$00	; string
+	dc.b "MEMTASK",$00
 loc_0_0000033E:
 	movem.l loc_0_000088EC.l,d0/a0
 	lea.l $0(a0,d0.l),a1
@@ -528,7 +528,7 @@ loc_0_000004CA:
 	dcb.b $1D,$00
 	dc.b $0F
 loc_0_000004FA:
-	dc.b "MonAm version 3.02  Copyright "	; string
+	dc.b "MonAm version 3.02  Copyright "
 	dc.b $A9,$20,$31,$39,$39,$32,$20,$48,$69,$53,$6F,$66,$74,$00
 loc_0_00000526:
 	rts
@@ -1778,7 +1778,7 @@ loc_0_00001C40:
 	ror.l #2,d1
 	rts
 loc_0_00001C5C:
-	dc.b "tst chg clr set "	; string
+	dc.b "tst chg clr set "
 loc_0_00001C6C:
 	andi.b #7,d1
 loc_0_00001C70:
@@ -2509,7 +2509,7 @@ loc_0_00002446:
 	move.b d1,(a4)+
 	rts
 loc_0_0000244A:
-	dc.b "aslsroro"	; string
+	dc.b "aslsroro"
 loc_0_00002452:
 	move.w d7,d1
 	bra.w loc_0_00001B80
@@ -2896,22 +2896,22 @@ loc_0_00002848:
 	dcb.b $A,$00
 	dc.b $3F,$3F,$00,$73,$69,$6E,$63,$6F,$73,$00,$6D,$6F,$76,$65,$00,$69
 	dc.b $6E,$74,$00
-	dc.b "sinh",$00	; string
-	dc.b "intrz",$00	; string
-	dc.b "sqrt",$00	; string
-	dc.b "lognp1",$00	; string
-	dc.b "etoxm1",$00	; string
-	dc.b "tanh",$00	; string
-	dc.b "atan",$00	; string
-	dc.b "asin",$00	; string
-	dc.b "atanh",$00	; string
+	dc.b "sinh",$00
+	dc.b "intrz",$00
+	dc.b "sqrt",$00
+	dc.b "lognp1",$00
+	dc.b "etoxm1",$00
+	dc.b "tanh",$00
+	dc.b "atan",$00
+	dc.b "asin",$00
+	dc.b "atanh",$00
 	dc.b $73,$69,$6E,$00,$74,$61,$6E,$00
-	dc.b "etox",$00	; string
-	dc.b "twotox",$00	; string
-	dc.b "tentox",$00	; string
-	dc.b "logn",$00	; string
-	dc.b "log10",$00	; string
-	dc.b "log2",$00	; string
+	dc.b "etox",$00
+	dc.b "twotox",$00
+	dc.b "tentox",$00
+	dc.b "logn",$00
+	dc.b "log10",$00
+	dc.b "log2",$00
 	dc.b $61,$62,$73,$00,$63,$6F,$73,$68,$00,$6E,$65,$67,$00,$61,$63,$6F
 	dc.b $73,$00,$63,$6F,$73,$00,$67,$65,$74,$65,$78,$70,$00,$67,$65,$74
 	dc.b $6D,$61,$6E,$00,$64,$69,$76,$00,$6D,$6F,$64,$00,$61,$64,$64,$00
@@ -2936,7 +2936,7 @@ loc_0_00002848:
 	dc.b $38,$10,$18,$6B,$0C,$B0,$01,$67,$06,$4A,$18,$66,$FC,$60,$F2,$60
 	dc.b $BA,$60,$00,$0B,$B0,$18,$FC,$00,$31,$18,$FC,$00,$65,$10,$01,$04
 	dc.b $00,$00,$33,$72,$01,$E1,$61,$60,$00,$F0,$A0
-	dc.b "movecr.x #",$00	; string
+	dc.b "movecr.x #",$00
 	dc.b $00,$00,$70,$69,$00,$0B,$6C,$6F,$67,$31,$30,$28,$32,$29,$00,$0C
 	dc.b $65,$00,$0D,$6C,$6F,$67,$32,$28,$65,$29,$00,$0E,$6C,$6F,$67,$31
 	dc.b $30,$28,$65,$29,$00,$0F,$30,$00,$30,$6C,$6E,$28,$32,$29,$00,$31
@@ -2972,9 +2972,9 @@ loc_0_00002BF4:
 	dc.b $B6,$3C,$00,$04,$67,$1A,$01,$03,$67,$0A,$61,$00,$FE,$2E,$18,$FC
 	dc.b $00,$2F,$60,$04,$4A,$18,$66,$FC,$53,$00,$64,$EA,$53,$4C,$4E,$75
 	dc.b $01,$03,$66,$08,$4A,$18,$66,$FC,$53,$00,$60,$F4,$61,$00,$FE,$0C
-	dc.b "Nufpcr",$00	; string
-	dc.b "fpsr",$00	; string
-	dc.b "fpiar",$00	; string
+	dc.b "Nufpcr",$00
+	dc.b "fpsr",$00
+	dc.b "fpiar",$00
 	dc.b $18,$FC,$00,$6D,$18,$FC,$00,$6F,$18,$FC,$00,$76,$18,$FC,$00,$65
 	dc.b $26,$06,$ED,$5B,$02,$03,$00,$07,$B6,$3C,$00,$03,$65,$0A,$B6,$3C
 	dc.b $00,$04,$67,$04,$18,$FC,$00,$6D,$7A,$02,$60,$00,$EF,$70,$61,$00
@@ -4119,7 +4119,7 @@ loc_0_00004CA6:
 loc_0_00004CA8:
 	dc.b $45,$4E,$56,$3A,$44,$65,$76,$70,$61,$63,$2F
 loc_0_00004CB3:
-	dc.b "MonAm.prefs",$00	; string
+	dc.b "MonAm.prefs",$00
 	dc.b $00,$61,$00,$0D,$00,$66,$2A,$4A,$14,$67,$26,$61,$00,$1E,$A4,$66
 	dc.b $22,$B2,$3C,$00,$2C,$66,$1C,$2A,$02,$61,$00,$1E,$96,$66,$14,$B2
 	dc.b $3C,$00,$2C,$66,$0E,$2C,$02,$61,$00,$1E,$88,$66,$06,$4A,$01,$66
@@ -5439,14 +5439,14 @@ loc_0_00006548:
 loc_0_00006556:
 	dc.b $73,$73,$70,$00,$73,$66,$63,$00,$64,$66,$63,$00,$76,$62,$72,$00
 	dc.b $6D,$73,$70,$00,$69,$73,$70,$00
-	dc.b "cacr",$00	; string
-	dc.b "caar",$00	; string
-	dc.b "mmusr",$00	; string
+	dc.b "cacr",$00
+	dc.b "caar",$00
+	dc.b "mmusr",$00
 	dc.b $74,$63,$00,$74,$74,$30,$00,$74,$74,$31,$00,$63,$72,$70,$00,$73
 	dc.b $72,$70,$00
-	dc.b "fpcr",$00	; string
-	dc.b "fpsr",$00	; string
-	dc.b "fpiar",$00	; string
+	dc.b "fpcr",$00
+	dc.b "fpsr",$00
+	dc.b "fpiar",$00
 	dc.b $00
 loc_0_000065A2:
 	dc.b $00,$00,$00,$03,$00,$0A,$FF,$00
@@ -8170,141 +8170,141 @@ loc_0_000081C4:
 loc_0_000081C6:
 	dc.b $4C,$49,$42,$53,$3A
 loc_0_000081CB:
-	dc.b "monam.libfile",$00	; string
+	dc.b "monam.libfile",$00
 loc_0_000081D9:
-	dc.b "intuition.library",$00	; string
+	dc.b "intuition.library",$00
 loc_0_000081EB:
-	dc.b "dos.library",$00	; string
+	dc.b "dos.library",$00
 loc_0_000081F7:
-	dc.b "graphics.library",$00	; string
+	dc.b "graphics.library",$00
 loc_0_00008208:
-	dc.b "console.device",$00	; string
+	dc.b "console.device",$00
 loc_0_00008217:
-	dc.b "pc = ",$00	; string
-	dc.b "sr = ",$00	; string
-	dc.b "a7'= ",$00	; string
-	dc.b "Divide by zero",$00	; string
-	dc.b "CHK exception",$00	; string
-	dc.b "TRAPV exception",$00	; string
-	dc.b "Privilege violation",$00	; string
-	dc.b "Trace",$00	; string
-	dc.b "Bad interrupt",$00	; string
-	dc.b "Invalid TRAP",$00	; string
-	dc.b "Illegal exception",$00	; string
-	dc.b "Breakpoint",$00	; string
+	dc.b "pc = ",$00
+	dc.b "sr = ",$00
+	dc.b "a7'= ",$00
+	dc.b "Divide by zero",$00
+	dc.b "CHK exception",$00
+	dc.b "TRAPV exception",$00
+	dc.b "Privilege violation",$00
+	dc.b "Trace",$00
+	dc.b "Bad interrupt",$00
+	dc.b "Invalid TRAP",$00
+	dc.b "Illegal exception",$00
+	dc.b "Breakpoint",$00
 	dc.b $64,$20,$3D,$00,$61,$20,$3D,$00
-	dc.b "Searching...",$00	; string
-	dc.b "Address error",$00	; string
-	dc.b "Bus error",$00	; string
+	dc.b "Searching...",$00
+	dc.b "Address error",$00
+	dc.b "Bus error",$00
 	dc.b $20,$20,$3B,$00,$2C,$20,$00
-	dc.b "Text: ",$00	; string
-	dc.b "Data: ",$00	; string
-	dc.b "BSS : ",$00	; string
+	dc.b "Text: ",$00
+	dc.b "Data: ",$00
+	dc.b "BSS : ",$00
 	dc.b $43,$75,$72,$72,$65,$6E,$74,$20,$42,$72,$65,$61,$6B,$70,$6F,$69
 	dc.b $6E,$74,$73,$3A,$0A,$00
-	dc.b "Data start,end<,size>",$00	; string
-	dc.b "Cross-reference list",$00	; string
-	dc.b "Filename",$00	; string
-	dc.b "Checking for symbols..",$00	; string
+	dc.b "Data start,end<,size>",$00
+	dc.b "Cross-reference list",$00
+	dc.b "Filename",$00
+	dc.b "Checking for symbols..",$00
 	dc.b $43,$68,$65,$63,$6B,$69,$6E,$67,$20,$66,$6F,$72,$20,$6C,$69,$62
 	dc.b $66,$69,$6C,$65,$2E,$2E,$0A,$00,$4C,$6F,$61,$64,$69,$6E,$67,$20
 	dc.b $6C,$69,$62,$66,$69,$6C,$65,$2E,$2E,$0A,$00
-	dc.b "Task terminated",$00	; string
-	dc.b "Unknown exception",$00	; string
-	dc.b "Line A exception",$00	; string
-	dc.b "Line F exception",$00	; string
-	dc.b "Task must be running!",$00	; string
-	dc.b "Task loaded!",$00	; string
-	dc.b "No task loaded!",$00	; string
-	dc.b "Task must be suspended!",$00	; string
-	dc.b "Executing",$00	; string
-	dc.b "None",$00	; string
-	dc.b "Suspended",$00	; string
-	dc.b "Free memory Chip,Fast,All: ",$00	; string
-	dc.b "Task: ",$00	; string
-	dc.b "Hunk list:",$00	; string
-	dc.b "Memory list:",$00	; string
-	dc.b "Unordered condition",$00	; string
-	dc.b "Inexact result",$00	; string
-	dc.b "FP divide by zero",$00	; string
-	dc.b "Underflow",$00	; string
-	dc.b "Operand error",$00	; string
-	dc.b "Overflow",$00	; string
-	dc.b "Signaling NAN",$00	; string
-	dc.b "Co-processor violation",$00	; string
-	dc.b "Format error",$00	; string
-	dc.b "Bad MMU configuration",$00	; string
+	dc.b "Task terminated",$00
+	dc.b "Unknown exception",$00
+	dc.b "Line A exception",$00
+	dc.b "Line F exception",$00
+	dc.b "Task must be running!",$00
+	dc.b "Task loaded!",$00
+	dc.b "No task loaded!",$00
+	dc.b "Task must be suspended!",$00
+	dc.b "Executing",$00
+	dc.b "None",$00
+	dc.b "Suspended",$00
+	dc.b "Free memory Chip,Fast,All: ",$00
+	dc.b "Task: ",$00
+	dc.b "Hunk list:",$00
+	dc.b "Memory list:",$00
+	dc.b "Unordered condition",$00
+	dc.b "Inexact result",$00
+	dc.b "FP divide by zero",$00
+	dc.b "Underflow",$00
+	dc.b "Operand error",$00
+	dc.b "Overflow",$00
+	dc.b "Signaling NAN",$00
+	dc.b "Co-processor violation",$00
+	dc.b "Format error",$00
+	dc.b "Bad MMU configuration",$00
 loc_0_000084FE:
-	dc.b "Disassembly",$00	; string
+	dc.b "Disassembly",$00
 loc_0_0000850A:
-	dc.b "Memory",$00	; string
+	dc.b "Memory",$00
 loc_0_00008511:
-	dc.b "Registers",$00	; string
+	dc.b "Registers",$00
 loc_0_0000851B:
-	dc.b "Source (",$00	; string
+	dc.b "Source (",$00
 loc_0_00008524:
-	dc.b "  ESC to abort   ",$00	; string
-	dc.b "Window start address?",$00	; string
-	dc.b "Go to source line?",$00	; string
+	dc.b "  ESC to abort   ",$00
+	dc.b "Window start address?",$00
+	dc.b "Go to source line?",$00
 loc_0_0000855F:
 	dc.b $5B,$52,$65,$74,$75,$72,$6E,$5D,$00
 loc_0_00008568:
 	dc.b $20,$00
-	dc.b "Filename to load",$00	; string
-	dc.b "Source file to load",$00	; string
+	dc.b "Filename to load",$00
+	dc.b "Source file to load",$00
 loc_0_0000858F:
-	dc.b "Executable file to load",$00	; string
+	dc.b "Executable file to load",$00
 loc_0_000085A7:
-	dc.b "Command line",$00	; string
-	dc.b "Register=value",$00	; string
-	dc.b "Cannot run",$00	; string
+	dc.b "Command line",$00
+	dc.b "Register=value",$00
+	dc.b "Cannot run",$00
 loc_0_000085CE:
-	dc.b "In ROM!",$00	; string
+	dc.b "In ROM!",$00
 loc_0_000085D6:
-	dc.b "It's odd!",$00	; string
+	dc.b "It's odd!",$00
 loc_0_000085E0:
-	dc.b "Cannot write!",$00	; string
+	dc.b "Cannot write!",$00
 loc_0_000085EE:
-	dc.b "Too many breakpoints!",$00	; string
-	dc.b "Run until address[,param n=*?-]",$00	; string
-	dc.b "Kill all breakpoints",$00	; string
+	dc.b "Too many breakpoints!",$00
+	dc.b "Run until address[,param n=*?-]",$00
+	dc.b "Kill all breakpoints",$00
 	dc.b $20,$59,$2F,$4E,$3F,$00
-	dc.b "Breakpoint address[,param n=*?-]",$00	; string
-	dc.b "History",$00	; string
-	dc.b "Search for B/W/L/T/I? ",$00	; string
-	dc.b "No printer device selected",$00	; string
-	dc.b "Expression to lock",$00	; string
-	dc.b "Enter expression",$00	; string
-	dc.b "Symbols",$00	; string
-	dc.b "PREFERENCES",$00	; string
-	dc.b "Show relative offset symbols Y/N? ",$00	; string
-	dc.b "Case insensitive symbols Y/N? ",$00	; string
-	dc.b "Ignore case Y/N? ",$00	; string
-	dc.b "Symbol significance",$00	; string
-	dc.b "Copy start,end,to",$00	; string
-	dc.b "Fill start,end,with",$00	; string
-	dc.b "Set current drive/directory",$00	; string
-	dc.b "Save binary, filename",$00	; string
-	dc.b "start address,end",$00	; string
-	dc.b "Run: Go,Instruction ",$00	; string
-	dc.b "Help",$00	; string
-	dc.b "Disassemble start,end",$00	; string
-	dc.b "Save preferences Y/N? ",$00	; string
+	dc.b "Breakpoint address[,param n=*?-]",$00
+	dc.b "History",$00
+	dc.b "Search for B/W/L/T/I? ",$00
+	dc.b "No printer device selected",$00
+	dc.b "Expression to lock",$00
+	dc.b "Enter expression",$00
+	dc.b "Symbols",$00
+	dc.b "PREFERENCES",$00
+	dc.b "Show relative offset symbols Y/N? ",$00
+	dc.b "Case insensitive symbols Y/N? ",$00
+	dc.b "Ignore case Y/N? ",$00
+	dc.b "Symbol significance",$00
+	dc.b "Copy start,end,to",$00
+	dc.b "Fill start,end,with",$00
+	dc.b "Set current drive/directory",$00
+	dc.b "Save binary, filename",$00
+	dc.b "start address,end",$00
+	dc.b "Run: Go,Instruction ",$00
+	dc.b "Help",$00
+	dc.b "Disassemble start,end",$00
+	dc.b "Save preferences Y/N? ",$00
 loc_0_000087EB:
-	dc.b "AmigaDOS error "	; string
+	dc.b "AmigaDOS error "
 loc_0_000087FA:
-	dc.b "12345",$00	; string
-	dc.b "Quit with task running",$00	; string
-	dc.b "Printer device name",$00	; string
-	dc.b "Press any key",$00	; string
-	dc.b "Stop task",$00	; string
-	dc.b "Kill task",$00	; string
-	dc.b "Unload symbols",$00	; string
-	dc.b "Interlace Y/N? ",$00	; string
-	dc.b "Source window line numbers D/H/N? ",$00	; string
-	dc.b "Auto-load source file Y/N? ",$00	; string
-	dc.b "Automatic '_' or '@' prefix Y/N? ",$00	; string
-	dc.b "Show ZAn in disassembly Y/N? ",$00	; string
+	dc.b "12345",$00
+	dc.b "Quit with task running",$00
+	dc.b "Printer device name",$00
+	dc.b "Press any key",$00
+	dc.b "Stop task",$00
+	dc.b "Kill task",$00
+	dc.b "Unload symbols",$00
+	dc.b "Interlace Y/N? ",$00
+	dc.b "Source window line numbers D/H/N? ",$00
+	dc.b "Auto-load source file Y/N? ",$00
+	dc.b "Automatic '_' or '@' prefix Y/N? ",$00
+	dc.b "Show ZAn in disassembly Y/N? ",$00
 	dc.b $00
 loc_0_000088EC:
 	dc.b $00,$00,$00,$00

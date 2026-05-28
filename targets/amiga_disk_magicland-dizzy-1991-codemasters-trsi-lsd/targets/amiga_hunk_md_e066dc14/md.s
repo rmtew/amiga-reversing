@@ -8111,31 +8111,31 @@ abs_0_000621D0:
 abs_0_000621EE:
 	rts
 abs_0_000621F0:
-	dc.b "BLKS",$00	; string
+	dc.b "BLKS",$00
 abs_0_000621F5:
-	dc.b "GPAL",$00	; string
+	dc.b "GPAL",$00
 abs_0_000621FA:
-	dc.b "TUNE00",$00	; string
+	dc.b "TUNE00",$00
 abs_0_00062201:
 	dc.b $4D,$41,$50,$00
 abs_0_00062205:
-	dc.b "SPRITES1.RAW",$00	; string
+	dc.b "SPRITES1.RAW",$00
 abs_0_00062212:
-	dc.b "SPRITES2.RAW",$00	; string
+	dc.b "SPRITES2.RAW",$00
 abs_0_0006221F:
-	dc.b "SPRITES3.RAW",$00	; string
+	dc.b "SPRITES3.RAW",$00
 abs_0_0006222C:
-	dc.b "PANEL.RAW",$00	; string
+	dc.b "PANEL.RAW",$00
 abs_0_00062236:
-	dc.b "FONT",$00	; string
+	dc.b "FONT",$00
 abs_0_0006223B:
-	dc.b "HEIGHT.DATA",$00	; string
+	dc.b "HEIGHT.DATA",$00
 abs_0_00062247:
-	dc.b "PANELBITS.RAW",$00	; string
+	dc.b "PANELBITS.RAW",$00
 abs_0_00062255:
-	dc.b "HEART.RAW",$00	; string
+	dc.b "HEART.RAW",$00
 abs_0_0006225F:
-	dc.b "PIC.HAM",$00	; string
+	dc.b "PIC.HAM",$00
 abs_0_00062267:
 	dc.b $31,$00,$32,$00,$33,$00,$34,$00,$35,$00,$36,$00,$38,$00,$39,$00
 	dc.b $41,$00,$30,$00,$43,$00
@@ -8313,13 +8313,13 @@ abs_0_0006278E:
 	dc.b $53,$4B,$59
 	dcb.b $A,$20
 abs_0_00062B0F:
-	dc.b "  THE DORMANT VOLCANO  "	; string
+	dc.b "  THE DORMANT VOLCANO  "
 abs_0_00062B26:
-	dc.b "  THE ACTIVE VOLCANO!  ",$00	; string
+	dc.b "  THE ACTIVE VOLCANO!  ",$00
 abs_0_00062B3E:
 	dc.b $00,$00,$00,$00,$00,$06,$00,$03,$00,$1C,$00,$0A,$00,$0C,$13,$B0
 abs_0_00062B4E:
-	dc.b "      NOTHING!      ",$00	; string
+	dc.b "      NOTHING!      ",$00
 	dc.b $00,$00,$0C,$20,$D0,$20,$20,$20,$20,$20,$20,$4E,$4F,$54,$48,$49
 	dc.b $4E,$47,$21,$20,$20,$20,$20,$20,$20,$00,$00,$00,$0C,$2D,$F0,$20
 	dc.b $20,$20,$20,$20,$20,$4E,$4F,$54,$48,$49,$4E,$47,$21,$20,$20,$20
@@ -8328,58 +8328,58 @@ abs_0_00062B4E:
 	dc.b $20,$20,$20,$20,$20,$FF,$00
 abs_0_00062BBA:
 	dc.b $00,$00,$00,$00,$00,$0C,$00,$11,$00,$10,$00,$02,$00,$0D
-	dc.b "Y@CHOOSE ITEM TO",$00	; string
+	dc.b "Y@CHOOSE ITEM TO",$00
 	dc.b $00,$00,$0D,$5F,$28
-	dc.b "SELECT OR DROP",$FF	; string
+	dc.b "SELECT OR DROP",$FF
 	dc.b $00
 abs_0_00062BEE:
 	dc.b $00,$00,$00,$00,$00,$0D,$00,$04,$00,$0E,$00,$05,$00,$0F,$17,$A0
-	dc.b "WELL DONE!",$00	; string
+	dc.b "WELL DONE!",$00
 	dc.b $00,$00,$0D,$22,$20
-	dc.b "YOU'VE FOUND A",$00	; string
+	dc.b "YOU'VE FOUND A",$00
 	dc.b $00,$00,$10,$27,$60
-	dc.b "DIAMOND!",$FF	; string
+	dc.b "DIAMOND!",$FF
 	dc.b $00
 abs_0_00062C2C:
 	dc.b $00,$06,$2C,$7E,$00,$04,$00,$04,$00,$14,$00,$05,$00,$06,$17,$A0
-	dc.b "THE BUSH SPEAKS!",$00	; string
+	dc.b "THE BUSH SPEAKS!",$00
 	dc.b $00,$00,$04,$22,$20,$27
-	dc.b "HEY DIZZY! THIS IS",$00	; string
+	dc.b "HEY DIZZY! THIS IS",$00
 	dc.b $00,$04,$27,$60
-	dc.b "REALLY HEAVY MAN!!'",$FF	; string
+	dc.b "REALLY HEAVY MAN!!'",$FF
 	dc.b $00,$06,$2C,$A4,$00,$06,$00,$09,$00,$14,$00,$01,$00,$06,$2F,$40
 	dc.b $27,$44,$59,$4C,$41,$4E,$20,$49,$53,$20,$54,$48,$41,$54,$20,$59
 	dc.b $4F,$55,$3F,$27,$FF,$00,$00,$06,$2C,$FC,$00,$0A,$00,$07,$00,$14
 	dc.b $00,$04,$00,$0A,$27,$60,$27,$5A,$41,$4B,$53,$20,$54,$55,$52,$4E
 	dc.b $45,$44,$20,$4D,$45,$20,$49,$4E,$54,$4F,$00,$00,$00,$0A,$2C,$A0
-	dc.b "A BUSH AND I'M LIKE",$00	; string
+	dc.b "A BUSH AND I'M LIKE",$00
 	dc.b $00,$0A,$31,$E0
-	dc.b "ROOTED TO THE SPOT!'",$FF	; string
+	dc.b "ROOTED TO THE SPOT!'",$FF
 	dc.b $00,$00,$00,$00,$00,$00,$09,$00,$0A,$00,$14,$00,$04,$00,$0B
-	dc.b "7 'I'M REALLY INTO",$00	; string
+	dc.b "7 'I'M REALLY INTO",$00
 	dc.b $00,$00,$09,$3C,$60
-	dc.b "NATURE MAN, BUT THIS",$00	; string
+	dc.b "NATURE MAN, BUT THIS",$00
 	dc.b $00,$00,$0C,$41,$A0
-	dc.b "IS TOO MUCH!'",$FF	; string
+	dc.b "IS TOO MUCH!'",$FF
 abs_0_00062D4A:
 	dc.b $00,$06,$2D,$A4,$00,$03,$00,$02,$00,$18,$00,$05,$00,$04,$0D,$20
 	dc.b $27,$54,$48,$45,$20,$57,$49,$5A,$41,$52,$44,$20,$5A,$41,$4B,$53
 	dc.b $20,$54,$55,$52,$4E,$53,$00,$00,$00,$06,$12,$60,$41,$4C,$4C,$20
 	dc.b $47,$4F,$4F,$44,$20,$54,$4F,$20,$45,$56,$49,$4C,$21,$27,$00,$00
 	dc.b $00,$04,$1C,$E0
-	dc.b "SAYS PRINCE CHARMING.",$FF	; string
+	dc.b "SAYS PRINCE CHARMING.",$FF
 	dc.b $00,$00,$00,$00,$00,$05,$00,$04,$00,$18,$00,$07,$00,$06,$17,$A0
 	dc.b $27,$48,$45,$20,$57,$41,$53,$20,$44,$45,$46,$45,$41,$54,$45,$44
 	dc.b $20,$59,$45,$41,$52,$53,$00,$00,$00,$05,$1C,$E0
-	dc.b "AGO BY A BRAVE HERO, YET",$00	; string
+	dc.b "AGO BY A BRAVE HERO, YET",$00
 	dc.b $00,$00,$07,$22,$20
-	dc.b "HE HAS RETURNED MORE",$00	; string
+	dc.b "HE HAS RETURNED MORE",$00
 	dc.b $00,$00,$08,$27,$60
-	dc.b "POWERFUL THAN EVER",$00	; string
+	dc.b "POWERFUL THAN EVER",$00
 	dc.b $00,$00,$05,$2C,$A0
-	dc.b "BEFORE. THIS WILL BE THE",$00	; string
+	dc.b "BEFORE. THIS WILL BE THE",$00
 	dc.b $00,$00,$09,$31,$E0
-	dc.b "FINAL CONFLICT!'",$FF	; string
+	dc.b "FINAL CONFLICT!'",$FF
 	dc.b $00
 abs_0_00062E50:
 	dc.b $00,$06,$2E,$8A,$00,$0A,$00,$02,$00,$12,$00,$03,$00,$0A,$0D,$20
@@ -8387,11 +8387,11 @@ abs_0_00062E50:
 	dc.b $55,$50,$00,$00,$00,$0B,$12,$60,$59,$4F,$55,$20,$53,$4C,$45,$45
 	dc.b $50,$59,$48,$45,$41,$44,$21,$27,$FF,$00,$00,$06,$2E,$E0,$00,$0C
 	dc.b $00,$04,$00,$16,$00,$04,$00,$10,$17,$A0
-	dc.b "...BUT DOZY IS",$00	; string
+	dc.b "...BUT DOZY IS",$00
 	dc.b $00,$00,$0D,$1C,$E0
-	dc.b "ABSOLUTELY OUT COLD,",$00	; string
+	dc.b "ABSOLUTELY OUT COLD,",$00
 	dc.b $00,$00,$0C,$22,$20
-	dc.b "EVEN BY HIS STANDARDS!",$FF	; string
+	dc.b "EVEN BY HIS STANDARDS!",$FF
 	dc.b $00,$00,$00,$00,$00,$00,$08,$00,$06,$00,$16,$00,$03,$00,$0B,$22
 	dc.b $20,$49,$54,$27,$4C,$4C,$20,$54,$41,$4B,$45,$20,$41,$20,$42,$49
 	dc.b $47,$00,$00,$00,$08,$27,$60,$53,$48,$4F,$43,$4B,$20,$54,$4F,$20
@@ -8400,11 +8400,11 @@ abs_0_00062F1E:
 	dc.b $00,$00,$00,$00,$00,$03,$00,$03,$00,$16,$00,$06,$00,$03,$12,$60
 	dc.b $2D,$20,$54,$48,$45,$20,$43,$41,$52,$56,$49,$4E,$47,$20,$52,$45
 	dc.b $41,$44,$53,$20,$2D,$00,$00,$06,$1C,$E0
-	dc.b "WHOSOEVER PULLS",$00	; string
+	dc.b "WHOSOEVER PULLS",$00
 	dc.b $00,$05,$22,$20
-	dc.b "EXCALIBUR FROM THE",$00	; string
+	dc.b "EXCALIBUR FROM THE",$00
 	dc.b $00,$00,$04,$27,$60
-	dc.b "STONE SHALL BE KING.",$FF	; string
+	dc.b "STONE SHALL BE KING.",$FF
 	dc.b $00
 abs_0_00062F8A:
 	dc.b $00,$00,$00,$00,$00,$06,$00,$06,$00,$1C,$00,$05,$00,$09,$22,$20
@@ -8412,7 +8412,7 @@ abs_0_00062F8A:
 	dc.b $54,$52,$4F,$4C,$4C,$2C,$00,$00,$00,$08,$2C,$A0,$27,$59,$4F,$55
 	dc.b $20,$43,$41,$4E,$27,$54,$20,$43,$52,$4F,$53,$53,$20,$57,$49,$54
 	dc.b $48,$4F,$55,$54,$00,$00,$00,$08,$31,$E0
-	dc.b "GIVING ME 30 DIAMONDS!!'",$FF	; string
+	dc.b "GIVING ME 30 DIAMONDS!!'",$FF
 	dc.b $00
 abs_0_00062FEE:
 	dc.b $00,$00,$00,$00,$00,$06,$00,$06,$00,$1C,$00,$02,$00,$09,$22,$20
@@ -8423,7 +8423,7 @@ abs_0_00063016:
 	dc.b $54,$48,$45,$20,$42,$41,$52,$44,$20,$49,$47,$4E,$4F,$52,$45,$53
 	dc.b $00,$00,$00,$08,$27,$60,$59,$4F,$55,$2C,$20,$48,$45,$27,$53,$20
 	dc.b $54,$4F,$4F,$20,$42,$55,$53,$59,$00,$00,$00,$08,$2C,$A0
-	dc.b "PLAYING HIS PIPES!",$FF	; string
+	dc.b "PLAYING HIS PIPES!",$FF
 	dc.b $00
 abs_0_00063068:
 	dc.b $00,$06,$30,$9A,$00,$06,$00,$06,$00,$12,$00,$03,$00,$09,$22,$20
@@ -8432,33 +8432,33 @@ abs_0_00063068:
 	dc.b $FF,$00,$00,$00,$00,$00,$00,$07,$00,$08,$00,$16,$00,$04,$00,$08
 	dc.b $2C,$A0,$27,$57,$4F,$57,$21,$20,$52,$4F,$43,$4B,$20,$41,$4E,$44
 	dc.b $20,$52,$4F,$4C,$4C,$21,$00,$00,$00,$0A,$31,$E0
-	dc.b "EUREKA! I SHAN'T",$00	; string
+	dc.b "EUREKA! I SHAN'T",$00
 	dc.b $00,$00,$08
-	dc.b "7 NEED THIS ANYMORE!!'",$FF	; string
+	dc.b "7 NEED THIS ANYMORE!!'",$FF
 	dc.b $00
 abs_0_000630F0:
 	dc.b $00,$06,$31,$76,$00,$06,$00,$06,$00,$1A,$00,$07,$00,$0C,$22,$20
 	dc.b $54,$48,$45,$20,$44,$45,$56,$49,$4C,$20,$53,$41,$59,$53,$00,$00
 	dc.b $00,$08,$2C,$A0,$27,$5A,$41,$4B,$53,$20,$4D,$41,$44,$45,$20,$41
 	dc.b $20,$44,$45,$41,$4C,$20,$57,$49,$54,$48,$00,$00,$00,$08,$31,$E0
-	dc.b "ME,I PUT HIS SOUL INTO",$00	; string
+	dc.b "ME,I PUT HIS SOUL INTO",$00
 	dc.b $00,$00,$0A
-	dc.b "7 A RING SO HE COULD",$00	; string
+	dc.b "7 A RING SO HE COULD",$00
 	dc.b $00,$00,$0B,$3C,$60
-	dc.b "NEVER BE KILLED'",$FF	; string
+	dc.b "NEVER BE KILLED'",$FF
 	dc.b $00,$00,$06,$31,$DA,$00,$04,$00,$08,$00,$1A,$00,$05,$00,$07,$2C
 	dc.b $A0,$27,$48,$45,$20,$42,$45,$54,$52,$41,$59,$45,$44,$20,$4D,$45
 	dc.b $20,$41,$4E,$44,$00,$00,$06,$31,$E0
-	dc.b "IMPRISONED ME HERE SO",$00	; string
+	dc.b "IMPRISONED ME HERE SO",$00
 	dc.b $00,$06
-	dc.b "7 NO-ONE WOULD KNOW HIS",$00	; string
+	dc.b "7 NO-ONE WOULD KNOW HIS",$00
 	dc.b $00,$0D,$3C,$60,$53,$45,$43,$52,$45,$54,$27,$FF,$00,$00,$00,$00
 	dc.b $00,$08,$00,$0A,$00,$18,$00,$04,$00,$0A
-	dc.b "7 'TAKE MY TRIDENT AND",$00	; string
+	dc.b "7 'TAKE MY TRIDENT AND",$00
 	dc.b $00,$00,$0A,$3C,$60
-	dc.b "KILL ZAKS THEN BRING",$00	; string
+	dc.b "KILL ZAKS THEN BRING",$00
 	dc.b $00,$00,$0D,$41,$A0
-	dc.b "ME THE RING!!'",$FF	; string
+	dc.b "ME THE RING!!'",$FF
 	dc.b $00
 abs_0_0006322E:
 	dc.b $00,$00,$00,$00,$00,$06,$00,$06,$00,$1A,$00,$02,$00,$07,$22,$20
@@ -8473,42 +8473,42 @@ abs_0_0006328A:
 	dc.b $00,$00,$00,$00,$00,$07,$00,$08,$00,$16,$00,$05,$00,$07,$2C,$A0
 	dc.b $27,$4F,$48,$21,$20,$49,$27,$4D,$20,$57,$4F,$52,$52,$49,$45,$44
 	dc.b $20,$53,$49,$43,$4B,$00,$00,$09,$31,$E0
-	dc.b "ABOUT MY GOBOLINO",$00	; string
+	dc.b "ABOUT MY GOBOLINO",$00
 	dc.b $00,$07
-	dc.b "7 PLEASE FIND HIM FOR ME",$00	; string
+	dc.b "7 PLEASE FIND HIM FOR ME",$00
 	dc.b $00,$00,$07,$3C,$60
-	dc.b "IVE LOOKED EVERYWHERE'",$FF	; string
+	dc.b "IVE LOOKED EVERYWHERE'",$FF
 	dc.b $00
 abs_0_000632FE:
 	dc.b $00,$06,$33,$4E,$00,$06,$00,$06,$00,$12,$00,$04,$00,$07,$22,$20
 	dc.b $27,$4F,$48,$20,$54,$48,$41,$4E,$4B,$20,$59,$4F,$55,$20,$53,$4F
 	dc.b $00,$00,$00,$07,$27,$60,$4D,$55,$43,$48,$20,$48,$4F,$57,$20,$53
 	dc.b $48,$41,$4C,$4C,$20,$49,$00,$00,$00,$06,$2C,$A0
-	dc.b "RETURN THE FAVOUR?",$FF	; string
+	dc.b "RETURN THE FAVOUR?",$FF
 	dc.b $00,$00,$06,$33,$A0,$00,$08,$00,$08,$00,$14,$00,$04,$00,$09,$2C
 	dc.b $A0
-	dc.b "YOU TELL THE WITCH",$00	; string
+	dc.b "YOU TELL THE WITCH",$00
 	dc.b $00,$00,$09,$31,$E0
-	dc.b "WHAT ZAKS HAS DONE",$00	; string
+	dc.b "WHAT ZAKS HAS DONE",$00
 	dc.b $00,$00,$0A
-	dc.b "7 TO YOUR FRIENDS,",$FF	; string
+	dc.b "7 TO YOUR FRIENDS,",$FF
 	dc.b $00,$00,$06,$34,$0E,$00,$04,$00,$05,$00,$16,$00,$05,$00,$05,$1C
 	dc.b $E0,$27,$4D,$59,$20,$4D,$41,$47,$49,$43,$20,$49,$53,$20,$4E,$4F
 	dc.b $54,$48,$49,$4E,$47,$00,$00,$00,$07,$22,$20,$43,$4F,$4D,$50,$41
 	dc.b $52,$45,$44,$20,$54,$4F,$20,$5A,$41,$4B,$53,$00,$00,$00,$04,$27
 	dc.b $60,$50,$4F,$57,$45,$52,$53,$20,$42,$55,$54,$2C,$20,$49,$20,$43
 	dc.b $41,$4E,$20,$48,$45,$4C,$50,$00,$00,$00,$06,$2C,$A0
-	dc.b "YOUR BUSHY FRIEND",$FF	; string
+	dc.b "YOUR BUSHY FRIEND",$FF
 	dc.b $00,$06,$34,$26,$00,$12,$00,$0E,$00,$0A,$00,$02,$00,$14
-	dc.b "L HOW???",$FF	; string
+	dc.b "L HOW???",$FF
 	dc.b $00,$00,$00,$00,$00,$00,$03,$00,$04,$00,$1A,$00,$05,$00,$06,$17
 	dc.b $A0,$27,$49,$20,$53,$48,$41,$4C,$4C,$20,$4E,$45,$45,$44,$20,$41
 	dc.b $20,$46,$49,$52,$45,$00,$00,$00,$05,$1C,$E0
-	dc.b "TO LIGHT MY CAULDRON,A",$00	; string
+	dc.b "TO LIGHT MY CAULDRON,A",$00
 	dc.b $00,$00,$05,$22,$20
-	dc.b "LEAF FROM THE BUSH,AND",$00	; string
+	dc.b "LEAF FROM THE BUSH,AND",$00
 	dc.b $00,$00,$06,$27,$60
-	dc.b "SOMETHING POISONOUS'",$FF	; string
+	dc.b "SOMETHING POISONOUS'",$FF
 	dc.b $00
 abs_0_0006349E:
 	dc.b $00,$00,$00,$00,$00,$05,$00,$06,$00,$15,$00,$03,$00,$06,$22,$20
@@ -8519,7 +8519,7 @@ abs_0_000634D4:
 	dc.b $00,$00,$00,$00,$00,$0B,$00,$04,$00,$18,$00,$03,$00,$0C,$17,$A0
 	dc.b $27,$52,$49,$42,$42,$45,$54,$21,$20,$49,$54,$27,$53,$20,$4D,$45
 	dc.b $20,$44,$4F,$52,$41,$21,$00,$00,$00,$0C,$1C,$E0
-	dc.b "SAVE ME DIZZY, CROAK!'",$FF	; string
+	dc.b "SAVE ME DIZZY, CROAK!'",$FF
 	dc.b $00
 abs_0_00063518:
 	dc.b $00,$00,$00,$00,$00,$07,$00,$06,$00,$1A,$00,$03,$00,$08,$22,$20
@@ -8533,7 +8533,7 @@ abs_0_00063560:
 	dc.b $42,$55,$44,$47,$45,$2C,$00,$00,$00,$0C,$27,$60,$59,$4F,$55,$20
 	dc.b $4A,$55,$53,$54,$20,$43,$41,$4E,$27,$54,$20,$47,$45,$54,$20,$41
 	dc.b $00,$00,$00,$0E,$2C,$A0
-	dc.b "GOOD ENOUGH GRIP!",$FF	; string
+	dc.b "GOOD ENOUGH GRIP!",$FF
 abs_0_000635B8:
 	dc.b $00,$00,$00,$00,$00,$0A,$00,$06,$00,$10,$00,$03,$00,$0A,$22,$20
 	dc.b $59,$55,$43,$4B,$21,$20,$49,$54,$27,$53,$20,$53,$54,$55,$43,$4B
@@ -8551,15 +8551,15 @@ abs_0_0006362A:
 	dc.b $49,$5A,$5A,$59,$2C,$00,$00,$0C,$2C,$A0,$27,$49,$20,$43,$4F,$55
 	dc.b $4C,$44,$4E,$27,$54,$20,$54,$45,$4C,$4C,$20,$49,$46,$00,$00,$0E
 	dc.b $31,$E0
-	dc.b "I WAS COMING OR",$00	; string
+	dc.b "I WAS COMING OR",$00
 	dc.b $00,$0B
-	dc.b "7 GOING IN THIS PLACE!'",$FF	; string
+	dc.b "7 GOING IN THIS PLACE!'",$FF
 	dc.b $00,$00,$00,$00,$00,$07,$00,$0A,$00,$15,$00,$04,$00,$09
-	dc.b "7 'HURRY HOME SON,",$00	; string
+	dc.b "7 'HURRY HOME SON,",$00
 	dc.b $00,$00,$08,$3C,$60
-	dc.b "I'LL PUT THE KETTLE",$00	; string
+	dc.b "I'LL PUT THE KETTLE",$00
 	dc.b $00,$0C,$41,$A0
-	dc.b "ON FOR YOU!'",$FF	; string
+	dc.b "ON FOR YOU!'",$FF
 	dc.b $00
 abs_0_000636F2:
 	dc.b $00,$06,$37,$42,$00,$07,$00,$05,$00,$16,$00,$04,$00,$09,$1C,$E0
@@ -8570,102 +8570,102 @@ abs_0_000636F2:
 	dc.b $00,$00,$00,$00,$00,$0A,$00,$07,$00,$18,$00,$03,$00,$0A,$27,$60
 	dc.b $27,$48,$45,$59,$20,$4C,$4F,$4F,$4B,$20,$41,$46,$54,$45,$52,$20
 	dc.b $54,$48,$49,$53,$20,$46,$4F,$52,$00,$00,$00,$0D,$2C,$A0
-	dc.b "ME CATCH YA LATER!'",$FF	; string
+	dc.b "ME CATCH YA LATER!'",$FF
 abs_0_00063784:
 	dc.b $00,$00,$00,$00,$00,$09,$00,$08,$00,$12,$00,$05,$00,$0A,$2C,$A0
 	dc.b $27,$48,$45,$59,$20,$57,$4F,$57,$2C,$20,$49,$20,$46,$45,$45,$4C
 	dc.b $00,$00,$00,$0B,$31,$E0
-	dc.b "FREE,  GROOVY!",$00	; string
+	dc.b "FREE,  GROOVY!",$00
 	dc.b $00,$00,$0A
-	dc.b "7 THANKS. I'LL SEE",$00	; string
+	dc.b "7 THANKS. I'LL SEE",$00
 	dc.b $00,$00,$0A,$3C,$60
-	dc.b "YOU LATER MAN!'",$FF	; string
+	dc.b "YOU LATER MAN!'",$FF
 abs_0_000637E4:
 	dc.b $00,$00,$00,$00,$00,$04,$00,$05,$00,$1A,$00,$03,$00,$04,$1C,$E0
-	dc.b "YOU WIND UP THE ROPE UNTIL",$00	; string
+	dc.b "YOU WIND UP THE ROPE UNTIL",$00
 	dc.b $00,$00,$08,$22,$20
-	dc.b "THE BUCKET APPEARS",$FF	; string
+	dc.b "THE BUCKET APPEARS",$FF
 	dc.b $00
 abs_0_00063828:
 	dc.b $00,$00,$00,$00,$00,$04,$00,$04,$00,$14,$00,$02,$00,$06,$17,$A0
-	dc.b "KING TAKES QUEEN",$FF	; string
+	dc.b "KING TAKES QUEEN",$FF
 	dc.b $00
 abs_0_0006384A:
 	dc.b $00,$00,$00,$00,$00,$06,$00,$06,$00,$0F,$00,$04,$00,$06,$22,$20
 	dc.b $54,$48,$45,$52,$45,$20,$49,$53,$20,$41,$20,$4C,$4F,$55,$44,$00
 	dc.b $00,$07,$27,$60,$43,$4C,$55,$4E,$4B,$2C,$41,$4E,$44,$20,$54,$48
 	dc.b $45,$00,$00,$07,$2C,$A0
-	dc.b "LEVER STICKS.",$FF	; string
+	dc.b "LEVER STICKS.",$FF
 abs_0_0006388E:
 	dc.b $00,$00,$00,$00,$00,$03,$00,$04,$00,$1B,$00,$06,$00,$04,$17,$A0
 	dc.b $27,$48,$55,$42,$42,$4C,$45,$20,$42,$55,$42,$42,$4C,$45,$20,$41
 	dc.b $4E,$44,$20,$53,$49,$4D,$4D,$45,$52,$00,$00,$04,$1C,$E0
-	dc.b "OVER A LIGHT CAULDRON FOR",$00	; string
+	dc.b "OVER A LIGHT CAULDRON FOR",$00
 	dc.b $00,$06,$22,$20
-	dc.b "TWO MINUTES... THERE,",$00	; string
+	dc.b "TWO MINUTES... THERE,",$00
 	dc.b $00,$04,$27,$60
-	dc.b "SOAK THIS INTO THE ROOTS",$00	; string
+	dc.b "SOAK THIS INTO THE ROOTS",$00
 	dc.b $00,$00,$06,$2C,$A0
-	dc.b "TO FREE YOUR FRIEND'",$FF	; string
+	dc.b "TO FREE YOUR FRIEND'",$FF
 	dc.b $00
 abs_0_00063928:
 	dc.b $00,$06,$39,$60,$00,$04,$00,$04,$00,$14,$00,$03,$00,$05,$17,$A0
 	dc.b $27,$44,$49,$5A,$5A,$59,$20,$4D,$59,$20,$48,$45,$52,$4F,$21,$20
 	dc.b $49,$00,$00,$05,$1C,$E0
-	dc.b "KNEW YOU'D COME!'",$FF	; string
+	dc.b "KNEW YOU'D COME!'",$FF
 	dc.b $00,$06,$39,$94,$00,$06,$00,$06,$00,$10,$00,$03,$00,$06,$22,$20
 	dc.b $27,$44,$41,$49,$53,$59,$3F,$3F,$20,$59,$4F,$55,$27,$56,$45,$00
 	dc.b $00,$07,$27,$60,$50,$55,$54,$20,$4F,$4E,$20,$57,$45,$49,$47,$48
 	dc.b $54,$21,$27,$FF,$00,$06,$3A,$00,$00,$02,$00,$08,$00,$14,$00,$05
 	dc.b $00,$03,$2C,$A0,$27,$5A,$41,$4B,$53,$20,$43,$41,$53,$54,$20,$41
 	dc.b $20,$53,$50,$45,$4C,$4C,$00,$00,$00,$04,$31,$E0
-	dc.b "ON ME, LOOK WHAT",$00	; string
+	dc.b "ON ME, LOOK WHAT",$00
 	dc.b $00,$00,$02
-	dc.b "7 IT DID! I'M TOO BIG",$00	; string
+	dc.b "7 IT DID! I'M TOO BIG",$00
 	dc.b $00,$02,$3C,$60
-	dc.b "TO GET OUT OF HERE!'",$FF	; string
+	dc.b "TO GET OUT OF HERE!'",$FF
 	dc.b $00,$00,$06,$3A,$18,$00,$12,$00,$0E,$00,$06,$00,$02,$00,$12
-	dc.b "L 'WOW!'",$FF	; string
+	dc.b "L 'WOW!'",$FF
 	dc.b $00,$00,$00,$00,$00,$00,$0A,$00,$0C,$00,$14,$00,$03,$00,$0B,$41
 	dc.b $A0,$27,$50,$4C,$45,$41,$53,$45,$20,$46,$49,$4E,$44,$20,$41,$20
 	dc.b $57,$41,$59,$00,$00,$00,$0A,$46,$E0
-	dc.b "TO SHRINK ME AGAIN!'",$FF	; string
+	dc.b "TO SHRINK ME AGAIN!'",$FF
 	dc.b $00
 abs_0_00063A56:
 	dc.b $00,$06,$3A,$92,$00,$04,$00,$04,$00,$14,$00,$03,$00,$05,$17,$A0
-	dc.b "DAISY SHRINKS BACK",$00	; string
+	dc.b "DAISY SHRINKS BACK",$00
 	dc.b $00,$00,$05,$1C,$E0
-	dc.b "TO HER NORMAL SIZE",$FF	; string
+	dc.b "TO HER NORMAL SIZE",$FF
 	dc.b $00,$00,$00,$00,$00,$00,$05,$00,$06,$00,$11,$00,$03,$00,$06,$22
 	dc.b $20,$27,$47,$49,$56,$45,$20,$5A,$41,$4B,$53,$20,$4F,$4E,$45,$00
 	dc.b $00,$00,$06,$27,$60,$46,$52,$4F,$4D,$20,$4D,$45,$20,$44,$49,$5A
 	dc.b $5A,$59,$21,$27,$FF
 abs_0_00063AC6:
 	dc.b $00,$06,$3B,$10,$00,$04,$00,$04,$00,$11,$00,$04,$00,$05,$17,$A0
-	dc.b "PRINCE CHARMING",$00	; string
+	dc.b "PRINCE CHARMING",$00
 	dc.b $00,$05,$1C,$E0
-	dc.b "KISSES THE FROG",$00	; string
+	dc.b "KISSES THE FROG",$00
 	dc.b $00,$04,$22,$20
-	dc.b "AND DORA APPEARS!",$FF	; string
+	dc.b "AND DORA APPEARS!",$FF
 	dc.b $00,$00,$00,$00,$00,$06,$00,$06,$00,$16,$00,$05,$00,$06,$22,$20
 	dc.b $27,$54,$48,$41,$4E,$4B,$53,$20,$44,$49,$5A,$5A,$59,$21,$20,$4D
 	dc.b $45,$20,$41,$4E,$44,$00,$00,$06,$27,$60,$4D,$52,$20,$43,$48,$41
 	dc.b $52,$4D,$49,$4E,$47,$20,$48,$41,$56,$45,$20,$53,$4F,$4D,$45,$00
 	dc.b $00,$06,$2C,$A0
-	dc.b "BUSINESS TO ATTEND TO!",$00	; string
+	dc.b "BUSINESS TO ATTEND TO!",$00
 	dc.b $00,$00,$06,$31,$E0
-	dc.b "WE'LL SEE YOU LATER!'",$FF	; string
+	dc.b "WE'LL SEE YOU LATER!'",$FF
 abs_0_00063B86:
 	dc.b $00,$00,$00,$00,$00,$03,$00,$03,$00,$12,$00,$03,$00,$04,$12,$60
 	dc.b $59,$4F,$55,$20,$50,$4C,$41,$59,$20,$41,$20,$4D,$45,$52,$52,$59
 	dc.b $00,$00,$00,$05,$17,$A0
-	dc.b "DIZZY DITTY!!!",$FF	; string
+	dc.b "DIZZY DITTY!!!",$FF
 	dc.b $00
 abs_0_00063BBC:
 	dc.b $00,$00,$00,$00,$00,$03,$00,$03,$00,$16,$00,$03,$00,$04,$12,$60
 	dc.b $59,$4F,$55,$20,$43,$48,$41,$52,$4D,$45,$44,$20,$54,$48,$45,$20
 	dc.b $52,$41,$54,$00,$00,$03,$17,$A0
-	dc.b "WITH THE MAGIC PIPES!!",$FF	; string
+	dc.b "WITH THE MAGIC PIPES!!",$FF
 	dc.b $00
 abs_0_00063BFC:
 	dc.b $00,$00,$00,$00,$00,$02,$00,$02,$00,$12,$00,$03,$00,$03,$0D,$20
@@ -8678,45 +8678,45 @@ abs_0_00063C34:
 	dc.b $43,$4C,$45,$41,$4E,$00,$00,$04,$12,$60,$4F,$55,$54,$20,$4F,$46
 	dc.b $20,$57,$49,$53,$48,$45,$53,$2C,$20,$59,$4F,$55,$00,$00,$00,$03
 	dc.b $17,$A0
-	dc.b "WEREN'T THE FIRST TO",$00	; string
+	dc.b "WEREN'T THE FIRST TO",$00
 	dc.b $00,$00,$04,$1C,$E0
-	dc.b "FIND ME YOU KNOW!'",$FF	; string
+	dc.b "FIND ME YOU KNOW!'",$FF
 	dc.b $00
 abs_0_00063CA4:
 	dc.b $00,$00,$00,$00,$00,$02,$00,$02,$00,$12,$00,$04,$00,$03,$0D,$20
 	dc.b $27,$48,$4F,$57,$20,$4D,$41,$4E,$59,$20,$54,$49,$4D,$45,$53,$00
 	dc.b $00,$02,$12,$60,$44,$4F,$20,$49,$20,$48,$41,$56,$45,$20,$54,$4F
 	dc.b $20,$54,$45,$4C,$4C,$00,$00,$03,$17,$A0
-	dc.b "YOU? TAKE THAT!'",$FF	; string
+	dc.b "YOU? TAKE THAT!'",$FF
 	dc.b $00
 abs_0_00063CF0:
 	dc.b $00,$00,$00,$00,$00,$04,$00,$04,$00,$14,$00,$05,$00,$04,$17,$A0
 	dc.b $27,$57,$41,$53,$20,$54,$48,$41,$54,$20,$45,$4E,$4F,$55,$47,$48
 	dc.b $20,$54,$4F,$00,$00,$04,$1C,$E0
-	dc.b "WAKE YOU UP? LISTEN,",$00	; string
+	dc.b "WAKE YOU UP? LISTEN,",$00
 	dc.b $00,$00,$06,$22,$20
-	dc.b "I'VE GOT NO MORE",$00	; string
+	dc.b "I'VE GOT NO MORE",$00
 	dc.b $00,$00,$07,$27,$60
-	dc.b "WISHES OK????'",$FF	; string
+	dc.b "WISHES OK????'",$FF
 	dc.b $00
 abs_0_00063D58:
 	dc.b $00,$06,$3D,$70,$00,$02,$00,$02,$00,$09,$00,$02,$00,$03,$0D,$20
 	dc.b $27,$4F,$4F,$50,$53,$21,$27,$FF,$00,$00,$00,$00,$00,$04,$00,$04
 	dc.b $00,$12,$00,$05,$00,$05,$17,$A0,$27,$59,$49,$4B,$45,$53,$21,$20
 	dc.b $54,$48,$41,$54,$20,$57,$41,$53,$00,$00,$00,$04,$1C,$E0
-	dc.b "SHOCKING!! I THINK",$00	; string
+	dc.b "SHOCKING!! I THINK",$00
 	dc.b $00,$00,$05,$22,$20
-	dc.b "I NEED TO GO TO",$00	; string
+	dc.b "I NEED TO GO TO",$00
 	dc.b $00,$05,$27,$60
-	dc.b "BED AFTER THAT!'",$FF	; string
+	dc.b "BED AFTER THAT!'",$FF
 	dc.b $00
 abs_0_00063DD4:
 	dc.b $00,$06,$3E,$32,$00,$03,$00,$03,$00,$19,$00,$04,$00,$03,$12,$60
 	dc.b $53,$55,$44,$44,$45,$4E,$4C,$59,$20,$54,$48,$45,$20,$45,$41,$52
 	dc.b $54,$48,$20,$53,$48,$41,$4B,$45,$53,$00,$00,$04,$17,$A0
-	dc.b "AND ZAKS' FURIOUS VOICE",$00	; string
+	dc.b "AND ZAKS' FURIOUS VOICE",$00
 	dc.b $00,$06,$1C,$E0
-	dc.b "BOOMS OVER THE LAND",$FF	; string
+	dc.b "BOOMS OVER THE LAND",$FF
 	dc.b $00,$00,$00,$00,$00,$05,$00,$05,$00,$19,$00,$05,$00,$05,$1C,$E0
 	dc.b $27,$59,$4F,$55,$52,$20,$46,$52,$49,$45,$4E,$44,$53,$20,$4D,$41
 	dc.b $59,$20,$42,$45,$20,$46,$52,$45,$45,$00,$00,$06,$22,$20,$4C,$49
@@ -8724,7 +8724,7 @@ abs_0_00063DD4:
 	dc.b $20,$57,$49,$4C,$4C,$00,$00,$05,$27,$60,$4E,$45,$56,$45,$52,$20
 	dc.b $4C,$45,$41,$56,$45,$20,$54,$48,$49,$53,$20,$4C,$41,$4E,$44,$20
 	dc.b $41,$53,$00,$00,$00,$06,$2C,$A0
-	dc.b "LONG AS I LIVE! HA HA!'",$FF	; string
+	dc.b "LONG AS I LIVE! HA HA!'",$FF
 abs_0_00063EB2:
 	dc.b $00,$00,$00,$00,$00,$02,$00,$02,$00,$17,$00,$03,$00,$03,$0D,$20
 	dc.b $59,$4F,$55,$20,$44,$52,$49,$56,$45,$20,$54,$48,$45,$20,$54,$52
@@ -8735,32 +8735,32 @@ abs_0_00063EF4:
 	dc.b $00,$00,$00,$00,$00,$03,$00,$04,$00,$15,$00,$06,$00,$06,$17,$A0
 	dc.b $27,$45,$58,$43,$45,$4C,$4C,$45,$4E,$54,$21,$20,$4E,$4F,$57,$00
 	dc.b $00,$07,$1C,$E0
-	dc.b "CAST THE RING",$00	; string
+	dc.b "CAST THE RING",$00
 	dc.b $00,$04,$22,$20
-	dc.b "INTO THE CRACKS OF",$00	; string
+	dc.b "INTO THE CRACKS OF",$00
 	dc.b $00,$00,$04,$27,$60
-	dc.b "GEHENNA AND DESTROY",$00	; string
+	dc.b "GEHENNA AND DESTROY",$00
 	dc.b $00,$04,$2D
-	dc.b "HZAKS SOUL FOREVER!'",$FF	; string
+	dc.b "HZAKS SOUL FOREVER!'",$FF
 abs_0_00063F6E:
 	dc.b $00,$00,$00,$00,$00,$03,$00,$03,$00,$14,$00,$06,$00,$04,$12,$60
 	dc.b $59,$4F,$55,$20,$43,$41,$53,$54,$20,$5A,$41,$4B,$53,$20,$52,$49
 	dc.b $4E,$47,$00,$00,$00,$05,$17,$A0
-	dc.b "INTO THE LAVA! A",$00	; string
+	dc.b "INTO THE LAVA! A",$00
 	dc.b $00,$00,$04,$1C,$E0
-	dc.b "TERRIBLE SCREAMING",$00	; string
+	dc.b "TERRIBLE SCREAMING",$00
 	dc.b $00,$00,$05,$22,$20
-	dc.b "SOUND MARKS ZAKS",$00	; string
+	dc.b "SOUND MARKS ZAKS",$00
 	dc.b $00,$00,$06,$27,$60
-	dc.b "FINAL PASSING!",$FF	; string
+	dc.b "FINAL PASSING!",$FF
 	dc.b $00
 abs_0_00063FEA:
 	dc.b $00,$06,$40,$32,$00,$03,$00,$03,$00,$13,$00,$04,$00,$05,$12,$60
 	dc.b $27,$46,$52,$45,$45,$20,$41,$54,$20,$4C,$41,$53,$54,$21,$21,$00
 	dc.b $00,$04,$17,$A0
-	dc.b "FOR ONCE IT SEEMS",$00	; string
+	dc.b "FOR ONCE IT SEEMS",$00
 	dc.b $00,$06,$1C,$E0
-	dc.b "I OWE A DEBT'",$FF	; string
+	dc.b "I OWE A DEBT'",$FF
 	dc.b $00,$00,$00,$00,$00,$05,$00,$05,$00,$17,$00,$04,$00,$07,$1C,$E0
 	dc.b $27,$49,$27,$4C,$4C,$20,$47,$45,$54,$20,$59,$4F,$55,$20,$48,$4F
 	dc.b $4D,$45,$2C,$00,$00,$0A,$22,$20,$42,$55,$54,$20,$54,$48,$45,$20
@@ -8771,17 +8771,17 @@ abs_0_00064084:
 	dc.b $00,$00,$00,$00,$00,$04,$00,$04,$00,$17,$00,$05,$00,$06,$17,$A0
 	dc.b $27,$57,$45,$4C,$4C,$20,$44,$4F,$4E,$45,$21,$20,$49,$20,$53,$48
 	dc.b $41,$4C,$4C,$00,$00,$05,$1C,$E0
-	dc.b "TRANSPORT YOU TO JOIN",$00	; string
+	dc.b "TRANSPORT YOU TO JOIN",$00
 	dc.b $00,$05,$22,$20
-	dc.b "YOUR FRIENDS AT HOME!",$00	; string
+	dc.b "YOUR FRIENDS AT HOME!",$00
 	dc.b $00,$08,$27,$60
-	dc.b "FAREWELL HERO!'",$FF	; string
+	dc.b "FAREWELL HERO!'",$FF
 abs_0_000640F0:
 	dc.b $00,$00,$00,$00,$00,$02,$00,$02,$00,$12,$00,$04,$00,$03,$0D,$20
 	dc.b $59,$4F,$55,$20,$48,$49,$54,$20,$54,$48,$45,$20,$47,$4F,$41,$54
 	dc.b $00,$00,$00,$04,$12,$60,$41,$4E,$44,$20,$49,$54,$20,$43,$48,$41
 	dc.b $52,$47,$45,$53,$00,$00,$00,$04,$17,$A0
-	dc.b "AT THE TROLL!!",$FF	; string
+	dc.b "AT THE TROLL!!",$FF
 	dc.b $00
 abs_0_0006413A:
 	dc.b $00,$00,$00,$00,$00,$02,$00,$02,$00,$10,$00,$03,$00,$03,$0D,$20
@@ -8789,21 +8789,21 @@ abs_0_0006413A:
 	dc.b $00,$05,$12,$60,$54,$48,$45,$20,$54,$52,$4F,$4C,$4C,$21,$FF,$00
 abs_0_0006416A:
 	dc.b $00,$00,$00,$00,$00,$07,$00,$07,$00,$1A,$00,$06,$00,$08,$2C,$A0
-	dc.b "DIZZY RAN OUT OF ENERGY!",$00	; string
+	dc.b "DIZZY RAN OUT OF ENERGY!",$00
 	dc.b $00,$00,$0C
-	dc.b "7 YOU LOSE A LIFE!",$FF	; string
+	dc.b "7 YOU LOSE A LIFE!",$FF
 	dc.b $00
 abs_0_000641AA:
 	dc.b $00,$00,$00,$00,$00,$03,$00,$03,$00,$14,$00,$03,$00,$04,$12,$60
 	dc.b $27,$49,$27,$4C,$4C,$20,$4C,$45,$54,$20,$59,$4F,$55,$20,$50,$41
 	dc.b $53,$54,$00,$00,$00,$05,$17,$A0
-	dc.b "IF YOU FEED ME!'",$FF	; string
+	dc.b "IF YOU FEED ME!'",$FF
 	dc.b $00
 abs_0_000641E4:
 	dc.b $00,$00,$00,$00,$00,$03,$00,$03,$00,$11,$00,$03,$00,$04,$12,$60
 	dc.b $27,$54,$48,$41,$4E,$4B,$20,$59,$4F,$55,$20,$56,$45,$52,$59,$00
 	dc.b $00,$05,$17,$A0
-	dc.b "MUCH INDEED!'",$FF	; string
+	dc.b "MUCH INDEED!'",$FF
 abs_0_00064216:
 	dcb.b $15,$20
 	dc.b $57,$45,$4C,$43,$4F,$4D,$45,$20,$54,$4F,$20,$4D,$41,$47,$49,$43
@@ -8834,17 +8834,17 @@ abs_0_00064302:
 	dc.b $FF
 abs_0_00064398:
 	dc.w $000C,$02A0	; lookup_table
-	dc.b "MAGICLAND DIZZY!",$00	; string
+	dc.b "MAGICLAND DIZZY!",$00
 	dc.b $00,$00,$05,$15,$00
-	dc.b "AMIGA AND ST VERSIONS CODED BY",$00	; string
+	dc.b "AMIGA AND ST VERSIONS CODED BY",$00
 	dc.b $00,$00,$09,$1C,$E0
-	dc.b "DEREK LEIGH-GILCHRIST.",$00	; string
+	dc.b "DEREK LEIGH-GILCHRIST.",$00
 	dc.b $00,$00,$0D,$31,$E0
-	dc.b "ALL ARTWORK BY",$00	; string
+	dc.b "ALL ARTWORK BY",$00
 	dc.b $00,$00,$0C,$39,$C0
-	dc.b "LEIGH CHRISTIAN.",$00	; string
+	dc.b "LEIGH CHRISTIAN.",$00
 	dc.b $00,$00,$00,$76,$20
-	dc.b "COPYRIGHT 1991 CODEMASTERS SOFTWARE LTD.",$FF	; string
+	dc.b "COPYRIGHT 1991 CODEMASTERS SOFTWARE LTD.",$FF
 	dc.b $00
 abs_0_00064446:
 	dcb.b $3C,$00

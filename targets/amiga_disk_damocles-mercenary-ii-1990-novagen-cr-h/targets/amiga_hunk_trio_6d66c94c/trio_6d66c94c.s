@@ -721,7 +721,7 @@ loc_0_00000A0E:
 	dc.w $0000
     SECTION section_1,data
 loc_1_00000000:
-	dc.b "dos.library",$00	; string
+	dc.b "dos.library",$00
 h1dl_DOSBase:
 	dc.b $00,$00,$00,$00
 loc_1_00000010:
@@ -729,7 +729,7 @@ loc_1_00000010:
 loc_1_0000001C:
 	dc.b $00,$00,$00,$00
 loc_1_00000020:
-	dc.b "graphics.library",$00	; string
+	dc.b "graphics.library",$00
 	dc.b $00
 loc_1_00000032:
 	dcb.b $EE,$00

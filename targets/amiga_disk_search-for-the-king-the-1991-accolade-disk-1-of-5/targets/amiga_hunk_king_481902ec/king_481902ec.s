@@ -4099,27 +4099,27 @@ loc_1_00000438:
 	dc.b $00,$00
 loc_1_0000048A:
 	dc.b $00,$0A,$0A
-	dc.b "You need at least 425632 bytes of chip ram available.",$00	; string
+	dc.b "You need at least 425632 bytes of chip ram available.",$00
 	dc.b $00,$00,$00
 loc_1_000004C6:
 	dc.b $00,$0A,$0A
-	dc.b "You may attempt to continue by pressing the left mouse button.(press right mouse button to quit)",$00	; string
+	dc.b "You may attempt to continue by pressing the left mouse button.(press right mouse button to quit)",$00
 	dc.w $0000
 loc_1_0000052C:
 	dc.b $00,$0A,$0A
-	dc.b "You need at least 425632 bytes of chip ram and 357512 bytes of either ram available. (press mouse button)",$00	; string
+	dc.b "You need at least 425632 bytes of chip ram and 357512 bytes of either ram available. (press mouse button)",$00
 	dc.b $00,$00,$00
 loc_1_0000059C:
 	dc.b $00,$0A,$0A
-	dc.b "You need at least 425632 bytes of chip ram and 364024 bytes of either ram available. (press mouse button)",$00	; string
+	dc.b "You need at least 425632 bytes of chip ram and 364024 bytes of either ram available. (press mouse button)",$00
 	dc.b $00,$00,$00
 loc_1_0000060C:
-	dc.b "SEARCH For THE KING",$00	; string
+	dc.b "SEARCH For THE KING",$00
 loc_1_00000620:
-	dc.b "Now Loading...",$00	; string
+	dc.b "Now Loading...",$00
 	dc.b $00
 loc_1_00000630:
-	dc.b "resident",$00	; string
+	dc.b "resident",$00
 	dc.b $00
 loc_1_0000063A:
 	dc.b $4D,$41,$49,$4E,$5F,$30,$00,$00
@@ -4128,67 +4128,67 @@ loc_1_00000642:
 loc_1_00000646:
 	dc.b $49,$4C,$32,$00
 loc_1_0000064A:
-	dc.b "Talking to yourself is a bad sign...",$00	; string
+	dc.b "Talking to yourself is a bad sign...",$00
 	dc.b $00
 loc_1_00000670:
-	dc.b "Trying to talk to %r may be a sign of too much stress.",$00	; string
+	dc.b "Trying to talk to %r may be a sign of too much stress.",$00
 	dc.b $00
 loc_1_000006A8:
-	dc.b "%r isn't here.",$00	; string
+	dc.b "%r isn't here.",$00
 	dc.b $00
 loc_1_000006B8:
-	dc.b "Wha? Huh?",$00	; string
+	dc.b "Wha? Huh?",$00
 loc_1_000006C2:
-	dc.b "The %s is a concept.",$00	; string
+	dc.b "The %s is a concept.",$00
 	dc.b $00
 loc_1_000006D8:
-	dc.b "You can't use a number like that.",$00	; string
+	dc.b "You can't use a number like that.",$00
 loc_1_000006FA:
-	dc.b "I'm not sure to what you're referring.",$00	; string
+	dc.b "I'm not sure to what you're referring.",$00
 	dc.b $00
 loc_1_00000722:
-	dc.b "Too many nouns, man.",$00	; string
+	dc.b "Too many nouns, man.",$00
 	dc.b $00
 loc_1_00000738:
-	dc.b "Les isn't sure what all you're referring to."	; string
+	dc.b "Les isn't sure what all you're referring to."
 	dc.b $0A,$00
 loc_1_00000766:
-	dc.b "You're not close enough to %r.",$00	; string
+	dc.b "You're not close enough to %r.",$00
 	dc.b $00
 loc_1_00000786:
-	dc.b "You can't do that, Les.",$00	; string
+	dc.b "You can't do that, Les.",$00
 loc_1_0000079E:
 	dc.b $3A,$20,$00,$00
 loc_1_000007A2:
-	dc.b "Les isn't exactly sure what all to take.",$00	; string
+	dc.b "Les isn't exactly sure what all to take.",$00
 	dc.b $00,$28,$50,$6C,$65,$61,$73,$65,$20,$61,$6E,$73,$77,$65,$72,$20
 	dc.b $22,$79,$22,$20,$6F,$72,$20,$22,$6E,$22,$29,$00,$00
 loc_1_000007E8:
-	dc.b "Restart",$00	; string
+	dc.b "Restart",$00
 loc_1_000007F0:
 	dc.b $4C,$6F,$61,$64,$00,$00
 loc_1_000007F6:
 	dc.b $51,$75,$69,$74,$00,$00
 loc_1_000007FC:
-	dc.b "What a shame. You were doing so well. Progress was being made. Would you like to keep trying...or remain a loser?",$00	; string
+	dc.b "What a shame. You were doing so well. Progress was being made. Would you like to keep trying...or remain a loser?",$00
 loc_1_0000086E:
-	dc.b "You Bit the Green Weenie",$00	; string
+	dc.b "You Bit the Green Weenie",$00
 	dc.b $00
 loc_1_00000888:
-	dc.b "cudeath.pic",$00	; string
+	dc.b "cudeath.pic",$00
 loc_1_00000894:
-	dc.b "I don't see ",$00	; string
+	dc.b "I don't see ",$00
 	dc.b $00
 loc_1_000008A2:
-	dc.b " here.",$00	; string
+	dc.b " here.",$00
 	dc.b $00
 loc_1_000008AA:
-	dc.b "** ERROR: ",$00	; string
+	dc.b "** ERROR: ",$00
 	dc.b $00
 loc_1_000008B6:
 	dc.b $20,$2A,$2A,$00
 loc_1_000008BA:
-	dc.b "index.dat",$00	; string
+	dc.b "index.dat",$00
 loc_1_000008C4:
 	dc.b $72,$62,$00,$00
 loc_1_000008C8:
@@ -4200,7 +4200,7 @@ loc_1_000008D0:
 loc_1_000008D4:
 	dc.b $43,$53,$33,$00
 loc_1_000008D8:
-	dc.b "Your score is %n."	; string
+	dc.b "Your score is %n."
 	dc.b $0A,$00,$00
 loc_1_000008EC:
 	dc.b $57,$68,$61,$3F,$00,$00
@@ -6507,33 +6507,33 @@ loc_2_0000A798:
 loc_3_00000000:
 	dc.b $4E,$55,$00,$00,$70,$00,$4E,$5D,$4E,$75
 loc_3_0000000A:
-	dc.b "game1.ivy",$00	; string
+	dc.b "game1.ivy",$00
 loc_3_00000014:
-	dc.b "game2.ivy",$00	; string
+	dc.b "game2.ivy",$00
 loc_3_0000001E:
 	dc.b $72,$62,$00,$00
 loc_3_00000022:
-	dc.b "** I/O ERROR. Ferror: ",$00	; string
+	dc.b "** I/O ERROR. Ferror: ",$00
 	dc.b $00
 loc_3_0000003A:
-	dc.b "  File number: ",$00	; string
+	dc.b "  File number: ",$00
 loc_3_0000004A:
 	dc.b $0A,$00
 loc_3_0000004C:
-	dc.b "** ERR OPENING DISK FILE: ",$00	; string
+	dc.b "** ERR OPENING DISK FILE: ",$00
 	dc.b $00
 loc_3_00000068:
 	dc.b $20,$2A,$2A,$0A,$00,$00
 loc_3_0000006E:
-	dc.b "game3.ivy",$00	; string
+	dc.b "game3.ivy",$00
 loc_3_00000078:
 	dc.b $53,$61,$76,$65,$5F,$00
 loc_3_0000007E:
 	dc.b $2E,$73,$61,$76,$00,$00
 loc_3_00000084:
-	dc.b "This saved game is not compatible with this game version.",$00	; string
+	dc.b "This saved game is not compatible with this game version.",$00
 loc_3_000000BE:
-	dc.b "Game Load Error",$00	; string
+	dc.b "Game Load Error",$00
 loc_3_000000CE:
 	dc.b $53,$41,$56,$45,$5F,$00
 loc_3_000000D4:
@@ -8161,76 +8161,76 @@ loc_4_0000043A:
     SECTION section_5,code
 loc_5_00000000:
 	dc.b $4E,$BA,$0A
-	dc.b "pNuThere's no mailbox here.",$00	; string
+	dc.b "pNuThere's no mailbox here.",$00
 	dc.b $00,$28,$54,$72,$79,$20,$43,$74,$72,$6C,$2D,$41,$6D,$69,$67,$61
 	dc.b $2D,$41,$6D,$69,$67,$61,$2E,$29,$00
-	dc.b "Rrriing",$00	; string
-	dc.b "OK, you've won.",$00	; string
-	dc.b "Hey, no fair!",$00	; string
-	dc.b "This isn't the thing that needs to be pulled.",$00	; string
-	dc.b "You can't page ",$00	; string
+	dc.b "Rrriing",$00
+	dc.b "OK, you've won.",$00
+	dc.b "Hey, no fair!",$00
+	dc.b "This isn't the thing that needs to be pulled.",$00
+	dc.b "You can't page ",$00
 	dc.b $2E,$00,$25
-	dc.b "r probably doesn't want to be bothered.",$00	; string
+	dc.b "r probably doesn't want to be bothered.",$00
 	dc.b $00
-	dc.b "This is not the best place to do that.",$00	; string
+	dc.b "This is not the best place to do that.",$00
 	dc.b $00
 loc_5_000000F0:
-	dc.b "You don't have %r with you.",$00	; string
-	dc.b "Oh...one of THOSE, huh?",$00	; string
-	dc.b "You blow on ",$00	; string
+	dc.b "You don't have %r with you.",$00
+	dc.b "Oh...one of THOSE, huh?",$00
+	dc.b "You blow on ",$00
 	dc.b $00,$2E,$20,$00,$00
-	dc.b "What do you think you're doing, running for office?",$00	; string
-	dc.b "Doesn't seem to do much good.",$00	; string
-	dc.b "You can't make that.",$00	; string
+	dc.b "What do you think you're doing, running for office?",$00
+	dc.b "Doesn't seem to do much good.",$00
+	dc.b "You can't make that.",$00
 	dc.b $00
-	dc.b "You can't make anything for ",$00	; string
+	dc.b "You can't make anything for ",$00
 	dc.b $00,$59,$6F,$75,$00,$20
-	dc.b "can't make that.",$00	; string
-	dc.b "You really don't need to buy anything here.",$00	; string
-	dc.b "This isn't the right time or place.",$00	; string
+	dc.b "can't make that.",$00
+	dc.b "You really don't need to buy anything here.",$00
+	dc.b "This isn't the right time or place.",$00
 	dc.b $4F,$68,$20,$79,$65,$61,$68,$2E,$2E,$2E,$77,$65,$6C,$6C,$20,$22
 	dc.b $61,$6E,$73,$77,$65,$72,$22,$20,$54,$48,$49,$53,$21,$00
-	dc.b "Use? USE???",$00	; string
+	dc.b "Use? USE???",$00
 	dc.b $48,$65,$79,$2E,$2E,$2E,$74,$68,$69,$73,$20,$61,$69,$6E,$27,$74
 	dc.b $20,$6A,$75,$73,$74,$20,$61,$6E,$6F,$74,$68,$65,$72,$0A
-	dc.b "Half Dome game!",$00	; string
-	dc.b "Stay within the law.",$00	; string
+	dc.b "Half Dome game!",$00
+	dc.b "Stay within the law.",$00
 	dc.b $00
-	dc.b "You'll have to say what to turn over.",$00	; string
-	dc.b "It's not a container.",$00	; string
-	dc.b "Open it first.",$00	; string
+	dc.b "You'll have to say what to turn over.",$00
+	dc.b "It's not a container.",$00
+	dc.b "Open it first.",$00
 	dc.b $00
-	dc.b "I don't believe you're holding it.",$00	; string
+	dc.b "I don't believe you're holding it.",$00
 	dc.b $00
-	dc.b "Nice try.",$00	; string
-	dc.b "Its molecular state must be liquid.",$00	; string
-	dc.b "Filled.",$00	; string
-	dc.b "feels",$00	; string
-	dc.b "Careful...it's slippery when wet.",$00	; string
+	dc.b "Nice try.",$00
+	dc.b "Its molecular state must be liquid.",$00
+	dc.b "Filled.",$00
+	dc.b "feels",$00
+	dc.b "Careful...it's slippery when wet.",$00
 	dc.b $53,$65,$61,$72,$63,$68,$69,$6E,$67,$20,$66,$6F,$72,$20,$22,$54
 	dc.b $68,$65,$20,$4B,$69,$6E,$67,$22,$20,$69,$73,$20,$74,$68,$65,$20
 	dc.b $67,$65,$6E,$65,$72,$61,$6C,$20,$69,$64,$65,$61,$2E,$00
-	dc.b "I know where it is. You search.",$00	; string
-	dc.b "Try FEED _____ TO _____.",$00	; string
+	dc.b "I know where it is. You search.",$00
+	dc.b "Try FEED _____ TO _____.",$00
 	dc.b $00
-	dc.b "You're excused.",$00	; string
+	dc.b "You're excused.",$00
 loc_5_000003D6:
-	dc.b "In the immortal words of your mother..."	; string
+	dc.b "In the immortal words of your mother..."
 	dc.b $0A
-	dc.b "you might poke someone's eye out.",$00	; string
-	dc.b "Try TALK TO _____.",$00	; string
+	dc.b "you might poke someone's eye out.",$00
+	dc.b "Try TALK TO _____.",$00
 	dc.b $00
-	dc.b "OK. Consider it peeled.",$00	; string
-	dc.b "You might never get back out.",$00	; string
-	dc.b "Because I said so.",$00	; string
+	dc.b "OK. Consider it peeled.",$00
+	dc.b "You might never get back out.",$00
+	dc.b "Because I said so.",$00
 	dc.b $00,$4E,$6F,$77,$2E,$00,$00,$22,$59,$6F,$75,$27,$72,$65,$20,$77
 	dc.b $65,$6C,$63,$6F,$6D,$65,$2E,$22,$00
-	dc.b "Who do you think?",$00	; string
-	dc.b "Hey! What are you trying to do...Teleport!?",$00	; string
+	dc.b "Who do you think?",$00
+	dc.b "Hey! What are you trying to do...Teleport!?",$00
 	dc.b $59,$65,$61,$68,$3F,$20,$57,$65,$6C,$6C,$20,$22,$66,$69,$78,$22
 	dc.b $20,$54,$48,$49,$53,$21,$00,$00
-	dc.b "Try using the SPACEBAR.",$00	; string
-	dc.b "Try ASK ___ ABOUT ___.",$00	; string
+	dc.b "Try using the SPACEBAR.",$00
+	dc.b "Try ASK ___ ABOUT ___.",$00
 	dc.b $00
 loc_5_0000051C:
 	dc.b $70,$12,$3F,$00,$4E,$BA,$05,$38,$54,$4F,$4A,$40,$67,$18,$70,$56
@@ -8426,16 +8426,16 @@ loc_6_00000000:
 	dc.b $4A,$6C,$80,$5E,$67,$16,$70,$0E,$B0,$6C,$80,$5E,$67,$0E,$48,$7A
 	dc.b $00,$1A,$4E,$BA,$2D,$A0,$58,$4F,$70,$01,$60,$0C,$48,$7A,$00,$1C
 	dc.b $4E,$BA,$2D,$DA,$58,$4F,$70,$01
-	dc.b "Nuwait for that.",$00	; string
+	dc.b "Nuwait for that.",$00
 	dc.b $00
-	dc.b "OK. Now what?",$00	; string
+	dc.b "OK. Now what?",$00
 loc_6_00000048:
 	dc.b $4E,$45,$58,$54,$00,$00
 loc_6_0000004E:
-	dc.b "CANCEL",$00	; string
+	dc.b "CANCEL",$00
 	dc.b $00
 loc_6_00000056:
-	dc.b "PREVIOUS",$00	; string
+	dc.b "PREVIOUS",$00
 	dc.b $00,$43,$4C,$49,$43,$4B,$20,$41,$54,$20,$54,$48,$45,$20,$54,$4F
 	dc.b $50,$20,$4F,$46,$20,$54,$48,$45,$20,$53,$43,$52,$45,$45,$4E,$20
 	dc.b $4F,$52,$20,$50,$52,$45,$53,$53,$20,$45,$53,$43,$20,$46,$4F,$52
@@ -8445,7 +8445,7 @@ loc_6_00000056:
 	dc.b $20,$41,$4E,$44,$20,$43,$54,$52,$4C,$2D,$58,$20,$48,$45,$4C,$50
 	dc.b $20,$45,$44,$49,$54,$49,$4E,$47,$20,$54,$45,$58,$54,$20,$49,$4E
 	dc.b $50,$55,$54,$2E,$0A,$0A
-	dc.b "SELECT FUNCTION IN WINDOWS BY USING TAB KEY, ARROW KEYS OR MOUSE. CLICK OR PRESS ENTER TO SELECT CHOICE.",$00	; string
+	dc.b "SELECT FUNCTION IN WINDOWS BY USING TAB KEY, ARROW KEYS OR MOUSE. CLICK OR PRESS ENTER TO SELECT CHOICE.",$00
 	dcb.b $F,$20
 	dc.b $48,$45,$4C,$50,$20,$53,$43,$52,$45,$45,$4E,$20,$31
 	dcb.b $F,$20
@@ -8455,63 +8455,63 @@ loc_6_00000056:
 	dc.b $4E,$45,$2C,$20,$4F,$52,$20,$43,$4F,$4E,$4E,$45,$43,$54,$20,$55
 	dc.b $50,$20,$54,$4F,$20,$48,$49,$53,$20,$42,$55,$4C,$4C,$45,$54,$49
 	dc.b $4E,$20,$42,$4F,$41,$52,$44,$2E,$0A
-	dc.b "CONSULT THE DOCUMENTATION TO FIND OUT HOW!",$00	; string
+	dc.b "CONSULT THE DOCUMENTATION TO FIND OUT HOW!",$00
 	dc.b $00
 	dcb.b $F,$20
 	dc.b $48,$45,$4C,$50,$20,$53,$43,$52,$45,$45,$4E,$20,$32
 	dcb.b $F,$20
 	dc.b $00
-	dc.b "I can't. I don't remember what I was doing.",$00	; string
-	dc.b "What do you think this is...a text adventure?",$00	; string
+	dc.b "I can't. I don't remember what I was doing.",$00
+	dc.b "What do you think this is...a text adventure?",$00
 loc_6_00000284:
-	dc.b "Restart",$00	; string
+	dc.b "Restart",$00
 loc_6_0000028C:
-	dc.b "Cancel",$00	; string
+	dc.b "Cancel",$00
 	dc.b $00
 loc_6_00000294:
-	dc.b "Restarting will put Les all the way back in his office. Are you sure you want to do this to him?",$00	; string
+	dc.b "Restarting will put Les all the way back in his office. Are you sure you want to do this to him?",$00
 	dc.b $00
 loc_6_000002F6:
-	dc.b "Back to the Beginning",$00	; string
+	dc.b "Back to the Beginning",$00
 loc_6_0000030C:
 	dc.b $51,$75,$69,$74,$00,$00
 loc_6_00000312:
-	dc.b "Do you really want to quit playing?",$00	; string
+	dc.b "Do you really want to quit playing?",$00
 loc_6_00000336:
-	dc.b "I Give Up",$00	; string
-	dc.b "You have stumbled through %n move",$00	; string
+	dc.b "I Give Up",$00
+	dc.b "You have stumbled through %n move",$00
 	dc.b $73,$00
 loc_6_00000364:
 	dc.b $2E,$00
-	dc.b "Verb VB_ERROR.",$00	; string
+	dc.b "Verb VB_ERROR.",$00
 	dc.b $00
-	dc.b "INVENTORY.",$00	; string
+	dc.b "INVENTORY.",$00
 	dc.b $00,$4C,$4F,$4F,$4B,$00,$00
 loc_6_00000388:
-	dc.b "Find it yourself.",$00	; string
+	dc.b "Find it yourself.",$00
 	dc.b $0A
-	dc.b "v_look",$00	; string
-	dc.b "It's too dark to see!",$00	; string
-	dc.b "read that.",$00	; string
+	dc.b "v_look",$00
+	dc.b "It's too dark to see!",$00
+	dc.b "read that.",$00
 	dc.b $00
-	dc.b "read any ",$00	; string
+	dc.b "read any ",$00
 loc_6_000003CE:
-	dc.b "  Okay  ",$00	; string
+	dc.b "  Okay  ",$00
 	dc.b $00,$25
-	dc.b "r isn't there!",$00	; string
+	dc.b "r isn't there!",$00
 	dc.b $25,$72,$20,$69,$73,$20,$00,$00,$6F,$70,$65,$6E,$00,$00,$63,$6C
 	dc.b $6F,$73,$65,$64,$00,$00
-	dc.b "There's nothing special about %r.",$00	; string
-	dc.b "File access error",$00	; string
-	dc.b "File position error",$00	; string
-	dc.b "You have ",$00	; string
+	dc.b "There's nothing special about %r.",$00
+	dc.b "File access error",$00
+	dc.b "File position error",$00
+	dc.b "You have ",$00
 loc_6_00000450:
-	dc.b "nothing.",$00	; string
+	dc.b "nothing.",$00
 	dc.b $00
 loc_6_0000045A:
 	dc.b $20,$00
 loc_6_0000045C:
-	dc.b "There's nothing ",$00	; string
+	dc.b "There's nothing ",$00
 	dc.b $00
 loc_6_0000046E:
 	dc.b $6F,$6E,$20,$00
@@ -8520,139 +8520,139 @@ loc_6_00000472:
 loc_6_00000476:
 	dc.b $25,$72,$2E,$00
 loc_6_0000047A:
-	dc.b "Sitting ",$00	; string
+	dc.b "Sitting ",$00
 	dc.b $00
 loc_6_00000484:
 	dc.b $6F,$00
 loc_6_00000486:
 	dc.b $69,$00
 loc_6_00000488:
-	dc.b "n the %s",$00	; string
+	dc.b "n the %s",$00
 	dc.b $00
 loc_6_00000492:
 	dc.b $20,$61,$72,$65,$20,$00
 loc_6_00000498:
 	dc.b $20,$69,$73,$20,$00,$00
 loc_6_0000049E:
-	dc.b "Inside ",$00	; string
+	dc.b "Inside ",$00
 loc_6_000004A6:
 	dc.b $79,$6F,$75,$2E,$00,$00
 loc_6_000004AC:
-	dc.b "%r is closed.",$00	; string
+	dc.b "%r is closed.",$00
 loc_6_000004BA:
-	dc.b "I don't know how to do that to %r.",$00	; string
+	dc.b "I don't know how to do that to %r.",$00
 	dc.b $00
-	dc.b "Just a little dirt.",$00	; string
-	dc.b "You can't see much of anything under there.",$00	; string
-	dc.b "There's nothing unusual there.",$00	; string
+	dc.b "Just a little dirt.",$00
+	dc.b "You can't see much of anything under there.",$00
+	dc.b "There's nothing unusual there.",$00
 	dc.b $00
-	dc.b "Try using the arrow keys.",$00	; string
-	dc.b "You got me. Try something else.",$00	; string
+	dc.b "Try using the arrow keys.",$00
+	dc.b "You got me. Try something else.",$00
 loc_6_00000578:
-	dc.b "File error",$00	; string
+	dc.b "File error",$00
 	dc.b $00
 loc_6_00000584:
-	dc.b "You can't go in that direction.",$00	; string
+	dc.b "You can't go in that direction.",$00
 loc_6_000005A4:
-	dc.b "Better open the %s first.",$00	; string
-	dc.b "Use the arrow keys to move Les on the screen.",$00	; string
-	dc.b "You can't get ",$00	; string
+	dc.b "Better open the %s first.",$00
+	dc.b "Use the arrow keys to move Les on the screen.",$00
+	dc.b "You can't get ",$00
 	dc.b $00,$6F,$6E,$00,$00,$69,$6E,$00,$00,$20,$25,$72,$2E,$00,$00
-	dc.b "Try moving yourself there with the arrow keys or the mouse.",$00	; string
-	dc.b "You can't do that to a direction.",$00	; string
-	dc.b "Les is already on his feet.",$00	; string
+	dc.b "Try moving yourself there with the arrow keys or the mouse.",$00
+	dc.b "You can't do that to a direction.",$00
+	dc.b "Les is already on his feet.",$00
 	dc.b $28,$54,$72,$79,$20,$74,$65,$6C,$6C,$69,$6E,$67,$20,$68,$69,$6D
 	dc.b $20,$77,$68,$65,$72,$65,$20,$74,$6F,$20,$73,$69,$74,$2E,$29,$00
-	dc.b "sit on that.",$00	; string
+	dc.b "sit on that.",$00
 	dc.b $00
-	dc.b "Better put ",$00	; string
+	dc.b "Better put ",$00
 	dc.b $20,$6F,$6E,$20,$74,$68,$65,$20,$67,$72,$6F,$75,$6E,$64,$20,$66
 	dc.b $69,$72,$73,$74,$2E,$00
-	dc.b "This is no time to sit down on the job!",$00	; string
-	dc.b "Your weak arches and flat feet couldn't handle it.",$00	; string
+	dc.b "This is no time to sit down on the job!",$00
+	dc.b "Your weak arches and flat feet couldn't handle it.",$00
 	dc.b $00
-	dc.b "There's nowhere to climb from here.",$00	; string
-	dc.b "Les doesn't have %r.",$00	; string
+	dc.b "There's nowhere to climb from here.",$00
+	dc.b "Les doesn't have %r.",$00
 	dc.b $00
-	dc.b "You can't put %r in %r.",$00	; string
+	dc.b "You can't put %r in %r.",$00
 	dc.b $25,$72,$20,$69,$73,$6E,$27,$74,$20,$6F,$70,$65,$6E,$2E,$00,$00
-	dc.b "I'm confused enough.",$00	; string
+	dc.b "I'm confused enough.",$00
 	dc.b $00,$25
-	dc.b "r doesn't have enough room.",$00	; string
+	dc.b "r doesn't have enough room.",$00
 	dc.b $00,$44,$6F,$6E,$65,$2E,$00
-	dc.b "You can't put %r on %r.",$00	; string
+	dc.b "You can't put %r on %r.",$00
 	dc.b $25,$72,$20,$69,$73,$20,$61,$6C,$72,$65,$61,$64,$79,$20,$6F,$6E
 	dc.b $20,$25,$72,$2E,$00,$00
-	dc.b "Les can't take anything from %r.",$00	; string
+	dc.b "Les can't take anything from %r.",$00
 	dc.b $00,$25
-	dc.b "r doesn't have %r.",$00	; string
+	dc.b "r doesn't have %r.",$00
 	dc.b $25,$72,$20,$69,$73,$6E,$27,$74,$20,$69,$6E,$20,$25,$72,$2E,$00
 	dc.b $48,$6D,$6D,$3F,$00,$00
-	dc.b "He can't ask %r for anything.",$00	; string
+	dc.b "He can't ask %r for anything.",$00
 	dc.b $54,$72,$79,$20,$22,$47,$69,$76,$65,$20,$5F,$5F,$5F,$20,$74,$6F
 	dc.b $20,$5F,$5F,$5F,$22,$2E,$00,$00
-	dc.b "give ",$00	; string
-	dc.b "sell ",$00	; string
-	dc.b "He can't pour %r on that.",$00	; string
-	dc.b "Better pick it up first.",$00	; string
+	dc.b "give ",$00
+	dc.b "sell ",$00
+	dc.b "He can't pour %r on that.",$00
+	dc.b "Better pick it up first.",$00
 	dc.b $00,$25
-	dc.b "r isn't very handy.",$00	; string
+	dc.b "r isn't very handy.",$00
 	dc.b $00
-	dc.b "Eat %r? Les doesn't like to eat things of that color or texture.",$00	; string
+	dc.b "Eat %r? Les doesn't like to eat things of that color or texture.",$00
 	dc.b $00
-	dc.b "You're not holding %r.",$00	; string
+	dc.b "You're not holding %r.",$00
 	dc.b $00,$28,$47,$75,$6C,$70,$29,$00,$00
-	dc.b "That would be a little tough for him to drink.",$00	; string
+	dc.b "That would be a little tough for him to drink.",$00
 	dc.b $00
-	dc.b "He tastes %r but think better of it.",$00	; string
+	dc.b "He tastes %r but think better of it.",$00
 	dc.b $00
-	dc.b "Ok. Sip. Slurp. Dribble. Burp.",$00	; string
+	dc.b "Ok. Sip. Slurp. Dribble. Burp.",$00
 	dc.b $00
-	dc.b "I don't think %r would enjoy %r.",$00	; string
+	dc.b "I don't think %r would enjoy %r.",$00
 	dc.b $00,$46,$65,$64,$2E,$00,$00
-	dc.b "Les can't wear it if he's not holding it.",$00	; string
-	dc.b "He can't wear %r.",$00	; string
-	dc.b "Les is now wearing %r.",$00	; string
+	dc.b "Les can't wear it if he's not holding it.",$00
+	dc.b "He can't wear %r.",$00
+	dc.b "Les is now wearing %r.",$00
 	dc.b $00
-	dc.b "I think you've got Les confused with that other guy.",$00	; string
+	dc.b "I think you've got Les confused with that other guy.",$00
 	dc.b $00
-	dc.b "Naw...leave it on.",$00	; string
+	dc.b "Naw...leave it on.",$00
 	dc.b $00
-	dc.b "You can't shake it if you can't take it.",$00	; string
+	dc.b "You can't shake it if you can't take it.",$00
 	dc.b $00
-	dc.b "He shakes %r for all he's worth.",$00	; string
+	dc.b "He shakes %r for all he's worth.",$00
 	dc.b $00
-	dc.b "Sounds pretty empty to me.",$00	; string
+	dc.b "Sounds pretty empty to me.",$00
 	dc.b $00
-	dc.b "Hmmm. There's something inside there...",$00	; string
-	dc.b "He shakes the empty %r but nothing happens.",$00	; string
-	dc.b "Everything in %r falls to the ground.",$00	; string
+	dc.b "Hmmm. There's something inside there...",$00
+	dc.b "He shakes the empty %r but nothing happens.",$00
+	dc.b "Everything in %r falls to the ground.",$00
 	dc.b $28,$77,$69,$74,$68,$20,$68,$69,$73,$20,$68,$61,$6E,$64,$73,$29
 	dc.b $0A,$00
-	dc.b "He'll have to close it first.",$00	; string
+	dc.b "He'll have to close it first.",$00
 	dc.b $28,$75,$73,$69,$6E,$67,$20,$6F,$6E,$6C,$79,$20,$68,$69,$73,$20
 	dc.b $68,$61,$6E,$64,$73,$29,$0A,$00,$25,$72,$20,$69,$73,$6E,$27,$74
 	dc.b $20,$6C,$6F,$63,$6B,$65,$64,$21,$00,$00
-	dc.b "close that.",$00	; string
-	dc.b "close a ",$00	; string
+	dc.b "close that.",$00
+	dc.b "close a ",$00
 	dc.b $00,$43,$6C,$6F,$73,$65,$64,$2E,$00
-	dc.b "open that.",$00	; string
+	dc.b "open that.",$00
 	dc.b $00,$6F,$70,$65,$6E,$20,$00
-	dc.b "It's locked.",$00	; string
+	dc.b "It's locked.",$00
 	dc.b $00,$4F,$70,$65,$6E,$65,$64,$2E,$00
-	dc.b "turn that.",$00	; string
+	dc.b "turn that.",$00
 	dc.b $00
-	dc.b "turn a ",$00	; string
-	dc.b "You can't set %r.",$00	; string
-	dc.b "It's fine the way it is.",$00	; string
+	dc.b "turn a ",$00
+	dc.b "You can't set %r.",$00
+	dc.b "It's fine the way it is.",$00
 	dc.b $00,$73,$77,$69,$6D,$00,$00,$73,$6B,$69,$00,$66,$6C,$79,$00
-	dc.b "It's not really necessary.",$00	; string
+	dc.b "It's not really necessary.",$00
 	dc.b $00
-	dc.b "Because.",$00	; string
+	dc.b "Because.",$00
 	dc.b $00
-	dc.b "Les only sleeps in his own bed.",$00	; string
-	dc.b "Hi. Nice weather we've been having.",$00	; string
-	dc.b "Going somewhere?",$00	; string
+	dc.b "Les only sleeps in his own bed.",$00
+	dc.b "Hi. Nice weather we've been having.",$00
+	dc.b "Going somewhere?",$00
 	dc.b $00,$45,$65,$65,$70,$21,$00,$22,$59,$6F,$75,$20,$61,$69,$6E,$27
 	dc.b $74,$20,$6E,$6F,$74,$68,$69,$6E,$27,$20,$62,$75,$74,$20,$61,$20
 	dc.b $63,$6F,$72,$6E,$20,$64,$6F,$67,$2E,$2E,$2E,$22,$00,$22,$48,$6D
@@ -8661,43 +8661,43 @@ loc_6_000005A4:
 	dc.b $00,$66,$65,$65,$6C,$73,$00,$74,$61,$73,$74,$65,$73,$00,$00,$73
 	dc.b $6D,$65,$6C,$6C,$73,$00,$00,$25,$72,$20,$6D,$61,$6B,$65,$73,$20
 	dc.b $6E,$6F,$20,$6E,$6F,$69,$73,$65,$2E,$00,$00
-	dc.b "YOU hear what LES hears.",$00	; string
+	dc.b "YOU hear what LES hears.",$00
 	dc.b $00
-	dc.b "#$%&@ you, too.",$00	; string
+	dc.b "#$%&@ you, too.",$00
 	dc.b $6E,$6F,$74,$2E,$00,$00
-	dc.b "OK. Put your lips up to the screen.",$00	; string
-	dc.b "You're busy playing this game.",$00	; string
+	dc.b "OK. Put your lips up to the screen.",$00
+	dc.b "You're busy playing this game.",$00
 	dc.b $00
-	dc.b "Moving %r reveals nothing.",$00	; string
+	dc.b "Moving %r reveals nothing.",$00
 	dc.b $00,$20
-	dc.b "doesn't appear to want to talk right now.",$00	; string
+	dc.b "doesn't appear to want to talk right now.",$00
 	dc.b $00
-	dc.b "Ask about it yourself.",$00	; string
+	dc.b "Ask about it yourself.",$00
 	dc.b $00,$25
-	dc.b "r can't talk!",$00	; string
+	dc.b "r can't talk!",$00
 	dc.b $00
-	dc.b "I sincerely doubt %r is listening.",$00	; string
+	dc.b "I sincerely doubt %r is listening.",$00
 	dc.b $00,$25
-	dc.b "r says nothing.",$00	; string
+	dc.b "r says nothing.",$00
 	dc.b $00,$28,$74,$6F,$20,$00,$00,$25,$72,$29,$0A,$00,$00
-	dc.b "do that.",$00	; string
+	dc.b "do that.",$00
 	dc.b $00,$77,$61,$6B,$65,$20,$00
-	dc.b "A little confused?",$00	; string
+	dc.b "A little confused?",$00
 	dc.b $00
-	dc.b "You're awake. Don't worry.",$00	; string
+	dc.b "You're awake. Don't worry.",$00
 	dc.b $00
-	dc.b "What makes you think that ",$00	; string
+	dc.b "What makes you think that ",$00
 	dc.b $00,$20
-	dc.b "is asleep?",$00	; string
-	dc.b "What are you after...Hit Points?",$00	; string
+	dc.b "is asleep?",$00
+	dc.b "What are you after...Hit Points?",$00
 	dc.b $00,$4B,$69,$63,$6B,$69,$6E,$67,$00
-	dc.b "You like to go your own way, Les.",$00	; string
+	dc.b "You like to go your own way, Les.",$00
 	dc.b $20,$66,$6C,$61,$67,$20,$69,$73,$20,$73,$65,$74,$2E,$00,$20,$66
 	dc.b $6C,$61,$67,$20,$69,$73,$20,$63,$6C,$65,$61,$72,$2E,$00,$20,$66
 	dc.b $6C,$61,$67,$20,$69,$73,$20,$6E,$6F,$77,$20,$73,$65,$74,$2E,$00
 	dc.b $20,$66,$6C,$61,$67,$20,$69,$73,$20,$6E,$6F,$77,$20,$63,$6C,$65
 	dc.b $61,$72,$2E,$00
-	dc.b "Error in Get_Spr_Attr v_moveit",$00	; string
+	dc.b "Error in Get_Spr_Attr v_moveit",$00
 	dc.b $00,$4D,$6F,$76,$65,$64,$00,$25,$72,$27,$73,$20,$6C,$6F,$63,$61
 	dc.b $74,$69,$6F,$6E,$20,$69,$73,$3A,$20,$25,$73,$0A,$00,$20,$78,$6C
 	dc.b $6F,$63,$20,$3D,$20,$25,$6E,$20,$20,$79,$6C,$6F,$63,$20,$3D,$20
@@ -9949,7 +9949,7 @@ loc_7_000000F6:
 loc_7_000000FA:
 	dc.b $75,$6E,$64,$65,$72,$00
 loc_7_00000100:
-	dc.b "through",$00	; string
+	dc.b "through",$00
 loc_7_00000108:
 	dc.b $69,$6E,$00,$00
 loc_7_0000010C:
@@ -9967,36 +9967,36 @@ loc_7_00000126:
 loc_7_0000012A:
 	dc.b $66,$6F,$72,$00
 loc_7_0000012E:
-	dc.b "behind",$00	; string
+	dc.b "behind",$00
 	dc.b $00
 loc_7_00000136:
 	dc.b $6F,$76,$65,$72,$00,$00
 loc_7_0000013C:
 	dc.b $2D,$0A
-	dc.b "on second thought...why don't you stick to slide 'n shoots",$00	; string
+	dc.b "on second thought...why don't you stick to slide 'n shoots",$00
 	dc.b $00,$64,$6E,$64,$2E,$73,$67,$6E,$00
 loc_7_00000182:
-	dc.b "The word "	; string
+	dc.b "The word "
 	dc.b $22,$25,$73,$22,$20
-	dc.b "isn't needed in this adventure.",$00	; string
+	dc.b "isn't needed in this adventure.",$00
 loc_7_000001B0:
-	dc.b "Could you run that one by me again?",$00	; string
+	dc.b "Could you run that one by me again?",$00
 loc_7_000001D4:
 	dc.b $48,$75,$68,$3F,$00,$00
 loc_7_000001DA:
 	dc.b $76,$65,$72,$62,$00,$00
 loc_7_000001E0:
-	dc.b "Was that sentence missing a %s?",$00	; string
+	dc.b "Was that sentence missing a %s?",$00
 loc_7_00000200:
 	dc.b $50,$30,$00,$00
 loc_7_00000204:
 	dc.b $2E,$00
 loc_7_00000206:
-	dc.b "Please. One verb at a time!",$00	; string
+	dc.b "Please. One verb at a time!",$00
 loc_7_00000222:
 	dc.b $44,$41,$30,$00
 loc_7_00000226:
-	dc.b "Pdebug: wd_type=%n"	; string
+	dc.b "Pdebug: wd_type=%n"
 	dc.b $0A,$00
 loc_7_0000023A:
 	dc.b $47,$49,$30,$00
@@ -10005,27 +10005,27 @@ loc_7_0000023E:
 loc_7_00000240:
 	dc.b $46,$57,$30,$00
 loc_7_00000244:
-	dc.b "I'm not sure who you mean.",$00	; string
+	dc.b "I'm not sure who you mean.",$00
 	dc.b $00
 loc_7_00000260:
-	dc.b "Now I'm really confused.",$00	; string
+	dc.b "Now I'm really confused.",$00
 	dc.b $00
 loc_7_0000027A:
-	dc.b "He's not holding it.",$00	; string
+	dc.b "He's not holding it.",$00
 	dc.b $00
 loc_7_00000290:
-	dc.b "Les is already holding it.",$00	; string
+	dc.b "Les is already holding it.",$00
 	dc.b $00
 loc_7_000002AC:
-	dc.b "I don't see that here.",$00	; string
+	dc.b "I don't see that here.",$00
 	dc.b $00
 loc_7_000002C4:
-	dc.b "Please be more specific.",$00	; string
+	dc.b "Please be more specific.",$00
 	dc.b $00
 loc_7_000002DE:
-	dc.b "Please be more specific."	; string
+	dc.b "Please be more specific."
 	dc.b $0A,$49,$20
-	dc.b "see the ",$00	; string
+	dc.b "see the ",$00
 loc_7_00000302:
 	dc.b $2C,$20,$00,$00
 loc_7_00000306:
@@ -10033,7 +10033,7 @@ loc_7_00000306:
 loc_7_0000030C:
 	dc.b $74,$68,$65,$20,$00,$00
 loc_7_00000312:
-	dc.b "What do you want to ",$00	; string
+	dc.b "What do you want to ",$00
 	dc.b $00
 loc_7_00000328:
 	dc.b $3F,$00
@@ -13028,15 +13028,15 @@ loc_8_00000044:
 	unlk a5
 	rts
 loc_8_0000004E:
-	dc.b "File access error",$00	; string
+	dc.b "File access error",$00
 loc_8_00000060:
-	dc.b "File position error",$00	; string
+	dc.b "File position error",$00
 loc_8_00000074:
 	dc.b $0A,$54,$68,$65,$72,$65,$20,$69,$73,$20,$00,$00
 loc_8_00000080:
 	dc.b $20,$68,$65,$72,$65,$2E,$00,$00
 loc_8_00000088:
-	dc.b " Sitting ",$00	; string
+	dc.b " Sitting ",$00
 loc_8_00000092:
 	dc.b $6F,$00
 loc_8_00000094:
@@ -13050,7 +13050,7 @@ loc_8_0000009E:
 loc_8_000000A4:
 	dc.b $20,$69,$73,$20,$00,$00
 loc_8_000000AA:
-	dc.b " holds ",$00	; string
+	dc.b " holds ",$00
 loc_8_000000B2:
 	dc.b $2E,$20,$00,$00
 loc_8_000000B6:
@@ -13060,115 +13060,115 @@ loc_8_000000B8:
 loc_8_000000BC:
 	dc.b $20,$00
 loc_8_000000BE:
-	dc.b " (being worn)",$00	; string
+	dc.b " (being worn)",$00
 loc_8_000000CC:
 	dc.b $20,$61,$6E,$64,$20,$00
 loc_8_000000D2:
 	dc.b $2C,$20,$00,$00
 loc_8_000000D6:
-	dc.b "Seems like you're already where you want to be.",$00	; string
+	dc.b "Seems like you're already where you want to be.",$00
 loc_8_00000106:
-	dc.b "You wouldn't fit ",$00	; string
+	dc.b "You wouldn't fit ",$00
 loc_8_00000118:
 	dc.b $6F,$6E,$00,$00
 loc_8_0000011C:
 	dc.b $69,$6E,$00,$00
 loc_8_00000120:
-	dc.b " there.",$00	; string
+	dc.b " there.",$00
 loc_8_00000128:
 	dc.b $20,$54,$68,$65,$20,$00
 loc_8_0000012E:
-	dc.b " %s is carrying ",$00	; string
+	dc.b " %s is carrying ",$00
 	dc.b $00
 loc_8_00000140:
 	dc.b $2E,$00
 loc_8_00000142:
-	dc.b "nothing.",$00	; string
+	dc.b "nothing.",$00
 	dc.b $00
-	dc.b "Verb V_STR1.",$00	; string
+	dc.b "Verb V_STR1.",$00
 	dc.b $00
-	dc.b "Verb V_STR2.",$00	; string
+	dc.b "Verb V_STR2.",$00
 	dc.b $00
-	dc.b "Verb V_STR3.",$00	; string
+	dc.b "Verb V_STR3.",$00
 	dc.b $00
-	dc.b "Verb V_STR4.",$00	; string
+	dc.b "Verb V_STR4.",$00
 	dc.b $00
-	dc.b "Verb V_STR5.",$00	; string
+	dc.b "Verb V_STR5.",$00
 	dc.b $00
-	dc.b "Verb V_STR6.",$00	; string
+	dc.b "Verb V_STR6.",$00
 	dc.b $00
 loc_8_000001A0:
 	dc.b $49,$74,$20,$00
 loc_8_000001A4:
-	dc.b " just like ",$00	; string
+	dc.b " just like ",$00
 loc_8_000001B0:
 	dc.b $61,$20,$00,$00
 loc_8_000001B4:
-	dc.b "%s %r has no effect.",$00	; string
+	dc.b "%s %r has no effect.",$00
 	dc.b $00
 loc_8_000001CA:
-	dc.b "Try typing the following: %s",$00	; string
+	dc.b "Try typing the following: %s",$00
 	dc.b $00
 loc_8_000001E8:
-	dc.b "I'd much rather %s.",$00	; string
+	dc.b "I'd much rather %s.",$00
 loc_8_000001FC:
 	dc.b $0A
-	dc.b "holds = %ld",$00	; string
+	dc.b "holds = %ld",$00
 	dc.b $00
 loc_8_0000020A:
 	dc.b $0A
-	dc.b "wt = %ld",$00	; string
+	dc.b "wt = %ld",$00
 loc_8_00000214:
-	dc.b "%r is in the %s. ",$00	; string
+	dc.b "%r is in the %s. ",$00
 loc_8_00000226:
-	dc.b "wearing",$00	; string
+	dc.b "wearing",$00
 loc_8_0000022E:
-	dc.b "holding",$00	; string
+	dc.b "holding",$00
 loc_8_00000236:
-	dc.b "You're already %s %r.",$00	; string
+	dc.b "You're already %s %r.",$00
 loc_8_0000024C:
-	dc.b "You'll have to drop something first.",$00	; string
+	dc.b "You'll have to drop something first.",$00
 	dc.b $00
 loc_8_00000272:
-	dc.b "You'd better stand up first.",$00	; string
+	dc.b "You'd better stand up first.",$00
 	dc.b $00
 loc_8_00000290:
-	dc.b "%r weighs too much.",$00	; string
+	dc.b "%r weighs too much.",$00
 loc_8_000002A4:
 	dc.b $0A
-	dc.b "strength = %ld",$00	; string
+	dc.b "strength = %ld",$00
 loc_8_000002B4:
-	dc.b "Your load will be too heavy.",$00	; string
+	dc.b "Your load will be too heavy.",$00
 	dc.b $00
 loc_8_000002D2:
-	dc.b "You can't ",$00	; string
+	dc.b "You can't ",$00
 	dc.b $00
 loc_8_000002DE:
-	dc.b "move ",$00	; string
+	dc.b "move ",$00
 loc_8_000002E4:
-	dc.b "take ",$00	; string
+	dc.b "take ",$00
 loc_8_000002EA:
-	dc.b "that",$00	; string
+	dc.b "that",$00
 	dc.b $00,$2C,$20,$6F,$6E,$20,$74,$68,$65,$20,$00,$2C,$20,$69,$6E,$20
 	dc.b $74,$68,$65,$20,$00,$25,$73,$2E,$00
 loc_8_00000308:
-	dc.b "Error in Get_Spr_Attr mini_take"	; string
+	dc.b "Error in Get_Spr_Attr mini_take"
 	dc.b $0A,$00,$00
 loc_8_0000032A:
-	dc.b "Ooops. Error in SetSprAttr mini_take"	; string
+	dc.b "Ooops. Error in SetSprAttr mini_take"
 	dc.b $0A,$00
 loc_8_00000350:
-	dc.b "Error in SetSprAttr mini_drop",$00	; string
+	dc.b "Error in SetSprAttr mini_drop",$00
 loc_8_0000036E:
-	dc.b "You can't %s%r to a ",$00	; string
+	dc.b "You can't %s%r to a ",$00
 	dc.b $00
 loc_8_00000384:
-	dc.b "Uhm...better check your inventory.",$00	; string
+	dc.b "Uhm...better check your inventory.",$00
 	dc.b $00
 loc_8_000003A8:
-	dc.b "You can't give it if you can't take it.",$00	; string
+	dc.b "You can't give it if you can't take it.",$00
 loc_8_000003D0:
-	dc.b "I don't think that ",$00	; string
+	dc.b "I don't think that ",$00
 loc_8_000003E4:
 	dc.b $74,$68,$65,$20,$00,$00
 loc_8_000003EA:
@@ -13176,23 +13176,23 @@ loc_8_000003EA:
 loc_8_000003F0:
 	dc.b $25,$72,$2E,$00
 loc_8_000003F4:
-	dc.b "I don't know who should get %r.",$00	; string
+	dc.b "I don't know who should get %r.",$00
 loc_8_00000414:
-	dc.b "(removing %r first)"	; string
+	dc.b "(removing %r first)"
 	dc.b $0A,$00,$00
 loc_8_0000042A:
 	dc.b $54,$68,$65,$20,$00,$00
 loc_8_00000430:
-	dc.b "%s gives ",$00	; string
+	dc.b "%s gives ",$00
 loc_8_0000043A:
-	dc.b "You %s",$00	; string
+	dc.b "You %s",$00
 	dc.b $00
 loc_8_00000442:
 	dc.b $25,$72,$20,$74,$6F,$20,$00,$00
 loc_8_0000044A:
 	dc.b $79,$6F,$75,$00
 loc_8_0000044E:
-	dc.b "%r doesn't have enough room.",$00	; string
+	dc.b "%r doesn't have enough room.",$00
 	dc.b $00
 loc_8_0000046C:
 	dc.b $22,$49,$27,$6C,$6C,$20,$6A,$75,$73,$74,$20,$64,$72,$6F,$70,$20
@@ -13202,24 +13202,24 @@ loc_8_0000046C:
 loc_8_0000049E:
 	dc.b $44,$6F,$6E,$65,$2E,$00
 loc_8_000004A4:
-	dc.b "I don't know how to %s",$00	; string
+	dc.b "I don't know how to %s",$00
 	dc.b $00
 loc_8_000004BC:
-	dc.b "Nothing happens.",$00	; string
+	dc.b "Nothing happens.",$00
 	dc.b $00
 loc_8_000004CE:
-	dc.b "You'd better pick it up first.",$00	; string
+	dc.b "You'd better pick it up first.",$00
 	dc.b $00
 loc_8_000004EE:
-	dc.b "You're not holding %r.",$00	; string
+	dc.b "You're not holding %r.",$00
 	dc.b $00
 loc_8_00000506:
-	dc.b "%r is already %s.",$00	; string
+	dc.b "%r is already %s.",$00
 loc_8_00000518:
-	dc.b "There's no one here!",$00	; string
+	dc.b "There's no one here!",$00
 	dc.b $00
 loc_8_0000052E:
-	dc.b "(Said to %r)"	; string
+	dc.b "(Said to %r)"
 	dc.b $0A,$00
 loc_8_0000053C:
 	link a5,#-20
@@ -15155,20 +15155,20 @@ loc_9_0000003E:
 	move.l (a7)+,d7
 	rts
 loc_9_00000048:
-	dc.b "Type Something"	; string
+	dc.b "Type Something"
 	dc.b $0A,$00
 loc_9_00000058:
-	dc.b "Enter New Directory"	; string
+	dc.b "Enter New Directory"
 	dc.b $0A,$00,$00
 loc_9_0000006E:
 	dc.b $0A,$6C
-	dc.b "en is %ld",$00	; string
+	dc.b "en is %ld",$00
 loc_9_0000007A:
 	dc.b $0A
-	dc.b "strlen is %ld",$00	; string
+	dc.b "strlen is %ld",$00
 	dc.b $00
 loc_9_0000008A:
-	dc.b "69 Format buffer overflow",$00	; string
+	dc.b "69 Format buffer overflow",$00
 loc_9_000000A4:
 	move.l a3,-(a7)
 	movea.l $0008(a7),a3
@@ -16482,7 +16482,7 @@ loc_10_00000048:
 loc_10_0000004C:
 	dc.b $0A,$68,$61,$6E,$64,$6C,$65,$20,$25,$6C,$64,$00
 loc_10_00000058:
-	dc.b " bkoffset %ld",$00	; string
+	dc.b " bkoffset %ld",$00
 loc_10_00000066:
 	dc.b $35,$00
 loc_10_00000068:
@@ -16509,24 +16509,24 @@ loc_10_00000086:
 	dc.b $31,$31,$00,$00
 loc_10_0000008A:
 	dc.b $0A
-	dc.b "closeup height = %ld",$00	; string
+	dc.b "closeup height = %ld",$00
 loc_10_000000A0:
 	dc.b $0A
-	dc.b "closeup width = %ld",$00	; string
+	dc.b "closeup width = %ld",$00
 	dc.b $00
 loc_10_000000B6:
 	dc.b $0A
-	dc.b "closeup size = %ld",$00	; string
+	dc.b "closeup size = %ld",$00
 loc_10_000000CA:
 	dc.b $2E,$70,$69,$63,$00,$00
 loc_10_000000D0:
 	dc.b $0A
-	dc.b "handle %ld assigned d-2 ",$00	; string
+	dc.b "handle %ld assigned d-2 ",$00
 loc_10_000000EA:
-	dc.b "for %s",$00	; string
+	dc.b "for %s",$00
 	dc.b $00
 loc_10_000000F2:
-	dc.b "Too many backgrounds",$00	; string
+	dc.b "Too many backgrounds",$00
 	dc.b $00
 loc_10_00000108:
 	dc.b $2E,$6D,$00,$00
@@ -16539,16 +16539,16 @@ loc_10_00000114:
 loc_10_00000118:
 	dc.b $0A,$20,$49,$20,$77,$61,$6E,$74,$20,$25,$6C,$64,$00,$00
 loc_10_00000126:
-	dc.b " to fit an addl %ld",$00	; string
+	dc.b " to fit an addl %ld",$00
 loc_10_0000013A:
-	dc.b "99 augh! not enough GRX area!",$00	; string
+	dc.b "99 augh! not enough GRX area!",$00
 loc_10_00000158:
-	dc.b "98 not enough ALTGX",$00	; string
+	dc.b "98 not enough ALTGX",$00
 loc_10_0000016C:
-	dc.b "augh! not enough ALT mem",$00	; string
+	dc.b "augh! not enough ALT mem",$00
 	dc.b $00
 loc_10_00000186:
-	dc.b "augh! not enough DOS mem",$00	; string
+	dc.b "augh! not enough DOS mem",$00
 	dc.b $00
 loc_10_000001A0:
 	jsr loc_10_00001606(pc)
@@ -18546,10 +18546,10 @@ loc_11_0000001E:
 	dc.b $31,$38,$00,$00
 loc_11_00000022:
 	dc.b $0A
-	dc.b "Max_handle_num = %ld",$00	; string
+	dc.b "Max_handle_num = %ld",$00
 loc_11_00000038:
 	dc.b $0A
-	dc.b "handle = %ld",$00	; string
+	dc.b "handle = %ld",$00
 loc_11_00000046:
 	dc.b $31,$39,$00,$00
 loc_11_0000004A:
@@ -19557,7 +19557,7 @@ loc_12_0000003C:
 loc_12_00000040:
 	dc.b $20,$20,$30,$20,$6F,$66,$20,$35,$30,$30,$00,$00
 loc_12_0000004C:
-	dc.b "SEARCH For THE KING",$00	; string
+	dc.b "SEARCH For THE KING",$00
 loc_12_00000060:
 	link a5,#-4
 	move.w #$1,-$1376(a4)
@@ -19967,59 +19967,59 @@ loc_13_0000027C:
 	dc.b $0A,$63,$6F,$75,$6C,$64,$6E,$27,$74,$20,$61,$6C,$6C,$6F,$63,$20
 	dc.b $73,$70,$61,$63,$65,$20,$66,$6F,$72,$20,$25,$73,$00,$00
 loc_13_0000029A:
-	dc.b " size %ld",$00	; string
+	dc.b " size %ld",$00
 loc_13_000002A4:
 	dc.b $42,$4D,$48,$44,$00,$00
 loc_13_000002AA:
 	dc.b $0A
-	dc.b "couldn't find BMHD in %s",$00	; string
+	dc.b "couldn't find BMHD in %s",$00
 loc_13_000002C4:
 	dc.b $42,$4F,$44,$59,$00,$00
 loc_13_000002CA:
 	dc.b $0A
-	dc.b "couldn't find BODY in %s",$00	; string
+	dc.b "couldn't find BODY in %s",$00
 loc_13_000002E4:
 	dc.b $43,$4D,$41,$50,$00,$00
 loc_13_000002EA:
 	dc.b $72,$62,$00,$00
 loc_13_000002EE:
 	dc.b $0A
-	dc.b "file %s was too big",$00	; string
+	dc.b "file %s was too big",$00
 	dc.b $00
 loc_13_00000304:
-	dc.b " length = %ld",$00	; string
+	dc.b " length = %ld",$00
 loc_13_00000312:
-	dc.b " expected %ld",$00	; string
+	dc.b " expected %ld",$00
 loc_13_00000320:
 	dc.b $32,$35,$00,$00
 loc_13_00000324:
-	dc.b "Insert ",$00	; string
+	dc.b "Insert ",$00
 loc_13_0000032C:
-	dc.b "Save Disk Into DF0:",$00	; string
+	dc.b "Save Disk Into DF0:",$00
 loc_13_00000340:
-	dc.b "Disk 1",$00	; string
+	dc.b "Disk 1",$00
 	dc.b $00
 loc_13_00000348:
-	dc.b "Change Disk",$00	; string
+	dc.b "Change Disk",$00
 loc_13_00000354:
-	dc.b "cudisk.pic",$00	; string
+	dc.b "cudisk.pic",$00
 	dc.b $00
 loc_13_00000360:
 	dc.b $44,$46,$30,$3A,$00,$00
 loc_13_00000366:
 	dc.b $44,$49,$53,$4B,$31,$3A,$00,$00
 loc_13_0000036E:
-	dc.b "DISK :",$00	; string
+	dc.b "DISK :",$00
 	dc.b $00
 loc_13_00000376:
 	dc.b $0A
-	dc.b "had some trouble with  %s",$00	; string
+	dc.b "had some trouble with  %s",$00
 	dc.b $00
 loc_13_00000392:
-	dc.b " width %ld",$00	; string
+	dc.b " width %ld",$00
 	dc.b $00
 loc_13_0000039E:
-	dc.b " height %ld",$00	; string
+	dc.b " height %ld",$00
 loc_13_000003AA:
 	dc.b $32,$36,$00,$00,$32,$37,$00,$00
 loc_13_000003B2:
@@ -20699,19 +20699,19 @@ loc_16_00000000:
 	unlk a5
 	rts
 loc_16_0000001C:
-	dc.b "font0.raw",$00	; string
+	dc.b "font0.raw",$00
 loc_16_00000026:
-	dc.b "font1.raw",$00	; string
+	dc.b "font1.raw",$00
 loc_16_00000030:
-	dc.b "font2.raw",$00	; string
+	dc.b "font2.raw",$00
 loc_16_0000003A:
 	dc.b $0A
-	dc.b "death in text",$00	; string
+	dc.b "death in text",$00
 	dc.b $00
 loc_16_0000004A:
 	dc.b $42,$4F,$44,$59,$00,$00
 loc_16_00000050:
-	dc.b "megadeth in text",$00	; string
+	dc.b "megadeth in text",$00
 	dc.b $00
 loc_16_00000062:
 	move.w -$2844(a4),d0
@@ -22189,30 +22189,30 @@ loc_17_000009DC:
 loc_17_000009E6:
 	dc.b $4F,$6B,$61,$79,$00,$00
 loc_17_000009EC:
-	dc.b "Change Disk",$00	; string
+	dc.b "Change Disk",$00
 loc_17_000009F8:
 	dc.b $6C,$6F,$61,$64,$00,$00
 loc_17_000009FE:
-	dc.b "load game",$00	; string
+	dc.b "load game",$00
 loc_17_00000A08:
-	dc.b "restore",$00	; string
+	dc.b "restore",$00
 loc_17_00000A10:
 	dc.b $73,$61,$76,$65,$00,$00
 loc_17_00000A16:
-	dc.b "save game",$00	; string
+	dc.b "save game",$00
 loc_17_00000A20:
 	dc.b $44,$69,$73,$6B,$00,$00
 loc_17_00000A26:
-	dc.b "*** Change Directory Error ***",$00	; string
+	dc.b "*** Change Directory Error ***",$00
 	dc.b $00
 loc_17_00000A46:
-	dc.b "Save Game",$00	; string
+	dc.b "Save Game",$00
 loc_17_00000A50:
-	dc.b "Load Game",$00	; string
+	dc.b "Load Game",$00
 loc_17_00000A5A:
 	dc.b $4C,$4F,$41,$44,$00,$00
 loc_17_00000A60:
-	dc.b "CANCEL",$00	; string
+	dc.b "CANCEL",$00
 	dc.b $00
 loc_17_00000A68:
 	dc.b $44,$49,$52,$00
@@ -22222,17 +22222,17 @@ loc_17_00000A72:
 	not.w $6C65(a1)
 	dc.w $0000
 loc_17_00000A78:
-	dc.b "Sound",$00	; string
+	dc.b "Sound",$00
 loc_17_00000A7E:
-	dc.b "Speed",$00	; string
+	dc.b "Speed",$00
 loc_17_00000A84:
-	dc.b "Help",$00	; string
+	dc.b "Help",$00
 	dc.b $00
 loc_17_00000A8A:
-	dc.b "Cancel",$00	; string
+	dc.b "Cancel",$00
 	dc.b $00
 loc_17_00000A92:
-	dc.b "Restart",$00	; string
+	dc.b "Restart",$00
 loc_17_00000A9A:
 	dc.b $4C,$6F,$61,$64,$00,$00
 loc_17_00000AA0:
@@ -22273,18 +22273,18 @@ loc_17_00000AE0:
 	bcs.b loc_17_00000B58
 	dc.b $75,$00
 loc_17_00000AEC:
-	dc.b "File M"	; string
+	dc.b "File M"
 loc_17_00000AF2:
 	bcs.b loc_17_00000B62
 	dc.b $75,$00
 loc_17_00000AF6:
-	dc.b "restart",$00	; string
+	dc.b "restart",$00
 loc_17_00000AFE:
 	dc.b $71,$75,$69,$74,$00,$00
 loc_17_00000B04:
-	dc.b "Sound Control",$00	; string
+	dc.b "Sound Control",$00
 loc_17_00000B12:
-	dc.b "Speed Contro"	; string
+	dc.b "Speed Contro"
 loc_17_00000B1E:
 	dc.b $6C,$00
 loc_17_00000B20:
@@ -25317,12 +25317,12 @@ loc_21_00000018:
 loc_21_0000001C:
 	dc.b $33,$37,$00,$00
 loc_21_00000020:
-	dc.b "There's a lot here.",$00	; string
+	dc.b "There's a lot here.",$00
 	dc.b $6D,$65,$6D,$00
-	dc.b "Free memory: ",$00	; string
+	dc.b "Free memory: ",$00
 	dc.b $0A,$00
-	dc.b "Cur Sprites: ",$00	; string
-	dc.b "Max Sprites: ",$00	; string
+	dc.b "Cur Sprites: ",$00
+	dc.b "Max Sprites: ",$00
 loc_21_00000064:
 	tst.l $1D5C(a4)
 	beq.b loc_21_00000078
@@ -28780,13 +28780,13 @@ loc_24_00000062:
 	dc.b $20,$28,$63,$29,$20,$31,$39,$38,$39,$20,$41,$43,$43,$4F,$4C,$41
 	dc.b $44,$45,$20,$00
 loc_24_00000076:
-	dc.b "read header  Format buffer overflow",$00	; string
+	dc.b "read header  Format buffer overflow",$00
 loc_24_0000009A:
 	dc.b $3C,$77,$3E,$00
 loc_24_0000009E:
 	dc.b $3C,$63,$3E,$00
 loc_24_000000A2:
-	dc.b "BACKGROUND",$00	; string
+	dc.b "BACKGROUND",$00
 	dc.b $00
 loc_24_000000AE:
 	dc.b $39,$35,$00,$00
@@ -28795,13 +28795,13 @@ loc_24_000000B2:
 loc_24_000000B6:
 	dc.b $35,$37,$00,$00
 loc_24_000000BA:
-	dc.b "SPRITES",$00	; string
+	dc.b "SPRITES",$00
 loc_24_000000C2:
 	dc.b $35,$38,$00,$00
 loc_24_000000C6:
 	dc.b $35,$39,$00,$00
 loc_24_000000CA:
-	dc.b "CONDITIONS",$00	; string
+	dc.b "CONDITIONS",$00
 	dc.b $00
 loc_24_000000D6:
 	dc.b $36,$31,$00,$00
@@ -31233,7 +31233,7 @@ loc_25_00000000:
 	ext.w d0
 	rts
 loc_25_0000000E:
-	dc.b ".ODF (c) 1989 ACCOLADE ",$00	; string
+	dc.b ".ODF (c) 1989 ACCOLADE ",$00
 loc_25_00000026:
 	dc.b $2E,$6F,$64,$66,$00,$00
 loc_25_0000002C:
@@ -33346,7 +33346,7 @@ loc_27_00000070:
 loc_27_00000074:
 	dc.b $64,$70,$63,$00
 loc_27_00000078:
-	dc.b "skinel",$00	; string
+	dc.b "skinel",$00
 	dc.b $00
 loc_27_00000080:
 	dc.b $66,$61,$74,$65,$6C,$00
@@ -33925,71 +33925,71 @@ loc_29_00000054:
 	unlk a5
 	rts
 loc_29_00000058:
-	dc.b "The door's locked from the other side. (Besides, there's a more interesting way to get to the kitchen.)",$00	; string
+	dc.b "The door's locked from the other side. (Besides, there's a more interesting way to get to the kitchen.)",$00
 loc_29_000000C0:
-	dc.b "Fortunately, your body seems to have recovered from that trip just fine.",$00	; string
+	dc.b "Fortunately, your body seems to have recovered from that trip just fine.",$00
 	dc.b $00
 loc_29_0000010A:
-	dc.b "Unfortunately, the fumes have left your memory a bit hazy. Let's just hope that you didn't forget anything.",$00	; string
+	dc.b "Unfortunately, the fumes have left your memory a bit hazy. Let's just hope that you didn't forget anything.",$00
 loc_29_00000176:
-	dc.b "No need to.",$00	; string
+	dc.b "No need to.",$00
 loc_29_00000182:
-	dc.b "You don't have him.",$00	; string
+	dc.b "You don't have him.",$00
 loc_29_00000196:
-	dc.b "Hey Les...I know your desperate, but really!",$00	; string
+	dc.b "Hey Les...I know your desperate, but really!",$00
 	dc.b $00
 loc_29_000001C4:
-	dc.b "Try something smaller.",$00	; string
+	dc.b "Try something smaller.",$00
 	dc.b $00
 loc_29_000001DC:
-	dc.b "No...not THAT small.",$00	; string
+	dc.b "No...not THAT small.",$00
 	dc.b $00
 loc_29_000001F2:
-	dc.b "Mission accomplished. The alarm is now de-activated.",$00	; string
+	dc.b "Mission accomplished. The alarm is now de-activated.",$00
 	dc.b $00
 loc_29_00000228:
-	dc.b "This spot isn't too interesting.",$00	; string
+	dc.b "This spot isn't too interesting.",$00
 	dc.b $00
 loc_29_0000024A:
-	dc.b "Just get to where you're going, Les.",$00	; string
+	dc.b "Just get to where you're going, Les.",$00
 	dc.b $00
 loc_29_00000270:
 	dc.b $22,$4F,$4B,$2E,$20,$49,$74,$27,$73,$20,$74,$69,$6D,$65,$20,$74
 	dc.b $6F,$20,$72,$6F,$63,$6B,$20,$27,$6E,$20,$72,$6F,$6C,$6C,$2E,$22
 	dc.b $00,$00
 loc_29_00000292:
-	dc.b "Continue",$00	; string
+	dc.b "Continue",$00
 	dc.b $00
 loc_29_0000029C:
-	dc.b "What a shame. You made it all this way, only to perish, trampled under a mob of crazed fans. But while this is one ending, some believe in a hereafter.",$00	; string
+	dc.b "What a shame. You made it all this way, only to perish, trampled under a mob of crazed fans. But while this is one ending, some believe in a hereafter.",$00
 loc_29_00000334:
-	dc.b "                Darn                ",$00	; string
+	dc.b "                Darn                ",$00
 	dc.b $00
 loc_29_0000035A:
-	dc.b "Well, Les...at least you didn't come away empty handed.",$00	; string
+	dc.b "Well, Les...at least you didn't come away empty handed.",$00
 loc_29_00000392:
-	dc.b "As a consolation prize, the gates to "	; string
+	dc.b "As a consolation prize, the gates to "
 	dc.b $22,$54,$68,$65,$20,$4B,$69,$6E,$67,$64,$6F,$6D,$22,$20,$68,$61
 	dc.b $76,$65,$20,$62,$65,$65,$6E,$20,$6F,$70,$65,$6E,$65,$64,$20,$65
 	dc.b $73,$70,$65,$63,$69,$61,$6C,$6C,$79,$20,$66,$6F,$72,$20,$79,$6F
 	dc.b $75,$2E,$00
 loc_29_000003EA:
-	dc.b "You're not quite ready.",$00	; string
+	dc.b "You're not quite ready.",$00
 loc_29_00000402:
-	dc.b "What pole?",$00	; string
+	dc.b "What pole?",$00
 	dc.b $00
 loc_29_0000040E:
-	dc.b "qwa kitchn",$00	; string
+	dc.b "qwa kitchn",$00
 	dc.b $00
 loc_29_0000041A:
-	dc.b "Opened.",$00	; string
+	dc.b "Opened.",$00
 loc_29_00000422:
-	dc.b "I don't see it.",$00	; string
+	dc.b "I don't see it.",$00
 loc_29_00000432:
-	dc.b "Ah ha!",$00	; string
+	dc.b "Ah ha!",$00
 	dc.b $00
 loc_29_0000043A:
-	dc.b "You don't see anything from where you are.",$00	; string
+	dc.b "You don't see anything from where you are.",$00
 	dc.b $00
 loc_29_00000466:
 	dc.b $22,$4F,$68,$2C,$20,$6C,$6F,$6F,$6B,$2E,$20,$42,$72,$65,$61,$64
@@ -33997,13 +33997,13 @@ loc_29_00000466:
 	dc.b $20,$62,$65,$65,$6E,$20,$6C,$6F,$6F,$6B,$69,$6E,$67,$20,$66,$6F
 	dc.b $72,$21,$22,$00
 loc_29_0000049A:
-	dc.b "Thanks.",$00	; string
+	dc.b "Thanks.",$00
 loc_29_000004A2:
-	dc.b "You've had enough fun for awhile, Les.",$00	; string
+	dc.b "You've had enough fun for awhile, Les.",$00
 	dc.b $00
 loc_29_000004CA:
-	dc.b "The stairs might be easier.",$00	; string
-	dc.b "From here?",$00	; string
+	dc.b "The stairs might be easier.",$00
+	dc.b "From here?",$00
 	dc.b $00
 loc_29_000004F2:
 	dc.b $22,$54,$68,$61,$6E,$6B,$20,$79,$6F,$75,$20,$76,$65,$72,$79,$20
@@ -35881,40 +35881,40 @@ loc_30_00000030:
 	moveq.l #0,d0
 	rts
 loc_30_00000034:
-	dc.b "cuca.pic",$00	; string
+	dc.b "cuca.pic",$00
 	dc.b $00
 loc_30_0000003E:
-	dc.b "cucb.pic",$00	; string
+	dc.b "cucb.pic",$00
 	dc.b $00
 loc_30_00000048:
-	dc.b "cucc.pic",$00	; string
+	dc.b "cucc.pic",$00
 	dc.b $00
 loc_30_00000052:
-	dc.b "cucd.pic",$00	; string
+	dc.b "cucd.pic",$00
 	dc.b $00
 loc_30_0000005C:
-	dc.b "cuce.pic",$00	; string
+	dc.b "cuce.pic",$00
 	dc.b $00
 loc_30_00000066:
-	dc.b "cucf.pic",$00	; string
+	dc.b "cucf.pic",$00
 	dc.b $00
 loc_30_00000070:
-	dc.b "cucg.pic",$00	; string
+	dc.b "cucg.pic",$00
 	dc.b $00
 loc_30_0000007A:
-	dc.b "cuch.pic",$00	; string
+	dc.b "cuch.pic",$00
 	dc.b $00
 loc_30_00000084:
-	dc.b "cuci.pic",$00	; string
+	dc.b "cuci.pic",$00
 	dc.b $00
 loc_30_0000008E:
-	dc.b "cucj.pic",$00	; string
+	dc.b "cucj.pic",$00
 	dc.b $00
 loc_30_00000098:
-	dc.b "cuck.pic",$00	; string
+	dc.b "cuck.pic",$00
 	dc.b $00
 loc_30_000000A2:
-	dc.b "cucl.pic",$00	; string
+	dc.b "cucl.pic",$00
 	dc.b $00
 loc_30_000000AC:
 	subq.w #1,$6F77(a0)
@@ -35929,7 +35929,7 @@ loc_30_000000B4:
 loc_30_000000C2:
 	dc.b $4C,$65,$73,$00
 loc_30_000000C6:
-	dc.b "Stella",$00	; string
+	dc.b "Stella",$00
 	dc.b $00
 loc_30_000000CE:
 	clr.w $6E(a5,d7.w*2)
@@ -35943,14 +35943,14 @@ loc_30_000000DE:
 	bhi.b loc_30_00000144
 	dc.b $69,$00
 loc_30_000000E4:
-	dc.b "Helmut",$00	; string
+	dc.b "Helmut",$00
 	dc.b $00
 loc_30_000000EC:
-	dc.b "Luigi",$00	; string
+	dc.b "Luigi",$00
 loc_30_000000F2:
-	dc.b "Alona",$00	; string
+	dc.b "Alona",$00
 loc_30_000000F8:
-	dc.b "Fred",$00	; string
+	dc.b "Fred",$00
 	dc.b $00
 loc_30_000000FE:
 	dc.b $4C,$79,$6C,$61,$00,$00
@@ -35962,19 +35962,19 @@ loc_30_0000010E:
 	addq.w #3,$746F(a1)
 	dc.w $0000
 loc_30_00000114:
-	dc.b "Office",$00	; string
+	dc.b "Office",$00
 	dc.b $00
 loc_30_0000011C:
 	dc.b $48,$61,$6C,$6C,$00,$00
 loc_30_00000122:
 	dc.b $4C,$6F,$62,$62,$79,$00
 loc_30_00000128:
-	dc.b "Street",$00	; string
+	dc.b "Street",$00
 	dc.b $00
 loc_30_00000130:
 	dc.b $4C,$6F,$74,$00
 loc_30_00000134:
-	dc.b "Apartment",$00	; string
+	dc.b "Apartment",$00
 loc_30_0000013E:
 	subq.w #3,-(a1)
 	dc.b $67,$6F,$6E,$00
@@ -35983,7 +35983,7 @@ loc_30_00000144:
 	bgt.b loc_30_000001BC
 	dc.w $0000
 loc_30_0000014A:
-	dc.b "Desert",$00	; string
+	dc.b "Desert",$00
 	dc.b $00
 loc_30_00000152:
 	addq.w #8,$6F6C(a7)
@@ -35993,15 +35993,15 @@ loc_30_00000158:
 	bvs.b loc_30_000001D0
 	dc.b $65,$00
 loc_30_0000015E:
-	dc.b "Kingdom",$00	; string
+	dc.b "Kingdom",$00
 loc_30_00000166:
-	dc.b "Hmm...you don't seem to be the techno-weenie you claim to be.",$00	; string
+	dc.b "Hmm...you don't seem to be the techno-weenie you claim to be.",$00
 loc_30_000001A4:
-	dc.b "     GEE...WE ALMOST FOR"	; string
+	dc.b "     GEE...WE ALMOST FOR"
 loc_30_000001BC:
 	dc.b $47,$4F,$54,$21,$00,$00
 loc_30_000001C2:
-	dc.b "Line up these "	; string
+	dc.b "Line up these "
 loc_30_000001D0:
 	moveq.l #104,d2
 	moveq.l #101,d1
@@ -36015,7 +36015,7 @@ loc_30_000001F6:
 	beq.b loc_30_0000021C
 	dc.b $63,$6F,$64,$65,$77,$68,$65,$65,$6C,$0A,$00,$00
 loc_30_00000208:
-	dc.b "Think about this car"	; string
+	dc.b "Think about this car"
 loc_30_0000021C:
 	bcs.b loc_30_00000284
 	dc.b $75,$6C,$6C,$79,$2C,$20,$79,$6F,$75,$72,$20,$0A,$66,$75,$74,$75
@@ -36042,7 +36042,7 @@ loc_30_00000278:
 	moveq.l #104,d2
 	bcs.b loc_30_000002A4
 loc_30_00000284:
-	dc.b "number above the word:",$00	; string
+	dc.b "number above the word:",$00
 	dc.b $00
 loc_30_0000029C:
 	dc.b $0A,$54,$68,$65
@@ -36054,7 +36054,7 @@ loc_30_000002A4:
 	ble.b loc_30_000002CA
 	dc.b $6E,$75,$6D,$62,$65,$72,$73,$20,$64,$6F,$6E,$27,$74,$20,$65,$71
 loc_30_000002BA:
-	dc.b "ual one another",$00	; string
+	dc.b "ual one another",$00
 loc_30_000002CA:
 	movea.l (a1)+,a0
 	dc.b $65,$73,$20,$00
@@ -36071,7 +36071,7 @@ loc_30_000002D6:
 loc_30_000002E8:
 	move.l d0,d0
 loc_30_000002EA:
-	dc.b "I've seen "	; string
+	dc.b "I've seen "
 loc_30_000002F4:
 	bsr.b loc_30_00000362
 	bge.b loc_30_00000318
@@ -36079,18 +36079,18 @@ loc_30_000002F4:
 	dc.b $69,$73,$20,$73,$74,$75,$66,$66,$20,$62,$65,$66,$6F,$72,$65,$2E
 	dc.b $00,$00
 loc_30_0000030C:
-	dc.b "        INTR"	; string
+	dc.b "        INTR"
 loc_30_00000318:
-	dc.b "ODUCTION        ",$00	; string
+	dc.b "ODUCTION        ",$00
 	dc.b $00
 loc_30_0000032A:
-	dc.b "stlwlk",$00	; string
+	dc.b "stlwlk",$00
 	dc.b $00
 loc_30_00000332:
-	dc.b "stlhar",$00	; string
+	dc.b "stlhar",$00
 	dc.b $00
 loc_30_0000033A:
-	dc.b "stldrn",$00	; string
+	dc.b "stldrn",$00
 	dc.b $00
 loc_30_00000342:
 	dc.b $22,$41,$6E,$64,$20,$6E,$6F,$77
@@ -36099,17 +36099,17 @@ loc_30_0000034A:
 	dc.b $61,$63,$6B,$20,$74,$6F,$20,$6F,$75,$72,$20,$72,$65,$67,$75,$6C
 	dc.b $61,$72,$6C,$79
 loc_30_00000362:
-	dc.b " scheduled game."	; string
+	dc.b " scheduled game."
 	dc.b $22,$00
 loc_30_00000374:
-	dc.b "You're not holding %r",$00	; string
+	dc.b "You're not holding %r",$00
 loc_30_0000038A:
-	dc.b "%r has been mailed.",$00	; string
+	dc.b "%r has been mailed.",$00
 loc_30_0000039E:
-	dc.b "letter",$00	; string
+	dc.b "letter",$00
 	dc.b $00
 loc_30_000003A6:
-	dc.b "reflct",$00	; string
+	dc.b "reflct",$00
 	dc.b $00
 loc_30_000003AE:
 	dc.b $22,$59,$6F,$75,$20,$65,$6E,$6A,$6F,$79,$20,$74,$68,$61,$74,$20
@@ -36117,9 +36117,9 @@ loc_30_000003AE:
 	dc.b $74,$68,$69,$6E,$67,$73,$20,$63,$61,$6E,$20,$63,$6F,$6D,$65,$20
 	dc.b $66,$72,$6F,$6D,$20,$69,$74,$2E,$22,$00
 loc_30_000003E8:
-	dc.b "Bobbi's probably in no condition to come to the door.",$00	; string
+	dc.b "Bobbi's probably in no condition to come to the door.",$00
 loc_30_0000041E:
-	dc.b "It won't fit under the door.",$00	; string
+	dc.b "It won't fit under the door.",$00
 	dc.b $00
 loc_30_0000043C:
 	movea.l (a4),a1
@@ -36226,7 +36226,7 @@ loc_30_000006A8:
 	dc.b $6D,$61,$6B,$65,$20,$79,$6F,$75,$20,$6E,$65,$72,$76,$6F,$75,$73
 	dc.b $20,$61,$6E,$64,$20,$63,$6C,$75,$6D,$73,$79,$2E,$00,$00
 loc_30_000006EE:
-	dc.b "I don't see any soda here.",$00	; string
+	dc.b "I don't see any soda here.",$00
 	dc.b $00
 loc_30_0000070A:
 	addq.w #2,$6572(a0)
@@ -36241,7 +36241,7 @@ loc_30_00000732:
 	dc.b $79,$6F,$75,$20,$73,$65,$65,$6D,$20,$74,$6F,$20,$62,$65,$20,$67
 	dc.b $65,$74,$74,$69,$6E,$67,$20,$6E,$6F,$77,$68,$65,$72,$65,$20,$66
 loc_30_00000758:
-	dc.b "ast, you decide to make yourself comfortab"	; string
+	dc.b "ast, you decide to make yourself comfortab"
 loc_30_00000782:
 	dc.b $6C,$65,$2E,$00
 loc_30_00000786:
@@ -36266,12 +36266,12 @@ loc_30_000007AC:
 loc_30_000007B6:
 	bsr.b loc_30_00000820
 loc_30_000007B8:
-	dc.b "ead young man. Make your"	; string
+	dc.b "ead young man. Make your"
 loc_30_000007D0:
-	dc.b "self comfortable."	; string
+	dc.b "self comfortable."
 	dc.b $22,$00,$00
 loc_30_000007E4:
-	dc.b "If you really wa"	; string
+	dc.b "If you really wa"
 loc_30_000007F4:
 	bgt.b loc_30_0000086A
 	dc.b $20,$74
@@ -36280,7 +36280,7 @@ loc_30_000007F8:
 	dc.b $6C,$65,$61,$76,$65,$2C,$20,$6A,$75,$73,$74,$20,$74,$79,$70,$65
 	dc.b $20,$4C,$45,$41,$56,$45,$2E,$00
 loc_30_00000812:
-	dc.b "(But she"	; string
+	dc.b "(But she"
 loc_30_0000081A:
 	movea.l $6F(a0,d7.w*2),a0
 	dc.b $62,$61
@@ -36289,7 +36289,7 @@ loc_30_00000820:
 	dc.b $79,$20,$77,$6F,$6E,$27,$74,$20,$6C,$65,$74,$20,$79,$6F,$75,$20
 	dc.b $69,$6E,$20,$61,$67,$61,$69,$6E,$2E,$29,$00,$00
 loc_30_0000083E:
-	dc.b "qwa nyapta",$00	; string
+	dc.b "qwa nyapta",$00
 	dc.b $00
 loc_30_0000084A:
 	dc.b $41,$67,$61,$69,$6E,$3F,$00,$00
@@ -36304,7 +36304,7 @@ loc_30_0000086A:
 	dc.b $6F,$77,$6E,$2C,$20,$64,$6F,$6E,$27,$74,$20,$79,$6F,$75,$20,$77
 	dc.b $61,$6E,$74,$20,$6D,$65,$20,$74,$6F,$20,$73,$68
 loc_30_0000088E:
-	dc.b "ow you something?"	; string
+	dc.b "ow you something?"
 	dc.b $22,$00,$00
 loc_30_000008A2:
 	subq.w #1,-(a3)
@@ -36319,7 +36319,7 @@ loc_30_000008B0:
 loc_30_000008BA:
 	dc.b $4F,$6F,$70,$73,$00,$00
 loc_30_000008C0:
-	dc.b "curpin.pic",$00	; string
+	dc.b "curpin.pic",$00
 	dc.b $00
 loc_30_000008CC:
 	dc.b $64,$72,$6F,$70,$00,$00
@@ -36475,7 +36475,7 @@ loc_30_00000B9C:
 	moveq.l #110,d1
 	dc.b $65,$79,$20,$68
 loc_30_00000BA6:
-	dc.b "as advised m"	; string
+	dc.b "as advised m"
 loc_30_00000BB2:
 	bcs.b loc_30_00000BD4
 	moveq.l #111,d2
@@ -36485,7 +36485,7 @@ loc_30_00000BB2:
 loc_30_00000BC6:
 	dc.b $22,$59
 loc_30_00000BC8:
-	dc.b "ou're not au"	; string
+	dc.b "ou're not au"
 loc_30_00000BD4:
 	moveq.l #104,d2
 	ble.b loc_30_00000C4A
@@ -39690,12 +39690,12 @@ loc_31_0000002E:
 	unlk a5
 	rts
 loc_31_00000032:
-	dc.b "The walls hold up the ceiling.",$00	; string
+	dc.b "The walls hold up the ceiling.",$00
 	dc.b $00
 loc_31_00000052:
-	dc.b "Try doing it yourself, Les.",$00	; string
+	dc.b "Try doing it yourself, Les.",$00
 loc_31_0000006E:
-	dc.b "No. You're confusing Les with that other guy.",$00	; string
+	dc.b "No. You're confusing Les with that other guy.",$00
 loc_31_0000009C:
 	dc.b $22,$47,$65,$65,$2E,$2E,$2E,$49,$20,$74,$68,$69,$6E,$6B,$20,$49
 	dc.b $27,$6C,$6C,$20,$6D,$61,$6B,$65,$20,$6D,$65,$20,$61,$20,$73,$61
@@ -39708,76 +39708,76 @@ loc_31_000000C6:
 loc_31_000000F8:
 	dc.b $22,$59,$65,$74,$2E,$22,$00,$00
 loc_31_00000100:
-	dc.b "Taken.",$00	; string
+	dc.b "Taken.",$00
 	dc.b $00
 loc_31_00000108:
-	dc.b "You don't have the thermos.",$00	; string
+	dc.b "You don't have the thermos.",$00
 loc_31_00000124:
-	dc.b "It's full.",$00	; string
+	dc.b "It's full.",$00
 	dc.b $00
 loc_31_00000130:
-	dc.b "That might be difficult.",$00	; string
+	dc.b "That might be difficult.",$00
 	dc.b $00
 loc_31_0000014A:
-	dc.b "Glug glug glug.",$00	; string
+	dc.b "Glug glug glug.",$00
 loc_31_0000015A:
-	dc.b "(I think Helmut drowned.)",$00	; string
+	dc.b "(I think Helmut drowned.)",$00
 loc_31_00000174:
-	dc.b "At the moment, it would be difficult to fill.",$00	; string
+	dc.b "At the moment, it would be difficult to fill.",$00
 loc_31_000001A2:
-	dc.b "After all the trouble you went through to get your thermos filled, I don't think pouring it out on the floor is a good idea.",$00	; string
+	dc.b "After all the trouble you went through to get your thermos filled, I don't think pouring it out on the floor is a good idea.",$00
 	dc.b $00
 loc_31_00000220:
-	dc.b "Gulp. Gulp. Gulp. Gulp.",$00	; string
+	dc.b "Gulp. Gulp. Gulp. Gulp.",$00
 loc_31_00000238:
 	dc.b $28,$42,$75,$75,$75,$75,$72,$72,$72,$72,$72,$72,$70,$29,$00,$00
 loc_31_00000248:
-	dc.b "Well...since Fred here probably won't be needing it any longer, I suppose it's ok.",$00	; string
+	dc.b "Well...since Fred here probably won't be needing it any longer, I suppose it's ok.",$00
 	dc.b $00
 loc_31_0000029C:
-	dc.b "Helmut is too small to carry it.",$00	; string
+	dc.b "Helmut is too small to carry it.",$00
 	dc.b $00
 loc_31_000002BE:
-	dc.b "Remember Les, it's not always size that counts.",$00	; string
+	dc.b "Remember Les, it's not always size that counts.",$00
 loc_31_000002EE:
-	dc.b "Chomp chomp chomp.",$00	; string
+	dc.b "Chomp chomp chomp.",$00
 	dc.b $00
 loc_31_00000302:
-	dc.b "Helmut has been mailed.",$00	; string
+	dc.b "Helmut has been mailed.",$00
 loc_31_0000031A:
-	dc.b "Now you have a McHelmut sandwich.",$00	; string
+	dc.b "Now you have a McHelmut sandwich.",$00
 loc_31_0000033C:
-	dc.b "He used it.",$00	; string
+	dc.b "He used it.",$00
 loc_31_00000348:
-	dc.b "While Luigi is preoccupied, you quietly slip the rosin into your pocket.",$00	; string
+	dc.b "While Luigi is preoccupied, you quietly slip the rosin into your pocket.",$00
 	dc.b $00
 loc_31_00000392:
-	dc.b "It's not in view.",$00	; string
+	dc.b "It's not in view.",$00
 loc_31_000003A4:
-	dc.b "Careful, it's only good once.",$00	; string
+	dc.b "Careful, it's only good once.",$00
 loc_31_000003C2:
-	dc.b "Not while she's looking.",$00	; string
+	dc.b "Not while she's looking.",$00
 	dc.b $00
 loc_31_000003DC:
-	dc.b "Oh thatz zhutht great, now therth popcorn zthuck between my theethz.",$00	; string
+	dc.b "Oh thatz zhutht great, now therth popcorn zthuck between my theethz.",$00
 	dc.b $00
 loc_31_00000422:
-	dc.b "Careful...don't get it stuck between your teeth.",$00	; string
+	dc.b "Careful...don't get it stuck between your teeth.",$00
 	dc.b $00
 loc_31_00000454:
-	dc.b "Better keep it. Your old one may not be waiting for you.",$00	; string
+	dc.b "Better keep it. Your old one may not be waiting for you.",$00
 	dc.b $00
 loc_31_0000048E:
 	dc.b $48,$6D,$6D,$6D,$2E,$00
 loc_31_00000494:
-	dc.b "There's no one here.",$00	; string
+	dc.b "There's no one here.",$00
 	dc.b $00
 loc_31_000004AA:
 	dc.b $22,$59,$27,$61,$6C,$6C,$20,$72,$65,$61,$64,$79,$20,$64,$6F,$6E
 	dc.b $65,$20,$67,$6F,$74,$20,$74,$68,$65,$20,$6A,$6F,$62,$2C,$20,$62
 	dc.b $6F,$79,$2E,$22,$00,$00
 loc_31_000004D0:
-	dc.b "Everybody knows you have it.",$00	; string
+	dc.b "Everybody knows you have it.",$00
 	dc.b $00
 loc_31_000004EE:
 	dc.b $22,$59,$27,$61,$6C,$6C,$20,$61,$72,$65,$20,$67,$6F,$6E,$6E,$61
@@ -39788,33 +39788,33 @@ loc_31_00000516:
 	dc.b $2E,$2E,$2E,$79,$27,$61,$6C,$6C,$20,$64,$6F,$6E,$65,$20,$61,$20
 	dc.b $67,$6F,$6F,$64,$20,$6A,$6F,$62,$2E,$22,$00,$00
 loc_31_00000542:
-	dc.b "OK. Get to work.",$00	; string
+	dc.b "OK. Get to work.",$00
 	dc.b $00
 loc_31_00000554:
-	dc.b "pcshov",$00	; string
+	dc.b "pcshov",$00
 	dc.b $00
 loc_31_0000055C:
 	dc.b $64,$73,$68,$6F,$76,$00
 loc_31_00000562:
-	dc.b "You might need it later.",$00	; string
+	dc.b "You might need it later.",$00
 	dc.b $00
 loc_31_0000057C:
-	dc.b "Gee...now you've got some cool shades just like the ones HE used to wear!",$00	; string
+	dc.b "Gee...now you've got some cool shades just like the ones HE used to wear!",$00
 loc_31_000005C6:
-	dc.b "You'll have to figure out how to get to it.",$00	; string
+	dc.b "You'll have to figure out how to get to it.",$00
 loc_31_000005F2:
-	dc.b "You don't have the scarf.",$00	; string
+	dc.b "You don't have the scarf.",$00
 loc_31_0000060C:
-	dc.b "Not yet. Not now.",$00	; string
+	dc.b "Not yet. Not now.",$00
 loc_31_0000061E:
 	dc.b $22,$54,$68,$61,$74,$27,$73,$20,$6D,$79,$20,$70,$72,$69,$7A,$65
 	dc.b $64,$20,$70,$6F,$73,$73,$65,$73,$73,$69,$6F,$6E,$2E,$20,$49,$27
 	dc.b $64,$20,$64,$6F,$20,$61,$6E,$79,$74,$68,$69,$6E,$67,$20,$74,$6F
 	dc.b $20,$6B,$65,$65,$70,$20,$69,$74,$2E,$22,$00,$00
 loc_31_0000065A:
-	dc.b "This woman isn't likely to depart with her prized possession that easily.",$00	; string
+	dc.b "This woman isn't likely to depart with her prized possession that easily.",$00
 loc_31_000006A4:
-	dc.b "Now maybe you'll have a chance to put some of your own sweat stains on it.",$00	; string
+	dc.b "Now maybe you'll have a chance to put some of your own sweat stains on it.",$00
 	dc.b $00
 loc_31_000006F0:
 	dc.b $22,$53,$6C,$6F,$77,$20,$64,$6F,$77,$6E,$20,$74,$68,$65,$72,$65
@@ -39829,23 +39829,23 @@ loc_31_00000728:
 	dc.b $20,$49,$20,$67,$75,$65,$73,$73,$20,$69,$74,$27,$73,$20,$4F,$4B
 	dc.b $2E,$22,$00,$00
 loc_31_0000077C:
-	dc.b "You can't just 'take' it.",$00	; string
+	dc.b "You can't just 'take' it.",$00
 loc_31_00000796:
 	dc.b $22,$57,$65,$6C,$6C,$2C,$20,$73,$69,$6E,$63,$65,$20,$79,$6F,$75
 	dc.b $20,$68,$61,$64,$20,$74,$68,$65,$20,$72,$65,$63,$65,$69,$70,$74
 	dc.b $2C,$20,$69,$74,$20,$6D,$75,$73,$74,$20,$62,$65,$20,$79,$6F,$75
 	dc.b $72,$20,$73,$75,$69,$74,$2E,$22,$00,$00
 loc_31_000007D0:
-	dc.b "OK. Now no one will disturb you.",$00	; string
+	dc.b "OK. Now no one will disturb you.",$00
 	dc.b $00
 loc_31_000007F2:
-	dc.b "OK. It's back. I wish you'd make up your mind.",$00	; string
+	dc.b "OK. It's back. I wish you'd make up your mind.",$00
 	dc.b $00
 loc_31_00000822:
-	dc.b "You don't have it.",$00	; string
+	dc.b "You don't have it.",$00
 	dc.b $00
 loc_31_00000836:
-	dc.b "OK. Now what?",$00	; string
+	dc.b "OK. Now what?",$00
 loc_31_00000844:
 	dc.b $22,$4D,$61,$69,$64,$2D,$6F,$20,$53,$65,$72,$76,$69,$63,$65,$2D
 	dc.b $6F,$20,$70,$6F,$72,$20,$66,$61,$76,$6F,$72,$2E,$22,$00
@@ -39855,26 +39855,26 @@ loc_31_00000862:
 loc_31_0000087C:
 	dc.b $6D,$61,$69,$64,$62,$00
 loc_31_00000882:
-	dc.b "The maid seems upset.",$00	; string
+	dc.b "The maid seems upset.",$00
 loc_31_00000898:
 	dc.b $22,$41,$79,$20,$79,$69,$20,$79,$69,$21,$20,$54,$61,$6B,$65,$20
 	dc.b $74,$68,$61,$74,$2E,$2E,$59,$6F,$75,$20,$67,$65,$74,$20,$6D,$65
 	dc.b $20,$66,$69,$72,$65,$21,$22,$00
 loc_31_000008C0:
-	dc.b "With the stealth of a panther, you snatch the key from the maid's cart!",$00	; string
+	dc.b "With the stealth of a panther, you snatch the key from the maid's cart!",$00
 loc_31_00000908:
-	dc.b "You don't have the guitar.",$00	; string
+	dc.b "You don't have the guitar.",$00
 	dc.b $00
 loc_31_00000924:
-	dc.b "You don't have the dental floss.",$00	; string
+	dc.b "You don't have the dental floss.",$00
 	dc.b $00
 loc_31_00000946:
-	dc.b "If you take it, you'll set off the alarm.",$00	; string
+	dc.b "If you take it, you'll set off the alarm.",$00
 loc_31_00000970:
-	dc.b "Maybe you can fake it.",$00	; string
+	dc.b "Maybe you can fake it.",$00
 	dc.b $00
 loc_31_00000988:
-	dc.b "Maybe you can lip sync.",$00	; string
+	dc.b "Maybe you can lip sync.",$00
 loc_31_000009A0:
 	dc.b $22,$59,$6F,$75,$27,$72,$65,$20,$6E,$6F,$74,$20,$61,$75,$74,$68
 	dc.b $6F,$72,$69,$7A,$65,$64,$20,$74,$6F,$20,$62,$65,$20,$69,$6E,$20
@@ -39882,52 +39882,52 @@ loc_31_000009A0:
 	dc.b $6F,$73,$65,$20,$6B,$65,$79,$73,$20,$77,$6F,$75,$6C,$64,$20,$6C
 	dc.b $65,$74,$20,$79,$6F,$75,$20,$69,$6E,$74,$6F,$2E,$22,$00
 loc_31_000009EE:
-	dc.b "You sneaky devil. Got 'em while he wasn't looking...",$00	; string
+	dc.b "You sneaky devil. Got 'em while he wasn't looking...",$00
 	dc.b $00
 loc_31_00000A24:
-	dc.b "I mean while he WAS looking.",$00	; string
+	dc.b "I mean while he WAS looking.",$00
 	dc.b $00
 loc_31_00000A42:
-	dc.b "Careful, he might have seen you take them. ",$00	; string
+	dc.b "Careful, he might have seen you take them. ",$00
 loc_31_00000A6E:
-	dc.b "Your heart flutters at the sound of the unlocking mechanism.",$00	; string
+	dc.b "Your heart flutters at the sound of the unlocking mechanism.",$00
 	dc.b $00
 loc_31_00000AAC:
 	dc.b $22,$47,$65,$65,$2E,$2E,$2E,$49,$20,$77,$69,$73,$68,$20,$49,$20
 	dc.b $68,$61,$64,$20,$61,$20,$64,$72,$65,$61,$6D,$2E,$22,$00
 loc_31_00000ACA:
-	dc.b "I can't imagine what you want with someone else's dream, but it's yours now.",$00	; string
+	dc.b "I can't imagine what you want with someone else's dream, but it's yours now.",$00
 	dc.b $00
 loc_31_00000B18:
-	dc.b "From here?",$00	; string
+	dc.b "From here?",$00
 	dc.b $00
 loc_31_00000B24:
-	dc.b "You're not holding %r.",$00	; string
+	dc.b "You're not holding %r.",$00
 	dc.b $00
 loc_31_00000B3C:
-	dc.b "Nice try, Les.",$00	; string
+	dc.b "Nice try, Les.",$00
 	dc.b $00
 loc_31_00000B4C:
-	dc.b "Do whatever you want...just don't get it caught in the disk drive.",$00	; string
+	dc.b "Do whatever you want...just don't get it caught in the disk drive.",$00
 	dc.b $00
 loc_31_00000B90:
-	dc.b "Better backup your disk first.",$00	; string
+	dc.b "Better backup your disk first.",$00
 	dc.b $00
 loc_31_00000BB0:
-	dc.b "He'll never want to come back out.",$00	; string
+	dc.b "He'll never want to come back out.",$00
 	dc.b $00
 loc_31_00000BD4:
-	dc.b "Besides...you need him later in the game.",$00	; string
+	dc.b "Besides...you need him later in the game.",$00
 loc_31_00000BFE:
-	dc.b "You wish.",$00	; string
+	dc.b "You wish.",$00
 loc_31_00000C08:
-	dc.b "Get some counseling.",$00	; string
+	dc.b "Get some counseling.",$00
 	dc.b $00
 loc_31_00000C1E:
-	dc.b "qwa nyaptb",$00	; string
+	dc.b "qwa nyaptb",$00
 	dc.b $00
 loc_31_00000C2A:
-	dc.b "Les isn't exactly sure what you're referring to.",$00	; string
+	dc.b "Les isn't exactly sure what you're referring to.",$00
 	dc.b $00
 loc_31_00000C5C:
 	dc.b $20,$00
@@ -39936,18 +39936,18 @@ loc_31_00000C5E:
 loc_31_00000C62:
 	dc.b $44,$6F,$6E,$65,$2E,$00
 loc_31_00000C68:
-	dc.b "You're wearing it.",$00	; string
+	dc.b "You're wearing it.",$00
 	dc.b $00
 loc_31_00000C7C:
-	dc.b "Find a good place to change.",$00	; string
+	dc.b "Find a good place to change.",$00
 	dc.b $00
 loc_31_00000C9A:
-	dc.b "And lose the image you've worked so hard to project?",$00	; string
+	dc.b "And lose the image you've worked so hard to project?",$00
 	dc.b $00
 loc_31_00000CD0:
-	dc.b "Nope. It's part of the costume.",$00	; string
+	dc.b "Nope. It's part of the costume.",$00
 loc_31_00000CF0:
-	dc.b "Better not for right now.",$00	; string
+	dc.b "Better not for right now.",$00
 loc_31_00000D0A:
 	link a5,#0
 	move.w $0008(a5),d0
@@ -44605,35 +44605,35 @@ loc_32_0000003C:
 	unlk a5
 	rts
 loc_32_00000040:
-	dc.b "qwa cbigtent",$00	; string
+	dc.b "qwa cbigtent",$00
 	dc.b $00
 loc_32_0000004E:
-	dc.b "qwa twsm",$00	; string
+	dc.b "qwa twsm",$00
 	dc.b $00
 loc_32_00000058:
-	dc.b "qwa strman",$00	; string
+	dc.b "qwa strman",$00
 	dc.b $00
 loc_32_00000064:
-	dc.b "qwa gwagon",$00	; string
+	dc.b "qwa gwagon",$00
 	dc.b $00
 loc_32_00000070:
-	dc.b "Fred's real name is Frederick Von Leepov. He speaks no Englaise.",$00	; string
+	dc.b "Fred's real name is Frederick Von Leepov. He speaks no Englaise.",$00
 	dc.b $00
 loc_32_000000B2:
-	dc.b "Looks rather shallow.",$00	; string
+	dc.b "Looks rather shallow.",$00
 loc_32_000000C8:
-	dc.b "(Kinda like the assistant.)",$00	; string
+	dc.b "(Kinda like the assistant.)",$00
 loc_32_000000E4:
 	dc.b $22,$4F,$79,$20,$56,$65,$79,$21,$22,$00
 loc_32_000000EE:
 	dc.b $63,$61,$70,$65,$00,$00
 loc_32_000000F4:
-	dc.b "Maybe you should have been more careful of where you were going.",$00	; string
+	dc.b "Maybe you should have been more careful of where you were going.",$00
 	dc.b $00
 loc_32_00000136:
-	dc.b "Better let him do it.",$00	; string
+	dc.b "Better let him do it.",$00
 loc_32_0000014C:
-	dc.b "Can't you see he's pre-occupied?",$00	; string
+	dc.b "Can't you see he's pre-occupied?",$00
 	dc.b $00
 loc_32_0000016E:
 	dc.b $22,$49,$20,$64,$6F,$6E,$27,$74,$2D,$61,$20,$66,$65,$65,$6C,$20
@@ -44642,13 +44642,13 @@ loc_32_0000016E:
 loc_32_00000190:
 	dc.b $72,$6F,$73,$69,$6E,$00
 loc_32_00000196:
-	dc.b "He prefers to be called "	; string
+	dc.b "He prefers to be called "
 	dc.b $22,$48,$65,$6C,$6D,$75,$74,$22,$2E,$00
 loc_32_000001B8:
-	dc.b "Have you tried the arrow keys?",$00	; string
+	dc.b "Have you tried the arrow keys?",$00
 	dc.b $00
 loc_32_000001D8:
-	dc.b "Better get her attention first.",$00	; string
+	dc.b "Better get her attention first.",$00
 loc_32_000001F8:
 	dc.b $63,$66,$74,$00
 loc_32_000001FC:
@@ -44661,7 +44661,7 @@ loc_32_0000022C:
 	dc.b $22,$57,$68,$61,$74,$20,$69,$73,$20,$69,$74,$20,$74,$68,$61,$74
 	dc.b $20,$79,$6F,$75,$20,$77,$69,$73,$68,$3F,$22,$00
 loc_32_00000248:
-	dc.b "qwa nzarms",$00	; string
+	dc.b "qwa nzarms",$00
 	dc.b $00
 loc_32_00000254:
 	dc.b $22,$59,$6F,$75,$27,$6C,$6C,$20,$62,$65,$20,$67,$6F,$69,$6E,$67
@@ -44689,7 +44689,7 @@ loc_32_00000314:
 	dc.b $22,$54,$68,$65,$20,$72,$65,$73,$74,$20,$69,$73,$20,$75,$70,$20
 	dc.b $74,$6F,$20,$79,$6F,$75,$2C,$20,$4C,$65,$73,$2E,$22,$00
 loc_32_00000332:
-	dc.b "Madame stops you, saying: "	; string
+	dc.b "Madame stops you, saying: "
 	dc.b $22,$50,$6C,$65,$61,$73,$65,$20,$62,$65,$20,$73,$6F,$20,$6B,$69
 	dc.b $6E,$64,$20,$61,$73,$20,$74,$6F,$20,$6E,$6F,$74,$20,$66,$6F,$6E
 	dc.b $64,$6C,$65,$20,$6D,$79,$20,$70,$65,$74,$2E,$0A,$28,$42,$65,$73
@@ -44699,10 +44699,10 @@ loc_32_00000332:
 	dc.b $6F,$6E,$64,$6C,$65,$20,$69,$6E,$73,$74,$65,$61,$64,$3F,$29,$22
 	dc.b $00,$00
 loc_32_000003BE:
-	dc.b "It's dead.",$00	; string
+	dc.b "It's dead.",$00
 	dc.b $00
 loc_32_000003CA:
-	dc.b "(The lizard, I mean.)",$00	; string
+	dc.b "(The lizard, I mean.)",$00
 loc_32_000003E0:
 	addq.w #1,$6768(a1)
 	moveq.l #32,d2
@@ -44721,7 +44721,7 @@ loc_32_0000044C:
 	dc.b $49,$20,$65,$61,$74,$20,$74,$68,$69,$73,$2C,$20,$69,$74,$20,$77
 	dc.b $69,$6C,$6C,$20,$6A,$75,$73,$74,$20,$67,$65,$74,$20,$73,$74,$75
 loc_32_0000046E:
-	dc.b "ck between my teeth."	; string
+	dc.b "ck between my teeth."
 	dc.b $22,$00
 loc_32_00000484:
 	movea.l a1,a1
@@ -44735,13 +44735,13 @@ loc_32_000004BC:
 	dc.b $75,$63,$6B,$65,$64,$20,$6F,$75,$74,$20,$61,$67,$61,$69,$6E,$2C
 	dc.b $20,$4C,$65,$73,$2E,$29,$00,$00
 loc_32_000004D6:
-	dc.b "Better not.",$00	; string
+	dc.b "Better not.",$00
 loc_32_000004E2:
-	dc.b "Try dropping the jar.",$00	; string
+	dc.b "Try dropping the jar.",$00
 loc_32_000004F8:
-	dc.b "I don't believe that's what the lion wants.",$00	; string
+	dc.b "I don't believe that's what the lion wants.",$00
 loc_32_00000524:
-	dc.b "The lion has already been fed.",$00	; string
+	dc.b "The lion has already been fed.",$00
 	dc.b $00
 loc_32_00000544:
 	dc.b $22,$47,$65,$65,$2E,$2E,$2E,$50,$65,$61,$6E,$75,$74,$20,$62,$75
@@ -44751,7 +44751,7 @@ loc_32_00000544:
 	dc.b $75,$20,$74,$68,$61,$6E,$20,$72,$65,$64,$20,$6D,$65,$61,$74,$2E
 	dc.b $22,$00
 loc_32_00000596:
-	dc.b "Okay Les, but I hope you won't get hungry for a sandwich later on.",$00	; string
+	dc.b "Okay Les, but I hope you won't get hungry for a sandwich later on.",$00
 	dc.b $00
 loc_32_000005DA:
 	dc.b $22,$47,$65,$65,$2E,$2E,$2E,$49,$20,$64,$6F,$6E,$27,$74,$20,$68
@@ -44766,39 +44766,39 @@ loc_32_00000622:
 	dc.b $20,$68,$69,$6D,$21,$20,$4C,$65,$73,$20,$69,$73,$20,$62,$65,$69
 	dc.b $6E,$67,$20,$6D,$65,$61,$6E,$20,$74,$6F,$20,$6D,$65,$21,$22,$00
 loc_32_00000672:
-	dc.b "Well, you're a heartless brute. I sincerely hope you haven't given this lion a taste for human flesh.",$00	; string
+	dc.b "Well, you're a heartless brute. I sincerely hope you haven't given this lion a taste for human flesh.",$00
 loc_32_000006D8:
-	dc.b "To you, it looks like steak.",$00	; string
+	dc.b "To you, it looks like steak.",$00
 	dc.b $00
 loc_32_000006F6:
-	dc.b "(To the lion, it looks like you.)",$00	; string
+	dc.b "(To the lion, it looks like you.)",$00
 loc_32_00000718:
-	dc.b "Someone might swipe it!",$00	; string
+	dc.b "Someone might swipe it!",$00
 loc_32_00000730:
-	dc.b "You might be able to see more with a ticket. And since you don't have any money, getting one may take hard work.",$00	; string
+	dc.b "You might be able to see more with a ticket. And since you don't have any money, getting one may take hard work.",$00
 	dc.b $00
 loc_32_000007A2:
-	dc.b "You really shouldn't be here without a ticket, Les.",$00	; string
+	dc.b "You really shouldn't be here without a ticket, Les.",$00
 loc_32_000007D6:
-	dc.b "This spot doesn't look too interesting.",$00	; string
+	dc.b "This spot doesn't look too interesting.",$00
 loc_32_000007FE:
-	dc.b "The Col. is busy.",$00	; string
+	dc.b "The Col. is busy.",$00
 loc_32_00000810:
-	dc.b "The door is open, Les.",$00	; string
+	dc.b "The door is open, Les.",$00
 	dc.b $00
 loc_32_00000828:
-	dc.b "(Faint sound of a zipper)",$00	; string
+	dc.b "(Faint sound of a zipper)",$00
 loc_32_00000842:
 	dc.b $22,$41,$68,$27,$6D,$20,$61,$20,$63,$6F,$6D,$69,$6E,$27,$2C,$20
 	dc.b $4C,$65,$73,$2E,$2E,$2E,$6A,$75,$73,$74,$20,$61,$20,$63,$6F,$74
 	dc.b $74,$6F,$6E,$20,$70,$69,$63,$6B,$69,$6E,$27,$20,$6D,$69,$6E,$75
 	dc.b $74,$65,$2E,$22,$00,$00
 loc_32_00000878:
-	dc.b "(Hey, how did he know your name?)",$00	; string
+	dc.b "(Hey, how did he know your name?)",$00
 loc_32_0000089A:
-	dc.b "(Maybe he has his own hint book.)",$00	; string
+	dc.b "(Maybe he has his own hint book.)",$00
 loc_32_000008BC:
-	dc.b "There's nobody here to ask.",$00	; string
+	dc.b "There's nobody here to ask.",$00
 loc_32_000008D8:
 	dc.b $22,$42,$6F,$79,$2E,$2E,$2E,$41,$68,$20,$73,$61,$79,$2E,$2E,$2E
 	dc.b $62,$6F,$79,$2C,$20,$79,$27,$61,$6C,$6C,$20,$64,$69,$64,$20,$61
@@ -44847,7 +44847,7 @@ loc_32_00000AD2:
 	dc.b $73,$65,$6C,$66,$2E,$20,$42,$75,$74,$20,$62,$65,$20,$63,$61,$72
 	dc.b $65,$66,$75,$6C,$2C,$20,$62,$6F,$79,$2E,$22,$00
 loc_32_00000AFE:
-	dc.b "There's no one here.",$00	; string
+	dc.b "There's no one here.",$00
 	dc.b $00
 loc_32_00000B14:
 	link a5,#0
@@ -47112,9 +47112,9 @@ loc_33_0000004E:
 	unlk a5
 	rts
 loc_33_00000052:
-	dc.b "It's ringing.",$00	; string
+	dc.b "It's ringing.",$00
 loc_33_00000060:
-	dc.b "qwa stphon",$00	; string
+	dc.b "qwa stphon",$00
 	dc.b $00
 loc_33_0000006C:
 	dc.b $78,$64,$72,$00
@@ -47128,71 +47128,71 @@ loc_33_0000008E:
 	dc.b $20,$68,$75,$6E,$67,$20,$69,$74,$20,$6F,$75,$74,$20,$74,$6F,$20
 	dc.b $64,$72,$79,$2E,$22,$00
 loc_33_000000D4:
-	dc.b "Sorry, I have to keep this for my records.",$00	; string
+	dc.b "Sorry, I have to keep this for my records.",$00
 	dc.b $00
 loc_33_00000100:
 	dc.b $63,$66,$74,$00
 loc_33_00000104:
-	dc.b "qwa yfloor",$00	; string
+	dc.b "qwa yfloor",$00
 	dc.b $00
 loc_33_00000110:
-	dc.b "qwa hallb",$00	; string
+	dc.b "qwa hallb",$00
 loc_33_0000011A:
 	dc.b $28,$68,$65,$6E,$63,$65,$66,$6F,$72,$74,$68,$3F,$29,$00
 loc_33_00000128:
-	dc.b "qwa suitea",$00	; string
+	dc.b "qwa suitea",$00
 	dc.b $00
 loc_33_00000134:
-	dc.b "Juanita will do it when she feels like it.",$00	; string
+	dc.b "Juanita will do it when she feels like it.",$00
 	dc.b $00
 loc_33_00000160:
-	dc.b "There's a sign hanging on the door.",$00	; string
+	dc.b "There's a sign hanging on the door.",$00
 loc_33_00000184:
-	dc.b "Among the hairballs and soap scum lies a container of dental floss.",$00	; string
+	dc.b "Among the hairballs and soap scum lies a container of dental floss.",$00
 loc_33_000001C8:
-	dc.b "Helmut has returned!",$00	; string
+	dc.b "Helmut has returned!",$00
 	dc.b $00
 loc_33_000001DE:
-	dc.b "(And he brought a receipt with him.)",$00	; string
+	dc.b "(And he brought a receipt with him.)",$00
 	dc.b $00
 loc_33_00000204:
-	dc.b "No reason to.",$00	; string
+	dc.b "No reason to.",$00
 loc_33_00000212:
-	dc.b "OK...But he'll never be able to get back out!",$00	; string
+	dc.b "OK...But he'll never be able to get back out!",$00
 loc_33_00000240:
-	dc.b "qwa spipe",$00	; string
+	dc.b "qwa spipe",$00
 loc_33_0000024A:
-	dc.b "Hey Les...I know your desperate, but really!",$00	; string
+	dc.b "Hey Les...I know your desperate, but really!",$00
 	dc.b $00
 loc_33_00000278:
-	dc.b "Try something smaller.",$00	; string
+	dc.b "Try something smaller.",$00
 	dc.b $00
 loc_33_00000290:
-	dc.b "No...not THAT small.",$00	; string
+	dc.b "No...not THAT small.",$00
 	dc.b $00
 loc_33_000002A6:
-	dc.b "That sure was faster than the bus.",$00	; string
+	dc.b "That sure was faster than the bus.",$00
 	dc.b $00
 loc_33_000002CA:
-	dc.b "You seem to have come through that experience fine. Unfortunately, not everything you'll need was with you.",$00	; string
+	dc.b "You seem to have come through that experience fine. Unfortunately, not everything you'll need was with you.",$00
 loc_33_00000336:
-	dc.b "Not only that, but Helmut burned up during re-entry.",$00	; string
+	dc.b "Not only that, but Helmut burned up during re-entry.",$00
 	dc.b $00
 loc_33_0000036C:
 	dc.b $22,$47,$65,$74,$20,$6C,$6F,$73,$74,$2C,$20,$77,$69,$6D,$70,$2E
 	dc.b $20,$59,$6F,$75,$27,$72,$65,$20,$62,$6C,$6F,$63,$6B,$69,$6E,$67
 	dc.b $20,$6D,$79,$20,$73,$75,$6E,$2E,$22,$00
 loc_33_00000396:
-	dc.b "I don't believe you're that welcome.",$00	; string
+	dc.b "I don't believe you're that welcome.",$00
 	dc.b $00
 loc_33_000003BC:
-	dc.b "After taking a seat next to this gorgeous creature, she finally seems ready to acknowledge your existence.",$00	; string
+	dc.b "After taking a seat next to this gorgeous creature, she finally seems ready to acknowledge your existence.",$00
 	dc.b $00
 loc_33_00000428:
-	dc.b "It's covered by that thin strip of material.",$00	; string
+	dc.b "It's covered by that thin strip of material.",$00
 	dc.b $00
 loc_33_00000456:
-	dc.b "She looks a little cold.",$00	; string
+	dc.b "She looks a little cold.",$00
 	dc.b $00
 loc_33_00000470:
 	dc.b $22,$59,$6F,$75,$27,$72,$65,$20,$6D,$61,$6B,$69,$6E,$67,$20,$6D
@@ -47209,20 +47209,20 @@ loc_33_000004C0:
 	dc.b $63,$6F,$6F,$6C,$20,$6D,$79,$73,$65,$6C,$66,$20,$6F,$66,$66,$2E
 	dc.b $22,$00
 loc_33_000004F2:
-	dc.b "He seems to be having a heated discussion on the phone.",$00	; string
+	dc.b "He seems to be having a heated discussion on the phone.",$00
 loc_33_0000052A:
 	dc.b $22,$57,$68,$61,$74,$61,$79,$61,$20,$6D,$65,$61,$6E,$20,$74,$68
 	dc.b $65,$72,$65,$27,$73,$20,$6E,$6F,$20,$63,$61,$6C,$6C,$21,$20,$49
 	dc.b $74,$20,$63,$6F,$75,$6C,$64,$61,$20,$62,$65,$65,$6E,$20,$6D,$79
 	dc.b $20,$61,$67,$65,$6E,$74,$21,$22,$00,$00
 loc_33_00000564:
-	dc.b "You're not where you need to be.",$00	; string
+	dc.b "You're not where you need to be.",$00
 	dc.b $00
 loc_33_00000586:
-	dc.b "He's probably answering the phone now.",$00	; string
+	dc.b "He's probably answering the phone now.",$00
 	dc.b $00
 loc_33_000005AE:
-	dc.b "Bernardo finally gives in to your persistent nagging. He picks up the phone and relays your request to the hotel operator.",$00	; string
+	dc.b "Bernardo finally gives in to your persistent nagging. He picks up the phone and relays your request to the hotel operator.",$00
 	dc.b $00
 loc_33_0000062A:
 	dc.b $22,$4D,$72,$2E,$20,$46,$61,$62,$75,$6C,$6F,$75,$73,$2E,$2E,$2E
@@ -47233,7 +47233,7 @@ loc_33_0000065C:
 	dc.b $22,$69,$22,$20,$62,$65,$66,$6F,$72,$65,$20,$22,$65,$22,$20,$65
 	dc.b $78,$63,$65,$70,$74,$20,$61,$66,$74,$65,$72,$20,$22,$63,$22,$00
 loc_33_0000067C:
-	dc.b "Hmmm...better use THE KING.",$00	; string
+	dc.b "Hmmm...better use THE KING.",$00
 loc_33_00000698:
 	link a5,#0
 	moveq.l #5,d0
@@ -49819,52 +49819,52 @@ loc_36_00000000:
 	move.l a0,-$1DFE(a4)
 	rts
 loc_36_0000000A:
-	dc.b "graphics.library",$00	; string
+	dc.b "graphics.library",$00
 	dc.b $00
 loc_36_0000001C:
-	dc.b "intuition.library",$00	; string
-	dc.b "test.pic",$00	; string
+	dc.b "intuition.library",$00
+	dc.b "test.pic",$00
 	dc.b $00
 loc_36_00000038:
 	dc.b $0A
-	dc.b "chip memory starts at %ld",$00	; string
+	dc.b "chip memory starts at %ld",$00
 	dc.b $00
 loc_36_00000054:
 	dc.b $0A
-	dc.b "largest hunk chip %ld",$00	; string
+	dc.b "largest hunk chip %ld",$00
 	dc.b $00
 loc_36_0000006C:
 	dc.b $0A
-	dc.b "fast memory %ld",$00	; string
+	dc.b "fast memory %ld",$00
 	dc.b $00
 loc_36_0000007E:
 	dc.b $0A
-	dc.b "memory fell to %ld",$00	; string
+	dc.b "memory fell to %ld",$00
 	dc.b $77,$77,$2E,$6D,$00,$00
 loc_36_00000098:
 	dc.b $0A,$20
-	dc.b "I want %ld",$00	; string
+	dc.b "I want %ld",$00
 	dc.b $00
 loc_36_000000A6:
-	dc.b " to fit an addl %ld",$00	; string
+	dc.b " to fit an addl %ld",$00
 loc_36_000000BA:
-	dc.b "Not enough sprite mask area",$00	; string
+	dc.b "Not enough sprite mask area",$00
 loc_36_000000D6:
 	dc.b $0A
-	dc.b "residentmasks is %ld",$00	; string
+	dc.b "residentmasks is %ld",$00
 loc_36_000000EC:
 	dc.b $0A
-	dc.b "curSprtMskPtr is %ld",$00	; string
+	dc.b "curSprtMskPtr is %ld",$00
 loc_36_00000102:
 	dc.b $0A,$20
-	dc.b "sprite mask residents = %ld bytes",$00	; string
+	dc.b "sprite mask residents = %ld bytes",$00
 loc_36_00000126:
 	dc.b $0A,$20
-	dc.b "sprite mask area used = %ld bytes",$00	; string
+	dc.b "sprite mask area used = %ld bytes",$00
 	dc.b $0A
-	dc.b "somebody called AllocateChip!",$00	; string
+	dc.b "somebody called AllocateChip!",$00
 	dc.b $00,$0A
-	dc.b "somebody called AllocateMem!",$00	; string
+	dc.b "somebody called AllocateMem!",$00
 loc_36_00000188:
 	dc.b $0A,$64,$65,$72,$20,$76,$61,$73,$73,$20,$73,$6F,$6D,$70,$74,$69
 	dc.b $6E,$67,$20,$77,$72,$6F,$6E,$67,$20,$76,$69,$73,$73,$20,$7A,$69
@@ -49875,11 +49875,11 @@ loc_36_000001BE:
 loc_36_000001CC:
 	dc.b $0A,$20,$68,$61,$6E,$64,$6C,$65,$20,$3D,$20,$25,$6C,$64,$00,$00
 	dc.b $0A
-	dc.b "grr don't allocate!",$00	; string
+	dc.b "grr don't allocate!",$00
 	dc.b $00
 loc_36_000001F2:
 	dc.b $0A,$4D
-	dc.b "essage %s",$00	; string
+	dc.b "essage %s",$00
 loc_36_000001FE:
 	move.l d7,-(a7)
 	lea.l -$1E4E(a4),a0
@@ -53438,7 +53438,7 @@ loc_41_00000000:
 	dc.l loc_47_00008000
 	dc.b $4E,$BA,$00,$E2,$28,$5F,$4E,$75
 loc_41_00000010:
-	dc.b "input.device",$00	; string
+	dc.b "input.device",$00
 	dc.b $00
 loc_41_0000001E:
 	movem.l a4/a6,-(a7)
@@ -53594,28 +53594,28 @@ loc_43_00000000:
 	movea.l (a7)+,a4
 	rts
 loc_43_0000000E:
-	dc.b "AudioTimer",$00	; string
+	dc.b "AudioTimer",$00
 	dc.b $00
 loc_43_0000001A:
-	dc.b "Can't AllocMem MsgPort."	; string
+	dc.b "Can't AllocMem MsgPort."
 	dc.b $0A,$00,$00
 loc_43_00000034:
-	dc.b "Can't AllocMem Interrupt."	; string
+	dc.b "Can't AllocMem Interrupt."
 	dc.b $0A,$00,$00
 loc_43_00000050:
-	dc.b "Can't create IOReq"	; string
+	dc.b "Can't create IOReq"
 	dc.b $0A,$00
 loc_43_00000064:
-	dc.b "timer.device",$00	; string
+	dc.b "timer.device",$00
 	dc.b $00
 loc_43_00000072:
-	dc.b "Can't open timer.device"	; string
+	dc.b "Can't open timer.device"
 	dc.b $0A,$00,$00
 loc_43_0000008C:
-	dc.b "open_vblank: Can't alloc int structure"	; string
+	dc.b "open_vblank: Can't alloc int structure"
 	dc.b $0A,$00
 loc_43_000000B4:
-	dc.b "VertB-Music",$00	; string
+	dc.b "VertB-Music",$00
 loc_43_000000C0:
 	dc.b $48,$E7,$01,$1A,$49,$F9
 	dc.l loc_47_00008000
@@ -53924,7 +53924,7 @@ loc_44_0000006A:
 	addq.w #1,$6D53(a1)
 	dc.b $68,$6F,$74,$2E,$73,$6E,$64,$00
 loc_44_00000076:
-	dc.b "bongo.snd",$00	; string
+	dc.b "bongo.snd",$00
 loc_44_00000080:
 	pea.l $4861(a1)
 	moveq.l #79,d2
@@ -53939,20 +53939,20 @@ loc_44_0000008E:
 	bcc.b loc_44_000000C4
 	dc.b $73,$6E,$64,$00
 loc_44_0000009A:
-	dc.b "inst.dat",$00	; string
+	dc.b "inst.dat",$00
 	dc.b $00
 loc_44_000000A4:
-	dc.b "Can't open inst.dat!"	; string
+	dc.b "Can't open inst.dat!"
 loc_44_000000B8:
 	eori.b #$6C6F,d0
 	bsr.b loc_44_00000122
 	dc.b $5F,$70,$65,$72,$63,$75
 loc_44_000000C4:
-	dc.b "ssion can't open ",$00	; string
+	dc.b "ssion can't open ",$00
 loc_44_000000D6:
 	dc.b $42,$4F,$44,$59,$00,$00
 loc_44_000000DC:
-	dc.b "load_percussion can't find BOD"	; string
+	dc.b "load_percussion can't find BOD"
 loc_44_000000FA:
 	subq.b #4,-(a0)
 	bvs.b loc_44_0000016C
@@ -53971,9 +53971,9 @@ loc_44_00000122:
 	moveq.l #114,d2
 	dc.b $75,$6D,$65,$6E,$74,$20,$73,$6C,$6F,$74,$20,$3E,$20,$33,$00,$00
 loc_44_0000013C:
-	dc.b "prep_instrument: inst.dat EOF line ",$00	; string
+	dc.b "prep_instrument: inst.dat EOF line ",$00
 loc_44_00000160:
-	dc.b " slot ",$00	; string
+	dc.b " slot ",$00
 	dc.b $00
 loc_44_00000168:
 	movea.l $6E64(a1),a0
@@ -53996,14 +53996,14 @@ loc_44_00000196:
 	dc.b $75,$6D,$65,$6E,$74,$3A,$20,$63,$61,$6E,$27,$74,$20,$66,$69,$6E
 	dc.b $64,$20,$42,$4F,$44,$59,$20,$69,$6E,$20,$00,$00
 loc_44_000001BA:
-	dc.b "Prepping for song (hash) %lX"	; string
+	dc.b "Prepping for song (hash) %lX"
 	dc.b $0A,$00
 loc_44_000001D8:
-	dc.b "Blech! prep_"	; string
+	dc.b "Blech! prep_"
 loc_44_000001E4:
 	bvs.b loc_44_00000254
 loc_44_000001E6:
-	dc.b "strument failed",$00	; string
+	dc.b "strument failed",$00
 loc_44_000001F6:
 	movem.l d6-d7/a3-a4,-(a7)
 	lea.l loc_47_00008000.l,a4
@@ -55273,11 +55273,11 @@ loc_47_0000015E:
 	dc.l loc_17_00000ACC
 	dc.l loc_17_00000AD4
 	dc.l loc_17_00000A8A
-	dc.b "Please select your choice.",$00	; string
+	dc.b "Please select your choice.",$00
 	dc.b $20,$20,$53,$6C,$6F,$77
 	dcb.b $12,$20
 	dc.b $46,$61,$73,$74,$00,$00,$08
-	dc.b "Out of Memory",$00	; string
+	dc.b "Out of Memory",$00
 	dc.b $00,$00,$FF,$FF
 	dcb.b $A,$00
 	dc.b $02,$08,$0F,$F0,$0F,$F0,$01,$90,$0F,$F0,$0F,$F0,$01,$90,$0F,$F0
@@ -55949,9 +55949,9 @@ loc_47_00000AD4:
 	dc.b $74,$20,$66,$6F,$6C,$6B,$73,$2E,$2E,$2E,$74,$68,$65,$20,$74,$68
 	dc.b $69,$72,$64,$20,$73,$69,$67,$68,$74,$69,$6E,$67,$20,$74,$68,$69
 	dc.b $73,$20,$77,$65,$65,$6B,$2E,$22,$00
-	dc.b "She's not interested.",$00	; string
-	dc.b "Knock Knock",$00	; string
-	dc.b "Ding Dong",$00	; string
+	dc.b "She's not interested.",$00
+	dc.b "Knock Knock",$00
+	dc.b "Ding Dong",$00
 	dc.b $28,$46,$61,$69,$6E,$74,$20,$73,$6F,$75,$6E,$64,$20,$6F,$66,$20
 	dc.b $66,$6F,$6F,$74,$73,$74,$65,$70,$73,$2E,$29,$00,$00
 	dc.l loc_30_0000043C	; pointer_table
@@ -55988,18 +55988,18 @@ loc_47_00000AD4:
 	dc.b $74,$20,$49,$20,$61,$6C,$6D,$6F,$73,$74,$20,$66,$6F,$72,$67,$6F
 	dc.b $74,$20,$74,$6F,$20,$66,$69,$6C,$6C,$20,$6D,$79,$20,$74,$68,$65
 	dc.b $72,$6D,$6F,$73,$20,$74,$6F,$64,$61,$79,$21,$22,$00
-	dc.b "Why should he go with you? You've never done anything for him.",$00	; string
-	dc.b "The opening is too small for even your wimpy wrist to fit.",$00	; string
+	dc.b "Why should he go with you? You've never done anything for him.",$00
+	dc.b "The opening is too small for even your wimpy wrist to fit.",$00
 	dc.b $28,$49,$20,$74,$68,$69,$6E,$6B,$20,$48,$65,$6C,$6D,$75,$74,$20
 	dc.b $61,$74,$65,$20,$74,$68,$65,$20,$62,$72,$65,$61,$64,$2E,$29,$00
-	dc.b "You'll have to open it for him.",$00	; string
+	dc.b "You'll have to open it for him.",$00
 	dc.b $22,$48,$65,$79,$2E,$2E,$2E,$6E,$6F,$77,$20,$61,$6E,$79,$74,$68
 	dc.b $69,$6E,$67,$20,$69,$73,$20,$70,$6F,$73,$73,$69,$62,$6C,$65,$21
 	dc.b $22,$00,$22,$59,$61,$79,$21,$21,$21,$20,$4E,$6F,$77,$20,$49,$27
 	dc.b $76,$65,$20,$67,$6F,$74,$20,$73,$6F,$6D,$65,$74,$68,$69,$6E,$67
 	dc.b $20,$74,$6F,$20,$6C,$6F,$6F,$6B,$20,$66,$6F,$72,$77,$61,$72,$64
 	dc.b $20,$74,$6F,$21,$22,$00
-	dc.b "I think you've made a new friend, Les.",$00	; string
+	dc.b "I think you've made a new friend, Les.",$00
 	dc.b $22,$49,$20,$77,$69,$73,$68,$20,$49,$20,$68,$61,$64,$20,$6F,$6E
 	dc.b $65,$2E,$20,$53,$65,$65,$6D,$73,$20,$6C,$69,$6B,$65,$20,$74,$68
 	dc.b $65,$72,$65,$27,$73,$20,$6E,$6F,$74,$68,$69,$6E,$67,$20,$69,$6E
@@ -56016,7 +56016,7 @@ loc_47_00000AD4:
 	dc.b $68,$65,$20,$73,$61,$6D,$65,$20,$6F,$6C,$64,$20,$72,$6F,$75,$74
 	dc.b $69,$6E,$65,$20,$64,$61,$79,$20,$61,$66,$74,$65,$72,$20,$64,$61
 	dc.b $79,$2E,$22,$00
-	dc.b "There's nobody here.",$00	; string
+	dc.b "There's nobody here.",$00
 	dc.b $22,$47,$65,$65,$2C,$20,$73,$69,$72,$2E,$2E,$2E,$75,$68,$20,$43
 	dc.b $6F,$6C,$6F,$6E,$65,$6C,$3F,$20,$49,$27,$64,$20,$72,$65,$61,$6C
 	dc.b $6C,$79,$20,$6C,$69,$6B,$65,$20,$74,$6F,$20,$73,$65,$65,$20,$6D
@@ -57039,5 +57039,5 @@ loc_53_00000018:
 	rts
     SECTION section_54,data
 loc_54_00000000:
-	dc.b "Thank you, and good luck on your Search for The King!",$00	; string
+	dc.b "Thank you, and good luck on your Search for The King!",$00
 	dc.w $0000

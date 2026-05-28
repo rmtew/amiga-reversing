@@ -180,7 +180,7 @@ loc_0_000002B6:
 	move.w #$FFFF,loc_0_00000626.l
 	bra.w loc_0_000001C0
 loc_0_000002EC:
-	dc.b "dos.library",$00	; string
+	dc.b "dos.library",$00
 h0dl_DOSBase:
 	dc.b $00,$00,$00,$00
 loc_0_000002FC:
@@ -194,9 +194,9 @@ loc_0_00000308:
 loc_0_0000030C:
 	dc.b $00,$00,$00,$00
 loc_0_00000310:
-	dc.b "CON:0/12/639/187/Argonaut Software - StarGlider.",$00	; string
+	dc.b "CON:0/12/639/187/Argonaut Software - StarGlider.",$00
 loc_0_00000341:
-	dc.b "sglider.snd",$00	; string
+	dc.b "sglider.snd",$00
 loc_0_0000034D:
 	dc.b $0D,$20,$20,$20,$53,$74,$61,$72,$47,$6C,$69,$64,$65,$72,$20,$A9
 	dc.b $20,$31,$39,$38,$36,$2C,$31,$39,$38,$37,$20,$41,$72,$67,$6F,$6E

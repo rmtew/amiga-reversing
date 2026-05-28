@@ -46,8 +46,8 @@ loc_0_0000003C:
 	moveq.l #-1,d0
 	rts
 loc_0_00000040:
-	dc.b "dos.library",$00	; string
+	dc.b "dos.library",$00
 loc_0_0000004C:
-	dc.b "expansion.library",$00	; string
+	dc.b "expansion.library",$00
 	dc.b $00,$00,$A0,$F7,$C9,$21
 	dcb.b $39C,$00

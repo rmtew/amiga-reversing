@@ -35,5 +35,5 @@ loc_0_00000022:
 	moveq.l #-1,d0
 	bra.b loc_0_00000020
 loc_0_00000026:
-	dc.b "dos.library",$00	; string
+	dc.b "dos.library",$00
 	dcb.b $3CE,$00

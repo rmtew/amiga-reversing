@@ -3895,21 +3895,21 @@ abs_0_000030D2:
 	moveq.l #11,d1
 	bra.w abs_0_00002DA8
 abs_0_00003100:
-	dc.b "THY PARTY IS FULL",$FF	; string
+	dc.b "THY PARTY IS FULL",$FF
 abs_0_00003112:
-	dc.b "WOULDST THOU RIP ME OFF?",$FF	; string
+	dc.b "WOULDST THOU RIP ME OFF?",$FF
 abs_0_0000312B:
-	dc.b "I NEVER TRUST THE UNNATURAL",$FF	; string
+	dc.b "I NEVER TRUST THE UNNATURAL",$FF
 abs_0_00003147:
-	dc.b "KEEP TALKING AND WE'LL SEE",$FF	; string
+	dc.b "KEEP TALKING AND WE'LL SEE",$FF
 abs_0_00003162:
-	dc.b "I THINK NOT MY FRIEND",$FF	; string
+	dc.b "I THINK NOT MY FRIEND",$FF
 abs_0_00003178:
-	dc.b "MY NAME IS NOT IMPORTANT",$FF	; string
+	dc.b "MY NAME IS NOT IMPORTANT",$FF
 abs_0_00003191:
-	dc.b "I AM ZENDIK THE MASTER OF CREATION",$FF	; string
+	dc.b "I AM ZENDIK THE MASTER OF CREATION",$FF
 abs_0_000031B4:
-	dc.b "METHINKS THOU ART TOO GREEDY!",$FF	; string
+	dc.b "METHINKS THOU ART TOO GREEDY!",$FF
 abs_0_000031D2:
 	dc.b $1A,$19,$61,$8D,$B1,$51,$FF
 abs_0_000031D9:
@@ -4337,7 +4337,7 @@ abs_0_000036FC:
 	lea.l abs_0_00003708.l,a6
 	jmp abs_0_0000D03A.l
 abs_0_00003708:
-	dc.b "WHAT BE THY BUSINESS?",$FF	; string
+	dc.b "WHAT BE THY BUSINESS?",$FF
 abs_0_0000371E:
 	lea.l abs_0_00003DAA.l,a6
 	move.b $0003(a4),d1
@@ -4372,13 +4372,13 @@ abs_0_00003796:
 	lea.l abs_0_00003809.l,a6
 	jmp abs_0_0000D03A.l
 abs_0_000037A2:
-	dc.b "HAST THOU HEARD ANY LEGENDS?",$FF	; string
+	dc.b "HAST THOU HEARD ANY LEGENDS?",$FF
 abs_0_000037BF:
-	dc.b "KNOWEST THOU OF ANY ENCHANTED ITEMS?",$FF	; string
+	dc.b "KNOWEST THOU OF ANY ENCHANTED ITEMS?",$FF
 abs_0_000037E4:
-	dc.b "KNOWEST THOU OF ANY WEAPONS OF NOTE?",$FF	; string
+	dc.b "KNOWEST THOU OF ANY WEAPONS OF NOTE?",$FF
 abs_0_00003809:
-	dc.b "HAST HEARD OF ANY POWERFUL BEINGS?",$FF	; string
+	dc.b "HAST HEARD OF ANY POWERFUL BEINGS?",$FF
 abs_0_0000382C:
 	move.w $002E(a5),d0
 	move.b d0,$000A(a4)
@@ -4579,33 +4579,33 @@ abs_0_00003A8C:
 	dc.w $00BB,$00BC,$00BD,$00DB,$00FD,$011A,$013D,$014D	; lookup_table
 	dc.w $016C,$0187,$019C,$019D,$01C4,$01DE,$01DF	; lookup_table
 abs_0_00003ABA:
-	dc.b "THAT'S VERY POSSIBLE",$FF	; string
-	dc.b "I CANNOT BUT AGREE",$FF	; string
-	dc.b "THAT SEEMS VERY LIKELY",$FF	; string
-	dc.b "I'M NOT ABOUT TO ARGUE WITH THEE",$FF	; string
+	dc.b "THAT'S VERY POSSIBLE",$FF
+	dc.b "I CANNOT BUT AGREE",$FF
+	dc.b "THAT SEEMS VERY LIKELY",$FF
+	dc.b "I'M NOT ABOUT TO ARGUE WITH THEE",$FF
 abs_0_00003B1A:
-	dc.b "I DON'T KEEP COMPANY WITH MAGGOTS",$FF	; string
-	dc.b "LOOK TO THE TOWERS MY FRIEND",$FF	; string
+	dc.b "I DON'T KEEP COMPANY WITH MAGGOTS",$FF
+	dc.b "LOOK TO THE TOWERS MY FRIEND",$FF
 	dc.b $FF
-	dc.b "INDEED NOT",$FF	; string
-	dc.b "MAKE ME THY OFFER",$FF	; string
-	dc.b "PICK ON SOMEONE THY OWN SIZE THOU SLUG",$FF	; string
-	dc.b "I AM THY WORST NIGHTMARE",$FF	; string
-	dc.b "NONE OF THY BUSINESS I'M SURE",$FF	; string
+	dc.b "INDEED NOT",$FF
+	dc.b "MAKE ME THY OFFER",$FF
+	dc.b "PICK ON SOMEONE THY OWN SIZE THOU SLUG",$FF
+	dc.b "I AM THY WORST NIGHTMARE",$FF
+	dc.b "NONE OF THY BUSINESS I'M SURE",$FF
 	dc.b $FF,$FF
-	dc.b "NEWS IS SCARCE IN THESE PARTS",$FF	; string
-	dc.b "I HEAR CRYSTALS ARE WORTH SEEKING",$FF	; string
-	dc.b "WHO CAN SAY WHAT IS OF NOTE?",$FF	; string
-	dc.b "I HEAR ZENDIK IS NOT WHOLLY A WORM",$FF	; string
-	dc.b "GIVE ME A BREAK",$FF	; string
-	dc.b "THY COINAGE IS WORTHLESS TO ME",$FF	; string
-	dc.b "I DO NOT TRADE IN TRINKETS",$FF	; string
-	dc.b "I NEED NOT THY TRASH",$FF	; string
+	dc.b "NEWS IS SCARCE IN THESE PARTS",$FF
+	dc.b "I HEAR CRYSTALS ARE WORTH SEEKING",$FF
+	dc.b "WHO CAN SAY WHAT IS OF NOTE?",$FF
+	dc.b "I HEAR ZENDIK IS NOT WHOLLY A WORM",$FF
+	dc.b "GIVE ME A BREAK",$FF
+	dc.b "THY COINAGE IS WORTHLESS TO ME",$FF
+	dc.b "I DO NOT TRADE IN TRINKETS",$FF
+	dc.b "I NEED NOT THY TRASH",$FF
 	dc.b $FF
-	dc.b "MAYBE TRUE BUT THOU SHOULD BE SO LUCKY",$FF	; string
-	dc.b "I TRUST THIS PLEASES THEE",$FF	; string
+	dc.b "MAYBE TRUE BUT THOU SHOULD BE SO LUCKY",$FF
+	dc.b "I TRUST THIS PLEASES THEE",$FF
 	dc.b $FF
-	dc.b "WHY DOST BURDEN ME WITH THY COMPANY?",$FF	; string
+	dc.b "WHY DOST BURDEN ME WITH THY COMPANY?",$FF
 	dc.b $4D,$F9,$00,$00,$3D,$C0,$1C,$BC,$00,$33,$1D,$7C,$00,$5F,$00,$01
 	dc.b $1D,$7C,$00,$FE,$00,$02,$74,$03,$32,$2D,$00,$06,$E9,$41,$41,$F9
 	dc.b $00,$00,$ED,$2A,$12,$30,$10,$00,$66,$0A,$1D,$BC,$00,$44,$20,$00
@@ -4642,7 +4642,7 @@ abs_0_00003E15:
 abs_0_00003E26:
 	dc.b $CC,$1A,$1D,$2F,$43,$CD,$FA,$3F,$FF
 abs_0_00003E2F:
-	dc.b "WHERE IS THIS OF WHICH THOU HAST SPOKEN?",$FF	; string
+	dc.b "WHERE IS THIS OF WHICH THOU HAST SPOKEN?",$FF
 abs_0_00003E58:
 	dc.b $2D,$5F,$FB,$FA,$45,$00,$25,$FA,$45,$2F,$FB,$CB,$FF
 abs_0_00003E65:
@@ -4652,7 +4652,7 @@ abs_0_00003E70:
 abs_0_00003E7B:
 	dc.b $27,$1A,$60,$1C,$57,$FA,$3F,$FF
 abs_0_00003E83:
-	dc.b "COME JOIN MY MERRY BAND",$FF	; string
+	dc.b "COME JOIN MY MERRY BAND",$FF
 	dc.b $00
 abs_0_00003E9C:
 	lea.l abs_0_000041D4.l,a6
@@ -5139,11 +5139,11 @@ abs_0_00004480:
 	moveq.l #0,d0
 	rts
 abs_0_000044C4:
-	dc.b "F1 - LOAD, F2 - SAVE, F10 - EXIT",$FF	; string
+	dc.b "F1 - LOAD, F2 - SAVE, F10 - EXIT",$FF
 abs_0_000044E5:
-	dc.b "INSERT LOAD DISK AND RETURN, F10 - EXIT",$FF	; string
+	dc.b "INSERT LOAD DISK AND RETURN, F10 - EXIT",$FF
 abs_0_0000450D:
-	dc.b "INSERT SAVE DISK AND RETURN, F10 - EXIT",$FF	; string
+	dc.b "INSERT SAVE DISK AND RETURN, F10 - EXIT",$FF
 	dc.b $00
 abs_0_00004536:
 	move.b #$3,$004F(a5)
@@ -5520,13 +5520,13 @@ abs_0_00004A5E:
 	dc.b $12,$05,$20,$20,$FE,$04,$20,$20,$47,$4F,$4C,$44,$FC,$12,$09,$FE
 	dc.b $0C,$4F,$4B,$20,$3F,$FF
 abs_0_00004A84:
-	dc.b " MAY BUY A SPELL-PICK A CLASS",$FF	; string
+	dc.b " MAY BUY A SPELL-PICK A CLASS",$FF
 abs_0_00004AA2:
-	dc.b "SELECT THY NEW SPELL, ",$FF	; string
+	dc.b "SELECT THY NEW SPELL, ",$FF
 abs_0_00004AB9:
-	dc.b "THOU HAST ALL I GIVE, ",$FF	; string
+	dc.b "THOU HAST ALL I GIVE, ",$FF
 abs_0_00004AD0:
-	dc.b "I FIND THEE A PAUPER, ",$FF	; string
+	dc.b "I FIND THEE A PAUPER, ",$FF
 	dc.b $00
 abs_0_00004AE8:
 	moveq.l #0,d0
@@ -5965,7 +5965,7 @@ abs_0_00004FEE:
 	move.w #$8,abs_0_0000D92A.l
 	bra.b abs_0_00004FBE
 abs_0_00004FFE:
-	dc.b "SPELL FIZZLED",$FF	; string
+	dc.b "SPELL FIZZLED",$FF
 abs_0_0000500C:
 	dc.w abs_0_0000505C-abs_0_0000505C	; lookup_table
 	dc.w abs_0_0000507E-abs_0_0000505C
@@ -6000,7 +6000,7 @@ abs_0_0000500C:
 	dc.w abs_0_000054EC-abs_0_0000505C
 	dc.w abs_0_000054FA-abs_0_0000505C
 abs_0_0000504C:
-	dc.b "SPELL FAILED",$FF	; string
+	dc.b "SPELL FAILED",$FF
 	dc.b $00
 abs_0_0000505A:
 	dc.b $00
@@ -7449,13 +7449,13 @@ abs_0_00006134:
 abs_0_0000613C:
 	dc.b $00,$07,$0E,$15,$21,$29	; lookup_table
 abs_0_00006142:
-	dc.b "MISSES",$FF	; string
-	dc.b "SHOOTS",$FF	; string
-	dc.b "CHANTS",$FF	; string
-	dc.b "CASTS SPELL",$FF	; string
-	dc.b "DEFENDS",$FF	; string
+	dc.b "MISSES",$FF
+	dc.b "SHOOTS",$FF
+	dc.b "CHANTS",$FF
+	dc.b "CASTS SPELL",$FF
+	dc.b "DEFENDS",$FF
 abs_0_0000616B:
-	dc.b "HITS FOR "	; string
+	dc.b "HITS FOR "
 abs_0_00006174:
 	dc.b $30,$30,$30,$FF
 abs_0_00006178:
@@ -7853,7 +7853,7 @@ abs_0_00006594:
 	lea.l abs_0_0000659E.l,a6
 	bra.w abs_0_0000D088
 abs_0_0000659E:
-	dc.b "THE DOOR IS LOCKED",$FF	; string
+	dc.b "THE DOOR IS LOCKED",$FF
 	dc.b $00
 abs_0_000065B2:
 	lsr.w #2,d0
@@ -9020,7 +9020,7 @@ abs_0_00007598:
 	movem.l (a7)+,d0-d7/a0-a6
 	rts
 abs_0_000075F4:
-	dc.b "ACCURSED BLOODWYCH! WE SHALL MEET AGAIN",$FF	; string
+	dc.b "ACCURSED BLOODWYCH! WE SHALL MEET AGAIN",$FF
 abs_0_0000761C:
 	dc.b $FE,$0B,$43,$4F,$4E,$47,$52,$41,$54,$55,$4C,$41,$54,$49,$4F,$4E
 	dc.b $53,$21,$FF,$00
@@ -11859,7 +11859,7 @@ abs_0_000099C8:
 abs_0_000099CC:
 	dc.b $00,$08,$00,$06,$00,$06,$00,$00	; lookup_table
 abs_0_000099D4:
-	dc.b "K>K4K.KK"	; string
+	dc.b "K>K4K.KK"
 abs_0_000099DC:
 	moveq.l #0,d0
 	moveq.l #0,d1
@@ -16655,9 +16655,9 @@ abs_0_0000E21E:
 	dc.b $55,$49,$53,$48,$05,$42,$52,$4F,$57,$4E,$03,$54,$41,$4E,$03,$47
 	dc.b $45,$4D
 abs_0_0000E480:
-	dc.b "PLEASE SELECT YOUR CHAMPIONS...",$FF	; string
+	dc.b "PLEASE SELECT YOUR CHAMPIONS...",$FF
 abs_0_0000E4A0:
-	dc.b "PLAYER 0 SELECT THY CHAMPION....",$FF	; string
+	dc.b "PLAYER 0 SELECT THY CHAMPION....",$FF
 	dc.b $00
 abs_0_0000E4C2:
 	dc.b $00
@@ -16760,7 +16760,7 @@ abs_0_0000E9A8:
 	dc.b $1E,$04,$FE,$00,$54,$48,$4F,$55,$20,$41,$52,$54,$FC,$1E,$05,$4E
 	dc.b $4F,$57,$20,$52,$45,$41,$44,$59,$FC,$1E,$06,$54,$4F,$20,$42,$45
 	dc.b $47,$49,$4E,$FC,$1E,$07
-	dc.b "THY QUEST",$FF	; string
+	dc.b "THY QUEST",$FF
 abs_0_0000E9E8:
 	dc.b $FC,$20,$08,$FE,$0D,$46,$4F,$4F,$44,$FC,$1E,$09,$FE,$04,$02,$20
 	dc.b $20,$20,$20,$20,$20,$03,$FF,$00
@@ -16781,7 +16781,7 @@ abs_0_0000EA4C:
 	dc.b $20,$20,$03,$20,$FF,$00
 abs_0_0000EA62:
 	dc.b $FE,$0C
-	dc.b "COST TOO HIGH",$FF	; string
+	dc.b "COST TOO HIGH",$FF
 abs_0_0000EA72:
 	dc.b $00,$E2,$01,$06,$00,$21,$00,$36,$01,$09,$01,$1E,$00,$21,$00,$36
 	dc.b $01,$21,$01,$2E,$00,$22,$00,$2F,$01,$31,$01,$3F,$00,$22,$00,$2F
@@ -19881,7 +19881,7 @@ abs_0_0001A31C:
 	dc.b $53,$54,$4F,$57,$20,$54,$4F,$FC,$1E,$06,$54,$48,$4F,$53,$45,$20
 	dc.b $57,$48,$4F,$FC,$1E,$07,$43,$41,$4E,$20,$53,$4F,$4C,$56,$45,$FC
 	dc.b $1E,$08
-	dc.b "THIS MAZE",$FF	; string
+	dc.b "THIS MAZE",$FF
 	dc.b $FC,$1F,$04,$41,$20,$53,$57,$4F,$52,$44,$FC,$20,$05,$41,$20,$42
 	dc.b $4F,$57,$FC,$1E,$06,$54,$48,$49,$53,$20,$57,$41,$4C,$4C,$FC,$1F
 	dc.b $07,$4D,$55,$53,$54,$20,$47,$4F,$FF,$FC,$1F,$05,$52,$45,$46,$4F
@@ -19892,17 +19892,17 @@ abs_0_0001A31C:
 	dc.b $49,$4E,$44,$20,$54,$48,$45,$4D,$FC,$1E,$06,$41,$4C,$4C,$2C,$20
 	dc.b $4F,$4E,$4C,$59,$FC,$1E,$07,$54,$48,$45,$4E,$20,$57,$49,$4C,$4C
 	dc.b $FC,$1E,$08
-	dc.b "EVIL FALL",$FF	; string
+	dc.b "EVIL FALL",$FF
 	dc.b $FC,$1F,$04,$42,$45,$59,$4F,$4E,$44,$FC,$20,$05,$4C,$49,$45,$53
 	dc.b $FC,$20,$06,$54,$48,$45,$FC,$20,$07,$4B,$45,$45,$50,$FF,$FC,$1F
 	dc.b $03,$50,$4F,$54,$49,$4F,$4E,$53,$FC,$1E,$05,$41,$4C,$45,$20,$20
 	dc.b $20,$20,$20,$38,$FC,$1E,$06,$53,$4C,$49,$4D,$45,$20,$20,$31,$30
 	dc.b $FC,$1E,$07,$45,$4C,$49,$58,$49,$52,$20,$31,$32,$FC,$1E,$08
-	dc.b "BROTH  15",$FF	; string
+	dc.b "BROTH  15",$FF
 	dc.b $FC,$21,$04,$41,$4C,$4C,$FC,$1F,$05,$4D,$4F,$52,$54,$41,$4C,$53
 	dc.b $FC,$1F,$06,$42,$45,$57,$41,$52,$45,$21,$FF,$FC,$1E,$05,$48,$45
 	dc.b $52,$45,$20,$4C,$49,$45,$53,$FC,$1E,$06
-	dc.b "THE CRYPT",$FF	; string
+	dc.b "THE CRYPT",$FF
 	dc.b $FC,$1E,$03,$45,$59,$45,$20,$4F,$46,$20,$41,$FC,$1E,$04,$4E,$45
 	dc.b $57,$54,$2C,$57,$49,$4E,$47,$FC,$1E,$05,$4F,$46,$20,$41,$20,$42
 	dc.b $41,$54,$2C,$FC,$1E,$06,$54,$4F,$45,$20,$4F,$46,$20,$41,$FC,$1E
@@ -19921,7 +19921,7 @@ abs_0_0001A31C:
 	dc.b $4D,$4F,$4F,$4E,$FF,$FC,$21,$04,$54,$48,$45,$FC,$1E,$05,$4D,$45
 	dc.b $4E,$41,$47,$45,$52,$49,$45,$FC,$1E,$07,$41,$50,$50,$52,$4F,$41
 	dc.b $43,$48,$FC,$1E,$08
-	dc.b "WITH CARE",$FF	; string
+	dc.b "WITH CARE",$FF
 	dc.b $FC,$20,$05,$46,$41,$53,$54,$FC,$20,$06,$52,$4F,$55,$54,$45,$FC
 	dc.b $20,$07,$44,$4F,$57,$4E,$21,$FF,$FC,$1E,$03,$44,$41,$47,$47,$45
 	dc.b $52,$20,$20,$35,$FC,$1E,$04,$4C,$53,$48,$49,$45,$4C,$44,$20,$36
@@ -19932,7 +19932,7 @@ abs_0_0001A31C:
 	dc.b $41,$52,$4D,$4F,$55,$52,$59,$FC,$1E,$05,$47,$4C,$4F,$56,$45,$53
 	dc.b $20,$31,$30,$FC,$1E,$06,$41,$58,$45,$20,$20,$20,$20,$31,$32,$FC
 	dc.b $1E,$07,$53,$48,$49,$45,$4C,$44,$20,$31,$35,$FC,$1E,$08
-	dc.b "PLATE  16",$FF	; string
+	dc.b "PLATE  16",$FF
 	dc.b $FC,$1E,$04,$47,$52,$45,$45,$54,$49,$4E,$47,$53,$FC,$1F,$05,$54
 	dc.b $4F,$20,$54,$48,$45,$45,$FC,$1F,$06,$46,$4F,$4F,$4C,$49,$53,$48
 	dc.b $FC,$1E,$07,$49,$4E,$54,$52,$55,$44,$45,$52,$53,$FF,$FC,$20,$04
@@ -19945,7 +19945,7 @@ abs_0_0001A31C:
 	dc.b $FF,$FC,$1E,$04,$50,$4C,$41,$43,$45,$20,$54,$48,$45,$FC,$1F,$05
 	dc.b $47,$45,$4D,$20,$49,$4E,$FC,$1E,$06,$54,$48,$45,$20,$48,$4F,$4C
 	dc.b $45,$FC,$1E,$07,$54,$4F,$20,$52,$45,$41,$43,$48,$FC,$1E,$08
-	dc.b "YOUR GOAL",$FF	; string
+	dc.b "YOUR GOAL",$FF
 	dc.b $FC,$1F,$04,$59,$4F,$55,$20,$43,$41,$4E,$FC,$1E,$05,$52,$45,$41
 	dc.b $43,$48,$20,$54,$48,$45,$FC,$1E,$06,$50,$52,$49,$5A,$45,$20,$42
 	dc.b $55,$54,$FC,$1E,$07,$57,$49,$4C,$4C,$20,$59,$4F,$55,$FC,$1F,$08
@@ -19987,11 +19987,11 @@ abs_0_0001A31C:
 	dc.b $07,$54,$48,$45,$20,$4F,$54,$48,$45,$52,$FC,$20,$08,$57,$4F,$52
 	dc.b $4C,$44,$FF,$FC,$1E,$05,$4C,$4F,$4F,$4B,$20,$48,$41,$52,$44,$FC
 	dc.b $1E,$06,$41,$4E,$44,$20,$54,$48,$4F,$55,$FC,$1E,$07
-	dc.b "SHALT SEE",$FF	; string
+	dc.b "SHALT SEE",$FF
 	dc.b $FC,$1F,$04,$54,$4F,$20,$50,$41,$53,$53,$FC,$1E,$05,$54,$48,$45
 	dc.b $20,$4C,$4F,$43,$4B,$FC,$1E,$06,$4A,$55,$53,$54,$20,$54,$55,$52
 	dc.b $4E,$FC,$1E,$07
-	dc.b "THE BLOCK",$FF	; string
+	dc.b "THE BLOCK",$FF
 	dc.b $FC,$1E,$04,$4F,$4E,$57,$41,$52,$44,$53,$FC,$1E,$05,$54,$4F,$20
 	dc.b $54,$48,$59,$FC,$1E,$06,$47,$52,$45,$41,$54,$45,$52,$FC,$1E,$07
 	dc.b $47,$4C,$4F,$52,$49,$45,$53,$FF,$FC,$1F,$03,$54,$48,$45,$20,$4F
@@ -20015,14 +20015,14 @@ abs_0_0001A31C:
 	dc.b $48,$45,$41,$52,$54,$FC,$1F,$07,$41,$57,$41,$4B,$45,$53,$FF,$FC
 	dc.b $1E,$05,$54,$48,$45,$20,$4C,$4F,$52,$44,$53,$FC,$1E,$06,$4F,$46
 	dc.b $20,$43,$48,$41,$4F,$53,$FC,$1E,$07
-	dc.b "AWAIT YOU",$FF	; string
+	dc.b "AWAIT YOU",$FF
 	dc.b $FC,$1E,$04,$43,$48,$41,$4F,$53,$FC,$1E,$05,$43,$41,$4E,$20,$4E
 	dc.b $4F,$54,$FC,$1E,$06,$42,$45,$20,$52,$55,$4C,$45,$44,$FC,$1E,$07
 	dc.b $42,$59,$20,$4D,$41,$4E,$FF,$FC,$21,$05,$54,$48,$45,$FC,$20,$06
 	dc.b $47,$52,$45,$41,$54,$FC,$20,$07,$42,$4C,$41,$44,$45,$FF,$FC,$1E
 	dc.b $04,$59,$4F,$55,$20,$4D,$55,$53,$54,$FC,$20,$05,$52,$49,$53,$45
 	dc.b $FC,$1F,$06,$42,$45,$46,$4F,$52,$45,$FC,$1E,$07
-	dc.b "YOU FALL",$FF	; string
+	dc.b "YOU FALL",$FF
 	dc.b $FC,$1E,$03,$4F,$4E,$4C,$59,$20,$54,$48,$45,$59,$FC,$1E,$04,$57
 	dc.b $49,$54,$48,$20,$54,$48,$45,$FC,$1E,$05,$51,$55,$49,$43,$4B,$45
 	dc.b $53,$54,$FC,$1E,$06,$48,$41,$4E,$44,$20,$41,$4E,$44,$FC,$1E,$07
@@ -20041,7 +20041,7 @@ abs_0_0001A31C:
 	dc.b $1F,$03,$50,$4F,$54,$49,$4F,$4E,$53,$FC,$1E,$05,$41,$4C,$45,$20
 	dc.b $20,$20,$20,$20,$38,$FC,$1E,$06,$53,$4C,$49,$4D,$45,$20,$20,$31
 	dc.b $30,$FC,$1E,$07,$45,$4C,$49,$58,$49,$52,$20,$31,$32,$FC,$1E,$08
-	dc.b "BROTH  15",$FF	; string
+	dc.b "BROTH  15",$FF
 	dc.b $FC,$1F,$05,$5A,$45,$4E,$44,$49,$4B,$FC,$1E,$06,$42,$49,$44,$53
 	dc.b $20,$54,$48,$45,$45,$FC,$1F,$07,$45,$4E,$54,$45,$52,$FF,$FC,$20
 	dc.b $05,$4E,$4F,$4E,$45,$FC,$20,$06,$53,$48,$41,$4C,$4C,$FC,$20,$07
@@ -20056,7 +20056,7 @@ abs_0_0001A31C:
 	dc.b $53,$43,$41,$50,$45,$44,$FC,$1E,$06,$48,$49,$53,$20,$42,$4F,$4E
 	dc.b $44,$53,$FC,$1F,$07,$41,$4E,$44,$20,$4E,$4F,$57,$FC,$1F,$08,$52
 	dc.b $41,$56,$41,$47,$45,$53,$FC,$1E,$09
-	dc.b "THE LAND",$FF	; string
+	dc.b "THE LAND",$FF
 	dc.b $FC,$1F,$04,$48,$45,$52,$45,$49,$4E,$FC,$1F,$05,$44,$57,$45,$4C
 	dc.b $4C,$53,$FC,$1E,$06,$54,$48,$45,$20,$4C,$4F,$52,$44,$FC,$1F,$07
 	dc.b $5A,$45,$4E,$44,$49,$4B,$FF,$FC,$1E,$04,$59,$4F,$55,$20,$4D,$55
@@ -20068,13 +20068,13 @@ abs_0_0001A31C:
 	dc.b $48,$45,$FC,$20,$07,$54,$4F,$4D,$42,$FF,$FC,$1F,$04,$44,$52,$41
 	dc.b $47,$4F,$4E,$FC,$1E,$05,$54,$4F,$20,$43,$48,$41,$4F,$53,$FC,$1E
 	dc.b $06,$41,$4E,$44,$20,$54,$48,$45,$4E,$FC,$1E,$07
-	dc.b "THE LAST",$FF	; string
+	dc.b "THE LAST",$FF
 	dc.b $FC,$20,$04,$57,$49,$54,$48,$FC,$1F,$05,$53,$45,$52,$50,$45,$4E
 	dc.b $54,$FC,$20,$06,$52,$41,$47,$45,$FC,$1F,$07,$45,$4E,$54,$45,$52
 	dc.b $FC,$1E,$08,$54,$48,$45,$20,$43,$41,$47,$45,$FF,$FC,$1E,$04,$47
 	dc.b $4F,$44,$53,$20,$4D,$41,$59,$FC,$1E,$05,$4B,$49,$4C,$4C,$20,$41
 	dc.b $4E,$44,$FC,$1E,$06,$4D,$4F,$52,$54,$41,$4C,$53,$FC,$1E,$07
-	dc.b "MAY FEAR",$FF	; string
+	dc.b "MAY FEAR",$FF
 	dc.b $FC,$1F,$03,$20,$54,$48,$45,$FC,$1E,$04,$43,$52,$59,$53,$54,$41
 	dc.b $4C,$FC,$1E,$05,$4F,$46,$20,$43,$48,$41,$4F,$53,$FC,$1E,$06,$53
 	dc.b $48,$41,$4C,$4C,$FC,$1E,$07,$53,$55,$4D,$4D,$4F,$4E,$FC,$1E,$08

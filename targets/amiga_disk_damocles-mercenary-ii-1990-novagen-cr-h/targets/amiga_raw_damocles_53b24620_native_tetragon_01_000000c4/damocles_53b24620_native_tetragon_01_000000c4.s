@@ -61,7 +61,7 @@ abs_0_00040030:
 abs_0_0004004E:
 	dc.b $4D,$4C
 abs_0_00040050:
-	dc.b "        KRAYZI  "	; string
+	dc.b "        KRAYZI  "
 abs_0_00040060:
 	move.w #DMAF_SETCLR|DMAF_MASTER|DMAF_RASTER|DMAF_COPPER,_custom+dmacon.l
 	move.w #INTF_INTEN,_custom+intena.l
@@ -210,7 +210,7 @@ abs_0_00040246:
 	move.w #$FFEC,_custom+dmacon.l
 	rts
 abs_0_00040264:
-	dc.b "graphics.library"	; string
+	dc.b "graphics.library"
 abs_0_00040274:
 	dc.l $00000000	; lookup_table
 abs_0_00040278:
@@ -267,7 +267,7 @@ abs_0_000403D6:
 	dc.b $13,$88
 abs_0_000403D8:
 	dc.w $0000
-	dc.b "RV (20-07-1988)",$00	; string
+	dc.b "RV (20-07-1988)",$00
 	dc.b $41,$FA,$65,$72,$20,$6F
 	dcb.b $1C10,$00
 abs_0_00042000:

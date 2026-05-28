@@ -361,7 +361,7 @@ loc_0_00000000:
 	dc.b $72,$65,$20,$4C,$74,$64,$2E,$2C,$0D,$0A,$57,$72,$69,$74,$74,$65
 	dc.b $6E,$20,$42,$79,$20,$4A,$65,$7A,$20,$53,$61,$6E,$2E,$0D,$0A,$50
 	dc.b $75,$62,$6C,$69,$73,$68,$65,$64,$20,$62,$79,$20,$42,$54,$20,$52
-	dc.b "ainbird, London, UK."	; string
+	dc.b "ainbird, London, UK."
 	dc.b $0D,$0A,$47,$69,$76,$65,$6E,$20,$74,$6F,$20,$52,$61,$69,$6E,$62
 	dc.b $69,$72,$64,$20,$6F,$6E,$20,$37,$74,$68,$20,$41,$70,$72,$69,$6C
 	dc.b $20,$31,$39,$38,$37,$2E,$0D,$0A,$0A,$54,$68,$69,$73,$20,$63,$6F
@@ -369,7 +369,7 @@ loc_0_00000000:
 	dc.b $69,$72,$65,$62,$69,$72,$64,$2E,$0D,$0A,$0A,$1A,$00,$00
 loc_0_000000C6:
 	dc.b $83
-	dc.b "YOU NOW HAVE MANUAL CONTROL!",$00	; string
+	dc.b "YOU NOW HAVE MANUAL CONTROL!",$00
 loc_0_000000E4:
 	lea.l absolute_slot_00003300.l,a6
 	lea.l loc_0_00002D6C.l,a7
@@ -626,11 +626,11 @@ loc_0_0000043E:
 loc_0_00000458:
 	rts
 loc_0_0000045A:
-	dc.b "   POWER DRAINAGE TOO GREAT!",$00	; string
+	dc.b "   POWER DRAINAGE TOO GREAT!",$00
 	dc.b $00
 loc_0_00000478:
-	dc.b "SHIELD DEPLETED,  AGAV DESTROYED!",$00	; string
-	dc.b "THE RED  BOFFIN SCORED         ",$00	; string
+	dc.b "SHIELD DEPLETED,  AGAV DESTROYED!",$00
+	dc.b "THE RED  BOFFIN SCORED         ",$00
 	dc.b $00,$00,$00,$00,$00,$00
 loc_0_000004C0:
 	tst.b app_033B(a6)
@@ -647,13 +647,13 @@ loc_0_000004DA:
 	dc.b $53,$74,$61,$63,$6B
 	dcb.b $C,$20
 	dc.b $00,$00,$00,$00,$00,$00,$00
-	dc.b "Objects          ",$00	; string
+	dc.b "Objects          ",$00
 	dc.b $00,$00,$00,$00,$00,$00
 	dcb.b $11,$20
 	dc.b $00,$00,$00
-	dc.b "Start            ",$00	; string
+	dc.b "Start            ",$00
 	dc.b $00,$00,$00,$00,$00,$00
-	dc.b "End              ",$00	; string
+	dc.b "End              ",$00
 	dc.b $00,$00,$00,$00,$00,$00
 loc_0_00000550:
 	tst.w app_02CA(a6)
@@ -676,7 +676,7 @@ loc_0_00000550:
 loc_0_00000594:
 	rts
 loc_0_00000596:
-	dc.b "    LEVEL   "	; string
+	dc.b "    LEVEL   "
 loc_0_000005A2:
 	dcb.b $10,$20
 	dc.b $00,$00
@@ -1112,7 +1112,7 @@ loc_0_00000BF6:
 loc_0_00000BFA:
 	bra.w loc_0_00000730
 loc_0_00000BFE:
-	dc.b "Press E to exit, SPACE to continue",$00	; string
+	dc.b "Press E to exit, SPACE to continue",$00
 	dc.b $00
 loc_0_00000C22:
 	dc.b $00,$00,$00,$02,$00,$0E,$00,$01,$00,$04,$00,$07,$00,$08,$00,$09
@@ -1186,7 +1186,7 @@ loc_0_00000D26:
 loc_0_00000D4A:
 	dc.b $54,$68
 loc_0_00000D4C:
-	dc.b "ey build missile launchers.",$00	; string
+	dc.b "ey build missile launchers.",$00
 loc_0_00000D68:
 	addq.w #8,$72616D69.l
 	bcc.b loc_0_00000D90
@@ -1197,11 +1197,11 @@ loc_0_00000D76:
 	dc.b $45,$52,$21,$20,$20,$20,$41,$76,$6F,$69,$64,$20,$70,$72,$6F,$78
 	dc.b $69,$6D,$69,$74,$79,$20
 loc_0_00000D90:
-	dc.b "mines",$00	; string
+	dc.b "mines",$00
 loc_0_00000D96:
-	dc.b "at all times, Neutralise them.",$00	; string
+	dc.b "at all times, Neutralise them.",$00
 loc_0_00000DB5:
-	dc.b "Energy Tower",$00	; string
+	dc.b "Energy Tower",$00
 loc_0_00000DC2:
 	addq.w #2,$7765(a7)
 	moveq.l #115,d1
@@ -1212,17 +1212,17 @@ loc_0_00000DC2:
 	movea.l $65(a4,d6.l),a0
 	dc.b $20,$70,$6F,$77,$65,$72,$20,$74,$6F,$20,$74,$68,$65,$00
 loc_0_00000DE2:
-	dc.b "underground monorail system.",$00	; string
+	dc.b "underground monorail system.",$00
 	dc.b $00
 loc_0_00000E00:
-	dc.b "Starglider drone",$00	; string
+	dc.b "Starglider drone",$00
 	dc.b $00
 loc_0_00000E12:
 	addq.w #2,$6573(a0)
 	bcs.b loc_0_00000E38
-	dc.b "mechanical birds are very",$00	; string
+	dc.b "mechanical birds are very",$00
 loc_0_00000E32:
-	dc.b "danger"	; string
+	dc.b "danger"
 loc_0_00000E38:
 	dc.b $6F,$75
 loc_0_00000E3A:
@@ -1232,10 +1232,10 @@ loc_0_00000E3C:
 	dc.b $41,$74,$74,$61,$63,$6B,$20,$77,$69,$74,$68,$20,$63,$61,$72,$65
 	dc.b $21,$00
 loc_0_00000E50:
-	dc.b "Armoured Transport Vehicle",$00	; string
+	dc.b "Armoured Transport Vehicle",$00
 	dc.b $00
 loc_0_00000E6C:
-	dc.b "Laser armaments make these easy",$00	; string
+	dc.b "Laser armaments make these easy",$00
 loc_0_00000E8C:
 	moveq.l #97,d2
 	moveq.l #103,d1
@@ -1243,13 +1243,13 @@ loc_0_00000E8C:
 	dc.b $73,$20,$66,$6F,$72,$20,$63,$6F,$6D,$70,$65,$74,$61,$6E,$74,$20
 	dc.b $70,$69,$6C,$6F,$74,$73,$2E,$00
 loc_0_00000EAA:
-	dc.b "Egron Battle Tank",$00	; string
+	dc.b "Egron Battle Tank",$00
 loc_0_00000EBC:
 	addq.w #2,-(a1)
 	dc.b $6E,$6B,$73,$2C,$20,$74,$68,$65,$20,$6D,$61,$69,$6E,$20,$45,$67
 	dc.b $72,$6F,$6E,$20,$6C,$61,$6E,$64,$20,$66,$6F,$72,$63,$65,$73,$00
 loc_0_00000EDE:
-	dc.b "can fire Neutron Missiles.",$00	; string
+	dc.b "can fire Neutron Missiles.",$00
 	dc.b $00
 loc_0_00000EFA:
 	clr.w $65(a5,d7.w*4)
@@ -1286,15 +1286,15 @@ loc_0_00000F64:
 	neg.w -(a1)
 	dc.b $6E,$67,$65,$72,$21,$20,$20,$20,$20,$55,$73,$65,$20,$73
 loc_0_00000F74:
-	dc.b "imilar tactics"	; string
+	dc.b "imilar tactics"
 loc_0_00000F82:
 	dc.b $00
 loc_0_00000F83:
-	dc.b "as with Pyramid mines!",$00	; string
+	dc.b "as with Pyramid mines!",$00
 loc_0_00000F9A:
-	dc.b "Stomper",$00	; string
+	dc.b "Stomper",$00
 loc_0_00000FA2:
-	dc.b "Like walke"	; string
+	dc.b "Like walke"
 loc_0_00000FAC:
 	moveq.l #115,d1
 	move.l -(a0),d6
@@ -1302,14 +1302,14 @@ loc_0_00000FAC:
 loc_0_00000FC0:
 	dc.b $73,$65,$72,$73,$00,$00
 loc_0_00000FC6:
-	dc.b "but are tougher in battle.",$00	; string
+	dc.b "but are tougher in battle.",$00
 	dc.b $00
 loc_0_00000FE2:
 	subq.w #1,$696D(a3)
 	movea.l -(a6),a0
 	dc.b $69,$67,$68,$74,$65,$72,$00,$00
 loc_0_00000FF0:
-	dc.b "Extremely fast, Possibly the Egron",$00	; string
+	dc.b "Extremely fast, Possibly the Egron",$00
 	dc.b $00
 loc_0_00001014:
 	moveq.l #97,d0
@@ -1327,11 +1327,11 @@ loc_0_00001038:
 	bsr.b loc_0_000010AE
 	dc.b $6E,$6F,$6E,$00
 loc_0_00001044:
-	dc.b "Tracking device ensures accurate",$00	; string
+	dc.b "Tracking device ensures accurate",$00
 	dc.b $00
 loc_0_00001066:
 	move a5,usp
-	dc.b "utron Missile bombardment.",$00	; string
+	dc.b "utron Missile bombardment.",$00
 	dc.b $00
 loc_0_00001084:
 	dc.b $4C,$6F
@@ -1347,7 +1347,7 @@ loc_0_00001096:
 	dc.b $61,$73,$74,$20,$61,$6E,$64,$20,$68,$69,$67,$68,$6C,$79,$20,$6D
 	dc.b $61,$6E
 loc_0_000010AE:
-	dc.b "oeuvrable",$00	; string
+	dc.b "oeuvrable",$00
 loc_0_000010B8:
 	addq.w #1,-(a5)
 	dc.b $71,$75,$69,$72,$65,$73,$20,$73,$6B,$69,$6C,$6C,$66,$75,$6C,$20
@@ -1355,26 +1355,26 @@ loc_0_000010B8:
 loc_0_000010D6:
 	dc.b $54,$72,$69,$2D,$6C,$61,$75,$6E,$63,$68,$65,$72,$00,$00
 loc_0_000010E4:
-	dc.b "Dropped by Walkers, can fire bursts",$00	; string
+	dc.b "Dropped by Walkers, can fire bursts",$00
 loc_0_00001108:
 	ble.b loc_0_00001170
 	move.l $6D(a3,d2.w),d0
 	dc.b $69,$73,$73,$69,$6C,$65,$73,$2E,$20,$20,$56,$65,$72,$79,$20,$64
 	dc.b $61,$6E,$67,$65,$72,$6F,$75,$73,$21,$00
 loc_0_00001128:
-	dc.b "Egron Neutron Missile",$00	; string
+	dc.b "Egron Neutron Missile",$00
 loc_0_0000113E:
-	dc.b "Standard issue on most Egron craft",$00	; string
+	dc.b "Standard issue on most Egron craft",$00
 	dc.b $00
 loc_0_00001162:
-	dc.b "high impact fa"	; string
+	dc.b "high impact fa"
 loc_0_00001170:
 	bls.b loc_0_000011E6
 	ble.b loc_0_000011E6
 	move.l -(a0),d6
 	dc.b $66,$61,$73,$74,$20,$66,$6C,$69,$67,$68,$74,$00
 loc_0_00001182:
-	dc.b "Egron Homing Missile",$00	; string
+	dc.b "Egron Homing Missile",$00
 	dc.b $00
 loc_0_00001198:
 	subq.w #1,$6172(a5)
@@ -1392,7 +1392,7 @@ loc_0_000011DE:
 	addq.w #8,$72616D69.l
 	bcc.b loc_0_00001206
 loc_0_000011E6:
-	dc.b "Launcher",$00	; string
+	dc.b "Launcher",$00
 	dc.b $00
 loc_0_000011F0:
 	not.w $6C65(a1)
@@ -1400,16 +1400,16 @@ loc_0_000011F0:
 	movea.l -(a2),a0
 	dc.b $65,$65,$6E,$20,$65,$72,$61,$73,$65,$64,$20,$72
 loc_0_00001206:
-	dc.b "ecently.",$00	; string
+	dc.b "ecently.",$00
 	dc.b $00
 loc_0_00001210:
 	neg.w -(a5)
-	dc.b "fences Unknown.",$00	; string
+	dc.b "fences Unknown.",$00
 loc_0_00001222:
-	dc.b "StarGlider One",$00	; string
+	dc.b "StarGlider One",$00
 	dc.b $00
 loc_0_00001232:
-	dc.b "Its thought Hermann Kruud aboard.",$00	; string
+	dc.b "Its thought Hermann Kruud aboard.",$00
 loc_0_00001254:
 	not.w $6965(a4)
 	dc.b $73,$20,$46,$61,$73,$74,$2E,$20,$49,$73,$20,$77,$65,$6C,$6C,$20
@@ -1748,7 +1748,7 @@ loc_0_00001762:
 	adda.w #$2,a1
 	bra.w loc_0_00005A8E
 loc_0_00001788:
-	dc.b $0D,$0A,$0A	; string
+	dc.b $0D,$0A,$0A
 	dc.b "Starglider was written by ",$0D,$0A
 	dc.b "     Jez San and Rich Clucas of",$0D,$0A
 	dc.b "Argonaut Software, London, England.,",$0D,$0A,$0A
@@ -5112,11 +5112,11 @@ loc_0_000048BE:
 loc_0_000048F6:
 	rts
 loc_0_000048F8:
-	dc.b "Lasers and Shields replenished.  ",$00	; string
+	dc.b "Lasers and Shields replenished.  ",$00
 loc_0_0000491A:
-	dc.b "  Press SPACE BAR to launch,     ",$00	; string
+	dc.b "  Press SPACE BAR to launch,     ",$00
 loc_0_0000493C:
-	dc.b " or I to Interrogate computer.   ",$00	; string
+	dc.b " or I to Interrogate computer.   ",$00
 	dc.b $32,$3C,$1F,$FF,$36,$3C,$1F,$FF,$74,$00,$60,$00,$00,$32,$38,$02
 	dc.b $C9,$EE,$01,$FE,$E3,$84,$48,$44,$3C,$03,$CD,$EE,$01,$FC,$E3,$86
 	dc.b $48,$46,$D8,$46,$3A,$03,$CB,$EE,$01,$FE,$E3,$85,$48,$45,$3C,$02
@@ -5299,20 +5299,20 @@ loc_0_00004C52:
 	movem.l (a7)+,d7/a4-a5
 	bra.b loc_0_00004C2A
 loc_0_00004C66:
-	dc.b "MISSILE VIEW",$00	; string
+	dc.b "MISSILE VIEW",$00
 	dc.b $00
 loc_0_00004C74:
 	dc.b $8F,$44,$4F,$43,$4B,$49,$4E,$47,$2C,$20,$50,$52,$45,$53,$53,$20
 	dc.b $49,$20,$46,$4F,$52,$20,$49,$4E,$54,$45,$52,$52,$4F,$47,$41,$54
 	dc.b $45,$00
 loc_0_00004C96:
-	dc.b "LAUNCHING FROM SILO",$00	; string
+	dc.b "LAUNCHING FROM SILO",$00
 loc_0_00004CAA:
-	dc.b "ENERGY CELLS REFUELLING",$00	; string
+	dc.b "ENERGY CELLS REFUELLING",$00
 loc_0_00004CC2:
-	dc.b "00000000",$00	; string
+	dc.b "00000000",$00
 	dc.b $00
-	dc.b "00000000",$00	; string
+	dc.b "00000000",$00
 	dc.b $00
 loc_0_00004CD6:
 	move.w app_0276(a6),d1
@@ -7072,9 +7072,9 @@ loc_0_0000689E:
 	movem.l (a7)+,d0-d7/a0-a6
 	bra.w loc_0_000067C4
 loc_0_000068A6:
-	dc.b "WARNING:  MINE DETECTED",$00	; string
+	dc.b "WARNING:  MINE DETECTED",$00
 loc_0_000068BE:
-	dc.b "MINE HAS JUST EXPLODED!",$00	; string
+	dc.b "MINE HAS JUST EXPLODED!",$00
 loc_0_000068D6:
 	tst.b app_031C(a6)
 	beq.b loc_0_000068EC
@@ -8111,7 +8111,7 @@ loc_0_000076AE:
 	dc.b $00,$00,$00,$00,$00,$00,$44,$49,$56,$20,$20,$20,$20,$20,$20,$20
 	dcb.b $8,$30
 	dc.b $00,$00,$00,$00,$00,$00
-	dc.b "ATN       00000000",$00	; string
+	dc.b "ATN       00000000",$00
 	dc.b $00,$00,$00,$00,$00
 loc_0_0000781A:
 	bsr.w loc_0_00008AF6
@@ -8209,11 +8209,11 @@ loc_0_00007A0A:
 	not.w d1
 	dc.b $49,$52,$00,$00
 loc_0_00007A10:
-	dc.b "AVERAGE",$00	; string
+	dc.b "AVERAGE",$00
 loc_0_00007A18:
-	dc.b "ABOVE AVERAGE",$00	; string
+	dc.b "ABOVE AVERAGE",$00
 loc_0_00007A26:
-	dc.b "ACCURATE",$00	; string
+	dc.b "ACCURATE",$00
 	dc.b $00
 loc_0_00007A30:
 	neg.w d5
@@ -8224,11 +8224,11 @@ loc_0_00007A38:
 	addq.b #1,-(a0)
 	dc.b $46,$4C,$59,$45,$52,$00
 loc_0_00007A44:
-	dc.b "ACE PILOT",$00	; string
+	dc.b "ACE PILOT",$00
 loc_0_00007A4E:
-	dc.b "COMMANDER",$00	; string
+	dc.b "COMMANDER",$00
 loc_0_00007A58:
-	dc.b "CHEAT!?!",$00	; string
+	dc.b "CHEAT!?!",$00
 	dc.b $00
 loc_0_00007A62:
 	dc.l loc_0_000079FC	; pointer_table
@@ -9734,7 +9734,7 @@ loc_0_000091CA:
 	dc.b $20,$31,$20,$32,$20,$33,$20,$34,$20,$35,$20,$36,$20,$38,$20,$39
 	dc.b $31,$30
 loc_0_000091DC:
-	dc.b $0D,$0A,$0A,$0A,$0A,$0A,$0A,$0A,$0D,$0A	; string
+	dc.b $0D,$0A,$0A,$0A,$0A,$0A,$0A,$0A,$0D,$0A
 	dc.b "            CONGRATULATIONS!",$0D,$0A
 	dc.b "      You are one of the ten best",$0D,$0A
 	dc.b "         AGAV pilots to date.",$0D,$0A,$0A,$0A
@@ -9766,17 +9766,17 @@ loc_0_000092B8:
 	move.l -(a0),d0
 	movea.l a2,a0
 	dc.b $45,$5A,$20,$53,$41,$4E,$20,$20,$20,$00
-	dc.b "ARGONAUT       ",$00	; string
+	dc.b "ARGONAUT       ",$00
 	dc.b $20,$20,$20,$20,$20,$20,$20,$53,$4F,$46,$54,$57,$41,$52,$45,$00
-	dc.b "RICHARD CLUCAS ",$00	; string
-	dc.b "GARY SHEINWALD ",$00	; string
-	dc.b "PAUL HIBBARD   ",$00	; string
-	dc.b "RICARDO PINTO  ",$00	; string
-	dc.b "DAVE LOWE      ",$00	; string
-	dc.b "JAMES FOLLETT  ",$00	; string
-	dc.b "RAINBIRD       ",$00	; string
+	dc.b "RICHARD CLUCAS ",$00
+	dc.b "GARY SHEINWALD ",$00
+	dc.b "PAUL HIBBARD   ",$00
+	dc.b "RICARDO PINTO  ",$00
+	dc.b "DAVE LOWE      ",$00
+	dc.b "JAMES FOLLETT  ",$00
+	dc.b "RAINBIRD       ",$00
 loc_0_00009358:
-	dc.b "FIREBIRD       ",$00	; string
+	dc.b "FIREBIRD       ",$00
 	dcb.b $F,$20
 	dc.b $00
 	dcb.b $F,$20
@@ -9786,7 +9786,7 @@ loc_0_00009388:
 loc_0_00009390:
 	dcb.b $E4,$00
 loc_0_00009474:
-	dc.b $0D,$0A	; string
+	dc.b $0D,$0A
 	dc.b "CONGRATULATIONS PILOT",$0D,$0A
 	dc.b "YOUR SCORE GETS YOU",$0D,$0A
 	dc.b "THE NUMBER      HIGH SCORE",$0D,$0A,$0A,$0A
@@ -9808,7 +9808,7 @@ loc_0_000095D6:
 loc_0_000095DE:
 	dc.b $06
 loc_0_000095DF:
-	dc.b $0D,$0A,$0A	; string
+	dc.b $0D,$0A,$0A
 	dc.b "           NO DISK IN DRIVE 0",$0D,$0A
 	dc.b "             CONTINUE Y or N",$00
 loc_0_0000961E:
@@ -9875,7 +9875,7 @@ loc_0_000098BA:
 	dcb.b $63,$AA
 	dc.b $44
 loc_0_0000998E:
-	dc.b "AMIGA STARGLIDER"	; string
+	dc.b "AMIGA STARGLIDER"
 loc_0_0000999E:
 	dc.w $0000
 loc_0_000099A0:
@@ -10310,42 +10310,42 @@ loc_0_0000A152:
 	dc.b $44,$65,$66,$69,$6E,$65,$20,$6B,$65,$79,$73,$0D,$0A,$0A,$82,$00
 	dc.b $00
 loc_0_0000A172:
-	dc.b "Press a key to bank right        "	; string
+	dc.b "Press a key to bank right        "
 	dc.b $81
 loc_0_0000A194:
 	dc.b $20,$20,$20,$20,$82,$0D,$00,$00
 loc_0_0000A19C:
-	dc.b "Press a key to bank left         "	; string
+	dc.b "Press a key to bank left         "
 	dc.b $81
 loc_0_0000A1BE:
 	dc.b $20,$20,$20,$20,$82,$0D,$00,$00
 loc_0_0000A1C6:
-	dc.b "Press a key to Increase Altitude "	; string
+	dc.b "Press a key to Increase Altitude "
 	dc.b $81
 loc_0_0000A1E8:
 	dc.b $20,$20,$20,$20,$82,$0D,$00,$00
 loc_0_0000A1F0:
-	dc.b "Press a key to Decrease Altitude "	; string
+	dc.b "Press a key to Decrease Altitude "
 	dc.b $81
 loc_0_0000A212:
 	dc.b $20,$20,$20,$20,$82,$0D,$00,$00
 loc_0_0000A21A:
-	dc.b "Press a key to Accelerate        "	; string
+	dc.b "Press a key to Accelerate        "
 	dc.b $81
 loc_0_0000A23C:
 	dc.b $20,$20,$20,$20,$82,$0D,$00,$00
 loc_0_0000A244:
-	dc.b "Press a key to Decelerate        "	; string
+	dc.b "Press a key to Decelerate        "
 	dc.b $81
 loc_0_0000A266:
 	dc.b $20,$20,$20,$20,$82,$0D,$00,$00
 loc_0_0000A26E:
-	dc.b "Press a key to Fire              "	; string
+	dc.b "Press a key to Fire              "
 	dc.b $81
 loc_0_0000A290:
 	dc.b $20,$20,$20,$20,$82,$0D,$00,$00
 loc_0_0000A298:
-	dc.b "Press a key to launch missile    "	; string
+	dc.b "Press a key to launch missile    "
 	dc.b $81
 loc_0_0000A2BA:
 	dc.b $20,$20,$20,$20,$82,$0D,$00,$00
@@ -10574,7 +10574,7 @@ loc_0_0000A71E:
 loc_0_0000A77E:
 	dc.b $81,$59,$6F,$75,$20,$67,$6F,$74,$20,$69,$74,$20,$77,$72,$6F,$6E
 	dc.b $67,$20,$74,$68,$72,$65,$65,$20,$74,$69,$6D,$65,$73,$0D,$0A,$0A
-	dc.b "You will have to reboot now.",$00	; string
+	dc.b "You will have to reboot now.",$00
 loc_0_0000A7BB:
 	dc.b $81
 	dcb.b $8,$0A
@@ -10597,9 +10597,9 @@ loc_0_0000A7D8:
 	dcb.b $B5,$20
 	dc.b $0D,$0A,$0A,$81,$53,$45,$49,$54,$45,$20
 loc_0_0000A95B:
-	dc.b "       ABSATZ "	; string
+	dc.b "       ABSATZ "
 loc_0_0000A969:
-	dc.b "       WORT "	; string
+	dc.b "       WORT "
 loc_0_0000A975:
 	dc.b $20,$20,$20,$20,$20,$20,$0D,$0A,$0A,$0A,$83,$3A,$00
 loc_0_0000A982:
@@ -10631,9 +10631,9 @@ loc_0_0000A982:
 	dc.b $72,$20,$74,$68,$65,$20,$82,$53,$54,$41,$52,$47,$4C,$49,$44,$45
 	dc.b $52,$0D,$0A,$20,$81,$50,$41,$47,$45,$20
 loc_0_0000AAF8:
-	dc.b "      PARAGRAPH "	; string
+	dc.b "      PARAGRAPH "
 loc_0_0000AB08:
-	dc.b "      WORD "	; string
+	dc.b "      WORD "
 loc_0_0000AB13:
 	dc.b $20,$20,$20,$20,$20,$20,$0D,$0A,$0A,$83,$3A,$00
 loc_0_0000AB1F:

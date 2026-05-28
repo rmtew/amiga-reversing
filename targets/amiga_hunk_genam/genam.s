@@ -217,7 +217,7 @@ app_SIZEOF EQU __RS
 loc_0_00000000:
 	bra.b loc_0_00000036
 	dc.b $94,$4F,$7A,$30,$85,$C2
-	dc.b "$VER: GenAm 3.18 (2.8.94)",$00	; string
+	dc.b "$VER: GenAm 3.18 (2.8.94)",$00
 	dc.b $28,$43,$29,$20,$48,$69,$53,$6F,$66,$74,$20,$31,$39,$38,$35,$2D
 	dc.b $31,$39,$39,$37
 loc_0_00000036:
@@ -3991,9 +3991,9 @@ loc_0_00004E62:
 	dc.b $4A,$10,$6A,$04,$70,$00,$4E,$75,$70,$00,$48,$81,$12,$36,$10,$7E
 	dc.b $14,$18,$67,$C6,$52,$00,$B4,$01,$66,$F6,$12,$1C,$B0,$00,$4E,$75
 	dc.b $49,$44,$00,$FF
-	dc.b "ROUND",$00	; string
-	dc.b "NPMZ",$00	; string
-	dc.b "PREC",$00	; string
+	dc.b "ROUND",$00
+	dc.b "NPMZ",$00
+	dc.b "PREC",$00
 	dc.b $58,$44,$53,$00,$61,$00,$D2,$80,$16,$2E,$02,$39,$66,$06,$1D,$7C
 	dc.b $00,$07,$02,$39,$B6,$3C,$00,$04,$65,$00,$D2,$7E,$4A,$2E,$02,$38
 	dc.b $66,$52,$2F,$08,$61,$00,$06,$FA,$20,$5F,$66,$00,$2B,$DA,$48,$E7
@@ -5335,112 +5335,112 @@ loc_0_00007A20:
 	movea.l (a7)+,a0
 	rts
 loc_0_00007A30:
-	dc.b "line malformed",$00	; string
-	dc.b "out of memory",$00	; string
-	dc.b "undefined symbol",$00	; string
-	dc.b "additional symbol on pass 2",$00	; string
-	dc.b "symbol defined twice",$00	; string
-	dc.b "phasing error",$00	; string
-	dc.b "local not allowed",$00	; string
-	dc.b "INTERNAL:invalid hashing",$00	; string
-	dc.b "instruction not recognised",$00	; string
-	dc.b "invalid size",$00	; string
-	dc.b "duplicate MODULE name",$00	; string
-	dc.b "forward reference",$00	; string
-	dc.b "invalid section name, TEXT assumed",$00	; string
-	dc.b "garbage following instruction",$00	; string
-	dc.b "addressing mode not recognised",$00	; string
-	dc.b "address register expected",$00	; string
-	dc.b "addressing mode not allowed",$00	; string
-	dc.b "expression mismatch",$00	; string
-	dc.b "missing close bracket",$00	; string
-	dc.b "imported label not allowed",$00	; string
-	dc.b "illegal type combination",$00	; string
-	dc.b "invalid number",$00	; string
-	dc.b "number too large",$00	; string
-	dc.b "misuse of label",$00	; string
-	dc.b "include file read error",$00	; string
-	dc.b "file not found",$00	; string
-	dc.b "header file not found",$00	; string
-	dc.b "repeated include file",$00	; string
-	dc.b "data too large",$00	; string
-	dc.b "relative not allowed",$00	; string
-	dc.b "comma expected",$00	; string
-	dc.b ".W or .L expected as index size",$00	; string
-	dc.b "absolute not allowed",$00	; string
-	dc.b "wrong processor",$00	; string
-	dc.b "odd address",$00	; string
-	dc.b "immediate data expected",$00	; string
-	dc.b "data register expected",$00	; string
-	dc.b "BSS or OFFSET section cannot contain data",$00	; string
-	dc.b "during writing binary file",$00	; string
-	dc.b "cannot create binary file",$00	; string
-	dc.b "symbol expected",$00	; string
-	dc.b "XREFs not allowed within brackets",$00	; string
-	dc.b "cannot import symbol",$00	; string
-	dc.b "cannot export symbol",$00	; string
-	dc.b "not yet implemented",$00	; string
-	dc.b "register expected",$00	; string
-	dc.b "invalid MOVEP addressing mode",$00	; string
-	dc.b "spurious ENDC",$00	; string
-	dc.b "spurious ELSE",$00	; string
-	dc.b "missing ENDC",$00	; string
-	dc.b "invalid IF expression, ignored",$00	; string
-	dc.b "source expired prematurely",$00	; string
-	dc.b "spurious ENDM or MEXIT",$00	; string
-	dc.b "cannot nest MACRO definitions or define in REPTs",$00	; string
-	dc.b "missing quote",$00	; string
-	dc.b "user error",$00	; string
-	dc.b "invalid register list",$00	; string
-	dc.b "invalid option",$00	; string
-	dc.b "fatally bad conditional",$00	; string
-	dc.b "relocation not allowed",$00	; string
-	dc.b "division by zero",$00	; string
-	dc.b "absolute expression MUST evaluate",$00	; string
-	dc.b "illegal BSR.S",$00	; string
-	dc.b "option must be at start",$00	; string
-	dc.b "INTERNAL:invalid optimisation",$00	; string
-	dc.b "can only assemble executable code to memory",$00	; string
-	dc.b "program buffer full",$00	; string
-	dc.b "linker format restriction",$00	; string
-	dc.b "ORG/RORG not allowed",$00	; string
-	dc.b "INTERNAL:invalid multi-line macro call",$00	; string
-	dc.b "cannot nest repeat loops",$00	; string
-	dc.b "spurious ENDR",$00	; string
-	dc.b "invalid numeric expansion",$00	; string
-	dc.b "during listing output",$00	; string
-	dc.b "invalid printer parameter",$00	; string
-	dc.b "invalid FORMAT parameter",$00	; string
-	dc.b "INTERNAL:bad section",$00	; string
-	dc.b "INTERNAL:macro memory",$00	; string
-	dc.b "assembly interrupted",$00	; string
-	dc.b "invalid section type",$00	; string
-	dc.b "in command-line symbol",$00	; string
-	dc.b "# probably missing",$00	; string
-	dc.b "short branch cannot be 0 bytes",$00	; string
-	dc.b "DCB or DS count must not be negative",$00	; string
-	dc.b "invalid bitfield specification",$00	; string
-	dc.b "colon (:) expected",$00	; string
-	dc.b "floating-point register expected",$00	; string
-	dc.b "MMU register expected",$00	; string
-	dc.b "invalid MMU function code",$00	; string
-	dc.b "invalid radix",$00	; string
-	dc.b "invalid 68020 addressing mode",$00	; string
-	dc.b "invalid index scale",$00	; string
-	dc.b "hex floating point number too large",$00	; string
-	dc.b "invalid opcode size for data/address register",$00	; string
-	dc.b "only FPIAR allowed",$00	; string
-	dc.b "maths co-processor required",$00	; string
-	dc.b "invalid k-factor",$00	; string
-	dc.b "floating point constant not allowed",$00	; string
-	dc.b "floating point constant too large",$00	; string
-	dc.b "bad floating point expression",$00	; string
-	dc.b "privileged instruction",$00	; string
-	dc.b "invalid section specified",$00	; string
-	dc.b "invalid pre-assembled file",$00	; string
-	dc.b "only (An) allowed for this instruction",$00	; string
-	dc.b "INTERNAL:memory list corrupt",$00	; string
-	dc.b "bit number should be 0-7 for byte",$00	; string
+	dc.b "line malformed",$00
+	dc.b "out of memory",$00
+	dc.b "undefined symbol",$00
+	dc.b "additional symbol on pass 2",$00
+	dc.b "symbol defined twice",$00
+	dc.b "phasing error",$00
+	dc.b "local not allowed",$00
+	dc.b "INTERNAL:invalid hashing",$00
+	dc.b "instruction not recognised",$00
+	dc.b "invalid size",$00
+	dc.b "duplicate MODULE name",$00
+	dc.b "forward reference",$00
+	dc.b "invalid section name, TEXT assumed",$00
+	dc.b "garbage following instruction",$00
+	dc.b "addressing mode not recognised",$00
+	dc.b "address register expected",$00
+	dc.b "addressing mode not allowed",$00
+	dc.b "expression mismatch",$00
+	dc.b "missing close bracket",$00
+	dc.b "imported label not allowed",$00
+	dc.b "illegal type combination",$00
+	dc.b "invalid number",$00
+	dc.b "number too large",$00
+	dc.b "misuse of label",$00
+	dc.b "include file read error",$00
+	dc.b "file not found",$00
+	dc.b "header file not found",$00
+	dc.b "repeated include file",$00
+	dc.b "data too large",$00
+	dc.b "relative not allowed",$00
+	dc.b "comma expected",$00
+	dc.b ".W or .L expected as index size",$00
+	dc.b "absolute not allowed",$00
+	dc.b "wrong processor",$00
+	dc.b "odd address",$00
+	dc.b "immediate data expected",$00
+	dc.b "data register expected",$00
+	dc.b "BSS or OFFSET section cannot contain data",$00
+	dc.b "during writing binary file",$00
+	dc.b "cannot create binary file",$00
+	dc.b "symbol expected",$00
+	dc.b "XREFs not allowed within brackets",$00
+	dc.b "cannot import symbol",$00
+	dc.b "cannot export symbol",$00
+	dc.b "not yet implemented",$00
+	dc.b "register expected",$00
+	dc.b "invalid MOVEP addressing mode",$00
+	dc.b "spurious ENDC",$00
+	dc.b "spurious ELSE",$00
+	dc.b "missing ENDC",$00
+	dc.b "invalid IF expression, ignored",$00
+	dc.b "source expired prematurely",$00
+	dc.b "spurious ENDM or MEXIT",$00
+	dc.b "cannot nest MACRO definitions or define in REPTs",$00
+	dc.b "missing quote",$00
+	dc.b "user error",$00
+	dc.b "invalid register list",$00
+	dc.b "invalid option",$00
+	dc.b "fatally bad conditional",$00
+	dc.b "relocation not allowed",$00
+	dc.b "division by zero",$00
+	dc.b "absolute expression MUST evaluate",$00
+	dc.b "illegal BSR.S",$00
+	dc.b "option must be at start",$00
+	dc.b "INTERNAL:invalid optimisation",$00
+	dc.b "can only assemble executable code to memory",$00
+	dc.b "program buffer full",$00
+	dc.b "linker format restriction",$00
+	dc.b "ORG/RORG not allowed",$00
+	dc.b "INTERNAL:invalid multi-line macro call",$00
+	dc.b "cannot nest repeat loops",$00
+	dc.b "spurious ENDR",$00
+	dc.b "invalid numeric expansion",$00
+	dc.b "during listing output",$00
+	dc.b "invalid printer parameter",$00
+	dc.b "invalid FORMAT parameter",$00
+	dc.b "INTERNAL:bad section",$00
+	dc.b "INTERNAL:macro memory",$00
+	dc.b "assembly interrupted",$00
+	dc.b "invalid section type",$00
+	dc.b "in command-line symbol",$00
+	dc.b "# probably missing",$00
+	dc.b "short branch cannot be 0 bytes",$00
+	dc.b "DCB or DS count must not be negative",$00
+	dc.b "invalid bitfield specification",$00
+	dc.b "colon (:) expected",$00
+	dc.b "floating-point register expected",$00
+	dc.b "MMU register expected",$00
+	dc.b "invalid MMU function code",$00
+	dc.b "invalid radix",$00
+	dc.b "invalid 68020 addressing mode",$00
+	dc.b "invalid index scale",$00
+	dc.b "hex floating point number too large",$00
+	dc.b "invalid opcode size for data/address register",$00
+	dc.b "only FPIAR allowed",$00
+	dc.b "maths co-processor required",$00
+	dc.b "invalid k-factor",$00
+	dc.b "floating point constant not allowed",$00
+	dc.b "floating point constant too large",$00
+	dc.b "bad floating point expression",$00
+	dc.b "privileged instruction",$00
+	dc.b "invalid section specified",$00
+	dc.b "invalid pre-assembled file",$00
+	dc.b "only (An) allowed for this instruction",$00
+	dc.b "INTERNAL:memory list corrupt",$00
+	dc.b "bit number should be 0-7 for byte",$00
 	dc.b $70,$28,$60,$4C
 loc_0_00008422:
 	bsr.w loc_0_0000B024
@@ -5609,29 +5609,29 @@ loc_0_000085A6:
 	move.w #$8000,d2
 	bra.w loc_0_000084B8
 loc_0_000085C2:
-	dc.b "sign extended operand",$00	; string
-	dc.b "relative cannot be relocated",$00	; string
-	dc.b "invalid LINK displacement",$00	; string
-	dc.b "68010 instruction, converted to MOVE SR",$00	; string
-	dc.b "size should be .W",$00	; string
-	dc.b "directive ignored",$00	; string
-	dc.b "misuse of register list",$00	; string
-	dc.b "no ORG specified",$00	; string
-	dc.b "bit number should be 0-7 for byte",$00	; string
-	dc.b "missing ENDC at end of macro",$00	; string
-	dc.b "trailing comma at end of DC directive",$00	; string
-	dc.b "branch made short",$00	; string
-	dc.b "offset removed",$00	; string
-	dc.b "short word addressing used",$00	; string
-	dc.b "MOVEQ substituted",$00	; string
-	dc.b "quick form used",$00	; string
-	dc.b "branch could be short",$00	; string
-	dc.b "short branch converted to NOP",$00	; string
-	dc.b "base displacement shortened",$00	; string
-	dc.b "outer displacement shortened",$00	; string
-	dc.b "ADD/SUB converted to LEA",$00	; string
-	dc.b "LEA converted to ADDQ/SUBQ",$00	; string
-	dc.b ".L converted to .W",$00	; string
+	dc.b "sign extended operand",$00
+	dc.b "relative cannot be relocated",$00
+	dc.b "invalid LINK displacement",$00
+	dc.b "68010 instruction, converted to MOVE SR",$00
+	dc.b "size should be .W",$00
+	dc.b "directive ignored",$00
+	dc.b "misuse of register list",$00
+	dc.b "no ORG specified",$00
+	dc.b "bit number should be 0-7 for byte",$00
+	dc.b "missing ENDC at end of macro",$00
+	dc.b "trailing comma at end of DC directive",$00
+	dc.b "branch made short",$00
+	dc.b "offset removed",$00
+	dc.b "short word addressing used",$00
+	dc.b "MOVEQ substituted",$00
+	dc.b "quick form used",$00
+	dc.b "branch could be short",$00
+	dc.b "short branch converted to NOP",$00
+	dc.b "base displacement shortened",$00
+	dc.b "outer displacement shortened",$00
+	dc.b "ADD/SUB converted to LEA",$00
+	dc.b "LEA converted to ADDQ/SUBQ",$00
+	dc.b ".L converted to .W",$00
 	dc.b $00,$02,$02,$02,$04,$00,$FF,$00,$02,$02,$00,$02,$02,$4A,$2E,$02
 	dc.b $38,$67,$2C,$48,$A7,$C0,$00,$04,$40,$00,$0C,$10,$3B,$00,$E4,$6B
 	dc.b $0A,$48,$80,$D1,$6E,$01,$94,$52,$6E,$01,$92,$30,$17,$04,$40,$00
@@ -6664,25 +6664,25 @@ loc_0_000093FE:
 	dc.b $75,$6E,$64,$0A,$00,$20,$6C,$69,$6E,$65,$73,$20,$61,$73,$73,$65
 	dc.b $6D,$62,$6C,$65,$64,$20,$69,$6E,$74,$6F,$20,$00,$45,$72,$72,$6F
 	dc.b $72,$3A,$20,$00,$4C,$6F,$63,$61,$6C,$73,$3A,$0A,$00
-	dc.b "Warning: ",$00	; string
+	dc.b "Warning: ",$00
 	dc.b $20,$61,$74,$20,$6C,$69,$6E,$65,$20,$00
-	dc.b "Could not open file ",$00	; string
+	dc.b "Could not open file ",$00
 	dc.b $20,$69,$6E,$20,$66,$69,$6C,$65,$20,$00,$20,$62,$79,$74,$65,$73
 	dc.b $2C,$20,$00,$20,$6F,$70,$74,$69,$6D,$69,$73,$61,$74,$69,$6F,$6E
 	dc.b $73,$20,$73,$61,$76,$69,$6E,$67,$20,$00,$20,$62,$79,$74,$65,$73
 	dc.b $0A,$00,$20,$20,$50,$61,$67,$65,$20,$00
-	dc.b "HiSoft GenAm 680x0 Macro Assembler v3.18   ",$00	; string
+	dc.b "HiSoft GenAm 680x0 Macro Assembler v3.18   ",$00
 	dc.b $20,$72,$65,$6C,$6F,$63,$61,$74,$61,$62,$6C,$65,$00,$20,$70,$6F
 	dc.b $73,$69,$74,$69,$6F,$6E,$2D,$69,$6E,$64,$65,$70,$65,$6E,$64,$65
 	dc.b $6E,$74,$00,$20,$63,$6F,$64,$65,$0A,$00,$0A,$09,$47,$4C,$4F,$42
 	dc.b $41,$4C,$20,$53,$59,$4D,$42,$4F,$4C,$53,$0A,$0A,$00,$0A,$09,$4D
 	dc.b $4F,$44,$55,$4C,$45,$20,$00,$20,$61,$62,$73,$6F,$6C,$75,$74,$65
 	dc.b $00,$42,$61,$64,$20,$61,$72,$67,$75,$6D,$65,$6E,$74,$73,$0A,$00
-	dc.b "Error in WITH file",$00	; string
-	dc.b "WITH file not found",$00	; string
+	dc.b "Error in WITH file",$00
+	dc.b "WITH file not found",$00
 	dc.b $43,$6F,$75,$6C,$64,$20,$6E,$6F,$74,$20,$6F,$70,$65,$6E,$20,$6C
 	dc.b $69,$73,$74,$69,$6E,$67,$20,$64,$65,$76,$69,$63,$65,$0A,$00
-	dc.b "Assembling ",$00	; string
+	dc.b "Assembling ",$00
 	dc.b $20,$69,$6E,$20,$61,$73,$73,$65,$6D,$62,$6C,$79,$20,$6F,$70,$74
 	dc.b $69,$6F,$6E,$73,$00,$4D,$61,$69,$6E,$20,$66,$69,$6C,$65,$20,$61
 	dc.b $6C,$72,$65,$61,$64,$79,$20,$69,$6E,$63,$6C,$75,$64,$65,$64,$20
@@ -6705,7 +6705,7 @@ loc_0_0000964A:
 loc_0_00009656:
 	dc.b $2E,$67,$73,$00
 loc_0_0000965A:
-	dc.b "Gen symbol",$00	; string
+	dc.b "Gen symbol",$00
 	dc.b $00
 loc_0_00009666:
 	btst.b #2,app_021D(a6)
@@ -7865,11 +7865,11 @@ loc_0_0000A3A8:
 	lea.l loc_0_0000A3C9(pc),a0
 	rts
 loc_0_0000A3BA:
-	dc.b "Amiga linkable",$00	; string
+	dc.b "Amiga linkable",$00
 loc_0_0000A3C9:
 	dc.b $2E,$6F,$00
 loc_0_0000A3CC:
-	dc.b "Amiga executable",$00	; string
+	dc.b "Amiga executable",$00
 loc_0_0000A3DD:
 	dc.b $00,$2F,$08,$12,$D8,$66,$FC,$13,$7C,$00,$2C,$FF,$FF,$20,$5F,$12
 	dc.b $D8,$66,$FC,$53,$89,$4E,$75
@@ -8225,17 +8225,17 @@ loc_0_0000AA9C:
 	moveq.l #0,d0
 	rts
 loc_0_0000AAA0:
-	dc.b "timer.device",$00	; string
+	dc.b "timer.device",$00
 	dc.b $00
 loc_0_0000AAAE:
 	bsr.w loc_0_000090F2
 	bra.w loc_0_0000ACA4
 loc_0_0000AAB6:
-	dc.b "FROM/A,TO/K,WITH/K,INCDIR/K/M,HEADER/K/M,QUIET/S: ",$00	; string
+	dc.b "FROM/A,TO/K,WITH/K,INCDIR/K/M,HEADER/K/M,QUIET/S: ",$00
 loc_0_0000AAE9:
 	dc.b $45,$4E,$56,$3A,$64,$65,$76,$70,$61,$63,$2F
 loc_0_0000AAF4:
-	dc.b "genam.opts",$00	; string
+	dc.b "genam.opts",$00
 	dc.b $00
 parse_option_source_buffer:
 	movea.l app_0228(a6),a4
@@ -8368,13 +8368,13 @@ loc_0_0000AC68:
 loc_0_0000AC6C:
 	dc.b $16,$C1,$4E,$75
 loc_0_0000AC70:
-	dc.b " bytes used",$00	; string
+	dc.b " bytes used",$00
 loc_0_0000AC7C:
-	dc.b ", took ",$00	; string
+	dc.b ", took ",$00
 loc_0_0000AC84:
-	dc.b " seconds",$00	; string
+	dc.b " seconds",$00
 loc_0_0000AC8D:
-	dc.b "Press any key to exit",$00	; string
+	dc.b "Press any key to exit",$00
 	dc.b $00
 loc_0_0000ACA4:
 	bsr.w flush_output_buffer
@@ -10058,7 +10058,7 @@ loc_0_0000F9B6:
 loc_0_0000F9BF:
 	dc.b $2E,$6D,$78,$00
 loc_0_0000F9C3:
-	dc.b "HISOFT DEVPAC",$00	; string
+	dc.b "HISOFT DEVPAC",$00
 	dc.b $00,$12,$D8,$66,$FC,$53,$89,$4E,$75
 loc_0_0000F9DA:
 	bsr.w loc_0_0000A110
