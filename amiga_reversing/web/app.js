@@ -10078,25 +10078,29 @@ function renderClassicMacContainerProject(projectData) {
   const mac = projectData.macos || {};
   const viewport = document.getElementById("listing-viewport");
   const files = Array.isArray(mac.files) ? mac.files : [];
+  const importedTargets = Array.isArray(mac.imported_targets) ? mac.imported_targets : [];
   viewport.innerHTML = `
-    <div class="macos-view" data-platform="macos" data-macos-container="1">
-      <section class="macos-section" data-macos-panel="hfs-container">
-        <h2>HFS Container</h2>
-        <div class="macos-summary-grid">
-          <div><span>Image</span><strong>${escapeHtml(mac.image_path || "")}</strong></div>
-          <div><span>Volume</span><strong>${escapeHtml(mac.volume_name || "")}</strong></div>
-          <div><span>Files</span><strong>${escapeHtml(String(files.length))}</strong></div>
-          <div><span>Imported</span><strong>${escapeHtml(String((mac.imported_targets || []).length || 0))}</strong></div>
+    <section class="disk-view macos-view" data-platform="macos" data-macos-container="1">
+      <div class="disk-tabs" role="tablist" aria-label="Mac HFS project sections">
+        <button class="disk-tab-button active" type="button" data-tab="targets" role="tab" aria-selected="true">Targets</button>
+        <button class="disk-tab-button" type="button" data-tab="contents" role="tab" aria-selected="false">Disk Contents</button>
+      </div>
+      <div class="disk-tab-panel active" data-tab-panel="targets" role="tabpanel">
+        <div class="disk-section">
+          ${renderClassicMacImportedTargets(importedTargets)}
         </div>
-        <div class="macos-container-files" data-macos-container-files="1">
-          ${files.map((file) => renderClassicMacContainerFile(file || {})).join("") || '<div class="empty">No HFS files.</div>'}
+      </div>
+      <div class="disk-tab-panel" data-tab-panel="contents" role="tabpanel" hidden>
+        <div class="disk-section">
+          ${renderClassicMacContainerSummary(mac, files, importedTargets)}
+          ${renderClassicMacContainerFiles(files)}
         </div>
-      </section>
-    </div>
+      </div>
+    </section>
   `;
-  viewport.querySelectorAll("[data-macos-target]").forEach((button) => {
+  viewport.querySelectorAll("[data-macos-target], [data-project-id]").forEach((button) => {
     button.addEventListener("click", () => {
-      const targetId = button.getAttribute("data-macos-target") || "";
+      const targetId = button.getAttribute("data-macos-target") || button.dataset.projectId || "";
       if (targetId) {
         navigateToProject(targetId);
       }
@@ -10121,6 +10125,82 @@ function renderClassicMacContainerProject(projectData) {
       }
     });
   });
+  const tabButtons = Array.from(viewport.querySelectorAll(".disk-tab-button"));
+  const tabPanels = Array.from(viewport.querySelectorAll(".disk-tab-panel"));
+  tabButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const selectedTab = button.dataset.tab;
+      tabButtons.forEach((item) => {
+        const active = item.dataset.tab === selectedTab;
+        item.classList.toggle("active", active);
+        item.setAttribute("aria-selected", active ? "true" : "false");
+      });
+      tabPanels.forEach((panel) => {
+        const active = panel.dataset.tabPanel === selectedTab;
+        panel.classList.toggle("active", active);
+        panel.hidden = !active;
+      });
+    });
+  });
+}
+
+function renderClassicMacContainerSummary(mac, files, importedTargets) {
+  return `
+    <div class="macos-summary-grid" data-macos-container-summary="1">
+      <div><span>Image</span><strong>${escapeHtml(mac.image_path || "")}</strong></div>
+      <div><span>Volume</span><strong>${escapeHtml(mac.volume_name || "")}</strong></div>
+      <div><span>Files</span><strong>${escapeHtml(String(files.length))}</strong></div>
+      <div><span>Imported</span><strong>${escapeHtml(String(importedTargets.length))}</strong></div>
+    </div>
+  `;
+}
+
+function renderClassicMacImportedTargets(importedTargets) {
+  if (!importedTargets.length) {
+    return '<div class="disk-list"><div class="empty">No imported Mac targets.</div></div>';
+  }
+  return `
+    <div class="disk-list" data-macos-imported-targets="1">
+      ${importedTargets.map((target) => renderClassicMacImportedTarget(target || {})).join("")}
+    </div>
+  `;
+}
+
+function renderClassicMacImportedTarget(target) {
+  const targetId = target.target_id || "";
+  const title = target.hfs_path || target.local_target_id || targetId;
+  const resource = `${target.resource_type || "CODE"} ${target.selected_code_resource_id ?? ""}`.trim();
+  const badges = [target.target_type || "macos_hfs_resource_code_file", resource].filter(Boolean);
+  return `
+    <button class="disk-item disk-target-button" data-project-id="${escapeHtml(targetId)}" data-macos-target="${escapeHtml(targetId)}" type="button">
+      <span class="disk-item-main"><span class="disk-target-entry-icon">C</span>${escapeHtml(title)}</span>
+      <span class="disk-item-meta">${renderInlineBadges(badges)}</span>
+    </button>
+  `;
+}
+
+function renderClassicMacContainerFiles(files) {
+  if (!files.length) {
+    return '<div class="empty">No HFS files indexed.</div>';
+  }
+  return `
+    <div class="disk-list">
+      <table class="disk-file-table" aria-label="Mac HFS file contents" data-macos-container-files="1">
+        <thead>
+          <tr>
+            <th class="disk-file-header-name">File</th>
+            <th class="disk-file-header-size">Forks</th>
+            <th class="disk-file-header-type">Finder</th>
+            <th class="disk-file-header-details">Resources</th>
+            <th class="disk-file-header-action">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${files.map((file) => renderClassicMacContainerFile(file || {})).join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
 }
 
 function renderClassicMacContainerFile(file) {
@@ -10129,26 +10209,20 @@ function renderClassicMacContainerFile(file) {
   const types = Array.isArray(resourceFork.types) ? resourceFork.types : [];
   const supportsCode = (file.supported_imports || []).includes("macos_hfs_resource_code_file");
   const importedTargetId = file.imported_target_id || "";
+  const action = importedTargetId
+    ? `<span role="button" tabindex="0" class="disk-item-action" data-macos-target="${escapeHtml(importedTargetId)}">Open</span>`
+    : (supportsCode ? `<span role="button" tabindex="0" class="disk-item-action" data-macos-import-path="${escapeHtml(file.path || "")}">Import</span>` : "");
   return `
-    <article class="macos-code-detail" data-macos-container-file="${escapeHtml(file.path || "")}">
-      <header>
-        <h4>${escapeHtml(file.path || "")}</h4>
-        <span>${escapeHtml(`${file.finder_type || ""}/${file.creator || ""}`)}</span>
-      </header>
-      <div class="macos-code-detail-grid">
-        <div><span>Data</span><strong>${escapeHtml(formatFileSize(file.data_fork_size || 0))}</strong></div>
-        <div><span>Resource</span><strong>${escapeHtml(formatFileSize(file.resource_fork_size || 0))}</strong></div>
-        <div><span>Fork</span><strong>${escapeHtml(resourceFork.status || "absent")}</strong></div>
-        <div><span>Types</span><strong>${escapeHtml(types.map((item) => `${item.type || ""}:${item.count || 0}`).join(", "))}</strong></div>
-      </div>
-      <div class="macos-code0-jump-table" data-macos-container-resources="1">
-        ${resources.map((resource) => renderClassicMacContainerResource(resource || {})).join("") || '<div class="empty">No resources.</div>'}
-      </div>
-      <div class="macos-actions">
-        ${importedTargetId ? `<button type="button" data-macos-target="${escapeHtml(importedTargetId)}">Open Target</button>` : ""}
-        ${!importedTargetId && supportsCode ? `<button type="button" data-macos-import-path="${escapeHtml(file.path || "")}">Import CODE File</button>` : ""}
-      </div>
-    </article>
+    <tr class="disk-file-entry-row" data-macos-container-file="${escapeHtml(file.path || "")}" tabindex="0" role="row">
+      <td class="disk-file-name" title="${escapeHtml(file.path || "")}">${escapeHtml(file.path || "")}</td>
+      <td class="disk-file-size">${escapeHtml(`data ${formatFileSize(file.data_fork_size || 0)} / rsrc ${formatFileSize(file.resource_fork_size || 0)}`)}</td>
+      <td class="disk-file-type">${escapeHtml(`${file.finder_type || ""}/${file.creator || ""}`)}</td>
+      <td class="disk-file-details">
+        ${escapeHtml(types.map((item) => `${item.type || ""}:${item.count || 0}`).join(", "))}
+        ${resources.length ? `<div class="macos-resource-inline" data-macos-container-resources="1">${resources.map((resource) => renderClassicMacContainerResource(resource || {})).join("")}</div>` : ""}
+      </td>
+      <td class="disk-file-action">${action}</td>
+    </tr>
   `;
 }
 
@@ -10156,13 +10230,9 @@ function renderClassicMacContainerResource(resource) {
   const code = resource.code || {};
   const codeSummary = code.kind ? `${code.kind} ${code.jump_table_entry_count ?? ""}`.trim() : "";
   return `
-    <div class="macos-code0-jump-row" data-macos-container-resource="${escapeHtml(resource.type || "")}:${escapeHtml(String(resource.id ?? ""))}">
-      <span>${escapeHtml(resource.type || "")}</span>
-      <span>${escapeHtml(String(resource.id ?? ""))}</span>
-      <span>${escapeHtml(resource.name || "")}</span>
-      <span>${escapeHtml(formatFileSize(resource.size || 0))}</span>
-      <span>${escapeHtml(codeSummary)}</span>
-    </div>
+    <span class="disk-item-state" data-macos-container-resource="${escapeHtml(resource.type || "")}:${escapeHtml(String(resource.id ?? ""))}">
+      ${renderInlineBadges([`${resource.type || ""} ${resource.id ?? ""}`.trim(), resource.name || "", formatFileSize(resource.size || 0), codeSummary].filter(Boolean))}
+    </span>
   `;
 }
 
