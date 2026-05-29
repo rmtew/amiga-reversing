@@ -5923,14 +5923,18 @@ static int render_lookup_build(M68kRenderLookup *lookup, const M68kObject *objec
       }
     }
   }
-  if (policy != NULL) {
-    uint16_t item_index;
-    for (item_index = 0U; item_index < policy->structured_data_item_count &&
-         item_index < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT; ++item_index) {
-      const M68kAnalysisStructuredDataItem *item = &policy->structured_data_items[item_index];
-      size_t item_section_index = item->has_section_index ? (size_t)item->section_index : 0U;
+  {
+    size_t ownership_index;
+    for (ownership_index = 0U; ownership_index < lookup->range_ownership_count; ++ownership_index) {
+      M68kRenderRangeOwnershipView view;
+      const M68kAnalysisStructuredDataItem *item;
+      size_t item_section_index = lookup->range_ownerships[ownership_index].section_index;
       const M68kDecodeSectionIR *section;
       uint32_t cursor;
+      if (!hydrate_range_ownership_view(lookup, &lookup->range_ownerships[ownership_index], &view)) continue;
+      if (view.kind != M68K_RANGE_OWNERSHIP_TABLE) continue;
+      item = view.structured_item;
+      if (item == NULL) continue;
       if ((!structured_data_item_is_pointer_table(item) &&
             !structured_data_item_is_absolute_long_lookup_table(item)) ||
           item_section_index >= decode->section_count) {

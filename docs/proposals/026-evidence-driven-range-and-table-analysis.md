@@ -1052,6 +1052,49 @@ All 36 tracked target `.s` files were regenerated with no target source diffs.
 Round-trip remained 34/36 full-file exact, 1 content-exact-only, 1 unsupported,
 and 0 failures.
 
+### Pass 12: Lookup-Build Table Labels From Range Owners
+
+The twelfth pass removes the remaining policy-list walk that materialized
+pointer-table and absolute-long lookup target labels during initial lookup
+construction.
+
+Before this pass, lookup construction had a direct policy scan:
+
+```text
+policy.structured_data_items
+  -> pointer/absolute-long table payload
+  -> target labels
+```
+
+That meant a table-shaped policy payload could still create labels without
+first passing through the same range ownership surface used by descriptor export
+and later table label materialization. The initial build path now iterates
+`M68kRenderLookup.range_ownerships`, hydrates table owners, and only then reads
+the pointer/absolute-long payload:
+
+```text
+lookup.range_ownerships
+  -> accepted table owner
+  -> pointer/absolute-long payload
+  -> target labels
+```
+
+This leaves raw payload decoding where it belongs, but removes another direct
+ownership decision from policy storage.
+
+Verification after this pass:
+
+```text
+cmd /c src\precommit.bat m68k_ir
+uv run python -m pytest tests\test_c_backend.py -q
+uv run platform-rendered-source-roundtrip
+git diff --check
+```
+
+All 36 tracked target `.s` files were regenerated with no target source diffs.
+Round-trip remained 34/36 full-file exact, 1 content-exact-only, 1 unsupported,
+and 0 failures.
+
 ## Open Design Questions
 
 - What is the smallest status vocabulary that covers candidate, accepted,
