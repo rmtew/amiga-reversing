@@ -499,6 +499,45 @@ Renderer non-responsibilities:
 Comments should explain durable semantics. They should not be debug output for
 why the renderer guessed a row.
 
+## Descriptor/Payload Contract
+
+Range ownership is the selector. Table descriptors are the durable exported
+table contract. Structured-data items are payload views attached to accepted
+owners.
+
+The renderer may read structured-data payload fields only after the range owner
+has selected that byte span. Those fields currently provide syntax operands:
+
+- data width: bytes, words, longs, or string;
+- semantic role flags such as pointer table, lookup table, string, palette, or
+  platform metadata;
+- table kind and table base expression;
+- target section/offset and consumer section/offset;
+- source pattern;
+- labels, comments, constants, value domains, and type/platform field names;
+- platform payload fields such as Amiga resident autoinit metadata.
+
+Those fields are not a second ownership source. They answer "how should this
+accepted owner be printed or reported?", not "does this byte range belong to a
+table/text/platform record?".
+
+Descriptor fields exported today are:
+
+```text
+range: start_offset..end_offset
+entry_size / entry_count
+table_kind_id / base_expression_id / source_pattern_id
+status / conflict_state / role_flags
+target and consumer links
+```
+
+That is enough for durable source-analysis consumers to understand the table
+shape without rescanning raw bytes. Renderer syntax still needs the payload view
+for exact assembly expressions, comments, platform names, and compatibility
+formatting. A future refactor may move more syntax operands into first-class
+descriptor fields, but doing so is cleanup, not a correctness blocker, as long
+as ownership selection remains range-owned.
+
 ## Testing Strategy
 
 Tests should have two layers.
@@ -804,11 +843,9 @@ Current remaining scope before this proposal can close:
   ingesting policy seeds into `M68kRenderLookup`, hydrating range owners by
   stable source/index, creating/refining auto payload records, and detecting
   whether a policy has any analysis inputs.
-- Table descriptors are exported from range owners, but they are not yet the
-  only renderer operand for every table syntax decision. Closing the proposal
-  still requires either making descriptors first-class renderer operands where
-  practical, or documenting the exact payload fields that intentionally remain
-  structured-data views over accepted table ownership.
+- Table descriptors are exported from range owners. Structured-data payloads
+  remain documented syntax/reporting views over accepted ownership, not an
+  alternate ownership source.
 - Platform evidence adapters are normalized for the audited Amiga, Atari, and
   Mac covered paths. Future platform helpers should keep the same boundary:
   contribute facts, policy seeds, or auto structured-data payloads that receive
@@ -1372,12 +1409,46 @@ All 36 tracked target `.s` files were regenerated with no target source diffs.
 Round-trip remained 34/36 full-file exact, 1 content-exact-only, 1 unsupported,
 and 0 failures.
 
+### Pass 19: Descriptor/Payload Contract Audit
+
+The nineteenth pass audits the remaining table renderer dependency on
+structured-data fields and turns it into an explicit contract.
+
+Findings:
+
+- `M68kTableDescriptorIR` carries the durable exported table shape: range,
+  entry size/count, table kind, base expression, source pattern, status,
+  conflict state, role flags, target link, and consumer link.
+- Table renderers still need attached structured-data payload fields for exact
+  assembly syntax and reporting: width, semantic role, expression kind,
+  label/comment/value-domain text, platform fields, and target/consumer details.
+- Those payload fields are now reached after range ownership selects the span.
+  They do not authorize ownership by themselves in the covered renderer/export
+  paths.
+
+The proposal now records this as the descriptor/payload contract. Moving every
+syntax operand into a descriptor-only structure would be a future refactor, not
+a required correctness step for Proposal 026, provided new code keeps the same
+selector/payload split.
+
+Verification for this audit reused the Pass 17 proof because this pass changes
+documentation only:
+
+```text
+cmd /c src\precommit.bat m68k_ir
+uv run python -m pytest tests\test_c_backend.py -q
+uv run platform-rendered-source-roundtrip
+git diff --check
+```
+
+All 36 tracked target `.s` files were regenerated with no target source diffs.
+Round-trip remained 34/36 full-file exact, 1 content-exact-only, 1 unsupported,
+and 0 failures.
+
 ## Open Design Questions
 
 - What is the smallest status vocabulary that covers candidate, accepted,
   blocked, conflict, and deferred without duplicating manual review state?
-- Should table descriptors live beside structured data items, or should
-  structured data become one view over accepted range records?
 - How should large descriptor-derived xref sets be paged or reported in JSON
   without bloating every normal analysis output?
 - Which conflicts should produce manual review items, and which should simply
