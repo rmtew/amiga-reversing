@@ -1,6 +1,6 @@
 # Proposal 028: Control-Flow-Derived Table Bounds and Data Reference Analysis
 
-Status: In progress.
+Status: Complete.
 
 Proposal 025 made string/text acceptance evidence-driven. Proposal 026 made
 range and table ownership a C-owned analysis result. The next gap is deeper:
@@ -12,25 +12,26 @@ data discovery into general C data-flow analysis.
 
 ## Checkpoint Index
 
-- [ ] Problem Statement
-- [ ] Tutorial: Why Table Bounds Belong To Control Flow
-- [ ] Tutorial: Indexed Dispatch Table
-- [ ] Tutorial: String Pointer Table
-- [ ] Tutorial: Word-Offset Text Table
-- [ ] Tutorial: Invalid Or Incomplete Entries
-- [ ] Tutorial: False Code Islands And Text Blockers
-- [ ] Tutorial: Character Constants And Fixed Tokens
-- [ ] Invariant: No Bounded Fallbacks
-- [ ] Core C Model
-- [ ] Platform Extension Boundary
-- [ ] Renderer Contract
-- [ ] Implementation Slices
-- [ ] Tests And Fixture Proof
-- [ ] Related But Out Of Scope
-- [ ] Verification Plan
-- [ ] Acceptance Criteria
-- [ ] Non-Goals
-- [ ] Later Notes
+- [x] Problem Statement
+- [x] Tutorial: Why Table Bounds Belong To Control Flow
+- [x] Tutorial: Indexed Dispatch Table
+- [x] Tutorial: String Pointer Table
+- [x] Tutorial: Word-Offset Text Table
+- [x] Tutorial: Invalid Or Incomplete Entries
+- [x] Tutorial: False Code Islands And Text Blockers
+- [x] Tutorial: Character Constants And Fixed Tokens
+- [x] Invariant: No Bounded Fallbacks
+- [x] Core C Model
+- [x] Platform Extension Boundary
+- [x] Renderer Contract
+- [x] Implementation Slices
+- [x] Tests And Fixture Proof
+- [x] Related But Out Of Scope
+- [x] Verification Plan
+- [x] Completion Audit
+- [x] Acceptance Criteria
+- [x] Non-Goals
+- [x] Later Notes
 
 ## Problem Statement
 
@@ -1711,6 +1712,90 @@ Covered by:
 - `hunk_loader_applies_executable_header_memory_flags_to_sections`
 - `facts_v2_adjacent_runtime_ranges_do_not_org_back_to_storage`
 - `facts_v2_render_asm_source_uses_observed_app_slot_widths`
+
+## Completion Audit
+
+The final audit treats the proposal as closed only for the source-visible
+table/data-reference work described here. It does not close later type
+propagation, decompression, external-resource provenance, Mac source assembly,
+or source UX cleanup.
+
+Requirement-by-requirement evidence:
+
+- Consumer-derived table bounds are C-owned through table consumer records,
+  table descriptors, entry-count proofs, and stop reasons. Covered by
+  `source_analysis_table_descriptor_exports_consumer_fact`,
+  `facts_v2_pc_word_dispatch_descriptor_exports_index_domains`,
+  `facts_v2_pc_index_loop_bound_promotes_exact_table_count`, and the Pandora
+  and Bloodwych fixture checks in
+  `test_real_dll_026_table_descriptors_use_evidence_bounds_not_caps`.
+- Mask, compare/branch, loop, and structural-stop evidence are distinct model
+  fields and JSON names. Covered by
+  `source_analysis_table_descriptor_exports_consumer_fact`,
+  `source_analysis_table_descriptor_exports_loop_limit_proof`, and
+  `facts_v2_pc_index_loop_bound_promotes_exact_table_count`.
+- Table entries, table descriptors, labels, data references, immediate-token
+  facts, orphan-code signals, CFG rows, and related source-analysis surfaces are
+  arena-backed dynamic arrays. The old source-visible 64-entry trace target-set
+  cap is removed by `facts_v2_swapped_keyed_long_table_has_no_fixed_target_set_cap`.
+- Capacity exhaustion now has a source-analysis incomplete-analysis fact instead
+  of silent raw-byte fallback. Covered by
+  `source_analysis_incomplete_analysis_exports_capacity_hit`.
+- Per-entry target status preserves numeric/exact rendering for unresolved,
+  conflicting, or interior targets. Covered by
+  `source_analysis_table_entry_exports_status`,
+  `source_analysis_table_descriptor_exports_conflict`, and the Bloodwych mixed
+  table source assertion in
+  `test_real_dll_026_table_descriptors_use_evidence_bounds_not_caps`.
+- Table-backed data and string targets are accepted from table/structured-target
+  evidence, not Python shape guesses. Covered by
+  `source_analysis_data_reference_exports_table_entry`,
+  `facts_v2_pointer_table_targets_promote_short_strings`, and the Pandora
+  word-offset string table fixture assertions.
+- Valid-looking opcode islands without accepted inbound evidence remain
+  report-only orphan-code signals and can suppress weak text. Covered by
+  `facts_v2_orphan_signal_suppresses_structured_data_overlap` and
+  `facts_v2_orphan_signal_suppresses_non_control_runtime_address_ref`.
+- Immediate character constants are instruction operand facts, separate from
+  data ranges. Covered by
+  `source_analysis_immediate_text_token_exports_operand_fact` and
+  `test_real_dll_028_immediate_text_tokens_are_instruction_operand_facts`.
+- Bounded text ranges remain structured-data ownership facts. Fixed text
+  fragments are accepted only when the existing structured-data/string evidence
+  proves their bounds; API-driven type propagation and semantic naming remain
+  later work.
+- Platform adapters contribute platform facts into the shared C model. Amiga has
+  fixture proof through Pandora, Bloodwych, Magicland, MonAm, and GenAm checks.
+  Atari currently has no tracked `.s` target in this tree, so the all-target
+  source refresh has no Atari source to regenerate; Atari remains covered by
+  the shared C backend/precommit platform tests and PRG round-trip tests. Mac
+  source assembly remains explicitly unsupported and is reported as unsupported
+  by the round-trip gate instead of being skipped or guessed.
+- All 36 tracked `.s` files were regenerated through
+  `uv run platform-rendered-source-roundtrip --update-rendered-source`; the only
+  unsupported target is the Mac source-assembly case.
+
+Current proof:
+
+```text
+cmd /c src\precommit.bat m68k_ir
+  OK: style 19, unit 140, integration 97, explicit 44
+
+uv run python -m pytest tests\test_c_backend.py -q
+  211 passed, 15 skipped
+
+uv run python -m pytest tests -q
+  1549 passed, 70 skipped
+
+uv run platform-rendered-source-roundtrip --update-rendered-source
+  26/36 full-file exact, 9/36 content-exact-only, 1/36 unsupported, 0 failures
+
+uv run platform-rendered-source-roundtrip
+  32/36 full-file exact, 3/36 content-exact-only, 1/36 unsupported, 0 failures
+
+git diff --check
+  OK
+```
 
 ## Acceptance Criteria
 
