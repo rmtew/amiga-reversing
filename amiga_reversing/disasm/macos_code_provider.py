@@ -10,7 +10,7 @@ from amiga_reversing.disasm.c_backend import (
     extract_macos_hfs_code_resource_bytes_with_c_backend,
     inspect_macos_hfs_code_summary_with_c_backend,
 )
-from amiga_reversing.disasm.macos_asm_container import read_macos_hfs_image_bytes
+from amiga_reversing.disasm.macos_image import read_macos_hfs_image_bytes
 
 
 def macos_code_resource_byte_view_with_c_backend(
@@ -65,7 +65,7 @@ def macos_code_resource_byte_view_with_c_backend(
         "executable_ranges": [selected_range],
         "executable_deferred": list(_sequence(summary.get("executable_deferred"))),
     }
-    profile = {
+    profile: dict[str, object] = {
         "backend": "macos-code",
         "source_kind": "macos_code_resource",
         "wrapped_backend": None,

@@ -5,7 +5,7 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 
-from amiga_reversing.disasm.binary_source import BinarySource
+from amiga_reversing.disasm.binary_source import BinarySource, read_binary_source_bytes
 from amiga_reversing.disasm.c_backend import (
     listing_artifact_source_text_with_c_backend_profile,
 )
@@ -70,7 +70,7 @@ def render_source_from_binary_source(
         listing_profile=listing_profile,
         workflow_profile=workflow_profile.to_payload(),
         metadata_hash=effective_metadata_hash(target_dir),
-        target_identity_sha256=_sha256_bytes(binary_source.read_bytes()),
+        target_identity_sha256=_sha256_bytes(read_binary_source_bytes(binary_source)),
         refusal_message=refusal_message,
     )
 

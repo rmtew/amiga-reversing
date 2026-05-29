@@ -72,7 +72,7 @@ def callback_slot_report(
                 "assignments": slot_assignments,
             }
         )
-    summary = {
+    summary: dict[str, object] = {
         "consumer_count": len(consumers),
         "assignment_count": len(assignments),
         "concrete_missed_code_target_count": sum(
@@ -114,7 +114,7 @@ def analysis_with_callback_orphan_code_signals(
     sections = projected.get("sections")
     if not isinstance(sections, list):
         projected["sections"] = []
-        sections = projected["sections"]
+        sections = []
     by_section: dict[int, list[dict[str, object]]] = {}
     for signal in signals:
         section_index = _int_or_none(signal.get("section_index"))
@@ -259,7 +259,7 @@ def analysis_with_accepted_callback_code(
     sections = projected.get("sections")
     if not isinstance(sections, list):
         projected["sections"] = []
-        sections = projected["sections"]
+        sections = []
     for hunk, facts in by_section.items():
         section = _analysis_section(sections, hunk)
         section["accepted_callback_code_ranges"] = [
@@ -647,8 +647,8 @@ def _callback_assignment_evidence_packet(
     }
     false_positive_checks = _callback_false_positive_checks(target, target_bytes)
     review_gate_blockers = list(_string_sequence(assignment.get("action_readiness"), "blockers"))
-    blockers = [
-        check["kind"]
+    blockers: list[str] = [
+        str(check["kind"])
         for check in false_positive_checks
         if check.get("status") == "risk"
     ]
@@ -707,9 +707,7 @@ def _callback_assignment_evidence_packet(
         },
         "review_item": review_item,
         "existing_review_gate": {
-            "status": assignment.get("action_readiness", {}).get("status")
-            if isinstance(assignment.get("action_readiness"), Mapping)
-            else None,
+            "status": action_readiness.get("status") if isinstance((action_readiness := assignment.get("action_readiness")), Mapping) else None,
             "blockers": review_gate_blockers,
         },
         "xrefs": [
@@ -1130,9 +1128,9 @@ def _analysis_section(sections: list[object], section_index: int) -> dict[str, o
     for section in sections:
         if isinstance(section, dict) and _int_or_none(section.get("section_index")) == section_index:
             return section
-    section: dict[str, object] = {"section_index": section_index, "section_size": 0}
-    sections.append(section)
-    return section
+    new_section: dict[str, object] = {"section_index": section_index, "section_size": 0}
+    sections.append(new_section)
+    return new_section
 
 
 def _first_app_slot_ref(

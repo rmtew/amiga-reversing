@@ -256,7 +256,7 @@ def run_cascade(
                 parent_fact_ids=[fact_id] if fact_id else [],
                 rule_id="cascade.parent_validation.v1",
                 blockers=blockers,
-                scope=dict(fact.get("scope")) if isinstance(fact.get("scope"), Mapping) else {},
+                scope=dict(scope) if isinstance((scope := fact.get("scope")), Mapping) else {},
                 provenance={"source": "cascade_engine", "parent_fact": fact},
             )
             continue
@@ -268,7 +268,7 @@ def run_cascade(
                 parent_fact_ids=[fact_id],
                 rule_id="cascade.rule_dispatch.v1",
                 blockers=["missing_rule_support"],
-                scope=dict(fact.get("scope")) if isinstance(fact.get("scope"), Mapping) else {},
+                scope=dict(scope) if isinstance((scope := fact.get("scope")), Mapping) else {},
                 provenance={"source": "cascade_engine", "parent_fact_type": fact_type},
             )
 

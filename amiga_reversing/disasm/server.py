@@ -827,7 +827,9 @@ def _reproduction_profile_payload(project_name: str) -> dict[str, object]:
 
 
 def _source_export_payload(project_name: str, query: dict[str, list[str]]) -> dict[str, object]:
-    _require_ready_binary_project(project_name, "source export")
+    project = get_project(project_name)
+    if not _is_listing_project(project) or not project.ready:
+        raise ValueError(f"Project {project_name} is not ready for source export")
     assembler_profile = _first_query_value(query, "assembler_profile") or "vasm"
     return source_export_payload(
         project_name,
@@ -1803,6 +1805,8 @@ def _project_payload(project_name: str) -> ProjectPayload:
 
 def _project_dict_with_cached_analysis_review(project_name: str, project: ProjectRecord) -> dict[str, object]:
     project_dict = project.to_dict()
+    if _has_default_source_artifact(project):
+        project_dict["source_artifact_default"] = True
     artifact = _valid_c_listing_artifact(project_name)
     if artifact is None:
         return _project_dict_with_review_action_catalog(project_dict)
@@ -1822,6 +1826,18 @@ def _project_dict_with_cached_analysis_review(project_name: str, project: Projec
         elif open_analysis_items:
             project_dict["review_state"] = ReviewState.NEEDS_REVIEW
     return _project_dict_with_review_action_catalog(project_dict)
+
+
+def _has_default_source_artifact(project: ProjectRecord) -> bool:
+    renderer = project.origin.get("renderer")
+    artifact = project.origin.get("artifact")
+    return (
+        project.output_path is not None
+        and isinstance(renderer, str)
+        and renderer != ""
+        and isinstance(artifact, str)
+        and artifact != ""
+    )
 
 
 def _project_dict_with_review_action_catalog(project_dict: dict[str, object]) -> dict[str, object]:
@@ -3637,57 +3653,57 @@ def route_request(
             anchor_code_values = query.get("anchor_code")
             anchor_code = anchor_code_values[0].strip() if anchor_code_values else ""
             if anchor_code:
-                payload, _ = listing_artifact.anchor_window_payload(
+                listing_payload, _ = listing_artifact.anchor_window_payload(
                     anchor_code=anchor_code,
                     count=count or 240,
                 )
             elif section_index is not None and source_offset is not None:
                 artifact_row_lookup = getattr(listing_artifact, "row_for_source_offset", None)
                 if artifact_row_lookup is None:
-                    payload = _empty_listing_payload(source_offset)
+                    listing_payload = _empty_listing_payload(source_offset)
                 else:
                     row = artifact_row_lookup(section_index=section_index, offset=source_offset)
                     row_index = row.get("row_index") if isinstance(row, dict) else None
                     if isinstance(row_index, int):
                         before = _parse_int_arg(query, "before", 80) or 80
                         after = _parse_int_arg(query, "after", 200) or 200
-                        payload, _ = listing_artifact.window_payload(
+                        listing_payload, _ = listing_artifact.window_payload(
                             start=max(0, row_index - before),
                             count=before + after + 1,
                         )
                     else:
-                        payload = _empty_listing_payload(source_offset)
+                        listing_payload = _empty_listing_payload(source_offset)
             elif runtime_address is not None:
                 artifact_row_lookup = getattr(listing_artifact, "row_for_runtime_address", None)
                 if artifact_row_lookup is None:
-                    payload = _empty_listing_payload(runtime_address)
+                    listing_payload = _empty_listing_payload(runtime_address)
                 else:
                     row = artifact_row_lookup(address=runtime_address)
                     row_index = row.get("row_index") if isinstance(row, dict) else None
                     if isinstance(row_index, int):
                         before = _parse_int_arg(query, "before", 80) or 80
                         after = _parse_int_arg(query, "after", 200) or 200
-                        payload, _ = listing_artifact.window_payload(
+                        listing_payload, _ = listing_artifact.window_payload(
                             start=max(0, row_index - before),
                             count=before + after + 1,
                         )
                     else:
-                        payload = _empty_listing_payload(runtime_address)
+                        listing_payload = _empty_listing_payload(runtime_address)
             elif start is not None or count is not None:
-                payload, _ = listing_artifact.window_payload(start=start or 0, count=count or 240)
+                listing_payload, _ = listing_artifact.window_payload(start=start or 0, count=count or 240)
             else:
                 addr = _parse_int_arg(query, "addr")
                 before = _parse_int_arg(query, "before", 80) or 80
                 after = _parse_int_arg(query, "after", 200) or 200
-                payload, _ = listing_artifact.addr_window_payload(addr=addr, before=before, after=after)
-            payload = cast(
+                listing_payload, _ = listing_artifact.addr_window_payload(addr=addr, before=before, after=after)
+            listing_payload = cast(
                 ListingWindowPayload,
                 {
-                    **payload,
+                    **listing_payload,
                     "analysis_generation": _project_listing_generation(project_name),
                 },
             )
-            annotated_payload = _annotate_listing_payload(project_name, payload)
+            annotated_payload = _annotate_listing_payload(project_name, listing_payload)
             return {
                 "ok": True,
                 "data": _LISTING_PROJECTION_SERVICE.normalize_window(

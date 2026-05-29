@@ -1208,6 +1208,56 @@ body {
   will-change: transform;
 }
 
+.source-artifact-view {
+  min-width: max-content;
+  font-family: "Cascadia Mono", "Consolas", monospace;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.source-artifact-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  border-bottom: 1px solid #d7d7d7;
+  background: #fff;
+}
+
+.source-artifact-toolbar button {
+  font: inherit;
+  padding: 3px 8px;
+  border: 1px solid #7a7a7a;
+  background: #fff;
+  cursor: pointer;
+}
+
+.source-artifact-source {
+  margin: 0;
+  padding: 8px 0;
+}
+
+.source-artifact-line {
+  display: grid;
+  grid-template-columns: 48px minmax(0, max-content);
+  min-height: 20px;
+  white-space: pre;
+}
+
+.source-artifact-line-number {
+  padding: 0 10px;
+  color: #666;
+  text-align: right;
+  user-select: none;
+}
+
+.source-artifact-line code {
+  font: inherit;
+}
+
 .overlay-host {
   position: absolute;
   inset: 72px 16px 16px;

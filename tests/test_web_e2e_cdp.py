@@ -77,7 +77,7 @@ def _macos_project(project_name: str) -> ProjectRecord:
         name=project_name,
         kind=ProjectKind.MACOS,
         target_dir=f"targets/{project_name}",
-        output_path=None,
+        output_path=f"targets/{project_name}/asm.s",
         binary_path="resources/platform_macos/MPW-GM.img.bin",
         ready=True,
         last_opened=None,
@@ -91,7 +91,9 @@ def _macos_project(project_name: str) -> ProjectRecord:
         updated_at="2026-03-25T01:00:00+00:00",
         origin={
             "kind": "macos_hfs_resource_code_file",
+            "artifact": "asm.s",
             "parent_project_id": "macos_mpw_preview_parent",
+            "renderer": "amiga_reversing.disasm.macos_target_artifact",
             "source_image": "resources/platform_macos/MPW-GM.img.bin",
             "hfs_path": "MPW-GM/MPW/Tools/Asm",
             "resource_type": "CODE",
@@ -927,19 +929,18 @@ def test_brave_cdp_can_open_project_and_render_listing(monkeypatch: pytest.Monke
 @pytest.mark.web_e2e
 def test_brave_cdp_can_open_single_macos_project_from_home(monkeypatch: pytest.MonkeyPatch) -> None:
     project = _macos_project("macos_mpw_preview")
-    rows = [
-        ListingRow(row_id="m0", kind="instruction", text="movea.l (a7)+,a0\n", addr=0, start_offset=0, end_offset=4),
-        ListingRow(row_id="m1", kind="instruction", text="rts\n", addr=4, start_offset=4, end_offset=6),
-    ]
-    listing_artifact = _FakeCListingArtifact(rows, project_name=project.id)
     monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
     monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
     monkeypatch.setattr(disasm_server, "mark_project_opened", lambda project_name: project)
     monkeypatch.setattr(disasm_server, "build_macos_project_payload", lambda project_name: _macos_preview_payload())
     monkeypatch.setattr(
         disasm_server,
-        "build_macos_project_listing_artifact_profile",
-        lambda project_record, project_root=None: (len(rows), {"backend": "macos-code"}, listing_artifact),
+        "source_export_payload",
+        lambda project_name, *, assembler_profile, project_root=None: {
+            "status": "ok",
+            "filename": f"{project_name}-{assembler_profile}.s",
+            "source_text": 'INCLUDE "SegLoad.a"\n\nCODE_0:\n\tmovea.l (a7)+,a0\n',
+        },
     )
 
     with _live_server() as base_url, brave_page() as page:
@@ -954,8 +955,9 @@ def test_brave_cdp_can_open_single_macos_project_from_home(monkeypatch: pytest.M
             f"detail.projectId === {json.dumps(project.id)}",
             timeout=10.0,
         )
-        page.wait_for_selector(".listing-row")
-        assert page.evaluate("document.querySelector('#listing-viewport')?.textContent.includes('movea.l (a7)+,a0')")
+        page.wait_for_selector("[data-source-artifact-view='1']")
+        assert page.evaluate("document.querySelector('#listing-viewport')?.textContent.includes('INCLUDE \"SegLoad.a\"')")
+        assert page.evaluate("document.querySelector('#listing-viewport')?.textContent.includes('CODE_0:')")
         assert page.evaluate("document.querySelector('[data-macos-code-details=\"1\"]') === null")
         assert page.evaluate("document.querySelector('#project-title')?.textContent") == project.id
         assert page.evaluate("location.pathname") == f"/{project.id}"
@@ -1003,7 +1005,9 @@ def test_brave_cdp_can_open_real_macos_project_from_home(monkeypatch: pytest.Mon
             f"detail.projectId === {json.dumps(child.id)}",
             timeout=30.0,
         )
-        page.wait_for_selector(".listing-row", timeout=30.0)
+        page.wait_for_selector("[data-source-artifact-view='1']", timeout=30.0)
+        assert page.evaluate("document.querySelector('#listing-viewport')?.textContent.includes('INCLUDE \"SegLoad.a\"')")
+        assert page.evaluate("document.querySelector('#listing-viewport')?.textContent.includes('CODE_0:')")
         assert page.evaluate("document.querySelector('[data-macos-code-details=\"1\"]') === null")
         assert page.evaluate("document.querySelector('#project-title')?.textContent") == child.id
         assert page.evaluate("location.pathname") == f"/{child.id}"
@@ -1011,22 +1015,21 @@ def test_brave_cdp_can_open_real_macos_project_from_home(monkeypatch: pytest.Mon
 
 
 @pytest.mark.web_e2e
-def test_brave_cdp_macos_code_child_uses_normal_listing_view(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_brave_cdp_macos_code_child_uses_shared_source_artifact_view(monkeypatch: pytest.MonkeyPatch) -> None:
     project = _macos_project("macos_mpw_preview")
-    rows = [
-        ListingRow(row_id="m0", kind="instruction", text="movea.l (a7)+,a0\n", addr=0, start_offset=0, end_offset=4),
-        ListingRow(row_id="m1", kind="instruction", text="rts\n", addr=4, start_offset=4, end_offset=6),
-    ]
     disasm_server._ASYNC_JOBS.clear()
-    listing_artifact = _FakeCListingArtifact(rows, project_name=project.id)
     monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
     monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
     monkeypatch.setattr(disasm_server, "mark_project_opened", lambda project_name: project)
     monkeypatch.setattr(disasm_server, "build_macos_project_payload", lambda project_name: _macos_preview_payload())
     monkeypatch.setattr(
         disasm_server,
-        "build_macos_project_listing_artifact_profile",
-        lambda project_record, project_root=None: (len(rows), {"backend": "macos-code"}, listing_artifact),
+        "source_export_payload",
+        lambda project_name, *, assembler_profile, project_root=None: {
+            "status": "ok",
+            "filename": f"{project_name}-{assembler_profile}.s",
+            "source_text": 'INCLUDE "SegLoad.a"\n\nCODE_0:\n\tmovea.l (a7)+,a0\n',
+        },
     )
 
     with _live_server() as base_url, brave_page() as page:
@@ -1037,11 +1040,13 @@ def test_brave_cdp_macos_code_child_uses_normal_listing_view(monkeypatch: pytest
             f"detail.projectId === {json.dumps(project.id)}",
             timeout=10.0,
         )
-        page.wait_for_selector(".listing-row")
+        page.wait_for_selector("[data-source-artifact-view='1']")
 
         body_text = page.text_content("body")
+        assert 'INCLUDE "SegLoad.a"' in body_text
         assert "movea.l (a7)+,a0" in body_text
         assert "CODE Resource Details" not in body_text
+        assert page.evaluate("document.querySelector('.listing-row') === null")
         assert page.evaluate("document.querySelectorAll('[data-macos-preview-row]').length") == 0
         assert page.evaluate("document.querySelectorAll('[data-macos-non-code-row]').length") == 0
         assert page.evaluate("document.querySelector('[data-macos-code-listing=\"1\"]') === null")

@@ -1317,6 +1317,26 @@ def test_route_project_returns_macos_container_payload(monkeypatch: pytest.Monke
     assert macos["kind"] == "macos_hfs_container"
 
 
+def test_route_project_marks_renderer_backed_source_artifact_default(monkeypatch: pytest.MonkeyPatch) -> None:
+    project_record = replace(
+        _macos_project("macos_mpw_sample"),
+        output_path="targets/macos_mpw_sample/asm.s",
+        origin={
+            "kind": "macos_hfs_resource_code_file",
+            "artifact": "asm.s",
+            "renderer": "amiga_reversing.disasm.macos_target_artifact",
+        },
+    )
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project_record)
+    monkeypatch.setattr(disasm_server, "build_macos_project_payload", lambda project: {"kind": "macos_project"})
+
+    payload = disasm_server.route_request("GET", "/api/projects/macos_mpw_sample", {})
+    data = cast(dict[str, object], payload["data"])
+    project = cast(dict[str, object], data["project"])
+
+    assert project["source_artifact_default"] is True
+
+
 def test_macos_container_ui_preferences_are_noop(monkeypatch: pytest.MonkeyPatch) -> None:
     project = _macos_container_project("macos_hfs_sample")
     monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
@@ -1633,6 +1653,32 @@ def test_route_source_export_returns_selected_profile(monkeypatch: pytest.Monkey
     assert payload["ok"] is True
     assert cast(dict[str, object], payload["data"])["filename"] == "bloodwych-devpac.s"
     assert calls == [("bloodwych", "devpac")]
+
+
+def test_route_source_export_accepts_macos_listing_project(monkeypatch: pytest.MonkeyPatch) -> None:
+    project = replace(
+        _macos_project("macos_mpw_sample"),
+        output_path="targets/macos_mpw_sample/asm.s",
+        origin={
+            "kind": "macos_hfs_resource_code_file",
+            "artifact": "asm.s",
+            "renderer": "amiga_reversing.disasm.macos_target_artifact",
+        },
+    )
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
+    calls: list[tuple[str, str]] = []
+
+    def fake_source_export_payload(project_name: str, *, assembler_profile: str, project_root=None) -> dict[str, object]:
+        calls.append((project_name, assembler_profile))
+        return {"status": "ok", "filename": "macos_mpw_sample-vasm.s", "source_text": "CODE_0:\n"}
+
+    monkeypatch.setattr(disasm_server, "source_export_payload", fake_source_export_payload)
+
+    payload = disasm_server.route_request("GET", "/api/projects/macos_mpw_sample/source-export", {})
+
+    assert payload["ok"] is True
+    assert cast(dict[str, object], payload["data"])["source_text"] == "CODE_0:\n"
+    assert calls == [("macos_mpw_sample", "vasm")]
 
 
 def test_route_source_export_returns_refusal(monkeypatch: pytest.MonkeyPatch) -> None:

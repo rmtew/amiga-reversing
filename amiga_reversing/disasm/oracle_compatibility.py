@@ -16,7 +16,9 @@ from amiga_reversing.disasm.binary_source import (
     BinarySourceKind,
     DiskEntryBinarySource,
     HunkFileBinarySource,
+    MacosCodeResourceSource,
     RawBinarySource,
+    read_binary_source_bytes,
 )
 from amiga_reversing.disasm.c_backend import (
     reproduction_compare_rebuilt_bytes_with_c_backend_profile,
@@ -198,7 +200,7 @@ def run_genam_oracle(target_name: str, *, project_root: Path = PROJECT_ROOT) -> 
     started_at = time.perf_counter()
     paths = resolve_project_paths(target_name, project_root=project_root)
     binary_source = paths.binary_source
-    if isinstance(binary_source, DiskEntryBinarySource):
+    if isinstance(binary_source, DiskEntryBinarySource | MacosCodeResourceSource):
         return _with_workflow_profile(
             _base_report(
                 oracle_id="genam-devpac",
@@ -207,7 +209,7 @@ def run_genam_oracle(target_name: str, *, project_root: Path = PROJECT_ROOT) -> 
                 availability=availability,
                 comparison_level=OracleComparisonLevel.NOT_COMPARABLE,
                 assembler_status="not_run",
-                message=f"GenAm oracle target must be file-backed: {target_name}",
+                message=f"GenAm oracle target must be an Amiga file-backed target: {target_name}",
             ),
             workflow_profile,
         )
@@ -366,7 +368,7 @@ def _report_from_command(
         )
         return report
     output_bytes = output_path.read_bytes()
-    original_bytes = binary_source.read_bytes()
+    original_bytes = read_binary_source_bytes(binary_source)
     comparison = _compare_output(binary_source, original_bytes, output_bytes, target_dir, project_root)
     report.update(
         {

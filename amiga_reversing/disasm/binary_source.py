@@ -177,6 +177,23 @@ class MacosCodeResourceSource:
 type BinarySource = HunkFileBinarySource | DiskEntryBinarySource | RawBinarySource | MacosCodeResourceSource
 
 
+def read_binary_source_bytes(binary_source: BinarySource) -> bytes:
+    if isinstance(binary_source, MacosCodeResourceSource):
+        from amiga_reversing.disasm.c_backend import (
+            extract_macos_hfs_code_resource_bytes_with_c_backend,
+        )
+        from amiga_reversing.disasm.macos_image import read_macos_hfs_image_bytes
+
+        hfs_bytes = read_macos_hfs_image_bytes(binary_source.source_image)
+        return extract_macos_hfs_code_resource_bytes_with_c_backend(
+            hfs_bytes,
+            binary_source.hfs_path,
+            binary_source.resource_id,
+            project_root=binary_source.project_root,
+        )
+    return binary_source.read_bytes()
+
+
 def macos_code_resource_cache_identity(
     source_image: str,
     hfs_path: str,

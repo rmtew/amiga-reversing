@@ -10,6 +10,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import cast
 
+from amiga_reversing.disasm.binary_source import MacosCodeResourceSource
 from amiga_reversing.disasm.c_backend import (
     build_macos_code_bytes_listing_artifact_profile,
     extract_macos_hfs_code_resource_bytes_with_c_backend,
@@ -137,7 +138,7 @@ def _effective_source_origin(
     return merged
 
 
-def _native_source_identity(descriptor: object, *, source_image: str) -> dict[str, object]:
+def _native_source_identity(descriptor: MacosCodeResourceSource, *, source_image: str) -> dict[str, object]:
     return {
         "kind": str(descriptor.kind),
         "backend": "macos-code",
@@ -354,11 +355,10 @@ def _code_source_body_sections(
         }
         if resource_id == 0:
             jump_table = _mapping(detail.get("jump_table"))
+            jump_table_context = dict(jump_table)
+            jump_table_context["kb_record_id"] = jump_table.get("kb_record_id") or detail.get("kb_record_id")
             section["code0_structured_context"] = {
-                "jump_table": {
-                    **jump_table,
-                    "kb_record_id": jump_table.get("kb_record_id") or detail.get("kb_record_id"),
-                },
+                "jump_table": jump_table_context,
                 "jump_table_rows": _source_jump_table_rows(detail),
                 "generated_routing_xrefs": code0_routing_xrefs,
             }
@@ -560,15 +560,15 @@ def _source_quality_gate(
         "reachable_code_evidence_recorded": all(row["reachable_code_evidence_recorded"] is True for row in rows),
         "xref_target_labels_resolved": all(row["xref_target_labels_resolved"] is True for row in rows),
     }
-    semantic_rows = [row for row in rows if row["executable_body_span_count"]]
+    semantic_rows = [row for row in rows if _int_value(row.get("executable_body_span_count"))]
     checklist["recursive_control_target_xrefs_present"] = any(
-        row["recursive_control_target_xrefs"] > 0 for row in semantic_rows
+        (_int_value(row.get("recursive_control_target_xrefs")) or 0) > 0 for row in semantic_rows
     )
-    byte_real_only_bodies = [row for row in semantic_rows if row["semantic_instruction_row_count"] == 0]
+    byte_real_only_bodies = [row for row in semantic_rows if _int_value(row.get("semantic_instruction_row_count")) == 0]
     semantic_decode_gap_bodies = [
         row
         for row in semantic_rows
-        if any(_mapping(item).get("kind") == "semantic_decode_gap" for item in row["residuals"])
+        if any(_mapping(item).get("kind") == "semantic_decode_gap" for item in _sequence(row.get("residuals")))
     ]
     semantic_components = {
         "byte_preservation_status": "byte_real_complete" if all(checklist.values()) else "blocked",
@@ -736,7 +736,7 @@ def _source_quality_labels(detail: Mapping[str, object], section: Mapping[str, o
     if resource_id == 0:
         labels.extend(["CODE_0_application_metadata", "CODE_0_jump_table"])
         labels.extend(
-            f"CODE_0_jump_table_entry_{_text(row.get('entry_index'))}"
+            f"CODE_0_jump_table_entry_{_text(_mapping(row).get('entry_index'))}"
             for row in _sequence(_mapping(section.get("code0_structured_context")).get("jump_table_rows"))
         )
     if resource_id == 1:
@@ -772,7 +772,7 @@ def _source_quality_residuals(
                 item,
             )
             if semantic_rows:
-                residuals.extend(decoded_residuals)
+                residuals.extend(dict(item) for item in decoded_residuals)
                 continue
         if kind in {
             "candidate_code",
@@ -850,13 +850,13 @@ def _source_quality_residuals(
 
 
 def _residuals_in_range(
-    residuals: list[Mapping[str, object]],
+    residuals: Sequence[Mapping[str, object]],
     range_info: Mapping[str, object],
 ) -> list[Mapping[str, object]]:
     range_start = _int_value(range_info.get("start"))
     range_end = _int_value(range_info.get("end"))
     if range_start is None or range_end is None:
-        return residuals
+        return list(residuals)
     filtered: list[Mapping[str, object]] = []
     for residual in residuals:
         start = _int_value(residual.get("start"))
@@ -881,7 +881,7 @@ def _residuals_in_range(
 def _semantic_gap_residuals(
     detail: Mapping[str, object],
     range_info: Mapping[str, object],
-    semantic_rows: list[Mapping[str, object]],
+    semantic_rows: Sequence[Mapping[str, object]],
 ) -> list[dict[str, object]]:
     start = _int_value(range_info.get("start"))
     end = _int_value(range_info.get("end"))
@@ -993,7 +993,7 @@ def _source_quality_reachable_evidence(
 
 def _source_quality_next_step(
     detail: Mapping[str, object],
-    residuals: list[Mapping[str, object]],
+    residuals: Sequence[Mapping[str, object]],
     *,
     semantic_instruction_count: int = 0,
 ) -> str:
@@ -1126,7 +1126,7 @@ def _code_resource_details(
             project_root=project_root,
             all_routine_candidates=all_routine_candidates,
         )
-        analysis_seeds = [_mapping(item) for item in _sequence(semantic_source.get("analysis_seeds"))]
+        analysis_seeds = [dict(_mapping(item)) for item in _sequence(semantic_source.get("analysis_seeds"))]
         listing = _listing_descriptor(
             resource,
             code=code,
@@ -1229,6 +1229,15 @@ def _semantic_source_rows(
     all_routine_candidates: list[dict[str, object]],
 ) -> dict[str, object]:
     resource_id = resource.get("id")
+    if not isinstance(resource_id, int):
+        return {
+            "kind": "semantic_source_blocked",
+            "status": "blocked",
+            "reason": "CODE resource id is missing or non-numeric",
+            "analysis_seed_count": 0,
+            "analysis_seeds": [],
+            "rows": [],
+        }
     if resource_id == 0:
         return {
             "kind": "semantic_source_deferred",
@@ -1260,7 +1269,7 @@ def _semantic_source_rows(
     resource_payload = extract_macos_hfs_code_resource_payload_bytes_with_c_backend(
         hfs_bytes,
         hfs_path,
-        int(resource_id),
+        resource_id,
         project_root=project_root,
     )
     code_bytes = resource_payload[analysis_start:analysis_end]
@@ -1457,8 +1466,8 @@ def _macos_code_candidate_residuals(
     *,
     payload_base: int,
     code_range: Mapping[str, object],
-    semantic_rows: list[Mapping[str, object]],
-    semantic_gap_residuals: list[Mapping[str, object]] | None = None,
+    semantic_rows: Sequence[Mapping[str, object]],
+    semantic_gap_residuals: Sequence[Mapping[str, object]] | None = None,
     resource: Mapping[str, object],
     code: Mapping[str, object],
 ) -> list[dict[str, object]]:
@@ -1500,7 +1509,7 @@ def _macos_code_candidate_residuals(
 
 def _macos_candidate_residual_island(
     payload_offset: int,
-    semantic_gap_residuals: list[Mapping[str, object]],
+    semantic_gap_residuals: Sequence[Mapping[str, object]],
 ) -> Mapping[str, object] | None:
     for residual in semantic_gap_residuals:
         start = _int_value(residual.get("start"))
@@ -1517,7 +1526,7 @@ def _macos_code_semantic_gap_residuals(
     *,
     payload_base: int,
     code_range: Mapping[str, object],
-    semantic_rows: list[Mapping[str, object]],
+    semantic_rows: Sequence[Mapping[str, object]],
     resource: Mapping[str, object],
     code: Mapping[str, object],
 ) -> list[dict[str, object]]:
@@ -1562,7 +1571,7 @@ def _macos_code_semantic_gap_residuals(
 
 
 def _macos_code_semantic_data_rows(
-    semantic_gap_residuals: list[Mapping[str, object]],
+    semantic_gap_residuals: Sequence[Mapping[str, object]],
     code_bytes: bytes,
     *,
     payload_base: int,
@@ -1723,7 +1732,7 @@ def _macos_candidate_entry_patterns(code_bytes: bytes, *, payload_base: int) -> 
             yield payload_base + local_offset, pattern
 
 
-def _payload_offset_is_covered(payload_offset: int, semantic_rows: list[Mapping[str, object]]) -> bool:
+def _payload_offset_is_covered(payload_offset: int, semantic_rows: Sequence[Mapping[str, object]]) -> bool:
     for row in semantic_rows:
         if row.get("kind") != "instruction" and not _semantic_row_is_durable_data(row):
             continue
@@ -1805,11 +1814,15 @@ def _macos_code_analysis_seed_metadata_path(seeds: list[dict[str, object]]) -> I
     if not seeds:
         yield None
         return
-    payload = {
-        "target_type": "raw_binary",
-        "seeded_code_entrypoints": [
+    seeded_entrypoints: list[dict[str, object]] = []
+    for seed in seeds:
+        local_offset = _int_value(seed.get("local_offset"))
+        payload_offset = _int_value(seed.get("payload_offset"))
+        if local_offset is None or payload_offset is None:
+            continue
+        seeded_entrypoints.append(
             {
-                "addr": int(seed["local_offset"]),
+                "addr": local_offset,
                 "hunk": 0,
                 "name": str(seed["name"]),
                 "seed_origin": "primary_doc",
@@ -1817,12 +1830,14 @@ def _macos_code_analysis_seed_metadata_path(seeds: list[dict[str, object]]) -> I
                 "citation": str(seed.get("fact_id") or "macos.generated.analysis_seed"),
                 "source_id": f"macos-code:{seed.get('resource_id')}",
                 "source_path": f"CODE:{seed.get('resource_id')}",
-                "source_locator": f"payload+{int(seed['payload_offset'])}",
+                "source_locator": f"payload+{payload_offset}",
                 "comment": f"generated Mac CODE analysis seed: {seed.get('reason')}",
                 "role": str(seed.get("reason") or "generated_entry"),
             }
-            for seed in seeds
-        ],
+        )
+    payload = {
+        "target_type": "raw_binary",
+        "seeded_code_entrypoints": seeded_entrypoints,
     }
     temp_path: Path | None = None
     try:
@@ -2309,13 +2324,13 @@ def _code0_jump_table_rows(
     }
     rows: list[dict[str, object]] = []
     if table_start is not None and entry_size and entry_count is not None:
-        for entry_index in range(entry_count):
-            code0_offset = table_start + entry_index * entry_size
-            candidate = candidates_by_offset.get(code0_offset, {})
+        for table_entry_index in range(entry_count):
+            table_code0_offset = table_start + table_entry_index * entry_size
+            candidate = candidates_by_offset.get(table_code0_offset, {})
             rows.append(
                 _code0_jump_table_row(
-                    code0_offset=code0_offset,
-                    entry_index=entry_index,
+                    code0_offset=table_code0_offset,
+                    entry_index=table_entry_index,
                     entry_size=entry_size,
                     table_start=table_start,
                     accepted_layout=accepted_layout,
@@ -2324,8 +2339,8 @@ def _code0_jump_table_rows(
             )
         return rows
     for candidate in sorted(all_routine_candidates, key=_candidate_code0_offset_sort_key):
-        code0_offset = _int_value(candidate.get("code0_payload_offset"))
-        entry_index = None
+        code0_offset: int | None = _int_value(candidate.get("code0_payload_offset"))
+        entry_index: int | None = None
         if code0_offset is not None and table_start is not None and entry_size:
             entry_index = (code0_offset - table_start) // entry_size
         if entry_index is None:
@@ -2352,7 +2367,7 @@ def _code0_jump_table_row(
     accepted_layout: Mapping[str, object],
     candidate: Mapping[str, object],
 ) -> dict[str, object]:
-    row = {
+    row: dict[str, object] = {
         "kind": "code0_jump_table_entry",
         "entry_index": entry_index,
         "code0_payload_offset": code0_offset,

@@ -16,9 +16,9 @@ from amiga_reversing.disasm.macos_fork_roles import (
     resource_type_counts,
 )
 from amiga_reversing.disasm.macos_hfs import HFSVolume
+from amiga_reversing.disasm.macos_image import DEFAULT_NDIF2RAW_PATH
 from amiga_reversing.disasm.macos_image import (
-    DEFAULT_NDIF2RAW_PATH,
-    read_macos_hfs_image_bytes,
+    read_macos_hfs_image_bytes as read_macos_hfs_image_bytes,
 )
 from amiga_reversing.disasm.macos_resource_fork import (
     parse_resource_fork,

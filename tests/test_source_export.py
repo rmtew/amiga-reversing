@@ -6,6 +6,7 @@ from types import SimpleNamespace
 import pytest
 
 from amiga_reversing.disasm import source_export
+from amiga_reversing.disasm.binary_source import BinarySourceKind
 from amiga_reversing.disasm.macos_target_artifact import (
     MACOS_EXAMPLE_CONTAINER_PROJECT_ID,
     MACOS_EXAMPLE_PROJECT_ID,
@@ -18,7 +19,7 @@ from amiga_reversing.tools import source_export as source_export_cli
 def test_source_export_payload_includes_header_and_source(monkeypatch, tmp_path: Path) -> None:
     target_dir = tmp_path / "targets" / "demo"
     target_dir.mkdir(parents=True)
-    binary_source = SimpleNamespace(read_bytes=lambda: b"\x01\x02")
+    binary_source = SimpleNamespace(kind=BinarySourceKind.HUNK_FILE, read_bytes=lambda: b"\x01\x02")
     monkeypatch.setattr(
         source_export,
         "resolve_project_paths",
@@ -67,7 +68,7 @@ def test_source_export_rejects_invalid_profile() -> None:
 def test_source_export_returns_refusal_payload(monkeypatch, tmp_path: Path) -> None:
     target_dir = tmp_path / "targets" / "demo"
     target_dir.mkdir(parents=True)
-    binary_source = SimpleNamespace(read_bytes=lambda: b"\x01\x02")
+    binary_source = SimpleNamespace(kind=BinarySourceKind.HUNK_FILE, read_bytes=lambda: b"\x01\x02")
     profile = {
         "facts_v2": {
             "asm_source_refused": True,
@@ -106,6 +107,70 @@ def test_source_export_returns_refusal_payload(monkeypatch, tmp_path: Path) -> N
     assert payload["listing_profile"] == profile
     assert payload["workflow_profile"]["spans"][0]["name"] == "source_rendering"
     assert "source_text" not in payload
+
+
+def test_source_export_uses_binary_source_renderer_registry(monkeypatch, tmp_path: Path) -> None:
+    target_dir = tmp_path / "targets" / "demo"
+    target_dir.mkdir(parents=True)
+    binary_source = SimpleNamespace(kind=BinarySourceKind.RAW_BINARY)
+    paths = SimpleNamespace(target_dir=target_dir, binary_source=binary_source)
+    calls: list[tuple[str, object, str, Path]] = []
+
+    def render_binary_source(target: str, project_paths: object, assembler_profile: str, project_root: Path) -> dict[str, object]:
+        calls.append((target, project_paths, assembler_profile, project_root))
+        return {"status": "ok", "filename": "demo-vasm.s", "source_text": "demo:\n\trts\n"}
+
+    monkeypatch.setattr(source_export, "resolve_project_paths", lambda target, project_root: paths)
+    monkeypatch.setitem(source_export.SOURCE_BINARY_RENDERERS, BinarySourceKind.RAW_BINARY, render_binary_source)
+
+    payload = source_export.source_export_payload("demo", project_root=tmp_path)
+
+    assert payload["source_text"] == "demo:\n\trts\n"
+    assert calls == [("demo", paths, "vasm", tmp_path)]
+
+
+def test_source_export_uses_declared_artifact_renderer(monkeypatch, tmp_path: Path) -> None:
+    target_name = "renderer_backed_demo"
+    target_dir = tmp_path / "targets" / target_name
+    target_dir.mkdir(parents=True)
+    (target_dir / ".project.json").write_text(
+        """
+{
+  "created_at": "2026-05-21T00:00:00+00:00",
+  "origin": {
+    "artifact": "demo.s",
+    "kind": "test_artifact",
+    "renderer": "tests.demo_source_renderer",
+    "source_identity": "fixture"
+  },
+  "schema_version": 2,
+  "updated_at": "2026-05-21T00:00:00+00:00"
+}
+""".lstrip(),
+        encoding="utf-8",
+    )
+
+    def render_demo_source(target: str, target_path: Path, origin: dict[str, object], project_root: Path):
+        assert target == target_name
+        assert target_path == target_dir
+        assert origin["source_identity"] == "fixture"
+        assert project_root == tmp_path
+        return {
+            "source_text": "demo_label:\n\trts\n",
+            "listing_profile": {"backend": "test-renderer", "path": str(target_path)},
+            "workflow_span_name": "test_artifact_rendering",
+            "workflow_span_module": "python",
+            "identity_components": ["fixture"],
+        }
+
+    monkeypatch.setitem(source_export.SOURCE_ARTIFACT_RENDERERS, "tests.demo_source_renderer", render_demo_source)
+
+    payload = source_export.source_export_payload(target_name, project_root=tmp_path)
+
+    assert payload["status"] == "ok"
+    assert payload["listing_profile"]["backend"] == "test-renderer"
+    assert payload["workflow_profile"]["spans"][0]["name"] == "test_artifact_rendering"
+    assert "demo_label:" in payload["source_text"]
 
 
 def test_source_export_supports_macos_artifact_renderer(monkeypatch, tmp_path: Path) -> None:

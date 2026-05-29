@@ -9,6 +9,9 @@ from pathlib import Path
 
 from amiga_reversing.amiga_disk.models import DiskManifest
 from amiga_reversing.disasm.binary_source import (
+    DiskEntryBinarySource,
+    HunkFileBinarySource,
+    RawBinarySource,
     is_internal_target,
     resolve_target_binary_source,
 )
@@ -247,6 +250,11 @@ def _binary_project_record(
     decompression_review_items = _decompression_review_items(binary_source.analysis_cache_path if binary_source else None)
     review_items = (*manual_projection.review_items, *reproduction_review_items, *decompression_review_items)
     review_state = _combined_review_state(manual_projection.review_state, review_items)
+    parent_disk_id = (
+        binary_source.parent_disk_id
+        if isinstance(binary_source, HunkFileBinarySource | DiskEntryBinarySource | RawBinarySource)
+        else None
+    )
     return ProjectRecord(
         id=project_id,
         name=target_dir.name,
@@ -260,10 +268,7 @@ def _binary_project_record(
         target_count=None,
         source_path=None,
         disk_type=None,
-        parent_project_id=(
-            None if binary_source is None or binary_source.parent_disk_id is None
-            else disk_project_id(binary_source.parent_disk_id)
-        ),
+        parent_project_id=None if parent_disk_id is None else disk_project_id(parent_disk_id),
         target_type=None if target_metadata is None else target_metadata.target_type,
         created_at=metadata.created_at,
         updated_at=metadata.updated_at,

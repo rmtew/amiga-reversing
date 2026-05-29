@@ -8,11 +8,17 @@ import sys
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
+from typing import cast
 
 ROOT = Path(__file__).resolve().parents[2]
 
 from amiga_reversing.disasm.assembler_profiles import load_assembler_profile
-from amiga_reversing.disasm.binary_source import DiskEntryBinarySource
+from amiga_reversing.disasm.binary_source import (
+    BinarySourceKind,
+    DiskEntryBinarySource,
+    HunkFileBinarySource,
+    RawBinarySource,
+)
 from amiga_reversing.disasm.cli import gen_disasm
 from amiga_reversing.disasm.project_paths import resolve_project_paths
 
@@ -64,10 +70,13 @@ def roundtrip_genam_target(target: str) -> RoundTripResult:
     binary_source = paths.binary_source
     if isinstance(binary_source, DiskEntryBinarySource):
         raise ValueError(f"GenAm round-trip target must be file-backed: {target}")
+    if binary_source.kind not in {BinarySourceKind.HUNK_FILE, BinarySourceKind.RAW_BINARY}:
+        raise ValueError(f"GenAm round-trip target must be an Amiga file-backed target: {target}")
+    file_source = cast(HunkFileBinarySource | RawBinarySource, binary_source)
     target_dir = paths.target_dir
-    source_path = target_dir / f"{Path(binary_source.display_path).stem}.s"
+    source_path = target_dir / f"{Path(file_source.display_path).stem}.s"
     gen_disasm(
-        str(binary_source.path),
+        str(file_source.path),
         str(source_path),
         assembler_profile_name="devpac",
     )
@@ -84,7 +93,7 @@ def roundtrip_genam_target(target: str) -> RoundTripResult:
         shutil.copyfile(source_path, staged_source)
         staged_include = temp_root / "include"
         shutil.copytree(include_src, staged_include)
-        output_name = Path(binary_source.path).name
+        output_name = Path(file_source.path).name
         output_path = temp_root / output_name
         cmd = [
             "vamos",
@@ -105,7 +114,7 @@ def roundtrip_genam_target(target: str) -> RoundTripResult:
             text=True,
             timeout=120,
         )
-        original_path = Path(binary_source.path)
+        original_path = Path(file_source.path)
         if not original_path.is_absolute():
             original_path = (ROOT / original_path).resolve()
         original_bytes = original_path.read_bytes()

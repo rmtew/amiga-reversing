@@ -16,6 +16,7 @@ from amiga_reversing.disasm.binary_source import (
     DiskEntryBinarySource,
     HunkFileBinarySource,
     RawBinarySource,
+    read_binary_source_bytes,
 )
 from amiga_reversing.disasm.target_metadata import (
     SuppressedSeededItemKind,
@@ -314,7 +315,7 @@ def validate_manual_action_payload(payload: dict[str, object]) -> None:
 
 
 def build_target_identity(binary_source: BinarySource) -> dict[str, object]:
-    original_bytes = binary_source.read_bytes()
+    original_bytes = read_binary_source_bytes(binary_source)
     identity: dict[str, object] = {
         "schema_version": 1,
         "source_kind": binary_source.kind,

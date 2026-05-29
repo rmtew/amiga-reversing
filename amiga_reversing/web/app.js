@@ -3144,6 +3144,50 @@ async function exportSource(assemblerProfile) {
   setAnalysisStatus("Source exported", "ready", 2500);
 }
 
+async function loadSourceArtifact(projectId, assemblerProfile = "vasm") {
+  const profile = assemblerProfile || "vasm";
+  return fetchJson(`/api/projects/${encodeURIComponent(projectId)}/source-export?assembler_profile=${encodeURIComponent(profile)}`);
+}
+
+async function renderProjectSourceArtifact(projectId, token) {
+  setViewportOverlay(renderProgressOverlay({
+    job_kind: "source_artifact",
+    phase_id: "render_source",
+    progress_mode: "indeterminate",
+    progress_current: 0,
+    progress_total: 0,
+    progress_percent: 0,
+  }, "Loading source"));
+  const profile = String(state.uiPreferences.payload?.source_export_assembler || "vasm");
+  const payload = await loadSourceArtifact(projectId, profile);
+  if (token !== state.loadingToken) {
+    throw new Error("stale");
+  }
+  if (payload.status === "refused") {
+    throw new Error(`Source export refused: ${payload.message || "render failed"}`);
+  }
+  const sourceText = String(payload.source_text || "");
+  const lines = sourceText.split(/\r?\n/);
+  document.getElementById("listing-viewport").innerHTML = `
+    <div class="source-artifact-view" data-source-artifact-view="1">
+      <div class="source-artifact-toolbar">
+        <span>${escapeHtml(String(payload.filename || `${projectId}-${profile}.s`))}</span>
+        <button type="button" data-source-artifact-download="1">Download</button>
+      </div>
+      <pre class="source-artifact-source" aria-label="Rendered source">${lines.map((line, index) => `<span class="source-artifact-line"><span class="source-artifact-line-number">${index + 1}</span><code>${escapeHtml(line)}</code></span>`).join("")}</pre>
+    </div>
+  `;
+  document.querySelector("[data-source-artifact-download='1']")?.addEventListener("click", () => {
+    void exportSource(profile);
+  });
+  setAnalysisStatus("Source ready", "ready", 2000);
+  dispatchAppEvent("amiga:project-rendered", {
+    projectId,
+    generation: "source_artifact",
+    totalRows: lines.length,
+  });
+}
+
 function defaultReproSymbolName(issue, kind, addr) {
   const text = String(issue?.match_text || issue?.message || issue?.summary || "");
   const symbolMatch = text.match(/\b[A-Za-z_.$][A-Za-z0-9_.$]*\b/);
@@ -10393,6 +10437,15 @@ async function renderProject(projectId) {
     if (!projectData.project.ready) {
       document.getElementById("listing-viewport").innerHTML =
         '<div class="empty listing-empty">No disassembly available.</div>';
+      return;
+    }
+
+    if (projectData.project.source_artifact_default === true) {
+      state.uiPreferences.payload = await loadUiPreferenceState(projectId);
+      if (token !== state.loadingToken) {
+        return;
+      }
+      await renderProjectSourceArtifact(projectId, token);
       return;
     }
 

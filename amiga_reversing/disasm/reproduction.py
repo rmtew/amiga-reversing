@@ -16,6 +16,7 @@ from amiga_reversing.disasm.binary_source import (
     DiskEntryBinarySource,
     HunkFileBinarySource,
     RawBinarySource,
+    read_binary_source_bytes,
 )
 from amiga_reversing.disasm.c_backend import (
     FactsV2DirectRebuildRefused,
@@ -545,7 +546,7 @@ class RoundTripVerificationWorkflow:
                                 "facts_v2_direct_source_compare_seconds",
                                 compare_started_at,
                             )
-                            original_for_source_compare = paths.binary_source.read_bytes()
+                            original_for_source_compare = read_binary_source_bytes(paths.binary_source)
                             source_compare_profile = reproduction_compare_rebuilt_bytes_with_c_backend_profile(
                                 paths.binary_source,
                                 source_bytes,
@@ -912,7 +913,7 @@ class RoundTripVerificationWorkflow:
                 rebuilt_size=rebuilt_size,
             )
             read_original_started_at = time.perf_counter()
-            original = paths.binary_source.read_bytes()
+            original = read_binary_source_bytes(paths.binary_source)
             _record_profile_timing(round_trip_profile, "read_original_seconds", read_original_started_at)
             canonical_rebuilt = rebuilt_bytes
             round_trip_profile["read_rebuilt_seconds"] = 0.0
@@ -1261,7 +1262,7 @@ def reproduction_input_stamp(
     assembler_path = _platform_file_lib_path(project_root)
     assembler_stamp = _file_stamp(assembler_path)
     tool_path = str(assembler_path)
-    original = paths.binary_source.read_bytes()
+    original = read_binary_source_bytes(paths.binary_source)
     return {
         "original_sha256": _sha256_bytes(original),
         "original_size": len(original),
@@ -1798,7 +1799,7 @@ def file_layout_for_binary_source(
     backend: str,
     data: bytes | None = None,
 ) -> list[dict[str, object]]:
-    payload = binary_source.read_bytes() if data is None else data
+    payload = read_binary_source_bytes(binary_source) if data is None else data
     if backend.endswith("-raw"):
         start = 0
         if isinstance(binary_source, RawBinarySource):

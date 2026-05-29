@@ -11,7 +11,7 @@ from pathlib import Path
 from amiga_reversing.disasm.c_backend import (
     extract_macos_hfs_code_resource_payload_bytes_with_c_backend,
 )
-from amiga_reversing.disasm.macos_asm_container import read_macos_hfs_image_bytes
+from amiga_reversing.disasm.macos_image import read_macos_hfs_image_bytes
 from amiga_reversing.disasm.macos_project_origin import (
     MACOS_CODE_FILE_ORIGIN_KIND,
     MACOS_CODE_FILE_TARGET_TYPE,

@@ -224,6 +224,20 @@ def test_web_app_renders_macos_code_listing_from_listing_route() -> None:
     assert "generation: \"macos_starter\"" not in app_js
 
 
+def test_web_app_renders_default_source_artifact_with_shared_export_route() -> None:
+    app_js = (
+        Path(__file__).resolve().parent.parent
+        / "amiga_reversing" / "web"
+        / "app.js"
+    ).read_text(encoding="utf-8")
+
+    assert "projectData.project.source_artifact_default === true" in app_js
+    assert "async function renderProjectSourceArtifact(projectId, token)" in app_js
+    assert "`/api/projects/${encodeURIComponent(projectId)}/source-export?assembler_profile=${encodeURIComponent(profile)}`" in app_js
+    assert 'data-source-artifact-view="1"' in app_js
+    assert 'generation: "source_artifact"' in app_js
+
+
 def test_web_app_typed_navigation_uses_data_class_rows() -> None:
     app_js = (
         Path(__file__).resolve().parent.parent

@@ -44,7 +44,7 @@ def _benchmark_targets() -> list[str]:
             targets.append(target_dir.name)
             continue
         binary_source = resolve_target_binary_source(target_dir, project_root=ROOT)
-        if binary_source is None or binary_source.parent_disk_id is not None:
+        if binary_source is None or getattr(binary_source, "parent_disk_id", None) is not None:
             continue
         targets.append(target_dir.name)
     return sorted(targets)

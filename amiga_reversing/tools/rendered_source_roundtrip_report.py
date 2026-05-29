@@ -141,12 +141,23 @@ def _run_target(target: str, source_path: Path, *, update_rendered_source: bool 
             rendered_source_text, rendered_source_profile = _update_rendered_source(target, source_path)
         else:
             rendered_source_text = source_path.read_text(encoding="utf-8")
-        kwargs: dict[str, object] = {"assembler": "our", "profile": True, "persist_report": False}
-        if rendered_source_text is not None:
-            kwargs["pre_rendered_source_text"] = rendered_source_text
-            if rendered_source_profile is not None:
-                kwargs["pre_rendered_source_profile"] = rendered_source_profile
-        result = run_reproduction(target, **kwargs)
+        if rendered_source_profile is None:
+            result = run_reproduction(
+                target,
+                assembler="our",
+                profile=True,
+                persist_report=False,
+                pre_rendered_source_text=rendered_source_text,
+            )
+        else:
+            result = run_reproduction(
+                target,
+                assembler="our",
+                profile=True,
+                persist_report=False,
+                pre_rendered_source_text=rendered_source_text,
+                pre_rendered_source_profile=rendered_source_profile,
+            )
     except Exception as exc:
         return {
             "target": target,

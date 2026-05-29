@@ -10,7 +10,10 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from amiga_reversing.disasm.assembler_profiles import load_assembler_profile
-from amiga_reversing.disasm.binary_source import BinarySourceKind
+from amiga_reversing.disasm.binary_source import (
+    BinarySourceKind,
+    read_binary_source_bytes,
+)
 from amiga_reversing.disasm.effective_metadata import effective_metadata_file
 from amiga_reversing.disasm.project_paths import resolve_project_paths
 from amiga_reversing.disasm.source_rendering import (
@@ -116,7 +119,7 @@ def roundtrip_vasm_target(target: str, *, project_root: Path = ROOT) -> VasmRoun
             text=True,
             timeout=120,
         )
-        original_bytes = binary_source.read_bytes()
+        original_bytes = read_binary_source_bytes(binary_source)
         output_exists = output_path.exists()
         generated_bytes = output_path.read_bytes() if output_exists else None
         return VasmRoundTripResult(
