@@ -11070,6 +11070,28 @@ def test_real_dll_026_table_descriptors_use_evidence_bounds_not_caps() -> None:
     assert pandora_string_table["entry_count_proof"] == "consumer_structural_scan"
     assert pandora_string_table["target_offset"] == 41564
     assert pandora_string_table["consumer_offset"] == 10774
+    pandora_string_entries = [
+        entry
+        for entry in pandora_section["table_entries"]
+        if entry["table_start_offset"] == pandora_string_table["start_offset"]
+    ]
+    pandora_string_refs = [
+        ref
+        for ref in pandora_section["data_references"]
+        if ref["table_start_offset"] == pandora_string_table["start_offset"]
+    ]
+    assert len(pandora_string_entries) == 114
+    assert len(pandora_string_refs) == 114
+    assert {entry["target_status_name"] for entry in pandora_string_entries} == {
+        "accepted_target"
+    }
+    assert {ref["source_kind_name"] for ref in pandora_string_refs} == {"table_entry"}
+    assert pandora_string_entries[0]["entry_offset"] == 42716
+    assert pandora_string_entries[0]["raw_value"] == 1
+    assert pandora_string_entries[0]["target_offset"] == 41565
+    assert pandora_string_entries[-1]["entry_offset"] == 42942
+    assert pandora_string_entries[-1]["raw_value"] == 1137
+    assert pandora_string_entries[-1]["target_offset"] == 42701
 
     pandora_dispatch_table = next(
         descriptor
@@ -11083,6 +11105,19 @@ def test_real_dll_026_table_descriptors_use_evidence_bounds_not_caps() -> None:
     assert pandora_dispatch_table["entry_size"] == 4
     assert pandora_dispatch_table["entry_count"] == 33
     assert pandora_dispatch_table["entry_count_proof"] == "consumer_structural_scan"
+    pandora_dispatch_entries = [
+        entry
+        for entry in pandora_section["table_entries"]
+        if entry["table_start_offset"] == pandora_dispatch_table["start_offset"]
+    ]
+    assert len(pandora_dispatch_entries) == 33
+    assert {entry["target_status_name"] for entry in pandora_dispatch_entries} == {
+        "accepted_target"
+    }
+    assert pandora_dispatch_entries[0]["entry_offset"] == 5170
+    assert pandora_dispatch_entries[0]["target_offset"] == 4432
+    assert pandora_dispatch_entries[-1]["entry_offset"] == 5298
+    assert pandora_dispatch_entries[-1]["target_offset"] == 5068
 
     bloodwych = _facts_v2_listing_analysis_for_project("amiga_hunk_bloodwych")
     bloodwych_section = bloodwych["analysis"]["sections"][0]
@@ -11096,6 +11131,37 @@ def test_real_dll_026_table_descriptors_use_evidence_bounds_not_caps() -> None:
     assert bloodwych_table["entry_size"] == 2
     assert bloodwych_table["end_offset"] == 106506
     assert bloodwych_table["entry_count_proof"] == "consumer_structural_scan"
+    bloodwych_scalar_entries = [
+        entry
+        for entry in bloodwych_section["table_entries"]
+        if entry["table_start_offset"] == bloodwych_table["start_offset"]
+    ]
+    assert len(bloodwych_scalar_entries) == 73
+    assert {entry["target_status_name"] for entry in bloodwych_scalar_entries} == {
+        "numeric_exact"
+    }
+    assert not [
+        ref
+        for ref in bloodwych_section["data_references"]
+        if ref["table_start_offset"] == bloodwych_table["start_offset"]
+    ]
+    bloodwych_pointer_entries = [
+        entry
+        for entry in bloodwych_section["table_entries"]
+        if entry["table_start_offset"] == 526
+    ]
+    bloodwych_pointer_refs = [
+        ref
+        for ref in bloodwych_section["data_references"]
+        if ref["table_start_offset"] == 526
+    ]
+    assert len(bloodwych_pointer_entries) == 5
+    assert len(bloodwych_pointer_refs) == 5
+    assert {entry["target_status_name"] for entry in bloodwych_pointer_entries} == {
+        "accepted_target"
+    }
+    assert bloodwych_pointer_refs[0]["target_offset"] == 35552
+    assert bloodwych_pointer_refs[-1]["target_offset"] == 35620
 
     bloodwych_paths = resolve_project_paths("amiga_hunk_bloodwych", project_root=PROJECT_ROOT)
     bloodwych_source, bloodwych_profile = listing_artifact_source_text_with_c_backend_profile(
@@ -11106,6 +11172,30 @@ def test_real_dll_026_table_descriptors_use_evidence_bounds_not_caps() -> None:
     assert bloodwych_profile["facts_v2"]["asm_source_refused"] is False
     assert "\tdc.w $0C5D\t; lookup_table\n\tdc.b $FC,$1E" in bloodwych_source
     assert "\tdc.w $0C5D,$FC1E" not in bloodwych_source
+
+
+def test_real_dll_028_immediate_text_tokens_are_instruction_operand_facts() -> None:
+    _requires_c_backend_dlls()
+
+    monam = _facts_v2_listing_analysis_for_project("amiga_hunk_monam302")
+    monam_section = monam["analysis"]["sections"][0]
+    monam_token = next(
+        token for token in monam_section["immediate_text_tokens"] if token["text"] == "DEV "
+    )
+    assert monam_token["source_offset"] == 186
+    assert monam_token["operand_index"] == 0
+    assert monam_token["width"] == 4
+    assert monam_token["value"] == 0x44455620
+
+    genam = _facts_v2_listing_analysis_for_project("amiga_hunk_genam")
+    genam_section = genam["analysis"]["sections"][0]
+    genam_token = next(
+        token for token in genam_section["immediate_text_tokens"] if token["text"] == "RGNA"
+    )
+    assert genam_token["source_offset"] == 5334
+    assert genam_token["operand_index"] == 0
+    assert genam_token["width"] == 4
+    assert genam_token["value"] == 0x52474E41
 
 
 def test_real_dll_starglider_mathtrans_linkage_api_labels_promote_wrappers() -> None:

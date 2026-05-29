@@ -1380,6 +1380,96 @@ uv run platform-rendered-source-roundtrip
 Round-trip remained `34/36` full-file exact, `1/36` content-exact-only,
 `1/36` unsupported, and `0` failures.
 
+### Pass 12: Fixture-Backed Entry And Operand Proof
+
+The twelfth implementation pass tightens fixture proof for the new source
+analysis surfaces. Earlier fixture checks proved descriptor bounds in real
+targets, but did not prove that the entry-level and data-reference records were
+also exported for those same ranges.
+
+The fixture assertions now check concrete target/offset examples:
+
+```text
+Pandora section 0, $0000A6DC:
+  word_offset_string_table
+  114 table_entries
+  114 table-backed data_references
+  first entry $0001 -> $0000A25D
+  last entry  $0471 -> $0000A6CD
+
+Pandora section 0, $00001432:
+  absolute_code_dispatch
+  33 table_entries
+  every entry accepted as code target
+
+Bloodwych section 0, $00019F78:
+  indexed_local_scalar_read
+  73 numeric_exact entries
+  no data_reference rows
+
+Bloodwych section 0, $0000020E:
+  indexed_local_pointer_read
+  5 accepted pointer entries
+  5 table-backed data_references
+```
+
+This also adds real-target checks for instruction-immediate text tokens:
+
+```text
+MonAm 3.02 section 0, $000000BA:
+  immediate operand token "DEV "
+
+GenAm section 0, $000014D6:
+  immediate operand token "RGNA"
+```
+
+Those token facts remain instruction operand facts. They do not create text
+ranges and do not change rendered source.
+
+Covered by:
+
+- `test_real_dll_026_table_descriptors_use_evidence_bounds_not_caps`
+- `test_real_dll_028_immediate_text_tokens_are_instruction_operand_facts`
+
+### Pass 13: Platform Adapter Boundary Audit
+
+The thirteenth pass audits the platform boundary for the 028-owned facts.
+
+The intended ownership chain is:
+
+```text
+platform loader/parser/runtime fact
+  -> shared C M68K source analysis
+  -> table_descriptors / table_entries / data_references / immediate_text_tokens
+  -> JSON/report/source projection
+```
+
+Current status:
+
+```text
+Amiga:
+  Hunk/disk/load-view facts feed the shared C analysis. Pandora, Bloodwych,
+  MonAm, and GenAm fixture checks now prove the shared table-entry,
+  data-reference, and immediate-token outputs on imported targets.
+
+Atari:
+  PRG header, relocation, and trap metadata remain platform facts consumed by
+  the shared C analysis. No Atari path was found that directly accepts table,
+  text, or code ownership outside the C model.
+
+Mac:
+  Resource/CODE parsing and A5/opword metadata remain platform facts. Mac
+  restored-source presentation may still render Mac-specific CODE metadata and
+  unsupported source-assembly state, but 028 table/data-reference ownership is
+  not accepted in Python. Mac CODE table proof remains limited to cases where
+  parser and CODE metadata provide exact bounds.
+```
+
+This is a boundary audit, not a claim that every platform has equivalent
+fixtures for every table shape. Platform adapters may contribute facts and
+metadata; they must not bypass the shared C ownership model for table bounds,
+entry status, or data-reference acceptance.
+
 ## Acceptance Criteria
 
 This proposal can close when:
