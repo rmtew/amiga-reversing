@@ -761,33 +761,88 @@ Covered by:
 
 - `facts_v2_source_analysis_retains_many_auto_structured_strings`
 
-Regenerating all 36 tracked target `asm.s` files after this change produced no
-source diffs, which proves this pass removes the capacity bug without adding
-render churn.
+The latest verification pass regenerated all 36 tracked target `.s` files and
+produced no source diffs. `platform-rendered-source-roundtrip` reported 34/36
+full-file exact, 1 content-exact-only, 1 unsupported, and 0 failures. Full
+Python tests and the C `m68k_ir` precommit gate also passed after this pass.
+
+### Pass 6: Completion Audit
+
+The current implementation is materially beyond the initial record-shape pass,
+but the proposal should stay open until the remaining renderer/adapter split is
+fully collapsed.
+
+Proven current state:
+
+- C source analysis owns accepted/conflict range records and exports them in
+  source-analysis JSON.
+- C source analysis owns table descriptors for the covered pointer, absolute
+  dispatch, word-relative dispatch, keyed long-relative dispatch, and
+  table-backed string cases.
+- Table descriptor iteration now covers real wide target sets that previously
+  hit fixed render/trace caps.
+- C rendering materializes required labels and splits raw data plan rows at
+  accepted data boundaries.
+- C rendering materializes table target labels for pointer tables and accepted
+  dispatch tables instead of leaving referenced labels undefined.
+- Weak string/text shape is not enough to accept false strings in the
+  TODO-derived Starglider cases.
+- The fixture-backed checks now cover Pandora, Bloodwych, MonAm, Magicland, and
+  Starglider representative cases.
+
+Still open before this proposal can close:
+
+- The range ownership model is not yet the single primary owner for every
+  renderer decision. Some renderer paths still consume structured-data records
+  directly, with range records/descriptors acting as the durable mirror.
+- Platform evidence adapters are present for the covered facts, but the proposal
+  should not claim every Amiga, Atari, and Mac executable/platform ownership
+  source has been normalized into the same adapter layer.
+- Conflict reporting is good enough for the covered table/text/code cases, but
+  the manual-review/UI policy for every unresolved conflict type remains a
+  later integration step.
+- API buffer/string acceptance by coupled pointer-and-length evidence needs its
+  own explicit representative test before the testing strategy can be called
+  complete.
 
 ## Implementation Order
 
 1. Add the C range/conflict record shape without changing rendering. Done in
    Pass 1.
 2. Migrate existing string/text structured-data ownership into the range model.
-   Started in Pass 1.
+   Started in Pass 1 and expanded by Pass 5; generated records now live in
+   dynamic source-analysis storage, with range ownership projected from that
+   C-owned storage.
 3. Add general label materialization and row splitting from accepted ranges.
+   Covered for required data-boundary labels, raw data row splits, pointer-table
+   data targets, and accepted dispatch-table targets.
 4. Replace fixed table target storage with table descriptors and iterators.
-   Started in Pass 2; descriptor records exist, iterator-driven rendering still
-   remains. The old 32-entry render-lookup cap for word-relative dispatch table
-   spans and the old 64-byte PC-relative lookup span cap have been removed;
+   Started in Pass 2 and extended through Pass 5. The old 32-entry render-lookup
+   cap for word-relative dispatch table spans and the old 64-byte PC-relative
+   lookup span cap have been removed;
    those scans now stop on structural boundaries and accepted target evidence.
    Any remaining source-visible cap hit must become an explicit
    analysis-incomplete/conflict state, not a fallback to anonymous bytes.
    Generated source-analysis structured data is no longer capped by the fixed
    policy seed array; see Pass 5.
 5. Port existing pointer-table and relative-table recognizers onto descriptors.
-6. Add arbitration rules for orphan code vs weak text shape.
+   Covered for the current pointer, absolute dispatch, word-relative dispatch,
+   keyed long-relative dispatch, and table-backed string examples.
+6. Add arbitration rules for orphan code vs weak text shape. Covered for the
+   current false-string and nearby-code/table cases; broader manual-review
+   policy remains open.
 7. Add platform evidence adapters for Amiga, Atari, and Mac where facts already
-   exist.
-8. Update renderers to consume the accepted records only.
-9. Add isolated C tests and fixture-backed tests.
-10. Regenerate source and run full rendered-source round-trip.
+   exist. Partially covered. Do not close this item until the adapter boundary is
+   audited platform by platform.
+8. Update renderers to consume the accepted records only. Partially covered.
+   Do not close this item while renderer paths still consult structured-data
+   records directly instead of a single range/table owner abstraction.
+9. Add isolated C tests and fixture-backed tests. Partially covered. Add the
+   explicit pointer-plus-length API buffer/string test before closing.
+10. Regenerate source and run full rendered-source round-trip. Done for Pass 5:
+    all 36 tracked `.s` files regenerated with no target diffs; round-trip
+    report was 34/36 full-file exact, 1 content-exact-only, 1 unsupported, and
+    0 failures.
 
 ## Open Design Questions
 
