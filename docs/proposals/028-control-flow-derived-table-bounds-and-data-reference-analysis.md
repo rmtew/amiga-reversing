@@ -856,6 +856,47 @@ The regenerated sources had no tracked `.s` diffs. Round-trip remained
 `34/36` full-file exact, `1/36` content-exact-only, `1/36` unsupported, and
 `0` failures.
 
+### Pass 3: PC-Indexed ADD Dispatch Consumers
+
+The third implementation pass extends the same consumer-register evidence to
+the common two-step dispatch form:
+
+```asm
+    lea     case_base,a0
+    adda.w  case_table(pc,d1.w),a0
+    jmp     (a0)
+```
+
+The important fix is not Mac-, Amiga-, or target-specific. The C recognizer now
+resolves the indexed source operand through the shared indexed operand target
+helper, so address-register indexed and PC-indexed table bases use the same
+analysis path. It also uses the shared indexed-or-PC-indexed EA predicate instead
+of treating only address-register indexed operands as table consumers.
+
+The resulting table consumer records preserve:
+
+```text
+index register  = d1
+target register = a0
+table base      = case_table
+target base     = case_base
+```
+
+This closes one of the early 028 gaps where rendered source could show the
+correct instruction operand while the exported table-consumer fact still lacked
+the register evidence needed by later bound and data-reference passes.
+
+Covered by:
+
+- `facts_v2_pc_word_dispatch_descriptor_promotes_targets_beyond_inline_set`
+
+Verification after this pass:
+
+```text
+cmd /c src\precommit.bat m68k_ir
+uv run python -m pytest tests\test_c_backend.py -q
+```
+
 ### Pass 2: C-Owned Consumer Register Evidence
 
 The second implementation pass keeps table consumer register evidence in C from

@@ -9834,9 +9834,11 @@ static int test_facts_v2_pc_word_dispatch_descriptor_promotes_targets_beyond_inl
   M68kFactsV2Profile profile;
   M68kSourceAnalysisIR source_analysis;
   char *source = NULL;
+  const M68kTableConsumerIR *table_consumer = NULL;
   uint32_t late_target = TARGET_START + (64U * 4U);
   uint32_t saw_late_target = 0U;
   size_t code_start_index;
+  size_t table_consumer_index;
   uint32_t index;
   uint8_t bytes[TOTAL_SIZE];
   memset(bytes, 0, sizeof(bytes));
@@ -9885,6 +9887,22 @@ static int test_facts_v2_pc_word_dispatch_descriptor_promotes_targets_beyond_inl
     }
   }
   M68K_C_ASSERT_U32(1U, saw_late_target);
+  for (table_consumer_index = 0U;
+       table_consumer_index < source_analysis.sections[0].table_consumer_count;
+       ++table_consumer_index) {
+    const M68kTableConsumerIR *candidate = &source_analysis.sections[0].table_consumers[table_consumer_index];
+    if (candidate->consumer_offset == 0x06U && candidate->table_start_offset == TABLE_OFFSET) {
+      table_consumer = candidate;
+      break;
+    }
+  }
+  M68K_C_ASSERT(table_consumer != NULL);
+  M68K_C_ASSERT_U32(1U, table_consumer->has_index_register);
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_REGISTER_DATA, table_consumer->index_register_kind);
+  M68K_C_ASSERT_U32(1U, table_consumer->index_register);
+  M68K_C_ASSERT_U32(1U, table_consumer->has_target_register);
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_REGISTER_ADDRESS, table_consumer->target_register_kind);
+  M68K_C_ASSERT_U32(0U, table_consumer->target_register);
   M68K_C_ASSERT_U32(0U, profile.table_target_set_limit_hits);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(M68K_RENDER_IR_ASM_SOURCE_FAILURE_NONE, profile.asm_source_first_failure_kind);
