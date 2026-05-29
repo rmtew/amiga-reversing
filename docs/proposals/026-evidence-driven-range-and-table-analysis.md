@@ -809,10 +809,10 @@ Current remaining scope before this proposal can close:
   still requires either making descriptors first-class renderer operands where
   practical, or documenting the exact payload fields that intentionally remain
   structured-data views over accepted table ownership.
-- Platform evidence adapters are normalized for the covered Amiga resident and
-  executable/range facts, but the proposal still needs an explicit final
-  platform-by-platform audit before claiming Amiga, Atari, and Mac ownership
-  inputs all feed the shared model cleanly.
+- Platform evidence adapters are normalized for the audited Amiga, Atari, and
+  Mac covered paths. Future platform helpers should keep the same boundary:
+  contribute facts, policy seeds, or auto structured-data payloads that receive
+  range ownership before render/export consumers act on them.
 - Conflict reporting is good enough for the covered table/text/code cases, but
   the manual-review/UI policy for every unresolved conflict type remains a
   later integration step.
@@ -844,9 +844,8 @@ Current remaining scope before this proposal can close:
    current false-string and nearby-code/table cases; broader manual-review
    policy remains open.
 7. Add platform evidence adapters for Amiga, Atari, and Mac where facts already
-   exist. Partially covered. Amiga resident metadata now consumes accepted
-   platform-metadata range owners. Do not close this item until the adapter
-   boundary is audited platform by platform.
+   exist. Covered for the audited Amiga resident, Amiga/Atari executable
+   facts/runtime-address paths, and Mac symbol-string/resource evidence paths.
 8. Update renderers to consume the accepted records only. Covered for the
    migrated ownership/export/table/string/platform paths. Structured-data direct
    access should now be treated as payload/storage plumbing unless a later audit
@@ -1309,6 +1308,58 @@ storage management for creating and refining generated payloads; it is no
 longer the source-analysis export selector.
 
 Verification after this pass:
+
+```text
+cmd /c src\precommit.bat m68k_ir
+uv run python -m pytest tests\test_c_backend.py -q
+uv run platform-rendered-source-roundtrip
+git diff --check
+```
+
+All 36 tracked target `.s` files were regenerated with no target source diffs.
+Round-trip remained 34/36 full-file exact, 1 content-exact-only, 1 unsupported,
+and 0 failures.
+
+### Pass 18: Platform Adapter Audit
+
+The eighteenth pass audits the platform adapter boundary after the ownership
+migrations.
+
+Current platform evidence shape:
+
+```text
+platform parser / platform_common / facts_v2
+  -> facts, policy seeds, or auto structured-data payloads
+  -> lookup range ownership
+  -> renderer/source-analysis consumers
+```
+
+Findings:
+
+- Amiga resident metadata is consumed through accepted `platform_metadata`
+  range owners. The Amiga-specific meaning remains in the Amiga payload fields,
+  but the byte ownership decision is shared.
+- Amiga hunk relocation, runtime-address, API, hardware, and LoadSeg evidence
+  flows through facts/runtime-address/platform_common paths before renderer
+  consumption. No separate renderer-only ownership path was found in the
+  covered range/table/text paths.
+- Atari PRG/TOS relocation and platform-address evidence flows through
+  `platform_common` and facts_v2 relocation/runtime-address logic. The audited
+  paths do not introduce Atari-specific structured-data ownership outside the
+  shared range/table model.
+- Mac symbol strings are generated through the auto structured-data path and
+  therefore receive range ownership. Mac CODE/resource executable metadata
+  remains parser/platform evidence; unsupported source assembly remains
+  explicitly reported by round-trip rather than silently skipped.
+
+Remaining platform work is now narrower: future platform-specific facts should
+continue to enter as facts, policy seeds, or auto structured-data payloads that
+immediately receive range ownership. A new platform helper should be treated as
+suspect if it renders, promotes labels, or accepts text/table/code directly
+without using the shared ownership surface.
+
+Verification for this audit reused the Pass 17 proof because this pass changes
+documentation only:
 
 ```text
 cmd /c src\precommit.bat m68k_ir
