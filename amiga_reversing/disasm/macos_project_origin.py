@@ -15,16 +15,34 @@ from amiga_reversing.disasm.binary_source import (
 from amiga_reversing.disasm.macos_asm_container import MPW_ASM_PATH
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT
 
-MACOS_PROJECT_ORIGIN_KIND = "macos_mpw_fixture"
+MACOS_CONTAINER_ORIGIN_KIND = "macos_mpw_fixture"
+MACOS_CODE_FILE_ORIGIN_KIND = "macos_hfs_resource_code_file"
+MACOS_CONTAINER_TARGET_TYPE = "macos_hfs_container"
+MACOS_CODE_FILE_TARGET_TYPE = "macos_hfs_resource_code_file"
+MACOS_PROJECT_ORIGIN_KIND = MACOS_CONTAINER_ORIGIN_KIND
 
 
 class MacosProjectLike(Protocol):
-    id: str
-    origin: dict[str, object]
+    @property
+    def id(self) -> str: ...
+
+    @property
+    def origin(self) -> dict[str, object]: ...
+
+    @property
+    def target_dir(self) -> str: ...
 
 
 def is_macos_project_origin(origin: Mapping[str, object]) -> bool:
-    return origin.get("kind") == MACOS_PROJECT_ORIGIN_KIND
+    return origin.get("kind") in {MACOS_CONTAINER_ORIGIN_KIND, MACOS_CODE_FILE_ORIGIN_KIND}
+
+
+def is_macos_container_origin(origin: Mapping[str, object]) -> bool:
+    return origin.get("kind") == MACOS_CONTAINER_ORIGIN_KIND
+
+
+def is_macos_code_file_origin(origin: Mapping[str, object]) -> bool:
+    return origin.get("kind") == MACOS_CODE_FILE_ORIGIN_KIND
 
 
 def macos_code_source_descriptor_from_project(
@@ -49,9 +67,10 @@ def macos_code_source_descriptor_from_project(
         resource_name=resource_name,
         address_model=MacosCodeAddressModel.RESOURCE_OFFSET,
         display_path=f"{source_image}::{hfs_path}::CODE {resource_id}",
-        analysis_cache_path=project_root / "targets" / project.id / "binary.analysis",
+        analysis_cache_path=Path(getattr(project, "target_dir", project_root / "targets" / project.id))
+        / "binary.analysis",
         cache_identity=macos_code_resource_cache_identity(source_image, hfs_path, "CODE", resource_id),
-        parent_project_id=project.id,
+        parent_project_id=_optional_string(origin, "parent_project_id") or project.id,
         project_root=project_root,
     )
 

@@ -46,10 +46,18 @@ from amiga_reversing.disasm.listing_projection import (
     ListingLocatorError,
     ListingProjectionService,
 )
+from amiga_reversing.disasm.macos_container_payload import (
+    build_macos_container_payload,
+    import_macos_resource_code_file,
+)
 from amiga_reversing.disasm.macos_listing_source import (
     MacosCodeListingArtifact,
     build_macos_project_listing_artifact_profile,
     macos_listing_cache_key,
+)
+from amiga_reversing.disasm.macos_project_origin import (
+    MACOS_CODE_FILE_TARGET_TYPE,
+    MACOS_CONTAINER_TARGET_TYPE,
 )
 from amiga_reversing.disasm.macos_project_payload import build_macos_project_payload
 from amiga_reversing.disasm.manual_action_catalog import (
@@ -1255,12 +1263,24 @@ def _file_cache_stamp(path: Path) -> str:
     return f"{path}:{stat.st_size}:{stat.st_mtime_ns}"
 
 
+def _is_macos_container_project(project: ProjectRecord) -> bool:
+    return project.kind is ProjectKind.MACOS and project.target_type == MACOS_CONTAINER_TARGET_TYPE
+
+
+def _is_macos_listing_project(project: ProjectRecord) -> bool:
+    return project.kind is ProjectKind.MACOS and project.target_type == MACOS_CODE_FILE_TARGET_TYPE
+
+
+def _is_listing_project(project: ProjectRecord) -> bool:
+    return project.kind is ProjectKind.BINARY or _is_macos_listing_project(project)
+
+
 def _project_listing_cache_key(project_name: str) -> str:
     try:
         project = get_project(project_name)
     except FileNotFoundError:
         project = None
-    if project is not None and project.kind is ProjectKind.MACOS:
+    if project is not None and _is_macos_listing_project(project):
         try:
             return macos_listing_cache_key(project, project_root=PROJECT_ROOT)
         except (FileNotFoundError, ValueError):
@@ -1316,7 +1336,7 @@ def _build_rows_job(job_id: str, project_name: str) -> None:
             phase="build_c_artifact",
         )
         project = get_project(project_name)
-        if project.kind is ProjectKind.MACOS:
+        if _is_macos_listing_project(project):
             total_rows, _profile, listing_artifact = build_macos_project_listing_artifact_profile(
                 project,
                 project_root=PROJECT_ROOT,
@@ -1774,7 +1794,9 @@ def _project_payload(project_name: str) -> ProjectPayload:
                 payload["target_state"] = {}
     elif project.kind is ProjectKind.BINARY and project.ready:
         payload["reproduction"] = _current_reproduction_payload(project_name)
-    elif project.kind is ProjectKind.MACOS and project.ready:
+    elif _is_macos_container_project(project) and project.ready:
+        payload["macos"] = build_macos_container_payload(project)
+    elif _is_macos_listing_project(project) and project.ready:
         payload["macos"] = build_macos_project_payload(project)
     return payload
 
@@ -2635,7 +2657,7 @@ def _source_entrypoint_payload(project_name: str) -> dict[str, object] | None:
 
 def _ui_preferences_payload(project_name: str) -> dict[str, object]:
     project = get_project(project_name)
-    if project.kind is not ProjectKind.BINARY or not project.ready:
+    if not _is_listing_project(project) or not project.ready:
         return {"preferences": {}, "source_entrypoint": None}
     try:
         paths = resolve_project_paths(project_name, project_root=PROJECT_ROOT)
@@ -2644,14 +2666,16 @@ def _ui_preferences_payload(project_name: str) -> dict[str, object]:
         return {"preferences": {}, "source_entrypoint": None}
     return {
         "preferences": preferences,
-        "source_entrypoint": _source_entrypoint_payload(project_name),
+        "source_entrypoint": _source_entrypoint_payload(project_name)
+        if project.kind is ProjectKind.BINARY
+        else None,
     }
 
 
 def _save_ui_preferences_payload(project_name: str, body: Mapping[str, object] | None) -> dict[str, object]:
     project = get_project(project_name)
-    if project.kind is not ProjectKind.BINARY or not project.ready:
-        raise ValueError(f"Project {project_name} is not ready for UI preference state")
+    if not _is_listing_project(project) or not project.ready:
+        return {"preferences": {}}
     try:
         paths = resolve_project_paths(project_name, project_root=PROJECT_ROOT)
         payload = body if isinstance(body, dict) else {}
@@ -3415,6 +3439,30 @@ def route_request(
             return {"ok": True, "data": _project_payload(project_name)}
         if method == "GET" and len(parts) == 4 and parts[3] == "disk-browser":
             return {"ok": True, "data": _project_disk_browser_payload(project_name, _first_query_value(query, "path") or "")}
+        if method == "GET" and len(parts) == 5 and parts[3] == "macos" and parts[4] == "container":
+            project = get_project(project_name)
+            if not _is_macos_container_project(project):
+                raise ValueError(f"Project {project_name} is not a Mac HFS container")
+            return {"ok": True, "data": build_macos_container_payload(project)}
+        if method == "POST" and len(parts) == 5 and parts[3] == "macos" and parts[4] == "import":
+            project = get_project(project_name)
+            if not _is_macos_container_project(project):
+                raise ValueError(f"Project {project_name} is not a Mac HFS container")
+            payload = body if isinstance(body, dict) else {}
+            hfs_path = payload.get("hfs_path")
+            if not isinstance(hfs_path, str) or not hfs_path:
+                raise ValueError("hfs_path is required")
+            selected_code_resource_id = payload.get("selected_code_resource_id", 1)
+            if not isinstance(selected_code_resource_id, int) or selected_code_resource_id < 0:
+                raise ValueError("selected_code_resource_id must be a non-negative integer")
+            return {
+                "ok": True,
+                "data": import_macos_resource_code_file(
+                    project,
+                    hfs_path=hfs_path,
+                    selected_code_resource_id=selected_code_resource_id,
+                ),
+            }
         if method == "POST" and len(parts) == 4 and parts[3] == "delete":
             _cancel_listing_jobs(project_name)
             _cancel_reproduction_jobs(project_name)
@@ -3570,7 +3618,7 @@ def route_request(
             }
         if method == "GET" and len(parts) == 4 and parts[3] == "listing":
             project = get_project(project_name)
-            if project.kind not in {ProjectKind.BINARY, ProjectKind.MACOS}:
+            if not _is_listing_project(project):
                 raise ValueError(
                     f"Project {project_name} does not expose a disassembly listing"
                 )
@@ -3658,7 +3706,7 @@ def route_request(
             and parts[4] == "navigation"
         ):
             project = get_project(project_name)
-            if project.kind not in {ProjectKind.BINARY, ProjectKind.MACOS}:
+            if not _is_listing_project(project):
                 raise ValueError(
                     f"Project {project_name} does not expose a disassembly listing"
                 )
@@ -3679,7 +3727,7 @@ def route_request(
             and parts[4] == "open"
         ):
             project = get_project(project_name)
-            if project.kind not in {ProjectKind.BINARY, ProjectKind.MACOS}:
+            if not _is_listing_project(project):
                 raise ValueError(
                     f"Project {project_name} does not expose a disassembly listing"
                 )

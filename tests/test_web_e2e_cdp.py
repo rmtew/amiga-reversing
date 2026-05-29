@@ -85,14 +85,16 @@ def _macos_project(project_name: str) -> ProjectRecord:
         target_count=None,
         source_path="resources/platform_macos/MPW-GM.img.bin",
         disk_type="HFS",
-        parent_project_id=None,
+        parent_project_id="macos_mpw_preview_parent",
         target_type="macos_hfs_resource_code_file",
         created_at="2026-03-25T00:00:00+00:00",
         updated_at="2026-03-25T01:00:00+00:00",
         origin={
-            "kind": "macos_mpw_fixture",
+            "kind": "macos_hfs_resource_code_file",
+            "parent_project_id": "macos_mpw_preview_parent",
             "source_image": "resources/platform_macos/MPW-GM.img.bin",
             "hfs_path": "MPW-GM/MPW/Tools/Asm",
+            "resource_type": "CODE",
             "selected_code_resource_id": 1,
         },
     )
@@ -919,6 +921,89 @@ def test_brave_cdp_can_open_project_and_render_listing(monkeypatch: pytest.Monke
         assert page.evaluate("document.querySelector('#project-title')?.textContent") == project.id
         assert page.evaluate("document.querySelector('.listing-code')?.textContent") == "start:"
         assert page.evaluate("location.pathname") == f"/{project.id}"
+        page.assert_no_errors()
+
+
+@pytest.mark.web_e2e
+def test_brave_cdp_can_open_single_macos_project_from_home(monkeypatch: pytest.MonkeyPatch) -> None:
+    project = _macos_project("macos_mpw_preview")
+    rows = [
+        ListingRow(row_id="m0", kind="instruction", text="movea.l (a7)+,a0\n", addr=0, start_offset=0, end_offset=4),
+        ListingRow(row_id="m1", kind="instruction", text="rts\n", addr=4, start_offset=4, end_offset=6),
+    ]
+    listing_artifact = _FakeCListingArtifact(rows, project_name=project.id)
+    monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
+    monkeypatch.setattr(disasm_server, "mark_project_opened", lambda project_name: project)
+    monkeypatch.setattr(disasm_server, "build_macos_project_payload", lambda project_name: _macos_preview_payload())
+    monkeypatch.setattr(
+        disasm_server,
+        "build_macos_project_listing_artifact_profile",
+        lambda project_record, project_root=None: (len(rows), {"backend": "macos-code"}, listing_artifact),
+    )
+
+    with _live_server() as base_url, brave_page() as page:
+        page.call("Page.navigate", {"url": base_url})
+        page.wait_for_event("Page.loadEventFired")
+        page.wait_for_expression("document.querySelectorAll('.project-open-button').length === 1")
+
+        page.click(".project-open-button")
+
+        page.wait_for_app_event(
+            "amiga:project-rendered",
+            f"detail.projectId === {json.dumps(project.id)}",
+            timeout=10.0,
+        )
+        page.wait_for_selector("[data-macos-code-details='1']")
+        assert page.evaluate("document.querySelector('#project-title')?.textContent") == project.id
+        assert page.evaluate("location.pathname") == f"/{project.id}"
+        page.assert_no_errors()
+
+
+@pytest.mark.web_e2e
+def test_brave_cdp_can_open_real_macos_project_from_home(monkeypatch: pytest.MonkeyPatch) -> None:
+    _skip_without_c_backend()
+    parent = project_store.get_project("macos_hfs_mpw_gm")
+    child = project_store.get_project("macos_hfs_mpw_gm__macos_file_mpw_tools_asm")
+    monkeypatch.setattr(disasm_server, "list_projects", lambda: [parent])
+    monkeypatch.setattr(
+        disasm_server,
+        "get_project",
+        lambda project_name: child if project_name == child.id else parent,
+    )
+    monkeypatch.setattr(
+        disasm_server,
+        "mark_project_opened",
+        lambda project_name: child if project_name == child.id else parent,
+    )
+
+    with _live_server() as base_url, brave_page() as page:
+        page.call("Page.navigate", {"url": base_url})
+        page.wait_for_event("Page.loadEventFired")
+        page.wait_for_expression("document.querySelectorAll('.project-open-button').length === 1")
+
+        page.click(".project-open-button")
+
+        page.wait_for_app_event(
+            "amiga:project-rendered",
+            f"detail.projectId === {json.dumps(parent.id)}",
+            timeout=30.0,
+        )
+        page.wait_for_selector("[data-macos-container='1']", timeout=30.0)
+        body_text = page.text_content("body")
+        assert "MPW-GM/MPW/Tools/Asm" in body_text
+        assert "CODE" in body_text
+        assert page.evaluate("document.querySelector('#project-title')?.textContent") == parent.id
+        assert page.evaluate("location.pathname") == f"/{parent.id}"
+        page.click(f"[data-macos-target='{child.id}']")
+        page.wait_for_app_event(
+            "amiga:project-rendered",
+            f"detail.projectId === {json.dumps(child.id)}",
+            timeout=30.0,
+        )
+        page.wait_for_selector("[data-macos-code-details='1']", timeout=30.0)
+        assert page.evaluate("document.querySelector('#project-title')?.textContent") == child.id
+        assert page.evaluate("location.pathname") == f"/{child.id}"
         page.assert_no_errors()
 
 

@@ -1,6 +1,6 @@
 # Proposal 029: Classic Mac OS Container Browsing And Import
 
-Status: Proposed.
+Status: Implemented.
 
 Classic Mac OS HFS images should behave like Amiga and Atari disk projects:
 the parent project is a container browser, and selected supported entries become
@@ -16,20 +16,20 @@ model.
 
 ## Checkpoint Index
 
-- [ ] Problem Statement
-- [ ] Existing Disk Model
-- [ ] Desired Mac Model
-- [ ] Tutorial: Opening An HFS Container
-- [ ] Tutorial: Importing A Mac File Or Resource
-- [ ] Target Layout And Metadata
-- [ ] Migration And Git History
-- [ ] API Shape
-- [ ] UI Shape
-- [ ] Preference And Navigation State
-- [ ] Validation Gates
-- [ ] Implementation Slices
-- [ ] Acceptance Criteria
-- [ ] Non-Goals
+- [x] Problem Statement
+- [x] Existing Disk Model
+- [x] Desired Mac Model
+- [x] Tutorial: Opening An HFS Container
+- [x] Tutorial: Importing A Mac File Or Resource
+- [x] Target Layout And Metadata
+- [x] Migration And Git History
+- [x] API Shape
+- [x] UI Shape
+- [x] Preference And Navigation State
+- [x] Validation Gates
+- [x] Implementation Slices
+- [x] Acceptance Criteria
+- [x] Non-Goals
 
 ## Problem Statement
 
@@ -672,6 +672,52 @@ server no-ops non-listing preference PUT defensively
 - Reimporting the same HFS entry is idempotent.
 - CDP tests cover home selection, container browsing, import/open child, and
   no `/ui-preferences` 400.
+
+## Implementation Notes
+
+Implemented state:
+
+```text
+targets/macos_hfs_mpw_gm/
+  .project.json
+  container.json
+  targets/
+    macos_file_mpw_tools_asm/
+      .project.json
+      source_binary.json
+      asm.s
+```
+
+Runtime split:
+
+```python
+if project.target_type == "macos_hfs_container":
+    payload["macos"] = build_macos_container_payload(project)
+
+if project.target_type == "macos_hfs_resource_code_file":
+    payload["macos"] = build_macos_project_payload(project)
+```
+
+The parent now exposes HFS file/resource inventory and existing imported child
+targets. The child owns Mac CODE listing/source state through
+`source_binary.json` with `kind: macos_code_resource`.
+
+Verification performed:
+
+```text
+pytest affected Mac/project/server/source-export tests
+pytest tests/test_web_e2e_cdp.py::test_brave_cdp_can_open_real_macos_project_from_home
+platform-rendered-source-roundtrip --update-rendered-source
+```
+
+Round-trip status remains:
+
+```text
+25/36 full-file exact
+10 content-exact only
+1 unsupported: macos_hfs_mpw_gm__macos_file_mpw_tools_asm
+0 failures
+```
 
 ## Non-Goals
 

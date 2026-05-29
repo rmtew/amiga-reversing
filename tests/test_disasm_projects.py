@@ -832,7 +832,39 @@ def test_list_projects_includes_macos_project_from_origin(tmp_path: Path) -> Non
     assert projects[0].binary_path == "resources/platform_macos/MPW-GM.img.bin"
     assert projects[0].source_path == "resources/platform_macos/MPW-GM.img.bin"
     assert projects[0].disk_type == "HFS"
-    assert projects[0].target_type == "macos_hfs_resource_code_file"
+    assert projects[0].target_type == "macos_hfs_container"
+    assert projects[0].target_count == 0
+
+
+def test_macos_child_project_resolves_as_listing_target(tmp_path: Path) -> None:
+    project_root = tmp_path
+    parent_dir = project_root / "targets" / "macos_mpw_sample"
+    child_dir = parent_dir / "targets" / "macos_file_mpw_tools_asm"
+    child_dir.mkdir(parents=True)
+    parent_payload = _project_metadata_payload()
+    parent_payload["origin"] = _macos_project_origin()
+    child_payload = _project_metadata_payload()
+    child_payload["origin"] = {
+        "kind": "macos_hfs_resource_code_file",
+        "parent_project_id": "macos_mpw_sample",
+        "source_image": "resources/platform_macos/MPW-GM.img.bin",
+        "hfs_path": "MPW-GM/MPW/Tools/Asm",
+        "resource_type": "CODE",
+        "selected_code_resource_id": 1,
+    }
+    (parent_dir / ".project.json").write_text(json.dumps(parent_payload))
+    (child_dir / ".project.json").write_text(json.dumps(child_payload))
+    (child_dir / "asm.s").write_text("rts\n")
+
+    project = get_project(
+        "macos_mpw_sample__macos_file_mpw_tools_asm",
+        project_root=project_root,
+    )
+
+    assert project.kind == "macos"
+    assert project.target_type == "macos_hfs_resource_code_file"
+    assert project.parent_project_id == "macos_mpw_sample"
+    assert project.output_path == str(child_dir / "asm.s")
 
 
 def test_disk_manifest_preserves_decompressed_target_relationship(tmp_path: Path) -> None:

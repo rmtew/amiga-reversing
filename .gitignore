@@ -90,6 +90,7 @@ targets/**/*
 !targets/**/
 !targets/**/*.s
 !targets/**/.project.json
+!targets/**/container.json
 !targets/**/source_binary.json
 !targets/**/target_metadata.json
 *.analysis

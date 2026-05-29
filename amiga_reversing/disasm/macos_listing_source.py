@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import cast
 
 from amiga_reversing.disasm.api import ListingWindowPayload
+from amiga_reversing.disasm.binary_source import MacosCodeResourceSource
 from amiga_reversing.disasm.c_backend import (
     CListingArtifact,
     build_listing_artifact_profile_from_binary_source,
@@ -14,7 +15,9 @@ from amiga_reversing.disasm.c_backend import (
     inspect_macos_hfs_code_summary_with_c_backend,
 )
 from amiga_reversing.disasm.macos_image import read_macos_hfs_image_bytes
-from amiga_reversing.disasm.macos_project_origin import macos_code_source_descriptor_from_project
+from amiga_reversing.disasm.macos_project_origin import (
+    macos_code_source_descriptor_from_project,
+)
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT
 from amiga_reversing.disasm.projects import ProjectRecord
 
@@ -184,18 +187,21 @@ def _display_source_image(source_image: Path, project_root: Path) -> str:
         return source_image.as_posix()
 
 
-def _macos_source_descriptor_payload(descriptor: object, project_root: Path) -> dict[str, object]:
-    source_image = cast(Path, getattr(descriptor, "source_image"))
+def _macos_source_descriptor_payload(
+    descriptor: MacosCodeResourceSource,
+    project_root: Path,
+) -> dict[str, object]:
+    source_image = descriptor.source_image
     return {
-        "kind": str(getattr(descriptor, "kind")),
+        "kind": str(descriptor.kind),
         "source_image": _display_source_image(source_image, project_root),
-        "hfs_path": getattr(descriptor, "hfs_path"),
-        "resource_type": getattr(descriptor, "resource_type"),
-        "resource_id": getattr(descriptor, "resource_id"),
-        "resource_name": getattr(descriptor, "resource_name"),
-        "address_model": str(getattr(descriptor, "address_model")),
-        "cache_identity": getattr(descriptor, "stable_cache_identity"),
-        "display_path": getattr(descriptor, "display_path"),
+        "hfs_path": descriptor.hfs_path,
+        "resource_type": descriptor.resource_type,
+        "resource_id": descriptor.resource_id,
+        "resource_name": descriptor.resource_name,
+        "address_model": str(descriptor.address_model),
+        "cache_identity": descriptor.stable_cache_identity,
+        "display_path": descriptor.display_path,
     }
 
 

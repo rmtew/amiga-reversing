@@ -1,0 +1,14 @@
+{
+  "image_path": "resources/platform_macos/MPW-GM.img.bin",
+  "imported_targets": [
+    {
+      "hfs_path": "MPW-GM/MPW/Tools/Asm",
+      "local_target_id": "macos_file_mpw_tools_asm",
+      "selected_code_resource_id": 1,
+      "target_id": "macos_hfs_mpw_gm__macos_file_mpw_tools_asm",
+      "target_type": "macos_hfs_resource_code_file"
+    }
+  ],
+  "kind": "macos_hfs_container",
+  "schema_version": 1
+}

@@ -8,6 +8,7 @@ import tempfile
 from collections.abc import Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from pathlib import Path
+from typing import cast
 
 from amiga_reversing.disasm.c_backend import (
     build_macos_code_bytes_listing_artifact_profile,
@@ -18,6 +19,9 @@ from amiga_reversing.disasm.c_backend import (
 from amiga_reversing.disasm.macos_asm_container import MPW_ASM_PATH
 from amiga_reversing.disasm.macos_image import read_macos_hfs_image_bytes
 from amiga_reversing.disasm.macos_project_origin import (
+    MACOS_CODE_FILE_ORIGIN_KIND,
+    MACOS_CONTAINER_ORIGIN_KIND,
+    MacosProjectLike,
     is_macos_project_origin,
     macos_code_source_descriptor_from_project,
 )
@@ -36,23 +40,27 @@ _A5_CALLABLE_RE = re.compile(r"\b((?:jsr|jmp)\s+)\$([0-9A-Fa-f]{1,4})\(a5\)")
 def build_macos_project_payload(project: object, *, project_root: Path = PROJECT_ROOT) -> dict[str, object]:
     origin = _mapping(getattr(project, "origin", {}))
     if not is_macos_project_origin(origin):
-        raise ValueError("Mac OS project payload requires macos_mpw_fixture origin")
+        raise ValueError("Mac OS project payload requires Classic Mac OS origin")
+    source_origin = _effective_source_origin(origin, project_root=project_root)
     project_id = str(getattr(project, "id", ""))
-    source_files = _read_text_files(project_root, origin.get("source_files"))
-    resource_files = _read_text_files(project_root, origin.get("resource_files"))
-    build_files = _read_text_files(project_root, origin.get("build_files"))
+    source_files = _read_text_files(project_root, source_origin.get("source_files"))
+    resource_files = _read_text_files(project_root, source_origin.get("resource_files"))
+    build_files = _read_text_files(project_root, source_origin.get("build_files"))
     source_project = build_macos_source_project(
         project_id=project_id,
         source_files=source_files,
         resource_files=resource_files,
         build_files=build_files,
-        c_header_text=_join_text_files(project_root, origin.get("c_header_files")),
-        asm_include_text=_join_text_files(project_root, origin.get("asm_include_files")),
+        c_header_text=_join_text_files(project_root, source_origin.get("c_header_files")),
+        asm_include_text=_join_text_files(project_root, source_origin.get("asm_include_files")),
     )
     source_render = render_macos_source_views(source_project)
     image_relpath = _required_string(origin, "source_image")
     hfs_path = str(origin.get("hfs_path") or MPW_ASM_PATH)
-    source_descriptor = macos_code_source_descriptor_from_project(project, project_root=project_root)
+    source_descriptor = macos_code_source_descriptor_from_project(
+        cast(MacosProjectLike, project),
+        project_root=project_root,
+    )
     native_source_identity = _native_source_identity(source_descriptor, source_image=image_relpath)
     hfs_bytes = read_macos_hfs_image_bytes(project_root / image_relpath)
     c_summary = inspect_macos_hfs_code_summary_with_c_backend(hfs_bytes, hfs_path)
@@ -87,13 +95,46 @@ def build_macos_project_payload(project: object, *, project_root: Path = PROJECT
             "origin_kind": origin.get("kind"),
             "source_image": image_relpath,
             "hfs_path": hfs_path,
-            "source_files": _string_list(origin.get("source_files")),
-            "resource_files": _string_list(origin.get("resource_files")),
-            "build_files": _string_list(origin.get("build_files")),
+            "source_files": _string_list(source_origin.get("source_files")),
+            "resource_files": _string_list(source_origin.get("resource_files")),
+            "build_files": _string_list(source_origin.get("build_files")),
             "binary_container_source": "platform_file_lib.macos_hfs_code_summary",
             "native_source_kind": "macos_code_resource",
         },
     }
+
+
+def _effective_source_origin(
+    origin: Mapping[str, object],
+    *,
+    project_root: Path,
+) -> dict[str, object]:
+    merged = dict(origin)
+    if origin.get("kind") != MACOS_CODE_FILE_ORIGIN_KIND:
+        return merged
+    parent_project_id = origin.get("parent_project_id")
+    if not isinstance(parent_project_id, str) or not parent_project_id:
+        return merged
+    parent_metadata_path = project_root / "targets" / parent_project_id / ".project.json"
+    try:
+        with open(parent_metadata_path, encoding="utf-8") as handle:
+            parent_payload = json.load(handle)
+    except (OSError, json.JSONDecodeError):
+        return merged
+    parent_origin = _mapping(_mapping(parent_payload).get("origin"))
+    if parent_origin.get("kind") != MACOS_CONTAINER_ORIGIN_KIND:
+        return merged
+    for key in (
+        "source_project",
+        "source_files",
+        "resource_files",
+        "build_files",
+        "c_header_files",
+        "asm_include_files",
+    ):
+        if key not in merged and key in parent_origin:
+            merged[key] = parent_origin[key]
+    return merged
 
 
 def _native_source_identity(descriptor: object, *, source_image: str) -> dict[str, object]:

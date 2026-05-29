@@ -7,6 +7,7 @@ import pytest
 
 from amiga_reversing.disasm import source_export
 from amiga_reversing.disasm.macos_target_artifact import (
+    MACOS_EXAMPLE_CONTAINER_PROJECT_ID,
     MACOS_EXAMPLE_PROJECT_ID,
     MACOS_EXAMPLE_SUBTARGET_ID,
 )
@@ -108,8 +109,8 @@ def test_source_export_returns_refusal_payload(monkeypatch, tmp_path: Path) -> N
 
 
 def test_source_export_supports_macos_artifact_renderer(monkeypatch, tmp_path: Path) -> None:
-    target_name = f"{MACOS_EXAMPLE_PROJECT_ID}__{MACOS_EXAMPLE_SUBTARGET_ID}"
-    target_dir = tmp_path / "targets" / MACOS_EXAMPLE_PROJECT_ID / "targets" / MACOS_EXAMPLE_SUBTARGET_ID
+    target_name = MACOS_EXAMPLE_PROJECT_ID
+    target_dir = tmp_path / "targets" / MACOS_EXAMPLE_CONTAINER_PROJECT_ID / "targets" / MACOS_EXAMPLE_SUBTARGET_ID
     target_dir.mkdir(parents=True)
     (target_dir / ".project.json").write_text(
         """
@@ -136,7 +137,7 @@ def test_source_export_supports_macos_artifact_renderer(monkeypatch, tmp_path: P
     assert payload["status"] == "ok"
     assert payload["target"] == target_name
     assert payload["listing_profile"]["backend"] == "macos-target-artifact"
-    assert "; Target: macos_hfs_mpw_gm__macos_file_mpw_tools_asm" in payload["source_text"]
+    assert f"; Target: {MACOS_EXAMPLE_PROJECT_ID}" in payload["source_text"]
     assert "\tINCLUDE \"SegLoad.a\"" in payload["source_text"]
 
 

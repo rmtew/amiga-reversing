@@ -1,0 +1,10 @@
+{
+  "address_model": "macos_code_resource_offset",
+  "hfs_path": "MPW-GM/MPW/Tools/Asm",
+  "kind": "macos_code_resource",
+  "parent_project_id": "macos_hfs_mpw_gm",
+  "resource_id": 1,
+  "resource_name": "Main",
+  "resource_type": "CODE",
+  "source_image": "resources/platform_macos/MPW-GM.img.bin"
+}

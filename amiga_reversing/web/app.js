@@ -10074,6 +10074,98 @@ function renderClassicMacProject(projectData, listing = null) {
   `;
 }
 
+function renderClassicMacContainerProject(projectData) {
+  const mac = projectData.macos || {};
+  const viewport = document.getElementById("listing-viewport");
+  const files = Array.isArray(mac.files) ? mac.files : [];
+  viewport.innerHTML = `
+    <div class="macos-view" data-platform="macos" data-macos-container="1">
+      <section class="macos-section" data-macos-panel="hfs-container">
+        <h2>HFS Container</h2>
+        <div class="macos-summary-grid">
+          <div><span>Image</span><strong>${escapeHtml(mac.image_path || "")}</strong></div>
+          <div><span>Volume</span><strong>${escapeHtml(mac.volume_name || "")}</strong></div>
+          <div><span>Files</span><strong>${escapeHtml(String(files.length))}</strong></div>
+          <div><span>Imported</span><strong>${escapeHtml(String((mac.imported_targets || []).length || 0))}</strong></div>
+        </div>
+        <div class="macos-container-files" data-macos-container-files="1">
+          ${files.map((file) => renderClassicMacContainerFile(file || {})).join("") || '<div class="empty">No HFS files.</div>'}
+        </div>
+      </section>
+    </div>
+  `;
+  viewport.querySelectorAll("[data-macos-target]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const targetId = button.getAttribute("data-macos-target") || "";
+      if (targetId) {
+        navigateToProject(targetId);
+      }
+    });
+  });
+  viewport.querySelectorAll("[data-macos-import-path]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const hfsPath = button.getAttribute("data-macos-import-path") || "";
+      if (!state.project || !hfsPath) {
+        return;
+      }
+      const payload = await fetchJson(`/api/projects/${encodeURIComponent(state.project)}/macos/import`, {
+        method: "POST",
+        body: JSON.stringify({
+          entry_kind: "macos_hfs_resource_code_file",
+          hfs_path: hfsPath,
+          selected_code_resource_id: 1,
+        }),
+      });
+      if (payload?.target_id) {
+        navigateToProject(payload.target_id);
+      }
+    });
+  });
+}
+
+function renderClassicMacContainerFile(file) {
+  const resourceFork = file.resource_fork || {};
+  const resources = Array.isArray(resourceFork.resources) ? resourceFork.resources : [];
+  const types = Array.isArray(resourceFork.types) ? resourceFork.types : [];
+  const supportsCode = (file.supported_imports || []).includes("macos_hfs_resource_code_file");
+  const importedTargetId = file.imported_target_id || "";
+  return `
+    <article class="macos-code-detail" data-macos-container-file="${escapeHtml(file.path || "")}">
+      <header>
+        <h4>${escapeHtml(file.path || "")}</h4>
+        <span>${escapeHtml(`${file.finder_type || ""}/${file.creator || ""}`)}</span>
+      </header>
+      <div class="macos-code-detail-grid">
+        <div><span>Data</span><strong>${escapeHtml(formatFileSize(file.data_fork_size || 0))}</strong></div>
+        <div><span>Resource</span><strong>${escapeHtml(formatFileSize(file.resource_fork_size || 0))}</strong></div>
+        <div><span>Fork</span><strong>${escapeHtml(resourceFork.status || "absent")}</strong></div>
+        <div><span>Types</span><strong>${escapeHtml(types.map((item) => `${item.type || ""}:${item.count || 0}`).join(", "))}</strong></div>
+      </div>
+      <div class="macos-code0-jump-table" data-macos-container-resources="1">
+        ${resources.map((resource) => renderClassicMacContainerResource(resource || {})).join("") || '<div class="empty">No resources.</div>'}
+      </div>
+      <div class="macos-actions">
+        ${importedTargetId ? `<button type="button" data-macos-target="${escapeHtml(importedTargetId)}">Open Target</button>` : ""}
+        ${!importedTargetId && supportsCode ? `<button type="button" data-macos-import-path="${escapeHtml(file.path || "")}">Import CODE File</button>` : ""}
+      </div>
+    </article>
+  `;
+}
+
+function renderClassicMacContainerResource(resource) {
+  const code = resource.code || {};
+  const codeSummary = code.kind ? `${code.kind} ${code.jump_table_entry_count ?? ""}`.trim() : "";
+  return `
+    <div class="macos-code0-jump-row" data-macos-container-resource="${escapeHtml(resource.type || "")}:${escapeHtml(String(resource.id ?? ""))}">
+      <span>${escapeHtml(resource.type || "")}</span>
+      <span>${escapeHtml(String(resource.id ?? ""))}</span>
+      <span>${escapeHtml(resource.name || "")}</span>
+      <span>${escapeHtml(formatFileSize(resource.size || 0))}</span>
+      <span>${escapeHtml(codeSummary)}</span>
+    </div>
+  `;
+}
+
 function renderClassicMacSourceView(sourceView) {
   const pivots = sourceView.pivots || {};
   return `
@@ -10666,6 +10758,15 @@ async function renderProject(projectId) {
     }
 
     if (projectData.macos) {
+      if (projectData.macos.kind === "macos_hfs_container") {
+        renderClassicMacContainerProject(projectData);
+        dispatchAppEvent("amiga:project-rendered", {
+          projectId,
+          generation: "container",
+          totalRows: 0,
+        });
+        return;
+      }
       renderClassicMacProject(projectData);
       const job = await fetchJson(`/api/projects/${encodeURIComponent(projectId)}/listing/open`, {
         method: "POST",

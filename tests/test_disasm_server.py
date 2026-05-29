@@ -141,8 +141,37 @@ def _macos_project(project_name: str, *, ready: bool = True) -> ProjectRecord:
         target_count=None,
         source_path="resources/platform_macos/MPW-GM.img.bin" if ready else None,
         disk_type="HFS",
-        parent_project_id=None,
+        parent_project_id="macos_mpw_sample_parent",
         target_type="macos_hfs_resource_code_file",
+        created_at="2026-03-25T00:00:00+00:00",
+        updated_at="2026-03-25T01:00:00+00:00",
+        origin={
+            "kind": "macos_hfs_resource_code_file",
+            "parent_project_id": "macos_mpw_sample_parent",
+            "source_image": "resources/platform_macos/MPW-GM.img.bin",
+            "hfs_path": "MPW-GM/MPW/Tools/Asm",
+            "resource_type": "CODE",
+            "selected_code_resource_id": 1,
+        },
+    )
+
+
+def _macos_container_project(project_name: str, *, ready: bool = True) -> ProjectRecord:
+    return ProjectRecord(
+        id=project_name,
+        name=project_name,
+        kind=ProjectKind.MACOS,
+        target_dir=f"targets/{project_name}",
+        output_path=None,
+        binary_path="resources/platform_macos/MPW-GM.img.bin" if ready else None,
+        ready=ready,
+        last_opened=None,
+        manifest_path=None,
+        target_count=1,
+        source_path="resources/platform_macos/MPW-GM.img.bin" if ready else None,
+        disk_type="HFS",
+        parent_project_id=None,
+        target_type="macos_hfs_container",
         created_at="2026-03-25T00:00:00+00:00",
         updated_at="2026-03-25T01:00:00+00:00",
         origin={"kind": "macos_mpw_fixture", "source_image": "resources/platform_macos/MPW-GM.img.bin"},
@@ -1269,6 +1298,38 @@ def test_route_project_returns_macos_payload(monkeypatch: pytest.MonkeyPatch) ->
     assert macos["platform"] == "macos"
     assert "disk_manifest" not in data
     assert "reproduction" not in data
+
+
+def test_route_project_returns_macos_container_payload(monkeypatch: pytest.MonkeyPatch) -> None:
+    project_record = _macos_container_project("macos_hfs_sample")
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project_record)
+    monkeypatch.setattr(
+        disasm_server,
+        "build_macos_container_payload",
+        lambda project: {"platform": "macos", "kind": "macos_hfs_container", "files": []},
+    )
+
+    payload = disasm_server.route_request("GET", "/api/projects/macos_hfs_sample", {})
+    data = cast(dict[str, object], payload["data"])
+    macos = cast(dict[str, object], data["macos"])
+
+    assert payload["ok"] is True
+    assert macos["kind"] == "macos_hfs_container"
+
+
+def test_macos_container_ui_preferences_are_noop(monkeypatch: pytest.MonkeyPatch) -> None:
+    project = _macos_container_project("macos_hfs_sample")
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
+
+    payload = disasm_server.route_request(
+        "PUT",
+        "/api/projects/macos_hfs_sample/ui-preferences",
+        {},
+        {"panel": "listing"},
+    )
+
+    assert payload["ok"] is True
+    assert payload["data"] == {"preferences": {}}
 
 
 def test_route_macos_listing_returns_code_rows_from_shared_listing_cache(monkeypatch: pytest.MonkeyPatch) -> None:

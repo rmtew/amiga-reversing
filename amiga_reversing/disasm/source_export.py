@@ -12,7 +12,11 @@ from amiga_reversing.disasm.macos_target_artifact import (
     MACOS_EXAMPLE_SUBTARGET_ID,
     render_macos_example_asm,
 )
-from amiga_reversing.disasm.project_paths import PROJECT_ROOT, resolve_project_dir, resolve_project_paths
+from amiga_reversing.disasm.project_paths import (
+    PROJECT_ROOT,
+    resolve_project_dir,
+    resolve_project_paths,
+)
 from amiga_reversing.disasm.source_rendering import render_source_from_binary_source
 
 SOURCE_EXPORT_ASSEMBLER_PROFILES = ("vasm", "devpac")

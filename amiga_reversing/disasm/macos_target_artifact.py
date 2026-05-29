@@ -12,7 +12,11 @@ from amiga_reversing.disasm.c_backend import (
     extract_macos_hfs_code_resource_payload_bytes_with_c_backend,
 )
 from amiga_reversing.disasm.macos_asm_container import read_macos_hfs_image_bytes
-from amiga_reversing.disasm.macos_project_origin import MACOS_PROJECT_ORIGIN_KIND
+from amiga_reversing.disasm.macos_project_origin import (
+    MACOS_CODE_FILE_ORIGIN_KIND,
+    MACOS_CODE_FILE_TARGET_TYPE,
+    MACOS_CONTAINER_ORIGIN_KIND,
+)
 from amiga_reversing.disasm.macos_project_payload import build_macos_project_payload
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT
 from amiga_reversing.disasm.projects import (
@@ -22,12 +26,13 @@ from amiga_reversing.disasm.projects import (
     ProjectRecord,
 )
 
-MACOS_EXAMPLE_PROJECT_ID = "macos_hfs_mpw_gm"
+MACOS_EXAMPLE_CONTAINER_PROJECT_ID = "macos_hfs_mpw_gm"
+MACOS_EXAMPLE_PROJECT_ID = "macos_hfs_mpw_gm__macos_file_mpw_tools_asm"
 MACOS_EXAMPLE_SUBTARGET_ID = "macos_file_mpw_tools_asm"
 MACOS_EXAMPLE_HFS_PATH = "MPW-GM/MPW/Tools/Asm"
 MACOS_EXAMPLE_SOURCE_IMAGE = "resources/platform_macos/MPW-GM.img.bin"
 MACOS_EXAMPLE_TIMESTAMP = "2026-05-21T00:00:00+00:00"
-MACOS_EXAMPLE_TARGET_RELPATH = Path("targets") / MACOS_EXAMPLE_PROJECT_ID
+MACOS_EXAMPLE_TARGET_RELPATH = Path("targets") / MACOS_EXAMPLE_CONTAINER_PROJECT_ID
 MACOS_EXAMPLE_SUBTARGET_RELPATH = MACOS_EXAMPLE_TARGET_RELPATH / "targets" / MACOS_EXAMPLE_SUBTARGET_ID
 MACOS_EXAMPLE_ASM_RELPATH = MACOS_EXAMPLE_SUBTARGET_RELPATH / "asm.s"
 MACOS_EXAMPLE_SOURCE_FILES = ("ext/macos_includes/mpw_gm/Interfaces/AStructMacs/Sample.a",)
@@ -37,7 +42,7 @@ MACOS_EXAMPLE_BUILD_FILES = ("ext/macos_includes/mpw_gm/Interfaces/AStructMacs/S
 
 def macos_example_origin() -> dict[str, object]:
     return {
-        "kind": MACOS_PROJECT_ORIGIN_KIND,
+        "kind": MACOS_CONTAINER_ORIGIN_KIND,
         "source_image": MACOS_EXAMPLE_SOURCE_IMAGE,
         "source_project": "MPW-GM/MPW/Examples/AExamples/Sample",
         "hfs_path": MACOS_EXAMPLE_HFS_PATH,
@@ -50,8 +55,8 @@ def macos_example_origin() -> dict[str, object]:
 
 def macos_example_subtarget_origin() -> dict[str, object]:
     return {
-        "kind": "macos_hfs_resource_code_file",
-        "parent_project_id": MACOS_EXAMPLE_PROJECT_ID,
+        "kind": MACOS_CODE_FILE_ORIGIN_KIND,
+        "parent_project_id": MACOS_EXAMPLE_CONTAINER_PROJECT_ID,
         "source_image": MACOS_EXAMPLE_SOURCE_IMAGE,
         "hfs_path": MACOS_EXAMPLE_HFS_PATH,
         "resource_type": "CODE",
@@ -63,7 +68,7 @@ def macos_example_subtarget_origin() -> dict[str, object]:
 
 
 def macos_example_project_record(*, project_root: Path = PROJECT_ROOT) -> ProjectRecord:
-    target_dir = project_root / MACOS_EXAMPLE_TARGET_RELPATH
+    target_dir = project_root / MACOS_EXAMPLE_SUBTARGET_RELPATH
     return ProjectRecord(
         id=MACOS_EXAMPLE_PROJECT_ID,
         name=MACOS_EXAMPLE_PROJECT_ID,
@@ -77,11 +82,11 @@ def macos_example_project_record(*, project_root: Path = PROJECT_ROOT) -> Projec
         target_count=None,
         source_path=MACOS_EXAMPLE_SOURCE_IMAGE,
         disk_type="HFS",
-        parent_project_id=None,
-        target_type="macos_hfs_resource_code_file",
+        parent_project_id=MACOS_EXAMPLE_CONTAINER_PROJECT_ID,
+        target_type=MACOS_CODE_FILE_TARGET_TYPE,
         created_at=MACOS_EXAMPLE_TIMESTAMP,
         updated_at=MACOS_EXAMPLE_TIMESTAMP,
-        origin=macos_example_origin(),
+        origin=macos_example_subtarget_origin(),
     )
 
 

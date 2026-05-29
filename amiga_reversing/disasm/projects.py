@@ -12,7 +12,12 @@ from amiga_reversing.disasm.binary_source import (
     is_internal_target,
     resolve_target_binary_source,
 )
-from amiga_reversing.disasm.macos_project_origin import is_macos_project_origin
+from amiga_reversing.disasm.macos_project_origin import (
+    MACOS_CODE_FILE_TARGET_TYPE,
+    MACOS_CONTAINER_TARGET_TYPE,
+    is_macos_code_file_origin,
+    is_macos_project_origin,
+)
 from amiga_reversing.disasm.manual_actions import (
     ReviewItemKind,
     ReviewItemScope,
@@ -483,24 +488,38 @@ def _macos_project_record(
 ) -> ProjectRecord:
     source_image = metadata.origin.get("source_image")
     source_path = source_image if isinstance(source_image, str) else None
+    is_child = is_macos_code_file_origin(metadata.origin)
+    output_path = target_dir / "asm.s"
+    parent_project_id = metadata.origin.get("parent_project_id")
     return ProjectRecord(
         id=project_id,
         name=project_id,
         kind=ProjectKind.MACOS,
         target_dir=str(target_dir),
-        output_path=None,
+        output_path=str(output_path) if is_child and output_path.exists() else None,
         binary_path=source_path,
         ready=source_path is not None,
         last_opened=state.recent_projects.get(project_id),
         manifest_path=None,
-        target_count=None,
+        target_count=None if is_child else _macos_child_target_count(target_dir),
         source_path=source_path,
         disk_type="HFS",
-        parent_project_id=None,
-        target_type="macos_hfs_resource_code_file",
+        parent_project_id=parent_project_id if isinstance(parent_project_id, str) else None,
+        target_type=MACOS_CODE_FILE_TARGET_TYPE if is_child else MACOS_CONTAINER_TARGET_TYPE,
         created_at=metadata.created_at,
         updated_at=metadata.updated_at,
         origin=metadata.origin,
+    )
+
+
+def _macos_child_target_count(target_dir: Path) -> int:
+    children_dir = target_dir / "targets"
+    if not children_dir.exists():
+        return 0
+    return sum(
+        1
+        for child_dir in children_dir.iterdir()
+        if child_dir.is_dir() and not child_dir.name.startswith(".")
     )
 
 
