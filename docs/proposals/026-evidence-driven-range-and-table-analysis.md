@@ -1009,6 +1009,49 @@ All 36 tracked target `.s` files were regenerated with no target source diffs.
 Round-trip remained 34/36 full-file exact, 1 content-exact-only, 1 unsupported,
 and 0 failures.
 
+### Pass 11: Table Target Labels From Range Owners
+
+The eleventh pass migrates table target-label materialization onto the same
+lookup-owned ownership surface.
+
+Before this pass, long-table target labels were materialized by walking the
+policy and auto structured-data arrays directly:
+
+```text
+policy.structured_data_items + lookup.auto_structured_data_items
+  -> render_lookup_materialize_long_table_targets
+```
+
+That was another ownership decision hidden behind a structured-data list walk.
+The path now iterates `M68kRenderLookup.range_ownerships`, hydrates each current
+owner, accepts only table ownership, and then materializes labels from the table
+payload:
+
+```text
+lookup.range_ownerships
+  -> accepted table owner
+  -> table target labels
+```
+
+This keeps target-label creation tied to the accepted range/table ownership
+surface instead of to every structured-data payload that happens to exist.
+Formatting still reads structured-data payload fields after ownership is proven;
+that remains the correct split until the table descriptor itself becomes the
+primary renderer operand.
+
+Verification after this pass:
+
+```text
+cmd /c src\precommit.bat m68k_ir
+uv run python -m pytest tests\test_c_backend.py -q
+uv run platform-rendered-source-roundtrip
+git diff --check
+```
+
+All 36 tracked target `.s` files were regenerated with no target source diffs.
+Round-trip remained 34/36 full-file exact, 1 content-exact-only, 1 unsupported,
+and 0 failures.
+
 ## Open Design Questions
 
 - What is the smallest status vocabulary that covers candidate, accepted,

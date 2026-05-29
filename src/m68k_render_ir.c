@@ -5996,22 +5996,17 @@ static void render_lookup_materialize_relocation_target_labels(M68kRenderLookup 
 
 static void render_lookup_materialize_structured_long_table_target_labels(M68kRenderLookup *lookup,
     const M68kDecodeIR *decode) {
-  uint16_t policy_index;
-  size_t auto_index;
+  size_t index;
   if (lookup == NULL || decode == NULL) return;
-  if (lookup->policy != NULL) {
-    for (policy_index = 0U; policy_index < lookup->policy->structured_data_item_count &&
-         policy_index < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT; ++policy_index) {
-      const M68kAnalysisStructuredDataItem *item = &lookup->policy->structured_data_items[policy_index];
-      size_t section_index = item->has_section_index ? (size_t)item->section_index : 0U;
-      if (section_index >= decode->section_count) continue;
-      render_lookup_materialize_long_table_targets(lookup, &decode->sections[section_index], item);
-    }
-  }
-  for (auto_index = 0U; auto_index < lookup->auto_structured_data_item_count; ++auto_index) {
-    const M68kAnalysisStructuredDataItem *item = &lookup->auto_structured_data_items[auto_index];
-    size_t section_index = item->has_section_index ? (size_t)item->section_index : 0U;
+  for (index = 0U; index < lookup->range_ownership_count; ++index) {
+    M68kRenderRangeOwnershipView view;
+    const M68kAnalysisStructuredDataItem *item;
+    size_t section_index = lookup->range_ownerships[index].section_index;
     if (section_index >= decode->section_count) continue;
+    if (!hydrate_range_ownership_view(lookup, &lookup->range_ownerships[index], &view)) continue;
+    if (view.kind != M68K_RANGE_OWNERSHIP_TABLE) continue;
+    item = view.structured_item;
+    if (item == NULL) continue;
     render_lookup_materialize_long_table_targets(lookup, &decode->sections[section_index], item);
   }
 }
