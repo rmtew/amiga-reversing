@@ -799,6 +799,12 @@ typedef enum M68kOrphanCodeSignalNearbyDataRelation {
   M68K_ORPHAN_CODE_SIGNAL_NEARBY_DATA_BEFORE = 3
 } M68kOrphanCodeSignalNearbyDataRelation;
 
+typedef enum M68kOrphanCodeSignalArbitrationFlag {
+  M68K_ORPHAN_CODE_SIGNAL_ARBITRATION_REPORT_ONLY_CODE_SHAPE = 1U << 0,
+  M68K_ORPHAN_CODE_SIGNAL_ARBITRATION_SUPPRESSED_BY_STRUCTURED_DATA = 1U << 1,
+  M68K_ORPHAN_CODE_SIGNAL_ARBITRATION_NEGATIVE_WEAK_TEXT_EVIDENCE = 1U << 2
+} M68kOrphanCodeSignalArbitrationFlag;
+
 typedef struct M68kOrphanCodeSignalIR {
   uint32_t offset;
   uint32_t size;
@@ -815,6 +821,7 @@ typedef struct M68kOrphanCodeSignalIR {
   uint8_t nearby_data_relation;
   uint8_t nearby_data_table_kind_id;
   uint32_t nearby_data_flags;
+  uint32_t arbitration_flags;
   uint32_t nearby_data_offset;
   uint32_t nearby_data_distance;
   char *detail;

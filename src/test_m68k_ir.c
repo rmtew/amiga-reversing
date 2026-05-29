@@ -6762,9 +6762,16 @@ static int test_facts_v2_orphan_signal_suppresses_structured_data_overlap(void) 
   M68K_C_ASSERT_U32(0U, source_analysis.sections[0].orphan_code_signals[0].nearby_data_distance);
   M68K_C_ASSERT_U32(M68K_ORPHAN_CODE_SIGNAL_NEARBY_DATA_OVERLAP,
     source_analysis.sections[0].orphan_code_signals[0].nearby_data_relation);
+  M68K_C_ASSERT((source_analysis.sections[0].orphan_code_signals[0].arbitration_flags &
+    M68K_ORPHAN_CODE_SIGNAL_ARBITRATION_REPORT_ONLY_CODE_SHAPE) != 0U);
+  M68K_C_ASSERT((source_analysis.sections[0].orphan_code_signals[0].arbitration_flags &
+    M68K_ORPHAN_CODE_SIGNAL_ARBITRATION_SUPPRESSED_BY_STRUCTURED_DATA) != 0U);
+  M68K_C_ASSERT((source_analysis.sections[0].orphan_code_signals[0].arbitration_flags &
+    M68K_ORPHAN_CODE_SIGNAL_ARBITRATION_NEGATIVE_WEAK_TEXT_EVIDENCE) != 0U);
   M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(analysis_json != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"status_id\":3,\"status\":\"suppressed\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"arbitration_flags\":7") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
     "\"nearby_data_relation_id\":1,\"nearby_data_relation\":\"overlap\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
@@ -6824,9 +6831,16 @@ static int test_facts_v2_orphan_signal_suppresses_non_control_runtime_address_re
     source_analysis.sections[0].orphan_code_signals[0].context);
   M68K_C_ASSERT_U32(M68K_ORPHAN_CODE_SIGNAL_INBOUND_UNKNOWN,
     source_analysis.sections[0].orphan_code_signals[0].missing_inbound);
+  M68K_C_ASSERT((source_analysis.sections[0].orphan_code_signals[0].arbitration_flags &
+    M68K_ORPHAN_CODE_SIGNAL_ARBITRATION_REPORT_ONLY_CODE_SHAPE) != 0U);
+  M68K_C_ASSERT((source_analysis.sections[0].orphan_code_signals[0].arbitration_flags &
+    M68K_ORPHAN_CODE_SIGNAL_ARBITRATION_NEGATIVE_WEAK_TEXT_EVIDENCE) != 0U);
+  M68K_C_ASSERT((source_analysis.sections[0].orphan_code_signals[0].arbitration_flags &
+    M68K_ORPHAN_CODE_SIGNAL_ARBITRATION_SUPPRESSED_BY_STRUCTURED_DATA) == 0U);
   M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(analysis_json != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"status_id\":3,\"status\":\"suppressed\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"arbitration_flags\":5") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
     "\"detail\":\"decoded terminal island suppressed by non-control runtime address reference\"") != NULL);
   free(analysis_json);

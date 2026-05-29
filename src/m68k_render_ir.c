@@ -9239,6 +9239,21 @@ static void render_orphan_signal_refine_missing_inbound(const M68kRenderLookup *
   }
 }
 
+static void render_orphan_signal_set_arbitration_flags(M68kOrphanCodeSignalIR *signal,
+    int suppressed_by_structured_data) {
+  if (signal == NULL) return;
+  if (signal->reason == M68K_ORPHAN_CODE_SIGNAL_TERMINAL_DECODE) {
+    signal->arbitration_flags |= M68K_ORPHAN_CODE_SIGNAL_ARBITRATION_REPORT_ONLY_CODE_SHAPE;
+  }
+  if (suppressed_by_structured_data) {
+    signal->arbitration_flags |= M68K_ORPHAN_CODE_SIGNAL_ARBITRATION_SUPPRESSED_BY_STRUCTURED_DATA;
+  }
+  if (signal->reason == M68K_ORPHAN_CODE_SIGNAL_TERMINAL_DECODE &&
+      signal->missing_inbound == M68K_ORPHAN_CODE_SIGNAL_INBOUND_UNKNOWN) {
+    signal->arbitration_flags |= M68K_ORPHAN_CODE_SIGNAL_ARBITRATION_NEGATIVE_WEAK_TEXT_EVIDENCE;
+  }
+}
+
 static int render_orphan_start_has_non_control_runtime_address_ref(const M68kRenderLookup *lookup,
     const M68kDecodeSectionIR *section, uint32_t offset) {
   size_t index;
@@ -9361,6 +9376,7 @@ static int render_analysis_append_orphan_code_signals_for_section(const M68kRend
       }
       render_orphan_signal_attach_nearby_data_context(lookup, section, &signal);
       render_orphan_signal_refine_missing_inbound(lookup, section, &signal);
+      render_orphan_signal_set_arbitration_flags(&signal, structured_item_at_start != NULL);
       signal.detail = structured_item_at_start != NULL
         ? "decoded terminal island suppressed by accepted structured data"
         : has_non_control_runtime_address_ref

@@ -1289,6 +1289,49 @@ The regenerated sources had no tracked `.s` diffs. Round-trip remained
 `34/36` full-file exact, `1/36` content-exact-only, `1/36` unsupported, and
 `0` failures.
 
+### Pass 10: Orphan Code Shape Arbitration Evidence
+
+The tenth implementation pass makes orphan terminal-decode arbitration explicit
+in C-owned source analysis facts. A valid-looking opcode island can now be
+reported as code-shaped without being accepted as code or used to promote weak
+text/string claims.
+
+`M68kOrphanCodeSignalIR` now carries `arbitration_flags` with separate bits for:
+
+```text
+report_only_code_shape
+suppressed_by_structured_data
+negative_weak_text_evidence
+```
+
+This keeps the reason for suppression durable and machine-readable:
+
+- terminal-decode islands are report-only code shape unless reached by accepted
+  control flow;
+- accepted structured data suppresses overlapping orphan code shape;
+- unknown inbound control flow from a terminal decode is negative evidence for
+  weak text promotion.
+
+The flags are exported through source-analysis JSON. Python consumers can report
+the arbitration result, but do not decide it.
+
+Covered by:
+
+- `facts_v2_orphan_signal_suppresses_structured_data_overlap`
+- `facts_v2_orphan_signal_suppresses_non_control_runtime_address_reference`
+
+Verification after this pass:
+
+```text
+cmd /c src\precommit.bat m68k_ir
+uv run python -m pytest tests\test_c_backend.py -q
+all 36 tracked `.s` files regenerated
+uv run platform-rendered-source-roundtrip
+```
+
+Round-trip remained `34/36` full-file exact, `1/36` content-exact-only,
+`1/36` unsupported, and `0` failures.
+
 ## Acceptance Criteria
 
 This proposal can close when:
