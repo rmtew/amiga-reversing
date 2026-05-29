@@ -30,6 +30,8 @@ static const char *manual_representation_symbol_name(const M68kRenderLookup *loo
 static void render_asm_dc_symbol_expr(M68kRenderIRPreview *preview, uint32_t size, const char *expr,
     const char *comment);
 static void render_lookup_set_label(M68kRenderLookup *lookup, size_t section_index, uint32_t offset);
+static uint8_t range_ownership_kind_for_structured_item(const M68kAnalysisStructuredDataItem *item);
+static uint32_t range_ownership_evidence_for_structured_item(const M68kAnalysisStructuredDataItem *item);
 
 static double elapsed_seconds_local(clock_t start, clock_t end) {
   return (double)(end - start) / (double)CLOCKS_PER_SEC;
@@ -5303,9 +5305,32 @@ const M68kAnalysisStructuredDataItem *lookup_structured_data_item_covering_offse
   return NULL;
 }
 
-static int lookup_has_structured_data_item_at_offset(const M68kRenderLookup *lookup, size_t section_index,
-    uint32_t offset) {
-  return lookup_structured_data_item_at_offset(lookup, section_index, offset) != NULL;
+static int range_ownership_view_from_structured_item(const M68kAnalysisStructuredDataItem *item,
+    M68kRenderRangeOwnershipView *out_range) {
+  if (out_range != NULL) memset(out_range, 0, sizeof(*out_range));
+  if (item == NULL || item->size == 0U || out_range == NULL) return 0;
+  if (UINT32_MAX - item->offset < item->size) return 0;
+  out_range->start_offset = item->offset;
+  out_range->end_offset = item->offset + item->size;
+  out_range->kind = range_ownership_kind_for_structured_item(item);
+  out_range->status = item->table_conflicted ? M68K_RANGE_OWNERSHIP_STATUS_CONFLICT :
+    M68K_RANGE_OWNERSHIP_STATUS_ACCEPTED;
+  out_range->positive_evidence_flags = range_ownership_evidence_for_structured_item(item);
+  out_range->structured_item = item;
+  return 1;
+}
+
+int lookup_range_ownership_at_offset(const M68kRenderLookup *lookup, size_t section_index, uint32_t offset,
+    M68kRenderRangeOwnershipView *out_range) {
+  const M68kAnalysisStructuredDataItem *item = lookup_structured_data_item_at_offset(lookup, section_index, offset);
+  return range_ownership_view_from_structured_item(item, out_range);
+}
+
+int lookup_range_ownership_covering_offset(const M68kRenderLookup *lookup, size_t section_index, uint32_t offset,
+    M68kRenderRangeOwnershipView *out_range) {
+  const M68kAnalysisStructuredDataItem *item =
+    lookup_structured_data_item_covering_offset(lookup, section_index, offset);
+  return range_ownership_view_from_structured_item(item, out_range);
 }
 
 int structured_data_item_comment(const M68kAnalysisStructuredDataItem *item, char *comment,
@@ -6949,17 +6974,21 @@ static int lookup_label_has_statement_ref(const M68kRenderLookup *lookup, size_t
 }
 
 int lookup_has_renderable_label(const M68kRenderLookup *lookup, size_t section_index, uint32_t offset) {
-  const M68kAnalysisStructuredDataItem *covering_item;
+  M68kRenderRangeOwnershipView ownership_at_offset;
+  M68kRenderRangeOwnershipView covering_ownership;
+  const M68kAnalysisStructuredDataItem *covering_item = NULL;
   if (!lookup_has_label(lookup, section_index, offset)) return 0;
-  if (lookup_structured_data_item_at_offset(lookup, section_index, offset) != NULL &&
+  if (lookup_range_ownership_at_offset(lookup, section_index, offset, &ownership_at_offset) &&
       !lookup_label_has_explicit_name(lookup, section_index, offset) &&
       !lookup_label_has_inbound_target_ref(lookup, section_index, offset) &&
       !lookup_label_has_statement_ref(lookup, section_index, offset)) {
     return 0;
   }
-  covering_item = lookup_structured_data_item_covering_offset(lookup, section_index, offset);
-  if (covering_item != NULL && covering_item->offset != offset &&
-      lookup_structured_data_item_at_offset(lookup, section_index, offset) == NULL &&
+  if (lookup_range_ownership_covering_offset(lookup, section_index, offset, &covering_ownership)) {
+    covering_item = covering_ownership.structured_item;
+  }
+  if (covering_item != NULL && covering_ownership.start_offset != offset &&
+      !lookup_range_ownership_at_offset(lookup, section_index, offset, &ownership_at_offset) &&
       lookup_relocation_at(lookup, section_index, offset) == NULL &&
       lookup_anchor_at(lookup, section_index, offset) == NULL &&
       lookup_string_span_at_offset(lookup, section_index, offset) == NULL) {
@@ -6979,8 +7008,9 @@ int lookup_has_renderable_label(const M68kRenderLookup *lookup, size_t section_i
 
 static int lookup_has_structured_data_start_boundary(const M68kRenderLookup *lookup, size_t section_index,
     uint32_t offset, uint16_t boundary_flags) {
+  M68kRenderRangeOwnershipView range;
   return (boundary_flags & M68K_RENDER_BOUNDARY_STRUCTURED_DATA) != 0U &&
-    lookup_has_structured_data_item_at_offset(lookup, section_index, offset);
+    lookup_range_ownership_at_offset(lookup, section_index, offset, &range);
 }
 
 static int lookup_has_string_span_start_boundary(const M68kRenderLookup *lookup, size_t section_index,
@@ -11507,7 +11537,10 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
         } else {
           const M68kAnalysisStructuredDataItem *structured_item =
             lookup_structured_data_item_at_offset(&lookup, section->section_index, offset);
+          M68kRenderRangeOwnershipView structured_ownership;
           int structured_item_clear = structured_item != NULL && structured_item->size != 0U &&
+            lookup_range_ownership_at_offset(&lookup, section->section_index, offset, &structured_ownership) &&
+            structured_ownership.structured_item == structured_item &&
             structured_item->size <= render_extent - offset &&
             !accepted_byte_at(section, accepted_bytes[section_index], offset);
           if (structured_item_clear) {

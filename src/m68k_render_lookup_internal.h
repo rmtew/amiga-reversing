@@ -23,6 +23,14 @@
 #include <string.h>
 
 typedef struct M68kRenderLookup M68kRenderLookup;
+typedef struct M68kRenderRangeOwnershipView {
+  uint32_t start_offset;
+  uint32_t end_offset;
+  uint8_t kind;
+  uint8_t status;
+  uint32_t positive_evidence_flags;
+  const M68kAnalysisStructuredDataItem *structured_item;
+} M68kRenderRangeOwnershipView;
 
 typedef struct M68kRenderPlatformLocalBaseSlot {
   uint8_t valid;
@@ -621,6 +629,10 @@ const M68kAnalysisStructuredDataItem *lookup_structured_data_item_at_offset(cons
     size_t section_index, uint32_t offset);
 const M68kAnalysisStructuredDataItem *lookup_structured_data_item_covering_offset(const M68kRenderLookup *lookup,
     size_t section_index, uint32_t offset);
+int lookup_range_ownership_at_offset(const M68kRenderLookup *lookup, size_t section_index, uint32_t offset,
+    M68kRenderRangeOwnershipView *out_range);
+int lookup_range_ownership_covering_offset(const M68kRenderLookup *lookup, size_t section_index, uint32_t offset,
+    M68kRenderRangeOwnershipView *out_range);
 int structured_data_item_comment(const M68kAnalysisStructuredDataItem *item, char *comment,
     size_t comment_size);
 int structured_data_item_render_comment(const M68kDecodeSectionIR *section,

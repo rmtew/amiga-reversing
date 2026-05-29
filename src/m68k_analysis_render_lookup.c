@@ -4628,10 +4628,11 @@ static int auto_string_alpha_byte(uint8_t value);
 
 static int render_lookup_api_string_segment_boundary_at(const M68kRenderLookup *lookup,
     size_t section_index, uint32_t offset) {
+  M68kRenderRangeOwnershipView range;
   if (lookup == NULL) return 0;
   return lookup_has_label(lookup, section_index, offset) ||
     lookup_has_anchor_local(lookup, section_index, offset) ||
-    lookup_structured_data_item_covering_offset(lookup, section_index, offset) != NULL;
+    lookup_range_ownership_covering_offset(lookup, section_index, offset, &range);
 }
 
 static int render_lookup_add_api_string_segment(M68kRenderLookup *lookup, size_t section_index,
@@ -4664,7 +4665,10 @@ static int render_api_text_buffer_shape_ok(const M68kRenderLookup *lookup, const
     if (!auto_multiline_text_byte(value)) return 0;
     if (accepted_range_has_code_byte(accepted_bytes, section->size, cursor, 1U) != 0) return 0;
     if (lookup_relocation_at(lookup, section->section_index, cursor) != NULL) return 0;
-    if (lookup_structured_data_item_covering_offset(lookup, section->section_index, cursor) != NULL) return 0;
+    {
+      M68kRenderRangeOwnershipView range;
+      if (lookup_range_ownership_covering_offset(lookup, section->section_index, cursor, &range)) return 0;
+    }
     if (value == ' ') has_space = 1;
     if (byte_is_quoted_string_safe(value)) ++printable_count;
     if (auto_string_alpha_byte(value)) ++alpha_count;
@@ -8603,11 +8607,12 @@ static int lookup_has_anchor_local(const M68kRenderLookup *lookup, size_t sectio
 }
 
 static int auto_string_interior_clear(const M68kRenderLookup *lookup, size_t section_index, uint32_t offset) {
+  M68kRenderRangeOwnershipView range;
   if (lookup == NULL) return 0;
   return !lookup_has_label(lookup, section_index, offset) &&
     lookup_relocation_at(lookup, section_index, offset) == NULL &&
     !lookup_has_anchor_local(lookup, section_index, offset) &&
-    lookup_structured_data_item_covering_offset(lookup, section_index, offset) == NULL;
+    !lookup_range_ownership_covering_offset(lookup, section_index, offset, &range);
 }
 
 static int auto_string_interior_clear_for_refined_span_start(const M68kRenderLookup *lookup, size_t section_index,
@@ -8652,10 +8657,13 @@ static int auto_macos_symbol_string_record_span(const M68kRenderLookup *lookup,
   if (length < 3U || offset + 1U > section->size || length > section->size - offset - 1U)
     return 0;
   if (!auto_string_start_byte(section->data[offset + 1U])) return 0;
-  if (lookup_relocation_at(lookup, section->section_index, offset) != NULL ||
-      lookup_has_anchor_local(lookup, section->section_index, offset) ||
-      lookup_structured_data_item_covering_offset(lookup, section->section_index, offset) != NULL) {
-    return 0;
+  {
+    M68kRenderRangeOwnershipView range;
+    if (lookup_relocation_at(lookup, section->section_index, offset) != NULL ||
+        lookup_has_anchor_local(lookup, section->section_index, offset) ||
+        lookup_range_ownership_covering_offset(lookup, section->section_index, offset, &range)) {
+      return 0;
+    }
   }
   for (cursor = 0U; cursor < length; ++cursor) {
     uint32_t payload_offset = offset + 1U + cursor;
@@ -9111,8 +9119,9 @@ static int render_lookup_add_pointer_table_target_strings_for_item(M68kRenderLoo
     uint32_t value = m68k_read_u32be(section->data + item->offset + cursor);
     uint32_t target_offset = 0U;
     uint32_t span;
+    M68kRenderRangeOwnershipView range;
     if (!render_lookup_pointer_value_to_source_offset(lookup, section, value, &target_offset)) continue;
-    if (lookup_structured_data_item_covering_offset(lookup, section_index, target_offset) != NULL) continue;
+    if (lookup_range_ownership_covering_offset(lookup, section_index, target_offset, &range)) continue;
     span = auto_renderable_string_span_with_options(lookup, section, accepted_bytes[section_index],
       target_offset, 2U, 0);
     if (span == 0U) continue;
@@ -9153,11 +9162,14 @@ static int render_lookup_add_pointer_table_target_strings(M68kRenderLookup *look
 
 static int auto_structured_data_item_blocks_candidate_start(const M68kRenderLookup *lookup, size_t section_index,
     uint32_t offset) {
-  const M68kAnalysisStructuredDataItem *item;
+  M68kRenderRangeOwnershipView range;
+  const M68kAnalysisStructuredDataItem *item = NULL;
   if (lookup == NULL) return 1;
-  item = lookup_structured_data_item_covering_offset(lookup, section_index, offset);
+  if (lookup_range_ownership_covering_offset(lookup, section_index, offset, &range)) {
+    item = range.structured_item;
+  }
   return item != NULL &&
-    !(item->offset == offset && structured_data_item_is_untyped_bytes_placeholder_local(item));
+    !(range.start_offset == offset && structured_data_item_is_untyped_bytes_placeholder_local(item));
 }
 
 static int render_lookup_infer_data_strings(M68kRenderLookup *lookup, const M68kDecodeIR *decode,

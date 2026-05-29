@@ -847,6 +847,41 @@ Still open before this proposal can close:
     report was 34/36 full-file exact, 1 content-exact-only, 1 unsupported, and
     0 failures.
 
+### Pass 7: Renderer Ownership View
+
+The seventh pass starts collapsing renderer ownership decisions onto a
+range-owned surface.
+
+Implemented changes:
+
+- added `M68kRenderRangeOwnershipView`, a small renderer-facing view of the
+  same C range ownership shape exported in source analysis;
+- moved label suppression, structured-data start boundaries, structured row
+  clear checks, API text-buffer overlap checks, Mac symbol-string blockers,
+  and pointer-table target string promotion checks to query the ownership view
+  before consulting record-specific rendering details;
+- kept syntax emission intentionally separate: structured-data items are still
+  passed to the formatter when the accepted owner says that span should render
+  as structured data.
+
+This is not the final renderer migration. It removes another class of direct
+ownership decisions from raw structured-data records, but some formatting paths
+still need record-specific fields until the accepted range/table records carry
+all renderer operands.
+
+Verification after this pass:
+
+```text
+cmd /c src\precommit.bat m68k_ir
+uv run python -m pytest tests\test_c_backend.py -q
+uv run platform-rendered-source-roundtrip
+git diff --check
+```
+
+All 36 tracked target `.s` files were regenerated with no target source diffs.
+Round-trip remained 34/36 full-file exact, 1 content-exact-only, 1 unsupported,
+and 0 failures.
+
 ## Open Design Questions
 
 - What is the smallest status vocabulary that covers candidate, accepted,
