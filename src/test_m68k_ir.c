@@ -7494,6 +7494,7 @@ static int test_facts_v2_api_write_exact_length_buffer_renders_text(void) {
   M68kFactsV2Profile profile;
   M68kSourceAnalysisIR source_analysis;
   const M68kAnalysisStructuredDataItem *text_item = NULL;
+  const M68kRangeOwnershipIR *text_range = NULL;
   char *source = NULL;
   size_t index;
   uint8_t bytes[] = {
@@ -7544,8 +7545,9 @@ static int test_facts_v2_api_write_exact_length_buffer_renders_text(void) {
   M68K_C_ASSERT(strstr(source, "loc_0_0000000E:\n\tdc.b \"HELLO WORLD\",$0A\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tdc.b \"SECOND LINE!\"\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tdc.b $48,$45,$4C,$4C,$4F,$20,$57,$4F\n") == NULL);
-  for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
-    const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
+  for (index = 0U; index < m68k_ir_source_analysis_structured_data_item_count(&source_analysis); ++index) {
+    const M68kAnalysisStructuredDataItem *item =
+      m68k_ir_source_analysis_structured_data_item_at(&source_analysis, index);
     if (item->offset == 0x0e && item->size == 24U &&
         item->source_pattern_id == M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_API_TEXT_BUFFER) {
       text_item = item;
@@ -7553,6 +7555,21 @@ static int test_facts_v2_api_write_exact_length_buffer_renders_text(void) {
     }
   }
   M68K_C_ASSERT(text_item != NULL);
+  M68K_C_ASSERT((text_item->semantic_role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING) != 0U);
+  for (index = 0U; index < source_analysis.sections[0].range_ownership_count; ++index) {
+    const M68kRangeOwnershipIR *range = &source_analysis.sections[0].range_ownerships[index];
+    if (range->start_offset == 0x0e && range->end_offset == 0x26 &&
+        range->source_pattern_id == M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_API_TEXT_BUFFER) {
+      text_range = range;
+      break;
+    }
+  }
+  M68K_C_ASSERT(text_range != NULL);
+  M68K_C_ASSERT_U32(M68K_RANGE_OWNERSHIP_TEXT, text_range->kind);
+  M68K_C_ASSERT_U32(M68K_RANGE_OWNERSHIP_STATUS_ACCEPTED, text_range->status);
+  M68K_C_ASSERT((text_range->positive_evidence_flags & M68K_RANGE_EVIDENCE_API_ARGUMENT) != 0U);
+  M68K_C_ASSERT((text_range->positive_evidence_flags & M68K_RANGE_EVIDENCE_STRUCTURED_DATA) != 0U);
+  M68K_C_ASSERT((text_range->positive_evidence_flags & M68K_RANGE_EVIDENCE_TEXT_SHAPE) != 0U);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   m68k_facts_v2_free_text(source);
   m68k_ir_source_analysis_destroy(&source_analysis);

@@ -787,6 +787,9 @@ Proven current state:
   dispatch tables instead of leaving referenced labels undefined.
 - Weak string/text shape is not enough to accept false strings in the
   TODO-derived Starglider cases.
+- Coupled API pointer-and-length evidence is represented as accepted C-owned
+  text range ownership with `api_argument`, `structured_data`, and `text_shape`
+  evidence, not just as a rendered-source formatting choice.
 - The fixture-backed checks now cover Pandora, Bloodwych, MonAm, Magicland, and
   Starglider representative cases.
 
@@ -801,9 +804,6 @@ Still open before this proposal can close:
 - Conflict reporting is good enough for the covered table/text/code cases, but
   the manual-review/UI policy for every unresolved conflict type remains a
   later integration step.
-- API buffer/string acceptance by coupled pointer-and-length evidence needs its
-  own explicit representative test before the testing strategy can be called
-  complete.
 
 ## Implementation Order
 
@@ -837,8 +837,11 @@ Still open before this proposal can close:
 8. Update renderers to consume the accepted records only. Partially covered.
    Do not close this item while renderer paths still consult structured-data
    records directly instead of a single range/table owner abstraction.
-9. Add isolated C tests and fixture-backed tests. Partially covered. Add the
-   explicit pointer-plus-length API buffer/string test before closing.
+9. Add isolated C tests and fixture-backed tests. Partially covered. The
+   explicit pointer-plus-length API buffer test now proves both dynamic
+   source-analysis structured-data storage and accepted C range ownership for
+   the exact bounded span. Continue adding tests only where they prove renderer
+   migration, platform-adapter normalization, or unresolved conflict handling.
 10. Regenerate source and run full rendered-source round-trip. Done for Pass 5:
     all 36 tracked `.s` files regenerated with no target diffs; round-trip
     report was 34/36 full-file exact, 1 content-exact-only, 1 unsupported, and
