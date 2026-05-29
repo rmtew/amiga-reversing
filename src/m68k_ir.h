@@ -1448,6 +1448,22 @@ typedef struct M68kDataReferenceIR {
   uint32_t target_offset;
 } M68kDataReferenceIR;
 
+typedef enum M68kImmediateTextTokenEvidenceFlag {
+  M68K_IMMEDIATE_TEXT_TOKEN_EVIDENCE_ACCEPTED_INSTRUCTION = 1U << 0,
+  M68K_IMMEDIATE_TEXT_TOKEN_EVIDENCE_PRINTABLE_BYTES = 1U << 1
+} M68kImmediateTextTokenEvidenceFlag;
+
+typedef struct M68kImmediateTextTokenIR {
+  uint32_t source_offset;
+  uint32_t value;
+  uint32_t evidence_flags;
+  uint8_t operand_index;
+  uint8_t width;
+  uint8_t text_length;
+  uint8_t reserved0;
+  char text[5];
+} M68kImmediateTextTokenIR;
+
 typedef enum M68kIncompleteAnalysisKind {
   M68K_INCOMPLETE_ANALYSIS_UNKNOWN = 0,
   M68K_INCOMPLETE_ANALYSIS_CAPACITY_EXHAUSTED = 1
@@ -1515,6 +1531,9 @@ typedef struct M68kSectionAnalysisIR {
   M68kDataReferenceIR *data_references;
   size_t data_reference_count;
   size_t data_reference_capacity;
+  M68kImmediateTextTokenIR *immediate_text_tokens;
+  size_t immediate_text_token_count;
+  size_t immediate_text_token_capacity;
   M68kRecoveredPlatformCallIR **recovered_platform_call_lookup;
   size_t recovered_platform_call_lookup_size;
   uint32_t *recovered_platform_call_next_lookup;
@@ -1705,6 +1724,8 @@ int m68k_ir_section_analysis_append_table_entry(M68kSectionAnalysisIR *section_a
     const M68kTableEntryIR *entry);
 int m68k_ir_section_analysis_append_data_reference(M68kSectionAnalysisIR *section_analysis,
     const M68kDataReferenceIR *ref);
+int m68k_ir_section_analysis_append_immediate_text_token(M68kSectionAnalysisIR *section_analysis,
+    const M68kImmediateTextTokenIR *token);
 int m68k_ir_section_analysis_add_violation(M68kSectionAnalysisIR *section_analysis, uint32_t offset, uint8_t kind, const char *message);
 int m68k_ir_section_analysis_append_recovered_word_dispatch(M68kSectionAnalysisIR *section_analysis,
   const M68kRecoveredWordDispatchIR *dispatch);

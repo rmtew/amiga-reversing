@@ -1332,6 +1332,54 @@ uv run platform-rendered-source-roundtrip
 Round-trip remained `34/36` full-file exact, `1/36` content-exact-only,
 `1/36` unsupported, and `0` failures.
 
+### Pass 11: Immediate Text Token Operand Facts
+
+The eleventh implementation pass adds a C-owned source-analysis surface for
+instruction immediates whose accepted operand bytes are printable fixed tokens.
+This separates:
+
+```text
+accepted instruction operand -> immediate_text_token fact
+accepted data range          -> structured text/string ownership
+```
+
+The new per-section fact is:
+
+```text
+M68kImmediateTextTokenIR
+source_analysis.sections[].immediate_text_tokens[]
+```
+
+Each token records:
+
+- instruction source offset;
+- operand index;
+- operand width;
+- raw immediate value;
+- bounded printable text;
+- evidence flags for accepted instruction and printable bytes.
+
+This does not classify data bytes as text and does not change rendering. It
+gives reports and future renderer syntax choices a durable C fact for examples
+like `cmpi.l #$434F4445,d0`, where the operand may be displayed as `CODE`
+without creating a string range.
+
+Covered by:
+
+- `source_analysis_immediate_text_token_exports_operand_fact`
+
+Verification after this pass:
+
+```text
+cmd /c src\precommit.bat m68k_ir
+uv run python -m pytest tests\test_c_backend.py -q
+all 36 tracked `.s` files regenerated
+uv run platform-rendered-source-roundtrip
+```
+
+Round-trip remained `34/36` full-file exact, `1/36` content-exact-only,
+`1/36` unsupported, and `0` failures.
+
 ## Acceptance Criteria
 
 This proposal can close when:

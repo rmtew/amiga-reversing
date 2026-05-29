@@ -8533,6 +8533,74 @@ static int render_analysis_append_accepted_code_ranges_for_section(const M68kDec
   return 0;
 }
 
+static uint8_t immediate_text_token_width_for_candidate(const M68kDecodeCandidate *candidate,
+    const M68kInstructionIR *instruction) {
+  char suffix;
+  if (instruction != NULL &&
+      (instruction->size_suffix == 'b' || instruction->size_suffix == 'w' ||
+       instruction->size_suffix == 'l')) {
+    suffix = instruction->size_suffix;
+  } else {
+    suffix = candidate_effective_size_suffix(candidate);
+  }
+  if (suffix == 'b') return 1U;
+  if (suffix == 'w') return 2U;
+  if (suffix == 'l') return 4U;
+  return 0U;
+}
+
+static int immediate_text_token_bytes(uint32_t value, uint8_t width, char *out_text,
+    uint8_t *out_text_length) {
+  uint8_t index;
+  int saw_non_space = 0;
+  if (out_text == NULL || out_text_length == NULL || width == 0U || width > 4U) return 0;
+  for (index = 0U; index < width; ++index) {
+    uint8_t shift = (uint8_t)((width - 1U - index) * 8U);
+    uint8_t byte = (uint8_t)((value >> shift) & 0xFFU);
+    if (!byte_is_quoted_string_safe(byte)) return 0;
+    if (byte != ' ') saw_non_space = 1;
+    out_text[index] = (char)byte;
+  }
+  if (!saw_non_space) return 0;
+  out_text[width] = '\0';
+  *out_text_length = width;
+  return 1;
+}
+
+static int render_analysis_append_immediate_text_tokens_for_section(
+    const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
+    M68kSectionAnalysisIR *section_analysis) {
+  size_t candidate_index;
+  if (section == NULL || accepted_start == NULL || section_analysis == NULL) return -1;
+  for (candidate_index = 0U; candidate_index < section->candidate_count; ++candidate_index) {
+    const M68kDecodeCandidate *candidate = &section->candidates[candidate_index];
+    M68kInstructionIR instruction;
+    uint8_t width;
+    size_t operand_index;
+    if (!candidate_is_accepted_start(section, accepted_start, candidate)) continue;
+    if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) continue;
+    width = immediate_text_token_width_for_candidate(candidate, &instruction);
+    if (width == 0U) continue;
+    for (operand_index = 0U; operand_index < instruction.operand_count; ++operand_index) {
+      M68kImmediateTextTokenIR token;
+      uint32_t value;
+      if (!operand_is_immediate_value_local(&instruction.operands[operand_index], &value)) continue;
+      memset(&token, 0, sizeof(token));
+      if (!immediate_text_token_bytes(value, width, token.text, &token.text_length)) continue;
+      token.source_offset = candidate->offset;
+      token.operand_index = (uint8_t)operand_index;
+      token.width = width;
+      token.value = value;
+      token.evidence_flags =
+        M68K_IMMEDIATE_TEXT_TOKEN_EVIDENCE_ACCEPTED_INSTRUCTION |
+        M68K_IMMEDIATE_TEXT_TOKEN_EVIDENCE_PRINTABLE_BYTES;
+      if (m68k_ir_section_analysis_append_immediate_text_token(section_analysis, &token) != 0)
+        return -1;
+    }
+  }
+  return 0;
+}
+
 static uint8_t range_ownership_kind_for_structured_item(const M68kAnalysisStructuredDataItem *item) {
   uint32_t role_flags;
   if (item == NULL) return M68K_RANGE_OWNERSHIP_UNKNOWN;
@@ -11948,6 +12016,10 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
         goto cleanup;
       }
       if (render_analysis_append_accepted_code_ranges_for_section(section, accepted_bytes[section_index],
+          current_section_analysis) != 0) {
+        goto cleanup;
+      }
+      if (render_analysis_append_immediate_text_tokens_for_section(section, accepted_start[section_index],
           current_section_analysis) != 0) {
         goto cleanup;
       }

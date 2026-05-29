@@ -1417,6 +1417,33 @@ int m68k_ir_section_analysis_append_data_reference(M68kSectionAnalysisIR *sectio
   return 0;
 }
 
+int m68k_ir_section_analysis_append_immediate_text_token(M68kSectionAnalysisIR *section_analysis,
+    const M68kImmediateTextTokenIR *token) {
+  size_t index;
+  if (section_analysis == NULL || token == NULL) return -1;
+  if (section_analysis->arena == NULL) return -1;
+  if (token->width == 0U || token->width > 4U || token->text_length == 0U ||
+      token->text_length > 4U) {
+    return 0;
+  }
+  for (index = 0U; index < section_analysis->immediate_text_token_count; ++index) {
+    const M68kImmediateTextTokenIR *existing = &section_analysis->immediate_text_tokens[index];
+    if (existing->source_offset == token->source_offset &&
+        existing->operand_index == token->operand_index &&
+        existing->width == token->width &&
+        existing->value == token->value) {
+      return 0;
+    }
+  }
+  section_analysis->immediate_text_tokens =
+    (M68kImmediateTextTokenIR *)arena_grow_array(section_analysis->arena,
+      section_analysis->immediate_text_tokens, section_analysis->immediate_text_token_count,
+      &section_analysis->immediate_text_token_capacity, 16U, sizeof(*section_analysis->immediate_text_tokens));
+  if (section_analysis->immediate_text_tokens == NULL) return -1;
+  section_analysis->immediate_text_tokens[section_analysis->immediate_text_token_count++] = *token;
+  return 0;
+}
+
 int m68k_ir_section_analysis_add_violation(M68kSectionAnalysisIR *section_analysis, uint32_t offset, uint8_t kind,
     const char *message) {
   char *copy;
@@ -3676,6 +3703,13 @@ int m68k_ir_source_analysis_append_section(M68kSourceAnalysisIR *source_analysis
   for (index = 0; index < section_analysis->data_reference_count; ++index) {
     if (m68k_ir_section_analysis_append_data_reference(&copy,
           &section_analysis->data_references[index]) != 0) {
+      m68k_ir_section_analysis_destroy(&copy);
+      return -1;
+    }
+  }
+  for (index = 0; index < section_analysis->immediate_text_token_count; ++index) {
+    if (m68k_ir_section_analysis_append_immediate_text_token(&copy,
+          &section_analysis->immediate_text_tokens[index]) != 0) {
       m68k_ir_section_analysis_destroy(&copy);
       return -1;
     }

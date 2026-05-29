@@ -2197,6 +2197,60 @@ static int test_facts_v2_indexed_local_base_auto_classifies_pointer_table(void) 
   return 0;
 }
 
+static int test_source_analysis_immediate_text_token_exports_operand_fact(void) {
+  AsmSourceFile parsed_source;
+  M68kObject object;
+  M68kDiagList diagnostics;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  const M68kImmediateTextTokenIR *token;
+  char *source = NULL;
+  char *analysis_json = NULL;
+  const char *source_text =
+    "SECTION section_0,code\n"
+    "start:\n"
+    "\tcmpi.l #$434F4445,d0\n"
+    "\trts\n";
+  M68K_C_ASSERT_INT(0, m68k_source_model_create(&parsed_source));
+  memset(&object, 0, sizeof(object));
+  m68k_diag_list_reset(&diagnostics);
+  parsed_source.target_cpu = M68K_ASM_CPU_68000;
+  M68K_C_ASSERT(m68k_source_pipeline_parse_text_and_layout(&parsed_source, source_text,
+    m68k_diag_sink(&diagnostics)));
+  M68K_C_ASSERT_INT(1, m68k_source_pipeline_emit_object(&parsed_source, &object, m68k_diag_sink(&diagnostics)));
+  m68k_analysis_policy_init_default(&policy);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.section_count);
+  M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.sections[0].immediate_text_token_count);
+  token = &source_analysis.sections[0].immediate_text_tokens[0];
+  M68K_C_ASSERT_U32(0U, token->source_offset);
+  M68K_C_ASSERT_U32(0U, token->operand_index);
+  M68K_C_ASSERT_U32(4U, token->width);
+  M68K_C_ASSERT_U32(4U, token->text_length);
+  M68K_C_ASSERT_U32(0x434F4445U, token->value);
+  M68K_C_ASSERT_STR("CODE", token->text);
+  M68K_C_ASSERT((token->evidence_flags & M68K_IMMEDIATE_TEXT_TOKEN_EVIDENCE_ACCEPTED_INSTRUCTION) != 0U);
+  M68K_C_ASSERT((token->evidence_flags & M68K_IMMEDIATE_TEXT_TOKEN_EVIDENCE_PRINTABLE_BYTES) != 0U);
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"immediate_text_token_count\":1") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"source_offset\":0") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"operand_index\":0") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"width\":4") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"text_length\":4,\"text\":\"CODE\"") != NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  free(analysis_json);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  m68k_source_model_free(&parsed_source);
+  return 0;
+}
+
 static int test_facts_v2_indexed_local_base_pointer_table_survives_preserving_gap(void) {
   AsmSourceFile parsed_source;
   M68kObject object;
@@ -22795,6 +22849,8 @@ int m68k_c_ir_tests(void) {
       test_source_analysis_table_entry_exports_status},
     {"source_analysis_data_reference_exports_table_entry",
       test_source_analysis_data_reference_exports_table_entry},
+    {"source_analysis_immediate_text_token_exports_operand_fact",
+      test_source_analysis_immediate_text_token_exports_operand_fact},
     {"source_analysis_incomplete_analysis_exports_capacity_hit",
       test_source_analysis_incomplete_analysis_exports_capacity_hit},
     {"source_analysis_range_ownership_exports_conflict",

@@ -3421,7 +3421,7 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
     size_t block_index, edge_index, violation_index, app_slot_ref_index, typed_access_index, range_index;
     size_t table_descriptor_index, table_consumer_index, table_entry_index;
     size_t unresolved_typed_access_index, runtime_view_index, runtime_address_ref_index, code_start_ref_index;
-    size_t data_reference_index;
+    size_t data_reference_index, immediate_text_token_index;
     size_t string_ref_index;
     size_t effect_index, call_index, disk_read_index, runtime_copy_index, indirect_site_index, orphan_signal_index;
     if (section_index != 0U && json_builder_append(&builder, ",") != 0)
@@ -3567,6 +3567,30 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
           analysis_conflict_state_name(ref->conflict_state)) != 0)
         goto oom;
       if (json_builder_append(&builder, "}") != 0)
+        goto oom;
+    }
+    if (json_builder_appendf(&builder,
+          "],\"immediate_text_token_count\":%u,\"immediate_text_tokens\":[",
+          (unsigned)section->immediate_text_token_count) != 0)
+      goto oom;
+    for (immediate_text_token_index = 0;
+        immediate_text_token_index < section->immediate_text_token_count;
+        ++immediate_text_token_index) {
+      const M68kImmediateTextTokenIR *token =
+        &section->immediate_text_tokens[immediate_text_token_index];
+      if (immediate_text_token_index != 0U && json_builder_append(&builder, ",") != 0)
+        goto oom;
+      if (json_builder_appendf(&builder,
+          "{\"source_offset\":%u,\"operand_index\":%u,\"width\":%u,\"value\":%u,"
+          "\"text_length\":%u,\"text\":",
+          (unsigned)token->source_offset, (unsigned)token->operand_index,
+          (unsigned)token->width, (unsigned)token->value,
+          (unsigned)token->text_length) != 0)
+        goto oom;
+      if (json_builder_append_json_string(&builder, token->text) != 0)
+        goto oom;
+      if (json_builder_appendf(&builder, ",\"evidence_flags\":%u}",
+          (unsigned)token->evidence_flags) != 0)
         goto oom;
     }
     if (json_builder_appendf(&builder, "],\"code_start_ref_count\":%u,\"code_start_refs\":[",
