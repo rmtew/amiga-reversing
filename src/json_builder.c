@@ -137,11 +137,13 @@ int json_builder_appendf(JsonBuilder *builder, const char *fmt, ...) {
     return result;
 }
 
-int json_builder_append_json_string(JsonBuilder *builder, const char *text) {
+int json_builder_append_json_string_len(JsonBuilder *builder, const char *text, size_t length) {
     const unsigned char *p = (const unsigned char *)text;
+    const unsigned char *end = p != NULL ? p + length : NULL;
     const unsigned char *span_start = p;
+    if (builder == NULL || text == NULL) return -1;
     if (json_builder_append(builder, "\"") != 0) return -1;
-    while (*p != 0U) {
+    while (p < end) {
         if (*p == '\\' || *p == '"') {
             char escaped[2];
             if (p > span_start && append_bytes(builder, (const char *)span_start, (size_t)(p - span_start)) != 0)
@@ -164,6 +166,10 @@ int json_builder_append_json_string(JsonBuilder *builder, const char *text) {
     }
     if (p > span_start && append_bytes(builder, (const char *)span_start, (size_t)(p - span_start)) != 0) return -1;
     return json_builder_append(builder, "\"");
+}
+
+int json_builder_append_json_string(JsonBuilder *builder, const char *text) {
+    return text != NULL ? json_builder_append_json_string_len(builder, text, strlen(text)) : -1;
 }
 
 static char *json_builder_copy_text(JsonBuilder *builder, char *data) {

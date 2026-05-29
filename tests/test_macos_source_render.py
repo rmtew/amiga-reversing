@@ -127,7 +127,7 @@ def test_initialize_render_shows_source_context_resources_and_mac_api_fact() -> 
     assert initialize["imports"] == ["_WaitNextEvent"]
     assert initialize["records"] == ["StackFrame"]
     assert initialize["api_calls"][0]["opword"] == 0xA860
-    assert initialize["api_calls"][0]["source"].endswith("Events.a")
+    assert initialize["api_calls"][0]["source"].endswith("Traps.h")
     assert initialize["resource_xrefs"][0]["call"] == "_GetNewMBar"
     assert initialize["source_project_only"] is True
 
@@ -151,7 +151,7 @@ def test_memory_render_shows_parameter_block_call_shape_and_intent() -> None:
     assert memory["api_calls"][0]["name"] == "_PBHGetVInfoSync"
     assert memory["api_calls"][0]["parameter_register"] == "A0"
     assert memory["api_calls"][0]["result_register"] == "D0"
-    assert memory["api_calls"][0]["family"] == "FileManager"
+    assert memory["api_calls"][0]["family"] == "Files"
     assert memory["record_facts"][0]["name"] == "HVolumeParam"
     assert memory["record_facts"][0]["source"].endswith("Files.a")
     assert "volume_free_space_query" in memory["intent_hints"]

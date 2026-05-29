@@ -154,6 +154,20 @@ typedef enum M68kAnalysisTableBaseExpression {
   M68K_ANALYSIS_TABLE_BASE_EXPRESSION_TARGET_LABEL = 2
 } M68kAnalysisTableBaseExpression;
 
+typedef enum M68kAnalysisStructuredDataTextField {
+  M68K_ANALYSIS_STRUCTURED_DATA_TEXT_LABEL = 0,
+  M68K_ANALYSIS_STRUCTURED_DATA_TEXT_STRUCT_NAME = 1,
+  M68K_ANALYSIS_STRUCTURED_DATA_TEXT_FIELD_NAME = 2,
+  M68K_ANALYSIS_STRUCTURED_DATA_TEXT_FIELD_TYPE = 3,
+  M68K_ANALYSIS_STRUCTURED_DATA_TEXT_C_TYPE = 4,
+  M68K_ANALYSIS_STRUCTURED_DATA_TEXT_POINTER_STRUCT = 5,
+  M68K_ANALYSIS_STRUCTURED_DATA_TEXT_VALUE_DOMAIN = 6,
+  M68K_ANALYSIS_STRUCTURED_DATA_TEXT_CONSTANT_NAME = 7,
+  M68K_ANALYSIS_STRUCTURED_DATA_TEXT_SEMANTIC_ROLE = 8,
+  M68K_ANALYSIS_STRUCTURED_DATA_TEXT_SOURCE_PATTERN = 9,
+  M68K_ANALYSIS_STRUCTURED_DATA_TEXT_COMMENT = 10
+} M68kAnalysisStructuredDataTextField;
+
 typedef struct M68kAnalysisStructuredDataItem {
   uint8_t has_section_index;
   uint8_t kind;
@@ -181,17 +195,29 @@ typedef struct M68kAnalysisStructuredDataItem {
   uint32_t consumer_section;
   uint32_t consumer_offset;
   uint32_t semantic_role_flags;
-  char label[64];
-  char struct_name[64];
-  char field_name[64];
-  char field_type[64];
-  char c_type[64];
-  char pointer_struct[64];
-  char value_domain[64];
-  char constant_name[64];
-  char semantic_role[64];
-  char source_pattern[64];
-  char comment[96];
+  uint16_t label_len;
+  uint16_t struct_name_len;
+  uint16_t field_name_len;
+  uint16_t field_type_len;
+  uint16_t c_type_len;
+  uint16_t pointer_struct_len;
+  uint16_t value_domain_len;
+  uint16_t constant_name_len;
+  uint16_t semantic_role_len;
+  uint16_t source_pattern_len;
+  uint16_t comment_len;
+  uint16_t reserved_text_len;
+  char label[65];
+  char struct_name[65];
+  char field_name[65];
+  char field_type[65];
+  char c_type[65];
+  char pointer_struct[65];
+  char value_domain[65];
+  char constant_name[65];
+  char semantic_role[65];
+  char source_pattern[65];
+  char comment[97];
 } M68kAnalysisStructuredDataItem;
 
 typedef enum M68kAnalysisStructuredDataPlatformKind {
@@ -1422,6 +1448,9 @@ typedef struct M68kSourceAnalysisIR {
   M68kPlatformFileKind file_kind;
   M68kAnalysisPolicy policy;
   M68kAnalysisFindings findings;
+  M68kAnalysisStructuredDataItem *structured_data_items;
+  size_t structured_data_item_count;
+  size_t structured_data_item_capacity;
   M68kPlatformStorageLayoutIR *platform_storage_layouts;
   size_t platform_storage_layout_count;
   size_t platform_storage_layout_capacity;
@@ -1441,6 +1470,12 @@ int m68k_ir_parse_syntax_mode_name(const char *text, uint8_t *out_syntax_mode);
 void m68k_analysis_policy_init_default(M68kAnalysisPolicy *policy);
 void m68k_analysis_policy_destroy(M68kAnalysisPolicy *policy);
 int m68k_analysis_policy_copy(M68kAnalysisPolicy *dest, const M68kAnalysisPolicy *src);
+int m68k_ir_source_analysis_set_policy(M68kSourceAnalysisIR *source_analysis, const M68kAnalysisPolicy *policy);
+int m68k_ir_source_analysis_append_structured_data_item(M68kSourceAnalysisIR *source_analysis,
+  const M68kAnalysisStructuredDataItem *item);
+size_t m68k_ir_source_analysis_structured_data_item_count(const M68kSourceAnalysisIR *source_analysis);
+const M68kAnalysisStructuredDataItem *m68k_ir_source_analysis_structured_data_item_at(
+  const M68kSourceAnalysisIR *source_analysis, size_t index);
 const char *m68k_analysis_structured_data_role_name_for_flags(uint32_t semantic_role_flags);
 const char *m68k_analysis_structured_data_source_pattern_name(uint8_t source_pattern_id);
 const char *m68k_analysis_table_kind_name(uint8_t table_kind_id);
@@ -1452,6 +1487,10 @@ int m68k_asm_operand_absolute_value(uint8_t kind, const M68kAsmOperandValue *ope
 void m68k_analysis_structured_data_item_set_semantic_role_flags(M68kAnalysisStructuredDataItem *item,
   uint32_t semantic_role_flags);
 void m68k_analysis_structured_data_item_refresh_table_metadata(M68kAnalysisStructuredDataItem *item);
+int m68k_analysis_structured_data_item_set_text(M68kAnalysisStructuredDataItem *item,
+  uint8_t field, const char *text, size_t length);
+const char *m68k_analysis_structured_data_item_text(const M68kAnalysisStructuredDataItem *item,
+  uint8_t field, size_t *out_length);
 void m68k_analysis_findings_init(M68kAnalysisFindings *findings);
 void m68k_platform_name_ref_init(M68kPlatformNameRef *ref);
 int m68k_platform_name_ref_is_set(const M68kPlatformNameRef *ref);

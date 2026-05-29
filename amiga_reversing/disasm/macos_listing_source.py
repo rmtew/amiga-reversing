@@ -13,9 +13,7 @@ from amiga_reversing.disasm.c_backend import (
     extract_macos_hfs_code_resource_bytes_with_c_backend,
     inspect_macos_hfs_code_summary_with_c_backend,
 )
-from amiga_reversing.disasm.macos_asm_container import (
-    read_macos_hfs_image_bytes,
-)
+from amiga_reversing.disasm.macos_image import read_macos_hfs_image_bytes
 from amiga_reversing.disasm.macos_project_origin import macos_code_source_descriptor_from_project
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT
 from amiga_reversing.disasm.projects import ProjectRecord

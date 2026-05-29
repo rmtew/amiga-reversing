@@ -37,6 +37,7 @@ from amiga_reversing.disasm.facts_v2_source_refusal import (
     FactsV2SourceRefused,
     facts_v2_source_refused,
 )
+from amiga_reversing.disasm.macos_image import read_macos_hfs_image_bytes
 from amiga_reversing.disasm.project_paths import PROJECT_ROOT, resolve_project_paths
 
 type ApiCallRowKey = tuple[int, int]
@@ -690,7 +691,7 @@ def build_listing_artifact_profile_from_binary_source(
     project_root: Path = PROJECT_ROOT,
 ) -> tuple[int, dict[str, object], CListingArtifact]:
     if isinstance(binary_source, MacosCodeResourceSource):
-        image_bytes = binary_source.source_image.read_bytes()
+        image_bytes = read_macos_hfs_image_bytes(binary_source.source_image)
         metadata_text = _metadata_path_text(metadata_path)
         include_dir = _platform_include_dir_for_listing("macos-code", project_root)
         artifact = CListingArtifact.create_macos_hfs_code_resource(

@@ -117,7 +117,7 @@ def test_macos_web_container_payload_exposes_forks_code_and_unsupported_state() 
     assert restored_source["source_coverage_verifier"]["ok"] is True
     assert restored_source["source_ownership_ranges"]
     assert restored_source["source_reference_records"][0]["kind"] == "segment_loader_fixup_placeholder"
-    assert restored_source["platform_extensions"]["a5_world"]["status"] == "deferred"
+    assert restored_source["platform_extensions"]["a5_world"]["status"] == "context_in_code0_lifetime_deferred"
     placeholders = container["executable_resource_placeholders"]
     assert placeholders
     assert all(item["kind"] == "executable_resource_placeholder" for item in placeholders)

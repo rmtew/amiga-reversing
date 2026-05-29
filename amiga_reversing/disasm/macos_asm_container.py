@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 import hashlib
-import subprocess
-import tempfile
 from collections.abc import Iterable, Mapping
 from pathlib import Path
 from typing import cast
@@ -18,13 +16,16 @@ from amiga_reversing.disasm.macos_fork_roles import (
     resource_type_counts,
 )
 from amiga_reversing.disasm.macos_hfs import HFSVolume
+from amiga_reversing.disasm.macos_image import (
+    DEFAULT_NDIF2RAW_PATH,
+    read_macos_hfs_image_bytes,
+)
 from amiga_reversing.disasm.macos_resource_fork import (
     parse_resource_fork,
     resource_payload,
 )
 
 MPW_ASM_PATH = "MPW-GM/MPW/Tools/Asm"
-DEFAULT_NDIF2RAW_PATH = Path("ext/tools/ndif2raw/ndif2raw.exe")
 UNSUPPORTED_SEGMENT_LOADER_AREAS = (
     "relocation/fixups",
     "complete Segment Loader behavior",
@@ -139,22 +140,6 @@ def extract_mpw_asm_code_bytes(
 
 def _read_hfs_bytes(image_path: Path, *, ndif2raw_path: Path) -> bytes:
     return read_macos_hfs_image_bytes(image_path, ndif2raw_path=ndif2raw_path)
-
-
-def read_macos_hfs_image_bytes(image_path: Path, *, ndif2raw_path: Path = DEFAULT_NDIF2RAW_PATH) -> bytes:
-    data = image_path.read_bytes()
-    if data[1024:1026] == b"BD":
-        return data
-    if not ndif2raw_path.exists():
-        raise FileNotFoundError(f"NDIF provider is required for non-raw image: {ndif2raw_path}")
-    with tempfile.TemporaryDirectory(prefix="macos-asm-import-") as temp_dir:
-        output = Path(temp_dir) / "image.raw"
-        subprocess.run(
-            [str(ndif2raw_path), "--format=macbinary", str(image_path), str(output)],
-            check=True,
-            capture_output=True,
-        )
-        return output.read_bytes()
 
 
 def _single_code_resource(resources: Iterable[dict[str, object]], resource_id: int) -> dict[str, object]:

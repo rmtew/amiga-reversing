@@ -8421,12 +8421,12 @@ cleanup:
 
 static int render_analysis_append_accepted_code_ranges_for_section(const M68kDecodeSectionIR *section,
     const uint8_t *accepted_bytes, M68kSectionAnalysisIR *section_analysis) {
-  uint32_t render_extent;
+  uint32_t stored_extent;
   uint32_t cursor = 0U;
   if (section == NULL || section_analysis == NULL) return -1;
-  render_extent = render_section_extent(section);
-  if (accepted_bytes == NULL || render_extent == 0U) return 0;
-  while (cursor < render_extent) {
+  stored_extent = section->size;
+  if (accepted_bytes == NULL || stored_extent == 0U) return 0;
+  while (cursor < stored_extent) {
     M68kRangeOwnershipIR range;
     uint32_t start;
     if (accepted_bytes[cursor] == 0U) {
@@ -8434,7 +8434,7 @@ static int render_analysis_append_accepted_code_ranges_for_section(const M68kDec
       continue;
     }
     start = cursor;
-    while (cursor < render_extent && accepted_bytes[cursor] != 0U) ++cursor;
+    while (cursor < stored_extent && accepted_bytes[cursor] != 0U) ++cursor;
     memset(&range, 0, sizeof(range));
     range.start_offset = start;
     range.end_offset = cursor;
@@ -8529,11 +8529,12 @@ static int render_analysis_append_table_descriptors_for_section(
     M68kSectionAnalysisIR *section_analysis) {
   size_t index;
   if (source_analysis == NULL || section_analysis == NULL) return -1;
-  for (index = 0U; index < source_analysis->policy.structured_data_item_count &&
-       index < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT; ++index) {
-    const M68kAnalysisStructuredDataItem *item = &source_analysis->policy.structured_data_items[index];
+  for (index = 0U; index < m68k_ir_source_analysis_structured_data_item_count(source_analysis); ++index) {
+    const M68kAnalysisStructuredDataItem *item =
+      m68k_ir_source_analysis_structured_data_item_at(source_analysis, index);
     M68kTableDescriptorIR descriptor;
     uint32_t entry_size;
+    if (item == NULL) return -1;
     if (item->size == 0U || item->table_kind_id == M68K_ANALYSIS_TABLE_KIND_UNKNOWN) continue;
     if ((item->has_section_index && item->section_index != (uint32_t)section_index) ||
         (!item->has_section_index && section_index != 0U)) {
@@ -8569,10 +8570,11 @@ static int render_analysis_append_policy_structured_ranges_for_section(
     M68kSectionAnalysisIR *section_analysis) {
   size_t index;
   if (source_analysis == NULL || section_analysis == NULL) return -1;
-  for (index = 0U; index < source_analysis->policy.structured_data_item_count &&
-       index < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT; ++index) {
-    const M68kAnalysisStructuredDataItem *item = &source_analysis->policy.structured_data_items[index];
+  for (index = 0U; index < m68k_ir_source_analysis_structured_data_item_count(source_analysis); ++index) {
+    const M68kAnalysisStructuredDataItem *item =
+      m68k_ir_source_analysis_structured_data_item_at(source_analysis, index);
     M68kRangeOwnershipIR range;
+    if (item == NULL) return -1;
     if (!item->has_section_index || item->section_index != (uint32_t)section_index || item->size == 0U) continue;
     memset(&range, 0, sizeof(range));
     range.start_offset = item->offset;
@@ -11293,7 +11295,7 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
   if (out_source_analysis != NULL) {
     if (m68k_ir_source_analysis_create(out_source_analysis) != 0) goto cleanup;
     out_source_analysis->file_kind = object->platform_file_kind;
-    if (policy != NULL && m68k_analysis_policy_copy(&out_source_analysis->policy, policy) != 0) goto cleanup;
+    if (policy != NULL && m68k_ir_source_analysis_set_policy(out_source_analysis, policy) != 0) goto cleanup;
   }
   phase_start = clock();
   if (render_lookup_build(&lookup, object, decode, facts, policy, accepted_start) != 0) goto cleanup;
@@ -11311,6 +11313,7 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
   out_preview->platform_pass_seconds = elapsed_seconds_local(phase_start, phase_end);
   if (out_source_analysis != NULL &&
       m68k_analysis_render_lookup_append_auto_policy(out_source_analysis, &lookup) != 0) {
+    out_preview->asm_source_allocation_failed = 1U;
     goto cleanup;
   }
   if (render_asm_source) {

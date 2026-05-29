@@ -120,6 +120,7 @@ def test_active_runtime_imports_are_current_package_or_standard_library() -> Non
         "base64",
         "collections",
         "contextlib",
+        "copy",
         "ctypes",
         "dataclasses",
         "datetime",

@@ -132,15 +132,15 @@ def test_code1_main_has_code_byte_listing_preview_and_explicit_unsupported_state
             "parser_use": "accepted_parser_output",
         },
         {
-            "kind": "candidate_code",
+            "kind": "code",
             "start": 40,
             "size": 28984,
             "end": 29024,
             "entrypoint": True,
-            "evidence": "m68k_movea_l_stack_to_a0_entry",
-            "fact_id": "macos.code_resource.movea_stack_a0.boundary.candidate",
-            "fact_status": "candidate",
-            "parser_use": "candidate_only",
+            "evidence": "nonzero_code_segment_body",
+            "fact_id": "macos.code_resource.nonzero.segment_header",
+            "fact_status": "validated",
+            "parser_use": "accepted_parser_output",
         },
     ]
     assert selected["listing_preview"][:4] == [

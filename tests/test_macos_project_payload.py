@@ -1494,11 +1494,12 @@ def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> N
         and row["text"].strip() == "_UnloadSeg"
         and row.get("opcode_or_directive") == "_UnloadSeg"
     )
-    assert unload_seg_row["api_call"]["function"] == "_UnloadSeg"
+    assert unload_seg_row["api_call"]["function"] == "UnloadSeg"
     assert unload_seg_row["api_call"]["note_symbol_name"] == "_UnloadSeg"
     assert any(
         row["kind"] == "data"
-        and row.get("api_call", {}).get("function") == "_UnloadSeg"
+        and row.get("api_call", {}).get("function") == "UnloadSeg"
+        and row.get("api_call", {}).get("note_symbol_name") == "_UnloadSeg"
         for row in semantic_source["rows"]
     )
     assert not any(item["start"] == 8248 and item["end"] == 8250 for item in semantic_source["semantic_gap_residuals"])

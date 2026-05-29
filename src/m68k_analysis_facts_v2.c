@@ -9640,8 +9640,23 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   if (m68k_render_ir_preview_build(object, &decode, &facts, policy, accepted_start, accepted_bytes,
       render_text_preview, render_asm_source, collect_asm_source_text, out_asm_source != NULL, render_preview,
       out_source_analysis) != 0) {
-    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
-      "facts_v2 render preview build failed");
+    if (render_preview->asm_source_first_failure_kind != M68K_RENDER_IR_ASM_SOURCE_FAILURE_NONE) {
+      out_profile->asm_source_enabled = render_asm_source ? 1U : 0U;
+      out_profile->asm_source_refused = 1U;
+      out_profile->asm_source_first_failure_kind = render_preview->asm_source_first_failure_kind;
+      out_profile->asm_source_first_failure_section = render_preview->asm_source_first_failure_section;
+      out_profile->asm_source_first_failure_offset = render_preview->asm_source_first_failure_offset;
+      out_profile->asm_source_first_failure_aux_offset = render_preview->asm_source_first_failure_aux_offset;
+      m68k_diag_addf(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
+        "facts_v2 render preview build refused asm source: kind=%u section=%u offset=%u aux=%u",
+        (unsigned)out_profile->asm_source_first_failure_kind,
+        (unsigned)out_profile->asm_source_first_failure_section,
+        (unsigned)out_profile->asm_source_first_failure_offset,
+        (unsigned)out_profile->asm_source_first_failure_aux_offset);
+    } else {
+      m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
+        "facts_v2 render preview build failed");
+    }
     goto fail;
   }
   if (out_source_analysis != NULL &&

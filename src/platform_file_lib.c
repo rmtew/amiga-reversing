@@ -3708,11 +3708,13 @@ static int collect_recognized_tetragon_events_for_section_local(const M68kDecode
 static int collect_recognized_unpacker_events_local(const M68kObject *object,
     const M68kSourceAnalysisIR *analysis, PlatformRecognizedUnpackerEvent *events, size_t event_capacity,
     size_t *out_event_count, const char *materialize_event_id, const char *materialize_output_path,
-    PlatformRecognizedUnpackerEvent *out_materialized_event, M68kDiagList *materialize_diagnostics) {
+    PlatformRecognizedUnpackerEvent *out_materialized_event, M68kDiagList *materialize_diagnostics,
+    Arena *scratch_arena) {
   M68kDecodeIR decode;
   size_t section_index;
   int result = 0;
-  if (object == NULL || analysis == NULL || events == NULL || out_event_count == NULL) return -1;
+  if (object == NULL || analysis == NULL || events == NULL || out_event_count == NULL || scratch_arena == NULL)
+    return -1;
   *out_event_count = 0U;
   m68k_decode_ir_init(&decode);
   if (m68k_decode_ir_build_object(&decode, object, analysis->policy.max_cpu, m68k_diag_sink(NULL)) != 0) {
@@ -3722,7 +3724,7 @@ static int collect_recognized_unpacker_events_local(const M68kObject *object,
       ++section_index) {
     if (section_index >= analysis->section_count) break;
     if (collect_recognized_tetragon_events_for_section_local(&decode.sections[section_index],
-        &analysis->sections[section_index], analysis->arena, events, event_capacity, out_event_count,
+        &analysis->sections[section_index], scratch_arena, events, event_capacity, out_event_count,
         materialize_event_id, materialize_output_path, out_materialized_event,
         materialize_diagnostics) != 0) {
       result = -1;
@@ -4104,7 +4106,8 @@ static int concrete_write_ranges_cover_span_local(const M68kSimConcreteRunTraceR
 
 static int simulate_provider_wrapper_candidate_local(const M68kObject *object,
     const M68kSourceAnalysisIR *analysis, const M68kSection *section, uint32_t entry_offset,
-    uint32_t transfer_target, const char *output_path, const PlatformDecompressionIdentifyResult *result) {
+    uint32_t transfer_target, const char *output_path, const PlatformDecompressionIdentifyResult *result,
+    Arena *scratch_arena) {
   ArenaMark mark;
   uint8_t *expected = NULL;
   size_t expected_size = 0U;
@@ -4115,13 +4118,13 @@ static int simulate_provider_wrapper_candidate_local(const M68kObject *object,
   M68kSimConcreteRunTraceResult run_result;
   size_t step_limit;
   int ok = 0;
-  if (object == NULL || analysis == NULL || analysis->arena == NULL || section == NULL || section->data == NULL ||
+  if (object == NULL || analysis == NULL || scratch_arena == NULL || section == NULL || section->data == NULL ||
       output_path == NULL || result == NULL || result->decompressed_size == 0U ||
       transfer_target > UINT32_MAX - result->decompressed_size) {
     return 0;
   }
-  mark = arena_mark(analysis->arena);
-  if (read_file_to_arena_local(analysis->arena, output_path, &expected, &expected_size) != 0 ||
+  mark = arena_mark(scratch_arena);
+  if (read_file_to_arena_local(scratch_arena, output_path, &expected, &expected_size) != 0 ||
       expected_size != result->decompressed_size) {
     goto cleanup;
   }
@@ -4139,7 +4142,7 @@ static int simulate_provider_wrapper_candidate_local(const M68kObject *object,
     if (range_end > memory_size) memory_size = range_end;
   }
   if (memory_size > PLATFORM_SELF_DECRUNCH_MEMORY_LIMIT || entry_offset >= section->size) goto cleanup;
-  memory = (uint8_t *)arena_calloc(analysis->arena, memory_size, 1U);
+  memory = (uint8_t *)arena_calloc(scratch_arena, memory_size, 1U);
   if (memory == NULL) goto cleanup;
   memcpy(memory, section->data, section->size);
   for (range_index = 0U; range_index < analysis->policy.runtime_range_count &&
@@ -4181,12 +4184,13 @@ static int simulate_provider_wrapper_candidate_local(const M68kObject *object,
   ok = 1;
 
 cleanup:
-  arena_rewind(analysis->arena, mark);
+  arena_rewind(scratch_arena, mark);
   return ok;
 }
 
 static int promote_provider_payload_from_wrapper_simulation_local(const M68kObject *object,
-    const M68kSourceAnalysisIR *analysis, const char *output_path, PlatformDecompressionIdentifyResult *result) {
+    const M68kSourceAnalysisIR *analysis, const char *output_path, PlatformDecompressionIdentifyResult *result,
+    Arena *scratch_arena) {
   M68kDecodeIR decode;
   const M68kDecodeSectionIR *decode_section;
   const M68kSectionAnalysisIR *section_analysis;
@@ -4195,7 +4199,7 @@ static int promote_provider_payload_from_wrapper_simulation_local(const M68kObje
   uint32_t source_start, source_end;
   int promoted = 0;
   memset(&decode, 0, sizeof(decode));
-  if (object == NULL || analysis == NULL || output_path == NULL || result == NULL ||
+  if (object == NULL || analysis == NULL || scratch_arena == NULL || output_path == NULL || result == NULL ||
       !result->has_source_section || result->source_section_index >= object->section_count ||
       result->source_section_index >= analysis->section_count ||
       result->source_section_offset > UINT32_MAX - result->packed_size) {
@@ -4232,9 +4236,9 @@ static int promote_provider_payload_from_wrapper_simulation_local(const M68kObje
     }
     if (parent_remains_active || transfer_target > UINT32_MAX - result->decompressed_size) continue;
     entry_offset = reachable_decrunch_entry_root_local(section_analysis, result->source_section_index,
-      0U, candidate->offset, analysis->arena);
+      0U, candidate->offset, scratch_arena);
     if (!simulate_provider_wrapper_candidate_local(object, analysis, section, entry_offset, transfer_target,
-        output_path, result)) {
+        output_path, result, scratch_arena)) {
       continue;
     }
     result->has_decompressed_load_entry = 1U;
@@ -4253,7 +4257,8 @@ static int promote_provider_payload_from_wrapper_simulation_local(const M68kObje
 
 static int simulate_self_decrunch_output_local(const M68kObject *object, const M68kSourceAnalysisIR *analysis,
     const M68kDecodeSectionIR *section, const PlatformSelfDecrunchEvent *event,
-    PlatformSelfDecrunchEvent *out_event, const char *output_path, M68kDiagList *diagnostics) {
+    PlatformSelfDecrunchEvent *out_event, const char *output_path, M68kDiagList *diagnostics,
+    Arena *scratch_arena) {
   ArenaMark mark;
   uint8_t *memory = NULL;
   size_t memory_size, range_index, write_range_index;
@@ -4263,7 +4268,7 @@ static int simulate_self_decrunch_output_local(const M68kObject *object, const M
   M68kSimConcreteRunTraceResult result;
   int ok = 0;
   if (out_event != NULL && event != NULL) *out_event = *event;
-  if (object == NULL || analysis == NULL || analysis->arena == NULL || section == NULL || event == NULL ||
+  if (object == NULL || analysis == NULL || scratch_arena == NULL || section == NULL || event == NULL ||
       out_event == NULL || section->data == NULL ||
       event->entrypoint > UINT32_MAX - 16U || event->observed_write_end > UINT32_MAX - 16U) {
     return 0;
@@ -4286,8 +4291,8 @@ static int simulate_self_decrunch_output_local(const M68kObject *object, const M
     if (range_end > memory_size) memory_size = range_end;
   }
   if (memory_size > PLATFORM_SELF_DECRUNCH_MEMORY_LIMIT || event->decompressor_entry_offset >= section->size) return 0;
-  mark = arena_mark(analysis->arena);
-  memory = (uint8_t *)arena_calloc(analysis->arena, memory_size, 1U);
+  mark = arena_mark(scratch_arena);
+  memory = (uint8_t *)arena_calloc(scratch_arena, memory_size, 1U);
   if (memory == NULL) goto cleanup;
   memcpy(memory, section->data, section->size);
   if ((size_t)event->load_address + section->size <= memory_size) {
@@ -4375,7 +4380,7 @@ static int simulate_self_decrunch_output_local(const M68kObject *object, const M
   ok = 1;
 
 cleanup:
-  arena_rewind(analysis->arena, mark);
+  arena_rewind(scratch_arena, mark);
   return ok;
 }
 
@@ -4383,7 +4388,7 @@ static int collect_self_decrunch_events_for_section(const M68kObject *object, co
     const M68kSourceAnalysisIR *analysis, size_t section_index, PlatformSelfDecrunchEvent *events,
     size_t event_capacity, size_t *io_event_count, const char *materialize_event_id,
     const char *materialize_output_path, PlatformSelfDecrunchEvent *out_materialized_event,
-    M68kDiagList *materialize_diagnostics) {
+    M68kDiagList *materialize_diagnostics, Arena *scratch_arena) {
   const M68kSection *object_section;
   const M68kDecodeSectionIR *decode_section;
   const M68kSectionAnalysisIR *section_analysis;
@@ -4452,7 +4457,7 @@ static int collect_self_decrunch_events_for_section(const M68kObject *object, co
       memset(&event, 0, sizeof(event));
       event.source_section_index = (uint32_t)section_index;
       event.decompressor_entry_offset = reachable_decrunch_entry_root_local(section_analysis, section_index,
-        run_start, offset, analysis->arena);
+        run_start, offset, scratch_arena);
       event.transfer_offset = offset;
       event.load_address = target;
       event.entrypoint = target;
@@ -4464,7 +4469,7 @@ static int collect_self_decrunch_events_for_section(const M68kObject *object, co
       materialize_this_event = materialize_event_id != NULL && strcmp(event_id, materialize_event_id) == 0;
       (void)simulate_self_decrunch_output_local(object, analysis, decode_section, &event, &event,
         materialize_this_event ? materialize_output_path : NULL,
-        materialize_this_event ? materialize_diagnostics : NULL);
+        materialize_this_event ? materialize_diagnostics : NULL, scratch_arena);
       if (materialize_this_event && out_materialized_event != NULL) *out_materialized_event = event;
       if (!self_decrunch_event_duplicate_local(events, *io_event_count, &event)) {
         events[*io_event_count] = event;
@@ -4478,12 +4483,14 @@ static int collect_self_decrunch_events_for_section(const M68kObject *object, co
 static int collect_self_decrunch_events_local(const M68kObject *object, const M68kSourceAnalysisIR *analysis,
     PlatformSelfDecrunchEvent *events, size_t event_capacity, size_t *out_event_count,
     const char *materialize_event_id, const char *materialize_output_path,
-    PlatformSelfDecrunchEvent *out_materialized_event, M68kDiagList *materialize_diagnostics) {
+    PlatformSelfDecrunchEvent *out_materialized_event, M68kDiagList *materialize_diagnostics,
+    Arena *scratch_arena) {
   M68kDecodeIR decode;
   size_t section_index;
   int result = 0;
   if (out_event_count != NULL) *out_event_count = 0U;
-  if (object == NULL || analysis == NULL || events == NULL || out_event_count == NULL || event_capacity == 0U)
+  if (object == NULL || analysis == NULL || events == NULL || out_event_count == NULL || event_capacity == 0U ||
+      scratch_arena == NULL)
     return 0;
   if (object->platform_backend_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK) return 0;
   memset(&decode, 0, sizeof(decode));
@@ -4492,7 +4499,7 @@ static int collect_self_decrunch_events_local(const M68kObject *object, const M6
       ++section_index) {
     if (collect_self_decrunch_events_for_section(object, &decode, analysis, section_index, events,
         event_capacity, out_event_count, materialize_event_id, materialize_output_path,
-        out_materialized_event, materialize_diagnostics) != 0) {
+        out_materialized_event, materialize_diagnostics, scratch_arena) != 0) {
       result = -1;
       break;
     }
@@ -4908,8 +4915,9 @@ static int append_object_decompression_analysis_json(JsonBuilder *builder, const
   size_t emitted_event_count = 0U;
   int rc = -1;
   if (object == NULL || analysis == NULL) return -1;
-  /* Keep JSON-pass scratch independent of analysis->arena. Nested simulator
-     probes use marks and rewinds on the analysis arena. */
+  /* Keep JSON-pass scratch independent of analysis->arena. Decompression probes
+     use marks and rewinds for temporary memory, while analysis->arena owns
+     durable source-analysis records. */
   scratch_arena = arena_create(4096U);
   if (scratch_arena == NULL) return -1;
   results = (PlatformDecompressionIdentifyResult *)arena_calloc(scratch_arena, result_capacity, sizeof(*results));
@@ -4973,7 +4981,8 @@ static int append_object_decompression_analysis_json(JsonBuilder *builder, const
           result.decompressed_initial_control_target = initial_control_target;
         }
         if (!result.has_decompressed_load_entry) {
-          (void)promote_provider_payload_from_wrapper_simulation_local(object, analysis, output_path, &result);
+          (void)promote_provider_payload_from_wrapper_simulation_local(object, analysis, output_path, &result,
+            scratch_arena);
         }
       }
       result.decompressed_path[0] = '\0';
@@ -4983,12 +4992,12 @@ static int append_object_decompression_analysis_json(JsonBuilder *builder, const
   }
   if (collect_self_decrunch_events_local(object, analysis, self_decrunch_events,
       self_decrunch_event_capacity, &self_decrunch_event_count,
-      NULL, NULL, NULL, NULL) != 0) {
+      NULL, NULL, NULL, NULL, scratch_arena) != 0) {
     goto cleanup;
   }
   if (collect_recognized_unpacker_events_local(object, analysis, recognized_unpacker_events,
       recognized_unpacker_event_capacity,
-      &recognized_unpacker_event_count, NULL, NULL, NULL, NULL) != 0) {
+      &recognized_unpacker_event_count, NULL, NULL, NULL, NULL, scratch_arena) != 0) {
     goto cleanup;
   }
   if (json_builder_append(builder, ",\"packed_payloads\":[") != 0) goto cleanup;
@@ -7321,6 +7330,19 @@ static int append_nullable_text_json_local(JsonBuilder *builder, const char *tex
   return json_builder_append_json_string(builder, text);
 }
 
+static int append_nullable_text_json_len_local(JsonBuilder *builder, const char *text, size_t length) {
+  if (builder == NULL) return -1;
+  if (text == NULL || length == 0U) return json_builder_append(builder, "null");
+  return json_builder_append_json_string_len(builder, text, length);
+}
+
+static int append_structured_data_text_json_local(JsonBuilder *builder,
+    const M68kAnalysisStructuredDataItem *item, uint8_t field) {
+  size_t length = 0U;
+  const char *text = m68k_analysis_structured_data_item_text(item, field, &length);
+  return append_nullable_text_json_len_local(builder, text, length);
+}
+
 static const char *analysis_register_kind_name_local(uint8_t kind) {
   if (kind == M68K_ANALYSIS_REGISTER_DATA) return "data";
   if (kind == M68K_ANALYSIS_REGISTER_ADDRESS) return "address";
@@ -8163,30 +8185,39 @@ static int append_effective_analysis_policy_json_local(JsonBuilder *builder, con
       return -1;
     if (json_builder_append_json_string(builder, structured_data_kind_name_local(item->kind)) != 0) return -1;
     if (json_builder_append(builder, ",\"comment\":") != 0) return -1;
-    if (append_nullable_text_json_local(builder, item->comment) != 0) return -1;
+    if (append_structured_data_text_json_local(builder, item, M68K_ANALYSIS_STRUCTURED_DATA_TEXT_COMMENT) != 0)
+      return -1;
     if (json_builder_append(builder, ",\"label\":") != 0) return -1;
-    if (append_nullable_text_json_local(builder, item->label) != 0) return -1;
+    if (append_structured_data_text_json_local(builder, item, M68K_ANALYSIS_STRUCTURED_DATA_TEXT_LABEL) != 0)
+      return -1;
     if (json_builder_append(builder, ",\"struct_name\":") != 0) return -1;
-    if (append_nullable_text_json_local(builder, item->struct_name) != 0) return -1;
+    if (append_structured_data_text_json_local(builder, item, M68K_ANALYSIS_STRUCTURED_DATA_TEXT_STRUCT_NAME) != 0)
+      return -1;
     if (json_builder_append(builder, ",\"field_name\":") != 0) return -1;
-    if (append_nullable_text_json_local(builder, item->field_name) != 0) return -1;
+    if (append_structured_data_text_json_local(builder, item, M68K_ANALYSIS_STRUCTURED_DATA_TEXT_FIELD_NAME) != 0)
+      return -1;
     if (json_builder_appendf(builder,
           ",\"platform_kind_id\":%u,\"platform_field_id\":%u,\"struct_id\":%u,\"field_id\":%u",
           (unsigned)item->platform_kind_id, (unsigned)item->platform_field_id, (unsigned)item->struct_id,
           (unsigned)item->field_id) != 0)
       return -1;
     if (json_builder_append(builder, ",\"field_type\":") != 0) return -1;
-    if (append_nullable_text_json_local(builder, item->field_type) != 0) return -1;
+    if (append_structured_data_text_json_local(builder, item, M68K_ANALYSIS_STRUCTURED_DATA_TEXT_FIELD_TYPE) != 0)
+      return -1;
     if (json_builder_append(builder, ",\"c_type\":") != 0) return -1;
-    if (append_nullable_text_json_local(builder, item->c_type) != 0) return -1;
+    if (append_structured_data_text_json_local(builder, item, M68K_ANALYSIS_STRUCTURED_DATA_TEXT_C_TYPE) != 0)
+      return -1;
     if (json_builder_append(builder, ",\"pointer_struct\":") != 0) return -1;
-    if (append_nullable_text_json_local(builder, item->pointer_struct) != 0) return -1;
+    if (append_structured_data_text_json_local(builder, item, M68K_ANALYSIS_STRUCTURED_DATA_TEXT_POINTER_STRUCT) != 0)
+      return -1;
     if (json_builder_appendf(builder, ",\"pointer_struct_id\":%u", (unsigned)item->pointer_struct_id) != 0)
       return -1;
     if (json_builder_append(builder, ",\"value_domain\":") != 0) return -1;
-    if (append_nullable_text_json_local(builder, item->value_domain) != 0) return -1;
+    if (append_structured_data_text_json_local(builder, item, M68K_ANALYSIS_STRUCTURED_DATA_TEXT_VALUE_DOMAIN) != 0)
+      return -1;
     if (json_builder_append(builder, ",\"constant_name\":") != 0) return -1;
-    if (append_nullable_text_json_local(builder, item->constant_name) != 0) return -1;
+    if (append_structured_data_text_json_local(builder, item, M68K_ANALYSIS_STRUCTURED_DATA_TEXT_CONSTANT_NAME) != 0)
+      return -1;
     if (json_builder_appendf(builder, ",\"has_constant_value\":%s,\"constant_value\":",
           item->has_constant_value ? "true" : "false") != 0)
       return -1;
@@ -8194,7 +8225,8 @@ static int append_effective_analysis_policy_json_local(JsonBuilder *builder, con
       if (json_builder_appendf(builder, "%d", (int)item->constant_value) != 0) return -1;
     } else if (json_builder_append(builder, "null") != 0) return -1;
     if (json_builder_append(builder, ",\"semantic_role\":") != 0) return -1;
-    if (append_nullable_text_json_local(builder, item->semantic_role) != 0) return -1;
+    if (append_structured_data_text_json_local(builder, item, M68K_ANALYSIS_STRUCTURED_DATA_TEXT_SEMANTIC_ROLE) != 0)
+      return -1;
     if (json_builder_appendf(builder, ",\"semantic_role_flags\":%u",
           (unsigned)structured_data_item_role_flags_local(item)) != 0)
       return -1;
@@ -10850,13 +10882,22 @@ int platform_file_facts_v2_listing_artifact_macos_hfs_code_resource_create(
     if (out_error != NULL) *out_error = m68k_platform_dup_string("invalid Mac HFS CODE listing artifact request");
     return -1;
   }
-  if (platform_macos_hfs_catalog_parse(data, size, &catalog, NULL, 0U, NULL, 0U) != 0) goto fail;
+  if (platform_macos_hfs_catalog_parse(data, size, &catalog, NULL, 0U, NULL, 0U) != 0) {
+    platform_file_add_error(&diagnostics, "Mac HFS catalog parse failed");
+    goto fail;
+  }
   directories = (PlatformMacosHFSDirectoryInfo *)calloc(catalog.directory_count ? catalog.directory_count : 1U,
     sizeof(*directories));
   files = (PlatformMacosHFSFileInfo *)calloc(catalog.file_count ? catalog.file_count : 1U, sizeof(*files));
-  if (directories == NULL || files == NULL) goto fail;
+  if (directories == NULL || files == NULL) {
+    platform_file_add_error(&diagnostics, "out of memory reading Mac HFS catalog");
+    goto fail;
+  }
   if (platform_macos_hfs_catalog_parse(data, size, &catalog, directories, catalog.directory_count,
-      files, catalog.file_count) != 0) goto fail;
+      files, catalog.file_count) != 0) {
+    platform_file_add_error(&diagnostics, "Mac HFS catalog detail parse failed");
+    goto fail;
+  }
   for (index = 0U; index < catalog.file_count; ++index) {
     if (platform_macos_hfs_file_path(directories, catalog.directory_count, &files[index], path, sizeof(path)) != 0)
       continue;
@@ -10865,27 +10906,49 @@ int platform_file_facts_v2_listing_artifact_macos_hfs_code_resource_create(
       break;
     }
   }
-  if (selected_file == NULL) goto fail;
+  if (selected_file == NULL) {
+    platform_file_add_error(&diagnostics, "Mac HFS path was not found");
+    goto fail;
+  }
   if (macos_copy_fork_or_error(data, size, &catalog.volume, selected_file->resource_extents,
-      selected_file->resource_size, &resource_fork, &copy_error) != 0) goto fail;
+      selected_file->resource_size, &resource_fork, &copy_error) != 0) {
+    platform_file_add_error(&diagnostics, copy_error != NULL ? copy_error : "Mac HFS resource fork copy failed");
+    goto fail;
+  }
   if (platform_macos_resource_fork_parse(resource_fork, selected_file->resource_size, &resource_fork_info,
-      NULL, 0U, NULL, 0U) != 0) goto fail;
+      NULL, 0U, NULL, 0U) != 0) {
+    platform_file_add_error(&diagnostics, "Mac resource fork parse failed");
+    goto fail;
+  }
   resources = (PlatformMacosResourceInfo *)calloc(
     resource_fork_info.resource_count ? resource_fork_info.resource_count : 1U, sizeof(*resources));
-  if (resources == NULL) goto fail;
+  if (resources == NULL) {
+    platform_file_add_error(&diagnostics, "out of memory reading Mac resources");
+    goto fail;
+  }
   if (platform_macos_resource_fork_parse(resource_fork, selected_file->resource_size, &resource_fork_info,
-      NULL, 0U, resources, resource_fork_info.resource_count) != 0) goto fail;
+      NULL, 0U, resources, resource_fork_info.resource_count) != 0) {
+    platform_file_add_error(&diagnostics, "Mac resource fork detail parse failed");
+    goto fail;
+  }
   selected_resource = macos_find_resource(resources, resource_fork_info.resource_count, "CODE", (int16_t)resource_id);
   code0_resource = macos_find_code0_resource(resources, resource_fork_info.resource_count);
   if (selected_resource == NULL ||
       platform_macos_code_metadata_executable_range(&selected_resource->code, &code_start, &code_size) != 0) {
+    platform_file_add_error(&diagnostics, "Mac CODE resource has no confirmed executable range");
     goto fail;
   }
   find_status = platform_macos_resource_fork_find_payload(resource_fork, selected_file->resource_size, "CODE",
     (int16_t)resource_id, &payload_offset, &payload_size);
-  if (find_status != 0 || code_start > payload_size || code_size > payload_size - code_start) goto fail;
+  if (find_status != 0 || code_start > payload_size || code_size > payload_size - code_start) {
+    platform_file_add_error(&diagnostics, "Mac CODE executable range is outside the resource payload");
+    goto fail;
+  }
   code_bytes = (unsigned char *)malloc(code_size ? code_size : 1U);
-  if (code_bytes == NULL) goto fail;
+  if (code_bytes == NULL) {
+    platform_file_add_error(&diagnostics, "out of memory reading Mac CODE bytes");
+    goto fail;
+  }
   if (code_size != 0U) memcpy(code_bytes, resource_fork + payload_offset + code_start, code_size);
   artifact = listing_artifact_alloc_base("macos-code", hfs_path, &diagnostics);
   if (artifact == NULL) goto fail;
@@ -10895,6 +10958,7 @@ int platform_file_facts_v2_listing_artifact_macos_hfs_code_resource_create(
   if (code0_resource != NULL &&
       platform_macos_object_set_a5_world_layout(&artifact->object, code0_resource->resource_id,
         &code0_resource->code) != 0) {
+    platform_file_add_error(&diagnostics, "Mac CODE 0 A5 world layout attachment failed");
     goto fail;
   }
   if (configure_flat_m68k_buffer_policy(&artifact->policy, &artifact->object, metadata_path, &diagnostics) != 0)
@@ -11591,7 +11655,7 @@ PLATFORM_FILE_API int platform_file_decompression_materialize_self_decrunch_even
     goto cleanup;
   }
   if (collect_self_decrunch_events_local(&object, analysis, events, sizeof(events) / sizeof(events[0]),
-      &event_count, event_id, output_path, &materialized_event, &diagnostics) != 0) {
+      &event_count, event_id, output_path, &materialized_event, &diagnostics, scratch_arena) != 0) {
     platform_file_add_error(&diagnostics, "failed collecting self-decrunch events");
     goto cleanup;
   }
@@ -11712,7 +11776,7 @@ PLATFORM_FILE_API int platform_file_decompression_materialize_recognized_unpacke
     goto cleanup;
   }
   if (collect_recognized_unpacker_events_local(&object, analysis, events, sizeof(events) / sizeof(events[0]),
-      &event_count, event_id, output_path, &materialized_event, &diagnostics) != 0) {
+      &event_count, event_id, output_path, &materialized_event, &diagnostics, scratch_arena) != 0) {
     platform_file_add_error(&diagnostics, "failed collecting recognized unpacker events");
     goto cleanup;
   }

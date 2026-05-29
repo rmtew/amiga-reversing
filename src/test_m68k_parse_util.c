@@ -252,6 +252,20 @@ static int test_json_builder_escapes_string_spans(void) {
   return 0;
 }
 
+static int test_json_builder_escapes_bounded_string_spans(void) {
+  JsonBuilder builder = {0};
+  const char raw[] = {'A', '\0', 'B', '"', '\\', '\n'};
+  char *text = NULL;
+  M68K_C_ASSERT_INT(0, json_builder_create(&builder));
+  M68K_C_ASSERT_INT(0, json_builder_append_json_string_len(&builder, raw, sizeof(raw)));
+  text = json_builder_build(&builder);
+  M68K_C_ASSERT(text != NULL);
+  M68K_C_ASSERT_STR("\"A\\u0000B\\\"\\\\\\u000A\"", text);
+  free(text);
+  json_builder_destroy(&builder);
+  return 0;
+}
+
 static int test_json_builder_appends_builder_without_building_source(void) {
   JsonBuilder outer = {0};
   JsonBuilder inner = {0};
@@ -309,6 +323,7 @@ int m68k_c_parse_util_tests(void) {
     {"source_linear_expr_accepts_constant_or", test_source_linear_expr_accepts_constant_or},
     {"source_constant_expr_accepts_division", test_source_constant_expr_accepts_division},
     {"json_builder_escapes_string_spans", test_json_builder_escapes_string_spans},
+    {"json_builder_escapes_bounded_string_spans", test_json_builder_escapes_bounded_string_spans},
     {"json_builder_appends_builder_without_building_source", test_json_builder_appends_builder_without_building_source},
     {"json_builder_builds_into_caller_arena", test_json_builder_builds_into_caller_arena},
   };

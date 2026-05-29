@@ -5646,7 +5646,8 @@ static void render_lookup_set_auto_structured_data_item_source_pattern(M68kRende
     if (item->has_section_index && item->section_index == (uint32_t)section_index &&
         item->offset == offset) {
       item->source_pattern_id = source_pattern_id;
-      snprintf(item->source_pattern, sizeof(item->source_pattern), "%s", source_pattern);
+      (void)m68k_analysis_structured_data_item_set_text(item,
+        M68K_ANALYSIS_STRUCTURED_DATA_TEXT_SOURCE_PATTERN, source_pattern, strlen(source_pattern));
       m68k_analysis_structured_data_item_refresh_table_metadata(item);
     }
   }
@@ -10950,10 +10951,9 @@ static int source_analysis_append_auto_structured_data_policy(M68kSourceAnalysis
   size_t index;
   if (source_analysis == NULL || lookup == NULL) return 0;
   for (index = 0U; index < lookup->auto_structured_data_item_count; ++index) {
-    M68kAnalysisPolicy *policy = &source_analysis->policy;
-    if (policy->structured_data_item_count >= M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT) return 0;
-    policy->structured_data_items[policy->structured_data_item_count++] =
-      lookup->auto_structured_data_items[index];
+    if (m68k_ir_source_analysis_append_structured_data_item(source_analysis,
+        &lookup->auto_structured_data_items[index]) != 0)
+      return -1;
   }
   return 0;
 }

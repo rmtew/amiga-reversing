@@ -219,6 +219,177 @@ static uint8_t structured_data_item_infer_table_kind_id(const M68kAnalysisStruct
   return M68K_ANALYSIS_TABLE_KIND_SCALAR;
 }
 
+#define STRUCTURED_TEXT_CAPACITY(member) (sizeof(member) > 0U ? sizeof(member) - 1U : 0U)
+
+static char *structured_data_item_text_storage(M68kAnalysisStructuredDataItem *item, uint8_t field,
+    size_t *out_capacity, uint16_t **out_length) {
+  if (out_capacity != NULL) *out_capacity = 0U;
+  if (out_length != NULL) *out_length = NULL;
+  if (item == NULL) return NULL;
+  switch (field) {
+  case M68K_ANALYSIS_STRUCTURED_DATA_TEXT_LABEL:
+    if (out_capacity != NULL) *out_capacity = STRUCTURED_TEXT_CAPACITY(item->label);
+    if (out_length != NULL) *out_length = &item->label_len;
+    return item->label;
+  case M68K_ANALYSIS_STRUCTURED_DATA_TEXT_STRUCT_NAME:
+    if (out_capacity != NULL) *out_capacity = STRUCTURED_TEXT_CAPACITY(item->struct_name);
+    if (out_length != NULL) *out_length = &item->struct_name_len;
+    return item->struct_name;
+  case M68K_ANALYSIS_STRUCTURED_DATA_TEXT_FIELD_NAME:
+    if (out_capacity != NULL) *out_capacity = STRUCTURED_TEXT_CAPACITY(item->field_name);
+    if (out_length != NULL) *out_length = &item->field_name_len;
+    return item->field_name;
+  case M68K_ANALYSIS_STRUCTURED_DATA_TEXT_FIELD_TYPE:
+    if (out_capacity != NULL) *out_capacity = STRUCTURED_TEXT_CAPACITY(item->field_type);
+    if (out_length != NULL) *out_length = &item->field_type_len;
+    return item->field_type;
+  case M68K_ANALYSIS_STRUCTURED_DATA_TEXT_C_TYPE:
+    if (out_capacity != NULL) *out_capacity = STRUCTURED_TEXT_CAPACITY(item->c_type);
+    if (out_length != NULL) *out_length = &item->c_type_len;
+    return item->c_type;
+  case M68K_ANALYSIS_STRUCTURED_DATA_TEXT_POINTER_STRUCT:
+    if (out_capacity != NULL) *out_capacity = STRUCTURED_TEXT_CAPACITY(item->pointer_struct);
+    if (out_length != NULL) *out_length = &item->pointer_struct_len;
+    return item->pointer_struct;
+  case M68K_ANALYSIS_STRUCTURED_DATA_TEXT_VALUE_DOMAIN:
+    if (out_capacity != NULL) *out_capacity = STRUCTURED_TEXT_CAPACITY(item->value_domain);
+    if (out_length != NULL) *out_length = &item->value_domain_len;
+    return item->value_domain;
+  case M68K_ANALYSIS_STRUCTURED_DATA_TEXT_CONSTANT_NAME:
+    if (out_capacity != NULL) *out_capacity = STRUCTURED_TEXT_CAPACITY(item->constant_name);
+    if (out_length != NULL) *out_length = &item->constant_name_len;
+    return item->constant_name;
+  case M68K_ANALYSIS_STRUCTURED_DATA_TEXT_SEMANTIC_ROLE:
+    if (out_capacity != NULL) *out_capacity = STRUCTURED_TEXT_CAPACITY(item->semantic_role);
+    if (out_length != NULL) *out_length = &item->semantic_role_len;
+    return item->semantic_role;
+  case M68K_ANALYSIS_STRUCTURED_DATA_TEXT_SOURCE_PATTERN:
+    if (out_capacity != NULL) *out_capacity = STRUCTURED_TEXT_CAPACITY(item->source_pattern);
+    if (out_length != NULL) *out_length = &item->source_pattern_len;
+    return item->source_pattern;
+  case M68K_ANALYSIS_STRUCTURED_DATA_TEXT_COMMENT:
+    if (out_capacity != NULL) *out_capacity = STRUCTURED_TEXT_CAPACITY(item->comment);
+    if (out_length != NULL) *out_length = &item->comment_len;
+    return item->comment;
+  default:
+    return NULL;
+  }
+}
+
+static const char *structured_data_item_text_storage_const(const M68kAnalysisStructuredDataItem *item,
+    uint8_t field, size_t *out_capacity, const uint16_t **out_length) {
+  if (out_capacity != NULL) *out_capacity = 0U;
+  if (out_length != NULL) *out_length = NULL;
+  if (item == NULL) return NULL;
+  switch (field) {
+  case M68K_ANALYSIS_STRUCTURED_DATA_TEXT_LABEL:
+    if (out_capacity != NULL) *out_capacity = STRUCTURED_TEXT_CAPACITY(item->label);
+    if (out_length != NULL) *out_length = &item->label_len;
+    return item->label;
+  case M68K_ANALYSIS_STRUCTURED_DATA_TEXT_STRUCT_NAME:
+    if (out_capacity != NULL) *out_capacity = STRUCTURED_TEXT_CAPACITY(item->struct_name);
+    if (out_length != NULL) *out_length = &item->struct_name_len;
+    return item->struct_name;
+  case M68K_ANALYSIS_STRUCTURED_DATA_TEXT_FIELD_NAME:
+    if (out_capacity != NULL) *out_capacity = STRUCTURED_TEXT_CAPACITY(item->field_name);
+    if (out_length != NULL) *out_length = &item->field_name_len;
+    return item->field_name;
+  case M68K_ANALYSIS_STRUCTURED_DATA_TEXT_FIELD_TYPE:
+    if (out_capacity != NULL) *out_capacity = STRUCTURED_TEXT_CAPACITY(item->field_type);
+    if (out_length != NULL) *out_length = &item->field_type_len;
+    return item->field_type;
+  case M68K_ANALYSIS_STRUCTURED_DATA_TEXT_C_TYPE:
+    if (out_capacity != NULL) *out_capacity = STRUCTURED_TEXT_CAPACITY(item->c_type);
+    if (out_length != NULL) *out_length = &item->c_type_len;
+    return item->c_type;
+  case M68K_ANALYSIS_STRUCTURED_DATA_TEXT_POINTER_STRUCT:
+    if (out_capacity != NULL) *out_capacity = STRUCTURED_TEXT_CAPACITY(item->pointer_struct);
+    if (out_length != NULL) *out_length = &item->pointer_struct_len;
+    return item->pointer_struct;
+  case M68K_ANALYSIS_STRUCTURED_DATA_TEXT_VALUE_DOMAIN:
+    if (out_capacity != NULL) *out_capacity = STRUCTURED_TEXT_CAPACITY(item->value_domain);
+    if (out_length != NULL) *out_length = &item->value_domain_len;
+    return item->value_domain;
+  case M68K_ANALYSIS_STRUCTURED_DATA_TEXT_CONSTANT_NAME:
+    if (out_capacity != NULL) *out_capacity = STRUCTURED_TEXT_CAPACITY(item->constant_name);
+    if (out_length != NULL) *out_length = &item->constant_name_len;
+    return item->constant_name;
+  case M68K_ANALYSIS_STRUCTURED_DATA_TEXT_SEMANTIC_ROLE:
+    if (out_capacity != NULL) *out_capacity = STRUCTURED_TEXT_CAPACITY(item->semantic_role);
+    if (out_length != NULL) *out_length = &item->semantic_role_len;
+    return item->semantic_role;
+  case M68K_ANALYSIS_STRUCTURED_DATA_TEXT_SOURCE_PATTERN:
+    if (out_capacity != NULL) *out_capacity = STRUCTURED_TEXT_CAPACITY(item->source_pattern);
+    if (out_length != NULL) *out_length = &item->source_pattern_len;
+    return item->source_pattern;
+  case M68K_ANALYSIS_STRUCTURED_DATA_TEXT_COMMENT:
+    if (out_capacity != NULL) *out_capacity = STRUCTURED_TEXT_CAPACITY(item->comment);
+    if (out_length != NULL) *out_length = &item->comment_len;
+    return item->comment;
+  default:
+    return NULL;
+  }
+}
+
+static size_t bounded_text_length_local(const char *text, size_t capacity) {
+  size_t length = 0U;
+  if (text == NULL) return 0U;
+  while (length < capacity && text[length] != '\0') ++length;
+  return length;
+}
+
+int m68k_analysis_structured_data_item_set_text(M68kAnalysisStructuredDataItem *item,
+    uint8_t field, const char *text, size_t length) {
+  uint16_t *stored_length;
+  size_t capacity;
+  size_t copy_length;
+  char *storage = structured_data_item_text_storage(item, field, &capacity, &stored_length);
+  if (storage == NULL || stored_length == NULL || capacity == 0U) return -1;
+  if (text == NULL) {
+    memset(storage, 0, capacity + 1U);
+    *stored_length = 0U;
+    return 0;
+  }
+  copy_length = length < capacity ? length : capacity;
+  memcpy(storage, text, copy_length);
+  storage[copy_length] = '\0';
+  if (copy_length < capacity) memset(storage + copy_length + 1U, 0, capacity - copy_length);
+  *stored_length = (uint16_t)copy_length;
+  return copy_length == length ? 0 : -1;
+}
+
+const char *m68k_analysis_structured_data_item_text(const M68kAnalysisStructuredDataItem *item,
+    uint8_t field, size_t *out_length) {
+  const uint16_t *stored_length;
+  size_t capacity;
+  size_t length;
+  const char *storage = structured_data_item_text_storage_const(item, field, &capacity, &stored_length);
+  if (out_length != NULL) *out_length = 0U;
+  if (storage == NULL || stored_length == NULL || capacity == 0U) return NULL;
+  length = *stored_length != 0U ? *stored_length : bounded_text_length_local(storage, capacity);
+  if (length > capacity) length = capacity;
+  if (out_length != NULL) *out_length = length;
+  return length != 0U ? storage : NULL;
+}
+
+static void m68k_analysis_structured_data_item_refresh_text_lengths(M68kAnalysisStructuredDataItem *item) {
+  uint8_t field;
+  if (item == NULL) return;
+  for (field = M68K_ANALYSIS_STRUCTURED_DATA_TEXT_LABEL; field <= M68K_ANALYSIS_STRUCTURED_DATA_TEXT_COMMENT;
+       ++field) {
+    uint16_t *stored_length;
+    size_t capacity;
+    char *storage = structured_data_item_text_storage(item, field, &capacity, &stored_length);
+    if (storage == NULL || stored_length == NULL) continue;
+    if (*stored_length > capacity) {
+      *stored_length = (uint16_t)capacity;
+    } else if (*stored_length == 0U) {
+      *stored_length = (uint16_t)bounded_text_length_local(storage, capacity);
+    }
+    storage[capacity] = '\0';
+  }
+}
+
 void m68k_analysis_structured_data_item_refresh_table_metadata(M68kAnalysisStructuredDataItem *item) {
   if (item == NULL) return;
   item->table_kind_id = structured_data_item_infer_table_kind_id(item);
@@ -238,7 +409,8 @@ void m68k_analysis_structured_data_item_set_semantic_role_flags(M68kAnalysisStru
   if (item == NULL) return;
   item->semantic_role_flags = semantic_role_flags;
   semantic_role = m68k_analysis_structured_data_role_name_for_flags(semantic_role_flags);
-  snprintf(item->semantic_role, sizeof(item->semantic_role), "%s", semantic_role != NULL ? semantic_role : "");
+  (void)m68k_analysis_structured_data_item_set_text(item, M68K_ANALYSIS_STRUCTURED_DATA_TEXT_SEMANTIC_ROLE,
+    semantic_role != NULL ? semantic_role : "", semantic_role != NULL ? strlen(semantic_role) : 0U);
   m68k_analysis_structured_data_item_refresh_table_metadata(item);
 }
 
@@ -352,6 +524,79 @@ int m68k_ir_source_analysis_create(M68kSourceAnalysisIR *source_analysis) {
   return source_analysis->arena != NULL ? 0 : -1;
 }
 
+int m68k_ir_source_analysis_append_structured_data_item(M68kSourceAnalysisIR *source_analysis,
+    const M68kAnalysisStructuredDataItem *item) {
+  Arena *arena;
+  M68kAnalysisStructuredDataItem *grown;
+  M68kAnalysisStructuredDataItem copy;
+  if (source_analysis == NULL || item == NULL) return -1;
+  arena = source_analysis->arena;
+  if (arena == NULL) return -1;
+  copy = *item;
+  m68k_analysis_structured_data_item_refresh_text_lengths(&copy);
+  grown = (M68kAnalysisStructuredDataItem *)arena_grow_array(arena,
+    source_analysis->structured_data_items, source_analysis->structured_data_item_count,
+    &source_analysis->structured_data_item_capacity, 32U, sizeof(*source_analysis->structured_data_items));
+  if (grown == NULL) return -1;
+  source_analysis->structured_data_items = grown;
+  source_analysis->structured_data_items[source_analysis->structured_data_item_count++] = copy;
+  if (source_analysis->policy.structured_data_item_count < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT) {
+    source_analysis->policy.structured_data_items[source_analysis->policy.structured_data_item_count++] = copy;
+  }
+  return 0;
+}
+
+size_t m68k_ir_source_analysis_structured_data_item_count(const M68kSourceAnalysisIR *source_analysis) {
+  if (source_analysis == NULL) return 0U;
+  return source_analysis->structured_data_item_count != 0U ? source_analysis->structured_data_item_count :
+    source_analysis->policy.structured_data_item_count;
+}
+
+const M68kAnalysisStructuredDataItem *m68k_ir_source_analysis_structured_data_item_at(
+    const M68kSourceAnalysisIR *source_analysis, size_t index) {
+  if (source_analysis == NULL) return NULL;
+  if (source_analysis->structured_data_item_count != 0U) {
+    return index < source_analysis->structured_data_item_count ? &source_analysis->structured_data_items[index] : NULL;
+  }
+  return index < source_analysis->policy.structured_data_item_count &&
+    index < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT ? &source_analysis->policy.structured_data_items[index] : NULL;
+}
+
+int m68k_ir_source_analysis_set_policy(M68kSourceAnalysisIR *source_analysis, const M68kAnalysisPolicy *policy) {
+  uint16_t index;
+  uint16_t structured_count;
+  int copied_source_policy = 0;
+  M68kAnalysisPolicy policy_copy;
+  const M68kAnalysisPolicy *source_policy;
+  if (source_analysis == NULL || policy == NULL) return -1;
+  source_policy = policy;
+  if (policy == &source_analysis->policy) {
+    m68k_analysis_policy_init_default(&policy_copy);
+    if (m68k_analysis_policy_copy(&policy_copy, policy) != 0) return -1;
+    source_policy = &policy_copy;
+    copied_source_policy = 1;
+  }
+  m68k_analysis_policy_destroy(&source_analysis->policy);
+  source_analysis->structured_data_items = NULL;
+  source_analysis->structured_data_item_count = 0U;
+  source_analysis->structured_data_item_capacity = 0U;
+  if (m68k_analysis_policy_copy(&source_analysis->policy, source_policy) != 0) {
+    if (copied_source_policy) m68k_analysis_policy_destroy(&policy_copy);
+    return -1;
+  }
+  structured_count = source_analysis->policy.structured_data_item_count;
+  source_analysis->policy.structured_data_item_count = 0U;
+  for (index = 0U; index < structured_count && index < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT; ++index) {
+    if (m68k_ir_source_analysis_append_structured_data_item(source_analysis,
+        &source_policy->structured_data_items[index]) != 0) {
+      if (copied_source_policy) m68k_analysis_policy_destroy(&policy_copy);
+      return -1;
+    }
+  }
+  if (copied_source_policy) m68k_analysis_policy_destroy(&policy_copy);
+  return 0;
+}
+
 void m68k_ir_symbol_ref_init(M68kSymbolRefIR *symbol_ref) {
   if (symbol_ref == NULL) return;
 
@@ -404,6 +649,7 @@ void m68k_analysis_policy_destroy(M68kAnalysisPolicy *policy) {
 
 int m68k_analysis_policy_copy(M68kAnalysisPolicy *dest, const M68kAnalysisPolicy *src) {
   uint16_t custom_struct_count;
+  uint16_t index;
   M68kAnalysisCustomStruct *custom_structs = NULL;
   if (dest == NULL || src == NULL) return -1;
   custom_struct_count = src->custom_struct_count;
@@ -417,6 +663,10 @@ int m68k_analysis_policy_copy(M68kAnalysisPolicy *dest, const M68kAnalysisPolicy
   dest->custom_structs = custom_structs;
   dest->custom_struct_capacity = custom_struct_count;
   dest->custom_struct_owner = custom_struct_count != 0U ? 1U : 0U;
+  for (index = 0U; index < dest->structured_data_item_count &&
+       index < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT; ++index) {
+    m68k_analysis_structured_data_item_refresh_text_lengths(&dest->structured_data_items[index]);
+  }
   return 0;
 }
 
@@ -2467,11 +2717,18 @@ static void source_analysis_update_materialized_table_conflict(M68kSourceAnalysi
 }
 
 void m68k_ir_source_analysis_finalize_table_conflicts(M68kSourceAnalysisIR *source_analysis) {
-  uint16_t index;
+  size_t index;
+  size_t item_count;
+  int has_dynamic_items;
   if (source_analysis == NULL) return;
-  for (index = 0U; index < source_analysis->policy.structured_data_item_count &&
-       index < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT; ++index) {
-    M68kAnalysisStructuredDataItem *item = &source_analysis->policy.structured_data_items[index];
+  has_dynamic_items = source_analysis->structured_data_item_count != 0U;
+  item_count = has_dynamic_items ? source_analysis->structured_data_item_count :
+    source_analysis->policy.structured_data_item_count;
+  if (!has_dynamic_items && item_count > M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT)
+    item_count = M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT;
+  for (index = 0U; index < item_count; ++index) {
+    M68kAnalysisStructuredDataItem *item = has_dynamic_items ? &source_analysis->structured_data_items[index] :
+      &source_analysis->policy.structured_data_items[index];
     if (item->table_kind_id == M68K_ANALYSIS_TABLE_KIND_UNKNOWN) continue;
     if (source_analysis_structured_item_range_overlaps_accepted_code(source_analysis, item)) {
       item->table_conflicted = 1U;
@@ -2484,6 +2741,11 @@ void m68k_ir_source_analysis_finalize_table_conflicts(M68kSourceAnalysisIR *sour
       item->table_conflict_state = M68K_ANALYSIS_CONFLICT_STATE_CLEAN;
     }
     source_analysis_update_materialized_table_conflict(source_analysis, item);
+  }
+  if (!has_dynamic_items) return;
+  for (index = 0U; index < source_analysis->policy.structured_data_item_count; ++index) {
+    if (index >= item_count) break;
+    source_analysis->policy.structured_data_items[index] = source_analysis->structured_data_items[index];
   }
 }
 

@@ -111,7 +111,7 @@ def test_macos_code_listing_artifact_uses_macos_platform_backend_for_opword_call
     trap_row = next(row for row in window["rows"] if str(row.get("text") or "").strip() == "_UnloadSeg")
     api_call = trap_row.get("api_call")
     assert isinstance(api_call, dict)
-    assert api_call["function"] == "_UnloadSeg"
+    assert api_call["function"] == "UnloadSeg"
     assert api_call["note_symbol_name"] == "_UnloadSeg"
 
 

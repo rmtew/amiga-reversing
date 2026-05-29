@@ -724,6 +724,47 @@ Covered by:
 
 - `test_real_dll_026_table_descriptors_use_evidence_bounds_not_caps`
 
+### Pass 5: Dynamic Source-Analysis Structured Data
+
+The fifth pass fixes a capacity boundary that showed up only on a real imported
+target after regenerating every tracked `asm.s`.
+
+`amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5__amiga_hunk_king_481902ec`
+produces more than 256 generated structured data records. Treating the fixed
+`M68kAnalysisPolicy` seed array as the generated-analysis storage cap was the
+wrong model:
+
+```text
+M68kAnalysisPolicy
+  bounded input ABI / user seed compatibility mirror
+
+M68kSourceAnalysisIR
+  arena-owned generated analysis records
+  no source-visible fixed structured-data cap
+```
+
+Implemented changes:
+
+- generated auto structured-data records are appended to dynamic
+  `M68kSourceAnalysisIR` storage;
+- the first 256 records are still mirrored into `M68kAnalysisPolicy` for the
+  existing bounded ABI surface;
+- source-analysis JSON, listing metadata, table descriptors, and range ownership
+  consume the dynamic source-analysis accessor instead of the fixed policy
+  array;
+- hitting the old fixed seed-array size no longer refuses source analysis or
+  drops accepted C records from reports;
+- synthetic C coverage now proves 300 generated string records survive in source
+  analysis while the compatibility mirror remains bounded.
+
+Covered by:
+
+- `facts_v2_source_analysis_retains_many_auto_structured_strings`
+
+Regenerating all 36 tracked target `asm.s` files after this change produced no
+source diffs, which proves this pass removes the capacity bug without adding
+render churn.
+
 ## Implementation Order
 
 1. Add the C range/conflict record shape without changing rendering. Done in
@@ -738,6 +779,8 @@ Covered by:
    those scans now stop on structural boundaries and accepted target evidence.
    Any remaining source-visible cap hit must become an explicit
    analysis-incomplete/conflict state, not a fallback to anonymous bytes.
+   Generated source-analysis structured data is no longer capped by the fixed
+   policy seed array; see Pass 5.
 5. Port existing pointer-table and relative-table recognizers onto descriptors.
 6. Add arbitration rules for orphan code vs weak text shape.
 7. Add platform evidence adapters for Amiga, Atari, and Mac where facts already
@@ -799,14 +842,23 @@ renderers.
   hard incomplete-analysis/conflict condition that blocks promotion. It should
   not silently fall back to byte rendering, because that hides inferior bounds
   behind source output that looks intentional.
+- The fixed `M68kAnalysisPolicy` structured-data array is now explicitly a
+  bounded input/ABI compatibility surface, not generated-analysis capacity.
+  Future generated record types should follow the same pattern: dynamic C-owned
+  source-analysis storage first, bounded mirrors only where an existing public
+  API requires them.
 - The decompression analysis JSON path now uses an isolated scratch arena for
   temporary event arrays. The previous shared-analysis-arena use was a valid
   repro of a nested arena lifetime/reentrancy hazard; future arena work should
   clarify which nested analysis paths may use shared arenas and add a focused
   contract test for that rule.
-- One broad `tests/test_c_backend.py` run exposed an access violation in the
-  Voodoo analysis path after many prior DLL calls, but the individual failing
-  tests, the adjacent decompression subset, and a full-suite rerun all passed.
-  There is no stable repro from this pass, but the symptom matches the class of
-  process-lifetime/native-state corruption that should be investigated with a
-  repeat-loop harness if it recurs.
+- The Voodoo same-process access violation was reproduced with a repeat-loop
+  harness and fixed in the C renderer. Accepted-code range construction was
+  scanning allocation/render extents while its byte ownership map represented
+  stored bytes only. The fix keeps accepted-code range scans bounded to stored
+  section bytes, preserving allocation-size metadata without reading past the
+  map for Amiga sections with uninitialized tails.
+- The Mac listing-artifact path now normalizes MacBinary/NDIF images through the
+  same HFS-byte helper used by the import and payload paths before calling the C
+  HFS parser. The C artifact path also reports concrete HFS/CODE creation
+  failures instead of collapsing bare parser/load exits into a generic message.

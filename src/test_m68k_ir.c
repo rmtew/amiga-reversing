@@ -294,6 +294,8 @@ static int test_instruction_mnemonic_helpers_use_id(void) {
 
 static int test_structured_data_role_flags_setter_owns_display_text(void) {
   M68kAnalysisStructuredDataItem item;
+  size_t text_length = 0U;
+  const char *text;
   memset(&item, 0, sizeof(item));
   snprintf(item.semantic_role, sizeof(item.semantic_role), "%s", "stale");
   m68k_analysis_structured_data_item_set_semantic_role_flags(&item,
@@ -302,6 +304,10 @@ static int test_structured_data_role_flags_setter_owns_display_text(void) {
     M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING | M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LENGTH_PREFIXED_STRING,
     item.semantic_role_flags);
   M68K_C_ASSERT_STR("length_prefixed_string", item.semantic_role);
+  text = m68k_analysis_structured_data_item_text(&item, M68K_ANALYSIS_STRUCTURED_DATA_TEXT_SEMANTIC_ROLE,
+    &text_length);
+  M68K_C_ASSERT(text != NULL);
+  M68K_C_ASSERT_U32(22U, text_length);
   M68K_C_ASSERT_U32(M68K_ANALYSIS_TABLE_KIND_UNKNOWN, item.table_kind_id);
   item.kind = M68K_ANALYSIS_STRUCTURED_DATA_WORDS;
   item.has_target = 1U;
@@ -318,6 +324,44 @@ static int test_structured_data_role_flags_setter_owns_display_text(void) {
   M68K_C_ASSERT_STR("", item.semantic_role);
   M68K_C_ASSERT_U32(M68K_ANALYSIS_TABLE_KIND_UNKNOWN, item.table_kind_id);
   M68K_C_ASSERT_U32(M68K_ANALYSIS_TABLE_BASE_EXPRESSION_UNKNOWN, item.table_base_expression_id);
+  return 0;
+}
+
+static int test_structured_data_text_uses_explicit_bounded_length(void) {
+  M68kAnalysisStructuredDataItem item;
+  M68kSourceAnalysisIR source_analysis;
+  const M68kAnalysisStructuredDataItem *stored;
+  const char *text;
+  size_t text_length = 0U;
+  const size_t label_length = sizeof(item.label) - 1U;
+  const size_t comment_length = sizeof(item.comment) - 1U;
+  char *analysis_json = NULL;
+  memset(&item, 0, sizeof(item));
+  memset(item.label, 'A', label_length);
+  memset(item.comment, 'B', comment_length);
+  item.label_len = (uint16_t)label_length;
+  item.comment_len = (uint16_t)comment_length;
+  item.has_section_index = 1U;
+  item.section_index = 0U;
+  item.offset = 4U;
+  item.size = 2U;
+  item.kind = M68K_ANALYSIS_STRUCTURED_DATA_WORDS;
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_create(&source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_structured_data_item(&source_analysis, &item));
+  stored = m68k_ir_source_analysis_structured_data_item_at(&source_analysis, 0U);
+  M68K_C_ASSERT(stored != NULL);
+  text = m68k_analysis_structured_data_item_text(stored, M68K_ANALYSIS_STRUCTURED_DATA_TEXT_LABEL, &text_length);
+  M68K_C_ASSERT(text != NULL);
+  M68K_C_ASSERT_U32((uint32_t)label_length, (uint32_t)text_length);
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"label\":\"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"comment\":\"BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB\"")
+    != NULL);
+  free(analysis_json);
+  m68k_ir_source_analysis_destroy(&source_analysis);
   return 0;
 }
 
@@ -9277,6 +9321,40 @@ static int test_source_analysis_range_ownership_records_code_text_and_table(void
     "\"table_kind_id\":2") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"consumer_section_index\":0,\"consumer_offset\":0") != NULL);
   free(analysis_json);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_source_analysis_code_ranges_stop_at_stored_section_bytes(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  const M68kSectionAnalysisIR *analysis_section;
+  size_t index;
+  uint8_t bytes[2] = {0x4e, 0x75};
+  memset(&section, 0, sizeof(section));
+  memset(&source_analysis, 0, sizeof(source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  section.kind = M68K_SECTION_CODE;
+  section.size = 64U;
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  M68K_C_ASSERT(m68k_object_add_section(&object, &section).ok);
+  m68k_analysis_policy_init_default(&policy);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
+    &source_analysis, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.section_count);
+  analysis_section = &source_analysis.sections[0];
+  M68K_C_ASSERT_U32(64U, analysis_section->section_size);
+  for (index = 0U; index < analysis_section->range_ownership_count; ++index) {
+    const M68kRangeOwnershipIR *range = &analysis_section->range_ownerships[index];
+    if (range->kind == M68K_RANGE_OWNERSHIP_CODE) {
+      M68K_C_ASSERT(range->end_offset <= sizeof(bytes));
+    }
+  }
   m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_object_destroy(&object);
   return 0;
@@ -19022,7 +19100,7 @@ static int test_facts_v2_fixed_width_text_table_is_not_length_prefixed(void) {
   return 0;
 }
 
-static int test_facts_v2_source_analysis_caps_many_auto_structured_strings(void) {
+static int test_facts_v2_source_analysis_retains_many_auto_structured_strings(void) {
   M68kObject object;
   M68kSection section;
   M68kAnalysisPolicy policy;
@@ -19054,14 +19132,18 @@ static int test_facts_v2_source_analysis_caps_many_auto_structured_strings(void)
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
     &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
-  for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
-    const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
-    if (item->has_section_index && item->section_index == 0U &&
+  for (index = 0U; index < m68k_ir_source_analysis_structured_data_item_count(&source_analysis); ++index) {
+    const M68kAnalysisStructuredDataItem *item =
+      m68k_ir_source_analysis_structured_data_item_at(&source_analysis, index);
+    if (item != NULL && item->has_section_index && item->section_index == 0U &&
         structured_data_item_has_role(item, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING))
       ++string_items;
   }
-  M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT, string_items);
+  M68K_C_ASSERT_U32(record_count, string_items);
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT,
+    source_analysis.policy.structured_data_item_count);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(M68K_RENDER_IR_ASM_SOURCE_FAILURE_NONE, profile.asm_source_first_failure_kind);
   m68k_facts_v2_free_text(source);
   m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_object_destroy(&object);
@@ -22013,6 +22095,8 @@ int m68k_c_ir_tests(void) {
     {"instruction_mnemonic_helpers_use_id", test_instruction_mnemonic_helpers_use_id},
     {"structured_data_role_flags_setter_owns_display_text",
       test_structured_data_role_flags_setter_owns_display_text},
+    {"structured_data_text_uses_explicit_bounded_length",
+      test_structured_data_text_uses_explicit_bounded_length},
     {"recovered_indirect_source_pattern_ids", test_recovered_indirect_source_pattern_ids},
     {"recovered_platform_transfer_source_kind_uses_ids",
       test_recovered_platform_transfer_source_kind_uses_ids},
@@ -22276,6 +22360,8 @@ int m68k_c_ir_tests(void) {
       test_source_analysis_table_record_marks_unaccepted_code_target_conflict},
     {"source_analysis_range_ownership_records_code_text_and_table",
       test_source_analysis_range_ownership_records_code_text_and_table},
+    {"source_analysis_code_ranges_stop_at_stored_section_bytes",
+      test_source_analysis_code_ranges_stop_at_stored_section_bytes},
     {"source_analysis_table_descriptor_exports_conflict",
       test_source_analysis_table_descriptor_exports_conflict},
     {"source_analysis_range_ownership_exports_conflict",
@@ -22657,8 +22743,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_macos_highbit_symbol_string_renders_structured_data},
     {"facts_v2_highbit_symbol_string_is_not_generic_pascal",
       test_facts_v2_highbit_symbol_string_is_not_generic_pascal},
-    {"facts_v2_source_analysis_caps_many_auto_structured_strings",
-      test_facts_v2_source_analysis_caps_many_auto_structured_strings},
+    {"facts_v2_source_analysis_retains_many_auto_structured_strings",
+      test_facts_v2_source_analysis_retains_many_auto_structured_strings},
     {"facts_v2_render_asm_source_infers_lvo_immediate_for_indexed_wrapper",
       test_facts_v2_render_asm_source_infers_lvo_immediate_for_indexed_wrapper},
     {"facts_v2_render_asm_source_infers_lvo_immediate_for_d6_indexed_wrapper",

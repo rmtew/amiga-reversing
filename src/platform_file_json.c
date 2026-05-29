@@ -949,6 +949,25 @@ static int json_builder_append_nullable_string(JsonBuilder *builder, const char 
   return json_builder_append_json_string(builder, text);
 }
 
+static int json_builder_append_nullable_string_len(JsonBuilder *builder, const char *text, size_t length) {
+  if (builder == NULL) return -1;
+  if (text == NULL || length == 0U) return json_builder_append(&builder[0], "null");
+  return json_builder_append_json_string_len(builder, text, length);
+}
+
+static int append_structured_data_item_text_json(JsonBuilder *builder,
+    const M68kAnalysisStructuredDataItem *item, uint8_t field) {
+  size_t length = 0U;
+  const char *text = m68k_analysis_structured_data_item_text(item, field, &length);
+  return json_builder_append_nullable_string_len(builder, text, length);
+}
+
+static int structured_data_item_text_is_empty(const M68kAnalysisStructuredDataItem *item, uint8_t field) {
+  size_t length = 0U;
+  (void)m68k_analysis_structured_data_item_text(item, field, &length);
+  return length == 0U;
+}
+
 static int json_builder_append_disp_string(JsonBuilder *builder, int16_t displacement) {
   char text[16];
   if (displacement < 0) {
@@ -2193,13 +2212,16 @@ static uint32_t structured_data_item_role_flags_json(const M68kAnalysisStructure
   return item->semantic_role_flags;
 }
 
-static int append_source_analysis_policy_structured_items_json(JsonBuilder *builder,
-    const M68kAnalysisPolicy *policy) {
-  uint16_t index;
-  if (builder == NULL || policy == NULL) return -1;
-  for (index = 0U; index < policy->structured_data_item_count &&
-       index < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT; ++index) {
-    const M68kAnalysisStructuredDataItem *item = &policy->structured_data_items[index];
+static int append_source_analysis_structured_items_json(JsonBuilder *builder,
+    const M68kSourceAnalysisIR *source_analysis) {
+  size_t index;
+  size_t item_count;
+  if (builder == NULL || source_analysis == NULL) return -1;
+  item_count = m68k_ir_source_analysis_structured_data_item_count(source_analysis);
+  for (index = 0U; index < item_count; ++index) {
+    const M68kAnalysisStructuredDataItem *item =
+      m68k_ir_source_analysis_structured_data_item_at(source_analysis, index);
+    if (item == NULL) return -1;
     if (index != 0U && json_builder_append(builder, ",") != 0) return -1;
     if (json_builder_appendf(builder, "{\"section_index\":") != 0) return -1;
     if (item->has_section_index) {
@@ -2240,11 +2262,10 @@ static int append_source_analysis_policy_structured_items_json(JsonBuilder *buil
         m68k_analysis_table_base_expression_name(item->table_base_expression_id)) != 0)
       return -1;
     if (json_builder_append(builder, ",\"label\":") != 0) return -1;
-    if (json_builder_append_nullable_string(builder, item->label[0] != '\0' ? item->label : NULL) != 0)
+    if (append_structured_data_item_text_json(builder, item, M68K_ANALYSIS_STRUCTURED_DATA_TEXT_LABEL) != 0)
       return -1;
     if (json_builder_append(builder, ",\"struct_name\":") != 0) return -1;
-    if (json_builder_append_nullable_string(builder, item->struct_name[0] != '\0' ?
-        item->struct_name : NULL) != 0) {
+    if (append_structured_data_item_text_json(builder, item, M68K_ANALYSIS_STRUCTURED_DATA_TEXT_STRUCT_NAME) != 0) {
       return -1;
     }
     if (json_builder_appendf(builder,
@@ -2253,7 +2274,7 @@ static int append_source_analysis_policy_structured_items_json(JsonBuilder *buil
           (unsigned)item->field_id, (unsigned)item->pointer_struct_id) != 0)
       return -1;
     if (json_builder_append(builder, ",\"comment\":") != 0) return -1;
-    if (json_builder_append_nullable_string(builder, item->comment[0] != '\0' ? item->comment : NULL) != 0)
+    if (append_structured_data_item_text_json(builder, item, M68K_ANALYSIS_STRUCTURED_DATA_TEXT_COMMENT) != 0)
       return -1;
     if (json_builder_appendf(builder, ",\"has_target\":%s,\"target_section\":",
         item->has_target ? "true" : "false") != 0) {
@@ -2283,13 +2304,16 @@ static uint32_t structured_data_item_entry_size(const M68kAnalysisStructuredData
   return 0U;
 }
 
-static size_t source_analysis_table_record_count(const M68kAnalysisPolicy *policy) {
-  uint16_t index;
+static size_t source_analysis_table_record_count(const M68kSourceAnalysisIR *source_analysis) {
+  size_t index;
+  size_t item_count;
   size_t count = 0U;
-  if (policy == NULL) return 0U;
-  for (index = 0U; index < policy->structured_data_item_count &&
-       index < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT; ++index) {
-    if (policy->structured_data_items[index].table_kind_id != M68K_ANALYSIS_TABLE_KIND_UNKNOWN) {
+  if (source_analysis == NULL) return 0U;
+  item_count = m68k_ir_source_analysis_structured_data_item_count(source_analysis);
+  for (index = 0U; index < item_count; ++index) {
+    const M68kAnalysisStructuredDataItem *item =
+      m68k_ir_source_analysis_structured_data_item_at(source_analysis, index);
+    if (item != NULL && item->table_kind_id != M68K_ANALYSIS_TABLE_KIND_UNKNOWN) {
       ++count;
     }
   }
@@ -2414,22 +2438,31 @@ static int append_source_analysis_table_candidate_records_json(JsonBuilder *buil
 
 static int append_source_analysis_table_records_json(JsonBuilder *builder,
     const M68kSourceAnalysisIR *source_analysis) {
-  uint16_t index;
+  size_t index;
+  size_t item_count;
   size_t emitted = 0U;
-  const M68kAnalysisPolicy *policy;
   if (builder == NULL || source_analysis == NULL) return -1;
-  policy = &source_analysis->policy;
-  for (index = 0U; index < policy->structured_data_item_count &&
-       index < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT; ++index) {
-    const M68kAnalysisStructuredDataItem *item = &policy->structured_data_items[index];
-    uint32_t role_flags = structured_data_item_role_flags_json(item);
-    uint8_t table_kind_id = item->table_kind_id;
-    uint8_t base_expression_id = item->table_base_expression_id;
-    const char *table_kind = m68k_analysis_table_kind_name(table_kind_id);
-    const char *base_expression = m68k_analysis_table_base_expression_name(base_expression_id);
-    const char *role_name = m68k_analysis_structured_data_role_name_for_flags(role_flags);
-    uint32_t entry_size = structured_data_item_entry_size(item);
-    uint32_t entry_count = entry_size != 0U ? item->size / entry_size : 0U;
+  item_count = m68k_ir_source_analysis_structured_data_item_count(source_analysis);
+  for (index = 0U; index < item_count; ++index) {
+    const M68kAnalysisStructuredDataItem *item =
+      m68k_ir_source_analysis_structured_data_item_at(source_analysis, index);
+    uint32_t role_flags;
+    uint8_t table_kind_id;
+    uint8_t base_expression_id;
+    const char *table_kind;
+    const char *base_expression;
+    const char *role_name;
+    uint32_t entry_size;
+    uint32_t entry_count;
+    if (item == NULL) return -1;
+    role_flags = structured_data_item_role_flags_json(item);
+    table_kind_id = item->table_kind_id;
+    base_expression_id = item->table_base_expression_id;
+    table_kind = m68k_analysis_table_kind_name(table_kind_id);
+    base_expression = m68k_analysis_table_base_expression_name(base_expression_id);
+    role_name = m68k_analysis_structured_data_role_name_for_flags(role_flags);
+    entry_size = structured_data_item_entry_size(item);
+    entry_count = entry_size != 0U ? item->size / entry_size : 0U;
     if (table_kind == NULL || base_expression == NULL || role_name == NULL) continue;
     if (emitted++ != 0U && json_builder_append(builder, ",") != 0) return -1;
     if (json_builder_append(builder, "{\"section_index\":") != 0) return -1;
@@ -3216,7 +3249,7 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
   size_t orphan_code_signal_count = 0U;
   uint32_t orphan_status_counts[8] = {0U};
   uint32_t orphan_missing_inbound_counts[9] = {0U};
-  size_t table_record_count = source_analysis_table_record_count(source_analysis != NULL ? &source_analysis->policy : NULL);
+  size_t table_record_count = source_analysis_table_record_count(source_analysis);
   size_t table_candidate_record_count = source_analysis_table_candidate_record_count(source_analysis);
   size_t memory_layout_record_count = source_analysis_memory_layout_record_count(source_analysis);
   for (section_index = 0U; source_analysis != NULL && section_index < source_analysis->section_count; ++section_index) {
@@ -3240,10 +3273,10 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
       "\"structured_data_item_count\":%u,\"structured_data_items\":[",
       (unsigned)source_analysis->file_kind, (unsigned)source_analysis->policy.max_cpu,
       (unsigned)source_analysis->policy.entry_point_count,
-      (unsigned)source_analysis->policy.structured_data_item_count) != 0) {
+      (unsigned)m68k_ir_source_analysis_structured_data_item_count(source_analysis)) != 0) {
     goto oom;
   }
-  if (append_source_analysis_policy_structured_items_json(&builder, &source_analysis->policy) != 0)
+  if (append_source_analysis_structured_items_json(&builder, source_analysis) != 0)
     goto oom;
   if (json_builder_appendf(&builder,
       "]},\"findings\":{\"required_cpu\":%u,\"cpu_violation_count\":%u},\"platform_summary\":",
@@ -4329,9 +4362,30 @@ static int append_listing_source_context(JsonBuilder *builder, const char *kind,
 }
 
 static const M68kAnalysisStructuredDataItem *listing_structured_data_item_at_offset(
-    const M68kAnalysisPolicy *policy, int section_index, uint32_t offset) {
-  uint16_t index;
-  if (policy == NULL || section_index < 0) return NULL;
+    const M68kSourceAnalysisIR *source_analysis, const M68kAnalysisPolicy *policy, int section_index,
+    uint32_t offset) {
+  size_t index;
+  size_t item_count;
+  if (section_index < 0) return NULL;
+  item_count = source_analysis != NULL ? m68k_ir_source_analysis_structured_data_item_count(source_analysis) : 0U;
+  if (item_count != 0U) {
+    for (index = 0U; index < item_count; ++index) {
+      const M68kAnalysisStructuredDataItem *item =
+        m68k_ir_source_analysis_structured_data_item_at(source_analysis, index);
+      uint32_t end_offset;
+      if (item == NULL) continue;
+      if (item->has_section_index) {
+        if (item->section_index != (uint32_t)section_index) continue;
+      } else if (section_index != 0) {
+        continue;
+      }
+      if (item->size == 0U || offset < item->offset || item->size > UINT32_MAX - item->offset) continue;
+      end_offset = item->offset + item->size;
+      if (offset < end_offset) return item;
+    }
+    return NULL;
+  }
+  if (policy == NULL) return NULL;
   for (index = 0U; index < policy->structured_data_item_count &&
        index < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT; ++index) {
     const M68kAnalysisStructuredDataItem *item = &policy->structured_data_items[index];
@@ -4350,9 +4404,15 @@ static const M68kAnalysisStructuredDataItem *listing_structured_data_item_at_off
 
 static int append_listing_structured_data_json(JsonBuilder *builder, const M68kAnalysisStructuredDataItem *item) {
   uint32_t semantic_role_flags = structured_data_item_role_flags_json(item);
-  if (item == NULL || (item->label[0] == '\0' && item->struct_name[0] == '\0' && item->field_name[0] == '\0' &&
-        item->field_type[0] == '\0' && item->c_type[0] == '\0' && item->pointer_struct[0] == '\0' &&
-        item->value_domain[0] == '\0' && item->constant_name[0] == '\0' && semantic_role_flags == 0U &&
+  if (item == NULL || (structured_data_item_text_is_empty(item, M68K_ANALYSIS_STRUCTURED_DATA_TEXT_LABEL) &&
+        structured_data_item_text_is_empty(item, M68K_ANALYSIS_STRUCTURED_DATA_TEXT_STRUCT_NAME) &&
+        structured_data_item_text_is_empty(item, M68K_ANALYSIS_STRUCTURED_DATA_TEXT_FIELD_NAME) &&
+        structured_data_item_text_is_empty(item, M68K_ANALYSIS_STRUCTURED_DATA_TEXT_FIELD_TYPE) &&
+        structured_data_item_text_is_empty(item, M68K_ANALYSIS_STRUCTURED_DATA_TEXT_C_TYPE) &&
+        structured_data_item_text_is_empty(item, M68K_ANALYSIS_STRUCTURED_DATA_TEXT_POINTER_STRUCT) &&
+        structured_data_item_text_is_empty(item, M68K_ANALYSIS_STRUCTURED_DATA_TEXT_VALUE_DOMAIN) &&
+        structured_data_item_text_is_empty(item, M68K_ANALYSIS_STRUCTURED_DATA_TEXT_CONSTANT_NAME) &&
+        semantic_role_flags == 0U &&
         item->source_pattern_id == M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_UNKNOWN &&
         item->platform_kind_id == M68K_ANALYSIS_STRUCTURED_DATA_PLATFORM_KIND_NONE &&
         item->platform_field_id == M68K_ANALYSIS_STRUCTURED_DATA_PLATFORM_FIELD_NONE &&
@@ -4364,12 +4424,12 @@ static int append_listing_structured_data_json(JsonBuilder *builder, const M68kA
   if (json_builder_appendf(builder, "{\"section_index\":%u,\"offset\":%u,\"size\":%u,\"kind\":%u,\"label\":",
       item->has_section_index ? (unsigned)item->section_index : 0U, (unsigned)item->offset,
       (unsigned)item->size, (unsigned)item->kind) != 0) return -1;
-  if (json_builder_append_nullable_string(builder, item->label[0] != '\0' ? item->label : NULL) != 0) return -1;
+  if (append_structured_data_item_text_json(builder, item, M68K_ANALYSIS_STRUCTURED_DATA_TEXT_LABEL) != 0) return -1;
   if (json_builder_append(builder, ",\"struct_name\":") != 0) return -1;
-  if (json_builder_append_nullable_string(builder, item->struct_name[0] != '\0' ? item->struct_name : NULL) != 0)
+  if (append_structured_data_item_text_json(builder, item, M68K_ANALYSIS_STRUCTURED_DATA_TEXT_STRUCT_NAME) != 0)
     return -1;
   if (json_builder_append(builder, ",\"field_name\":") != 0) return -1;
-  if (json_builder_append_nullable_string(builder, item->field_name[0] != '\0' ? item->field_name : NULL) != 0)
+  if (append_structured_data_item_text_json(builder, item, M68K_ANALYSIS_STRUCTURED_DATA_TEXT_FIELD_NAME) != 0)
     return -1;
   if (json_builder_appendf(builder,
         ",\"platform_kind_id\":%u,\"platform_field_id\":%u,\"struct_id\":%u,\"field_id\":%u",
@@ -4377,21 +4437,21 @@ static int append_listing_structured_data_json(JsonBuilder *builder, const M68kA
         (unsigned)item->field_id) != 0)
     return -1;
   if (json_builder_append(builder, ",\"field_type\":") != 0) return -1;
-  if (json_builder_append_nullable_string(builder, item->field_type[0] != '\0' ? item->field_type : NULL) != 0)
+  if (append_structured_data_item_text_json(builder, item, M68K_ANALYSIS_STRUCTURED_DATA_TEXT_FIELD_TYPE) != 0)
     return -1;
   if (json_builder_append(builder, ",\"c_type\":") != 0) return -1;
-  if (json_builder_append_nullable_string(builder, item->c_type[0] != '\0' ? item->c_type : NULL) != 0)
+  if (append_structured_data_item_text_json(builder, item, M68K_ANALYSIS_STRUCTURED_DATA_TEXT_C_TYPE) != 0)
     return -1;
   if (json_builder_append(builder, ",\"pointer_struct\":") != 0) return -1;
-  if (json_builder_append_nullable_string(builder, item->pointer_struct[0] != '\0' ? item->pointer_struct : NULL) != 0)
+  if (append_structured_data_item_text_json(builder, item, M68K_ANALYSIS_STRUCTURED_DATA_TEXT_POINTER_STRUCT) != 0)
     return -1;
   if (json_builder_appendf(builder, ",\"pointer_struct_id\":%u", (unsigned)item->pointer_struct_id) != 0)
     return -1;
   if (json_builder_append(builder, ",\"value_domain\":") != 0) return -1;
-  if (json_builder_append_nullable_string(builder, item->value_domain[0] != '\0' ? item->value_domain : NULL) != 0)
+  if (append_structured_data_item_text_json(builder, item, M68K_ANALYSIS_STRUCTURED_DATA_TEXT_VALUE_DOMAIN) != 0)
     return -1;
   if (json_builder_append(builder, ",\"constant_name\":") != 0) return -1;
-  if (json_builder_append_nullable_string(builder, item->constant_name[0] != '\0' ? item->constant_name : NULL) != 0)
+  if (append_structured_data_item_text_json(builder, item, M68K_ANALYSIS_STRUCTURED_DATA_TEXT_CONSTANT_NAME) != 0)
     return -1;
   if (json_builder_appendf(builder, ",\"has_constant_value\":%s,\"constant_value\":",
         item->has_constant_value ? "true" : "false") != 0)
@@ -6803,7 +6863,7 @@ static int append_listing_row_json_parsed(JsonBuilder *builder, size_t row_index
     else if (stmt->kind == M68K_STATEMENT_DATA) byte_count = (uint32_t)stmt->u.data.size;
     end_offset = addr + byte_count;
     label = stmt->label_name;
-    structured_item = listing_structured_data_item_at_offset(analysis_policy, section_index, addr);
+    structured_item = listing_structured_data_item_at_offset(source_analysis, analysis_policy, section_index, addr);
     suppress_offset_runtime_refs =
       structured_item != NULL && stmt->kind == M68K_STATEMENT_DATA && byte_count > 4U;
     if (has_plan_runtime_address) {
@@ -8169,7 +8229,8 @@ static int listing_navigation_observe_row(ListingNavigationJsonContext *navigati
       ? listing_navigation_orphan_signal_at(section, stmt->offset)
       : NULL;
     const M68kAnalysisStructuredDataItem *structured_item =
-      listing_structured_data_item_at_offset(navigation->analysis_policy, section_index, stmt->offset);
+      listing_structured_data_item_at_offset(navigation->source_analysis, navigation->analysis_policy, section_index,
+        stmt->offset);
     const char *data_class = listing_statement_allows_data_class(stmt)
       ? listing_row_data_class(structured_item, plan_data_class, plan_data_class_flags)
       : NULL;
