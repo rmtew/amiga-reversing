@@ -240,6 +240,24 @@ const char *m68k_data_reference_source_kind_name(uint8_t source_kind) {
   }
 }
 
+const char *m68k_incomplete_analysis_kind_name(uint8_t kind) {
+  switch (kind) {
+    case M68K_INCOMPLETE_ANALYSIS_CAPACITY_EXHAUSTED:
+      return "capacity_exhausted";
+    default:
+      return NULL;
+  }
+}
+
+const char *m68k_incomplete_analysis_source_kind_name(uint8_t source_kind) {
+  switch (source_kind) {
+    case M68K_INCOMPLETE_ANALYSIS_SOURCE_TABLE_TARGET_SET:
+      return "table_target_set";
+    default:
+      return NULL;
+  }
+}
+
 uint8_t m68k_analysis_table_entry_count_proof_for_source_pattern(uint8_t source_pattern_id) {
   switch (source_pattern_id) {
     case M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_RELOCATION_POINTER_TABLE:
@@ -614,6 +632,35 @@ int m68k_ir_source_analysis_append_structured_data_item(M68kSourceAnalysisIR *so
   if (source_analysis->policy.structured_data_item_count < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT) {
     source_analysis->policy.structured_data_items[source_analysis->policy.structured_data_item_count++] = copy;
   }
+  return 0;
+}
+
+int m68k_ir_source_analysis_append_incomplete_analysis(M68kSourceAnalysisIR *source_analysis,
+    const M68kIncompleteAnalysisIR *incomplete) {
+  size_t index;
+  if (source_analysis == NULL || incomplete == NULL) return -1;
+  if (source_analysis->arena == NULL) return -1;
+  if (incomplete->kind == M68K_INCOMPLETE_ANALYSIS_UNKNOWN ||
+      incomplete->source_kind == M68K_INCOMPLETE_ANALYSIS_SOURCE_UNKNOWN) {
+    return 0;
+  }
+  for (index = 0U; index < source_analysis->incomplete_analysis_count; ++index) {
+    const M68kIncompleteAnalysisIR *existing = &source_analysis->incomplete_analyses[index];
+    if (existing->kind == incomplete->kind &&
+        existing->source_kind == incomplete->source_kind &&
+        existing->section_index == incomplete->section_index &&
+        existing->offset == incomplete->offset &&
+        existing->capacity == incomplete->capacity) {
+      if (source_analysis->incomplete_analyses[index].hit_count < incomplete->hit_count)
+        source_analysis->incomplete_analyses[index].hit_count = incomplete->hit_count;
+      return 0;
+    }
+  }
+  source_analysis->incomplete_analyses = (M68kIncompleteAnalysisIR *)arena_grow_array(source_analysis->arena,
+      source_analysis->incomplete_analyses, source_analysis->incomplete_analysis_count,
+      &source_analysis->incomplete_analysis_capacity, 4U, sizeof(*source_analysis->incomplete_analyses));
+  if (source_analysis->incomplete_analyses == NULL) return -1;
+  source_analysis->incomplete_analyses[source_analysis->incomplete_analysis_count++] = *incomplete;
   return 0;
 }
 

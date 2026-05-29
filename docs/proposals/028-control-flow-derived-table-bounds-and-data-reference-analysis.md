@@ -1242,6 +1242,53 @@ The regenerated sources had no tracked `.s` diffs. Round-trip remained
 `34/36` full-file exact, `1/36` content-exact-only, `1/36` unsupported, and
 `0` failures.
 
+### Pass 9: Incomplete Analysis Capacity Evidence
+
+The ninth implementation pass adds a source-analysis level incomplete-analysis
+surface. Capacity exhaustion is now represented as durable C data instead of
+only as an internal counter or an asm-source refusal side effect.
+
+The new surface is:
+
+```text
+M68kIncompleteAnalysisIR
+source_analysis.incomplete_analyses[]
+source-analysis JSON incomplete_analysis[]
+```
+
+The first producer covers the existing table target-set capacity failure path:
+
+```text
+kind        = capacity_exhausted
+source_kind = table_target_set
+section_index
+offset
+capacity
+hit_count
+```
+
+When the facts engine records `table_target_set_limit_hits`, the source
+analysis now also emits a structured incomplete-analysis row. This preserves
+the existing fail-closed source-refusal behavior while giving reports and
+future gates a stable fact to inspect without scraping profile fields.
+
+Covered by:
+
+- `source_analysis_incomplete_analysis_exports_capacity_hit`
+
+Verification after this pass:
+
+```text
+cmd /c src\precommit.bat m68k_ir
+uv run python -m pytest tests\test_c_backend.py -q
+all 36 tracked `.s` files regenerated
+uv run platform-rendered-source-roundtrip
+```
+
+The regenerated sources had no tracked `.s` diffs. Round-trip remained
+`34/36` full-file exact, `1/36` content-exact-only, `1/36` unsupported, and
+`0` failures.
+
 ## Acceptance Criteria
 
 This proposal can close when:

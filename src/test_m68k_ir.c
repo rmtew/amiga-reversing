@@ -9650,6 +9650,31 @@ static int test_source_analysis_data_reference_exports_table_entry(void) {
   return 0;
 }
 
+static int test_source_analysis_incomplete_analysis_exports_capacity_hit(void) {
+  M68kSourceAnalysisIR source_analysis;
+  M68kIncompleteAnalysisIR incomplete;
+  char *analysis_json = NULL;
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_create(&source_analysis));
+  memset(&incomplete, 0, sizeof(incomplete));
+  incomplete.kind = M68K_INCOMPLETE_ANALYSIS_CAPACITY_EXHAUSTED;
+  incomplete.source_kind = M68K_INCOMPLETE_ANALYSIS_SOURCE_TABLE_TARGET_SET;
+  incomplete.section_index = 1U;
+  incomplete.offset = 0x120U;
+  incomplete.capacity = 64U;
+  incomplete.hit_count = 3U;
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_incomplete_analysis(&source_analysis, &incomplete));
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"incomplete_analysis_count\":1") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"incomplete_analysis\":[{\"kind\":1,\"kind_name\":\"capacity_exhausted\","
+    "\"source_kind\":1,\"source_kind_name\":\"table_target_set\","
+    "\"section_index\":1,\"offset\":288,\"capacity\":64,\"hit_count\":3}") != NULL);
+  free(analysis_json);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  return 0;
+}
+
 static int test_source_analysis_range_ownership_exports_conflict(void) {
   M68kSourceAnalysisIR source_analysis;
   M68kSectionAnalysisIR section_analysis;
@@ -22756,6 +22781,8 @@ int m68k_c_ir_tests(void) {
       test_source_analysis_table_entry_exports_status},
     {"source_analysis_data_reference_exports_table_entry",
       test_source_analysis_data_reference_exports_table_entry},
+    {"source_analysis_incomplete_analysis_exports_capacity_hit",
+      test_source_analysis_incomplete_analysis_exports_capacity_hit},
     {"source_analysis_range_ownership_exports_conflict",
       test_source_analysis_range_ownership_exports_conflict},
     {"source_analysis_platform_storage_effect_conflicts_only_mapped_section_storage",

@@ -1441,6 +1441,26 @@ typedef struct M68kDataReferenceIR {
   uint32_t target_offset;
 } M68kDataReferenceIR;
 
+typedef enum M68kIncompleteAnalysisKind {
+  M68K_INCOMPLETE_ANALYSIS_UNKNOWN = 0,
+  M68K_INCOMPLETE_ANALYSIS_CAPACITY_EXHAUSTED = 1
+} M68kIncompleteAnalysisKind;
+
+typedef enum M68kIncompleteAnalysisSourceKind {
+  M68K_INCOMPLETE_ANALYSIS_SOURCE_UNKNOWN = 0,
+  M68K_INCOMPLETE_ANALYSIS_SOURCE_TABLE_TARGET_SET = 1
+} M68kIncompleteAnalysisSourceKind;
+
+typedef struct M68kIncompleteAnalysisIR {
+  uint8_t kind;
+  uint8_t source_kind;
+  uint8_t reserved[2];
+  uint32_t section_index;
+  uint32_t offset;
+  uint32_t capacity;
+  uint32_t hit_count;
+} M68kIncompleteAnalysisIR;
+
 typedef struct M68kSectionAnalysisIR {
   size_t section_index;
   char *section_name;
@@ -1581,6 +1601,9 @@ typedef struct M68kSourceAnalysisIR {
   M68kAnalysisStructuredDataItem *structured_data_items;
   size_t structured_data_item_count;
   size_t structured_data_item_capacity;
+  M68kIncompleteAnalysisIR *incomplete_analyses;
+  size_t incomplete_analysis_count;
+  size_t incomplete_analysis_capacity;
   M68kPlatformStorageLayoutIR *platform_storage_layouts;
   size_t platform_storage_layout_count;
   size_t platform_storage_layout_capacity;
@@ -1603,6 +1626,8 @@ int m68k_analysis_policy_copy(M68kAnalysisPolicy *dest, const M68kAnalysisPolicy
 int m68k_ir_source_analysis_set_policy(M68kSourceAnalysisIR *source_analysis, const M68kAnalysisPolicy *policy);
 int m68k_ir_source_analysis_append_structured_data_item(M68kSourceAnalysisIR *source_analysis,
   const M68kAnalysisStructuredDataItem *item);
+int m68k_ir_source_analysis_append_incomplete_analysis(M68kSourceAnalysisIR *source_analysis,
+  const M68kIncompleteAnalysisIR *incomplete);
 size_t m68k_ir_source_analysis_structured_data_item_count(const M68kSourceAnalysisIR *source_analysis);
 const M68kAnalysisStructuredDataItem *m68k_ir_source_analysis_structured_data_item_at(
   const M68kSourceAnalysisIR *source_analysis, size_t index);
@@ -1613,6 +1638,8 @@ const char *m68k_analysis_table_base_expression_name(uint8_t base_expression_id)
 const char *m68k_analysis_table_entry_count_proof_name(uint8_t proof_id);
 const char *m68k_table_entry_target_status_name(uint8_t status);
 const char *m68k_data_reference_source_kind_name(uint8_t source_kind);
+const char *m68k_incomplete_analysis_kind_name(uint8_t kind);
+const char *m68k_incomplete_analysis_source_kind_name(uint8_t source_kind);
 uint8_t m68k_analysis_table_entry_count_proof_for_source_pattern(uint8_t source_pattern_id);
 uint8_t m68k_recovered_indirect_source_pattern_id(uint8_t shape);
 const char *m68k_recovered_indirect_source_pattern_name(uint8_t source_pattern_id);

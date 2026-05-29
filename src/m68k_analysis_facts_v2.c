@@ -9315,6 +9315,21 @@ static void facts_v2_record_source_blocker_first_failure(M68kFactsV2Profile *pro
   profile->asm_source_first_failure_aux_offset = aux_offset;
 }
 
+static int facts_v2_append_incomplete_analysis_from_profile(const M68kFactsV2Profile *profile,
+    M68kSourceAnalysisIR *source_analysis) {
+  M68kIncompleteAnalysisIR incomplete;
+  if (profile == NULL || source_analysis == NULL) return 0;
+  if (profile->table_target_set_limit_hits == 0U) return 0;
+  memset(&incomplete, 0, sizeof(incomplete));
+  incomplete.kind = M68K_INCOMPLETE_ANALYSIS_CAPACITY_EXHAUSTED;
+  incomplete.source_kind = M68K_INCOMPLETE_ANALYSIS_SOURCE_TABLE_TARGET_SET;
+  incomplete.section_index = profile->first_table_target_set_limit_section;
+  incomplete.offset = profile->first_table_target_set_limit_offset;
+  incomplete.capacity = profile->first_table_target_set_limit_capacity;
+  incomplete.hit_count = profile->table_target_set_limit_hits;
+  return m68k_ir_source_analysis_append_incomplete_analysis(source_analysis, &incomplete);
+}
+
 static int facts_v2_has_asm_source_failures(const M68kFactsV2Profile *profile) {
   return profile != NULL && (profile->asm_source_instruction_render_failures != 0U ||
     profile->asm_source_instruction_byte_mismatches != 0U ||
@@ -9676,6 +9691,12 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   if (out_source_analysis != NULL && append_platform_storage_layouts_from_object(object, out_source_analysis) != 0) {
     m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
       "facts_v2 platform storage layout append failed");
+    goto fail;
+  }
+  if (out_source_analysis != NULL &&
+      facts_v2_append_incomplete_analysis_from_profile(out_profile, out_source_analysis) != 0) {
+    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
+      "facts_v2 incomplete analysis append failed");
     goto fail;
   }
   if (out_source_analysis != NULL) {

@@ -3266,7 +3266,7 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
 
 int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **out_json, M68kDiagSink diagnostics) {
   JsonBuilder builder = {0};
-  size_t field_index, section_index;
+  size_t field_index, section_index, incomplete_index;
   size_t orphan_code_signal_count = 0U;
   uint32_t orphan_status_counts[8] = {0U};
   uint32_t orphan_missing_inbound_counts[9] = {0U};
@@ -3306,8 +3306,34 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
     goto oom;
   if (append_platform_summary_json(&builder, source_analysis) != 0)
     goto oom;
+  if (json_builder_appendf(&builder, ",\"incomplete_analysis_count\":%u,\"incomplete_analysis\":[",
+      (unsigned)source_analysis->incomplete_analysis_count) != 0)
+    goto oom;
+  for (incomplete_index = 0U; incomplete_index < source_analysis->incomplete_analysis_count; ++incomplete_index) {
+    const M68kIncompleteAnalysisIR *incomplete = &source_analysis->incomplete_analyses[incomplete_index];
+    if (incomplete_index != 0U && json_builder_append(&builder, ",") != 0)
+      goto oom;
+    if (json_builder_appendf(&builder,
+        "{\"kind\":%u,\"kind_name\":",
+        (unsigned)incomplete->kind) != 0)
+      goto oom;
+    if (json_builder_append_json_string(&builder, m68k_incomplete_analysis_kind_name(incomplete->kind)) != 0)
+      goto oom;
+    if (json_builder_appendf(&builder,
+        ",\"source_kind\":%u,\"source_kind_name\":",
+        (unsigned)incomplete->source_kind) != 0)
+      goto oom;
+    if (json_builder_append_json_string(&builder,
+        m68k_incomplete_analysis_source_kind_name(incomplete->source_kind)) != 0)
+      goto oom;
+    if (json_builder_appendf(&builder,
+        ",\"section_index\":%u,\"offset\":%u,\"capacity\":%u,\"hit_count\":%u}",
+        (unsigned)incomplete->section_index, (unsigned)incomplete->offset,
+        (unsigned)incomplete->capacity, (unsigned)incomplete->hit_count) != 0)
+      goto oom;
+  }
   if (json_builder_appendf(&builder,
-      ",\"orphan_code_signal_count\":%u,\"orphan_code_signal_summary\":{"
+      "],\"orphan_code_signal_count\":%u,\"orphan_code_signal_summary\":{"
       "\"status\":{\"unresolved\":%u,\"rejected\":%u,\"suppressed\":%u,\"linked\":%u,\"promoted\":%u},"
       "\"missing_inbound\":{\"unknown\":%u,\"jump_table\":%u,\"callback\":%u,\"vector\":%u,"
       "\"runtime_copy\":%u,\"api\":%u,\"metadata\":%u,\"policy_seed\":%u}},"
