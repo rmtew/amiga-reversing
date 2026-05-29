@@ -1521,6 +1521,28 @@ uv run platform-rendered-source-roundtrip
 Round-trip remained `34/36` full-file exact, `1/36` content-exact-only,
 `1/36` unsupported, and `0` failures.
 
+### Pass 15: Loop-Limit Bound Proof Contract
+
+The fifteenth pass adds the missing loop-limit proof value to the same table
+bound contract. This closes the model gap where `loop_limit_bound` existed as a
+stop reason but no entry-count proof could name loop evidence directly.
+
+The source-analysis contract now has:
+
+```text
+entry_count_proof = loop_limit
+stop_reason       = loop_limit_bound
+```
+
+This pass is deliberately a model/serialization pass. It does not guess loop
+bounds from shape. A later producer must still prove the loop counter, loop
+limit, table index relationship, and absence of conflicting register mutation
+before setting this proof on a real table descriptor.
+
+Covered by:
+
+- `source_analysis_table_descriptor_exports_loop_limit_proof`
+
 ## Acceptance Criteria
 
 This proposal can close when:

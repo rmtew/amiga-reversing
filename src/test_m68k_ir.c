@@ -9640,6 +9640,45 @@ static int test_source_analysis_table_descriptor_exports_consumer_fact(void) {
   return 0;
 }
 
+static int test_source_analysis_table_descriptor_exports_loop_limit_proof(void) {
+  M68kSourceAnalysisIR source_analysis;
+  M68kSectionAnalysisIR section_analysis;
+  M68kTableDescriptorIR descriptor;
+  char *analysis_json = NULL;
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_create(&source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_create(&section_analysis, test_ir_result_arena()));
+  memset(&descriptor, 0, sizeof(descriptor));
+  section_analysis.section_index = 0U;
+  section_analysis.section_size = 64U;
+  descriptor.start_offset = 0x20U;
+  descriptor.end_offset = 0x30U;
+  descriptor.entry_size = 2U;
+  descriptor.entry_count = 8U;
+  descriptor.entry_count_proof_id = M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_LOOP_LIMIT;
+  descriptor.table_kind_id = M68K_ANALYSIS_TABLE_KIND_SCALAR;
+  descriptor.base_expression_id = M68K_ANALYSIS_TABLE_BASE_EXPRESSION_TABLE_LABEL;
+  descriptor.source_pattern_id = M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_INDEXED_LOCAL_SCALAR_READ;
+  descriptor.status = M68K_RANGE_OWNERSHIP_STATUS_ACCEPTED;
+  descriptor.role_flags = M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE;
+  descriptor.has_consumer = 1U;
+  descriptor.consumer_section_index = 0U;
+  descriptor.consumer_offset = 0x08U;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_table_descriptor(&section_analysis, &descriptor));
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_TABLE_STOP_REASON_LOOP_LIMIT_BOUND,
+    section_analysis.table_descriptors[0].table_stop_reason_id);
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_TABLE_STOP_REASON_LOOP_LIMIT_BOUND,
+    section_analysis.table_consumers[0].table_stop_reason_id);
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"entry_count_proof_id\":7,\"entry_count_proof\":\"loop_limit\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"stop_reason_id\":7,\"stop_reason\":\"loop_limit_bound\"") != NULL);
+  free(analysis_json);
+  m68k_ir_section_analysis_destroy(&section_analysis);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  return 0;
+}
+
 static int test_source_analysis_table_entry_exports_status(void) {
   M68kSourceAnalysisIR source_analysis;
   M68kSectionAnalysisIR section_analysis;
@@ -22852,6 +22891,8 @@ int m68k_c_ir_tests(void) {
       test_source_analysis_table_descriptor_exports_conflict},
     {"source_analysis_table_descriptor_exports_consumer_fact",
       test_source_analysis_table_descriptor_exports_consumer_fact},
+    {"source_analysis_table_descriptor_exports_loop_limit_proof",
+      test_source_analysis_table_descriptor_exports_loop_limit_proof},
     {"source_analysis_table_entry_exports_status",
       test_source_analysis_table_entry_exports_status},
     {"source_analysis_data_reference_exports_table_entry",
