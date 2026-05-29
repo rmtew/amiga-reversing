@@ -68,6 +68,7 @@ Out of scope:
 - game-specific symbolic names without proof;
 - per-target renderer hacks;
 - raising arbitrary target caps as a substitute for a table model;
+- silently degrading to raw bytes when an analysis/render limit is reached;
 - Python-only fixes for ownership decisions;
 - accepting text, code, or table claims from byte shape alone.
 
@@ -678,6 +679,29 @@ This pass advances the descriptor work but does not yet replace existing
 table-entry rendering or materialize labels from descriptors. The next pass
 should consume these descriptors for label splitting and table iteration.
 
+### Pass 3: Descriptor Iteration and Limit Hardening
+
+The third implementation pass removes source-visible fixed limits from several
+table paths and makes remaining target-set caps explicit failures.
+
+Implemented changes:
+
+- long absolute dispatch tables can be carried as table descriptors and iterated
+  at the indirect control site instead of materializing a capped target array;
+- PC-relative and base-relative word dispatch tables use structural bounds and
+  target evidence instead of the old 32-entry or 64-byte render caps;
+- direct indexed word-offset reads such as
+  `adda.w $0(a0,d0.w),a1` attach the proven target base to the table record, so
+  render output can keep symbolic `target-base` expressions;
+- target-set cap hits now report `table_target_set_limit` as a hard analysis
+  failure instead of silently rendering anonymous bytes;
+- table scans that need only validation/counting can run without a destination
+  target array.
+
+The Bloodwych table at `abs_0_0001A31C` is the representative regression check:
+the accepted word-offset table now stops at `$0C5D`, and the following
+control/text bytes remain raw bytes instead of being swallowed into the table.
+
 ## Implementation Order
 
 1. Add the C range/conflict record shape without changing rendering. Done in
@@ -687,7 +711,11 @@ should consume these descriptors for label splitting and table iteration.
 3. Add general label materialization and row splitting from accepted ranges.
 4. Replace fixed table target storage with table descriptors and iterators.
    Started in Pass 2; descriptor records exist, iterator-driven rendering still
-   remains.
+   remains. The old 32-entry render-lookup cap for word-relative dispatch table
+   spans and the old 64-byte PC-relative lookup span cap have been removed;
+   those scans now stop on structural boundaries and accepted target evidence.
+   Any remaining source-visible cap hit must become an explicit
+   analysis-incomplete/conflict state, not a fallback to anonymous bytes.
 5. Port existing pointer-table and relative-table recognizers onto descriptors.
 6. Add arbitration rules for orphan code vs weak text shape.
 7. Add platform evidence adapters for Amiga, Atari, and Mac where facts already
@@ -739,3 +767,18 @@ renderers.
   source and the C model marks the table/range with an unresolved-code-target
   conflict. Future review UI should surface those cases for user confirmation
   before promoting any intentional local-label expression.
+- Removing the fixed 32-entry word-dispatch render cap makes the Mac CODE_1
+  table at `CODE_1_data_000013b8` render as a larger word-relative dispatch
+  table instead of a raw byte block. This is the intended direction: table size
+  comes from structural bounds and accepted targets, while unresolved entries
+  remain numeric rather than guessed.
+- Hitting a source-visible target/table limit is an analysis failure signal.
+  It should either be eliminated through descriptor iteration, or reported as a
+  hard incomplete-analysis/conflict condition that blocks promotion. It should
+  not silently fall back to byte rendering, because that hides inferior bounds
+  behind source output that looks intentional.
+- The decompression analysis JSON path now uses an isolated scratch arena for
+  temporary event arrays. The previous shared-analysis-arena use was a valid
+  repro of a nested arena lifetime/reentrancy hazard; future arena work should
+  clarify which nested analysis paths may use shared arenas and add a focused
+  contract test for that rule.

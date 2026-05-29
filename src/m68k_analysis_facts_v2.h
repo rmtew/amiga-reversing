@@ -123,6 +123,10 @@ typedef struct M68kFactsV2Profile {
   uint32_t first_platform_loadseg_segment_link_target_section;
   uint32_t runtime_address_ranges;
   uint32_t runtime_address_range_conflicts;
+  uint32_t table_target_set_limit_hits;
+  uint32_t first_table_target_set_limit_section;
+  uint32_t first_table_target_set_limit_offset;
+  uint32_t first_table_target_set_limit_capacity;
   uint32_t runtime_address_view_starts;
   uint32_t required_instruction_failures;
   uint32_t unsupported_instruction_demotes;

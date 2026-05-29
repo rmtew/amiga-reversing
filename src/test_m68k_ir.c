@@ -1944,8 +1944,8 @@ static int test_facts_v2_indexed_local_base_auto_classifies_scalar_table(void) {
     &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "\tadda.w $0(a0,d0.w),a1\n") != NULL);
-  M68K_C_ASSERT(strstr(source,
-    "loc_0_00000014:\n\tdc.w $0000,$0002,$0004\t; lookup_table\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "loc_0_00000014:\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "lookup_table") != NULL);
   M68K_C_ASSERT(strstr(source, "loc_0_0000001A:\n\trts\n") != NULL);
   for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
     const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
@@ -1958,7 +1958,68 @@ static int test_facts_v2_indexed_local_base_auto_classifies_scalar_table(void) {
   M68K_C_ASSERT(auto_item != NULL);
   M68K_C_ASSERT_U32(6U, auto_item->size);
   M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_WORDS, auto_item->kind);
-  M68K_C_ASSERT_U32(0U, auto_item->has_target);
+  M68K_C_ASSERT_U32(1U, auto_item->has_target);
+  M68K_C_ASSERT_U32(0U, auto_item->target_section);
+  M68K_C_ASSERT_U32(28U, auto_item->target_offset);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  m68k_source_model_free(&parsed_source);
+  return 0;
+}
+
+static int test_facts_v2_indexed_word_offset_table_stops_at_known_base_data(void) {
+  AsmSourceFile parsed_source;
+  M68kObject object;
+  M68kDiagList diagnostics;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  const M68kAnalysisStructuredDataItem *auto_item = NULL;
+  char *source = NULL;
+  uint16_t index;
+  const char *source_text =
+    "SECTION section_0,code\n"
+    "start:\n"
+    "\tlea.l table.l,a0\n"
+    "\tlea.l base.l,a1\n"
+    "\tadd.w d0,d0\n"
+    "\tadda.w $0(a0,d0.w),a1\n"
+    "\trts\n"
+    "table:\n"
+    "\tdc.w $0000,$0004,$0008\n"
+    "base:\n"
+    "\tdc.b \"ABCD\"\n"
+    "\tdc.b \"EFGH\"\n"
+    "\tdc.b \"IJKL\"\n";
+  M68K_C_ASSERT_INT(0, m68k_source_model_create(&parsed_source));
+  memset(&object, 0, sizeof(object));
+  m68k_diag_list_reset(&diagnostics);
+  parsed_source.target_cpu = M68K_ASM_CPU_68000;
+  M68K_C_ASSERT(m68k_source_pipeline_parse_text_and_layout(&parsed_source, source_text,
+    m68k_diag_sink(&diagnostics)));
+  M68K_C_ASSERT_INT(1, m68k_source_pipeline_emit_object(&parsed_source, &object, m68k_diag_sink(&diagnostics)));
+  m68k_analysis_policy_init_default(&policy);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tadda.w $0(a0,d0.w),a1\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "loc_0_00000014:\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "lookup_table") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.w $4142") == NULL);
+  for (index = 0U; index < source_analysis.policy.structured_data_item_count; ++index) {
+    const M68kAnalysisStructuredDataItem *item = &source_analysis.policy.structured_data_items[index];
+    if (item->has_section_index && item->section_index == 0U && item->offset == 20U &&
+        structured_data_item_has_role(item, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE)) {
+      auto_item = item;
+      break;
+    }
+  }
+  M68K_C_ASSERT(auto_item != NULL);
+  M68K_C_ASSERT_U32(6U, auto_item->size);
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_WORDS, auto_item->kind);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
   m68k_facts_v2_free_text(source);
@@ -7892,6 +7953,11 @@ static void test_store_u32be(uint8_t *bytes, uint32_t offset, uint32_t value) {
   bytes[offset + 3U] = (uint8_t)(value & 0xFFU);
 }
 
+static void test_store_u16be(uint8_t *bytes, uint32_t offset, uint16_t value) {
+  bytes[offset] = (uint8_t)((value >> 8) & 0xFFU);
+  bytes[offset + 1U] = (uint8_t)(value & 0xFFU);
+}
+
 static int test_facts_v2_long_dispatch_promotes_targets_beyond_small_trace_set(void) {
   enum {
     ENTRY_COUNT = 40,
@@ -7955,6 +8021,75 @@ static int test_facts_v2_long_dispatch_promotes_targets_beyond_small_trace_set(v
   M68K_C_ASSERT_U32(1U, saw_late_target);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_long_dispatch_descriptor_promotes_targets_beyond_inline_set(void) {
+  enum {
+    ENTRY_COUNT = 65,
+    TABLE_OFFSET = 12,
+    TARGET_START = TABLE_OFFSET + (ENTRY_COUNT * 4),
+    TOTAL_SIZE = TARGET_START + (ENTRY_COUNT * 4)
+  };
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  char *source = NULL;
+  uint32_t late_target = TARGET_START + (64U * 4U);
+  uint32_t saw_late_target = 0U;
+  size_t code_start_index;
+  uint32_t index;
+  uint8_t bytes[TOTAL_SIZE];
+  memset(bytes, 0, sizeof(bytes));
+  bytes[0] = 0x41U;
+  bytes[1] = 0xF9U;
+  test_store_u32be(bytes, 2U, TABLE_OFFSET);
+  bytes[6] = 0x20U;
+  bytes[7] = 0x70U;
+  bytes[8] = 0x00U;
+  bytes[9] = 0x00U;
+  bytes[10] = 0x4EU;
+  bytes[11] = 0xD0U;
+  for (index = 0U; index < ENTRY_COUNT; ++index) {
+    uint32_t target = TARGET_START + (index * 4U);
+    test_store_u32be(bytes, TABLE_OFFSET + (index * 4U), target);
+    bytes[target] = 0x70U;
+    bytes[target + 1U] = (uint8_t)index;
+    bytes[target + 2U] = 0x4EU;
+    bytes[target + 3U] = 0x75U;
+  }
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  memset(&source_analysis, 0, sizeof(source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "loc_0_00000210:\n\tmoveq.l #64,d0\n\trts\n") != NULL);
+  for (code_start_index = 0U; code_start_index < source_analysis.sections[0].code_start_ref_count;
+      ++code_start_index) {
+    const M68kCodeStartRefIR *ref = &source_analysis.sections[0].code_start_refs[code_start_index];
+    if (ref->reason == M68K_FACT_CODE_START_REASON_CONTROL_TARGET && ref->source_offset == 0x0AU &&
+        ref->offset == late_target) {
+      saw_late_target = 1U;
+    }
+  }
+  M68K_C_ASSERT_U32(1U, saw_late_target);
+  M68K_C_ASSERT_U32(0U, profile.table_target_set_limit_hits);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(M68K_RENDER_IR_ASM_SOURCE_FAILURE_NONE, profile.asm_source_first_failure_kind);
   m68k_facts_v2_free_text(source);
   m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_object_destroy(&object);
@@ -8080,6 +8215,71 @@ static int test_facts_v2_pc_indexed_word_load_promotes_relative_jump_targets(voi
   M68K_C_ASSERT_U32(2U, source_analysis.sections[0].recovered_indirect_sites[0].target_count);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_pc_indexed_word_dispatch_uses_structural_table_extent(void) {
+  enum {
+    ENTRY_COUNT = 40,
+    TABLE_OFFSET = 8,
+    TARGET_START = TABLE_OFFSET + (ENTRY_COUNT * 2),
+    TOTAL_SIZE = TARGET_START + (ENTRY_COUNT * 4)
+  };
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  char *source = NULL;
+  char *analysis_json = NULL;
+  uint32_t index;
+  uint8_t bytes[TOTAL_SIZE];
+  memset(bytes, 0, sizeof(bytes));
+  bytes[0] = 0x30U;
+  bytes[1] = 0x3BU;
+  bytes[2] = 0x00U;
+  bytes[3] = 0x06U;
+  bytes[4] = 0x4EU;
+  bytes[5] = 0xFBU;
+  bytes[6] = 0x00U;
+  bytes[7] = 0x02U;
+  for (index = 0U; index < ENTRY_COUNT; ++index) {
+    uint32_t target = TARGET_START + (index * 4U);
+    test_store_u16be(bytes, TABLE_OFFSET + (index * 2U), (uint16_t)(target - TABLE_OFFSET));
+    bytes[target] = 0x70U;
+    bytes[target + 1U] = (uint8_t)index;
+    bytes[target + 2U] = 0x4EU;
+    bytes[target + 3U] = 0x75U;
+  }
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  memset(&source_analysis, 0, sizeof(source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tdc.w loc_0_000000E0-loc_0_00000008\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "loc_0_000000E0:\n\tmoveq.l #34,d0\n\trts\n") != NULL);
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"table_record_count\":1,\"table_records\":[{\"section_index\":0,"
+    "\"offset\":8,\"size\":80,\"entry_size\":2,\"entry_count\":40") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"table_descriptors\":[{\"start_offset\":8,\"end_offset\":88,\"entry_size\":2,\"entry_count\":40") != NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  free(analysis_json);
   m68k_facts_v2_free_text(source);
   m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_object_destroy(&object);
@@ -9407,6 +9607,80 @@ static int test_facts_v2_pc_word_dispatch_renders_labels_across_saved_register(v
   M68K_C_ASSERT(strstr(source, "\tdc.w $0000,$0010\t; lookup_table\n") == NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_facts_v2_pc_word_dispatch_descriptor_promotes_targets_beyond_inline_set(void) {
+  enum {
+    ENTRY_COUNT = 65,
+    TABLE_OFFSET = 0x20,
+    TARGET_START = TABLE_OFFSET + (ENTRY_COUNT * 2),
+    TOTAL_SIZE = TARGET_START + (ENTRY_COUNT * 4)
+  };
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  char *source = NULL;
+  uint32_t late_target = TARGET_START + (64U * 4U);
+  uint32_t saw_late_target = 0U;
+  size_t code_start_index;
+  uint32_t index;
+  uint8_t bytes[TOTAL_SIZE];
+  memset(bytes, 0, sizeof(bytes));
+  bytes[0x00] = 0x41U;
+  bytes[0x01] = 0xF9U;
+  test_store_u32be(bytes, 0x02U, TARGET_START);
+  bytes[0x06] = 0xD0U;
+  bytes[0x07] = 0xFBU;
+  bytes[0x08] = 0x10U;
+  bytes[0x09] = 0x18U;
+  bytes[0x0A] = 0x4EU;
+  bytes[0x0B] = 0xD0U;
+  for (index = 0U; index < ENTRY_COUNT; ++index) {
+    uint32_t target = TARGET_START + (index * 4U);
+    test_store_u16be(bytes, TABLE_OFFSET + (index * 2U), (uint16_t)(target - TARGET_START));
+    bytes[target] = 0x70U;
+    bytes[target + 1U] = (uint8_t)index;
+    bytes[target + 2U] = 0x4EU;
+    bytes[target + 3U] = 0x75U;
+  }
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.entry_point_count = 1U;
+  policy.entry_points[0].has_section_index = 1U;
+  policy.entry_points[0].section_index = 0U;
+  policy.entry_points[0].offset = 0U;
+  memset(&source_analysis, 0, sizeof(source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tadda.w loc_0_00000020(pc,d1.w),a0\n\tjmp (a0)\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "loc_0_000001A2:\n\tmoveq.l #64,d0\n\trts\n") != NULL);
+  for (code_start_index = 0U; code_start_index < source_analysis.sections[0].code_start_ref_count;
+      ++code_start_index) {
+    const M68kCodeStartRefIR *ref = &source_analysis.sections[0].code_start_refs[code_start_index];
+    if (ref->reason == M68K_FACT_CODE_START_REASON_CONTROL_TARGET && ref->source_offset == 0x0AU &&
+        ref->offset == late_target) {
+      saw_late_target = 1U;
+    }
+  }
+  M68K_C_ASSERT_U32(1U, saw_late_target);
+  M68K_C_ASSERT_U32(0U, profile.table_target_set_limit_hits);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(M68K_RENDER_IR_ASM_SOURCE_FAILURE_NONE, profile.asm_source_first_failure_kind);
   m68k_facts_v2_free_text(source);
   m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_object_destroy(&object);
@@ -21806,6 +22080,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_genam_byte_postincrement_table_stays_byte_data},
     {"facts_v2_indexed_local_base_auto_classifies_scalar_table",
       test_facts_v2_indexed_local_base_auto_classifies_scalar_table},
+    {"facts_v2_indexed_word_offset_table_stops_at_known_base_data",
+      test_facts_v2_indexed_word_offset_table_stops_at_known_base_data},
     {"facts_v2_genam_indexed_word_read_stays_unclassified_data",
       test_facts_v2_genam_indexed_word_read_stays_unclassified_data},
     {"facts_v2_indexed_local_base_auto_classifies_pointer_table",
@@ -21968,6 +22244,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_traced_indirect_jump_promotes_word_relative_table_targets},
     {"facts_v2_pc_indexed_word_load_promotes_relative_jump_targets",
       test_facts_v2_pc_indexed_word_load_promotes_relative_jump_targets},
+    {"facts_v2_pc_indexed_word_dispatch_uses_structural_table_extent",
+      test_facts_v2_pc_indexed_word_dispatch_uses_structural_table_extent},
     {"facts_v2_biased_pc_indexed_word_load_promotes_relative_jump_targets",
       test_facts_v2_biased_pc_indexed_word_load_promotes_relative_jump_targets},
     {"facts_v2_address_indexed_word_load_uses_signed_table_displacement",
@@ -22012,12 +22290,16 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_word_dispatch_stops_far_table_at_zero_boundary},
     {"facts_v2_pc_word_dispatch_renders_labels_across_saved_register",
       test_facts_v2_pc_word_dispatch_renders_labels_across_saved_register},
+    {"facts_v2_pc_word_dispatch_descriptor_promotes_targets_beyond_inline_set",
+      test_facts_v2_pc_word_dispatch_descriptor_promotes_targets_beyond_inline_set},
     {"facts_v2_pc_word_dispatch_renders_labels_across_address_preserving_local_call",
       test_facts_v2_pc_word_dispatch_renders_labels_across_address_preserving_local_call},
     {"facts_v2_runtime_mapped_word_dispatch_renders_lookup_table",
       test_facts_v2_runtime_mapped_word_dispatch_renders_lookup_table},
     {"facts_v2_indirect_long_table_with_gap_promotes_runtime_targets",
       test_facts_v2_indirect_long_table_with_gap_promotes_runtime_targets},
+    {"facts_v2_long_dispatch_descriptor_promotes_targets_beyond_inline_set",
+      test_facts_v2_long_dispatch_descriptor_promotes_targets_beyond_inline_set},
     {"facts_v2_indexed_pointer_table_uses_valid_targets_not_fixed_span",
       test_facts_v2_indexed_pointer_table_uses_valid_targets_not_fixed_span},
     {"facts_v2_amiga_execbase_load_does_not_use_runtime_alias",

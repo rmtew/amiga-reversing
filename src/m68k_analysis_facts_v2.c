@@ -26,6 +26,7 @@
 #define M68K_FACTS_V2_TRACE_TARGET_SET 4U
 #define M68K_FACTS_V2_TRACE_WORD_RELATIVE_TABLE 5U
 #define M68K_FACTS_V2_TRACE_KEYED_LONG_RELATIVE_TABLE 6U
+#define M68K_FACTS_V2_TRACE_LONG_TARGET_TABLE 7U
 #define M68K_FACT_RUNTIME_ADDRESS_REF_NO_OPERAND UINT32_MAX
 #define M68K_FACTS_V2_TRACE_ABSOLUTE_SLOT_LIMIT 16U
 #define M68K_FACTS_V2_TRACE_STACK_SLOT_LIMIT 8U
@@ -40,10 +41,13 @@
 
 typedef struct M68kFactsV2TraceValue {
   uint8_t kind;
+  uint8_t has_table_base_address;
   uint8_t has_origin;
+  uint8_t reserved;
   uint16_t origin_operand_index;
   size_t section_index;
   uint32_t value;
+  uint32_t table_base_address;
   size_t origin_section_index;
   uint32_t origin_offset;
   uint32_t code_start_reason;
@@ -242,6 +246,24 @@ static int indexed_control_post_instruction_table_start(const M68kDecodeSectionI
 static int scan_indexed_direct_variable_stub_entries(M68kDecodeIR *decode, uint8_t max_cpu,
   size_t section_index, const M68kDecodeSectionIR *section, uint32_t table_offset, uint8_t **accepted_start,
   uint8_t **accepted_bytes, uint32_t *out_entries, uint32_t entry_limit, uint32_t *out_entry_count);
+static int enqueue_long_target_table_for_indirect_site(M68kDecodeIR *decode, M68kFactIR *facts,
+  M68kFactsV2WorkQueue *queue, uint8_t **accepted_start, uint8_t **accepted_bytes,
+  M68kFactsV2Profile *profile, uint8_t max_cpu, size_t section_index,
+  const M68kDecodeCandidate *site_candidate, const M68kFactsV2TraceValue *table,
+  const M68kRuntimeAddressSpace *runtime_addresses, const M68kDecodeSectionIR *section,
+  const M68kFactsV2TraceState *trace_state);
+static int enqueue_biased_word_relative_targets_for_indexed_operand(M68kDecodeIR *decode, M68kFactIR *facts,
+  M68kFactsV2WorkQueue *queue, uint8_t **accepted_start, uint8_t **accepted_bytes,
+  M68kFactsV2Profile *profile, uint8_t max_cpu, size_t section_index,
+  const M68kDecodeCandidate *candidate, size_t operand_index,
+  const M68kRuntimeAddressSpace *runtime_addresses, const M68kFactsV2TraceValue *table_value,
+  const M68kFactsV2TraceState *trace_state, int *out_enqueued);
+static int enqueue_word_relative_table_targets_for_indirect_site(M68kDecodeIR *decode, M68kFactIR *facts,
+  M68kFactsV2WorkQueue *queue, uint8_t **accepted_start, uint8_t **accepted_bytes,
+  M68kFactsV2Profile *profile, uint8_t max_cpu, size_t section_index,
+  const M68kDecodeCandidate *site_candidate, const M68kRuntimeAddressSpace *runtime_addresses,
+  const M68kDecodeSectionIR *section, uint32_t table_offset, uint32_t base_address,
+  const M68kFactsV2TraceState *trace_state, int *out_enqueued);
 static int enqueue_code_start_runtime(M68kFactIR *facts, M68kFactsV2WorkQueue *queue,
   M68kFactsV2Profile *profile, size_t section_index, uint32_t offset, uint8_t confidence,
   uint32_t reason, size_t source_section_index, uint32_t source_offset, uint8_t has_runtime_address,
@@ -497,6 +519,7 @@ static int trace_value_can_drive_indirect_control(const M68kFactsV2TraceValue *v
   if (value == NULL) return 0;
   return value->kind == M68K_FACTS_V2_TRACE_SOURCE_OFFSET ||
     value->kind == M68K_FACTS_V2_TRACE_TARGET_SET ||
+    value->kind == M68K_FACTS_V2_TRACE_LONG_TARGET_TABLE ||
     value->kind == M68K_FACTS_V2_TRACE_WORD_RELATIVE_TABLE ||
     value->kind == M68K_FACTS_V2_TRACE_KEYED_LONG_RELATIVE_TABLE;
 }
@@ -508,6 +531,7 @@ static int trace_state_can_drive_indirect_control(const M68kFactsV2TraceState *s
   for (reg = 0U; reg < 8U; ++reg) {
     if (trace_value_can_drive_indirect_control(&state->a[reg])) return 1;
     if (trace_value_is_target_set(&state->d[reg]) ||
+        state->d[reg].kind == M68K_FACTS_V2_TRACE_LONG_TARGET_TABLE ||
         state->d[reg].kind == M68K_FACTS_V2_TRACE_WORD_RELATIVE_TABLE ||
         state->d[reg].kind == M68K_FACTS_V2_TRACE_KEYED_LONG_RELATIVE_TABLE) {
       return 1;
@@ -1832,10 +1856,21 @@ static void trace_value_set_target_set(M68kFactsV2TraceValue *value, size_t sect
   value->kind = M68K_FACTS_V2_TRACE_TARGET_SET;
   value->section_index = section_index;
   if (targets == NULL) return;
-  if (target_count > M68K_FACTS_V2_TRACE_TARGET_SET_LIMIT)
-    target_count = M68K_FACTS_V2_TRACE_TARGET_SET_LIMIT;
+  if (target_count > M68K_FACTS_V2_TRACE_TARGET_SET_LIMIT) {
+    trace_value_set_unknown(value);
+    return;
+  }
   value->target_count = target_count;
   for (index = 0U; index < target_count; ++index) value->targets[index] = targets[index];
+}
+
+static void trace_value_set_long_target_table(M68kFactsV2TraceValue *value, size_t section_index,
+    uint32_t table_offset) {
+  if (value == NULL) return;
+  memset(value, 0, sizeof(*value));
+  value->kind = M68K_FACTS_V2_TRACE_LONG_TARGET_TABLE;
+  value->section_index = section_index;
+  value->value = table_offset;
 }
 
 static void trace_value_set_word_relative_table(M68kFactsV2TraceValue *value, size_t section_index,
@@ -1845,6 +1880,14 @@ static void trace_value_set_word_relative_table(M68kFactsV2TraceValue *value, si
   value->kind = M68K_FACTS_V2_TRACE_WORD_RELATIVE_TABLE;
   value->section_index = section_index;
   value->value = table_offset;
+}
+
+static void trace_value_set_word_relative_table_with_base(M68kFactsV2TraceValue *value, size_t section_index,
+    uint32_t table_offset, uint32_t base_address) {
+  trace_value_set_word_relative_table(value, section_index, table_offset);
+  if (value == NULL) return;
+  value->has_table_base_address = 1U;
+  value->table_base_address = base_address;
 }
 
 static void trace_value_set_keyed_long_relative_table(M68kFactsV2TraceValue *value, size_t section_index,
@@ -1859,6 +1902,7 @@ static void trace_value_set_keyed_long_relative_table(M68kFactsV2TraceValue *val
 static int trace_value_advance(M68kFactsV2TraceValue *value, uint32_t delta) {
   if (value == NULL || value->kind == M68K_FACTS_V2_TRACE_UNKNOWN) return 0;
   if (value->kind == M68K_FACTS_V2_TRACE_TARGET_SET ||
+      value->kind == M68K_FACTS_V2_TRACE_LONG_TARGET_TABLE ||
       value->kind == M68K_FACTS_V2_TRACE_WORD_RELATIVE_TABLE ||
       value->kind == M68K_FACTS_V2_TRACE_KEYED_LONG_RELATIVE_TABLE) {
     trace_value_set_unknown(value);
@@ -2937,16 +2981,27 @@ static int control_target_address_starts_in_zero_padding(const M68kDecodeSection
   return 0;
 }
 
+static void profile_record_table_target_set_limit_hit(M68kFactsV2Profile *profile,
+    size_t section_index, uint32_t table_offset, uint32_t capacity) {
+  if (profile == NULL) return;
+  if (profile->table_target_set_limit_hits == 0U) {
+    profile->first_table_target_set_limit_section = (uint32_t)section_index;
+    profile->first_table_target_set_limit_offset = table_offset;
+    profile->first_table_target_set_limit_capacity = capacity;
+  }
+  ++profile->table_target_set_limit_hits;
+}
+
 static uint32_t scan_long_control_target_table(const M68kDecodeSectionIR *section,
     const M68kRuntimeAddressSpace *runtime_addresses, const uint8_t *accepted_bytes, uint32_t table_offset,
-    uint32_t *targets, uint32_t target_limit) {
+    uint32_t *targets, uint32_t target_limit, M68kFactsV2Profile *profile) {
   uint32_t cursor;
   uint32_t target_count = 0U;
-  if (section == NULL || section->data == NULL || targets == NULL || target_limit == 0U ||
+  if (section == NULL || section->data == NULL || (targets != NULL && target_limit == 0U) ||
       table_offset >= section->size) {
     return 0U;
   }
-  for (cursor = table_offset; cursor + 4U <= section->size && target_count < target_limit; cursor += 4U) {
+  for (cursor = table_offset; cursor + 4U <= section->size; cursor += 4U) {
     uint32_t target = m68k_read_u32be(section->data + cursor);
     uint32_t target_offset = 0U;
     if (accepted_range_has_code_byte_local(accepted_bytes, section->size, cursor, 4U)) break;
@@ -2956,7 +3011,14 @@ static uint32_t scan_long_control_target_table(const M68kDecodeSectionIR *sectio
       break;
     }
     if (control_target_starts_in_zero_padding(section, target_offset)) break;
-    targets[target_count++] = target;
+    if (targets != NULL) {
+      if (target_count >= target_limit) {
+        profile_record_table_target_set_limit_hit(profile, section->section_index, table_offset, target_limit);
+        return 0U;
+      }
+      targets[target_count] = target;
+    }
+    ++target_count;
   }
   return target_count >= 2U ? target_count : 0U;
 }
@@ -2964,18 +3026,18 @@ static uint32_t scan_long_control_target_table(const M68kDecodeSectionIR *sectio
 static uint32_t scan_word_relative_control_target_table(const M68kDecodeSectionIR *section,
     const M68kRuntimeAddressSpace *runtime_addresses, const uint8_t *accepted_start,
     const uint8_t *accepted_bytes, uint32_t table_offset, uint32_t base_address, uint32_t *targets,
-    uint32_t target_limit) {
+    uint32_t target_limit, M68kFactsV2Profile *profile) {
   uint32_t cursor;
   uint32_t target_count = 0U;
   uint32_t first_forward_target = UINT32_MAX;
   uint32_t base_source_offset = 0U;
   uint8_t saw_far_displacement = 0U;
-  if (section == NULL || section->data == NULL || targets == NULL || target_limit == 0U ||
+  if (section == NULL || section->data == NULL || (targets != NULL && target_limit == 0U) ||
       table_offset >= section->size || !control_address_to_section_offset(runtime_addresses,
         section->section_index, section->size, base_address, &base_source_offset)) {
     return 0U;
   }
-  for (cursor = table_offset; cursor + 2U <= section->size && target_count < target_limit; cursor += 2U) {
+  for (cursor = table_offset; cursor + 2U <= section->size; cursor += 2U) {
     int32_t displacement = (int32_t)(int16_t)m68k_read_u16be(section->data + cursor);
     int64_t target64 = (int64_t)(uint64_t)base_address + (int64_t)displacement;
     uint32_t target_address;
@@ -3000,7 +3062,14 @@ static uint32_t scan_word_relative_control_target_table(const M68kDecodeSectionI
     }
     if (control_target_starts_in_zero_padding(section, target_offset)) break;
     if (accepted_offset_is_interior(section, accepted_start, accepted_bytes, target_offset)) break;
-    targets[target_count++] = target_address;
+    if (targets != NULL) {
+      if (target_count >= target_limit) {
+        profile_record_table_target_set_limit_hit(profile, section->section_index, table_offset, target_limit);
+        return 0U;
+      }
+      targets[target_count] = target_address;
+    }
+    ++target_count;
     if (target_offset > table_offset && target_offset < first_forward_target)
       first_forward_target = target_offset;
     if (target_count >= 2U && first_forward_target != UINT32_MAX && cursor + 2U >= first_forward_target) break;
@@ -3011,7 +3080,7 @@ static uint32_t scan_word_relative_control_target_table(const M68kDecodeSectionI
 static uint32_t scan_keyed_long_relative_control_target_table(const M68kDecodeSectionIR *section,
     const M68kRuntimeAddressSpace *runtime_addresses, const uint8_t *accepted_start,
     const uint8_t *accepted_bytes, uint32_t table_offset, uint32_t base_address, uint32_t *targets,
-    uint32_t target_limit) {
+    uint32_t target_limit, M68kFactsV2Profile *profile) {
   uint32_t cursor;
   uint32_t target_count = 0U;
   uint32_t first_forward_target = UINT32_MAX;
@@ -3019,7 +3088,7 @@ static uint32_t scan_keyed_long_relative_control_target_table(const M68kDecodeSe
       accepted_bytes == NULL || targets == NULL || target_limit == 0U || table_offset >= section->size) {
     return 0U;
   }
-  for (cursor = table_offset; cursor + 4U <= section->size && target_count < target_limit; cursor += 4U) {
+  for (cursor = table_offset; cursor + 4U <= section->size; cursor += 4U) {
     uint32_t entry = m68k_read_u32be(section->data + cursor);
     int32_t displacement;
     int64_t target64;
@@ -3039,6 +3108,10 @@ static uint32_t scan_keyed_long_relative_control_target_table(const M68kDecodeSe
     }
     if (control_target_starts_in_zero_padding(section, target_offset)) break;
     if (accepted_offset_is_interior(section, accepted_start, accepted_bytes, target_offset)) break;
+    if (target_count >= target_limit) {
+      profile_record_table_target_set_limit_hit(profile, section->section_index, table_offset, target_limit);
+      return 0U;
+    }
     targets[target_count++] = target_address;
     if (target_offset > table_offset && target_offset < first_forward_target)
       first_forward_target = target_offset;
@@ -3051,14 +3124,13 @@ static uint32_t scan_keyed_long_relative_control_target_table(const M68kDecodeSe
 static int trace_state_candidate_loads_long_target_table(const M68kDecodeSectionIR *section,
     const M68kDecodeCandidate *candidate, const M68kFactsV2TraceState *before,
     const M68kRuntimeAddressSpace *runtime_addresses, const uint8_t *accepted_bytes, uint8_t *out_dest_reg,
-    M68kFactsV2TraceValue *out_value, M68kFactsV2TableBaseRef *out_base_ref) {
+    M68kFactsV2TraceValue *out_value, M68kFactsV2TableBaseRef *out_base_ref, M68kFactsV2Profile *profile) {
   M68kInstructionIR instruction;
   const M68kSimFormMetadata *metadata;
   uint8_t dest_reg = 0U;
   uint8_t base_reg = 0U;
   uint32_t table_offset = 0U;
   uint32_t scan_offset = 0U;
-  uint32_t targets[M68K_FACTS_V2_TRACE_TARGET_SET_LIMIT];
   uint32_t target_count;
   size_t source_index = (size_t)-1;
   size_t dest_index = (size_t)-1;
@@ -3112,13 +3184,14 @@ static int trace_state_candidate_loads_long_target_table(const M68kDecodeSection
       runtime_addresses, &table_offset))
     return 0;
   scan_offset = table_offset;
-  target_count = scan_long_control_target_table(section, runtime_addresses, accepted_bytes, table_offset, targets,
-    M68K_FACTS_V2_TRACE_TARGET_SET_LIMIT);
+  (void)profile;
+  target_count = scan_long_control_target_table(section, runtime_addresses, accepted_bytes, table_offset, NULL,
+    0U, NULL);
   if (target_count == 0U && table_offset <= UINT32_MAX - 4U &&
       accepted_range_has_code_byte_local(accepted_bytes, section->size, table_offset, 4U)) {
     scan_offset = table_offset + 4U;
-    target_count = scan_long_control_target_table(section, runtime_addresses, accepted_bytes, scan_offset,
-      targets, M68K_FACTS_V2_TRACE_TARGET_SET_LIMIT);
+    target_count = scan_long_control_target_table(section, runtime_addresses, accepted_bytes, scan_offset, NULL,
+      0U, NULL);
   }
   if (target_count == 0U) return 0;
   if (out_base_ref != NULL && base_reg < 8U && before->a[base_reg].kind == M68K_FACTS_V2_TRACE_RUNTIME_ADDRESS) {
@@ -3131,20 +3204,20 @@ static int trace_state_candidate_loads_long_target_table(const M68kDecodeSection
     out_base_ref->base_runtime_address = before->a[base_reg].value;
   }
   *out_dest_reg = dest_reg;
-  trace_value_set_target_set(out_value, section->section_index, targets, target_count);
+  trace_value_set_long_target_table(out_value, section->section_index, scan_offset);
   return 1;
 }
 
 static int trace_state_candidate_adds_word_target_table(const M68kDecodeSectionIR *section,
     const M68kDecodeCandidate *candidate, const M68kFactsV2TraceState *before,
     const M68kRuntimeAddressSpace *runtime_addresses, const uint8_t *accepted_start,
-    const uint8_t *accepted_bytes, uint8_t *out_dest_reg, M68kFactsV2TraceValue *out_value) {
+    const uint8_t *accepted_bytes, uint8_t *out_dest_reg, M68kFactsV2TraceValue *out_value,
+    M68kFactsV2Profile *profile) {
   M68kInstructionIR instruction;
   const M68kSimFormMetadata *metadata;
   uint8_t dest_reg = 0U;
   uint32_t table_offset = 0U;
   uint32_t base_address = 0U;
-  uint32_t targets[M68K_FACTS_V2_TRACE_TARGET_SET_LIMIT];
   uint32_t target_count;
   size_t source_index = (size_t)-1;
   size_t dest_index = (size_t)-1;
@@ -3190,10 +3263,11 @@ static int trace_state_candidate_adds_word_target_table(const M68kDecodeSectionI
       runtime_addresses, &table_offset))
     return 0;
   target_count = scan_word_relative_control_target_table(section, runtime_addresses, accepted_start, accepted_bytes,
-    table_offset, base_address, targets, M68K_FACTS_V2_TRACE_TARGET_SET_LIMIT);
+    table_offset, base_address, NULL, 0U, NULL);
+  (void)profile;
   if (target_count == 0U) return 0;
   *out_dest_reg = dest_reg;
-  trace_value_set_target_set(out_value, section->section_index, targets, target_count);
+  trace_value_set_word_relative_table_with_base(out_value, section->section_index, table_offset, base_address);
   return 1;
 }
 
@@ -3302,7 +3376,8 @@ static int trace_state_candidate_loads_keyed_long_relative_table_entry(const M68
 static int trace_state_candidate_swaps_keyed_long_relative_table_entry(const M68kDecodeSectionIR *section,
     const M68kDecodeCandidate *candidate, const M68kFactsV2TraceState *before,
     const M68kRuntimeAddressSpace *runtime_addresses, const uint8_t *accepted_start,
-    const uint8_t *accepted_bytes, uint8_t *out_dest_reg, M68kFactsV2TraceValue *out_value) {
+    const uint8_t *accepted_bytes, uint8_t *out_dest_reg, M68kFactsV2TraceValue *out_value,
+    M68kFactsV2Profile *profile) {
   M68kInstructionIR instruction;
   const M68kSimFormMetadata *metadata;
   uint8_t reg = 0U;
@@ -3329,7 +3404,7 @@ static int trace_state_candidate_swaps_keyed_long_relative_table_entry(const M68
   (void)runtime_address_space_source_to_runtime_near(runtime_addresses, section->section_index, table_offset,
     0U, 0U, &base_address);
   target_count = scan_keyed_long_relative_control_target_table(section, runtime_addresses, accepted_start,
-    accepted_bytes, table_offset, base_address, targets, M68K_FACTS_V2_TRACE_TARGET_SET_LIMIT);
+    accepted_bytes, table_offset, base_address, targets, M68K_FACTS_V2_TRACE_TARGET_SET_LIMIT, profile);
   if (target_count == 0U) return 0;
   *out_dest_reg = reg;
   trace_value_set_target_set(out_value, section->section_index, targets, target_count);
@@ -3460,7 +3535,7 @@ static void trace_state_after_candidate(size_t section_index, const M68kDecodeSe
     const M68kDecodeCandidate *candidate, const M68kFactsV2TraceState *before,
     const M68kFactsV2RelocationLookup *relocation_lookup, const M68kFactIR *facts,
     const M68kRuntimeAddressSpace *runtime_addresses, const uint8_t *accepted_start, const uint8_t *accepted_bytes,
-    M68kFactsV2TraceState *after) {
+    M68kFactsV2TraceState *after, M68kFactsV2Profile *profile) {
   uint8_t table_dest_reg = 0U;
   uint8_t table_targets_are_data = 0U;
   uint8_t table_targets_are_address = 0U;
@@ -3473,10 +3548,10 @@ static void trace_state_after_candidate(size_t section_index, const M68kDecodeSe
   trace_value_set_unknown(&table_targets);
   trace_value_set_unknown(&keyed_table_value);
   has_table_targets = trace_state_candidate_loads_long_target_table(section, candidate, before, runtime_addresses,
-    accepted_bytes, &table_dest_reg, &table_targets, NULL);
+    accepted_bytes, &table_dest_reg, &table_targets, NULL, profile);
   if (!has_table_targets) {
     has_table_targets = trace_state_candidate_adds_word_target_table(section, candidate, before,
-      runtime_addresses, accepted_start, accepted_bytes, &table_dest_reg, &table_targets);
+      runtime_addresses, accepted_start, accepted_bytes, &table_dest_reg, &table_targets, profile);
   }
   if (!has_table_targets) {
     has_table_targets = trace_state_candidate_loads_word_relative_target_table(section, candidate, before,
@@ -3486,7 +3561,7 @@ static void trace_state_after_candidate(size_t section_index, const M68kDecodeSe
   }
   if (!has_table_targets) {
     has_table_targets = trace_state_candidate_swaps_keyed_long_relative_table_entry(section, candidate, before,
-      runtime_addresses, accepted_start, accepted_bytes, &table_dest_reg, &table_targets);
+      runtime_addresses, accepted_start, accepted_bytes, &table_dest_reg, &table_targets, profile);
     table_targets_are_data = has_table_targets ? 1U : table_targets_are_data;
   }
   has_keyed_table_value = trace_state_candidate_loads_keyed_long_relative_table_entry(section, candidate, before,
@@ -5343,22 +5418,100 @@ static int indexed_control_operand_base_ref(const M68kDecodeSectionIR *section,
   return 1;
 }
 
-static int scan_biased_word_relative_control_targets_for_indexed_operand(const M68kDecodeSectionIR *section,
-    const M68kDecodeCandidate *candidate, size_t operand_index, const M68kRuntimeAddressSpace *runtime_addresses,
-    const uint8_t *accepted_start, const uint8_t *accepted_bytes, const M68kFactsV2TraceValue *table_value,
-    const M68kFactsV2TraceState *trace_state, M68kFactsV2TraceValue *out_targets) {
+static int enqueue_word_relative_table_targets_for_indirect_site(M68kDecodeIR *decode, M68kFactIR *facts,
+    M68kFactsV2WorkQueue *queue, uint8_t **accepted_start, uint8_t **accepted_bytes,
+    M68kFactsV2Profile *profile, uint8_t max_cpu, size_t section_index,
+    const M68kDecodeCandidate *site_candidate, const M68kRuntimeAddressSpace *runtime_addresses,
+    const M68kDecodeSectionIR *section, uint32_t table_offset, uint32_t base_address,
+    const M68kFactsV2TraceState *trace_state, int *out_enqueued) {
+  M68kFactsV2TraceState unknown_state;
+  uint32_t target_count;
+  uint32_t emitted_target_count = 0U;
+  uint32_t first_forward_target = UINT32_MAX;
+  uint32_t cursor;
+  uint8_t saw_far_displacement = 0U;
+  if (out_enqueued != NULL) *out_enqueued = 0;
+  if (decode == NULL || facts == NULL || queue == NULL || accepted_start == NULL || accepted_bytes == NULL ||
+      profile == NULL || site_candidate == NULL || runtime_addresses == NULL || section == NULL ||
+      out_enqueued == NULL || section_index >= decode->section_count || section->data == NULL ||
+      table_offset >= section->size) {
+    return 0;
+  }
+  target_count = scan_word_relative_control_target_table(section, runtime_addresses, accepted_start[section_index],
+    accepted_bytes[section_index], table_offset, base_address, NULL, 0U, NULL);
+  if (target_count == 0U) return 0;
+  trace_state_init_unknown(&unknown_state);
+  for (cursor = table_offset; cursor + 2U <= section->size; cursor += 2U) {
+    int32_t displacement = (int32_t)(int16_t)m68k_read_u16be(section->data + cursor);
+    int64_t target64 = (int64_t)(uint64_t)base_address + (int64_t)displacement;
+    uint32_t target_address;
+    uint32_t target_offset = 0U;
+    if (accepted_range_has_code_byte_local(accepted_bytes[section_index], section->size, cursor, 2U)) break;
+    {
+      uint32_t base_source_offset = 0U;
+      if (control_address_to_section_offset(runtime_addresses, section->section_index, section->size,
+          base_address, &base_source_offset) &&
+          emitted_target_count >= 2U && cursor == base_source_offset && displacement == 0) {
+        break;
+      }
+    }
+    if (saw_far_displacement && emitted_target_count >= 2U && cursor != table_offset && displacement == 0 &&
+        cursor + 4U <= section->size && m68k_read_u16be(section->data + cursor + 2U) == 0U) {
+      break;
+    }
+    if (displacement < -M68K_FACTS_V2_WORD_DISPATCH_LOCAL_LIMIT ||
+        displacement > M68K_FACTS_V2_WORD_DISPATCH_LOCAL_LIMIT) break;
+    if (displacement < -M68K_FACTS_V2_WORD_DISPATCH_FAR_BOUNDARY_MIN ||
+        displacement > M68K_FACTS_V2_WORD_DISPATCH_FAR_BOUNDARY_MIN) {
+      saw_far_displacement = 1U;
+    }
+    if (target64 < 0 || target64 > (int64_t)(uint64_t)UINT32_MAX) break;
+    target_address = (uint32_t)target64;
+    if ((target_address & 1U) != 0U || !control_address_to_section_offset(runtime_addresses,
+        section->section_index, section->size, target_address, &target_offset)) {
+      break;
+    }
+    if (control_target_starts_in_zero_padding(section, target_offset)) break;
+    if (accepted_offset_is_interior(section, accepted_start[section_index], accepted_bytes[section_index],
+        target_offset))
+      break;
+    if (enqueue_same_section_control_target_from_offset(decode, facts, queue, accepted_start, accepted_bytes,
+        profile, max_cpu, section_index, site_candidate->offset, target_address, M68K_FACT_CONFIDENCE_TOOL_INFERRED,
+        runtime_addresses, trace_state != NULL ? trace_state : &unknown_state) != 0) {
+      return -1;
+    }
+    ++emitted_target_count;
+    if (target_offset > table_offset && target_offset < first_forward_target)
+      first_forward_target = target_offset;
+    if (emitted_target_count >= 2U && first_forward_target != UINT32_MAX &&
+        cursor + 2U >= first_forward_target) {
+      break;
+    }
+    *out_enqueued = 1;
+  }
+  return 0;
+}
+
+static int enqueue_biased_word_relative_targets_for_indexed_operand(M68kDecodeIR *decode, M68kFactIR *facts,
+    M68kFactsV2WorkQueue *queue, uint8_t **accepted_start, uint8_t **accepted_bytes,
+    M68kFactsV2Profile *profile, uint8_t max_cpu, size_t section_index,
+    const M68kDecodeCandidate *candidate, size_t operand_index,
+    const M68kRuntimeAddressSpace *runtime_addresses, const M68kFactsV2TraceValue *table_value,
+    const M68kFactsV2TraceState *trace_state, int *out_enqueued) {
+  const M68kDecodeSectionIR *section;
   uint32_t target_base_offset = 0U;
   uint32_t target_base_address = 0U;
   uint32_t table_offset;
-  uint32_t targets[M68K_FACTS_V2_TRACE_TARGET_SET_LIMIT];
-  uint32_t target_count;
-  if (out_targets != NULL) trace_value_set_unknown(out_targets);
-  if (section == NULL || candidate == NULL || runtime_addresses == NULL || accepted_start == NULL ||
-      accepted_bytes == NULL || table_value == NULL || out_targets == NULL ||
-      table_value->kind != M68K_FACTS_V2_TRACE_WORD_RELATIVE_TABLE ||
-      table_value->section_index != section->section_index ||
-      !indexed_control_operand_base_ref(section, candidate, operand_index, runtime_addresses, trace_state,
-        &target_base_offset, &target_base_address) ||
+  int enqueued = 0;
+  if (out_enqueued != NULL) *out_enqueued = 0;
+  if (decode == NULL || table_value == NULL || trace_state == NULL || out_enqueued == NULL ||
+      section_index >= decode->section_count || table_value->kind != M68K_FACTS_V2_TRACE_WORD_RELATIVE_TABLE ||
+      table_value->section_index != section_index) {
+    return 0;
+  }
+  section = &decode->sections[section_index];
+  if (!indexed_control_operand_base_ref(section, candidate, operand_index, runtime_addresses, trace_state,
+      &target_base_offset, &target_base_address) ||
       target_base_offset < table_value->value || ((target_base_offset - table_value->value) & 1U) != 0U) {
     return 0;
   }
@@ -5367,15 +5520,18 @@ static int scan_biased_word_relative_control_targets_for_indexed_operand(const M
       m68k_read_u16be(section->data + table_offset) == 0U) {
     table_offset += 2U;
   }
-  target_count = scan_word_relative_control_target_table(section, runtime_addresses, accepted_start,
-    accepted_bytes, table_offset, target_base_address, targets, M68K_FACTS_V2_TRACE_TARGET_SET_LIMIT);
-  if (target_count == 0U && table_offset < target_base_offset) {
-    target_count = scan_word_relative_control_target_table(section, runtime_addresses, accepted_start,
-      accepted_bytes, target_base_offset, target_base_address, targets, M68K_FACTS_V2_TRACE_TARGET_SET_LIMIT);
+  if (enqueue_word_relative_table_targets_for_indirect_site(decode, facts, queue, accepted_start, accepted_bytes,
+      profile, max_cpu, section_index, candidate, runtime_addresses, section, table_offset, target_base_address,
+      trace_state, &enqueued) != 0)
+    return -1;
+  if (!enqueued && table_offset < target_base_offset) {
+    if (enqueue_word_relative_table_targets_for_indirect_site(decode, facts, queue, accepted_start, accepted_bytes,
+        profile, max_cpu, section_index, candidate, runtime_addresses, section, target_base_offset,
+        target_base_address, trace_state, &enqueued) != 0)
+      return -1;
   }
-  if (target_count == 0U) return 0;
-  trace_value_set_target_set(out_targets, section->section_index, targets, target_count);
-  return 1;
+  if (enqueued) *out_enqueued = 1;
+  return 0;
 }
 
 static int enqueue_trace_target_set_control_targets(M68kDecodeIR *decode, M68kFactIR *facts,
@@ -5527,16 +5683,10 @@ static int enqueue_traced_indirect_control_target(M68kDecodeIR *decode, M68kFact
       if (indexed_control_operand_data_index_reg(candidate, operand_index, &reg)) {
         value = &trace_state->d[reg];
         if (value->kind == M68K_FACTS_V2_TRACE_WORD_RELATIVE_TABLE) {
-          M68kFactsV2TraceValue biased_targets;
           int target_set_enqueued = 0;
-          if (!scan_biased_word_relative_control_targets_for_indexed_operand(&decode->sections[section_index],
-              candidate, operand_index, runtime_addresses, accepted_start[section_index],
-              accepted_bytes[section_index], value, trace_state, &biased_targets)) {
-            continue;
-          }
-          if (enqueue_trace_target_set_control_targets(decode, facts, queue, accepted_start, accepted_bytes,
-              profile, max_cpu, section_index, candidate, runtime_addresses, trace_state, &biased_targets,
-              &target_set_enqueued) != 0)
+          if (enqueue_biased_word_relative_targets_for_indexed_operand(decode, facts, queue, accepted_start,
+              accepted_bytes, profile, max_cpu, section_index, candidate, operand_index, runtime_addresses,
+              value, trace_state, &target_set_enqueued) != 0)
             return -1;
           if (target_set_enqueued) enqueued = 1;
           continue;
@@ -5544,16 +5694,10 @@ static int enqueue_traced_indirect_control_target(M68kDecodeIR *decode, M68kFact
       } else if (indexed_control_operand_address_index_reg(candidate, operand_index, &reg)) {
         value = &trace_state->a[reg];
         if (value->kind == M68K_FACTS_V2_TRACE_WORD_RELATIVE_TABLE) {
-          M68kFactsV2TraceValue biased_targets;
           int target_set_enqueued = 0;
-          if (!scan_biased_word_relative_control_targets_for_indexed_operand(&decode->sections[section_index],
-              candidate, operand_index, runtime_addresses, accepted_start[section_index],
-              accepted_bytes[section_index], value, trace_state, &biased_targets)) {
-            continue;
-          }
-          if (enqueue_trace_target_set_control_targets(decode, facts, queue, accepted_start, accepted_bytes,
-              profile, max_cpu, section_index, candidate, runtime_addresses, trace_state, &biased_targets,
-              &target_set_enqueued) != 0)
+          if (enqueue_biased_word_relative_targets_for_indexed_operand(decode, facts, queue, accepted_start,
+              accepted_bytes, profile, max_cpu, section_index, candidate, operand_index, runtime_addresses,
+              value, trace_state, &target_set_enqueued) != 0)
             return -1;
           if (target_set_enqueued) enqueued = 1;
           continue;
@@ -5570,6 +5714,28 @@ static int enqueue_traced_indirect_control_target(M68kDecodeIR *decode, M68kFact
           return -1;
         }
         enqueued = 1;
+        continue;
+      }
+      if (value != NULL && value->kind == M68K_FACTS_V2_TRACE_LONG_TARGET_TABLE &&
+          value->section_index == section_index) {
+        if (enqueue_long_target_table_for_indirect_site(decode, facts, queue, accepted_start, accepted_bytes,
+            profile, max_cpu, section_index, candidate, value, runtime_addresses, &decode->sections[section_index],
+            trace_state) != 0) {
+          return -1;
+        }
+        enqueued = 1;
+        continue;
+      }
+      if (value != NULL && value->kind == M68K_FACTS_V2_TRACE_WORD_RELATIVE_TABLE &&
+          value->section_index == section_index && value->has_table_base_address) {
+        int word_table_enqueued = 0;
+        if (enqueue_word_relative_table_targets_for_indirect_site(decode, facts, queue, accepted_start,
+            accepted_bytes, profile, max_cpu, section_index, candidate, runtime_addresses,
+            &decode->sections[section_index], value->value, value->table_base_address, trace_state,
+            &word_table_enqueued) != 0) {
+          return -1;
+        }
+        if (word_table_enqueued) enqueued = 1;
         continue;
       }
       {
@@ -6309,6 +6475,23 @@ static int enqueue_immediate_indirect_target_set(M68kDecodeIR *decode, M68kFactI
       }
       continue;
     }
+    if (value->kind == M68K_FACTS_V2_TRACE_LONG_TARGET_TABLE && value->section_index == section_index) {
+      if (enqueue_long_target_table_for_indirect_site(decode, facts, queue, accepted_start, accepted_bytes,
+          profile, max_cpu, section_index, next_candidate, value, runtime_addresses, section, trace_state) != 0) {
+        return -1;
+      }
+      continue;
+    }
+    if (value->kind == M68K_FACTS_V2_TRACE_WORD_RELATIVE_TABLE && value->section_index == section_index &&
+        value->has_table_base_address) {
+      int enqueued = 0;
+      if (enqueue_word_relative_table_targets_for_indirect_site(decode, facts, queue, accepted_start,
+          accepted_bytes, profile, max_cpu, section_index, next_candidate, runtime_addresses, section,
+          value->value, value->table_base_address, trace_state, &enqueued) != 0) {
+        return -1;
+      }
+      continue;
+    }
     if (!trace_value_is_target_set(value) || value->section_index != section_index) continue;
     for (target_index = 0U; target_index < value->target_count; ++target_index) {
       if (enqueue_same_section_control_target_from_offset(decode, facts, queue, accepted_start, accepted_bytes,
@@ -6399,7 +6582,18 @@ static int enqueue_target_set_for_indirect_site(M68kDecodeIR *decode, M68kFactIR
   M68kFactsV2TraceState unknown_state;
   uint32_t index;
   uint32_t source_offset;
-  if (site_candidate == NULL || !trace_value_is_target_set(targets)) return 0;
+  if (site_candidate == NULL || targets == NULL) return 0;
+  if (targets->kind == M68K_FACTS_V2_TRACE_LONG_TARGET_TABLE) {
+    return enqueue_long_target_table_for_indirect_site(decode, facts, queue, accepted_start, accepted_bytes,
+      profile, max_cpu, section_index, site_candidate, targets, runtime_addresses, section, NULL);
+  }
+  if (targets->kind == M68K_FACTS_V2_TRACE_WORD_RELATIVE_TABLE && targets->has_table_base_address) {
+    int enqueued = 0;
+    return enqueue_word_relative_table_targets_for_indirect_site(decode, facts, queue, accepted_start,
+      accepted_bytes, profile, max_cpu, section_index, site_candidate, runtime_addresses, section,
+      targets->value, targets->table_base_address, NULL, &enqueued);
+  }
+  if (!trace_value_is_target_set(targets)) return 0;
   source_offset = site_candidate->offset;
   trace_state_init_unknown(&unknown_state);
   for (index = 0U; index < targets->target_count; ++index) {
@@ -6413,6 +6607,44 @@ static int enqueue_target_set_for_indirect_site(M68kDecodeIR *decode, M68kFactIR
       return -1;
     }
   }
+  return 0;
+}
+
+static int enqueue_long_target_table_for_indirect_site(M68kDecodeIR *decode, M68kFactIR *facts,
+    M68kFactsV2WorkQueue *queue, uint8_t **accepted_start, uint8_t **accepted_bytes,
+    M68kFactsV2Profile *profile, uint8_t max_cpu, size_t section_index,
+    const M68kDecodeCandidate *site_candidate, const M68kFactsV2TraceValue *table,
+    const M68kRuntimeAddressSpace *runtime_addresses, const M68kDecodeSectionIR *section,
+    const M68kFactsV2TraceState *trace_state) {
+  M68kFactsV2TraceState unknown_state;
+  uint32_t cursor;
+  uint32_t target_count = 0U;
+  uint32_t source_offset;
+  if (site_candidate == NULL || table == NULL || table->kind != M68K_FACTS_V2_TRACE_LONG_TARGET_TABLE ||
+      table->section_index != section_index || section == NULL || section->data == NULL ||
+      table->value >= section->size) {
+    return 0;
+  }
+  source_offset = site_candidate->offset;
+  trace_state_init_unknown(&unknown_state);
+  for (cursor = table->value; cursor + 4U <= section->size; cursor += 4U) {
+    uint32_t target = m68k_read_u32be(section->data + cursor);
+    uint32_t target_offset = 0U;
+    if (accepted_range_has_code_byte_local(accepted_bytes[section_index], section->size, cursor, 4U)) break;
+    if (target == 0U) continue;
+    if ((target & 1U) != 0U || !control_address_to_section_offset(runtime_addresses,
+        section->section_index, section->size, target, &target_offset)) {
+      break;
+    }
+    if (control_target_starts_in_zero_padding(section, target_offset)) break;
+    ++target_count;
+    if (enqueue_same_section_control_target_from_offset(decode, facts, queue, accepted_start, accepted_bytes,
+        profile, max_cpu, section_index, source_offset, target, M68K_FACT_CONFIDENCE_TOOL_INFERRED,
+        runtime_addresses, trace_state != NULL ? trace_state : &unknown_state) != 0) {
+      return -1;
+    }
+  }
+  (void)target_count;
   return 0;
 }
 
@@ -6516,7 +6748,7 @@ static int collect_callback_field_target_from_store(M68kDecodeIR *decode,
     const M68kDecodeCandidate *candidate = previous[index - 1U];
     M68kFactsV2TraceState next_state;
     trace_state_after_candidate(section_index, section, candidate, &state, relocation_lookup, NULL,
-      runtime_addresses, accepted_start[section_index], accepted_bytes[section_index], &next_state);
+      runtime_addresses, accepted_start[section_index], accepted_bytes[section_index], &next_state, NULL);
     state = next_state;
   }
   if (!trace_value_from_candidate_source(section_index, section, store_candidate, 0U, &state, &stored_value))
@@ -6607,7 +6839,7 @@ static int trace_callback_site_linear_state(const M68kFactsV2RelocationLookup *r
     const M68kDecodeCandidate *candidate = previous[index - 1U];
     M68kFactsV2TraceState next_state;
     trace_state_after_candidate(section_index, section, candidate, out_state, relocation_lookup, NULL,
-      runtime_addresses, accepted_start[section_index], accepted_bytes[section_index], &next_state);
+      runtime_addresses, accepted_start[section_index], accepted_bytes[section_index], &next_state, NULL);
     *out_state = next_state;
   }
   return count != 0U;
@@ -6759,20 +6991,20 @@ static int enqueue_backward_sliced_indirect_table_targets(M68kDecodeIR *decode, 
       const M68kDecodeCandidate *candidate = previous[replay_index - 1U];
       M68kFactsV2TraceState next_state;
       trace_state_after_candidate(section_index, section, candidate, &state, relocation_lookup, facts,
-        runtime_addresses, accepted_start[section_index], accepted_bytes[section_index], &next_state);
+        runtime_addresses, accepted_start[section_index], accepted_bytes[section_index], &next_state, profile);
       state = next_state;
     }
     trace_value_set_unknown(&targets);
     memset(&base_ref, 0, sizeof(base_ref));
     cursor_candidate = previous[candidate_index];
     if (trace_state_candidate_loads_long_target_table(section, cursor_candidate, &state, runtime_addresses,
-        accepted_bytes[section_index], &dest_reg, &targets, &base_ref) && dest_reg == control_reg) {
+        accepted_bytes[section_index], &dest_reg, &targets, &base_ref, profile) && dest_reg == control_reg) {
       if (append_indirect_table_base_runtime_ref(facts, section_index, &base_ref) != 0) return -1;
       return enqueue_target_set_for_indirect_site(decode, facts, queue, accepted_start, accepted_bytes,
         profile, max_cpu, section_index, site_candidate, &targets, runtime_addresses, section);
     }
     if (trace_state_candidate_adds_word_target_table(section, cursor_candidate, &state, runtime_addresses,
-        accepted_start[section_index], accepted_bytes[section_index], &dest_reg, &targets) &&
+        accepted_start[section_index], accepted_bytes[section_index], &dest_reg, &targets, profile) &&
         dest_reg == control_reg) {
       return enqueue_target_set_for_indirect_site(decode, facts, queue, accepted_start, accepted_bytes,
         profile, max_cpu, section_index, site_candidate, &targets, runtime_addresses, section);
@@ -8485,7 +8717,7 @@ static int replay_runtime_sink_provenance_fallthrough(const M68kObject *object, 
       return -1;
     }
     trace_state_after_candidate(section_index, section, candidate, &state, relocation_lookup, facts,
-      runtime_addresses, accepted_start[section_index], accepted_bytes[section_index], &next_state);
+      runtime_addresses, accepted_start[section_index], accepted_bytes[section_index], &next_state, profile);
     if (queue != NULL && trace_state_can_drive_indirect_control(&state)) {
       if (enqueue_immediate_indirect_target_set(decode, facts, queue, accepted_start, accepted_bytes, profile,
           max_cpu, section_index, section, candidate, runtime_addresses, &next_state) != 0)
@@ -8616,7 +8848,7 @@ static int target_prefix_uses_trace_runtime_sink(M68kDecodeIR *decode, const M68
       return 1;
     }
     trace_state_after_candidate(section_index, section, candidate, &state, relocation_lookup, facts,
-      runtime_addresses, accepted_start[section_index], accepted_bytes[section_index], &next_state);
+      runtime_addresses, accepted_start[section_index], accepted_bytes[section_index], &next_state, NULL);
     state = next_state;
     if (!candidate_has_normal_fallthrough(candidate) || candidate_has_control_target_local(candidate)) return 0;
     if (candidate->byte_count == 0U || candidate->byte_count > UINT32_MAX - cursor) return 0;
@@ -8813,7 +9045,8 @@ static int run_reachable_fixed_point(const M68kObject *object, M68kDecodeIR *dec
       }
     }
     trace_state_after_candidate(item.section_index, section, candidate, &item.trace_state, relocation_lookup, facts,
-      runtime_addresses, accepted_start[item.section_index], accepted_bytes[item.section_index], &next_trace_state);
+      runtime_addresses, accepted_start[item.section_index], accepted_bytes[item.section_index], &next_trace_state,
+      profile);
     (void)trace_state_apply_platform_loadseg_helper_call(decode, object->platform_backend_kind,
       item.section_index, section, candidate, &item.trace_state, max_cpu, &next_trace_state);
     if (enqueue_immediate_indirect_target_set(decode, facts, queue, accepted_start, accepted_bytes, profile,
@@ -9035,6 +9268,7 @@ static int facts_v2_has_hard_failures(const M68kFactsV2Profile *profile) {
     profile->interior_conflicts_unresolved != 0U || profile->relocation_failures != 0U ||
     profile->relocation_anchor_instruction_bytes != 0U ||
     profile->relocation_anchor_unknown_contexts != 0U ||
+    profile->table_target_set_limit_hits != 0U ||
     profile->required_instruction_failures != 0U);
 }
 
@@ -9065,6 +9299,11 @@ static void facts_v2_record_source_blocker_first_failure(M68kFactsV2Profile *pro
     offset = profile->first_relocation_anchor_offset;
     aux_offset = profile->first_relocation_anchor_target_section;
     kind = M68K_RENDER_IR_ASM_SOURCE_FAILURE_RELOCATION_ANCHOR;
+  } else if (profile->table_target_set_limit_hits != 0U) {
+    kind = M68K_RENDER_IR_ASM_SOURCE_FAILURE_TABLE_TARGET_SET_LIMIT;
+    section = profile->first_table_target_set_limit_section;
+    offset = profile->first_table_target_set_limit_offset;
+    aux_offset = profile->first_table_target_set_limit_capacity;
   } else if (profile->required_instruction_failures != 0U) {
     kind = M68K_RENDER_IR_ASM_SOURCE_FAILURE_REQUIRED_INSTRUCTION;
     section = profile->first_required_instruction_failure_section;
@@ -9384,8 +9623,12 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
     facts_v2_record_source_blocker_first_failure(out_profile);
     render_asm_source = 0;
     if (fail_on_asm_refused && force_asm_source) {
-      m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
-        "facts_v2 asm source refused because structural invariants failed");
+      m68k_diag_addf(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
+        "facts_v2 asm source refused because structural invariants failed: kind=%u section=%u offset=%u aux=%u",
+        (unsigned)out_profile->asm_source_first_failure_kind,
+        (unsigned)out_profile->asm_source_first_failure_section,
+        (unsigned)out_profile->asm_source_first_failure_offset,
+        (unsigned)out_profile->asm_source_first_failure_aux_offset);
       goto fail;
     }
   }

@@ -4892,30 +4892,49 @@ static int append_decompression_event_json(JsonBuilder *builder,
 
 static int append_object_decompression_analysis_json(JsonBuilder *builder, const M68kObject *object,
     const M68kSourceAnalysisIR *analysis) {
-  PlatformDecompressionIdentifyResult results[32];
-  PlatformSelfDecrunchEvent self_decrunch_events[16];
-  PlatformRecognizedUnpackerEvent recognized_unpacker_events[16];
+  const size_t result_capacity = 32U;
+  const size_t self_decrunch_event_capacity = 16U;
+  const size_t recognized_unpacker_event_capacity = 16U;
+  const size_t candidate_capacity = 16U;
+  Arena *scratch_arena = NULL;
+  PlatformDecompressionIdentifyResult *results = NULL;
+  PlatformSelfDecrunchEvent *self_decrunch_events = NULL;
+  PlatformRecognizedUnpackerEvent *recognized_unpacker_events = NULL;
+  PlatformDecompressionCandidate *candidates = NULL;
   size_t result_count = 0U;
   size_t self_decrunch_event_count = 0U;
   size_t recognized_unpacker_event_count = 0U;
   size_t section_index;
   size_t emitted_event_count = 0U;
+  int rc = -1;
   if (object == NULL || analysis == NULL) return -1;
-  memset(results, 0, sizeof(results));
-  memset(self_decrunch_events, 0, sizeof(self_decrunch_events));
-  memset(recognized_unpacker_events, 0, sizeof(recognized_unpacker_events));
+  /* Keep JSON-pass scratch independent of analysis->arena. Nested simulator
+     probes use marks and rewinds on the analysis arena. */
+  scratch_arena = arena_create(4096U);
+  if (scratch_arena == NULL) return -1;
+  results = (PlatformDecompressionIdentifyResult *)arena_calloc(scratch_arena, result_capacity, sizeof(*results));
+  self_decrunch_events = (PlatformSelfDecrunchEvent *)arena_calloc(scratch_arena, self_decrunch_event_capacity,
+    sizeof(*self_decrunch_events));
+  recognized_unpacker_events = (PlatformRecognizedUnpackerEvent *)arena_calloc(scratch_arena,
+    recognized_unpacker_event_capacity,
+    sizeof(*recognized_unpacker_events));
+  candidates = (PlatformDecompressionCandidate *)arena_calloc(scratch_arena, candidate_capacity, sizeof(*candidates));
+  if (results == NULL || self_decrunch_events == NULL || recognized_unpacker_events == NULL ||
+      candidates == NULL) {
+    goto cleanup;
+  }
   for (section_index = 0U; section_index < object->section_count; ++section_index) {
     const M68kSection *section = &object->sections[section_index];
     const M68kSectionAnalysisIR *section_analysis;
-    PlatformDecompressionCandidate candidates[16];
     size_t candidate_count, candidate_index;
     if (section->data == NULL || section->data_size == 0U || section_index >= analysis->section_count) continue;
     section_analysis = &analysis->sections[section_index];
+    memset(candidates, 0, candidate_capacity * sizeof(*candidates));
     candidate_count = platform_decompression_find_candidates_in_buffer("ancient-cli", section->data,
-      section->data_size, candidates, sizeof(candidates) / sizeof(candidates[0]));
-    if (candidate_count > sizeof(candidates) / sizeof(candidates[0]))
-      candidate_count = sizeof(candidates) / sizeof(candidates[0]);
-    for (candidate_index = 0U; candidate_index < candidate_count && result_count < sizeof(results) / sizeof(results[0]);
+      section->data_size, candidates, candidate_capacity);
+    if (candidate_count > candidate_capacity)
+      candidate_count = candidate_capacity;
+    for (candidate_index = 0U; candidate_index < candidate_count && result_count < result_capacity;
         ++candidate_index) {
       const PlatformDecompressionCandidate *candidate = &candidates[candidate_index];
       PlatformDecompressionIdentifyResult result;
@@ -4925,7 +4944,7 @@ static int append_object_decompression_analysis_json(JsonBuilder *builder, const
       if (!automatic_decompression_candidate_is_useful(candidate)) continue;
       if (analysis_range_overlaps_accepted_code(section_analysis, candidate->offset, candidate->packed_size))
         continue;
-      if (make_temp_output_path(output_path, sizeof(output_path)) != 0) return -1;
+      if (make_temp_output_path(output_path, sizeof(output_path)) != 0) goto cleanup;
       if (platform_decompression_decompress_buffer_range("ancient-cli", "", section->data, section->data_size,
           candidate->offset, candidate->packed_size, output_path, &result, error, sizeof(error)) != 0) {
         remove(output_path);
@@ -4963,36 +4982,37 @@ static int append_object_decompression_analysis_json(JsonBuilder *builder, const
     }
   }
   if (collect_self_decrunch_events_local(object, analysis, self_decrunch_events,
-      sizeof(self_decrunch_events) / sizeof(self_decrunch_events[0]), &self_decrunch_event_count,
+      self_decrunch_event_capacity, &self_decrunch_event_count,
       NULL, NULL, NULL, NULL) != 0) {
-    return -1;
+    goto cleanup;
   }
   if (collect_recognized_unpacker_events_local(object, analysis, recognized_unpacker_events,
-      sizeof(recognized_unpacker_events) / sizeof(recognized_unpacker_events[0]),
+      recognized_unpacker_event_capacity,
       &recognized_unpacker_event_count, NULL, NULL, NULL, NULL) != 0) {
-    return -1;
+    goto cleanup;
   }
-  if (json_builder_append(builder, ",\"packed_payloads\":[") != 0) return -1;
+  if (json_builder_append(builder, ",\"packed_payloads\":[") != 0) goto cleanup;
   for (section_index = 0U; section_index < result_count; ++section_index) {
-    if (section_index != 0U && json_builder_append(builder, ",") != 0) return -1;
-    if (platform_decompression_append_result_json(builder, &results[section_index]) != 0) return -1;
+    if (section_index != 0U && json_builder_append(builder, ",") != 0) goto cleanup;
+    if (platform_decompression_append_result_json(builder, &results[section_index]) != 0) goto cleanup;
   }
-  if (json_builder_append(builder, "],\"derived_target_suggestions\":[") != 0) return -1;
+  if (json_builder_append(builder, "],\"derived_target_suggestions\":[") != 0) goto cleanup;
   for (section_index = 0U; section_index < result_count; ++section_index) {
-    if (section_index != 0U && json_builder_append(builder, ",") != 0) return -1;
+    if (section_index != 0U && json_builder_append(builder, ",") != 0) goto cleanup;
     if (append_derived_decompression_suggestion_json(builder, &results[section_index],
-        find_decompression_runtime_copy_view(analysis, &results[section_index])) != 0) return -1;
+        find_decompression_runtime_copy_view(analysis, &results[section_index])) != 0) goto cleanup;
   }
-  if (json_builder_append(builder, "],\"decompression_events\":[") != 0) return -1;
+  if (json_builder_append(builder, "],\"decompression_events\":[") != 0) goto cleanup;
   for (section_index = 0U; section_index < result_count; ++section_index) {
-    if (emitted_event_count != 0U && json_builder_append(builder, ",") != 0) return -1;
+    if (emitted_event_count != 0U && json_builder_append(builder, ",") != 0) goto cleanup;
     if (append_decompression_event_json(builder, &results[section_index],
-        find_decompression_runtime_copy_view(analysis, &results[section_index])) != 0) return -1;
+        find_decompression_runtime_copy_view(analysis, &results[section_index])) != 0) goto cleanup;
     ++emitted_event_count;
   }
   for (section_index = 0U; section_index < recognized_unpacker_event_count; ++section_index) {
-    if (emitted_event_count != 0U && json_builder_append(builder, ",") != 0) return -1;
-    if (append_recognized_unpacker_event_json(builder, &recognized_unpacker_events[section_index]) != 0) return -1;
+    if (emitted_event_count != 0U && json_builder_append(builder, ",") != 0) goto cleanup;
+    if (append_recognized_unpacker_event_json(builder, &recognized_unpacker_events[section_index]) != 0)
+      goto cleanup;
     ++emitted_event_count;
   }
   for (section_index = 0U; section_index < self_decrunch_event_count; ++section_index) {
@@ -5002,11 +5022,16 @@ static int append_object_decompression_analysis_json(JsonBuilder *builder, const
     if (self_decrunch_event_matches_native_recognized_unpacker_local(recognized_unpacker_events,
         recognized_unpacker_event_count, &self_decrunch_events[section_index]))
       continue;
-    if (emitted_event_count != 0U && json_builder_append(builder, ",") != 0) return -1;
-    if (append_self_decrunch_event_json(builder, &self_decrunch_events[section_index]) != 0) return -1;
+    if (emitted_event_count != 0U && json_builder_append(builder, ",") != 0) goto cleanup;
+    if (append_self_decrunch_event_json(builder, &self_decrunch_events[section_index]) != 0) goto cleanup;
     ++emitted_event_count;
   }
-  return json_builder_append(builder, "]");
+  if (json_builder_append(builder, "]") != 0) goto cleanup;
+  rc = 0;
+
+cleanup:
+  arena_destroy(scratch_arena);
+  return rc;
 }
 
 static int append_analysis_executable_ranges_json(JsonBuilder *builder, const char *backend_name,
@@ -8730,6 +8755,7 @@ static const char *facts_v2_asm_source_failure_kind_name(uint32_t kind) {
     case 8U: return "unassemblable_hunk_data_relocation";
     case 9U: return "unassemblable_hunk_base_register_relocation";
     case 10U: return "required_instruction";
+    case 11U: return "table_target_set_limit";
     default: return "";
   }
 }
@@ -8886,6 +8912,10 @@ static int json_builder_append_facts_v2_profile(JsonBuilder *builder, const M68k
     "\"first_platform_loadseg_segment_link_target_section\":%u,"
     "\"runtime_address_ranges\":%u,"
     "\"runtime_address_range_conflicts\":%u,"
+    "\"table_target_set_limit_hits\":%u,"
+    "\"first_table_target_set_limit_section\":%u,"
+    "\"first_table_target_set_limit_offset\":%u,"
+    "\"first_table_target_set_limit_capacity\":%u,"
     "\"runtime_address_view_starts\":%u,"
     "\"required_instruction_failures\":%u,"
     "\"unsupported_instruction_demotes\":%u,"
@@ -9032,6 +9062,10 @@ static int json_builder_append_facts_v2_profile(JsonBuilder *builder, const M68k
     (unsigned)profile->first_platform_loadseg_segment_link_target_section,
     (unsigned)profile->runtime_address_ranges,
     (unsigned)profile->runtime_address_range_conflicts,
+    (unsigned)profile->table_target_set_limit_hits,
+    (unsigned)profile->first_table_target_set_limit_section,
+    (unsigned)profile->first_table_target_set_limit_offset,
+    (unsigned)profile->first_table_target_set_limit_capacity,
     (unsigned)profile->runtime_address_view_starts,
     (unsigned)profile->required_instruction_failures,
     (unsigned)profile->unsupported_instruction_demotes,

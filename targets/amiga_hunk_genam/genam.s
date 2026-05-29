@@ -1819,12 +1819,11 @@ loc_0_00001252:
 	dcb.b $21,$00	; lookup_table
 	dc.b $EA,$F4,$00,$FE,$FA,$0E,$F4,$02,$03,$04,$11,$00,$12,$01,$05	; lookup_table
 	dcb.b $A,$FF	; lookup_table
-	dc.b $00,$00,$F2,$08,$EE,$00	; lookup_table
-	dc.b $F8
-	dcb.b $1A,$01
-	dc.b $00,$00,$00,$10,$01,$00
-	dcb.b $1A,$01
-	dc.b $00,$0F,$00,$13,$00
+	dc.b $00,$00,$F2,$08,$EE,$00,$F8	; lookup_table
+	dcb.b $1A,$01	; lookup_table
+	dc.b $00,$00,$00,$10,$01,$00	; lookup_table
+	dcb.b $1A,$01	; lookup_table
+	dc.b $00,$0F,$00,$13,$00	; lookup_table
 loc_0_000012D2:
 	lea.l app_046E(a6),a0
 	bsr.w loc_0_000076B8

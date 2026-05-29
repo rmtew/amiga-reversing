@@ -3343,28 +3343,28 @@ loc_0_0000379C:
 	dc.w $FF00,$0400,$FF00,$0600,$FFC0,$0AC0,$FDC0,$0CC0	; lookup_table
 	dc.w $FF00,$0800,$FF00,$0A00,$FF00,$0C00,$F100,$0100	; lookup_table
 	dc.w $F000,$1000,$F1C0,$2040,$F000,$2000,$F1C0,$3040	; lookup_table
-	dc.b $F0,$00,$30,$00,$FF,$FF,$4A,$FB,$FF,$FF,$4A,$FC,$FF,$FF,$4E,$70
-	dc.b $FF,$FF,$4E,$71,$FF,$FF,$4E,$72,$FF,$FF,$4E,$73,$FF,$FF,$4E,$74
-	dc.b $FF,$FF,$4E,$75,$FF,$FF,$4E,$76,$FF,$FF,$4E,$77,$FF,$FE,$4E,$7A
-	dc.b $FF,$F8,$48,$40,$FF,$F8,$48,$80,$FF,$F8,$48,$C0,$FF,$F8,$4E,$50
-	dc.b $FF,$F8,$4E,$58,$FF,$F8,$4E,$60,$FF,$F8,$4E,$68,$FF,$F8,$49,$C0
-	dc.b $FF,$F0,$4E,$40,$FF,$C0,$40,$C0,$FF,$C0,$42,$C0,$FF,$F8,$48,$48
-	dc.b $FF,$C0,$44,$C0,$FF,$C0,$46,$C0,$FF,$F8,$48,$08,$FF,$C0,$48,$00
-	dc.b $FF,$C0,$4A,$C0,$FF,$C0,$4E,$80,$FF,$C0,$4E,$C0,$FF,$C0,$4C,$00
-	dc.b $FF,$C0,$4C,$40,$FF,$80,$48,$80,$FF,$80,$4C,$80,$FF,$40,$48,$40
-	dc.b $FF,$00,$40,$00,$FF,$00,$42,$00,$FF,$00,$44,$00,$FF,$00,$46,$00
-	dc.b $FF,$00,$4A,$00,$F1,$40,$41,$00,$F1,$C0,$41,$C0,$F0,$FE,$50,$F8
-	dc.b $F0,$F8,$50,$F8,$F0,$F8,$50,$C8,$F0,$C0,$50,$C0,$F1,$00,$50,$00
-	dc.b $F1,$00,$51,$00,$F0,$00,$60,$00,$F1,$00,$70,$00,$F1,$F0,$81,$00
-	dc.b $F1,$F0,$81,$40,$F1,$F0,$81,$80,$F1,$C0,$80,$C0,$F1,$C0,$81,$C0
-	dc.b $F0,$00,$80,$00,$F0,$C0,$90,$C0,$F1,$30,$91,$00,$F0,$00,$90,$00
-	dc.b $F1,$38,$B1,$08,$F0,$00,$B0,$00,$F1,$F0,$C1,$00,$F1,$C0,$C0,$C0
-	dc.b $F1,$C0,$C1,$C0,$F1,$30,$C1,$00,$F0,$00,$C0,$00,$F0,$C0,$D0,$C0
-	dc.b $F1,$30,$D1,$00,$F0,$00,$D0,$00,$FF,$C0,$E8,$C0,$FF,$C0,$E9,$C0
-	dc.b $FF,$C0,$EA,$C0,$FF,$C0,$EB,$C0,$FF,$C0,$EC,$C0,$FF,$C0,$ED,$C0
-	dc.b $FF,$C0,$EE,$C0,$FF,$C0,$EF,$C0,$F0,$00,$E0,$00,$FF,$C0,$F0,$00
-	dc.b $FF,$C0,$F2,$00,$FF,$C0,$F2,$40,$FF,$80,$F2,$80,$FF,$C0,$F3,$00
-	dc.b $FF,$C0,$F3,$40,$00,$00,$00,$00
+	dc.w $F000,$3000,$FFFF,$4AFB,$FFFF,$4AFC,$FFFF,$4E70	; lookup_table
+	dc.w $FFFF,$4E71,$FFFF,$4E72,$FFFF,$4E73,$FFFF,$4E74	; lookup_table
+	dc.w $FFFF,$4E75,$FFFF,$4E76,$FFFF,$4E77,$FFFE,$4E7A	; lookup_table
+	dc.w $FFF8,$4840,$FFF8,$4880,$FFF8,$48C0,$FFF8,$4E50	; lookup_table
+	dc.w $FFF8,$4E58,$FFF8,$4E60,$FFF8,$4E68,$FFF8,$49C0	; lookup_table
+	dc.w $FFF0,$4E40,$FFC0,$40C0,$FFC0,$42C0,$FFF8,$4848	; lookup_table
+	dc.w $FFC0,$44C0,$FFC0,$46C0,$FFF8,$4808,$FFC0,$4800	; lookup_table
+	dc.w $FFC0,$4AC0,$FFC0,$4E80,$FFC0,$4EC0,$FFC0,$4C00	; lookup_table
+	dc.w $FFC0,$4C40,$FF80,$4880,$FF80,$4C80,$FF40,$4840	; lookup_table
+	dc.w $FF00,$4000,$FF00,$4200,$FF00,$4400,$FF00,$4600	; lookup_table
+	dc.w $FF00,$4A00,$F140,$4100,$F1C0,$41C0,$F0FE,$50F8	; lookup_table
+	dc.w $F0F8,$50F8,$F0F8,$50C8,$F0C0,$50C0,$F100,$5000	; lookup_table
+	dc.w $F100,$5100,$F000,$6000,$F100,$7000,$F1F0,$8100	; lookup_table
+	dc.w $F1F0,$8140,$F1F0,$8180,$F1C0,$80C0,$F1C0,$81C0	; lookup_table
+	dc.w $F000,$8000,$F0C0,$90C0,$F130,$9100,$F000,$9000	; lookup_table
+	dc.w $F138,$B108,$F000,$B000,$F1F0,$C100,$F1C0,$C0C0	; lookup_table
+	dc.w $F1C0,$C1C0,$F130,$C100,$F000,$C000,$F0C0,$D0C0	; lookup_table
+	dc.w $F130,$D100,$F000,$D000,$FFC0,$E8C0,$FFC0,$E9C0	; lookup_table
+	dc.w $FFC0,$EAC0,$FFC0,$EBC0,$FFC0,$ECC0,$FFC0,$EDC0	; lookup_table
+	dc.w $FFC0,$EEC0,$FFC0,$EFC0,$F000,$E000,$FFC0,$F000	; lookup_table
+	dc.w $FFC0,$F200,$FFC0,$F240,$FF80,$F280,$FFC0,$F300	; lookup_table
+	dc.w $FFC0,$F340,$0000,$0000	; lookup_table
 loc_0_00003934:
 	dc.b $07,$03,$6D,$6F,$76,$65,$70,$2E,$02,$2A,$63,$04,$02,$6F,$72,$69
 	dc.b $05,$02,$61,$6E,$64,$69,$05,$02,$73,$75,$62,$69,$05,$02,$61,$64

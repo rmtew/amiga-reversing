@@ -3574,6 +3574,7 @@ CODE_1_loc_0000133e:
 	move.w $0004(a0),d5
 	moveq.l #0,d4
 	move.b $0007(a0),d4
+CODE_1_loc_00001354:
 	tst.b -$0C60(a5)
 	beq.b CODE_1_loc_0000136c
 	moveq.l #32,d0
@@ -3655,36 +3656,458 @@ CODE_1_data_000013b4:
 	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
 CODE_1_data_000013b6:
 	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
-CODE_1_data_dispatch_table_000013b8:
-	dc.b $07,$80,$06,$58,$04,$E2,$06,$DA,$04,$7C,$04,$34,$02,$2A,$05,$22
-	dc.b $06,$80,$06,$8A,$05,$B0,$05,$74,$06,$BC,$05,$92,$06,$C6,$05,$CE
-	dc.b $03,$A4,$03,$C8,$03,$C8,$03,$C8,$03,$C8,$03,$C8,$03,$C8,$03,$C8
-	dc.b $03,$C8,$03,$C8,$06,$D0,$07,$80,$05,$EC,$06,$6C,$06,$2A,$07,$8E
-	dc.b $02,$2A,$02,$2A,$02,$2A,$02,$2A,$02,$2A,$02,$2A,$02,$2A,$02,$2A
-	dc.b $02,$2A,$02,$2A,$02,$2A,$02,$2A,$02,$2A,$02,$2A,$02,$2A,$02,$2A
-	dc.b $02,$2A,$02,$2A,$02,$2A,$02,$2A,$02,$2A,$02,$2A,$02,$2A,$02,$2A
-	dc.b $02,$2A,$02,$2A,$02,$2A,$06,$94,$06,$EE,$06,$9E,$07,$8E,$02,$2A
-	dc.b $07,$8E,$02,$20,$02,$20,$02,$20,$02,$20,$02,$20,$02,$20,$02,$20
-	dc.b $02,$20,$02,$20,$02,$20,$02,$20,$02,$20,$02,$20,$02,$20,$02,$20
-	dc.b $02,$20,$02,$20,$02,$20,$02,$20,$02,$20,$02,$20,$02,$20,$02,$20
-	dc.b $02,$20,$02,$20,$02,$20,$06,$A8,$06,$58,$06,$B2,$06,$76,$07,$8E
-	dc.b $07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E
-	dc.b $07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E
-	dc.b $07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E
-	dc.b $07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E
-	dc.b $07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E
-	dc.b $07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E,$06,$20,$07,$8E,$07,$8E
-	dc.b $07,$8E,$07,$8E,$06,$16,$06,$4E,$07,$8E,$07,$8E,$07,$8E,$07,$8E
-	dc.b $07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E
-	dc.b $02,$00,$07,$8E,$06,$E4,$07,$8E,$07,$8E,$07,$8E,$07,$8E,$06,$0C
-	dc.b $06,$44,$07,$8E,$07,$80,$07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E
-	dc.b $07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E,$06,$62,$07,$8E
-	dc.b $07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E
-	dc.b $07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E
-	dc.b $07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E
-	dc.b $07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E
-	dc.b $07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E,$07,$8E
-	dc.b $4A,$6D,$EC,$E4,$67,$00,$05,$88,$60,$20
+CODE_1_data_000013b8:
+	dc.w CODE_1_loc_00001af8-CODE_1_loc_00001378
+CODE_1_data_000013ba:
+	dc.w CODE_1_loc_000019d0-CODE_1_loc_00001378
+CODE_1_data_000013bc:
+	dc.w CODE_1_loc_0000185a-CODE_1_loc_00001378
+CODE_1_data_000013be:
+	dc.w CODE_1_loc_00001a52-CODE_1_loc_00001378
+CODE_1_data_000013c0:
+	dc.w CODE_1_loc_000017f4-CODE_1_loc_00001378
+CODE_1_data_000013c2:
+	dc.w CODE_1_loc_000017ac-CODE_1_loc_00001378
+CODE_1_data_000013c4:
+	dc.w CODE_1_loc_000015a2-CODE_1_loc_00001378
+CODE_1_data_000013c6:
+	dc.w CODE_1_loc_0000189a-CODE_1_loc_00001378
+CODE_1_data_000013c8:
+	dc.w CODE_1_loc_000019f8-CODE_1_loc_00001378
+CODE_1_data_000013ca:
+	dc.w CODE_1_loc_00001a02-CODE_1_loc_00001378
+CODE_1_data_000013cc:
+	dc.w CODE_1_loc_00001928-CODE_1_loc_00001378
+CODE_1_data_000013ce:
+	dc.w CODE_1_loc_000018ec-CODE_1_loc_00001378
+CODE_1_data_000013d0:
+	dc.w CODE_1_loc_00001a34-CODE_1_loc_00001378
+CODE_1_data_000013d2:
+	dc.w CODE_1_loc_0000190a-CODE_1_loc_00001378
+CODE_1_data_000013d4:
+	dc.w CODE_1_loc_00001a3e-CODE_1_loc_00001378
+CODE_1_data_000013d6:
+	dc.w CODE_1_loc_00001946-CODE_1_loc_00001378
+CODE_1_data_000013d8:
+	dc.w CODE_1_loc_0000171c-CODE_1_loc_00001378
+CODE_1_data_000013da:
+	dc.w CODE_1_loc_00001740-CODE_1_loc_00001378
+CODE_1_data_000013dc:
+	dc.w CODE_1_loc_00001740-CODE_1_loc_00001378
+CODE_1_data_000013de:
+	dc.w CODE_1_loc_00001740-CODE_1_loc_00001378
+CODE_1_data_000013e0:
+	dc.w CODE_1_loc_00001740-CODE_1_loc_00001378
+CODE_1_data_000013e2:
+	dc.w CODE_1_loc_00001740-CODE_1_loc_00001378
+CODE_1_data_000013e4:
+	dc.w CODE_1_loc_00001740-CODE_1_loc_00001378
+CODE_1_data_000013e6:
+	dc.w CODE_1_loc_00001740-CODE_1_loc_00001378
+CODE_1_data_000013e8:
+	dc.w CODE_1_loc_00001740-CODE_1_loc_00001378
+CODE_1_data_000013ea:
+	dc.w CODE_1_loc_00001740-CODE_1_loc_00001378
+CODE_1_data_000013ec:
+	dc.w CODE_1_loc_00001a48-CODE_1_loc_00001378
+CODE_1_data_000013ee:
+	dc.w CODE_1_loc_00001af8-CODE_1_loc_00001378
+CODE_1_data_000013f0:
+	dc.w CODE_1_loc_00001964-CODE_1_loc_00001378
+CODE_1_data_000013f2:
+	dc.w CODE_1_loc_000019e4-CODE_1_loc_00001378
+CODE_1_data_000013f4:
+	dc.w CODE_1_loc_000019a2-CODE_1_loc_00001378
+CODE_1_data_000013f6:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_000013f8:
+	dc.w CODE_1_loc_000015a2-CODE_1_loc_00001378
+CODE_1_data_000013fa:
+	dc.w CODE_1_loc_000015a2-CODE_1_loc_00001378
+CODE_1_data_000013fc:
+	dc.w CODE_1_loc_000015a2-CODE_1_loc_00001378
+CODE_1_data_000013fe:
+	dc.w CODE_1_loc_000015a2-CODE_1_loc_00001378
+CODE_1_data_00001400:
+	dc.w CODE_1_loc_000015a2-CODE_1_loc_00001378
+CODE_1_data_00001402:
+	dc.w CODE_1_loc_000015a2-CODE_1_loc_00001378
+CODE_1_data_00001404:
+	dc.w CODE_1_loc_000015a2-CODE_1_loc_00001378
+CODE_1_data_00001406:
+	dc.w CODE_1_loc_000015a2-CODE_1_loc_00001378
+CODE_1_data_00001408:
+	dc.w CODE_1_loc_000015a2-CODE_1_loc_00001378
+CODE_1_data_0000140a:
+	dc.w CODE_1_loc_000015a2-CODE_1_loc_00001378
+CODE_1_data_0000140c:
+	dc.w CODE_1_loc_000015a2-CODE_1_loc_00001378
+CODE_1_data_0000140e:
+	dc.w CODE_1_loc_000015a2-CODE_1_loc_00001378
+CODE_1_data_00001410:
+	dc.w CODE_1_loc_000015a2-CODE_1_loc_00001378
+CODE_1_data_00001412:
+	dc.w CODE_1_loc_000015a2-CODE_1_loc_00001378
+CODE_1_data_00001414:
+	dc.w CODE_1_loc_000015a2-CODE_1_loc_00001378
+CODE_1_data_00001416:
+	dc.w CODE_1_loc_000015a2-CODE_1_loc_00001378
+CODE_1_data_00001418:
+	dc.w CODE_1_loc_000015a2-CODE_1_loc_00001378
+CODE_1_data_0000141a:
+	dc.w CODE_1_loc_000015a2-CODE_1_loc_00001378
+CODE_1_data_0000141c:
+	dc.w CODE_1_loc_000015a2-CODE_1_loc_00001378
+CODE_1_data_0000141e:
+	dc.w CODE_1_loc_000015a2-CODE_1_loc_00001378
+CODE_1_data_00001420:
+	dc.w CODE_1_loc_000015a2-CODE_1_loc_00001378
+CODE_1_data_00001422:
+	dc.w CODE_1_loc_000015a2-CODE_1_loc_00001378
+CODE_1_data_00001424:
+	dc.w CODE_1_loc_000015a2-CODE_1_loc_00001378
+CODE_1_data_00001426:
+	dc.w CODE_1_loc_000015a2-CODE_1_loc_00001378
+CODE_1_data_00001428:
+	dc.w CODE_1_loc_000015a2-CODE_1_loc_00001378
+CODE_1_data_0000142a:
+	dc.w CODE_1_loc_000015a2-CODE_1_loc_00001378
+CODE_1_data_0000142c:
+	dc.w CODE_1_loc_000015a2-CODE_1_loc_00001378
+CODE_1_data_0000142e:
+	dc.w CODE_1_loc_00001a0c-CODE_1_loc_00001378
+CODE_1_data_00001430:
+	dc.w CODE_1_loc_00001a66-CODE_1_loc_00001378
+CODE_1_data_00001432:
+	dc.w CODE_1_loc_00001a16-CODE_1_loc_00001378
+CODE_1_data_00001434:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_00001436:
+	dc.w CODE_1_loc_000015a2-CODE_1_loc_00001378
+CODE_1_data_00001438:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_0000143a:
+	dc.w CODE_1_loc_00001598-CODE_1_loc_00001378
+CODE_1_data_0000143c:
+	dc.w CODE_1_loc_00001598-CODE_1_loc_00001378
+CODE_1_data_0000143e:
+	dc.w CODE_1_loc_00001598-CODE_1_loc_00001378
+CODE_1_data_00001440:
+	dc.w CODE_1_loc_00001598-CODE_1_loc_00001378
+CODE_1_data_00001442:
+	dc.w CODE_1_loc_00001598-CODE_1_loc_00001378
+CODE_1_data_00001444:
+	dc.w CODE_1_loc_00001598-CODE_1_loc_00001378
+CODE_1_data_00001446:
+	dc.w CODE_1_loc_00001598-CODE_1_loc_00001378
+CODE_1_data_00001448:
+	dc.w CODE_1_loc_00001598-CODE_1_loc_00001378
+CODE_1_data_0000144a:
+	dc.w CODE_1_loc_00001598-CODE_1_loc_00001378
+CODE_1_data_0000144c:
+	dc.w CODE_1_loc_00001598-CODE_1_loc_00001378
+CODE_1_data_0000144e:
+	dc.w CODE_1_loc_00001598-CODE_1_loc_00001378
+CODE_1_data_00001450:
+	dc.w CODE_1_loc_00001598-CODE_1_loc_00001378
+CODE_1_data_00001452:
+	dc.w CODE_1_loc_00001598-CODE_1_loc_00001378
+CODE_1_data_00001454:
+	dc.w CODE_1_loc_00001598-CODE_1_loc_00001378
+CODE_1_data_00001456:
+	dc.w CODE_1_loc_00001598-CODE_1_loc_00001378
+CODE_1_data_00001458:
+	dc.w CODE_1_loc_00001598-CODE_1_loc_00001378
+CODE_1_data_0000145a:
+	dc.w CODE_1_loc_00001598-CODE_1_loc_00001378
+CODE_1_data_0000145c:
+	dc.w CODE_1_loc_00001598-CODE_1_loc_00001378
+CODE_1_data_0000145e:
+	dc.w CODE_1_loc_00001598-CODE_1_loc_00001378
+CODE_1_data_00001460:
+	dc.w CODE_1_loc_00001598-CODE_1_loc_00001378
+CODE_1_data_00001462:
+	dc.w CODE_1_loc_00001598-CODE_1_loc_00001378
+CODE_1_data_00001464:
+	dc.w CODE_1_loc_00001598-CODE_1_loc_00001378
+CODE_1_data_00001466:
+	dc.w CODE_1_loc_00001598-CODE_1_loc_00001378
+CODE_1_data_00001468:
+	dc.w CODE_1_loc_00001598-CODE_1_loc_00001378
+CODE_1_data_0000146a:
+	dc.w CODE_1_loc_00001598-CODE_1_loc_00001378
+CODE_1_data_0000146c:
+	dc.w CODE_1_loc_00001598-CODE_1_loc_00001378
+CODE_1_data_0000146e:
+	dc.w CODE_1_loc_00001a20-CODE_1_loc_00001378
+CODE_1_data_00001470:
+	dc.w CODE_1_loc_000019d0-CODE_1_loc_00001378
+CODE_1_data_00001472:
+	dc.w CODE_1_loc_00001a2a-CODE_1_loc_00001378
+CODE_1_data_00001474:
+	dc.w CODE_1_loc_000019ee-CODE_1_loc_00001378
+CODE_1_data_00001476:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_00001478:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_0000147a:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_0000147c:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_0000147e:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_00001480:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_00001482:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_00001484:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_00001486:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_00001488:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_0000148a:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_0000148c:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_0000148e:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_00001490:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_00001492:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_00001494:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_00001496:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_00001498:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_0000149a:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_0000149c:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_0000149e:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_000014a0:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_000014a2:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_000014a4:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_000014a6:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_000014a8:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_000014aa:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_000014ac:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_000014ae:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_000014b0:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_000014b2:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_000014b4:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_000014b6:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_000014b8:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_000014ba:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_000014bc:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_000014be:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_000014c0:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_000014c2:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_000014c4:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_000014c6:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_000014c8:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_000014ca:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_000014cc:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_000014ce:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_000014d0:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_000014d2:
+	dc.w CODE_1_loc_00001998-CODE_1_loc_00001378
+CODE_1_data_000014d4:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_000014d6:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_000014d8:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_000014da:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_000014dc:
+	dc.w CODE_1_loc_0000198e-CODE_1_loc_00001378
+CODE_1_data_000014de:
+	dc.w CODE_1_loc_000019c6-CODE_1_loc_00001378
+CODE_1_data_000014e0:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_000014e2:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_000014e4:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_000014e6:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_000014e8:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_000014ea:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_000014ec:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_000014ee:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_000014f0:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_000014f2:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_000014f4:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_000014f6:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_000014f8:
+	dc.w CODE_1_loc_00001578-CODE_1_loc_00001378
+CODE_1_data_000014fa:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_000014fc:
+	dc.w CODE_1_loc_00001a5c-CODE_1_loc_00001378
+CODE_1_data_000014fe:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_00001500:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_00001502:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_00001504:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_00001506:
+	dc.w CODE_1_loc_00001984-CODE_1_loc_00001378
+CODE_1_data_00001508:
+	dc.w CODE_1_loc_000019bc-CODE_1_loc_00001378
+CODE_1_data_0000150a:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_0000150c:
+	dc.w CODE_1_loc_00001af8-CODE_1_loc_00001378
+CODE_1_data_0000150e:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_00001510:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_00001512:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_00001514:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_00001516:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_00001518:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_0000151a:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_0000151c:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_0000151e:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_00001520:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_00001522:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_00001524:
+	dc.w CODE_1_loc_000019da-CODE_1_loc_00001378
+CODE_1_data_00001526:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_00001528:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_0000152a:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_0000152c:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_0000152e:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_00001530:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_00001532:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_00001534:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_00001536:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_00001538:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_0000153a:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_0000153c:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_0000153e:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_00001540:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_00001542:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_00001544:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_00001546:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_00001548:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_0000154a:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_0000154c:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_0000154e:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_00001550:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_00001552:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_00001554:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_00001556:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_00001558:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_0000155a:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_0000155c:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_0000155e:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_00001560:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_00001562:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_00001564:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_00001566:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_00001568:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_0000156a:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_0000156c:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_0000156e:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_00001570:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_00001572:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_00001574:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_data_00001576:
+	dc.w CODE_1_loc_00001b06-CODE_1_loc_00001378
+CODE_1_loc_00001578:
+	tst.w -$131C(a5)
+	beq.w CODE_1_loc_00001b06
+	bra.b CODE_1_loc_000015a2
 CODE_1_loc_00001582:
 	lea.l -$0105(a5),a1
 	move.b #$25,(a1)+
@@ -3693,8 +4116,10 @@ CODE_1_loc_00001582:
 	tst.b -$0C5F(a5)
 	bne.b CODE_1_loc_000015d2
 	bra.b CODE_1_loc_000015be
-CODE_1_semantic_decode_gap_00001598:
-	dc.b $4A,$2D,$F3,$A1,$67,$04,$04,$04,$00,$20
+CODE_1_loc_00001598:
+	tst.b -$0C5F(a5)
+	beq.b CODE_1_loc_000015a2
+	subi.b #32,d4
 CODE_1_loc_000015a2:
 	clr.w d2
 	move.w -$0C72(a5),d1
@@ -4035,23 +4460,33 @@ CODE_1_loc_000019c6:
 CODE_1_loc_000019d0:
 	move.b #$9,-$0005(a5)
 	bra.w CODE_1_loc_00001b0c
-CODE_1_semantic_decode_gap_000019da:
-	dc.b $1B,$7C,$00,$07,$FF,$FB,$60,$00,$01,$2A
+CODE_1_loc_000019da:
+	move.b #$7,-$0005(a5)
+	bra.w CODE_1_loc_00001b0c
 CODE_1_loc_000019e4:
 	move.b #$C,-$0005(a5)
 	bra.w CODE_1_loc_00001b0c
-CODE_1_semantic_decode_gap_000019ee:
-	dc.b $1B,$7C,$00,$15,$FF,$FB,$60,$00,$01,$16
+CODE_1_loc_000019ee:
+	move.b #$15,-$0005(a5)
+	bra.w CODE_1_loc_00001b0c
 CODE_1_loc_000019f8:
 	move.b #$16,-$0005(a5)
 	bra.w CODE_1_loc_00001b0c
 CODE_1_loc_00001a02:
 	move.b #$17,-$0005(a5)
 	bra.w CODE_1_loc_00001b0c
-CODE_1_data_dispatch_table_00001a0c:
-	dc.b $1B,$7C,$00,$18,$FF,$FB,$60,$00,$00,$F8,$1B,$7C,$00,$19,$FF,$FB
-	dc.b $60,$00,$00,$EE,$1B,$7C,$00,$1A,$FF,$FB,$60,$00,$00,$E4,$1B,$7C
-	dc.b $00,$1B,$FF,$FB,$60,$00,$00,$DA
+CODE_1_loc_00001a0c:
+	move.b #$18,-$0005(a5)
+	bra.w CODE_1_loc_00001b0c
+CODE_1_loc_00001a16:
+	move.b #$19,-$0005(a5)
+	bra.w CODE_1_loc_00001b0c
+CODE_1_loc_00001a20:
+	move.b #$1A,-$0005(a5)
+	bra.w CODE_1_loc_00001b0c
+CODE_1_loc_00001a2a:
+	move.b #$1B,-$0005(a5)
+	bra.w CODE_1_loc_00001b0c
 CODE_1_loc_00001a34:
 	move.b #$1C,-$0005(a5)
 	bra.w CODE_1_loc_00001b0c
@@ -4064,17 +4499,60 @@ CODE_1_loc_00001a48:
 CODE_1_loc_00001a52:
 	move.b #$20,-$0005(a5)
 	bra.w CODE_1_loc_00001b0c
-CODE_1_data_dispatch_table_00001a5c:
-	dc.b $1B,$7C,$00,$14,$FF,$FB,$60,$00,$00,$A8,$4A,$2D,$EC,$C3,$67,$0E
-	dc.b $18,$1C,$52,$45,$1B,$7C,$00,$21,$FF,$FB,$60,$00,$00,$98,$55,$4F
-	dc.b $22,$6D,$FF,$FC,$4A,$29,$00,$0F,$67,$06,$4E,$BA,$01,$EA,$60,$06
-	dc.b $42,$27,$4E,$BA,$39,$1C,$10,$1F,$67,$62,$22,$6D,$FF,$FC,$20,$69
-	dc.b $00,$08,$3A,$3C,$00,$02,$18,$28,$00,$01,$49,$E8,$00,$02,$0C,$04
-	dc.b $00,$20,$67,$06,$0C,$04,$00,$09,$66,$06,$18,$1C,$52,$45,$60,$EE
-	dc.b $52,$69,$00,$0C,$4A,$29,$00,$0F,$66,$00,$F8,$8E,$4A,$6D,$EC,$E4
-	dc.b $67,$00,$F8,$86,$4A,$2D,$EC,$C4,$66,$00,$F8,$7E,$33,$44,$00,$06
-	dc.b $67,$00,$F8,$76,$22,$8C,$33,$45,$00,$04,$2F,$08,$4E,$AD,$04,$C2
-	dc.b $22,$6D,$FF,$FC,$38,$29,$00,$06,$60,$00,$F8,$5E
+CODE_1_loc_00001a5c:
+	move.b #$14,-$0005(a5)
+	bra.w CODE_1_loc_00001b0c
+CODE_1_loc_00001a66:
+	tst.b -$133D(a5)
+	beq.b CODE_1_loc_00001a7a
+	move.b (a4)+,d4
+	addq.w #1,d5
+	move.b #$21,-$0005(a5)
+	bra.w CODE_1_loc_00001b10
+CODE_1_loc_00001a7a:
+	subq.w #2,a7
+	movea.l -$0004(a5),a1
+	tst.b $000F(a1)
+	beq.b CODE_1_loc_00001a8c
+	jsr CODE_1_loc_00001c72(pc)
+	bra.b CODE_1_loc_00001a92
+CODE_1_loc_00001a8c:
+	clr.b -(a7)
+	jsr CODE_1_loc_000053ac(pc)
+CODE_1_loc_00001a92:
+	move.b (a7)+,d0
+	beq.b CODE_1_loc_00001af8
+	movea.l -$0004(a5),a1
+	movea.l $0008(a1),a0
+	move.w #$2,d5
+	move.b $0001(a0),d4
+	lea.l $0002(a0),a4
+CODE_1_loc_00001aaa:
+	cmpi.b #32,d4
+	beq.b CODE_1_loc_00001ab6
+	cmpi.b #9,d4
+	bne.b CODE_1_loc_00001abc
+CODE_1_loc_00001ab6:
+	move.b (a4)+,d4
+	addq.w #1,d5
+	bra.b CODE_1_loc_00001aaa
+CODE_1_loc_00001abc:
+	addq.w #1,$000C(a1)
+	tst.b $000F(a1)
+	bne.w CODE_1_loc_00001354
+	tst.w -$131C(a5)
+	beq.w CODE_1_loc_00001354
+	tst.b -$133C(a5)
+	bne.w CODE_1_loc_00001354
+	move.w d4,$0006(a1)
+	beq.w CODE_1_loc_00001354
+	move.l a4,(a1)
+	move.w d5,$0004(a1)
+	move.l a0,-(a7)
+	jsr CODE_0_jump_table_entry_148+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
+	movea.l -$0004(a5),a1
+	move.w $0006(a1),d4
+	bra.w CODE_1_loc_00001354
 CODE_1_loc_00001af8:
 	subq.w #1,d5
 	subq.w #2,a4
@@ -6495,12 +6973,16 @@ CODE_1_data_00003634:
 	dc.w $2F0C,$2F0B,$4EAD,$0AC2,$101F,$4880,$48C0,$2D40	; lookup_table
 CODE_1_data_00003634:
 	dc.w $FFF8,$604E,$2F0C,$2F0B,$4EAD,$0AE2,$101F,$4880	; lookup_table
-CODE_1_data_dispatch_table_00003674:
-	dc.b $48,$C0,$2D,$40,$FF,$F8,$60,$3A,$2F,$0C,$2F,$0B,$4E,$AD,$0A,$D2
-	dc.b $10,$1F,$48,$80,$48,$C0,$2D,$40,$FF,$F8,$60,$26,$2F,$0C,$2F,$0B
-	dc.b $4E,$AD,$0A,$EA,$10,$1F,$48,$80,$48,$C0,$2D,$40,$FF,$F8,$60,$12
-	dc.b $2F,$0C,$2F,$0B,$4E,$AD,$0A,$DA,$10,$1F,$48,$80,$48,$C0,$2D,$40
-	dc.b $FF,$F8
+CODE_1_data_00003634:
+	dc.w $48C0,$2D40,$FFF8,$603A,$2F0C,$2F0B,$4EAD,$0AD2	; lookup_table
+CODE_1_data_00003634:
+	dc.w $101F,$4880,$48C0,$2D40,$FFF8,$6026,$2F0C,$2F0B	; lookup_table
+CODE_1_data_00003634:
+	dc.w $4EAD,$0AEA,$101F,$4880,$48C0,$2D40,$FFF8,$6012	; lookup_table
+CODE_1_data_00003634:
+	dc.w $2F0C,$2F0B,$4EAD,$0ADA,$101F,$4880,$48C0,$2D40	; lookup_table
+CODE_1_data_00003634:
+	dc.w $FFF8	; lookup_table
 CODE_1_loc_000036b6:
 	move.l -$0F2A(a5),-(a7)
 	move.l a4,-(a7)
@@ -6574,46 +7056,84 @@ CODE_1_data_00003754:
 	dc.w $02AC,$02AC,$02AC,$02AC,$02AC,$02AC,$02AC,$02AC	; lookup_table
 CODE_1_data_00003754:
 	dc.w $025A,$7001,$B02E,$FFF6,$57C0,$4A00,$672C,$7201	; lookup_table
-CODE_1_data_dispatch_table_00003794:
-	dc.b $B2,$2E,$FF,$F7,$57,$C1,$C0,$01,$67,$20,$20,$2E,$FF,$FC,$22,$2E
-	dc.b $FF,$F8,$B3,$80,$4A,$80,$6D,$0C,$3F,$3C,$00,$14,$2F,$2E,$00,$08
-	dc.b $4E,$BA,$FA,$1C,$42,$2E,$FF,$F6,$60,$24,$70,$01,$B0,$2E,$FF,$F6
-	dc.b $57,$C0,$4A,$00,$66,$0C,$72,$01,$B2,$2E,$FF,$F7,$57,$C1,$80,$01
-	dc.b $67,$08,$1D,$7C,$00,$01,$FF,$F6,$60,$04,$42,$2E,$FF,$F6,$20,$2E
-	dc.b $FF,$FC,$D1,$AE,$FF,$F8,$60,$00,$02,$12,$70,$01,$B0,$2E,$FF,$F6
-	dc.b $57,$C0,$4A,$00,$67,$46,$72,$01,$B2,$2E,$FF,$F7,$57,$C1,$C0,$01
-	dc.b $67,$3A,$20,$2E,$FF,$FC,$22,$2E,$FF,$F8,$B3,$80,$4A,$80,$6C,$26
-	dc.b $10,$2D,$F3,$A2,$0A,$00,$00,$01,$4A,$00,$66,$0E,$4A,$AD,$F3,$D8
-	dc.b $57,$C1,$80,$01,$02,$40,$00,$01,$67,$0C,$3F,$3C,$00,$14,$2F,$2E
-	dc.b $00,$08,$4E,$BA,$F9,$9A,$42,$2E,$FF,$F6,$60,$24,$70,$01,$B0,$2E
-	dc.b $FF,$F6,$57,$C0,$4A,$00,$66,$0C,$72,$01,$B2,$2E,$FF,$F7,$57,$C1
-	dc.b $80,$01,$67,$08,$1D,$7C,$00,$01,$FF,$F6,$60,$04,$42,$2E,$FF,$F6
-	dc.b $20,$2E,$FF,$FC,$91,$AE,$FF,$F8,$60,$00,$01,$90,$2F,$2E,$FF,$F8
-	dc.b $2F,$2E,$FF,$FC,$4E,$AD,$0A,$72,$2D,$5F,$FF,$F8,$60,$00,$01,$7C
-	dc.b $4A,$AE,$FF,$FC,$66,$0A,$70,$00,$2D,$40,$FF,$F8,$60,$00,$01,$6C
-	dc.b $2F,$2E,$FF,$F8,$2F,$2E,$FF,$FC,$4E,$AD,$0A,$7A,$2D,$5F,$FF,$F8
-	dc.b $60,$00,$01,$58,$4A,$AE,$FF,$FC,$66,$0A,$70,$00,$2D,$40,$FF,$F8
-	dc.b $60,$00,$01,$48,$2F,$2E,$FF,$F8,$2F,$2E,$FF,$FC,$4E,$AD,$0A,$82
-	dc.b $2D,$5F,$FF,$F8,$60,$00,$01,$34,$20,$2E,$FF,$FC,$80,$AE,$FF,$F8
-	dc.b $2D,$40,$FF,$F8,$60,$00,$01,$24,$20,$2E,$FF,$FC,$22,$2E,$FF,$F8
-	dc.b $B3,$80,$2D,$40,$FF,$F8,$60,$00,$01,$12,$20,$2E,$FF,$FC,$C0,$AE
-	dc.b $FF,$F8,$2D,$40,$FF,$F8,$60,$00,$01,$02,$20,$2E,$FF,$F8,$B0,$AE
-	dc.b $FF,$FC,$57,$C0,$44,$00,$48,$80,$48,$C0,$2D,$40,$FF,$F8,$60,$00
-	dc.b $00,$EA,$20,$2E,$FF,$F8,$B0,$AE,$FF,$FC,$56,$C0,$44,$00,$48,$80
-	dc.b $48,$C0,$2D,$40,$FF,$F8,$60,$00,$00,$D2,$20,$2E,$FF,$F8,$B0,$AE
-	dc.b $FF,$FC,$5D,$C0,$44,$00,$48,$80,$48,$C0,$2D,$40,$FF,$F8,$60,$00
-	dc.b $00,$BA,$20,$2E,$FF,$F8,$B0,$AE,$FF,$FC,$5E,$C0,$44,$00,$48,$80
-	dc.b $48,$C0,$2D,$40,$FF,$F8,$60,$00,$00,$A2,$20,$2E,$FF,$F8,$B0,$AE
-	dc.b $FF,$FC,$5C,$C0,$44,$00,$48,$80,$48,$C0,$2D,$40,$FF,$F8,$60,$00
-	dc.b $00,$8A,$20,$2E,$FF,$F8,$B0,$AE,$FF,$FC,$5F,$C0,$44,$00,$48,$80
-	dc.b $48,$C0,$2D,$40,$FF,$F8,$60,$72,$30,$2E,$FF,$FE,$22,$2E,$FF,$F8
-	dc.b $E0,$A9,$2D,$41,$FF,$F8,$60,$62,$30,$2E,$FF,$FE,$22,$2E,$FF,$F8
-	dc.b $E1,$A9,$2D,$41,$FF,$F8,$60,$52,$4A,$AE,$FF,$F8,$5D,$C0,$4A,$00
-	dc.b $66,$26,$0C,$AE,$00,$00,$00,$FF,$FF,$F8,$5E,$C1,$80,$01,$66,$18
-	dc.b $4A,$AE,$FF,$FC,$5D,$C1,$80,$01,$66,$0E,$0C,$AE,$00,$00,$00,$FF
-	dc.b $FF,$FC,$5E,$C1,$80,$01,$67,$0C,$3F,$3C,$00,$89,$2F,$2E,$00,$08
-	dc.b $4E,$BA,$F7,$EC,$70,$10,$22,$2E,$FF,$F8,$E1,$A9,$82,$AE,$FF,$FC
-	dc.b $2D,$41,$FF,$F8,$1D,$7C,$00,$03,$FF,$F6
+CODE_1_data_00003754:
+	dc.w $B22E,$FFF7,$57C1,$C001,$6720,$202E,$FFFC,$222E	; lookup_table
+CODE_1_data_00003754:
+	dc.w $FFF8,$B380,$4A80,$6D0C,$3F3C,$0014,$2F2E,$0008	; lookup_table
+CODE_1_data_00003754:
+	dc.w $4EBA,$FA1C,$422E,$FFF6,$6024,$7001,$B02E,$FFF6	; lookup_table
+CODE_1_data_00003754:
+	dc.w $57C0,$4A00,$660C,$7201,$B22E,$FFF7,$57C1,$8001	; lookup_table
+CODE_1_data_00003754:
+	dc.w $6708,$1D7C,$0001,$FFF6,$6004,$422E,$FFF6,$202E	; lookup_table
+CODE_1_data_00003754:
+	dc.w $FFFC,$D1AE,$FFF8,$6000,$0212,$7001,$B02E,$FFF6	; lookup_table
+CODE_1_data_00003754:
+	dc.w $57C0,$4A00,$6746,$7201,$B22E,$FFF7,$57C1,$C001	; lookup_table
+CODE_1_data_00003754:
+	dc.w $673A,$202E,$FFFC,$222E,$FFF8,$B380,$4A80,$6C26	; lookup_table
+CODE_1_data_00003754:
+	dc.w $102D,$F3A2,$0A00,$0001,$4A00,$660E,$4AAD,$F3D8	; lookup_table
+CODE_1_data_00003754:
+	dc.w $57C1,$8001,$0240,$0001,$670C,$3F3C,$0014,$2F2E	; lookup_table
+CODE_1_data_00003754:
+	dc.w $0008,$4EBA,$F99A,$422E,$FFF6,$6024,$7001,$B02E	; lookup_table
+CODE_1_data_00003754:
+	dc.w $FFF6,$57C0,$4A00,$660C,$7201,$B22E,$FFF7,$57C1	; lookup_table
+CODE_1_data_00003754:
+	dc.w $8001,$6708,$1D7C,$0001,$FFF6,$6004,$422E,$FFF6	; lookup_table
+CODE_1_data_00003754:
+	dc.w $202E,$FFFC,$91AE,$FFF8,$6000,$0190,$2F2E,$FFF8	; lookup_table
+CODE_1_data_00003754:
+	dc.w $2F2E,$FFFC,$4EAD,$0A72,$2D5F,$FFF8,$6000,$017C	; lookup_table
+CODE_1_data_00003754:
+	dc.w $4AAE,$FFFC,$660A,$7000,$2D40,$FFF8,$6000,$016C	; lookup_table
+CODE_1_data_00003754:
+	dc.w $2F2E,$FFF8,$2F2E,$FFFC,$4EAD,$0A7A,$2D5F,$FFF8	; lookup_table
+CODE_1_data_00003754:
+	dc.w $6000,$0158,$4AAE,$FFFC,$660A,$7000,$2D40,$FFF8	; lookup_table
+CODE_1_data_00003754:
+	dc.w $6000,$0148,$2F2E,$FFF8,$2F2E,$FFFC,$4EAD,$0A82	; lookup_table
+CODE_1_data_00003754:
+	dc.w $2D5F,$FFF8,$6000,$0134,$202E,$FFFC,$80AE,$FFF8	; lookup_table
+CODE_1_data_00003754:
+	dc.w $2D40,$FFF8,$6000,$0124,$202E,$FFFC,$222E,$FFF8	; lookup_table
+CODE_1_data_00003754:
+	dc.w $B380,$2D40,$FFF8,$6000,$0112,$202E,$FFFC,$C0AE	; lookup_table
+CODE_1_data_00003754:
+	dc.w $FFF8,$2D40,$FFF8,$6000,$0102,$202E,$FFF8,$B0AE	; lookup_table
+CODE_1_data_00003754:
+	dc.w $FFFC,$57C0,$4400,$4880,$48C0,$2D40,$FFF8,$6000	; lookup_table
+CODE_1_data_00003754:
+	dc.w $00EA,$202E,$FFF8,$B0AE,$FFFC,$56C0,$4400,$4880	; lookup_table
+CODE_1_data_00003754:
+	dc.w $48C0,$2D40,$FFF8,$6000,$00D2,$202E,$FFF8,$B0AE	; lookup_table
+CODE_1_data_00003754:
+	dc.w $FFFC,$5DC0,$4400,$4880,$48C0,$2D40,$FFF8,$6000	; lookup_table
+CODE_1_data_00003754:
+	dc.w $00BA,$202E,$FFF8,$B0AE,$FFFC,$5EC0,$4400,$4880	; lookup_table
+CODE_1_data_00003754:
+	dc.w $48C0,$2D40,$FFF8,$6000,$00A2,$202E,$FFF8,$B0AE	; lookup_table
+CODE_1_data_00003754:
+	dc.w $FFFC,$5CC0,$4400,$4880,$48C0,$2D40,$FFF8,$6000	; lookup_table
+CODE_1_data_00003754:
+	dc.w $008A,$202E,$FFF8,$B0AE,$FFFC,$5FC0,$4400,$4880	; lookup_table
+CODE_1_data_00003754:
+	dc.w $48C0,$2D40,$FFF8,$6072,$302E,$FFFE,$222E,$FFF8	; lookup_table
+CODE_1_data_00003754:
+	dc.w $E0A9,$2D41,$FFF8,$6062,$302E,$FFFE,$222E,$FFF8	; lookup_table
+CODE_1_data_00003754:
+	dc.w $E1A9,$2D41,$FFF8,$6052,$4AAE,$FFF8,$5DC0,$4A00	; lookup_table
+CODE_1_data_00003754:
+	dc.w $6626,$0CAE,$0000,$00FF,$FFF8,$5EC1,$8001,$6618	; lookup_table
+CODE_1_data_00003754:
+	dc.w $4AAE,$FFFC,$5DC1,$8001,$660E,$0CAE,$0000,$00FF	; lookup_table
+CODE_1_data_00003754:
+	dc.w $FFFC,$5EC1,$8001,$670C,$3F3C,$0089,$2F2E,$0008	; lookup_table
+CODE_1_data_00003754:
+	dc.w $4EBA,$F7EC,$7010,$222E,$FFF8,$E1A9,$82AE,$FFFC	; lookup_table
+CODE_1_data_00003754:
+	dc.w $2D41,$FFF8,$1D7C,$0003,$FFF6	; lookup_table
 CODE_1_loc_000039fe:
 	move.b -$0CA9(a5),d0
 	ext.w d0
@@ -7883,26 +8403,44 @@ CODE_1_data_00004878:
 	dc.w $7001,$B005,$57C0,$4A00,$6724,$7201,$B204,$57C1	; lookup_table
 CODE_1_data_00004878:
 	dc.w $C001,$671A,$2007,$2206,$B380,$4A80,$6D0C,$3F3C	; lookup_table
-CODE_1_data_dispatch_table_000048b8:
-	dc.b $00,$14,$2F,$2E,$00,$08,$4E,$BA,$FB,$A4,$42,$05,$60,$1A,$70,$01
-	dc.b $B0,$05,$57,$C0,$4A,$00,$66,$0A,$72,$01,$B2,$04,$57,$C1,$80,$01
-	dc.b $67,$04,$7A,$01,$60,$02,$42,$05,$DE,$86,$60,$00,$00,$F6,$70,$01
-	dc.b $B0,$05,$57,$C0,$4A,$00,$67,$24,$72,$01,$B2,$04,$57,$C1,$C0,$01
-	dc.b $67,$1A,$20,$07,$22,$06,$B3,$80,$4A,$80,$6C,$0C,$3F,$3C,$00,$14
-	dc.b $2F,$2E,$00,$08,$4E,$BA,$FB,$56,$42,$05,$60,$1A,$70,$01,$B0,$05
-	dc.b $57,$C0,$4A,$00,$66,$0A,$72,$01,$B2,$04,$57,$C1,$80,$01,$67,$04
-	dc.b $7A,$01,$60,$02,$42,$05,$9E,$86,$60,$00,$00,$A8,$2F,$07,$2F,$06
-	dc.b $4E,$AD,$0A,$72,$2E,$1F,$60,$00,$00,$9A,$4A,$86,$66,$06,$7E,$00
-	dc.b $60,$00,$00,$90,$2F,$07,$2F,$06,$4E,$AD,$0A,$7A,$2E,$1F,$60,$00
-	dc.b $00,$82,$4A,$86,$66,$04,$7E,$00,$60,$78,$2F,$07,$2F,$06,$4E,$AD
-	dc.b $0A,$82,$2E,$1F,$60,$6C,$8E,$86,$60,$68,$20,$06,$B1,$87,$60,$62
-	dc.b $CE,$86,$60,$5E,$BC,$87,$57,$C0,$44,$00,$48,$80,$48,$C0,$2E,$00
-	dc.b $60,$50,$BC,$87,$56,$C0,$44,$00,$48,$80,$48,$C0,$2E,$00,$60,$42
-	dc.b $BC,$87,$5E,$C0,$44,$00,$48,$80,$48,$C0,$2E,$00,$60,$34,$BC,$87
-	dc.b $5D,$C0,$44,$00,$48,$80,$48,$C0,$2E,$00,$60,$26,$BC,$87,$5F,$C0
-	dc.b $44,$00,$48,$80,$48,$C0,$2E,$00,$60,$18,$BC,$87,$5C,$C0,$44,$00
-	dc.b $48,$80,$48,$C0,$2E,$00,$60,$0A,$30,$06,$E0,$AF,$60,$04,$30,$06
-	dc.b $E1,$AF
+CODE_1_data_00004878:
+	dc.w $0014,$2F2E,$0008,$4EBA,$FBA4,$4205,$601A,$7001	; lookup_table
+CODE_1_data_00004878:
+	dc.w $B005,$57C0,$4A00,$660A,$7201,$B204,$57C1,$8001	; lookup_table
+CODE_1_data_00004878:
+	dc.w $6704,$7A01,$6002,$4205,$DE86,$6000,$00F6,$7001	; lookup_table
+CODE_1_data_00004878:
+	dc.w $B005,$57C0,$4A00,$6724,$7201,$B204,$57C1,$C001	; lookup_table
+CODE_1_data_00004878:
+	dc.w $671A,$2007,$2206,$B380,$4A80,$6C0C,$3F3C,$0014	; lookup_table
+CODE_1_data_00004878:
+	dc.w $2F2E,$0008,$4EBA,$FB56,$4205,$601A,$7001,$B005	; lookup_table
+CODE_1_data_00004878:
+	dc.w $57C0,$4A00,$660A,$7201,$B204,$57C1,$8001,$6704	; lookup_table
+CODE_1_data_00004878:
+	dc.w $7A01,$6002,$4205,$9E86,$6000,$00A8,$2F07,$2F06	; lookup_table
+CODE_1_data_00004878:
+	dc.w $4EAD,$0A72,$2E1F,$6000,$009A,$4A86,$6606,$7E00	; lookup_table
+CODE_1_data_00004878:
+	dc.w $6000,$0090,$2F07,$2F06,$4EAD,$0A7A,$2E1F,$6000	; lookup_table
+CODE_1_data_00004878:
+	dc.w $0082,$4A86,$6604,$7E00,$6078,$2F07,$2F06,$4EAD	; lookup_table
+CODE_1_data_00004878:
+	dc.w $0A82,$2E1F,$606C,$8E86,$6068,$2006,$B187,$6062	; lookup_table
+CODE_1_data_00004878:
+	dc.w $CE86,$605E,$BC87,$57C0,$4400,$4880,$48C0,$2E00	; lookup_table
+CODE_1_data_00004878:
+	dc.w $6050,$BC87,$56C0,$4400,$4880,$48C0,$2E00,$6042	; lookup_table
+CODE_1_data_00004878:
+	dc.w $BC87,$5EC0,$4400,$4880,$48C0,$2E00,$6034,$BC87	; lookup_table
+CODE_1_data_00004878:
+	dc.w $5DC0,$4400,$4880,$48C0,$2E00,$6026,$BC87,$5FC0	; lookup_table
+CODE_1_data_00004878:
+	dc.w $4400,$4880,$48C0,$2E00,$6018,$BC87,$5CC0,$4400	; lookup_table
+CODE_1_data_00004878:
+	dc.w $4880,$48C0,$2E00,$600A,$3006,$E0AF,$6004,$3006	; lookup_table
+CODE_1_data_00004878:
+	dc.w $E1AF	; lookup_table
 CODE_1_loc_000049da:
 	move.b -$0CA9(a5),d0
 	ext.w d0
@@ -11603,69 +12141,509 @@ CODE_2_loc_000001c2:
 	lea.l CODE_2_loc_000001c8(pc),a0
 	rts
 CODE_2_loc_000001c8:
-	dc.w $01F6,$0000,$0000,$0208,$0218,$0238,$024A,$025A	; lookup_table
-CODE_2_data_000001c8:
-	dc.w $0000,$0000,$0000,$0000,$0000,$02AC,$0000,$02BC	; lookup_table
-CODE_2_data_000001c8:
-	dc.w $02CE,$02E0,$02EE,$0000,$0000,$0000,$0000,$0000	; lookup_table
-CODE_2_data_000001c8:
-	dc.w $0000,$030C,$031E,$0000,$032E,$0366,$0000,$03A6	; lookup_table
-CODE_2_data_000001c8:
-	dc.w $0000,$0000,$03B6,$03D4,$0000,$0000,$0000,$0000	; lookup_table
-CODE_2_data_000001c8:
-	dc.w $03E6,$041A,$042E,$0000,$0446,$0458,$0000,$0476	; lookup_table
-CODE_2_data_000001c8:
-	dc.w $0000,$0000,$04A6,$0000,$04B6,$04D4,$0000,$04DE	; lookup_table
-CODE_2_data_000001c8:
-	dc.w $0502,$0574,$058A,$05A8,$05C0,$0000,$0000,$0000	; lookup_table
-CODE_2_data_000001c8:
-	dc.w $0000,$0000,$0000,$05D0,$0600,$0610,$0000,$0000	; lookup_table
-CODE_2_data_000001c8:
-	dc.w $0000,$0630,$0000,$064E,$066E,$0000,$0000,$0000	; lookup_table
-CODE_2_data_000001c8:
-	dc.w $067C,$0000,$0000,$068E,$069E,$06CE,$0000,$0000	; lookup_table
-CODE_2_data_000001c8:
-	dc.w $0000,$06DE,$06F0,$06FE,$0000,$071E,$072E,$0746	; lookup_table
-CODE_2_data_000001c8:
-	dc.w $0758,$0000,$076C,$0000,$078C,$07AA,$07BE,$07CE	; lookup_table
-CODE_2_data_000001c8:
-	dc.w $0000,$0000,$0000,$082A,$0848,$0000,$0000,$0884	; lookup_table
-CODE_2_data_000001c8:
-	dc.w $0898,$0000,$08A8,$08D6,$0910,$0000,$0930,$096E	; lookup_table
-CODE_2_data_000001c8:
-	dc.w $0000,$098E,$09A2,$09B2,$0000,$09EE,$0000,$0A10	; lookup_table
-CODE_2_data_000001c8:
-	dc.w $0000,$0A20,$0000,$0A3E,$0A70,$0A8E,$0A9C,$0ADA	; lookup_table
-CODE_2_data_000001c8:
-	dc.w $0AEA,$0000,$0000,$0B2C,$0B40,$0B62,$0B82,$0BA2	; lookup_table
-CODE_2_data_000001c8:
-	dc.w $0BC4,$0BF4,$0000,$0C12,$0C30,$0C3E,$0000,$0C6A	; lookup_table
-CODE_2_data_000001c8:
-	dc.w $0CC2,$0000,$0CE2,$0D9A,$0DAC,$0DDA,$0DEC,$0000	; lookup_table
-CODE_2_data_000001c8:
-	dc.w $0000,$0E1A,$0E28,$0E46,$0000,$0E56,$0E7A,$0E96	; lookup_table
-CODE_2_data_000001c8:
-	dc.w $0000,$0EC0,$0000,$0ED0,$0000,$0EDE,$0EFE,$0F18	; lookup_table
-CODE_2_data_000001c8:
-	dc.w $0F34,$0F58,$0000,$0000,$0F98,$0FC8,$0FFE,$1010	; lookup_table
-CODE_2_data_000001c8:
-	dc.w $1020,$1030,$0000,$1048,$0000,$0000,$0000,$1066	; lookup_table
-CODE_2_data_000001c8:
-	dc.w $0000,$10B8,$0000,$10CA,$10FC,$0000,$113A,$0000	; lookup_table
-CODE_2_data_000001c8:
-	dc.w $114A,$0000,$115A,$1168,$1188,$0000,$1198,$11A8	; lookup_table
-CODE_2_data_000001c8:
-	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$11C2,$0000	; lookup_table
-CODE_2_data_000001c8:
-	dc.w $11D2,$11FA,$120C,$0000,$121C,$123C,$0000,$0000	; lookup_table
-CODE_2_data_000001c8:
-	dc.w $1260,$0000,$126E,$128E,$12A2,$12B2,$12C2,$0000	; lookup_table
-CODE_2_data_000001c8:
-	dc.w $0000,$12E0,$12FE,$130E,$1330,$1340,$0000,$135E	; lookup_table
-CODE_2_data_000001c8:
-	dc.w $0000,$0000,$0000,$0000,$136E,$0000,$0000,$0000	; lookup_table
-CODE_2_data_000001c8:
-	dc.w $0000,$0000,$0000,$0646	; lookup_table
+	dc.w $01F6	; lookup_table
+CODE_2_data_000001ca:
+	dc.w $0000
+CODE_2_data_000001cc:
+	dc.w $0000
+CODE_2_data_000001ce:
+	dc.w $0208
+CODE_2_data_000001d0:
+	dc.w $0218
+CODE_2_data_000001d2:
+	dc.w $0238
+CODE_2_data_000001d4:
+	dc.w $024A
+CODE_2_data_000001d6:
+	dc.w $025A
+CODE_2_data_000001d8:
+	dc.w $0000
+CODE_2_data_000001da:
+	dc.w $0000
+CODE_2_data_000001dc:
+	dc.w $0000
+CODE_2_data_000001de:
+	dc.w $0000
+CODE_2_data_000001e0:
+	dc.w $0000
+CODE_2_data_000001e2:
+	dc.w $02AC
+CODE_2_data_000001e4:
+	dc.w $0000
+CODE_2_data_000001e6:
+	dc.w $02BC
+CODE_2_data_000001e8:
+	dc.w $02CE
+CODE_2_data_000001ea:
+	dc.w $02E0
+CODE_2_data_000001ec:
+	dc.w $02EE
+CODE_2_data_000001ee:
+	dc.w $0000
+CODE_2_data_000001f0:
+	dc.w $0000
+CODE_2_data_000001f2:
+	dc.w $0000
+CODE_2_data_000001f4:
+	dc.w $0000
+CODE_2_data_000001f6:
+	dc.w $0000
+CODE_2_data_000001f8:
+	dc.w $0000
+CODE_2_data_000001fa:
+	dc.w $030C
+CODE_2_data_000001fc:
+	dc.w $031E
+CODE_2_data_000001fe:
+	dc.w $0000
+CODE_2_data_00000200:
+	dc.w $032E
+CODE_2_data_00000202:
+	dc.w $0366
+CODE_2_data_00000204:
+	dc.w $0000
+CODE_2_data_00000206:
+	dc.w $03A6
+CODE_2_data_00000208:
+	dc.w $0000
+CODE_2_data_0000020a:
+	dc.w $0000
+CODE_2_data_0000020c:
+	dc.w $03B6
+CODE_2_data_0000020e:
+	dc.w $03D4
+CODE_2_data_00000210:
+	dc.w $0000
+CODE_2_data_00000212:
+	dc.w $0000
+CODE_2_data_00000214:
+	dc.w $0000
+CODE_2_data_00000216:
+	dc.w $0000
+CODE_2_data_00000218:
+	dc.w $03E6
+CODE_2_data_0000021a:
+	dc.w $041A
+CODE_2_data_0000021c:
+	dc.w $042E
+CODE_2_data_0000021e:
+	dc.w $0000
+CODE_2_data_00000220:
+	dc.w $0446
+CODE_2_data_00000222:
+	dc.w $0458
+CODE_2_data_00000224:
+	dc.w $0000
+CODE_2_data_00000226:
+	dc.w $0476
+CODE_2_data_00000228:
+	dc.w $0000
+CODE_2_data_0000022a:
+	dc.w $0000
+CODE_2_data_0000022c:
+	dc.w $04A6
+CODE_2_data_0000022e:
+	dc.w $0000
+CODE_2_data_00000230:
+	dc.w $04B6
+CODE_2_data_00000232:
+	dc.w $04D4
+CODE_2_data_00000234:
+	dc.w $0000
+CODE_2_data_00000236:
+	dc.w $04DE
+CODE_2_data_00000238:
+	dc.w $0502
+CODE_2_data_0000023a:
+	dc.w $0574
+CODE_2_data_0000023c:
+	dc.w $058A
+CODE_2_data_0000023e:
+	dc.w $05A8
+CODE_2_data_00000240:
+	dc.w $05C0
+CODE_2_data_00000242:
+	dc.w $0000
+CODE_2_data_00000244:
+	dc.w $0000
+CODE_2_data_00000246:
+	dc.w $0000
+CODE_2_data_00000248:
+	dc.w $0000
+CODE_2_data_0000024a:
+	dc.w $0000
+CODE_2_data_0000024c:
+	dc.w $0000
+CODE_2_data_0000024e:
+	dc.w $05D0
+CODE_2_data_00000250:
+	dc.w $0600
+CODE_2_data_00000252:
+	dc.w $0610
+CODE_2_data_00000254:
+	dc.w $0000
+CODE_2_data_00000256:
+	dc.w $0000
+CODE_2_data_00000258:
+	dc.w $0000
+CODE_2_data_0000025a:
+	dc.w $0630
+CODE_2_data_0000025c:
+	dc.w $0000
+CODE_2_data_0000025e:
+	dc.w $064E
+CODE_2_data_00000260:
+	dc.w $066E
+CODE_2_data_00000262:
+	dc.w $0000
+CODE_2_data_00000264:
+	dc.w $0000
+CODE_2_data_00000266:
+	dc.w $0000
+CODE_2_data_00000268:
+	dc.w $067C
+CODE_2_data_0000026a:
+	dc.w $0000
+CODE_2_data_0000026c:
+	dc.w $0000
+CODE_2_data_0000026e:
+	dc.w $068E
+CODE_2_data_00000270:
+	dc.w $069E
+CODE_2_data_00000272:
+	dc.w $06CE
+CODE_2_data_00000274:
+	dc.w $0000
+CODE_2_data_00000276:
+	dc.w $0000
+CODE_2_data_00000278:
+	dc.w $0000
+CODE_2_data_0000027a:
+	dc.w $06DE
+CODE_2_data_0000027c:
+	dc.w $06F0
+CODE_2_data_0000027e:
+	dc.w $06FE
+CODE_2_data_00000280:
+	dc.w $0000
+CODE_2_data_00000282:
+	dc.w $071E
+CODE_2_data_00000284:
+	dc.w $072E
+CODE_2_data_00000286:
+	dc.w $0746
+CODE_2_data_00000288:
+	dc.w $0758
+CODE_2_data_0000028a:
+	dc.w $0000
+CODE_2_data_0000028c:
+	dc.w $076C
+CODE_2_data_0000028e:
+	dc.w $0000
+CODE_2_data_00000290:
+	dc.w $078C
+CODE_2_data_00000292:
+	dc.w $07AA
+CODE_2_data_00000294:
+	dc.w $07BE
+CODE_2_data_00000296:
+	dc.w $07CE
+CODE_2_data_00000298:
+	dc.w $0000
+CODE_2_data_0000029a:
+	dc.w $0000
+CODE_2_data_0000029c:
+	dc.w $0000
+CODE_2_data_0000029e:
+	dc.w $082A
+CODE_2_data_000002a0:
+	dc.w $0848
+CODE_2_data_000002a2:
+	dc.w $0000
+CODE_2_data_000002a4:
+	dc.w $0000
+CODE_2_data_000002a6:
+	dc.w $0884
+CODE_2_data_000002a8:
+	dc.w $0898
+CODE_2_data_000002aa:
+	dc.w $0000
+CODE_2_data_000002ac:
+	dc.w $08A8
+CODE_2_data_000002ae:
+	dc.w $08D6
+CODE_2_data_000002b0:
+	dc.w $0910
+CODE_2_data_000002b2:
+	dc.w $0000
+CODE_2_data_000002b4:
+	dc.w $0930
+CODE_2_data_000002b6:
+	dc.w $096E
+CODE_2_data_000002b8:
+	dc.w $0000
+CODE_2_data_000002ba:
+	dc.w $098E
+CODE_2_data_000002bc:
+	dc.w $09A2
+CODE_2_data_000002be:
+	dc.w $09B2
+CODE_2_data_000002c0:
+	dc.w $0000
+CODE_2_data_000002c2:
+	dc.w $09EE
+CODE_2_data_000002c4:
+	dc.w $0000
+CODE_2_data_000002c6:
+	dc.w $0A10
+CODE_2_data_000002c8:
+	dc.w $0000
+CODE_2_data_000002ca:
+	dc.w $0A20
+CODE_2_data_000002cc:
+	dc.w $0000
+CODE_2_data_000002ce:
+	dc.w $0A3E
+CODE_2_data_000002d0:
+	dc.w $0A70
+CODE_2_data_000002d2:
+	dc.w $0A8E
+CODE_2_data_000002d4:
+	dc.w $0A9C
+CODE_2_data_000002d6:
+	dc.w $0ADA
+CODE_2_data_000002d8:
+	dc.w $0AEA
+CODE_2_data_000002da:
+	dc.w $0000
+CODE_2_data_000002dc:
+	dc.w $0000
+CODE_2_data_000002de:
+	dc.w $0B2C
+CODE_2_data_000002e0:
+	dc.w $0B40
+CODE_2_data_000002e2:
+	dc.w $0B62
+CODE_2_data_000002e4:
+	dc.w $0B82
+CODE_2_data_000002e6:
+	dc.w $0BA2
+CODE_2_data_000002e8:
+	dc.w $0BC4
+CODE_2_data_000002ea:
+	dc.w $0BF4
+CODE_2_data_000002ec:
+	dc.w $0000
+CODE_2_data_000002ee:
+	dc.w $0C12
+CODE_2_data_000002f0:
+	dc.w $0C30
+CODE_2_data_000002f2:
+	dc.w $0C3E
+CODE_2_data_000002f4:
+	dc.w $0000
+CODE_2_data_000002f6:
+	dc.w $0C6A
+CODE_2_data_000002f8:
+	dc.w $0CC2
+CODE_2_data_000002fa:
+	dc.w $0000
+CODE_2_data_000002fc:
+	dc.w $0CE2
+CODE_2_data_000002fe:
+	dc.w $0D9A
+CODE_2_data_00000300:
+	dc.w $0DAC
+CODE_2_data_00000302:
+	dc.w $0DDA
+CODE_2_data_00000304:
+	dc.w $0DEC
+CODE_2_data_00000306:
+	dc.w $0000
+CODE_2_data_00000308:
+	dc.w $0000
+CODE_2_data_0000030a:
+	dc.w $0E1A
+CODE_2_data_0000030c:
+	dc.w $0E28
+CODE_2_data_0000030e:
+	dc.w $0E46
+CODE_2_data_00000310:
+	dc.w $0000
+CODE_2_data_00000312:
+	dc.w $0E56
+CODE_2_data_00000314:
+	dc.w $0E7A
+CODE_2_data_00000316:
+	dc.w $0E96
+CODE_2_data_00000318:
+	dc.w $0000
+CODE_2_data_0000031a:
+	dc.w $0EC0
+CODE_2_data_0000031c:
+	dc.w $0000
+CODE_2_data_0000031e:
+	dc.w $0ED0
+CODE_2_data_00000320:
+	dc.w $0000
+CODE_2_data_00000322:
+	dc.w $0EDE
+CODE_2_data_00000324:
+	dc.w $0EFE
+CODE_2_data_00000326:
+	dc.w $0F18
+CODE_2_data_00000328:
+	dc.w $0F34
+CODE_2_data_0000032a:
+	dc.w $0F58
+CODE_2_data_0000032c:
+	dc.w $0000
+CODE_2_data_0000032e:
+	dc.w $0000
+CODE_2_data_00000330:
+	dc.w $0F98
+CODE_2_data_00000332:
+	dc.w $0FC8
+CODE_2_data_00000334:
+	dc.w $0FFE
+CODE_2_data_00000336:
+	dc.w $1010
+CODE_2_data_00000338:
+	dc.w $1020
+CODE_2_data_0000033a:
+	dc.w $1030
+CODE_2_data_0000033c:
+	dc.w $0000
+CODE_2_data_0000033e:
+	dc.w $1048
+CODE_2_data_00000340:
+	dc.w $0000
+CODE_2_data_00000342:
+	dc.w $0000
+CODE_2_data_00000344:
+	dc.w $0000
+CODE_2_data_00000346:
+	dc.w $1066
+CODE_2_data_00000348:
+	dc.w $0000
+CODE_2_data_0000034a:
+	dc.w $10B8
+CODE_2_data_0000034c:
+	dc.w $0000
+CODE_2_data_0000034e:
+	dc.w $10CA
+CODE_2_data_00000350:
+	dc.w $10FC
+CODE_2_data_00000352:
+	dc.w $0000
+CODE_2_data_00000354:
+	dc.w $113A
+CODE_2_data_00000356:
+	dc.w $0000
+CODE_2_data_00000358:
+	dc.w $114A
+CODE_2_data_0000035a:
+	dc.w $0000
+CODE_2_data_0000035c:
+	dc.w $115A
+CODE_2_data_0000035e:
+	dc.w $1168
+CODE_2_data_00000360:
+	dc.w $1188
+CODE_2_data_00000362:
+	dc.w $0000
+CODE_2_data_00000364:
+	dc.w $1198
+CODE_2_data_00000366:
+	dc.w $11A8
+CODE_2_data_00000368:
+	dc.w $0000
+CODE_2_data_0000036a:
+	dc.w $0000
+CODE_2_data_0000036c:
+	dc.w $0000
+CODE_2_data_0000036e:
+	dc.w $0000
+CODE_2_data_00000370:
+	dc.w $0000
+CODE_2_data_00000372:
+	dc.w $0000
+CODE_2_data_00000374:
+	dc.w $11C2
+CODE_2_data_00000376:
+	dc.w $0000
+CODE_2_data_00000378:
+	dc.w $11D2
+CODE_2_data_0000037a:
+	dc.w $11FA
+CODE_2_data_0000037c:
+	dc.w $120C
+CODE_2_data_0000037e:
+	dc.w $0000
+CODE_2_data_00000380:
+	dc.w $121C
+CODE_2_data_00000382:
+	dc.w $123C
+CODE_2_data_00000384:
+	dc.w $0000
+CODE_2_data_00000386:
+	dc.w $0000
+CODE_2_data_00000388:
+	dc.w $1260
+CODE_2_data_0000038a:
+	dc.w $0000
+CODE_2_data_0000038c:
+	dc.w $126E
+CODE_2_data_0000038e:
+	dc.w $128E
+CODE_2_data_00000390:
+	dc.w $12A2
+CODE_2_data_00000392:
+	dc.w $12B2
+CODE_2_data_00000394:
+	dc.w $12C2
+CODE_2_data_00000396:
+	dc.w $0000
+CODE_2_data_00000398:
+	dc.w $0000
+CODE_2_data_0000039a:
+	dc.w $12E0
+CODE_2_data_0000039c:
+	dc.w $12FE
+CODE_2_data_0000039e:
+	dc.w $130E
+CODE_2_data_000003a0:
+	dc.w $1330
+CODE_2_data_000003a2:
+	dc.w $1340
+CODE_2_data_000003a4:
+	dc.w $0000
+CODE_2_data_000003a6:
+	dc.w $135E
+CODE_2_data_000003a8:
+	dc.w $0000
+CODE_2_data_000003aa:
+	dc.w $0000
+CODE_2_data_000003ac:
+	dc.w $0000
+CODE_2_data_000003ae:
+	dc.w $0000
+CODE_2_data_000003b0:
+	dc.w $136E
+CODE_2_data_000003b2:
+	dc.w $0000
+CODE_2_data_000003b4:
+	dc.w $0000
+CODE_2_data_000003b6:
+	dc.w $0000
+CODE_2_data_000003b8:
+	dc.w $0000
+CODE_2_data_000003ba:
+	dc.w $0000
+CODE_2_data_000003bc:
+	dc.w $0000
+CODE_2_data_000003be:
+	dc.w $0646
 CODE_2_data_dispatch_table_000003c0:
 	dc.b $54,$50,$4E,$47,$45,$00,$00,$06,$84,$13,$72,$06,$00,$1C,$20,$00
 	dc.b $05,$46,$42,$55,$4C,$54,$00,$06,$84,$04,$32,$06,$F0,$8C,$80,$00
@@ -12606,31 +13584,54 @@ CODE_2_data_00001c70:
 	dc.w $4A00,$660C,$7207,$B2AE,$FFFA,$5DC1,$8001,$670C	; lookup_table
 CODE_2_data_00001c70:
 	dc.w $487A,$01C4,$4EBA,$FF1E,$6000,$017C,$7009,$222E	; lookup_table
-CODE_2_data_dispatch_table_00001cb0:
-	dc.b $FF,$FA,$E1,$A9,$3B,$41,$F3,$C2,$70,$20,$B0,$6D,$F3,$98,$5F,$C0
-	dc.b $4A,$00,$67,$1A,$0C,$6D,$02,$00,$F3,$C2,$56,$C1,$C0,$01,$67,$0E
-	dc.b $3F,$3C,$00,$F0,$4E,$AD,$07,$CA,$3B,$7C,$02,$00,$F3,$C2,$3F,$3C
-	dc.b $00,$06,$30,$2D,$F3,$C2,$48,$C0,$2F,$00,$4E,$AD,$01,$42,$3F,$3C
-	dc.b $00,$48,$4E,$AD,$01,$4A,$60,$00,$01,$2E,$48,$7A,$01,$6A,$4E,$BA
-	dc.b $FE,$C4,$60,$00,$01,$22,$4A,$2D,$FF,$FB,$56,$C0,$4A,$00,$66,$0C
-	dc.b $72,$01,$B2,$6D,$FE,$F8,$56,$C1,$80,$01,$67,$0C,$48,$7A,$01,$3E
-	dc.b $4E,$BA,$FE,$A2,$60,$00,$01,$00,$42,$67,$42,$40,$10,$2D,$FE,$FB
-	dc.b $3F,$00,$4E,$AD,$00,$42,$3E,$1F,$70,$58,$B0,$47,$66,$06,$42,$6D
-	dc.b $F3,$BE,$60,$24,$70,$44,$B0,$47,$66,$08,$3B,$7C,$00,$01,$F3,$BE
-	dc.b $60,$16,$70,$53,$B0,$47,$66,$08,$3B,$7C,$00,$02,$F3,$BE,$60,$08
-	dc.b $48,$7A,$00,$FA,$4E,$BA,$FE,$5E,$4E,$AD,$01,$72,$60,$00,$00,$B8
-	dc.b $4A,$2D,$FF,$FB,$56,$C0,$4A,$00,$66,$0C,$72,$01,$B2,$6D,$FE,$F8
-	dc.b $56,$C1,$80,$01,$67,$0C,$48,$7A,$00,$CA,$4E,$BA,$FE,$38,$60,$00
-	dc.b $00,$96,$42,$67,$42,$40,$10,$2D,$FE,$FB,$3F,$00,$4E,$AD,$00,$42
-	dc.b $3E,$1F,$70,$4E,$B0,$47,$66,$06,$42,$6D,$F3,$C0,$60,$32,$70,$55
-	dc.b $B0,$47,$66,$08,$3B,$7C,$00,$01,$F3,$C0,$60,$24,$70,$44,$B0,$47
-	dc.b $66,$08,$3B,$7C,$00,$02,$F3,$C0,$60,$16,$70,$5A,$B0,$47,$66,$08
-	dc.b $3B,$7C,$00,$03,$F3,$C0,$60,$08,$48,$7A,$00,$78,$4E,$BA,$FD,$E6
-	dc.b $4E,$AD,$01,$72,$60,$40,$42,$67,$48,$6E,$FF,$FA,$4E,$AD,$02,$02
-	dc.b $10,$1F,$67,$2A,$70,$C0,$B0,$AE,$FF,$FA,$5E,$C0,$4A,$00,$66,$0C
-	dc.b $72,$3F,$B2,$AE,$FF,$FA,$5D,$C1,$80,$01,$67,$0A,$48,$7A,$00,$3A
-	dc.b $4E,$BA,$FD,$B2,$60,$10,$3B,$6E,$FF,$FC,$F3,$BC,$60,$08,$48,$7A
-	dc.b $00,$28,$4E,$BA,$FD,$A0
+CODE_2_data_00001c70:
+	dc.w $FFFA,$E1A9,$3B41,$F3C2,$7020,$B06D,$F398,$5FC0	; lookup_table
+CODE_2_data_00001c70:
+	dc.w $4A00,$671A,$0C6D,$0200,$F3C2,$56C1,$C001,$670E	; lookup_table
+CODE_2_data_00001c70:
+	dc.w $3F3C,$00F0,$4EAD,$07CA,$3B7C,$0200,$F3C2,$3F3C	; lookup_table
+CODE_2_data_00001c70:
+	dc.w $0006,$302D,$F3C2,$48C0,$2F00,$4EAD,$0142,$3F3C	; lookup_table
+CODE_2_data_00001c70:
+	dc.w $0048,$4EAD,$014A,$6000,$012E,$487A,$016A,$4EBA	; lookup_table
+CODE_2_data_00001c70:
+	dc.w $FEC4,$6000,$0122,$4A2D,$FFFB,$56C0,$4A00,$660C	; lookup_table
+CODE_2_data_00001c70:
+	dc.w $7201,$B26D,$FEF8,$56C1,$8001,$670C,$487A,$013E	; lookup_table
+CODE_2_data_00001c70:
+	dc.w $4EBA,$FEA2,$6000,$0100,$4267,$4240,$102D,$FEFB	; lookup_table
+CODE_2_data_00001c70:
+	dc.w $3F00,$4EAD,$0042,$3E1F,$7058,$B047,$6606,$426D	; lookup_table
+CODE_2_data_00001c70:
+	dc.w $F3BE,$6024,$7044,$B047,$6608,$3B7C,$0001,$F3BE	; lookup_table
+CODE_2_data_00001c70:
+	dc.w $6016,$7053,$B047,$6608,$3B7C,$0002,$F3BE,$6008	; lookup_table
+CODE_2_data_00001c70:
+	dc.w $487A,$00FA,$4EBA,$FE5E,$4EAD,$0172,$6000,$00B8	; lookup_table
+CODE_2_data_00001c70:
+	dc.w $4A2D,$FFFB,$56C0,$4A00,$660C,$7201,$B26D,$FEF8	; lookup_table
+CODE_2_data_00001c70:
+	dc.w $56C1,$8001,$670C,$487A,$00CA,$4EBA,$FE38,$6000	; lookup_table
+CODE_2_data_00001c70:
+	dc.w $0096,$4267,$4240,$102D,$FEFB,$3F00,$4EAD,$0042	; lookup_table
+CODE_2_data_00001c70:
+	dc.w $3E1F,$704E,$B047,$6606,$426D,$F3C0,$6032,$7055	; lookup_table
+CODE_2_data_00001c70:
+	dc.w $B047,$6608,$3B7C,$0001,$F3C0,$6024,$7044,$B047	; lookup_table
+CODE_2_data_00001c70:
+	dc.w $6608,$3B7C,$0002,$F3C0,$6016,$705A,$B047,$6608	; lookup_table
+CODE_2_data_00001c70:
+	dc.w $3B7C,$0003,$F3C0,$6008,$487A,$0078,$4EBA,$FDE6	; lookup_table
+CODE_2_data_00001c70:
+	dc.w $4EAD,$0172,$6040,$4267,$486E,$FFFA,$4EAD,$0202	; lookup_table
+CODE_2_data_00001c70:
+	dc.w $101F,$672A,$70C0,$B0AE,$FFFA,$5EC0,$4A00,$660C	; lookup_table
+CODE_2_data_00001c70:
+	dc.w $723F,$B2AE,$FFFA,$5DC1,$8001,$670A,$487A,$003A	; lookup_table
+CODE_2_data_00001c70:
+	dc.w $4EBA,$FDB2,$6010,$3B6E,$FFFC,$F3BC,$6008,$487A	; lookup_table
+CODE_2_data_00001c70:
+	dc.w $0028,$4EBA,$FDA0	; lookup_table
 CODE_2_loc_00001e26:
 	clr.w -(a7)
 	move.b #$1C,-(a7)
@@ -15469,19 +16470,30 @@ CODE_3_data_0000342c:
 	dc.w $00EC,$00F4,$3D7C,$00C5,$FFFA,$6000,$00D2,$3D7C	; lookup_table
 CODE_3_data_0000342c:
 	dc.w $0065,$FFFA,$6000,$00C8,$3D7C,$0064,$FFFA,$6000	; lookup_table
-CODE_3_data_dispatch_table_0000346c:
-	dc.b $00,$BE,$2F,$0E,$4E,$BA,$F6,$A2,$60,$00,$00,$B4,$2F,$0E,$4E,$BA
-	dc.b $F7,$A6,$60,$00,$00,$AA,$3D,$7C,$00,$63,$FF,$FA,$60,$00,$00,$A0
-	dc.b $48,$6D,$F3,$8E,$48,$7A,$02,$BE,$2F,$3C,$00,$FB,$00,$06,$2F,$0E
-	dc.b $4E,$BA,$E6,$CE,$60,$00,$02,$38,$2F,$0E,$4E,$BA,$F8,$7C,$60,$7E
-	dc.b $48,$6D,$EC,$EC,$48,$7A,$02,$8C,$2F,$3C,$00,$08,$00,$04,$2F,$0E
-	dc.b $4E,$BA,$E6,$AE,$60,$00,$02,$18,$2F,$0E,$4E,$BA,$F1,$B6,$60,$5E
-	dc.b $42,$2D,$F3,$9E,$60,$00,$02,$08,$20,$6E,$00,$08,$20,$68,$00,$08
-	dc.b $48,$68,$FF,$FC,$48,$7A,$02,$3A,$2F,$3C,$00,$3E,$00,$06,$2F,$0E
-	dc.b $4E,$BA,$E6,$7E,$60,$00,$01,$E8,$2F,$0E,$4E,$BA,$FB,$46,$60,$2E
-	dc.b $1B,$7C,$00,$01,$E5,$17,$60,$00,$01,$D6,$2F,$0E,$4E,$BA,$F0,$34
-	dc.b $60,$1C,$2F,$0E,$4E,$BA,$F3,$64,$60,$14,$2F,$0E,$4E,$BA,$FB,$B8
-	dc.b $60,$0C,$2F,$0E,$4E,$BA,$FC,$C0,$60,$04
+CODE_3_data_0000342c:
+	dc.w $00BE,$2F0E,$4EBA,$F6A2,$6000,$00B4,$2F0E,$4EBA	; lookup_table
+CODE_3_data_0000342c:
+	dc.w $F7A6,$6000,$00AA,$3D7C,$0063,$FFFA,$6000,$00A0	; lookup_table
+CODE_3_data_0000342c:
+	dc.w $486D,$F38E,$487A,$02BE,$2F3C,$00FB,$0006,$2F0E	; lookup_table
+CODE_3_data_0000342c:
+	dc.w $4EBA,$E6CE,$6000,$0238,$2F0E,$4EBA,$F87C,$607E	; lookup_table
+CODE_3_data_0000342c:
+	dc.w $486D,$ECEC,$487A,$028C,$2F3C,$0008,$0004,$2F0E	; lookup_table
+CODE_3_data_0000342c:
+	dc.w $4EBA,$E6AE,$6000,$0218,$2F0E,$4EBA,$F1B6,$605E	; lookup_table
+CODE_3_data_0000342c:
+	dc.w $422D,$F39E,$6000,$0208,$206E,$0008,$2068,$0008	; lookup_table
+CODE_3_data_0000342c:
+	dc.w $4868,$FFFC,$487A,$023A,$2F3C,$003E,$0006,$2F0E	; lookup_table
+CODE_3_data_0000342c:
+	dc.w $4EBA,$E67E,$6000,$01E8,$2F0E,$4EBA,$FB46,$602E	; lookup_table
+CODE_3_data_0000342c:
+	dc.w $1B7C,$0001,$E517,$6000,$01D6,$2F0E,$4EBA,$F034	; lookup_table
+CODE_3_data_0000342c:
+	dc.w $601C,$2F0E,$4EBA,$F364,$6014,$2F0E,$4EBA,$FBB8	; lookup_table
+CODE_3_data_0000342c:
+	dc.w $600C,$2F0E,$4EBA,$FCC0,$6004	; lookup_table
 CODE_3_loc_00003526:
 	clr.w -$0006(a6)
 CODE_3_loc_0000352a:
@@ -21487,41 +22499,74 @@ CODE_5_data_00001d54:
 	dc.w $ECE6,$661E,$42A7,$302D,$DA52,$48C0,$2F00,$2F3C	; lookup_table
 CODE_5_data_00001d54:
 	dc.w $0000,$FFFC,$4EAD,$00BA,$486D,$D4E4,$4EAD,$0092	; lookup_table
-CODE_5_semantic_decode_gap_00001d94:
-	dc.b $60,$20,$42,$A7,$20,$6D,$EC,$E6,$30,$28,$00,$1A,$48,$C0,$2F,$00
-	dc.b $2F,$3C,$00,$00,$FF,$FC,$4E,$AD,$00,$BA,$48,$6D,$D4,$E4,$4E,$AD
-	dc.b $00,$92,$16,$BC,$00,$05,$60,$00,$01,$F6,$48,$6E,$FF,$8E,$4E,$AD
-	dc.b $01,$BA,$48,$6E,$FF,$8E,$48,$6D,$D4,$E4,$2F,$3C,$00,$09,$00,$0A
-	dc.b $4E,$AD,$00,$9A,$60,$00,$01,$D8,$48,$6E,$FF,$8E,$4E,$AD,$01,$BA
-	dc.b $48,$6E,$FF,$8E,$48,$6D,$D4,$E4,$2F,$3C,$00,$08,$00,$01,$4E,$AD
-	dc.b $00,$9A,$60,$00,$01,$BA,$10,$2D,$F3,$A5,$67,$10,$48,$6D,$E8,$1E
-	dc.b $48,$6D,$D4,$E4,$4E,$AD,$00,$92,$60,$00,$01,$A4,$48,$6D,$E7,$1E
-	dc.b $48,$6D,$D4,$E4,$4E,$AD,$00,$92,$60,$00,$01,$94,$48,$6D,$E9,$1E
-	dc.b $48,$6D,$D4,$E4,$4E,$AD,$00,$92,$60,$00,$01,$84,$48,$6D,$D2,$C4
-	dc.b $48,$6D,$D4,$E4,$4E,$AD,$00,$92,$60,$00,$01,$74,$30,$2D,$D3,$C4
-	dc.b $48,$C0,$28,$80,$60,$00,$01,$68,$10,$2D,$D4,$C7,$67,$14,$16,$BC
-	dc.b $00,$06,$48,$6D,$D3,$C6,$48,$6D,$D4,$E4,$4E,$AD,$00,$92,$60,$00
-	dc.b $01,$4E,$28,$AD,$D4,$C8,$60,$00,$01,$46,$30,$2D,$D4,$CC,$48,$C0
-	dc.b $28,$80,$60,$00,$01,$3A,$10,$2D,$F3,$A6,$67,$08,$28,$AD,$F3,$AC
-	dc.b $60,$00,$01,$2C,$70,$FF,$28,$80,$60,$00,$01,$24,$28,$AD,$F3,$B0
-	dc.b $60,$00,$01,$1C,$70,$00,$2D,$40,$FF,$E0,$3D,$7C,$00,$01,$FF,$EC
-	dc.b $30,$2E,$FF,$EC,$E5,$40,$41,$ED,$D4,$CA,$4A,$B0,$00,$00,$66,$24
-	dc.b $48,$6E,$FF,$E0,$1F,$3C,$00,$01,$4E,$AD,$01,$C2,$4A,$AE,$FF,$E0
-	dc.b $67,$1E,$30,$2E,$FF,$EC,$E5,$40,$41,$ED,$D4,$CA,$21,$AE,$FF,$E0
-	dc.b $00,$00,$60,$0C,$52,$6E,$FF,$EC,$70,$04,$B0,$6E,$FF,$EC,$6C,$C0
-	dc.b $28,$AE,$FF,$E0,$60,$00,$00,$C8,$16,$BC,$00,$06,$10,$2D,$F3,$A6
-	dc.b $67,$10,$48,$6D,$E9,$1E,$48,$6D,$D4,$E4,$4E,$AD,$00,$92,$60,$00
-	dc.b $00,$AE,$10,$2D,$F3,$A2,$67,$20,$41,$EE,$FF,$82,$43,$FA,$01,$1C
-	dc.b $70,$04,$30,$D9,$51,$C8,$FF,$FC,$48,$6E,$FF,$82,$48,$6D,$D4,$E4
-	dc.b $4E,$AD,$00,$92,$60,$00,$00,$88,$41,$EE,$FF,$82,$43,$FA,$00,$F4
-	dc.b $70,$03,$30,$D9,$51,$C8,$FF,$FC,$48,$6E,$FF,$82,$48,$6D,$D4,$E4
-	dc.b $4E,$AD,$00,$92,$60,$68,$16,$BC,$00,$06,$10,$2D,$EC,$BC,$67,$1E
-	dc.b $41,$EE,$FF,$74,$43,$FA,$00,$C0,$70,$05,$30,$D9,$51,$C8,$FF,$FC
-	dc.b $48,$6E,$FF,$74,$48,$6D,$D4,$E4,$4E,$AD,$00,$92,$60,$40,$10,$2D
-	dc.b $EC,$C0,$67,$1E,$41,$EE,$FF,$74,$43,$FA,$00,$94,$70,$03,$30,$D9
-	dc.b $51,$C8,$FF,$FC,$48,$6E,$FF,$74,$48,$6D,$D4,$E4,$4E,$AD,$00,$92
-	dc.b $60,$1C,$41,$EE,$FF,$74,$43,$FA,$00,$6C,$70,$04,$30,$D9,$51,$C8
-	dc.b $FF,$FC,$48,$6E,$FF,$74,$48,$6D,$D4,$E4,$4E,$AD,$00,$92
+CODE_5_data_00001d54:
+	dc.w $6020,$42A7,$206D,$ECE6,$3028,$001A,$48C0,$2F00	; lookup_table
+CODE_5_data_00001d54:
+	dc.w $2F3C,$0000,$FFFC,$4EAD,$00BA,$486D,$D4E4,$4EAD	; lookup_table
+CODE_5_data_00001d54:
+	dc.w $0092,$16BC,$0005,$6000,$01F6,$486E,$FF8E,$4EAD	; lookup_table
+CODE_5_data_00001d54:
+	dc.w $01BA,$486E,$FF8E,$486D,$D4E4,$2F3C,$0009,$000A	; lookup_table
+CODE_5_data_00001d54:
+	dc.w $4EAD,$009A,$6000,$01D8,$486E,$FF8E,$4EAD,$01BA	; lookup_table
+CODE_5_data_00001d54:
+	dc.w $486E,$FF8E,$486D,$D4E4,$2F3C,$0008,$0001,$4EAD	; lookup_table
+CODE_5_data_00001d54:
+	dc.w $009A,$6000,$01BA,$102D,$F3A5,$6710,$486D,$E81E	; lookup_table
+CODE_5_data_00001d54:
+	dc.w $486D,$D4E4,$4EAD,$0092,$6000,$01A4,$486D,$E71E	; lookup_table
+CODE_5_data_00001d54:
+	dc.w $486D,$D4E4,$4EAD,$0092,$6000,$0194,$486D,$E91E	; lookup_table
+CODE_5_data_00001d54:
+	dc.w $486D,$D4E4,$4EAD,$0092,$6000,$0184,$486D,$D2C4	; lookup_table
+CODE_5_data_00001d54:
+	dc.w $486D,$D4E4,$4EAD,$0092,$6000,$0174,$302D,$D3C4	; lookup_table
+CODE_5_data_00001d54:
+	dc.w $48C0,$2880,$6000,$0168,$102D,$D4C7,$6714,$16BC	; lookup_table
+CODE_5_data_00001d54:
+	dc.w $0006,$486D,$D3C6,$486D,$D4E4,$4EAD,$0092,$6000	; lookup_table
+CODE_5_data_00001d54:
+	dc.w $014E,$28AD,$D4C8,$6000,$0146,$302D,$D4CC,$48C0	; lookup_table
+CODE_5_data_00001d54:
+	dc.w $2880,$6000,$013A,$102D,$F3A6,$6708,$28AD,$F3AC	; lookup_table
+CODE_5_data_00001d54:
+	dc.w $6000,$012C,$70FF,$2880,$6000,$0124,$28AD,$F3B0	; lookup_table
+CODE_5_data_00001d54:
+	dc.w $6000,$011C,$7000,$2D40,$FFE0,$3D7C,$0001,$FFEC	; lookup_table
+CODE_5_data_00001d54:
+	dc.w $302E,$FFEC,$E540,$41ED,$D4CA,$4AB0,$0000,$6624	; lookup_table
+CODE_5_data_00001d54:
+	dc.w $486E,$FFE0,$1F3C,$0001,$4EAD,$01C2,$4AAE,$FFE0	; lookup_table
+CODE_5_data_00001d54:
+	dc.w $671E,$302E,$FFEC,$E540,$41ED,$D4CA,$21AE,$FFE0	; lookup_table
+CODE_5_data_00001d54:
+	dc.w $0000,$600C,$526E,$FFEC,$7004,$B06E,$FFEC,$6CC0	; lookup_table
+CODE_5_data_00001d54:
+	dc.w $28AE,$FFE0,$6000,$00C8,$16BC,$0006,$102D,$F3A6	; lookup_table
+CODE_5_data_00001d54:
+	dc.w $6710,$486D,$E91E,$486D,$D4E4,$4EAD,$0092,$6000	; lookup_table
+CODE_5_data_00001d54:
+	dc.w $00AE,$102D,$F3A2,$6720,$41EE,$FF82,$43FA,$011C	; lookup_table
+CODE_5_data_00001d54:
+	dc.w $7004,$30D9,$51C8,$FFFC,$486E,$FF82,$486D,$D4E4	; lookup_table
+CODE_5_data_00001d54:
+	dc.w $4EAD,$0092,$6000,$0088,$41EE,$FF82,$43FA,$00F4	; lookup_table
+CODE_5_data_00001d54:
+	dc.w $7003,$30D9,$51C8,$FFFC,$486E,$FF82,$486D,$D4E4	; lookup_table
+CODE_5_data_00001d54:
+	dc.w $4EAD,$0092,$6068,$16BC,$0006,$102D,$ECBC,$671E	; lookup_table
+CODE_5_data_00001d54:
+	dc.w $41EE,$FF74,$43FA,$00C0,$7005,$30D9,$51C8,$FFFC	; lookup_table
+CODE_5_data_00001d54:
+	dc.w $486E,$FF74,$486D,$D4E4,$4EAD,$0092,$6040,$102D	; lookup_table
+CODE_5_data_00001d54:
+	dc.w $ECC0,$671E,$41EE,$FF74,$43FA,$0094,$7003,$30D9	; lookup_table
+CODE_5_data_00001d54:
+	dc.w $51C8,$FFFC,$486E,$FF74,$486D,$D4E4,$4EAD,$0092	; lookup_table
+CODE_5_data_00001d54:
+	dc.w $601C,$41EE,$FF74,$43FA,$006C,$7004,$30D9,$51C8	; lookup_table
+CODE_5_data_00001d54:
+	dc.w $FFFC,$486E,$FF74,$486D,$D4E4,$4EAD,$0092	; lookup_table
 CODE_5_loc_00001fb2:
 	tst.b (a3)
 	beq.b CODE_5_loc_00001fe6
@@ -23671,402 +24716,794 @@ CODE_5_data_00003b10:
 	dc.w $0E84,$04A6,$0680,$0DAC,$0F38,$0FB6,$05BA,$05BA	; lookup_table
 CODE_5_data_00003b10:
 	dc.w $0850,$11FA,$1142,$1142,$1596,$1372,$16B4,$178A	; lookup_table
-CODE_5_data_dispatch_table_00003b50:
-	dc.b $2D,$7C,$80,$00,$00,$00,$FF,$D8,$3D,$7C,$00,$01,$FB,$7C,$10,$2E
-	dc.b $00,$0C,$48,$80,$3D,$40,$FB,$7A,$3D,$6E,$FB,$7C,$FF,$F6,$60,$3A
-	dc.b $42,$67,$48,$6E,$FF,$DC,$4E,$BA,$FC,$18,$10,$1F,$66,$0A,$3F,$3C
-	dc.b $00,$2E,$2F,$0E,$4E,$BA,$FE,$1E,$20,$2E,$FF,$DC,$B0,$AE,$FF,$D8
-	dc.b $6F,$06,$2D,$6E,$FF,$DC,$FF,$D8,$10,$2D,$F3,$57,$48,$80,$53,$40
-	dc.b $1B,$40,$F3,$57,$52,$6E,$FF,$F6,$69,$0A,$30,$2E,$FF,$F6,$B0,$6E
-	dc.b $FB,$7A,$6F,$BC,$10,$2D,$F3,$57,$48,$80,$52,$40,$1B,$40,$F3,$57
-	dc.b $60,$00,$18,$34,$2D,$7C,$7F,$FF,$FF,$FF,$FF,$D8,$3D,$7C,$00,$01
-	dc.b $FB,$78,$10,$2E,$00,$0C,$48,$80,$3D,$40,$FB,$76,$3D,$6E,$FB,$78
-	dc.b $FF,$F6,$60,$3A,$42,$67,$48,$6E,$FF,$DC,$4E,$BA,$FB,$A4,$10,$1F
-	dc.b $66,$0A,$3F,$3C,$00,$2E,$2F,$0E,$4E,$BA,$FD,$AA,$20,$2E,$FF,$DC
-	dc.b $B0,$AE,$FF,$D8,$6C,$06,$2D,$6E,$FF,$DC,$FF,$D8,$10,$2D,$F3,$57
-	dc.b $48,$80,$53,$40,$1B,$40,$F3,$57,$52,$6E,$FF,$F6,$69,$0A,$30,$2E
-	dc.b $FF,$F6,$B0,$6E,$FB,$76,$6F,$BC,$10,$2D,$F3,$57,$48,$80,$52,$40
-	dc.b $1B,$40,$F3,$57,$60,$00,$17,$C0,$70,$01,$B0,$2E,$00,$0C,$67,$0A
-	dc.b $3F,$3C,$00,$3C,$2F,$0E,$4E,$BA,$FD,$5C,$42,$67,$48,$6E,$FF,$D8
-	dc.b $4E,$BA,$FB,$3E,$10,$1F,$66,$0A,$3F,$3C,$00,$2E,$2F,$0E,$4E,$BA
-	dc.b $FD,$44,$20,$2E,$FF,$D8,$6A,$02,$44,$80,$2D,$40,$FF,$D8,$60,$00
-	dc.b $17,$86,$70,$03,$B0,$2E,$00,$0C,$5D,$C0,$4A,$00,$66,$0C,$72,$01
-	dc.b $B2,$2E,$00,$0C,$5E,$C1,$80,$01,$67,$0A,$3F,$3C,$00,$3C,$2F,$0E
-	dc.b $4E,$BA,$FD,$12,$70,$03,$B0,$2E,$00,$0C,$6E,$32,$42,$67,$48,$6E
-	dc.b $FF,$D8,$4E,$BA,$FA,$EC,$10,$1F,$66,$0A,$3F,$3C,$00,$2E,$2F,$0E
-	dc.b $4E,$BA,$FC,$F2,$10,$2D,$F3,$57,$48,$80,$53,$40,$1B,$40,$F3,$57
-	dc.b $4A,$AE,$FF,$D8,$56,$C0,$44,$00,$1D,$40,$FF,$D6,$60,$04,$42,$2E
-	dc.b $FF,$D6,$70,$02,$B0,$2E,$00,$0C,$6E,$46,$42,$67,$48,$6E,$FF,$DC
-	dc.b $4E,$BA,$FA,$AE,$10,$1F,$66,$0A,$3F,$3C,$00,$2E,$2F,$0E,$4E,$BA
-	dc.b $FC,$B4,$2D,$6E,$FF,$DC,$FF,$F0,$20,$2E,$FF,$F0,$6A,$02,$44,$80
-	dc.b $0C,$80,$00,$00,$00,$FF,$6F,$0A,$3F,$3C,$00,$84,$2F,$0E,$4E,$BA
-	dc.b $FC,$94,$10,$2D,$F3,$57,$48,$80,$53,$40,$1B,$40,$F3,$57,$60,$06
-	dc.b $70,$01,$2D,$40,$FF,$F0,$42,$67,$48,$6E,$FF,$DC,$4E,$BA,$FA,$62
-	dc.b $10,$1F,$66,$0A,$3F,$3C,$00,$2E,$2F,$0E,$4E,$BA,$FC,$68,$42,$A7
-	dc.b $2F,$2E,$FF,$DC,$3F,$2E,$FF,$F2,$1F,$2E,$FF,$D6,$4E,$AD,$00,$BA
-	dc.b $48,$6E,$FE,$D4,$4E,$AD,$00,$92,$42,$67,$48,$6E,$FF,$D8,$48,$6E
-	dc.b $FE,$D4,$4E,$BA,$FB,$3C,$10,$1F,$66,$0A,$3F,$3C,$00,$57,$2F,$0E
-	dc.b $4E,$BA,$FC,$32,$1D,$7C,$00,$06,$FF,$D7,$60,$00,$16,$7A,$70,$01
-	dc.b $B0,$2E,$00,$0C,$67,$0A,$3F,$3C,$00,$3C,$2F,$0E,$4E,$BA,$FC,$16
-	dc.b $42,$2E,$FF,$D7,$10,$2D,$F3,$57,$48,$80,$72,$04,$41,$ED,$F2,$24
-	dc.b $B2,$30,$00,$00,$6E,$58,$42,$A7,$10,$2D,$F3,$57,$48,$80,$E5,$40
-	dc.b $41,$ED,$F2,$62,$2F,$30,$00,$00,$48,$6E,$FD,$C4,$4E,$AD,$00,$CA
-	dc.b $2D,$5F,$FF,$D8,$4A,$2E,$FD,$C4,$67,$18,$3F,$3C,$00,$C9,$10,$2D
-	dc.b $F3,$57,$48,$80,$E5,$40,$41,$ED,$F2,$62,$2F,$30,$00,$00,$4E,$AD
-	dc.b $07,$C2,$2F,$2D,$F0,$D6,$10,$2D,$F3,$57,$48,$80,$E5,$40,$41,$ED
-	dc.b $F2,$62,$2F,$30,$00,$00,$4E,$AD,$07,$82,$60,$00,$15,$FA,$3F,$3C
-	dc.b $00,$7A,$2F,$0E,$4E,$BA,$FB,$9E,$60,$00,$15,$EC,$70,$01,$B0,$2E
-	dc.b $00,$0C,$67,$0A,$3F,$3C,$00,$3C,$2F,$0E,$4E,$BA,$FB,$88,$42,$2E
-	dc.b $FF,$D7,$10,$2D,$F3,$57,$48,$80,$72,$04,$41,$ED,$F2,$24,$B2,$30
-	dc.b $00,$00,$6E,$36,$10,$2D,$F3,$57,$48,$80,$E5,$40,$43,$ED,$F2,$62
-	dc.b $20,$71,$00,$00,$42,$40,$10,$10,$48,$C0,$2D,$40,$FF,$D8,$2F,$2D
-	dc.b $F0,$D6,$10,$2D,$F3,$57,$48,$80,$E5,$40,$41,$ED,$F2,$62,$2F,$30
-	dc.b $00,$00,$4E,$AD,$07,$82,$60,$00,$15,$8E,$3F,$3C,$00,$7A,$2F,$0E
-	dc.b $4E,$BA,$FB,$32,$60,$00,$15,$80,$70,$02,$B0,$2E,$00,$0C,$67,$0A
-	dc.b $3F,$3C,$00,$3C,$2F,$0E,$4E,$BA,$FB,$1C,$48,$6E,$FE,$D4,$2F,$0E
-	dc.b $4E,$BA,$FB,$48,$10,$2D,$F3,$57,$48,$80,$53,$40,$1B,$40,$F3,$57
-	dc.b $48,$6E,$FD,$D2,$2F,$0E,$4E,$BA,$FB,$32,$42,$2E,$FF,$D7,$48,$6E
-	dc.b $FD,$D2,$48,$6E,$FE,$D4,$4E,$AD,$0A,$9A,$30,$1F,$48,$C0,$2D,$40
-	dc.b $FF,$D8,$60,$00,$15,$32,$42,$2E,$FE,$D4,$3D,$7C,$00,$01,$FB,$74
-	dc.b $10,$2E,$00,$0C,$48,$80,$3D,$40,$FB,$72,$3D,$6E,$FB,$74,$FF,$F6
-	dc.b $60,$00,$00,$94,$48,$6E,$FD,$D2,$2F,$0E,$4E,$BA,$FA,$EE,$42,$40
-	dc.b $10,$2E,$FE,$D4,$3D,$40,$FF,$FA,$42,$40,$10,$2E,$FD,$D2,$3D,$40
-	dc.b $FF,$F8,$D0,$6E,$FF,$FA,$0C,$40,$00,$FF,$6E,$12,$48,$6E,$FD,$D2
-	dc.b $48,$6E,$FE,$D4,$3F,$3C,$00,$01,$4E,$AD,$0A,$BA,$60,$46,$48,$6E
-	dc.b $FD,$D2,$48,$6E,$FE,$D4,$3F,$3C,$00,$01,$30,$3C,$00,$FF,$90,$6E
-	dc.b $FF,$F8,$3F,$00,$48,$6E,$FC,$7E,$4E,$AD,$0A,$AA,$48,$6E,$FC,$7E
-	dc.b $48,$6E,$FB,$7E,$3F,$3C,$00,$02,$4E,$AD,$0A,$A2,$41,$EE,$FE,$D4
-	dc.b $43,$EE,$FB,$7E,$70,$7F,$30,$D9,$51,$C8,$FF,$FC,$3F,$3C,$00,$CB
-	dc.b $4E,$AD,$07,$CA,$10,$2D,$F3,$57,$48,$80,$53,$40,$1B,$40,$F3,$57
-	dc.b $52,$6E,$FF,$F6,$69,$0C,$30,$2E,$FF,$F6,$B0,$6E,$FB,$72,$6F,$00
-	dc.b $FF,$64,$10,$2D,$F3,$57,$48,$80,$52,$40,$1B,$40,$F3,$57,$42,$67
-	dc.b $48,$6E,$FF,$D8,$48,$6E,$FE,$D4,$4E,$BA,$F9,$06,$10,$1F,$66,$0A
-	dc.b $3F,$3C,$00,$57,$2F,$0E,$4E,$BA,$F9,$FC,$1D,$7C,$00,$06,$FF,$D7
-	dc.b $60,$00,$14,$44,$70,$02,$B0,$2E,$00,$0C,$67,$0A,$3F,$3C,$00,$3C
-	dc.b $2F,$0E,$4E,$BA,$F9,$E0,$48,$6E,$FD,$D2,$2F,$0E,$4E,$BA,$FA,$0C
-	dc.b $10,$2D,$F3,$57,$48,$80,$53,$40,$1B,$40,$F3,$57,$48,$6E,$FE,$D4
-	dc.b $2F,$0E,$4E,$BA,$F9,$F6,$42,$40,$10,$2E,$FE,$D4,$4A,$40,$66,$0C
-	dc.b $48,$6E,$FD,$D2,$48,$6E,$FE,$D4,$4E,$AD,$00,$92,$42,$67,$48,$6E
-	dc.b $FF,$D8,$48,$6E,$FE,$D4,$4E,$BA,$F8,$98,$10,$1F,$66,$0A,$3F,$3C
-	dc.b $00,$57,$2F,$0E,$4E,$BA,$F9,$8E,$1D,$7C,$00,$06,$FF,$D7,$60,$00
-	dc.b $13,$D6,$70,$03,$B0,$2E,$00,$0C,$67,$0A,$3F,$3C,$00,$3C,$2F,$0E
-	dc.b $4E,$BA,$F9,$72,$42,$67,$48,$6E,$FF,$E4,$4E,$BA,$F7,$54,$10,$1F
-	dc.b $66,$0A,$3F,$3C,$00,$2E,$2F,$0E,$4E,$BA,$F9,$5A,$10,$2D,$F3,$57
-	dc.b $48,$80,$53,$40,$1B,$40,$F3,$57,$4A,$AE,$FF,$E4,$6C,$0E,$3F,$3C
-	dc.b $00,$8B,$4E,$AD,$07,$CA,$70,$00,$2D,$40,$FF,$E4,$42,$67,$48,$6E
-	dc.b $FF,$E8,$4E,$BA,$F7,$1C,$10,$1F,$66,$0A,$3F,$3C,$00,$2E,$2F,$0E
-	dc.b $4E,$BA,$F9,$22,$10,$2D,$F3,$57,$48,$80,$53,$40,$1B,$40,$F3,$57
-	dc.b $48,$6E,$FE,$D4,$2F,$0E,$4E,$BA,$F9,$42,$42,$67,$48,$6E,$FF,$D8
-	dc.b $48,$6E,$FE,$D4,$3F,$2E,$FF,$EA,$3F,$2E,$FF,$E6,$4E,$BA,$F8,$4C
-	dc.b $10,$1F,$66,$0A,$3F,$3C,$00,$57,$2F,$0E,$4E,$BA,$F8,$E8,$1D,$7C
-	dc.b $00,$06,$FF,$D7,$60,$00,$13,$30,$70,$01,$B0,$2E,$00,$0C,$67,$0A
-	dc.b $3F,$3C,$00,$3C,$2F,$0E,$4E,$BA,$F8,$CC,$10,$2D,$F3,$57,$48,$80
-	dc.b $72,$04,$41,$ED,$F2,$24,$B2,$30,$00,$00,$6E,$48,$1D,$7C,$00,$04
-	dc.b $FF,$D7,$10,$2D,$F3,$57,$48,$80,$E5,$40,$41,$ED,$F2,$62,$2D,$70
-	dc.b $00,$00,$FF,$D8,$70,$17,$B0,$6E,$FF,$F4,$57,$C0,$4A,$00,$66,$0C
-	dc.b $72,$18,$B2,$6E,$FF,$F4,$57,$C1,$80,$01,$67,$0C,$2F,$2E,$FF,$D8
-	dc.b $4E,$AD,$00,$5A,$60,$00,$12,$D0,$2F,$2E,$FF,$D8,$4E,$AD,$00,$52
-	dc.b $60,$00,$12,$C4,$3F,$3C,$00,$2E,$2F,$0E,$4E,$BA,$F8,$68,$60,$00
-	dc.b $12,$B6,$70,$01,$B0,$2E,$00,$0C,$67,$0A,$3F,$3C,$00,$3C,$2F,$0E
-	dc.b $4E,$BA,$F8,$52,$10,$2D,$F3,$57,$48,$80,$72,$09,$41,$ED,$F2,$24
-	dc.b $B2,$30,$00,$00,$66,$1A,$42,$2E,$FF,$D7,$10,$2D,$F3,$57,$48,$80
-	dc.b $E5,$40,$41,$ED,$F2,$62,$2D,$70,$00,$00,$FF,$D8,$60,$00,$12,$78
-	dc.b $3F,$3C,$00,$82,$2F,$0E,$4E,$BA,$F8,$1C,$60,$00,$12,$6A,$70,$01
-	dc.b $B0,$2E,$00,$0C,$67,$0A,$3F,$3C,$00,$3C,$2F,$0E,$4E,$BA,$F8,$06
-	dc.b $48,$6E,$FD,$D2,$2F,$0E,$4E,$BA,$F8,$32,$48,$6E,$FD,$D2,$4E,$AD
-	dc.b $00,$82,$42,$40,$10,$2E,$FD,$D2,$4A,$40,$66,$0A,$3F,$3C,$00,$AA
-	dc.b $2F,$0E,$4E,$BA,$F7,$E0,$42,$40,$10,$2E,$FD,$D2,$B0,$6D,$F3,$8E
-	dc.b $6F,$06,$1D,$6D,$F3,$8F,$FD,$D2,$42,$40,$10,$2E,$FD,$D3,$72,$26
-	dc.b $B2,$40,$66,$24,$41,$ED,$FE,$FA,$43,$EE,$FD,$D2,$70,$7F,$30,$D9
-	dc.b $51,$C8,$FF,$FC,$48,$6D,$FE,$FA,$4E,$AD,$00,$52,$48,$6E,$FE,$D4
-	dc.b $4E,$BA,$DE,$CC,$60,$00,$01,$32,$10,$2D,$F3,$A1,$67,$08,$48,$6E
-	dc.b $FD,$D2,$4E,$AD,$00,$52,$48,$7A,$12,$C8,$48,$6E,$FD,$D2,$4E,$AD
-	dc.b $0A,$9A,$3D,$5F,$FF,$F6,$66,$2C,$41,$ED,$FE,$FA,$43,$EE,$FD,$D2
-	dc.b $70,$7F,$30,$D9,$51,$C8,$FF,$FC,$48,$6D,$FE,$FA,$48,$6E,$FD,$CA
-	dc.b $48,$6E,$FF,$E0,$48,$6E,$FF,$FC,$48,$6E,$FD,$C5,$4E,$AD,$02,$22
-	dc.b $60,$00,$00,$D2,$42,$40,$10,$2E,$FD,$D2,$52,$40,$41,$EE,$FD,$D2
-	dc.b $42,$30,$00,$00,$1D,$6D,$EC,$E3,$FD,$AD,$42,$2D,$EC,$E3,$2D,$6D
-	dc.b $FF,$FC,$FD,$BE,$22,$6E,$FD,$BE,$45,$EE,$FD,$AE,$70,$07,$34,$D9
-	dc.b $51,$C8,$FF,$FC,$22,$6E,$FD,$BE,$2D,$49,$FB,$6E,$42,$40,$10,$2E
-	dc.b $FD,$D3,$22,$6E,$FB,$6E,$33,$40,$00,$06,$43,$EE,$FD,$D2,$20,$09
-	dc.b $54,$80,$22,$6E,$FB,$6E,$22,$80,$22,$6E,$FB,$6E,$33,$7C,$00,$02
-	dc.b $00,$04,$43,$EE,$FD,$D2,$24,$6E,$FB,$6E,$25,$49,$00,$08,$70,$00
-	dc.b $2D,$40,$FD,$CA,$4E,$AD,$01,$72,$4A,$2D,$FF,$FB,$66,$40,$48,$6D
-	dc.b $FE,$FA,$48,$6E,$FE,$D4,$4E,$AD,$00,$92,$4E,$AD,$01,$72,$70,$1D
-	dc.b $B0,$2D,$FF,$FB,$66,$28,$1B,$7C,$00,$01,$CD,$5E,$42,$67,$48,$6E
-	dc.b $FE,$D4,$48,$6E,$FF,$E0,$48,$6E,$FD,$CA,$48,$6E,$FF,$FC,$48,$6E
-	dc.b $FD,$C6,$4E,$AD,$02,$1A,$1D,$5F,$FF,$D6,$42,$2D,$CD,$5E,$20,$6E
-	dc.b $FD,$BE,$43,$EE,$FD,$AE,$70,$07,$30,$D9,$51,$C8,$FF,$FC,$1B,$6E
-	dc.b $FD,$AD,$EC,$E3,$48,$6E,$FE,$D4,$2F,$2E,$FD,$CA,$2F,$2E,$FF,$E0
-	dc.b $3F,$2E,$FF,$FC,$4E,$BA,$E2,$32,$42,$67,$48,$6E,$FF,$D8,$48,$6E
-	dc.b $FE,$D4,$4E,$BA,$F5,$5C,$10,$1F,$66,$0A,$3F,$3C,$00,$57,$2F,$0E
-	dc.b $4E,$BA,$F6,$52,$1D,$7C,$00,$06,$FF,$D7,$60,$00,$10,$9A,$70,$01
-	dc.b $B0,$2E,$00,$0C,$67,$0A,$3F,$3C,$00,$3C,$2F,$0E,$4E,$BA,$F6,$36
-	dc.b $48,$6E,$FD,$D2,$2F,$0E,$4E,$BA,$F6,$62,$48,$6E,$FD,$D2,$4E,$AD
-	dc.b $00,$82,$42,$40,$10,$2E,$FD,$D2,$4A,$40,$66,$0A,$3F,$3C,$00,$AA
-	dc.b $2F,$0E,$4E,$BA,$F6,$10,$42,$67,$48,$6E,$FD,$D2,$48,$6E,$FE,$D4
-	dc.b $4E,$AD,$08,$9A,$10,$1F,$66,$04,$42,$2E,$FE,$D4,$42,$67,$48,$6E
-	dc.b $FF,$D8,$48,$6E,$FE,$D4,$4E,$BA,$F4,$E8,$10,$1F,$66,$0A,$3F,$3C
-	dc.b $00,$57,$2F,$0E,$4E,$BA,$F5,$DE,$1D,$7C,$00,$06,$FF,$D7,$60,$00
-	dc.b $10,$26,$70,$02,$B0,$2E,$00,$0C,$66,$42,$42,$67,$48,$6E,$FF,$E4
-	dc.b $4E,$BA,$F3,$AE,$10,$1F,$66,$0A,$3F,$3C,$00,$2E,$2F,$0E,$4E,$BA
-	dc.b $F5,$B4,$4A,$AE,$FF,$E4,$5D,$C0,$72,$05,$B2,$AE,$FF,$E4,$5D,$C1
-	dc.b $80,$01,$67,$0A,$3F,$3C,$00,$8A,$2F,$0E,$4E,$BA,$F5,$98,$10,$2D
-	dc.b $F3,$57,$48,$80,$53,$40,$1B,$40,$F3,$57,$60,$18,$70,$01,$B0,$2E
-	dc.b $00,$0C,$67,$0A,$3F,$3C,$00,$3C,$2F,$0E,$4E,$BA,$F5,$78,$70,$00
-	dc.b $2D,$40,$FF,$E4,$48,$6E,$FD,$D2,$2F,$0E,$4E,$BA,$F5,$9E,$48,$6E
-	dc.b $FD,$D2,$4E,$AD,$00,$82,$42,$40,$10,$2E,$FD,$D2,$4A,$40,$66,$0A
-	dc.b $3F,$3C,$00,$AA,$2F,$0E,$4E,$BA,$F5,$4C,$48,$6E,$FD,$D2,$4E,$AD
-	dc.b $00,$52,$42,$A7,$48,$6E,$FD,$A6,$48,$6E,$FD,$A5,$48,$6E,$FD,$A2
-	dc.b $48,$6E,$FD,$A0,$48,$6E,$FD,$D2,$48,$6E,$FD,$9E,$4E,$AD,$05,$6A
-	dc.b $2D,$5F,$FD,$A8,$57,$C0,$4A,$00,$66,$0C,$72,$02,$B2,$6E,$FD,$A6
-	dc.b $56,$C1,$80,$01,$67,$0A,$3F,$3C,$00,$8A,$2F,$0E,$4E,$BA,$F5,$06
-	dc.b $70,$02,$B0,$2E,$00,$0C,$57,$C0,$4A,$00,$67,$1A,$48,$6E,$FD,$D2
-	dc.b $48,$7A,$10,$28,$4E,$AD,$0A,$C2,$C0,$1F,$67,$0A,$3F,$3C,$00,$3C
-	dc.b $2F,$0E,$4E,$BA,$F4,$E0,$42,$2E,$FE,$D4,$30,$2E,$FD,$A2,$04,$40
-	dc.b $00,$1C,$6B,$00,$03,$B6,$0C,$40,$00,$11,$6E,$00,$03,$AE,$D0,$40
-	dc.b $30,$3B,$00,$06,$4E,$FB,$00,$00,$00,$26,$03,$A4,$00,$DE,$00,$F8
-	dc.b $01,$44,$01,$74,$03,$A4,$01,$AC,$03,$A4,$01,$CA,$03,$A4,$03,$A4
-	dc.b $02,$0C,$03,$A4,$02,$F6,$03,$A4,$03,$34,$03,$78,$4A,$6D,$F3,$98
-	dc.b $66,$14,$41,$EE,$FE,$D4,$43,$FA,$0F,$BA,$70,$03,$30,$D9,$51,$C8
-	dc.b $FF,$FC,$60,$00,$03,$70,$70,$01,$B0,$6D,$F3,$98,$66,$14,$41,$EE
-	dc.b $FE,$D4,$43,$FA,$0F,$96,$70,$03,$30,$D9,$51,$C8,$FF,$FC,$60,$00
-	dc.b $03,$54,$10,$2D,$F3,$B8,$67,$14,$41,$EE,$FE,$D4,$43,$FA,$0F,$74
-	dc.b $70,$03,$30,$D9,$51,$C8,$FF,$FC,$60,$00,$03,$3A,$70,$02,$B0,$6D
-	dc.b $F3,$98,$66,$14,$41,$EE,$FE,$D4,$43,$FA,$0F,$50,$70,$03,$30,$D9
-	dc.b $51,$C8,$FF,$FC,$60,$00,$03,$1E,$70,$20,$B0,$6D,$F3,$98,$66,$14
-	dc.b $41,$EE,$FE,$D4,$43,$FA,$0F,$2C,$70,$03,$30,$D9,$51,$C8,$FF,$FC
-	dc.b $60,$00,$03,$02,$70,$21,$B0,$6D,$F3,$98,$66,$14,$41,$EE,$FE,$D4
-	dc.b $43,$FA,$0F,$08,$70,$03,$30,$D9,$51,$C8,$FF,$FC,$60,$00,$02,$E6
-	dc.b $41,$EE,$FE,$D4,$43,$FA,$0E,$EC,$70,$03,$30,$D9,$51,$C8,$FF,$FC
-	dc.b $60,$00,$02,$D2,$10,$2D,$EB,$93,$67,$0A,$3D,$7C,$01,$31,$FE,$D4
-	dc.b $60,$00,$02,$C2,$3D,$7C,$01,$30,$FE,$D4,$60,$00,$02,$B8,$70,$01
-	dc.b $B0,$6D,$F3,$9A,$66,$14,$41,$EE,$FE,$D4,$43,$FA,$0E,$B0,$70,$02
-	dc.b $30,$D9,$51,$C8,$FF,$FC,$60,$00,$02,$9C,$70,$02,$B0,$6D,$F3,$9A
-	dc.b $66,$14,$41,$EE,$FE,$D4,$43,$FA,$0E,$8E,$70,$02,$30,$D9,$51,$C8
-	dc.b $FF,$FC,$60,$00,$02,$80,$41,$EE,$FE,$D4,$43,$FA,$0E,$74,$70,$02
-	dc.b $30,$D9,$51,$C8,$FF,$FC,$60,$00,$02,$6C,$70,$02,$B0,$6D,$F3,$9C
-	dc.b $66,$14,$41,$EE,$FE,$D4,$43,$FA,$0E,$5E,$70,$02,$30,$D9,$51,$C8
-	dc.b $FF,$FC,$60,$00,$02,$50,$41,$EE,$FE,$D4,$43,$FA,$0E,$44,$70,$02
-	dc.b $30,$D9,$51,$C8,$FF,$FC,$60,$00,$02,$3C,$10,$2D,$F3,$A1,$67,$26
-	dc.b $10,$2D,$EB,$99,$67,$14,$41,$EE,$FE,$D4,$43,$FA,$0E,$1C,$70,$03
-	dc.b $30,$D9,$51,$C8,$FF,$FC,$60,$00,$02,$1C,$2D,$7C,$03,$4F,$46,$46
-	dc.b $FE,$D4,$60,$00,$02,$10,$2D,$7C,$02,$4F,$4E,$20,$FE,$D4,$60,$00
-	dc.b $02,$04,$10,$2D,$F3,$9F,$67,$0C,$2D,$7C,$02,$4F,$4E,$20,$FE,$D4
-	dc.b $60,$00,$01,$F2,$2D,$7C,$03,$4F,$46,$46,$FE,$D4,$60,$00,$01,$E6
-	dc.b $4A,$6D,$F3,$96,$66,$0C,$2D,$7C,$03,$41,$4C,$4C,$FE,$D4,$60,$00
-	dc.b $01,$D4,$0C,$6D,$18,$08,$F3,$96,$66,$14,$41,$EE,$FE,$D4,$43,$FA
-	dc.b $0D,$B2,$70,$02,$30,$D9,$51,$C8,$FF,$FC,$60,$00,$01,$B8,$41,$EE
-	dc.b $FE,$D4,$43,$FA,$0D,$98,$70,$02,$30,$D9,$51,$C8,$FF,$FC,$60,$00
-	dc.b $01,$A4,$30,$2D,$EB,$26,$52,$40,$48,$C0,$90,$AE,$FF,$E4,$2D,$40
-	dc.b $FF,$E4,$30,$2D,$EB,$26,$48,$C0,$B0,$AE,$FF,$E4,$6C,$08,$2D,$6D
-	dc.b $ED,$5A,$FF,$E8,$60,$20,$70,$01,$B0,$AE,$FF,$E4,$6F,$08,$2D,$6D
-	dc.b $EB,$28,$FF,$E8,$60,$10,$30,$2E,$FF,$E6,$E5,$40,$41,$ED,$EB,$24
-	dc.b $2D,$70,$00,$00,$FF,$E8,$42,$6E,$FB,$6C,$3D,$6E,$FB,$6C,$FF,$F6
-	dc.b $60,$00,$00,$8C,$70,$14,$B0,$6E,$FF,$F6,$56,$C0,$4A,$00,$67,$7A
-	dc.b $72,$15,$B2,$6E,$FF,$F6,$56,$C1,$C0,$01,$67,$6E,$20,$2E,$FF,$E8
-	dc.b $32,$2E,$FF,$F6,$03,$00,$67,$62,$48,$6D,$E3,$02,$48,$6E,$FD,$D2
-	dc.b $30,$2E,$FF,$F6,$E7,$40,$52,$40,$3F,$00,$3F,$3C,$00,$07,$4E,$AD
-	dc.b $00,$9A,$48,$6E,$FD,$D2,$4E,$AD,$00,$7A,$42,$40,$10,$2E,$FE,$D4
-	dc.b $4A,$40,$66,$0E,$48,$6E,$FD,$D2,$48,$6E,$FE,$D4,$4E,$AD,$00,$92
-	dc.b $60,$28,$48,$6E,$FE,$D4,$48,$7A,$0C,$D2,$48,$6E,$FD,$D2,$48,$6E
-	dc.b $FC,$7E,$3F,$3C,$00,$03,$4E,$AD,$0A,$A2,$41,$EE,$FE,$D4,$43,$EE
-	dc.b $FC,$7E,$70,$7F,$30,$D9,$51,$C8,$FF,$FC,$52,$6E,$FF,$F6,$70,$1F
-	dc.b $B0,$6E,$FF,$F6,$6C,$00,$FF,$6E,$60,$00,$00,$BA,$4A,$2D,$F3,$95
-	dc.b $66,$14,$41,$EE,$FE,$D4,$43,$FA,$0C,$8A,$70,$03,$30,$D9,$51,$C8
-	dc.b $FF,$FC,$60,$00,$00,$A0,$70,$01,$B0,$2D,$F3,$95,$66,$14,$41,$EE
-	dc.b $FE,$D4,$43,$FA,$0C,$68,$70,$02,$30,$D9,$51,$C8,$FF,$FC,$60,$00
-	dc.b $00,$84,$3D,$7C,$01,$43,$FE,$D4,$60,$7A,$0C,$6D,$00,$80,$F3,$92
-	dc.b $66,$12,$41,$EE,$FE,$D4,$43,$FA,$0C,$3C,$70,$03,$30,$D9,$51,$C8
-	dc.b $FF,$FC,$60,$60,$4A,$6D,$F3,$92,$66,$12,$41,$EE,$FE,$D4,$43,$FA
-	dc.b $0C,$1A,$70,$04,$30,$D9,$51,$C8,$FF,$FC,$60,$48,$41,$EE,$FE,$D4
-	dc.b $43,$FA,$0C,$00,$70,$03,$30,$D9,$51,$C8,$FF,$FC,$60,$36,$0C,$6D
-	dc.b $00,$80,$F3,$90,$66,$12,$41,$EE,$FE,$D4,$43,$FA,$0B,$DC,$70,$04
-	dc.b $30,$D9,$51,$C8,$FF,$FC,$60,$1C,$41,$EE,$FE,$D4,$43,$FA,$0B,$C0
-	dc.b $70,$04,$30,$D9,$51,$C8,$FF,$FC,$60,$0A,$3F,$3C,$00,$8A,$2F,$0E
-	dc.b $4E,$BA,$F1,$12,$42,$67,$48,$6E,$FF,$D8,$48,$6E,$FE,$D4,$4E,$BA
-	dc.b $F0,$00,$10,$1F,$66,$0A,$3F,$3C,$00,$57,$2F,$0E,$4E,$BA,$F0,$F6
-	dc.b $1D,$7C,$00,$06,$FF,$D7,$60,$00,$0B,$3E,$70,$01,$B0,$2E,$00,$0C
-	dc.b $67,$0A,$3F,$3C,$00,$3C,$2F,$0E,$4E,$BA,$F0,$DA,$48,$6E,$FE,$D4
-	dc.b $2F,$0E,$4E,$BA,$F1,$06,$42,$40,$10,$2E,$FE,$D4,$52,$40,$41,$EE
-	dc.b $FE,$D4,$42,$30,$00,$00,$1D,$6D,$EC,$E3,$FD,$AD,$42,$2D,$EC,$E3
-	dc.b $2D,$6D,$FF,$FC,$FD,$BE,$22,$6E,$FD,$BE,$45,$EE,$FD,$AE,$70,$07
-	dc.b $34,$D9,$51,$C8,$FF,$FC,$22,$6E,$FD,$BE,$2D,$49,$FB,$68,$42,$40
-	dc.b $10,$2E,$FE,$D5,$22,$6E,$FB,$68,$33,$40,$00,$06,$43,$EE,$FE,$D4
-	dc.b $20,$09,$54,$80,$22,$6E,$FB,$68,$22,$80,$22,$6E,$FB,$68,$33,$7C
-	dc.b $00,$02,$00,$04,$43,$EE,$FE,$D4,$24,$6E,$FB,$68,$25,$49,$00,$08
-	dc.b $1B,$7C,$00,$01,$EC,$E2,$4E,$AD,$01,$72,$42,$67,$48,$6E,$FF,$D8
-	dc.b $48,$6E,$FF,$D7,$2F,$2E,$00,$08,$4E,$AD,$02,$2A,$1D,$5F,$FD,$C3
-	dc.b $42,$2D,$EC,$E2,$20,$6E,$FD,$BE,$43,$EE,$FD,$AE,$70,$07,$30,$D9
-	dc.b $51,$C8,$FF,$FC,$1B,$6E,$FD,$AD,$EC,$E3,$10,$2E,$FD,$C3,$66,$00
-	dc.b $0A,$76,$20,$6E,$00,$08,$3F,$10,$2F,$0E,$4E,$BA,$F0,$18,$60,$00
-	dc.b $0A,$66,$70,$01,$B0,$2E,$00,$0C,$5E,$C0,$4A,$00,$66,$0C,$72,$02
-	dc.b $B2,$2E,$00,$0C,$5D,$C1,$80,$01,$67,$0A,$3F,$3C,$00,$3C,$2F,$0E
-	dc.b $4E,$BA,$EF,$F2,$70,$02,$B0,$2E,$00,$0C,$66,$30,$42,$67,$48,$6E
-	dc.b $FF,$DC,$4E,$BA,$ED,$CC,$10,$1F,$66,$0A,$3F,$3C,$00,$2E,$2F,$0E
-	dc.b $4E,$BA,$EF,$D2,$4A,$AE,$FF,$DC,$56,$C0,$44,$00,$1D,$40,$FF,$D6
-	dc.b $10,$2D,$F3,$57,$48,$80,$53,$40,$1B,$40,$F3,$57,$48,$6E,$FE,$D4
-	dc.b $2F,$0E,$4E,$BA,$EF,$E6,$70,$01,$B0,$2E,$00,$0C,$66,$0A,$48,$6E
-	dc.b $FE,$D4,$4E,$AD,$00,$82,$60,$18,$10,$2E,$FF,$D6,$67,$0A,$48,$6E
-	dc.b $FE,$D4,$4E,$AD,$00,$72,$60,$08,$48,$6E,$FE,$D4,$4E,$AD,$00,$7A
-	dc.b $42,$67,$48,$6E,$FF,$D8,$48,$6E,$FE,$D4,$4E,$BA,$EE,$74,$10,$1F
-	dc.b $66,$0A,$3F,$3C,$00,$57,$2F,$0E,$4E,$BA,$EF,$6A,$1D,$7C,$00,$06
-	dc.b $FF,$D7,$60,$00,$09,$B2,$70,$01,$B0,$2E,$00,$0C,$67,$0A,$3F,$3C
-	dc.b $00,$3C,$2F,$0E,$4E,$BA,$EF,$4E,$42,$67,$48,$6E,$FF,$D8,$4E,$BA
-	dc.b $ED,$30,$10,$1F,$66,$0A,$3F,$3C,$00,$2E,$2F,$0E,$4E,$BA,$EF,$36
-	dc.b $4A,$AE,$FF,$D8,$5D,$C0,$4A,$00,$66,$0E,$0C,$AE,$00,$00,$00,$FF
-	dc.b $FF,$D8,$5E,$C1,$80,$01,$67,$0A,$3F,$3C,$00,$84,$2F,$0E,$4E,$BA
-	dc.b $EF,$14,$3D,$7C,$01,$20,$FE,$D4,$1D,$6E,$FF,$DB,$FE,$D5,$42,$67
-	dc.b $48,$6E,$FF,$D8,$48,$6E,$FE,$D4,$4E,$BA,$ED,$F6,$10,$1F,$66,$0A
-	dc.b $3F,$3C,$00,$57,$2F,$0E,$4E,$BA,$EE,$EC,$1D,$7C,$00,$06,$FF,$D7
-	dc.b $60,$00,$09,$34,$70,$01,$B0,$2E,$00,$0C,$67,$0A,$3F,$3C,$00,$3C
-	dc.b $2F,$0E,$4E,$BA,$EE,$D0,$10,$2D,$F3,$57,$48,$80,$72,$04,$41,$ED
-	dc.b $F2,$24,$B2,$30,$00,$00,$6E,$2E,$48,$6E,$FE,$D4,$2F,$0E,$4E,$BA
-	dc.b $EE,$EA,$42,$40,$10,$2E,$FE,$D4,$72,$01,$B2,$40,$67,$0A,$3F,$3C
-	dc.b $00,$83,$2F,$0E,$4E,$BA,$EE,$9E,$42,$40,$10,$2E,$FE,$D5,$48,$C0
-	dc.b $2D,$40,$FF,$D8,$60,$12,$10,$2D,$F3,$57,$48,$80,$E5,$40,$41,$ED
-	dc.b $F2,$62,$2D,$70,$00,$00,$FF,$D8,$42,$2E,$FF,$D7,$60,$00,$08,$C8
-	dc.b $70,$01,$B0,$2E,$00,$0C,$67,$0A,$3F,$3C,$00,$3C,$2F,$0E,$4E,$BA
-	dc.b $EE,$64,$48,$6E,$FE,$D4,$2F,$0E,$4E,$BA,$EE,$90,$48,$6E,$FE,$D4
-	dc.b $4E,$AD,$00,$82,$42,$2E,$FF,$D7,$42,$40,$10,$2E,$FE,$D4,$3D,$40
-	dc.b $FF,$FA,$70,$00,$2D,$40,$FD,$7E,$4A,$6E,$FF,$FA,$66,$0A,$70,$00
-	dc.b $2D,$40,$FF,$D8,$60,$00,$08,$80,$42,$40,$10,$2E,$FE,$D5,$72,$2B
-	dc.b $B2,$40,$57,$C0,$4A,$00,$66,$10,$42,$41,$12,$2E,$FE,$D5,$74,$2D
-	dc.b $B4,$41,$57,$C1,$80,$01,$67,$08,$3D,$7C,$00,$02,$FF,$F8,$60,$06
-	dc.b $3D,$7C,$00,$01,$FF,$F8,$30,$2E,$FF,$F8,$B0,$6E,$FF,$FA,$5F,$C0
-	dc.b $44,$00,$48,$80,$48,$C0,$2D,$40,$FF,$D8,$3D,$6E,$FF,$F8,$FB,$66
-	dc.b $3D,$6E,$FF,$FA,$FB,$64,$3D,$6E,$FB,$66,$FF,$F6,$60,$74,$30,$2E
-	dc.b $FF,$F6,$42,$41,$41,$EE,$FE,$D4,$12,$30,$00,$00,$70,$30,$B0,$41
-	dc.b $5E,$C0,$4A,$00,$66,$18,$32,$2E,$FF,$F6,$42,$42,$41,$EE,$FE,$D4
-	dc.b $14,$30,$10,$00,$72,$39,$B2,$42,$5D,$C1,$80,$01,$67,$0A,$70,$00
-	dc.b $2D,$40,$FF,$D8,$60,$00,$07,$F0,$70,$0A,$2F,$00,$2F,$2E,$FD,$7E
-	dc.b $4E,$AD,$0A,$72,$30,$2E,$FF,$F6,$42,$41,$41,$EE,$FE,$D4,$12,$30
-	dc.b $00,$00,$92,$7C,$00,$30,$48,$C1,$D2,$9F,$2D,$41,$FD,$7E,$6C,$0A
-	dc.b $70,$00,$2D,$40,$FF,$D8,$60,$00,$07,$BE,$52,$6E,$FF,$F6,$69,$00
-	dc.b $07,$B6,$30,$2E,$FF,$F6,$B0,$6E,$FB,$64,$6F,$82,$60,$00,$07,$A8
-	dc.b $70,$03,$B0,$2E,$00,$0C,$67,$0A,$3F,$3C,$00,$3C,$2F,$0E,$4E,$BA
-	dc.b $ED,$44,$42,$67,$48,$6E,$FF,$E8,$4E,$BA,$EB,$26,$10,$1F,$66,$0A
-	dc.b $3F,$3C,$00,$2E,$2F,$0E,$4E,$BA,$ED,$2C,$10,$2D,$F3,$57,$48,$80
-	dc.b $53,$40,$1B,$40,$F3,$57,$48,$6E,$FE,$D4,$2F,$0E,$4E,$BA,$ED,$4C
-	dc.b $10,$2D,$F3,$57,$48,$80,$53,$40,$1B,$40,$F3,$57,$48,$6E,$FD,$D2
-	dc.b $2F,$0E,$4E,$BA,$ED,$36,$42,$40,$10,$2E,$FD,$D2,$72,$01,$B2,$40
-	dc.b $67,$0A,$3F,$3C,$00,$83,$2F,$0E,$4E,$BA,$EC,$EA,$70,$1B,$B0,$6E
-	dc.b $FF,$F4,$66,$22,$42,$67,$42,$40,$10,$2E,$FD,$D3,$3F,$00,$48,$6E
-	dc.b $FE,$D4,$3F,$2E,$FF,$EA,$4E,$AD,$00,$AA,$30,$1F,$48,$C0,$2D,$40
-	dc.b $FF,$D8,$60,$00,$07,$12,$42,$67,$42,$40,$10,$2E,$FD,$D3,$3F,$00
-	dc.b $48,$6E,$FE,$D4,$3F,$2E,$FF,$EA,$4E,$AD,$00,$B2,$30,$1F,$48,$C0
-	dc.b $2D,$40,$FF,$D8,$60,$00,$06,$F0,$70,$02,$B0,$2E,$00,$0C,$67,$0A
-	dc.b $3F,$3C,$00,$3C,$2F,$0E,$4E,$BA,$EC,$8C,$42,$67,$48,$6E,$FF,$E8
-	dc.b $4E,$BA,$EA,$6E,$10,$1F,$66,$0A,$3F,$3C,$00,$2E,$2F,$0E,$4E,$BA
-	dc.b $EC,$74,$10,$2D,$F3,$57,$48,$80,$53,$40,$1B,$40,$F3,$57,$48,$6E
-	dc.b $FE,$D4,$2F,$0E,$4E,$BA,$EC,$94,$42,$40,$10,$2E,$FE,$D4,$48,$C0
-	dc.b $2D,$40,$FF,$E4,$70,$01,$B0,$AE,$FF,$E8,$5E,$C0,$4A,$00,$66,$0E
-	dc.b $22,$2E,$FF,$E8,$B2,$AE,$FF,$E4,$5E,$C1,$80,$01,$67,$16,$3B,$7C
-	dc.b $00,$1E,$D3,$C4,$3B,$7C,$01,$3B,$D2,$C4,$2D,$6E,$FF,$E8,$FF,$D8
-	dc.b $60,$00,$06,$74,$20,$2E,$FF,$E4,$52,$80,$41,$EE,$FE,$D4,$42,$30
-	dc.b $00,$00,$2D,$6D,$FF,$FC,$FD,$BE,$43,$EE,$FD,$AE,$2B,$49,$FF,$FC
-	dc.b $2D,$49,$FB,$60,$30,$2E,$FF,$EA,$42,$41,$12,$30,$00,$00,$22,$6E
-	dc.b $FB,$60,$33,$41,$00,$06,$43,$EE,$FE,$D4,$20,$2E,$FF,$E8,$D0,$89
-	dc.b $52,$80,$22,$6E,$FB,$60,$22,$80,$20,$2E,$FF,$E8,$52,$80,$22,$6E
-	dc.b $FB,$60,$33,$40,$00,$04,$43,$EE,$FE,$D4,$24,$6E,$FB,$60,$25,$49
-	dc.b $00,$08,$1D,$6D,$F3,$A0,$FF,$D6,$1B,$6D,$F3,$9F,$F3,$A0,$1B,$7C
-	dc.b $00,$01,$EC,$C3,$4E,$AD,$01,$72,$42,$2D,$EC,$C3,$1B,$6E,$FF,$D6
-	dc.b $F3,$A0,$70,$1E,$B0,$2D,$FF,$FB,$66,$08,$2D,$6E,$FF,$E8,$FF,$D8
-	dc.b $60,$10,$20,$6D,$FF,$FC,$30,$28,$00,$04,$53,$40,$48,$C0,$2D,$40
-	dc.b $FF,$D8,$2B,$6E,$FD,$BE,$FF,$FC,$10,$2D,$FF,$FB,$48,$80,$3B,$40
-	dc.b $D3,$C4,$70,$1E,$B0,$2D,$FF,$FB,$66,$08,$3B,$7C,$01,$3B,$D2,$C4
-	dc.b $60,$2A,$70,$21,$B0,$2D,$FF,$FB,$66,$08,$3B,$7C,$01,$5C,$D2,$C4
-	dc.b $60,$1A,$48,$6E,$FE,$D4,$48,$6D,$D2,$C4,$3F,$2E,$FF,$EA,$20,$2E
-	dc.b $FF,$D8,$90,$AE,$FF,$E8,$3F,$00,$4E,$AD,$00,$9A,$10,$2D,$F3,$9F
-	dc.b $67,$00,$05,$84,$48,$6D,$D2,$C4,$4E,$AD,$00,$72,$60,$00,$05,$78
-	dc.b $70,$04,$B0,$2E,$00,$0C,$67,$0A,$3F,$3C,$00,$3C,$2F,$0E,$4E,$BA
-	dc.b $EB,$14,$42,$67,$48,$6E,$FF,$EC,$4E,$BA,$E8,$F6,$10,$1F,$66,$0A
-	dc.b $3F,$3C,$00,$2E,$2F,$0E,$4E,$BA,$EA,$FC,$20,$3C,$00,$00,$7F,$FF
-	dc.b $C0,$AE,$FF,$EC,$3D,$40,$FF,$FC,$10,$2D,$F3,$57,$48,$80,$53,$40
-	dc.b $1B,$40,$F3,$57,$42,$2E,$FD,$93,$10,$2D,$F3,$57,$48,$80,$72,$04
-	dc.b $41,$ED,$F2,$24,$B2,$30,$00,$00,$6E,$18,$48,$6E,$FD,$D2,$2F,$0E
-	dc.b $4E,$BA,$EA,$F8,$70,$00,$2D,$40,$FF,$E0,$1D,$7C,$00,$01,$FD,$93
-	dc.b $60,$18,$42,$67,$48,$6E,$FF,$E0,$4E,$BA,$E8,$96,$10,$1F,$66,$0A
-	dc.b $3F,$3C,$00,$2E,$2F,$0E,$4E,$BA,$EA,$9C,$10,$2D,$F3,$57,$48,$80
-	dc.b $53,$40,$1B,$40,$F3,$57,$48,$6E,$FE,$D4,$2F,$0E,$4E,$BA,$EA,$BC
-	dc.b $10,$2D,$F3,$57,$48,$80,$53,$40,$1B,$40,$F3,$57,$42,$67,$48,$6E
-	dc.b $FD,$96,$4E,$BA,$E8,$5C,$10,$1F,$66,$0A,$3F,$3C,$00,$2E,$2F,$0E
-	dc.b $4E,$BA,$EA,$62,$42,$67,$2F,$2E,$FD,$96,$48,$6E,$FD,$95,$4E,$BA
-	dc.b $EA,$F2,$3D,$5F,$FF,$F6,$10,$2E,$FD,$95,$67,$2E,$10,$2E,$FD,$93
-	dc.b $67,$06,$42,$6E,$FF,$F6,$60,$22,$4A,$6E,$FF,$FC,$66,$08,$3D,$7C
-	dc.b $80,$00,$FF,$FC,$60,$14,$70,$01,$B0,$6E,$FF,$FC,$66,$08,$3D,$7C
-	dc.b $80,$40,$FF,$FC,$60,$04,$42,$6E,$FF,$F6,$70,$00,$2D,$40,$FD,$CA
-	dc.b $4A,$6E,$FF,$F6,$6F,$00,$00,$9A,$42,$A7,$2F,$2E,$FD,$96,$48,$6E
-	dc.b $FE,$D4,$2F,$2E,$FF,$E0,$3F,$2E,$FF,$FC,$48,$6E,$FD,$94,$4E,$AD
-	dc.b $00,$EA,$2D,$5F,$FD,$CA,$10,$2E,$FD,$94,$67,$74,$10,$2E,$FD,$95
-	dc.b $67,$24,$20,$6E,$FD,$CA,$0C,$68,$80,$40,$00,$08,$57,$C0,$4A,$00
-	dc.b $66,$0E,$20,$6E,$FD,$CA,$0C,$68,$80,$00,$00,$08,$57,$C1,$80,$01
-	dc.b $44,$00,$1D,$40,$FD,$94,$10,$2E,$FD,$94,$67,$3E,$10,$2E,$FD,$95
-	dc.b $0A,$00,$00,$01,$4A,$00,$67,$1C,$20,$6E,$FD,$CA,$08,$28,$00,$07
-	dc.b $00,$08,$56,$C1,$C0,$01,$67,$0C,$2F,$2D,$F0,$D6,$2F,$28,$00,$04
-	dc.b $4E,$AD,$07,$82,$20,$6E,$FD,$CA,$31,$6E,$FF,$FC,$00,$08,$20,$6E
-	dc.b $FD,$CA,$21,$6E,$FF,$E0,$00,$04,$60,$06,$70,$00,$2D,$40,$FD,$CA
-	dc.b $4A,$AE,$FD,$CA,$66,$0A,$70,$00,$2D,$40,$FF,$D8,$60,$00,$03,$B8
-	dc.b $70,$01,$2D,$40,$FF,$D8,$10,$2E,$FD,$93,$67,$00,$03,$AA,$42,$A7
-	dc.b $2F,$2D,$F0,$D6,$42,$40,$10,$2E,$FD,$D2,$52,$40,$3F,$00,$4E,$AD
-	dc.b $07,$7A,$2D,$5F,$FD,$CE,$66,$0A,$70,$00,$2D,$40,$FF,$D8,$60,$00
-	dc.b $03,$86,$48,$6E,$FD,$D2,$2F,$2E,$FD,$CE,$4E,$AD,$00,$92,$20,$6E
-	dc.b $FD,$CA,$21,$6E,$FD,$CE,$00,$04,$70,$00,$20,$6E,$FD,$CA,$30,$28
-	dc.b $00,$08,$80,$BC,$FF,$FF,$80,$00,$20,$6E,$FD,$CA,$31,$40,$00,$08
-	dc.b $60,$00,$03,$54,$70,$02,$B0,$2E,$00,$0C,$67,$0A,$3F,$3C,$00,$3C
-	dc.b $2F,$0E,$4E,$BA,$E8,$F0,$48,$6E,$FE,$D4,$2F,$0E,$4E,$BA,$E9,$1C
-	dc.b $10,$2D,$F3,$57,$48,$80,$53,$40,$1B,$40,$F3,$57,$42,$67,$48,$6E
-	dc.b $FD,$96,$4E,$BA,$E6,$BC,$10,$1F,$66,$0A,$3F,$3C,$00,$2E,$2F,$0E
-	dc.b $4E,$BA,$E8,$C2,$70,$00,$2D,$40,$FD,$CA,$42,$67,$2F,$2E,$FD,$96
-	dc.b $48,$6E,$FD,$95,$4E,$BA,$E9,$4C,$4A,$5F,$6F,$00,$00,$B2,$42,$A7
-	dc.b $2F,$2E,$FD,$96,$48,$6E,$FE,$D4,$48,$6E,$FF,$E0,$48,$6E,$FF,$FC
-	dc.b $4E,$AD,$00,$FA,$2D,$5F,$FD,$CA,$67,$00,$00,$94,$10,$2E,$FD,$95
-	dc.b $67,$52,$42,$2D,$D4,$C7,$0C,$6E,$80,$00,$FF,$FC,$66,$0C,$42,$6D
-	dc.b $D4,$CC,$2B,$6E,$FF,$E0,$D4,$C8,$60,$74,$0C,$6E,$80,$40,$FF,$FC
-	dc.b $66,$0E,$3B,$7C,$00,$01,$D4,$CC,$2B,$6E,$FF,$E0,$D4,$C8,$60,$5E
-	dc.b $08,$2E,$00,$07,$FF,$FD,$67,$0E,$3B,$7C,$00,$03,$D4,$CC,$2B,$6E
-	dc.b $FF,$E0,$D4,$C8,$60,$48,$3B,$7C,$00,$02,$D4,$CC,$70,$00,$2B,$40
-	dc.b $D4,$C8,$60,$3A,$08,$2E,$00,$07,$FF,$FC,$56,$C0,$44,$00,$1B,$40
-	dc.b $D4,$C7,$67,$14,$70,$00,$2B,$40,$D4,$C8,$2F,$2E,$FF,$E0,$48,$6D
-	dc.b $D3,$C6,$4E,$AD,$00,$92,$60,$06,$2B,$6E,$FF,$E0,$D4,$C8,$70,$00
-	dc.b $30,$2E,$FF,$FC,$C0,$BC,$00,$00,$7F,$FF,$3B,$40,$D4,$CC,$4A,$AE
-	dc.b $FD,$CA,$56,$C0,$44,$00,$48,$80,$48,$C0,$2D,$40,$FF,$D8,$60,$00
-	dc.b $02,$36,$70,$01,$B0,$2E,$00,$0C,$67,$0A,$3F,$3C,$00,$3C,$2F,$0E
-	dc.b $4E,$BA,$E7,$D2,$42,$67,$48,$6E,$FD,$96,$4E,$BA,$E5,$B4,$10,$1F
-	dc.b $66,$0A,$3F,$3C,$00,$2E,$2F,$0E,$4E,$BA,$E7,$BA,$42,$67,$2F,$2E
-	dc.b $FD,$96,$48,$6E,$FD,$95,$4E,$BA,$E8,$4A,$3D,$5F,$FF,$F6,$5E,$C0
-	dc.b $4A,$00,$67,$00,$00,$8A,$12,$2E,$FD,$95,$0A,$01,$00,$01,$C0,$01
-	dc.b $67,$7C,$20,$6E,$FD,$96,$2D,$68,$00,$18,$FD,$9A,$42,$6E,$FB,$5E
-	dc.b $3D,$6E,$FB,$5E,$FF,$F8,$60,$3C,$20,$6E,$FD,$9A,$30,$2E,$FF,$F8
-	dc.b $E5,$40,$2D,$70,$00,$00,$FD,$CA,$4A,$AE,$FD,$CA,$67,$22,$20,$6E
-	dc.b $FD,$CA,$08,$28,$00,$07,$00,$08,$67,$0C,$2F,$2D,$F0,$D6,$2F,$28
-	dc.b $00,$04,$4E,$AD,$07,$82,$20,$6E,$FD,$CA,$2D,$50,$FD,$CA,$60,$D8
-	dc.b $52,$6E,$FF,$F8,$0C,$6E,$00,$FA,$FF,$F8,$6F,$BC,$2F,$2E,$FD,$96
-	dc.b $4E,$AD,$07,$72,$30,$2E,$FF,$F6,$E5,$40,$41,$ED,$D4,$CA,$72,$00
-	dc.b $21,$81,$00,$00,$70,$01,$2D,$40,$FF,$D8,$60,$00,$01,$6A,$70,$00
-	dc.b $2D,$40,$FF,$D8,$60,$00,$01,$60,$70,$03,$B0,$2E,$00,$0C,$66,$38
-	dc.b $48,$6E,$FE,$D4,$2F,$0E,$4E,$BA,$E7,$32,$42,$40,$10,$2E,$FE,$D4
-	dc.b $72,$01,$B2,$40,$67,$0A,$3F,$3C,$00,$83,$2F,$0E,$4E,$BA,$E6,$E6
-	dc.b $42,$40,$10,$2E,$FE,$D5,$3D,$40,$FD,$82,$10,$2D,$F3,$57,$48,$80
-	dc.b $53,$40,$1B,$40,$F3,$57,$60,$1A,$70,$02,$B0,$2E,$00,$0C,$66,$08
-	dc.b $3D,$7C,$00,$2C,$FD,$82,$60,$0A,$3F,$3C,$00,$3C,$2F,$0E,$4E,$BA
-	dc.b $E6,$B4,$48,$6E,$FE,$D4,$2F,$0E,$4E,$BA,$E6,$E0,$48,$6E,$FE,$D4
-	dc.b $4E,$AD,$00,$82,$10,$2D,$F3,$57,$48,$80,$53,$40,$1B,$40,$F3,$57
-	dc.b $48,$6E,$FD,$D2,$2F,$0E,$4E,$BA,$E6,$C2,$48,$6E,$FD,$D2,$4E,$AD
-	dc.b $00,$82,$42,$40,$10,$2E,$FD,$D2,$52,$40,$41,$EE,$FD,$D2,$42,$30
-	dc.b $00,$00,$42,$67,$48,$6E,$FE,$D4,$1F,$3C,$00,$01,$3F,$3C,$00,$26
-	dc.b $4E,$AD,$01,$7A,$10,$1F,$66,$0A,$3F,$3C,$00,$8F,$2F,$0E,$4E,$BA
-	dc.b $E6,$54,$42,$67,$48,$6E,$FE,$D4,$48,$6E,$FD,$90,$48,$6E,$FD,$8C
-	dc.b $48,$6E,$FD,$88,$42,$67,$4E,$BA,$C5,$28,$10,$1F,$66,$0A,$3F,$3C
-	dc.b $00,$8F,$2F,$0E,$4E,$BA,$E6,$2E,$4A,$2E,$FD,$90,$66,$22,$20,$6E
-	dc.b $FD,$8C,$70,$04,$B0,$28,$00,$08,$67,$0A,$3F,$3C,$00,$8F,$2F,$0E
-	dc.b $4E,$BA,$E6,$12,$20,$6E,$FD,$8C,$2D,$68,$00,$0A,$FD,$84,$60,$30
-	dc.b $20,$6E,$FD,$88,$3F,$28,$00,$08,$48,$6E,$FD,$92,$1F,$2E,$FD,$91
-	dc.b $4E,$BA,$C4,$A4,$70,$04,$B0,$2E,$FD,$92,$67,$0A,$3F,$3C,$00,$8F
-	dc.b $2F,$0E,$4E,$BA,$E5,$E0,$20,$6E,$FD,$88,$2D,$68,$00,$04,$FD,$84
-	dc.b $42,$67,$48,$6E,$FD,$D2,$2F,$2E,$FD,$84,$3F,$2E,$FD,$82,$4E,$BA
-	dc.b $B0,$08,$30,$1F,$48,$C0,$2D,$40,$FF,$D8,$66,$0A,$3F,$3C,$00,$1C
-	dc.b $2F,$0E,$4E,$BA,$E5,$B0
+CODE_5_data_00003b10:
+	dc.w $2D7C,$8000,$0000,$FFD8,$3D7C,$0001,$FB7C,$102E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $000C,$4880,$3D40,$FB7A,$3D6E,$FB7C,$FFF6,$603A	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $4267,$486E,$FFDC,$4EBA,$FC18,$101F,$660A,$3F3C	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $002E,$2F0E,$4EBA,$FE1E,$202E,$FFDC,$B0AE,$FFD8	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $6F06,$2D6E,$FFDC,$FFD8,$102D,$F357,$4880,$5340	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $1B40,$F357,$526E,$FFF6,$690A,$302E,$FFF6,$B06E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FB7A,$6FBC,$102D,$F357,$4880,$5240,$1B40,$F357	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $6000,$1834,$2D7C,$7FFF,$FFFF,$FFD8,$3D7C,$0001	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FB78,$102E,$000C,$4880,$3D40,$FB76,$3D6E,$FB78	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FFF6,$603A,$4267,$486E,$FFDC,$4EBA,$FBA4,$101F	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $660A,$3F3C,$002E,$2F0E,$4EBA,$FDAA,$202E,$FFDC	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $B0AE,$FFD8,$6C06,$2D6E,$FFDC,$FFD8,$102D,$F357	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $4880,$5340,$1B40,$F357,$526E,$FFF6,$690A,$302E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FFF6,$B06E,$FB76,$6FBC,$102D,$F357,$4880,$5240	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $1B40,$F357,$6000,$17C0,$7001,$B02E,$000C,$670A	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $3F3C,$003C,$2F0E,$4EBA,$FD5C,$4267,$486E,$FFD8	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $4EBA,$FB3E,$101F,$660A,$3F3C,$002E,$2F0E,$4EBA	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FD44,$202E,$FFD8,$6A02,$4480,$2D40,$FFD8,$6000	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $1786,$7003,$B02E,$000C,$5DC0,$4A00,$660C,$7201	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $B22E,$000C,$5EC1,$8001,$670A,$3F3C,$003C,$2F0E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $4EBA,$FD12,$7003,$B02E,$000C,$6E32,$4267,$486E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FFD8,$4EBA,$FAEC,$101F,$660A,$3F3C,$002E,$2F0E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $4EBA,$FCF2,$102D,$F357,$4880,$5340,$1B40,$F357	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $4AAE,$FFD8,$56C0,$4400,$1D40,$FFD6,$6004,$422E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FFD6,$7002,$B02E,$000C,$6E46,$4267,$486E,$FFDC	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $4EBA,$FAAE,$101F,$660A,$3F3C,$002E,$2F0E,$4EBA	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FCB4,$2D6E,$FFDC,$FFF0,$202E,$FFF0,$6A02,$4480	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $0C80,$0000,$00FF,$6F0A,$3F3C,$0084,$2F0E,$4EBA	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FC94,$102D,$F357,$4880,$5340,$1B40,$F357,$6006	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $7001,$2D40,$FFF0,$4267,$486E,$FFDC,$4EBA,$FA62	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $101F,$660A,$3F3C,$002E,$2F0E,$4EBA,$FC68,$42A7	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $2F2E,$FFDC,$3F2E,$FFF2,$1F2E,$FFD6,$4EAD,$00BA	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $486E,$FED4,$4EAD,$0092,$4267,$486E,$FFD8,$486E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FED4,$4EBA,$FB3C,$101F,$660A,$3F3C,$0057,$2F0E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $4EBA,$FC32,$1D7C,$0006,$FFD7,$6000,$167A,$7001	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $B02E,$000C,$670A,$3F3C,$003C,$2F0E,$4EBA,$FC16	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $422E,$FFD7,$102D,$F357,$4880,$7204,$41ED,$F224	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $B230,$0000,$6E58,$42A7,$102D,$F357,$4880,$E540	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $41ED,$F262,$2F30,$0000,$486E,$FDC4,$4EAD,$00CA	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $2D5F,$FFD8,$4A2E,$FDC4,$6718,$3F3C,$00C9,$102D	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $F357,$4880,$E540,$41ED,$F262,$2F30,$0000,$4EAD	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $07C2,$2F2D,$F0D6,$102D,$F357,$4880,$E540,$41ED	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $F262,$2F30,$0000,$4EAD,$0782,$6000,$15FA,$3F3C	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $007A,$2F0E,$4EBA,$FB9E,$6000,$15EC,$7001,$B02E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $000C,$670A,$3F3C,$003C,$2F0E,$4EBA,$FB88,$422E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FFD7,$102D,$F357,$4880,$7204,$41ED,$F224,$B230	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $0000,$6E36,$102D,$F357,$4880,$E540,$43ED,$F262	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $2071,$0000,$4240,$1010,$48C0,$2D40,$FFD8,$2F2D	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $F0D6,$102D,$F357,$4880,$E540,$41ED,$F262,$2F30	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $0000,$4EAD,$0782,$6000,$158E,$3F3C,$007A,$2F0E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $4EBA,$FB32,$6000,$1580,$7002,$B02E,$000C,$670A	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $3F3C,$003C,$2F0E,$4EBA,$FB1C,$486E,$FED4,$2F0E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $4EBA,$FB48,$102D,$F357,$4880,$5340,$1B40,$F357	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $486E,$FDD2,$2F0E,$4EBA,$FB32,$422E,$FFD7,$486E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FDD2,$486E,$FED4,$4EAD,$0A9A,$301F,$48C0,$2D40	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FFD8,$6000,$1532,$422E,$FED4,$3D7C,$0001,$FB74	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $102E,$000C,$4880,$3D40,$FB72,$3D6E,$FB74,$FFF6	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $6000,$0094,$486E,$FDD2,$2F0E,$4EBA,$FAEE,$4240	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $102E,$FED4,$3D40,$FFFA,$4240,$102E,$FDD2,$3D40	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FFF8,$D06E,$FFFA,$0C40,$00FF,$6E12,$486E,$FDD2	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $486E,$FED4,$3F3C,$0001,$4EAD,$0ABA,$6046,$486E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FDD2,$486E,$FED4,$3F3C,$0001,$303C,$00FF,$906E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FFF8,$3F00,$486E,$FC7E,$4EAD,$0AAA,$486E,$FC7E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $486E,$FB7E,$3F3C,$0002,$4EAD,$0AA2,$41EE,$FED4	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $43EE,$FB7E,$707F,$30D9,$51C8,$FFFC,$3F3C,$00CB	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $4EAD,$07CA,$102D,$F357,$4880,$5340,$1B40,$F357	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $526E,$FFF6,$690C,$302E,$FFF6,$B06E,$FB72,$6F00	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FF64,$102D,$F357,$4880,$5240,$1B40,$F357,$4267	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $486E,$FFD8,$486E,$FED4,$4EBA,$F906,$101F,$660A	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $3F3C,$0057,$2F0E,$4EBA,$F9FC,$1D7C,$0006,$FFD7	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $6000,$1444,$7002,$B02E,$000C,$670A,$3F3C,$003C	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $2F0E,$4EBA,$F9E0,$486E,$FDD2,$2F0E,$4EBA,$FA0C	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $102D,$F357,$4880,$5340,$1B40,$F357,$486E,$FED4	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $2F0E,$4EBA,$F9F6,$4240,$102E,$FED4,$4A40,$660C	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $486E,$FDD2,$486E,$FED4,$4EAD,$0092,$4267,$486E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FFD8,$486E,$FED4,$4EBA,$F898,$101F,$660A,$3F3C	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $0057,$2F0E,$4EBA,$F98E,$1D7C,$0006,$FFD7,$6000	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $13D6,$7003,$B02E,$000C,$670A,$3F3C,$003C,$2F0E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $4EBA,$F972,$4267,$486E,$FFE4,$4EBA,$F754,$101F	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $660A,$3F3C,$002E,$2F0E,$4EBA,$F95A,$102D,$F357	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $4880,$5340,$1B40,$F357,$4AAE,$FFE4,$6C0E,$3F3C	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $008B,$4EAD,$07CA,$7000,$2D40,$FFE4,$4267,$486E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FFE8,$4EBA,$F71C,$101F,$660A,$3F3C,$002E,$2F0E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $4EBA,$F922,$102D,$F357,$4880,$5340,$1B40,$F357	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $486E,$FED4,$2F0E,$4EBA,$F942,$4267,$486E,$FFD8	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $486E,$FED4,$3F2E,$FFEA,$3F2E,$FFE6,$4EBA,$F84C	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $101F,$660A,$3F3C,$0057,$2F0E,$4EBA,$F8E8,$1D7C	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $0006,$FFD7,$6000,$1330,$7001,$B02E,$000C,$670A	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $3F3C,$003C,$2F0E,$4EBA,$F8CC,$102D,$F357,$4880	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $7204,$41ED,$F224,$B230,$0000,$6E48,$1D7C,$0004	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FFD7,$102D,$F357,$4880,$E540,$41ED,$F262,$2D70	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $0000,$FFD8,$7017,$B06E,$FFF4,$57C0,$4A00,$660C	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $7218,$B26E,$FFF4,$57C1,$8001,$670C,$2F2E,$FFD8	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $4EAD,$005A,$6000,$12D0,$2F2E,$FFD8,$4EAD,$0052	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $6000,$12C4,$3F3C,$002E,$2F0E,$4EBA,$F868,$6000	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $12B6,$7001,$B02E,$000C,$670A,$3F3C,$003C,$2F0E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $4EBA,$F852,$102D,$F357,$4880,$7209,$41ED,$F224	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $B230,$0000,$661A,$422E,$FFD7,$102D,$F357,$4880	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $E540,$41ED,$F262,$2D70,$0000,$FFD8,$6000,$1278	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $3F3C,$0082,$2F0E,$4EBA,$F81C,$6000,$126A,$7001	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $B02E,$000C,$670A,$3F3C,$003C,$2F0E,$4EBA,$F806	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $486E,$FDD2,$2F0E,$4EBA,$F832,$486E,$FDD2,$4EAD	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $0082,$4240,$102E,$FDD2,$4A40,$660A,$3F3C,$00AA	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $2F0E,$4EBA,$F7E0,$4240,$102E,$FDD2,$B06D,$F38E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $6F06,$1D6D,$F38F,$FDD2,$4240,$102E,$FDD3,$7226	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $B240,$6624,$41ED,$FEFA,$43EE,$FDD2,$707F,$30D9	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $51C8,$FFFC,$486D,$FEFA,$4EAD,$0052,$486E,$FED4	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $4EBA,$DECC,$6000,$0132,$102D,$F3A1,$6708,$486E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FDD2,$4EAD,$0052,$487A,$12C8,$486E,$FDD2,$4EAD	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $0A9A,$3D5F,$FFF6,$662C,$41ED,$FEFA,$43EE,$FDD2	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $707F,$30D9,$51C8,$FFFC,$486D,$FEFA,$486E,$FDCA	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $486E,$FFE0,$486E,$FFFC,$486E,$FDC5,$4EAD,$0222	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $6000,$00D2,$4240,$102E,$FDD2,$5240,$41EE,$FDD2	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $4230,$0000,$1D6D,$ECE3,$FDAD,$422D,$ECE3,$2D6D	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FFFC,$FDBE,$226E,$FDBE,$45EE,$FDAE,$7007,$34D9	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $51C8,$FFFC,$226E,$FDBE,$2D49,$FB6E,$4240,$102E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FDD3,$226E,$FB6E,$3340,$0006,$43EE,$FDD2,$2009	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $5480,$226E,$FB6E,$2280,$226E,$FB6E,$337C,$0002	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $0004,$43EE,$FDD2,$246E,$FB6E,$2549,$0008,$7000	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $2D40,$FDCA,$4EAD,$0172,$4A2D,$FFFB,$6640,$486D	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FEFA,$486E,$FED4,$4EAD,$0092,$4EAD,$0172,$701D	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $B02D,$FFFB,$6628,$1B7C,$0001,$CD5E,$4267,$486E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FED4,$486E,$FFE0,$486E,$FDCA,$486E,$FFFC,$486E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FDC6,$4EAD,$021A,$1D5F,$FFD6,$422D,$CD5E,$206E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FDBE,$43EE,$FDAE,$7007,$30D9,$51C8,$FFFC,$1B6E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FDAD,$ECE3,$486E,$FED4,$2F2E,$FDCA,$2F2E,$FFE0	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $3F2E,$FFFC,$4EBA,$E232,$4267,$486E,$FFD8,$486E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FED4,$4EBA,$F55C,$101F,$660A,$3F3C,$0057,$2F0E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $4EBA,$F652,$1D7C,$0006,$FFD7,$6000,$109A,$7001	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $B02E,$000C,$670A,$3F3C,$003C,$2F0E,$4EBA,$F636	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $486E,$FDD2,$2F0E,$4EBA,$F662,$486E,$FDD2,$4EAD	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $0082,$4240,$102E,$FDD2,$4A40,$660A,$3F3C,$00AA	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $2F0E,$4EBA,$F610,$4267,$486E,$FDD2,$486E,$FED4	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $4EAD,$089A,$101F,$6604,$422E,$FED4,$4267,$486E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FFD8,$486E,$FED4,$4EBA,$F4E8,$101F,$660A,$3F3C	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $0057,$2F0E,$4EBA,$F5DE,$1D7C,$0006,$FFD7,$6000	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $1026,$7002,$B02E,$000C,$6642,$4267,$486E,$FFE4	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $4EBA,$F3AE,$101F,$660A,$3F3C,$002E,$2F0E,$4EBA	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $F5B4,$4AAE,$FFE4,$5DC0,$7205,$B2AE,$FFE4,$5DC1	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $8001,$670A,$3F3C,$008A,$2F0E,$4EBA,$F598,$102D	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $F357,$4880,$5340,$1B40,$F357,$6018,$7001,$B02E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $000C,$670A,$3F3C,$003C,$2F0E,$4EBA,$F578,$7000	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $2D40,$FFE4,$486E,$FDD2,$2F0E,$4EBA,$F59E,$486E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FDD2,$4EAD,$0082,$4240,$102E,$FDD2,$4A40,$660A	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $3F3C,$00AA,$2F0E,$4EBA,$F54C,$486E,$FDD2,$4EAD	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $0052,$42A7,$486E,$FDA6,$486E,$FDA5,$486E,$FDA2	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $486E,$FDA0,$486E,$FDD2,$486E,$FD9E,$4EAD,$056A	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $2D5F,$FDA8,$57C0,$4A00,$660C,$7202,$B26E,$FDA6	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $56C1,$8001,$670A,$3F3C,$008A,$2F0E,$4EBA,$F506	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $7002,$B02E,$000C,$57C0,$4A00,$671A,$486E,$FDD2	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $487A,$1028,$4EAD,$0AC2,$C01F,$670A,$3F3C,$003C	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $2F0E,$4EBA,$F4E0,$422E,$FED4,$302E,$FDA2,$0440	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $001C,$6B00,$03B6,$0C40,$0011,$6E00,$03AE,$D040	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $303B,$0006,$4EFB,$0000,$0026,$03A4,$00DE,$00F8	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $0144,$0174,$03A4,$01AC,$03A4,$01CA,$03A4,$03A4	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $020C,$03A4,$02F6,$03A4,$0334,$0378,$4A6D,$F398	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $6614,$41EE,$FED4,$43FA,$0FBA,$7003,$30D9,$51C8	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FFFC,$6000,$0370,$7001,$B06D,$F398,$6614,$41EE	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FED4,$43FA,$0F96,$7003,$30D9,$51C8,$FFFC,$6000	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $0354,$102D,$F3B8,$6714,$41EE,$FED4,$43FA,$0F74	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $7003,$30D9,$51C8,$FFFC,$6000,$033A,$7002,$B06D	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $F398,$6614,$41EE,$FED4,$43FA,$0F50,$7003,$30D9	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $51C8,$FFFC,$6000,$031E,$7020,$B06D,$F398,$6614	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $41EE,$FED4,$43FA,$0F2C,$7003,$30D9,$51C8,$FFFC	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $6000,$0302,$7021,$B06D,$F398,$6614,$41EE,$FED4	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $43FA,$0F08,$7003,$30D9,$51C8,$FFFC,$6000,$02E6	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $41EE,$FED4,$43FA,$0EEC,$7003,$30D9,$51C8,$FFFC	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $6000,$02D2,$102D,$EB93,$670A,$3D7C,$0131,$FED4	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $6000,$02C2,$3D7C,$0130,$FED4,$6000,$02B8,$7001	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $B06D,$F39A,$6614,$41EE,$FED4,$43FA,$0EB0,$7002	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $30D9,$51C8,$FFFC,$6000,$029C,$7002,$B06D,$F39A	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $6614,$41EE,$FED4,$43FA,$0E8E,$7002,$30D9,$51C8	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FFFC,$6000,$0280,$41EE,$FED4,$43FA,$0E74,$7002	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $30D9,$51C8,$FFFC,$6000,$026C,$7002,$B06D,$F39C	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $6614,$41EE,$FED4,$43FA,$0E5E,$7002,$30D9,$51C8	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FFFC,$6000,$0250,$41EE,$FED4,$43FA,$0E44,$7002	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $30D9,$51C8,$FFFC,$6000,$023C,$102D,$F3A1,$6726	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $102D,$EB99,$6714,$41EE,$FED4,$43FA,$0E1C,$7003	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $30D9,$51C8,$FFFC,$6000,$021C,$2D7C,$034F,$4646	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FED4,$6000,$0210,$2D7C,$024F,$4E20,$FED4,$6000	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $0204,$102D,$F39F,$670C,$2D7C,$024F,$4E20,$FED4	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $6000,$01F2,$2D7C,$034F,$4646,$FED4,$6000,$01E6	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $4A6D,$F396,$660C,$2D7C,$0341,$4C4C,$FED4,$6000	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $01D4,$0C6D,$1808,$F396,$6614,$41EE,$FED4,$43FA	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $0DB2,$7002,$30D9,$51C8,$FFFC,$6000,$01B8,$41EE	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FED4,$43FA,$0D98,$7002,$30D9,$51C8,$FFFC,$6000	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $01A4,$302D,$EB26,$5240,$48C0,$90AE,$FFE4,$2D40	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FFE4,$302D,$EB26,$48C0,$B0AE,$FFE4,$6C08,$2D6D	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $ED5A,$FFE8,$6020,$7001,$B0AE,$FFE4,$6F08,$2D6D	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $EB28,$FFE8,$6010,$302E,$FFE6,$E540,$41ED,$EB24	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $2D70,$0000,$FFE8,$426E,$FB6C,$3D6E,$FB6C,$FFF6	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $6000,$008C,$7014,$B06E,$FFF6,$56C0,$4A00,$677A	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $7215,$B26E,$FFF6,$56C1,$C001,$676E,$202E,$FFE8	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $322E,$FFF6,$0300,$6762,$486D,$E302,$486E,$FDD2	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $302E,$FFF6,$E740,$5240,$3F00,$3F3C,$0007,$4EAD	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $009A,$486E,$FDD2,$4EAD,$007A,$4240,$102E,$FED4	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $4A40,$660E,$486E,$FDD2,$486E,$FED4,$4EAD,$0092	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $6028,$486E,$FED4,$487A,$0CD2,$486E,$FDD2,$486E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FC7E,$3F3C,$0003,$4EAD,$0AA2,$41EE,$FED4,$43EE	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FC7E,$707F,$30D9,$51C8,$FFFC,$526E,$FFF6,$701F	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $B06E,$FFF6,$6C00,$FF6E,$6000,$00BA,$4A2D,$F395	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $6614,$41EE,$FED4,$43FA,$0C8A,$7003,$30D9,$51C8	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FFFC,$6000,$00A0,$7001,$B02D,$F395,$6614,$41EE	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FED4,$43FA,$0C68,$7002,$30D9,$51C8,$FFFC,$6000	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $0084,$3D7C,$0143,$FED4,$607A,$0C6D,$0080,$F392	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $6612,$41EE,$FED4,$43FA,$0C3C,$7003,$30D9,$51C8	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FFFC,$6060,$4A6D,$F392,$6612,$41EE,$FED4,$43FA	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $0C1A,$7004,$30D9,$51C8,$FFFC,$6048,$41EE,$FED4	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $43FA,$0C00,$7003,$30D9,$51C8,$FFFC,$6036,$0C6D	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $0080,$F390,$6612,$41EE,$FED4,$43FA,$0BDC,$7004	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $30D9,$51C8,$FFFC,$601C,$41EE,$FED4,$43FA,$0BC0	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $7004,$30D9,$51C8,$FFFC,$600A,$3F3C,$008A,$2F0E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $4EBA,$F112,$4267,$486E,$FFD8,$486E,$FED4,$4EBA	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $F000,$101F,$660A,$3F3C,$0057,$2F0E,$4EBA,$F0F6	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $1D7C,$0006,$FFD7,$6000,$0B3E,$7001,$B02E,$000C	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $670A,$3F3C,$003C,$2F0E,$4EBA,$F0DA,$486E,$FED4	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $2F0E,$4EBA,$F106,$4240,$102E,$FED4,$5240,$41EE	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FED4,$4230,$0000,$1D6D,$ECE3,$FDAD,$422D,$ECE3	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $2D6D,$FFFC,$FDBE,$226E,$FDBE,$45EE,$FDAE,$7007	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $34D9,$51C8,$FFFC,$226E,$FDBE,$2D49,$FB68,$4240	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $102E,$FED5,$226E,$FB68,$3340,$0006,$43EE,$FED4	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $2009,$5480,$226E,$FB68,$2280,$226E,$FB68,$337C	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $0002,$0004,$43EE,$FED4,$246E,$FB68,$2549,$0008	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $1B7C,$0001,$ECE2,$4EAD,$0172,$4267,$486E,$FFD8	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $486E,$FFD7,$2F2E,$0008,$4EAD,$022A,$1D5F,$FDC3	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $422D,$ECE2,$206E,$FDBE,$43EE,$FDAE,$7007,$30D9	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $51C8,$FFFC,$1B6E,$FDAD,$ECE3,$102E,$FDC3,$6600	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $0A76,$206E,$0008,$3F10,$2F0E,$4EBA,$F018,$6000	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $0A66,$7001,$B02E,$000C,$5EC0,$4A00,$660C,$7202	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $B22E,$000C,$5DC1,$8001,$670A,$3F3C,$003C,$2F0E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $4EBA,$EFF2,$7002,$B02E,$000C,$6630,$4267,$486E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FFDC,$4EBA,$EDCC,$101F,$660A,$3F3C,$002E,$2F0E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $4EBA,$EFD2,$4AAE,$FFDC,$56C0,$4400,$1D40,$FFD6	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $102D,$F357,$4880,$5340,$1B40,$F357,$486E,$FED4	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $2F0E,$4EBA,$EFE6,$7001,$B02E,$000C,$660A,$486E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FED4,$4EAD,$0082,$6018,$102E,$FFD6,$670A,$486E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FED4,$4EAD,$0072,$6008,$486E,$FED4,$4EAD,$007A	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $4267,$486E,$FFD8,$486E,$FED4,$4EBA,$EE74,$101F	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $660A,$3F3C,$0057,$2F0E,$4EBA,$EF6A,$1D7C,$0006	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FFD7,$6000,$09B2,$7001,$B02E,$000C,$670A,$3F3C	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $003C,$2F0E,$4EBA,$EF4E,$4267,$486E,$FFD8,$4EBA	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $ED30,$101F,$660A,$3F3C,$002E,$2F0E,$4EBA,$EF36	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $4AAE,$FFD8,$5DC0,$4A00,$660E,$0CAE,$0000,$00FF	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FFD8,$5EC1,$8001,$670A,$3F3C,$0084,$2F0E,$4EBA	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $EF14,$3D7C,$0120,$FED4,$1D6E,$FFDB,$FED5,$4267	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $486E,$FFD8,$486E,$FED4,$4EBA,$EDF6,$101F,$660A	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $3F3C,$0057,$2F0E,$4EBA,$EEEC,$1D7C,$0006,$FFD7	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $6000,$0934,$7001,$B02E,$000C,$670A,$3F3C,$003C	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $2F0E,$4EBA,$EED0,$102D,$F357,$4880,$7204,$41ED	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $F224,$B230,$0000,$6E2E,$486E,$FED4,$2F0E,$4EBA	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $EEEA,$4240,$102E,$FED4,$7201,$B240,$670A,$3F3C	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $0083,$2F0E,$4EBA,$EE9E,$4240,$102E,$FED5,$48C0	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $2D40,$FFD8,$6012,$102D,$F357,$4880,$E540,$41ED	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $F262,$2D70,$0000,$FFD8,$422E,$FFD7,$6000,$08C8	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $7001,$B02E,$000C,$670A,$3F3C,$003C,$2F0E,$4EBA	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $EE64,$486E,$FED4,$2F0E,$4EBA,$EE90,$486E,$FED4	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $4EAD,$0082,$422E,$FFD7,$4240,$102E,$FED4,$3D40	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FFFA,$7000,$2D40,$FD7E,$4A6E,$FFFA,$660A,$7000	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $2D40,$FFD8,$6000,$0880,$4240,$102E,$FED5,$722B	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $B240,$57C0,$4A00,$6610,$4241,$122E,$FED5,$742D	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $B441,$57C1,$8001,$6708,$3D7C,$0002,$FFF8,$6006	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $3D7C,$0001,$FFF8,$302E,$FFF8,$B06E,$FFFA,$5FC0	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $4400,$4880,$48C0,$2D40,$FFD8,$3D6E,$FFF8,$FB66	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $3D6E,$FFFA,$FB64,$3D6E,$FB66,$FFF6,$6074,$302E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FFF6,$4241,$41EE,$FED4,$1230,$0000,$7030,$B041	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $5EC0,$4A00,$6618,$322E,$FFF6,$4242,$41EE,$FED4	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $1430,$1000,$7239,$B242,$5DC1,$8001,$670A,$7000	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $2D40,$FFD8,$6000,$07F0,$700A,$2F00,$2F2E,$FD7E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $4EAD,$0A72,$302E,$FFF6,$4241,$41EE,$FED4,$1230	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $0000,$927C,$0030,$48C1,$D29F,$2D41,$FD7E,$6C0A	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $7000,$2D40,$FFD8,$6000,$07BE,$526E,$FFF6,$6900	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $07B6,$302E,$FFF6,$B06E,$FB64,$6F82,$6000,$07A8	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $7003,$B02E,$000C,$670A,$3F3C,$003C,$2F0E,$4EBA	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $ED44,$4267,$486E,$FFE8,$4EBA,$EB26,$101F,$660A	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $3F3C,$002E,$2F0E,$4EBA,$ED2C,$102D,$F357,$4880	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $5340,$1B40,$F357,$486E,$FED4,$2F0E,$4EBA,$ED4C	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $102D,$F357,$4880,$5340,$1B40,$F357,$486E,$FDD2	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $2F0E,$4EBA,$ED36,$4240,$102E,$FDD2,$7201,$B240	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $670A,$3F3C,$0083,$2F0E,$4EBA,$ECEA,$701B,$B06E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FFF4,$6622,$4267,$4240,$102E,$FDD3,$3F00,$486E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FED4,$3F2E,$FFEA,$4EAD,$00AA,$301F,$48C0,$2D40	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FFD8,$6000,$0712,$4267,$4240,$102E,$FDD3,$3F00	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $486E,$FED4,$3F2E,$FFEA,$4EAD,$00B2,$301F,$48C0	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $2D40,$FFD8,$6000,$06F0,$7002,$B02E,$000C,$670A	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $3F3C,$003C,$2F0E,$4EBA,$EC8C,$4267,$486E,$FFE8	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $4EBA,$EA6E,$101F,$660A,$3F3C,$002E,$2F0E,$4EBA	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $EC74,$102D,$F357,$4880,$5340,$1B40,$F357,$486E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FED4,$2F0E,$4EBA,$EC94,$4240,$102E,$FED4,$48C0	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $2D40,$FFE4,$7001,$B0AE,$FFE8,$5EC0,$4A00,$660E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $222E,$FFE8,$B2AE,$FFE4,$5EC1,$8001,$6716,$3B7C	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $001E,$D3C4,$3B7C,$013B,$D2C4,$2D6E,$FFE8,$FFD8	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $6000,$0674,$202E,$FFE4,$5280,$41EE,$FED4,$4230	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $0000,$2D6D,$FFFC,$FDBE,$43EE,$FDAE,$2B49,$FFFC	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $2D49,$FB60,$302E,$FFEA,$4241,$1230,$0000,$226E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FB60,$3341,$0006,$43EE,$FED4,$202E,$FFE8,$D089	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $5280,$226E,$FB60,$2280,$202E,$FFE8,$5280,$226E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FB60,$3340,$0004,$43EE,$FED4,$246E,$FB60,$2549	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $0008,$1D6D,$F3A0,$FFD6,$1B6D,$F39F,$F3A0,$1B7C	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $0001,$ECC3,$4EAD,$0172,$422D,$ECC3,$1B6E,$FFD6	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $F3A0,$701E,$B02D,$FFFB,$6608,$2D6E,$FFE8,$FFD8	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $6010,$206D,$FFFC,$3028,$0004,$5340,$48C0,$2D40	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FFD8,$2B6E,$FDBE,$FFFC,$102D,$FFFB,$4880,$3B40	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $D3C4,$701E,$B02D,$FFFB,$6608,$3B7C,$013B,$D2C4	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $602A,$7021,$B02D,$FFFB,$6608,$3B7C,$015C,$D2C4	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $601A,$486E,$FED4,$486D,$D2C4,$3F2E,$FFEA,$202E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FFD8,$90AE,$FFE8,$3F00,$4EAD,$009A,$102D,$F39F	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $6700,$0584,$486D,$D2C4,$4EAD,$0072,$6000,$0578	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $7004,$B02E,$000C,$670A,$3F3C,$003C,$2F0E,$4EBA	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $EB14,$4267,$486E,$FFEC,$4EBA,$E8F6,$101F,$660A	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $3F3C,$002E,$2F0E,$4EBA,$EAFC,$203C,$0000,$7FFF	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $C0AE,$FFEC,$3D40,$FFFC,$102D,$F357,$4880,$5340	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $1B40,$F357,$422E,$FD93,$102D,$F357,$4880,$7204	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $41ED,$F224,$B230,$0000,$6E18,$486E,$FDD2,$2F0E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $4EBA,$EAF8,$7000,$2D40,$FFE0,$1D7C,$0001,$FD93	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $6018,$4267,$486E,$FFE0,$4EBA,$E896,$101F,$660A	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $3F3C,$002E,$2F0E,$4EBA,$EA9C,$102D,$F357,$4880	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $5340,$1B40,$F357,$486E,$FED4,$2F0E,$4EBA,$EABC	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $102D,$F357,$4880,$5340,$1B40,$F357,$4267,$486E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FD96,$4EBA,$E85C,$101F,$660A,$3F3C,$002E,$2F0E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $4EBA,$EA62,$4267,$2F2E,$FD96,$486E,$FD95,$4EBA	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $EAF2,$3D5F,$FFF6,$102E,$FD95,$672E,$102E,$FD93	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $6706,$426E,$FFF6,$6022,$4A6E,$FFFC,$6608,$3D7C	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $8000,$FFFC,$6014,$7001,$B06E,$FFFC,$6608,$3D7C	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $8040,$FFFC,$6004,$426E,$FFF6,$7000,$2D40,$FDCA	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $4A6E,$FFF6,$6F00,$009A,$42A7,$2F2E,$FD96,$486E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FED4,$2F2E,$FFE0,$3F2E,$FFFC,$486E,$FD94,$4EAD	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $00EA,$2D5F,$FDCA,$102E,$FD94,$6774,$102E,$FD95	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $6724,$206E,$FDCA,$0C68,$8040,$0008,$57C0,$4A00	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $660E,$206E,$FDCA,$0C68,$8000,$0008,$57C1,$8001	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $4400,$1D40,$FD94,$102E,$FD94,$673E,$102E,$FD95	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $0A00,$0001,$4A00,$671C,$206E,$FDCA,$0828,$0007	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $0008,$56C1,$C001,$670C,$2F2D,$F0D6,$2F28,$0004	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $4EAD,$0782,$206E,$FDCA,$316E,$FFFC,$0008,$206E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FDCA,$216E,$FFE0,$0004,$6006,$7000,$2D40,$FDCA	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $4AAE,$FDCA,$660A,$7000,$2D40,$FFD8,$6000,$03B8	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $7001,$2D40,$FFD8,$102E,$FD93,$6700,$03AA,$42A7	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $2F2D,$F0D6,$4240,$102E,$FDD2,$5240,$3F00,$4EAD	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $077A,$2D5F,$FDCE,$660A,$7000,$2D40,$FFD8,$6000	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $0386,$486E,$FDD2,$2F2E,$FDCE,$4EAD,$0092,$206E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FDCA,$216E,$FDCE,$0004,$7000,$206E,$FDCA,$3028	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $0008,$80BC,$FFFF,$8000,$206E,$FDCA,$3140,$0008	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $6000,$0354,$7002,$B02E,$000C,$670A,$3F3C,$003C	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $2F0E,$4EBA,$E8F0,$486E,$FED4,$2F0E,$4EBA,$E91C	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $102D,$F357,$4880,$5340,$1B40,$F357,$4267,$486E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FD96,$4EBA,$E6BC,$101F,$660A,$3F3C,$002E,$2F0E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $4EBA,$E8C2,$7000,$2D40,$FDCA,$4267,$2F2E,$FD96	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $486E,$FD95,$4EBA,$E94C,$4A5F,$6F00,$00B2,$42A7	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $2F2E,$FD96,$486E,$FED4,$486E,$FFE0,$486E,$FFFC	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $4EAD,$00FA,$2D5F,$FDCA,$6700,$0094,$102E,$FD95	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $6752,$422D,$D4C7,$0C6E,$8000,$FFFC,$660C,$426D	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $D4CC,$2B6E,$FFE0,$D4C8,$6074,$0C6E,$8040,$FFFC	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $660E,$3B7C,$0001,$D4CC,$2B6E,$FFE0,$D4C8,$605E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $082E,$0007,$FFFD,$670E,$3B7C,$0003,$D4CC,$2B6E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FFE0,$D4C8,$6048,$3B7C,$0002,$D4CC,$7000,$2B40	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $D4C8,$603A,$082E,$0007,$FFFC,$56C0,$4400,$1B40	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $D4C7,$6714,$7000,$2B40,$D4C8,$2F2E,$FFE0,$486D	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $D3C6,$4EAD,$0092,$6006,$2B6E,$FFE0,$D4C8,$7000	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $302E,$FFFC,$C0BC,$0000,$7FFF,$3B40,$D4CC,$4AAE	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FDCA,$56C0,$4400,$4880,$48C0,$2D40,$FFD8,$6000	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $0236,$7001,$B02E,$000C,$670A,$3F3C,$003C,$2F0E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $4EBA,$E7D2,$4267,$486E,$FD96,$4EBA,$E5B4,$101F	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $660A,$3F3C,$002E,$2F0E,$4EBA,$E7BA,$4267,$2F2E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FD96,$486E,$FD95,$4EBA,$E84A,$3D5F,$FFF6,$5EC0	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $4A00,$6700,$008A,$122E,$FD95,$0A01,$0001,$C001	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $677C,$206E,$FD96,$2D68,$0018,$FD9A,$426E,$FB5E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $3D6E,$FB5E,$FFF8,$603C,$206E,$FD9A,$302E,$FFF8	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $E540,$2D70,$0000,$FDCA,$4AAE,$FDCA,$6722,$206E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FDCA,$0828,$0007,$0008,$670C,$2F2D,$F0D6,$2F28	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $0004,$4EAD,$0782,$206E,$FDCA,$2D50,$FDCA,$60D8	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $526E,$FFF8,$0C6E,$00FA,$FFF8,$6FBC,$2F2E,$FD96	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $4EAD,$0772,$302E,$FFF6,$E540,$41ED,$D4CA,$7200	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $2181,$0000,$7001,$2D40,$FFD8,$6000,$016A,$7000	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $2D40,$FFD8,$6000,$0160,$7003,$B02E,$000C,$6638	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $486E,$FED4,$2F0E,$4EBA,$E732,$4240,$102E,$FED4	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $7201,$B240,$670A,$3F3C,$0083,$2F0E,$4EBA,$E6E6	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $4240,$102E,$FED5,$3D40,$FD82,$102D,$F357,$4880	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $5340,$1B40,$F357,$601A,$7002,$B02E,$000C,$6608	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $3D7C,$002C,$FD82,$600A,$3F3C,$003C,$2F0E,$4EBA	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $E6B4,$486E,$FED4,$2F0E,$4EBA,$E6E0,$486E,$FED4	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $4EAD,$0082,$102D,$F357,$4880,$5340,$1B40,$F357	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $486E,$FDD2,$2F0E,$4EBA,$E6C2,$486E,$FDD2,$4EAD	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $0082,$4240,$102E,$FDD2,$5240,$41EE,$FDD2,$4230	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $0000,$4267,$486E,$FED4,$1F3C,$0001,$3F3C,$0026	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $4EAD,$017A,$101F,$660A,$3F3C,$008F,$2F0E,$4EBA	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $E654,$4267,$486E,$FED4,$486E,$FD90,$486E,$FD8C	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $486E,$FD88,$4267,$4EBA,$C528,$101F,$660A,$3F3C	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $008F,$2F0E,$4EBA,$E62E,$4A2E,$FD90,$6622,$206E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $FD8C,$7004,$B028,$0008,$670A,$3F3C,$008F,$2F0E	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $4EBA,$E612,$206E,$FD8C,$2D68,$000A,$FD84,$6030	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $206E,$FD88,$3F28,$0008,$486E,$FD92,$1F2E,$FD91	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $4EBA,$C4A4,$7004,$B02E,$FD92,$670A,$3F3C,$008F	; lookup_table
+CODE_5_data_00003b10:
+	dc.w $2F0E,$4EBA,$E5E0,$206E,$FD88,$2D68,$0004	; lookup_table
+CODE_5_data_dispatch_table_000053ce:
+	dc.b $FD,$84,$42,$67,$48,$6E,$FD,$D2,$2F,$2E,$FD,$84,$3F,$2E,$FD,$82
+	dc.b $4E,$BA,$B0,$08,$30,$1F,$48,$C0,$2D,$40,$FF,$D8,$66,$0A,$3F,$3C
+	dc.b $00,$1C,$2F,$0E,$4E,$BA,$E5,$B0
 CODE_5_loc_000053f6:
 	move.b -$0CA9(a5),d0
 	ext.w d0
@@ -26029,8 +27466,18 @@ CODE_6_data_00000388:
 	dc.w CODE_6_loc_00000398-CODE_6_loc_0000034c
 CODE_6_data_0000038a:
 	dc.w CODE_6_loc_00000398-CODE_6_loc_0000034c
-CODE_6_data_dispatch_table_0000038c:
-	dc.b $05,$C2,$00,$4C,$00,$4C,$00,$4C,$00,$4C,$00,$4C
+CODE_6_data_0000038c:
+	dc.w CODE_6_loc_0000090e-CODE_6_loc_0000034c
+CODE_6_data_0000038e:
+	dc.w CODE_6_loc_00000398-CODE_6_loc_0000034c
+CODE_6_data_00000390:
+	dc.w CODE_6_loc_00000398-CODE_6_loc_0000034c
+CODE_6_data_00000392:
+	dc.w CODE_6_loc_00000398-CODE_6_loc_0000034c
+CODE_6_data_00000394:
+	dc.w CODE_6_loc_00000398-CODE_6_loc_0000034c
+CODE_6_data_00000396:
+	dc.w CODE_6_loc_00000398-CODE_6_loc_0000034c
 CODE_6_loc_00000398:
 	moveq.l #0,d0
 	bra.b CODE_6_loc_000003e4
@@ -28711,69 +30158,509 @@ CODE_6_loc_000022c6:
 	jsr CODE_0_jump_table_entry_42+2-CODE_0_jump_table+CODE_0_jump_table_a5_offset(a5)
 	jmp (a3)
 CODE_6_loc_000022da:
-	dc.w $01F6,$0202,$021C,$027E,$0000,$028C,$029A,$02D0	; lookup_table
-CODE_6_data_000022da:
-	dc.w $0000,$02E6,$030A,$0000,$0316,$0324,$0000,$0000	; lookup_table
-CODE_6_data_000022da:
-	dc.w $03D2,$03DC,$0422,$0000,$044A,$0490,$0000,$04A6	; lookup_table
-CODE_6_data_000022da:
-	dc.w $04B2,$04BE,$04CC,$04DA,$04F0,$04FC,$0000,$0506	; lookup_table
-CODE_6_data_000022da:
-	dc.w $0000,$0000,$051A,$0000,$0538,$0000,$0550,$0000	; lookup_table
-CODE_6_data_000022da:
-	dc.w $055E,$056A,$05B2,$0000,$05CC,$0000,$0638,$0000	; lookup_table
-CODE_6_data_000022da:
-	dc.w $0650,$0000,$0662,$0000,$0688,$0000,$0000,$0000	; lookup_table
-CODE_6_data_000022da:
-	dc.w $0000,$0000,$069A,$0000,$06B6,$06D2,$06E8,$0000	; lookup_table
-CODE_6_data_000022da:
-	dc.w $06F6,$0708,$0716,$0724,$0736,$0744,$077A,$0788	; lookup_table
-CODE_6_data_000022da:
-	dc.w $0000,$0000,$07A0,$07CC,$0000,$07DA,$07F6,$0000	; lookup_table
-CODE_6_data_000022da:
-	dc.w $0836,$0846,$0000,$086C,$0000,$0000,$0890,$08A8	; lookup_table
-CODE_6_data_000022da:
-	dc.w $08E2,$08EC,$0000,$0000,$08F8,$090A,$0930,$0000	; lookup_table
-CODE_6_data_000022da:
-	dc.w $096E,$0000,$0986,$0000,$0000,$0998,$09C8,$09E8	; lookup_table
-CODE_6_data_000022da:
-	dc.w $0A04,$0A22,$0A46,$0A64,$0A92,$0000,$0AEE,$0AF8	; lookup_table
-CODE_6_data_000022da:
-	dc.w $0B26,$0000,$0B54,$0000,$0B7A,$0B86,$0BD8,$0BE2	; lookup_table
-CODE_6_data_000022da:
-	dc.w $0BF0,$0C0E,$0000,$0000,$0C34,$0C42,$0C4C,$0C6C	; lookup_table
-CODE_6_data_000022da:
-	dc.w $0000,$0C8E,$0CAA,$0CC2,$0000,$0CDE,$0D10,$0000	; lookup_table
-CODE_6_data_000022da:
-	dc.w $0D3A,$0000,$0D4C,$0000,$0D56,$0D60,$0D7C,$0000	; lookup_table
-CODE_6_data_000022da:
-	dc.w $0000,$0D94,$0DDE,$0DE8,$0E06,$0E12,$0000,$0EB4	; lookup_table
-CODE_6_data_000022da:
-	dc.w $0EC4,$0EE6,$0000,$0000,$0F12,$0F20,$0F4C,$0F62	; lookup_table
-CODE_6_data_000022da:
-	dc.w $0F90,$0000,$0FA0,$0FDC,$102A,$1034,$1064,$0000	; lookup_table
-CODE_6_data_000022da:
-	dc.w $1074,$0000,$107E,$10B2,$10D8,$10E4,$1104,$0000	; lookup_table
-CODE_6_data_000022da:
-	dc.w $0000,$0000,$0000,$1112,$1160,$1178,$1186,$11AC	; lookup_table
-CODE_6_data_000022da:
-	dc.w $11BA,$11D2,$1208,$1260,$127A,$1282,$12A4,$0000	; lookup_table
-CODE_6_data_000022da:
-	dc.w $12CA,$0000,$12EE,$0000,$1302,$0000,$1326,$1352	; lookup_table
-CODE_6_data_000022da:
-	dc.w $0000,$0000,$0000,$1366,$136E,$137C,$1394,$13AE	; lookup_table
-CODE_6_data_000022da:
-	dc.w $0000,$13D0,$13F0,$0000,$13FC,$1408,$1416,$1422	; lookup_table
-CODE_6_data_000022da:
-	dc.w $1488,$1492,$0000,$14AC,$14D6,$14E8,$1516,$153E	; lookup_table
-CODE_6_data_000022da:
-	dc.w $0000,$154C,$1588,$15CE,$15DA,$15E4,$1604,$165E	; lookup_table
-CODE_6_data_000022da:
-	dc.w $1692,$16BC,$0000,$0000,$0000,$16C6,$16D2,$16F2	; lookup_table
-CODE_6_data_000022da:
-	dc.w $0000,$171A,$1750,$1760,$1790,$179E,$17CE,$17DA	; lookup_table
-CODE_6_data_000022da:
-	dc.w $1802,$181A,$0000,$0354	; lookup_table
+	dc.w $01F6	; lookup_table
+CODE_6_data_000022dc:
+	dc.w $0202
+CODE_6_data_000022de:
+	dc.w $021C
+CODE_6_data_000022e0:
+	dc.w $027E
+CODE_6_data_000022e2:
+	dc.w $0000
+CODE_6_data_000022e4:
+	dc.w $028C
+CODE_6_data_000022e6:
+	dc.w $029A
+CODE_6_data_000022e8:
+	dc.w $02D0
+CODE_6_data_000022ea:
+	dc.w $0000
+CODE_6_data_000022ec:
+	dc.w $02E6
+CODE_6_data_000022ee:
+	dc.w $030A
+CODE_6_data_000022f0:
+	dc.w $0000
+CODE_6_data_000022f2:
+	dc.w $0316
+CODE_6_data_000022f4:
+	dc.w $0324
+CODE_6_data_000022f6:
+	dc.w $0000
+CODE_6_data_000022f8:
+	dc.w $0000
+CODE_6_data_000022fa:
+	dc.w $03D2
+CODE_6_data_000022fc:
+	dc.w $03DC
+CODE_6_data_000022fe:
+	dc.w $0422
+CODE_6_data_00002300:
+	dc.w $0000
+CODE_6_data_00002302:
+	dc.w $044A
+CODE_6_data_00002304:
+	dc.w $0490
+CODE_6_data_00002306:
+	dc.w $0000
+CODE_6_data_00002308:
+	dc.w $04A6
+CODE_6_data_0000230a:
+	dc.w $04B2
+CODE_6_data_0000230c:
+	dc.w $04BE
+CODE_6_data_0000230e:
+	dc.w $04CC
+CODE_6_data_00002310:
+	dc.w $04DA
+CODE_6_data_00002312:
+	dc.w $04F0
+CODE_6_data_00002314:
+	dc.w $04FC
+CODE_6_data_00002316:
+	dc.w $0000
+CODE_6_data_00002318:
+	dc.w $0506
+CODE_6_data_0000231a:
+	dc.w $0000
+CODE_6_data_0000231c:
+	dc.w $0000
+CODE_6_data_0000231e:
+	dc.w $051A
+CODE_6_data_00002320:
+	dc.w $0000
+CODE_6_data_00002322:
+	dc.w $0538
+CODE_6_data_00002324:
+	dc.w $0000
+CODE_6_data_00002326:
+	dc.w $0550
+CODE_6_data_00002328:
+	dc.w $0000
+CODE_6_data_0000232a:
+	dc.w $055E
+CODE_6_data_0000232c:
+	dc.w $056A
+CODE_6_data_0000232e:
+	dc.w $05B2
+CODE_6_data_00002330:
+	dc.w $0000
+CODE_6_data_00002332:
+	dc.w $05CC
+CODE_6_data_00002334:
+	dc.w $0000
+CODE_6_data_00002336:
+	dc.w $0638
+CODE_6_data_00002338:
+	dc.w $0000
+CODE_6_data_0000233a:
+	dc.w $0650
+CODE_6_data_0000233c:
+	dc.w $0000
+CODE_6_data_0000233e:
+	dc.w $0662
+CODE_6_data_00002340:
+	dc.w $0000
+CODE_6_data_00002342:
+	dc.w $0688
+CODE_6_data_00002344:
+	dc.w $0000
+CODE_6_data_00002346:
+	dc.w $0000
+CODE_6_data_00002348:
+	dc.w $0000
+CODE_6_data_0000234a:
+	dc.w $0000
+CODE_6_data_0000234c:
+	dc.w $0000
+CODE_6_data_0000234e:
+	dc.w $069A
+CODE_6_data_00002350:
+	dc.w $0000
+CODE_6_data_00002352:
+	dc.w $06B6
+CODE_6_data_00002354:
+	dc.w $06D2
+CODE_6_data_00002356:
+	dc.w $06E8
+CODE_6_data_00002358:
+	dc.w $0000
+CODE_6_data_0000235a:
+	dc.w $06F6
+CODE_6_data_0000235c:
+	dc.w $0708
+CODE_6_data_0000235e:
+	dc.w $0716
+CODE_6_data_00002360:
+	dc.w $0724
+CODE_6_data_00002362:
+	dc.w $0736
+CODE_6_data_00002364:
+	dc.w $0744
+CODE_6_data_00002366:
+	dc.w $077A
+CODE_6_data_00002368:
+	dc.w $0788
+CODE_6_data_0000236a:
+	dc.w $0000
+CODE_6_data_0000236c:
+	dc.w $0000
+CODE_6_data_0000236e:
+	dc.w $07A0
+CODE_6_data_00002370:
+	dc.w $07CC
+CODE_6_data_00002372:
+	dc.w $0000
+CODE_6_data_00002374:
+	dc.w $07DA
+CODE_6_data_00002376:
+	dc.w $07F6
+CODE_6_data_00002378:
+	dc.w $0000
+CODE_6_data_0000237a:
+	dc.w $0836
+CODE_6_data_0000237c:
+	dc.w $0846
+CODE_6_data_0000237e:
+	dc.w $0000
+CODE_6_data_00002380:
+	dc.w $086C
+CODE_6_data_00002382:
+	dc.w $0000
+CODE_6_data_00002384:
+	dc.w $0000
+CODE_6_data_00002386:
+	dc.w $0890
+CODE_6_data_00002388:
+	dc.w $08A8
+CODE_6_data_0000238a:
+	dc.w $08E2
+CODE_6_data_0000238c:
+	dc.w $08EC
+CODE_6_data_0000238e:
+	dc.w $0000
+CODE_6_data_00002390:
+	dc.w $0000
+CODE_6_data_00002392:
+	dc.w $08F8
+CODE_6_data_00002394:
+	dc.w $090A
+CODE_6_data_00002396:
+	dc.w $0930
+CODE_6_data_00002398:
+	dc.w $0000
+CODE_6_data_0000239a:
+	dc.w $096E
+CODE_6_data_0000239c:
+	dc.w $0000
+CODE_6_data_0000239e:
+	dc.w $0986
+CODE_6_data_000023a0:
+	dc.w $0000
+CODE_6_data_000023a2:
+	dc.w $0000
+CODE_6_data_000023a4:
+	dc.w $0998
+CODE_6_data_000023a6:
+	dc.w $09C8
+CODE_6_data_000023a8:
+	dc.w $09E8
+CODE_6_data_000023aa:
+	dc.w $0A04
+CODE_6_data_000023ac:
+	dc.w $0A22
+CODE_6_data_000023ae:
+	dc.w $0A46
+CODE_6_data_000023b0:
+	dc.w $0A64
+CODE_6_data_000023b2:
+	dc.w $0A92
+CODE_6_data_000023b4:
+	dc.w $0000
+CODE_6_data_000023b6:
+	dc.w $0AEE
+CODE_6_data_000023b8:
+	dc.w $0AF8
+CODE_6_data_000023ba:
+	dc.w $0B26
+CODE_6_data_000023bc:
+	dc.w $0000
+CODE_6_data_000023be:
+	dc.w $0B54
+CODE_6_data_000023c0:
+	dc.w $0000
+CODE_6_data_000023c2:
+	dc.w $0B7A
+CODE_6_data_000023c4:
+	dc.w $0B86
+CODE_6_data_000023c6:
+	dc.w $0BD8
+CODE_6_data_000023c8:
+	dc.w $0BE2
+CODE_6_data_000023ca:
+	dc.w $0BF0
+CODE_6_data_000023cc:
+	dc.w $0C0E
+CODE_6_data_000023ce:
+	dc.w $0000
+CODE_6_data_000023d0:
+	dc.w $0000
+CODE_6_data_000023d2:
+	dc.w $0C34
+CODE_6_data_000023d4:
+	dc.w $0C42
+CODE_6_data_000023d6:
+	dc.w $0C4C
+CODE_6_data_000023d8:
+	dc.w $0C6C
+CODE_6_data_000023da:
+	dc.w $0000
+CODE_6_data_000023dc:
+	dc.w $0C8E
+CODE_6_data_000023de:
+	dc.w $0CAA
+CODE_6_data_000023e0:
+	dc.w $0CC2
+CODE_6_data_000023e2:
+	dc.w $0000
+CODE_6_data_000023e4:
+	dc.w $0CDE
+CODE_6_data_000023e6:
+	dc.w $0D10
+CODE_6_data_000023e8:
+	dc.w $0000
+CODE_6_data_000023ea:
+	dc.w $0D3A
+CODE_6_data_000023ec:
+	dc.w $0000
+CODE_6_data_000023ee:
+	dc.w $0D4C
+CODE_6_data_000023f0:
+	dc.w $0000
+CODE_6_data_000023f2:
+	dc.w $0D56
+CODE_6_data_000023f4:
+	dc.w $0D60
+CODE_6_data_000023f6:
+	dc.w $0D7C
+CODE_6_data_000023f8:
+	dc.w $0000
+CODE_6_data_000023fa:
+	dc.w $0000
+CODE_6_data_000023fc:
+	dc.w $0D94
+CODE_6_data_000023fe:
+	dc.w $0DDE
+CODE_6_data_00002400:
+	dc.w $0DE8
+CODE_6_data_00002402:
+	dc.w $0E06
+CODE_6_data_00002404:
+	dc.w $0E12
+CODE_6_data_00002406:
+	dc.w $0000
+CODE_6_data_00002408:
+	dc.w $0EB4
+CODE_6_data_0000240a:
+	dc.w $0EC4
+CODE_6_data_0000240c:
+	dc.w $0EE6
+CODE_6_data_0000240e:
+	dc.w $0000
+CODE_6_data_00002410:
+	dc.w $0000
+CODE_6_data_00002412:
+	dc.w $0F12
+CODE_6_data_00002414:
+	dc.w $0F20
+CODE_6_data_00002416:
+	dc.w $0F4C
+CODE_6_data_00002418:
+	dc.w $0F62
+CODE_6_data_0000241a:
+	dc.w $0F90
+CODE_6_data_0000241c:
+	dc.w $0000
+CODE_6_data_0000241e:
+	dc.w $0FA0
+CODE_6_data_00002420:
+	dc.w $0FDC
+CODE_6_data_00002422:
+	dc.w $102A
+CODE_6_data_00002424:
+	dc.w $1034
+CODE_6_data_00002426:
+	dc.w $1064
+CODE_6_data_00002428:
+	dc.w $0000
+CODE_6_data_0000242a:
+	dc.w $1074
+CODE_6_data_0000242c:
+	dc.w $0000
+CODE_6_data_0000242e:
+	dc.w $107E
+CODE_6_data_00002430:
+	dc.w $10B2
+CODE_6_data_00002432:
+	dc.w $10D8
+CODE_6_data_00002434:
+	dc.w $10E4
+CODE_6_data_00002436:
+	dc.w $1104
+CODE_6_data_00002438:
+	dc.w $0000
+CODE_6_data_0000243a:
+	dc.w $0000
+CODE_6_data_0000243c:
+	dc.w $0000
+CODE_6_data_0000243e:
+	dc.w $0000
+CODE_6_data_00002440:
+	dc.w $1112
+CODE_6_data_00002442:
+	dc.w $1160
+CODE_6_data_00002444:
+	dc.w $1178
+CODE_6_data_00002446:
+	dc.w $1186
+CODE_6_data_00002448:
+	dc.w $11AC
+CODE_6_data_0000244a:
+	dc.w $11BA
+CODE_6_data_0000244c:
+	dc.w $11D2
+CODE_6_data_0000244e:
+	dc.w $1208
+CODE_6_data_00002450:
+	dc.w $1260
+CODE_6_data_00002452:
+	dc.w $127A
+CODE_6_data_00002454:
+	dc.w $1282
+CODE_6_data_00002456:
+	dc.w $12A4
+CODE_6_data_00002458:
+	dc.w $0000
+CODE_6_data_0000245a:
+	dc.w $12CA
+CODE_6_data_0000245c:
+	dc.w $0000
+CODE_6_data_0000245e:
+	dc.w $12EE
+CODE_6_data_00002460:
+	dc.w $0000
+CODE_6_data_00002462:
+	dc.w $1302
+CODE_6_data_00002464:
+	dc.w $0000
+CODE_6_data_00002466:
+	dc.w $1326
+CODE_6_data_00002468:
+	dc.w $1352
+CODE_6_data_0000246a:
+	dc.w $0000
+CODE_6_data_0000246c:
+	dc.w $0000
+CODE_6_data_0000246e:
+	dc.w $0000
+CODE_6_data_00002470:
+	dc.w $1366
+CODE_6_data_00002472:
+	dc.w $136E
+CODE_6_data_00002474:
+	dc.w $137C
+CODE_6_data_00002476:
+	dc.w $1394
+CODE_6_data_00002478:
+	dc.w $13AE
+CODE_6_data_0000247a:
+	dc.w $0000
+CODE_6_data_0000247c:
+	dc.w $13D0
+CODE_6_data_0000247e:
+	dc.w $13F0
+CODE_6_data_00002480:
+	dc.w $0000
+CODE_6_data_00002482:
+	dc.w $13FC
+CODE_6_data_00002484:
+	dc.w $1408
+CODE_6_data_00002486:
+	dc.w $1416
+CODE_6_data_00002488:
+	dc.w $1422
+CODE_6_data_0000248a:
+	dc.w $1488
+CODE_6_data_0000248c:
+	dc.w $1492
+CODE_6_data_0000248e:
+	dc.w $0000
+CODE_6_data_00002490:
+	dc.w $14AC
+CODE_6_data_00002492:
+	dc.w $14D6
+CODE_6_data_00002494:
+	dc.w $14E8
+CODE_6_data_00002496:
+	dc.w $1516
+CODE_6_data_00002498:
+	dc.w $153E
+CODE_6_data_0000249a:
+	dc.w $0000
+CODE_6_data_0000249c:
+	dc.w $154C
+CODE_6_data_0000249e:
+	dc.w $1588
+CODE_6_data_000024a0:
+	dc.w $15CE
+CODE_6_data_000024a2:
+	dc.w $15DA
+CODE_6_data_000024a4:
+	dc.w $15E4
+CODE_6_data_000024a6:
+	dc.w $1604
+CODE_6_data_000024a8:
+	dc.w $165E
+CODE_6_data_000024aa:
+	dc.w $1692
+CODE_6_data_000024ac:
+	dc.w $16BC
+CODE_6_data_000024ae:
+	dc.w $0000
+CODE_6_data_000024b0:
+	dc.w $0000
+CODE_6_data_000024b2:
+	dc.w $0000
+CODE_6_data_000024b4:
+	dc.w $16C6
+CODE_6_data_000024b6:
+	dc.w $16D2
+CODE_6_data_000024b8:
+	dc.w $16F2
+CODE_6_data_000024ba:
+	dc.w $0000
+CODE_6_data_000024bc:
+	dc.w $171A
+CODE_6_data_000024be:
+	dc.w $1750
+CODE_6_data_000024c0:
+	dc.w $1760
+CODE_6_data_000024c2:
+	dc.w $1790
+CODE_6_data_000024c4:
+	dc.w $179E
+CODE_6_data_000024c6:
+	dc.w $17CE
+CODE_6_data_000024c8:
+	dc.w $17DA
+CODE_6_data_000024ca:
+	dc.w $1802
+CODE_6_data_000024cc:
+	dc.w $181A
+CODE_6_data_000024ce:
+	dc.w $0000
+CODE_6_data_000024d0:
+	dc.w $0354
 CODE_6_data_dispatch_table_000024d2:
 	dc.b $4C,$53,$00,$00,$80,$00,$02,$00,$53,$FC,$04,$50,$41,$43,$4B,$00
 	dc.b $08,$00,$A0,$2C,$02,$70,$81,$40,$03,$54,$4C,$54,$00,$00,$80,$00
@@ -29333,69 +31220,509 @@ CODE_7_loc_000001ac:
 	lea.l CODE_7_loc_000001b2(pc),a0
 	rts
 CODE_7_loc_000001b2:
-	dc.w $01F6,$0212,$0222,$0000,$0000,$0234,$0000,$0262	; lookup_table
-CODE_7_data_000001b2:
-	dc.w $0274,$0000,$0000,$02A2,$0000,$02B2,$0000,$0000	; lookup_table
-CODE_7_data_000001b2:
-	dc.w $02C4,$02D2,$02F2,$0000,$0000,$0304,$0000,$0314	; lookup_table
-CODE_7_data_000001b2:
-	dc.w $0326,$0336,$0346,$0366,$0000,$0000,$0000,$0000	; lookup_table
-CODE_7_data_000001b2:
-	dc.w $0388,$03A6,$0000,$0000,$0000,$03C6,$0000,$0000	; lookup_table
-CODE_7_data_000001b2:
-	dc.w $0000,$03D8,$052C,$053C,$0000,$0000,$0000,$0000	; lookup_table
-CODE_7_data_000001b2:
-	dc.w $054E,$057A,$0000,$0000,$058A,$059C,$0000,$0000	; lookup_table
-CODE_7_data_000001b2:
-	dc.w $0000,$0000,$0000,$0000,$0000,$05AE,$0000,$0000	; lookup_table
-CODE_7_data_000001b2:
-	dc.w $05BE,$05CC,$0000,$0000,$05DC,$0000,$0000,$0000	; lookup_table
-CODE_7_data_000001b2:
-	dc.w $05EE,$0000,$0000,$0000,$0000,$05FC,$0000,$0000	; lookup_table
-CODE_7_data_000001b2:
-	dc.w $0000,$060C,$0000,$0000,$0000,$0000,$0000,$063C	; lookup_table
-CODE_7_data_000001b2:
-	dc.w $064E,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
-CODE_7_data_000001b2:
-	dc.w $0000,$066C,$068C,$0000,$0000,$0000,$0000,$069C	; lookup_table
-CODE_7_data_000001b2:
-	dc.w $06AE,$06D4,$0000,$06E4,$0000,$0000,$0000,$0000	; lookup_table
-CODE_7_data_000001b2:
-	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
-CODE_7_data_000001b2:
-	dc.w $06F6,$0706,$0000,$0716,$0000,$0000,$0000,$0000	; lookup_table
-CODE_7_data_000001b2:
-	dc.w $0728,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
-CODE_7_data_000001b2:
-	dc.w $0736,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
-CODE_7_data_000001b2:
-	dc.w $0746,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
-CODE_7_data_000001b2:
-	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
-CODE_7_data_000001b2:
-	dc.w $0754,$0762,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
-CODE_7_data_000001b2:
-	dc.w $0000,$0772,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
-CODE_7_data_000001b2:
-	dc.w $0782,$0790,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
-CODE_7_data_000001b2:
-	dc.w $0000,$07A0,$0000,$0000,$0000,$0000,$0000,$0000	; lookup_table
-CODE_7_data_000001b2:
-	dc.w $0000,$07B0,$0000,$07C0,$0000,$0000,$0000,$0000	; lookup_table
-CODE_7_data_000001b2:
-	dc.w $0000,$0000,$07D0,$07E4,$0000,$0000,$0000,$0000	; lookup_table
-CODE_7_data_000001b2:
-	dc.w $0000,$0804,$0000,$0814,$0000,$0000,$0000,$0834	; lookup_table
-CODE_7_data_000001b2:
-	dc.w $0000,$0844,$0000,$0864,$0874,$0000,$0884,$0000	; lookup_table
-CODE_7_data_000001b2:
-	dc.w $0000,$0000,$0000,$0894,$0000,$0000,$0000,$0000	; lookup_table
-CODE_7_data_000001b2:
-	dc.w $08B4,$0000,$0000,$08C4,$0000,$0000,$08D2,$0000	; lookup_table
-CODE_7_data_000001b2:
-	dc.w $0000,$0000,$0000,$08E2,$0000,$0000,$0000,$0000	; lookup_table
-CODE_7_data_000001b2:
-	dc.w $0910,$0000,$0000,$0450	; lookup_table
+	dc.w $01F6	; lookup_table
+CODE_7_data_000001b4:
+	dc.w $0212
+CODE_7_data_000001b6:
+	dc.w $0222
+CODE_7_data_000001b8:
+	dc.w $0000
+CODE_7_data_000001ba:
+	dc.w $0000
+CODE_7_data_000001bc:
+	dc.w $0234
+CODE_7_data_000001be:
+	dc.w $0000
+CODE_7_data_000001c0:
+	dc.w $0262
+CODE_7_data_000001c2:
+	dc.w $0274
+CODE_7_data_000001c4:
+	dc.w $0000
+CODE_7_data_000001c6:
+	dc.w $0000
+CODE_7_data_000001c8:
+	dc.w $02A2
+CODE_7_data_000001ca:
+	dc.w $0000
+CODE_7_data_000001cc:
+	dc.w $02B2
+CODE_7_data_000001ce:
+	dc.w $0000
+CODE_7_data_000001d0:
+	dc.w $0000
+CODE_7_data_000001d2:
+	dc.w $02C4
+CODE_7_data_000001d4:
+	dc.w $02D2
+CODE_7_data_000001d6:
+	dc.w $02F2
+CODE_7_data_000001d8:
+	dc.w $0000
+CODE_7_data_000001da:
+	dc.w $0000
+CODE_7_data_000001dc:
+	dc.w $0304
+CODE_7_data_000001de:
+	dc.w $0000
+CODE_7_data_000001e0:
+	dc.w $0314
+CODE_7_data_000001e2:
+	dc.w $0326
+CODE_7_data_000001e4:
+	dc.w $0336
+CODE_7_data_000001e6:
+	dc.w $0346
+CODE_7_data_000001e8:
+	dc.w $0366
+CODE_7_data_000001ea:
+	dc.w $0000
+CODE_7_data_000001ec:
+	dc.w $0000
+CODE_7_data_000001ee:
+	dc.w $0000
+CODE_7_data_000001f0:
+	dc.w $0000
+CODE_7_data_000001f2:
+	dc.w $0388
+CODE_7_data_000001f4:
+	dc.w $03A6
+CODE_7_data_000001f6:
+	dc.w $0000
+CODE_7_data_000001f8:
+	dc.w $0000
+CODE_7_data_000001fa:
+	dc.w $0000
+CODE_7_data_000001fc:
+	dc.w $03C6
+CODE_7_data_000001fe:
+	dc.w $0000
+CODE_7_data_00000200:
+	dc.w $0000
+CODE_7_data_00000202:
+	dc.w $0000
+CODE_7_data_00000204:
+	dc.w $03D8
+CODE_7_data_00000206:
+	dc.w $052C
+CODE_7_data_00000208:
+	dc.w $053C
+CODE_7_data_0000020a:
+	dc.w $0000
+CODE_7_data_0000020c:
+	dc.w $0000
+CODE_7_data_0000020e:
+	dc.w $0000
+CODE_7_data_00000210:
+	dc.w $0000
+CODE_7_data_00000212:
+	dc.w $054E
+CODE_7_data_00000214:
+	dc.w $057A
+CODE_7_data_00000216:
+	dc.w $0000
+CODE_7_data_00000218:
+	dc.w $0000
+CODE_7_data_0000021a:
+	dc.w $058A
+CODE_7_data_0000021c:
+	dc.w $059C
+CODE_7_data_0000021e:
+	dc.w $0000
+CODE_7_data_00000220:
+	dc.w $0000
+CODE_7_data_00000222:
+	dc.w $0000
+CODE_7_data_00000224:
+	dc.w $0000
+CODE_7_data_00000226:
+	dc.w $0000
+CODE_7_data_00000228:
+	dc.w $0000
+CODE_7_data_0000022a:
+	dc.w $0000
+CODE_7_data_0000022c:
+	dc.w $05AE
+CODE_7_data_0000022e:
+	dc.w $0000
+CODE_7_data_00000230:
+	dc.w $0000
+CODE_7_data_00000232:
+	dc.w $05BE
+CODE_7_data_00000234:
+	dc.w $05CC
+CODE_7_data_00000236:
+	dc.w $0000
+CODE_7_data_00000238:
+	dc.w $0000
+CODE_7_data_0000023a:
+	dc.w $05DC
+CODE_7_data_0000023c:
+	dc.w $0000
+CODE_7_data_0000023e:
+	dc.w $0000
+CODE_7_data_00000240:
+	dc.w $0000
+CODE_7_data_00000242:
+	dc.w $05EE
+CODE_7_data_00000244:
+	dc.w $0000
+CODE_7_data_00000246:
+	dc.w $0000
+CODE_7_data_00000248:
+	dc.w $0000
+CODE_7_data_0000024a:
+	dc.w $0000
+CODE_7_data_0000024c:
+	dc.w $05FC
+CODE_7_data_0000024e:
+	dc.w $0000
+CODE_7_data_00000250:
+	dc.w $0000
+CODE_7_data_00000252:
+	dc.w $0000
+CODE_7_data_00000254:
+	dc.w $060C
+CODE_7_data_00000256:
+	dc.w $0000
+CODE_7_data_00000258:
+	dc.w $0000
+CODE_7_data_0000025a:
+	dc.w $0000
+CODE_7_data_0000025c:
+	dc.w $0000
+CODE_7_data_0000025e:
+	dc.w $0000
+CODE_7_data_00000260:
+	dc.w $063C
+CODE_7_data_00000262:
+	dc.w $064E
+CODE_7_data_00000264:
+	dc.w $0000
+CODE_7_data_00000266:
+	dc.w $0000
+CODE_7_data_00000268:
+	dc.w $0000
+CODE_7_data_0000026a:
+	dc.w $0000
+CODE_7_data_0000026c:
+	dc.w $0000
+CODE_7_data_0000026e:
+	dc.w $0000
+CODE_7_data_00000270:
+	dc.w $0000
+CODE_7_data_00000272:
+	dc.w $0000
+CODE_7_data_00000274:
+	dc.w $066C
+CODE_7_data_00000276:
+	dc.w $068C
+CODE_7_data_00000278:
+	dc.w $0000
+CODE_7_data_0000027a:
+	dc.w $0000
+CODE_7_data_0000027c:
+	dc.w $0000
+CODE_7_data_0000027e:
+	dc.w $0000
+CODE_7_data_00000280:
+	dc.w $069C
+CODE_7_data_00000282:
+	dc.w $06AE
+CODE_7_data_00000284:
+	dc.w $06D4
+CODE_7_data_00000286:
+	dc.w $0000
+CODE_7_data_00000288:
+	dc.w $06E4
+CODE_7_data_0000028a:
+	dc.w $0000
+CODE_7_data_0000028c:
+	dc.w $0000
+CODE_7_data_0000028e:
+	dc.w $0000
+CODE_7_data_00000290:
+	dc.w $0000
+CODE_7_data_00000292:
+	dc.w $0000
+CODE_7_data_00000294:
+	dc.w $0000
+CODE_7_data_00000296:
+	dc.w $0000
+CODE_7_data_00000298:
+	dc.w $0000
+CODE_7_data_0000029a:
+	dc.w $0000
+CODE_7_data_0000029c:
+	dc.w $0000
+CODE_7_data_0000029e:
+	dc.w $0000
+CODE_7_data_000002a0:
+	dc.w $0000
+CODE_7_data_000002a2:
+	dc.w $06F6
+CODE_7_data_000002a4:
+	dc.w $0706
+CODE_7_data_000002a6:
+	dc.w $0000
+CODE_7_data_000002a8:
+	dc.w $0716
+CODE_7_data_000002aa:
+	dc.w $0000
+CODE_7_data_000002ac:
+	dc.w $0000
+CODE_7_data_000002ae:
+	dc.w $0000
+CODE_7_data_000002b0:
+	dc.w $0000
+CODE_7_data_000002b2:
+	dc.w $0728
+CODE_7_data_000002b4:
+	dc.w $0000
+CODE_7_data_000002b6:
+	dc.w $0000
+CODE_7_data_000002b8:
+	dc.w $0000
+CODE_7_data_000002ba:
+	dc.w $0000
+CODE_7_data_000002bc:
+	dc.w $0000
+CODE_7_data_000002be:
+	dc.w $0000
+CODE_7_data_000002c0:
+	dc.w $0000
+CODE_7_data_000002c2:
+	dc.w $0736
+CODE_7_data_000002c4:
+	dc.w $0000
+CODE_7_data_000002c6:
+	dc.w $0000
+CODE_7_data_000002c8:
+	dc.w $0000
+CODE_7_data_000002ca:
+	dc.w $0000
+CODE_7_data_000002cc:
+	dc.w $0000
+CODE_7_data_000002ce:
+	dc.w $0000
+CODE_7_data_000002d0:
+	dc.w $0000
+CODE_7_data_000002d2:
+	dc.w $0746
+CODE_7_data_000002d4:
+	dc.w $0000
+CODE_7_data_000002d6:
+	dc.w $0000
+CODE_7_data_000002d8:
+	dc.w $0000
+CODE_7_data_000002da:
+	dc.w $0000
+CODE_7_data_000002dc:
+	dc.w $0000
+CODE_7_data_000002de:
+	dc.w $0000
+CODE_7_data_000002e0:
+	dc.w $0000
+CODE_7_data_000002e2:
+	dc.w $0000
+CODE_7_data_000002e4:
+	dc.w $0000
+CODE_7_data_000002e6:
+	dc.w $0000
+CODE_7_data_000002e8:
+	dc.w $0000
+CODE_7_data_000002ea:
+	dc.w $0000
+CODE_7_data_000002ec:
+	dc.w $0000
+CODE_7_data_000002ee:
+	dc.w $0000
+CODE_7_data_000002f0:
+	dc.w $0000
+CODE_7_data_000002f2:
+	dc.w $0754
+CODE_7_data_000002f4:
+	dc.w $0762
+CODE_7_data_000002f6:
+	dc.w $0000
+CODE_7_data_000002f8:
+	dc.w $0000
+CODE_7_data_000002fa:
+	dc.w $0000
+CODE_7_data_000002fc:
+	dc.w $0000
+CODE_7_data_000002fe:
+	dc.w $0000
+CODE_7_data_00000300:
+	dc.w $0000
+CODE_7_data_00000302:
+	dc.w $0000
+CODE_7_data_00000304:
+	dc.w $0772
+CODE_7_data_00000306:
+	dc.w $0000
+CODE_7_data_00000308:
+	dc.w $0000
+CODE_7_data_0000030a:
+	dc.w $0000
+CODE_7_data_0000030c:
+	dc.w $0000
+CODE_7_data_0000030e:
+	dc.w $0000
+CODE_7_data_00000310:
+	dc.w $0000
+CODE_7_data_00000312:
+	dc.w $0782
+CODE_7_data_00000314:
+	dc.w $0790
+CODE_7_data_00000316:
+	dc.w $0000
+CODE_7_data_00000318:
+	dc.w $0000
+CODE_7_data_0000031a:
+	dc.w $0000
+CODE_7_data_0000031c:
+	dc.w $0000
+CODE_7_data_0000031e:
+	dc.w $0000
+CODE_7_data_00000320:
+	dc.w $0000
+CODE_7_data_00000322:
+	dc.w $0000
+CODE_7_data_00000324:
+	dc.w $07A0
+CODE_7_data_00000326:
+	dc.w $0000
+CODE_7_data_00000328:
+	dc.w $0000
+CODE_7_data_0000032a:
+	dc.w $0000
+CODE_7_data_0000032c:
+	dc.w $0000
+CODE_7_data_0000032e:
+	dc.w $0000
+CODE_7_data_00000330:
+	dc.w $0000
+CODE_7_data_00000332:
+	dc.w $0000
+CODE_7_data_00000334:
+	dc.w $07B0
+CODE_7_data_00000336:
+	dc.w $0000
+CODE_7_data_00000338:
+	dc.w $07C0
+CODE_7_data_0000033a:
+	dc.w $0000
+CODE_7_data_0000033c:
+	dc.w $0000
+CODE_7_data_0000033e:
+	dc.w $0000
+CODE_7_data_00000340:
+	dc.w $0000
+CODE_7_data_00000342:
+	dc.w $0000
+CODE_7_data_00000344:
+	dc.w $0000
+CODE_7_data_00000346:
+	dc.w $07D0
+CODE_7_data_00000348:
+	dc.w $07E4
+CODE_7_data_0000034a:
+	dc.w $0000
+CODE_7_data_0000034c:
+	dc.w $0000
+CODE_7_data_0000034e:
+	dc.w $0000
+CODE_7_data_00000350:
+	dc.w $0000
+CODE_7_data_00000352:
+	dc.w $0000
+CODE_7_data_00000354:
+	dc.w $0804
+CODE_7_data_00000356:
+	dc.w $0000
+CODE_7_data_00000358:
+	dc.w $0814
+CODE_7_data_0000035a:
+	dc.w $0000
+CODE_7_data_0000035c:
+	dc.w $0000
+CODE_7_data_0000035e:
+	dc.w $0000
+CODE_7_data_00000360:
+	dc.w $0834
+CODE_7_data_00000362:
+	dc.w $0000
+CODE_7_data_00000364:
+	dc.w $0844
+CODE_7_data_00000366:
+	dc.w $0000
+CODE_7_data_00000368:
+	dc.w $0864
+CODE_7_data_0000036a:
+	dc.w $0874
+CODE_7_data_0000036c:
+	dc.w $0000
+CODE_7_data_0000036e:
+	dc.w $0884
+CODE_7_data_00000370:
+	dc.w $0000
+CODE_7_data_00000372:
+	dc.w $0000
+CODE_7_data_00000374:
+	dc.w $0000
+CODE_7_data_00000376:
+	dc.w $0000
+CODE_7_data_00000378:
+	dc.w $0894
+CODE_7_data_0000037a:
+	dc.w $0000
+CODE_7_data_0000037c:
+	dc.w $0000
+CODE_7_data_0000037e:
+	dc.w $0000
+CODE_7_data_00000380:
+	dc.w $0000
+CODE_7_data_00000382:
+	dc.w $08B4
+CODE_7_data_00000384:
+	dc.w $0000
+CODE_7_data_00000386:
+	dc.w $0000
+CODE_7_data_00000388:
+	dc.w $08C4
+CODE_7_data_0000038a:
+	dc.w $0000
+CODE_7_data_0000038c:
+	dc.w $0000
+CODE_7_data_0000038e:
+	dc.w $08D2
+CODE_7_data_00000390:
+	dc.w $0000
+CODE_7_data_00000392:
+	dc.w $0000
+CODE_7_data_00000394:
+	dc.w $0000
+CODE_7_data_00000396:
+	dc.w $0000
+CODE_7_data_00000398:
+	dc.w $08E2
+CODE_7_data_0000039a:
+	dc.w $0000
+CODE_7_data_0000039c:
+	dc.w $0000
+CODE_7_data_0000039e:
+	dc.w $0000
+CODE_7_data_000003a0:
+	dc.w $0000
+CODE_7_data_000003a2:
+	dc.w $0910
+CODE_7_data_000003a4:
+	dc.w $0000
+CODE_7_data_000003a6:
+	dc.w $0000
+CODE_7_data_000003a8:
+	dc.w $0450
 CODE_7_data_dispatch_table_000003aa:
 	dc.b $54,$41,$53,$00,$08,$00,$80,$08,$66,$00,$00,$06,$04,$50,$54,$43
 	dc.b $43,$00,$00,$00,$80,$08,$66,$00,$00,$0F,$05,$50,$54,$50,$47,$43
@@ -38509,239 +40836,470 @@ CODE_13_data_000072be:
 	dc.w $01DA,$01E6,$0388,$03D0,$0442,$0442,$0442,$04C8	; lookup_table
 CODE_13_data_000072be:
 	dc.w $04D4,$04DC,$0532,$0562,$05E2,$05EA,$0710,$073E	; lookup_table
-CODE_13_semantic_decode_gap_000072fe:
-	dc.b $07,$80,$08,$02,$08,$3C,$08,$6C,$08,$DA,$09,$1A,$0A,$9A,$0A,$A2
-	dc.b $0A,$AA,$0B,$16,$0B,$62,$0C,$1A,$0C,$64,$00,$DA,$0C,$B0,$0D,$32
-	dc.b $0E,$B6,$0D,$3A,$0D,$42,$0D,$4A,$0D,$52,$0D,$5A,$0D,$62,$0D,$6A
-	dc.b $0D,$72,$0D,$7A,$0D,$82,$0D,$8A,$0D,$92,$0D,$B8,$0D,$C0,$0D,$C8
-	dc.b $0D,$D0,$0D,$D8,$0D,$E0,$0D,$E8,$0D,$F0,$0E,$B6,$0D,$F8,$0E,$00
-	dc.b $0E,$B6,$0E,$B6,$0E,$B6,$0E,$B6,$0E,$B6,$0E,$B6,$0E,$B6,$0E,$08
-	dc.b $0E,$32,$0E,$58,$0E,$B6,$0E,$B6,$0E,$7E,$0E,$88,$0E,$92,$4E,$BA
-	dc.b $C4,$90,$60,$00,$0E,$00,$4E,$BA,$C6,$F0,$60,$00,$0D,$F8,$10,$2D
-	dc.b $F3,$A2,$67,$0C,$3F,$3C,$00,$A3,$4E,$AD,$07,$CA,$60,$00,$0D,$E6
-	dc.b $4E,$BA,$C6,$D6,$60,$00,$0D,$DE,$4E,$BA,$BC,$AE,$60,$00,$0D,$D6
-	dc.b $4E,$BA,$D6,$5A,$60,$00,$0D,$CE,$4E,$BA,$DB,$58,$60,$00,$0D,$C6
-	dc.b $70,$1E,$B0,$2D,$FF,$FB,$66,$14,$41,$ED,$E7,$1E,$43,$FA,$0E,$62
-	dc.b $70,$02,$30,$D9,$51,$C8,$FF,$FC,$60,$00,$0D,$AA,$48,$6D,$E7,$1E
-	dc.b $4E,$BA,$B9,$90,$60,$00,$0D,$9E,$3F,$3C,$08,$00,$4E,$BA,$E6,$4C
-	dc.b $60,$00,$0D,$92,$3F,$3C,$04,$00,$4E,$BA,$E6,$40,$60,$00,$0D,$86
-	dc.b $3F,$3C,$02,$00,$4E,$BA,$E6,$34,$60,$00,$0D,$7A,$42,$2E,$FC,$E4
-	dc.b $48,$6E,$FC,$E4,$4E,$BA,$B9,$5C,$42,$40,$10,$2E,$FC,$E4,$4A,$40
-	dc.b $66,$0C,$3F,$3C,$00,$99,$4E,$AD,$07,$CA,$60,$00,$0D,$58,$10,$2D
-	dc.b $F3,$A6,$66,$06,$80,$2D,$F3,$A2,$67,$0C,$3F,$3C,$00,$AF,$4E,$AD
-	dc.b $07,$CA,$60,$00,$0D,$40,$48,$6E,$FC,$E4,$4E,$AD,$06,$EA,$48,$6D
-	dc.b $06,$EA,$4E,$AD,$01,$9A,$60,$00,$0D,$2C,$42,$2E,$FC,$E4,$48,$6E
-	dc.b $FC,$E4,$4E,$BA,$B9,$0E,$42,$40,$10,$2E,$FC,$E4,$4A,$40,$66,$0C
-	dc.b $3F,$3C,$00,$99,$4E,$AD,$07,$CA,$60,$00,$0D,$0A,$10,$2D,$F3,$A6
-	dc.b $66,$06,$80,$2D,$F3,$A2,$67,$0C,$3F,$3C,$00,$AF,$4E,$AD,$07,$CA
-	dc.b $60,$00,$0C,$F2,$48,$6E,$FC,$E4,$4E,$AD,$06,$F2,$48,$6D,$06,$F2
-	dc.b $4E,$AD,$01,$9A,$60,$00,$0C,$DE,$3F,$3C,$00,$C5,$4E,$AD,$07,$CA
-	dc.b $60,$00,$0C,$D2,$4A,$6D,$EC,$E4,$6F,$10,$3F,$3C,$00,$5A,$48,$6D
-	dc.b $F9,$BA,$4E,$AD,$07,$C2,$60,$00,$0C,$BC,$42,$2E,$FC,$E4,$48,$6E
-	dc.b $FC,$E4,$4E,$BA,$B8,$9E,$42,$40,$10,$2E,$FC,$E4,$4A,$40,$66,$0C
-	dc.b $3F,$3C,$00,$99,$4E,$AD,$07,$CA,$60,$00,$0C,$9A,$42,$67,$48,$6E
-	dc.b $FC,$E4,$48,$6D,$07,$F2,$4E,$AD,$04,$62,$3D,$5F,$FF,$FC,$67,$14
-	dc.b $48,$6E,$FC,$E4,$3F,$3C,$00,$9D,$3F,$2E,$FF,$FC,$4E,$AD,$07,$D2
-	dc.b $60,$00,$0C,$72,$70,$1E,$B0,$2D,$FF,$FB,$67,$08,$3F,$3C,$00,$33
-	dc.b $4E,$AD,$07,$CA,$2F,$2D,$EB,$6A,$4E,$AD,$02,$52,$1B,$7C,$00,$1E
-	dc.b $FF,$FB,$20,$6D,$CB,$1E,$2F,$08,$48,$6D,$ED,$70,$4E,$AD,$00,$92
-	dc.b $1B,$7C,$00,$01,$EE,$70,$30,$2D,$CB,$1C,$53,$40,$D0,$40,$41,$ED
-	dc.b $EB,$6E,$31,$AD,$ED,$60,$00,$00,$42,$6D,$ED,$60,$10,$2D,$F3,$A6
-	dc.b $67,$3C,$42,$A7,$2F,$2D,$F0,$D6,$42,$40,$10,$2D,$ED,$70,$52,$40
-	dc.b $3F,$00,$4E,$AD,$07,$7A,$2D,$5F,$FF,$E4,$66,$08,$48,$7A,$0C,$90
-	dc.b $4E,$AD,$01,$D2,$48,$6D,$ED,$70,$2F,$2E,$FF,$E4,$4E,$AD,$00,$92
-	dc.b $2F,$2E,$FF,$E4,$3F,$2D,$ED,$60,$42,$67,$4E,$AD,$01,$6A,$10,$2D
-	dc.b $F0,$B1,$67,$70,$42,$67,$48,$6D,$ED,$70,$48,$6E,$FF,$EE,$4E,$AD
-	dc.b $04,$22,$3D,$5F,$FF,$FC,$67,$24,$3F,$2E,$FF,$FC,$48,$7A,$0C,$2A
-	dc.b $48,$6D,$ED,$70,$48,$7A,$0C,$20,$48,$6E,$FB,$DE,$3F,$3C,$00,$03
-	dc.b $4E,$AD,$0A,$A2,$48,$6E,$FB,$DE,$4E,$AD,$01,$DA,$30,$2D,$CB,$1C
-	dc.b $53,$40,$D0,$40,$41,$ED,$EB,$3A,$31,$AD,$EB,$5A,$00,$00,$3B,$6D
-	dc.b $EC,$B8,$EB,$5A,$52,$6D,$EC,$B8,$3F,$2D,$EB,$5A,$48,$6D,$ED,$70
-	dc.b $1F,$3C,$00,$01,$4E,$AD,$06,$8A,$2F,$2E,$FF,$EE,$3F,$2D,$EB,$5A
-	dc.b $4E,$AD,$06,$A2,$08,$2D,$00,$02,$ED,$5A,$67,$00,$0B,$68,$10,$2D
-	dc.b $EB,$68,$66,$00,$0B,$60,$80,$2D,$EB,$69,$66,$00,$0B,$58,$48,$6D
-	dc.b $D2,$6E,$48,$7A,$0B,$A4,$42,$67,$4E,$AD,$0A,$0A,$48,$6D,$D2,$6E
-	dc.b $48,$6D,$ED,$70,$42,$67,$4E,$AD,$0A,$0A,$48,$6D,$D2,$6E,$4E,$AD
-	dc.b $09,$F2,$60,$00,$0B,$30,$10,$2D,$F3,$A5,$67,$22,$12,$2D,$F3,$A3
-	dc.b $0A,$01,$00,$01,$C0,$01,$4A,$00,$67,$14,$12,$2D,$F3,$A2,$0A,$01
-	dc.b $00,$01,$C0,$01,$67,$08,$4E,$BA,$DE,$98,$60,$00,$0B,$08,$10,$2D
-	dc.b $F3,$A3,$0A,$00,$00,$01,$4A,$00,$66,$08,$80,$2D,$F3,$A2,$67,$00
-	dc.b $0A,$F4,$3F,$3C,$00,$97,$4E,$AD,$07,$CA,$60,$00,$0A,$E8,$10,$2D
-	dc.b $F3,$A3,$67,$4C,$12,$2D,$F3,$A2,$0A,$01,$00,$01,$C0,$01,$67,$40
-	dc.b $42,$2D,$F3,$A3,$2B,$6D,$F4,$18,$F4,$0A,$1B,$6D,$F4,$0F,$F4,$0E
-	dc.b $2B,$6D,$F4,$10,$F4,$06,$2B,$6D,$F4,$02,$F4,$18,$2B,$6D,$F3,$FE
-	dc.b $F4,$10,$2B,$6D,$F4,$18,$F4,$14,$42,$2D,$F4,$0F,$3B,$7C,$A0,$00
-	dc.b $F3,$E0,$42,$67,$1F,$3C,$00,$01,$4E,$BA,$AB,$22,$60,$00,$0A,$96
-	dc.b $10,$2D,$F3,$A5,$0A,$00,$00,$01,$4A,$00,$66,$08,$80,$2D,$F3,$A2
-	dc.b $67,$00,$0A,$82,$3F,$3C,$00,$96,$4E,$AD,$07,$CA,$60,$00,$0A,$76
-	dc.b $10,$2D,$F3,$A6,$67,$74,$20,$2D,$F4,$20,$B0,$AD,$F4,$10,$57,$C0
-	dc.b $4A,$00,$67,$0E,$C0,$2D,$F4,$25,$67,$08,$3F,$3C,$00,$D8,$4E,$AD
-	dc.b $07,$CA,$70,$00,$2B,$40,$F4,$20,$42,$2D,$F4,$25,$10,$2D,$F4,$0E
-	dc.b $67,$20,$12,$2D,$F4,$09,$02,$41,$00,$01,$C0,$01,$67,$14,$10,$2D
-	dc.b $EB,$93,$67,$06,$53,$AD,$F4,$06,$60,$08,$3F,$3C,$00,$CF,$4E,$AD
-	dc.b $07,$CA,$10,$2D,$F3,$A2,$67,$04,$4E,$AD,$08,$12,$1B,$7C,$00,$01
-	dc.b $F3,$A2,$2F,$2D,$EB,$6A,$4E,$AD,$02,$52,$42,$2D,$F3,$A2,$1F,$3C
-	dc.b $00,$01,$4E,$AD,$08,$1A,$60,$00,$09,$FC,$3F,$3C,$00,$9B,$4E,$AD
-	dc.b $07,$CA,$60,$00,$09,$F0,$1F,$3C,$00,$01,$4E,$BA,$F0,$1C,$60,$00
-	dc.b $09,$E4,$4E,$BA,$D2,$D2,$60,$00,$09,$DC,$10,$2D,$F3,$A7,$66,$16
-	dc.b $80,$2D,$F3,$A4,$4A,$00,$66,$0E,$80,$2D,$F3,$A2,$4A,$00,$66,$06
-	dc.b $80,$2D,$F3,$A3,$67,$0C,$3F,$3C,$00,$B0,$4E,$AD,$07,$CA,$60,$00
-	dc.b $09,$B4,$4A,$AD,$EC,$A8,$66,$0C,$3F,$3C,$00,$B5,$4E,$AD,$07,$CA
-	dc.b $60,$00,$09,$A2,$20,$6D,$EC,$A8,$28,$68,$00,$04,$21,$6D,$EC,$A4
-	dc.b $00,$04,$2B,$6D,$EC,$A8,$EC,$A4,$2B,$4C,$EC,$A8,$60,$00,$09,$86
-	dc.b $10,$2D,$F3,$A7,$66,$16,$80,$2D,$F3,$A4,$4A,$00,$66,$0E,$80,$2D
-	dc.b $F3,$A2,$4A,$00,$66,$06,$80,$2D,$F3,$A3,$67,$0C,$3F,$3C,$00,$B0
-	dc.b $4E,$AD,$07,$CA,$60,$00,$09,$5E,$4E,$BA,$D3,$FC,$60,$00,$09,$56
-	dc.b $42,$67,$48,$6D,$DF,$A0,$3F,$3C,$00,$08,$48,$6E,$FF,$FA,$4E,$BA
-	dc.b $B4,$DE,$10,$1F,$67,$00,$09,$3E,$70,$04,$B0,$6E,$FF,$FA,$66,$2E
-	dc.b $70,$02,$B0,$2D,$F3,$B6,$66,$0A,$3F,$3C,$00,$C1,$4E,$AD,$07,$CA
-	dc.b $60,$38,$4A,$2D,$F3,$B6,$66,$32,$1F,$3C,$00,$01,$4E,$AD,$05,$D2
-	dc.b $1B,$7C,$00,$01,$F3,$B9,$1B,$7C,$00,$01,$F3,$B8,$60,$1C,$70,$05
-	dc.b $B0,$6E,$FF,$FA,$57,$C0,$4A,$00,$66,$0C,$72,$06,$B2,$6E,$FF,$FA
-	dc.b $57,$C1,$80,$01,$67,$04,$4E,$BA,$ED,$B6,$30,$2E,$FF,$FA,$D0,$40
-	dc.b $41,$ED,$DF,$92,$3F,$30,$00,$00,$4E,$BA,$AA,$C8,$60,$00,$08,$D6
-	dc.b $4E,$AD,$03,$F2,$60,$00,$08,$CE,$1B,$7C,$00,$01,$EB,$93,$70,$1E
-	dc.b $B0,$2D,$FF,$FB,$66,$08,$70,$02,$2D,$40,$FF,$EE,$60,$36,$42,$67
-	dc.b $48,$6E,$FF,$EE,$4E,$AD,$02,$02,$10,$1F,$67,$22,$4A,$AE,$FF,$EE
-	dc.b $6C,$10,$3F,$3C,$00,$99,$4E,$AD,$07,$CA,$70,$01,$2D,$40,$FF,$EE
-	dc.b $60,$12,$4A,$AE,$FF,$EE,$66,$0C,$42,$2D,$EB,$93,$60,$06,$70,$01
-	dc.b $2D,$40,$FF,$EE,$10,$2D,$EB,$93,$67,$00,$08,$7A,$10,$2D,$F3,$A7
-	dc.b $67,$18,$12,$2D,$F3,$A2,$0A,$01,$00,$01,$C0,$01,$67,$0C,$3F,$3C
-	dc.b $00,$A0,$4E,$AD,$07,$CA,$60,$00,$00,$9E,$2F,$2D,$F4,$18,$2F,$2E
-	dc.b $FF,$EE,$4E,$AD,$0A,$82,$20,$1F,$3C,$00,$67,$00,$00,$8A,$30,$06
-	dc.b $48,$C0,$91,$AD,$F4,$18,$10,$2D,$F4,$0F,$67,$2E,$4A,$46,$6C,$08
-	dc.b $20,$2E,$FF,$EE,$91,$AD,$F4,$18,$20,$2D,$F4,$18,$B0,$AD,$F4,$10
-	dc.b $6C,$06,$2B,$6D,$F4,$18,$F4,$10,$20,$2D,$F4,$18,$B0,$AD,$F3,$C6
-	dc.b $6F,$34,$2B,$6D,$F4,$18,$F3,$C6,$60,$2C,$4A,$46,$6F,$08,$20,$2E
-	dc.b $FF,$EE,$D1,$AD,$F4,$18,$20,$2D,$F4,$18,$B0,$AD,$F4,$10,$6F,$06
-	dc.b $2B,$6D,$F4,$18,$F4,$10,$20,$2D,$F4,$18,$B0,$AD,$F3,$C6,$6C,$06
-	dc.b $2B,$6D,$F4,$18,$F3,$C6,$4E,$BA,$A9,$12,$4E,$BA,$A9,$28,$10,$2D
-	dc.b $F3,$A6,$67,$12,$10,$2D,$F3,$A4,$66,$04,$80,$2D,$F3,$A3,$1F,$00
-	dc.b $42,$67,$4E,$BA,$A8,$48,$10,$2D,$EC,$FF,$67,$00,$07,$B8,$2F,$2D
-	dc.b $F4,$18,$3F,$3C,$00,$04,$4E,$BA,$A9,$14,$60,$00,$07,$A8,$42,$67
-	dc.b $48,$6D,$E1,$AA,$3F,$3C,$00,$06,$48,$6E,$FF,$FA,$4E,$BA,$B3,$30
-	dc.b $10,$1F,$67,$00,$07,$90,$30,$2E,$FF,$FA,$41,$ED,$E1,$A1,$12,$30
-	dc.b $00,$00,$48,$81,$3B,$41,$F3,$9A,$60,$00,$07,$7A,$42,$67,$48,$6D
-	dc.b $E1,$AA,$3F,$3C,$00,$06,$48,$6E,$FF,$FA,$4E,$BA,$B3,$02,$10,$1F
-	dc.b $67,$00,$07,$62,$70,$04,$B0,$6E,$FF,$FA,$6C,$16,$30,$2E,$FF,$FA
-	dc.b $41,$ED,$E1,$A1,$12,$30,$00,$00,$48,$81,$3B,$41,$F3,$9C,$60,$00
-	dc.b $07,$44,$3F,$3C,$00,$99,$4E,$AD,$07,$CA,$60,$00,$07,$38,$4A,$2D
-	dc.b $FF,$FB,$67,$0C,$3F,$3C,$00,$99,$4E,$AD,$07,$CA,$60,$00,$07,$26
-	dc.b $48,$6D,$FE,$FA,$4E,$AD,$00,$52,$48,$6D,$FE,$FA,$48,$7A,$07,$66
-	dc.b $4E,$AD,$0A,$CA,$10,$1F,$66,$10,$48,$6D,$FE,$FA,$48,$7A,$07,$4E
-	dc.b $4E,$AD,$0A,$CA,$80,$1F,$67,$14,$1B,$7C,$00,$01,$F3,$A1,$1B,$7C
-	dc.b $00,$01,$EB,$99,$4E,$AD,$01,$72,$60,$00,$06,$EA,$42,$67,$48,$6D
-	dc.b $E2,$E8,$3F,$3C,$00,$04,$48,$6E,$FF,$FA,$4E,$BA,$B2,$72,$10,$1F
-	dc.b $67,$00,$06,$D2,$30,$2E,$FF,$FA,$41,$ED,$E2,$E1,$12,$30,$00,$00
-	dc.b $0A,$01,$00,$01,$1B,$41,$F3,$A1,$42,$2D,$EB,$99,$60,$00,$06,$B6
-	dc.b $42,$67,$48,$6E,$FF,$E4,$4E,$AD,$01,$FA,$10,$1F,$67,$00,$06,$A6
-	dc.b $10,$2D,$F3,$A6,$67,$18,$3F,$3C,$00,$08,$2F,$2E,$FF,$E4,$4E,$AD
-	dc.b $01,$42,$3F,$3C,$00,$3D,$4E,$AD,$01,$4A,$60,$00,$06,$88,$2F,$2E
-	dc.b $FF,$E4,$4E,$AD,$06,$2A,$60,$00,$06,$7C,$42,$67,$48,$6D,$E2,$E8
-	dc.b $3F,$3C,$00,$04,$48,$6E,$FF,$FA,$4E,$BA,$B2,$04,$10,$1F,$67,$00
-	dc.b $06,$64,$30,$2E,$FF,$FA,$41,$ED,$E2,$E1,$1B,$70,$00,$00,$F3,$A0
-	dc.b $1B,$6D,$F3,$A0,$F3,$9F,$60,$00,$06,$4C,$70,$1E,$B0,$2D,$FF,$FB
-	dc.b $66,$0A,$2D,$7C,$00,$00,$7F,$FF,$FF,$EE,$60,$1E,$42,$67,$48,$6E
-	dc.b $FF,$EE,$4E,$AD,$02,$02,$10,$1F,$67,$10,$70,$01,$B0,$AE,$FF,$EE
-	dc.b $6F,$08,$3F,$3C,$00,$99,$4E,$AD,$07,$CA,$10,$2D,$EC,$FF,$67,$00
-	dc.b $06,$14,$4A,$6D,$CD,$68,$57,$C1,$C0,$01,$67,$00,$06,$08,$10,$2D
-	dc.b $F3,$A6,$67,$18,$3F,$3C,$00,$06,$2F,$2E,$FF,$EE,$4E,$AD,$01,$42
-	dc.b $3F,$3C,$00,$41,$4E,$AD,$01,$4A,$60,$00,$05,$EA,$3F,$2E,$FF,$F0
-	dc.b $4E,$AD,$05,$FA,$60,$00,$05,$DE,$70,$1E,$B0,$2D,$FF,$FB,$66,$0A
-	dc.b $42,$67,$4E,$BA,$A8,$02,$60,$00,$05,$CC,$42,$67,$48,$6D,$E1,$88
-	dc.b $3F,$3C,$00,$06,$48,$6E,$FF,$FA,$4E,$BA,$B1,$54,$10,$1F,$67,$00
-	dc.b $05,$B4,$30,$2E,$FF,$FA,$D0,$40,$41,$ED,$E1,$7E,$3F,$30,$00,$00
-	dc.b $4E,$BA,$A7,$D4,$60,$00,$05,$9E,$10,$2D,$F3,$A7,$67,$18,$12,$2D
-	dc.b $F3,$A2,$0A,$01,$00,$01,$C0,$01,$67,$0C,$3F,$3C,$00,$A0,$4E,$AD
-	dc.b $07,$CA,$60,$00,$05,$80,$2D,$6D,$F4,$18,$FF,$F2,$70,$1E,$B0,$2D
-	dc.b $FF,$FB,$66,$0A,$2B,$6D,$F4,$10,$F4,$18,$60,$00,$00,$82,$42,$67
-	dc.b $48,$6E,$FF,$EE,$48,$6E,$FF,$ED,$48,$6E,$FF,$FC,$4E,$AD,$02,$2A
-	dc.b $10,$1F,$67,$62,$70,$04,$B0,$2E,$FF,$ED,$6E,$14,$42,$A7,$2F,$2E
-	dc.b $FF,$EE,$1F,$2E,$FF,$ED,$4E,$AD,$01,$F2,$2B,$5F,$F4,$18,$60,$4E
-	dc.b $4A,$2E,$FF,$ED,$5F,$C0,$4A,$00,$66,$2A,$72,$01,$B2,$2E,$FF,$ED
-	dc.b $57,$C1,$4A,$01,$67,$26,$14,$2D,$F3,$A2,$0A,$02,$00,$01,$4A,$02
-	dc.b $66,$12,$4A,$AD,$F3,$D8,$56,$C3,$84,$03,$C2,$02,$80,$01,$02,$40
-	dc.b $00,$01,$67,$08,$2B,$6E,$FF,$EE,$F4,$18,$60,$12,$3F,$3C,$00,$9A
-	dc.b $4E,$AD,$07,$CA,$60,$08,$3F,$2E,$FF,$FC,$4E,$AD,$07,$CA,$10,$2D
-	dc.b $EC,$FF,$67,$0C,$2F,$2D,$F4,$18,$3F,$3C,$00,$04,$4E,$BA,$A6,$3E
-	dc.b $10,$2D,$F3,$A6,$67,$12,$10,$2D,$F3,$A4,$66,$04,$80,$2D,$F3,$A3
-	dc.b $1F,$00,$42,$67,$4E,$BA,$A5,$46,$10,$2D,$F4,$0F,$67,$22,$20,$2D
-	dc.b $F4,$18,$B0,$AD,$F4,$10,$6C,$06,$2B,$6D,$F4,$18,$F4,$10,$20,$2D
-	dc.b $F4,$18,$B0,$AD,$F3,$C6,$6F,$28,$2B,$6D,$F4,$18,$F3,$C6,$60,$20
-	dc.b $20,$2D,$F4,$18,$B0,$AD,$F4,$10,$6F,$06,$2B,$6D,$F4,$18,$F4,$10
-	dc.b $20,$2D,$F4,$18,$B0,$AD,$F3,$C6,$6C,$06,$2B,$6D,$F4,$18,$F3,$C6
-	dc.b $4E,$BA,$A5,$A8,$4E,$BA,$A5,$BE,$10,$2D,$F3,$A2,$0A,$00,$00,$01
-	dc.b $4A,$00,$66,$16,$20,$6D,$F3,$EA,$08,$28,$00,$02,$00,$08,$56,$C1
-	dc.b $80,$01,$02,$40,$00,$01,$67,$00,$04,$4C,$10,$2D,$F4,$0F,$67,$14
-	dc.b $4A,$AD,$F4,$18,$6F,$00,$04,$3E,$3F,$3C,$00,$B6,$4E,$AD,$07,$CA
-	dc.b $60,$00,$04,$32,$4A,$AD,$F4,$18,$6C,$00,$04,$2A,$3F,$3C,$00,$B6
-	dc.b $4E,$AD,$07,$CA,$60,$00,$04,$1E,$4E,$BA,$E6,$B4,$60,$00,$04,$16
-	dc.b $4E,$BA,$E4,$D6,$60,$00,$04,$0E,$70,$1E,$B0,$2D,$FF,$FB,$66,$08
-	dc.b $70,$01,$2D,$40,$FF,$EE,$60,$1E,$42,$67,$48,$6E,$FF,$EE,$4E,$AD
-	dc.b $02,$02,$10,$1F,$67,$10,$70,$01,$B0,$AE,$FF,$EE,$6F,$08,$3F,$3C
-	dc.b $00,$99,$4E,$AD,$07,$CA,$10,$2D,$EC,$FF,$67,$00,$03,$D8,$4A,$6D
-	dc.b $CD,$68,$57,$C1,$C0,$01,$67,$00,$03,$CC,$10,$2D,$F3,$A6,$67,$18
-	dc.b $3F,$3C,$00,$06,$2F,$2E,$FF,$EE,$4E,$AD,$01,$42,$3F,$3C,$00,$42
-	dc.b $4E,$AD,$01,$4A,$60,$00,$03,$AE,$3F,$2E,$FF,$F0,$4E,$AD,$05,$F2
-	dc.b $60,$00,$03,$A2,$42,$67,$48,$6D,$E1,$6A,$3F,$3C,$00,$07,$48,$6E
-	dc.b $FF,$FA,$4E,$BA,$AF,$2A,$10,$1F,$67,$00,$03,$8A,$30,$2E,$FF,$FA
-	dc.b $41,$ED,$E1,$65,$1B,$70,$00,$00,$F3,$95,$10,$2D,$F3,$A6,$67,$00
-	dc.b $03,$74,$3F,$3C,$00,$06,$10,$2D,$F3,$95,$48,$80,$48,$C0,$2F,$00
-	dc.b $4E,$AD,$01,$42,$3F,$3C,$00,$37,$4E,$AD,$01,$4A,$60,$00,$03,$56
-	dc.b $42,$2E,$FC,$E4,$48,$6E,$FC,$E4,$4E,$BA,$AF,$38,$48,$6E,$FC,$E4
-	dc.b $4E,$AD,$00,$7A,$42,$40,$10,$2E,$FC,$E4,$72,$50,$B2,$40,$6C,$06
-	dc.b $1D,$7C,$00,$50,$FC,$E4,$48,$6E,$FC,$E4,$48,$6D,$ED,$04,$4E,$AD
-	dc.b $00,$92,$10,$2D,$EC,$FF,$67,$00,$03,$1C,$4A,$6D,$CD,$68,$57,$C1
-	dc.b $C0,$01,$67,$00,$03,$10,$10,$2D,$F3,$A6,$67,$58,$42,$A7,$2F,$2D
-	dc.b $F0,$D6,$42,$40,$10,$2D,$ED,$04,$52,$40,$3F,$00,$4E,$AD,$07,$7A
-	dc.b $2D,$5F,$FF,$E4,$66,$0A,$3F,$3C,$00,$1C,$4E,$AD,$07,$CA,$60,$40
-	dc.b $48,$6D,$ED,$04,$2F,$2E,$FF,$E4,$4E,$AD,$00,$92,$3F,$3C,$00,$08
-	dc.b $2F,$2E,$FF,$E4,$4E,$AD,$01,$42,$3F,$3C,$00,$06,$10,$2D,$EB,$22
-	dc.b $48,$80,$48,$C0,$2F,$00,$4E,$AD,$01,$42,$3F,$3C,$00,$43,$4E,$AD
-	dc.b $01,$4A,$60,$0C,$10,$2D,$EB,$22,$66,$06,$3B,$6D,$ED,$58,$ED,$00
-	dc.b $42,$2D,$EB,$22,$60,$00,$02,$9E,$42,$67,$48,$6D,$E0,$F6,$3F,$3C
-	dc.b $00,$0B,$48,$6E,$FF,$FA,$4E,$BA,$AE,$26,$10,$1F,$67,$10,$30,$2E
-	dc.b $FF,$FA,$D0,$40,$41,$ED,$E0,$E0,$3B,$70,$00,$00,$F3,$92,$10,$2D
-	dc.b $F3,$A6,$67,$00,$02,$70,$3F,$3C,$00,$06,$30,$2D,$F3,$92,$48,$C0
-	dc.b $2F,$00,$4E,$AD,$01,$42,$3F,$3C,$00,$38,$4E,$AD,$01,$4A,$60,$00
-	dc.b $02,$54,$42,$67,$48,$6D,$E0,$AA,$3F,$3C,$00,$09,$48,$6E,$FF,$FA
-	dc.b $4E,$BA,$AD,$DC,$10,$1F,$67,$10,$30,$2E,$FF,$FA,$D0,$40,$41,$ED
-	dc.b $E0,$9C,$3B,$70,$00,$00,$F3,$90,$10,$2D,$F3,$A6,$67,$00,$02,$26
-	dc.b $3F,$3C,$00,$06,$30,$2D,$F3,$90,$44,$40,$48,$C0,$2F,$00,$4E,$AD
-	dc.b $01,$42,$3F,$3C,$00,$39,$4E,$AD,$01,$4A,$60,$00,$02,$08,$42,$2E
-	dc.b $FC,$E4,$48,$6E,$FC,$E4,$4E,$BA,$AD,$EA,$42,$67,$48,$6E,$FC,$E4
-	dc.b $42,$67,$4E,$AD,$04,$4A,$3D,$5F,$FC,$DE,$4A,$AD,$CD,$4E,$67,$2E
-	dc.b $42,$67,$48,$6E,$FC,$E4,$20,$6D,$CD,$4E,$2F,$08,$4E,$AD,$00,$62
-	dc.b $10,$1F,$66,$1A,$20,$6D,$CD,$4E,$2F,$08,$3F,$2D,$E5,$1E,$4E,$AD
-	dc.b $04,$9A,$2F,$2D,$CD,$4E,$1F,$3C,$00,$01,$4E,$AD,$04,$5A,$4A,$AD
-	dc.b $CD,$4E,$57,$C0,$4A,$00,$67,$12,$4A,$6E,$FC,$DE,$57,$C1,$C0,$01
-	dc.b $67,$08,$48,$6E,$FC,$E4,$4E,$AD,$08,$AA,$48,$6E,$FC,$E4,$48,$6D
-	dc.b $CC,$4E,$4E,$AD,$00,$92,$1B,$7C,$00,$01,$CC,$4D,$60,$00,$01,$86
-	dc.b $4E,$AD,$05,$DA,$60,$00,$01,$7E,$4E,$BA,$80,$CC,$60,$00,$01,$76
-	dc.b $4E,$BA,$81,$14,$60,$00,$01,$6E,$4E,$BA,$81,$54,$60,$00,$01,$66
-	dc.b $4E,$BA,$82,$08,$60,$00,$01,$5E,$4E,$BA,$91,$BC,$60,$00,$01,$56
-	dc.b $4E,$BA,$84,$6E,$60,$00,$01,$4E,$4E,$BA,$84,$84,$60,$00,$01,$46
-	dc.b $4E,$BA,$84,$9A,$60,$00,$01,$3E,$4E,$BA,$84,$AE,$60,$00,$01,$36
-	dc.b $4E,$BA,$85,$38,$60,$00,$01,$2E,$4E,$BA,$88,$90,$60,$00,$01,$26
-	dc.b $4A,$6D,$EC,$E4,$6F,$10,$3F,$3C,$00,$5A,$48,$6D,$F9,$BA,$4E,$AD
-	dc.b $07,$C2,$60,$00,$01,$10,$4A,$6D,$CD,$68,$66,$00,$01,$08,$4E,$BA
-	dc.b $8D,$34,$60,$00,$01,$00,$4E,$BA,$97,$7C,$60,$00,$00,$F8,$4E,$BA
-	dc.b $99,$A6,$60,$00,$00,$F0,$4E,$BA,$90,$AC,$60,$00,$00,$E8,$4E,$BA
-	dc.b $94,$04,$60,$00,$00,$E0,$4E,$BA,$9A,$60,$60,$00,$00,$D8,$4E,$BA
-	dc.b $9B,$62,$60,$00,$00,$D0,$4E,$BA,$9D,$88,$60,$00,$00,$C8,$4E,$BA
-	dc.b $91,$5A,$60,$00,$00,$C0,$4E,$BA,$9F,$3C,$60,$00,$00,$B8,$4E,$BA
-	dc.b $A0,$24,$60,$00,$00,$B0,$42,$67,$48,$6D,$E2,$E8,$3F,$3C,$00,$04
-	dc.b $48,$6E,$FF,$FA,$4E,$BA,$AC,$38,$10,$1F,$67,$00,$00,$98,$30,$2E
-	dc.b $FF,$FA,$41,$ED,$E2,$E1,$1B,$70,$00,$00,$EC,$BF,$60,$00,$00,$86
-	dc.b $42,$67,$48,$6D,$E2,$E8,$3F,$3C,$00,$04,$48,$6E,$FF,$FA,$4E,$BA
-	dc.b $AC,$0E,$10,$1F,$67,$6E,$30,$2E,$FF,$FA,$41,$ED,$E2,$E1,$1B,$70
-	dc.b $00,$00,$EC,$BE,$60,$5E,$42,$67,$48,$6D,$E2,$E8,$3F,$3C,$00,$04
-	dc.b $48,$6E,$FF,$FA,$4E,$BA,$AB,$E8,$10,$1F,$67,$48,$30,$2E,$FF,$FA
-	dc.b $41,$ED,$E2,$E1,$1B,$70,$00,$00,$EC,$BD,$60,$38,$3F,$3C,$00,$55
-	dc.b $4E,$BA,$E9,$82,$60,$2E,$3F,$3C,$00,$56,$4E,$BA,$E9,$78,$60,$24
-	dc.b $42,$67,$48,$6D,$E2,$E8,$3F,$3C,$00,$04,$48,$6E,$FF,$FA,$4E,$BA
-	dc.b $AB,$AE,$10,$1F,$67,$0E,$30,$2E,$FF,$FA,$41,$ED,$E2,$E1,$1B,$70
-	dc.b $00,$00,$EC,$BB
+CODE_13_data_000072be:
+	dc.w $0780,$0802,$083C,$086C,$08DA,$091A,$0A9A,$0AA2	; lookup_table
+CODE_13_data_000072be:
+	dc.w $0AAA,$0B16,$0B62,$0C1A,$0C64,$00DA,$0CB0,$0D32	; lookup_table
+CODE_13_data_000072be:
+	dc.w $0EB6,$0D3A,$0D42,$0D4A,$0D52,$0D5A,$0D62,$0D6A	; lookup_table
+CODE_13_data_000072be:
+	dc.w $0D72,$0D7A,$0D82,$0D8A,$0D92,$0DB8,$0DC0,$0DC8	; lookup_table
+CODE_13_data_000072be:
+	dc.w $0DD0,$0DD8,$0DE0,$0DE8,$0DF0,$0EB6,$0DF8,$0E00	; lookup_table
+CODE_13_data_000072be:
+	dc.w $0EB6,$0EB6,$0EB6,$0EB6,$0EB6,$0EB6,$0EB6,$0E08	; lookup_table
+CODE_13_data_000072be:
+	dc.w $0E32,$0E58,$0EB6,$0EB6,$0E7E,$0E88,$0E92,$4EBA	; lookup_table
+CODE_13_data_000072be:
+	dc.w $C490,$6000,$0E00,$4EBA,$C6F0,$6000,$0DF8,$102D	; lookup_table
+CODE_13_data_000072be:
+	dc.w $F3A2,$670C,$3F3C,$00A3,$4EAD,$07CA,$6000,$0DE6	; lookup_table
+CODE_13_data_000072be:
+	dc.w $4EBA,$C6D6,$6000,$0DDE,$4EBA,$BCAE,$6000,$0DD6	; lookup_table
+CODE_13_data_000072be:
+	dc.w $4EBA,$D65A,$6000,$0DCE,$4EBA,$DB58,$6000,$0DC6	; lookup_table
+CODE_13_data_000072be:
+	dc.w $701E,$B02D,$FFFB,$6614,$41ED,$E71E,$43FA,$0E62	; lookup_table
+CODE_13_data_000072be:
+	dc.w $7002,$30D9,$51C8,$FFFC,$6000,$0DAA,$486D,$E71E	; lookup_table
+CODE_13_data_000072be:
+	dc.w $4EBA,$B990,$6000,$0D9E,$3F3C,$0800,$4EBA,$E64C	; lookup_table
+CODE_13_data_000072be:
+	dc.w $6000,$0D92,$3F3C,$0400,$4EBA,$E640,$6000,$0D86	; lookup_table
+CODE_13_data_000072be:
+	dc.w $3F3C,$0200,$4EBA,$E634,$6000,$0D7A,$422E,$FCE4	; lookup_table
+CODE_13_data_000072be:
+	dc.w $486E,$FCE4,$4EBA,$B95C,$4240,$102E,$FCE4,$4A40	; lookup_table
+CODE_13_data_000072be:
+	dc.w $660C,$3F3C,$0099,$4EAD,$07CA,$6000,$0D58,$102D	; lookup_table
+CODE_13_data_000072be:
+	dc.w $F3A6,$6606,$802D,$F3A2,$670C,$3F3C,$00AF,$4EAD	; lookup_table
+CODE_13_data_000072be:
+	dc.w $07CA,$6000,$0D40,$486E,$FCE4,$4EAD,$06EA,$486D	; lookup_table
+CODE_13_data_000072be:
+	dc.w $06EA,$4EAD,$019A,$6000,$0D2C,$422E,$FCE4,$486E	; lookup_table
+CODE_13_data_000072be:
+	dc.w $FCE4,$4EBA,$B90E,$4240,$102E,$FCE4,$4A40,$660C	; lookup_table
+CODE_13_data_000072be:
+	dc.w $3F3C,$0099,$4EAD,$07CA,$6000,$0D0A,$102D,$F3A6	; lookup_table
+CODE_13_data_000072be:
+	dc.w $6606,$802D,$F3A2,$670C,$3F3C,$00AF,$4EAD,$07CA	; lookup_table
+CODE_13_data_000072be:
+	dc.w $6000,$0CF2,$486E,$FCE4,$4EAD,$06F2,$486D,$06F2	; lookup_table
+CODE_13_data_000072be:
+	dc.w $4EAD,$019A,$6000,$0CDE,$3F3C,$00C5,$4EAD,$07CA	; lookup_table
+CODE_13_data_000072be:
+	dc.w $6000,$0CD2,$4A6D,$ECE4,$6F10,$3F3C,$005A,$486D	; lookup_table
+CODE_13_data_000072be:
+	dc.w $F9BA,$4EAD,$07C2,$6000,$0CBC,$422E,$FCE4,$486E	; lookup_table
+CODE_13_data_000072be:
+	dc.w $FCE4,$4EBA,$B89E,$4240,$102E,$FCE4,$4A40,$660C	; lookup_table
+CODE_13_data_000072be:
+	dc.w $3F3C,$0099,$4EAD,$07CA,$6000,$0C9A,$4267,$486E	; lookup_table
+CODE_13_data_000072be:
+	dc.w $FCE4,$486D,$07F2,$4EAD,$0462,$3D5F,$FFFC,$6714	; lookup_table
+CODE_13_data_000072be:
+	dc.w $486E,$FCE4,$3F3C,$009D,$3F2E,$FFFC,$4EAD,$07D2	; lookup_table
+CODE_13_data_000072be:
+	dc.w $6000,$0C72,$701E,$B02D,$FFFB,$6708,$3F3C,$0033	; lookup_table
+CODE_13_data_000072be:
+	dc.w $4EAD,$07CA,$2F2D,$EB6A,$4EAD,$0252,$1B7C,$001E	; lookup_table
+CODE_13_data_000072be:
+	dc.w $FFFB,$206D,$CB1E,$2F08,$486D,$ED70,$4EAD,$0092	; lookup_table
+CODE_13_data_000072be:
+	dc.w $1B7C,$0001,$EE70,$302D,$CB1C,$5340,$D040,$41ED	; lookup_table
+CODE_13_data_000072be:
+	dc.w $EB6E,$31AD,$ED60,$0000,$426D,$ED60,$102D,$F3A6	; lookup_table
+CODE_13_data_000072be:
+	dc.w $673C,$42A7,$2F2D,$F0D6,$4240,$102D,$ED70,$5240	; lookup_table
+CODE_13_data_000072be:
+	dc.w $3F00,$4EAD,$077A,$2D5F,$FFE4,$6608,$487A,$0C90	; lookup_table
+CODE_13_data_000072be:
+	dc.w $4EAD,$01D2,$486D,$ED70,$2F2E,$FFE4,$4EAD,$0092	; lookup_table
+CODE_13_data_000072be:
+	dc.w $2F2E,$FFE4,$3F2D,$ED60,$4267,$4EAD,$016A,$102D	; lookup_table
+CODE_13_data_000072be:
+	dc.w $F0B1,$6770,$4267,$486D,$ED70,$486E,$FFEE,$4EAD	; lookup_table
+CODE_13_data_000072be:
+	dc.w $0422,$3D5F,$FFFC,$6724,$3F2E,$FFFC,$487A,$0C2A	; lookup_table
+CODE_13_data_000072be:
+	dc.w $486D,$ED70,$487A,$0C20,$486E,$FBDE,$3F3C,$0003	; lookup_table
+CODE_13_data_000072be:
+	dc.w $4EAD,$0AA2,$486E,$FBDE,$4EAD,$01DA,$302D,$CB1C	; lookup_table
+CODE_13_data_000072be:
+	dc.w $5340,$D040,$41ED,$EB3A,$31AD,$EB5A,$0000,$3B6D	; lookup_table
+CODE_13_data_000072be:
+	dc.w $ECB8,$EB5A,$526D,$ECB8,$3F2D,$EB5A,$486D,$ED70	; lookup_table
+CODE_13_data_000072be:
+	dc.w $1F3C,$0001,$4EAD,$068A,$2F2E,$FFEE,$3F2D,$EB5A	; lookup_table
+CODE_13_data_000072be:
+	dc.w $4EAD,$06A2,$082D,$0002,$ED5A,$6700,$0B68,$102D	; lookup_table
+CODE_13_data_000072be:
+	dc.w $EB68,$6600,$0B60,$802D,$EB69,$6600,$0B58,$486D	; lookup_table
+CODE_13_data_000072be:
+	dc.w $D26E,$487A,$0BA4,$4267,$4EAD,$0A0A,$486D,$D26E	; lookup_table
+CODE_13_data_000072be:
+	dc.w $486D,$ED70,$4267,$4EAD,$0A0A,$486D,$D26E,$4EAD	; lookup_table
+CODE_13_data_000072be:
+	dc.w $09F2,$6000,$0B30,$102D,$F3A5,$6722,$122D,$F3A3	; lookup_table
+CODE_13_data_000072be:
+	dc.w $0A01,$0001,$C001,$4A00,$6714,$122D,$F3A2,$0A01	; lookup_table
+CODE_13_data_000072be:
+	dc.w $0001,$C001,$6708,$4EBA,$DE98,$6000,$0B08,$102D	; lookup_table
+CODE_13_data_000072be:
+	dc.w $F3A3,$0A00,$0001,$4A00,$6608,$802D,$F3A2,$6700	; lookup_table
+CODE_13_data_000072be:
+	dc.w $0AF4,$3F3C,$0097,$4EAD,$07CA,$6000,$0AE8,$102D	; lookup_table
+CODE_13_data_000072be:
+	dc.w $F3A3,$674C,$122D,$F3A2,$0A01,$0001,$C001,$6740	; lookup_table
+CODE_13_data_000072be:
+	dc.w $422D,$F3A3,$2B6D,$F418,$F40A,$1B6D,$F40F,$F40E	; lookup_table
+CODE_13_data_000072be:
+	dc.w $2B6D,$F410,$F406,$2B6D,$F402,$F418,$2B6D,$F3FE	; lookup_table
+CODE_13_data_000072be:
+	dc.w $F410,$2B6D,$F418,$F414,$422D,$F40F,$3B7C,$A000	; lookup_table
+CODE_13_data_000072be:
+	dc.w $F3E0,$4267,$1F3C,$0001,$4EBA,$AB22,$6000,$0A96	; lookup_table
+CODE_13_data_000072be:
+	dc.w $102D,$F3A5,$0A00,$0001,$4A00,$6608,$802D,$F3A2	; lookup_table
+CODE_13_data_000072be:
+	dc.w $6700,$0A82,$3F3C,$0096,$4EAD,$07CA,$6000,$0A76	; lookup_table
+CODE_13_data_000072be:
+	dc.w $102D,$F3A6,$6774,$202D,$F420,$B0AD,$F410,$57C0	; lookup_table
+CODE_13_data_000072be:
+	dc.w $4A00,$670E,$C02D,$F425,$6708,$3F3C,$00D8,$4EAD	; lookup_table
+CODE_13_data_000072be:
+	dc.w $07CA,$7000,$2B40,$F420,$422D,$F425,$102D,$F40E	; lookup_table
+CODE_13_data_000072be:
+	dc.w $6720,$122D,$F409,$0241,$0001,$C001,$6714,$102D	; lookup_table
+CODE_13_data_000072be:
+	dc.w $EB93,$6706,$53AD,$F406,$6008,$3F3C,$00CF,$4EAD	; lookup_table
+CODE_13_data_000072be:
+	dc.w $07CA,$102D,$F3A2,$6704,$4EAD,$0812,$1B7C,$0001	; lookup_table
+CODE_13_data_000072be:
+	dc.w $F3A2,$2F2D,$EB6A,$4EAD,$0252,$422D,$F3A2,$1F3C	; lookup_table
+CODE_13_data_000072be:
+	dc.w $0001,$4EAD,$081A,$6000,$09FC,$3F3C,$009B,$4EAD	; lookup_table
+CODE_13_data_000072be:
+	dc.w $07CA,$6000,$09F0,$1F3C,$0001,$4EBA,$F01C,$6000	; lookup_table
+CODE_13_data_000072be:
+	dc.w $09E4,$4EBA,$D2D2,$6000,$09DC,$102D,$F3A7,$6616	; lookup_table
+CODE_13_data_000072be:
+	dc.w $802D,$F3A4,$4A00,$660E,$802D,$F3A2,$4A00,$6606	; lookup_table
+CODE_13_data_000072be:
+	dc.w $802D,$F3A3,$670C,$3F3C,$00B0,$4EAD,$07CA,$6000	; lookup_table
+CODE_13_data_000072be:
+	dc.w $09B4,$4AAD,$ECA8,$660C,$3F3C,$00B5,$4EAD,$07CA	; lookup_table
+CODE_13_data_000072be:
+	dc.w $6000,$09A2,$206D,$ECA8,$2868,$0004,$216D,$ECA4	; lookup_table
+CODE_13_data_000072be:
+	dc.w $0004,$2B6D,$ECA8,$ECA4,$2B4C,$ECA8,$6000,$0986	; lookup_table
+CODE_13_data_000072be:
+	dc.w $102D,$F3A7,$6616,$802D,$F3A4,$4A00,$660E,$802D	; lookup_table
+CODE_13_data_000072be:
+	dc.w $F3A2,$4A00,$6606,$802D,$F3A3,$670C,$3F3C,$00B0	; lookup_table
+CODE_13_data_000072be:
+	dc.w $4EAD,$07CA,$6000,$095E,$4EBA,$D3FC,$6000,$0956	; lookup_table
+CODE_13_data_000072be:
+	dc.w $4267,$486D,$DFA0,$3F3C,$0008,$486E,$FFFA,$4EBA	; lookup_table
+CODE_13_data_000072be:
+	dc.w $B4DE,$101F,$6700,$093E,$7004,$B06E,$FFFA,$662E	; lookup_table
+CODE_13_data_000072be:
+	dc.w $7002,$B02D,$F3B6,$660A,$3F3C,$00C1,$4EAD,$07CA	; lookup_table
+CODE_13_data_000072be:
+	dc.w $6038,$4A2D,$F3B6,$6632,$1F3C,$0001,$4EAD,$05D2	; lookup_table
+CODE_13_data_000072be:
+	dc.w $1B7C,$0001,$F3B9,$1B7C,$0001,$F3B8,$601C,$7005	; lookup_table
+CODE_13_data_000072be:
+	dc.w $B06E,$FFFA,$57C0,$4A00,$660C,$7206,$B26E,$FFFA	; lookup_table
+CODE_13_data_000072be:
+	dc.w $57C1,$8001,$6704,$4EBA,$EDB6,$302E,$FFFA,$D040	; lookup_table
+CODE_13_data_000072be:
+	dc.w $41ED,$DF92,$3F30,$0000,$4EBA,$AAC8,$6000,$08D6	; lookup_table
+CODE_13_data_000072be:
+	dc.w $4EAD,$03F2,$6000,$08CE,$1B7C,$0001,$EB93,$701E	; lookup_table
+CODE_13_data_000072be:
+	dc.w $B02D,$FFFB,$6608,$7002,$2D40,$FFEE,$6036,$4267	; lookup_table
+CODE_13_data_000072be:
+	dc.w $486E,$FFEE,$4EAD,$0202,$101F,$6722,$4AAE,$FFEE	; lookup_table
+CODE_13_data_000072be:
+	dc.w $6C10,$3F3C,$0099,$4EAD,$07CA,$7001,$2D40,$FFEE	; lookup_table
+CODE_13_data_000072be:
+	dc.w $6012,$4AAE,$FFEE,$660C,$422D,$EB93,$6006,$7001	; lookup_table
+CODE_13_data_000072be:
+	dc.w $2D40,$FFEE,$102D,$EB93,$6700,$087A,$102D,$F3A7	; lookup_table
+CODE_13_data_000072be:
+	dc.w $6718,$122D,$F3A2,$0A01,$0001,$C001,$670C,$3F3C	; lookup_table
+CODE_13_data_000072be:
+	dc.w $00A0,$4EAD,$07CA,$6000,$009E,$2F2D,$F418,$2F2E	; lookup_table
+CODE_13_data_000072be:
+	dc.w $FFEE,$4EAD,$0A82,$201F,$3C00,$6700,$008A,$3006	; lookup_table
+CODE_13_data_000072be:
+	dc.w $48C0,$91AD,$F418,$102D,$F40F,$672E,$4A46,$6C08	; lookup_table
+CODE_13_data_000072be:
+	dc.w $202E,$FFEE,$91AD,$F418,$202D,$F418,$B0AD,$F410	; lookup_table
+CODE_13_data_000072be:
+	dc.w $6C06,$2B6D,$F418,$F410,$202D,$F418,$B0AD,$F3C6	; lookup_table
+CODE_13_data_000072be:
+	dc.w $6F34,$2B6D,$F418,$F3C6,$602C,$4A46,$6F08,$202E	; lookup_table
+CODE_13_data_000072be:
+	dc.w $FFEE,$D1AD,$F418,$202D,$F418,$B0AD,$F410,$6F06	; lookup_table
+CODE_13_data_000072be:
+	dc.w $2B6D,$F418,$F410,$202D,$F418,$B0AD,$F3C6,$6C06	; lookup_table
+CODE_13_data_000072be:
+	dc.w $2B6D,$F418,$F3C6,$4EBA,$A912,$4EBA,$A928,$102D	; lookup_table
+CODE_13_data_000072be:
+	dc.w $F3A6,$6712,$102D,$F3A4,$6604,$802D,$F3A3,$1F00	; lookup_table
+CODE_13_data_000072be:
+	dc.w $4267,$4EBA,$A848,$102D,$ECFF,$6700,$07B8,$2F2D	; lookup_table
+CODE_13_data_000072be:
+	dc.w $F418,$3F3C,$0004,$4EBA,$A914,$6000,$07A8,$4267	; lookup_table
+CODE_13_data_000072be:
+	dc.w $486D,$E1AA,$3F3C,$0006,$486E,$FFFA,$4EBA,$B330	; lookup_table
+CODE_13_data_000072be:
+	dc.w $101F,$6700,$0790,$302E,$FFFA,$41ED,$E1A1,$1230	; lookup_table
+CODE_13_data_000072be:
+	dc.w $0000,$4881,$3B41,$F39A,$6000,$077A,$4267,$486D	; lookup_table
+CODE_13_data_000072be:
+	dc.w $E1AA,$3F3C,$0006,$486E,$FFFA,$4EBA,$B302,$101F	; lookup_table
+CODE_13_data_000072be:
+	dc.w $6700,$0762,$7004,$B06E,$FFFA,$6C16,$302E,$FFFA	; lookup_table
+CODE_13_data_000072be:
+	dc.w $41ED,$E1A1,$1230,$0000,$4881,$3B41,$F39C,$6000	; lookup_table
+CODE_13_data_000072be:
+	dc.w $0744,$3F3C,$0099,$4EAD,$07CA,$6000,$0738,$4A2D	; lookup_table
+CODE_13_data_000072be:
+	dc.w $FFFB,$670C,$3F3C,$0099,$4EAD,$07CA,$6000,$0726	; lookup_table
+CODE_13_data_000072be:
+	dc.w $486D,$FEFA,$4EAD,$0052,$486D,$FEFA,$487A,$0766	; lookup_table
+CODE_13_data_000072be:
+	dc.w $4EAD,$0ACA,$101F,$6610,$486D,$FEFA,$487A,$074E	; lookup_table
+CODE_13_data_000072be:
+	dc.w $4EAD,$0ACA,$801F,$6714,$1B7C,$0001,$F3A1,$1B7C	; lookup_table
+CODE_13_data_000072be:
+	dc.w $0001,$EB99,$4EAD,$0172,$6000,$06EA,$4267,$486D	; lookup_table
+CODE_13_data_000072be:
+	dc.w $E2E8,$3F3C,$0004,$486E,$FFFA,$4EBA,$B272,$101F	; lookup_table
+CODE_13_data_000072be:
+	dc.w $6700,$06D2,$302E,$FFFA,$41ED,$E2E1,$1230,$0000	; lookup_table
+CODE_13_data_000072be:
+	dc.w $0A01,$0001,$1B41,$F3A1,$422D,$EB99,$6000,$06B6	; lookup_table
+CODE_13_data_000072be:
+	dc.w $4267,$486E,$FFE4,$4EAD,$01FA,$101F,$6700,$06A6	; lookup_table
+CODE_13_data_000072be:
+	dc.w $102D,$F3A6,$6718,$3F3C,$0008,$2F2E,$FFE4,$4EAD	; lookup_table
+CODE_13_data_000072be:
+	dc.w $0142,$3F3C,$003D,$4EAD,$014A,$6000,$0688,$2F2E	; lookup_table
+CODE_13_data_000072be:
+	dc.w $FFE4,$4EAD,$062A,$6000,$067C,$4267,$486D,$E2E8	; lookup_table
+CODE_13_data_000072be:
+	dc.w $3F3C,$0004,$486E,$FFFA,$4EBA,$B204,$101F,$6700	; lookup_table
+CODE_13_data_000072be:
+	dc.w $0664,$302E,$FFFA,$41ED,$E2E1,$1B70,$0000,$F3A0	; lookup_table
+CODE_13_data_000072be:
+	dc.w $1B6D,$F3A0,$F39F,$6000,$064C,$701E,$B02D,$FFFB	; lookup_table
+CODE_13_data_000072be:
+	dc.w $660A,$2D7C,$0000,$7FFF,$FFEE,$601E,$4267,$486E	; lookup_table
+CODE_13_data_000072be:
+	dc.w $FFEE,$4EAD,$0202,$101F,$6710,$7001,$B0AE,$FFEE	; lookup_table
+CODE_13_data_000072be:
+	dc.w $6F08,$3F3C,$0099,$4EAD,$07CA,$102D,$ECFF,$6700	; lookup_table
+CODE_13_data_000072be:
+	dc.w $0614,$4A6D,$CD68,$57C1,$C001,$6700,$0608,$102D	; lookup_table
+CODE_13_data_000072be:
+	dc.w $F3A6,$6718,$3F3C,$0006,$2F2E,$FFEE,$4EAD,$0142	; lookup_table
+CODE_13_data_000072be:
+	dc.w $3F3C,$0041,$4EAD,$014A,$6000,$05EA,$3F2E,$FFF0	; lookup_table
+CODE_13_data_000072be:
+	dc.w $4EAD,$05FA,$6000,$05DE,$701E,$B02D,$FFFB,$660A	; lookup_table
+CODE_13_data_000072be:
+	dc.w $4267,$4EBA,$A802,$6000,$05CC,$4267,$486D,$E188	; lookup_table
+CODE_13_data_000072be:
+	dc.w $3F3C,$0006,$486E,$FFFA,$4EBA,$B154,$101F,$6700	; lookup_table
+CODE_13_data_000072be:
+	dc.w $05B4,$302E,$FFFA,$D040,$41ED,$E17E,$3F30,$0000	; lookup_table
+CODE_13_data_000072be:
+	dc.w $4EBA,$A7D4,$6000,$059E,$102D,$F3A7,$6718,$122D	; lookup_table
+CODE_13_data_000072be:
+	dc.w $F3A2,$0A01,$0001,$C001,$670C,$3F3C,$00A0,$4EAD	; lookup_table
+CODE_13_data_000072be:
+	dc.w $07CA,$6000,$0580,$2D6D,$F418,$FFF2,$701E,$B02D	; lookup_table
+CODE_13_data_000072be:
+	dc.w $FFFB,$660A,$2B6D,$F410,$F418,$6000,$0082,$4267	; lookup_table
+CODE_13_data_000072be:
+	dc.w $486E,$FFEE,$486E,$FFED,$486E,$FFFC,$4EAD,$022A	; lookup_table
+CODE_13_data_000072be:
+	dc.w $101F,$6762,$7004,$B02E,$FFED,$6E14,$42A7,$2F2E	; lookup_table
+CODE_13_data_000072be:
+	dc.w $FFEE,$1F2E,$FFED,$4EAD,$01F2,$2B5F,$F418,$604E	; lookup_table
+CODE_13_data_000072be:
+	dc.w $4A2E,$FFED,$5FC0,$4A00,$662A,$7201,$B22E,$FFED	; lookup_table
+CODE_13_data_000072be:
+	dc.w $57C1,$4A01,$6726,$142D,$F3A2,$0A02,$0001,$4A02	; lookup_table
+CODE_13_data_000072be:
+	dc.w $6612,$4AAD,$F3D8,$56C3,$8403,$C202,$8001,$0240	; lookup_table
+CODE_13_data_000072be:
+	dc.w $0001,$6708,$2B6E,$FFEE,$F418,$6012,$3F3C,$009A	; lookup_table
+CODE_13_data_000072be:
+	dc.w $4EAD,$07CA,$6008,$3F2E,$FFFC,$4EAD,$07CA,$102D	; lookup_table
+CODE_13_data_000072be:
+	dc.w $ECFF,$670C,$2F2D,$F418,$3F3C,$0004,$4EBA,$A63E	; lookup_table
+CODE_13_data_000072be:
+	dc.w $102D,$F3A6,$6712,$102D,$F3A4,$6604,$802D,$F3A3	; lookup_table
+CODE_13_data_000072be:
+	dc.w $1F00,$4267,$4EBA,$A546,$102D,$F40F,$6722,$202D	; lookup_table
+CODE_13_data_000072be:
+	dc.w $F418,$B0AD,$F410,$6C06,$2B6D,$F418,$F410,$202D	; lookup_table
+CODE_13_data_000072be:
+	dc.w $F418,$B0AD,$F3C6,$6F28,$2B6D,$F418,$F3C6,$6020	; lookup_table
+CODE_13_data_000072be:
+	dc.w $202D,$F418,$B0AD,$F410,$6F06,$2B6D,$F418,$F410	; lookup_table
+CODE_13_data_000072be:
+	dc.w $202D,$F418,$B0AD,$F3C6,$6C06,$2B6D,$F418,$F3C6	; lookup_table
+CODE_13_data_000072be:
+	dc.w $4EBA,$A5A8,$4EBA,$A5BE,$102D,$F3A2,$0A00,$0001	; lookup_table
+CODE_13_data_000072be:
+	dc.w $4A00,$6616,$206D,$F3EA,$0828,$0002,$0008,$56C1	; lookup_table
+CODE_13_data_000072be:
+	dc.w $8001,$0240,$0001,$6700,$044C,$102D,$F40F,$6714	; lookup_table
+CODE_13_data_000072be:
+	dc.w $4AAD,$F418,$6F00,$043E,$3F3C,$00B6,$4EAD,$07CA	; lookup_table
+CODE_13_data_000072be:
+	dc.w $6000,$0432,$4AAD,$F418,$6C00,$042A,$3F3C,$00B6	; lookup_table
+CODE_13_data_000072be:
+	dc.w $4EAD,$07CA,$6000,$041E,$4EBA,$E6B4,$6000,$0416	; lookup_table
+CODE_13_data_000072be:
+	dc.w $4EBA,$E4D6,$6000,$040E,$701E,$B02D,$FFFB,$6608	; lookup_table
+CODE_13_data_000072be:
+	dc.w $7001,$2D40,$FFEE,$601E,$4267,$486E,$FFEE,$4EAD	; lookup_table
+CODE_13_data_000072be:
+	dc.w $0202,$101F,$6710,$7001,$B0AE,$FFEE,$6F08,$3F3C	; lookup_table
+CODE_13_data_000072be:
+	dc.w $0099,$4EAD,$07CA,$102D,$ECFF,$6700,$03D8,$4A6D	; lookup_table
+CODE_13_data_000072be:
+	dc.w $CD68,$57C1,$C001,$6700,$03CC,$102D,$F3A6,$6718	; lookup_table
+CODE_13_data_000072be:
+	dc.w $3F3C,$0006,$2F2E,$FFEE,$4EAD,$0142,$3F3C,$0042	; lookup_table
+CODE_13_data_000072be:
+	dc.w $4EAD,$014A,$6000,$03AE,$3F2E,$FFF0,$4EAD,$05F2	; lookup_table
+CODE_13_data_000072be:
+	dc.w $6000,$03A2,$4267,$486D,$E16A,$3F3C,$0007,$486E	; lookup_table
+CODE_13_data_000072be:
+	dc.w $FFFA,$4EBA,$AF2A,$101F,$6700,$038A,$302E,$FFFA	; lookup_table
+CODE_13_data_000072be:
+	dc.w $41ED,$E165,$1B70,$0000,$F395,$102D,$F3A6,$6700	; lookup_table
+CODE_13_data_000072be:
+	dc.w $0374,$3F3C,$0006,$102D,$F395,$4880,$48C0,$2F00	; lookup_table
+CODE_13_data_000072be:
+	dc.w $4EAD,$0142,$3F3C,$0037,$4EAD,$014A,$6000,$0356	; lookup_table
+CODE_13_data_000072be:
+	dc.w $422E,$FCE4,$486E,$FCE4,$4EBA,$AF38,$486E,$FCE4	; lookup_table
+CODE_13_data_000072be:
+	dc.w $4EAD,$007A,$4240,$102E,$FCE4,$7250,$B240,$6C06	; lookup_table
+CODE_13_data_000072be:
+	dc.w $1D7C,$0050,$FCE4,$486E,$FCE4,$486D,$ED04,$4EAD	; lookup_table
+CODE_13_data_000072be:
+	dc.w $0092,$102D,$ECFF,$6700,$031C,$4A6D,$CD68,$57C1	; lookup_table
+CODE_13_data_000072be:
+	dc.w $C001,$6700,$0310,$102D,$F3A6,$6758,$42A7,$2F2D	; lookup_table
+CODE_13_data_000072be:
+	dc.w $F0D6,$4240,$102D,$ED04,$5240,$3F00,$4EAD,$077A	; lookup_table
+CODE_13_data_000072be:
+	dc.w $2D5F,$FFE4,$660A,$3F3C,$001C,$4EAD,$07CA,$6040	; lookup_table
+CODE_13_data_000072be:
+	dc.w $486D,$ED04,$2F2E,$FFE4,$4EAD,$0092,$3F3C,$0008	; lookup_table
+CODE_13_data_000072be:
+	dc.w $2F2E,$FFE4,$4EAD,$0142,$3F3C,$0006,$102D,$EB22	; lookup_table
+CODE_13_data_000072be:
+	dc.w $4880,$48C0,$2F00,$4EAD,$0142,$3F3C,$0043,$4EAD	; lookup_table
+CODE_13_data_000072be:
+	dc.w $014A,$600C,$102D,$EB22,$6606,$3B6D,$ED58,$ED00	; lookup_table
+CODE_13_data_000072be:
+	dc.w $422D,$EB22,$6000,$029E,$4267,$486D,$E0F6,$3F3C	; lookup_table
+CODE_13_data_000072be:
+	dc.w $000B,$486E,$FFFA,$4EBA,$AE26,$101F,$6710,$302E	; lookup_table
+CODE_13_data_000072be:
+	dc.w $FFFA,$D040,$41ED,$E0E0,$3B70,$0000,$F392,$102D	; lookup_table
+CODE_13_data_000072be:
+	dc.w $F3A6,$6700,$0270,$3F3C,$0006,$302D,$F392,$48C0	; lookup_table
+CODE_13_data_000072be:
+	dc.w $2F00,$4EAD,$0142,$3F3C,$0038,$4EAD,$014A,$6000	; lookup_table
+CODE_13_data_000072be:
+	dc.w $0254,$4267,$486D,$E0AA,$3F3C,$0009,$486E,$FFFA	; lookup_table
+CODE_13_data_000072be:
+	dc.w $4EBA,$ADDC,$101F,$6710,$302E,$FFFA,$D040,$41ED	; lookup_table
+CODE_13_data_000072be:
+	dc.w $E09C,$3B70,$0000,$F390,$102D,$F3A6,$6700,$0226	; lookup_table
+CODE_13_data_000072be:
+	dc.w $3F3C,$0006,$302D,$F390,$4440,$48C0,$2F00,$4EAD	; lookup_table
+CODE_13_data_000072be:
+	dc.w $0142,$3F3C,$0039,$4EAD,$014A,$6000,$0208,$422E	; lookup_table
+CODE_13_data_000072be:
+	dc.w $FCE4,$486E,$FCE4,$4EBA,$ADEA,$4267,$486E,$FCE4	; lookup_table
+CODE_13_data_000072be:
+	dc.w $4267,$4EAD,$044A,$3D5F,$FCDE,$4AAD,$CD4E,$672E	; lookup_table
+CODE_13_data_000072be:
+	dc.w $4267,$486E,$FCE4,$206D,$CD4E,$2F08,$4EAD,$0062	; lookup_table
+CODE_13_data_000072be:
+	dc.w $101F,$661A,$206D,$CD4E,$2F08,$3F2D,$E51E,$4EAD	; lookup_table
+CODE_13_data_000072be:
+	dc.w $049A,$2F2D,$CD4E,$1F3C,$0001,$4EAD,$045A,$4AAD	; lookup_table
+CODE_13_data_000072be:
+	dc.w $CD4E,$57C0,$4A00,$6712,$4A6E,$FCDE,$57C1,$C001	; lookup_table
+CODE_13_data_000072be:
+	dc.w $6708,$486E,$FCE4,$4EAD,$08AA,$486E,$FCE4,$486D	; lookup_table
+CODE_13_data_000072be:
+	dc.w $CC4E,$4EAD,$0092,$1B7C,$0001,$CC4D,$6000,$0186	; lookup_table
+CODE_13_data_000072be:
+	dc.w $4EAD,$05DA,$6000,$017E,$4EBA,$80CC,$6000,$0176	; lookup_table
+CODE_13_data_000072be:
+	dc.w $4EBA,$8114,$6000,$016E,$4EBA,$8154,$6000,$0166	; lookup_table
+CODE_13_data_000072be:
+	dc.w $4EBA,$8208,$6000,$015E,$4EBA,$91BC,$6000,$0156	; lookup_table
+CODE_13_data_000072be:
+	dc.w $4EBA,$846E,$6000,$014E,$4EBA,$8484,$6000,$0146	; lookup_table
+CODE_13_data_000072be:
+	dc.w $4EBA,$849A,$6000,$013E,$4EBA,$84AE,$6000,$0136	; lookup_table
+CODE_13_data_000072be:
+	dc.w $4EBA,$8538,$6000,$012E,$4EBA,$8890,$6000,$0126	; lookup_table
+CODE_13_data_000072be:
+	dc.w $4A6D,$ECE4,$6F10,$3F3C,$005A,$486D,$F9BA,$4EAD	; lookup_table
+CODE_13_data_000072be:
+	dc.w $07C2,$6000,$0110,$4A6D,$CD68,$6600,$0108,$4EBA	; lookup_table
+CODE_13_data_000072be:
+	dc.w $8D34,$6000,$0100,$4EBA,$977C,$6000,$00F8,$4EBA	; lookup_table
+CODE_13_data_000072be:
+	dc.w $99A6,$6000,$00F0,$4EBA,$90AC,$6000,$00E8,$4EBA	; lookup_table
+CODE_13_data_000072be:
+	dc.w $9404,$6000,$00E0,$4EBA,$9A60,$6000,$00D8,$4EBA	; lookup_table
+CODE_13_data_000072be:
+	dc.w $9B62,$6000,$00D0,$4EBA,$9D88,$6000,$00C8,$4EBA	; lookup_table
+CODE_13_data_000072be:
+	dc.w $915A,$6000,$00C0,$4EBA,$9F3C,$6000,$00B8,$4EBA	; lookup_table
+CODE_13_data_000072be:
+	dc.w $A024,$6000,$00B0,$4267,$486D,$E2E8,$3F3C,$0004	; lookup_table
+CODE_13_data_000072be:
+	dc.w $486E,$FFFA,$4EBA,$AC38,$101F,$6700,$0098,$302E	; lookup_table
+CODE_13_data_000072be:
+	dc.w $FFFA,$41ED,$E2E1,$1B70,$0000,$ECBF,$6000,$0086	; lookup_table
+CODE_13_data_000072be:
+	dc.w $4267,$486D,$E2E8,$3F3C,$0004,$486E,$FFFA,$4EBA	; lookup_table
+CODE_13_data_000072be:
+	dc.w $AC0E,$101F,$676E,$302E,$FFFA,$41ED,$E2E1,$1B70	; lookup_table
+CODE_13_data_000072be:
+	dc.w $0000,$ECBE,$605E,$4267,$486D,$E2E8,$3F3C,$0004	; lookup_table
+CODE_13_data_000072be:
+	dc.w $486E,$FFFA,$4EBA,$ABE8,$101F,$6748,$302E,$FFFA	; lookup_table
+CODE_13_data_000072be:
+	dc.w $41ED,$E2E1,$1B70,$0000,$ECBD,$6038,$3F3C,$0055	; lookup_table
+CODE_13_data_000072be:
+	dc.w $4EBA,$E982,$602E,$3F3C,$0056,$4EBA,$E978,$6024	; lookup_table
+CODE_13_data_000072be:
+	dc.w $4267,$486D,$E2E8,$3F3C,$0004,$486E,$FFFA,$4EBA	; lookup_table
+CODE_13_data_000072be:
+	dc.w $ABAE,$101F,$670E,$302E,$FFFA,$41ED,$E2E1,$1B70	; lookup_table
+CODE_13_data_000072be:
+	dc.w $0000,$ECBB	; lookup_table
 CODE_13_loc_00008172:
 	tst.w -$3298(a5)
 	bne.b CODE_13_loc_0000819e
