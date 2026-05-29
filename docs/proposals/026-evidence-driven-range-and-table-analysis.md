@@ -956,6 +956,59 @@ All 36 tracked target `.s` files were regenerated with no target source diffs.
 Round-trip remained 34/36 full-file exact, 1 content-exact-only, 1 unsupported,
 and 0 failures.
 
+### Pass 10: Descriptor Export From Lookup-Owned Ranges
+
+The tenth pass moves source-analysis table descriptor export onto the same
+lookup-owned range ownership records used by renderer ownership checks.
+
+Before this pass, table descriptors were exported by iterating the
+`M68kSourceAnalysisIR` structured-data mirror:
+
+```text
+source_analysis.structured_data_items
+  -> table_descriptors
+```
+
+That kept descriptors coupled to the compatibility/export copy of structured
+data even after the renderer had a lookup-owned ownership surface. The export
+path now hydrates each lookup range owner, selects accepted table-shaped owners,
+and emits descriptors from that owner:
+
+```text
+M68kRenderLookup.range_ownerships
+  -> hydrate policy/auto structured item by stable source/index
+  -> accepted table owner
+  -> table_descriptor
+```
+
+This preserves current descriptor fields while removing another source-analysis
+mirror dependency from ownership export. It also keeps later auto-item updates
+safe because descriptor fields are read from the current item during hydration,
+not from a stale pointer captured before table metadata was refined.
+
+Still intentionally open:
+
+- table descriptors are still exported records, not the sole renderer operand
+  source for every table syntax decision;
+- structured-data items still carry payload fields such as exact data kind,
+  text shape, table expression kind, target, consumer, and source pattern;
+- a later pass should either make table descriptors lookup-owned first-class
+  records or make structured data explicitly one payload view over accepted
+  range/table ownership.
+
+Verification after this pass:
+
+```text
+cmd /c src\precommit.bat m68k_ir
+uv run python -m pytest tests\test_c_backend.py -q
+uv run platform-rendered-source-roundtrip
+git diff --check
+```
+
+All 36 tracked target `.s` files were regenerated with no target source diffs.
+Round-trip remained 34/36 full-file exact, 1 content-exact-only, 1 unsupported,
+and 0 failures.
+
 ## Open Design Questions
 
 - What is the smallest status vocabulary that covers candidate, accepted,

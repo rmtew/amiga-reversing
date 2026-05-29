@@ -8659,22 +8659,21 @@ static uint32_t structured_data_item_table_entry_size(const M68kAnalysisStructur
   return 0U;
 }
 
-static int render_analysis_append_table_descriptors_for_section(
-    const M68kSourceAnalysisIR *source_analysis, size_t section_index,
+static int render_analysis_append_lookup_table_descriptors_for_section(
+    const M68kRenderLookup *lookup, size_t section_index,
     M68kSectionAnalysisIR *section_analysis) {
   size_t index;
-  if (source_analysis == NULL || section_analysis == NULL) return -1;
-  for (index = 0U; index < m68k_ir_source_analysis_structured_data_item_count(source_analysis); ++index) {
-    const M68kAnalysisStructuredDataItem *item =
-      m68k_ir_source_analysis_structured_data_item_at(source_analysis, index);
+  if (lookup == NULL || section_analysis == NULL) return -1;
+  for (index = 0U; index < lookup->range_ownership_count; ++index) {
+    M68kRenderRangeOwnershipView view;
+    const M68kAnalysisStructuredDataItem *item;
     M68kTableDescriptorIR descriptor;
     uint32_t entry_size;
-    if (item == NULL) return -1;
+    if (lookup->range_ownerships[index].section_index != section_index) continue;
+    if (!hydrate_range_ownership_view(lookup, &lookup->range_ownerships[index], &view)) continue;
+    item = view.structured_item;
+    if (item == NULL) continue;
     if (item->size == 0U || item->table_kind_id == M68K_ANALYSIS_TABLE_KIND_UNKNOWN) continue;
-    if ((item->has_section_index && item->section_index != (uint32_t)section_index) ||
-        (!item->has_section_index && section_index != 0U)) {
-      continue;
-    }
     entry_size = structured_data_item_table_entry_size(item);
     if (entry_size == 0U || item->size < entry_size || item->offset > UINT32_MAX - item->size) continue;
     memset(&descriptor, 0, sizeof(descriptor));
@@ -11811,7 +11810,7 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
           current_section_analysis) != 0) {
         goto cleanup;
       }
-      if (render_analysis_append_table_descriptors_for_section(out_source_analysis, section->section_index,
+      if (render_analysis_append_lookup_table_descriptors_for_section(&lookup, section->section_index,
           current_section_analysis) != 0) {
         goto cleanup;
       }
