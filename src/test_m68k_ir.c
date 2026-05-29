@@ -2815,6 +2815,7 @@ static int test_facts_v2_pointer_table_targets_promote_short_strings(void) {
   char *source = NULL;
   uint16_t index;
   uint32_t pointer_string_items = 0U;
+  uint32_t pointer_string_refs = 0U;
   uint8_t bytes[] = {
     0x00u, 0x00u, 0x00u, 0x10u,
     0x00u, 0x00u, 0x00u, 0x13u,
@@ -2856,7 +2857,19 @@ static int test_facts_v2_pointer_table_targets_promote_short_strings(void) {
       ++pointer_string_items;
     }
   }
+  for (index = 0U; index < source_analysis.sections[0].data_reference_count; ++index) {
+    const M68kDataReferenceIR *ref = &source_analysis.sections[0].data_references[index];
+    if (ref->source_kind == M68K_DATA_REFERENCE_SOURCE_TABLE_ENTRY &&
+        ref->table_start_offset == 0U &&
+        (ref->target_role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING) != 0U &&
+        (ref->evidence_flags & M68K_DATA_REFERENCE_EVIDENCE_STRING_TARGET) != 0U &&
+        ref->target_kind == M68K_ANALYSIS_STRUCTURED_DATA_STRING &&
+        ref->target_source_pattern_id == M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_POINTER_STRING_TABLE) {
+      ++pointer_string_refs;
+    }
+  }
   M68K_C_ASSERT_U32(3U, pointer_string_items);
+  M68K_C_ASSERT_U32(3U, pointer_string_refs);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
   m68k_facts_v2_free_text(source);
@@ -9872,8 +9885,13 @@ static int test_source_analysis_data_reference_exports_table_entry(void) {
   ref.table_kind_id = M68K_ANALYSIS_TABLE_KIND_POINTER;
   ref.source_pattern_id = M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_INDEXED_LOCAL_POINTER_READ;
   ref.target_status = M68K_TABLE_ENTRY_TARGET_STATUS_ACCEPTED_TARGET;
+  ref.target_kind = M68K_ANALYSIS_STRUCTURED_DATA_STRING;
+  ref.target_role_flags = M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING;
+  ref.target_source_pattern_id = M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_POINTER_STRING_TABLE;
   ref.evidence_flags = M68K_DATA_REFERENCE_EVIDENCE_TABLE_ENTRY |
-    M68K_DATA_REFERENCE_EVIDENCE_POINTER_TABLE | M68K_DATA_REFERENCE_EVIDENCE_ACCEPTED_TARGET;
+    M68K_DATA_REFERENCE_EVIDENCE_POINTER_TABLE | M68K_DATA_REFERENCE_EVIDENCE_ACCEPTED_TARGET |
+    M68K_DATA_REFERENCE_EVIDENCE_STRUCTURED_TARGET | M68K_DATA_REFERENCE_EVIDENCE_TEXT_TARGET |
+    M68K_DATA_REFERENCE_EVIDENCE_STRING_TARGET;
   ref.table_start_offset = 0x20U;
   ref.table_entry_index = 1U;
   ref.table_entry_offset = 0x24U;
@@ -9896,6 +9914,11 @@ static int test_source_analysis_data_reference_exports_table_entry(void) {
   M68K_C_ASSERT(strstr(analysis_json,
     "\"target_section_index\":0,\"target_offset\":48,\"target_status\":2,"
     "\"target_status_name\":\"accepted_target\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"target_kind\":4,\"target_role_flags\":128,\"target_role\":\"string\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"target_source_pattern_id\":15,\"target_source_pattern\":\"pointer_string_table\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"evidence_flags\":123") != NULL);
   free(analysis_json);
   m68k_ir_section_analysis_destroy(&section_analysis);
   m68k_ir_source_analysis_destroy(&source_analysis);

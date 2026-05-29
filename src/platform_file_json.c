@@ -3569,6 +3569,27 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
           m68k_table_entry_target_status_name(ref->target_status)) != 0)
         goto oom;
       if (json_builder_appendf(&builder,
+          ",\"target_kind\":%u,\"target_role_flags\":%u,\"target_role\":",
+          (unsigned)ref->target_kind, (unsigned)ref->target_role_flags) != 0)
+        goto oom;
+      if (json_builder_append_nullable_string(&builder,
+          m68k_analysis_structured_data_role_name_for_flags(ref->target_role_flags)) != 0)
+        goto oom;
+      if (json_builder_appendf(&builder,
+          ",\"target_table_kind_id\":%u,\"target_table_kind\":",
+          (unsigned)ref->target_table_kind_id) != 0)
+        goto oom;
+      if (json_builder_append_nullable_string(&builder,
+          m68k_analysis_table_kind_name(ref->target_table_kind_id)) != 0)
+        goto oom;
+      if (json_builder_appendf(&builder,
+          ",\"target_source_pattern_id\":%u,\"target_source_pattern\":",
+          (unsigned)ref->target_source_pattern_id) != 0)
+        goto oom;
+      if (json_builder_append_nullable_string(&builder,
+          m68k_analysis_structured_data_source_pattern_name(ref->target_source_pattern_id)) != 0)
+        goto oom;
+      if (json_builder_appendf(&builder,
           ",\"evidence_flags\":%u,\"conflict_state\":%u,\"conflict_state_name\":",
           (unsigned)ref->evidence_flags, (unsigned)ref->conflict_state) != 0)
         goto oom;

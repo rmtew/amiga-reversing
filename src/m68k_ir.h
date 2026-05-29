@@ -1457,7 +1457,10 @@ typedef enum M68kDataReferenceEvidenceFlag {
   M68K_DATA_REFERENCE_EVIDENCE_TABLE_ENTRY = 1U << 0,
   M68K_DATA_REFERENCE_EVIDENCE_POINTER_TABLE = 1U << 1,
   M68K_DATA_REFERENCE_EVIDENCE_RELATIVE_DATA_LOOKUP = 1U << 2,
-  M68K_DATA_REFERENCE_EVIDENCE_ACCEPTED_TARGET = 1U << 3
+  M68K_DATA_REFERENCE_EVIDENCE_ACCEPTED_TARGET = 1U << 3,
+  M68K_DATA_REFERENCE_EVIDENCE_STRUCTURED_TARGET = 1U << 4,
+  M68K_DATA_REFERENCE_EVIDENCE_TEXT_TARGET = 1U << 5,
+  M68K_DATA_REFERENCE_EVIDENCE_STRING_TARGET = 1U << 6
 } M68kDataReferenceEvidenceFlag;
 
 typedef struct M68kDataReferenceIR {
@@ -1467,8 +1470,11 @@ typedef struct M68kDataReferenceIR {
   uint8_t source_pattern_id;
   uint8_t target_status;
   uint8_t conflict_state;
-  uint8_t reserved[3];
+  uint8_t target_kind;
+  uint8_t target_table_kind_id;
+  uint8_t target_source_pattern_id;
   uint32_t evidence_flags;
+  uint32_t target_role_flags;
   uint32_t table_start_offset;
   uint32_t table_entry_index;
   uint32_t table_entry_offset;

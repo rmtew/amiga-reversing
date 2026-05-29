@@ -11093,6 +11093,17 @@ def test_real_dll_026_table_descriptors_use_evidence_bounds_not_caps() -> None:
         "accepted_target"
     }
     assert {ref["source_kind_name"] for ref in pandora_string_refs} == {"table_entry"}
+    pandora_string_role_refs = [
+        ref for ref in pandora_string_refs if ref["target_role"] == "string"
+    ]
+    pandora_untyped_refs = [ref for ref in pandora_string_refs if ref["target_role"] is None]
+    assert len(pandora_string_role_refs) == 112
+    assert len(pandora_untyped_refs) == 2
+    assert {ref["table_entry_index"] for ref in pandora_untyped_refs} == {0, 1}
+    assert {ref["target_source_pattern"] for ref in pandora_string_role_refs} == {
+        "string_table_sequence",
+        "word_offset_string_table",
+    }
     assert pandora_string_entries[0]["entry_offset"] == 42716
     assert pandora_string_entries[0]["raw_value"] == 1
     assert pandora_string_entries[0]["target_offset"] == 41565

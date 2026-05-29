@@ -1625,6 +1625,40 @@ Covered by:
 - `facts_v2_swapped_keyed_long_table_has_no_fixed_target_set_cap`
 - `facts_v2_swapped_keyed_long_table_promotes_relative_targets`
 
+### Pass 18: Table Target Role Evidence
+
+The eighteenth pass strengthens table-backed data references so they do not
+only say that an entry reached an accepted target. They now also carry the
+C-owned structured-data identity of that target:
+
+```text
+data_reference:
+  table entry -> target offset
+  target_kind = string / words / longs / bytes
+  target_role_flags = string / lookup_table / pointer_table / ...
+  target_source_pattern = pointer_string_table / word_offset_string_table / ...
+```
+
+This matters for later string/table analysis because a consumer can now
+distinguish:
+
+```text
+pointer table entry -> accepted data target
+pointer table entry -> accepted string target
+word offset table entry -> accepted string target
+```
+
+without scraping rendered source or re-running shape heuristics in Python.
+The evidence flags now include structured, text, and string target bits when
+the target owner proves those roles. Code dispatch entries remain table-entry
+facts, not data references.
+
+Covered by:
+
+- `facts_v2_pointer_table_targets_promote_short_strings`
+- `source_analysis_data_reference_exports_table_entry`
+- `test_real_dll_026_table_descriptors_use_evidence_bounds_not_caps`
+
 ## Acceptance Criteria
 
 This proposal can close when:
