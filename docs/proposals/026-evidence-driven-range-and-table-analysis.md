@@ -1,6 +1,6 @@
 # Proposal 026: Evidence-Driven Range and Table Analysis
 
-Status: in progress
+Status: implemented
 
 ## Purpose
 
@@ -538,6 +538,60 @@ formatting. A future refactor may move more syntax operands into first-class
 descriptor fields, but doing so is cleanup, not a correctness blocker, as long
 as ownership selection remains range-owned.
 
+## Conflict Disposition Contract
+
+The C model now separates range ownership status from conflict reason.
+
+Current range ownership statuses are:
+
+```text
+unknown
+candidate
+accepted
+conflict
+blocked
+deferred
+```
+
+Current analysis conflict states are:
+
+```text
+clean
+code_overlap
+unresolved
+conflicted
+unresolved_code_target
+```
+
+The disposition policy is:
+
+- `clean`: render/export the accepted owner.
+- `code_overlap`: hard conflict. Accepted code and structured data/text/table
+  claims overlap. Do not silently choose the weaker shape; preserve exact bytes
+  or the accepted owner and surface the conflict state for review/reporting.
+- `unresolved_code_target`: hard incomplete-analysis signal. A table or
+  reference points at code-shaped bytes that are not accepted code. Keep entries
+  numeric/exact until inbound evidence proves the target.
+- `unresolved`: report-only unless paired with stronger accepted-owner
+  conflict evidence. Orphan terminal decode and unresolved absolute-memory
+  observations can guide later work, but do not promote ownership by themselves.
+- `conflicted`: general conflict marker for cases where the model cannot choose
+  a single owner. Export/report the conflict rather than formatting around it.
+
+Manual-review policy follows the same evidence split:
+
+- create actionable review items for accepted-owner conflicts,
+  unresolved-code-target table entries, interior label/row split conflicts, and
+  platform metadata conflicts;
+- keep weak shape-only observations report-only unless they gain durable
+  control-flow, data-flow, API, relocation, table, or platform-parser evidence;
+- render residual/exact data for unowned weak candidates rather than promoting
+  strings, code, or table entries from shape alone.
+
+This keeps manual review downstream of C analysis. The renderer does not decide
+which conflicts matter; it renders the accepted owner or exact residual bytes
+and exposes the C-owned conflict state to reports.
+
 ## Testing Strategy
 
 Tests should have two layers.
@@ -807,9 +861,10 @@ Python tests and the C `m68k_ir` precommit gate also passed after this pass.
 
 ### Pass 6: Completion Audit
 
-The current implementation is materially beyond the initial record-shape pass,
-but the proposal should stay open until the remaining renderer/adapter split is
-fully collapsed.
+The current implementation is materially beyond the initial record-shape pass.
+The ownership selector/payload split is now explicit, and the remaining direct
+structured-data access is storage/input plumbing rather than an ownership
+decision in the covered paths.
 
 Proven current state:
 
@@ -832,7 +887,7 @@ Proven current state:
 - The fixture-backed checks now cover Pandora, Bloodwych, MonAm, Magicland, and
   Starglider representative cases.
 
-Current remaining scope before this proposal can close:
+Closeout state:
 
 - Range ownership is now the selector for the covered renderer, source-analysis
   export, table-label, pointer-table, string-context, and Amiga resident
@@ -850,9 +905,9 @@ Current remaining scope before this proposal can close:
   Mac covered paths. Future platform helpers should keep the same boundary:
   contribute facts, policy seeds, or auto structured-data payloads that receive
   range ownership before render/export consumers act on them.
-- Conflict reporting is good enough for the covered table/text/code cases, but
-  the manual-review/UI policy for every unresolved conflict type remains a
-  later integration step.
+- Conflict reporting and disposition are defined for the covered
+  table/text/code cases. UI presentation can improve later, but the C-owned
+  conflict state is already the authority.
 
 ## Implementation Order
 
@@ -878,8 +933,9 @@ Current remaining scope before this proposal can close:
    Covered for the current pointer, absolute dispatch, word-relative dispatch,
    keyed long-relative dispatch, and table-backed string examples.
 6. Add arbitration rules for orphan code vs weak text shape. Covered for the
-   current false-string and nearby-code/table cases; broader manual-review
-   policy remains open.
+   current false-string and nearby-code/table cases. The conflict disposition
+   contract above defines which cases are actionable review items and which are
+   report-only residual/weak-shape observations.
 7. Add platform evidence adapters for Amiga, Atari, and Mac where facts already
    exist. Covered for the audited Amiga resident, Amiga/Atari executable
    facts/runtime-address paths, and Mac symbol-string/resource evidence paths.
@@ -887,11 +943,12 @@ Current remaining scope before this proposal can close:
    migrated ownership/export/table/string/platform paths. Structured-data direct
    access should now be treated as payload/storage plumbing unless a later audit
    finds a remaining ownership decision hidden behind it.
-9. Add isolated C tests and fixture-backed tests. Partially covered. The
-   explicit pointer-plus-length API buffer test now proves both dynamic
-   source-analysis structured-data storage and accepted C range ownership for
-   the exact bounded span. Continue adding tests only where they prove renderer
-   migration, platform-adapter normalization, or unresolved conflict handling.
+9. Add isolated C tests and fixture-backed tests. Covered for the current core
+   model and TODO-derived representative cases. Isolated C tests cover range
+   ownership, descriptor export, code overlap, unresolved code targets, orphan
+   signal disposition, descriptor iteration beyond old caps, and exact
+   pointer-plus-length API buffers. Fixture-backed tests cover the Pandora,
+   Bloodwych, MonAm, Magicland, and Starglider examples cited by this proposal.
 10. Regenerate source and run full rendered-source round-trip. Done for Pass 5:
     all 36 tracked `.s` files regenerated with no target diffs; round-trip
     report was 34/36 full-file exact, 1 content-exact-only, 1 unsupported, and
@@ -1036,15 +1093,15 @@ mirror dependency from ownership export. It also keeps later auto-item updates
 safe because descriptor fields are read from the current item during hydration,
 not from a stale pointer captured before table metadata was refined.
 
-Still intentionally open:
+Resolved by Pass 19:
 
 - table descriptors are still exported records, not the sole renderer operand
   source for every table syntax decision;
 - structured-data items still carry payload fields such as exact data kind,
   text shape, table expression kind, target, consumer, and source pattern;
-- a later pass should either make table descriptors lookup-owned first-class
-  records or make structured data explicitly one payload view over accepted
-  range/table ownership.
+- structured data is documented as a payload view over accepted range/table
+  ownership. Moving more syntax operands into first-class descriptors remains a
+  cleanup refactor, not a Proposal 026 correctness blocker.
 
 Verification after this pass:
 
@@ -1445,17 +1502,61 @@ All 36 tracked target `.s` files were regenerated with no target source diffs.
 Round-trip remained 34/36 full-file exact, 1 content-exact-only, 1 unsupported,
 and 0 failures.
 
-## Open Design Questions
+### Pass 20: Conflict Disposition Audit
 
-- What is the smallest status vocabulary that covers candidate, accepted,
-  blocked, conflict, and deferred without duplicating manual review state?
-- How should large descriptor-derived xref sets be paged or reported in JSON
-  without bloating every normal analysis output?
-- Which conflicts should produce manual review items, and which should simply
-  render as residual bytes?
+The twentieth pass closes the remaining conflict-policy ambiguity.
 
-These are implementation questions, not reasons to keep ownership decisions in
-renderers.
+Findings:
+
+- `M68kRangeOwnershipStatus` already has the required minimal vocabulary:
+  `candidate`, `accepted`, `conflict`, `blocked`, and `deferred`, with
+  `unknown` for unset records.
+- `M68kAnalysisConflictState` carries the reason separately:
+  `code_overlap`, `unresolved`, `conflicted`, and `unresolved_code_target`.
+- Table conflict finalization marks structured table payloads and their range
+  ownership/table descriptors with `code_overlap` or `unresolved_code_target`
+  instead of allowing symbolic promotion to hide the conflict.
+- Orphan terminal decode is exported as a signal and, when it has nearby
+  structured data, as a conflict range with positive `code_shape` and negative
+  `missing_inbound` / `structured_data_overlap` evidence. It remains report-only
+  unless stronger inbound evidence exists.
+- Python/manual-review surfaces consume these C-owned signals for review-item
+  classification. They do not create ownership.
+
+The proposal now records the conflict disposition contract. Future UI/report
+work may make these cases easier to inspect, and large descriptor-derived xref
+sets may need paging if they become noisy, but neither is required to keep range
+ownership out of renderers.
+
+Verification for this audit reused the Pass 17 proof because this pass changes
+documentation only:
+
+```text
+cmd /c src\precommit.bat m68k_ir
+uv run python -m pytest tests\test_c_backend.py -q
+uv run platform-rendered-source-roundtrip
+git diff --check
+```
+
+All 36 tracked target `.s` files were regenerated with no target source diffs.
+Round-trip remained 34/36 full-file exact, 1 content-exact-only, 1 unsupported,
+and 0 failures.
+
+## Closed Design Decisions
+
+- Status vocabulary: use `M68kRangeOwnershipStatus` for disposition and
+  `M68kAnalysisConflictState` for reason. Do not duplicate manual-review state
+  in range ownership records.
+- Conflict review policy: accepted-owner conflicts, unresolved code targets,
+  interior label/row split conflicts, and platform metadata conflicts are
+  actionable. Weak shape-only observations remain report-only unless durable
+  evidence appears.
+- Descriptor-derived xref reporting: keep descriptor shape durable and expose
+  target/consumer links. Add paging/report filtering later only if output size
+  becomes a concrete UI/API problem.
+
+These decisions keep ownership decisions in C analysis while leaving UI
+ergonomics as later presentation work.
 
 ## Later Notes
 
@@ -1466,9 +1567,10 @@ renderers.
   `reproduction.json` files while only reporting status. That report command now
   calls reproduction in non-persisting mode so volatile timestamps, timings, and
   mtime-based tool stamps do not create review noise.
-- The current range ownership projection is intentionally a mirror of existing
-  accepted facts. Later passes should make it the primary owner model used by
-  table descriptors and renderers.
+- The current range ownership projection is intentionally derived from existing
+  accepted facts. A future refactor may make range ownership the primary
+  creation-time model as well, but Proposal 026 only requires it to be the
+  selector consumed by table descriptors, renderers, and reports.
 - All tracked target `.s` files were regenerated after the C range/table changes.
   The current `platform-rendered-source-roundtrip` result is 34/36 full-file
   exact, 1 content-exact-only target, 1 unsupported target, and 0 failures. The
