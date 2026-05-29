@@ -954,7 +954,9 @@ def test_brave_cdp_can_open_single_macos_project_from_home(monkeypatch: pytest.M
             f"detail.projectId === {json.dumps(project.id)}",
             timeout=10.0,
         )
-        page.wait_for_selector("[data-macos-code-details='1']")
+        page.wait_for_selector(".listing-row")
+        assert page.evaluate("document.querySelector('#listing-viewport')?.textContent.includes('movea.l (a7)+,a0')")
+        assert page.evaluate("document.querySelector('[data-macos-code-details=\"1\"]') === null")
         assert page.evaluate("document.querySelector('#project-title')?.textContent") == project.id
         assert page.evaluate("location.pathname") == f"/{project.id}"
         page.assert_no_errors()
@@ -1001,14 +1003,15 @@ def test_brave_cdp_can_open_real_macos_project_from_home(monkeypatch: pytest.Mon
             f"detail.projectId === {json.dumps(child.id)}",
             timeout=30.0,
         )
-        page.wait_for_selector("[data-macos-code-details='1']", timeout=30.0)
+        page.wait_for_selector(".listing-row", timeout=30.0)
+        assert page.evaluate("document.querySelector('[data-macos-code-details=\"1\"]') === null")
         assert page.evaluate("document.querySelector('#project-title')?.textContent") == child.id
         assert page.evaluate("location.pathname") == f"/{child.id}"
         page.assert_no_errors()
 
 
 @pytest.mark.web_e2e
-def test_brave_cdp_macos_code_details_show_candidate_previews(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_brave_cdp_macos_code_child_uses_normal_listing_view(monkeypatch: pytest.MonkeyPatch) -> None:
     project = _macos_project("macos_mpw_preview")
     rows = [
         ListingRow(row_id="m0", kind="instruction", text="movea.l (a7)+,a0\n", addr=0, start_offset=0, end_offset=4),
@@ -1034,29 +1037,15 @@ def test_brave_cdp_macos_code_details_show_candidate_previews(monkeypatch: pytes
             f"detail.projectId === {json.dumps(project.id)}",
             timeout=10.0,
         )
-        page.wait_for_selector("[data-macos-code-details='1']")
+        page.wait_for_selector(".listing-row")
 
         body_text = page.text_content("body")
-        assert "CODE 0 unknown" in body_text
-        assert "CODE 0 metadata/jump table only" in body_text
-        assert "validated accepted_parser_output" in body_text
-        assert "CODE 1 Main" in body_text
-        assert "full_listing listing" in body_text
-        assert "Non-CODE Resource Metadata" in body_text
-        assert "CURS" in body_text
-        assert "validated accepted_parser_output" in body_text
-        assert "candidate candidate_only" in body_text
-        assert "unsupported" in body_text
-        assert "Candidate bounded preview" in body_text
-        assert "candidate_code candidate candidate_only" in body_text
-        assert "decoded" in body_text
-        assert "fallback_data preview shorter than one m68k instruction word" in body_text
-        assert "Deferred: relocation_fixups deferred deferred_only" in body_text
-        assert "no candidate preview range" in body_text
-        assert page.evaluate("document.querySelectorAll('[data-macos-preview-row]').length") == 2
-        assert page.evaluate("document.querySelectorAll('[data-macos-non-code-row]').length") == 2
-        assert page.evaluate("document.querySelectorAll('[data-macos-code0-jump-row]').length") == 1
-        assert page.evaluate("document.querySelector('[data-macos-code-listing=\"1\"]')?.textContent.includes('movea.l (a7)+,a0')")
+        assert "movea.l (a7)+,a0" in body_text
+        assert "CODE Resource Details" not in body_text
+        assert page.evaluate("document.querySelectorAll('[data-macos-preview-row]').length") == 0
+        assert page.evaluate("document.querySelectorAll('[data-macos-non-code-row]').length") == 0
+        assert page.evaluate("document.querySelector('[data-macos-code-listing=\"1\"]') === null")
+        assert page.evaluate("document.querySelector('[data-macos-code-details=\"1\"]') === null")
         page.assert_no_errors()
 
 

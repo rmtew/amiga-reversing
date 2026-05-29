@@ -225,55 +225,14 @@ body {
   gap: 16px;
 }
 
-.macos-section {
-  border-top: 1px solid #bbb;
-  padding-top: 12px;
-}
-
-.macos-section h2 {
-  margin: 0 0 10px;
-  font-size: 16px;
-}
-
-.macos-pivot-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 10px;
-}
-
-.macos-pivot {
-  border: 1px solid #bbb;
-  background: #fff;
-  padding: 10px;
-}
-
-.macos-pivot h3 {
-  margin: 0 0 8px;
-  font-size: 13px;
-}
-
-.macos-pivot ul,
-.macos-unsupported {
-  margin: 0;
-  padding-left: 18px;
-}
-
-.macos-pivot li,
-.macos-unsupported li {
-  margin: 3px 0;
-  overflow-wrap: anywhere;
-}
-
-.macos-summary-grid,
-.macos-boundary {
+.macos-summary-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 8px;
   margin-bottom: 10px;
 }
 
-.macos-summary-grid div,
-.macos-boundary span {
+.macos-summary-grid div {
   border: 1px solid #bbb;
   background: #fff;
   padding: 8px;
@@ -284,110 +243,6 @@ body {
   color: #555;
   font-size: 11px;
   text-transform: uppercase;
-}
-
-.macos-code-details {
-  margin-top: 12px;
-  display: grid;
-  gap: 8px;
-}
-
-.macos-non-code-details {
-  margin-top: 12px;
-  display: grid;
-  gap: 6px;
-}
-
-.macos-code-details h3,
-.macos-non-code-details h3,
-.macos-code-detail h4 {
-  margin: 0;
-  font-size: 13px;
-}
-
-.macos-non-code-row {
-  display: grid;
-  grid-template-columns: 72px 56px minmax(130px, 0.7fr) minmax(100px, 0.6fr) minmax(220px, 1.4fr);
-  gap: 8px;
-  align-items: center;
-  border: 1px solid #bbb;
-  background: #fff;
-  padding: 6px 8px;
-  font-size: 12px;
-}
-
-.macos-code-detail {
-  border: 1px solid #bbb;
-  background: #fff;
-  padding: 10px;
-  display: grid;
-  gap: 8px;
-}
-
-.macos-code-detail header,
-.macos-code-preview-row {
-  display: grid;
-  grid-template-columns: minmax(120px, 1fr) auto;
-  gap: 8px;
-  align-items: center;
-}
-
-.macos-code-detail header span,
-.macos-code-note,
-.macos-code-preview-summary,
-.macos-code-preview-deferred {
-  color: #555;
-  font-size: 12px;
-}
-
-.macos-code0-jump-table {
-  display: grid;
-  gap: 2px;
-}
-
-.macos-code0-jump-row {
-  display: grid;
-  grid-template-columns: 56px 92px 92px 112px minmax(150px, 1fr) minmax(150px, 1fr);
-  gap: 8px;
-  align-items: center;
-  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
-  font-size: 12px;
-}
-
-.macos-code-detail-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 6px;
-}
-
-.macos-code-detail-grid div {
-  border: 1px solid #ddd;
-  padding: 6px;
-}
-
-.macos-code-detail-grid span {
-  display: block;
-  color: #555;
-  font-size: 11px;
-  text-transform: uppercase;
-}
-
-.macos-code-preview {
-  border-left: 3px solid #7a6a00;
-  padding-left: 8px;
-  display: grid;
-  gap: 6px;
-}
-
-.macos-code-preview-rows {
-  display: grid;
-  gap: 2px;
-}
-
-.macos-code-preview-row {
-  grid-template-columns: 56px 92px minmax(140px, 1fr) minmax(180px, 1fr) minmax(160px, 0.8fr);
-  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
-  font-size: 12px;
 }
 
 .project-meta {

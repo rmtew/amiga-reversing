@@ -214,12 +214,13 @@ def test_web_app_renders_macos_code_listing_from_listing_route() -> None:
         / "app.js"
     ).read_text(encoding="utf-8")
 
-    assert 'data-macos-panel="listing"' in app_js
-    assert 'data-macos-code-listing="1"' in app_js
-    assert "renderListingRows(rows, listing?.start || 0)" in app_js
-    assert "renderClassicMacProject(state.projectData || projectData, listing);" in app_js
+    assert 'projectData.macos.kind === "macos_hfs_container"' in app_js
+    assert "renderClassicMacContainerProject(projectData);" in app_js
+    assert "function renderClassicMacProject" not in app_js
+    assert "renderClassicMacProject(state.projectData || projectData, listing);" not in app_js
     assert "`/api/projects/${encodeURIComponent(projectId)}/listing/open`" in app_js
-    assert 'render: false' in app_js
+    assert "renderVirtualListingWindow(projectId" in app_js
+    assert 'if (projectData.project.kind === "binary")' in app_js
     assert "generation: \"macos_starter\"" not in app_js
 
 
@@ -430,68 +431,17 @@ def test_web_app_renders_macos_source_and_container_payloads() -> None:
     app_js = (web_dir / "app.js").read_text(encoding="utf-8")
     styles_css = (web_dir / "styles.css").read_text(encoding="utf-8")
 
-    assert "function renderClassicMacProject(projectData, listing = null)" in app_js
-    assert "function renderClassicMacSourceView(sourceView)" in app_js
-    assert "function renderClassicMacContainerView(containerView)" in app_js
-    assert "function renderClassicMacNonCodeResourceDetails(details)" in app_js
-    assert "function renderClassicMacNonCodeResourceRow(detail)" in app_js
-    assert "function renderClassicMacCodeResourceDetails(details)" in app_js
-    assert "function renderClassicMacSourcePresentationStatus(sourcePresentation)" in app_js
-    assert "function renderClassicMacCode0JumpTableRows(rows)" in app_js
-    assert "function renderClassicMacCode0JumpTableRow(row)" in app_js
-    assert "function renderClassicMacPreviewWindow(preview)" in app_js
-    assert "function renderClassicMacPreviewRow(row)" in app_js
-    assert "function renderClassicMacBoundary(boundary)" in app_js
+    assert "function renderClassicMacContainerProject(projectData)" in app_js
+    assert "function renderClassicMacImportedTargets(importedTargets)" in app_js
+    assert "function renderClassicMacContainerFiles(files)" in app_js
+    assert "function renderClassicMacSourceView" not in app_js
+    assert "function renderClassicMacContainerView" not in app_js
     assert "projectData.macos" in app_js
     assert 'generation: "macos_starter"' not in app_js
-    assert 'data-macos-panel="source"' in app_js
-    assert 'data-macos-panel="container"' in app_js
-    assert 'data-macos-panel="unsupported"' in app_js
-    assert "CODE Resources" in app_js
-    assert "CODE Source Sections" in app_js
-    assert "source_body_sections" in app_js
-    assert 'data-macos-source-body-sections="1"' in app_js
-    assert "data-macos-source-section=" in app_js
-    assert "data-macos-source-section-status=" in app_js
-    assert "source.source_section_id" not in app_js
-    assert "code_resource_details" in app_js
-    assert "preview_windows" in app_js
-    assert "restored_source" in app_js
-    assert "source_presentation_status" in app_js
-    assert 'data-macos-source-presentation="1"' in app_js
-    assert 'data-macos-restored-source="1"' in app_js
-    assert "source_ownership_ranges" in app_js
-    assert "source_reference_records" in app_js
-    assert "reference-kinds=" in app_js
-    assert "platform_extensions" in app_js
-    assert "executable_resource_placeholders" in app_js
-    assert 'data-macos-executable-resource-placeholders="1"' in app_js
-    assert 'data-macos-resource-placeholder="1"' in app_js
-    assert "source_context" in app_js
-    assert "link_status" in app_js
-    assert "resourceFork.executable_resource_placeholders" not in app_js
-    assert "non_code_resource_details" in app_js
-    assert 'data-macos-non-code-row="1"' in app_js
-    assert "jump_table_rows" in app_js
-    assert "generated_routing_xrefs" in app_js
-    assert "incoming_code0_xrefs" in app_js
-    assert 'data-macos-code0-routing-xrefs="1"' in app_js
-    assert 'data-macos-code0-routing-xref="1"' in app_js
-    assert 'data-macos-code0-jump-row="1"' in app_js
-    assert "Candidate bounded preview" in app_js
-    assert 'data-macos-code-details="1"' in app_js
-    assert "data-macos-preview-row" in app_js
-    assert "data-macos-source-section-range" in app_js
-    assert "code1_layout_context" in app_js
-    assert "code0_structured_context" in app_js
-    assert "row.decode_status" in app_js
-    assert "row.fallback_reason" in app_js
-    assert "Relocation/fixup state:" in app_js
-    assert "source_segments_map_to_observed_code_resources" in app_js
+    assert 'data-macos-container="1"' in app_js
+    assert 'data-macos-imported-targets="1"' in app_js
+    assert 'data-macos-container-files="1"' in app_js
+    assert 'data-macos-code-details="1"' not in app_js
+    assert 'data-macos-code-listing="1"' not in app_js
     assert ".macos-view" in styles_css
-    assert ".macos-pivot-grid" in styles_css
     assert ".macos-summary-grid" in styles_css
-    assert ".macos-non-code-row" in styles_css
-    assert ".macos-code0-jump-row" in styles_css
-    assert ".macos-code-details" in styles_css
-    assert ".macos-code-preview-row" in styles_css
