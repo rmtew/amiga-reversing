@@ -10975,9 +10975,14 @@ static int source_analysis_append_auto_structured_data_policy(M68kSourceAnalysis
     const M68kRenderLookup *lookup) {
   size_t index;
   if (source_analysis == NULL || lookup == NULL) return 0;
-  for (index = 0U; index < lookup->auto_structured_data_item_count; ++index) {
-    if (m68k_ir_source_analysis_append_structured_data_item(source_analysis,
-        &lookup->auto_structured_data_items[index]) != 0)
+  for (index = 0U; index < lookup->range_ownership_count; ++index) {
+    M68kRenderRangeOwnershipView range;
+    if (!lookup_range_ownership_at_index(lookup, index, &range)) continue;
+    if (range.structured_item_source != M68K_RENDER_RANGE_STRUCTURED_ITEM_AUTO ||
+        range.structured_item == NULL) {
+      continue;
+    }
+    if (m68k_ir_source_analysis_append_structured_data_item(source_analysis, range.structured_item) != 0)
       return -1;
   }
   return 0;

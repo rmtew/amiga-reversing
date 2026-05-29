@@ -1265,6 +1265,48 @@ All 36 tracked target `.s` files were regenerated with no target source diffs.
 Round-trip remained 34/36 full-file exact, 1 content-exact-only, 1 unsupported,
 and 0 failures.
 
+### Pass 17: Auto Source-Analysis Export From Range Owners
+
+The seventeenth pass migrates generated structured-data export into
+`M68kSourceAnalysisIR` from the auto-item array to accepted range owners.
+
+Before this pass, source-analysis export appended generated structured-data
+payloads by walking the lookup's auto storage directly:
+
+```text
+lookup.auto_structured_data_items
+  -> source_analysis.structured_data_items
+```
+
+That made export depend on the generated payload storage surface rather than on
+the accepted ownership records. The export now walks lookup range owners,
+selects auto-owned payloads, and appends those payloads:
+
+```text
+lookup.range_ownerships[index]
+  -> auto structured-data owner
+  -> source_analysis.structured_data_items
+```
+
+Policy-seeded structured-data records are still copied through
+`m68k_ir_source_analysis_set_policy` before lookup construction, so this pass
+only changes generated auto-record export. Direct auto-array mutation remains
+storage management for creating and refining generated payloads; it is no
+longer the source-analysis export selector.
+
+Verification after this pass:
+
+```text
+cmd /c src\precommit.bat m68k_ir
+uv run python -m pytest tests\test_c_backend.py -q
+uv run platform-rendered-source-roundtrip
+git diff --check
+```
+
+All 36 tracked target `.s` files were regenerated with no target source diffs.
+Round-trip remained 34/36 full-file exact, 1 content-exact-only, 1 unsupported,
+and 0 failures.
+
 ## Open Design Questions
 
 - What is the smallest status vocabulary that covers candidate, accepted,
