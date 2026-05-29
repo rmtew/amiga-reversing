@@ -1588,6 +1588,43 @@ Covered by:
 - `facts_v2_pc_index_loop_bound_promotes_exact_table_count`
 - `source_analysis_table_descriptor_exports_loop_limit_proof`
 
+### Pass 17: Arena-Backed Trace Target Sets
+
+The seventeenth pass removes the remaining fixed 64-entry target-set storage
+from the facts-v2 trace state. Keyed long dispatch analysis now stores target
+sets in the workflow arena and carries them through trace-state copies by
+pointer to immutable arena-backed data.
+
+This is not a larger magic limit. The queue comparison was updated to compare
+trace values by content, including target-set elements, so equivalent states
+remain equivalent even when their target arrays were allocated separately.
+
+The direct regression case is a 65-entry keyed long dispatch:
+
+```asm
+    lea.l   table(pc),a1
+    move.l  (a1)+,d2
+    swap.w  d2
+    jsr     table(pc,d2.w)
+```
+
+Expected behavior:
+
+```text
+65 control targets queued
+recovered indirect site target_count = 65
+table_target_set_limit_hits = 0
+asm source is not refused
+```
+
+If arena allocation fails, analysis fails instead of truncating the target set
+and falling back to anonymous bytes.
+
+Covered by:
+
+- `facts_v2_swapped_keyed_long_table_has_no_fixed_target_set_cap`
+- `facts_v2_swapped_keyed_long_table_promotes_relative_targets`
+
 ## Acceptance Criteria
 
 This proposal can close when:
