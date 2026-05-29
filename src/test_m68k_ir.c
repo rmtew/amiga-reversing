@@ -9554,6 +9554,44 @@ static int test_source_analysis_table_descriptor_exports_consumer_fact(void) {
   return 0;
 }
 
+static int test_source_analysis_table_entry_exports_status(void) {
+  M68kSourceAnalysisIR source_analysis;
+  M68kSectionAnalysisIR section_analysis;
+  M68kTableEntryIR entry;
+  char *analysis_json = NULL;
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_create(&source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_create(&section_analysis, test_ir_result_arena()));
+  memset(&entry, 0, sizeof(entry));
+  section_analysis.section_index = 0U;
+  section_analysis.section_size = 64U;
+  entry.table_start_offset = 0x20U;
+  entry.entry_index = 2U;
+  entry.entry_offset = 0x24U;
+  entry.entry_size = 2U;
+  entry.raw_value = 0x0010U;
+  entry.raw_value_width = 2U;
+  entry.table_kind_id = M68K_ANALYSIS_TABLE_KIND_RELATIVE_CODE_DISPATCH;
+  entry.source_pattern_id = M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_INDEXED_WORD_DISPATCH;
+  entry.target_status = M68K_TABLE_ENTRY_TARGET_STATUS_ACCEPTED_TARGET;
+  entry.has_target = 1U;
+  entry.target_section_index = 0U;
+  entry.target_offset = 0x40U;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_table_entry(&section_analysis, &entry));
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"table_entry_count\":1") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"table_entries\":[{\"table_start_offset\":32,\"entry_index\":2,\"entry_offset\":36,\"entry_size\":2,"
+    "\"raw_value\":16,\"raw_value_width\":2,\"table_kind_id\":3,\"table_kind\":\"relative_code_dispatch\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"target_status_name\":\"accepted_target\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"target_section_index\":0,\"target_offset\":64") != NULL);
+  free(analysis_json);
+  m68k_ir_section_analysis_destroy(&section_analysis);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  return 0;
+}
+
 static int test_source_analysis_range_ownership_exports_conflict(void) {
   M68kSourceAnalysisIR source_analysis;
   M68kSectionAnalysisIR section_analysis;
@@ -9950,7 +9988,10 @@ static int test_facts_v2_pc_word_dispatch_descriptor_exports_index_domains(void)
   M68kSourceAnalysisIR source_analysis;
   char *source = NULL;
   const M68kTableConsumerIR *table_consumer = NULL;
+  uint32_t table_entry_count = 0U;
+  uint32_t saw_last_entry = 0U;
   size_t table_consumer_index;
+  size_t table_entry_index;
   uint32_t index;
   uint8_t bytes[TOTAL_SIZE];
   memset(bytes, 0, sizeof(bytes));
@@ -10025,6 +10066,23 @@ static int test_facts_v2_pc_word_dispatch_descriptor_exports_index_domains(void)
   M68K_C_ASSERT_U32(0U, table_consumer->index_compare_min);
   M68K_C_ASSERT_U32(5U, table_consumer->index_compare_max);
   M68K_C_ASSERT_U32(M68K_ASM_MNEMONIC_BHI, table_consumer->index_domain_branch_mnemonic_id);
+  for (table_entry_index = 0U;
+       table_entry_index < source_analysis.sections[0].table_entry_count;
+       ++table_entry_index) {
+    const M68kTableEntryIR *entry = &source_analysis.sections[0].table_entries[table_entry_index];
+    if (entry->table_start_offset != TABLE_OFFSET ||
+        entry->table_kind_id != M68K_ANALYSIS_TABLE_KIND_RELATIVE_CODE_DISPATCH) {
+      continue;
+    }
+    ++table_entry_count;
+    M68K_C_ASSERT_U32(2U, entry->entry_size);
+    M68K_C_ASSERT_U32(2U, entry->raw_value_width);
+    M68K_C_ASSERT_U32(M68K_TABLE_ENTRY_TARGET_STATUS_ACCEPTED_TARGET, entry->target_status);
+    M68K_C_ASSERT_U32(M68K_ANALYSIS_CONFLICT_STATE_CLEAN, entry->conflict_state);
+    if (entry->entry_index == 5U && entry->target_offset == TARGET_START + (5U * 4U)) saw_last_entry = 1U;
+  }
+  M68K_C_ASSERT_U32(ENTRY_COUNT, table_entry_count);
+  M68K_C_ASSERT_U32(1U, saw_last_entry);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(M68K_RENDER_IR_ASM_SOURCE_FAILURE_NONE, profile.asm_source_first_failure_kind);
   m68k_facts_v2_free_text(source);
@@ -22636,6 +22694,8 @@ int m68k_c_ir_tests(void) {
       test_source_analysis_table_descriptor_exports_conflict},
     {"source_analysis_table_descriptor_exports_consumer_fact",
       test_source_analysis_table_descriptor_exports_consumer_fact},
+    {"source_analysis_table_entry_exports_status",
+      test_source_analysis_table_entry_exports_status},
     {"source_analysis_range_ownership_exports_conflict",
       test_source_analysis_range_ownership_exports_conflict},
     {"source_analysis_platform_storage_effect_conflicts_only_mapped_section_storage",

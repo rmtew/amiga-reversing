@@ -1119,6 +1119,72 @@ The regenerated sources had no tracked `.s` diffs. Round-trip remained
 `34/36` full-file exact, `1/36` content-exact-only, `1/36` unsupported, and
 `0` failures.
 
+### Pass 7: Per-Entry Target Status Surface
+
+The seventh implementation pass adds first-class C IR rows for individual table
+entries. Descriptor-level bounds are not enough for later 028 consumers: each
+entry needs its own raw value, resolved target, target status, and conflict
+state so renderers and reports do not have to rediscover table semantics from
+formatted source.
+
+The new surface is:
+
+```text
+M68kTableEntryIR
+section.table_entries[]
+source-analysis JSON table_entries[]
+```
+
+Each row records:
+
+```text
+table_start_offset
+entry_index
+entry_offset
+entry_size
+raw_value / raw_value_width
+table_kind / source_pattern
+target_status
+target_section_index / target_offset, when resolved
+conflict_state
+```
+
+Initial C population covers the table shapes already represented by durable
+structured table records:
+
+```text
+word relative dispatch/data lookup
+keyed long relative dispatch
+absolute long code dispatch
+long pointer tables
+numeric scalar entries
+```
+
+For code dispatch entries, the status is derived from the accepted-code maps:
+accepted instruction starts become `accepted_target`; targets inside accepted
+instructions become `interior_code_target`; in-section but unaccepted code
+targets become `unresolved_target` with `unresolved_code_target` conflict
+state. Numeric entries remain `numeric_exact`.
+
+Covered by:
+
+- `source_analysis_table_entry_exports_status`
+- `facts_v2_pc_word_dispatch_descriptor_exports_index_domains`
+
+Verification after this pass:
+
+```text
+cmd /c src\precommit.bat m68k_ir
+uv run python -m pytest tests\test_c_backend.py -q
+all 36 tracked `.s` files regenerated
+uv run platform-rendered-source-roundtrip
+git diff --check
+```
+
+The regenerated sources had no tracked `.s` diffs. Round-trip remained
+`34/36` full-file exact, `1/36` content-exact-only, `1/36` unsupported, and
+`0` failures.
+
 ## Acceptance Criteria
 
 This proposal can close when:

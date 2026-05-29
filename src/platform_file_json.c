@@ -3393,7 +3393,7 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
   for (section_index = 0; section_index < source_analysis->section_count; ++section_index) {
     const M68kSectionAnalysisIR *section = &source_analysis->sections[section_index];
     size_t block_index, edge_index, violation_index, app_slot_ref_index, typed_access_index, range_index;
-    size_t table_descriptor_index, table_consumer_index;
+    size_t table_descriptor_index, table_consumer_index, table_entry_index;
     size_t unresolved_typed_access_index, runtime_view_index, runtime_address_ref_index, code_start_ref_index;
     size_t string_ref_index;
     size_t effect_index, call_index, disk_read_index, runtime_copy_index, indirect_site_index, orphan_signal_index;
@@ -3716,6 +3716,57 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
         if (json_builder_appendf(&builder, "%u", (unsigned)consumer->target_register) != 0)
           goto oom;
       } else if (json_builder_append(&builder, "null") != 0) goto oom;
+      if (json_builder_append(&builder, "}") != 0)
+        goto oom;
+    }
+    if (json_builder_appendf(&builder, "],\"table_entry_count\":%u,\"table_entries\":[",
+          (unsigned)section->table_entry_count) != 0)
+      goto oom;
+    for (table_entry_index = 0; table_entry_index < section->table_entry_count; ++table_entry_index) {
+      const M68kTableEntryIR *entry = &section->table_entries[table_entry_index];
+      if (table_entry_index != 0U && json_builder_append(&builder, ",") != 0)
+        goto oom;
+      if (json_builder_appendf(&builder,
+          "{\"table_start_offset\":%u,\"entry_index\":%u,\"entry_offset\":%u,\"entry_size\":%u,"
+          "\"raw_value\":%u,\"raw_value_width\":%u,\"table_kind_id\":%u,\"table_kind\":",
+          (unsigned)entry->table_start_offset, (unsigned)entry->entry_index, (unsigned)entry->entry_offset,
+          (unsigned)entry->entry_size, (unsigned)entry->raw_value, (unsigned)entry->raw_value_width,
+          (unsigned)entry->table_kind_id) != 0)
+        goto oom;
+      if (json_builder_append_nullable_string(&builder,
+          m68k_analysis_table_kind_name(entry->table_kind_id)) != 0)
+        goto oom;
+      if (json_builder_appendf(&builder,
+          ",\"source_pattern_id\":%u,\"source_pattern\":",
+          (unsigned)entry->source_pattern_id) != 0)
+        goto oom;
+      if (json_builder_append_nullable_string(&builder,
+          m68k_analysis_structured_data_source_pattern_name(entry->source_pattern_id)) != 0)
+        goto oom;
+      if (json_builder_appendf(&builder, ",\"target_status\":%u,\"target_status_name\":",
+          (unsigned)entry->target_status) != 0)
+        goto oom;
+      if (json_builder_append_json_string(&builder,
+          m68k_table_entry_target_status_name(entry->target_status)) != 0)
+        goto oom;
+      if (json_builder_append(&builder, ",\"target_section_index\":") != 0)
+        goto oom;
+      if (entry->has_target) {
+        if (json_builder_appendf(&builder, "%u", (unsigned)entry->target_section_index) != 0)
+          goto oom;
+      } else if (json_builder_append(&builder, "null") != 0) goto oom;
+      if (json_builder_append(&builder, ",\"target_offset\":") != 0)
+        goto oom;
+      if (entry->has_target) {
+        if (json_builder_appendf(&builder, "%u", (unsigned)entry->target_offset) != 0)
+          goto oom;
+      } else if (json_builder_append(&builder, "null") != 0) goto oom;
+      if (json_builder_appendf(&builder, ",\"conflict_state\":%u,\"conflict_state_name\":",
+          (unsigned)entry->conflict_state) != 0)
+        goto oom;
+      if (json_builder_append_json_string(&builder,
+          analysis_conflict_state_name(entry->conflict_state)) != 0)
+        goto oom;
       if (json_builder_append(&builder, "}") != 0)
         goto oom;
     }

@@ -214,6 +214,23 @@ const char *m68k_analysis_table_entry_count_proof_name(uint8_t proof_id) {
   }
 }
 
+const char *m68k_table_entry_target_status_name(uint8_t status) {
+  switch (status) {
+    case M68K_TABLE_ENTRY_TARGET_STATUS_NUMERIC_EXACT:
+      return "numeric_exact";
+    case M68K_TABLE_ENTRY_TARGET_STATUS_ACCEPTED_TARGET:
+      return "accepted_target";
+    case M68K_TABLE_ENTRY_TARGET_STATUS_UNRESOLVED_TARGET:
+      return "unresolved_target";
+    case M68K_TABLE_ENTRY_TARGET_STATUS_INTERIOR_CODE_TARGET:
+      return "interior_code_target";
+    case M68K_TABLE_ENTRY_TARGET_STATUS_CONFLICTED_TARGET:
+      return "conflicted_target";
+    default:
+      return NULL;
+  }
+}
+
 uint8_t m68k_analysis_table_entry_count_proof_for_source_pattern(uint8_t source_pattern_id) {
   switch (source_pattern_id) {
     case M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_RELOCATION_POINTER_TABLE:
@@ -1286,6 +1303,33 @@ int m68k_ir_section_analysis_append_table_consumer(M68kSectionAnalysisIR *sectio
       &section_analysis->table_consumer_capacity, 8U, sizeof(*section_analysis->table_consumers));
   if (section_analysis->table_consumers == NULL) return -1;
   section_analysis->table_consumers[section_analysis->table_consumer_count++] = *consumer;
+  return 0;
+}
+
+int m68k_ir_section_analysis_append_table_entry(M68kSectionAnalysisIR *section_analysis,
+    const M68kTableEntryIR *entry) {
+  size_t index;
+  if (section_analysis == NULL || entry == NULL) return -1;
+  if (section_analysis->arena == NULL) return -1;
+  if (entry->entry_size == 0U || entry->table_kind_id == M68K_ANALYSIS_TABLE_KIND_UNKNOWN ||
+      entry->target_status == M68K_TABLE_ENTRY_TARGET_STATUS_UNKNOWN) {
+    return 0;
+  }
+  for (index = 0U; index < section_analysis->table_entry_count; ++index) {
+    const M68kTableEntryIR *existing = &section_analysis->table_entries[index];
+    if (existing->table_start_offset == entry->table_start_offset &&
+        existing->entry_index == entry->entry_index &&
+        existing->entry_offset == entry->entry_offset &&
+        existing->entry_size == entry->entry_size &&
+        existing->table_kind_id == entry->table_kind_id) {
+      return 0;
+    }
+  }
+  section_analysis->table_entries = (M68kTableEntryIR *)arena_grow_array(section_analysis->arena,
+      section_analysis->table_entries, section_analysis->table_entry_count,
+      &section_analysis->table_entry_capacity, 16U, sizeof(*section_analysis->table_entries));
+  if (section_analysis->table_entries == NULL) return -1;
+  section_analysis->table_entries[section_analysis->table_entry_count++] = *entry;
   return 0;
 }
 
@@ -3534,6 +3578,13 @@ int m68k_ir_source_analysis_append_section(M68kSourceAnalysisIR *source_analysis
   for (index = 0; index < section_analysis->table_descriptor_count; ++index) {
     if (m68k_ir_section_analysis_append_table_descriptor(&copy,
           &section_analysis->table_descriptors[index]) != 0) {
+      m68k_ir_section_analysis_destroy(&copy);
+      return -1;
+    }
+  }
+  for (index = 0; index < section_analysis->table_entry_count; ++index) {
+    if (m68k_ir_section_analysis_append_table_entry(&copy,
+          &section_analysis->table_entries[index]) != 0) {
       m68k_ir_section_analysis_destroy(&copy);
       return -1;
     }
