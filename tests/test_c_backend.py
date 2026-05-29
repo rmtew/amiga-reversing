@@ -1030,10 +1030,11 @@ class _M68kAnalysisStructuredDataItem(ctypes.Structure):
         ("target_register_kind", ctypes.c_uint8),
         ("target_register", ctypes.c_uint8),
         ("entry_count_proof_id", ctypes.c_uint8),
+        ("table_stop_reason_id", ctypes.c_uint8),
         ("has_index_mask_domain", ctypes.c_uint8),
         ("has_index_compare_domain", ctypes.c_uint8),
         ("index_domain_branch_mnemonic_id", ctypes.c_uint8),
-        ("index_domain_reserved", ctypes.c_uint8 * 2),
+        ("index_domain_reserved", ctypes.c_uint8 * 1),
         ("index_mask_min", ctypes.c_uint32),
         ("index_mask_max", ctypes.c_uint32),
         ("index_compare_min", ctypes.c_uint32),
@@ -11068,6 +11069,7 @@ def test_real_dll_026_table_descriptors_use_evidence_bounds_not_caps() -> None:
         pandora_string_table["entry_count"] * pandora_string_table["entry_size"]
     )
     assert pandora_string_table["entry_count_proof"] == "consumer_structural_scan"
+    assert pandora_string_table["stop_reason"] == "consumer_structural_stop"
     assert pandora_string_table["target_offset"] == 41564
     assert pandora_string_table["consumer_offset"] == 10774
     pandora_string_entries = [
@@ -11105,6 +11107,7 @@ def test_real_dll_026_table_descriptors_use_evidence_bounds_not_caps() -> None:
     assert pandora_dispatch_table["entry_size"] == 4
     assert pandora_dispatch_table["entry_count"] == 33
     assert pandora_dispatch_table["entry_count_proof"] == "consumer_structural_scan"
+    assert pandora_dispatch_table["stop_reason"] == "consumer_structural_stop"
     pandora_dispatch_entries = [
         entry
         for entry in pandora_section["table_entries"]
@@ -11131,6 +11134,7 @@ def test_real_dll_026_table_descriptors_use_evidence_bounds_not_caps() -> None:
     assert bloodwych_table["entry_size"] == 2
     assert bloodwych_table["end_offset"] == 106506
     assert bloodwych_table["entry_count_proof"] == "consumer_structural_scan"
+    assert bloodwych_table["stop_reason"] == "consumer_structural_stop"
     bloodwych_scalar_entries = [
         entry
         for entry in bloodwych_section["table_entries"]

@@ -214,6 +214,27 @@ const char *m68k_analysis_table_entry_count_proof_name(uint8_t proof_id) {
   }
 }
 
+const char *m68k_analysis_table_stop_reason_name(uint8_t stop_reason_id) {
+  switch (stop_reason_id) {
+    case M68K_ANALYSIS_TABLE_STOP_REASON_STRUCTURED_RANGE_END:
+      return "structured_range_end";
+    case M68K_ANALYSIS_TABLE_STOP_REASON_CONSUMER_STRUCTURAL_STOP:
+      return "consumer_structural_stop";
+    case M68K_ANALYSIS_TABLE_STOP_REASON_RELOCATION_RECORD_END:
+      return "relocation_record_end";
+    case M68K_ANALYSIS_TABLE_STOP_REASON_PLATFORM_RECORD_END:
+      return "platform_record_end";
+    case M68K_ANALYSIS_TABLE_STOP_REASON_INDEX_MASK_BOUND:
+      return "index_mask_bound";
+    case M68K_ANALYSIS_TABLE_STOP_REASON_INDEX_COMPARE_BRANCH_BOUND:
+      return "index_compare_branch_bound";
+    case M68K_ANALYSIS_TABLE_STOP_REASON_LOOP_LIMIT_BOUND:
+      return "loop_limit_bound";
+    default:
+      return NULL;
+  }
+}
+
 const char *m68k_table_entry_target_status_name(uint8_t status) {
   switch (status) {
     case M68K_TABLE_ENTRY_TARGET_STATUS_NUMERIC_EXACT:
@@ -277,6 +298,25 @@ uint8_t m68k_analysis_table_entry_count_proof_for_source_pattern(uint8_t source_
       return M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_PLATFORM_RECORD;
     default:
       return M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_STRUCTURED_RANGE;
+  }
+}
+
+uint8_t m68k_analysis_table_stop_reason_for_entry_count_proof(uint8_t proof_id) {
+  switch (proof_id) {
+    case M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_STRUCTURED_RANGE:
+      return M68K_ANALYSIS_TABLE_STOP_REASON_STRUCTURED_RANGE_END;
+    case M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_CONSUMER_STRUCTURAL_SCAN:
+      return M68K_ANALYSIS_TABLE_STOP_REASON_CONSUMER_STRUCTURAL_STOP;
+    case M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_RELOCATION_RECORD:
+      return M68K_ANALYSIS_TABLE_STOP_REASON_RELOCATION_RECORD_END;
+    case M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_PLATFORM_RECORD:
+      return M68K_ANALYSIS_TABLE_STOP_REASON_PLATFORM_RECORD_END;
+    case M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_INDEX_MASK_DOMAIN:
+      return M68K_ANALYSIS_TABLE_STOP_REASON_INDEX_MASK_BOUND;
+    case M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_INDEX_COMPARE_DOMAIN:
+      return M68K_ANALYSIS_TABLE_STOP_REASON_INDEX_COMPARE_BRANCH_BOUND;
+    default:
+      return M68K_ANALYSIS_TABLE_STOP_REASON_UNKNOWN;
   }
 }
 
@@ -486,9 +526,15 @@ void m68k_analysis_structured_data_item_refresh_table_metadata(M68kAnalysisStruc
     item->table_conflicted = 0U;
     item->table_conflict_state = M68K_ANALYSIS_CONFLICT_STATE_CLEAN;
     item->entry_count_proof_id = M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_UNKNOWN;
+    item->table_stop_reason_id = M68K_ANALYSIS_TABLE_STOP_REASON_UNKNOWN;
   } else if (item->entry_count_proof_id == M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_UNKNOWN) {
     item->entry_count_proof_id =
       m68k_analysis_table_entry_count_proof_for_source_pattern(item->source_pattern_id);
+  }
+  if (item->table_kind_id != M68K_ANALYSIS_TABLE_KIND_UNKNOWN &&
+      item->table_stop_reason_id == M68K_ANALYSIS_TABLE_STOP_REASON_UNKNOWN) {
+    item->table_stop_reason_id =
+      m68k_analysis_table_stop_reason_for_entry_count_proof(item->entry_count_proof_id);
   }
 }
 
@@ -1266,6 +1312,7 @@ int m68k_ir_section_analysis_append_range_ownership(M68kSectionAnalysisIR *secti
 
 int m68k_ir_section_analysis_append_table_descriptor(M68kSectionAnalysisIR *section_analysis,
     const M68kTableDescriptorIR *descriptor) {
+  M68kTableDescriptorIR normalized;
   M68kTableConsumerIR consumer;
   if (section_analysis == NULL || descriptor == NULL) return -1;
   if (section_analysis->arena == NULL) return -1;
@@ -1273,35 +1320,41 @@ int m68k_ir_section_analysis_append_table_descriptor(M68kSectionAnalysisIR *sect
       descriptor->entry_count == 0U || descriptor->table_kind_id == M68K_ANALYSIS_TABLE_KIND_UNKNOWN) {
     return 0;
   }
+  normalized = *descriptor;
+  if (normalized.table_stop_reason_id == M68K_ANALYSIS_TABLE_STOP_REASON_UNKNOWN) {
+    normalized.table_stop_reason_id =
+      m68k_analysis_table_stop_reason_for_entry_count_proof(normalized.entry_count_proof_id);
+  }
   section_analysis->table_descriptors = (M68kTableDescriptorIR *)arena_grow_array(section_analysis->arena,
       section_analysis->table_descriptors, section_analysis->table_descriptor_count,
       &section_analysis->table_descriptor_capacity, 8U, sizeof(*section_analysis->table_descriptors));
   if (section_analysis->table_descriptors == NULL) return -1;
-  section_analysis->table_descriptors[section_analysis->table_descriptor_count++] = *descriptor;
-  if (descriptor->has_consumer) {
+  section_analysis->table_descriptors[section_analysis->table_descriptor_count++] = normalized;
+  if (normalized.has_consumer) {
     memset(&consumer, 0, sizeof(consumer));
-    consumer.consumer_offset = descriptor->consumer_offset;
+    consumer.consumer_offset = normalized.consumer_offset;
     consumer.table_section_index = (uint32_t)section_analysis->section_index;
-    consumer.table_start_offset = descriptor->start_offset;
-    consumer.table_end_offset = descriptor->end_offset;
-    consumer.access_width = descriptor->entry_size;
-    consumer.entry_count = descriptor->entry_count;
-    consumer.entry_count_proof_id = descriptor->entry_count_proof_id;
-    consumer.table_kind_id = descriptor->table_kind_id;
-    consumer.source_pattern_id = descriptor->source_pattern_id;
-    consumer.has_index_register = descriptor->has_index_register;
-    consumer.index_register_kind = descriptor->index_register_kind;
-    consumer.index_register = descriptor->index_register;
-    consumer.has_target_register = descriptor->has_target_register;
-    consumer.target_register_kind = descriptor->target_register_kind;
-    consumer.target_register = descriptor->target_register;
-    consumer.has_index_mask_domain = descriptor->has_index_mask_domain;
-    consumer.index_mask_min = descriptor->index_mask_min;
-    consumer.index_mask_max = descriptor->index_mask_max;
-    consumer.has_index_compare_domain = descriptor->has_index_compare_domain;
-    consumer.index_compare_min = descriptor->index_compare_min;
-    consumer.index_compare_max = descriptor->index_compare_max;
-    consumer.index_domain_branch_mnemonic_id = descriptor->index_domain_branch_mnemonic_id;
+    consumer.table_start_offset = normalized.start_offset;
+    consumer.table_end_offset = normalized.end_offset;
+    consumer.access_width = normalized.entry_size;
+    consumer.entry_count = normalized.entry_count;
+    consumer.entry_count_proof_id = normalized.entry_count_proof_id;
+    consumer.table_stop_reason_id = normalized.table_stop_reason_id;
+    consumer.table_kind_id = normalized.table_kind_id;
+    consumer.source_pattern_id = normalized.source_pattern_id;
+    consumer.has_index_register = normalized.has_index_register;
+    consumer.index_register_kind = normalized.index_register_kind;
+    consumer.index_register = normalized.index_register;
+    consumer.has_target_register = normalized.has_target_register;
+    consumer.target_register_kind = normalized.target_register_kind;
+    consumer.target_register = normalized.target_register;
+    consumer.has_index_mask_domain = normalized.has_index_mask_domain;
+    consumer.index_mask_min = normalized.index_mask_min;
+    consumer.index_mask_max = normalized.index_mask_max;
+    consumer.has_index_compare_domain = normalized.has_index_compare_domain;
+    consumer.index_compare_min = normalized.index_compare_min;
+    consumer.index_compare_max = normalized.index_compare_max;
+    consumer.index_domain_branch_mnemonic_id = normalized.index_domain_branch_mnemonic_id;
     if (m68k_ir_section_analysis_append_table_consumer(section_analysis, &consumer) != 0) return -1;
   }
   return 0;
@@ -1329,6 +1382,10 @@ int m68k_ir_section_analysis_append_table_consumer(M68kSectionAnalysisIR *sectio
       if (stored->entry_count_proof_id == M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_UNKNOWN &&
           consumer->entry_count_proof_id != M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_UNKNOWN) {
         stored->entry_count_proof_id = consumer->entry_count_proof_id;
+      }
+      if (stored->table_stop_reason_id == M68K_ANALYSIS_TABLE_STOP_REASON_UNKNOWN &&
+          consumer->table_stop_reason_id != M68K_ANALYSIS_TABLE_STOP_REASON_UNKNOWN) {
+        stored->table_stop_reason_id = consumer->table_stop_reason_id;
       }
       if (!stored->has_index_register && consumer->has_index_register) {
         stored->has_index_register = consumer->has_index_register;

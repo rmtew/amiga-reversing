@@ -9570,6 +9570,7 @@ static int test_source_analysis_table_descriptor_exports_consumer_fact(void) {
   descriptor.entry_size = 4U;
   descriptor.entry_count = 4U;
   descriptor.entry_count_proof_id = M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_CONSUMER_STRUCTURAL_SCAN;
+  descriptor.table_stop_reason_id = M68K_ANALYSIS_TABLE_STOP_REASON_CONSUMER_STRUCTURAL_STOP;
   descriptor.table_kind_id = M68K_ANALYSIS_TABLE_KIND_POINTER;
   descriptor.base_expression_id = M68K_ANALYSIS_TABLE_BASE_EXPRESSION_TABLE_LABEL;
   descriptor.source_pattern_id = M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_INDEXED_LOCAL_POINTER_READ;
@@ -9600,6 +9601,8 @@ static int test_source_analysis_table_descriptor_exports_consumer_fact(void) {
   M68K_C_ASSERT_U32(4U, section_analysis.table_consumers[0].entry_count);
   M68K_C_ASSERT_U32(M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_CONSUMER_STRUCTURAL_SCAN,
     section_analysis.table_consumers[0].entry_count_proof_id);
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_TABLE_STOP_REASON_CONSUMER_STRUCTURAL_STOP,
+    section_analysis.table_consumers[0].table_stop_reason_id);
   M68K_C_ASSERT_U32(M68K_ANALYSIS_TABLE_KIND_POINTER, section_analysis.table_consumers[0].table_kind_id);
   M68K_C_ASSERT_U32(M68K_ANALYSIS_REGISTER_DATA, section_analysis.table_consumers[0].index_register_kind);
   M68K_C_ASSERT_U32(2U, section_analysis.table_consumers[0].index_register);
@@ -9620,6 +9623,8 @@ static int test_source_analysis_table_descriptor_exports_consumer_fact(void) {
     "\"table_consumers\":[{\"consumer_offset\":12,\"table_section_index\":0,"
     "\"table_start_offset\":32,\"table_end_offset\":48,\"access_width\":4,\"entry_count\":4,"
     "\"entry_count_proof_id\":2,\"entry_count_proof\":\"consumer_structural_scan\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"stop_reason_id\":2,\"stop_reason\":\"consumer_structural_stop\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"index_mask_domain\":{\"min\":0,\"max\":3}") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
     "\"index_compare_domain\":{\"min\":0,\"max\":3,\"branch_mnemonic_id\":") != NULL);
@@ -10210,6 +10215,8 @@ static int test_facts_v2_pc_word_dispatch_descriptor_exports_index_domains(void)
   M68K_C_ASSERT_U32(1U, table_consumer->index_register);
   M68K_C_ASSERT_U32(M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_INDEX_COMPARE_DOMAIN,
     table_consumer->entry_count_proof_id);
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_TABLE_STOP_REASON_INDEX_COMPARE_BRANCH_BOUND,
+    table_consumer->table_stop_reason_id);
   M68K_C_ASSERT_U32(1U, table_consumer->has_index_mask_domain);
   M68K_C_ASSERT_U32(0U, table_consumer->index_mask_min);
   M68K_C_ASSERT_U32(7U, table_consumer->index_mask_max);

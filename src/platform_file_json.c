@@ -3687,6 +3687,12 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
       if (json_builder_append_nullable_string(&builder,
           m68k_analysis_table_entry_count_proof_name(descriptor->entry_count_proof_id)) != 0)
         goto oom;
+      if (json_builder_appendf(&builder, ",\"stop_reason_id\":%u,\"stop_reason\":",
+          (unsigned)descriptor->table_stop_reason_id) != 0)
+        goto oom;
+      if (json_builder_append_nullable_string(&builder,
+          m68k_analysis_table_stop_reason_name(descriptor->table_stop_reason_id)) != 0)
+        goto oom;
       if (append_index_domain_json(&builder, descriptor->has_index_mask_domain,
           descriptor->index_mask_min, descriptor->index_mask_max, descriptor->has_index_compare_domain,
           descriptor->index_compare_min, descriptor->index_compare_max,
@@ -3775,6 +3781,12 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
         goto oom;
       if (json_builder_append_nullable_string(&builder,
           m68k_analysis_table_entry_count_proof_name(consumer->entry_count_proof_id)) != 0)
+        goto oom;
+      if (json_builder_appendf(&builder, ",\"stop_reason_id\":%u,\"stop_reason\":",
+          (unsigned)consumer->table_stop_reason_id) != 0)
+        goto oom;
+      if (json_builder_append_nullable_string(&builder,
+          m68k_analysis_table_stop_reason_name(consumer->table_stop_reason_id)) != 0)
         goto oom;
       if (append_index_domain_json(&builder, consumer->has_index_mask_domain,
           consumer->index_mask_min, consumer->index_mask_max, consumer->has_index_compare_domain,

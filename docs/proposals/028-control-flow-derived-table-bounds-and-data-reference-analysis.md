@@ -1470,6 +1470,57 @@ fixtures for every table shape. Platform adapters may contribute facts and
 metadata; they must not bypass the shared C ownership model for table bounds,
 entry status, or data-reference acceptance.
 
+### Pass 14: Table Stop-Reason Surface
+
+The fourteenth implementation pass adds an explicit C-owned table stop-reason
+field. Before this pass, `entry_count_proof` implied why a table ended, but
+consumers could not distinguish the bound proof from the actual stopping reason
+without reinterpreting enum names.
+
+The new field is carried on:
+
+```text
+M68kAnalysisStructuredDataItem.table_stop_reason_id
+M68kTableDescriptorIR.table_stop_reason_id
+M68kTableConsumerIR.table_stop_reason_id
+source-analysis JSON stop_reason_id / stop_reason
+```
+
+Current stop reasons are:
+
+```text
+structured_range_end
+consumer_structural_stop
+relocation_record_end
+platform_record_end
+index_mask_bound
+index_compare_branch_bound
+loop_limit_bound
+```
+
+Existing structural scans now report `consumer_structural_stop` explicitly.
+Exact index-domain promotions report `index_mask_bound` or
+`index_compare_branch_bound`. `loop_limit_bound` is represented in the shared
+model so later loop-bound producers can attach it without changing the JSON
+contract.
+
+Covered by:
+
+- `source_analysis_table_descriptor_exports_consumer_fact`
+- `facts_v2_pc_word_dispatch_descriptor_exports_index_domains`
+- `test_real_dll_026_table_descriptors_use_evidence_bounds_not_caps`
+
+Verification after this pass:
+
+```text
+cmd /c src\precommit.bat m68k_ir
+uv run python -m pytest tests\test_c_backend.py -q
+uv run platform-rendered-source-roundtrip
+```
+
+Round-trip remained `34/36` full-file exact, `1/36` content-exact-only,
+`1/36` unsupported, and `0` failures.
+
 ## Acceptance Criteria
 
 This proposal can close when:

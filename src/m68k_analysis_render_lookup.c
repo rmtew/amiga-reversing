@@ -5737,6 +5737,7 @@ static void render_lookup_set_entry_count_proof_if_stronger(M68kAnalysisStructur
   if (render_lookup_table_entry_count_proof_rank(proof_id) >=
       render_lookup_table_entry_count_proof_rank(item->entry_count_proof_id)) {
     item->entry_count_proof_id = proof_id;
+    item->table_stop_reason_id = m68k_analysis_table_stop_reason_for_entry_count_proof(proof_id);
   }
 }
 

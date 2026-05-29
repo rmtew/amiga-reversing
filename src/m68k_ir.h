@@ -164,6 +164,17 @@ typedef enum M68kAnalysisTableEntryCountProof {
   M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_INDEX_COMPARE_DOMAIN = 6
 } M68kAnalysisTableEntryCountProof;
 
+typedef enum M68kAnalysisTableStopReason {
+  M68K_ANALYSIS_TABLE_STOP_REASON_UNKNOWN = 0,
+  M68K_ANALYSIS_TABLE_STOP_REASON_STRUCTURED_RANGE_END = 1,
+  M68K_ANALYSIS_TABLE_STOP_REASON_CONSUMER_STRUCTURAL_STOP = 2,
+  M68K_ANALYSIS_TABLE_STOP_REASON_RELOCATION_RECORD_END = 3,
+  M68K_ANALYSIS_TABLE_STOP_REASON_PLATFORM_RECORD_END = 4,
+  M68K_ANALYSIS_TABLE_STOP_REASON_INDEX_MASK_BOUND = 5,
+  M68K_ANALYSIS_TABLE_STOP_REASON_INDEX_COMPARE_BRANCH_BOUND = 6,
+  M68K_ANALYSIS_TABLE_STOP_REASON_LOOP_LIMIT_BOUND = 7
+} M68kAnalysisTableStopReason;
+
 typedef enum M68kAnalysisStructuredDataTextField {
   M68K_ANALYSIS_STRUCTURED_DATA_TEXT_LABEL = 0,
   M68K_ANALYSIS_STRUCTURED_DATA_TEXT_STRUCT_NAME = 1,
@@ -211,10 +222,11 @@ typedef struct M68kAnalysisStructuredDataItem {
   uint8_t target_register_kind;
   uint8_t target_register;
   uint8_t entry_count_proof_id;
+  uint8_t table_stop_reason_id;
   uint8_t has_index_mask_domain;
   uint8_t has_index_compare_domain;
   uint8_t index_domain_branch_mnemonic_id;
-  uint8_t index_domain_reserved[2];
+  uint8_t index_domain_reserved[1];
   uint32_t index_mask_min;
   uint32_t index_mask_max;
   uint32_t index_compare_min;
@@ -1346,7 +1358,7 @@ typedef struct M68kTableDescriptorIR {
   uint8_t has_target;
   uint8_t has_consumer;
   uint8_t conflict_state;
-  uint8_t reserved[1];
+  uint8_t table_stop_reason_id;
   uint32_t target_section_index;
   uint32_t target_offset;
   uint32_t consumer_section_index;
@@ -1383,9 +1395,11 @@ typedef struct M68kTableConsumerIR {
   uint8_t target_register_kind;
   uint8_t target_register;
   uint8_t entry_count_proof_id;
+  uint8_t table_stop_reason_id;
   uint8_t has_index_mask_domain;
   uint8_t has_index_compare_domain;
   uint8_t index_domain_branch_mnemonic_id;
+  uint8_t reserved[3];
   uint32_t index_mask_min;
   uint32_t index_mask_max;
   uint32_t index_compare_min;
@@ -1662,11 +1676,13 @@ const char *m68k_analysis_structured_data_source_pattern_name(uint8_t source_pat
 const char *m68k_analysis_table_kind_name(uint8_t table_kind_id);
 const char *m68k_analysis_table_base_expression_name(uint8_t base_expression_id);
 const char *m68k_analysis_table_entry_count_proof_name(uint8_t proof_id);
+const char *m68k_analysis_table_stop_reason_name(uint8_t stop_reason_id);
 const char *m68k_table_entry_target_status_name(uint8_t status);
 const char *m68k_data_reference_source_kind_name(uint8_t source_kind);
 const char *m68k_incomplete_analysis_kind_name(uint8_t kind);
 const char *m68k_incomplete_analysis_source_kind_name(uint8_t source_kind);
 uint8_t m68k_analysis_table_entry_count_proof_for_source_pattern(uint8_t source_pattern_id);
+uint8_t m68k_analysis_table_stop_reason_for_entry_count_proof(uint8_t proof_id);
 uint8_t m68k_recovered_indirect_source_pattern_id(uint8_t shape);
 const char *m68k_recovered_indirect_source_pattern_name(uint8_t source_pattern_id);
 const char *m68k_recovered_platform_transfer_source_kind_name(uint8_t source_kind);
