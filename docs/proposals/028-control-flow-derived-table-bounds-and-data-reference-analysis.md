@@ -1011,6 +1011,71 @@ The regenerated sources had no tracked `.s` diffs. Round-trip remained
 `34/36` full-file exact, `1/36` content-exact-only, `1/36` unsupported, and
 `0` failures.
 
+### Pass 5: Index Domain Evidence Surface
+
+The fifth implementation pass adds explicit C-owned index-domain evidence to
+table descriptors and table consumers. Entry count proof says why the table
+span is accepted; index-domain proof says what the consuming code proves about
+the register used to index the table.
+
+Current exported domain facts:
+
+```text
+index_mask_domain    -> andi.w/and.w immediate mask, recorded as min/max
+index_compare_domain -> cmpi.w/cmp.w immediate plus out-of-range branch
+branch_mnemonic      -> branch instruction proving the compare-domain exit
+```
+
+The first implemented derivation covers the local 68000 word-dispatch idiom:
+
+```asm
+    andi.w  #$0007,d1
+    cmpi.w  #5,d1
+    bhi.s   default
+    add.w   d1,d1
+    lea.l   case_base.l,a0
+    adda.w  case_table(pc,d1.w),a0
+    jmp     (a0)
+```
+
+The C recognizer now records:
+
+```text
+index register        = d1
+mask domain           = 0..7
+compare domain        = 0..5
+compare branch        = bhi
+table/target register = case_table / a0
+```
+
+The derivation is intentionally conservative. It records only local contiguous
+evidence, requires the word-index scale instruction before a word table access,
+and does not convert the structural table extent into a compare-bound entry
+count yet. Later passes can use these fields to promote a stronger
+compare-bound proof without rereading source text or renderer output.
+
+This pass also prevents later generic PC-relative read recognition from
+overwriting a stronger dispatch source pattern on the same structured table
+record.
+
+Covered by:
+
+- `source_analysis_table_descriptor_exports_consumer_fact`
+- `facts_v2_pc_word_dispatch_descriptor_exports_index_domains`
+
+Verification after this pass:
+
+```text
+cmd /c src\precommit.bat m68k_ir
+uv run python -m pytest tests\test_c_backend.py -q
+all 36 tracked `.s` files regenerated
+uv run platform-rendered-source-roundtrip
+```
+
+The regenerated sources had no tracked `.s` diffs. Round-trip remained
+`34/36` full-file exact, `1/36` content-exact-only, `1/36` unsupported, and
+`0` failures.
+
 ## Acceptance Criteria
 
 This proposal can close when:

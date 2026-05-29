@@ -209,7 +209,14 @@ typedef struct M68kAnalysisStructuredDataItem {
   uint8_t target_register_kind;
   uint8_t target_register;
   uint8_t entry_count_proof_id;
-  uint8_t consumer_register_reserved[1];
+  uint8_t has_index_mask_domain;
+  uint8_t has_index_compare_domain;
+  uint8_t index_domain_branch_mnemonic_id;
+  uint8_t index_domain_reserved[2];
+  uint32_t index_mask_min;
+  uint32_t index_mask_max;
+  uint32_t index_compare_min;
+  uint32_t index_compare_max;
   uint32_t semantic_role_flags;
   uint16_t label_len;
   uint16_t struct_name_len;
@@ -1341,7 +1348,14 @@ typedef struct M68kTableDescriptorIR {
   uint8_t has_target_register;
   uint8_t target_register_kind;
   uint8_t target_register;
-  uint8_t reserved_registers[2];
+  uint8_t has_index_mask_domain;
+  uint8_t has_index_compare_domain;
+  uint8_t index_domain_branch_mnemonic_id;
+  uint8_t reserved_registers[3];
+  uint32_t index_mask_min;
+  uint32_t index_mask_max;
+  uint32_t index_compare_min;
+  uint32_t index_compare_max;
 } M68kTableDescriptorIR;
 
 typedef struct M68kTableConsumerIR {
@@ -1360,7 +1374,13 @@ typedef struct M68kTableConsumerIR {
   uint8_t target_register_kind;
   uint8_t target_register;
   uint8_t entry_count_proof_id;
-  uint8_t reserved[2];
+  uint8_t has_index_mask_domain;
+  uint8_t has_index_compare_domain;
+  uint8_t index_domain_branch_mnemonic_id;
+  uint32_t index_mask_min;
+  uint32_t index_mask_max;
+  uint32_t index_compare_min;
+  uint32_t index_compare_max;
 } M68kTableConsumerIR;
 
 typedef struct M68kSectionAnalysisIR {

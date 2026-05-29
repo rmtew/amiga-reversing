@@ -1,6 +1,7 @@
 /* Internal JSON/inspection implementation for platform_file_lib. */
 #include "platform_file_internal.h"
 #include "m68k_fact_ir.h"
+#include "m68k_assembler.h"
 #include "m68k_bitset.h"
 #include "m68k_render_plan.h"
 #include "m68k_source_text_util.h"
@@ -2296,6 +2297,26 @@ static int append_source_analysis_structured_items_json(JsonBuilder *builder,
   return 0;
 }
 
+static int append_index_domain_json(JsonBuilder *builder, uint8_t has_mask, uint32_t mask_min,
+    uint32_t mask_max, uint8_t has_compare, uint32_t compare_min, uint32_t compare_max,
+    uint8_t branch_mnemonic_id) {
+  if (builder == NULL) return -1;
+  if (json_builder_append(builder, ",\"index_mask_domain\":") != 0) return -1;
+  if (has_mask) {
+    if (json_builder_appendf(builder, "{\"min\":%u,\"max\":%u}", (unsigned)mask_min,
+        (unsigned)mask_max) != 0) return -1;
+  } else if (json_builder_append(builder, "null") != 0) return -1;
+  if (json_builder_append(builder, ",\"index_compare_domain\":") != 0) return -1;
+  if (has_compare) {
+    if (json_builder_appendf(builder, "{\"min\":%u,\"max\":%u,\"branch_mnemonic_id\":%u,"
+        "\"branch_mnemonic\":", (unsigned)compare_min, (unsigned)compare_max,
+        (unsigned)branch_mnemonic_id) != 0) return -1;
+    if (json_builder_append_nullable_string(builder, m68k_asm_mnemonic_name(branch_mnemonic_id)) != 0) return -1;
+    if (json_builder_append(builder, "}") != 0) return -1;
+  } else if (json_builder_append(builder, "null") != 0) return -1;
+  return 0;
+}
+
 static uint32_t structured_data_item_entry_size(const M68kAnalysisStructuredDataItem *item) {
   if (item == NULL) return 0U;
   if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_BYTES) return 1U;
@@ -3564,6 +3585,11 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
       if (json_builder_append_nullable_string(&builder,
           m68k_analysis_table_entry_count_proof_name(descriptor->entry_count_proof_id)) != 0)
         goto oom;
+      if (append_index_domain_json(&builder, descriptor->has_index_mask_domain,
+          descriptor->index_mask_min, descriptor->index_mask_max, descriptor->has_index_compare_domain,
+          descriptor->index_compare_min, descriptor->index_compare_max,
+          descriptor->index_domain_branch_mnemonic_id) != 0)
+        goto oom;
       if (json_builder_appendf(&builder, ",\"table_kind_id\":%u,\"table_kind\":",
           (unsigned)descriptor->table_kind_id) != 0)
         goto oom;
@@ -3647,6 +3673,11 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
         goto oom;
       if (json_builder_append_nullable_string(&builder,
           m68k_analysis_table_entry_count_proof_name(consumer->entry_count_proof_id)) != 0)
+        goto oom;
+      if (append_index_domain_json(&builder, consumer->has_index_mask_domain,
+          consumer->index_mask_min, consumer->index_mask_max, consumer->has_index_compare_domain,
+          consumer->index_compare_min, consumer->index_compare_max,
+          consumer->index_domain_branch_mnemonic_id) != 0)
         goto oom;
       if (json_builder_appendf(&builder, ",\"table_kind_id\":%u,\"table_kind\":",
           (unsigned)consumer->table_kind_id) != 0)

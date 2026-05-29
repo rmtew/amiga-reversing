@@ -1218,6 +1218,13 @@ int m68k_ir_section_analysis_append_table_descriptor(M68kSectionAnalysisIR *sect
     consumer.has_target_register = descriptor->has_target_register;
     consumer.target_register_kind = descriptor->target_register_kind;
     consumer.target_register = descriptor->target_register;
+    consumer.has_index_mask_domain = descriptor->has_index_mask_domain;
+    consumer.index_mask_min = descriptor->index_mask_min;
+    consumer.index_mask_max = descriptor->index_mask_max;
+    consumer.has_index_compare_domain = descriptor->has_index_compare_domain;
+    consumer.index_compare_min = descriptor->index_compare_min;
+    consumer.index_compare_max = descriptor->index_compare_max;
+    consumer.index_domain_branch_mnemonic_id = descriptor->index_domain_branch_mnemonic_id;
     if (m68k_ir_section_analysis_append_table_consumer(section_analysis, &consumer) != 0) return -1;
   }
   return 0;
@@ -1255,6 +1262,17 @@ int m68k_ir_section_analysis_append_table_consumer(M68kSectionAnalysisIR *sectio
         stored->has_target_register = consumer->has_target_register;
         stored->target_register_kind = consumer->target_register_kind;
         stored->target_register = consumer->target_register;
+      }
+      if (!stored->has_index_mask_domain && consumer->has_index_mask_domain) {
+        stored->has_index_mask_domain = consumer->has_index_mask_domain;
+        stored->index_mask_min = consumer->index_mask_min;
+        stored->index_mask_max = consumer->index_mask_max;
+      }
+      if (!stored->has_index_compare_domain && consumer->has_index_compare_domain) {
+        stored->has_index_compare_domain = consumer->has_index_compare_domain;
+        stored->index_compare_min = consumer->index_compare_min;
+        stored->index_compare_max = consumer->index_compare_max;
+        stored->index_domain_branch_mnemonic_id = consumer->index_domain_branch_mnemonic_id;
       }
       return 0;
     }

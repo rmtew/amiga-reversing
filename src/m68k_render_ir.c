@@ -8652,6 +8652,13 @@ static int render_analysis_append_lookup_table_descriptors_for_section(
     descriptor.has_target_register = item->has_target_register;
     descriptor.target_register_kind = item->target_register_kind;
     descriptor.target_register = item->target_register;
+    descriptor.has_index_mask_domain = item->has_index_mask_domain;
+    descriptor.index_mask_min = item->index_mask_min;
+    descriptor.index_mask_max = item->index_mask_max;
+    descriptor.has_index_compare_domain = item->has_index_compare_domain;
+    descriptor.index_compare_min = item->index_compare_min;
+    descriptor.index_compare_max = item->index_compare_max;
+    descriptor.index_domain_branch_mnemonic_id = item->index_domain_branch_mnemonic_id;
     descriptor.conflict_state = item->table_conflict_state;
     if (m68k_ir_section_analysis_append_table_descriptor(section_analysis, &descriptor) != 0) return -1;
   }
