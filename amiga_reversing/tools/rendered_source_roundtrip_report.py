@@ -13,6 +13,8 @@ from amiga_reversing.disasm.source_rendering import (
     render_source_from_binary_source_or_raise,
 )
 
+DEFAULT_REPORT_PATH = PROJECT_ROOT / "docs" / "validation" / "rendered-source-roundtrip-report.json"
+
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
@@ -29,6 +31,17 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Rewrite each supported target .s from the current renderer before round-trip verification.",
     )
+    parser.add_argument(
+        "--report-path",
+        type=Path,
+        default=DEFAULT_REPORT_PATH,
+        help=f"Deterministic JSON report path. Defaults to {DEFAULT_REPORT_PATH.relative_to(PROJECT_ROOT)}.",
+    )
+    parser.add_argument(
+        "--no-write-report",
+        action="store_true",
+        help="Do not write the deterministic JSON report.",
+    )
     parser.add_argument("--json", action="store_true", help="Emit JSON instead of a text summary.")
     args = parser.parse_args(argv)
 
@@ -38,12 +51,60 @@ def main(argv: list[str] | None = None) -> int:
         for target, source_path in targets
     ]
     summary = _summary(rows)
-    payload = {"summary": summary, "targets": rows}
+    payload = _report_payload(summary, rows)
+    report_path = cast(Path, args.report_path)
+    report_drift = False
+    if not bool(args.no_write_report):
+        if not bool(args.update_rendered_source):
+            report_drift = _report_has_drift(report_path, payload)
+        _write_report(report_path, payload)
     if bool(args.json):
         print(json.dumps(payload, indent=2, sort_keys=True))
     else:
         _print_text_report(summary, rows)
-    return 0 if summary["failures"] == 0 else 1
+        if report_drift:
+            print(f"report-drift       {_display_path(report_path)}")
+    return 0 if summary["failures"] == 0 and not report_drift else 1
+
+
+def _write_report(path: Path, payload: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8", newline="\n")
+
+
+def _report_has_drift(path: Path, payload: dict[str, Any]) -> bool:
+    expected = json.dumps(payload, indent=2, sort_keys=True) + "\n"
+    if not path.exists():
+        return True
+    return path.read_text(encoding="utf-8") != expected
+
+
+def _display_path(path: Path) -> str:
+    try:
+        return str(path.relative_to(PROJECT_ROOT))
+    except ValueError:
+        return str(path)
+
+
+def _report_payload(summary: dict[str, int], rows: list[dict[str, Any]]) -> dict[str, Any]:
+    return {
+        "schema_version": 1,
+        "summary": summary,
+        "targets": [_report_row(row) for row in rows],
+    }
+
+
+def _report_row(row: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "target": row["target"],
+        "status": row.get("status"),
+        "rendered_source_full_file_exact": row["rendered_source_full_file_exact"],
+        "rendered_source_content_exact": row["rendered_source_content_exact"],
+        "failure_kinds": sorted(str(kind) for kind in row.get("failure_kinds") or []),
+        "diff_range_count": row.get("diff_range_count"),
+        "tool_error": row.get("tool_error"),
+        "message": row.get("message"),
+    }
 
 
 def _rendered_source_targets(targets_root: Path) -> list[tuple[str, Path]]:

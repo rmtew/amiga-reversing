@@ -1825,6 +1825,7 @@ uv run platform-rendered-source-roundtrip --update-rendered-source
 
 uv run platform-rendered-source-roundtrip
   25/36 full-file exact, 10/36 content-exact-only, 1/36 unsupported, 0 failures
+  default report matched docs/validation/rendered-source-roundtrip-report.json
 
 git diff --check
   OK
@@ -1889,6 +1890,11 @@ This proposal does not require:
   able to take the direct C rebuild fast path. The broader content-exact set
   reflects supported source content with known container-shape limits, not
   payload loss.
+- The deterministic report is checked in at
+  `docs/validation/rendered-source-roundtrip-report.json`. Normal
+  `platform-rendered-source-roundtrip` rewrites that file and fails with
+  `report-drift` when the computed report differs, so future source/render
+  changes leave a reviewable diff for the content-exact cases.
 - The refresh gate exposed three general renderer/parser issues that were fixed
   in C rather than patched per target: executable hunk header memory flags now
   reach object sections, cross-ORG PC-relative operands use storage-domain labels,

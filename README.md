@@ -115,10 +115,13 @@ unsupported        macos_hfs_mpw_gm__macos_file_mpw_tools_asm (unsupported_platf
 `full-file-exact` means rendered source rebuilt the original file/container
 byte-for-byte. `content-exact-only` means the useful payload/relocation content
 matches, but the container shape is not reproduced exactly. The command always
-assembles the tracked `asm.s` text; `--update-rendered-source` rewrites supported
-targets from the current renderer first, then verifies that same text.
-`unsupported` is reported explicitly for rendered source that exists but cannot
-currently be assembled, such as Mac OS `asm.s`.
+assembles the tracked `asm.s` text and compares the deterministic report at
+`docs/validation/rendered-source-roundtrip-report.json`. If the report drifts,
+the command rewrites that file, prints `report-drift`, and exits non-zero so the
+diff can be reviewed. `--update-rendered-source` rewrites supported targets from
+the current renderer first, then verifies that same text and refreshes the
+report intentionally. `unsupported` is reported explicitly for rendered source
+that exists but cannot currently be assembled, such as Mac OS `asm.s`.
 
 See [docs/reproduction.md](docs/reproduction.md) for the web UI binary
 reproduction workflow and assembler customization policy.

@@ -1,0 +1,413 @@
+{
+  "schema_version": 1,
+  "summary": {
+    "failures": 0,
+    "rendered_source_content_exact_only": 10,
+    "rendered_source_full_file_exact": 25,
+    "targets": 36,
+    "unsupported": 1
+  },
+  "targets": [
+    {
+      "diff_range_count": 0,
+      "failure_kinds": [],
+      "message": null,
+      "rendered_source_content_exact": true,
+      "rendered_source_full_file_exact": true,
+      "status": "exact",
+      "target": "amiga_disk_carrier-command-1994-kixx-budget__amiga_raw_bootblock",
+      "tool_error": null
+    },
+    {
+      "diff_range_count": 0,
+      "failure_kinds": [],
+      "message": null,
+      "rendered_source_content_exact": true,
+      "rendered_source_full_file_exact": true,
+      "status": "exact",
+      "target": "amiga_disk_conqueror-1990-rainbow-arts-de-en__amiga_hunk_conqueror_cf971606",
+      "tool_error": null
+    },
+    {
+      "diff_range_count": 0,
+      "failure_kinds": [],
+      "message": null,
+      "rendered_source_content_exact": true,
+      "rendered_source_full_file_exact": true,
+      "status": "exact",
+      "target": "amiga_disk_conqueror-1990-rainbow-arts-de-en__amiga_hunk_s__type_0496bf04",
+      "tool_error": null
+    },
+    {
+      "diff_range_count": 0,
+      "failure_kinds": [],
+      "message": null,
+      "rendered_source_content_exact": true,
+      "rendered_source_full_file_exact": true,
+      "status": "exact",
+      "target": "amiga_disk_conqueror-1990-rainbow-arts-de-en__amiga_raw_bootblock",
+      "tool_error": null
+    },
+    {
+      "diff_range_count": 0,
+      "failure_kinds": [],
+      "message": null,
+      "rendered_source_content_exact": true,
+      "rendered_source_full_file_exact": true,
+      "status": "exact",
+      "target": "amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h__amiga_hunk_damocles_53b24620",
+      "tool_error": null
+    },
+    {
+      "diff_range_count": 0,
+      "failure_kinds": [
+        "container_shape_mismatch",
+        "size_mismatch"
+      ],
+      "message": null,
+      "rendered_source_content_exact": true,
+      "rendered_source_full_file_exact": false,
+      "status": "binary_mismatch",
+      "target": "amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h__amiga_hunk_menu_252a2566",
+      "tool_error": null
+    },
+    {
+      "diff_range_count": 0,
+      "failure_kinds": [
+        "container_shape_mismatch",
+        "hunk_relocation_group_mismatch",
+        "hunk_relocation_order_mismatch",
+        "policy_divergence",
+        "size_mismatch"
+      ],
+      "message": null,
+      "rendered_source_content_exact": true,
+      "rendered_source_full_file_exact": false,
+      "status": "binary_mismatch",
+      "target": "amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h__amiga_hunk_trio_6d66c94c",
+      "tool_error": null
+    },
+    {
+      "diff_range_count": 0,
+      "failure_kinds": [],
+      "message": null,
+      "rendered_source_content_exact": true,
+      "rendered_source_full_file_exact": true,
+      "status": "exact",
+      "target": "amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h__amiga_raw_bootblock",
+      "tool_error": null
+    },
+    {
+      "diff_range_count": 0,
+      "failure_kinds": [],
+      "message": null,
+      "rendered_source_content_exact": true,
+      "rendered_source_full_file_exact": true,
+      "status": "exact",
+      "target": "amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h__amiga_raw_damocles_53b24620_native_tetragon_01_000000c4",
+      "tool_error": null
+    },
+    {
+      "diff_range_count": 0,
+      "failure_kinds": [],
+      "message": null,
+      "rendered_source_content_exact": true,
+      "rendered_source_full_file_exact": true,
+      "status": "exact",
+      "target": "amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h__amiga_raw_damocles_53b24620_native_tetragon_02_00000060",
+      "tool_error": null
+    },
+    {
+      "diff_range_count": 0,
+      "failure_kinds": [],
+      "message": null,
+      "rendered_source_content_exact": true,
+      "rendered_source_full_file_exact": true,
+      "status": "exact",
+      "target": "amiga_disk_epic-1992-ocean-disk-1__amiga_raw_bootblock",
+      "tool_error": null
+    },
+    {
+      "diff_range_count": 0,
+      "failure_kinds": [],
+      "message": null,
+      "rendered_source_content_exact": true,
+      "rendered_source_full_file_exact": true,
+      "status": "exact",
+      "target": "amiga_disk_epic-1992-ocean-disk-1__amiga_raw_bootloader_stage_1",
+      "tool_error": null
+    },
+    {
+      "diff_range_count": 0,
+      "failure_kinds": [],
+      "message": null,
+      "rendered_source_content_exact": true,
+      "rendered_source_full_file_exact": true,
+      "status": "exact",
+      "target": "amiga_disk_ice-1991-06-28-the-silents__amiga_raw_bootblock",
+      "tool_error": null
+    },
+    {
+      "diff_range_count": 0,
+      "failure_kinds": [],
+      "message": null,
+      "rendered_source_content_exact": true,
+      "rendered_source_full_file_exact": true,
+      "status": "exact",
+      "target": "amiga_disk_ice-1991-06-28-the-silents__amiga_raw_bootloader_stage_1",
+      "tool_error": null
+    },
+    {
+      "diff_range_count": 0,
+      "failure_kinds": [],
+      "message": null,
+      "rendered_source_content_exact": true,
+      "rendered_source_full_file_exact": true,
+      "status": "exact",
+      "target": "amiga_disk_magicland-dizzy-1991-codemasters-trsi-lsd__amiga_hunk_cacheoff_77b2e4f4",
+      "tool_error": null
+    },
+    {
+      "diff_range_count": 0,
+      "failure_kinds": [
+        "container_shape_mismatch",
+        "size_mismatch"
+      ],
+      "message": null,
+      "rendered_source_content_exact": true,
+      "rendered_source_full_file_exact": false,
+      "status": "binary_mismatch",
+      "target": "amiga_disk_magicland-dizzy-1991-codemasters-trsi-lsd__amiga_hunk_md_e066dc14",
+      "tool_error": null
+    },
+    {
+      "diff_range_count": 0,
+      "failure_kinds": [],
+      "message": null,
+      "rendered_source_content_exact": true,
+      "rendered_source_full_file_exact": true,
+      "status": "exact",
+      "target": "amiga_disk_magicland-dizzy-1991-codemasters-trsi-lsd__amiga_hunk_trainer_6df205cc",
+      "tool_error": null
+    },
+    {
+      "diff_range_count": 0,
+      "failure_kinds": [],
+      "message": null,
+      "rendered_source_content_exact": true,
+      "rendered_source_full_file_exact": true,
+      "status": "exact",
+      "target": "amiga_disk_magicland-dizzy-1991-codemasters-trsi-lsd__amiga_hunk_trsi_4892c70e",
+      "tool_error": null
+    },
+    {
+      "diff_range_count": 0,
+      "failure_kinds": [],
+      "message": null,
+      "rendered_source_content_exact": true,
+      "rendered_source_full_file_exact": true,
+      "status": "exact",
+      "target": "amiga_disk_magicland-dizzy-1991-codemasters-trsi-lsd__amiga_raw_bootblock",
+      "tool_error": null
+    },
+    {
+      "diff_range_count": 0,
+      "failure_kinds": [
+        "container_shape_mismatch",
+        "size_mismatch"
+      ],
+      "message": null,
+      "rendered_source_content_exact": true,
+      "rendered_source_full_file_exact": false,
+      "status": "binary_mismatch",
+      "target": "amiga_disk_mercenary-iii-the-dion-crisis-1991-novagen__amiga_hunk_crystal_4d67d97c",
+      "tool_error": null
+    },
+    {
+      "diff_range_count": 0,
+      "failure_kinds": [],
+      "message": null,
+      "rendered_source_content_exact": true,
+      "rendered_source_full_file_exact": true,
+      "status": "exact",
+      "target": "amiga_disk_mercenary-iii-the-dion-crisis-1991-novagen__amiga_raw_bootblock",
+      "tool_error": null
+    },
+    {
+      "diff_range_count": 0,
+      "failure_kinds": [],
+      "message": null,
+      "rendered_source_content_exact": true,
+      "rendered_source_full_file_exact": true,
+      "status": "exact",
+      "target": "amiga_disk_midwinter-1990-rainbird__amiga_raw_bootblock",
+      "tool_error": null
+    },
+    {
+      "diff_range_count": 0,
+      "failure_kinds": [
+        "container_shape_mismatch",
+        "size_mismatch"
+      ],
+      "message": null,
+      "rendered_source_content_exact": true,
+      "rendered_source_full_file_exact": false,
+      "status": "binary_mismatch",
+      "target": "amiga_disk_pandora-1988-firebird__amiga_hunk_pandora_3e1ee0f1",
+      "tool_error": null
+    },
+    {
+      "diff_range_count": 0,
+      "failure_kinds": [],
+      "message": null,
+      "rendered_source_content_exact": true,
+      "rendered_source_full_file_exact": true,
+      "status": "exact",
+      "target": "amiga_disk_pandora-1988-firebird__amiga_raw_bootblock",
+      "tool_error": null
+    },
+    {
+      "diff_range_count": 0,
+      "failure_kinds": [],
+      "message": null,
+      "rendered_source_content_exact": true,
+      "rendered_source_full_file_exact": true,
+      "status": "exact",
+      "target": "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
+      "tool_error": null
+    },
+    {
+      "diff_range_count": 0,
+      "failure_kinds": [
+        "container_shape_mismatch",
+        "hunk_relocation_group_mismatch",
+        "hunk_relocation_order_mismatch",
+        "policy_divergence",
+        "size_mismatch",
+        "unsupported_container_shape"
+      ],
+      "message": null,
+      "rendered_source_content_exact": true,
+      "rendered_source_full_file_exact": false,
+      "status": "binary_mismatch",
+      "target": "amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5__amiga_hunk_king_481902ec",
+      "tool_error": null
+    },
+    {
+      "diff_range_count": 0,
+      "failure_kinds": [],
+      "message": null,
+      "rendered_source_content_exact": true,
+      "rendered_source_full_file_exact": true,
+      "status": "exact",
+      "target": "amiga_disk_search-for-the-king-the-1991-accolade-disk-1-of-5__amiga_raw_bootblock",
+      "tool_error": null
+    },
+    {
+      "diff_range_count": 0,
+      "failure_kinds": [
+        "container_shape_mismatch",
+        "hunk_relocation_order_mismatch",
+        "policy_divergence"
+      ],
+      "message": null,
+      "rendered_source_content_exact": true,
+      "rendered_source_full_file_exact": false,
+      "status": "binary_mismatch",
+      "target": "amiga_disk_starglider-1987-rainbird__amiga_hunk_sg_9832b282",
+      "tool_error": null
+    },
+    {
+      "diff_range_count": 0,
+      "failure_kinds": [
+        "container_shape_mismatch"
+      ],
+      "message": null,
+      "rendered_source_content_exact": true,
+      "rendered_source_full_file_exact": false,
+      "status": "binary_mismatch",
+      "target": "amiga_disk_starglider-1987-rainbird__amiga_hunk_sgload_ee6b361e",
+      "tool_error": null
+    },
+    {
+      "diff_range_count": 0,
+      "failure_kinds": [],
+      "message": null,
+      "rendered_source_content_exact": true,
+      "rendered_source_full_file_exact": true,
+      "status": "exact",
+      "target": "amiga_disk_starglider-1987-rainbird__amiga_raw_bootblock",
+      "tool_error": null
+    },
+    {
+      "diff_range_count": 0,
+      "failure_kinds": [],
+      "message": null,
+      "rendered_source_content_exact": true,
+      "rendered_source_full_file_exact": true,
+      "status": "exact",
+      "target": "amiga_disk_voodoo-nightmare-1990-palace-cr-angels-defjam-genesis__amiga_hunk_run_df6ad190",
+      "tool_error": null
+    },
+    {
+      "diff_range_count": 0,
+      "failure_kinds": [],
+      "message": null,
+      "rendered_source_content_exact": true,
+      "rendered_source_full_file_exact": true,
+      "status": "exact",
+      "target": "amiga_disk_voodoo-nightmare-1990-palace-cr-angels-defjam-genesis__amiga_raw_bootblock",
+      "tool_error": null
+    },
+    {
+      "diff_range_count": 0,
+      "failure_kinds": [
+        "container_shape_mismatch"
+      ],
+      "message": null,
+      "rendered_source_content_exact": true,
+      "rendered_source_full_file_exact": false,
+      "status": "binary_mismatch",
+      "target": "amiga_hunk_bloodwych",
+      "tool_error": null
+    },
+    {
+      "diff_range_count": 0,
+      "failure_kinds": [],
+      "message": null,
+      "rendered_source_content_exact": true,
+      "rendered_source_full_file_exact": true,
+      "status": "exact",
+      "target": "amiga_hunk_genam",
+      "tool_error": null
+    },
+    {
+      "diff_range_count": 0,
+      "failure_kinds": [
+        "container_shape_mismatch",
+        "hunk_relocation_group_mismatch",
+        "hunk_relocation_order_mismatch",
+        "policy_divergence",
+        "size_mismatch"
+      ],
+      "message": null,
+      "rendered_source_content_exact": true,
+      "rendered_source_full_file_exact": false,
+      "status": "binary_mismatch",
+      "target": "amiga_hunk_monam302",
+      "tool_error": null
+    },
+    {
+      "diff_range_count": null,
+      "failure_kinds": [
+        "unsupported_platform_source_assembly"
+      ],
+      "message": "Mac OS rendered-source assembly is not currently supported.",
+      "rendered_source_content_exact": false,
+      "rendered_source_full_file_exact": false,
+      "status": "unsupported",
+      "target": "macos_hfs_mpw_gm__macos_file_mpw_tools_asm",
+      "tool_error": null
+    }
+  ]
+}
