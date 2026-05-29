@@ -197,6 +197,8 @@ static int test_hunk_loader_applies_executable_header_memory_flags_to_sections(v
   };
   M68kObject object;
   M68kDiagList diagnostics;
+  unsigned char *rebuilt = NULL;
+  size_t rebuilt_size = 0U;
   m68k_diag_list_reset(&diagnostics);
   M68K_C_ASSERT_INT(0, m68k_object_create(&object));
   M68K_C_ASSERT_INT(0, M68K_BACKEND_AMIGA_HUNK.read_buffer(hunk, sizeof(hunk), &object,
@@ -205,6 +207,46 @@ static int test_hunk_loader_applies_executable_header_memory_flags_to_sections(v
   M68K_C_ASSERT_U32(M68K_SECTION_BSS, object.sections[0].kind);
   M68K_C_ASSERT_U32(8U, object.sections[0].size);
   M68K_C_ASSERT_U32(1U, object.sections[0].platform_mem_type);
+  M68K_C_ASSERT_INT(0, M68K_BACKEND_AMIGA_HUNK.write_buffer(&object, &rebuilt, &rebuilt_size,
+    m68k_diag_sink(&diagnostics)));
+  M68K_C_ASSERT_U32(sizeof(hunk), (uint32_t)rebuilt_size);
+  M68K_C_ASSERT(memcmp(hunk, rebuilt, sizeof(hunk)) == 0);
+  free(rebuilt);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
+static int test_hunk_writer_encodes_source_executable_memory_flags_in_header_table(void) {
+  static const unsigned char expected[] = {
+    0x00, 0x00, 0x03, 0xF3,
+    0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x01,
+    0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00,
+    0x40, 0x00, 0x00, 0x02,
+    0x00, 0x00, 0x03, 0xEB,
+    0x00, 0x00, 0x00, 0x02,
+    0x00, 0x00, 0x03, 0xF2,
+  };
+  M68kObject object;
+  M68kSection section;
+  M68kDiagList diagnostics;
+  unsigned char *rebuilt = NULL;
+  size_t rebuilt_size = 0U;
+  m68k_diag_list_reset(&diagnostics);
+  memset(&section, 0, sizeof(section));
+  section.kind = M68K_SECTION_BSS;
+  section.platform_mem_type = 1U;
+  section.size = 8U;
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  M68K_C_ASSERT(m68k_object_add_section(&object, &section).ok);
+  M68K_C_ASSERT_INT(0, M68K_BACKEND_AMIGA_HUNK.write_buffer(&object, &rebuilt, &rebuilt_size,
+    m68k_diag_sink(&diagnostics)));
+  M68K_C_ASSERT_U32(sizeof(expected), (uint32_t)rebuilt_size);
+  M68K_C_ASSERT(memcmp(expected, rebuilt, sizeof(expected)) == 0);
+  free(rebuilt);
   m68k_object_destroy(&object);
   return 0;
 }
@@ -756,6 +798,8 @@ int m68k_c_container_metadata_tests(void) {
     {"hunk_loader_records_payload_and_relocation_metadata", test_hunk_loader_records_payload_and_relocation_metadata},
     {"hunk_loader_applies_executable_header_memory_flags_to_sections",
       test_hunk_loader_applies_executable_header_memory_flags_to_sections},
+    {"hunk_writer_encodes_source_executable_memory_flags_in_header_table",
+      test_hunk_writer_encodes_source_executable_memory_flags_in_header_table},
     {"hunk_parser_result_survives_workflow_teardown", test_hunk_parser_result_survives_workflow_teardown},
     {"hunk_writer_preserves_trailing_hunk_end", test_hunk_writer_preserves_trailing_hunk_end},
     {"hunk_loader_rejects_overlay_as_explicit_unsupported",

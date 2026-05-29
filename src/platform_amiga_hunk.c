@@ -69,6 +69,7 @@ typedef struct AmigaHunkPlatformData {
     uint32_t header_last_hunk;
     uint32_t *header_size_words;
     uint32_t *header_mem_attrs;
+    uint32_t *section_type_words;
     uint32_t *section_empty_reloc_masks;
     uint32_t trailing_hunk_end_count;
 } AmigaHunkPlatformData;
@@ -701,6 +702,7 @@ static int parse_hunk_executable(Reader *reader, Arena *workflow_arena, M68kObje
     uint32_t *mem_attrs = NULL;
     uint8_t *mem_types = NULL;
     uint32_t *header_size_words = NULL;
+    uint32_t *section_type_words = NULL;
 
     object->platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
     m68k_object_add_container_layout(object, M68K_CONTAINER_LAYOUT_AMIGA_HUNK_CONTAINER,
@@ -734,7 +736,9 @@ static int parse_hunk_executable(Reader *reader, Arena *workflow_arena, M68kObje
     mem_attrs = (uint32_t *)arena_calloc(workflow_arena, count, sizeof(*mem_attrs));
     mem_types = (uint8_t *)arena_calloc(workflow_arena, count, sizeof(*mem_types));
     header_size_words = (uint32_t *)arena_calloc(workflow_arena, count, sizeof(*header_size_words));
-    if (alloc_sizes == NULL || mem_attrs == NULL || mem_types == NULL || header_size_words == NULL) {
+    section_type_words = (uint32_t *)arena_calloc(workflow_arena, count, sizeof(*section_type_words));
+    if (alloc_sizes == NULL || mem_attrs == NULL || mem_types == NULL || header_size_words == NULL
+        || section_type_words == NULL) {
         platform_file_diag_error(diagnostics, "Out of memory allocating hunk table");
         goto fail;
     }
@@ -765,6 +769,7 @@ static int parse_hunk_executable(Reader *reader, Arena *workflow_arena, M68kObje
             platform_file_diag_error(diagnostics, "Unexpected EOF before executable section");
             goto fail;
         }
+        section_type_words[i] = value;
         if (add_section_from_hunk(object, value, "", alloc_sizes[i], mem_types[i], mem_attrs[i], reader,
                 workflow_arena, 1, diagnostics) != 0) {
             goto fail;
@@ -786,7 +791,9 @@ static int parse_hunk_executable(Reader *reader, Arena *workflow_arena, M68kObje
     platform_data->header_last_hunk = last_hunk;
     platform_data->header_size_words = (uint32_t *)m68k_object_memdup(object, header_size_words, count * sizeof(*header_size_words));
     platform_data->header_mem_attrs = (uint32_t *)m68k_object_memdup(object, mem_attrs, count * sizeof(*mem_attrs));
-    if (platform_data->header_size_words == NULL || platform_data->header_mem_attrs == NULL) {
+    platform_data->section_type_words = (uint32_t *)m68k_object_memdup(object, section_type_words, count * sizeof(*section_type_words));
+    if (platform_data->header_size_words == NULL || platform_data->header_mem_attrs == NULL
+        || platform_data->section_type_words == NULL) {
         platform_file_diag_error(diagnostics, "Out of memory storing hunk metadata");
         goto fail;
     }
@@ -1017,12 +1024,25 @@ static int write_ext_for_section(Writer *writer, const M68kObject *object, size_
     return 0;
 }
 
-static int section_needs_mem_attrs(const M68kSection *section) {
-    return section->platform_mem_type == AMIGA_HUNK_FILE_MEM_TYPE_CODE_EXTENDED;
-}
-
 static uint32_t section_type_word(const M68kSection *section) {
     return unmap_hunk_kind(section->kind) | ((uint32_t)section->platform_mem_type << HUNK_MEM_SHIFT);
+}
+
+static uint32_t section_record_type_word(const M68kObject *object, size_t section_index) {
+    const M68kSection *section = &object->sections[section_index];
+    const AmigaHunkPlatformData *platform_data = (const AmigaHunkPlatformData *)object->platform_data;
+    if (object->platform_file_kind == M68K_PLATFORM_FILE_EXECUTABLE) {
+        if (platform_data != NULL && platform_data->section_type_words != NULL
+            && platform_data->header_count == object->section_count) {
+            return platform_data->section_type_words[section_index];
+        }
+        return unmap_hunk_kind(section->kind);
+    }
+    return section_type_word(section);
+}
+
+static int hunk_word_needs_mem_attrs(uint32_t type_word) {
+    return (type_word >> HUNK_MEM_SHIFT) == AMIGA_HUNK_FILE_MEM_TYPE_CODE_EXTENDED;
 }
 
 static AmigaHunkFileRecordKind canonical_internal_reloc_record_kind_for_fixup(const M68kFixup *fixup) {
@@ -1278,14 +1298,16 @@ static int write_section_metadata(Writer *writer, const M68kObject *object, size
 
 static int write_section_record(Writer *writer, const M68kObject *object, size_t section_index, int include_name) {
     const M68kSection *section = &object->sections[section_index];
+    uint32_t type_word = section_record_type_word(object, section_index);
     if (include_name) {
         if (m68k_writer_u32be(writer, HUNK_NAME) != 0
             || writer_bstr(writer, section->name != NULL ? section->name : "") != 0) {
             return -1;
         }
     }
-    if (m68k_writer_u32be(writer, section_type_word(section)) != 0) return -1;
-    if (section_needs_mem_attrs(section) && m68k_writer_u32be(writer, section->platform_mem_attrs) != 0) return -1;
+    if (m68k_writer_u32be(writer, type_word) != 0) return -1;
+    if (hunk_word_needs_mem_attrs(type_word) && m68k_writer_u32be(writer, section->platform_mem_attrs) != 0)
+        return -1;
     if (write_section_payload(writer, section) != 0) return -1;
     return write_section_metadata(writer, object, section_index);
 }
@@ -1385,14 +1407,16 @@ static int amiga_hunk_write_buffer(const M68kObject *object, unsigned char **out
         for (i = 0; i < object->section_count; ++i) {
             uint32_t size_longs = object->sections[i].size / 4U;
             uint32_t raw_size = size_longs | ((uint32_t)object->sections[i].platform_mem_type << HUNK_MEM_SHIFT);
+            uint32_t header_mem_type;
             if (platform_data != NULL && platform_data->header_count == object->section_count
                 && platform_data->header_size_words != NULL) {
                 raw_size = platform_data->header_size_words[i];
             }
+            header_mem_type = raw_size >> HUNK_MEM_SHIFT;
             if (m68k_writer_u32be(&writer, raw_size) != 0) {
                 goto oom;
             }
-            if (object->sections[i].platform_mem_type == 3U) {
+            if (header_mem_type == 3U) {
                 uint32_t mem_attrs = object->sections[i].platform_mem_attrs;
                 if (platform_data != NULL && platform_data->header_count == object->section_count
                     && platform_data->header_mem_attrs != NULL) {
