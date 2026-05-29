@@ -1,6 +1,6 @@
 # Proposal 028: Control-Flow-Derived Table Bounds and Data Reference Analysis
 
-Status: Proposed.
+Status: In progress.
 
 Proposal 025 made string/text acceptance evidence-driven. Proposal 026 made
 range and table ownership a C-owned analysis result. The next gap is deeper:
@@ -800,6 +800,61 @@ assembly may remain explicitly unsupported, but it must not be silently skipped.
 For documentation-only edits to this proposal, `git diff --check` is sufficient
 unless the edit changes source-generation instructions, acceptance criteria, or
 verification expectations.
+
+## Implementation Progress
+
+### Pass 1: Table Consumer Fact Records
+
+The first implementation pass adds first-class C table consumer records to
+`M68kSectionAnalysisIR`.
+
+Before this pass, table descriptors carried consumer offsets, but consumers were
+not exported as their own analysis surface. That made later 028 work harder:
+index-domain, scaling, target-register, and per-entry status facts had no stable
+record to attach to.
+
+Current record shape:
+
+```text
+table_consumer:
+  consumer_offset
+  table_section_index
+  table_start_offset / table_end_offset
+  access_width
+  entry_count
+  table_kind
+  source_pattern
+  optional index register
+  optional target register
+```
+
+This pass derives the initial consumer record from table descriptors that
+already have `has_consumer`, including conflict descriptors where the consumer
+itself is still valid evidence. The index and target register fields are
+nullable for now because existing descriptor data does not yet preserve them.
+Later passes should fill those fields from instruction operands and data-flow
+facts rather than guessing from rendered text.
+
+The implementation deliberately does not change rendered source. It only makes
+the consumer fact durable in source-analysis JSON, so future slices can attach
+bounds and entry status without re-scanning renderer state.
+
+Covered by:
+
+- `source_analysis_table_descriptor_exports_consumer_fact`
+
+Verification after this pass:
+
+```text
+cmd /c src\precommit.bat m68k_ir
+uv run python -m pytest tests\test_c_backend.py -q
+all 36 tracked `.s` files regenerated
+uv run platform-rendered-source-roundtrip
+```
+
+The regenerated sources had no tracked `.s` diffs. Round-trip remained
+`34/36` full-file exact, `1/36` content-exact-only, `1/36` unsupported, and
+`0` failures.
 
 ## Acceptance Criteria
 

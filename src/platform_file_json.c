@@ -3372,7 +3372,7 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
   for (section_index = 0; section_index < source_analysis->section_count; ++section_index) {
     const M68kSectionAnalysisIR *section = &source_analysis->sections[section_index];
     size_t block_index, edge_index, violation_index, app_slot_ref_index, typed_access_index, range_index;
-    size_t table_descriptor_index;
+    size_t table_descriptor_index, table_consumer_index;
     size_t unresolved_typed_access_index, runtime_view_index, runtime_address_ref_index, code_start_ref_index;
     size_t string_ref_index;
     size_t effect_index, call_index, disk_read_index, runtime_copy_index, indirect_site_index, orphan_signal_index;
@@ -3619,6 +3619,60 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
       if (json_builder_append_json_string(&builder,
           analysis_conflict_state_name(descriptor->conflict_state)) != 0)
         goto oom;
+      if (json_builder_append(&builder, "}") != 0)
+        goto oom;
+    }
+    if (json_builder_appendf(&builder, "],\"table_consumer_count\":%u,\"table_consumers\":[",
+          (unsigned)section->table_consumer_count) != 0)
+      goto oom;
+    for (table_consumer_index = 0; table_consumer_index < section->table_consumer_count;
+        ++table_consumer_index) {
+      const M68kTableConsumerIR *consumer = &section->table_consumers[table_consumer_index];
+      if (table_consumer_index != 0U && json_builder_append(&builder, ",") != 0)
+        goto oom;
+      if (json_builder_appendf(&builder,
+          "{\"consumer_offset\":%u,\"table_section_index\":%u,\"table_start_offset\":%u,"
+          "\"table_end_offset\":%u,\"access_width\":%u,\"entry_count\":%u,"
+          "\"table_kind_id\":%u,\"table_kind\":",
+          (unsigned)consumer->consumer_offset, (unsigned)consumer->table_section_index,
+          (unsigned)consumer->table_start_offset, (unsigned)consumer->table_end_offset,
+          (unsigned)consumer->access_width, (unsigned)consumer->entry_count,
+          (unsigned)consumer->table_kind_id) != 0)
+        goto oom;
+      if (json_builder_append_nullable_string(&builder,
+          m68k_analysis_table_kind_name(consumer->table_kind_id)) != 0)
+        goto oom;
+      if (json_builder_appendf(&builder,
+          ",\"source_pattern_id\":%u,\"source_pattern\":",
+          (unsigned)consumer->source_pattern_id) != 0)
+        goto oom;
+      if (json_builder_append_nullable_string(&builder,
+          m68k_analysis_structured_data_source_pattern_name(consumer->source_pattern_id)) != 0)
+        goto oom;
+      if (json_builder_append(&builder, ",\"index_register_kind\":") != 0)
+        goto oom;
+      if (consumer->has_index_register) {
+        if (json_builder_appendf(&builder, "%u", (unsigned)consumer->index_register_kind) != 0)
+          goto oom;
+      } else if (json_builder_append(&builder, "null") != 0) goto oom;
+      if (json_builder_append(&builder, ",\"index_register\":") != 0)
+        goto oom;
+      if (consumer->has_index_register) {
+        if (json_builder_appendf(&builder, "%u", (unsigned)consumer->index_register) != 0)
+          goto oom;
+      } else if (json_builder_append(&builder, "null") != 0) goto oom;
+      if (json_builder_append(&builder, ",\"target_register_kind\":") != 0)
+        goto oom;
+      if (consumer->has_target_register) {
+        if (json_builder_appendf(&builder, "%u", (unsigned)consumer->target_register_kind) != 0)
+          goto oom;
+      } else if (json_builder_append(&builder, "null") != 0) goto oom;
+      if (json_builder_append(&builder, ",\"target_register\":") != 0)
+        goto oom;
+      if (consumer->has_target_register) {
+        if (json_builder_appendf(&builder, "%u", (unsigned)consumer->target_register) != 0)
+          goto oom;
+      } else if (json_builder_append(&builder, "null") != 0) goto oom;
       if (json_builder_append(&builder, "}") != 0)
         goto oom;
     }

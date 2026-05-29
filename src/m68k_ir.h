@@ -1320,6 +1320,24 @@ typedef struct M68kTableDescriptorIR {
   uint32_t consumer_offset;
 } M68kTableDescriptorIR;
 
+typedef struct M68kTableConsumerIR {
+  uint32_t consumer_offset;
+  uint32_t table_section_index;
+  uint32_t table_start_offset;
+  uint32_t table_end_offset;
+  uint32_t access_width;
+  uint32_t entry_count;
+  uint8_t table_kind_id;
+  uint8_t source_pattern_id;
+  uint8_t has_index_register;
+  uint8_t index_register_kind;
+  uint8_t index_register;
+  uint8_t has_target_register;
+  uint8_t target_register_kind;
+  uint8_t target_register;
+  uint8_t reserved[2];
+} M68kTableConsumerIR;
+
 typedef struct M68kSectionAnalysisIR {
   size_t section_index;
   char *section_name;
@@ -1358,6 +1376,9 @@ typedef struct M68kSectionAnalysisIR {
   M68kTableDescriptorIR *table_descriptors;
   size_t table_descriptor_count;
   size_t table_descriptor_capacity;
+  M68kTableConsumerIR *table_consumers;
+  size_t table_consumer_count;
+  size_t table_consumer_capacity;
   M68kRecoveredPlatformCallIR **recovered_platform_call_lookup;
   size_t recovered_platform_call_lookup_size;
   uint32_t *recovered_platform_call_next_lookup;
@@ -1531,6 +1552,8 @@ int m68k_ir_section_analysis_append_range_ownership(M68kSectionAnalysisIR *secti
     const M68kRangeOwnershipIR *range);
 int m68k_ir_section_analysis_append_table_descriptor(M68kSectionAnalysisIR *section_analysis,
     const M68kTableDescriptorIR *descriptor);
+int m68k_ir_section_analysis_append_table_consumer(M68kSectionAnalysisIR *section_analysis,
+    const M68kTableConsumerIR *consumer);
 int m68k_ir_section_analysis_add_violation(M68kSectionAnalysisIR *section_analysis, uint32_t offset, uint8_t kind, const char *message);
 int m68k_ir_section_analysis_append_recovered_word_dispatch(M68kSectionAnalysisIR *section_analysis,
   const M68kRecoveredWordDispatchIR *dispatch);

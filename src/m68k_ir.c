@@ -1148,6 +1148,7 @@ int m68k_ir_section_analysis_append_range_ownership(M68kSectionAnalysisIR *secti
 
 int m68k_ir_section_analysis_append_table_descriptor(M68kSectionAnalysisIR *section_analysis,
     const M68kTableDescriptorIR *descriptor) {
+  M68kTableConsumerIR consumer;
   if (section_analysis == NULL || descriptor == NULL) return -1;
   if (section_analysis->arena == NULL) return -1;
   if (descriptor->end_offset <= descriptor->start_offset || descriptor->entry_size == 0U ||
@@ -1159,6 +1160,47 @@ int m68k_ir_section_analysis_append_table_descriptor(M68kSectionAnalysisIR *sect
       &section_analysis->table_descriptor_capacity, 8U, sizeof(*section_analysis->table_descriptors));
   if (section_analysis->table_descriptors == NULL) return -1;
   section_analysis->table_descriptors[section_analysis->table_descriptor_count++] = *descriptor;
+  if (descriptor->has_consumer) {
+    memset(&consumer, 0, sizeof(consumer));
+    consumer.consumer_offset = descriptor->consumer_offset;
+    consumer.table_section_index = (uint32_t)section_analysis->section_index;
+    consumer.table_start_offset = descriptor->start_offset;
+    consumer.table_end_offset = descriptor->end_offset;
+    consumer.access_width = descriptor->entry_size;
+    consumer.entry_count = descriptor->entry_count;
+    consumer.table_kind_id = descriptor->table_kind_id;
+    consumer.source_pattern_id = descriptor->source_pattern_id;
+    if (m68k_ir_section_analysis_append_table_consumer(section_analysis, &consumer) != 0) return -1;
+  }
+  return 0;
+}
+
+int m68k_ir_section_analysis_append_table_consumer(M68kSectionAnalysisIR *section_analysis,
+    const M68kTableConsumerIR *consumer) {
+  size_t index;
+  if (section_analysis == NULL || consumer == NULL) return -1;
+  if (section_analysis->arena == NULL) return -1;
+  if (consumer->table_end_offset <= consumer->table_start_offset || consumer->access_width == 0U ||
+      consumer->table_kind_id == M68K_ANALYSIS_TABLE_KIND_UNKNOWN) {
+    return 0;
+  }
+  for (index = 0U; index < section_analysis->table_consumer_count; ++index) {
+    const M68kTableConsumerIR *existing = &section_analysis->table_consumers[index];
+    if (existing->consumer_offset == consumer->consumer_offset &&
+        existing->table_section_index == consumer->table_section_index &&
+        existing->table_start_offset == consumer->table_start_offset &&
+        existing->table_end_offset == consumer->table_end_offset &&
+        existing->access_width == consumer->access_width &&
+        existing->table_kind_id == consumer->table_kind_id &&
+        existing->source_pattern_id == consumer->source_pattern_id) {
+      return 0;
+    }
+  }
+  section_analysis->table_consumers = (M68kTableConsumerIR *)arena_grow_array(section_analysis->arena,
+      section_analysis->table_consumers, section_analysis->table_consumer_count,
+      &section_analysis->table_consumer_capacity, 8U, sizeof(*section_analysis->table_consumers));
+  if (section_analysis->table_consumers == NULL) return -1;
+  section_analysis->table_consumers[section_analysis->table_consumer_count++] = *consumer;
   return 0;
 }
 
