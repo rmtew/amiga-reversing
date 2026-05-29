@@ -11019,6 +11019,65 @@ def test_real_dll_025_string_text_examples_render_from_evidence() -> None:
     assert '\tdc.b "              Click mouse to start CONQUEROR ! "\n' in conqueror_source
 
 
+def test_real_dll_026_table_descriptors_use_evidence_bounds_not_caps() -> None:
+    _requires_c_backend_dlls()
+
+    pandora = _facts_v2_listing_analysis_for_project(
+        "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8"
+    )
+    pandora_section = pandora["analysis"]["sections"][0]
+    pandora_tables = pandora_section["table_descriptors"]
+    pandora_string_table = next(
+        descriptor
+        for descriptor in pandora_tables
+        if descriptor["source_pattern"] == "word_offset_string_table"
+        and descriptor["entry_count"] == 114
+    )
+    assert pandora_string_table["status_name"] == "accepted"
+    assert pandora_string_table["table_kind"] == "relative_data_lookup"
+    assert pandora_string_table["start_offset"] == 42716
+    assert pandora_string_table["end_offset"] == 42944
+    assert pandora_string_table["end_offset"] - pandora_string_table["start_offset"] == (
+        pandora_string_table["entry_count"] * pandora_string_table["entry_size"]
+    )
+    assert pandora_string_table["target_offset"] == 41564
+    assert pandora_string_table["consumer_offset"] == 10774
+
+    pandora_dispatch_table = next(
+        descriptor
+        for descriptor in pandora_tables
+        if descriptor["source_pattern"] == "pc_relative_indexed_indirect_dispatch"
+        and descriptor["table_kind"] == "absolute_code_dispatch"
+        and descriptor["entry_count"] == 33
+    )
+    assert pandora_dispatch_table["status_name"] == "accepted"
+    assert pandora_dispatch_table["table_kind"] == "absolute_code_dispatch"
+    assert pandora_dispatch_table["entry_size"] == 4
+    assert pandora_dispatch_table["entry_count"] == 33
+
+    bloodwych = _facts_v2_listing_analysis_for_project("amiga_hunk_bloodwych")
+    bloodwych_section = bloodwych["analysis"]["sections"][0]
+    bloodwych_table = next(
+        descriptor
+        for descriptor in bloodwych_section["table_descriptors"]
+        if descriptor["start_offset"] == 106360 and descriptor["entry_count"] == 73
+    )
+    assert bloodwych_table["status_name"] == "accepted"
+    assert bloodwych_table["source_pattern"] == "indexed_local_scalar_read"
+    assert bloodwych_table["entry_size"] == 2
+    assert bloodwych_table["end_offset"] == 106506
+
+    bloodwych_paths = resolve_project_paths("amiga_hunk_bloodwych", project_root=PROJECT_ROOT)
+    bloodwych_source, bloodwych_profile = listing_artifact_source_text_with_c_backend_profile(
+        bloodwych_paths.binary_source,
+        metadata_path=bloodwych_paths.target_dir / "target_metadata.json",
+        project_root=PROJECT_ROOT,
+    )
+    assert bloodwych_profile["facts_v2"]["asm_source_refused"] is False
+    assert "\tdc.w $0C5D\t; lookup_table\n\tdc.b $FC,$1E" in bloodwych_source
+    assert "\tdc.w $0C5D,$FC1E" not in bloodwych_source
+
+
 def test_real_dll_starglider_mathtrans_linkage_api_labels_promote_wrappers() -> None:
     _requires_c_backend_dlls()
 

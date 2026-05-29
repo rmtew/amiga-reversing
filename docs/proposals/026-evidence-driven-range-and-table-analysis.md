@@ -702,6 +702,28 @@ The Bloodwych table at `abs_0_0001A31C` is the representative regression check:
 the accepted word-offset table now stops at `$0C5D`, and the following
 control/text bytes remain raw bytes instead of being swallowed into the table.
 
+### Pass 4: Fixture-Backed Descriptor Proof
+
+The fourth pass adds target-derived proof for the descriptor behavior that was
+previously verified mostly through synthetic C fixtures.
+
+Covered examples:
+
+- Pandora raw BK target:
+  - the `word_offset_string_table` descriptor is accepted as a 114-entry
+    relative-data lookup table with a proven target base;
+  - the absolute CODE dispatch table is accepted as a 33-entry
+    `absolute_code_dispatch` descriptor instead of a capped target set.
+- Bloodwych:
+  - the real 73-entry indexed word table is accepted with exact descriptor
+    bounds;
+  - the rendered source keeps `$0C5D` as the final table word and leaves the
+    following `$FC,$1E...` control/text bytes outside the table.
+
+Covered by:
+
+- `test_real_dll_026_table_descriptors_use_evidence_bounds_not_caps`
+
 ## Implementation Order
 
 1. Add the C range/conflict record shape without changing rendering. Done in
@@ -782,3 +804,9 @@ renderers.
   repro of a nested arena lifetime/reentrancy hazard; future arena work should
   clarify which nested analysis paths may use shared arenas and add a focused
   contract test for that rule.
+- One broad `tests/test_c_backend.py` run exposed an access violation in the
+  Voodoo analysis path after many prior DLL calls, but the individual failing
+  tests, the adjacent decompression subset, and a full-suite rerun all passed.
+  There is no stable repro from this pass, but the symptom matches the class of
+  process-lifetime/native-state corruption that should be investigated with a
+  repeat-loop harness if it recurs.
