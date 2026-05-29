@@ -5377,6 +5377,13 @@ int lookup_range_ownership_covering_offset(const M68kRenderLookup *lookup, size_
   return 0;
 }
 
+int lookup_range_ownership_at_index(const M68kRenderLookup *lookup, size_t index,
+    M68kRenderRangeOwnershipView *out_range) {
+  if (out_range != NULL) memset(out_range, 0, sizeof(*out_range));
+  if (lookup == NULL || index >= lookup->range_ownership_count) return 0;
+  return hydrate_range_ownership_view(lookup, &lookup->range_ownerships[index], out_range);
+}
+
 int structured_data_item_comment(const M68kAnalysisStructuredDataItem *item, char *comment,
     size_t comment_size) {
   const char *field_name;

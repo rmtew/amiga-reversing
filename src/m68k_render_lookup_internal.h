@@ -645,6 +645,8 @@ int lookup_range_ownership_at_offset(const M68kRenderLookup *lookup, size_t sect
     M68kRenderRangeOwnershipView *out_range);
 int lookup_range_ownership_covering_offset(const M68kRenderLookup *lookup, size_t section_index, uint32_t offset,
     M68kRenderRangeOwnershipView *out_range);
+int lookup_range_ownership_at_index(const M68kRenderLookup *lookup, size_t index,
+    M68kRenderRangeOwnershipView *out_range);
 int render_lookup_add_range_ownership_for_structured_item(M68kRenderLookup *lookup, size_t section_index,
     uint8_t structured_item_source, size_t structured_item_index, const M68kAnalysisStructuredDataItem *item);
 int structured_data_item_comment(const M68kAnalysisStructuredDataItem *item, char *comment,

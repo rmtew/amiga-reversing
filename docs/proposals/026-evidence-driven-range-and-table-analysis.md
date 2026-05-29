@@ -1137,6 +1137,50 @@ All 36 tracked target `.s` files were regenerated with no target source diffs.
 Round-trip remained 34/36 full-file exact, 1 content-exact-only, 1 unsupported,
 and 0 failures.
 
+### Pass 14: Analysis Pointer-Table Passes From Range Owners
+
+The fourteenth pass migrates the remaining analysis-side pointer-table target
+passes from policy/auto structured-data list walks to exact range-owner
+iteration.
+
+Before this pass, pointer-table target label materialization and pointer-table
+target string promotion each scanned both structured-data storage surfaces:
+
+```text
+policy.structured_data_items + lookup.auto_structured_data_items
+  -> long pointer-table payload
+  -> target labels / target string promotion
+```
+
+Those scans were ownership-sensitive because they could promote target labels
+or target strings from any table-shaped payload they found. The passes now use
+an exact indexed range-owner hydration helper:
+
+```text
+lookup.range_ownerships[index]
+  -> lookup_range_ownership_at_index
+  -> accepted table owner
+  -> pointer-table payload
+  -> target labels / target string promotion
+```
+
+This keeps payload decoding and table-entry interpretation in C, but the
+decision to act on the payload now flows through the same accepted range
+ownership records used by rendering and source-analysis export.
+
+Verification after this pass:
+
+```text
+cmd /c src\precommit.bat m68k_ir
+uv run python -m pytest tests\test_c_backend.py -q
+uv run platform-rendered-source-roundtrip
+git diff --check
+```
+
+All 36 tracked target `.s` files were regenerated with no target source diffs.
+Round-trip remained 34/36 full-file exact, 1 content-exact-only, 1 unsupported,
+and 0 failures.
+
 ## Open Design Questions
 
 - What is the smallest status vocabulary that covers candidate, accepted,

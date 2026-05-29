@@ -8560,20 +8560,13 @@ static int render_lookup_add_pointer_table_target_labels_for_item(M68kRenderLook
 static int render_lookup_add_pointer_table_target_labels(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
     uint8_t **accepted_start, uint8_t **accepted_bytes) {
   size_t index;
-  const M68kAnalysisPolicy *policy = lookup != NULL ? lookup->policy : NULL;
   if (lookup == NULL || decode == NULL || accepted_bytes == NULL) return 0;
-  if (policy != NULL) {
-    for (index = 0U; index < policy->structured_data_item_count &&
-         index < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT; ++index) {
-      if (render_lookup_add_pointer_table_target_labels_for_item(lookup, decode, accepted_start, accepted_bytes,
-          &policy->structured_data_items[index]) != 0) {
-        return -1;
-      }
-    }
-  }
-  for (index = 0U; index < lookup->auto_structured_data_item_count; ++index) {
+  for (index = 0U; index < lookup->range_ownership_count; ++index) {
+    M68kRenderRangeOwnershipView range;
+    if (!lookup_range_ownership_at_index(lookup, index, &range)) continue;
+    if (range.kind != M68K_RANGE_OWNERSHIP_TABLE || range.structured_item == NULL) continue;
     if (render_lookup_add_pointer_table_target_labels_for_item(lookup, decode, accepted_start, accepted_bytes,
-        &lookup->auto_structured_data_items[index]) != 0) {
+        range.structured_item) != 0) {
       return -1;
     }
   }
@@ -9150,20 +9143,13 @@ static int render_lookup_add_pointer_table_target_strings_for_item(M68kRenderLoo
 static int render_lookup_add_pointer_table_target_strings(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
     uint8_t **accepted_bytes) {
   size_t index;
-  const M68kAnalysisPolicy *policy = lookup != NULL ? lookup->policy : NULL;
   if (lookup == NULL || decode == NULL || accepted_bytes == NULL) return 0;
-  if (policy != NULL) {
-    for (index = 0U; index < policy->structured_data_item_count &&
-         index < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT; ++index) {
-      if (render_lookup_add_pointer_table_target_strings_for_item(lookup, decode, accepted_bytes,
-          &policy->structured_data_items[index]) != 0) {
-        return -1;
-      }
-    }
-  }
-  for (index = 0U; index < lookup->auto_structured_data_item_count; ++index) {
+  for (index = 0U; index < lookup->range_ownership_count; ++index) {
+    M68kRenderRangeOwnershipView range;
+    if (!lookup_range_ownership_at_index(lookup, index, &range)) continue;
+    if (range.kind != M68K_RANGE_OWNERSHIP_TABLE || range.structured_item == NULL) continue;
     if (render_lookup_add_pointer_table_target_strings_for_item(lookup, decode, accepted_bytes,
-        &lookup->auto_structured_data_items[index]) != 0) {
+        range.structured_item) != 0) {
       return -1;
     }
   }
