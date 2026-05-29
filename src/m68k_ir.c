@@ -1170,6 +1170,12 @@ int m68k_ir_section_analysis_append_table_descriptor(M68kSectionAnalysisIR *sect
     consumer.entry_count = descriptor->entry_count;
     consumer.table_kind_id = descriptor->table_kind_id;
     consumer.source_pattern_id = descriptor->source_pattern_id;
+    consumer.has_index_register = descriptor->has_index_register;
+    consumer.index_register_kind = descriptor->index_register_kind;
+    consumer.index_register = descriptor->index_register;
+    consumer.has_target_register = descriptor->has_target_register;
+    consumer.target_register_kind = descriptor->target_register_kind;
+    consumer.target_register = descriptor->target_register;
     if (m68k_ir_section_analysis_append_table_consumer(section_analysis, &consumer) != 0) return -1;
   }
   return 0;
@@ -1193,6 +1199,17 @@ int m68k_ir_section_analysis_append_table_consumer(M68kSectionAnalysisIR *sectio
         existing->access_width == consumer->access_width &&
         existing->table_kind_id == consumer->table_kind_id &&
         existing->source_pattern_id == consumer->source_pattern_id) {
+      M68kTableConsumerIR *stored = &section_analysis->table_consumers[index];
+      if (!stored->has_index_register && consumer->has_index_register) {
+        stored->has_index_register = consumer->has_index_register;
+        stored->index_register_kind = consumer->index_register_kind;
+        stored->index_register = consumer->index_register;
+      }
+      if (!stored->has_target_register && consumer->has_target_register) {
+        stored->has_target_register = consumer->has_target_register;
+        stored->target_register_kind = consumer->target_register_kind;
+        stored->target_register = consumer->target_register;
+      }
       return 0;
     }
   }

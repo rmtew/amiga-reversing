@@ -8645,6 +8645,12 @@ static int render_analysis_append_lookup_table_descriptors_for_section(
     descriptor.has_consumer = item->has_consumer;
     descriptor.consumer_section_index = item->consumer_section;
     descriptor.consumer_offset = item->consumer_offset;
+    descriptor.has_index_register = item->has_index_register;
+    descriptor.index_register_kind = item->index_register_kind;
+    descriptor.index_register = item->index_register;
+    descriptor.has_target_register = item->has_target_register;
+    descriptor.target_register_kind = item->target_register_kind;
+    descriptor.target_register = item->target_register;
     descriptor.conflict_state = item->table_conflict_state;
     if (m68k_ir_section_analysis_append_table_descriptor(section_analysis, &descriptor) != 0) return -1;
   }

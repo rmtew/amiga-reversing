@@ -194,6 +194,13 @@ typedef struct M68kAnalysisStructuredDataItem {
   uint16_t pointer_struct_id;
   uint32_t consumer_section;
   uint32_t consumer_offset;
+  uint8_t has_index_register;
+  uint8_t index_register_kind;
+  uint8_t index_register;
+  uint8_t has_target_register;
+  uint8_t target_register_kind;
+  uint8_t target_register;
+  uint8_t consumer_register_reserved[2];
   uint32_t semantic_role_flags;
   uint16_t label_len;
   uint16_t struct_name_len;
@@ -1318,6 +1325,13 @@ typedef struct M68kTableDescriptorIR {
   uint32_t target_offset;
   uint32_t consumer_section_index;
   uint32_t consumer_offset;
+  uint8_t has_index_register;
+  uint8_t index_register_kind;
+  uint8_t index_register;
+  uint8_t has_target_register;
+  uint8_t target_register_kind;
+  uint8_t target_register;
+  uint8_t reserved_registers[2];
 } M68kTableDescriptorIR;
 
 typedef struct M68kTableConsumerIR {

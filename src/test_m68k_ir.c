@@ -2167,6 +2167,12 @@ static int test_facts_v2_indexed_local_base_auto_classifies_pointer_table(void) 
     }
   }
   M68K_C_ASSERT(auto_item != NULL);
+  M68K_C_ASSERT_U32(1U, auto_item->has_index_register);
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_REGISTER_DATA, auto_item->index_register_kind);
+  M68K_C_ASSERT_U32(0U, auto_item->index_register);
+  M68K_C_ASSERT_U32(1U, auto_item->has_target_register);
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_REGISTER_DATA, auto_item->target_register_kind);
+  M68K_C_ASSERT_U32(1U, auto_item->target_register);
   M68K_C_ASSERT_U32(8U, auto_item->size);
   M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_LONGS, auto_item->kind);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
@@ -9489,6 +9495,12 @@ static int test_source_analysis_table_descriptor_exports_consumer_fact(void) {
   descriptor.has_consumer = 1U;
   descriptor.consumer_section_index = 0U;
   descriptor.consumer_offset = 0x0CU;
+  descriptor.has_index_register = 1U;
+  descriptor.index_register_kind = M68K_ANALYSIS_REGISTER_DATA;
+  descriptor.index_register = 2U;
+  descriptor.has_target_register = 1U;
+  descriptor.target_register_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+  descriptor.target_register = 1U;
   M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_table_descriptor(&section_analysis, &descriptor));
   M68K_C_ASSERT_U32(1U, (uint32_t)section_analysis.table_consumer_count);
   M68K_C_ASSERT_U32(0x0CU, section_analysis.table_consumers[0].consumer_offset);
@@ -9497,6 +9509,10 @@ static int test_source_analysis_table_descriptor_exports_consumer_fact(void) {
   M68K_C_ASSERT_U32(4U, section_analysis.table_consumers[0].access_width);
   M68K_C_ASSERT_U32(4U, section_analysis.table_consumers[0].entry_count);
   M68K_C_ASSERT_U32(M68K_ANALYSIS_TABLE_KIND_POINTER, section_analysis.table_consumers[0].table_kind_id);
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_REGISTER_DATA, section_analysis.table_consumers[0].index_register_kind);
+  M68K_C_ASSERT_U32(2U, section_analysis.table_consumers[0].index_register);
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_REGISTER_ADDRESS, section_analysis.table_consumers[0].target_register_kind);
+  M68K_C_ASSERT_U32(1U, section_analysis.table_consumers[0].target_register);
   M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
   M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(analysis_json != NULL);
@@ -9507,7 +9523,8 @@ static int test_source_analysis_table_descriptor_exports_consumer_fact(void) {
   M68K_C_ASSERT(strstr(analysis_json, "\"table_kind_id\":2,\"table_kind\":\"pointer\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
     "\"source_pattern_id\":3,\"source_pattern\":\"indexed_local_pointer_read\"") != NULL);
-  M68K_C_ASSERT(strstr(analysis_json, "\"index_register_kind\":null,\"index_register\":null") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"index_register_kind\":1,\"index_register\":2") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"target_register_kind\":2,\"target_register\":1") != NULL);
   free(analysis_json);
   m68k_ir_section_analysis_destroy(&section_analysis);
   m68k_ir_source_analysis_destroy(&source_analysis);

@@ -856,6 +856,62 @@ The regenerated sources had no tracked `.s` diffs. Round-trip remained
 `34/36` full-file exact, `1/36` content-exact-only, `1/36` unsupported, and
 `0` failures.
 
+### Pass 2: C-Owned Consumer Register Evidence
+
+The second implementation pass keeps table consumer register evidence in C from
+recognition through source-analysis export.
+
+Before this pass, the newly exported `table_consumer` records had nullable
+register fields even when the recognizer had already proven them from the
+instruction operands. That lost useful evidence for later bounds and data-flow
+work.
+
+The C structured-data item now records:
+
+```text
+has_index_register
+index_register_kind / index_register
+has_target_register
+target_register_kind / target_register
+```
+
+Those fields are copied into table descriptors and then into table consumer
+records. Recognizers populate them only where the operand/data-flow match has
+already proved the relationship:
+
+```text
+move.l  $0(a0,d0.w),d1
+        index register  = d0
+        target register = d1
+
+move.w  table(pc,d0.w),d1
+jmp     base(pc,d1.w)
+        index register  = d0
+        target register = d1
+```
+
+No rendered-source parsing is involved, and Python only mirrors the C struct
+layout needed for tests. This keeps the C analysis engine as the owner of table
+consumer facts.
+
+Covered by:
+
+- `facts_v2_indexed_local_base_auto_classifies_pointer_table`
+- `source_analysis_table_descriptor_exports_consumer_fact`
+
+Verification after this pass:
+
+```text
+cmd /c src\precommit.bat m68k_ir
+uv run python -m pytest tests\test_c_backend.py -q
+all 36 tracked `.s` files regenerated
+uv run platform-rendered-source-roundtrip
+```
+
+The regenerated sources had no tracked `.s` diffs. Round-trip remained
+`34/36` full-file exact, `1/36` content-exact-only, `1/36` unsupported, and
+`0` failures.
+
 ## Acceptance Criteria
 
 This proposal can close when:
