@@ -918,6 +918,44 @@ All 36 tracked target `.s` files were regenerated again with no target source
 diffs. Round-trip remained 34/36 full-file exact, 1 content-exact-only,
 1 unsupported, and 0 failures.
 
+### Pass 9: Lookup-Owned Range Records
+
+The ninth pass makes the renderer's range ownership view durable inside
+`M68kRenderLookup` instead of rebuilding ownership from structured-data records
+on every query.
+
+Implemented changes:
+
+- `M68kRenderLookup` now stores range ownership records for policy-seeded and
+  auto-generated structured data;
+- ownership records refer to policy/auto structured-data entries by source and
+  index, not by raw pointer, so auto structured-data array growth cannot leave
+  stale ownership references;
+- policy untyped byte placeholders remain lower priority than accepted auto
+  owners at the same offset, preserving the previous replacement behavior;
+- renderer ownership checks and source-analysis range export both read the
+  lookup-owned range records;
+- `render_lookup_range_ownership_uses_stable_auto_indices` proves the stable
+  index behavior and placeholder priority directly.
+
+Structured-data records are still the payload source for formatting fields such
+as text kind, table encoding, names, comments, constants, and platform fields.
+The ownership decision surface is now separate and lookup-owned for the covered
+records.
+
+Verification after this pass:
+
+```text
+cmd /c src\precommit.bat m68k_ir
+uv run python -m pytest tests\test_c_backend.py -q
+uv run platform-rendered-source-roundtrip
+git diff --check
+```
+
+All 36 tracked target `.s` files were regenerated with no target source diffs.
+Round-trip remained 34/36 full-file exact, 1 content-exact-only, 1 unsupported,
+and 0 failures.
+
 ## Open Design Questions
 
 - What is the smallest status vocabulary that covers candidate, accepted,

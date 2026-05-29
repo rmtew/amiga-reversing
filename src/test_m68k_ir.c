@@ -9343,6 +9343,54 @@ static int test_source_analysis_range_ownership_records_code_text_and_table(void
   return 0;
 }
 
+static int test_render_lookup_range_ownership_uses_stable_auto_indices(void) {
+  M68kRenderLookup lookup;
+  M68kAnalysisPolicy policy;
+  M68kRenderRangeOwnershipView range;
+  M68kAnalysisStructuredDataItem *grown;
+  memset(&lookup, 0, sizeof(lookup));
+  m68k_analysis_policy_init_default(&policy);
+  lookup.section_count = 1U;
+  lookup.policy = &policy;
+  policy.structured_data_item_count = 1U;
+  policy.structured_data_items[0].has_section_index = 1U;
+  policy.structured_data_items[0].section_index = 0U;
+  policy.structured_data_items[0].offset = 4U;
+  policy.structured_data_items[0].size = 5U;
+  policy.structured_data_items[0].kind = M68K_ANALYSIS_STRUCTURED_DATA_BYTES;
+  M68K_C_ASSERT_INT(0, render_lookup_add_range_ownership_for_structured_item(&lookup, 0U,
+    M68K_RENDER_RANGE_STRUCTURED_ITEM_POLICY, 0U, &policy.structured_data_items[0]));
+  grown = (M68kAnalysisStructuredDataItem *)render_lookup_grow_array(&lookup, NULL, 0U, sizeof(*grown), 1U);
+  M68K_C_ASSERT(grown != NULL);
+  lookup.auto_structured_data_items = grown;
+  lookup.auto_structured_data_item_capacity = 1U;
+  lookup.auto_structured_data_item_count = 1U;
+  lookup.auto_structured_data_items[0].has_section_index = 1U;
+  lookup.auto_structured_data_items[0].section_index = 0U;
+  lookup.auto_structured_data_items[0].offset = 4U;
+  lookup.auto_structured_data_items[0].size = 5U;
+  lookup.auto_structured_data_items[0].kind = M68K_ANALYSIS_STRUCTURED_DATA_STRING;
+  m68k_analysis_structured_data_item_set_semantic_role_flags(&lookup.auto_structured_data_items[0],
+    M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING);
+  M68K_C_ASSERT_INT(0, render_lookup_add_range_ownership_for_structured_item(&lookup, 0U,
+    M68K_RENDER_RANGE_STRUCTURED_ITEM_AUTO, 0U, &lookup.auto_structured_data_items[0]));
+  grown = (M68kAnalysisStructuredDataItem *)render_lookup_grow_array(&lookup,
+    lookup.auto_structured_data_items, lookup.auto_structured_data_item_count, sizeof(*grown), 64U);
+  M68K_C_ASSERT(grown != NULL);
+  lookup.auto_structured_data_items = grown;
+  lookup.auto_structured_data_item_capacity = 64U;
+  M68K_C_ASSERT(lookup_range_ownership_at_offset(&lookup, 0U, 4U, &range));
+  M68K_C_ASSERT_U32(M68K_RENDER_RANGE_STRUCTURED_ITEM_AUTO, range.structured_item_source);
+  M68K_C_ASSERT_U32(0U, (uint32_t)range.structured_item_index);
+  M68K_C_ASSERT(range.structured_item == &lookup.auto_structured_data_items[0]);
+  M68K_C_ASSERT_U32(M68K_RANGE_OWNERSHIP_TEXT, range.kind);
+  M68K_C_ASSERT_U32(M68K_RANGE_OWNERSHIP_STATUS_ACCEPTED, range.status);
+  M68K_C_ASSERT((range.positive_evidence_flags & M68K_RANGE_EVIDENCE_STRUCTURED_DATA) != 0U);
+  M68K_C_ASSERT((range.positive_evidence_flags & M68K_RANGE_EVIDENCE_TEXT_SHAPE) != 0U);
+  arena_destroy(lookup.arena);
+  return 0;
+}
+
 static int test_source_analysis_code_ranges_stop_at_stored_section_bytes(void) {
   M68kObject object;
   M68kSection section;
@@ -22377,6 +22425,8 @@ int m68k_c_ir_tests(void) {
       test_source_analysis_table_record_marks_unaccepted_code_target_conflict},
     {"source_analysis_range_ownership_records_code_text_and_table",
       test_source_analysis_range_ownership_records_code_text_and_table},
+    {"render_lookup_range_ownership_uses_stable_auto_indices",
+      test_render_lookup_range_ownership_uses_stable_auto_indices},
     {"source_analysis_code_ranges_stop_at_stored_section_bytes",
       test_source_analysis_code_ranges_stop_at_stored_section_bytes},
     {"source_analysis_table_descriptor_exports_conflict",

@@ -5599,6 +5599,10 @@ static int render_lookup_add_auto_structured_data_item(M68kRenderLookup *lookup,
   item->kind = kind;
   m68k_analysis_structured_data_item_set_semantic_role_flags(item, semantic_role_flags);
   ++lookup->auto_structured_data_item_count;
+  if (render_lookup_add_range_ownership_for_structured_item(lookup, section_index,
+      M68K_RENDER_RANGE_STRUCTURED_ITEM_AUTO, lookup->auto_structured_data_item_count - 1U, item) != 0) {
+    return -1;
+  }
   render_lookup_mark_boundary_flag(lookup, section_index, offset, M68K_RENDER_BOUNDARY_STRUCTURED_DATA);
   if (section_index < lookup->section_count && lookup->auto_structured_data_item_indices != NULL &&
       lookup->auto_structured_data_item_index_extents != NULL &&

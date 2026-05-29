@@ -5305,32 +5305,133 @@ const M68kAnalysisStructuredDataItem *lookup_structured_data_item_covering_offse
   return NULL;
 }
 
-static int range_ownership_view_from_structured_item(const M68kAnalysisStructuredDataItem *item,
-    M68kRenderRangeOwnershipView *out_range) {
+static const M68kAnalysisStructuredDataItem *range_ownership_structured_item(
+    const M68kRenderLookup *lookup, const M68kRenderRangeOwnershipView *range) {
+  if (lookup == NULL || range == NULL) return NULL;
+  if (range->structured_item_source == M68K_RENDER_RANGE_STRUCTURED_ITEM_POLICY) {
+    if (lookup->policy == NULL || range->structured_item_index >= lookup->policy->structured_data_item_count ||
+        range->structured_item_index >= M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT) {
+      return NULL;
+    }
+    return &lookup->policy->structured_data_items[range->structured_item_index];
+  }
+  if (range->structured_item_source == M68K_RENDER_RANGE_STRUCTURED_ITEM_AUTO) {
+    if (range->structured_item_index >= lookup->auto_structured_data_item_count) return NULL;
+    return &lookup->auto_structured_data_items[range->structured_item_index];
+  }
+  return NULL;
+}
+
+static int hydrate_range_ownership_view(const M68kRenderLookup *lookup,
+    const M68kRenderRangeOwnershipView *stored, M68kRenderRangeOwnershipView *out_range) {
+  const M68kAnalysisStructuredDataItem *item;
   if (out_range != NULL) memset(out_range, 0, sizeof(*out_range));
-  if (item == NULL || item->size == 0U || out_range == NULL) return 0;
-  if (UINT32_MAX - item->offset < item->size) return 0;
-  out_range->start_offset = item->offset;
-  out_range->end_offset = item->offset + item->size;
-  out_range->kind = range_ownership_kind_for_structured_item(item);
-  out_range->status = item->table_conflicted ? M68K_RANGE_OWNERSHIP_STATUS_CONFLICT :
-    M68K_RANGE_OWNERSHIP_STATUS_ACCEPTED;
-  out_range->positive_evidence_flags = range_ownership_evidence_for_structured_item(item);
-  out_range->structured_item = item;
+  if (lookup == NULL || stored == NULL || out_range == NULL || stored->end_offset <= stored->start_offset) return 0;
+  *out_range = *stored;
+  item = range_ownership_structured_item(lookup, stored);
+  if (item != NULL) {
+    out_range->kind = range_ownership_kind_for_structured_item(item);
+    out_range->status = item->table_conflicted ? M68K_RANGE_OWNERSHIP_STATUS_CONFLICT :
+      M68K_RANGE_OWNERSHIP_STATUS_ACCEPTED;
+    out_range->positive_evidence_flags = range_ownership_evidence_for_structured_item(item);
+    out_range->structured_item = item;
+  }
   return 1;
+}
+
+int render_lookup_add_range_ownership_for_structured_item(M68kRenderLookup *lookup, size_t section_index,
+    uint8_t structured_item_source, size_t structured_item_index, const M68kAnalysisStructuredDataItem *item) {
+  M68kRenderRangeOwnershipView *grown;
+  M68kRenderRangeOwnershipView *range;
+  size_t next_capacity;
+  size_t index;
+  if (lookup == NULL || item == NULL || item->size == 0U || item->offset > UINT32_MAX - item->size) return 0;
+  if (structured_item_source == M68K_RENDER_RANGE_STRUCTURED_ITEM_NONE) return 0;
+  for (index = 0U; index < lookup->range_ownership_count; ++index) {
+    const M68kRenderRangeOwnershipView *existing = &lookup->range_ownerships[index];
+    if (existing->structured_item_source == structured_item_source &&
+        existing->structured_item_index == structured_item_index) {
+      return 0;
+    }
+  }
+  if (lookup->range_ownership_count == lookup->range_ownership_capacity) {
+    next_capacity = lookup->range_ownership_capacity == 0U ? 32U : lookup->range_ownership_capacity * 2U;
+    grown = (M68kRenderRangeOwnershipView *)render_lookup_grow_array(lookup, lookup->range_ownerships,
+      lookup->range_ownership_count, sizeof(*grown), next_capacity);
+    if (grown == NULL) return -1;
+    lookup->range_ownerships = grown;
+    lookup->range_ownership_capacity = next_capacity;
+  }
+  range = &lookup->range_ownerships[lookup->range_ownership_count];
+  memset(range, 0, sizeof(*range));
+  range->section_index = section_index;
+  range->start_offset = item->offset;
+  range->end_offset = item->offset + item->size;
+  range->structured_item_source = structured_item_source;
+  range->structured_item_index = structured_item_index;
+  ++lookup->range_ownership_count;
+  return 0;
 }
 
 int lookup_range_ownership_at_offset(const M68kRenderLookup *lookup, size_t section_index, uint32_t offset,
     M68kRenderRangeOwnershipView *out_range) {
-  const M68kAnalysisStructuredDataItem *item = lookup_structured_data_item_at_offset(lookup, section_index, offset);
-  return range_ownership_view_from_structured_item(item, out_range);
+  M68kRenderRangeOwnershipView placeholder;
+  int has_placeholder = 0;
+  size_t index;
+  if (lookup == NULL) return 0;
+  memset(&placeholder, 0, sizeof(placeholder));
+  for (index = 0U; index < lookup->range_ownership_count; ++index) {
+    const M68kRenderRangeOwnershipView *range = &lookup->range_ownerships[index];
+    M68kRenderRangeOwnershipView hydrated;
+    if (range->section_index != section_index || range->start_offset != offset) continue;
+    if (!hydrate_range_ownership_view(lookup, range, &hydrated)) continue;
+    if (structured_data_item_is_untyped_bytes_placeholder_local(hydrated.structured_item)) {
+      if (!has_placeholder) {
+        placeholder = hydrated;
+        has_placeholder = 1;
+      }
+      continue;
+    }
+    if (out_range != NULL) *out_range = hydrated;
+    return 1;
+  }
+  if (has_placeholder) {
+    if (out_range != NULL) *out_range = placeholder;
+    return 1;
+  }
+  if (out_range != NULL) memset(out_range, 0, sizeof(*out_range));
+  return 0;
 }
 
 int lookup_range_ownership_covering_offset(const M68kRenderLookup *lookup, size_t section_index, uint32_t offset,
     M68kRenderRangeOwnershipView *out_range) {
-  const M68kAnalysisStructuredDataItem *item =
-    lookup_structured_data_item_covering_offset(lookup, section_index, offset);
-  return range_ownership_view_from_structured_item(item, out_range);
+  M68kRenderRangeOwnershipView placeholder;
+  int has_placeholder = 0;
+  size_t index;
+  if (lookup == NULL) return 0;
+  memset(&placeholder, 0, sizeof(placeholder));
+  for (index = 0U; index < lookup->range_ownership_count; ++index) {
+    const M68kRenderRangeOwnershipView *range = &lookup->range_ownerships[index];
+    M68kRenderRangeOwnershipView hydrated;
+    if (range->section_index != section_index || offset < range->start_offset || offset >= range->end_offset)
+      continue;
+    if (!hydrate_range_ownership_view(lookup, range, &hydrated)) continue;
+    if (structured_data_item_is_untyped_bytes_placeholder_local(hydrated.structured_item)) {
+      if (!has_placeholder) {
+        placeholder = hydrated;
+        has_placeholder = 1;
+      }
+      continue;
+    }
+    if (out_range != NULL) *out_range = hydrated;
+    return 1;
+  }
+  if (has_placeholder) {
+    if (out_range != NULL) *out_range = placeholder;
+    return 1;
+  }
+  if (out_range != NULL) memset(out_range, 0, sizeof(*out_range));
+  return 0;
 }
 
 int structured_data_item_comment(const M68kAnalysisStructuredDataItem *item, char *comment,
@@ -5748,6 +5849,10 @@ static int render_lookup_build(M68kRenderLookup *lookup, const M68kObject *objec
       }
       render_lookup_mark_boundary_flag(lookup, item_section_index, item->offset,
         M68K_RENDER_BOUNDARY_STRUCTURED_DATA);
+      if (render_lookup_add_range_ownership_for_structured_item(lookup, item_section_index,
+          M68K_RENDER_RANGE_STRUCTURED_ITEM_POLICY, item_index, item) != 0) {
+        goto oom;
+      }
     }
   }
   for (fact_index = 0U; fact_index < facts->fact_count; ++fact_index) {
@@ -8595,35 +8700,36 @@ static int render_analysis_append_table_descriptors_for_section(
   return 0;
 }
 
-static int render_analysis_append_policy_structured_ranges_for_section(
-    const M68kSourceAnalysisIR *source_analysis, size_t section_index,
+static int render_analysis_append_lookup_range_ownerships_for_section(
+    const M68kRenderLookup *lookup, size_t section_index,
     M68kSectionAnalysisIR *section_analysis) {
   size_t index;
-  if (source_analysis == NULL || section_analysis == NULL) return -1;
-  for (index = 0U; index < m68k_ir_source_analysis_structured_data_item_count(source_analysis); ++index) {
-    const M68kAnalysisStructuredDataItem *item =
-      m68k_ir_source_analysis_structured_data_item_at(source_analysis, index);
+  if (lookup == NULL || section_analysis == NULL) return -1;
+  for (index = 0U; index < lookup->range_ownership_count; ++index) {
+    M68kRenderRangeOwnershipView view;
+    const M68kAnalysisStructuredDataItem *item;
     M68kRangeOwnershipIR range;
-    if (item == NULL) return -1;
-    if (!item->has_section_index || item->section_index != (uint32_t)section_index || item->size == 0U) continue;
+    if (lookup->range_ownerships[index].section_index != section_index) continue;
+    if (!hydrate_range_ownership_view(lookup, &lookup->range_ownerships[index], &view)) continue;
+    item = view.structured_item;
     memset(&range, 0, sizeof(range));
-    range.start_offset = item->offset;
-    if (item->offset > UINT32_MAX - item->size) continue;
-    range.end_offset = item->offset + item->size;
-    range.kind = range_ownership_kind_for_structured_item(item);
-    range.status = item->table_conflicted ? M68K_RANGE_OWNERSHIP_STATUS_CONFLICT :
-      M68K_RANGE_OWNERSHIP_STATUS_ACCEPTED;
-    range.data_kind = item->kind;
-    range.conflict_state = item->table_conflict_state;
-    range.positive_evidence_flags = range_ownership_evidence_for_structured_item(item);
-    range.negative_evidence_flags = item->table_conflicted ?
-      range_ownership_negative_evidence_for_table_conflict(item->table_conflict_state) : 0U;
-    range.has_source = item->has_consumer;
-    range.source_offset = item->consumer_offset;
-    range.table_kind_id = item->table_kind_id;
-    range.source_pattern_id = item->source_pattern_id;
-    range.role = item->semantic_role[0] != '\0' ? (char *)item->semantic_role : NULL;
-    range.source_pattern = item->source_pattern[0] != '\0' ? (char *)item->source_pattern : NULL;
+    range.start_offset = view.start_offset;
+    range.end_offset = view.end_offset;
+    range.kind = view.kind;
+    range.status = view.status;
+    range.positive_evidence_flags = view.positive_evidence_flags;
+    if (item != NULL) {
+      range.data_kind = item->kind;
+      range.conflict_state = item->table_conflict_state;
+      range.negative_evidence_flags = item->table_conflicted ?
+        range_ownership_negative_evidence_for_table_conflict(item->table_conflict_state) : 0U;
+      range.has_source = item->has_consumer;
+      range.source_offset = item->consumer_offset;
+      range.table_kind_id = item->table_kind_id;
+      range.source_pattern_id = item->source_pattern_id;
+      range.role = item->semantic_role[0] != '\0' ? (char *)item->semantic_role : NULL;
+      range.source_pattern = item->source_pattern[0] != '\0' ? (char *)item->source_pattern : NULL;
+    }
     if (m68k_ir_section_analysis_append_range_ownership(section_analysis, &range) != 0) return -1;
   }
   return 0;
@@ -11701,7 +11807,7 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
           accepted_bytes[section_index], current_section_analysis) != 0) {
         goto cleanup;
       }
-      if (render_analysis_append_policy_structured_ranges_for_section(out_source_analysis, section->section_index,
+      if (render_analysis_append_lookup_range_ownerships_for_section(&lookup, section->section_index,
           current_section_analysis) != 0) {
         goto cleanup;
       }

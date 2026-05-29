@@ -23,12 +23,21 @@
 #include <string.h>
 
 typedef struct M68kRenderLookup M68kRenderLookup;
+typedef enum M68kRenderRangeStructuredItemSource {
+  M68K_RENDER_RANGE_STRUCTURED_ITEM_NONE = 0,
+  M68K_RENDER_RANGE_STRUCTURED_ITEM_POLICY = 1,
+  M68K_RENDER_RANGE_STRUCTURED_ITEM_AUTO = 2
+} M68kRenderRangeStructuredItemSource;
+
 typedef struct M68kRenderRangeOwnershipView {
+  size_t section_index;
   uint32_t start_offset;
   uint32_t end_offset;
   uint8_t kind;
   uint8_t status;
+  uint8_t structured_item_source;
   uint32_t positive_evidence_flags;
+  size_t structured_item_index;
   const M68kAnalysisStructuredDataItem *structured_item;
 } M68kRenderRangeOwnershipView;
 
@@ -601,6 +610,9 @@ struct M68kRenderLookup {
   M68kRenderStringSpan *string_spans;
   size_t string_span_count;
   size_t string_span_capacity;
+  M68kRenderRangeOwnershipView *range_ownerships;
+  size_t range_ownership_count;
+  size_t range_ownership_capacity;
   M68kAnalysisStructuredDataItem *auto_structured_data_items;
   size_t auto_structured_data_item_count;
   size_t auto_structured_data_item_capacity;
@@ -633,6 +645,8 @@ int lookup_range_ownership_at_offset(const M68kRenderLookup *lookup, size_t sect
     M68kRenderRangeOwnershipView *out_range);
 int lookup_range_ownership_covering_offset(const M68kRenderLookup *lookup, size_t section_index, uint32_t offset,
     M68kRenderRangeOwnershipView *out_range);
+int render_lookup_add_range_ownership_for_structured_item(M68kRenderLookup *lookup, size_t section_index,
+    uint8_t structured_item_source, size_t structured_item_index, const M68kAnalysisStructuredDataItem *item);
 int structured_data_item_comment(const M68kAnalysisStructuredDataItem *item, char *comment,
     size_t comment_size);
 int structured_data_item_render_comment(const M68kDecodeSectionIR *section,
