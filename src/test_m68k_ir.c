@@ -2127,6 +2127,7 @@ static int test_facts_v2_indexed_local_base_auto_classifies_pointer_table(void) 
   M68kSourceAnalysisIR source_analysis;
   const M68kAnalysisStructuredDataItem *auto_item = NULL;
   char *source = NULL;
+  uint32_t data_ref_targets = 0U;
   uint16_t index;
   const char *source_text =
     "SECTION section_0,code\n"
@@ -2175,6 +2176,18 @@ static int test_facts_v2_indexed_local_base_auto_classifies_pointer_table(void) 
   M68K_C_ASSERT_U32(1U, auto_item->target_register);
   M68K_C_ASSERT_U32(8U, auto_item->size);
   M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_LONGS, auto_item->kind);
+  for (index = 0U; index < source_analysis.sections[0].data_reference_count; ++index) {
+    const M68kDataReferenceIR *ref = &source_analysis.sections[0].data_references[index];
+    if (ref->source_kind == M68K_DATA_REFERENCE_SOURCE_TABLE_ENTRY &&
+        ref->table_kind_id == M68K_ANALYSIS_TABLE_KIND_POINTER &&
+        ref->table_start_offset == auto_item->offset) {
+      if (ref->target_offset == 0x10U) data_ref_targets |= 1U;
+      if (ref->target_offset == 0x12U) data_ref_targets |= 2U;
+      M68K_C_ASSERT_U32(M68K_TABLE_ENTRY_TARGET_STATUS_ACCEPTED_TARGET, ref->target_status);
+      M68K_C_ASSERT((ref->evidence_flags & M68K_DATA_REFERENCE_EVIDENCE_POINTER_TABLE) != 0U);
+    }
+  }
+  M68K_C_ASSERT_U32(3U, data_ref_targets);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
   m68k_facts_v2_free_text(source);
@@ -9586,6 +9599,51 @@ static int test_source_analysis_table_entry_exports_status(void) {
     "\"raw_value\":16,\"raw_value_width\":2,\"table_kind_id\":3,\"table_kind\":\"relative_code_dispatch\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"target_status_name\":\"accepted_target\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"target_section_index\":0,\"target_offset\":64") != NULL);
+  free(analysis_json);
+  m68k_ir_section_analysis_destroy(&section_analysis);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  return 0;
+}
+
+static int test_source_analysis_data_reference_exports_table_entry(void) {
+  M68kSourceAnalysisIR source_analysis;
+  M68kSectionAnalysisIR section_analysis;
+  M68kDataReferenceIR ref;
+  char *analysis_json = NULL;
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_create(&source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_create(&section_analysis, test_ir_result_arena()));
+  memset(&ref, 0, sizeof(ref));
+  section_analysis.section_index = 0U;
+  section_analysis.section_size = 64U;
+  ref.source_offset = 0x0CU;
+  ref.source_kind = M68K_DATA_REFERENCE_SOURCE_TABLE_ENTRY;
+  ref.table_kind_id = M68K_ANALYSIS_TABLE_KIND_POINTER;
+  ref.source_pattern_id = M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_INDEXED_LOCAL_POINTER_READ;
+  ref.target_status = M68K_TABLE_ENTRY_TARGET_STATUS_ACCEPTED_TARGET;
+  ref.evidence_flags = M68K_DATA_REFERENCE_EVIDENCE_TABLE_ENTRY |
+    M68K_DATA_REFERENCE_EVIDENCE_POINTER_TABLE | M68K_DATA_REFERENCE_EVIDENCE_ACCEPTED_TARGET;
+  ref.table_start_offset = 0x20U;
+  ref.table_entry_index = 1U;
+  ref.table_entry_offset = 0x24U;
+  ref.table_entry_size = 4U;
+  ref.raw_value = 0x30U;
+  ref.target_section_index = 0U;
+  ref.target_offset = 0x30U;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_data_reference(&section_analysis, &ref));
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"data_reference_count\":1") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"data_references\":[{\"source_offset\":12,\"source_kind\":1,\"source_kind_name\":\"table_entry\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"table_entry_index\":1,\"table_entry_offset\":36,\"table_entry_size\":4,\"raw_value\":48") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"table_kind_id\":2,\"table_kind\":\"pointer\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"source_pattern_id\":3,\"source_pattern\":\"indexed_local_pointer_read\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"target_section_index\":0,\"target_offset\":48,\"target_status\":2,"
+    "\"target_status_name\":\"accepted_target\"") != NULL);
   free(analysis_json);
   m68k_ir_section_analysis_destroy(&section_analysis);
   m68k_ir_source_analysis_destroy(&source_analysis);
@@ -22696,6 +22754,8 @@ int m68k_c_ir_tests(void) {
       test_source_analysis_table_descriptor_exports_consumer_fact},
     {"source_analysis_table_entry_exports_status",
       test_source_analysis_table_entry_exports_status},
+    {"source_analysis_data_reference_exports_table_entry",
+      test_source_analysis_data_reference_exports_table_entry},
     {"source_analysis_range_ownership_exports_conflict",
       test_source_analysis_range_ownership_exports_conflict},
     {"source_analysis_platform_storage_effect_conflicts_only_mapped_section_storage",

@@ -1185,6 +1185,63 @@ The regenerated sources had no tracked `.s` diffs. Round-trip remained
 `34/36` full-file exact, `1/36` content-exact-only, `1/36` unsupported, and
 `0` failures.
 
+### Pass 8: Table-Backed Data Reference Facts
+
+The eighth implementation pass adds a shared C data-reference fact surface for
+non-code table targets. Table entries now remain the per-entry record, while
+data references expose the consumer-facing relationship:
+
+```text
+table entry -> accepted data target
+```
+
+The new surface is:
+
+```text
+M68kDataReferenceIR
+section.data_references[]
+source-analysis JSON data_references[]
+```
+
+The first producer is intentionally narrow and evidence-backed. When a
+structured table entry resolves to an accepted non-code target, C emits a data
+reference carrying:
+
+```text
+source_offset
+source_kind = table_entry
+table_start_offset
+table_entry_index / offset / size
+raw_value
+table_kind / source_pattern
+target_section_index / target_offset
+target_status
+evidence_flags
+conflict_state
+```
+
+This covers pointer tables and relative data lookups without requiring Python
+or reports to infer data references from rendered labels. Code dispatch entries
+stay represented as table entries and code-start/control-flow facts.
+
+Covered by:
+
+- `source_analysis_data_reference_exports_table_entry`
+- `facts_v2_indexed_local_base_auto_classifies_pointer_table`
+
+Verification after this pass:
+
+```text
+cmd /c src\precommit.bat m68k_ir
+uv run python -m pytest tests\test_c_backend.py -q
+all 36 tracked `.s` files regenerated
+uv run platform-rendered-source-roundtrip
+```
+
+The regenerated sources had no tracked `.s` diffs. Round-trip remained
+`34/36` full-file exact, `1/36` content-exact-only, `1/36` unsupported, and
+`0` failures.
+
 ## Acceptance Criteria
 
 This proposal can close when:

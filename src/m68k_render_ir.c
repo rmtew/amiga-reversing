@@ -8628,6 +8628,42 @@ static uint8_t render_analysis_code_table_target_status(const M68kDecodeSectionI
   return M68K_TABLE_ENTRY_TARGET_STATUS_UNRESOLVED_TARGET;
 }
 
+static uint32_t render_analysis_data_reference_evidence_for_table_kind(uint8_t table_kind_id) {
+  uint32_t flags = M68K_DATA_REFERENCE_EVIDENCE_TABLE_ENTRY;
+  if (table_kind_id == M68K_ANALYSIS_TABLE_KIND_POINTER) flags |= M68K_DATA_REFERENCE_EVIDENCE_POINTER_TABLE;
+  if (table_kind_id == M68K_ANALYSIS_TABLE_KIND_RELATIVE_DATA_LOOKUP)
+    flags |= M68K_DATA_REFERENCE_EVIDENCE_RELATIVE_DATA_LOOKUP;
+  return flags;
+}
+
+static int render_analysis_append_data_reference_for_table_entry(M68kSectionAnalysisIR *section_analysis,
+    const M68kAnalysisStructuredDataItem *item, const M68kTableEntryIR *entry) {
+  M68kDataReferenceIR ref;
+  if (section_analysis == NULL || item == NULL || entry == NULL || !entry->has_target) return -1;
+  if (entry->target_status != M68K_TABLE_ENTRY_TARGET_STATUS_ACCEPTED_TARGET) return 0;
+  if (item->table_kind_id == M68K_ANALYSIS_TABLE_KIND_RELATIVE_CODE_DISPATCH ||
+      item->table_kind_id == M68K_ANALYSIS_TABLE_KIND_ABSOLUTE_CODE_DISPATCH) {
+    return 0;
+  }
+  memset(&ref, 0, sizeof(ref));
+  ref.source_offset = item->has_consumer ? item->consumer_offset : entry->entry_offset;
+  ref.source_kind = M68K_DATA_REFERENCE_SOURCE_TABLE_ENTRY;
+  ref.table_kind_id = item->table_kind_id;
+  ref.source_pattern_id = item->source_pattern_id;
+  ref.target_status = entry->target_status;
+  ref.conflict_state = entry->conflict_state;
+  ref.evidence_flags = render_analysis_data_reference_evidence_for_table_kind(item->table_kind_id) |
+    M68K_DATA_REFERENCE_EVIDENCE_ACCEPTED_TARGET;
+  ref.table_start_offset = item->offset;
+  ref.table_entry_index = entry->entry_index;
+  ref.table_entry_offset = entry->entry_offset;
+  ref.table_entry_size = entry->entry_size;
+  ref.raw_value = entry->raw_value;
+  ref.target_section_index = entry->target_section_index;
+  ref.target_offset = entry->target_offset;
+  return m68k_ir_section_analysis_append_data_reference(section_analysis, &ref);
+}
+
 static int render_analysis_append_table_entry_target(M68kSectionAnalysisIR *section_analysis,
     const M68kAnalysisStructuredDataItem *item, uint32_t entry_index, uint32_t entry_offset,
     uint32_t entry_size, uint32_t raw_value, uint8_t raw_value_width, int64_t target_offset,
@@ -8660,7 +8696,8 @@ static int render_analysis_append_table_entry_target(M68kSectionAnalysisIR *sect
     entry.target_status = M68K_TABLE_ENTRY_TARGET_STATUS_ACCEPTED_TARGET;
   }
   entry.conflict_state = conflict_state;
-  return m68k_ir_section_analysis_append_table_entry(section_analysis, &entry);
+  if (m68k_ir_section_analysis_append_table_entry(section_analysis, &entry) != 0) return -1;
+  return render_analysis_append_data_reference_for_table_entry(section_analysis, item, &entry);
 }
 
 static int render_analysis_append_table_entry_numeric(M68kSectionAnalysisIR *section_analysis,

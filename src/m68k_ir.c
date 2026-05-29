@@ -231,6 +231,15 @@ const char *m68k_table_entry_target_status_name(uint8_t status) {
   }
 }
 
+const char *m68k_data_reference_source_kind_name(uint8_t source_kind) {
+  switch (source_kind) {
+    case M68K_DATA_REFERENCE_SOURCE_TABLE_ENTRY:
+      return "table_entry";
+    default:
+      return NULL;
+  }
+}
+
 uint8_t m68k_analysis_table_entry_count_proof_for_source_pattern(uint8_t source_pattern_id) {
   switch (source_pattern_id) {
     case M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_RELOCATION_POINTER_TABLE:
@@ -1330,6 +1339,34 @@ int m68k_ir_section_analysis_append_table_entry(M68kSectionAnalysisIR *section_a
       &section_analysis->table_entry_capacity, 16U, sizeof(*section_analysis->table_entries));
   if (section_analysis->table_entries == NULL) return -1;
   section_analysis->table_entries[section_analysis->table_entry_count++] = *entry;
+  return 0;
+}
+
+int m68k_ir_section_analysis_append_data_reference(M68kSectionAnalysisIR *section_analysis,
+    const M68kDataReferenceIR *ref) {
+  size_t index;
+  if (section_analysis == NULL || ref == NULL) return -1;
+  if (section_analysis->arena == NULL) return -1;
+  if (ref->source_kind == M68K_DATA_REFERENCE_SOURCE_UNKNOWN ||
+      ref->target_status == M68K_TABLE_ENTRY_TARGET_STATUS_UNKNOWN) {
+    return 0;
+  }
+  for (index = 0U; index < section_analysis->data_reference_count; ++index) {
+    const M68kDataReferenceIR *existing = &section_analysis->data_references[index];
+    if (existing->source_kind == ref->source_kind &&
+        existing->source_offset == ref->source_offset &&
+        existing->table_start_offset == ref->table_start_offset &&
+        existing->table_entry_index == ref->table_entry_index &&
+        existing->target_section_index == ref->target_section_index &&
+        existing->target_offset == ref->target_offset) {
+      return 0;
+    }
+  }
+  section_analysis->data_references = (M68kDataReferenceIR *)arena_grow_array(section_analysis->arena,
+      section_analysis->data_references, section_analysis->data_reference_count,
+      &section_analysis->data_reference_capacity, 16U, sizeof(*section_analysis->data_references));
+  if (section_analysis->data_references == NULL) return -1;
+  section_analysis->data_references[section_analysis->data_reference_count++] = *ref;
   return 0;
 }
 
@@ -3585,6 +3622,13 @@ int m68k_ir_source_analysis_append_section(M68kSourceAnalysisIR *source_analysis
   for (index = 0; index < section_analysis->table_entry_count; ++index) {
     if (m68k_ir_section_analysis_append_table_entry(&copy,
           &section_analysis->table_entries[index]) != 0) {
+      m68k_ir_section_analysis_destroy(&copy);
+      return -1;
+    }
+  }
+  for (index = 0; index < section_analysis->data_reference_count; ++index) {
+    if (m68k_ir_section_analysis_append_data_reference(&copy,
+          &section_analysis->data_references[index]) != 0) {
       m68k_ir_section_analysis_destroy(&copy);
       return -1;
     }

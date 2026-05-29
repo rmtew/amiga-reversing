@@ -1411,6 +1411,36 @@ typedef struct M68kTableEntryIR {
   uint32_t target_offset;
 } M68kTableEntryIR;
 
+typedef enum M68kDataReferenceSourceKind {
+  M68K_DATA_REFERENCE_SOURCE_UNKNOWN = 0,
+  M68K_DATA_REFERENCE_SOURCE_TABLE_ENTRY = 1
+} M68kDataReferenceSourceKind;
+
+typedef enum M68kDataReferenceEvidenceFlag {
+  M68K_DATA_REFERENCE_EVIDENCE_TABLE_ENTRY = 1U << 0,
+  M68K_DATA_REFERENCE_EVIDENCE_POINTER_TABLE = 1U << 1,
+  M68K_DATA_REFERENCE_EVIDENCE_RELATIVE_DATA_LOOKUP = 1U << 2,
+  M68K_DATA_REFERENCE_EVIDENCE_ACCEPTED_TARGET = 1U << 3
+} M68kDataReferenceEvidenceFlag;
+
+typedef struct M68kDataReferenceIR {
+  uint32_t source_offset;
+  uint8_t source_kind;
+  uint8_t table_kind_id;
+  uint8_t source_pattern_id;
+  uint8_t target_status;
+  uint8_t conflict_state;
+  uint8_t reserved[3];
+  uint32_t evidence_flags;
+  uint32_t table_start_offset;
+  uint32_t table_entry_index;
+  uint32_t table_entry_offset;
+  uint32_t table_entry_size;
+  uint32_t raw_value;
+  uint32_t target_section_index;
+  uint32_t target_offset;
+} M68kDataReferenceIR;
+
 typedef struct M68kSectionAnalysisIR {
   size_t section_index;
   char *section_name;
@@ -1455,6 +1485,9 @@ typedef struct M68kSectionAnalysisIR {
   M68kTableEntryIR *table_entries;
   size_t table_entry_count;
   size_t table_entry_capacity;
+  M68kDataReferenceIR *data_references;
+  size_t data_reference_count;
+  size_t data_reference_capacity;
   M68kRecoveredPlatformCallIR **recovered_platform_call_lookup;
   size_t recovered_platform_call_lookup_size;
   uint32_t *recovered_platform_call_next_lookup;
@@ -1579,6 +1612,7 @@ const char *m68k_analysis_table_kind_name(uint8_t table_kind_id);
 const char *m68k_analysis_table_base_expression_name(uint8_t base_expression_id);
 const char *m68k_analysis_table_entry_count_proof_name(uint8_t proof_id);
 const char *m68k_table_entry_target_status_name(uint8_t status);
+const char *m68k_data_reference_source_kind_name(uint8_t source_kind);
 uint8_t m68k_analysis_table_entry_count_proof_for_source_pattern(uint8_t source_pattern_id);
 uint8_t m68k_recovered_indirect_source_pattern_id(uint8_t shape);
 const char *m68k_recovered_indirect_source_pattern_name(uint8_t source_pattern_id);
@@ -1635,6 +1669,8 @@ int m68k_ir_section_analysis_append_table_consumer(M68kSectionAnalysisIR *sectio
     const M68kTableConsumerIR *consumer);
 int m68k_ir_section_analysis_append_table_entry(M68kSectionAnalysisIR *section_analysis,
     const M68kTableEntryIR *entry);
+int m68k_ir_section_analysis_append_data_reference(M68kSectionAnalysisIR *section_analysis,
+    const M68kDataReferenceIR *ref);
 int m68k_ir_section_analysis_add_violation(M68kSectionAnalysisIR *section_analysis, uint32_t offset, uint8_t kind, const char *message);
 int m68k_ir_section_analysis_append_recovered_word_dispatch(M68kSectionAnalysisIR *section_analysis,
   const M68kRecoveredWordDispatchIR *dispatch);

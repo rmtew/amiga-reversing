@@ -3395,6 +3395,7 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
     size_t block_index, edge_index, violation_index, app_slot_ref_index, typed_access_index, range_index;
     size_t table_descriptor_index, table_consumer_index, table_entry_index;
     size_t unresolved_typed_access_index, runtime_view_index, runtime_address_ref_index, code_start_ref_index;
+    size_t data_reference_index;
     size_t string_ref_index;
     size_t effect_index, call_index, disk_read_index, runtime_copy_index, indirect_site_index, orphan_signal_index;
     if (section_index != 0U && json_builder_append(&builder, ",") != 0)
@@ -3488,6 +3489,57 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
               ref->xref_generation_mode != NULL ? ref->xref_generation_mode : "") != 0)
           goto oom;
       }
+      if (json_builder_append(&builder, "}") != 0)
+        goto oom;
+    }
+    if (json_builder_appendf(&builder, "],\"data_reference_count\":%u,\"data_references\":[",
+          (unsigned)section->data_reference_count) != 0)
+      goto oom;
+    for (data_reference_index = 0; data_reference_index < section->data_reference_count;
+        ++data_reference_index) {
+      const M68kDataReferenceIR *ref = &section->data_references[data_reference_index];
+      if (data_reference_index != 0U && json_builder_append(&builder, ",") != 0)
+        goto oom;
+      if (json_builder_appendf(&builder,
+          "{\"source_offset\":%u,\"source_kind\":%u,\"source_kind_name\":",
+          (unsigned)ref->source_offset, (unsigned)ref->source_kind) != 0)
+        goto oom;
+      if (json_builder_append_json_string(&builder,
+          m68k_data_reference_source_kind_name(ref->source_kind)) != 0)
+        goto oom;
+      if (json_builder_appendf(&builder,
+          ",\"table_start_offset\":%u,\"table_entry_index\":%u,\"table_entry_offset\":%u,"
+          "\"table_entry_size\":%u,\"raw_value\":%u,\"table_kind_id\":%u,\"table_kind\":",
+          (unsigned)ref->table_start_offset, (unsigned)ref->table_entry_index,
+          (unsigned)ref->table_entry_offset, (unsigned)ref->table_entry_size,
+          (unsigned)ref->raw_value, (unsigned)ref->table_kind_id) != 0)
+        goto oom;
+      if (json_builder_append_nullable_string(&builder,
+          m68k_analysis_table_kind_name(ref->table_kind_id)) != 0)
+        goto oom;
+      if (json_builder_appendf(&builder,
+          ",\"source_pattern_id\":%u,\"source_pattern\":",
+          (unsigned)ref->source_pattern_id) != 0)
+        goto oom;
+      if (json_builder_append_nullable_string(&builder,
+          m68k_analysis_structured_data_source_pattern_name(ref->source_pattern_id)) != 0)
+        goto oom;
+      if (json_builder_appendf(&builder,
+          ",\"target_section_index\":%u,\"target_offset\":%u,"
+          "\"target_status\":%u,\"target_status_name\":",
+          (unsigned)ref->target_section_index, (unsigned)ref->target_offset,
+          (unsigned)ref->target_status) != 0)
+        goto oom;
+      if (json_builder_append_json_string(&builder,
+          m68k_table_entry_target_status_name(ref->target_status)) != 0)
+        goto oom;
+      if (json_builder_appendf(&builder,
+          ",\"evidence_flags\":%u,\"conflict_state\":%u,\"conflict_state_name\":",
+          (unsigned)ref->evidence_flags, (unsigned)ref->conflict_state) != 0)
+        goto oom;
+      if (json_builder_append_json_string(&builder,
+          analysis_conflict_state_name(ref->conflict_state)) != 0)
+        goto oom;
       if (json_builder_append(&builder, "}") != 0)
         goto oom;
     }
