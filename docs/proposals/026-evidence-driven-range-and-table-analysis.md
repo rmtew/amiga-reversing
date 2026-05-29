@@ -1181,6 +1181,48 @@ All 36 tracked target `.s` files were regenerated with no target source diffs.
 Round-trip remained 34/36 full-file exact, 1 content-exact-only, 1 unsupported,
 and 0 failures.
 
+### Pass 15: Amiga Resident Metadata From Range Owners
+
+The fifteenth pass migrates Amiga resident-context metadata reads from direct
+policy structured-data scans to accepted range owners.
+
+Before this pass, RS/layout rendering helpers checked `policy.structured_data`
+directly for resident metadata:
+
+```text
+policy.structured_data_items
+  -> RT / resident autoinit metadata
+  -> resident library context and resident sizeof value
+```
+
+Those facts are platform metadata ownership records. The helpers now iterate
+hydrated range owners and only consume payloads classified as
+`platform_metadata`:
+
+```text
+lookup.range_ownerships[index]
+  -> accepted platform_metadata owner
+  -> Amiga resident payload
+  -> RS/layout context
+```
+
+This is a platform-adapter cleanup rather than a renderer formatting change:
+the Amiga-specific interpretation remains Amiga-specific, while the decision to
+consume the bytes flows through the shared C range ownership model.
+
+Verification after this pass:
+
+```text
+cmd /c src\precommit.bat m68k_ir
+uv run python -m pytest tests\test_c_backend.py -q
+uv run platform-rendered-source-roundtrip
+git diff --check
+```
+
+All 36 tracked target `.s` files were regenerated with no target source diffs.
+Round-trip remained 34/36 full-file exact, 1 content-exact-only, 1 unsupported,
+and 0 failures.
+
 ## Open Design Questions
 
 - What is the smallest status vocabulary that covers candidate, accepted,

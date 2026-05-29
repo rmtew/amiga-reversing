@@ -7615,17 +7615,18 @@ static int render_app_rs_slot_compare(const void *left, const void *right) {
 }
 
 int lookup_has_amiga_resident_library_context(const M68kRenderLookup *lookup) {
-  const M68kAnalysisPolicy *policy;
-  uint16_t index;
+  size_t index;
   if (lookup == NULL || lookup->object == NULL ||
       lookup->object->platform_backend_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK) {
     return 0;
   }
-  policy = lookup->policy;
-  if (policy == NULL) return 0;
-  for (index = 0U; index < policy->structured_data_item_count &&
-       index < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT; ++index) {
-    const M68kAnalysisStructuredDataItem *item = &policy->structured_data_items[index];
+  for (index = 0U; index < lookup->range_ownership_count; ++index) {
+    M68kRenderRangeOwnershipView range;
+    const M68kAnalysisStructuredDataItem *item;
+    if (!lookup_range_ownership_at_index(lookup, index, &range)) continue;
+    if (range.kind != M68K_RANGE_OWNERSHIP_PLATFORM_METADATA) continue;
+    item = range.structured_item;
+    if (item == NULL) continue;
     if (item->struct_id == AMIGA_OS_STRUCT_ID_RT ||
         item->platform_kind_id == M68K_ANALYSIS_STRUCTURED_DATA_PLATFORM_KIND_AMIGA_RESIDENT_AUTOINIT) {
       return 1;
@@ -7798,16 +7799,18 @@ static void render_app_rs_format_slot_directive(const M68kRenderAppRsSlot *slot,
 
 static int render_app_rs_resident_sizeof_value(const M68kRenderLookup *lookup, const M68kDecodeIR *decode,
     int32_t *out_value) {
-  const M68kAnalysisPolicy *policy;
-  uint16_t index;
+  size_t index;
   if (out_value != NULL) *out_value = 0;
-  if (lookup == NULL || decode == NULL || lookup->policy == NULL) return 0;
-  policy = lookup->policy;
-  for (index = 0U; index < policy->structured_data_item_count &&
-       index < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT; ++index) {
-    const M68kAnalysisStructuredDataItem *item = &policy->structured_data_items[index];
+  if (lookup == NULL || decode == NULL) return 0;
+  for (index = 0U; index < lookup->range_ownership_count; ++index) {
+    M68kRenderRangeOwnershipView range;
+    const M68kAnalysisStructuredDataItem *item;
     const M68kDecodeSectionIR *section;
     size_t section_index;
+    if (!lookup_range_ownership_at_index(lookup, index, &range)) continue;
+    if (range.kind != M68K_RANGE_OWNERSHIP_PLATFORM_METADATA) continue;
+    item = range.structured_item;
+    if (item == NULL) continue;
     if (item->size != 4U ||
         item->platform_kind_id != M68K_ANALYSIS_STRUCTURED_DATA_PLATFORM_KIND_AMIGA_RESIDENT_AUTOINIT ||
         item->platform_field_id != M68K_ANALYSIS_STRUCTURED_DATA_PLATFORM_FIELD_AMIGA_RESIDENT_BASE_SIZE) {
