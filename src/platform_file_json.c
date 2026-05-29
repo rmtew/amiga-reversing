@@ -3556,9 +3556,15 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
         goto oom;
       if (json_builder_appendf(&builder,
           "{\"start_offset\":%u,\"end_offset\":%u,\"entry_size\":%u,\"entry_count\":%u,"
-          "\"table_kind_id\":%u,\"table_kind\":",
+          "\"entry_count_proof_id\":%u,\"entry_count_proof\":",
           (unsigned)descriptor->start_offset, (unsigned)descriptor->end_offset,
           (unsigned)descriptor->entry_size, (unsigned)descriptor->entry_count,
+          (unsigned)descriptor->entry_count_proof_id) != 0)
+        goto oom;
+      if (json_builder_append_nullable_string(&builder,
+          m68k_analysis_table_entry_count_proof_name(descriptor->entry_count_proof_id)) != 0)
+        goto oom;
+      if (json_builder_appendf(&builder, ",\"table_kind_id\":%u,\"table_kind\":",
           (unsigned)descriptor->table_kind_id) != 0)
         goto oom;
       if (json_builder_append_nullable_string(&builder,
@@ -3633,10 +3639,16 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
       if (json_builder_appendf(&builder,
           "{\"consumer_offset\":%u,\"table_section_index\":%u,\"table_start_offset\":%u,"
           "\"table_end_offset\":%u,\"access_width\":%u,\"entry_count\":%u,"
-          "\"table_kind_id\":%u,\"table_kind\":",
+          "\"entry_count_proof_id\":%u,\"entry_count_proof\":",
           (unsigned)consumer->consumer_offset, (unsigned)consumer->table_section_index,
           (unsigned)consumer->table_start_offset, (unsigned)consumer->table_end_offset,
           (unsigned)consumer->access_width, (unsigned)consumer->entry_count,
+          (unsigned)consumer->entry_count_proof_id) != 0)
+        goto oom;
+      if (json_builder_append_nullable_string(&builder,
+          m68k_analysis_table_entry_count_proof_name(consumer->entry_count_proof_id)) != 0)
+        goto oom;
+      if (json_builder_appendf(&builder, ",\"table_kind_id\":%u,\"table_kind\":",
           (unsigned)consumer->table_kind_id) != 0)
         goto oom;
       if (json_builder_append_nullable_string(&builder,

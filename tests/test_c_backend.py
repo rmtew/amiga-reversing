@@ -1029,7 +1029,8 @@ class _M68kAnalysisStructuredDataItem(ctypes.Structure):
         ("has_target_register", ctypes.c_uint8),
         ("target_register_kind", ctypes.c_uint8),
         ("target_register", ctypes.c_uint8),
-        ("consumer_register_reserved", ctypes.c_uint8 * 2),
+        ("entry_count_proof_id", ctypes.c_uint8),
+        ("consumer_register_reserved", ctypes.c_uint8 * 1),
         ("semantic_role_flags", ctypes.c_uint32),
         ("label_len", ctypes.c_uint16),
         ("struct_name_len", ctypes.c_uint16),
@@ -11059,6 +11060,7 @@ def test_real_dll_026_table_descriptors_use_evidence_bounds_not_caps() -> None:
     assert pandora_string_table["end_offset"] - pandora_string_table["start_offset"] == (
         pandora_string_table["entry_count"] * pandora_string_table["entry_size"]
     )
+    assert pandora_string_table["entry_count_proof"] == "consumer_structural_scan"
     assert pandora_string_table["target_offset"] == 41564
     assert pandora_string_table["consumer_offset"] == 10774
 
@@ -11073,6 +11075,7 @@ def test_real_dll_026_table_descriptors_use_evidence_bounds_not_caps() -> None:
     assert pandora_dispatch_table["table_kind"] == "absolute_code_dispatch"
     assert pandora_dispatch_table["entry_size"] == 4
     assert pandora_dispatch_table["entry_count"] == 33
+    assert pandora_dispatch_table["entry_count_proof"] == "consumer_structural_scan"
 
     bloodwych = _facts_v2_listing_analysis_for_project("amiga_hunk_bloodwych")
     bloodwych_section = bloodwych["analysis"]["sections"][0]
@@ -11085,6 +11088,7 @@ def test_real_dll_026_table_descriptors_use_evidence_bounds_not_caps() -> None:
     assert bloodwych_table["source_pattern"] == "indexed_local_scalar_read"
     assert bloodwych_table["entry_size"] == 2
     assert bloodwych_table["end_offset"] == 106506
+    assert bloodwych_table["entry_count_proof"] == "consumer_structural_scan"
 
     bloodwych_paths = resolve_project_paths("amiga_hunk_bloodwych", project_root=PROJECT_ROOT)
     bloodwych_source, bloodwych_profile = listing_artifact_source_text_with_c_backend_profile(

@@ -195,6 +195,43 @@ const char *m68k_analysis_table_base_expression_name(uint8_t base_expression_id)
   }
 }
 
+const char *m68k_analysis_table_entry_count_proof_name(uint8_t proof_id) {
+  switch (proof_id) {
+    case M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_STRUCTURED_RANGE:
+      return "structured_range";
+    case M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_CONSUMER_STRUCTURAL_SCAN:
+      return "consumer_structural_scan";
+    case M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_RELOCATION_RECORD:
+      return "relocation_record";
+    case M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_PLATFORM_RECORD:
+      return "platform_record";
+    default:
+      return NULL;
+  }
+}
+
+uint8_t m68k_analysis_table_entry_count_proof_for_source_pattern(uint8_t source_pattern_id) {
+  switch (source_pattern_id) {
+    case M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_RELOCATION_POINTER_TABLE:
+      return M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_RELOCATION_RECORD;
+    case M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_INDEXED_WORD_DISPATCH:
+    case M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_INDEXED_LOCAL_POINTER_READ:
+    case M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_INDEXED_LOCAL_SCALAR_READ:
+    case M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_POSTINCREMENT_READ_SEQUENCE:
+    case M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_PC_RELATIVE_INDEXED_READ:
+    case M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_KEYED_LONG_RELATIVE_DISPATCH:
+    case M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_STRING_TABLE_SEQUENCE:
+    case M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_POINTER_STRING_TABLE:
+    case M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_WORD_OFFSET_STRING_TABLE:
+    case M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_PC_RELATIVE_INDEXED_INDIRECT_DISPATCH:
+      return M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_CONSUMER_STRUCTURAL_SCAN;
+    case M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_MACOS_SYMBOL_RECORD:
+      return M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_PLATFORM_RECORD;
+    default:
+      return M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_STRUCTURED_RANGE;
+  }
+}
+
 static uint8_t structured_data_item_infer_table_kind_id(const M68kAnalysisStructuredDataItem *item) {
   uint32_t role_flags;
   if (item == NULL) return M68K_ANALYSIS_TABLE_KIND_UNKNOWN;
@@ -400,6 +437,10 @@ void m68k_analysis_structured_data_item_refresh_table_metadata(M68kAnalysisStruc
   if (item->table_kind_id == M68K_ANALYSIS_TABLE_KIND_UNKNOWN) {
     item->table_conflicted = 0U;
     item->table_conflict_state = M68K_ANALYSIS_CONFLICT_STATE_CLEAN;
+    item->entry_count_proof_id = M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_UNKNOWN;
+  } else if (item->entry_count_proof_id == M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_UNKNOWN) {
+    item->entry_count_proof_id =
+      m68k_analysis_table_entry_count_proof_for_source_pattern(item->source_pattern_id);
   }
 }
 
@@ -1168,6 +1209,7 @@ int m68k_ir_section_analysis_append_table_descriptor(M68kSectionAnalysisIR *sect
     consumer.table_end_offset = descriptor->end_offset;
     consumer.access_width = descriptor->entry_size;
     consumer.entry_count = descriptor->entry_count;
+    consumer.entry_count_proof_id = descriptor->entry_count_proof_id;
     consumer.table_kind_id = descriptor->table_kind_id;
     consumer.source_pattern_id = descriptor->source_pattern_id;
     consumer.has_index_register = descriptor->has_index_register;
@@ -1200,6 +1242,10 @@ int m68k_ir_section_analysis_append_table_consumer(M68kSectionAnalysisIR *sectio
         existing->table_kind_id == consumer->table_kind_id &&
         existing->source_pattern_id == consumer->source_pattern_id) {
       M68kTableConsumerIR *stored = &section_analysis->table_consumers[index];
+      if (stored->entry_count_proof_id == M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_UNKNOWN &&
+          consumer->entry_count_proof_id != M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_UNKNOWN) {
+        stored->entry_count_proof_id = consumer->entry_count_proof_id;
+      }
       if (!stored->has_index_register && consumer->has_index_register) {
         stored->has_index_register = consumer->has_index_register;
         stored->index_register_kind = consumer->index_register_kind;

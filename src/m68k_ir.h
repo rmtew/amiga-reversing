@@ -154,6 +154,14 @@ typedef enum M68kAnalysisTableBaseExpression {
   M68K_ANALYSIS_TABLE_BASE_EXPRESSION_TARGET_LABEL = 2
 } M68kAnalysisTableBaseExpression;
 
+typedef enum M68kAnalysisTableEntryCountProof {
+  M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_UNKNOWN = 0,
+  M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_STRUCTURED_RANGE = 1,
+  M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_CONSUMER_STRUCTURAL_SCAN = 2,
+  M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_RELOCATION_RECORD = 3,
+  M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_PLATFORM_RECORD = 4
+} M68kAnalysisTableEntryCountProof;
+
 typedef enum M68kAnalysisStructuredDataTextField {
   M68K_ANALYSIS_STRUCTURED_DATA_TEXT_LABEL = 0,
   M68K_ANALYSIS_STRUCTURED_DATA_TEXT_STRUCT_NAME = 1,
@@ -200,7 +208,8 @@ typedef struct M68kAnalysisStructuredDataItem {
   uint8_t has_target_register;
   uint8_t target_register_kind;
   uint8_t target_register;
-  uint8_t consumer_register_reserved[2];
+  uint8_t entry_count_proof_id;
+  uint8_t consumer_register_reserved[1];
   uint32_t semantic_role_flags;
   uint16_t label_len;
   uint16_t struct_name_len;
@@ -1312,6 +1321,7 @@ typedef struct M68kTableDescriptorIR {
   uint32_t end_offset;
   uint32_t entry_size;
   uint32_t entry_count;
+  uint8_t entry_count_proof_id;
   uint8_t table_kind_id;
   uint8_t base_expression_id;
   uint8_t source_pattern_id;
@@ -1349,6 +1359,7 @@ typedef struct M68kTableConsumerIR {
   uint8_t has_target_register;
   uint8_t target_register_kind;
   uint8_t target_register;
+  uint8_t entry_count_proof_id;
   uint8_t reserved[2];
 } M68kTableConsumerIR;
 
@@ -1515,6 +1526,8 @@ const char *m68k_analysis_structured_data_role_name_for_flags(uint32_t semantic_
 const char *m68k_analysis_structured_data_source_pattern_name(uint8_t source_pattern_id);
 const char *m68k_analysis_table_kind_name(uint8_t table_kind_id);
 const char *m68k_analysis_table_base_expression_name(uint8_t base_expression_id);
+const char *m68k_analysis_table_entry_count_proof_name(uint8_t proof_id);
+uint8_t m68k_analysis_table_entry_count_proof_for_source_pattern(uint8_t source_pattern_id);
 uint8_t m68k_recovered_indirect_source_pattern_id(uint8_t shape);
 const char *m68k_recovered_indirect_source_pattern_name(uint8_t source_pattern_id);
 const char *m68k_recovered_platform_transfer_source_kind_name(uint8_t source_kind);

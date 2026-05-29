@@ -5597,6 +5597,7 @@ static int render_lookup_add_auto_structured_data_item(M68kRenderLookup *lookup,
   item->offset = offset;
   item->size = size;
   item->kind = kind;
+  item->entry_count_proof_id = M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_STRUCTURED_RANGE;
   m68k_analysis_structured_data_item_set_semantic_role_flags(item, semantic_role_flags);
   ++lookup->auto_structured_data_item_count;
   if (render_lookup_add_range_ownership_for_structured_item(lookup, section_index,
@@ -5677,6 +5678,7 @@ static void render_lookup_set_auto_structured_data_item_source_pattern(M68kRende
     if (item->has_section_index && item->section_index == (uint32_t)section_index &&
         item->offset == offset) {
       item->source_pattern_id = source_pattern_id;
+      item->entry_count_proof_id = m68k_analysis_table_entry_count_proof_for_source_pattern(source_pattern_id);
       (void)m68k_analysis_structured_data_item_set_text(item,
         M68K_ANALYSIS_STRUCTURED_DATA_TEXT_SOURCE_PATTERN, source_pattern, strlen(source_pattern));
       m68k_analysis_structured_data_item_refresh_table_metadata(item);

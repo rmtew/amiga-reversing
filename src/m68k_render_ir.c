@@ -8633,6 +8633,7 @@ static int render_analysis_append_lookup_table_descriptors_for_section(
     descriptor.end_offset = item->offset + item->size;
     descriptor.entry_size = entry_size;
     descriptor.entry_count = item->size / entry_size;
+    descriptor.entry_count_proof_id = item->entry_count_proof_id;
     descriptor.table_kind_id = item->table_kind_id;
     descriptor.base_expression_id = item->table_base_expression_id;
     descriptor.source_pattern_id = item->source_pattern_id;
