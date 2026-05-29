@@ -205,6 +205,10 @@ const char *m68k_analysis_table_entry_count_proof_name(uint8_t proof_id) {
       return "relocation_record";
     case M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_PLATFORM_RECORD:
       return "platform_record";
+    case M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_INDEX_MASK_DOMAIN:
+      return "index_mask_domain";
+    case M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_INDEX_COMPARE_DOMAIN:
+      return "index_compare_domain";
     default:
       return NULL;
   }

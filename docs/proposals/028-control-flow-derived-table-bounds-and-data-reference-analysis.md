@@ -1076,6 +1076,49 @@ The regenerated sources had no tracked `.s` diffs. Round-trip remained
 `34/36` full-file exact, `1/36` content-exact-only, `1/36` unsupported, and
 `0` failures.
 
+### Pass 6: Exact Domain Entry Count Proof
+
+The sixth implementation pass promotes domain evidence into an entry-count
+proof only when it exactly matches the accepted table span.
+
+Promotion rule:
+
+```text
+if compare_domain = 0..N and entry_count = N + 1:
+  entry_count_proof = index_compare_domain
+else if mask_domain = 0..N and entry_count = N + 1:
+  entry_count_proof = index_mask_domain
+else:
+  keep the existing structural/relocation/platform proof
+```
+
+This is deliberately not a resizing rule. A compare or mask domain may be
+recorded even when the current table extent is still structural; it becomes the
+entry-count proof only when the table descriptor already has the matching
+number of entries. That keeps 028 fail-closed: mismatched evidence is visible
+to consumers, but does not silently crop, extend, or normalize the table.
+
+The source-pattern setter now also preserves stronger entry-count proof when a
+later weaker recognizer touches the same table record.
+
+Covered by:
+
+- `facts_v2_pc_word_dispatch_descriptor_exports_index_domains`
+
+Verification after this pass:
+
+```text
+cmd /c src\precommit.bat m68k_ir
+uv run python -m pytest tests\test_c_backend.py -q
+all 36 tracked `.s` files regenerated
+uv run platform-rendered-source-roundtrip
+git diff --check
+```
+
+The regenerated sources had no tracked `.s` diffs. Round-trip remained
+`34/36` full-file exact, `1/36` content-exact-only, `1/36` unsupported, and
+`0` failures.
+
 ## Acceptance Criteria
 
 This proposal can close when:

@@ -5678,6 +5678,8 @@ typedef struct M68kTableIndexDomainEvidence {
   uint8_t branch_mnemonic_id;
 } M68kTableIndexDomainEvidence;
 
+static void render_lookup_promote_entry_count_proof_from_index_domain(M68kAnalysisStructuredDataItem *item);
+
 static void render_lookup_set_auto_structured_data_item_index_domain(M68kRenderLookup *lookup,
     size_t section_index, uint32_t offset, const M68kTableIndexDomainEvidence *domain) {
   size_t index;
@@ -5696,7 +5698,59 @@ static void render_lookup_set_auto_structured_data_item_index_domain(M68kRenderL
         item->index_compare_max = domain->compare_max;
         item->index_domain_branch_mnemonic_id = domain->branch_mnemonic_id;
       }
+      render_lookup_promote_entry_count_proof_from_index_domain(item);
     }
+  }
+}
+
+static uint8_t render_lookup_table_entry_count_proof_rank(uint8_t proof_id) {
+  switch (proof_id) {
+    case M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_UNKNOWN:
+      return 0U;
+    case M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_STRUCTURED_RANGE:
+      return 1U;
+    case M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_CONSUMER_STRUCTURAL_SCAN:
+      return 2U;
+    case M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_INDEX_MASK_DOMAIN:
+    case M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_INDEX_COMPARE_DOMAIN:
+      return 3U;
+    case M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_RELOCATION_RECORD:
+    case M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_PLATFORM_RECORD:
+      return 4U;
+    default:
+      return 0U;
+  }
+}
+
+static uint32_t render_lookup_structured_item_entry_count(const M68kAnalysisStructuredDataItem *item) {
+  uint32_t entry_size = 0U;
+  if (item == NULL || item->size == 0U) return 0U;
+  if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_BYTES) entry_size = 1U;
+  else if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_WORDS) entry_size = 2U;
+  else if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_LONGS) entry_size = 4U;
+  if (entry_size == 0U || item->size % entry_size != 0U) return 0U;
+  return item->size / entry_size;
+}
+
+static void render_lookup_set_entry_count_proof_if_stronger(M68kAnalysisStructuredDataItem *item, uint8_t proof_id) {
+  if (item == NULL) return;
+  if (render_lookup_table_entry_count_proof_rank(proof_id) >=
+      render_lookup_table_entry_count_proof_rank(item->entry_count_proof_id)) {
+    item->entry_count_proof_id = proof_id;
+  }
+}
+
+static void render_lookup_promote_entry_count_proof_from_index_domain(M68kAnalysisStructuredDataItem *item) {
+  uint32_t entry_count = render_lookup_structured_item_entry_count(item);
+  if (item == NULL || entry_count == 0U) return;
+  if (item->has_index_compare_domain && item->index_compare_min == 0U &&
+      item->index_compare_max < UINT32_MAX && entry_count == item->index_compare_max + 1U) {
+    render_lookup_set_entry_count_proof_if_stronger(item,
+      M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_INDEX_COMPARE_DOMAIN);
+  } else if (item->has_index_mask_domain && item->index_mask_min == 0U &&
+      item->index_mask_max < UINT32_MAX && entry_count == item->index_mask_max + 1U) {
+    render_lookup_set_entry_count_proof_if_stronger(item,
+      M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_INDEX_MASK_DOMAIN);
   }
 }
 
@@ -5738,7 +5792,8 @@ static void render_lookup_set_auto_structured_data_item_source_pattern(M68kRende
         continue;
       }
       item->source_pattern_id = source_pattern_id;
-      item->entry_count_proof_id = m68k_analysis_table_entry_count_proof_for_source_pattern(source_pattern_id);
+      render_lookup_set_entry_count_proof_if_stronger(item,
+        m68k_analysis_table_entry_count_proof_for_source_pattern(source_pattern_id));
       (void)m68k_analysis_structured_data_item_set_text(item,
         M68K_ANALYSIS_STRUCTURED_DATA_TEXT_SOURCE_PATTERN, source_pattern, strlen(source_pattern));
       m68k_analysis_structured_data_item_refresh_table_metadata(item);

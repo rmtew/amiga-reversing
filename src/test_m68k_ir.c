@@ -10016,6 +10016,8 @@ static int test_facts_v2_pc_word_dispatch_descriptor_exports_index_domains(void)
   M68K_C_ASSERT_U32(1U, table_consumer->has_index_register);
   M68K_C_ASSERT_U32(M68K_ANALYSIS_REGISTER_DATA, table_consumer->index_register_kind);
   M68K_C_ASSERT_U32(1U, table_consumer->index_register);
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_INDEX_COMPARE_DOMAIN,
+    table_consumer->entry_count_proof_id);
   M68K_C_ASSERT_U32(1U, table_consumer->has_index_mask_domain);
   M68K_C_ASSERT_U32(0U, table_consumer->index_mask_min);
   M68K_C_ASSERT_U32(7U, table_consumer->index_mask_max);
