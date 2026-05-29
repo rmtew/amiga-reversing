@@ -793,14 +793,26 @@ Proven current state:
 - The fixture-backed checks now cover Pandora, Bloodwych, MonAm, Magicland, and
   Starglider representative cases.
 
-Still open before this proposal can close:
+Current remaining scope before this proposal can close:
 
-- The range ownership model is not yet the single primary owner for every
-  renderer decision. Some renderer paths still consume structured-data records
-  directly, with range records/descriptors acting as the durable mirror.
-- Platform evidence adapters are present for the covered facts, but the proposal
-  should not claim every Amiga, Atari, and Mac executable/platform ownership
-  source has been normalized into the same adapter layer.
+- Range ownership is now the selector for the covered renderer, source-analysis
+  export, table-label, pointer-table, string-context, and Amiga resident
+  metadata paths. Structured-data records remain as payload storage for syntax
+  operands, labels, comments, source patterns, target/consumer links, and
+  platform fields.
+- The remaining direct structured-data list access is storage/input plumbing:
+  ingesting policy seeds into `M68kRenderLookup`, hydrating range owners by
+  stable source/index, creating/refining auto payload records, and detecting
+  whether a policy has any analysis inputs.
+- Table descriptors are exported from range owners, but they are not yet the
+  only renderer operand for every table syntax decision. Closing the proposal
+  still requires either making descriptors first-class renderer operands where
+  practical, or documenting the exact payload fields that intentionally remain
+  structured-data views over accepted table ownership.
+- Platform evidence adapters are normalized for the covered Amiga resident and
+  executable/range facts, but the proposal still needs an explicit final
+  platform-by-platform audit before claiming Amiga, Atari, and Mac ownership
+  inputs all feed the shared model cleanly.
 - Conflict reporting is good enough for the covered table/text/code cases, but
   the manual-review/UI policy for every unresolved conflict type remains a
   later integration step.
@@ -832,11 +844,13 @@ Still open before this proposal can close:
    current false-string and nearby-code/table cases; broader manual-review
    policy remains open.
 7. Add platform evidence adapters for Amiga, Atari, and Mac where facts already
-   exist. Partially covered. Do not close this item until the adapter boundary is
-   audited platform by platform.
-8. Update renderers to consume the accepted records only. Partially covered.
-   Do not close this item while renderer paths still consult structured-data
-   records directly instead of a single range/table owner abstraction.
+   exist. Partially covered. Amiga resident metadata now consumes accepted
+   platform-metadata range owners. Do not close this item until the adapter
+   boundary is audited platform by platform.
+8. Update renderers to consume the accepted records only. Covered for the
+   migrated ownership/export/table/string/platform paths. Structured-data direct
+   access should now be treated as payload/storage plumbing unless a later audit
+   finds a remaining ownership decision hidden behind it.
 9. Add isolated C tests and fixture-backed tests. Partially covered. The
    explicit pointer-plus-length API buffer test now proves both dynamic
    source-analysis structured-data storage and accepted C range ownership for
