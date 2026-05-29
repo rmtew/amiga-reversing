@@ -1470,13 +1470,23 @@ int m68k_ir_section_analysis_append_data_reference(M68kSectionAnalysisIR *sectio
     return 0;
   }
   for (index = 0U; index < section_analysis->data_reference_count; ++index) {
-    const M68kDataReferenceIR *existing = &section_analysis->data_references[index];
+    M68kDataReferenceIR *existing = &section_analysis->data_references[index];
     if (existing->source_kind == ref->source_kind &&
         existing->source_offset == ref->source_offset &&
         existing->table_start_offset == ref->table_start_offset &&
         existing->table_entry_index == ref->table_entry_index &&
         existing->target_section_index == ref->target_section_index &&
         existing->target_offset == ref->target_offset) {
+      existing->evidence_flags |= ref->evidence_flags;
+      existing->target_role_flags |= ref->target_role_flags;
+      if (existing->target_kind == 0U && ref->target_kind != 0U)
+        existing->target_kind = ref->target_kind;
+      if (existing->target_table_kind_id == M68K_ANALYSIS_TABLE_KIND_UNKNOWN && ref->target_table_kind_id != 0U)
+        existing->target_table_kind_id = ref->target_table_kind_id;
+      if (existing->target_source_pattern_id == M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_UNKNOWN &&
+          ref->target_source_pattern_id != 0U) {
+        existing->target_source_pattern_id = ref->target_source_pattern_id;
+      }
       return 0;
     }
   }

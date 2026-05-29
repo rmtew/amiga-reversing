@@ -1659,6 +1659,29 @@ Covered by:
 - `source_analysis_data_reference_exports_table_entry`
 - `test_real_dll_026_table_descriptors_use_evidence_bounds_not_caps`
 
+### Pass 19: Data Reference Evidence Merge
+
+The nineteenth pass makes duplicate data-reference insertion monotonic. If two
+analysis paths report the same table-backed target, the second path no longer
+gets discarded wholesale. The shared C append function now merges stronger
+evidence into the existing row:
+
+```text
+same source/table entry/target:
+  evidence_flags |= new_flags
+  target_role_flags |= new_role_flags
+  missing target kind/table/source-pattern fields are filled
+```
+
+This prevents ordering from deciding whether a data reference carries only
+`accepted_target` or also the later structured/text/string target evidence.
+It is deliberately not a conflict resolver: rows with different targets remain
+separate facts and must be handled by the existing conflict surfaces.
+
+Covered by:
+
+- `source_analysis_data_reference_exports_table_entry`
+
 ## Acceptance Criteria
 
 This proposal can close when:

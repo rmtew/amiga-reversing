@@ -9874,6 +9874,7 @@ static int test_source_analysis_data_reference_exports_table_entry(void) {
   M68kSourceAnalysisIR source_analysis;
   M68kSectionAnalysisIR section_analysis;
   M68kDataReferenceIR ref;
+  M68kDataReferenceIR enriched_ref;
   char *analysis_json = NULL;
   M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_create(&source_analysis));
   M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_create(&section_analysis, test_ir_result_arena()));
@@ -9885,13 +9886,8 @@ static int test_source_analysis_data_reference_exports_table_entry(void) {
   ref.table_kind_id = M68K_ANALYSIS_TABLE_KIND_POINTER;
   ref.source_pattern_id = M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_INDEXED_LOCAL_POINTER_READ;
   ref.target_status = M68K_TABLE_ENTRY_TARGET_STATUS_ACCEPTED_TARGET;
-  ref.target_kind = M68K_ANALYSIS_STRUCTURED_DATA_STRING;
-  ref.target_role_flags = M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING;
-  ref.target_source_pattern_id = M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_POINTER_STRING_TABLE;
   ref.evidence_flags = M68K_DATA_REFERENCE_EVIDENCE_TABLE_ENTRY |
-    M68K_DATA_REFERENCE_EVIDENCE_POINTER_TABLE | M68K_DATA_REFERENCE_EVIDENCE_ACCEPTED_TARGET |
-    M68K_DATA_REFERENCE_EVIDENCE_STRUCTURED_TARGET | M68K_DATA_REFERENCE_EVIDENCE_TEXT_TARGET |
-    M68K_DATA_REFERENCE_EVIDENCE_STRING_TARGET;
+    M68K_DATA_REFERENCE_EVIDENCE_POINTER_TABLE | M68K_DATA_REFERENCE_EVIDENCE_ACCEPTED_TARGET;
   ref.table_start_offset = 0x20U;
   ref.table_entry_index = 1U;
   ref.table_entry_offset = 0x24U;
@@ -9900,6 +9896,14 @@ static int test_source_analysis_data_reference_exports_table_entry(void) {
   ref.target_section_index = 0U;
   ref.target_offset = 0x30U;
   M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_data_reference(&section_analysis, &ref));
+  enriched_ref = ref;
+  enriched_ref.target_kind = M68K_ANALYSIS_STRUCTURED_DATA_STRING;
+  enriched_ref.target_role_flags = M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING;
+  enriched_ref.target_source_pattern_id = M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_POINTER_STRING_TABLE;
+  enriched_ref.evidence_flags |= M68K_DATA_REFERENCE_EVIDENCE_STRUCTURED_TARGET |
+    M68K_DATA_REFERENCE_EVIDENCE_TEXT_TARGET | M68K_DATA_REFERENCE_EVIDENCE_STRING_TARGET;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_data_reference(&section_analysis, &enriched_ref));
+  M68K_C_ASSERT_U32(1U, (uint32_t)section_analysis.data_reference_count);
   M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
   M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(analysis_json != NULL);
