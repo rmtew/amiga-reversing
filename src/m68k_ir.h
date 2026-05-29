@@ -232,6 +232,11 @@ typedef struct M68kAnalysisStructuredDataItem {
   uint32_t index_mask_max;
   uint32_t index_compare_min;
   uint32_t index_compare_max;
+  uint8_t has_index_loop_domain;
+  uint8_t index_loop_mnemonic_id;
+  uint8_t index_loop_reserved[2];
+  uint32_t index_loop_min;
+  uint32_t index_loop_max;
   uint32_t semantic_role_flags;
   uint16_t label_len;
   uint16_t struct_name_len;
@@ -1378,6 +1383,11 @@ typedef struct M68kTableDescriptorIR {
   uint32_t index_mask_max;
   uint32_t index_compare_min;
   uint32_t index_compare_max;
+  uint8_t has_index_loop_domain;
+  uint8_t index_loop_mnemonic_id;
+  uint8_t index_loop_reserved[2];
+  uint32_t index_loop_min;
+  uint32_t index_loop_max;
 } M68kTableDescriptorIR;
 
 typedef struct M68kTableConsumerIR {
@@ -1405,6 +1415,11 @@ typedef struct M68kTableConsumerIR {
   uint32_t index_mask_max;
   uint32_t index_compare_min;
   uint32_t index_compare_max;
+  uint8_t has_index_loop_domain;
+  uint8_t index_loop_mnemonic_id;
+  uint8_t index_loop_reserved[2];
+  uint32_t index_loop_min;
+  uint32_t index_loop_max;
 } M68kTableConsumerIR;
 
 typedef enum M68kTableEntryTargetStatus {

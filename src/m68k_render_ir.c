@@ -8891,6 +8891,10 @@ static int render_analysis_append_lookup_table_descriptors_for_section(
     descriptor.index_compare_min = item->index_compare_min;
     descriptor.index_compare_max = item->index_compare_max;
     descriptor.index_domain_branch_mnemonic_id = item->index_domain_branch_mnemonic_id;
+    descriptor.has_index_loop_domain = item->has_index_loop_domain;
+    descriptor.index_loop_min = item->index_loop_min;
+    descriptor.index_loop_max = item->index_loop_max;
+    descriptor.index_loop_mnemonic_id = item->index_loop_mnemonic_id;
     descriptor.conflict_state = item->table_conflict_state;
     if (m68k_ir_section_analysis_append_table_descriptor(section_analysis, &descriptor) != 0) return -1;
     if (render_analysis_append_lookup_table_entries_for_item(lookup, section, accepted_start, accepted_bytes,

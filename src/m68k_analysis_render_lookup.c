@@ -5676,6 +5676,10 @@ typedef struct M68kTableIndexDomainEvidence {
   uint32_t compare_min;
   uint32_t compare_max;
   uint8_t branch_mnemonic_id;
+  uint8_t has_loop;
+  uint32_t loop_min;
+  uint32_t loop_max;
+  uint8_t loop_mnemonic_id;
 } M68kTableIndexDomainEvidence;
 
 static void render_lookup_promote_entry_count_proof_from_index_domain(M68kAnalysisStructuredDataItem *item);
@@ -5683,7 +5687,10 @@ static void render_lookup_promote_entry_count_proof_from_index_domain(M68kAnalys
 static void render_lookup_set_auto_structured_data_item_index_domain(M68kRenderLookup *lookup,
     size_t section_index, uint32_t offset, const M68kTableIndexDomainEvidence *domain) {
   size_t index;
-  if (lookup == NULL || domain == NULL || (!domain->has_mask && !domain->has_compare)) return;
+  if (lookup == NULL || domain == NULL ||
+      (!domain->has_mask && !domain->has_compare && !domain->has_loop)) {
+    return;
+  }
   for (index = 0U; index < lookup->auto_structured_data_item_count; ++index) {
     M68kAnalysisStructuredDataItem *item = &lookup->auto_structured_data_items[index];
     if (item->has_section_index && item->section_index == (uint32_t)section_index && item->offset == offset) {
@@ -5697,6 +5704,12 @@ static void render_lookup_set_auto_structured_data_item_index_domain(M68kRenderL
         item->index_compare_min = domain->compare_min;
         item->index_compare_max = domain->compare_max;
         item->index_domain_branch_mnemonic_id = domain->branch_mnemonic_id;
+      }
+      if (domain->has_loop) {
+        item->has_index_loop_domain = 1U;
+        item->index_loop_min = domain->loop_min;
+        item->index_loop_max = domain->loop_max;
+        item->index_loop_mnemonic_id = domain->loop_mnemonic_id;
       }
       render_lookup_promote_entry_count_proof_from_index_domain(item);
     }
@@ -5749,6 +5762,10 @@ static void render_lookup_promote_entry_count_proof_from_index_domain(M68kAnalys
       item->index_compare_max < UINT32_MAX && entry_count == item->index_compare_max + 1U) {
     render_lookup_set_entry_count_proof_if_stronger(item,
       M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_INDEX_COMPARE_DOMAIN);
+  } else if (item->has_index_loop_domain && item->index_loop_min == 0U &&
+      item->index_loop_max < UINT32_MAX && entry_count == item->index_loop_max + 1U) {
+    render_lookup_set_entry_count_proof_if_stronger(item,
+      M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_LOOP_LIMIT);
   } else if (item->has_index_mask_domain && item->index_mask_min == 0U &&
       item->index_mask_max < UINT32_MAX && entry_count == item->index_mask_max + 1U) {
     render_lookup_set_entry_count_proof_if_stronger(item,
@@ -8046,7 +8063,7 @@ static int instruction_is_dbf_to_loop(const M68kRenderLookup *lookup, const M68k
   M68kInstructionIR instruction;
   size_t target_index;
   uint8_t dbf_reg = 0U;
-  if (lookup == NULL || section == NULL || candidate == NULL ||
+  if (section == NULL || candidate == NULL ||
       candidate->mnemonic_id != M68K_ASM_MNEMONIC_DBF ||
       m68k_decode_candidate_to_instruction(candidate, &instruction) != 0 ||
       instruction.operand_count < 2U ||
@@ -10583,6 +10600,92 @@ static int branch_mnemonic_exits_above_compare(uint8_t mnemonic_id) {
   return mnemonic_id == M68K_ASM_MNEMONIC_BHI || mnemonic_id == M68K_ASM_MNEMONIC_BGT;
 }
 
+static int operand_pc_indexed_data_register_local(const M68kOperandIR *operand, uint8_t *out_reg) {
+  if (operand == NULL ||
+      (operand->kind != M68K_ASM_OPERAND_EA && operand->kind != M68K_ASM_OPERAND_BF_EA) ||
+      operand->value.ea_mode != 7U || operand->value.ea_reg != 3U ||
+      operand->value.index_is_address || operand->value.index_reg >= 8U) {
+    return 0;
+  }
+  if (out_reg != NULL) *out_reg = operand->value.index_reg;
+  return 1;
+}
+
+static int instruction_sets_data_register_immediate_local(const M68kInstructionIR *instruction, uint8_t reg,
+    uint32_t *out_value) {
+  size_t source_index = 0U;
+  size_t dest_index = 0U;
+  const M68kSimFormMetadata *metadata = NULL;
+  uint8_t dest_reg = 0U;
+  uint32_t value = 0U;
+  if (instruction == NULL) return 0;
+  if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVEQ && instruction->operand_count >= 2U) {
+    source_index = 0U;
+    dest_index = 1U;
+  } else if (!instruction_move_operand_indices_from_metadata(instruction, &source_index, &dest_index, &metadata)) {
+    return 0;
+  }
+  if (!operand_is_data_register_local(&instruction->operands[dest_index], &dest_reg) || dest_reg != reg ||
+      !operand_is_immediate_value_local(&instruction->operands[source_index], &value)) return 0;
+  if (out_value != NULL) *out_value = value;
+  return 1;
+}
+
+static int instruction_writes_data_register_local(const M68kInstructionIR *instruction, uint8_t reg) {
+  const M68kSimFormMetadata *metadata;
+  size_t operand_index;
+  if (instruction == NULL) return 0;
+  metadata = m68k_sim_metadata_for_instruction(instruction);
+  if (metadata == NULL) return 0;
+  for (operand_index = 0U; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
+    uint8_t operand_reg = 0U;
+    if (metadata->operand_access_kinds[operand_index] != M68K_SIM_ACCESS_REGISTER_WRITE) continue;
+    if (operand_is_data_register_local(&instruction->operands[operand_index], &operand_reg) &&
+        operand_reg == reg) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+static void derive_loop_domain_around_table_access(const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
+    const M68kDecodeCandidate *table_candidate, uint8_t index_register, M68kTableIndexDomainEvidence *out_domain) {
+  const M68kDecodeCandidate *init_candidate;
+  const M68kDecodeCandidate *cursor;
+  M68kInstructionIR init_instruction;
+  uint32_t initial_value = 0U;
+  size_t scan_count = 0U;
+  if (section == NULL || accepted_start == NULL || table_candidate == NULL || out_domain == NULL ||
+      index_register >= 8U) {
+    return;
+  }
+  init_candidate = find_previous_accepted_candidate(section, accepted_start, table_candidate->offset);
+  if (init_candidate == NULL || init_candidate->byte_count == 0U ||
+      init_candidate->offset + init_candidate->byte_count != table_candidate->offset ||
+      m68k_decode_candidate_to_instruction(init_candidate, &init_instruction) != 0 ||
+      !instruction_sets_data_register_immediate_local(&init_instruction, index_register, &initial_value) ||
+      initial_value > 0xFFFFU) {
+    return;
+  }
+  cursor = next_accepted_candidate_local(section, accepted_start, table_candidate);
+  while (cursor != NULL && scan_count < 8U) {
+    M68kInstructionIR instruction;
+    if (m68k_decode_candidate_to_instruction(cursor, &instruction) != 0) return;
+    if (instruction.mnemonic_id == M68K_ASM_MNEMONIC_DBF) {
+      if (instruction_is_dbf_to_loop(NULL, section, cursor, index_register, table_candidate->offset)) {
+        out_domain->has_loop = 1U;
+        out_domain->loop_min = 0U;
+        out_domain->loop_max = initial_value;
+        out_domain->loop_mnemonic_id = M68K_ASM_MNEMONIC_DBF;
+      }
+      return;
+    }
+    if (instruction_writes_data_register_local(&instruction, index_register)) return;
+    cursor = next_accepted_candidate_local(section, accepted_start, cursor);
+    ++scan_count;
+  }
+}
+
 static void derive_index_domain_before_table_access(const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
     uint32_t table_access_offset, uint8_t index_register_kind, uint8_t index_register,
     M68kTableIndexDomainEvidence *out_domain) {
@@ -11258,12 +11361,15 @@ static int render_lookup_infer_pc_relative_lookup_scalars(M68kRenderLookup *look
           const M68kOperandIR *operand;
           uint8_t shape;
           uint8_t dest_reg = 0U;
+          uint8_t table_index_reg = 0U;
           uint32_t span;
+          M68kTableIndexDomainEvidence index_domain;
           if (target->kind != M68K_DECODE_TARGET_DATA || !target->has_section || !target->has_operand ||
               target->section_index >= decode->section_count || target->operand_index >= instruction.operand_count ||
               target->operand_index >= 4U) {
             continue;
           }
+          memset(&index_domain, 0, sizeof(index_domain));
           operand = &instruction.operands[target->operand_index];
           shape = m68k_instruction_operand_decoded_ea_shape(operand);
           if (m68k_instruction_decoded_ea_target_kind(operand, shape, 1) != 2U) continue;
@@ -11294,6 +11400,17 @@ static int render_lookup_infer_pc_relative_lookup_scalars(M68kRenderLookup *look
               section_index, candidate->offset);
             render_lookup_set_auto_structured_data_item_source_pattern(lookup, target->section_index,
               target->offset, source_pattern_id);
+            if (operand_pc_indexed_data_register_local(operand, &table_index_reg)) {
+              derive_loop_domain_around_table_access(section, accepted_start[section_index], candidate,
+                table_index_reg, &index_domain);
+              if (index_domain.has_loop) {
+                render_lookup_set_auto_structured_data_item_consumer_registers(lookup, target->section_index,
+                  target->offset, 1U, M68K_ANALYSIS_REGISTER_DATA, table_index_reg, 0U,
+                  M68K_ANALYSIS_REGISTER_NONE, 0U);
+                render_lookup_set_auto_structured_data_item_index_domain(lookup, target->section_index,
+                  target->offset, &index_domain);
+              }
+            }
           }
           if (span != 0U && item_kind == M68K_ANALYSIS_STRUCTURED_DATA_WORDS &&
               instruction.operand_count >= 2U &&

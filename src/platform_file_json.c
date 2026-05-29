@@ -2299,7 +2299,8 @@ static int append_source_analysis_structured_items_json(JsonBuilder *builder,
 
 static int append_index_domain_json(JsonBuilder *builder, uint8_t has_mask, uint32_t mask_min,
     uint32_t mask_max, uint8_t has_compare, uint32_t compare_min, uint32_t compare_max,
-    uint8_t branch_mnemonic_id) {
+    uint8_t branch_mnemonic_id, uint8_t has_loop, uint32_t loop_min, uint32_t loop_max,
+    uint8_t loop_mnemonic_id) {
   if (builder == NULL) return -1;
   if (json_builder_append(builder, ",\"index_mask_domain\":") != 0) return -1;
   if (has_mask) {
@@ -2312,6 +2313,14 @@ static int append_index_domain_json(JsonBuilder *builder, uint8_t has_mask, uint
         "\"branch_mnemonic\":", (unsigned)compare_min, (unsigned)compare_max,
         (unsigned)branch_mnemonic_id) != 0) return -1;
     if (json_builder_append_nullable_string(builder, m68k_asm_mnemonic_name(branch_mnemonic_id)) != 0) return -1;
+    if (json_builder_append(builder, "}") != 0) return -1;
+  } else if (json_builder_append(builder, "null") != 0) return -1;
+  if (json_builder_append(builder, ",\"index_loop_domain\":") != 0) return -1;
+  if (has_loop) {
+    if (json_builder_appendf(builder, "{\"min\":%u,\"max\":%u,\"loop_mnemonic_id\":%u,"
+        "\"loop_mnemonic\":", (unsigned)loop_min, (unsigned)loop_max,
+        (unsigned)loop_mnemonic_id) != 0) return -1;
+    if (json_builder_append_nullable_string(builder, m68k_asm_mnemonic_name(loop_mnemonic_id)) != 0) return -1;
     if (json_builder_append(builder, "}") != 0) return -1;
   } else if (json_builder_append(builder, "null") != 0) return -1;
   return 0;
@@ -3696,7 +3705,8 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
       if (append_index_domain_json(&builder, descriptor->has_index_mask_domain,
           descriptor->index_mask_min, descriptor->index_mask_max, descriptor->has_index_compare_domain,
           descriptor->index_compare_min, descriptor->index_compare_max,
-          descriptor->index_domain_branch_mnemonic_id) != 0)
+          descriptor->index_domain_branch_mnemonic_id, descriptor->has_index_loop_domain,
+          descriptor->index_loop_min, descriptor->index_loop_max, descriptor->index_loop_mnemonic_id) != 0)
         goto oom;
       if (json_builder_appendf(&builder, ",\"table_kind_id\":%u,\"table_kind\":",
           (unsigned)descriptor->table_kind_id) != 0)
@@ -3791,7 +3801,8 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
       if (append_index_domain_json(&builder, consumer->has_index_mask_domain,
           consumer->index_mask_min, consumer->index_mask_max, consumer->has_index_compare_domain,
           consumer->index_compare_min, consumer->index_compare_max,
-          consumer->index_domain_branch_mnemonic_id) != 0)
+          consumer->index_domain_branch_mnemonic_id, consumer->has_index_loop_domain,
+          consumer->index_loop_min, consumer->index_loop_max, consumer->index_loop_mnemonic_id) != 0)
         goto oom;
       if (json_builder_appendf(&builder, ",\"table_kind_id\":%u,\"table_kind\":",
           (unsigned)consumer->table_kind_id) != 0)

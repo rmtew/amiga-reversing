@@ -1543,6 +1543,51 @@ Covered by:
 
 - `source_analysis_table_descriptor_exports_loop_limit_proof`
 
+### Pass 16: Local DBF Loop-Limit Producer
+
+The sixteenth pass adds the first real producer for `loop_limit` table bounds.
+It recognizes a narrow, accepted-instruction pattern:
+
+```asm
+    moveq   #2,d0
+loop:
+    adda.w  table(pc,d0.w),a0
+    dbf     d0,loop
+
+table:
+    dc.w    $0001,$0002,$0003
+```
+
+The C analysis sets loop-domain evidence only when all of these are true:
+
+```text
+the table access uses a PC-relative indexed data register
+the immediately previous accepted instruction loads that register with a
+  constant loop limit
+the following accepted DBF uses the same register and branches back to the
+  table-access instruction
+no intervening accepted instruction writes the index register
+the structurally accepted table already has exactly loop_limit + 1 entries
+```
+
+That last rule is important: this producer does not resize the table, widen a
+scan, or guess missing entries. It promotes the proof only when independent
+table recognition and loop semantics agree exactly.
+
+Exported result:
+
+```text
+index_loop_domain = 0..2, loop_mnemonic = dbf
+entry_count       = 3
+entry_count_proof = loop_limit
+stop_reason       = loop_limit_bound
+```
+
+Covered by:
+
+- `facts_v2_pc_index_loop_bound_promotes_exact_table_count`
+- `source_analysis_table_descriptor_exports_loop_limit_proof`
+
 ## Acceptance Criteria
 
 This proposal can close when:

@@ -1846,6 +1846,66 @@ static int test_facts_v2_pc_index_data_target_auto_classifies_lookup_span(void) 
   return 0;
 }
 
+static int test_facts_v2_pc_index_loop_bound_promotes_exact_table_count(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  char *source = NULL;
+  const M68kTableConsumerIR *table_consumer = NULL;
+  size_t index;
+  uint8_t bytes[18] = {
+    0x70u, 0x02u,
+    0xd0u, 0xfbu, 0x00u, 0x08u,
+    0x51u, 0xc8u, 0xffu, 0xfau,
+    0x4eu, 0x75u,
+    0x00u, 0x01u, 0x00u, 0x02u, 0x00u, 0x03u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.entry_point_count = 1U;
+  policy.entry_points[0].has_section_index = 1U;
+  policy.entry_points[0].section_index = 0U;
+  policy.entry_points[0].offset = 0U;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tadda.w loc_0_0000000C(pc,d0.w),a0\n") != NULL);
+  for (index = 0U; index < source_analysis.sections[0].table_consumer_count; ++index) {
+    const M68kTableConsumerIR *consumer = &source_analysis.sections[0].table_consumers[index];
+    if (consumer->table_start_offset == 12U &&
+        consumer->source_pattern_id == M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_PC_RELATIVE_INDEXED_READ) {
+      table_consumer = consumer;
+      break;
+    }
+  }
+  M68K_C_ASSERT(table_consumer != NULL);
+  M68K_C_ASSERT_U32(3U, table_consumer->entry_count);
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_LOOP_LIMIT, table_consumer->entry_count_proof_id);
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_TABLE_STOP_REASON_LOOP_LIMIT_BOUND, table_consumer->table_stop_reason_id);
+  M68K_C_ASSERT_U32(1U, table_consumer->has_index_register);
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_REGISTER_DATA, table_consumer->index_register_kind);
+  M68K_C_ASSERT_U32(0U, table_consumer->index_register);
+  M68K_C_ASSERT_U32(1U, table_consumer->has_index_loop_domain);
+  M68K_C_ASSERT_U32(0U, table_consumer->index_loop_min);
+  M68K_C_ASSERT_U32(2U, table_consumer->index_loop_max);
+  M68K_C_ASSERT_U32(M68K_ASM_MNEMONIC_DBF, table_consumer->index_loop_mnemonic_id);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_indexed_postincrement_reads_auto_classify_word_table(void) {
   M68kObject object;
   M68kSection section;
@@ -9663,16 +9723,25 @@ static int test_source_analysis_table_descriptor_exports_loop_limit_proof(void) 
   descriptor.has_consumer = 1U;
   descriptor.consumer_section_index = 0U;
   descriptor.consumer_offset = 0x08U;
+  descriptor.has_index_loop_domain = 1U;
+  descriptor.index_loop_min = 0U;
+  descriptor.index_loop_max = 7U;
+  descriptor.index_loop_mnemonic_id = M68K_ASM_MNEMONIC_DBF;
   M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_table_descriptor(&section_analysis, &descriptor));
   M68K_C_ASSERT_U32(M68K_ANALYSIS_TABLE_STOP_REASON_LOOP_LIMIT_BOUND,
     section_analysis.table_descriptors[0].table_stop_reason_id);
   M68K_C_ASSERT_U32(M68K_ANALYSIS_TABLE_STOP_REASON_LOOP_LIMIT_BOUND,
     section_analysis.table_consumers[0].table_stop_reason_id);
+  M68K_C_ASSERT_U32(1U, section_analysis.table_consumers[0].has_index_loop_domain);
+  M68K_C_ASSERT_U32(7U, section_analysis.table_consumers[0].index_loop_max);
   M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
   M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(analysis_json != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"entry_count_proof_id\":7,\"entry_count_proof\":\"loop_limit\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"stop_reason_id\":7,\"stop_reason\":\"loop_limit_bound\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"index_loop_domain\":{\"min\":0,\"max\":7,\"loop_mnemonic_id\":") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"loop_mnemonic\":\"dbf\"") != NULL);
   free(analysis_json);
   m68k_ir_section_analysis_destroy(&section_analysis);
   m68k_ir_source_analysis_destroy(&source_analysis);
@@ -22681,6 +22750,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_pc_index_data_target_auto_classifies_lookup_scalar},
     {"facts_v2_pc_index_data_target_auto_classifies_lookup_span",
       test_facts_v2_pc_index_data_target_auto_classifies_lookup_span},
+    {"facts_v2_pc_index_loop_bound_promotes_exact_table_count",
+      test_facts_v2_pc_index_loop_bound_promotes_exact_table_count},
     {"facts_v2_indexed_postincrement_reads_auto_classify_word_table",
       test_facts_v2_indexed_postincrement_reads_auto_classify_word_table},
     {"facts_v2_genam_byte_postincrement_table_stays_byte_data",

@@ -1359,6 +1359,10 @@ int m68k_ir_section_analysis_append_table_descriptor(M68kSectionAnalysisIR *sect
     consumer.index_compare_min = normalized.index_compare_min;
     consumer.index_compare_max = normalized.index_compare_max;
     consumer.index_domain_branch_mnemonic_id = normalized.index_domain_branch_mnemonic_id;
+    consumer.has_index_loop_domain = normalized.has_index_loop_domain;
+    consumer.index_loop_min = normalized.index_loop_min;
+    consumer.index_loop_max = normalized.index_loop_max;
+    consumer.index_loop_mnemonic_id = normalized.index_loop_mnemonic_id;
     if (m68k_ir_section_analysis_append_table_consumer(section_analysis, &consumer) != 0) return -1;
   }
   return 0;
@@ -1411,6 +1415,12 @@ int m68k_ir_section_analysis_append_table_consumer(M68kSectionAnalysisIR *sectio
         stored->index_compare_min = consumer->index_compare_min;
         stored->index_compare_max = consumer->index_compare_max;
         stored->index_domain_branch_mnemonic_id = consumer->index_domain_branch_mnemonic_id;
+      }
+      if (!stored->has_index_loop_domain && consumer->has_index_loop_domain) {
+        stored->has_index_loop_domain = consumer->has_index_loop_domain;
+        stored->index_loop_min = consumer->index_loop_min;
+        stored->index_loop_max = consumer->index_loop_max;
+        stored->index_loop_mnemonic_id = consumer->index_loop_mnemonic_id;
       }
       return 0;
     }
