@@ -882,6 +882,42 @@ All 36 tracked target `.s` files were regenerated with no target source diffs.
 Round-trip remained 34/36 full-file exact, 1 content-exact-only, 1 unsupported,
 and 0 failures.
 
+### Pass 8: Ownership-Backed Blocker Checks
+
+The eighth pass migrates the remaining analysis-time blocker checks that were
+still asking "does a structured-data item cover this byte?" when they really
+meant "does an accepted owner already cover this byte?".
+
+Implemented changes:
+
+- API string segmentation now treats existing text ownership as compatible and
+  non-text ownership as a blocker;
+- auto structured-data insertion checks existing range ownership before adding
+  a new generated item;
+- palette, multiline text, bounded text, string-sequence, PC-relative lookup,
+  word-relative dispatch, postincrement table, and orphan-code blocker scans now
+  stop on range ownership rather than raw structured-data records;
+- table-backed string target promotion counts existing accepted text ownership
+  through the range view.
+
+Formatter paths still use structured-data records where they need record
+payload such as symbol names, constants, field names, table encoding, or text
+rendering details. That is intentional until range/table records carry those
+renderer operands directly.
+
+Verification after this pass:
+
+```text
+cmd /c src\precommit.bat m68k_ir
+uv run python -m pytest tests\test_c_backend.py -q
+uv run platform-rendered-source-roundtrip
+git diff --check
+```
+
+All 36 tracked target `.s` files were regenerated again with no target source
+diffs. Round-trip remained 34/36 full-file exact, 1 content-exact-only,
+1 unsupported, and 0 failures.
+
 ## Open Design Questions
 
 - What is the smallest status vocabulary that covers candidate, accepted,

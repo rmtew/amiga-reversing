@@ -8659,9 +8659,11 @@ static int render_orphan_candidate_range_is_blocked(const M68kRenderLookup *look
   if (section == NULL || size == 0U || size > section->size - offset) return 1;
   for (cursor = offset; cursor < offset + size; ++cursor) {
     if (accepted_byte_at(section, accepted_bytes, cursor)) return 1;
-    if (!allow_structured_data_overlap &&
-        lookup_structured_data_item_covering_offset(lookup, section->section_index, cursor) != NULL) {
-      return 1;
+    if (!allow_structured_data_overlap) {
+      M68kRenderRangeOwnershipView range;
+      if (lookup_range_ownership_covering_offset(lookup, section->section_index, cursor, &range)) {
+        return 1;
+      }
     }
   }
   return 0;
