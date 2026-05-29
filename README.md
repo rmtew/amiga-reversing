@@ -105,7 +105,7 @@ uv run platform-rendered-source-roundtrip
 Current output starts with a summary, then one row per target:
 
 ```
-Rendered source round-trip: 34/36 full-file exact, 1 content-exact only, 1 unsupported, 0 failures
+Rendered source round-trip: 25/36 full-file exact, 10 content-exact only, 1 unsupported, 0 failures
 full-file-exact    amiga_disk_carrier-command-1994-kixx-budget__amiga_raw_bootblock
 full-file-exact    amiga_disk_conqueror-1990-rainbow-arts-de-en__amiga_hunk_conqueror_cf971606
 content-exact-only amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h__amiga_hunk_menu_252a2566 (size_mismatch, container_shape_mismatch)
@@ -114,9 +114,11 @@ unsupported        macos_hfs_mpw_gm__macos_file_mpw_tools_asm (unsupported_platf
 
 `full-file-exact` means rendered source rebuilt the original file/container
 byte-for-byte. `content-exact-only` means the useful payload/relocation content
-matches, but the container shape is not reproduced exactly. `unsupported` is
-reported explicitly for rendered source that exists but cannot currently be
-assembled, such as Mac OS `asm.s`.
+matches, but the container shape is not reproduced exactly. The command always
+assembles the tracked `asm.s` text; `--update-rendered-source` rewrites supported
+targets from the current renderer first, then verifies that same text.
+`unsupported` is reported explicitly for rendered source that exists but cannot
+currently be assembled, such as Mac OS `asm.s`.
 
 See [docs/reproduction.md](docs/reproduction.md) for the web UI binary
 reproduction workflow and assembler customization policy.

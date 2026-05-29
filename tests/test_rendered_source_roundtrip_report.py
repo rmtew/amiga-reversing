@@ -8,6 +8,7 @@ from amiga_reversing.tools import rendered_source_roundtrip_report as report_too
 
 def test_roundtrip_report_verifies_without_persisting_reproduction_report(monkeypatch) -> None:
     calls: list[dict[str, Any]] = []
+    source_path = Path("targets/demo/asm.s")
 
     def run_reproduction(target: str, **kwargs: object) -> dict[str, object]:
         calls.append({"target": target, "kwargs": kwargs})
@@ -22,15 +23,21 @@ def test_roundtrip_report_verifies_without_persisting_reproduction_report(monkey
         }
 
     monkeypatch.setattr(report_tool, "run_reproduction", run_reproduction)
+    monkeypatch.setattr(Path, "read_text", lambda self, encoding=None: "rts\n")
 
-    row = report_tool._run_target("amiga_hunk_demo", Path("targets/demo/asm.s"))
+    row = report_tool._run_target("amiga_hunk_demo", source_path)
 
     assert row["status"] == "exact"
     assert row["rendered_source_full_file_exact"] is True
     assert calls == [
         {
             "target": "amiga_hunk_demo",
-            "kwargs": {"assembler": "our", "profile": True, "persist_report": False},
+            "kwargs": {
+                "assembler": "our",
+                "profile": True,
+                "persist_report": False,
+                "pre_rendered_source_text": "rts\n",
+            },
         }
     ]
 

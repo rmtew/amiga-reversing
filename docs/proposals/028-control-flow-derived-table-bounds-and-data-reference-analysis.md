@@ -1713,6 +1713,39 @@ Covered by:
 - `facts_v2_adjacent_runtime_ranges_do_not_org_back_to_storage`
 - `facts_v2_render_asm_source_uses_observed_app_slot_widths`
 
+### Pass 21: Rendered-Source Verification Audit
+
+The audit after Pass 20 found an important proof gap: non-update
+`platform-rendered-source-roundtrip` was not actually proving the tracked
+`asm.s` files. It called reproduction without passing rendered-source text, so
+the workflow could use the direct C rebuild fast path. That made the old
+`34/36` full-file-exact figure a direct-rebuild/container-tooling signal, not a
+rendered-source assembly signal.
+
+The report tool now reads the tracked source text in normal mode and passes it
+as `pre_rendered_source_text`. Update mode already rendered text first and now
+uses the same source-assembly path. The two modes therefore answer the same
+question:
+
+```text
+tracked or freshly rendered asm.s
+  -> internal source assembler
+  -> rebuilt binary
+  -> full-file/content/unsupported classification
+```
+
+This is intentionally stricter. Current rendered-source proof is lower than the
+old direct-rebuild number, but it is the correct measurement for this proposal.
+The remaining content-exact-only targets are not hidden failures; they are the
+visible set of source-assembly container-shape gaps still outside 028's
+table/data-reference scope.
+
+Covered by:
+
+- `test_roundtrip_report_verifies_without_persisting_reproduction_report`
+- `test_roundtrip_report_update_mode_writes_then_verifies_pre_rendered_source`
+- `test_roundtrip_report_update_mode_keeps_macos_unsupported`
+
 ## Completion Audit
 
 The final audit treats the proposal as closed only for the source-visible
@@ -1779,19 +1812,19 @@ Current proof:
 
 ```text
 cmd /c src\precommit.bat m68k_ir
-  OK: style 19, unit 140, integration 97, explicit 44
+  OK: style, dead_code, unit, integration, explicit
 
 uv run python -m pytest tests\test_c_backend.py -q
-  211 passed, 15 skipped
+  214 passed, 15 skipped
 
 uv run python -m pytest tests -q
   1549 passed, 70 skipped
 
 uv run platform-rendered-source-roundtrip --update-rendered-source
-  26/36 full-file exact, 9/36 content-exact-only, 1/36 unsupported, 0 failures
+  25/36 full-file exact, 10/36 content-exact-only, 1/36 unsupported, 0 failures
 
 uv run platform-rendered-source-roundtrip
-  32/36 full-file exact, 3/36 content-exact-only, 1/36 unsupported, 0 failures
+  25/36 full-file exact, 10/36 content-exact-only, 1/36 unsupported, 0 failures
 
 git diff --check
   OK
@@ -1849,12 +1882,13 @@ This proposal does not require:
 - TODO.md still contains OS compatibility header presentation concerns. Those
   should be handled as report/source UX cleanup after the underlying API facts
   remain stable.
-- The current rendered-source round-trip status after the all-target refresh is
-  `32/36` full-file exact, `3/36` content-exact-only, `1/36` unsupported, and
-  `0` failures. Update-mode verification of freshly generated source reports
-  `26/36` full-file exact, `9/36` content-exact-only, `1/36` unsupported, and
-  `0` failures; the broader content-exact set reflects supported source content
-  with known container-shape limits, not payload loss.
+- The current rendered-source round-trip status after the report-tool audit is
+  `25/36` full-file exact, `10/36` content-exact-only, `1/36` unsupported, and
+  `0` failures in both normal and update modes. Older `34/36` and `32/36`
+  figures were not valid rendered-source assembly proof because normal mode was
+  able to take the direct C rebuild fast path. The broader content-exact set
+  reflects supported source content with known container-shape limits, not
+  payload loss.
 - The refresh gate exposed three general renderer/parser issues that were fixed
   in C rather than patched per target: executable hunk header memory flags now
   reach object sections, cross-ORG PC-relative operands use storage-domain labels,
