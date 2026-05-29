@@ -1095,6 +1095,48 @@ All 36 tracked target `.s` files were regenerated with no target source diffs.
 Round-trip remained 34/36 full-file exact, 1 content-exact-only, 1 unsupported,
 and 0 failures.
 
+### Pass 13: Structured Payload Lookup Through Range Owners
+
+The thirteenth pass routes the renderer's structured-data payload lookup helper
+through range ownership.
+
+Before this pass, `lookup_structured_data_item_at_offset` and
+`lookup_structured_data_item_covering_offset` had their own policy/auto array
+search and priority rules:
+
+```text
+policy structured-data list
+  -> auto structured-data index/list
+  -> payload item
+```
+
+That duplicated ownership ordering beside the newer range model. The helpers
+now ask the range owner first and return the hydrated structured-data payload
+attached to that owner:
+
+```text
+lookup_range_ownership_at_offset / covering_offset
+  -> hydrated accepted owner
+  -> payload item for formatting
+```
+
+This keeps existing formatter code stable while making placeholder priority and
+auto-item replacement follow the single lookup-owned ownership view. The old
+section-matching helper became dead code and was removed.
+
+Verification after this pass:
+
+```text
+cmd /c src\precommit.bat m68k_ir
+uv run python -m pytest tests\test_c_backend.py -q
+uv run platform-rendered-source-roundtrip
+git diff --check
+```
+
+All 36 tracked target `.s` files were regenerated with no target source diffs.
+Round-trip remained 34/36 full-file exact, 1 content-exact-only, 1 unsupported,
+and 0 failures.
+
 ## Open Design Questions
 
 - What is the smallest status vocabulary that covers candidate, accepted,

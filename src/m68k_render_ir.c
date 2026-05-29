@@ -5228,12 +5228,6 @@ uint8_t format_lookup_asm_label_with_generation(const M68kRenderLookup *lookup, 
   return 1U;
 }
 
-static int structured_item_matches_section(const M68kAnalysisStructuredDataItem *item, size_t section_index) {
-  if (item == NULL) return 0;
-  if (item->has_section_index) return item->section_index == (uint32_t)section_index;
-  return section_index == 0U;
-}
-
 static int structured_data_item_is_untyped_bytes_placeholder_local(const M68kAnalysisStructuredDataItem *item) {
   return item != NULL && item->kind == M68K_ANALYSIS_STRUCTURED_DATA_BYTES &&
     item->semantic_role_flags == 0U && item->source_pattern_id == 0U && item->size != 0U;
@@ -5241,67 +5235,16 @@ static int structured_data_item_is_untyped_bytes_placeholder_local(const M68kAna
 
 const M68kAnalysisStructuredDataItem *lookup_structured_data_item_at_offset(
     const M68kRenderLookup *lookup, size_t section_index, uint32_t offset) {
-  uint16_t index;
-  const M68kAnalysisPolicy *policy = lookup != NULL ? lookup->policy : NULL;
-  const M68kAnalysisStructuredDataItem *untyped_placeholder = NULL;
-  if (policy != NULL) {
-    for (index = 0U; index < policy->structured_data_item_count &&
-         index < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT; ++index) {
-      const M68kAnalysisStructuredDataItem *item = &policy->structured_data_items[index];
-      if (item->offset == offset && item->size != 0U && structured_item_matches_section(item, section_index)) {
-        if (structured_data_item_is_untyped_bytes_placeholder_local(item)) {
-          untyped_placeholder = item;
-          continue;
-        }
-        return item;
-      }
-    }
-  }
-  if (lookup != NULL &&
-      (render_lookup_boundary_flags(lookup, section_index, offset) &
-        M68K_RENDER_BOUNDARY_STRUCTURED_DATA) != 0U &&
-      section_index < lookup->section_count &&
-      lookup->auto_structured_data_item_indices != NULL &&
-      lookup->auto_structured_data_item_index_extents != NULL &&
-      offset <= lookup->auto_structured_data_item_index_extents[section_index] &&
-      lookup->auto_structured_data_item_indices[section_index] != NULL) {
-    size_t auto_index = lookup->auto_structured_data_item_indices[section_index][offset];
-    if (auto_index != 0U && auto_index <= lookup->auto_structured_data_item_count) {
-      const M68kAnalysisStructuredDataItem *item = &lookup->auto_structured_data_items[auto_index - 1U];
-      if (item->offset == offset && item->size != 0U && structured_item_matches_section(item, section_index))
-        return item;
-    }
-  }
-  if (untyped_placeholder != NULL) return untyped_placeholder;
+  M68kRenderRangeOwnershipView range;
+  if (lookup_range_ownership_at_offset(lookup, section_index, offset, &range)) return range.structured_item;
   return NULL;
 }
 
 const M68kAnalysisStructuredDataItem *lookup_structured_data_item_covering_offset(
     const M68kRenderLookup *lookup, size_t section_index, uint32_t offset) {
-  uint16_t index;
-  const M68kAnalysisPolicy *policy = lookup != NULL ? lookup->policy : NULL;
-  if (policy != NULL) {
-    for (index = 0U; index < policy->structured_data_item_count &&
-         index < M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT; ++index) {
-      const M68kAnalysisStructuredDataItem *item = &policy->structured_data_items[index];
-      uint32_t end;
-      if (item->size == 0U || !structured_item_matches_section(item, section_index)) continue;
-      if (UINT32_MAX - item->offset < item->size) continue;
-      end = item->offset + item->size;
-      if (offset >= item->offset && offset < end) return item;
-    }
-  }
-  if (lookup != NULL) {
-    size_t auto_index;
-    for (auto_index = 0U; auto_index < lookup->auto_structured_data_item_count; ++auto_index) {
-      const M68kAnalysisStructuredDataItem *item = &lookup->auto_structured_data_items[auto_index];
-      uint32_t end;
-      if (item->size == 0U || !structured_item_matches_section(item, section_index)) continue;
-      if (UINT32_MAX - item->offset < item->size) continue;
-      end = item->offset + item->size;
-      if (offset >= item->offset && offset < end) return item;
-    }
-  }
+  M68kRenderRangeOwnershipView range;
+  if (lookup_range_ownership_covering_offset(lookup, section_index, offset, &range))
+    return range.structured_item;
   return NULL;
 }
 
