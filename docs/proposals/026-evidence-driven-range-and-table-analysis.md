@@ -1223,6 +1223,48 @@ All 36 tracked target `.s` files were regenerated with no target source diffs.
 Round-trip remained 34/36 full-file exact, 1 content-exact-only, 1 unsupported,
 and 0 failures.
 
+### Pass 16: String Record Context From Text Owners
+
+The sixteenth pass migrates the string record-sequence context heuristic from
+auto structured-data storage to accepted text ownership.
+
+Before this pass, the record-sequence detector only counted prior auto-created
+string items:
+
+```text
+lookup.auto_structured_data_items
+  -> nearby prior strings
+  -> record-sequence context for later string promotion
+```
+
+That made the heuristic depend on which storage surface created the earlier
+strings. It now iterates hydrated range owners and counts accepted text owners
+with the string role in the same section:
+
+```text
+lookup.range_ownerships[index]
+  -> accepted text owner with string role
+  -> nearby prior strings
+  -> record-sequence context
+```
+
+This keeps string-shape promotion tied to accepted C ownership rather than to
+the auto-item array. The byte-shape checks remain unchanged and still cannot
+accept text without surrounding evidence.
+
+Verification after this pass:
+
+```text
+cmd /c src\precommit.bat m68k_ir
+uv run python -m pytest tests\test_c_backend.py -q
+uv run platform-rendered-source-roundtrip
+git diff --check
+```
+
+All 36 tracked target `.s` files were regenerated with no target source diffs.
+Round-trip remained 34/36 full-file exact, 1 content-exact-only, 1 unsupported,
+and 0 failures.
+
 ## Open Design Questions
 
 - What is the smallest status vocabulary that covers candidate, accepted,

@@ -8744,10 +8744,14 @@ static int auto_string_record_sequence_context_kind(const M68kRenderLookup *look
   uint32_t prior_count = 0U;
   uint32_t nearest_end = 0U;
   if (lookup == NULL || section == NULL || section->data == NULL || offset == 0U) return 0;
-  for (index = 0U; index < lookup->auto_structured_data_item_count; ++index) {
-    const M68kAnalysisStructuredDataItem *item = &lookup->auto_structured_data_items[index];
+  for (index = 0U; index < lookup->range_ownership_count; ++index) {
+    M68kRenderRangeOwnershipView range;
+    const M68kAnalysisStructuredDataItem *item;
     uint32_t item_end;
-    if (!item->has_section_index || item->section_index != section->section_index ||
+    if (!lookup_range_ownership_at_index(lookup, index, &range)) continue;
+    if (range.kind != M68K_RANGE_OWNERSHIP_TEXT || range.section_index != section->section_index) continue;
+    item = range.structured_item;
+    if (item == NULL ||
         (item->semantic_role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING) == 0U ||
         item->offset > offset || item->size == 0U || item->size > offset - item->offset) {
       continue;
