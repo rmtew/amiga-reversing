@@ -16192,9 +16192,10 @@ static int test_facts_v2_render_asm_source_uses_observed_app_slot_widths(void) {
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
   char *source = NULL;
-  uint8_t bytes[10] = {
+  uint8_t bytes[14] = {
     0x3du, 0x40u, 0x00u, 0x0au,
     0x3du, 0x41u, 0x00u, 0x0cu,
+    0x2du, 0x42u, 0x00u, 0x0fu,
     0x4eu, 0x75u
   };
   memset(&section, 0, sizeof(section));
@@ -16222,10 +16223,13 @@ static int test_facts_v2_render_asm_source_uses_observed_app_slot_widths(void) {
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "app_000A RS.W 1\n") != NULL);
   M68K_C_ASSERT(strstr(source, "app_000C RS.W 1\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "app_000F RS.B 4\n") != NULL);
   M68K_C_ASSERT(strstr(source, "app_000A RS.L 1\n") == NULL);
+  M68K_C_ASSERT(strstr(source, "app_000F RS.L 1\n") == NULL);
   M68K_C_ASSERT(strstr(source, "app_000C EQU $000C\n") == NULL);
   M68K_C_ASSERT(strstr(source, "\tmove.w d0,app_000A(a6)\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmove.w d1,app_000C(a6)\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.l d2,app_000F(a6)\n") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   m68k_facts_v2_free_text(source);
   m68k_object_destroy(&object);

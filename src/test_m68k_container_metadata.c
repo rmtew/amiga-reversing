@@ -183,6 +183,32 @@ static int test_hunk_loader_records_payload_and_relocation_metadata(void) {
   return 0;
 }
 
+static int test_hunk_loader_applies_executable_header_memory_flags_to_sections(void) {
+  static const unsigned char hunk[] = {
+    0x00, 0x00, 0x03, 0xF3,
+    0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x01,
+    0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00,
+    0x40, 0x00, 0x00, 0x02,
+    0x00, 0x00, 0x03, 0xEB,
+    0x00, 0x00, 0x00, 0x02,
+    0x00, 0x00, 0x03, 0xF2,
+  };
+  M68kObject object;
+  M68kDiagList diagnostics;
+  m68k_diag_list_reset(&diagnostics);
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  M68K_C_ASSERT_INT(0, M68K_BACKEND_AMIGA_HUNK.read_buffer(hunk, sizeof(hunk), &object,
+    m68k_diag_sink(&diagnostics)));
+  M68K_C_ASSERT_U32(1U, (uint32_t)object.section_count);
+  M68K_C_ASSERT_U32(M68K_SECTION_BSS, object.sections[0].kind);
+  M68K_C_ASSERT_U32(8U, object.sections[0].size);
+  M68K_C_ASSERT_U32(1U, object.sections[0].platform_mem_type);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_hunk_parser_result_survives_workflow_teardown(void) {
   static const unsigned char hunk[] = {
     0x00, 0x00, 0x03, 0xF3,
@@ -728,6 +754,8 @@ int m68k_c_container_metadata_tests(void) {
     {"hunk_runtime_metadata_covers_reproduction_compare_categories",
       test_hunk_runtime_metadata_covers_reproduction_compare_categories},
     {"hunk_loader_records_payload_and_relocation_metadata", test_hunk_loader_records_payload_and_relocation_metadata},
+    {"hunk_loader_applies_executable_header_memory_flags_to_sections",
+      test_hunk_loader_applies_executable_header_memory_flags_to_sections},
     {"hunk_parser_result_survives_workflow_teardown", test_hunk_parser_result_survives_workflow_teardown},
     {"hunk_writer_preserves_trailing_hunk_end", test_hunk_writer_preserves_trailing_hunk_end},
     {"hunk_loader_rejects_overlay_as_explicit_unsupported",

@@ -5838,6 +5838,16 @@ void render_lookup_mark_label_statement_ref(M68kRenderLookup *lookup, size_t sec
   lookup->label_statement_refs[section_index][offset] = 1U;
 }
 
+void render_lookup_mark_storage_label_target_ref(M68kRenderLookup *lookup, size_t section_index, uint32_t offset) {
+  if (lookup == NULL || section_index >= lookup->section_count || lookup->storage_label_target_refs == NULL ||
+      lookup->storage_label_target_ref_extents == NULL ||
+      offset > lookup->storage_label_target_ref_extents[section_index] ||
+      lookup->storage_label_target_refs[section_index] == NULL) {
+    return;
+  }
+  lookup->storage_label_target_refs[section_index][offset] = 1U;
+}
+
 static uint32_t render_lookup_label_definition_offset_for_xref(const M68kRenderLookup *lookup,
     size_t target_section_index, uint32_t target_offset) {
   size_t index;

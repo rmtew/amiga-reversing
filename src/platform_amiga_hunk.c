@@ -245,7 +245,8 @@ static int parse_ext_block(Reader *reader, Arena *workflow_arena, M68kObject *ob
 static int parse_section_body(Reader *reader, Arena *workflow_arena, M68kObject *object, size_t section_index,
     int is_executable, M68kDiagSink diagnostics);
 static int add_section_from_hunk(M68kObject *object, uint32_t raw_type, const char *section_name, uint32_t alloc_size,
-    uint32_t mem_attrs, Reader *reader, Arena *workflow_arena, int is_executable, M68kDiagSink diagnostics);
+    uint8_t header_mem_type, uint32_t mem_attrs, Reader *reader, Arena *workflow_arena, int is_executable,
+    M68kDiagSink diagnostics);
 static int parse_hunk_executable(Reader *reader, Arena *workflow_arena, M68kObject *object, M68kDiagSink diagnostics);
 static int parse_hunk_object(Reader *reader, Arena *workflow_arena, M68kObject *object, M68kDiagSink diagnostics);
 static int amiga_hunk_read_buffer(const unsigned char *data, size_t size, M68kObject *out_object, M68kDiagSink diagnostics);
@@ -641,18 +642,20 @@ static int parse_section_body(Reader *reader, Arena *workflow_arena, M68kObject 
 }
 
 static int add_section_from_hunk(M68kObject *object, uint32_t raw_type, const char *section_name, uint32_t alloc_size,
-    uint32_t mem_attrs, Reader *reader, Arena *workflow_arena, int is_executable, M68kDiagSink diagnostics) {
+    uint8_t header_mem_type, uint32_t mem_attrs, Reader *reader, Arena *workflow_arena, int is_executable,
+    M68kDiagSink diagnostics) {
     M68kSection section;
     uint32_t hunk_type = raw_type & HUNK_TYPE_ID_MASK;
     uint32_t mem_type = raw_type >> HUNK_MEM_SHIFT;
+    uint32_t section_mem_type = header_mem_type != 0U ? header_mem_type : mem_type;
     uint32_t num_longs = 0;
     size_t section_index = 0;
     memset(&section, 0, sizeof(section));
     section.name = (char *)section_name;
     section.kind = map_hunk_kind(hunk_type);
-    section.platform_mem_type = (uint8_t)mem_type;
+    section.platform_mem_type = (uint8_t)section_mem_type;
     section.platform_mem_attrs = mem_attrs;
-    if (mem_type == 3U && mem_attrs == 0U) {
+    if (section_mem_type == 3U && mem_attrs == 0U) {
         if (m68k_reader_read_u32be(reader, &section.platform_mem_attrs) != 0) {
             platform_file_diag_error(diagnostics, "Unexpected EOF in extended memory attrs");
             return -1;
@@ -696,6 +699,7 @@ static int parse_hunk_executable(Reader *reader, Arena *workflow_arena, M68kObje
     uint32_t value = 0, first_hunk = 0, last_hunk = 0, i, count;
     uint32_t *alloc_sizes = NULL;
     uint32_t *mem_attrs = NULL;
+    uint8_t *mem_types = NULL;
     uint32_t *header_size_words = NULL;
 
     object->platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
@@ -728,8 +732,9 @@ static int parse_hunk_executable(Reader *reader, Arena *workflow_arena, M68kObje
     count = last_hunk - first_hunk + 1U;
     alloc_sizes = (uint32_t *)arena_calloc(workflow_arena, count, sizeof(*alloc_sizes));
     mem_attrs = (uint32_t *)arena_calloc(workflow_arena, count, sizeof(*mem_attrs));
+    mem_types = (uint8_t *)arena_calloc(workflow_arena, count, sizeof(*mem_types));
     header_size_words = (uint32_t *)arena_calloc(workflow_arena, count, sizeof(*header_size_words));
-    if (alloc_sizes == NULL || mem_attrs == NULL || header_size_words == NULL) {
+    if (alloc_sizes == NULL || mem_attrs == NULL || mem_types == NULL || header_size_words == NULL) {
         platform_file_diag_error(diagnostics, "Out of memory allocating hunk table");
         goto fail;
     }
@@ -747,7 +752,8 @@ static int parse_hunk_executable(Reader *reader, Arena *workflow_arena, M68kObje
         }
         header_size_words[i] = value;
         alloc_sizes[i] = (value & HUNK_SIZE_LONGS_MASK) * 4U;
-        if ((value >> HUNK_MEM_SHIFT) == 3U) {
+        mem_types[i] = (uint8_t)(value >> HUNK_MEM_SHIFT);
+        if (mem_types[i] == 3U) {
             if (m68k_reader_read_u32be(reader, &mem_attrs[i]) != 0) {
                 platform_file_diag_error(diagnostics, "Unexpected EOF in extended mem attrs");
                 goto fail;
@@ -759,8 +765,8 @@ static int parse_hunk_executable(Reader *reader, Arena *workflow_arena, M68kObje
             platform_file_diag_error(diagnostics, "Unexpected EOF before executable section");
             goto fail;
         }
-        if (add_section_from_hunk(object, value, "", alloc_sizes[i], mem_attrs[i], reader, workflow_arena, 1,
-                diagnostics) != 0) {
+        if (add_section_from_hunk(object, value, "", alloc_sizes[i], mem_types[i], mem_attrs[i], reader,
+                workflow_arena, 1, diagnostics) != 0) {
             goto fail;
         }
     }
@@ -836,7 +842,7 @@ static int parse_hunk_object(Reader *reader, Arena *workflow_arena, M68kObject *
                 return -1;
             } else if (hunk_id == HUNK_CODE || hunk_id == HUNK_DATA || hunk_id == HUNK_BSS) {
                 const char *section_name = (pending_name != NULL) ? pending_name : "";
-                if (add_section_from_hunk(object, raw, section_name, 0U, 0U, reader, workflow_arena, 0,
+                if (add_section_from_hunk(object, raw, section_name, 0U, 0U, 0U, reader, workflow_arena, 0,
                         diagnostics) != 0) {
                     return -1;
                 }

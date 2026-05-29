@@ -516,6 +516,7 @@ struct M68kRenderLookup {
   uint8_t **labels;
   uint8_t **label_target_refs;
   uint8_t **label_statement_refs;
+  uint8_t **storage_label_target_refs;
   const char ***object_symbol_labels;
   const M68kFact ***relocations;
   const M68kFact ***anchors;
@@ -525,6 +526,7 @@ struct M68kRenderLookup {
   uint32_t *label_extents;
   uint32_t *label_target_ref_extents;
   uint32_t *label_statement_ref_extents;
+  uint32_t *storage_label_target_ref_extents;
   uint32_t *object_symbol_label_extents;
   uint32_t *relocation_extents;
   uint32_t *anchor_extents;
@@ -633,6 +635,7 @@ void render_lookup_mark_boundary_flag(M68kRenderLookup *lookup, size_t section_i
 uint16_t render_lookup_boundary_flags(const M68kRenderLookup *lookup, size_t section_index, uint32_t offset);
 void render_lookup_mark_label_target_ref(M68kRenderLookup *lookup, size_t section_index, uint32_t offset);
 void render_lookup_mark_label_statement_ref(M68kRenderLookup *lookup, size_t section_index, uint32_t offset);
+void render_lookup_mark_storage_label_target_ref(M68kRenderLookup *lookup, size_t section_index, uint32_t offset);
 
 void format_numeric_value(char *buffer, size_t buffer_size, uint32_t size, uint32_t value);
 uint8_t format_lookup_asm_label_with_generation(const M68kRenderLookup *lookup, char *buf, size_t buf_size,

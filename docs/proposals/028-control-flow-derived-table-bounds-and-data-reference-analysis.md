@@ -1682,6 +1682,36 @@ Covered by:
 
 - `source_analysis_data_reference_exports_table_entry`
 
+### Pass 20: All-Target Render Refresh Gate
+
+The twentieth pass makes the required target-source refresh explicit. The
+round-trip report command now has an update mode:
+
+```text
+uv run platform-rendered-source-roundtrip --update-rendered-source
+```
+
+For every tracked supported `.s` target, the tool renders source from the
+current C-backed target pipeline, writes it back to the existing target source
+path, and then verifies that same rendered text through the internal
+rendered-source round-trip path. Mac OS source assembly remains explicitly
+unsupported, so the tool classifies the Mac target as unsupported instead of
+trying to assemble or silently ignoring it.
+
+This gives 028 a single canonical proof command for:
+
+```text
+renderer change -> all supported target .s files refreshed -> round-trip proof
+```
+
+Covered by:
+
+- `test_roundtrip_report_update_mode_writes_then_verifies_pre_rendered_source`
+- `test_roundtrip_report_update_mode_keeps_macos_unsupported`
+- `hunk_loader_applies_executable_header_memory_flags_to_sections`
+- `facts_v2_adjacent_runtime_ranges_do_not_org_back_to_storage`
+- `facts_v2_render_asm_source_uses_observed_app_slot_widths`
+
 ## Acceptance Criteria
 
 This proposal can close when:
@@ -1734,6 +1764,14 @@ This proposal does not require:
 - TODO.md still contains OS compatibility header presentation concerns. Those
   should be handled as report/source UX cleanup after the underlying API facts
   remain stable.
-- The current source round-trip baseline before Proposal 028 implementation is
-  `34/36` full-file exact, `1/36` content-exact-only, `1/36` unsupported, and
-  `0` failures. Implementation must preserve or improve that baseline.
+- The current rendered-source round-trip status after the all-target refresh is
+  `32/36` full-file exact, `3/36` content-exact-only, `1/36` unsupported, and
+  `0` failures. Update-mode verification of freshly generated source reports
+  `26/36` full-file exact, `9/36` content-exact-only, `1/36` unsupported, and
+  `0` failures; the broader content-exact set reflects supported source content
+  with known container-shape limits, not payload loss.
+- The refresh gate exposed three general renderer/parser issues that were fixed
+  in C rather than patched per target: executable hunk header memory flags now
+  reach object sections, cross-ORG PC-relative operands use storage-domain labels,
+  and odd-offset RSSET multi-byte fields render as byte reservations so assembler
+  alignment cannot shift later symbols.
