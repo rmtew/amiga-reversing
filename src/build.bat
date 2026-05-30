@@ -526,11 +526,14 @@ link %LDFLAGS% /OUT:%FILE_EXE% ^
     %OUTDIR%\m68k_assembler_policy.obj ^
     %OUTDIR%\m68k_object.obj ^
     %OUTDIR%\platform_amiga_hunk.obj ^
+    %OUTDIR%\platform_amiga_bootloader_analysis.obj ^
+    %OUTDIR%\platform_amiga_disk.obj ^
     %OUTDIR%\platform_atari_st.obj ^
     %OUTDIR%\amiga_os_runtime.obj ^
     %OUTDIR%\atari_st_os_runtime.obj ^
     %OUTDIR%\mac_os_runtime.obj ^
     %OUTDIR%\amiga_hunk_file_runtime.obj ^
+    %OUTDIR%\amiga_disk_file_runtime.obj ^
     %OUTDIR%\atari_st_prg_file_runtime.obj || exit /b %errorlevel%
 
 link %LDFLAGS% /DLL /OUT:%FILE_DLL% ^
@@ -591,11 +594,14 @@ link %LDFLAGS% /DLL /OUT:%FILE_DLL% ^
     %OUTDIR%\m68k_assembler_policy.obj ^
     %OUTDIR%\m68k_object.obj ^
     %OUTDIR%\platform_amiga_hunk.obj ^
+    %OUTDIR%\platform_amiga_bootloader_analysis.obj ^
+    %OUTDIR%\platform_amiga_disk.obj ^
     %OUTDIR%\platform_atari_st.obj ^
     %OUTDIR%\amiga_os_runtime.obj ^
     %OUTDIR%\atari_st_os_runtime.obj ^
     %OUTDIR%\mac_os_runtime.obj ^
     %OUTDIR%\amiga_hunk_file_runtime.obj ^
+    %OUTDIR%\amiga_disk_file_runtime.obj ^
     %OUTDIR%\atari_st_prg_file_runtime.obj || exit /b %errorlevel%
 
 if "%1"=="" exit /b 0

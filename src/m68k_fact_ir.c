@@ -13,6 +13,7 @@ static void count_fact(M68kFactIR *ir, uint8_t kind) {
     case M68K_FACT_RELOCATION_ANCHOR: ++ir->relocation_anchor_count; break;
     case M68K_FACT_RUNTIME_ADDRESS_REF: ++ir->runtime_address_ref_count; break;
     case M68K_FACT_RUNTIME_ADDRESS_RANGE: ++ir->runtime_address_range_count; break;
+    case M68K_FACT_PLATFORM_MEDIA_TRANSFER: ++ir->platform_media_transfer_count; break;
     case M68K_FACT_DATA_SPAN: ++ir->data_span_count; break;
     case M68K_FACT_VIOLATION: ++ir->violation_count; break;
     default: break;

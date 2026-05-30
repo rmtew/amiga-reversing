@@ -215,6 +215,9 @@ static int append_runtime_address_ref_fact_with_sink(M68kFactIR *facts, size_t s
 static int append_external_runtime_address_ref_fact(M68kFactIR *facts, size_t section_index,
   uint32_t source_offset, size_t operand_index, uint32_t runtime_address, uint32_t sink_address,
   size_t sink_source_section_index, uint32_t sink_source_offset, uint8_t confidence);
+static int append_platform_media_transfer_fact(M68kFactIR *facts, size_t section_index, uint32_t offset,
+  size_t path_section_index, uint32_t path_offset, uint32_t destination_address, uint32_t source_size,
+  uint8_t source_kind, uint8_t confidence);
 static int append_relocation_anchor_fact(M68kFactIR *facts, const M68kFixup *fixup,
   const M68kFactsV2RelocationFailure *anchor);
 static void trace_value_set_unknown(M68kFactsV2TraceValue *value);
@@ -4207,6 +4210,41 @@ static int append_external_runtime_address_ref_fact(M68kFactIR *facts, size_t se
   return m68k_fact_ir_append(facts, &fact) == 0 ? 1 : -1;
 }
 
+static int append_platform_media_transfer_fact(M68kFactIR *facts, size_t section_index, uint32_t offset,
+    size_t path_section_index, uint32_t path_offset, uint32_t destination_address, uint32_t source_size,
+    uint8_t source_kind, uint8_t confidence) {
+  M68kFact fact;
+  size_t fact_index;
+  if (facts == NULL) return -1;
+  if (m68k_recovered_platform_transfer_source_kind_name(source_kind) == NULL) return -1;
+  for (fact_index = 0U; fact_index < facts->fact_count; ++fact_index) {
+    const M68kFact *existing = &facts->facts[fact_index];
+    if (existing->kind == M68K_FACT_PLATFORM_MEDIA_TRANSFER &&
+        existing->section_index == section_index &&
+        existing->offset == offset &&
+        existing->source_section_index == path_section_index &&
+        existing->source_offset == path_offset &&
+        existing->has_runtime_address &&
+        existing->runtime_address == destination_address &&
+        existing->size == source_size &&
+        existing->reason == source_kind) {
+      return 0;
+    }
+  }
+  memset(&fact, 0, sizeof(fact));
+  fact.kind = M68K_FACT_PLATFORM_MEDIA_TRANSFER;
+  fact.confidence = confidence;
+  fact.section_index = section_index;
+  fact.offset = offset;
+  fact.source_section_index = path_section_index;
+  fact.source_offset = path_offset;
+  fact.has_runtime_address = 1U;
+  fact.runtime_address = destination_address;
+  fact.size = source_size;
+  fact.reason = source_kind;
+  return m68k_fact_ir_append(facts, &fact) == 0 ? 1 : -1;
+}
+
 static int append_runtime_address_range_fact(M68kFactIR *facts, size_t section_index, uint32_t source_offset,
     uint32_t runtime_address, uint32_t size, uint8_t kind, uint8_t confidence) {
   M68kFact fact;
@@ -4689,6 +4727,57 @@ static int append_absolute_memory_refs_for_accepted(const M68kDecodeIR *decode, 
           M68K_ANALYSIS_CONFLICT_STATE_CLEAN;
         if (m68k_ir_section_analysis_append_absolute_memory_ref(section_analysis, &ref) != 0) return -1;
       }
+    }
+  }
+  return 0;
+}
+
+static int facts_v2_copy_c_string_from_section(const M68kDecodeIR *decode, size_t section_index,
+    uint32_t offset, char *buffer, size_t buffer_size) {
+  const M68kDecodeSectionIR *section;
+  size_t cursor;
+  if (buffer != NULL && buffer_size != 0U) buffer[0] = '\0';
+  if (decode == NULL || buffer == NULL || buffer_size < 2U || section_index >= decode->section_count)
+    return 0;
+  section = &decode->sections[section_index];
+  if (offset >= section->size || section->data == NULL) return 0;
+  for (cursor = 0U; offset + cursor < section->size && cursor + 1U < buffer_size; ++cursor) {
+    uint8_t value = section->data[offset + cursor];
+    if (value == 0U) {
+      buffer[cursor] = '\0';
+      return cursor != 0U;
+    }
+    if (value < 0x20U || value > 0x7eU) return 0;
+    buffer[cursor] = (char)value;
+  }
+  buffer[0] = '\0';
+  return 0;
+}
+
+static int append_platform_media_transfers_from_facts(const M68kDecodeIR *decode, const M68kFactIR *facts,
+    M68kSourceAnalysisIR *source_analysis) {
+  size_t fact_index;
+  if (decode == NULL || facts == NULL || source_analysis == NULL ||
+      source_analysis->section_count < decode->section_count) {
+    return -1;
+  }
+  for (fact_index = 0U; fact_index < facts->fact_count; ++fact_index) {
+    const M68kFact *fact = &facts->facts[fact_index];
+    char path[256];
+    M68kSectionAnalysisIR *section_analysis;
+    if (fact->kind != M68K_FACT_PLATFORM_MEDIA_TRANSFER || fact->section_index >= source_analysis->section_count ||
+        !fact->has_runtime_address) {
+      continue;
+    }
+    if (!facts_v2_copy_c_string_from_section(decode, fact->source_section_index, fact->source_offset,
+        path, sizeof(path))) {
+      continue;
+    }
+    section_analysis = &source_analysis->sections[fact->section_index];
+    if (m68k_ir_section_analysis_append_recovered_platform_media_transfer(section_analysis, fact->offset,
+        fact->source_section_index, fact->source_offset, fact->runtime_address, fact->size, path, NULL,
+        (uint8_t)fact->reason) != 0) {
+      return -1;
     }
   }
   return 0;
@@ -8870,6 +8959,40 @@ static int candidate_preserves_trace_state_across_jump(const M68kDecodeCandidate
   return 1;
 }
 
+static int candidate_is_trap_instruction(const M68kDecodeCandidate *candidate) {
+  uint32_t vector = 0U;
+  return candidate != NULL &&
+    candidate->mnemonic_id == M68K_ASM_MNEMONIC_TRAP &&
+    candidate->operand_count == 1U &&
+    operand_immediate_value(candidate->operand_kinds[0], &candidate->operands[0], &vector) &&
+    vector <= 15U;
+}
+
+static int trace_state_record_target_loader_file_transfer(const M68kObject *object,
+    const M68kAnalysisPolicy *policy, M68kFactIR *facts, size_t section_index,
+    const M68kDecodeCandidate *candidate, const M68kFactsV2TraceState *state) {
+  const M68kFactsV2TraceValue *path;
+  const M68kFactsV2TraceValue *destination;
+  int append_result;
+  if (object == NULL || policy == NULL || facts == NULL || candidate == NULL || state == NULL) return -1;
+  if (object->platform_backend_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK) return 0;
+  if (strcmp(policy->source_context_kind, "disk_entry") != 0 || policy->source_context_disk_path[0] == '\0')
+    return 0;
+  if (!candidate_is_trap_instruction(candidate)) return 0;
+  path = &state->a[0];
+  destination = &state->a[1];
+  if (path->kind != M68K_FACTS_V2_TRACE_SOURCE_OFFSET) return 0;
+  if (destination->kind != M68K_FACTS_V2_TRACE_RUNTIME_ADDRESS &&
+      destination->kind != M68K_FACTS_V2_TRACE_CONSTANT) {
+    return 0;
+  }
+  append_result = append_platform_media_transfer_fact(facts, section_index, candidate->offset,
+    path->section_index, path->value, destination->value, 0U,
+    M68K_RECOVERED_PLATFORM_TRANSFER_SOURCE_TARGET_LOADER_FILE,
+    M68K_FACT_CONFIDENCE_TOOL_INFERRED);
+  return append_result < 0 ? -1 : 0;
+}
+
 static int target_prefix_uses_trace_indirect_control(M68kDecodeIR *decode, size_t section_index,
     uint32_t target_offset, const M68kFactsV2TraceState *trace_state, uint8_t max_cpu) {
   const uint32_t scan_limit = 8U;
@@ -9134,6 +9257,10 @@ static int run_reachable_fixed_point(const M68kObject *object, M68kDecodeIR *dec
     }
     if (trace_state_record_runtime_storage_sink_ref(runtime_addresses, facts, object->platform_backend_kind,
         item.section_index, section, candidate, &item.trace_state) != 0) {
+      return -1;
+    }
+    if (trace_state_record_target_loader_file_transfer(object, policy, facts, item.section_index, candidate,
+        &item.trace_state) != 0) {
       return -1;
     }
     {
@@ -9787,6 +9914,12 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
         &runtime_addresses, accepted_start, accepted_bytes, out_source_analysis) != 0) {
     m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
       "facts_v2 absolute memory ref append failed");
+    goto fail;
+  }
+  if (out_source_analysis != NULL &&
+      append_platform_media_transfers_from_facts(&decode, &facts, out_source_analysis) != 0) {
+    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
+      "facts_v2 platform media transfer append failed");
     goto fail;
   }
   if (out_source_analysis != NULL && append_platform_storage_layouts_from_object(object, out_source_analysis) != 0) {

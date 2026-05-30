@@ -12,6 +12,7 @@ from typing import cast
 
 from amiga_reversing.disasm.assembler_profiles import load_assembler_profile
 from amiga_reversing.disasm.binary_source import (
+    AssetDataBinarySource,
     BinarySource,
     BinarySourceKind,
     DiskEntryBinarySource,
@@ -200,7 +201,7 @@ def run_genam_oracle(target_name: str, *, project_root: Path = PROJECT_ROOT) -> 
     started_at = time.perf_counter()
     paths = resolve_project_paths(target_name, project_root=project_root)
     binary_source = paths.binary_source
-    if isinstance(binary_source, DiskEntryBinarySource | MacosCodeResourceSource):
+    if isinstance(binary_source, DiskEntryBinarySource | AssetDataBinarySource | MacosCodeResourceSource):
         return _with_workflow_profile(
             _base_report(
                 oracle_id="genam-devpac",

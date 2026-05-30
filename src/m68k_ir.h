@@ -344,6 +344,7 @@ typedef struct M68kAnalysisRssetUseSiteBinding {
 
 #define M68K_ANALYSIS_RUNTIME_RANGE_LIMIT 64U
 #define M68K_ANALYSIS_RUNTIME_ENTRY_POINT_LIMIT 64U
+#define M68K_ANALYSIS_SOURCE_CONTEXT_TEXT_SIZE 512U
 
 typedef struct M68kAnalysisRuntimeRange {
   uint8_t has_section_index;
@@ -450,6 +451,11 @@ typedef struct M68kAnalysisPolicy {
   uint8_t custom_struct_owner;
   uint8_t reserved1[1];
   uint32_t entry_offset;
+  char source_context_kind[M68K_ANALYSIS_SOURCE_CONTEXT_TEXT_SIZE];
+  char source_context_disk_id[M68K_ANALYSIS_SOURCE_CONTEXT_TEXT_SIZE];
+  char source_context_disk_path[M68K_ANALYSIS_SOURCE_CONTEXT_TEXT_SIZE];
+  char source_context_entry_path[M68K_ANALYSIS_SOURCE_CONTEXT_TEXT_SIZE];
+  char source_context_parent_disk_id[M68K_ANALYSIS_SOURCE_CONTEXT_TEXT_SIZE];
   M68kAnalysisRegisterSeed register_seeds[M68K_ANALYSIS_REGISTER_SEED_LIMIT];
   M68kAnalysisEntryPoint entry_points[M68K_ANALYSIS_ENTRY_POINT_LIMIT];
   M68kAnalysisStructuredDataItem structured_data_items[M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT];
@@ -1112,7 +1118,8 @@ typedef struct M68kTargetPlatformSummary {
 typedef enum M68kRecoveredPlatformTransferSourceKind {
   M68K_RECOVERED_PLATFORM_TRANSFER_SOURCE_NONE = 0,
   M68K_RECOVERED_PLATFORM_TRANSFER_SOURCE_LOGICAL_DISK_OFFSET = 1,
-  M68K_RECOVERED_PLATFORM_TRANSFER_SOURCE_POST_READ_RUNTIME_COPY = 2
+  M68K_RECOVERED_PLATFORM_TRANSFER_SOURCE_POST_READ_RUNTIME_COPY = 2,
+  M68K_RECOVERED_PLATFORM_TRANSFER_SOURCE_TARGET_LOADER_FILE = 3
 } M68kRecoveredPlatformTransferSourceKind;
 
 typedef struct M68kRecoveredPlatformDiskReadIR {
@@ -1133,6 +1140,17 @@ typedef struct M68kRecoveredPlatformRuntimeCopyIR {
   uint32_t handoff_addr;
   uint8_t source_kind;
 } M68kRecoveredPlatformRuntimeCopyIR;
+
+typedef struct M68kRecoveredPlatformMediaTransferIR {
+  uint32_t offset;
+  size_t path_section_index;
+  uint32_t path_offset;
+  uint32_t destination_addr;
+  uint32_t source_size;
+  char *path;
+  char *source_sha256;
+  uint8_t source_kind;
+} M68kRecoveredPlatformMediaTransferIR;
 
 typedef struct M68kRecoveredDirectSectionCallIR {
   uint32_t offset;
@@ -1659,6 +1677,9 @@ typedef struct M68kSectionAnalysisIR {
   M68kRecoveredPlatformRuntimeCopyIR *recovered_platform_runtime_copies;
   size_t recovered_platform_runtime_copy_count;
   size_t recovered_platform_runtime_copy_capacity;
+  M68kRecoveredPlatformMediaTransferIR *recovered_platform_media_transfers;
+  size_t recovered_platform_media_transfer_count;
+  size_t recovered_platform_media_transfer_capacity;
   M68kRecoveredDirectSectionCallIR *recovered_direct_section_calls;
   size_t recovered_direct_section_call_count;
   size_t recovered_direct_section_call_capacity;
@@ -1849,6 +1870,9 @@ int m68k_ir_section_analysis_append_recovered_platform_disk_read(M68kSectionAnal
 int m68k_ir_section_analysis_append_recovered_platform_runtime_copy(M68kSectionAnalysisIR *section_analysis,
     uint32_t offset, uint32_t source_addr, uint32_t destination_addr, uint32_t byte_length,
     uint32_t handoff_addr, uint8_t source_kind);
+int m68k_ir_section_analysis_append_recovered_platform_media_transfer(M68kSectionAnalysisIR *section_analysis,
+    uint32_t offset, size_t path_section_index, uint32_t path_offset, uint32_t destination_addr,
+    uint32_t source_size, const char *path, const char *source_sha256, uint8_t source_kind);
 int m68k_ir_section_analysis_append_recovered_direct_section_call(M68kSectionAnalysisIR *section_analysis,
     uint32_t offset, size_t target_section_index, uint32_t target_offset);
 int m68k_ir_section_analysis_append_runtime_view(M68kSectionAnalysisIR *section_analysis,

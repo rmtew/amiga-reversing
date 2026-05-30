@@ -1,10 +1,14 @@
 # Proposal 027: Native Decompression Execution And Materialization
 
-Status: In progress.
+Status: implemented for in-executable native decompression; loader/file-backed
+compressed payloads are identified when disk/file loading and target-owned
+acceptance evidence reconcile, but materialization still requires replayed
+native decompressor execution.
 
 This proposal explains three failed decompression/materialization cases:
 Damocles Tetragon section 2, Conqueror's embedded ByteKiller/CRUN-style
-decruncher, and Magicland Dizzy's disk-loaded `MLDC` asset decompressor. They
+decruncher, and Magicland Dizzy's disk-loaded target-owned decompression
+candidate. They
 point at the same architectural need: target-owned decompression routines should
 be executed with our M68K executor, their writes should be observed, and the
 resulting outputs should be materialized according to proven role. Hand-coded
@@ -13,19 +17,19 @@ authority when native target code is present.
 
 ## Checkpoint Index
 
-- [ ] Problem Statement
-- [ ] Tutorial: Existing Decompression Support
-- [ ] Tutorial: The Damocles Tetragon Failure
-- [ ] Tutorial: The Conqueror Relocated Decruncher
-- [ ] Tutorial: Magicland Disk-Loaded Asset Decompression
-- [ ] Principle: The Target-Owned Decompressor Is The Spec
-- [ ] Tutorial: Executor-Based Native Decompression
-- [ ] Output Roles And Materialization Policy
-- [ ] Validation Gates
-- [ ] Compatibility With Existing Working Targets
-- [ ] Proposed Implementation Slices
+- [x] Problem Statement
+- [x] Tutorial: Existing Decompression Support
+- [x] Tutorial: The Damocles Tetragon Failure
+- [x] Tutorial: The Conqueror Relocated Decruncher
+- [x] Tutorial: Magicland Disk-Loaded Asset Decompression
+- [x] Principle: The Target-Owned Decompressor Is The Spec
+- [x] Tutorial: Executor-Based Native Decompression
+- [x] Output Roles And Materialization Policy
+- [x] Validation Gates
+- [x] Compatibility With Existing Working Targets
+- [x] Proposed Implementation Slices
 - [ ] Acceptance Criteria
-- [ ] Non-Goals
+- [x] Non-Goals
 
 ## Problem Statement
 
@@ -82,25 +86,28 @@ bytes written by the decruncher, not the original bytes sitting at that address
 in the file.
 
 Magicland Dizzy shows the third failure. The target has real disk-access code
-and an apparent `MLDC` decompressor near the loader. The routine is reached
-after loaded data is checked for long magic `$4D4C4443`, reads the packed block
-through `a0`, writes output through caller-provided `a3`, and returns to the
-parent flow. That is a valid target-owned decompression case, but not a
-primary-program self-decrunch shape:
+and a loader-adjacent routine that appears to process loaded data after a
+target-owned long-word acceptance check. The apparent packed input is passed
+through `a0`, output is written through caller-provided `a3`, and control
+returns to the parent flow. That is a candidate target-owned decompression
+case, but not a primary-program self-decrunch shape until C analysis reconciles
+the file/disk load with the routine call and observed writes:
 
 ```text
-disk loader
-  -> reads packed block from source media
-  -> checks "MLDC" magic
-  -> calls asset decompressor
-  -> decompressor writes data through a3
+disk/file loader
+  -> reads bytes from source media
+  -> target code accepts/rejects the bytes
+  -> calls target-owned processor/decompressor
+  -> routine writes data through a3
   -> returns to caller, no final transfer into output
 ```
 
 The clean answer is not to force this into the existing executable child path.
 It should be represented by the same native execution/write-observation model,
-then materialized as an asset/data output only when the input provenance, output
-range, and role are proven.
+then materialized as an asset/data output only when the source provenance, call
+state, output range, and role are proven. There is no framework-level Magicland
+format handler here: either analysis proves the load and decompression path, or
+the bytes remain an unresolved compressed/loaded payload.
 
 ## Tutorial: Existing Decompression Support
 
@@ -349,7 +356,7 @@ disk project exists under targets/amiga_disk_magicland-dizzy-1991-codemasters-tr
 MD child executable is rendered as targets/.../amiga_hunk_md_e066dc14/md.s
 loader code accesses Amiga disk hardware directly
 decompressor candidate is near abs_0_000647F2
-packed blocks are identified by long magic "MLDC"
+target code contains a long-word acceptance check before calling the candidate
 ```
 
 The current C analysis already improves the source around the disk helper by
@@ -372,9 +379,9 @@ call contract:
 Textual sketch:
 
 ```text
-read disk block into buffer
-  -> validate "MLDC"
-  -> a0 = packed block
+read disk/file bytes into buffer
+  -> target-owned acceptance check
+  -> a0 = accepted input block
   -> a3 = output buffer
   -> jsr abs_0_000647F2
   -> observed writes to output buffer
@@ -483,14 +490,13 @@ Conqueror should produce a different but compatible candidate:
 }
 ```
 
-Magicland should produce an asset-oriented candidate:
+Magicland should produce an asset-oriented candidate only after the loader,
+input bytes, call state, and writes are reconciled:
 
 ```json
 {
-  "codec_id": "mldc",
-  "source_kind": "loader_owned_asset_decompressor",
+  "source_kind": "target_loader_decompression_candidate",
   "source_section": 0,
-  "packed_magic": "MLDC",
   "packed_source_provenance": {
     "container_kind": "amiga_disk",
     "status": "pending_disk_byte_binding"
@@ -614,8 +620,8 @@ $002100  expected output end from $400 + $1D00
 Magicland memory illustration:
 
 ```text
-disk byte range       packed block with "MLDC" header
-runtime input buffer  packed block copied by loader
+disk/file byte range  source bytes accepted by target loader code
+runtime input buffer  accepted bytes copied by loader
 runtime output buffer caller-provided a3 destination
 decompressor routine  abs_0_000647F2 candidate
 caller continuation   return address after jsr
@@ -748,9 +754,10 @@ unknown_data:
   output is byte-preserving data child with review status
 ```
 
-This gives Magicland a first-class path. The `MLDC` output does not need a fake
-entrypoint to be useful. It needs proven source media bytes, proven decompressor
-execution, observed output writes, and conservative role classification.
+This gives Magicland a first-class path. A loader-produced data output does not
+need a fake entrypoint to be useful. It needs proven source media bytes, proven
+decompressor execution, observed output writes, and conservative role
+classification.
 
 ## Validation Gates
 
@@ -794,10 +801,11 @@ must instead prove:
 7. round-trip/export preserves the materialized bytes exactly
 ```
 
-For Magicland, `MLDC` magic and the `a0`/`a3` call shape are not enough by
-themselves. The accepted asset output must bind the packed block to actual disk
-bytes and observe the decompressor writes. If the source disk bytes cannot be
-bound, the event remains a candidate with diagnostics.
+For Magicland, a magic-value acceptance check and the apparent `a0`/`a3` call
+shape are not enough by themselves. The accepted asset output must bind the
+input block to actual disk/file bytes and observe the decompressor writes. If
+the source bytes cannot be bound, the event remains a candidate with
+diagnostics.
 
 ## Compatibility With Existing Working Targets
 
@@ -1009,8 +1017,8 @@ Conqueror:
   validates $400 as code-bearing payload
 
 Magicland:
-  executor binds an MLDC packed block to disk bytes
-  replays or seeds the loader-owned decompressor call
+  executor binds loaded source bytes to disk/file provenance
+  replays the loader-owned decompressor call from proven register/memory state
   materializes observed output writes as asset/data, not code
   refuses cleanly when disk-byte provenance is not proven
 ```
@@ -1029,8 +1037,8 @@ not merely blockers.
 - Conqueror is attempted through native executor materialization.
 - If Conqueror materializes, output has `load_address=$400`,
   `entrypoint=$400`, and a size derived from observed writes/header evidence.
-- Magicland `MLDC` loader-owned decompression is attempted through the same
-  native execution/write-observation model.
+- Magicland loader-owned decompression is attempted through the same native
+  execution/write-observation model.
 - Magicland asset output is materialized only when the packed block is bound to
   exact source disk bytes and the decompressor writes are observed.
 - Magicland asset output is classified as `asset_data` or `unknown_data` unless
@@ -1132,36 +1140,116 @@ Current rendered-source proof after the Conqueror/Damocles refresh:
 
 ```text
 Rendered source round-trip:
-  26/37 full-file exact
+  27/38 full-file exact
   10 content-exact only
   1 unsupported Mac OS source assembly target
   0 failures
 ```
 
-The remaining Proposal 027 gap is Magicland `MLDC`. The target source contains
-a real loader-owned asset decompression shape:
+The Magicland loader/file-backed gap is now identified but not materialized. The
+target source contains a loader-owned asset-processing shape:
 
 ```asm
-cmpi.l #1296843843,(a0)   ; "MLDC"
+cmpi.l #1296843843,(a0)
 bne.b  ...
 movea.l a0,a3
 move.l d1,d0
 bsr.w  abs_0_000647F2
 ```
 
-The decompressor at `abs_0_000647F2` is byte-real and returns to the caller,
-so its output must not become an executable child without independent entry
-evidence. The missing implementation is the C-owned packed-source provenance
-binding from the loader/disk/resource data into a native execution call seed:
+The implementation now records this in two layers. First, generic C-owned
+loader/file transfer facts prove the Magicland MD target's exact target-loader
+file names, destination addresses, offsets, and sizes. Second, C analysis binds
+the exact disk-entry bytes to the target-owned long-word acceptance check and
+the following direct processor call. This emits `target_loader_file`
+decompression events with status `needs_simulated_decrunch`.
+
+This is not a framework codec. The framework does not know `MLDC` as a
+decompressor. The long word is only corroborating evidence because it appears in
+target code and matches exact bytes loaded from the source disk. Files that do
+not match that target-owned acceptance check remain ordinary loader/file
+transfers, not compressed-payload events.
+
+The remaining generic proof is:
 
 ```text
-loader source bytes
-  -> exact disk/container byte range
-  -> MLDC packed input buffer
-  -> a0 input pointer, a3 output pointer, d0/d1 size contract
-  -> execute until return/rte
-  -> materialize asset_data or unknown_data only from observed writes
+C loader/file transfer fact
+  -> exact source disk/container/file byte range
+  -> exact runtime destination buffer
+  -> target-owned acceptance check matched to those source bytes
+  -> proven target-owned processor/decompressor call using that buffer
+  -> replay from proven register/memory state
+  -> observed writes
+  -> materialize asset_data only from those observed writes
 ```
 
-That must be implemented as the same native execution/write-observation model,
-not as a Python-side artifact rule and not as a guessed disk offset table.
+An earlier implementation attempted to bridge this by recognizing the
+Magicland-specific magic and statically scanning later direct calls. That was
+rejected: it was target-specific framework knowledge, produced false positives,
+and was pathologically slow. The current correct state is to keep the proven
+file-transfer facts, identify compressed payloads only when those facts
+reconcile with target-owned acceptance and call evidence, leave the asset
+payload unresolved, and require C analysis to replay the decompressor before
+materialization.
+
+This keeps Python as orchestration only: C must emit the media-transfer and
+decompression facts, C must materialize any selected event, and Python writes
+the durable child target/manifest records from those facts.
+
+## Trailing Observations For Later Work
+
+Magicland should not become the only shape of loader-owned input. The useful
+generalization is a C-owned media-transfer fact:
+
+```text
+loader evidence
+  -> source provenance: OS file, target loader file, logical disk offset, raw track/sector span
+  -> destination buffer and byte count when known
+  -> optional loader mechanism: OS call, TRAP wrapper, subroutine loader, direct disk hardware DMA
+  -> consumers: decompressor execution, asset materialization, later data/code role analysis
+```
+
+Magicland is one producer of that fact because its target code installs TRAP
+handlers, hashes filename strings, resolves a target-owned disk directory, then
+loads bytes into caller buffers. NDOS targets such as demos/loaders may produce
+the same kind of fact through a different mechanism: a first-stage trackdisk
+load, followed by target-owned disk hardware reads with no file name and no
+TRAP call. Those should still feed the same decompressor/materializer if the
+source span and destination buffer are proven.
+
+The long-term rule is: decompression should consume proven media-transfer
+outputs, not target names or standalone magic-byte recognition. Magic constants
+inside target code are useful as corroborating checks that a resolved source
+candidate matches the loader's own acceptance test; they are not the primary
+discovery authority.
+
+Several existing recovered facts are currently produced in render-lookup code.
+That is legacy coupling: rendering should consume analysis facts, not discover
+semantic loader/decompression provenance. Proposal 027 should avoid adding new
+render-owned source provenance. Moving unrelated render-lookup producers back
+into analysis is valuable post-proposal cleanup, but it should be handled as its
+own refactor unless a fact is required for this decompression/materialization
+path.
+
+Precommit also exposed an intermittent `test_ir_policy_dll` access violation in
+`test_platform_file_analysis_reports_cfg_for_certain_code`. The observed shape is
+a Windows DLL crash during the Python-driven C analysis policy test, while
+focused reruns and the full `src/tests/test_ir_policy_dll.py` module have passed
+afterward. That makes it a reliability failure, not a proven 027 behavior
+regression.
+
+Post-proposal work should turn this into a deterministic repro before changing
+behavior:
+
+1. Run the failing module in a loop until the access violation reproduces, then
+   record the exact seed/order/process lifetime.
+2. Check DLL allocation ownership around `*_json_alloc`/free pairs, arena-backed
+   strings copied into exported JSON, callback/error-buffer lifetimes, and any
+   shared static state reused across tests.
+3. Use CdbX64 or an equivalent Windows debugger once the loop reproduces, so the
+   crash site is a C stack frame rather than a Python symptom.
+4. Add the smallest regression test that exercises the lifetime bug once the C
+   cause is known.
+
+This should remain separate from 027 unless the crash is proven to corrupt or
+misreport decompression/materialization facts.

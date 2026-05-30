@@ -587,6 +587,47 @@ def test_listing_analysis_simulates_self_decruncher_across_amiga_hardware_write(
     assert event["simulated_output_sha256"] == hashlib.sha256(bytes.fromhex("4e75")).hexdigest()
 
 
+def test_c_analysis_policy_reports_disk_entry_source_context(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    binary = tmp_path / "source-context.hunk"
+    binary.write_bytes(make_synthetic_hunkexe(code_data=bytes.fromhex("4e75")))
+    metadata_path = tmp_path / "target_metadata.json"
+    metadata_path.write_text(
+        json.dumps(
+            {
+                "target_type": "program",
+                "source_context": {
+                    "kind": "disk_entry",
+                    "disk_id": "magicland",
+                    "disk_path": "bin/imported/magicland.adf",
+                    "entry_path": "MD",
+                    "parent_disk_id": "magicland",
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    combined = analyze_source_with_c_artifact(
+        HunkFileBinarySource(
+            kind=BinarySourceKind.HUNK_FILE,
+            path=binary,
+            display_path=str(binary),
+            analysis_cache_path=tmp_path / "binary.analysis",
+        ),
+        metadata_text=str(metadata_path),
+        project_root=PROJECT_ROOT,
+    )
+
+    assert combined["analysis"]["analysis_policy"]["source_context"] == {
+        "kind": "disk_entry",
+        "disk_id": "magicland",
+        "disk_path": "bin/imported/magicland.adf",
+        "entry_path": "MD",
+        "parent_disk_id": "magicland",
+    }
+
+
 def test_listing_analysis_simulates_self_decruncher_after_branch_over_embedded_data(tmp_path: Path) -> None:
     _requires_c_backend_dlls()
     binary = tmp_path / "bridged_self_decrunch_hunk.bin"
@@ -874,6 +915,77 @@ def _facts_v2_listing_analysis_for_project(target_name: str) -> dict[str, object
     payload = analyze_project_with_c_artifact(target_name, project_root=PROJECT_ROOT)
     assert isinstance(payload, dict)
     return payload
+
+
+def test_real_dll_magicland_records_loader_file_transfers_without_unproven_asset_materialization() -> None:
+    _requires_c_backend_dlls()
+    paths = resolve_project_paths(
+        "amiga_disk_magicland-dizzy-1991-codemasters-trsi-lsd__amiga_hunk_md_e066dc14",
+        project_root=PROJECT_ROOT,
+    )
+    with effective_metadata_file(paths.target_dir) as metadata_path:
+        direct_analysis = analyze_project_source_with_c_backend(
+            paths.binary_source,
+            metadata_path=metadata_path,
+            project_root=PROJECT_ROOT,
+        )
+    combined = _facts_v2_listing_analysis_for_project(paths.name)
+    analysis = combined["analysis"]
+
+    loader_asset_events = [
+        event
+        for event in analysis["decompression_events"]
+        if event.get("source_kind") == "loader_owned_asset"
+    ]
+    target_loader_events = [
+        event
+        for event in analysis["decompression_events"]
+        if event.get("source_kind") == "target_loader_file"
+    ]
+    direct_target_loader_events = [
+        event
+        for event in direct_analysis["decompression_events"]
+        if event.get("source_kind") == "target_loader_file"
+    ]
+    media_transfers = [
+        transfer
+        for section in analysis["sections"]
+        for transfer in section["recovered_platform_media_transfers"]
+        if transfer["source_kind"] == "target_loader_file"
+    ]
+    direct_media_transfers = [
+        transfer
+        for section in direct_analysis["sections"]
+        for transfer in section["recovered_platform_media_transfers"]
+        if transfer["source_kind"] == "target_loader_file"
+    ]
+    by_path = {str(transfer["path"]): transfer for transfer in media_transfers}
+
+    assert loader_asset_events == []
+    assert len(direct_target_loader_events) == 12
+    assert len(target_loader_events) == 12
+    assert {event["source_path"] for event in target_loader_events} == {
+        "7",
+        "FONT",
+        "HEIGHT.DATA",
+        "MAP",
+        "PANEL.RAW",
+        "PANELBITS.RAW",
+        "PIC.HAM",
+        "SPRITES1.RAW",
+        "SPRITES2.RAW",
+        "SPRITES3.RAW",
+        "TUNE00",
+    }
+    assert all(event["status"] == "needs_simulated_decrunch" for event in target_loader_events)
+    assert all(event["reason"] == "target_loader_acceptance_matched" for event in target_loader_events)
+    assert all("codec_id" not in event for event in target_loader_events)
+    assert len(direct_media_transfers) == 14
+    assert len(media_transfers) == 14
+    assert by_path["TUNE00"]["destination_addr"] == 0x51618
+    assert by_path["TUNE00"]["offset"] == 0xD4
+    assert by_path["MAP"]["destination_addr"] == 0x26F50
+    assert by_path["MAP"]["offset"] == 0x136
 
 
 def _make_cross_section_call_hunkexe(second_code: bytes, target_offset: int) -> bytes:
@@ -1239,6 +1351,11 @@ class _M68kAnalysisPolicy(ctypes.Structure):
         ("custom_struct_owner", ctypes.c_uint8),
         ("reserved1", ctypes.c_uint8 * 1),
         ("entry_offset", ctypes.c_uint32),
+        ("source_context_kind", ctypes.c_char * 512),
+        ("source_context_disk_id", ctypes.c_char * 512),
+        ("source_context_disk_path", ctypes.c_char * 512),
+        ("source_context_entry_path", ctypes.c_char * 512),
+        ("source_context_parent_disk_id", ctypes.c_char * 512),
         ("register_seeds", _M68kAnalysisRegisterSeed * 64),
         ("entry_points", _M68kAnalysisEntryPoint * 256),
         ("structured_data_items", _M68kAnalysisStructuredDataItem * 256),
@@ -10672,12 +10789,12 @@ def test_real_dll_magicland_self_decrunch_materialization(tmp_path: Path) -> Non
     assert event["status"] == "simulated_output_observed"
     assert event["reason"] == "simulated_pc_range_stop"
     assert event["simulated_step_count"] > 262144
-    assert event["simulated_output_size"] == 43695
+    assert event["simulated_output_size"] == 131325
     assert event["load_address"] == 0x20000
     assert event["entrypoint"] == 0x20000
-    assert event["simulated_output_sha256"] == "f867bec7c8a062b9d086ea170cd297d620c0a5e32fd90caf14a979f4fe13fce4"
+    assert event["simulated_output_sha256"] == "3ceee1844eb765963ab5966093324717e70bfbf5d82595e538c9e793c6d50743"
     assert result["status"] == "ok"
-    assert len(output) == 43695
+    assert len(output) == 131325
     assert hashlib.sha256(output).hexdigest() == event["simulated_output_sha256"]
 
 

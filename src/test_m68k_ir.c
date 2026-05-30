@@ -404,6 +404,9 @@ static int test_recovered_platform_transfer_source_kind_uses_ids(void) {
   M68K_C_ASSERT_STR("post_read_runtime_copy",
     m68k_recovered_platform_transfer_source_kind_name(
       M68K_RECOVERED_PLATFORM_TRANSFER_SOURCE_POST_READ_RUNTIME_COPY));
+  M68K_C_ASSERT_STR("target_loader_file",
+    m68k_recovered_platform_transfer_source_kind_name(
+      M68K_RECOVERED_PLATFORM_TRANSFER_SOURCE_TARGET_LOADER_FILE));
   M68K_C_ASSERT(m68k_recovered_platform_transfer_source_kind_name(
     M68K_RECOVERED_PLATFORM_TRANSFER_SOURCE_NONE) == NULL);
 
@@ -427,9 +430,77 @@ static int test_recovered_platform_transfer_source_kind_uses_ids(void) {
   M68K_C_ASSERT_U32(1U, (uint32_t)section.recovered_platform_runtime_copy_count);
   M68K_C_ASSERT_U32(M68K_RECOVERED_PLATFORM_TRANSFER_SOURCE_POST_READ_RUNTIME_COPY,
     section.recovered_platform_runtime_copies[0].source_kind);
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_recovered_platform_media_transfer(
+    &section, 12U, 0U, 0x120U, 0x20000U, 4096U, "SPRITES1.RAW", "abc123",
+    M68K_RECOVERED_PLATFORM_TRANSFER_SOURCE_TARGET_LOADER_FILE));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_recovered_platform_media_transfer(
+    &section, 12U, 0U, 0x120U, 0x20000U, 4096U, "SPRITES1.RAW", "abc123",
+    M68K_RECOVERED_PLATFORM_TRANSFER_SOURCE_TARGET_LOADER_FILE));
+  M68K_C_ASSERT_U32(1U, (uint32_t)section.recovered_platform_media_transfer_count);
+  M68K_C_ASSERT_STR("SPRITES1.RAW", section.recovered_platform_media_transfers[0].path);
+  M68K_C_ASSERT_STR("abc123", section.recovered_platform_media_transfers[0].source_sha256);
+  M68K_C_ASSERT_U32(4096U, section.recovered_platform_media_transfers[0].source_size);
+  M68K_C_ASSERT_U32(M68K_RECOVERED_PLATFORM_TRANSFER_SOURCE_TARGET_LOADER_FILE,
+    section.recovered_platform_media_transfers[0].source_kind);
+
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_recovered_platform_media_transfer(
+    &section, 16U, 0U, 0x120U, 0x22000U, 0U, "MAP", NULL,
+    M68K_RECOVERED_PLATFORM_TRANSFER_SOURCE_TARGET_LOADER_FILE));
+  M68K_C_ASSERT_U32(2U, (uint32_t)section.recovered_platform_media_transfer_count);
+  M68K_C_ASSERT_U32(0U, section.recovered_platform_media_transfers[1].source_size);
 
   m68k_ir_section_analysis_destroy(&section);
   arena_destroy(arena);
+  return 0;
+}
+
+static int test_facts_v2_source_analysis_records_disk_entry_loader_media_transfer(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  char *source = NULL;
+  uint8_t bytes[] = {
+    0x41u, 0xfau, 0x00u, 0x0cu,             /* lea.l path(pc),a0 */
+    0x43u, 0xf9u, 0x00u, 0x00u, 0x20u, 0x00u, /* lea.l $2000.l,a1 */
+    0x4eu, 0x43u,                           /* trap #3 */
+    0x4eu, 0x75u,                           /* rts */
+    0x41u, 0x53u, 0x53u, 0x45u, 0x54u, 0x00u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE;
+  section.data = bytes;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  strcpy(policy.source_context_kind, "disk_entry");
+  strcpy(policy.source_context_disk_path, "disk.adf");
+  strcpy(policy.source_context_entry_path, "LOADER");
+  memset(&source_analysis, 0, sizeof(source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.section_count);
+  M68K_C_ASSERT_U32(1U,
+    (uint32_t)source_analysis.sections[0].recovered_platform_media_transfer_count);
+  M68K_C_ASSERT_U32(10U, source_analysis.sections[0].recovered_platform_media_transfers[0].offset);
+  M68K_C_ASSERT_U32(14U, source_analysis.sections[0].recovered_platform_media_transfers[0].path_offset);
+  M68K_C_ASSERT_U32(0x2000U,
+    source_analysis.sections[0].recovered_platform_media_transfers[0].destination_addr);
+  M68K_C_ASSERT_U32(0U, source_analysis.sections[0].recovered_platform_media_transfers[0].source_size);
+  M68K_C_ASSERT_STR("ASSET", source_analysis.sections[0].recovered_platform_media_transfers[0].path);
+  M68K_C_ASSERT_U32(M68K_RECOVERED_PLATFORM_TRANSFER_SOURCE_TARGET_LOADER_FILE,
+    source_analysis.sections[0].recovered_platform_media_transfers[0].source_kind);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_facts_v2_free_text(source);
+  m68k_object_destroy(&object);
   return 0;
 }
 
@@ -22825,6 +22896,8 @@ int m68k_c_ir_tests(void) {
     {"recovered_indirect_source_pattern_ids", test_recovered_indirect_source_pattern_ids},
     {"recovered_platform_transfer_source_kind_uses_ids",
       test_recovered_platform_transfer_source_kind_uses_ids},
+    {"facts_v2_source_analysis_records_disk_entry_loader_media_transfer",
+      test_facts_v2_source_analysis_records_disk_entry_loader_media_transfer},
     {"section_append_statement_copies_data", test_section_append_statement_copies_data},
     {"section_analysis_label_dedupes", test_section_analysis_label_dedupes},
     {"source_analysis_append_section_copies_recovered_dispatches",

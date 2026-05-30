@@ -3,8 +3,8 @@
   "summary": {
     "failures": 0,
     "rendered_source_content_exact_only": 10,
-    "rendered_source_full_file_exact": 26,
-    "targets": 37,
+    "rendered_source_full_file_exact": 27,
+    "targets": 38,
     "unsupported": 1
   },
   "targets": [
@@ -218,6 +218,16 @@
       "rendered_source_full_file_exact": true,
       "status": "exact",
       "target": "amiga_disk_magicland-dizzy-1991-codemasters-trsi-lsd__amiga_raw_bootblock",
+      "tool_error": null
+    },
+    {
+      "diff_range_count": 0,
+      "failure_kinds": [],
+      "message": null,
+      "rendered_source_content_exact": true,
+      "rendered_source_full_file_exact": true,
+      "status": "exact",
+      "target": "amiga_disk_magicland-dizzy-1991-codemasters-trsi-lsd__amiga_raw_trainer_6df205cc_simdecrunch_00_00000000_00020000",
       "tool_error": null
     },
     {

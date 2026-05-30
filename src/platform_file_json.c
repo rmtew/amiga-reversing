@@ -3404,8 +3404,30 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
   }
   if (append_source_analysis_structured_items_json(&builder, source_analysis) != 0)
     goto oom;
+  if (json_builder_append(&builder, "],\"source_context\":{") != 0)
+    goto oom;
+  if (json_builder_append(&builder, "\"kind\":") != 0)
+    goto oom;
+  if (json_builder_append_json_string(&builder, source_analysis->policy.source_context_kind) != 0)
+    goto oom;
+  if (json_builder_append(&builder, ",\"disk_id\":") != 0)
+    goto oom;
+  if (json_builder_append_json_string(&builder, source_analysis->policy.source_context_disk_id) != 0)
+    goto oom;
+  if (json_builder_append(&builder, ",\"disk_path\":") != 0)
+    goto oom;
+  if (json_builder_append_json_string(&builder, source_analysis->policy.source_context_disk_path) != 0)
+    goto oom;
+  if (json_builder_append(&builder, ",\"entry_path\":") != 0)
+    goto oom;
+  if (json_builder_append_json_string(&builder, source_analysis->policy.source_context_entry_path) != 0)
+    goto oom;
+  if (json_builder_append(&builder, ",\"parent_disk_id\":") != 0)
+    goto oom;
+  if (json_builder_append_json_string(&builder, source_analysis->policy.source_context_parent_disk_id) != 0)
+    goto oom;
   if (json_builder_appendf(&builder,
-      "]},\"findings\":{\"required_cpu\":%u,\"cpu_violation_count\":%u},\"platform_summary\":",
+      "}},\"findings\":{\"required_cpu\":%u,\"cpu_violation_count\":%u},\"platform_summary\":",
       (unsigned)source_analysis->findings.required_cpu,
       (unsigned)source_analysis->findings.cpu_violation_count) != 0)
     goto oom;
@@ -3528,7 +3550,8 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
     size_t unresolved_typed_access_index, runtime_view_index, runtime_address_ref_index, code_start_ref_index;
     size_t data_reference_index, immediate_text_token_index;
     size_t string_ref_index;
-    size_t effect_index, call_index, disk_read_index, runtime_copy_index, indirect_site_index, orphan_signal_index;
+    size_t effect_index, call_index, disk_read_index, runtime_copy_index, media_transfer_index;
+    size_t indirect_site_index, orphan_signal_index;
     if (section_index != 0U && json_builder_append(&builder, ",") != 0)
       goto oom;
     if (json_builder_appendf(&builder,
@@ -4437,6 +4460,39 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
           (unsigned)runtime_copy->offset, (unsigned)runtime_copy->source_addr,
           (unsigned)runtime_copy->destination_addr, (unsigned)runtime_copy->byte_length,
           (unsigned)runtime_copy->handoff_addr) != 0)
+        goto oom;
+      if (json_builder_append_json_string(&builder, source_kind_name != NULL ? source_kind_name : "") != 0)
+        goto oom;
+      if (json_builder_append(&builder, "}") != 0)
+        goto oom;
+    }
+    if (json_builder_appendf(&builder,
+          "],\"recovered_platform_media_transfer_count\":%u,\"recovered_platform_media_transfers\":[",
+          (unsigned)section->recovered_platform_media_transfer_count) != 0)
+      goto oom;
+    for (media_transfer_index = 0; media_transfer_index < section->recovered_platform_media_transfer_count;
+         ++media_transfer_index) {
+      const M68kRecoveredPlatformMediaTransferIR *media_transfer =
+        &section->recovered_platform_media_transfers[media_transfer_index];
+      const char *source_kind_name = m68k_recovered_platform_transfer_source_kind_name(media_transfer->source_kind);
+      if (media_transfer_index != 0U && json_builder_append(&builder, ",") != 0)
+        goto oom;
+      if (json_builder_appendf(&builder,
+          "{\"offset\":%u,\"path_section_index\":%u,\"path_offset\":%u,"
+          "\"destination_addr\":%u,\"source_size\":%u,\"path\":",
+          (unsigned)media_transfer->offset, (unsigned)media_transfer->path_section_index,
+          (unsigned)media_transfer->path_offset, (unsigned)media_transfer->destination_addr,
+          (unsigned)media_transfer->source_size) != 0)
+        goto oom;
+      if (json_builder_append_json_string(&builder, media_transfer->path != NULL ? media_transfer->path : "") != 0)
+        goto oom;
+      if (media_transfer->source_sha256 != NULL && media_transfer->source_sha256[0] != '\0') {
+        if (json_builder_append(&builder, ",\"source_sha256\":") != 0)
+          goto oom;
+        if (json_builder_append_json_string(&builder, media_transfer->source_sha256) != 0)
+          goto oom;
+      }
+      if (json_builder_append(&builder, ",\"source_kind\":") != 0)
         goto oom;
       if (json_builder_append_json_string(&builder, source_kind_name != NULL ? source_kind_name : "") != 0)
         goto oom;

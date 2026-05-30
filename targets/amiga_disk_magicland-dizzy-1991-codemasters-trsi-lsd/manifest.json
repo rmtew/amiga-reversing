@@ -9050,10 +9050,59 @@
     },
     {
       "binary_path": "bin/imported/magicland_dizzy_zip/Magicland Dizzy (1991)(Codemasters)[cr TRSI][t +2 LSD].adf::TRAINER",
+      "derived_targets": [
+        {
+          "codec_id": "unknown-self-decrunch",
+          "event_id": "decompression:self_decrunch:section:0:00000000:00020000",
+          "kind": "decompressed_payload",
+          "kind_id": 1,
+          "parent_remains_active": "false",
+          "parent_remains_active_id": 1,
+          "payload_role": "primary_program",
+          "payload_role_confidence": "native_unpack_entry_validated",
+          "payload_role_confidence_id": 2,
+          "payload_role_id": 2,
+          "provider_id": "m68k-sim-decrunch",
+          "target_name": "amiga_disk_magicland-dizzy-1991-codemasters-trsi-lsd__amiga_raw_trainer_6df205cc_simdecrunch_00_00000000_00020000"
+        }
+      ],
       "entry_path": "TRAINER",
       "target_name": "amiga_disk_magicland-dizzy-1991-codemasters-trsi-lsd__amiga_hunk_trainer_6df205cc",
       "target_path": "targets/amiga_disk_magicland-dizzy-1991-codemasters-trsi-lsd/targets/amiga_hunk_trainer_6df205cc",
       "target_type": "program"
+    },
+    {
+      "binary_path": "targets/amiga_disk_magicland-dizzy-1991-codemasters-trsi-lsd/targets/amiga_raw_trainer_6df205cc_simdecrunch_00_00000000_00020000/binary.bin",
+      "derived_from": {
+        "child_entry_path": "TRAINER::simdecrunch_00_00000000",
+        "child_target": "amiga_disk_magicland-dizzy-1991-codemasters-trsi-lsd__amiga_raw_trainer_6df205cc_simdecrunch_00_00000000_00020000",
+        "codec_id": "unknown-self-decrunch",
+        "codec_name": "Unidentified target-owned self-decruncher",
+        "decompressed_size": 131325,
+        "decompressor_code_section": 0,
+        "decompressor_entry_offset": 0,
+        "entrypoint": 131072,
+        "event_id": "decompression:self_decrunch:section:0:00000000:00020000",
+        "kind": "decompressed_payload",
+        "kind_id": 1,
+        "load_address": 131072,
+        "parent_entry_path": "TRAINER",
+        "parent_remains_active": "false",
+        "parent_remains_active_id": 1,
+        "parent_target": "amiga_disk_magicland-dizzy-1991-codemasters-trsi-lsd__amiga_hunk_trainer_6df205cc",
+        "payload_role": "primary_program",
+        "payload_role_confidence": "native_unpack_entry_validated",
+        "payload_role_confidence_id": 2,
+        "payload_role_id": 2,
+        "provider_id": "m68k-sim-decrunch",
+        "source_kind": "self_decruncher",
+        "source_kind_id": 3,
+        "transfer_offset": 392
+      },
+      "entry_path": "TRAINER::simdecrunch_00_00000000",
+      "target_name": "amiga_disk_magicland-dizzy-1991-codemasters-trsi-lsd__amiga_raw_trainer_6df205cc_simdecrunch_00_00000000_00020000",
+      "target_path": "targets/amiga_disk_magicland-dizzy-1991-codemasters-trsi-lsd/targets/amiga_raw_trainer_6df205cc_simdecrunch_00_00000000_00020000",
+      "target_type": "raw_binary"
     },
     {
       "binary_path": "bin/imported/magicland_dizzy_zip/Magicland Dizzy (1991)(Codemasters)[cr TRSI][t +2 LSD].adf::TRSI!",

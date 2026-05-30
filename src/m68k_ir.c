@@ -151,6 +151,8 @@ const char *m68k_recovered_platform_transfer_source_kind_name(uint8_t source_kin
       return "logical_disk_offset";
     case M68K_RECOVERED_PLATFORM_TRANSFER_SOURCE_POST_READ_RUNTIME_COPY:
       return "post_read_runtime_copy";
+    case M68K_RECOVERED_PLATFORM_TRANSFER_SOURCE_TARGET_LOADER_FILE:
+      return "target_loader_file";
     default:
       return NULL;
   }
@@ -2991,6 +2993,68 @@ int m68k_ir_section_analysis_append_recovered_platform_runtime_copy(M68kSectionA
   return 0;
 }
 
+int m68k_ir_section_analysis_append_recovered_platform_media_transfer(M68kSectionAnalysisIR *section_analysis,
+    uint32_t offset, size_t path_section_index, uint32_t path_offset, uint32_t destination_addr,
+    uint32_t source_size, const char *path, const char *source_sha256, uint8_t source_kind) {
+  size_t index;
+  char *copy_path;
+  char *copy_sha256 = NULL;
+  if (section_analysis == NULL || path == NULL || path[0] == '\0' ||
+      m68k_recovered_platform_transfer_source_kind_name(source_kind) == NULL) {
+    return -1;
+  }
+  if (section_analysis->arena == NULL) return -1;
+  for (index = 0; index < section_analysis->recovered_platform_media_transfer_count; ++index) {
+    const M68kRecoveredPlatformMediaTransferIR *existing =
+      &section_analysis->recovered_platform_media_transfers[index];
+    if (existing->offset == offset &&
+        existing->path_section_index == path_section_index &&
+        existing->path_offset == path_offset &&
+        existing->destination_addr == destination_addr &&
+        existing->source_size == source_size &&
+        existing->path != NULL && strcmp(existing->path, path) == 0 &&
+        ((existing->source_sha256 == NULL && (source_sha256 == NULL || source_sha256[0] == '\0')) ||
+         (existing->source_sha256 != NULL && source_sha256 != NULL &&
+          strcmp(existing->source_sha256, source_sha256) == 0)) &&
+        existing->source_kind == source_kind) {
+      return 0;
+    }
+  }
+  section_analysis->recovered_platform_media_transfers =
+    (M68kRecoveredPlatformMediaTransferIR *)arena_grow_array(section_analysis->arena,
+      section_analysis->recovered_platform_media_transfers,
+      section_analysis->recovered_platform_media_transfer_count,
+      &section_analysis->recovered_platform_media_transfer_capacity,
+      4U, sizeof(*section_analysis->recovered_platform_media_transfers));
+  if (section_analysis->recovered_platform_media_transfers == NULL) return -1;
+  copy_path = arena_strdup(section_analysis->arena, path);
+  if (copy_path == NULL) return -1;
+  if (source_sha256 != NULL && source_sha256[0] != '\0') {
+    copy_sha256 = arena_strdup(section_analysis->arena, source_sha256);
+    if (copy_sha256 == NULL) return -1;
+  }
+  section_analysis->recovered_platform_media_transfers[section_analysis->recovered_platform_media_transfer_count]
+    .offset = offset;
+  section_analysis->recovered_platform_media_transfers[section_analysis->recovered_platform_media_transfer_count]
+    .path_section_index = path_section_index;
+  section_analysis->recovered_platform_media_transfers[section_analysis->recovered_platform_media_transfer_count]
+    .path_offset =
+    path_offset;
+  section_analysis->recovered_platform_media_transfers[section_analysis->recovered_platform_media_transfer_count]
+    .destination_addr = destination_addr;
+  section_analysis->recovered_platform_media_transfers[section_analysis->recovered_platform_media_transfer_count]
+    .source_size = source_size;
+  section_analysis->recovered_platform_media_transfers[section_analysis->recovered_platform_media_transfer_count]
+    .path = copy_path;
+  section_analysis->recovered_platform_media_transfers[section_analysis->recovered_platform_media_transfer_count]
+    .source_sha256 = copy_sha256;
+  section_analysis->recovered_platform_media_transfers[section_analysis->recovered_platform_media_transfer_count]
+    .source_kind =
+    source_kind;
+  section_analysis->recovered_platform_media_transfer_count += 1U;
+  return 0;
+}
+
 int m68k_ir_section_analysis_append_recovered_direct_section_call(M68kSectionAnalysisIR *section_analysis,
     uint32_t offset, size_t target_section_index, uint32_t target_offset) {
   size_t index;
@@ -3830,6 +3894,17 @@ int m68k_ir_source_analysis_append_section(M68kSourceAnalysisIR *source_analysis
     if (m68k_ir_section_analysis_append_recovered_platform_runtime_copy(&copy, runtime_copy->offset,
         runtime_copy->source_addr, runtime_copy->destination_addr, runtime_copy->byte_length,
         runtime_copy->handoff_addr, runtime_copy->source_kind) != 0) {
+      m68k_ir_section_analysis_destroy(&copy);
+      return -1;
+    }
+  }
+  for (index = 0; index < section_analysis->recovered_platform_media_transfer_count; ++index) {
+    const M68kRecoveredPlatformMediaTransferIR *media_transfer =
+      &section_analysis->recovered_platform_media_transfers[index];
+    if (m68k_ir_section_analysis_append_recovered_platform_media_transfer(&copy, media_transfer->offset,
+        media_transfer->path_section_index, media_transfer->path_offset,
+        media_transfer->destination_addr, media_transfer->source_size, media_transfer->path,
+        media_transfer->source_sha256, media_transfer->source_kind) != 0) {
       m68k_ir_section_analysis_destroy(&copy);
       return -1;
     }

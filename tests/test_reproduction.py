@@ -34,6 +34,7 @@ from amiga_reversing.disasm.reproduction_report import (
     RoundTripReportBuilder,
 )
 from amiga_reversing.disasm.source_rendering import SourceRenderingResult
+from amiga_reversing.disasm.target_metadata import TargetMetadata, write_target_metadata
 from tests.listing_row_fixtures import serialize_row
 from tests.listing_types_fixtures import ListingRow
 
@@ -1860,3 +1861,32 @@ def test_effective_metadata_merge_includes_seeded_and_corrections_without_ui_edi
     assert "corrected_label" in text
     assert "corrected_entry" in text
     assert not (target_dir / "target_ui_edits.json").exists()
+
+
+def test_effective_metadata_includes_disk_entry_source_context(tmp_path: Path) -> None:
+    target_dir = tmp_path / "targets" / "demo"
+    target_dir.mkdir(parents=True)
+    disk_path = tmp_path / "bin" / "demo.adf"
+    disk_path.parent.mkdir()
+    disk_path.write_bytes(b"DOS" + b"\0" * 1021)
+    write_source_descriptor(
+        target_dir,
+        {
+            "kind": "disk_entry",
+            "disk_id": "demo-disk",
+            "disk_path": str(disk_path),
+            "entry_path": "MD",
+            "parent_disk_id": "demo-parent",
+        },
+    )
+    write_target_metadata(target_dir, TargetMetadata(target_type="program", entry_register_seeds=()))
+
+    payload = json.loads(effective_metadata_text(target_dir))
+
+    assert payload["source_context"] == {
+        "kind": "disk_entry",
+        "disk_id": "demo-disk",
+        "disk_path": str(disk_path),
+        "entry_path": "MD",
+        "parent_disk_id": "demo-parent",
+    }

@@ -15,6 +15,7 @@ class BinarySourceKind(StrEnum):
     HUNK_FILE = "hunk_file"
     DISK_ENTRY = "disk_entry"
     RAW_BINARY = "raw_binary"
+    ASSET_DATA = "asset_data"
     MACOS_CODE_RESOURCE = "macos_code_resource"
 
 
@@ -138,6 +139,24 @@ class RawBinarySource:
 
 
 @dataclass(frozen=True, slots=True)
+class AssetDataBinarySource:
+    kind: BinarySourceKind
+    path: Path
+    display_path: str
+    analysis_cache_path: Path
+    parent_disk_id: str | None = None
+    load_address: int | None = None
+    role: str | None = None
+
+    def __post_init__(self) -> None:
+        if self.kind is not BinarySourceKind.ASSET_DATA:
+            raise TypeError("AssetDataBinarySource.kind must be BinarySourceKind.ASSET_DATA")
+
+    def read_bytes(self) -> bytes:
+        return self.path.read_bytes()
+
+
+@dataclass(frozen=True, slots=True)
 class MacosCodeResourceSource:
     kind: BinarySourceKind
     source_image: Path
@@ -174,7 +193,7 @@ class MacosCodeResourceSource:
         )
 
 
-type BinarySource = HunkFileBinarySource | DiskEntryBinarySource | RawBinarySource | MacosCodeResourceSource
+type BinarySource = HunkFileBinarySource | DiskEntryBinarySource | RawBinarySource | AssetDataBinarySource | MacosCodeResourceSource
 
 
 def read_binary_source_bytes(binary_source: BinarySource) -> bytes:
@@ -321,6 +340,31 @@ def _load_raw_binary_source(
     )
 
 
+def _load_asset_data_source(
+    payload: dict[str, object],
+    target_dir: Path,
+    project_root: Path,
+) -> AssetDataBinarySource:
+    path = payload["path"]
+    parent_disk_id = payload.get("parent_disk_id")
+    load_address = payload.get("load_address")
+    role = payload.get("role")
+    assert isinstance(path, str)
+    assert isinstance(parent_disk_id, str) or parent_disk_id is None
+    assert isinstance(load_address, int) or load_address is None
+    assert isinstance(role, str) or role is None
+    resolved_path = _resolve_recorded_path(path, project_root)
+    return AssetDataBinarySource(
+        kind=BinarySourceKind.ASSET_DATA,
+        path=resolved_path,
+        display_path=path,
+        analysis_cache_path=target_dir / "binary.analysis",
+        parent_disk_id=parent_disk_id,
+        load_address=load_address,
+        role=role,
+    )
+
+
 def _load_macos_code_resource_source(
     payload: dict[str, object],
     target_dir: Path,
@@ -384,6 +428,8 @@ def resolve_target_binary_source(target_dir: Path, project_root: Path = PROJECT_
         return _load_disk_entry_source(descriptor, target_dir, project_root)
     if kind_id is BinarySourceKind.RAW_BINARY:
         return _load_raw_binary_source(descriptor, target_dir, project_root)
+    if kind_id is BinarySourceKind.ASSET_DATA:
+        return _load_asset_data_source(descriptor, target_dir, project_root)
     if kind_id is BinarySourceKind.MACOS_CODE_RESOURCE:
         return _load_macos_code_resource_source(descriptor, target_dir, project_root)
     raise AssertionError(f"Unhandled source_binary kind: {kind_id}")

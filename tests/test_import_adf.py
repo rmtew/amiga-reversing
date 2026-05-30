@@ -573,8 +573,8 @@ def test_import_adf_reimport_drops_obsolete_target_local_state_but_keeps_import_
     )
     monkeypatch.setattr("amiga_reversing.amiga_disk.project.extract_disk_entry_with_c_backend", extract_disk_entry)
     monkeypatch.setattr(
-        "amiga_reversing.amiga_disk.project.analyze_binary_source_with_c_backend",
-        lambda source_path, *, project_root: {},
+        "amiga_reversing.amiga_disk.project.analyze_project_source_with_c_backend",
+        lambda source_path, *, project_root, metadata_path=None: {},
     )
 
     first_manifest = import_adf(adf_path, project_root=project_root)
@@ -623,8 +623,8 @@ def test_import_adf_materializes_c_decompressed_child_when_load_entry_known(
         extract_disk_entry_with_startup,
     )
     monkeypatch.setattr(
-        "amiga_reversing.amiga_disk.project.analyze_binary_source_with_c_backend",
-        lambda source_path, *, project_root: {
+        "amiga_reversing.amiga_disk.project.analyze_project_source_with_c_backend",
+        lambda source_path, *, project_root, metadata_path=None: {
             "derived_target_suggestions": [
                 {
                     "kind_id": 1,
@@ -765,8 +765,8 @@ def test_import_adf_materializes_c_simulated_self_decrunch_child(
         extract_disk_entry_with_startup,
     )
     monkeypatch.setattr(
-        "amiga_reversing.amiga_disk.project.analyze_binary_source_with_c_backend",
-        lambda source_path, *, project_root: {
+        "amiga_reversing.amiga_disk.project.analyze_project_source_with_c_backend",
+        lambda source_path, *, project_root, metadata_path=None: {
             "decompression_events": [
                 {
                     "event_kind_id": 1,
@@ -905,9 +905,9 @@ def test_import_adf_materializes_c_recognized_unpacker_valid_child_from_real_fix
         extract_disk_entry_with_startup,
     )
     monkeypatch.setattr(
-        "amiga_reversing.amiga_disk.project.analyze_binary_source_with_c_backend",
-        lambda source_path, *, project_root: analyze_binary_source_with_c_backend(
-            source_path, project_root=PROJECT_ROOT
+        "amiga_reversing.amiga_disk.project.analyze_project_source_with_c_backend",
+        lambda source_path, *, project_root, metadata_path=None: analyze_binary_source_with_c_backend(
+            getattr(source_path, "path", source_path), project_root=PROJECT_ROOT
         ),
     )
     monkeypatch.setattr(
@@ -1006,7 +1006,9 @@ def test_import_adf_refreshes_existing_c_decompressed_child(
     )
     monkeypatch.setattr("amiga_reversing.amiga_disk.project.extract_disk_entry_with_c_backend", extract_disk_entry_with_startup)
 
-    def fake_analysis(source_path: str | Path, *, project_root: Path) -> dict[str, object]:
+    def fake_analysis(
+        source_path: str | Path, *, project_root: Path, metadata_path: str | Path | None = None
+    ) -> dict[str, object]:
         return {
             "derived_target_suggestions": [
                 {
@@ -1053,7 +1055,7 @@ def test_import_adf_refreshes_existing_c_decompressed_child(
             ]
         }
 
-    monkeypatch.setattr("amiga_reversing.amiga_disk.project.analyze_binary_source_with_c_backend", fake_analysis)
+    monkeypatch.setattr("amiga_reversing.amiga_disk.project.analyze_project_source_with_c_backend", fake_analysis)
     monkeypatch.setattr(
         "amiga_reversing.amiga_disk.project.decompress_packed_section_range_with_c_backend",
         fake_decompress,
@@ -1126,8 +1128,8 @@ def test_import_adf_refresh_removes_stale_decompressed_child_after_clean_reanaly
         ]
     }
     monkeypatch.setattr(
-        "amiga_reversing.amiga_disk.project.analyze_binary_source_with_c_backend",
-        lambda source_path, *, project_root: analysis_payload,
+        "amiga_reversing.amiga_disk.project.analyze_project_source_with_c_backend",
+        lambda source_path, *, project_root, metadata_path=None: analysis_payload,
     )
 
     def fake_decompress(
@@ -1199,8 +1201,8 @@ def test_import_adf_does_not_materialize_decompressed_child_without_runtime_meta
     )
     monkeypatch.setattr("amiga_reversing.amiga_disk.project.extract_disk_entry_with_c_backend", extract_disk_entry_with_startup)
     monkeypatch.setattr(
-        "amiga_reversing.amiga_disk.project.analyze_binary_source_with_c_backend",
-        lambda source_path, *, project_root: {
+        "amiga_reversing.amiga_disk.project.analyze_project_source_with_c_backend",
+        lambda source_path, *, project_root, metadata_path=None: {
             "derived_target_suggestions": [
                 {
                     "kind_id": 1,
@@ -1255,8 +1257,8 @@ def test_import_adf_does_not_materialize_non_materializable_decompressed_status(
     )
     monkeypatch.setattr("amiga_reversing.amiga_disk.project.extract_disk_entry_with_c_backend", extract_disk_entry_with_startup)
     monkeypatch.setattr(
-        "amiga_reversing.amiga_disk.project.analyze_binary_source_with_c_backend",
-        lambda source_path, *, project_root: {
+        "amiga_reversing.amiga_disk.project.analyze_project_source_with_c_backend",
+        lambda source_path, *, project_root, metadata_path=None: {
             "derived_target_suggestions": [
                 {
                     "kind_id": 1,

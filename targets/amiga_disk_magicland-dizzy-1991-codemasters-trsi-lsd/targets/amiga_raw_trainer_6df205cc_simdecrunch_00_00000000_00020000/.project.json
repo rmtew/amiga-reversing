@@ -1,0 +1,32 @@
+{
+  "created_at": "2026-05-30T08:31:35.496192+00:00",
+  "origin": {
+    "child_entry_path": "TRAINER::simdecrunch_00_00000000",
+    "codec_id": "unknown-self-decrunch",
+    "codec_name": "Unidentified target-owned self-decruncher",
+    "decompressed_sha256": "3ceee1844eb765963ab5966093324717e70bfbf5d82595e538c9e793c6d50743",
+    "decompressed_size": 131325,
+    "entrypoint": 131072,
+    "event_id": "decompression:self_decrunch:section:0:00000000:00020000",
+    "kind": "derived_decompressed_payload",
+    "load_address": 131072,
+    "packed_section_offset": 392,
+    "parent_disk_id": "magicland-dizzy-1991-codemasters-trsi-lsd",
+    "parent_entry_path": "TRAINER",
+    "parent_remains_active": "false",
+    "parent_remains_active_id": 1,
+    "parent_target": "amiga_disk_magicland-dizzy-1991-codemasters-trsi-lsd__amiga_hunk_trainer_6df205cc",
+    "payload_role": "primary_program",
+    "payload_role_confidence": "native_unpack_entry_validated",
+    "payload_role_confidence_id": 2,
+    "payload_role_id": 2,
+    "project_origin_kind_id": 1,
+    "provider_id": "m68k-sim-decrunch",
+    "source_section": 0,
+    "target_role": "decompressed_payload",
+    "target_role_id": 1,
+    "target_type": "raw_binary"
+  },
+  "schema_version": 2,
+  "updated_at": "2026-05-30T09:54:42.578186+00:00"
+}

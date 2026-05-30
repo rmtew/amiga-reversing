@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import cast
 
 from amiga_reversing.disasm.binary_source import (
+    DiskEntryBinarySource,
     RawAddressModel,
     RawBinarySource,
     resolve_target_binary_source,
@@ -2213,8 +2214,22 @@ def effective_metadata_text(target_dir: Path, *, include_decision_journal: bool 
     if metadata is None:
         return ""
     payload = target_metadata_json_payload(metadata)
+    _add_source_context(target_dir, payload)
     _add_source_descriptor_execution_view(target_dir, payload)
     return json.dumps(payload, indent=2, sort_keys=True) + "\n"
+
+
+def _add_source_context(target_dir: Path, payload: dict[str, object]) -> None:
+    binary_source = resolve_target_binary_source(target_dir)
+    if not isinstance(binary_source, DiskEntryBinarySource):
+        return
+    payload["source_context"] = {
+        "kind": "disk_entry",
+        "disk_id": binary_source.disk_id,
+        "disk_path": str(binary_source.adf_path),
+        "entry_path": binary_source.entry_path,
+        "parent_disk_id": binary_source.parent_disk_id,
+    }
 
 
 def _add_source_descriptor_execution_view(target_dir: Path, payload: dict[str, object]) -> None:

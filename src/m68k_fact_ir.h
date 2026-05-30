@@ -18,7 +18,8 @@ typedef enum M68kFactKind {
   M68K_FACT_VIOLATION = 8,
   M68K_FACT_RELOCATION_ANCHOR = 9,
   M68K_FACT_RUNTIME_ADDRESS_REF = 10,
-  M68K_FACT_RUNTIME_ADDRESS_RANGE = 11
+  M68K_FACT_RUNTIME_ADDRESS_RANGE = 11,
+  M68K_FACT_PLATFORM_MEDIA_TRANSFER = 12
 } M68kFactKind;
 
 typedef enum M68kFactConfidence {
@@ -83,6 +84,7 @@ typedef struct M68kFactIR {
   uint32_t relocation_anchor_count;
   uint32_t runtime_address_ref_count;
   uint32_t runtime_address_range_count;
+  uint32_t platform_media_transfer_count;
   uint32_t data_span_count;
   uint32_t violation_count;
 } M68kFactIR;

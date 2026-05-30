@@ -1,0 +1,9 @@
+{
+  "address_model": "runtime_absolute",
+  "code_start_offset": 0,
+  "entrypoint": 131072,
+  "kind": "raw_binary",
+  "load_address": 131072,
+  "parent_disk_id": "magicland-dizzy-1991-codemasters-trsi-lsd",
+  "path": "targets/amiga_disk_magicland-dizzy-1991-codemasters-trsi-lsd/targets/amiga_raw_trainer_6df205cc_simdecrunch_00_00000000_00020000/binary.bin"
+}

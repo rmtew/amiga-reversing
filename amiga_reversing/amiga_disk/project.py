@@ -27,17 +27,19 @@ from amiga_reversing.amiga_disk.models import (
     ImportedTarget,
 )
 from amiga_reversing.disasm.binary_source import (
+    BinarySourceKind,
+    HunkFileBinarySource,
     resolve_target_binary_source,
     write_source_descriptor,
 )
 from amiga_reversing.disasm.c_backend import (
-    analyze_binary_source_with_c_backend,
     analyze_project_source_with_c_backend,
     decompress_packed_section_range_with_c_backend,
     extract_disk_entry_with_c_backend,
     materialize_recognized_unpacker_event_with_c_backend,
     materialize_self_decrunch_event_with_c_backend,
 )
+from amiga_reversing.disasm.effective_metadata import effective_metadata_file
 from amiga_reversing.disasm.project_ids import (
     AMIGA_DISK_PREFIX,
     disk_child_project_id,
@@ -72,6 +74,7 @@ DECOMPRESSION_PARENT_REMAINS_ACTIVE_FALSE = 1
 DECOMPRESSION_PAYLOAD_ROLE_NAMES = {
     1: "unknown_runtime_payload",
     2: "primary_program",
+    3: "asset_data",
 }
 DECOMPRESSION_PAYLOAD_ROLE_CONFIDENCE_NAMES = {
     1: "tool_inferred",
@@ -1535,13 +1538,26 @@ def _materialize_decompressed_payload_children(
     except Exception:
         return MaterializedPayloadChildren([], [], [], False)
     parent_temp_path = disk_children_root / f".{parent_local_target_id}.decompression-parent.bin"
+    parent_target_dir = disk_children_root / parent_local_target_id
     created_dirs: list[Path] = []
     parent_derived: list[dict[str, object]] = []
     child_targets: list[ImportedTarget] = []
     _write_bytes(parent_temp_path, parent_bytes)
     try:
         try:
-            analysis = analyze_binary_source_with_c_backend(parent_temp_path, project_root=project_root)
+            parent_source = HunkFileBinarySource(
+                kind=BinarySourceKind.HUNK_FILE,
+                path=parent_temp_path,
+                display_path=parent_temp_path.as_posix(),
+                analysis_cache_path=parent_temp_path.with_suffix(parent_temp_path.suffix + ".analysis"),
+                parent_disk_id=disk_id,
+            )
+            with effective_metadata_file(parent_target_dir) as metadata_path:
+                analysis = analyze_project_source_with_c_backend(
+                    parent_source,
+                    metadata_path=metadata_path,
+                    project_root=project_root,
+                )
         except Exception:
             return MaterializedPayloadChildren([], [], [], False)
         section_payload_starts = _hunk_file_section_payload_starts(parent_temp_path.read_bytes())

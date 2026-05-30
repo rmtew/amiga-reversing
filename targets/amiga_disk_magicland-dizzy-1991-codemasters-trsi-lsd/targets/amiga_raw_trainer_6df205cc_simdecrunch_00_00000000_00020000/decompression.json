@@ -1,0 +1,65 @@
+{
+  "child_entry_path": "TRAINER::simdecrunch_00_00000000",
+  "child_target_id": "amiga_disk_magicland-dizzy-1991-codemasters-trsi-lsd__amiga_raw_trainer_6df205cc_simdecrunch_00_00000000_00020000",
+  "compressor": {
+    "confidence": "native_unpack_entry_validated",
+    "id": "unknown-self-decrunch",
+    "name": "Unidentified target-owned self-decruncher"
+  },
+  "decompressed": {
+    "entrypoint": 131072,
+    "load_address": 131072,
+    "sha256": "3ceee1844eb765963ab5966093324717e70bfbf5d82595e538c9e793c6d50743",
+    "size": 131325
+  },
+  "extraction": {
+    "method": "m68k-sim-decrunch",
+    "simulated_step_count": 1898445,
+    "simulated_stop_reason": "pc_range",
+    "simulated_write_count": 175355
+  },
+  "parent_entry_path": "TRAINER",
+  "parent_remains_active": "false",
+  "parent_remains_active_id": 1,
+  "parent_target_id": "amiga_disk_magicland-dizzy-1991-codemasters-trsi-lsd__amiga_hunk_trainer_6df205cc",
+  "payload_role": "primary_program",
+  "payload_role_confidence": "native_unpack_entry_validated",
+  "payload_role_confidence_id": 2,
+  "payload_role_id": 2,
+  "relationship": {
+    "child_entry_path": "TRAINER::simdecrunch_00_00000000",
+    "child_target": "amiga_disk_magicland-dizzy-1991-codemasters-trsi-lsd__amiga_raw_trainer_6df205cc_simdecrunch_00_00000000_00020000",
+    "codec_id": "unknown-self-decrunch",
+    "codec_name": "Unidentified target-owned self-decruncher",
+    "decompressed_size": 131325,
+    "decompressor_code_section": 0,
+    "decompressor_entry_offset": 0,
+    "entrypoint": 131072,
+    "event_id": "decompression:self_decrunch:section:0:00000000:00020000",
+    "kind": "decompressed_payload",
+    "kind_id": 1,
+    "load_address": 131072,
+    "parent_entry_path": "TRAINER",
+    "parent_remains_active": "false",
+    "parent_remains_active_id": 1,
+    "parent_target": "amiga_disk_magicland-dizzy-1991-codemasters-trsi-lsd__amiga_hunk_trainer_6df205cc",
+    "payload_role": "primary_program",
+    "payload_role_confidence": "native_unpack_entry_validated",
+    "payload_role_confidence_id": 2,
+    "payload_role_id": 2,
+    "provider_id": "m68k-sim-decrunch",
+    "source_kind": "self_decruncher",
+    "source_kind_id": 3,
+    "transfer_offset": 392
+  },
+  "schema_version": 1,
+  "source": {
+    "decompressor_code_section": 0,
+    "decompressor_entry_offset": 0,
+    "event_id": "decompression:self_decrunch:section:0:00000000:00020000",
+    "kind": "self_decruncher",
+    "kind_id": 3,
+    "provider_id": "m68k-sim-decrunch",
+    "transfer_offset": 392
+  }
+}
