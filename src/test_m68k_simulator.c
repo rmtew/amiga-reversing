@@ -9,6 +9,18 @@ static int test_external_write_allowed(void *user, uint32_t address, uint8_t wid
   return address == 0x30U && width == 1U;
 }
 
+static int test_external_long_access_allowed(void *user, uint32_t address, uint8_t width) {
+  (void)user;
+  return address == 0x30U && width == 4U;
+}
+
+static int test_external_long_read(void *user, uint32_t address, uint8_t width, uint32_t *out_value) {
+  (void)user;
+  if (address != 0x30U || width != 4U || out_value == NULL) return 0;
+  *out_value = 0x11111111U;
+  return 1;
+}
+
 static M68kFormId test_form_id_by_syntax(const char *syntax) {
   uint16_t row;
   for (row = 0; row < M68K_CANONICAL_FORM_COUNT; ++row) {
@@ -24,6 +36,28 @@ static int test_metadata_lookup_uses_canonical_form_id(void) {
   M68K_C_ASSERT_INT(M68K_SIM_METADATA_OK, m68k_sim_metadata_for_canonical_form_id(form_id, &metadata));
   M68K_C_ASSERT(metadata != NULL);
   M68K_C_ASSERT_INT(M68K_SIM_FLOW_SEQUENTIAL, metadata->flow_kind);
+  return 0;
+}
+
+static int test_metadata_lookup_uses_generated_ccr_formulas(void) {
+  const M68kSimFormMetadata *metadata = NULL;
+  M68kFormId form_id = test_form_id_by_syntax("MOVE <ea>,<ea>");
+  M68K_C_ASSERT(form_id != M68K_FORM_ID_NONE);
+  M68K_C_ASSERT_INT(M68K_SIM_METADATA_OK, m68k_sim_metadata_for_canonical_form_id(form_id, &metadata));
+  M68K_C_ASSERT(metadata != NULL);
+  M68K_C_ASSERT_U32(M68K_SIM_CCR_FORMULA_MOVE_FLAGS, metadata->ccr_formula);
+
+  form_id = test_form_id_by_syntax("MOVEA <ea>,An");
+  M68K_C_ASSERT(form_id != M68K_FORM_ID_NONE);
+  M68K_C_ASSERT_INT(M68K_SIM_METADATA_OK, m68k_sim_metadata_for_canonical_form_id(form_id, &metadata));
+  M68K_C_ASSERT(metadata != NULL);
+  M68K_C_ASSERT_U32(M68K_SIM_CCR_FORMULA_NONE, metadata->ccr_formula);
+
+  form_id = test_form_id_by_syntax("MOVE <ea>,CCR");
+  M68K_C_ASSERT(form_id != M68K_FORM_ID_NONE);
+  M68K_C_ASSERT_INT(M68K_SIM_METADATA_OK, m68k_sim_metadata_for_canonical_form_id(form_id, &metadata));
+  M68K_C_ASSERT(metadata != NULL);
+  M68K_C_ASSERT_U32(M68K_SIM_CCR_FORMULA_WRITE_CCR, metadata->ccr_formula);
   return 0;
 }
 
@@ -87,6 +121,20 @@ static int test_concrete_run_stops_on_instruction_limit(void) {
   return 0;
 }
 
+static int test_concrete_run_accepts_generated_noop_semantics(void) {
+  uint8_t memory[] = {0x4EU, 0x71U, 0x70U, 0x01U};
+  M68kSimConcreteState state;
+  M68kSimConcreteRunTraceResult result;
+  memset(&state, 0, sizeof(state));
+  M68K_C_ASSERT_INT(0, m68k_simulate_run_concrete(M68K_ASM_CPU_68000, memory, sizeof(memory), &state, 2U, 0U,
+    0U, NULL, &result));
+  M68K_C_ASSERT_U32(M68K_SIM_CONCRETE_RUN_STOP_INSTRUCTION_LIMIT, result.stop_reason);
+  M68K_C_ASSERT_U32(2U, (uint32_t)result.step_count);
+  M68K_C_ASSERT_U32(4U, state.pc);
+  M68K_C_ASSERT_U32(1U, state.d[0]);
+  return 0;
+}
+
 static int test_concrete_run_reports_pc_out_of_range(void) {
   uint8_t memory[] = {0x70U, 0x01U};
   M68kSimConcreteState state;
@@ -132,6 +180,26 @@ static int test_concrete_run_applies_move_postincrement_update(void) {
   M68K_C_ASSERT_U32(0x12U, state.a[0]);
   M68K_C_ASSERT_U32(0x12U, memory[0x10]);
   M68K_C_ASSERT_U32(0x34U, memory[0x11]);
+  return 0;
+}
+
+static int test_concrete_run_move_updates_condition_codes(void) {
+  uint8_t memory[16] = {0x12U, 0x18U};
+  M68kSimConcreteState state;
+  M68kSimConcreteRunTraceResult result;
+  memset(&state, 0, sizeof(state));
+  state.a[0] = 8U;
+  state.d[1] = 0xAAAAAAAAU;
+  state.sr = 0x2717U;
+  memory[8] = 0x05U;
+  M68K_C_ASSERT_INT(0, m68k_simulate_run_concrete(M68K_ASM_CPU_68000, memory, sizeof(memory), &state, 1U, 0U,
+    0U, NULL, &result));
+  M68K_C_ASSERT_U32(M68K_SIM_CONCRETE_RUN_STOP_INSTRUCTION_LIMIT, result.stop_reason);
+  M68K_C_ASSERT_U32(1U, (uint32_t)result.step_count);
+  M68K_C_ASSERT_U32(2U, state.pc);
+  M68K_C_ASSERT_U32(9U, state.a[0]);
+  M68K_C_ASSERT_U32(0xAAAAAA05U, state.d[1]);
+  M68K_C_ASSERT_U32(0x10U, state.sr & 0x1FU);
   return 0;
 }
 
@@ -182,6 +250,62 @@ static int test_concrete_run_allows_policy_external_write(void) {
   M68K_C_ASSERT_U32(0x10U, result.memory_write_start);
   M68K_C_ASSERT_U32(0x11U, result.memory_write_end);
   M68K_C_ASSERT_U32(0x12U, memory[0x10]);
+  return 0;
+}
+
+static int test_concrete_run_allows_policy_external_read_modify_write(void) {
+  uint8_t memory[6] = {
+    0x00U, 0x9EU, 0x4EU, 0xF9U, 0x00U, 0x05U,
+  };
+  M68kSimConcreteState state;
+  M68kSimConcreteMemoryPolicy memory_policy;
+  M68kSimConcreteRunTraceResult result;
+  memset(&state, 0, sizeof(state));
+  memset(&memory_policy, 0, sizeof(memory_policy));
+  state.a[6] = 0x30U;
+  memory_policy.external_read = test_external_long_read;
+  memory_policy.external_write_allowed = test_external_long_access_allowed;
+  M68K_C_ASSERT_INT(0, m68k_simulate_run_concrete(M68K_ASM_CPU_68000, memory, sizeof(memory), &state, 1U, 0U,
+    0U, &memory_policy, &result));
+  M68K_C_ASSERT_U32(M68K_SIM_CONCRETE_RUN_STOP_INSTRUCTION_LIMIT, result.stop_reason);
+  M68K_C_ASSERT_U32(1U, (uint32_t)result.step_count);
+  M68K_C_ASSERT_U32(6U, state.pc);
+  M68K_C_ASSERT_U32(0x34U, state.a[6]);
+  return 0;
+}
+
+static int test_concrete_run_rejects_unmapped_external_read(void) {
+  uint8_t memory[6] = {
+    0x00U, 0x9EU, 0x4EU, 0xF9U, 0x00U, 0x05U,
+  };
+  M68kSimConcreteState state;
+  M68kSimConcreteRunTraceResult result;
+  memset(&state, 0, sizeof(state));
+  state.a[6] = 0x30U;
+  M68K_C_ASSERT_INT(0, m68k_simulate_run_concrete(M68K_ASM_CPU_68000, memory, sizeof(memory), &state, 1U, 0U,
+    0U, NULL, &result));
+  M68K_C_ASSERT_U32(M68K_SIM_CONCRETE_RUN_STOP_SIMULATION_ERROR, result.stop_reason);
+  M68K_C_ASSERT_U32(0U, (uint32_t)result.step_count);
+  M68K_C_ASSERT_U32(0x30U, state.a[6]);
+  return 0;
+}
+
+static int test_concrete_run_shifts_memory_indirect_without_ea_update(void) {
+  uint8_t memory[16] = {
+    0xE2U, 0xD0U,
+  };
+  M68kSimConcreteState state;
+  M68kSimConcreteRunTraceResult result;
+  memset(&state, 0, sizeof(state));
+  state.a[0] = 8U;
+  memory[8] = 0x80U;
+  memory[9] = 0x01U;
+  M68K_C_ASSERT_INT(0, m68k_simulate_run_concrete(M68K_ASM_CPU_68000, memory, sizeof(memory), &state, 1U, 0U,
+    0U, NULL, &result));
+  M68K_C_ASSERT_U32(M68K_SIM_CONCRETE_RUN_STOP_INSTRUCTION_LIMIT, result.stop_reason);
+  M68K_C_ASSERT_U32(8U, state.a[0]);
+  M68K_C_ASSERT_U32(0x40U, memory[8]);
+  M68K_C_ASSERT_U32(0x00U, memory[9]);
   return 0;
 }
 
@@ -378,6 +502,7 @@ static int test_concrete_run_sign_extends_index_word_address(void) {
 int m68k_c_simulator_tests(void) {
   static const M68kCTestCase cases[] = {
     {"metadata_lookup_uses_canonical_form_id", test_metadata_lookup_uses_canonical_form_id},
+    {"metadata_lookup_uses_generated_ccr_formulas", test_metadata_lookup_uses_generated_ccr_formulas},
     {"metadata_lookup_reports_missing_generated_semantics",
       test_metadata_lookup_reports_missing_generated_semantics},
     {"metadata_lookup_reports_missing_for_canonical_form_without_sim_row",
@@ -386,11 +511,18 @@ int m68k_c_simulator_tests(void) {
       test_metadata_lookup_does_not_fallback_to_mnemonic_shape},
     {"concrete_run_stops_on_pc_range", test_concrete_run_stops_on_pc_range},
     {"concrete_run_stops_on_instruction_limit", test_concrete_run_stops_on_instruction_limit},
+    {"concrete_run_accepts_generated_noop_semantics", test_concrete_run_accepts_generated_noop_semantics},
     {"concrete_run_reports_pc_out_of_range", test_concrete_run_reports_pc_out_of_range},
     {"concrete_run_reports_bad_arguments", test_concrete_run_reports_bad_arguments},
     {"concrete_run_applies_move_postincrement_update", test_concrete_run_applies_move_postincrement_update},
+    {"concrete_run_move_updates_condition_codes", test_concrete_run_move_updates_condition_codes},
     {"concrete_run_records_merged_write_ranges", test_concrete_run_records_merged_write_ranges},
     {"concrete_run_allows_policy_external_write", test_concrete_run_allows_policy_external_write},
+    {"concrete_run_allows_policy_external_read_modify_write",
+      test_concrete_run_allows_policy_external_read_modify_write},
+    {"concrete_run_rejects_unmapped_external_read", test_concrete_run_rejects_unmapped_external_read},
+    {"concrete_run_shifts_memory_indirect_without_ea_update",
+      test_concrete_run_shifts_memory_indirect_without_ea_update},
     {"concrete_run_moves_immediate_to_ccr_from_metadata",
       test_concrete_run_moves_immediate_to_ccr_from_metadata},
     {"concrete_run_branches_on_carry_from_ccr", test_concrete_run_branches_on_carry_from_ccr},

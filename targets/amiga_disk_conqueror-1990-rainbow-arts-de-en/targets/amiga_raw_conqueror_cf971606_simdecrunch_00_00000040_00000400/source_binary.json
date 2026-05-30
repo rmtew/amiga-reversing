@@ -1,0 +1,9 @@
+{
+  "address_model": "runtime_absolute",
+  "code_start_offset": 0,
+  "entrypoint": 1024,
+  "kind": "raw_binary",
+  "load_address": 1024,
+  "parent_disk_id": "conqueror-1990-rainbow-arts-de-en",
+  "path": "targets/amiga_disk_conqueror-1990-rainbow-arts-de-en/targets/amiga_raw_conqueror_cf971606_simdecrunch_00_00000040_00000400/binary.bin"
+}

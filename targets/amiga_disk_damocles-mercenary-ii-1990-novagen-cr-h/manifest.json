@@ -10979,7 +10979,7 @@
         "child_target": "amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h__amiga_raw_damocles_53b24620_native_tetragon_02_00000060",
         "codec_id": "tetragon",
         "codec_name": "Tetragon target-owned unpacker",
-        "decompressed_size": 504138,
+        "decompressed_size": 489929,
         "entrypoint": 365700,
         "event_id": "decompression:recognized_unpacker:section:2:00000060:tetragon",
         "kind": "decompressed_payload",

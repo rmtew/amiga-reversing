@@ -4100,8 +4100,8 @@
           "formula": "add"
         },
         "ccr": {
-          "writes": true,
-          "formula": "add_flags"
+          "writes": false,
+          "formula": null
         },
         "stack": {
           "effect_id": null,
@@ -5291,8 +5291,8 @@
           "formula": "bitwise_and"
         },
         "ccr": {
-          "writes": false,
-          "formula": null
+          "writes": true,
+          "formula": "test_flags"
         },
         "stack": {
           "effect_id": null,
@@ -5607,8 +5607,8 @@
           "formula": "bitwise_and"
         },
         "ccr": {
-          "writes": false,
-          "formula": null
+          "writes": true,
+          "formula": "test_flags"
         },
         "stack": {
           "effect_id": null,
@@ -10211,8 +10211,8 @@
           "formula": "add"
         },
         "ccr": {
-          "writes": true,
-          "formula": "add_flags"
+          "writes": false,
+          "formula": null
         },
         "stack": {
           "effect_id": null,
@@ -17217,8 +17217,8 @@
           "formula": "bitwise_xor"
         },
         "ccr": {
-          "writes": false,
-          "formula": null
+          "writes": true,
+          "formula": "test_flags"
         },
         "stack": {
           "effect_id": null,
@@ -17500,8 +17500,8 @@
           "formula": "bitwise_xor"
         },
         "ccr": {
-          "writes": false,
-          "formula": null
+          "writes": true,
+          "formula": "test_flags"
         },
         "stack": {
           "effect_id": null,
@@ -18457,8 +18457,8 @@
           "formula": null
         },
         "ccr": {
-          "writes": false,
-          "formula": null
+          "writes": true,
+          "formula": "test_flags"
         },
         "stack": {
           "effect_id": null,
@@ -22152,8 +22152,8 @@
           "formula": "move_source"
         },
         "ccr": {
-          "writes": true,
-          "formula": "move_flags"
+          "writes": false,
+          "formula": null
         },
         "stack": {
           "effect_id": null,
@@ -25634,8 +25634,8 @@
           "formula": null
         },
         "ccr": {
-          "writes": false,
-          "formula": null
+          "writes": true,
+          "formula": "test_flags"
         },
         "stack": {
           "effect_id": null,
@@ -25917,8 +25917,8 @@
           "formula": "bitwise_or"
         },
         "ccr": {
-          "writes": false,
-          "formula": null
+          "writes": true,
+          "formula": "test_flags"
         },
         "stack": {
           "effect_id": null,
@@ -26233,8 +26233,8 @@
           "formula": "bitwise_or"
         },
         "ccr": {
-          "writes": false,
-          "formula": null
+          "writes": true,
+          "formula": "test_flags"
         },
         "stack": {
           "effect_id": null,
@@ -29992,8 +29992,8 @@
           "formula": "sub"
         },
         "ccr": {
-          "writes": true,
-          "formula": "sub_flags"
+          "writes": false,
+          "formula": null
         },
         "stack": {
           "effect_id": null,
@@ -31163,8 +31163,8 @@
           "formula": null
         },
         "ccr": {
-          "writes": false,
-          "formula": null
+          "writes": true,
+          "formula": "test_flags"
         },
         "stack": {
           "effect_id": null,
@@ -45366,8 +45366,8 @@
           "formula": "move_source"
         },
         "ccr": {
-          "writes": true,
-          "formula": "move_flags"
+          "writes": false,
+          "formula": null
         },
         "stack": {
           "effect_id": null,

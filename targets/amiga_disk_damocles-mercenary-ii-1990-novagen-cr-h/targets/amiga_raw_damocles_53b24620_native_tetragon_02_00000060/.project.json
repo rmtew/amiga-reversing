@@ -1,11 +1,11 @@
 {
-  "created_at": "2026-05-14T06:00:48.039410+00:00",
+  "created_at": "2026-05-30T05:49:59.029491+00:00",
   "origin": {
     "child_entry_path": "Damocles::tetragon_02_00000060",
     "codec_id": "tetragon",
     "codec_name": "Tetragon target-owned unpacker",
-    "decompressed_sha256": "241eff126d46113217bbdb5646cb228aec80d65ff7d9b852359fa5d752b508e8",
-    "decompressed_size": 504138,
+    "decompressed_sha256": "34389204110c8bc4972eb3f0a7f8d1b73779fde10f1a5e48eb36b7c8068ea65a",
+    "decompressed_size": 489929,
     "entrypoint": 365700,
     "event_id": "decompression:recognized_unpacker:section:2:00000060:tetragon",
     "kind": "derived_decompressed_payload",
@@ -29,5 +29,5 @@
     "target_type": "raw_binary"
   },
   "schema_version": 2,
-  "updated_at": "2026-05-14T06:00:48.246436+00:00"
+  "updated_at": "2026-05-30T05:50:13.399490+00:00"
 }

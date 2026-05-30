@@ -5346,6 +5346,7 @@ static const char *listing_operation_type_name(uint8_t operation_type) {
   case M68K_SIM_OP_BITFIELD_INSERT: return "bitfield_insert";
   case M68K_SIM_OP_BITFIELD_SET: return "bitfield_set";
   case M68K_SIM_OP_BITFIELD_TEST: return "bitfield_test";
+  case M68K_SIM_OP_NOP: return "nop";
   default: return "unknown";
   }
 }

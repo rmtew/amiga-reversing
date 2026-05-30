@@ -1,6 +1,6 @@
 # Proposal 027: Native Decompression Execution And Materialization
 
-Status: Proposed.
+Status: In progress.
 
 This proposal explains three failed decompression/materialization cases:
 Damocles Tetragon section 2, Conqueror's embedded ByteKiller/CRUN-style
@@ -51,8 +51,8 @@ parent hunk section 1
   -> valid M68K code and data
 ```
 
-The second is different. It materializes bytes, but the configured entrypoint is
-not credible code:
+The second originally exposed the failure mode. The static clone materialized
+bytes, but the configured entrypoint was not credible code:
 
 ```asm
 abs_0_00059484:
@@ -61,7 +61,7 @@ abs_0_00059484:
     dc.b $43,$0B,$01,$01,$0C,$00,$44,$00
 ```
 
-That is a failed materialization, not a disassembler problem. The output is
+That was a failed materialization, not a disassembler problem. The output was
 round-trippable because source export can preserve bytes, but byte preservation
 does not prove the bytes are the correct decompressed program.
 
@@ -234,7 +234,7 @@ does not execute the copied native stub. It therefore has to guess or duplicate:
 - any per-stub variant behavior
 
 For section 1 those assumptions happen to produce valid code. For section 2
-they produce a byte image whose entrypoint fails code validation.
+they originally produced a byte image whose entrypoint failed code validation.
 
 The important lesson is:
 
@@ -1059,3 +1059,109 @@ not merely blockers.
   or entrypoint evidence.
 - Do not import every disk/resource block as a target. Only materialize outputs
   with proven loader/decompression provenance.
+
+## Implementation Notes
+
+Current implementation progress:
+
+```text
+runtime-copy facts
+  -> materialized runtime views copied into simulator memory
+  -> final transfer candidates from copied code are executed natively
+  -> observed write range containing the transfer target is selected
+  -> facts_v2 validates the resulting entrypoint before primary_program
+```
+
+This resolves the Conqueror class without a ByteKiller/CRUN file-format shortcut.
+The C backend now detects the materialized runtime view at `$40`, starts native
+execution at `$64`, observes writes to `$400..$2100`, validates `$400` as code,
+and materializes the output as a primary-program raw child:
+
+```json
+{
+  "event_id": "decompression:self_decrunch:section:0:00000040:00000400",
+  "source_kind": "self_decruncher",
+  "provider_id": "m68k-sim-decrunch",
+  "load_address": 1024,
+  "entrypoint": 1024,
+  "simulated_output_size": 7424,
+  "payload_role": "primary_program",
+  "payload_role_confidence": "native_unpack_entry_validated"
+}
+```
+
+Damocles section 2 now materializes through the normal disk refresh path as
+`amiga_raw_damocles_53b24620_native_tetragon_02_00000060`. The child records
+`provider_id=c-tetragon-native`, `load_address=$1000`, `entrypoint=$59484`,
+`decompressed_size=$779C9`, and sha256
+`34389204110c8bc4972eb3f0a7f8d1b73779fde10f1a5e48eb36b7c8068ea65a`.
+
+Follow-up diagnosis showed why the static C Tetragon clone was not enough to
+prove this target either way. The real bootstrap copies an overlapping runtime
+stub from `$6A` to `$100`; the bytes at runtime are produced by forward copy
+semantics, not by a raw storage slice. Single-stepping the copied stub exposed
+two simulator coverage requirements:
+
+```text
+storage bytes alone
+  != overlapping runtime-copy bytes
+
+native simulator execution
+  -> needs explicit memory-mapped hardware read/write policy
+  -> needs generated CCR semantics from the PDF-backed M68K KB
+  -> should be reconciled against machine68k/oracle cases systematically
+```
+
+The immediate fix keeps policy-driven hardware reads/writes narrow and derives
+CCR behavior from `knowledge/m68k_instructions.json`, which is regenerated from
+`resources/M68000PM_AD_Rev_1_Programmers_Reference_Manual_1992.pdf` plus
+curated parser assertions where PDF extraction fails. The concrete bug was an
+operation-type heuristic: `MOVE16`, `ADDA`, `SUBA`, `BRA`, and `PVALID`
+inherited condition-code formulas they do not have. The parser now
+attaches formulas only when parsed condition-code effects prove a CPU CCR write,
+and the C simulator consumes the generated formula metadata instead of guessing
+from mnemonic shape.
+
+The broader follow-up is to enumerate concrete simulator edge cases with
+oracle-backed single-step tests, especially read-modify-write operands,
+predecrement/postincrement updates, MOVEM/MOVEP, bitfield operations, stack
+frame instructions, exception/trap paths, `NEG` CCR exactness, and CCR/SR
+immediate logical operations.
+
+Current rendered-source proof after the Conqueror/Damocles refresh:
+
+```text
+Rendered source round-trip:
+  26/37 full-file exact
+  10 content-exact only
+  1 unsupported Mac OS source assembly target
+  0 failures
+```
+
+The remaining Proposal 027 gap is Magicland `MLDC`. The target source contains
+a real loader-owned asset decompression shape:
+
+```asm
+cmpi.l #1296843843,(a0)   ; "MLDC"
+bne.b  ...
+movea.l a0,a3
+move.l d1,d0
+bsr.w  abs_0_000647F2
+```
+
+The decompressor at `abs_0_000647F2` is byte-real and returns to the caller,
+so its output must not become an executable child without independent entry
+evidence. The missing implementation is the C-owned packed-source provenance
+binding from the loader/disk/resource data into a native execution call seed:
+
+```text
+loader source bytes
+  -> exact disk/container byte range
+  -> MLDC packed input buffer
+  -> a0 input pointer, a3 output pointer, d0/d1 size contract
+  -> execute until return/rte
+  -> materialize asset_data or unknown_data only from observed writes
+```
+
+That must be implemented as the same native execution/write-observation model,
+not as a Python-side artifact rule and not as a guessed disk offset table.

@@ -6412,16 +6412,21 @@ def _execution_cc_formula(inst: JsonDict) -> str | None:
     mnemonic = str(inst.get("mnemonic", ""))
     op_type = str(inst.get("operation_type", ""))
     flow_type = str(cast(JsonDict, cast(JsonDict, inst.get("pc_effects", {})).get("flow", {})).get("type", "sequential"))
+    cc = cast(dict[str, str], inst.get("condition_codes", {}))
+    dash = "\u2014"
+    writes_cpu_ccr = any(value not in ("", dash, "Not affected") for value in cc.values())
+    if mnemonic == "MOVE to CCR":
+        return "write_ccr"
+    if mnemonic == "MOVE to SR":
+        return "write_sr"
+    if not writes_cpu_ccr:
+        return None
     if flow_type in ("jump", "call", "return", "trap") or mnemonic in (
         "LEA", "MOVEA", "MOVEC", "MOVEM", "MOVEP", "MOVES",
         "MOVE from CCR", "MOVE from SR", "MOVE USP",
         "EXG", "Scc", "DBcc", "PEA", "LINK", "UNLK"
     ):
         return None
-    if mnemonic == "MOVE to CCR":
-        return "write_ccr"
-    if mnemonic == "MOVE to SR":
-        return "write_sr"
     if mnemonic == "CLR":
         return "clear_flags"
     if op_type == "bit_test":
@@ -6450,6 +6455,8 @@ def _execution_cc_formula(inst: JsonDict) -> str | None:
         return "divide_flags"
     if mnemonic in ("MOVE", "MOVEQ") or op_type == "move":
         return "move_flags"
+    if op_type in ("and", "or", "xor", "not", "sign_extend", "swap"):
+        return "test_flags"
     if op_type in ("add", "addx"):
         return "add_flags"
     if op_type in ("sub", "subx", "negx", "compare"):

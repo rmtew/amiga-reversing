@@ -30,7 +30,7 @@ FLOW_ENUM = {
 
 OP_TYPE_ENUM = {
     None: "M68K_SIM_OP_NONE",
-    "nop": "M68K_SIM_OP_NONE",
+    "nop": "M68K_SIM_OP_NOP",
     "reset": "M68K_SIM_OP_NONE",
     "rtm": "M68K_SIM_OP_NONE",
     "illegal": "M68K_SIM_OP_NONE",
@@ -334,6 +334,27 @@ SEMANTIC_STATUS_ENUM = {
     "available": "M68K_SIM_SEMANTICS_AVAILABLE",
     "generated_semantics_missing": "M68K_SIM_SEMANTICS_GENERATED_SEMANTICS_MISSING",
     "intentionally_unsupported": "M68K_SIM_SEMANTICS_INTENTIONALLY_UNSUPPORTED",
+}
+
+CCR_FORMULA_ENUM = {
+    None: "M68K_SIM_CCR_FORMULA_NONE",
+    "add_decimal_flags": "M68K_SIM_CCR_FORMULA_ADD_DECIMAL_FLAGS",
+    "add_flags": "M68K_SIM_CCR_FORMULA_ADD_FLAGS",
+    "bit_test_flags": "M68K_SIM_CCR_FORMULA_BIT_TEST_FLAGS",
+    "bitfield_flags": "M68K_SIM_CCR_FORMULA_BITFIELD_FLAGS",
+    "bounds_check_flags": "M68K_SIM_CCR_FORMULA_BOUNDS_CHECK_FLAGS",
+    "clear_flags": "M68K_SIM_CCR_FORMULA_CLEAR_FLAGS",
+    "divide_flags": "M68K_SIM_CCR_FORMULA_DIVIDE_FLAGS",
+    "move_flags": "M68K_SIM_CCR_FORMULA_MOVE_FLAGS",
+    "multiply_flags": "M68K_SIM_CCR_FORMULA_MULTIPLY_FLAGS",
+    "rotate_extend_flags": "M68K_SIM_CCR_FORMULA_ROTATE_EXTEND_FLAGS",
+    "rotate_flags": "M68K_SIM_CCR_FORMULA_ROTATE_FLAGS",
+    "shift_flags": "M68K_SIM_CCR_FORMULA_SHIFT_FLAGS",
+    "sub_decimal_flags": "M68K_SIM_CCR_FORMULA_SUB_DECIMAL_FLAGS",
+    "sub_flags": "M68K_SIM_CCR_FORMULA_SUB_FLAGS",
+    "test_flags": "M68K_SIM_CCR_FORMULA_TEST_FLAGS",
+    "write_ccr": "M68K_SIM_CCR_FORMULA_WRITE_CCR",
+    "write_sr": "M68K_SIM_CCR_FORMULA_WRITE_SR",
 }
 
 INTENTIONALLY_UNSUPPORTED_SEMANTIC_OPS = {
@@ -1034,6 +1055,8 @@ def _emit_tables_include(forms: list[object], kb: dict[str, object]) -> str:
             )
         canonical_form_id = canonical_form_ids[m68k_canonical_model.form_identity_key(form)]
         semantic_status = _semantic_status_for_execution(execution, form)
+        ccr = execution.get("ccr") if isinstance(execution, dict) else None
+        ccr_formula = ccr.get("formula") if isinstance(ccr, dict) else None
         lookup_index_by_form_id[canonical_form_id] = f"{emitted_form_count}u"
         semantic_status_by_form_id[canonical_form_id] = SEMANTIC_STATUS_ENUM[semantic_status]
         form_rows.extend([
@@ -1045,7 +1068,8 @@ def _emit_tables_include(forms: list[object], kb: dict[str, object]) -> str:
             f"{OP_CLASS_ENUM.get(execution.get('operation_class') if isinstance(execution, dict) else None, 'M68K_SIM_CLASS_NONE')}, "
             f"{FLOW_ENUM.get(flow_type, 'M68K_SIM_FLOW_NONE')}, "
             f"{1 if bool(flow.get('conditional', False)) else 0}u, "
-            f"{1 if isinstance(execution, dict) and isinstance(execution.get('result'), dict) and execution['result'].get('formula') else 0}u,",
+            f"{1 if isinstance(execution, dict) and isinstance(execution.get('result'), dict) and execution['result'].get('formula') else 0}u, "
+            f"{CCR_FORMULA_ENUM.get(ccr_formula, 'M68K_SIM_CCR_FORMULA_NONE')},",
             "      { "
             f"{access_kinds[0]}, {access_kinds[1]}, {access_kinds[2]}, {access_kinds[3]} "
             "},",

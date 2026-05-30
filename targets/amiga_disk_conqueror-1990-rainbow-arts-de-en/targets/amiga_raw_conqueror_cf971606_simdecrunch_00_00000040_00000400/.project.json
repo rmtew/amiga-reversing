@@ -1,0 +1,32 @@
+{
+  "created_at": "2026-05-30T02:25:50.970984+00:00",
+  "origin": {
+    "child_entry_path": "CONQUEROR::simdecrunch_00_00000040",
+    "codec_id": "unknown-self-decrunch",
+    "codec_name": "Unidentified target-owned self-decruncher",
+    "decompressed_sha256": "ce68310619b79a6c21a457697511cf1cba7b6a2615a4ff6dc0b6aed9055a4359",
+    "decompressed_size": 7424,
+    "entrypoint": 1024,
+    "event_id": "decompression:self_decrunch:section:0:00000040:00000400",
+    "kind": "derived_decompressed_payload",
+    "load_address": 1024,
+    "packed_section_offset": 546,
+    "parent_disk_id": "conqueror-1990-rainbow-arts-de-en",
+    "parent_entry_path": "CONQUEROR",
+    "parent_remains_active": "false",
+    "parent_remains_active_id": 1,
+    "parent_target": "amiga_disk_conqueror-1990-rainbow-arts-de-en__amiga_hunk_conqueror_cf971606",
+    "payload_role": "primary_program",
+    "payload_role_confidence": "native_unpack_entry_validated",
+    "payload_role_confidence_id": 2,
+    "payload_role_id": 2,
+    "project_origin_kind_id": 1,
+    "provider_id": "m68k-sim-decrunch",
+    "source_section": 0,
+    "target_role": "decompressed_payload",
+    "target_role_id": 1,
+    "target_type": "raw_binary"
+  },
+  "schema_version": 2,
+  "updated_at": "2026-05-30T02:25:51.096298+00:00"
+}

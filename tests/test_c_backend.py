@@ -342,7 +342,7 @@ def test_listing_analysis_json_includes_empty_decompression_fact_arrays(tmp_path
     assert combined["analysis"]["decompression_events"] == []
 
 
-def test_listing_analysis_reports_unsupported_self_decruncher_without_materialising_payload(tmp_path: Path) -> None:
+def test_listing_analysis_reports_entry_validated_self_decruncher_payload(tmp_path: Path) -> None:
     _requires_c_backend_dlls()
     binary = tmp_path / "self_decrunch_hunk.bin"
     source = """    SECTION section,code
@@ -379,8 +379,8 @@ def test_listing_analysis_reports_unsupported_self_decruncher_without_materialis
     assert event["codec_support"] == "simulator_required"
     assert event["status"] == "simulated_output_observed"
     assert event["reason"] == "simulated_pc_range_stop"
-    assert event["payload_role"] == "unknown_runtime_payload"
-    assert event["payload_role_confidence"] == "observed_output_only"
+    assert event["payload_role"] == "primary_program"
+    assert event["payload_role_confidence"] == "native_unpack_entry_validated"
     assert event["decompressor_code_section"] == 0
     assert event["decompressor_entry_offset"] == 0
     assert event["transfer_offset"] == 14
@@ -395,6 +395,8 @@ def test_listing_analysis_reports_unsupported_self_decruncher_without_materialis
     assert event["simulated_output_end"] == 0x4002
     assert event["simulated_output_size"] == 2
     assert event["simulated_output_sha256"] == hashlib.sha256(bytes.fromhex("4e75")).hexdigest()
+    assert event["entry_validation_valid"] is True
+    assert event["entry_validation_unsupported_instruction_demotes"] == 0
 
 
 def test_c_backend_materializes_simulated_self_decrunch_event_output(tmp_path: Path) -> None:
@@ -430,7 +432,8 @@ def test_c_backend_materializes_simulated_self_decrunch_event_output(tmp_path: P
     materialized_event = result["decompression_events"][0]
     assert materialized_event["event_id"] == event["event_id"]
     assert materialized_event["status"] == "simulated_output_observed"
-    assert materialized_event["payload_role"] == "unknown_runtime_payload"
+    assert materialized_event["payload_role"] == "primary_program"
+    assert materialized_event["payload_role_confidence"] == "native_unpack_entry_validated"
 
 
 def test_listing_analysis_identifies_tetragon_unpacker_markers_in_multiple_sections(tmp_path: Path) -> None:
@@ -10515,15 +10518,17 @@ def test_real_dll_damocles_tetragon_unpacker_candidates() -> None:
     assert by_section[2]["postpass_source_consumed_address"] == 0x7FFFF
     assert by_section[2]["decompressed_size"] == 0x779C9
     assert by_section[2]["decompressed_sha256"] == (
-        "3c8656ece7d5b1c8d56cd51a8399cf9b6c22775d1a7c3e67517fae9bb5876b65"
+        "34389204110c8bc4972eb3f0a7f8d1b73779fde10f1a5e48eb36b7c8068ea65a"
     )
     assert by_section[2]["entrypoint"] == 0x59484
-    assert by_section[2]["status"] == "needs_review_blocker"
-    assert by_section[2]["reason"] == "invalid_decompressed_entrypoint"
-    assert by_section[2]["payload_role"] == "unknown_runtime_payload"
-    assert by_section[2]["entry_validation_valid"] is False
-    assert by_section[2]["entry_validation_accepted_instructions"] == 7
-    assert by_section[2]["entry_validation_unsupported_instruction_demotes"] == 1
+    assert by_section[2]["status"] == "materializable"
+    assert by_section[2]["reason"] == "native_tetragon_unpack_validated"
+    assert by_section[2]["payload_role"] == "primary_program"
+    assert by_section[2]["payload_role_confidence"] == "native_unpack_entry_validated"
+    assert by_section[2]["entry_validation_valid"] is True
+    assert by_section[2]["entry_validation_accepted_instructions"] == 25003
+    assert by_section[2]["entry_validation_unsupported_instruction_demotes"] == 2
+    assert by_section[2]["entry_validation_required_instruction_failures"] == 0
     assert by_section[2]["copied_stub_storage_offset"] == 0x6A
     assert by_section[2]["copied_stub_runtime_address"] == 0x100
     assert by_section[2]["copied_stub_transfer_offset"] == 0x40
@@ -10580,7 +10585,7 @@ def test_real_dll_damocles_tetragon_native_materialization(tmp_path: Path) -> No
     assert rebuilt == output
 
 
-def test_real_dll_damocles_tetragon_rejects_invalid_entry_materialization(tmp_path: Path) -> None:
+def test_real_dll_damocles_tetragon_materializes_second_native_stub(tmp_path: Path) -> None:
     _requires_c_backend_dlls()
 
     parent_path = PROJECT_ROOT / "tests" / "fixtures" / "hunk" / "damocles_tetragon_53b24620.bin"
@@ -10592,17 +10597,23 @@ def test_real_dll_damocles_tetragon_rejects_invalid_entry_materialization(tmp_pa
     )
     output_path = tmp_path / "damocles_hunk2_tetragon.bin"
 
-    assert event["status"] == "needs_review_blocker"
-    assert event["entry_validation_valid"] is False
-    with pytest.raises(RuntimeError, match="recognized unpacker event has no materializable native output"):
-        materialize_recognized_unpacker_event_with_c_backend(
-            "amiga-hunk",
-            parent_path,
-            event["event_id"],
-            output_path,
-            project_root=PROJECT_ROOT,
-        )
-    assert not output_path.exists()
+    result = materialize_recognized_unpacker_event_with_c_backend(
+        "amiga-hunk",
+        parent_path,
+        event["event_id"],
+        output_path,
+        project_root=PROJECT_ROOT,
+    )
+    output = output_path.read_bytes()
+
+    assert event["status"] == "materializable"
+    assert event["entry_validation_valid"] is True
+    assert result["status"] == "ok"
+    assert result["provider_id"] == "c-tetragon-native"
+    assert result["decompressed"]["load_address"] == 0x1000
+    assert result["decompressed"]["entrypoint"] == 0x59484
+    assert len(output) == 0x779C9
+    assert hashlib.sha256(output).hexdigest() == "34389204110c8bc4972eb3f0a7f8d1b73779fde10f1a5e48eb36b7c8068ea65a"
 
 
 def test_real_dll_voodoo_tetragon_unpacker_comparator(tmp_path: Path) -> None:
@@ -10667,6 +10678,41 @@ def test_real_dll_magicland_self_decrunch_materialization(tmp_path: Path) -> Non
     assert event["simulated_output_sha256"] == "f867bec7c8a062b9d086ea170cd297d620c0a5e32fd90caf14a979f4fe13fce4"
     assert result["status"] == "ok"
     assert len(output) == 43695
+    assert hashlib.sha256(output).hexdigest() == event["simulated_output_sha256"]
+
+
+def test_real_dll_conqueror_runtime_view_native_decrunch_materialization(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+
+    disk_path = PROJECT_ROOT / "bin" / "Conqueror (1990)(Rainbow Arts)(de-en)[cr QTX].adf"
+    if not disk_path.exists():
+        pytest.skip("Conqueror disk fixture is missing")
+    parent_path = tmp_path / "CONQUEROR"
+    output_path = tmp_path / "conqueror_decrunched.bin"
+    parent_path.write_bytes(extract_disk_entry_with_c_backend(disk_path, "CONQUEROR", project_root=PROJECT_ROOT))
+
+    analysis = analyze_binary_source_with_c_backend(parent_path, project_root=PROJECT_ROOT)
+    event = next(event for event in analysis["decompression_events"] if event.get("source_kind") == "self_decruncher")
+    result = materialize_self_decrunch_event_with_c_backend(
+        "amiga-hunk",
+        parent_path,
+        event["event_id"],
+        output_path,
+        project_root=PROJECT_ROOT,
+    )
+
+    output = output_path.read_bytes()
+    assert event["decompressor_entry_offset"] == 0x40
+    assert event["transfer_offset"] == 0x222
+    assert event["load_address"] == 0x400
+    assert event["entrypoint"] == 0x400
+    assert event["simulated_output_size"] == 0x1D00
+    assert event["simulated_output_sha256"] == "ce68310619b79a6c21a457697511cf1cba7b6a2615a4ff6dc0b6aed9055a4359"
+    assert event["payload_role"] == "primary_program"
+    assert event["payload_role_confidence"] == "native_unpack_entry_validated"
+    assert event["entry_validation_valid"] is True
+    assert result["status"] == "ok"
+    assert len(output) == 0x1D00
     assert hashlib.sha256(output).hexdigest() == event["simulated_output_sha256"]
 
 

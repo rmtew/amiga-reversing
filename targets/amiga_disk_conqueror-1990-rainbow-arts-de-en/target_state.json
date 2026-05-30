@@ -1,8 +1,28 @@
 {
   "candidate_rejects": [],
   "import_mode": "amiga_dos_startup_sequence",
-  "imported_at": "2026-05-13T19:56:59+00:00",
-  "payload_nodes": [],
+  "imported_at": "2026-05-30T02:25:51+00:00",
+  "payload_nodes": [
+    {
+      "codec": "unknown-self-decrunch",
+      "crc32": null,
+      "decode_status": "ok",
+      "decoded_size": 7424,
+      "id": "amiga_disk_conqueror-1990-rainbow-arts-de-en__amiga_raw_conqueror_cf971606_simdecrunch_00_00000040_00000400",
+      "media_hint": "raw",
+      "origin": "auto",
+      "parent_file_id": "amiga_disk_conqueror-1990-rainbow-arts-de-en__amiga_hunk_conqueror_cf971606",
+      "path": "targets/amiga_disk_conqueror-1990-rainbow-arts-de-en/targets/amiga_raw_conqueror_cf971606_simdecrunch_00_00000040_00000400",
+      "reason_code": null,
+      "reason_detail": null,
+      "source_file_offset": null,
+      "source_hunk_offset": null,
+      "source_offset": null,
+      "source_path": "C:\\Data\\R\\git\\claude-repos\\amiga-reversing2\\bin\\Conqueror (1990)(Rainbow Arts)(de-en)[cr QTX].adf",
+      "source_size": null,
+      "state": "added"
+    }
+  ],
   "schema_version": 1,
   "startup_sequence_parse": {
     "command": null,
@@ -36,7 +56,7 @@
     {
       "added_by_import": true,
       "id": "amiga_disk_conqueror-1990-rainbow-arts-de-en__amiga_hunk_conqueror_cf971606",
-      "imported_at": "2026-05-13T19:56:59+00:00",
+      "imported_at": "2026-05-30T02:25:51+00:00",
       "origin": "auto",
       "path": "targets/amiga_disk_conqueror-1990-rainbow-arts-de-en/targets/amiga_hunk_conqueror_cf971606",
       "reason_code": null,
@@ -45,10 +65,10 @@
     },
     {
       "added_by_import": true,
-      "id": "amiga_disk_conqueror-1990-rainbow-arts-de-en__amiga_hunk_s__type_0496bf04",
-      "imported_at": "2026-05-13T19:56:59+00:00",
+      "id": "amiga_disk_conqueror-1990-rainbow-arts-de-en__amiga_raw_conqueror_cf971606_simdecrunch_00_00000040_00000400",
+      "imported_at": "2026-05-30T02:25:51+00:00",
       "origin": "auto",
-      "path": "targets/amiga_disk_conqueror-1990-rainbow-arts-de-en/targets/amiga_hunk_s__type_0496bf04",
+      "path": "targets/amiga_disk_conqueror-1990-rainbow-arts-de-en/targets/amiga_raw_conqueror_cf971606_simdecrunch_00_00000040_00000400",
       "reason_code": null,
       "reason_detail": null,
       "state": "added"
@@ -56,9 +76,19 @@
     {
       "added_by_import": true,
       "id": "amiga_disk_conqueror-1990-rainbow-arts-de-en__amiga_raw_bootblock",
-      "imported_at": "2026-05-13T19:56:59+00:00",
+      "imported_at": "2026-05-30T02:25:51+00:00",
       "origin": "auto",
       "path": "targets/amiga_disk_conqueror-1990-rainbow-arts-de-en/targets/amiga_raw_bootblock",
+      "reason_code": null,
+      "reason_detail": null,
+      "state": "added"
+    },
+    {
+      "added_by_import": true,
+      "id": "amiga_disk_conqueror-1990-rainbow-arts-de-en__amiga_hunk_s__type_0496bf04",
+      "imported_at": "2026-05-30T02:25:51+00:00",
+      "origin": "auto",
+      "path": "targets/amiga_disk_conqueror-1990-rainbow-arts-de-en/targets/amiga_hunk_s__type_0496bf04",
       "reason_code": null,
       "reason_detail": null,
       "state": "added"

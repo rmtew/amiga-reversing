@@ -71,7 +71,8 @@ typedef enum M68kSimOperationType {
   M68K_SIM_OP_BITFIELD_SET = 43,
   M68K_SIM_OP_BITFIELD_TEST = 44,
   M68K_SIM_OP_ADD_EXTEND = 45,
-  M68K_SIM_OP_SUB_EXTEND = 46
+  M68K_SIM_OP_SUB_EXTEND = 46,
+  M68K_SIM_OP_NOP = 47
 } M68kSimOperationType;
 
 typedef enum M68kSimOperationClass {
@@ -322,6 +323,27 @@ typedef enum M68kSimProvenanceKind {
   M68K_SIM_PROV_TABLE_SCAN = 6
 } M68kSimProvenanceKind;
 
+typedef enum M68kSimCcrFormula {
+  M68K_SIM_CCR_FORMULA_NONE = 0,
+  M68K_SIM_CCR_FORMULA_ADD_DECIMAL_FLAGS = 1,
+  M68K_SIM_CCR_FORMULA_ADD_FLAGS = 2,
+  M68K_SIM_CCR_FORMULA_BIT_TEST_FLAGS = 3,
+  M68K_SIM_CCR_FORMULA_BITFIELD_FLAGS = 4,
+  M68K_SIM_CCR_FORMULA_BOUNDS_CHECK_FLAGS = 5,
+  M68K_SIM_CCR_FORMULA_CLEAR_FLAGS = 6,
+  M68K_SIM_CCR_FORMULA_DIVIDE_FLAGS = 7,
+  M68K_SIM_CCR_FORMULA_MOVE_FLAGS = 8,
+  M68K_SIM_CCR_FORMULA_MULTIPLY_FLAGS = 9,
+  M68K_SIM_CCR_FORMULA_ROTATE_EXTEND_FLAGS = 10,
+  M68K_SIM_CCR_FORMULA_ROTATE_FLAGS = 11,
+  M68K_SIM_CCR_FORMULA_SHIFT_FLAGS = 12,
+  M68K_SIM_CCR_FORMULA_SUB_DECIMAL_FLAGS = 13,
+  M68K_SIM_CCR_FORMULA_SUB_FLAGS = 14,
+  M68K_SIM_CCR_FORMULA_TEST_FLAGS = 15,
+  M68K_SIM_CCR_FORMULA_WRITE_CCR = 16,
+  M68K_SIM_CCR_FORMULA_WRITE_SR = 17
+} M68kSimCcrFormula;
+
 typedef struct M68kSimSpEffectDef {
   uint8_t action;
   int16_t bytes;
@@ -335,6 +357,7 @@ typedef struct M68kSimFormMetadata {
   uint8_t flow_kind;
   uint8_t flow_conditional;
   uint8_t has_compute_formula;
+  uint8_t ccr_formula;
   uint8_t operand_access_kinds[4];
   uint8_t operand_expected_kinds[4];
   uint8_t operand_ea_address_formulas[4];
@@ -513,9 +536,11 @@ typedef struct M68kSimConcreteWriteTrace {
 } M68kSimConcreteWriteTrace;
 
 typedef int (*M68kSimConcreteExternalWriteAllowedFn)(void *user, uint32_t address, uint8_t width);
+typedef int (*M68kSimConcreteExternalReadFn)(void *user, uint32_t address, uint8_t width, uint32_t *out_value);
 
 typedef struct M68kSimConcreteMemoryPolicy {
   M68kSimConcreteExternalWriteAllowedFn external_write_allowed;
+  M68kSimConcreteExternalReadFn external_read;
   void *user;
 } M68kSimConcreteMemoryPolicy;
 

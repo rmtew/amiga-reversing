@@ -3,8 +3,8 @@
   "summary": {
     "failures": 0,
     "rendered_source_content_exact_only": 10,
-    "rendered_source_full_file_exact": 25,
-    "targets": 36,
+    "rendered_source_full_file_exact": 26,
+    "targets": 37,
     "unsupported": 1
   },
   "targets": [
@@ -46,6 +46,16 @@
       "rendered_source_full_file_exact": true,
       "status": "exact",
       "target": "amiga_disk_conqueror-1990-rainbow-arts-de-en__amiga_raw_bootblock",
+      "tool_error": null
+    },
+    {
+      "diff_range_count": 0,
+      "failure_kinds": [],
+      "message": null,
+      "rendered_source_content_exact": true,
+      "rendered_source_full_file_exact": true,
+      "status": "exact",
+      "target": "amiga_disk_conqueror-1990-rainbow-arts-de-en__amiga_raw_conqueror_cf971606_simdecrunch_00_00000040_00000400",
       "tool_error": null
     },
     {

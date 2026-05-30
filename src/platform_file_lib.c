@@ -45,6 +45,13 @@
 #define PLATFORM_PROVIDER_WRAPPER_STEP_LIMIT (32U * 1024U * 1024U)
 
 static void platform_file_add_error(M68kDiagList *diagnostics, const char *message);
+
+static size_t platform_self_decrunch_step_limit_for_output_local(uint32_t output_size) {
+  size_t step_limit = output_size > PLATFORM_PROVIDER_WRAPPER_STEP_LIMIT / 64U ?
+    PLATFORM_PROVIDER_WRAPPER_STEP_LIMIT : (size_t)output_size * 64U;
+  if (step_limit < PLATFORM_SELF_DECRUNCH_STEP_LIMIT) step_limit = PLATFORM_SELF_DECRUNCH_STEP_LIMIT;
+  return step_limit;
+}
 static void platform_file_add_warning(M68kDiagList *diagnostics, const char *message);
 static int read_file_to_buffer(const char *path, unsigned char **out_data, size_t *out_size,
     M68kDiagSink diagnostics);
@@ -65,6 +72,15 @@ static uint32_t read_be32_local(const uint8_t *data);
 static int write_bytes_to_path_local(const char *path, const unsigned char *data, size_t size,
     M68kDiagList *diagnostics);
 static const char *self_decrunch_sim_stop_reason_name_local(uint8_t stop_reason);
+static int platform_self_decrunch_external_write_allowed_local(void *user, uint32_t address, uint8_t width);
+static int platform_self_decrunch_external_read_local(void *user, uint32_t address, uint8_t width,
+    uint32_t *out_value);
+static uint8_t platform_self_decrunch_execution_cpu_local(const M68kObject *object,
+    const M68kSourceAnalysisIR *analysis);
+static uint32_t reachable_decrunch_entry_root_local(const M68kSectionAnalysisIR *section, size_t section_index,
+    uint32_t fallback_entry, uint32_t transfer_offset, Arena *arena);
+static int concrete_write_ranges_cover_span_local(const M68kSimConcreteRunTraceResult *result,
+    uint32_t start, uint32_t size);
 
 static int text_result_to_alloc(PlatformFileTextResult *result, char **out_text) {
   const char *message;
@@ -2906,11 +2922,17 @@ typedef struct PlatformSelfDecrunchEvent {
   uint32_t simulated_stop_pc;
   uint32_t simulated_step_count;
   uint32_t simulated_write_count;
+  uint32_t entry_validation_accepted_instructions;
+  uint32_t entry_validation_unsupported_instruction_demotes;
+  uint32_t entry_validation_required_instruction_failures;
+  uint32_t entry_validation_code_start_control_targets;
   char simulated_output_sha256[65];
   char simulated_diagnostic[M68K_DIAG_MESSAGE_SIZE];
   uint8_t simulated_stop_reason;
   uint8_t has_simulated_output;
   uint8_t simulation_attempted;
+  uint8_t entry_validation_attempted;
+  uint8_t entry_validation_valid;
   uint8_t parent_remains_active;
 } PlatformSelfDecrunchEvent;
 
@@ -2930,6 +2952,8 @@ typedef struct PlatformRecognizedUnpackerEvent {
   uint32_t copied_stub_storage_offset;
   uint32_t copied_stub_runtime_address;
   uint32_t copied_stub_transfer_offset;
+  uint32_t copied_stub_transfer_site_offset;
+  uint32_t native_execution_start_pc;
   uint32_t lz_long_reference_bit_count;
   uint32_t entry_validation_accepted_instructions;
   uint32_t entry_validation_unsupported_instruction_demotes;
@@ -2941,6 +2965,8 @@ typedef struct PlatformRecognizedUnpackerEvent {
   char decompressed_sha256[65];
   uint8_t postpass_escape_byte;
   uint8_t native_unpack_validated;
+  uint8_t native_execution_attempted;
+  uint8_t native_execution_stop_reason;
   uint8_t entry_validation_attempted;
   uint8_t entry_validation_valid;
   uint8_t has_copied_stub;
@@ -2991,8 +3017,9 @@ static void make_recognized_unpacker_event_id_local(char *out, size_t out_size,
     codec_id);
 }
 
-static int runtime_transfer_target_from_candidate_local(const M68kDecodeSectionIR *section,
+static int runtime_transfer_target_from_candidate_min_local(const M68kDecodeSectionIR *section,
     const M68kSectionAnalysisIR *section_analysis, const M68kDecodeCandidate *candidate,
+    uint32_t min_target_address, uint8_t skip_known_code_target,
     uint32_t *out_target, uint8_t *out_parent_remains_active) {
   M68kInstructionIR instruction;
   const M68kSimFormMetadata *metadata;
@@ -3016,8 +3043,8 @@ static int runtime_transfer_target_from_candidate_local(const M68kDecodeSectionI
     shape = m68k_instruction_operand_decoded_ea_shape(operand);
     if (m68k_instruction_decoded_ea_target_kind(operand, shape, 0) != 1U) continue;
     target = operand->value.value;
-    if (target < 0x1000U) continue;
-    if (target < section->size && section_analysis->certain_code_byte != NULL &&
+    if (target < min_target_address) continue;
+    if (skip_known_code_target && target < section->size && section_analysis->certain_code_byte != NULL &&
         section_analysis->certain_code_byte[target] != 0U) {
       continue;
     }
@@ -3027,6 +3054,13 @@ static int runtime_transfer_target_from_candidate_local(const M68kDecodeSectionI
     return 1;
   }
   return 0;
+}
+
+static int runtime_transfer_target_from_candidate_local(const M68kDecodeSectionIR *section,
+    const M68kSectionAnalysisIR *section_analysis, const M68kDecodeCandidate *candidate,
+    uint32_t *out_target, uint8_t *out_parent_remains_active) {
+  return runtime_transfer_target_from_candidate_min_local(section, section_analysis, candidate, 0x1000U, 1U,
+    out_target, out_parent_remains_active);
 }
 
 static int same_section_unconditional_bridge_target_local(const M68kDecodeCandidate *candidate,
@@ -3486,8 +3520,10 @@ static int recognized_tetragon_unpack_postpass_local(const PlatformRecognizedUnp
   return 1;
 }
 
-static int recognized_unpacker_validate_entrypoint_local(PlatformRecognizedUnpackerEvent *event,
-    const uint8_t *data) {
+static int validate_decompressed_entrypoint_bytes_local(const uint8_t *data, uint32_t size,
+    uint32_t load_address, uint32_t entrypoint, uint32_t *out_accepted_instructions,
+    uint32_t *out_unsupported_instruction_demotes, uint32_t *out_required_instruction_failures,
+    uint32_t *out_code_start_control_targets, uint8_t *out_valid) {
   M68kObject object;
   M68kSection section;
   M68kObjectAddResult add_result;
@@ -3495,25 +3531,27 @@ static int recognized_unpacker_validate_entrypoint_local(PlatformRecognizedUnpac
   M68kFactsV2Profile profile;
   uint32_t entry_offset;
   int ok = 0;
-  if (event == NULL || data == NULL || event->decompressed_size == 0U ||
-      event->entrypoint < event->target_start_address) {
+  if (out_accepted_instructions != NULL) *out_accepted_instructions = 0U;
+  if (out_unsupported_instruction_demotes != NULL) *out_unsupported_instruction_demotes = 0U;
+  if (out_required_instruction_failures != NULL) *out_required_instruction_failures = 0U;
+  if (out_code_start_control_targets != NULL) *out_code_start_control_targets = 0U;
+  if (out_valid != NULL) *out_valid = 0U;
+  if (data == NULL || size == 0U || entrypoint < load_address) {
     return 0;
   }
-  entry_offset = event->entrypoint - event->target_start_address;
-  if (entry_offset >= event->decompressed_size) return 0;
-  event->entry_validation_attempted = 1U;
-  event->entry_validation_valid = 0U;
+  entry_offset = entrypoint - load_address;
+  if (entry_offset >= size) return 0;
   memset(&object, 0, sizeof(object));
   memset(&section, 0, sizeof(section));
   memset(&profile, 0, sizeof(profile));
   if (m68k_object_create(&object) != 0) return 0;
   object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
   object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
-  section.name = "recognized_unpacker_payload";
+  section.name = "decompressed_payload";
   section.kind = M68K_SECTION_CODE;
-  section.size = event->decompressed_size;
+  section.size = size;
   section.data = (uint8_t *)data;
-  section.data_size = event->decompressed_size;
+  section.data_size = size;
   add_result = m68k_object_add_section(&object, &section);
   if (!add_result.ok) goto cleanup;
   m68k_object_mark_no_container(&object);
@@ -3523,25 +3561,77 @@ static int recognized_unpacker_validate_entrypoint_local(PlatformRecognizedUnpac
   policy.runtime_ranges[0].has_section_index = 1U;
   policy.runtime_ranges[0].section_index = 0U;
   policy.runtime_ranges[0].offset = 0U;
-  policy.runtime_ranges[0].size = event->decompressed_size;
-  policy.runtime_ranges[0].runtime_address = event->target_start_address;
+  policy.runtime_ranges[0].size = size;
+  policy.runtime_ranges[0].runtime_address = load_address;
   policy.runtime_entry_point_count = 1U;
   policy.runtime_entry_points[0].has_section_index = 1U;
   policy.runtime_entry_points[0].section_index = 0U;
-  policy.runtime_entry_points[0].runtime_address = event->entrypoint;
+  policy.runtime_entry_points[0].runtime_address = entrypoint;
   if (m68k_facts_v2_collect_profile(&object, &policy, &profile, m68k_diag_sink(NULL)) != 0)
     goto cleanup;
-  event->entry_validation_accepted_instructions = profile.accepted_instructions;
-  event->entry_validation_unsupported_instruction_demotes = profile.unsupported_instruction_demotes;
-  event->entry_validation_required_instruction_failures = profile.required_instruction_failures;
-  event->entry_validation_code_start_control_targets = profile.code_start_control_targets;
-  event->entry_validation_valid = (uint8_t)(profile.accepted_instructions != 0U &&
-    profile.unsupported_instruction_demotes == 0U && profile.required_instruction_failures == 0U);
+  if (out_accepted_instructions != NULL) *out_accepted_instructions = profile.accepted_instructions;
+  if (out_unsupported_instruction_demotes != NULL)
+    *out_unsupported_instruction_demotes = profile.unsupported_instruction_demotes;
+  if (out_required_instruction_failures != NULL)
+    *out_required_instruction_failures = profile.required_instruction_failures;
+  if (out_code_start_control_targets != NULL) *out_code_start_control_targets = profile.code_start_control_targets;
+  if (out_valid != NULL) {
+    *out_valid = (uint8_t)(profile.accepted_instructions != 0U &&
+      profile.required_instruction_failures == 0U);
+  }
   ok = 1;
 
 cleanup:
   m68k_object_destroy(&object);
   return ok;
+}
+
+static int recognized_unpacker_validate_entrypoint_local(PlatformRecognizedUnpackerEvent *event,
+    const uint8_t *data) {
+  if (event == NULL || data == NULL || event->decompressed_size == 0U ||
+      event->entrypoint < event->target_start_address) {
+    return 0;
+  }
+  event->entry_validation_attempted = 1U;
+  event->entry_validation_valid = 0U;
+  return validate_decompressed_entrypoint_bytes_local(data, event->decompressed_size,
+    event->target_start_address, event->entrypoint,
+    &event->entry_validation_accepted_instructions,
+    &event->entry_validation_unsupported_instruction_demotes,
+    &event->entry_validation_required_instruction_failures,
+    &event->entry_validation_code_start_control_targets,
+    &event->entry_validation_valid);
+}
+
+static int platform_section_runtime_base_local(const M68kObject *object, const M68kSourceAnalysisIR *analysis,
+    uint32_t section_index, uint32_t *out_runtime_base) {
+  uint16_t range_index;
+  size_t index;
+  uint32_t runtime_base = 0U;
+  if (out_runtime_base != NULL) *out_runtime_base = 0U;
+  if (analysis == NULL || out_runtime_base == NULL) return 0;
+  for (range_index = 0U; range_index < analysis->policy.runtime_range_count &&
+      range_index < M68K_ANALYSIS_RUNTIME_RANGE_LIMIT; ++range_index) {
+    const M68kAnalysisRuntimeRange *range = &analysis->policy.runtime_ranges[range_index];
+    if (!range->has_section_index || range->section_index != section_index ||
+        range->offset != 0U || range->size == 0U) {
+      continue;
+    }
+    *out_runtime_base = range->runtime_address;
+    return 1;
+  }
+  if (object == NULL || section_index >= object->section_count ||
+      object->platform_file_kind != M68K_PLATFORM_FILE_EXECUTABLE ||
+      (object->platform_backend_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK &&
+       object->platform_backend_kind != M68K_PLATFORM_BACKEND_ATARI_ST)) {
+    return 0;
+  }
+  for (index = 0U; index < section_index; ++index) {
+    if (runtime_base > UINT32_MAX - object->sections[index].size) return 0;
+    runtime_base += object->sections[index].size;
+  }
+  *out_runtime_base = runtime_base;
+  return 1;
 }
 
 static int recognized_tetragon_try_unpack_event_local(Arena *arena, const M68kDecodeSectionIR *decode_section,
@@ -3603,6 +3693,183 @@ static int recognized_tetragon_try_unpack_event_local(Arena *arena, const M68kDe
   return 1;
 }
 
+static int recognized_unpacker_try_native_copied_stub_local(const M68kObject *object,
+    const M68kSourceAnalysisIR *analysis, const M68kDecodeSectionIR *decode_section,
+    const M68kSectionAnalysisIR *section_analysis, PlatformRecognizedUnpackerEvent *event,
+    const char *output_path, M68kDiagList *diagnostics, Arena *scratch_arena) {
+  ArenaMark mark;
+  uint8_t *memory = NULL;
+  size_t memory_size, range_index, view_index;
+  uint32_t copy_size;
+  uint32_t output_start;
+  uint32_t output_end;
+  uint32_t entry_root;
+  uint32_t source_runtime_base = 0U;
+  uint32_t execution_start_pc;
+  size_t step_limit;
+  M68kSimConcreteState state;
+  M68kSimConcreteMemoryPolicy memory_policy;
+  M68kSimConcreteRunTraceResult result;
+  int ok = 0;
+  if (object == NULL || analysis == NULL || decode_section == NULL || section_analysis == NULL ||
+      event == NULL || scratch_arena == NULL || decode_section->data == NULL ||
+      event->source_section_index >= object->section_count || !event->has_copied_stub ||
+      !event->has_copied_stub_transfer || event->copied_stub_storage_offset >= event->compressed_source_section_offset ||
+      event->entrypoint > UINT32_MAX - 16U || event->target_end_address <= event->target_start_address ||
+      event->entrypoint < event->target_start_address || event->entrypoint >= event->target_end_address) {
+    return 0;
+  }
+  output_start = event->target_start_address;
+  output_end = event->target_end_address;
+  copy_size = event->compressed_source_section_offset - event->copied_stub_storage_offset;
+  if (copy_size == 0U || event->copied_stub_runtime_address > UINT32_MAX - copy_size) return 0;
+  (void)platform_section_runtime_base_local(object, analysis, event->source_section_index, &source_runtime_base);
+  memory_size = source_runtime_base > UINT32_MAX - decode_section->size ?
+    decode_section->size : (size_t)source_runtime_base + decode_section->size;
+  if ((size_t)event->entrypoint + 16U > memory_size) memory_size = (size_t)event->entrypoint + 16U;
+  if ((size_t)event->postpass_source_end_address + 16U > memory_size)
+    memory_size = (size_t)event->postpass_source_end_address + 16U;
+  if ((size_t)event->copied_stub_runtime_address + copy_size > memory_size) {
+    memory_size = (size_t)event->copied_stub_runtime_address + copy_size;
+  }
+  for (range_index = 0U; range_index < analysis->policy.runtime_range_count &&
+      range_index < M68K_ANALYSIS_RUNTIME_RANGE_LIMIT; ++range_index) {
+    const M68kAnalysisRuntimeRange *range = &analysis->policy.runtime_ranges[range_index];
+    size_t range_end;
+    if (!range->has_section_index || range->size == 0U || range->runtime_address > UINT32_MAX - range->size)
+      continue;
+    range_end = (size_t)range->runtime_address + range->size;
+    if (range_end > memory_size) memory_size = range_end;
+  }
+  for (view_index = 0U; view_index < section_analysis->runtime_view_count; ++view_index) {
+    const M68kRuntimeViewIR *view = &section_analysis->runtime_views[view_index];
+    size_t view_end;
+    if (!view->materialized || view->size == 0U || view->runtime_address > UINT32_MAX - view->size)
+      continue;
+    if (view->runtime_address > UINT32_MAX - view->size) continue;
+    view_end = (size_t)view->runtime_address + view->size;
+    if (view_end > memory_size) memory_size = view_end;
+  }
+  if (memory_size > PLATFORM_SELF_DECRUNCH_MEMORY_LIMIT) return 0;
+  mark = arena_mark(scratch_arena);
+  memory = (uint8_t *)arena_calloc(scratch_arena, memory_size, 1U);
+  if (memory == NULL) goto cleanup;
+  if ((size_t)source_runtime_base + decode_section->size > memory_size) goto cleanup;
+  memcpy(memory + source_runtime_base, decode_section->data, decode_section->size);
+  for (range_index = 0U; range_index < analysis->policy.runtime_range_count &&
+      range_index < M68K_ANALYSIS_RUNTIME_RANGE_LIMIT; ++range_index) {
+    const M68kAnalysisRuntimeRange *range = &analysis->policy.runtime_ranges[range_index];
+    const M68kSection *source_section;
+    if (!range->has_section_index || range->section_index >= object->section_count || range->size == 0U ||
+        range->runtime_address > UINT32_MAX - range->size) {
+      continue;
+    }
+    source_section = &object->sections[range->section_index];
+    if (source_section->data == NULL || range->offset > source_section->data_size ||
+        range->size > source_section->data_size - range->offset ||
+        (size_t)range->runtime_address + range->size > memory_size) {
+      continue;
+    }
+    memcpy(memory + range->runtime_address, source_section->data + range->offset, range->size);
+  }
+  for (view_index = 0U; view_index < section_analysis->runtime_view_count; ++view_index) {
+    const M68kRuntimeViewIR *view = &section_analysis->runtime_views[view_index];
+    if (!view->materialized || view->size == 0U || view->runtime_address > UINT32_MAX - view->size ||
+        view->storage_offset > decode_section->size || view->size > decode_section->size - view->storage_offset ||
+        view->runtime_address > UINT32_MAX - view->size) {
+      continue;
+    }
+    if (view->storage_offset == event->copied_stub_storage_offset &&
+        view->runtime_address == event->copied_stub_runtime_address) {
+      continue;
+    }
+    if ((size_t)view->runtime_address + view->size > memory_size) continue;
+    memcpy(memory + view->runtime_address, decode_section->data + view->storage_offset, view->size);
+  }
+  memset(&state, 0, sizeof(state));
+  memset(&memory_policy, 0, sizeof(memory_policy));
+  memset(&result, 0, sizeof(result));
+  memory_policy.external_write_allowed = platform_self_decrunch_external_write_allowed_local;
+  memory_policy.external_read = platform_self_decrunch_external_read_local;
+  memory_policy.user = (void *)object;
+  entry_root = reachable_decrunch_entry_root_local(section_analysis, event->source_section_index,
+    0U, event->copied_stub_transfer_site_offset, scratch_arena);
+  if (source_runtime_base > UINT32_MAX - entry_root) goto cleanup;
+  execution_start_pc = source_runtime_base + entry_root;
+  event->native_execution_start_pc = execution_start_pc;
+  state.pc = execution_start_pc;
+  state.a[7] = (uint32_t)memory_size;
+  step_limit = platform_self_decrunch_step_limit_for_output_local(event->decompressed_size);
+  if (m68k_simulate_run_concrete(platform_self_decrunch_execution_cpu_local(object, analysis),
+      memory, memory_size, &state,
+      step_limit, event->entrypoint, event->entrypoint + 16U,
+      &memory_policy, &result) != 0) {
+    if (diagnostics != NULL && !m68k_diag_has_errors(diagnostics))
+      platform_file_add_error(diagnostics, "native recognized unpacker simulation failed");
+    goto cleanup;
+  }
+  event->native_execution_attempted = 1U;
+  event->native_execution_stop_reason = (uint8_t)result.stop_reason;
+  if (result.stop_reason != M68K_SIM_CONCRETE_RUN_STOP_PC_RANGE || result.memory_write_range_overflow ||
+      result.memory_write_range_count == 0U) {
+    if (diagnostics != NULL && !m68k_diag_has_errors(diagnostics)) {
+      char message[160];
+      const char *detail = m68k_diag_first_message(&result.diagnostics);
+      if (detail != NULL && detail[0] != '\0') {
+        uint32_t pc = result.stop_pc;
+        if (pc <= memory_size - 4U) {
+          snprintf(message, sizeof(message), "native recognized unpacker stopped at %s pc=$%08X a7=$%08X bytes=%02X%02X%02X%02X: %s",
+            self_decrunch_sim_stop_reason_name_local((uint8_t)result.stop_reason), (unsigned)pc,
+            (unsigned)state.a[7],
+            (unsigned)memory[pc], (unsigned)memory[pc + 1U], (unsigned)memory[pc + 2U],
+            (unsigned)memory[pc + 3U], detail);
+        } else {
+          snprintf(message, sizeof(message), "native recognized unpacker stopped at %s pc=$%08X a7=$%08X: %s",
+            self_decrunch_sim_stop_reason_name_local((uint8_t)result.stop_reason), (unsigned)result.stop_pc,
+            (unsigned)state.a[7], detail);
+        }
+      } else {
+        snprintf(message, sizeof(message), "native recognized unpacker stopped at %s pc=$%08X a7=$%08X",
+          self_decrunch_sim_stop_reason_name_local((uint8_t)result.stop_reason), (unsigned)result.stop_pc,
+          (unsigned)state.a[7]);
+      }
+      platform_file_add_error(diagnostics, message);
+    }
+    goto cleanup;
+  }
+  if ((size_t)output_end > memory_size ||
+      !concrete_write_ranges_cover_span_local(&result, output_start, output_end - output_start)) {
+    if (diagnostics != NULL && !m68k_diag_has_errors(diagnostics))
+      platform_file_add_error(diagnostics, "native recognized unpacker writes do not cover modeled output span");
+    goto cleanup;
+  }
+  event->postpass_source_consumed_address = state.a[1];
+  (void)m68k_platform_sha256_hex(memory + output_start, event->decompressed_size,
+    event->decompressed_sha256);
+  event->entry_validation_attempted = 1U;
+  event->entry_validation_valid = 0U;
+  if (!validate_decompressed_entrypoint_bytes_local(memory + output_start, event->decompressed_size,
+      output_start, event->entrypoint,
+      &event->entry_validation_accepted_instructions,
+      &event->entry_validation_unsupported_instruction_demotes,
+      &event->entry_validation_required_instruction_failures,
+      &event->entry_validation_code_start_control_targets,
+      &event->entry_validation_valid) || !event->entry_validation_valid) {
+    goto cleanup;
+  }
+  if (output_path != NULL && output_path[0] != '\0' &&
+      write_bytes_to_path_local(output_path, memory + output_start, event->decompressed_size,
+        diagnostics) != 0) {
+    goto cleanup;
+  }
+  event->native_unpack_validated = 1U;
+  ok = 1;
+
+cleanup:
+  arena_rewind(scratch_arena, mark);
+  return ok;
+}
+
 static void recognized_unpacker_attach_copied_stub_local(const M68kSectionAnalysisIR *section_analysis,
     uint32_t marker_end, uint32_t code_end, PlatformRecognizedUnpackerEvent *event) {
   size_t view_index;
@@ -3629,20 +3896,23 @@ static void recognized_unpacker_attach_copied_stub_local(const M68kSectionAnalys
     view_end = event->copied_stub_storage_offset + (code_end - event->copied_stub_storage_offset);
     if (site->target < event->copied_stub_storage_offset || site->target >= view_end) continue;
     event->copied_stub_transfer_offset = site->target - event->copied_stub_storage_offset;
+    event->copied_stub_transfer_site_offset = site->offset;
     event->has_copied_stub_transfer = 1U;
     break;
   }
 }
 
-static int collect_recognized_tetragon_events_for_section_local(const M68kDecodeSectionIR *decode_section,
+static int collect_recognized_tetragon_events_for_section_local(const M68kObject *object,
+    const M68kSourceAnalysisIR *analysis, const M68kDecodeSectionIR *decode_section,
     const M68kSectionAnalysisIR *section_analysis, Arena *arena, PlatformRecognizedUnpackerEvent *events,
     size_t event_capacity, size_t *io_event_count, const char *materialize_event_id,
     const char *materialize_output_path, PlatformRecognizedUnpackerEvent *out_materialized_event,
     M68kDiagList *materialize_diagnostics) {
   static const unsigned char marker[] = " TETRAGON ";
   uint32_t offset;
-  if (decode_section == NULL || section_analysis == NULL || events == NULL || io_event_count == NULL ||
-      decode_section->data == NULL || decode_section->size < sizeof(marker) - 1U) {
+  if (object == NULL || analysis == NULL || decode_section == NULL || section_analysis == NULL ||
+      events == NULL || io_event_count == NULL || decode_section->data == NULL ||
+      decode_section->size < sizeof(marker) - 1U) {
     return 0;
   }
   for (offset = 0U; offset + (uint32_t)(sizeof(marker) - 1U) <= decode_section->size &&
@@ -3683,19 +3953,23 @@ static int collect_recognized_tetragon_events_for_section_local(const M68kDecode
     snprintf(event.codec_id, sizeof(event.codec_id), "tetragon");
     snprintf(event.codec_name, sizeof(event.codec_name), "Tetragon target-owned unpacker");
     snprintf(event.provider_id, sizeof(event.provider_id), "c-tetragon-signature");
-    if (materialize_event_id != NULL) {
+    recognized_unpacker_attach_copied_stub_local(section_analysis, marker_end, code_end, &event);
+    {
       char event_id[160];
       int materialize_this_event;
       make_recognized_unpacker_event_id_local(event_id, sizeof(event_id), &event);
-      materialize_this_event = strcmp(event_id, materialize_event_id) == 0;
-      (void)recognized_tetragon_try_unpack_event_local(arena, decode_section, &event,
-        materialize_this_event ? materialize_output_path : NULL,
+      materialize_this_event = materialize_event_id != NULL && strcmp(event_id, materialize_event_id) == 0;
+      (void)recognized_tetragon_try_unpack_event_local(arena, decode_section, &event, NULL,
         materialize_this_event ? materialize_diagnostics : NULL);
-      recognized_unpacker_attach_copied_stub_local(section_analysis, marker_end, code_end, &event);
+      if (event.has_copied_stub_transfer) {
+        (void)recognized_unpacker_try_native_copied_stub_local(object, analysis, decode_section,
+          section_analysis, &event, materialize_this_event ? materialize_output_path : NULL,
+          materialize_this_event ? materialize_diagnostics : NULL, arena);
+      } else if (materialize_this_event && event.native_unpack_validated) {
+        (void)recognized_tetragon_try_unpack_event_local(arena, decode_section, &event,
+          materialize_output_path, materialize_diagnostics);
+      }
       if (materialize_this_event && out_materialized_event != NULL) *out_materialized_event = event;
-    } else {
-      (void)recognized_tetragon_try_unpack_event_local(arena, decode_section, &event, NULL, NULL);
-      recognized_unpacker_attach_copied_stub_local(section_analysis, marker_end, code_end, &event);
     }
     if (!recognized_unpacker_event_duplicate_local(events, *io_event_count, &event)) {
       events[*io_event_count] = event;
@@ -3723,7 +3997,7 @@ static int collect_recognized_unpacker_events_local(const M68kObject *object,
   for (section_index = 0U; section_index < decode.section_count && *out_event_count < event_capacity;
       ++section_index) {
     if (section_index >= analysis->section_count) break;
-    if (collect_recognized_tetragon_events_for_section_local(&decode.sections[section_index],
+    if (collect_recognized_tetragon_events_for_section_local(object, analysis, &decode.sections[section_index],
         &analysis->sections[section_index], scratch_arena, events, event_capacity, out_event_count,
         materialize_event_id, materialize_output_path, out_materialized_event,
         materialize_diagnostics) != 0) {
@@ -3857,7 +4131,7 @@ static void trace_runtime_writes_from_candidate_local(const M68kDecodeCandidate 
     if (metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_MEMORY_WRITE &&
         width != 0U && runtime_address_from_operand_local(&instruction->operands[operand_index], *a_known,
           a_values, &address) &&
-        address >= 0x1000U && address <= UINT32_MAX - width && *io_write_count < write_capacity) {
+        address <= UINT32_MAX - width && *io_write_count < write_capacity) {
       writes[*io_write_count].start = address;
       writes[*io_write_count].end = address + width;
       *io_write_count += 1U;
@@ -4053,6 +4327,21 @@ static int platform_self_decrunch_external_write_allowed_local(void *user, uint3
   return address >= range_start && address + width <= range_end;
 }
 
+static int platform_self_decrunch_external_read_local(void *user, uint32_t address, uint8_t width,
+    uint32_t *out_value) {
+  if (out_value == NULL || !platform_self_decrunch_external_write_allowed_local(user, address, width)) return 0;
+  *out_value = 0U;
+  return 1;
+}
+
+static uint8_t platform_self_decrunch_execution_cpu_local(const M68kObject *object,
+    const M68kSourceAnalysisIR *analysis) {
+  if (object != NULL && object->platform_backend_kind == M68K_PLATFORM_BACKEND_AMIGA_HUNK) {
+    return M68K_ASM_CPU_68000;
+  }
+  return analysis != NULL ? analysis->policy.max_cpu : M68K_ASM_CPU_68000;
+}
+
 static void self_decrunch_grow_memory_for_runtime_address_local(size_t *io_memory_size, uint32_t address) {
   size_t end;
   if (io_memory_size == NULL || address > UINT32_MAX - PLATFORM_SELF_DECRUNCH_RUNTIME_LITERAL_SLOP) return;
@@ -4165,14 +4454,13 @@ static int simulate_provider_wrapper_candidate_local(const M68kObject *object,
   memset(&memory_policy, 0, sizeof(memory_policy));
   memset(&run_result, 0, sizeof(run_result));
   memory_policy.external_write_allowed = platform_self_decrunch_external_write_allowed_local;
+  memory_policy.external_read = platform_self_decrunch_external_read_local;
   memory_policy.user = (void *)object;
   state.pc = entry_offset;
   state.a[7] = (uint32_t)memory_size;
-  step_limit = result->decompressed_size > PLATFORM_PROVIDER_WRAPPER_STEP_LIMIT / 64U ?
-    PLATFORM_PROVIDER_WRAPPER_STEP_LIMIT : result->decompressed_size * 64U;
-  if (step_limit < PLATFORM_SELF_DECRUNCH_STEP_LIMIT) step_limit = PLATFORM_SELF_DECRUNCH_STEP_LIMIT;
-  if (m68k_simulate_run_concrete(analysis->policy.max_cpu, memory, memory_size, &state,
-      step_limit, transfer_target, transfer_target + 16U,
+  step_limit = platform_self_decrunch_step_limit_for_output_local(result->decompressed_size);
+  if (m68k_simulate_run_concrete(platform_self_decrunch_execution_cpu_local(object, analysis),
+      memory, memory_size, &state, step_limit, transfer_target, transfer_target + 16U,
       &memory_policy, &run_result) != 0) {
     goto cleanup;
   }
@@ -4290,6 +4578,18 @@ static int simulate_self_decrunch_output_local(const M68kObject *object, const M
     range_end = (size_t)range->runtime_address + range->size;
     if (range_end > memory_size) memory_size = range_end;
   }
+  if (event->source_section_index < analysis->section_count) {
+    const M68kSectionAnalysisIR *section_analysis = &analysis->sections[event->source_section_index];
+    size_t view_index;
+    for (view_index = 0U; view_index < section_analysis->runtime_view_count; ++view_index) {
+      const M68kRuntimeViewIR *view = &section_analysis->runtime_views[view_index];
+      size_t view_end;
+      if (!view->materialized || view->size == 0U || view->runtime_address > UINT32_MAX - view->size)
+        continue;
+      view_end = (size_t)view->runtime_address + view->size;
+      if (view_end > memory_size) memory_size = view_end;
+    }
+  }
   if (memory_size > PLATFORM_SELF_DECRUNCH_MEMORY_LIMIT || event->decompressor_entry_offset >= section->size) return 0;
   mark = arena_mark(scratch_arena);
   memory = (uint8_t *)arena_calloc(scratch_arena, memory_size, 1U);
@@ -4314,14 +4614,31 @@ static int simulate_self_decrunch_output_local(const M68kObject *object, const M
     }
     memcpy(memory + range->runtime_address, source_section->data + range->offset, range->size);
   }
+  if (event->source_section_index < analysis->section_count && event->source_section_index < object->section_count) {
+    const M68kSectionAnalysisIR *section_analysis = &analysis->sections[event->source_section_index];
+    const M68kSection *source_section = &object->sections[event->source_section_index];
+    size_t view_index;
+    for (view_index = 0U; view_index < section_analysis->runtime_view_count; ++view_index) {
+      const M68kRuntimeViewIR *view = &section_analysis->runtime_views[view_index];
+      if (!view->materialized || view->size == 0U || view->runtime_address > UINT32_MAX - view->size ||
+          source_section->data == NULL || view->storage_offset > source_section->data_size ||
+          view->size > source_section->data_size - view->storage_offset ||
+          (size_t)view->runtime_address + view->size > memory_size) {
+        continue;
+      }
+      memcpy(memory + view->runtime_address, source_section->data + view->storage_offset, view->size);
+    }
+  }
   memset(&state, 0, sizeof(state));
   memset(&memory_policy, 0, sizeof(memory_policy));
   memset(&result, 0, sizeof(result));
   memory_policy.external_write_allowed = platform_self_decrunch_external_write_allowed_local;
+  memory_policy.external_read = platform_self_decrunch_external_read_local;
   memory_policy.user = (void *)object;
   state.pc = event->decompressor_entry_offset;
   state.a[7] = (uint32_t)memory_size;
-  if (m68k_simulate_run_concrete(analysis->policy.max_cpu, memory, memory_size, &state,
+  if (m68k_simulate_run_concrete(platform_self_decrunch_execution_cpu_local(object, analysis),
+      memory, memory_size, &state,
       PLATFORM_SELF_DECRUNCH_STEP_LIMIT,
       event->entrypoint, event->entrypoint + 16U, &memory_policy, &result) != 0) {
     if (diagnostics != NULL && !m68k_diag_has_errors(diagnostics))
@@ -4375,8 +4692,22 @@ static int simulate_self_decrunch_output_local(const M68kObject *object, const M
   out_event->has_simulated_output = 1U;
   out_event->simulated_output_start = output_start;
   out_event->simulated_output_end = output_end;
+  if (out_event->observed_write_count == 0U) {
+    out_event->observed_write_start = output_start;
+    out_event->observed_write_end = output_end;
+    out_event->observed_write_count = (uint32_t)result.memory_write_range_count;
+  }
   (void)m68k_platform_sha256_hex(memory + output_start, output_end - output_start,
     out_event->simulated_output_sha256);
+  out_event->entry_validation_attempted = 1U;
+  out_event->entry_validation_valid = 0U;
+  (void)validate_decompressed_entrypoint_bytes_local(memory + output_start, output_end - output_start,
+    output_start, event->entrypoint,
+    &out_event->entry_validation_accepted_instructions,
+    &out_event->entry_validation_unsupported_instruction_demotes,
+    &out_event->entry_validation_required_instruction_failures,
+    &out_event->entry_validation_code_start_control_targets,
+    &out_event->entry_validation_valid);
   ok = 1;
 
 cleanup:
@@ -4422,6 +4753,7 @@ static int collect_self_decrunch_events_for_section(const M68kObject *object, co
     uint32_t observed_write_end = 0U;
     uint32_t observed_write_count = 0U;
     uint8_t parent_remains_active = 1U;
+    uint8_t event_emitted = 0U;
     if (section_analysis->certain_code_start[offset] == 0U) continue;
     if (previous_end != UINT32_MAX && offset != previous_end && offset != bridge_target) {
       a_known = 0U;
@@ -4474,6 +4806,83 @@ static int collect_self_decrunch_events_for_section(const M68kObject *object, co
       if (!self_decrunch_event_duplicate_local(events, *io_event_count, &event)) {
         events[*io_event_count] = event;
         *io_event_count += 1U;
+      }
+      event_emitted = 1U;
+    }
+    if (!event_emitted &&
+        runtime_transfer_target_from_candidate_min_local(decode_section, section_analysis, candidate, 0U, 0U,
+          &target, &parent_remains_active) &&
+        !parent_remains_active) {
+      PlatformSelfDecrunchEvent event;
+      char event_id[160];
+      int materialize_this_event;
+      memset(&event, 0, sizeof(event));
+      event.source_section_index = (uint32_t)section_index;
+      event.decompressor_entry_offset = reachable_decrunch_entry_root_local(section_analysis, section_index,
+        run_start, offset, scratch_arena);
+      event.transfer_offset = offset;
+      event.load_address = target;
+      event.entrypoint = target;
+      event.parent_remains_active = parent_remains_active;
+      make_self_decrunch_event_id_local(event_id, sizeof(event_id), &event);
+      materialize_this_event = materialize_event_id != NULL && strcmp(event_id, materialize_event_id) == 0;
+      if (simulate_self_decrunch_output_local(object, analysis, decode_section, &event, &event,
+          materialize_this_event ? materialize_output_path : NULL,
+          materialize_this_event ? materialize_diagnostics : NULL, scratch_arena)) {
+        if (materialize_this_event && out_materialized_event != NULL) *out_materialized_event = event;
+        if (!self_decrunch_event_duplicate_local(events, *io_event_count, &event)) {
+          events[*io_event_count] = event;
+          *io_event_count += 1U;
+        }
+      }
+    }
+  }
+  for (offset = 0U; offset < section_analysis->runtime_view_count && *io_event_count < event_capacity; ++offset) {
+    const M68kRuntimeViewIR *view = &section_analysis->runtime_views[offset];
+    uint32_t view_storage_end;
+    size_t ref_index;
+    if (!view->materialized || view->size == 0U || view->storage_offset > UINT32_MAX - view->size)
+      continue;
+    view_storage_end = view->storage_offset + view->size;
+    for (ref_index = 0U; ref_index < section_analysis->code_start_ref_count &&
+        *io_event_count < event_capacity; ++ref_index) {
+      const M68kCodeStartRefIR *ref = &section_analysis->code_start_refs[ref_index];
+      const M68kDecodeCandidate *candidate = NULL;
+      uint32_t target = 0U;
+      uint8_t parent_remains_active = 1U;
+      PlatformSelfDecrunchEvent event;
+      char event_id[160];
+      int materialize_this_event;
+      if (ref->reason != M68K_FACT_CODE_START_REASON_CONTROL_TARGET ||
+          !ref->has_runtime_address || ref->source_section_index != section_index ||
+          ref->source_offset < view->storage_offset || ref->source_offset >= view_storage_end) {
+        continue;
+      }
+      if (m68k_decode_ir_ensure_candidate_at((M68kDecodeIR *)decode, section_index, ref->source_offset,
+          analysis->policy.max_cpu, &candidate, m68k_diag_sink(NULL)) != 0 ||
+          candidate == NULL || candidate->byte_count == 0U ||
+          !runtime_transfer_target_from_candidate_min_local(decode_section, section_analysis, candidate, 0U, 0U,
+            &target, &parent_remains_active) ||
+          parent_remains_active || target != ref->runtime_address) {
+        continue;
+      }
+      memset(&event, 0, sizeof(event));
+      event.source_section_index = (uint32_t)section_index;
+      event.decompressor_entry_offset = view->runtime_address;
+      event.transfer_offset = ref->source_offset;
+      event.load_address = target;
+      event.entrypoint = target;
+      event.parent_remains_active = 0U;
+      make_self_decrunch_event_id_local(event_id, sizeof(event_id), &event);
+      materialize_this_event = materialize_event_id != NULL && strcmp(event_id, materialize_event_id) == 0;
+      if (simulate_self_decrunch_output_local(object, analysis, decode_section, &event, &event,
+          materialize_this_event ? materialize_output_path : NULL,
+          materialize_this_event ? materialize_diagnostics : NULL, scratch_arena)) {
+        if (materialize_this_event && out_materialized_event != NULL) *out_materialized_event = event;
+        if (!self_decrunch_event_duplicate_local(events, *io_event_count, &event)) {
+          events[*io_event_count] = event;
+          *io_event_count += 1U;
+        }
       }
     }
   }
@@ -4625,6 +5034,20 @@ static int append_recognized_unpacker_event_json(JsonBuilder *builder,
         json_builder_appendf(builder, ",\"copied_stub_transfer_offset\":%u",
           (unsigned)event->copied_stub_transfer_offset) != 0)
       return -1;
+    if (event->has_copied_stub_transfer &&
+        json_builder_appendf(builder, ",\"copied_stub_transfer_site_offset\":%u",
+          (unsigned)event->copied_stub_transfer_site_offset) != 0)
+      return -1;
+  }
+  if (event->native_execution_attempted) {
+    if (json_builder_appendf(builder, ",\"native_execution_attempted\":true,"
+        "\"native_execution_start_pc\":%u,"
+        "\"native_execution_stop_reason\":",
+        (unsigned)event->native_execution_start_pc) != 0 ||
+        json_builder_append_json_string(builder,
+          self_decrunch_sim_stop_reason_name_local(event->native_execution_stop_reason)) != 0) {
+      return -1;
+    }
   }
   if (event->entry_validation_attempted) {
     if (json_builder_appendf(builder,
@@ -4662,6 +5085,8 @@ static int append_self_decrunch_event_json(JsonBuilder *builder, const PlatformS
   uint8_t status;
   uint8_t reason;
   uint8_t parent_remains_active;
+  uint8_t payload_role;
+  uint8_t payload_confidence;
   if (builder == NULL || event == NULL) return -1;
   make_self_decrunch_event_id_local(event_id, sizeof(event_id), event);
   status = event->has_simulated_output ? PLATFORM_DECOMPRESSION_STATUS_SIMULATED_OUTPUT_OBSERVED :
@@ -4669,6 +5094,12 @@ static int append_self_decrunch_event_json(JsonBuilder *builder, const PlatformS
   reason = self_decrunch_event_reason_id_local(event);
   parent_remains_active = event->parent_remains_active ? PLATFORM_DECOMPRESSION_PARENT_REMAINS_ACTIVE_TRUE :
     PLATFORM_DECOMPRESSION_PARENT_REMAINS_ACTIVE_FALSE;
+  payload_role = (event->has_simulated_output && event->entry_validation_valid && !event->parent_remains_active) ?
+    PLATFORM_DECOMPRESSION_PAYLOAD_ROLE_PRIMARY_PROGRAM :
+    PLATFORM_DECOMPRESSION_PAYLOAD_ROLE_UNKNOWN_RUNTIME_PAYLOAD;
+  payload_confidence = payload_role == PLATFORM_DECOMPRESSION_PAYLOAD_ROLE_PRIMARY_PROGRAM ?
+    PLATFORM_DECOMPRESSION_PAYLOAD_ROLE_CONFIDENCE_NATIVE_UNPACK_ENTRY_VALIDATED :
+    PLATFORM_DECOMPRESSION_PAYLOAD_ROLE_CONFIDENCE_OBSERVED_OUTPUT_ONLY;
   if (json_builder_appendf(builder, "{\"event_kind_id\":%u,\"event_kind\":",
       (unsigned)PLATFORM_DECOMPRESSION_EVENT_KIND_DECOMPRESSION) != 0 ||
       json_builder_append_json_string(builder,
@@ -4681,15 +5112,13 @@ static int append_self_decrunch_event_json(JsonBuilder *builder, const PlatformS
       json_builder_append_json_string(builder, decompression_reason_name_local(reason)) != 0 ||
       json_builder_appendf(builder,
         ",\"payload_role_id\":%u,\"payload_role\":",
-        (unsigned)PLATFORM_DECOMPRESSION_PAYLOAD_ROLE_UNKNOWN_RUNTIME_PAYLOAD) != 0 ||
+        (unsigned)payload_role) != 0 ||
       json_builder_append_json_string(builder,
-        decompression_payload_role_name_local(PLATFORM_DECOMPRESSION_PAYLOAD_ROLE_UNKNOWN_RUNTIME_PAYLOAD)) != 0 ||
+        decompression_payload_role_name_local(payload_role)) != 0 ||
       json_builder_appendf(builder,
         ",\"payload_role_confidence_id\":%u,\"payload_role_confidence\":",
-        (unsigned)PLATFORM_DECOMPRESSION_PAYLOAD_ROLE_CONFIDENCE_OBSERVED_OUTPUT_ONLY) != 0 ||
-      json_builder_append_json_string(builder,
-        decompression_payload_role_confidence_name_local(
-          PLATFORM_DECOMPRESSION_PAYLOAD_ROLE_CONFIDENCE_OBSERVED_OUTPUT_ONLY)) != 0 ||
+        (unsigned)payload_confidence) != 0 ||
+      json_builder_append_json_string(builder, decompression_payload_role_confidence_name_local(payload_confidence)) != 0 ||
       json_builder_appendf(builder, ",\"parent_remains_active_id\":%u,\"parent_remains_active\":",
         (unsigned)parent_remains_active) != 0 ||
       json_builder_append_json_string(builder,
@@ -4744,6 +5173,21 @@ static int append_self_decrunch_event_json(JsonBuilder *builder, const PlatformS
       if (json_builder_append(builder, ",\"simulated_output_sha256\":") != 0 ||
           json_builder_append_json_string(builder, event->simulated_output_sha256) != 0)
         return -1;
+    }
+  }
+  if (event->entry_validation_attempted) {
+    if (json_builder_appendf(builder,
+        ",\"entry_validation_attempted\":true,\"entry_validation_valid\":%s,"
+        "\"entry_validation_accepted_instructions\":%u,"
+        "\"entry_validation_unsupported_instruction_demotes\":%u,"
+        "\"entry_validation_required_instruction_failures\":%u,"
+        "\"entry_validation_code_start_control_targets\":%u",
+        event->entry_validation_valid ? "true" : "false",
+        (unsigned)event->entry_validation_accepted_instructions,
+        (unsigned)event->entry_validation_unsupported_instruction_demotes,
+        (unsigned)event->entry_validation_required_instruction_failures,
+        (unsigned)event->entry_validation_code_start_control_targets) != 0) {
+      return -1;
     }
   }
   return json_builder_append(builder, "}");

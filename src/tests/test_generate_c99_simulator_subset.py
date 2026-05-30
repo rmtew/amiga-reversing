@@ -269,6 +269,41 @@ class GenerateC99SimulatorSubsetTests(unittest.TestCase):
         self.assertEqual(instructions["ROL, ROR"]["execution"]["semantic_op"], "rotate")
         self.assertEqual(instructions["ROXL, ROXR"]["execution"]["semantic_op"], "rotate_extend")
 
+    def test_ccr_formula_inference_uses_parsed_condition_code_effects(self) -> None:
+        kb = json.loads((ROOT / "knowledge" / "m68k_instructions.json").read_text(encoding="utf-8"))
+        instructions = {entry["mnemonic"]: entry for entry in kb["instructions"]}
+        for mnemonic in ("ADDA", "SUBA", "BRA", "MOVE16", "PVALID"):
+            self.assertEqual(instructions[mnemonic]["execution"]["ccr"]["formula"], None)
+            self.assertFalse(instructions[mnemonic]["execution"]["ccr"]["writes"])
+        for mnemonic in ("AND", "ANDI", "EOR", "EORI", "EXT, EXTB", "NOT", "OR", "ORI", "SWAP"):
+            self.assertEqual(instructions[mnemonic]["execution"]["ccr"]["formula"], "test_flags")
+            self.assertTrue(instructions[mnemonic]["execution"]["ccr"]["writes"])
+        self.assertEqual(instructions["MOVE"]["execution"]["ccr"]["formula"], "move_flags")
+        self.assertEqual(instructions["MOVEQ"]["execution"]["ccr"]["formula"], "move_flags")
+        self.assertEqual(instructions["MOVEA"]["execution"]["ccr"]["formula"], None)
+        self.assertEqual(instructions["MOVE to CCR"]["execution"]["ccr"]["formula"], "write_ccr")
+        self.assertEqual(instructions["MOVE to SR"]["execution"]["ccr"]["formula"], "write_sr")
+
+    def test_ccr_formula_does_not_claim_pdf_not_affected_rows(self) -> None:
+        kb = json.loads((ROOT / "knowledge" / "m68k_instructions.json").read_text(encoding="utf-8"))
+        unexpected = []
+        special_register_writes = {"MOVE to CCR", "MOVE to SR"}
+        for inst in kb["instructions"]:
+            if inst["mnemonic"] in special_register_writes:
+                continue
+            execution = inst.get("execution")
+            if not isinstance(execution, dict):
+                continue
+            ccr = execution.get("ccr", {})
+            if not isinstance(ccr, dict) or ccr.get("formula") is None:
+                continue
+            condition_codes = inst.get("condition_codes", {})
+            if not isinstance(condition_codes, dict):
+                continue
+            if all(value in ("", "\u2014", "Not affected") for value in condition_codes.values()):
+                unexpected.append(inst["mnemonic"])
+        self.assertEqual(unexpected, [])
+
     def test_only_width_irrelevant_accesses_remain_widthless(self) -> None:
         kb = json.loads((ROOT / "knowledge" / "m68k_instructions.json").read_text(encoding="utf-8"))
         unexpected = []

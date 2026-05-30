@@ -930,14 +930,14 @@ def test_import_adf_materializes_c_recognized_unpacker_valid_child_from_real_fix
         (target for target in manifest.imported_targets if target.target_type == "raw_binary"),
         key=lambda target: target.derived_from["source_section"] if target.derived_from is not None else -1,
     )
-    assert len(children) == 1
+    assert len(children) == 2
     assert parent.derived_targets == [
         {
             "kind": "decompressed_payload",
             "kind_id": 1,
-            "target_name": children[0].target_name,
+            "target_name": child.target_name,
             "provider_id": "c-tetragon-native",
-            "event_id": children[0].derived_from["event_id"],
+            "event_id": child.derived_from["event_id"],
             "codec_id": "tetragon",
             "payload_role": "primary_program",
             "payload_role_id": 2,
@@ -945,10 +945,12 @@ def test_import_adf_materializes_c_recognized_unpacker_valid_child_from_real_fix
             "payload_role_confidence_id": 2,
             "parent_remains_active": "false",
             "parent_remains_active_id": 1,
-        },
+        }
+        for child in children
     ]
     expected = {
         1: (0x40000, 0x40000, 0x10000, "6fa11625a70f82fc4df5f318ccb149ceeb2687f4af36643c5089090d37a2c0b9"),
+        2: (0x1000, 0x59484, 0x779C9, "34389204110c8bc4972eb3f0a7f8d1b73779fde10f1a5e48eb36b7c8068ea65a"),
     }
     for child in children:
         assert child.derived_from is not None

@@ -4621,10 +4621,59 @@
   "imported_targets": [
     {
       "binary_path": "C:/Data/R/git/claude-repos/amiga-reversing2/bin/Conqueror (1990)(Rainbow Arts)(de-en)[cr QTX].adf::CONQUEROR",
+      "derived_targets": [
+        {
+          "codec_id": "unknown-self-decrunch",
+          "event_id": "decompression:self_decrunch:section:0:00000040:00000400",
+          "kind": "decompressed_payload",
+          "kind_id": 1,
+          "parent_remains_active": "false",
+          "parent_remains_active_id": 1,
+          "payload_role": "primary_program",
+          "payload_role_confidence": "native_unpack_entry_validated",
+          "payload_role_confidence_id": 2,
+          "payload_role_id": 2,
+          "provider_id": "m68k-sim-decrunch",
+          "target_name": "amiga_disk_conqueror-1990-rainbow-arts-de-en__amiga_raw_conqueror_cf971606_simdecrunch_00_00000040_00000400"
+        }
+      ],
       "entry_path": "CONQUEROR",
       "target_name": "amiga_disk_conqueror-1990-rainbow-arts-de-en__amiga_hunk_conqueror_cf971606",
       "target_path": "targets/amiga_disk_conqueror-1990-rainbow-arts-de-en/targets/amiga_hunk_conqueror_cf971606",
       "target_type": "program"
+    },
+    {
+      "binary_path": "targets/amiga_disk_conqueror-1990-rainbow-arts-de-en/targets/amiga_raw_conqueror_cf971606_simdecrunch_00_00000040_00000400/binary.bin",
+      "derived_from": {
+        "child_entry_path": "CONQUEROR::simdecrunch_00_00000040",
+        "child_target": "amiga_disk_conqueror-1990-rainbow-arts-de-en__amiga_raw_conqueror_cf971606_simdecrunch_00_00000040_00000400",
+        "codec_id": "unknown-self-decrunch",
+        "codec_name": "Unidentified target-owned self-decruncher",
+        "decompressed_size": 7424,
+        "decompressor_code_section": 0,
+        "decompressor_entry_offset": 64,
+        "entrypoint": 1024,
+        "event_id": "decompression:self_decrunch:section:0:00000040:00000400",
+        "kind": "decompressed_payload",
+        "kind_id": 1,
+        "load_address": 1024,
+        "parent_entry_path": "CONQUEROR",
+        "parent_remains_active": "false",
+        "parent_remains_active_id": 1,
+        "parent_target": "amiga_disk_conqueror-1990-rainbow-arts-de-en__amiga_hunk_conqueror_cf971606",
+        "payload_role": "primary_program",
+        "payload_role_confidence": "native_unpack_entry_validated",
+        "payload_role_confidence_id": 2,
+        "payload_role_id": 2,
+        "provider_id": "m68k-sim-decrunch",
+        "source_kind": "self_decruncher",
+        "source_kind_id": 3,
+        "transfer_offset": 546
+      },
+      "entry_path": "CONQUEROR::simdecrunch_00_00000040",
+      "target_name": "amiga_disk_conqueror-1990-rainbow-arts-de-en__amiga_raw_conqueror_cf971606_simdecrunch_00_00000040_00000400",
+      "target_path": "targets/amiga_disk_conqueror-1990-rainbow-arts-de-en/targets/amiga_raw_conqueror_cf971606_simdecrunch_00_00000040_00000400",
+      "target_type": "raw_binary"
     },
     {
       "binary_path": "C:/Data/R/git/claude-repos/amiga-reversing2/bin/Conqueror (1990)(Rainbow Arts)(de-en)[cr QTX].adf::bootblock",
