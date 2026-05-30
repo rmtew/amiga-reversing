@@ -1,63 +1,126 @@
 # TODO
 
-## Rendered source round-trip priority
+## Payload target decompression failure
 
-Direct rebuild exactness is a tooling-quality signal: it proves the loader, internal model, and rebuilder can preserve
-the original bytes without passing through the human-facing `.s` file. It is not the completion criterion for restored
-source.
+### `amiga_disk_conqueror-1990-rainbow-arts-de-en` / `amiga_hunk_conqueror_cf971606`
 
-The core target is rendered source round-trip exactness:
+We extract compressed payloads as child targets for Damocles for example which has two tetragon decompression payloads we identify and show in the web UI. However there is no successfully extracted payload and child target shown in  `conqueror_cf971606.s`.
 
-1. Rendered source exact at container level where the original file shape can be reproduced by the standard assembler
-   and standard container writer.
-2. Rendered source exact at content level where code/data bytes are exact but the original container uses odd ordering,
-   padding, relocation encoding, or auxiliary layout that should be classified rather than copied with per-target
-   workarounds.
-3. Direct rebuild exact only is insufficient except as a diagnostic that remaining defects are in source rendering,
-   assembly, or supported container output.
-4. Assembler errors and source byte mismatches are active defects unless the verifier can prove and report an explicit
-   unsupported container-only reason.
+## Disassembly failures
 
-Current `.s` target status:
+### `amiga_disk_starglider-1987-rainbird` / `amiga_hunk_sg_9832b282` / `sg_9832b282.s` case study
 
-- `amiga_hunk_genam`: direct rebuild exact and rendered source exact. This is the reference success state.
-- `amiga_hunk_monam302`: direct rebuild exact, rendered source assembles but has 111 diff ranges. Fix source
-  rendering/assembler exactness before treating it as complete.
-- `amiga_hunk_bloodwych`: direct rebuild exact, rendered source currently fails assembly on
-  `abs_0_00008ECC`. Fix label/materialized-address emission generally; do not add a Bloodwych-only symbol workaround.
-- `amiga_disk_magicland-dizzy-1991-codemasters-trsi-lsd__amiga_hunk_md_e066dc14`: direct rebuild exact, rendered
-  source assembles but has one diff range. Determine whether that is a real source defect or a classified
-  container/content distinction, then make the verifier say which.
-- `amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8`: rendered source fails assembly on
-  `abs_0_0005CCF5`. This remains a general absolute/runtime label materialization or data-block splitting defect, not a
-  Pandora-specific patch point.
-- `macos_hfs_mpw_gm__macos_file_mpw_tools_asm`: round-trip unsupported until the Mac target has a resolvable
-  `source_binary.json` and assembler/container support. Keep Mac `asm.s` out of the Amiga round-trip success claim.
+This should never be emitted through auto-analysis outside of the context of MacOS jump tables for instance. Non-terminating instructions directly precede data. And "ori" is a classic false positive code recognition. Multiple blocks are emitted with this.
+```
+loc_0_00006098:
+	ori.w #112,$0(a0,d0.w)
+	ori.b #136,d0
+	dc.b $00,$88,$00,$00,$00,$00,$01,$04,$01,$04,$00,$00,$00,$00,$02,$02
+	dc.b $02,$02,$00,$00,$00,$00,$84,$01,$84,$01,$00,$00,$00,$00,$48,$00
+	dc.b $48,$00,$00,$00,$00,$00,$30,$00,$30
+	dcb.b $D,$00
+```
 
-Acceptance rule: prefer standard, reusable assembler/container behavior. If exact container reproduction is impossible
-or not worth supporting for a non-standard input shape, record a content-exact result with an explicit structural reason
-instead of adding target-specific rebuild behavior.
+Here we have a RTS (terminating instruction) polluting the emitted string, and it highlights an orphan code block that precedes it - possibly from the start of the block. The inline symbols suggest this is the case. We may not convert this and may flag it to the user for review, but it should possibly aid in excluding the bad string signal from the strings.
+```
+	dc.b $60,$00,$FE,$82,$48,$E7,$FF,$FE,$3F,$01,$43,$FA,$00,$F2,$22,$BC
+	dc.b $20,$20,$20,$20,$23,$7C,$20,$20,$20,$20,$00,$04,$61,$00,$A9,$8A
+	dc.b $61,$00,$14,$14,$20,$6E,$00,$04,$D0,$FC,$04,$D0,$43,$FA,$00,$CC
+	dc.b $23,$FC,$00,$00,$00,$01
+	dc.l loc_0_00009882
+	dc.b $61,$00,$17,$D8,$30,$1F,$43,$FA,$00,$D4,$22,$BC,$20,$20,$20,$20
+	dc.b $23,$7C,$20,$20,$20,$20,$00,$04,$61,$00,$A9,$54,$20,$6E,$00,$04
+	dc.b $D0,$FC,$06,$60,$43,$FA,$00,$B2,$23,$FC,$00,$00,$00,$01
+	dc.l loc_0_00009882
+	dc.b $61,$00,$17,$A6,$61,$00,$16,$78,$4C,$DF,$7F,$FF,$4E,$75,$48,$E7
+	dc.b $FF,$FE,$30,$01,$43,$FA,$00,$AC,$22,$BC,$20,$20,$20,$20,$23,$7C
+	dc.b $20,$20,$20,$20,$00,$04,$61,$00,$A9,$14,$20,$6E,$00,$04,$D0,$FC
+	dc.b $07,$F0,$43,$FA,$00,$8A,$23,$FC,$00,$00,$00,$01
+	dc.l loc_0_00009882
+	dc.b $61,$00,$17,$66,$61,$00,$16,$38,$4C,$DF,$7F,$FF,$4E,$75,$48,$E7
+	dc.b $FF,$FE,$30,$01,$43,$FA,$00,$84,$22,$BC,$20,$20,$20,$20,$23,$7C
+	dc.b $20,$20,$20,$20,$00,$04,$61,$00,$A8,$D4,$20,$6E,$00,$04,$D0,$FC
+	dc.b $09,$80,$43,$FA,$00,$62,$23,$FC,$00,$00,$00,$01
+	dc.l loc_0_00009882
+	dc.b $61,$00,$17,$26,$61,$00,$15,$F8,$4C,$DF,$7F,$FF
+	dc.b "NuD0        00000000",$00	; string
+```
+
+## String rendering and analysis
+
+### `monam302.s` case study
+
+There's a good argument that we can detect `loc_0_000081C6` is valid text with an upper case english-style word and punctuation. See also `loc_0_00004CA8`. We can gain confirmation by typing of usage of many of these, even API parameter types lining up.
+
+```
+loc_0_000081C6:
+	dc.b $4C,$49,$42,$53,$3A
+loc_0_000081CB:
+	dc.b "monam.libfile",$00	; string
+```
+
+Also:
+
+```
+loc_0_00000000:
+	bra.w loc_0_00000094
+	dc.b $4D,$4F,$4E,$20
+```
+
+If that is a valid heuristic then it should be possible to apply it generally to character constant representations.
+
+```
+	cmp.l #$434F4445,d1
+	beq.b loc_0_00007304
+	cmp.l #$48554E4B,d1
+	bne.b loc_0_000072C2
+```
+
+## Type analysis, variable naming and propagation
+
+In this we know the output for calls like _LVOOpenScreen and _LVOOpenWindow. We know the type of calls like this and should be able to associate type and generate a name for the storage locations using general logic pulling in platform specific API data (generally applicable to all platforms), whether members in RSSET ranges or labels to data statements somewhere. Examples of names might be platform-profile driven, where for Amiga it might be `app_ScreenPtr` and `app_WindowPtr`.
+
+There is nominal typing exhibited for the screen pointer with `sc_BarHeight`, however similar typing is not applied to either naming or access to the `NewScreen` or `NewWindow` structures whose pointers are passed into the calls. If `loc_0_00000492` is a `NewScreen` it should be named as such, and it should be typed as such, with either use of `.i` structs if possible or typed and annotated fields if more suitable. Any access into the ptr output structs is then open to auto-analysis similar to that which in theory is typing, naming and propagating in this code block.
+
+```
+loc_0_0000022C:
+	lea.l loc_0_00000492(pc),a0
+	move.w d1,$0004(a0)
+	move.w d0,$0006(a0)
+	move.w d2,$000C(a0)
+	move.b loc_0_00000027(pc),d0
+	move.b $0147(a6),d1
+	eor.b d1,d0
+	moveq.l #1,d1
+	and.l d1,d0
+	eor.b d1,d0
+	move.l d0,loc_0_000004BA.l
+	move.l a6,-(a7)
+	movea.l app_IntuitionBase(a6),a6
+	jsr _LVOOpenScreen(a6)
+	movea.l (a7)+,a6
+	move.l d0,app_00CE(a6)
+	beq.w loc_0_000003EA
+	movea.l d0,a1
+	lea.l loc_0_000004CA(pc),a0
+	move.l a1,$001E(a0)
+	moveq.l #1,d1
+	add.b sc_BarHeight(a1),d1
+	move.l loc_0_00000496(pc),$0004(a0)
+	move.w d1,$0002(a0)
+	sub.w d1,$0006(a0)
+	move.l a6,-(a7)
+	movea.l app_IntuitionBase(a6),a6
+	jsr _LVOOpenWindow(a6)
+	movea.l (a7)+,a6
+	move.l d0,app_05B4(a6)
+```
 
 ## Amiga/Pandora resolved notes
 
 This section tracks current general-analysis follow-ups that use Pandora as concrete evidence. Proposal 015 is closed as
 the historical Pandora reversing-loop trial; these entries should be resolved as reusable C analysis/rendering work
 unless the evidence proves a genuinely target-specific Pandora artifact.
-
-### Orphaned label definitions
-
-`abs_0_00056218` has no accesses only a definition. This reflects a lack of awareness of why we are emitting these
-orphaned labels and what it means with respect to our analysis being correct. Are we identifying absolute address
-references perhaps and not substituting the in-segment/bootstrapped range label for that address at point of access?
-
-Resolution note: generated labels now separate expression eligibility from standalone label-statement emission in the
-C renderer. A local address may still be usable in symbolic operands or table rows, but it is only emitted as a
-definition when accepted code, explicit naming, relocation/storage data, sink-backed runtime data, or a proven
-structured table needs that source label to exist. PC-relative xrefs are now harvested only from accepted candidates,
-so raw-data decode candidates cannot manufacture label definitions. Runtime refs that render as alternate external
-runtime symbols no longer force unrelated source-offset labels. Covered by `render_ir_suppresses_orphan_structured_field_label`,
-existing runtime/table/copper render tests, `cmd /c src\precommit.bat m68k_ir`, and a Pandora raw render check showing
-`abs_0_00056218:` count `0`.
 
 ### Address classification and labelisation
 
@@ -272,3 +335,16 @@ section already has a nearby sequence of prior structured strings and the neares
 bytes. This keeps the normal mid-string split guard intact while allowing the final `COPYRIGHT 1991 CODEMASTERS
 SOFTWARE LTD.` record to render as byte-preserving quoted source. Covered by
 `facts_v2_control_separated_ascii_sequence_keeps_printable_separator_tail`.
+
+## Hand notes
+
+### Guided user reviews
+
+I've become convinced that a reverse engineering tool has the ability to do a set of minimal things that can streamline the experience for users.
+
+- Use heuristics to judge whether data is likely to be code as a building block.
+- Use heuristics to identify orphan code blocks and use that to aid in correct analysis.
+
+### Implementation mistakes
+
+Fixed capacities were used for tables of various kinds and data that fell outside were truncated from one or both of analysis or enhanced non-data rendering. There never should have been fixed capacities and the presence of fallback for failure is a failure in and of itself. We should never have used fixed capacities and if we did, encountering the limit should be a failure case that requires the code to be refactored to remove them.
