@@ -1,5 +1,6 @@
-; OS compatibility
-;   status: no_os_calls
+; AmigaOS compatibility
+;   required OS floor: unknown
+;   evidence: no recovered OS calls
 
 amiga_loadseg_segment_link	EQU	-4
 

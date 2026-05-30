@@ -42,8 +42,9 @@
 ;     absolute[$000680AA] refs=3 access=a
 ;     ... additional absolute memory ranges omitted
 
-; OS compatibility
-;   status: no_os_calls
+; AmigaOS compatibility
+;   required OS floor: unknown
+;   evidence: no recovered OS calls
 
     INCLUDE "hardware/adkbits.i"
     INCLUDE "hardware/cia.i"

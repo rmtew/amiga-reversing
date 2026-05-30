@@ -8,8 +8,9 @@
 ;     absolute[$00059484] refs=2 access=a
 ;     absolute[$0007FFFF] refs=1 access=a
 
-; OS compatibility
-;   status: no_os_calls
+; AmigaOS compatibility
+;   required OS floor: unknown
+;   evidence: no recovered OS calls
 
     INCLUDE "hardware/cia.i"
     INCLUDE "hardware/custom.i"

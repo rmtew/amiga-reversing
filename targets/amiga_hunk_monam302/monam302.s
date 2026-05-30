@@ -1,16 +1,13 @@
-; OS compatibility
-;   minimum required: 1.3
-;   observed API availability: 1.2, 1.3
-;   observed FD/interface versions: v33
-;   max requirement drivers:
-;     _LVOAllocMem at section_0+$000000AC requires 1.3
-;     _LVOOpenLibrary at section_0+$000000E8 requires 1.3
-;     _LVOOpenLibrary at section_0+$00000102 requires 1.3
-;     _LVOOpenLibrary at section_0+$0000011C requires 1.3
-;     _LVOOpenDevice at section_0+$00000142 requires 1.3
-;     _LVOFindTask at section_0+$00000156 requires 1.3
-;     _LVOAllocSignal at section_0+$0000016E requires 1.3
-;     _LVOAllocSignal at section_0+$00000180 requires 1.3
+; AmigaOS compatibility, inferred from recovered OS calls
+;   required OS floor: 1.3
+;   evidence: highest recovered API requirement is 1.3
+;   requirement drivers:
+;     1.3: 277 recovered call sites across 61 API groups
+;          first observed: _LVOAllocMem x5, _LVOOpenLibrary x3, _LVOOpenDevice, _LVOFindTask, _LVOAllocSignal x2
+;          _LVOAddPort, _LVOSupervisor x2, _LVOGetPrefs
+;          remaining groups: 53; inspect JSON report
+;   lower-version APIs also observed: 1.2
+;   interface metadata: FD v33
 
     INCLUDE "devices/console_lib.i"
     INCLUDE "dos/dos.i"

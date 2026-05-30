@@ -2,12 +2,11 @@
 ;   Absolute memory refs:
 ;     absolute[$00040000] refs=1 access=a
 
-; OS compatibility
-;   minimum required: 1.3
-;   observed API availability: 1.3
-;   observed FD/interface versions: none
-;   max requirement drivers:
-;     _LVODoIO at section_0+$0000002E requires 1.3
+; AmigaOS compatibility, inferred from recovered OS calls
+;   required OS floor: 1.3
+;   evidence: highest recovered API requirement is 1.3
+;   requirement drivers:
+;     1.3: _LVODoIO
 
     INCLUDE "exec/exec_lib.i"
     INCLUDE "exec/io.i"

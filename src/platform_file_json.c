@@ -2677,6 +2677,87 @@ static int append_platform_summary_versions_json(JsonBuilder *builder, const cha
   return json_builder_append(builder, "]");
 }
 
+static int append_platform_summary_fd_metadata_json(JsonBuilder *builder, const char versions[][16], size_t count) {
+  size_t index;
+  char metadata[32];
+  if (builder == NULL || json_builder_append(builder, "[") != 0) return -1;
+  for (index = 0U; index < count; ++index) {
+    if (index != 0U && json_builder_append(builder, ",") != 0) return -1;
+    snprintf(metadata, sizeof(metadata), "FD v%s", versions[index]);
+    if (json_builder_append_json_string(builder, metadata) != 0) return -1;
+  }
+  return json_builder_append(builder, "]");
+}
+
+static int append_platform_summary_driver_json(JsonBuilder *builder, const M68kTargetOsRequirementDriver *driver) {
+  if (builder == NULL || driver == NULL) return -1;
+  if (json_builder_appendf(builder, "{\"section_index\":%u,\"offset\":%u,\"call\":",
+      (unsigned)driver->section_index, (unsigned)driver->offset) != 0)
+    return -1;
+  if (json_builder_append_json_string(builder, driver->call) != 0) return -1;
+  if (json_builder_append(builder, ",\"owner\":") != 0) return -1;
+  if (json_builder_append_nullable_string(builder, driver->has_owner ? driver->owner : NULL) != 0) return -1;
+  if (json_builder_append(builder, ",\"available_since\":") != 0) return -1;
+  if (json_builder_append_json_string(builder, driver->available_since) != 0) return -1;
+  if (json_builder_append(builder, ",\"fd_version\":") != 0) return -1;
+  if (json_builder_append_nullable_string(builder, driver->has_fd_version ? driver->fd_version : NULL) != 0)
+    return -1;
+  return json_builder_append(builder, "}");
+}
+
+static int append_platform_summary_drivers_json(JsonBuilder *builder,
+    const M68kTargetOsRequirementDriver drivers[], size_t count) {
+  size_t index;
+  if (builder == NULL || json_builder_append(builder, "[") != 0) return -1;
+  for (index = 0U; index < count; ++index) {
+    if (index != 0U && json_builder_append(builder, ",") != 0) return -1;
+    if (append_platform_summary_driver_json(builder, &drivers[index]) != 0) return -1;
+  }
+  return json_builder_append(builder, "]");
+}
+
+static int append_platform_summary_requirement_groups_json(JsonBuilder *builder,
+    const M68kTargetOsCompatibilitySummary *os_summary) {
+  size_t index;
+  if (builder == NULL || json_builder_append(builder, "[") != 0) return -1;
+  if (os_summary == NULL) return -1;
+  for (index = 0U; index < os_summary->requirement_group_count; ++index) {
+    const M68kTargetOsRequirementGroup *group = &os_summary->requirement_groups[index];
+    size_t driver_index;
+    uint32_t emitted_location_count = 0U;
+    if (index != 0U && json_builder_append(builder, ",") != 0) return -1;
+    if (json_builder_append(builder, "{\"available_since\":") != 0) return -1;
+    if (json_builder_append_json_string(builder, group->available_since) != 0) return -1;
+    if (json_builder_append(builder, ",\"call\":") != 0) return -1;
+    if (json_builder_append_json_string(builder, group->call) != 0) return -1;
+    if (json_builder_append(builder, ",\"owner\":") != 0) return -1;
+    if (json_builder_append_nullable_string(builder, group->has_owner ? group->owner : NULL) != 0) return -1;
+    if (json_builder_append(builder, ",\"fd_version\":") != 0) return -1;
+    if (json_builder_append_nullable_string(builder, group->has_fd_version ? group->fd_version : NULL) != 0)
+      return -1;
+    if (json_builder_appendf(builder, ",\"count\":%u,\"locations\":[", (unsigned)group->count) != 0)
+      return -1;
+    for (driver_index = 0U; driver_index < os_summary->raw_requirement_driver_count; ++driver_index) {
+      const M68kTargetOsRequirementDriver *driver = &os_summary->raw_requirement_drivers[driver_index];
+      if (strcmp(group->call, driver->call) != 0 ||
+          strcmp(group->available_since, driver->available_since) != 0 ||
+          group->has_owner != driver->has_owner ||
+          (group->has_owner && strcmp(group->owner, driver->owner) != 0)) {
+        continue;
+      }
+      if (emitted_location_count != 0U && json_builder_append(builder, ",") != 0) return -1;
+      if (json_builder_appendf(builder, "{\"section_index\":%u,\"offset\":%u}",
+          (unsigned)driver->section_index, (unsigned)driver->offset) != 0)
+        return -1;
+      ++emitted_location_count;
+    }
+    if (json_builder_appendf(builder, "],\"locations_truncated\":%s}",
+        os_summary->raw_requirement_drivers_truncated && emitted_location_count < group->count ? "true" : "false") != 0)
+      return -1;
+  }
+  return json_builder_append(builder, "]");
+}
+
 static int append_platform_summary_json(JsonBuilder *builder, const M68kSourceAnalysisIR *source_analysis) {
   M68kTargetPlatformSummary summary;
   const M68kTargetOsCompatibilitySummary *os_summary;
@@ -2690,43 +2771,58 @@ static int append_platform_summary_json(JsonBuilder *builder, const M68kSourceAn
     return -1;
   }
   if (os_summary->status == M68K_TARGET_OS_COMPATIBILITY_NO_OS_CALLS) {
-    if (json_builder_append(builder, "\"status\":\"no_os_calls\",\"minimum_required\":null,"
-        "\"observed_available_since\":[],\"observed_fd_versions\":[],\"max_requirement_drivers\":[]") != 0)
+    if (json_builder_append(builder, "\"status\":\"no_os_calls\",\"minimum_required\":null,\"required_floor\":null,"
+        "\"observed_available_since\":[],\"lower_observed_available_since\":[],\"observed_fd_versions\":[],"
+        "\"interface_metadata\":[],\"raw_requirement_drivers\":[],\"requirement_groups\":[],"
+        "\"max_requirement_drivers\":[],\"raw_requirement_drivers_truncated\":false,"
+        "\"max_requirement_drivers_truncated\":false,\"requirement_groups_truncated\":false") != 0)
       return -1;
   } else if (os_summary->status == M68K_TARGET_OS_COMPATIBILITY_UNKNOWN) {
-    if (json_builder_append(builder, "\"status\":\"unknown\",\"minimum_required\":null,"
-        "\"observed_available_since\":[],\"observed_fd_versions\":[],\"max_requirement_drivers\":[]") != 0)
+    if (json_builder_append(builder, "\"status\":\"unknown\",\"minimum_required\":null,\"required_floor\":null,"
+        "\"observed_available_since\":[],\"lower_observed_available_since\":[],\"observed_fd_versions\":[],"
+        "\"interface_metadata\":[],\"raw_requirement_drivers\":[],\"requirement_groups\":[],"
+        "\"max_requirement_drivers\":[],\"raw_requirement_drivers_truncated\":false,"
+        "\"max_requirement_drivers_truncated\":false,\"requirement_groups_truncated\":false") != 0)
       return -1;
   } else {
-    size_t index;
     if (json_builder_append(builder, "\"status\":\"observed\",\"minimum_required\":") != 0) return -1;
+    if (json_builder_append_json_string(builder, os_summary->minimum_required) != 0) return -1;
+    if (json_builder_append(builder, ",\"required_floor\":") != 0) return -1;
     if (json_builder_append_json_string(builder, os_summary->minimum_required) != 0) return -1;
     if (json_builder_append(builder, ",\"observed_available_since\":") != 0) return -1;
     if (append_platform_summary_versions_json(builder, os_summary->observed_available_since,
         os_summary->observed_available_since_count) != 0)
       return -1;
+    if (json_builder_append(builder, ",\"lower_observed_available_since\":") != 0) return -1;
+    if (append_platform_summary_versions_json(builder, os_summary->lower_observed_available_since,
+        os_summary->lower_observed_available_since_count) != 0)
+      return -1;
     if (json_builder_append(builder, ",\"observed_fd_versions\":") != 0) return -1;
     if (append_platform_summary_versions_json(builder, os_summary->observed_fd_versions,
         os_summary->observed_fd_version_count) != 0)
       return -1;
-    if (json_builder_append(builder, ",\"max_requirement_drivers\":[") != 0) return -1;
-    for (index = 0U; index < os_summary->max_requirement_driver_count; ++index) {
-      const M68kTargetOsRequirementDriver *driver = &os_summary->max_requirement_drivers[index];
-      if (index != 0U && json_builder_append(builder, ",") != 0) return -1;
-      if (json_builder_appendf(builder, "{\"section_index\":%u,\"offset\":%u,\"call\":",
-          (unsigned)driver->section_index, (unsigned)driver->offset) != 0)
-        return -1;
-      if (json_builder_append_json_string(builder, driver->call) != 0) return -1;
-      if (json_builder_append(builder, ",\"owner\":") != 0) return -1;
-      if (json_builder_append_nullable_string(builder, driver->has_owner ? driver->owner : NULL) != 0) return -1;
-      if (json_builder_append(builder, ",\"available_since\":") != 0) return -1;
-      if (json_builder_append_json_string(builder, driver->available_since) != 0) return -1;
-      if (json_builder_append(builder, ",\"fd_version\":") != 0) return -1;
-      if (json_builder_append_nullable_string(builder, driver->has_fd_version ? driver->fd_version : NULL) != 0)
-        return -1;
-      if (json_builder_append(builder, "}") != 0) return -1;
-    }
-    if (json_builder_append(builder, "]") != 0) return -1;
+    if (json_builder_append(builder, ",\"interface_metadata\":") != 0) return -1;
+    if (append_platform_summary_fd_metadata_json(builder, os_summary->observed_fd_versions,
+        os_summary->observed_fd_version_count) != 0)
+      return -1;
+    if (json_builder_append(builder, ",\"raw_requirement_drivers\":") != 0) return -1;
+    if (append_platform_summary_drivers_json(builder, os_summary->raw_requirement_drivers,
+        os_summary->raw_requirement_driver_count) != 0)
+      return -1;
+    if (json_builder_append(builder, ",\"requirement_groups\":") != 0) return -1;
+    if (append_platform_summary_requirement_groups_json(builder, os_summary) != 0)
+      return -1;
+    if (json_builder_append(builder, ",\"max_requirement_drivers\":") != 0) return -1;
+    if (append_platform_summary_drivers_json(builder, os_summary->max_requirement_drivers,
+        os_summary->max_requirement_driver_count) != 0)
+      return -1;
+    if (json_builder_appendf(builder,
+        ",\"raw_requirement_drivers_truncated\":%s,\"max_requirement_drivers_truncated\":%s,"
+        "\"requirement_groups_truncated\":%s",
+        os_summary->raw_requirement_drivers_truncated ? "true" : "false",
+        os_summary->max_requirement_drivers_truncated ? "true" : "false",
+        os_summary->requirement_groups_truncated ? "true" : "false") != 0)
+      return -1;
   }
   return json_builder_append(builder, "}}");
 }

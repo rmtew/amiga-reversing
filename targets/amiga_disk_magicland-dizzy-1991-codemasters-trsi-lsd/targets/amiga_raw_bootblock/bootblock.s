@@ -1,11 +1,8 @@
-; OS compatibility
-;   minimum required: 1.3
-;   observed API availability: 1.3
-;   observed FD/interface versions: none
-;   max requirement drivers:
-;     _LVOOpenLibrary at section_0+$00000012 requires 1.3
-;     _LVOCloseLibrary at section_0+$00000022 requires 1.3
-;     _LVOFindResident at section_0+$0000002A requires 1.3
+; AmigaOS compatibility, inferred from recovered OS calls
+;   required OS floor: 1.3
+;   evidence: highest recovered API requirement is 1.3
+;   requirement drivers:
+;     1.3: _LVOOpenLibrary, _LVOCloseLibrary, _LVOFindResident
 
     INCLUDE "exec/exec_lib.i"
     INCLUDE "exec/resident.i"

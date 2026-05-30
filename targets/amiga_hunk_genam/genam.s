@@ -1,10 +1,9 @@
-; OS compatibility
-;   minimum required: 2.0
-;   observed API availability: 1.3, 2.0
-;   observed FD/interface versions: none
-;   max requirement drivers:
-;     _LVOGetSysTime at section_0+$0000AA6A requires 2.0
-;     _LVOGetSysTime at section_0+$0000ABF6 requires 2.0
+; AmigaOS compatibility, inferred from recovered OS calls
+;   required OS floor: 2.0
+;   evidence: highest recovered API requirement is 2.0
+;   requirement drivers:
+;     2.0: _LVOGetSysTime x2
+;   lower-version APIs also observed: 1.3
 
     INCLUDE "devices/timer.i"
     INCLUDE "devices/timer_lib.i"

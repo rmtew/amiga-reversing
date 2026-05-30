@@ -6,8 +6,9 @@
 ;     absolute[$0005FFFC] refs=1 access=a
 ;     absolute[$FFFFC190] refs=1 access=a
 
-; OS compatibility
-;   status: no_os_calls
+; AmigaOS compatibility
+;   required OS floor: unknown
+;   evidence: no recovered OS calls
 
     INCLUDE "graphics/copper.i"
     INCLUDE "graphics/display.i"

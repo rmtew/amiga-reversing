@@ -4,13 +4,11 @@
 ;   Absolute memory refs:
 ;     absolute[$00080000] refs=1 access=a
 
-; OS compatibility
-;   minimum required: 1.3
-;   observed API availability: 1.3
-;   observed FD/interface versions: none
-;   max requirement drivers:
-;     _LVOFreeMem at section_1+$0000001E requires 1.3
-;     _LVOSuperState at section_6+$00000018 requires 1.3
+; AmigaOS compatibility, inferred from recovered OS calls
+;   required OS floor: 1.3
+;   evidence: highest recovered API requirement is 1.3
+;   requirement drivers:
+;     1.3: _LVOFreeMem, _LVOSuperState
 
     INCLUDE "exec/exec_lib.i"
     INCLUDE "hardware/adkbits.i"

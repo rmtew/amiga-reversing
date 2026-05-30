@@ -39,8 +39,9 @@
 ;     absolute[$00068E0C] refs=1 access=a
 ;     ... additional absolute memory ranges omitted
 
-; OS compatibility
-;   status: no_os_calls
+; AmigaOS compatibility
+;   required OS floor: unknown
+;   evidence: no recovered OS calls
 
     INCLUDE "graphics/copper.i"
     INCLUDE "graphics/display.i"

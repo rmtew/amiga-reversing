@@ -929,6 +929,27 @@ static void target_platform_summary_append_version(char versions[][16], uint16_t
   ++*io_count;
 }
 
+static int target_platform_summary_version_rank(const char *version, uint16_t *out_rank) {
+  return amiga_os_compatibility_version_rank(version, out_rank);
+}
+
+static void target_platform_summary_append_lower_versions(M68kTargetOsCompatibilitySummary *summary) {
+  uint16_t required_rank = 0U;
+  size_t index;
+  if (summary == NULL || summary->minimum_required[0] == '\0' ||
+      !target_platform_summary_version_rank(summary->minimum_required, &required_rank)) {
+    return;
+  }
+  for (index = 0U; index < summary->observed_available_since_count; ++index) {
+    uint16_t rank = summary->observed_available_since_ranks[index];
+    if (rank < required_rank) {
+      target_platform_summary_append_version(summary->lower_observed_available_since,
+        summary->lower_observed_available_since_ranks, &summary->lower_observed_available_since_count,
+        summary->observed_available_since[index], 0);
+    }
+  }
+}
+
 static const char *target_platform_summary_call_display_name(const M68kRecoveredPlatformCallIR *call) {
   const char *name;
   if (call == NULL) return "unknown";
@@ -943,30 +964,98 @@ static int target_platform_summary_call_is_amiga_os(const M68kRecoveredPlatformC
     call->note_symbol_ref.platform_kind == M68K_PLATFORM_BACKEND_AMIGA_HUNK);
 }
 
-static void target_platform_summary_record_driver(M68kTargetOsCompatibilitySummary *summary,
+static void target_platform_summary_fill_driver(M68kTargetOsRequirementDriver *driver,
     const M68kSectionAnalysisIR *section, const M68kRecoveredPlatformCallIR *call) {
-  M68kTargetOsRequirementDriver *driver;
   const char *owner;
-  if (summary == NULL || section == NULL || call == NULL ||
-      summary->max_requirement_driver_count >= M68K_TARGET_PLATFORM_SUMMARY_DRIVER_CAPACITY) {
+  if (driver == NULL || section == NULL || call == NULL) {
     return;
   }
-  driver = &summary->max_requirement_drivers[summary->max_requirement_driver_count++];
   memset(driver, 0, sizeof(*driver));
   driver->section_index = (uint32_t)section->section_index;
   driver->offset = call->offset;
-  snprintf(driver->call, sizeof(driver->call), "%s", target_platform_summary_call_display_name(call));
+  driver->call = target_platform_summary_call_display_name(call);
   owner = m68k_platform_name_ref_resolve_text_or_fallback(&call->note_base_ref, call->note_base_name);
   if (owner != NULL && owner[0] != '\0') {
     driver->has_owner = 1U;
-    snprintf(driver->owner, sizeof(driver->owner), "%s", owner);
+    driver->owner = owner;
   }
-  snprintf(driver->available_since, sizeof(driver->available_since), "%s",
-    call->available_since != NULL ? call->available_since : "");
+  driver->available_since = call->available_since != NULL ? call->available_since : "";
   if (call->fd_version != NULL && call->fd_version[0] != '\0') {
     driver->has_fd_version = 1U;
-    snprintf(driver->fd_version, sizeof(driver->fd_version), "%s", call->fd_version);
+    driver->fd_version = call->fd_version;
   }
+}
+
+static int target_platform_summary_same_requirement_group(const M68kTargetOsRequirementGroup *group,
+    const M68kTargetOsRequirementDriver *driver) {
+  if (group == NULL || driver == NULL) return 0;
+  return strcmp(group->call, driver->call) == 0 &&
+    strcmp(group->available_since, driver->available_since) == 0 &&
+    group->has_owner == driver->has_owner &&
+    (!group->has_owner || strcmp(group->owner, driver->owner) == 0);
+}
+
+static void target_platform_summary_group_append_location(M68kTargetOsRequirementGroup *group,
+    const M68kTargetOsRequirementDriver *driver) {
+  if (group == NULL || driver == NULL) return;
+  ++group->count;
+  if (group->has_fd_version &&
+    (!driver->has_fd_version || strcmp(group->fd_version, driver->fd_version) != 0)) {
+    group->has_fd_version = 0U;
+    group->fd_version = NULL;
+  }
+}
+
+static void target_platform_summary_record_requirement_group(M68kTargetOsCompatibilitySummary *summary,
+    const M68kTargetOsRequirementDriver *driver) {
+  M68kTargetOsRequirementGroup *group;
+  size_t index;
+  if (summary == NULL || driver == NULL) return;
+  for (index = 0U; index < summary->requirement_group_count; ++index) {
+    group = &summary->requirement_groups[index];
+    if (target_platform_summary_same_requirement_group(group, driver)) {
+      target_platform_summary_group_append_location(group, driver);
+      return;
+    }
+  }
+  if (summary->requirement_group_count >= M68K_TARGET_PLATFORM_SUMMARY_GROUP_CAPACITY) {
+    summary->requirement_groups_truncated = 1U;
+    return;
+  }
+  group = &summary->requirement_groups[summary->requirement_group_count++];
+  memset(group, 0, sizeof(*group));
+  group->call = driver->call;
+  group->available_since = driver->available_since;
+  group->has_owner = driver->has_owner;
+  if (driver->has_owner) group->owner = driver->owner;
+  group->has_fd_version = driver->has_fd_version;
+  if (driver->has_fd_version) group->fd_version = driver->fd_version;
+  target_platform_summary_group_append_location(group, driver);
+}
+
+static void target_platform_summary_record_raw_driver(M68kTargetOsCompatibilitySummary *summary,
+    const M68kSectionAnalysisIR *section, const M68kRecoveredPlatformCallIR *call) {
+  M68kTargetOsRequirementDriver driver;
+  if (summary == NULL || section == NULL || call == NULL) return;
+  target_platform_summary_fill_driver(&driver, section, call);
+  if (summary->raw_requirement_driver_count >= M68K_TARGET_PLATFORM_SUMMARY_RAW_DRIVER_CAPACITY) {
+    summary->raw_requirement_drivers_truncated = 1U;
+  } else {
+    summary->raw_requirement_drivers[summary->raw_requirement_driver_count++] = driver;
+  }
+  target_platform_summary_record_requirement_group(summary, &driver);
+}
+
+static void target_platform_summary_record_max_driver(M68kTargetOsCompatibilitySummary *summary,
+    const M68kSectionAnalysisIR *section, const M68kRecoveredPlatformCallIR *call) {
+  M68kTargetOsRequirementDriver *driver;
+  if (summary == NULL || section == NULL || call == NULL) return;
+  if (summary->max_requirement_driver_count >= M68K_TARGET_PLATFORM_SUMMARY_DRIVER_CAPACITY) {
+    summary->max_requirement_drivers_truncated = 1U;
+    return;
+  }
+  driver = &summary->max_requirement_drivers[summary->max_requirement_driver_count++];
+  target_platform_summary_fill_driver(driver, section, call);
 }
 
 int m68k_target_platform_summary_build(const M68kSourceAnalysisIR *source_analysis, uint8_t platform_backend_kind,
@@ -994,12 +1083,16 @@ int m68k_target_platform_summary_build(const M68kSourceAnalysisIR *source_analys
       target_platform_summary_append_version(out_summary->os_compatibility.observed_fd_versions,
         out_summary->os_compatibility.observed_fd_version_ranks,
         &out_summary->os_compatibility.observed_fd_version_count, call->fd_version, 1);
-      if (amiga_os_compatibility_version_rank(call->available_since, &rank) && rank >= max_rank) {
+      if (amiga_os_compatibility_version_rank(call->available_since, &rank)) {
+        target_platform_summary_record_raw_driver(&out_summary->os_compatibility, section, call);
+      }
+      if (rank != 0U && rank >= max_rank) {
         if (rank > max_rank) {
           max_rank = rank;
           out_summary->os_compatibility.max_requirement_driver_count = 0U;
+          out_summary->os_compatibility.max_requirement_drivers_truncated = 0U;
         }
-        target_platform_summary_record_driver(&out_summary->os_compatibility, section, call);
+        target_platform_summary_record_max_driver(&out_summary->os_compatibility, section, call);
       }
     }
   }
@@ -1013,6 +1106,7 @@ int m68k_target_platform_summary_build(const M68kSourceAnalysisIR *source_analys
       sizeof(out_summary->os_compatibility.minimum_required), "%s",
       out_summary->os_compatibility.observed_available_since[
         out_summary->os_compatibility.observed_available_since_count - 1U]);
+    target_platform_summary_append_lower_versions(&out_summary->os_compatibility);
   }
   return 0;
 }

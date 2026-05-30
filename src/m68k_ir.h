@@ -1049,7 +1049,9 @@ typedef struct M68kRecoveredPlatformCallIR {
 } M68kRecoveredPlatformCallIR;
 
 #define M68K_TARGET_PLATFORM_SUMMARY_VERSION_CAPACITY 16U
-#define M68K_TARGET_PLATFORM_SUMMARY_DRIVER_CAPACITY 8U
+#define M68K_TARGET_PLATFORM_SUMMARY_RAW_DRIVER_CAPACITY 512U
+#define M68K_TARGET_PLATFORM_SUMMARY_DRIVER_CAPACITY 64U
+#define M68K_TARGET_PLATFORM_SUMMARY_GROUP_CAPACITY 128U
 
 typedef enum M68kTargetOsCompatibilityStatus {
   M68K_TARGET_OS_COMPATIBILITY_NO_OS_CALLS = 0,
@@ -1060,13 +1062,23 @@ typedef enum M68kTargetOsCompatibilityStatus {
 typedef struct M68kTargetOsRequirementDriver {
   uint32_t section_index;
   uint32_t offset;
-  char call[128];
-  char owner[128];
-  char available_since[16];
-  char fd_version[16];
+  const char *call;
+  const char *owner;
+  const char *available_since;
+  const char *fd_version;
   uint8_t has_owner;
   uint8_t has_fd_version;
 } M68kTargetOsRequirementDriver;
+
+typedef struct M68kTargetOsRequirementGroup {
+  const char *call;
+  const char *owner;
+  const char *available_since;
+  const char *fd_version;
+  uint32_t count;
+  uint8_t has_owner;
+  uint8_t has_fd_version;
+} M68kTargetOsRequirementGroup;
 
 typedef struct M68kTargetOsCompatibilitySummary {
   uint8_t status;
@@ -1074,12 +1086,22 @@ typedef struct M68kTargetOsCompatibilitySummary {
   char observed_available_since[M68K_TARGET_PLATFORM_SUMMARY_VERSION_CAPACITY][16];
   uint16_t observed_available_since_ranks[M68K_TARGET_PLATFORM_SUMMARY_VERSION_CAPACITY];
   size_t observed_available_since_count;
+  char lower_observed_available_since[M68K_TARGET_PLATFORM_SUMMARY_VERSION_CAPACITY][16];
+  uint16_t lower_observed_available_since_ranks[M68K_TARGET_PLATFORM_SUMMARY_VERSION_CAPACITY];
+  size_t lower_observed_available_since_count;
   char observed_fd_versions[M68K_TARGET_PLATFORM_SUMMARY_VERSION_CAPACITY][16];
   uint16_t observed_fd_version_ranks[M68K_TARGET_PLATFORM_SUMMARY_VERSION_CAPACITY];
   size_t observed_fd_version_count;
   char minimum_required[16];
+  M68kTargetOsRequirementDriver raw_requirement_drivers[M68K_TARGET_PLATFORM_SUMMARY_RAW_DRIVER_CAPACITY];
+  size_t raw_requirement_driver_count;
   M68kTargetOsRequirementDriver max_requirement_drivers[M68K_TARGET_PLATFORM_SUMMARY_DRIVER_CAPACITY];
   size_t max_requirement_driver_count;
+  M68kTargetOsRequirementGroup requirement_groups[M68K_TARGET_PLATFORM_SUMMARY_GROUP_CAPACITY];
+  size_t requirement_group_count;
+  uint8_t raw_requirement_drivers_truncated;
+  uint8_t max_requirement_drivers_truncated;
+  uint8_t requirement_groups_truncated;
 } M68kTargetOsCompatibilitySummary;
 
 typedef struct M68kTargetPlatformSummary {

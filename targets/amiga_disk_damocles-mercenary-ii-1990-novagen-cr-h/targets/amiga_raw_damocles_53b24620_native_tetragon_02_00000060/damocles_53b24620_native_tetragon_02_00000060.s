@@ -1,8 +1,9 @@
 ; Memory map
 ;   code[$00000000-$0007B14A] -> runtime[$00001000-$0007C14A] policy materialized
 
-; OS compatibility
-;   status: no_os_calls
+; AmigaOS compatibility
+;   required OS floor: unknown
+;   evidence: no recovered OS calls
 
     SECTION code,code
     ORG $1000

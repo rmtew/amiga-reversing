@@ -18,19 +18,14 @@
 ;     absolute[$FFFFFE00] refs=1 access=a
 ;     absolute[$FFFFFFFF] refs=3 access=a
 
-; OS compatibility
-;   minimum required: 1.3
-;   observed API availability: 1.3
-;   observed FD/interface versions: none
-;   max requirement drivers:
-;     _LVOSetSignal at section_0+$0000003C requires 1.3
-;     _LVOOpenLibrary at section_0+$00000046 requires 1.3
-;     _LVOAllocMem at section_0+$000000A8 requires 1.3
-;     _LVOWaitPort at section_0+$0000010A requires 1.3
-;     _LVOGetMsg at section_0+$00000112 requires 1.3
-;     _LVODupLock at section_0+$0000012E requires 1.3
-;     _LVOCurrentDir at section_0+$00000138 requires 1.3
-;     _LVOOpen at section_0+$00000148 requires 1.3
+; AmigaOS compatibility, inferred from recovered OS calls
+;   required OS floor: 1.3
+;   evidence: highest recovered API requirement is 1.3
+;   requirement drivers:
+;     1.3: 109 recovered call sites across 50 API groups
+;          first observed: _LVOSetSignal, _LVOOpenLibrary x3, _LVOAllocMem x8, _LVOWaitPort, _LVOGetMsg, _LVODupLock
+;          _LVOCurrentDir x2, _LVOOpen x7
+;          remaining groups: 42; inspect JSON report
 
     INCLUDE "dos/dos.i"
     INCLUDE "dos/dos_lib.i"

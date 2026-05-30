@@ -4,16 +4,11 @@
 ;   Absolute memory refs:
 ;     absolute[$8F406117] refs=1 access=r
 
-; OS compatibility
-;   minimum required: 1.3
-;   observed API availability: 1.3
-;   observed FD/interface versions: none
-;   max requirement drivers:
-;     _LVOOldOpenLibrary at section_0+$0000000A requires 1.3
-;     _LVOOutput at section_0+$00000016 requires 1.3
-;     _LVOInput at section_0+$00000020 requires 1.3
-;     _LVOWrite at section_0+$0000003E requires 1.3
-;     _LVOSuperState at section_0+$000000CE requires 1.3
+; AmigaOS compatibility, inferred from recovered OS calls
+;   required OS floor: 1.3
+;   evidence: highest recovered API requirement is 1.3
+;   requirement drivers:
+;     1.3: _LVOOldOpenLibrary, _LVOOutput, _LVOInput, _LVOWrite, _LVOSuperState
 
     INCLUDE "dos/dos_lib.i"
     INCLUDE "exec/exec_lib.i"

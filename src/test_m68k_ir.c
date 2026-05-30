@@ -643,6 +643,12 @@ static int test_target_platform_summary_builds_os_compatibility_once(void) {
   M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_recovered_platform_call(&section,
     M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x40u, 1U, "_LVONew", M68K_PLATFORM_CALL_NOTE_DIRECT_OS_CALL,
     "DOSBase", NULL, 0U, 0, 0, 0U, 0U, 0U, "2.1", "38"));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_recovered_platform_call(&section,
+    M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x60u, 1U, "_LVONew", M68K_PLATFORM_CALL_NOTE_DIRECT_OS_CALL,
+    "DOSBase", NULL, 0U, 0, 0, 0U, 0U, 0U, "2.1", "38"));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_recovered_platform_call(&section,
+    M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x80u, 1U, "_LVOOther", M68K_PLATFORM_CALL_NOTE_DIRECT_OS_CALL,
+    "DOSBase", NULL, 0U, 0, 0, 0U, 0U, 0U, "2.1", "38"));
   M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source, &section));
 
   M68K_C_ASSERT_INT(0, m68k_target_platform_summary_build(&source, M68K_PLATFORM_BACKEND_AMIGA_HUNK, &summary));
@@ -655,11 +661,25 @@ static int test_target_platform_summary_builds_os_compatibility_once(void) {
   M68K_C_ASSERT_U32(2U, (uint32_t)os_summary->observed_fd_version_count);
   M68K_C_ASSERT_STR("37", os_summary->observed_fd_versions[0]);
   M68K_C_ASSERT_STR("38", os_summary->observed_fd_versions[1]);
-  M68K_C_ASSERT_U32(1U, (uint32_t)os_summary->max_requirement_driver_count);
+  M68K_C_ASSERT_U32(1U, (uint32_t)os_summary->lower_observed_available_since_count);
+  M68K_C_ASSERT_STR("2.04", os_summary->lower_observed_available_since[0]);
+  M68K_C_ASSERT_U32(4U, (uint32_t)os_summary->raw_requirement_driver_count);
+  M68K_C_ASSERT_U32(3U, (uint32_t)os_summary->max_requirement_driver_count);
   M68K_C_ASSERT_STR("_LVONew", os_summary->max_requirement_drivers[0].call);
   M68K_C_ASSERT_STR("DOSBase", os_summary->max_requirement_drivers[0].owner);
   M68K_C_ASSERT_STR("2.1", os_summary->max_requirement_drivers[0].available_since);
   M68K_C_ASSERT_STR("38", os_summary->max_requirement_drivers[0].fd_version);
+  M68K_C_ASSERT_U32(3U, (uint32_t)os_summary->requirement_group_count);
+  M68K_C_ASSERT_STR("_LVOOld", os_summary->requirement_groups[0].call);
+  M68K_C_ASSERT_U32(1U, os_summary->requirement_groups[0].count);
+  M68K_C_ASSERT_STR("_LVONew", os_summary->requirement_groups[1].call);
+  M68K_C_ASSERT_U32(2U, os_summary->requirement_groups[1].count);
+  M68K_C_ASSERT_U32(0x40U, os_summary->raw_requirement_drivers[1].offset);
+  M68K_C_ASSERT_U32(0x60U, os_summary->raw_requirement_drivers[2].offset);
+  M68K_C_ASSERT_STR("_LVOOther", os_summary->requirement_groups[2].call);
+  M68K_C_ASSERT_U32(0U, os_summary->raw_requirement_drivers_truncated);
+  M68K_C_ASSERT_U32(0U, os_summary->max_requirement_drivers_truncated);
+  M68K_C_ASSERT_U32(0U, os_summary->requirement_groups_truncated);
 
   m68k_ir_source_analysis_destroy(&source);
   m68k_ir_section_analysis_destroy(&section);
@@ -13451,13 +13471,24 @@ static int test_facts_v2_render_asm_source_renders_seeded_lvo_symbol(void) {
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
     &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
-  M68K_C_ASSERT(strstr(source, "; OS compatibility\n") != NULL);
-  M68K_C_ASSERT(strstr(source, ";   minimum required: ") != NULL);
+  M68K_C_ASSERT(strstr(source, "; AmigaOS compatibility, inferred from recovered OS calls\n") != NULL);
+  M68K_C_ASSERT(strstr(source, ";   required OS floor: ") != NULL);
+  M68K_C_ASSERT(strstr(source, ";   evidence: highest recovered API requirement is ") != NULL);
+  M68K_C_ASSERT(strstr(source, ";   requirement drivers:") != NULL);
+  M68K_C_ASSERT(strstr(source, ";   max requirement drivers:") == NULL);
+  M68K_C_ASSERT(strstr(source, "section_0+$") == NULL);
+  M68K_C_ASSERT(strstr(source, "observed FD/interface versions") == NULL);
   M68K_C_ASSERT(strstr(source, "\tjsr _LVOAlert(a6)\n") != NULL);
   M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(analysis_json != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"platform_summary\":{\"memory_map\":") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"os_compatibility\":{\"status\":\"observed\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"required_floor\":") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"raw_requirement_drivers\":") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"requirement_groups\":") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"call\":\"_LVOAlert\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"locations\":[{\"section_index\":0,\"offset\":0}]") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"locations_truncated\":false") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
   free(analysis_json);

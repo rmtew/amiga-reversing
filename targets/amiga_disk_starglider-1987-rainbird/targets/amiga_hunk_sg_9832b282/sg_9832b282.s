@@ -35,12 +35,11 @@
 ;     absolute[$0000A12B-$0000A12D] refs=12 access=w
 ;     ... additional absolute memory ranges omitted
 
-; OS compatibility
-;   minimum required: 1.3
-;   observed API availability: 1.3
-;   observed FD/interface versions: none
-;   max requirement drivers:
-;     _LVOSuperState at section_0+$00000106 requires 1.3
+; AmigaOS compatibility, inferred from recovered OS calls
+;   required OS floor: 1.3
+;   evidence: highest recovered API requirement is 1.3
+;   requirement drivers:
+;     1.3: _LVOSuperState
 
     INCLUDE "exec/exec_lib.i"
     INCLUDE "hardware/adkbits.i"

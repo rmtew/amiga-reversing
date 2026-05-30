@@ -1,16 +1,11 @@
-; OS compatibility
-;   minimum required: 1.3
-;   observed API availability: 1.3
-;   observed FD/interface versions: none
-;   max requirement drivers:
-;     _LVOOpenLibrary at section_0+$0000000C requires 1.3
-;     _LVOOpen at section_0+$00000024 requires 1.3
-;     _LVOWrite at section_0+$00000042 requires 1.3
-;     _LVOAllocMem at section_0+$00000058 requires 1.3
-;     _LVOOpen at section_0+$00000074 requires 1.3
-;     _LVORead at section_0+$00000092 requires 1.3
-;     _LVOClose at section_0+$000000A8 requires 1.3
-;     _LVOClose at section_0+$0000015E requires 1.3
+; AmigaOS compatibility, inferred from recovered OS calls
+;   required OS floor: 1.3
+;   evidence: highest recovered API requirement is 1.3
+;   requirement drivers:
+;     1.3: 11 recovered call sites across 9 API groups
+;          first observed: _LVOOpenLibrary, _LVOOpen x2, _LVOWrite, _LVOAllocMem, _LVORead, _LVOClose x2, _LVOFreeMem
+;          _LVOCloseLibrary
+;          remaining groups: 1; inspect JSON report
 
     INCLUDE "dos/dos.i"
     INCLUDE "dos/dos_lib.i"

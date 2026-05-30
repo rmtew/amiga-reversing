@@ -1679,11 +1679,109 @@ static int append_summary_text(char *buf, size_t buf_size, size_t *io_size, cons
   return 0;
 }
 
+static int format_asm_os_compatibility_group_name(char *buf, size_t buf_size,
+    const M68kTargetOsRequirementGroup *group) {
+  int written;
+  if (buf == NULL || buf_size == 0U || group == NULL) return -1;
+  if (group->has_owner) {
+    if (group->count > 1U) {
+      written = snprintf(buf, buf_size, "%s/%s x%u", group->owner, group->call, (unsigned)group->count);
+    } else {
+      written = snprintf(buf, buf_size, "%s/%s", group->owner, group->call);
+    }
+  } else if (group->count > 1U) {
+    written = snprintf(buf, buf_size, "%s x%u", group->call, (unsigned)group->count);
+  } else {
+    written = snprintf(buf, buf_size, "%s", group->call);
+  }
+  if (written < 0 || (size_t)written >= buf_size) return -1;
+  return 0;
+}
+
+static int render_asm_os_compatibility_requirement_groups(char *text, size_t text_size, size_t *text_size_io,
+    const M68kTargetOsCompatibilitySummary *os_summary) {
+  size_t version_index;
+  int emitted_header = 0;
+  const size_t source_group_display_limit = 8U;
+  if (os_summary == NULL) return -1;
+  for (version_index = 0U; version_index < os_summary->observed_available_since_count; ++version_index) {
+    const char *version = os_summary->observed_available_since[version_index];
+    size_t group_index;
+    size_t matching_group_count = 0U;
+    uint32_t matching_call_count = 0U;
+    size_t displayed_group_count = 0U;
+    int emitted_version = 0;
+    int emitted_group_item = 0;
+    size_t rendered_line_size = 0U;
+    if (strcmp(version, os_summary->minimum_required) != 0) continue;
+    for (group_index = 0U; group_index < os_summary->requirement_group_count; ++group_index) {
+      const M68kTargetOsRequirementGroup *group = &os_summary->requirement_groups[group_index];
+      if (strcmp(group->available_since, version) != 0) continue;
+      ++matching_group_count;
+      matching_call_count += group->count;
+    }
+    if (!emitted_header) {
+      if (append_summary_text(text, text_size, text_size_io, ";   requirement drivers:\n") != 0)
+        return -1;
+      emitted_header = 1;
+    }
+    if (matching_group_count > source_group_display_limit) {
+      if (append_summary_text(text, text_size, text_size_io,
+          ";     %s: %u recovered call sites across %u API groups\n;          first observed: ",
+          version, (unsigned)matching_call_count, (unsigned)matching_group_count) != 0)
+        return -1;
+      emitted_version = 1;
+      rendered_line_size = strlen(";          first observed: ");
+    }
+    for (group_index = 0U; group_index < os_summary->requirement_group_count; ++group_index) {
+      const M68kTargetOsRequirementGroup *group = &os_summary->requirement_groups[group_index];
+      char group_name[256];
+      size_t group_name_size;
+      size_t separator_size;
+      if (strcmp(group->available_since, version) != 0) continue;
+      if (matching_group_count > source_group_display_limit && displayed_group_count >= source_group_display_limit)
+        continue;
+      if (format_asm_os_compatibility_group_name(group_name, sizeof(group_name), group) != 0)
+        return -1;
+      group_name_size = strlen(group_name);
+      if (!emitted_version) {
+        if (append_summary_text(text, text_size, text_size_io, ";     %s: ", version) != 0)
+          return -1;
+        emitted_version = 1;
+        rendered_line_size = strlen(";     ") + strlen(version) + strlen(": ");
+      }
+      separator_size = emitted_group_item ? 2U : 0U;
+      if (rendered_line_size + separator_size + group_name_size > 118U) {
+        if (append_summary_text(text, text_size, text_size_io, "\n;          ") != 0) return -1;
+        rendered_line_size = strlen(";          ");
+        separator_size = 0U;
+        emitted_group_item = 0;
+      } else if (separator_size != 0U && append_summary_text(text, text_size, text_size_io, ", ") != 0) {
+        return -1;
+      }
+      if (append_summary_text(text, text_size, text_size_io, "%s", group_name) != 0) return -1;
+      rendered_line_size += separator_size + group_name_size;
+      ++displayed_group_count;
+      emitted_group_item = 1;
+    }
+    if (emitted_version) {
+      if (matching_group_count > source_group_display_limit) {
+        if (append_summary_text(text, text_size, text_size_io, "\n;          remaining groups: %u; inspect JSON report\n",
+            (unsigned)(matching_group_count - source_group_display_limit)) != 0)
+          return -1;
+      } else if (append_summary_text(text, text_size, text_size_io, "\n") != 0) {
+        return -1;
+      }
+    }
+  }
+  return 0;
+}
+
 static int render_asm_os_compatibility_summary_row(M68kRenderIRPreview *preview,
     const M68kSourceAnalysisIR *source_analysis, uint8_t platform_backend_kind) {
   M68kTargetPlatformSummary summary;
   const M68kTargetOsCompatibilitySummary *os_summary;
-  char text[4096];
+  char text[8192];
   size_t text_size = 0U;
   if (preview == NULL || source_analysis == NULL ||
       platform_backend_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK) {
@@ -1691,51 +1789,51 @@ static int render_asm_os_compatibility_summary_row(M68kRenderIRPreview *preview,
   }
   if (m68k_target_platform_summary_build(source_analysis, platform_backend_kind, &summary) != 0) return -1;
   os_summary = &summary.os_compatibility;
-  if (append_summary_text(text, sizeof(text), &text_size, "; OS compatibility\n") != 0) return -1;
-  if (os_summary->status == M68K_TARGET_OS_COMPATIBILITY_NO_OS_CALLS ||
-      os_summary->status == M68K_TARGET_OS_COMPATIBILITY_UNKNOWN) {
-    if (append_summary_text(text, sizeof(text), &text_size, ";   status: %s\n\n",
-        m68k_target_os_compatibility_status_name(os_summary->status)) != 0)
+  if (append_summary_text(text, sizeof(text), &text_size,
+      os_summary->status == M68K_TARGET_OS_COMPATIBILITY_OBSERVED
+        ? "; AmigaOS compatibility, inferred from recovered OS calls\n"
+        : "; AmigaOS compatibility\n") != 0) return -1;
+  if (os_summary->status == M68K_TARGET_OS_COMPATIBILITY_NO_OS_CALLS) {
+    if (append_summary_text(text, sizeof(text), &text_size,
+        ";   required OS floor: unknown\n;   evidence: no recovered OS calls\n\n") != 0) return -1;
+  } else if (os_summary->status == M68K_TARGET_OS_COMPATIBILITY_UNKNOWN) {
+    if (append_summary_text(text, sizeof(text), &text_size,
+        ";   required OS floor: unknown\n;   evidence: recovered OS calls lack version metadata\n\n") != 0)
       return -1;
   } else {
     size_t index;
-    if (append_summary_text(text, sizeof(text), &text_size, ";   minimum required: %s\n",
+    if (append_summary_text(text, sizeof(text), &text_size, ";   required OS floor: %s\n",
         os_summary->minimum_required) != 0)
       return -1;
-    if (append_summary_text(text, sizeof(text), &text_size, ";   observed API availability: ") != 0) return -1;
-    for (index = 0U; index < os_summary->observed_available_since_count; ++index) {
-      if (append_summary_text(text, sizeof(text), &text_size, "%s%s", index == 0U ? "" : ", ",
-          os_summary->observed_available_since[index]) != 0)
-        return -1;
-    }
-    if (append_summary_text(text, sizeof(text), &text_size, "\n;   observed FD/interface versions: ") != 0)
+    if (append_summary_text(text, sizeof(text), &text_size,
+        ";   evidence: highest recovered API requirement is %s\n", os_summary->minimum_required) != 0)
       return -1;
-    if (os_summary->observed_fd_version_count == 0U) {
-      if (append_summary_text(text, sizeof(text), &text_size, "none") != 0) return -1;
-    } else {
+    if (render_asm_os_compatibility_requirement_groups(text, sizeof(text), &text_size, os_summary) != 0)
+      return -1;
+    if (os_summary->lower_observed_available_since_count != 0U) {
+      if (append_summary_text(text, sizeof(text), &text_size, ";   lower-version APIs also observed: ") != 0)
+        return -1;
+      for (index = 0U; index < os_summary->lower_observed_available_since_count; ++index) {
+        if (append_summary_text(text, sizeof(text), &text_size, "%s%s", index == 0U ? "" : ", ",
+            os_summary->lower_observed_available_since[index]) != 0)
+          return -1;
+      }
+      if (append_summary_text(text, sizeof(text), &text_size, "\n") != 0) return -1;
+    }
+    if (os_summary->observed_fd_version_count != 0U) {
+      if (append_summary_text(text, sizeof(text), &text_size, ";   interface metadata: ") != 0)
+        return -1;
       for (index = 0U; index < os_summary->observed_fd_version_count; ++index) {
-        if (append_summary_text(text, sizeof(text), &text_size, "%sv%s", index == 0U ? "" : ", ",
+        if (append_summary_text(text, sizeof(text), &text_size, "%sFD v%s", index == 0U ? "" : ", ",
             os_summary->observed_fd_versions[index]) != 0)
           return -1;
       }
+      if (append_summary_text(text, sizeof(text), &text_size, "\n") != 0) return -1;
     }
-    if (append_summary_text(text, sizeof(text), &text_size, "\n;   max requirement drivers:\n") != 0) return -1;
-    for (index = 0U; index < os_summary->max_requirement_driver_count; ++index) {
-      const M68kTargetOsRequirementDriver *driver = &os_summary->max_requirement_drivers[index];
-      if (driver->has_owner) {
-        if (append_summary_text(text, sizeof(text), &text_size,
-            ";     %s/%s at section_%u+$%08X requires %s%s%s\n",
-            driver->owner, driver->call, (unsigned)driver->section_index, (unsigned)driver->offset,
-            driver->available_since, driver->has_fd_version ? ", fd v" : "",
-            driver->has_fd_version ? driver->fd_version : "") != 0)
-          return -1;
-      } else if (append_summary_text(text, sizeof(text), &text_size,
-          ";     %s at section_%u+$%08X requires %s%s%s\n",
-          driver->call, (unsigned)driver->section_index, (unsigned)driver->offset,
-          driver->available_since, driver->has_fd_version ? ", fd v" : "",
-          driver->has_fd_version ? driver->fd_version : "") != 0) {
+    if (os_summary->raw_requirement_drivers_truncated || os_summary->requirement_groups_truncated) {
+      if (append_summary_text(text, sizeof(text), &text_size,
+          ";   review: compatibility evidence truncated in summary; inspect JSON report\n") != 0)
         return -1;
-      }
     }
     if (append_summary_text(text, sizeof(text), &text_size, "\n") != 0) return -1;
   }

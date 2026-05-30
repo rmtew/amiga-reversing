@@ -8,19 +8,14 @@
 ;     absolute[$00008400-$00008402] refs=2 access=r
 ;     absolute[$0000842E-$00008434] refs=3 access=w
 
-; OS compatibility
-;   minimum required: 1.3
-;   observed API availability: 1.3
-;   observed FD/interface versions: none
-;   max requirement drivers:
-;     SysBase/_LVOOldOpenLibrary at section_0+$0000001A requires 1.3
-;     _LVOForbid at section_0+$00000022 requires 1.3
-;     _LVODisable at section_0+$00000026 requires 1.3
-;     SysBase/_LVOOldOpenLibrary at section_0+$00000032 requires 1.3
-;     _LVOEnable at section_0+$0000003A requires 1.3
-;     _LVOPermit at section_0+$0000003E requires 1.3
-;     DOSBase/_LVOExecute at section_0+$00000042 requires 1.3
-;     _LVOOldOpenLibrary at section_0+$0000005E requires 1.3
+; AmigaOS compatibility, inferred from recovered OS calls
+;   required OS floor: 1.3
+;   evidence: highest recovered API requirement is 1.3
+;   requirement drivers:
+;     1.3: 19 recovered call sites across 12 API groups
+;          first observed: SysBase/_LVOOldOpenLibrary x2, _LVOForbid, _LVODisable, _LVOEnable, _LVOPermit
+;          DOSBase/_LVOExecute, _LVOOldOpenLibrary x2, _LVOOpen
+;          remaining groups: 4; inspect JSON report
 
     INCLUDE "dos/dos.i"
     INCLUDE "dos/dos_lib.i"
