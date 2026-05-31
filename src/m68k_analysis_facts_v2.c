@@ -9514,19 +9514,19 @@ static int facts_v2_has_source_blockers(const M68kFactsV2Profile *profile) {
 }
 
 static void facts_v2_record_source_blocker_first_failure(M68kFactsV2Profile *profile) {
-  uint32_t kind = M68K_RENDER_IR_ASM_SOURCE_FAILURE_NONE;
+  M68kSourceExportFailureKind kind = M68K_SOURCE_EXPORT_FAILURE_NONE;
   uint32_t section = 0U;
   uint32_t offset = 0U;
   uint32_t aux_offset = 0U;
   if (profile == NULL ||
-      profile->asm_source_first_failure_kind != M68K_RENDER_IR_ASM_SOURCE_FAILURE_NONE)
+      profile->asm_source_first_failure_kind != M68K_SOURCE_EXPORT_FAILURE_NONE)
     return;
   if (profile->unresolved_labels != 0U) {
-    kind = M68K_RENDER_IR_ASM_SOURCE_FAILURE_UNRESOLVED_LABEL;
+    kind = M68K_SOURCE_EXPORT_FAILURE_UNRESOLVED_LABEL;
   } else if (profile->interior_conflicts_unresolved != 0U) {
-    kind = M68K_RENDER_IR_ASM_SOURCE_FAILURE_INTERIOR_CONFLICT;
+    kind = M68K_SOURCE_EXPORT_FAILURE_INTERIOR_CONFLICT;
   } else if (profile->relocation_failures != 0U) {
-    kind = M68K_RENDER_IR_ASM_SOURCE_FAILURE_RELOCATION;
+    kind = M68K_SOURCE_EXPORT_FAILURE_RELOCATION;
     section = profile->first_relocation_failure_section;
     offset = profile->first_relocation_failure_offset;
     aux_offset = profile->first_relocation_failure_target_section;
@@ -9535,14 +9535,14 @@ static void facts_v2_record_source_blocker_first_failure(M68kFactsV2Profile *pro
     section = profile->first_relocation_anchor_section;
     offset = profile->first_relocation_anchor_offset;
     aux_offset = profile->first_relocation_anchor_target_section;
-    kind = M68K_RENDER_IR_ASM_SOURCE_FAILURE_RELOCATION_ANCHOR;
+    kind = M68K_SOURCE_EXPORT_FAILURE_RELOCATION_ANCHOR;
   } else if (profile->table_target_set_limit_hits != 0U) {
-    kind = M68K_RENDER_IR_ASM_SOURCE_FAILURE_TABLE_TARGET_SET_LIMIT;
+    kind = M68K_SOURCE_EXPORT_FAILURE_TABLE_TARGET_SET_LIMIT;
     section = profile->first_table_target_set_limit_section;
     offset = profile->first_table_target_set_limit_offset;
     aux_offset = profile->first_table_target_set_limit_capacity;
   } else if (profile->required_instruction_failures != 0U) {
-    kind = M68K_RENDER_IR_ASM_SOURCE_FAILURE_REQUIRED_INSTRUCTION;
+    kind = M68K_SOURCE_EXPORT_FAILURE_REQUIRED_INSTRUCTION;
     section = profile->first_required_instruction_failure_section;
     offset = profile->first_required_instruction_failure_offset;
   }
@@ -9938,7 +9938,7 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   if (m68k_render_ir_preview_build(object, &decode, &facts, policy, accepted_start, accepted_bytes,
       render_text_preview, render_asm_source, collect_asm_source_text, out_asm_source != NULL, render_preview,
       out_source_analysis) != 0) {
-    if (render_preview->asm_source_first_failure_kind != M68K_RENDER_IR_ASM_SOURCE_FAILURE_NONE) {
+    if (render_preview->asm_source_first_failure_kind != M68K_SOURCE_EXPORT_FAILURE_NONE) {
       out_profile->asm_source_enabled = render_asm_source ? 1U : 0U;
       out_profile->asm_source_refused = 1U;
       out_profile->asm_source_first_failure_kind = render_preview->asm_source_first_failure_kind;
@@ -9997,8 +9997,8 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   if (out_source_analysis != NULL) {
     facts_v2_record_source_quality_diagnostics_from_analysis(out_profile, out_source_analysis);
     if (out_profile->source_quality_blockers != 0U &&
-        out_profile->asm_source_first_failure_kind == M68K_RENDER_IR_ASM_SOURCE_FAILURE_NONE) {
-      out_profile->asm_source_first_failure_kind = M68K_RENDER_IR_ASM_SOURCE_FAILURE_SOURCE_QUALITY;
+        out_profile->asm_source_first_failure_kind == M68K_SOURCE_EXPORT_FAILURE_NONE) {
+      out_profile->asm_source_first_failure_kind = M68K_SOURCE_EXPORT_FAILURE_SOURCE_QUALITY;
       out_profile->asm_source_first_failure_section = out_profile->first_source_quality_diagnostic_section;
       out_profile->asm_source_first_failure_offset = out_profile->first_source_quality_diagnostic_offset;
       out_profile->asm_source_first_failure_aux_offset = out_profile->first_source_quality_diagnostic_kind;
@@ -10059,7 +10059,7 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   out_profile->asm_source_instruction_byte_mismatches = render_preview->asm_source_instruction_byte_mismatches;
   out_profile->asm_source_instruction_relocation_failures =
     render_preview->asm_source_instruction_relocation_failures;
-  if (out_profile->asm_source_first_failure_kind == M68K_RENDER_IR_ASM_SOURCE_FAILURE_NONE) {
+  if (out_profile->asm_source_first_failure_kind == M68K_SOURCE_EXPORT_FAILURE_NONE) {
     out_profile->asm_source_first_failure_kind = render_preview->asm_source_first_failure_kind;
     out_profile->asm_source_first_failure_section = render_preview->asm_source_first_failure_section;
     out_profile->asm_source_first_failure_offset = render_preview->asm_source_first_failure_offset;

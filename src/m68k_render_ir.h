@@ -5,6 +5,7 @@
 #include "m68k_decode_ir.h"
 #include "m68k_fact_ir.h"
 #include "m68k_render_plan.h"
+#include "m68k_source_export.h"
 
 #include <stddef.h>
 #include <stdint.h>
@@ -15,22 +16,6 @@
 #define M68K_RENDER_ASM_SYMBOL_NAME_SIZE 64U
 
 typedef struct Arena Arena;
-
-typedef enum M68kRenderIRAsmSourceFailureKind {
-  M68K_RENDER_IR_ASM_SOURCE_FAILURE_NONE = 0,
-  M68K_RENDER_IR_ASM_SOURCE_FAILURE_RENDER = 1,
-  M68K_RENDER_IR_ASM_SOURCE_FAILURE_BYTE_MISMATCH = 2,
-  M68K_RENDER_IR_ASM_SOURCE_FAILURE_INSTRUCTION_RELOCATION = 3,
-  M68K_RENDER_IR_ASM_SOURCE_FAILURE_UNRESOLVED_LABEL = 4,
-  M68K_RENDER_IR_ASM_SOURCE_FAILURE_INTERIOR_CONFLICT = 5,
-  M68K_RENDER_IR_ASM_SOURCE_FAILURE_RELOCATION = 6,
-  M68K_RENDER_IR_ASM_SOURCE_FAILURE_RELOCATION_ANCHOR = 7,
-  M68K_RENDER_IR_ASM_SOURCE_FAILURE_UNASSEMBLABLE_HUNK_DATA_RELOCATION = 8,
-  M68K_RENDER_IR_ASM_SOURCE_FAILURE_UNASSEMBLABLE_HUNK_BASE_REGISTER_RELOCATION = 9,
-  M68K_RENDER_IR_ASM_SOURCE_FAILURE_REQUIRED_INSTRUCTION = 10,
-  M68K_RENDER_IR_ASM_SOURCE_FAILURE_TABLE_TARGET_SET_LIMIT = 11,
-  M68K_RENDER_IR_ASM_SOURCE_FAILURE_SOURCE_QUALITY = 12
-} M68kRenderIRAsmSourceFailureKind;
 
 typedef struct M68kRenderIRPreview {
   uint32_t statement_count;
@@ -74,7 +59,7 @@ typedef struct M68kRenderIRPreview {
   uint32_t asm_source_instruction_render_failures;
   uint32_t asm_source_instruction_byte_mismatches;
   uint32_t asm_source_instruction_relocation_failures;
-  uint32_t asm_source_first_failure_kind;
+  M68kSourceExportFailureKind asm_source_first_failure_kind;
   uint32_t asm_source_first_failure_section;
   uint32_t asm_source_first_failure_offset;
   uint32_t asm_source_first_failure_aux_offset;

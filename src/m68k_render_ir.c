@@ -520,7 +520,7 @@ static int render_asm_include_once(M68kRenderIRPreview *preview, const char *inc
   }
   if (preview->asm_source_include_count >= M68K_RENDER_ASM_INCLUDE_LIMIT) {
     ++preview->asm_source_instruction_render_failures;
-    record_asm_source_failure(preview, M68K_RENDER_IR_ASM_SOURCE_FAILURE_RENDER, 0U, 0U, 0U);
+    record_source_export_failure(preview, M68K_SOURCE_EXPORT_FAILURE_RENDER, 0U, 0U, 0U);
     return 0;
   }
   snprintf(preview->asm_source_includes[preview->asm_source_include_count],
@@ -540,7 +540,7 @@ static int render_asm_declare_symbol_once(M68kRenderIRPreview *preview, const ch
   if (preview->platform_backend_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK) return 1;
   if (!asm_symbol_name_is_safe_local(symbol_name)) {
     ++preview->asm_source_instruction_render_failures;
-    record_asm_source_failure(preview, M68K_RENDER_IR_ASM_SOURCE_FAILURE_RENDER, 0U, 0U, 0U);
+    record_source_export_failure(preview, M68K_SOURCE_EXPORT_FAILURE_RENDER, 0U, 0U, 0U);
     return 0;
   }
   for (index = 0U; index < preview->asm_source_declaration_count; ++index) {
@@ -548,7 +548,7 @@ static int render_asm_declare_symbol_once(M68kRenderIRPreview *preview, const ch
   }
   if (preview->asm_source_declaration_count >= M68K_RENDER_ASM_DECLARATION_LIMIT) {
     ++preview->asm_source_instruction_render_failures;
-    record_asm_source_failure(preview, M68K_RENDER_IR_ASM_SOURCE_FAILURE_RENDER, 0U, 0U, 0U);
+    record_source_export_failure(preview, M68K_SOURCE_EXPORT_FAILURE_RENDER, 0U, 0U, 0U);
     return 0;
   }
   snprintf(preview->asm_source_declarations[preview->asm_source_declaration_count],
@@ -571,7 +571,7 @@ static int render_asm_declare_symbol_hex_once(M68kRenderIRPreview *preview, cons
   if (preview == NULL || symbol_name == NULL || symbol_name[0] == '\0') return 1;
   if (!asm_symbol_name_is_safe_local(symbol_name)) {
     ++preview->asm_source_instruction_render_failures;
-    record_asm_source_failure(preview, M68K_RENDER_IR_ASM_SOURCE_FAILURE_RENDER, 0U, 0U, 0U);
+    record_source_export_failure(preview, M68K_SOURCE_EXPORT_FAILURE_RENDER, 0U, 0U, 0U);
     return 0;
   }
   for (index = 0U; index < preview->asm_source_declaration_count; ++index) {
@@ -579,7 +579,7 @@ static int render_asm_declare_symbol_hex_once(M68kRenderIRPreview *preview, cons
   }
   if (preview->asm_source_declaration_count >= M68K_RENDER_ASM_DECLARATION_LIMIT) {
     ++preview->asm_source_instruction_render_failures;
-    record_asm_source_failure(preview, M68K_RENDER_IR_ASM_SOURCE_FAILURE_RENDER, 0U, 0U, 0U);
+    record_source_export_failure(preview, M68K_SOURCE_EXPORT_FAILURE_RENDER, 0U, 0U, 0U);
     return 0;
   }
   snprintf(preview->asm_source_declarations[preview->asm_source_declaration_count],
@@ -604,7 +604,7 @@ static int render_asm_declare_symbol_expr_once(M68kRenderIRPreview *preview, con
     return 1;
   if (!asm_symbol_name_is_safe_local(symbol_name)) {
     ++preview->asm_source_instruction_render_failures;
-    record_asm_source_failure(preview, M68K_RENDER_IR_ASM_SOURCE_FAILURE_RENDER, 0U, 0U, 0U);
+    record_source_export_failure(preview, M68K_SOURCE_EXPORT_FAILURE_RENDER, 0U, 0U, 0U);
     return 0;
   }
   for (index = 0U; index < preview->asm_source_declaration_count; ++index) {
@@ -612,7 +612,7 @@ static int render_asm_declare_symbol_expr_once(M68kRenderIRPreview *preview, con
   }
   if (preview->asm_source_declaration_count >= M68K_RENDER_ASM_DECLARATION_LIMIT) {
     ++preview->asm_source_instruction_render_failures;
-    record_asm_source_failure(preview, M68K_RENDER_IR_ASM_SOURCE_FAILURE_RENDER, 0U, 0U, 0U);
+    record_source_export_failure(preview, M68K_SOURCE_EXPORT_FAILURE_RENDER, 0U, 0U, 0U);
     return 0;
   }
   snprintf(preview->asm_source_declarations[preview->asm_source_declaration_count],
@@ -680,7 +680,7 @@ static int render_asm_define_amiga_lvo_symbol_once(M68kRenderIRPreview *preview,
   if (symbol_name == NULL || symbol_name[0] == '\0' || vector == NULL) {
     if (preview != NULL) {
       ++preview->asm_source_instruction_render_failures;
-      record_asm_source_failure(preview, M68K_RENDER_IR_ASM_SOURCE_FAILURE_RENDER, 0U, 0U, 0U);
+      record_source_export_failure(preview, M68K_SOURCE_EXPORT_FAILURE_RENDER, 0U, 0U, 0U);
     }
     return 0;
   }
@@ -1344,9 +1344,9 @@ static void render_asm_policy_register_seed_comment(M68kRenderIRPreview *preview
   ++preview->asm_source_lines;
 }
 
-void record_asm_source_failure(M68kRenderIRPreview *preview, uint32_t kind, size_t section_index,
-    uint32_t offset, uint32_t aux_offset) {
-  if (preview == NULL || preview->asm_source_first_failure_kind != M68K_RENDER_IR_ASM_SOURCE_FAILURE_NONE) return;
+void record_source_export_failure(M68kRenderIRPreview *preview, M68kSourceExportFailureKind kind,
+    size_t section_index, uint32_t offset, uint32_t aux_offset) {
+  if (preview == NULL || preview->asm_source_first_failure_kind != M68K_SOURCE_EXPORT_FAILURE_NONE) return;
   preview->asm_source_first_failure_kind = kind;
   preview->asm_source_first_failure_section = (uint32_t)section_index;
   preview->asm_source_first_failure_offset = offset;
@@ -1411,7 +1411,7 @@ static void render_asm_section_header(M68kRenderIRPreview *preview, const M68kDe
   if (!m68k_format_section_spec(section->kind, section->platform_mem_type, section->platform_mem_attrs,
       kind_buffer, sizeof(kind_buffer))) {
     ++preview->asm_source_instruction_render_failures;
-    record_asm_source_failure(preview, M68K_RENDER_IR_ASM_SOURCE_FAILURE_RENDER, section_index, 0U, 0U);
+    record_source_export_failure(preview, M68K_SOURCE_EXPORT_FAILURE_RENDER, section_index, 0U, 0U);
     return;
   }
   allocation_size = section->allocation_size != 0U ? section->allocation_size : section->size;
@@ -1979,7 +1979,7 @@ static void render_asm_relocation_expr(M68kRenderIRPreview *preview, M68kRenderL
         "\t%s %s\t; facts_v2 relocation numeric: target label %s is not renderable\n",
         directive, value, name);
       ++preview->asm_source_instruction_relocation_failures;
-      record_asm_source_failure(preview, M68K_RENDER_IR_ASM_SOURCE_FAILURE_RELOCATION,
+      record_source_export_failure(preview, M68K_SOURCE_EXPORT_FAILURE_RELOCATION,
         fact->section_index, fact->offset, fact->target_offset);
     }
     hash_asm_text(preview, line);
@@ -3350,7 +3350,7 @@ static void render_asm_copper_list_words(M68kRenderIRPreview *preview, const M68
       snprintf(left, sizeof(left), "COPPER_WAIT|$%04X", (unsigned)(first & 0xFFFEU));
       if (!render_asm_include_for_symbol_expr(preview, left)) {
         ++preview->asm_source_instruction_render_failures;
-        record_asm_source_failure(preview, M68K_RENDER_IR_ASM_SOURCE_FAILURE_RENDER, 0U, offset + cursor, 0U);
+        record_source_export_failure(preview, M68K_SOURCE_EXPORT_FAILURE_RENDER, 0U, offset + cursor, 0U);
         return;
       }
       copper_wait = 1;
@@ -3358,7 +3358,7 @@ static void render_asm_copper_list_words(M68kRenderIRPreview *preview, const M68
       snprintf(left, sizeof(left), "$%04X", (unsigned)first);
     } else if (!render_asm_include_for_symbol_expr(preview, left)) {
       ++preview->asm_source_instruction_render_failures;
-      record_asm_source_failure(preview, M68K_RENDER_IR_ASM_SOURCE_FAILURE_RENDER, 0U, offset + cursor, 0U);
+      record_source_export_failure(preview, M68K_SOURCE_EXPORT_FAILURE_RENDER, 0U, offset + cursor, 0U);
       return;
     } else {
       copper_move = 1;
@@ -3371,7 +3371,7 @@ static void render_asm_copper_list_words(M68kRenderIRPreview *preview, const M68
       snprintf(right, sizeof(right), "$%04X", (unsigned)second);
     } else if (!render_asm_include_for_symbol_expr(preview, right)) {
       ++preview->asm_source_instruction_render_failures;
-      record_asm_source_failure(preview, M68K_RENDER_IR_ASM_SOURCE_FAILURE_RENDER, 0U, offset + cursor, 0U);
+      record_source_export_failure(preview, M68K_SOURCE_EXPORT_FAILURE_RENDER, 0U, offset + cursor, 0U);
       return;
     }
     row_comment[0] = '\0';
@@ -3547,7 +3547,7 @@ static void render_asm_structured_data_item(M68kRenderIRPreview *preview, const 
       structured_data_item_symbolic_operand_expr(section, item, expr, sizeof(expr))) {
     if (!render_asm_include_for_symbol_expr(preview, expr)) {
       ++preview->asm_source_instruction_render_failures;
-      record_asm_source_failure(preview, M68K_RENDER_IR_ASM_SOURCE_FAILURE_RENDER,
+      record_source_export_failure(preview, M68K_SOURCE_EXPORT_FAILURE_RENDER,
         item->has_section_index ? item->section_index : 0U, item->offset, 0U);
       return;
     }
@@ -8000,7 +8000,7 @@ static int render_app_rs_collect_slots(M68kRenderIRPreview *preview, const M68kR
         slot->displacement, &conflict)) {
       if (conflict && preview != NULL) {
         ++preview->asm_source_instruction_render_failures;
-        record_asm_source_failure(preview, M68K_RENDER_IR_ASM_SOURCE_FAILURE_RENDER,
+        record_source_export_failure(preview, M68K_SOURCE_EXPORT_FAILURE_RENDER,
           slot->source_section_index, slot->source_offset, (uint32_t)(uint16_t)slot->displacement);
       }
       continue;
@@ -8008,7 +8008,7 @@ static int render_app_rs_collect_slots(M68kRenderIRPreview *preview, const M68kR
     if (slot_count >= slot_capacity) {
       if (preview != NULL) {
         ++preview->asm_source_instruction_render_failures;
-        record_asm_source_failure(preview, M68K_RENDER_IR_ASM_SOURCE_FAILURE_RENDER,
+        record_source_export_failure(preview, M68K_SOURCE_EXPORT_FAILURE_RENDER,
           slot->source_section_index, slot->source_offset, (uint32_t)(uint16_t)slot->displacement);
       }
       continue;
@@ -8166,7 +8166,7 @@ void render_asm_app_extension_rs(M68kRenderIRPreview *preview, const M68kRenderL
     if (has_resident_context) {
       if (!render_asm_include_for_amiga_symbol(preview, "LIB_SIZE")) {
         ++preview->asm_source_instruction_render_failures;
-        record_asm_source_failure(preview, M68K_RENDER_IR_ASM_SOURCE_FAILURE_RENDER, 0U, 0U, 0U);
+        record_source_export_failure(preview, M68K_SOURCE_EXPORT_FAILURE_RENDER, 0U, 0U, 0U);
         goto cleanup;
       }
       hash_asm_text(preview, "    RSSET LIB_SIZE\n");
@@ -8198,7 +8198,7 @@ void render_asm_app_extension_rs(M68kRenderIRPreview *preview, const M68kRenderL
     if (layout->uses_lib_size != 0U) {
       if (!render_asm_include_for_amiga_symbol(preview, "LIB_SIZE")) {
         ++preview->asm_source_instruction_render_failures;
-        record_asm_source_failure(preview, M68K_RENDER_IR_ASM_SOURCE_FAILURE_RENDER, 0U, 0U, 0U);
+        record_source_export_failure(preview, M68K_SOURCE_EXPORT_FAILURE_RENDER, 0U, 0U, 0U);
         goto cleanup;
       }
       hash_asm_text(preview, "    RSSET LIB_SIZE\n");
@@ -10079,7 +10079,7 @@ static int attach_runtime_address_ref_symbols(M68kRenderIRPreview *preview, cons
       if (!lookup_has_renderable_label(lookup, fact->target_section_index, fact->target_offset)) {
         if (preview != NULL) {
           ++preview->asm_source_instruction_render_failures;
-          record_asm_source_failure(preview, M68K_RENDER_IR_ASM_SOURCE_FAILURE_RENDER, section->section_index,
+          record_source_export_failure(preview, M68K_SOURCE_EXPORT_FAILURE_RENDER, section->section_index,
             candidate->offset, fact->target_offset);
         }
         return 0;
@@ -10542,7 +10542,7 @@ static int attach_proven_instruction_relocations(M68kRenderIRPreview *preview, c
     if (fact == NULL) continue;
     if (!instruction_relocation_is_proven_operand(lookup, section_index, candidate, fact, instruction)) {
       ++preview->asm_source_instruction_relocation_failures;
-      record_asm_source_failure(preview, M68K_RENDER_IR_ASM_SOURCE_FAILURE_INSTRUCTION_RELOCATION,
+      record_source_export_failure(preview, M68K_SOURCE_EXPORT_FAILURE_INSTRUCTION_RELOCATION,
         section_index, candidate->offset, fact->offset);
       ok = 0;
     }
@@ -10715,7 +10715,7 @@ static int attach_amiga_next_call_input_immediate_symbol(M68kRenderIRPreview *pr
       }
       if (!render_asm_include_for_symbol_expr(preview, symbol_expr)) {
         ++preview->asm_source_instruction_render_failures;
-        record_asm_source_failure(preview, M68K_RENDER_IR_ASM_SOURCE_FAILURE_RENDER, section->section_index,
+        record_source_export_failure(preview, M68K_SOURCE_EXPORT_FAILURE_RENDER, section->section_index,
           candidate->offset, 0U);
         return -1;
       }
@@ -11237,7 +11237,7 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, M68kRenderLookup
   instruction_comment[0] = '\0';
   if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) {
     ++preview->asm_source_instruction_render_failures;
-    record_asm_source_failure(preview, M68K_RENDER_IR_ASM_SOURCE_FAILURE_RENDER, section->section_index,
+    record_source_export_failure(preview, M68K_SOURCE_EXPORT_FAILURE_RENDER, section->section_index,
       candidate->offset, 0U);
     return 0;
   }
@@ -11303,7 +11303,7 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, M68kRenderLookup
   if (m68k_instruction_is_fpu_id_alias_instruction(&instruction) &&
       !m68k_instruction_make_fpu_id_render_instruction(&instruction, &render_instruction)) {
     ++preview->asm_source_instruction_render_failures;
-    record_asm_source_failure(preview, M68K_RENDER_IR_ASM_SOURCE_FAILURE_RENDER, section->section_index,
+    record_source_export_failure(preview, M68K_SOURCE_EXPORT_FAILURE_RENDER, section->section_index,
       candidate->offset, 0U);
     return 0;
   }
@@ -11313,7 +11313,7 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, M68kRenderLookup
     m68k_diag_sink(&render_diagnostics));
   if (m68k_diag_has_errors(&render_diagnostics) || rendered.text[0] == '\0') {
     ++preview->asm_source_instruction_render_failures;
-    record_asm_source_failure(preview, M68K_RENDER_IR_ASM_SOURCE_FAILURE_RENDER, section->section_index,
+    record_source_export_failure(preview, M68K_SOURCE_EXPORT_FAILURE_RENDER, section->section_index,
       candidate->offset, 0U);
     return 0;
   }
@@ -11323,14 +11323,14 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, M68kRenderLookup
       !encoded_bytes_match_with_exact_byte_immediates(&instruction, encoded_bytes, section->data + candidate->offset,
         candidate->byte_count)) {
     ++preview->asm_source_instruction_byte_mismatches;
-    record_asm_source_failure(preview, M68K_RENDER_IR_ASM_SOURCE_FAILURE_BYTE_MISMATCH, section->section_index,
+    record_source_export_failure(preview, M68K_SOURCE_EXPORT_FAILURE_BYTE_MISMATCH, section->section_index,
       candidate->offset, 0U);
     return 0;
   }
   if (!rendered_text_reencodes_original_bytes(rendered.text, &instruction, &render_instruction, section->data + candidate->offset,
       candidate->byte_count)) {
     ++preview->asm_source_instruction_byte_mismatches;
-    record_asm_source_failure(preview, M68K_RENDER_IR_ASM_SOURCE_FAILURE_BYTE_MISMATCH, section->section_index,
+    record_source_export_failure(preview, M68K_SOURCE_EXPORT_FAILURE_BYTE_MISMATCH, section->section_index,
       candidate->offset, 0U);
     return 0;
   }

@@ -5,6 +5,7 @@
 #include "m68k_ir.h"
 #include "m68k_object.h"
 #include "m68k_render_plan.h"
+#include "m68k_source_export.h"
 
 #include <stdint.h>
 
@@ -185,7 +186,7 @@ typedef struct M68kFactsV2Profile {
   uint32_t asm_source_relocation_anchor_refusals;
   uint32_t asm_source_unassemblable_hunk_data_relocation_refusals;
   uint32_t asm_source_unassemblable_hunk_base_register_relocation_refusals;
-  uint32_t asm_source_first_failure_kind;
+  M68kSourceExportFailureKind asm_source_first_failure_kind;
   uint32_t asm_source_first_failure_section;
   uint32_t asm_source_first_failure_offset;
   uint32_t asm_source_first_failure_aux_offset;

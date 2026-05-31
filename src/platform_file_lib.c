@@ -9268,20 +9268,22 @@ static void platform_file_add_warning(M68kDiagList *diagnostics, const char *mes
   m68k_diag_add(m68k_diag_sink(diagnostics), M68K_DIAG_SEVERITY_WARNING, M68K_DIAG_CODE_PLATFORM_FILE_FAILED, message);
 }
 
-static const char *facts_v2_asm_source_failure_kind_name(uint32_t kind) {
+static const char *facts_v2_source_export_failure_kind_name(M68kSourceExportFailureKind kind) {
   switch (kind) {
-    case 1U: return "render";
-    case 2U: return "byte_mismatch";
-    case 3U: return "instruction_relocation";
-    case 4U: return "unresolved_label";
-    case 5U: return "interior_conflict";
-    case 6U: return "relocation";
-    case 7U: return "relocation_anchor";
-    case 8U: return "unassemblable_hunk_data_relocation";
-    case 9U: return "unassemblable_hunk_base_register_relocation";
-    case 10U: return "required_instruction";
-    case 11U: return "table_target_set_limit";
-    case 12U: return "source_quality";
+    case M68K_SOURCE_EXPORT_FAILURE_RENDER: return "render";
+    case M68K_SOURCE_EXPORT_FAILURE_BYTE_MISMATCH: return "byte_mismatch";
+    case M68K_SOURCE_EXPORT_FAILURE_INSTRUCTION_RELOCATION: return "instruction_relocation";
+    case M68K_SOURCE_EXPORT_FAILURE_UNRESOLVED_LABEL: return "unresolved_label";
+    case M68K_SOURCE_EXPORT_FAILURE_INTERIOR_CONFLICT: return "interior_conflict";
+    case M68K_SOURCE_EXPORT_FAILURE_RELOCATION: return "relocation";
+    case M68K_SOURCE_EXPORT_FAILURE_RELOCATION_ANCHOR: return "relocation_anchor";
+    case M68K_SOURCE_EXPORT_FAILURE_UNASSEMBLABLE_HUNK_DATA_RELOCATION:
+      return "unassemblable_hunk_data_relocation";
+    case M68K_SOURCE_EXPORT_FAILURE_UNASSEMBLABLE_HUNK_BASE_REGISTER_RELOCATION:
+      return "unassemblable_hunk_base_register_relocation";
+    case M68K_SOURCE_EXPORT_FAILURE_REQUIRED_INSTRUCTION: return "required_instruction";
+    case M68K_SOURCE_EXPORT_FAILURE_TABLE_TARGET_SET_LIMIT: return "table_target_set_limit";
+    case M68K_SOURCE_EXPORT_FAILURE_SOURCE_QUALITY: return "source_quality";
     default: return "";
   }
 }
@@ -9655,7 +9657,7 @@ static int json_builder_append_facts_v2_profile(JsonBuilder *builder, const M68k
     (unsigned)profile->asm_source_relocation_anchor_refusals,
     (unsigned)profile->asm_source_unassemblable_hunk_data_relocation_refusals,
     (unsigned)profile->asm_source_unassemblable_hunk_base_register_relocation_refusals,
-    facts_v2_asm_source_failure_kind_name(profile->asm_source_first_failure_kind),
+    facts_v2_source_export_failure_kind_name(profile->asm_source_first_failure_kind),
     (unsigned)profile->asm_source_first_failure_section,
     (unsigned)profile->asm_source_first_failure_offset,
     (unsigned)profile->asm_source_first_failure_aux_offset,
@@ -10606,10 +10608,10 @@ static int listing_artifact_build_analysis(PlatformFileListingArtifact *artifact
   source_start = clock();
   if (m68k_facts_v2_render_asm_source_plan_analysis_profile_alloc(&artifact->object, &artifact->policy, NULL,
       &artifact->source_plan, &artifact->profile, &artifact->source_analysis, 1U, m68k_diag_sink(diagnostics)) != 0) {
-    if (artifact->profile.asm_source_first_failure_kind != M68K_RENDER_IR_ASM_SOURCE_FAILURE_NONE) {
+    if (artifact->profile.asm_source_first_failure_kind != M68K_SOURCE_EXPORT_FAILURE_NONE) {
       snprintf(failure_message, sizeof(failure_message),
         "facts_v2 asm source first failure: kind=%s section=%u offset=%u aux=%u",
-        facts_v2_asm_source_failure_kind_name(artifact->profile.asm_source_first_failure_kind),
+        facts_v2_source_export_failure_kind_name(artifact->profile.asm_source_first_failure_kind),
         (unsigned)artifact->profile.asm_source_first_failure_section,
         (unsigned)artifact->profile.asm_source_first_failure_offset,
         (unsigned)artifact->profile.asm_source_first_failure_aux_offset);

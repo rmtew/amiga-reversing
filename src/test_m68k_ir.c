@@ -4821,7 +4821,7 @@ static int test_facts_v2_classifies_hunk_positive_relocation_anchor(void) {
   M68K_C_ASSERT_U32(M68K_FACTS_V2_RELOCATION_ANCHOR_CONTEXT_BASE_REGISTER,
     profile.first_relocation_anchor_context);
   M68K_C_ASSERT_U32(0U, profile.first_relocation_anchor_instruction_offset);
-  M68K_C_ASSERT_U32(M68K_RENDER_IR_ASM_SOURCE_FAILURE_NONE, profile.asm_source_first_failure_kind);
+  M68K_C_ASSERT_U32(M68K_SOURCE_EXPORT_FAILURE_NONE, profile.asm_source_first_failure_kind);
   M68K_C_ASSERT_U32(0U, profile.asm_source_first_failure_section);
   M68K_C_ASSERT_U32(0U, profile.asm_source_first_failure_offset);
   M68K_C_ASSERT_U32(0U, profile.asm_source_first_failure_aux_offset);
@@ -4895,7 +4895,7 @@ static int test_facts_v2_classifies_hunk_positive_data_relocation_anchor(void) {
   M68K_C_ASSERT_U32(0U, profile.unassemblable_hunk_base_register_relocations);
   M68K_C_ASSERT_U32(M68K_FACTS_V2_RELOCATION_ANCHOR_CONTEXT_DATA_PAYLOAD,
     profile.first_relocation_anchor_context);
-  M68K_C_ASSERT_U32(M68K_RENDER_IR_ASM_SOURCE_FAILURE_NONE, profile.asm_source_first_failure_kind);
+  M68K_C_ASSERT_U32(M68K_SOURCE_EXPORT_FAILURE_NONE, profile.asm_source_first_failure_kind);
   M68K_C_ASSERT_U32(0U, profile.asm_source_first_failure_section);
   M68K_C_ASSERT_U32(0U, profile.asm_source_first_failure_offset);
   M68K_C_ASSERT_U32(0U, profile.asm_source_first_failure_aux_offset);
@@ -4976,7 +4976,7 @@ static int test_facts_v2_classifies_hunk_negative_relocation_anchor(void) {
   M68K_C_ASSERT_U32(0U, profile.unassemblable_hunk_base_register_relocations);
   M68K_C_ASSERT_U32(M68K_FACTS_V2_RELOCATION_ANCHOR_CONTEXT_DATA_PAYLOAD,
     profile.first_relocation_anchor_context);
-  M68K_C_ASSERT_U32(M68K_RENDER_IR_ASM_SOURCE_FAILURE_NONE, profile.asm_source_first_failure_kind);
+  M68K_C_ASSERT_U32(M68K_SOURCE_EXPORT_FAILURE_NONE, profile.asm_source_first_failure_kind);
   M68K_C_ASSERT_U32(0U, profile.asm_source_first_failure_section);
   M68K_C_ASSERT_U32(0U, profile.asm_source_first_failure_offset);
   M68K_C_ASSERT_U32(0U, profile.asm_source_first_failure_aux_offset);
@@ -8564,7 +8564,7 @@ static int test_facts_v2_long_dispatch_descriptor_promotes_targets_beyond_inline
   M68K_C_ASSERT_U32(1U, saw_late_target);
   M68K_C_ASSERT_U32(0U, profile.table_target_set_limit_hits);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
-  M68K_C_ASSERT_U32(M68K_RENDER_IR_ASM_SOURCE_FAILURE_NONE, profile.asm_source_first_failure_kind);
+  M68K_C_ASSERT_U32(M68K_SOURCE_EXPORT_FAILURE_NONE, profile.asm_source_first_failure_kind);
   m68k_facts_v2_free_text(source);
   m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_object_destroy(&object);
@@ -11150,7 +11150,7 @@ static int test_facts_v2_pc_word_dispatch_descriptor_promotes_targets_beyond_inl
   M68K_C_ASSERT_U32(0U, table_consumer->target_register);
   M68K_C_ASSERT_U32(0U, profile.table_target_set_limit_hits);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
-  M68K_C_ASSERT_U32(M68K_RENDER_IR_ASM_SOURCE_FAILURE_NONE, profile.asm_source_first_failure_kind);
+  M68K_C_ASSERT_U32(M68K_SOURCE_EXPORT_FAILURE_NONE, profile.asm_source_first_failure_kind);
   m68k_facts_v2_free_text(source);
   m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_object_destroy(&object);
@@ -11270,7 +11270,7 @@ static int test_facts_v2_pc_word_dispatch_descriptor_exports_index_domains(void)
   M68K_C_ASSERT_U32(ENTRY_COUNT, table_entry_count);
   M68K_C_ASSERT_U32(1U, saw_last_entry);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
-  M68K_C_ASSERT_U32(M68K_RENDER_IR_ASM_SOURCE_FAILURE_NONE, profile.asm_source_first_failure_kind);
+  M68K_C_ASSERT_U32(M68K_SOURCE_EXPORT_FAILURE_NONE, profile.asm_source_first_failure_kind);
   m68k_facts_v2_free_text(source);
   m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_object_destroy(&object);
@@ -13630,7 +13630,7 @@ static int test_facts_v2_render_asm_source_refuses_unmapped_code_relocation(void
   M68K_C_ASSERT_U32(1U, profile.asm_source_enabled);
   M68K_C_ASSERT_U32(1U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(1U, profile.asm_source_instruction_relocation_failures);
-  M68K_C_ASSERT_U32(M68K_RENDER_IR_ASM_SOURCE_FAILURE_INSTRUCTION_RELOCATION,
+  M68K_C_ASSERT_U32(M68K_SOURCE_EXPORT_FAILURE_INSTRUCTION_RELOCATION,
     profile.asm_source_first_failure_kind);
   M68K_C_ASSERT_U32(0U, profile.asm_source_first_failure_section);
   M68K_C_ASSERT_U32(0U, profile.asm_source_first_failure_offset);
@@ -13673,7 +13673,7 @@ static int test_facts_v2_render_asm_source_maps_immediate_code_relocation(void) 
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_relocation_failures);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
-  M68K_C_ASSERT_U32(M68K_RENDER_IR_ASM_SOURCE_FAILURE_NONE, profile.asm_source_first_failure_kind);
+  M68K_C_ASSERT_U32(M68K_SOURCE_EXPORT_FAILURE_NONE, profile.asm_source_first_failure_kind);
   m68k_facts_v2_free_text(source);
   m68k_object_destroy(&object);
   return 0;
@@ -20773,7 +20773,7 @@ static int test_facts_v2_source_analysis_retains_many_auto_structured_strings(vo
   M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT,
     source_analysis.policy.structured_data_item_count);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
-  M68K_C_ASSERT_U32(M68K_RENDER_IR_ASM_SOURCE_FAILURE_NONE, profile.asm_source_first_failure_kind);
+  M68K_C_ASSERT_U32(M68K_SOURCE_EXPORT_FAILURE_NONE, profile.asm_source_first_failure_kind);
   m68k_facts_v2_free_text(source);
   m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_object_destroy(&object);

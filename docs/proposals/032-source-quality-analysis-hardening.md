@@ -193,16 +193,16 @@ facts_v2_has_source_blockers()
   -> currently just aliases facts_v2_has_hard_failures()
 
 facts_v2_record_source_blocker_first_failure()
-  -> writes M68K_RENDER_IR_ASM_SOURCE_FAILURE_* into M68kFactsV2Profile
+  -> writes M68K_SOURCE_EXPORT_FAILURE_* into M68kFactsV2Profile
 
 m68k_render_ir_preview_build()
   -> can still refuse render, byte mismatch, or instruction relocation
 ```
 
-That is the right skeleton but the wrong ownership. Structural blockers,
-source-quality blockers, and render/export failures should share the profile
-summary fields, but the durable source-quality evidence must live in Source
-Analysis IR before rendering.
+That skeleton now uses source-export vocabulary rather than render-owned enum
+names. Structural blockers, source-quality blockers, and render/export failures
+share the profile summary fields, but the remaining ownership work is to make
+all durable source-quality evidence live in Source Analysis IR before rendering.
 
 ## Tutorial: Add A Source-Quality Module
 
@@ -456,12 +456,11 @@ m68k_render_ir_preview_build()
   can still fail later for true export/render failures
 ```
 
-The problem is not that refusal is absent. The problem is that it is still a
-profile-first, render-named interface. `M68K_RENDER_IR_ASM_SOURCE_FAILURE_*`
-lives in `m68k_render_ir.h`, but analysis code uses it to describe pre-render
-source blockers. That makes the Module shallow: callers must know whether a
-failure was analysis, source-quality, or render/export by reading the
-implementation.
+The first ownership cleanup is complete: `M68K_SOURCE_EXPORT_FAILURE_*` lives in
+`m68k_source_export.h`, and both analysis/profile code and render/export code
+use that shared vocabulary. The remaining problem is that refusal is still
+profile-first: callers must know whether a failure was analysis,
+source-quality, or render/export by reading the implementation.
 
 The deeper interface is:
 
@@ -479,9 +478,9 @@ M68kRenderIRPreview
   render/export failures only
 ```
 
-Deletion test: after migration, deleting the render failure enum must not delete
-analysis refusal vocabulary. If source-quality blockers still need
-`m68k_render_ir.h`, the seam is wrong.
+Deletion test: deleting `m68k_render_ir.h` no longer deletes analysis refusal
+vocabulary. The next deletion test is stricter: source-quality blockers should
+be derivable from `M68kSourceQualityDiagnosticIR` before render preview starts.
 
 ## Tutorial: False Code And Accepted Runs
 
@@ -1943,7 +1942,7 @@ facts_v2_record_source_blocker_first_failure()
 facts_v2_append_incomplete_analysis_from_profile()
 facts_v2_has_asm_source_failures()
 m68k_render_ir_preview_build()
-record_asm_source_failure()
+record_source_export_failure()
 ```
 
 Current failure kinds to split:
@@ -1970,8 +1969,8 @@ render/export failures:
   INSTRUCTION_RELOCATION
 ```
 
-Rename the renderer-named asm-source failure enum to
-`M68kSourceExportFailureKind`. Then make source-quality diagnostics feed the
+The renderer-named asm-source failure enum has been renamed to
+`M68kSourceExportFailureKind`. Next, make source-quality diagnostics feed the
 existing profile fields:
 
 ```text
@@ -1985,8 +1984,8 @@ asm_source_first_failure_aux_offset
 Current migration target:
 
 ```text
-M68K_RENDER_IR_ASM_SOURCE_FAILURE_*
-  -> M68kSourceExportFailureKind
+M68K_SOURCE_EXPORT_FAILURE_*
+  -> M68kSourceExportFailureKind in m68k_source_export.h
 
 facts_v2_has_source_blockers()
   -> checks source-quality blocker count plus existing structural blockers

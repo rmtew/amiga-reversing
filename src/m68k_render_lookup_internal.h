@@ -666,7 +666,7 @@ int format_amiga_hardware_register_field_symbol(const AmigaOsHardwareRegisterFie
   int include_hardware_base, char *buf, size_t buf_size);
 int format_amiga_hardware_register_range_symbol(const AmigaOsHardwareRegisterRangeInfo *hardware_range,
   uint32_t offset, int include_hardware_base, char *buf, size_t buf_size);
-void record_asm_source_failure(M68kRenderIRPreview *preview, uint32_t kind, size_t section_index,
+void record_source_export_failure(M68kRenderIRPreview *preview, M68kSourceExportFailureKind kind, size_t section_index,
     uint32_t offset, uint32_t aux_offset);
 void record_numeric_runtime_ref(M68kRenderIRPreview *preview, const M68kFact *fact);
 int lookup_offset_is_inside_relocation_payload(const M68kRenderLookup *lookup, size_t section_index,
