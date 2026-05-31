@@ -3086,6 +3086,35 @@ uv run python -m pytest tests\test_target_usage_manifest.py -q
 uv run platform-rendered-source-roundtrip --no-write-report --json
 ```
 
+### Base Layout Fact Append Split
+
+Moved RSSET/base-layout fact append out of the header source renderer:
+
+```text
+m68k_render_ir_preview_build(..., out_source_analysis)
+  -> render lookup platform/app-slot pass
+  -> append base-layout fields before source text rendering
+
+render_asm_app_extension_rs()
+  -> formats RSSET/header rows only
+```
+
+This is a migration split, not the final ownership shape. Durable
+`base_layout_field` records are no longer appended by the function that writes
+RSSET text, and collect-only source analysis now proves app-slot layout fields
+without rendering source. Full closeout still needs the app/base-slot producer
+to move into pre-render source-quality/platform analysis so the renderer reads
+finished layout facts instead of rebuilding the same slot list for presentation.
+
+Verified:
+
+```text
+cmd /c src\build.bat
+src\build\m68k_c_unit_tests.exe
+uv run python -m pytest tests\test_target_usage_manifest.py -q
+uv run platform-rendered-source-roundtrip --no-write-report --json
+```
+
 ### Structured Data Range Ownership Migration
 
 Moved structured-data range ownership export out of render preview and into

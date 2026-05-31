@@ -7920,46 +7920,35 @@ static int render_app_rs_resident_sizeof_value(const M68kRenderLookup *lookup, c
   return 0;
 }
 
-void render_asm_app_extension_rs(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
-    const M68kDecodeIR *decode, M68kSourceAnalysisIR *source_analysis) {
-  Arena *scratch_arena;
-  ArenaMark scratch_mark;
-  M68kRenderAppRsSlot *slots = NULL;
-  M68kRenderAppRsLayout *layouts = NULL;
-  size_t slot_count = 0U;
-  size_t slot_capacity = 0U;
-  size_t layout_count = 0U;
-  size_t index;
-  int32_t lib_size = 0, base_offset = 0, cursor;
-  int32_t inferred_sizeof = 0, app_sizeof_value = 0;
-  int has_app_sizeof_value;
-  int has_resident_context;
-  char line[160];
-  if (preview == NULL || lookup == NULL) return;
+static size_t render_app_rs_slot_capacity_for_lookup(const M68kRenderLookup *lookup) {
+  size_t slot_capacity;
+  if (lookup == NULL) return 1U;
   slot_capacity = lookup->base_field_slot_count +
     (lookup->policy != NULL ? lookup->policy->rsset_layout_region_count : 0U);
-  if (slot_capacity == 0U) slot_capacity = 1U;
-  scratch_arena = render_preview_scratch_arena(preview);
-  if (scratch_arena == NULL) {
-    preview->asm_source_allocation_failed = 1U;
-    return;
-  }
-  scratch_mark = arena_mark(scratch_arena);
-  slots = (M68kRenderAppRsSlot *)arena_calloc(scratch_arena, slot_capacity, sizeof(*slots));
-  if (slots == NULL) {
-    preview->asm_source_allocation_failed = 1U;
-    goto cleanup;
-  }
-  layouts = (M68kRenderAppRsLayout *)arena_calloc(scratch_arena, slot_capacity, sizeof(*layouts));
-  if (layouts == NULL) {
-    preview->asm_source_allocation_failed = 1U;
-    goto cleanup;
-  }
+  return slot_capacity == 0U ? 1U : slot_capacity;
+}
+
+static int render_app_rs_collect_slots(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
+    const M68kDecodeIR *decode, M68kRenderAppRsSlot *slots, size_t slot_capacity, size_t *out_slot_count,
+    int *out_has_resident_context, int *out_has_app_sizeof_value, int32_t *out_base_offset,
+    int32_t *out_app_sizeof_value) {
+  size_t slot_count = 0U;
+  size_t index;
+  int32_t lib_size = 0, base_offset = 0;
+  int32_t app_sizeof_value = 0;
+  int has_app_sizeof_value;
+  int has_resident_context;
+  if (out_slot_count != NULL) *out_slot_count = 0U;
+  if (out_has_resident_context != NULL) *out_has_resident_context = 0;
+  if (out_has_app_sizeof_value != NULL) *out_has_app_sizeof_value = 0;
+  if (out_base_offset != NULL) *out_base_offset = 0;
+  if (out_app_sizeof_value != NULL) *out_app_sizeof_value = 0;
+  if (lookup == NULL || slots == NULL) return -1;
   has_resident_context = lookup_has_amiga_resident_library_context(lookup);
   has_app_sizeof_value = render_app_rs_resident_sizeof_value(lookup, decode, &app_sizeof_value);
   if (has_resident_context) {
     if (!render_amiga_constant_value_by_symbol_id(AMIGA_OS_SYMBOL_ID_LIB_SIZE, &lib_size) || lib_size <= 0) {
-      goto cleanup;
+      return 0;
     }
     base_offset = lib_size;
   }
@@ -7968,7 +7957,6 @@ void render_asm_app_extension_rs(M68kRenderIRPreview *preview, const M68kRenderL
     char symbol_name[64];
     char region_symbol_name[64], field_expr[96];
     int conflict = 0;
-    int32_t extent_end;
     int32_t policy_region_size;
     int32_t region_size;
     if (slot->conflicted != 0U || !render_base_field_slot_owner_is_app_base(slot)) continue;
@@ -7987,7 +7975,7 @@ void render_asm_app_extension_rs(M68kRenderIRPreview *preview, const M68kRenderL
     }
     if (render_app_rs_slot_exists(slots, slot_count, symbol_name, M68K_RENDER_APP_LAYOUT_NAME,
         slot->displacement, &conflict)) {
-      if (conflict) {
+      if (conflict && preview != NULL) {
         ++preview->asm_source_instruction_render_failures;
         record_asm_source_failure(preview, M68K_RENDER_IR_ASM_SOURCE_FAILURE_RENDER,
           slot->source_section_index, slot->source_offset, (uint32_t)(uint16_t)slot->displacement);
@@ -7995,9 +7983,11 @@ void render_asm_app_extension_rs(M68kRenderIRPreview *preview, const M68kRenderL
       continue;
     }
     if (slot_count >= slot_capacity) {
-      ++preview->asm_source_instruction_render_failures;
-      record_asm_source_failure(preview, M68K_RENDER_IR_ASM_SOURCE_FAILURE_RENDER,
-        slot->source_section_index, slot->source_offset, (uint32_t)(uint16_t)slot->displacement);
+      if (preview != NULL) {
+        ++preview->asm_source_instruction_render_failures;
+        record_asm_source_failure(preview, M68K_RENDER_IR_ASM_SOURCE_FAILURE_RENDER,
+          slot->source_section_index, slot->source_offset, (uint32_t)(uint16_t)slot->displacement);
+      }
       continue;
     }
     slots[slot_count].displacement = slot->displacement;
@@ -8025,8 +8015,6 @@ void render_asm_app_extension_rs(M68kRenderIRPreview *preview, const M68kRenderL
     slots[slot_count].value_kind = slot->value_kind;
     slots[slot_count].source_kind = M68K_BASE_LAYOUT_FIELD_SOURCE_APP_SLOT_ACCESS;
     ++slot_count;
-    extent_end = (int32_t)slot->displacement + slots[slot_count - 1U].size;
-    if (extent_end > inferred_sizeof) inferred_sizeof = extent_end;
   }
   if (lookup->policy != NULL) {
     const M68kAnalysisPolicy *policy = lookup->policy;
@@ -8040,11 +8028,11 @@ void render_asm_app_extension_rs(M68kRenderIRPreview *preview, const M68kRenderL
       if (region->symbol[0] == '\0' || region->offset > 0x7FFFU || region->size == 0U) continue;
       if (render_app_rs_slot_exists(slots, slot_count, region->symbol, layout_name, (int32_t)region->offset,
           &conflict)) {
-        if (conflict) ++preview->asm_source_instruction_render_failures;
+        if (conflict && preview != NULL) ++preview->asm_source_instruction_render_failures;
         continue;
       }
       if (slot_count >= slot_capacity) {
-        ++preview->asm_source_instruction_render_failures;
+        if (preview != NULL) ++preview->asm_source_instruction_render_failures;
         continue;
       }
       snprintf(slots[slot_count].layout_name, sizeof(slots[slot_count].layout_name), "%s", layout_name);
@@ -8062,6 +8050,91 @@ void render_asm_app_extension_rs(M68kRenderIRPreview *preview, const M68kRenderL
       slots[slot_count].source_kind = M68K_BASE_LAYOUT_FIELD_SOURCE_POLICY_RSSET_REGION;
       ++slot_count;
     }
+  }
+  if (out_slot_count != NULL) *out_slot_count = slot_count;
+  if (out_has_resident_context != NULL) *out_has_resident_context = has_resident_context;
+  if (out_has_app_sizeof_value != NULL) *out_has_app_sizeof_value = has_app_sizeof_value;
+  if (out_base_offset != NULL) *out_base_offset = base_offset;
+  if (out_app_sizeof_value != NULL) *out_app_sizeof_value = app_sizeof_value;
+  return 0;
+}
+
+int render_asm_app_extension_rs_append_layout_facts(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
+    const M68kDecodeIR *decode, M68kSourceAnalysisIR *source_analysis) {
+  Arena *scratch_arena;
+  ArenaMark scratch_mark;
+  M68kRenderAppRsSlot *slots = NULL;
+  M68kRenderAppRsLayout *layouts = NULL;
+  size_t slot_capacity;
+  size_t slot_count = 0U;
+  int32_t base_offset = 0, app_sizeof_value = 0;
+  int has_app_sizeof_value = 0;
+  int has_resident_context = 0;
+  size_t layout_count;
+  int result = -1;
+  if (source_analysis == NULL) return 0;
+  if (preview == NULL || lookup == NULL) return -1;
+  slot_capacity = render_app_rs_slot_capacity_for_lookup(lookup);
+  scratch_arena = render_preview_scratch_arena(preview);
+  if (scratch_arena == NULL) return -1;
+  scratch_mark = arena_mark(scratch_arena);
+  slots = (M68kRenderAppRsSlot *)arena_calloc(scratch_arena, slot_capacity, sizeof(*slots));
+  layouts = (M68kRenderAppRsLayout *)arena_calloc(scratch_arena, slot_capacity, sizeof(*layouts));
+  if (slots == NULL || layouts == NULL) goto cleanup;
+  if (render_app_rs_collect_slots(preview, lookup, decode, slots, slot_capacity, &slot_count,
+      &has_resident_context, &has_app_sizeof_value, &base_offset, &app_sizeof_value) != 0) {
+    goto cleanup;
+  }
+  if (slot_count == 0U) {
+    result = 0;
+    goto cleanup;
+  }
+  layout_count = render_app_rs_prepare_layouts(slots, slot_count, layouts, slot_capacity, base_offset,
+    has_resident_context, has_app_sizeof_value, app_sizeof_value);
+  if (layout_count == SIZE_MAX) goto cleanup;
+  result = render_app_rs_append_layout_facts(source_analysis, slots, slot_count);
+cleanup:
+  arena_rewind(scratch_arena, scratch_mark);
+  return result;
+}
+
+void render_asm_app_extension_rs(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
+    const M68kDecodeIR *decode) {
+  Arena *scratch_arena;
+  ArenaMark scratch_mark;
+  M68kRenderAppRsSlot *slots = NULL;
+  M68kRenderAppRsLayout *layouts = NULL;
+  size_t slot_count = 0U;
+  size_t slot_capacity = 0U;
+  size_t layout_count = 0U;
+  size_t index;
+  int32_t base_offset = 0, cursor;
+  int32_t app_sizeof_value = 0;
+  int has_app_sizeof_value = 0;
+  int has_resident_context = 0;
+  char line[160];
+  if (preview == NULL || lookup == NULL) return;
+  slot_capacity = render_app_rs_slot_capacity_for_lookup(lookup);
+  scratch_arena = render_preview_scratch_arena(preview);
+  if (scratch_arena == NULL) {
+    preview->asm_source_allocation_failed = 1U;
+    return;
+  }
+  scratch_mark = arena_mark(scratch_arena);
+  slots = (M68kRenderAppRsSlot *)arena_calloc(scratch_arena, slot_capacity, sizeof(*slots));
+  if (slots == NULL) {
+    preview->asm_source_allocation_failed = 1U;
+    goto cleanup;
+  }
+  layouts = (M68kRenderAppRsLayout *)arena_calloc(scratch_arena, slot_capacity, sizeof(*layouts));
+  if (layouts == NULL) {
+    preview->asm_source_allocation_failed = 1U;
+    goto cleanup;
+  }
+  if (render_app_rs_collect_slots(preview, lookup, decode, slots, slot_capacity, &slot_count,
+      &has_resident_context, &has_app_sizeof_value, &base_offset, &app_sizeof_value) != 0) {
+    preview->asm_source_allocation_failed = 1U;
+    goto cleanup;
   }
   if (slot_count == 0U && (has_app_sizeof_value == 0 || app_sizeof_value <= base_offset)) {
     goto cleanup;
@@ -8159,10 +8232,6 @@ void render_asm_app_extension_rs(M68kRenderIRPreview *preview, const M68kRenderL
     ++preview->asm_source_lines;
     hash_asm_text(preview, "\n");
   }
-  if (render_app_rs_append_layout_facts(source_analysis, slots, slot_count) != 0) {
-    preview->asm_source_allocation_failed = 1U;
-  }
-
 cleanup:
   arena_rewind(scratch_arena, scratch_mark);
 }
@@ -11317,6 +11386,11 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
     out_preview->asm_source_allocation_failed = 1U;
     goto cleanup;
   }
+  if (out_source_analysis != NULL &&
+      render_asm_app_extension_rs_append_layout_facts(out_preview, &lookup, decode, out_source_analysis) != 0) {
+    out_preview->asm_source_allocation_failed = 1U;
+    goto cleanup;
+  }
   if (render_asm_source) {
     out_preview->platform_base_slot_count = (uint32_t)(lookup.global_base_slot_count + lookup.base_field_slot_count);
   }
@@ -11331,7 +11405,7 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
     render_asm_platform_header(out_preview, object);
     finish_asm_source_plan_row(out_preview, M68K_RENDER_PLAN_NO_SECTION, 0U, 0U, 0);
     begin_asm_source_plan_row(out_preview, M68K_RENDER_PLAN_ROW_RSSET, 0U);
-    render_asm_app_extension_rs(out_preview, &lookup, decode, out_source_analysis);
+    render_asm_app_extension_rs(out_preview, &lookup, decode);
     finish_asm_source_plan_row(out_preview, M68K_RENDER_PLAN_NO_SECTION, 0U, 0U, 0);
     if (!render_asm_declare_target_equates(out_preview, policy)) goto cleanup;
     out_preview->asm_source_body_start_byte = out_preview->asm_source_bytes;

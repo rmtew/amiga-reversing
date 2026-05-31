@@ -698,6 +698,8 @@ int lookup_app_base_field_slot_symbol_name(const M68kRenderLookup *lookup, int16
 const char *lookup_indexed_vector_wrapper_library(const M68kRenderLookup *lookup, size_t section_index,
     uint32_t offset);
 void render_asm_app_extension_rs(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
+  const M68kDecodeIR *decode);
+int render_asm_app_extension_rs_append_layout_facts(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
   const M68kDecodeIR *decode, M68kSourceAnalysisIR *source_analysis);
 void render_asm_org(M68kRenderIRPreview *preview, uint32_t logical_address);
 void render_asm_sync_logical_pc(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,

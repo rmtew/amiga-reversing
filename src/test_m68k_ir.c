@@ -16899,6 +16899,62 @@ static int test_facts_v2_render_asm_source_uses_observed_app_slot_widths(void) {
   return 0;
 }
 
+static int test_facts_v2_analysis_collects_app_slot_layout_fields_without_source_render(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR analysis;
+  uint8_t bytes[14] = {
+    0x3du, 0x40u, 0x00u, 0x0au,
+    0x3du, 0x41u, 0x00u, 0x0cu,
+    0x2du, 0x42u, 0x00u, 0x0fu,
+    0x4eu, 0x75u
+  };
+  memset(&section, 0, sizeof(section));
+  memset(&analysis, 0, sizeof(analysis));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.register_seed_count = 1U;
+  policy.register_seeds[0].kind = M68K_ANALYSIS_REGISTER_SEED_LIBRARY_BASE;
+  policy.register_seeds[0].reg_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+  policy.register_seeds[0].reg_index = 6U;
+  policy.register_seeds[0].has_entry_offset = 1U;
+  policy.register_seeds[0].has_section_index = 1U;
+  policy.register_seeds[0].entry_offset = 0U;
+  policy.register_seeds[0].section_index = 0U;
+  snprintf(policy.register_seeds[0].name, sizeof(policy.register_seeds[0].name), "__amiga_app_base__");
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
+    &analysis, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_U32(3U, (uint32_t)analysis.base_layout_field_count);
+  M68K_C_ASSERT_STR("app_000A", analysis.base_layout_fields[0].symbol);
+  M68K_C_ASSERT_U32(0x000AU, analysis.base_layout_fields[0].offset);
+  M68K_C_ASSERT_U32(2U, analysis.base_layout_fields[0].size);
+  M68K_C_ASSERT_STR("app_000C", analysis.base_layout_fields[1].symbol);
+  M68K_C_ASSERT_U32(0x000CU, analysis.base_layout_fields[1].offset);
+  M68K_C_ASSERT_U32(2U, analysis.base_layout_fields[1].size);
+  M68K_C_ASSERT_STR("app_000F", analysis.base_layout_fields[2].symbol);
+  M68K_C_ASSERT_U32(0x000FU, analysis.base_layout_fields[2].offset);
+  M68K_C_ASSERT_U32(4U, analysis.base_layout_fields[2].size);
+  M68K_C_ASSERT_U32(M68K_BASE_LAYOUT_KIND_APP, analysis.base_layout_fields[0].layout_kind);
+  M68K_C_ASSERT_U32(M68K_BASE_LAYOUT_FIELD_SOURCE_APP_SLOT_ACCESS,
+    analysis.base_layout_fields[0].source_kind);
+  M68K_C_ASSERT_U32(M68K_FACT_CONFIDENCE_TOOL_INFERRED, analysis.base_layout_fields[0].confidence);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  m68k_ir_source_analysis_destroy(&analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_analysis_keeps_untyped_app_slot_untyped(void) {
   M68kObject object;
   M68kSection section;
@@ -23986,6 +24042,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_render_asm_source_does_not_infer_app_slot_from_unknown_a6_custom_offset},
     {"facts_v2_render_asm_source_uses_observed_app_slot_widths",
       test_facts_v2_render_asm_source_uses_observed_app_slot_widths},
+    {"facts_v2_analysis_collects_app_slot_layout_fields_without_source_render",
+      test_facts_v2_analysis_collects_app_slot_layout_fields_without_source_render},
     {"facts_v2_analysis_keeps_untyped_app_slot_untyped",
       test_facts_v2_analysis_keeps_untyped_app_slot_untyped},
     {"facts_v2_render_asm_source_uses_policy_rsset_layout_region_symbol",
