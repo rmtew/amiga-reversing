@@ -7613,8 +7613,8 @@ size_t base_layout_slot_capacity_for_lookup(const M68kRenderLookup *lookup) {
   return slot_capacity == 0U ? 1U : slot_capacity;
 }
 
-int base_layout_collect_slots(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
-    const M68kDecodeIR *decode, M68kBaseLayoutSlot *slots, size_t slot_capacity, size_t *out_slot_count,
+int base_layout_collect_slots(const M68kRenderLookup *lookup, const M68kDecodeIR *decode,
+    M68kBaseLayoutSlot *slots, size_t slot_capacity, size_t *out_slot_count,
     int *out_has_resident_context, int *out_has_app_sizeof_value, int32_t *out_base_offset,
     int32_t *out_app_sizeof_value) {
   size_t slot_count = 0U;
@@ -7660,21 +7660,10 @@ int base_layout_collect_slots(M68kRenderIRPreview *preview, const M68kRenderLook
     }
     if (base_layout_slot_exists(slots, slot_count, symbol_name, M68K_APP_LAYOUT_NAME,
         slot->displacement, &conflict)) {
-      if (conflict && preview != NULL) {
-        ++preview->asm_source_instruction_render_failures;
-        record_source_export_failure(preview, M68K_SOURCE_EXPORT_FAILURE_RENDER,
-          slot->source_section_index, slot->source_offset, (uint32_t)(uint16_t)slot->displacement);
-      }
+      if (conflict) return -1;
       continue;
     }
-    if (slot_count >= slot_capacity) {
-      if (preview != NULL) {
-        ++preview->asm_source_instruction_render_failures;
-        record_source_export_failure(preview, M68K_SOURCE_EXPORT_FAILURE_RENDER,
-          slot->source_section_index, slot->source_offset, (uint32_t)(uint16_t)slot->displacement);
-      }
-      continue;
-    }
+    if (slot_count >= slot_capacity) return -1;
     slots[slot_count].displacement = slot->displacement;
     (void)base_layout_policy_region_size_for_slot(lookup->policy, symbol_name, slot->displacement,
       &policy_region_size);
@@ -7713,13 +7702,10 @@ int base_layout_collect_slots(M68kRenderIRPreview *preview, const M68kRenderLook
       if (region->symbol[0] == '\0' || region->offset > 0x7FFFU || region->size == 0U) continue;
       if (base_layout_slot_exists(slots, slot_count, region->symbol, layout_name, (int32_t)region->offset,
           &conflict)) {
-        if (conflict && preview != NULL) ++preview->asm_source_instruction_render_failures;
+        if (conflict) return -1;
         continue;
       }
-      if (slot_count >= slot_capacity) {
-        if (preview != NULL) ++preview->asm_source_instruction_render_failures;
-        continue;
-      }
+      if (slot_count >= slot_capacity) return -1;
       snprintf(slots[slot_count].layout_name, sizeof(slots[slot_count].layout_name), "%s", layout_name);
       slots[slot_count].layout_kind = layout_kind;
       slots[slot_count].base_kind =
@@ -7777,7 +7763,7 @@ void render_asm_base_layout_rs(M68kRenderIRPreview *preview, const M68kRenderLoo
     preview->asm_source_allocation_failed = 1U;
     goto cleanup;
   }
-  if (base_layout_collect_slots(preview, lookup, decode, slots, slot_capacity, &slot_count,
+  if (base_layout_collect_slots(lookup, decode, slots, slot_capacity, &slot_count,
       &has_resident_context, &has_app_sizeof_value, &base_offset, &app_sizeof_value) != 0) {
     preview->asm_source_allocation_failed = 1U;
     goto cleanup;

@@ -757,7 +757,7 @@ const char *lookup_indexed_vector_wrapper_library(const M68kRenderLookup *lookup
 void render_asm_base_layout_rs(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
   const M68kDecodeIR *decode);
 size_t base_layout_slot_capacity_for_lookup(const M68kRenderLookup *lookup);
-int base_layout_collect_slots(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
+int base_layout_collect_slots(const M68kRenderLookup *lookup,
   const M68kDecodeIR *decode, M68kBaseLayoutSlot *slots, size_t slot_capacity, size_t *out_slot_count,
   int *out_has_resident_context, int *out_has_app_sizeof_value, int32_t *out_base_offset,
   int32_t *out_app_sizeof_value);

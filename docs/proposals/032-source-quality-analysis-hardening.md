@@ -4359,3 +4359,11 @@ and listing helpers. `app_XXXX` is not a compatibility fallback; it is the
 deterministic generated symbol for an observed app-base displacement when no
 stronger platform/library name is proven. Tests now assert generated app-slot
 symbols with that vocabulary.
+
+### Base-Layout Collector Render Side-Effect Removal
+
+Removed the `M68kRenderIRPreview *` parameter from `base_layout_collect_slots()`.
+The shared collector no longer increments render-failure counters or records
+source-export failures while analysis is collecting durable base-layout facts.
+It now reports collection failure directly; render/export callers decide how to
+surface that failure.

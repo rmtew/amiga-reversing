@@ -14713,7 +14713,7 @@ int m68k_analysis_render_lookup_append_base_layout_fields(M68kRenderIRPreview *p
   slots = (M68kBaseLayoutSlot *)arena_calloc(scratch_arena, slot_capacity, sizeof(*slots));
   layouts = (M68kBaseLayoutGroup *)arena_calloc(scratch_arena, slot_capacity, sizeof(*layouts));
   if (slots == NULL || layouts == NULL) goto cleanup;
-  if (base_layout_collect_slots(preview, lookup, decode, slots, slot_capacity, &slot_count,
+  if (base_layout_collect_slots(lookup, decode, slots, slot_capacity, &slot_count,
       &has_resident_context, &has_app_sizeof_value, &base_offset, &app_sizeof_value) != 0) {
     goto cleanup;
   }
