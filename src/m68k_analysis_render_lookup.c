@@ -219,7 +219,7 @@ static int instruction_stack_delta_for_comment(const M68kInstructionIR *instruct
        instruction->mnemonic_id == M68K_ASM_MNEMONIC_SUBQ) &&
       instruction->operand_count == 2U && operand_is_address_register_local(&instruction->operands[1], 7U)) {
     uint32_t value = 0U;
-    if (!operand_is_immediate_value_local(&instruction->operands[0], &value) || value > INT16_MAX) return 0;
+    if (!m68k_ir_operand_immediate_value(&instruction->operands[0], &value) || value > INT16_MAX) return 0;
     *out_delta = (instruction->mnemonic_id == M68K_ASM_MNEMONIC_SUB ||
                   instruction->mnemonic_id == M68K_ASM_MNEMONIC_SUBA ||
                   instruction->mnemonic_id == M68K_ASM_MNEMONIC_SUBI ||
@@ -2359,7 +2359,7 @@ static void typed_state_record_io_request_immediate_store(M68kRenderTypedState *
   if (!instruction_move_operand_indices_from_metadata(instruction, &source_index, &dest_index, &metadata))
     return;
   (void)metadata;
-  if (!operand_is_immediate_value_local(&instruction->operands[source_index], &value) ||
+  if (!m68k_ir_operand_immediate_value(&instruction->operands[source_index], &value) ||
       !operand_is_address_displacement_local(&instruction->operands[dest_index], &base_reg, &displacement) ||
       base_reg >= 8U || state->addr_regs[base_reg].known == 0U ||
       state->addr_regs[base_reg].struct_id == AMIGA_OS_STRUCT_ID_NONE ||
@@ -4397,7 +4397,7 @@ static int candidate_moves_immediate_scalar_to_data_reg(const M68kDecodeCandidat
   if (out_value != NULL) *out_value = 0U;
   if (candidate == NULL || instruction == NULL || out_reg == NULL || out_value == NULL ||
       instruction->operand_count != 2U || !operand_is_data_register_local(&instruction->operands[1], &dest_reg) ||
-      !operand_is_immediate_value_local(&instruction->operands[0], &value)) {
+      !m68k_ir_operand_immediate_value(&instruction->operands[0], &value)) {
     return 0;
   }
   if (instruction->mnemonic_id != M68K_ASM_MNEMONIC_MOVE &&
@@ -4614,7 +4614,7 @@ static int render_find_c_string_span(const M68kDecodeSectionIR *section, uint32_
   if (section == NULL || section->data == NULL || offset >= section->size || out_size == NULL) return 0;
   cursor = offset;
   while (cursor < section->size && section->data[cursor] != 0U) {
-    if (!byte_is_quoted_string_safe(section->data[cursor])) return 0;
+    if (!m68k_ir_byte_is_quoted_string_safe(section->data[cursor])) return 0;
     ++cursor;
     ++text_size;
   }
@@ -4669,7 +4669,7 @@ static int render_api_text_buffer_shape_ok(const M68kRenderLookup *lookup, const
       if (lookup_range_ownership_covering_offset(lookup, section->section_index, cursor, &range)) return 0;
     }
     if (value == ' ') has_space = 1;
-    if (byte_is_quoted_string_safe(value)) ++printable_count;
+    if (m68k_ir_byte_is_quoted_string_safe(value)) ++printable_count;
     if (auto_string_alpha_byte(value)) ++alpha_count;
   }
   return alpha_count >= 6U && printable_count >= 8U && has_space;
@@ -7474,7 +7474,7 @@ static int display_setup_collect_immediate_write(M68kRenderDisplaySetup *setup,
   if (setup == NULL || candidate == NULL || instruction == NULL || instruction->size_suffix != 'w' ||
       !instruction_move_operand_indices_from_metadata(instruction, &source_index, &dest_index, &metadata) ||
       metadata == NULL || metadata->operand_access_kinds[dest_index] != M68K_SIM_ACCESS_MEMORY_WRITE ||
-      !operand_is_immediate_value_local(&instruction->operands[source_index], &value) ||
+      !m68k_ir_operand_immediate_value(&instruction->operands[source_index], &value) ||
       !asm_candidate_operand_absolute_value(candidate, dest_index, &dest_address)) {
     return 0;
   }
@@ -7860,7 +7860,7 @@ static int candidate_immediate_audio_length_bytes(const M68kDecodeCandidate *can
     return 0;
   }
   if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0 ||
-      !operand_is_immediate_value_local(&instruction.operands[0], &immediate) ||
+      !m68k_ir_operand_immediate_value(&instruction.operands[0], &immediate) ||
       !asm_candidate_operand_absolute_value(candidate, 1U, &dest_address)) {
     return 0;
   }
@@ -8154,7 +8154,7 @@ static int render_lookup_infer_bootblock_runtime_copies(M68kRenderLookup *lookup
           m68k_decode_candidate_to_instruction(count_candidate, &count_instruction) != 0 ||
           count_instruction.mnemonic_id != M68K_ASM_MNEMONIC_MOVE ||
           count_instruction.size_suffix != 'w' || count_instruction.operand_count != 2U ||
-          !operand_is_immediate_value_local(&count_instruction.operands[0], &count_value) ||
+          !m68k_ir_operand_immediate_value(&count_instruction.operands[0], &count_value) ||
           !operand_is_data_register_local(&count_instruction.operands[1], &count_reg)) {
         continue;
       }
@@ -8754,7 +8754,7 @@ static int auto_string_candidate_start(const M68kDecodeSectionIR *section, uint3
   uint8_t value;
   if (section == NULL || section->data == NULL || offset >= section->size) return 0;
   value = section->data[offset];
-  if (byte_is_quoted_string_safe(value) && auto_string_start_byte(value)) return 1;
+  if (m68k_ir_byte_is_quoted_string_safe(value) && auto_string_start_byte(value)) return 1;
   return value >= 4U && value <= 80U && offset + 1U < section->size &&
     auto_string_start_byte(section->data[offset + 1U]);
 }
@@ -8837,7 +8837,7 @@ static int auto_macos_symbol_string_record_span(const M68kRenderLookup *lookup,
   }
   for (cursor = 0U; cursor < length; ++cursor) {
     uint32_t payload_offset = offset + 1U + cursor;
-    if (!byte_is_quoted_string_safe(section->data[payload_offset])) return 0;
+    if (!m68k_ir_byte_is_quoted_string_safe(section->data[payload_offset])) return 0;
     if (!auto_string_interior_clear(lookup, section->section_index, payload_offset)) return 0;
   }
   cursor = offset + 1U + length;
@@ -8892,7 +8892,7 @@ static int auto_string_looks_length_prefixed_sequence(const M68kRenderLookup *lo
     if (length < 4U || payload > text_end || length > text_end - payload) return 0;
     if (!auto_string_start_byte(section->data[payload])) return 0;
     for (index = 0U; index < length; ++index) {
-      if (!byte_is_quoted_string_safe(section->data[payload + index])) return 0;
+      if (!m68k_ir_byte_is_quoted_string_safe(section->data[payload + index])) return 0;
     }
     cursor = payload + length;
     ++record_count;
@@ -8932,7 +8932,7 @@ static int auto_string_record_sequence_context_kind(const M68kRenderLookup *look
   if (prior_count < 2U || nearest_end == 0U || nearest_end > offset || offset - nearest_end > 8U) return 0;
   if (nearest_end == offset) return AUTO_STRING_RECORD_CONTEXT_ADJACENT_TABLE;
   for (index = nearest_end; index < offset; ++index) {
-    if (!byte_is_quoted_string_safe(section->data[index]) || auto_string_terminator_byte(section->data[index])) {
+    if (!m68k_ir_byte_is_quoted_string_safe(section->data[index]) || auto_string_terminator_byte(section->data[index])) {
       return AUTO_STRING_RECORD_CONTEXT_CONTROL_STREAM;
     }
   }
@@ -8973,11 +8973,11 @@ static uint32_t auto_renderable_string_span_with_options(const M68kRenderLookup 
   int has_lowercase = 0;
   int has_record_sequence_context;
   if (lookup == NULL || section == NULL || section->data == NULL || offset >= section->size ||
-      !byte_is_quoted_string_safe(section->data[offset]) || !auto_string_start_byte(section->data[offset])) {
+      !m68k_ir_byte_is_quoted_string_safe(section->data[offset]) || !auto_string_start_byte(section->data[offset])) {
     return 0U;
   }
   has_record_sequence_context = auto_string_has_record_sequence_context(lookup, section, offset);
-  if (offset > 0U && byte_is_quoted_string_safe(section->data[offset - 1U]) &&
+  if (offset > 0U && m68k_ir_byte_is_quoted_string_safe(section->data[offset - 1U]) &&
       !lookup_has_label(lookup, section->section_index, offset) &&
       !has_record_sequence_context) {
     return 0U;
@@ -8988,7 +8988,7 @@ static uint32_t auto_renderable_string_span_with_options(const M68kRenderLookup 
     return 0U;
   }
   cursor = offset;
-  while (cursor < section->size && byte_is_quoted_string_safe(section->data[cursor])) {
+  while (cursor < section->size && m68k_ir_byte_is_quoted_string_safe(section->data[cursor])) {
     if (cursor != offset && !auto_string_interior_clear(lookup, section->section_index, cursor)) return 0U;
     if (section->data[cursor] == ' ') has_space = 1;
     if (auto_string_lowercase_byte(section->data[cursor])) has_lowercase = 1;
@@ -9025,14 +9025,14 @@ static uint32_t auto_renderable_line_terminated_string_span(const M68kRenderLook
   int has_lowercase = 0;
   int has_boundary_evidence;
   if (lookup == NULL || section == NULL || section->data == NULL || offset >= section->size ||
-      !byte_is_quoted_string_safe(section->data[offset]) || !auto_string_start_byte(section->data[offset])) {
+      !m68k_ir_byte_is_quoted_string_safe(section->data[offset]) || !auto_string_start_byte(section->data[offset])) {
     return 0U;
   }
   has_boundary_evidence = record_context_kind == AUTO_STRING_RECORD_CONTEXT_ADJACENT_TABLE ||
     lookup_has_label(lookup, section->section_index, offset) ||
     lookup_has_anchor_local(lookup, section->section_index, offset);
   if (!has_boundary_evidence) return 0U;
-  if (offset > 0U && byte_is_quoted_string_safe(section->data[offset - 1U]) &&
+  if (offset > 0U && m68k_ir_byte_is_quoted_string_safe(section->data[offset - 1U]) &&
       !lookup_has_label(lookup, section->section_index, offset) &&
       !lookup_has_anchor_local(lookup, section->section_index, offset)) {
     return 0U;
@@ -9043,7 +9043,7 @@ static uint32_t auto_renderable_line_terminated_string_span(const M68kRenderLook
     return 0U;
   }
   cursor = offset;
-  while (cursor < section->size && byte_is_quoted_string_safe(section->data[cursor])) {
+  while (cursor < section->size && m68k_ir_byte_is_quoted_string_safe(section->data[cursor])) {
     if (cursor != offset && !auto_string_interior_clear(lookup, section->section_index, cursor)) return 0U;
     if (section->data[cursor] == ' ') has_space = 1;
     if (auto_string_lowercase_byte(section->data[cursor])) has_lowercase = 1;
@@ -9068,14 +9068,14 @@ static uint32_t auto_renderable_line_terminated_string_span(const M68kRenderLook
 }
 
 static int auto_multiline_text_byte(uint8_t value) {
-  return byte_is_quoted_string_safe(value) || value == 0x0dU || value == 0x0aU || value == 0x09U;
+  return m68k_ir_byte_is_quoted_string_safe(value) || value == 0x0dU || value == 0x0aU || value == 0x09U;
 }
 
 static int auto_multiline_text_start(const M68kDecodeSectionIR *section, uint32_t offset) {
   uint32_t cursor;
   if (section == NULL || section->data == NULL || offset >= section->size) return 0;
   if (section->data[offset] == 0x0dU) return 1;
-  if (!byte_is_quoted_string_safe(section->data[offset])) return 0;
+  if (!m68k_ir_byte_is_quoted_string_safe(section->data[offset])) return 0;
   cursor = offset;
   while (cursor < section->size && (section->data[cursor] == ' ' || section->data[cursor] == 0x09U)) {
     ++cursor;
@@ -9140,7 +9140,7 @@ static uint32_t auto_renderable_multiline_string_span(const M68kRenderLookup *lo
       previous_was_break = 1;
     } else {
       ++text_size;
-      if (previous_was_break && byte_is_quoted_string_safe(value)) ++text_line_count;
+      if (previous_was_break && m68k_ir_byte_is_quoted_string_safe(value)) ++text_line_count;
       previous_was_break = 0;
       if (value == ' ') has_space = 1;
       if (auto_string_alpha_byte(value)) ++alpha_count;
@@ -9197,7 +9197,7 @@ static int auto_bounded_string_has_text_shape(const M68kDecodeSectionIR *section
   if (text_size < 6U) return 0;
   for (cursor = 0U; cursor < text_size; ++cursor) {
     uint8_t value = section->data[offset + cursor];
-    if (!byte_is_quoted_string_safe(value)) return 0;
+    if (!m68k_ir_byte_is_quoted_string_safe(value)) return 0;
     if ((value >= 'A' && value <= 'Z') || (value >= 'a' && value <= 'z')) ++alpha_count;
     if (value == ' ') has_space = 1;
     if (value == '.') has_dot = 1;
@@ -9215,7 +9215,7 @@ static uint32_t auto_renderable_bounded_string_span(const M68kRenderLookup *look
     return 0U;
   }
   cursor = offset;
-  while (cursor < section->size && byte_is_quoted_string_safe(section->data[cursor]) &&
+  while (cursor < section->size && m68k_ir_byte_is_quoted_string_safe(section->data[cursor]) &&
       accepted_range_has_code_byte(accepted_bytes, section->size, cursor, 1U) == 0 &&
       lookup_relocation_at(lookup, section->section_index, cursor) == NULL &&
       (cursor == offset || !lookup_has_label(lookup, section->section_index, cursor)) &&
@@ -9373,7 +9373,7 @@ static int render_lookup_infer_data_strings(M68kRenderLookup *lookup, const M68k
       }
     }
     int candidate_start = auto_string_candidate_start(section, offset) ||
-      (byte_is_quoted_string_safe(section->data[offset]) &&
+      (m68k_ir_byte_is_quoted_string_safe(section->data[offset]) &&
           (lookup_has_label(lookup, section_index, offset) ||
            lookup_has_anchor_local(lookup, section_index, offset)));
       if ((accepted_bytes[section_index] != NULL && accepted_bytes[section_index][offset] != 0U) ||
@@ -9665,7 +9665,7 @@ static uint32_t auto_renderable_word_relative_table_bounded_string_span(const M6
   }
   span = upper_bound - offset;
   for (cursor = offset; cursor < upper_bound; ++cursor) {
-    if (!byte_is_quoted_string_safe(section->data[cursor])) return 0U;
+    if (!m68k_ir_byte_is_quoted_string_safe(section->data[cursor])) return 0U;
     if (accepted_range_has_code_byte(accepted_bytes, section->size, cursor, 1U) != 0) return 0U;
     if (lookup_relocation_at(lookup, section->section_index, cursor) != NULL) return 0U;
     {
@@ -10582,7 +10582,7 @@ static int instruction_masks_index_register(const M68kInstructionIR *instruction
   if (instruction == NULL || instruction->size_suffix != 'w' || instruction->operand_count != 2U ||
       (instruction->mnemonic_id != M68K_ASM_MNEMONIC_ANDI &&
        instruction->mnemonic_id != M68K_ASM_MNEMONIC_AND) ||
-      !operand_is_immediate_value_local(&instruction->operands[0], &value) ||
+      !m68k_ir_operand_immediate_value(&instruction->operands[0], &value) ||
       !operand_is_data_register_local(&instruction->operands[1], &dest_reg) || dest_reg != index_reg) {
     return 0;
   }
@@ -10598,7 +10598,7 @@ static int instruction_compares_index_register_immediate(const M68kInstructionIR
   if (instruction == NULL || instruction->size_suffix != 'w' || instruction->operand_count != 2U ||
       (instruction->mnemonic_id != M68K_ASM_MNEMONIC_CMPI &&
        instruction->mnemonic_id != M68K_ASM_MNEMONIC_CMP) ||
-      !operand_is_immediate_value_local(&instruction->operands[0], &value) ||
+      !m68k_ir_operand_immediate_value(&instruction->operands[0], &value) ||
       !operand_is_data_register_local(&instruction->operands[1], &dest_reg) || dest_reg != index_reg) {
     return 0;
   }
@@ -10636,7 +10636,7 @@ static int instruction_sets_data_register_immediate_local(const M68kInstructionI
     return 0;
   }
   if (!operand_is_data_register_local(&instruction->operands[dest_index], &dest_reg) || dest_reg != reg ||
-      !operand_is_immediate_value_local(&instruction->operands[source_index], &value)) return 0;
+      !m68k_ir_operand_immediate_value(&instruction->operands[source_index], &value)) return 0;
   if (out_value != NULL) *out_value = value;
   return 1;
 }
@@ -13116,7 +13116,7 @@ static int render_lookup_infer_amiga_runtime_sink_immediate_refs(M68kRenderLooku
       if (instruction_move_operand_indices_from_metadata(&instruction, &source_index, &dest_index, &metadata) &&
           metadata != NULL && instruction.size_suffix == 'l' &&
           metadata->operand_access_kinds[dest_index] == M68K_SIM_ACCESS_MEMORY_WRITE &&
-          operand_is_immediate_value_local(&instruction.operands[source_index], &runtime_address)) {
+          m68k_ir_operand_immediate_value(&instruction.operands[source_index], &runtime_address)) {
         hardware_register = render_lookup_resolve_hardware_register_operand(&platform_state,
           &instruction.operands[dest_index]);
         if (hardware_register != NULL &&

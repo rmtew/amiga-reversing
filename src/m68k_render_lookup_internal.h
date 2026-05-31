@@ -712,7 +712,6 @@ int operand_is_address_displacement_local(const M68kOperandIR *operand, uint8_t 
   int16_t *out_displacement);
 int operand_is_address_memory_local(const M68kOperandIR *operand, uint8_t *out_reg,
   int16_t *out_displacement);
-int operand_is_immediate_value_local(const M68kOperandIR *operand, uint32_t *out_value);
 int operand_is_address_register_local(const M68kOperandIR *operand, uint8_t reg_index);
 int operand_is_absolute_address_local(const M68kOperandIR *operand, uint32_t address);
 int operand_absolute_offset_local(const M68kOperandIR *operand, uint32_t *out_offset);
@@ -815,7 +814,6 @@ const AmigaOsLibraryVectorInfo *attach_amiga_lvo_immediate_if_known(const M68kRe
   const M68kDecodeSectionIR *section, const uint8_t *accepted_start, const M68kDecodeCandidate *candidate,
   M68kInstructionIR *instruction);
 int base_field_slot_is_base_pointer(const M68kRenderBaseFieldSlot *slot);
-int byte_is_quoted_string_safe(uint8_t value);
 int candidate_calls_a6_lvo(const M68kDecodeCandidate *candidate, int16_t *out_lvo);
 int candidate_calls_a6_data_indexed_vector(const M68kDecodeCandidate *candidate, uint8_t *out_index_reg);
 int candidate_has_local_helper_summary_fallthrough(const M68kDecodeCandidate *candidate);

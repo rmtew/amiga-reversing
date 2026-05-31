@@ -2098,10 +2098,6 @@ static void render_asm_data_dc_b_plan_rows(M68kRenderIRPreview *preview, const M
   }
 }
 
-int byte_is_quoted_string_safe(uint8_t value) {
-  return m68k_ir_byte_is_quoted_string_safe(value);
-}
-
 static int byte_is_quoted_character_safe(uint8_t value) {
   return value >= 0x20U && value <= 0x7eU && value != '\'' && value != '\\';
 }
@@ -2114,11 +2110,11 @@ static void render_asm_dc_b_string_slice(M68kRenderIRPreview *preview, const uin
   hash_asm_text(preview, "\tdc.b ");
   cursor = 0U;
   while (cursor < size) {
-    if (byte_is_quoted_string_safe(data[offset + cursor])) {
+    if (m68k_ir_byte_is_quoted_string_safe(data[offset + cursor])) {
       char byte_text[2];
       if (wrote) hash_asm_text(preview, ",");
       hash_asm_text(preview, "\"");
-      while (cursor < size && byte_is_quoted_string_safe(data[offset + cursor])) {
+      while (cursor < size && m68k_ir_byte_is_quoted_string_safe(data[offset + cursor])) {
         byte_text[0] = (char)data[offset + cursor];
         byte_text[1] = '\0';
         hash_asm_text(preview, byte_text);
@@ -2386,7 +2382,7 @@ static void render_asm_dc_b_length_prefixed_string(M68kRenderIRPreview *preview,
   hash_asm_text(preview, token);
   if (size > 1U) {
     hash_asm_text(preview, ",\"");
-    for (cursor = 1U; cursor < size && byte_is_quoted_string_safe(data[offset + cursor]); ++cursor) {
+    for (cursor = 1U; cursor < size && m68k_ir_byte_is_quoted_string_safe(data[offset + cursor]); ++cursor) {
       char byte_text[2];
       byte_text[0] = (char)data[offset + cursor];
       byte_text[1] = '\0';
@@ -3872,7 +3868,7 @@ static const char *platform_state_operand_hardware_base_symbol(const M68kRenderP
     if (amiga_os_find_hardware_base_address(operand->symbol_ref.name, &base_address))
       return operand->symbol_ref.name;
   }
-  if (operand_is_immediate_value_local(operand, &value) || operand_absolute_offset_local(operand, &value)) {
+  if (m68k_ir_operand_immediate_value(operand, &value) || operand_absolute_offset_local(operand, &value)) {
     base_symbol = amiga_os_find_hardware_base_symbol_by_address(value);
     if (base_symbol != NULL && base_symbol[0] != '\0') return base_symbol;
   }
@@ -4467,7 +4463,7 @@ static int attach_amiga_hardware_register_symbols(const M68kRenderPlatformState 
       }
       continue;
     }
-    if (operand_is_immediate_value_local(operand, &value)) {
+    if (m68k_ir_operand_immediate_value(operand, &value)) {
       base_symbol = amiga_os_find_hardware_base_symbol_by_address(value);
       if (base_symbol == NULL || base_symbol[0] == '\0') continue;
       attach_amiga_platform_symbol(operand, base_symbol);
@@ -4561,7 +4557,7 @@ static void apply_manual_operand_representations(const M68kRenderLookup *lookup,
     uint32_t value = 0U;
     uint8_t base_reg = 0U;
     int16_t displacement = 0;
-    int is_immediate = operand_is_immediate_value_local(operand, &value);
+    int is_immediate = m68k_ir_operand_immediate_value(operand, &value);
     int is_base_displacement = operand_is_address_displacement_local(operand, &base_reg, &displacement);
     if (operand->symbol_ref.has_name != 0U || (!is_immediate && !is_base_displacement)) continue;
     representation = lookup_manual_operand_representation(lookup, section_index, offset, operand_index);
@@ -4709,7 +4705,7 @@ static int attach_amiga_hardware_register_immediate_symbols(const M68kRenderPlat
     uint32_t value = 0U;
     char symbol_expr[M68K_IR_SYMBOL_NAME_SIZE];
     if (operand->symbol_ref.has_name != 0U) continue;
-    if (!operand_is_immediate_value_local(operand, &value)) continue;
+    if (!m68k_ir_operand_immediate_value(operand, &value)) continue;
     if (!use_bit_domain) value = immediate_domain_value_for_instruction_size(instruction, value);
     if (!amiga_hardware_register_custom_immediate_expr(hardware_register, value, use_bit_domain, symbol_expr,
           sizeof(symbol_expr)) &&
@@ -4988,10 +4984,6 @@ static int render_asm_include_for_instruction_platform_symbols(M68kRenderIRPrevi
   return 1;
 }
 
-int operand_is_immediate_value_local(const M68kOperandIR *operand, uint32_t *out_value) {
-  return m68k_ir_operand_immediate_value(operand, out_value);
-}
-
 static int instruction_loads_data_immediate(const M68kInstructionIR *instruction, uint8_t *out_reg,
     int16_t *out_value) {
   int32_t value;
@@ -5000,7 +4992,7 @@ static int instruction_loads_data_immediate(const M68kInstructionIR *instruction
   if (out_reg != NULL) *out_reg = 0U;
   if (out_value != NULL) *out_value = 0;
   if (instruction == NULL || out_reg == NULL || out_value == NULL || instruction->operand_count != 2U) return 0;
-  if (!operand_is_immediate_value_local(&instruction->operands[0], &immediate)) return 0;
+  if (!m68k_ir_operand_immediate_value(&instruction->operands[0], &immediate)) return 0;
   if (!operand_is_data_register_local(&instruction->operands[1], &dest_reg)) return 0;
   if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVEQ) {
     value = (int8_t)(immediate & 0xFFU);
@@ -9896,7 +9888,7 @@ static int attach_runtime_address_ref_symbols(M68kRenderIRPreview *preview, cons
       const char *role;
       uint32_t value = 0U;
       char symbol[80];
-      if (operand_is_immediate_value_local(operand, &value) && value == fact->runtime_address) {
+      if (m68k_ir_operand_immediate_value(operand, &value) && value == fact->runtime_address) {
         role = runtime_address_ref_sink_role(lookup, fact);
         if (role != NULL &&
             render_asm_define_runtime_address_symbol_once(preview, role, fact->runtime_address, symbol,
@@ -9910,7 +9902,7 @@ static int attach_runtime_address_ref_symbols(M68kRenderIRPreview *preview, cons
       const char *role;
       uint32_t value = 0U;
       char symbol[80];
-      if (!operand_is_immediate_value_local(operand, &value) || value != fact->runtime_address) continue;
+      if (!m68k_ir_operand_immediate_value(operand, &value) || value != fact->runtime_address) continue;
       role = external_runtime_address_ref_role(lookup, fact);
       if (role == NULL) continue;
       if (!render_asm_define_runtime_address_symbol_once(preview, role, fact->runtime_address, symbol,
@@ -10088,7 +10080,7 @@ static int attach_existing_materialized_runtime_immediate_symbols(const M68kRend
     if (operand->symbol_ref.has_name ||
         (!instruction_immediate_operand_is_address_like(instruction, operand_index) &&
          !instruction_immediate_operand_stores_long_to_memory(instruction, operand_index)) ||
-        !operand_is_immediate_value_local(operand, &runtime_address) ||
+        !m68k_ir_operand_immediate_value(operand, &runtime_address) ||
         !lookup_materialized_runtime_address_source_offset(lookup, section_index, runtime_address, &source_offset) ||
         !lookup_has_renderable_label(lookup, section_index, source_offset)) {
       continue;
@@ -10115,7 +10107,7 @@ static int attach_unmapped_absolute_runtime_address_symbols(M68kRenderIRPreview 
     char symbol[80];
     if (operand->symbol_ref.has_name != 0U ||
         !instruction_operand_is_unmapped_runtime_address_literal(instruction, operand_index) ||
-        (!operand_is_immediate_value_local(operand, &value) && !operand_absolute_offset_local(operand, &value))) {
+        (!m68k_ir_operand_immediate_value(operand, &value) && !operand_absolute_offset_local(operand, &value))) {
       continue;
     }
     if (value < 0x10000U || m68k_cpu_find_exception_vector_by_address(value) != NULL ||
@@ -10249,7 +10241,7 @@ static int attach_amiga_runtime_sink_immediate_symbols(const M68kRenderLookup *l
   if (instruction->size_suffix != 'l' ||
       metadata->operand_access_kinds[dest_index] != M68K_SIM_ACCESS_MEMORY_WRITE ||
       instruction->operands[source_index].symbol_ref.has_name ||
-      !operand_is_immediate_value_local(&instruction->operands[source_index], &runtime_address)) {
+      !m68k_ir_operand_immediate_value(&instruction->operands[source_index], &runtime_address)) {
     return 0;
   }
   hardware_register = resolve_amiga_hardware_register_operand(platform_state, &instruction->operands[dest_index]);
@@ -10283,7 +10275,7 @@ static int attach_known_external_runtime_address_symbols(M68kRenderIRPreview *pr
     const char *role;
     char symbol[80];
     if (operand->symbol_ref.has_name != 0U) continue;
-    if (!operand_is_immediate_value_local(operand, &value)) continue;
+    if (!m68k_ir_operand_immediate_value(operand, &value)) continue;
     role = lookup_external_runtime_address_role_by_value(lookup, value);
     if (role == NULL) continue;
     if (!render_asm_define_runtime_address_symbol_once(preview, role, value, symbol, sizeof(symbol))) return 0;
@@ -10375,7 +10367,7 @@ static int attach_absolute_stack_top_symbol(M68kRenderIRPreview *preview, M68kIn
       instruction->operands[source_index].symbol_ref.has_name != 0U) {
     return 0;
   }
-  if (!operand_is_immediate_value_local(&instruction->operands[source_index], &value) &&
+  if (!m68k_ir_operand_immediate_value(&instruction->operands[source_index], &value) &&
       !operand_absolute_offset_local(&instruction->operands[source_index], &value)) {
     return 0;
   }
@@ -10486,7 +10478,7 @@ static int instruction_loads_immediate_to_register(const M68kInstructionIR *inst
   if (out_reg_index != NULL) *out_reg_index = 0U;
   if (out_value != NULL) *out_value = 0U;
   if (instruction == NULL || instruction->operand_count != 2U ||
-      !operand_is_immediate_value_local(&instruction->operands[0], &value)) {
+      !m68k_ir_operand_immediate_value(&instruction->operands[0], &value)) {
     return 0;
   }
   if (instruction->mnemonic_id != M68K_ASM_MNEMONIC_MOVE &&
@@ -10950,7 +10942,7 @@ static void attach_amiga_hardware_display_comment_for_render(const M68kRenderPla
   if (dest_index >= instruction->operand_count) return;
   for (operand_index = 0U; operand_index < instruction->operand_count; ++operand_index) {
     if (operand_index == dest_index) continue;
-    if (operand_is_immediate_value_local(&instruction->operands[operand_index], &value)) {
+    if (m68k_ir_operand_immediate_value(&instruction->operands[operand_index], &value)) {
       source_index = operand_index;
       break;
     }
@@ -10995,7 +10987,7 @@ static void attach_amiga_hardware_access_comment_for_render(const M68kRenderPlat
         for (source_index = 0U; source_index < instruction->operand_count; ++source_index) {
           uint32_t value = 0U;
           if (source_index != operand_index &&
-              operand_is_immediate_value_local(&instruction->operands[source_index], &value)) {
+              m68k_ir_operand_immediate_value(&instruction->operands[source_index], &value)) {
             has_immediate_source = 1;
             break;
           }

@@ -3189,9 +3189,9 @@ accepted M68kDecodeCandidate immediate operands
 ```
 
 The source-quality module now emits these operand facts from accepted decode
-rows. Render keeps a compatibility wrapper for existing render/lookup code that
-needs immediate values, but the shared implementation lives in C IR instead of
-the renderer.
+rows. Render and render-lookup call the shared C IR helpers directly; the old
+local compatibility wrappers were removed because this codebase has no external
+API consumers to preserve.
 
 Verified:
 
