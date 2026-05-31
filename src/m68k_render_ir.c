@@ -7455,38 +7455,6 @@ static int lookup_rsset_use_site_binding_symbol_name(const M68kRenderLookup *loo
   return strlen(found_symbol) < symbol_name_size;
 }
 
-typedef struct M68kRenderAppRsSlot {
-  int32_t displacement;
-  int32_t size;
-  int32_t alias_of_displacement;
-  uint8_t alias;
-  uint8_t has_alias_of;
-  uint8_t has_source;
-  uint8_t value_kind;
-  uint8_t source_kind;
-  uint8_t layout_kind;
-  uint8_t base_kind;
-  uint8_t storage_kind;
-  size_t source_section_index;
-  uint32_t source_offset;
-  char layout_name[32];
-  char base_symbol[64];
-  char sizeof_symbol[64];
-  char name[64];
-  char owner_struct_name[64];
-  char alias_of_name[64];
-} M68kRenderAppRsSlot;
-
-typedef struct M68kRenderAppRsLayout {
-  size_t start_index;
-  size_t end_index;
-  int32_t base_offset;
-  int32_t sizeof_value;
-  uint8_t layout_kind;
-  uint8_t uses_lib_size;
-  char sizeof_symbol[64];
-} M68kRenderAppRsLayout;
-
 enum {
   M68K_RENDER_APP_RS_LAYOUT_NONE = M68K_BASE_LAYOUT_KIND_UNKNOWN,
   M68K_RENDER_APP_RS_LAYOUT_APP = M68K_BASE_LAYOUT_KIND_APP,
@@ -7665,7 +7633,7 @@ static int32_t render_app_rs_mark_layout_aliases(M68kRenderAppRsSlot *slots, siz
   return layout_sizeof;
 }
 
-static size_t render_app_rs_prepare_layouts(M68kRenderAppRsSlot *slots, size_t slot_count,
+size_t render_app_rs_prepare_layouts(M68kRenderAppRsSlot *slots, size_t slot_count,
     M68kRenderAppRsLayout *layouts, size_t layout_capacity, int32_t app_base_offset,
     int has_resident_context, int has_app_sizeof_value, int32_t app_sizeof_value) {
   size_t index;
@@ -7700,39 +7668,6 @@ static size_t render_app_rs_prepare_layouts(M68kRenderAppRsSlot *slots, size_t s
     index = layout_end - 1U;
   }
   return layout_count;
-}
-
-static int render_app_rs_append_layout_facts(M68kSourceAnalysisIR *source_analysis,
-    const M68kRenderAppRsSlot *slots, size_t slot_count) {
-  size_t index;
-  if (source_analysis == NULL || slots == NULL) return 0;
-  for (index = 0U; index < slot_count; ++index) {
-    M68kBaseLayoutFieldIR field;
-    memset(&field, 0, sizeof(field));
-    field.layout_name = (char *)slots[index].layout_name;
-    field.base_symbol = (char *)slots[index].base_symbol;
-    field.sizeof_symbol = (char *)slots[index].sizeof_symbol;
-    field.symbol = (char *)slots[index].name;
-    field.owner_struct_name = slots[index].owner_struct_name[0] != '\0' ?
-      (char *)slots[index].owner_struct_name : NULL;
-    field.offset = (uint32_t)slots[index].displacement;
-    field.size = (uint32_t)slots[index].size;
-    field.alias = slots[index].alias;
-    field.has_alias_of = slots[index].has_alias_of;
-    field.alias_of_symbol = slots[index].has_alias_of ? (char *)slots[index].alias_of_name : NULL;
-    field.alias_of_offset = (uint32_t)slots[index].alias_of_displacement;
-    field.source_kind = slots[index].source_kind;
-    field.value_kind = slots[index].value_kind;
-    field.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
-    field.conflicted = 0U;
-    field.layout_kind = slots[index].layout_kind;
-    field.base_kind = slots[index].base_kind;
-    field.has_source = slots[index].has_source;
-    field.source_section_index = slots[index].source_section_index;
-    field.source_offset = slots[index].source_offset;
-    if (m68k_ir_source_analysis_append_base_layout_field(source_analysis, &field) != 0) return -1;
-  }
-  return 0;
 }
 
 static void render_app_rs_format_slot_directive(const M68kRenderAppRsSlot *slot, char *line, size_t line_size) {
@@ -7783,7 +7718,7 @@ static int render_app_rs_resident_sizeof_value(const M68kRenderLookup *lookup, c
   return 0;
 }
 
-static size_t render_app_rs_slot_capacity_for_lookup(const M68kRenderLookup *lookup) {
+size_t render_app_rs_slot_capacity_for_lookup(const M68kRenderLookup *lookup) {
   size_t slot_capacity;
   if (lookup == NULL) return 1U;
   slot_capacity = lookup->base_field_slot_count +
@@ -7791,7 +7726,7 @@ static size_t render_app_rs_slot_capacity_for_lookup(const M68kRenderLookup *loo
   return slot_capacity == 0U ? 1U : slot_capacity;
 }
 
-static int render_app_rs_collect_slots(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
+int render_app_rs_collect_slots(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
     const M68kDecodeIR *decode, M68kRenderAppRsSlot *slots, size_t slot_capacity, size_t *out_slot_count,
     int *out_has_resident_context, int *out_has_app_sizeof_value, int32_t *out_base_offset,
     int32_t *out_app_sizeof_value) {
@@ -7920,45 +7855,6 @@ static int render_app_rs_collect_slots(M68kRenderIRPreview *preview, const M68kR
   if (out_base_offset != NULL) *out_base_offset = base_offset;
   if (out_app_sizeof_value != NULL) *out_app_sizeof_value = app_sizeof_value;
   return 0;
-}
-
-int render_asm_app_extension_rs_append_layout_facts(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
-    const M68kDecodeIR *decode, M68kSourceAnalysisIR *source_analysis) {
-  Arena *scratch_arena;
-  ArenaMark scratch_mark;
-  M68kRenderAppRsSlot *slots = NULL;
-  M68kRenderAppRsLayout *layouts = NULL;
-  size_t slot_capacity;
-  size_t slot_count = 0U;
-  int32_t base_offset = 0, app_sizeof_value = 0;
-  int has_app_sizeof_value = 0;
-  int has_resident_context = 0;
-  size_t layout_count;
-  int result = -1;
-  if (source_analysis == NULL) return 0;
-  if (preview == NULL || lookup == NULL) return -1;
-  slot_capacity = render_app_rs_slot_capacity_for_lookup(lookup);
-  scratch_arena = render_preview_scratch_arena(preview);
-  if (scratch_arena == NULL) return -1;
-  scratch_mark = arena_mark(scratch_arena);
-  slots = (M68kRenderAppRsSlot *)arena_calloc(scratch_arena, slot_capacity, sizeof(*slots));
-  layouts = (M68kRenderAppRsLayout *)arena_calloc(scratch_arena, slot_capacity, sizeof(*layouts));
-  if (slots == NULL || layouts == NULL) goto cleanup;
-  if (render_app_rs_collect_slots(preview, lookup, decode, slots, slot_capacity, &slot_count,
-      &has_resident_context, &has_app_sizeof_value, &base_offset, &app_sizeof_value) != 0) {
-    goto cleanup;
-  }
-  if (slot_count == 0U) {
-    result = 0;
-    goto cleanup;
-  }
-  layout_count = render_app_rs_prepare_layouts(slots, slot_count, layouts, slot_capacity, base_offset,
-    has_resident_context, has_app_sizeof_value, app_sizeof_value);
-  if (layout_count == SIZE_MAX) goto cleanup;
-  result = render_app_rs_append_layout_facts(source_analysis, slots, slot_count);
-cleanup:
-  arena_rewind(scratch_arena, scratch_mark);
-  return result;
 }
 
 void render_asm_app_extension_rs(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
@@ -11132,7 +11028,8 @@ int m68k_render_ir_build_source_analysis_from_lookup(M68kRenderIRPreview *previe
   memset(&platform_analysis_state, 0, sizeof(platform_analysis_state));
   memset(&section_analysis, 0, sizeof(section_analysis));
   if (m68k_analysis_render_lookup_append_auto_policy(source_analysis, lookup) != 0) return -1;
-  if (render_asm_app_extension_rs_append_layout_facts(preview, lookup, decode, source_analysis) != 0) return -1;
+  if (m68k_analysis_render_lookup_append_base_layout_fields(preview, lookup, decode, source_analysis) != 0)
+    return -1;
   for (section_index = 0U; section_index < decode->section_count; ++section_index) {
     const M68kDecodeSectionIR *section = &decode->sections[section_index];
     if (m68k_ir_section_analysis_create(&section_analysis, source_analysis->arena) != 0) goto fail;

@@ -3978,3 +3978,27 @@ Moved `render_section_extent()` and `accepted_start_at()` out of
 presentation, not renderer-owned formatting behavior. Keeping them with the
 analysis/lookup code reduces the remaining render dependency before the larger
 RSSET/base-layout extraction.
+
+### Base-Layout Source-Analysis Append Split
+
+Moved the durable base-layout field append out of `m68k_render_ir.c`:
+
+```text
+before:
+  render_asm_app_extension_rs_append_layout_facts()
+    -> collected app/RSSET slots
+    -> appended M68kBaseLayoutFieldIR into Source Analysis IR
+
+after:
+  m68k_analysis_render_lookup_append_base_layout_fields()
+    -> appends M68kBaseLayoutFieldIR into Source Analysis IR
+
+  render_asm_app_extension_rs()
+    -> still formats RSSET declarations from the shared slot collection model
+```
+
+This does not finish the RSSET cleanup. The slot collector and layout preparer
+are still renderer-named shared helpers because the source renderer and source
+analysis both consume the same model. The next cleanup is to rename/extract that
+collector as a neutral app-layout/source-quality helper so presentation does not
+own the semantic model.

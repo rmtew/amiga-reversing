@@ -41,6 +41,38 @@ typedef struct M68kRenderRangeOwnershipView {
   const M68kAnalysisStructuredDataItem *structured_item;
 } M68kRenderRangeOwnershipView;
 
+typedef struct M68kRenderAppRsSlot {
+  int32_t displacement;
+  int32_t size;
+  int32_t alias_of_displacement;
+  uint8_t alias;
+  uint8_t has_alias_of;
+  uint8_t has_source;
+  uint8_t value_kind;
+  uint8_t source_kind;
+  uint8_t layout_kind;
+  uint8_t base_kind;
+  uint8_t storage_kind;
+  size_t source_section_index;
+  uint32_t source_offset;
+  char layout_name[32];
+  char base_symbol[64];
+  char sizeof_symbol[64];
+  char name[64];
+  char owner_struct_name[64];
+  char alias_of_name[64];
+} M68kRenderAppRsSlot;
+
+typedef struct M68kRenderAppRsLayout {
+  size_t start_index;
+  size_t end_index;
+  int32_t base_offset;
+  int32_t sizeof_value;
+  uint8_t layout_kind;
+  uint8_t uses_lib_size;
+  char sizeof_symbol[64];
+} M68kRenderAppRsLayout;
+
 typedef struct M68kRenderPlatformLocalBaseSlot {
   uint8_t valid;
   uint8_t base_reg;
@@ -705,8 +737,14 @@ const char *lookup_indexed_vector_wrapper_library(const M68kRenderLookup *lookup
     uint32_t offset);
 void render_asm_app_extension_rs(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
   const M68kDecodeIR *decode);
-int render_asm_app_extension_rs_append_layout_facts(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
-  const M68kDecodeIR *decode, M68kSourceAnalysisIR *source_analysis);
+size_t render_app_rs_slot_capacity_for_lookup(const M68kRenderLookup *lookup);
+int render_app_rs_collect_slots(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
+  const M68kDecodeIR *decode, M68kRenderAppRsSlot *slots, size_t slot_capacity, size_t *out_slot_count,
+  int *out_has_resident_context, int *out_has_app_sizeof_value, int32_t *out_base_offset,
+  int32_t *out_app_sizeof_value);
+size_t render_app_rs_prepare_layouts(M68kRenderAppRsSlot *slots, size_t slot_count,
+  M68kRenderAppRsLayout *layouts, size_t layout_capacity, int32_t app_base_offset,
+  int has_resident_context, int has_app_sizeof_value, int32_t app_sizeof_value);
 void render_asm_org(M68kRenderIRPreview *preview, uint32_t logical_address);
 void render_asm_sync_logical_pc(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
   size_t section_index, uint32_t source_offset, uint32_t *io_logical_pc);
@@ -870,6 +908,8 @@ void m68k_render_lookup_materialize_structured_long_table_target_labels(M68kRend
   const M68kDecodeIR *decode);
 int m68k_analysis_render_lookup_append_auto_policy(M68kSourceAnalysisIR *source_analysis,
   M68kRenderLookup *lookup);
+int m68k_analysis_render_lookup_append_base_layout_fields(M68kRenderIRPreview *preview,
+  const M68kRenderLookup *lookup, const M68kDecodeIR *decode, M68kSourceAnalysisIR *source_analysis);
 int m68k_render_ir_build_source_analysis_from_lookup(M68kRenderIRPreview *preview, M68kRenderLookup *lookup,
   const M68kDecodeIR *decode, const M68kAnalysisPolicy *policy, uint8_t **accepted_start,
   uint8_t **accepted_bytes, M68kSourceAnalysisIR *source_analysis);

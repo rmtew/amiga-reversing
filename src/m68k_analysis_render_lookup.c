@@ -13494,6 +13494,87 @@ int m68k_analysis_render_lookup_append_auto_policy(M68kSourceAnalysisIR *source_
   return source_analysis_append_auto_structured_data_policy(source_analysis, lookup);
 }
 
+static Arena *analysis_preview_scratch_arena(M68kRenderIRPreview *preview) {
+  if (preview == NULL) return NULL;
+  if (preview->scratch_arena == NULL) {
+    preview->scratch_arena = arena_create(4096U);
+    if (preview->scratch_arena == NULL) return NULL;
+  }
+  return preview->scratch_arena;
+}
+
+static int append_base_layout_fields_from_slots(M68kSourceAnalysisIR *source_analysis,
+    const M68kRenderAppRsSlot *slots, size_t slot_count) {
+  size_t index;
+  if (source_analysis == NULL || slots == NULL) return 0;
+  for (index = 0U; index < slot_count; ++index) {
+    M68kBaseLayoutFieldIR field;
+    memset(&field, 0, sizeof(field));
+    field.layout_name = (char *)slots[index].layout_name;
+    field.base_symbol = (char *)slots[index].base_symbol;
+    field.sizeof_symbol = (char *)slots[index].sizeof_symbol;
+    field.symbol = (char *)slots[index].name;
+    field.owner_struct_name = slots[index].owner_struct_name[0] != '\0' ?
+      (char *)slots[index].owner_struct_name : NULL;
+    field.offset = (uint32_t)slots[index].displacement;
+    field.size = (uint32_t)slots[index].size;
+    field.alias = slots[index].alias;
+    field.has_alias_of = slots[index].has_alias_of;
+    field.alias_of_symbol = slots[index].has_alias_of ? (char *)slots[index].alias_of_name : NULL;
+    field.alias_of_offset = (uint32_t)slots[index].alias_of_displacement;
+    field.source_kind = slots[index].source_kind;
+    field.value_kind = slots[index].value_kind;
+    field.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
+    field.conflicted = 0U;
+    field.layout_kind = slots[index].layout_kind;
+    field.base_kind = slots[index].base_kind;
+    field.has_source = slots[index].has_source;
+    field.source_section_index = slots[index].source_section_index;
+    field.source_offset = slots[index].source_offset;
+    if (m68k_ir_source_analysis_append_base_layout_field(source_analysis, &field) != 0) return -1;
+  }
+  return 0;
+}
+
+int m68k_analysis_render_lookup_append_base_layout_fields(M68kRenderIRPreview *preview,
+    const M68kRenderLookup *lookup, const M68kDecodeIR *decode, M68kSourceAnalysisIR *source_analysis) {
+  Arena *scratch_arena;
+  ArenaMark scratch_mark;
+  M68kRenderAppRsSlot *slots = NULL;
+  M68kRenderAppRsLayout *layouts = NULL;
+  size_t slot_capacity;
+  size_t slot_count = 0U;
+  int32_t base_offset = 0, app_sizeof_value = 0;
+  int has_app_sizeof_value = 0;
+  int has_resident_context = 0;
+  size_t layout_count;
+  int result = -1;
+  if (source_analysis == NULL) return 0;
+  if (preview == NULL || lookup == NULL) return -1;
+  slot_capacity = render_app_rs_slot_capacity_for_lookup(lookup);
+  scratch_arena = analysis_preview_scratch_arena(preview);
+  if (scratch_arena == NULL) return -1;
+  scratch_mark = arena_mark(scratch_arena);
+  slots = (M68kRenderAppRsSlot *)arena_calloc(scratch_arena, slot_capacity, sizeof(*slots));
+  layouts = (M68kRenderAppRsLayout *)arena_calloc(scratch_arena, slot_capacity, sizeof(*layouts));
+  if (slots == NULL || layouts == NULL) goto cleanup;
+  if (render_app_rs_collect_slots(preview, lookup, decode, slots, slot_capacity, &slot_count,
+      &has_resident_context, &has_app_sizeof_value, &base_offset, &app_sizeof_value) != 0) {
+    goto cleanup;
+  }
+  if (slot_count == 0U) {
+    result = 0;
+    goto cleanup;
+  }
+  layout_count = render_app_rs_prepare_layouts(slots, slot_count, layouts, slot_capacity, base_offset,
+    has_resident_context, has_app_sizeof_value, app_sizeof_value);
+  if (layout_count == SIZE_MAX) goto cleanup;
+  result = append_base_layout_fields_from_slots(source_analysis, slots, slot_count);
+cleanup:
+  arena_rewind(scratch_arena, scratch_mark);
+  return result;
+}
+
 int m68k_analysis_render_lookup_append_section(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
     M68kSectionAnalysisIR *section_analysis) {
   if (append_render_lookup_platform_effects_for_section(lookup, section_analysis) != 0) return -1;
