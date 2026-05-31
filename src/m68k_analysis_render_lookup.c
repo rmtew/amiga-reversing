@@ -4,6 +4,15 @@
 #include <time.h>
 
 /* Shared platform/source-analysis enrichment for M68kRenderLookup. */
+uint32_t render_section_extent(const M68kDecodeSectionIR *section) {
+  if (section == NULL) return 0U;
+  return section->allocation_size > section->size ? section->allocation_size : section->size;
+}
+
+int accepted_start_at(const M68kDecodeSectionIR *section, const uint8_t *accepted_start, uint32_t offset) {
+  return section != NULL && accepted_start != NULL && offset < section->size && accepted_start[offset] != 0U;
+}
+
 static double elapsed_seconds_local(clock_t start, clock_t end) {
   return (double)(end - start) / (double)CLOCKS_PER_SEC;
 }

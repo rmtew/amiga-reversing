@@ -3970,3 +3970,11 @@ Verified:
 uv run python -m pytest src\tests\test_ir_policy_dll.py -q
 20 consecutive runs of src\tests\test_ir_policy_dll.py
 ```
+
+### Generic Decode Helper Ownership
+
+Moved `render_section_extent()` and `accepted_start_at()` out of
+`m68k_render_ir.c`. They are decode/lookup predicates used by both analysis and
+presentation, not renderer-owned formatting behavior. Keeping them with the
+analysis/lookup code reduces the remaining render dependency before the larger
+RSSET/base-layout extraction.

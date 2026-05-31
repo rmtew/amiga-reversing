@@ -5030,11 +5030,6 @@ static int rendered_text_reencodes_original_bytes(const char *text, const M68kIn
   return memcmp(encoded_bytes, raw_bytes, raw_size) == 0;
 }
 
-uint32_t render_section_extent(const M68kDecodeSectionIR *section) {
-  if (section == NULL) return 0U;
-  return section->allocation_size > section->size ? section->allocation_size : section->size;
-}
-
 Arena *render_lookup_arena(M68kRenderLookup *lookup) {
   if (lookup == NULL) return NULL;
   if (lookup->arena == NULL) {
@@ -8244,10 +8239,6 @@ static void render_asm_hunk_anchor_relocation(M68kRenderIRPreview *preview, cons
   hash_asm_text(preview, line);
   ++preview->asm_source_lines;
   ++preview->asm_source_lossy_numeric_hunk_relocations;
-}
-
-int accepted_start_at(const M68kDecodeSectionIR *section, const uint8_t *accepted_start, uint32_t offset) {
-  return section != NULL && accepted_start != NULL && offset < section->size && accepted_start[offset] != 0U;
 }
 
 int candidate_is_accepted_start(const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
