@@ -2657,6 +2657,7 @@ int m68k_ir_section_analysis_append_code_start_ref(M68kSectionAnalysisIR *sectio
     const M68kCodeStartRefIR *existing = &section_analysis->code_start_refs[index];
     if (existing->offset == code_start_ref->offset &&
         existing->reason == code_start_ref->reason &&
+        existing->evidence_kind == code_start_ref->evidence_kind &&
         existing->source_section_index == code_start_ref->source_section_index &&
         existing->source_offset == code_start_ref->source_offset &&
         existing->has_runtime_address == code_start_ref->has_runtime_address &&
@@ -2707,6 +2708,7 @@ int m68k_ir_section_analysis_append_code_origin(M68kSectionAnalysisIR *section_a
     if (existing->offset == origin->offset &&
         existing->origin_class == origin->origin_class &&
         existing->reason == origin->reason &&
+        existing->evidence_kind == origin->evidence_kind &&
         existing->source_section_index == origin->source_section_index &&
         existing->source_offset == origin->source_offset) {
       return 0;

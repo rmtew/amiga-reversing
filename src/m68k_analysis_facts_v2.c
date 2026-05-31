@@ -991,9 +991,38 @@ static void profile_record_platform_loadseg_segment_link_access(M68kFactsV2Profi
   if (resolved_target) ++profile->platform_loadseg_segment_link_resolved_targets;
 }
 
-static int append_code_start_fact(M68kFactIR *facts, size_t section_index, uint32_t offset, uint8_t confidence,
-    uint32_t reason, size_t source_section_index, uint32_t source_offset, uint8_t has_runtime_address,
-    uint32_t runtime_address) {
+static uint32_t code_start_evidence_from_reason_local(uint32_t reason) {
+  switch (reason) {
+    case M68K_FACT_CODE_START_REASON_SECTION_ENTRY:
+      return M68K_CODE_ORIGIN_EVIDENCE_SECTION_ENTRY;
+    case M68K_FACT_CODE_START_REASON_POLICY_ENTRY_OFFSET:
+      return M68K_CODE_ORIGIN_EVIDENCE_POLICY_ENTRY_OFFSET;
+    case M68K_FACT_CODE_START_REASON_POLICY_ENTRY_POINT:
+      return M68K_CODE_ORIGIN_EVIDENCE_POLICY_ENTRY_POINT;
+    case M68K_FACT_CODE_START_REASON_CONTROL_TARGET:
+      return M68K_CODE_ORIGIN_EVIDENCE_CONTROL_TARGET_UNSPECIFIED;
+    case M68K_FACT_CODE_START_REASON_FALLTHROUGH:
+      return M68K_CODE_ORIGIN_EVIDENCE_FALLTHROUGH;
+    case M68K_FACT_CODE_START_REASON_INLINE_RESUME:
+      return M68K_CODE_ORIGIN_EVIDENCE_INLINE_RESUME;
+    case M68K_FACT_CODE_START_REASON_RUNTIME_VIEW_ENTRY:
+      return M68K_CODE_ORIGIN_EVIDENCE_RUNTIME_VIEW_ENTRY;
+    case M68K_FACT_CODE_START_REASON_LINKAGE_API_ENTRY:
+      return M68K_CODE_ORIGIN_EVIDENCE_LINKAGE_API_ENTRY;
+    case M68K_FACT_CODE_START_REASON_PLATFORM_LOADSEG_ENTRY:
+      return M68K_CODE_ORIGIN_EVIDENCE_PLATFORM_LOADSEG_ENTRY;
+    case M68K_FACT_CODE_START_REASON_STACK_CONTINUATION:
+      return M68K_CODE_ORIGIN_EVIDENCE_STACK_CONTINUATION;
+    case M68K_FACT_CODE_START_REASON_BOUNDARY_API_ENTRY:
+      return M68K_CODE_ORIGIN_EVIDENCE_BOUNDARY_API_ENTRY;
+    default:
+      return M68K_CODE_ORIGIN_EVIDENCE_UNKNOWN;
+  }
+}
+
+static int append_code_start_fact_with_evidence(M68kFactIR *facts, size_t section_index, uint32_t offset,
+    uint8_t confidence, uint32_t reason, uint32_t evidence_kind, size_t source_section_index,
+    uint32_t source_offset, uint8_t has_runtime_address, uint32_t runtime_address) {
   M68kFact fact;
   memset(&fact, 0, sizeof(fact));
   fact.kind = M68K_FACT_CODE_START;
@@ -1001,11 +1030,21 @@ static int append_code_start_fact(M68kFactIR *facts, size_t section_index, uint3
   fact.section_index = section_index;
   fact.offset = offset;
   fact.reason = reason;
+  fact.code_start_evidence_kind = evidence_kind != M68K_CODE_ORIGIN_EVIDENCE_UNKNOWN
+    ? evidence_kind
+    : code_start_evidence_from_reason_local(reason);
   fact.has_runtime_address = has_runtime_address;
   fact.runtime_address = runtime_address;
   fact.source_section_index = source_section_index;
   fact.source_offset = source_offset;
   return m68k_fact_ir_append(facts, &fact);
+}
+
+static int append_code_start_fact(M68kFactIR *facts, size_t section_index, uint32_t offset, uint8_t confidence,
+    uint32_t reason, size_t source_section_index, uint32_t source_offset, uint8_t has_runtime_address,
+    uint32_t runtime_address) {
+  return append_code_start_fact_with_evidence(facts, section_index, offset, confidence, reason,
+    M68K_CODE_ORIGIN_EVIDENCE_UNKNOWN, source_section_index, source_offset, has_runtime_address, runtime_address);
 }
 
 static int enqueue_code_start(M68kFactIR *facts, M68kFactsV2WorkQueue *queue, M68kFactsV2Profile *profile,
@@ -1035,6 +1074,21 @@ static int enqueue_code_start_runtime(M68kFactIR *facts, M68kFactsV2WorkQueue *q
     uint32_t runtime_address, const M68kFactsV2TraceState *trace_state) {
   return enqueue_code_start_runtime_ex(facts, queue, profile, section_index, offset, confidence, reason,
     source_section_index, source_offset, has_runtime_address, runtime_address, trace_state, 0U);
+}
+
+static int enqueue_code_start_runtime_evidence_ex(M68kFactIR *facts, M68kFactsV2WorkQueue *queue,
+    M68kFactsV2Profile *profile, size_t section_index, uint32_t offset, uint8_t confidence,
+    uint32_t reason, uint32_t evidence_kind, size_t source_section_index, uint32_t source_offset,
+    uint8_t has_runtime_address, uint32_t runtime_address, const M68kFactsV2TraceState *trace_state,
+    uint8_t allow_trace_variant) {
+  if (append_code_start_fact_with_evidence(facts, section_index, offset, confidence, reason, evidence_kind,
+      source_section_index, source_offset, has_runtime_address, runtime_address) != 0) {
+    return -1;
+  }
+  profile_record_code_start(profile, reason);
+  if (profile != NULL && has_runtime_address) ++profile->runtime_address_view_starts;
+  return work_queue_push(queue, section_index, offset, confidence, reason, source_section_index,
+    source_offset, has_runtime_address, runtime_address, trace_state, allow_trace_variant);
 }
 
 static uint32_t fixup_width_bytes_local(const M68kFixup *fixup) {
@@ -5101,9 +5155,18 @@ static int enqueue_same_section_control_resolved_target_from_offset(M68kDecodeIR
   if (m68k_fact_ir_require_label(facts, section_index, target_offset, confidence) != 0)
     return -1;
   if (accepted_start[section_index][target_offset] && trace_state == NULL && !target_has_runtime_address) return 0;
-  return enqueue_code_start_runtime(facts, queue, profile, section_index, target_offset,
-    confidence, code_start_reason != 0U ? code_start_reason : M68K_FACT_CODE_START_REASON_CONTROL_TARGET,
-    section_index, source_offset, target_has_runtime_address, runtime_address, trace_state);
+  {
+    uint32_t reason = code_start_reason != 0U ? code_start_reason : M68K_FACT_CODE_START_REASON_CONTROL_TARGET;
+    uint32_t evidence_kind = M68K_CODE_ORIGIN_EVIDENCE_UNKNOWN;
+    if (reason == M68K_FACT_CODE_START_REASON_CONTROL_TARGET) {
+      evidence_kind = target_has_runtime_address
+        ? M68K_CODE_ORIGIN_EVIDENCE_RUNTIME_CONTROL_TARGET
+        : M68K_CODE_ORIGIN_EVIDENCE_DIRECT_CONTROL_TARGET;
+    }
+    return enqueue_code_start_runtime_evidence_ex(facts, queue, profile, section_index, target_offset,
+      confidence, reason, evidence_kind, section_index, source_offset, target_has_runtime_address,
+      runtime_address, trace_state, 0U);
+  }
 }
 
 static int enqueue_same_section_control_resolved_target(M68kDecodeIR *decode, M68kFactIR *facts,
@@ -9394,13 +9457,15 @@ static int run_reachable_fixed_point(const M68kObject *object, M68kDecodeIR *dec
           allow_trace_variant = 1U;
         }
         if (target_has_runtime) {
-          if (enqueue_code_start_runtime(facts, queue, profile, item.section_index, target_offset,
+          if (enqueue_code_start_runtime_evidence_ex(facts, queue, profile, item.section_index, target_offset,
               M68K_FACT_CONFIDENCE_TOOL_INFERRED, M68K_FACT_CODE_START_REASON_CONTROL_TARGET,
-              item.section_index, item.offset, 1U, target_runtime, target_trace_state) != 0) return -1;
+              M68K_CODE_ORIGIN_EVIDENCE_RUNTIME_CONTROL_TARGET, item.section_index, item.offset, 1U,
+              target_runtime, target_trace_state, 0U) != 0) return -1;
         } else {
-          if (enqueue_code_start_runtime_ex(facts, queue, profile, item.section_index, target_offset,
+          if (enqueue_code_start_runtime_evidence_ex(facts, queue, profile, item.section_index, target_offset,
               M68K_FACT_CONFIDENCE_TOOL_INFERRED, M68K_FACT_CODE_START_REASON_CONTROL_TARGET,
-              item.section_index, item.offset, 0U, 0U, target_trace_state, allow_trace_variant) != 0) return -1;
+              M68K_CODE_ORIGIN_EVIDENCE_DIRECT_CONTROL_TARGET, item.section_index, item.offset, 0U, 0U,
+              target_trace_state, allow_trace_variant) != 0) return -1;
         }
       }
     }

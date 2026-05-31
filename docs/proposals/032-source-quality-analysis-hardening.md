@@ -3116,6 +3116,30 @@ control, traced indirect calls/jumps, dispatch tables, callback fields, vector
 stores, and copied/runtime aliases so `control_target_unspecified` disappears
 from clean source-quality output.
 
+### Code Origin Evidence Producer Storage
+
+Moved code-origin evidence from a source-quality-side reconstruction into the
+producer-owned fact path:
+
+```text
+enqueue/prove code start
+  -> M68kFact.code_start_evidence_kind
+  -> M68kCodeStartRefIR.evidence_kind
+  -> M68kCodeOriginIR.evidence_kind
+  -> JSON/report names
+```
+
+Direct decoded branch/call/jump targets now carry
+`direct_control_target`; runtime-translated targets carry
+`runtime_control_target`. Source quality still has a compatibility mapper for
+older/default facts, but it first preserves the producer value. That makes
+unknown control evidence a real producer TODO instead of a Python or report
+guess.
+
+Remaining cleanup is to remove broad `control_target_unspecified` producers
+from relocation-backed control, traced indirect calls/jumps, dispatch tables,
+callback fields, vector stores, and copied/runtime aliases.
+
 Verified:
 
 ```text

@@ -7174,6 +7174,7 @@ static int append_render_lookup_code_start_refs_for_section(const M68kRenderLook
     memset(&ref, 0, sizeof(ref));
     ref.offset = fact->offset;
     ref.reason = fact->reason;
+    ref.evidence_kind = fact->code_start_evidence_kind;
     ref.confidence = fact->confidence;
     ref.has_runtime_address = fact->has_runtime_address;
     ref.source_section_index = fact->source_section_index;

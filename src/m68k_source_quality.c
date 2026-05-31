@@ -31,6 +31,7 @@ static uint8_t code_origin_class_from_reason(uint32_t reason) {
 
 static uint32_t code_origin_evidence_from_ref(const M68kCodeStartRefIR *ref, size_t section_index) {
   if (ref == NULL) return M68K_CODE_ORIGIN_EVIDENCE_UNKNOWN;
+  if (ref->evidence_kind != M68K_CODE_ORIGIN_EVIDENCE_UNKNOWN) return ref->evidence_kind;
   switch (ref->reason) {
     case M68K_FACT_CODE_START_REASON_SECTION_ENTRY:
       return M68K_CODE_ORIGIN_EVIDENCE_SECTION_ENTRY;

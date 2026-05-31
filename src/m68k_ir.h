@@ -1362,6 +1362,7 @@ typedef struct M68kPlatformAddressUseIR {
 typedef struct M68kCodeStartRefIR {
   uint32_t offset;
   uint32_t reason;
+  uint32_t evidence_kind;
   uint8_t confidence;
   uint8_t has_runtime_address;
   uint8_t reserved[2];
