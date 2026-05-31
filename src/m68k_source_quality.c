@@ -3,8 +3,10 @@
 #include "m68k_fact_ir.h"
 #include "m68k_simulator.h"
 #include "generated/amiga_os_runtime.h"
+#include "generated/m68k_cpu_runtime.h"
 #include "platform_common.h"
 
+#include <stdio.h>
 #include <string.h>
 
 static uint8_t code_origin_class_from_reason(uint32_t reason) {
@@ -125,15 +127,62 @@ static uint8_t platform_address_use_shape_from_observation(const M68kAddressObse
   return M68K_PLATFORM_ADDRESS_USE_SHAPE_UNKNOWN;
 }
 
+static const char *platform_address_use_symbol_from_observation(const M68kAddressObservationIR *observation,
+    uint8_t shape, char *symbol_buf, size_t symbol_buf_size) {
+  if (symbol_buf != NULL && symbol_buf_size != 0U) symbol_buf[0] = '\0';
+  if (observation == NULL || !observation->has_address) return NULL;
+  switch (shape) {
+    case M68K_PLATFORM_ADDRESS_USE_SHAPE_TRUE_VECTOR_INSTALL: {
+      const M68kCpuExceptionVectorInfo *vector = m68k_cpu_find_exception_vector_by_address(observation->address);
+      return vector != NULL && vector->symbol_name != NULL && vector->symbol_name[0] != '\0'
+        ? vector->symbol_name
+        : NULL;
+    }
+    case M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_BASE_ADDRESS:
+      return amiga_os_find_hardware_base_symbol_by_address(observation->address);
+    case M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_REGISTER_ACCESS: {
+      const AmigaOsHardwareRegisterFieldInfo *hardware_field =
+        amiga_os_find_hardware_register_field_by_cpu_address(observation->address);
+      const AmigaOsHardwareRegisterInfo *hardware_register;
+      const AmigaOsHardwareRegisterRangeInfo *hardware_range;
+      if (hardware_field != NULL &&
+          platform_amiga_format_hardware_register_field_symbol(hardware_field, 1, symbol_buf, symbol_buf_size)) {
+        return symbol_buf;
+      }
+      hardware_register = amiga_os_find_hardware_register_by_cpu_address(observation->address);
+      if (hardware_register != NULL && hardware_register->base_symbol != NULL &&
+          hardware_register->base_symbol[0] != '\0' && hardware_register->symbol_name != NULL &&
+          hardware_register->symbol_name[0] != '\0') {
+        int written = snprintf(symbol_buf, symbol_buf_size, "%s+%s", hardware_register->base_symbol,
+          hardware_register->symbol_name);
+        return written > 0 && (size_t)written < symbol_buf_size ? symbol_buf : NULL;
+      }
+      hardware_range = amiga_os_find_hardware_register_range_by_cpu_address(observation->address);
+      if (hardware_range != NULL &&
+          platform_amiga_format_hardware_register_range_symbol(hardware_range,
+            observation->address - hardware_range->base_address, 1, symbol_buf, symbol_buf_size)) {
+        return symbol_buf;
+      }
+      return amiga_os_find_hardware_base_symbol_by_address(observation->address);
+    }
+    case M68K_PLATFORM_ADDRESS_USE_SHAPE_EXECBASE_LITERAL:
+      return "ExecBase";
+    default:
+      return NULL;
+  }
+}
+
 static int append_platform_address_uses_for_section(M68kSectionAnalysisIR *section) {
   size_t index;
   if (section == NULL) return -1;
   for (index = 0U; index < section->address_observation_count; ++index) {
     const M68kAddressObservationIR *observation = &section->address_observations[index];
     M68kPlatformAddressUseIR use;
+    char symbol_buf[96];
     uint8_t shape = platform_address_use_shape_from_observation(observation);
     if (shape == M68K_PLATFORM_ADDRESS_USE_SHAPE_UNKNOWN) continue;
     memset(&use, 0, sizeof(use));
+    symbol_buf[0] = '\0';
     use.offset = observation->offset;
     use.operand_index = observation->operand_index;
     use.address = observation->address;
@@ -142,6 +191,8 @@ static int append_platform_address_uses_for_section(M68kSectionAnalysisIR *secti
     use.access_kind = observation->access_kind;
     use.use_shape = shape;
     use.confidence = observation->confidence;
+    use.symbol_name = (char *)platform_address_use_symbol_from_observation(observation, shape, symbol_buf,
+      sizeof(symbol_buf));
     if (m68k_ir_section_analysis_append_platform_address_use(section, &use) != 0) return -1;
   }
   return 0;

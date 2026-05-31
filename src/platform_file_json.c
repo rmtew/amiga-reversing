@@ -3932,6 +3932,9 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
       if (json_builder_appendf(&builder, ",\"access_width\":%u,\"confidence\":%u",
           (unsigned)use->access_width, (unsigned)use->confidence) != 0)
         goto oom;
+      if (json_builder_append(&builder, ",\"symbol_name\":") != 0 ||
+          json_builder_append_nullable_string(&builder, use->symbol_name) != 0)
+        goto oom;
       if (use->has_handler_target &&
           json_builder_appendf(&builder, ",\"handler_target\":%u", (unsigned)use->handler_target) != 0)
         goto oom;

@@ -711,10 +711,6 @@ int amiga_value_domain_symbolic_expr(const char *domain_name, uint32_t value, ch
     size_t expr_size);
 int amiga_hardware_register_custom_immediate_expr(const AmigaOsHardwareRegisterInfo *hardware_register,
   uint32_t value, int use_bit_domain, char *expr, size_t expr_size);
-int format_amiga_hardware_register_field_symbol(const AmigaOsHardwareRegisterFieldInfo *hardware_field,
-  int include_hardware_base, char *buf, size_t buf_size);
-int format_amiga_hardware_register_range_symbol(const AmigaOsHardwareRegisterRangeInfo *hardware_range,
-  uint32_t offset, int include_hardware_base, char *buf, size_t buf_size);
 void record_source_export_failure(M68kRenderIRPreview *preview, M68kSourceExportFailureKind kind, size_t section_index,
     uint32_t offset, uint32_t aux_offset);
 void record_numeric_runtime_ref(M68kRenderIRPreview *preview, const M68kFact *fact);

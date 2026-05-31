@@ -10774,6 +10774,9 @@ static int test_source_quality_analyze_exports_platform_address_uses(void) {
   M68K_C_ASSERT(strstr(analysis_json, "\"use_shape_name\":\"hardware_register_access\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"access_kind_name\":\"memory_write\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"address\":112") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"symbol_name\":\"m68k_vector_level_4_interrupt_autovector\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"symbol_name\":\"_custom\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"symbol_name\":\"_custom+intena\"") != NULL);
   free(analysis_json);
   m68k_ir_section_analysis_destroy(&section_analysis);
   m68k_ir_source_analysis_destroy(&source_analysis);
@@ -15027,7 +15030,8 @@ static int test_amiga_runtime_address_sinks_are_generated_from_hardware_metadata
   M68K_C_ASSERT(spr1_dataa != NULL);
   M68K_C_ASSERT_STR("spr", spr1_dataa->register_symbol);
   M68K_C_ASSERT_STR("sd_dataa", spr1_dataa->field_symbol);
-  M68K_C_ASSERT(format_amiga_hardware_register_field_symbol(spr1_dataa, 0, symbol_expr, sizeof(symbol_expr)));
+  M68K_C_ASSERT(platform_amiga_format_hardware_register_field_symbol(spr1_dataa, 0, symbol_expr,
+    sizeof(symbol_expr)));
   M68K_C_ASSERT_STR("spr1+sd_dataa", symbol_expr);
   M68K_C_ASSERT(spr_range != NULL);
   M68K_C_ASSERT_STR("spr", spr_range->symbol_name);

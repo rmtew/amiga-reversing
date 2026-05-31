@@ -4484,3 +4484,26 @@ after:
 The platform passes are analysis/lookup work, not render-preview work. The
 profile/report field names now say `platform_analysis_*` instead of
 `render_ir_platform_*`, and no compatibility aliases were kept.
+
+### Platform Address Use Symbol Ownership
+
+Moved Amiga hardware register/range symbol formatting out of `m68k_render_ir.c`
+and into `platform_common`. Source-quality analysis now resolves the presentation
+symbol carried by each `M68kPlatformAddressUseIR`:
+
+```text
+address observation
+  owner=cpu_vector address=$00000070 access=memory_write
+  -> platform_address_use(true_vector_install)
+  -> symbol_name=m68k_vector_level_4_interrupt_autovector
+
+address observation
+  owner=hardware_register address=$00DFF09A access=memory_write
+  -> platform_address_use(hardware_register_access)
+  -> symbol_name=_custom+intena
+```
+
+Render still decides whether an operand position is printable, but it no longer
+re-derives the absolute hardware/vector symbol from the numeric address for
+these source-quality facts. JSON now exports `platform_address_uses[].symbol_name`
+so reports and web views consume the same C-owned fact.

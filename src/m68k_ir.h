@@ -1348,6 +1348,7 @@ typedef enum M68kPlatformAddressUseShape {
 } M68kPlatformAddressUseShape;
 
 typedef struct M68kPlatformAddressUseIR {
+  char *symbol_name;
   uint32_t offset;
   uint32_t operand_index;
   uint32_t address;

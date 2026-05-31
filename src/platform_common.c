@@ -107,3 +107,115 @@ int platform_amiga_format_app_base_slot_name(const char *base_name, char *buf, s
   }
   return written > 0 && (size_t)written < buf_size;
 }
+
+static int platform_amiga_hardware_register_field_instance_delta(
+    const AmigaOsHardwareRegisterFieldInfo *hardware_field, uint32_t *out_delta) {
+  if (out_delta != NULL) *out_delta = 0U;
+  if (hardware_field == NULL || hardware_field->base_symbol == NULL ||
+      hardware_field->register_symbol == NULL || out_delta == NULL) {
+    return 0;
+  }
+  return 1;
+}
+
+static int platform_amiga_format_hardware_register_field_instance_delta(
+    const AmigaOsHardwareRegisterFieldInfo *hardware_field, uint32_t instance_delta, char *buf, size_t buf_size) {
+  uint32_t multiplier;
+  int written;
+  if (buf == NULL || buf_size == 0U) return 0;
+  buf[0] = '\0';
+  if (instance_delta == 0U) return 1;
+  if (hardware_field != NULL && hardware_field->repeat_stride_symbol != NULL &&
+      hardware_field->repeat_stride_symbol[0] != '\0' && hardware_field->repeat_stride != 0U &&
+      (instance_delta % hardware_field->repeat_stride) == 0U) {
+    multiplier = instance_delta / hardware_field->repeat_stride;
+    if (multiplier == 1U) {
+      written = snprintf(buf, buf_size, "%s", hardware_field->repeat_stride_symbol);
+    } else {
+      written = snprintf(buf, buf_size, "%s*%u", hardware_field->repeat_stride_symbol, (unsigned)multiplier);
+    }
+    return written > 0 && (size_t)written < buf_size;
+  }
+  written = snprintf(buf, buf_size, instance_delta < 0x100U ? "$%02X" : "$%X", (unsigned)instance_delta);
+  return written > 0 && (size_t)written < buf_size;
+}
+
+int platform_amiga_format_hardware_register_field_symbol(const AmigaOsHardwareRegisterFieldInfo *hardware_field,
+    int include_hardware_base, char *buf, size_t buf_size) {
+  uint32_t instance_delta = 0U;
+  char delta_text[16];
+  const char *instance_symbol;
+  int written;
+  if (buf == NULL || buf_size == 0U) return 0;
+  buf[0] = '\0';
+  if (hardware_field == NULL || hardware_field->register_symbol == NULL || hardware_field->field_symbol == NULL ||
+      hardware_field->register_symbol[0] == '\0' || hardware_field->field_symbol[0] == '\0') {
+    return 0;
+  }
+  instance_symbol = (hardware_field->instance_symbol != NULL && hardware_field->instance_symbol[0] != '\0')
+    ? hardware_field->instance_symbol
+    : NULL;
+  if (instance_symbol != NULL) {
+    if (include_hardware_base) {
+      if (hardware_field->base_symbol == NULL || hardware_field->base_symbol[0] == '\0') return 0;
+      written = snprintf(buf, buf_size, "%s+%s+%s", hardware_field->base_symbol, instance_symbol,
+        hardware_field->field_symbol);
+      return written > 0 && (size_t)written < buf_size;
+    }
+    written = snprintf(buf, buf_size, "%s+%s", instance_symbol, hardware_field->field_symbol);
+    return written > 0 && (size_t)written < buf_size;
+  }
+  if (!platform_amiga_hardware_register_field_instance_delta(hardware_field, &instance_delta))
+    instance_delta = 0U;
+  if (!platform_amiga_format_hardware_register_field_instance_delta(hardware_field, instance_delta, delta_text,
+      sizeof(delta_text))) {
+    return 0;
+  }
+  if (include_hardware_base) {
+    if (hardware_field->base_symbol == NULL || hardware_field->base_symbol[0] == '\0') return 0;
+    if (instance_delta != 0U) {
+      written = snprintf(buf, buf_size, "%s+%s+%s+%s", hardware_field->base_symbol,
+        hardware_field->register_symbol, delta_text, hardware_field->field_symbol);
+      return written > 0 && (size_t)written < buf_size;
+    }
+    written = snprintf(buf, buf_size, "%s+%s+%s", hardware_field->base_symbol, hardware_field->register_symbol,
+      hardware_field->field_symbol);
+    return written > 0 && (size_t)written < buf_size;
+  }
+  if (instance_delta != 0U) {
+    written = snprintf(buf, buf_size, "%s+%s+%s", hardware_field->register_symbol, delta_text,
+      hardware_field->field_symbol);
+    return written > 0 && (size_t)written < buf_size;
+  }
+  written = snprintf(buf, buf_size, "%s+%s", hardware_field->register_symbol, hardware_field->field_symbol);
+  return written > 0 && (size_t)written < buf_size;
+}
+
+int platform_amiga_format_hardware_register_range_symbol(const AmigaOsHardwareRegisterRangeInfo *hardware_range,
+    uint32_t offset, int include_hardware_base, char *buf, size_t buf_size) {
+  uint32_t delta;
+  char delta_text[16];
+  int written;
+  if (buf == NULL || buf_size == 0U) return 0;
+  buf[0] = '\0';
+  if (hardware_range == NULL || hardware_range->symbol_name == NULL || hardware_range->symbol_name[0] == '\0' ||
+      offset < hardware_range->offset || offset >= hardware_range->offset + hardware_range->size) {
+    return 0;
+  }
+  delta = offset - hardware_range->offset;
+  snprintf(delta_text, sizeof(delta_text), delta < 0x100U ? "$%02X" : "$%X", (unsigned)delta);
+  if (include_hardware_base) {
+    if (hardware_range->base_symbol == NULL || hardware_range->base_symbol[0] == '\0') return 0;
+    if (delta == 0U)
+      written = snprintf(buf, buf_size, "%s+%s", hardware_range->base_symbol, hardware_range->symbol_name);
+    else
+      written = snprintf(buf, buf_size, "%s+%s+%s", hardware_range->base_symbol,
+        hardware_range->symbol_name, delta_text);
+  } else {
+    if (delta == 0U)
+      written = snprintf(buf, buf_size, "%s", hardware_range->symbol_name);
+    else
+      written = snprintf(buf, buf_size, "%s+%s", hardware_range->symbol_name, delta_text);
+  }
+  return written > 0 && (size_t)written < buf_size;
+}

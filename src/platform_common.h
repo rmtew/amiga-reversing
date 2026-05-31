@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#include "generated/amiga_os_runtime.h"
+
 struct M68kDecodeSectionIR;
 struct M68kInstructionIR;
 
@@ -21,6 +23,10 @@ int m68k_platform_sha256_hex(const unsigned char *data, size_t size, char out_he
 int platform_amiga_format_global_base_slot_label(size_t section_index, char width_suffix, const char *base_name,
   char *buf, size_t buf_size);
 int platform_amiga_format_app_base_slot_name(const char *base_name, char *buf, size_t buf_size);
+int platform_amiga_format_hardware_register_field_symbol(const AmigaOsHardwareRegisterFieldInfo *hardware_field,
+  int include_hardware_base, char *buf, size_t buf_size);
+int platform_amiga_format_hardware_register_range_symbol(const AmigaOsHardwareRegisterRangeInfo *hardware_range,
+  uint32_t offset, int include_hardware_base, char *buf, size_t buf_size);
 
 typedef enum PlatformResolvedIndirectKind {
   PLATFORM_RESOLVED_INDIRECT_NONE = 0,

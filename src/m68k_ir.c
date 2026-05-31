@@ -2694,6 +2694,7 @@ int m68k_ir_section_analysis_append_address_observation(M68kSectionAnalysisIR *s
 
 int m68k_ir_section_analysis_append_platform_address_use(M68kSectionAnalysisIR *section_analysis,
     const M68kPlatformAddressUseIR *use) {
+  M68kPlatformAddressUseIR copy;
   size_t index;
   if (section_analysis == NULL || use == NULL || section_analysis->arena == NULL) return -1;
   if (use->use_shape == M68K_PLATFORM_ADDRESS_USE_SHAPE_UNKNOWN) return 0;
@@ -2713,7 +2714,13 @@ int m68k_ir_section_analysis_append_platform_address_use(M68kSectionAnalysisIR *
     section_analysis->platform_address_use_count, &section_analysis->platform_address_use_capacity,
     8U, sizeof(*section_analysis->platform_address_uses));
   if (section_analysis->platform_address_uses == NULL) return -1;
-  section_analysis->platform_address_uses[section_analysis->platform_address_use_count++] = *use;
+  copy = *use;
+  copy.symbol_name = NULL;
+  if (use->symbol_name != NULL) {
+    copy.symbol_name = arena_strdup(section_analysis->arena, use->symbol_name);
+    if (copy.symbol_name == NULL) return -1;
+  }
+  section_analysis->platform_address_uses[section_analysis->platform_address_use_count++] = copy;
   return 0;
 }
 

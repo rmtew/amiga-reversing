@@ -2706,10 +2706,12 @@ static int format_copper_register_symbol(uint16_t copper_register_word, char *bu
     return strlen(buf) + 1U < buf_size;
   }
   hardware_field = amiga_os_find_hardware_register_field_by_base_id_offset(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, offset);
-  if (hardware_field != NULL && format_amiga_hardware_register_field_symbol(hardware_field, 0, buf, buf_size))
+  if (hardware_field != NULL &&
+      platform_amiga_format_hardware_register_field_symbol(hardware_field, 0, buf, buf_size))
     return 1;
   hardware_range = amiga_os_find_hardware_register_range_by_base_id_offset(AMIGA_OS_HARDWARE_BASE_ID_CUSTOM, offset);
-  if (hardware_range != NULL && format_amiga_hardware_register_range_symbol(hardware_range, offset, 0, buf, buf_size))
+  if (hardware_range != NULL &&
+      platform_amiga_format_hardware_register_range_symbol(hardware_range, offset, 0, buf, buf_size))
     return 1;
   return 0;
 }
@@ -3997,131 +3999,6 @@ static void attach_generic_symbol(M68kOperandIR *operand, const char *symbol_nam
   snprintf(operand->symbol_ref.name, sizeof(operand->symbol_ref.name), "%s", symbol_name);
 }
 
-static int amiga_hardware_register_field_instance_delta(const AmigaOsHardwareRegisterFieldInfo *hardware_field,
-    uint32_t *out_delta) {
-  size_t index;
-  uint32_t canonical_offset = UINT32_MAX;
-  if (out_delta != NULL) *out_delta = 0U;
-  if (hardware_field == NULL || hardware_field->base_symbol == NULL ||
-      hardware_field->register_symbol == NULL || out_delta == NULL) {
-    return 0;
-  }
-  for (index = 0U;; ++index) {
-    const AmigaOsHardwareRegisterInfo *register_info = amiga_os_hardware_register_at(index);
-    if (register_info == NULL) break;
-    if (register_info->base_id != hardware_field->base_id ||
-        register_info->symbol_id != hardware_field->register_symbol_id) {
-      continue;
-    }
-    if (canonical_offset == UINT32_MAX || register_info->offset < canonical_offset)
-      canonical_offset = register_info->offset;
-  }
-  if (canonical_offset == UINT32_MAX || hardware_field->register_offset < canonical_offset) return 0;
-  *out_delta = hardware_field->register_offset - canonical_offset;
-  return 1;
-}
-
-static int format_amiga_hardware_register_field_instance_delta(
-    const AmigaOsHardwareRegisterFieldInfo *hardware_field, uint32_t instance_delta, char *buf, size_t buf_size) {
-  uint32_t multiplier;
-  int written;
-  if (buf == NULL || buf_size == 0U) return 0;
-  buf[0] = '\0';
-  if (instance_delta == 0U) return 1;
-  if (hardware_field != NULL && hardware_field->repeat_stride_symbol != NULL &&
-      hardware_field->repeat_stride_symbol[0] != '\0' && hardware_field->repeat_stride != 0U &&
-      (instance_delta % hardware_field->repeat_stride) == 0U) {
-    multiplier = instance_delta / hardware_field->repeat_stride;
-    if (multiplier == 1U) {
-      written = snprintf(buf, buf_size, "%s", hardware_field->repeat_stride_symbol);
-    } else {
-      written = snprintf(buf, buf_size, "%s*%u", hardware_field->repeat_stride_symbol, (unsigned)multiplier);
-    }
-    return written > 0 && (size_t)written < buf_size;
-  }
-  written = snprintf(buf, buf_size, instance_delta < 0x100U ? "$%02X" : "$%X", (unsigned)instance_delta);
-  return written > 0 && (size_t)written < buf_size;
-}
-
-int format_amiga_hardware_register_field_symbol(const AmigaOsHardwareRegisterFieldInfo *hardware_field,
-    int include_hardware_base, char *buf, size_t buf_size) {
-  uint32_t instance_delta = 0U;
-  char delta_text[16];
-  const char *instance_symbol;
-  int written;
-  if (buf == NULL || buf_size == 0U) return 0;
-  buf[0] = '\0';
-  if (hardware_field == NULL || hardware_field->register_symbol == NULL || hardware_field->field_symbol == NULL ||
-      hardware_field->register_symbol[0] == '\0' || hardware_field->field_symbol[0] == '\0') {
-    return 0;
-  }
-  instance_symbol = (hardware_field->instance_symbol != NULL && hardware_field->instance_symbol[0] != '\0')
-    ? hardware_field->instance_symbol
-    : NULL;
-  if (instance_symbol != NULL) {
-    if (include_hardware_base) {
-      if (hardware_field->base_symbol == NULL || hardware_field->base_symbol[0] == '\0') return 0;
-      written = snprintf(buf, buf_size, "%s+%s+%s", hardware_field->base_symbol, instance_symbol,
-        hardware_field->field_symbol);
-      return written > 0 && (size_t)written < buf_size;
-    }
-    written = snprintf(buf, buf_size, "%s+%s", instance_symbol, hardware_field->field_symbol);
-    return written > 0 && (size_t)written < buf_size;
-  }
-  if (!amiga_hardware_register_field_instance_delta(hardware_field, &instance_delta)) instance_delta = 0U;
-  if (!format_amiga_hardware_register_field_instance_delta(hardware_field, instance_delta, delta_text,
-      sizeof(delta_text))) {
-    return 0;
-  }
-  if (include_hardware_base) {
-    if (hardware_field->base_symbol == NULL || hardware_field->base_symbol[0] == '\0') return 0;
-    if (instance_delta != 0U) {
-      written = snprintf(buf, buf_size, "%s+%s+%s+%s", hardware_field->base_symbol,
-        hardware_field->register_symbol, delta_text, hardware_field->field_symbol);
-      return written > 0 && (size_t)written < buf_size;
-    }
-    written = snprintf(buf, buf_size, "%s+%s+%s", hardware_field->base_symbol, hardware_field->register_symbol,
-      hardware_field->field_symbol);
-    return written > 0 && (size_t)written < buf_size;
-  }
-  if (instance_delta != 0U) {
-    written = snprintf(buf, buf_size, "%s+%s+%s", hardware_field->register_symbol, delta_text,
-      hardware_field->field_symbol);
-    return written > 0 && (size_t)written < buf_size;
-  }
-  written = snprintf(buf, buf_size, "%s+%s", hardware_field->register_symbol, hardware_field->field_symbol);
-  return written > 0 && (size_t)written < buf_size;
-}
-
-int format_amiga_hardware_register_range_symbol(const AmigaOsHardwareRegisterRangeInfo *hardware_range,
-    uint32_t offset, int include_hardware_base, char *buf, size_t buf_size) {
-  uint32_t delta;
-  char delta_text[16];
-  int written;
-  if (buf == NULL || buf_size == 0U) return 0;
-  buf[0] = '\0';
-  if (hardware_range == NULL || hardware_range->symbol_name == NULL || hardware_range->symbol_name[0] == '\0' ||
-      offset < hardware_range->offset || offset >= hardware_range->offset + hardware_range->size) {
-    return 0;
-  }
-  delta = offset - hardware_range->offset;
-  snprintf(delta_text, sizeof(delta_text), delta < 0x100U ? "$%02X" : "$%X", (unsigned)delta);
-  if (include_hardware_base) {
-    if (hardware_range->base_symbol == NULL || hardware_range->base_symbol[0] == '\0') return 0;
-    if (delta == 0U)
-      written = snprintf(buf, buf_size, "%s+%s", hardware_range->base_symbol, hardware_range->symbol_name);
-    else
-      written = snprintf(buf, buf_size, "%s+%s+%s", hardware_range->base_symbol,
-        hardware_range->symbol_name, delta_text);
-  } else {
-    if (delta == 0U)
-      written = snprintf(buf, buf_size, "%s", hardware_range->symbol_name);
-    else
-      written = snprintf(buf, buf_size, "%s+%s", hardware_range->symbol_name, delta_text);
-  }
-  return written > 0 && (size_t)written < buf_size;
-}
-
 static const M68kPlatformAddressUseIR *source_analysis_platform_address_use_for_operand(
     const M68kSourceAnalysisIR *source_analysis, size_t section_index, uint32_t offset, size_t operand_index,
     uint32_t address, uint8_t use_shape) {
@@ -4167,7 +4044,8 @@ static int attach_amiga_hardware_register_symbols(const M68kRenderPlatformState 
       hardware_field = amiga_os_find_hardware_register_field_by_base_id_offset(
         state->address_hardware_base_id[base_reg], (uint32_t)(uint16_t)displacement);
       if (hardware_field != NULL &&
-          format_amiga_hardware_register_field_symbol(hardware_field, 0, symbol_name, sizeof(symbol_name))) {
+          platform_amiga_format_hardware_register_field_symbol(hardware_field, 0, symbol_name,
+            sizeof(symbol_name))) {
         attach_amiga_platform_symbol(operand, symbol_name);
         attached = 1;
         continue;
@@ -4181,7 +4059,7 @@ static int attach_amiga_hardware_register_symbols(const M68kRenderPlatformState 
         hardware_range = amiga_os_find_hardware_register_range_by_base_id_offset(
           state->address_hardware_base_id[base_reg], (uint32_t)(uint16_t)displacement);
         if (hardware_range == NULL ||
-            !format_amiga_hardware_register_range_symbol(hardware_range, (uint32_t)(uint16_t)displacement,
+            !platform_amiga_format_hardware_register_range_symbol(hardware_range, (uint32_t)(uint16_t)displacement,
               0, symbol_name, sizeof(symbol_name))) {
           continue;
         }
@@ -4199,8 +4077,9 @@ static int attach_amiga_hardware_register_symbols(const M68kRenderPlatformState 
         section->section_index, candidate->offset, operand_index, value,
         M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_BASE_ADDRESS);
       if (source_instruction != NULL && source_instruction->mnemonic_id == M68K_ASM_MNEMONIC_LEA &&
-          base_symbol != NULL && base_symbol[0] != '\0' && hardware_base_use != NULL) {
-        attach_amiga_platform_symbol(operand, base_symbol);
+          hardware_base_use != NULL && hardware_base_use->symbol_name != NULL &&
+          hardware_base_use->symbol_name[0] != '\0') {
+        attach_amiga_platform_symbol(operand, hardware_base_use->symbol_name);
         attached = 1;
         continue;
       }
@@ -4208,9 +4087,15 @@ static int attach_amiga_hardware_register_symbols(const M68kRenderPlatformState 
         section->section_index, candidate->offset, operand_index, value,
         M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_REGISTER_ACCESS);
       if (hardware_register_use == NULL) continue;
+      if (hardware_register_use->symbol_name != NULL && hardware_register_use->symbol_name[0] != '\0') {
+        attach_amiga_platform_symbol(operand, hardware_register_use->symbol_name);
+        attached = 1;
+        continue;
+      }
       hardware_field = amiga_os_find_hardware_register_field_by_cpu_address(value);
       if (hardware_field != NULL &&
-          format_amiga_hardware_register_field_symbol(hardware_field, 1, symbol_name, sizeof(symbol_name))) {
+          platform_amiga_format_hardware_register_field_symbol(hardware_field, 1, symbol_name,
+            sizeof(symbol_name))) {
         attach_amiga_platform_symbol(operand, symbol_name);
         attached = 1;
         continue;
@@ -4225,7 +4110,7 @@ static int attach_amiga_hardware_register_symbols(const M68kRenderPlatformState 
       }
       hardware_range = amiga_os_find_hardware_register_range_by_cpu_address(value);
       if (hardware_range != NULL &&
-          format_amiga_hardware_register_range_symbol(hardware_range, value - hardware_range->base_address,
+          platform_amiga_format_hardware_register_range_symbol(hardware_range, value - hardware_range->base_address,
             1, symbol_name, sizeof(symbol_name))) {
         attach_amiga_platform_symbol(operand, symbol_name);
         attached = 1;
@@ -4246,7 +4131,8 @@ static int attach_amiga_hardware_register_symbols(const M68kRenderPlatformState 
         section->section_index, candidate->offset, operand_index, value,
         M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_BASE_ADDRESS);
       if (hardware_base_use == NULL) continue;
-      attach_amiga_platform_symbol(operand, base_symbol);
+      attach_amiga_platform_symbol(operand, hardware_base_use->symbol_name != NULL &&
+        hardware_base_use->symbol_name[0] != '\0' ? hardware_base_use->symbol_name : base_symbol);
       attached = 1;
     }
   }
@@ -9217,16 +9103,14 @@ static int attach_vector_address_use_symbols(M68kRenderIRPreview *preview,
   for (operand_index = 0U; operand_index < instruction->operand_count; ++operand_index) {
     M68kOperandIR *operand = &instruction->operands[operand_index];
     const M68kPlatformAddressUseIR *use;
-    const M68kCpuExceptionVectorInfo *vector;
     uint32_t address = 0U;
     if (operand->symbol_ref.has_name != 0U || !operand_absolute_offset_local(operand, &address)) continue;
     use = source_analysis_platform_address_use_for_operand(source_analysis, section->section_index,
       candidate->offset, operand_index, address, M68K_PLATFORM_ADDRESS_USE_SHAPE_TRUE_VECTOR_INSTALL);
     if (use == NULL) continue;
-    vector = m68k_cpu_find_exception_vector_by_address(use->address);
-    if (vector == NULL || vector->symbol_name == NULL || vector->symbol_name[0] == '\0') continue;
-    if (!render_asm_define_m68k_vector_symbol_once(preview, vector->symbol_name)) return 0;
-    attach_generic_symbol(operand, vector->symbol_name);
+    if (use->symbol_name == NULL || use->symbol_name[0] == '\0') continue;
+    if (!render_asm_define_m68k_vector_symbol_once(preview, use->symbol_name)) return 0;
+    attach_generic_symbol(operand, use->symbol_name);
   }
   return 1;
 }
