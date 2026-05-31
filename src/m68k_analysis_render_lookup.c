@@ -14149,29 +14149,29 @@ int m68k_analysis_render_lookup_run_platform_passes(M68kRenderLookup *lookup, co
   return 0;
 }
 
-static void analysis_preview_record_platform_vector(M68kRenderIRPreview *preview,
+static void source_analysis_build_stats_record_platform_vector(M68kSourceAnalysisBuildStats *stats,
     const AmigaOsLibraryVectorInfo *vector) {
-  if (preview == NULL || vector == NULL) return;
-  ++preview->platform_call_count;
-  preview->platform_effect_count += vector->input_count;
+  if (stats == NULL || vector == NULL) return;
+  ++stats->platform_call_count;
+  stats->platform_effect_count += vector->input_count;
   if (vector->output.reg_kind != AMIGA_OS_REGISTER_NONE ||
       vector->output.output_id != AMIGA_OS_SYMBOL_ID_NONE ||
       vector->output.type_id != AMIGA_OS_TYPE_ID_NONE ||
       vector->output.struct_id != AMIGA_OS_STRUCT_ID_NONE) {
-    ++preview->platform_effect_count;
+    ++stats->platform_effect_count;
   }
 }
 
-static void analysis_record_platform_vector_effects(M68kRenderIRPreview *preview,
+static int analysis_record_platform_vector_effects(
     M68kSectionAnalysisIR *section_analysis, uint32_t offset, const AmigaOsLibraryVectorInfo *vector) {
   const AmigaOsCallOutputInfo *output;
   const char *output_symbol_name;
   const char *output_type_name;
   const char *output_semantic_kind;
   const char *output_value_domain_name;
-  if (preview == NULL || section_analysis == NULL || vector == NULL) return;
+  if (section_analysis == NULL || vector == NULL) return 0;
   output = &vector->output;
-  if (output->reg_kind == AMIGA_OS_REGISTER_NONE || output->reg_index >= 8U) return;
+  if (output->reg_kind == AMIGA_OS_REGISTER_NONE || output->reg_index >= 8U) return 0;
   output_symbol_name = amiga_os_name(M68K_PLATFORM_NAME_SYMBOL, output->output_id);
   output_type_name = amiga_os_name(M68K_PLATFORM_NAME_STRUCT, output->struct_id);
   if (output_type_name == NULL || output_type_name[0] == '\0')
@@ -14182,26 +14182,27 @@ static void analysis_record_platform_vector_effects(M68kRenderIRPreview *preview
       (output_type_name == NULL || output_type_name[0] == '\0') &&
       (output_semantic_kind == NULL || output_semantic_kind[0] == '\0') &&
       (output_value_domain_name == NULL || output_value_domain_name[0] == '\0')) {
-    return;
+    return 0;
   }
   if (m68k_ir_section_analysis_append_recovered_platform_effect(section_analysis,
       M68K_PLATFORM_BACKEND_AMIGA_HUNK, offset, M68K_PLATFORM_EFFECT_SET_TYPED_REG,
       output->reg_kind, output->reg_index, INT16_MIN, INT16_MIN, NULL,
       output_symbol_name, output_type_name, output_semantic_kind, output_value_domain_name, 0U, 0) != 0) {
-    preview->asm_source_allocation_failed = 1U;
+    return -1;
   }
+  return 0;
 }
 
-static void analysis_record_platform_vector_call(M68kRenderIRPreview *preview,
+static int analysis_record_platform_vector_call(M68kSourceAnalysisBuildStats *stats,
     const M68kRenderLookup *lookup, M68kSectionAnalysisIR *section_analysis, uint32_t offset, uint8_t kind,
     uint8_t note_kind, const AmigaOsLibraryVectorInfo *vector) {
   const char *symbol_name, *library_name, *device_name;
   const char *note_symbol_name = NULL, *available_since = NULL, *note_base_name = NULL;
-  if (preview == NULL || vector == NULL) return;
-  analysis_preview_record_platform_vector(preview, vector);
-  if (section_analysis == NULL) return;
+  if (vector == NULL) return 0;
+  source_analysis_build_stats_record_platform_vector(stats, vector);
+  if (section_analysis == NULL) return 0;
   symbol_name = amiga_os_name(M68K_PLATFORM_NAME_SYMBOL, vector->lvo_symbol_id);
-  if (symbol_name == NULL || symbol_name[0] == '\0') return;
+  if (symbol_name == NULL || symbol_name[0] == '\0') return 0;
   if (note_kind != M68K_PLATFORM_CALL_NOTE_NONE) {
     note_symbol_name = symbol_name;
     symbol_name = NULL;
@@ -14214,31 +14215,32 @@ static void analysis_record_platform_vector_call(M68kRenderIRPreview *preview,
       note_base_name, note_symbol_name, 0U, INT16_MIN, INT16_MIN, 0U, 0U, 0U,
       available_since != NULL && available_since[0] != '\0' ? available_since : NULL,
       vector->fd_version != NULL && vector->fd_version[0] != '\0' ? vector->fd_version : NULL) != 0) {
-    preview->asm_source_allocation_failed = 1U;
+    return -1;
   }
   device_name = render_lookup_device_name_for_call(lookup, section_analysis->section_index, offset);
   if (device_name != NULL &&
       m68k_ir_section_analysis_set_recovered_platform_call_device_name(section_analysis, offset, kind,
         device_name) != 0) {
-    preview->asm_source_allocation_failed = 1U;
+    return -1;
   }
-  analysis_record_platform_vector_effects(preview, section_analysis, offset, vector);
+  return analysis_record_platform_vector_effects(section_analysis, offset, vector);
 }
 
-static void analysis_record_facts_v2_platform_call(M68kRenderIRPreview *preview,
+static int analysis_record_facts_v2_platform_call(M68kSourceAnalysisBuildStats *stats,
     M68kSectionAnalysisIR *section_analysis, uint32_t offset,
     const PlatformFactsV2ResolvedCall *call_info) {
-  if (preview == NULL || call_info == NULL || call_info->platform_kind == 0U) return;
-  ++preview->platform_call_count;
-  if (section_analysis == NULL) return;
+  if (call_info == NULL || call_info->platform_kind == 0U) return 0;
+  if (stats != NULL) ++stats->platform_call_count;
+  if (section_analysis == NULL) return 0;
   if (m68k_ir_section_analysis_append_recovered_platform_call(section_analysis, call_info->platform_kind,
       offset, call_info->kind, NULL, call_info->note_kind,
       call_info->note_base_name[0] != '\0' ? call_info->note_base_name : NULL,
       call_info->note_symbol_name[0] != '\0' ? call_info->note_symbol_name : NULL,
       0U, INT16_MIN, INT16_MIN, call_info->note_stack_cleanup_known,
       call_info->note_stack_cleanup_bytes, call_info->note_return_kind, NULL, NULL) != 0) {
-    preview->asm_source_allocation_failed = 1U;
+    return -1;
   }
+  return 0;
 }
 
 static int mac_instruction_stack_argument_operand(const M68kInstructionIR *instruction,
@@ -14342,12 +14344,11 @@ static int mac_operand_matches_stack_arg_source(const M68kOperandIR *operand, co
   return 1;
 }
 
-static int analysis_record_mac_output_pointer_local_read_facts(M68kRenderIRPreview *preview,
-    const M68kDecodeSectionIR *section, const uint8_t *accepted_start, uint32_t call_offset,
+static int analysis_record_mac_output_pointer_local_read_facts(const M68kDecodeSectionIR *section,
+    const uint8_t *accepted_start, uint32_t call_offset,
     M68kSectionAnalysisIR *section_analysis, const MacStackArgumentOperand *args, size_t arg_count) {
   uint32_t cursor;
-  if (preview == NULL || section == NULL || accepted_start == NULL || section_analysis == NULL ||
-      args == NULL || arg_count == 0U) {
+  if (section == NULL || accepted_start == NULL || section_analysis == NULL || args == NULL || arg_count == 0U) {
     return 0;
   }
   cursor = call_offset + 2U;
@@ -14379,7 +14380,6 @@ static int analysis_record_mac_output_pointer_local_read_facts(M68kRenderIRPrevi
             M68K_PLATFORM_BACKEND_MACOS, candidate->offset, (uint8_t)operand_index, base_reg, displacement, 0,
             0U, access_size, arg->pointee_type_name, arg->pointee_type_name, arg->field_name,
             "", 0U, 0U, M68K_PLATFORM_TYPE_PROVENANCE_API_OUTPUT, section->section_index, call_offset) != 0) {
-          preview->asm_source_allocation_failed = 1U;
           return -1;
         }
         {
@@ -14397,7 +14397,6 @@ static int analysis_record_mac_output_pointer_local_read_facts(M68kRenderIRPrevi
                 dest_displacement, 0, 0U, access_size, arg->pointee_type_name, arg->pointee_type_name,
                 arg->field_name, "", 0U, 0U, M68K_PLATFORM_TYPE_PROVENANCE_API_OUTPUT, section->section_index,
                 call_offset) != 0) {
-              preview->asm_source_allocation_failed = 1U;
               return -1;
             }
           }
@@ -14410,7 +14409,7 @@ static int analysis_record_mac_output_pointer_local_read_facts(M68kRenderIRPrevi
   return 0;
 }
 
-static int analysis_record_mac_call_stack_arg_facts(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
+static int analysis_record_mac_call_stack_arg_facts(const M68kRenderLookup *lookup,
     const M68kDecodeSectionIR *section, const uint8_t *accepted_start, uint32_t block_start,
     uint32_t call_offset, M68kSectionAnalysisIR *section_analysis,
     const PlatformFactsV2ResolvedCall *call_info) {
@@ -14418,7 +14417,7 @@ static int analysis_record_mac_call_stack_arg_facts(M68kRenderIRPreview *preview
   MacStackArgumentOperand args[16];
   size_t arg_count = 0U;
   uint32_t cursor;
-  if (preview == NULL || lookup == NULL || lookup->object == NULL || section == NULL || accepted_start == NULL ||
+  if (lookup == NULL || lookup->object == NULL || section == NULL || accepted_start == NULL ||
       section_analysis == NULL || call_info == NULL) {
     return 0;
   }
@@ -14471,7 +14470,6 @@ static int analysis_record_mac_call_stack_arg_facts(M68kRenderIRPreview *preview
           call_offset, stack_offset, 0U, 0U, mac_call->c_name, param->name, param->type_name,
           param->direction, NULL, 0U, 0, arg->source_reg_kind != 0U, arg->offset, arg->source_reg_kind,
           arg->source_reg_index, arg->source_displacement) != 0) {
-        preview->asm_source_allocation_failed = 1U;
         return -1;
       }
       if (param->direction != NULL && strcmp(param->direction, "input_value") == 0 &&
@@ -14480,44 +14478,43 @@ static int analysis_record_mac_call_stack_arg_facts(M68kRenderIRPreview *preview
             M68K_PLATFORM_BACKEND_MACOS, arg->offset, 0U, arg->source_reg_index, arg->source_displacement, 0,
             0U, 0U, param->type_name, param->type_name, param->name != NULL ? param->name : "",
             "", 0U, 0U, M68K_PLATFORM_TYPE_PROVENANCE_API_INPUT, section->section_index, call_offset) != 0) {
-          preview->asm_source_allocation_failed = 1U;
           return -1;
         }
       }
     }
-    return analysis_record_mac_output_pointer_local_read_facts(preview, section, accepted_start, call_offset,
+    return analysis_record_mac_output_pointer_local_read_facts(section, accepted_start, call_offset,
       section_analysis, args + first_arg, mac_call->parameter_count);
   }
 }
 
-static int analysis_record_platform_trap_call_facts(M68kRenderIRPreview *preview,
+static int analysis_record_platform_trap_call_facts(M68kSourceAnalysisBuildStats *stats,
     const M68kRenderLookup *lookup, const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
     const M68kDecodeCandidate *candidate, M68kSectionAnalysisIR *section_analysis) {
   PlatformFactsV2ResolvedCall call_info;
   uint32_t block_start;
-  if (preview == NULL || lookup == NULL || lookup->object == NULL || section == NULL || candidate == NULL)
+  if (lookup == NULL || lookup->object == NULL || section == NULL || candidate == NULL)
     return 0;
   block_start = lookup_code_block_start_before_or_at(lookup, section->section_index, candidate->offset);
   if (!platform_facts_v2_resolve_trap_call(lookup->object->platform_backend_kind, section, accepted_start,
       block_start, candidate->offset, &call_info)) {
     return 0;
   }
-  analysis_record_facts_v2_platform_call(preview, section_analysis, candidate->offset, &call_info);
-  if (analysis_record_mac_call_stack_arg_facts(preview, lookup, section, accepted_start, block_start,
+  if (analysis_record_facts_v2_platform_call(stats, section_analysis, candidate->offset, &call_info) != 0)
+    return -1;
+  if (analysis_record_mac_call_stack_arg_facts(lookup, section, accepted_start, block_start,
       candidate->offset, section_analysis, &call_info) < 0) {
     return -1;
   }
-  return preview->asm_source_allocation_failed ? -1 : 1;
+  return 1;
 }
 
-static int analysis_record_platform_stack_cleanup_call_facts(M68kRenderIRPreview *preview,
+static int analysis_record_platform_stack_cleanup_call_facts(M68kSourceAnalysisBuildStats *stats,
     const M68kRenderLookup *lookup, const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
     const M68kDecodeCandidate *candidate, M68kSectionAnalysisIR *section_analysis) {
   M68kInstructionIR instruction;
   PlatformFactsV2ResolvedCall call_info;
   uint32_t block_start;
-  if (preview == NULL || lookup == NULL || lookup->object == NULL || section == NULL || accepted_start == NULL ||
-      candidate == NULL) {
+  if (lookup == NULL || lookup->object == NULL || section == NULL || accepted_start == NULL || candidate == NULL) {
     return 0;
   }
   if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) return 0;
@@ -14526,17 +14523,18 @@ static int analysis_record_platform_stack_cleanup_call_facts(M68kRenderIRPreview
       accepted_start, block_start, candidate->offset, &instruction, &call_info)) {
     return 0;
   }
-  analysis_record_facts_v2_platform_call(preview, section_analysis, candidate->offset, &call_info);
-  return preview->asm_source_allocation_failed ? -1 : 1;
+  if (analysis_record_facts_v2_platform_call(stats, section_analysis, candidate->offset, &call_info) != 0)
+    return -1;
+  return 1;
 }
 
-static int analysis_record_amiga_instruction_platform_call_facts(M68kRenderIRPreview *preview,
+static int analysis_record_amiga_instruction_platform_call_facts(M68kSourceAnalysisBuildStats *stats,
     M68kRenderLookup *lookup, M68kRenderPlatformState *platform_state, const M68kDecodeIR *decode,
     uint8_t **accepted_start_all, const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
     const M68kDecodeCandidate *candidate, M68kSectionAnalysisIR *section_analysis) {
   M68kInstructionIR instruction;
   M68kRenderAmigaVectorResolution vector_resolution;
-  if (preview == NULL || lookup == NULL || lookup->object == NULL || platform_state == NULL || decode == NULL ||
+  if (lookup == NULL || lookup->object == NULL || platform_state == NULL || decode == NULL ||
       accepted_start_all == NULL || section == NULL || accepted_start == NULL || candidate == NULL) {
     return 0;
   }
@@ -14546,9 +14544,8 @@ static int analysis_record_amiga_instruction_platform_call_facts(M68kRenderIRPre
   m68k_analysis_render_lookup_resolve_amiga_instruction_platform_vectors(lookup, platform_state, decode,
     accepted_start_all, section, accepted_start, candidate, &instruction, &vector_resolution);
   if (vector_resolution.chosen_vector == NULL) return 0;
-  analysis_record_platform_vector_call(preview, lookup, section_analysis, candidate->offset,
+  return analysis_record_platform_vector_call(stats, lookup, section_analysis, candidate->offset,
     vector_resolution.chosen_kind, vector_resolution.chosen_note_kind, vector_resolution.chosen_vector);
-  return preview->asm_source_allocation_failed ? -1 : 0;
 }
 
 static void analysis_platform_state_update_known_library_load_after_candidate(M68kRenderPlatformState *platform_state,
@@ -14585,13 +14582,13 @@ static int analysis_advance_platform_state_after_candidate(M68kRenderLookup *loo
   return 0;
 }
 
-int m68k_analysis_render_lookup_append_platform_call_facts_for_section(M68kRenderIRPreview *preview,
+int m68k_analysis_render_lookup_append_platform_call_facts_for_section(M68kSourceAnalysisBuildStats *stats,
     M68kRenderLookup *lookup, M68kRenderPlatformState *platform_state, const M68kDecodeIR *decode,
     const M68kAnalysisPolicy *policy, uint8_t **accepted_start_all, size_t section_array_index,
     const M68kDecodeSectionIR *section, M68kSectionAnalysisIR *section_analysis) {
   uint32_t offset = 0U;
   uint32_t render_extent;
-  if (preview == NULL || lookup == NULL || lookup->object == NULL || decode == NULL ||
+  if (lookup == NULL || lookup->object == NULL || decode == NULL ||
       platform_state == NULL || accepted_start_all == NULL || section == NULL ||
       section_array_index >= decode->section_count) {
     return 0;
@@ -14608,8 +14605,9 @@ int m68k_analysis_render_lookup_append_platform_call_facts_for_section(M68kRende
           ? m68k_read_u16be(section->data + offset) : 0U;
         if (platform_facts_v2_resolve_opcode_call(lookup->object->platform_backend_kind, opcode, &call_info) &&
             offset + 2U <= render_extent) {
-          analysis_record_facts_v2_platform_call(preview, section_analysis, offset, &call_info);
-          if (analysis_record_mac_call_stack_arg_facts(preview, lookup, section,
+          if (analysis_record_facts_v2_platform_call(stats, section_analysis, offset, &call_info) != 0)
+            return -1;
+          if (analysis_record_mac_call_stack_arg_facts(lookup, section,
               accepted_start_all[section_array_index],
               lookup_code_block_start_before_or_at(lookup, section->section_index, offset), offset,
               section_analysis, &call_info) < 0) {
@@ -14620,15 +14618,15 @@ int m68k_analysis_render_lookup_append_platform_call_facts_for_section(M68kRende
         }
         return -1;
       }
-      if (analysis_record_platform_trap_call_facts(preview, lookup, section, accepted_start_all[section_array_index],
+      if (analysis_record_platform_trap_call_facts(stats, lookup, section, accepted_start_all[section_array_index],
           candidate, section_analysis) < 0) {
         return -1;
       }
-      if (analysis_record_platform_stack_cleanup_call_facts(preview, lookup, section,
+      if (analysis_record_platform_stack_cleanup_call_facts(stats, lookup, section,
           accepted_start_all[section_array_index], candidate, section_analysis) < 0) {
         return -1;
       }
-      if (analysis_record_amiga_instruction_platform_call_facts(preview, lookup, platform_state, decode,
+      if (analysis_record_amiga_instruction_platform_call_facts(stats, lookup, platform_state, decode,
           accepted_start_all, section, accepted_start_all[section_array_index], candidate, section_analysis) < 0) {
         return -1;
       }
@@ -14647,15 +14645,6 @@ int m68k_analysis_render_lookup_append_platform_call_facts_for_section(M68kRende
 int m68k_analysis_render_lookup_append_auto_policy(M68kSourceAnalysisIR *source_analysis,
     M68kRenderLookup *lookup) {
   return source_analysis_append_auto_structured_data_policy(source_analysis, lookup);
-}
-
-static Arena *analysis_preview_scratch_arena(M68kRenderIRPreview *preview) {
-  if (preview == NULL) return NULL;
-  if (preview->scratch_arena == NULL) {
-    preview->scratch_arena = arena_create(4096U);
-    if (preview->scratch_arena == NULL) return NULL;
-  }
-  return preview->scratch_arena;
 }
 
 static int append_base_layout_fields_from_slots(M68kSourceAnalysisIR *source_analysis,
@@ -14691,9 +14680,8 @@ static int append_base_layout_fields_from_slots(M68kSourceAnalysisIR *source_ana
   return 0;
 }
 
-int m68k_analysis_render_lookup_append_base_layout_fields(M68kRenderIRPreview *preview,
+int m68k_analysis_render_lookup_append_base_layout_fields(Arena *scratch_arena,
     const M68kRenderLookup *lookup, const M68kDecodeIR *decode, M68kSourceAnalysisIR *source_analysis) {
-  Arena *scratch_arena;
   ArenaMark scratch_mark;
   M68kBaseLayoutSlot *slots = NULL;
   M68kBaseLayoutGroup *layouts = NULL;
@@ -14705,10 +14693,8 @@ int m68k_analysis_render_lookup_append_base_layout_fields(M68kRenderIRPreview *p
   size_t layout_count;
   int result = -1;
   if (source_analysis == NULL) return 0;
-  if (preview == NULL || lookup == NULL) return -1;
+  if (scratch_arena == NULL || lookup == NULL) return -1;
   slot_capacity = base_layout_slot_capacity_for_lookup(lookup);
-  scratch_arena = analysis_preview_scratch_arena(preview);
-  if (scratch_arena == NULL) return -1;
   scratch_mark = arena_mark(scratch_arena);
   slots = (M68kBaseLayoutSlot *)arena_calloc(scratch_arena, slot_capacity, sizeof(*slots));
   layouts = (M68kBaseLayoutGroup *)arena_calloc(scratch_arena, slot_capacity, sizeof(*layouts));
@@ -14747,23 +14733,26 @@ int m68k_analysis_render_lookup_append_section(M68kRenderLookup *lookup, const M
   return 0;
 }
 
-int m68k_analysis_render_lookup_build_source_analysis(M68kRenderIRPreview *preview, M68kRenderLookup *lookup,
+int m68k_analysis_render_lookup_build_source_analysis(M68kRenderLookup *lookup,
     const M68kDecodeIR *decode, const M68kAnalysisPolicy *policy, uint8_t **accepted_start,
-    uint8_t **accepted_bytes, M68kSourceAnalysisIR *source_analysis) {
+    uint8_t **accepted_bytes, M68kSourceAnalysisIR *source_analysis, M68kSourceAnalysisBuildStats *out_stats) {
   M68kRenderPlatformState platform_analysis_state;
   M68kSectionAnalysisIR section_analysis;
   int section_analysis_live = 0;
   Arena *scratch_arena = NULL;
   size_t section_index;
-  if (preview == NULL || lookup == NULL || decode == NULL || accepted_start == NULL ||
+  if (out_stats != NULL) memset(out_stats, 0, sizeof(*out_stats));
+  if (lookup == NULL || decode == NULL || accepted_start == NULL ||
       accepted_bytes == NULL || source_analysis == NULL) {
     return -1;
   }
   memset(&platform_analysis_state, 0, sizeof(platform_analysis_state));
   memset(&section_analysis, 0, sizeof(section_analysis));
-  if (m68k_analysis_render_lookup_append_auto_policy(source_analysis, lookup) != 0) return -1;
-  if (m68k_analysis_render_lookup_append_base_layout_fields(preview, lookup, decode, source_analysis) != 0)
-    return -1;
+  scratch_arena = arena_create(4096U);
+  if (scratch_arena == NULL) return -1;
+  if (m68k_analysis_render_lookup_append_auto_policy(source_analysis, lookup) != 0) goto fail;
+  if (m68k_analysis_render_lookup_append_base_layout_fields(scratch_arena, lookup, decode, source_analysis) != 0)
+    goto fail;
   for (section_index = 0U; section_index < decode->section_count; ++section_index) {
     const M68kDecodeSectionIR *section = &decode->sections[section_index];
     if (m68k_ir_section_analysis_create(&section_analysis, source_analysis->arena) != 0) goto fail;
@@ -14777,7 +14766,7 @@ int m68k_analysis_render_lookup_build_source_analysis(M68kRenderIRPreview *previ
       goto fail;
     }
     if (m68k_analysis_render_lookup_append_section(lookup, decode, &section_analysis) != 0) goto fail;
-    if (m68k_analysis_render_lookup_append_platform_call_facts_for_section(preview, lookup, &platform_analysis_state,
+    if (m68k_analysis_render_lookup_append_platform_call_facts_for_section(out_stats, lookup, &platform_analysis_state,
         decode, policy, accepted_start, section_index, section, &section_analysis) < 0) {
       goto fail;
     }
@@ -14785,8 +14774,6 @@ int m68k_analysis_render_lookup_build_source_analysis(M68kRenderIRPreview *previ
         &section_analysis) != 0) {
       goto fail;
     }
-    scratch_arena = analysis_preview_scratch_arena(preview);
-    if (scratch_arena == NULL) goto fail;
     if (m68k_analysis_render_lookup_append_cfg_for_section(lookup, section, accepted_start[section_index],
         accepted_bytes[section_index], scratch_arena, &section_analysis) != 0) {
       goto fail;
@@ -14799,9 +14786,11 @@ int m68k_analysis_render_lookup_build_source_analysis(M68kRenderIRPreview *previ
     m68k_ir_section_analysis_destroy(&section_analysis);
     section_analysis_live = 0;
   }
+  arena_destroy(scratch_arena);
   return 0;
 fail:
   if (section_analysis_live) m68k_ir_section_analysis_destroy(&section_analysis);
+  arena_destroy(scratch_arena);
   return -1;
 }
 

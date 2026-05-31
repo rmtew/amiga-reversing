@@ -9841,6 +9841,7 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   M68kSourceAnalysisIR *source_analysis = out_source_analysis;
   M68kRenderIRPreview *render_preview = NULL;
   M68kRenderLookup render_lookup;
+  M68kSourceAnalysisBuildStats source_analysis_stats;
   int render_text_preview;
   int render_asm_source;
   int source_analysis_required;
@@ -9861,6 +9862,7 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   m68k_fact_ir_init(&facts);
   memset(&workflow, 0, sizeof(workflow));
   memset(&local_source_analysis, 0, sizeof(local_source_analysis));
+  memset(&source_analysis_stats, 0, sizeof(source_analysis_stats));
   if (facts_v2_workflow_create(&workflow) != 0) {
     m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_OUT_OF_MEMORY, "out of memory");
     goto fail;
@@ -10150,8 +10152,8 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   end = clock();
   render_preview->platform_pass_seconds = elapsed_seconds_local(start, end);
   if (source_analysis != NULL &&
-      m68k_analysis_render_lookup_build_source_analysis(render_preview, &render_lookup, &decode, policy,
-        accepted_start, accepted_bytes, source_analysis) != 0) {
+      m68k_analysis_render_lookup_build_source_analysis(&render_lookup, &decode, policy,
+        accepted_start, accepted_bytes, source_analysis, &source_analysis_stats) != 0) {
     m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
       "facts_v2 source analysis build failed");
     goto fail;
@@ -10298,8 +10300,8 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   out_profile->asm_source_first_numeric_runtime_ref_runtime_address =
     render_preview->asm_source_first_numeric_runtime_ref_runtime_address;
   out_profile->platform_base_slot_count = render_preview->platform_base_slot_count;
-  out_profile->platform_call_count = render_preview->platform_call_count;
-  out_profile->platform_effect_count = render_preview->platform_effect_count;
+  out_profile->platform_call_count = source_analysis_stats.platform_call_count;
+  out_profile->platform_effect_count = source_analysis_stats.platform_effect_count;
   out_profile->asm_source_lossy_numeric_hunk_relocations =
     render_preview->asm_source_lossy_numeric_hunk_relocations;
   out_profile->asm_source_instruction_render_failures = render_preview->asm_source_instruction_render_failures;

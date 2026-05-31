@@ -919,6 +919,10 @@ const AmigaOsLibraryVectorInfo *resolve_amiga_indexed_wrapper_call_vector(const 
 void attach_operand_label_symbol(const M68kRenderLookup *lookup, M68kInstructionIR *instruction,
   size_t operand_index, size_t source_section_index, uint32_t source_offset, size_t target_section_index,
   uint32_t target_offset);
+typedef struct M68kSourceAnalysisBuildStats {
+  uint32_t platform_call_count;
+  uint32_t platform_effect_count;
+} M68kSourceAnalysisBuildStats;
 int m68k_analysis_render_lookup_run_platform_passes(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
   uint8_t **accepted_start, uint8_t **accepted_bytes, M68kRenderIRPreview *preview);
 int m68k_render_lookup_build(M68kRenderLookup *lookup, const M68kObject *object, const M68kDecodeIR *decode,
@@ -930,16 +934,16 @@ void m68k_render_lookup_materialize_structured_long_table_target_labels(M68kRend
   const M68kDecodeIR *decode);
 int m68k_analysis_render_lookup_append_auto_policy(M68kSourceAnalysisIR *source_analysis,
   M68kRenderLookup *lookup);
-int m68k_analysis_render_lookup_append_base_layout_fields(M68kRenderIRPreview *preview,
+int m68k_analysis_render_lookup_append_base_layout_fields(Arena *scratch_arena,
   const M68kRenderLookup *lookup, const M68kDecodeIR *decode, M68kSourceAnalysisIR *source_analysis);
-int m68k_analysis_render_lookup_build_source_analysis(M68kRenderIRPreview *preview, M68kRenderLookup *lookup,
+int m68k_analysis_render_lookup_build_source_analysis(M68kRenderLookup *lookup,
   const M68kDecodeIR *decode, const M68kAnalysisPolicy *policy, uint8_t **accepted_start,
-  uint8_t **accepted_bytes, M68kSourceAnalysisIR *source_analysis);
+  uint8_t **accepted_bytes, M68kSourceAnalysisIR *source_analysis, M68kSourceAnalysisBuildStats *out_stats);
 void m68k_analysis_render_lookup_resolve_amiga_instruction_platform_vectors(const M68kRenderLookup *lookup,
   const M68kRenderPlatformState *platform_state, const M68kDecodeIR *decode, uint8_t **accepted_start_all,
   const M68kDecodeSectionIR *section, const uint8_t *accepted_start, const M68kDecodeCandidate *candidate,
   M68kInstructionIR *instruction, M68kRenderAmigaVectorResolution *resolution);
-int m68k_analysis_render_lookup_append_platform_call_facts_for_section(M68kRenderIRPreview *preview,
+int m68k_analysis_render_lookup_append_platform_call_facts_for_section(M68kSourceAnalysisBuildStats *stats,
   M68kRenderLookup *lookup, M68kRenderPlatformState *platform_state, const M68kDecodeIR *decode,
   const M68kAnalysisPolicy *policy, uint8_t **accepted_start_all, size_t section_array_index,
   const M68kDecodeSectionIR *section, M68kSectionAnalysisIR *section_analysis);

@@ -53,8 +53,6 @@ typedef struct M68kRenderIRPreview {
   uint32_t asm_source_first_numeric_runtime_ref_target_offset;
   uint32_t asm_source_first_numeric_runtime_ref_runtime_address;
   uint32_t platform_base_slot_count;
-  uint32_t platform_call_count;
-  uint32_t platform_effect_count;
   uint32_t asm_source_lossy_numeric_hunk_relocations;
   uint32_t asm_source_instruction_render_failures;
   uint32_t asm_source_instruction_byte_mismatches;

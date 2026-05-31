@@ -4434,3 +4434,28 @@ cap. The renderer now prints every unowned absolute-memory range already present
 in Source Analysis IR instead of truncating after 32 rows and hiding the rest
 behind an omitted marker. Capacity policy remains with C source-quality facts:
 render is only formatting the range list it receives.
+
+### Source-Analysis Builder API Ownership
+
+Removed the render-preview parameter from the source-analysis builder:
+
+```text
+m68k_analysis_render_lookup_build_source_analysis(
+  lookup,
+  decode,
+  policy,
+  accepted_start,
+  accepted_bytes,
+  source_analysis,
+  source_analysis_stats)
+```
+
+The builder now owns a local scratch arena and reports analysis-owned platform
+call/effect counts through `M68kSourceAnalysisBuildStats`. `M68kRenderIRPreview`
+keeps render/export timings and source output counters only; it no longer acts
+as an allocation-failure side channel or analysis counter store for recovered
+platform facts.
+
+This intentionally breaks the old internal API instead of preserving a wrapper.
+There are no external consumers, and keeping the old signature would preserve
+the false ownership boundary this proposal is removing.

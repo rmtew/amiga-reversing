@@ -39,6 +39,7 @@ static int test_render_ir_preview_build(const M68kObject *object, const M68kDeco
   M68kRenderLookup lookup;
   M68kAnalysisPolicy default_policy;
   M68kSourceAnalysisIR source_analysis;
+  M68kSourceAnalysisBuildStats source_analysis_stats;
   const M68kAnalysisPolicy *effective_policy = policy;
   int result = -1;
   int default_policy_live = 0;
@@ -50,6 +51,7 @@ static int test_render_ir_preview_build(const M68kObject *object, const M68kDeco
   memset(&lookup, 0, sizeof(lookup));
   memset(&default_policy, 0, sizeof(default_policy));
   memset(&source_analysis, 0, sizeof(source_analysis));
+  memset(&source_analysis_stats, 0, sizeof(source_analysis_stats));
   m68k_render_ir_preview_init(out_preview);
   out_preview->platform_backend_kind = object->platform_backend_kind;
   if (effective_policy == NULL) {
@@ -71,8 +73,8 @@ static int test_render_ir_preview_build(const M68kObject *object, const M68kDeco
     source_analysis_live = 1;
     source_analysis.file_kind = object->platform_file_kind;
     if (m68k_ir_source_analysis_set_policy(&source_analysis, effective_policy) != 0) goto cleanup;
-    if (m68k_analysis_render_lookup_build_source_analysis(out_preview, &lookup, decode, effective_policy,
-        accepted_start, accepted_bytes, &source_analysis) != 0) {
+    if (m68k_analysis_render_lookup_build_source_analysis(&lookup, decode, effective_policy,
+        accepted_start, accepted_bytes, &source_analysis, &source_analysis_stats) != 0) {
       goto cleanup;
     }
     if (m68k_source_quality_analyze(&source_analysis, decode, accepted_start, accepted_bytes) != 0) goto cleanup;
