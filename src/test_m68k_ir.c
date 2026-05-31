@@ -10314,6 +10314,10 @@ static int test_source_quality_analyze_exports_code_origins_and_runs(void) {
   M68K_C_ASSERT(strstr(analysis_json, "\"code_origin_count\":2") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"origin_class\":\"strong_entry\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"origin_class\":\"proven_fallthrough\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"evidence_kind\":\"policy_entry_point\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"evidence_kind\":\"fallthrough\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"evidence_kind_id\":3") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"evidence_kind_id\":5") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"accepted_code_run_count\":1") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
     "\"accepted_code_runs\":[{\"start_offset\":4,\"end_offset\":8,\"instruction_count\":2") != NULL);

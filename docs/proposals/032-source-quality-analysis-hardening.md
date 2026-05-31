@@ -3087,6 +3087,44 @@ uv run python -m pytest tests\test_target_usage_manifest.py -q
 uv run platform-rendered-source-roundtrip --no-write-report --json
 ```
 
+### Code Origin Evidence Naming
+
+Made `M68kCodeOriginIR.evidence_kind` a named C source-quality evidence value
+instead of exporting the old numeric code-start reason as the public evidence
+field:
+
+```text
+before:
+  evidence_kind = 3
+  reason_name = policy_entry_point
+
+after:
+  evidence_kind_id = 3
+  evidence_kind = policy_entry_point
+  reason_name = policy_entry_point
+```
+
+The current mapper distinguishes entry, fallthrough, runtime-view, platform,
+stack-continuation, direct-control, runtime-control, and still-broad
+`control_target_unspecified` origins. That last value is intentional pressure:
+remaining producers that still only say `CONTROL_TARGET` are now visible in
+JSON/corpus indexing instead of being hidden as a numeric reason.
+
+This does not finish the evidence-subkind migration. The next code-origin slice
+should push explicit evidence into the enqueue sites for relocation-backed
+control, traced indirect calls/jumps, dispatch tables, callback fields, vector
+stores, and copied/runtime aliases so `control_target_unspecified` disappears
+from clean source-quality output.
+
+Verified:
+
+```text
+cmd /c src\build.bat
+src\build\m68k_c_unit_tests.exe
+uv run python -m pytest tests\test_target_usage_manifest.py -q
+uv run platform-rendered-source-roundtrip --no-write-report --json
+```
+
 ### CFG Source-Analysis Producer Split And Weak Code Prune
 
 Moved CFG block/edge construction for Source Analysis IR out of

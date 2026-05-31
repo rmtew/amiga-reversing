@@ -4087,8 +4087,15 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
       if (json_builder_append_json_string(&builder, m68k_code_start_reason_name(origin->reason)) != 0)
         goto oom;
       if (json_builder_appendf(&builder,
-          ",\"evidence_kind\":%u,\"confidence\":%u,\"runtime_address\":",
-          (unsigned)origin->evidence_kind, (unsigned)origin->confidence) != 0)
+          ",\"evidence_kind_id\":%u,\"evidence_kind\":",
+          (unsigned)origin->evidence_kind) != 0)
+        goto oom;
+      if (json_builder_append_json_string(&builder,
+          m68k_code_origin_evidence_kind_name(origin->evidence_kind)) != 0)
+        goto oom;
+      if (json_builder_appendf(&builder,
+          ",\"confidence\":%u,\"runtime_address\":",
+          (unsigned)origin->confidence) != 0)
         goto oom;
       if (origin->has_runtime_address) {
         if (json_builder_appendf(&builder, "%u", (unsigned)origin->runtime_address) != 0) goto oom;

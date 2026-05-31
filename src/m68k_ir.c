@@ -357,6 +357,39 @@ const char *m68k_code_origin_class_name(uint8_t origin_class) {
   }
 }
 
+const char *m68k_code_origin_evidence_kind_name(uint32_t evidence_kind) {
+  switch (evidence_kind) {
+    case M68K_CODE_ORIGIN_EVIDENCE_SECTION_ENTRY:
+      return "section_entry";
+    case M68K_CODE_ORIGIN_EVIDENCE_POLICY_ENTRY_OFFSET:
+      return "policy_entry_offset";
+    case M68K_CODE_ORIGIN_EVIDENCE_POLICY_ENTRY_POINT:
+      return "policy_entry_point";
+    case M68K_CODE_ORIGIN_EVIDENCE_CONTROL_TARGET_UNSPECIFIED:
+      return "control_target_unspecified";
+    case M68K_CODE_ORIGIN_EVIDENCE_FALLTHROUGH:
+      return "fallthrough";
+    case M68K_CODE_ORIGIN_EVIDENCE_INLINE_RESUME:
+      return "inline_resume";
+    case M68K_CODE_ORIGIN_EVIDENCE_RUNTIME_VIEW_ENTRY:
+      return "runtime_view_entry";
+    case M68K_CODE_ORIGIN_EVIDENCE_LINKAGE_API_ENTRY:
+      return "linkage_api_entry";
+    case M68K_CODE_ORIGIN_EVIDENCE_PLATFORM_LOADSEG_ENTRY:
+      return "platform_loadseg_entry";
+    case M68K_CODE_ORIGIN_EVIDENCE_STACK_CONTINUATION:
+      return "stack_continuation";
+    case M68K_CODE_ORIGIN_EVIDENCE_BOUNDARY_API_ENTRY:
+      return "boundary_api_entry";
+    case M68K_CODE_ORIGIN_EVIDENCE_RUNTIME_CONTROL_TARGET:
+      return "runtime_control_target";
+    case M68K_CODE_ORIGIN_EVIDENCE_DIRECT_CONTROL_TARGET:
+      return "direct_control_target";
+    default:
+      return "unknown";
+  }
+}
+
 const char *m68k_accepted_code_run_end_kind_name(uint8_t end_kind) {
   switch (end_kind) {
     case M68K_ACCEPTED_CODE_RUN_END_TERMINAL:

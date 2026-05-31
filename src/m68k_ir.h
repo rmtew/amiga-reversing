@@ -1706,6 +1706,23 @@ typedef enum M68kCodeOriginClass {
   M68K_CODE_ORIGIN_DATA_REFERENCE_ONLY = 9
 } M68kCodeOriginClass;
 
+typedef enum M68kCodeOriginEvidenceKind {
+  M68K_CODE_ORIGIN_EVIDENCE_UNKNOWN = 0,
+  M68K_CODE_ORIGIN_EVIDENCE_SECTION_ENTRY = 1,
+  M68K_CODE_ORIGIN_EVIDENCE_POLICY_ENTRY_OFFSET = 2,
+  M68K_CODE_ORIGIN_EVIDENCE_POLICY_ENTRY_POINT = 3,
+  M68K_CODE_ORIGIN_EVIDENCE_CONTROL_TARGET_UNSPECIFIED = 4,
+  M68K_CODE_ORIGIN_EVIDENCE_FALLTHROUGH = 5,
+  M68K_CODE_ORIGIN_EVIDENCE_INLINE_RESUME = 6,
+  M68K_CODE_ORIGIN_EVIDENCE_RUNTIME_VIEW_ENTRY = 7,
+  M68K_CODE_ORIGIN_EVIDENCE_LINKAGE_API_ENTRY = 8,
+  M68K_CODE_ORIGIN_EVIDENCE_PLATFORM_LOADSEG_ENTRY = 9,
+  M68K_CODE_ORIGIN_EVIDENCE_STACK_CONTINUATION = 10,
+  M68K_CODE_ORIGIN_EVIDENCE_BOUNDARY_API_ENTRY = 11,
+  M68K_CODE_ORIGIN_EVIDENCE_RUNTIME_CONTROL_TARGET = 12,
+  M68K_CODE_ORIGIN_EVIDENCE_DIRECT_CONTROL_TARGET = 13
+} M68kCodeOriginEvidenceKind;
+
 typedef enum M68kAcceptedCodeRunEndKind {
   M68K_ACCEPTED_CODE_RUN_END_UNKNOWN = 0,
   M68K_ACCEPTED_CODE_RUN_END_TERMINAL = 1,
@@ -1957,6 +1974,7 @@ const char *m68k_source_quality_diagnostic_severity_name(uint8_t severity);
 const char *m68k_source_quality_diagnostic_kind_name(uint8_t kind);
 const char *m68k_source_quality_diagnostic_origin_name(uint8_t origin);
 const char *m68k_code_origin_class_name(uint8_t origin_class);
+const char *m68k_code_origin_evidence_kind_name(uint32_t evidence_kind);
 const char *m68k_accepted_code_run_end_kind_name(uint8_t end_kind);
 const char *m68k_address_observation_source_name(uint8_t source);
 const char *m68k_address_identity_role_kind_name(uint8_t role_kind);
