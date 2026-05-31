@@ -4351,3 +4351,11 @@ This preserves the real meaning, "analysis needs a label here", without
 pretending that the request is itself a semantic fact. The source-quality path
 now consumes typed label requests and active label points, not
 `LABEL_REQUIRED`/`LABEL_CREATED` pseudo-facts.
+
+### Generated App-Slot Symbol Terminology
+
+Removed the remaining app-slot "fallback symbol" terminology from the C JSON
+and listing helpers. `app_XXXX` is not a compatibility fallback; it is the
+deterministic generated symbol for an observed app-base displacement when no
+stronger platform/library name is proven. Tests now assert generated app-slot
+symbols with that vocabulary.

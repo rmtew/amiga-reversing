@@ -1145,18 +1145,18 @@ static int append_atari_call_outputs_json(JsonBuilder *builder, const M68kRecove
 }
 
 static const char *app_slot_symbol_for_effect(const M68kRecoveredPlatformEffectIR *effect, const char *base_name,
-    const char *symbol_name, const char *type_name, char *fallback, size_t fallback_size) {
+    const char *symbol_name, const char *type_name, char *generated_symbol, size_t generated_symbol_size) {
   if (symbol_name != NULL && strncmp(symbol_name, "app_", 4U) == 0) return symbol_name;
   if (base_name != NULL && strncmp(base_name, "app_", 4U) == 0) return base_name;
   if (type_name != NULL && strncmp(type_name, "app_", 4U) == 0) return type_name;
-  snprintf(fallback, fallback_size, "app_%04X", (unsigned)(uint16_t)effect->displacement);
-  return fallback;
+  snprintf(generated_symbol, generated_symbol_size, "app_%04X", (unsigned)(uint16_t)effect->displacement);
+  return generated_symbol;
 }
 
 static int append_entity_app_slot_hint_json(JsonBuilder *builder, const M68kRecoveredPlatformEffectIR *effect) {
   const char *base_name = NULL, *symbol_name = NULL, *type_name = NULL;
   const char *semantic_kind = NULL, *value_domain_name = NULL;
-  char fallback_symbol[32];
+  char generated_symbol[32];
   const char *slot_symbol;
   if (effect == NULL || effect->displacement == INT16_MIN) return 0;
   if (effect->kind != M68K_PLATFORM_EFFECT_WRITE_BASE_SLOT && effect->kind != M68K_PLATFORM_EFFECT_SET_CODE_PTR_REG &&
@@ -1180,8 +1180,8 @@ static int append_entity_app_slot_hint_json(JsonBuilder *builder, const M68kReco
     value_domain_name = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.typed.value_domain_ref,
       effect->payload.typed.value_domain_name);
   }
-  slot_symbol = app_slot_symbol_for_effect(effect, base_name, symbol_name, type_name, fallback_symbol,
-    sizeof(fallback_symbol));
+  slot_symbol = app_slot_symbol_for_effect(effect, base_name, symbol_name, type_name, generated_symbol,
+    sizeof(generated_symbol));
   if (json_builder_appendf(builder, "{\"offset\":%u,\"hint_kind\":\"app_slot\",\"app_slot\":{\"offset\":",
         (unsigned)effect->offset) != 0)
     return -1;
@@ -5458,7 +5458,7 @@ static const char *app_slot_access_kind_name(uint8_t access_kind) {
   }
 }
 
-static int listing_app_slot_fallback_symbol_name(int16_t displacement, char *symbol_name, size_t symbol_name_size) {
+static int listing_app_slot_generated_symbol_name(int16_t displacement, char *symbol_name, size_t symbol_name_size) {
   int written;
   if (symbol_name == NULL || symbol_name_size == 0U) return 0;
   written = snprintf(symbol_name, symbol_name_size, "app_%04X", (unsigned)(uint16_t)displacement);
@@ -5466,7 +5466,7 @@ static int listing_app_slot_fallback_symbol_name(int16_t displacement, char *sym
 }
 
 static const char *listing_app_slot_ref_symbol_name(const M68kStatementIR *stmt, const M68kAppSlotRefIR *ref,
-    char *fallback, size_t fallback_size) {
+    char *generated_symbol, size_t generated_symbol_size) {
   const M68kOperandIR *operand;
   if (stmt != NULL && stmt->kind == M68K_STATEMENT_INSTRUCTION && ref != NULL &&
       ref->operand_index < stmt->u.instruction.operand_count) {
@@ -5474,8 +5474,11 @@ static const char *listing_app_slot_ref_symbol_name(const M68kStatementIR *stmt,
     if (operand->symbol_ref.has_name != 0U && operand->symbol_ref.name[0] != '\0')
       return operand->symbol_ref.name;
   }
-  if (ref == NULL || !listing_app_slot_fallback_symbol_name(ref->displacement, fallback, fallback_size)) return NULL;
-  return fallback;
+  if (ref == NULL || !listing_app_slot_generated_symbol_name(ref->displacement, generated_symbol,
+      generated_symbol_size)) {
+    return NULL;
+  }
+  return generated_symbol;
 }
 
 static int append_listing_app_slot_ref_json(JsonBuilder *builder, const char *symbol_name, int16_t displacement,
@@ -5504,11 +5507,11 @@ static int append_listing_app_slot_refs_json(JsonBuilder *builder, const M68kSta
     size_t ref_index;
     for (ref_index = 0U; ref_index < section_analysis->app_slot_ref_count; ++ref_index) {
       const M68kAppSlotRefIR *ref = &section_analysis->app_slot_refs[ref_index];
-      char fallback_symbol[64];
+      char generated_symbol[64];
       const char *symbol_name;
       const char *access_kind;
       if (ref->offset != stmt->offset) continue;
-      symbol_name = listing_app_slot_ref_symbol_name(stmt, ref, fallback_symbol, sizeof(fallback_symbol));
+      symbol_name = listing_app_slot_ref_symbol_name(stmt, ref, generated_symbol, sizeof(generated_symbol));
       access_kind = app_slot_access_kind_name(ref->access_kind);
       if (symbol_name == NULL || access_kind == NULL) continue;
       if (emitted && json_builder_append(builder, ",") != 0) return -1;
@@ -6582,11 +6585,11 @@ static int listing_app_slot_analysis_observe_row(ListingAppSlotAnalysisBuilder *
     return -1;
   for (ref_index = 0U; ref_index < section->app_slot_ref_count; ++ref_index) {
     const M68kAppSlotRefIR *ref = &section->app_slot_refs[ref_index];
-    char fallback_symbol[64];
+    char generated_symbol[64];
     const char *symbol_name;
     ListingAppSlotRefRecord record;
     if (ref->offset != stmt->offset) continue;
-    symbol_name = listing_app_slot_ref_symbol_name(stmt, ref, fallback_symbol, sizeof(fallback_symbol));
+    symbol_name = listing_app_slot_ref_symbol_name(stmt, ref, generated_symbol, sizeof(generated_symbol));
     if (symbol_name == NULL || app_slot_access_kind_name(ref->access_kind) == NULL) continue;
     memset(&record, 0, sizeof(record));
     listing_copy_text(record.symbol, sizeof(record.symbol), symbol_name);

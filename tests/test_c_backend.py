@@ -9886,7 +9886,7 @@ def test_real_dll_renders_genam() -> None:
     )
     refs = [ref for row in rows for ref in row.get("app_slot_refs", [])]
     symbols = {ref["symbol"] for ref in refs}
-    fallback_symbols = [
+    generated_symbols = [
         symbol
         for symbol in symbols
         if symbol.startswith("app_")
@@ -9896,7 +9896,7 @@ def test_real_dll_renders_genam() -> None:
     refs_by_text = {str(row["text"]).strip(): row["app_slot_refs"] for row in rows if row.get("app_slot_refs")}
 
     assert len(refs) > 500
-    assert len(fallback_symbols) > 100
+    assert len(generated_symbols) > 100
     assert refs_by_text["move.l a7,app_0234(a6)"] == [
         {"symbol": "app_0234", "displacement": 0x0234, "base_register": "A6", "operand_index": 1, "access": "write"}
     ]
