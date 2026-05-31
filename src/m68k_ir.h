@@ -1714,6 +1714,16 @@ typedef enum M68kExpectedSymbolAccessKind {
   M68K_EXPECTED_SYMBOL_ACCESS_STORAGE_LABEL = 5
 } M68kExpectedSymbolAccessKind;
 
+typedef enum M68kRenderedSymbolAccessKind {
+  M68K_RENDERED_SYMBOL_ACCESS_UNKNOWN = 0,
+  M68K_RENDERED_SYMBOL_ACCESS_LABEL_STATEMENT = 1,
+  M68K_RENDERED_SYMBOL_ACCESS_BRANCH_TARGET = 2,
+  M68K_RENDERED_SYMBOL_ACCESS_OPERAND = 3,
+  M68K_RENDERED_SYMBOL_ACCESS_EQUATE = 4,
+  M68K_RENDERED_SYMBOL_ACCESS_COMMENT_ONLY = 5,
+  M68K_RENDERED_SYMBOL_ACCESS_STORAGE_LABEL = 6
+} M68kRenderedSymbolAccessKind;
+
 typedef struct M68kSymbolOriginIR {
   char *symbol_name;
   uint32_t offset;
@@ -1735,6 +1745,18 @@ typedef struct M68kExpectedSymbolAccessIR {
   uint8_t has_target;
   uint8_t reserved[1];
 } M68kExpectedSymbolAccessIR;
+
+typedef struct M68kRenderedSymbolAccessIR {
+  char *symbol_name;
+  uint32_t offset;
+  uint32_t target_section_index;
+  uint32_t target_offset;
+  uint32_t operand_index;
+  uint8_t access_kind;
+  uint8_t has_target;
+  uint8_t comment_only;
+  uint8_t reserved[1];
+} M68kRenderedSymbolAccessIR;
 
 typedef enum M68kCodeOriginClass {
   M68K_CODE_ORIGIN_UNKNOWN = 0,
@@ -1952,6 +1974,9 @@ typedef struct M68kSectionAnalysisIR {
   M68kExpectedSymbolAccessIR *expected_symbol_accesses;
   size_t expected_symbol_access_count;
   size_t expected_symbol_access_capacity;
+  M68kRenderedSymbolAccessIR *rendered_symbol_accesses;
+  size_t rendered_symbol_access_count;
+  size_t rendered_symbol_access_capacity;
   M68kCodeOriginIR *code_origins;
   size_t code_origin_count;
   size_t code_origin_capacity;
@@ -2029,6 +2054,7 @@ const char *m68k_source_quality_diagnostic_kind_name(uint8_t kind);
 const char *m68k_source_quality_diagnostic_origin_name(uint8_t origin);
 const char *m68k_symbol_origin_kind_name(uint8_t kind);
 const char *m68k_expected_symbol_access_kind_name(uint8_t kind);
+const char *m68k_rendered_symbol_access_kind_name(uint8_t kind);
 const char *m68k_code_origin_class_name(uint8_t origin_class);
 const char *m68k_code_origin_evidence_kind_name(uint32_t evidence_kind);
 const char *m68k_accepted_code_run_end_kind_name(uint8_t end_kind);
@@ -2189,6 +2215,8 @@ int m68k_ir_section_analysis_append_symbol_origin(M68kSectionAnalysisIR *section
     const M68kSymbolOriginIR *origin);
 int m68k_ir_section_analysis_append_expected_symbol_access(M68kSectionAnalysisIR *section_analysis,
     const M68kExpectedSymbolAccessIR *access);
+int m68k_ir_section_analysis_append_rendered_symbol_access(M68kSectionAnalysisIR *section_analysis,
+    const M68kRenderedSymbolAccessIR *access);
 int m68k_ir_section_analysis_append_code_origin(M68kSectionAnalysisIR *section_analysis,
     const M68kCodeOriginIR *origin);
 int m68k_ir_section_analysis_append_accepted_code_run(M68kSectionAnalysisIR *section_analysis,

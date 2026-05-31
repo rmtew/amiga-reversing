@@ -1806,6 +1806,14 @@ not recorded.
 Rendered symbol accesses remain absent until the render walk records real
 label/operand/equate uses. Python manifest indexing consumes only exported C
 facts and must not synthesize rendered use-sites from target-ref bitsets.
+
+Follow-up progress:
+
+  emitted label statements now produce M68kRenderedSymbolAccessIR rows with
+  access_kind=label_statement. This is the first actual side of the comparison
+  model because it is recorded from the same C decision path that emits source
+  label rows. Operand/equate rendered accesses still remain unimplemented until
+  the render walk records the exact operand/directive use-sites.
 ```
 
 Representative search result:

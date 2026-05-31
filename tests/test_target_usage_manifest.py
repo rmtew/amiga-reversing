@@ -12,6 +12,7 @@ from src.scripts.target_usage_manifest import (
     XREF_KIND_EXPECTED_SYMBOL_ACCESS,
     XREF_KIND_PLATFORM_ADDRESS_USE,
     XREF_KIND_RANGE_OWNERSHIP,
+    XREF_KIND_RENDERED_SYMBOL_ACCESS,
     XREF_KIND_RUNTIME_ADDRESS_REF,
     XREF_KIND_SOURCE_QUALITY_DIAGNOSTIC,
     XREF_KIND_SYMBOL_ORIGIN,
@@ -726,6 +727,17 @@ def test_analysis_symbol_origins_and_expected_accesses_are_indexed_for_label_sea
                         "confidence": 100,
                     }
                 ],
+                "rendered_symbol_accesses": [
+                    {
+                        "offset": 0x42C00,
+                        "symbol_name": "abs_0_00042C00",
+                        "access_kind": "label_statement",
+                        "target_section_index": 0,
+                        "target_offset": 0x42C00,
+                        "operand_index": None,
+                        "comment_only": False,
+                    }
+                ],
             }
         ]
     }
@@ -738,6 +750,9 @@ def test_analysis_symbol_origins_and_expected_accesses_are_indexed_for_label_sea
     assert counts["analysis:expected_symbol_access"] == 1
     assert counts["analysis:expected_symbol_access_kind:label_statement"] == 1
     assert counts["analysis:expected_symbol_access:targeted"] == 1
+    assert counts["analysis:rendered_symbol_access"] == 1
+    assert counts["analysis:rendered_symbol_access_kind:label_statement"] == 1
+    assert counts["analysis:rendered_symbol_access:targeted"] == 1
     assert "target-pattern:source_quality_label_consistency" in tags
     assert examples["analysis:symbol_origin"][0]["symbol_name"] == "abs_0_00042C00"
 
@@ -746,12 +761,16 @@ def test_analysis_symbol_origins_and_expected_accesses_are_indexed_for_label_sea
     xrefs = _analysis_xrefs(row, analysis, row_locations)
     origin_xrefs = [xref for xref in xrefs if xref["feature"] == "analysis:symbol_origin"]
     access_xrefs = [xref for xref in xrefs if xref["feature"] == "analysis:expected_symbol_access:targeted"]
+    rendered_xrefs = [xref for xref in xrefs if xref["feature"] == "analysis:rendered_symbol_access:targeted"]
     assert len(origin_xrefs) == 1
     assert len(access_xrefs) == 1
+    assert len(rendered_xrefs) == 1
     assert origin_xrefs[0]["kind_id"] == XREF_KIND_SYMBOL_ORIGIN
     assert access_xrefs[0]["kind_id"] == XREF_KIND_EXPECTED_SYMBOL_ACCESS
+    assert rendered_xrefs[0]["kind_id"] == XREF_KIND_RENDERED_SYMBOL_ACCESS
     assert origin_xrefs[0]["row_index"] == 12
     assert access_xrefs[0]["row_index"] == 12
+    assert rendered_xrefs[0]["row_index"] == 12
     assert origin_xrefs[0]["symbol"] == "abs_0_00042C00"
     assert access_xrefs[0]["value"] == 0x42C00
 

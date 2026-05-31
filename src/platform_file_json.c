@@ -3737,6 +3737,7 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
     size_t platform_address_use_index;
     size_t code_start_ref_index;
     size_t symbol_origin_index, expected_symbol_access_index;
+    size_t rendered_symbol_access_index;
     size_t code_origin_index, accepted_code_run_index;
     size_t data_reference_index, immediate_text_token_index;
     size_t string_ref_index;
@@ -4146,6 +4147,58 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
       }
       if (json_builder_appendf(&builder, ",\"confidence\":%u}",
           (unsigned)access->confidence) != 0)
+        goto oom;
+    }
+    if (json_builder_appendf(&builder,
+        "],\"rendered_symbol_access_count\":%u,\"rendered_symbol_accesses\":[",
+        (unsigned)section->rendered_symbol_access_count) != 0)
+      goto oom;
+    for (rendered_symbol_access_index = 0U;
+        rendered_symbol_access_index < section->rendered_symbol_access_count;
+        ++rendered_symbol_access_index) {
+      const M68kRenderedSymbolAccessIR *access =
+        &section->rendered_symbol_accesses[rendered_symbol_access_index];
+      if (rendered_symbol_access_index != 0U && json_builder_append(&builder, ",") != 0)
+        goto oom;
+      if (json_builder_appendf(&builder,
+          "{\"offset\":%u,\"symbol_name\":",
+          (unsigned)access->offset) != 0)
+        goto oom;
+      if (json_builder_append_json_string(&builder, access->symbol_name) != 0)
+        goto oom;
+      if (json_builder_appendf(&builder,
+          ",\"access_kind_id\":%u,\"access_kind\":",
+          (unsigned)access->access_kind) != 0)
+        goto oom;
+      if (json_builder_append_json_string(&builder,
+          m68k_rendered_symbol_access_kind_name(access->access_kind)) != 0)
+        goto oom;
+      if (json_builder_append(&builder, ",\"target_section_index\":") != 0)
+        goto oom;
+      if (access->has_target) {
+        if (json_builder_appendf(&builder, "%u", (unsigned)access->target_section_index) != 0)
+          goto oom;
+      } else if (json_builder_append(&builder, "null") != 0) {
+        goto oom;
+      }
+      if (json_builder_append(&builder, ",\"target_offset\":") != 0)
+        goto oom;
+      if (access->has_target) {
+        if (json_builder_appendf(&builder, "%u", (unsigned)access->target_offset) != 0)
+          goto oom;
+      } else if (json_builder_append(&builder, "null") != 0) {
+        goto oom;
+      }
+      if (json_builder_append(&builder, ",\"operand_index\":") != 0)
+        goto oom;
+      if (access->operand_index == UINT32_MAX) {
+        if (json_builder_append(&builder, "null") != 0)
+          goto oom;
+      } else if (json_builder_appendf(&builder, "%u", (unsigned)access->operand_index) != 0) {
+        goto oom;
+      }
+      if (json_builder_appendf(&builder, ",\"comment_only\":%s}",
+          access->comment_only ? "true" : "false") != 0)
         goto oom;
     }
     if (json_builder_appendf(&builder, "],\"code_origin_count\":%u,\"code_origins\":[",
