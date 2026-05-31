@@ -884,19 +884,19 @@ static int test_source_analysis_append_section_copies_ref_only_platform_names(vo
   M68K_C_ASSERT(section.recovered_platform_calls[0].symbol_name == NULL);
   M68K_C_ASSERT(section.recovered_platform_calls[0].note_base_name == NULL);
   M68K_C_ASSERT_STR("DOSBase",
-    m68k_platform_name_ref_resolve_text_or_fallback(&section.recovered_platform_base_slots[0].base_ref,
+    m68k_platform_name_ref_display_text(&section.recovered_platform_base_slots[0].base_ref,
       section.recovered_platform_base_slots[0].base_name));
   M68K_C_ASSERT_STR("IO",
-    m68k_platform_name_ref_resolve_text_or_fallback(&section.recovered_platform_effects[0].payload.typed.type_ref,
+    m68k_platform_name_ref_display_text(&section.recovered_platform_effects[0].payload.typed.type_ref,
       section.recovered_platform_effects[0].payload.typed.type_name));
   M68K_C_ASSERT_STR("DOSBase",
-    m68k_platform_name_ref_resolve_text_or_fallback(&section.recovered_local_call_summaries[0].payload.typed.context_ref,
+    m68k_platform_name_ref_display_text(&section.recovered_local_call_summaries[0].payload.typed.context_ref,
       section.recovered_local_call_summaries[0].payload.typed.context_name));
   M68K_C_ASSERT_STR("_LVOOpen",
-    m68k_platform_name_ref_resolve_text_or_fallback(&section.recovered_local_call_summaries[0].payload.typed.symbol_ref,
+    m68k_platform_name_ref_display_text(&section.recovered_local_call_summaries[0].payload.typed.symbol_ref,
       section.recovered_local_call_summaries[0].payload.typed.symbol_name));
   M68K_C_ASSERT_STR("_LVOOpen",
-    m68k_platform_name_ref_resolve_text_or_fallback(&section.recovered_platform_calls[0].symbol_ref,
+    m68k_platform_name_ref_display_text(&section.recovered_platform_calls[0].symbol_ref,
       section.recovered_platform_calls[0].symbol_name));
 
   M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source, &section));
@@ -908,22 +908,22 @@ static int test_source_analysis_append_section_copies_ref_only_platform_names(vo
   M68K_C_ASSERT(source.sections[0].recovered_platform_calls[0].symbol_name == NULL);
   M68K_C_ASSERT(source.sections[0].recovered_platform_calls[0].note_base_name == NULL);
   M68K_C_ASSERT_STR("DOSBase",
-    m68k_platform_name_ref_resolve_text_or_fallback(&source.sections[0].recovered_platform_base_slots[0].base_ref,
+    m68k_platform_name_ref_display_text(&source.sections[0].recovered_platform_base_slots[0].base_ref,
       source.sections[0].recovered_platform_base_slots[0].base_name));
   M68K_C_ASSERT_STR("IO",
-    m68k_platform_name_ref_resolve_text_or_fallback(&source.sections[0].recovered_platform_effects[0].payload.typed.type_ref,
+    m68k_platform_name_ref_display_text(&source.sections[0].recovered_platform_effects[0].payload.typed.type_ref,
       source.sections[0].recovered_platform_effects[0].payload.typed.type_name));
   M68K_C_ASSERT_STR("DOSBase",
-    m68k_platform_name_ref_resolve_text_or_fallback(&source.sections[0].recovered_local_call_summaries[0].payload.typed.context_ref,
+    m68k_platform_name_ref_display_text(&source.sections[0].recovered_local_call_summaries[0].payload.typed.context_ref,
       source.sections[0].recovered_local_call_summaries[0].payload.typed.context_name));
   M68K_C_ASSERT_STR("_LVOOpen",
-    m68k_platform_name_ref_resolve_text_or_fallback(&source.sections[0].recovered_local_call_summaries[0].payload.typed.symbol_ref,
+    m68k_platform_name_ref_display_text(&source.sections[0].recovered_local_call_summaries[0].payload.typed.symbol_ref,
       source.sections[0].recovered_local_call_summaries[0].payload.typed.symbol_name));
   M68K_C_ASSERT_STR("_LVOOpen",
-    m68k_platform_name_ref_resolve_text_or_fallback(&source.sections[0].recovered_platform_calls[0].symbol_ref,
+    m68k_platform_name_ref_display_text(&source.sections[0].recovered_platform_calls[0].symbol_ref,
       source.sections[0].recovered_platform_calls[0].symbol_name));
   M68K_C_ASSERT_STR("DOSBase",
-    m68k_platform_name_ref_resolve_text_or_fallback(&source.sections[0].recovered_platform_calls[0].note_base_ref,
+    m68k_platform_name_ref_display_text(&source.sections[0].recovered_platform_calls[0].note_base_ref,
       source.sections[0].recovered_platform_calls[0].note_base_name));
 
   m68k_ir_source_analysis_destroy(&source);
@@ -950,10 +950,10 @@ static int test_section_analysis_records_typed_global_slot_effects(void) {
   M68K_C_ASSERT_U32(1U, (uint32_t)effect->target_section_index);
   M68K_C_ASSERT_U32(0x100u, effect->target_offset);
   M68K_C_ASSERT_STR("TimerBase",
-    m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.typed.symbol_ref,
+    m68k_platform_name_ref_display_text(&effect->payload.typed.symbol_ref,
       effect->payload.typed.symbol_name));
   M68K_C_ASSERT_STR("LIB",
-    m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.typed.type_ref,
+    m68k_platform_name_ref_display_text(&effect->payload.typed.type_ref,
       effect->payload.typed.type_name));
 
   M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source, &section));
@@ -962,7 +962,7 @@ static int test_section_analysis_records_typed_global_slot_effects(void) {
   M68K_C_ASSERT_U32(1U, (uint32_t)effect->target_section_index);
   M68K_C_ASSERT_U32(0x100u, effect->target_offset);
   M68K_C_ASSERT_STR("LIB",
-    m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.typed.type_ref,
+    m68k_platform_name_ref_display_text(&effect->payload.typed.type_ref,
       effect->payload.typed.type_name));
 
   m68k_ir_source_analysis_destroy(&source);
@@ -4364,7 +4364,7 @@ static int test_facts_v2_render_asm_source_recovers_atari_trap_call(void) {
   M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.section_count);
   M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.sections[0].recovered_platform_call_count);
   call = &source_analysis.sections[0].recovered_platform_calls[0];
-  note_symbol_name = m68k_platform_name_ref_resolve_text_or_fallback(&call->note_symbol_ref, call->note_symbol_name);
+  note_symbol_name = m68k_platform_name_ref_display_text(&call->note_symbol_ref, call->note_symbol_name);
   M68K_C_ASSERT_U32(4U, call->offset);
   M68K_C_ASSERT_U32(M68K_PLATFORM_CALL_NOTE_DIRECT_OS_CALL, call->note_kind);
   M68K_C_ASSERT_STR("m_shrink", note_symbol_name);
@@ -4408,7 +4408,7 @@ static int test_facts_v2_analysis_collects_atari_trap_call_without_source_render
   M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.section_count);
   M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.sections[0].recovered_platform_call_count);
   call = &source_analysis.sections[0].recovered_platform_calls[0];
-  note_symbol_name = m68k_platform_name_ref_resolve_text_or_fallback(&call->note_symbol_ref, call->note_symbol_name);
+  note_symbol_name = m68k_platform_name_ref_display_text(&call->note_symbol_ref, call->note_symbol_name);
   M68K_C_ASSERT_U32(4U, call->offset);
   M68K_C_ASSERT_U32(M68K_PLATFORM_CALL_NOTE_DIRECT_OS_CALL, call->note_kind);
   M68K_C_ASSERT_STR("m_shrink", note_symbol_name);
@@ -4450,7 +4450,7 @@ static int test_facts_v2_analysis_collects_atari_stack_cleanup_without_source_re
   M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.section_count);
   M68K_C_ASSERT_U32(2U, (uint32_t)source_analysis.sections[0].recovered_platform_call_count);
   call = &source_analysis.sections[0].recovered_platform_calls[1];
-  note_symbol_name = m68k_platform_name_ref_resolve_text_or_fallback(&call->note_symbol_ref, call->note_symbol_name);
+  note_symbol_name = m68k_platform_name_ref_display_text(&call->note_symbol_ref, call->note_symbol_name);
   M68K_C_ASSERT_U32(6U, call->offset);
   M68K_C_ASSERT_U32(M68K_PLATFORM_CALL_NOTE_STACK_CLEANUP, call->note_kind);
   M68K_C_ASSERT_U32(1U, call->note_stack_cleanup_known);
@@ -4497,7 +4497,7 @@ static int test_facts_v2_macos_opword_call_falls_through(void) {
   M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.section_count);
   M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.sections[0].recovered_platform_call_count);
   call = &source_analysis.sections[0].recovered_platform_calls[0];
-  note_symbol_name = m68k_platform_name_ref_resolve_text_or_fallback(&call->note_symbol_ref, call->note_symbol_name);
+  note_symbol_name = m68k_platform_name_ref_display_text(&call->note_symbol_ref, call->note_symbol_name);
   M68K_C_ASSERT_U32(0U, call->offset);
   M68K_C_ASSERT_U32(M68K_PLATFORM_CALL_NOTE_DIRECT_OS_CALL, call->note_kind);
   M68K_C_ASSERT_STR("_GetFNum", note_symbol_name);
@@ -4547,7 +4547,7 @@ static int test_facts_v2_analysis_collects_macos_opword_call_without_source_rend
   M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.section_count);
   M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.sections[0].recovered_platform_call_count);
   call = &source_analysis.sections[0].recovered_platform_calls[0];
-  note_symbol_name = m68k_platform_name_ref_resolve_text_or_fallback(&call->note_symbol_ref, call->note_symbol_name);
+  note_symbol_name = m68k_platform_name_ref_display_text(&call->note_symbol_ref, call->note_symbol_name);
   M68K_C_ASSERT_U32(0U, call->offset);
   M68K_C_ASSERT_U32(M68K_PLATFORM_CALL_NOTE_DIRECT_OS_CALL, call->note_kind);
   M68K_C_ASSERT_STR("_GetFNum", note_symbol_name);
@@ -7861,7 +7861,7 @@ static int test_facts_v2_analysis_collects_amiga_lvo_call_without_source_render(
   M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.section_count);
   M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.sections[0].recovered_platform_call_count);
   call = &source_analysis.sections[0].recovered_platform_calls[0];
-  symbol_name = m68k_platform_name_ref_resolve_text_or_fallback(&call->symbol_ref, call->symbol_name);
+  symbol_name = m68k_platform_name_ref_display_text(&call->symbol_ref, call->symbol_name);
   M68K_C_ASSERT_U32(4U, call->offset);
   M68K_C_ASSERT_STR("_LVOForbid", symbol_name);
   M68K_C_ASSERT_U32(0U, (uint32_t)source_analysis.sections[0].recovered_indirect_site_count);
@@ -16763,7 +16763,7 @@ static int test_facts_v2_analysis_applies_entry_register_seed_without_source_ren
   M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.section_count);
   M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.sections[0].recovered_platform_call_count);
   call = &source_analysis.sections[0].recovered_platform_calls[0];
-  symbol_name = m68k_platform_name_ref_resolve_text_or_fallback(&call->symbol_ref, call->symbol_name);
+  symbol_name = m68k_platform_name_ref_display_text(&call->symbol_ref, call->symbol_name);
   M68K_C_ASSERT_U32(2U, call->offset);
   M68K_C_ASSERT_STR("_LVOAlert", symbol_name);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
@@ -17646,7 +17646,7 @@ static int test_facts_v2_analysis_keeps_untyped_app_slot_untyped(void) {
   M68K_C_ASSERT_U32(0U, (uint32_t)analysis_section->recovered_platform_unresolved_typed_access_count);
   for (index = 0U; index < analysis_section->recovered_platform_effect_count; ++index) {
     const M68kRecoveredPlatformEffectIR *effect = &analysis_section->recovered_platform_effects[index];
-    const char *type_name = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.typed.type_ref,
+    const char *type_name = m68k_platform_name_ref_display_text(&effect->payload.typed.type_ref,
       effect->payload.typed.type_name);
     M68K_C_ASSERT(type_name == NULL || strcmp(type_name, "AmigaGuideMsg") != 0);
   }
@@ -18423,7 +18423,7 @@ static int test_facts_v2_render_asm_source_keeps_typed_app_slot_interior_out_of_
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.base_layout_field_count);
   M68K_C_ASSERT_STR("app_0100", source_analysis.base_layout_fields[0].symbol);
-  M68K_C_ASSERT_STR("TIMEVAL", m68k_platform_name_ref_resolve_text_or_fallback(
+  M68K_C_ASSERT_STR("TIMEVAL", m68k_platform_name_ref_display_text(
     &source_analysis.base_layout_fields[0].owner_struct_ref,
     source_analysis.base_layout_fields[0].owner_struct_name));
   M68K_C_ASSERT_U32(0x0100U, source_analysis.base_layout_fields[0].offset);
@@ -18746,7 +18746,7 @@ static int test_facts_v2_analysis_records_unresolved_typed_field_without_renderi
   for (index = 0U; index < analysis_section->recovered_platform_unresolved_typed_access_count; ++index) {
     const M68kRecoveredPlatformUnresolvedTypedAccessIR *access =
       &analysis_section->recovered_platform_unresolved_typed_accesses[index];
-    const char *root_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&access->root_struct_ref,
+    const char *root_struct_name = m68k_platform_name_ref_display_text(&access->root_struct_ref,
       access->root_struct_name);
     if (access->offset == 6U && access->operand_index == 0U && access->base_reg == 0U &&
         access->displacement == 0x0100 && root_struct_name != NULL && strcmp(root_struct_name, "MP") == 0) {
@@ -18826,7 +18826,7 @@ static int test_facts_v2_analysis_classifies_unique_prefix_extension_without_ren
   for (index = 0U; index < analysis_section->recovered_platform_unresolved_typed_access_count; ++index) {
     const M68kRecoveredPlatformUnresolvedTypedAccessIR *access =
       &analysis_section->recovered_platform_unresolved_typed_accesses[index];
-    const char *root_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&access->root_struct_ref,
+    const char *root_struct_name = m68k_platform_name_ref_display_text(&access->root_struct_ref,
       access->root_struct_name);
     if (access->offset == 6U && access->operand_index == 0U && access->base_reg == 0U &&
         access->displacement == 0x0040 && root_struct_name != NULL && strcmp(root_struct_name, "MP") == 0) {
@@ -18837,12 +18837,12 @@ static int test_facts_v2_analysis_classifies_unique_prefix_extension_without_ren
   M68K_C_ASSERT(unresolved != NULL);
   M68K_C_ASSERT_INT(M68K_PLATFORM_UNRESOLVED_TYPED_ACCESS_PREFIX_EXTENSION, unresolved->classification);
   M68K_C_ASSERT_U32(1U, unresolved->container_candidate_count);
-  container_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&unresolved->container_struct_ref,
+  container_struct_name = m68k_platform_name_ref_display_text(&unresolved->container_struct_ref,
     unresolved->container_struct_name);
   M68K_C_ASSERT_STR("ConUnit", container_struct_name);
   M68K_C_ASSERT_STR("cu_YCCP", unresolved->container_field_expr);
   M68K_C_ASSERT_INT(1, unresolved->refinement_applied);
-  refined_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&unresolved->refined_struct_ref,
+  refined_struct_name = m68k_platform_name_ref_display_text(&unresolved->refined_struct_ref,
     unresolved->refined_struct_name);
   M68K_C_ASSERT_STR("ConUnit", refined_struct_name);
   m68k_ir_source_analysis_destroy(&analysis);
@@ -18912,7 +18912,7 @@ static int test_facts_v2_analysis_refines_ambiguous_prefix_by_exact_access_size(
     }
   }
   M68K_C_ASSERT(typed != NULL);
-  owner_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&typed->owner_struct_ref,
+  owner_struct_name = m68k_platform_name_ref_display_text(&typed->owner_struct_ref,
     typed->owner_struct_name);
   M68K_C_ASSERT_STR("GfxBase", owner_struct_name);
   M68K_C_ASSERT_INT(M68K_PLATFORM_TYPE_PROVENANCE_PREFIX_REFINEMENT, typed->type_provenance_kind);
@@ -18975,7 +18975,7 @@ static int test_facts_v2_analysis_propagates_prefix_output_through_base_slot(voi
   for (index = 0U; index < analysis_section->recovered_platform_unresolved_typed_access_count; ++index) {
     const M68kRecoveredPlatformUnresolvedTypedAccessIR *access =
       &analysis_section->recovered_platform_unresolved_typed_accesses[index];
-    const char *root_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&access->root_struct_ref,
+    const char *root_struct_name = m68k_platform_name_ref_display_text(&access->root_struct_ref,
       access->root_struct_name);
     if (access->offset == 12U && access->operand_index == 0U && access->base_reg == 0U &&
         access->displacement == 0x0024 && root_struct_name != NULL && strcmp(root_struct_name, "MN") == 0) {
@@ -18987,9 +18987,9 @@ static int test_facts_v2_analysis_propagates_prefix_output_through_base_slot(voi
   M68K_C_ASSERT_INT(M68K_PLATFORM_UNRESOLVED_TYPED_ACCESS_PREFIX_EXTENSION, unresolved->classification);
   M68K_C_ASSERT(unresolved->container_candidate_count > 1U);
   M68K_C_ASSERT_INT(0, unresolved->refinement_applied);
-  M68K_C_ASSERT(m68k_platform_name_ref_resolve_text_or_fallback(&unresolved->container_struct_ref,
+  M68K_C_ASSERT(m68k_platform_name_ref_display_text(&unresolved->container_struct_ref,
     unresolved->container_struct_name) == NULL);
-  M68K_C_ASSERT(m68k_platform_name_ref_resolve_text_or_fallback(&unresolved->refined_struct_ref,
+  M68K_C_ASSERT(m68k_platform_name_ref_display_text(&unresolved->refined_struct_ref,
     unresolved->refined_struct_name) == NULL);
   m68k_ir_source_analysis_destroy(&analysis);
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
@@ -19101,7 +19101,7 @@ static int test_facts_v2_analysis_promotes_unique_prefix_type_through_base_slot(
   for (index = 0U; index < analysis_section->recovered_platform_unresolved_typed_access_count; ++index) {
     const M68kRecoveredPlatformUnresolvedTypedAccessIR *access =
       &analysis_section->recovered_platform_unresolved_typed_accesses[index];
-    const char *root_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&access->root_struct_ref,
+    const char *root_struct_name = m68k_platform_name_ref_display_text(&access->root_struct_ref,
       access->root_struct_name);
     if (access->offset == 12U && access->operand_index == 0U && access->base_reg == 0U &&
         access->displacement == 0x0040 && root_struct_name != NULL && strcmp(root_struct_name, "MP") == 0) {
@@ -19112,7 +19112,7 @@ static int test_facts_v2_analysis_promotes_unique_prefix_type_through_base_slot(
   M68K_C_ASSERT(unresolved != NULL);
   M68K_C_ASSERT_INT(M68K_PLATFORM_UNRESOLVED_TYPED_ACCESS_PREFIX_EXTENSION, unresolved->classification);
   M68K_C_ASSERT_INT(1, unresolved->refinement_applied);
-  refined_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&unresolved->refined_struct_ref,
+  refined_struct_name = m68k_platform_name_ref_display_text(&unresolved->refined_struct_ref,
     unresolved->refined_struct_name);
   M68K_C_ASSERT_STR("ConUnit", refined_struct_name);
   m68k_ir_source_analysis_destroy(&analysis);
@@ -19182,7 +19182,7 @@ static int test_facts_v2_analysis_refines_rexxmsg_prefix_by_exact_field_size(voi
     }
   }
   M68K_C_ASSERT(typed != NULL);
-  owner_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&typed->owner_struct_ref,
+  owner_struct_name = m68k_platform_name_ref_display_text(&typed->owner_struct_ref,
     typed->owner_struct_name);
   M68K_C_ASSERT_STR("RexxMsg", owner_struct_name);
   M68K_C_ASSERT_INT(M68K_PLATFORM_TYPE_PROVENANCE_PREFIX_REFINEMENT, typed->type_provenance_kind);
@@ -19253,7 +19253,7 @@ static int test_facts_v2_analysis_refines_textfont_common_prefix_by_exact_field_
     }
   }
   M68K_C_ASSERT(typed != NULL);
-  owner_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&typed->owner_struct_ref,
+  owner_struct_name = m68k_platform_name_ref_display_text(&typed->owner_struct_ref,
     typed->owner_struct_name);
   M68K_C_ASSERT_STR("TextFont", owner_struct_name);
   M68K_C_ASSERT_INT(M68K_PLATFORM_TYPE_PROVENANCE_PREFIX_REFINEMENT, typed->type_provenance_kind);
@@ -19324,7 +19324,7 @@ static int test_facts_v2_analysis_refines_zero_offset_embedded_struct_prefix(voi
     }
   }
   M68K_C_ASSERT(typed != NULL);
-  owner_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&typed->owner_struct_ref,
+  owner_struct_name = m68k_platform_name_ref_display_text(&typed->owner_struct_ref,
     typed->owner_struct_name);
   M68K_C_ASSERT_STR("Process", owner_struct_name);
   M68K_C_ASSERT_INT(M68K_PLATFORM_TYPE_PROVENANCE_PREFIX_REFINEMENT, typed->type_provenance_kind);
@@ -19550,7 +19550,7 @@ static int test_facts_v2_analysis_propagates_api_output_type_through_global_slot
     const M68kRecoveredPlatformEffectIR *effect = &analysis_section->recovered_platform_effects[index];
     const char *type_name;
     if (effect->kind != M68K_PLATFORM_EFFECT_WRITE_TYPED_GLOBAL_SLOT) continue;
-    type_name = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.typed.type_ref,
+    type_name = m68k_platform_name_ref_display_text(&effect->payload.typed.type_ref,
       effect->payload.typed.type_name);
     if (effect->target_section_index == 0U && effect->target_offset == 0x100U &&
         type_name != NULL && strcmp(type_name, "MP") == 0) {
@@ -19649,7 +19649,7 @@ static int test_facts_v2_analysis_propagates_global_slot_reload_through_data_reg
     const M68kRecoveredPlatformEffectIR *effect = &analysis_section->recovered_platform_effects[index];
     const char *type_name;
     if (effect->kind != M68K_PLATFORM_EFFECT_WRITE_TYPED_GLOBAL_SLOT) continue;
-    type_name = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.typed.type_ref,
+    type_name = m68k_platform_name_ref_display_text(&effect->payload.typed.type_ref,
       effect->payload.typed.type_name);
     if (effect->target_section_index == 0U && effect->target_offset == 0x100U &&
         type_name != NULL && strcmp(type_name, "MP") == 0) {
@@ -19725,7 +19725,7 @@ static int test_facts_v2_analysis_reports_lookup_storage_write_site_provenance(v
   for (index = 0U; index < analysis_section->recovered_platform_unresolved_typed_access_count; ++index) {
     const M68kRecoveredPlatformUnresolvedTypedAccessIR *access =
       &analysis_section->recovered_platform_unresolved_typed_accesses[index];
-    const char *root_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&access->root_struct_ref,
+    const char *root_struct_name = m68k_platform_name_ref_display_text(&access->root_struct_ref,
       access->root_struct_name);
     if (access->offset == 26U && access->operand_index == 0U && access->base_reg == 0U &&
         access->displacement == 0x0100 && root_struct_name != NULL && strcmp(root_struct_name, "MP") == 0) {
@@ -20188,7 +20188,7 @@ static int test_facts_v2_analysis_tracks_app_slot_address_through_data_register_
   analysis_section = &analysis.sections[0];
   for (index = 0U; index < analysis_section->recovered_platform_effect_count; ++index) {
     const M68kRecoveredPlatformEffectIR *effect = &analysis_section->recovered_platform_effects[index];
-    const char *type_name = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.typed.type_ref,
+    const char *type_name = m68k_platform_name_ref_display_text(&effect->payload.typed.type_ref,
       effect->payload.typed.type_name);
     if (effect->kind == M68K_PLATFORM_EFFECT_WRITE_TYPED_SLOT && effect->displacement == 0x0100 &&
         type_name != NULL && strcmp(type_name, "InputEvent") == 0) {
@@ -20532,7 +20532,7 @@ static int test_facts_v2_analysis_propagates_api_output_type_through_data_base_s
     const M68kRecoveredPlatformEffectIR *effect = &analysis_section->recovered_platform_effects[index];
     const char *type_name;
     if (effect->kind != M68K_PLATFORM_EFFECT_WRITE_TYPED_GLOBAL_SLOT) continue;
-    type_name = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.typed.type_ref,
+    type_name = m68k_platform_name_ref_display_text(&effect->payload.typed.type_ref,
       effect->payload.typed.type_name);
     if (effect->target_section_index == 0U && effect->target_offset == 0x22U &&
         type_name != NULL && strcmp(type_name, "MP") == 0) {

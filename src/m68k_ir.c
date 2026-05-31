@@ -971,9 +971,9 @@ static uint8_t m68k_platform_kind_from_domain_text(uint8_t domain_kind, const ch
   return 0U;
 }
 
-static uint8_t m68k_platform_kind_from_ref_or_text(const M68kPlatformNameRef *ref, uint8_t fallback_domain_kind,
+static uint8_t m68k_platform_kind_from_ref_or_text(const M68kPlatformNameRef *ref, uint8_t default_domain_kind,
     const char *text) {
-  uint8_t domain_kind = fallback_domain_kind;
+  uint8_t domain_kind = default_domain_kind;
   if (ref != NULL && ref->platform_kind != 0U) return ref->platform_kind;
   if (ref != NULL && ref->domain_kind != 0U) domain_kind = ref->domain_kind;
   if (domain_kind == 0U) return 0U;
@@ -1353,9 +1353,9 @@ const char *m68k_platform_name_ref_resolve_text(const M68kPlatformNameRef *ref) 
   return NULL;
 }
 
-const char *m68k_platform_name_ref_resolve_text_or_fallback(const M68kPlatformNameRef *ref, const char *text) {
+const char *m68k_platform_name_ref_display_text(const M68kPlatformNameRef *ref, const char *stored_text) {
   const char *resolved = m68k_platform_name_ref_resolve_text(ref);
-  return resolved != NULL ? resolved : text;
+  return resolved != NULL ? resolved : stored_text;
 }
 
 const char *m68k_target_os_compatibility_status_name(uint8_t status) {
@@ -1445,9 +1445,9 @@ static void target_platform_summary_append_lower_versions(M68kTargetOsCompatibil
 static const char *target_platform_summary_call_display_name(const M68kRecoveredPlatformCallIR *call) {
   const char *name;
   if (call == NULL) return "unknown";
-  name = m68k_platform_name_ref_resolve_text_or_fallback(&call->symbol_ref, call->symbol_name);
+  name = m68k_platform_name_ref_display_text(&call->symbol_ref, call->symbol_name);
   if (name != NULL && name[0] != '\0') return name;
-  name = m68k_platform_name_ref_resolve_text_or_fallback(&call->note_symbol_ref, call->note_symbol_name);
+  name = m68k_platform_name_ref_display_text(&call->note_symbol_ref, call->note_symbol_name);
   return name != NULL && name[0] != '\0' ? name : "unknown";
 }
 
@@ -1466,7 +1466,7 @@ static void target_platform_summary_fill_driver(M68kTargetOsRequirementDriver *d
   driver->section_index = (uint32_t)section->section_index;
   driver->offset = call->offset;
   driver->call = target_platform_summary_call_display_name(call);
-  owner = m68k_platform_name_ref_resolve_text_or_fallback(&call->note_base_ref, call->note_base_name);
+  owner = m68k_platform_name_ref_display_text(&call->note_base_ref, call->note_base_name);
   if (owner != NULL && owner[0] != '\0') {
     driver->has_owner = 1U;
     driver->owner = owner;
@@ -3150,7 +3150,7 @@ int m68k_ir_section_analysis_append_recovered_platform_global_base_slot_effect(
     if (effect->kind != M68K_PLATFORM_EFFECT_WRITE_GLOBAL_BASE_SLOT || effect->offset != offset ||
         effect->target_section_index != target_section_index || effect->target_offset != target_offset)
       continue;
-    existing_base_name = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.named_base.base_ref,
+    existing_base_name = m68k_platform_name_ref_display_text(&effect->payload.named_base.base_ref,
       effect->payload.named_base.base_name);
     if (existing_base_name != NULL && strcmp(existing_base_name, base_name) == 0) return 0;
     return -1;
@@ -3163,7 +3163,7 @@ int m68k_ir_section_analysis_append_recovered_platform_global_base_slot_effect(
     M68kRecoveredPlatformEffectIR *effect = &section_analysis->recovered_platform_effects[index - 1U];
     const char *existing_base_name;
     if (effect->kind != M68K_PLATFORM_EFFECT_WRITE_GLOBAL_BASE_SLOT || effect->offset != offset) continue;
-    existing_base_name = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.named_base.base_ref,
+    existing_base_name = m68k_platform_name_ref_display_text(&effect->payload.named_base.base_ref,
       effect->payload.named_base.base_name);
     if (existing_base_name == NULL || strcmp(existing_base_name, base_name) != 0) continue;
     effect->target_section_index = target_section_index;
@@ -3188,13 +3188,13 @@ int m68k_ir_section_analysis_append_recovered_platform_typed_global_slot_effect(
     if (effect->kind != M68K_PLATFORM_EFFECT_WRITE_TYPED_GLOBAL_SLOT || effect->offset != offset ||
         effect->target_section_index != target_section_index || effect->target_offset != target_offset)
       continue;
-    existing_symbol_name = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.typed.symbol_ref,
+    existing_symbol_name = m68k_platform_name_ref_display_text(&effect->payload.typed.symbol_ref,
       effect->payload.typed.symbol_name);
-    existing_type_name = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.typed.type_ref,
+    existing_type_name = m68k_platform_name_ref_display_text(&effect->payload.typed.type_ref,
       effect->payload.typed.type_name);
-    existing_semantic_kind = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.typed.semantic_kind_ref,
+    existing_semantic_kind = m68k_platform_name_ref_display_text(&effect->payload.typed.semantic_kind_ref,
       effect->payload.typed.semantic_kind);
-    existing_value_domain_name = m68k_platform_name_ref_resolve_text_or_fallback(
+    existing_value_domain_name = m68k_platform_name_ref_display_text(
       &effect->payload.typed.value_domain_ref, effect->payload.typed.value_domain_name);
     if (text_equal_nullable(existing_symbol_name, symbol_name) && text_equal_nullable(existing_type_name, type_name) &&
         text_equal_nullable(existing_semantic_kind, semantic_kind) &&
@@ -3380,15 +3380,15 @@ int m68k_ir_section_analysis_append_recovered_function_arg(M68kSectionAnalysisIR
   value_domain_ref.id = m68k_platform_name_id_from_text(platform_kind, M68K_PLATFORM_NAME_VALUE_DOMAIN, value_domain_name);
   for (index = 0; index < section_analysis->recovered_function_arg_count; ++index) {
     M68kRecoveredFunctionArgIR *existing = &section_analysis->recovered_function_args[index];
-    const char *existing_context_name = m68k_platform_name_ref_resolve_text_or_fallback(&existing->typed.context_ref,
+    const char *existing_context_name = m68k_platform_name_ref_display_text(&existing->typed.context_ref,
       existing->typed.context_name);
-    const char *existing_symbol_name = m68k_platform_name_ref_resolve_text_or_fallback(&existing->typed.symbol_ref,
+    const char *existing_symbol_name = m68k_platform_name_ref_display_text(&existing->typed.symbol_ref,
       existing->typed.symbol_name);
-    const char *existing_type_name = m68k_platform_name_ref_resolve_text_or_fallback(&existing->typed.type_ref,
+    const char *existing_type_name = m68k_platform_name_ref_display_text(&existing->typed.type_ref,
       existing->typed.type_name);
-    const char *existing_semantic_kind = m68k_platform_name_ref_resolve_text_or_fallback(
+    const char *existing_semantic_kind = m68k_platform_name_ref_display_text(
       &existing->typed.semantic_kind_ref, existing->typed.semantic_kind);
-    const char *existing_value_domain_name = m68k_platform_name_ref_resolve_text_or_fallback(
+    const char *existing_value_domain_name = m68k_platform_name_ref_display_text(
       &existing->typed.value_domain_ref, existing->typed.value_domain_name);
     if (existing->function_offset != function_offset || existing->stack_offset != stack_offset ||
         existing->reg_kind != reg_kind || existing->reg_index != reg_index)
@@ -4265,11 +4265,11 @@ int m68k_ir_source_analysis_append_section(M68kSourceAnalysisIR *source_analysis
   for (index = 0; index < section_analysis->recovered_platform_typed_access_count; ++index) {
     const M68kRecoveredPlatformTypedAccessIR *access =
       &section_analysis->recovered_platform_typed_accesses[index];
-    const char *root_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&access->root_struct_ref,
+    const char *root_struct_name = m68k_platform_name_ref_display_text(&access->root_struct_ref,
       access->root_struct_name);
-    const char *owner_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&access->owner_struct_ref,
+    const char *owner_struct_name = m68k_platform_name_ref_display_text(&access->owner_struct_ref,
       access->owner_struct_name);
-    const char *field_name = m68k_platform_name_ref_resolve_text_or_fallback(&access->field_ref,
+    const char *field_name = m68k_platform_name_ref_display_text(&access->field_ref,
       access->field_name);
     uint8_t platform_kind = m68k_platform_kind_from_ref_or_text(&access->root_struct_ref,
       M68K_PLATFORM_NAME_STRUCT, root_struct_name);
@@ -4293,11 +4293,11 @@ int m68k_ir_source_analysis_append_section(M68kSourceAnalysisIR *source_analysis
   for (index = 0; index < section_analysis->recovered_platform_unresolved_typed_access_count; ++index) {
     const M68kRecoveredPlatformUnresolvedTypedAccessIR *access =
       &section_analysis->recovered_platform_unresolved_typed_accesses[index];
-    const char *root_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&access->root_struct_ref,
+    const char *root_struct_name = m68k_platform_name_ref_display_text(&access->root_struct_ref,
       access->root_struct_name);
-    const char *container_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(
+    const char *container_struct_name = m68k_platform_name_ref_display_text(
       &access->container_struct_ref, access->container_struct_name);
-    const char *refined_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(
+    const char *refined_struct_name = m68k_platform_name_ref_display_text(
       &access->refined_struct_ref, access->refined_struct_name);
     uint8_t platform_kind = m68k_platform_kind_from_ref_or_text(&access->root_struct_ref,
       M68K_PLATFORM_NAME_STRUCT, root_struct_name);
@@ -4389,7 +4389,7 @@ int m68k_ir_source_analysis_append_section(M68kSourceAnalysisIR *source_analysis
   }
   for (index = 0; index < section_analysis->recovered_platform_base_slot_count; ++index) {
     const M68kRecoveredPlatformBaseSlotIR *slot = &section_analysis->recovered_platform_base_slots[index];
-    const char *base_name = m68k_platform_name_ref_resolve_text_or_fallback(&slot->base_ref, slot->base_name);
+    const char *base_name = m68k_platform_name_ref_display_text(&slot->base_ref, slot->base_name);
     uint8_t platform_kind = m68k_platform_kind_from_ref_or_text(&slot->base_ref, M68K_PLATFORM_NAME_BASE,
       base_name);
     if (m68k_ir_section_analysis_append_recovered_platform_base_slot(&copy, platform_kind,
@@ -4400,23 +4400,23 @@ int m68k_ir_source_analysis_append_section(M68kSourceAnalysisIR *source_analysis
   }
   for (index = 0; index < section_analysis->recovered_platform_effect_count; ++index) {
     const M68kRecoveredPlatformEffectIR *effect = &section_analysis->recovered_platform_effects[index];
-    const char *base_name = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.named_base.base_ref,
+    const char *base_name = m68k_platform_name_ref_display_text(&effect->payload.named_base.base_ref,
       effect->payload.named_base.base_name);
-    const char *symbol_name = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.code_ptr.field_symbol_ref,
+    const char *symbol_name = m68k_platform_name_ref_display_text(&effect->payload.code_ptr.field_symbol_ref,
       effect->payload.code_ptr.field_symbol_name);
-    const char *code_ptr_type_name = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.code_ptr.owner_type_ref,
+    const char *code_ptr_type_name = m68k_platform_name_ref_display_text(&effect->payload.code_ptr.owner_type_ref,
       effect->payload.code_ptr.owner_type_name);
-    const char *code_ptr_semantic_kind = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.code_ptr.semantic_kind_ref,
+    const char *code_ptr_semantic_kind = m68k_platform_name_ref_display_text(&effect->payload.code_ptr.semantic_kind_ref,
       effect->payload.code_ptr.semantic_kind);
-    const char *typed_type_name = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.typed.type_ref,
+    const char *typed_type_name = m68k_platform_name_ref_display_text(&effect->payload.typed.type_ref,
       effect->payload.typed.type_name);
-    const char *typed_symbol_name = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.typed.symbol_ref,
+    const char *typed_symbol_name = m68k_platform_name_ref_display_text(&effect->payload.typed.symbol_ref,
       effect->payload.typed.symbol_name);
-    const char *typed_context_name = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.typed.context_ref,
+    const char *typed_context_name = m68k_platform_name_ref_display_text(&effect->payload.typed.context_ref,
       effect->payload.typed.context_name);
-    const char *typed_semantic_kind = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.typed.semantic_kind_ref,
+    const char *typed_semantic_kind = m68k_platform_name_ref_display_text(&effect->payload.typed.semantic_kind_ref,
       effect->payload.typed.semantic_kind);
-    const char *typed_value_domain_name = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.typed.value_domain_ref,
+    const char *typed_value_domain_name = m68k_platform_name_ref_display_text(&effect->payload.typed.value_domain_ref,
       effect->payload.typed.value_domain_name);
     uint8_t platform_kind = 0U;
     if (effect->kind == M68K_PLATFORM_EFFECT_SET_BASE_REG || effect->kind == M68K_PLATFORM_EFFECT_WRITE_BASE_SLOT ||
@@ -4495,17 +4495,17 @@ int m68k_ir_source_analysis_append_section(M68kSourceAnalysisIR *source_analysis
   }
   for (index = 0; index < section_analysis->recovered_local_call_summary_count; ++index) {
     const M68kRecoveredLocalCallSummaryIR *summary = &section_analysis->recovered_local_call_summaries[index];
-    const char *base_name = m68k_platform_name_ref_resolve_text_or_fallback(&summary->payload.named_base.base_ref,
+    const char *base_name = m68k_platform_name_ref_display_text(&summary->payload.named_base.base_ref,
       summary->payload.named_base.base_name);
-    const char *typed_context_name = m68k_platform_name_ref_resolve_text_or_fallback(&summary->payload.typed.context_ref,
+    const char *typed_context_name = m68k_platform_name_ref_display_text(&summary->payload.typed.context_ref,
       summary->payload.typed.context_name);
-    const char *typed_symbol_name = m68k_platform_name_ref_resolve_text_or_fallback(&summary->payload.typed.symbol_ref,
+    const char *typed_symbol_name = m68k_platform_name_ref_display_text(&summary->payload.typed.symbol_ref,
       summary->payload.typed.symbol_name);
-    const char *type_name = m68k_platform_name_ref_resolve_text_or_fallback(&summary->payload.typed.type_ref,
+    const char *type_name = m68k_platform_name_ref_display_text(&summary->payload.typed.type_ref,
       summary->payload.typed.type_name);
-    const char *semantic_kind = m68k_platform_name_ref_resolve_text_or_fallback(&summary->payload.typed.semantic_kind_ref,
+    const char *semantic_kind = m68k_platform_name_ref_display_text(&summary->payload.typed.semantic_kind_ref,
       summary->payload.typed.semantic_kind);
-    const char *value_domain_name = m68k_platform_name_ref_resolve_text_or_fallback(&summary->payload.typed.value_domain_ref,
+    const char *value_domain_name = m68k_platform_name_ref_display_text(&summary->payload.typed.value_domain_ref,
       summary->payload.typed.value_domain_name);
     uint8_t platform_kind = summary->effect_kind == M68K_PLATFORM_EFFECT_SET_BASE_REG
       ? m68k_platform_kind_from_ref_or_text(&summary->payload.named_base.base_ref, M68K_PLATFORM_NAME_BASE,
@@ -4547,15 +4547,15 @@ int m68k_ir_source_analysis_append_section(M68kSourceAnalysisIR *source_analysis
   }
   for (index = 0; index < section_analysis->recovered_function_arg_count; ++index) {
     const M68kRecoveredFunctionArgIR *arg = &section_analysis->recovered_function_args[index];
-    const char *context_name = m68k_platform_name_ref_resolve_text_or_fallback(&arg->typed.context_ref,
+    const char *context_name = m68k_platform_name_ref_display_text(&arg->typed.context_ref,
       arg->typed.context_name);
-    const char *symbol_name = m68k_platform_name_ref_resolve_text_or_fallback(&arg->typed.symbol_ref,
+    const char *symbol_name = m68k_platform_name_ref_display_text(&arg->typed.symbol_ref,
       arg->typed.symbol_name);
-    const char *type_name = m68k_platform_name_ref_resolve_text_or_fallback(&arg->typed.type_ref,
+    const char *type_name = m68k_platform_name_ref_display_text(&arg->typed.type_ref,
       arg->typed.type_name);
-    const char *semantic_kind = m68k_platform_name_ref_resolve_text_or_fallback(&arg->typed.semantic_kind_ref,
+    const char *semantic_kind = m68k_platform_name_ref_display_text(&arg->typed.semantic_kind_ref,
       arg->typed.semantic_kind);
-    const char *value_domain_name = m68k_platform_name_ref_resolve_text_or_fallback(&arg->typed.value_domain_ref,
+    const char *value_domain_name = m68k_platform_name_ref_display_text(&arg->typed.value_domain_ref,
       arg->typed.value_domain_name);
     uint8_t platform_kind = m68k_platform_kind_from_ref_or_text(&arg->typed.context_ref, M68K_PLATFORM_NAME_BASE,
       context_name);
@@ -4585,9 +4585,9 @@ int m68k_ir_source_analysis_append_section(M68kSourceAnalysisIR *source_analysis
   }
   for (index = 0; index < section_analysis->recovered_platform_call_count; ++index) {
     const M68kRecoveredPlatformCallIR *call = &section_analysis->recovered_platform_calls[index];
-      const char *symbol_name = m68k_platform_name_ref_resolve_text_or_fallback(&call->symbol_ref, call->symbol_name);
-      const char *note_base_name = m68k_platform_name_ref_resolve_text_or_fallback(&call->note_base_ref, call->note_base_name);
-      const char *note_symbol_name = m68k_platform_name_ref_resolve_text_or_fallback(&call->note_symbol_ref, call->note_symbol_name);
+      const char *symbol_name = m68k_platform_name_ref_display_text(&call->symbol_ref, call->symbol_name);
+      const char *note_base_name = m68k_platform_name_ref_display_text(&call->note_base_ref, call->note_base_name);
+      const char *note_symbol_name = m68k_platform_name_ref_display_text(&call->note_symbol_ref, call->note_symbol_name);
       uint8_t platform_kind = m68k_platform_kind_from_ref_or_text(&call->symbol_ref, M68K_PLATFORM_NAME_SYMBOL,
         symbol_name);
       if (platform_kind == 0U) {

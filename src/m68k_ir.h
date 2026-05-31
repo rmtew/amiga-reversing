@@ -2093,7 +2093,7 @@ void m68k_analysis_findings_init(M68kAnalysisFindings *findings);
 void m68k_platform_name_ref_init(M68kPlatformNameRef *ref);
 int m68k_platform_name_ref_is_set(const M68kPlatformNameRef *ref);
 const char *m68k_platform_name_ref_resolve_text(const M68kPlatformNameRef *ref);
-const char *m68k_platform_name_ref_resolve_text_or_fallback(const M68kPlatformNameRef *ref, const char *text);
+const char *m68k_platform_name_ref_display_text(const M68kPlatformNameRef *ref, const char *stored_text);
 const char *m68k_target_os_compatibility_status_name(uint8_t status);
 int m68k_target_platform_summary_build(const M68kSourceAnalysisIR *source_analysis, uint8_t platform_backend_kind,
   M68kTargetPlatformSummary *out_summary);

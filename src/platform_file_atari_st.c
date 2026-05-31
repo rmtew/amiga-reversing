@@ -94,7 +94,7 @@ int platform_atari_st_annotate_instruction_symbol_refs(const SectionAnalysisCont
   recovered = find_any_recovered_platform_call(section_analysis, trap_offset);
   {
     const char *note_symbol_name = recovered != NULL
-      ? m68k_platform_name_ref_resolve_text_or_fallback(&recovered->note_symbol_ref, recovered->note_symbol_name)
+      ? m68k_platform_name_ref_display_text(&recovered->note_symbol_ref, recovered->note_symbol_name)
       : NULL;
     if (recovered == NULL || recovered->note_kind != M68K_PLATFORM_CALL_NOTE_DIRECT_OS_CALL ||
         note_symbol_name == NULL || note_symbol_name[0] == '\0') {

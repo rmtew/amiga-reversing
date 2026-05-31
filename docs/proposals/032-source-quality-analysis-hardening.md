@@ -4547,3 +4547,21 @@ that string into the analysis arena. JSON exports the field directly from the
 fact. Listing/report rows may still display the exact emitted operand symbol or
 a known base-layout field symbol when available, but they no longer fabricate
 `app_%04X` as a report-side fallback.
+
+### Platform Name Display API Cleanup
+
+Renamed the internal platform-name API away from fallback terminology:
+
+```text
+before:
+  m68k_platform_name_ref_resolve_text_or_fallback(ref, text)
+
+after:
+  m68k_platform_name_ref_display_text(ref, stored_text)
+```
+
+The behavior is unchanged and intentionally simple: resolve the compact
+platform/name id through the generated KB first, otherwise return the stored
+unresolved display text. This is not a backwards-compatible wrapper; the old
+internal name was deleted because there are no external API consumers and the
+old vocabulary made unresolved names look like a compatibility path.

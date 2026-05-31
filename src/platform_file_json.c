@@ -990,9 +990,9 @@ static const AmigaOsLibraryVectorInfo *resolve_amiga_call_vector_for_json(
   const AmigaOsLibraryVectorInfo *entry;
   if (out_symbol_name != NULL) *out_symbol_name = NULL;
   if (call == NULL) return NULL;
-  symbol_name = m68k_platform_name_ref_resolve_text_or_fallback(&call->note_symbol_ref, call->note_symbol_name);
+  symbol_name = m68k_platform_name_ref_display_text(&call->note_symbol_ref, call->note_symbol_name);
   if (symbol_name == NULL || symbol_name[0] == '\0')
-    symbol_name = m68k_platform_name_ref_resolve_text_or_fallback(&call->symbol_ref, call->symbol_name);
+    symbol_name = m68k_platform_name_ref_display_text(&call->symbol_ref, call->symbol_name);
   if (symbol_name == NULL || symbol_name[0] == '\0') return NULL;
   entry = amiga_os_find_library_vector_by_symbol_name(symbol_name);
   if (entry == NULL) return NULL;
@@ -1005,7 +1005,7 @@ static const char *resolve_amiga_call_library_name_for_json(const M68kRecoveredP
   const char *base_name;
   if (amiga_vector != NULL) return amiga_os_name(1U, amiga_vector->library_id);
   if (call == NULL) return NULL;
-  base_name = m68k_platform_name_ref_resolve_text_or_fallback(&call->note_base_ref, call->note_base_name);
+  base_name = m68k_platform_name_ref_display_text(&call->note_base_ref, call->note_base_name);
   if (base_name == NULL || base_name[0] == '\0') return NULL;
   return amiga_os_find_library_name_by_base_name(base_name);
 }
@@ -1077,7 +1077,7 @@ static int append_amiga_call_outputs_json(JsonBuilder *builder, const AmigaOsLib
 static const MacOsCallInfo *resolve_mac_call_for_json(const M68kRecoveredPlatformCallIR *call) {
   const char *symbol_name;
   if (call == NULL || call->note_symbol_ref.platform_kind != M68K_PLATFORM_BACKEND_MACOS) return NULL;
-  symbol_name = m68k_platform_name_ref_resolve_text_or_fallback(&call->note_symbol_ref, call->note_symbol_name);
+  symbol_name = m68k_platform_name_ref_display_text(&call->note_symbol_ref, call->note_symbol_name);
   return symbol_name != NULL && symbol_name[0] != '\0' ? mac_os_find_call_by_name(symbol_name) : NULL;
 }
 
@@ -1163,21 +1163,21 @@ static int append_entity_app_slot_hint_json(JsonBuilder *builder, const M68kReco
       effect->kind != M68K_PLATFORM_EFFECT_WRITE_TYPED_SLOT)
     return 0;
   if (effect->kind == M68K_PLATFORM_EFFECT_WRITE_BASE_SLOT) {
-    base_name = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.named_base.base_ref,
+    base_name = m68k_platform_name_ref_display_text(&effect->payload.named_base.base_ref,
       effect->payload.named_base.base_name);
   } else if (effect->kind == M68K_PLATFORM_EFFECT_SET_CODE_PTR_REG) {
-    symbol_name = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.code_ptr.field_symbol_ref,
+    symbol_name = m68k_platform_name_ref_display_text(&effect->payload.code_ptr.field_symbol_ref,
       effect->payload.code_ptr.field_symbol_name);
-    type_name = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.code_ptr.owner_type_ref,
+    type_name = m68k_platform_name_ref_display_text(&effect->payload.code_ptr.owner_type_ref,
       effect->payload.code_ptr.owner_type_name);
-    semantic_kind = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.code_ptr.semantic_kind_ref,
+    semantic_kind = m68k_platform_name_ref_display_text(&effect->payload.code_ptr.semantic_kind_ref,
       effect->payload.code_ptr.semantic_kind);
   } else {
-    type_name = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.typed.type_ref,
+    type_name = m68k_platform_name_ref_display_text(&effect->payload.typed.type_ref,
       effect->payload.typed.type_name);
-    semantic_kind = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.typed.semantic_kind_ref,
+    semantic_kind = m68k_platform_name_ref_display_text(&effect->payload.typed.semantic_kind_ref,
       effect->payload.typed.semantic_kind);
-    value_domain_name = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.typed.value_domain_ref,
+    value_domain_name = m68k_platform_name_ref_display_text(&effect->payload.typed.value_domain_ref,
       effect->payload.typed.value_domain_name);
   }
   slot_symbol = app_slot_symbol_for_effect(effect, base_name, symbol_name, type_name, generated_symbol,
@@ -1258,14 +1258,14 @@ static int append_entity_platform_call_hint_json(JsonBuilder *builder, const M68
   } else {
     return 0;
   }
-  base_name = m68k_platform_name_ref_resolve_text_or_fallback(&call->note_base_ref, call->note_base_name);
+  base_name = m68k_platform_name_ref_display_text(&call->note_base_ref, call->note_base_name);
   amiga_vector = resolve_amiga_call_vector_for_json(call, &resolved_lvo_symbol_name);
   library_name = resolve_amiga_call_library_name_for_json(call, amiga_vector);
-  symbol_name = m68k_platform_name_ref_resolve_text_or_fallback(&call->note_symbol_ref, call->note_symbol_name);
+  symbol_name = m68k_platform_name_ref_display_text(&call->note_symbol_ref, call->note_symbol_name);
   if (symbol_name == NULL) symbol_name = resolved_lvo_symbol_name;
   if (symbol_name == NULL && amiga_vector != NULL) symbol_name = amiga_os_name(3U, amiga_vector->function_id);
   symbol_name = symbol_name != NULL ? symbol_name :
-    m68k_platform_name_ref_resolve_text_or_fallback(&call->symbol_ref, call->symbol_name);
+    m68k_platform_name_ref_display_text(&call->symbol_ref, call->symbol_name);
   if (json_builder_appendf(builder,
         "{\"offset\":%u,\"hint_kind\":\"indirect_site\",\"indirect_site\":{\"addr\":\"0x%04X\",\"shape\":",
         (unsigned)call->offset, (unsigned)call->offset) != 0)
@@ -1313,18 +1313,18 @@ static int append_recovered_platform_call_json(JsonBuilder *builder, const M68kR
         (unsigned)call->offset, (unsigned)call->kind) != 0)
     return -1;
   if (json_builder_append_nullable_string(builder,
-        m68k_platform_name_ref_resolve_text_or_fallback(&call->symbol_ref, call->symbol_name)) != 0)
+        m68k_platform_name_ref_display_text(&call->symbol_ref, call->symbol_name)) != 0)
     return -1;
   if (json_builder_appendf(builder, ",\"note_kind\":%u,\"note_base_name\":",
         (unsigned)call->note_kind) != 0)
     return -1;
   if (json_builder_append_nullable_string(builder,
-        m68k_platform_name_ref_resolve_text_or_fallback(&call->note_base_ref, call->note_base_name)) != 0)
+        m68k_platform_name_ref_display_text(&call->note_base_ref, call->note_base_name)) != 0)
     return -1;
   if (json_builder_append(builder, ",\"note_symbol_name\":") != 0)
     return -1;
   if (json_builder_append_nullable_string(builder,
-        m68k_platform_name_ref_resolve_text_or_fallback(&call->note_symbol_ref, call->note_symbol_name)) != 0)
+        m68k_platform_name_ref_display_text(&call->note_symbol_ref, call->note_symbol_name)) != 0)
     return -1;
   if (json_builder_appendf(builder,
         ",\"note_reg\":%u,\"note_disp\":%d,\"note_field_disp\":%d,\"note_stack_cleanup_known\":%u,"
@@ -1388,9 +1388,9 @@ static const char *listing_api_call_function_name(const M68kRecoveredPlatformCal
   const char *symbol;
   if (mac_call != NULL && mac_call->c_name != NULL && mac_call->c_name[0] != '\0') return mac_call->c_name;
   if (amiga_vector != NULL) return amiga_os_name(3U, amiga_vector->function_id);
-  symbol = m68k_platform_name_ref_resolve_text_or_fallback(&call->symbol_ref, call->symbol_name);
+  symbol = m68k_platform_name_ref_display_text(&call->symbol_ref, call->symbol_name);
   if (symbol == NULL || symbol[0] == '\0')
-    symbol = m68k_platform_name_ref_resolve_text_or_fallback(&call->note_symbol_ref, call->note_symbol_name);
+    symbol = m68k_platform_name_ref_display_text(&call->note_symbol_ref, call->note_symbol_name);
   if (symbol != NULL && strncmp(symbol, "_LVO", 4U) == 0) symbol += 4U;
   return symbol;
 }
@@ -1408,7 +1408,7 @@ static int append_listing_api_call_json(JsonBuilder *builder, const M68kRecovere
   library_name = resolve_amiga_call_library_name_for_json(call, amiga_vector);
   if (mac_call != NULL) library_name = mac_call->family;
   if (library_name == NULL || library_name[0] == '\0')
-    library_name = m68k_platform_name_ref_resolve_text_or_fallback(&call->note_base_ref, call->note_base_name);
+    library_name = m68k_platform_name_ref_display_text(&call->note_base_ref, call->note_base_name);
   if (library_name == NULL || library_name[0] == '\0') library_name = "unknown";
   function_name = listing_api_call_function_name(call, amiga_vector);
   if (function_name == NULL || function_name[0] == '\0') return -1;
@@ -1420,11 +1420,11 @@ static int append_listing_api_call_json(JsonBuilder *builder, const M68kRecovere
         (unsigned)call->note_kind, (unsigned)call->kind) != 0)
     return -1;
   if (json_builder_append_nullable_string(builder,
-        m68k_platform_name_ref_resolve_text_or_fallback(&call->symbol_ref, call->symbol_name)) != 0)
+        m68k_platform_name_ref_display_text(&call->symbol_ref, call->symbol_name)) != 0)
     return -1;
   if (json_builder_append(builder, ",\"note_symbol_name\":") != 0) return -1;
   if (json_builder_append_nullable_string(builder,
-        m68k_platform_name_ref_resolve_text_or_fallback(&call->note_symbol_ref, call->note_symbol_name)) != 0)
+        m68k_platform_name_ref_display_text(&call->note_symbol_ref, call->note_symbol_name)) != 0)
     return -1;
   if (json_builder_append(builder, ",\"inputs\":") != 0) return -1;
   if (mac_call != NULL) {
@@ -3025,7 +3025,7 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
   for (field_index = 0U; field_index < source_analysis->base_layout_field_count; ++field_index) {
     const M68kBaseLayoutFieldIR *field = &source_analysis->base_layout_fields[field_index];
     const char *memory_kind = field->alias ? "base_layout_alias" : "base_layout_field";
-    const char *owner_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&field->owner_struct_ref,
+    const char *owner_struct_name = m68k_platform_name_ref_display_text(&field->owner_struct_ref,
       field->owner_struct_name);
     if (emitted++ != 0U && json_builder_append(builder, ",") != 0) return -1;
     if (json_builder_appendf(builder,
@@ -3094,14 +3094,14 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
       memory_kind = platform_storage_effect_memory_kind(effect->kind);
       if (effect->kind == M68K_PLATFORM_EFFECT_WRITE_BASE_SLOT ||
           effect->kind == M68K_PLATFORM_EFFECT_WRITE_GLOBAL_BASE_SLOT) {
-        base_name = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.named_base.base_ref,
+        base_name = m68k_platform_name_ref_display_text(&effect->payload.named_base.base_ref,
           effect->payload.named_base.base_name);
       } else {
-        symbol_name = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.typed.symbol_ref,
+        symbol_name = m68k_platform_name_ref_display_text(&effect->payload.typed.symbol_ref,
           effect->payload.typed.symbol_name);
-        type_name = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.typed.type_ref,
+        type_name = m68k_platform_name_ref_display_text(&effect->payload.typed.type_ref,
           effect->payload.typed.type_name);
-        base_name = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.typed.context_ref,
+        base_name = m68k_platform_name_ref_display_text(&effect->payload.typed.context_ref,
           effect->payload.typed.context_name);
       }
       if (emitted++ != 0U && json_builder_append(builder, ",") != 0) return -1;
@@ -3142,11 +3142,11 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
         ++typed_access_index) {
       const M68kRecoveredPlatformTypedAccessIR *access =
         &section->recovered_platform_typed_accesses[typed_access_index];
-      const char *root_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&access->root_struct_ref,
+      const char *root_struct_name = m68k_platform_name_ref_display_text(&access->root_struct_ref,
         access->root_struct_name);
-      const char *owner_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&access->owner_struct_ref,
+      const char *owner_struct_name = m68k_platform_name_ref_display_text(&access->owner_struct_ref,
         access->owner_struct_name);
-      const char *field_name = m68k_platform_name_ref_resolve_text_or_fallback(&access->field_ref,
+      const char *field_name = m68k_platform_name_ref_display_text(&access->field_ref,
         access->field_name);
       int64_t owner_range_start = (int64_t)access->displacement;
       uint32_t owner_range_size = access->field_size;
@@ -3202,11 +3202,11 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
         ++unresolved_typed_access_index) {
       const M68kRecoveredPlatformUnresolvedTypedAccessIR *access =
         &section->recovered_platform_unresolved_typed_accesses[unresolved_typed_access_index];
-      const char *root_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&access->root_struct_ref,
+      const char *root_struct_name = m68k_platform_name_ref_display_text(&access->root_struct_ref,
         access->root_struct_name);
-      const char *container_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(
+      const char *container_struct_name = m68k_platform_name_ref_display_text(
         &access->container_struct_ref, access->container_struct_name);
-      const char *refined_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(
+      const char *refined_struct_name = m68k_platform_name_ref_display_text(
         &access->refined_struct_ref, access->refined_struct_name);
       int64_t owner_range_start = (int64_t)access->displacement;
       uint32_t owner_range_size = access->struct_size;
@@ -3695,7 +3695,7 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
     goto oom;
   for (field_index = 0U; field_index < source_analysis->base_layout_field_count; ++field_index) {
     const M68kBaseLayoutFieldIR *field = &source_analysis->base_layout_fields[field_index];
-    const char *owner_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&field->owner_struct_ref,
+    const char *owner_struct_name = m68k_platform_name_ref_display_text(&field->owner_struct_ref,
       field->owner_struct_name);
     if (field_index != 0U && json_builder_append(&builder, ",") != 0) goto oom;
     if (json_builder_append(&builder, "{\"layout_name\":") != 0) goto oom;
@@ -4615,11 +4615,11 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
         ++typed_access_index) {
       const M68kRecoveredPlatformTypedAccessIR *access =
         &section->recovered_platform_typed_accesses[typed_access_index];
-      const char *root_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&access->root_struct_ref,
+      const char *root_struct_name = m68k_platform_name_ref_display_text(&access->root_struct_ref,
         access->root_struct_name);
-      const char *owner_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&access->owner_struct_ref,
+      const char *owner_struct_name = m68k_platform_name_ref_display_text(&access->owner_struct_ref,
         access->owner_struct_name);
-      const char *field_name = m68k_platform_name_ref_resolve_text_or_fallback(&access->field_ref,
+      const char *field_name = m68k_platform_name_ref_display_text(&access->field_ref,
         access->field_name);
       if (typed_access_index != 0U && json_builder_append(&builder, ",") != 0)
         goto oom;
@@ -4669,11 +4669,11 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
         ++unresolved_typed_access_index) {
       const M68kRecoveredPlatformUnresolvedTypedAccessIR *access =
         &section->recovered_platform_unresolved_typed_accesses[unresolved_typed_access_index];
-      const char *root_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&access->root_struct_ref,
+      const char *root_struct_name = m68k_platform_name_ref_display_text(&access->root_struct_ref,
         access->root_struct_name);
-      const char *container_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(
+      const char *container_struct_name = m68k_platform_name_ref_display_text(
         &access->container_struct_ref, access->container_struct_name);
-      const char *refined_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(
+      const char *refined_struct_name = m68k_platform_name_ref_display_text(
         &access->refined_struct_ref, access->refined_struct_name);
       if (unresolved_typed_access_index != 0U && json_builder_append(&builder, ",") != 0)
         goto oom;
@@ -4731,25 +4731,25 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
         goto oom;
       if (effect->kind == M68K_PLATFORM_EFFECT_SET_BASE_REG || effect->kind == M68K_PLATFORM_EFFECT_WRITE_BASE_SLOT ||
           effect->kind == M68K_PLATFORM_EFFECT_WRITE_GLOBAL_BASE_SLOT) {
-        base_name = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.named_base.base_ref,
+        base_name = m68k_platform_name_ref_display_text(&effect->payload.named_base.base_ref,
           effect->payload.named_base.base_name);
       } else if (effect->kind == M68K_PLATFORM_EFFECT_SET_CODE_PTR_REG) {
-        symbol_name = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.code_ptr.field_symbol_ref,
+        symbol_name = m68k_platform_name_ref_display_text(&effect->payload.code_ptr.field_symbol_ref,
           effect->payload.code_ptr.field_symbol_name);
-        type_name = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.code_ptr.owner_type_ref,
+        type_name = m68k_platform_name_ref_display_text(&effect->payload.code_ptr.owner_type_ref,
           effect->payload.code_ptr.owner_type_name);
-        semantic_kind = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.code_ptr.semantic_kind_ref,
+        semantic_kind = m68k_platform_name_ref_display_text(&effect->payload.code_ptr.semantic_kind_ref,
           effect->payload.code_ptr.semantic_kind);
       } else if (effect->kind == M68K_PLATFORM_EFFECT_SET_TYPED_REG ||
           effect->kind == M68K_PLATFORM_EFFECT_WRITE_TYPED_SLOT ||
           effect->kind == M68K_PLATFORM_EFFECT_WRITE_TYPED_GLOBAL_SLOT) {
-        symbol_name = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.typed.symbol_ref,
+        symbol_name = m68k_platform_name_ref_display_text(&effect->payload.typed.symbol_ref,
           effect->payload.typed.symbol_name);
-        type_name = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.typed.type_ref,
+        type_name = m68k_platform_name_ref_display_text(&effect->payload.typed.type_ref,
           effect->payload.typed.type_name);
-        semantic_kind = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.typed.semantic_kind_ref,
+        semantic_kind = m68k_platform_name_ref_display_text(&effect->payload.typed.semantic_kind_ref,
           effect->payload.typed.semantic_kind);
-        value_domain_name = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.typed.value_domain_ref,
+        value_domain_name = m68k_platform_name_ref_display_text(&effect->payload.typed.value_domain_ref,
           effect->payload.typed.value_domain_name);
         has_constant_value = effect->payload.typed.has_constant_value;
         constant_value = effect->payload.typed.constant_value;
@@ -4793,15 +4793,15 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
       goto oom;
     for (effect_index = 0; effect_index < section->recovered_function_arg_count; ++effect_index) {
       const M68kRecoveredFunctionArgIR *arg = &section->recovered_function_args[effect_index];
-      const char *context_name = m68k_platform_name_ref_resolve_text_or_fallback(&arg->typed.context_ref,
+      const char *context_name = m68k_platform_name_ref_display_text(&arg->typed.context_ref,
         arg->typed.context_name);
-      const char *symbol_name = m68k_platform_name_ref_resolve_text_or_fallback(&arg->typed.symbol_ref,
+      const char *symbol_name = m68k_platform_name_ref_display_text(&arg->typed.symbol_ref,
         arg->typed.symbol_name);
-      const char *type_name = m68k_platform_name_ref_resolve_text_or_fallback(&arg->typed.type_ref,
+      const char *type_name = m68k_platform_name_ref_display_text(&arg->typed.type_ref,
         arg->typed.type_name);
-      const char *semantic_kind = m68k_platform_name_ref_resolve_text_or_fallback(&arg->typed.semantic_kind_ref,
+      const char *semantic_kind = m68k_platform_name_ref_display_text(&arg->typed.semantic_kind_ref,
         arg->typed.semantic_kind);
-      const char *value_domain_name = m68k_platform_name_ref_resolve_text_or_fallback(&arg->typed.value_domain_ref,
+      const char *value_domain_name = m68k_platform_name_ref_display_text(&arg->typed.value_domain_ref,
         arg->typed.value_domain_name);
       if (effect_index != 0U && json_builder_append(&builder, ",") != 0)
         goto oom;
@@ -4849,18 +4849,18 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
       if (effect_index != 0U && json_builder_append(&builder, ",") != 0)
         goto oom;
       if (summary->effect_kind == M68K_PLATFORM_EFFECT_SET_BASE_REG) {
-        base_name = m68k_platform_name_ref_resolve_text_or_fallback(&summary->payload.named_base.base_ref,
+        base_name = m68k_platform_name_ref_display_text(&summary->payload.named_base.base_ref,
           summary->payload.named_base.base_name);
       } else if (summary->effect_kind == M68K_PLATFORM_EFFECT_SET_TYPED_REG) {
-        base_name = m68k_platform_name_ref_resolve_text_or_fallback(&summary->payload.typed.context_ref,
+        base_name = m68k_platform_name_ref_display_text(&summary->payload.typed.context_ref,
           summary->payload.typed.context_name);
-        symbol_name = m68k_platform_name_ref_resolve_text_or_fallback(&summary->payload.typed.symbol_ref,
+        symbol_name = m68k_platform_name_ref_display_text(&summary->payload.typed.symbol_ref,
           summary->payload.typed.symbol_name);
-        type_name = m68k_platform_name_ref_resolve_text_or_fallback(&summary->payload.typed.type_ref,
+        type_name = m68k_platform_name_ref_display_text(&summary->payload.typed.type_ref,
           summary->payload.typed.type_name);
-        semantic_kind = m68k_platform_name_ref_resolve_text_or_fallback(&summary->payload.typed.semantic_kind_ref,
+        semantic_kind = m68k_platform_name_ref_display_text(&summary->payload.typed.semantic_kind_ref,
           summary->payload.typed.semantic_kind);
-        value_domain_name = m68k_platform_name_ref_resolve_text_or_fallback(&summary->payload.typed.value_domain_ref,
+        value_domain_name = m68k_platform_name_ref_display_text(&summary->payload.typed.value_domain_ref,
           summary->payload.typed.value_domain_name);
         has_constant_value = summary->payload.typed.has_constant_value;
         constant_value = summary->payload.typed.constant_value;
@@ -5683,11 +5683,11 @@ static int append_listing_typed_accesses_json(JsonBuilder *builder, const M68kSt
     const char *owner_struct_name;
     const char *field_name;
     if (access->offset != stmt->offset) continue;
-    root_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&access->root_struct_ref,
+    root_struct_name = m68k_platform_name_ref_display_text(&access->root_struct_ref,
       access->root_struct_name);
-    owner_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&access->owner_struct_ref,
+    owner_struct_name = m68k_platform_name_ref_display_text(&access->owner_struct_ref,
       access->owner_struct_name);
-    field_name = m68k_platform_name_ref_resolve_text_or_fallback(&access->field_ref, access->field_name);
+    field_name = m68k_platform_name_ref_display_text(&access->field_ref, access->field_name);
     if (emitted && json_builder_append(builder, ",") != 0) return -1;
     if (json_builder_appendf(builder,
         "{\"operand_index\":%u,\"base_register\":\"A%u\",\"displacement\":%d,\"field_offset\":%d,"
@@ -5733,11 +5733,11 @@ static int append_listing_unresolved_typed_accesses_json(JsonBuilder *builder, c
     const char *container_struct_name;
     const char *refined_struct_name;
     if (access->offset != stmt->offset) continue;
-    root_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&access->root_struct_ref,
+    root_struct_name = m68k_platform_name_ref_display_text(&access->root_struct_ref,
       access->root_struct_name);
-    container_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&access->container_struct_ref,
+    container_struct_name = m68k_platform_name_ref_display_text(&access->container_struct_ref,
       access->container_struct_name);
-    refined_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&access->refined_struct_ref,
+    refined_struct_name = m68k_platform_name_ref_display_text(&access->refined_struct_ref,
       access->refined_struct_name);
     if (emitted && json_builder_append(builder, ",") != 0) return -1;
     if (json_builder_appendf(builder,
@@ -6853,7 +6853,7 @@ static int append_listing_base_layout_fields_json(JsonBuilder *builder,
   if (source_analysis == NULL) return json_builder_append(builder, "]");
   for (index = 0U; index < source_analysis->base_layout_field_count; ++index) {
     const M68kBaseLayoutFieldIR *field = &source_analysis->base_layout_fields[index];
-    const char *owner_struct_name = m68k_platform_name_ref_resolve_text_or_fallback(&field->owner_struct_ref,
+    const char *owner_struct_name = m68k_platform_name_ref_display_text(&field->owner_struct_ref,
       field->owner_struct_name);
     if (index != 0U && json_builder_append(builder, ",") != 0) return -1;
     if (json_builder_append(builder, "{\"layout_name\":") != 0) return -1;
@@ -8778,9 +8778,9 @@ static void listing_navigation_typed_summary(char *out, size_t out_size,
   if (out == NULL || out_size == 0U) return;
   out[0] = '\0';
   if (access == NULL) return;
-  owner = m68k_platform_name_ref_resolve_text_or_fallback(&access->owner_struct_ref, access->owner_struct_name);
+  owner = m68k_platform_name_ref_display_text(&access->owner_struct_ref, access->owner_struct_name);
   if (owner == NULL || owner[0] == '\0')
-    owner = m68k_platform_name_ref_resolve_text_or_fallback(&access->root_struct_ref, access->root_struct_name);
+    owner = m68k_platform_name_ref_display_text(&access->root_struct_ref, access->root_struct_name);
   field = access->field_expr[0] != '\0' ? access->field_expr : access->field_name;
   if (owner != NULL && owner[0] != '\0' && field != NULL && field[0] != '\0')
     snprintf(out, out_size, "%s.%s", owner, field);
@@ -8804,11 +8804,11 @@ static void listing_navigation_unresolved_summary(char *out, size_t out_size,
   if (out == NULL || out_size == 0U) return;
   out[0] = '\0';
   if (access == NULL) return;
-  root = m68k_platform_name_ref_resolve_text_or_fallback(&access->root_struct_ref, access->root_struct_name);
+  root = m68k_platform_name_ref_display_text(&access->root_struct_ref, access->root_struct_name);
   root = root != NULL && root[0] != '\0' ? root : "typed base";
-  container = m68k_platform_name_ref_resolve_text_or_fallback(&access->container_struct_ref,
+  container = m68k_platform_name_ref_display_text(&access->container_struct_ref,
     access->container_struct_name);
-  refined = m68k_platform_name_ref_resolve_text_or_fallback(&access->refined_struct_ref,
+  refined = m68k_platform_name_ref_display_text(&access->refined_struct_ref,
     access->refined_struct_name);
   listing_navigation_signed_hex(displacement, sizeof(displacement), access->displacement);
   joiner = access->displacement < 0 ? "" : "+";
@@ -8850,7 +8850,7 @@ static int append_listing_navigation_unresolved_entry(JsonBuilder *builder, cons
     return -1;
   if (json_builder_append(builder, ",\"root_struct_name\":") != 0) return -1;
   if (json_builder_append_nullable_string(builder,
-      m68k_platform_name_ref_resolve_text_or_fallback(&access->root_struct_ref, access->root_struct_name)) != 0)
+      m68k_platform_name_ref_display_text(&access->root_struct_ref, access->root_struct_name)) != 0)
     return -1;
   if (json_builder_appendf(builder, ",\"base_register\":\"A%u\",\"operand_index\":%u,\"displacement\":%d,"
         "\"struct_size\":%u,\"classification_id\":%u,\"classification\":",
@@ -8862,7 +8862,7 @@ static int append_listing_navigation_unresolved_entry(JsonBuilder *builder, cons
   if (json_builder_appendf(builder, ",\"container_candidate_count\":%u,\"container_struct_name\":",
       (unsigned)access->container_candidate_count) != 0) return -1;
   if (json_builder_append_nullable_string(builder,
-      m68k_platform_name_ref_resolve_text_or_fallback(&access->container_struct_ref,
+      m68k_platform_name_ref_display_text(&access->container_struct_ref,
         access->container_struct_name)) != 0)
     return -1;
   if (json_builder_append(builder, ",\"container_field_expr\":") != 0) return -1;
@@ -8871,7 +8871,7 @@ static int append_listing_navigation_unresolved_entry(JsonBuilder *builder, cons
       access->refinement_applied ? "true" : "false") != 0)
     return -1;
   if (json_builder_append_nullable_string(builder,
-      m68k_platform_name_ref_resolve_text_or_fallback(&access->refined_struct_ref,
+      m68k_platform_name_ref_display_text(&access->refined_struct_ref,
         access->refined_struct_name)) != 0)
     return -1;
   if (json_builder_appendf(builder, ",\"type_provenance_kind_id\":%u,\"type_provenance_kind\":",

@@ -1633,9 +1633,9 @@ static size_t count_recovered_platform_typed_slot_name_uses(const M68kSectionAna
   size_t index;
   size_t count = 0U;
   if (section_analysis == NULL || target_effect == NULL) return 0U;
-  target_symbol_name = m68k_platform_name_ref_resolve_text_or_fallback(&target_effect->payload.typed.symbol_ref,
+  target_symbol_name = m68k_platform_name_ref_display_text(&target_effect->payload.typed.symbol_ref,
     target_effect->payload.typed.symbol_name);
-  target_context_name = m68k_platform_name_ref_resolve_text_or_fallback(&target_effect->payload.typed.context_ref,
+  target_context_name = m68k_platform_name_ref_display_text(&target_effect->payload.typed.context_ref,
     target_effect->payload.typed.context_name);
   if (target_symbol_name == NULL || target_symbol_name[0] == '\0') return 0U;
   for (index = 0U; index < section_analysis->recovered_platform_effect_count; ++index) {
@@ -1643,9 +1643,9 @@ static size_t count_recovered_platform_typed_slot_name_uses(const M68kSectionAna
     const char *symbol_name;
     const char *context_name;
     if (effect->kind != M68K_PLATFORM_EFFECT_WRITE_TYPED_SLOT) continue;
-    symbol_name = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.typed.symbol_ref,
+    symbol_name = m68k_platform_name_ref_display_text(&effect->payload.typed.symbol_ref,
       effect->payload.typed.symbol_name);
-    context_name = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.typed.context_ref,
+    context_name = m68k_platform_name_ref_display_text(&effect->payload.typed.context_ref,
       effect->payload.typed.context_name);
     if (symbol_name == NULL || strcmp(symbol_name, target_symbol_name) != 0) continue;
     if ((context_name == NULL) != (target_context_name == NULL)) continue;
@@ -1665,10 +1665,10 @@ static int format_amiga_named_typed_slot_symbol_name(const M68kSectionAnalysisIR
   buf[0] = '\0';
   effect = find_recovered_platform_typed_slot_effect(section_analysis, displacement);
   if (effect == NULL) return 0;
-  symbol_name = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.typed.symbol_ref,
+  symbol_name = m68k_platform_name_ref_display_text(&effect->payload.typed.symbol_ref,
     effect->payload.typed.symbol_name);
   if (symbol_name == NULL || symbol_name[0] == '\0') return 0;
-  context_name = m68k_platform_name_ref_resolve_text_or_fallback(&effect->payload.typed.context_ref,
+  context_name = m68k_platform_name_ref_display_text(&effect->payload.typed.context_ref,
     effect->payload.typed.context_name);
   if (context_name != NULL && context_name[0] != '\0') {
     const char *library_name = amiga_os_find_library_name_by_base_name(context_name);
@@ -6222,7 +6222,7 @@ try_struct_field:
     const char *note_symbol_name;
     recovered = find_any_recovered_platform_call(section_analysis, offset);
     note_symbol_name = recovered != NULL
-      ? m68k_platform_name_ref_resolve_text_or_fallback(&recovered->note_symbol_ref, recovered->note_symbol_name)
+      ? m68k_platform_name_ref_display_text(&recovered->note_symbol_ref, recovered->note_symbol_name)
       : NULL;
     if (recovered != NULL && recovered->kind == 0U &&
         recovered->note_kind == M68K_PLATFORM_CALL_NOTE_DIRECT_OS_CALL &&

@@ -691,9 +691,9 @@ void load_recovered_platform_call_info(const M68kRecoveredPlatformCallIR *recove
   const char *note_symbol_name;
   if (recovered == NULL || out_info == NULL) return;
   platform_resolved_indirect_info_init(out_info);
-  symbol_name = m68k_platform_name_ref_resolve_text_or_fallback(&recovered->symbol_ref, recovered->symbol_name);
-  note_base_name = m68k_platform_name_ref_resolve_text_or_fallback(&recovered->note_base_ref, recovered->note_base_name);
-  note_symbol_name = m68k_platform_name_ref_resolve_text_or_fallback(&recovered->note_symbol_ref, recovered->note_symbol_name);
+  symbol_name = m68k_platform_name_ref_display_text(&recovered->symbol_ref, recovered->symbol_name);
+  note_base_name = m68k_platform_name_ref_display_text(&recovered->note_base_ref, recovered->note_base_name);
+  note_symbol_name = m68k_platform_name_ref_display_text(&recovered->note_symbol_ref, recovered->note_symbol_name);
   out_info->kind = recovered->kind;
   out_info->has_symbol_name = symbol_name != NULL ? 1U : 0U;
   out_info->note_kind = recovered->note_kind;
