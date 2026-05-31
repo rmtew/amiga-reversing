@@ -9634,6 +9634,7 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   M68kRenderIRPreview *render_preview = NULL;
   int render_text_preview;
   int render_asm_source;
+  int source_analysis_live = 0;
   uint8_t **accepted_start = NULL;
   uint8_t **accepted_bytes = NULL;
   clock_t start, end;
@@ -9660,6 +9661,13 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   render_text_preview = preview_source_enabled_local();
   render_asm_source = force_asm_source || (allow_env_asm_source && asm_source_enabled_local());
   max_cpu = policy->max_cpu != 0U ? policy->max_cpu : M68K_ASM_CPU_68060;
+  if (out_source_analysis != NULL) {
+    fail_stage = "source analysis initialization";
+    if (m68k_ir_source_analysis_create(out_source_analysis) != 0) goto fail;
+    source_analysis_live = 1;
+    out_source_analysis->file_kind = object->platform_file_kind;
+    if (m68k_ir_source_analysis_set_policy(out_source_analysis, policy) != 0) goto fail;
+  }
   start = clock();
   fail_stage = "decode";
   if (m68k_decode_ir_build_object_sections(&decode, object, diagnostics) != 0) goto fail;
@@ -10121,7 +10129,7 @@ fail:
     m68k_diag_addf(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
       "facts_v2 failed during %s", fail_stage);
   }
-  if (out_source_analysis != NULL) m68k_ir_source_analysis_destroy(out_source_analysis);
+  if (source_analysis_live) m68k_ir_source_analysis_destroy(out_source_analysis);
   accepted_candidate_index_destroy(&accepted_index);
   free_section_maps(&decode, accepted_start, accepted_bytes);
   label_lookup_destroy(&label_lookup);

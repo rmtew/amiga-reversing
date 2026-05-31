@@ -11534,11 +11534,7 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
   memset(&section_analysis, 0, sizeof(section_analysis));
   m68k_render_ir_preview_init(out_preview);
   out_preview->platform_backend_kind = object->platform_backend_kind;
-  if (out_source_analysis != NULL) {
-    if (m68k_ir_source_analysis_create(out_source_analysis) != 0) goto cleanup;
-    out_source_analysis->file_kind = object->platform_file_kind;
-    if (policy != NULL && m68k_ir_source_analysis_set_policy(out_source_analysis, policy) != 0) goto cleanup;
-  }
+  if (out_source_analysis != NULL && out_source_analysis->arena == NULL) goto cleanup;
   phase_start = clock();
   if (render_lookup_build(&lookup, object, decode, facts, policy, accepted_start) != 0) goto cleanup;
   phase_end = clock();
@@ -11945,9 +11941,6 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
 cleanup:
   if (section_analysis_live) {
     m68k_ir_section_analysis_destroy(&section_analysis);
-  }
-  if (result != 0 && out_source_analysis != NULL) {
-    m68k_ir_source_analysis_destroy(out_source_analysis);
   }
   render_lookup_destroy(&lookup);
   return result;

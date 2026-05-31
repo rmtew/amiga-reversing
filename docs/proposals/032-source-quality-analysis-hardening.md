@@ -3539,3 +3539,34 @@ Verified:
 ```text
 cmd /c src\build.bat
 ```
+
+### Source Analysis Lifetime Ownership
+
+Moved `M68kSourceAnalysisIR` creation and destruction out of
+`m68k_render_ir_preview_build()` and into `facts_v2_collect_profile_internal()`:
+
+```text
+before:
+  render preview creates Source Analysis IR
+  render preview destroys it on render failure
+
+after:
+  facts_v2 creates Source Analysis IR before decode/render handoff
+  render preview only appends into an already-created analysis object
+  facts_v2 owns failure cleanup
+```
+
+This is intentionally not a compatibility-preserving API wrapper. The renderer
+must not own the lifetime of the analysis object because source-quality and
+platform fact producers need a stable pre-render destination. Remaining work:
+move the render-owned section/base-layout producers into that earlier
+facts/source-quality phase, then refuse blocked source before preview starts.
+
+Verified:
+
+```text
+cmd /c src\build.bat
+src\build\m68k_c_unit_tests.exe
+uv run python -m pytest tests\test_target_usage_manifest.py -q
+uv run platform-rendered-source-roundtrip --no-write-report --json
+```
