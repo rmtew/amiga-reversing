@@ -3124,6 +3124,33 @@ uv run python -m pytest tests\test_target_usage_manifest.py -q
 uv run platform-rendered-source-roundtrip --no-write-report --json
 ```
 
+### Platform Seed Analysis Split
+
+Moved platform register-seed application out of the source-render-only block.
+Policy and lookup seeds now update the platform analysis state whenever source
+analysis is being built:
+
+```text
+analysis loop offset
+  -> policy register seeds
+  -> lookup register seeds
+  -> collect-only platform facts or source rendering
+```
+
+The render branch still owns only the visible seed comments. The new regression
+proves a policy-seeded `exec.library` A6 base produces a recovered `_LVOAlert`
+platform call through `m68k_facts_v2_collect_source_analysis_profile()` without
+rendering `asm.s`.
+
+Verified:
+
+```text
+cmd /c src\build.bat
+src\build\m68k_c_unit_tests.exe
+uv run python -m pytest tests\test_target_usage_manifest.py -q
+uv run platform-rendered-source-roundtrip --no-write-report --json
+```
+
 ### Base Layout Fact Append Split
 
 Moved RSSET/base-layout fact append out of the header source renderer:

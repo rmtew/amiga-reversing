@@ -11476,9 +11476,11 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
       finish_asm_source_plan_row(out_preview, section->section_index, 0U, 0U, 1);
     }
     while (offset < render_extent) {
-      if (render_asm_source) {
+      if (build_platform_analysis) {
         platform_state_apply_policy_register_seeds(&platform_state, policy, section->section_index, offset);
         platform_state_apply_lookup_register_seeds(&platform_state, &lookup, section->section_index, offset);
+      }
+      if (render_asm_source) {
         begin_asm_source_plan_row(out_preview, M68K_RENDER_PLAN_ROW_DIAGNOSTIC, (uint32_t)section_index);
         render_asm_policy_entry_comments(out_preview, policy, section->section_index, offset);
         render_asm_policy_register_seed_comment(out_preview, policy, section->section_index, offset);
