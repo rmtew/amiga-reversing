@@ -3513,3 +3513,30 @@ src\build\m68k_c_unit_tests.exe
 uv run python -m pytest tests\test_target_usage_manifest.py -q
 uv run platform-rendered-source-roundtrip --no-write-report --json
 ```
+
+### Absolute Memory Header Collection Cap Removal
+
+Removed the fixed 256-row collection cap from the render-side absolute-memory
+header collector:
+
+```text
+before:
+  stack buffer[256]
+  overflow -> truncated collection
+
+after:
+  preview scratch arena array
+  grow as needed
+  presentation may still show the first 32 ranges with an explicit omission note
+```
+
+This does not close the larger ownership issue: render-side absolute-memory
+header discovery still needs to be replaced with source-quality range facts.
+The immediate cleanup prevents a local presentation helper from silently
+dropping collected evidence before that migration is finished.
+
+Verified:
+
+```text
+cmd /c src\build.bat
+```

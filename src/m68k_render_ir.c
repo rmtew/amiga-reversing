@@ -1450,7 +1450,19 @@ typedef struct M68kRenderAbsoluteMemoryRangeSummary {
 } M68kRenderAbsoluteMemoryRangeSummary;
 
 #define M68K_RENDER_ABSOLUTE_MEMORY_HEADER_RANGE_LIMIT 32U
-#define M68K_RENDER_ABSOLUTE_MEMORY_HEADER_COLLECT_LIMIT 256U
+
+static void *render_arena_grow_array(Arena *arena, void *items, size_t count, size_t *capacity,
+    size_t initial_capacity, size_t item_size) {
+  size_t next_capacity;
+  if (arena == NULL || capacity == NULL || item_size == 0U) return NULL;
+  if (count < *capacity) return items;
+  next_capacity = (*capacity == 0U) ? initial_capacity : (*capacity * 2U);
+  if (next_capacity < count || next_capacity > SIZE_MAX / item_size) return NULL;
+  items = arena_realloc_copy(arena, items, count * item_size, next_capacity * item_size);
+  if (items == NULL) return NULL;
+  *capacity = next_capacity;
+  return items;
+}
 
 static int render_absolute_memory_header_owner_is_absolute(const M68kRenderLookup *lookup,
     const M68kDecodeSectionIR *section, uint32_t address) {
@@ -1475,13 +1487,13 @@ static int render_absolute_memory_header_owner_is_absolute(const M68kRenderLooku
   return 1;
 }
 
-static void render_absolute_memory_header_add_range(M68kRenderAbsoluteMemoryRangeSummary *ranges,
-    uint32_t *io_count, uint32_t *io_truncated, uint32_t start, uint32_t size, uint8_t access_kind) {
+static int render_absolute_memory_header_add_range(Arena *arena, M68kRenderAbsoluteMemoryRangeSummary **io_ranges,
+    size_t *io_count, size_t *io_capacity, uint32_t start, uint32_t size, uint8_t access_kind) {
   uint32_t end = size != 0U && start <= UINT32_MAX - size ? start + size : start;
-  uint32_t index;
-  if (ranges == NULL || io_count == NULL || io_truncated == NULL) return;
+  size_t index;
+  if (arena == NULL || io_ranges == NULL || io_count == NULL || io_capacity == NULL) return -1;
   for (index = 0U; index < *io_count; ++index) {
-    M68kRenderAbsoluteMemoryRangeSummary *range = &ranges[index];
+    M68kRenderAbsoluteMemoryRangeSummary *range = &(*io_ranges)[index];
     if (start > range->end || end < range->start) continue;
     if (start < range->start) range->start = start;
     if (end > range->end) range->end = end;
@@ -1489,32 +1501,33 @@ static void render_absolute_memory_header_add_range(M68kRenderAbsoluteMemoryRang
     if (access_kind == M68K_SIM_ACCESS_MEMORY_READ) range->has_read = 1U;
     else if (access_kind == M68K_SIM_ACCESS_MEMORY_WRITE) range->has_write = 1U;
     else range->has_address = 1U;
-    return;
+    return 0;
   }
-  if (*io_count >= M68K_RENDER_ABSOLUTE_MEMORY_HEADER_COLLECT_LIMIT) {
-    *io_truncated = 1U;
-    return;
-  }
-  ranges[*io_count].start = start;
-  ranges[*io_count].end = end;
-  ranges[*io_count].ref_count = 1U;
-  ranges[*io_count].has_read = access_kind == M68K_SIM_ACCESS_MEMORY_READ ? 1U : 0U;
-  ranges[*io_count].has_write = access_kind == M68K_SIM_ACCESS_MEMORY_WRITE ? 1U : 0U;
-  ranges[*io_count].has_address =
+  *io_ranges = (M68kRenderAbsoluteMemoryRangeSummary *)render_arena_grow_array(arena, *io_ranges, *io_count,
+    io_capacity, 32U, sizeof(**io_ranges));
+  if (*io_ranges == NULL) return -1;
+  memset(&(*io_ranges)[*io_count], 0, sizeof((*io_ranges)[*io_count]));
+  (*io_ranges)[*io_count].start = start;
+  (*io_ranges)[*io_count].end = end;
+  (*io_ranges)[*io_count].ref_count = 1U;
+  (*io_ranges)[*io_count].has_read = access_kind == M68K_SIM_ACCESS_MEMORY_READ ? 1U : 0U;
+  (*io_ranges)[*io_count].has_write = access_kind == M68K_SIM_ACCESS_MEMORY_WRITE ? 1U : 0U;
+  (*io_ranges)[*io_count].has_address =
     access_kind != M68K_SIM_ACCESS_MEMORY_READ && access_kind != M68K_SIM_ACCESS_MEMORY_WRITE ? 1U : 0U;
-  ranges[*io_count].truncated = 0U;
+  (*io_ranges)[*io_count].truncated = 0U;
   ++*io_count;
+  return 0;
 }
 
-static uint32_t render_absolute_memory_header_collect(const M68kRenderLookup *lookup,
-    const M68kDecodeIR *decode, uint8_t **accepted_start, M68kRenderAbsoluteMemoryRangeSummary *ranges,
-    uint32_t *out_truncated) {
+static size_t render_absolute_memory_header_collect(const M68kRenderLookup *lookup,
+    const M68kDecodeIR *decode, uint8_t **accepted_start, Arena *arena,
+    M68kRenderAbsoluteMemoryRangeSummary **out_ranges) {
   size_t section_index;
-  uint32_t range_count = 0U;
-  uint32_t truncated = 0U;
-  if (out_truncated != NULL) *out_truncated = 0U;
-  if (lookup == NULL || decode == NULL || accepted_start == NULL || ranges == NULL) return 0U;
-  memset(ranges, 0, M68K_RENDER_ABSOLUTE_MEMORY_HEADER_COLLECT_LIMIT * sizeof(*ranges));
+  size_t range_count = 0U;
+  size_t range_capacity = 0U;
+  if (out_ranges != NULL) *out_ranges = NULL;
+  if (lookup == NULL || decode == NULL || accepted_start == NULL || arena == NULL || out_ranges == NULL)
+    return 0U;
   for (section_index = 0U; section_index < decode->section_count; ++section_index) {
     const M68kDecodeSectionIR *section = &decode->sections[section_index];
     size_t candidate_index;
@@ -1541,22 +1554,24 @@ static uint32_t render_absolute_memory_header_collect(const M68kRenderLookup *lo
         if (!render_absolute_memory_header_owner_is_absolute(lookup, section, address)) continue;
         width = render_instruction_access_width(&instruction, access_kind);
         if (width == 0U && address < 0x10000U) continue;
-        render_absolute_memory_header_add_range(ranges, &range_count, &truncated, address, width, access_kind);
+        if (render_absolute_memory_header_add_range(arena, out_ranges, &range_count, &range_capacity, address,
+            width, access_kind) != 0) {
+          return 0U;
+        }
       }
     }
   }
-  if (out_truncated != NULL) *out_truncated = truncated;
   return range_count;
 }
 
-static uint32_t render_absolute_memory_header_coalesce(M68kRenderAbsoluteMemoryRangeSummary *ranges,
-    uint32_t range_count) {
-  uint32_t index;
-  uint32_t out_count = 0U;
+static size_t render_absolute_memory_header_coalesce(M68kRenderAbsoluteMemoryRangeSummary *ranges,
+    size_t range_count) {
+  size_t index;
+  size_t out_count = 0U;
   if (ranges == NULL || range_count == 0U) return 0U;
   for (index = 1U; index < range_count; ++index) {
     M68kRenderAbsoluteMemoryRangeSummary current = ranges[index];
-    uint32_t cursor = index;
+    size_t cursor = index;
     while (cursor > 0U && current.start < ranges[cursor - 1U].start) {
       ranges[cursor] = ranges[cursor - 1U];
       --cursor;
@@ -1582,14 +1597,21 @@ static uint32_t render_absolute_memory_header_coalesce(M68kRenderAbsoluteMemoryR
 
 static void render_asm_absolute_memory_header(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
     const M68kDecodeIR *decode, uint8_t **accepted_start, int *io_emitted_header) {
-  M68kRenderAbsoluteMemoryRangeSummary ranges[M68K_RENDER_ABSOLUTE_MEMORY_HEADER_COLLECT_LIMIT];
-  uint32_t range_count;
-  uint32_t truncated = 0U;
-  uint32_t index;
+  Arena *scratch_arena;
+  ArenaMark scratch_mark;
+  M68kRenderAbsoluteMemoryRangeSummary *ranges = NULL;
+  size_t range_count;
+  size_t index;
   if (preview == NULL || io_emitted_header == NULL) return;
-  range_count = render_absolute_memory_header_collect(lookup, decode, accepted_start, ranges, &truncated);
+  scratch_arena = render_preview_scratch_arena(preview);
+  if (scratch_arena == NULL) return;
+  scratch_mark = arena_mark(scratch_arena);
+  range_count = render_absolute_memory_header_collect(lookup, decode, accepted_start, scratch_arena, &ranges);
   range_count = render_absolute_memory_header_coalesce(ranges, range_count);
-  if (range_count == 0U && truncated == 0U) return;
+  if (range_count == 0U) {
+    arena_rewind(scratch_arena, scratch_mark);
+    return;
+  }
   if (!*io_emitted_header) {
     render_asm_file_comment_line(preview, "Memory map");
     *io_emitted_header = 1;
@@ -1612,9 +1634,10 @@ static void render_asm_absolute_memory_header(M68kRenderIRPreview *preview, cons
     }
     render_asm_file_comment_line(preview, comment);
   }
-  if (truncated || range_count > M68K_RENDER_ABSOLUTE_MEMORY_HEADER_RANGE_LIMIT) {
+  if (range_count > M68K_RENDER_ABSOLUTE_MEMORY_HEADER_RANGE_LIMIT) {
     render_asm_file_comment_line(preview, "    ... additional absolute memory ranges omitted");
   }
+  arena_rewind(scratch_arena, scratch_mark);
 }
 
 static void render_asm_memory_map_header(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
