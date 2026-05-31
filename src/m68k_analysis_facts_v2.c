@@ -10415,25 +10415,14 @@ int m68k_facts_v2_collect_direct_rebuild_profile(const M68kObject *object, const
     diagnostics);
 }
 
-int m68k_facts_v2_collect_asm_source_profile(const M68kObject *object, const M68kAnalysisPolicy *policy,
-    M68kFactsV2Profile *out_profile, M68kDiagSink diagnostics) {
-  return facts_v2_collect_profile_internal(object, policy, out_profile, 1, 0, 1, 0, 0, NULL, NULL, NULL,
-    diagnostics);
-}
-
 int m68k_facts_v2_render_asm_source_alloc(const M68kObject *object, const M68kAnalysisPolicy *policy,
     char **out_source, M68kFactsV2Profile *out_profile, M68kDiagSink diagnostics) {
-  return m68k_facts_v2_render_asm_source_profile_alloc(object, policy, out_source, out_profile, 1U, diagnostics);
-}
-
-int m68k_facts_v2_render_asm_source_profile_alloc(const M68kObject *object, const M68kAnalysisPolicy *policy,
-    char **out_source, M68kFactsV2Profile *out_profile, uint8_t fail_on_refused, M68kDiagSink diagnostics) {
   M68kFactsV2Profile local_profile;
   M68kFactsV2Profile *profile = out_profile != NULL ? out_profile : &local_profile;
   if (out_source == NULL) return -1;
   *out_source = NULL;
-  return facts_v2_collect_profile_internal(object, policy, profile, 1, 1, 1, fail_on_refused != 0U, 0,
-    out_source, NULL, NULL, diagnostics);
+  return facts_v2_collect_profile_internal(object, policy, profile, 1, 1, 1, 1, 0, out_source, NULL, NULL,
+    diagnostics);
 }
 
 int m68k_facts_v2_render_asm_source_analysis_profile_alloc(const M68kObject *object,

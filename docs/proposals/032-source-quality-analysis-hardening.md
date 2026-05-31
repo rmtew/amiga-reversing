@@ -4565,3 +4565,24 @@ platform/name id through the generated KB first, otherwise return the stored
 unresolved display text. This is not a backwards-compatible wrapper; the old
 internal name was deleted because there are no external API consumers and the
 old vocabulary made unresolved names look like a compatibility path.
+
+### Unused Source-Render Wrapper Deletion
+
+Deleted unused facts-v2 source-render wrapper entry points instead of keeping
+them as internal API compatibility surface:
+
+```text
+removed:
+  m68k_facts_v2_collect_asm_source_profile()
+  m68k_facts_v2_render_asm_source_profile_alloc()
+
+kept:
+  m68k_facts_v2_render_asm_source_alloc()
+  m68k_facts_v2_render_asm_source_analysis_profile_alloc()
+  m68k_facts_v2_render_asm_source_plan_analysis_profile_alloc()
+  m68k_facts_v2_collect_source_analysis_profile()
+```
+
+The deleted functions had no real consumers. `m68k_facts_v2_render_asm_source_alloc()`
+now calls the shared collection engine directly and preserves the existing
+strict source-refusal behavior.
