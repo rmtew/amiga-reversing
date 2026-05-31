@@ -4426,3 +4426,11 @@ cmd /c src\build.bat
 src\build\m68k_c_unit_tests.exe m68k_ir
 uv run platform-rendered-source-roundtrip --no-write-report --json
 ```
+
+### Absolute Memory Header Cap Removal
+
+Deleted the fixed `M68K_RENDER_ABSOLUTE_MEMORY_HEADER_RANGE_LIMIT` presentation
+cap. The renderer now prints every unowned absolute-memory range already present
+in Source Analysis IR instead of truncating after 32 rows and hiding the rest
+behind an omitted marker. Capacity policy remains with C source-quality facts:
+render is only formatting the range list it receives.

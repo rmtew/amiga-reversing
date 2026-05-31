@@ -1363,8 +1363,6 @@ static int lookup_materialized_runtime_address_source_offset(const M68kRenderLoo
 static int render_absolute_ref_access_kind(uint8_t access_kind);
 static uint32_t render_instruction_access_width(const M68kInstructionIR *instruction, uint8_t access_kind);
 
-#define M68K_RENDER_ABSOLUTE_MEMORY_HEADER_RANGE_LIMIT 32U
-
 static void render_asm_absolute_memory_header(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
     const M68kSourceAnalysisIR *source_analysis, int *io_emitted_header) {
   size_t index;
@@ -1391,10 +1389,6 @@ static void render_asm_absolute_memory_header(M68kRenderIRPreview *preview, cons
       }
       render_asm_file_comment_line(preview, "  Absolute memory refs:");
     }
-    if (emitted_count >= M68K_RENDER_ABSOLUTE_MEMORY_HEADER_RANGE_LIMIT) {
-      ++emitted_count;
-      continue;
-    }
     access[0] = '\0';
     if (range->read_count != 0U) strcat(access, "r");
     if (range->write_count != 0U) strcat(access, "w");
@@ -1411,9 +1405,6 @@ static void render_asm_absolute_memory_header(M68kRenderIRPreview *preview, cons
     }
     render_asm_file_comment_line(preview, comment);
     ++emitted_count;
-  }
-  if (emitted_count > M68K_RENDER_ABSOLUTE_MEMORY_HEADER_RANGE_LIMIT) {
-    render_asm_file_comment_line(preview, "    ... additional absolute memory ranges omitted");
   }
 }
 
