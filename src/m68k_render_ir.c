@@ -2802,15 +2802,6 @@ static int render_asm_define_runtime_address_symbol_once(M68kRenderIRPreview *pr
   return render_asm_declare_symbol_hex_once(preview, symbol, address);
 }
 
-static int render_asm_define_absolute_memory_slot_symbol_once(M68kRenderIRPreview *preview,
-    uint32_t address, char *symbol, size_t symbol_size) {
-  if (symbol != NULL && symbol_size != 0U) symbol[0] = '\0';
-  if (preview == NULL || symbol == NULL || symbol_size == 0U || address == 0U) return 0;
-  snprintf(symbol, symbol_size, "absolute_slot_%08X", (unsigned)address);
-  if (symbol[0] == '\0') return 0;
-  return render_asm_declare_symbol_hex_once(preview, symbol, address);
-}
-
 static int format_copper_runtime_pointer_value_expr(M68kRenderIRPreview *preview, const uint8_t *data,
     uint32_t offset, uint32_t cursor, uint32_t size, uint16_t first, uint16_t second, char *buf,
     size_t buf_size) {
@@ -9043,7 +9034,6 @@ static int attach_absolute_memory_slot_symbols(M68kRenderIRPreview *preview,
     const M68kAddressObservationIR *observation;
     uint32_t address = 0U;
     uint32_t width;
-    char symbol[80];
     if (operand->symbol_ref.has_name != 0U ||
         !render_absolute_ref_access_kind(metadata->operand_access_kinds[operand_index]) ||
         !operand_absolute_offset_local(operand, &address)) {
@@ -9057,8 +9047,9 @@ static int attach_absolute_memory_slot_symbols(M68kRenderIRPreview *preview,
     if (width == 0U || address >= 0x10000U) {
       continue;
     }
-    if (!render_asm_define_absolute_memory_slot_symbol_once(preview, address, symbol, sizeof(symbol))) return 0;
-    attach_generic_symbol(operand, symbol);
+    if (observation->symbol_name == NULL || observation->symbol_name[0] == '\0') continue;
+    if (!render_asm_declare_symbol_hex_once(preview, observation->symbol_name, address)) return 0;
+    attach_generic_symbol(operand, observation->symbol_name);
   }
   return 1;
 }
@@ -9079,7 +9070,6 @@ static int attach_absolute_memory_address_use_symbols(M68kRenderIRPreview *previ
     M68kOperandIR *operand = &instruction->operands[operand_index];
     const M68kAddressObservationIR *observation;
     uint32_t address = 0U;
-    char symbol[80];
     if (operand->symbol_ref.has_name != 0U ||
         metadata->operand_access_kinds[operand_index] != M68K_SIM_ACCESS_COMPUTE_ADDRESS ||
         !operand_absolute_offset_local(operand, &address)) {
@@ -9088,8 +9078,9 @@ static int attach_absolute_memory_address_use_symbols(M68kRenderIRPreview *previ
     observation = source_analysis_absolute_observation_for_operand(source_analysis, section->section_index,
       candidate->offset, operand_index, address, metadata->operand_access_kinds[operand_index]);
     if (observation == NULL) continue;
-    if (!render_asm_define_absolute_memory_slot_symbol_once(preview, address, symbol, sizeof(symbol))) return 0;
-    attach_generic_symbol(operand, symbol);
+    if (observation->symbol_name == NULL || observation->symbol_name[0] == '\0') continue;
+    if (!render_asm_declare_symbol_hex_once(preview, observation->symbol_name, address)) return 0;
+    attach_generic_symbol(operand, observation->symbol_name);
   }
   return 1;
 }

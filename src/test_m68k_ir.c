@@ -22372,6 +22372,7 @@ static int test_facts_v2_analysis_records_absolute_operand_observations(void) {
   M68K_C_ASSERT_U32(M68K_ABSOLUTE_MEMORY_OWNER_ABSOLUTE_MEMORY, absolute_ref->owner_kind);
   M68K_C_ASSERT_U32(M68K_SIM_ACCESS_COMPUTE_ADDRESS, absolute_ref->access_kind);
   M68K_C_ASSERT_U32(0U, absolute_ref->access_width);
+  M68K_C_ASSERT_STR("absolute_slot_00070000", absolute_ref->symbol_name);
   M68K_C_ASSERT(code_ref != NULL);
   M68K_C_ASSERT_U32(M68K_ABSOLUTE_MEMORY_OWNER_CPU_VECTOR, code_ref->owner_kind);
   M68K_C_ASSERT_U32(1U, code_ref->conflicted);
@@ -22391,6 +22392,7 @@ static int test_facts_v2_analysis_records_absolute_operand_observations(void) {
     "\"range_end\":14676124") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
     "\"record_kind\":\"address_observation\",\"memory_kind\":\"absolute_memory\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"symbol_name\":\"absolute_slot_00070000\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
     "\"range_space_kind\":3,\"range_space\":\"absolute\",\"range_start\":458752,\"range_size\":0,"
     "\"range_end\":458752") != NULL);
@@ -22459,11 +22461,13 @@ static int test_facts_v2_runtime_mapped_section_keeps_low_absolute_refs_absolute
   M68K_C_ASSERT_U32(M68K_SIM_ACCESS_MEMORY_READ, low_ref->access_kind);
   M68K_C_ASSERT_U32(4U, low_ref->access_width);
   M68K_C_ASSERT_U32(0U, low_ref->conflicted);
+  M68K_C_ASSERT_STR("absolute_slot_0000012A", low_ref->symbol_name);
   M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(analysis_json != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
     "\"record_kind\":\"address_observation\",\"memory_kind\":\"absolute_memory\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"range_start\":298,\"range_size\":4,\"range_end\":302") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"symbol_name\":\"absolute_slot_0000012A\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"owner_kind\":\"section_storage\"") == NULL);
   free(analysis_json);
   m68k_facts_v2_free_text(source);

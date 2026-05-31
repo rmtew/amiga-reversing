@@ -3569,6 +3569,11 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
     if (json_builder_append_json_string(&builder,
         m68k_absolute_memory_owner_kind_name(identity->owner_kind)) != 0)
       goto oom;
+    if (identity->symbol_name != NULL) {
+      if (json_builder_append(&builder, ",\"symbol_name\":") != 0 ||
+          json_builder_append_json_string(&builder, identity->symbol_name) != 0)
+        goto oom;
+    }
     if (json_builder_appendf(&builder, ",\"role_kind\":%u,\"role_kind_name\":",
         (unsigned)identity->role_kind) != 0)
       goto oom;
@@ -3624,6 +3629,11 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
     if (json_builder_append_json_string(&builder,
         m68k_absolute_memory_owner_kind_name(range->owner_kind)) != 0)
       goto oom;
+    if (range->symbol_name != NULL) {
+      if (json_builder_append(&builder, ",\"symbol_name\":") != 0 ||
+          json_builder_append_json_string(&builder, range->symbol_name) != 0)
+        goto oom;
+    }
     if (json_builder_appendf(&builder, ",\"status\":%u,\"status_name\":",
         (unsigned)range->status) != 0)
       goto oom;
@@ -3888,6 +3898,11 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
       if (json_builder_append_json_string(&builder,
           absolute_memory_owner_kind_name(observation->owner_kind)) != 0)
         goto oom;
+      if (observation->symbol_name != NULL) {
+        if (json_builder_append(&builder, ",\"symbol_name\":") != 0 ||
+            json_builder_append_json_string(&builder, observation->symbol_name) != 0)
+          goto oom;
+      }
       if (json_builder_appendf(&builder,
           ",\"owner_offset\":%u,\"conflicted\":%s,\"conflict_state_id\":%u,\"conflict_state_name\":",
           (unsigned)observation->owner_offset, observation->conflicted ? "true" : "false",

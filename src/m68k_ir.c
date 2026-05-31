@@ -1152,6 +1152,7 @@ int m68k_ir_source_analysis_append_source_quality_diagnostic(M68kSourceAnalysisI
 
 int m68k_ir_source_analysis_append_address_identity(M68kSourceAnalysisIR *source_analysis,
     const M68kAddressIdentityIR *identity) {
+  M68kAddressIdentityIR copy;
   size_t index;
   if (source_analysis == NULL || identity == NULL || source_analysis->arena == NULL) return -1;
   if (identity->identity_id == 0U) return 0;
@@ -1163,12 +1164,19 @@ int m68k_ir_source_analysis_append_address_identity(M68kSourceAnalysisIR *source
     source_analysis->address_identities, source_analysis->address_identity_count,
     &source_analysis->address_identity_capacity, 16U, sizeof(*source_analysis->address_identities));
   if (source_analysis->address_identities == NULL) return -1;
-  source_analysis->address_identities[source_analysis->address_identity_count++] = *identity;
+  copy = *identity;
+  copy.symbol_name = NULL;
+  if (identity->symbol_name != NULL) {
+    copy.symbol_name = arena_strdup(source_analysis->arena, identity->symbol_name);
+    if (copy.symbol_name == NULL) return -1;
+  }
+  source_analysis->address_identities[source_analysis->address_identity_count++] = copy;
   return 0;
 }
 
 int m68k_ir_source_analysis_append_absolute_address_range(M68kSourceAnalysisIR *source_analysis,
     const M68kAbsoluteAddressRangeIR *range) {
+  M68kAbsoluteAddressRangeIR copy;
   size_t index;
   if (source_analysis == NULL || range == NULL || source_analysis->arena == NULL) return -1;
   if (range->status == M68K_ABSOLUTE_ADDRESS_RANGE_STATUS_UNKNOWN) return 0;
@@ -1188,7 +1196,13 @@ int m68k_ir_source_analysis_append_absolute_address_range(M68kSourceAnalysisIR *
     source_analysis->absolute_address_range_count, &source_analysis->absolute_address_range_capacity,
     16U, sizeof(*source_analysis->absolute_address_ranges));
   if (source_analysis->absolute_address_ranges == NULL) return -1;
-  source_analysis->absolute_address_ranges[source_analysis->absolute_address_range_count++] = *range;
+  copy = *range;
+  copy.symbol_name = NULL;
+  if (range->symbol_name != NULL) {
+    copy.symbol_name = arena_strdup(source_analysis->arena, range->symbol_name);
+    if (copy.symbol_name == NULL) return -1;
+  }
+  source_analysis->absolute_address_ranges[source_analysis->absolute_address_range_count++] = copy;
   return 0;
 }
 
@@ -2668,6 +2682,7 @@ int m68k_ir_section_analysis_append_runtime_address_ref(M68kSectionAnalysisIR *s
 
 int m68k_ir_section_analysis_append_address_observation(M68kSectionAnalysisIR *section_analysis,
     const M68kAddressObservationIR *observation) {
+  M68kAddressObservationIR copy;
   size_t index;
   if (section_analysis == NULL || observation == NULL || section_analysis->arena == NULL) return -1;
   if (observation->source == M68K_ADDRESS_OBSERVATION_SOURCE_UNKNOWN) return 0;
@@ -2688,7 +2703,13 @@ int m68k_ir_section_analysis_append_address_observation(M68kSectionAnalysisIR *s
     section_analysis->address_observations, section_analysis->address_observation_count,
     &section_analysis->address_observation_capacity, 8U, sizeof(*section_analysis->address_observations));
   if (section_analysis->address_observations == NULL) return -1;
-  section_analysis->address_observations[section_analysis->address_observation_count++] = *observation;
+  copy = *observation;
+  copy.symbol_name = NULL;
+  if (observation->symbol_name != NULL) {
+    copy.symbol_name = arena_strdup(section_analysis->arena, observation->symbol_name);
+    if (copy.symbol_name == NULL) return -1;
+  }
+  section_analysis->address_observations[section_analysis->address_observation_count++] = copy;
   return 0;
 }
 

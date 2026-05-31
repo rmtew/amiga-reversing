@@ -309,6 +309,62 @@ static void source_analysis_sort_and_coalesce_absolute_ranges(M68kSourceAnalysis
   source_analysis->absolute_address_range_count = out_count;
 }
 
+static int format_generated_absolute_memory_symbol(uint32_t address, char *buf, size_t buf_size) {
+  int written;
+  if (buf == NULL || buf_size == 0U) return 0;
+  written = snprintf(buf, buf_size, "absolute_slot_%08X", (unsigned)address);
+  return written > 0 && (size_t)written < buf_size;
+}
+
+static int source_analysis_assign_absolute_memory_symbols(M68kSourceAnalysisIR *source_analysis) {
+  size_t identity_index;
+  if (source_analysis == NULL || source_analysis->arena == NULL) return -1;
+  for (identity_index = 0U; identity_index < source_analysis->address_identity_count; ++identity_index) {
+    M68kAddressIdentityIR *identity = &source_analysis->address_identities[identity_index];
+    char symbol[80];
+    if (identity->owner_kind != M68K_ABSOLUTE_MEMORY_OWNER_ABSOLUTE_MEMORY ||
+        !identity->has_absolute_address ||
+        identity->symbol_name != NULL) {
+      continue;
+    }
+    if (!format_generated_absolute_memory_symbol(identity->absolute_address, symbol, sizeof(symbol))) return -1;
+    identity->symbol_name = arena_strdup(source_analysis->arena, symbol);
+    if (identity->symbol_name == NULL) return -1;
+  }
+  for (identity_index = 0U; identity_index < source_analysis->address_identity_count; ++identity_index) {
+    M68kAddressIdentityIR *identity = &source_analysis->address_identities[identity_index];
+    size_t section_index;
+    if (identity->symbol_name == NULL) continue;
+    for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
+      M68kSectionAnalysisIR *section = &source_analysis->sections[section_index];
+      size_t observation_index;
+      for (observation_index = 0U; observation_index < section->address_observation_count; ++observation_index) {
+        M68kAddressObservationIR *observation = &section->address_observations[observation_index];
+        if (observation->has_identity && observation->identity_id == identity->identity_id &&
+            observation->owner_kind == M68K_ABSOLUTE_MEMORY_OWNER_ABSOLUTE_MEMORY) {
+          observation->symbol_name = identity->symbol_name;
+        }
+      }
+    }
+  }
+  for (identity_index = 0U; identity_index < source_analysis->absolute_address_range_count; ++identity_index) {
+    M68kAbsoluteAddressRangeIR *range = &source_analysis->absolute_address_ranges[identity_index];
+    size_t address_identity_index;
+    if (range->owner_kind != M68K_ABSOLUTE_MEMORY_OWNER_ABSOLUTE_MEMORY || range->symbol_name != NULL) continue;
+    for (address_identity_index = 0U; address_identity_index < source_analysis->address_identity_count;
+         ++address_identity_index) {
+      M68kAddressIdentityIR *identity = &source_analysis->address_identities[address_identity_index];
+      if (identity->symbol_name != NULL &&
+          identity->has_absolute_address &&
+          identity->absolute_address == range->start_address) {
+        range->symbol_name = identity->symbol_name;
+        break;
+      }
+    }
+  }
+  return 0;
+}
+
 static void address_identity_merge_observation(M68kAddressIdentityIR *identity,
     const M68kAddressObservationIR *observation, uint32_t section_index) {
   if (identity == NULL || observation == NULL) return;
@@ -394,6 +450,7 @@ static int append_address_identities_and_ranges(M68kSourceAnalysisIR *source_ana
     if (m68k_ir_source_analysis_append_absolute_address_range(source_analysis, &range) != 0) return -1;
   }
   source_analysis_sort_and_coalesce_absolute_ranges(source_analysis);
+  if (source_analysis_assign_absolute_memory_symbols(source_analysis) != 0) return -1;
   return 0;
 }
 

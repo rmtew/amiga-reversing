@@ -1269,6 +1269,7 @@ typedef enum M68kAddressObservationSourceKind {
 } M68kAddressObservationSourceKind;
 
 typedef struct M68kAddressObservationIR {
+  char *symbol_name;
   uint32_t offset;
   uint32_t operand_index;
   uint32_t raw_value;
@@ -1297,6 +1298,7 @@ typedef enum M68kAddressIdentityRoleKind {
 } M68kAddressIdentityRoleKind;
 
 typedef struct M68kAddressIdentityIR {
+  char *symbol_name;
   uint32_t identity_id;
   uint32_t source_section_index;
   uint32_t source_offset;
@@ -1323,6 +1325,7 @@ typedef enum M68kAbsoluteAddressRangeStatus {
 } M68kAbsoluteAddressRangeStatus;
 
 typedef struct M68kAbsoluteAddressRangeIR {
+  char *symbol_name;
   uint32_t start_address;
   uint32_t range_size;
   uint32_t source_section_index;

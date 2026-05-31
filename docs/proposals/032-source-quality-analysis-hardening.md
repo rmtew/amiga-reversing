@@ -4507,3 +4507,27 @@ Render still decides whether an operand position is printable, but it no longer
 re-derives the absolute hardware/vector symbol from the numeric address for
 these source-quality facts. JSON now exports `platform_address_uses[].symbol_name`
 so reports and web views consume the same C-owned fact.
+
+### Absolute Memory Symbol Ownership
+
+Moved generated absolute-memory slot names into Source Analysis IR:
+
+```text
+address observation
+  owner=absolute_memory address=$0000012A access=memory_read
+  -> address_identity(storage)
+  -> absolute_address_range(unowned_one_off)
+  -> symbol_name=absolute_slot_0000012A
+```
+
+`M68kAddressObservationIR`, `M68kAddressIdentityIR`, and
+`M68kAbsoluteAddressRangeIR` now carry `symbol_name` when C source-quality
+analysis accepts the generated name. Rendering no longer formats
+`absolute_slot_%08X`; it only emits an equate and symbolic operand when the exact
+source-analysis observation for that operand already carries a symbol.
+
+JSON exports the same `symbol_name` fields on observations, identities, and
+ranges, so reports can distinguish a C-owned generated name from a raw numeric
+absolute address. The existing rendered source is unchanged, but the ownership
+boundary is now correct: render presentation consumes the generated symbol
+instead of inventing it.
