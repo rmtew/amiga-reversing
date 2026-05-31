@@ -1610,6 +1610,53 @@ typedef struct M68kSourceQualityDiagnosticIR {
   char *owner_kind;
 } M68kSourceQualityDiagnosticIR;
 
+typedef enum M68kCodeOriginClass {
+  M68K_CODE_ORIGIN_UNKNOWN = 0,
+  M68K_CODE_ORIGIN_STRONG_ENTRY = 1,
+  M68K_CODE_ORIGIN_PROVEN_CONTROL_TARGET = 2,
+  M68K_CODE_ORIGIN_PROVEN_FALLTHROUGH = 3,
+  M68K_CODE_ORIGIN_PLATFORM_SEMANTIC_ENTRY = 4,
+  M68K_CODE_ORIGIN_MANUAL_SEED = 5,
+  M68K_CODE_ORIGIN_CONDITIONAL_TABLE_TARGET = 6,
+  M68K_CODE_ORIGIN_CONDITIONAL_RUNTIME_ALIAS = 7,
+  M68K_CODE_ORIGIN_WEAK_SHAPE_ONLY = 8,
+  M68K_CODE_ORIGIN_DATA_REFERENCE_ONLY = 9
+} M68kCodeOriginClass;
+
+typedef enum M68kAcceptedCodeRunEndKind {
+  M68K_ACCEPTED_CODE_RUN_END_UNKNOWN = 0,
+  M68K_ACCEPTED_CODE_RUN_END_TERMINAL = 1,
+  M68K_ACCEPTED_CODE_RUN_END_PROVEN_TRANSFER = 2,
+  M68K_ACCEPTED_CODE_RUN_END_SECTION_BOUNDARY = 3,
+  M68K_ACCEPTED_CODE_RUN_END_ACCEPTED_GAP = 4,
+  M68K_ACCEPTED_CODE_RUN_END_DATA_BOUNDARY = 5
+} M68kAcceptedCodeRunEndKind;
+
+typedef struct M68kCodeOriginIR {
+  uint32_t offset;
+  uint32_t length;
+  uint32_t source_section_index;
+  uint32_t source_offset;
+  uint32_t runtime_address;
+  uint32_t reason;
+  uint32_t evidence_kind;
+  uint8_t origin_class;
+  uint8_t confidence;
+  uint8_t has_runtime_address;
+  uint8_t reserved[1];
+} M68kCodeOriginIR;
+
+typedef struct M68kAcceptedCodeRunIR {
+  uint32_t start_offset;
+  uint32_t end_offset;
+  uint32_t instruction_count;
+  uint32_t terminal_offset;
+  uint8_t end_kind;
+  uint8_t has_terminal_offset;
+  uint8_t has_origin;
+  uint8_t reserved[1];
+} M68kAcceptedCodeRunIR;
+
 typedef struct M68kSectionAnalysisIR {
   size_t section_index;
   char *section_name;
@@ -1748,6 +1795,12 @@ typedef struct M68kSectionAnalysisIR {
   M68kSourceQualityDiagnosticIR *source_quality_diagnostics;
   size_t source_quality_diagnostic_count;
   size_t source_quality_diagnostic_capacity;
+  M68kCodeOriginIR *code_origins;
+  size_t code_origin_count;
+  size_t code_origin_capacity;
+  M68kAcceptedCodeRunIR *accepted_code_runs;
+  size_t accepted_code_run_count;
+  size_t accepted_code_run_capacity;
   uint8_t recovered_direct_section_calls_indexed;
   Arena *arena;
 } M68kSectionAnalysisIR;
@@ -1807,6 +1860,8 @@ const char *m68k_incomplete_analysis_source_kind_name(uint8_t source_kind);
 const char *m68k_source_quality_diagnostic_severity_name(uint8_t severity);
 const char *m68k_source_quality_diagnostic_kind_name(uint8_t kind);
 const char *m68k_source_quality_diagnostic_origin_name(uint8_t origin);
+const char *m68k_code_origin_class_name(uint8_t origin_class);
+const char *m68k_accepted_code_run_end_kind_name(uint8_t end_kind);
 uint8_t m68k_analysis_table_entry_count_proof_for_source_pattern(uint8_t source_pattern_id);
 uint8_t m68k_analysis_table_stop_reason_for_entry_count_proof(uint8_t proof_id);
 uint8_t m68k_recovered_indirect_source_pattern_id(uint8_t shape);
@@ -1946,6 +2001,10 @@ int m68k_ir_section_analysis_append_code_start_ref(M68kSectionAnalysisIR *sectio
     const M68kCodeStartRefIR *code_start_ref);
 int m68k_ir_section_analysis_append_source_quality_diagnostic(M68kSectionAnalysisIR *section_analysis,
     const M68kSourceQualityDiagnosticIR *diagnostic);
+int m68k_ir_section_analysis_append_code_origin(M68kSectionAnalysisIR *section_analysis,
+    const M68kCodeOriginIR *origin);
+int m68k_ir_section_analysis_append_accepted_code_run(M68kSectionAnalysisIR *section_analysis,
+    const M68kAcceptedCodeRunIR *run);
 int m68k_ir_source_analysis_create(M68kSourceAnalysisIR *source_analysis);
 void m68k_ir_source_analysis_destroy(M68kSourceAnalysisIR *source_analysis);
 int m68k_ir_source_analysis_append_platform_storage_layout(M68kSourceAnalysisIR *source_analysis,

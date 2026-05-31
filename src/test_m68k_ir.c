@@ -10,6 +10,7 @@
 #include "m68k_render_ir.h"
 #include "m68k_render_lookup_internal.h"
 #include "m68k_simulator.h"
+#include "m68k_source_quality.h"
 #include "m68k_source_model.h"
 #include "m68k_source_pipeline.h"
 #include "platform_common.h"
@@ -10090,6 +10091,58 @@ static int test_source_analysis_source_quality_diagnostics_export(void) {
   M68K_C_ASSERT(strstr(analysis_json, "\"related_address\":116") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"platform_use_shape\":\"low_memory_base\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"owner_kind\":\"low_ram\"") != NULL);
+  free(analysis_json);
+  m68k_ir_section_analysis_destroy(&section_analysis);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  return 0;
+}
+
+static int test_source_quality_analyze_exports_code_origins_and_runs(void) {
+  M68kSourceAnalysisIR source_analysis;
+  M68kSectionAnalysisIR section_analysis;
+  M68kCodeStartRefIR code_start_ref;
+  uint8_t certain_start[16];
+  uint8_t certain_byte[16];
+  char *analysis_json = NULL;
+  memset(certain_start, 0, sizeof(certain_start));
+  memset(certain_byte, 0, sizeof(certain_byte));
+  certain_start[4] = 1U;
+  certain_start[6] = 1U;
+  certain_byte[4] = 1U;
+  certain_byte[5] = 1U;
+  certain_byte[6] = 1U;
+  certain_byte[7] = 1U;
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_create(&source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_create(&section_analysis, test_ir_result_arena()));
+  section_analysis.section_index = 0U;
+  section_analysis.section_size = 16U;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_set_code_map(
+    &section_analysis, certain_start, certain_byte, sizeof(certain_byte)));
+  memset(&code_start_ref, 0, sizeof(code_start_ref));
+  code_start_ref.offset = 4U;
+  code_start_ref.reason = M68K_FACT_CODE_START_REASON_POLICY_ENTRY_POINT;
+  code_start_ref.confidence = M68K_FACT_CONFIDENCE_REQUIRED;
+  code_start_ref.source_section_index = 0U;
+  code_start_ref.source_offset = 4U;
+  code_start_ref.size = 2U;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_code_start_ref(&section_analysis, &code_start_ref));
+  code_start_ref.offset = 6U;
+  code_start_ref.reason = M68K_FACT_CODE_START_REASON_FALLTHROUGH;
+  code_start_ref.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
+  code_start_ref.source_offset = 4U;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_code_start_ref(&section_analysis, &code_start_ref));
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
+  M68K_C_ASSERT_INT(0, m68k_source_quality_analyze(&source_analysis));
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"code_origin_count\":2") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"origin_class\":\"strong_entry\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"origin_class\":\"proven_fallthrough\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"accepted_code_run_count\":1") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"accepted_code_runs\":[{\"start_offset\":4,\"end_offset\":8,\"instruction_count\":2") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"end_kind\":\"accepted_gap\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"has_origin\":true") != NULL);
   free(analysis_json);
   m68k_ir_section_analysis_destroy(&section_analysis);
   m68k_ir_source_analysis_destroy(&source_analysis);
@@ -23233,6 +23286,8 @@ int m68k_c_ir_tests(void) {
       test_source_analysis_incomplete_analysis_exports_capacity_hit},
     {"source_analysis_source_quality_diagnostics_export",
       test_source_analysis_source_quality_diagnostics_export},
+    {"source_quality_analyze_exports_code_origins_and_runs",
+      test_source_quality_analyze_exports_code_origins_and_runs},
     {"source_analysis_range_ownership_exports_conflict",
       test_source_analysis_range_ownership_exports_conflict},
     {"source_analysis_platform_storage_effect_conflicts_only_mapped_section_storage",

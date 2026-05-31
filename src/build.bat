@@ -62,6 +62,7 @@ cl %CFLAGS% /c /Fo%OUTDIR%\ ^
     src\m68k_render_plan.c ^
     src\m68k_analysis_render_lookup.c ^
     src\m68k_analysis_facts_v2.c ^
+    src\m68k_source_quality.c ^
     src\m68k_ir.c ^
     src\m68k_ir_codec.c ^
     src\m68k_ir_parse.c ^
@@ -149,6 +150,7 @@ link %LDFLAGS% /OUT:%EXE% ^
     %OUTDIR%\m68k_render_plan.obj ^
     %OUTDIR%\m68k_analysis_render_lookup.obj ^
     %OUTDIR%\m68k_analysis_facts_v2.obj ^
+    %OUTDIR%\m68k_source_quality.obj ^
     %OUTDIR%\m68k_plain_parse.obj ^
     %OUTDIR%\m68k_simple_source.obj ^
     %OUTDIR%\m68k_ir.obj ^
@@ -214,6 +216,7 @@ link %LDFLAGS% /STACK:8388608 /OUT:%C_TEST_EXE% ^
     %OUTDIR%\m68k_render_plan.obj ^
     %OUTDIR%\m68k_analysis_render_lookup.obj ^
     %OUTDIR%\m68k_analysis_facts_v2.obj ^
+    %OUTDIR%\m68k_source_quality.obj ^
     %OUTDIR%\m68k_plain_parse.obj ^
     %OUTDIR%\m68k_ir.obj ^
     %OUTDIR%\m68k_ir_codec.obj ^
@@ -351,6 +354,7 @@ link %LDFLAGS% /OUT:%DISK_EXE% ^
     %OUTDIR%\m68k_render_plan.obj ^
     %OUTDIR%\m68k_analysis_render_lookup.obj ^
     %OUTDIR%\m68k_analysis_facts_v2.obj ^
+    %OUTDIR%\m68k_source_quality.obj ^
     %OUTDIR%\m68k_ir.obj ^
     %OUTDIR%\m68k_ir_codec.obj ^
     %OUTDIR%\m68k_parse_util.obj ^
@@ -422,6 +426,7 @@ link %LDFLAGS% /DLL /OUT:%DISK_DLL% ^
     %OUTDIR%\m68k_render_plan.obj ^
     %OUTDIR%\m68k_analysis_render_lookup.obj ^
     %OUTDIR%\m68k_analysis_facts_v2.obj ^
+    %OUTDIR%\m68k_source_quality.obj ^
     %OUTDIR%\m68k_ir.obj ^
     %OUTDIR%\m68k_ir_codec.obj ^
     %OUTDIR%\m68k_parse_util.obj ^
@@ -518,6 +523,7 @@ link %LDFLAGS% /OUT:%FILE_EXE% ^
     %OUTDIR%\m68k_render_plan.obj ^
     %OUTDIR%\m68k_analysis_render_lookup.obj ^
     %OUTDIR%\m68k_analysis_facts_v2.obj ^
+    %OUTDIR%\m68k_source_quality.obj ^
     %OUTDIR%\m68k_disassembler_lib.obj ^
     %OUTDIR%\m68k_simulator.obj ^
     %OUTDIR%\m68k_asm_tables.obj ^
@@ -586,6 +592,7 @@ link %LDFLAGS% /DLL /OUT:%FILE_DLL% ^
     %OUTDIR%\m68k_render_plan.obj ^
     %OUTDIR%\m68k_analysis_render_lookup.obj ^
     %OUTDIR%\m68k_analysis_facts_v2.obj ^
+    %OUTDIR%\m68k_source_quality.obj ^
     %OUTDIR%\m68k_disassembler_lib.obj ^
     %OUTDIR%\m68k_simulator.obj ^
     %OUTDIR%\m68k_asm_tables.obj ^

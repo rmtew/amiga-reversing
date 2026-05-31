@@ -3620,6 +3620,7 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
     size_t block_index, edge_index, violation_index, app_slot_ref_index, typed_access_index, range_index;
     size_t table_descriptor_index, table_consumer_index, table_entry_index;
     size_t unresolved_typed_access_index, runtime_view_index, runtime_address_ref_index, code_start_ref_index;
+    size_t code_origin_index, accepted_code_run_index;
     size_t data_reference_index, immediate_text_token_index;
     size_t string_ref_index;
     size_t effect_index, call_index, disk_read_index, runtime_copy_index, media_transfer_index;
@@ -3848,6 +3849,55 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
         goto oom;
       if (append_source_quality_diagnostic_json(&builder,
           &section->source_quality_diagnostics[source_quality_index], 1U) != 0)
+        goto oom;
+    }
+    if (json_builder_appendf(&builder, "],\"code_origin_count\":%u,\"code_origins\":[",
+          (unsigned)section->code_origin_count) != 0)
+      goto oom;
+    for (code_origin_index = 0U; code_origin_index < section->code_origin_count; ++code_origin_index) {
+      const M68kCodeOriginIR *origin = &section->code_origins[code_origin_index];
+      if (code_origin_index != 0U && json_builder_append(&builder, ",") != 0) goto oom;
+      if (json_builder_appendf(&builder,
+          "{\"offset\":%u,\"length\":%u,\"origin_class_id\":%u,\"origin_class\":",
+          (unsigned)origin->offset, (unsigned)origin->length, (unsigned)origin->origin_class) != 0)
+        goto oom;
+      if (json_builder_append_json_string(&builder, m68k_code_origin_class_name(origin->origin_class)) != 0)
+        goto oom;
+      if (json_builder_appendf(&builder,
+          ",\"source_section_index\":%u,\"source_offset\":%u,\"reason\":%u,\"reason_name\":",
+          (unsigned)origin->source_section_index, (unsigned)origin->source_offset, (unsigned)origin->reason) != 0)
+        goto oom;
+      if (json_builder_append_json_string(&builder, m68k_code_start_reason_name(origin->reason)) != 0)
+        goto oom;
+      if (json_builder_appendf(&builder,
+          ",\"evidence_kind\":%u,\"confidence\":%u,\"runtime_address\":",
+          (unsigned)origin->evidence_kind, (unsigned)origin->confidence) != 0)
+        goto oom;
+      if (origin->has_runtime_address) {
+        if (json_builder_appendf(&builder, "%u", (unsigned)origin->runtime_address) != 0) goto oom;
+      } else if (json_builder_append(&builder, "null") != 0) goto oom;
+      if (json_builder_append(&builder, "}") != 0) goto oom;
+    }
+    if (json_builder_appendf(&builder, "],\"accepted_code_run_count\":%u,\"accepted_code_runs\":[",
+          (unsigned)section->accepted_code_run_count) != 0)
+      goto oom;
+    for (accepted_code_run_index = 0U; accepted_code_run_index < section->accepted_code_run_count;
+        ++accepted_code_run_index) {
+      const M68kAcceptedCodeRunIR *run = &section->accepted_code_runs[accepted_code_run_index];
+      if (accepted_code_run_index != 0U && json_builder_append(&builder, ",") != 0) goto oom;
+      if (json_builder_appendf(&builder,
+          "{\"start_offset\":%u,\"end_offset\":%u,\"instruction_count\":%u,"
+          "\"end_kind_id\":%u,\"end_kind\":",
+          (unsigned)run->start_offset, (unsigned)run->end_offset, (unsigned)run->instruction_count,
+          (unsigned)run->end_kind) != 0)
+        goto oom;
+      if (json_builder_append_json_string(&builder, m68k_accepted_code_run_end_kind_name(run->end_kind)) != 0)
+        goto oom;
+      if (json_builder_append(&builder, ",\"terminal_offset\":") != 0) goto oom;
+      if (run->has_terminal_offset) {
+        if (json_builder_appendf(&builder, "%u", (unsigned)run->terminal_offset) != 0) goto oom;
+      } else if (json_builder_append(&builder, "null") != 0) goto oom;
+      if (json_builder_appendf(&builder, ",\"has_origin\":%s}", run->has_origin ? "true" : "false") != 0)
         goto oom;
     }
     if (json_builder_appendf(&builder, "],\"range_ownership_count\":%u,\"range_ownerships\":[",

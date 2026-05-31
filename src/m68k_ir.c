@@ -330,6 +330,48 @@ const char *m68k_source_quality_diagnostic_origin_name(uint8_t origin) {
   }
 }
 
+const char *m68k_code_origin_class_name(uint8_t origin_class) {
+  switch (origin_class) {
+    case M68K_CODE_ORIGIN_STRONG_ENTRY:
+      return "strong_entry";
+    case M68K_CODE_ORIGIN_PROVEN_CONTROL_TARGET:
+      return "proven_control_target";
+    case M68K_CODE_ORIGIN_PROVEN_FALLTHROUGH:
+      return "proven_fallthrough";
+    case M68K_CODE_ORIGIN_PLATFORM_SEMANTIC_ENTRY:
+      return "platform_semantic_entry";
+    case M68K_CODE_ORIGIN_MANUAL_SEED:
+      return "manual_seed";
+    case M68K_CODE_ORIGIN_CONDITIONAL_TABLE_TARGET:
+      return "conditional_table_target";
+    case M68K_CODE_ORIGIN_CONDITIONAL_RUNTIME_ALIAS:
+      return "conditional_runtime_alias";
+    case M68K_CODE_ORIGIN_WEAK_SHAPE_ONLY:
+      return "weak_shape_only";
+    case M68K_CODE_ORIGIN_DATA_REFERENCE_ONLY:
+      return "data_reference_only";
+    default:
+      return "unknown";
+  }
+}
+
+const char *m68k_accepted_code_run_end_kind_name(uint8_t end_kind) {
+  switch (end_kind) {
+    case M68K_ACCEPTED_CODE_RUN_END_TERMINAL:
+      return "terminal";
+    case M68K_ACCEPTED_CODE_RUN_END_PROVEN_TRANSFER:
+      return "proven_transfer";
+    case M68K_ACCEPTED_CODE_RUN_END_SECTION_BOUNDARY:
+      return "section_boundary";
+    case M68K_ACCEPTED_CODE_RUN_END_ACCEPTED_GAP:
+      return "accepted_gap";
+    case M68K_ACCEPTED_CODE_RUN_END_DATA_BOUNDARY:
+      return "data_boundary";
+    default:
+      return "unknown";
+  }
+}
+
 uint8_t m68k_analysis_table_entry_count_proof_for_source_pattern(uint8_t source_pattern_id) {
   switch (source_pattern_id) {
     case M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_RELOCATION_POINTER_TABLE:
@@ -2368,6 +2410,46 @@ int m68k_ir_section_analysis_append_source_quality_diagnostic(M68kSectionAnalysi
   return 0;
 }
 
+int m68k_ir_section_analysis_append_code_origin(M68kSectionAnalysisIR *section_analysis,
+    const M68kCodeOriginIR *origin) {
+  size_t index;
+  if (section_analysis == NULL || origin == NULL || section_analysis->arena == NULL) return -1;
+  if (origin->origin_class == M68K_CODE_ORIGIN_UNKNOWN) return 0;
+  for (index = 0U; index < section_analysis->code_origin_count; ++index) {
+    const M68kCodeOriginIR *existing = &section_analysis->code_origins[index];
+    if (existing->offset == origin->offset &&
+        existing->origin_class == origin->origin_class &&
+        existing->reason == origin->reason &&
+        existing->source_section_index == origin->source_section_index &&
+        existing->source_offset == origin->source_offset) {
+      return 0;
+    }
+  }
+  section_analysis->code_origins = (M68kCodeOriginIR *)arena_grow_array(section_analysis->arena,
+    section_analysis->code_origins, section_analysis->code_origin_count,
+    &section_analysis->code_origin_capacity, 8U, sizeof(*section_analysis->code_origins));
+  if (section_analysis->code_origins == NULL) return -1;
+  section_analysis->code_origins[section_analysis->code_origin_count++] = *origin;
+  return 0;
+}
+
+int m68k_ir_section_analysis_append_accepted_code_run(M68kSectionAnalysisIR *section_analysis,
+    const M68kAcceptedCodeRunIR *run) {
+  size_t index;
+  if (section_analysis == NULL || run == NULL || section_analysis->arena == NULL) return -1;
+  if (run->end_offset <= run->start_offset) return 0;
+  for (index = 0U; index < section_analysis->accepted_code_run_count; ++index) {
+    const M68kAcceptedCodeRunIR *existing = &section_analysis->accepted_code_runs[index];
+    if (existing->start_offset == run->start_offset && existing->end_offset == run->end_offset) return 0;
+  }
+  section_analysis->accepted_code_runs = (M68kAcceptedCodeRunIR *)arena_grow_array(section_analysis->arena,
+    section_analysis->accepted_code_runs, section_analysis->accepted_code_run_count,
+    &section_analysis->accepted_code_run_capacity, 8U, sizeof(*section_analysis->accepted_code_runs));
+  if (section_analysis->accepted_code_runs == NULL) return -1;
+  section_analysis->accepted_code_runs[section_analysis->accepted_code_run_count++] = *run;
+  return 0;
+}
+
 int m68k_ir_section_analysis_append_recovered_platform_base_slot(M68kSectionAnalysisIR *section_analysis,
     uint8_t platform_kind, int16_t displacement, const char *base_name) {
   size_t index;
@@ -3775,6 +3857,20 @@ int m68k_ir_source_analysis_append_section(M68kSourceAnalysisIR *source_analysis
   for (index = 0; index < section_analysis->source_quality_diagnostic_count; ++index) {
     if (m68k_ir_section_analysis_append_source_quality_diagnostic(&copy,
           &section_analysis->source_quality_diagnostics[index]) != 0) {
+      m68k_ir_section_analysis_destroy(&copy);
+      return -1;
+    }
+  }
+  for (index = 0; index < section_analysis->code_origin_count; ++index) {
+    if (m68k_ir_section_analysis_append_code_origin(&copy,
+          &section_analysis->code_origins[index]) != 0) {
+      m68k_ir_section_analysis_destroy(&copy);
+      return -1;
+    }
+  }
+  for (index = 0; index < section_analysis->accepted_code_run_count; ++index) {
+    if (m68k_ir_section_analysis_append_accepted_code_run(&copy,
+          &section_analysis->accepted_code_runs[index]) != 0) {
       m68k_ir_section_analysis_destroy(&copy);
       return -1;
     }

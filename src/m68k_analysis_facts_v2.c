@@ -9,6 +9,7 @@
 #include "m68k_parse_util.h"
 #include "m68k_render_ir.h"
 #include "m68k_simulator.h"
+#include "m68k_source_quality.h"
 #include "platform_common.h"
 #include "generated/amiga_os_runtime.h"
 #include "generated/m68k_cpu_runtime.h"
@@ -9946,6 +9947,11 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
       facts_v2_append_incomplete_analysis_from_profile(out_profile, out_source_analysis) != 0) {
     m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
       "facts_v2 incomplete analysis append failed");
+    goto fail;
+  }
+  if (out_source_analysis != NULL && m68k_source_quality_analyze(out_source_analysis) != 0) {
+    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
+      "facts_v2 source quality analysis failed");
     goto fail;
   }
   if (out_source_analysis != NULL) {
