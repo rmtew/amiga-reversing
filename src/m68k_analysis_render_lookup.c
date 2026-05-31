@@ -6378,7 +6378,7 @@ int render_lookup_add_runtime_address_ref(M68kRenderLookup *lookup, const M68kFa
 }
 
 static int render_lookup_add_inferred_runtime_address_ref(M68kRenderLookup *lookup, size_t section_index,
-    uint32_t offset, uint32_t runtime_address, uint32_t size, uint32_t data_class_flags) {
+    uint32_t offset, uint32_t source_size, uint32_t runtime_address, uint32_t size, uint32_t data_class_flags) {
   M68kRenderInferredRuntimeAddressRef *grown;
   M68kRenderInferredRuntimeAddressRef *entry;
   size_t next_capacity;
@@ -6393,6 +6393,7 @@ static int render_lookup_add_inferred_runtime_address_ref(M68kRenderLookup *look
   for (index = 0U; index < lookup->inferred_runtime_address_ref_count; ++index) {
     const M68kRenderInferredRuntimeAddressRef *existing = &lookup->inferred_runtime_address_refs[index];
     if (existing->section_index == section_index && existing->ref.offset == offset &&
+        existing->ref.source_size == source_size &&
         existing->ref.has_runtime_address && existing->ref.runtime_address == runtime_address &&
         existing->ref.size == size && existing->data_class_flags == role_flags) {
       return 0;
@@ -6412,6 +6413,7 @@ static int render_lookup_add_inferred_runtime_address_ref(M68kRenderLookup *look
   memset(entry, 0, sizeof(*entry));
   entry->section_index = section_index;
   entry->ref.offset = offset;
+  entry->ref.source_size = source_size;
   entry->ref.operand_index = UINT32_MAX;
   entry->ref.size = size;
   entry->ref.has_target = 0U;
@@ -7864,6 +7866,7 @@ static int append_render_lookup_runtime_address_refs_for_section(const M68kRende
       if (!manual_ref->has_section_index || manual_ref->section_index != section_analysis->section_index) continue;
       memset(&ref, 0, sizeof(ref));
       ref.offset = manual_ref->offset;
+      ref.source_size = manual_ref->size;
       ref.operand_index = UINT32_MAX;
       ref.size = manual_ref->size;
       ref.has_target = manual_ref->has_target;
@@ -8176,7 +8179,7 @@ static int render_lookup_add_copper_bitmap_runtime_refs(M68kRenderLookup *lookup
   step = copper_bitmap_pointer_even_step(pointers, pointer_count);
   for (index = 0U; index < pointer_count; ++index) {
     if (render_lookup_add_inferred_runtime_address_ref(lookup, section->section_index, row_offsets[index],
-        pointers[index], step, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BITMAP) != 0) {
+        4U, pointers[index], step, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BITMAP) != 0) {
       return -1;
     }
   }
@@ -8248,7 +8251,7 @@ static int render_lookup_add_bitmap_memory_comment(M68kRenderLookup *lookup, siz
   if (!format_bitmap_memory_comment(address, comment, sizeof(comment))) return 0;
   result = render_lookup_add_instruction_comment(lookup, section_index, offset, comment);
   if (result != 0) return result;
-  return render_lookup_add_inferred_runtime_address_ref(lookup, section_index, offset,
+  return render_lookup_add_inferred_runtime_address_ref(lookup, section_index, offset, 0U,
     address->base + address->delta, 0U, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BITMAP);
 }
 

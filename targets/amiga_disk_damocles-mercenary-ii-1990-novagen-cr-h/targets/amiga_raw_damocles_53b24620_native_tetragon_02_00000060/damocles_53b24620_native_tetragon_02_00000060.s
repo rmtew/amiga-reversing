@@ -33,7 +33,82 @@
 ;     absolute[$0006BAC2] refs=1 access=a
 ;     absolute[$0006BAEA] refs=1 access=a
 ;     absolute[$0006BB12] refs=1 access=a
-;     ... additional absolute memory ranges omitted
+;     absolute[$0006BB3A] refs=1 access=a
+;     absolute[$0006BB62] refs=1 access=a
+;     absolute[$0006BB8A] refs=1 access=a
+;     absolute[$0006BBB2] refs=1 access=a
+;     absolute[$0006BBDA] refs=1 access=a
+;     absolute[$0006BC02] refs=1 access=a
+;     absolute[$0006BC2A] refs=1 access=a
+;     absolute[$0006BC52] refs=1 access=a
+;     absolute[$0006BC7A] refs=1 access=a
+;     absolute[$0006BCA2] refs=1 access=a
+;     absolute[$0006BCCA] refs=1 access=a
+;     absolute[$0006BCF2] refs=1 access=a
+;     absolute[$0006BE80-$0006DDC0] refs=1 access=a
+;     absolute[$0006D9EC] refs=1 access=a
+;     absolute[$0006DDC0-$0006FD00] refs=1 access=a
+;     absolute[$0006FA3C] refs=1 access=a
+;     absolute[$0006FA3E] refs=1 access=a
+;     absolute[$0006FA62] refs=1 access=a
+;     absolute[$0006FA64] refs=1 access=a
+;     absolute[$0006FA66] refs=1 access=a
+;     absolute[$0006FA8A] refs=1 access=a
+;     absolute[$0006FA8C] refs=1 access=a
+;     absolute[$0006FA8E] refs=1 access=a
+;     absolute[$0006FAB2] refs=1 access=a
+;     absolute[$0006FAB4] refs=1 access=a
+;     absolute[$0006FAB6] refs=1 access=a
+;     absolute[$0006FADA] refs=1 access=a
+;     absolute[$0006FADC] refs=1 access=a
+;     absolute[$0006FADE] refs=1 access=a
+;     absolute[$0006FB02] refs=1 access=a
+;     absolute[$0006FB04] refs=1 access=a
+;     absolute[$0006FB06] refs=1 access=a
+;     absolute[$0006FB2A] refs=1 access=a
+;     absolute[$0006FB2C] refs=1 access=a
+;     absolute[$0006FB2E] refs=1 access=a
+;     absolute[$0006FB52] refs=1 access=a
+;     absolute[$0006FB54] refs=1 access=a
+;     absolute[$0006FB56] refs=1 access=a
+;     absolute[$0006FB7A] refs=1 access=a
+;     absolute[$0006FB7C] refs=1 access=a
+;     absolute[$0006FB7E] refs=1 access=a
+;     absolute[$00076800] refs=2 access=a
+;     absolute[$00079540] refs=1 access=r
+;     absolute[$00079910] refs=1 access=a
+;     absolute[$00079938] refs=1 access=a
+;     absolute[$00079AE4] refs=2 access=a
+;     absolute[$00079AE8] refs=1 access=a
+;     absolute[$00079D2A] refs=1 access=a
+;     absolute[$00079D35] refs=1 access=a
+;     absolute[$00079F40] refs=1 access=a
+;     absolute[$0007B882] refs=1 access=a
+;     absolute[$0007B9FA] refs=1 access=a
+;     absolute[$0007BA3A] refs=1 access=a
+;     absolute[$0007BC6C] refs=1 access=a
+;     absolute[$0007BE80] refs=1 access=a
+;     absolute[$0007D480] refs=1 access=a
+;     absolute[$0007D500] refs=1 access=a
+;     absolute[$0007D920] refs=3 access=a
+;     absolute[$0007D924] refs=1 access=a
+;     absolute[$0007D94C] refs=1 access=a
+;     absolute[$0007D9EA] refs=1 access=a
+;     absolute[$0007DA38] refs=1 access=a
+;     absolute[$0007DB2C] refs=1 access=a
+;     absolute[$0007DDC0] refs=1 access=a
+;     absolute[$0007F6EA] refs=1 access=a
+;     absolute[$0007F6F0] refs=1 access=a
+;     absolute[$0007F8A4] refs=1 access=a
+;     absolute[$0007F8AA] refs=1 access=a
+;     absolute[$0007FA3A] refs=1 access=a
+;     absolute[$0007FAE8] refs=1 access=a
+;     absolute[$0007FD00] refs=1 access=r
+;     absolute[$0007FFFA] refs=3 access=a
+;     absolute[$00DFF01F] refs=1 access=r
+;     absolute[$FFFF8242-$FFFF8260] refs=8 access=w
+;     absolute[$FFFF8800-$FFFF8801] refs=2 access=w
+;     absolute[$FFFFFFFF] refs=1 access=r
 
 ; AmigaOS compatibility
 ;   required OS floor: unknown
@@ -88,7 +163,6 @@ absolute_slot_00079AE4	EQU	$79AE4
 absolute_slot_0007F8A4	EQU	$7F8A4
 runtime_address_00042D20	EQU	$42D20
 runtime_address_00042D24	EQU	$42D24
-m68k_vector_trap_0_instruction_vector	EQU	$80
 runtime_address_00042E00	EQU	$42E00
 runtime_address_00042F40	EQU	$42F40
 runtime_address_0004418C	EQU	$4418C
@@ -102,8 +176,6 @@ runtime_address_00079540	EQU	$79540
 absolute_slot_0007BC6C	EQU	$7BC6C
 absolute_slot_0007FAE8	EQU	$7FAE8
 absolute_slot_00079D2A	EQU	$79D2A
-m68k_vector_level_5_interrupt_autovector	EQU	$74
-m68k_vector_line_1111_emulator	EQU	$2C
 absolute_slot_00079D35	EQU	$79D35
 absolute_slot_00079910	EQU	$79910
 absolute_slot_00079938	EQU	$79938
@@ -29251,7 +29323,7 @@ abs_0_0004F3E8:
 	bsr.w abs_0_0004F53E
 abs_0_0004F3EC:
 	movem.l d1-d3/a0,-(a7)
-	lea.l m68k_vector_trap_0_instruction_vector.w,a0
+	lea.l $0080.w,a0
 	move.l abs_0_00005FB4.w,d3
 	moveq.l #0,d4
 	move.l abs_0_00006034.w,d5
@@ -30458,7 +30530,7 @@ abs_0_000501CA:
 	move #$2200,sr
 	move.l #abs_0_000502C8,m68k_vector_division_by_zero.l
 	move.w #ADKF_USE3PN|ADKF_USE2P3|ADKF_USE1P2|ADKF_USE0P1|ADKF_USE3VN|ADKF_USE2V3|ADKF_USE1V2|ADKF_USE0V1,_custom+adkcon.l
-	move.l m68k_vector_level_4_interrupt_autovector.w,d0
+	move.l $0070.w,d0
 	move.w #ADKF_USE3PN|ADKF_USE2P3|ADKF_USE1P2|ADKF_USE0P1|ADKF_USE3VN|ADKF_USE2V3|ADKF_USE1V2|ADKF_USE0V1,_custom+adkcon.l
 	move.l #abs_0_0004B3C2,_custom+aud0+ac_ptr.l	; sound_sample pointer
 	move.w #$2,_custom+aud0+ac_len.l	; sound sample length 4 bytes
@@ -32225,13 +32297,13 @@ abs_0_00051966:
 abs_0_00051972:
 	tst.l abs_0_00007A7E.w
 	bne.b abs_0_0005199A
-	lea.l m68k_vector_level_5_interrupt_autovector.w,a0
+	lea.l $0074.w,a0
 	tst.w $626A(a0)
 	bmi.b abs_0_0005199A
 	tst.w abs_0_00006296.w
 	bmi.b abs_0_0005199A
 	bsr.w abs_0_0004BE72
-	lea.l m68k_vector_line_1111_emulator.w,a0
+	lea.l $002C.w,a0
 	bsr.w abs_0_0004BE72
 	moveq.l #15,d1
 	bsr.w abs_0_00054310
@@ -42116,7 +42188,7 @@ abs_0_00059008:
 	move.l d2,abs_0_000079BA.w
 	rts
 abs_0_00059048:
-	lea.l m68k_vector_level_5_interrupt_autovector.w,a2
+	lea.l $0074.w,a2
 	move.l abs_0_00007AB2.w,$63A8(a2)
 	move.l abs_0_00007AB6.w,d0
 	subi.l #63,d0

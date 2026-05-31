@@ -2541,7 +2541,7 @@ abs_0_00025B0C:
 	andi.b #1,d0
 	asl.b #1,d0
 	andi.b #CIAF_GAMEPORT1|CIAF_GAMEPORT0|CIAF_DSKRDY|CIAF_DSKTRACK0|CIAF_DSKPROT|CIAF_DSKCHANGE|CIAF_OVERLAY,_ciaa+ciapra.l
-	or.b d0,_ciaa+ciapra.l
+	or.b d0,$00BFE001.l
 	rts
 abs_0_00025B26:
 	move.b app_0003(a6),d0

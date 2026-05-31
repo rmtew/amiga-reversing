@@ -40,7 +40,41 @@
 ;     absolute[$00004048] refs=1 access=a
 ;     absolute[$00004350] refs=2 access=a
 ;     absolute[$00004750] refs=3 access=a
-;     ... additional absolute memory ranges omitted
+;     absolute[$00006150] refs=2 access=a
+;     absolute[$00006F50] refs=14 access=a
+;     absolute[$0000AF50] refs=1 access=a
+;     absolute[$0001A7E0] refs=1 access=a
+;     absolute[$00026F50] refs=2 access=a
+;     absolute[$0002DA30] refs=4 access=a
+;     absolute[$0002E330] refs=1 access=a
+;     absolute[$0002E430] refs=2 access=a
+;     absolute[$0002E6B0] refs=2 access=a
+;     absolute[$0002E6B4] refs=1 access=a
+;     absolute[$0002E6B6] refs=3 access=a
+;     absolute[$0002E6BE] refs=1 access=a
+;     absolute[$0002E7FE] refs=1 access=a
+;     absolute[$0002F490] refs=2 access=a
+;     absolute[$000305B0] refs=2 access=a
+;     absolute[$000308D3] refs=1 access=a
+;     absolute[$00030943] refs=1 access=a
+;     absolute[$000309D8] refs=5 access=a
+;     absolute[$000309DE] refs=1 access=a
+;     absolute[$00032DB0] refs=1 access=a
+;     absolute[$00032DD0] refs=1 access=a
+;     absolute[$0004B470] refs=1 access=a
+;     absolute[$00051618] refs=2 access=a
+;     absolute[$000519D4-$000519D6] refs=3 access=ra
+;     absolute[$00058AB0] refs=1 access=a
+;     absolute[$0005C280] refs=1 access=a
+;     absolute[$00068000] refs=1 access=a
+;     absolute[$000680AA] refs=3 access=a
+;     absolute[$0006B400] refs=2 access=a
+;     absolute[$0006B428] refs=2 access=a
+;     absolute[$0007A400] refs=1 access=a
+;     absolute[$00080000] refs=3 access=a
+;     absolute[$00200000] refs=1 access=a
+;     absolute[$00C00000] refs=1 access=a
+;     absolute[$00DFF01F] refs=2 access=r
 
 ; AmigaOS compatibility
 ;   required OS floor: unknown
@@ -123,7 +157,7 @@ absolute_slot_00C00000	EQU	$C00000
 absolute_slot_00080000	EQU	$80000
 absolute_slot_00200000	EQU	$200000
 absolute_slot_0000011E	EQU	$11E
-m68k_vector_trap_1_instruction_vector	EQU	$84
+m68k_vector_initial_ssp	EQU	$0
 m68k_vector_trap_2_instruction_vector	EQU	$88
 m68k_vector_trap_3_instruction_vector	EQU	$8C
 absolute_slot_00006F50	EQU	$6F50
@@ -366,6 +400,7 @@ absolute_slot_00000314	EQU	$314
 absolute_slot_00000308	EQU	$308
 absolute_slot_0000030C	EQU	$30C
 _ciab	EQU	$BFD000
+m68k_vector_trap_1_instruction_vector	EQU	$84
 ADKF_CLRALL	EQU	$7FFF
 absolute_slot_0000013E	EQU	$13E
 absolute_slot_000519D6	EQU	$519D6
@@ -713,7 +748,7 @@ abs_0_0005C41C:
 	bsr.w abs_0_0005C72C
 	rts
 abs_0_0005C45E:
-	cmpi.b #39,m68k_vector_trap_4_instruction_vector.w
+	cmpi.b #39,$0090.w
 	bne.b abs_0_0005C46E
 	clr.b m68k_vector_trap_4_instruction_vector.w
 	not.w absolute_slot_0000014E.w
@@ -761,7 +796,7 @@ abs_0_0005C4E4:
 abs_0_0005C4F0:
 	rts
 abs_0_0005C4F2:
-	cmpi.b #25,m68k_vector_trap_4_instruction_vector.w
+	cmpi.b #25,$0090.w
 	bne.b abs_0_0005C502
 	clr.b m68k_vector_trap_4_instruction_vector.w
 	not.b absolute_slot_00000160.w
@@ -1062,7 +1097,7 @@ abs_0_0005C82A:
 abs_0_0005C852:
 	rts
 abs_0_0005C854:
-	clr.l $0000.w
+	clr.l m68k_vector_initial_ssp.w
 	cmpi.l #1145392161,(a0)
 	beq.b abs_0_0005C886
 	move.l #$44454C21,(a0)
@@ -1071,7 +1106,7 @@ abs_0_0005C854:
 	cmpi.l #1145392161,(a0)
 	beq.b abs_0_0005C882
 abs_0_0005C878:
-	move.l m68k_vector_trap_1_instruction_vector.w,m68k_vector_trap_2_instruction_vector.w
+	move.l $0084.w,m68k_vector_trap_2_instruction_vector.w
 	moveq.l #0,d0
 	rts
 abs_0_0005C882:
@@ -6999,7 +7034,7 @@ abs_0_0006140A:
 	beq.b abs_0_0006140A
 	tst.b absolute_slot_000001E6.w
 	bne.b abs_0_0006142C
-	cmpi.b #64,m68k_vector_trap_4_instruction_vector.w
+	cmpi.b #64,$0090.w
 	beq.w abs_0_00061500
 	btst.b #CIAB_GAMEPORT1,_ciaa+ciapra.l
 	beq.w abs_0_00061500
@@ -7460,7 +7495,7 @@ abs_0_000619F8:
 	clr.w absolute_slot_000001E4.w
 	btst.b #CIAB_GAMEPORT1,_ciaa+ciapra.l
 	beq.b abs_0_00061A0E
-	cmpi.b #64,m68k_vector_trap_4_instruction_vector.w
+	cmpi.b #64,$0090.w
 	bne.b abs_0_000619B4
 abs_0_00061A0E:
 	clr.w absolute_slot_0000014C.w
@@ -7576,7 +7611,7 @@ abs_0_00061B6E:
 abs_0_00061B88:
 	btst.b #CIAB_GAMEPORT1,_ciaa+ciapra.l
 	beq.b abs_0_00061BA2
-	cmpi.b #64,m68k_vector_trap_4_instruction_vector.w
+	cmpi.b #64,$0090.w
 	beq.b abs_0_00061BA2
 	cmpi.w #200,absolute_slot_000001E4.w
 	ble.b abs_0_00061B88
@@ -7978,7 +8013,7 @@ abs_0_0006208C:
 	dbf.w d7,abs_0_0006208C
 	rts
 abs_0_00062096:
-	cmpi.b #70,m68k_vector_trap_4_instruction_vector.w
+	cmpi.b #70,$0090.w
 	bne.b abs_0_000620DC
 	lea.l _custom.l,a6
 	move.w #$7FFF,(a6)

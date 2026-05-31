@@ -92,11 +92,11 @@ abs_0_00040054:
 	lea.l abs_0_000449C2(pc),a1
 	bsr.w abs_0_000402BC
 	lea.l abs_0_000404FE(pc),a0
-	move.l m68k_vector_level_1_interrupt_autovector.w,(a0)
+	move.l $0064.w,(a0)
 	lea.l abs_0_000404DE(pc),a0
 	move.l a0,m68k_vector_level_1_interrupt_autovector.w
 	lea.l abs_0_000404D4(pc),a0
-	move.l m68k_vector_level_3_interrupt_autovector.w,(a0)
+	move.l $006C.w,(a0)
 	lea.l abs_0_000404AA(pc),a0
 	move.l a0,m68k_vector_level_3_interrupt_autovector.w
 	lea.l abs_0_00040742(pc),a0

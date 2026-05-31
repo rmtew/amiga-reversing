@@ -45,15 +45,15 @@ app_SIZEOF EQU __RS
 runtime_address_00010000	EQU	$10000
 _custom	EQU	$DFF000
 INTF_CLRALL	EQU	$7FFF
-m68k_vector_level_1_interrupt_autovector	EQU	$64
-m68k_vector_level_2_interrupt_autovector	EQU	$68
 m68k_vector_division_by_zero	EQU	$14
+m68k_vector_level_2_interrupt_autovector	EQU	$68
 m68k_vector_level_3_interrupt_autovector	EQU	$6C
+m68k_vector_level_1_interrupt_autovector	EQU	$64
 _ciaa	EQU	$BFE001
 _ciab	EQU	$BFD000
-m68k_vector_level_4_interrupt_autovector	EQU	$70
 BPLCON2_PF2P2	EQU	$20
 BPLCON2_PF2P1	EQU	$10
+m68k_vector_level_4_interrupt_autovector	EQU	$70
 
     SECTION section_0,code
 loc_0_00000000:
@@ -20957,8 +20957,8 @@ loc_0_00016FF8:
 	lea.l _custom.l,a5
 	move.w intenar(a5),loc_0_000170F8.l
 	move.w #INTF_CLRALL,intena(a5)
-	move.l m68k_vector_level_1_interrupt_autovector.w,loc_0_000170E6.l
-	move.l m68k_vector_level_2_interrupt_autovector.w,loc_0_000170EA.l
+	move.l $0064.w,loc_0_000170E6.l
+	move.l $0068.w,loc_0_000170EA.l
 	move.l #loc_0_00016F5E,m68k_vector_division_by_zero.w
 	move.l #loc_0_00017170,m68k_vector_level_2_interrupt_autovector.w
 	move.l #loc_0_00016EF8,m68k_vector_level_3_interrupt_autovector.w
@@ -33559,8 +33559,8 @@ loc_0_00024522:
 	jsr _LVOOpenLibrary(a6)
 	move.l d0,loc_1_000032B4.l
 	bsr.w loc_0_000245F8
-	move.l m68k_vector_level_3_interrupt_autovector.w,loc_0_000170EE.l
-	move.l m68k_vector_level_4_interrupt_autovector.w,loc_0_0002756C.l
+	move.l $006C.w,loc_0_000170EE.l
+	move.l $0070.w,loc_0_0002756C.l
 	move.w _custom+dmaconr.l,loc_0_00027570.l
 	jsr loc_0_000248C0.l
 	jsr loc_0_0001D420.l

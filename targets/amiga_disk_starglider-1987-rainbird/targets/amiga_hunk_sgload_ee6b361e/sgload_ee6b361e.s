@@ -59,7 +59,7 @@ loc_0_00000000:
 	move.l loc_0_00000308.l,d1
 	movea.l h0dl_DOSBase.l,a6
 	jsr _LVOClose(a6)
-	move.l m68k_vector_level_4_interrupt_autovector.l,loc_0_0000030C.l
+	move.l $00000070.l,loc_0_0000030C.l
 	move.l #loc_0_00000196,m68k_vector_level_4_interrupt_autovector.l
 	move.w #INTF_SETCLR|INTF_AUD1,_custom+intena.l
 	clr.b loc_0_00000622.l

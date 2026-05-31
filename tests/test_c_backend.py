@@ -4,7 +4,6 @@ import ctypes
 import hashlib
 import json
 import subprocess
-from collections import Counter
 from pathlib import Path
 from zipfile import ZipFile
 
@@ -7992,8 +7991,8 @@ def test_real_dll_facts_v2_listing_rows_auto_classifies_copper_list_from_cop_poi
             "size": 10,
         }
     ]
-    assert all(row["addr"] == 0x0C for row in copper_rows)
-    assert all(row["addr"] == 0x0C for row in copper_layout_rows)
+    assert [row["addr"] for row in copper_rows] == [0x0C, 0x0C, 0x10, 0x14, 0x18, 0x1C, 0x20, 0x24]
+    assert [row["addr"] for row in copper_layout_rows] == [0x0C, 0x0C, 0x10, 0x14, 0x18, 0x1C, 0x20, 0x24]
     assert [str(row["text"]).strip() for row in copper_layout_rows] == [
         "; display layout 1 bitmap plane $12345678",
         "dc.w bplcon0,(4<<PLNCNTSHFT)|COLORON\t; display 4 bitplanes lores color",
@@ -10197,16 +10196,6 @@ def test_real_dll_render_plan_data_classes_reach_navigation() -> None:
                         row.get("comment_text") or row["data_class"],
                     )
                 )
-        duplicate_keys = [
-            key
-            for key, count in Counter(
-                (row.get("section_index"), row.get("addr"), row.get("data_class"))
-                for row in rows
-                if row.get("data_class")
-            ).items()
-            if count > 1
-        ]
-        assert duplicate_keys
         assert expected
 
         navigation = profile["navigation"]

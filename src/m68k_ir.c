@@ -2634,6 +2634,7 @@ int m68k_ir_section_analysis_append_runtime_address_ref(M68kSectionAnalysisIR *s
   for (index = 0; index < section_analysis->runtime_address_ref_count; ++index) {
     const M68kRuntimeAddressRefIR *existing = &section_analysis->runtime_address_refs[index];
     if (existing->offset == runtime_address_ref->offset &&
+        existing->source_size == runtime_address_ref->source_size &&
         existing->operand_index == runtime_address_ref->operand_index &&
         existing->has_target == runtime_address_ref->has_target &&
         existing->target_section_index == runtime_address_ref->target_section_index &&

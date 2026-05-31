@@ -551,8 +551,9 @@ static int rendered_symbol_access_matches_expected(const M68kRenderedSymbolAcces
   if (rendered->comment_only) return 0;
   if (rendered->access_kind != rendered_kind) return 0;
   if (rendered->offset != expected->offset) return 0;
-  if (rendered->symbol_name == NULL || expected->symbol_name == NULL ||
-      strcmp(rendered->symbol_name, expected->symbol_name) != 0) {
+  if (rendered->symbol_name == NULL || rendered->symbol_name[0] == '\0') return 0;
+  if (expected->access_kind != M68K_EXPECTED_SYMBOL_ACCESS_BRANCH_TARGET &&
+      (expected->symbol_name == NULL || strcmp(rendered->symbol_name, expected->symbol_name) != 0)) {
     return 0;
   }
   if (expected->has_target) {
@@ -809,8 +810,38 @@ static int source_quality_operand_has_intrinsic_control_label(const M68kOperandI
     operand->value.ea_mode == 7U && (operand->value.ea_reg == 2U || operand->value.ea_reg == 3U);
 }
 
+static int source_quality_relocation_exactly_covers_span(const M68kFact *fact,
+    size_t section_index, uint32_t span_start, uint32_t span_size) {
+  uint32_t span_end;
+  uint32_t fact_end;
+  if (fact == NULL || fact->kind != M68K_FACT_RELOCATION_REF ||
+      fact->section_index != section_index || fact->size == 0U || span_size == 0U) {
+    return 0;
+  }
+  if (span_start > UINT32_MAX - span_size || fact->offset > UINT32_MAX - fact->size) return 0;
+  span_end = span_start + span_size;
+  fact_end = fact->offset + fact->size;
+  return fact->offset == span_start && fact_end == span_end;
+}
+
+static int source_quality_operand_has_relocation_ref(const M68kFactIR *facts,
+    size_t section_index, const M68kDecodeCandidate *candidate, size_t operand_index) {
+  uint32_t span_start = 0U;
+  uint32_t span_size = 0U;
+  size_t fact_index;
+  if (facts == NULL || candidate == NULL) return 0;
+  if (!m68k_decode_candidate_operand_storage_span(candidate, operand_index, &span_start, &span_size)) return 0;
+  for (fact_index = 0U; fact_index < facts->fact_count; ++fact_index) {
+    if (source_quality_relocation_exactly_covers_span(&facts->facts[fact_index], section_index,
+        span_start, span_size)) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
 static int append_expected_intrinsic_branch_symbol_accesses_for_section(M68kSectionAnalysisIR *section_analysis,
-    const M68kDecodeSectionIR *section, const uint8_t *accepted_start) {
+    const M68kDecodeSectionIR *section, const M68kFactIR *facts, const uint8_t *accepted_start) {
   size_t candidate_index;
   if (section_analysis == NULL || section == NULL) return -1;
   for (candidate_index = 0U; candidate_index < section->candidate_count; ++candidate_index) {
@@ -826,6 +857,10 @@ static int append_expected_intrinsic_branch_symbol_accesses_for_section(M68kSect
       if (!source_quality_target_is_control_symbol_access(target) || !target->has_section ||
           target->section_index != section->section_index || !target->has_operand ||
           target->operand_index >= instruction.operand_count ||
+          target->offset >= section->size || accepted_start == NULL ||
+          accepted_start[target->offset] == 0U ||
+          source_quality_operand_has_relocation_ref(facts, section->section_index, candidate,
+            target->operand_index) ||
           !source_quality_operand_has_intrinsic_control_label(&instruction.operands[target->operand_index])) {
         continue;
       }
@@ -847,7 +882,7 @@ static int append_expected_intrinsic_branch_symbol_accesses_for_section(M68kSect
 }
 
 static int append_expected_intrinsic_branch_symbol_accesses(M68kSourceAnalysisIR *source_analysis,
-    const M68kDecodeIR *decode, uint8_t *const *accepted_start) {
+    const M68kDecodeIR *decode, const M68kFactIR *facts, uint8_t *const *accepted_start) {
   size_t section_index;
   if (source_analysis == NULL || decode == NULL || accepted_start == NULL) return 0;
   for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
@@ -856,7 +891,7 @@ static int append_expected_intrinsic_branch_symbol_accesses(M68kSourceAnalysisIR
     const M68kDecodeSectionIR *section = source_quality_decode_section_by_index(decode,
       (uint32_t)section_analysis->section_index, &decode_index);
     if (section == NULL) continue;
-    if (append_expected_intrinsic_branch_symbol_accesses_for_section(section_analysis, section,
+    if (append_expected_intrinsic_branch_symbol_accesses_for_section(section_analysis, section, facts,
         accepted_start[decode_index]) != 0) {
       return -1;
     }
@@ -1367,7 +1402,8 @@ static int append_orphan_conflict_ranges_for_section(M68kSectionAnalysisIR *sect
 }
 
 int m68k_source_quality_analyze(M68kSourceAnalysisIR *source_analysis,
-    const M68kDecodeIR *decode, uint8_t *const *accepted_start, uint8_t *const *accepted_bytes) {
+    const M68kDecodeIR *decode, const M68kFactIR *facts, uint8_t *const *accepted_start,
+    uint8_t *const *accepted_bytes) {
   size_t section_index;
   if (source_analysis == NULL) return -1;
   for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
@@ -1379,7 +1415,8 @@ int m68k_source_quality_analyze(M68kSourceAnalysisIR *source_analysis,
     if (append_accepted_code_range_ownerships_for_section(section) != 0) return -1;
     if (append_orphan_conflict_ranges_for_section(section) != 0) return -1;
   }
-  if (append_expected_intrinsic_branch_symbol_accesses(source_analysis, decode, accepted_start) != 0) return -1;
+  if (append_expected_intrinsic_branch_symbol_accesses(source_analysis, decode, facts, accepted_start) != 0)
+    return -1;
   if (append_structured_data_range_ownerships(source_analysis) != 0) return -1;
   if (append_structured_data_table_descriptors(source_analysis) != 0) return -1;
   if (append_structured_data_table_entries(source_analysis, decode, accepted_start, accepted_bytes) != 0) return -1;

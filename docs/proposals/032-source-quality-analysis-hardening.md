@@ -4611,3 +4611,43 @@ structured data rows.
 
 The key invariant is that comments can describe already-known facts, but they no
 longer create facts for the web/report layer.
+
+`M68kRuntimeAddressRefIR` now separates source span from runtime payload size:
+
+```c
+typedef struct M68kRuntimeAddressRefIR {
+  uint32_t offset;       /* source byte where the reference is expressed */
+  uint32_t source_size;  /* source bytes occupied by that expression */
+  uint32_t size;         /* runtime target payload size, when known */
+} M68kRuntimeAddressRefIR;
+```
+
+That distinction matters for display-layout rows. A copper `bplpt` row can
+reference an 8 KiB bitmap, but the source expression occupies one rendered
+`dc.w` line. Listing JSON now attaches the ref to the expression's source span,
+not to every later row that happens to fall inside the bitmap's runtime size.
+
+### CLI Policy Allocation Cleanup
+
+`platform_file_cli` no longer keeps `M68kAnalysisPolicy` on the `main()` stack.
+The policy has grown with source-quality state and is not needed for every CLI
+command. Analysis commands now allocate the policy only for the command branch
+that consumes it and destroy it before returning. No compatibility wrapper was
+kept.
+
+### Operand Storage Span Exactness
+
+The shared decode helper that maps operands back to encoded source bytes now
+matches assembler extension emission for absolute-word effective addresses:
+
+```text
+move.l $0064.w,$000170E6
+       ^^^^^^^ source operand span: instruction+2, size 2
+               ^^^^^^^^^ destination operand span: instruction+4, size 4
+```
+
+This fixed a Midwinter II source-export refusal where a valid hunk relocation on
+the absolute-long destination was rejected because the preceding absolute-word
+source operand had not been counted. Relocation-backed source rendering now uses
+the same KB-derived extension accounting as the assembler instead of a partial
+copy.

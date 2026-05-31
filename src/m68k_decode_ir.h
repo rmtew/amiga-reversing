@@ -86,5 +86,11 @@ int m68k_decode_ir_ensure_candidate_at(M68kDecodeIR *ir, size_t section_index, u
 int m68k_decode_candidate_to_instruction(const M68kDecodeCandidate *candidate,
   M68kInstructionIR *out_instruction);
 char m68k_decode_candidate_effective_size_suffix(const M68kDecodeCandidate *candidate);
+M68kAsmOperandValue m68k_decode_candidate_normalized_layout_operand(const M68kDecodeCandidate *candidate,
+  size_t operand_index);
+size_t m68k_decode_asm_extension_word_count(uint16_t asm_form_index, uint8_t extension_kind,
+  const M68kAsmOperandValue *operand, char size_suffix);
+int m68k_decode_candidate_operand_storage_span(const M68kDecodeCandidate *candidate, size_t operand_index,
+  uint32_t *out_start, uint32_t *out_size);
 
 #endif

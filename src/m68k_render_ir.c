@@ -251,26 +251,113 @@ static void copy_asm_source_plan_row_metadata(M68kRenderPlanRow *row, const M68k
   }
 }
 
-static int data_plan_line_has_single_value(const char *line_start, size_t line_length) {
-  size_t index;
-  if (line_start == NULL || line_length < 6U) return 0;
-  if (line_start[0] != '\t' || line_start[1] != 'd' || line_start[2] != 'c' || line_start[3] != '.')
-    return 0;
-  for (index = 0U; index < line_length; ++index) {
-    if (line_start[index] == ',') return 0;
+static int data_plan_parse_unsigned_expr(const char *text, size_t length, uint32_t *out_value) {
+  char buffer[32];
+  M68kParseU32Result parsed;
+  while (length != 0U && (*text == ' ' || *text == '\t')) {
+    ++text;
+    --length;
   }
+  while (length != 0U && (text[length - 1U] == ' ' || text[length - 1U] == '\t')) --length;
+  if (length == 0U || length >= sizeof(buffer)) return 0;
+  memcpy(buffer, text, length);
+  buffer[length] = '\0';
+  parsed = m68k_parse_number_u32(buffer);
+  if (!parsed.ok) return 0;
+  if (out_value != NULL) *out_value = parsed.value;
   return 1;
 }
 
-static int asm_source_plan_data_row_has_split_source_lines(const M68kRenderPlanRow *source,
-    uint32_t *out_entry_size) {
+static int data_plan_line_dc_source_size(const char *cursor, const char *line_end, uint32_t width,
+    uint32_t *out_size) {
+  uint32_t size = 0U;
+  int saw_value = 0;
+  if (cursor == NULL || line_end == NULL || out_size == NULL || width == 0U) return 0;
+  while (cursor < line_end) {
+    while (cursor < line_end && (*cursor == ' ' || *cursor == '\t')) ++cursor;
+    if (cursor >= line_end || *cursor == ';') break;
+    saw_value = 1;
+    if (*cursor == '"') {
+      ++cursor;
+      while (cursor < line_end && *cursor != '"') {
+        if (width != 1U || size > UINT32_MAX - 1U) return 0;
+        ++size;
+        ++cursor;
+      }
+      if (cursor >= line_end || *cursor != '"') return 0;
+      ++cursor;
+    } else {
+      if (size > UINT32_MAX - width) return 0;
+      size += width;
+      while (cursor < line_end && *cursor != ',' && *cursor != ';') ++cursor;
+    }
+    while (cursor < line_end && (*cursor == ' ' || *cursor == '\t')) ++cursor;
+    if (cursor < line_end && *cursor == ',') {
+      ++cursor;
+      continue;
+    }
+    if (cursor < line_end && *cursor == ';') break;
+    if (cursor < line_end) return 0;
+  }
+  if (!saw_value) return 0;
+  *out_size = size;
+  return 1;
+}
+
+static int data_plan_line_dcb_source_size(const char *cursor, const char *line_end, uint32_t width,
+    uint32_t *out_size) {
+  const char *repeat_start;
+  uint32_t repeat = 0U;
+  if (cursor == NULL || line_end == NULL || out_size == NULL || width == 0U) return 0;
+  while (cursor < line_end && (*cursor == ' ' || *cursor == '\t')) ++cursor;
+  repeat_start = cursor;
+  while (cursor < line_end && *cursor != ',' && *cursor != ';') ++cursor;
+  if (cursor >= line_end || *cursor != ',') return 0;
+  if (!data_plan_parse_unsigned_expr(repeat_start, (size_t)(cursor - repeat_start), &repeat)) return 0;
+  if (repeat > UINT32_MAX / width) return 0;
+  *out_size = repeat * width;
+  return 1;
+}
+
+static int data_plan_line_source_size(const char *line_start, size_t line_length, uint32_t *out_size) {
   const char *cursor;
-  uint32_t line_count = 0U;
-  if (out_entry_size != NULL) *out_entry_size = 0U;
+  const char *line_end;
+  uint32_t width;
+  int dcb = 0;
+  if (out_size != NULL) *out_size = 0U;
+  if (line_start == NULL || out_size == NULL) return 0;
+  cursor = line_start;
+  line_end = line_start + line_length;
+  while (cursor < line_end && (*cursor == ' ' || *cursor == '\t')) ++cursor;
+  while (line_end > cursor && (line_end[-1] == ' ' || line_end[-1] == '\t')) --line_end;
+  if (cursor >= line_end || *cursor == ';') return 1;
+  if (line_end[-1] == ':') return 1;
+  if (line_end - cursor >= 5 && cursor[0] == 'd' && cursor[1] == 'c' && cursor[2] == 'b' && cursor[3] == '.') {
+    dcb = 1;
+    cursor += 4;
+  } else if (line_end - cursor >= 4 && cursor[0] == 'd' && cursor[1] == 'c' && cursor[2] == '.') {
+    cursor += 3;
+  } else {
+    return 0;
+  }
+  switch (*cursor) {
+  case 'b': width = 1U; break;
+  case 'w': width = 2U; break;
+  case 'l': width = 4U; break;
+  default: return 0;
+  }
+  ++cursor;
+  return dcb
+    ? data_plan_line_dcb_source_size(cursor, line_end, width, out_size)
+    : data_plan_line_dc_source_size(cursor, line_end, width, out_size);
+}
+
+static int asm_source_plan_data_row_has_split_source_lines(const M68kRenderPlanRow *source) {
+  const char *cursor;
+  uint32_t total_size = 0U;
   if (source == NULL || source->kind != M68K_RENDER_PLAN_ROW_DATA || !source->has_source_range ||
-      source->line_count <= 1U || source->source_size == 0U ||
-      (source->source_size % source->line_count) != 0U || source->directive_line_mask != 0U ||
-      source->label_line_mask != 0U || source->text == NULL) {
+      source->line_count <= 1U || source->source_size == 0U || source->directive_line_mask != 0U ||
+      source->text == NULL) {
     return 0;
   }
   cursor = source->text;
@@ -278,32 +365,37 @@ static int asm_source_plan_data_row_has_split_source_lines(const M68kRenderPlanR
     const char *line_start = cursor;
     const char *line_end = strchr(cursor, '\n');
     size_t line_length;
+    uint32_t line_size = 0U;
     if (line_end == NULL) return 0;
     line_length = (size_t)(line_end - line_start);
-    if (!data_plan_line_has_single_value(line_start, line_length)) return 0;
-    ++line_count;
+    if (!data_plan_line_source_size(line_start, line_length, &line_size)) return 0;
+    if (line_size > UINT32_MAX - total_size) return 0;
+    total_size += line_size;
     cursor = line_end + 1;
   }
-  if (line_count != source->line_count) return 0;
-  if (out_entry_size != NULL) *out_entry_size = source->source_size / source->line_count;
-  return 1;
+  return total_size == source->source_size;
 }
 
 static int append_asm_source_plan_split_data_row_copies(M68kRenderPlan *dest, Arena *scratch_arena,
-    const M68kRenderPlanRow *source, uint32_t entry_size) {
+    const M68kRenderPlanRow *source) {
   const char *cursor;
-  uint32_t line_index = 0U;
-  if (dest == NULL || scratch_arena == NULL || source == NULL || source->text == NULL || entry_size == 0U)
+  uint32_t consumed_size = 0U;
+  uint32_t line_count = 0U;
+  if (dest == NULL || scratch_arena == NULL || source == NULL || source->text == NULL)
     return 0;
   cursor = source->text;
   while (*cursor != '\0') {
     const char *line_start = cursor;
     const char *line_end = strchr(cursor, '\n');
     size_t line_length;
+    size_t content_length;
+    uint32_t line_size = 0U;
     ArenaMark mark;
     char *line_text;
     M68kRenderPlanRow *row = NULL;
     if (line_end == NULL) return 0;
+    content_length = (size_t)(line_end - line_start);
+    if (!data_plan_line_source_size(line_start, content_length, &line_size)) return 0;
     line_length = (size_t)(line_end - line_start) + 1U;
     mark = arena_mark(scratch_arena);
     line_text = (char *)arena_alloc(scratch_arena, line_length + 1U);
@@ -317,26 +409,49 @@ static int append_asm_source_plan_split_data_row_copies(M68kRenderPlan *dest, Ar
     arena_rewind(scratch_arena, mark);
     copy_asm_source_plan_row_metadata(row, source);
     m68k_render_plan_row_set_source_range(row, source->source_section_index,
-      source->source_offset + (line_index * entry_size), entry_size);
-    if (source->has_statement_metadata && source->statement_kind == M68K_STATEMENT_DATA &&
-        entry_size <= M68K_STATEMENT_SOURCE_BYTES_MAX &&
-        source->source_byte_count >= (line_index + 1U) * entry_size) {
-      m68k_render_plan_row_set_statement_metadata(row, M68K_STATEMENT_DATA, NULL,
-        source->source_bytes + (line_index * entry_size), entry_size);
+      source->source_offset + consumed_size, line_size);
+    memset(row->source_line_offsets, 0, sizeof(row->source_line_offsets));
+    memset(row->source_line_sizes, 0, sizeof(row->source_line_sizes));
+    memset(row->label_line_source_offsets, 0, sizeof(row->label_line_source_offsets));
+    memset(row->label_line_runtime_addresses, 0, sizeof(row->label_line_runtime_addresses));
+    row->directive_line_mask = (line_count < 32U && (source->directive_line_mask & (1U << line_count)) != 0U)
+      ? 1U : 0U;
+    row->source_line_mask = 1U;
+    row->source_line_offsets[0] = source->source_offset + consumed_size;
+    row->source_line_sizes[0] = line_size;
+    row->label_line_mask = 0U;
+    row->label_line_runtime_mask = 0U;
+    if (line_count < 32U && (source->label_line_mask & (1U << line_count)) != 0U) {
+      row->label_line_mask = 1U;
+      row->label_line_source_offsets[0] = source->label_line_source_offsets[line_count];
+      if ((source->label_line_runtime_mask & (1U << line_count)) != 0U) {
+        row->label_line_runtime_mask = 1U;
+        row->label_line_runtime_addresses[0] = source->label_line_runtime_addresses[line_count];
+      }
     }
-    ++line_index;
+    if (source->has_statement_metadata && source->statement_kind == M68K_STATEMENT_DATA) {
+      const uint8_t *line_bytes = NULL;
+      uint32_t line_byte_count = 0U;
+      if (line_size != 0U && line_size <= M68K_STATEMENT_SOURCE_BYTES_MAX &&
+          source->source_byte_count >= consumed_size + line_size) {
+        line_bytes = source->source_bytes + consumed_size;
+        line_byte_count = line_size;
+      }
+      m68k_render_plan_row_set_statement_metadata(row, M68K_STATEMENT_DATA, NULL, line_bytes, line_byte_count);
+    }
+    consumed_size += line_size;
+    ++line_count;
     cursor = line_end + 1;
   }
-  return line_index == source->line_count;
+  return line_count == source->line_count && consumed_size == source->source_size;
 }
 
 static int append_asm_source_plan_row_copy(M68kRenderPlan *dest, Arena *scratch_arena,
     const M68kRenderPlanRow *source) {
   M68kRenderPlanRow *row = NULL;
-  uint32_t split_entry_size = 0U;
   if (dest == NULL || source == NULL) return 0;
-  if (asm_source_plan_data_row_has_split_source_lines(source, &split_entry_size))
-    return append_asm_source_plan_split_data_row_copies(dest, scratch_arena, source, split_entry_size);
+  if (asm_source_plan_data_row_has_split_source_lines(source))
+    return append_asm_source_plan_split_data_row_copies(dest, scratch_arena, source);
   if (m68k_render_plan_append_text_row(dest, source->kind, source->region_id, source->text, &row) != 0)
     return 0;
   copy_asm_source_plan_row_metadata(row, source);
@@ -3356,66 +3471,6 @@ static int operand_uses_immediate_extension_local(const M68kAsmOperandValue *ope
   if (operand == NULL) return 0;
   return ((operand->kind == M68K_ASM_OPERAND_EA || operand->kind == M68K_ASM_OPERAND_BF_EA) &&
       operand->ea_mode == 7U && operand->ea_reg == 4U) || operand->kind == M68K_ASM_OPERAND_IMM;
-}
-
-static M68kAsmOperandValue normalized_layout_operand(const M68kDecodeCandidate *candidate, size_t operand_index) {
-  M68kAsmOperandValue operand;
-  memset(&operand, 0, sizeof(operand));
-  if (candidate == NULL || operand_index >= candidate->operand_count) return operand;
-  operand = candidate->operands[operand_index];
-  operand.kind = candidate->operand_kinds[operand_index];
-  switch (candidate->operand_kinds[operand_index]) {
-  case M68K_ASM_OPERAND_ABSL:
-    operand.kind = M68K_ASM_OPERAND_EA;
-    operand.ea_mode = 7U;
-    operand.ea_reg = 1U;
-    break;
-  case M68K_ASM_OPERAND_IND:
-    operand.kind = M68K_ASM_OPERAND_EA;
-    operand.ea_mode = 2U;
-    break;
-  case M68K_ASM_OPERAND_POSTINC:
-    operand.kind = M68K_ASM_OPERAND_EA;
-    operand.ea_mode = 3U;
-    break;
-  case M68K_ASM_OPERAND_PREDEC:
-    operand.kind = M68K_ASM_OPERAND_EA;
-    operand.ea_mode = 4U;
-    break;
-  default:
-    break;
-  }
-  return operand;
-}
-
-static size_t relocation_extension_word_count(uint16_t asm_form_index, uint8_t extension_kind,
-    const M68kAsmOperandValue *operand, char size_suffix) {
-  if (operand == NULL) return 0U;
-  switch (extension_kind) {
-  case M68K_ASM_EXTENSION_EA_SINGLE_WORD:
-    return operand_uses_single_word_extension_local(operand) ? 1U : 0U;
-  case M68K_ASM_EXTENSION_EA_LONG_ADDRESS:
-    return operand_uses_long_address_extension_local(operand) ? 2U : 0U;
-  case M68K_ASM_EXTENSION_EA_IMMEDIATE:
-    return operand_uses_immediate_extension_local(operand) ? (size_suffix == 'l' ? 2U : 1U) : 0U;
-  case M68K_ASM_EXTENSION_EA_INDEX:
-    if (!((operand->kind == M68K_ASM_OPERAND_EA || operand->kind == M68K_ASM_OPERAND_BF_EA) &&
-        (operand->ea_mode == 6U || (operand->ea_mode == 7U && operand->ea_reg == 3U)))) {
-      return 0U;
-    }
-    return m68k_asm_operand_extension_word_count(asm_form_index, operand, size_suffix);
-  case M68K_ASM_EXTENSION_LABEL_DISP16_IF_ZERO:
-    return size_suffix == 'b' ? 0U : 1U;
-  case M68K_ASM_EXTENSION_LABEL_DISP16_ALWAYS:
-  case M68K_ASM_EXTENSION_DISP16_ALWAYS:
-    return 1U;
-  default:
-    return 0U;
-  }
-}
-
-static char candidate_effective_size_suffix(const M68kDecodeCandidate *candidate) {
-  return m68k_decode_candidate_effective_size_suffix(candidate);
 }
 
 typedef struct ByteImmediateExtensionSite {
@@ -8002,46 +8057,6 @@ static int32_t signed_16(uint32_t value) {
   return (int16_t)(value & 0xFFFFU);
 }
 
-static int exact_operand_relocation_span(const M68kDecodeCandidate *candidate, size_t operand_index,
-    uint32_t *out_start, uint32_t *out_size) {
-  const M68kAsmFormDef *form;
-  M68kAsmOperandValue layout_operands[M68K_DECODE_IR_MAX_OPERANDS];
-  char size_suffix;
-  size_t word_index;
-  size_t extension_index;
-  size_t index;
-  if (candidate == NULL || out_start == NULL || out_size == NULL || operand_index >= candidate->operand_count)
-    return 0;
-  if (candidate->operand_kinds[operand_index] == M68K_ASM_OPERAND_LABEL && candidate->size_suffix == 'b') {
-    *out_start = candidate->offset + 1U;
-    *out_size = 1U;
-    return 1;
-  }
-  if (candidate->asm_form_index >= M68K_ASM_FORM_SLOT_COUNT) return 0;
-  form = &g_m68k_asm_forms[candidate->asm_form_index];
-  if (form->mnemonic_id == M68K_ASM_MNEMONIC_NONE) return 0;
-  for (index = 0U; index < candidate->operand_count; ++index)
-    layout_operands[index] = normalized_layout_operand(candidate, index);
-  size_suffix = candidate_effective_size_suffix(candidate);
-  word_index = 1U + form->bound_word_count;
-  for (extension_index = 0U; extension_index < form->extension_count; ++extension_index) {
-    const M68kAsmExtensionDef *extension = &g_m68k_asm_extensions[form->extension_start + extension_index];
-    size_t word_count;
-    if (extension->operand_index >= candidate->operand_count) continue;
-    word_count = relocation_extension_word_count(candidate->asm_form_index, extension->kind,
-      &layout_operands[extension->operand_index], size_suffix);
-    if (extension->operand_index == operand_index && word_count != 0U) {
-      if (word_index > UINT32_MAX / 2U || word_count > UINT32_MAX / 2U) return 0;
-      if (candidate->offset > UINT32_MAX - (uint32_t)(word_index * 2U)) return 0;
-      *out_start = candidate->offset + (uint32_t)(word_index * 2U);
-      *out_size = (uint32_t)(word_count * 2U);
-      return 1;
-    }
-    word_index += word_count;
-  }
-  return 0;
-}
-
 static int relocation_fits_operand_span(const M68kFact *relocation, uint32_t span_start, uint32_t span_size) {
   uint32_t span_end;
   uint32_t relocation_end;
@@ -8112,7 +8127,7 @@ static int pc_relative_operand_value_matches_relocation(const M68kDecodeCandidat
     asm_operands[index].kind = candidate->operand_kinds[index];
   }
   relative_base = m68k_asm_operand_relative_base_offset(candidate->asm_form_index, asm_operands,
-    candidate->operand_count, candidate_effective_size_suffix(candidate), operand_index, 0);
+    candidate->operand_count, m68k_decode_candidate_effective_size_suffix(candidate), operand_index, 0);
   target = (int64_t)candidate->offset + (int64_t)relative_base + signed_16(operand->value);
   return target >= 0 && target <= UINT32_MAX && (uint32_t)target == relocation->target_offset;
 }
@@ -8123,7 +8138,7 @@ static int operand_value_matches_relocation(const M68kDecodeCandidate *candidate
   if (candidate == NULL || relocation == NULL || operand_index >= candidate->operand_count) return 0;
   operand = candidate->operands[operand_index];
   operand.kind = candidate->operand_kinds[operand_index];
-  if (absolute_operand_value_matches_relocation(&operand, relocation, candidate_effective_size_suffix(candidate)))
+  if (absolute_operand_value_matches_relocation(&operand, relocation, m68k_decode_candidate_effective_size_suffix(candidate)))
     return 1;
   return pc_relative_operand_value_matches_relocation(candidate, operand_index, &operand, relocation);
 }
@@ -8137,7 +8152,7 @@ int find_unique_relocation_operand(const M68kDecodeCandidate *candidate, const M
   for (operand_index = 0U; operand_index < candidate->operand_count; ++operand_index) {
     uint32_t span_start = 0U;
     uint32_t span_size = 0U;
-    if (!exact_operand_relocation_span(candidate, operand_index, &span_start, &span_size)) continue;
+    if (!m68k_decode_candidate_operand_storage_span(candidate, operand_index, &span_start, &span_size)) continue;
     if (!relocation_fits_operand_span(relocation, span_start, span_size)) continue;
     if (!operand_value_matches_relocation(candidate, operand_index, relocation)) continue;
     match_index = operand_index;
@@ -8508,7 +8523,7 @@ static int attach_platform_pc_relative_section_anchor_symbols(const M68kRenderLo
       asm_operands[index].kind = candidate->operand_kinds[index];
     }
     relative_base = m68k_asm_operand_relative_base_offset(candidate->asm_form_index, asm_operands,
-      candidate->operand_count, candidate_effective_size_suffix(candidate), operand_index, 0);
+      candidate->operand_count, m68k_decode_candidate_effective_size_suffix(candidate), operand_index, 0);
     target = (int64_t)candidate->offset + (int64_t)relative_base + signed_16(candidate->operands[operand_index].value);
     if (!platform_facts_v2_pc_relative_section_anchor_for_target(lookup->object->platform_backend_kind, target,
         &base_offset, &addend, &symbol_provenance) || lookup->label_extents == NULL ||
@@ -8640,7 +8655,7 @@ static int candidate_lea_pc_relative_section_base_to_reg(const M68kDecodeCandida
     asm_operands[index].kind = candidate->operand_kinds[index];
   }
   relative_base = m68k_asm_operand_relative_base_offset(candidate->asm_form_index, asm_operands,
-    candidate->operand_count, candidate_effective_size_suffix(candidate), 0U, 0);
+    candidate->operand_count, m68k_decode_candidate_effective_size_suffix(candidate), 0U, 0);
   target = (int64_t)candidate->offset + (int64_t)relative_base + signed_16(candidate->operands[0].value);
   return target == 0;
 }
@@ -9216,7 +9231,7 @@ static void mark_cross_org_pc_relative_displacement_exprs(M68kRenderLookup *look
       continue;
     }
     relative_base = m68k_asm_operand_relative_base_offset(candidate->asm_form_index, asm_operands,
-      candidate->operand_count, candidate_effective_size_suffix(candidate), operand_index, 0);
+      candidate->operand_count, m68k_decode_candidate_effective_size_suffix(candidate), operand_index, 0);
     target = (int64_t)candidate->offset + (int64_t)relative_base + signed_16(candidate->operands[operand_index].value);
     if (relative_base > UINT32_MAX || target < 0 || target > UINT32_MAX) continue;
     if (!pc_relative_target_crosses_runtime_org(lookup, section_index, candidate->offset, (uint32_t)target)) continue;

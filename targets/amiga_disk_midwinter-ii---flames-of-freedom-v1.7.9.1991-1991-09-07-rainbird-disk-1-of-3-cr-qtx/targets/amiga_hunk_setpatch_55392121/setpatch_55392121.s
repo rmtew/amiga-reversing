@@ -40,7 +40,6 @@ runtime_address_FFFFFF94	EQU	$FFFFFF94
 runtime_address_FFFFFFA6	EQU	$FFFFFFA6
 runtime_address_FFFFFF64	EQU	$FFFFFF64
 runtime_address_FFFFFF22	EQU	$FFFFFF22
-m68k_vector_division_by_zero	EQU	$14
 _custom	EQU	$DFF000
 runtime_address_FFFFFFEE	EQU	$FFFFFFEE
 runtime_address_FFFFFFE8	EQU	$FFFFFFE8
@@ -686,7 +685,7 @@ loc_8_000000B4:
 	dc.b $26,$6E,$00,$3E,$DB,$FC,$00,$00,$00,$1E,$4E,$D5
     SECTION section_9,code
 loc_9_00000000:
-	movea.l m68k_vector_division_by_zero.w,a0
+	movea.l $0014.w,a0
 	move.w (a0),d0
 	ext.w d0
 	ext.l d0

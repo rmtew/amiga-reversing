@@ -6967,21 +6967,21 @@ CODE_1_loc_00003616:
 	jmp $0(pc,d0.w)
 CODE_1_loc_00003634:
 	dc.w $000E,$0022,$0036,$004A,$005E,$0072,$2F0C,$2F0B	; lookup_table
-CODE_1_data_00003634:
+CODE_1_data_00003644:
 	dc.w $4EAD,$0ACA,$101F,$4880,$48C0,$2D40,$FFF8,$6062	; lookup_table
-CODE_1_data_00003634:
+CODE_1_data_00003654:
 	dc.w $2F0C,$2F0B,$4EAD,$0AC2,$101F,$4880,$48C0,$2D40	; lookup_table
-CODE_1_data_00003634:
+CODE_1_data_00003664:
 	dc.w $FFF8,$604E,$2F0C,$2F0B,$4EAD,$0AE2,$101F,$4880	; lookup_table
-CODE_1_data_00003634:
+CODE_1_data_00003674:
 	dc.w $48C0,$2D40,$FFF8,$603A,$2F0C,$2F0B,$4EAD,$0AD2	; lookup_table
-CODE_1_data_00003634:
+CODE_1_data_00003684:
 	dc.w $101F,$4880,$48C0,$2D40,$FFF8,$6026,$2F0C,$2F0B	; lookup_table
-CODE_1_data_00003634:
+CODE_1_data_00003694:
 	dc.w $4EAD,$0AEA,$101F,$4880,$48C0,$2D40,$FFF8,$6012	; lookup_table
-CODE_1_data_00003634:
+CODE_1_data_000036a4:
 	dc.w $2F0C,$2F0B,$4EAD,$0ADA,$101F,$4880,$48C0,$2D40	; lookup_table
-CODE_1_data_00003634:
+CODE_1_data_000036b4:
 	dc.w $FFF8	; lookup_table
 CODE_1_loc_000036b6:
 	move.l -$0F2A(a5),-(a7)
@@ -7050,89 +7050,89 @@ CODE_1_loc_00003738:
 	jmp $0(pc,d0.w)
 CODE_1_loc_00003754:
 	dc.w $0034,$009C,$011E,$0132,$0156,$017A,$018A,$019C	; lookup_table
-CODE_1_data_00003754:
+CODE_1_data_00003764:
 	dc.w $01AC,$01C4,$01DC,$01F4,$020C,$0224,$023A,$024A	; lookup_table
-CODE_1_data_00003754:
+CODE_1_data_00003774:
 	dc.w $02AC,$02AC,$02AC,$02AC,$02AC,$02AC,$02AC,$02AC	; lookup_table
-CODE_1_data_00003754:
+CODE_1_data_00003784:
 	dc.w $025A,$7001,$B02E,$FFF6,$57C0,$4A00,$672C,$7201	; lookup_table
-CODE_1_data_00003754:
+CODE_1_data_00003794:
 	dc.w $B22E,$FFF7,$57C1,$C001,$6720,$202E,$FFFC,$222E	; lookup_table
-CODE_1_data_00003754:
+CODE_1_data_000037a4:
 	dc.w $FFF8,$B380,$4A80,$6D0C,$3F3C,$0014,$2F2E,$0008	; lookup_table
-CODE_1_data_00003754:
+CODE_1_data_000037b4:
 	dc.w $4EBA,$FA1C,$422E,$FFF6,$6024,$7001,$B02E,$FFF6	; lookup_table
-CODE_1_data_00003754:
+CODE_1_data_000037c4:
 	dc.w $57C0,$4A00,$660C,$7201,$B22E,$FFF7,$57C1,$8001	; lookup_table
-CODE_1_data_00003754:
+CODE_1_data_000037d4:
 	dc.w $6708,$1D7C,$0001,$FFF6,$6004,$422E,$FFF6,$202E	; lookup_table
-CODE_1_data_00003754:
+CODE_1_data_000037e4:
 	dc.w $FFFC,$D1AE,$FFF8,$6000,$0212,$7001,$B02E,$FFF6	; lookup_table
-CODE_1_data_00003754:
+CODE_1_data_000037f4:
 	dc.w $57C0,$4A00,$6746,$7201,$B22E,$FFF7,$57C1,$C001	; lookup_table
-CODE_1_data_00003754:
+CODE_1_data_00003804:
 	dc.w $673A,$202E,$FFFC,$222E,$FFF8,$B380,$4A80,$6C26	; lookup_table
-CODE_1_data_00003754:
+CODE_1_data_00003814:
 	dc.w $102D,$F3A2,$0A00,$0001,$4A00,$660E,$4AAD,$F3D8	; lookup_table
-CODE_1_data_00003754:
+CODE_1_data_00003824:
 	dc.w $57C1,$8001,$0240,$0001,$670C,$3F3C,$0014,$2F2E	; lookup_table
-CODE_1_data_00003754:
+CODE_1_data_00003834:
 	dc.w $0008,$4EBA,$F99A,$422E,$FFF6,$6024,$7001,$B02E	; lookup_table
-CODE_1_data_00003754:
+CODE_1_data_00003844:
 	dc.w $FFF6,$57C0,$4A00,$660C,$7201,$B22E,$FFF7,$57C1	; lookup_table
-CODE_1_data_00003754:
+CODE_1_data_00003854:
 	dc.w $8001,$6708,$1D7C,$0001,$FFF6,$6004,$422E,$FFF6	; lookup_table
-CODE_1_data_00003754:
+CODE_1_data_00003864:
 	dc.w $202E,$FFFC,$91AE,$FFF8,$6000,$0190,$2F2E,$FFF8	; lookup_table
-CODE_1_data_00003754:
+CODE_1_data_00003874:
 	dc.w $2F2E,$FFFC,$4EAD,$0A72,$2D5F,$FFF8,$6000,$017C	; lookup_table
-CODE_1_data_00003754:
+CODE_1_data_00003884:
 	dc.w $4AAE,$FFFC,$660A,$7000,$2D40,$FFF8,$6000,$016C	; lookup_table
-CODE_1_data_00003754:
+CODE_1_data_00003894:
 	dc.w $2F2E,$FFF8,$2F2E,$FFFC,$4EAD,$0A7A,$2D5F,$FFF8	; lookup_table
-CODE_1_data_00003754:
+CODE_1_data_000038a4:
 	dc.w $6000,$0158,$4AAE,$FFFC,$660A,$7000,$2D40,$FFF8	; lookup_table
-CODE_1_data_00003754:
+CODE_1_data_000038b4:
 	dc.w $6000,$0148,$2F2E,$FFF8,$2F2E,$FFFC,$4EAD,$0A82	; lookup_table
-CODE_1_data_00003754:
+CODE_1_data_000038c4:
 	dc.w $2D5F,$FFF8,$6000,$0134,$202E,$FFFC,$80AE,$FFF8	; lookup_table
-CODE_1_data_00003754:
+CODE_1_data_000038d4:
 	dc.w $2D40,$FFF8,$6000,$0124,$202E,$FFFC,$222E,$FFF8	; lookup_table
-CODE_1_data_00003754:
+CODE_1_data_000038e4:
 	dc.w $B380,$2D40,$FFF8,$6000,$0112,$202E,$FFFC,$C0AE	; lookup_table
-CODE_1_data_00003754:
+CODE_1_data_000038f4:
 	dc.w $FFF8,$2D40,$FFF8,$6000,$0102,$202E,$FFF8,$B0AE	; lookup_table
-CODE_1_data_00003754:
+CODE_1_data_00003904:
 	dc.w $FFFC,$57C0,$4400,$4880,$48C0,$2D40,$FFF8,$6000	; lookup_table
-CODE_1_data_00003754:
+CODE_1_data_00003914:
 	dc.w $00EA,$202E,$FFF8,$B0AE,$FFFC,$56C0,$4400,$4880	; lookup_table
-CODE_1_data_00003754:
+CODE_1_data_00003924:
 	dc.w $48C0,$2D40,$FFF8,$6000,$00D2,$202E,$FFF8,$B0AE	; lookup_table
-CODE_1_data_00003754:
+CODE_1_data_00003934:
 	dc.w $FFFC,$5DC0,$4400,$4880,$48C0,$2D40,$FFF8,$6000	; lookup_table
-CODE_1_data_00003754:
+CODE_1_data_00003944:
 	dc.w $00BA,$202E,$FFF8,$B0AE,$FFFC,$5EC0,$4400,$4880	; lookup_table
-CODE_1_data_00003754:
+CODE_1_data_00003954:
 	dc.w $48C0,$2D40,$FFF8,$6000,$00A2,$202E,$FFF8,$B0AE	; lookup_table
-CODE_1_data_00003754:
+CODE_1_data_00003964:
 	dc.w $FFFC,$5CC0,$4400,$4880,$48C0,$2D40,$FFF8,$6000	; lookup_table
-CODE_1_data_00003754:
+CODE_1_data_00003974:
 	dc.w $008A,$202E,$FFF8,$B0AE,$FFFC,$5FC0,$4400,$4880	; lookup_table
-CODE_1_data_00003754:
+CODE_1_data_00003984:
 	dc.w $48C0,$2D40,$FFF8,$6072,$302E,$FFFE,$222E,$FFF8	; lookup_table
-CODE_1_data_00003754:
+CODE_1_data_00003994:
 	dc.w $E0A9,$2D41,$FFF8,$6062,$302E,$FFFE,$222E,$FFF8	; lookup_table
-CODE_1_data_00003754:
+CODE_1_data_000039a4:
 	dc.w $E1A9,$2D41,$FFF8,$6052,$4AAE,$FFF8,$5DC0,$4A00	; lookup_table
-CODE_1_data_00003754:
+CODE_1_data_000039b4:
 	dc.w $6626,$0CAE,$0000,$00FF,$FFF8,$5EC1,$8001,$6618	; lookup_table
-CODE_1_data_00003754:
+CODE_1_data_000039c4:
 	dc.w $4AAE,$FFFC,$5DC1,$8001,$660E,$0CAE,$0000,$00FF	; lookup_table
-CODE_1_data_00003754:
+CODE_1_data_000039d4:
 	dc.w $FFFC,$5EC1,$8001,$670C,$3F3C,$0089,$2F2E,$0008	; lookup_table
-CODE_1_data_00003754:
+CODE_1_data_000039e4:
 	dc.w $4EBA,$F7EC,$7010,$222E,$FFF8,$E1A9,$82AE,$FFFC	; lookup_table
-CODE_1_data_00003754:
+CODE_1_data_000039f4:
 	dc.w $2D41,$FFF8,$1D7C,$0003,$FFF6	; lookup_table
 CODE_1_loc_000039fe:
 	move.b -$0CA9(a5),d0
@@ -8397,49 +8397,49 @@ CODE_1_loc_00004852:
 	jmp $0(pc,d0.w)
 CODE_1_loc_00004878:
 	dc.w $0022,$0070,$00BE,$00CC,$00E4,$00F8,$00FC,$0102	; lookup_table
-CODE_1_data_00004878:
+CODE_1_data_00004888:
 	dc.w $0106,$0114,$0122,$0130,$013E,$014C,$015A,$0160	; lookup_table
-CODE_1_data_00004878:
+CODE_1_data_00004898:
 	dc.w $7001,$B005,$57C0,$4A00,$6724,$7201,$B204,$57C1	; lookup_table
-CODE_1_data_00004878:
+CODE_1_data_000048a8:
 	dc.w $C001,$671A,$2007,$2206,$B380,$4A80,$6D0C,$3F3C	; lookup_table
-CODE_1_data_00004878:
+CODE_1_data_000048b8:
 	dc.w $0014,$2F2E,$0008,$4EBA,$FBA4,$4205,$601A,$7001	; lookup_table
-CODE_1_data_00004878:
+CODE_1_data_000048c8:
 	dc.w $B005,$57C0,$4A00,$660A,$7201,$B204,$57C1,$8001	; lookup_table
-CODE_1_data_00004878:
+CODE_1_data_000048d8:
 	dc.w $6704,$7A01,$6002,$4205,$DE86,$6000,$00F6,$7001	; lookup_table
-CODE_1_data_00004878:
+CODE_1_data_000048e8:
 	dc.w $B005,$57C0,$4A00,$6724,$7201,$B204,$57C1,$C001	; lookup_table
-CODE_1_data_00004878:
+CODE_1_data_000048f8:
 	dc.w $671A,$2007,$2206,$B380,$4A80,$6C0C,$3F3C,$0014	; lookup_table
-CODE_1_data_00004878:
+CODE_1_data_00004908:
 	dc.w $2F2E,$0008,$4EBA,$FB56,$4205,$601A,$7001,$B005	; lookup_table
-CODE_1_data_00004878:
+CODE_1_data_00004918:
 	dc.w $57C0,$4A00,$660A,$7201,$B204,$57C1,$8001,$6704	; lookup_table
-CODE_1_data_00004878:
+CODE_1_data_00004928:
 	dc.w $7A01,$6002,$4205,$9E86,$6000,$00A8,$2F07,$2F06	; lookup_table
-CODE_1_data_00004878:
+CODE_1_data_00004938:
 	dc.w $4EAD,$0A72,$2E1F,$6000,$009A,$4A86,$6606,$7E00	; lookup_table
-CODE_1_data_00004878:
+CODE_1_data_00004948:
 	dc.w $6000,$0090,$2F07,$2F06,$4EAD,$0A7A,$2E1F,$6000	; lookup_table
-CODE_1_data_00004878:
+CODE_1_data_00004958:
 	dc.w $0082,$4A86,$6604,$7E00,$6078,$2F07,$2F06,$4EAD	; lookup_table
-CODE_1_data_00004878:
+CODE_1_data_00004968:
 	dc.w $0A82,$2E1F,$606C,$8E86,$6068,$2006,$B187,$6062	; lookup_table
-CODE_1_data_00004878:
+CODE_1_data_00004978:
 	dc.w $CE86,$605E,$BC87,$57C0,$4400,$4880,$48C0,$2E00	; lookup_table
-CODE_1_data_00004878:
+CODE_1_data_00004988:
 	dc.w $6050,$BC87,$56C0,$4400,$4880,$48C0,$2E00,$6042	; lookup_table
-CODE_1_data_00004878:
+CODE_1_data_00004998:
 	dc.w $BC87,$5EC0,$4400,$4880,$48C0,$2E00,$6034,$BC87	; lookup_table
-CODE_1_data_00004878:
+CODE_1_data_000049a8:
 	dc.w $5DC0,$4400,$4880,$48C0,$2E00,$6026,$BC87,$5FC0	; lookup_table
-CODE_1_data_00004878:
+CODE_1_data_000049b8:
 	dc.w $4400,$4880,$48C0,$2E00,$6018,$BC87,$5CC0,$4400	; lookup_table
-CODE_1_data_00004878:
+CODE_1_data_000049c8:
 	dc.w $4880,$48C0,$2E00,$600A,$3006,$E0AF,$6004,$3006	; lookup_table
-CODE_1_data_00004878:
+CODE_1_data_000049d8:
 	dc.w $E1AF	; lookup_table
 CODE_1_loc_000049da:
 	move.b -$0CA9(a5),d0
@@ -13578,59 +13578,59 @@ CODE_2_loc_00001c50:
 	jmp $0(pc,d0.w)
 CODE_2_loc_00001c70:
 	dc.w $000E,$0098,$0098,$0102,$0102,$0178,$4267,$486E	; lookup_table
-CODE_2_data_00001c70:
+CODE_2_data_00001c80:
 	dc.w $FFFA,$4EAD,$0202,$101F,$6770,$4AAE,$FFFA,$5FC0	; lookup_table
-CODE_2_data_00001c70:
+CODE_2_data_00001c90:
 	dc.w $4A00,$660C,$7207,$B2AE,$FFFA,$5DC1,$8001,$670C	; lookup_table
-CODE_2_data_00001c70:
+CODE_2_data_00001ca0:
 	dc.w $487A,$01C4,$4EBA,$FF1E,$6000,$017C,$7009,$222E	; lookup_table
-CODE_2_data_00001c70:
+CODE_2_data_00001cb0:
 	dc.w $FFFA,$E1A9,$3B41,$F3C2,$7020,$B06D,$F398,$5FC0	; lookup_table
-CODE_2_data_00001c70:
+CODE_2_data_00001cc0:
 	dc.w $4A00,$671A,$0C6D,$0200,$F3C2,$56C1,$C001,$670E	; lookup_table
-CODE_2_data_00001c70:
+CODE_2_data_00001cd0:
 	dc.w $3F3C,$00F0,$4EAD,$07CA,$3B7C,$0200,$F3C2,$3F3C	; lookup_table
-CODE_2_data_00001c70:
+CODE_2_data_00001ce0:
 	dc.w $0006,$302D,$F3C2,$48C0,$2F00,$4EAD,$0142,$3F3C	; lookup_table
-CODE_2_data_00001c70:
+CODE_2_data_00001cf0:
 	dc.w $0048,$4EAD,$014A,$6000,$012E,$487A,$016A,$4EBA	; lookup_table
-CODE_2_data_00001c70:
+CODE_2_data_00001d00:
 	dc.w $FEC4,$6000,$0122,$4A2D,$FFFB,$56C0,$4A00,$660C	; lookup_table
-CODE_2_data_00001c70:
+CODE_2_data_00001d10:
 	dc.w $7201,$B26D,$FEF8,$56C1,$8001,$670C,$487A,$013E	; lookup_table
-CODE_2_data_00001c70:
+CODE_2_data_00001d20:
 	dc.w $4EBA,$FEA2,$6000,$0100,$4267,$4240,$102D,$FEFB	; lookup_table
-CODE_2_data_00001c70:
+CODE_2_data_00001d30:
 	dc.w $3F00,$4EAD,$0042,$3E1F,$7058,$B047,$6606,$426D	; lookup_table
-CODE_2_data_00001c70:
+CODE_2_data_00001d40:
 	dc.w $F3BE,$6024,$7044,$B047,$6608,$3B7C,$0001,$F3BE	; lookup_table
-CODE_2_data_00001c70:
+CODE_2_data_00001d50:
 	dc.w $6016,$7053,$B047,$6608,$3B7C,$0002,$F3BE,$6008	; lookup_table
-CODE_2_data_00001c70:
+CODE_2_data_00001d60:
 	dc.w $487A,$00FA,$4EBA,$FE5E,$4EAD,$0172,$6000,$00B8	; lookup_table
-CODE_2_data_00001c70:
+CODE_2_data_00001d70:
 	dc.w $4A2D,$FFFB,$56C0,$4A00,$660C,$7201,$B26D,$FEF8	; lookup_table
-CODE_2_data_00001c70:
+CODE_2_data_00001d80:
 	dc.w $56C1,$8001,$670C,$487A,$00CA,$4EBA,$FE38,$6000	; lookup_table
-CODE_2_data_00001c70:
+CODE_2_data_00001d90:
 	dc.w $0096,$4267,$4240,$102D,$FEFB,$3F00,$4EAD,$0042	; lookup_table
-CODE_2_data_00001c70:
+CODE_2_data_00001da0:
 	dc.w $3E1F,$704E,$B047,$6606,$426D,$F3C0,$6032,$7055	; lookup_table
-CODE_2_data_00001c70:
+CODE_2_data_00001db0:
 	dc.w $B047,$6608,$3B7C,$0001,$F3C0,$6024,$7044,$B047	; lookup_table
-CODE_2_data_00001c70:
+CODE_2_data_00001dc0:
 	dc.w $6608,$3B7C,$0002,$F3C0,$6016,$705A,$B047,$6608	; lookup_table
-CODE_2_data_00001c70:
+CODE_2_data_00001dd0:
 	dc.w $3B7C,$0003,$F3C0,$6008,$487A,$0078,$4EBA,$FDE6	; lookup_table
-CODE_2_data_00001c70:
+CODE_2_data_00001de0:
 	dc.w $4EAD,$0172,$6040,$4267,$486E,$FFFA,$4EAD,$0202	; lookup_table
-CODE_2_data_00001c70:
+CODE_2_data_00001df0:
 	dc.w $101F,$672A,$70C0,$B0AE,$FFFA,$5EC0,$4A00,$660C	; lookup_table
-CODE_2_data_00001c70:
+CODE_2_data_00001e00:
 	dc.w $723F,$B2AE,$FFFA,$5DC1,$8001,$670A,$487A,$003A	; lookup_table
-CODE_2_data_00001c70:
+CODE_2_data_00001e10:
 	dc.w $4EBA,$FDB2,$6010,$3B6E,$FFFC,$F3BC,$6008,$487A	; lookup_table
-CODE_2_data_00001c70:
+CODE_2_data_00001e20:
 	dc.w $0028,$4EBA,$FDA0	; lookup_table
 CODE_2_loc_00001e26:
 	clr.w -(a7)
@@ -16464,35 +16464,35 @@ CODE_3_loc_000033ea:
 	jmp $0(pc,d0.w)
 CODE_3_loc_0000342c:
 	dc.w $0026,$0030,$003A,$0044,$004E,$0058,$0062,$007A	; lookup_table
-CODE_3_data_0000342c:
+CODE_3_data_0000343c:
 	dc.w $0082,$009A,$00A2,$00AA,$00CA,$00D2,$00DC,$00E4	; lookup_table
-CODE_3_data_0000342c:
+CODE_3_data_0000344c:
 	dc.w $00EC,$00F4,$3D7C,$00C5,$FFFA,$6000,$00D2,$3D7C	; lookup_table
-CODE_3_data_0000342c:
+CODE_3_data_0000345c:
 	dc.w $0065,$FFFA,$6000,$00C8,$3D7C,$0064,$FFFA,$6000	; lookup_table
-CODE_3_data_0000342c:
+CODE_3_data_0000346c:
 	dc.w $00BE,$2F0E,$4EBA,$F6A2,$6000,$00B4,$2F0E,$4EBA	; lookup_table
-CODE_3_data_0000342c:
+CODE_3_data_0000347c:
 	dc.w $F7A6,$6000,$00AA,$3D7C,$0063,$FFFA,$6000,$00A0	; lookup_table
-CODE_3_data_0000342c:
+CODE_3_data_0000348c:
 	dc.w $486D,$F38E,$487A,$02BE,$2F3C,$00FB,$0006,$2F0E	; lookup_table
-CODE_3_data_0000342c:
+CODE_3_data_0000349c:
 	dc.w $4EBA,$E6CE,$6000,$0238,$2F0E,$4EBA,$F87C,$607E	; lookup_table
-CODE_3_data_0000342c:
+CODE_3_data_000034ac:
 	dc.w $486D,$ECEC,$487A,$028C,$2F3C,$0008,$0004,$2F0E	; lookup_table
-CODE_3_data_0000342c:
+CODE_3_data_000034bc:
 	dc.w $4EBA,$E6AE,$6000,$0218,$2F0E,$4EBA,$F1B6,$605E	; lookup_table
-CODE_3_data_0000342c:
+CODE_3_data_000034cc:
 	dc.w $422D,$F39E,$6000,$0208,$206E,$0008,$2068,$0008	; lookup_table
-CODE_3_data_0000342c:
+CODE_3_data_000034dc:
 	dc.w $4868,$FFFC,$487A,$023A,$2F3C,$003E,$0006,$2F0E	; lookup_table
-CODE_3_data_0000342c:
+CODE_3_data_000034ec:
 	dc.w $4EBA,$E67E,$6000,$01E8,$2F0E,$4EBA,$FB46,$602E	; lookup_table
-CODE_3_data_0000342c:
+CODE_3_data_000034fc:
 	dc.w $1B7C,$0001,$E517,$6000,$01D6,$2F0E,$4EBA,$F034	; lookup_table
-CODE_3_data_0000342c:
+CODE_3_data_0000350c:
 	dc.w $601C,$2F0E,$4EBA,$F364,$6014,$2F0E,$4EBA,$FBB8	; lookup_table
-CODE_3_data_0000342c:
+CODE_3_data_0000351c:
 	dc.w $600C,$2F0E,$4EBA,$FCC0,$6004	; lookup_table
 CODE_3_loc_00003526:
 	clr.w -$0006(a6)
@@ -22493,79 +22493,79 @@ CODE_5_loc_00001d38:
 	jmp $0(pc,d0.w)
 CODE_5_loc_00001d54:
 	dc.w $0020,$0020,$006C,$008A,$00A8,$00CE,$00DE,$00EE	; lookup_table
-CODE_5_data_00001d54:
+CODE_5_data_00001d64:
 	dc.w $00FA,$011C,$0128,$013E,$0146,$019A,$01F8,$4AAD	; lookup_table
-CODE_5_data_00001d54:
+CODE_5_data_00001d74:
 	dc.w $ECE6,$661E,$42A7,$302D,$DA52,$48C0,$2F00,$2F3C	; lookup_table
-CODE_5_data_00001d54:
+CODE_5_data_00001d84:
 	dc.w $0000,$FFFC,$4EAD,$00BA,$486D,$D4E4,$4EAD,$0092	; lookup_table
-CODE_5_data_00001d54:
+CODE_5_data_00001d94:
 	dc.w $6020,$42A7,$206D,$ECE6,$3028,$001A,$48C0,$2F00	; lookup_table
-CODE_5_data_00001d54:
+CODE_5_data_00001da4:
 	dc.w $2F3C,$0000,$FFFC,$4EAD,$00BA,$486D,$D4E4,$4EAD	; lookup_table
-CODE_5_data_00001d54:
+CODE_5_data_00001db4:
 	dc.w $0092,$16BC,$0005,$6000,$01F6,$486E,$FF8E,$4EAD	; lookup_table
-CODE_5_data_00001d54:
+CODE_5_data_00001dc4:
 	dc.w $01BA,$486E,$FF8E,$486D,$D4E4,$2F3C,$0009,$000A	; lookup_table
-CODE_5_data_00001d54:
+CODE_5_data_00001dd4:
 	dc.w $4EAD,$009A,$6000,$01D8,$486E,$FF8E,$4EAD,$01BA	; lookup_table
-CODE_5_data_00001d54:
+CODE_5_data_00001de4:
 	dc.w $486E,$FF8E,$486D,$D4E4,$2F3C,$0008,$0001,$4EAD	; lookup_table
-CODE_5_data_00001d54:
+CODE_5_data_00001df4:
 	dc.w $009A,$6000,$01BA,$102D,$F3A5,$6710,$486D,$E81E	; lookup_table
-CODE_5_data_00001d54:
+CODE_5_data_00001e04:
 	dc.w $486D,$D4E4,$4EAD,$0092,$6000,$01A4,$486D,$E71E	; lookup_table
-CODE_5_data_00001d54:
+CODE_5_data_00001e14:
 	dc.w $486D,$D4E4,$4EAD,$0092,$6000,$0194,$486D,$E91E	; lookup_table
-CODE_5_data_00001d54:
+CODE_5_data_00001e24:
 	dc.w $486D,$D4E4,$4EAD,$0092,$6000,$0184,$486D,$D2C4	; lookup_table
-CODE_5_data_00001d54:
+CODE_5_data_00001e34:
 	dc.w $486D,$D4E4,$4EAD,$0092,$6000,$0174,$302D,$D3C4	; lookup_table
-CODE_5_data_00001d54:
+CODE_5_data_00001e44:
 	dc.w $48C0,$2880,$6000,$0168,$102D,$D4C7,$6714,$16BC	; lookup_table
-CODE_5_data_00001d54:
+CODE_5_data_00001e54:
 	dc.w $0006,$486D,$D3C6,$486D,$D4E4,$4EAD,$0092,$6000	; lookup_table
-CODE_5_data_00001d54:
+CODE_5_data_00001e64:
 	dc.w $014E,$28AD,$D4C8,$6000,$0146,$302D,$D4CC,$48C0	; lookup_table
-CODE_5_data_00001d54:
+CODE_5_data_00001e74:
 	dc.w $2880,$6000,$013A,$102D,$F3A6,$6708,$28AD,$F3AC	; lookup_table
-CODE_5_data_00001d54:
+CODE_5_data_00001e84:
 	dc.w $6000,$012C,$70FF,$2880,$6000,$0124,$28AD,$F3B0	; lookup_table
-CODE_5_data_00001d54:
+CODE_5_data_00001e94:
 	dc.w $6000,$011C,$7000,$2D40,$FFE0,$3D7C,$0001,$FFEC	; lookup_table
-CODE_5_data_00001d54:
+CODE_5_data_00001ea4:
 	dc.w $302E,$FFEC,$E540,$41ED,$D4CA,$4AB0,$0000,$6624	; lookup_table
-CODE_5_data_00001d54:
+CODE_5_data_00001eb4:
 	dc.w $486E,$FFE0,$1F3C,$0001,$4EAD,$01C2,$4AAE,$FFE0	; lookup_table
-CODE_5_data_00001d54:
+CODE_5_data_00001ec4:
 	dc.w $671E,$302E,$FFEC,$E540,$41ED,$D4CA,$21AE,$FFE0	; lookup_table
-CODE_5_data_00001d54:
+CODE_5_data_00001ed4:
 	dc.w $0000,$600C,$526E,$FFEC,$7004,$B06E,$FFEC,$6CC0	; lookup_table
-CODE_5_data_00001d54:
+CODE_5_data_00001ee4:
 	dc.w $28AE,$FFE0,$6000,$00C8,$16BC,$0006,$102D,$F3A6	; lookup_table
-CODE_5_data_00001d54:
+CODE_5_data_00001ef4:
 	dc.w $6710,$486D,$E91E,$486D,$D4E4,$4EAD,$0092,$6000	; lookup_table
-CODE_5_data_00001d54:
+CODE_5_data_00001f04:
 	dc.w $00AE,$102D,$F3A2,$6720,$41EE,$FF82,$43FA,$011C	; lookup_table
-CODE_5_data_00001d54:
+CODE_5_data_00001f14:
 	dc.w $7004,$30D9,$51C8,$FFFC,$486E,$FF82,$486D,$D4E4	; lookup_table
-CODE_5_data_00001d54:
+CODE_5_data_00001f24:
 	dc.w $4EAD,$0092,$6000,$0088,$41EE,$FF82,$43FA,$00F4	; lookup_table
-CODE_5_data_00001d54:
+CODE_5_data_00001f34:
 	dc.w $7003,$30D9,$51C8,$FFFC,$486E,$FF82,$486D,$D4E4	; lookup_table
-CODE_5_data_00001d54:
+CODE_5_data_00001f44:
 	dc.w $4EAD,$0092,$6068,$16BC,$0006,$102D,$ECBC,$671E	; lookup_table
-CODE_5_data_00001d54:
+CODE_5_data_00001f54:
 	dc.w $41EE,$FF74,$43FA,$00C0,$7005,$30D9,$51C8,$FFFC	; lookup_table
-CODE_5_data_00001d54:
+CODE_5_data_00001f64:
 	dc.w $486E,$FF74,$486D,$D4E4,$4EAD,$0092,$6040,$102D	; lookup_table
-CODE_5_data_00001d54:
+CODE_5_data_00001f74:
 	dc.w $ECC0,$671E,$41EE,$FF74,$43FA,$0094,$7003,$30D9	; lookup_table
-CODE_5_data_00001d54:
+CODE_5_data_00001f84:
 	dc.w $51C8,$FFFC,$486E,$FF74,$486D,$D4E4,$4EAD,$0092	; lookup_table
-CODE_5_data_00001d54:
+CODE_5_data_00001f94:
 	dc.w $601C,$41EE,$FF74,$43FA,$006C,$7004,$30D9,$51C8	; lookup_table
-CODE_5_data_00001d54:
+CODE_5_data_00001fa4:
 	dc.w $FFFC,$486E,$FF74,$486D,$D4E4,$4EAD,$0092	; lookup_table
 CODE_5_loc_00001fb2:
 	tst.b (a3)
@@ -24710,795 +24710,795 @@ CODE_5_loc_00003ac2:
 	jmp $0(pc,d0.w)
 CODE_5_loc_00003b10:
 	dc.w $0042,$00B6,$012A,$0164,$0164,$0270,$0270,$02FE	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003b20:
 	dc.w $03B8,$08C4,$05BA,$05BA,$036A,$0514,$1022,$0634	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003b30:
 	dc.w $0E84,$04A6,$0680,$0DAC,$0F38,$0FB6,$05BA,$05BA	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003b40:
 	dc.w $0850,$11FA,$1142,$1142,$1596,$1372,$16B4,$178A	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003b50:
 	dc.w $2D7C,$8000,$0000,$FFD8,$3D7C,$0001,$FB7C,$102E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003b60:
 	dc.w $000C,$4880,$3D40,$FB7A,$3D6E,$FB7C,$FFF6,$603A	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003b70:
 	dc.w $4267,$486E,$FFDC,$4EBA,$FC18,$101F,$660A,$3F3C	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003b80:
 	dc.w $002E,$2F0E,$4EBA,$FE1E,$202E,$FFDC,$B0AE,$FFD8	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003b90:
 	dc.w $6F06,$2D6E,$FFDC,$FFD8,$102D,$F357,$4880,$5340	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003ba0:
 	dc.w $1B40,$F357,$526E,$FFF6,$690A,$302E,$FFF6,$B06E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003bb0:
 	dc.w $FB7A,$6FBC,$102D,$F357,$4880,$5240,$1B40,$F357	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003bc0:
 	dc.w $6000,$1834,$2D7C,$7FFF,$FFFF,$FFD8,$3D7C,$0001	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003bd0:
 	dc.w $FB78,$102E,$000C,$4880,$3D40,$FB76,$3D6E,$FB78	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003be0:
 	dc.w $FFF6,$603A,$4267,$486E,$FFDC,$4EBA,$FBA4,$101F	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003bf0:
 	dc.w $660A,$3F3C,$002E,$2F0E,$4EBA,$FDAA,$202E,$FFDC	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003c00:
 	dc.w $B0AE,$FFD8,$6C06,$2D6E,$FFDC,$FFD8,$102D,$F357	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003c10:
 	dc.w $4880,$5340,$1B40,$F357,$526E,$FFF6,$690A,$302E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003c20:
 	dc.w $FFF6,$B06E,$FB76,$6FBC,$102D,$F357,$4880,$5240	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003c30:
 	dc.w $1B40,$F357,$6000,$17C0,$7001,$B02E,$000C,$670A	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003c40:
 	dc.w $3F3C,$003C,$2F0E,$4EBA,$FD5C,$4267,$486E,$FFD8	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003c50:
 	dc.w $4EBA,$FB3E,$101F,$660A,$3F3C,$002E,$2F0E,$4EBA	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003c60:
 	dc.w $FD44,$202E,$FFD8,$6A02,$4480,$2D40,$FFD8,$6000	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003c70:
 	dc.w $1786,$7003,$B02E,$000C,$5DC0,$4A00,$660C,$7201	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003c80:
 	dc.w $B22E,$000C,$5EC1,$8001,$670A,$3F3C,$003C,$2F0E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003c90:
 	dc.w $4EBA,$FD12,$7003,$B02E,$000C,$6E32,$4267,$486E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003ca0:
 	dc.w $FFD8,$4EBA,$FAEC,$101F,$660A,$3F3C,$002E,$2F0E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003cb0:
 	dc.w $4EBA,$FCF2,$102D,$F357,$4880,$5340,$1B40,$F357	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003cc0:
 	dc.w $4AAE,$FFD8,$56C0,$4400,$1D40,$FFD6,$6004,$422E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003cd0:
 	dc.w $FFD6,$7002,$B02E,$000C,$6E46,$4267,$486E,$FFDC	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003ce0:
 	dc.w $4EBA,$FAAE,$101F,$660A,$3F3C,$002E,$2F0E,$4EBA	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003cf0:
 	dc.w $FCB4,$2D6E,$FFDC,$FFF0,$202E,$FFF0,$6A02,$4480	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003d00:
 	dc.w $0C80,$0000,$00FF,$6F0A,$3F3C,$0084,$2F0E,$4EBA	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003d10:
 	dc.w $FC94,$102D,$F357,$4880,$5340,$1B40,$F357,$6006	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003d20:
 	dc.w $7001,$2D40,$FFF0,$4267,$486E,$FFDC,$4EBA,$FA62	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003d30:
 	dc.w $101F,$660A,$3F3C,$002E,$2F0E,$4EBA,$FC68,$42A7	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003d40:
 	dc.w $2F2E,$FFDC,$3F2E,$FFF2,$1F2E,$FFD6,$4EAD,$00BA	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003d50:
 	dc.w $486E,$FED4,$4EAD,$0092,$4267,$486E,$FFD8,$486E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003d60:
 	dc.w $FED4,$4EBA,$FB3C,$101F,$660A,$3F3C,$0057,$2F0E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003d70:
 	dc.w $4EBA,$FC32,$1D7C,$0006,$FFD7,$6000,$167A,$7001	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003d80:
 	dc.w $B02E,$000C,$670A,$3F3C,$003C,$2F0E,$4EBA,$FC16	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003d90:
 	dc.w $422E,$FFD7,$102D,$F357,$4880,$7204,$41ED,$F224	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003da0:
 	dc.w $B230,$0000,$6E58,$42A7,$102D,$F357,$4880,$E540	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003db0:
 	dc.w $41ED,$F262,$2F30,$0000,$486E,$FDC4,$4EAD,$00CA	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003dc0:
 	dc.w $2D5F,$FFD8,$4A2E,$FDC4,$6718,$3F3C,$00C9,$102D	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003dd0:
 	dc.w $F357,$4880,$E540,$41ED,$F262,$2F30,$0000,$4EAD	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003de0:
 	dc.w $07C2,$2F2D,$F0D6,$102D,$F357,$4880,$E540,$41ED	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003df0:
 	dc.w $F262,$2F30,$0000,$4EAD,$0782,$6000,$15FA,$3F3C	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003e00:
 	dc.w $007A,$2F0E,$4EBA,$FB9E,$6000,$15EC,$7001,$B02E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003e10:
 	dc.w $000C,$670A,$3F3C,$003C,$2F0E,$4EBA,$FB88,$422E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003e20:
 	dc.w $FFD7,$102D,$F357,$4880,$7204,$41ED,$F224,$B230	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003e30:
 	dc.w $0000,$6E36,$102D,$F357,$4880,$E540,$43ED,$F262	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003e40:
 	dc.w $2071,$0000,$4240,$1010,$48C0,$2D40,$FFD8,$2F2D	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003e50:
 	dc.w $F0D6,$102D,$F357,$4880,$E540,$41ED,$F262,$2F30	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003e60:
 	dc.w $0000,$4EAD,$0782,$6000,$158E,$3F3C,$007A,$2F0E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003e70:
 	dc.w $4EBA,$FB32,$6000,$1580,$7002,$B02E,$000C,$670A	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003e80:
 	dc.w $3F3C,$003C,$2F0E,$4EBA,$FB1C,$486E,$FED4,$2F0E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003e90:
 	dc.w $4EBA,$FB48,$102D,$F357,$4880,$5340,$1B40,$F357	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003ea0:
 	dc.w $486E,$FDD2,$2F0E,$4EBA,$FB32,$422E,$FFD7,$486E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003eb0:
 	dc.w $FDD2,$486E,$FED4,$4EAD,$0A9A,$301F,$48C0,$2D40	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003ec0:
 	dc.w $FFD8,$6000,$1532,$422E,$FED4,$3D7C,$0001,$FB74	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003ed0:
 	dc.w $102E,$000C,$4880,$3D40,$FB72,$3D6E,$FB74,$FFF6	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003ee0:
 	dc.w $6000,$0094,$486E,$FDD2,$2F0E,$4EBA,$FAEE,$4240	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003ef0:
 	dc.w $102E,$FED4,$3D40,$FFFA,$4240,$102E,$FDD2,$3D40	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003f00:
 	dc.w $FFF8,$D06E,$FFFA,$0C40,$00FF,$6E12,$486E,$FDD2	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003f10:
 	dc.w $486E,$FED4,$3F3C,$0001,$4EAD,$0ABA,$6046,$486E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003f20:
 	dc.w $FDD2,$486E,$FED4,$3F3C,$0001,$303C,$00FF,$906E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003f30:
 	dc.w $FFF8,$3F00,$486E,$FC7E,$4EAD,$0AAA,$486E,$FC7E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003f40:
 	dc.w $486E,$FB7E,$3F3C,$0002,$4EAD,$0AA2,$41EE,$FED4	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003f50:
 	dc.w $43EE,$FB7E,$707F,$30D9,$51C8,$FFFC,$3F3C,$00CB	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003f60:
 	dc.w $4EAD,$07CA,$102D,$F357,$4880,$5340,$1B40,$F357	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003f70:
 	dc.w $526E,$FFF6,$690C,$302E,$FFF6,$B06E,$FB72,$6F00	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003f80:
 	dc.w $FF64,$102D,$F357,$4880,$5240,$1B40,$F357,$4267	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003f90:
 	dc.w $486E,$FFD8,$486E,$FED4,$4EBA,$F906,$101F,$660A	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003fa0:
 	dc.w $3F3C,$0057,$2F0E,$4EBA,$F9FC,$1D7C,$0006,$FFD7	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003fb0:
 	dc.w $6000,$1444,$7002,$B02E,$000C,$670A,$3F3C,$003C	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003fc0:
 	dc.w $2F0E,$4EBA,$F9E0,$486E,$FDD2,$2F0E,$4EBA,$FA0C	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003fd0:
 	dc.w $102D,$F357,$4880,$5340,$1B40,$F357,$486E,$FED4	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003fe0:
 	dc.w $2F0E,$4EBA,$F9F6,$4240,$102E,$FED4,$4A40,$660C	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00003ff0:
 	dc.w $486E,$FDD2,$486E,$FED4,$4EAD,$0092,$4267,$486E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004000:
 	dc.w $FFD8,$486E,$FED4,$4EBA,$F898,$101F,$660A,$3F3C	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004010:
 	dc.w $0057,$2F0E,$4EBA,$F98E,$1D7C,$0006,$FFD7,$6000	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004020:
 	dc.w $13D6,$7003,$B02E,$000C,$670A,$3F3C,$003C,$2F0E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004030:
 	dc.w $4EBA,$F972,$4267,$486E,$FFE4,$4EBA,$F754,$101F	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004040:
 	dc.w $660A,$3F3C,$002E,$2F0E,$4EBA,$F95A,$102D,$F357	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004050:
 	dc.w $4880,$5340,$1B40,$F357,$4AAE,$FFE4,$6C0E,$3F3C	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004060:
 	dc.w $008B,$4EAD,$07CA,$7000,$2D40,$FFE4,$4267,$486E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004070:
 	dc.w $FFE8,$4EBA,$F71C,$101F,$660A,$3F3C,$002E,$2F0E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004080:
 	dc.w $4EBA,$F922,$102D,$F357,$4880,$5340,$1B40,$F357	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004090:
 	dc.w $486E,$FED4,$2F0E,$4EBA,$F942,$4267,$486E,$FFD8	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000040a0:
 	dc.w $486E,$FED4,$3F2E,$FFEA,$3F2E,$FFE6,$4EBA,$F84C	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000040b0:
 	dc.w $101F,$660A,$3F3C,$0057,$2F0E,$4EBA,$F8E8,$1D7C	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000040c0:
 	dc.w $0006,$FFD7,$6000,$1330,$7001,$B02E,$000C,$670A	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000040d0:
 	dc.w $3F3C,$003C,$2F0E,$4EBA,$F8CC,$102D,$F357,$4880	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000040e0:
 	dc.w $7204,$41ED,$F224,$B230,$0000,$6E48,$1D7C,$0004	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000040f0:
 	dc.w $FFD7,$102D,$F357,$4880,$E540,$41ED,$F262,$2D70	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004100:
 	dc.w $0000,$FFD8,$7017,$B06E,$FFF4,$57C0,$4A00,$660C	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004110:
 	dc.w $7218,$B26E,$FFF4,$57C1,$8001,$670C,$2F2E,$FFD8	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004120:
 	dc.w $4EAD,$005A,$6000,$12D0,$2F2E,$FFD8,$4EAD,$0052	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004130:
 	dc.w $6000,$12C4,$3F3C,$002E,$2F0E,$4EBA,$F868,$6000	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004140:
 	dc.w $12B6,$7001,$B02E,$000C,$670A,$3F3C,$003C,$2F0E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004150:
 	dc.w $4EBA,$F852,$102D,$F357,$4880,$7209,$41ED,$F224	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004160:
 	dc.w $B230,$0000,$661A,$422E,$FFD7,$102D,$F357,$4880	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004170:
 	dc.w $E540,$41ED,$F262,$2D70,$0000,$FFD8,$6000,$1278	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004180:
 	dc.w $3F3C,$0082,$2F0E,$4EBA,$F81C,$6000,$126A,$7001	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004190:
 	dc.w $B02E,$000C,$670A,$3F3C,$003C,$2F0E,$4EBA,$F806	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000041a0:
 	dc.w $486E,$FDD2,$2F0E,$4EBA,$F832,$486E,$FDD2,$4EAD	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000041b0:
 	dc.w $0082,$4240,$102E,$FDD2,$4A40,$660A,$3F3C,$00AA	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000041c0:
 	dc.w $2F0E,$4EBA,$F7E0,$4240,$102E,$FDD2,$B06D,$F38E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000041d0:
 	dc.w $6F06,$1D6D,$F38F,$FDD2,$4240,$102E,$FDD3,$7226	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000041e0:
 	dc.w $B240,$6624,$41ED,$FEFA,$43EE,$FDD2,$707F,$30D9	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000041f0:
 	dc.w $51C8,$FFFC,$486D,$FEFA,$4EAD,$0052,$486E,$FED4	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004200:
 	dc.w $4EBA,$DECC,$6000,$0132,$102D,$F3A1,$6708,$486E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004210:
 	dc.w $FDD2,$4EAD,$0052,$487A,$12C8,$486E,$FDD2,$4EAD	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004220:
 	dc.w $0A9A,$3D5F,$FFF6,$662C,$41ED,$FEFA,$43EE,$FDD2	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004230:
 	dc.w $707F,$30D9,$51C8,$FFFC,$486D,$FEFA,$486E,$FDCA	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004240:
 	dc.w $486E,$FFE0,$486E,$FFFC,$486E,$FDC5,$4EAD,$0222	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004250:
 	dc.w $6000,$00D2,$4240,$102E,$FDD2,$5240,$41EE,$FDD2	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004260:
 	dc.w $4230,$0000,$1D6D,$ECE3,$FDAD,$422D,$ECE3,$2D6D	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004270:
 	dc.w $FFFC,$FDBE,$226E,$FDBE,$45EE,$FDAE,$7007,$34D9	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004280:
 	dc.w $51C8,$FFFC,$226E,$FDBE,$2D49,$FB6E,$4240,$102E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004290:
 	dc.w $FDD3,$226E,$FB6E,$3340,$0006,$43EE,$FDD2,$2009	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000042a0:
 	dc.w $5480,$226E,$FB6E,$2280,$226E,$FB6E,$337C,$0002	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000042b0:
 	dc.w $0004,$43EE,$FDD2,$246E,$FB6E,$2549,$0008,$7000	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000042c0:
 	dc.w $2D40,$FDCA,$4EAD,$0172,$4A2D,$FFFB,$6640,$486D	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000042d0:
 	dc.w $FEFA,$486E,$FED4,$4EAD,$0092,$4EAD,$0172,$701D	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000042e0:
 	dc.w $B02D,$FFFB,$6628,$1B7C,$0001,$CD5E,$4267,$486E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000042f0:
 	dc.w $FED4,$486E,$FFE0,$486E,$FDCA,$486E,$FFFC,$486E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004300:
 	dc.w $FDC6,$4EAD,$021A,$1D5F,$FFD6,$422D,$CD5E,$206E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004310:
 	dc.w $FDBE,$43EE,$FDAE,$7007,$30D9,$51C8,$FFFC,$1B6E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004320:
 	dc.w $FDAD,$ECE3,$486E,$FED4,$2F2E,$FDCA,$2F2E,$FFE0	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004330:
 	dc.w $3F2E,$FFFC,$4EBA,$E232,$4267,$486E,$FFD8,$486E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004340:
 	dc.w $FED4,$4EBA,$F55C,$101F,$660A,$3F3C,$0057,$2F0E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004350:
 	dc.w $4EBA,$F652,$1D7C,$0006,$FFD7,$6000,$109A,$7001	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004360:
 	dc.w $B02E,$000C,$670A,$3F3C,$003C,$2F0E,$4EBA,$F636	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004370:
 	dc.w $486E,$FDD2,$2F0E,$4EBA,$F662,$486E,$FDD2,$4EAD	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004380:
 	dc.w $0082,$4240,$102E,$FDD2,$4A40,$660A,$3F3C,$00AA	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004390:
 	dc.w $2F0E,$4EBA,$F610,$4267,$486E,$FDD2,$486E,$FED4	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000043a0:
 	dc.w $4EAD,$089A,$101F,$6604,$422E,$FED4,$4267,$486E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000043b0:
 	dc.w $FFD8,$486E,$FED4,$4EBA,$F4E8,$101F,$660A,$3F3C	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000043c0:
 	dc.w $0057,$2F0E,$4EBA,$F5DE,$1D7C,$0006,$FFD7,$6000	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000043d0:
 	dc.w $1026,$7002,$B02E,$000C,$6642,$4267,$486E,$FFE4	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000043e0:
 	dc.w $4EBA,$F3AE,$101F,$660A,$3F3C,$002E,$2F0E,$4EBA	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000043f0:
 	dc.w $F5B4,$4AAE,$FFE4,$5DC0,$7205,$B2AE,$FFE4,$5DC1	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004400:
 	dc.w $8001,$670A,$3F3C,$008A,$2F0E,$4EBA,$F598,$102D	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004410:
 	dc.w $F357,$4880,$5340,$1B40,$F357,$6018,$7001,$B02E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004420:
 	dc.w $000C,$670A,$3F3C,$003C,$2F0E,$4EBA,$F578,$7000	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004430:
 	dc.w $2D40,$FFE4,$486E,$FDD2,$2F0E,$4EBA,$F59E,$486E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004440:
 	dc.w $FDD2,$4EAD,$0082,$4240,$102E,$FDD2,$4A40,$660A	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004450:
 	dc.w $3F3C,$00AA,$2F0E,$4EBA,$F54C,$486E,$FDD2,$4EAD	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004460:
 	dc.w $0052,$42A7,$486E,$FDA6,$486E,$FDA5,$486E,$FDA2	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004470:
 	dc.w $486E,$FDA0,$486E,$FDD2,$486E,$FD9E,$4EAD,$056A	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004480:
 	dc.w $2D5F,$FDA8,$57C0,$4A00,$660C,$7202,$B26E,$FDA6	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004490:
 	dc.w $56C1,$8001,$670A,$3F3C,$008A,$2F0E,$4EBA,$F506	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000044a0:
 	dc.w $7002,$B02E,$000C,$57C0,$4A00,$671A,$486E,$FDD2	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000044b0:
 	dc.w $487A,$1028,$4EAD,$0AC2,$C01F,$670A,$3F3C,$003C	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000044c0:
 	dc.w $2F0E,$4EBA,$F4E0,$422E,$FED4,$302E,$FDA2,$0440	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000044d0:
 	dc.w $001C,$6B00,$03B6,$0C40,$0011,$6E00,$03AE,$D040	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000044e0:
 	dc.w $303B,$0006,$4EFB,$0000,$0026,$03A4,$00DE,$00F8	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000044f0:
 	dc.w $0144,$0174,$03A4,$01AC,$03A4,$01CA,$03A4,$03A4	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004500:
 	dc.w $020C,$03A4,$02F6,$03A4,$0334,$0378,$4A6D,$F398	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004510:
 	dc.w $6614,$41EE,$FED4,$43FA,$0FBA,$7003,$30D9,$51C8	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004520:
 	dc.w $FFFC,$6000,$0370,$7001,$B06D,$F398,$6614,$41EE	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004530:
 	dc.w $FED4,$43FA,$0F96,$7003,$30D9,$51C8,$FFFC,$6000	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004540:
 	dc.w $0354,$102D,$F3B8,$6714,$41EE,$FED4,$43FA,$0F74	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004550:
 	dc.w $7003,$30D9,$51C8,$FFFC,$6000,$033A,$7002,$B06D	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004560:
 	dc.w $F398,$6614,$41EE,$FED4,$43FA,$0F50,$7003,$30D9	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004570:
 	dc.w $51C8,$FFFC,$6000,$031E,$7020,$B06D,$F398,$6614	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004580:
 	dc.w $41EE,$FED4,$43FA,$0F2C,$7003,$30D9,$51C8,$FFFC	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004590:
 	dc.w $6000,$0302,$7021,$B06D,$F398,$6614,$41EE,$FED4	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000045a0:
 	dc.w $43FA,$0F08,$7003,$30D9,$51C8,$FFFC,$6000,$02E6	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000045b0:
 	dc.w $41EE,$FED4,$43FA,$0EEC,$7003,$30D9,$51C8,$FFFC	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000045c0:
 	dc.w $6000,$02D2,$102D,$EB93,$670A,$3D7C,$0131,$FED4	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000045d0:
 	dc.w $6000,$02C2,$3D7C,$0130,$FED4,$6000,$02B8,$7001	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000045e0:
 	dc.w $B06D,$F39A,$6614,$41EE,$FED4,$43FA,$0EB0,$7002	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000045f0:
 	dc.w $30D9,$51C8,$FFFC,$6000,$029C,$7002,$B06D,$F39A	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004600:
 	dc.w $6614,$41EE,$FED4,$43FA,$0E8E,$7002,$30D9,$51C8	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004610:
 	dc.w $FFFC,$6000,$0280,$41EE,$FED4,$43FA,$0E74,$7002	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004620:
 	dc.w $30D9,$51C8,$FFFC,$6000,$026C,$7002,$B06D,$F39C	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004630:
 	dc.w $6614,$41EE,$FED4,$43FA,$0E5E,$7002,$30D9,$51C8	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004640:
 	dc.w $FFFC,$6000,$0250,$41EE,$FED4,$43FA,$0E44,$7002	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004650:
 	dc.w $30D9,$51C8,$FFFC,$6000,$023C,$102D,$F3A1,$6726	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004660:
 	dc.w $102D,$EB99,$6714,$41EE,$FED4,$43FA,$0E1C,$7003	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004670:
 	dc.w $30D9,$51C8,$FFFC,$6000,$021C,$2D7C,$034F,$4646	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004680:
 	dc.w $FED4,$6000,$0210,$2D7C,$024F,$4E20,$FED4,$6000	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004690:
 	dc.w $0204,$102D,$F39F,$670C,$2D7C,$024F,$4E20,$FED4	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000046a0:
 	dc.w $6000,$01F2,$2D7C,$034F,$4646,$FED4,$6000,$01E6	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000046b0:
 	dc.w $4A6D,$F396,$660C,$2D7C,$0341,$4C4C,$FED4,$6000	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000046c0:
 	dc.w $01D4,$0C6D,$1808,$F396,$6614,$41EE,$FED4,$43FA	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000046d0:
 	dc.w $0DB2,$7002,$30D9,$51C8,$FFFC,$6000,$01B8,$41EE	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000046e0:
 	dc.w $FED4,$43FA,$0D98,$7002,$30D9,$51C8,$FFFC,$6000	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000046f0:
 	dc.w $01A4,$302D,$EB26,$5240,$48C0,$90AE,$FFE4,$2D40	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004700:
 	dc.w $FFE4,$302D,$EB26,$48C0,$B0AE,$FFE4,$6C08,$2D6D	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004710:
 	dc.w $ED5A,$FFE8,$6020,$7001,$B0AE,$FFE4,$6F08,$2D6D	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004720:
 	dc.w $EB28,$FFE8,$6010,$302E,$FFE6,$E540,$41ED,$EB24	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004730:
 	dc.w $2D70,$0000,$FFE8,$426E,$FB6C,$3D6E,$FB6C,$FFF6	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004740:
 	dc.w $6000,$008C,$7014,$B06E,$FFF6,$56C0,$4A00,$677A	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004750:
 	dc.w $7215,$B26E,$FFF6,$56C1,$C001,$676E,$202E,$FFE8	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004760:
 	dc.w $322E,$FFF6,$0300,$6762,$486D,$E302,$486E,$FDD2	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004770:
 	dc.w $302E,$FFF6,$E740,$5240,$3F00,$3F3C,$0007,$4EAD	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004780:
 	dc.w $009A,$486E,$FDD2,$4EAD,$007A,$4240,$102E,$FED4	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004790:
 	dc.w $4A40,$660E,$486E,$FDD2,$486E,$FED4,$4EAD,$0092	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000047a0:
 	dc.w $6028,$486E,$FED4,$487A,$0CD2,$486E,$FDD2,$486E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000047b0:
 	dc.w $FC7E,$3F3C,$0003,$4EAD,$0AA2,$41EE,$FED4,$43EE	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000047c0:
 	dc.w $FC7E,$707F,$30D9,$51C8,$FFFC,$526E,$FFF6,$701F	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000047d0:
 	dc.w $B06E,$FFF6,$6C00,$FF6E,$6000,$00BA,$4A2D,$F395	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000047e0:
 	dc.w $6614,$41EE,$FED4,$43FA,$0C8A,$7003,$30D9,$51C8	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000047f0:
 	dc.w $FFFC,$6000,$00A0,$7001,$B02D,$F395,$6614,$41EE	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004800:
 	dc.w $FED4,$43FA,$0C68,$7002,$30D9,$51C8,$FFFC,$6000	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004810:
 	dc.w $0084,$3D7C,$0143,$FED4,$607A,$0C6D,$0080,$F392	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004820:
 	dc.w $6612,$41EE,$FED4,$43FA,$0C3C,$7003,$30D9,$51C8	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004830:
 	dc.w $FFFC,$6060,$4A6D,$F392,$6612,$41EE,$FED4,$43FA	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004840:
 	dc.w $0C1A,$7004,$30D9,$51C8,$FFFC,$6048,$41EE,$FED4	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004850:
 	dc.w $43FA,$0C00,$7003,$30D9,$51C8,$FFFC,$6036,$0C6D	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004860:
 	dc.w $0080,$F390,$6612,$41EE,$FED4,$43FA,$0BDC,$7004	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004870:
 	dc.w $30D9,$51C8,$FFFC,$601C,$41EE,$FED4,$43FA,$0BC0	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004880:
 	dc.w $7004,$30D9,$51C8,$FFFC,$600A,$3F3C,$008A,$2F0E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004890:
 	dc.w $4EBA,$F112,$4267,$486E,$FFD8,$486E,$FED4,$4EBA	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000048a0:
 	dc.w $F000,$101F,$660A,$3F3C,$0057,$2F0E,$4EBA,$F0F6	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000048b0:
 	dc.w $1D7C,$0006,$FFD7,$6000,$0B3E,$7001,$B02E,$000C	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000048c0:
 	dc.w $670A,$3F3C,$003C,$2F0E,$4EBA,$F0DA,$486E,$FED4	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000048d0:
 	dc.w $2F0E,$4EBA,$F106,$4240,$102E,$FED4,$5240,$41EE	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000048e0:
 	dc.w $FED4,$4230,$0000,$1D6D,$ECE3,$FDAD,$422D,$ECE3	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000048f0:
 	dc.w $2D6D,$FFFC,$FDBE,$226E,$FDBE,$45EE,$FDAE,$7007	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004900:
 	dc.w $34D9,$51C8,$FFFC,$226E,$FDBE,$2D49,$FB68,$4240	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004910:
 	dc.w $102E,$FED5,$226E,$FB68,$3340,$0006,$43EE,$FED4	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004920:
 	dc.w $2009,$5480,$226E,$FB68,$2280,$226E,$FB68,$337C	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004930:
 	dc.w $0002,$0004,$43EE,$FED4,$246E,$FB68,$2549,$0008	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004940:
 	dc.w $1B7C,$0001,$ECE2,$4EAD,$0172,$4267,$486E,$FFD8	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004950:
 	dc.w $486E,$FFD7,$2F2E,$0008,$4EAD,$022A,$1D5F,$FDC3	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004960:
 	dc.w $422D,$ECE2,$206E,$FDBE,$43EE,$FDAE,$7007,$30D9	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004970:
 	dc.w $51C8,$FFFC,$1B6E,$FDAD,$ECE3,$102E,$FDC3,$6600	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004980:
 	dc.w $0A76,$206E,$0008,$3F10,$2F0E,$4EBA,$F018,$6000	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004990:
 	dc.w $0A66,$7001,$B02E,$000C,$5EC0,$4A00,$660C,$7202	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000049a0:
 	dc.w $B22E,$000C,$5DC1,$8001,$670A,$3F3C,$003C,$2F0E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000049b0:
 	dc.w $4EBA,$EFF2,$7002,$B02E,$000C,$6630,$4267,$486E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000049c0:
 	dc.w $FFDC,$4EBA,$EDCC,$101F,$660A,$3F3C,$002E,$2F0E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000049d0:
 	dc.w $4EBA,$EFD2,$4AAE,$FFDC,$56C0,$4400,$1D40,$FFD6	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000049e0:
 	dc.w $102D,$F357,$4880,$5340,$1B40,$F357,$486E,$FED4	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000049f0:
 	dc.w $2F0E,$4EBA,$EFE6,$7001,$B02E,$000C,$660A,$486E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004a00:
 	dc.w $FED4,$4EAD,$0082,$6018,$102E,$FFD6,$670A,$486E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004a10:
 	dc.w $FED4,$4EAD,$0072,$6008,$486E,$FED4,$4EAD,$007A	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004a20:
 	dc.w $4267,$486E,$FFD8,$486E,$FED4,$4EBA,$EE74,$101F	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004a30:
 	dc.w $660A,$3F3C,$0057,$2F0E,$4EBA,$EF6A,$1D7C,$0006	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004a40:
 	dc.w $FFD7,$6000,$09B2,$7001,$B02E,$000C,$670A,$3F3C	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004a50:
 	dc.w $003C,$2F0E,$4EBA,$EF4E,$4267,$486E,$FFD8,$4EBA	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004a60:
 	dc.w $ED30,$101F,$660A,$3F3C,$002E,$2F0E,$4EBA,$EF36	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004a70:
 	dc.w $4AAE,$FFD8,$5DC0,$4A00,$660E,$0CAE,$0000,$00FF	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004a80:
 	dc.w $FFD8,$5EC1,$8001,$670A,$3F3C,$0084,$2F0E,$4EBA	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004a90:
 	dc.w $EF14,$3D7C,$0120,$FED4,$1D6E,$FFDB,$FED5,$4267	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004aa0:
 	dc.w $486E,$FFD8,$486E,$FED4,$4EBA,$EDF6,$101F,$660A	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004ab0:
 	dc.w $3F3C,$0057,$2F0E,$4EBA,$EEEC,$1D7C,$0006,$FFD7	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004ac0:
 	dc.w $6000,$0934,$7001,$B02E,$000C,$670A,$3F3C,$003C	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004ad0:
 	dc.w $2F0E,$4EBA,$EED0,$102D,$F357,$4880,$7204,$41ED	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004ae0:
 	dc.w $F224,$B230,$0000,$6E2E,$486E,$FED4,$2F0E,$4EBA	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004af0:
 	dc.w $EEEA,$4240,$102E,$FED4,$7201,$B240,$670A,$3F3C	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004b00:
 	dc.w $0083,$2F0E,$4EBA,$EE9E,$4240,$102E,$FED5,$48C0	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004b10:
 	dc.w $2D40,$FFD8,$6012,$102D,$F357,$4880,$E540,$41ED	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004b20:
 	dc.w $F262,$2D70,$0000,$FFD8,$422E,$FFD7,$6000,$08C8	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004b30:
 	dc.w $7001,$B02E,$000C,$670A,$3F3C,$003C,$2F0E,$4EBA	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004b40:
 	dc.w $EE64,$486E,$FED4,$2F0E,$4EBA,$EE90,$486E,$FED4	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004b50:
 	dc.w $4EAD,$0082,$422E,$FFD7,$4240,$102E,$FED4,$3D40	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004b60:
 	dc.w $FFFA,$7000,$2D40,$FD7E,$4A6E,$FFFA,$660A,$7000	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004b70:
 	dc.w $2D40,$FFD8,$6000,$0880,$4240,$102E,$FED5,$722B	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004b80:
 	dc.w $B240,$57C0,$4A00,$6610,$4241,$122E,$FED5,$742D	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004b90:
 	dc.w $B441,$57C1,$8001,$6708,$3D7C,$0002,$FFF8,$6006	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004ba0:
 	dc.w $3D7C,$0001,$FFF8,$302E,$FFF8,$B06E,$FFFA,$5FC0	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004bb0:
 	dc.w $4400,$4880,$48C0,$2D40,$FFD8,$3D6E,$FFF8,$FB66	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004bc0:
 	dc.w $3D6E,$FFFA,$FB64,$3D6E,$FB66,$FFF6,$6074,$302E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004bd0:
 	dc.w $FFF6,$4241,$41EE,$FED4,$1230,$0000,$7030,$B041	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004be0:
 	dc.w $5EC0,$4A00,$6618,$322E,$FFF6,$4242,$41EE,$FED4	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004bf0:
 	dc.w $1430,$1000,$7239,$B242,$5DC1,$8001,$670A,$7000	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004c00:
 	dc.w $2D40,$FFD8,$6000,$07F0,$700A,$2F00,$2F2E,$FD7E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004c10:
 	dc.w $4EAD,$0A72,$302E,$FFF6,$4241,$41EE,$FED4,$1230	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004c20:
 	dc.w $0000,$927C,$0030,$48C1,$D29F,$2D41,$FD7E,$6C0A	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004c30:
 	dc.w $7000,$2D40,$FFD8,$6000,$07BE,$526E,$FFF6,$6900	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004c40:
 	dc.w $07B6,$302E,$FFF6,$B06E,$FB64,$6F82,$6000,$07A8	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004c50:
 	dc.w $7003,$B02E,$000C,$670A,$3F3C,$003C,$2F0E,$4EBA	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004c60:
 	dc.w $ED44,$4267,$486E,$FFE8,$4EBA,$EB26,$101F,$660A	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004c70:
 	dc.w $3F3C,$002E,$2F0E,$4EBA,$ED2C,$102D,$F357,$4880	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004c80:
 	dc.w $5340,$1B40,$F357,$486E,$FED4,$2F0E,$4EBA,$ED4C	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004c90:
 	dc.w $102D,$F357,$4880,$5340,$1B40,$F357,$486E,$FDD2	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004ca0:
 	dc.w $2F0E,$4EBA,$ED36,$4240,$102E,$FDD2,$7201,$B240	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004cb0:
 	dc.w $670A,$3F3C,$0083,$2F0E,$4EBA,$ECEA,$701B,$B06E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004cc0:
 	dc.w $FFF4,$6622,$4267,$4240,$102E,$FDD3,$3F00,$486E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004cd0:
 	dc.w $FED4,$3F2E,$FFEA,$4EAD,$00AA,$301F,$48C0,$2D40	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004ce0:
 	dc.w $FFD8,$6000,$0712,$4267,$4240,$102E,$FDD3,$3F00	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004cf0:
 	dc.w $486E,$FED4,$3F2E,$FFEA,$4EAD,$00B2,$301F,$48C0	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004d00:
 	dc.w $2D40,$FFD8,$6000,$06F0,$7002,$B02E,$000C,$670A	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004d10:
 	dc.w $3F3C,$003C,$2F0E,$4EBA,$EC8C,$4267,$486E,$FFE8	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004d20:
 	dc.w $4EBA,$EA6E,$101F,$660A,$3F3C,$002E,$2F0E,$4EBA	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004d30:
 	dc.w $EC74,$102D,$F357,$4880,$5340,$1B40,$F357,$486E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004d40:
 	dc.w $FED4,$2F0E,$4EBA,$EC94,$4240,$102E,$FED4,$48C0	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004d50:
 	dc.w $2D40,$FFE4,$7001,$B0AE,$FFE8,$5EC0,$4A00,$660E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004d60:
 	dc.w $222E,$FFE8,$B2AE,$FFE4,$5EC1,$8001,$6716,$3B7C	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004d70:
 	dc.w $001E,$D3C4,$3B7C,$013B,$D2C4,$2D6E,$FFE8,$FFD8	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004d80:
 	dc.w $6000,$0674,$202E,$FFE4,$5280,$41EE,$FED4,$4230	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004d90:
 	dc.w $0000,$2D6D,$FFFC,$FDBE,$43EE,$FDAE,$2B49,$FFFC	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004da0:
 	dc.w $2D49,$FB60,$302E,$FFEA,$4241,$1230,$0000,$226E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004db0:
 	dc.w $FB60,$3341,$0006,$43EE,$FED4,$202E,$FFE8,$D089	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004dc0:
 	dc.w $5280,$226E,$FB60,$2280,$202E,$FFE8,$5280,$226E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004dd0:
 	dc.w $FB60,$3340,$0004,$43EE,$FED4,$246E,$FB60,$2549	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004de0:
 	dc.w $0008,$1D6D,$F3A0,$FFD6,$1B6D,$F39F,$F3A0,$1B7C	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004df0:
 	dc.w $0001,$ECC3,$4EAD,$0172,$422D,$ECC3,$1B6E,$FFD6	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004e00:
 	dc.w $F3A0,$701E,$B02D,$FFFB,$6608,$2D6E,$FFE8,$FFD8	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004e10:
 	dc.w $6010,$206D,$FFFC,$3028,$0004,$5340,$48C0,$2D40	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004e20:
 	dc.w $FFD8,$2B6E,$FDBE,$FFFC,$102D,$FFFB,$4880,$3B40	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004e30:
 	dc.w $D3C4,$701E,$B02D,$FFFB,$6608,$3B7C,$013B,$D2C4	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004e40:
 	dc.w $602A,$7021,$B02D,$FFFB,$6608,$3B7C,$015C,$D2C4	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004e50:
 	dc.w $601A,$486E,$FED4,$486D,$D2C4,$3F2E,$FFEA,$202E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004e60:
 	dc.w $FFD8,$90AE,$FFE8,$3F00,$4EAD,$009A,$102D,$F39F	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004e70:
 	dc.w $6700,$0584,$486D,$D2C4,$4EAD,$0072,$6000,$0578	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004e80:
 	dc.w $7004,$B02E,$000C,$670A,$3F3C,$003C,$2F0E,$4EBA	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004e90:
 	dc.w $EB14,$4267,$486E,$FFEC,$4EBA,$E8F6,$101F,$660A	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004ea0:
 	dc.w $3F3C,$002E,$2F0E,$4EBA,$EAFC,$203C,$0000,$7FFF	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004eb0:
 	dc.w $C0AE,$FFEC,$3D40,$FFFC,$102D,$F357,$4880,$5340	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004ec0:
 	dc.w $1B40,$F357,$422E,$FD93,$102D,$F357,$4880,$7204	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004ed0:
 	dc.w $41ED,$F224,$B230,$0000,$6E18,$486E,$FDD2,$2F0E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004ee0:
 	dc.w $4EBA,$EAF8,$7000,$2D40,$FFE0,$1D7C,$0001,$FD93	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004ef0:
 	dc.w $6018,$4267,$486E,$FFE0,$4EBA,$E896,$101F,$660A	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004f00:
 	dc.w $3F3C,$002E,$2F0E,$4EBA,$EA9C,$102D,$F357,$4880	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004f10:
 	dc.w $5340,$1B40,$F357,$486E,$FED4,$2F0E,$4EBA,$EABC	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004f20:
 	dc.w $102D,$F357,$4880,$5340,$1B40,$F357,$4267,$486E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004f30:
 	dc.w $FD96,$4EBA,$E85C,$101F,$660A,$3F3C,$002E,$2F0E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004f40:
 	dc.w $4EBA,$EA62,$4267,$2F2E,$FD96,$486E,$FD95,$4EBA	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004f50:
 	dc.w $EAF2,$3D5F,$FFF6,$102E,$FD95,$672E,$102E,$FD93	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004f60:
 	dc.w $6706,$426E,$FFF6,$6022,$4A6E,$FFFC,$6608,$3D7C	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004f70:
 	dc.w $8000,$FFFC,$6014,$7001,$B06E,$FFFC,$6608,$3D7C	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004f80:
 	dc.w $8040,$FFFC,$6004,$426E,$FFF6,$7000,$2D40,$FDCA	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004f90:
 	dc.w $4A6E,$FFF6,$6F00,$009A,$42A7,$2F2E,$FD96,$486E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004fa0:
 	dc.w $FED4,$2F2E,$FFE0,$3F2E,$FFFC,$486E,$FD94,$4EAD	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004fb0:
 	dc.w $00EA,$2D5F,$FDCA,$102E,$FD94,$6774,$102E,$FD95	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004fc0:
 	dc.w $6724,$206E,$FDCA,$0C68,$8040,$0008,$57C0,$4A00	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004fd0:
 	dc.w $660E,$206E,$FDCA,$0C68,$8000,$0008,$57C1,$8001	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004fe0:
 	dc.w $4400,$1D40,$FD94,$102E,$FD94,$673E,$102E,$FD95	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00004ff0:
 	dc.w $0A00,$0001,$4A00,$671C,$206E,$FDCA,$0828,$0007	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00005000:
 	dc.w $0008,$56C1,$C001,$670C,$2F2D,$F0D6,$2F28,$0004	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00005010:
 	dc.w $4EAD,$0782,$206E,$FDCA,$316E,$FFFC,$0008,$206E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00005020:
 	dc.w $FDCA,$216E,$FFE0,$0004,$6006,$7000,$2D40,$FDCA	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00005030:
 	dc.w $4AAE,$FDCA,$660A,$7000,$2D40,$FFD8,$6000,$03B8	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00005040:
 	dc.w $7001,$2D40,$FFD8,$102E,$FD93,$6700,$03AA,$42A7	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00005050:
 	dc.w $2F2D,$F0D6,$4240,$102E,$FDD2,$5240,$3F00,$4EAD	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00005060:
 	dc.w $077A,$2D5F,$FDCE,$660A,$7000,$2D40,$FFD8,$6000	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00005070:
 	dc.w $0386,$486E,$FDD2,$2F2E,$FDCE,$4EAD,$0092,$206E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00005080:
 	dc.w $FDCA,$216E,$FDCE,$0004,$7000,$206E,$FDCA,$3028	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00005090:
 	dc.w $0008,$80BC,$FFFF,$8000,$206E,$FDCA,$3140,$0008	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000050a0:
 	dc.w $6000,$0354,$7002,$B02E,$000C,$670A,$3F3C,$003C	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000050b0:
 	dc.w $2F0E,$4EBA,$E8F0,$486E,$FED4,$2F0E,$4EBA,$E91C	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000050c0:
 	dc.w $102D,$F357,$4880,$5340,$1B40,$F357,$4267,$486E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000050d0:
 	dc.w $FD96,$4EBA,$E6BC,$101F,$660A,$3F3C,$002E,$2F0E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000050e0:
 	dc.w $4EBA,$E8C2,$7000,$2D40,$FDCA,$4267,$2F2E,$FD96	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000050f0:
 	dc.w $486E,$FD95,$4EBA,$E94C,$4A5F,$6F00,$00B2,$42A7	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00005100:
 	dc.w $2F2E,$FD96,$486E,$FED4,$486E,$FFE0,$486E,$FFFC	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00005110:
 	dc.w $4EAD,$00FA,$2D5F,$FDCA,$6700,$0094,$102E,$FD95	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00005120:
 	dc.w $6752,$422D,$D4C7,$0C6E,$8000,$FFFC,$660C,$426D	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00005130:
 	dc.w $D4CC,$2B6E,$FFE0,$D4C8,$6074,$0C6E,$8040,$FFFC	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00005140:
 	dc.w $660E,$3B7C,$0001,$D4CC,$2B6E,$FFE0,$D4C8,$605E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00005150:
 	dc.w $082E,$0007,$FFFD,$670E,$3B7C,$0003,$D4CC,$2B6E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00005160:
 	dc.w $FFE0,$D4C8,$6048,$3B7C,$0002,$D4CC,$7000,$2B40	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00005170:
 	dc.w $D4C8,$603A,$082E,$0007,$FFFC,$56C0,$4400,$1B40	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00005180:
 	dc.w $D4C7,$6714,$7000,$2B40,$D4C8,$2F2E,$FFE0,$486D	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00005190:
 	dc.w $D3C6,$4EAD,$0092,$6006,$2B6E,$FFE0,$D4C8,$7000	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000051a0:
 	dc.w $302E,$FFFC,$C0BC,$0000,$7FFF,$3B40,$D4CC,$4AAE	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000051b0:
 	dc.w $FDCA,$56C0,$4400,$4880,$48C0,$2D40,$FFD8,$6000	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000051c0:
 	dc.w $0236,$7001,$B02E,$000C,$670A,$3F3C,$003C,$2F0E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000051d0:
 	dc.w $4EBA,$E7D2,$4267,$486E,$FD96,$4EBA,$E5B4,$101F	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000051e0:
 	dc.w $660A,$3F3C,$002E,$2F0E,$4EBA,$E7BA,$4267,$2F2E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000051f0:
 	dc.w $FD96,$486E,$FD95,$4EBA,$E84A,$3D5F,$FFF6,$5EC0	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00005200:
 	dc.w $4A00,$6700,$008A,$122E,$FD95,$0A01,$0001,$C001	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00005210:
 	dc.w $677C,$206E,$FD96,$2D68,$0018,$FD9A,$426E,$FB5E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00005220:
 	dc.w $3D6E,$FB5E,$FFF8,$603C,$206E,$FD9A,$302E,$FFF8	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00005230:
 	dc.w $E540,$2D70,$0000,$FDCA,$4AAE,$FDCA,$6722,$206E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00005240:
 	dc.w $FDCA,$0828,$0007,$0008,$670C,$2F2D,$F0D6,$2F28	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00005250:
 	dc.w $0004,$4EAD,$0782,$206E,$FDCA,$2D50,$FDCA,$60D8	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00005260:
 	dc.w $526E,$FFF8,$0C6E,$00FA,$FFF8,$6FBC,$2F2E,$FD96	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00005270:
 	dc.w $4EAD,$0772,$302E,$FFF6,$E540,$41ED,$D4CA,$7200	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00005280:
 	dc.w $2181,$0000,$7001,$2D40,$FFD8,$6000,$016A,$7000	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00005290:
 	dc.w $2D40,$FFD8,$6000,$0160,$7003,$B02E,$000C,$6638	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000052a0:
 	dc.w $486E,$FED4,$2F0E,$4EBA,$E732,$4240,$102E,$FED4	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000052b0:
 	dc.w $7201,$B240,$670A,$3F3C,$0083,$2F0E,$4EBA,$E6E6	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000052c0:
 	dc.w $4240,$102E,$FED5,$3D40,$FD82,$102D,$F357,$4880	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000052d0:
 	dc.w $5340,$1B40,$F357,$601A,$7002,$B02E,$000C,$6608	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000052e0:
 	dc.w $3D7C,$002C,$FD82,$600A,$3F3C,$003C,$2F0E,$4EBA	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000052f0:
 	dc.w $E6B4,$486E,$FED4,$2F0E,$4EBA,$E6E0,$486E,$FED4	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00005300:
 	dc.w $4EAD,$0082,$102D,$F357,$4880,$5340,$1B40,$F357	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00005310:
 	dc.w $486E,$FDD2,$2F0E,$4EBA,$E6C2,$486E,$FDD2,$4EAD	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00005320:
 	dc.w $0082,$4240,$102E,$FDD2,$5240,$41EE,$FDD2,$4230	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00005330:
 	dc.w $0000,$4267,$486E,$FED4,$1F3C,$0001,$3F3C,$0026	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00005340:
 	dc.w $4EAD,$017A,$101F,$660A,$3F3C,$008F,$2F0E,$4EBA	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00005350:
 	dc.w $E654,$4267,$486E,$FED4,$486E,$FD90,$486E,$FD8C	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00005360:
 	dc.w $486E,$FD88,$4267,$4EBA,$C528,$101F,$660A,$3F3C	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00005370:
 	dc.w $008F,$2F0E,$4EBA,$E62E,$4A2E,$FD90,$6622,$206E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00005380:
 	dc.w $FD8C,$7004,$B028,$0008,$670A,$3F3C,$008F,$2F0E	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_00005390:
 	dc.w $4EBA,$E612,$206E,$FD8C,$2D68,$000A,$FD84,$6030	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000053a0:
 	dc.w $206E,$FD88,$3F28,$0008,$486E,$FD92,$1F2E,$FD91	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000053b0:
 	dc.w $4EBA,$C4A4,$7004,$B02E,$FD92,$670A,$3F3C,$008F	; lookup_table
-CODE_5_data_00003b10:
+CODE_5_data_000053c0:
 	dc.w $2F0E,$4EBA,$E5E0,$206E,$FD88,$2D68,$0004	; lookup_table
 CODE_5_data_dispatch_table_000053ce:
 	dc.b $FD,$84,$42,$67,$48,$6E,$FD,$D2,$2F,$2E,$FD,$84,$3F,$2E,$FD,$82
@@ -27659,11 +27659,11 @@ CODE_6_loc_00000526:
 	jmp (a0)
 CODE_6_loc_00000534:
 	dc.l $00018000,$00024000,$00042000,$00081000	; lookup_table
-CODE_6_data_00000534:
+CODE_6_data_00000544:
 	dc.l $00100800,$00200400,$00400200,$00800100	; lookup_table
-CODE_6_data_00000534:
+CODE_6_data_00000554:
 	dc.l $01000080,$02000040,$04000020,$08000010	; lookup_table
-CODE_6_data_00000534:
+CODE_6_data_00000564:
 	dc.l $10000008,$20000004,$40000002,$80000001	; lookup_table
 CODE_6_loc_00000574:
 	link a6,#0
@@ -40830,475 +40830,475 @@ CODE_13_loc_0000729c:
 	jmp $0(pc,d0.w)
 CODE_13_loc_000072be:
 	dc.w $00B0,$00B8,$00C0,$00DA,$00DA,$00DA,$00E2,$00EA	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_000072ce:
 	dc.w $00EA,$00EA,$00F2,$011A,$0126,$0132,$013E,$018C	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_000072de:
 	dc.w $01DA,$01E6,$0388,$03D0,$0442,$0442,$0442,$04C8	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_000072ee:
 	dc.w $04D4,$04DC,$0532,$0562,$05E2,$05EA,$0710,$073E	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_000072fe:
 	dc.w $0780,$0802,$083C,$086C,$08DA,$091A,$0A9A,$0AA2	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000730e:
 	dc.w $0AAA,$0B16,$0B62,$0C1A,$0C64,$00DA,$0CB0,$0D32	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000731e:
 	dc.w $0EB6,$0D3A,$0D42,$0D4A,$0D52,$0D5A,$0D62,$0D6A	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000732e:
 	dc.w $0D72,$0D7A,$0D82,$0D8A,$0D92,$0DB8,$0DC0,$0DC8	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000733e:
 	dc.w $0DD0,$0DD8,$0DE0,$0DE8,$0DF0,$0EB6,$0DF8,$0E00	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000734e:
 	dc.w $0EB6,$0EB6,$0EB6,$0EB6,$0EB6,$0EB6,$0EB6,$0E08	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000735e:
 	dc.w $0E32,$0E58,$0EB6,$0EB6,$0E7E,$0E88,$0E92,$4EBA	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000736e:
 	dc.w $C490,$6000,$0E00,$4EBA,$C6F0,$6000,$0DF8,$102D	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000737e:
 	dc.w $F3A2,$670C,$3F3C,$00A3,$4EAD,$07CA,$6000,$0DE6	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000738e:
 	dc.w $4EBA,$C6D6,$6000,$0DDE,$4EBA,$BCAE,$6000,$0DD6	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000739e:
 	dc.w $4EBA,$D65A,$6000,$0DCE,$4EBA,$DB58,$6000,$0DC6	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_000073ae:
 	dc.w $701E,$B02D,$FFFB,$6614,$41ED,$E71E,$43FA,$0E62	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_000073be:
 	dc.w $7002,$30D9,$51C8,$FFFC,$6000,$0DAA,$486D,$E71E	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_000073ce:
 	dc.w $4EBA,$B990,$6000,$0D9E,$3F3C,$0800,$4EBA,$E64C	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_000073de:
 	dc.w $6000,$0D92,$3F3C,$0400,$4EBA,$E640,$6000,$0D86	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_000073ee:
 	dc.w $3F3C,$0200,$4EBA,$E634,$6000,$0D7A,$422E,$FCE4	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_000073fe:
 	dc.w $486E,$FCE4,$4EBA,$B95C,$4240,$102E,$FCE4,$4A40	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000740e:
 	dc.w $660C,$3F3C,$0099,$4EAD,$07CA,$6000,$0D58,$102D	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000741e:
 	dc.w $F3A6,$6606,$802D,$F3A2,$670C,$3F3C,$00AF,$4EAD	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000742e:
 	dc.w $07CA,$6000,$0D40,$486E,$FCE4,$4EAD,$06EA,$486D	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000743e:
 	dc.w $06EA,$4EAD,$019A,$6000,$0D2C,$422E,$FCE4,$486E	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000744e:
 	dc.w $FCE4,$4EBA,$B90E,$4240,$102E,$FCE4,$4A40,$660C	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000745e:
 	dc.w $3F3C,$0099,$4EAD,$07CA,$6000,$0D0A,$102D,$F3A6	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000746e:
 	dc.w $6606,$802D,$F3A2,$670C,$3F3C,$00AF,$4EAD,$07CA	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000747e:
 	dc.w $6000,$0CF2,$486E,$FCE4,$4EAD,$06F2,$486D,$06F2	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000748e:
 	dc.w $4EAD,$019A,$6000,$0CDE,$3F3C,$00C5,$4EAD,$07CA	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000749e:
 	dc.w $6000,$0CD2,$4A6D,$ECE4,$6F10,$3F3C,$005A,$486D	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_000074ae:
 	dc.w $F9BA,$4EAD,$07C2,$6000,$0CBC,$422E,$FCE4,$486E	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_000074be:
 	dc.w $FCE4,$4EBA,$B89E,$4240,$102E,$FCE4,$4A40,$660C	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_000074ce:
 	dc.w $3F3C,$0099,$4EAD,$07CA,$6000,$0C9A,$4267,$486E	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_000074de:
 	dc.w $FCE4,$486D,$07F2,$4EAD,$0462,$3D5F,$FFFC,$6714	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_000074ee:
 	dc.w $486E,$FCE4,$3F3C,$009D,$3F2E,$FFFC,$4EAD,$07D2	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_000074fe:
 	dc.w $6000,$0C72,$701E,$B02D,$FFFB,$6708,$3F3C,$0033	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000750e:
 	dc.w $4EAD,$07CA,$2F2D,$EB6A,$4EAD,$0252,$1B7C,$001E	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000751e:
 	dc.w $FFFB,$206D,$CB1E,$2F08,$486D,$ED70,$4EAD,$0092	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000752e:
 	dc.w $1B7C,$0001,$EE70,$302D,$CB1C,$5340,$D040,$41ED	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000753e:
 	dc.w $EB6E,$31AD,$ED60,$0000,$426D,$ED60,$102D,$F3A6	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000754e:
 	dc.w $673C,$42A7,$2F2D,$F0D6,$4240,$102D,$ED70,$5240	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000755e:
 	dc.w $3F00,$4EAD,$077A,$2D5F,$FFE4,$6608,$487A,$0C90	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000756e:
 	dc.w $4EAD,$01D2,$486D,$ED70,$2F2E,$FFE4,$4EAD,$0092	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000757e:
 	dc.w $2F2E,$FFE4,$3F2D,$ED60,$4267,$4EAD,$016A,$102D	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000758e:
 	dc.w $F0B1,$6770,$4267,$486D,$ED70,$486E,$FFEE,$4EAD	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000759e:
 	dc.w $0422,$3D5F,$FFFC,$6724,$3F2E,$FFFC,$487A,$0C2A	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_000075ae:
 	dc.w $486D,$ED70,$487A,$0C20,$486E,$FBDE,$3F3C,$0003	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_000075be:
 	dc.w $4EAD,$0AA2,$486E,$FBDE,$4EAD,$01DA,$302D,$CB1C	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_000075ce:
 	dc.w $5340,$D040,$41ED,$EB3A,$31AD,$EB5A,$0000,$3B6D	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_000075de:
 	dc.w $ECB8,$EB5A,$526D,$ECB8,$3F2D,$EB5A,$486D,$ED70	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_000075ee:
 	dc.w $1F3C,$0001,$4EAD,$068A,$2F2E,$FFEE,$3F2D,$EB5A	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_000075fe:
 	dc.w $4EAD,$06A2,$082D,$0002,$ED5A,$6700,$0B68,$102D	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000760e:
 	dc.w $EB68,$6600,$0B60,$802D,$EB69,$6600,$0B58,$486D	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000761e:
 	dc.w $D26E,$487A,$0BA4,$4267,$4EAD,$0A0A,$486D,$D26E	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000762e:
 	dc.w $486D,$ED70,$4267,$4EAD,$0A0A,$486D,$D26E,$4EAD	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000763e:
 	dc.w $09F2,$6000,$0B30,$102D,$F3A5,$6722,$122D,$F3A3	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000764e:
 	dc.w $0A01,$0001,$C001,$4A00,$6714,$122D,$F3A2,$0A01	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000765e:
 	dc.w $0001,$C001,$6708,$4EBA,$DE98,$6000,$0B08,$102D	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000766e:
 	dc.w $F3A3,$0A00,$0001,$4A00,$6608,$802D,$F3A2,$6700	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000767e:
 	dc.w $0AF4,$3F3C,$0097,$4EAD,$07CA,$6000,$0AE8,$102D	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000768e:
 	dc.w $F3A3,$674C,$122D,$F3A2,$0A01,$0001,$C001,$6740	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000769e:
 	dc.w $422D,$F3A3,$2B6D,$F418,$F40A,$1B6D,$F40F,$F40E	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_000076ae:
 	dc.w $2B6D,$F410,$F406,$2B6D,$F402,$F418,$2B6D,$F3FE	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_000076be:
 	dc.w $F410,$2B6D,$F418,$F414,$422D,$F40F,$3B7C,$A000	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_000076ce:
 	dc.w $F3E0,$4267,$1F3C,$0001,$4EBA,$AB22,$6000,$0A96	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_000076de:
 	dc.w $102D,$F3A5,$0A00,$0001,$4A00,$6608,$802D,$F3A2	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_000076ee:
 	dc.w $6700,$0A82,$3F3C,$0096,$4EAD,$07CA,$6000,$0A76	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_000076fe:
 	dc.w $102D,$F3A6,$6774,$202D,$F420,$B0AD,$F410,$57C0	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000770e:
 	dc.w $4A00,$670E,$C02D,$F425,$6708,$3F3C,$00D8,$4EAD	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000771e:
 	dc.w $07CA,$7000,$2B40,$F420,$422D,$F425,$102D,$F40E	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000772e:
 	dc.w $6720,$122D,$F409,$0241,$0001,$C001,$6714,$102D	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000773e:
 	dc.w $EB93,$6706,$53AD,$F406,$6008,$3F3C,$00CF,$4EAD	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000774e:
 	dc.w $07CA,$102D,$F3A2,$6704,$4EAD,$0812,$1B7C,$0001	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000775e:
 	dc.w $F3A2,$2F2D,$EB6A,$4EAD,$0252,$422D,$F3A2,$1F3C	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000776e:
 	dc.w $0001,$4EAD,$081A,$6000,$09FC,$3F3C,$009B,$4EAD	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000777e:
 	dc.w $07CA,$6000,$09F0,$1F3C,$0001,$4EBA,$F01C,$6000	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000778e:
 	dc.w $09E4,$4EBA,$D2D2,$6000,$09DC,$102D,$F3A7,$6616	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000779e:
 	dc.w $802D,$F3A4,$4A00,$660E,$802D,$F3A2,$4A00,$6606	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_000077ae:
 	dc.w $802D,$F3A3,$670C,$3F3C,$00B0,$4EAD,$07CA,$6000	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_000077be:
 	dc.w $09B4,$4AAD,$ECA8,$660C,$3F3C,$00B5,$4EAD,$07CA	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_000077ce:
 	dc.w $6000,$09A2,$206D,$ECA8,$2868,$0004,$216D,$ECA4	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_000077de:
 	dc.w $0004,$2B6D,$ECA8,$ECA4,$2B4C,$ECA8,$6000,$0986	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_000077ee:
 	dc.w $102D,$F3A7,$6616,$802D,$F3A4,$4A00,$660E,$802D	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_000077fe:
 	dc.w $F3A2,$4A00,$6606,$802D,$F3A3,$670C,$3F3C,$00B0	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000780e:
 	dc.w $4EAD,$07CA,$6000,$095E,$4EBA,$D3FC,$6000,$0956	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000781e:
 	dc.w $4267,$486D,$DFA0,$3F3C,$0008,$486E,$FFFA,$4EBA	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000782e:
 	dc.w $B4DE,$101F,$6700,$093E,$7004,$B06E,$FFFA,$662E	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000783e:
 	dc.w $7002,$B02D,$F3B6,$660A,$3F3C,$00C1,$4EAD,$07CA	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000784e:
 	dc.w $6038,$4A2D,$F3B6,$6632,$1F3C,$0001,$4EAD,$05D2	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000785e:
 	dc.w $1B7C,$0001,$F3B9,$1B7C,$0001,$F3B8,$601C,$7005	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000786e:
 	dc.w $B06E,$FFFA,$57C0,$4A00,$660C,$7206,$B26E,$FFFA	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000787e:
 	dc.w $57C1,$8001,$6704,$4EBA,$EDB6,$302E,$FFFA,$D040	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000788e:
 	dc.w $41ED,$DF92,$3F30,$0000,$4EBA,$AAC8,$6000,$08D6	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000789e:
 	dc.w $4EAD,$03F2,$6000,$08CE,$1B7C,$0001,$EB93,$701E	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_000078ae:
 	dc.w $B02D,$FFFB,$6608,$7002,$2D40,$FFEE,$6036,$4267	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_000078be:
 	dc.w $486E,$FFEE,$4EAD,$0202,$101F,$6722,$4AAE,$FFEE	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_000078ce:
 	dc.w $6C10,$3F3C,$0099,$4EAD,$07CA,$7001,$2D40,$FFEE	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_000078de:
 	dc.w $6012,$4AAE,$FFEE,$660C,$422D,$EB93,$6006,$7001	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_000078ee:
 	dc.w $2D40,$FFEE,$102D,$EB93,$6700,$087A,$102D,$F3A7	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_000078fe:
 	dc.w $6718,$122D,$F3A2,$0A01,$0001,$C001,$670C,$3F3C	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000790e:
 	dc.w $00A0,$4EAD,$07CA,$6000,$009E,$2F2D,$F418,$2F2E	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000791e:
 	dc.w $FFEE,$4EAD,$0A82,$201F,$3C00,$6700,$008A,$3006	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000792e:
 	dc.w $48C0,$91AD,$F418,$102D,$F40F,$672E,$4A46,$6C08	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000793e:
 	dc.w $202E,$FFEE,$91AD,$F418,$202D,$F418,$B0AD,$F410	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000794e:
 	dc.w $6C06,$2B6D,$F418,$F410,$202D,$F418,$B0AD,$F3C6	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000795e:
 	dc.w $6F34,$2B6D,$F418,$F3C6,$602C,$4A46,$6F08,$202E	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000796e:
 	dc.w $FFEE,$D1AD,$F418,$202D,$F418,$B0AD,$F410,$6F06	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000797e:
 	dc.w $2B6D,$F418,$F410,$202D,$F418,$B0AD,$F3C6,$6C06	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000798e:
 	dc.w $2B6D,$F418,$F3C6,$4EBA,$A912,$4EBA,$A928,$102D	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000799e:
 	dc.w $F3A6,$6712,$102D,$F3A4,$6604,$802D,$F3A3,$1F00	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_000079ae:
 	dc.w $4267,$4EBA,$A848,$102D,$ECFF,$6700,$07B8,$2F2D	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_000079be:
 	dc.w $F418,$3F3C,$0004,$4EBA,$A914,$6000,$07A8,$4267	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_000079ce:
 	dc.w $486D,$E1AA,$3F3C,$0006,$486E,$FFFA,$4EBA,$B330	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_000079de:
 	dc.w $101F,$6700,$0790,$302E,$FFFA,$41ED,$E1A1,$1230	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_000079ee:
 	dc.w $0000,$4881,$3B41,$F39A,$6000,$077A,$4267,$486D	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_000079fe:
 	dc.w $E1AA,$3F3C,$0006,$486E,$FFFA,$4EBA,$B302,$101F	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007a0e:
 	dc.w $6700,$0762,$7004,$B06E,$FFFA,$6C16,$302E,$FFFA	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007a1e:
 	dc.w $41ED,$E1A1,$1230,$0000,$4881,$3B41,$F39C,$6000	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007a2e:
 	dc.w $0744,$3F3C,$0099,$4EAD,$07CA,$6000,$0738,$4A2D	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007a3e:
 	dc.w $FFFB,$670C,$3F3C,$0099,$4EAD,$07CA,$6000,$0726	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007a4e:
 	dc.w $486D,$FEFA,$4EAD,$0052,$486D,$FEFA,$487A,$0766	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007a5e:
 	dc.w $4EAD,$0ACA,$101F,$6610,$486D,$FEFA,$487A,$074E	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007a6e:
 	dc.w $4EAD,$0ACA,$801F,$6714,$1B7C,$0001,$F3A1,$1B7C	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007a7e:
 	dc.w $0001,$EB99,$4EAD,$0172,$6000,$06EA,$4267,$486D	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007a8e:
 	dc.w $E2E8,$3F3C,$0004,$486E,$FFFA,$4EBA,$B272,$101F	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007a9e:
 	dc.w $6700,$06D2,$302E,$FFFA,$41ED,$E2E1,$1230,$0000	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007aae:
 	dc.w $0A01,$0001,$1B41,$F3A1,$422D,$EB99,$6000,$06B6	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007abe:
 	dc.w $4267,$486E,$FFE4,$4EAD,$01FA,$101F,$6700,$06A6	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007ace:
 	dc.w $102D,$F3A6,$6718,$3F3C,$0008,$2F2E,$FFE4,$4EAD	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007ade:
 	dc.w $0142,$3F3C,$003D,$4EAD,$014A,$6000,$0688,$2F2E	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007aee:
 	dc.w $FFE4,$4EAD,$062A,$6000,$067C,$4267,$486D,$E2E8	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007afe:
 	dc.w $3F3C,$0004,$486E,$FFFA,$4EBA,$B204,$101F,$6700	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007b0e:
 	dc.w $0664,$302E,$FFFA,$41ED,$E2E1,$1B70,$0000,$F3A0	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007b1e:
 	dc.w $1B6D,$F3A0,$F39F,$6000,$064C,$701E,$B02D,$FFFB	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007b2e:
 	dc.w $660A,$2D7C,$0000,$7FFF,$FFEE,$601E,$4267,$486E	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007b3e:
 	dc.w $FFEE,$4EAD,$0202,$101F,$6710,$7001,$B0AE,$FFEE	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007b4e:
 	dc.w $6F08,$3F3C,$0099,$4EAD,$07CA,$102D,$ECFF,$6700	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007b5e:
 	dc.w $0614,$4A6D,$CD68,$57C1,$C001,$6700,$0608,$102D	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007b6e:
 	dc.w $F3A6,$6718,$3F3C,$0006,$2F2E,$FFEE,$4EAD,$0142	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007b7e:
 	dc.w $3F3C,$0041,$4EAD,$014A,$6000,$05EA,$3F2E,$FFF0	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007b8e:
 	dc.w $4EAD,$05FA,$6000,$05DE,$701E,$B02D,$FFFB,$660A	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007b9e:
 	dc.w $4267,$4EBA,$A802,$6000,$05CC,$4267,$486D,$E188	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007bae:
 	dc.w $3F3C,$0006,$486E,$FFFA,$4EBA,$B154,$101F,$6700	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007bbe:
 	dc.w $05B4,$302E,$FFFA,$D040,$41ED,$E17E,$3F30,$0000	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007bce:
 	dc.w $4EBA,$A7D4,$6000,$059E,$102D,$F3A7,$6718,$122D	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007bde:
 	dc.w $F3A2,$0A01,$0001,$C001,$670C,$3F3C,$00A0,$4EAD	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007bee:
 	dc.w $07CA,$6000,$0580,$2D6D,$F418,$FFF2,$701E,$B02D	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007bfe:
 	dc.w $FFFB,$660A,$2B6D,$F410,$F418,$6000,$0082,$4267	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007c0e:
 	dc.w $486E,$FFEE,$486E,$FFED,$486E,$FFFC,$4EAD,$022A	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007c1e:
 	dc.w $101F,$6762,$7004,$B02E,$FFED,$6E14,$42A7,$2F2E	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007c2e:
 	dc.w $FFEE,$1F2E,$FFED,$4EAD,$01F2,$2B5F,$F418,$604E	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007c3e:
 	dc.w $4A2E,$FFED,$5FC0,$4A00,$662A,$7201,$B22E,$FFED	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007c4e:
 	dc.w $57C1,$4A01,$6726,$142D,$F3A2,$0A02,$0001,$4A02	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007c5e:
 	dc.w $6612,$4AAD,$F3D8,$56C3,$8403,$C202,$8001,$0240	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007c6e:
 	dc.w $0001,$6708,$2B6E,$FFEE,$F418,$6012,$3F3C,$009A	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007c7e:
 	dc.w $4EAD,$07CA,$6008,$3F2E,$FFFC,$4EAD,$07CA,$102D	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007c8e:
 	dc.w $ECFF,$670C,$2F2D,$F418,$3F3C,$0004,$4EBA,$A63E	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007c9e:
 	dc.w $102D,$F3A6,$6712,$102D,$F3A4,$6604,$802D,$F3A3	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007cae:
 	dc.w $1F00,$4267,$4EBA,$A546,$102D,$F40F,$6722,$202D	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007cbe:
 	dc.w $F418,$B0AD,$F410,$6C06,$2B6D,$F418,$F410,$202D	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007cce:
 	dc.w $F418,$B0AD,$F3C6,$6F28,$2B6D,$F418,$F3C6,$6020	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007cde:
 	dc.w $202D,$F418,$B0AD,$F410,$6F06,$2B6D,$F418,$F410	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007cee:
 	dc.w $202D,$F418,$B0AD,$F3C6,$6C06,$2B6D,$F418,$F3C6	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007cfe:
 	dc.w $4EBA,$A5A8,$4EBA,$A5BE,$102D,$F3A2,$0A00,$0001	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007d0e:
 	dc.w $4A00,$6616,$206D,$F3EA,$0828,$0002,$0008,$56C1	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007d1e:
 	dc.w $8001,$0240,$0001,$6700,$044C,$102D,$F40F,$6714	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007d2e:
 	dc.w $4AAD,$F418,$6F00,$043E,$3F3C,$00B6,$4EAD,$07CA	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007d3e:
 	dc.w $6000,$0432,$4AAD,$F418,$6C00,$042A,$3F3C,$00B6	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007d4e:
 	dc.w $4EAD,$07CA,$6000,$041E,$4EBA,$E6B4,$6000,$0416	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007d5e:
 	dc.w $4EBA,$E4D6,$6000,$040E,$701E,$B02D,$FFFB,$6608	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007d6e:
 	dc.w $7001,$2D40,$FFEE,$601E,$4267,$486E,$FFEE,$4EAD	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007d7e:
 	dc.w $0202,$101F,$6710,$7001,$B0AE,$FFEE,$6F08,$3F3C	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007d8e:
 	dc.w $0099,$4EAD,$07CA,$102D,$ECFF,$6700,$03D8,$4A6D	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007d9e:
 	dc.w $CD68,$57C1,$C001,$6700,$03CC,$102D,$F3A6,$6718	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007dae:
 	dc.w $3F3C,$0006,$2F2E,$FFEE,$4EAD,$0142,$3F3C,$0042	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007dbe:
 	dc.w $4EAD,$014A,$6000,$03AE,$3F2E,$FFF0,$4EAD,$05F2	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007dce:
 	dc.w $6000,$03A2,$4267,$486D,$E16A,$3F3C,$0007,$486E	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007dde:
 	dc.w $FFFA,$4EBA,$AF2A,$101F,$6700,$038A,$302E,$FFFA	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007dee:
 	dc.w $41ED,$E165,$1B70,$0000,$F395,$102D,$F3A6,$6700	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007dfe:
 	dc.w $0374,$3F3C,$0006,$102D,$F395,$4880,$48C0,$2F00	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007e0e:
 	dc.w $4EAD,$0142,$3F3C,$0037,$4EAD,$014A,$6000,$0356	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007e1e:
 	dc.w $422E,$FCE4,$486E,$FCE4,$4EBA,$AF38,$486E,$FCE4	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007e2e:
 	dc.w $4EAD,$007A,$4240,$102E,$FCE4,$7250,$B240,$6C06	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007e3e:
 	dc.w $1D7C,$0050,$FCE4,$486E,$FCE4,$486D,$ED04,$4EAD	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007e4e:
 	dc.w $0092,$102D,$ECFF,$6700,$031C,$4A6D,$CD68,$57C1	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007e5e:
 	dc.w $C001,$6700,$0310,$102D,$F3A6,$6758,$42A7,$2F2D	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007e6e:
 	dc.w $F0D6,$4240,$102D,$ED04,$5240,$3F00,$4EAD,$077A	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007e7e:
 	dc.w $2D5F,$FFE4,$660A,$3F3C,$001C,$4EAD,$07CA,$6040	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007e8e:
 	dc.w $486D,$ED04,$2F2E,$FFE4,$4EAD,$0092,$3F3C,$0008	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007e9e:
 	dc.w $2F2E,$FFE4,$4EAD,$0142,$3F3C,$0006,$102D,$EB22	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007eae:
 	dc.w $4880,$48C0,$2F00,$4EAD,$0142,$3F3C,$0043,$4EAD	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007ebe:
 	dc.w $014A,$600C,$102D,$EB22,$6606,$3B6D,$ED58,$ED00	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007ece:
 	dc.w $422D,$EB22,$6000,$029E,$4267,$486D,$E0F6,$3F3C	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007ede:
 	dc.w $000B,$486E,$FFFA,$4EBA,$AE26,$101F,$6710,$302E	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007eee:
 	dc.w $FFFA,$D040,$41ED,$E0E0,$3B70,$0000,$F392,$102D	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007efe:
 	dc.w $F3A6,$6700,$0270,$3F3C,$0006,$302D,$F392,$48C0	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007f0e:
 	dc.w $2F00,$4EAD,$0142,$3F3C,$0038,$4EAD,$014A,$6000	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007f1e:
 	dc.w $0254,$4267,$486D,$E0AA,$3F3C,$0009,$486E,$FFFA	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007f2e:
 	dc.w $4EBA,$ADDC,$101F,$6710,$302E,$FFFA,$D040,$41ED	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007f3e:
 	dc.w $E09C,$3B70,$0000,$F390,$102D,$F3A6,$6700,$0226	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007f4e:
 	dc.w $3F3C,$0006,$302D,$F390,$4440,$48C0,$2F00,$4EAD	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007f5e:
 	dc.w $0142,$3F3C,$0039,$4EAD,$014A,$6000,$0208,$422E	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007f6e:
 	dc.w $FCE4,$486E,$FCE4,$4EBA,$ADEA,$4267,$486E,$FCE4	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007f7e:
 	dc.w $4267,$4EAD,$044A,$3D5F,$FCDE,$4AAD,$CD4E,$672E	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007f8e:
 	dc.w $4267,$486E,$FCE4,$206D,$CD4E,$2F08,$4EAD,$0062	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007f9e:
 	dc.w $101F,$661A,$206D,$CD4E,$2F08,$3F2D,$E51E,$4EAD	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007fae:
 	dc.w $049A,$2F2D,$CD4E,$1F3C,$0001,$4EAD,$045A,$4AAD	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007fbe:
 	dc.w $CD4E,$57C0,$4A00,$6712,$4A6E,$FCDE,$57C1,$C001	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007fce:
 	dc.w $6708,$486E,$FCE4,$4EAD,$08AA,$486E,$FCE4,$486D	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007fde:
 	dc.w $CC4E,$4EAD,$0092,$1B7C,$0001,$CC4D,$6000,$0186	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007fee:
 	dc.w $4EAD,$05DA,$6000,$017E,$4EBA,$80CC,$6000,$0176	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_00007ffe:
 	dc.w $4EBA,$8114,$6000,$016E,$4EBA,$8154,$6000,$0166	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000800e:
 	dc.w $4EBA,$8208,$6000,$015E,$4EBA,$91BC,$6000,$0156	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000801e:
 	dc.w $4EBA,$846E,$6000,$014E,$4EBA,$8484,$6000,$0146	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000802e:
 	dc.w $4EBA,$849A,$6000,$013E,$4EBA,$84AE,$6000,$0136	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000803e:
 	dc.w $4EBA,$8538,$6000,$012E,$4EBA,$8890,$6000,$0126	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000804e:
 	dc.w $4A6D,$ECE4,$6F10,$3F3C,$005A,$486D,$F9BA,$4EAD	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000805e:
 	dc.w $07C2,$6000,$0110,$4A6D,$CD68,$6600,$0108,$4EBA	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000806e:
 	dc.w $8D34,$6000,$0100,$4EBA,$977C,$6000,$00F8,$4EBA	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000807e:
 	dc.w $99A6,$6000,$00F0,$4EBA,$90AC,$6000,$00E8,$4EBA	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000808e:
 	dc.w $9404,$6000,$00E0,$4EBA,$9A60,$6000,$00D8,$4EBA	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000809e:
 	dc.w $9B62,$6000,$00D0,$4EBA,$9D88,$6000,$00C8,$4EBA	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_000080ae:
 	dc.w $915A,$6000,$00C0,$4EBA,$9F3C,$6000,$00B8,$4EBA	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_000080be:
 	dc.w $A024,$6000,$00B0,$4267,$486D,$E2E8,$3F3C,$0004	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_000080ce:
 	dc.w $486E,$FFFA,$4EBA,$AC38,$101F,$6700,$0098,$302E	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_000080de:
 	dc.w $FFFA,$41ED,$E2E1,$1B70,$0000,$ECBF,$6000,$0086	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_000080ee:
 	dc.w $4267,$486D,$E2E8,$3F3C,$0004,$486E,$FFFA,$4EBA	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_000080fe:
 	dc.w $AC0E,$101F,$676E,$302E,$FFFA,$41ED,$E2E1,$1B70	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000810e:
 	dc.w $0000,$ECBE,$605E,$4267,$486D,$E2E8,$3F3C,$0004	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000811e:
 	dc.w $486E,$FFFA,$4EBA,$ABE8,$101F,$6748,$302E,$FFFA	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000812e:
 	dc.w $41ED,$E2E1,$1B70,$0000,$ECBD,$6038,$3F3C,$0055	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000813e:
 	dc.w $4EBA,$E982,$602E,$3F3C,$0056,$4EBA,$E978,$6024	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000814e:
 	dc.w $4267,$486D,$E2E8,$3F3C,$0004,$486E,$FFFA,$4EBA	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000815e:
 	dc.w $ABAE,$101F,$670E,$302E,$FFFA,$41ED,$E2E1,$1B70	; lookup_table
-CODE_13_data_000072be:
+CODE_13_data_0000816e:
 	dc.w $0000,$ECBB	; lookup_table
 CODE_13_loc_00008172:
 	tst.w -$3298(a5)

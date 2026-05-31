@@ -7923,7 +7923,7 @@ loc_0_000084C4:
 	movea.l (a7)+,a6
 	rts
 loc_0_000084C8:
-	move.l m68k_vector_level_1_interrupt_autovector.l,loc_0_000099A2.l
+	move.l $00000064.l,loc_0_000099A2.l
 	move.l #loc_0_000088B4,m68k_vector_level_1_interrupt_autovector.l
 	lea.l _custom.l,a6
 	lea.l _ciab+ciaprb.l,a5
@@ -8015,7 +8015,7 @@ loc_0_0000863E:
 	beq.b loc_0_0000863E
 	rts
 loc_0_0000864A:
-	move.l m68k_vector_level_1_interrupt_autovector.l,loc_0_000099A2.l
+	move.l $00000064.l,loc_0_000099A2.l
 	movea.l loc_0_000099A6.l,a0
 	move.w #$CC0,d1
 loc_0_0000865E:

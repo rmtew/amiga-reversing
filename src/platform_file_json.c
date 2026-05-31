@@ -3295,7 +3295,7 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
       if (json_builder_append_json_string(builder, memory_kind) != 0) return -1;
       if (json_builder_appendf(builder, ",\"section_index\":%u,\"source_offset\":%u,\"source_size\":%u,"
           "\"runtime_address\":", (unsigned)section->section_index, (unsigned)ref->offset,
-          (unsigned)ref->size) != 0) return -1;
+          (unsigned)ref->source_size) != 0) return -1;
       if (ref->has_runtime_address) {
         if (json_builder_appendf(builder, "%u", (unsigned)ref->runtime_address) != 0) return -1;
       } else if (json_builder_append(builder, "null") != 0) return -1;
@@ -5591,7 +5591,7 @@ static int listing_runtime_address_ref_intersects_source_range(const M68kRuntime
   uint32_t ref_end;
   if (ref == NULL) return 0;
   if (source_size == 0U) return ref->offset == source_offset;
-  ref_size = ref->size != 0U ? ref->size : 1U;
+  ref_size = ref->source_size != 0U ? ref->source_size : 1U;
   source_end = source_offset + source_size;
   ref_end = ref->offset + ref_size;
   if (source_end < source_offset || ref_end < ref->offset) return 0;

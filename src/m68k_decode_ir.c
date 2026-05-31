@@ -8,7 +8,7 @@
 
 #include <string.h>
 
-static M68kAsmOperandValue decode_normalized_layout_operand(const M68kDecodeCandidate *candidate,
+M68kAsmOperandValue m68k_decode_candidate_normalized_layout_operand(const M68kDecodeCandidate *candidate,
     size_t operand_index) {
   M68kAsmOperandValue operand;
   memset(&operand, 0, sizeof(operand));
@@ -49,10 +49,96 @@ char m68k_decode_candidate_effective_size_suffix(const M68kDecodeCandidate *cand
   form = &g_m68k_asm_forms[candidate->asm_form_index];
   if (form->mnemonic_id == M68K_ASM_MNEMONIC_NONE) return candidate->size_suffix;
   for (index = 0U; index < candidate->operand_count; ++index)
-    layout_operands[index] = decode_normalized_layout_operand(candidate, index);
+    layout_operands[index] = m68k_decode_candidate_normalized_layout_operand(candidate, index);
   size_suffix = m68k_asm_choose_size_suffix(form, layout_operands, candidate->operand_count,
     candidate->size_suffix);
   return size_suffix != '\0' ? size_suffix : candidate->size_suffix;
+}
+
+static int decode_operand_uses_single_word_extension(const M68kAsmOperandValue *operand) {
+  if (operand == NULL) return 0;
+  return (operand->kind == M68K_ASM_OPERAND_EA || operand->kind == M68K_ASM_OPERAND_BF_EA) &&
+    ((operand->ea_mode == 5U) || (operand->ea_mode == 7U && operand->ea_reg == 0U) ||
+      (operand->ea_mode == 7U && operand->ea_reg == 2U));
+}
+
+static int decode_operand_uses_long_address_extension(const M68kAsmOperandValue *operand) {
+  if (operand == NULL) return 0;
+  return (operand->kind == M68K_ASM_OPERAND_EA || operand->kind == M68K_ASM_OPERAND_BF_EA) &&
+    operand->ea_mode == 7U && operand->ea_reg == 1U;
+}
+
+static int decode_operand_uses_immediate_extension(const M68kAsmOperandValue *operand) {
+  if (operand == NULL) return 0;
+  return ((operand->kind == M68K_ASM_OPERAND_EA || operand->kind == M68K_ASM_OPERAND_BF_EA) &&
+      operand->ea_mode == 7U && operand->ea_reg == 4U) ||
+    operand->kind == M68K_ASM_OPERAND_IMM;
+}
+
+size_t m68k_decode_asm_extension_word_count(uint16_t asm_form_index, uint8_t extension_kind,
+    const M68kAsmOperandValue *operand, char size_suffix) {
+  if (operand == NULL) return 0U;
+  switch (extension_kind) {
+  case M68K_ASM_EXTENSION_EA_SINGLE_WORD:
+    return decode_operand_uses_single_word_extension(operand) ? 1U : 0U;
+  case M68K_ASM_EXTENSION_EA_LONG_ADDRESS:
+    return decode_operand_uses_long_address_extension(operand) ? 2U : 0U;
+  case M68K_ASM_EXTENSION_EA_IMMEDIATE:
+    return decode_operand_uses_immediate_extension(operand) ? (size_suffix == 'l' ? 2U : 1U) : 0U;
+  case M68K_ASM_EXTENSION_EA_INDEX:
+    if (!((operand->kind == M68K_ASM_OPERAND_EA || operand->kind == M68K_ASM_OPERAND_BF_EA) &&
+        (operand->ea_mode == 6U || (operand->ea_mode == 7U && operand->ea_reg == 3U)))) {
+      return 0U;
+    }
+    return m68k_asm_operand_extension_word_count(asm_form_index, operand, size_suffix);
+  case M68K_ASM_EXTENSION_LABEL_DISP16_IF_ZERO:
+    return size_suffix == 'b' ? 0U : 1U;
+  case M68K_ASM_EXTENSION_LABEL_DISP16_ALWAYS:
+  case M68K_ASM_EXTENSION_DISP16_ALWAYS:
+    return 1U;
+  default:
+    return 0U;
+  }
+}
+
+int m68k_decode_candidate_operand_storage_span(const M68kDecodeCandidate *candidate, size_t operand_index,
+    uint32_t *out_start, uint32_t *out_size) {
+  const M68kAsmFormDef *form;
+  M68kAsmOperandValue layout_operands[M68K_DECODE_IR_MAX_OPERANDS];
+  char size_suffix;
+  size_t word_index;
+  size_t extension_index;
+  size_t index;
+  if (candidate == NULL || out_start == NULL || out_size == NULL || operand_index >= candidate->operand_count)
+    return 0;
+  if (candidate->operand_kinds[operand_index] == M68K_ASM_OPERAND_LABEL && candidate->size_suffix == 'b') {
+    *out_start = candidate->offset + 1U;
+    *out_size = 1U;
+    return 1;
+  }
+  if (candidate->asm_form_index >= M68K_ASM_FORM_SLOT_COUNT) return 0;
+  form = &g_m68k_asm_forms[candidate->asm_form_index];
+  if (form->mnemonic_id == M68K_ASM_MNEMONIC_NONE) return 0;
+  for (index = 0U; index < candidate->operand_count; ++index)
+    layout_operands[index] = m68k_decode_candidate_normalized_layout_operand(candidate, index);
+  size_suffix = m68k_decode_candidate_effective_size_suffix(candidate);
+  word_index = 1U + form->bound_word_count;
+  for (extension_index = 0U; extension_index < form->extension_count; ++extension_index) {
+    const M68kAsmExtensionDef *extension = &g_m68k_asm_extensions[form->extension_start + extension_index];
+    size_t word_count;
+    if (extension->operand_index >= candidate->operand_count) continue;
+    word_count = m68k_decode_asm_extension_word_count(candidate->asm_form_index, extension->kind,
+      &layout_operands[extension->operand_index], size_suffix);
+    if (extension->operand_index == operand_index && word_count != 0U) {
+      if (word_index > UINT32_MAX / 2U || word_count > UINT32_MAX / 2U) return 0;
+      if (candidate->offset > UINT32_MAX - (uint32_t)(word_index * 2U)) return 0;
+      *out_start = candidate->offset + (uint32_t)(word_index * 2U);
+      *out_size = (uint32_t)(word_count * 2U);
+      return 1;
+    }
+    word_index += word_count;
+  }
+  return 0;
 }
 
 static int append_decode_section(ArenaBuilder *builder, M68kDecodeSectionIR **out_section) {

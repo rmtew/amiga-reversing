@@ -4438,6 +4438,65 @@ static int candidate_is_absolute_control_transfer(const M68kDecodeCandidate *can
     (operand.ea_reg == 0U || operand.ea_reg == 1U);
 }
 
+static int decode_target_is_control_transfer(const M68kDecodeTarget *target) {
+  return target != NULL &&
+    (target->kind == M68K_DECODE_TARGET_BRANCH ||
+     target->kind == M68K_DECODE_TARGET_CALL ||
+     target->kind == M68K_DECODE_TARGET_JUMP);
+}
+
+static int relocation_ref_exactly_covers_span(const M68kFact *relocation,
+    size_t section_index, uint32_t span_start, uint32_t span_size) {
+  uint32_t span_end;
+  uint32_t relocation_end;
+  if (relocation == NULL || relocation->kind != M68K_FACT_RELOCATION_REF ||
+      relocation->section_index != section_index || relocation->size == 0U || span_size == 0U) {
+    return 0;
+  }
+  if (span_start > UINT32_MAX - span_size || relocation->offset > UINT32_MAX - relocation->size) return 0;
+  span_end = span_start + span_size;
+  relocation_end = relocation->offset + relocation->size;
+  return relocation->offset == span_start && relocation_end == span_end;
+}
+
+static int candidate_operand_has_relocation_ref(const M68kFactsV2RelocationLookup *relocation_lookup,
+    const M68kFactIR *facts, size_t section_index, const M68kDecodeCandidate *candidate,
+    size_t operand_index) {
+  uint32_t span_start = 0U;
+  uint32_t span_size = 0U;
+  const M68kFact *relocation;
+  if (relocation_lookup == NULL || facts == NULL || candidate == NULL) return 0;
+  if (!m68k_decode_candidate_operand_storage_span(candidate, operand_index, &span_start, &span_size)) return 0;
+  relocation = relocation_lookup_ref_at(relocation_lookup, facts, section_index, span_start);
+  return relocation_ref_exactly_covers_span(relocation, section_index, span_start, span_size);
+}
+
+static int candidate_operand_is_direct_control_transfer(const M68kDecodeCandidate *candidate,
+    size_t operand_index) {
+  size_t target_index;
+  if (candidate == NULL) return 0;
+  if (operand_index == 0U && candidate_is_absolute_control_transfer(candidate)) return 1;
+  for (target_index = 0U; target_index < candidate->target_count; ++target_index) {
+    const M68kDecodeTarget *target = &candidate->targets[target_index];
+    if (decode_target_is_control_transfer(target) && target->has_operand &&
+        target->operand_index == operand_index) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+static int candidate_can_have_relocated_control_target(const M68kDecodeCandidate *candidate) {
+  size_t target_index;
+  if (candidate == NULL) return 0;
+  if (candidate_is_absolute_control_transfer(candidate)) return 1;
+  for (target_index = 0U; target_index < candidate->target_count; ++target_index) {
+    const M68kDecodeTarget *target = &candidate->targets[target_index];
+    if (decode_target_is_control_transfer(target) && target->has_operand) return 1;
+  }
+  return 0;
+}
+
 static int candidate_absolute_control_address(const M68kDecodeCandidate *candidate, uint32_t *out_address) {
   if (candidate == NULL || (candidate->mnemonic_id != M68K_ASM_MNEMONIC_JMP &&
       candidate->mnemonic_id != M68K_ASM_MNEMONIC_JSR) || candidate->operand_count != 1U ||
@@ -7404,7 +7463,7 @@ static int enqueue_relocated_control_target(M68kDecodeIR *decode, M68kFactIR *fa
   uint32_t offset;
   uint32_t end;
   if (decode == NULL || facts == NULL || queue == NULL || accepted_start == NULL || accepted_bytes == NULL ||
-      profile == NULL || candidate == NULL || !candidate_is_absolute_control_transfer(candidate)) {
+      profile == NULL || candidate == NULL || !candidate_can_have_relocated_control_target(candidate)) {
     return 0;
   }
   end = candidate->offset + candidate->byte_count;
@@ -7412,7 +7471,10 @@ static int enqueue_relocated_control_target(M68kDecodeIR *decode, M68kFactIR *fa
     const M68kFact *relocation = relocation_lookup_ref_at(relocation_lookup, facts, source_section_index, offset);
     const M68kDecodeSectionIR *target_section;
     const M68kDecodeCandidate *target_candidate = NULL;
+    size_t operand_index = 0U;
     if (relocation == NULL) continue;
+    if (!find_unique_relocation_operand(candidate, relocation, &operand_index)) continue;
+    if (!candidate_operand_is_direct_control_transfer(candidate, operand_index)) continue;
     if (relocation->target_section_index >= decode->section_count) continue;
     target_section = &decode->sections[relocation->target_section_index];
     if (target_section->kind != M68K_SECTION_CODE) continue;
@@ -9493,6 +9555,10 @@ static int run_reachable_fixed_point(const M68kObject *object, M68kDecodeIR *dec
       uint8_t target_has_runtime = 0U;
       uint32_t target_runtime = 0U;
       if (!target->has_section) continue;
+      if (target->has_operand && candidate_operand_has_relocation_ref(relocation_lookup, facts,
+          item.section_index, candidate, target->operand_index)) {
+        continue;
+      }
       if (target->kind != M68K_DECODE_TARGET_DATA) {
         uint32_t runtime_address = 0U;
         uint32_t mapped_offset = 0U;
@@ -10195,7 +10261,7 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
         "facts_v2 platform media transfer append failed");
       goto fail;
     }
-    if (m68k_source_quality_analyze(source_analysis, &decode, accepted_start, accepted_bytes) != 0) {
+    if (m68k_source_quality_analyze(source_analysis, &decode, &facts, accepted_start, accepted_bytes) != 0) {
       m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
         "facts_v2 source quality analysis failed");
       goto fail;

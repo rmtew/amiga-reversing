@@ -243,7 +243,7 @@ abs_0_00040372:
 	move.w d0,$0402(a4)
 	move.w intreqr(a5),d0	; interrupt request state
 	move.w d0,$0404(a4)
-	move.l m68k_vector_level_3_interrupt_autovector.l,$0406(a4)
+	move.l $0000006C.l,$0406(a4)
 	move.w #$7FFF,d0
 	move.w d0,dmacon(a5)
 	move.w d0,intena(a5)

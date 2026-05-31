@@ -351,8 +351,6 @@ static int write_text_file(const char *path, const char *text) {
 }
 
 int main(int argc, char **argv) {
-  M68kAnalysisPolicy analysis_policy_storage;
-  M68kAnalysisPolicy *analysis_policy = &analysis_policy_storage;
   int argi;
   if (argc == 4 && strcmp(argv[1], "inspect-file") == 0) return inspect_file_to_stdout(argv[2], argv[3]);
   if (argc == 3 && strcmp(argv[1], "type-catalog") == 0) return type_catalog_to_stdout(argv[2]);
@@ -400,8 +398,15 @@ int main(int argc, char **argv) {
     return decompress_packed_range_to_stdout(provider_id, provider_path, path, offset, size, output_path);
   }
   if (argc == 4 && strcmp(argv[1], "analyze-file") == 0) {
-    m68k_analysis_policy_init_default(analysis_policy);
-    return facts_v2_analysis_file_to_stdout(argv[2], argv[3], analysis_policy);
+    M68kAnalysisPolicy *analysis_policy = platform_file_analysis_policy_create(M68K_ASM_CPU_68000);
+    int result;
+    if (analysis_policy == NULL) {
+      fprintf(stderr, "out of memory\n");
+      return 1;
+    }
+    result = facts_v2_analysis_file_to_stdout(argv[2], argv[3], analysis_policy);
+    platform_file_analysis_policy_destroy(analysis_policy);
+    return result;
   }
   if (argc >= 4 && strcmp(argv[1], "effective-policy-file") == 0) {
     const char *platform_name = NULL;
@@ -494,15 +499,23 @@ int main(int argc, char **argv) {
     return effective_policy_raw_to_stdout(platform_name, path, entry_offset, metadata_path, entry_offsets);
   }
   if (argc >= 5 && strcmp(argv[1], "analyze-raw") == 0) {
+    M68kAnalysisPolicy *analysis_policy = platform_file_analysis_policy_create(M68K_ASM_CPU_68000);
     const char *platform_name = NULL;
     const char *path = NULL;
     const char *metadata_path = NULL;
     uint32_t entry_offset = 0U;
     int have_entry_offset = 0;
-    m68k_analysis_policy_init_default(analysis_policy);
+    int result;
+    if (analysis_policy == NULL) {
+      fprintf(stderr, "out of memory\n");
+      return 1;
+    }
     for (argi = 2; argi < argc; ++argi) {
       int policy_result = parse_analysis_policy_option(argc, argv, &argi, analysis_policy, &metadata_path);
-      if (policy_result < 0) return 2;
+      if (policy_result < 0) {
+        platform_file_analysis_policy_destroy(analysis_policy);
+        return 2;
+      }
       if (policy_result > 0) continue;
       if (platform_name == NULL) {
         platform_name = argv[argi];
@@ -515,29 +528,45 @@ int main(int argc, char **argv) {
       if (!have_entry_offset) {
         if (!parse_u32_arg(argv[argi], &entry_offset)) {
           fprintf(stderr, "bad entry offset: %s\n", argv[argi]);
+          platform_file_analysis_policy_destroy(analysis_policy);
           return 2;
         }
         have_entry_offset = 1;
         continue;
       }
       fprintf(stderr, "unexpected argument: %s\n", argv[argi]);
+      platform_file_analysis_policy_destroy(analysis_policy);
       return 2;
     }
     if (platform_name == NULL || path == NULL || !have_entry_offset) {
       fprintf(stderr, "missing platform/file/entry-offset\n");
+      platform_file_analysis_policy_destroy(analysis_policy);
       return 2;
     }
-    if (load_analysis_policy_metadata_option(analysis_policy, metadata_path, platform_name) != 0) return 2;
-    return facts_v2_analysis_raw_to_stdout(platform_name, path, entry_offset, analysis_policy);
+    if (load_analysis_policy_metadata_option(analysis_policy, metadata_path, platform_name) != 0) {
+      platform_file_analysis_policy_destroy(analysis_policy);
+      return 2;
+    }
+    result = facts_v2_analysis_raw_to_stdout(platform_name, path, entry_offset, analysis_policy);
+    platform_file_analysis_policy_destroy(analysis_policy);
+    return result;
   }
   if (argc >= 4 && strcmp(argv[1], "analyze-file") == 0) {
+    M68kAnalysisPolicy *analysis_policy = platform_file_analysis_policy_create(M68K_ASM_CPU_68000);
     const char *platform_name = NULL;
     const char *path = NULL;
     const char *metadata_path = NULL;
-    m68k_analysis_policy_init_default(analysis_policy);
+    int result;
+    if (analysis_policy == NULL) {
+      fprintf(stderr, "out of memory\n");
+      return 1;
+    }
     for (argi = 2; argi < argc; ++argi) {
       int policy_result = parse_analysis_policy_option(argc, argv, &argi, analysis_policy, &metadata_path);
-      if (policy_result < 0) return 2;
+      if (policy_result < 0) {
+        platform_file_analysis_policy_destroy(analysis_policy);
+        return 2;
+      }
       if (policy_result > 0) continue;
       if (platform_name == NULL) {
         platform_name = argv[argi];
@@ -548,14 +577,21 @@ int main(int argc, char **argv) {
         continue;
       }
       fprintf(stderr, "unexpected argument: %s\n", argv[argi]);
+      platform_file_analysis_policy_destroy(analysis_policy);
       return 2;
     }
     if (platform_name == NULL || path == NULL) {
       fprintf(stderr, "missing platform/file\n");
+      platform_file_analysis_policy_destroy(analysis_policy);
       return 2;
     }
-    if (load_analysis_policy_metadata_option(analysis_policy, metadata_path, platform_name) != 0) return 2;
-    return facts_v2_analysis_file_to_stdout(platform_name, path, analysis_policy);
+    if (load_analysis_policy_metadata_option(analysis_policy, metadata_path, platform_name) != 0) {
+      platform_file_analysis_policy_destroy(analysis_policy);
+      return 2;
+    }
+    result = facts_v2_analysis_file_to_stdout(platform_name, path, analysis_policy);
+    platform_file_analysis_policy_destroy(analysis_policy);
+    return result;
   }
   if (argc >= 4 && strcmp(argv[1], "disassemble-file") == 0) {
     const char *platform_name = NULL, *path = NULL, *metadata_path = NULL;

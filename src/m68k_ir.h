@@ -1213,6 +1213,7 @@ typedef struct M68kRuntimeViewIR {
 
 typedef struct M68kRuntimeAddressRefIR {
   uint32_t offset;
+  uint32_t source_size;
   uint32_t operand_index;
   uint32_t size;
   uint8_t has_target;
