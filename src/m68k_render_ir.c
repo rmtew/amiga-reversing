@@ -11221,22 +11221,6 @@ fail:
   return -1;
 }
 
-static int record_platform_call_analysis_for_preview(M68kRenderIRPreview *preview, M68kRenderLookup *lookup,
-    const M68kDecodeIR *decode, const M68kAnalysisPolicy *policy, uint8_t **accepted_start) {
-  M68kRenderPlatformState platform_analysis_state;
-  size_t section_index;
-  if (preview == NULL || lookup == NULL || decode == NULL || accepted_start == NULL) return -1;
-  memset(&platform_analysis_state, 0, sizeof(platform_analysis_state));
-  for (section_index = 0U; section_index < decode->section_count; ++section_index) {
-    const M68kDecodeSectionIR *section = &decode->sections[section_index];
-    if (record_section_platform_call_analysis(preview, lookup, &platform_analysis_state, decode, policy,
-        accepted_start, section_index, section, NULL) < 0) {
-      return -1;
-    }
-  }
-  return 0;
-}
-
 void m68k_render_ir_preview_init(M68kRenderIRPreview *preview) {
   if (preview == NULL) return;
   memset(preview, 0, sizeof(*preview));
@@ -11265,18 +11249,14 @@ int m68k_render_ir_preview_emit_prepared(const M68kObject *object, const M68kDec
   clock_t phase_start;
   clock_t phase_end;
   M68kRenderPlatformState platform_state;
-  int build_platform_analysis = render_asm_source || source_analysis != NULL;
+  int build_platform_analysis = source_analysis != NULL;
   int result = -1;
   if (object == NULL || decode == NULL || lookup == NULL || accepted_start == NULL ||
       accepted_bytes == NULL || out_preview == NULL)
     return -1;
+  if (render_asm_source && source_analysis == NULL) return -1;
   memset(&platform_state, 0, sizeof(platform_state));
   out_preview->platform_backend_kind = object->platform_backend_kind;
-  if (source_analysis == NULL && build_platform_analysis &&
-      record_platform_call_analysis_for_preview(out_preview, lookup, decode, policy, accepted_start) != 0) {
-    out_preview->asm_source_allocation_failed = 1U;
-    goto cleanup;
-  }
   if (render_asm_source) {
     out_preview->platform_base_slot_count = (uint32_t)(lookup->global_base_slot_count + lookup->base_field_slot_count);
   }

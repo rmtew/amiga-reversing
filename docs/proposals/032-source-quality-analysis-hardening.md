@@ -3319,7 +3319,6 @@ Verified:
 cmd /c src\build.bat
 src\build\m68k_c_unit_tests.exe
 uv run platform-rendered-source-roundtrip --no-write-report --json
-uv run platform-rendered-source-roundtrip --update-rendered-source --json
 ```
 
 ### Pre-Render Source Blocker Diagnostics
@@ -3870,4 +3869,38 @@ cmd /c src\build.bat
 src\build\m68k_c_unit_tests.exe
 uv run python -m pytest tests\test_target_usage_manifest.py -q
 uv run platform-rendered-source-roundtrip --update-rendered-source --json
+```
+
+### Render Source Analysis Contract
+
+Deleted the compatibility path where `m68k_render_ir_preview_emit_prepared()`
+could render asm source without a `M68kSourceAnalysisIR`:
+
+```text
+before:
+  render preview receives source_analysis = NULL
+    -> reruns platform-call analysis only for preview side effects
+    -> renders source anyway
+
+after:
+  facts_v2 source export
+    -> always creates source_analysis
+    -> runs platform/source-quality analysis first
+    -> passes source_analysis to render preview
+
+  render preview
+    -> refuses asm source without source_analysis
+```
+
+This removes a stale internal API shape. Text preview can still run without
+source-analysis facts, but asm source export cannot, because operand symbols,
+source-quality blockers, and platform facts now depend on the analysis object.
+
+Verified:
+
+```text
+cmd /c src\build.bat
+src\build\m68k_c_unit_tests.exe
+uv run python -m pytest tests\test_target_usage_manifest.py -q
+uv run platform-rendered-source-roundtrip --no-write-report --json
 ```
