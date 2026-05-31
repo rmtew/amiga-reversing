@@ -3138,3 +3138,39 @@ src\build\m68k_c_unit_tests.exe
 uv run python -m pytest tests\test_target_usage_manifest.py -q
 uv run platform-rendered-source-roundtrip --no-write-report --json
 ```
+
+### Table Entry And Data Reference Migration
+
+Removed the remaining durable table-entry/data-reference export from render
+preview. Source-quality analysis now receives the decode IR plus accepted-code
+maps directly:
+
+```text
+M68kAnalysisStructuredDataItem + M68kDecodeSectionIR bytes
+  -> m68k_source_quality_analyze()
+  -> M68kTableEntryIR
+  -> M68kDataReferenceIR
+```
+
+This keeps byte-dependent facts in C analysis while preserving the previous
+render behavior:
+
+```text
+word relative table entry       -> signed target from table base
+keyed long relative table entry -> signed high-word target
+pointer/absolute long table     -> source/runtime label-backed target, else numeric exact
+code dispatch target            -> accepted/interior/unresolved status from accepted-code maps
+data table target               -> accepted data reference with structured/text/string evidence
+```
+
+No compatibility wrapper was kept. `m68k_source_quality_analyze()` is the single
+internal API because this codebase has no external consumers to preserve.
+
+Verified:
+
+```text
+cmd /c src\build.bat
+src\build\m68k_c_unit_tests.exe
+uv run python -m pytest tests\test_target_usage_manifest.py -q
+uv run platform-rendered-source-roundtrip --no-write-report --json
+```

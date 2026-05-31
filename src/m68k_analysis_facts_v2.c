@@ -9980,7 +9980,8 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
       "facts_v2 incomplete analysis append failed");
     goto fail;
   }
-  if (out_source_analysis != NULL && m68k_source_quality_analyze(out_source_analysis) != 0) {
+  if (out_source_analysis != NULL &&
+      m68k_source_quality_analyze(out_source_analysis, &decode, accepted_start, accepted_bytes) != 0) {
     m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
       "facts_v2 source quality analysis failed");
     goto fail;
