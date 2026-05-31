@@ -1441,29 +1441,6 @@ static uint32_t render_instruction_access_width(const M68kInstructionIR *instruc
 
 #define M68K_RENDER_ABSOLUTE_MEMORY_HEADER_RANGE_LIMIT 32U
 
-static int render_absolute_memory_header_owner_is_absolute(const M68kRenderLookup *lookup,
-    const M68kDecodeSectionIR *section, uint32_t address) {
-  uint8_t owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_UNKNOWN;
-  uint32_t owner_offset = 0U;
-  uint32_t source_offset = 0U;
-  if (lookup == NULL || section == NULL || lookup->object == NULL) return 0;
-  if (platform_facts_v2_absolute_memory_owner(lookup->object->platform_backend_kind, address, &owner_kind,
-      &owner_offset)) {
-    return 0;
-  }
-  if (amiga_os_find_hardware_base_symbol_by_address(address) != NULL ||
-      amiga_os_find_hardware_register_by_cpu_address(address) != NULL ||
-      amiga_os_find_hardware_register_field_by_cpu_address(address) != NULL ||
-      amiga_os_find_hardware_register_range_by_cpu_address(address) != NULL) {
-    return 0;
-  }
-  if (m68k_cpu_find_exception_vector_by_address(address) != NULL) return 0;
-  if (lookup_materialized_runtime_address_source_offset(lookup, section->section_index, address, &source_offset))
-    return 0;
-  if (!render_lookup_section_has_runtime_range(lookup, section->section_index) && address < section->size) return 0;
-  return 1;
-}
-
 static void render_asm_absolute_memory_header(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
     const M68kSourceAnalysisIR *source_analysis, int *io_emitted_header) {
   size_t index;
@@ -9927,15 +9904,41 @@ static int attach_materialized_runtime_absolute_storage_symbols(const M68kRender
   return 1;
 }
 
-static int attach_absolute_memory_slot_symbols(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
-    const M68kDecodeSectionIR *section, const M68kDecodeCandidate *candidate, M68kInstructionIR *instruction) {
+static const M68kAddressObservationIR *source_analysis_absolute_observation_for_operand(
+    const M68kSourceAnalysisIR *source_analysis, size_t section_index, uint32_t offset, size_t operand_index,
+    uint32_t address, uint8_t access_kind) {
+  const M68kSectionAnalysisIR *section_analysis;
+  size_t index;
+  if (source_analysis == NULL || section_index >= source_analysis->section_count) return NULL;
+  section_analysis = &source_analysis->sections[section_index];
+  for (index = 0U; index < section_analysis->address_observation_count; ++index) {
+    const M68kAddressObservationIR *observation = &section_analysis->address_observations[index];
+    if (observation->source != M68K_ADDRESS_OBSERVATION_SOURCE_ABSOLUTE_OPERAND ||
+        observation->offset != offset ||
+        observation->operand_index != operand_index ||
+        observation->has_address == 0U ||
+        observation->address != address ||
+        observation->access_kind != access_kind ||
+        observation->owner_kind != M68K_ABSOLUTE_MEMORY_OWNER_ABSOLUTE_MEMORY) {
+      continue;
+    }
+    return observation;
+  }
+  return NULL;
+}
+
+static int attach_absolute_memory_slot_symbols(M68kRenderIRPreview *preview,
+    const M68kSourceAnalysisIR *source_analysis, const M68kDecodeSectionIR *section,
+    const M68kDecodeCandidate *candidate, M68kInstructionIR *instruction) {
   const M68kSimFormMetadata *metadata;
   size_t operand_index;
-  if (preview == NULL || lookup == NULL || section == NULL || candidate == NULL || instruction == NULL) return 0;
+  if (preview == NULL || source_analysis == NULL || section == NULL || candidate == NULL || instruction == NULL)
+    return 0;
   metadata = m68k_sim_metadata_for_instruction(instruction);
   if (metadata == NULL) return 1;
   for (operand_index = 0U; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
     M68kOperandIR *operand = &instruction->operands[operand_index];
+    const M68kAddressObservationIR *observation;
     uint32_t address = 0U;
     uint32_t width;
     char symbol[80];
@@ -9944,9 +9947,12 @@ static int attach_absolute_memory_slot_symbols(M68kRenderIRPreview *preview, con
         !operand_absolute_offset_local(operand, &address)) {
       continue;
     }
-    width = render_instruction_access_width(instruction, metadata->operand_access_kinds[operand_index]);
-    if (width == 0U || address >= 0x10000U ||
-        !render_absolute_memory_header_owner_is_absolute(lookup, section, address)) {
+    observation = source_analysis_absolute_observation_for_operand(source_analysis, section->section_index,
+      candidate->offset, operand_index, address, metadata->operand_access_kinds[operand_index]);
+    if (observation == NULL) continue;
+    width = observation->access_width != 0U ? observation->access_width :
+      render_instruction_access_width(instruction, metadata->operand_access_kinds[operand_index]);
+    if (width == 0U || address >= 0x10000U) {
       continue;
     }
     if (!render_asm_define_absolute_memory_slot_symbol_once(preview, address, symbol, sizeof(symbol))) return 0;
@@ -9955,26 +9961,31 @@ static int attach_absolute_memory_slot_symbols(M68kRenderIRPreview *preview, con
   return 1;
 }
 
-static int attach_absolute_memory_address_use_symbols(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
-    const M68kDecodeSectionIR *section, M68kInstructionIR *instruction, const char *platform_comment,
+static int attach_absolute_memory_address_use_symbols(M68kRenderIRPreview *preview,
+    const M68kSourceAnalysisIR *source_analysis, const M68kDecodeSectionIR *section,
+    const M68kDecodeCandidate *candidate, M68kInstructionIR *instruction, const char *platform_comment,
     const char *instruction_comment) {
   const M68kSimFormMetadata *metadata;
   size_t operand_index;
-  if (preview == NULL || lookup == NULL || section == NULL || instruction == NULL) return 0;
+  if (preview == NULL || source_analysis == NULL || section == NULL || candidate == NULL || instruction == NULL)
+    return 0;
   if (platform_comment != NULL && platform_comment[0] != '\0') return 1;
   if (instruction_comment != NULL && instruction_comment[0] != '\0') return 1;
   metadata = m68k_sim_metadata_for_instruction(instruction);
   if (metadata == NULL) return 1;
   for (operand_index = 0U; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
     M68kOperandIR *operand = &instruction->operands[operand_index];
+    const M68kAddressObservationIR *observation;
     uint32_t address = 0U;
     char symbol[80];
     if (operand->symbol_ref.has_name != 0U ||
         metadata->operand_access_kinds[operand_index] != M68K_SIM_ACCESS_COMPUTE_ADDRESS ||
-        !operand_absolute_offset_local(operand, &address) ||
-        !render_absolute_memory_header_owner_is_absolute(lookup, section, address)) {
+        !operand_absolute_offset_local(operand, &address)) {
       continue;
     }
+    observation = source_analysis_absolute_observation_for_operand(source_analysis, section->section_index,
+      candidate->offset, operand_index, address, metadata->operand_access_kinds[operand_index]);
+    if (observation == NULL) continue;
     if (!render_asm_define_absolute_memory_slot_symbol_once(preview, address, symbol, sizeof(symbol))) return 0;
     attach_generic_symbol(operand, symbol);
   }
@@ -10879,8 +10890,9 @@ static void platform_state_update_known_library_load_after_candidate(M68kRenderP
 
 static int render_asm_instruction(M68kRenderIRPreview *preview, M68kRenderLookup *lookup,
     M68kRenderPlatformState *platform_state, const M68kDecodeIR *decode, uint8_t **accepted_start_all,
-    const M68kDecodeSectionIR *section, const uint8_t *accepted_start, const uint8_t *accepted_bytes,
-    const M68kDecodeCandidate *candidate, M68kInstructionIR *out_listing_instruction) {
+    const M68kSourceAnalysisIR *source_analysis, const M68kDecodeSectionIR *section,
+    const uint8_t *accepted_start, const uint8_t *accepted_bytes, const M68kDecodeCandidate *candidate,
+    M68kInstructionIR *out_listing_instruction) {
   M68kInstructionIR instruction;
   M68kInstructionIR render_instruction;
   M68kRenderPolicy policy;
@@ -10921,7 +10933,7 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, M68kRenderLookup
       &instruction)) {
     return 0;
   }
-  if (!attach_absolute_memory_slot_symbols(preview, lookup, section, candidate, &instruction)) return 0;
+  if (!attach_absolute_memory_slot_symbols(preview, source_analysis, section, candidate, &instruction)) return 0;
   if (!attach_known_external_runtime_address_symbols(preview, lookup, section->section_index, candidate,
       &instruction)) {
     return 0;
@@ -10940,7 +10952,8 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, M68kRenderLookup
   (void)attach_amiga_runtime_sink_immediate_symbols(lookup, platform_state, section->section_index, &instruction);
   (void)attach_amiga_hardware_register_immediate_symbols(platform_state, &instruction);
   (void)attach_absolute_stack_top_symbol(preview, &instruction);
-  if (!attach_absolute_memory_address_use_symbols(preview, lookup, section, &instruction, platform_comment,
+  if (!attach_absolute_memory_address_use_symbols(preview, source_analysis, section, candidate, &instruction,
+      platform_comment,
       lookup_instruction_comment(lookup, section->section_index, candidate->offset))) {
     return 0;
   }
@@ -11374,8 +11387,8 @@ int m68k_render_ir_preview_emit_prepared(const M68kObject *object, const M68kDec
           begin_asm_source_plan_row(out_preview, M68K_RENDER_PLAN_ROW_INSTRUCTION, (uint32_t)section_index);
           render_asm_sync_logical_pc(out_preview, lookup, section->section_index, offset, &asm_logical_pc);
           rendered_instruction = render_asm_instruction(out_preview, lookup, &platform_state, decode,
-            accepted_start, section, accepted_start[section_index], accepted_bytes[section_index], candidate,
-            &listing_instruction);
+            accepted_start, source_analysis, section, accepted_start[section_index], accepted_bytes[section_index],
+            candidate, &listing_instruction);
           row = finish_asm_source_plan_row(out_preview, section->section_index, offset, candidate->byte_count, 1);
           if (rendered_instruction) {
             set_asm_source_plan_row_statement_from_section(row, M68K_STATEMENT_INSTRUCTION, &listing_instruction,

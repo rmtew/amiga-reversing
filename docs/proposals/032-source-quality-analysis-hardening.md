@@ -3793,10 +3793,11 @@ after:
   presentation may still show the first 32 ranges with an explicit omission note
 ```
 
-This does not close the larger ownership issue: render-side absolute-memory
-header discovery still needs to be replaced with source-quality range facts.
-The immediate cleanup prevents a local presentation helper from silently
-dropping collected evidence before that migration is finished.
+The larger ownership issue was closed by the later source-quality range
+migration: header rows now consume `M68kSourceAnalysisIR.absolute_address_ranges`
+instead of rediscovering ranges while rendering. The cap cleanup remains useful
+because presentation still limits visible rows deliberately, with an explicit
+omission note, instead of silently truncating collection.
 
 Verified:
 
@@ -3833,4 +3834,40 @@ cmd /c src\build.bat
 src\build\m68k_c_unit_tests.exe
 uv run python -m pytest tests\test_target_usage_manifest.py -q
 uv run platform-rendered-source-roundtrip --no-write-report --json
+```
+
+### Absolute Memory Operand Symbol Ownership
+
+Removed the render-time absolute-memory owner predicate used while formatting
+instruction operands:
+
+```text
+before:
+  render operand
+    -> ask platform facts/runtime/source layout whether address is "absolute"
+    -> create absolute_slot_* EQU
+
+after:
+  facts/source-quality
+    -> M68kAddressObservationIR(source = absolute_operand,
+                                owner_kind = absolute_memory)
+  render operand
+    -> find the matching observation for section/offset/operand/address
+    -> create absolute_slot_* EQU only from that analysis fact
+```
+
+Source rendering now always builds a source-analysis object, even when the
+caller only requested emitted text. That deliberately drops the old internal
+path where `m68k_facts_v2_render_asm_source_alloc()` could render without the
+analysis facts needed by source-quality. The renderer still formats operands,
+but the durable answer to "is this an absolute memory use?" now comes from C
+analysis records.
+
+Verified:
+
+```text
+cmd /c src\build.bat
+src\build\m68k_c_unit_tests.exe
+uv run python -m pytest tests\test_target_usage_manifest.py -q
+uv run platform-rendered-source-roundtrip --update-rendered-source --json
 ```

@@ -9775,11 +9775,14 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   M68kAcceptedCandidateIndex accepted_index;
   M68kRuntimeAddressSpace runtime_addresses;
   M68kFactsV2Workflow workflow;
+  M68kSourceAnalysisIR local_source_analysis;
+  M68kSourceAnalysisIR *source_analysis = out_source_analysis;
   M68kRenderIRPreview *render_preview = NULL;
   M68kRenderLookup render_lookup;
   int render_text_preview;
   int render_asm_source;
   int source_analysis_live = 0;
+  int source_analysis_owned_by_caller = out_source_analysis != NULL;
   int render_lookup_live = 0;
   uint8_t **accepted_start = NULL;
   uint8_t **accepted_bytes = NULL;
@@ -9794,6 +9797,7 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   m68k_decode_ir_init(&decode);
   m68k_fact_ir_init(&facts);
   memset(&workflow, 0, sizeof(workflow));
+  memset(&local_source_analysis, 0, sizeof(local_source_analysis));
   if (facts_v2_workflow_create(&workflow) != 0) {
     m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_OUT_OF_MEMORY, "out of memory");
     goto fail;
@@ -9807,13 +9811,14 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   runtime_address_space_init(&runtime_addresses, workflow.arena);
   render_text_preview = preview_source_enabled_local();
   render_asm_source = force_asm_source || (allow_env_asm_source && asm_source_enabled_local());
+  if (source_analysis == NULL && render_asm_source) source_analysis = &local_source_analysis;
   max_cpu = policy->max_cpu != 0U ? policy->max_cpu : M68K_ASM_CPU_68060;
-  if (out_source_analysis != NULL) {
+  if (source_analysis != NULL) {
     fail_stage = "source analysis initialization";
-    if (m68k_ir_source_analysis_create(out_source_analysis) != 0) goto fail;
+    if (m68k_ir_source_analysis_create(source_analysis) != 0) goto fail;
     source_analysis_live = 1;
-    out_source_analysis->file_kind = object->platform_file_kind;
-    if (m68k_ir_source_analysis_set_policy(out_source_analysis, policy) != 0) goto fail;
+    source_analysis->file_kind = object->platform_file_kind;
+    if (m68k_ir_source_analysis_set_policy(source_analysis, policy) != 0) goto fail;
   }
   start = clock();
   fail_stage = "decode";
@@ -10070,7 +10075,7 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   render_preview->lookup_seconds = elapsed_seconds_local(start, end);
   start = clock();
   fail_stage = "render platform analysis passes";
-  if ((render_asm_source || out_source_analysis != NULL) &&
+  if ((render_asm_source || source_analysis != NULL) &&
       m68k_analysis_render_lookup_run_platform_passes(&render_lookup, &decode, accepted_start, accepted_bytes,
         render_preview) != 0) {
     goto fail;
@@ -10079,48 +10084,48 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   m68k_render_lookup_materialize_relocation_target_labels(&render_lookup);
   end = clock();
   render_preview->platform_pass_seconds = elapsed_seconds_local(start, end);
-  if (out_source_analysis != NULL &&
+  if (source_analysis != NULL &&
       m68k_render_ir_build_source_analysis_from_lookup(render_preview, &render_lookup, &decode, policy,
-        accepted_start, accepted_bytes, out_source_analysis) != 0) {
+        accepted_start, accepted_bytes, source_analysis) != 0) {
     m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
       "facts_v2 source analysis build failed");
     goto fail;
   }
-  if (out_source_analysis != NULL && append_platform_storage_layouts_from_object(object, out_source_analysis) != 0) {
+  if (source_analysis != NULL && append_platform_storage_layouts_from_object(object, source_analysis) != 0) {
     m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
       "facts_v2 platform storage layout append failed");
     goto fail;
   }
-  if (out_source_analysis != NULL &&
-      facts_v2_append_incomplete_analysis_from_profile(out_profile, out_source_analysis) != 0) {
+  if (source_analysis != NULL &&
+      facts_v2_append_incomplete_analysis_from_profile(out_profile, source_analysis) != 0) {
     m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
       "facts_v2 incomplete analysis append failed");
     goto fail;
   }
-  if (out_source_analysis != NULL) {
-    if (append_recovered_indirect_sites_for_accepted(&decode, accepted_start, accepted_bytes, out_source_analysis,
+  if (source_analysis != NULL) {
+    if (append_recovered_indirect_sites_for_accepted(&decode, accepted_start, accepted_bytes, source_analysis,
         max_cpu) != 0) {
       m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
         "facts_v2 accepted indirect site append failed");
       goto fail;
     }
     if (append_address_observations_for_accepted(&decode, &facts, &relocation_lookup, object->platform_backend_kind,
-        &runtime_addresses, accepted_start, accepted_bytes, out_source_analysis) != 0) {
+        &runtime_addresses, accepted_start, accepted_bytes, source_analysis) != 0) {
       m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
         "facts_v2 address observation append failed");
       goto fail;
     }
-    if (append_platform_media_transfers_from_facts(&decode, &facts, out_source_analysis) != 0) {
+    if (append_platform_media_transfers_from_facts(&decode, &facts, source_analysis) != 0) {
       m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
         "facts_v2 platform media transfer append failed");
       goto fail;
     }
-    if (m68k_source_quality_analyze(out_source_analysis, &decode, accepted_start, accepted_bytes) != 0) {
+    if (m68k_source_quality_analyze(source_analysis, &decode, accepted_start, accepted_bytes) != 0) {
       m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
         "facts_v2 source quality analysis failed");
       goto fail;
     }
-    facts_v2_record_source_quality_diagnostics_from_analysis(out_profile, out_source_analysis);
+    facts_v2_record_source_quality_diagnostics_from_analysis(out_profile, source_analysis);
     if (out_profile->source_quality_blockers != 0U &&
         out_profile->asm_source_first_failure_kind == M68K_SOURCE_EXPORT_FAILURE_NONE) {
       out_profile->asm_source_first_failure_kind = M68K_SOURCE_EXPORT_FAILURE_SOURCE_QUALITY;
@@ -10128,8 +10133,8 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
       out_profile->asm_source_first_failure_offset = out_profile->first_source_quality_diagnostic_offset;
       out_profile->asm_source_first_failure_aux_offset = out_profile->first_source_quality_diagnostic_kind;
     }
-    m68k_ir_source_analysis_finalize_table_conflicts(out_source_analysis);
-    m68k_ir_source_analysis_finalize_base_layout_conflicts(out_source_analysis);
+    m68k_ir_source_analysis_finalize_table_conflicts(source_analysis);
+    m68k_ir_source_analysis_finalize_base_layout_conflicts(source_analysis);
   }
   if ((render_asm_source || mark_source_blockers) && facts_v2_has_source_blockers(out_profile)) {
     out_profile->asm_source_enabled = render_asm_source ? 1U : 0U;
@@ -10159,7 +10164,7 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   fail_stage = "render preview build";
   if (m68k_render_ir_preview_emit_prepared(object, &decode, &render_lookup, policy, accepted_start, accepted_bytes,
       render_text_preview, render_asm_source, collect_asm_source_text, out_asm_source != NULL, render_preview,
-      out_source_analysis) != 0) {
+      source_analysis) != 0) {
     if (render_preview->asm_source_first_failure_kind != M68K_SOURCE_EXPORT_FAILURE_NONE) {
       out_profile->asm_source_enabled = render_asm_source ? 1U : 0U;
       out_profile->asm_source_refused = 1U;
@@ -10284,6 +10289,7 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   relocation_lookup_destroy(&relocation_lookup);
   runtime_address_space_destroy(&runtime_addresses);
   work_queue_destroy(&queue);
+  if (source_analysis_live && !source_analysis_owned_by_caller) m68k_ir_source_analysis_destroy(source_analysis);
   facts_v2_workflow_destroy(&workflow);
   m68k_fact_ir_destroy(&facts);
   m68k_decode_ir_destroy(&decode);
@@ -10293,7 +10299,7 @@ fail:
     m68k_diag_addf(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
       "facts_v2 failed during %s", fail_stage);
   }
-  if (source_analysis_live) m68k_ir_source_analysis_destroy(out_source_analysis);
+  if (source_analysis_live) m68k_ir_source_analysis_destroy(source_analysis);
   accepted_candidate_index_destroy(&accepted_index);
   if (render_lookup_live) m68k_render_lookup_destroy(&render_lookup);
   free_section_maps(&decode, accepted_start, accepted_bytes);

@@ -202,7 +202,7 @@ m68k_vector_level_3_interrupt_autovector	EQU	$6C
 absolute_slot_0000397C	EQU	$397C
 blitter_source_00077D00	EQU	$77D00
 _ciaa	EQU	$BFE001
-absolute_slot_00065370	EQU	$65370
+runtime_address_00065370	EQU	$65370
 sprite_0005D5DE	EQU	$5D5DE
 sprite_0005D5DE_hi	EQU	sprite_0005D5DE/$10000
 sprite_0005D5DE_lo	EQU	sprite_0005D5DE-(sprite_0005D5DE_hi*$10000)
@@ -236,8 +236,8 @@ absolute_slot_000039CC	EQU	$39CC
 absolute_slot_000007EA	EQU	$7EA
 absolute_slot_000007E8	EQU	$7E8
 blitter_source_00070000	EQU	$70000
-absolute_slot_00066DC8	EQU	$66DC8
-absolute_slot_00069B6C	EQU	$69B6C
+runtime_address_00066DC8	EQU	$66DC8
+runtime_address_00069B6C	EQU	$69B6C
 absolute_slot_0007D380	EQU	$7D380
 absolute_slot_0007D000	EQU	$7D000
 absolute_slot_0007D680	EQU	$7D680
@@ -245,10 +245,10 @@ absolute_slot_0007DA00	EQU	$7DA00
 absolute_slot_0007DC00	EQU	$7DC00
 absolute_slot_0007DF60	EQU	$7DF60
 absolute_slot_0007FDB0	EQU	$7FDB0
-absolute_slot_00065580	EQU	$65580
-absolute_slot_00065698	EQU	$65698
-absolute_slot_00065798	EQU	$65798
-absolute_slot_00065898	EQU	$65898
+runtime_address_00065580	EQU	$65580
+runtime_address_00065698	EQU	$65698
+runtime_address_00065798	EQU	$65798
+runtime_address_00065898	EQU	$65898
 absolute_slot_0007DFCC	EQU	$7DFCC
 absolute_slot_0007E254	EQU	$7E254
 absolute_slot_0007E554	EQU	$7E554
@@ -258,47 +258,47 @@ absolute_slot_000010F0	EQU	$10F0
 absolute_slot_0007F630	EQU	$7F630
 absolute_slot_0007F13C	EQU	$7F13C
 absolute_slot_00002204	EQU	$2204
-absolute_slot_00065A98	EQU	$65A98
-absolute_slot_00065998	EQU	$65998
-absolute_slot_00065C98	EQU	$65C98
-absolute_slot_00065F98	EQU	$65F98
-absolute_slot_00066218	EQU	$66218
-absolute_slot_00065D98	EQU	$65D98
-absolute_slot_00065E98	EQU	$65E98
-absolute_slot_00066908	EQU	$66908
+runtime_address_00065A98	EQU	$65A98
+runtime_address_00065998	EQU	$65998
+runtime_address_00065C98	EQU	$65C98
+runtime_address_00065F98	EQU	$65F98
+runtime_address_00066218	EQU	$66218
+runtime_address_00065D98	EQU	$65D98
+runtime_address_00065E98	EQU	$65E98
+runtime_address_00066908	EQU	$66908
 absolute_slot_000032FC	EQU	$32FC
-absolute_slot_00066CC8	EQU	$66CC8
-absolute_slot_000678C8	EQU	$678C8
-absolute_slot_00067FE4	EQU	$67FE4
-absolute_slot_000681E4	EQU	$681E4
-absolute_slot_00068364	EQU	$68364
-absolute_slot_000683A8	EQU	$683A8
-absolute_slot_000684A8	EQU	$684A8
-absolute_slot_00069846	EQU	$69846
-absolute_slot_00068580	EQU	$68580
-absolute_slot_000685FC	EQU	$685FC
-absolute_slot_0006867C	EQU	$6867C
-absolute_slot_0006910E	EQU	$6910E
-absolute_slot_000689C4	EQU	$689C4
-absolute_slot_00068CAC	EQU	$68CAC
-absolute_slot_00068E0C	EQU	$68E0C
-absolute_slot_00068F16	EQU	$68F16
-absolute_slot_00069032	EQU	$69032
-absolute_slot_00069136	EQU	$69136
-absolute_slot_000699C6	EQU	$699C6
-absolute_slot_000699F2	EQU	$699F2
-absolute_slot_00069A32	EQU	$69A32
-absolute_slot_00069B12	EQU	$69B12
-absolute_slot_0006A818	EQU	$6A818
-absolute_slot_0006A7A0	EQU	$6A7A0
-absolute_slot_0006A764	EQU	$6A764
-absolute_slot_00069E6C	EQU	$69E6C
-absolute_slot_00069F6C	EQU	$69F6C
-absolute_slot_0006A06C	EQU	$6A06C
+runtime_address_00066CC8	EQU	$66CC8
+runtime_address_000678C8	EQU	$678C8
+runtime_address_00067FE4	EQU	$67FE4
+runtime_address_000681E4	EQU	$681E4
+runtime_address_00068364	EQU	$68364
+runtime_address_000683A8	EQU	$683A8
+runtime_address_000684A8	EQU	$684A8
+runtime_address_00069846	EQU	$69846
+runtime_address_00068580	EQU	$68580
+runtime_address_000685FC	EQU	$685FC
+runtime_address_0006867C	EQU	$6867C
+runtime_address_0006910E	EQU	$6910E
+runtime_address_000689C4	EQU	$689C4
+runtime_address_00068CAC	EQU	$68CAC
+runtime_address_00068E0C	EQU	$68E0C
+runtime_address_00068F16	EQU	$68F16
+runtime_address_00069032	EQU	$69032
+runtime_address_00069136	EQU	$69136
+runtime_address_000699C6	EQU	$699C6
+runtime_address_000699F2	EQU	$699F2
+runtime_address_00069A32	EQU	$69A32
+runtime_address_00069B12	EQU	$69B12
+runtime_address_0006A818	EQU	$6A818
+runtime_address_0006A7A0	EQU	$6A7A0
+runtime_address_0006A764	EQU	$6A764
+runtime_address_00069E6C	EQU	$69E6C
+runtime_address_00069F6C	EQU	$69F6C
+runtime_address_0006A06C	EQU	$6A06C
 absolute_slot_000064C0	EQU	$64C0
 runtime_address_00077800	EQU	$77800
-absolute_slot_00065374	EQU	$65374
-absolute_slot_000653B8	EQU	$653B8
+runtime_address_00065374	EQU	$65374
+runtime_address_000653B8	EQU	$653B8
 absolute_slot_00004000	EQU	$4000
 runtime_address_0001D0A8	EQU	$1D0A8
 
@@ -705,7 +705,7 @@ abs_0_0001094E:
 	bsr.w abs_0_00010752
 	lea.l abs_0_00010A72(pc),a0
 	move.l a0,app_0360(a6)
-	lea.l absolute_slot_00065370.l,a0
+	lea.l runtime_address_00065370.l,a0
 	move.w app_0214(a6),d0
 	addi.w #128,d0
 	move.w app_0216(a6),d1
@@ -4809,12 +4809,12 @@ abs_0_00017174:
 	dc.b $27,$10,$51,$CF,$FF,$FE,$3E,$1F,$51,$CF,$FF,$E4,$4E,$75
 abs_0_00017244:
 	lea.l abs_0_0004A738.l,a0
-	lea.l absolute_slot_00066DC8.l,a1
+	lea.l runtime_address_00066DC8.l,a1
 	moveq.l #10,d6
 	move.w #$80,d7
 	bsr.w abs_0_00017730
 	lea.l abs_0_0002DD28.l,a0
-	lea.l absolute_slot_00069B6C.l,a1
+	lea.l runtime_address_00069B6C.l,a1
 	moveq.l #5,d6
 	moveq.l #64,d7
 	bsr.w abs_0_00017730
@@ -4854,22 +4854,22 @@ abs_0_00017244:
 	move.w #$80,d7
 	bsr.w abs_0_00017730
 	lea.l abs_0_00042C18.l,a0
-	lea.l absolute_slot_00065580.l,a1
+	lea.l runtime_address_00065580.l,a1
 	moveq.l #0,d6
 	move.w #$8C,d7
 	bsr.w abs_0_00017730
 	lea.l abs_0_00043078.l,a0
-	lea.l absolute_slot_00065698.l,a1
+	lea.l runtime_address_00065698.l,a1
 	moveq.l #0,d6
 	move.w #$80,d7
 	bsr.w abs_0_00017730
 	lea.l abs_0_00043478.l,a0
-	lea.l absolute_slot_00065798.l,a1
+	lea.l runtime_address_00065798.l,a1
 	moveq.l #0,d6
 	move.w #$80,d7
 	bsr.w abs_0_00017730
 	lea.l abs_0_00043878.l,a0
-	lea.l absolute_slot_00065898.l,a1
+	lea.l runtime_address_00065898.l,a1
 	moveq.l #0,d6
 	move.w #$80,d7
 	bsr.w abs_0_00017730
@@ -4919,42 +4919,42 @@ abs_0_00017244:
 	move.w #$87C,d7
 	bsr.w abs_0_00017730
 	lea.l abs_0_00043C78.l,a0
-	lea.l absolute_slot_00065A98.l,a1
+	lea.l runtime_address_00065A98.l,a1
 	moveq.l #7,d6
 	moveq.l #32,d7
 	bsr.w abs_0_00017730
 	lea.l abs_0_00044478.l,a0
-	lea.l absolute_slot_00065998.l,a1
+	lea.l runtime_address_00065998.l,a1
 	moveq.l #0,d6
 	move.w #$80,d7
 	bsr.w abs_0_00017730
 	lea.l abs_0_00044878.l,a0
-	lea.l absolute_slot_00065C98.l,a1
+	lea.l runtime_address_00065C98.l,a1
 	moveq.l #0,d6
 	move.w #$80,d7
 	bsr.w abs_0_00017730
 	lea.l abs_0_00046838.l,a0
-	lea.l absolute_slot_00065F98.l,a1
+	lea.l runtime_address_00065F98.l,a1
 	moveq.l #4,d6
 	moveq.l #64,d7
 	bsr.w abs_0_00017730
 	lea.l abs_0_00044C78.l,a0
-	lea.l absolute_slot_00066218.l,a1
+	lea.l runtime_address_00066218.l,a1
 	moveq.l #0,d6
 	move.w #$378,d7
 	bsr.w abs_0_00017730
 	lea.l abs_0_00047238.l,a0
-	lea.l absolute_slot_00065D98.l,a1
+	lea.l runtime_address_00065D98.l,a1
 	moveq.l #0,d6
 	move.w #$80,d7
 	bsr.w abs_0_00017730
 	lea.l abs_0_00047638.l,a0
-	lea.l absolute_slot_00065E98.l,a1
+	lea.l runtime_address_00065E98.l,a1
 	moveq.l #0,d6
 	move.w #$80,d7
 	bsr.w abs_0_00017730
 	lea.l abs_0_00047A38.l,a0
-	lea.l absolute_slot_00066908.l,a1
+	lea.l runtime_address_00066908.l,a1
 	moveq.l #7,d6
 	moveq.l #60,d7
 	bsr.w abs_0_00017730
@@ -4964,142 +4964,142 @@ abs_0_00017244:
 	move.w #$292,d7
 	bsr.w abs_0_00017730
 	lea.l abs_0_0004A338.l,a0
-	lea.l absolute_slot_00066CC8.l,a1
+	lea.l runtime_address_00066CC8.l,a1
 	moveq.l #0,d6
 	move.w #$80,d7
 	bsr.w abs_0_00017730
 	lea.l abs_0_0004D338.l,a0
-	lea.l absolute_slot_000678C8.l,a1
+	lea.l runtime_address_000678C8.l,a1
 	moveq.l #0,d6
 	move.w #$38E,d7
 	bsr.w abs_0_00017730
 	lea.l abs_0_0004EFA8.l,a0
-	lea.l absolute_slot_00067FE4.l,a1
+	lea.l runtime_address_00067FE4.l,a1
 	moveq.l #3,d6
 	moveq.l #64,d7
 	bsr.w abs_0_00017730
 	lea.l abs_0_0004F7A8.l,a0
-	lea.l absolute_slot_000681E4.l,a1
+	lea.l runtime_address_000681E4.l,a1
 	moveq.l #1,d6
 	moveq.l #96,d7
 	bsr.w abs_0_00017730
 	lea.l abs_0_0004FDA8.l,a0
-	lea.l absolute_slot_00068364.l,a1
+	lea.l runtime_address_00068364.l,a1
 	moveq.l #0,d6
 	moveq.l #34,d7
 	bsr.w abs_0_00017730
 	lea.l abs_0_0004FEB8.l,a0
-	lea.l absolute_slot_000683A8.l,a1
+	lea.l runtime_address_000683A8.l,a1
 	moveq.l #0,d6
 	move.w #$80,d7
 	bsr.w abs_0_00017730
 	lea.l abs_0_000502B8.l,a0
-	lea.l absolute_slot_000684A8.l,a1
+	lea.l runtime_address_000684A8.l,a1
 	moveq.l #2,d6
 	moveq.l #36,d7
 	bsr.w abs_0_00017730
 	lea.l abs_0_00050618.l,a0
-	lea.l absolute_slot_00069846.l,a1
+	lea.l runtime_address_00069846.l,a1
 	moveq.l #5,d6
 	moveq.l #32,d7
 	bsr.w abs_0_00017730
 	lea.l abs_0_00050C18.l,a0
-	lea.l absolute_slot_00068580.l,a1
+	lea.l runtime_address_00068580.l,a1
 	moveq.l #0,d6
 	moveq.l #62,d7
 	bsr.w abs_0_00017730
 	lea.l abs_0_00050E08.l,a0
-	lea.l absolute_slot_000685FC.l,a1
+	lea.l runtime_address_000685FC.l,a1
 	moveq.l #0,d6
 	moveq.l #64,d7
 	bsr.w abs_0_00017730
 	lea.l abs_0_00051008.l,a0
-	lea.l absolute_slot_0006867C.l,a1
+	lea.l runtime_address_0006867C.l,a1
 	moveq.l #5,d6
 	moveq.l #70,d7
 	bsr.w abs_0_00017730
 	lea.l abs_0_00051D28.l,a0
-	lea.l absolute_slot_0006910E.l,a1
+	lea.l runtime_address_0006910E.l,a1
 	moveq.l #0,d6
 	moveq.l #20,d7
 	bsr.w abs_0_00017730
 	lea.l abs_0_00051DC8.l,a0
-	lea.l absolute_slot_000689C4.l,a1
+	lea.l runtime_address_000689C4.l,a1
 	moveq.l #0,d6
 	move.w #$174,d7
 	bsr.w abs_0_00017730
 	lea.l abs_0_00052968.l,a0
-	lea.l absolute_slot_00068CAC.l,a1
+	lea.l runtime_address_00068CAC.l,a1
 	moveq.l #0,d6
 	move.w #$B0,d7
 	bsr.w abs_0_00017730
 	lea.l abs_0_00052EE8.l,a0
-	lea.l absolute_slot_00068E0C.l,a1
+	lea.l runtime_address_00068E0C.l,a1
 	moveq.l #0,d6
 	move.w #$85,d7
 	bsr.w abs_0_00017730
 	lea.l abs_0_00053310.l,a0
-	lea.l absolute_slot_00068F16.l,a1
+	lea.l runtime_address_00068F16.l,a1
 	moveq.l #0,d6
 	move.w #$8E,d7
 	bsr.w abs_0_00017730
 	lea.l abs_0_00053780.l,a0
-	lea.l absolute_slot_00069032.l,a1
+	lea.l runtime_address_00069032.l,a1
 	moveq.l #0,d6
 	moveq.l #110,d7
 	bsr.w abs_0_00017730
 	lea.l abs_0_00053AF0.l,a0
-	lea.l absolute_slot_00069136.l,a1
+	lea.l runtime_address_00069136.l,a1
 	moveq.l #0,d6
 	move.w #$388,d7
 	bsr.w abs_0_00017730
 	lea.l abs_0_00055730.l,a0
-	lea.l absolute_slot_000699C6.l,a1
+	lea.l runtime_address_000699C6.l,a1
 	moveq.l #0,d6
 	moveq.l #22,d7
 	bsr.w abs_0_00017730
 	lea.l abs_0_000557E0.l,a0
-	lea.l absolute_slot_000699F2.l,a1
+	lea.l runtime_address_000699F2.l,a1
 	moveq.l #0,d6
 	moveq.l #32,d7
 	bsr.w abs_0_00017730
 	lea.l abs_0_000558E0.l,a0
-	lea.l absolute_slot_00069A32.l,a1
+	lea.l runtime_address_00069A32.l,a1
 	moveq.l #6,d6
 	moveq.l #16,d7
 	bsr.w abs_0_00017730
 	lea.l abs_0_00055C60.l,a0
-	lea.l absolute_slot_00069B12.l,a1
+	lea.l runtime_address_00069B12.l,a1
 	moveq.l #0,d6
 	moveq.l #45,d7
 	bsr.w abs_0_00017730
 	lea.l abs_0_00055DC8.l,a0
-	lea.l absolute_slot_0006A818.l,a1
+	lea.l runtime_address_0006A818.l,a1
 	moveq.l #0,d6
 	moveq.l #16,d7
 	bsr.w abs_0_00017730
 	lea.l abs_0_00055E48.l,a0
-	lea.l absolute_slot_0006A7A0.l,a1
+	lea.l runtime_address_0006A7A0.l,a1
 	moveq.l #0,d6
 	moveq.l #60,d7
 	bsr.w abs_0_00017730
 	lea.l abs_0_00056028.l,a0
-	lea.l absolute_slot_0006A764.l,a1
+	lea.l runtime_address_0006A764.l,a1
 	moveq.l #0,d6
 	moveq.l #30,d7
 	bsr.w abs_0_00017730
 	lea.l abs_0_000580F8.l,a0
-	lea.l absolute_slot_00069E6C.l,a1
+	lea.l runtime_address_00069E6C.l,a1
 	moveq.l #0,d6
 	move.w #$80,d7
 	bsr.w abs_0_00017730
 	lea.l abs_0_00057CF8.l,a0
-	lea.l absolute_slot_00069F6C.l,a1
+	lea.l runtime_address_00069F6C.l,a1
 	moveq.l #0,d6
 	move.w #$80,d7
 	bsr.w abs_0_00017730
 	lea.l abs_0_00056118.l,a0
-	lea.l absolute_slot_0006A06C.l,a1
+	lea.l runtime_address_0006A06C.l,a1
 	moveq.l #0,d6
 	move.w #$37C,d7
 	bsr.w abs_0_00017730
@@ -6923,7 +6923,7 @@ abs_0_000194E0:
 	rts
 abs_0_000194E2:
 	movem.l a0-a1,-(a7)
-	lea.l absolute_slot_00065370.l,a0
+	lea.l runtime_address_00065370.l,a0
 	move.l a0,app_020C(a6)
 	lea.l $0044(a0),a0
 	move.l a0,app_0210(a6)
@@ -7259,8 +7259,8 @@ abs_0_00019EC6:
 	move.w #$1,app_02CA(a6)
 	moveq.l #15,d7
 	lea.l abs_0_0001B3A8.l,a0
-	lea.l absolute_slot_00065374.l,a1
-	lea.l absolute_slot_000653B8.l,a2
+	lea.l runtime_address_00065374.l,a1
+	lea.l runtime_address_000653B8.l,a2
 abs_0_00019F06:
 	movem.w (a0)+,d0-d3
 	move.w d0,(a1)+
