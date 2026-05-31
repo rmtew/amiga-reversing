@@ -2936,3 +2936,41 @@ src\build\m68k_c_unit_tests.exe
 uv run python -m pytest tests\test_target_usage_manifest.py -q
 git diff --check
 ```
+
+### Address Observation Migration Surface
+
+Added the first C-owned address observation fact family:
+
+```text
+M68kAddressObservationIR
+  -> source section offset
+  -> operand index
+  -> raw/address value
+  -> target section/offset when known
+  -> access width/kind
+  -> source kind
+```
+
+The initial producer is a migration bridge from existing C facts:
+
+```text
+M68kAbsoluteMemoryRefIR
+  -> address_observation(source = absolute_operand)
+
+M68kRuntimeAddressRefIR
+  -> address_observation(source = runtime_address_ref)
+```
+
+This does not delete `M68kAbsoluteMemoryRefIR` yet. It makes address
+observations queryable through the source-analysis JSON surface already indexed
+by Python, so later slices can move identity/range/platform ownership consumers
+off the temporary absolute-memory ref path without adding Python inference.
+
+Verified:
+
+```text
+cmd /c src\build.bat
+src\build\m68k_c_unit_tests.exe
+uv run python -m pytest tests\test_target_usage_manifest.py -q
+git diff --check
+```

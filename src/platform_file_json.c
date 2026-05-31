@@ -3619,7 +3619,8 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
     const M68kSectionAnalysisIR *section = &source_analysis->sections[section_index];
     size_t block_index, edge_index, violation_index, app_slot_ref_index, typed_access_index, range_index;
     size_t table_descriptor_index, table_consumer_index, table_entry_index;
-    size_t unresolved_typed_access_index, runtime_view_index, runtime_address_ref_index, code_start_ref_index;
+    size_t unresolved_typed_access_index, runtime_view_index, runtime_address_ref_index, address_observation_index;
+    size_t code_start_ref_index;
     size_t code_origin_index, accepted_code_run_index;
     size_t data_reference_index, immediate_text_token_index;
     size_t string_ref_index;
@@ -3717,6 +3718,53 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
           goto oom;
       }
       if (json_builder_append(&builder, "}") != 0)
+        goto oom;
+    }
+    if (json_builder_appendf(&builder, "],\"address_observation_count\":%u,\"address_observations\":[",
+          (unsigned)section->address_observation_count) != 0)
+      goto oom;
+    for (address_observation_index = 0U; address_observation_index < section->address_observation_count;
+        ++address_observation_index) {
+      const M68kAddressObservationIR *observation = &section->address_observations[address_observation_index];
+      if (address_observation_index != 0U && json_builder_append(&builder, ",") != 0) goto oom;
+      if (json_builder_appendf(&builder,
+          "{\"offset\":%u,\"operand_index\":",
+          (unsigned)observation->offset) != 0)
+        goto oom;
+      if (observation->operand_index == UINT32_MAX) {
+        if (json_builder_append(&builder, "null") != 0) goto oom;
+      } else if (json_builder_appendf(&builder, "%u", (unsigned)observation->operand_index) != 0) {
+        goto oom;
+      }
+      if (json_builder_appendf(&builder,
+          ",\"source_id\":%u,\"source_name\":",
+          (unsigned)observation->source) != 0)
+        goto oom;
+      if (json_builder_append_json_string(&builder,
+          m68k_address_observation_source_name(observation->source)) != 0)
+        goto oom;
+      if (json_builder_appendf(&builder,
+          ",\"access_kind_id\":%u,\"access_kind_name\":",
+          (unsigned)observation->access_kind) != 0)
+        goto oom;
+      if (json_builder_append_json_string(&builder,
+          listing_operand_access_name(observation->access_kind)) != 0)
+        goto oom;
+      if (json_builder_appendf(&builder,
+          ",\"access_width\":%u,\"raw_value\":%u",
+          (unsigned)observation->access_width, (unsigned)observation->raw_value) != 0)
+        goto oom;
+      if (observation->has_address &&
+          json_builder_appendf(&builder, ",\"address\":%u", (unsigned)observation->address) != 0)
+        goto oom;
+      if (observation->has_target &&
+          json_builder_appendf(&builder, ",\"target_section_index\":%u,\"target_offset\":%u",
+            (unsigned)observation->target_section_index, (unsigned)observation->target_offset) != 0)
+        goto oom;
+      if (observation->has_identity &&
+          json_builder_appendf(&builder, ",\"identity_id\":%u", (unsigned)observation->identity_id) != 0)
+        goto oom;
+      if (json_builder_appendf(&builder, ",\"confidence\":%u}", (unsigned)observation->confidence) != 0)
         goto oom;
     }
     if (json_builder_appendf(&builder, "],\"data_reference_count\":%u,\"data_references\":[",

@@ -58,6 +58,50 @@ static int append_code_origins_for_section(M68kSectionAnalysisIR *section) {
   return 0;
 }
 
+static int append_address_observations_for_section(M68kSectionAnalysisIR *section) {
+  size_t index;
+  if (section == NULL) return -1;
+  for (index = 0U; index < section->absolute_memory_ref_count; ++index) {
+    const M68kAbsoluteMemoryRefIR *ref = &section->absolute_memory_refs[index];
+    M68kAddressObservationIR observation;
+    memset(&observation, 0, sizeof(observation));
+    observation.offset = ref->offset;
+    observation.operand_index = ref->operand_index;
+    observation.raw_value = ref->address;
+    observation.address = ref->address;
+    observation.access_width = ref->access_width;
+    observation.access_kind = ref->access_kind;
+    observation.source = M68K_ADDRESS_OBSERVATION_SOURCE_ABSOLUTE_MEMORY_REF;
+    observation.has_address = 1U;
+    observation.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
+    if (m68k_ir_section_analysis_append_address_observation(section, &observation) != 0) return -1;
+  }
+  for (index = 0U; index < section->runtime_address_ref_count; ++index) {
+    const M68kRuntimeAddressRefIR *ref = &section->runtime_address_refs[index];
+    M68kAddressObservationIR observation;
+    if (!ref->has_runtime_address && !ref->has_target) continue;
+    memset(&observation, 0, sizeof(observation));
+    observation.offset = ref->offset;
+    observation.operand_index = ref->operand_index;
+    observation.access_width = ref->size;
+    observation.source = M68K_ADDRESS_OBSERVATION_SOURCE_RUNTIME_ADDRESS_REF;
+    observation.confidence = ref->confidence;
+    if (ref->has_runtime_address) {
+      observation.raw_value = ref->runtime_address;
+      observation.address = ref->runtime_address;
+      observation.has_address = 1U;
+    }
+    if (ref->has_target) {
+      observation.target_section_index = ref->target_section_index > UINT32_MAX ? UINT32_MAX :
+        (uint32_t)ref->target_section_index;
+      observation.target_offset = ref->target_offset;
+      observation.has_target = 1U;
+    }
+    if (m68k_ir_section_analysis_append_address_observation(section, &observation) != 0) return -1;
+  }
+  return 0;
+}
+
 static int accepted_run_has_origin(const M68kSectionAnalysisIR *section, uint32_t start, uint32_t end) {
   size_t index;
   if (section == NULL) return 0;
@@ -184,6 +228,7 @@ int m68k_source_quality_analyze(M68kSourceAnalysisIR *source_analysis) {
   for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
     M68kSectionAnalysisIR *section = &source_analysis->sections[section_index];
     if (append_code_origins_for_section(section) != 0) return -1;
+    if (append_address_observations_for_section(section) != 0) return -1;
     if (append_accepted_runs_for_section(section) != 0) return -1;
   }
   return 0;
