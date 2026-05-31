@@ -280,25 +280,6 @@ int lookup_should_emit_label_statement(const M68kRenderLookup *lookup,
   return 0;
 }
 
-static int append_rendered_label_statement_access(const M68kRenderLookup *lookup,
-    M68kSectionAnalysisIR *section_analysis, size_t section_index, uint32_t offset) {
-  M68kRenderedSymbolAccessIR access;
-  char symbol_name[M68K_IR_SYMBOL_NAME_SIZE];
-  if (lookup == NULL || section_analysis == NULL) return -1;
-  symbol_name[0] = '\0';
-  format_lookup_asm_label_with_generation(lookup, symbol_name, sizeof(symbol_name), section_index, offset);
-  if (symbol_name[0] == '\0') return 0;
-  memset(&access, 0, sizeof(access));
-  access.symbol_name = symbol_name;
-  access.offset = offset;
-  access.target_section_index = (uint32_t)section_index;
-  access.target_offset = offset;
-  access.operand_index = UINT32_MAX;
-  access.access_kind = M68K_RENDERED_SYMBOL_ACCESS_LABEL_STATEMENT;
-  access.has_target = 1U;
-  return m68k_ir_section_analysis_append_rendered_symbol_access(section_analysis, &access);
-}
-
 int m68k_analysis_render_lookup_append_labels_for_section(const M68kRenderLookup *lookup,
     const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
     M68kSectionAnalysisIR *section_analysis) {
@@ -307,22 +288,16 @@ int m68k_analysis_render_lookup_append_labels_for_section(const M68kRenderLookup
   if (lookup == NULL || section == NULL || section_analysis == NULL) return -1;
   render_extent = render_section_extent(section);
   for (offset = 0U; offset < render_extent; ++offset) {
-    if (!lookup_should_emit_label_statement(lookup, section, accepted_start, section->section_index, offset))
-      continue;
-    if (m68k_ir_section_analysis_add_label(section_analysis, offset) != 0) return -1;
-    if (append_rendered_label_statement_access(lookup, section_analysis, section->section_index, offset) != 0)
+      if (!lookup_should_emit_label_statement(lookup, section, accepted_start, section->section_index, offset))
+        continue;
+      if (m68k_ir_section_analysis_add_label(section_analysis, offset) != 0) return -1;
+    }
+    if (lookup_has_renderable_label(lookup, section->section_index, render_extent) &&
+        m68k_ir_section_analysis_add_label(section_analysis, render_extent) != 0) {
       return -1;
+    }
+    return 0;
   }
-  if (lookup_has_renderable_label(lookup, section->section_index, render_extent) &&
-      m68k_ir_section_analysis_add_label(section_analysis, render_extent) != 0) {
-    return -1;
-  }
-  if (lookup_has_renderable_label(lookup, section->section_index, render_extent) &&
-      append_rendered_label_statement_access(lookup, section_analysis, section->section_index, render_extent) != 0) {
-    return -1;
-  }
-  return 0;
-}
 
 static int instruction_has_call_flow_local(const M68kInstructionIR *instruction) {
   const M68kSimFormMetadata *metadata;

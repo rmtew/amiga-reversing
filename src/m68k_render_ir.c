@@ -11068,7 +11068,39 @@ int m68k_render_ir_build_source_analysis_from_lookup(M68kRenderIRPreview *previe
   return 0;
 fail:
   if (section_analysis_live) m68k_ir_section_analysis_destroy(&section_analysis);
-  return -1;
+    return -1;
+  }
+
+static M68kSectionAnalysisIR *render_source_analysis_section_by_index(M68kSourceAnalysisIR *source_analysis,
+    uint32_t section_index) {
+  size_t index;
+  if (source_analysis == NULL) return NULL;
+  for (index = 0U; index < source_analysis->section_count; ++index) {
+    if (source_analysis->sections[index].section_index == section_index) return &source_analysis->sections[index];
+  }
+  return NULL;
+}
+
+static int record_rendered_label_statement_access(M68kSourceAnalysisIR *source_analysis,
+    const M68kRenderLookup *lookup, size_t section_index, uint32_t offset) {
+  M68kSectionAnalysisIR *section_analysis;
+  M68kRenderedSymbolAccessIR access;
+  char symbol_name[M68K_IR_SYMBOL_NAME_SIZE];
+  if (source_analysis == NULL || lookup == NULL) return 0;
+  section_analysis = render_source_analysis_section_by_index(source_analysis, (uint32_t)section_index);
+  if (section_analysis == NULL) return -1;
+  symbol_name[0] = '\0';
+  format_lookup_asm_label_with_generation(lookup, symbol_name, sizeof(symbol_name), section_index, offset);
+  if (symbol_name[0] == '\0') return 0;
+  memset(&access, 0, sizeof(access));
+  access.symbol_name = symbol_name;
+  access.offset = offset;
+  access.target_section_index = (uint32_t)section_index;
+  access.target_offset = offset;
+  access.operand_index = UINT32_MAX;
+  access.access_kind = M68K_RENDERED_SYMBOL_ACCESS_LABEL_STATEMENT;
+  access.has_target = 1U;
+  return m68k_ir_section_analysis_append_rendered_symbol_access(section_analysis, &access);
 }
 
 void m68k_render_ir_preview_init(M68kRenderIRPreview *preview) {
@@ -11094,7 +11126,7 @@ void m68k_render_ir_preview_destroy(M68kRenderIRPreview *preview) {
 int m68k_render_ir_preview_emit_prepared(const M68kObject *object, const M68kDecodeIR *decode,
     M68kRenderLookup *lookup, const M68kAnalysisPolicy *policy, uint8_t **accepted_start,
     uint8_t **accepted_bytes, int render_text_preview, int render_asm_source, int collect_asm_source_text,
-    int emit_asm_source_text, M68kRenderIRPreview *out_preview, const M68kSourceAnalysisIR *source_analysis) {
+    int emit_asm_source_text, M68kRenderIRPreview *out_preview, M68kSourceAnalysisIR *source_analysis) {
   size_t section_index;
   clock_t phase_start;
   clock_t phase_end;
@@ -11159,13 +11191,17 @@ int m68k_render_ir_preview_emit_prepared(const M68kObject *object, const M68kDec
         ++out_preview->label_statement_count;
         hash_statement(out_preview, 'L', section->section_index, offset, 0U, 0U);
         if (render_text_preview) render_text_line(out_preview, 'L', section->section_index, offset, 0U, 0U);
-        if (render_asm_source) {
-          M68kRenderPlanRow *row;
-          begin_asm_source_plan_row(out_preview, M68K_RENDER_PLAN_ROW_LABEL, (uint32_t)section_index);
-          render_asm_label(out_preview, lookup, section->section_index, offset, &asm_logical_pc);
-          row = finish_asm_source_plan_row(out_preview, section->section_index, offset, 0U, 1);
-          set_asm_source_plan_row_statement_from_section(row, M68K_STATEMENT_LABEL, NULL, section, offset, 0U);
-        }
+          if (render_asm_source) {
+            M68kRenderPlanRow *row;
+            begin_asm_source_plan_row(out_preview, M68K_RENDER_PLAN_ROW_LABEL, (uint32_t)section_index);
+            render_asm_label(out_preview, lookup, section->section_index, offset, &asm_logical_pc);
+            if (record_rendered_label_statement_access(source_analysis, lookup, section->section_index,
+                offset) != 0) {
+              goto cleanup;
+            }
+            row = finish_asm_source_plan_row(out_preview, section->section_index, offset, 0U, 1);
+            set_asm_source_plan_row_statement_from_section(row, M68K_STATEMENT_LABEL, NULL, section, offset, 0U);
+          }
       }
       if (accepted_start_at(section, accepted_start[section_index], offset)) {
         const M68kDecodeCandidate *candidate = NULL;

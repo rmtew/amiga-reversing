@@ -4109,3 +4109,26 @@ Follow-up work remains to add precise C producers for branch targets, operands,
 equates, storage labels, and independent label-statement obligations. Those
 producers must be reason-driven; they must not reuse broad label-created or
 label-required facts as a shortcut.
+
+### Actual Rendered Label Access Recording
+
+Moved `M68kRenderedSymbolAccessIR(access_kind=label_statement)` recording out of
+the source-analysis label setup path and into the actual assembly render pass.
+This is the correct ownership split:
+
+```text
+m68k_analysis_render_lookup_append_labels_for_section()
+  -> records label offsets that analysis says are available
+
+m68k_render_ir_preview_emit_prepared()
+  -> when it emits "loc_...:" into asm source
+  -> appends rendered_symbol_access(label_statement)
+
+m68k_source_quality_analyze_rendered_symbol_accesses()
+  -> compares expected accesses with actual rendered accesses
+```
+
+The symbolic branch fixture now asserts both the rendered source line and the
+matching C source-analysis rendered access for `loc_0_00000004`. That prevents
+the previous mistake where a pre-render visibility decision was reported as if
+it were actual emitted source.

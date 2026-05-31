@@ -5252,9 +5252,10 @@ static int test_facts_v2_render_asm_source_renders_symbolic_branch(void) {
   char *plan_source = NULL;
   M68kFactsV2Profile listing_profile;
   size_t row_index;
-  int saw_section_row = 0;
-  int saw_label_row = 0;
-  int saw_instruction_source_row = 0;
+    int saw_section_row = 0;
+    int saw_label_row = 0;
+    int saw_instruction_source_row = 0;
+    int saw_rendered_target_label_access = 0;
   uint8_t bytes[6] = {0x60u, 0x02u, 0x4eu, 0x71u, 0x4eu, 0x75u};
   memset(&section, 0, sizeof(section));
   M68K_C_ASSERT_INT(0, m68k_object_create(&object));
@@ -5295,12 +5296,26 @@ static int test_facts_v2_render_asm_source_renders_symbolic_branch(void) {
   M68K_C_ASSERT_U32(profile.asm_source_lines, profile.asm_source_plan_rows);
   M68K_C_ASSERT_U32(profile.asm_source_lines, profile.asm_source_plan_lines);
   M68K_C_ASSERT_U32(profile.asm_source_bytes, profile.asm_source_plan_bytes);
-  M68K_C_ASSERT_U32(2U, profile.asm_source_symbolic_instructions);
-  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_render_failures);
-  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
-  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_relocation_failures);
-  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_plan_analysis_profile_alloc(&object, &policy, NULL,
-    &listing_plan, &listing_profile, listing_analysis, 1U, m68k_diag_sink(NULL)));
+    M68K_C_ASSERT_U32(2U, profile.asm_source_symbolic_instructions);
+    M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_render_failures);
+    M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+    M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_relocation_failures);
+    if (source_analysis->section_count > 0U) {
+      size_t access_index;
+      const M68kSectionAnalysisIR *analysis_section = &source_analysis->sections[0];
+      for (access_index = 0U; access_index < analysis_section->rendered_symbol_access_count; ++access_index) {
+        const M68kRenderedSymbolAccessIR *access = &analysis_section->rendered_symbol_accesses[access_index];
+        if (access->offset == 4U &&
+            access->access_kind == M68K_RENDERED_SYMBOL_ACCESS_LABEL_STATEMENT &&
+            access->symbol_name != NULL &&
+            strcmp(access->symbol_name, "loc_0_00000004") == 0) {
+          saw_rendered_target_label_access = 1;
+        }
+      }
+    }
+    M68K_C_ASSERT(saw_rendered_target_label_access);
+    M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_plan_analysis_profile_alloc(&object, &policy, NULL,
+      &listing_plan, &listing_profile, listing_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(listing_plan.row_count != 0U);
   M68K_C_ASSERT_U32(listing_profile.asm_source_bytes, listing_profile.asm_source_plan_bytes);
   M68K_C_ASSERT_U32(listing_profile.asm_source_lines, listing_profile.asm_source_plan_lines);
