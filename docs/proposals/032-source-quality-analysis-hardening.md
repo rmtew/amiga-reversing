@@ -3904,3 +3904,69 @@ src\build\m68k_c_unit_tests.exe
 uv run python -m pytest tests\test_target_usage_manifest.py -q
 uv run platform-rendered-source-roundtrip --no-write-report --json
 ```
+
+### Source-Analysis Label Producer Split
+
+Moved the section label-offset append out of `m68k_render_ir.c` and into
+`m68k_analysis_render_lookup.c`:
+
+```text
+before:
+  m68k_render_ir_build_source_analysis_from_lookup()
+    -> local render helper appends source-analysis labels
+
+after:
+  m68k_analysis_render_lookup_append_labels_for_section()
+    -> appends label offsets for Source Analysis IR
+
+  m68k_analysis_render_lookup.c
+    -> owns the shared label visibility predicate
+
+  render row walk
+    -> asks lookup_should_emit_label_statement() for visible labels
+```
+
+This is intentionally not a compatibility wrapper. The shared predicate remains
+available because presentation still needs the same label visibility decision,
+but the durable act of writing labels into `M68kSectionAnalysisIR` now lives in
+the analysis module beside CFG construction.
+
+Verified:
+
+```text
+cmd /c src\build.bat
+src\build\m68k_c_unit_tests.exe
+uv run python -m pytest tests\test_target_usage_manifest.py -q
+uv run platform-rendered-source-roundtrip --no-write-report --json
+```
+
+### DLL Policy ABI Cleanup
+
+The intermittent `test_ir_policy_dll` access violation was caused by duplicating
+the full `M68kAnalysisPolicy` layout in Python. The C struct had moved on; the
+ctypes mirror was stale, so C policy-copy code could read invalid trailing
+fields.
+
+Removed the Python-owned policy struct mirror. The DLL tests now allocate and
+destroy opaque C-owned policies:
+
+```text
+platform_file_analysis_policy_create(max_cpu)
+  -> C allocates and initializes M68kAnalysisPolicy
+
+platform_file_facts_v2_analysis_*_json(..., policy)
+  -> consumes the opaque handle
+
+platform_file_analysis_policy_destroy(policy)
+  -> C destroys internal policy storage and frees the object
+```
+
+This deliberately drops the old test-side ABI duplication. Python no longer
+needs to track every internal analysis-policy field.
+
+Verified:
+
+```text
+uv run python -m pytest src\tests\test_ir_policy_dll.py -q
+20 consecutive runs of src\tests\test_ir_policy_dll.py
+```

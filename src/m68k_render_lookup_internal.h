@@ -673,6 +673,12 @@ int lookup_offset_is_inside_relocation_payload(const M68kRenderLookup *lookup, s
     uint32_t offset);
 int lookup_has_label(const M68kRenderLookup *lookup, size_t section_index, uint32_t offset);
 int lookup_has_renderable_label(const M68kRenderLookup *lookup, size_t section_index, uint32_t offset);
+int lookup_structured_long_table_targets_offset(const M68kRenderLookup *lookup, size_t section_index,
+    uint32_t offset);
+int lookup_label_has_explicit_name(const M68kRenderLookup *lookup, size_t section_index, uint32_t offset);
+int lookup_label_has_statement_ref(const M68kRenderLookup *lookup, size_t section_index, uint32_t offset);
+int lookup_should_emit_label_statement(const M68kRenderLookup *lookup, const M68kDecodeSectionIR *section,
+    const uint8_t *accepted_start, size_t section_index, uint32_t offset);
 int lookup_source_runtime_address(const M68kRenderLookup *lookup, size_t section_index,
   uint32_t source_offset, uint32_t *out_runtime_address);
 int lookup_runtime_range_materialization(const M68kRenderLookup *lookup, const M68kFact *range,
@@ -874,6 +880,9 @@ int m68k_render_ir_preview_emit_prepared(const M68kObject *object, const M68kDec
 int m68k_analysis_render_lookup_append_cfg_for_section(const M68kRenderLookup *lookup,
   const M68kDecodeSectionIR *section, const uint8_t *accepted_start, const uint8_t *accepted_bytes,
   Arena *scratch_arena, M68kSectionAnalysisIR *section_analysis);
+int m68k_analysis_render_lookup_append_labels_for_section(const M68kRenderLookup *lookup,
+  const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
+  M68kSectionAnalysisIR *section_analysis);
 int m68k_analysis_render_lookup_append_section(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
   M68kSectionAnalysisIR *section_analysis);
 int instruction_operand_writes_register_from_metadata(const M68kInstructionIR *instruction,

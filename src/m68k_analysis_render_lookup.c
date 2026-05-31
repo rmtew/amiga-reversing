@@ -253,6 +253,43 @@ cleanup:
   return result;
 }
 
+int lookup_structured_long_table_targets_offset(const M68kRenderLookup *lookup,
+    size_t section_index, uint32_t offset) {
+  return (render_lookup_boundary_flags(lookup, section_index, offset) &
+    M68K_RENDER_BOUNDARY_LONG_TABLE_TARGET) != 0U;
+}
+
+int lookup_should_emit_label_statement(const M68kRenderLookup *lookup,
+    const M68kDecodeSectionIR *section, const uint8_t *accepted_start, size_t section_index, uint32_t offset) {
+  if (!lookup_has_renderable_label(lookup, section_index, offset)) {
+    return lookup_structured_long_table_targets_offset(lookup, section_index, offset);
+  }
+  if (lookup_label_has_explicit_name(lookup, section_index, offset)) return 1;
+  if (lookup_label_has_statement_ref(lookup, section_index, offset)) return 1;
+  if (accepted_start_at(section, accepted_start, offset)) return 1;
+  if (lookup_structured_long_table_targets_offset(lookup, section_index, offset)) return 1;
+  return 0;
+}
+
+int m68k_analysis_render_lookup_append_labels_for_section(const M68kRenderLookup *lookup,
+    const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
+    M68kSectionAnalysisIR *section_analysis) {
+  uint32_t offset;
+  uint32_t render_extent;
+  if (lookup == NULL || section == NULL || section_analysis == NULL) return -1;
+  render_extent = render_section_extent(section);
+  for (offset = 0U; offset < render_extent; ++offset) {
+    if (!lookup_should_emit_label_statement(lookup, section, accepted_start, section->section_index, offset))
+      continue;
+    if (m68k_ir_section_analysis_add_label(section_analysis, offset) != 0) return -1;
+  }
+  if (lookup_has_renderable_label(lookup, section->section_index, render_extent) &&
+      m68k_ir_section_analysis_add_label(section_analysis, render_extent) != 0) {
+    return -1;
+  }
+  return 0;
+}
+
 static int instruction_has_call_flow_local(const M68kInstructionIR *instruction) {
   const M68kSimFormMetadata *metadata;
   if (instruction == NULL) return 0;

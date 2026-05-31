@@ -95,259 +95,6 @@ class M68kRenderPolicy(ctypes.Structure):
     ]
 
 
-M68K_ANALYSIS_REGISTER_SEED_LIMIT = 64
-M68K_ANALYSIS_ENTRY_POINT_LIMIT = 256
-M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT = 256
-M68K_ANALYSIS_NAMED_LABEL_LIMIT = 128
-M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT = 128
-M68K_ANALYSIS_RSSET_USE_SITE_BINDING_LIMIT = 128
-M68K_ANALYSIS_ENTRY_COMMENT_LIMIT = 128
-M68K_ANALYSIS_RUNTIME_RANGE_LIMIT = 64
-M68K_ANALYSIS_RUNTIME_ENTRY_POINT_LIMIT = 64
-M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT = 128
-M68K_ANALYSIS_TARGET_EQUATE_LIMIT = 128
-M68K_ANALYSIS_MANUAL_RUNTIME_ADDRESS_REF_LIMIT = 128
-
-
-class M68kAnalysisRegisterSeed(ctypes.Structure):
-    _fields_ = [
-        ("platform_kind", ctypes.c_uint8),
-        ("kind", ctypes.c_uint8),
-        ("reg_kind", ctypes.c_uint8),
-        ("reg_index", ctypes.c_uint8),
-        ("has_entry_offset", ctypes.c_uint8),
-        ("has_section_index", ctypes.c_uint8),
-        ("reserved", ctypes.c_uint8 * 2),
-        ("entry_offset", ctypes.c_uint32),
-        ("section_index", ctypes.c_uint32),
-        ("name", ctypes.c_char * 64),
-        ("type_name", ctypes.c_char * 64),
-        ("context_name", ctypes.c_char * 64),
-    ]
-
-
-class M68kAnalysisEntryPoint(ctypes.Structure):
-    _fields_ = [
-        ("has_section_index", ctypes.c_uint8),
-        ("reserved", ctypes.c_uint8 * 3),
-        ("section_index", ctypes.c_uint32),
-        ("offset", ctypes.c_uint32),
-    ]
-
-
-class M68kAnalysisStructuredDataItem(ctypes.Structure):
-    _fields_ = [
-        ("has_section_index", ctypes.c_uint8),
-        ("kind", ctypes.c_uint8),
-        ("is_pointer", ctypes.c_uint8),
-        ("has_target", ctypes.c_uint8),
-        ("section_index", ctypes.c_uint32),
-        ("offset", ctypes.c_uint32),
-        ("size", ctypes.c_uint32),
-        ("target_section", ctypes.c_uint32),
-        ("target_offset", ctypes.c_uint32),
-        ("has_constant_value", ctypes.c_uint8),
-        ("reserved", ctypes.c_uint8 * 3),
-        ("constant_value", ctypes.c_int32),
-        ("has_consumer", ctypes.c_uint8),
-        ("source_pattern_id", ctypes.c_uint8),
-        ("table_kind_id", ctypes.c_uint8),
-        ("table_base_expression_id", ctypes.c_uint8),
-        ("table_conflicted", ctypes.c_uint8),
-        ("table_conflict_state", ctypes.c_uint8),
-        ("platform_kind_id", ctypes.c_uint16),
-        ("platform_field_id", ctypes.c_uint16),
-        ("struct_id", ctypes.c_uint16),
-        ("field_id", ctypes.c_uint16),
-        ("pointer_struct_id", ctypes.c_uint16),
-        ("consumer_section", ctypes.c_uint32),
-        ("consumer_offset", ctypes.c_uint32),
-        ("semantic_role_flags", ctypes.c_uint32),
-        ("label", ctypes.c_char * 64),
-        ("struct_name", ctypes.c_char * 64),
-        ("field_name", ctypes.c_char * 64),
-        ("field_type", ctypes.c_char * 64),
-        ("c_type", ctypes.c_char * 64),
-        ("pointer_struct", ctypes.c_char * 64),
-        ("value_domain", ctypes.c_char * 64),
-        ("constant_name", ctypes.c_char * 64),
-        ("semantic_role", ctypes.c_char * 64),
-        ("source_pattern", ctypes.c_char * 64),
-        ("comment", ctypes.c_char * 96),
-    ]
-
-
-class M68kAnalysisNamedLabel(ctypes.Structure):
-    _fields_ = [
-        ("has_section_index", ctypes.c_uint8),
-        ("domain", ctypes.c_uint8),
-        ("reserved", ctypes.c_uint8 * 2),
-        ("section_index", ctypes.c_uint32),
-        ("offset", ctypes.c_uint32),
-        ("name", ctypes.c_char * 64),
-    ]
-
-
-class M68kAnalysisEntryComment(ctypes.Structure):
-    _fields_ = [
-        ("has_section_index", ctypes.c_uint8),
-        ("reserved", ctypes.c_uint8 * 3),
-        ("section_index", ctypes.c_uint32),
-        ("offset", ctypes.c_uint32),
-        ("comment", ctypes.c_char * 192),
-    ]
-
-
-class M68kAnalysisRuntimeRange(ctypes.Structure):
-    _fields_ = [
-        ("has_section_index", ctypes.c_uint8),
-        ("reserved", ctypes.c_uint8 * 3),
-        ("section_index", ctypes.c_uint32),
-        ("offset", ctypes.c_uint32),
-        ("size", ctypes.c_uint32),
-        ("runtime_address", ctypes.c_uint32),
-        ("name", ctypes.c_char * 64),
-    ]
-
-
-class M68kAnalysisRuntimeEntryPoint(ctypes.Structure):
-    _fields_ = [
-        ("has_section_index", ctypes.c_uint8),
-        ("reserved", ctypes.c_uint8 * 3),
-        ("section_index", ctypes.c_uint32),
-        ("runtime_address", ctypes.c_uint32),
-    ]
-
-
-class M68kAnalysisRssetLayoutRegion(ctypes.Structure):
-    _fields_ = [
-        ("offset", ctypes.c_uint32),
-        ("size", ctypes.c_uint8),
-        ("flags", ctypes.c_uint8),
-        ("storage_kind_id", ctypes.c_uint8),
-        ("reserved", ctypes.c_uint8 * 1),
-        ("layout_name", ctypes.c_char * 32),
-        ("base_symbol", ctypes.c_char * 64),
-        ("sizeof_symbol", ctypes.c_char * 64),
-        ("symbol", ctypes.c_char * 64),
-        ("struct_name", ctypes.c_char * 64),
-        ("pointer_struct", ctypes.c_char * 64),
-        ("storage_kind", ctypes.c_char * 32),
-        ("semantic_type", ctypes.c_char * 64),
-    ]
-
-
-class M68kAnalysisRssetUseSiteBinding(ctypes.Structure):
-    _fields_ = [
-        ("section_index", ctypes.c_uint32),
-        ("offset", ctypes.c_uint32),
-        ("displacement", ctypes.c_uint32),
-        ("operand_index", ctypes.c_uint8),
-        ("base_reg", ctypes.c_uint8),
-        ("reserved", ctypes.c_uint8 * 2),
-        ("layout_name", ctypes.c_char * 32),
-        ("base_symbol", ctypes.c_char * 64),
-        ("base_evidence_id", ctypes.c_char * 96),
-        ("binding_id", ctypes.c_char * 256),
-        ("owner_action_id", ctypes.c_char * 96),
-    ]
-
-
-class M68kAnalysisManualRepresentation(ctypes.Structure):
-    _fields_ = [
-        ("has_section_index", ctypes.c_uint8),
-        ("style_id", ctypes.c_uint8),
-        ("has_operand_index", ctypes.c_uint8),
-        ("operand_index", ctypes.c_uint8),
-        ("symbol_id", ctypes.c_uint16),
-        ("target_equate_index", ctypes.c_uint16),
-        ("section_index", ctypes.c_uint32),
-        ("offset", ctypes.c_uint32),
-        ("size", ctypes.c_uint32),
-    ]
-
-
-class M68kAnalysisTargetEquate(ctypes.Structure):
-    _fields_ = [
-        ("name", ctypes.c_char * 64),
-        ("value", ctypes.c_int32),
-        ("value_style_id", ctypes.c_uint8),
-        ("reserved", ctypes.c_uint8 * 3),
-        ("value_expr", ctypes.c_char * 64),
-    ]
-
-
-class M68kAnalysisManualRuntimeAddressRef(ctypes.Structure):
-    _fields_ = [
-        ("has_section_index", ctypes.c_uint8),
-        ("has_target", ctypes.c_uint8),
-        ("has_runtime_address", ctypes.c_uint8),
-        ("confidence", ctypes.c_uint8),
-        ("section_index", ctypes.c_uint32),
-        ("offset", ctypes.c_uint32),
-        ("size", ctypes.c_uint32),
-        ("target_section_index", ctypes.c_uint32),
-        ("target_offset", ctypes.c_uint32),
-        ("runtime_address", ctypes.c_uint32),
-        ("owner_element_offset", ctypes.c_uint32),
-        ("owner_kind", ctypes.c_char * 32),
-        ("owner_id", ctypes.c_char * 96),
-        ("owner_layout_id", ctypes.c_char * 64),
-        ("xref_generation_mode", ctypes.c_char * 32),
-    ]
-
-
-class M68kAnalysisPolicy(ctypes.Structure):
-    _fields_ = [
-        ("max_cpu", ctypes.c_uint8),
-        ("has_entry_offset", ctypes.c_uint8),
-        ("disable_implicit_entry_points", ctypes.c_uint8),
-        ("reserved0", ctypes.c_uint8 * 1),
-        ("register_seed_count", ctypes.c_uint16),
-        ("entry_point_count", ctypes.c_uint16),
-        ("structured_data_item_count", ctypes.c_uint16),
-        ("named_label_count", ctypes.c_uint16),
-        ("entry_comment_count", ctypes.c_uint16),
-        ("runtime_range_count", ctypes.c_uint16),
-        ("runtime_entry_point_count", ctypes.c_uint16),
-        ("rsset_layout_region_count", ctypes.c_uint16),
-        ("rsset_use_site_binding_count", ctypes.c_uint16),
-        ("manual_representation_count", ctypes.c_uint16),
-        ("target_equate_count", ctypes.c_uint16),
-        ("manual_runtime_address_ref_count", ctypes.c_uint16),
-        ("custom_struct_count", ctypes.c_uint16),
-        ("custom_struct_capacity", ctypes.c_uint16),
-        ("custom_struct_owner", ctypes.c_uint8),
-        ("reserved1", ctypes.c_uint8 * 1),
-        ("entry_offset", ctypes.c_uint32),
-        ("register_seeds", M68kAnalysisRegisterSeed * M68K_ANALYSIS_REGISTER_SEED_LIMIT),
-        ("entry_points", M68kAnalysisEntryPoint * M68K_ANALYSIS_ENTRY_POINT_LIMIT),
-        (
-            "structured_data_items",
-            M68kAnalysisStructuredDataItem * M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT,
-        ),
-        ("named_labels", M68kAnalysisNamedLabel * M68K_ANALYSIS_NAMED_LABEL_LIMIT),
-        ("entry_comments", M68kAnalysisEntryComment * M68K_ANALYSIS_ENTRY_COMMENT_LIMIT),
-        ("runtime_ranges", M68kAnalysisRuntimeRange * M68K_ANALYSIS_RUNTIME_RANGE_LIMIT),
-        ("runtime_entry_points", M68kAnalysisRuntimeEntryPoint * M68K_ANALYSIS_RUNTIME_ENTRY_POINT_LIMIT),
-        ("rsset_layout_regions", M68kAnalysisRssetLayoutRegion * M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT),
-        (
-            "rsset_use_site_bindings",
-            M68kAnalysisRssetUseSiteBinding * M68K_ANALYSIS_RSSET_USE_SITE_BINDING_LIMIT,
-        ),
-        (
-            "manual_representations",
-            M68kAnalysisManualRepresentation * M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT,
-        ),
-        ("target_equates", M68kAnalysisTargetEquate * M68K_ANALYSIS_TARGET_EQUATE_LIMIT),
-        (
-            "manual_runtime_address_refs",
-            M68kAnalysisManualRuntimeAddressRef * M68K_ANALYSIS_MANUAL_RUNTIME_ADDRESS_REF_LIMIT,
-        ),
-        ("custom_structs", ctypes.c_void_p),
-    ]
-
-
 class M68kSourceFileIR(ctypes.Structure):
     _fields_ = [
         ("file_kind", ctypes.c_int),
@@ -408,17 +155,21 @@ def _asm_library():
 def _file_library():
     require_built_tools()
     library = ctypes.CDLL(str(prepare_test_dll(FILE_DLL_PATH)))
+    library.platform_file_analysis_policy_create.argtypes = [ctypes.c_uint8]
+    library.platform_file_analysis_policy_create.restype = ctypes.c_void_p
+    library.platform_file_analysis_policy_destroy.argtypes = [ctypes.c_void_p]
+    library.platform_file_analysis_policy_destroy.restype = None
     library.platform_file_facts_v2_analysis_path_json.argtypes = [
         ctypes.c_char_p,
         ctypes.c_char_p,
-        ctypes.POINTER(M68kAnalysisPolicy),
+        ctypes.c_void_p,
     ]
     library.platform_file_facts_v2_analysis_path_json.restype = PlatformFileTextResult
     library.platform_file_facts_v2_analysis_buffer_json.argtypes = [
         ctypes.c_char_p,
         ctypes.POINTER(ctypes.c_uint8),
         ctypes.c_size_t,
-        ctypes.POINTER(M68kAnalysisPolicy),
+        ctypes.c_void_p,
     ]
     library.platform_file_facts_v2_analysis_buffer_json.restype = PlatformFileTextResult
     library.platform_file_inspect_path_json_alloc.argtypes = [
@@ -542,9 +293,10 @@ def _default_policy() -> M68kRenderPolicy:
     return policy
 
 
-def _analysis_policy(max_cpu: int = 5) -> M68kAnalysisPolicy:
-    policy = M68kAnalysisPolicy()
-    policy.max_cpu = max_cpu
+def _analysis_policy(library, max_cpu: int = 5) -> ctypes.c_void_p:
+    policy = library.platform_file_analysis_policy_create(max_cpu)
+    if not policy:
+        raise MemoryError("failed to allocate M68kAnalysisPolicy")
     return policy
 
 
@@ -682,17 +434,21 @@ class IrPolicyDllTests(unittest.TestCase):
         library = _file_library()
         sample = make_synthetic_hunkexe()
         sample_buf = (ctypes.c_uint8 * len(sample)).from_buffer_copy(sample)
-        result = library.platform_file_facts_v2_analysis_buffer_json(
-            b"amiga-hunk",
-            sample_buf,
-            len(sample),
-            ctypes.byref(_analysis_policy()),
-        )
-        self.assertFalse(_diag_has_errors(result.diagnostics), _diag_message(result.diagnostics))
+        policy = _analysis_policy(library)
         try:
-            analysis = json.loads(ctypes.cast(result.text, ctypes.c_char_p).value.decode("utf-8"))
+            result = library.platform_file_facts_v2_analysis_buffer_json(
+                b"amiga-hunk",
+                sample_buf,
+                len(sample),
+                policy,
+            )
+            self.assertFalse(_diag_has_errors(result.diagnostics), _diag_message(result.diagnostics))
+            try:
+                analysis = json.loads(ctypes.cast(result.text, ctypes.c_char_p).value.decode("utf-8"))
+            finally:
+                library.platform_file_free_text(result.text)
         finally:
-            library.platform_file_free_text(result.text)
+            library.platform_file_analysis_policy_destroy(policy)
         self.assertEqual(analysis["section_count"], 2)
         code_section = analysis["sections"][0]
         data_section = analysis["sections"][1]
@@ -1199,17 +955,21 @@ class IrPolicyDllTests(unittest.TestCase):
         library = _file_library()
         sample = make_synthetic_hunkexe(code_data=b"\x4E\x4F\x4E\x75")
         sample_buf = (ctypes.c_uint8 * len(sample)).from_buffer_copy(sample)
-        result = library.platform_file_facts_v2_analysis_buffer_json(
-            b"amiga-hunk",
-            sample_buf,
-            len(sample),
-            ctypes.byref(_analysis_policy()),
-        )
-        self.assertFalse(_diag_has_errors(result.diagnostics), _diag_message(result.diagnostics))
+        policy = _analysis_policy(library)
         try:
-            analysis = json.loads(ctypes.cast(result.text, ctypes.c_char_p).value.decode("utf-8"))
+            result = library.platform_file_facts_v2_analysis_buffer_json(
+                b"amiga-hunk",
+                sample_buf,
+                len(sample),
+                policy,
+            )
+            self.assertFalse(_diag_has_errors(result.diagnostics), _diag_message(result.diagnostics))
+            try:
+                analysis = json.loads(ctypes.cast(result.text, ctypes.c_char_p).value.decode("utf-8"))
+            finally:
+                library.platform_file_free_text(result.text)
         finally:
-            library.platform_file_free_text(result.text)
+            library.platform_file_analysis_policy_destroy(policy)
         code_section = analysis["sections"][0]
         self.assertEqual(code_section["block_count"], 1)
         self.assertEqual(code_section["blocks"][0]["start_offset"], 0)

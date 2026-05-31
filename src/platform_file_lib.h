@@ -152,6 +152,8 @@ PLATFORM_FILE_API int platform_file_assemble_source_text_to_output_bytes_profile
 PLATFORM_FILE_API int platform_file_analysis_policy_add_register_seed_arg(M68kAnalysisPolicy *policy,
   const char *text);
 PLATFORM_FILE_API int platform_file_analysis_policy_add_entry_point_arg(M68kAnalysisPolicy *policy, const char *text);
+PLATFORM_FILE_API M68kAnalysisPolicy *platform_file_analysis_policy_create(uint8_t max_cpu);
+PLATFORM_FILE_API void platform_file_analysis_policy_destroy(M68kAnalysisPolicy *policy);
 /* Generic metadata only. Platform-derived policy must use the platform-aware loader. */
 PLATFORM_FILE_API int platform_file_analysis_policy_load_target_metadata(M68kAnalysisPolicy *policy, const char *path,
   M68kDiagSink diagnostics);

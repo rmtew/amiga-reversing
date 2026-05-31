@@ -1791,6 +1791,20 @@ int platform_file_analysis_policy_add_entry_point_arg(M68kAnalysisPolicy *policy
   return 1;
 }
 
+M68kAnalysisPolicy *platform_file_analysis_policy_create(uint8_t max_cpu) {
+  M68kAnalysisPolicy *policy = (M68kAnalysisPolicy *)calloc(1U, sizeof(*policy));
+  if (policy == NULL) return NULL;
+  m68k_analysis_policy_init_default(policy);
+  policy->max_cpu = max_cpu;
+  return policy;
+}
+
+void platform_file_analysis_policy_destroy(M68kAnalysisPolicy *policy) {
+  if (policy == NULL) return;
+  m68k_analysis_policy_destroy(policy);
+  free(policy);
+}
+
 static char *read_text_file_local(const char *path) {
   FILE *file;
   char *text = NULL;

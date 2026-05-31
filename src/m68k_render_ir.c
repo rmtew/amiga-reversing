@@ -1926,8 +1926,6 @@ static void render_asm_dc_b(M68kRenderIRPreview *preview, const uint8_t *data, u
 
 static void render_asm_dc_w_values(M68kRenderIRPreview *preview, const uint8_t *data, uint32_t offset,
     uint32_t size, const char *comment);
-static int lookup_structured_long_table_targets_offset(const M68kRenderLookup *lookup, size_t section_index,
-    uint32_t offset);
 
 static void render_asm_data_dc_b_plan_rows(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
     size_t section_index, const M68kDecodeSectionIR *section, uint32_t offset, uint32_t size, const char *comment,
@@ -2653,12 +2651,6 @@ static int render_asm_absolute_long_lookup_table(M68kRenderIRPreview *preview,
     cursor += line_count * 4U;
   }
   return cursor == available;
-}
-
-static int lookup_structured_long_table_targets_offset(const M68kRenderLookup *lookup,
-    size_t section_index, uint32_t offset) {
-  return (render_lookup_boundary_flags(lookup, section_index, offset) &
-    M68K_RENDER_BOUNDARY_LONG_TABLE_TARGET) != 0U;
 }
 
 static int lookup_source_offset_is_block_start(const M68kRenderLookup *lookup, size_t section_index,
@@ -6959,7 +6951,7 @@ int lookup_offset_is_inside_relocation_payload(const M68kRenderLookup *lookup, s
   return 0;
 }
 
-static int lookup_label_has_explicit_name(const M68kRenderLookup *lookup, size_t section_index,
+int lookup_label_has_explicit_name(const M68kRenderLookup *lookup, size_t section_index,
     uint32_t offset) {
   char name[128];
   if (lookup == NULL) return 0;
@@ -6976,7 +6968,7 @@ static int lookup_label_has_inbound_target_ref(const M68kRenderLookup *lookup, s
   return lookup->label_target_refs[section_index][offset] != 0U;
 }
 
-static int lookup_label_has_statement_ref(const M68kRenderLookup *lookup, size_t section_index,
+int lookup_label_has_statement_ref(const M68kRenderLookup *lookup, size_t section_index,
     uint32_t offset) {
   if (lookup == NULL || section_index >= lookup->section_count || lookup->label_statement_refs == NULL ||
       lookup->label_statement_ref_extents == NULL || offset > lookup->label_statement_ref_extents[section_index] ||
@@ -8256,36 +8248,6 @@ static void render_asm_hunk_anchor_relocation(M68kRenderIRPreview *preview, cons
 
 int accepted_start_at(const M68kDecodeSectionIR *section, const uint8_t *accepted_start, uint32_t offset) {
   return section != NULL && accepted_start != NULL && offset < section->size && accepted_start[offset] != 0U;
-}
-
-static int lookup_should_emit_label_statement(const M68kRenderLookup *lookup,
-    const M68kDecodeSectionIR *section, const uint8_t *accepted_start, size_t section_index, uint32_t offset) {
-  if (!lookup_has_renderable_label(lookup, section_index, offset)) {
-    return lookup_structured_long_table_targets_offset(lookup, section_index, offset);
-  }
-  if (lookup_label_has_explicit_name(lookup, section_index, offset)) return 1;
-  if (lookup_label_has_statement_ref(lookup, section_index, offset)) return 1;
-  if (accepted_start_at(section, accepted_start, offset)) return 1;
-  if (lookup_structured_long_table_targets_offset(lookup, section_index, offset)) return 1;
-  return 0;
-}
-
-static int append_source_analysis_labels_for_section(const M68kRenderLookup *lookup,
-    const M68kDecodeSectionIR *section, const uint8_t *accepted_start, M68kSectionAnalysisIR *section_analysis) {
-  uint32_t offset;
-  uint32_t render_extent;
-  if (lookup == NULL || section == NULL || section_analysis == NULL) return -1;
-  render_extent = render_section_extent(section);
-  for (offset = 0U; offset < render_extent; ++offset) {
-    if (!lookup_should_emit_label_statement(lookup, section, accepted_start, section->section_index, offset))
-      continue;
-    if (m68k_ir_section_analysis_add_label(section_analysis, offset) != 0) return -1;
-  }
-  if (lookup_has_renderable_label(lookup, section->section_index, render_extent) &&
-      m68k_ir_section_analysis_add_label(section_analysis, render_extent) != 0) {
-    return -1;
-  }
-  return 0;
 }
 
 int candidate_is_accepted_start(const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
@@ -11197,7 +11159,7 @@ int m68k_render_ir_build_source_analysis_from_lookup(M68kRenderIRPreview *previe
         accepted_start, section_index, section, &section_analysis) < 0) {
       goto fail;
     }
-    if (append_source_analysis_labels_for_section(lookup, section, accepted_start[section_index],
+    if (m68k_analysis_render_lookup_append_labels_for_section(lookup, section, accepted_start[section_index],
         &section_analysis) != 0) {
       goto fail;
     }
