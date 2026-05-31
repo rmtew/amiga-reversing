@@ -3997,8 +3997,10 @@ after:
     -> still formats RSSET declarations from the shared slot collection model
 ```
 
-This does not finish the RSSET cleanup. The slot collector and layout preparer
-are still renderer-named shared helpers because the source renderer and source
-analysis both consume the same model. The next cleanup is to rename/extract that
-collector as a neutral app-layout/source-quality helper so presentation does not
-own the semantic model.
+The shared slot/layout model was also renamed away from `render_app_rs_*` and
+`M68kRenderAppRs*`. The remaining gap is module ownership rather than public
+API compatibility: the neutral app-layout collector still lives in
+`m68k_render_ir.c` because it depends on nearby app/base-slot lookup helpers.
+It should move once those dependencies are similarly neutralized, but the
+durable Source Analysis IR append no longer has renderer-owned names or a
+renderer-owned append path.

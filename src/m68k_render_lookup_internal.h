@@ -41,7 +41,7 @@ typedef struct M68kRenderRangeOwnershipView {
   const M68kAnalysisStructuredDataItem *structured_item;
 } M68kRenderRangeOwnershipView;
 
-typedef struct M68kRenderAppRsSlot {
+typedef struct M68kAppRsLayoutSlot {
   int32_t displacement;
   int32_t size;
   int32_t alias_of_displacement;
@@ -61,9 +61,9 @@ typedef struct M68kRenderAppRsSlot {
   char name[64];
   char owner_struct_name[64];
   char alias_of_name[64];
-} M68kRenderAppRsSlot;
+} M68kAppRsLayoutSlot;
 
-typedef struct M68kRenderAppRsLayout {
+typedef struct M68kAppRsLayoutGroup {
   size_t start_index;
   size_t end_index;
   int32_t base_offset;
@@ -71,7 +71,7 @@ typedef struct M68kRenderAppRsLayout {
   uint8_t layout_kind;
   uint8_t uses_lib_size;
   char sizeof_symbol[64];
-} M68kRenderAppRsLayout;
+} M68kAppRsLayoutGroup;
 
 typedef struct M68kRenderPlatformLocalBaseSlot {
   uint8_t valid;
@@ -737,13 +737,13 @@ const char *lookup_indexed_vector_wrapper_library(const M68kRenderLookup *lookup
     uint32_t offset);
 void render_asm_app_extension_rs(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
   const M68kDecodeIR *decode);
-size_t render_app_rs_slot_capacity_for_lookup(const M68kRenderLookup *lookup);
-int render_app_rs_collect_slots(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
-  const M68kDecodeIR *decode, M68kRenderAppRsSlot *slots, size_t slot_capacity, size_t *out_slot_count,
+size_t app_rs_layout_slot_capacity_for_lookup(const M68kRenderLookup *lookup);
+int app_rs_layout_collect_slots(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
+  const M68kDecodeIR *decode, M68kAppRsLayoutSlot *slots, size_t slot_capacity, size_t *out_slot_count,
   int *out_has_resident_context, int *out_has_app_sizeof_value, int32_t *out_base_offset,
   int32_t *out_app_sizeof_value);
-size_t render_app_rs_prepare_layouts(M68kRenderAppRsSlot *slots, size_t slot_count,
-  M68kRenderAppRsLayout *layouts, size_t layout_capacity, int32_t app_base_offset,
+size_t app_rs_layout_prepare_groups(M68kAppRsLayoutSlot *slots, size_t slot_count,
+  M68kAppRsLayoutGroup *layouts, size_t layout_capacity, int32_t app_base_offset,
   int has_resident_context, int has_app_sizeof_value, int32_t app_sizeof_value);
 void render_asm_org(M68kRenderIRPreview *preview, uint32_t logical_address);
 void render_asm_sync_logical_pc(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,

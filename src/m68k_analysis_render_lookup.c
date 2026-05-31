@@ -13504,7 +13504,7 @@ static Arena *analysis_preview_scratch_arena(M68kRenderIRPreview *preview) {
 }
 
 static int append_base_layout_fields_from_slots(M68kSourceAnalysisIR *source_analysis,
-    const M68kRenderAppRsSlot *slots, size_t slot_count) {
+    const M68kAppRsLayoutSlot *slots, size_t slot_count) {
   size_t index;
   if (source_analysis == NULL || slots == NULL) return 0;
   for (index = 0U; index < slot_count; ++index) {
@@ -13540,8 +13540,8 @@ int m68k_analysis_render_lookup_append_base_layout_fields(M68kRenderIRPreview *p
     const M68kRenderLookup *lookup, const M68kDecodeIR *decode, M68kSourceAnalysisIR *source_analysis) {
   Arena *scratch_arena;
   ArenaMark scratch_mark;
-  M68kRenderAppRsSlot *slots = NULL;
-  M68kRenderAppRsLayout *layouts = NULL;
+  M68kAppRsLayoutSlot *slots = NULL;
+  M68kAppRsLayoutGroup *layouts = NULL;
   size_t slot_capacity;
   size_t slot_count = 0U;
   int32_t base_offset = 0, app_sizeof_value = 0;
@@ -13551,14 +13551,14 @@ int m68k_analysis_render_lookup_append_base_layout_fields(M68kRenderIRPreview *p
   int result = -1;
   if (source_analysis == NULL) return 0;
   if (preview == NULL || lookup == NULL) return -1;
-  slot_capacity = render_app_rs_slot_capacity_for_lookup(lookup);
+  slot_capacity = app_rs_layout_slot_capacity_for_lookup(lookup);
   scratch_arena = analysis_preview_scratch_arena(preview);
   if (scratch_arena == NULL) return -1;
   scratch_mark = arena_mark(scratch_arena);
-  slots = (M68kRenderAppRsSlot *)arena_calloc(scratch_arena, slot_capacity, sizeof(*slots));
-  layouts = (M68kRenderAppRsLayout *)arena_calloc(scratch_arena, slot_capacity, sizeof(*layouts));
+  slots = (M68kAppRsLayoutSlot *)arena_calloc(scratch_arena, slot_capacity, sizeof(*slots));
+  layouts = (M68kAppRsLayoutGroup *)arena_calloc(scratch_arena, slot_capacity, sizeof(*layouts));
   if (slots == NULL || layouts == NULL) goto cleanup;
-  if (render_app_rs_collect_slots(preview, lookup, decode, slots, slot_capacity, &slot_count,
+  if (app_rs_layout_collect_slots(preview, lookup, decode, slots, slot_capacity, &slot_count,
       &has_resident_context, &has_app_sizeof_value, &base_offset, &app_sizeof_value) != 0) {
     goto cleanup;
   }
@@ -13566,7 +13566,7 @@ int m68k_analysis_render_lookup_append_base_layout_fields(M68kRenderIRPreview *p
     result = 0;
     goto cleanup;
   }
-  layout_count = render_app_rs_prepare_layouts(slots, slot_count, layouts, slot_capacity, base_offset,
+  layout_count = app_rs_layout_prepare_groups(slots, slot_count, layouts, slot_capacity, base_offset,
     has_resident_context, has_app_sizeof_value, app_sizeof_value);
   if (layout_count == SIZE_MAX) goto cleanup;
   result = append_base_layout_fields_from_slots(source_analysis, slots, slot_count);
