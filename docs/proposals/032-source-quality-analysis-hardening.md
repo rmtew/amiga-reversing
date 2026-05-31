@@ -3086,6 +3086,44 @@ uv run python -m pytest tests\test_target_usage_manifest.py -q
 uv run platform-rendered-source-roundtrip --no-write-report --json
 ```
 
+### Amiga LVO Call Fact Collection
+
+Moved Amiga LVO call fact collection onto the collect-only source-analysis path.
+The resolver is shared by source rendering, immediate-argument lookahead, and
+analysis-only collection:
+
+```text
+accepted Amiga instruction candidate
+  -> shared Amiga vector resolver
+  -> platform call fact
+  -> recovered platform effects
+```
+
+The shared resolver preserves the existing resolution order:
+
+```text
+state-known A6 base
+  -> direct wrapper
+  -> indexed wrapper dispatch
+  -> immediate LVO
+  -> local helper summary
+```
+
+Render output still uses that same resolver for operand text, but the recovered
+platform call fact no longer requires rendering `asm.s`. The new regression
+proves `_LVOForbid` is collected from an accepted Amiga instruction stream with
+`m68k_facts_v2_collect_source_analysis_profile()`, and that the resolved call
+does not also surface as an unresolved indirect site.
+
+Verified:
+
+```text
+cmd /c src\build.bat
+src\build\m68k_c_unit_tests.exe
+uv run python -m pytest tests\test_target_usage_manifest.py -q
+uv run platform-rendered-source-roundtrip --no-write-report --json
+```
+
 ### Base Layout Fact Append Split
 
 Moved RSSET/base-layout fact append out of the header source renderer:

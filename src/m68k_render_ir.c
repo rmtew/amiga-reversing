@@ -10589,6 +10589,58 @@ static int instruction_writes_register(const M68kInstructionIR *instruction, uin
   return 0;
 }
 
+typedef struct M68kRenderAmigaVectorResolution {
+  const AmigaOsLibraryVectorInfo *platform_vector;
+  const AmigaOsLibraryVectorInfo *immediate_vector;
+  const AmigaOsLibraryVectorInfo *wrapper_call_vector;
+  const AmigaOsLibraryVectorInfo *direct_wrapper_vector;
+  const AmigaOsLibraryVectorInfo *helper_call_vector;
+  const AmigaOsLibraryVectorInfo *chosen_vector;
+  uint8_t chosen_kind;
+  uint8_t chosen_note_kind;
+} M68kRenderAmigaVectorResolution;
+
+static void render_amiga_vector_resolution_init(M68kRenderAmigaVectorResolution *resolution) {
+  if (resolution == NULL) return;
+  memset(resolution, 0, sizeof(*resolution));
+  resolution->chosen_kind = PLATFORM_RESOLVED_INDIRECT_AMIGA_LIBRARY_VECTOR_CALL;
+  resolution->chosen_note_kind = M68K_PLATFORM_CALL_NOTE_NONE;
+}
+
+static void resolve_amiga_instruction_platform_vectors(const M68kRenderLookup *lookup,
+    const M68kRenderPlatformState *platform_state, const M68kDecodeIR *decode, uint8_t **accepted_start_all,
+    const M68kDecodeSectionIR *section, const uint8_t *accepted_start, const M68kDecodeCandidate *candidate,
+    M68kInstructionIR *instruction, M68kRenderAmigaVectorResolution *resolution) {
+  if (resolution == NULL) return;
+  render_amiga_vector_resolution_init(resolution);
+  if (lookup == NULL || lookup->object == NULL || platform_state == NULL || section == NULL ||
+      candidate == NULL || instruction == NULL) {
+    return;
+  }
+  resolution->platform_vector = attach_amiga_lvo_symbol_if_known(platform_state, instruction);
+  resolution->immediate_vector = attach_amiga_lvo_immediate_if_known(lookup, section, accepted_start, candidate,
+    instruction);
+  resolution->wrapper_call_vector = resolve_amiga_indexed_wrapper_call_vector(lookup, platform_state, section,
+    candidate);
+  resolution->direct_wrapper_vector = resolve_amiga_direct_wrapper_call_vector(lookup, decode, accepted_start_all,
+    section->section_index, candidate);
+  if (resolution->platform_vector == NULL && resolution->immediate_vector == NULL &&
+      resolution->wrapper_call_vector == NULL && resolution->direct_wrapper_vector == NULL) {
+    resolution->helper_call_vector = resolve_amiga_local_helper_call_vector(lookup, decode, accepted_start_all,
+      section->section_index, candidate);
+  }
+  resolution->chosen_vector = resolution->platform_vector != NULL ? resolution->platform_vector :
+    (resolution->direct_wrapper_vector != NULL ? resolution->direct_wrapper_vector :
+    (resolution->wrapper_call_vector != NULL ? resolution->wrapper_call_vector :
+    (resolution->immediate_vector != NULL ? resolution->immediate_vector : resolution->helper_call_vector)));
+  if (resolution->wrapper_call_vector != NULL) {
+    resolution->chosen_kind = PLATFORM_RESOLVED_INDIRECT_AMIGA_INDEXED_LIBRARY_DISPATCH;
+    resolution->chosen_note_kind = M68K_PLATFORM_CALL_NOTE_INDEXED_VECTOR;
+  } else if (resolution->direct_wrapper_vector != NULL || resolution->helper_call_vector != NULL) {
+    resolution->chosen_note_kind = M68K_PLATFORM_CALL_NOTE_LOCAL_WRAPPER_SYMBOL;
+  }
+}
+
 static int attach_amiga_next_call_input_immediate_symbol(M68kRenderIRPreview *preview,
     const M68kRenderLookup *lookup, const M68kRenderPlatformState *platform_state, const M68kDecodeIR *decode,
     uint8_t **accepted_start_all, const M68kDecodeSectionIR *section, const M68kDecodeCandidate *candidate,
@@ -10611,12 +10663,7 @@ static int attach_amiga_next_call_input_immediate_symbol(M68kRenderIRPreview *pr
   while (cursor < section->size && scan_count < 12U) {
     const M68kDecodeCandidate *next_candidate;
     M68kInstructionIR next_instruction;
-    const AmigaOsLibraryVectorInfo *platform_vector;
-    const AmigaOsLibraryVectorInfo *immediate_vector;
-    const AmigaOsLibraryVectorInfo *wrapper_call_vector;
-    const AmigaOsLibraryVectorInfo *direct_wrapper_vector;
-    const AmigaOsLibraryVectorInfo *helper_call_vector;
-    const AmigaOsLibraryVectorInfo *vector;
+    M68kRenderAmigaVectorResolution vector_resolution;
     const AmigaOsCallInputInfo *input;
     const char *value_domain_name;
     char symbol_expr[M68K_IR_SYMBOL_NAME_SIZE];
@@ -10626,23 +10673,10 @@ static int attach_amiga_next_call_input_immediate_symbol(M68kRenderIRPreview *pr
     platform_state_apply_policy_register_seeds(&state, lookup->policy, section->section_index, cursor);
     if (m68k_decode_candidate_to_instruction(next_candidate, &next_instruction) != 0) break;
     attach_known_instruction_relocations(lookup, section->section_index, next_candidate, &next_instruction);
-    platform_vector = attach_amiga_lvo_symbol_if_known(&state, &next_instruction);
-    immediate_vector = attach_amiga_lvo_immediate_if_known(lookup, section,
-      accepted_start_all[section->section_index], next_candidate, &next_instruction);
-    wrapper_call_vector = resolve_amiga_indexed_wrapper_call_vector(lookup, &state, section, next_candidate);
-    direct_wrapper_vector = resolve_amiga_direct_wrapper_call_vector(lookup, decode, accepted_start_all,
-      section->section_index, next_candidate);
-    helper_call_vector = (platform_vector == NULL && immediate_vector == NULL && wrapper_call_vector == NULL &&
-      direct_wrapper_vector == NULL)
-      ? resolve_amiga_local_helper_call_vector(lookup, decode, accepted_start_all, section->section_index,
-          next_candidate)
-      : NULL;
-    vector = platform_vector != NULL ? platform_vector :
-      (direct_wrapper_vector != NULL ? direct_wrapper_vector :
-      (wrapper_call_vector != NULL ? wrapper_call_vector :
-      (immediate_vector != NULL ? immediate_vector : helper_call_vector)));
-    if (vector != NULL) {
-      input = amiga_vector_input_by_register(vector, reg_kind, reg_index);
+    resolve_amiga_instruction_platform_vectors(lookup, &state, decode, accepted_start_all, section,
+      accepted_start_all[section->section_index], next_candidate, &next_instruction, &vector_resolution);
+    if (vector_resolution.chosen_vector != NULL) {
+      input = amiga_vector_input_by_register(vector_resolution.chosen_vector, reg_kind, reg_index);
       if (input == NULL) return 0;
       value_domain_name = amiga_os_name(M68K_PLATFORM_NAME_VALUE_DOMAIN, input->value_domain_id);
       if (value_domain_name == NULL ||
@@ -11134,14 +11168,7 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, M68kRenderLookup
   M68kDiagList encode_diagnostics;
   M68kIrRenderResult rendered;
   M68kIrEncodeResult encoded;
-  const AmigaOsLibraryVectorInfo *platform_vector = NULL;
-  const AmigaOsLibraryVectorInfo *immediate_vector = NULL;
-  const AmigaOsLibraryVectorInfo *wrapper_call_vector = NULL;
-  const AmigaOsLibraryVectorInfo *direct_wrapper_vector = NULL;
-  const AmigaOsLibraryVectorInfo *helper_call_vector = NULL;
-  const AmigaOsLibraryVectorInfo *chosen_vector = NULL;
-  uint8_t chosen_kind = PLATFORM_RESOLVED_INDIRECT_AMIGA_LIBRARY_VECTOR_CALL;
-  uint8_t chosen_note_kind = M68K_PLATFORM_CALL_NOTE_NONE;
+  M68kRenderAmigaVectorResolution vector_resolution;
   uint8_t encoded_bytes[32];
   char platform_comment[160];
   char instruction_comment[640];
@@ -11179,16 +11206,8 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, M68kRenderLookup
       &instruction)) {
     return 0;
   }
-  platform_vector = attach_amiga_lvo_symbol_if_known(platform_state, &instruction);
-  immediate_vector = attach_amiga_lvo_immediate_if_known(lookup, section, accepted_start, candidate, &instruction);
-  wrapper_call_vector = resolve_amiga_indexed_wrapper_call_vector(lookup, platform_state, section, candidate);
-  direct_wrapper_vector = resolve_amiga_direct_wrapper_call_vector(lookup, decode, accepted_start_all,
-    section->section_index, candidate);
-  if (platform_vector == NULL && immediate_vector == NULL && wrapper_call_vector == NULL &&
-      direct_wrapper_vector == NULL) {
-    helper_call_vector = resolve_amiga_local_helper_call_vector(lookup, decode, accepted_start_all,
-      section->section_index, candidate);
-  }
+  resolve_amiga_instruction_platform_vectors(lookup, platform_state, decode, accepted_start_all, section,
+    accepted_start, candidate, &instruction, &vector_resolution);
   if (attach_amiga_next_call_input_immediate_symbol(preview, lookup, platform_state, decode, accepted_start_all,
       section, candidate, &instruction) < 0) {
     return 0;
@@ -11291,18 +11310,8 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, M68kRenderLookup
   ++preview->asm_source_lines;
   ++preview->asm_source_symbolic_instructions;
   if (out_listing_instruction != NULL) *out_listing_instruction = render_instruction;
-  chosen_vector = platform_vector != NULL ? platform_vector :
-    (direct_wrapper_vector != NULL ? direct_wrapper_vector :
-    (wrapper_call_vector != NULL ? wrapper_call_vector :
-    (immediate_vector != NULL ? immediate_vector : helper_call_vector)));
-  if (wrapper_call_vector != NULL) {
-    chosen_kind = PLATFORM_RESOLVED_INDIRECT_AMIGA_INDEXED_LIBRARY_DISPATCH;
-    chosen_note_kind = M68K_PLATFORM_CALL_NOTE_INDEXED_VECTOR;
-  } else if (direct_wrapper_vector != NULL || helper_call_vector != NULL) {
-    chosen_note_kind = M68K_PLATFORM_CALL_NOTE_LOCAL_WRAPPER_SYMBOL;
-  }
-  preview_record_platform_vector_call(preview, lookup, section_analysis, candidate->offset, chosen_kind,
-    chosen_note_kind, chosen_vector);
+  preview_record_platform_vector_call(preview, lookup, section_analysis, candidate->offset,
+    vector_resolution.chosen_kind, vector_resolution.chosen_note_kind, vector_resolution.chosen_vector);
   platform_state_update_data_lvo_after_instruction(platform_state, &instruction);
   platform_state_update_after_instruction(platform_state, lookup, &instruction);
   {
@@ -11314,9 +11323,35 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, M68kRenderLookup
     }
   }
   if (instruction_has_call_flow(&instruction)) {
-    platform_state_note_call_result_after_instruction(platform_state, &instruction, chosen_vector);
+    platform_state_note_call_result_after_instruction(platform_state, &instruction, vector_resolution.chosen_vector);
   }
   return 1;
+}
+
+static int record_platform_instruction_facts_without_source_render(M68kRenderIRPreview *preview,
+    M68kRenderLookup *lookup, M68kRenderPlatformState *platform_state, const M68kDecodeIR *decode,
+    uint8_t **accepted_start_all, const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
+    const M68kDecodeCandidate *candidate, M68kSectionAnalysisIR *section_analysis) {
+  M68kInstructionIR instruction;
+  M68kRenderAmigaVectorResolution vector_resolution;
+  if (preview == NULL || lookup == NULL || lookup->object == NULL || platform_state == NULL || decode == NULL ||
+      accepted_start_all == NULL || section == NULL || accepted_start == NULL || candidate == NULL) {
+    return 0;
+  }
+  if (lookup->object->platform_backend_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK) return 0;
+  if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) return 0;
+  attach_known_instruction_relocations(lookup, section->section_index, candidate, &instruction);
+  resolve_amiga_instruction_platform_vectors(lookup, platform_state, decode, accepted_start_all, section,
+    accepted_start, candidate, &instruction, &vector_resolution);
+  preview_record_platform_vector_call(preview, lookup, section_analysis, candidate->offset,
+    vector_resolution.chosen_kind, vector_resolution.chosen_note_kind, vector_resolution.chosen_vector);
+  if (preview->asm_source_allocation_failed) return -1;
+  platform_state_update_data_lvo_after_instruction(platform_state, &instruction);
+  platform_state_update_after_instruction(platform_state, lookup, &instruction);
+  if (instruction_has_call_flow(&instruction)) {
+    platform_state_note_call_result_after_instruction(platform_state, &instruction, vector_resolution.chosen_vector);
+  }
+  return 0;
 }
 
 void m68k_render_ir_preview_init(M68kRenderIRPreview *preview) {
@@ -11517,6 +11552,11 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
           candidate->byte_count, candidate->mnemonic_id);
         if (record_platform_trap_call_for_render(out_preview, &lookup, section, accepted_start[section_index],
             candidate, current_section_analysis) < 0) {
+          goto cleanup;
+        }
+        if (!render_asm_source &&
+            record_platform_instruction_facts_without_source_render(out_preview, &lookup, &platform_state, decode,
+              accepted_start, section, accepted_start[section_index], candidate, current_section_analysis) < 0) {
           goto cleanup;
         }
         if (render_asm_source) {

@@ -7611,6 +7611,48 @@ static int test_facts_v2_resolved_platform_call_not_unresolved_indirect_site(voi
   return 0;
 }
 
+static int test_facts_v2_analysis_collects_amiga_lvo_call_without_source_render(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  const M68kRecoveredPlatformCallIR *call;
+  const char *symbol_name;
+  uint8_t bytes[10] = {
+    0x2cu, 0x78u, 0x00u, 0x04u,
+    0x4eu, 0xaeu, 0xffu, 0x7cu,
+    0x4eu, 0x75u
+  };
+  memset(&section, 0, sizeof(section));
+  memset(&source_analysis, 0, sizeof(source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
+    &source_analysis, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_U32(1U, profile.platform_call_count);
+  M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.section_count);
+  M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.sections[0].recovered_platform_call_count);
+  call = &source_analysis.sections[0].recovered_platform_calls[0];
+  symbol_name = m68k_platform_name_ref_resolve_text_or_fallback(&call->symbol_ref, call->symbol_name);
+  M68K_C_ASSERT_U32(4U, call->offset);
+  M68K_C_ASSERT_STR("_LVOForbid", symbol_name);
+  M68K_C_ASSERT_U32(0U, (uint32_t)source_analysis.sections[0].recovered_indirect_site_count);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_open_library_d0_movea_promotes_a6_base(void) {
   M68kObject object;
   M68kSection section;
@@ -23795,6 +23837,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_records_code_overlap_indirect_table_bounds},
     {"facts_v2_resolved_platform_call_not_unresolved_indirect_site",
       test_facts_v2_resolved_platform_call_not_unresolved_indirect_site},
+    {"facts_v2_analysis_collects_amiga_lvo_call_without_source_render",
+      test_facts_v2_analysis_collects_amiga_lvo_call_without_source_render},
     {"facts_v2_open_library_d0_movea_promotes_a6_base",
       test_facts_v2_open_library_d0_movea_promotes_a6_base},
     {"facts_v2_open_library_name_shared_terminator_renders_bounded_text",
