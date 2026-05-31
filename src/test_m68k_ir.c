@@ -10153,6 +10153,10 @@ static int test_source_quality_analyze_exports_code_origins_and_runs(void) {
     "\"accepted_code_runs\":[{\"start_offset\":4,\"end_offset\":8,\"instruction_count\":2") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"end_kind\":\"accepted_gap\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"has_origin\":true") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"range_ownership_count\":1") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"range_ownerships\":[{\"start_offset\":4,\"end_offset\":8,\"kind\":1,\"kind_name\":\"code\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"positive_evidence_flags\":1") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"address_observation_count\":1") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"source_name\":\"absolute_operand\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"access_kind_name\":\"memory_read\"") != NULL);

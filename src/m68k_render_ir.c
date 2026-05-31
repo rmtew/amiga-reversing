@@ -8632,33 +8632,6 @@ cleanup:
   return result;
 }
 
-static int render_analysis_append_accepted_code_ranges_for_section(const M68kDecodeSectionIR *section,
-    const uint8_t *accepted_bytes, M68kSectionAnalysisIR *section_analysis) {
-  uint32_t stored_extent;
-  uint32_t cursor = 0U;
-  if (section == NULL || section_analysis == NULL) return -1;
-  stored_extent = section->size;
-  if (accepted_bytes == NULL || stored_extent == 0U) return 0;
-  while (cursor < stored_extent) {
-    M68kRangeOwnershipIR range;
-    uint32_t start;
-    if (accepted_bytes[cursor] == 0U) {
-      ++cursor;
-      continue;
-    }
-    start = cursor;
-    while (cursor < stored_extent && accepted_bytes[cursor] != 0U) ++cursor;
-    memset(&range, 0, sizeof(range));
-    range.start_offset = start;
-    range.end_offset = cursor;
-    range.kind = M68K_RANGE_OWNERSHIP_CODE;
-    range.status = M68K_RANGE_OWNERSHIP_STATUS_ACCEPTED;
-    range.positive_evidence_flags = M68K_RANGE_EVIDENCE_ACCEPTED_CODE;
-    if (m68k_ir_section_analysis_append_range_ownership(section_analysis, &range) != 0) return -1;
-  }
-  return 0;
-}
-
 static uint8_t immediate_text_token_width_for_candidate(const M68kDecodeCandidate *candidate,
     const M68kInstructionIR *instruction) {
   char suffix;
@@ -12184,10 +12157,6 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
       if (scratch_arena == NULL) goto cleanup;
       if (render_analysis_append_cfg_for_section(&lookup, section, accepted_start[section_index],
           accepted_bytes[section_index], scratch_arena, current_section_analysis) != 0) {
-        goto cleanup;
-      }
-      if (render_analysis_append_accepted_code_ranges_for_section(section, accepted_bytes[section_index],
-          current_section_analysis) != 0) {
         goto cleanup;
       }
       if (render_analysis_append_immediate_text_tokens_for_section(section, accepted_start[section_index],

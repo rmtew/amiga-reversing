@@ -363,6 +363,30 @@ static int append_run_diagnostic(M68kSectionAnalysisIR *section, const M68kAccep
   return m68k_ir_section_analysis_append_source_quality_diagnostic(section, &diagnostic);
 }
 
+static int append_accepted_code_range_ownerships_for_section(M68kSectionAnalysisIR *section) {
+  uint32_t cursor;
+  if (section == NULL || section->certain_code_byte == NULL || section->certain_code_size == 0U) return 0;
+  cursor = 0U;
+  while ((size_t)cursor < section->certain_code_size) {
+    M68kRangeOwnershipIR range;
+    uint32_t start;
+    if (section->certain_code_byte[cursor] == 0U) {
+      ++cursor;
+      continue;
+    }
+    start = cursor;
+    while ((size_t)cursor < section->certain_code_size && section->certain_code_byte[cursor] != 0U) ++cursor;
+    memset(&range, 0, sizeof(range));
+    range.start_offset = start;
+    range.end_offset = cursor;
+    range.kind = M68K_RANGE_OWNERSHIP_CODE;
+    range.status = M68K_RANGE_OWNERSHIP_STATUS_ACCEPTED;
+    range.positive_evidence_flags = M68K_RANGE_EVIDENCE_ACCEPTED_CODE;
+    if (m68k_ir_section_analysis_append_range_ownership(section, &range) != 0) return -1;
+  }
+  return 0;
+}
+
 static int append_accepted_runs_for_section(M68kSectionAnalysisIR *section) {
   uint32_t cursor;
   if (section == NULL || section->certain_code_byte == NULL || section->certain_code_size == 0U) return 0;
@@ -418,6 +442,7 @@ int m68k_source_quality_analyze(M68kSourceAnalysisIR *source_analysis) {
     if (append_address_observations_for_section(section) != 0) return -1;
     if (append_platform_address_uses_for_section(section) != 0) return -1;
     if (append_accepted_runs_for_section(section) != 0) return -1;
+    if (append_accepted_code_range_ownerships_for_section(section) != 0) return -1;
   }
   if (append_address_identities_and_ranges(source_analysis) != 0) return -1;
   return 0;

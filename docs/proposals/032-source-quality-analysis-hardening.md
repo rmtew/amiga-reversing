@@ -3059,3 +3059,29 @@ cmd /c src\build.bat
 src\build\m68k_c_unit_tests.exe
 uv run python -m pytest tests\test_target_usage_manifest.py -q
 ```
+
+### Accepted Code Range Ownership Migration
+
+Moved accepted-code range ownership out of render preview and into the C
+source-quality analyzer:
+
+```text
+M68kSectionAnalysisIR.certain_code_byte
+  -> m68k_source_quality_analyze()
+  -> M68kRangeOwnershipIR(kind = code, status = accepted)
+```
+
+`m68k_render_ir_preview_build()` no longer appends accepted-code
+`range_ownerships`. Rendering still builds the source-analysis shell for now,
+but this specific durable semantic fact is now owned by source-quality analysis
+beside `M68kAcceptedCodeRunIR`, so later render cleanup can consume rather than
+produce it.
+
+Verified:
+
+```text
+cmd /c src\build.bat
+src\build\m68k_c_unit_tests.exe
+uv run python -m pytest tests\test_target_usage_manifest.py -q
+uv run platform-rendered-source-roundtrip --no-write-report --json
+```
