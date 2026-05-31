@@ -310,6 +310,8 @@ const char *m68k_source_quality_diagnostic_kind_name(uint8_t kind) {
       return "missing_expected_symbol_access";
     case M68K_SOURCE_QUALITY_DIAGNOSTIC_MANUAL_EVIDENCE_CONFLICT:
       return "manual_evidence_conflict";
+    case M68K_SOURCE_QUALITY_DIAGNOSTIC_ACCEPTED_CODE_WITHOUT_EXECUTABLE_ORIGIN:
+      return "accepted_code_without_executable_origin";
     default:
       return "unknown";
   }

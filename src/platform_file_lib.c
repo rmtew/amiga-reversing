@@ -9281,6 +9281,7 @@ static const char *facts_v2_asm_source_failure_kind_name(uint32_t kind) {
     case 9U: return "unassemblable_hunk_base_register_relocation";
     case 10U: return "required_instruction";
     case 11U: return "table_target_set_limit";
+    case 12U: return "source_quality";
     default: return "";
   }
 }
@@ -9441,6 +9442,11 @@ static int json_builder_append_facts_v2_profile(JsonBuilder *builder, const M68k
     "\"first_table_target_set_limit_section\":%u,"
     "\"first_table_target_set_limit_offset\":%u,"
     "\"first_table_target_set_limit_capacity\":%u,"
+    "\"source_quality_diagnostics\":%u,"
+    "\"source_quality_blockers\":%u,"
+    "\"first_source_quality_diagnostic_kind\":\"%s\","
+    "\"first_source_quality_diagnostic_section\":%u,"
+    "\"first_source_quality_diagnostic_offset\":%u,"
     "\"runtime_address_view_starts\":%u,"
     "\"required_instruction_failures\":%u,"
     "\"unsupported_instruction_demotes\":%u,"
@@ -9591,6 +9597,11 @@ static int json_builder_append_facts_v2_profile(JsonBuilder *builder, const M68k
     (unsigned)profile->first_table_target_set_limit_section,
     (unsigned)profile->first_table_target_set_limit_offset,
     (unsigned)profile->first_table_target_set_limit_capacity,
+    (unsigned)profile->source_quality_diagnostics,
+    (unsigned)profile->source_quality_blockers,
+    m68k_source_quality_diagnostic_kind_name((uint8_t)profile->first_source_quality_diagnostic_kind),
+    (unsigned)profile->first_source_quality_diagnostic_section,
+    (unsigned)profile->first_source_quality_diagnostic_offset,
     (unsigned)profile->runtime_address_view_starts,
     (unsigned)profile->required_instruction_failures,
     (unsigned)profile->unsupported_instruction_demotes,

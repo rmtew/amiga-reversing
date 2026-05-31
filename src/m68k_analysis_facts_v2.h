@@ -127,6 +127,11 @@ typedef struct M68kFactsV2Profile {
   uint32_t first_table_target_set_limit_section;
   uint32_t first_table_target_set_limit_offset;
   uint32_t first_table_target_set_limit_capacity;
+  uint32_t source_quality_diagnostics;
+  uint32_t source_quality_blockers;
+  uint32_t first_source_quality_diagnostic_kind;
+  uint32_t first_source_quality_diagnostic_section;
+  uint32_t first_source_quality_diagnostic_offset;
   uint32_t runtime_address_view_starts;
   uint32_t required_instruction_failures;
   uint32_t unsupported_instruction_demotes;

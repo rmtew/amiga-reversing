@@ -9574,10 +9574,41 @@ static int facts_v2_append_incomplete_analysis_from_profile(const M68kFactsV2Pro
   return m68k_ir_source_analysis_append_source_quality_diagnostic(source_analysis, &diagnostic);
 }
 
+static void facts_v2_record_source_quality_diagnostic(M68kFactsV2Profile *profile,
+    const M68kSourceQualityDiagnosticIR *diagnostic) {
+  if (profile == NULL || diagnostic == NULL || diagnostic->kind == M68K_SOURCE_QUALITY_DIAGNOSTIC_UNKNOWN) return;
+  ++profile->source_quality_diagnostics;
+  if (diagnostic->blocker) {
+    if (profile->source_quality_blockers == 0U) {
+      profile->first_source_quality_diagnostic_kind = diagnostic->kind;
+      profile->first_source_quality_diagnostic_section =
+        diagnostic->has_section_index ? diagnostic->section_index : UINT32_MAX;
+      profile->first_source_quality_diagnostic_offset = diagnostic->has_offset ? diagnostic->offset : UINT32_MAX;
+    }
+    ++profile->source_quality_blockers;
+  }
+}
+
+static void facts_v2_record_source_quality_diagnostics_from_analysis(M68kFactsV2Profile *profile,
+    const M68kSourceAnalysisIR *source_analysis) {
+  size_t index, section_index;
+  if (profile == NULL || source_analysis == NULL) return;
+  for (index = 0U; index < source_analysis->source_quality_diagnostic_count; ++index) {
+    facts_v2_record_source_quality_diagnostic(profile, &source_analysis->source_quality_diagnostics[index]);
+  }
+  for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
+    const M68kSectionAnalysisIR *section = &source_analysis->sections[section_index];
+    for (index = 0U; index < section->source_quality_diagnostic_count; ++index) {
+      facts_v2_record_source_quality_diagnostic(profile, &section->source_quality_diagnostics[index]);
+    }
+  }
+}
+
 static int facts_v2_has_asm_source_failures(const M68kFactsV2Profile *profile) {
   return profile != NULL && (profile->asm_source_instruction_render_failures != 0U ||
     profile->asm_source_instruction_byte_mismatches != 0U ||
-    profile->asm_source_instruction_relocation_failures != 0U);
+    profile->asm_source_instruction_relocation_failures != 0U ||
+    profile->source_quality_blockers != 0U);
 }
 
 static int facts_v2_collect_profile_internal(const M68kObject *object, const M68kAnalysisPolicy *policy,
@@ -9953,6 +9984,16 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
     m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
       "facts_v2 source quality analysis failed");
     goto fail;
+  }
+  if (out_source_analysis != NULL) {
+    facts_v2_record_source_quality_diagnostics_from_analysis(out_profile, out_source_analysis);
+    if (out_profile->source_quality_blockers != 0U &&
+        out_profile->asm_source_first_failure_kind == M68K_RENDER_IR_ASM_SOURCE_FAILURE_NONE) {
+      out_profile->asm_source_first_failure_kind = M68K_RENDER_IR_ASM_SOURCE_FAILURE_SOURCE_QUALITY;
+      out_profile->asm_source_first_failure_section = out_profile->first_source_quality_diagnostic_section;
+      out_profile->asm_source_first_failure_offset = out_profile->first_source_quality_diagnostic_offset;
+      out_profile->asm_source_first_failure_aux_offset = out_profile->first_source_quality_diagnostic_kind;
+    }
   }
   if (out_source_analysis != NULL) {
     m68k_ir_source_analysis_finalize_table_conflicts(out_source_analysis);

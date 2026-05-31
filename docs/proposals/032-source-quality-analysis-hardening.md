@@ -2866,3 +2866,73 @@ cmd /c src\build.bat
 src\build\m68k_c_unit_tests.exe
 uv run python -m pytest tests\test_target_usage_manifest.py::test_source_quality_diagnostics_feature_and_xref tests\test_target_usage_manifest.py::test_source_quality_precursor_target_patterns_are_derived_from_existing_features -q
 ```
+
+### Code Origins And Accepted Runs Bootstrap
+
+Implemented the first accepted-code source-quality fact families:
+
+```text
+M68kCodeOriginIR
+  -> per-section executable origin observations derived from C code-start refs
+  -> origin classes distinguish strong entries, platform semantic entries,
+     proven control targets, fallthrough, and runtime aliases
+
+M68kAcceptedCodeRunIR
+  -> contiguous accepted-code byte runs
+  -> instruction count
+  -> run-end classification
+  -> JSON export through source_analysis_to_json()
+```
+
+This is intentionally not the final false-code proof. It gives the C pipeline
+a durable surface for "what accepted this code?" and "where does this accepted
+run end?" so later source-quality checks can refuse weak runs without scraping
+rendered source text.
+
+Verified:
+
+```text
+cmd /c src\build.bat
+src\build\m68k_c_unit_tests.exe
+```
+
+### Accepted-Code Origin Blocker
+
+Added the first source-quality audit rule over accepted runs:
+
+```text
+accepted code run
+  -> must contain an executable origin stronger than fallthrough
+  -> otherwise emits accepted_code_without_executable_origin
+  -> diagnostic severity error
+  -> blocker true
+```
+
+The analyzer also reads C CFG edges to refine accepted-run endings:
+
+```text
+return edge at run end -> terminal
+jump edge at run end   -> proven_transfer
+otherwise a non-section-end run remains accepted_gap
+```
+
+`accepted_gap` now emits a non-blocking
+`unterminated_or_invalid_code_range` warning when the run has a real origin but
+no terminal/proven-transfer ending yet. This keeps the current output from
+being silently reclassified while making the residual source-quality weakness
+queryable and visible through C facts.
+
+Facts-v2 profiles now count source-quality diagnostics and blockers, expose the
+first source-quality diagnostic, and map blocking source-quality failures to
+the source refusal summary. This is still running after render preview because
+render preview currently creates some required section-analysis inputs; moving
+those producers before render remains required before Proposal 032 can close.
+
+Verified:
+
+```text
+cmd /c src\build.bat
+src\build\m68k_c_unit_tests.exe
+uv run python -m pytest tests\test_target_usage_manifest.py -q
+git diff --check
+```
