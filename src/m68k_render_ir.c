@@ -4006,46 +4006,6 @@ static void attach_generic_symbol(M68kOperandIR *operand, const char *symbol_nam
   snprintf(operand->symbol_ref.name, sizeof(operand->symbol_ref.name), "%s", symbol_name);
 }
 
-static int attach_m68k_cpu_vector_symbols(const M68kRenderLookup *lookup, M68kInstructionIR *instruction) {
-  const M68kSimFormMetadata *metadata;
-  size_t operand_index;
-  int attached = 0;
-  uint8_t platform_kind = M68K_PLATFORM_BACKEND_UNKNOWN;
-  if (lookup != NULL && lookup->object != NULL) platform_kind = lookup->object->platform_backend_kind;
-  if (instruction == NULL) return 0;
-  metadata = m68k_sim_metadata_for_instruction(instruction);
-  for (operand_index = 0U; operand_index < instruction->operand_count; ++operand_index) {
-    M68kOperandIR *operand = &instruction->operands[operand_index];
-    const M68kCpuExceptionVectorInfo *vector;
-    uint32_t address = 0U;
-    uint8_t access_kind = M68K_SIM_ACCESS_NONE;
-    int uses_vector_slot = 0;
-    if (operand->symbol_ref.has_name != 0U) continue;
-    if (metadata != NULL && operand_index < 4U)
-      access_kind = metadata->operand_access_kinds[operand_index];
-    if (!operand_absolute_offset_local(operand, &address)) continue;
-    if (!platform_facts_v2_is_callback_vector_slot(platform_kind, address)) continue;
-    if (access_kind == M68K_SIM_ACCESS_MEMORY_READ || access_kind == M68K_SIM_ACCESS_MEMORY_WRITE) {
-      uses_vector_slot = 1;
-    } else if (metadata != NULL && metadata->operation_class == M68K_SIM_CLASS_LOAD_EFFECTIVE_ADDRESS &&
-        metadata->source_operand_index == operand_index && operand->kind == M68K_ASM_OPERAND_EA &&
-        operand->value.ea_mode == 7U && operand->value.ea_reg == 0U) {
-      uses_vector_slot = 1;
-    }
-    if (!uses_vector_slot) continue;
-    vector = m68k_cpu_find_exception_vector_by_address(address);
-    if (vector == NULL || vector->symbol_name == NULL || vector->symbol_name[0] == '\0') continue;
-    m68k_ir_symbol_ref_init(&operand->symbol_ref);
-    operand->symbol_ref.has_name = 1U;
-    operand->symbol_ref.name_is_generated = 0U;
-    operand->symbol_ref.name_provenance = M68K_IR_SYMBOL_PROVENANCE_NONE;
-    operand->symbol_ref.kind = M68K_IR_SYMBOL_REF_NONE;
-    snprintf(operand->symbol_ref.name, sizeof(operand->symbol_ref.name), "%s", vector->symbol_name);
-    attached = 1;
-  }
-  return attached;
-}
-
 static int amiga_hardware_register_field_instance_delta(const AmigaOsHardwareRegisterFieldInfo *hardware_field,
     uint32_t *out_delta) {
   size_t index;
@@ -9220,6 +9180,48 @@ static int attach_absolute_memory_address_use_symbols(M68kRenderIRPreview *previ
   return 1;
 }
 
+static const M68kPlatformAddressUseIR *source_analysis_platform_address_use_for_operand(
+    const M68kSourceAnalysisIR *source_analysis, size_t section_index, uint32_t offset, size_t operand_index,
+    uint32_t address, uint8_t use_shape) {
+  const M68kSectionAnalysisIR *section_analysis;
+  size_t index;
+  if (source_analysis == NULL || section_index >= source_analysis->section_count) return NULL;
+  section_analysis = &source_analysis->sections[section_index];
+  for (index = 0U; index < section_analysis->platform_address_use_count; ++index) {
+    const M68kPlatformAddressUseIR *use = &section_analysis->platform_address_uses[index];
+    if (use->offset == offset &&
+        use->operand_index == operand_index &&
+        use->address == address &&
+        use->use_shape == use_shape) {
+      return use;
+    }
+  }
+  return NULL;
+}
+
+static int attach_vector_address_use_symbols(M68kRenderIRPreview *preview,
+    const M68kSourceAnalysisIR *source_analysis, const M68kDecodeSectionIR *section,
+    const M68kDecodeCandidate *candidate, M68kInstructionIR *instruction) {
+  size_t operand_index;
+  if (preview == NULL || source_analysis == NULL || section == NULL || candidate == NULL || instruction == NULL)
+    return 0;
+  for (operand_index = 0U; operand_index < instruction->operand_count; ++operand_index) {
+    M68kOperandIR *operand = &instruction->operands[operand_index];
+    const M68kPlatformAddressUseIR *use;
+    const M68kCpuExceptionVectorInfo *vector;
+    uint32_t address = 0U;
+    if (operand->symbol_ref.has_name != 0U || !operand_absolute_offset_local(operand, &address)) continue;
+    use = source_analysis_platform_address_use_for_operand(source_analysis, section->section_index,
+      candidate->offset, operand_index, address, M68K_PLATFORM_ADDRESS_USE_SHAPE_TRUE_VECTOR_INSTALL);
+    if (use == NULL) continue;
+    vector = m68k_cpu_find_exception_vector_by_address(use->address);
+    if (vector == NULL || vector->symbol_name == NULL || vector->symbol_name[0] == '\0') continue;
+    if (!render_asm_define_m68k_vector_symbol_once(preview, vector->symbol_name)) return 0;
+    attach_generic_symbol(operand, vector->symbol_name);
+  }
+  return 1;
+}
+
 static int attach_amiga_runtime_sink_immediate_symbols(const M68kRenderLookup *lookup,
     const M68kRenderPlatformState *platform_state, size_t section_index, M68kInstructionIR *instruction) {
   const M68kSimFormMetadata *metadata;
@@ -9829,7 +9831,7 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, M68kRenderLookup
   (void)attach_amiga_app_base_slot_symbols(lookup, platform_state, section->section_index, candidate->offset,
     &instruction);
   (void)attach_amiga_typed_struct_field_symbols(lookup, section->section_index, candidate->offset, &instruction);
-  (void)attach_m68k_cpu_vector_symbols(lookup, &instruction);
+  if (!attach_vector_address_use_symbols(preview, source_analysis, section, candidate, &instruction)) return 0;
   apply_manual_operand_representations(lookup, section->section_index, candidate->offset, &instruction);
   if (!render_asm_include_for_instruction_platform_symbols(preview, &instruction)) return 0;
   attach_amiga_runtime_sink_comment_for_render(platform_state, lookup, section->section_index, candidate->offset,

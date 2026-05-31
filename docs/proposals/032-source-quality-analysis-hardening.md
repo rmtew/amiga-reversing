@@ -4367,3 +4367,31 @@ The shared collector no longer increments render-failure counters or records
 source-export failures while analysis is collecting durable base-layout facts.
 It now reports collection failure directly; render/export callers decide how to
 surface that failure.
+
+### CPU-Vector Symbol Ownership
+
+Removed the render-time numeric CPU-vector attachment helper. Assembly rendering
+now emits CPU-vector symbols only when Source Analysis IR contains an exact
+`M68kPlatformAddressUseIR(use_shape=true_vector_install)` row for the
+section/offset/operand/address being rendered.
+
+Low-memory base/storage uses that happen to share vector-numbered addresses stay
+numeric unless C source-quality proves a true vector install:
+
+```text
+move.l #$12345678,$006c.w  -> m68k_vector_level_3_interrupt_autovector
+lea.l  $0060.w,a1          -> numeric low-memory base
+move.l $00000010.l,d1      -> numeric low-memory storage
+```
+
+This removes the renderer shortcut that mapped `$10`, `$60`, and similar
+addresses to CPU-vector labels from operand shape alone.
+
+Verified:
+
+```text
+src\build.bat
+src\build\m68k_c_unit_tests.exe
+uv run platform-rendered-source-roundtrip --no-write-report --json
+cmd /c src\precommit.bat
+```
