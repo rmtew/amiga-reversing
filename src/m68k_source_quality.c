@@ -436,6 +436,65 @@ static int append_structured_data_range_ownerships(M68kSourceAnalysisIR *source_
   return 0;
 }
 
+static int append_structured_data_table_descriptors(M68kSourceAnalysisIR *source_analysis) {
+  size_t index;
+  if (source_analysis == NULL) return -1;
+  for (index = 0U; index < source_analysis->structured_data_item_count; ++index) {
+    const M68kAnalysisStructuredDataItem *item = &source_analysis->structured_data_items[index];
+    M68kSectionAnalysisIR *section;
+    M68kTableDescriptorIR descriptor;
+    uint32_t entry_size;
+    if (!item->has_section_index || item->size == 0U ||
+        item->table_kind_id == M68K_ANALYSIS_TABLE_KIND_UNKNOWN ||
+        item->offset > UINT32_MAX - item->size) {
+      continue;
+    }
+    entry_size = m68k_analysis_structured_data_table_entry_size(item);
+    if (entry_size == 0U || item->size < entry_size) continue;
+    section = source_analysis_section_by_index(source_analysis, item->section_index);
+    if (section == NULL) continue;
+    memset(&descriptor, 0, sizeof(descriptor));
+    descriptor.start_offset = item->offset;
+    descriptor.end_offset = item->offset + item->size;
+    descriptor.entry_size = entry_size;
+    descriptor.entry_count = item->size / entry_size;
+    descriptor.entry_count_proof_id = item->entry_count_proof_id;
+    descriptor.table_stop_reason_id = item->table_stop_reason_id;
+    descriptor.table_kind_id = item->table_kind_id;
+    descriptor.base_expression_id = item->table_base_expression_id;
+    descriptor.source_pattern_id = item->source_pattern_id;
+    descriptor.status = item->table_conflicted ? M68K_RANGE_OWNERSHIP_STATUS_CONFLICT :
+      M68K_RANGE_OWNERSHIP_STATUS_ACCEPTED;
+    descriptor.role_flags = item->semantic_role_flags;
+    descriptor.has_target = item->has_target;
+    descriptor.target_section_index = item->target_section;
+    descriptor.target_offset = item->target_offset;
+    descriptor.has_consumer = item->has_consumer;
+    descriptor.consumer_section_index = item->consumer_section;
+    descriptor.consumer_offset = item->consumer_offset;
+    descriptor.has_index_register = item->has_index_register;
+    descriptor.index_register_kind = item->index_register_kind;
+    descriptor.index_register = item->index_register;
+    descriptor.has_target_register = item->has_target_register;
+    descriptor.target_register_kind = item->target_register_kind;
+    descriptor.target_register = item->target_register;
+    descriptor.has_index_mask_domain = item->has_index_mask_domain;
+    descriptor.index_mask_min = item->index_mask_min;
+    descriptor.index_mask_max = item->index_mask_max;
+    descriptor.has_index_compare_domain = item->has_index_compare_domain;
+    descriptor.index_compare_min = item->index_compare_min;
+    descriptor.index_compare_max = item->index_compare_max;
+    descriptor.index_domain_branch_mnemonic_id = item->index_domain_branch_mnemonic_id;
+    descriptor.has_index_loop_domain = item->has_index_loop_domain;
+    descriptor.index_loop_min = item->index_loop_min;
+    descriptor.index_loop_max = item->index_loop_max;
+    descriptor.index_loop_mnemonic_id = item->index_loop_mnemonic_id;
+    descriptor.conflict_state = item->table_conflict_state;
+    if (m68k_ir_section_analysis_append_table_descriptor(section, &descriptor) != 0) return -1;
+  }
+  return 0;
+}
+
 static int append_accepted_runs_for_section(M68kSectionAnalysisIR *section) {
   uint32_t cursor;
   if (section == NULL || section->certain_code_byte == NULL || section->certain_code_size == 0U) return 0;
@@ -494,6 +553,7 @@ int m68k_source_quality_analyze(M68kSourceAnalysisIR *source_analysis) {
     if (append_accepted_code_range_ownerships_for_section(section) != 0) return -1;
   }
   if (append_structured_data_range_ownerships(source_analysis) != 0) return -1;
+  if (append_structured_data_table_descriptors(source_analysis) != 0) return -1;
   if (append_address_identities_and_ranges(source_analysis) != 0) return -1;
   return 0;
 }

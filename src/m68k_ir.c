@@ -532,6 +532,14 @@ uint32_t m68k_analysis_structured_data_range_ownership_evidence_flags(
   return flags;
 }
 
+uint32_t m68k_analysis_structured_data_table_entry_size(const M68kAnalysisStructuredDataItem *item) {
+  if (item == NULL) return 0U;
+  if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_BYTES) return 1U;
+  if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_WORDS) return 2U;
+  if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_LONGS) return 4U;
+  return 0U;
+}
+
 uint8_t m68k_analysis_table_entry_count_proof_for_source_pattern(uint8_t source_pattern_id) {
   switch (source_pattern_id) {
     case M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_RELOCATION_POINTER_TABLE:

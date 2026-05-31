@@ -8698,14 +8698,6 @@ static int render_analysis_append_immediate_text_tokens_for_section(
   return 0;
 }
 
-static uint32_t structured_data_item_table_entry_size(const M68kAnalysisStructuredDataItem *item) {
-  if (item == NULL) return 0U;
-  if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_BYTES) return 1U;
-  if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_WORDS) return 2U;
-  if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_LONGS) return 4U;
-  return 0U;
-}
-
 static uint8_t render_analysis_code_table_target_status(const M68kDecodeSectionIR *section,
     const uint8_t *accepted_start, const uint8_t *accepted_bytes, uint32_t target_offset,
     uint8_t *out_conflict_state) {
@@ -8854,7 +8846,7 @@ static int render_analysis_append_lookup_table_entries_for_item(const M68kRender
   uint32_t cursor;
   uint32_t entry_size;
   if (lookup == NULL || section == NULL || section_analysis == NULL || item == NULL || section->data == NULL) return -1;
-  entry_size = structured_data_item_table_entry_size(item);
+  entry_size = m68k_analysis_structured_data_table_entry_size(item);
   if (entry_size == 0U || item->size < entry_size || item->offset >= section->size) return 0;
   for (cursor = 0U; cursor + entry_size <= item->size && item->offset + cursor + entry_size <= section->size;
       cursor += entry_size) {
@@ -8903,7 +8895,7 @@ static int render_analysis_append_lookup_table_entries_for_item(const M68kRender
   return 0;
 }
 
-static int render_analysis_append_lookup_table_descriptors_for_section(
+static int render_analysis_append_lookup_table_entries_for_section(
     const M68kRenderLookup *lookup, const M68kDecodeSectionIR *section,
     const uint8_t *accepted_start, const uint8_t *accepted_bytes,
     M68kSectionAnalysisIR *section_analysis) {
@@ -8912,53 +8904,14 @@ static int render_analysis_append_lookup_table_descriptors_for_section(
   for (index = 0U; index < lookup->range_ownership_count; ++index) {
     M68kRenderRangeOwnershipView view;
     const M68kAnalysisStructuredDataItem *item;
-    M68kTableDescriptorIR descriptor;
     uint32_t entry_size;
     if (lookup->range_ownerships[index].section_index != section->section_index) continue;
     if (!hydrate_range_ownership_view(lookup, &lookup->range_ownerships[index], &view)) continue;
     item = view.structured_item;
     if (item == NULL) continue;
     if (item->size == 0U || item->table_kind_id == M68K_ANALYSIS_TABLE_KIND_UNKNOWN) continue;
-    entry_size = structured_data_item_table_entry_size(item);
+    entry_size = m68k_analysis_structured_data_table_entry_size(item);
     if (entry_size == 0U || item->size < entry_size || item->offset > UINT32_MAX - item->size) continue;
-    memset(&descriptor, 0, sizeof(descriptor));
-    descriptor.start_offset = item->offset;
-    descriptor.end_offset = item->offset + item->size;
-    descriptor.entry_size = entry_size;
-    descriptor.entry_count = item->size / entry_size;
-    descriptor.entry_count_proof_id = item->entry_count_proof_id;
-    descriptor.table_stop_reason_id = item->table_stop_reason_id;
-    descriptor.table_kind_id = item->table_kind_id;
-    descriptor.base_expression_id = item->table_base_expression_id;
-    descriptor.source_pattern_id = item->source_pattern_id;
-    descriptor.status = item->table_conflicted ? M68K_RANGE_OWNERSHIP_STATUS_CONFLICT :
-      M68K_RANGE_OWNERSHIP_STATUS_ACCEPTED;
-    descriptor.role_flags = item->semantic_role_flags;
-    descriptor.has_target = item->has_target;
-    descriptor.target_section_index = item->target_section;
-    descriptor.target_offset = item->target_offset;
-    descriptor.has_consumer = item->has_consumer;
-    descriptor.consumer_section_index = item->consumer_section;
-    descriptor.consumer_offset = item->consumer_offset;
-    descriptor.has_index_register = item->has_index_register;
-    descriptor.index_register_kind = item->index_register_kind;
-    descriptor.index_register = item->index_register;
-    descriptor.has_target_register = item->has_target_register;
-    descriptor.target_register_kind = item->target_register_kind;
-    descriptor.target_register = item->target_register;
-    descriptor.has_index_mask_domain = item->has_index_mask_domain;
-    descriptor.index_mask_min = item->index_mask_min;
-    descriptor.index_mask_max = item->index_mask_max;
-    descriptor.has_index_compare_domain = item->has_index_compare_domain;
-    descriptor.index_compare_min = item->index_compare_min;
-    descriptor.index_compare_max = item->index_compare_max;
-    descriptor.index_domain_branch_mnemonic_id = item->index_domain_branch_mnemonic_id;
-    descriptor.has_index_loop_domain = item->has_index_loop_domain;
-    descriptor.index_loop_min = item->index_loop_min;
-    descriptor.index_loop_max = item->index_loop_max;
-    descriptor.index_loop_mnemonic_id = item->index_loop_mnemonic_id;
-    descriptor.conflict_state = item->table_conflict_state;
-    if (m68k_ir_section_analysis_append_table_descriptor(section_analysis, &descriptor) != 0) return -1;
     if (render_analysis_append_lookup_table_entries_for_item(lookup, section, accepted_start, accepted_bytes,
         section_analysis, item) != 0) {
       return -1;
@@ -12060,7 +12013,7 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
           accepted_bytes[section_index], current_section_analysis) != 0) {
         goto cleanup;
       }
-      if (render_analysis_append_lookup_table_descriptors_for_section(&lookup, section,
+      if (render_analysis_append_lookup_table_entries_for_section(&lookup, section,
           accepted_start[section_index], accepted_bytes[section_index], current_section_analysis) != 0) {
         goto cleanup;
       }

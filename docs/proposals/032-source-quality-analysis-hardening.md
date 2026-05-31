@@ -3111,3 +3111,30 @@ src\build\m68k_c_unit_tests.exe
 uv run python -m pytest tests\test_target_usage_manifest.py -q
 uv run platform-rendered-source-roundtrip --no-write-report --json
 ```
+
+### Table Descriptor And Consumer Migration
+
+Moved structured-data table descriptor and consumer fact export out of render
+preview and into source-quality analysis:
+
+```text
+M68kAnalysisStructuredDataItem(table metadata)
+  -> shared IR table entry-size helper
+  -> m68k_source_quality_analyze()
+  -> M68kTableDescriptorIR
+  -> M68kTableConsumerIR
+```
+
+Render preview still emits byte-dependent table entries and data references,
+because those currently read section bytes and accepted-code maps. The durable
+descriptor/consumer facts are now C source-quality facts, not render-export
+facts.
+
+Verified:
+
+```text
+cmd /c src\build.bat
+src\build\m68k_c_unit_tests.exe
+uv run python -m pytest tests\test_target_usage_manifest.py -q
+uv run platform-rendered-source-roundtrip --no-write-report --json
+```
