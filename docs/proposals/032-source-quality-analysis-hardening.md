@@ -4395,3 +4395,34 @@ src\build\m68k_c_unit_tests.exe
 uv run platform-rendered-source-roundtrip --no-write-report --json
 cmd /c src\precommit.bat
 ```
+
+### Absolute Hardware Symbol Ownership
+
+Added `hardware_base_address` as a Source Analysis IR platform-use shape and
+made absolute Amiga hardware/base symbol rendering consume platform-address-use
+facts instead of naming operands from numeric addresses alone:
+
+```text
+address observation
+  owner=hardware_register access=compute_address address=$00DFF000
+  -> platform use hardware_base_address
+  -> renderer may print _custom
+
+address observation
+  owner=hardware_register access=memory_write address=$00DFF09A
+  -> platform use hardware_register_access
+  -> renderer may print _custom+intena
+```
+
+Register-relative hardware rendering still uses the tracked C platform state for
+known hardware base registers. The removed shortcut is the absolute numeric path
+where render could map `$DFFxxx` to an Amiga symbol without an exact C
+platform-use row.
+
+Verified:
+
+```text
+cmd /c src\build.bat
+src\build\m68k_c_unit_tests.exe m68k_ir
+uv run platform-rendered-source-roundtrip --no-write-report --json
+```

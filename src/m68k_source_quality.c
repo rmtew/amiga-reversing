@@ -2,6 +2,7 @@
 
 #include "m68k_fact_ir.h"
 #include "m68k_simulator.h"
+#include "generated/amiga_os_runtime.h"
 #include "platform_common.h"
 
 #include <string.h>
@@ -105,6 +106,10 @@ static uint8_t platform_address_use_shape_from_observation(const M68kAddressObse
   }
   if (observation->owner_kind == M68K_ABSOLUTE_MEMORY_OWNER_HARDWARE_REGISTER ||
       observation->owner_kind == M68K_ABSOLUTE_MEMORY_OWNER_HARDWARE_REGISTER_RANGE) {
+    if (observation->access_kind == M68K_SIM_ACCESS_COMPUTE_ADDRESS &&
+        amiga_os_find_hardware_base_id_by_address(observation->address) != AMIGA_OS_HARDWARE_BASE_ID_NONE) {
+      return M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_BASE_ADDRESS;
+    }
     return M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_REGISTER_ACCESS;
   }
   if (observation->owner_kind == M68K_ABSOLUTE_MEMORY_OWNER_EXECBASE_LITERAL) {

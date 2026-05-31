@@ -4131,8 +4131,29 @@ int format_amiga_hardware_register_range_symbol(const AmigaOsHardwareRegisterRan
   return written > 0 && (size_t)written < buf_size;
 }
 
+static const M68kPlatformAddressUseIR *source_analysis_platform_address_use_for_operand(
+    const M68kSourceAnalysisIR *source_analysis, size_t section_index, uint32_t offset, size_t operand_index,
+    uint32_t address, uint8_t use_shape) {
+  const M68kSectionAnalysisIR *section_analysis;
+  size_t index;
+  if (source_analysis == NULL || section_index >= source_analysis->section_count) return NULL;
+  section_analysis = &source_analysis->sections[section_index];
+  for (index = 0U; index < section_analysis->platform_address_use_count; ++index) {
+    const M68kPlatformAddressUseIR *use = &section_analysis->platform_address_uses[index];
+    if (use->offset == offset &&
+        use->operand_index == operand_index &&
+        use->address == address &&
+        use->use_shape == use_shape) {
+      return use;
+    }
+  }
+  return NULL;
+}
+
 static int attach_amiga_hardware_register_symbols(const M68kRenderPlatformState *state,
-    const M68kInstructionIR *source_instruction, M68kInstructionIR *instruction) {
+    const M68kSourceAnalysisIR *source_analysis, const M68kDecodeSectionIR *section,
+    const M68kDecodeCandidate *candidate, const M68kInstructionIR *source_instruction,
+    M68kInstructionIR *instruction) {
   size_t operand_index;
   int attached = 0;
   if (instruction == NULL) return 0;
@@ -4179,13 +4200,23 @@ static int attach_amiga_hardware_register_symbols(const M68kRenderPlatformState 
       continue;
     }
     if (operand_absolute_offset_local(operand, &value)) {
+      const M68kPlatformAddressUseIR *hardware_base_use;
+      const M68kPlatformAddressUseIR *hardware_register_use;
+      if (section == NULL || candidate == NULL) continue;
       base_symbol = amiga_os_find_hardware_base_symbol_by_address(value);
+      hardware_base_use = source_analysis_platform_address_use_for_operand(source_analysis,
+        section->section_index, candidate->offset, operand_index, value,
+        M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_BASE_ADDRESS);
       if (source_instruction != NULL && source_instruction->mnemonic_id == M68K_ASM_MNEMONIC_LEA &&
-          base_symbol != NULL && base_symbol[0] != '\0') {
+          base_symbol != NULL && base_symbol[0] != '\0' && hardware_base_use != NULL) {
         attach_amiga_platform_symbol(operand, base_symbol);
         attached = 1;
         continue;
       }
+      hardware_register_use = source_analysis_platform_address_use_for_operand(source_analysis,
+        section->section_index, candidate->offset, operand_index, value,
+        M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_REGISTER_ACCESS);
+      if (hardware_register_use == NULL) continue;
       hardware_field = amiga_os_find_hardware_register_field_by_cpu_address(value);
       if (hardware_field != NULL &&
           format_amiga_hardware_register_field_symbol(hardware_field, 1, symbol_name, sizeof(symbol_name))) {
@@ -4216,8 +4247,14 @@ static int attach_amiga_hardware_register_symbols(const M68kRenderPlatformState 
       continue;
     }
     if (m68k_ir_operand_immediate_value(operand, &value)) {
+      const M68kPlatformAddressUseIR *hardware_base_use;
+      if (section == NULL || candidate == NULL) continue;
       base_symbol = amiga_os_find_hardware_base_symbol_by_address(value);
       if (base_symbol == NULL || base_symbol[0] == '\0') continue;
+      hardware_base_use = source_analysis_platform_address_use_for_operand(source_analysis,
+        section->section_index, candidate->offset, operand_index, value,
+        M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_BASE_ADDRESS);
+      if (hardware_base_use == NULL) continue;
       attach_amiga_platform_symbol(operand, base_symbol);
       attached = 1;
     }
@@ -9180,25 +9217,6 @@ static int attach_absolute_memory_address_use_symbols(M68kRenderIRPreview *previ
   return 1;
 }
 
-static const M68kPlatformAddressUseIR *source_analysis_platform_address_use_for_operand(
-    const M68kSourceAnalysisIR *source_analysis, size_t section_index, uint32_t offset, size_t operand_index,
-    uint32_t address, uint8_t use_shape) {
-  const M68kSectionAnalysisIR *section_analysis;
-  size_t index;
-  if (source_analysis == NULL || section_index >= source_analysis->section_count) return NULL;
-  section_analysis = &source_analysis->sections[section_index];
-  for (index = 0U; index < section_analysis->platform_address_use_count; ++index) {
-    const M68kPlatformAddressUseIR *use = &section_analysis->platform_address_uses[index];
-    if (use->offset == offset &&
-        use->operand_index == operand_index &&
-        use->address == address &&
-        use->use_shape == use_shape) {
-      return use;
-    }
-  }
-  return NULL;
-}
-
 static int attach_vector_address_use_symbols(M68kRenderIRPreview *preview,
     const M68kSourceAnalysisIR *source_analysis, const M68kDecodeSectionIR *section,
     const M68kDecodeCandidate *candidate, M68kInstructionIR *instruction) {
@@ -9818,7 +9836,8 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, M68kRenderLookup
     sizeof(platform_comment));
   attach_amiga_hardware_access_comment_for_render(platform_state, &instruction, platform_comment,
     sizeof(platform_comment));
-  (void)attach_amiga_hardware_register_symbols(platform_state, &instruction, &instruction);
+  (void)attach_amiga_hardware_register_symbols(platform_state, source_analysis, section, candidate, &instruction,
+    &instruction);
   (void)attach_amiga_runtime_sink_immediate_symbols(lookup, platform_state, section->section_index, &instruction);
   (void)attach_amiga_hardware_register_immediate_symbols(platform_state, &instruction);
   (void)attach_absolute_stack_top_symbol(preview, &instruction);

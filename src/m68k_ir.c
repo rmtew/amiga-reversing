@@ -563,6 +563,8 @@ const char *m68k_platform_address_use_shape_name(uint8_t use_shape) {
       return "hardware_register_access";
     case M68K_PLATFORM_ADDRESS_USE_SHAPE_EXECBASE_LITERAL:
       return "execbase_literal";
+    case M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_BASE_ADDRESS:
+      return "hardware_base_address";
     default:
       return "unknown";
   }
