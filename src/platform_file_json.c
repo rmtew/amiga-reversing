@@ -5534,31 +5534,6 @@ static int append_listing_app_slot_refs_json(JsonBuilder *builder, const M68kSta
   return json_builder_append(builder, "]");
 }
 
-static int listing_comment_runtime_pointer_address(const char *comment, uint32_t *out_address) {
-  const char *marker;
-  uint32_t value = 0U;
-  int parsed = 0;
-  if (out_address != NULL) *out_address = 0U;
-  if (comment == NULL) return 0;
-  marker = strstr(comment, " pointer $");
-  if (marker == NULL) return 0;
-  marker += strlen(" pointer $");
-  while (*marker != '\0') {
-    uint32_t digit;
-    if (*marker >= '0' && *marker <= '9') digit = (uint32_t)(*marker - '0');
-    else if (*marker >= 'A' && *marker <= 'F') digit = (uint32_t)(*marker - 'A' + 10);
-    else if (*marker >= 'a' && *marker <= 'f') digit = (uint32_t)(*marker - 'a' + 10);
-    else break;
-    if (value > (UINT32_MAX - digit) / 16U) return 0;
-    value = value * 16U + digit;
-    parsed = 1;
-    ++marker;
-  }
-  if (!parsed) return 0;
-  if (out_address != NULL) *out_address = value;
-  return 1;
-}
-
 static int append_listing_runtime_address_ref_json(JsonBuilder *builder, const M68kRuntimeAddressRefIR *ref) {
   if (json_builder_appendf(builder, "{\"offset\":%u,\"operand_index\":",
       (unsigned)ref->offset) != 0)
@@ -5609,32 +5584,32 @@ static int append_listing_runtime_address_ref_json(JsonBuilder *builder, const M
   return json_builder_append(builder, "}");
 }
 
+static int listing_runtime_address_ref_intersects_source_range(const M68kRuntimeAddressRefIR *ref,
+    uint32_t source_offset, uint32_t source_size) {
+  uint32_t ref_size;
+  uint32_t source_end;
+  uint32_t ref_end;
+  if (ref == NULL) return 0;
+  if (source_size == 0U) return ref->offset == source_offset;
+  ref_size = ref->size != 0U ? ref->size : 1U;
+  source_end = source_offset + source_size;
+  ref_end = ref->offset + ref_size;
+  if (source_end < source_offset || ref_end < ref->offset) return 0;
+  return ref->offset < source_end && ref_end > source_offset;
+}
+
 static int append_listing_runtime_address_refs_json(JsonBuilder *builder, const M68kStatementIR *stmt,
-    const M68kSectionAnalysisIR *section_analysis, const char *comment, int suppress_offset_fallback) {
+    const M68kSectionAnalysisIR *section_analysis, uint32_t source_offset, uint32_t source_size) {
   size_t index;
   int emitted = 0;
-  uint32_t comment_runtime_address = 0U;
   if (json_builder_append(builder, "[") != 0) return -1;
   if (stmt == NULL ||
       (stmt->kind != M68K_STATEMENT_INSTRUCTION && stmt->kind != M68K_STATEMENT_DATA) ||
       section_analysis == NULL)
     return json_builder_append(builder, "]");
-  if (listing_comment_runtime_pointer_address(comment, &comment_runtime_address)) {
-    for (index = 0U; index < section_analysis->runtime_address_ref_count; ++index) {
-      const M68kRuntimeAddressRefIR *ref = &section_analysis->runtime_address_refs[index];
-      if (!ref->has_runtime_address || ref->runtime_address != comment_runtime_address ||
-          ref->data_class_flags == 0U)
-        continue;
-      if (emitted && json_builder_append(builder, ",") != 0) return -1;
-      if (append_listing_runtime_address_ref_json(builder, ref) != 0) return -1;
-      emitted = 1;
-    }
-    if (emitted) return json_builder_append(builder, "]");
-  }
-  if (suppress_offset_fallback) return json_builder_append(builder, "]");
   for (index = 0U; index < section_analysis->runtime_address_ref_count; ++index) {
     const M68kRuntimeAddressRefIR *ref = &section_analysis->runtime_address_refs[index];
-    if (ref->offset != stmt->offset) continue;
+    if (!listing_runtime_address_ref_intersects_source_range(ref, source_offset, source_size)) continue;
     if (emitted && json_builder_append(builder, ",") != 0) return -1;
     if (append_listing_runtime_address_ref_json(builder, ref) != 0) return -1;
     emitted = 1;
@@ -7730,24 +7705,16 @@ static int listing_stmt_has_app_slot_refs(const M68kStatementIR *stmt,
 }
 
 static int listing_stmt_has_runtime_address_refs(const M68kStatementIR *stmt,
-    const M68kSectionAnalysisIR *section_analysis, const char *comment, int suppress_offset_fallback) {
+    const M68kSectionAnalysisIR *section_analysis, uint32_t source_offset, uint32_t source_size) {
   size_t index;
-  uint32_t comment_runtime_address = 0U;
   if (stmt == NULL ||
       (stmt->kind != M68K_STATEMENT_INSTRUCTION && stmt->kind != M68K_STATEMENT_DATA) ||
       section_analysis == NULL)
     return 0;
-  if (listing_comment_runtime_pointer_address(comment, &comment_runtime_address)) {
-    for (index = 0U; index < section_analysis->runtime_address_ref_count; ++index) {
-      const M68kRuntimeAddressRefIR *ref = &section_analysis->runtime_address_refs[index];
-      if (ref->has_runtime_address && ref->runtime_address == comment_runtime_address &&
-          ref->data_class_flags != 0U)
-        return 1;
-    }
-  }
-  if (suppress_offset_fallback) return 0;
   for (index = 0U; index < section_analysis->runtime_address_ref_count; ++index)
-    if (section_analysis->runtime_address_refs[index].offset == stmt->offset) return 1;
+    if (listing_runtime_address_ref_intersects_source_range(&section_analysis->runtime_address_refs[index],
+        source_offset, source_size))
+      return 1;
   return 0;
 }
 
@@ -7805,7 +7772,8 @@ static int append_listing_row_json_parsed(JsonBuilder *builder, size_t row_index
     const char *comment, int section_index, const M68kStatementIR *stmt,
     const M68kAnalysisPolicy *analysis_policy, const M68kSourceAnalysisIR *source_analysis,
     const char *analysis_generation, const char *plan_data_class, uint32_t plan_data_class_flags,
-    int has_plan_runtime_address, uint32_t plan_runtime_address) {
+    int has_plan_runtime_address, uint32_t plan_runtime_address, int has_plan_source_range,
+    uint32_t plan_source_offset, uint32_t plan_source_size) {
   char text[1200];
   char label_text[1024];
   const char *row_kind = listing_row_kind_name(row_kind_id);
@@ -7817,7 +7785,6 @@ static int append_listing_row_json_parsed(JsonBuilder *builder, size_t row_index
   uint32_t byte_count = 0U;
   const M68kRuntimeViewIR *runtime_view = NULL;
   uint32_t runtime_address = 0U;
-  int suppress_offset_runtime_refs = 0;
   const char *row_data_class = NULL;
   uint32_t row_data_class_flags = 0U;
   if (line_length + 1U < sizeof(text)) {
@@ -7831,11 +7798,13 @@ static int append_listing_row_json_parsed(JsonBuilder *builder, size_t row_index
     addr = stmt->offset;
     if (stmt->kind == M68K_STATEMENT_INSTRUCTION) byte_count = (uint32_t)stmt->u.instruction.byte_count;
     else if (stmt->kind == M68K_STATEMENT_DATA) byte_count = (uint32_t)stmt->u.data.size;
+    if (has_plan_source_range) {
+      addr = plan_source_offset;
+      byte_count = plan_source_size;
+    }
     end_offset = addr + byte_count;
     label = stmt->label_name;
     structured_item = listing_structured_data_item_at_offset(source_analysis, analysis_policy, section_index, addr);
-    suppress_offset_runtime_refs =
-      structured_item != NULL && stmt->kind == M68K_STATEMENT_DATA && byte_count > 4U;
     if (has_plan_runtime_address) {
       runtime_address = plan_runtime_address;
       runtime_view = listing_runtime_view_for_storage_runtime_offset(source_analysis, section_index, addr,
@@ -7965,10 +7934,9 @@ static int append_listing_row_json_parsed(JsonBuilder *builder, size_t row_index
       if (json_builder_append(builder, ",\"app_slot_refs\":") != 0) return -1;
       if (append_listing_app_slot_refs_json(builder, stmt, section_analysis) != 0) return -1;
     }
-    if (listing_stmt_has_runtime_address_refs(stmt, section_analysis, comment, suppress_offset_runtime_refs)) {
+    if (listing_stmt_has_runtime_address_refs(stmt, section_analysis, addr, byte_count)) {
       if (json_builder_append(builder, ",\"runtime_address_refs\":") != 0) return -1;
-      if (append_listing_runtime_address_refs_json(builder, stmt, section_analysis, comment,
-          suppress_offset_runtime_refs) != 0)
+      if (append_listing_runtime_address_refs_json(builder, stmt, section_analysis, addr, byte_count) != 0)
         return -1;
     }
     if (listing_stmt_has_code_start_refs(stmt, section_analysis)) {
@@ -8016,7 +7984,8 @@ static int append_listing_row_json(JsonBuilder *builder, size_t row_index, const
   split_listing_line(line_start, line_length, stripped, sizeof(stripped), opcode, sizeof(opcode), operand,
     sizeof(operand), comment, sizeof(comment));
   return append_listing_row_json_parsed(builder, row_index, line_start, line_length, row_kind_id, stripped, opcode,
-    operand, comment, section_index, stmt, analysis_policy, source_analysis, analysis_generation, NULL, 0U, 0, 0U);
+    operand, comment, section_index, stmt, analysis_policy, source_analysis, analysis_generation, NULL, 0U, 0, 0U,
+    0, 0U, 0U);
 }
 
 typedef struct ListingSourceHeaderRow {
@@ -8211,7 +8180,8 @@ static int listing_statement_from_plan_row_metadata(const M68kRenderPlanRow *row
 static int append_listing_render_plan_json_row(ListingRenderPlanJsonContext *context, const char *line_start,
     size_t line_length, uint8_t row_kind_id, const char *stripped, const char *opcode, const char *operand,
     const char *comment, int section_index, const M68kStatementIR *stmt, int has_plan_runtime_address,
-    uint32_t plan_runtime_address) {
+    uint32_t plan_runtime_address, int has_plan_source_range, uint32_t plan_source_offset,
+    uint32_t plan_source_size) {
   int emit_row;
   const char *row_kind = listing_row_kind_name(row_kind_id);
   if (context == NULL) return -1;
@@ -8260,7 +8230,8 @@ static int append_listing_render_plan_json_row(ListingRenderPlanJsonContext *con
           context->source_analysis, context->analysis_generation,
           context->current_plan_row != NULL ? context->current_plan_row->data_class : NULL,
           context->current_plan_row != NULL ? context->current_plan_row->data_class_flags : 0U,
-          has_plan_runtime_address, plan_runtime_address) != 0)
+          has_plan_runtime_address, plan_runtime_address, has_plan_source_range, plan_source_offset,
+          plan_source_size) != 0)
         return -1;
     } else if (append_listing_row_json(context->builder, context->row_index, line_start, line_length, row_kind_id,
         section_index, stmt, context->analysis_policy, context->source_analysis, context->analysis_generation) != 0)
@@ -8288,7 +8259,7 @@ static int append_listing_render_plan_blank_row(ListingRenderPlanJsonContext *co
     context->current_subline = 0U;
   }
   return append_listing_render_plan_json_row(context, blank_line, 1U, LISTING_ROW_KIND_BLANK, NULL, NULL, NULL, NULL,
-    -1, NULL, 0, 0U);
+    -1, NULL, 0, 0U, 0, 0U, 0U);
 }
 
 static int append_listing_source_header_rows(ListingRenderPlanJsonContext *context) {
@@ -8319,7 +8290,7 @@ static int append_listing_source_header_rows(ListingRenderPlanJsonContext *conte
         split_listing_line(row->line_start, row->line_length, stripped, sizeof(stripped), opcode, sizeof(opcode),
           operand, sizeof(operand), comment, sizeof(comment));
         if (append_listing_render_plan_json_row(context, row->line_start, row->line_length, row->row_kind_id,
-            stripped, opcode, operand, comment, row->section_index, NULL, 0, 0U) != 0)
+            stripped, opcode, operand, comment, row->section_index, NULL, 0, 0U, 0, 0U, 0U) != 0)
           goto done;
       }
       emitted_group = 1;
@@ -8425,6 +8396,9 @@ static int append_full_listing_render_plan_line(const M68kRenderPlanRow *row, ui
   uint32_t label_runtime_address = 0U;
   int is_plan_label_subline = listing_plan_subline_is_label(row, subline, &label_source_offset,
     &label_has_runtime_address, &label_runtime_address);
+  uint32_t line_source_offset = 0U;
+  uint32_t line_source_size = 0U;
+  uint8_t line_has_source_range = 0U;
   int section_index = -1;
   char stripped[1024];
   char opcode[128];
@@ -8437,6 +8411,13 @@ static int append_full_listing_render_plan_line(const M68kRenderPlanRow *row, ui
   (void)line;
   m68k_ir_statement_init(&plan_stmt);
   if (context == NULL) return -1;
+  line_has_source_range = m68k_render_plan_row_source_line_range(row, subline, &line_source_offset,
+    &line_source_size);
+  if (!line_has_source_range && row != NULL && row->has_source_range && row->line_count == 1U) {
+    line_has_source_range = 1U;
+    line_source_offset = row->source_offset;
+    line_source_size = row->source_size;
+  }
   context->current_plan_row = row;
   context->current_subline = subline;
   split_listing_line(line_start, line_length, stripped, sizeof(stripped), opcode, sizeof(opcode), operand,
@@ -8473,7 +8454,8 @@ static int append_full_listing_render_plan_line(const M68kRenderPlanRow *row, ui
     return 0;
   }
   if (append_listing_render_plan_json_row(context, line_start, line_length, row_kind_id, stripped, opcode, operand,
-      comment, section_index, stmt, label_has_runtime_address ? 1 : 0, label_runtime_address) != 0)
+      comment, section_index, stmt, label_has_runtime_address ? 1 : 0, label_runtime_address,
+      line_has_source_range ? 1 : 0, line_source_offset, line_source_size) != 0)
     return -1;
   return 0;
 }
@@ -9180,7 +9162,8 @@ static int listing_navigation_observe_row(ListingNavigationJsonContext *navigati
           row_kind, summary, match_text, access) != 0)
         return -1;
     }
-    if (listing_stmt_has_runtime_address_refs(stmt, section, comment, 0)) {
+    if (listing_stmt_has_runtime_address_refs(stmt, section, stmt->offset,
+        stmt->kind == M68K_STATEMENT_INSTRUCTION ? (uint32_t)stmt->u.instruction.byte_count : 0U)) {
       if (navigation->relocations_count++ != 0U && json_builder_append(&navigation->relocations, ",") != 0)
         return -1;
       if (append_listing_navigation_entry(&navigation->relocations, stmt, row_index, section_index, row_kind,

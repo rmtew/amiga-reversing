@@ -173,6 +173,9 @@ int m68k_render_plan_row_builder_begin(M68kRenderPlanRowBuilder *builder, M68kRe
   builder->size = 0U;
   builder->current_line = 0U;
   builder->directive_line_mask = 0U;
+  builder->source_line_mask = 0U;
+  memset(builder->source_line_offsets, 0, sizeof(builder->source_line_offsets));
+  memset(builder->source_line_sizes, 0, sizeof(builder->source_line_sizes));
   builder->label_line_mask = 0U;
   memset(builder->label_line_source_offsets, 0, sizeof(builder->label_line_source_offsets));
   builder->label_line_runtime_mask = 0U;
@@ -235,6 +238,14 @@ void m68k_render_plan_row_builder_mark_current_line_directive(M68kRenderPlanRowB
   builder->directive_line_mask |= 1U << builder->current_line;
 }
 
+void m68k_render_plan_row_builder_mark_current_line_source_range(M68kRenderPlanRowBuilder *builder,
+    uint32_t source_offset, uint32_t source_size) {
+  if (builder == NULL || !builder->active || builder->current_line >= 32U) return;
+  builder->source_line_mask |= 1U << builder->current_line;
+  builder->source_line_offsets[builder->current_line] = source_offset;
+  builder->source_line_sizes[builder->current_line] = source_size;
+}
+
 void m68k_render_plan_row_builder_mark_current_line_label(M68kRenderPlanRowBuilder *builder,
     uint32_t source_offset, uint8_t has_runtime_address, uint32_t runtime_address) {
   if (builder == NULL || !builder->active || builder->current_line >= 32U) return;
@@ -253,6 +264,11 @@ int m68k_render_plan_row_builder_commit(M68kRenderPlanRowBuilder *builder, M68kR
   result = m68k_render_plan_append_text_row(builder->plan, builder->kind, builder->region_id, builder->text, out_row);
   if (result == 0 && out_row != NULL && *out_row != NULL) {
     (*out_row)->directive_line_mask = builder->directive_line_mask;
+    (*out_row)->source_line_mask = builder->source_line_mask;
+    memcpy((*out_row)->source_line_offsets, builder->source_line_offsets,
+      sizeof((*out_row)->source_line_offsets));
+    memcpy((*out_row)->source_line_sizes, builder->source_line_sizes,
+      sizeof((*out_row)->source_line_sizes));
     (*out_row)->label_line_mask = builder->label_line_mask;
     memcpy((*out_row)->label_line_source_offsets, builder->label_line_source_offsets,
       sizeof((*out_row)->label_line_source_offsets));
@@ -265,6 +281,9 @@ int m68k_render_plan_row_builder_commit(M68kRenderPlanRowBuilder *builder, M68kR
   builder->size = 0U;
   builder->current_line = 0U;
   builder->directive_line_mask = 0U;
+  builder->source_line_mask = 0U;
+  memset(builder->source_line_offsets, 0, sizeof(builder->source_line_offsets));
+  memset(builder->source_line_sizes, 0, sizeof(builder->source_line_sizes));
   builder->label_line_mask = 0U;
   memset(builder->label_line_source_offsets, 0, sizeof(builder->label_line_source_offsets));
   builder->label_line_runtime_mask = 0U;
@@ -280,6 +299,9 @@ void m68k_render_plan_row_builder_cancel(M68kRenderPlanRowBuilder *builder) {
   builder->size = 0U;
   builder->current_line = 0U;
   builder->directive_line_mask = 0U;
+  builder->source_line_mask = 0U;
+  memset(builder->source_line_offsets, 0, sizeof(builder->source_line_offsets));
+  memset(builder->source_line_sizes, 0, sizeof(builder->source_line_sizes));
   builder->label_line_mask = 0U;
   memset(builder->label_line_source_offsets, 0, sizeof(builder->label_line_source_offsets));
   builder->label_line_runtime_mask = 0U;
@@ -294,6 +316,24 @@ void m68k_render_plan_row_set_source_range(M68kRenderPlanRow *row, uint32_t sect
   row->source_section_index = section_index;
   row->source_offset = offset;
   row->source_size = size;
+}
+
+void m68k_render_plan_row_mark_source_line_range(M68kRenderPlanRow *row, uint32_t subline,
+    uint32_t source_offset, uint32_t source_size) {
+  if (row == NULL || subline >= 32U) return;
+  row->source_line_mask |= 1U << subline;
+  row->source_line_offsets[subline] = source_offset;
+  row->source_line_sizes[subline] = source_size;
+}
+
+uint8_t m68k_render_plan_row_source_line_range(const M68kRenderPlanRow *row, uint32_t subline,
+    uint32_t *out_source_offset, uint32_t *out_source_size) {
+  if (out_source_offset != NULL) *out_source_offset = 0U;
+  if (out_source_size != NULL) *out_source_size = 0U;
+  if (row == NULL || subline >= 32U || (row->source_line_mask & (1U << subline)) == 0U) return 0U;
+  if (out_source_offset != NULL) *out_source_offset = row->source_line_offsets[subline];
+  if (out_source_size != NULL) *out_source_size = row->source_line_sizes[subline];
+  return 1U;
 }
 
 void m68k_render_plan_row_set_runtime_range(M68kRenderPlanRow *row, uint32_t address, uint32_t size) {
@@ -668,6 +708,67 @@ static uint32_t render_plan_statement_source_size(const M68kStatementIR *stmt) {
   return 0U;
 }
 
+static size_t render_plan_statement_line_provenance_capacity(const M68kStatementIR *stmt,
+    const M68kRenderPolicy *policy) {
+  const M68kDataItemIR *data;
+  size_t step;
+  size_t items_per_line;
+  size_t bytes_per_line;
+  size_t string_size;
+  if (stmt == NULL || stmt->kind != M68K_STATEMENT_DATA) return 1U;
+  data = &stmt->u.data;
+  if (data->expr_text != NULL && data->expr_text[0] != '\0') return 1U;
+  if (data->kind == M68K_DATA_ITEM_STRING && (policy == NULL || policy->presentation.prefer_strings != 0U)) {
+    string_size = data->size;
+    if (string_size != 0U && data->data[string_size - 1U] == 0U) --string_size;
+    if (string_size == 0U) return 1U;
+    return (string_size + 127U) / 128U;
+  }
+  step = (data->kind == M68K_DATA_ITEM_WORDS) ? 2U : (data->kind == M68K_DATA_ITEM_LONGS) ? 4U : 1U;
+  items_per_line = (data->kind == M68K_DATA_ITEM_LONGS) ? 8U : (data->kind == M68K_DATA_ITEM_WORDS) ? 12U : 16U;
+  if (data->kind == M68K_DATA_ITEM_STRING ||
+      (data->kind == M68K_DATA_ITEM_LONGS && policy != NULL && policy->presentation.prefer_long_data == 0U)) {
+    step = 1U;
+    items_per_line = 16U;
+  }
+  bytes_per_line = step * items_per_line;
+  if (bytes_per_line == 0U || data->size == 0U) return 1U;
+  return (data->size + bytes_per_line - 1U) / bytes_per_line;
+}
+
+static const char *render_plan_statement_text_line(const char *text, size_t wanted_line, size_t *out_length) {
+  const char *cursor = text;
+  size_t line = 0U;
+  if (out_length != NULL) *out_length = 0U;
+  if (text == NULL) return NULL;
+  while (*cursor != '\0') {
+    const char *line_start = cursor;
+    while (*cursor != '\0' && *cursor != '\n') ++cursor;
+    if (*cursor == '\n') ++cursor;
+    if (line == wanted_line) {
+      if (out_length != NULL) *out_length = (size_t)(cursor - line_start);
+      return line_start;
+    }
+    ++line;
+  }
+  return NULL;
+}
+
+static int render_plan_append_source_statement_row(M68kRenderPlan *plan, uint32_t kind, uint32_t section_index,
+    const char *text, const M68kStatementIR *stmt, size_t statement_index, uint32_t source_offset,
+    uint32_t source_size, M68kRenderPlanRow **out_row) {
+  M68kRenderPlanRow *row = NULL;
+  if (render_plan_append_arena_text_row(plan, kind, section_index, text, &row) != 0) return -1;
+  m68k_render_plan_row_set_source_range(row, section_index, source_offset, source_size);
+  row->has_statement = 1U;
+  row->statement_index = (uint32_t)statement_index;
+  m68k_render_plan_row_set_statement_metadata(row, stmt->kind,
+    stmt->kind == M68K_STATEMENT_INSTRUCTION ? &stmt->u.instruction : NULL,
+    stmt->source_bytes, stmt->source_byte_count);
+  if (out_row != NULL) *out_row = row;
+  return 0;
+}
+
 int m68k_render_plan_build_source_file_body(const M68kSourceFileIR *source_file, const M68kRenderPolicy *policy,
     M68kRenderPlan *out_plan, M68kDiagSink diagnostics) {
   Arena *plan_arena;
@@ -714,25 +815,70 @@ int m68k_render_plan_build_source_file_body(const M68kSourceFileIR *source_file,
     for (statement_index = 0U; statement_index < section->statement_count; ++statement_index) {
       const M68kStatementIR *stmt = &section->statements[statement_index];
       char *stmt_text = NULL;
+      M68kSourceRenderLineProvenance *line_provenance = NULL;
+      size_t line_provenance_capacity;
+      size_t line_provenance_count = 0U;
+      size_t line_index;
       uint32_t source_size;
-      if (m68k_source_ir_render_statement_text_with_policy_arena(stmt, policy, plan_arena, &stmt_text,
-          diagnostics) != 0) {
-        m68k_render_plan_destroy(out_plan);
-        return -1;
-      }
-      if (render_plan_append_arena_text_row(out_plan, render_plan_row_kind_for_statement(stmt),
-          (uint32_t)section_index, stmt_text, &row) != 0) {
+      line_provenance_capacity = render_plan_statement_line_provenance_capacity(stmt, policy);
+      line_provenance = (M68kSourceRenderLineProvenance *)arena_calloc(plan_arena, line_provenance_capacity,
+        sizeof(*line_provenance));
+      if (line_provenance == NULL) {
         m68k_render_plan_destroy(out_plan);
         m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_OUT_OF_MEMORY, "out of memory");
         return -1;
       }
+      if (m68k_source_ir_render_statement_text_with_policy_arena_detail(stmt, policy, plan_arena, &stmt_text,
+          line_provenance, line_provenance_capacity, &line_provenance_count,
+          diagnostics) != 0) {
+        m68k_render_plan_destroy(out_plan);
+        return -1;
+      }
       source_size = render_plan_statement_source_size(stmt);
-      m68k_render_plan_row_set_source_range(row, (uint32_t)section_index, stmt->offset, source_size);
-      row->has_statement = 1U;
-      row->statement_index = (uint32_t)statement_index;
-      m68k_render_plan_row_set_statement_metadata(row, stmt->kind,
-        stmt->kind == M68K_STATEMENT_INSTRUCTION ? &stmt->u.instruction : NULL,
-        stmt->source_bytes, stmt->source_byte_count);
+      if (line_provenance_count > 1U) {
+        for (line_index = 0U; line_index < line_provenance_count; ++line_index) {
+          const char *line_start;
+          size_t line_length = 0U;
+          char *line_text;
+          if (!line_provenance[line_index].has_source_range) continue;
+          line_start = render_plan_statement_text_line(stmt_text, line_provenance[line_index].line_index,
+            &line_length);
+          if (line_start == NULL || line_length == 0U) {
+            m68k_render_plan_destroy(out_plan);
+            m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
+              "render plan source line provenance mismatch");
+            return -1;
+          }
+          line_text = (char *)arena_alloc(plan_arena, line_length + 1U);
+          if (line_text == NULL) {
+            m68k_render_plan_destroy(out_plan);
+            m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_OUT_OF_MEMORY, "out of memory");
+            return -1;
+          }
+          memcpy(line_text, line_start, line_length);
+          line_text[line_length] = '\0';
+          if (render_plan_append_source_statement_row(out_plan, render_plan_row_kind_for_statement(stmt),
+              (uint32_t)section_index, line_text, stmt, statement_index,
+              stmt->offset + line_provenance[line_index].source_offset,
+              line_provenance[line_index].source_size, NULL) != 0) {
+            m68k_render_plan_destroy(out_plan);
+            m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_OUT_OF_MEMORY, "out of memory");
+            return -1;
+          }
+        }
+        continue;
+      }
+      if (render_plan_append_source_statement_row(out_plan, render_plan_row_kind_for_statement(stmt),
+          (uint32_t)section_index, stmt_text, stmt, statement_index, stmt->offset, source_size, &row) != 0) {
+        m68k_render_plan_destroy(out_plan);
+        m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_OUT_OF_MEMORY, "out of memory");
+        return -1;
+      }
+      for (line_index = 0U; line_index < line_provenance_count; ++line_index) {
+        if (!line_provenance[line_index].has_source_range) continue;
+        m68k_render_plan_row_mark_source_line_range(row, line_provenance[line_index].line_index,
+          stmt->offset + line_provenance[line_index].source_offset, line_provenance[line_index].source_size);
+      }
     }
   }
   return 0;

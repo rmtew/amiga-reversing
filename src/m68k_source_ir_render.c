@@ -44,24 +44,51 @@ static int append_rendered_string_bytes(JsonBuilder *builder, const uint8_t *dat
   return has_operand ? 0 : json_builder_append(builder, "\"\"");
 }
 
-static int append_rendered_string_data_stmt(JsonBuilder *builder, const M68kDataItemIR *data) {
+typedef struct RenderLineProvenanceSink {
+  M68kSourceRenderLineProvenance *items;
+  size_t capacity;
+  size_t count;
+} RenderLineProvenanceSink;
+
+static void render_line_provenance_record(RenderLineProvenanceSink *sink, uint32_t source_offset,
+    uint32_t source_size) {
+  M68kSourceRenderLineProvenance *item;
+  if (sink == NULL || sink->items == NULL || sink->count >= sink->capacity) return;
+  item = &sink->items[sink->count];
+  memset(item, 0, sizeof(*item));
+  item->line_index = (uint32_t)sink->count;
+  item->source_offset = source_offset;
+  item->source_size = source_size;
+  item->has_source_range = 1U;
+  ++sink->count;
+}
+
+static int append_rendered_string_data_stmt(JsonBuilder *builder, const M68kDataItemIR *data,
+    RenderLineProvenanceSink *provenance) {
   size_t string_size;
   size_t offset = 0U;
   int has_trailing_nul = 0;
+  size_t original_size;
   if (builder == NULL || data == NULL) return -1;
+  original_size = data->size;
   string_size = data->size;
   if (string_size != 0U && data->data[string_size - 1U] == 0U) {
     has_trailing_nul = 1;
     --string_size;
   }
   if (string_size == 0U) {
+    render_line_provenance_record(provenance, 0U, (uint32_t)original_size);
     if (json_builder_append(builder, "    DC.B    ") != 0) return -1;
     if (append_rendered_string_bytes(builder, data->data, 0U) != 0) return -1;
     return has_trailing_nul ? json_builder_append(builder, ",0") : 0;
   }
   while (offset < string_size) {
     size_t chunk = string_size - offset;
+    size_t line_size;
     if (chunk > M68K_RENDER_STRING_CHUNK_BYTES) chunk = M68K_RENDER_STRING_CHUNK_BYTES;
+    line_size = chunk;
+    if (has_trailing_nul && offset + chunk == string_size) ++line_size;
+    render_line_provenance_record(provenance, (uint32_t)offset, (uint32_t)line_size);
     if (offset != 0U && json_builder_append(builder, "\n") != 0) return -1;
     if (json_builder_append(builder, "    DC.B    ") != 0) return -1;
     if (append_rendered_string_bytes(builder, data->data + offset, chunk) != 0) return -1;
@@ -102,17 +129,20 @@ static const char *rendered_section_name(const M68kSourceFileIR *source_file, si
   return buffer;
 }
 
-static int append_rendered_data_stmt(JsonBuilder *builder, const M68kDataItemIR *data, const M68kRenderPolicy *policy) {
+static int append_rendered_data_stmt(JsonBuilder *builder, const M68kDataItemIR *data, const M68kRenderPolicy *policy,
+    RenderLineProvenanceSink *provenance) {
   size_t index;
   const char *directive = (data->kind == M68K_DATA_ITEM_WORDS) ? "DC.W" : (data->kind == M68K_DATA_ITEM_LONGS) ? "DC.L"
     : "DC.B";
   size_t step = (data->kind == M68K_DATA_ITEM_WORDS)   ? 2U : (data->kind == M68K_DATA_ITEM_LONGS) ? 4U : 1U;
   size_t items_per_line = (data->kind == M68K_DATA_ITEM_LONGS) ? 8U : (data->kind == M68K_DATA_ITEM_WORDS) ? 12U : 16U;
   if (data->kind == M68K_DATA_ITEM_STRING && (policy == NULL || policy->presentation.prefer_strings != 0U)) {
-    return append_rendered_string_data_stmt(builder, data);
+    return append_rendered_string_data_stmt(builder, data, provenance);
   }
-  if (data->expr_text != NULL && data->expr_text[0] != '\0')
+  if (data->expr_text != NULL && data->expr_text[0] != '\0') {
+    render_line_provenance_record(provenance, 0U, (uint32_t)data->size);
     return json_builder_appendf(builder, "    %-7s %s", directive, data->expr_text);
+  }
   if (data->kind == M68K_DATA_ITEM_STRING) {
     directive = "DC.B";
     step = 1U;
@@ -124,6 +154,13 @@ static int append_rendered_data_stmt(JsonBuilder *builder, const M68kDataItemIR 
   }
   for (index = 0; index < data->size; index += step) {
     if ((index / step) % items_per_line == 0U) {
+      size_t remaining;
+      size_t max_line_size;
+      size_t line_size;
+      remaining = data->size - index;
+      max_line_size = items_per_line * step;
+      line_size = remaining < max_line_size ? remaining : max_line_size;
+      render_line_provenance_record(provenance, (uint32_t)index, (uint32_t)line_size);
       if (index != 0U && json_builder_append(builder, "\n") != 0) return -1;
       if (json_builder_appendf(builder, "    %-7s ", directive) != 0) return -1;
     } else if (json_builder_append(builder, ",") != 0) {
@@ -168,13 +205,19 @@ static int append_statement_comment(JsonBuilder *builder, const M68kStatementIR 
 }
 
 static int render_statement_text_with_policy_build(const M68kStatementIR *stmt, const M68kRenderPolicy *policy,
-    Arena *arena, char **out_text, M68kDiagSink diagnostics) {
+    Arena *arena, char **out_text, M68kSourceRenderLineProvenance *line_provenance,
+    size_t line_provenance_capacity, size_t *out_line_provenance_count, M68kDiagSink diagnostics) {
   JsonBuilder builder = {0};
   const M68kRenderPolicy *active_policy = policy;
   M68kRenderPolicy default_policy;
+  RenderLineProvenanceSink provenance;
   size_t line_start;
   if (out_text == NULL) return -1;
   *out_text = NULL;
+  memset(&provenance, 0, sizeof(provenance));
+  provenance.items = line_provenance;
+  provenance.capacity = line_provenance_capacity;
+  if (out_line_provenance_count != NULL) *out_line_provenance_count = 0U;
   if (stmt == NULL) {
     render_error(diagnostics, "missing source statement");
     return -1;
@@ -233,7 +276,7 @@ static int render_statement_text_with_policy_build(const M68kStatementIR *stmt, 
       goto oom;
   } else if (stmt->kind == M68K_STATEMENT_DATA) {
     line_start = builder.size;
-    if (append_rendered_data_stmt(&builder, &stmt->u.data, active_policy) != 0) goto oom;
+    if (append_rendered_data_stmt(&builder, &stmt->u.data, active_policy, &provenance) != 0) goto oom;
     if (append_statement_comment(&builder, stmt, line_start) != 0) goto oom;
   } else {
     render_error(diagnostics, "unsupported source statement");
@@ -242,6 +285,7 @@ static int render_statement_text_with_policy_build(const M68kStatementIR *stmt, 
   }
   *out_text = arena != NULL ? json_builder_build_arena(&builder, arena) : json_builder_build(&builder);
   if (*out_text == NULL) goto oom;
+  if (out_line_provenance_count != NULL) *out_line_provenance_count = provenance.count;
   json_builder_destroy(&builder);
   return 0;
 
@@ -253,7 +297,7 @@ oom:
 
 int m68k_source_ir_render_statement_text_with_policy(const M68kStatementIR *stmt, const M68kRenderPolicy *policy,
     char **out_text, M68kDiagSink diagnostics) {
-  return render_statement_text_with_policy_build(stmt, policy, NULL, out_text, diagnostics);
+  return render_statement_text_with_policy_build(stmt, policy, NULL, out_text, NULL, 0U, NULL, diagnostics);
 }
 
 int m68k_source_ir_render_statement_text_with_policy_arena(const M68kStatementIR *stmt,
@@ -263,7 +307,21 @@ int m68k_source_ir_render_statement_text_with_policy_arena(const M68kStatementIR
     render_error(diagnostics, "missing source statement render arena");
     return -1;
   }
-  return render_statement_text_with_policy_build(stmt, policy, arena, out_text, diagnostics);
+  return render_statement_text_with_policy_build(stmt, policy, arena, out_text, NULL, 0U, NULL, diagnostics);
+}
+
+int m68k_source_ir_render_statement_text_with_policy_arena_detail(const M68kStatementIR *stmt,
+    const M68kRenderPolicy *policy, Arena *arena, char **out_text,
+    M68kSourceRenderLineProvenance *line_provenance, size_t line_provenance_capacity,
+    size_t *out_line_provenance_count, M68kDiagSink diagnostics) {
+  if (arena == NULL) {
+    if (out_text != NULL) *out_text = NULL;
+    if (out_line_provenance_count != NULL) *out_line_provenance_count = 0U;
+    render_error(diagnostics, "missing source statement render arena");
+    return -1;
+  }
+  return render_statement_text_with_policy_build(stmt, policy, arena, out_text, line_provenance,
+    line_provenance_capacity, out_line_provenance_count, diagnostics);
 }
 
 typedef struct RenderLabelIndex {
@@ -1123,7 +1181,7 @@ int m68k_source_ir_render_text_with_policy(const M68kSourceFileIR *source_file, 
           goto oom;
       } else if (stmt->kind == M68K_STATEMENT_DATA) {
         size_t line_start = builder.size;
-        if (append_rendered_data_stmt(&builder, &stmt->u.data, active_policy) != 0) goto oom;
+        if (append_rendered_data_stmt(&builder, &stmt->u.data, active_policy, NULL) != 0) goto oom;
         if (append_statement_comment(&builder, stmt, line_start) != 0) goto oom;
       }
     }

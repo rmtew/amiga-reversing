@@ -146,6 +146,33 @@ static int test_render_plan_row_builder_marks_label_subline(void) {
   return 0;
 }
 
+static int test_render_plan_row_builder_marks_source_subline(void) {
+  M68kRenderPlan plan;
+  M68kRenderPlanRowBuilder builder;
+  M68kRenderPlanRow *row = NULL;
+  uint32_t source_offset = 0U;
+  uint32_t source_size = 0U;
+  m68k_render_plan_init(&plan);
+  m68k_render_plan_row_builder_init(&builder);
+  M68K_C_ASSERT_INT(0, m68k_render_plan_row_builder_begin(&builder, &plan, M68K_RENDER_PLAN_ROW_DATA, 2U));
+  m68k_render_plan_row_builder_mark_current_line_source_range(&builder, 0x20U, 16U);
+  M68K_C_ASSERT_INT(0, m68k_render_plan_row_builder_append(&builder, "\tdc.b $00\n"));
+  m68k_render_plan_row_builder_mark_current_line_source_range(&builder, 0x30U, 2U);
+  M68K_C_ASSERT_INT(0, m68k_render_plan_row_builder_append(&builder, "\tdc.b $01,$02\n"));
+  M68K_C_ASSERT_INT(0, m68k_render_plan_row_builder_commit(&builder, &row));
+  M68K_C_ASSERT(row != NULL);
+  M68K_C_ASSERT_U32(3U, row->source_line_mask);
+  M68K_C_ASSERT_U32(1U, m68k_render_plan_row_source_line_range(row, 0U, &source_offset, &source_size));
+  M68K_C_ASSERT_U32(0x20U, source_offset);
+  M68K_C_ASSERT_U32(16U, source_size);
+  M68K_C_ASSERT_U32(1U, m68k_render_plan_row_source_line_range(row, 1U, &source_offset, &source_size));
+  M68K_C_ASSERT_U32(0x30U, source_offset);
+  M68K_C_ASSERT_U32(2U, source_size);
+  m68k_render_plan_row_builder_destroy(&builder);
+  m68k_render_plan_destroy(&plan);
+  return 0;
+}
+
 static int test_render_plan_builds_text_line_rows(void) {
   M68kRenderPlan plan;
   char *full_text = NULL;
@@ -403,6 +430,52 @@ static int test_render_plan_builds_source_file_body_genam_fixture(void) {
   return 0;
 }
 
+static int test_render_plan_splits_multiline_data_source_ranges(void) {
+  M68kSourceFileIR source_file;
+  M68kSectionIR section;
+  M68kStatementIR stmt;
+  M68kRenderPolicy policy;
+  M68kRenderPlan plan;
+  char *full_text = NULL;
+  uint8_t bytes[17];
+  size_t index;
+  const char *expected =
+    "    SECTION section,code\n"
+    "    DC.B    $00,$01,$02,$03,$04,$05,$06,$07,$08,$09,$0a,$0b,$0c,$0d,$0e,$0f\n"
+    "    DC.B    $10\n";
+  for (index = 0U; index < sizeof(bytes); ++index) bytes[index] = (uint8_t)index;
+  m68k_ir_source_file_create(&source_file);
+  m68k_ir_section_create(&section, test_render_plan_ir_result_arena());
+  m68k_render_policy_init_for_syntax(&policy, M68K_IR_SYNTAX_GENAM);
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+
+  m68k_ir_statement_init(&stmt);
+  stmt.kind = M68K_STATEMENT_DATA;
+  stmt.offset = 0x40U;
+  stmt.u.data.kind = M68K_DATA_ITEM_BYTES;
+  stmt.u.data.data = bytes;
+  stmt.u.data.size = sizeof(bytes);
+  M68K_C_ASSERT_INT(0, m68k_ir_section_append_statement(&section, &stmt));
+  M68K_C_ASSERT_INT(0, m68k_ir_source_file_append_section(&source_file, &section));
+  m68k_ir_section_destroy(&section);
+
+  M68K_C_ASSERT_INT(0, m68k_render_plan_build_source_file_body(&source_file, &policy, &plan, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, m68k_render_plan_emit_all_alloc(&plan, &full_text));
+  M68K_C_ASSERT_STR(expected, full_text);
+  M68K_C_ASSERT_U32(3U, (uint32_t)plan.row_count);
+  M68K_C_ASSERT_U32(0x40U, plan.rows[1].source_offset);
+  M68K_C_ASSERT_U32(16U, plan.rows[1].source_size);
+  M68K_C_ASSERT_U32(0x50U, plan.rows[2].source_offset);
+  M68K_C_ASSERT_U32(1U, plan.rows[2].source_size);
+
+  m68k_render_plan_free_text(full_text);
+  m68k_render_plan_destroy(&plan);
+  m68k_ir_source_file_destroy(&source_file);
+  return 0;
+}
+
 int m68k_c_render_plan_tests(void) {
   static const M68kCTestCase cases[] = {
     {"line_counts_and_order", test_render_plan_line_counts_and_order},
@@ -410,6 +483,7 @@ int m68k_c_render_plan_tests(void) {
     {"row_builder_commits_fragmented_row", test_render_plan_row_builder_commits_fragmented_row},
     {"row_builder_marks_directive_subline", test_render_plan_row_builder_marks_directive_subline},
     {"row_builder_marks_label_subline", test_render_plan_row_builder_marks_label_subline},
+    {"row_builder_marks_source_subline", test_render_plan_row_builder_marks_source_subline},
     {"builds_text_line_rows", test_render_plan_builds_text_line_rows},
     {"window_emission_matches_full_slice", test_render_plan_window_emission_matches_full_slice},
     {"visits_physical_lines_with_owner_row", test_render_plan_visits_physical_lines_with_owner_row},
@@ -417,7 +491,8 @@ int m68k_c_render_plan_tests(void) {
     {"hoists_typed_header_rows", test_render_plan_hoists_typed_header_rows},
     {"move_transfers_arena_owned_rows", test_render_plan_move_transfers_arena_owned_rows},
     {"arena_owned_rows_survive_growth", test_render_plan_arena_owned_rows_survive_growth},
-    {"builds_source_file_body_genam_fixture", test_render_plan_builds_source_file_body_genam_fixture}
+    {"builds_source_file_body_genam_fixture", test_render_plan_builds_source_file_body_genam_fixture},
+    {"splits_multiline_data_source_ranges", test_render_plan_splits_multiline_data_source_ranges}
   };
   return m68k_c_test_run_suite("m68k_render_plan", cases, sizeof(cases) / sizeof(cases[0]));
 }

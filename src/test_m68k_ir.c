@@ -15758,6 +15758,72 @@ static int test_listing_json_uses_render_plan_source_range_provenance(void) {
   return 0;
 }
 
+static int test_listing_json_uses_render_plan_line_source_ranges_for_runtime_refs(void) {
+  M68kSourceFileIR source_file;
+  M68kSectionIR section;
+  M68kStatementIR stmt;
+  M68kSourceAnalysisIR source_analysis;
+  M68kSectionAnalysisIR section_analysis;
+  M68kRuntimeAddressRefIR ref;
+  M68kRenderPolicy policy;
+  M68kRenderPlan render_plan;
+  char *rows_json = NULL;
+  uint8_t bytes[32];
+  size_t index;
+
+  for (index = 0U; index < sizeof(bytes); ++index) bytes[index] = (uint8_t)index;
+  M68K_C_ASSERT_INT(0, m68k_ir_source_file_create(&source_file));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_create(&section, test_ir_result_arena()));
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_create(&source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_create(&section_analysis, test_ir_result_arena()));
+  m68k_render_policy_init_for_syntax(&policy, M68K_IR_SYNTAX_GENAM);
+  source_file.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  source_file.file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  m68k_ir_statement_init(&stmt);
+  stmt.kind = M68K_STATEMENT_DATA;
+  stmt.offset = 0U;
+  stmt.u.data.kind = M68K_DATA_ITEM_BYTES;
+  stmt.u.data.data = bytes;
+  stmt.u.data.size = sizeof(bytes);
+  M68K_C_ASSERT_INT(0, m68k_ir_section_append_statement(&section, &stmt));
+  M68K_C_ASSERT_INT(0, m68k_ir_source_file_append_section(&source_file, &section));
+  m68k_ir_section_destroy(&section);
+
+  section_analysis.section_index = 0U;
+  section_analysis.section_kind = M68K_SECTION_CODE;
+  section_analysis.section_size = sizeof(bytes);
+  memset(&ref, 0, sizeof(ref));
+  ref.offset = 16U;
+  ref.size = 4U;
+  ref.operand_index = UINT32_MAX;
+  ref.has_runtime_address = 1U;
+  ref.runtime_address = 0x12345678U;
+  ref.data_class_flags = M68K_ANALYSIS_STRUCTURED_DATA_ROLE_POINTER_TABLE;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_runtime_address_ref(&section_analysis, &ref));
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
+
+  M68K_C_ASSERT_INT(0, m68k_render_plan_build_source_file_body(&source_file, &policy, &render_plan,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_INT(0, test_listing_full_window_from_render_plan_to_json(&source_file, &render_plan,
+    source_file.platform_backend_kind, NULL, &source_analysis, "full", 1, &rows_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(rows_json != NULL);
+  M68K_C_ASSERT(strstr(rows_json, "\"start_offset\":16,\"end_offset\":32") != NULL);
+  M68K_C_ASSERT(strstr(rows_json, "\"runtime_address_refs\":[{\"offset\":16") != NULL);
+  M68K_C_ASSERT(strstr(rows_json, "\"runtime_address\":305419896") != NULL);
+  M68K_C_ASSERT(strstr(rows_json, "\"start_offset\":0,\"end_offset\":16,\"storage_address\":0,"
+    "\"runtime_address\":null") != NULL);
+
+  free(rows_json);
+  m68k_render_plan_destroy(&render_plan);
+  m68k_ir_section_analysis_destroy(&section_analysis);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_ir_source_file_destroy(&source_file);
+  return 0;
+}
+
 static int test_listing_json_uses_plan_statement_metadata_without_source_file(void) {
   M68kSourceFileIR source_file;
   M68kSectionIR section;
@@ -24646,6 +24712,8 @@ int m68k_c_ir_tests(void) {
       test_listing_json_uses_render_plan_statement_provenance},
     {"listing_json_uses_render_plan_source_range_provenance",
       test_listing_json_uses_render_plan_source_range_provenance},
+    {"listing_json_uses_render_plan_line_source_ranges_for_runtime_refs",
+      test_listing_json_uses_render_plan_line_source_ranges_for_runtime_refs},
     {"listing_json_uses_plan_statement_metadata_without_source_file",
       test_listing_json_uses_plan_statement_metadata_without_source_file},
     {"listing_json_classifies_org_subline_as_directive", test_listing_json_classifies_org_subline_as_directive},

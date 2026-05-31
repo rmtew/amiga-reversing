@@ -4586,3 +4586,28 @@ kept:
 The deleted functions had no real consumers. `m68k_facts_v2_render_asm_source_alloc()`
 now calls the shared collection engine directly and preserves the existing
 strict source-refusal behavior.
+
+### Listing Runtime Ref Provenance
+
+Removed listing/report runtime-ref recovery from rendered comment text:
+
+```text
+before:
+  rendered line comment contains "pointer $12345678"
+  -> report parses the comment
+  -> report guesses which runtime_address_ref belongs to that row
+
+after:
+  C source renderer records source bytes covered by each rendered data line
+  -> render plan stores the row/source range
+  -> listing JSON attaches runtime_address_refs by source-range intersection
+```
+
+Multi-line data statements are now split into per-line render-plan rows during
+source-file body planning. The assembly text remains byte-for-byte equivalent,
+but every visible data line has its own source range, so reports no longer need
+comment parsing or the previous "suppress offset fallback" branch for large
+structured data rows.
+
+The key invariant is that comments can describe already-known facts, but they no
+longer create facts for the web/report layer.

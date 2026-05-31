@@ -42,6 +42,9 @@ typedef struct M68kRenderPlanRow {
   uint32_t runtime_address;
   uint32_t runtime_size;
   uint32_t directive_line_mask;
+  uint32_t source_line_mask;
+  uint32_t source_line_offsets[32];
+  uint32_t source_line_sizes[32];
   uint32_t label_line_mask;
   uint32_t label_line_source_offsets[32];
   uint32_t label_line_runtime_mask;
@@ -79,6 +82,9 @@ typedef struct M68kRenderPlanRowBuilder {
   uint32_t region_id;
   uint32_t current_line;
   uint32_t directive_line_mask;
+  uint32_t source_line_mask;
+  uint32_t source_line_offsets[32];
+  uint32_t source_line_sizes[32];
   uint32_t label_line_mask;
   uint32_t label_line_source_offsets[32];
   uint32_t label_line_runtime_mask;
@@ -102,12 +108,18 @@ int m68k_render_plan_row_builder_append(M68kRenderPlanRowBuilder *builder, const
 int m68k_render_plan_row_builder_append_span(M68kRenderPlanRowBuilder *builder, const char *text, size_t length);
 int m68k_render_plan_row_builder_appendf(M68kRenderPlanRowBuilder *builder, const char *format, ...);
 void m68k_render_plan_row_builder_mark_current_line_directive(M68kRenderPlanRowBuilder *builder);
+void m68k_render_plan_row_builder_mark_current_line_source_range(M68kRenderPlanRowBuilder *builder,
+  uint32_t source_offset, uint32_t source_size);
 void m68k_render_plan_row_builder_mark_current_line_label(M68kRenderPlanRowBuilder *builder,
   uint32_t source_offset, uint8_t has_runtime_address, uint32_t runtime_address);
 int m68k_render_plan_row_builder_commit(M68kRenderPlanRowBuilder *builder, M68kRenderPlanRow **out_row);
 void m68k_render_plan_row_builder_cancel(M68kRenderPlanRowBuilder *builder);
 void m68k_render_plan_row_set_source_range(M68kRenderPlanRow *row, uint32_t section_index,
   uint32_t offset, uint32_t size);
+void m68k_render_plan_row_mark_source_line_range(M68kRenderPlanRow *row, uint32_t subline,
+  uint32_t source_offset, uint32_t source_size);
+uint8_t m68k_render_plan_row_source_line_range(const M68kRenderPlanRow *row, uint32_t subline,
+  uint32_t *out_source_offset, uint32_t *out_source_size);
 void m68k_render_plan_row_set_runtime_range(M68kRenderPlanRow *row, uint32_t address, uint32_t size);
 void m68k_render_plan_row_set_statement_metadata(M68kRenderPlanRow *row, uint8_t statement_kind,
   const M68kInstructionIR *instruction, const uint8_t *source_bytes, size_t source_byte_count);
