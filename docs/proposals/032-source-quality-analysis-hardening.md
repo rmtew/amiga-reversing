@@ -4220,3 +4220,28 @@ nearby structured data, missing inbound evidence, vector/API hints, and memory
 observations. Rendering may display them, but it should not decide or append
 them. The moved producer still uses the same C lookup evidence and keeps the
 rendered source behavior unchanged.
+
+### Source-Analysis Builder Ownership
+
+Moved `m68k_analysis_render_lookup_build_source_analysis()` into
+`m68k_analysis_render_lookup.c`. The renderer no longer assembles durable
+`M68kSourceAnalysisIR` sections; it receives a completed analysis object and
+records only rendered-symbol-access evidence while emitting source text.
+
+```text
+m68k_analysis_render_lookup_build_source_analysis()
+  -> auto policy
+  -> base layout fields
+  -> section analysis producers
+  -> platform call facts
+  -> labels / CFG / orphan-code signals
+  -> M68kSourceAnalysisIR
+
+m68k_render_ir_preview_emit_prepared()
+  -> consumes M68kSourceAnalysisIR
+  -> records rendered symbol accesses
+  -> emits text rows
+```
+
+This is an internal ownership cleanup, not a compatibility layer. There are no
+external consumers that need the old render-owned location.

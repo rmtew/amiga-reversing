@@ -14747,3 +14747,61 @@ int m68k_analysis_render_lookup_append_section(M68kRenderLookup *lookup, const M
   return 0;
 }
 
+int m68k_analysis_render_lookup_build_source_analysis(M68kRenderIRPreview *preview, M68kRenderLookup *lookup,
+    const M68kDecodeIR *decode, const M68kAnalysisPolicy *policy, uint8_t **accepted_start,
+    uint8_t **accepted_bytes, M68kSourceAnalysisIR *source_analysis) {
+  M68kRenderPlatformState platform_analysis_state;
+  M68kSectionAnalysisIR section_analysis;
+  int section_analysis_live = 0;
+  Arena *scratch_arena = NULL;
+  size_t section_index;
+  if (preview == NULL || lookup == NULL || decode == NULL || accepted_start == NULL ||
+      accepted_bytes == NULL || source_analysis == NULL) {
+    return -1;
+  }
+  memset(&platform_analysis_state, 0, sizeof(platform_analysis_state));
+  memset(&section_analysis, 0, sizeof(section_analysis));
+  if (m68k_analysis_render_lookup_append_auto_policy(source_analysis, lookup) != 0) return -1;
+  if (m68k_analysis_render_lookup_append_base_layout_fields(preview, lookup, decode, source_analysis) != 0)
+    return -1;
+  for (section_index = 0U; section_index < decode->section_count; ++section_index) {
+    const M68kDecodeSectionIR *section = &decode->sections[section_index];
+    if (m68k_ir_section_analysis_create(&section_analysis, source_analysis->arena) != 0) goto fail;
+    section_analysis_live = 1;
+    section_analysis.section_index = section->section_index;
+    section_analysis.section_kind = section->kind;
+    section_analysis.section_size = section->allocation_size != 0U ? section->allocation_size : section->size;
+    if (m68k_ir_section_analysis_set_name(&section_analysis, section->name) != 0 ||
+        m68k_ir_section_analysis_set_code_map(&section_analysis, accepted_start[section_index],
+          accepted_bytes[section_index], section->size) != 0) {
+      goto fail;
+    }
+    if (m68k_analysis_render_lookup_append_section(lookup, decode, &section_analysis) != 0) goto fail;
+    if (m68k_analysis_render_lookup_append_platform_call_facts_for_section(preview, lookup, &platform_analysis_state,
+        decode, policy, accepted_start, section_index, section, &section_analysis) < 0) {
+      goto fail;
+    }
+    if (m68k_analysis_render_lookup_append_labels_for_section(lookup, section, accepted_start[section_index],
+        &section_analysis) != 0) {
+      goto fail;
+    }
+    scratch_arena = analysis_preview_scratch_arena(preview);
+    if (scratch_arena == NULL) goto fail;
+    if (m68k_analysis_render_lookup_append_cfg_for_section(lookup, section, accepted_start[section_index],
+        accepted_bytes[section_index], scratch_arena, &section_analysis) != 0) {
+      goto fail;
+    }
+    if (m68k_analysis_render_lookup_append_orphan_code_signals_for_section(lookup, section,
+        accepted_start[section_index], accepted_bytes[section_index], &section_analysis) != 0) {
+      goto fail;
+    }
+    if (m68k_ir_source_analysis_append_section(source_analysis, &section_analysis) != 0) goto fail;
+    m68k_ir_section_analysis_destroy(&section_analysis);
+    section_analysis_live = 0;
+  }
+  return 0;
+fail:
+  if (section_analysis_live) m68k_ir_section_analysis_destroy(&section_analysis);
+  return -1;
+}
+
