@@ -3174,3 +3174,30 @@ src\build\m68k_c_unit_tests.exe
 uv run python -m pytest tests\test_target_usage_manifest.py -q
 uv run platform-rendered-source-roundtrip --no-write-report --json
 ```
+
+### Immediate Text Token Migration
+
+Moved immediate printable-token facts out of render preview and into
+source-quality analysis:
+
+```text
+accepted M68kDecodeCandidate immediate operands
+  -> shared decode effective-size helper
+  -> shared operand immediate-value helper
+  -> m68k_source_quality_analyze()
+  -> M68kImmediateTextTokenIR
+```
+
+The source-quality module now emits these operand facts from accepted decode
+rows. Render keeps a compatibility wrapper for existing render/lookup code that
+needs immediate values, but the shared implementation lives in C IR instead of
+the renderer.
+
+Verified:
+
+```text
+cmd /c src\build.bat
+src\build\m68k_c_unit_tests.exe
+uv run python -m pytest tests\test_target_usage_manifest.py -q
+uv run platform-rendered-source-roundtrip --no-write-report --json
+```

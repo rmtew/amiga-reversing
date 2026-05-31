@@ -85,5 +85,6 @@ int m68k_decode_ir_ensure_candidate_at(M68kDecodeIR *ir, size_t section_index, u
   uint8_t max_cpu, const M68kDecodeCandidate **out_candidate, M68kDiagSink diagnostics);
 int m68k_decode_candidate_to_instruction(const M68kDecodeCandidate *candidate,
   M68kInstructionIR *out_instruction);
+char m68k_decode_candidate_effective_size_suffix(const M68kDecodeCandidate *candidate);
 
 #endif

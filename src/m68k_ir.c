@@ -540,6 +540,24 @@ uint32_t m68k_analysis_structured_data_table_entry_size(const M68kAnalysisStruct
   return 0U;
 }
 
+int m68k_ir_operand_immediate_value(const M68kOperandIR *operand, uint32_t *out_value) {
+  if (out_value != NULL) *out_value = 0U;
+  if (operand == NULL || out_value == NULL) return 0;
+  if (operand->kind == M68K_ASM_OPERAND_IMM) {
+    *out_value = operand->value.value;
+    return 1;
+  }
+  if (operand->kind == M68K_ASM_OPERAND_EA && operand->value.ea_mode == 7U && operand->value.ea_reg == 4U) {
+    *out_value = operand->value.value;
+    return 1;
+  }
+  return 0;
+}
+
+int m68k_ir_byte_is_quoted_string_safe(uint8_t value) {
+  return value >= 0x20U && value <= 0x7eU && value != '"' && value != '\\';
+}
+
 uint8_t m68k_analysis_table_entry_count_proof_for_source_pattern(uint8_t source_pattern_id) {
   switch (source_pattern_id) {
     case M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_RELOCATION_POINTER_TABLE:

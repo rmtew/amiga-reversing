@@ -8,6 +8,53 @@
 
 #include <string.h>
 
+static M68kAsmOperandValue decode_normalized_layout_operand(const M68kDecodeCandidate *candidate,
+    size_t operand_index) {
+  M68kAsmOperandValue operand;
+  memset(&operand, 0, sizeof(operand));
+  if (candidate == NULL || operand_index >= candidate->operand_count) return operand;
+  operand = candidate->operands[operand_index];
+  operand.kind = candidate->operand_kinds[operand_index];
+  switch (candidate->operand_kinds[operand_index]) {
+  case M68K_ASM_OPERAND_ABSL:
+    operand.kind = M68K_ASM_OPERAND_EA;
+    operand.ea_mode = 7U;
+    operand.ea_reg = 1U;
+    break;
+  case M68K_ASM_OPERAND_IND:
+    operand.kind = M68K_ASM_OPERAND_EA;
+    operand.ea_mode = 2U;
+    break;
+  case M68K_ASM_OPERAND_POSTINC:
+    operand.kind = M68K_ASM_OPERAND_EA;
+    operand.ea_mode = 3U;
+    break;
+  case M68K_ASM_OPERAND_PREDEC:
+    operand.kind = M68K_ASM_OPERAND_EA;
+    operand.ea_mode = 4U;
+    break;
+  default:
+    break;
+  }
+  return operand;
+}
+
+char m68k_decode_candidate_effective_size_suffix(const M68kDecodeCandidate *candidate) {
+  M68kAsmOperandValue layout_operands[M68K_DECODE_IR_MAX_OPERANDS];
+  const M68kAsmFormDef *form;
+  char size_suffix;
+  size_t index;
+  if (candidate == NULL || candidate->asm_form_index >= M68K_ASM_FORM_SLOT_COUNT)
+    return candidate != NULL ? candidate->size_suffix : '\0';
+  form = &g_m68k_asm_forms[candidate->asm_form_index];
+  if (form->mnemonic_id == M68K_ASM_MNEMONIC_NONE) return candidate->size_suffix;
+  for (index = 0U; index < candidate->operand_count; ++index)
+    layout_operands[index] = decode_normalized_layout_operand(candidate, index);
+  size_suffix = m68k_asm_choose_size_suffix(form, layout_operands, candidate->operand_count,
+    candidate->size_suffix);
+  return size_suffix != '\0' ? size_suffix : candidate->size_suffix;
+}
+
 static int append_decode_section(ArenaBuilder *builder, M68kDecodeSectionIR **out_section) {
   if (builder == NULL || out_section == NULL) return -1;
   *out_section = ARENA_BUILDER_APPEND_TYPED(builder, M68kDecodeSectionIR);

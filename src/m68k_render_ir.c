@@ -2099,7 +2099,7 @@ static void render_asm_data_dc_b_plan_rows(M68kRenderIRPreview *preview, const M
 }
 
 int byte_is_quoted_string_safe(uint8_t value) {
-  return value >= 0x20U && value <= 0x7eU && value != '"' && value != '\\';
+  return m68k_ir_byte_is_quoted_string_safe(value);
 }
 
 static int byte_is_quoted_character_safe(uint8_t value) {
@@ -3643,19 +3643,7 @@ static size_t relocation_extension_word_count(uint16_t asm_form_index, uint8_t e
 }
 
 static char candidate_effective_size_suffix(const M68kDecodeCandidate *candidate) {
-  M68kAsmOperandValue layout_operands[M68K_DECODE_IR_MAX_OPERANDS];
-  const M68kAsmFormDef *form;
-  char size_suffix;
-  size_t index;
-  if (candidate == NULL || candidate->asm_form_index >= M68K_ASM_FORM_SLOT_COUNT)
-    return candidate != NULL ? candidate->size_suffix : '\0';
-  form = &g_m68k_asm_forms[candidate->asm_form_index];
-  if (form->mnemonic_id == M68K_ASM_MNEMONIC_NONE) return candidate->size_suffix;
-  for (index = 0U; index < candidate->operand_count; ++index)
-    layout_operands[index] = normalized_layout_operand(candidate, index);
-  size_suffix = m68k_asm_choose_size_suffix(form, layout_operands, candidate->operand_count,
-    candidate->size_suffix);
-  return size_suffix != '\0' ? size_suffix : candidate->size_suffix;
+  return m68k_decode_candidate_effective_size_suffix(candidate);
 }
 
 typedef struct ByteImmediateExtensionSite {
@@ -5001,17 +4989,7 @@ static int render_asm_include_for_instruction_platform_symbols(M68kRenderIRPrevi
 }
 
 int operand_is_immediate_value_local(const M68kOperandIR *operand, uint32_t *out_value) {
-  if (out_value != NULL) *out_value = 0U;
-  if (operand == NULL || out_value == NULL) return 0;
-  if (operand->kind == M68K_ASM_OPERAND_IMM) {
-    *out_value = operand->value.value;
-    return 1;
-  }
-  if (operand->kind == M68K_ASM_OPERAND_EA && operand->value.ea_mode == 7U && operand->value.ea_reg == 4U) {
-    *out_value = operand->value.value;
-    return 1;
-  }
-  return 0;
+  return m68k_ir_operand_immediate_value(operand, out_value);
 }
 
 static int instruction_loads_data_immediate(const M68kInstructionIR *instruction, uint8_t *out_reg,
@@ -8630,74 +8608,6 @@ cleanup:
   return result;
 }
 
-static uint8_t immediate_text_token_width_for_candidate(const M68kDecodeCandidate *candidate,
-    const M68kInstructionIR *instruction) {
-  char suffix;
-  if (instruction != NULL &&
-      (instruction->size_suffix == 'b' || instruction->size_suffix == 'w' ||
-       instruction->size_suffix == 'l')) {
-    suffix = instruction->size_suffix;
-  } else {
-    suffix = candidate_effective_size_suffix(candidate);
-  }
-  if (suffix == 'b') return 1U;
-  if (suffix == 'w') return 2U;
-  if (suffix == 'l') return 4U;
-  return 0U;
-}
-
-static int immediate_text_token_bytes(uint32_t value, uint8_t width, char *out_text,
-    uint8_t *out_text_length) {
-  uint8_t index;
-  int saw_non_space = 0;
-  if (out_text == NULL || out_text_length == NULL || width == 0U || width > 4U) return 0;
-  for (index = 0U; index < width; ++index) {
-    uint8_t shift = (uint8_t)((width - 1U - index) * 8U);
-    uint8_t byte = (uint8_t)((value >> shift) & 0xFFU);
-    if (!byte_is_quoted_string_safe(byte)) return 0;
-    if (byte != ' ') saw_non_space = 1;
-    out_text[index] = (char)byte;
-  }
-  if (!saw_non_space) return 0;
-  out_text[width] = '\0';
-  *out_text_length = width;
-  return 1;
-}
-
-static int render_analysis_append_immediate_text_tokens_for_section(
-    const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
-    M68kSectionAnalysisIR *section_analysis) {
-  size_t candidate_index;
-  if (section == NULL || accepted_start == NULL || section_analysis == NULL) return -1;
-  for (candidate_index = 0U; candidate_index < section->candidate_count; ++candidate_index) {
-    const M68kDecodeCandidate *candidate = &section->candidates[candidate_index];
-    M68kInstructionIR instruction;
-    uint8_t width;
-    size_t operand_index;
-    if (!candidate_is_accepted_start(section, accepted_start, candidate)) continue;
-    if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) continue;
-    width = immediate_text_token_width_for_candidate(candidate, &instruction);
-    if (width == 0U) continue;
-    for (operand_index = 0U; operand_index < instruction.operand_count; ++operand_index) {
-      M68kImmediateTextTokenIR token;
-      uint32_t value;
-      if (!operand_is_immediate_value_local(&instruction.operands[operand_index], &value)) continue;
-      memset(&token, 0, sizeof(token));
-      if (!immediate_text_token_bytes(value, width, token.text, &token.text_length)) continue;
-      token.source_offset = candidate->offset;
-      token.operand_index = (uint8_t)operand_index;
-      token.width = width;
-      token.value = value;
-      token.evidence_flags =
-        M68K_IMMEDIATE_TEXT_TOKEN_EVIDENCE_ACCEPTED_INSTRUCTION |
-        M68K_IMMEDIATE_TEXT_TOKEN_EVIDENCE_PRINTABLE_BYTES;
-      if (m68k_ir_section_analysis_append_immediate_text_token(section_analysis, &token) != 0)
-        return -1;
-    }
-  }
-  return 0;
-}
-
 static int render_analysis_append_orphan_conflict_ranges_for_section(M68kSectionAnalysisIR *section_analysis) {
   size_t index;
   if (section_analysis == NULL) return -1;
@@ -11781,10 +11691,6 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
       if (scratch_arena == NULL) goto cleanup;
       if (render_analysis_append_cfg_for_section(&lookup, section, accepted_start[section_index],
           accepted_bytes[section_index], scratch_arena, current_section_analysis) != 0) {
-        goto cleanup;
-      }
-      if (render_analysis_append_immediate_text_tokens_for_section(section, accepted_start[section_index],
-          current_section_analysis) != 0) {
         goto cleanup;
       }
       if (render_analysis_append_orphan_code_signals_for_section(&lookup, section, accepted_start[section_index],
