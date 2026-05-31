@@ -910,7 +910,7 @@ int m68k_analysis_render_lookup_append_auto_policy(M68kSourceAnalysisIR *source_
   M68kRenderLookup *lookup);
 int m68k_analysis_render_lookup_append_base_layout_fields(M68kRenderIRPreview *preview,
   const M68kRenderLookup *lookup, const M68kDecodeIR *decode, M68kSourceAnalysisIR *source_analysis);
-int m68k_render_ir_build_source_analysis_from_lookup(M68kRenderIRPreview *preview, M68kRenderLookup *lookup,
+int m68k_analysis_render_lookup_build_source_analysis(M68kRenderIRPreview *preview, M68kRenderLookup *lookup,
   const M68kDecodeIR *decode, const M68kAnalysisPolicy *policy, uint8_t **accepted_start,
   uint8_t **accepted_bytes, M68kSourceAnalysisIR *source_analysis);
 int m68k_render_ir_preview_emit_prepared(const M68kObject *object, const M68kDecodeIR *decode,

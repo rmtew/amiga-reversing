@@ -69,7 +69,7 @@ static int test_render_ir_preview_build(const M68kObject *object, const M68kDeco
     source_analysis_live = 1;
     source_analysis.file_kind = object->platform_file_kind;
     if (m68k_ir_source_analysis_set_policy(&source_analysis, effective_policy) != 0) goto cleanup;
-    if (m68k_render_ir_build_source_analysis_from_lookup(out_preview, &lookup, decode, effective_policy,
+    if (m68k_analysis_render_lookup_build_source_analysis(out_preview, &lookup, decode, effective_policy,
         accepted_start, accepted_bytes, &source_analysis) != 0) {
       goto cleanup;
     }

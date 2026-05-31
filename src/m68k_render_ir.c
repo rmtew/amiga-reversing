@@ -7123,7 +7123,7 @@ static int app_base_slot_symbol_name_from_library(const char *library_name, char
   return platform_amiga_format_app_base_slot_name(base_name, symbol_name, symbol_name_size);
 }
 
-static int format_app_base_fallback_slot_symbol_name(int16_t displacement, char *symbol_name,
+static int format_generated_app_base_slot_symbol_name(int16_t displacement, char *symbol_name,
     size_t symbol_name_size) {
   int written;
   if (symbol_name == NULL || symbol_name_size == 0U) return 0;
@@ -7143,7 +7143,7 @@ static int app_base_slot_symbol_name_from_slot(const M68kRenderBaseFieldSlot *sl
   }
   if (slot->library_name[0] == '\0') {
     if (render_base_field_slot_owner_is_app_base(slot)) {
-      return format_app_base_fallback_slot_symbol_name(slot->displacement, symbol_name, symbol_name_size);
+      return format_generated_app_base_slot_symbol_name(slot->displacement, symbol_name, symbol_name_size);
     }
     return 0;
   }
@@ -11021,7 +11021,7 @@ static int record_section_platform_call_analysis(M68kRenderIRPreview *preview, M
   return 0;
 }
 
-int m68k_render_ir_build_source_analysis_from_lookup(M68kRenderIRPreview *preview, M68kRenderLookup *lookup,
+int m68k_analysis_render_lookup_build_source_analysis(M68kRenderIRPreview *preview, M68kRenderLookup *lookup,
     const M68kDecodeIR *decode, const M68kAnalysisPolicy *policy, uint8_t **accepted_start,
     uint8_t **accepted_bytes, M68kSourceAnalysisIR *source_analysis) {
   M68kRenderPlatformState platform_analysis_state;
@@ -11196,7 +11196,7 @@ int m68k_render_ir_preview_emit_prepared(const M68kObject *object, const M68kDec
   clock_t phase_start;
   clock_t phase_end;
   M68kRenderPlatformState platform_state;
-  int build_platform_analysis = source_analysis != NULL;
+  int update_platform_render_state = render_asm_source && source_analysis != NULL;
   int result = -1;
   if (object == NULL || decode == NULL || lookup == NULL || accepted_start == NULL ||
       accepted_bytes == NULL || out_preview == NULL)
@@ -11240,7 +11240,7 @@ int m68k_render_ir_preview_emit_prepared(const M68kObject *object, const M68kDec
       finish_asm_source_plan_row(out_preview, section->section_index, 0U, 0U, 1);
     }
     while (offset < render_extent) {
-      if (build_platform_analysis) {
+      if (update_platform_render_state) {
         platform_state_apply_policy_register_seeds(&platform_state, policy, section->section_index, offset);
         platform_state_apply_lookup_register_seeds(&platform_state, lookup, section->section_index, offset);
       }

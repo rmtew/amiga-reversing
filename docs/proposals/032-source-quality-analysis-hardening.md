@@ -4105,10 +4105,10 @@ rendered: no matching non-comment label_statement
 result: source_quality diagnostic missing_expected_symbol_access, blocker=true
 ```
 
-Follow-up work remains to add precise C producers for branch targets, operands,
-equates, storage labels, and independent label-statement obligations. Those
-producers must be reason-driven; they must not reuse broad label-created or
-label-required facts as a shortcut.
+Follow-up work remains to add precise C producers for relocation-backed branch
+targets, ordinary operand symbols, equates, storage labels, and independent
+label-statement obligations. Those producers must be reason-driven; they must
+not reuse broad label-created or label-required facts as a shortcut.
 
 ### Actual Rendered Label Access Recording
 
@@ -4178,3 +4178,22 @@ post-render source-quality gate stays clear
 Relocation-backed branch/call symbol obligations remain future work. They need a
 relocation-aware C producer rather than reusing CFG rows or broad label-created
 facts.
+
+### Internal API Compatibility Cleanup
+
+The old `m68k_render_ir_build_source_analysis_from_lookup()` name was removed.
+The internal entry point is now:
+
+```text
+m68k_analysis_render_lookup_build_source_analysis()
+```
+
+No compatibility wrapper was kept. Source-analysis construction is analysis
+work, even while some implementation still lives near render helpers during the
+remaining migration. This codebase has no external API consumers, so stale
+internal names should be deleted when they preserve old ownership boundaries.
+
+The unnamed app-base slot helper was also renamed from fallback terminology to
+generated-symbol terminology. `app_XXXX` is not a compatibility fallback; it is
+the deterministic generated label for an observed app-base displacement when no
+stronger platform/library symbol is proven.

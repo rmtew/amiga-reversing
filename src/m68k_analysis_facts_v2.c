@@ -10119,7 +10119,7 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   end = clock();
   render_preview->platform_pass_seconds = elapsed_seconds_local(start, end);
   if (source_analysis != NULL &&
-      m68k_render_ir_build_source_analysis_from_lookup(render_preview, &render_lookup, &decode, policy,
+      m68k_analysis_render_lookup_build_source_analysis(render_preview, &render_lookup, &decode, policy,
         accepted_start, accepted_bytes, source_analysis) != 0) {
     m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
       "facts_v2 source analysis build failed");
