@@ -1560,6 +1560,56 @@ typedef struct M68kIncompleteAnalysisIR {
   uint32_t hit_count;
 } M68kIncompleteAnalysisIR;
 
+typedef enum M68kSourceQualityDiagnosticSeverity {
+  M68K_SOURCE_QUALITY_DIAGNOSTIC_SEVERITY_UNKNOWN = 0,
+  M68K_SOURCE_QUALITY_DIAGNOSTIC_SEVERITY_INFO = 1,
+  M68K_SOURCE_QUALITY_DIAGNOSTIC_SEVERITY_WARNING = 2,
+  M68K_SOURCE_QUALITY_DIAGNOSTIC_SEVERITY_ERROR = 3
+} M68kSourceQualityDiagnosticSeverity;
+
+typedef enum M68kSourceQualityDiagnosticKind {
+  M68K_SOURCE_QUALITY_DIAGNOSTIC_UNKNOWN = 0,
+  M68K_SOURCE_QUALITY_DIAGNOSTIC_UNTERMINATED_OR_INVALID_CODE_RANGE = 1,
+  M68K_SOURCE_QUALITY_DIAGNOSTIC_PLATFORM_NAME_WITHOUT_USE_SHAPE = 2,
+  M68K_SOURCE_QUALITY_DIAGNOSTIC_TABLE_TARGET_SET_LIMIT = 3,
+  M68K_SOURCE_QUALITY_DIAGNOSTIC_MISSING_ADDRESS_IDENTITY = 4,
+  M68K_SOURCE_QUALITY_DIAGNOSTIC_MISSING_EXPECTED_SYMBOL_ACCESS = 5,
+  M68K_SOURCE_QUALITY_DIAGNOSTIC_MANUAL_EVIDENCE_CONFLICT = 6
+} M68kSourceQualityDiagnosticKind;
+
+typedef enum M68kSourceQualityDiagnosticOrigin {
+  M68K_SOURCE_QUALITY_DIAGNOSTIC_ORIGIN_UNKNOWN = 0,
+  M68K_SOURCE_QUALITY_DIAGNOSTIC_ORIGIN_AUTO_ANALYSIS = 1,
+  M68K_SOURCE_QUALITY_DIAGNOSTIC_ORIGIN_PLATFORM_KB = 2,
+  M68K_SOURCE_QUALITY_DIAGNOSTIC_ORIGIN_MANUAL_EVIDENCE = 3,
+  M68K_SOURCE_QUALITY_DIAGNOSTIC_ORIGIN_RENDER_EXPORT = 4
+} M68kSourceQualityDiagnosticOrigin;
+
+typedef struct M68kSourceQualityDiagnosticIR {
+  uint32_t section_index;
+  uint32_t offset;
+  uint32_t length;
+  uint32_t related_address;
+  uint32_t related_start;
+  uint32_t related_end;
+  uint32_t capacity;
+  uint32_t hit_count;
+  uint8_t has_section_index;
+  uint8_t has_offset;
+  uint8_t has_length;
+  uint8_t has_related_address;
+  uint8_t has_related_range;
+  uint8_t blocker;
+  uint8_t severity;
+  uint8_t kind;
+  uint8_t origin;
+  uint8_t reserved[3];
+  char *summary;
+  char *evidence_source;
+  char *platform_use_shape;
+  char *owner_kind;
+} M68kSourceQualityDiagnosticIR;
+
 typedef struct M68kSectionAnalysisIR {
   size_t section_index;
   char *section_name;
@@ -1695,6 +1745,9 @@ typedef struct M68kSectionAnalysisIR {
   M68kCodeStartRefIR *code_start_refs;
   size_t code_start_ref_count;
   size_t code_start_ref_capacity;
+  M68kSourceQualityDiagnosticIR *source_quality_diagnostics;
+  size_t source_quality_diagnostic_count;
+  size_t source_quality_diagnostic_capacity;
   uint8_t recovered_direct_section_calls_indexed;
   Arena *arena;
 } M68kSectionAnalysisIR;
@@ -1709,6 +1762,9 @@ typedef struct M68kSourceAnalysisIR {
   M68kIncompleteAnalysisIR *incomplete_analyses;
   size_t incomplete_analysis_count;
   size_t incomplete_analysis_capacity;
+  M68kSourceQualityDiagnosticIR *source_quality_diagnostics;
+  size_t source_quality_diagnostic_count;
+  size_t source_quality_diagnostic_capacity;
   M68kPlatformStorageLayoutIR *platform_storage_layouts;
   size_t platform_storage_layout_count;
   size_t platform_storage_layout_capacity;
@@ -1733,6 +1789,8 @@ int m68k_ir_source_analysis_append_structured_data_item(M68kSourceAnalysisIR *so
   const M68kAnalysisStructuredDataItem *item);
 int m68k_ir_source_analysis_append_incomplete_analysis(M68kSourceAnalysisIR *source_analysis,
   const M68kIncompleteAnalysisIR *incomplete);
+int m68k_ir_source_analysis_append_source_quality_diagnostic(M68kSourceAnalysisIR *source_analysis,
+  const M68kSourceQualityDiagnosticIR *diagnostic);
 size_t m68k_ir_source_analysis_structured_data_item_count(const M68kSourceAnalysisIR *source_analysis);
 const M68kAnalysisStructuredDataItem *m68k_ir_source_analysis_structured_data_item_at(
   const M68kSourceAnalysisIR *source_analysis, size_t index);
@@ -1746,6 +1804,9 @@ const char *m68k_table_entry_target_status_name(uint8_t status);
 const char *m68k_data_reference_source_kind_name(uint8_t source_kind);
 const char *m68k_incomplete_analysis_kind_name(uint8_t kind);
 const char *m68k_incomplete_analysis_source_kind_name(uint8_t source_kind);
+const char *m68k_source_quality_diagnostic_severity_name(uint8_t severity);
+const char *m68k_source_quality_diagnostic_kind_name(uint8_t kind);
+const char *m68k_source_quality_diagnostic_origin_name(uint8_t origin);
 uint8_t m68k_analysis_table_entry_count_proof_for_source_pattern(uint8_t source_pattern_id);
 uint8_t m68k_analysis_table_stop_reason_for_entry_count_proof(uint8_t proof_id);
 uint8_t m68k_recovered_indirect_source_pattern_id(uint8_t shape);
@@ -1883,6 +1944,8 @@ int m68k_ir_section_analysis_append_absolute_memory_ref(M68kSectionAnalysisIR *s
     const M68kAbsoluteMemoryRefIR *absolute_memory_ref);
 int m68k_ir_section_analysis_append_code_start_ref(M68kSectionAnalysisIR *section_analysis,
     const M68kCodeStartRefIR *code_start_ref);
+int m68k_ir_section_analysis_append_source_quality_diagnostic(M68kSectionAnalysisIR *section_analysis,
+    const M68kSourceQualityDiagnosticIR *diagnostic);
 int m68k_ir_source_analysis_create(M68kSourceAnalysisIR *source_analysis);
 void m68k_ir_source_analysis_destroy(M68kSourceAnalysisIR *source_analysis);
 int m68k_ir_source_analysis_append_platform_storage_layout(M68kSourceAnalysisIR *source_analysis,

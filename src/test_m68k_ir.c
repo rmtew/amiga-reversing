@@ -10045,6 +10045,57 @@ static int test_source_analysis_incomplete_analysis_exports_capacity_hit(void) {
   return 0;
 }
 
+static int test_source_analysis_source_quality_diagnostics_export(void) {
+  M68kSourceAnalysisIR source_analysis;
+  M68kSectionAnalysisIR section_analysis;
+  M68kSourceQualityDiagnosticIR diagnostic;
+  char *analysis_json = NULL;
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_create(&source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_create(&section_analysis, test_ir_result_arena()));
+  memset(&diagnostic, 0, sizeof(diagnostic));
+  diagnostic.kind = M68K_SOURCE_QUALITY_DIAGNOSTIC_UNTERMINATED_OR_INVALID_CODE_RANGE;
+  diagnostic.severity = M68K_SOURCE_QUALITY_DIAGNOSTIC_SEVERITY_ERROR;
+  diagnostic.blocker = 1U;
+  diagnostic.origin = M68K_SOURCE_QUALITY_DIAGNOSTIC_ORIGIN_AUTO_ANALYSIS;
+  diagnostic.has_section_index = 1U;
+  diagnostic.section_index = 0U;
+  diagnostic.has_offset = 1U;
+  diagnostic.offset = 0x42C00U;
+  diagnostic.has_length = 1U;
+  diagnostic.length = 12U;
+  diagnostic.summary = "accepted code has no terminal proof";
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_source_quality_diagnostic(&source_analysis, &diagnostic));
+  memset(&diagnostic, 0, sizeof(diagnostic));
+  diagnostic.kind = M68K_SOURCE_QUALITY_DIAGNOSTIC_PLATFORM_NAME_WITHOUT_USE_SHAPE;
+  diagnostic.severity = M68K_SOURCE_QUALITY_DIAGNOSTIC_SEVERITY_WARNING;
+  diagnostic.origin = M68K_SOURCE_QUALITY_DIAGNOSTIC_ORIGIN_PLATFORM_KB;
+  diagnostic.has_offset = 1U;
+  diagnostic.offset = 0x74U;
+  diagnostic.has_related_address = 1U;
+  diagnostic.related_address = 0x74U;
+  diagnostic.platform_use_shape = "low_memory_base";
+  diagnostic.owner_kind = "low_ram";
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_source_quality_diagnostic(&section_analysis, &diagnostic));
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"source_quality_diagnostic_count\":1") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"kind\":\"unterminated_or_invalid_code_range\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"severity\":\"error\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"blocker\":true") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"origin\":\"auto_analysis\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"section_index\":0,\"offset\":273408,\"length\":12") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"summary\":\"accepted code has no terminal proof\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"kind\":\"platform_name_without_use_shape\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"related_address\":116") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"platform_use_shape\":\"low_memory_base\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"owner_kind\":\"low_ram\"") != NULL);
+  free(analysis_json);
+  m68k_ir_section_analysis_destroy(&section_analysis);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  return 0;
+}
+
 static int test_source_analysis_range_ownership_exports_conflict(void) {
   M68kSourceAnalysisIR source_analysis;
   M68kSectionAnalysisIR section_analysis;
@@ -23180,6 +23231,8 @@ int m68k_c_ir_tests(void) {
       test_source_analysis_immediate_text_token_exports_operand_fact},
     {"source_analysis_incomplete_analysis_exports_capacity_hit",
       test_source_analysis_incomplete_analysis_exports_capacity_hit},
+    {"source_analysis_source_quality_diagnostics_export",
+      test_source_analysis_source_quality_diagnostics_export},
     {"source_analysis_range_ownership_exports_conflict",
       test_source_analysis_range_ownership_exports_conflict},
     {"source_analysis_platform_storage_effect_conflicts_only_mapped_section_storage",

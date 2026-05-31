@@ -9546,6 +9546,7 @@ static void facts_v2_record_source_blocker_first_failure(M68kFactsV2Profile *pro
 static int facts_v2_append_incomplete_analysis_from_profile(const M68kFactsV2Profile *profile,
     M68kSourceAnalysisIR *source_analysis) {
   M68kIncompleteAnalysisIR incomplete;
+  M68kSourceQualityDiagnosticIR diagnostic;
   if (profile == NULL || source_analysis == NULL) return 0;
   if (profile->table_target_set_limit_hits == 0U) return 0;
   memset(&incomplete, 0, sizeof(incomplete));
@@ -9555,7 +9556,21 @@ static int facts_v2_append_incomplete_analysis_from_profile(const M68kFactsV2Pro
   incomplete.offset = profile->first_table_target_set_limit_offset;
   incomplete.capacity = profile->first_table_target_set_limit_capacity;
   incomplete.hit_count = profile->table_target_set_limit_hits;
-  return m68k_ir_source_analysis_append_incomplete_analysis(source_analysis, &incomplete);
+  if (m68k_ir_source_analysis_append_incomplete_analysis(source_analysis, &incomplete) != 0) return -1;
+  memset(&diagnostic, 0, sizeof(diagnostic));
+  diagnostic.kind = M68K_SOURCE_QUALITY_DIAGNOSTIC_TABLE_TARGET_SET_LIMIT;
+  diagnostic.severity = M68K_SOURCE_QUALITY_DIAGNOSTIC_SEVERITY_ERROR;
+  diagnostic.blocker = 1U;
+  diagnostic.origin = M68K_SOURCE_QUALITY_DIAGNOSTIC_ORIGIN_AUTO_ANALYSIS;
+  diagnostic.has_section_index = 1U;
+  diagnostic.section_index = profile->first_table_target_set_limit_section;
+  diagnostic.has_offset = 1U;
+  diagnostic.offset = profile->first_table_target_set_limit_offset;
+  diagnostic.capacity = profile->first_table_target_set_limit_capacity;
+  diagnostic.hit_count = profile->table_target_set_limit_hits;
+  diagnostic.summary = "indirect table target set exceeded analysis capacity";
+  diagnostic.evidence_source = "table_target_set";
+  return m68k_ir_source_analysis_append_source_quality_diagnostic(source_analysis, &diagnostic);
 }
 
 static int facts_v2_has_asm_source_failures(const M68kFactsV2Profile *profile) {

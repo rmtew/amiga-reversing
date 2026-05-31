@@ -2833,3 +2833,36 @@ git diff --check
 Add dated or commit-scoped notes here as implementation lands. Each note should
 name the fixture, the C fact or diagnostic added, and the target evidence it
 resolves.
+
+### Source-Quality Diagnostic IR Bootstrap
+
+Implemented the first durable C Source Analysis IR lane:
+
+```text
+M68kSourceQualityDiagnosticIR
+  -> source-level diagnostics
+  -> section-level diagnostics
+  -> source_analysis_to_json()
+  -> Python target usage manifest feature/xref indexing
+```
+
+The first producer is the existing table-target-set capacity source blocker.
+It now emits both:
+
+```text
+M68kIncompleteAnalysisIR(kind = capacity_exhausted, source_kind = table_target_set)
+M68kSourceQualityDiagnosticIR(kind = table_target_set_limit, blocker = true)
+```
+
+This does not complete source-quality hardening. It removes the previous
+profile-only blind spot for one existing blocker and creates the C-owned JSON
+surface needed for later false-code, address-identity, platform-semantics, and
+symbol-access diagnostics.
+
+Verified:
+
+```text
+cmd /c src\build.bat
+src\build\m68k_c_unit_tests.exe
+uv run python -m pytest tests\test_target_usage_manifest.py::test_source_quality_diagnostics_feature_and_xref tests\test_target_usage_manifest.py::test_source_quality_precursor_target_patterns_are_derived_from_existing_features -q
+```

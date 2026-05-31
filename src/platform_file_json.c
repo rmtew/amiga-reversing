@@ -3369,9 +3369,69 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
   return 0;
 }
 
+static int append_source_quality_diagnostic_json(JsonBuilder *builder,
+    const M68kSourceQualityDiagnosticIR *diagnostic, uint8_t section_local) {
+  if (builder == NULL || diagnostic == NULL) return -1;
+  if (json_builder_appendf(builder, "{\"kind\":") != 0) return -1;
+  if (json_builder_append_json_string(builder,
+      m68k_source_quality_diagnostic_kind_name(diagnostic->kind)) != 0) return -1;
+  if (json_builder_appendf(builder,
+      ",\"kind_id\":%u,\"severity\":",
+      (unsigned)diagnostic->kind) != 0) return -1;
+  if (json_builder_append_json_string(builder,
+      m68k_source_quality_diagnostic_severity_name(diagnostic->severity)) != 0) return -1;
+  if (json_builder_appendf(builder, ",\"severity_id\":%u,\"blocker\":%s,\"origin\":",
+      (unsigned)diagnostic->severity, diagnostic->blocker ? "true" : "false") != 0) return -1;
+  if (json_builder_append_json_string(builder,
+      m68k_source_quality_diagnostic_origin_name(diagnostic->origin)) != 0) return -1;
+  if (json_builder_appendf(builder, ",\"origin_id\":%u", (unsigned)diagnostic->origin) != 0) return -1;
+  if (!section_local) {
+    if (json_builder_append(builder, ",\"section_index\":") != 0) return -1;
+    if (diagnostic->has_section_index) {
+      if (json_builder_appendf(builder, "%u", (unsigned)diagnostic->section_index) != 0) return -1;
+    } else if (json_builder_append(builder, "null") != 0) return -1;
+  }
+  if (json_builder_append(builder, ",\"offset\":") != 0) return -1;
+  if (diagnostic->has_offset) {
+    if (json_builder_appendf(builder, "%u", (unsigned)diagnostic->offset) != 0) return -1;
+  } else if (json_builder_append(builder, "null") != 0) return -1;
+  if (diagnostic->has_length &&
+      json_builder_appendf(builder, ",\"length\":%u", (unsigned)diagnostic->length) != 0) return -1;
+  if (diagnostic->has_related_address &&
+      json_builder_appendf(builder, ",\"related_address\":%u", (unsigned)diagnostic->related_address) != 0) {
+    return -1;
+  }
+  if (diagnostic->has_related_range &&
+      json_builder_appendf(builder, ",\"related_start\":%u,\"related_end\":%u",
+        (unsigned)diagnostic->related_start, (unsigned)diagnostic->related_end) != 0) {
+    return -1;
+  }
+  if (diagnostic->capacity != 0U &&
+      json_builder_appendf(builder, ",\"capacity\":%u", (unsigned)diagnostic->capacity) != 0) return -1;
+  if (diagnostic->hit_count != 0U &&
+      json_builder_appendf(builder, ",\"hit_count\":%u", (unsigned)diagnostic->hit_count) != 0) return -1;
+  if (diagnostic->summary != NULL) {
+    if (json_builder_append(builder, ",\"summary\":") != 0 ||
+        json_builder_append_json_string(builder, diagnostic->summary) != 0) return -1;
+  }
+  if (diagnostic->evidence_source != NULL) {
+    if (json_builder_append(builder, ",\"evidence_source\":") != 0 ||
+        json_builder_append_json_string(builder, diagnostic->evidence_source) != 0) return -1;
+  }
+  if (diagnostic->platform_use_shape != NULL) {
+    if (json_builder_append(builder, ",\"platform_use_shape\":") != 0 ||
+        json_builder_append_json_string(builder, diagnostic->platform_use_shape) != 0) return -1;
+  }
+  if (diagnostic->owner_kind != NULL) {
+    if (json_builder_append(builder, ",\"owner_kind\":") != 0 ||
+        json_builder_append_json_string(builder, diagnostic->owner_kind) != 0) return -1;
+  }
+  return json_builder_append(builder, "}");
+}
+
 int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **out_json, M68kDiagSink diagnostics) {
   JsonBuilder builder = {0};
-  size_t field_index, section_index, incomplete_index;
+  size_t field_index, section_index, incomplete_index, source_quality_index;
   size_t orphan_code_signal_count = 0U;
   uint32_t orphan_status_counts[8] = {0U};
   uint32_t orphan_missing_inbound_counts[9] = {0U};
@@ -3457,6 +3517,18 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
         ",\"section_index\":%u,\"offset\":%u,\"capacity\":%u,\"hit_count\":%u}",
         (unsigned)incomplete->section_index, (unsigned)incomplete->offset,
         (unsigned)incomplete->capacity, (unsigned)incomplete->hit_count) != 0)
+      goto oom;
+  }
+  if (json_builder_appendf(&builder,
+      "],\"source_quality_diagnostic_count\":%u,\"source_quality_diagnostics\":[",
+      (unsigned)source_analysis->source_quality_diagnostic_count) != 0)
+    goto oom;
+  for (source_quality_index = 0U; source_quality_index < source_analysis->source_quality_diagnostic_count;
+      ++source_quality_index) {
+    if (source_quality_index != 0U && json_builder_append(&builder, ",") != 0)
+      goto oom;
+    if (append_source_quality_diagnostic_json(&builder,
+        &source_analysis->source_quality_diagnostics[source_quality_index], 0U) != 0)
       goto oom;
   }
   if (json_builder_appendf(&builder,
@@ -3764,6 +3836,18 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
         if (json_builder_appendf(&builder, "%u", (unsigned)ref->runtime_address) != 0) goto oom;
       } else if (json_builder_append(&builder, "null") != 0) goto oom;
       if (json_builder_appendf(&builder, ",\"size\":%u}", (unsigned)ref->size) != 0)
+        goto oom;
+    }
+    if (json_builder_appendf(&builder,
+        "],\"source_quality_diagnostic_count\":%u,\"source_quality_diagnostics\":[",
+        (unsigned)section->source_quality_diagnostic_count) != 0)
+      goto oom;
+    for (source_quality_index = 0U; source_quality_index < section->source_quality_diagnostic_count;
+        ++source_quality_index) {
+      if (source_quality_index != 0U && json_builder_append(&builder, ",") != 0)
+        goto oom;
+      if (append_source_quality_diagnostic_json(&builder,
+          &section->source_quality_diagnostics[source_quality_index], 1U) != 0)
         goto oom;
     }
     if (json_builder_appendf(&builder, "],\"range_ownership_count\":%u,\"range_ownerships\":[",

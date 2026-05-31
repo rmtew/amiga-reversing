@@ -283,6 +283,53 @@ const char *m68k_incomplete_analysis_source_kind_name(uint8_t source_kind) {
   }
 }
 
+const char *m68k_source_quality_diagnostic_severity_name(uint8_t severity) {
+  switch (severity) {
+    case M68K_SOURCE_QUALITY_DIAGNOSTIC_SEVERITY_INFO:
+      return "info";
+    case M68K_SOURCE_QUALITY_DIAGNOSTIC_SEVERITY_WARNING:
+      return "warning";
+    case M68K_SOURCE_QUALITY_DIAGNOSTIC_SEVERITY_ERROR:
+      return "error";
+    default:
+      return "unknown";
+  }
+}
+
+const char *m68k_source_quality_diagnostic_kind_name(uint8_t kind) {
+  switch (kind) {
+    case M68K_SOURCE_QUALITY_DIAGNOSTIC_UNTERMINATED_OR_INVALID_CODE_RANGE:
+      return "unterminated_or_invalid_code_range";
+    case M68K_SOURCE_QUALITY_DIAGNOSTIC_PLATFORM_NAME_WITHOUT_USE_SHAPE:
+      return "platform_name_without_use_shape";
+    case M68K_SOURCE_QUALITY_DIAGNOSTIC_TABLE_TARGET_SET_LIMIT:
+      return "table_target_set_limit";
+    case M68K_SOURCE_QUALITY_DIAGNOSTIC_MISSING_ADDRESS_IDENTITY:
+      return "missing_address_identity";
+    case M68K_SOURCE_QUALITY_DIAGNOSTIC_MISSING_EXPECTED_SYMBOL_ACCESS:
+      return "missing_expected_symbol_access";
+    case M68K_SOURCE_QUALITY_DIAGNOSTIC_MANUAL_EVIDENCE_CONFLICT:
+      return "manual_evidence_conflict";
+    default:
+      return "unknown";
+  }
+}
+
+const char *m68k_source_quality_diagnostic_origin_name(uint8_t origin) {
+  switch (origin) {
+    case M68K_SOURCE_QUALITY_DIAGNOSTIC_ORIGIN_AUTO_ANALYSIS:
+      return "auto_analysis";
+    case M68K_SOURCE_QUALITY_DIAGNOSTIC_ORIGIN_PLATFORM_KB:
+      return "platform_kb";
+    case M68K_SOURCE_QUALITY_DIAGNOSTIC_ORIGIN_MANUAL_EVIDENCE:
+      return "manual_evidence";
+    case M68K_SOURCE_QUALITY_DIAGNOSTIC_ORIGIN_RENDER_EXPORT:
+      return "render_export";
+    default:
+      return "unknown";
+  }
+}
+
 uint8_t m68k_analysis_table_entry_count_proof_for_source_pattern(uint8_t source_pattern_id) {
   switch (source_pattern_id) {
     case M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_RELOCATION_POINTER_TABLE:
@@ -713,6 +760,63 @@ int m68k_ir_source_analysis_append_incomplete_analysis(M68kSourceAnalysisIR *sou
       &source_analysis->incomplete_analysis_capacity, 4U, sizeof(*source_analysis->incomplete_analyses));
   if (source_analysis->incomplete_analyses == NULL) return -1;
   source_analysis->incomplete_analyses[source_analysis->incomplete_analysis_count++] = *incomplete;
+  return 0;
+}
+
+static int copy_source_quality_diagnostic_local(Arena *arena, M68kSourceQualityDiagnosticIR *dest,
+    const M68kSourceQualityDiagnosticIR *src) {
+  if (arena == NULL || dest == NULL || src == NULL) return -1;
+  *dest = *src;
+  if (src->summary != NULL) {
+    dest->summary = arena_strdup(arena, src->summary);
+    if (dest->summary == NULL) return -1;
+  }
+  if (src->evidence_source != NULL) {
+    dest->evidence_source = arena_strdup(arena, src->evidence_source);
+    if (dest->evidence_source == NULL) return -1;
+  }
+  if (src->platform_use_shape != NULL) {
+    dest->platform_use_shape = arena_strdup(arena, src->platform_use_shape);
+    if (dest->platform_use_shape == NULL) return -1;
+  }
+  if (src->owner_kind != NULL) {
+    dest->owner_kind = arena_strdup(arena, src->owner_kind);
+    if (dest->owner_kind == NULL) return -1;
+  }
+  return 0;
+}
+
+static int source_quality_diagnostic_same_location_kind_local(const M68kSourceQualityDiagnosticIR *left,
+    const M68kSourceQualityDiagnosticIR *right) {
+  if (left == NULL || right == NULL) return 0;
+  return left->kind == right->kind &&
+    left->has_section_index == right->has_section_index &&
+    (!left->has_section_index || left->section_index == right->section_index) &&
+    left->has_offset == right->has_offset &&
+    (!left->has_offset || left->offset == right->offset);
+}
+
+int m68k_ir_source_analysis_append_source_quality_diagnostic(M68kSourceAnalysisIR *source_analysis,
+    const M68kSourceQualityDiagnosticIR *diagnostic) {
+  M68kSourceQualityDiagnosticIR copy;
+  size_t index;
+  if (source_analysis == NULL || diagnostic == NULL || source_analysis->arena == NULL) return -1;
+  if (diagnostic->kind == M68K_SOURCE_QUALITY_DIAGNOSTIC_UNKNOWN) return 0;
+  for (index = 0U; index < source_analysis->source_quality_diagnostic_count; ++index) {
+    if (source_quality_diagnostic_same_location_kind_local(
+        &source_analysis->source_quality_diagnostics[index], diagnostic)) {
+      return 0;
+    }
+  }
+  source_analysis->source_quality_diagnostics =
+    (M68kSourceQualityDiagnosticIR *)arena_grow_array(source_analysis->arena,
+      source_analysis->source_quality_diagnostics, source_analysis->source_quality_diagnostic_count,
+      &source_analysis->source_quality_diagnostic_capacity, 8U,
+      sizeof(*source_analysis->source_quality_diagnostics));
+  if (source_analysis->source_quality_diagnostics == NULL) return -1;
+  memset(&copy, 0, sizeof(copy));
+  if (copy_source_quality_diagnostic_local(source_analysis->arena, &copy, diagnostic) != 0) return -1;
+  source_analysis->source_quality_diagnostics[source_analysis->source_quality_diagnostic_count++] = copy;
   return 0;
 }
 
@@ -2240,6 +2344,30 @@ int m68k_ir_section_analysis_append_code_start_ref(M68kSectionAnalysisIR *sectio
   return 0;
 }
 
+int m68k_ir_section_analysis_append_source_quality_diagnostic(M68kSectionAnalysisIR *section_analysis,
+    const M68kSourceQualityDiagnosticIR *diagnostic) {
+  M68kSourceQualityDiagnosticIR copy;
+  size_t index;
+  if (section_analysis == NULL || diagnostic == NULL || section_analysis->arena == NULL) return -1;
+  if (diagnostic->kind == M68K_SOURCE_QUALITY_DIAGNOSTIC_UNKNOWN) return 0;
+  for (index = 0U; index < section_analysis->source_quality_diagnostic_count; ++index) {
+    if (source_quality_diagnostic_same_location_kind_local(
+        &section_analysis->source_quality_diagnostics[index], diagnostic)) {
+      return 0;
+    }
+  }
+  section_analysis->source_quality_diagnostics =
+    (M68kSourceQualityDiagnosticIR *)arena_grow_array(section_analysis->arena,
+      section_analysis->source_quality_diagnostics, section_analysis->source_quality_diagnostic_count,
+      &section_analysis->source_quality_diagnostic_capacity, 8U,
+      sizeof(*section_analysis->source_quality_diagnostics));
+  if (section_analysis->source_quality_diagnostics == NULL) return -1;
+  memset(&copy, 0, sizeof(copy));
+  if (copy_source_quality_diagnostic_local(section_analysis->arena, &copy, diagnostic) != 0) return -1;
+  section_analysis->source_quality_diagnostics[section_analysis->source_quality_diagnostic_count++] = copy;
+  return 0;
+}
+
 int m68k_ir_section_analysis_append_recovered_platform_base_slot(M68kSectionAnalysisIR *section_analysis,
     uint8_t platform_kind, int16_t displacement, const char *base_name) {
   size_t index;
@@ -3640,6 +3768,13 @@ int m68k_ir_source_analysis_append_section(M68kSourceAnalysisIR *source_analysis
   for (index = 0; index < section_analysis->code_start_ref_count; ++index) {
     if (m68k_ir_section_analysis_append_code_start_ref(&copy,
           &section_analysis->code_start_refs[index]) != 0) {
+      m68k_ir_section_analysis_destroy(&copy);
+      return -1;
+    }
+  }
+  for (index = 0; index < section_analysis->source_quality_diagnostic_count; ++index) {
+    if (m68k_ir_section_analysis_append_source_quality_diagnostic(&copy,
+          &section_analysis->source_quality_diagnostics[index]) != 0) {
       m68k_ir_section_analysis_destroy(&copy);
       return -1;
     }
