@@ -923,6 +923,9 @@ int m68k_analysis_render_lookup_append_cfg_for_section(const M68kRenderLookup *l
 int m68k_analysis_render_lookup_append_labels_for_section(const M68kRenderLookup *lookup,
   const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
   M68kSectionAnalysisIR *section_analysis);
+int m68k_analysis_render_lookup_append_orphan_code_signals_for_section(const M68kRenderLookup *lookup,
+  const M68kDecodeSectionIR *section, const uint8_t *accepted_start, const uint8_t *accepted_bytes,
+  M68kSectionAnalysisIR *section_analysis);
 int m68k_analysis_render_lookup_append_section(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
   M68kSectionAnalysisIR *section_analysis);
 int instruction_operand_writes_register_from_metadata(const M68kInstructionIR *instruction,

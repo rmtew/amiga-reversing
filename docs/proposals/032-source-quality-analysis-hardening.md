@@ -4197,3 +4197,25 @@ The unnamed app-base slot helper was also renamed from fallback terminology to
 generated-symbol terminology. `app_XXXX` is not a compatibility fallback; it is
 the deterministic generated label for an observed app-base displacement when no
 stronger platform/library symbol is proven.
+
+### Orphan-Code Signal Producer Migration
+
+Moved orphan-code signal and orphan absolute-operand observation production out
+of `m68k_render_ir.c` and into the analysis lookup producer:
+
+```text
+m68k_analysis_render_lookup_append_orphan_code_signals_for_section()
+```
+
+The renderer no longer owns these durable facts:
+
+```text
+M68kOrphanCodeSignalIR
+M68kAddressObservationIR(source = absolute_operand, from orphan island)
+```
+
+Those rows are semantic review evidence: they describe code-shaped islands,
+nearby structured data, missing inbound evidence, vector/API hints, and memory
+observations. Rendering may display them, but it should not decide or append
+them. The moved producer still uses the same C lookup evidence and keeps the
+rendered source behavior unchanged.

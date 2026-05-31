@@ -1,5 +1,6 @@
 #include "m68k_render_lookup_internal.h"
 #include "m68k_bitset.h"
+#include "m68k_disassembler.h"
 
 #include <time.h>
 
@@ -298,6 +299,609 @@ int m68k_analysis_render_lookup_append_labels_for_section(const M68kRenderLookup
     }
     return 0;
   }
+
+static int analysis_runtime_range_is_materialized(const M68kRenderLookup *lookup, const M68kFact *range) {
+  uint8_t materialized = 0U;
+  (void)lookup_runtime_range_materialization(lookup, range, &materialized, NULL, NULL);
+  return materialized != 0U;
+}
+
+static int analysis_lookup_section_has_runtime_range(const M68kRenderLookup *lookup, size_t section_index) {
+  size_t index;
+  if (lookup == NULL || lookup->runtime_address_ranges == NULL) return 0;
+  for (index = 0U; index < lookup->runtime_address_range_count; ++index) {
+    const M68kFact *fact = lookup->runtime_address_ranges[index].fact;
+    if (fact != NULL && fact->section_index == section_index && fact->size != 0U) return 1;
+  }
+  return 0;
+}
+
+static int analysis_lookup_materialized_runtime_address_source_offset(const M68kRenderLookup *lookup,
+    size_t section_index, uint32_t runtime_address, uint32_t *out_source_offset) {
+  size_t index;
+  if (out_source_offset != NULL) *out_source_offset = 0U;
+  if (lookup == NULL || out_source_offset == NULL || section_index >= lookup->section_count) return 0;
+  for (index = 0U; index < lookup->runtime_address_range_count; ++index) {
+    const M68kFact *range = lookup->runtime_address_ranges[index].fact;
+    uint32_t delta;
+    uint32_t source_offset;
+    if (!analysis_runtime_range_is_materialized(lookup, range) || range->section_index != section_index ||
+        !range->has_runtime_address || runtime_address < range->runtime_address) {
+      continue;
+    }
+    delta = runtime_address - range->runtime_address;
+    if (delta >= range->size || range->offset > UINT32_MAX - delta) continue;
+    source_offset = range->offset + delta;
+    if (lookup->label_extents == NULL || source_offset >= lookup->label_extents[section_index]) continue;
+    *out_source_offset = source_offset;
+    return 1;
+  }
+  return 0;
+}
+
+static const char *analysis_lookup_policy_label_name(const M68kRenderLookup *lookup, size_t section_index,
+    uint32_t offset, uint8_t domain) {
+  uint16_t index;
+  const M68kAnalysisPolicy *policy = lookup != NULL ? lookup->policy : NULL;
+  if (policy == NULL) return NULL;
+  for (index = 0U; index < policy->named_label_count && index < M68K_ANALYSIS_NAMED_LABEL_LIMIT; ++index) {
+    const M68kAnalysisNamedLabel *label = &policy->named_labels[index];
+    if (label->name[0] == '\0' || label->offset != offset) continue;
+    if (label->domain != domain) continue;
+    if (label->has_section_index) {
+      if (label->section_index != section_index) continue;
+    } else if (section_index != 0U) {
+      continue;
+    }
+    return label->name;
+  }
+  return NULL;
+}
+
+static int analysis_lookup_has_policy_label(const M68kRenderLookup *lookup, size_t section_index,
+    uint32_t offset) {
+  const char *name = analysis_lookup_policy_label_name(lookup, section_index, offset,
+    M68K_ANALYSIS_LABEL_DOMAIN_SOURCE);
+  return name != NULL && name[0] != '\0';
+}
+
+static const char *analysis_lookup_object_symbol_label_name(const M68kRenderLookup *lookup,
+    size_t section_index, uint32_t offset) {
+  size_t index;
+  const M68kObject *object = lookup != NULL ? lookup->object : NULL;
+  if (lookup != NULL && section_index < lookup->section_count && lookup->object_symbol_labels != NULL &&
+      lookup->object_symbol_label_extents != NULL && offset <= lookup->object_symbol_label_extents[section_index] &&
+      lookup->object_symbol_labels[section_index] != NULL) {
+    return lookup->object_symbol_labels[section_index][offset];
+  }
+  if (object == NULL) return NULL;
+  for (index = 0U; index < object->symbol_count; ++index) {
+    const M68kSymbol *symbol = &object->symbols[index];
+    if (!symbol->defined || symbol->section_index != section_index || symbol->value != offset) continue;
+    if (!asm_symbol_name_is_safe_local(symbol->name)) continue;
+    return symbol->name;
+  }
+  return NULL;
+}
+
+static uint8_t analysis_orphan_missing_inbound_for_renderable_label(const M68kRenderLookup *lookup,
+    size_t section_index, uint32_t offset) {
+  if (analysis_lookup_has_policy_label(lookup, section_index, offset))
+    return M68K_ORPHAN_CODE_SIGNAL_INBOUND_POLICY_SEED;
+  if (analysis_lookup_object_symbol_label_name(lookup, section_index, offset) != NULL)
+    return M68K_ORPHAN_CODE_SIGNAL_INBOUND_METADATA;
+  return M68K_ORPHAN_CODE_SIGNAL_INBOUND_UNKNOWN;
+}
+
+static int analysis_orphan_candidate_range_is_blocked(const M68kRenderLookup *lookup,
+    const M68kDecodeSectionIR *section, const uint8_t *accepted_bytes, uint32_t offset, uint32_t size,
+    int allow_structured_data_overlap) {
+  uint32_t cursor;
+  if (section == NULL || size == 0U || size > section->size - offset) return 1;
+  for (cursor = offset; cursor < offset + size; ++cursor) {
+    if (analysis_accepted_byte_at(section, accepted_bytes, cursor)) return 1;
+    if (!allow_structured_data_overlap) {
+      M68kRenderRangeOwnershipView range;
+      if (lookup_range_ownership_covering_offset(lookup, section->section_index, cursor, &range)) return 1;
+    }
+  }
+  return 0;
+}
+
+static uint8_t analysis_orphan_cpu_ceiling(uint8_t max_cpu) {
+  return max_cpu <= M68K_ASM_CPU_68060 ? max_cpu : M68K_ASM_CPU_68060;
+}
+
+static M68kDisasmResult analysis_orphan_disassemble_for_cpu_ceiling(const uint8_t *data, size_t size,
+    uint8_t max_cpu) {
+  M68kDisasmResult decoded;
+  uint8_t cpu;
+  memset(&decoded, 0, sizeof(decoded));
+  for (cpu = M68K_ASM_CPU_68000; cpu <= analysis_orphan_cpu_ceiling(max_cpu); ++cpu) {
+    decoded = m68k_disassemble_one_for_cpu(data, size, cpu, m68k_diag_sink(NULL));
+    if (decoded.byte_count != 0U) return decoded;
+    if (cpu == M68K_ASM_CPU_68060) break;
+  }
+  return decoded;
+}
+
+static const M68kDecodeCandidate *analysis_orphan_decode_candidate_at_offset(const M68kRenderLookup *lookup,
+    const M68kDecodeSectionIR *section, uint32_t offset, M68kDecodeCandidate *decoded_candidate) {
+  const M68kDecodeCandidate *candidate;
+  M68kDisasmResult decoded;
+  uint8_t max_cpu = M68K_ASM_CPU_68000;
+  size_t operand_index;
+  if (section == NULL || decoded_candidate == NULL) return NULL;
+  candidate = find_candidate_at_offset_local(section, offset);
+  if (candidate != NULL) return candidate;
+  if (section->data == NULL || offset >= section->size) return NULL;
+  if (lookup != NULL && lookup->policy != NULL && lookup->policy->max_cpu != 0U)
+    max_cpu = lookup->policy->max_cpu;
+  decoded = analysis_orphan_disassemble_for_cpu_ceiling(section->data + offset, section->size - offset, max_cpu);
+  if (decoded.byte_count == 0U || decoded.byte_count > UINT8_MAX) return NULL;
+  memset(decoded_candidate, 0, sizeof(*decoded_candidate));
+  decoded_candidate->offset = offset;
+  decoded_candidate->asm_form_index = decoded.asm_form_index;
+  decoded_candidate->disasm_form_index = decoded.disasm_form_index;
+  decoded_candidate->mnemonic_id = decoded.mnemonic_id;
+  decoded_candidate->target_cpu = decoded.target_cpu;
+  decoded_candidate->has_coprocessor_id = decoded.has_coprocessor_id;
+  decoded_candidate->coprocessor_id = decoded.coprocessor_id;
+  decoded_candidate->byte_count = (uint8_t)decoded.byte_count;
+  decoded_candidate->size_suffix = decoded.size_suffix;
+  decoded_candidate->operand_count = (uint8_t)(decoded.operand_count > M68K_DECODE_IR_MAX_OPERANDS
+    ? M68K_DECODE_IR_MAX_OPERANDS : decoded.operand_count);
+  for (operand_index = 0U; operand_index < decoded.operand_count &&
+       operand_index < M68K_DECODE_IR_MAX_OPERANDS; ++operand_index) {
+    decoded_candidate->operand_kinds[operand_index] = decoded.operand_kinds[operand_index];
+    decoded_candidate->operands[operand_index] = decoded.operands[operand_index];
+  }
+  return decoded_candidate;
+}
+
+static int analysis_absolute_ref_access_kind(uint8_t access_kind) {
+  return access_kind == M68K_SIM_ACCESS_MEMORY_READ ||
+    access_kind == M68K_SIM_ACCESS_MEMORY_WRITE ||
+    access_kind == M68K_SIM_ACCESS_COMPUTE_ADDRESS ||
+    access_kind == M68K_SIM_ACCESS_BRANCH_TARGET;
+}
+
+static uint32_t analysis_instruction_access_width(const M68kInstructionIR *instruction, uint8_t access_kind) {
+  if (instruction == NULL || access_kind == M68K_SIM_ACCESS_COMPUTE_ADDRESS ||
+      access_kind == M68K_SIM_ACCESS_BRANCH_TARGET) {
+    return 0U;
+  }
+  if (instruction->size_suffix == 'b') return 1U;
+  if (instruction->size_suffix == 'w') return 2U;
+  if (instruction->size_suffix == 'l') return 4U;
+  return 0U;
+}
+
+static const M68kFact *analysis_operand_relocation_ref(const M68kRenderLookup *lookup, size_t section_index,
+    const M68kDecodeCandidate *candidate, size_t operand_index) {
+  M68kAsmOperandValue operands[M68K_DECODE_IR_MAX_OPERANDS];
+  size_t index;
+  size_t begin;
+  size_t end;
+  uint32_t cursor;
+  if (lookup == NULL || candidate == NULL || operand_index >= candidate->operand_count ||
+      candidate->operand_count > M68K_DECODE_IR_MAX_OPERANDS) {
+    return NULL;
+  }
+  for (index = 0U; index < candidate->operand_count; ++index) {
+    operands[index] = candidate->operands[index];
+    operands[index].kind = candidate->operand_kinds[index];
+  }
+  begin = m68k_asm_operand_relative_base_offset(candidate->asm_form_index, operands, candidate->operand_count,
+    candidate->size_suffix, operand_index, 0);
+  end = m68k_asm_operand_relative_base_offset(candidate->asm_form_index, operands, candidate->operand_count,
+    candidate->size_suffix, operand_index, 1);
+  if (begin > end || begin > UINT32_MAX - candidate->offset || end > UINT32_MAX - candidate->offset) return NULL;
+  for (cursor = candidate->offset + (uint32_t)begin; cursor < candidate->offset + (uint32_t)end; ++cursor) {
+    const M68kFact *relocation = lookup_relocation_at(lookup, section_index, cursor);
+    if (relocation != NULL) return relocation;
+  }
+  return NULL;
+}
+
+static void analysis_classify_orphan_absolute_operand_observation(const M68kRenderLookup *lookup,
+    const M68kDecodeSectionIR *section, uint8_t platform_kind, uint32_t address,
+    M68kAddressObservationIR *observation) {
+  uint8_t platform_owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_UNKNOWN;
+  uint32_t platform_owner_offset = 0U;
+  uint32_t source_offset = 0U;
+  if (observation == NULL) return;
+  observation->owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_ABSOLUTE_MEMORY;
+  observation->owner_offset = address;
+  if (platform_facts_v2_absolute_memory_owner(platform_kind, address, &platform_owner_kind,
+      &platform_owner_offset)) {
+    observation->owner_kind = platform_owner_kind;
+    observation->owner_offset = platform_owner_offset;
+    return;
+  }
+  if (m68k_cpu_find_exception_vector_by_address(address) != NULL ||
+      platform_facts_v2_is_callback_vector_slot(platform_kind, address)) {
+    observation->owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_CPU_VECTOR;
+    observation->owner_offset = 0U;
+    return;
+  }
+  if (section != NULL &&
+      analysis_lookup_materialized_runtime_address_source_offset(lookup, section->section_index, address,
+        &source_offset)) {
+    observation->owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_RUNTIME_RANGE;
+    observation->owner_offset = source_offset;
+    return;
+  }
+  if (section != NULL && !analysis_lookup_section_has_runtime_range(lookup, section->section_index) &&
+      address < section->size) {
+    observation->owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_SECTION_STORAGE;
+    observation->owner_offset = address;
+  }
+}
+
+static int analysis_append_orphan_absolute_operand_observations_for_signal(const M68kRenderLookup *lookup,
+    const M68kDecodeSectionIR *section, const M68kOrphanCodeSignalIR *signal,
+    M68kSectionAnalysisIR *section_analysis) {
+  uint32_t cursor;
+  uint8_t platform_kind = M68K_PLATFORM_BACKEND_UNKNOWN;
+  if (section == NULL || signal == NULL || section_analysis == NULL || signal->size == 0U ||
+      signal->offset > section->size || signal->size > section->size - signal->offset) {
+    return -1;
+  }
+  if (lookup != NULL && lookup->object != NULL) platform_kind = lookup->object->platform_backend_kind;
+  cursor = signal->offset;
+  while (cursor < signal->offset + signal->size) {
+    M68kDecodeCandidate decoded_candidate;
+    const M68kDecodeCandidate *candidate;
+    M68kInstructionIR instruction;
+    const M68kSimFormMetadata *metadata;
+    size_t operand_index;
+    candidate = analysis_orphan_decode_candidate_at_offset(lookup, section, cursor, &decoded_candidate);
+    if (candidate == NULL || candidate->byte_count == 0U ||
+        candidate->byte_count > signal->offset + signal->size - cursor) {
+      return -1;
+    }
+    if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) return -1;
+    metadata = m68k_sim_metadata_for_instruction(&instruction);
+    if (metadata == NULL) return -1;
+    for (operand_index = 0U; operand_index < candidate->operand_count && operand_index < 4U &&
+         operand_index < instruction.operand_count; ++operand_index) {
+      uint32_t address = 0U;
+      uint8_t access_kind = metadata->operand_access_kinds[operand_index];
+      const M68kFact *relocation;
+      M68kAddressObservationIR observation;
+      if (!analysis_absolute_ref_access_kind(access_kind)) continue;
+      if (!m68k_asm_operand_absolute_value(candidate->operand_kinds[operand_index],
+          &candidate->operands[operand_index], &address)) {
+        continue;
+      }
+      memset(&observation, 0, sizeof(observation));
+      observation.offset = candidate->offset;
+      observation.operand_index = (uint32_t)operand_index;
+      observation.raw_value = address;
+      observation.address = address;
+      observation.access_width = analysis_instruction_access_width(&instruction, access_kind);
+      observation.access_kind = access_kind;
+      observation.source = M68K_ADDRESS_OBSERVATION_SOURCE_ABSOLUTE_OPERAND;
+      observation.has_address = 1U;
+      observation.confidence = signal->confidence;
+      observation.conflict_state = M68K_ANALYSIS_CONFLICT_STATE_UNRESOLVED;
+      relocation = analysis_operand_relocation_ref(lookup, section->section_index, candidate, operand_index);
+      if (relocation != NULL) {
+        observation.owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_SECTION_STORAGE;
+        observation.owner_offset = relocation->target_offset;
+        observation.target_section_index = relocation->target_section_index > UINT32_MAX ? UINT32_MAX :
+          (uint32_t)relocation->target_section_index;
+        observation.target_offset = relocation->target_offset;
+        observation.has_target = 1U;
+      } else {
+        analysis_classify_orphan_absolute_operand_observation(lookup, section, platform_kind, address,
+          &observation);
+      }
+      if (m68k_ir_section_analysis_append_address_observation(section_analysis, &observation) != 0) return -1;
+    }
+    cursor += candidate->byte_count;
+  }
+  return 0;
+}
+
+static int analysis_orphan_signal_has_vector_evidence(const M68kRenderLookup *lookup,
+    const M68kDecodeSectionIR *section, const M68kOrphanCodeSignalIR *signal) {
+  uint32_t cursor;
+  uint8_t platform_kind = M68K_PLATFORM_BACKEND_UNKNOWN;
+  if (section == NULL || signal == NULL || signal->size == 0U ||
+      signal->offset > section->size || signal->size > section->size - signal->offset) {
+    return 0;
+  }
+  if (lookup != NULL && lookup->object != NULL) platform_kind = lookup->object->platform_backend_kind;
+  cursor = signal->offset;
+  while (cursor < signal->offset + signal->size) {
+    M68kDecodeCandidate decoded_candidate;
+    const M68kDecodeCandidate *candidate;
+    M68kInstructionIR instruction;
+    const M68kSimFormMetadata *metadata;
+    size_t operand_index;
+    candidate = analysis_orphan_decode_candidate_at_offset(lookup, section, cursor, &decoded_candidate);
+    if (candidate == NULL || candidate->byte_count == 0U ||
+        candidate->byte_count > signal->offset + signal->size - cursor) {
+      return 0;
+    }
+    if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) return 0;
+    metadata = m68k_sim_metadata_for_instruction(&instruction);
+    if (metadata == NULL) return 0;
+    for (operand_index = 0U; operand_index < candidate->operand_count && operand_index < 4U; ++operand_index) {
+      uint32_t address = 0U;
+      uint8_t access_kind = metadata->operand_access_kinds[operand_index];
+      if (!analysis_absolute_ref_access_kind(access_kind)) continue;
+      if (!m68k_asm_operand_absolute_value(candidate->operand_kinds[operand_index],
+          &candidate->operands[operand_index], &address)) {
+        continue;
+      }
+      if (analysis_operand_relocation_ref(lookup, section->section_index, candidate, operand_index) != NULL)
+        continue;
+      if (m68k_cpu_find_exception_vector_by_address(address) != NULL ||
+          platform_facts_v2_is_callback_vector_slot(platform_kind, address)) {
+        return 1;
+      }
+    }
+    cursor += candidate->byte_count;
+  }
+  return 0;
+}
+
+static int analysis_orphan_lvo_matches_amiga_api(int16_t lvo) {
+  size_t index;
+  for (index = 0U;; ++index) {
+    const AmigaOsLibraryVectorInfo *vector = amiga_os_library_vector_at(index);
+    if (vector == NULL) return 0;
+    if (vector->lvo == lvo) return 1;
+  }
+}
+
+static int analysis_orphan_signal_has_api_evidence(const M68kRenderLookup *lookup,
+    const M68kDecodeSectionIR *section, const M68kOrphanCodeSignalIR *signal) {
+  uint32_t cursor;
+  if (lookup == NULL || lookup->object == NULL ||
+      lookup->object->platform_backend_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK ||
+      section == NULL || signal == NULL || signal->size == 0U ||
+      signal->offset > section->size || signal->size > section->size - signal->offset) {
+    return 0;
+  }
+  cursor = signal->offset;
+  while (cursor < signal->offset + signal->size) {
+    M68kDecodeCandidate decoded_candidate;
+    const M68kDecodeCandidate *candidate;
+    int16_t lvo = 0;
+    candidate = analysis_orphan_decode_candidate_at_offset(lookup, section, cursor, &decoded_candidate);
+    if (candidate == NULL || candidate->byte_count == 0U ||
+        candidate->byte_count > signal->offset + signal->size - cursor) {
+      return 0;
+    }
+    if (candidate_calls_a6_lvo(candidate, &lvo) && analysis_orphan_lvo_matches_amiga_api(lvo)) return 1;
+    cursor += candidate->byte_count;
+  }
+  return 0;
+}
+
+static void analysis_orphan_signal_attach_nearby_data_context(const M68kRenderLookup *lookup,
+    const M68kDecodeSectionIR *section, M68kOrphanCodeSignalIR *signal) {
+  const M68kAnalysisStructuredDataItem *item = NULL;
+  uint32_t role_flags = 0U;
+  if (lookup == NULL || section == NULL || signal == NULL) return;
+  item = lookup_structured_data_item_covering_offset(lookup, section->section_index, signal->offset);
+  role_flags = item != NULL ? item->semantic_role_flags : 0U;
+  if (role_flags != 0U) {
+    signal->nearby_data_flags = role_flags;
+    signal->nearby_data_table_kind_id = item->table_kind_id;
+    signal->nearby_data_offset = item->offset;
+    signal->nearby_data_distance = 0U;
+    signal->nearby_data_relation = M68K_ORPHAN_CODE_SIGNAL_NEARBY_DATA_OVERLAP;
+    return;
+  }
+  if (signal->size <= section->size - signal->offset) {
+    uint32_t after_offset = signal->offset + signal->size;
+    if (after_offset < section->size)
+      item = lookup_structured_data_item_at_offset(lookup, section->section_index, after_offset);
+    if (item != NULL) {
+      role_flags = item != NULL ? item->semantic_role_flags : 0U;
+      if (role_flags != 0U) {
+        signal->nearby_data_flags = role_flags;
+        signal->nearby_data_table_kind_id = item->table_kind_id;
+        signal->nearby_data_offset = item->offset;
+        signal->nearby_data_distance = item->offset > after_offset ? item->offset - after_offset : 0U;
+        signal->nearby_data_relation = M68K_ORPHAN_CODE_SIGNAL_NEARBY_DATA_AFTER;
+        return;
+      }
+    }
+  }
+  if (signal->offset > 0U) {
+    item = lookup_structured_data_item_covering_offset(lookup, section->section_index, signal->offset - 1U);
+    role_flags = item != NULL ? item->semantic_role_flags : 0U;
+    if (role_flags != 0U) {
+      signal->nearby_data_flags = role_flags;
+      signal->nearby_data_table_kind_id = item->table_kind_id;
+      signal->nearby_data_offset = item->offset;
+      signal->nearby_data_distance = signal->offset > item->offset &&
+        signal->offset - item->offset > item->size
+        ? signal->offset - item->offset - item->size
+        : 0U;
+      signal->nearby_data_relation = M68K_ORPHAN_CODE_SIGNAL_NEARBY_DATA_BEFORE;
+    }
+  }
+}
+
+static void analysis_orphan_signal_refine_missing_inbound(const M68kRenderLookup *lookup,
+    const M68kDecodeSectionIR *section, M68kOrphanCodeSignalIR *signal) {
+  if (signal == NULL) return;
+  if (signal->missing_inbound != M68K_ORPHAN_CODE_SIGNAL_INBOUND_UNKNOWN &&
+      signal->missing_inbound != M68K_ORPHAN_CODE_SIGNAL_INBOUND_METADATA)
+    return;
+  if (analysis_orphan_signal_has_vector_evidence(lookup, section, signal)) {
+    signal->missing_inbound = M68K_ORPHAN_CODE_SIGNAL_INBOUND_VECTOR;
+  } else if (analysis_orphan_signal_has_api_evidence(lookup, section, signal)) {
+    signal->missing_inbound = M68K_ORPHAN_CODE_SIGNAL_INBOUND_API;
+  } else if ((signal->nearby_data_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE) != 0U &&
+      (signal->nearby_data_table_kind_id == M68K_ANALYSIS_TABLE_KIND_RELATIVE_CODE_DISPATCH ||
+       signal->nearby_data_table_kind_id == M68K_ANALYSIS_TABLE_KIND_ABSOLUTE_CODE_DISPATCH)) {
+    signal->missing_inbound = M68K_ORPHAN_CODE_SIGNAL_INBOUND_JUMP_TABLE;
+  }
+}
+
+static void analysis_orphan_signal_set_arbitration_flags(M68kOrphanCodeSignalIR *signal,
+    int suppressed_by_structured_data) {
+  if (signal == NULL) return;
+  if (signal->reason == M68K_ORPHAN_CODE_SIGNAL_TERMINAL_DECODE) {
+    signal->arbitration_flags |= M68K_ORPHAN_CODE_SIGNAL_ARBITRATION_REPORT_ONLY_CODE_SHAPE;
+  }
+  if (suppressed_by_structured_data) {
+    signal->arbitration_flags |= M68K_ORPHAN_CODE_SIGNAL_ARBITRATION_SUPPRESSED_BY_STRUCTURED_DATA;
+  }
+  if (signal->reason == M68K_ORPHAN_CODE_SIGNAL_TERMINAL_DECODE &&
+      signal->missing_inbound == M68K_ORPHAN_CODE_SIGNAL_INBOUND_UNKNOWN) {
+    signal->arbitration_flags |= M68K_ORPHAN_CODE_SIGNAL_ARBITRATION_NEGATIVE_WEAK_TEXT_EVIDENCE;
+  }
+}
+
+static int analysis_orphan_start_has_non_control_runtime_address_ref(const M68kRenderLookup *lookup,
+    const M68kDecodeSectionIR *section, uint32_t offset) {
+  size_t index;
+  int saw_ref = 0;
+  if (lookup == NULL || section == NULL) return 0;
+  for (index = 0U; index < lookup->runtime_address_ref_count; ++index) {
+    const M68kFact *ref = lookup->runtime_address_refs[index].fact;
+    M68kInstructionIR instruction;
+    const M68kSimFormMetadata *metadata;
+    const M68kDecodeCandidate *candidate;
+    size_t operand_index;
+    if (ref == NULL || ref->kind != M68K_FACT_RUNTIME_ADDRESS_REF ||
+        ref->target_section_index != section->section_index || ref->target_offset != offset ||
+        ref->section_index != section->section_index) {
+      continue;
+    }
+    if (ref->reason == UINT32_MAX) continue;
+    operand_index = (size_t)ref->reason;
+    candidate = find_candidate_at_offset_local(section, ref->offset);
+    if (candidate == NULL || operand_index >= candidate->operand_count) continue;
+    metadata = analysis_cfg_candidate_metadata(candidate, &instruction);
+    if (metadata == NULL || operand_index >= instruction.operand_count) continue;
+    saw_ref = 1;
+    if (metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_BRANCH_TARGET &&
+        metadata->operand_result_kinds[operand_index] == M68K_SIM_RESULT_CONTROL_TARGET) {
+      return 0;
+    }
+  }
+  return saw_ref;
+}
+
+int m68k_analysis_render_lookup_append_orphan_code_signals_for_section(const M68kRenderLookup *lookup,
+    const M68kDecodeSectionIR *section, const uint8_t *accepted_start, const uint8_t *accepted_bytes,
+    M68kSectionAnalysisIR *section_analysis) {
+  uint32_t render_extent;
+  uint32_t offset = 0U;
+  if (section == NULL || section_analysis == NULL || accepted_start == NULL || accepted_bytes == NULL) return -1;
+  if (section->kind != M68K_SECTION_CODE) return 0;
+  render_extent = render_section_extent(section);
+  while (offset < render_extent) {
+    const M68kDecodeCandidate *candidate;
+    M68kInstructionIR instruction;
+    const M68kSimFormMetadata *metadata;
+    uint32_t start = offset;
+    uint32_t cursor = offset;
+    uint32_t instruction_count = 0U;
+    uint8_t terminal_flow_kind = 0U;
+    uint8_t required_cpu = M68K_ASM_CPU_68000;
+    uint32_t terminal_offset = 0U;
+    int has_accepted_code_boundary = offset > 0U && analysis_accepted_byte_at(section, accepted_bytes, offset - 1U);
+    int has_renderable_label = lookup_has_renderable_label(lookup, section->section_index, offset);
+    const M68kAnalysisStructuredDataItem *structured_item_at_start = NULL;
+    uint32_t runtime_address = 0U;
+    int has_runtime_view = lookup_source_runtime_address(lookup, section->section_index, offset,
+      &runtime_address);
+    int has_non_control_runtime_address_ref = !has_accepted_code_boundary &&
+      analysis_orphan_start_has_non_control_runtime_address_ref(lookup, section, offset);
+    if (!(has_accepted_code_boundary || has_renderable_label) ||
+        accepted_start_at(section, accepted_start, offset) ||
+        analysis_accepted_byte_at(section, accepted_bytes, offset)) {
+      ++offset;
+      continue;
+    }
+    structured_item_at_start = lookup_structured_data_item_covering_offset(lookup, section->section_index, offset);
+    while (cursor < render_extent && instruction_count < 8U) {
+      M68kDecodeCandidate decoded_candidate;
+      uint32_t next_offset;
+      candidate = analysis_orphan_decode_candidate_at_offset(lookup, section, cursor, &decoded_candidate);
+      if (candidate == NULL || candidate->byte_count == 0U || candidate->byte_count > render_extent - cursor)
+        break;
+      next_offset = cursor + candidate->byte_count;
+      if (analysis_orphan_candidate_range_is_blocked(lookup, section, accepted_bytes, cursor,
+          candidate->byte_count, structured_item_at_start != NULL)) {
+        break;
+      }
+      ++instruction_count;
+      if (candidate->target_cpu > required_cpu) required_cpu = candidate->target_cpu;
+      metadata = analysis_cfg_candidate_metadata(candidate, &instruction);
+      if (metadata == NULL) break;
+      if (!render_cfg_candidate_has_fallthrough(candidate)) {
+        terminal_flow_kind = metadata->flow_kind;
+        terminal_offset = cursor;
+        break;
+      }
+      cursor = next_offset;
+    }
+    if (terminal_flow_kind != 0U && instruction_count >= 2U) {
+      M68kOrphanCodeSignalIR signal;
+      M68kDecodeCandidate terminal_decoded_candidate;
+      const M68kDecodeCandidate *terminal_candidate;
+      memset(&signal, 0, sizeof(signal));
+      terminal_candidate = analysis_orphan_decode_candidate_at_offset(lookup, section, terminal_offset,
+        &terminal_decoded_candidate);
+      if (terminal_candidate == NULL) return -1;
+      signal.offset = start;
+      signal.size = (terminal_offset - start) + terminal_candidate->byte_count;
+      signal.terminal_offset = terminal_offset;
+      signal.terminal_flow_kind = terminal_flow_kind;
+      signal.reason = M68K_ORPHAN_CODE_SIGNAL_TERMINAL_DECODE;
+      signal.status = structured_item_at_start != NULL || has_non_control_runtime_address_ref
+        ? M68K_ORPHAN_CODE_SIGNAL_SUPPRESSED
+        : M68K_ORPHAN_CODE_SIGNAL_UNRESOLVED;
+      signal.confidence = instruction_count >= 4U ? 90U : 70U;
+      signal.required_cpu = required_cpu;
+      signal.instruction_count = instruction_count > UINT8_MAX ? UINT8_MAX : (uint8_t)instruction_count;
+      if (has_renderable_label && has_non_control_runtime_address_ref) {
+        signal.context = M68K_ORPHAN_CODE_SIGNAL_CONTEXT_RENDERABLE_LABEL;
+        signal.missing_inbound = analysis_orphan_missing_inbound_for_renderable_label(lookup,
+          section->section_index, offset);
+      } else if (has_runtime_view) {
+        signal.context = M68K_ORPHAN_CODE_SIGNAL_CONTEXT_RUNTIME_VIEW;
+        signal.missing_inbound = M68K_ORPHAN_CODE_SIGNAL_INBOUND_UNKNOWN;
+      } else if (has_renderable_label) {
+        signal.context = M68K_ORPHAN_CODE_SIGNAL_CONTEXT_RENDERABLE_LABEL;
+        signal.missing_inbound = analysis_orphan_missing_inbound_for_renderable_label(lookup,
+          section->section_index, offset);
+      } else {
+        signal.context = M68K_ORPHAN_CODE_SIGNAL_CONTEXT_ACCEPTED_CODE_BOUNDARY;
+        signal.missing_inbound = M68K_ORPHAN_CODE_SIGNAL_INBOUND_UNKNOWN;
+      }
+      analysis_orphan_signal_attach_nearby_data_context(lookup, section, &signal);
+      analysis_orphan_signal_refine_missing_inbound(lookup, section, &signal);
+      analysis_orphan_signal_set_arbitration_flags(&signal, structured_item_at_start != NULL);
+      signal.detail = structured_item_at_start != NULL
+        ? "decoded terminal island suppressed by accepted structured data"
+        : has_non_control_runtime_address_ref
+        ? "decoded terminal island suppressed by non-control runtime address reference"
+        : "decoded instruction island ends in generated terminal flow";
+      if (m68k_ir_section_analysis_append_orphan_code_signal(section_analysis, &signal) != 0) return -1;
+      if (analysis_append_orphan_absolute_operand_observations_for_signal(lookup, section, &signal,
+          section_analysis) != 0) {
+        return -1;
+      }
+      offset = start + signal.size;
+      continue;
+    }
+    ++offset;
+  }
+  return 0;
+}
 
 static int instruction_has_call_flow_local(const M68kInstructionIR *instruction) {
   const M68kSimFormMetadata *metadata;
