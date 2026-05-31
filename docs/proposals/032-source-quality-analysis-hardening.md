@@ -3409,3 +3409,31 @@ src\build\m68k_c_unit_tests.exe
 uv run python -m pytest tests\test_target_usage_manifest.py -q
 uv run platform-rendered-source-roundtrip --no-write-report --json
 ```
+
+### Stack Cleanup Fact Append Pre-Render Split
+
+Moved Atari stack-cleanup platform call fact append out of source rendering.
+The accepted-candidate pass now records both the direct trap call and the
+following cleanup fact before optional `.s` emission:
+
+```text
+accepted trap call + accepted stack cleanup instruction
+  -> platform_facts_v2_resolve_stack_cleanup_call()
+  -> M68kRecoveredPlatformCallIR(note = stack_cleanup)
+```
+
+`attach_platform_stack_cleanup_comment_for_render()` now only formats the
+human-facing comment. It no longer receives `M68kSectionAnalysisIR`, so it
+cannot mutate durable analysis facts while rendering. The regression uses a
+generated Atari `Crawcin` metadata row because that call has known caller stack
+cleanup; calls with unknown cleanup, such as `Mshrink`, correctly do not produce
+a cleanup fact.
+
+Verified:
+
+```text
+cmd /c src\build.bat
+src\build\m68k_c_unit_tests.exe
+uv run python -m pytest tests\test_target_usage_manifest.py -q
+uv run platform-rendered-source-roundtrip --no-write-report --json
+```

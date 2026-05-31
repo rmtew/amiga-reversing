@@ -11000,15 +11000,35 @@ static int record_platform_trap_call_facts(M68kRenderIRPreview *preview,
   return 1;
 }
 
-static void attach_platform_stack_cleanup_comment_for_render(M68kRenderIRPreview *preview,
+static int record_platform_stack_cleanup_call_facts(M68kRenderIRPreview *preview,
     const M68kRenderLookup *lookup, const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
-    const M68kDecodeCandidate *candidate, const M68kInstructionIR *instruction,
-    M68kSectionAnalysisIR *section_analysis, char *comment, size_t comment_size) {
+    const M68kDecodeCandidate *candidate, M68kSectionAnalysisIR *section_analysis) {
+  M68kInstructionIR instruction;
+  PlatformFactsV2ResolvedCall call_info;
+  uint32_t block_start;
+  if (preview == NULL || lookup == NULL || lookup->object == NULL || section == NULL || accepted_start == NULL ||
+      candidate == NULL) {
+    return 0;
+  }
+  if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) return 0;
+  block_start = lookup_code_block_start_before_or_at(lookup, section->section_index, candidate->offset);
+  if (!platform_facts_v2_resolve_stack_cleanup_call(lookup->object->platform_backend_kind, section,
+      accepted_start, block_start, candidate->offset, &instruction, &call_info)) {
+    return 0;
+  }
+  record_facts_v2_platform_call(preview, section_analysis, candidate->offset, &call_info);
+  if (preview->asm_source_allocation_failed) return -1;
+  return 1;
+}
+
+static void attach_platform_stack_cleanup_comment_for_render(const M68kRenderLookup *lookup,
+    const M68kDecodeSectionIR *section, const uint8_t *accepted_start, const M68kDecodeCandidate *candidate,
+    const M68kInstructionIR *instruction, char *comment, size_t comment_size) {
   PlatformFactsV2ResolvedCall call_info;
   uint32_t block_start;
   char note[160];
-  if (preview == NULL || lookup == NULL || lookup->object == NULL || section == NULL || accepted_start == NULL ||
-      candidate == NULL || instruction == NULL || comment == NULL || comment_size == 0U) {
+  if (lookup == NULL || lookup->object == NULL || section == NULL || accepted_start == NULL || candidate == NULL ||
+      instruction == NULL || comment == NULL || comment_size == 0U) {
     return;
   }
   block_start = lookup_code_block_start_before_or_at(lookup, section->section_index, candidate->offset);
@@ -11020,7 +11040,6 @@ static void attach_platform_stack_cleanup_comment_for_render(M68kRenderIRPreview
   snprintf(note, sizeof(note), "KNOWN: stack cleanup for %s pop %u", call_info.note_symbol_name,
     (unsigned)call_info.note_stack_cleanup_bytes);
   (void)append_comment_part_local(comment, comment_size, note);
-  record_facts_v2_platform_call(preview, section_analysis, candidate->offset, &call_info);
 }
 
 static void attach_amiga_hardware_display_comment_for_render(const M68kRenderPlatformState *state,
@@ -11159,8 +11178,7 @@ static int amiga_vector_is_open_library_result(const AmigaOsLibraryVectorInfo *v
 static int render_asm_instruction(M68kRenderIRPreview *preview, M68kRenderLookup *lookup,
     M68kRenderPlatformState *platform_state, const M68kDecodeIR *decode, uint8_t **accepted_start_all,
     const M68kDecodeSectionIR *section, const uint8_t *accepted_start, const uint8_t *accepted_bytes,
-    const M68kDecodeCandidate *candidate, M68kSectionAnalysisIR *section_analysis,
-    M68kInstructionIR *out_listing_instruction) {
+    const M68kDecodeCandidate *candidate, M68kInstructionIR *out_listing_instruction) {
   M68kInstructionIR instruction;
   M68kInstructionIR render_instruction;
   M68kRenderPolicy policy;
@@ -11233,8 +11251,8 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, M68kRenderLookup
   if (!render_asm_include_for_instruction_platform_symbols(preview, &instruction)) return 0;
   attach_amiga_runtime_sink_comment_for_render(platform_state, lookup, section->section_index, candidate->offset,
     &instruction, platform_comment, sizeof(platform_comment));
-  attach_platform_stack_cleanup_comment_for_render(preview, lookup, section, accepted_start, candidate, &instruction,
-    section_analysis, platform_comment, sizeof(platform_comment));
+  attach_platform_stack_cleanup_comment_for_render(lookup, section, accepted_start, candidate, &instruction,
+    platform_comment, sizeof(platform_comment));
   (void)append_comment_part_local(instruction_comment, sizeof(instruction_comment),
     lookup_instruction_comment(lookup, section->section_index, candidate->offset));
   (void)append_comment_part_local(instruction_comment, sizeof(instruction_comment), platform_comment);
@@ -11582,6 +11600,11 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
           goto cleanup;
         }
         if (build_platform_analysis &&
+            record_platform_stack_cleanup_call_facts(out_preview, &lookup, section, accepted_start[section_index],
+              candidate, current_section_analysis) < 0) {
+          goto cleanup;
+        }
+        if (build_platform_analysis &&
             record_amiga_instruction_platform_call_facts(out_preview, &lookup, &platform_state, decode,
               accepted_start, section, accepted_start[section_index], candidate, current_section_analysis) < 0) {
           goto cleanup;
@@ -11595,7 +11618,7 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
           render_asm_sync_logical_pc(out_preview, &lookup, section->section_index, offset, &asm_logical_pc);
           rendered_instruction = render_asm_instruction(out_preview, &lookup, &platform_state, decode,
             accepted_start, section, accepted_start[section_index], accepted_bytes[section_index], candidate,
-            current_section_analysis, &listing_instruction);
+            &listing_instruction);
           row = finish_asm_source_plan_row(out_preview, section->section_index, offset, candidate->byte_count, 1);
           if (rendered_instruction) {
             set_asm_source_plan_row_statement_from_section(row, M68K_STATEMENT_INSTRUCTION, &listing_instruction,
