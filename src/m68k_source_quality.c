@@ -107,6 +107,54 @@ static int append_address_observations_for_section(M68kSectionAnalysisIR *sectio
   return 0;
 }
 
+static uint8_t platform_address_use_shape_from_observation(const M68kAddressObservationIR *observation) {
+  if (observation == NULL || !observation->has_address) return M68K_PLATFORM_ADDRESS_USE_SHAPE_UNKNOWN;
+  if (observation->owner_kind == M68K_ABSOLUTE_MEMORY_OWNER_CPU_VECTOR) {
+    if (observation->access_kind == M68K_SIM_ACCESS_MEMORY_WRITE)
+      return M68K_PLATFORM_ADDRESS_USE_SHAPE_TRUE_VECTOR_INSTALL;
+    if (observation->access_kind == M68K_SIM_ACCESS_COMPUTE_ADDRESS)
+      return M68K_PLATFORM_ADDRESS_USE_SHAPE_LOW_MEMORY_BASE;
+    return M68K_PLATFORM_ADDRESS_USE_SHAPE_LOW_MEMORY_STORAGE;
+  }
+  if (observation->owner_kind == M68K_ABSOLUTE_MEMORY_OWNER_HARDWARE_REGISTER ||
+      observation->owner_kind == M68K_ABSOLUTE_MEMORY_OWNER_HARDWARE_REGISTER_RANGE) {
+    return M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_REGISTER_ACCESS;
+  }
+  if (observation->owner_kind == M68K_ABSOLUTE_MEMORY_OWNER_EXECBASE_LITERAL) {
+    return M68K_PLATFORM_ADDRESS_USE_SHAPE_EXECBASE_LITERAL;
+  }
+  if (observation->address < 0x400U &&
+      (observation->access_kind == M68K_SIM_ACCESS_MEMORY_READ ||
+       observation->access_kind == M68K_SIM_ACCESS_MEMORY_WRITE ||
+       observation->access_kind == M68K_SIM_ACCESS_COMPUTE_ADDRESS)) {
+    return observation->access_kind == M68K_SIM_ACCESS_COMPUTE_ADDRESS ?
+      M68K_PLATFORM_ADDRESS_USE_SHAPE_LOW_MEMORY_BASE : M68K_PLATFORM_ADDRESS_USE_SHAPE_LOW_MEMORY_STORAGE;
+  }
+  return M68K_PLATFORM_ADDRESS_USE_SHAPE_UNKNOWN;
+}
+
+static int append_platform_address_uses_for_section(M68kSectionAnalysisIR *section) {
+  size_t index;
+  if (section == NULL) return -1;
+  for (index = 0U; index < section->address_observation_count; ++index) {
+    const M68kAddressObservationIR *observation = &section->address_observations[index];
+    M68kPlatformAddressUseIR use;
+    uint8_t shape = platform_address_use_shape_from_observation(observation);
+    if (shape == M68K_PLATFORM_ADDRESS_USE_SHAPE_UNKNOWN) continue;
+    memset(&use, 0, sizeof(use));
+    use.offset = observation->offset;
+    use.operand_index = observation->operand_index;
+    use.address = observation->address;
+    use.effective_address = observation->address;
+    use.access_width = observation->access_width;
+    use.access_kind = observation->access_kind;
+    use.use_shape = shape;
+    use.confidence = observation->confidence;
+    if (m68k_ir_section_analysis_append_platform_address_use(section, &use) != 0) return -1;
+  }
+  return 0;
+}
+
 static int address_identity_matches_observation(const M68kAddressIdentityIR *identity,
     const M68kAddressObservationIR *observation) {
   if (identity == NULL || observation == NULL || !observation->has_address) return 0;
@@ -368,6 +416,7 @@ int m68k_source_quality_analyze(M68kSourceAnalysisIR *source_analysis) {
     M68kSectionAnalysisIR *section = &source_analysis->sections[section_index];
     if (append_code_origins_for_section(section) != 0) return -1;
     if (append_address_observations_for_section(section) != 0) return -1;
+    if (append_platform_address_uses_for_section(section) != 0) return -1;
     if (append_accepted_runs_for_section(section) != 0) return -1;
   }
   if (append_address_identities_and_ranges(source_analysis) != 0) return -1;

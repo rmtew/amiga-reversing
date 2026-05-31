@@ -10174,6 +10174,37 @@ static int test_source_quality_analyze_exports_code_origins_and_runs(void) {
   return 0;
 }
 
+static int test_source_quality_analyze_exports_platform_address_uses(void) {
+  M68kSourceAnalysisIR source_analysis;
+  M68kSectionAnalysisIR section_analysis;
+  M68kAbsoluteMemoryRefIR absolute_ref;
+  char *analysis_json = NULL;
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_create(&source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_create(&section_analysis, test_ir_result_arena()));
+  section_analysis.section_index = 0U;
+  section_analysis.section_size = 16U;
+  memset(&absolute_ref, 0, sizeof(absolute_ref));
+  absolute_ref.offset = 2U;
+  absolute_ref.operand_index = 1U;
+  absolute_ref.address = 0x70U;
+  absolute_ref.access_width = 4U;
+  absolute_ref.access_kind = M68K_SIM_ACCESS_MEMORY_WRITE;
+  absolute_ref.owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_CPU_VECTOR;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_absolute_memory_ref(&section_analysis, &absolute_ref));
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
+  M68K_C_ASSERT_INT(0, m68k_source_quality_analyze(&source_analysis));
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"platform_address_use_count\":1") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"use_shape_name\":\"true_vector_install\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"access_kind_name\":\"memory_write\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"address\":112") != NULL);
+  free(analysis_json);
+  m68k_ir_section_analysis_destroy(&section_analysis);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  return 0;
+}
+
 static int test_source_quality_analyze_blocks_code_without_executable_origin(void) {
   M68kSourceAnalysisIR source_analysis;
   M68kSectionAnalysisIR section_analysis;
@@ -23417,6 +23448,8 @@ int m68k_c_ir_tests(void) {
       test_source_analysis_source_quality_diagnostics_export},
     {"source_quality_analyze_exports_code_origins_and_runs",
       test_source_quality_analyze_exports_code_origins_and_runs},
+    {"source_quality_analyze_exports_platform_address_uses",
+      test_source_quality_analyze_exports_platform_address_uses},
     {"source_quality_analyze_blocks_code_without_executable_origin",
       test_source_quality_analyze_blocks_code_without_executable_origin},
     {"source_quality_analyze_uses_cfg_terminal_run_end",

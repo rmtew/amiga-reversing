@@ -3715,6 +3715,7 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
     size_t block_index, edge_index, violation_index, app_slot_ref_index, typed_access_index, range_index;
     size_t table_descriptor_index, table_consumer_index, table_entry_index;
     size_t unresolved_typed_access_index, runtime_view_index, runtime_address_ref_index, address_observation_index;
+    size_t platform_address_use_index;
     size_t code_start_ref_index;
     size_t code_origin_index, accepted_code_run_index;
     size_t data_reference_index, immediate_text_token_index;
@@ -3860,6 +3861,45 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
           json_builder_appendf(&builder, ",\"identity_id\":%u", (unsigned)observation->identity_id) != 0)
         goto oom;
       if (json_builder_appendf(&builder, ",\"confidence\":%u}", (unsigned)observation->confidence) != 0)
+        goto oom;
+    }
+    if (json_builder_appendf(&builder,
+          "],\"platform_address_use_count\":%u,\"platform_address_uses\":[",
+          (unsigned)section->platform_address_use_count) != 0)
+      goto oom;
+    for (platform_address_use_index = 0U; platform_address_use_index < section->platform_address_use_count;
+        ++platform_address_use_index) {
+      const M68kPlatformAddressUseIR *use = &section->platform_address_uses[platform_address_use_index];
+      if (platform_address_use_index != 0U && json_builder_append(&builder, ",") != 0)
+        goto oom;
+      if (json_builder_appendf(&builder, "{\"offset\":%u,\"operand_index\":",
+          (unsigned)use->offset) != 0)
+        goto oom;
+      if (use->operand_index == UINT32_MAX) {
+        if (json_builder_append(&builder, "null") != 0) goto oom;
+      } else if (json_builder_appendf(&builder, "%u", (unsigned)use->operand_index) != 0) {
+        goto oom;
+      }
+      if (json_builder_appendf(&builder,
+          ",\"address\":%u,\"effective_address\":%u,\"use_shape_id\":%u,\"use_shape_name\":",
+          (unsigned)use->address, (unsigned)use->effective_address, (unsigned)use->use_shape) != 0)
+        goto oom;
+      if (json_builder_append_json_string(&builder,
+          m68k_platform_address_use_shape_name(use->use_shape)) != 0)
+        goto oom;
+      if (json_builder_appendf(&builder,
+          ",\"access_kind_id\":%u,\"access_kind_name\":",
+          (unsigned)use->access_kind) != 0)
+        goto oom;
+      if (json_builder_append_json_string(&builder, listing_operand_access_name(use->access_kind)) != 0)
+        goto oom;
+      if (json_builder_appendf(&builder, ",\"access_width\":%u,\"confidence\":%u",
+          (unsigned)use->access_width, (unsigned)use->confidence) != 0)
+        goto oom;
+      if (use->has_handler_target &&
+          json_builder_appendf(&builder, ",\"handler_target\":%u", (unsigned)use->handler_target) != 0)
+        goto oom;
+      if (json_builder_append(&builder, "}") != 0)
         goto oom;
     }
     if (json_builder_appendf(&builder, "],\"data_reference_count\":%u,\"data_references\":[",

@@ -3023,3 +3023,39 @@ cmd /c src\build.bat
 src\build\m68k_c_unit_tests.exe
 uv run python -m pytest tests\test_target_usage_manifest.py -q
 ```
+
+### Platform Address Use Bootstrap
+
+Added the first C-owned platform-address-use fact family:
+
+```text
+M68kPlatformAddressUseIR
+  -> section offset / operand index
+  -> observed address and effective address
+  -> access kind and width
+  -> use shape
+  -> confidence
+```
+
+The initial producer derives use-shape records from C address observations:
+
+```text
+CPU vector + memory write     -> true_vector_install
+CPU vector + compute address  -> low_memory_base
+CPU vector + read             -> low_memory_storage
+hardware register/range       -> hardware_register_access
+ExecBase literal              -> execbase_literal
+low absolute non-owner access -> low_memory_base / low_memory_storage
+```
+
+This does not yet remove renderer-side symbol lookup. It establishes the
+source-analysis fact lane that later renderer cleanup must consume before
+rendering CPU vectors or hardware names.
+
+Verified:
+
+```text
+cmd /c src\build.bat
+src\build\m68k_c_unit_tests.exe
+uv run python -m pytest tests\test_target_usage_manifest.py -q
+```

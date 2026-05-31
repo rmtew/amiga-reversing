@@ -1352,6 +1352,28 @@ typedef struct M68kAbsoluteAddressRangeIR {
   uint8_t reserved[1];
 } M68kAbsoluteAddressRangeIR;
 
+typedef enum M68kPlatformAddressUseShape {
+  M68K_PLATFORM_ADDRESS_USE_SHAPE_UNKNOWN = 0,
+  M68K_PLATFORM_ADDRESS_USE_SHAPE_TRUE_VECTOR_INSTALL = 1,
+  M68K_PLATFORM_ADDRESS_USE_SHAPE_LOW_MEMORY_BASE = 2,
+  M68K_PLATFORM_ADDRESS_USE_SHAPE_LOW_MEMORY_STORAGE = 3,
+  M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_REGISTER_ACCESS = 4,
+  M68K_PLATFORM_ADDRESS_USE_SHAPE_EXECBASE_LITERAL = 5
+} M68kPlatformAddressUseShape;
+
+typedef struct M68kPlatformAddressUseIR {
+  uint32_t offset;
+  uint32_t operand_index;
+  uint32_t address;
+  uint32_t effective_address;
+  uint32_t handler_target;
+  uint32_t access_width;
+  uint8_t access_kind;
+  uint8_t use_shape;
+  uint8_t confidence;
+  uint8_t has_handler_target;
+} M68kPlatformAddressUseIR;
+
 typedef struct M68kCodeStartRefIR {
   uint32_t offset;
   uint32_t reason;
@@ -1868,6 +1890,9 @@ typedef struct M68kSectionAnalysisIR {
   M68kAddressObservationIR *address_observations;
   size_t address_observation_count;
   size_t address_observation_capacity;
+  M68kPlatformAddressUseIR *platform_address_uses;
+  size_t platform_address_use_count;
+  size_t platform_address_use_capacity;
   M68kCodeStartRefIR *code_start_refs;
   size_t code_start_ref_count;
   size_t code_start_ref_capacity;
@@ -1956,6 +1981,7 @@ const char *m68k_address_identity_role_kind_name(uint8_t role_kind);
 const char *m68k_absolute_address_range_status_name(uint8_t status);
 const char *m68k_absolute_memory_owner_kind_name(uint8_t owner_kind);
 const char *m68k_analysis_conflict_state_name(uint8_t conflict_state);
+const char *m68k_platform_address_use_shape_name(uint8_t use_shape);
 uint8_t m68k_analysis_table_entry_count_proof_for_source_pattern(uint8_t source_pattern_id);
 uint8_t m68k_analysis_table_stop_reason_for_entry_count_proof(uint8_t proof_id);
 uint8_t m68k_recovered_indirect_source_pattern_id(uint8_t shape);
@@ -2093,6 +2119,8 @@ int m68k_ir_section_analysis_append_absolute_memory_ref(M68kSectionAnalysisIR *s
     const M68kAbsoluteMemoryRefIR *absolute_memory_ref);
 int m68k_ir_section_analysis_append_address_observation(M68kSectionAnalysisIR *section_analysis,
     const M68kAddressObservationIR *observation);
+int m68k_ir_section_analysis_append_platform_address_use(M68kSectionAnalysisIR *section_analysis,
+    const M68kPlatformAddressUseIR *use);
 int m68k_ir_section_analysis_append_code_start_ref(M68kSectionAnalysisIR *section_analysis,
     const M68kCodeStartRefIR *code_start_ref);
 int m68k_ir_section_analysis_append_source_quality_diagnostic(M68kSectionAnalysisIR *section_analysis,

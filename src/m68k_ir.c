@@ -451,6 +451,23 @@ const char *m68k_analysis_conflict_state_name(uint8_t conflict_state) {
   }
 }
 
+const char *m68k_platform_address_use_shape_name(uint8_t use_shape) {
+  switch (use_shape) {
+    case M68K_PLATFORM_ADDRESS_USE_SHAPE_TRUE_VECTOR_INSTALL:
+      return "true_vector_install";
+    case M68K_PLATFORM_ADDRESS_USE_SHAPE_LOW_MEMORY_BASE:
+      return "low_memory_base";
+    case M68K_PLATFORM_ADDRESS_USE_SHAPE_LOW_MEMORY_STORAGE:
+      return "low_memory_storage";
+    case M68K_PLATFORM_ADDRESS_USE_SHAPE_HARDWARE_REGISTER_ACCESS:
+      return "hardware_register_access";
+    case M68K_PLATFORM_ADDRESS_USE_SHAPE_EXECBASE_LITERAL:
+      return "execbase_literal";
+    default:
+      return "unknown";
+  }
+}
+
 uint8_t m68k_analysis_table_entry_count_proof_for_source_pattern(uint8_t source_pattern_id) {
   switch (source_pattern_id) {
     case M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_RELOCATION_POINTER_TABLE:
@@ -2508,6 +2525,31 @@ int m68k_ir_section_analysis_append_address_observation(M68kSectionAnalysisIR *s
   return 0;
 }
 
+int m68k_ir_section_analysis_append_platform_address_use(M68kSectionAnalysisIR *section_analysis,
+    const M68kPlatformAddressUseIR *use) {
+  size_t index;
+  if (section_analysis == NULL || use == NULL || section_analysis->arena == NULL) return -1;
+  if (use->use_shape == M68K_PLATFORM_ADDRESS_USE_SHAPE_UNKNOWN) return 0;
+  for (index = 0U; index < section_analysis->platform_address_use_count; ++index) {
+    const M68kPlatformAddressUseIR *existing = &section_analysis->platform_address_uses[index];
+    if (existing->offset == use->offset &&
+        existing->operand_index == use->operand_index &&
+        existing->address == use->address &&
+        existing->effective_address == use->effective_address &&
+        existing->access_kind == use->access_kind &&
+        existing->use_shape == use->use_shape) {
+      return 0;
+    }
+  }
+  section_analysis->platform_address_uses = (M68kPlatformAddressUseIR *)arena_grow_array(
+    section_analysis->arena, section_analysis->platform_address_uses,
+    section_analysis->platform_address_use_count, &section_analysis->platform_address_use_capacity,
+    8U, sizeof(*section_analysis->platform_address_uses));
+  if (section_analysis->platform_address_uses == NULL) return -1;
+  section_analysis->platform_address_uses[section_analysis->platform_address_use_count++] = *use;
+  return 0;
+}
+
 int m68k_ir_section_analysis_append_code_start_ref(M68kSectionAnalysisIR *section_analysis,
     const M68kCodeStartRefIR *code_start_ref) {
   size_t index;
@@ -3997,6 +4039,13 @@ int m68k_ir_source_analysis_append_section(M68kSourceAnalysisIR *source_analysis
   for (index = 0; index < section_analysis->address_observation_count; ++index) {
     if (m68k_ir_section_analysis_append_address_observation(&copy,
           &section_analysis->address_observations[index]) != 0) {
+      m68k_ir_section_analysis_destroy(&copy);
+      return -1;
+    }
+  }
+  for (index = 0; index < section_analysis->platform_address_use_count; ++index) {
+    if (m68k_ir_section_analysis_append_platform_address_use(&copy,
+          &section_analysis->platform_address_uses[index]) != 0) {
       m68k_ir_section_analysis_destroy(&copy);
       return -1;
     }
