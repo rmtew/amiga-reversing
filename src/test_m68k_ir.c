@@ -10425,7 +10425,7 @@ static int test_source_analysis_symbol_origin_and_expected_access_export(void) {
   origin.offset = 4U;
   origin.source_section_index = 0U;
   origin.source_offset = 4U;
-  origin.origin_kind = M68K_SYMBOL_ORIGIN_LABEL_CREATED;
+  origin.origin_kind = M68K_SYMBOL_ORIGIN_ANALYSIS_LABEL;
   origin.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
   M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_symbol_origin(&section_analysis, &origin));
   memset(&access, 0, sizeof(access));
@@ -10453,15 +10453,15 @@ static int test_source_analysis_symbol_origin_and_expected_access_export(void) {
   M68K_C_ASSERT(analysis_json != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"symbol_origin_count\":1") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"symbol_name\":\"loc_0_00000004\"") != NULL);
-  M68K_C_ASSERT(strstr(analysis_json, "\"origin_kind\":\"label_created\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"origin_kind\":\"analysis_label\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"expected_symbol_access_count\":1") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"access_kind\":\"label_statement\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"target_section_index\":0,\"target_offset\":4") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"operand_index\":null") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"rendered_symbol_access_count\":1") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"comment_only\":false") != NULL);
-  M68K_C_ASSERT_STR("label_created",
-    m68k_symbol_origin_kind_name(M68K_SYMBOL_ORIGIN_LABEL_CREATED));
+  M68K_C_ASSERT_STR("analysis_label",
+    m68k_symbol_origin_kind_name(M68K_SYMBOL_ORIGIN_ANALYSIS_LABEL));
   M68K_C_ASSERT_STR("label_statement",
     m68k_expected_symbol_access_kind_name(M68K_EXPECTED_SYMBOL_ACCESS_LABEL_STATEMENT));
   M68K_C_ASSERT_STR("label_statement",

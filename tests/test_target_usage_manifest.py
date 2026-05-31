@@ -710,7 +710,7 @@ def test_analysis_symbol_origins_and_expected_accesses_are_indexed_for_label_sea
                     {
                         "offset": 0x42C00,
                         "symbol_name": "abs_0_00042C00",
-                        "origin_kind": "label_created",
+                        "origin_kind": "analysis_label",
                         "source_section_index": 0,
                         "source_offset": 0x42C00,
                         "confidence": 80,
@@ -746,7 +746,7 @@ def test_analysis_symbol_origins_and_expected_accesses_are_indexed_for_label_sea
     counts, examples, tags = bag.row_features()
 
     assert counts["analysis:symbol_origin"] == 1
-    assert counts["analysis:symbol_origin_kind:label_created"] == 1
+    assert counts["analysis:symbol_origin_kind:analysis_label"] == 1
     assert counts["analysis:expected_symbol_access"] == 1
     assert counts["analysis:expected_symbol_access_kind:label_statement"] == 1
     assert counts["analysis:expected_symbol_access:targeted"] == 1

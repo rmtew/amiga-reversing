@@ -4297,3 +4297,21 @@ helper, and the fact-list scan existed only as a null-lookup fallback.
 Tests now construct explicit `M68K_FACT_LABEL_CREATED` facts through a local
 test helper when they need fixture setup. No compatibility wrapper remains,
 because this repository has no external API consumers to preserve.
+
+### Symbol Origins Consume Label Lookup
+
+Source Analysis IR no longer builds symbol origins by scanning
+`M68K_FACT_LABEL_CREATED` rows. The facts-v2 label lookup now carries the
+confidence for each active label offset, and symbol-origin production walks
+that lookup directly:
+
+```text
+facts-v2 label lookup
+  -> active label offsets + confidence
+  -> M68kSymbolOriginIR(origin_kind = analysis_label)
+```
+
+The public JSON/source-analysis origin name changed from `label_created` to
+`analysis_label`. That deliberately breaks the stale internal vocabulary:
+source-quality consumers should see an analysis label origin, not a legacy fact
+implementation detail.

@@ -166,6 +166,7 @@ typedef struct M68kFactsV2RelocationLookup {
 typedef struct M68kFactsV2LabelLookup {
   size_t section_count;
   uint8_t **labels;
+  uint8_t **confidences;
   uint32_t *extents;
 } M68kFactsV2LabelLookup;
 
@@ -789,15 +790,19 @@ static int label_lookup_build(M68kFactsV2LabelLookup *lookup, const M68kDecodeIR
   lookup->section_count = decode->section_count;
   lookup->labels = (uint8_t **)arena_calloc(arena, decode->section_count != 0U ? decode->section_count : 1U,
     sizeof(*lookup->labels));
+  lookup->confidences = (uint8_t **)arena_calloc(arena, decode->section_count != 0U ? decode->section_count : 1U,
+    sizeof(*lookup->confidences));
   lookup->extents = (uint32_t *)arena_calloc(arena, decode->section_count != 0U ? decode->section_count : 1U,
     sizeof(*lookup->extents));
-  if (lookup->labels == NULL || lookup->extents == NULL) goto fail;
+  if (lookup->labels == NULL || lookup->confidences == NULL || lookup->extents == NULL) goto fail;
   for (section_index = 0U; section_index < decode->section_count; ++section_index) {
     uint32_t extent = decode_section_extent_local(&decode->sections[section_index]);
     lookup->extents[section_index] = extent;
     lookup->labels[section_index] = (uint8_t *)arena_calloc(arena, (size_t)extent + 1U,
       sizeof(*lookup->labels[section_index]));
-    if (lookup->labels[section_index] == NULL) goto fail;
+    lookup->confidences[section_index] = (uint8_t *)arena_calloc(arena, (size_t)extent + 1U,
+      sizeof(*lookup->confidences[section_index]));
+    if (lookup->labels[section_index] == NULL || lookup->confidences[section_index] == NULL) goto fail;
   }
   return 0;
 fail:
@@ -826,41 +831,45 @@ static int label_lookup_create_label(M68kFactsV2LabelLookup *lookup, M68kFactIR 
   fact.offset = offset;
   if (m68k_fact_ir_append(facts, &fact) != 0) return -1;
   if (lookup != NULL && section_index < lookup->section_count && lookup->labels != NULL &&
-      lookup->extents != NULL && lookup->labels[section_index] != NULL &&
+      lookup->confidences != NULL && lookup->extents != NULL && lookup->labels[section_index] != NULL &&
+      lookup->confidences[section_index] != NULL &&
       offset <= lookup->extents[section_index]) {
     lookup->labels[section_index][offset] = 1U;
+    lookup->confidences[section_index][offset] = confidence;
   }
   return 0;
 }
 
-static int append_symbol_facts_from_label_facts(const M68kDecodeIR *decode,
-    const M68kFactIR *facts, const M68kRenderLookup *lookup, M68kSourceAnalysisIR *source_analysis) {
-  size_t fact_index;
-  if (decode == NULL || facts == NULL || lookup == NULL || source_analysis == NULL) return -1;
-  for (fact_index = 0U; fact_index < facts->fact_count; ++fact_index) {
-    const M68kFact *fact = &facts->facts[fact_index];
-    M68kSectionAnalysisIR *section_analysis;
-    char symbol_name[M68K_IR_SYMBOL_NAME_SIZE];
-    if (fact->kind != M68K_FACT_LABEL_CREATED ||
-        fact->section_index >= decode->section_count ||
-        fact->section_index >= source_analysis->section_count ||
-        fact->offset > decode_section_extent_local(&decode->sections[fact->section_index])) {
+static int append_symbol_facts_from_label_lookup(const M68kDecodeIR *decode,
+    const M68kFactsV2LabelLookup *label_lookup, const M68kRenderLookup *lookup,
+    M68kSourceAnalysisIR *source_analysis) {
+  size_t section_index;
+  if (decode == NULL || label_lookup == NULL || lookup == NULL || source_analysis == NULL) return -1;
+  for (section_index = 0U;
+      section_index < decode->section_count && section_index < source_analysis->section_count &&
+      section_index < label_lookup->section_count;
+      ++section_index) {
+    uint32_t offset;
+    M68kSectionAnalysisIR *section_analysis = &source_analysis->sections[section_index];
+    uint32_t extent = label_lookup->extents != NULL ? label_lookup->extents[section_index] : 0U;
+    if (label_lookup->labels == NULL || label_lookup->confidences == NULL ||
+        label_lookup->labels[section_index] == NULL || label_lookup->confidences[section_index] == NULL) {
       continue;
     }
-    section_analysis = &source_analysis->sections[fact->section_index];
-    symbol_name[0] = '\0';
-    format_lookup_asm_label_with_generation(lookup, symbol_name, sizeof(symbol_name),
-      fact->section_index, fact->offset);
-    if (symbol_name[0] == '\0') continue;
-    {
+    for (offset = 0U; offset <= extent; ++offset) {
+      char symbol_name[M68K_IR_SYMBOL_NAME_SIZE];
       M68kSymbolOriginIR origin;
+      if (label_lookup->labels[section_index][offset] == 0U) continue;
+      symbol_name[0] = '\0';
+      format_lookup_asm_label_with_generation(lookup, symbol_name, sizeof(symbol_name), section_index, offset);
+      if (symbol_name[0] == '\0') continue;
       memset(&origin, 0, sizeof(origin));
       origin.symbol_name = symbol_name;
-      origin.offset = fact->offset;
-      origin.source_section_index = (uint32_t)fact->section_index;
-      origin.source_offset = fact->offset;
-      origin.origin_kind = M68K_SYMBOL_ORIGIN_LABEL_CREATED;
-      origin.confidence = fact->confidence;
+      origin.offset = offset;
+      origin.source_section_index = (uint32_t)section_index;
+      origin.source_offset = offset;
+      origin.origin_kind = M68K_SYMBOL_ORIGIN_ANALYSIS_LABEL;
+      origin.confidence = label_lookup->confidences[section_index][offset];
       if (m68k_ir_section_analysis_append_symbol_origin(section_analysis, &origin) != 0) return -1;
     }
   }
@@ -10127,7 +10136,7 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
     goto fail;
   }
   if (source_analysis != NULL &&
-      append_symbol_facts_from_label_facts(&decode, &facts, &render_lookup, source_analysis) != 0) {
+      append_symbol_facts_from_label_lookup(&decode, &label_lookup, &render_lookup, source_analysis) != 0) {
     m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
       "facts_v2 symbol fact append failed");
     goto fail;

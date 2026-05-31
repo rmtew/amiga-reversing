@@ -334,8 +334,8 @@ const char *m68k_source_quality_diagnostic_origin_name(uint8_t origin) {
 
 const char *m68k_symbol_origin_kind_name(uint8_t kind) {
   switch (kind) {
-    case M68K_SYMBOL_ORIGIN_LABEL_CREATED:
-      return "label_created";
+    case M68K_SYMBOL_ORIGIN_ANALYSIS_LABEL:
+      return "analysis_label";
     case M68K_SYMBOL_ORIGIN_ACCEPTED_CODE_TARGET:
       return "accepted_code_target";
     case M68K_SYMBOL_ORIGIN_DATA_REFERENCE:
