@@ -11184,7 +11184,6 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, M68kRenderLookup
   wrapper_call_vector = resolve_amiga_indexed_wrapper_call_vector(lookup, platform_state, section, candidate);
   direct_wrapper_vector = resolve_amiga_direct_wrapper_call_vector(lookup, decode, accepted_start_all,
     section->section_index, candidate);
-  (void)record_platform_trap_call_for_render(preview, lookup, section, accepted_start, candidate, section_analysis);
   if (platform_vector == NULL && immediate_vector == NULL && wrapper_call_vector == NULL &&
       direct_wrapper_vector == NULL) {
     helper_call_vector = resolve_amiga_local_helper_call_vector(lookup, decode, accepted_start_all,
@@ -11516,6 +11515,10 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
           candidate->mnemonic_id);
         if (render_text_preview) render_text_line(out_preview, 'I', section->section_index, offset,
           candidate->byte_count, candidate->mnemonic_id);
+        if (record_platform_trap_call_for_render(out_preview, &lookup, section, accepted_start[section_index],
+            candidate, current_section_analysis) < 0) {
+          goto cleanup;
+        }
         if (render_asm_source) {
           M68kRenderPlanRow *row;
           M68kInstructionIR listing_instruction;

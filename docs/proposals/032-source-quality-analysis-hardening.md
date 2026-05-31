@@ -3148,6 +3148,35 @@ uv run python -m pytest tests\test_target_usage_manifest.py -q
 uv run platform-rendered-source-roundtrip --no-write-report --json
 ```
 
+### Trap Call Fact Render Decoupling
+
+Atari/Mac trap-style instruction call facts now append from the accepted
+candidate loop instead of `render_asm_instruction()`:
+
+```text
+accepted instruction candidate
+  -> platform_facts_v2_resolve_trap_call()
+  -> recovered_platform_call
+  -> optional instruction source rendering
+```
+
+The regression covers collect-only analysis for Atari `m_shrink`; rendering
+source is no longer required for that platform-call fact to exist.
+
+This is still a migration step. The Amiga LVO/wrapper path remains tied to the
+instruction formatter because it currently shares symbol attachment and comment
+state with rendering. That needs a dedicated pre-render platform-call analysis
+pass, not more formatter-side fact append.
+
+Verified:
+
+```text
+cmd /c src\build.bat
+src\build\m68k_c_unit_tests.exe
+uv run python -m pytest tests\test_target_usage_manifest.py -q
+uv run platform-rendered-source-roundtrip --no-write-report --json
+```
+
 ### Structured Data Range Ownership Migration
 
 Moved structured-data range ownership export out of render preview and into

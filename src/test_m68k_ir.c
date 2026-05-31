@@ -4291,6 +4291,44 @@ static int test_facts_v2_render_asm_source_recovers_atari_trap_call(void) {
   return 0;
 }
 
+static int test_facts_v2_analysis_collects_atari_trap_call_without_source_render(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  const M68kRecoveredPlatformCallIR *call;
+  const char *note_symbol_name;
+  uint8_t bytes[6] = {0x3fu, 0x3cu, 0x00u, 0x4au, 0x4eu, 0x41u};
+  memset(&section, 0, sizeof(section));
+  memset(&source_analysis, 0, sizeof(source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_ATARI_ST;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
+    &source_analysis, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_U32(1U, profile.platform_call_count);
+  M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.section_count);
+  M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.sections[0].recovered_platform_call_count);
+  call = &source_analysis.sections[0].recovered_platform_calls[0];
+  note_symbol_name = m68k_platform_name_ref_resolve_text_or_fallback(&call->note_symbol_ref, call->note_symbol_name);
+  M68K_C_ASSERT_U32(4U, call->offset);
+  M68K_C_ASSERT_U32(M68K_PLATFORM_CALL_NOTE_DIRECT_OS_CALL, call->note_kind);
+  M68K_C_ASSERT_STR("m_shrink", note_symbol_name);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_macos_opword_call_falls_through(void) {
   M68kObject object;
   M68kSection section;
@@ -23664,6 +23702,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_atari_bss_image_relocation_renders_symbolic_instruction},
     {"facts_v2_render_asm_source_recovers_atari_trap_call",
       test_facts_v2_render_asm_source_recovers_atari_trap_call},
+    {"facts_v2_analysis_collects_atari_trap_call_without_source_render",
+      test_facts_v2_analysis_collects_atari_trap_call_without_source_render},
     {"facts_v2_macos_opword_call_falls_through",
       test_facts_v2_macos_opword_call_falls_through},
     {"facts_v2_analysis_collects_macos_opword_call_without_source_render",
