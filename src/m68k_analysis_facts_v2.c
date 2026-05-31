@@ -9842,6 +9842,7 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   M68kRenderIRPreview *render_preview = NULL;
   M68kRenderLookup render_lookup;
   M68kSourceAnalysisBuildStats source_analysis_stats;
+  M68kPlatformAnalysisPassStats platform_analysis_stats;
   int render_text_preview;
   int render_asm_source;
   int source_analysis_required;
@@ -9863,6 +9864,7 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   memset(&workflow, 0, sizeof(workflow));
   memset(&local_source_analysis, 0, sizeof(local_source_analysis));
   memset(&source_analysis_stats, 0, sizeof(source_analysis_stats));
+  memset(&platform_analysis_stats, 0, sizeof(platform_analysis_stats));
   if (facts_v2_workflow_create(&workflow) != 0) {
     m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_OUT_OF_MEMORY, "out of memory");
     goto fail;
@@ -10144,13 +10146,13 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   fail_stage = "render platform analysis passes";
   if ((render_asm_source || source_analysis != NULL) &&
       m68k_analysis_render_lookup_run_platform_passes(&render_lookup, &decode, accepted_start, accepted_bytes,
-        render_preview) != 0) {
+        &platform_analysis_stats) != 0) {
     goto fail;
   }
   m68k_render_lookup_materialize_structured_long_table_target_labels(&render_lookup, &decode);
   m68k_render_lookup_materialize_relocation_target_labels(&render_lookup);
   end = clock();
-  render_preview->platform_pass_seconds = elapsed_seconds_local(start, end);
+  platform_analysis_stats.pass_seconds = elapsed_seconds_local(start, end);
   if (source_analysis != NULL &&
       m68k_analysis_render_lookup_build_source_analysis(&render_lookup, &decode, policy,
         accepted_start, accepted_bytes, source_analysis, &source_analysis_stats) != 0) {
@@ -10260,15 +10262,15 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   end = clock();
   out_profile->render_ir_seconds = elapsed_seconds_local(start, end);
   out_profile->render_ir_lookup_seconds = render_preview->lookup_seconds;
-  out_profile->render_ir_platform_pass_seconds = render_preview->platform_pass_seconds;
-  out_profile->render_ir_platform_base_slot_seconds = render_preview->platform_pass_base_slot_seconds;
-  out_profile->render_ir_platform_call_summary_seconds = render_preview->platform_pass_call_summary_seconds;
-  out_profile->render_ir_platform_typed_ref_seconds = render_preview->platform_pass_typed_ref_seconds;
-  out_profile->render_ir_platform_call_comment_seconds = render_preview->platform_pass_call_comment_seconds;
-  out_profile->render_ir_platform_app_slot_seconds = render_preview->platform_pass_app_slot_seconds;
-  out_profile->render_ir_platform_runtime_data_seconds = render_preview->platform_pass_runtime_data_seconds;
-  out_profile->render_ir_platform_hardware_data_seconds = render_preview->platform_pass_hardware_data_seconds;
-  out_profile->render_ir_platform_generic_data_seconds = render_preview->platform_pass_generic_data_seconds;
+  out_profile->platform_analysis_pass_seconds = platform_analysis_stats.pass_seconds;
+  out_profile->platform_analysis_base_slot_seconds = platform_analysis_stats.base_slot_seconds;
+  out_profile->platform_analysis_call_summary_seconds = platform_analysis_stats.call_summary_seconds;
+  out_profile->platform_analysis_typed_ref_seconds = platform_analysis_stats.typed_ref_seconds;
+  out_profile->platform_analysis_call_comment_seconds = platform_analysis_stats.call_comment_seconds;
+  out_profile->platform_analysis_app_slot_seconds = platform_analysis_stats.app_slot_seconds;
+  out_profile->platform_analysis_runtime_data_seconds = platform_analysis_stats.runtime_data_seconds;
+  out_profile->platform_analysis_hardware_data_seconds = platform_analysis_stats.hardware_data_seconds;
+  out_profile->platform_analysis_generic_data_seconds = platform_analysis_stats.generic_data_seconds;
   out_profile->render_ir_header_seconds = render_preview->header_seconds;
   out_profile->render_ir_walk_seconds = render_preview->walk_seconds;
   out_profile->render_ir_footer_seconds = render_preview->footer_seconds;

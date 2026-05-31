@@ -14087,30 +14087,33 @@ static int render_lookup_infer_amiga_runtime_sink_immediate_refs(M68kRenderLooku
 }
 
 int m68k_analysis_render_lookup_run_platform_passes(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
-    uint8_t **accepted_start, uint8_t **accepted_bytes, M68kRenderIRPreview *preview) {
+    uint8_t **accepted_start, uint8_t **accepted_bytes, M68kPlatformAnalysisPassStats *stats) {
   clock_t start;
   clock_t end;
+  clock_t pass_start;
+  pass_start = clock();
+  if (stats != NULL) memset(stats, 0, sizeof(*stats));
   start = clock();
   if (render_lookup_seed_policy_rsset_layout_regions(lookup) != 0) return -1;
   if (render_lookup_infer_global_base_slots(lookup, decode, accepted_start) != 0) return -1;
   if (render_lookup_infer_amiga_call_hardware_base_seeds(lookup, decode, accepted_start) != 0) return -1;
   end = clock();
-  if (preview != NULL) preview->platform_pass_base_slot_seconds = elapsed_seconds_local(start, end);
+  if (stats != NULL) stats->base_slot_seconds = elapsed_seconds_local(start, end);
   start = clock();
   if (render_lookup_infer_amiga_recovered_local_call_summaries(lookup, decode, accepted_start) != 0) return -1;
   if (render_lookup_infer_amiga_recovered_function_args(lookup, decode, accepted_start) != 0) return -1;
   end = clock();
-  if (preview != NULL) preview->platform_pass_call_summary_seconds = elapsed_seconds_local(start, end);
+  if (stats != NULL) stats->call_summary_seconds = elapsed_seconds_local(start, end);
   start = clock();
   if (render_lookup_analyze_amiga_app_state_slots(lookup, decode, accepted_start) != 0) return -1;
   if (render_lookup_seed_policy_rsset_use_site_app_refs(lookup, decode, accepted_start) != 0) return -1;
   end = clock();
-  if (preview != NULL) preview->platform_pass_app_slot_seconds = elapsed_seconds_local(start, end);
+  if (stats != NULL) stats->app_slot_seconds = elapsed_seconds_local(start, end);
   start = clock();
   if (render_lookup_analyze_amiga_typed_refs(lookup, decode, accepted_start) != 0) return -1;
   if (render_lookup_record_typed_app_slot_pointer_accesses(lookup, decode, accepted_start) != 0) return -1;
   end = clock();
-  if (preview != NULL) preview->platform_pass_typed_ref_seconds = elapsed_seconds_local(start, end);
+  if (stats != NULL) stats->typed_ref_seconds = elapsed_seconds_local(start, end);
   start = clock();
   if (render_lookup_infer_amiga_call_input_comments(lookup, decode, accepted_start, accepted_bytes) != 0)
     return -1;
@@ -14118,17 +14121,17 @@ int m68k_analysis_render_lookup_run_platform_passes(M68kRenderLookup *lookup, co
     return -1;
   if (render_lookup_infer_bootblock_runtime_copies(lookup, decode, accepted_start) != 0) return -1;
   end = clock();
-  if (preview != NULL) preview->platform_pass_call_comment_seconds = elapsed_seconds_local(start, end);
+  if (stats != NULL) stats->call_comment_seconds = elapsed_seconds_local(start, end);
   start = clock();
   if (render_lookup_infer_platform_runtime_structured_data(lookup, decode, accepted_start) != 0) return -1;
   end = clock();
-  if (preview != NULL) preview->platform_pass_runtime_data_seconds = elapsed_seconds_local(start, end);
+  if (stats != NULL) stats->runtime_data_seconds = elapsed_seconds_local(start, end);
   start = clock();
   if (render_lookup_infer_amiga_palette_uploads(lookup, decode, accepted_start, accepted_bytes) != 0) return -1;
   if (render_lookup_infer_amiga_bitmap_memory_uses(lookup, decode, accepted_start) != 0) return -1;
   if (render_lookup_infer_amiga_audio_length_sources(lookup, decode, accepted_start, accepted_bytes) != 0) return -1;
   end = clock();
-  if (preview != NULL) preview->platform_pass_hardware_data_seconds = elapsed_seconds_local(start, end);
+  if (stats != NULL) stats->hardware_data_seconds = elapsed_seconds_local(start, end);
   start = clock();
   if (render_lookup_infer_relocation_pointer_tables(lookup, decode, accepted_bytes) != 0) return -1;
   if (render_lookup_infer_data_strings(lookup, decode, accepted_bytes) != 0) return -1;
@@ -14145,7 +14148,10 @@ int m68k_analysis_render_lookup_run_platform_passes(M68kRenderLookup *lookup, co
   if (render_lookup_add_pointer_table_target_labels(lookup, decode, accepted_start, accepted_bytes) != 0) return -1;
   if (render_lookup_add_pointer_table_target_strings(lookup, decode, accepted_bytes) != 0) return -1;
   end = clock();
-  if (preview != NULL) preview->platform_pass_generic_data_seconds = elapsed_seconds_local(start, end);
+  if (stats != NULL) {
+    stats->generic_data_seconds = elapsed_seconds_local(start, end);
+    stats->pass_seconds = elapsed_seconds_local(pass_start, end);
+  }
   return 0;
 }
 

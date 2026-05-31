@@ -923,8 +923,21 @@ typedef struct M68kSourceAnalysisBuildStats {
   uint32_t platform_call_count;
   uint32_t platform_effect_count;
 } M68kSourceAnalysisBuildStats;
+
+typedef struct M68kPlatformAnalysisPassStats {
+  double pass_seconds;
+  double base_slot_seconds;
+  double call_summary_seconds;
+  double typed_ref_seconds;
+  double call_comment_seconds;
+  double app_slot_seconds;
+  double runtime_data_seconds;
+  double hardware_data_seconds;
+  double generic_data_seconds;
+} M68kPlatformAnalysisPassStats;
+
 int m68k_analysis_render_lookup_run_platform_passes(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
-  uint8_t **accepted_start, uint8_t **accepted_bytes, M68kRenderIRPreview *preview);
+  uint8_t **accepted_start, uint8_t **accepted_bytes, M68kPlatformAnalysisPassStats *stats);
 int m68k_render_lookup_build(M68kRenderLookup *lookup, const M68kObject *object, const M68kDecodeIR *decode,
   const M68kFactIR *facts, const M68kAnalysisPolicy *policy, uint8_t **accepted_start,
   const M68kAnalysisLabelPoint *analysis_labels, size_t analysis_label_count);

@@ -4465,3 +4465,22 @@ platform facts.
 This intentionally breaks the old internal API instead of preserving a wrapper.
 There are no external consumers, and keeping the old signature would preserve
 the false ownership boundary this proposal is removing.
+
+### Platform Analysis Timing Ownership
+
+Removed platform-analysis pass timings from `M68kRenderIRPreview`:
+
+```text
+before:
+  m68k_analysis_render_lookup_run_platform_passes(..., render_preview)
+    -> writes platform_pass_* timings into render preview
+
+after:
+  m68k_analysis_render_lookup_run_platform_passes(..., platform_analysis_stats)
+    -> writes M68kPlatformAnalysisPassStats
+    -> facts-v2 profile exports platform_analysis_* timings
+```
+
+The platform passes are analysis/lookup work, not render-preview work. The
+profile/report field names now say `platform_analysis_*` instead of
+`render_ir_platform_*`, and no compatibility aliases were kept.

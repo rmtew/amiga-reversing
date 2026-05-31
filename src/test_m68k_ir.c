@@ -40,6 +40,7 @@ static int test_render_ir_preview_build(const M68kObject *object, const M68kDeco
   M68kAnalysisPolicy default_policy;
   M68kSourceAnalysisIR source_analysis;
   M68kSourceAnalysisBuildStats source_analysis_stats;
+  M68kPlatformAnalysisPassStats platform_analysis_stats;
   const M68kAnalysisPolicy *effective_policy = policy;
   int result = -1;
   int default_policy_live = 0;
@@ -52,6 +53,7 @@ static int test_render_ir_preview_build(const M68kObject *object, const M68kDeco
   memset(&default_policy, 0, sizeof(default_policy));
   memset(&source_analysis, 0, sizeof(source_analysis));
   memset(&source_analysis_stats, 0, sizeof(source_analysis_stats));
+  memset(&platform_analysis_stats, 0, sizeof(platform_analysis_stats));
   m68k_render_ir_preview_init(out_preview);
   out_preview->platform_backend_kind = object->platform_backend_kind;
   if (effective_policy == NULL) {
@@ -63,7 +65,7 @@ static int test_render_ir_preview_build(const M68kObject *object, const M68kDeco
       analysis_labels, analysis_label_count) != 0) goto cleanup;
   if (render_asm_source &&
       m68k_analysis_render_lookup_run_platform_passes(&lookup, decode, accepted_start, accepted_bytes,
-        out_preview) != 0) {
+        &platform_analysis_stats) != 0) {
     goto cleanup;
   }
   m68k_render_lookup_materialize_structured_long_table_target_labels(&lookup, decode);

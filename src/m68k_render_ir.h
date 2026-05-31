@@ -23,15 +23,6 @@ typedef struct M68kRenderIRPreview {
   uint32_t instruction_statement_count;
   uint32_t data_statement_count;
   double lookup_seconds;
-  double platform_pass_seconds;
-  double platform_pass_base_slot_seconds;
-  double platform_pass_call_summary_seconds;
-  double platform_pass_typed_ref_seconds;
-  double platform_pass_call_comment_seconds;
-  double platform_pass_app_slot_seconds;
-  double platform_pass_runtime_data_seconds;
-  double platform_pass_hardware_data_seconds;
-  double platform_pass_generic_data_seconds;
   double header_seconds;
   double walk_seconds;
   double footer_seconds;

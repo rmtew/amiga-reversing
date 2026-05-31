@@ -9368,15 +9368,15 @@ static int json_builder_append_facts_v2_profile(JsonBuilder *builder, const M68k
     "\"fixed_point_invariant_seconds\":%.6f,"
     "\"render_ir_seconds\":%.6f,"
     "\"render_ir_lookup_seconds\":%.6f,"
-    "\"render_ir_platform_pass_seconds\":%.6f,"
-    "\"render_ir_platform_base_slot_seconds\":%.6f,"
-    "\"render_ir_platform_call_summary_seconds\":%.6f,"
-    "\"render_ir_platform_typed_ref_seconds\":%.6f,"
-    "\"render_ir_platform_call_comment_seconds\":%.6f,"
-    "\"render_ir_platform_app_slot_seconds\":%.6f,"
-    "\"render_ir_platform_runtime_data_seconds\":%.6f,"
-    "\"render_ir_platform_hardware_data_seconds\":%.6f,"
-    "\"render_ir_platform_generic_data_seconds\":%.6f,"
+    "\"platform_analysis_pass_seconds\":%.6f,"
+    "\"platform_analysis_base_slot_seconds\":%.6f,"
+    "\"platform_analysis_call_summary_seconds\":%.6f,"
+    "\"platform_analysis_typed_ref_seconds\":%.6f,"
+    "\"platform_analysis_call_comment_seconds\":%.6f,"
+    "\"platform_analysis_app_slot_seconds\":%.6f,"
+    "\"platform_analysis_runtime_data_seconds\":%.6f,"
+    "\"platform_analysis_hardware_data_seconds\":%.6f,"
+    "\"platform_analysis_generic_data_seconds\":%.6f,"
     "\"render_ir_header_seconds\":%.6f,"
     "\"render_ir_walk_seconds\":%.6f,"
     "\"render_ir_footer_seconds\":%.6f,"
@@ -9523,15 +9523,15 @@ static int json_builder_append_facts_v2_profile(JsonBuilder *builder, const M68k
     profile->fixed_point_invariant_seconds,
     profile->render_ir_seconds,
     profile->render_ir_lookup_seconds,
-    profile->render_ir_platform_pass_seconds,
-    profile->render_ir_platform_base_slot_seconds,
-    profile->render_ir_platform_call_summary_seconds,
-    profile->render_ir_platform_typed_ref_seconds,
-    profile->render_ir_platform_call_comment_seconds,
-    profile->render_ir_platform_app_slot_seconds,
-    profile->render_ir_platform_runtime_data_seconds,
-    profile->render_ir_platform_hardware_data_seconds,
-    profile->render_ir_platform_generic_data_seconds,
+    profile->platform_analysis_pass_seconds,
+    profile->platform_analysis_base_slot_seconds,
+    profile->platform_analysis_call_summary_seconds,
+    profile->platform_analysis_typed_ref_seconds,
+    profile->platform_analysis_call_comment_seconds,
+    profile->platform_analysis_app_slot_seconds,
+    profile->platform_analysis_runtime_data_seconds,
+    profile->platform_analysis_hardware_data_seconds,
+    profile->platform_analysis_generic_data_seconds,
     profile->render_ir_header_seconds,
     profile->render_ir_walk_seconds,
     profile->render_ir_footer_seconds,
