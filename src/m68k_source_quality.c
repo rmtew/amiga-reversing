@@ -1,6 +1,7 @@
 #include "m68k_source_quality.h"
 
 #include "m68k_fact_ir.h"
+#include "m68k_simulator.h"
 
 #include <string.h>
 
@@ -72,6 +73,10 @@ static int append_address_observations_for_section(M68kSectionAnalysisIR *sectio
     observation.access_width = ref->access_width;
     observation.access_kind = ref->access_kind;
     observation.source = M68K_ADDRESS_OBSERVATION_SOURCE_ABSOLUTE_MEMORY_REF;
+    observation.owner_kind = ref->owner_kind;
+    observation.owner_offset = ref->owner_offset;
+    observation.conflict_state = ref->conflict_state;
+    observation.conflicted = ref->conflicted;
     observation.has_address = 1U;
     observation.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
     if (m68k_ir_section_analysis_append_address_observation(section, &observation) != 0) return -1;
@@ -98,6 +103,140 @@ static int append_address_observations_for_section(M68kSectionAnalysisIR *sectio
       observation.has_target = 1U;
     }
     if (m68k_ir_section_analysis_append_address_observation(section, &observation) != 0) return -1;
+  }
+  return 0;
+}
+
+static int address_identity_matches_observation(const M68kAddressIdentityIR *identity,
+    const M68kAddressObservationIR *observation) {
+  if (identity == NULL || observation == NULL || !observation->has_address) return 0;
+  return identity->has_absolute_address && identity->absolute_address == observation->address;
+}
+
+static uint8_t address_identity_role_from_owner(uint8_t owner_kind) {
+  switch (owner_kind) {
+    case M68K_ABSOLUTE_MEMORY_OWNER_EXECBASE_LITERAL:
+    case M68K_ABSOLUTE_MEMORY_OWNER_CPU_VECTOR:
+    case M68K_ABSOLUTE_MEMORY_OWNER_HARDWARE_REGISTER:
+    case M68K_ABSOLUTE_MEMORY_OWNER_HARDWARE_REGISTER_RANGE:
+      return M68K_ADDRESS_IDENTITY_ROLE_PLATFORM;
+    default:
+      return M68K_ADDRESS_IDENTITY_ROLE_STORAGE;
+  }
+}
+
+static uint8_t absolute_range_status_from_identity(const M68kAddressIdentityIR *identity) {
+  if (identity == NULL) return M68K_ABSOLUTE_ADDRESS_RANGE_STATUS_UNKNOWN;
+  if (identity->conflicted) return M68K_ABSOLUTE_ADDRESS_RANGE_STATUS_CONFLICT;
+  if (identity->owner_kind == M68K_ABSOLUTE_MEMORY_OWNER_ABSOLUTE_MEMORY ||
+      identity->owner_kind == M68K_ABSOLUTE_MEMORY_OWNER_UNKNOWN) {
+    return identity->observation_count > 1U ? M68K_ABSOLUTE_ADDRESS_RANGE_STATUS_UNOWNED_SPARSE :
+      M68K_ABSOLUTE_ADDRESS_RANGE_STATUS_UNOWNED_ONE_OFF;
+  }
+  return M68K_ABSOLUTE_ADDRESS_RANGE_STATUS_OWNED;
+}
+
+static void absolute_range_fill_access_counts(const M68kSourceAnalysisIR *source_analysis,
+    const M68kAddressIdentityIR *identity, M68kAbsoluteAddressRangeIR *range) {
+  size_t section_index;
+  if (source_analysis == NULL || identity == NULL || range == NULL) return;
+  for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
+    const M68kSectionAnalysisIR *section = &source_analysis->sections[section_index];
+    size_t observation_index;
+    for (observation_index = 0U; observation_index < section->address_observation_count; ++observation_index) {
+      const M68kAddressObservationIR *observation = &section->address_observations[observation_index];
+      if (!observation->has_identity || observation->identity_id != identity->identity_id) continue;
+      if (range->access_kind == M68K_SIM_ACCESS_NONE) range->access_kind = observation->access_kind;
+      else if (range->access_kind != observation->access_kind) range->access_kind = M68K_SIM_ACCESS_COMPUTE_ADDRESS;
+      if (observation->access_kind == M68K_SIM_ACCESS_MEMORY_READ) ++range->read_count;
+      if (observation->access_kind == M68K_SIM_ACCESS_MEMORY_WRITE) ++range->write_count;
+    }
+  }
+}
+
+static void address_identity_merge_observation(M68kAddressIdentityIR *identity,
+    const M68kAddressObservationIR *observation, uint32_t section_index) {
+  if (identity == NULL || observation == NULL) return;
+  if (identity->observation_count == 0U) {
+    identity->source_section_index = section_index;
+    identity->source_offset = observation->offset;
+    identity->absolute_address = observation->address;
+    identity->has_absolute_address = observation->has_address;
+    identity->owner_kind = observation->owner_kind;
+    identity->role_kind = address_identity_role_from_owner(observation->owner_kind);
+    identity->conflict_state = M68K_ANALYSIS_CONFLICT_STATE_CLEAN;
+    if (observation->source == M68K_ADDRESS_OBSERVATION_SOURCE_RUNTIME_ADDRESS_REF ||
+        observation->owner_kind == M68K_ABSOLUTE_MEMORY_OWNER_RUNTIME_RANGE) {
+      identity->runtime_address = observation->address;
+      identity->has_runtime_address = 1U;
+    }
+  } else if (identity->owner_kind != observation->owner_kind &&
+      observation->owner_kind != M68K_ABSOLUTE_MEMORY_OWNER_UNKNOWN) {
+    identity->conflicted = 1U;
+    identity->conflict_state = M68K_ANALYSIS_CONFLICT_STATE_CONFLICTED;
+    ++identity->conflict_count;
+  }
+  if (observation->source == M68K_ADDRESS_OBSERVATION_SOURCE_RUNTIME_ADDRESS_REF ||
+      observation->owner_kind == M68K_ABSOLUTE_MEMORY_OWNER_RUNTIME_RANGE) {
+    identity->runtime_address = observation->address;
+    identity->has_runtime_address = 1U;
+  }
+  if (observation->access_width > identity->size) identity->size = observation->access_width;
+  if (observation->conflicted || observation->conflict_state != M68K_ANALYSIS_CONFLICT_STATE_CLEAN) {
+    identity->conflicted = 1U;
+    identity->conflict_state = observation->conflict_state != M68K_ANALYSIS_CONFLICT_STATE_CLEAN ?
+      observation->conflict_state : M68K_ANALYSIS_CONFLICT_STATE_CONFLICTED;
+    ++identity->conflict_count;
+  }
+  ++identity->observation_count;
+}
+
+static int append_address_identities_and_ranges(M68kSourceAnalysisIR *source_analysis) {
+  size_t section_index;
+  if (source_analysis == NULL) return -1;
+  if (source_analysis->address_identity_count != 0U ||
+      source_analysis->absolute_address_range_count != 0U) {
+    return 0;
+  }
+  for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
+    M68kSectionAnalysisIR *section = &source_analysis->sections[section_index];
+    size_t observation_index;
+    for (observation_index = 0U; observation_index < section->address_observation_count; ++observation_index) {
+      M68kAddressObservationIR *observation = &section->address_observations[observation_index];
+      M68kAddressIdentityIR identity;
+      size_t identity_index;
+      if (!observation->has_address) continue;
+      for (identity_index = 0U; identity_index < source_analysis->address_identity_count; ++identity_index) {
+        if (address_identity_matches_observation(&source_analysis->address_identities[identity_index], observation))
+          break;
+      }
+      if (identity_index == source_analysis->address_identity_count) {
+        memset(&identity, 0, sizeof(identity));
+        identity.identity_id = (uint32_t)(source_analysis->address_identity_count + 1U);
+        if (m68k_ir_source_analysis_append_address_identity(source_analysis, &identity) != 0) return -1;
+      }
+      observation->identity_id = source_analysis->address_identities[identity_index].identity_id;
+      observation->has_identity = 1U;
+      address_identity_merge_observation(&source_analysis->address_identities[identity_index], observation,
+        (uint32_t)section->section_index);
+    }
+  }
+  for (section_index = 0U; section_index < source_analysis->address_identity_count; ++section_index) {
+    const M68kAddressIdentityIR *identity = &source_analysis->address_identities[section_index];
+    M68kAbsoluteAddressRangeIR range;
+    if (!identity->has_absolute_address) continue;
+    memset(&range, 0, sizeof(range));
+    range.start_address = identity->absolute_address;
+    range.range_size = identity->size;
+    range.source_section_index = identity->source_section_index;
+    range.source_offset = identity->source_offset;
+    range.observation_count = identity->observation_count;
+    range.access_count = identity->observation_count;
+    range.owner_kind = identity->owner_kind;
+    range.status = absolute_range_status_from_identity(identity);
+    range.access_kind = M68K_SIM_ACCESS_NONE;
+    absolute_range_fill_access_counts(source_analysis, identity, &range);
+    if (m68k_ir_source_analysis_append_absolute_address_range(source_analysis, &range) != 0) return -1;
   }
   return 0;
 }
@@ -231,5 +370,6 @@ int m68k_source_quality_analyze(M68kSourceAnalysisIR *source_analysis) {
     if (append_address_observations_for_section(section) != 0) return -1;
     if (append_accepted_runs_for_section(section) != 0) return -1;
   }
+  if (append_address_identities_and_ranges(source_analysis) != 0) return -1;
   return 0;
 }

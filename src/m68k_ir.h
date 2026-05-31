@@ -1291,14 +1291,66 @@ typedef struct M68kAddressObservationIR {
   uint32_t target_section_index;
   uint32_t target_offset;
   uint32_t identity_id;
+  uint32_t owner_offset;
   uint32_t access_width;
   uint8_t access_kind;
   uint8_t source;
+  uint8_t owner_kind;
+  uint8_t conflict_state;
   uint8_t has_address;
   uint8_t has_target;
   uint8_t has_identity;
+  uint8_t conflicted;
   uint8_t confidence;
 } M68kAddressObservationIR;
+
+typedef enum M68kAddressIdentityRoleKind {
+  M68K_ADDRESS_IDENTITY_ROLE_UNKNOWN = 0,
+  M68K_ADDRESS_IDENTITY_ROLE_STORAGE = 1,
+  M68K_ADDRESS_IDENTITY_ROLE_CODE = 2,
+  M68K_ADDRESS_IDENTITY_ROLE_PLATFORM = 3
+} M68kAddressIdentityRoleKind;
+
+typedef struct M68kAddressIdentityIR {
+  uint32_t identity_id;
+  uint32_t source_section_index;
+  uint32_t source_offset;
+  uint32_t absolute_address;
+  uint32_t runtime_address;
+  uint32_t size;
+  uint32_t observation_count;
+  uint32_t conflict_count;
+  uint8_t owner_kind;
+  uint8_t role_kind;
+  uint8_t conflict_state;
+  uint8_t has_absolute_address;
+  uint8_t has_runtime_address;
+  uint8_t conflicted;
+  uint8_t reserved[2];
+} M68kAddressIdentityIR;
+
+typedef enum M68kAbsoluteAddressRangeStatus {
+  M68K_ABSOLUTE_ADDRESS_RANGE_STATUS_UNKNOWN = 0,
+  M68K_ABSOLUTE_ADDRESS_RANGE_STATUS_OWNED = 1,
+  M68K_ABSOLUTE_ADDRESS_RANGE_STATUS_UNOWNED_ONE_OFF = 2,
+  M68K_ABSOLUTE_ADDRESS_RANGE_STATUS_UNOWNED_SPARSE = 3,
+  M68K_ABSOLUTE_ADDRESS_RANGE_STATUS_CONFLICT = 4
+} M68kAbsoluteAddressRangeStatus;
+
+typedef struct M68kAbsoluteAddressRangeIR {
+  uint32_t start_address;
+  uint32_t range_size;
+  uint32_t source_section_index;
+  uint32_t source_offset;
+  uint32_t observation_count;
+  uint32_t read_count;
+  uint32_t write_count;
+  uint32_t access_count;
+  uint8_t owner_kind;
+  uint8_t status;
+  uint8_t access_kind;
+  uint8_t reserved[1];
+} M68kAbsoluteAddressRangeIR;
 
 typedef struct M68kCodeStartRefIR {
   uint32_t offset;
@@ -1845,6 +1897,12 @@ typedef struct M68kSourceAnalysisIR {
   M68kSourceQualityDiagnosticIR *source_quality_diagnostics;
   size_t source_quality_diagnostic_count;
   size_t source_quality_diagnostic_capacity;
+  M68kAddressIdentityIR *address_identities;
+  size_t address_identity_count;
+  size_t address_identity_capacity;
+  M68kAbsoluteAddressRangeIR *absolute_address_ranges;
+  size_t absolute_address_range_count;
+  size_t absolute_address_range_capacity;
   M68kPlatformStorageLayoutIR *platform_storage_layouts;
   size_t platform_storage_layout_count;
   size_t platform_storage_layout_capacity;
@@ -1871,6 +1929,10 @@ int m68k_ir_source_analysis_append_incomplete_analysis(M68kSourceAnalysisIR *sou
   const M68kIncompleteAnalysisIR *incomplete);
 int m68k_ir_source_analysis_append_source_quality_diagnostic(M68kSourceAnalysisIR *source_analysis,
   const M68kSourceQualityDiagnosticIR *diagnostic);
+int m68k_ir_source_analysis_append_address_identity(M68kSourceAnalysisIR *source_analysis,
+  const M68kAddressIdentityIR *identity);
+int m68k_ir_source_analysis_append_absolute_address_range(M68kSourceAnalysisIR *source_analysis,
+  const M68kAbsoluteAddressRangeIR *range);
 size_t m68k_ir_source_analysis_structured_data_item_count(const M68kSourceAnalysisIR *source_analysis);
 const M68kAnalysisStructuredDataItem *m68k_ir_source_analysis_structured_data_item_at(
   const M68kSourceAnalysisIR *source_analysis, size_t index);
@@ -1890,6 +1952,10 @@ const char *m68k_source_quality_diagnostic_origin_name(uint8_t origin);
 const char *m68k_code_origin_class_name(uint8_t origin_class);
 const char *m68k_accepted_code_run_end_kind_name(uint8_t end_kind);
 const char *m68k_address_observation_source_name(uint8_t source);
+const char *m68k_address_identity_role_kind_name(uint8_t role_kind);
+const char *m68k_absolute_address_range_status_name(uint8_t status);
+const char *m68k_absolute_memory_owner_kind_name(uint8_t owner_kind);
+const char *m68k_analysis_conflict_state_name(uint8_t conflict_state);
 uint8_t m68k_analysis_table_entry_count_proof_for_source_pattern(uint8_t source_pattern_id);
 uint8_t m68k_analysis_table_stop_reason_for_entry_count_proof(uint8_t proof_id);
 uint8_t m68k_recovered_indirect_source_pattern_id(uint8_t shape);

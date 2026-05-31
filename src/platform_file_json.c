@@ -3432,6 +3432,7 @@ static int append_source_quality_diagnostic_json(JsonBuilder *builder,
 int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **out_json, M68kDiagSink diagnostics) {
   JsonBuilder builder = {0};
   size_t field_index, section_index, incomplete_index, source_quality_index;
+  size_t address_identity_index, absolute_address_range_index;
   size_t orphan_code_signal_count = 0U;
   uint32_t orphan_status_counts[8] = {0U};
   uint32_t orphan_missing_inbound_counts[9] = {0U};
@@ -3529,6 +3530,100 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
       goto oom;
     if (append_source_quality_diagnostic_json(&builder,
         &source_analysis->source_quality_diagnostics[source_quality_index], 0U) != 0)
+      goto oom;
+  }
+  if (json_builder_appendf(&builder,
+      "],\"address_identity_count\":%u,\"address_identities\":[",
+      (unsigned)source_analysis->address_identity_count) != 0)
+    goto oom;
+  for (address_identity_index = 0U; address_identity_index < source_analysis->address_identity_count;
+      ++address_identity_index) {
+    const M68kAddressIdentityIR *identity = &source_analysis->address_identities[address_identity_index];
+    if (address_identity_index != 0U && json_builder_append(&builder, ",") != 0)
+      goto oom;
+    if (json_builder_appendf(&builder,
+        "{\"identity_id\":%u,\"source_section_index\":%u,\"source_offset\":%u,"
+        "\"owner_kind\":%u,\"owner_kind_name\":",
+        (unsigned)identity->identity_id, (unsigned)identity->source_section_index,
+        (unsigned)identity->source_offset, (unsigned)identity->owner_kind) != 0)
+      goto oom;
+    if (json_builder_append_json_string(&builder,
+        m68k_absolute_memory_owner_kind_name(identity->owner_kind)) != 0)
+      goto oom;
+    if (json_builder_appendf(&builder, ",\"role_kind\":%u,\"role_kind_name\":",
+        (unsigned)identity->role_kind) != 0)
+      goto oom;
+    if (json_builder_append_json_string(&builder,
+        m68k_address_identity_role_kind_name(identity->role_kind)) != 0)
+      goto oom;
+    if (json_builder_append(&builder, ",\"absolute_address\":") != 0)
+      goto oom;
+    if (identity->has_absolute_address) {
+      if (json_builder_appendf(&builder, "%u", (unsigned)identity->absolute_address) != 0)
+        goto oom;
+    } else if (json_builder_append(&builder, "null") != 0) {
+      goto oom;
+    }
+    if (json_builder_append(&builder, ",\"runtime_address\":") != 0)
+      goto oom;
+    if (identity->has_runtime_address) {
+      if (json_builder_appendf(&builder, "%u", (unsigned)identity->runtime_address) != 0)
+        goto oom;
+    } else if (json_builder_append(&builder, "null") != 0) {
+      goto oom;
+    }
+    if (json_builder_appendf(&builder,
+        ",\"size\":%u,\"observation_count\":%u,\"conflict_count\":%u,"
+        "\"conflicted\":%s,\"conflict_state\":%u,\"conflict_state_name\":",
+        (unsigned)identity->size, (unsigned)identity->observation_count,
+        (unsigned)identity->conflict_count, identity->conflicted ? "true" : "false",
+        (unsigned)identity->conflict_state) != 0)
+      goto oom;
+    if (json_builder_append_json_string(&builder,
+        m68k_analysis_conflict_state_name(identity->conflict_state)) != 0)
+      goto oom;
+    if (json_builder_append(&builder, "}") != 0)
+      goto oom;
+  }
+  if (json_builder_appendf(&builder,
+      "],\"absolute_address_range_count\":%u,\"absolute_address_ranges\":[",
+      (unsigned)source_analysis->absolute_address_range_count) != 0)
+    goto oom;
+  for (absolute_address_range_index = 0U;
+      absolute_address_range_index < source_analysis->absolute_address_range_count;
+      ++absolute_address_range_index) {
+    const M68kAbsoluteAddressRangeIR *range =
+      &source_analysis->absolute_address_ranges[absolute_address_range_index];
+    if (absolute_address_range_index != 0U && json_builder_append(&builder, ",") != 0)
+      goto oom;
+    if (json_builder_appendf(&builder,
+        "{\"start_address\":%u,\"range_size\":%u,\"range_end\":%u,"
+        "\"owner_kind\":%u,\"owner_kind_name\":",
+        (unsigned)range->start_address, (unsigned)range->range_size,
+        (unsigned)(range->start_address + range->range_size), (unsigned)range->owner_kind) != 0)
+      goto oom;
+    if (json_builder_append_json_string(&builder,
+        m68k_absolute_memory_owner_kind_name(range->owner_kind)) != 0)
+      goto oom;
+    if (json_builder_appendf(&builder, ",\"status\":%u,\"status_name\":",
+        (unsigned)range->status) != 0)
+      goto oom;
+    if (json_builder_append_json_string(&builder,
+        m68k_absolute_address_range_status_name(range->status)) != 0)
+      goto oom;
+    if (json_builder_appendf(&builder,
+        ",\"access_kind\":%u,\"access_kind_name\":",
+        (unsigned)range->access_kind) != 0)
+      goto oom;
+    if (json_builder_append_json_string(&builder,
+        listing_operand_access_name(range->access_kind)) != 0)
+      goto oom;
+    if (json_builder_appendf(&builder,
+        ",\"observation_count\":%u,\"read_count\":%u,\"write_count\":%u,"
+        "\"access_count\":%u,\"source_section_index\":%u,\"source_offset\":%u}",
+        (unsigned)range->observation_count, (unsigned)range->read_count,
+        (unsigned)range->write_count, (unsigned)range->access_count,
+        (unsigned)range->source_section_index, (unsigned)range->source_offset) != 0)
       goto oom;
   }
   if (json_builder_appendf(&builder,

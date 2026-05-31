@@ -10138,6 +10138,8 @@ static int test_source_quality_analyze_exports_code_origins_and_runs(void) {
   absolute_ref.address = 0x42C6CU;
   absolute_ref.access_width = 4U;
   absolute_ref.access_kind = M68K_SIM_ACCESS_MEMORY_READ;
+  absolute_ref.owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_ABSOLUTE_MEMORY;
+  absolute_ref.owner_offset = absolute_ref.address;
   M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_absolute_memory_ref(&section_analysis, &absolute_ref));
   M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
   M68K_C_ASSERT_INT(0, m68k_source_quality_analyze(&source_analysis));
@@ -10155,6 +10157,14 @@ static int test_source_quality_analyze_exports_code_origins_and_runs(void) {
   M68K_C_ASSERT(strstr(analysis_json, "\"source_name\":\"absolute_operand\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"access_kind_name\":\"memory_read\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"address\":273516") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"identity_id\":1") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"address_identity_count\":1") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"owner_kind_name\":\"absolute_memory\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"role_kind_name\":\"storage\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"absolute_address\":273516") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"absolute_address_range_count\":1") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"status_name\":\"unowned_one_off\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"read_count\":1") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"kind\":\"unterminated_or_invalid_code_range\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"severity\":\"warning\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"blocker\":false") != NULL);

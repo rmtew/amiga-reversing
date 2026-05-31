@@ -2974,3 +2974,52 @@ src\build\m68k_c_unit_tests.exe
 uv run python -m pytest tests\test_target_usage_manifest.py -q
 git diff --check
 ```
+
+### Address Identity And Range Bootstrap
+
+Added the first C-owned grouping layer over address observations:
+
+```text
+M68kAddressIdentityIR
+  -> groups address observations by observed address
+  -> records owner kind, role kind, source provenance, runtime-address presence,
+     observation count, and conflict state
+  -> writes identity_id back onto M68kAddressObservationIR
+
+M68kAbsoluteAddressRangeIR
+  -> summarizes each address identity as an absolute-address range record
+  -> records owner, status, access kind, read/write/access counts, and source
+     provenance
+```
+
+This is still a bootstrap, not the final range model. It creates the durable C
+fact families and JSON surface that the manifest already indexes for:
+
+```text
+analysis:address_identity
+analysis:address_identity:conflict
+analysis:absolute_address_range
+analysis:absolute_address_range:unowned_one_off
+analysis:absolute_address_range:unowned_sparse
+```
+
+The current producer is intentionally conservative:
+
+```text
+existing absolute/runtime refs
+  -> address observations
+  -> address identities
+  -> absolute address ranges
+```
+
+It does not yet delete `M68kAbsoluteMemoryRefIR` or replace renderer/platform
+semantic consumers. It makes those later deletions possible without moving
+ownership to Python.
+
+Verified:
+
+```text
+cmd /c src\build.bat
+src\build\m68k_c_unit_tests.exe
+uv run python -m pytest tests\test_target_usage_manifest.py -q
+```

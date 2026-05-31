@@ -385,6 +385,72 @@ const char *m68k_address_observation_source_name(uint8_t source) {
   }
 }
 
+const char *m68k_address_identity_role_kind_name(uint8_t role_kind) {
+  switch (role_kind) {
+    case M68K_ADDRESS_IDENTITY_ROLE_STORAGE:
+      return "storage";
+    case M68K_ADDRESS_IDENTITY_ROLE_CODE:
+      return "code";
+    case M68K_ADDRESS_IDENTITY_ROLE_PLATFORM:
+      return "platform";
+    default:
+      return "unknown";
+  }
+}
+
+const char *m68k_absolute_address_range_status_name(uint8_t status) {
+  switch (status) {
+    case M68K_ABSOLUTE_ADDRESS_RANGE_STATUS_OWNED:
+      return "owned";
+    case M68K_ABSOLUTE_ADDRESS_RANGE_STATUS_UNOWNED_ONE_OFF:
+      return "unowned_one_off";
+    case M68K_ABSOLUTE_ADDRESS_RANGE_STATUS_UNOWNED_SPARSE:
+      return "unowned_sparse";
+    case M68K_ABSOLUTE_ADDRESS_RANGE_STATUS_CONFLICT:
+      return "conflict";
+    default:
+      return "unknown";
+  }
+}
+
+const char *m68k_absolute_memory_owner_kind_name(uint8_t owner_kind) {
+  switch (owner_kind) {
+    case M68K_ABSOLUTE_MEMORY_OWNER_EXECBASE_LITERAL:
+      return "execbase_literal";
+    case M68K_ABSOLUTE_MEMORY_OWNER_CPU_VECTOR:
+      return "cpu_vector";
+    case M68K_ABSOLUTE_MEMORY_OWNER_HARDWARE_REGISTER:
+      return "hardware_register";
+    case M68K_ABSOLUTE_MEMORY_OWNER_HARDWARE_REGISTER_RANGE:
+      return "hardware_register_range";
+    case M68K_ABSOLUTE_MEMORY_OWNER_RUNTIME_RANGE:
+      return "runtime_range";
+    case M68K_ABSOLUTE_MEMORY_OWNER_SECTION_STORAGE:
+      return "section_storage";
+    case M68K_ABSOLUTE_MEMORY_OWNER_ABSOLUTE_MEMORY:
+      return "absolute_memory";
+    default:
+      return "unknown";
+  }
+}
+
+const char *m68k_analysis_conflict_state_name(uint8_t conflict_state) {
+  switch (conflict_state) {
+    case M68K_ANALYSIS_CONFLICT_STATE_CLEAN:
+      return "clean";
+    case M68K_ANALYSIS_CONFLICT_STATE_CODE_OVERLAP:
+      return "code_overlap";
+    case M68K_ANALYSIS_CONFLICT_STATE_UNRESOLVED:
+      return "unresolved";
+    case M68K_ANALYSIS_CONFLICT_STATE_CONFLICTED:
+      return "conflicted";
+    case M68K_ANALYSIS_CONFLICT_STATE_UNRESOLVED_CODE_TARGET:
+      return "unresolved_code_target";
+    default:
+      return "unknown";
+  }
+}
+
 uint8_t m68k_analysis_table_entry_count_proof_for_source_pattern(uint8_t source_pattern_id) {
   switch (source_pattern_id) {
     case M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_RELOCATION_POINTER_TABLE:
@@ -872,6 +938,48 @@ int m68k_ir_source_analysis_append_source_quality_diagnostic(M68kSourceAnalysisI
   memset(&copy, 0, sizeof(copy));
   if (copy_source_quality_diagnostic_local(source_analysis->arena, &copy, diagnostic) != 0) return -1;
   source_analysis->source_quality_diagnostics[source_analysis->source_quality_diagnostic_count++] = copy;
+  return 0;
+}
+
+int m68k_ir_source_analysis_append_address_identity(M68kSourceAnalysisIR *source_analysis,
+    const M68kAddressIdentityIR *identity) {
+  size_t index;
+  if (source_analysis == NULL || identity == NULL || source_analysis->arena == NULL) return -1;
+  if (identity->identity_id == 0U) return 0;
+  for (index = 0U; index < source_analysis->address_identity_count; ++index) {
+    const M68kAddressIdentityIR *existing = &source_analysis->address_identities[index];
+    if (existing->identity_id == identity->identity_id) return 0;
+  }
+  source_analysis->address_identities = (M68kAddressIdentityIR *)arena_grow_array(source_analysis->arena,
+    source_analysis->address_identities, source_analysis->address_identity_count,
+    &source_analysis->address_identity_capacity, 16U, sizeof(*source_analysis->address_identities));
+  if (source_analysis->address_identities == NULL) return -1;
+  source_analysis->address_identities[source_analysis->address_identity_count++] = *identity;
+  return 0;
+}
+
+int m68k_ir_source_analysis_append_absolute_address_range(M68kSourceAnalysisIR *source_analysis,
+    const M68kAbsoluteAddressRangeIR *range) {
+  size_t index;
+  if (source_analysis == NULL || range == NULL || source_analysis->arena == NULL) return -1;
+  if (range->status == M68K_ABSOLUTE_ADDRESS_RANGE_STATUS_UNKNOWN) return 0;
+  for (index = 0U; index < source_analysis->absolute_address_range_count; ++index) {
+    const M68kAbsoluteAddressRangeIR *existing = &source_analysis->absolute_address_ranges[index];
+    if (existing->start_address == range->start_address &&
+        existing->range_size == range->range_size &&
+        existing->owner_kind == range->owner_kind &&
+        existing->status == range->status &&
+        existing->source_section_index == range->source_section_index &&
+        existing->source_offset == range->source_offset) {
+      return 0;
+    }
+  }
+  source_analysis->absolute_address_ranges = (M68kAbsoluteAddressRangeIR *)arena_grow_array(
+    source_analysis->arena, source_analysis->absolute_address_ranges,
+    source_analysis->absolute_address_range_count, &source_analysis->absolute_address_range_capacity,
+    16U, sizeof(*source_analysis->absolute_address_ranges));
+  if (source_analysis->absolute_address_ranges == NULL) return -1;
+  source_analysis->absolute_address_ranges[source_analysis->absolute_address_range_count++] = *range;
   return 0;
 }
 
