@@ -3115,6 +3115,39 @@ uv run python -m pytest tests\test_target_usage_manifest.py -q
 uv run platform-rendered-source-roundtrip --no-write-report --json
 ```
 
+### Mac Opcode Call Fact Render Decoupling
+
+Mac OS opcode call facts no longer depend on rendering source text. The preview
+loop now records the resolved opcode call and generated stack/type facts before
+the source formatter branch:
+
+```text
+accepted opcode word
+  -> platform_facts_v2_resolve_opcode_call()
+  -> recovered_platform_call / recovered_function_arg / typed_access facts
+  -> optional source text row
+```
+
+The regression covers collect-only analysis for `_GetFNum`:
+
+```text
+m68k_facts_v2_collect_source_analysis_profile()
+  -> recovered_platform_call(_GetFNum)
+```
+
+This does not finish platform-call ownership. Trap-call, Amiga LVO, wrapper,
+and call-comment facts still need a pre-render C platform-call analysis pass so
+source-quality receives all platform call facts without invoking the formatter.
+
+Verified:
+
+```text
+cmd /c src\build.bat
+src\build\m68k_c_unit_tests.exe
+uv run python -m pytest tests\test_target_usage_manifest.py -q
+uv run platform-rendered-source-roundtrip --no-write-report --json
+```
+
 ### Structured Data Range Ownership Migration
 
 Moved structured-data range ownership export out of render preview and into

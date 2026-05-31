@@ -11488,6 +11488,12 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
             ++out_preview->data_statement_count;
             hash_statement(out_preview, 'I', section->section_index, offset, 2U, opcode);
             if (render_text_preview) render_text_line(out_preview, 'I', section->section_index, offset, 2U, opcode);
+            record_facts_v2_platform_call(out_preview, current_section_analysis, offset, &call_info);
+            if (record_mac_call_stack_args_for_render(out_preview, &lookup, section, accepted_start[section_index],
+                lookup_code_block_start_before_or_at(&lookup, section->section_index, offset), offset,
+                current_section_analysis, &call_info) < 0) {
+              goto cleanup;
+            }
             if (render_asm_source) {
               M68kRenderPlanRow *row;
               begin_asm_source_plan_row(out_preview, M68K_RENDER_PLAN_ROW_DATA, (uint32_t)section_index);
@@ -11497,12 +11503,6 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
               }
               row = finish_asm_source_plan_row(out_preview, section->section_index, offset, 2U, 1);
               set_asm_source_plan_row_statement_from_section(row, M68K_STATEMENT_DATA, NULL, section, offset, 2U);
-              record_facts_v2_platform_call(out_preview, current_section_analysis, offset, &call_info);
-              if (record_mac_call_stack_args_for_render(out_preview, &lookup, section, accepted_start[section_index],
-                  lookup_code_block_start_before_or_at(&lookup, section->section_index, offset), offset,
-                  current_section_analysis, &call_info) < 0) {
-                goto cleanup;
-              }
               asm_logical_pc += 2U;
             }
             offset += 2U;
