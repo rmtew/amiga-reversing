@@ -10826,7 +10826,7 @@ static int mac_operand_matches_stack_arg_source(const M68kOperandIR *operand, co
   return 1;
 }
 
-static int record_mac_output_pointer_local_reads_for_render(M68kRenderIRPreview *preview,
+static int record_mac_output_pointer_local_read_facts(M68kRenderIRPreview *preview,
     const M68kDecodeSectionIR *section, const uint8_t *accepted_start, uint32_t call_offset,
     M68kSectionAnalysisIR *section_analysis, const MacStackArgumentOperand *args, size_t arg_count) {
   uint32_t cursor;
@@ -10894,7 +10894,7 @@ static int record_mac_output_pointer_local_reads_for_render(M68kRenderIRPreview 
   return 0;
 }
 
-static int record_mac_call_stack_args_for_render(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
+static int record_mac_call_stack_arg_facts(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
     const M68kDecodeSectionIR *section, const uint8_t *accepted_start, uint32_t block_start,
     uint32_t call_offset, M68kSectionAnalysisIR *section_analysis,
     const PlatformFactsV2ResolvedCall *call_info) {
@@ -10973,14 +10973,14 @@ static int record_mac_call_stack_args_for_render(M68kRenderIRPreview *preview, c
       }
     }
   }
-  if (record_mac_output_pointer_local_reads_for_render(preview, section, accepted_start, call_offset,
+  if (record_mac_output_pointer_local_read_facts(preview, section, accepted_start, call_offset,
       section_analysis, args + (arg_count - mac_call->parameter_count), mac_call->parameter_count) != 0) {
     return -1;
   }
   return 1;
 }
 
-static int record_platform_trap_call_for_render(M68kRenderIRPreview *preview,
+static int record_platform_trap_call_facts(M68kRenderIRPreview *preview,
     const M68kRenderLookup *lookup, const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
     const M68kDecodeCandidate *candidate, M68kSectionAnalysisIR *section_analysis) {
   PlatformFactsV2ResolvedCall call_info;
@@ -10993,7 +10993,7 @@ static int record_platform_trap_call_for_render(M68kRenderIRPreview *preview,
     return 0;
   }
   record_facts_v2_platform_call(preview, section_analysis, candidate->offset, &call_info);
-  if (record_mac_call_stack_args_for_render(preview, lookup, section, accepted_start, block_start, candidate->offset,
+  if (record_mac_call_stack_arg_facts(preview, lookup, section, accepted_start, block_start, candidate->offset,
       section_analysis, &call_info) < 0) {
     return -1;
   }
@@ -11550,7 +11550,7 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
             hash_statement(out_preview, 'I', section->section_index, offset, 2U, opcode);
             if (render_text_preview) render_text_line(out_preview, 'I', section->section_index, offset, 2U, opcode);
             record_facts_v2_platform_call(out_preview, current_section_analysis, offset, &call_info);
-            if (record_mac_call_stack_args_for_render(out_preview, &lookup, section, accepted_start[section_index],
+            if (record_mac_call_stack_arg_facts(out_preview, &lookup, section, accepted_start[section_index],
                 lookup_code_block_start_before_or_at(&lookup, section->section_index, offset), offset,
                 current_section_analysis, &call_info) < 0) {
               goto cleanup;
@@ -11577,7 +11577,7 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
           candidate->mnemonic_id);
         if (render_text_preview) render_text_line(out_preview, 'I', section->section_index, offset,
           candidate->byte_count, candidate->mnemonic_id);
-        if (record_platform_trap_call_for_render(out_preview, &lookup, section, accepted_start[section_index],
+        if (record_platform_trap_call_facts(out_preview, &lookup, section, accepted_start[section_index],
             candidate, current_section_analysis) < 0) {
           goto cleanup;
         }
