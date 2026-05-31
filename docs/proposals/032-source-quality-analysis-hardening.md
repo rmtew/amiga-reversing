@@ -3738,7 +3738,7 @@ loop into a named pre-render section pass:
 
 ```text
 accepted section bytes
-  -> record_section_platform_call_analysis()
+  -> m68k_analysis_render_lookup_append_platform_call_facts_for_section()
   -> direct trap call facts
   -> stack-cleanup facts
   -> Mac opcode call and stack-argument facts
@@ -3747,10 +3747,11 @@ accepted section bytes
 
 The render loop still resolves platform calls to format source text, but it no
 longer appends durable recovered platform-call facts while emitting rows. The
-analysis pass owns its own platform state and shares the same post-instruction
-state update helper used by rendering, including known library-name loads. This
-keeps rendered-source presentation and collect-only source analysis aligned
-without preserving a render-time compatibility path.
+analysis pass owns its own platform state, Mac stack-argument recovery, and
+Amiga vector-call fact emission. The shared Amiga vector resolver now lives in
+`m68k_analysis_render_lookup.c`; render calls it only to format proven symbolic
+presentation. This keeps rendered-source presentation and collect-only source
+analysis aligned without preserving a render-time compatibility path.
 
 Verified:
 

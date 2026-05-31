@@ -101,6 +101,17 @@ typedef struct M68kRenderPlatformState {
   M68kRenderPlatformLocalBaseSlot local_base_slots[32];
 } M68kRenderPlatformState;
 
+typedef struct M68kRenderAmigaVectorResolution {
+  const AmigaOsLibraryVectorInfo *platform_vector;
+  const AmigaOsLibraryVectorInfo *immediate_vector;
+  const AmigaOsLibraryVectorInfo *wrapper_call_vector;
+  const AmigaOsLibraryVectorInfo *direct_wrapper_vector;
+  const AmigaOsLibraryVectorInfo *helper_call_vector;
+  const AmigaOsLibraryVectorInfo *chosen_vector;
+  uint8_t chosen_kind;
+  uint8_t chosen_note_kind;
+} M68kRenderAmigaVectorResolution;
+
 typedef struct M68kRenderGlobalBaseSlot {
   size_t section_index;
   uint32_t offset;
@@ -711,6 +722,8 @@ int lookup_label_has_explicit_name(const M68kRenderLookup *lookup, size_t sectio
 int lookup_label_has_statement_ref(const M68kRenderLookup *lookup, size_t section_index, uint32_t offset);
 int lookup_should_emit_label_statement(const M68kRenderLookup *lookup, const M68kDecodeSectionIR *section,
     const uint8_t *accepted_start, size_t section_index, uint32_t offset);
+uint32_t lookup_code_block_start_before_or_at(const M68kRenderLookup *lookup, size_t section_index,
+  uint32_t offset);
 int lookup_source_runtime_address(const M68kRenderLookup *lookup, size_t section_index,
   uint32_t source_offset, uint32_t *out_runtime_address);
 int lookup_runtime_range_materialization(const M68kRenderLookup *lookup, const M68kFact *range,
@@ -752,6 +765,8 @@ int render_asm_runtime_alias_labels(M68kRenderIRPreview *preview, const M68kRend
   size_t section_index, uint32_t offset, uint8_t has_primary_runtime, uint32_t primary_runtime_address);
 void platform_state_clear_data_lvo(M68kRenderPlatformState *state, uint8_t reg_index);
 int platform_state_name_is_app_base(const char *name);
+void platform_state_set_register_library(M68kRenderPlatformState *state, uint8_t reg_index,
+  const char *library_name);
 void platform_state_apply_lookup_register_seeds(M68kRenderPlatformState *state,
   const M68kRenderLookup *lookup, size_t section_index, uint32_t offset);
 int operand_is_address_displacement_local(const M68kOperandIR *operand, uint8_t *out_reg,
@@ -913,6 +928,14 @@ int m68k_analysis_render_lookup_append_base_layout_fields(M68kRenderIRPreview *p
 int m68k_analysis_render_lookup_build_source_analysis(M68kRenderIRPreview *preview, M68kRenderLookup *lookup,
   const M68kDecodeIR *decode, const M68kAnalysisPolicy *policy, uint8_t **accepted_start,
   uint8_t **accepted_bytes, M68kSourceAnalysisIR *source_analysis);
+void m68k_analysis_render_lookup_resolve_amiga_instruction_platform_vectors(const M68kRenderLookup *lookup,
+  const M68kRenderPlatformState *platform_state, const M68kDecodeIR *decode, uint8_t **accepted_start_all,
+  const M68kDecodeSectionIR *section, const uint8_t *accepted_start, const M68kDecodeCandidate *candidate,
+  M68kInstructionIR *instruction, M68kRenderAmigaVectorResolution *resolution);
+int m68k_analysis_render_lookup_append_platform_call_facts_for_section(M68kRenderIRPreview *preview,
+  M68kRenderLookup *lookup, M68kRenderPlatformState *platform_state, const M68kDecodeIR *decode,
+  const M68kAnalysisPolicy *policy, uint8_t **accepted_start_all, size_t section_array_index,
+  const M68kDecodeSectionIR *section, M68kSectionAnalysisIR *section_analysis);
 int m68k_render_ir_preview_emit_prepared(const M68kObject *object, const M68kDecodeIR *decode,
   M68kRenderLookup *prepared_lookup, const M68kAnalysisPolicy *policy, uint8_t **accepted_start,
   uint8_t **accepted_bytes, int render_text_preview, int render_asm_source, int collect_asm_source_text,
