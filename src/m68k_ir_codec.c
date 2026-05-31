@@ -471,6 +471,11 @@ static int operand_has_renderable_symbol_name(const M68kOperandIR *operand, cons
   return policy == NULL || policy->presentation.prefer_generated_names != 0U;
 }
 
+static void mark_rendered_operand_symbol(M68kIrRenderResult *result, size_t operand_index) {
+  if (result == NULL || operand_index >= 8U) return;
+  result->rendered_operand_symbol_mask |= (uint8_t)(1U << operand_index);
+}
+
 static int instruction_uses_short_branch_suffix(const M68kInstructionIR *instruction) {
   uint8_t mnemonic_id;
   if (instruction->size_suffix != 'b' || instruction->operand_count == 0U) return 0;
@@ -739,6 +744,7 @@ static M68kIrRenderResult render_one_with_policy_internal(const M68kInstructionI
       if (operand_has_renderable_symbol_name(operand, policy)) {
         if (append_symbolic_ea_text(out_text, out_text_size, &used, operand) != 0)
           goto overflow;
+        mark_rendered_operand_symbol(&result, operand_index);
       } else if (operand->manual_representation_style_id != M68K_ANALYSIS_REPRESENTATION_STYLE_NONE) {
         if (append_manual_immediate_text(out_text, out_text_size, &used, operand->value.value, operand_size_suffix,
               operand->manual_representation_style_id) != 0)
@@ -759,6 +765,7 @@ static M68kIrRenderResult render_one_with_policy_internal(const M68kInstructionI
       if (operand_has_renderable_symbol_name(operand, policy)) {
         if (append_text(out_text, out_text_size, &used, operand->symbol_ref.name) != 0)
           goto overflow;
+        mark_rendered_operand_symbol(&result, operand_index);
       } else if (!render_unresolved_current_relative) {
         if (append_text(out_text, out_text_size, &used, "target") != 0)
           goto overflow;
@@ -776,11 +783,17 @@ static M68kIrRenderResult render_one_with_policy_internal(const M68kInstructionI
         if (append_manual_immediate_text(out_text, out_text_size, &used, operand->value.value, operand_size_suffix,
               operand->manual_representation_style_id) != 0)
           goto overflow;
-      } else if ((operand_has_renderable_symbol_name(operand, policy) == 0 ||
-          append_symbolic_ea_text(out_text, out_text_size, &used, operand) != 0) &&
-          append_ea_text(out_text, out_text_size, &used, &operand->value, operand_size_suffix,
-            operand->has_exact_render_value, operand->exact_render_value, syntax_mode) != 0)
+      } else if (operand_has_renderable_symbol_name(operand, policy)) {
+        if (append_symbolic_ea_text(out_text, out_text_size, &used, operand) == 0) {
+          mark_rendered_operand_symbol(&result, operand_index);
+        } else if (append_ea_text(out_text, out_text_size, &used, &operand->value, operand_size_suffix,
+            operand->has_exact_render_value, operand->exact_render_value, syntax_mode) != 0) {
+          goto overflow;
+        }
+      } else if (append_ea_text(out_text, out_text_size, &used, &operand->value, operand_size_suffix,
+          operand->has_exact_render_value, operand->exact_render_value, syntax_mode) != 0) {
         goto overflow;
+      }
       if (operand->kind == M68K_ASM_OPERAND_BF_EA) {
         if (append_text(out_text, out_text_size, &used, "{") != 0)
           goto overflow;

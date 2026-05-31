@@ -9765,7 +9765,7 @@ static void platform_state_update_known_library_load_after_candidate(M68kRenderP
 
 static int record_rendered_instruction_symbol_accesses(M68kSourceAnalysisIR *source_analysis,
     size_t section_index, const M68kDecodeCandidate *candidate, const M68kInstructionIR *instruction,
-    const char *rendered_text);
+    uint8_t rendered_operand_symbol_mask);
 
 static int render_asm_instruction(M68kRenderIRPreview *preview, M68kRenderLookup *lookup,
     M68kRenderPlatformState *platform_state, const M68kDecodeIR *decode, uint8_t **accepted_start_all,
@@ -9923,7 +9923,7 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, M68kRenderLookup
   ++preview->asm_source_lines;
   ++preview->asm_source_symbolic_instructions;
   if (record_rendered_instruction_symbol_accesses(source_analysis, section->section_index, candidate,
-      &render_instruction, rendered.text) != 0) {
+      &render_instruction, rendered.rendered_operand_symbol_mask) != 0) {
     return 0;
   }
   if (out_listing_instruction != NULL) *out_listing_instruction = render_instruction;
@@ -9996,10 +9996,10 @@ static const M68kDecodeTarget *candidate_control_target_for_operand(const M68kDe
 
 static int record_rendered_instruction_symbol_accesses(M68kSourceAnalysisIR *source_analysis,
     size_t section_index, const M68kDecodeCandidate *candidate, const M68kInstructionIR *instruction,
-    const char *rendered_text) {
+    uint8_t rendered_operand_symbol_mask) {
   M68kSectionAnalysisIR *section_analysis;
   size_t operand_index;
-  if (source_analysis == NULL || candidate == NULL || instruction == NULL || rendered_text == NULL) return 0;
+  if (source_analysis == NULL || candidate == NULL || instruction == NULL) return 0;
   section_analysis = render_source_analysis_section_by_index(source_analysis, (uint32_t)section_index);
   if (section_analysis == NULL) return -1;
   for (operand_index = 0U; operand_index < instruction->operand_count; ++operand_index) {
@@ -10007,7 +10007,7 @@ static int record_rendered_instruction_symbol_accesses(M68kSourceAnalysisIR *sou
     const M68kDecodeTarget *control_target;
     M68kRenderedSymbolAccessIR access;
     if (!operand->symbol_ref.has_name || operand->symbol_ref.name[0] == '\0') continue;
-    if (strstr(rendered_text, operand->symbol_ref.name) == NULL) continue;
+    if ((rendered_operand_symbol_mask & (uint8_t)(1U << operand_index)) == 0U) continue;
     memset(&access, 0, sizeof(access));
     access.symbol_name = (char *)operand->symbol_ref.name;
     access.offset = candidate->offset;

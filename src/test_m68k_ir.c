@@ -244,6 +244,28 @@ static int test_render_index_scale_uses_scale_value_not_bits(void) {
   return 0;
 }
 
+static int test_render_reports_actual_operand_symbol_mask(void) {
+  M68kRenderPolicy policy;
+  M68kInstructionIR instruction;
+  M68kIrRenderResult rendered;
+  const uint8_t branch_bytes[4] = {0x60u, 0x00u, 0x00u, 0x26u};
+  m68k_render_policy_init_default(&policy);
+  instruction = m68k_ir_decode_one(branch_bytes, sizeof(branch_bytes), M68K_ASM_CPU_68000, m68k_diag_sink(NULL));
+  M68K_C_ASSERT_U32(1U, (uint32_t)instruction.operand_count);
+  instruction.operands[0].symbol_ref.has_name = 1U;
+  strcpy(instruction.operands[0].symbol_ref.name, "CODE_1_loc_00000028");
+  rendered = m68k_ir_render_one_at_with_policy(&instruction, 0U, &policy, m68k_diag_sink(NULL));
+  M68K_C_ASSERT(strstr(rendered.text, "CODE_1_loc_00000028") != NULL);
+  M68K_C_ASSERT_U32(1U, (uint32_t)(rendered.rendered_operand_symbol_mask & 1U));
+
+  instruction.operands[0].symbol_ref.name_is_generated = 1U;
+  policy.presentation.prefer_generated_names = 0U;
+  rendered = m68k_ir_render_one_at_with_policy(&instruction, 0U, &policy, m68k_diag_sink(NULL));
+  M68K_C_ASSERT(strstr(rendered.text, "CODE_1_loc_00000028") == NULL);
+  M68K_C_ASSERT_U32(0U, (uint32_t)rendered.rendered_operand_symbol_mask);
+  return 0;
+}
+
 static int assert_decode_render_parse_encode_68030(const uint8_t *bytes, size_t byte_count,
     const char *expected_text) {
   M68kRenderPolicy policy;
@@ -24109,6 +24131,7 @@ int m68k_c_ir_tests(void) {
     {"generated_call_ea_metadata_marks_control_target",
       test_generated_call_ea_metadata_marks_control_target},
     {"render_index_scale_uses_scale_value_not_bits", test_render_index_scale_uses_scale_value_not_bits},
+    {"render_reports_actual_operand_symbol_mask", test_render_reports_actual_operand_symbol_mask},
     {"68030_pmmu_fc_forms_roundtrip_from_kb", test_68030_pmmu_fc_forms_roundtrip_from_kb},
     {"movec_control_register_cpu_mask_from_kb", test_movec_control_register_cpu_mask_from_kb},
     {"coprocessor_id_roundtrips_from_kb_id_field", test_coprocessor_id_roundtrips_from_kb_id_field},

@@ -4155,12 +4155,18 @@ Rendering now records actual emitted operand symbols from the instruction render
 path:
 
 ```text
-rendered instruction text contains operand symbol
+instruction formatter marks operand index as symbol-rendered
   -> M68kRenderedSymbolAccessIR(operand)
 
-rendered instruction text contains operand symbol for a decoded control target
+symbol-rendered operand index matches a decoded control target
   -> M68kRenderedSymbolAccessIR(branch_target)
 ```
+
+This is not a text scan. `M68kIrRenderResult` now carries
+`rendered_operand_symbol_mask`, set only when the formatter actually emits a
+symbolic operand. Source-quality analysis consumes that structured result, so
+comments, substrings, fallback numeric operands, and suppressed generated names
+cannot masquerade as rendered symbol use-sites.
 
 For decoded targets that do not carry an operand index, the render recorder only
 classifies the symbol as a branch target when the candidate has exactly one

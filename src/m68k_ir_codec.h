@@ -11,6 +11,7 @@
 
 typedef struct M68kIrRenderResult {
   char text[M68K_IR_RENDER_TEXT_SIZE];
+  uint8_t rendered_operand_symbol_mask;
 } M68kIrRenderResult;
 
 typedef struct M68kIrEncodeResult {
