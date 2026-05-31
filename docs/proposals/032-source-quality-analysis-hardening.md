@@ -4004,3 +4004,22 @@ API compatibility: the neutral app-layout collector still lives in
 It should move once those dependencies are similarly neutralized, but the
 durable Source Analysis IR append no longer has renderer-owned names or a
 renderer-owned append path.
+
+### Premature Symbol-Access Manifest Lane Removal
+
+Removed Python manifest support and synthetic tests for `symbol_origins` and
+`rendered_symbol_accesses` while C does not export those arrays. Keeping those
+lanes made the API look more complete than it is and forced tests to preserve a
+future JSON shape with no real C producer.
+
+This does not remove the requirement. The correct implementation remains:
+
+```text
+C Source Analysis IR
+  -> M68kSymbolOriginIR / M68kExpectedSymbolAccessIR / M68kRenderedSymbolAccessIR
+  -> platform_file_json.c exports those arrays
+  -> target_usage_manifest.py indexes the exported C facts
+```
+
+Until that C path exists, Python should not carry compatibility code for
+nonexistent source-quality facts.

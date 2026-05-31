@@ -209,16 +209,14 @@ XREF_KIND_ACCEPTED_CODE_RUN = 16
 XREF_KIND_PLATFORM_ADDRESS_USE = 17
 XREF_KIND_CODE_ORIGIN = 18
 XREF_KIND_ADDRESS_IDENTITY = 19
-XREF_KIND_SYMBOL_ORIGIN = 20
-XREF_KIND_RENDERED_SYMBOL_ACCESS = 21
-XREF_KIND_RANGE_OWNERSHIP = 22
-XREF_KIND_ABSOLUTE_ADDRESS_RANGE = 23
-XREF_KIND_TABLE_DESCRIPTOR = 24
-XREF_KIND_TABLE_CONSUMER = 25
-XREF_KIND_TABLE_ENTRY = 26
-XREF_KIND_RUNTIME_ADDRESS_REF = 27
-XREF_KIND_DATA_REFERENCE = 28
-XREF_KIND_ADDRESS_OBSERVATION = 29
+XREF_KIND_RANGE_OWNERSHIP = 20
+XREF_KIND_ABSOLUTE_ADDRESS_RANGE = 21
+XREF_KIND_TABLE_DESCRIPTOR = 22
+XREF_KIND_TABLE_CONSUMER = 23
+XREF_KIND_TABLE_ENTRY = 24
+XREF_KIND_RUNTIME_ADDRESS_REF = 25
+XREF_KIND_DATA_REFERENCE = 26
+XREF_KIND_ADDRESS_OBSERVATION = 27
 XREF_KIND_IDS = {
     "platform_typed_access": XREF_KIND_PLATFORM_TYPED_ACCESS,
     "typed_storage": XREF_KIND_TYPED_STORAGE,
@@ -239,8 +237,6 @@ XREF_KIND_IDS = {
     "platform_address_use": XREF_KIND_PLATFORM_ADDRESS_USE,
     "code_origin": XREF_KIND_CODE_ORIGIN,
     "address_identity": XREF_KIND_ADDRESS_IDENTITY,
-    "symbol_origin": XREF_KIND_SYMBOL_ORIGIN,
-    "rendered_symbol_access": XREF_KIND_RENDERED_SYMBOL_ACCESS,
     "range_ownership": XREF_KIND_RANGE_OWNERSHIP,
     "absolute_address_range": XREF_KIND_ABSOLUTE_ADDRESS_RANGE,
     "table_descriptor": XREF_KIND_TABLE_DESCRIPTOR,
@@ -646,7 +642,6 @@ TARGET_PATTERN_FEATURE_RULES: tuple[tuple[tuple[str, ...], str], ...] = (
         (
             "source-quality:kind:rendered_label_without_access",
             "source-quality:kind:generated_symbol_stripped",
-            "analysis:symbol_origin:without_rendered_access",
         ),
         "target-pattern:source_quality_label_consistency",
     ),
@@ -2279,129 +2274,6 @@ def _add_address_identity_features(
         bag.add(feature, example=example)
 
 
-def _symbol_origin_kind(origin: dict[str, Any]) -> str:
-    return (
-        _string_value(origin.get("origin_kind_name"))
-        or _string_value(origin.get("origin_kind"))
-        or "unknown"
-    )
-
-
-def _symbol_origin_name(origin: dict[str, Any]) -> str | None:
-    return (
-        _string_value(origin.get("symbol_name"))
-        or _string_value(origin.get("symbol"))
-        or _string_value(origin.get("name"))
-    )
-
-
-def _symbol_origin_example(section_index: int | None, origin: dict[str, Any]) -> dict[str, object]:
-    origin_section = _int_value(origin.get("section_index"), section_index)
-    offset = _int_value(origin.get("offset"))
-    origin_kind = _symbol_origin_kind(origin)
-    example = _offset_example(origin_section, offset, _symbol_origin_name(origin) or origin_kind)
-    for key in ("symbol_id", "confidence", "rendered_access_count", "reference_count"):
-        value = _int_value(origin.get(key))
-        if value is not None:
-            example[key] = value
-    for key in (
-        "symbol_name",
-        "symbol",
-        "name",
-        "origin_kind",
-        "origin_kind_name",
-        "detail",
-    ):
-        value = _string_value(origin.get(key))
-        if value:
-            example[key] = value
-    return example
-
-
-def _symbol_origin_features(origin: dict[str, Any]) -> list[str]:
-    origin_kind = _symbol_origin_kind(origin)
-    features = [
-        "analysis:symbol_origin",
-        f"analysis:symbol_origin_kind:{_safe_part(origin_kind)}",
-    ]
-    confidence = _int_value(origin.get("confidence"))
-    if confidence is not None:
-        features.append(f"analysis:symbol_origin_confidence:{confidence}")
-    rendered_access_count = _int_value(origin.get("rendered_access_count"))
-    reference_count = _int_value(origin.get("reference_count"))
-    has_rendered_access = _bool_value(origin.get("has_rendered_access"))
-    if rendered_access_count == 0 or reference_count == 0 or has_rendered_access is False:
-        features.append("analysis:symbol_origin:without_rendered_access")
-    return list(dict.fromkeys(features))
-
-
-def _add_symbol_origin_features(
-    bag: FeatureBag, section_index: int | None, origin: dict[str, Any]
-) -> None:
-    example = _symbol_origin_example(section_index, origin)
-    for feature in _symbol_origin_features(origin):
-        bag.add(feature, example=example)
-
-
-def _rendered_symbol_access_kind(access: dict[str, Any]) -> str:
-    return (
-        _string_value(access.get("access_kind_name"))
-        or _string_value(access.get("access_kind"))
-        or _string_value(access.get("access"))
-        or "unknown"
-    )
-
-
-def _rendered_symbol_access_example(
-    section_index: int | None, access: dict[str, Any]
-) -> dict[str, object]:
-    access_section = _int_value(access.get("section_index"), section_index)
-    offset = _int_value(access.get("offset"))
-    access_kind = _rendered_symbol_access_kind(access)
-    symbol = (
-        _string_value(access.get("symbol_name"))
-        or _string_value(access.get("symbol"))
-        or _string_value(access.get("name"))
-    )
-    example = _offset_example(access_section, offset, symbol or access_kind)
-    for key in ("symbol_id", "operand_index", "target_offset", "target_address"):
-        value = _int_value(access.get(key))
-        if value is not None:
-            example[key] = value
-    for key in (
-        "symbol_name",
-        "symbol",
-        "name",
-        "access_kind",
-        "access_kind_name",
-        "access",
-        "detail",
-    ):
-        value = _string_value(access.get(key))
-        if value:
-            example[key] = value
-    return example
-
-
-def _rendered_symbol_access_features(access: dict[str, Any]) -> list[str]:
-    access_kind = _rendered_symbol_access_kind(access)
-    features = [
-        "analysis:rendered_symbol_access",
-        f"analysis:rendered_symbol_access_kind:{_safe_part(access_kind)}",
-    ]
-    if _int_value(access.get("target_address")) is not None or _int_value(access.get("target_offset")) is not None:
-        features.append("analysis:rendered_symbol_access:targeted")
-    return list(dict.fromkeys(features))
-
-
-def _add_rendered_symbol_access_features(
-    bag: FeatureBag, section_index: int | None, access: dict[str, Any]
-) -> None:
-    example = _rendered_symbol_access_example(section_index, access)
-    for feature in _rendered_symbol_access_features(access):
-        bag.add(feature, example=example)
-
-
 def _range_ownership_kind(range_record: dict[str, Any]) -> str:
     return (
         _string_value(range_record.get("kind_name"))
@@ -3188,10 +3060,6 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
         _add_code_origin_features(bag, None, origin)
     for identity in _dict_items(analysis.get("address_identities")):
         _add_address_identity_features(bag, None, identity)
-    for origin in _dict_items(analysis.get("symbol_origins")):
-        _add_symbol_origin_features(bag, None, origin)
-    for access in _dict_items(analysis.get("rendered_symbol_accesses")):
-        _add_rendered_symbol_access_features(bag, None, access)
     for range_record in _dict_items(analysis.get("range_ownerships")):
         _add_range_ownership_features(bag, None, range_record)
     for range_record in _dict_items(analysis.get("absolute_address_ranges")):
@@ -3339,10 +3207,6 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
             _add_code_origin_features(bag, section_index, origin)
         for identity in _dict_items(section.get("address_identities")):
             _add_address_identity_features(bag, section_index, identity)
-        for origin in _dict_items(section.get("symbol_origins")):
-            _add_symbol_origin_features(bag, section_index, origin)
-        for access in _dict_items(section.get("rendered_symbol_accesses")):
-            _add_rendered_symbol_access_features(bag, section_index, access)
         for range_record in _dict_items(section.get("range_ownerships")):
             _add_range_ownership_features(bag, section_index, range_record)
         for range_record in _dict_items(section.get("absolute_address_ranges")):
@@ -5528,76 +5392,6 @@ def _address_identity_xrefs(
     ]
 
 
-def _symbol_origin_xrefs(
-    row: dict[str, object],
-    origin: dict[str, Any],
-    row_locations: dict[tuple[int, int], tuple[int, str | None, str | None]],
-    *,
-    section_index: int | None,
-) -> list[dict[str, object]]:
-    origin_section = _int_value(origin.get("section_index"), section_index)
-    offset = _int_value(origin.get("offset"))
-    row_index, stable_key, row_text = _row_location(row_locations, origin_section, offset)
-    origin_kind = _symbol_origin_kind(origin)
-    value = _int_value(origin.get("symbol_id"))
-    if value is None:
-        value = _int_value(origin.get("rendered_access_count"))
-    return [
-        _xref(
-            row,
-            feature,
-            "symbol_origin",
-            section=origin_section,
-            offset=offset,
-            row_index=row_index,
-            stable_key=stable_key,
-            symbol=_symbol_origin_name(origin) or origin_kind,
-            value=value,
-            text=row_text or _string_value(origin.get("detail")) or f"symbol origin {origin_kind}",
-        )
-        for feature in _symbol_origin_features(origin)
-    ]
-
-
-def _rendered_symbol_access_xrefs(
-    row: dict[str, object],
-    access: dict[str, Any],
-    row_locations: dict[tuple[int, int], tuple[int, str | None, str | None]],
-    *,
-    section_index: int | None,
-) -> list[dict[str, object]]:
-    access_section = _int_value(access.get("section_index"), section_index)
-    offset = _int_value(access.get("offset"))
-    row_index, stable_key, row_text = _row_location(row_locations, access_section, offset)
-    access_kind = _rendered_symbol_access_kind(access)
-    value = _int_value(access.get("target_address"))
-    if value is None:
-        value = _int_value(access.get("target_offset"))
-    if value is None:
-        value = _int_value(access.get("symbol_id"))
-    symbol = (
-        _string_value(access.get("symbol_name"))
-        or _string_value(access.get("symbol"))
-        or _string_value(access.get("name"))
-        or access_kind
-    )
-    return [
-        _xref(
-            row,
-            feature,
-            "rendered_symbol_access",
-            section=access_section,
-            offset=offset,
-            row_index=row_index,
-            stable_key=stable_key,
-            symbol=symbol,
-            value=value,
-            text=row_text or _string_value(access.get("detail")) or f"rendered symbol access {access_kind}",
-        )
-        for feature in _rendered_symbol_access_features(access)
-    ]
-
-
 def _range_ownership_xrefs(
     row: dict[str, object],
     range_record: dict[str, Any],
@@ -5853,10 +5647,6 @@ def _analysis_xrefs(
         xrefs.extend(_code_origin_xrefs(row, origin, row_locations, section_index=None))
     for identity in _dict_items(analysis.get("address_identities")):
         xrefs.extend(_address_identity_xrefs(row, identity, row_locations, section_index=None))
-    for origin in _dict_items(analysis.get("symbol_origins")):
-        xrefs.extend(_symbol_origin_xrefs(row, origin, row_locations, section_index=None))
-    for access in _dict_items(analysis.get("rendered_symbol_accesses")):
-        xrefs.extend(_rendered_symbol_access_xrefs(row, access, row_locations, section_index=None))
     for range_record in _dict_items(analysis.get("range_ownerships")):
         xrefs.extend(_range_ownership_xrefs(row, range_record, row_locations, section_index=None))
     for range_record in _dict_items(analysis.get("absolute_address_ranges")):
@@ -6295,10 +6085,6 @@ def _analysis_xrefs(
             xrefs.extend(_code_origin_xrefs(row, origin, row_locations, section_index=section_index))
         for identity in _dict_items(section.get("address_identities")):
             xrefs.extend(_address_identity_xrefs(row, identity, row_locations, section_index=section_index))
-        for origin in _dict_items(section.get("symbol_origins")):
-            xrefs.extend(_symbol_origin_xrefs(row, origin, row_locations, section_index=section_index))
-        for access in _dict_items(section.get("rendered_symbol_accesses")):
-            xrefs.extend(_rendered_symbol_access_xrefs(row, access, row_locations, section_index=section_index))
         for range_record in _dict_items(section.get("range_ownerships")):
             xrefs.extend(_range_ownership_xrefs(row, range_record, row_locations, section_index=section_index))
         for range_record in _dict_items(section.get("absolute_address_ranges")):

@@ -11,10 +11,8 @@ from src.scripts.target_usage_manifest import (
     XREF_KIND_DATA_REFERENCE,
     XREF_KIND_PLATFORM_ADDRESS_USE,
     XREF_KIND_RANGE_OWNERSHIP,
-    XREF_KIND_RENDERED_SYMBOL_ACCESS,
     XREF_KIND_RUNTIME_ADDRESS_REF,
     XREF_KIND_SOURCE_QUALITY_DIAGNOSTIC,
-    XREF_KIND_SYMBOL_ORIGIN,
     XREF_KIND_TABLE_CONSUMER,
     XREF_KIND_TABLE_DESCRIPTOR,
     XREF_KIND_TABLE_ENTRY,
@@ -745,72 +743,6 @@ def test_analysis_address_identities_are_indexed_for_identity_search() -> None:
     assert identity_xrefs[0]["row_index"] == 14
     assert identity_xrefs[0]["symbol"] == "runtime_range"
     assert identity_xrefs[0]["value"] == 0x42C6C
-
-
-def test_analysis_symbol_facts_are_indexed_for_label_consistency_search() -> None:
-    analysis = {
-        "sections": [
-            {
-                "section_index": 0,
-                "symbol_origins": [
-                    {
-                        "offset": 0x42C00,
-                        "symbol_id": 7,
-                        "symbol_name": "abs_0_00042C00",
-                        "origin_kind": "address_identity",
-                        "confidence": 3,
-                        "rendered_access_count": 0,
-                        "detail": "symbol has no rendered access",
-                    }
-                ],
-                "rendered_symbol_accesses": [
-                    {
-                        "offset": 0x43000,
-                        "symbol_id": 8,
-                        "symbol_name": "abs_0_00042C6C",
-                        "operand_index": 1,
-                        "access_kind": "memory_read",
-                        "target_offset": 0x42C6C,
-                    }
-                ],
-            }
-        ]
-    }
-    bag = FeatureBag()
-    _add_analysis_features(analysis, bag)
-    counts, examples, tags = bag.row_features()
-
-    assert counts["analysis:symbol_origin"] == 1
-    assert counts["analysis:symbol_origin_kind:address_identity"] == 1
-    assert counts["analysis:symbol_origin_confidence:3"] == 1
-    assert counts["analysis:symbol_origin:without_rendered_access"] == 1
-    assert counts["analysis:rendered_symbol_access"] == 1
-    assert counts["analysis:rendered_symbol_access_kind:memory_read"] == 1
-    assert counts["analysis:rendered_symbol_access:targeted"] == 1
-    assert "target-pattern:source_quality_label_consistency" in tags
-    assert examples["analysis:symbol_origin:without_rendered_access"][0]["symbol_name"] == "abs_0_00042C00"
-
-    row = {"id": "fixture", "platform": "amiga-hunk", "source_id": "fixture", "origin": {}}
-    row_locations = {
-        (0, 0x42C00): (20, "s0:00042C00:label:20", "abs_0_00042C00:"),
-        (0, 0x43000): (21, "s0:00043000:instruction:21", "\tmove.w abs_0_00042C6C.l,d0"),
-    }
-    xrefs = _analysis_xrefs(row, analysis, row_locations)
-    origin_xrefs = [
-        xref for xref in xrefs if xref["feature"] == "analysis:symbol_origin:without_rendered_access"
-    ]
-    access_xrefs = [
-        xref for xref in xrefs if xref["feature"] == "analysis:rendered_symbol_access:targeted"
-    ]
-    assert len(origin_xrefs) == 1
-    assert origin_xrefs[0]["kind_id"] == XREF_KIND_SYMBOL_ORIGIN
-    assert origin_xrefs[0]["row_index"] == 20
-    assert origin_xrefs[0]["symbol"] == "abs_0_00042C00"
-    assert len(access_xrefs) == 1
-    assert access_xrefs[0]["kind_id"] == XREF_KIND_RENDERED_SYMBOL_ACCESS
-    assert access_xrefs[0]["row_index"] == 21
-    assert access_xrefs[0]["symbol"] == "abs_0_00042C6C"
-    assert access_xrefs[0]["value"] == 0x42C6C
 
 
 def test_analysis_range_facts_are_indexed_for_range_search() -> None:
