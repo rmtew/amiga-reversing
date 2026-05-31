@@ -10737,9 +10737,13 @@ static void platform_state_update_known_library_load_after_candidate(M68kRenderP
   }
 }
 
+static int record_rendered_instruction_symbol_accesses(M68kSourceAnalysisIR *source_analysis,
+    size_t section_index, const M68kDecodeCandidate *candidate, const M68kInstructionIR *instruction,
+    const char *rendered_text);
+
 static int render_asm_instruction(M68kRenderIRPreview *preview, M68kRenderLookup *lookup,
     M68kRenderPlatformState *platform_state, const M68kDecodeIR *decode, uint8_t **accepted_start_all,
-    const M68kSourceAnalysisIR *source_analysis, const M68kDecodeSectionIR *section,
+    M68kSourceAnalysisIR *source_analysis, const M68kDecodeSectionIR *section,
     const uint8_t *accepted_start, const uint8_t *accepted_bytes, const M68kDecodeCandidate *candidate,
     M68kInstructionIR *out_listing_instruction) {
   M68kInstructionIR instruction;
@@ -10891,6 +10895,10 @@ static int render_asm_instruction(M68kRenderIRPreview *preview, M68kRenderLookup
   hash_asm_text(preview, line);
   ++preview->asm_source_lines;
   ++preview->asm_source_symbolic_instructions;
+  if (record_rendered_instruction_symbol_accesses(source_analysis, section->section_index, candidate,
+      &render_instruction, rendered.text) != 0) {
+    return 0;
+  }
   if (out_listing_instruction != NULL) *out_listing_instruction = render_instruction;
   platform_state_update_data_lvo_after_instruction(platform_state, &instruction);
   platform_state_update_after_instruction(platform_state, lookup, &instruction);
@@ -11101,6 +11109,63 @@ static int record_rendered_label_statement_access(M68kSourceAnalysisIR *source_a
   access.access_kind = M68K_RENDERED_SYMBOL_ACCESS_LABEL_STATEMENT;
   access.has_target = 1U;
   return m68k_ir_section_analysis_append_rendered_symbol_access(section_analysis, &access);
+}
+
+static int decode_target_is_control_symbol_access(const M68kDecodeTarget *target) {
+  return target != NULL &&
+    (target->kind == M68K_DECODE_TARGET_BRANCH ||
+     target->kind == M68K_DECODE_TARGET_CALL ||
+     target->kind == M68K_DECODE_TARGET_JUMP);
+}
+
+static const M68kDecodeTarget *candidate_control_target_for_operand(const M68kDecodeCandidate *candidate,
+    size_t operand_index) {
+  size_t target_index;
+  const M68kDecodeTarget *unique_unindexed_target = NULL;
+  size_t unique_unindexed_count = 0U;
+  if (candidate == NULL) return NULL;
+  for (target_index = 0U; target_index < candidate->target_count; ++target_index) {
+    const M68kDecodeTarget *target = &candidate->targets[target_index];
+    if (!decode_target_is_control_symbol_access(target) || !target->has_section) continue;
+    if (target->has_operand) {
+      if (target->operand_index == operand_index) return target;
+      continue;
+    }
+    unique_unindexed_target = target;
+    ++unique_unindexed_count;
+  }
+  return unique_unindexed_count == 1U ? unique_unindexed_target : NULL;
+}
+
+static int record_rendered_instruction_symbol_accesses(M68kSourceAnalysisIR *source_analysis,
+    size_t section_index, const M68kDecodeCandidate *candidate, const M68kInstructionIR *instruction,
+    const char *rendered_text) {
+  M68kSectionAnalysisIR *section_analysis;
+  size_t operand_index;
+  if (source_analysis == NULL || candidate == NULL || instruction == NULL || rendered_text == NULL) return 0;
+  section_analysis = render_source_analysis_section_by_index(source_analysis, (uint32_t)section_index);
+  if (section_analysis == NULL) return -1;
+  for (operand_index = 0U; operand_index < instruction->operand_count; ++operand_index) {
+    const M68kOperandIR *operand = &instruction->operands[operand_index];
+    const M68kDecodeTarget *control_target;
+    M68kRenderedSymbolAccessIR access;
+    if (!operand->symbol_ref.has_name || operand->symbol_ref.name[0] == '\0') continue;
+    if (strstr(rendered_text, operand->symbol_ref.name) == NULL) continue;
+    memset(&access, 0, sizeof(access));
+    access.symbol_name = (char *)operand->symbol_ref.name;
+    access.offset = candidate->offset;
+    access.operand_index = (uint32_t)operand_index;
+    access.access_kind = M68K_RENDERED_SYMBOL_ACCESS_OPERAND;
+    control_target = candidate_control_target_for_operand(candidate, operand_index);
+    if (control_target != NULL) {
+      access.access_kind = M68K_RENDERED_SYMBOL_ACCESS_BRANCH_TARGET;
+      access.target_section_index = (uint32_t)control_target->section_index;
+      access.target_offset = control_target->offset;
+      access.has_target = 1U;
+    }
+    if (m68k_ir_section_analysis_append_rendered_symbol_access(section_analysis, &access) != 0) return -1;
+  }
+  return 0;
 }
 
 void m68k_render_ir_preview_init(M68kRenderIRPreview *preview) {

@@ -4132,3 +4132,49 @@ The symbolic branch fixture now asserts both the rendered source line and the
 matching C source-analysis rendered access for `loc_0_00000004`. That prevents
 the previous mistake where a pre-render visibility decision was reported as if
 it were actual emitted source.
+
+### Intrinsic Branch Symbol Access Gate
+
+Added the first reason-driven branch target symbol-access producer:
+
+```text
+accepted decode candidate
+  -> intrinsic branch/call/jump operand
+  -> same-section accepted target with a C symbol origin
+  -> M68kExpectedSymbolAccessIR(branch_target)
+```
+
+The producer deliberately does not use CFG edges as the symbol obligation
+source. CFG edges currently do not carry target section identity, and
+relocation-backed absolute calls can decode as same-section absolute zero before
+the relocation-aware renderer correctly emits a cross-section label. Treating
+those CFG rows as symbol obligations was false evidence.
+
+Rendering now records actual emitted operand symbols from the instruction render
+path:
+
+```text
+rendered instruction text contains operand symbol
+  -> M68kRenderedSymbolAccessIR(operand)
+
+rendered instruction text contains operand symbol for a decoded control target
+  -> M68kRenderedSymbolAccessIR(branch_target)
+```
+
+For decoded targets that do not carry an operand index, the render recorder only
+classifies the symbol as a branch target when the candidate has exactly one
+decoded control target. That is a metadata-backed association, not a mnemonic
+shape shortcut.
+
+The symbolic branch fixture now asserts the full C loop:
+
+```text
+expected branch target access
+rendered branch target access
+rendered target label statement
+post-render source-quality gate stays clear
+```
+
+Relocation-backed branch/call symbol obligations remain future work. They need a
+relocation-aware C producer rather than reusing CFG rows or broad label-created
+facts.

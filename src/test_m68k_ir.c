@@ -5256,6 +5256,8 @@ static int test_facts_v2_render_asm_source_renders_symbolic_branch(void) {
     int saw_label_row = 0;
     int saw_instruction_source_row = 0;
     int saw_rendered_target_label_access = 0;
+    int saw_expected_branch_target_access = 0;
+    int saw_rendered_branch_target_access = 0;
   uint8_t bytes[6] = {0x60u, 0x02u, 0x4eu, 0x71u, 0x4eu, 0x75u};
   memset(&section, 0, sizeof(section));
   M68K_C_ASSERT_INT(0, m68k_object_create(&object));
@@ -5303,6 +5305,17 @@ static int test_facts_v2_render_asm_source_renders_symbolic_branch(void) {
     if (source_analysis->section_count > 0U) {
       size_t access_index;
       const M68kSectionAnalysisIR *analysis_section = &source_analysis->sections[0];
+      for (access_index = 0U; access_index < analysis_section->expected_symbol_access_count; ++access_index) {
+        const M68kExpectedSymbolAccessIR *access = &analysis_section->expected_symbol_accesses[access_index];
+        if (access->offset == 0U &&
+            access->target_section_index == 0U &&
+            access->target_offset == 4U &&
+            access->access_kind == M68K_EXPECTED_SYMBOL_ACCESS_BRANCH_TARGET &&
+            access->symbol_name != NULL &&
+            strcmp(access->symbol_name, "loc_0_00000004") == 0) {
+          saw_expected_branch_target_access = 1;
+        }
+      }
       for (access_index = 0U; access_index < analysis_section->rendered_symbol_access_count; ++access_index) {
         const M68kRenderedSymbolAccessIR *access = &analysis_section->rendered_symbol_accesses[access_index];
         if (access->offset == 4U &&
@@ -5311,9 +5324,19 @@ static int test_facts_v2_render_asm_source_renders_symbolic_branch(void) {
             strcmp(access->symbol_name, "loc_0_00000004") == 0) {
           saw_rendered_target_label_access = 1;
         }
+        if (access->offset == 0U &&
+            access->target_section_index == 0U &&
+            access->target_offset == 4U &&
+            access->access_kind == M68K_RENDERED_SYMBOL_ACCESS_BRANCH_TARGET &&
+            access->symbol_name != NULL &&
+            strcmp(access->symbol_name, "loc_0_00000004") == 0) {
+          saw_rendered_branch_target_access = 1;
+        }
       }
     }
+    M68K_C_ASSERT(saw_expected_branch_target_access);
     M68K_C_ASSERT(saw_rendered_target_label_access);
+    M68K_C_ASSERT(saw_rendered_branch_target_access);
     M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_plan_analysis_profile_alloc(&object, &policy, NULL,
       &listing_plan, &listing_profile, listing_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(listing_plan.row_count != 0U);

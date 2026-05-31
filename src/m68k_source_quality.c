@@ -540,6 +540,18 @@ static M68kSectionAnalysisIR *source_analysis_section_by_index(M68kSourceAnalysi
   return NULL;
 }
 
+static const M68kSymbolOriginIR *source_quality_symbol_origin_at(const M68kSectionAnalysisIR *section,
+    uint32_t offset) {
+  size_t index;
+  if (section == NULL) return NULL;
+  for (index = 0U; index < section->symbol_origin_count; ++index) {
+    const M68kSymbolOriginIR *origin = &section->symbol_origins[index];
+    if (origin->offset == offset && origin->symbol_name != NULL && origin->symbol_name[0] != '\0')
+      return origin;
+  }
+  return NULL;
+}
+
 static int append_structured_data_range_ownerships(M68kSourceAnalysisIR *source_analysis) {
   size_t index;
   if (source_analysis == NULL) return -1;
@@ -668,6 +680,75 @@ static int source_quality_candidate_is_accepted_start(const M68kDecodeSectionIR 
     const uint8_t *accepted_start, const M68kDecodeCandidate *candidate) {
   return section != NULL && candidate != NULL && candidate->byte_count != 0U &&
     accepted_start != NULL && candidate->offset < section->size && accepted_start[candidate->offset] != 0U;
+}
+
+static int source_quality_target_is_control_symbol_access(const M68kDecodeTarget *target) {
+  return target != NULL &&
+    (target->kind == M68K_DECODE_TARGET_BRANCH ||
+     target->kind == M68K_DECODE_TARGET_CALL ||
+     target->kind == M68K_DECODE_TARGET_JUMP);
+}
+
+static int source_quality_operand_has_intrinsic_control_label(const M68kOperandIR *operand) {
+  if (operand == NULL) return 0;
+  if (operand->kind == M68K_ASM_OPERAND_LABEL) return 1;
+  return (operand->kind == M68K_ASM_OPERAND_EA || operand->kind == M68K_ASM_OPERAND_BF_EA) &&
+    operand->value.ea_mode == 7U && (operand->value.ea_reg == 2U || operand->value.ea_reg == 3U);
+}
+
+static int append_expected_intrinsic_branch_symbol_accesses_for_section(M68kSectionAnalysisIR *section_analysis,
+    const M68kDecodeSectionIR *section, const uint8_t *accepted_start) {
+  size_t candidate_index;
+  if (section_analysis == NULL || section == NULL) return -1;
+  for (candidate_index = 0U; candidate_index < section->candidate_count; ++candidate_index) {
+    const M68kDecodeCandidate *candidate = &section->candidates[candidate_index];
+    M68kInstructionIR instruction;
+    size_t target_index;
+    if (!source_quality_candidate_is_accepted_start(section, accepted_start, candidate)) continue;
+    if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) continue;
+    for (target_index = 0U; target_index < candidate->target_count; ++target_index) {
+      const M68kDecodeTarget *target = &candidate->targets[target_index];
+      const M68kSymbolOriginIR *origin;
+      M68kExpectedSymbolAccessIR access;
+      if (!source_quality_target_is_control_symbol_access(target) || !target->has_section ||
+          target->section_index != section->section_index || !target->has_operand ||
+          target->operand_index >= instruction.operand_count ||
+          !source_quality_operand_has_intrinsic_control_label(&instruction.operands[target->operand_index])) {
+        continue;
+      }
+      origin = source_quality_symbol_origin_at(section_analysis, target->offset);
+      if (origin == NULL) continue;
+      memset(&access, 0, sizeof(access));
+      access.symbol_name = origin->symbol_name;
+      access.offset = candidate->offset;
+      access.target_section_index = (uint32_t)target->section_index;
+      access.target_offset = target->offset;
+      access.operand_index = (uint32_t)target->operand_index;
+      access.access_kind = M68K_EXPECTED_SYMBOL_ACCESS_BRANCH_TARGET;
+      access.confidence = origin->confidence;
+      access.has_target = 1U;
+      if (m68k_ir_section_analysis_append_expected_symbol_access(section_analysis, &access) != 0) return -1;
+    }
+  }
+  return 0;
+}
+
+static int append_expected_intrinsic_branch_symbol_accesses(M68kSourceAnalysisIR *source_analysis,
+    const M68kDecodeIR *decode, uint8_t *const *accepted_start) {
+  size_t section_index;
+  if (source_analysis == NULL || decode == NULL || accepted_start == NULL) return 0;
+  for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
+    M68kSectionAnalysisIR *section_analysis = &source_analysis->sections[section_index];
+    size_t decode_index = 0U;
+    const M68kDecodeSectionIR *section = source_quality_decode_section_by_index(decode,
+      (uint32_t)section_analysis->section_index, &decode_index);
+    if (section == NULL) continue;
+    if (append_expected_intrinsic_branch_symbol_accesses_for_section(section_analysis, section,
+        accepted_start[decode_index]) != 0) {
+      return -1;
+    }
+  }
+  return 0;
 }
 
 static uint8_t source_quality_immediate_text_token_width_for_candidate(const M68kDecodeCandidate *candidate,
@@ -1185,6 +1266,7 @@ int m68k_source_quality_analyze(M68kSourceAnalysisIR *source_analysis,
     if (append_accepted_code_range_ownerships_for_section(section) != 0) return -1;
     if (append_orphan_conflict_ranges_for_section(section) != 0) return -1;
   }
+  if (append_expected_intrinsic_branch_symbol_accesses(source_analysis, decode, accepted_start) != 0) return -1;
   if (append_structured_data_range_ownerships(source_analysis) != 0) return -1;
   if (append_structured_data_table_descriptors(source_analysis) != 0) return -1;
   if (append_structured_data_table_entries(source_analysis, decode, accepted_start, accepted_bytes) != 0) return -1;
