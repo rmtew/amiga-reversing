@@ -866,6 +866,7 @@ typedef enum M68kAppSlotAccessKind {
 } M68kAppSlotAccessKind;
 
 typedef struct M68kAppSlotRefIR {
+  char *symbol_name;
   uint32_t offset;
   int16_t displacement;
   uint8_t base_reg;

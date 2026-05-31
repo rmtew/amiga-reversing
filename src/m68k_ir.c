@@ -2353,6 +2353,7 @@ int m68k_ir_section_analysis_append_orphan_code_signal(M68kSectionAnalysisIR *se
 
 int m68k_ir_section_analysis_append_app_slot_ref(M68kSectionAnalysisIR *section_analysis,
     const M68kAppSlotRefIR *ref) {
+  M68kAppSlotRefIR copy;
   size_t index;
   if (section_analysis == NULL || ref == NULL) return -1;
   if (section_analysis->arena == NULL) return -1;
@@ -2372,7 +2373,13 @@ int m68k_ir_section_analysis_append_app_slot_ref(M68kSectionAnalysisIR *section_
     section_analysis->app_slot_refs, section_analysis->app_slot_ref_count,
     &section_analysis->app_slot_ref_capacity, 8U, sizeof(*section_analysis->app_slot_refs));
   if (section_analysis->app_slot_refs == NULL) return -1;
-  section_analysis->app_slot_refs[section_analysis->app_slot_ref_count] = *ref;
+  copy = *ref;
+  copy.symbol_name = NULL;
+  if (ref->symbol_name != NULL) {
+    copy.symbol_name = arena_strdup(section_analysis->arena, ref->symbol_name);
+    if (copy.symbol_name == NULL) return -1;
+  }
+  section_analysis->app_slot_refs[section_analysis->app_slot_ref_count] = copy;
   section_analysis->app_slot_ref_count += 1U;
   return 0;
 }

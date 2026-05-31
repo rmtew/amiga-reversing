@@ -4599,6 +4599,11 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
         goto oom;
       if (json_builder_append_json_string(&builder, access != NULL ? access : "") != 0)
         goto oom;
+      if (ref->symbol_name != NULL) {
+        if (json_builder_append(&builder, ",\"symbol_name\":") != 0 ||
+            json_builder_append_json_string(&builder, ref->symbol_name) != 0)
+          goto oom;
+      }
       if (json_builder_append(&builder, "}") != 0)
         goto oom;
     }
@@ -5476,29 +5481,6 @@ static const char *app_slot_access_kind_name(uint8_t access_kind) {
   }
 }
 
-static int listing_app_slot_generated_symbol_name(int16_t displacement, char *symbol_name, size_t symbol_name_size) {
-  int written;
-  if (symbol_name == NULL || symbol_name_size == 0U) return 0;
-  written = snprintf(symbol_name, symbol_name_size, "app_%04X", (unsigned)(uint16_t)displacement);
-  return written > 0 && (size_t)written < symbol_name_size;
-}
-
-static const char *listing_app_slot_ref_symbol_name(const M68kStatementIR *stmt, const M68kAppSlotRefIR *ref,
-    char *generated_symbol, size_t generated_symbol_size) {
-  const M68kOperandIR *operand;
-  if (stmt != NULL && stmt->kind == M68K_STATEMENT_INSTRUCTION && ref != NULL &&
-      ref->operand_index < stmt->u.instruction.operand_count) {
-    operand = &stmt->u.instruction.operands[ref->operand_index];
-    if (operand->symbol_ref.has_name != 0U && operand->symbol_ref.name[0] != '\0')
-      return operand->symbol_ref.name;
-  }
-  if (ref == NULL || !listing_app_slot_generated_symbol_name(ref->displacement, generated_symbol,
-      generated_symbol_size)) {
-    return NULL;
-  }
-  return generated_symbol;
-}
-
 static int append_listing_app_slot_ref_json(JsonBuilder *builder, const char *symbol_name, int16_t displacement,
     uint8_t base_reg, uint8_t operand_index, const char *access_kind) {
   char base_register[4];
@@ -5515,6 +5497,17 @@ static int append_listing_app_slot_ref_json(JsonBuilder *builder, const char *sy
   return json_builder_append(builder, "}");
 }
 
+static const char *listing_app_slot_ref_symbol_from_row(const M68kStatementIR *stmt, const M68kAppSlotRefIR *ref) {
+  const M68kOperandIR *operand;
+  if (stmt != NULL && stmt->kind == M68K_STATEMENT_INSTRUCTION && ref != NULL &&
+      ref->operand_index < stmt->u.instruction.operand_count) {
+    operand = &stmt->u.instruction.operands[ref->operand_index];
+    if (operand->symbol_ref.has_name != 0U && operand->symbol_ref.name[0] != '\0')
+      return operand->symbol_ref.name;
+  }
+  return ref != NULL ? ref->symbol_name : NULL;
+}
+
 static int append_listing_app_slot_refs_json(JsonBuilder *builder, const M68kStatementIR *stmt,
     const M68kSectionAnalysisIR *section_analysis) {
   int emitted = 0;
@@ -5525,11 +5518,10 @@ static int append_listing_app_slot_refs_json(JsonBuilder *builder, const M68kSta
     size_t ref_index;
     for (ref_index = 0U; ref_index < section_analysis->app_slot_ref_count; ++ref_index) {
       const M68kAppSlotRefIR *ref = &section_analysis->app_slot_refs[ref_index];
-      char generated_symbol[64];
       const char *symbol_name;
       const char *access_kind;
       if (ref->offset != stmt->offset) continue;
-      symbol_name = listing_app_slot_ref_symbol_name(stmt, ref, generated_symbol, sizeof(generated_symbol));
+      symbol_name = listing_app_slot_ref_symbol_from_row(stmt, ref);
       access_kind = app_slot_access_kind_name(ref->access_kind);
       if (symbol_name == NULL || access_kind == NULL) continue;
       if (emitted && json_builder_append(builder, ",") != 0) return -1;
@@ -6237,6 +6229,21 @@ static int listing_app_slot_analysis_append_ref(ListingAppSlotAnalysisBuilder *a
   return 0;
 }
 
+static const char *listing_app_slot_ref_symbol_from_analysis(const M68kSourceAnalysisIR *source_analysis,
+    const M68kAppSlotRefIR *ref) {
+  size_t index;
+  if (source_analysis == NULL || ref == NULL) return NULL;
+  for (index = 0U; index < source_analysis->base_layout_field_count; ++index) {
+    const M68kBaseLayoutFieldIR *field = &source_analysis->base_layout_fields[index];
+    if (field->layout_kind == M68K_BASE_LAYOUT_KIND_APP &&
+        field->offset == (uint32_t)(uint16_t)ref->displacement &&
+        field->symbol != NULL && field->symbol[0] != '\0') {
+      return field->symbol;
+    }
+  }
+  return ref->symbol_name;
+}
+
 static ListingAppSlotTypedRegion *listing_app_slot_analysis_region_for(ListingAppSlotAnalysisBuilder *analysis,
     int16_t offset, int16_t end, uint16_t struct_id, const char *symbol, int16_t base_displacement) {
   ListingAppSlotTypedRegion *grown;
@@ -6603,11 +6610,12 @@ static int listing_app_slot_analysis_observe_row(ListingAppSlotAnalysisBuilder *
     return -1;
   for (ref_index = 0U; ref_index < section->app_slot_ref_count; ++ref_index) {
     const M68kAppSlotRefIR *ref = &section->app_slot_refs[ref_index];
-    char generated_symbol[64];
     const char *symbol_name;
     ListingAppSlotRefRecord record;
     if (ref->offset != stmt->offset) continue;
-    symbol_name = listing_app_slot_ref_symbol_name(stmt, ref, generated_symbol, sizeof(generated_symbol));
+    symbol_name = listing_app_slot_ref_symbol_from_analysis(source_analysis, ref);
+    if (symbol_name == NULL || symbol_name[0] == '\0')
+      symbol_name = listing_app_slot_ref_symbol_from_row(stmt, ref);
     if (symbol_name == NULL || app_slot_access_kind_name(ref->access_kind) == NULL) continue;
     memset(&record, 0, sizeof(record));
     listing_copy_text(record.symbol, sizeof(record.symbol), symbol_name);

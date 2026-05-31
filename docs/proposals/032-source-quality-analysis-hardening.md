@@ -4531,3 +4531,19 @@ ranges, so reports can distinguish a C-owned generated name from a raw numeric
 absolute address. The existing rendered source is unchanged, but the ownership
 boundary is now correct: render presentation consumes the generated symbol
 instead of inventing it.
+
+### App Slot Ref Symbol Ownership
+
+Moved generated app-slot reference names onto the C app-slot ref fact:
+
+```text
+instruction operand
+  base=a5 displacement=$0120 access=memory_read
+  -> app_slot_ref(symbol_name=app_0120)
+```
+
+`M68kAppSlotRefIR` now carries `symbol_name`, and source-analysis append copies
+that string into the analysis arena. JSON exports the field directly from the
+fact. Listing/report rows may still display the exact emitted operand symbol or
+a known base-layout field symbol when available, but they no longer fabricate
+`app_%04X` as a report-side fallback.

@@ -6277,6 +6277,14 @@ const char *render_lookup_device_name_for_call(const M68kRenderLookup *lookup, s
   return NULL;
 }
 
+static int format_generated_app_slot_ref_symbol_name(int16_t displacement, char *symbol_name,
+    size_t symbol_name_size) {
+  int written;
+  if (symbol_name == NULL || symbol_name_size == 0U) return 0;
+  written = snprintf(symbol_name, symbol_name_size, "app_%04X", (unsigned)(uint16_t)displacement);
+  return written > 0 && (size_t)written < symbol_name_size;
+}
+
 static int render_lookup_add_app_access_ref(M68kRenderLookup *lookup, size_t section_index, uint32_t offset,
     uint8_t base_reg, int16_t displacement, uint8_t operand_index, uint8_t access_kind,
     uint8_t observed_access_size, int add_renderable_slot) {
@@ -6314,6 +6322,12 @@ static int render_lookup_add_app_access_ref(M68kRenderLookup *lookup, size_t sec
   lookup->app_slot_refs[lookup->app_slot_ref_count].ref.base_reg = base_reg;
   lookup->app_slot_refs[lookup->app_slot_ref_count].ref.operand_index = operand_index;
   lookup->app_slot_refs[lookup->app_slot_ref_count].ref.access_kind = access_kind;
+  if (format_generated_app_slot_ref_symbol_name(displacement,
+      lookup->app_slot_refs[lookup->app_slot_ref_count].symbol_name,
+      sizeof(lookup->app_slot_refs[lookup->app_slot_ref_count].symbol_name))) {
+    lookup->app_slot_refs[lookup->app_slot_ref_count].ref.symbol_name =
+      lookup->app_slot_refs[lookup->app_slot_ref_count].symbol_name;
+  }
   ++lookup->app_slot_ref_count;
   return 0;
 }

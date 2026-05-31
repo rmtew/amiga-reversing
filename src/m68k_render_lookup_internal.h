@@ -217,6 +217,7 @@ typedef struct M68kRenderTypedSlotEffect {
 typedef struct M68kRenderAppSlotRef {
   size_t section_index;
   M68kAppSlotRefIR ref;
+  char symbol_name[64];
 } M68kRenderAppSlotRef;
 
 typedef struct M68kRenderDeviceInstance {
