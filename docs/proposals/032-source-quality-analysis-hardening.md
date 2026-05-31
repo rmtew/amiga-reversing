@@ -3228,9 +3228,9 @@ m68k_facts_v2_collect_source_analysis_profile()
 ```
 
 This did not finish platform-call ownership by itself. Later slices moved
-trap-call and Amiga LVO/wrapper facts onto collect-only analysis as well. The
-remaining platform-call cleanup is to make this a named pre-render platform-call
-analysis pass instead of a set of migration hooks inside preview build.
+trap-call and Amiga LVO/wrapper facts onto collect-only analysis as well, then
+the platform-call analysis pass extraction made those producers a named
+pre-render section pass instead of inline render-loop hooks.
 
 Verified:
 
@@ -3256,10 +3256,10 @@ accepted instruction candidate
 The regression covers collect-only analysis for Atari `m_shrink`; rendering
 source is no longer required for that platform-call fact to exist.
 
-This was still a migration step when landed. A later slice moved the Amiga
-LVO/wrapper path onto collect-only analysis with a shared resolver. The
-remaining cleanup is structural: extract the pre-render platform-call analysis
-pass so preview build no longer coordinates those producers inline.
+This was still a migration step when landed. Later slices moved the Amiga
+LVO/wrapper path onto collect-only analysis with a shared resolver, then
+extracted the pre-render platform-call analysis pass so durable platform-call
+facts are no longer appended from the render row walk.
 
 Verified:
 
@@ -3428,6 +3428,36 @@ cannot mutate durable analysis facts while rendering. The regression uses a
 generated Atari `Crawcin` metadata row because that call has known caller stack
 cleanup; calls with unknown cleanup, such as `Mshrink`, correctly do not produce
 a cleanup fact.
+
+Verified:
+
+```text
+cmd /c src\build.bat
+src\build\m68k_c_unit_tests.exe
+uv run python -m pytest tests\test_target_usage_manifest.py -q
+uv run platform-rendered-source-roundtrip --no-write-report --json
+```
+
+### Platform Call Analysis Pass Extraction
+
+Extracted the remaining inline platform-call fact hooks from the mixed render
+loop into a named pre-render section pass:
+
+```text
+accepted section bytes
+  -> record_section_platform_call_analysis()
+  -> direct trap call facts
+  -> stack-cleanup facts
+  -> Mac opcode call and stack-argument facts
+  -> Amiga LVO/direct-wrapper/local-helper facts
+```
+
+The render loop still resolves platform calls to format source text, but it no
+longer appends durable recovered platform-call facts while emitting rows. The
+analysis pass owns its own platform state and shares the same post-instruction
+state update helper used by rendering, including known library-name loads. This
+keeps rendered-source presentation and collect-only source analysis aligned
+without preserving a render-time compatibility path.
 
 Verified:
 
