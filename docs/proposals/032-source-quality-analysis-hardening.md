@@ -3087,6 +3087,59 @@ uv run python -m pytest tests\test_target_usage_manifest.py -q
 uv run platform-rendered-source-roundtrip --no-write-report --json
 ```
 
+### CFG Source-Analysis Producer Split And Weak Code Prune
+
+Moved CFG block/edge construction for Source Analysis IR out of
+`m68k_render_ir.c` and into `m68k_analysis_render_lookup.c`:
+
+```text
+accepted section bytes
+  -> m68k_analysis_render_lookup_append_cfg_for_section()
+  -> M68kCfgBlockIR / M68kCfgEdgeIR
+  -> render preview consumes the generated section-analysis facts
+```
+
+The render preview still calls the producer during the migration window, but
+the durable CFG source-analysis construction is no longer implemented in the
+source row renderer. Remaining render-side CFG helpers are limited to current
+orphan-code presentation/analysis seams and should be removed when orphan-code
+signal production moves fully before render.
+
+Removed relocation-backed function-pointer table promotion as executable proof:
+
+```text
+relocated pointer-like data table
+  -> labels/data references may remain
+  -> target bytes do not become accepted code
+
+accepted dispatch/control use
+  -> still promotes code through the normal traced control-flow/table paths
+```
+
+Added an accepted-code reachability prune after platform/runtime seeding:
+
+```text
+executable seed origins
+  -> walk accepted direct targets and normal fallthrough
+  -> keep reachable accepted starts
+  -> demote accepted starts that are only disconnected shape/data artifacts
+```
+
+This directly addresses the Starglider and Midwinter II source-quality failures
+where disconnected accepted islands followed rejected candidates. The rendered
+source now preserves those bytes as data instead of treating them as credible
+code, while all rendered-source round-trip checks remain exact or content-exact
+according to their existing container policy.
+
+Verified:
+
+```text
+cmd /c src\build.bat
+src\build\m68k_c_unit_tests.exe
+uv run platform-rendered-source-roundtrip --no-write-report --json
+uv run platform-rendered-source-roundtrip --update-rendered-source --json
+```
+
 ### Pre-Render Source Blocker Diagnostics
 
 Moved pre-render-safe source-analysis facts ahead of render preview:

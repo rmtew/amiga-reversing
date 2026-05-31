@@ -2,12 +2,82 @@
   "schema_version": 1,
   "summary": {
     "failures": 0,
-    "rendered_source_content_exact_only": 10,
-    "rendered_source_full_file_exact": 27,
-    "targets": 38,
+    "rendered_source_content_exact_only": 15,
+    "rendered_source_full_file_exact": 39,
+    "targets": 55,
     "unsupported": 1
   },
   "targets": [
+    {
+      "diff_range_count": 0,
+      "failure_kinds": [],
+      "message": null,
+      "rendered_source_content_exact": true,
+      "rendered_source_full_file_exact": true,
+      "status": "exact",
+      "target": "amiga_disk_3d-construction-kit-ii-r2.01-1992-domark-disk-1-of-2-h-ministry-construction-kit__amiga_hunk_3d2.exe_acc6d9ac",
+      "tool_error": null
+    },
+    {
+      "diff_range_count": 0,
+      "failure_kinds": [],
+      "message": null,
+      "rendered_source_content_exact": true,
+      "rendered_source_full_file_exact": true,
+      "status": "exact",
+      "target": "amiga_disk_3d-construction-kit-ii-r2.01-1992-domark-disk-1-of-2-h-ministry-construction-kit__amiga_hunk_3dedit_b272a532",
+      "tool_error": null
+    },
+    {
+      "diff_range_count": 0,
+      "failure_kinds": [],
+      "message": null,
+      "rendered_source_content_exact": true,
+      "rendered_source_full_file_exact": true,
+      "status": "exact",
+      "target": "amiga_disk_3d-construction-kit-ii-r2.01-1992-domark-disk-1-of-2-h-ministry-construction-kit__amiga_raw_bootblock",
+      "tool_error": null
+    },
+    {
+      "diff_range_count": 0,
+      "failure_kinds": [],
+      "message": null,
+      "rendered_source_content_exact": true,
+      "rendered_source_full_file_exact": true,
+      "status": "exact",
+      "target": "amiga_disk_3d-construction-kit-ii-r2.01-1992-domark-disk-2-of-2-construction-kit__amiga_raw_bootblock",
+      "tool_error": null
+    },
+    {
+      "diff_range_count": 0,
+      "failure_kinds": [],
+      "message": null,
+      "rendered_source_content_exact": true,
+      "rendered_source_full_file_exact": true,
+      "status": "exact",
+      "target": "amiga_disk_adventures-of-robin-hood-the-1991-millennium-m4-cr-sr__amiga_raw_bootblock",
+      "tool_error": null
+    },
+    {
+      "diff_range_count": 0,
+      "failure_kinds": [],
+      "message": null,
+      "rendered_source_content_exact": true,
+      "rendered_source_full_file_exact": true,
+      "status": "exact",
+      "target": "amiga_disk_adventures-of-robin-hood-the-1991-millennium-m4-cr-sr__amiga_raw_bootloader_stage_1",
+      "tool_error": null
+    },
+    {
+      "diff_range_count": 0,
+      "failure_kinds": [],
+      "message": null,
+      "rendered_source_content_exact": true,
+      "rendered_source_full_file_exact": true,
+      "status": "exact",
+      "target": "amiga_disk_adventures-of-robin-hood-the-1991-millennium-m4-cr-sr__amiga_raw_bootloader_stage_2",
+      "tool_error": null
+    },
     {
       "diff_range_count": 0,
       "failure_kinds": [],
@@ -273,6 +343,115 @@
       "rendered_source_content_exact": true,
       "rendered_source_full_file_exact": false,
       "status": "binary_mismatch",
+      "target": "amiga_disk_midwinter-ii---flames-of-freedom-v1.7.9.1991-1991-09-07-rainbird-disk-1-of-3-cr-qtx__amiga_hunk_benny_aff35f53",
+      "tool_error": null
+    },
+    {
+      "diff_range_count": 0,
+      "failure_kinds": [
+        "container_shape_mismatch",
+        "hunk_relocation_group_mismatch",
+        "hunk_relocation_order_mismatch",
+        "policy_divergence",
+        "size_mismatch",
+        "unsupported_container_shape"
+      ],
+      "message": null,
+      "rendered_source_content_exact": true,
+      "rendered_source_full_file_exact": false,
+      "status": "binary_mismatch",
+      "target": "amiga_disk_midwinter-ii---flames-of-freedom-v1.7.9.1991-1991-09-07-rainbird-disk-1-of-3-cr-qtx__amiga_hunk_binddrivers_eb70ec49",
+      "tool_error": null
+    },
+    {
+      "diff_range_count": 0,
+      "failure_kinds": [
+        "container_shape_mismatch",
+        "hunk_relocation_group_mismatch",
+        "hunk_relocation_order_mismatch",
+        "policy_divergence",
+        "size_mismatch"
+      ],
+      "message": null,
+      "rendered_source_content_exact": true,
+      "rendered_source_full_file_exact": false,
+      "status": "binary_mismatch",
+      "target": "amiga_disk_midwinter-ii---flames-of-freedom-v1.7.9.1991-1991-09-07-rainbird-disk-1-of-3-cr-qtx__amiga_hunk_fastmemfirst_788a0571",
+      "tool_error": null
+    },
+    {
+      "diff_range_count": 0,
+      "failure_kinds": [
+        "container_shape_mismatch",
+        "hunk_relocation_group_mismatch",
+        "hunk_relocation_order_mismatch",
+        "policy_divergence",
+        "size_mismatch"
+      ],
+      "message": null,
+      "rendered_source_content_exact": true,
+      "rendered_source_full_file_exact": false,
+      "status": "binary_mismatch",
+      "target": "amiga_disk_midwinter-ii---flames-of-freedom-v1.7.9.1991-1991-09-07-rainbird-disk-1-of-3-cr-qtx__amiga_hunk_mwii_7cd057b8",
+      "tool_error": null
+    },
+    {
+      "diff_range_count": 0,
+      "failure_kinds": [
+        "container_shape_mismatch",
+        "hunk_relocation_group_mismatch",
+        "hunk_relocation_order_mismatch",
+        "policy_divergence",
+        "size_mismatch",
+        "unsupported_container_shape"
+      ],
+      "message": null,
+      "rendered_source_content_exact": true,
+      "rendered_source_full_file_exact": false,
+      "status": "binary_mismatch",
+      "target": "amiga_disk_midwinter-ii---flames-of-freedom-v1.7.9.1991-1991-09-07-rainbird-disk-1-of-3-cr-qtx__amiga_hunk_setpatch_55392121",
+      "tool_error": null
+    },
+    {
+      "diff_range_count": 0,
+      "failure_kinds": [],
+      "message": null,
+      "rendered_source_content_exact": true,
+      "rendered_source_full_file_exact": true,
+      "status": "exact",
+      "target": "amiga_disk_midwinter-ii---flames-of-freedom-v1.7.9.1991-1991-09-07-rainbird-disk-1-of-3-cr-qtx__amiga_raw_benny_aff35f53_bk_00_000000e8",
+      "tool_error": null
+    },
+    {
+      "diff_range_count": 0,
+      "failure_kinds": [],
+      "message": null,
+      "rendered_source_content_exact": true,
+      "rendered_source_full_file_exact": true,
+      "status": "exact",
+      "target": "amiga_disk_midwinter-ii---flames-of-freedom-v1.7.9.1991-1991-09-07-rainbird-disk-1-of-3-cr-qtx__amiga_raw_bootblock",
+      "tool_error": null
+    },
+    {
+      "diff_range_count": 0,
+      "failure_kinds": [],
+      "message": null,
+      "rendered_source_content_exact": true,
+      "rendered_source_full_file_exact": true,
+      "status": "exact",
+      "target": "amiga_disk_midwinter-ii---flames-of-freedom-v1.7.9.1991-1991-09-07-rainbird-disk-2-of-3-graphics-cr-qtx__amiga_raw_bootloader_stage_1",
+      "tool_error": null
+    },
+    {
+      "diff_range_count": 0,
+      "failure_kinds": [
+        "container_shape_mismatch",
+        "size_mismatch"
+      ],
+      "message": null,
+      "rendered_source_content_exact": true,
+      "rendered_source_full_file_exact": false,
+      "status": "binary_mismatch",
       "target": "amiga_disk_pandora-1988-firebird__amiga_hunk_pandora_3e1ee0f1",
       "tool_error": null
     },
@@ -357,6 +536,26 @@
       "rendered_source_full_file_exact": true,
       "status": "exact",
       "target": "amiga_disk_starglider-1987-rainbird__amiga_raw_bootblock",
+      "tool_error": null
+    },
+    {
+      "diff_range_count": 0,
+      "failure_kinds": [],
+      "message": null,
+      "rendered_source_content_exact": true,
+      "rendered_source_full_file_exact": true,
+      "status": "exact",
+      "target": "amiga_disk_starglider-2-1988-rainbird-cr-ua---wow__amiga_raw_bootblock",
+      "tool_error": null
+    },
+    {
+      "diff_range_count": 0,
+      "failure_kinds": [],
+      "message": null,
+      "rendered_source_content_exact": true,
+      "rendered_source_full_file_exact": true,
+      "status": "exact",
+      "target": "amiga_disk_starglider-2-1988-rainbird-cr-ua---wow__amiga_raw_bootloader_stage_1",
       "tool_error": null
     },
     {

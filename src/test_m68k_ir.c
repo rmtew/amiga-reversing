@@ -3921,7 +3921,7 @@ static int test_facts_v2_records_mid_instruction_required_label(void) {
   M68K_C_ASSERT(added.ok);
   m68k_analysis_policy_init_default(&policy);
   M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_profile(&object, &policy, &profile, m68k_diag_sink(NULL)));
-  M68K_C_ASSERT_U32(2U, profile.accepted_instructions);
+  M68K_C_ASSERT_U32(1U, profile.accepted_instructions);
   M68K_C_ASSERT_U32(0U, profile.unresolved_labels);
   M68K_C_ASSERT_U32(1U, profile.interior_conflicts);
   M68K_C_ASSERT_U32(1U, profile.interior_conflicts_resolved_by_demote);
@@ -4069,7 +4069,7 @@ static int test_facts_v2_relocation_uses_payload_target_before_addend(void) {
   M68K_C_ASSERT(added.ok);
   m68k_analysis_policy_init_default(&policy);
   M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_profile(&object, &policy, &profile, m68k_diag_sink(NULL)));
-  M68K_C_ASSERT_U32(2U, profile.accepted_instructions);
+  M68K_C_ASSERT_U32(1U, profile.accepted_instructions);
   M68K_C_ASSERT_U32(0U, profile.unresolved_labels);
   M68K_C_ASSERT_U32(1U, profile.interior_conflicts);
   M68K_C_ASSERT_U32(1U, profile.interior_conflicts_resolved_by_demote);
@@ -16566,7 +16566,7 @@ static int test_facts_v2_relocation_backed_data_longs_auto_classify_pointer_tabl
   return 0;
 }
 
-static int test_facts_v2_relocation_pointer_table_promotes_callback_targets(void) {
+static int test_facts_v2_relocation_pointer_table_does_not_promote_callback_targets_without_control_use(void) {
   M68kObject object;
   M68kSection section;
   M68kObjectAddResult added;
@@ -16607,8 +16607,10 @@ static int test_facts_v2_relocation_pointer_table_promotes_callback_targets(void
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "\tdc.l loc_0_0000000A\t; pointer_table\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tdc.l loc_0_0000000C\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "loc_0_0000000A:\n\trts\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "loc_0_0000000C:\n\trts\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "loc_0_0000000A:\n\trts\n") == NULL);
+  M68K_C_ASSERT(strstr(source, "loc_0_0000000C:\n\trts\n") == NULL);
+  M68K_C_ASSERT(strstr(source, "loc_0_0000000A:\n\tdc.b $4E,$75\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "loc_0_0000000C:\n\tdc.b $4E,$75\n") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
   m68k_facts_v2_free_text(source);
@@ -24249,8 +24251,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_render_asm_source_uses_policy_label_for_data_relocation},
     {"facts_v2_relocation_backed_data_longs_auto_classify_pointer_table",
       test_facts_v2_relocation_backed_data_longs_auto_classify_pointer_table},
-    {"facts_v2_relocation_pointer_table_promotes_callback_targets",
-      test_facts_v2_relocation_pointer_table_promotes_callback_targets},
+    {"facts_v2_relocation_pointer_table_does_not_promote_callback_targets_without_control_use",
+      test_facts_v2_relocation_pointer_table_does_not_promote_callback_targets_without_control_use},
     {"facts_v2_render_asm_source_uses_object_symbol_label",
       test_facts_v2_render_asm_source_uses_object_symbol_label},
     {"facts_v2_render_asm_source_infers_lvo_from_object_base_symbol",

@@ -858,6 +858,9 @@ int m68k_analysis_render_lookup_run_platform_passes(M68kRenderLookup *lookup, co
   uint8_t **accepted_start, uint8_t **accepted_bytes, M68kRenderIRPreview *preview);
 int m68k_analysis_render_lookup_append_auto_policy(M68kSourceAnalysisIR *source_analysis,
   M68kRenderLookup *lookup);
+int m68k_analysis_render_lookup_append_cfg_for_section(const M68kRenderLookup *lookup,
+  const M68kDecodeSectionIR *section, const uint8_t *accepted_start, const uint8_t *accepted_bytes,
+  Arena *scratch_arena, M68kSectionAnalysisIR *section_analysis);
 int m68k_analysis_render_lookup_append_section(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
   M68kSectionAnalysisIR *section_analysis);
 int instruction_operand_writes_register_from_metadata(const M68kInstructionIR *instruction,

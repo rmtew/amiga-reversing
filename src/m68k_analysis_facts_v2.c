@@ -7473,107 +7473,6 @@ static int seed_relocation_backed_jump_template_tables(M68kDecodeIR *decode, M68
   return 0;
 }
 
-static int relocation_ref_is_code_pointer_table_entry(M68kDecodeIR *decode, M68kFactIR *facts,
-    const M68kFactsV2RelocationLookup *relocation_lookup, uint8_t **accepted_start, uint8_t **accepted_bytes,
-    uint8_t max_cpu, size_t section_index, uint32_t offset, const M68kFact **out_relocation) {
-  const M68kFact *relocation;
-  const M68kDecodeSectionIR *target_section;
-  const M68kDecodeCandidate *target_candidate = NULL;
-  if (out_relocation != NULL) *out_relocation = NULL;
-  if (decode == NULL || facts == NULL || relocation_lookup == NULL || accepted_start == NULL ||
-      accepted_bytes == NULL || section_index >= decode->section_count || offset > UINT32_MAX - 4U ||
-      accepted_bytes[section_index] == NULL ||
-      accepted_range_has_code_byte_local(accepted_bytes[section_index], decode->sections[section_index].size,
-        offset, 4U)) {
-    return 0;
-  }
-  relocation = relocation_lookup_ref_at(relocation_lookup, facts, section_index, offset);
-  if (relocation == NULL || relocation->kind != M68K_FACT_RELOCATION_REF || relocation->size != 4U ||
-      relocation->target_section_index >= decode->section_count) {
-    return 0;
-  }
-  target_section = &decode->sections[relocation->target_section_index];
-  if (target_section->kind != M68K_SECTION_CODE || relocation->target_offset >= target_section->size ||
-      (relocation->target_offset & 1U) != 0U || accepted_start[relocation->target_section_index] == NULL ||
-      accepted_bytes[relocation->target_section_index] == NULL ||
-      accepted_offset_is_interior(target_section, accepted_start[relocation->target_section_index],
-        accepted_bytes[relocation->target_section_index], relocation->target_offset)) {
-    return 0;
-  }
-  if (m68k_decode_ir_ensure_candidate_at(decode, relocation->target_section_index, relocation->target_offset,
-      max_cpu, &target_candidate, m68k_diag_sink(NULL)) != 0) {
-    return -1;
-  }
-  if (target_candidate == NULL) return 0;
-  if (out_relocation != NULL) *out_relocation = relocation;
-  return 1;
-}
-
-static int seed_relocation_backed_function_pointer_tables(M68kDecodeIR *decode, M68kFactIR *facts,
-    const M68kFactsV2RelocationLookup *relocation_lookup, M68kFactsV2WorkQueue *queue,
-    uint8_t **accepted_start, uint8_t **accepted_bytes, M68kFactsV2Profile *profile, uint8_t max_cpu,
-    uint32_t *out_promoted_count) {
-  size_t section_index;
-  uint32_t promoted_count = 0U;
-  if (out_promoted_count != NULL) *out_promoted_count = 0U;
-  if (decode == NULL || facts == NULL || relocation_lookup == NULL || queue == NULL ||
-      accepted_start == NULL || accepted_bytes == NULL || profile == NULL) {
-    return -1;
-  }
-  for (section_index = 0U; section_index < decode->section_count; ++section_index) {
-    const M68kDecodeSectionIR *section = &decode->sections[section_index];
-    uint32_t offset = 0U;
-    while (offset + 8U <= section->size) {
-      const M68kFact *entries[64];
-      uint32_t entry_count = 0U;
-      uint32_t cursor = offset;
-      while (entry_count < (uint32_t)(sizeof(entries) / sizeof(entries[0])) && cursor + 4U <= section->size) {
-        const M68kFact *relocation = NULL;
-        int valid = relocation_ref_is_code_pointer_table_entry(decode, facts, relocation_lookup, accepted_start,
-          accepted_bytes, max_cpu, section_index, cursor, &relocation);
-        if (valid < 0) return -1;
-        if (valid == 0 || relocation == NULL) break;
-        entries[entry_count++] = relocation;
-        cursor += 4U;
-      }
-      if (entry_count >= 2U) {
-        uint32_t entry_index;
-        for (entry_index = 0U; entry_index < entry_count; ++entry_index) {
-          const M68kFact *relocation = entries[entry_index];
-          uint32_t prior_index;
-          uint8_t target_already_seen = 0U;
-          if (append_cross_section_xref_fact(facts, section_index, relocation->offset,
-              relocation->target_section_index, relocation->target_offset,
-              M68K_FACT_CONFIDENCE_TOOL_INFERRED) != 0) {
-            return -1;
-          }
-          if (accepted_start[relocation->target_section_index][relocation->target_offset]) continue;
-          for (prior_index = 0U; prior_index < entry_index; ++prior_index) {
-            const M68kFact *prior = entries[prior_index];
-            if (prior->target_section_index == relocation->target_section_index &&
-                prior->target_offset == relocation->target_offset) {
-              target_already_seen = 1U;
-              break;
-            }
-          }
-          if (target_already_seen) continue;
-          if (enqueue_code_start(facts, queue, profile, relocation->target_section_index,
-              relocation->target_offset, M68K_FACT_CONFIDENCE_TOOL_INFERRED,
-              M68K_FACT_CODE_START_REASON_CONTROL_TARGET, section_index, relocation->offset) != 0) {
-            return -1;
-          }
-          ++promoted_count;
-        }
-        offset = cursor;
-      } else {
-        offset += 2U;
-      }
-    }
-  }
-  if (out_promoted_count != NULL) *out_promoted_count = promoted_count;
-  return 0;
-}
-
 static int append_relocation_anchor_fact(M68kFactIR *facts, const M68kFixup *fixup,
     const M68kFactsV2RelocationFailure *anchor) {
   M68kFact fact;
@@ -7635,6 +7534,152 @@ static void clear_accepted_candidate(uint8_t *accepted_start, uint8_t *accepted_
   for (byte_index = 0U; byte_index < candidate->byte_count; ++byte_index)
     accepted_bytes[candidate->offset + byte_index] = 0U;
   if (accepted_count != NULL && *accepted_count != 0U) --*accepted_count;
+}
+
+typedef struct M68kAcceptedReachabilityNode {
+  size_t section_index;
+  uint32_t offset;
+} M68kAcceptedReachabilityNode;
+
+typedef struct M68kAcceptedReachabilityQueue {
+  M68kAcceptedReachabilityNode *items;
+  size_t count;
+  size_t capacity;
+  size_t cursor;
+} M68kAcceptedReachabilityQueue;
+
+static int code_start_reason_is_executable_seed(uint32_t reason) {
+  switch (reason) {
+    case M68K_FACT_CODE_START_REASON_SECTION_ENTRY:
+    case M68K_FACT_CODE_START_REASON_POLICY_ENTRY_OFFSET:
+    case M68K_FACT_CODE_START_REASON_POLICY_ENTRY_POINT:
+    case M68K_FACT_CODE_START_REASON_CONTROL_TARGET:
+    case M68K_FACT_CODE_START_REASON_INLINE_RESUME:
+    case M68K_FACT_CODE_START_REASON_RUNTIME_VIEW_ENTRY:
+    case M68K_FACT_CODE_START_REASON_LINKAGE_API_ENTRY:
+    case M68K_FACT_CODE_START_REASON_PLATFORM_LOADSEG_ENTRY:
+    case M68K_FACT_CODE_START_REASON_STACK_CONTINUATION:
+    case M68K_FACT_CODE_START_REASON_BOUNDARY_API_ENTRY:
+      return 1;
+    default:
+      return 0;
+  }
+}
+
+static int accepted_reachability_enqueue(Arena *arena, M68kAcceptedReachabilityQueue *queue,
+    uint8_t **reachable_start, uint8_t **accepted_start, const M68kDecodeIR *decode,
+    size_t section_index, uint32_t offset) {
+  if (arena == NULL || queue == NULL || reachable_start == NULL || accepted_start == NULL || decode == NULL ||
+      section_index >= decode->section_count || offset >= decode->sections[section_index].size ||
+      accepted_start[section_index] == NULL || reachable_start[section_index] == NULL ||
+      accepted_start[section_index][offset] == 0U || reachable_start[section_index][offset] != 0U) {
+    return 0;
+  }
+  if (queue->count == queue->capacity) {
+    size_t next_capacity = queue->capacity != 0U ? queue->capacity * 2U : 64U;
+    size_t old_size = queue->capacity * sizeof(*queue->items);
+    size_t new_size = next_capacity * sizeof(*queue->items);
+    M68kAcceptedReachabilityNode *grown =
+      (M68kAcceptedReachabilityNode *)arena_realloc_copy(arena, queue->items, old_size, new_size);
+    if (grown == NULL) return -1;
+    queue->items = grown;
+    queue->capacity = next_capacity;
+  }
+  reachable_start[section_index][offset] = 1U;
+  queue->items[queue->count].section_index = section_index;
+  queue->items[queue->count].offset = offset;
+  ++queue->count;
+  return 0;
+}
+
+static int prune_unreachable_accepted_code(M68kDecodeIR *decode, const M68kFactIR *facts,
+    uint8_t **accepted_start, uint8_t **accepted_bytes, uint32_t *accepted_count, Arena *arena, uint8_t max_cpu) {
+  ArenaMark mark;
+  uint8_t **reachable_start;
+  M68kAcceptedReachabilityQueue queue;
+  size_t section_index;
+  size_t fact_index;
+  if (decode == NULL || facts == NULL || accepted_start == NULL || accepted_bytes == NULL || arena == NULL)
+    return -1;
+  mark = arena_mark(arena);
+  memset(&queue, 0, sizeof(queue));
+  reachable_start = (uint8_t **)arena_calloc(arena, decode->section_count != 0U ? decode->section_count : 1U,
+    sizeof(*reachable_start));
+  if (reachable_start == NULL) goto fail;
+  for (section_index = 0U; section_index < decode->section_count; ++section_index) {
+    uint32_t section_size = decode->sections[section_index].size;
+    reachable_start[section_index] = (uint8_t *)arena_calloc(arena, section_size != 0U ? section_size : 1U, 1U);
+    if (reachable_start[section_index] == NULL) goto fail;
+  }
+  for (fact_index = 0U; fact_index < facts->fact_count; ++fact_index) {
+    const M68kFact *fact = &facts->facts[fact_index];
+    if ((fact->kind != M68K_FACT_CODE_ACCEPTED && fact->kind != M68K_FACT_CODE_START) ||
+        !code_start_reason_is_executable_seed(fact->reason)) {
+      continue;
+    }
+    if (accepted_reachability_enqueue(arena, &queue, reachable_start, accepted_start, decode,
+        fact->section_index, fact->offset) != 0) {
+      goto fail;
+    }
+  }
+  while (queue.cursor < queue.count) {
+    M68kAcceptedReachabilityNode node = queue.items[queue.cursor++];
+    const M68kDecodeSectionIR *section;
+    const M68kDecodeCandidate *candidate = NULL;
+    size_t target_index;
+    if (node.section_index >= decode->section_count) continue;
+    section = &decode->sections[node.section_index];
+    if (node.offset >= section->size || accepted_start[node.section_index][node.offset] == 0U) continue;
+    if (m68k_decode_ir_ensure_candidate_at(decode, node.section_index, node.offset, max_cpu, &candidate,
+        m68k_diag_sink(NULL)) != 0) {
+      goto fail;
+    }
+    if (candidate == NULL) continue;
+    for (target_index = 0U; target_index < candidate->target_count; ++target_index) {
+      const M68kDecodeTarget *target = &candidate->targets[target_index];
+      if (!target->has_section || target->kind == M68K_DECODE_TARGET_DATA) continue;
+      if (accepted_reachability_enqueue(arena, &queue, reachable_start, accepted_start, decode,
+          target->section_index, target->offset) != 0) {
+        goto fail;
+      }
+    }
+    if (candidate_has_normal_fallthrough(candidate) &&
+        candidate->byte_count <= UINT32_MAX - candidate->offset) {
+      uint32_t fallthrough = candidate->offset + candidate->byte_count;
+      if (accepted_reachability_enqueue(arena, &queue, reachable_start, accepted_start, decode,
+          node.section_index, fallthrough) != 0) {
+        goto fail;
+      }
+    }
+  }
+  for (section_index = 0U; section_index < decode->section_count; ++section_index) {
+    const M68kDecodeSectionIR *section = &decode->sections[section_index];
+    uint32_t offset;
+    if (accepted_start[section_index] == NULL || accepted_bytes[section_index] == NULL) continue;
+    for (offset = 0U; offset < section->size; ++offset) {
+      const M68kDecodeCandidate *candidate = NULL;
+      if (accepted_start[section_index][offset] == 0U || reachable_start[section_index][offset] != 0U) continue;
+      if (m68k_decode_ir_ensure_candidate_at(decode, section_index, offset, max_cpu, &candidate,
+          m68k_diag_sink(NULL)) != 0) {
+        goto fail;
+      }
+      if (candidate != NULL) {
+        clear_accepted_candidate(accepted_start[section_index], accepted_bytes[section_index], candidate,
+          accepted_count);
+      } else {
+        accepted_start[section_index][offset] = 0U;
+        accepted_bytes[section_index][offset] = 0U;
+        if (offset + 1U < section->size) accepted_bytes[section_index][offset + 1U] = 0U;
+        if (accepted_count != NULL && *accepted_count != 0U) --*accepted_count;
+      }
+    }
+  }
+  arena_rewind(arena, mark);
+  return 0;
+
+fail:
+  arena_rewind(arena, mark);
+  return -1;
 }
 
 static int fallthrough_candidate_should_replace_overlap(const M68kFactIR *facts,
@@ -9705,18 +9750,6 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   if (run_reachable_fixed_point(object, &decode, &facts, policy, &relocation_lookup, &queue, &runtime_addresses,
       accepted_start, accepted_bytes, &out_profile->accepted_instructions, out_profile, max_cpu,
       diagnostics) != 0) goto fail;
-  {
-    uint32_t promoted_function_pointer_targets = 0U;
-    fail_stage = "relocation-backed function pointer table seeding";
-    if (seed_relocation_backed_function_pointer_tables(&decode, &facts, &relocation_lookup, &queue,
-        accepted_start, accepted_bytes, out_profile, max_cpu, &promoted_function_pointer_targets) != 0) goto fail;
-    if (promoted_function_pointer_targets != 0U) {
-      fail_stage = "function pointer target reachable fixed point";
-      if (run_reachable_fixed_point(object, &decode, &facts, policy, &relocation_lookup, &queue, &runtime_addresses,
-          accepted_start, accepted_bytes, &out_profile->accepted_instructions, out_profile, max_cpu,
-          diagnostics) != 0) goto fail;
-    }
-  }
   end = clock();
   add_elapsed_seconds_local(&out_profile->fixed_point_reachable_seconds, start, end);
   out_profile->decoded_candidates = decode.decoded_candidate_count;
@@ -9901,6 +9934,14 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   out_profile->fixed_point_materialize_labels_seconds =
     out_profile->fixed_point_runtime_address_ref_seconds +
     out_profile->fixed_point_required_label_materialize_seconds;
+  start = clock();
+  fail_stage = "accepted code reachability prune";
+  if (prune_unreachable_accepted_code(&decode, &facts, accepted_start, accepted_bytes,
+      &out_profile->accepted_instructions, workflow.arena, max_cpu) != 0) {
+    goto fail;
+  }
+  end = clock();
+  add_elapsed_seconds_local(&out_profile->fixed_point_rebuild_accepted_seconds, start, end);
   start = clock();
   fail_stage = "data span classification";
   out_profile->data_spans = count_data_spans_and_append_facts(&decode, accepted_bytes, &facts);

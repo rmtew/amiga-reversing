@@ -83,9 +83,6 @@ static uint32_t reachable_decrunch_entry_root_local(const M68kSectionAnalysisIR 
     uint32_t fallback_entry, uint32_t transfer_offset, Arena *arena);
 static int concrete_write_ranges_cover_span_local(const M68kSimConcreteRunTraceResult *result,
     uint32_t start, uint32_t size);
-static int decode_candidate_direct_call_target_local(const M68kDecodeCandidate *candidate,
-    size_t section_index, uint32_t *out_target);
-
 static int text_result_to_alloc(PlatformFileTextResult *result, char **out_text) {
   const char *message;
   if (out_text == NULL) return -1;
@@ -4891,24 +4888,6 @@ static int collect_self_decrunch_events_for_section(const M68kObject *object, co
         }
       }
     }
-  }
-  return 0;
-}
-
-static int decode_candidate_direct_call_target_local(const M68kDecodeCandidate *candidate,
-    size_t section_index, uint32_t *out_target) {
-  size_t target_index;
-  if (candidate == NULL || out_target == NULL) return 0;
-  if (candidate->mnemonic_id != M68K_ASM_MNEMONIC_BSR &&
-      candidate->mnemonic_id != M68K_ASM_MNEMONIC_JSR) {
-    return 0;
-  }
-  for (target_index = 0U; target_index < candidate->target_count; ++target_index) {
-    const M68kDecodeTarget *target = &candidate->targets[target_index];
-    if (target->kind != M68K_DECODE_TARGET_CALL) continue;
-    if (target->has_section && target->section_index != section_index) continue;
-    *out_target = target->offset;
-    return 1;
   }
   return 0;
 }

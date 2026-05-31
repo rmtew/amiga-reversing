@@ -8,6 +8,251 @@ static double elapsed_seconds_local(clock_t start, clock_t end) {
   return (double)(end - start) / (double)CLOCKS_PER_SEC;
 }
 
+static int analysis_accepted_byte_at(const M68kDecodeSectionIR *section, const uint8_t *accepted_bytes,
+    uint32_t offset) {
+  return section != NULL && accepted_bytes != NULL && offset < section->size && accepted_bytes[offset] != 0U;
+}
+
+static const M68kSimFormMetadata *analysis_cfg_candidate_metadata(const M68kDecodeCandidate *candidate,
+    M68kInstructionIR *instruction) {
+  if (candidate == NULL || instruction == NULL) return NULL;
+  if (m68k_decode_candidate_to_instruction(candidate, instruction) != 0) return NULL;
+  return m68k_sim_metadata_for_instruction(instruction);
+}
+
+static int analysis_cfg_candidate_has_control_target(const M68kDecodeCandidate *candidate) {
+  size_t target_index;
+  if (candidate == NULL) return 0;
+  for (target_index = 0U; target_index < candidate->target_count; ++target_index) {
+    const M68kDecodeTarget *target = &candidate->targets[target_index];
+    if (target->kind == M68K_DECODE_TARGET_BRANCH || target->kind == M68K_DECODE_TARGET_CALL ||
+        target->kind == M68K_DECODE_TARGET_JUMP) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+static uint8_t analysis_cfg_edge_kind_for_target(const M68kDecodeCandidate *candidate,
+    const M68kDecodeTarget *target) {
+  M68kInstructionIR instruction;
+  const M68kSimFormMetadata *metadata;
+  if (target != NULL && target->kind == M68K_DECODE_TARGET_CALL) return M68K_CFG_EDGE_CALL;
+  if (target != NULL && target->kind == M68K_DECODE_TARGET_JUMP) return M68K_CFG_EDGE_JUMP;
+  metadata = analysis_cfg_candidate_metadata(candidate, &instruction);
+  if (metadata != NULL && (metadata->flow_kind == M68K_SIM_FLOW_JUMP ||
+      (metadata->flow_kind == M68K_SIM_FLOW_BRANCH && !metadata->flow_conditional))) {
+    return M68K_CFG_EDGE_JUMP;
+  }
+  return M68K_CFG_EDGE_BRANCH;
+}
+
+static int analysis_cfg_append_edge(M68kSectionAnalysisIR *section_analysis, size_t source_block_index,
+    uint32_t source_offset, uint32_t target_offset, uint8_t kind) {
+  M68kCfgEdgeIR edge;
+  memset(&edge, 0, sizeof(edge));
+  edge.source_block_index = source_block_index;
+  edge.target_block_index = SIZE_MAX;
+  edge.source_offset = source_offset;
+  edge.target_offset = target_offset;
+  edge.kind = kind;
+  return m68k_ir_section_analysis_append_edge(section_analysis, &edge);
+}
+
+static size_t analysis_cfg_block_index_for_offset(const M68kSectionAnalysisIR *section_analysis,
+    uint32_t target_offset) {
+  size_t lo = 0U;
+  size_t hi;
+  if (section_analysis == NULL) return SIZE_MAX;
+  hi = section_analysis->block_count;
+  while (lo < hi) {
+    size_t mid = lo + ((hi - lo) / 2U);
+    uint32_t block_offset = section_analysis->blocks[mid].start_offset;
+    if (block_offset == target_offset) return mid;
+    if (block_offset < target_offset) {
+      lo = mid + 1U;
+    } else {
+      hi = mid;
+    }
+  }
+  return SIZE_MAX;
+}
+
+static int analysis_cfg_resolve_edge_targets(M68kSectionAnalysisIR *section_analysis) {
+  size_t edge_index;
+  if (section_analysis == NULL) return -1;
+  for (edge_index = 0U; edge_index < section_analysis->edge_count; ++edge_index) {
+    M68kCfgEdgeIR *edge = &section_analysis->edges[edge_index];
+    edge->target_block_index = SIZE_MAX;
+    if (edge->target_offset == UINT32_MAX) continue;
+    edge->target_block_index = analysis_cfg_block_index_for_offset(section_analysis, edge->target_offset);
+  }
+  return 0;
+}
+
+static int analysis_cfg_lookup_block_start_at(const M68kRenderLookup *lookup, size_t section_index,
+    uint32_t offset) {
+  return lookup != NULL && section_index < lookup->section_count && lookup->block_starts != NULL &&
+    lookup->block_start_extents != NULL && lookup->block_starts[section_index] != NULL &&
+    offset < lookup->block_start_extents[section_index] && lookup->block_starts[section_index][offset] != 0U;
+}
+
+static uint32_t analysis_platform_opcode_size_at(const M68kRenderLookup *lookup,
+    const M68kDecodeSectionIR *section, uint32_t offset) {
+  PlatformFactsV2ResolvedCall call_info;
+  uint16_t opcode;
+  if (lookup == NULL || lookup->object == NULL || section == NULL || section->data == NULL ||
+      offset + 2U > section->size) {
+    return 0U;
+  }
+  opcode = m68k_read_u16be(section->data + offset);
+  return platform_facts_v2_resolve_opcode_call(lookup->object->platform_backend_kind, opcode, &call_info) ? 2U : 0U;
+}
+
+static int analysis_cfg_build_block_start_map(const M68kRenderLookup *lookup, const M68kDecodeSectionIR *section,
+    const uint8_t *accepted_start, const uint8_t *accepted_bytes, uint8_t *block_starts, uint32_t render_extent) {
+  uint32_t offset = 0U;
+  if (section == NULL || accepted_start == NULL || accepted_bytes == NULL || block_starts == NULL) return -1;
+  while (offset < render_extent) {
+    const M68kDecodeCandidate *candidate;
+    uint32_t next_offset;
+    size_t target_index;
+    if (!accepted_start_at(section, accepted_start, offset)) {
+      ++offset;
+      continue;
+    }
+    candidate = find_candidate_at_offset_local(section, offset);
+    if (candidate == NULL || candidate->byte_count == 0U || candidate->byte_count > render_extent - offset) {
+      uint32_t platform_opcode_size = analysis_platform_opcode_size_at(lookup, section, offset);
+      if (platform_opcode_size == 0U || platform_opcode_size > render_extent - offset) return -1;
+      if (offset == 0U || !analysis_accepted_byte_at(section, accepted_bytes, offset - 1U) ||
+          analysis_cfg_lookup_block_start_at(lookup, section->section_index, offset)) {
+        block_starts[offset] = 1U;
+      }
+      offset += platform_opcode_size;
+      continue;
+    }
+    if (offset == 0U || !analysis_accepted_byte_at(section, accepted_bytes, offset - 1U) ||
+        analysis_cfg_lookup_block_start_at(lookup, section->section_index, offset)) {
+      block_starts[offset] = 1U;
+    }
+    next_offset = offset + candidate->byte_count;
+    for (target_index = 0U; target_index < candidate->target_count; ++target_index) {
+      const M68kDecodeTarget *target = &candidate->targets[target_index];
+      if ((target->kind == M68K_DECODE_TARGET_BRANCH || target->kind == M68K_DECODE_TARGET_CALL ||
+          target->kind == M68K_DECODE_TARGET_JUMP) && target->has_section &&
+          target->section_index == section->section_index && target->offset < render_extent &&
+          accepted_start_at(section, accepted_start, target->offset)) {
+        block_starts[target->offset] = 1U;
+      }
+    }
+    if (analysis_cfg_candidate_has_control_target(candidate) && render_cfg_candidate_has_fallthrough(candidate) &&
+        next_offset < render_extent && accepted_start_at(section, accepted_start, next_offset)) {
+      block_starts[next_offset] = 1U;
+    }
+    offset = next_offset;
+  }
+  return 0;
+}
+
+int m68k_analysis_render_lookup_append_cfg_for_section(const M68kRenderLookup *lookup,
+    const M68kDecodeSectionIR *section, const uint8_t *accepted_start, const uint8_t *accepted_bytes,
+    Arena *scratch_arena, M68kSectionAnalysisIR *section_analysis) {
+  ArenaMark scratch_mark;
+  uint32_t render_extent;
+  uint8_t *block_starts = NULL;
+  uint32_t offset = 0U;
+  int result = -1;
+  if (section == NULL || scratch_arena == NULL || section_analysis == NULL) return -1;
+  render_extent = render_section_extent(section);
+  if (render_extent == 0U) return 0;
+  scratch_mark = arena_mark(scratch_arena);
+  block_starts = (uint8_t *)arena_calloc(scratch_arena, render_extent, sizeof(*block_starts));
+  if (block_starts == NULL) return -1;
+  if (analysis_cfg_build_block_start_map(lookup, section, accepted_start, accepted_bytes, block_starts,
+      render_extent) != 0) {
+    goto cleanup;
+  }
+  while (offset < render_extent) {
+    M68kCfgBlockIR block;
+    uint32_t cursor;
+    if (!accepted_start_at(section, accepted_start, offset) || block_starts[offset] == 0U) {
+      ++offset;
+      continue;
+    }
+    memset(&block, 0, sizeof(block));
+    block.start_offset = offset;
+    block.certainty = M68K_CODE_CERTAIN;
+    block.edge_start = section_analysis->edge_count;
+    cursor = offset;
+    while (cursor < render_extent && accepted_start_at(section, accepted_start, cursor)) {
+      const M68kDecodeCandidate *candidate = find_candidate_at_offset_local(section, cursor);
+      uint32_t next_offset;
+      size_t target_index;
+      int has_control_target;
+      int has_fallthrough;
+      if (candidate == NULL || candidate->byte_count == 0U || candidate->byte_count > render_extent - cursor) {
+        uint32_t platform_opcode_size = analysis_platform_opcode_size_at(lookup, section, cursor);
+        if (platform_opcode_size == 0U || platform_opcode_size > render_extent - cursor) goto cleanup;
+        cursor += platform_opcode_size;
+        continue;
+      }
+      next_offset = cursor + candidate->byte_count;
+      has_control_target = analysis_cfg_candidate_has_control_target(candidate);
+      has_fallthrough = render_cfg_candidate_has_fallthrough(candidate);
+      for (target_index = 0U; target_index < candidate->target_count; ++target_index) {
+        const M68kDecodeTarget *target = &candidate->targets[target_index];
+        if ((target->kind == M68K_DECODE_TARGET_BRANCH || target->kind == M68K_DECODE_TARGET_CALL ||
+            target->kind == M68K_DECODE_TARGET_JUMP) && target->has_section &&
+            target->section_index == section->section_index) {
+          if (analysis_cfg_append_edge(section_analysis, section_analysis->block_count, cursor, target->offset,
+              analysis_cfg_edge_kind_for_target(candidate, target)) != 0) {
+            goto cleanup;
+          }
+        }
+      }
+      if (has_control_target) {
+        if (has_fallthrough && next_offset < render_extent && accepted_start_at(section, accepted_start, next_offset) &&
+            analysis_cfg_append_edge(section_analysis, section_analysis->block_count, cursor, next_offset,
+              M68K_CFG_EDGE_FALLTHROUGH) != 0) {
+          goto cleanup;
+        }
+        cursor = next_offset;
+        break;
+      }
+      if (!has_fallthrough) {
+        if (analysis_cfg_append_edge(section_analysis, section_analysis->block_count, cursor, UINT32_MAX,
+            M68K_CFG_EDGE_RETURN) != 0) {
+          goto cleanup;
+        }
+        cursor = next_offset;
+        break;
+      }
+      if (next_offset >= render_extent || !accepted_start_at(section, accepted_start, next_offset) ||
+          block_starts[next_offset] != 0U) {
+        if (next_offset < render_extent && accepted_start_at(section, accepted_start, next_offset) &&
+            analysis_cfg_append_edge(section_analysis, section_analysis->block_count, cursor, next_offset,
+              M68K_CFG_EDGE_FALLTHROUGH) != 0) {
+          goto cleanup;
+        }
+        cursor = next_offset;
+        break;
+      }
+      cursor = next_offset;
+    }
+    block.end_offset = cursor;
+    block.edge_count = section_analysis->edge_count - block.edge_start;
+    if (m68k_ir_section_analysis_append_block(section_analysis, &block) != 0) goto cleanup;
+    offset = cursor > offset ? cursor : offset + 1U;
+  }
+  if (analysis_cfg_resolve_edge_targets(section_analysis) != 0) goto cleanup;
+  result = 0;
+
+cleanup:
+  arena_rewind(scratch_arena, scratch_mark);
+  return result;
+}
+
 static int instruction_has_call_flow_local(const M68kInstructionIR *instruction) {
   const M68kSimFormMetadata *metadata;
   if (instruction == NULL) return 0;
