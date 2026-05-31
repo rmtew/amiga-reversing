@@ -1157,12 +1157,13 @@ move.l d1,d0
 bsr.w  abs_0_000647F2
 ```
 
-The implementation now records this in two layers. First, generic C-owned
+The implementation now records only the proven generic layer: C-owned
 loader/file transfer facts prove the Magicland MD target's exact target-loader
-file names, destination addresses, offsets, and sizes. Second, C analysis binds
-the exact disk-entry bytes to the target-owned long-word acceptance check and
-the following direct processor call. This emits `target_loader_file`
-decompression events with status `needs_simulated_decrunch`.
+file names, destination addresses, offsets, and sizes. That is evidence of
+disk/file loading, not evidence of decompression. It must not emit
+`target_loader_file` decompression events until C analysis can reconcile the
+loaded bytes with a proven processor/decompressor call and replay that call from
+known register and memory state.
 
 This is not a framework codec. The framework does not know `MLDC` as a
 decompressor. The long word is only corroborating evidence because it appears in
@@ -1170,13 +1171,12 @@ target code and matches exact bytes loaded from the source disk. Files that do
 not match that target-owned acceptance check remain ordinary loader/file
 transfers, not compressed-payload events.
 
-The remaining generic proof is:
+The remaining generic proof before materialization is:
 
 ```text
 C loader/file transfer fact
   -> exact source disk/container/file byte range
   -> exact runtime destination buffer
-  -> target-owned acceptance check matched to those source bytes
   -> proven target-owned processor/decompressor call using that buffer
   -> replay from proven register/memory state
   -> observed writes
@@ -1187,9 +1187,8 @@ An earlier implementation attempted to bridge this by recognizing the
 Magicland-specific magic and statically scanning later direct calls. That was
 rejected: it was target-specific framework knowledge, produced false positives,
 and was pathologically slow. The current correct state is to keep the proven
-file-transfer facts, identify compressed payloads only when those facts
-reconcile with target-owned acceptance and call evidence, leave the asset
-payload unresolved, and require C analysis to replay the decompressor before
+file-transfer facts, leave the possible asset payload unresolved, and require C
+analysis to replay the processor/decompressor before it reports decompression or
 materialization.
 
 This keeps Python as orchestration only: C must emit the media-transfer and
@@ -1218,10 +1217,9 @@ TRAP call. Those should still feed the same decompressor/materializer if the
 source span and destination buffer are proven.
 
 The long-term rule is: decompression should consume proven media-transfer
-outputs, not target names or standalone magic-byte recognition. Magic constants
-inside target code are useful as corroborating checks that a resolved source
-candidate matches the loader's own acceptance test; they are not the primary
-discovery authority.
+outputs plus a proven processing call, not target names, standalone magic-byte
+recognition, or a "codec" guess. Magic constants inside target code can be
+evidence during replay setup, but they are not a decompression classifier.
 
 Several existing recovered facts are currently produced in render-lookup code.
 That is legacy coupling: rendering should consume analysis facts, not discover

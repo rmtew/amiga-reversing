@@ -1,0 +1,12 @@
+{
+  "created_at": "2026-05-31T02:53:45.580067+00:00",
+  "origin": {
+    "kind": "disk_child",
+    "parent_disk_id": "rome-ad-92---the-pathway-to-power-1992-millennium-disk-1-of-3-cr-sr-hd",
+    "source_path": "bin/Rome AD 92 - The Pathway to Power (1992)(Millennium)(Disk 1 of 3)[cr SR][HD].adf",
+    "target_role": "bootblock",
+    "target_type": "bootblock"
+  },
+  "schema_version": 2,
+  "updated_at": "2026-05-31T03:27:49.070057+00:00"
+}

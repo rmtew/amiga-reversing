@@ -1,0 +1,30 @@
+{
+  "created_at": "2026-05-31T02:53:20.406214+00:00",
+  "origin": {
+    "child_entry_path": "benny::bk_000000e8",
+    "codec_id": "bk",
+    "codec_name": "BK: ByteKiller",
+    "decompressed_size": 39670,
+    "entrypoint": 262144,
+    "kind": "derived_decompressed_payload",
+    "load_address": 262144,
+    "packed_file_offset": null,
+    "packed_section_offset": 232,
+    "packed_size": 2528,
+    "parent_disk_id": "midwinter-ii---flames-of-freedom-v1.7.9.1991-1991-09-07-rainbird-disk-1-of-3-cr-qtx",
+    "parent_entry_path": "benny",
+    "parent_remains_active": "false",
+    "parent_remains_active_id": 1,
+    "parent_target": "amiga_disk_midwinter-ii---flames-of-freedom-v1.7.9.1991-1991-09-07-rainbird-disk-1-of-3-cr-qtx__amiga_hunk_benny_aff35f53",
+    "payload_role": "primary_program",
+    "payload_role_confidence": "tool_inferred",
+    "payload_role_confidence_id": 1,
+    "payload_role_id": 2,
+    "project_origin_kind_id": 1,
+    "target_role": "decompressed_payload",
+    "target_role_id": 1,
+    "target_type": "raw_binary"
+  },
+  "schema_version": 2,
+  "updated_at": "2026-05-31T02:53:20.536270+00:00"
+}

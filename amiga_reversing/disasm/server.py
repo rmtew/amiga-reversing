@@ -26,6 +26,7 @@ from amiga_reversing.disasm.api import (
     ListingWindowPayload,
 )
 from amiga_reversing.disasm.binary_source import (
+    AssetDataBinarySource,
     resolve_target_binary_source,
     write_source_descriptor,
 )
@@ -167,6 +168,7 @@ class AsyncJobPayload(TypedDict):
 
 class ProjectPayload(TypedDict):
     project: dict[str, object]
+    asset_data: NotRequired[dict[str, object]]
     disk_manifest: NotRequired[dict[str, object]]
     macos: NotRequired[dict[str, object]]
     target_state: NotRequired[dict[str, object]]
@@ -1795,12 +1797,30 @@ def _project_payload(project_name: str) -> ProjectPayload:
             except Exception:
                 payload["target_state"] = {}
     elif project.kind is ProjectKind.BINARY and project.ready:
-        payload["reproduction"] = _current_reproduction_payload(project_name)
+        asset_data = _asset_data_project_payload(project)
+        if asset_data is not None:
+            payload["asset_data"] = asset_data
+        else:
+            payload["reproduction"] = _current_reproduction_payload(project_name)
     elif _is_macos_container_project(project) and project.ready:
         payload["macos"] = build_macos_container_payload(project)
     elif _is_macos_listing_project(project) and project.ready:
         payload["macos"] = build_macos_project_payload(project)
     return payload
+
+
+def _asset_data_project_payload(project: ProjectRecord) -> dict[str, object] | None:
+    binary_source = resolve_target_binary_source(Path(project.target_dir), project_root=PROJECT_ROOT)
+    if not isinstance(binary_source, AssetDataBinarySource):
+        return None
+    data = binary_source.read_bytes()
+    return {
+        "kind": "asset_data",
+        "role": binary_source.role,
+        "load_address": binary_source.load_address,
+        "size": len(data),
+        "content": disk_browser.content_payload_from_bytes(data),
+    }
 
 
 def _project_dict_with_cached_analysis_review(project_name: str, project: ProjectRecord) -> dict[str, object]:

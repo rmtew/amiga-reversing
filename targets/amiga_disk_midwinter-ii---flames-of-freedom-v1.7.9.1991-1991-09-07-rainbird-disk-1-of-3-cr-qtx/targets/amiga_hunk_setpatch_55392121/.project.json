@@ -1,0 +1,13 @@
+{
+  "created_at": "2026-05-31T02:53:20.538094+00:00",
+  "origin": {
+    "entry_path": "setpatch",
+    "kind": "disk_child",
+    "parent_disk_id": "midwinter-ii---flames-of-freedom-v1.7.9.1991-1991-09-07-rainbird-disk-1-of-3-cr-qtx",
+    "source_path": "bin/Midwinter II - Flames of Freedom v1.7.9.1991 (1991-09-07)(Rainbird)(Disk 1 of 3)[cr QTX].adf",
+    "target_role": "disk_entry",
+    "target_type": "program"
+  },
+  "schema_version": 2,
+  "updated_at": "2026-05-31T02:53:20.548142+00:00"
+}

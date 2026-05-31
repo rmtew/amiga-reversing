@@ -8,6 +8,258 @@ We extract compressed payloads as child targets for Damocles for example which h
 
 ## Disassembly failures
 
+### `amiga_disk_damocles-mercenary-ii-1990-novagen-cr-h` / `damocles_53b24620_native_tetragon_02_00000060.s`
+
+There is a good argument that andi immediate values should have default representation as binary not as a number.
+```
+	andi.w #65534,d0
+```
+
+`abs_0_00042C00` is defined but not accessed as a label. Additionally the sequence of blocks are all bad code - this is implicit because the stream is a) the commonly observed mistaken data as code ori instruction in sequence and b) lacks a terminal instruction.
+```
+abs_0_00042C00:
+	ori.b #$8000,d6
+abs_0_00042C04:
+	ori.b #0,d0
+```
+The cause of this seems to be flakey absolute address handling. Here we see a conflict with addresses that fall within the known load range for the binary being mistakenly resolved into an equate, yet a label is still defined at the address within the load memory block but not used.
+```
+abs_0_0004586E:
+	sub.w d6,d5
+	add.w d6,d6
+	movea.l runtime_address_00042C00.l,a3
+```
+
+Given the materialised range of $00001000-$000789C9 the omission of defining and using a label for $00042C6C seems like a basic flaw in our analysis. At this point `runtime_address_*` also seems like a flawed approach except when we are referring outside of the range of current address spaces. This almost seems like we haven't properly done a pass where we check all possible instruction forms for absolute address references. Perhaps for some reason we support movea but not move in some forms.
+```
+abs_0_0004518C:
+	movea.l #abs_0_00064000,a5
+	movea.l #runtime_address_00060000,a6
+	lea.l abs_0_00064000.l,a4
+	move.w $00042C6C.l,d0
+	...
+	move.w $00042C70.l,d2
+```
+
+And this also related to the memory map header which includes lots of lines like:
+```
+;   Absolute memory refs:
+;     absolute[$00079910] refs=1 access=a
+;     absolute[$00079938] refs=1 access=a
+;     absolute[$00079AE4] refs=2 access=a
+```
+The usefulness of these individual accesses to an end user is not useful. The actual memory that is useful is the ranges, as it is likely that all these addresses fall into one or more larger ranges. What the correct approach to deal with these is, needs to be discussed.
+
+In the following case we're adding a value in the range of the occupied address space to an offset which is an obvious missing case as well.
+```
+abs_0_0004586E:
+	sub.w d6,d5
+	add.w d6,d6
+	movea.l runtime_address_00042C00.l,a3
+	movea.l #abs_0_00043080,a0
+	adda.w $0(a0,d6.w),a3
+	neg.w d4
+	add.w d4,d4
+	add.w d4,d4
+	movea.w d4,a1
+	adda.l #$4418C,a1
+	move.w $0(a5,d1.w),d1
+```
+
+`move.l` dest miss in symbol resolution. In this case no defined symbol (which would be correct) for the two dest values, and not even the erroneous `runtime_*` equates which we turn out to consider a bug in our analysis at this point unless there's some real use for it that is not obvious.
+```
+abs_0_000458C8:
+	move.l $0(a0,d0.w),$000459BA.l
+	swap.w d0
+	move.l $0(a0,d0.w),$000459C6.l
+```
+
+Here we are defining symbols but there do not appear to be accessing references, `abs_0_0004632C`, `abs_0_00046330` or `abs_0_00046334`. Maybe we are finding them but not emitting the accesses? A jump table that is still offsets?
+```
+abs_0_0004632C:
+	move.w -$2(a4,d7.w),d7
+abs_0_00046330:
+	move.w d7,d6
+	not.w d6
+abs_0_00046334:
+	and.w d6,(a0)+
+	and.w d6,$1F3E(a0)
+	or.w d7,$3E7E(a0)
+	or.w d7,$5DBE(a0)
+	bra.w abs_0_00046398
+```
+
+Then there is this jump table with pointer at $7C18 which a bug fails to define and use a symbol for. I cannot find write accesses to this address.
+```
+abs_0_000573D4:
+	move.w d0,d7
+	asl.w #1,d7
+	movea.l $7C18.w,a0
+	lea.l $0020(a0),a0
+	moveq.l #15,d0
+	... lots snipped
+abs_0_00057414:
+	move.w d4,d2
+	move.w #$87,d4
+	jmp abs_0_00042D04.l
+	... lots snipped
+abs_0_00042D04:
+	bra.w abs_0_000465BC
+	... lots snipped
+abs_0_000465BC:
+	add.w d0,d0
+	add.w d0,d0
+	jmp abs_0_000465C4(pc,d0.w)
+```
+Interestingly we can see that $7c16 is word accessed and if we had a $7c18 `dc.l` it would be a valid address. `abs_0_00007C12` again is word accessed, and we can see from the included snippet there is a long pointer read from $7c14. Reconciling the core problem with all these missed address analyses indicates we should do a lot better with improving the analysis we do have by identifying the core problems and range of oversights and feeding those in.
+```
+abs_0_00007C12:
+	dc.b $00,$00,$00,$00
+abs_0_00007C16:
+	dc.b $8E,$D4,$00,$00
+abs_0_00007C1A:
+	dc.b $8E,$F6
+	... lots snipped
+abs_0_0005099E:
+	bsr.w abs_0_00051618
+	dbf.w d0,abs_0_0005099E
+	movea.l $7C14.w,a0
+	... lots snipped
+abs_0_000599E0:
+	move.w abs_0_00007C16.w,abs_0_00007C1A.w
+```
+
+Then there seems to be a easy win for generic lookup table handling for this case. Here we can analyse that the bounds are word indexed and wrapped (mod 1024?)
+```
+	andi.w #1023,d5
+	add.w d5,d5
+	lea.l abs_0_0005D8C0.l,a1
+	adda.w $0(a1,d5.w),a1
+```
+But the table is unresolved:
+```
+abs_0_0005D8C0:
+	dc.w $0800	; lookup_table
+	dc.w $0804
+	dc.w $0808
+```
+
+Regarding memory ranges, here we see blocks of out of load address space address ranges.
+```
+abs_0_000502E0:
+	bsr.w abs_0_000502CA
+	move.l #abs_0_00006266,abs_0_00006266.w
+	bsr.w abs_0_000501CA
+	lea.l abs_0_0006D480.l,a0	; bitmap memory plane 2 +$1600 ($0006D480)
+	lea.l absolute_slot_0007D480.l,a1
+abs_0_000502FC:
+	move.l (a0)+,(a1)+
+	cmpa.l #$6FD00,a0
+	bne.b abs_0_000502FC
+	lea.l absolute_slot_0007D500.l,a0
+	lea.l abs_0_00069540.l,a1	; bitmap memory plane 0 +$1540 ($00069540)
+abs_0_00050312:
+	move.w (a0)+,(a1)+
+	move.w (a0)+,$1F3E(a1)
+	move.w (a0)+,$3E7E(a1)
+	move.w (a0)+,$5DBE(a1)
+	cmpa.l #$7FD00,a0
+	bne.b abs_0_00050312
+```
+And in fact we can see analysis has picked up that this is bitplane memory. So we know we know the ranges and the sizes of bitplane memory from somewhere, and should have them mapped as a range and perhaps be using calculated values so that the ideally rendered restored source is not using absolute addresses. This isn't just what we want for rendered addresses, but for all restored absolute addresses. `absolute_slot_*` seems to be another relative offset in some buffer that should be calculated here.
+
+And another pattern that indicates some buffers we are moving back in, which fall in the load address space this time. $3FC + $73AB for instance.
+```
+abs_0_00052634:
+	bsr.w abs_0_0005269A
+	move.w abs_0_0000794E.w,d1
+	move.w abs_0_00007AA4.w,d2
+	move.w abs_0_00007B5C.w,d3
+	lea.l absolute_slot_000003FC.w,a0
+	movea.l abs_0_00007B0E.w,a1
+	lea.l abs_0_0000AFDC.l,a2
+abs_0_00052652:
+	cmp.b $73AB(a0),d3
+	bne.b abs_0_0005268E
+	cmp.b $6FA9(a0),d1
+	bne.b abs_0_0005268E
+	cmp.b $73AA(a0),d2
+```
+And a different instance of this where if we have fixed the general problem with lack of correct address usage detection we have a label for $7C0E, and we know an address space of whatever is in there +$5F40. And if we look at the value it appears to be $74.
+```
+abs_0_00052708:
+	move.w #$88,abs_0_00042C74.l
+	move.l #$201000,abs_0_0000791C.w
+	move.w #$FFFF,abs_0_00007C12.w
+	movea.l $7C0E.w,a0
+	movea.l abs_0_0000799A.w,a1
+	movea.l abs_0_0000799E.w,a2
+	movea.l abs_0_000079A2.w,a3
+	movea.l #abs_0_00008F5A,a4
+	movea.l #abs_0_00064000,a5
+	movea.l #runtime_address_00060000,a6
+abs_0_00052740:
+	move.l $5F40(a0),d3
+	sub.l a1,d3
+	... related snippet follows
+abs_0_00007C0C:
+	dc.b $00,$00,$00,$00,$00,$74
+```
+
+In this case we have a flimsy base address of `m68k_vector_level_5_interrupt_autovector` and in fact it seems like since we don't use them as interrupts but rather as base addresses, this along with others like `m68k_vector_line_1111_emulator` are false positives. I suspect the relative offsetting is perhaps using a base address calculated to work with the given offsets, like the logic might receive different base addresses with iterated changes to it.
+```
+abs_0_00059048:
+	lea.l m68k_vector_level_5_interrupt_autovector.w,a2
+	move.l abs_0_00007AB2.w,$63A8(a2)
+	move.l abs_0_00007AB6.w,d0
+	subi.l #63,d0
+	move.l d0,$67A8(a2)
+	move.l abs_0_00007ABA.w,$6BA8(a2)
+	move.b abs_0_00007AC9.w,$73A8(a2)
+	move.b abs_0_00007AC5.w,$73AA(a2)
+	move.b abs_0_0000794F.w,$6FA9(a2)
+	move.b abs_0_00007A39.w,$6FAB(a2)
+```
+These however we do store code addresses at directly.
+```
+m68k_vector_level_3_interrupt_autovector	EQU	$6C
+m68k_vector_level_4_interrupt_autovector	EQU	$70
+m68k_vector_division_by_zero	EQU	$14
+	...
+abs_0_000501CA:
+	move.w #INTF_CLRALL,_custom+intena.l
+	move.w #INTF_SETCLR|INTF_INTEN|INTF_VERTB,_custom+intena.l
+	move.w #INTF_CLRALL,_custom+intreq.l
+	move.l #abs_0_000516CE,m68k_vector_level_3_interrupt_autovector.l
+	move.l #abs_0_00051632,m68k_vector_level_4_interrupt_autovector.l
+	move.w #DMAF_SETCLR|DMAF_MASTER|DMAF_RASTER|DMAF_COPPER,_custom+dmacon.l
+	move.w #DMAF_BLITTER|DMAF_SPRITE|DMAF_DISK|DMAF_AUDIO,_custom+dmacon.l
+	move #$2200,sr
+	move.l #abs_0_000502C8,m68k_vector_division_by_zero.l
+```
+
+This bitplane memory is worth looking at. I am not sure how it works. There's text following it possibly within the +$5DC4 range.
+```
+	lea.l absolute_slot_00079910.l,a0
+abs_0_000521C4:
+	lea.l abs_0_00069910.l,a1	; bitmap memory plane 0 +$1910 ($00069910)
+	lea.l absolute_slot_00079938.l,a2
+abs_0_000521D0:
+	moveq.l #30,d0
+abs_0_000521D2:
+	move.l (a2),(a0)
+abs_0_000521D4:
+	move.l (a2),(a1)	; bitmap memory plane 0 +$1910 ($00069910)
+	move.l $0004(a2),$0004(a0)
+abs_0_000521DC:
+	move.l $0004(a2),$0004(a1)	; bitmap memory plane 0 +$1914 ($00069914)
+	move.l $1F40(a2),$1F40(a0)
+	move.l $1F40(a2),$1F40(a1)
+	...
+	move.l $5DC4(a2),$5DC4(a1)
+	...
+```
+
 ### `amiga_disk_starglider-1987-rainbird` / `amiga_hunk_sg_9832b282` / `sg_9832b282.s` case study
 
 This should never be emitted through auto-analysis outside of the context of MacOS jump tables for instance. Non-terminating instructions directly precede data. And "ori" is a classic false positive code recognition. Multiple blocks are emitted with this.

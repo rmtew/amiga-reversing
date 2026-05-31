@@ -1,0 +1,12 @@
+{
+  "created_at": "2026-05-31T02:53:43.445590+00:00",
+  "origin": {
+    "kind": "disk_child",
+    "parent_disk_id": "3d-construction-kit-ii-r2.01-1992-domark-disk-1-of-2-h-ministry-construction-kit",
+    "source_path": "bin/3D Construction Kit II r2.01 (1992)(Domark)(Disk 1 of 2)[h Ministry][construction kit].adf",
+    "target_role": "bootblock",
+    "target_type": "bootblock"
+  },
+  "schema_version": 2,
+  "updated_at": "2026-05-31T02:53:43.458374+00:00"
+}

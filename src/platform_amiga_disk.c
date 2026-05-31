@@ -181,9 +181,19 @@ static int block_range_has_nonzero(const unsigned char *data, size_t start, size
     return 0;
 }
 
+static int boot_block_is_dos_longword_fill(const DiskContext *ctx, size_t boot_block_bytes) {
+    size_t offset;
+    if (ctx == NULL || ctx->data == NULL || boot_block_bytes < 4U || (boot_block_bytes % 4U) != 0U) return 0;
+    for (offset = 0U; offset + 4U <= boot_block_bytes; offset += 4U) {
+        if (memcmp(ctx->data + offset, "DOS", 3U) != 0) return 0;
+    }
+    return 1;
+}
+
 static int boot_block_has_code(const DiskContext *ctx) {
     size_t boot_block_bytes = (size_t)ctx->block_size * AMIGA_DISK_FILE_CONSTRAINTS_BOOT_BLOCK_SECTORS;
     if (boot_block_bytes <= AMIGA_DISK_FILE_BOOT_BLOCK_FIELD_ROOT_BLOCK_OFFSET + 4U) return 0;
+    if (boot_block_is_dos_longword_fill(ctx, boot_block_bytes)) return 0;
     return block_range_has_nonzero(ctx->data, AMIGA_DISK_FILE_BOOT_BLOCK_FIELD_ROOT_BLOCK_OFFSET + 4U, boot_block_bytes);
 }
 

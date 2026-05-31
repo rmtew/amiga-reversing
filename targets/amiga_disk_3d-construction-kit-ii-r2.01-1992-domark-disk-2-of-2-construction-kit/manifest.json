@@ -1,0 +1,6689 @@
+{
+  "analysis": {
+    "bitmap": null,
+    "block_usage": null,
+    "boot_block": {
+      "bootcode_entropy": 2.9,
+      "bootcode_has_code": true,
+      "bootcode_size": 1012,
+      "checksum": "0x00000000",
+      "checksum_valid": false,
+      "flags_byte": 0,
+      "fs_description": "DOS\\0 - Original File System",
+      "fs_type": "0",
+      "import_target": {
+        "entry_path": "bootblock",
+        "local_target_id": "amiga_raw_bootblock",
+        "source": {
+          "address_model": "local_offset",
+          "byte_offset": 0,
+          "byte_size": 1024,
+          "code_start_offset": 12,
+          "entrypoint": 458764,
+          "kind": "raw_binary",
+          "load_address": 458752
+        },
+        "target_metadata": {
+          "absolute_code_labels": [],
+          "bootblock": {
+            "bootcode_offset": 12,
+            "bootcode_size": 1012,
+            "checksum": "0x00000000",
+            "checksum_valid": false,
+            "entrypoint": 458764,
+            "flags_byte": 0,
+            "fs_description": "DOS\\0 - Original File System",
+            "load_address": 458752,
+            "magic_ascii": "DOS",
+            "rootblock_ptr": 0
+          },
+          "custom_structs": [],
+          "entry_register_seeds": [
+            {
+              "context_name": null,
+              "entry_offset": null,
+              "kind": "library_base",
+              "library_name": "exec.library",
+              "note": "ExecBase",
+              "register": "A6",
+              "struct_name": "LIB"
+            },
+            {
+              "context_name": "trackdisk.device",
+              "entry_offset": null,
+              "kind": "struct_ptr",
+              "library_name": null,
+              "note": "IOStdReq (open trackdisk.device)",
+              "register": "A1",
+              "struct_name": "IO"
+            }
+          ],
+          "execution_views": [],
+          "library": null,
+          "resident": null,
+          "rsset_layout_regions": [],
+          "seeded_code_entrypoints": [],
+          "seeded_code_labels": [],
+          "seeded_entities": [],
+          "suppressed_seeded_items": [],
+          "target_type": "bootblock"
+        },
+        "target_type": "bootblock"
+      },
+      "is_dos": true,
+      "magic_ascii": "DOS",
+      "rootblock_ptr": 0
+    },
+    "bootloader_analysis": {
+      "memory_regions": [],
+      "stages": [
+        {
+          "base_addr": 458752,
+          "decode_outputs": [],
+          "decode_regions": [],
+          "derived_regions": [],
+          "disk_reads": [],
+          "entry_addr": 458764,
+          "handoff_target": null,
+          "handoffs": [],
+          "hardware_accesses": [],
+          "import_target": null,
+          "loads": [],
+          "materialized": true,
+          "memory_copies": [],
+          "name": "boot",
+          "reachable_instruction_count": 122,
+          "read_setups": [],
+          "size": 1012
+        }
+      ],
+      "transfers": []
+    },
+    "directories": null,
+    "disk_info": {
+      "is_dos": true,
+      "path": "3D Construction Kit II r2.01 (1992)(Domark)(Disk 2 of 2)[construction kit].adf",
+      "sectors_per_track": 11,
+      "size": 901120,
+      "total_sectors": 1760,
+      "variant": "DD"
+    },
+    "files": null,
+    "filesystem": null,
+    "non_dos": {
+      "bootcode_present": true,
+      "description": "Custom format disk (non-AmigaDOS)",
+      "dos_magic_without_filesystem": true,
+      "filesystem_parse_error": "C disk inspect output is missing root"
+    },
+    "root_block": null,
+    "track_analysis": {
+      "non_empty_tracks": 83,
+      "raw_sources": [
+        {
+          "byte_length": 5632,
+          "byte_offset": 0,
+          "cylinder": 0,
+          "head": 0,
+          "track": 0
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 275968,
+          "cylinder": 24,
+          "head": 1,
+          "track": 49
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 281600,
+          "cylinder": 25,
+          "head": 0,
+          "track": 50
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 287232,
+          "cylinder": 25,
+          "head": 1,
+          "track": 51
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 292864,
+          "cylinder": 26,
+          "head": 0,
+          "track": 52
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 298496,
+          "cylinder": 26,
+          "head": 1,
+          "track": 53
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 304128,
+          "cylinder": 27,
+          "head": 0,
+          "track": 54
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 309760,
+          "cylinder": 27,
+          "head": 1,
+          "track": 55
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 315392,
+          "cylinder": 28,
+          "head": 0,
+          "track": 56
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 321024,
+          "cylinder": 28,
+          "head": 1,
+          "track": 57
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 326656,
+          "cylinder": 29,
+          "head": 0,
+          "track": 58
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 332288,
+          "cylinder": 29,
+          "head": 1,
+          "track": 59
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 337920,
+          "cylinder": 30,
+          "head": 0,
+          "track": 60
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 343552,
+          "cylinder": 30,
+          "head": 1,
+          "track": 61
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 349184,
+          "cylinder": 31,
+          "head": 0,
+          "track": 62
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 354816,
+          "cylinder": 31,
+          "head": 1,
+          "track": 63
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 360448,
+          "cylinder": 32,
+          "head": 0,
+          "track": 64
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 366080,
+          "cylinder": 32,
+          "head": 1,
+          "track": 65
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 371712,
+          "cylinder": 33,
+          "head": 0,
+          "track": 66
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 377344,
+          "cylinder": 33,
+          "head": 1,
+          "track": 67
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 382976,
+          "cylinder": 34,
+          "head": 0,
+          "track": 68
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 388608,
+          "cylinder": 34,
+          "head": 1,
+          "track": 69
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 394240,
+          "cylinder": 35,
+          "head": 0,
+          "track": 70
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 399872,
+          "cylinder": 35,
+          "head": 1,
+          "track": 71
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 405504,
+          "cylinder": 36,
+          "head": 0,
+          "track": 72
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 411136,
+          "cylinder": 36,
+          "head": 1,
+          "track": 73
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 416768,
+          "cylinder": 37,
+          "head": 0,
+          "track": 74
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 422400,
+          "cylinder": 37,
+          "head": 1,
+          "track": 75
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 428032,
+          "cylinder": 38,
+          "head": 0,
+          "track": 76
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 433664,
+          "cylinder": 38,
+          "head": 1,
+          "track": 77
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 439296,
+          "cylinder": 39,
+          "head": 0,
+          "track": 78
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 444928,
+          "cylinder": 39,
+          "head": 1,
+          "track": 79
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 450560,
+          "cylinder": 40,
+          "head": 0,
+          "track": 80
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 456192,
+          "cylinder": 40,
+          "head": 1,
+          "track": 81
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 461824,
+          "cylinder": 41,
+          "head": 0,
+          "track": 82
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 467456,
+          "cylinder": 41,
+          "head": 1,
+          "track": 83
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 473088,
+          "cylinder": 42,
+          "head": 0,
+          "track": 84
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 478720,
+          "cylinder": 42,
+          "head": 1,
+          "track": 85
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 484352,
+          "cylinder": 43,
+          "head": 0,
+          "track": 86
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 489984,
+          "cylinder": 43,
+          "head": 1,
+          "track": 87
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 495616,
+          "cylinder": 44,
+          "head": 0,
+          "track": 88
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 501248,
+          "cylinder": 44,
+          "head": 1,
+          "track": 89
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 506880,
+          "cylinder": 45,
+          "head": 0,
+          "track": 90
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 512512,
+          "cylinder": 45,
+          "head": 1,
+          "track": 91
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 518144,
+          "cylinder": 46,
+          "head": 0,
+          "track": 92
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 523776,
+          "cylinder": 46,
+          "head": 1,
+          "track": 93
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 529408,
+          "cylinder": 47,
+          "head": 0,
+          "track": 94
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 535040,
+          "cylinder": 47,
+          "head": 1,
+          "track": 95
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 540672,
+          "cylinder": 48,
+          "head": 0,
+          "track": 96
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 546304,
+          "cylinder": 48,
+          "head": 1,
+          "track": 97
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 551936,
+          "cylinder": 49,
+          "head": 0,
+          "track": 98
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 557568,
+          "cylinder": 49,
+          "head": 1,
+          "track": 99
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 563200,
+          "cylinder": 50,
+          "head": 0,
+          "track": 100
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 568832,
+          "cylinder": 50,
+          "head": 1,
+          "track": 101
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 574464,
+          "cylinder": 51,
+          "head": 0,
+          "track": 102
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 580096,
+          "cylinder": 51,
+          "head": 1,
+          "track": 103
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 585728,
+          "cylinder": 52,
+          "head": 0,
+          "track": 104
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 591360,
+          "cylinder": 52,
+          "head": 1,
+          "track": 105
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 596992,
+          "cylinder": 53,
+          "head": 0,
+          "track": 106
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 602624,
+          "cylinder": 53,
+          "head": 1,
+          "track": 107
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 608256,
+          "cylinder": 54,
+          "head": 0,
+          "track": 108
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 613888,
+          "cylinder": 54,
+          "head": 1,
+          "track": 109
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 619520,
+          "cylinder": 55,
+          "head": 0,
+          "track": 110
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 625152,
+          "cylinder": 55,
+          "head": 1,
+          "track": 111
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 630784,
+          "cylinder": 56,
+          "head": 0,
+          "track": 112
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 636416,
+          "cylinder": 56,
+          "head": 1,
+          "track": 113
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 642048,
+          "cylinder": 57,
+          "head": 0,
+          "track": 114
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 647680,
+          "cylinder": 57,
+          "head": 1,
+          "track": 115
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 653312,
+          "cylinder": 58,
+          "head": 0,
+          "track": 116
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 658944,
+          "cylinder": 58,
+          "head": 1,
+          "track": 117
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 664576,
+          "cylinder": 59,
+          "head": 0,
+          "track": 118
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 670208,
+          "cylinder": 59,
+          "head": 1,
+          "track": 119
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 675840,
+          "cylinder": 60,
+          "head": 0,
+          "track": 120
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 681472,
+          "cylinder": 60,
+          "head": 1,
+          "track": 121
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 687104,
+          "cylinder": 61,
+          "head": 0,
+          "track": 122
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 692736,
+          "cylinder": 61,
+          "head": 1,
+          "track": 123
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 698368,
+          "cylinder": 62,
+          "head": 0,
+          "track": 124
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 704000,
+          "cylinder": 62,
+          "head": 1,
+          "track": 125
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 709632,
+          "cylinder": 63,
+          "head": 0,
+          "track": 126
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 715264,
+          "cylinder": 63,
+          "head": 1,
+          "track": 127
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 720896,
+          "cylinder": 64,
+          "head": 0,
+          "track": 128
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 726528,
+          "cylinder": 64,
+          "head": 1,
+          "track": 129
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 732160,
+          "cylinder": 65,
+          "head": 0,
+          "track": 130
+        }
+      ],
+      "total_tracks": 160,
+      "track_size_bytes": 5632,
+      "tracks": [
+        {
+          "ascii_strings": [],
+          "byte_length": 5632,
+          "byte_offset": 0,
+          "cylinder": 0,
+          "empty": false,
+          "entropy": 0.78,
+          "first_block": 0,
+          "has_code": true,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 0
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 36,
+              "text": "HEXAGN 025"
+            },
+            {
+              "offset": 124,
+              "text": "HEXAGN 026"
+            },
+            {
+              "offset": 198,
+              "text": "SOUND 1"
+            },
+            {
+              "offset": 228,
+              "text": "SOUND 2"
+            },
+            {
+              "offset": 258,
+              "text": "SOUND 3"
+            },
+            {
+              "offset": 288,
+              "text": "SOUND 4"
+            },
+            {
+              "offset": 318,
+              "text": "SOUND 5"
+            },
+            {
+              "offset": 358,
+              "text": " bSYSFONT 1"
+            },
+            {
+              "offset": 374,
+              "text": " ^SYSFONT 2"
+            },
+            {
+              "offset": 448,
+              "text": "PYRMID 018"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 275968,
+          "cylinder": 24,
+          "empty": false,
+          "entropy": 0.64,
+          "first_block": 539,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 49
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 248,
+              "text": "AREA 001  "
+            },
+            {
+              "offset": 378,
+              "text": "ENTRANCE  "
+            },
+            {
+              "offset": 420,
+              "text": "GROUP  008"
+            },
+            {
+              "offset": 480,
+              "text": "GROUP  014"
+            },
+            {
+              "offset": 576,
+              "text": "GROUP  002"
+            },
+            {
+              "offset": 626,
+              "text": "GROUP  021"
+            },
+            {
+              "offset": 708,
+              "text": "GROUP  038"
+            },
+            {
+              "offset": 758,
+              "text": "CUBOID 001"
+            },
+            {
+              "offset": 830,
+              "text": "CUBOID 003"
+            },
+            {
+              "offset": 902,
+              "text": "CUBOID 004"
+            },
+            {
+              "offset": 974,
+              "text": "CUBOID 005"
+            },
+            {
+              "offset": 1070,
+              "text": "CUBOID 006"
+            },
+            {
+              "offset": 1142,
+              "text": "CUBOID 007"
+            },
+            {
+              "offset": 1214,
+              "text": "CUBOID 009"
+            },
+            {
+              "offset": 1286,
+              "text": "CUBOID 010"
+            },
+            {
+              "offset": 1358,
+              "text": "CUBOID 011"
+            },
+            {
+              "offset": 1430,
+              "text": "CUBOID 012"
+            },
+            {
+              "offset": 1502,
+              "text": "CUBOID 013"
+            },
+            {
+              "offset": 1598,
+              "text": "PYRMID 015"
+            },
+            {
+              "offset": 1686,
+              "text": "CUBOID 016"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 281600,
+          "cylinder": 25,
+          "empty": false,
+          "entropy": 4.99,
+          "first_block": 550,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 50
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 74,
+              "text": "PYRMID 045"
+            },
+            {
+              "offset": 162,
+              "text": "CUBOID 046"
+            },
+            {
+              "offset": 234,
+              "text": "PYRMID 048"
+            },
+            {
+              "offset": 322,
+              "text": "CUBOID 049"
+            },
+            {
+              "offset": 394,
+              "text": "PYRMID 050"
+            },
+            {
+              "offset": 482,
+              "text": "CUBOID 052"
+            },
+            {
+              "offset": 578,
+              "text": "CUBOID 053"
+            },
+            {
+              "offset": 650,
+              "text": "CUBOID 054"
+            },
+            {
+              "offset": 722,
+              "text": "CUBOID 055"
+            },
+            {
+              "offset": 780,
+              "text": "SOUND 1"
+            },
+            {
+              "offset": 810,
+              "text": "SOUND 2"
+            },
+            {
+              "offset": 840,
+              "text": "SOUND 3"
+            },
+            {
+              "offset": 870,
+              "text": "SOUND 4"
+            },
+            {
+              "offset": 900,
+              "text": "SOUND 5"
+            },
+            {
+              "offset": 940,
+              "text": " bSYSFONT 1"
+            },
+            {
+              "offset": 956,
+              "text": " ^SYSFONT 2"
+            },
+            {
+              "offset": 1002,
+              "text": "CUBOID 044"
+            },
+            {
+              "offset": 1108,
+              "text": "HEXAGN 002"
+            },
+            {
+              "offset": 1196,
+              "text": "HEXAGN 003"
+            },
+            {
+              "offset": 1284,
+              "text": "LINE   004"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 287232,
+          "cylinder": 25,
+          "empty": false,
+          "entropy": 4.51,
+          "first_block": 561,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 51
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 28,
+              "text": "TRNGLE 038"
+            },
+            {
+              "offset": 90,
+              "text": "TRNGLE 039"
+            },
+            {
+              "offset": 152,
+              "text": "TRNGLE 040"
+            },
+            {
+              "offset": 214,
+              "text": "RCTNGL 041"
+            },
+            {
+              "offset": 274,
+              "text": "PYRMID 042"
+            },
+            {
+              "offset": 362,
+              "text": "HEXAGN 043"
+            },
+            {
+              "offset": 450,
+              "text": "HEXAGN 044"
+            },
+            {
+              "offset": 562,
+              "text": "PYRMID 045"
+            },
+            {
+              "offset": 650,
+              "text": "PYRMID 046"
+            },
+            {
+              "offset": 738,
+              "text": "PYRMID 047"
+            },
+            {
+              "offset": 826,
+              "text": "PYRMID 048"
+            },
+            {
+              "offset": 914,
+              "text": "PYRMID 049"
+            },
+            {
+              "offset": 1002,
+              "text": "PYRMID 050"
+            },
+            {
+              "offset": 1114,
+              "text": "LINE   051"
+            },
+            {
+              "offset": 1170,
+              "text": "RCTNGL 052"
+            },
+            {
+              "offset": 1230,
+              "text": "RCTNGL 053"
+            },
+            {
+              "offset": 1290,
+              "text": "RCTNGL 054"
+            },
+            {
+              "offset": 1350,
+              "text": "RCTNGL 055"
+            },
+            {
+              "offset": 1410,
+              "text": "RCTNGL 056"
+            },
+            {
+              "offset": 1456,
+              "text": "SOUND 1"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 292864,
+          "cylinder": 26,
+          "empty": false,
+          "entropy": 4.92,
+          "first_block": 572,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 52
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 40,
+              "text": "CUBOID 040"
+            },
+            {
+              "offset": 112,
+              "text": "CUBOID 041"
+            },
+            {
+              "offset": 184,
+              "text": "CUBOID 042"
+            },
+            {
+              "offset": 218,
+              "text": "UUUUUU"
+            },
+            {
+              "offset": 256,
+              "text": "CUBOID 043"
+            },
+            {
+              "offset": 290,
+              "text": "ffffff"
+            },
+            {
+              "offset": 328,
+              "text": "CUBOID 044"
+            },
+            {
+              "offset": 400,
+              "text": "RCTNGL 045"
+            },
+            {
+              "offset": 460,
+              "text": "RCTNGL 046"
+            },
+            {
+              "offset": 544,
+              "text": "RCTNGL 047"
+            },
+            {
+              "offset": 604,
+              "text": "RCTNGL 048"
+            },
+            {
+              "offset": 664,
+              "text": "RCTNGL 049"
+            },
+            {
+              "offset": 724,
+              "text": "RCTNGL 050"
+            },
+            {
+              "offset": 784,
+              "text": "RCTNGL 051"
+            },
+            {
+              "offset": 844,
+              "text": "RCTNGL 052"
+            },
+            {
+              "offset": 904,
+              "text": "RCTNGL 053"
+            },
+            {
+              "offset": 964,
+              "text": "RCTNGL 054"
+            },
+            {
+              "offset": 1045,
+              "text": "`N~RCTNGL 055"
+            },
+            {
+              "offset": 1108,
+              "text": "RCTNGL 056"
+            },
+            {
+              "offset": 1168,
+              "text": "RCTNGL 057"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 298496,
+          "cylinder": 26,
+          "empty": false,
+          "entropy": 4.98,
+          "first_block": 583,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 53
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 104,
+              "text": "PYRMID 023"
+            },
+            {
+              "offset": 192,
+              "text": "CUBOID 024"
+            },
+            {
+              "offset": 264,
+              "text": "QUAD   025"
+            },
+            {
+              "offset": 332,
+              "text": "QUAD   026"
+            },
+            {
+              "offset": 400,
+              "text": "CUBOID 027"
+            },
+            {
+              "offset": 472,
+              "text": "CUBOID 028"
+            },
+            {
+              "offset": 568,
+              "text": "CUBOID 029"
+            },
+            {
+              "offset": 640,
+              "text": "CUBOID 030"
+            },
+            {
+              "offset": 712,
+              "text": "RCTNGL 031"
+            },
+            {
+              "offset": 772,
+              "text": "RCTNGL 032"
+            },
+            {
+              "offset": 832,
+              "text": "RCTNGL 033"
+            },
+            {
+              "offset": 892,
+              "text": "RCTNGL 034"
+            },
+            {
+              "offset": 952,
+              "text": "RCTNGL 035"
+            },
+            {
+              "offset": 1012,
+              "text": "CUBOID 036"
+            },
+            {
+              "offset": 1070,
+              "text": "EEYY\"\""
+            },
+            {
+              "offset": 1108,
+              "text": "PYRMID 037"
+            },
+            {
+              "offset": 1196,
+              "text": "RCTNGL 038"
+            },
+            {
+              "offset": 1256,
+              "text": "CUBOID 039"
+            },
+            {
+              "offset": 1290,
+              "text": "EEYY\"\""
+            },
+            {
+              "offset": 1328,
+              "text": "PYRMID 040"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 304128,
+          "cylinder": 27,
+          "empty": false,
+          "entropy": 4.97,
+          "first_block": 594,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 54
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 80,
+              "text": "TRNGLE 011"
+            },
+            {
+              "offset": 166,
+              "text": "TRNGLE 012"
+            },
+            {
+              "offset": 248,
+              "text": "TRNGLE 013"
+            },
+            {
+              "offset": 330,
+              "text": "PYRMID 014"
+            },
+            {
+              "offset": 438,
+              "text": "TRNGLE 015"
+            },
+            {
+              "offset": 544,
+              "text": "TRNGLE 016"
+            },
+            {
+              "offset": 634,
+              "text": "PYRMID 017"
+            },
+            {
+              "offset": 742,
+              "text": "PYRMID 018"
+            },
+            {
+              "offset": 850,
+              "text": "TRNGLE 019"
+            },
+            {
+              "offset": 932,
+              "text": "TRNGLE 020"
+            },
+            {
+              "offset": 1014,
+              "text": "RCTNGL 021"
+            },
+            {
+              "offset": 1104,
+              "text": "TRNGLE 011"
+            },
+            {
+              "offset": 1190,
+              "text": "TRNGLE 012"
+            },
+            {
+              "offset": 1272,
+              "text": "TRNGLE 013"
+            },
+            {
+              "offset": 1354,
+              "text": "PYRMID 014"
+            },
+            {
+              "offset": 1462,
+              "text": "TRNGLE 015"
+            },
+            {
+              "offset": 1602,
+              "text": "CUBOID 006"
+            },
+            {
+              "offset": 1694,
+              "text": "PYRMID 007"
+            },
+            {
+              "offset": 1744,
+              "text": "D3DD33"
+            },
+            {
+              "offset": 1802,
+              "text": "PYRMID 008"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 309760,
+          "cylinder": 27,
+          "empty": false,
+          "entropy": 4.58,
+          "first_block": 605,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 55
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 22,
+              "text": "F^ANOB"
+            },
+            {
+              "offset": 66,
+              "text": "PYRMID 006"
+            },
+            {
+              "offset": 174,
+              "text": "PYRMID 007"
+            },
+            {
+              "offset": 282,
+              "text": "PYRMID 008"
+            },
+            {
+              "offset": 390,
+              "text": "PYRMID 009"
+            },
+            {
+              "offset": 498,
+              "text": "PYRMID 010"
+            },
+            {
+              "offset": 630,
+              "text": "PYRMID 011"
+            },
+            {
+              "offset": 738,
+              "text": "HEXAGN 012"
+            },
+            {
+              "offset": 846,
+              "text": "PYRMID 013"
+            },
+            {
+              "offset": 896,
+              "text": "DDDDDD"
+            },
+            {
+              "offset": 954,
+              "text": "PYRMID 014"
+            },
+            {
+              "offset": 1004,
+              "text": "DDDDDD"
+            },
+            {
+              "offset": 1086,
+              "text": "CUBOID 015"
+            },
+            {
+              "offset": 1120,
+              "text": "DDDDDD"
+            },
+            {
+              "offset": 1178,
+              "text": "CUBOID 016"
+            },
+            {
+              "offset": 1212,
+              "text": "DDDDDD"
+            },
+            {
+              "offset": 1306,
+              "text": "PYRMID 008"
+            },
+            {
+              "offset": 1414,
+              "text": "PYRMID 009"
+            },
+            {
+              "offset": 1522,
+              "text": "PYRMID 010"
+            },
+            {
+              "offset": 1622,
+              "text": "CUBOID 011"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 315392,
+          "cylinder": 28,
+          "empty": false,
+          "entropy": 4.62,
+          "first_block": 616,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 56
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 34,
+              "text": "CUBOID 066"
+            },
+            {
+              "offset": 126,
+              "text": "CUBOID 067"
+            },
+            {
+              "offset": 218,
+              "text": "CUBOID 068"
+            },
+            {
+              "offset": 310,
+              "text": "CUBOID 069"
+            },
+            {
+              "offset": 402,
+              "text": "CUBOID 070"
+            },
+            {
+              "offset": 436,
+              "text": "33w.\"\""
+            },
+            {
+              "offset": 494,
+              "text": "CUBOID 071"
+            },
+            {
+              "offset": 552,
+              "text": "33-w\"\""
+            },
+            {
+              "offset": 574,
+              "text": "CUBOID 061"
+            },
+            {
+              "offset": 666,
+              "text": "CUBOID 062"
+            },
+            {
+              "offset": 758,
+              "text": "CUBOID 063"
+            },
+            {
+              "offset": 850,
+              "text": "CUBOID 064"
+            },
+            {
+              "offset": 942,
+              "text": "CUBOID 065"
+            },
+            {
+              "offset": 1054,
+              "text": "RCTNGL 012"
+            },
+            {
+              "offset": 1134,
+              "text": "CUBOID 013"
+            },
+            {
+              "offset": 1226,
+              "text": "CUBOID 014"
+            },
+            {
+              "offset": 1318,
+              "text": "PYRMID 015"
+            },
+            {
+              "offset": 1426,
+              "text": "PYRMID 016"
+            },
+            {
+              "offset": 1559,
+              "text": ",BOID 017"
+            },
+            {
+              "offset": 1650,
+              "text": "CUBOID 018"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 321024,
+          "cylinder": 28,
+          "empty": false,
+          "entropy": 4.81,
+          "first_block": 627,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 57
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 38,
+              "text": "CUBOID 011"
+            },
+            {
+              "offset": 130,
+              "text": "CUBOID 012"
+            },
+            {
+              "offset": 222,
+              "text": "CUBOID 013"
+            },
+            {
+              "offset": 314,
+              "text": "CUBOID 014"
+            },
+            {
+              "offset": 406,
+              "text": "CUBOID 015"
+            },
+            {
+              "offset": 498,
+              "text": "CUBOID 016"
+            },
+            {
+              "offset": 614,
+              "text": "CUBOID 017"
+            },
+            {
+              "offset": 706,
+              "text": "CUBOID 018"
+            },
+            {
+              "offset": 740,
+              "text": "U-33\"\""
+            },
+            {
+              "offset": 798,
+              "text": "CUBOID 019"
+            },
+            {
+              "offset": 890,
+              "text": "CUBOID 020"
+            },
+            {
+              "offset": 924,
+              "text": "-g33\"\""
+            },
+            {
+              "offset": 982,
+              "text": "CUBOID 021"
+            },
+            {
+              "offset": 1098,
+              "text": "CUBOID 022"
+            },
+            {
+              "offset": 1190,
+              "text": "CUBOID 023"
+            },
+            {
+              "offset": 1282,
+              "text": "CUBOID 024"
+            },
+            {
+              "offset": 1374,
+              "text": "CUBOID 025"
+            },
+            {
+              "offset": 1466,
+              "text": "CUBOID 026"
+            },
+            {
+              "offset": 1582,
+              "text": "CUBOID 027"
+            },
+            {
+              "offset": 1674,
+              "text": "CUBOID 028"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 326656,
+          "cylinder": 29,
+          "empty": false,
+          "entropy": 4.72,
+          "first_block": 638,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 58
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 46,
+              "text": "CUBOID 053"
+            },
+            {
+              "offset": 138,
+              "text": "CUBOID 054"
+            },
+            {
+              "offset": 230,
+              "text": "CUBOID 055"
+            },
+            {
+              "offset": 322,
+              "text": "PYRMID 056"
+            },
+            {
+              "offset": 430,
+              "text": "CUBOID 057"
+            },
+            {
+              "offset": 546,
+              "text": "CUBOID 058"
+            },
+            {
+              "offset": 638,
+              "text": "CUBOID 059"
+            },
+            {
+              "offset": 730,
+              "text": "CUBOID 060"
+            },
+            {
+              "offset": 822,
+              "text": "CUBOID 061"
+            },
+            {
+              "offset": 914,
+              "text": "PYRMID 062"
+            },
+            {
+              "offset": 1047,
+              "text": "1BOID 063"
+            },
+            {
+              "offset": 1138,
+              "text": "CUBOID 064"
+            },
+            {
+              "offset": 1230,
+              "text": "CUBOID 065"
+            },
+            {
+              "offset": 1322,
+              "text": "CUBOID 066"
+            },
+            {
+              "offset": 1414,
+              "text": "CUBOID 067"
+            },
+            {
+              "offset": 1506,
+              "text": "PYRMID 068"
+            },
+            {
+              "offset": 1638,
+              "text": "CUBOID 069"
+            },
+            {
+              "offset": 1730,
+              "text": "CUBOID 070"
+            },
+            {
+              "offset": 1822,
+              "text": "CUBOID 071"
+            },
+            {
+              "offset": 1914,
+              "text": "CUBOID 072"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 332288,
+          "cylinder": 29,
+          "empty": false,
+          "entropy": 4.65,
+          "first_block": 649,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 59
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 34,
+              "text": "CUBOID 006"
+            },
+            {
+              "offset": 126,
+              "text": "CUBOID 007"
+            },
+            {
+              "offset": 218,
+              "text": "CUBOID 008"
+            },
+            {
+              "offset": 310,
+              "text": "PYRMID 009"
+            },
+            {
+              "offset": 414,
+              "text": "PYRMID 005"
+            },
+            {
+              "offset": 464,
+              "text": "DDDDDD"
+            },
+            {
+              "offset": 594,
+              "text": "CUBOID 012"
+            },
+            {
+              "offset": 686,
+              "text": "CUBOID 013"
+            },
+            {
+              "offset": 778,
+              "text": "CUBOID 014"
+            },
+            {
+              "offset": 870,
+              "text": "CUBOID 015"
+            },
+            {
+              "offset": 962,
+              "text": "CUBOID 016"
+            },
+            {
+              "offset": 1078,
+              "text": "CUBOID 017"
+            },
+            {
+              "offset": 1170,
+              "text": "CUBOID 018"
+            },
+            {
+              "offset": 1262,
+              "text": "CUBOID 019"
+            },
+            {
+              "offset": 1354,
+              "text": "CUBOID 020"
+            },
+            {
+              "offset": 1446,
+              "text": "CUBOID 021"
+            },
+            {
+              "offset": 1562,
+              "text": "CUBOID 022"
+            },
+            {
+              "offset": 1654,
+              "text": "CUBOID 023"
+            },
+            {
+              "offset": 1746,
+              "text": "CUBOID 024"
+            },
+            {
+              "offset": 1838,
+              "text": "CUBOID 025"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 337920,
+          "cylinder": 30,
+          "empty": false,
+          "entropy": 4.62,
+          "first_block": 660,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 60
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 34,
+              "text": "CUBOID 006"
+            },
+            {
+              "offset": 126,
+              "text": "PYRMID 007"
+            },
+            {
+              "offset": 230,
+              "text": "CUBOID 003"
+            },
+            {
+              "offset": 322,
+              "text": "PYRMID 004"
+            },
+            {
+              "offset": 430,
+              "text": "CUBOID 005"
+            },
+            {
+              "offset": 594,
+              "text": "PYRMID 020"
+            },
+            {
+              "offset": 702,
+              "text": "PYRMID 021"
+            },
+            {
+              "offset": 810,
+              "text": "PYRMID 022"
+            },
+            {
+              "offset": 918,
+              "text": "PYRMID 023"
+            },
+            {
+              "offset": 1050,
+              "text": "PYRMID 024"
+            },
+            {
+              "offset": 1158,
+              "text": "PYRMID 025"
+            },
+            {
+              "offset": 1266,
+              "text": "PYRMID 026"
+            },
+            {
+              "offset": 1374,
+              "text": "PYRMID 027"
+            },
+            {
+              "offset": 1482,
+              "text": "PYRMID 028"
+            },
+            {
+              "offset": 1614,
+              "text": "PYRMID 029"
+            },
+            {
+              "offset": 1664,
+              "text": "333333"
+            },
+            {
+              "offset": 1722,
+              "text": "PYRMID 030"
+            },
+            {
+              "offset": 1772,
+              "text": "333333"
+            },
+            {
+              "offset": 1830,
+              "text": "CUBOID 031"
+            },
+            {
+              "offset": 1966,
+              "text": "CUBOID 005"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 343552,
+          "cylinder": 30,
+          "empty": false,
+          "entropy": 4.58,
+          "first_block": 671,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 61
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 46,
+              "text": "CUBOID 012"
+            },
+            {
+              "offset": 138,
+              "text": "CUBOID 013"
+            },
+            {
+              "offset": 230,
+              "text": "CUBOID 014"
+            },
+            {
+              "offset": 322,
+              "text": "CUBOID 015"
+            },
+            {
+              "offset": 414,
+              "text": "CUBOID 016"
+            },
+            {
+              "offset": 506,
+              "text": "CUBOID"
+            },
+            {
+              "offset": 622,
+              "text": "CUBOID 018"
+            },
+            {
+              "offset": 714,
+              "text": "CUBOID 019"
+            },
+            {
+              "offset": 806,
+              "text": "CUBOID 020"
+            },
+            {
+              "offset": 898,
+              "text": "CUBOID 021"
+            },
+            {
+              "offset": 990,
+              "text": "CUBOID 022"
+            },
+            {
+              "offset": 1106,
+              "text": "CUBOID 023"
+            },
+            {
+              "offset": 1198,
+              "text": "CUBOID 024"
+            },
+            {
+              "offset": 1290,
+              "text": "CUBOID 025"
+            },
+            {
+              "offset": 1382,
+              "text": "CUBOID 026"
+            },
+            {
+              "offset": 1474,
+              "text": "CUBOID 027"
+            },
+            {
+              "offset": 1590,
+              "text": "CUBOID 028"
+            },
+            {
+              "offset": 1682,
+              "text": "CUBOID 029"
+            },
+            {
+              "offset": 1774,
+              "text": "CUBOID 030"
+            },
+            {
+              "offset": 1866,
+              "text": "CUBOID 031"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 349184,
+          "cylinder": 31,
+          "empty": false,
+          "entropy": 4.5,
+          "first_block": 682,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 62
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 102,
+              "text": "PYRMID 011"
+            },
+            {
+              "offset": 210,
+              "text": "PYRMID 012"
+            },
+            {
+              "offset": 318,
+              "text": "PYRMID 013"
+            },
+            {
+              "offset": 426,
+              "text": "PYRMID 014"
+            },
+            {
+              "offset": 558,
+              "text": "PYRMID 015"
+            },
+            {
+              "offset": 666,
+              "text": "PYRMID 016"
+            },
+            {
+              "offset": 774,
+              "text": "PYRMID 017"
+            },
+            {
+              "offset": 882,
+              "text": "PYRMID 018"
+            },
+            {
+              "offset": 990,
+              "text": "PYRMID 019"
+            },
+            {
+              "offset": 1122,
+              "text": "PYRMID 020"
+            },
+            {
+              "offset": 1230,
+              "text": "PYRMID 021"
+            },
+            {
+              "offset": 1338,
+              "text": "PYRMID 022"
+            },
+            {
+              "offset": 1446,
+              "text": "PYRMID 023"
+            },
+            {
+              "offset": 1578,
+              "text": "PYRMID 024"
+            },
+            {
+              "offset": 1722,
+              "text": "CUBOID 018"
+            },
+            {
+              "offset": 1814,
+              "text": "CUBOID 019"
+            },
+            {
+              "offset": 1906,
+              "text": "HEXAGN 020"
+            },
+            {
+              "offset": 2138,
+              "text": "PYRMID 007"
+            },
+            {
+              "offset": 2246,
+              "text": "PYRMID 008"
+            },
+            {
+              "offset": 2354,
+              "text": "PYRMID 009"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 354816,
+          "cylinder": 31,
+          "empty": false,
+          "entropy": 4.79,
+          "first_block": 693,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 63
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 78,
+              "text": "PYRMID 017"
+            },
+            {
+              "offset": 186,
+              "text": "CUBOID 018"
+            },
+            {
+              "offset": 278,
+              "text": "CUBOID 019"
+            },
+            {
+              "offset": 370,
+              "text": "HEXAGN 020"
+            },
+            {
+              "offset": 566,
+              "text": "CUBOID 017"
+            },
+            {
+              "offset": 658,
+              "text": "CUBOID 018"
+            },
+            {
+              "offset": 750,
+              "text": "CUBOID 019"
+            },
+            {
+              "offset": 842,
+              "text": "CUBOID 020"
+            },
+            {
+              "offset": 876,
+              "text": "IIIIII"
+            },
+            {
+              "offset": 934,
+              "text": "CUBOID 021"
+            },
+            {
+              "offset": 968,
+              "text": "IIIIII"
+            },
+            {
+              "offset": 1050,
+              "text": "CUBOID 022"
+            },
+            {
+              "offset": 1084,
+              "text": "IIIIII"
+            },
+            {
+              "offset": 1142,
+              "text": "CUBOID 023"
+            },
+            {
+              "offset": 1176,
+              "text": "IIIIII"
+            },
+            {
+              "offset": 1234,
+              "text": "CUBOID 024"
+            },
+            {
+              "offset": 1268,
+              "text": "IIIIII"
+            },
+            {
+              "offset": 1326,
+              "text": "CUBOID 025"
+            },
+            {
+              "offset": 1418,
+              "text": "CUBOID 026"
+            },
+            {
+              "offset": 1510,
+              "text": "CUBOID 027"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 360448,
+          "cylinder": 32,
+          "empty": false,
+          "entropy": 4.43,
+          "first_block": 704,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 64
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 24,
+              "text": "BOID 011"
+            },
+            {
+              "offset": 90,
+              "text": "CUBOID 030"
+            },
+            {
+              "offset": 182,
+              "text": "PYRMID 031"
+            },
+            {
+              "offset": 306,
+              "text": "PYRMID 025"
+            },
+            {
+              "offset": 356,
+              "text": "fffeff"
+            },
+            {
+              "offset": 414,
+              "text": "PYRMID 026"
+            },
+            {
+              "offset": 550,
+              "text": "CUBOID 011"
+            },
+            {
+              "offset": 642,
+              "text": "CUBOID 012"
+            },
+            {
+              "offset": 734,
+              "text": "HEXAGN 013"
+            },
+            {
+              "offset": 842,
+              "text": "HEXAGN 014"
+            },
+            {
+              "offset": 958,
+              "text": "PYRMID 019"
+            },
+            {
+              "offset": 1122,
+              "text": "HEXAGN 036"
+            },
+            {
+              "offset": 1220,
+              "text": "UUUUUU"
+            },
+            {
+              "offset": 1278,
+              "text": "CUBOID 019"
+            },
+            {
+              "offset": 1312,
+              "text": "UUUUUU"
+            },
+            {
+              "offset": 1370,
+              "text": "CUBOID 020"
+            },
+            {
+              "offset": 1404,
+              "text": "UUUUUU"
+            },
+            {
+              "offset": 1462,
+              "text": "CUBOID 021"
+            },
+            {
+              "offset": 1496,
+              "text": "UUUUUU"
+            },
+            {
+              "offset": 1602,
+              "text": "LINE   006"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 366080,
+          "cylinder": 32,
+          "empty": false,
+          "entropy": 4.51,
+          "first_block": 715,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 65
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 102,
+              "text": "PYRMID 039"
+            },
+            {
+              "offset": 210,
+              "text": "PYRMID 040"
+            },
+            {
+              "offset": 318,
+              "text": "PYRMID 041"
+            },
+            {
+              "offset": 426,
+              "text": "PYRMID 042"
+            },
+            {
+              "offset": 558,
+              "text": "PYRMID 043"
+            },
+            {
+              "offset": 666,
+              "text": "CUBOID 044"
+            },
+            {
+              "offset": 700,
+              "text": "%%UU\"\""
+            },
+            {
+              "offset": 758,
+              "text": "PYRMID 045"
+            },
+            {
+              "offset": 866,
+              "text": "CUBOID 046"
+            },
+            {
+              "offset": 900,
+              "text": "E3UU%%"
+            },
+            {
+              "offset": 958,
+              "text": "CUBOID 047"
+            },
+            {
+              "offset": 992,
+              "text": "E3UU%%"
+            },
+            {
+              "offset": 1074,
+              "text": "CUBOID 048"
+            },
+            {
+              "offset": 1166,
+              "text": "CUBOID 049"
+            },
+            {
+              "offset": 1258,
+              "text": "CUBOID 050"
+            },
+            {
+              "offset": 1350,
+              "text": "CUBOID 051"
+            },
+            {
+              "offset": 1442,
+              "text": "CUBOID 052"
+            },
+            {
+              "offset": 1560,
+              "text": "BOID 053"
+            },
+            {
+              "offset": 1650,
+              "text": "CUBOID 054"
+            },
+            {
+              "offset": 1742,
+              "text": "CUBOID 055"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 371712,
+          "cylinder": 33,
+          "empty": false,
+          "entropy": 4.65,
+          "first_block": 726,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 66
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 66,
+              "text": "HEXAGN 016"
+            },
+            {
+              "offset": 166,
+              "text": "PYRMID 017"
+            },
+            {
+              "offset": 274,
+              "text": "PYRMID 018"
+            },
+            {
+              "offset": 324,
+              "text": "))IIII"
+            },
+            {
+              "offset": 382,
+              "text": "PYRMID 019"
+            },
+            {
+              "offset": 432,
+              "text": "DD$$$$"
+            },
+            {
+              "offset": 490,
+              "text": "PYRMID 020"
+            },
+            {
+              "offset": 622,
+              "text": "PYRMID 021"
+            },
+            {
+              "offset": 672,
+              "text": "))IIII"
+            },
+            {
+              "offset": 730,
+              "text": "PYRMID 022"
+            },
+            {
+              "offset": 780,
+              "text": "DD$$$$"
+            },
+            {
+              "offset": 838,
+              "text": "PYRMID 023"
+            },
+            {
+              "offset": 946,
+              "text": "PYRMID 024"
+            },
+            {
+              "offset": 996,
+              "text": "))IIII"
+            },
+            {
+              "offset": 1078,
+              "text": "PYRMID 025"
+            },
+            {
+              "offset": 1128,
+              "text": "DD$$$$"
+            },
+            {
+              "offset": 1186,
+              "text": "PYRMID 026"
+            },
+            {
+              "offset": 1294,
+              "text": "PYRMID 027"
+            },
+            {
+              "offset": 1344,
+              "text": "))IIII"
+            },
+            {
+              "offset": 1402,
+              "text": "PYRMID 028"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 377344,
+          "cylinder": 33,
+          "empty": false,
+          "entropy": 4.75,
+          "first_block": 737,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 67
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 20,
+              "text": "5r(% 006"
+            },
+            {
+              "offset": 110,
+              "text": "CUBOID 007"
+            },
+            {
+              "offset": 202,
+              "text": "CUBOID 008"
+            },
+            {
+              "offset": 294,
+              "text": "CUBOID 009"
+            },
+            {
+              "offset": 386,
+              "text": "CUBOID 010"
+            },
+            {
+              "offset": 478,
+              "text": "CUBOID 011"
+            },
+            {
+              "offset": 594,
+              "text": "CUBOID 012"
+            },
+            {
+              "offset": 686,
+              "text": "CUBOID 013"
+            },
+            {
+              "offset": 778,
+              "text": "CUBOID 014"
+            },
+            {
+              "offset": 870,
+              "text": "PYRMID 015"
+            },
+            {
+              "offset": 978,
+              "text": "PYRMID 016"
+            },
+            {
+              "offset": 1110,
+              "text": "TRNGLE 017"
+            },
+            {
+              "offset": 1192,
+              "text": "TRNGLE 018"
+            },
+            {
+              "offset": 1278,
+              "text": "TRNGLE 019"
+            },
+            {
+              "offset": 1364,
+              "text": "TRNGLE 020"
+            },
+            {
+              "offset": 1450,
+              "text": "CUBOID 021"
+            },
+            {
+              "offset": 1566,
+              "text": "CUBOID 022"
+            },
+            {
+              "offset": 1658,
+              "text": "CUBOID 023"
+            },
+            {
+              "offset": 1750,
+              "text": "CUBOID 024"
+            },
+            {
+              "offset": 1842,
+              "text": "CUBOID 025"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 382976,
+          "cylinder": 34,
+          "empty": false,
+          "entropy": 4.52,
+          "first_block": 748,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 68
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 58,
+              "text": "CUBOID 054"
+            },
+            {
+              "offset": 150,
+              "text": "CUBOID 055"
+            },
+            {
+              "offset": 242,
+              "text": "CUBOID 056"
+            },
+            {
+              "offset": 334,
+              "text": "RCTNGL 057"
+            },
+            {
+              "offset": 404,
+              "text": "ww''GG"
+            },
+            {
+              "offset": 462,
+              "text": "CUBOID 019"
+            },
+            {
+              "offset": 496,
+              "text": "EEUU%%"
+            },
+            {
+              "offset": 534,
+              "text": "/@%EUU"
+            },
+            {
+              "offset": 594,
+              "text": "CUBOID 012"
+            },
+            {
+              "offset": 686,
+              "text": "CUBOID 013"
+            },
+            {
+              "offset": 778,
+              "text": "PYRMID 014"
+            },
+            {
+              "offset": 886,
+              "text": "CUBOID 015"
+            },
+            {
+              "offset": 978,
+              "text": "CUBOID 016"
+            },
+            {
+              "offset": 1094,
+              "text": "CUBOID 017"
+            },
+            {
+              "offset": 1186,
+              "text": "CUBOID 018"
+            },
+            {
+              "offset": 1278,
+              "text": "CUBOID 019"
+            },
+            {
+              "offset": 1370,
+              "text": "CUBOID 020"
+            },
+            {
+              "offset": 1462,
+              "text": "CUBOID 021"
+            },
+            {
+              "offset": 1578,
+              "text": "CUBOID 022"
+            },
+            {
+              "offset": 1670,
+              "text": "CUBOID 023"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 388608,
+          "cylinder": 34,
+          "empty": false,
+          "entropy": 4.5,
+          "first_block": 759,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 69
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 230,
+              "text": "CUBOID 003"
+            },
+            {
+              "offset": 322,
+              "text": "PYRMID 004"
+            },
+            {
+              "offset": 430,
+              "text": "PYRMID 005"
+            },
+            {
+              "offset": 554,
+              "text": "CUBOID 022"
+            },
+            {
+              "offset": 646,
+              "text": "CUBOID 023"
+            },
+            {
+              "offset": 738,
+              "text": "CUBOID 024"
+            },
+            {
+              "offset": 830,
+              "text": "CUBOID 025"
+            },
+            {
+              "offset": 922,
+              "text": "CUBOID 026"
+            },
+            {
+              "offset": 1014,
+              "text": "CUBOID 027"
+            },
+            {
+              "offset": 1130,
+              "text": "CUBOID 028"
+            },
+            {
+              "offset": 1222,
+              "text": "CUBOID 029"
+            },
+            {
+              "offset": 1314,
+              "text": "CUBOID 030"
+            },
+            {
+              "offset": 1406,
+              "text": "CUBOID 031"
+            },
+            {
+              "offset": 1498,
+              "text": "CUBOID 032"
+            },
+            {
+              "offset": 1614,
+              "text": "CUBOID 033"
+            },
+            {
+              "offset": 1706,
+              "text": "CUBOID 034"
+            },
+            {
+              "offset": 1798,
+              "text": "CUBOID 035"
+            },
+            {
+              "offset": 1890,
+              "text": "CUBOID 036"
+            },
+            {
+              "offset": 1982,
+              "text": "CUBOID 037"
+            },
+            {
+              "offset": 2098,
+              "text": "CUBOID 038"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 394240,
+          "cylinder": 35,
+          "empty": false,
+          "entropy": 4.48,
+          "first_block": 770,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 70
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 46,
+              "text": "PYRMID 015"
+            },
+            {
+              "offset": 154,
+              "text": "PYRMID 016"
+            },
+            {
+              "offset": 204,
+              "text": "ww''GG"
+            },
+            {
+              "offset": 262,
+              "text": "CUBOID 017"
+            },
+            {
+              "offset": 296,
+              "text": "EEUU%%"
+            },
+            {
+              "offset": 354,
+              "text": "PYRMID 018"
+            },
+            {
+              "offset": 404,
+              "text": "ww''GG"
+            },
+            {
+              "offset": 462,
+              "text": "CUBOID 019"
+            },
+            {
+              "offset": 496,
+              "text": "EEUU%%"
+            },
+            {
+              "offset": 546,
+              "text": "CUBOID 006"
+            },
+            {
+              "offset": 638,
+              "text": "PYRMID 007"
+            },
+            {
+              "offset": 746,
+              "text": "CUBOID 008"
+            },
+            {
+              "offset": 838,
+              "text": "HEXAGN 009"
+            },
+            {
+              "offset": 946,
+              "text": "HEXAGN 010"
+            },
+            {
+              "offset": 1142,
+              "text": "RCTNGL 023"
+            },
+            {
+              "offset": 1222,
+              "text": "PYRMID 024"
+            },
+            {
+              "offset": 1330,
+              "text": "PYRMID 025"
+            },
+            {
+              "offset": 1380,
+              "text": "fffeff"
+            },
+            {
+              "offset": 1438,
+              "text": "PYRMID 026"
+            },
+            {
+              "offset": 1570,
+              "text": "PYRMID 027"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 399872,
+          "cylinder": 35,
+          "empty": false,
+          "entropy": 4.57,
+          "first_block": 781,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 71
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 50,
+              "text": "HEXAGN 006"
+            },
+            {
+              "offset": 158,
+              "text": "HEXAGN 007"
+            },
+            {
+              "offset": 266,
+              "text": "PYRMID 008"
+            },
+            {
+              "offset": 316,
+              "text": "DDDDDD"
+            },
+            {
+              "offset": 374,
+              "text": "PYRMID 009"
+            },
+            {
+              "offset": 424,
+              "text": "DDDDDD"
+            },
+            {
+              "offset": 482,
+              "text": "CUBOID 010"
+            },
+            {
+              "offset": 540,
+              "text": "DDDDDD"
+            },
+            {
+              "offset": 598,
+              "text": "HEXAGN 011"
+            },
+            {
+              "offset": 706,
+              "text": "HEXAGN 012"
+            },
+            {
+              "offset": 814,
+              "text": "PYRMID 013"
+            },
+            {
+              "offset": 922,
+              "text": "PYRMID 014"
+            },
+            {
+              "offset": 1054,
+              "text": "PYRMID 015"
+            },
+            {
+              "offset": 1162,
+              "text": "PYRMID 016"
+            },
+            {
+              "offset": 1270,
+              "text": "PYRMID 017"
+            },
+            {
+              "offset": 1320,
+              "text": "$$DD33"
+            },
+            {
+              "offset": 1378,
+              "text": "PYRMID 018"
+            },
+            {
+              "offset": 1486,
+              "text": "PYRMID 019"
+            },
+            {
+              "offset": 1618,
+              "text": "PYRMID 020"
+            },
+            {
+              "offset": 1726,
+              "text": "PYRMID 021"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 405504,
+          "cylinder": 36,
+          "empty": false,
+          "entropy": 4.61,
+          "first_block": 792,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 72
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 62,
+              "text": "RCTNGL 029"
+            },
+            {
+              "offset": 142,
+              "text": "RCTNGL 030"
+            },
+            {
+              "offset": 222,
+              "text": "RCTNGL 031"
+            },
+            {
+              "offset": 302,
+              "text": "RCTNGL 032"
+            },
+            {
+              "offset": 382,
+              "text": "RCTNGL 033"
+            },
+            {
+              "offset": 462,
+              "text": "RCTNGL 034"
+            },
+            {
+              "offset": 566,
+              "text": "RCTNGL 035"
+            },
+            {
+              "offset": 646,
+              "text": "HEXAGN 036"
+            },
+            {
+              "offset": 754,
+              "text": "HEXAGN 037"
+            },
+            {
+              "offset": 862,
+              "text": "RCTNGL 038"
+            },
+            {
+              "offset": 942,
+              "text": "PYRMID 039"
+            },
+            {
+              "offset": 992,
+              "text": "DDDDDD"
+            },
+            {
+              "offset": 1074,
+              "text": "CUBOID 040"
+            },
+            {
+              "offset": 1108,
+              "text": "DDCCDD"
+            },
+            {
+              "offset": 1166,
+              "text": "PYRMID 041"
+            },
+            {
+              "offset": 1216,
+              "text": "DD33D3"
+            },
+            {
+              "offset": 1274,
+              "text": "HEXAGN 042"
+            },
+            {
+              "offset": 1382,
+              "text": "PYRMID 043"
+            },
+            {
+              "offset": 1432,
+              "text": "DDDDDD"
+            },
+            {
+              "offset": 1490,
+              "text": "CUBOID 044"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 411136,
+          "cylinder": 36,
+          "empty": false,
+          "entropy": 4.52,
+          "first_block": 803,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 73
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 98,
+              "text": "CUBOID 058"
+            },
+            {
+              "offset": 190,
+              "text": "CUBOID 059"
+            },
+            {
+              "offset": 282,
+              "text": "CUBOID 060"
+            },
+            {
+              "offset": 316,
+              "text": "\"\"33\"\""
+            },
+            {
+              "offset": 374,
+              "text": "CUBOID 061"
+            },
+            {
+              "offset": 408,
+              "text": "\"\"33\"\""
+            },
+            {
+              "offset": 466,
+              "text": "CUBOID 062"
+            },
+            {
+              "offset": 500,
+              "text": "\"\"\"3\"\""
+            },
+            {
+              "offset": 582,
+              "text": "CUBOID 063"
+            },
+            {
+              "offset": 616,
+              "text": "\"\"33\"\""
+            },
+            {
+              "offset": 674,
+              "text": "PYRMID 064"
+            },
+            {
+              "offset": 782,
+              "text": "PYRMID 065"
+            },
+            {
+              "offset": 890,
+              "text": "PYRMID 066"
+            },
+            {
+              "offset": 998,
+              "text": "PYRMID 067"
+            },
+            {
+              "offset": 1130,
+              "text": "PYRMID 068"
+            },
+            {
+              "offset": 1180,
+              "text": "DDDD33"
+            },
+            {
+              "offset": 1238,
+              "text": "PYRMID 069"
+            },
+            {
+              "offset": 1346,
+              "text": "PYRMID 070"
+            },
+            {
+              "offset": 1454,
+              "text": "PYRMID 071"
+            },
+            {
+              "offset": 1586,
+              "text": "PYRMID 072"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 416768,
+          "cylinder": 37,
+          "empty": false,
+          "entropy": 4.38,
+          "first_block": 814,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 74
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 46,
+              "text": "PYRMID 015"
+            },
+            {
+              "offset": 154,
+              "text": "PYRMID 016"
+            },
+            {
+              "offset": 286,
+              "text": "CUBOID 009"
+            },
+            {
+              "offset": 378,
+              "text": "CUBOID 010"
+            },
+            {
+              "offset": 412,
+              "text": "D3NN\"D"
+            },
+            {
+              "offset": 470,
+              "text": "RCTNGL 011"
+            },
+            {
+              "offset": 574,
+              "text": "PYRMID 053"
+            },
+            {
+              "offset": 624,
+              "text": "3333B3"
+            },
+            {
+              "offset": 682,
+              "text": "PYRMID 054"
+            },
+            {
+              "offset": 732,
+              "text": "DD33K3"
+            },
+            {
+              "offset": 790,
+              "text": "PYRMID 055"
+            },
+            {
+              "offset": 898,
+              "text": "PYRMID 056"
+            },
+            {
+              "offset": 948,
+              "text": "DD3333"
+            },
+            {
+              "offset": 1006,
+              "text": "CUBOID 057"
+            },
+            {
+              "offset": 1074,
+              "text": "RCTNGL 006"
+            },
+            {
+              "offset": 1154,
+              "text": "RCTNGL 007"
+            },
+            {
+              "offset": 1234,
+              "text": "RCTNGL 008"
+            },
+            {
+              "offset": 1314,
+              "text": "RCTNGL 009"
+            },
+            {
+              "offset": 1394,
+              "text": "RCTNGL 010"
+            },
+            {
+              "offset": 1474,
+              "text": "RCTNGL 011"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 422400,
+          "cylinder": 37,
+          "empty": false,
+          "entropy": 4.53,
+          "first_block": 825,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 75
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 110,
+              "text": "CUBOID 007"
+            },
+            {
+              "offset": 202,
+              "text": "PYRMID 008"
+            },
+            {
+              "offset": 310,
+              "text": "PYRMID 009"
+            },
+            {
+              "offset": 418,
+              "text": "TRNGLE 010"
+            },
+            {
+              "offset": 500,
+              "text": "LINE   011"
+            },
+            {
+              "offset": 600,
+              "text": "LINE   012"
+            },
+            {
+              "offset": 676,
+              "text": "TRNGLE 013"
+            },
+            {
+              "offset": 758,
+              "text": "TRNGLE 014"
+            },
+            {
+              "offset": 836,
+              "text": "LINE   015"
+            },
+            {
+              "offset": 912,
+              "text": "LINE   016"
+            },
+            {
+              "offset": 988,
+              "text": "TRNGLE 017"
+            },
+            {
+              "offset": 1090,
+              "text": "PYRMID 018"
+            },
+            {
+              "offset": 1198,
+              "text": "CUBOID 019"
+            },
+            {
+              "offset": 1290,
+              "text": "CUBOID 020"
+            },
+            {
+              "offset": 1382,
+              "text": "PYRMID 021"
+            },
+            {
+              "offset": 1490,
+              "text": "PYRMID 022"
+            },
+            {
+              "offset": 1622,
+              "text": "TRNGLE 023"
+            },
+            {
+              "offset": 1704,
+              "text": "PYRMID 024"
+            },
+            {
+              "offset": 1812,
+              "text": "PYRMID 025"
+            },
+            {
+              "offset": 1920,
+              "text": "TRNGLE 026"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 428032,
+          "cylinder": 38,
+          "empty": false,
+          "entropy": 4.54,
+          "first_block": 836,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 76
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 24,
+              "text": "BOID 011"
+            },
+            {
+              "offset": 114,
+              "text": "CUBOID 012"
+            },
+            {
+              "offset": 206,
+              "text": "CUBOID 013"
+            },
+            {
+              "offset": 298,
+              "text": "CUBOID 014"
+            },
+            {
+              "offset": 390,
+              "text": "CUBOID 015"
+            },
+            {
+              "offset": 482,
+              "text": "CUBOID 016"
+            },
+            {
+              "offset": 598,
+              "text": "CUBOID 017"
+            },
+            {
+              "offset": 690,
+              "text": "CUBOID 018"
+            },
+            {
+              "offset": 782,
+              "text": "CUBOID 019"
+            },
+            {
+              "offset": 874,
+              "text": "CUBOID 020"
+            },
+            {
+              "offset": 966,
+              "text": "CUBOID 021"
+            },
+            {
+              "offset": 1082,
+              "text": "CUBOID 022"
+            },
+            {
+              "offset": 1174,
+              "text": "CUBOID 023"
+            },
+            {
+              "offset": 1266,
+              "text": "CUBOID 024"
+            },
+            {
+              "offset": 1358,
+              "text": "CUBOID 025"
+            },
+            {
+              "offset": 1450,
+              "text": "CUBOID 026"
+            },
+            {
+              "offset": 1566,
+              "text": "CUBOID 027"
+            },
+            {
+              "offset": 1658,
+              "text": "CUBOID 028"
+            },
+            {
+              "offset": 1750,
+              "text": "PYRMID 029"
+            },
+            {
+              "offset": 1800,
+              "text": "DDDDDD"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 433664,
+          "cylinder": 38,
+          "empty": false,
+          "entropy": 4.32,
+          "first_block": 847,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 77
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 90,
+              "text": "CUBOID 025"
+            },
+            {
+              "offset": 433,
+              "text": "0001.3OD"
+            },
+            {
+              "offset": 535,
+              "text": "(RMID 053"
+            },
+            {
+              "offset": 642,
+              "text": "PYRMID 054"
+            },
+            {
+              "offset": 692,
+              "text": "ww&www"
+            },
+            {
+              "offset": 750,
+              "text": "PYRMID 055"
+            },
+            {
+              "offset": 800,
+              "text": "ww&www"
+            },
+            {
+              "offset": 858,
+              "text": "PYRMID 056"
+            },
+            {
+              "offset": 908,
+              "text": "U%\"U33"
+            },
+            {
+              "offset": 966,
+              "text": "CUBOID 057"
+            },
+            {
+              "offset": 1052,
+              "text": "SOUND 2"
+            },
+            {
+              "offset": 1082,
+              "text": "SOUND 3"
+            },
+            {
+              "offset": 1112,
+              "text": "SOUND 4"
+            },
+            {
+              "offset": 1142,
+              "text": "SOUND 5"
+            },
+            {
+              "offset": 1182,
+              "text": " bSYSFONT 1"
+            },
+            {
+              "offset": 1198,
+              "text": " ^SYSFONT 2"
+            },
+            {
+              "offset": 1252,
+              "text": "PYRMID 057"
+            },
+            {
+              "offset": 1340,
+              "text": "PYRMID 059"
+            },
+            {
+              "offset": 1390,
+              "text": "\"D\"\"33"
+            },
+            {
+              "offset": 1428,
+              "text": "PYRMID 060"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 439296,
+          "cylinder": 39,
+          "empty": false,
+          "entropy": 4.1,
+          "first_block": 858,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 78
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 34,
+              "text": "PYRMID 006"
+            },
+            {
+              "offset": 142,
+              "text": "PYRMID 007"
+            },
+            {
+              "offset": 250,
+              "text": "PYRMID 008"
+            },
+            {
+              "offset": 358,
+              "text": "PYRMID 009"
+            },
+            {
+              "offset": 466,
+              "text": "PYRMID 010"
+            },
+            {
+              "offset": 598,
+              "text": "PYRMID 011"
+            },
+            {
+              "offset": 706,
+              "text": "PYRMID 012"
+            },
+            {
+              "offset": 814,
+              "text": "PYRMID 013"
+            },
+            {
+              "offset": 922,
+              "text": "PYRMID 014"
+            },
+            {
+              "offset": 1054,
+              "text": "PYRMID 015"
+            },
+            {
+              "offset": 1162,
+              "text": "PYRMID 016"
+            },
+            {
+              "offset": 1270,
+              "text": "HEXAGN 017"
+            },
+            {
+              "offset": 1378,
+              "text": "HEXAGN 018"
+            },
+            {
+              "offset": 1486,
+              "text": "HEXAGN 019"
+            },
+            {
+              "offset": 1618,
+              "text": "HEXAGN 020"
+            },
+            {
+              "offset": 1726,
+              "text": "HEXAGN 021"
+            },
+            {
+              "offset": 1834,
+              "text": "HEXAGN 022"
+            },
+            {
+              "offset": 1942,
+              "text": "PYRMID 023"
+            },
+            {
+              "offset": 1992,
+              "text": "ww''GG"
+            },
+            {
+              "offset": 2074,
+              "text": "CUBOID 024"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 444928,
+          "cylinder": 39,
+          "empty": false,
+          "entropy": 4.02,
+          "first_block": 869,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 79
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 433,
+              "text": "CLIP_ART"
+            },
+            {
+              "offset": 945,
+              "text": "0010.3OD"
+            },
+            {
+              "offset": 1457,
+              "text": "Trashcan"
+            },
+            {
+              "offset": 1969,
+              "text": "Trashcan.info"
+            },
+            {
+              "offset": 4017,
+              "text": "Clip_Art"
+            },
+            {
+              "offset": 4529,
+              "text": "0026.3WD"
+            },
+            {
+              "offset": 5041,
+              "text": "0009.3OD"
+            },
+            {
+              "offset": 5144,
+              "text": "An OBJECT file created with 3d Construction Kit 2"
+            },
+            {
+              "offset": 5350,
+              "text": "PYRMID 003"
+            },
+            {
+              "offset": 5400,
+              "text": "A#\"\"33"
+            },
+            {
+              "offset": 5458,
+              "text": "CUBOID 004"
+            },
+            {
+              "offset": 5492,
+              "text": "333333"
+            },
+            {
+              "offset": 5550,
+              "text": "CUBOID 005"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 450560,
+          "cylinder": 40,
+          "empty": false,
+          "entropy": 2.33,
+          "first_block": 880,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 80
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 22,
+              "text": "NNAn OBJECT file created with 3d Construction Kit 2"
+            },
+            {
+              "offset": 230,
+              "text": "QUAD   003"
+            },
+            {
+              "offset": 318,
+              "text": "PYRMID 004"
+            },
+            {
+              "offset": 426,
+              "text": "QUAD   005"
+            },
+            {
+              "offset": 538,
+              "text": "TRNGLE 006"
+            },
+            {
+              "offset": 620,
+              "text": "TRNGLE 007"
+            },
+            {
+              "offset": 702,
+              "text": "PYRMID 008"
+            },
+            {
+              "offset": 752,
+              "text": "UUVVEE"
+            },
+            {
+              "offset": 810,
+              "text": "CUBOID 009"
+            },
+            {
+              "offset": 902,
+              "text": "QUAD   010"
+            },
+            {
+              "offset": 986,
+              "text": "QUAD   011"
+            },
+            {
+              "offset": 1094,
+              "text": "HEXAGN 012"
+            },
+            {
+              "offset": 1202,
+              "text": "HEXAGN 013"
+            },
+            {
+              "offset": 1310,
+              "text": "CUBOID 014"
+            },
+            {
+              "offset": 1402,
+              "text": "CUBOID 015"
+            },
+            {
+              "offset": 1494,
+              "text": "CUBOID 016"
+            },
+            {
+              "offset": 1610,
+              "text": "CUBOID 017"
+            },
+            {
+              "offset": 1702,
+              "text": "PYRMID 018"
+            },
+            {
+              "offset": 1752,
+              "text": "\"\"!!33"
+            },
+            {
+              "offset": 1810,
+              "text": "CUBOID 019"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 456192,
+          "cylinder": 40,
+          "empty": false,
+          "entropy": 3.48,
+          "first_block": 891,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 81
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 21,
+              "text": "# `An OBJECT file created with 3d Construction Kit 2"
+            },
+            {
+              "offset": 230,
+              "text": "CUBOID 003"
+            },
+            {
+              "offset": 264,
+              "text": "3333\"3"
+            },
+            {
+              "offset": 322,
+              "text": "RCTNGL 004"
+            },
+            {
+              "offset": 402,
+              "text": "RCTNGL 005"
+            },
+            {
+              "offset": 482,
+              "text": "RCTNGL 006"
+            },
+            {
+              "offset": 586,
+              "text": "RCTNGL 007"
+            },
+            {
+              "offset": 666,
+              "text": "RCTNGL 008"
+            },
+            {
+              "offset": 746,
+              "text": "RCTNGL 009"
+            },
+            {
+              "offset": 826,
+              "text": "RCTNGL 010"
+            },
+            {
+              "offset": 906,
+              "text": "PYRMID 011"
+            },
+            {
+              "offset": 956,
+              "text": "\"\"##33"
+            },
+            {
+              "offset": 1457,
+              "text": "0014.3OD"
+            },
+            {
+              "offset": 1558,
+              "text": "CZAn OBJECT file created with 3d Construction Kit 2"
+            },
+            {
+              "offset": 1766,
+              "text": "CUBOID 003"
+            },
+            {
+              "offset": 1858,
+              "text": "RCTNGL 004"
+            },
+            {
+              "offset": 1938,
+              "text": "RCTNGL 005"
+            },
+            {
+              "offset": 2018,
+              "text": "RCTNGL 006"
+            },
+            {
+              "offset": 2481,
+              "text": "0015t.3OD"
+            },
+            {
+              "offset": 2584,
+              "text": "An OBJECT file created with 3d Construction Kit 2"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 461824,
+          "cylinder": 41,
+          "empty": false,
+          "entropy": 3.0,
+          "first_block": 902,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 82
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 24,
+              "text": "An OBJECT file created with 3d Construction Kit 2"
+            },
+            {
+              "offset": 230,
+              "text": "CUBOID 003"
+            },
+            {
+              "offset": 322,
+              "text": "CUBOID 004"
+            },
+            {
+              "offset": 414,
+              "text": "RCTNGL 005"
+            },
+            {
+              "offset": 494,
+              "text": "HEXAGN 006"
+            },
+            {
+              "offset": 626,
+              "text": "HEXAGN 007"
+            },
+            {
+              "offset": 734,
+              "text": "HEXAGN 008"
+            },
+            {
+              "offset": 842,
+              "text": "HEXAGN 009"
+            },
+            {
+              "offset": 950,
+              "text": "CUBOID 010"
+            },
+            {
+              "offset": 1066,
+              "text": "CUBOID 011"
+            },
+            {
+              "offset": 1158,
+              "text": "CUBOID 012"
+            },
+            {
+              "offset": 1250,
+              "text": "CUBOID 013"
+            },
+            {
+              "offset": 1342,
+              "text": "CUBOID 014"
+            },
+            {
+              "offset": 1969,
+              "text": "0018.3OD"
+            },
+            {
+              "offset": 2072,
+              "text": "An OBJECT file created with 3d Construction Kit 2"
+            },
+            {
+              "offset": 2278,
+              "text": "PYRMID 003"
+            },
+            {
+              "offset": 2386,
+              "text": "CUBOID 004"
+            },
+            {
+              "offset": 2420,
+              "text": "DDDDDD"
+            },
+            {
+              "offset": 2478,
+              "text": "CUBOID 005"
+            },
+            {
+              "offset": 2512,
+              "text": "DDDDDD"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 467456,
+          "cylinder": 41,
+          "empty": false,
+          "entropy": 3.28,
+          "first_block": 913,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 83
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 433,
+              "text": "0001.3OD"
+            },
+            {
+              "offset": 533,
+              "text": "tH@An OBJECT file created with 3d Construction Kit 2"
+            },
+            {
+              "offset": 742,
+              "text": "CUBOID 003"
+            },
+            {
+              "offset": 834,
+              "text": "PYRMID 004"
+            },
+            {
+              "offset": 942,
+              "text": "PYRMID 005"
+            },
+            {
+              "offset": 1457,
+              "text": "0002.3OD"
+            },
+            {
+              "offset": 1558,
+              "text": "#.An OBJECT file created with 3d Construction Kit 2"
+            },
+            {
+              "offset": 1766,
+              "text": "PYRMID 003"
+            },
+            {
+              "offset": 1874,
+              "text": "CUBOID 004"
+            },
+            {
+              "offset": 1966,
+              "text": "CUBOID 005"
+            },
+            {
+              "offset": 2000,
+              "text": "!!AAAA"
+            },
+            {
+              "offset": 2481,
+              "text": "0003.3OD"
+            },
+            {
+              "offset": 2583,
+              "text": "_An OBJECT file created with 3d Construction Kit 2"
+            },
+            {
+              "offset": 2790,
+              "text": "RCTNGL 003"
+            },
+            {
+              "offset": 2870,
+              "text": "RCTNGL 004"
+            },
+            {
+              "offset": 2950,
+              "text": "RCTNGL 005"
+            },
+            {
+              "offset": 3030,
+              "text": "RCTNGL 006"
+            },
+            {
+              "offset": 3505,
+              "text": "0004.3OD"
+            },
+            {
+              "offset": 3607,
+              "text": "8An OBJECT file created with 3d Construction Kit 2"
+            },
+            {
+              "offset": 3814,
+              "text": "PYRMID 003"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 473088,
+          "cylinder": 42,
+          "empty": false,
+          "entropy": 2.87,
+          "first_block": 924,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 84
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 24,
+              "text": "An OBJECT file created with 3d Construction Kit 2"
+            },
+            {
+              "offset": 230,
+              "text": "CUBOID 003"
+            },
+            {
+              "offset": 322,
+              "text": "PYRMID 004"
+            },
+            {
+              "offset": 430,
+              "text": "PYRMID 005"
+            },
+            {
+              "offset": 562,
+              "text": "PYRMID 006"
+            },
+            {
+              "offset": 670,
+              "text": "PYRMID 007"
+            },
+            {
+              "offset": 778,
+              "text": "PYRMID 008"
+            },
+            {
+              "offset": 886,
+              "text": "PYRMID 009"
+            },
+            {
+              "offset": 994,
+              "text": "CUBOID 010"
+            },
+            {
+              "offset": 1110,
+              "text": "RCTNGL 011"
+            },
+            {
+              "offset": 1190,
+              "text": "RCTNGL 012"
+            },
+            {
+              "offset": 1270,
+              "text": "RCTNGL 013"
+            },
+            {
+              "offset": 1350,
+              "text": "RCTNGL 014"
+            },
+            {
+              "offset": 1430,
+              "text": "CUBOID 015"
+            },
+            {
+              "offset": 1522,
+              "text": "RCTNGL 016"
+            },
+            {
+              "offset": 1626,
+              "text": "RCTNGL 017"
+            },
+            {
+              "offset": 1706,
+              "text": "RCTNGL 018"
+            },
+            {
+              "offset": 1786,
+              "text": "RCTNGL 019"
+            },
+            {
+              "offset": 1866,
+              "text": "RCTNGL 020"
+            },
+            {
+              "offset": 1946,
+              "text": "RCTNGL 021"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 478720,
+          "cylinder": 42,
+          "empty": false,
+          "entropy": 4.02,
+          "first_block": 935,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 85
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 433,
+              "text": "0022.3OD"
+            },
+            {
+              "offset": 536,
+              "text": "An OBJECT file created with 3d Construction Kit 2"
+            },
+            {
+              "offset": 742,
+              "text": "CUBOID 003"
+            },
+            {
+              "offset": 834,
+              "text": "CUBOID 004"
+            },
+            {
+              "offset": 868,
+              "text": "GGww''"
+            },
+            {
+              "offset": 926,
+              "text": "PYRMID 005"
+            },
+            {
+              "offset": 1457,
+              "text": "0023.3OD"
+            },
+            {
+              "offset": 1559,
+              "text": "[An OBJECT file created with 3d Construction Kit 2"
+            },
+            {
+              "offset": 1766,
+              "text": "CUBOID 003"
+            },
+            {
+              "offset": 1858,
+              "text": "CUBOID 004"
+            },
+            {
+              "offset": 1950,
+              "text": "CUBOID 005"
+            },
+            {
+              "offset": 2042,
+              "text": "CUBOID"
+            },
+            {
+              "offset": 2481,
+              "text": "0024.3OD"
+            },
+            {
+              "offset": 2584,
+              "text": "An OBJECT file created with 3d Construction Kit 2"
+            },
+            {
+              "offset": 2790,
+              "text": "CUBOID 003"
+            },
+            {
+              "offset": 2882,
+              "text": "CUBOID 004"
+            },
+            {
+              "offset": 2974,
+              "text": "CUBOID 005"
+            },
+            {
+              "offset": 3066,
+              "text": "CUBOID"
+            },
+            {
+              "offset": 3505,
+              "text": "0025.3OD"
+            },
+            {
+              "offset": 3608,
+              "text": "An OBJECT file created with 3d Construction Kit 2"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 484352,
+          "cylinder": 43,
+          "empty": false,
+          "entropy": 2.7,
+          "first_block": 946,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 86
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 24,
+              "text": "An OBJECT file created with 3d Construction Kit 2"
+            },
+            {
+              "offset": 230,
+              "text": "CUBOID 003"
+            },
+            {
+              "offset": 322,
+              "text": "CUBOID 004"
+            },
+            {
+              "offset": 414,
+              "text": "CUBOID 005"
+            },
+            {
+              "offset": 506,
+              "text": "CUBOID"
+            },
+            {
+              "offset": 650,
+              "text": "PYRMID 016"
+            },
+            {
+              "offset": 758,
+              "text": "PYRMID 017"
+            },
+            {
+              "offset": 808,
+              "text": "$$DD33"
+            },
+            {
+              "offset": 866,
+              "text": "PYRMID 018"
+            },
+            {
+              "offset": 974,
+              "text": "PYRMID 019"
+            },
+            {
+              "offset": 1457,
+              "text": "0029.3OD"
+            },
+            {
+              "offset": 1559,
+              "text": "QAn OBJECT file created with 3d Construction Kit 2"
+            },
+            {
+              "offset": 1766,
+              "text": "CUBOID 003"
+            },
+            {
+              "offset": 1858,
+              "text": "CUBOID 004"
+            },
+            {
+              "offset": 1950,
+              "text": "CUBOID 005"
+            },
+            {
+              "offset": 2042,
+              "text": "CUBOID"
+            },
+            {
+              "offset": 2481,
+              "text": "0030.3OD"
+            },
+            {
+              "offset": 2584,
+              "text": "An OBJECT file created with 3d Construction Kit 2"
+            },
+            {
+              "offset": 2790,
+              "text": "CUBOID 003"
+            },
+            {
+              "offset": 2882,
+              "text": "CUBOID 004"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 489984,
+          "cylinder": 43,
+          "empty": false,
+          "entropy": 3.04,
+          "first_block": 957,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 87
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 24,
+              "text": "An OBJECT file created with 3d Construction Kit 2"
+            },
+            {
+              "offset": 230,
+              "text": "CUBOID 003"
+            },
+            {
+              "offset": 322,
+              "text": "CUBOID 004"
+            },
+            {
+              "offset": 414,
+              "text": "CUBOID 005"
+            },
+            {
+              "offset": 506,
+              "text": "LINE  "
+            },
+            {
+              "offset": 532,
+              "text": "${5\\ 006"
+            },
+            {
+              "offset": 606,
+              "text": "LINE   007"
+            },
+            {
+              "offset": 682,
+              "text": "LINE   008"
+            },
+            {
+              "offset": 758,
+              "text": "LINE   009"
+            },
+            {
+              "offset": 834,
+              "text": "LINE   010"
+            },
+            {
+              "offset": 910,
+              "text": "LINE   011"
+            },
+            {
+              "offset": 986,
+              "text": "LINE   012"
+            },
+            {
+              "offset": 1086,
+              "text": "LINE   013"
+            },
+            {
+              "offset": 1142,
+              "text": "RCTNGL 023"
+            },
+            {
+              "offset": 1222,
+              "text": "PYRMID 024"
+            },
+            {
+              "offset": 1330,
+              "text": "PYRMID 025"
+            },
+            {
+              "offset": 1380,
+              "text": "fffeff"
+            },
+            {
+              "offset": 1438,
+              "text": "PYRMID 026"
+            },
+            {
+              "offset": 1969,
+              "text": "0034.3OD"
+            },
+            {
+              "offset": 2071,
+              "text": "TAn OBJECT file created with 3d Construction Kit 2"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 495616,
+          "cylinder": 44,
+          "empty": false,
+          "entropy": 3.38,
+          "first_block": 968,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 88
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 433,
+              "text": "0038.3OD"
+            },
+            {
+              "offset": 533,
+              "text": "4cRAn OBJECT file created with 3d Construction Kit 2"
+            },
+            {
+              "offset": 742,
+              "text": "PYRMID 003"
+            },
+            {
+              "offset": 850,
+              "text": "CUBOID 004"
+            },
+            {
+              "offset": 884,
+              "text": "3&-.\"\""
+            },
+            {
+              "offset": 942,
+              "text": "CUBOID 005"
+            },
+            {
+              "offset": 976,
+              "text": "3&.-\"\""
+            },
+            {
+              "offset": 1457,
+              "text": "0039.3OD"
+            },
+            {
+              "offset": 1560,
+              "text": "An OBJECT file created with 3d Construction Kit 2"
+            },
+            {
+              "offset": 1766,
+              "text": "PYRMID 003"
+            },
+            {
+              "offset": 1816,
+              "text": "''wwGG"
+            },
+            {
+              "offset": 1874,
+              "text": "PYRMID 004"
+            },
+            {
+              "offset": 1924,
+              "text": "''wwGG"
+            },
+            {
+              "offset": 1982,
+              "text": "PYRMID 005"
+            },
+            {
+              "offset": 2032,
+              "text": "%%EE%U"
+            },
+            {
+              "offset": 2481,
+              "text": "0042.3OD"
+            },
+            {
+              "offset": 2582,
+              "text": "s}An OBJECT file created with 3d Construction Kit 2"
+            },
+            {
+              "offset": 2790,
+              "text": "CUBOID 003"
+            },
+            {
+              "offset": 2882,
+              "text": "CUBOID 004"
+            },
+            {
+              "offset": 2974,
+              "text": "CUBOID 005"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 501248,
+          "cylinder": 44,
+          "empty": false,
+          "entropy": 2.87,
+          "first_block": 979,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 89
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 23,
+              "text": "iAn OBJECT file created with 3d Construction Kit 2"
+            },
+            {
+              "offset": 230,
+              "text": "RCTNGL 003"
+            },
+            {
+              "offset": 310,
+              "text": "CUBOID 004"
+            },
+            {
+              "offset": 402,
+              "text": "CUBOID 005"
+            },
+            {
+              "offset": 494,
+              "text": "CUBOID 006"
+            },
+            {
+              "offset": 610,
+              "text": "CUBOID 007"
+            },
+            {
+              "offset": 702,
+              "text": "HEXAGN 008"
+            },
+            {
+              "offset": 810,
+              "text": "HEXAGN 009"
+            },
+            {
+              "offset": 918,
+              "text": "PYRMID 010"
+            },
+            {
+              "offset": 968,
+              "text": "33#$3#"
+            },
+            {
+              "offset": 1050,
+              "text": "CUBOID 011"
+            },
+            {
+              "offset": 1084,
+              "text": "3\"\"$\"\""
+            },
+            {
+              "offset": 1142,
+              "text": "CUBOID 012"
+            },
+            {
+              "offset": 1176,
+              "text": "\"3#$\"\""
+            },
+            {
+              "offset": 1234,
+              "text": "CUBOID 013"
+            },
+            {
+              "offset": 1268,
+              "text": "\"3#$\"\""
+            },
+            {
+              "offset": 1326,
+              "text": "CUBOID 014"
+            },
+            {
+              "offset": 1360,
+              "text": "\"\"#$\"\""
+            },
+            {
+              "offset": 1398,
+              "text": "PYRMID 037"
+            },
+            {
+              "offset": 1506,
+              "text": "PYRMID 038"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 506880,
+          "cylinder": 45,
+          "empty": false,
+          "entropy": 3.52,
+          "first_block": 990,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 90
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 433,
+              "text": "0050.3OD"
+            },
+            {
+              "offset": 536,
+              "text": "An OBJECT file created with 3d Construction Kit 2"
+            },
+            {
+              "offset": 742,
+              "text": "RCTNGL 003"
+            },
+            {
+              "offset": 822,
+              "text": "RCTNGL 004"
+            },
+            {
+              "offset": 902,
+              "text": "RCTNGL 005"
+            },
+            {
+              "offset": 982,
+              "text": "PYRMID 006"
+            },
+            {
+              "offset": 1457,
+              "text": "0051.3OD"
+            },
+            {
+              "offset": 1558,
+              "text": "3hAn OBJECT file created with 3d Construction Kit 2"
+            },
+            {
+              "offset": 1766,
+              "text": "CUBOID 003"
+            },
+            {
+              "offset": 1858,
+              "text": "PYRMID 004"
+            },
+            {
+              "offset": 1966,
+              "text": "PYRMID 005"
+            },
+            {
+              "offset": 2481,
+              "text": "0052.3OD"
+            },
+            {
+              "offset": 2582,
+              "text": "77An OBJECT file created with 3d Construction Kit 2"
+            },
+            {
+              "offset": 2790,
+              "text": "RCTNGL 003"
+            },
+            {
+              "offset": 2870,
+              "text": "RCTNGL 004"
+            },
+            {
+              "offset": 2950,
+              "text": "RCTNGL 005"
+            },
+            {
+              "offset": 3030,
+              "text": "CUBOID 006"
+            },
+            {
+              "offset": 3505,
+              "text": "0053.3OD"
+            },
+            {
+              "offset": 3607,
+              "text": "1An OBJECT file created with 3d Construction Kit 2"
+            },
+            {
+              "offset": 3814,
+              "text": "CUBOID 003"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 512512,
+          "cylinder": 45,
+          "empty": false,
+          "entropy": 2.78,
+          "first_block": 1001,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 91
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 24,
+              "text": "An OBJECT file created with 3d Construction Kit 2"
+            },
+            {
+              "offset": 230,
+              "text": "CUBOID 003"
+            },
+            {
+              "offset": 322,
+              "text": "PYRMID 004"
+            },
+            {
+              "offset": 430,
+              "text": "CUBOID 005"
+            },
+            {
+              "offset": 546,
+              "text": "CUBOID 006"
+            },
+            {
+              "offset": 638,
+              "text": "CUBOID 007"
+            },
+            {
+              "offset": 730,
+              "text": "CUBOID 008"
+            },
+            {
+              "offset": 834,
+              "text": "CUBOID 015"
+            },
+            {
+              "offset": 926,
+              "text": "CUBOID 016"
+            },
+            {
+              "offset": 1018,
+              "text": "CUBOID"
+            },
+            {
+              "offset": 1457,
+              "text": "0057.3OD"
+            },
+            {
+              "offset": 1558,
+              "text": "KoAn OBJECT file created with 3d Construction Kit 2"
+            },
+            {
+              "offset": 1766,
+              "text": "PYRMID 003"
+            },
+            {
+              "offset": 1874,
+              "text": "PYRMID 004"
+            },
+            {
+              "offset": 1982,
+              "text": "LINE   005"
+            },
+            {
+              "offset": 2481,
+              "text": "0059.3OD"
+            },
+            {
+              "offset": 2584,
+              "text": "An OBJECT file created with 3d Construction Kit 2"
+            },
+            {
+              "offset": 2790,
+              "text": "CUBOID 003"
+            },
+            {
+              "offset": 2882,
+              "text": "CUBOID 004"
+            },
+            {
+              "offset": 2974,
+              "text": "PYRMID 005"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 518144,
+          "cylinder": 46,
+          "empty": false,
+          "entropy": 3.09,
+          "first_block": 1012,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 92
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 23,
+              "text": "4An OBJECT file created with 3d Construction Kit 2"
+            },
+            {
+              "offset": 230,
+              "text": "CUBOID 003"
+            },
+            {
+              "offset": 322,
+              "text": "CUBOID 004"
+            },
+            {
+              "offset": 414,
+              "text": "CUBOID 005"
+            },
+            {
+              "offset": 506,
+              "text": "CUBOID"
+            },
+            {
+              "offset": 564,
+              "text": "UUUUUU"
+            },
+            {
+              "offset": 622,
+              "text": "CUBOID 007"
+            },
+            {
+              "offset": 656,
+              "text": "ffffff"
+            },
+            {
+              "offset": 714,
+              "text": "CUBOID 008"
+            },
+            {
+              "offset": 834,
+              "text": "CUBOID 004"
+            },
+            {
+              "offset": 926,
+              "text": "CUBOID 005"
+            },
+            {
+              "offset": 1018,
+              "text": "CUBOID"
+            },
+            {
+              "offset": 1457,
+              "text": "0063.3OD"
+            },
+            {
+              "offset": 1559,
+              "text": "nAn OBJECT file created with 3d Construction Kit 2"
+            },
+            {
+              "offset": 1766,
+              "text": "CUBOID 003"
+            },
+            {
+              "offset": 1858,
+              "text": "CUBOID 004"
+            },
+            {
+              "offset": 1950,
+              "text": "PYRMID 005"
+            },
+            {
+              "offset": 2000,
+              "text": "DDDDDD"
+            },
+            {
+              "offset": 2481,
+              "text": "0064.3OD"
+            },
+            {
+              "offset": 2584,
+              "text": "An OBJECT file created with 3d Construction Kit 2"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 523776,
+          "cylinder": 46,
+          "empty": false,
+          "entropy": 3.12,
+          "first_block": 1023,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 93
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 24,
+              "text": "An OBJECT file created with 3d Construction Kit 2"
+            },
+            {
+              "offset": 230,
+              "text": "CUBOID 003"
+            },
+            {
+              "offset": 264,
+              "text": "&&M&\"\""
+            },
+            {
+              "offset": 322,
+              "text": "CUBOID 004"
+            },
+            {
+              "offset": 356,
+              "text": "&&&M\"\""
+            },
+            {
+              "offset": 414,
+              "text": "CUBOID 005"
+            },
+            {
+              "offset": 506,
+              "text": "CUBOID"
+            },
+            {
+              "offset": 622,
+              "text": "CUBOID 007"
+            },
+            {
+              "offset": 656,
+              "text": "N&33\"\""
+            },
+            {
+              "offset": 714,
+              "text": "CUBOID 008"
+            },
+            {
+              "offset": 806,
+              "text": "CUBOID 009"
+            },
+            {
+              "offset": 898,
+              "text": "CUBOID 010"
+            },
+            {
+              "offset": 990,
+              "text": "CUBOID 011"
+            },
+            {
+              "offset": 1106,
+              "text": "PYRMID 012"
+            },
+            {
+              "offset": 1214,
+              "text": "CUBOID 013"
+            },
+            {
+              "offset": 1306,
+              "text": "CUBOID 014"
+            },
+            {
+              "offset": 1398,
+              "text": "CUBOID 015"
+            },
+            {
+              "offset": 1490,
+              "text": "CUBOID 016"
+            },
+            {
+              "offset": 1606,
+              "text": "CUBOID 017"
+            },
+            {
+              "offset": 1698,
+              "text": "PYRMID 018"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 529408,
+          "cylinder": 47,
+          "empty": false,
+          "entropy": 4.63,
+          "first_block": 1034,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 94
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 433,
+              "text": "0070.3OD"
+            },
+            {
+              "offset": 536,
+              "text": "An OBJECT file created with 3d Construction Kit 2"
+            },
+            {
+              "offset": 742,
+              "text": "PYRMID 003"
+            },
+            {
+              "offset": 945,
+              "text": "0029.3OD"
+            },
+            {
+              "offset": 1457,
+              "text": "0074.3OD"
+            },
+            {
+              "offset": 1560,
+              "text": "An OBJECT file created with 3d Construction Kit 2"
+            },
+            {
+              "offset": 1766,
+              "text": "PYRMID 003"
+            },
+            {
+              "offset": 1874,
+              "text": "PYRMID 004"
+            },
+            {
+              "offset": 1982,
+              "text": "PYRMID 005"
+            },
+            {
+              "offset": 2032,
+              "text": "&&ff&&"
+            },
+            {
+              "offset": 2481,
+              "text": "0075.3OD"
+            },
+            {
+              "offset": 2584,
+              "text": "An OBJECT file created with 3d Construction Kit 2"
+            },
+            {
+              "offset": 2790,
+              "text": "PYRMID 003"
+            },
+            {
+              "offset": 2898,
+              "text": "PYRMID 004"
+            },
+            {
+              "offset": 3006,
+              "text": "PYRMID 005"
+            },
+            {
+              "offset": 3505,
+              "text": "0076.3OD"
+            },
+            {
+              "offset": 3608,
+              "text": "An OBJECT file created with 3d Construction Kit 2"
+            },
+            {
+              "offset": 3814,
+              "text": "PYRMID 003"
+            },
+            {
+              "offset": 3922,
+              "text": "PYRMID 004"
+            },
+            {
+              "offset": 4030,
+              "text": "PYRMID 005"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 535040,
+          "cylinder": 47,
+          "empty": false,
+          "entropy": 2.72,
+          "first_block": 1045,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 95
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 24,
+              "text": "An OBJECT file created with 3d Construction Kit 2"
+            },
+            {
+              "offset": 230,
+              "text": "CUBOID 003"
+            },
+            {
+              "offset": 322,
+              "text": "CUBOID 004"
+            },
+            {
+              "offset": 414,
+              "text": "PYRMID 005"
+            },
+            {
+              "offset": 546,
+              "text": "PYRMID 006"
+            },
+            {
+              "offset": 654,
+              "text": "PYRMID 007"
+            },
+            {
+              "offset": 762,
+              "text": "CUBOID 008"
+            },
+            {
+              "offset": 854,
+              "text": "PYRMID 009"
+            },
+            {
+              "offset": 962,
+              "text": "CUBOID 010"
+            },
+            {
+              "offset": 1078,
+              "text": "CUBOID 011"
+            },
+            {
+              "offset": 1170,
+              "text": "PYRMID 012"
+            },
+            {
+              "offset": 1278,
+              "text": "TRNGLE 013"
+            },
+            {
+              "offset": 1356,
+              "text": "PYRMID 014"
+            },
+            {
+              "offset": 1464,
+              "text": "PYRMID 015"
+            },
+            {
+              "offset": 1596,
+              "text": "TRNGLE 016"
+            },
+            {
+              "offset": 1674,
+              "text": "TRNGLE 017"
+            },
+            {
+              "offset": 1752,
+              "text": "TRNGLE 018"
+            },
+            {
+              "offset": 1830,
+              "text": "PYRMID 019"
+            },
+            {
+              "offset": 1938,
+              "text": "CUBOID 020"
+            },
+            {
+              "offset": 2030,
+              "text": "CUBOID 021"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 540672,
+          "cylinder": 48,
+          "empty": false,
+          "entropy": 4.0,
+          "first_block": 1056,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 96
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 24,
+              "text": "An OBJECT file created with 3d Construction Kit 2"
+            },
+            {
+              "offset": 230,
+              "text": "PYRMID 003"
+            },
+            {
+              "offset": 280,
+              "text": "  DDCC"
+            },
+            {
+              "offset": 338,
+              "text": "CUBOID 004"
+            },
+            {
+              "offset": 430,
+              "text": "CUBOID 005"
+            },
+            {
+              "offset": 546,
+              "text": "LINE   006"
+            },
+            {
+              "offset": 622,
+              "text": "LINE   007"
+            },
+            {
+              "offset": 698,
+              "text": "LINE   008"
+            },
+            {
+              "offset": 774,
+              "text": "LINE   009"
+            },
+            {
+              "offset": 850,
+              "text": "LINE   010"
+            },
+            {
+              "offset": 926,
+              "text": "LINE   011"
+            },
+            {
+              "offset": 1002,
+              "text": "LINE   012"
+            },
+            {
+              "offset": 1102,
+              "text": "LINE   013"
+            },
+            {
+              "offset": 1178,
+              "text": "LINE   014"
+            },
+            {
+              "offset": 1254,
+              "text": "LINE   015"
+            },
+            {
+              "offset": 1330,
+              "text": "LINE   016"
+            },
+            {
+              "offset": 1406,
+              "text": "LINE   017"
+            },
+            {
+              "offset": 1482,
+              "text": "LINE   018"
+            },
+            {
+              "offset": 1582,
+              "text": "SENSOR 019"
+            },
+            {
+              "offset": 1688,
+              "text": "SENSOR 020"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 546304,
+          "cylinder": 48,
+          "empty": false,
+          "entropy": 3.31,
+          "first_block": 1067,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 97
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 24,
+              "text": "An OBJECT file created with 3d Construction Kit 2"
+            },
+            {
+              "offset": 230,
+              "text": "PYRMID 003"
+            },
+            {
+              "offset": 338,
+              "text": "PYRMID 004"
+            },
+            {
+              "offset": 446,
+              "text": "PYRMID 005"
+            },
+            {
+              "offset": 578,
+              "text": "PYRMID 006"
+            },
+            {
+              "offset": 686,
+              "text": "PYRMID 007"
+            },
+            {
+              "offset": 794,
+              "text": "PYRMID 008"
+            },
+            {
+              "offset": 902,
+              "text": "PYRMID 009"
+            },
+            {
+              "offset": 1010,
+              "text": "PYRMID 010"
+            },
+            {
+              "offset": 1142,
+              "text": "PYRMID 011"
+            },
+            {
+              "offset": 1250,
+              "text": "PYRMID 012"
+            },
+            {
+              "offset": 1362,
+              "text": "PYRMID 004"
+            },
+            {
+              "offset": 1470,
+              "text": "PYRMID 005"
+            },
+            {
+              "offset": 1969,
+              "text": "0087.3OD"
+            },
+            {
+              "offset": 2072,
+              "text": "An OBJECT file created with 3d Construction Kit 2"
+            },
+            {
+              "offset": 2278,
+              "text": "CUBOID 003"
+            },
+            {
+              "offset": 2312,
+              "text": "DDDDDD"
+            },
+            {
+              "offset": 2370,
+              "text": "PYRMID 004"
+            },
+            {
+              "offset": 2420,
+              "text": "DDDDDD"
+            },
+            {
+              "offset": 2478,
+              "text": "PYRMID 005"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 551936,
+          "cylinder": 49,
+          "empty": false,
+          "entropy": 3.34,
+          "first_block": 1078,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 98
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 433,
+              "text": "0092.3OD"
+            },
+            {
+              "offset": 536,
+              "text": "An OBJECT file created with 3d Construction Kit 2"
+            },
+            {
+              "offset": 742,
+              "text": "CUBOID 003"
+            },
+            {
+              "offset": 834,
+              "text": "CUBOID 004"
+            },
+            {
+              "offset": 926,
+              "text": "CUBOID 005"
+            },
+            {
+              "offset": 1018,
+              "text": "CUBOID"
+            },
+            {
+              "offset": 1457,
+              "text": "Borders"
+            },
+            {
+              "offset": 1560,
+              "text": "ST\\Amiga Format 3D Kit 2 Data File."
+            },
+            {
+              "offset": 1695,
+              "text": ">A WORLD"
+            },
+            {
+              "offset": 2296,
+              "text": "AREA 001  "
+            },
+            {
+              "offset": 2426,
+              "text": "ENTRANCE  "
+            },
+            {
+              "offset": 2468,
+              "text": "CUBOID 001"
+            },
+            {
+              "offset": 2540,
+              "text": "CUBOID 002"
+            },
+            {
+              "offset": 2636,
+              "text": "CUBOID 003"
+            },
+            {
+              "offset": 2708,
+              "text": "CUBOID 004"
+            },
+            {
+              "offset": 2780,
+              "text": "CUBOID 005"
+            },
+            {
+              "offset": 2852,
+              "text": "CUBOID 006"
+            },
+            {
+              "offset": 2924,
+              "text": "CUBOID 007"
+            },
+            {
+              "offset": 2996,
+              "text": "CUBOID 008"
+            },
+            {
+              "offset": 3095,
+              "text": "pGL 009"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 557568,
+          "cylinder": 49,
+          "empty": false,
+          "entropy": 3.91,
+          "first_block": 1089,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 99
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 24,
+              "text": "ST\\Amiga Format 3D Kit 2 Data File."
+            },
+            {
+              "offset": 159,
+              "text": ">A WORLD"
+            },
+            {
+              "offset": 760,
+              "text": "AREA 001  "
+            },
+            {
+              "offset": 890,
+              "text": "ENTRANCE  "
+            },
+            {
+              "offset": 932,
+              "text": "GROUP  002"
+            },
+            {
+              "offset": 1096,
+              "text": "CUBOID 001"
+            },
+            {
+              "offset": 1168,
+              "text": "CUBOID 003"
+            },
+            {
+              "offset": 1202,
+              "text": "EEUU%%"
+            },
+            {
+              "offset": 1240,
+              "text": "CUBOID 004"
+            },
+            {
+              "offset": 1312,
+              "text": "CUBOID 005"
+            },
+            {
+              "offset": 1384,
+              "text": "CUBOID 006"
+            },
+            {
+              "offset": 1418,
+              "text": "wwgg''"
+            },
+            {
+              "offset": 1456,
+              "text": "CUBOID 007"
+            },
+            {
+              "offset": 1528,
+              "text": "CUBOID 0"
+            },
+            {
+              "offset": 1624,
+              "text": "PYRMID 009"
+            },
+            {
+              "offset": 1712,
+              "text": "PYRMID 010"
+            },
+            {
+              "offset": 1800,
+              "text": "PYRMID 011"
+            },
+            {
+              "offset": 1850,
+              "text": "UU%%EE"
+            },
+            {
+              "offset": 1888,
+              "text": "CUBOID 012"
+            },
+            {
+              "offset": 1960,
+              "text": "PYRMID 013"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 563200,
+          "cylinder": 50,
+          "empty": false,
+          "entropy": 4.57,
+          "first_block": 1100,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 100
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 24,
+              "text": "ST\\Amiga Format 3D Kit 2 Data File."
+            },
+            {
+              "offset": 159,
+              "text": ">A WORLD"
+            },
+            {
+              "offset": 760,
+              "text": "AREA 001  "
+            },
+            {
+              "offset": 890,
+              "text": "ENTRANCE  "
+            },
+            {
+              "offset": 932,
+              "text": "GROUP  012"
+            },
+            {
+              "offset": 986,
+              "text": "GROUP  017"
+            },
+            {
+              "offset": 1068,
+              "text": "GROUP  022"
+            },
+            {
+              "offset": 1126,
+              "text": "GROUP  027"
+            },
+            {
+              "offset": 1184,
+              "text": "GROUP  032"
+            },
+            {
+              "offset": 1330,
+              "text": "GROUP  037"
+            },
+            {
+              "offset": 1388,
+              "text": "GROUP  042"
+            },
+            {
+              "offset": 1446,
+              "text": "GROUP  048"
+            },
+            {
+              "offset": 1500,
+              "text": "GROUP  051"
+            },
+            {
+              "offset": 1574,
+              "text": "GROUP  054"
+            },
+            {
+              "offset": 1628,
+              "text": "GROUP  055"
+            },
+            {
+              "offset": 1678,
+              "text": "GROUP  058"
+            },
+            {
+              "offset": 1732,
+              "text": "GROUP  062"
+            },
+            {
+              "offset": 1786,
+              "text": "GROUP  007"
+            },
+            {
+              "offset": 1836,
+              "text": "GROUP  065"
+            },
+            {
+              "offset": 1890,
+              "text": "GROUP  066"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 568832,
+          "cylinder": 50,
+          "empty": false,
+          "entropy": 4.78,
+          "first_block": 1111,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 101
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 433,
+              "text": "0056.3WD"
+            },
+            {
+              "offset": 536,
+              "text": "ST\\Amiga Format 3D Kit 2 Data File."
+            },
+            {
+              "offset": 671,
+              "text": ">A WORLD"
+            },
+            {
+              "offset": 1457,
+              "text": "0058.3WD"
+            },
+            {
+              "offset": 1560,
+              "text": "ST\\Amiga Format 3D Kit 2 Data File."
+            },
+            {
+              "offset": 1695,
+              "text": ">A WORLD"
+            },
+            {
+              "offset": 2481,
+              "text": "0068.3WD"
+            },
+            {
+              "offset": 2584,
+              "text": "ST\\Amiga Format 3D Kit 2 Data File."
+            },
+            {
+              "offset": 2719,
+              "text": ">A WORLD"
+            },
+            {
+              "offset": 3505,
+              "text": "0069.3WD"
+            },
+            {
+              "offset": 3608,
+              "text": "ST\\Amiga Format 3D Kit 2 Data File."
+            },
+            {
+              "offset": 3743,
+              "text": ">A WORLD"
+            },
+            {
+              "offset": 4529,
+              "text": "0071.3WD"
+            },
+            {
+              "offset": 4632,
+              "text": "ST\\Amiga Format 3D Kit 2 Data File."
+            },
+            {
+              "offset": 4767,
+              "text": ">A WORLD"
+            },
+            {
+              "offset": 5553,
+              "text": "0072.3WD"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 574464,
+          "cylinder": 51,
+          "empty": false,
+          "entropy": 1.9,
+          "first_block": 1122,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 102
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 24,
+              "text": "ST\\Amiga Format 3D Kit 2 Data File."
+            },
+            {
+              "offset": 159,
+              "text": ">A WORLD"
+            },
+            {
+              "offset": 760,
+              "text": "AREA 001  "
+            },
+            {
+              "offset": 890,
+              "text": "ENTRANCE  "
+            },
+            {
+              "offset": 932,
+              "text": "GROUP  002"
+            },
+            {
+              "offset": 996,
+              "text": "GROUP  010"
+            },
+            {
+              "offset": 1070,
+              "text": "CUBOID 001"
+            },
+            {
+              "offset": 1142,
+              "text": "HEXAGN 003"
+            },
+            {
+              "offset": 1222,
+              "text": "HEXAGN 004"
+            },
+            {
+              "offset": 1302,
+              "text": "HEXAGN 005"
+            },
+            {
+              "offset": 1382,
+              "text": "HEXAGN 006"
+            },
+            {
+              "offset": 1462,
+              "text": "HEXAGN 007"
+            },
+            {
+              "offset": 1566,
+              "text": "HEXAGN 008"
+            },
+            {
+              "offset": 1646,
+              "text": "HEXAGN 009"
+            },
+            {
+              "offset": 1726,
+              "text": "HEXAGN 011"
+            },
+            {
+              "offset": 1806,
+              "text": "HEXAGN 012"
+            },
+            {
+              "offset": 1890,
+              "text": "HEXAGN 013"
+            },
+            {
+              "offset": 1974,
+              "text": "QUAD   014"
+            },
+            {
+              "offset": 2042,
+              "text": "QUAD  "
+            },
+            {
+              "offset": 2134,
+              "text": "QUAD   016"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 580096,
+          "cylinder": 51,
+          "empty": false,
+          "entropy": 3.53,
+          "first_block": 1133,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 103
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 24,
+              "text": "ST\\Amiga Format 3D Kit 2 Data File."
+            },
+            {
+              "offset": 159,
+              "text": ">A WORLD"
+            },
+            {
+              "offset": 760,
+              "text": "AREA 001  "
+            },
+            {
+              "offset": 890,
+              "text": "ENTRANCE  "
+            },
+            {
+              "offset": 932,
+              "text": "GROUP  024"
+            },
+            {
+              "offset": 1098,
+              "text": "GROUP  029"
+            },
+            {
+              "offset": 1156,
+              "text": "GROUP  034"
+            },
+            {
+              "offset": 1206,
+              "text": "GROUP  035"
+            },
+            {
+              "offset": 1316,
+              "text": "GROUP  036"
+            },
+            {
+              "offset": 1366,
+              "text": "GROUP  067"
+            },
+            {
+              "offset": 1448,
+              "text": "GROUP  037"
+            },
+            {
+              "offset": 1498,
+              "text": "GROUP  038"
+            },
+            {
+              "offset": 1572,
+              "text": "CUBOID 001"
+            },
+            {
+              "offset": 1644,
+              "text": "CUBOID 002"
+            },
+            {
+              "offset": 1716,
+              "text": "CUBOID 003"
+            },
+            {
+              "offset": 1788,
+              "text": "CUBOID 004"
+            },
+            {
+              "offset": 1822,
+              "text": "33DU\"U"
+            },
+            {
+              "offset": 1860,
+              "text": "CUBOID 005"
+            },
+            {
+              "offset": 1932,
+              "text": "CUBOID 006"
+            },
+            {
+              "offset": 2004,
+              "text": "CUBOID 007"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 585728,
+          "cylinder": 52,
+          "empty": false,
+          "entropy": 4.71,
+          "first_block": 1144,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 104
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 433,
+              "text": "0088.3WD"
+            },
+            {
+              "offset": 536,
+              "text": "ST\\Amiga Format 3D Kit 2 Data File."
+            },
+            {
+              "offset": 671,
+              "text": ">A WORLD"
+            },
+            {
+              "offset": 2481,
+              "text": "FUNHOUSE.iffer.iff"
+            },
+            {
+              "offset": 2993,
+              "text": "0092.3OD"
+            },
+            {
+              "offset": 3104,
+              "text": "ILBMBMHD"
+            },
+            {
+              "offset": 3171,
+              "text": "pPPP00"
+            },
+            {
+              "offset": 3183,
+              "text": " @@Ppp"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 591360,
+          "cylinder": 52,
+          "empty": false,
+          "entropy": 4.1,
+          "first_block": 1155,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 105
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 43,
+              "text": "q%L?0@"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 596992,
+          "cylinder": 53,
+          "empty": false,
+          "entropy": 6.42,
+          "first_block": 1166,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 106
+        },
+        {
+          "ascii_strings": [],
+          "byte_length": 5632,
+          "byte_offset": 602624,
+          "cylinder": 53,
+          "empty": false,
+          "entropy": 6.07,
+          "first_block": 1177,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 107
+        },
+        {
+          "ascii_strings": [],
+          "byte_length": 5632,
+          "byte_offset": 608256,
+          "cylinder": 54,
+          "empty": false,
+          "entropy": 6.01,
+          "first_block": 1188,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 108
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 2481,
+              "text": "space.iff-border.iff"
+            },
+            {
+              "offset": 2590,
+              "text": "O\\ILBMBMHD"
+            },
+            {
+              "offset": 2647,
+              "text": "PPp00P  @``"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 613888,
+          "cylinder": 54,
+          "empty": false,
+          "entropy": 5.85,
+          "first_block": 1199,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 109
+        },
+        {
+          "ascii_strings": [],
+          "byte_length": 5632,
+          "byte_offset": 619520,
+          "cylinder": 55,
+          "empty": false,
+          "entropy": 5.63,
+          "first_block": 1210,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 110
+        },
+        {
+          "ascii_strings": [],
+          "byte_length": 5632,
+          "byte_offset": 625152,
+          "cylinder": 55,
+          "empty": false,
+          "entropy": 5.93,
+          "first_block": 1221,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 111
+        },
+        {
+          "ascii_strings": [],
+          "byte_length": 5632,
+          "byte_offset": 630784,
+          "cylinder": 56,
+          "empty": false,
+          "entropy": 5.96,
+          "first_block": 1232,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 112
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 1969,
+              "text": "subgame.iffrder.iff"
+            },
+            {
+              "offset": 2068,
+              "text": "f*iJFORM"
+            },
+            {
+              "offset": 2078,
+              "text": "IZILBMBMHD"
+            },
+            {
+              "offset": 2151,
+              "text": "```@@@   "
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 636416,
+          "cylinder": 56,
+          "empty": false,
+          "entropy": 5.34,
+          "first_block": 1243,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 113
+        },
+        {
+          "ascii_strings": [],
+          "byte_length": 5632,
+          "byte_offset": 642048,
+          "cylinder": 57,
+          "empty": false,
+          "entropy": 5.48,
+          "first_block": 1254,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 114
+        },
+        {
+          "ascii_strings": [],
+          "byte_length": 5632,
+          "byte_offset": 647680,
+          "cylinder": 57,
+          "empty": false,
+          "entropy": 6.22,
+          "first_block": 1265,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 115
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 5553,
+              "text": "DRILLER.IFFF"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 653312,
+          "cylinder": 58,
+          "empty": false,
+          "entropy": 5.87,
+          "first_block": 1276,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 116
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 30,
+              "text": "/|ILBMBMHD"
+            },
+            {
+              "offset": 99,
+              "text": "pPPP00"
+            },
+            {
+              "offset": 111,
+              "text": " @@Ppp"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 658944,
+          "cylinder": 58,
+          "empty": false,
+          "entropy": 4.68,
+          "first_block": 1287,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 1,
+          "track": 117
+        },
+        {
+          "ascii_strings": [],
+          "byte_length": 5632,
+          "byte_offset": 664576,
+          "cylinder": 59,
+          "empty": false,
+          "entropy": 5.78,
+          "first_block": 1298,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 118
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 1969,
+              "text": "KITGAME.IFFF"
+            },
+            {
+              "offset": 2080,
+              "text": "ILBMBMHD"
+            },
+            {
+              "offset": 2141,
+              "text": " 0p0@0000@@@```ppp"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 670208,
+          "cylinder": 59,
+          "empty": false,
+          "entropy": 5.51,
+          "first_block": 1309,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 119
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 1903,
+              "text": "\\GUb5W"
+            },
+            {
+              "offset": 2249,
+              "text": "UTUUcUU"
+            },
+            {
+              "offset": 2260,
+              "text": "UEUV5UQUU"
+            },
+            {
+              "offset": 2270,
+              "text": "UTUUcUUB"
+            },
+            {
+              "offset": 2607,
+              "text": "\\GUb5W"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 675840,
+          "cylinder": 60,
+          "empty": false,
+          "entropy": 5.85,
+          "first_block": 1320,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 120
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 4731,
+              "text": "\\8uaCW"
+            },
+            {
+              "offset": 5051,
+              "text": "UEUV-UQUU"
+            },
+            {
+              "offset": 5400,
+              "text": "UZ5UQUV"
+            },
+            {
+              "offset": 5419,
+              "text": "UEUZ5UQUU"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 681472,
+          "cylinder": 60,
+          "empty": false,
+          "entropy": 6.19,
+          "first_block": 1331,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 121
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 1969,
+              "text": "default.3sm"
+            },
+            {
+              "offset": 2082,
+              "text": "@ElectronRamPrrWow"
+            },
+            {
+              "offset": 2898,
+              "text": "\" \"27'"
+            },
+            {
+              "offset": 2917,
+              "text": "4N\\S80*"
+            },
+            {
+              "offset": 2938,
+              "text": "(GV\\SABNSJ2"
+            },
+            {
+              "offset": 3440,
+              "text": "?LIOYS7+ "
+            },
+            {
+              "offset": 3463,
+              "text": "8NNIGJTF+\"\" "
+            },
+            {
+              "offset": 3487,
+              "text": "  7OVD"
+            },
+            {
+              "offset": 3504,
+              "text": "?A757\""
+            },
+            {
+              "offset": 4991,
+              "text": "\"-42/)!"
+            },
+            {
+              "offset": 5230,
+              "text": "/BLK@,"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 687104,
+          "cylinder": 61,
+          "empty": false,
+          "entropy": 6.52,
+          "first_block": 1342,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 122
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 1719,
+              "text": "#08BD2"
+            },
+            {
+              "offset": 1747,
+              "text": "(?PM7!"
+            },
+            {
+              "offset": 1776,
+              "text": "$(.?PP:"
+            },
+            {
+              "offset": 1847,
+              "text": "'>NUQF3&"
+            },
+            {
+              "offset": 1889,
+              "text": "!#&0686("
+            },
+            {
+              "offset": 1938,
+              "text": "),08:+"
+            },
+            {
+              "offset": 1963,
+              "text": "!*:LUPA70'"
+            },
+            {
+              "offset": 2024,
+              "text": "! #&%'&\""
+            },
+            {
+              "offset": 2076,
+              "text": "'/5>A9,"
+            },
+            {
+              "offset": 2191,
+              "text": "(+/21%"
+            },
+            {
+              "offset": 3242,
+              "text": "@clang2"
+            },
+            {
+              "offset": 4056,
+              "text": "-LQ82("
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 692736,
+          "cylinder": 61,
+          "empty": false,
+          "entropy": 6.71,
+          "first_block": 1353,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 1,
+          "track": 123
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 180,
+              "text": "&4'&2+"
+            },
+            {
+              "offset": 2410,
+              "text": "@FrogstarFighter"
+            },
+            {
+              "offset": 3028,
+              "text": "#(,+)'#!"
+            },
+            {
+              "offset": 3116,
+              "text": "\"&+2650+"
+            },
+            {
+              "offset": 3178,
+              "text": "!#&'0<B?:2.-+&"
+            },
+            {
+              "offset": 3246,
+              "text": "#&(+,0;@>621+#"
+            },
+            {
+              "offset": 3320,
+              "text": "\"+1-$\"#!"
+            },
+            {
+              "offset": 3578,
+              "text": "&172+$"
+            },
+            {
+              "offset": 4212,
+              "text": "(0540+'#!"
+            },
+            {
+              "offset": 4278,
+              "text": "),.1674'"
+            },
+            {
+              "offset": 4418,
+              "text": "#,10(!"
+            },
+            {
+              "offset": 4894,
+              "text": "\"0;@:-\""
+            },
+            {
+              "offset": 5086,
+              "text": "\"#!!\"$\""
+            },
+            {
+              "offset": 5171,
+              "text": ")-,))+(#"
+            },
+            {
+              "offset": 5236,
+              "text": "+45-'&(&#"
+            },
+            {
+              "offset": 5302,
+              "text": "'6?:-!"
+            },
+            {
+              "offset": 5366,
+              "text": "#),,,2;@6$"
+            },
+            {
+              "offset": 5437,
+              "text": "\"0;;0\""
+            },
+            {
+              "offset": 5575,
+              "text": "'-.+(&\""
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 698368,
+          "cylinder": 62,
+          "empty": false,
+          "entropy": 6.55,
+          "first_block": 1364,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 124
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 25,
+              "text": "#'.252--01-)($"
+            },
+            {
+              "offset": 141,
+              "text": "!(.6>B5!"
+            },
+            {
+              "offset": 344,
+              "text": "+...,'!"
+            },
+            {
+              "offset": 405,
+              "text": "\"-..0-)'#"
+            },
+            {
+              "offset": 417,
+              "text": "\".?LL<'"
+            },
+            {
+              "offset": 466,
+              "text": "+6:721454-(&''&(-11)"
+            },
+            {
+              "offset": 550,
+              "text": "#7CD>5-),--.5?C>4)&'(#"
+            },
+            {
+              "offset": 614,
+              "text": "$05:?B>5)#$+,&!"
+            },
+            {
+              "offset": 680,
+              "text": "!(+)('#"
+            },
+            {
+              "offset": 747,
+              "text": "$5CD7+&(,1421)"
+            },
+            {
+              "offset": 813,
+              "text": "-DQL?1)$\"\"$&$!"
+            },
+            {
+              "offset": 828,
+              "text": "!'.0,'#!"
+            },
+            {
+              "offset": 874,
+              "text": "9IMH?74.($##\""
+            },
+            {
+              "offset": 889,
+              "text": "!(,+))+(!"
+            },
+            {
+              "offset": 935,
+              "text": "+HZXI;52.+)+046544421,($\""
+            },
+            {
+              "offset": 997,
+              "text": "(5CQXUI>72,('),..,-141+#"
+            },
+            {
+              "offset": 1081,
+              "text": "(250+-:ELD<960,,19:5-)'\""
+            },
+            {
+              "offset": 1145,
+              "text": "$<PZ[UMID:1,-4666771(#$'!"
+            },
+            {
+              "offset": 1206,
+              "text": "#7@?:>IQL>69<>;511.+&"
+            },
+            {
+              "offset": 1274,
+              "text": "!'1?Q\\]VMMPM<)"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 704000,
+          "cylinder": 62,
+          "empty": false,
+          "entropy": 6.16,
+          "first_block": 1375,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 125
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 30,
+              "text": "]*ILBMBMHD"
+            },
+            {
+              "offset": 1519,
+              "text": " 1p`@5p"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 709632,
+          "cylinder": 63,
+          "empty": false,
+          "entropy": 5.79,
+          "first_block": 1386,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 126
+        },
+        {
+          "ascii_strings": [],
+          "byte_length": 5632,
+          "byte_offset": 715264,
+          "cylinder": 63,
+          "empty": false,
+          "entropy": 5.89,
+          "first_block": 1397,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 127
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 2883,
+              "text": "@%TePeT"
+            },
+            {
+              "offset": 2891,
+              "text": "X-P X'"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 720896,
+          "cylinder": 64,
+          "empty": false,
+          "entropy": 5.96,
+          "first_block": 1408,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 128
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 223,
+              "text": ",/^( .^( *^"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 726528,
+          "cylinder": 64,
+          "empty": false,
+          "entropy": 6.12,
+          "first_block": 1419,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 129
+        },
+        {
+          "ascii_strings": [],
+          "byte_length": 5632,
+          "byte_offset": 732160,
+          "cylinder": 65,
+          "empty": false,
+          "entropy": 2.68,
+          "first_block": 1430,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 130
+        }
+      ]
+    },
+    "trackloader_analysis": {
+      "boot_ascii_strings": [],
+      "candidate_code_tracks": [
+        0
+      ],
+      "high_entropy_tracks": [],
+      "nonempty_head0_tracks": 42,
+      "nonempty_head1_tracks": 41,
+      "nonempty_track_spans": [
+        {
+          "end_track": 0,
+          "start_track": 0
+        },
+        {
+          "end_track": 130,
+          "start_track": 49
+        }
+      ],
+      "repeated_track_groups": []
+    }
+  },
+  "bootblock_target_name": "amiga_disk_3d-construction-kit-ii-r2.01-1992-domark-disk-2-of-2-construction-kit__amiga_raw_bootblock",
+  "bootblock_target_path": "targets/amiga_disk_3d-construction-kit-ii-r2.01-1992-domark-disk-2-of-2-construction-kit/targets/amiga_raw_bootblock",
+  "disk_id": "3d-construction-kit-ii-r2.01-1992-domark-disk-2-of-2-construction-kit",
+  "imported_targets": [
+    {
+      "binary_path": "bin/3D Construction Kit II r2.01 (1992)(Domark)(Disk 2 of 2)[construction kit].adf::bootblock",
+      "entry_path": "bootblock",
+      "target_name": "amiga_disk_3d-construction-kit-ii-r2.01-1992-domark-disk-2-of-2-construction-kit__amiga_raw_bootblock",
+      "target_path": "targets/amiga_disk_3d-construction-kit-ii-r2.01-1992-domark-disk-2-of-2-construction-kit/targets/amiga_raw_bootblock",
+      "target_type": "bootblock"
+    }
+  ],
+  "schema_version": 1,
+  "source_path": "bin/3D Construction Kit II r2.01 (1992)(Domark)(Disk 2 of 2)[construction kit].adf",
+  "source_sha256": "e427e3245a500119520af533c010a6af748061fc6d83e0d2834b7d582daf1c4c"
+}

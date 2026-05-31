@@ -1,0 +1,4030 @@
+{
+  "analysis": {
+    "bitmap": null,
+    "block_usage": null,
+    "boot_block": {
+      "bootcode_entropy": 3.14,
+      "bootcode_has_code": true,
+      "bootcode_size": 1012,
+      "checksum": "0x444F5300",
+      "checksum_valid": false,
+      "flags_byte": 0,
+      "fs_description": "DOS\\0 - Original File System",
+      "fs_type": "0",
+      "import_target": {
+        "entry_path": "bootblock",
+        "local_target_id": "amiga_raw_bootblock",
+        "source": {
+          "address_model": "local_offset",
+          "byte_offset": 0,
+          "byte_size": 1024,
+          "code_start_offset": 12,
+          "entrypoint": 458764,
+          "kind": "raw_binary",
+          "load_address": 458752
+        },
+        "target_metadata": {
+          "absolute_code_labels": [],
+          "bootblock": {
+            "bootcode_offset": 12,
+            "bootcode_size": 1012,
+            "checksum": "0x444F5300",
+            "checksum_valid": false,
+            "entrypoint": 458764,
+            "flags_byte": 0,
+            "fs_description": "DOS\\0 - Original File System",
+            "load_address": 458752,
+            "magic_ascii": "DOS",
+            "rootblock_ptr": 1146049280
+          },
+          "custom_structs": [],
+          "entry_register_seeds": [
+            {
+              "context_name": null,
+              "entry_offset": null,
+              "kind": "library_base",
+              "library_name": "exec.library",
+              "note": "ExecBase",
+              "register": "A6",
+              "struct_name": "LIB"
+            },
+            {
+              "context_name": "trackdisk.device",
+              "entry_offset": null,
+              "kind": "struct_ptr",
+              "library_name": null,
+              "note": "IOStdReq (open trackdisk.device)",
+              "register": "A1",
+              "struct_name": "IO"
+            }
+          ],
+          "execution_views": [],
+          "library": null,
+          "resident": null,
+          "rsset_layout_regions": [],
+          "seeded_code_entrypoints": [],
+          "seeded_code_labels": [],
+          "seeded_entities": [],
+          "suppressed_seeded_items": [],
+          "target_type": "bootblock"
+        },
+        "target_type": "bootblock"
+      },
+      "is_dos": true,
+      "magic_ascii": "DOS",
+      "rootblock_ptr": 1146049280
+    },
+    "bootloader_analysis": {
+      "memory_regions": [],
+      "stages": [
+        {
+          "base_addr": 458752,
+          "decode_outputs": [],
+          "decode_regions": [],
+          "derived_regions": [],
+          "disk_reads": [],
+          "entry_addr": 458764,
+          "handoff_target": null,
+          "handoffs": [],
+          "hardware_accesses": [],
+          "import_target": null,
+          "loads": [],
+          "materialized": true,
+          "memory_copies": [],
+          "name": "boot",
+          "reachable_instruction_count": 0,
+          "read_setups": [],
+          "size": 1012
+        }
+      ],
+      "transfers": []
+    },
+    "directories": null,
+    "disk_info": {
+      "is_dos": true,
+      "path": "Midwinter II - Flames of Freedom v1.7.9.1991 (1991-09-07)(Rainbird)(Disk 3 of 3)(Missions)[cr QTX].adf",
+      "sectors_per_track": 11,
+      "size": 901120,
+      "total_sectors": 1760,
+      "variant": "DD"
+    },
+    "files": null,
+    "filesystem": null,
+    "non_dos": {
+      "bootcode_present": true,
+      "description": "Custom format disk (non-AmigaDOS)",
+      "dos_magic_without_filesystem": true,
+      "filesystem_parse_error": "C disk inspect output is missing root"
+    },
+    "root_block": null,
+    "track_analysis": {
+      "non_empty_tracks": 76,
+      "raw_sources": [
+        {
+          "byte_length": 5632,
+          "byte_offset": 0,
+          "cylinder": 0,
+          "head": 0,
+          "track": 0
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 180224,
+          "cylinder": 16,
+          "head": 0,
+          "track": 32
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 185856,
+          "cylinder": 16,
+          "head": 1,
+          "track": 33
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 191488,
+          "cylinder": 17,
+          "head": 0,
+          "track": 34
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 197120,
+          "cylinder": 17,
+          "head": 1,
+          "track": 35
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 202752,
+          "cylinder": 18,
+          "head": 0,
+          "track": 36
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 208384,
+          "cylinder": 18,
+          "head": 1,
+          "track": 37
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 214016,
+          "cylinder": 19,
+          "head": 0,
+          "track": 38
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 219648,
+          "cylinder": 19,
+          "head": 1,
+          "track": 39
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 225280,
+          "cylinder": 20,
+          "head": 0,
+          "track": 40
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 230912,
+          "cylinder": 20,
+          "head": 1,
+          "track": 41
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 236544,
+          "cylinder": 21,
+          "head": 0,
+          "track": 42
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 242176,
+          "cylinder": 21,
+          "head": 1,
+          "track": 43
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 247808,
+          "cylinder": 22,
+          "head": 0,
+          "track": 44
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 253440,
+          "cylinder": 22,
+          "head": 1,
+          "track": 45
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 259072,
+          "cylinder": 23,
+          "head": 0,
+          "track": 46
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 264704,
+          "cylinder": 23,
+          "head": 1,
+          "track": 47
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 270336,
+          "cylinder": 24,
+          "head": 0,
+          "track": 48
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 275968,
+          "cylinder": 24,
+          "head": 1,
+          "track": 49
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 281600,
+          "cylinder": 25,
+          "head": 0,
+          "track": 50
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 287232,
+          "cylinder": 25,
+          "head": 1,
+          "track": 51
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 292864,
+          "cylinder": 26,
+          "head": 0,
+          "track": 52
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 298496,
+          "cylinder": 26,
+          "head": 1,
+          "track": 53
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 304128,
+          "cylinder": 27,
+          "head": 0,
+          "track": 54
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 309760,
+          "cylinder": 27,
+          "head": 1,
+          "track": 55
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 315392,
+          "cylinder": 28,
+          "head": 0,
+          "track": 56
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 321024,
+          "cylinder": 28,
+          "head": 1,
+          "track": 57
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 326656,
+          "cylinder": 29,
+          "head": 0,
+          "track": 58
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 332288,
+          "cylinder": 29,
+          "head": 1,
+          "track": 59
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 337920,
+          "cylinder": 30,
+          "head": 0,
+          "track": 60
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 343552,
+          "cylinder": 30,
+          "head": 1,
+          "track": 61
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 349184,
+          "cylinder": 31,
+          "head": 0,
+          "track": 62
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 354816,
+          "cylinder": 31,
+          "head": 1,
+          "track": 63
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 360448,
+          "cylinder": 32,
+          "head": 0,
+          "track": 64
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 366080,
+          "cylinder": 32,
+          "head": 1,
+          "track": 65
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 371712,
+          "cylinder": 33,
+          "head": 0,
+          "track": 66
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 377344,
+          "cylinder": 33,
+          "head": 1,
+          "track": 67
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 382976,
+          "cylinder": 34,
+          "head": 0,
+          "track": 68
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 388608,
+          "cylinder": 34,
+          "head": 1,
+          "track": 69
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 394240,
+          "cylinder": 35,
+          "head": 0,
+          "track": 70
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 399872,
+          "cylinder": 35,
+          "head": 1,
+          "track": 71
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 405504,
+          "cylinder": 36,
+          "head": 0,
+          "track": 72
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 411136,
+          "cylinder": 36,
+          "head": 1,
+          "track": 73
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 416768,
+          "cylinder": 37,
+          "head": 0,
+          "track": 74
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 422400,
+          "cylinder": 37,
+          "head": 1,
+          "track": 75
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 428032,
+          "cylinder": 38,
+          "head": 0,
+          "track": 76
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 433664,
+          "cylinder": 38,
+          "head": 1,
+          "track": 77
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 439296,
+          "cylinder": 39,
+          "head": 0,
+          "track": 78
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 444928,
+          "cylinder": 39,
+          "head": 1,
+          "track": 79
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 450560,
+          "cylinder": 40,
+          "head": 0,
+          "track": 80
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 456192,
+          "cylinder": 40,
+          "head": 1,
+          "track": 81
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 461824,
+          "cylinder": 41,
+          "head": 0,
+          "track": 82
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 467456,
+          "cylinder": 41,
+          "head": 1,
+          "track": 83
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 473088,
+          "cylinder": 42,
+          "head": 0,
+          "track": 84
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 478720,
+          "cylinder": 42,
+          "head": 1,
+          "track": 85
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 484352,
+          "cylinder": 43,
+          "head": 0,
+          "track": 86
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 489984,
+          "cylinder": 43,
+          "head": 1,
+          "track": 87
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 495616,
+          "cylinder": 44,
+          "head": 0,
+          "track": 88
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 501248,
+          "cylinder": 44,
+          "head": 1,
+          "track": 89
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 506880,
+          "cylinder": 45,
+          "head": 0,
+          "track": 90
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 512512,
+          "cylinder": 45,
+          "head": 1,
+          "track": 91
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 518144,
+          "cylinder": 46,
+          "head": 0,
+          "track": 92
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 523776,
+          "cylinder": 46,
+          "head": 1,
+          "track": 93
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 709632,
+          "cylinder": 63,
+          "head": 0,
+          "track": 126
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 715264,
+          "cylinder": 63,
+          "head": 1,
+          "track": 127
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 720896,
+          "cylinder": 64,
+          "head": 0,
+          "track": 128
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 726528,
+          "cylinder": 64,
+          "head": 1,
+          "track": 129
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 732160,
+          "cylinder": 65,
+          "head": 0,
+          "track": 130
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 737792,
+          "cylinder": 65,
+          "head": 1,
+          "track": 131
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 743424,
+          "cylinder": 66,
+          "head": 0,
+          "track": 132
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 749056,
+          "cylinder": 66,
+          "head": 1,
+          "track": 133
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 754688,
+          "cylinder": 67,
+          "head": 0,
+          "track": 134
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 760320,
+          "cylinder": 67,
+          "head": 1,
+          "track": 135
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 765952,
+          "cylinder": 68,
+          "head": 0,
+          "track": 136
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 771584,
+          "cylinder": 68,
+          "head": 1,
+          "track": 137
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 777216,
+          "cylinder": 69,
+          "head": 0,
+          "track": 138
+        }
+      ],
+      "total_tracks": 160,
+      "track_size_bytes": 5632,
+      "tracks": [
+        {
+          "ascii_strings": [],
+          "byte_length": 5632,
+          "byte_offset": 0,
+          "cylinder": 0,
+          "empty": false,
+          "entropy": 1.1,
+          "first_block": 0,
+          "has_code": true,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 0
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 819,
+              "text": " the corrupt and depraved Governor. He has many contacts and will be invaluable in undermining the power of the Secret Police."
+            },
+            {
+              "offset": 946,
+              "text": " where the elite Terror Executive is based."
+            },
+            {
+              "offset": 990,
+              "text": ", grandson of Farah Beersheba. Bee"
+            },
+            {
+              "offset": 1048,
+              "text": "rsheba is the Godmother of the smuggling clan and her help is vital. The Terror Executive are holding Shaalan as a hostage."
+            },
+            {
+              "offset": 1172,
+              "text": ". The wolfpacks based there are a deep thorn in the side of the islands' smugglers. Eliminating the base will win them over to your cause."
+            },
+            {
+              "offset": 1311,
+              "text": ". He is like a son to me. If he will not help you, nor will I."
+            },
+            {
+              "offset": 1374,
+              "text": " head of the Secret Police. The woman's a psychopath and she knows too much about me. She's in deep cover somewhere on the island."
+            },
+            {
+              "offset": 1505,
+              "text": ", my grandson. The Secret Polic"
+            },
+            {
+              "offset": 1560,
+              "text": "e are holding him hostage. Those pigs will kill him if I so much as lift a finger to help you."
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 180224,
+          "cylinder": 16,
+          "empty": false,
+          "entropy": 3.93,
+          "first_block": 352,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 32
+        },
+        {
+          "ascii_strings": [],
+          "byte_length": 5632,
+          "byte_offset": 185856,
+          "cylinder": 16,
+          "empty": false,
+          "entropy": 3.1,
+          "first_block": 363,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 33
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 3227,
+              "text": ", only daughter of the Chief of Police. If she's on our side, her father's certain to help us - he dotes on her."
+            },
+            {
+              "offset": 3340,
+              "text": ", wife of the military commandant. He does everything she tells him to, principally to avoid her incessant nagging."
+            },
+            {
+              "offset": 3456,
+              "text": ", Air Force commander on Panao. His help will be vital in liberating the island."
+            },
+            {
+              "offset": 3537,
+              "text": ", my hero, my protector, my friend. His wisdom "
+            },
+            {
+              "offset": 3608,
+              "text": "is the beginning and the end."
+            },
+            {
+              "offset": 3638,
+              "text": ", my hero, my protector, my friend. His wisdom is the beginning and the end."
+            },
+            {
+              "offset": 3715,
+              "text": ", my hero, my protector, my friend. His wisdom is the beginning and the end."
+            },
+            {
+              "offset": 3792,
+              "text": ". He never gives me any credit for my brilliant ideas. Get rid of him and I'll help you take over the entire island."
+            },
+            {
+              "offset": 3909,
+              "text": ", my nephew, if you want my help, but Burquest's the man whose help you really need. He'll get everyone who matters on your side."
+            },
+            {
+              "offset": 4039,
+              "text": ". Those are my terms. Kill me if you dare. I'd rather die"
+            },
+            {
+              "offset": 4120,
+              "text": " than help your pathetic Federation."
+            },
+            {
+              "offset": 4988,
+              "text": "n whose help you really need. He'll get everyone who matters on your side."
+            },
+            {
+              "offset": 5063,
+              "text": ". Those are my terms. Kill me if you dare. I'd rather die"
+            },
+            {
+              "offset": 5143,
+              "text": "Pust enlist the Governor and neutralize the Terror Executive, which exerts the only authority the Jebbans understand - mortal fear."
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 191488,
+          "cylinder": 17,
+          "empty": false,
+          "entropy": 4.75,
+          "first_block": 374,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 34
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 1629,
+              "text": ", businessman and leading member of Satara's government in waiting."
+            },
+            {
+              "offset": 1697,
+              "text": ", Imperial Governor of Satara."
+            },
+            {
+              "offset": 1728,
+              "text": ", quality controller for the Empire's arms factory."
+            },
+            {
+              "offset": 1780,
+              "text": " which contain plans for the Empire's new missile delivery system."
+            },
+            {
+              "offset": 1847,
+              "text": ", an officer in the Imperial Secret Police, whose investigations are getting too close for comfort to our arms smuggling syndicate."
+            },
+            {
+              "offset": 4120,
+              "text": "ola by getting the Army, the Air Force and the Police on our side."
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 197120,
+          "cylinder": 17,
+          "empty": false,
+          "entropy": 4.08,
+          "first_block": 385,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 35
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 23,
+              "text": "An waiting and assist it in taking control of the island."
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 202752,
+          "cylinder": 18,
+          "empty": false,
+          "entropy": 3.97,
+          "first_block": 396,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 36
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 3321,
+              "text": ", the military Governor of Qamar."
+            },
+            {
+              "offset": 3357,
+              "text": " where incriminating evidence on the Governor is kept."
+            },
+            {
+              "offset": 3412,
+              "text": ". The Secret Police are onto me. It'll cost you for me to come over. Tewfik saved my life once and I owe him!"
+            },
+            {
+              "offset": 3522,
+              "text": ", and his troops will follow him."
+            },
+            {
+              "offset": 3556,
+              "text": ". Get that squadron or we'll"
+            },
+            {
+              "offset": 3607,
+              "text": "q all be dead! I've trained my zeppelin boys to be the best and believe me, they are the best!"
+            },
+            {
+              "offset": 3702,
+              "text": ". That romantic starry-eyed wimp of a pen pusher deserves nothing but death. Kill him and I'll help you win this island."
+            },
+            {
+              "offset": 3823,
+              "text": ". That old trout cleared me out in a poker game. I lost everything. Then I found out she'd been cheating. Kill her and I'll do you a big favour."
+            },
+            {
+              "offset": 3968,
+              "text": ". She's got evidence against most of the resistance groups on this island. If you don't silence her, they're all dead! I can be "
+            },
+            {
+              "offset": 4119,
+              "text": "tof major assistance."
+            },
+            {
+              "offset": 4141,
+              "text": ". We've had a secret relationship for years. If she joins the resistance we can be together openly. Recruit her and all your problems will be over, I promise!"
+            },
+            {
+              "offset": 4300,
+              "text": ". No one knows but he's my uncle. He's under arrest on suspicion of black marketeering. Save him and you'll benefit from my expertise."
+            },
+            {
+              "offset": 5346,
+              "text": "s my uncle. He's under arrest on suspicion of black marketeering. Save him and you'll benefit from my expertise."
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 208384,
+          "cylinder": 18,
+          "empty": false,
+          "entropy": 4.83,
+          "first_block": 407,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 37
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 1369,
+              "text": ", the man responsible for the safe passage of many slaves from Makat to Gran Paradiso."
+            },
+            {
+              "offset": 1456,
+              "text": ". From this deep ocean base, far to the north-west, enemy submarines make ruthle"
+            },
+            {
+              "offset": 1558,
+              "text": "]=ss attacks on ships carrying escaped slaves to Gran Paradiso. Its destruction will win us many friends."
+            },
+            {
+              "offset": 1664,
+              "text": ", a smuggler who operates out of Hajoum.  He will be able to provide us with the equipment to destroy the underwater base."
+            },
+            {
+              "offset": 1787,
+              "text": ".  He stole the heart of my darling wife."
+            },
+            {
+              "offset": 1829,
+              "text": ", my girlfriend, arrested by the Secret Police for sheltering escaped slaves."
+            },
+            {
+              "offset": 2798,
+              "text": "rwater base."
+            },
+            {
+              "offset": 2811,
+              "text": ".  He stole the heart of my darling wife."
+            },
+            {
+              "offset": 2853,
+              "text": ", my girlfriend, arrested by the Secret Police for sheltering escaped slaves."
+            },
+            {
+              "offset": 3093,
+              "text": "FGaet Police investigations have placed the General and his Corps under suspicion of illegal activities. Your mission is to recruit the desperate Ali ibn Zahr."
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 214016,
+          "cylinder": 19,
+          "empty": false,
+          "entropy": 4.3,
+          "first_block": 418,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 38
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 1047,
+              "text": "`ssion is to disrupt Imperial defences on and around the island."
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 219648,
+          "cylinder": 19,
+          "empty": false,
+          "entropy": 3.96,
+          "first_block": 429,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 39
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 867,
+              "text": ", leader of the Amizade Resistance movement."
+            },
+            {
+              "offset": 912,
+              "text": ", leader of the Laranja Resistance Force."
+            },
+            {
+              "offset": 954,
+              "text": ", leader of the Trovoadas Resistance movement."
+            },
+            {
+              "offset": 1001,
+              "text": ". With Tsombe in prison"
+            },
+            {
+              "offset": 1045,
+              "text": "H N, I have a chance of leading the Gran Paradiso Resistance, but that incompetent Zaghlul stands in my way."
+            },
+            {
+              "offset": 1154,
+              "text": ". Tabari has strange ideas of what a Freedom Movement should be all about! If he disappears from the scene, then perhaps I can finally bring unity to the Resistance Forces on this island."
+            },
+            {
+              "offset": 1342,
+              "text": " where the Empire is refining uranium for nuclear weapons."
+            },
+            {
+              "offset": 1401,
+              "text": ". His vast scientific knowledge will be of great use in the Federation's weapon development labs."
+            },
+            {
+              "offset": 1499,
+              "text": ". She once worked for the Empire in a"
+            },
+            {
+              "offset": 1560,
+              "text": " Military Training College, until illness forced her to resign. The insights she gained into the Empire's training programme will be invaluable to the Federation."
+            },
+            {
+              "offset": 4595,
+              "text": " chief chemis"
+            },
+            {
+              "offset": 4632,
+              "text": "t for the Narcotics Bureau, whose girlfriend is held in slavery to ensure Price's loyalty."
+            },
+            {
+              "offset": 4723,
+              "text": " containing the names of all Narcotics Bureau personnel and informers."
+            },
+            {
+              "offset": 4794,
+              "text": ", an elite Secret Police unit which is currently trying to locate and smash the resistance."
+            },
+            {
+              "offset": 4886,
+              "text": ", the major centre for narcotics processing on the island."
+            },
+            {
+              "offset": 4945,
+              "text": ", my girlfriend. She was seized by the Bureau to force me to help them."
+            },
+            {
+              "offset": 5017,
+              "text": " who keeps me as his slave and makes me pander to his every whim."
+            },
+            {
+              "offset": 5083,
+              "text": ". They are always wanting something, "
+            },
+            {
+              "offset": 5144,
+              "text": "and it's not always from the stores !"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 225280,
+          "cylinder": 20,
+          "empty": false,
+          "entropy": 5.88,
+          "first_block": 440,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 40
+        },
+        {
+          "ascii_strings": [],
+          "byte_length": 5632,
+          "byte_offset": 230912,
+          "cylinder": 20,
+          "empty": false,
+          "entropy": 3.4,
+          "first_block": 451,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 41
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 2589,
+              "text": " detailing Oceanography Research. These are hidden in the Underwater Base at Salazoa."
+            },
+            {
+              "offset": 2675,
+              "text": " in the area around the Salazoa Underwater Base. This will enable the Scientists there to escape."
+            },
+            {
+              "offset": 2779,
+              "text": ", Commandant of the army camp at Asali, with the objective of causing uprising and dissension there."
+            },
+            {
+              "offset": 2880,
+              "text": " the sonar research scientist at Fer-Sono."
+            },
+            {
+              "offset": 2923,
+              "text": ". If you persuade her to join you, I'll make sparks fly but I'm not going to leave her behind."
+            },
+            {
+              "offset": 3018,
+              "text": ". If you can recruit my Gran then I know you are on th"
+            },
+            {
+              "offset": 3096,
+              "text": "e right side and I'll really help you, promise!"
+            },
+            {
+              "offset": 3144,
+              "text": ". Don't be so quick to kill me. Execute that scum Lang and I'll make sure you control this island within 48 hours."
+            },
+            {
+              "offset": 3259,
+              "text": ". Scowcroft is about to publish his research report on sonar devices. He'll steal my thunder if you don't blitz him."
+            },
+            {
+              "offset": 3376,
+              "text": ". I've got contacts all over this island. Kill the fly-girl that did for my man and I'll tell you about where the submarines hide."
+            },
+            {
+              "offset": 3507,
+              "text": ". He's the only one who knows that I know what he knows about the sea-bed."
+            },
+            {
+              "offset": 3607,
+              "text": "wCharles, the sailor-boy, left me for that sweet little slave-girl Sheila. Feed him to the fishes and I'll tell you all I know about secret bases."
+            },
+            {
+              "offset": 5144,
+              "text": "on between them, let alone an overall strategy. Your task on Gran Paradiso is to re-unite the three resistance movements."
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 236544,
+          "cylinder": 21,
+          "empty": false,
+          "entropy": 5.22,
+          "first_block": 462,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 42
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 4116,
+              "text": "eo$DAndara's aircraft factories and for its abundant sugar plantations."
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 242176,
+          "cylinder": 21,
+          "empty": false,
+          "entropy": 4.29,
+          "first_block": 473,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 43
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 4747,
+              "text": ". Benson is an Imperial lackey and if he ever realises his ambition to gain ownership of all of Cubango, then Imperial forces will get an even stronger grip on the island."
+            },
+            {
+              "offset": 4919,
+              "text": ", a vicious hoodlum who scares the wits out of my parishioners. I have a feeling that he is being hired by Mullah Alami, but I can't be sure."
+            },
+            {
+              "offset": 5061,
+              "text": ", the author of blasphemous books. This infidel must die !"
+            },
+            {
+              "offset": 5144,
+              "text": ", the Secret Police Headquarters. I've been picking up garbled radio transmissions from there which, I think, concern attack plans."
+            },
+            {
+              "offset": 5276,
+              "text": " that belong to Johan Artusa. They are land deeds and if I have them I will be the most important land owner on Cubango. If you help me, I will repay you handsomely."
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 247808,
+          "cylinder": 22,
+          "empty": false,
+          "entropy": 5.13,
+          "first_block": 484,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 44
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 22,
+              "text": "2}production complex. This will have a devastating effect on the Empire's fighter capability"
+            },
+            {
+              "offset": 115,
+              "text": ", a biplane production complex. This will have a devastating effect on the empire's fighter capability"
+            },
+            {
+              "offset": 218,
+              "text": ", leader of the Free Nurses Resistance Front. Her help is vital if we are to liberate this island."
+            },
+            {
+              "offset": 317,
+              "text": ", she is my fiance, and she is being held hostage by the Secret Police."
+            },
+            {
+              "offset": 389,
+              "text": ", she is my favourite pop star, she's just fab! If you recruit her I'll give you a clean bill of health with big sister."
+            },
+            {
+              "offset": 535,
+              "text": "=Liquidate that flatfoot and I'll take you to play Doctors and Nurses!"
+            },
+            {
+              "offset": 606,
+              "text": ". I'm the best racing pilot ever. The only reason I'm always last is because I've got no mechanic. Ibn Musa is the best. Recruit him and I'll do anything. None of the things they say about me are true."
+            },
+            {
+              "offset": 808,
+              "text": ", unless I here from him I wo'nt help you but if I do I'll tickle Bustini's fancy for you!"
+            },
+            {
+              "offset": 1804,
+              "text": "they say about me are true."
+            },
+            {
+              "offset": 1832,
+              "text": ", unless I here from him I wo'nt help you but if I do I'll tickle Bustini's fancy for you!"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 253440,
+          "cylinder": 22,
+          "empty": false,
+          "entropy": 5.05,
+          "first_block": 495,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 1,
+          "track": 45
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 5317,
+              "text": ", who is head of the Imperial fighter command. His defection will be a severe blow to the enemy.  Bustini is renowned for being a lady's man."
+            },
+            {
+              "offset": 5459,
+              "text": ", the famous plastic surgeon, who has refused to assist in the empire's perverted medical experiments. For this crime he was thrown out of work and into prison."
+            },
+            {
+              "offset": 5620,
+              "text": ", a biplane "
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 259072,
+          "cylinder": 23,
+          "empty": false,
+          "entropy": 3.83,
+          "first_block": 506,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 46
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 1649,
+              "text": ", an agent posing as a businessman, who has infiltrated numerous Imperial agencies. The information he has will be of great help in destroying Imperial commerce."
+            },
+            {
+              "offset": 1811,
+              "text": ", a renowned journalist, who is  under constant Imperial Police surveillance, because she might give far from beneficial reports on their activities and practices."
+            },
+            {
+              "offset": 1975,
+              "text": ", top secret blue prints for a new class of Imperial submarine. These are"
+            },
+            {
+              "offset": 2072,
+              "text": " hidden at an underwater base north-east of Trinity."
+            },
+            {
+              "offset": 2125,
+              "text": ". She is an Imperial agent, masquerading as an accountant to gain access to confidential personnel files kept at Union Town Hall."
+            },
+            {
+              "offset": 2255,
+              "text": ", the light house keeper at Ivory Peninsula. He has comprehensive lists of all passing ships , including Imperial naval units."
+            },
+            {
+              "offset": 2382,
+              "text": ", a Federation agent who has been captured by guerillas and who is being held prisoner somewhere in the Prospect tobacco plantations."
+            },
+            {
+              "offset": 4118,
+              "text": " Ud be a valuable addition to the Federation.  You are charged with winning it for us."
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 264704,
+          "cylinder": 23,
+          "empty": false,
+          "entropy": 5.16,
+          "first_block": 517,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 47
+        },
+        {
+          "ascii_strings": [],
+          "byte_length": 5632,
+          "byte_offset": 270336,
+          "cylinder": 24,
+          "empty": false,
+          "entropy": 3.8,
+          "first_block": 528,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 1,
+          "track": 48
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 273,
+              "text": ", the renowned Nobel Prize winning physicist."
+            },
+            {
+              "offset": 319,
+              "text": ", at the Northern end of the barrage."
+            },
+            {
+              "offset": 357,
+              "text": ", at the Southern end of the barrage."
+            },
+            {
+              "offset": 395,
+              "text": ", the dissident authors' secret publisher"
+            },
+            {
+              "offset": 437,
+              "text": ", head of their Secret Police. They're holding my wife and children hostage"
+            },
+            {
+              "offset": 536,
+              "text": " in Africa, but she's got contacts and will get them out. Do this and you've got me."
+            },
+            {
+              "offset": 621,
+              "text": ". I need the text of her work on logical positivism. I'm her clandestine publisher, but she says I give no meaning to her work. Recruit her and I'll join you."
+            },
+            {
+              "offset": 780,
+              "text": ". She's my grandmother, but be careful. She's old and frail. Help me and you won't regret it."
+            },
+            {
+              "offset": 874,
+              "text": ". I've been hunting her for six years, but she's always eluded me. I despise you and all you stand for, but I'll help you if you dirty your hands."
+            },
+            {
+              "offset": 1048,
+              "text": "hey have been plagueing our stretch of coastline for months, ruining any attempts our fishermen make to catch fish by cutting the nets. They enjoy seeing our livelihoods destroyed!"
+            },
+            {
+              "offset": 2020,
+              "text": "if you dirty your hands."
+            },
+            {
+              "offset": 3608,
+              "text": "his is the main administrative centre on Maghar, which contains a complete library of files on prisoners past and present."
+            },
+            {
+              "offset": 3731,
+              "text": ", Commander of Maghar's Psycho Squad."
+            },
+            {
+              "offset": 3769,
+              "text": ". I want to get off this stinking island just as much as anyone else, but those flying subs are blocking my escape route at Jadawil. Do this, and the Psycho Squad won't bother you."
+            },
+            {
+              "offset": 3950,
+              "text": " at Yazidi HQ. He suggested to my superiors that I should take on the dirty job of commanding the Psycho Squad in the first place."
+            },
+            {
+              "offset": 4081,
+              "text": ", the Psycho Sq"
+            },
+            {
+              "offset": 4120,
+              "text": "uad at Quinta. Those lunatics are totally out of control. Even the Secret Police they work for are scared stiff of them."
+            },
+            {
+              "offset": 4241,
+              "text": ", the home of Juliette Lumas. When she bought all the land around her farmhouse at Baliki, she forced dozens of families out of their homes, mine included."
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 275968,
+          "cylinder": 24,
+          "empty": false,
+          "entropy": 5.35,
+          "first_block": 539,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 49
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 94,
+              "text": "o a man."
+            },
+            {
+              "offset": 103,
+              "text": ", the so-called green biologist. She's really working for the Army's bio-warfare unit. If we don't get her on our side, she might wipe out the entire island."
+            },
+            {
+              "offset": 261,
+              "text": ", the ecologist. Once she's safe, I'll help you reach that pig, Ellis, if that's what you want."
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 281600,
+          "cylinder": 25,
+          "empty": false,
+          "entropy": 3.48,
+          "first_block": 550,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 50
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 2208,
+              "text": "UUUUUUUU"
+            },
+            {
+              "offset": 2370,
+              "text": "UUUUUU"
+            },
+            {
+              "offset": 4129,
+              "text": ", the general manager of the Imperial Steel Corporation. His help is vital in shutting down the island's steel mills."
+            },
+            {
+              "offset": 4247,
+              "text": ", a geological survey suppressed by the Government to avoid a mine workers' strike. The report predicts massive earthquakes and flooding if mining continues."
+            },
+            {
+              "offset": 4405,
+              "text": ", the ecology expert and green activist. The Secret Police are holding her somewhere. Her rescue will rally the islanders to our cause."
+            },
+            {
+              "offset": 4541,
+              "text": ", President of the Union of Coal Miners. The Police have framed him"
+            },
+            {
+              "offset": 4631,
+              "text": "q on fraud charges and now he's in hiding. The miners will follow him to a man."
+            },
+            {
+              "offset": 4711,
+              "text": ", the so-called green biologist. She's really working for the Army's bio-warfare unit. If we don't get her on our side, she might wipe out the entire island."
+            },
+            {
+              "offset": 4869,
+              "text": ", the ecologist. Once she's safe, I'll help you reach that pig, Ellis, if that's what you want."
+            },
+            {
+              "offset": 5139,
+              "text": "&Z_T|3g"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 287232,
+          "cylinder": 25,
+          "empty": false,
+          "entropy": 3.87,
+          "first_block": 561,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 51
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 1983,
+              "text": ". He is rotten to the core and supplements his income by taking p"
+            },
+            {
+              "offset": 2072,
+              "text": "rotection money.  He has the total loyalty of his Police force, most of whom are as corrupt as him. He'll do anything at a price."
+            },
+            {
+              "offset": 2202,
+              "text": ". Williamson is perhaps the most respected man on the island, although the military force on Cajamarca loathe him because of his friendliness with the Secret Police."
+            },
+            {
+              "offset": 2368,
+              "text": ", kept at Bakis by General Sirhan. They implicate me in a murder which I had nothing to do with. That army scum is trying to frame me!"
+            },
+            {
+              "offset": 2503,
+              "text": ", imprisoned at the army base at Murbarquas. Poor Alexand"
+            },
+            {
+              "offset": 2583,
+              "text": "Ere's been arrested, because the army dislikes the friendship between the church and the Secret Police."
+            },
+            {
+              "offset": 2687,
+              "text": ". He is a corrupt villain, who deserves nothing less than imprisonment in his own cells."
+            },
+            {
+              "offset": 2776,
+              "text": ", the market trader. His business is going bust and I wouldn't mind being first in line to buy up his assets."
+            },
+            {
+              "offset": 3880,
+              "text": "in line to buy up his assets."
+            },
+            {
+              "offset": 4118,
+              "text": "+Yarts and minds of the islanders, you must shut down the heavy industry. Reason, charm and pleading are useful skills."
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 292864,
+          "cylinder": 26,
+          "empty": false,
+          "entropy": 4.74,
+          "first_block": 572,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 52
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 3096,
+              "text": "own-at-heel medical college.  Despite all this, the Federation is encouraging Cajamarca into the fold.  Liberate the island!"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 298496,
+          "cylinder": 26,
+          "empty": false,
+          "entropy": 3.34,
+          "first_block": 583,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 53
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 1999,
+              "text": ", recently detected by resistance divers. It is t"
+            },
+            {
+              "offset": 2072,
+              "text": "hought to be a key Imperial military base."
+            },
+            {
+              "offset": 2115,
+              "text": ", head of Beni-mazar's Resistance Force. Beersheba's regular radio reports to us inexplicably stopped a week ago and we are now extremely concerned about his welfare."
+            },
+            {
+              "offset": 2282,
+              "text": ", the Imperial Headquarters on this island. The radio operators there have been jamming all local frequencies, making it impossible for us to contact the outside world."
+            },
+            {
+              "offset": 2451,
+              "text": ". It has been dropping depth charges in the sea to the east of here, destroying acre upon acre of coral reef."
+            },
+            {
+              "offset": 2584,
+              "text": " If you ask me, they're clearing the sea-bed to build upon it!"
+            },
+            {
+              "offset": 2647,
+              "text": ". His knowledge of the island's past and geography will be of immeasureable benefit to the Resistance's military tacticians."
+            },
+            {
+              "offset": 2772,
+              "text": ". They show the results of recent Imperial investigations to find out whether oil is present under the sea bed around Beni-Mazar. The Empire lost the reports when the survey ship was sunk by resistance subs."
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 304128,
+          "cylinder": 27,
+          "empty": false,
+          "entropy": 4.74,
+          "first_block": 594,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 54
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 246,
+              "text": "atrolling the area around our base a bit too closely recently. Destroy them, and I will direct you to our leader. Long live the Resistance!"
+            },
+            {
+              "offset": 1048,
+              "text": "isaster that would occur if the Empire implemented its scorched earth plan."
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 309760,
+          "cylinder": 27,
+          "empty": false,
+          "entropy": 3.97,
+          "first_block": 605,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 55
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 573,
+              "text": ", the Governor of Calabar. She resents the mainland's bureaucratic interference with Calabar's affairs."
+            },
+            {
+              "offset": 677,
+              "text": ", spokesman for the deserters. He'll probably want you to prove that you're not a Saharan agent before he'll give his support."
+            },
+            {
+              "offset": 804,
+              "text": ", in charge of the Air Force's medical experiments. The islanders are terrified of him and no uprising is feasible until he's eliminated."
+            },
+            {
+              "offset": 942,
+              "text": " containing the formula for Fisher's top secret youth drug. That swine keeps it al"
+            },
+            {
+              "offset": 1048,
+              "text": "l to himself. Why shouldn't I live to 200 as well ?"
+            },
+            {
+              "offset": 1100,
+              "text": ", the Chief of Police. Without him at my side, life wouldn't be worth living."
+            },
+            {
+              "offset": 1178,
+              "text": " off Kebir. For all I know, matey, you could be military police. I might be just an ex-corporal but I'm not thick, you know."
+            },
+            {
+              "offset": 1303,
+              "text": ", my sweetheart. The military police have arrested him. Then I'll take you to White. He's a reasonable man - he'll help you."
+            },
+            {
+              "offset": 3977,
+              "text": " on Pequeno."
+            },
+            {
+              "offset": 3992,
+              "text": " containing files on all the Imperial Military Officers stationed at Almirante."
+            },
+            {
+              "offset": 4072,
+              "text": ", where Imperial gold re"
+            },
+            {
+              "offset": 4119,
+              "text": "2serves are stored."
+            },
+            {
+              "offset": 4139,
+              "text": ". He is loyal to the Empire, and in command of strong forces at Viano."
+            },
+            {
+              "offset": 4210,
+              "text": " my girlfriend. The police have taken her to their HQ. at Forte. God knows what they'll do to her, the stories I've heard about that place are horrendous."
+            },
+            {
+              "offset": 4365,
+              "text": ", my probation officer at Secundo Sister. That jerk's always checking up on me, like he owns me! Kill him and I'll tell you something interesting."
+            },
+            {
+              "offset": 4512,
+              "text": ". He stands in the way of a little business operation of mine. Get rid of him, and I'll put you "
+            },
+            {
+              "offset": 4632,
+              "text": "in touch with the best pilot there is."
+            },
+            {
+              "offset": 4671,
+              "text": " at the Braga. The kid's found out I'm with the Resistance. Don't ask me how he knows. He just does! He's too untrustworthy. It's a shame, but death's the only way!"
+            },
+            {
+              "offset": 4836,
+              "text": ". They have been patrolling the area around our base a bit too closely recently. Destroy them, and I will direct you to our leader. Long live the Resistance!"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 315392,
+          "cylinder": 28,
+          "empty": false,
+          "entropy": 5.36,
+          "first_block": 616,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 56
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 24,
+              "text": "ribery and threats should prove useful."
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 321024,
+          "cylinder": 28,
+          "empty": false,
+          "entropy": 3.56,
+          "first_block": 627,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 57
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 3659,
+              "text": ", commander of the infamous elite Imperial Flying Sub unit known as the Sea Hawks."
+            },
+            {
+              "offset": 3742,
+              "text": ", the radar station which alerts the Empire of any ships approaching Deepwater Bay, the lair of their naval forces on Lobos."
+            },
+            {
+              "offset": 3867,
+              "text": ", the heavily fortified centre of naval operations."
+            },
+            {
+              "offset": 3919,
+              "text": ", a secret Imperial airbase high in the mountains, which I discovered purely by chance when I picked up its transmissions on my radio."
+            },
+            {
+              "offset": 4054,
+              "text": ", kept under lock and key at an underwater"
+            },
+            {
+              "offset": 4120,
+              "text": " base in Longview Bay. They are plans for a new Imperial submarine base which the Empire intends to build off Gamboa."
+            },
+            {
+              "offset": 4238,
+              "text": ", a Secret Policeman, known for his brutality toward the islanders."
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 326656,
+          "cylinder": 29,
+          "empty": false,
+          "entropy": 4.94,
+          "first_block": 638,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 58
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 22,
+              "text": "OS their morale."
+            },
+            {
+              "offset": 39,
+              "text": ", the succesful businessman, who produces all the enemy propaganda films. This will leave their film industry in ruins."
+            },
+            {
+              "offset": 159,
+              "text": ", favourite pin-up of the Imperial troops. She has been portrayed to them as the ideal Imperial woman."
+            },
+            {
+              "offset": 262,
+              "text": ", used for film processing by the enemy."
+            },
+            {
+              "offset": 303,
+              "text": ", used for film processing by the enemy."
+            },
+            {
+              "offset": 344,
+              "text": ", the print works of Aostaview Publications. Their film reviews are destroying my business."
+            },
+            {
+              "offset": 436,
+              "text": ". He wrote an awful review of my performance in Macbeth. Do this for me, and"
+            },
+            {
+              "offset": 536,
+              "text": " I'll help you."
+            },
+            {
+              "offset": 552,
+              "text": ", who is being held by the Secret Police at Tusk Fields."
+            },
+            {
+              "offset": 609,
+              "text": ". She looks sweet but she's been informing on my activities to the Secret Police."
+            },
+            {
+              "offset": 691,
+              "text": " and make that scumball pay with his life for those comments on my private affairs. That'll teach him to open his big mouth on TV."
+            },
+            {
+              "offset": 822,
+              "text": " where those B-Movie merchants who are my so-called opposition work."
+            },
+            {
+              "offset": 891,
+              "text": ". The little hussy is my understudy and she's trying to steal the limelight from me."
+            },
+            {
+              "offset": 976,
+              "text": ". That wretch stole my boyfriend Bruce with her "
+            },
+            {
+              "offset": 1048,
+              "text": "wiggle ! Only then will I help you."
+            },
+            {
+              "offset": 1084,
+              "text": ", maybe then they will take notice of my screen test."
+            },
+            {
+              "offset": 1138,
+              "text": ". I'll teach them not to give me a leading part!"
+            },
+            {
+              "offset": 1187,
+              "text": ", that swine was too mean to back my film. Do this little job for me and then I'll help you."
+            },
+            {
+              "offset": 1950,
+              "text": " and she's trying to steal the limelight from me."
+            },
+            {
+              "offset": 2000,
+              "text": ". That wretch stole my boyfriend Bruce with her "
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 332288,
+          "cylinder": 29,
+          "empty": false,
+          "entropy": 5.03,
+          "first_block": 649,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 59
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 23,
+              "text": " hould be careful about who you trust."
+            },
+            {
+              "offset": 5563,
+              "text": ", the renowned actor, whose loss to the Empire will be a huge blow to"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 337920,
+          "cylinder": 30,
+          "empty": false,
+          "entropy": 3.54,
+          "first_block": 660,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 60
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 3405,
+              "text": ". He hates me because I've never promoted the lazy slob. He's after my life. Kill him and I'll make you a hero."
+            },
+            {
+              "offset": 3517,
+              "text": ". Their commander constantly leads them in attacks on innocent sett"
+            },
+            {
+              "offset": 3608,
+              "text": "lements purely for fun! He's a brutal pig with our blood on his hands."
+            },
+            {
+              "offset": 3679,
+              "text": ". Why do you think they make me crawl around the sea-bed like a crab? Because that old fool wouldn't promote me. Kill him and I'll help you to really hurt 'em!"
+            },
+            {
+              "offset": 3839,
+              "text": ". I'll tell you all you want to know about radars if you'll just rescue my girlfriend from the Secret Police."
+            },
+            {
+              "offset": 3949,
+              "text": ". I want to land supplies but they'll intercept me. You scratch my back and I'll scratch yours."
+            },
+            {
+              "offset": 4045,
+              "text": ". If you can persuade Laskowski, the recce squadron"
+            },
+            {
+              "offset": 4118,
+              "text": "ho Commander to go over to you, I'll join as well. This isn't a Navy, it's a rabble. When the time is right she'll fly me to Agora."
+            },
+            {
+              "offset": 5184,
+              "text": "as well. This isn't a Navy, it's a rabble. When the time is right she'll fly me to Agora."
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 343552,
+          "cylinder": 30,
+          "empty": false,
+          "entropy": 4.86,
+          "first_block": 671,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 61
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 129,
+              "text": ", one of the most influential officials in the Imperial army."
+            },
+            {
+              "offset": 191,
+              "text": ", the Resistance Leader, held in the notorious Eden Ghetto."
+            },
+            {
+              "offset": 251,
+              "text": ", my aide-de-camp. He disappeared whilst investigating rumours of Secret Police atrocities."
+            },
+            {
+              "offset": 343,
+              "text": ", Secret Police operational files which are kept at the Headquarters at Dao Sister. If I have proof of army brutality, then I'll help you."
+            },
+            {
+              "offset": 482,
+              "text": ". The Empire plan to construct"
+            },
+            {
+              "offset": 535,
+              "text": "L a massive airbase there for flying boats. When building is completed, they will undoubtedly use it as a refuelling and rearming point. Their plans must be destroyed."
+            },
+            {
+              "offset": 703,
+              "text": ". I have learned from many sources that this man is the scourge of Eden Ghetto. His brutality toward the prisoners of Eden is savage and relentless. Many have suffered at the hands of this monster."
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 349184,
+          "cylinder": 31,
+          "empty": false,
+          "entropy": 4.59,
+          "first_block": 682,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 62
+        },
+        {
+          "ascii_strings": [],
+          "byte_length": 5632,
+          "byte_offset": 354816,
+          "cylinder": 31,
+          "empty": false,
+          "entropy": 3.67,
+          "first_block": 693,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 63
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 777,
+              "text": ", an important military munitions complex, where a handful of the Empire's best scientists create and manufacture devastating weapons."
+            },
+            {
+              "offset": 912,
+              "text": " a Major in the Imperial army, whose death will smash enemy morale."
+            },
+            {
+              "offset": 980,
+              "text": ", Hangman with the Imperial Death Squad. His"
+            },
+            {
+              "offset": 1048,
+              "text": " death will turn others against their leaders."
+            },
+            {
+              "offset": 1095,
+              "text": ", my husband. He's been placed in custody on Malad Island by Commander Baikie. Baikie wants Dingaan out of the way just so he can have fun with me. Rescue Dingaan, and I'll kill that pig Baikie."
+            },
+            {
+              "offset": 1290,
+              "text": ", Hilmi's second in command. The Imperial Death Squad are trying to eliminate our presence on the island, and enforce their own. Much as I despise what you're fighting for, this time we have a common enemy."
+            },
+            {
+              "offset": 1497,
+              "text": ", kept at the Manatoa Highlands, which "
+            },
+            {
+              "offset": 1559,
+              "text": "Zcontain military plans. Without them the Saharan war machine will halt for a while at least. I'm tired of sending young men and women to their deaths. I want it all to stop."
+            },
+            {
+              "offset": 1734,
+              "text": ". I know of your mission, but Dube's death will have a much worse effect on troop morale than you'd get by killing me. The new recruits actually like him, would you believe. I don't want to come to blows with you, I abhore violence!"
+            },
+            {
+              "offset": 1967,
+              "text": ". The Djoum police are no longer of any need. Strike at their heart for me, and w"
+            },
+            {
+              "offset": 2071,
+              "text": "(e may decide not to execute you."
+            },
+            {
+              "offset": 2105,
+              "text": " at Wazir. His defection will come as a devastating blow to the Empire's morale and lift the spirits of our Resistance fighters."
+            },
+            {
+              "offset": 3608,
+              "text": "ial Police death squads. An armed breakout from the ghetto is the key to liberating Camargo."
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 360448,
+          "cylinder": 32,
+          "empty": false,
+          "entropy": 5.69,
+          "first_block": 704,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 64
+        },
+        {
+          "ascii_strings": [],
+          "byte_length": 5632,
+          "byte_offset": 366080,
+          "cylinder": 32,
+          "empty": false,
+          "entropy": 1.92,
+          "first_block": 715,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 65
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 2419,
+              "text": ", a senior Civil Servant, who will provide you with some information helpful to your mission"
+            },
+            {
+              "offset": 2512,
+              "text": " from Bosiu Alooma. These detail massive cuts in"
+            },
+            {
+              "offset": 2584,
+              "text": " the Civil Service and the lifting of internal tariffs. Leaking these documents will cause revolt in the Civil Service and the Customs and Excise."
+            },
+            {
+              "offset": 2731,
+              "text": ", a very good friend, who is not quite convinced about the aims of the resistance."
+            },
+            {
+              "offset": 2814,
+              "text": ", the island's chief accountant.  With her help we can redirect Imperial funds, and swell the coffers of the Resistance."
+            },
+            {
+              "offset": 2935,
+              "text": ", a Sergeant with the Imperial Forces. She would be of help if the army are used to control the revolt."
+            },
+            {
+              "offset": 3039,
+              "text": ", a hated, corrupt man known to b"
+            },
+            {
+              "offset": 3096,
+              "text": "e an enemy of the resistance."
+            },
+            {
+              "offset": 3126,
+              "text": ", a woman well liked and respected amongst the ghetto dwellers of Mukris."
+            },
+            {
+              "offset": 3200,
+              "text": ", the island's main custom and tax office."
+            },
+            {
+              "offset": 3243,
+              "text": ", a high ranking official at the tax office."
+            },
+            {
+              "offset": 3288,
+              "text": ", which was responsible for the death of my mother."
+            },
+            {
+              "offset": 3340,
+              "text": ", the clerk at the Town Hall at Naur."
+            },
+            {
+              "offset": 3378,
+              "text": ", Chief of Security at the bank at Jadanil Sister."
+            },
+            {
+              "offset": 3429,
+              "text": ", the man responsible for the downfall of my father's business."
+            },
+            {
+              "offset": 4428,
+              "text": " bank at Jadanil Sister."
+            },
+            {
+              "offset": 4453,
+              "text": ", the man responsible for the downfall of my father's business."
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 371712,
+          "cylinder": 33,
+          "empty": false,
+          "entropy": 4.56,
+          "first_block": 726,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 66
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 560,
+              "text": "l get her to help you."
+            },
+            {
+              "offset": 4119,
+              "text": "5priate Civil Service department, revolt is likely to ensue."
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 377344,
+          "cylinder": 33,
+          "empty": false,
+          "entropy": 4.0,
+          "first_block": 737,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 67
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 4355,
+              "text": ", the art-loving Chief of Police. He is known to have some sympathy with our cause but his price for helping us will be high, no doubt."
+            },
+            {
+              "offset": 4491,
+              "text": ". This houses the Censorship Bureau which vets all the works of art produced on the island. Its destruction will win "
+            },
+            {
+              "offset": 4632,
+              "text": "you many friends."
+            },
+            {
+              "offset": 4650,
+              "text": ", leading light of the Maximalist Movement. Her support is vital in the liberation of Vicenza."
+            },
+            {
+              "offset": 4745,
+              "text": ", an original work by Leonardo Da Vinci. The ship that was bringing it to me was lost during a storm somewhere off the coast of Vicenza."
+            },
+            {
+              "offset": 4882,
+              "text": ". His poetry is superb but the stupid bureaucracy calls it seditious rubbish. They've got him under guard and his very life is in danger."
+            },
+            {
+              "offset": 5020,
+              "text": ". The Police keep hounding me. I know a musician whose friend knows the whereabouts of an original D"
+            },
+            {
+              "offset": 5141,
+              "text": "Jk#a Vinci. Help me and I'll get her to help you."
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 382976,
+          "cylinder": 34,
+          "empty": false,
+          "entropy": 4.88,
+          "first_block": 748,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 68
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 1977,
+              "text": ", who is known to be a keen supporter of the Federation."
+            },
+            {
+              "offset": 2034,
+              "text": ", used for sec"
+            },
+            {
+              "offset": 2071,
+              "text": "cret weapons development."
+            },
+            {
+              "offset": 2097,
+              "text": ", who is an active member of the resistance."
+            },
+            {
+              "offset": 2142,
+              "text": ", used for weapons production."
+            },
+            {
+              "offset": 2173,
+              "text": ", who betrayed her boyfriend to the Secret Police."
+            },
+            {
+              "offset": 2224,
+              "text": ", which supplies raw materials to weapons factories at Bird Plateau."
+            },
+            {
+              "offset": 2293,
+              "text": " hidden by Craig Sutton, an enemy weapons development scientist at Lodi Scar."
+            },
+            {
+              "offset": 3180,
+              "text": "pons production."
+            },
+            {
+              "offset": 3197,
+              "text": ", who betrayed her boyfriend to the Secret Police."
+            },
+            {
+              "offset": 3248,
+              "text": ", which supplies raw materials to weapons factories at Bird Plateau."
+            },
+            {
+              "offset": 3317,
+              "text": " hidden by Craig Sutton, an enemy weapons development scientist at Lodi Scar."
+            },
+            {
+              "offset": 3608,
+              "text": "llious artists, will be vital to the liberation of Vicenza."
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 388608,
+          "cylinder": 34,
+          "empty": false,
+          "entropy": 4.95,
+          "first_block": 759,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 69
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 23,
+              "text": "9ouldn't bear to have his death on my conscience."
+            },
+            {
+              "offset": 73,
+              "text": ", intimate letters to me from the Emperor's nephew, my beloved Fasalis. Then I'll take you to him. Onadipe, the tatooist, has them hidden."
+            },
+            {
+              "offset": 1182,
+              "text": "e you to him. Onadipe, the tatooist, has them hidden."
+            },
+            {
+              "offset": 2072,
+              "text": "ocate D'Angeli and destroy all elements of the research establishment. Be warned - Thar is heavily guarded."
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 394240,
+          "cylinder": 35,
+          "empty": false,
+          "entropy": 4.02,
+          "first_block": 770,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 70
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 5245,
+              "text": ", the Emperor's overweening nephew. He loathes his uncle and will raise the banner of rebellion, rallying many men to our cause throughout the Slave Isles."
+            },
+            {
+              "offset": 5401,
+              "text": ". We fell deeply in love barely two months ago. Then the Secret Police found out. They'll kill her if I so much as lift a finger to help you."
+            },
+            {
+              "offset": 5543,
+              "text": ", my old and loyal tutor, the Aristotle to my Alexander. The Police have got him too. I c"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 399872,
+          "cylinder": 35,
+          "empty": false,
+          "entropy": 3.76,
+          "first_block": 781,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 71
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 24,
+              "text": "perial Treasury. The location of Matawin Ridge is unknown."
+            },
+            {
+              "offset": 85,
+              "text": ", who jilted me last year."
+            },
+            {
+              "offset": 112,
+              "text": ", my nephew, who is being held hostage."
+            },
+            {
+              "offset": 152,
+              "text": ", which bombed my home island, killing my wife and my two children."
+            },
+            {
+              "offset": 904,
+              "text": " the manager of the Imperial Treasury bank at Amarelo Flats."
+            },
+            {
+              "offset": 965,
+              "text": ", which is part of the Imperial Treasury."
+            },
+            {
+              "offset": 1007,
+              "text": ", owned by the Im"
+            },
+            {
+              "offset": 2463,
+              "text": ", off the western coast, guarding the island's trade route."
+            },
+            {
+              "offset": 2523,
+              "text": ", off the western coast, guarding the"
+            },
+            {
+              "offset": 2583,
+              "text": "5 island's trade route."
+            },
+            {
+              "offset": 2607,
+              "text": ". I gave him a lot of money some time ago for drugs which I need as medication. He hasn't come up with them yet and now he's threatening to tell my superiors that I'm buying them on the black market!"
+            },
+            {
+              "offset": 2807,
+              "text": ", at sea east of the Vale of Liberty. It's patrolling our illegal shipping routes, and ruining business. But be careful, it's escorted by a number of heavily armed air and sea units."
+            },
+            {
+              "offset": 2990,
+              "text": ", kept by Hussein Hazfa at Mais-Bonito village. They're diaries of local entrepene"
+            },
+            {
+              "offset": 3095,
+              "text": "surs, whose dealings may interest the Secret Police. If you bring them safely to me, past the enemy patrols, then I'll help."
+            },
+            {
+              "offset": 3220,
+              "text": ". The Police there tortured my father to death, to get information about the safe house we use to hide contraband. Dad didn't squeal though, thank God."
+            },
+            {
+              "offset": 3372,
+              "text": ". That double-crossing cheat sent me to prison for four months, after I'd bribed her to find me innocent when I was tried for robbery!"
+            },
+            {
+              "offset": 4422,
+              "text": "at sent me to prison for four months, after I'd bribed her to find me innocent when I was tried for robbery!"
+            },
+            {
+              "offset": 4631,
+              "text": "Dould be extremely useful. Try charm and reason to win the islanders over to your cause."
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 405504,
+          "cylinder": 36,
+          "empty": false,
+          "entropy": 5.14,
+          "first_block": 792,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 72
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 5351,
+              "text": ", who has been arrested by the Imperial Secret Police on charges of spying."
+            },
+            {
+              "offset": 5427,
+              "text": ", the leader of the local resistance."
+            },
+            {
+              "offset": 5465,
+              "text": ", software engineer to the Imperial Treasury."
+            },
+            {
+              "offset": 5511,
+              "text": ", the manager of the Imperial Treasury bank at Amarelo Flats."
+            },
+            {
+              "offset": 5573,
+              "text": ", which is part of the Imperial Treasury."
+            },
+            {
+              "offset": 5615,
+              "text": ", owned by the Im"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 411136,
+          "cylinder": 36,
+          "empty": false,
+          "entropy": 3.47,
+          "first_block": 803,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 73
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 3637,
+              "text": ", the main source of Saharan propaganda, the aim of which is to subvert the population of Agora."
+            },
+            {
+              "offset": 3734,
+              "text": " millionare businessman and recluse. He is known to be generous and he will be able to bribe the island's governor to relinquish control."
+            },
+            {
+              "offset": 3872,
+              "text": " which guards the island's vital trade routes."
+            },
+            {
+              "offset": 3919,
+              "text": " who sent a camera team to take film of me relaxing on my private estate and had the gall to broadcast the footage on TV, claiming that I'd granted her an exclusive interview. H"
+            },
+            {
+              "offset": 4120,
+              "text": "er TV show is quite appalling."
+            },
+            {
+              "offset": 5008,
+              "text": " estate and had the gall to broadcast the footage on TV, claiming that I'd granted her an exclusive interview. H"
+            },
+            {
+              "offset": 5143,
+              "text": "(ce of revenue by which it maintains its military effort."
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 416768,
+          "cylinder": 37,
+          "empty": false,
+          "entropy": 4.06,
+          "first_block": 814,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 74
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 2181,
+              "text": ", one of the chief conspirators in the Arnaud disaster."
+            },
+            {
+              "offset": 2237,
+              "text": ", manager of Arnaud Chemicals and mastermind behind the plan to destroy his own factory."
+            },
+            {
+              "offset": 2326,
+              "text": ". They contain Secret files explaining the truth behind the Arnaud Chemical Plant disaster and pointing the finger at the true culprits."
+            },
+            {
+              "offset": 2463,
+              "text": ". The Arnaud Company are pumping out thousands of gallons of chemicals from there into the sea ev"
+            },
+            {
+              "offset": 2584,
+              "text": "ery day. I know I've been dishonest in the past, but I want to turn over a new leaf!"
+            },
+            {
+              "offset": 2669,
+              "text": ". He and Judge Hopson conceived the plan to destroy the Chemical Plant, not me. I'm just the innocent victim of their scheming!"
+            },
+            {
+              "offset": 4120,
+              "text": "lencing the voice of the Empire, you must also wreck the island's sea trade."
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 422400,
+          "cylinder": 37,
+          "empty": false,
+          "entropy": 4.99,
+          "first_block": 825,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 75
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 3096,
+              "text": " suggesting that Arnaud paid off the Judge, and actually caused the accident himself to claim insurance money. Your  mission is to seek out Arnaud and Judge Hopson, and serve justice in the eyes of the population."
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 428032,
+          "cylinder": 38,
+          "empty": false,
+          "entropy": 4.35,
+          "first_block": 836,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 76
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 3977,
+              "text": ", who is in hiding for fear of his life. His refusal to help the two ruling families on Gau and his views on how the Sa"
+            },
+            {
+              "offset": 4120,
+              "text": "haran Empire conducts its affairs have made him a much-wanted man."
+            },
+            {
+              "offset": 4187,
+              "text": ". He is a dishonourable man whose existence brings much grief to me and my family. Kill him, and I will help you, I give my word."
+            },
+            {
+              "offset": 4317,
+              "text": ", my brother-in-law at Murbaquas Bay. He is a disgrace to the family. Mina is too good for him. Ferhat beats her and treats her like dirt."
+            },
+            {
+              "offset": 4456,
+              "text": " held by Shaka Zhuku, the Harbour Master at Manzara Cove. They show arrival times of foreign traders, which will be of great help to my husband. He has "
+            },
+            {
+              "offset": 4631,
+              "text": "~a terrible head for business. I fear my family's patience is wearing thin with him."
+            },
+            {
+              "offset": 4716,
+              "text": ". He is, let us say, in my employ, but his work is not satisfactory. He often forgets who his employer actually is. I am tired of the wretch."
+            },
+            {
+              "offset": 4858,
+              "text": " to the south east. They are striking terror into the heart of my parishioners."
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 433664,
+          "cylinder": 38,
+          "empty": false,
+          "entropy": 5.09,
+          "first_block": 847,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 77
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 1479,
+              "text": ", the senior Imperial Naval strategist."
+            },
+            {
+              "offset": 1519,
+              "text": ". His shoddy work"
+            },
+            {
+              "offset": 1560,
+              "text": "manship cost me thousands of dollars when the pumps he installed exploded."
+            },
+            {
+              "offset": 1635,
+              "text": ". They've impounded my tow truck and deprived me of my livelihood."
+            },
+            {
+              "offset": 2503,
+              "text": ", the senior Imperial Naval strategist."
+            },
+            {
+              "offset": 2543,
+              "text": ". His shoddy work"
+            },
+            {
+              "offset": 2583,
+              "text": "} willing to help us. Your overall mission is to free Gau from Empire and Mafia rule."
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 439296,
+          "cylinder": 39,
+          "empty": false,
+          "entropy": 4.05,
+          "first_block": 858,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 78
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 127,
+              "text": ", leader of the island's Islamic party."
+            },
+            {
+              "offset": 167,
+              "text": ", leader of the island's Christian party."
+            },
+            {
+              "offset": 209,
+              "text": ", leader of the island's Communist party."
+            },
+            {
+              "offset": 251,
+              "text": ", leader of the island's Anarchist party."
+            },
+            {
+              "offset": 293,
+              "text": " who betrayed me to the Secret Police. Do this service for me and you will be rewarded!"
+            },
+            {
+              "offset": 381,
+              "text": " which we believe to be ancient Holy manuscripts, unknown to the Christian Church until now. Do this for us and you will be rewarde"
+            },
+            {
+              "offset": 535,
+              "text": "vd here on Earth, as well as in Heaven."
+            },
+            {
+              "offset": 575,
+              "text": " and prove that you are not a Class Enemy. Help us in our struggle."
+            },
+            {
+              "offset": 643,
+              "text": " which the Empire uses to ideologically pervert the population. Apart from that, we hate the music it pumps out!"
+            },
+            {
+              "offset": 756,
+              "text": " our leader, who is held under sentence of death. Do this and we will aid your cause."
+            },
+            {
+              "offset": 842,
+              "text": " the Class Enemy. You're just a bourgeois lackey. You must be soft to need help from me! Go on and do something useful for a change!"
+            },
+            {
+              "offset": 975,
+              "text": ". You have done well to find me, comrade. Ideolog"
+            },
+            {
+              "offset": 1048,
+              "text": "ically we are opposed but we can unite against the common foe if you do this for me."
+            },
+            {
+              "offset": 1904,
+              "text": "ois lackey. You must be soft to need help from me! Go on and do something useful for a change!"
+            },
+            {
+              "offset": 1999,
+              "text": ". You have done well to find me, comrade. Ideolog"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 444928,
+          "cylinder": 39,
+          "empty": false,
+          "entropy": 4.01,
+          "first_block": 869,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 79
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 433,
+              "text": "missionsmissions"
+            },
+            {
+              "offset": 1457,
+              "text": "missdir"
+            },
+            {
+              "offset": 1592,
+              "text": "missions"
+            },
+            {
+              "offset": 1694,
+              "text": "island01.bin"
+            },
+            {
+              "offset": 1712,
+              "text": "island02.bin"
+            },
+            {
+              "offset": 1730,
+              "text": "island03.bin"
+            },
+            {
+              "offset": 1748,
+              "text": "island04.bin"
+            },
+            {
+              "offset": 1765,
+              "text": "Jisland05.bin"
+            },
+            {
+              "offset": 1783,
+              "text": ")island06.bin"
+            },
+            {
+              "offset": 1802,
+              "text": "island07.bin"
+            },
+            {
+              "offset": 1819,
+              "text": ":island08.bin"
+            },
+            {
+              "offset": 1837,
+              "text": "@island09.bin"
+            },
+            {
+              "offset": 1852,
+              "text": " `S\\island10.bin"
+            },
+            {
+              "offset": 1874,
+              "text": "island11.bin"
+            },
+            {
+              "offset": 1892,
+              "text": "island12.bin"
+            },
+            {
+              "offset": 1910,
+              "text": "island13.bin"
+            },
+            {
+              "offset": 1928,
+              "text": "island14.bin"
+            },
+            {
+              "offset": 1946,
+              "text": "island15.bin"
+            },
+            {
+              "offset": 1964,
+              "text": "island16.bin"
+            },
+            {
+              "offset": 1982,
+              "text": "island17.bin"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 450560,
+          "cylinder": 40,
+          "empty": false,
+          "entropy": 3.46,
+          "first_block": 880,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 80
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 433,
+              "text": "island38.bin"
+            },
+            {
+              "offset": 553,
+              "text": "f#`#r% %\"%$"
+            },
+            {
+              "offset": 568,
+              "text": "The whole of Cristobal is owned by the quisling tycoon, Lord Albert Harper, a hypochondriac recluse who fears contact with the rest of the island's population. The Imperial garrison shields Harper from the outside world and in return he regularly makes large donations to the Saharan Empire. The largest army presence here is at Wazir, in the north-east, where supplies and water are shipped out to other Saharan islands to sustain Imperial troops. Cristob"
+            },
+            {
+              "offset": 1457,
+              "text": "island01.bin"
+            },
+            {
+              "offset": 2481,
+              "text": "island29.bin"
+            },
+            {
+              "offset": 2616,
+              "text": "This island is of key strategic importance as it guards the sea lanes used by the Empire to supply its south-eastern region. Naval patrols sailing out of ports dotted around Ghazal keep a regular guard. Since unmonitored access to the island is difficult, Ghazal makes an ideal location for the Imperial Mint. Be warned that the printers are specially selected for their honesty. Your overall mission is to cause economic and monetary chaos by liberating t"
+            },
+            {
+              "offset": 3505,
+              "text": "island36.bin"
+            },
+            {
+              "offset": 3640,
+              "text": "Nicobar is a rich and fertile island.  Its Grand Harbour at Sweetwater is the busiest mercantile port in the whole Archipelago.  At the moment, it is also the chosen anchorage of Admiral Kreuter's Atlantic Fleet.  Kreuter, the naval genius of our age, has a mountain retreat here, close to the village where his beloved mistress, Michelle Marchetta, lives.  Kreuter's help is vital in liberating the island - his fleet is the best the Empire has and his me"
+            },
+            {
+              "offset": 4529,
+              "text": "island19.bin"
+            },
+            {
+              "offset": 4664,
+              "text": "This island is the home of two deadly neighbours, the Imperial Secret Police, who use it as their interrogation HQ, and the League of Assassins, a brotherhood of professional killers who sell their services to the highest bidder. These two organisations detest each other. You must exploit the mutual dislike between the Police and the League, destroy the power of the assassins and compromise the Secret Police."
+            },
+            {
+              "offset": 5553,
+              "text": "island27.bin"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 456192,
+          "cylinder": 40,
+          "empty": false,
+          "entropy": 4.06,
+          "first_block": 891,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 81
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 56,
+              "text": "The island is maintained by the Imperial Secret Police as a prison colony. The inhabitants are senior political and religious leaders who have been seized by the Empire from various islands and who are now held as hostages. The island is heavily fortified. Take note that certain of the leading figures kept prisoner on the island have as little regard for the Federation as they do for the Empire. Your mission is to liberate the prisoners so that they ca"
+            },
+            {
+              "offset": 536,
+              "text": "n return to their home islands to foster further revolt."
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 461824,
+          "cylinder": 41,
+          "empty": false,
+          "entropy": 3.67,
+          "first_block": 902,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 82
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 433,
+              "text": "island34.bin"
+            },
+            {
+              "offset": 568,
+              "text": "Hemet is to the Imperial Guards Division what the pre-flood island of Corsica was to the French Foreign Legion.  The island provides the Guards Division with a GHQ and a training ground.  Your overall mission on this island is to destroy the fighting capability of the Imperial Guards Division and deprive the Empire of its most able troops."
+            },
+            {
+              "offset": 1457,
+              "text": "island17.bin"
+            },
+            {
+              "offset": 1592,
+              "text": "Gau is controlled by two Mafia - type families. The Doua's in the south, and the Oqbah's, in the north. The Empire often indulges itself in hiring the exceptional skills of their assasins and hit-men. Recently Nasif Namali, a General with the Saharan Army, well known for his outspoken hatred of the Mafia and some aspects of Saharan life, went into hiding after killers hired by the Empire, began searching for him. Namali is a desperate man, who might be"
+            },
+            {
+              "offset": 2481,
+              "text": "island25.bin"
+            },
+            {
+              "offset": 2616,
+              "text": "Recently, Bourem was the location of an industrial disaster, which caused thousands of deaths, and had a devastating effect upon the island's ecology. Explosions at a chemical plant owned by Enrique Arnaud, billowed clouds of toxic gas into the atmosphere which laid waste to all life within a ten mile radius. Arnaud was arrested and tried for manslaughter and negligence, the Judge returned a verdict of innocent. However, new evidence has come to light,"
+            },
+            {
+              "offset": 3505,
+              "text": "island08.bin"
+            },
+            {
+              "offset": 3640,
+              "text": "Iquitos is the headquarters of the Imperial Propaganda Ministry, its radio stations beaming a continuous stream of fiction towards the island of Agora. Although it is a frequent port of call for merchant ships plying their trade between the nearby islands, much of Iquitos remains an unspoilt tropical paradise, a tranquil haven for the rich and the famous. Your charm and pleading will be crucial in gaining the help of the island's jet-set. As well as si"
+            },
+            {
+              "offset": 4529,
+              "text": "island32.bin"
+            },
+            {
+              "offset": 4664,
+              "text": "The Imperial Treasury is situated on Khash. At ports dotted around the island, taxes, levies and tributes are received from the Empire's dependent and vassal islands. Huge amounts of gold, precious stones and paper money are stored in banks at various sites. The population of this island is relatively well treated by the Empire and is, in the main part, loyal to it. Your mission is to subvert the local population and deprive the enemy of the major sour"
+            },
+            {
+              "offset": 5553,
+              "text": "island15.bin"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 467456,
+          "cylinder": 41,
+          "empty": false,
+          "entropy": 3.82,
+          "first_block": 913,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 83
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 56,
+              "text": "The mountains of Maji provide an ideal location for an Imperial weather station serving Dhafra. The Empire also uses this island for rest and recuperation. Imperial troops make sure that the island's two main industries are gambling and crime.  A corrupt judiciary and legal profession ensure the prosperity of these dubious industries. Maji is also famous for its pirates. You must cut sea communications with the other Imperial colonies and bring about t"
+            },
+            {
+              "offset": 535,
+              "text": "3he liberation of Maji."
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 473088,
+          "cylinder": 42,
+          "empty": false,
+          "entropy": 4.21,
+          "first_block": 924,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 84
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 433,
+              "text": "island40.bin"
+            },
+            {
+              "offset": 568,
+              "text": "Far from the main trade routes, Galva is a quiet and peaceful backwater. The Empire's flying sub factories are based in the north-west. In the south-east, a small group of scientists is engaged in rocket pack research. Galva is also the place of exile for the Emperor's over-ambitious nephew, Fasalis, who has a strong following in the army. Galva is unlikely to be a port of call for the Armada, but its rocket pack technology and the support of Fasalis w"
+            },
+            {
+              "offset": 1457,
+              "text": "island23.bin"
+            },
+            {
+              "offset": 1592,
+              "text": "Formed by a now dormant volcano, this rugged island is exploited by the Empire as a location for its Secret Weapon Establishment. Little is known of this highly secret installation. Recently fishermen from Zafriya, who had been pressed into service with the Imperial Mercantile Fleet, reported seeing Professor Gabriel D'Angeli on the dockside at Bird Quay. Professor D'Angeli is known to be a keen supporter of the Federation. Your overall mission is to l"
+            },
+            {
+              "offset": 2481,
+              "text": "island06.bin"
+            },
+            {
+              "offset": 2616,
+              "text": "Subsistence farming and coastal fishing are the mainstays of the local economy. Vicenza's unspoilt wilderness and clear skies have attracted three thriving communities of artists. The island is not heavily garrisoned but early warning radars for the naval base on Lobos are stationed here. If we hold Vicenza, Lobos is blind. Fritsch, the Chief of Police is an avid collector of old masters and his help, together with the support of the island's more rebe"
+            },
+            {
+              "offset": 3505,
+              "text": "island30.bin"
+            },
+            {
+              "offset": 3640,
+              "text": "Ndola provides the HQ for the Saharan Colonial Civil Service and it is also the home of the Imperial Customs and Excise Head Office. There is known to be friction between the two organisations. In addition to the large garrison of Imperial troops, there is also a detachment of armed Excise officers. We believe that Imperial economic reform will result in the loss of thousands of Civil Service and Excise posts. If this information is leaked to the appro"
+            },
+            {
+              "offset": 4529,
+              "text": "campaign"
+            },
+            {
+              "offset": 4634,
+              "text": "WILDFIRE"
+            },
+            {
+              "offset": 5553,
+              "text": "island21.bin"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 478720,
+          "cylinder": 42,
+          "empty": false,
+          "entropy": 3.49,
+          "first_block": 935,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 85
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 56,
+              "text": "Because of its close proximity to the African mainland, and the diversity of terrain types found there, Djoum is used by the Saharan Empire as the ideal military training centre for its newly recruited troops. Here, Imperial soldiers, sailors and airmen undergo six months of intense training in all fields of modern warfare, until they are considered worthy enough to fight in the ranks of the Imperial army. Djoum is also the location of the Headquarters"
+            },
+            {
+              "offset": 533,
+              "text": "\\+[ of the much feared Imperial Death Squad, a special judicial unit, created to investigate reports of misconduct within the echelons of the Imperial Army and Secret Police."
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 484352,
+          "cylinder": 43,
+          "empty": false,
+          "entropy": 4.73,
+          "first_block": 946,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 86
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 433,
+              "text": "island04.bin"
+            },
+            {
+              "offset": 558,
+              "text": "$0$2$4"
+            },
+            {
+              "offset": 568,
+              "text": "Camargo is the HQ of the Imperial Armoured Corps, where the elite armoured units undergo rigorous battle training. The entire south-eastern peninsular has been turned into a vast walled ghetto, named Eden. Here, politicians, revolutionaries, resistance fighters and those who have simply dared to speak ill of the Empire are forced to live in squalid, disease-ridden conditions. Those who survive disease eventually meet their end at the hands of the Imper"
+            },
+            {
+              "offset": 1457,
+              "text": "island12.bin"
+            },
+            {
+              "offset": 1592,
+              "text": "Corozal is a major base for the Imperial Navy's Intelligence Service. Radar sited on high ground is used to scan the Western approach from Agora to the mainland of Africa. Radio stations, based around the island, monitor transmissions from Agora. The overall mission is to deprive the enemy of his intelligence gathering assets."
+            },
+            {
+              "offset": 2481,
+              "text": "island39.bin"
+            },
+            {
+              "offset": 2616,
+              "text": "Aosta, sun-drenched and idyllic, is the centre for the Saharan Empire movie-making industry. Two rival film studios are based on the island and the residents include many famous film stars as well as a host of journalists and critics. The ubiquitous Secret Police maintain a quiet but watchful presence on the island, ensuring that no liberal or republican propaganda finds its way into the movies. Jealousy and slander are a way of life on Aosta and you s"
+            },
+            {
+              "offset": 3505,
+              "text": "island02.bin"
+            },
+            {
+              "offset": 3629,
+              "text": "L!T!V!X"
+            },
+            {
+              "offset": 3640,
+              "text": "A key stronghold island controlling the western region of the Saharan Empire, Lobos is the home port of the Imperial Occidental Fleet. Radar installations guard the approaches to the huge natural anchorage at Deep Water. Amongst the units stationed on this island are Sea Hawk Flying Submarine Squadrons commanded by the notorious Amandu Dengal. Your overall mission is to liberate the island, the loss of which will cripple the Empire's western capability"
+            },
+            {
+              "offset": 4529,
+              "text": "island10.bin"
+            },
+            {
+              "offset": 4664,
+              "text": "Calabar exports exotic spices, silk and a cornucopia of natural medicines extracted from its rare tropical plants. The island is a haven for deserters from Dhafra, who have a hideaway in the mountainous interior. In the south, the Air Force have a tropical disease research centre as well as an airbase. You must encourage the Saharan deserters to take up arms against their persecutors and at the same time gain the cooperation of the civil authorities. B"
+            },
+            {
+              "offset": 5553,
+              "text": "island37.bin"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 489984,
+          "cylinder": 43,
+          "empty": false,
+          "entropy": 3.86,
+          "first_block": 957,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 87
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 56,
+              "text": "Almirante is frequented by sailors and officers on leave from the Imperial Naval Base on Lobos. The island provides a wealth of leisure activities, ranging from hunting, fishing and minisub diving to ballooning and speedboat racing. The small offshore island of Pequeno is the start and finish point for the famous Captain Morgan's Cup, a speedboat race that circumnavigates Almirante. Less to the liking of the naval officers is the Secret Police Regional"
+            },
+            {
+              "offset": 536,
+              "text": " HQ at Forte. To ensure the navy's loyalty, the police keep detailed files on all the officers. If you can seize these files, the way is open for mutiny."
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 495616,
+          "cylinder": 44,
+          "empty": false,
+          "entropy": 3.95,
+          "first_block": 968,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 88
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 433,
+              "text": "island28.bin"
+            },
+            {
+              "offset": 568,
+              "text": "Sixty percent of Imperial oil reserves can be found under the soil of Beni Mazar. It is vital to the Saharans that they maintain control of this island. We know that they have a detailed plan to destroy all oil installations in the event of the island's liberation. Intelligence reports suggest that the nerve centre for any demolition operation will be a newly built underwater base. Your mission is to liberate Beni Mazar whilst avoiding the ecological d"
+            },
+            {
+              "offset": 1457,
+              "text": "solids"
+            },
+            {
+              "offset": 2481,
+              "text": "island35.bin"
+            },
+            {
+              "offset": 2616,
+              "text": "Cajamarca is a centre for watchmaking and manufacture of precision mechanisms.  Because of these industries, industrial diamonds are in great demand and smuggling is rife.  One criminal activity has encouraged another and the island has become a haven for forgers.  Cajamarca is famous for its bazaars where forged and smuggled goods are peddled.  Little else can be said about this island - the secret police force is corrupt and there is a rather seedy d"
+            },
+            {
+              "offset": 3505,
+              "text": "island18.bin"
+            },
+            {
+              "offset": 3640,
+              "text": "Once a tranquil and verdant haven, Vitoria was settled by pioneers of the green movement to use as a living laboratory for alternative technology and communal living. When the Empire discovered rich deposits of brown coal and iron ore, the lush interior became heavily industrialized. Because physical violence is against the principles of the green pioneers, the rest of island is barely garrisoned at all but powered vehicles are also rare. To win the he"
+            },
+            {
+              "offset": 4529,
+              "text": "island42.bin"
+            },
+            {
+              "offset": 4664,
+              "text": "A huge barrage stretching across the island's western bay houses Muar's tidal hydro-electric power station. The gigawatts of electricity generated there are used for experiments in fusion power. The Empire must not be allowed to progress in this field of research. The research staff are highly intelligent scientists, many of whom are also dissident authors. We must spread their work throughout the Empire."
+            },
+            {
+              "offset": 5553,
+              "text": "island26.bin"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 501248,
+          "cylinder": 44,
+          "empty": false,
+          "entropy": 3.27,
+          "first_block": 979,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 89
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 56,
+              "text": "Maghar is the Imperial Army's heavily fortified punishment island, where misfits and law-breakers from the army, navy and air force are drafted to serve in the notorious punishment battalions. Paramilitary units of Secret Police maintain law and order but even they are wary of the Psycho Squad, a suicide unit comprised entirely of murderers and psychopaths. The other punishment battalions live in mortal fear of this squadron. With the help of its ill-t"
+            },
+            {
+              "offset": 533,
+              "text": "!e&reated common troops, Maghar can be liberated but mutiny is unthinkable whilst the Psycho Squad are still at large. You must eliminate this unit."
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 506880,
+          "cylinder": 45,
+          "empty": false,
+          "entropy": 4.53,
+          "first_block": 990,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 90
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 433,
+              "text": "island09.bin"
+            },
+            {
+              "offset": 554,
+              "text": " < N\"t\"v\"x"
+            },
+            {
+              "offset": 568,
+              "text": "This island seethes with intrigue and espionage. The free port on the south-western coast has been likened to the pre-flood colony of Hong Kong. Every secret organisation, for good or evil, has an agent representing its interests on the island. In addition to agents, you will encounter secret societies, racketeers and various other criminal elements. Trust no one."
+            },
+            {
+              "offset": 1457,
+              "text": "island33.bin"
+            },
+            {
+              "offset": 1582,
+              "text": "!>!@!B"
+            },
+            {
+              "offset": 1592,
+              "text": "The H.Q. for the Imperial Fighter Command, Mocorito is also the Empire's main location for the production of biplanes.  The island is famous for its air races and is a Mecca for racing pilots from both the Federation and the Empire.  Because of its connection with the aero industry, the hospitals on Mocorito specialise in treatment for air crash injuries.  The main resistance group on the island is the Nurses Against Oppression Front.  This island woul"
+            },
+            {
+              "offset": 2481,
+              "text": "island16.bin"
+            },
+            {
+              "offset": 2616,
+              "text": "Cubango has been torn apart by religious strife. This has been aggravated and exploited by the Empire, which operates a divide and rule policy. Sectarian murder is common on this island. The population is mistrustful and Imperial forces maintain a high state of alert. You must end the religious strife and allow a liberated Cubango to return to stable government."
+            },
+            {
+              "offset": 3505,
+              "text": "island41.bin"
+            },
+            {
+              "offset": 3640,
+              "text": "Andara is the home port of the Imperial Submarine Fleet and we know that there are at least three underwater bases off the south-east coast. In the north-west of the island, the Empire is engaged in highly advanced sonar research and manufacture, whilst further south, at Trovoadas, the Imperial Institute of Oceanography probes the depths of the ocean. Andara's major industry is aircraft production. A complex of slave camps at Asali provides labour for "
+            },
+            {
+              "offset": 4529,
+              "text": "island24.bin"
+            },
+            {
+              "offset": 4664,
+              "text": "Gran Paradiso was home to one of the largest Resistance movements in the Slave Isles until Imperial agents tracked down and imprisoned the leader of the Resistance, Amilcar Tsombe. Without Tsombe's leadership, the movement fragmented into three smaller groups. The leaders of each group have differing views and ideals so they remain estranged from one another and weak in comparison to the Resistance under Tsombe. There is no sign at all of any cooperati"
+            },
+            {
+              "offset": 5553,
+              "text": "island07.bin"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 512512,
+          "cylinder": 45,
+          "empty": false,
+          "entropy": 3.91,
+          "first_block": 1001,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 1,
+          "track": 91
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 56,
+              "text": "A lush and verdant island, Gamboa is run by the Secret Police Narcotics Bureau. Opiates are cultivated here by the Bureau and then smuggled to Agora in an attempt to subvert the population. The abundant narcotics crop is also used to keep the local population under control. Under the very noses of the Secret Police, the resistance operate a highly effective escape pipeline from Gamboa, spiriting enemies of the Empire to Agora. Reason and authority open"
+            },
+            {
+              "offset": 536,
+              "text": " many doors on Gamboa but to free the island you must disable its narcotics industry."
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 518144,
+          "cylinder": 46,
+          "empty": false,
+          "entropy": 4.33,
+          "first_block": 1012,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 92
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 433,
+              "text": "island31.bin"
+            },
+            {
+              "offset": 568,
+              "text": "The main source of Makat's income is obtained by providing a safe haven for runaway slaves, on their route to Gran Paradiso.  In an effort to stop this, the Saharan Empire has enforced a naval and submarine cordon around the island, operating from an underwater base, to block the entry of any illegal imigrants.  With the addition of numerous flying boat units operating within Makat's own airspace, the island is extremely well protected.Your over all mi"
+            },
+            {
+              "offset": 1457,
+              "text": "island14.bin"
+            },
+            {
+              "offset": 1592,
+              "text": "The island of Qamar is home to two distinct communities, a wealthy English settlement on West Qamar, and an Arabic settlement on East Qamar. The HQ of the elite Imperial Zeppelin Corps is hidden deep within the Arabic sector. General Ali ibn Zahr, the corrupt commander of the corps and governor of the island, takes protection money from West Qamar in return for leaving it in peace. Consequently, there are no units at all stationed there. Recently, Secr"
+            },
+            {
+              "offset": 2481,
+              "text": "island22.bin"
+            },
+            {
+              "offset": 2605,
+              "text": "J   \" $"
+            },
+            {
+              "offset": 2616,
+              "text": "Situated close to the African mainland, Satara is heavily industrialised with a proliferation of armaments and munitions factories. The arms industry encourages a considerable amount of smuggling to resistance groups. The island is also the HQ for the Imperial Marine Corp. The main underground movement has formed a government in waiting, ready to seize control of the island as soon as it is liberated. Your overall mission is to recruit the government i"
+            },
+            {
+              "offset": 3505,
+              "text": "island05.bin"
+            },
+            {
+              "offset": 3640,
+              "text": "Agora's air defences are constantly probed and tested by fighter squadrons from the Atlantic Fields airbase on the west coast of Panao. The island itself is rocky and mountainous. There is a small fishing industry, tin mining and some hill farming. Governor Farinola, a right-wing fanatic, has Panao firmly under his control. His trusted partner in terror, Dr Burquest, has brain-washed many of the island's key personnel. Your objective is to depose Farin"
+            },
+            {
+              "offset": 4529,
+              "text": "island13.bin"
+            },
+            {
+              "offset": 4654,
+              "text": "!,!.!0"
+            },
+            {
+              "offset": 4664,
+              "text": "Chaotically administered by the corrupt and depraved Governor Hejaz, Jebba has a thriving black economy. Smuggling, gambling and the enslavery of unwary strangers are major sources of income. Frequented by the Imperial officer corps for their dubious recreation, Jebba is well garrisoned. It is also the HQ of the Secret Police Terror Executive, a ruthless commando force. Gain help from the Jebbans with bribery and deception. To liberate the island you m"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 523776,
+          "cylinder": 46,
+          "empty": false,
+          "entropy": 3.96,
+          "first_block": 1023,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 93
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 1321,
+              "text": ", head of Sikasso's League of Assassins. With luck this will start a conflict between the Assassins and the Secret Police, as undoubtedly the League will blame this murder on them."
+            },
+            {
+              "offset": 1502,
+              "text": ", containing incriminating photogr"
+            },
+            {
+              "offset": 1559,
+              "text": "#aphs of the head of the Secret Police, highly delicate in nature."
+            },
+            {
+              "offset": 1626,
+              "text": ", captain of the Secret Police. He is attempting to quash our presence on Sikasso, and this is not to be tolerated."
+            },
+            {
+              "offset": 1742,
+              "text": ". Captain Larrosa has ordered his Secret Police to seize millions of dollars from the bank. He claims it's for the Empire, but he's keeping it. If the customers don't get their money, I'm dead!"
+            },
+            {
+              "offset": 1936,
+              "text": ". Waste him and I'll get his job as Marouzet's number two."
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 709632,
+          "cylinder": 63,
+          "empty": false,
+          "entropy": 3.91,
+          "first_block": 1386,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 126
+        },
+        {
+          "ascii_strings": [],
+          "byte_length": 5632,
+          "byte_offset": 715264,
+          "cylinder": 63,
+          "empty": false,
+          "entropy": 4.0,
+          "first_block": 1397,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 127
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 3763,
+              "text": ". He is a proud and arrogant man, but he is also a gambler. You must find a way to gain his help. He has never been known to break his word."
+            },
+            {
+              "offset": 3904,
+              "text": ", the General Secretary of the Dockworker's Union. The Secret Police pay Grainger large sums of money to keep the harbour workforce quiet and docile."
+            },
+            {
+              "offset": 4054,
+              "text": ", the pop singer, arrested and tortured by"
+            },
+            {
+              "offset": 4120,
+              "text": " the Secret Police after the first performance of his protest song, 'Love is Freedom, Let's fight for love'."
+            },
+            {
+              "offset": 4229,
+              "text": ". I sacked him from his dock working job last week, and now he's threatening terrible things toward me and my family."
+            },
+            {
+              "offset": 4347,
+              "text": ". Oqbah is head of a smuggling network. He steals imported goods and then sells them for a profit on the black market. These documents detail all of his dealings."
+            },
+            {
+              "offset": 4510,
+              "text": " on patrol in the Grand Harbour. I'll wager my help against your life. If you can take on my best "
+            },
+            {
+              "offset": 4630,
+              "text": "0wsquadron, you must be good."
+            },
+            {
+              "offset": 5139,
+              "text": "uMeJ'mV"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 720896,
+          "cylinder": 64,
+          "empty": false,
+          "entropy": 4.8,
+          "first_block": 1408,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 128
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 24,
+              "text": " slaves to the island. If the army find out about my sideline in slavery, I'll be court-martialled."
+            },
+            {
+              "offset": 124,
+              "text": ", research papers of a highly delicate nature, concerning recent scientific work on developing trees with a much faster growth rate. Being the manager of a timber yard, I can make good use of these papers."
+            },
+            {
+              "offset": 330,
+              "text": ". This is the only thing standing between the resistance forces of Ghazal and their objective of achieving a strong foothold on the African mainland."
+            },
+            {
+              "offset": 4120,
+              "text": "n would follow him to the end of the earth.  Authority and charm will help you on your mission."
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 726528,
+          "cylinder": 64,
+          "empty": false,
+          "entropy": 4.69,
+          "first_block": 1419,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 129
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 4919,
+              "text": ", believed to be a Commander in the Ghazal Freedom Force."
+            },
+            {
+              "offset": 4977,
+              "text": ". He is the master of strategy behind Ghazal's defence planning and he is staunchly loyal to the Empire."
+            },
+            {
+              "offset": 5082,
+              "text": ". Although employed by the Empire, she"
+            },
+            {
+              "offset": 5144,
+              "text": " is a secret supporter of the Atlantic Federation. Her position as Chief Radio Operator allows her access to Top Secret Imperial files. We need her knowledge."
+            },
+            {
+              "offset": 5303,
+              "text": ", the slave trader. He makes money out of other people's misery and denies the poor wretches he enslaves even the most basic of human rights."
+            },
+            {
+              "offset": 5445,
+              "text": ". His reputation as a human rights campaigner has earned him great respect and a substantial number of followers."
+            },
+            {
+              "offset": 5559,
+              "text": " east of Qarra. The unit's presence is making it difficult for me to ship"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 732160,
+          "cylinder": 65,
+          "empty": false,
+          "entropy": 5.02,
+          "first_block": 1430,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 130
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 3096,
+              "text": "he island."
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 737792,
+          "cylinder": 65,
+          "empty": false,
+          "entropy": 4.86,
+          "first_block": 1441,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 131
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 798,
+              "text": "iamonds."
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 743424,
+          "cylinder": 66,
+          "empty": false,
+          "entropy": 4.3,
+          "first_block": 1452,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 132
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 3859,
+              "text": ", the tycoon owner of Cristobal."
+            },
+            {
+              "offset": 3892,
+              "text": ", Chairperson of the Council for Civil Liberties. She can be found working in the ghetto at Lambert, and will encourage the workers to revolt."
+            },
+            {
+              "offset": 4035,
+              "text": ", currently in pay of Lord Harper. She is to be found in Colo"
+            },
+            {
+              "offset": 4125,
+              "text": ", radar research scientist, held against his will at Dry. He will be vital to the liberation of the island because of his expertise in ECM which he will use to blind enemy units."
+            },
+            {
+              "offset": 4304,
+              "text": " from my ship, which was sunk by Imperial subs in Wazir Bay. They contain records of my dubious business dealings! If Imperial divers find 'em I'm in deep trouble."
+            },
+            {
+              "offset": 4468,
+              "text": ". I was a free man until that Jenkins woman sentenced me to hard labour. If you kill her I'll recruit you a social worker."
+            },
+            {
+              "offset": 4591,
+              "text": " my niece. She's "
+            },
+            {
+              "offset": 4631,
+              "text": "\\been enslaved by Hans Bruen who's planning to sell her to the head of the Zafryian Secret Police. The slave ship docks soon at Wazir Bay."
+            },
+            {
+              "offset": 4770,
+              "text": ". She has stolen the diary of Nicola Anderson, a Resistance fighter who's on a secret mission. If the diary gets into the hands of the Empire, Nicola will be murdered."
+            },
+            {
+              "offset": 4938,
+              "text": ", to the East. My jerk of a brother-in-law is stationed with them. He deserves all he gets. Then I'll blow Harper's precious little diamond mine sky high!"
+            },
+            {
+              "offset": 5093,
+              "text": ". That Jezebel's been chemi"
+            },
+            {
+              "offset": 5144,
+              "text": "cally polluting Lake Freshwater, trying to ruin my livelihood. Kill her and I'll make you obscenely rich!"
+            },
+            {
+              "offset": 5250,
+              "text": ", where David Green lives. He's growing crops for Harper to sell to the Empire. He's a cowardly, craven wretch."
+            },
+            {
+              "offset": 5362,
+              "text": ", where Harper keeps his store of gold and diamonds."
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 749056,
+          "cylinder": 66,
+          "empty": false,
+          "entropy": 4.8,
+          "first_block": 1463,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 133
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 333,
+              "text": ", Commander of the Imperial Zeppelin Corps High Level Bombing Unit."
+            },
+            {
+              "offset": 401,
+              "text": " where anti-Federation propaganda leaflets are printed and then dropped in their thousands from Imperial planes"
+            },
+            {
+              "offset": 535,
+              "text": "~ onto populated areas, with the aim of demoralising our sympathisers."
+            },
+            {
+              "offset": 606,
+              "text": ", who is having an affair with my boss. She's so jealous of me and she's convinced him to fire me. How can I raise four children with no income?"
+            },
+            {
+              "offset": 751,
+              "text": " which razed my hospital to the ground and killed dozens of innocents. Then I will tell you what I know of that scum Nathan Owen."
+            },
+            {
+              "offset": 881,
+              "text": " which I spotted whilst pearl diving yesterday. Imperial flying subs saw me but I escaped by the skin of my teeth."
+            },
+            {
+              "offset": 1720,
+              "text": "fire me. How can I raise four children with no income?"
+            },
+            {
+              "offset": 1775,
+              "text": " which razed my hospital to the ground and killed dozens of innocents. Then I will tell you what I know of that scum Nathan Owen."
+            },
+            {
+              "offset": 1905,
+              "text": " which I spotted whilst pearl diving yesterday. Imperial flying subs saw me but I escaped by the skin of my teeth."
+            },
+            {
+              "offset": 2070,
+              "text": "N+al is virtually a self-sufficient corporate island, with prosperous fisheries, farms, mines and a booming freshwater pearl-diving industry."
+            },
+            {
+              "offset": 5310,
+              "text": "UUUUUUUU"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 754688,
+          "cylinder": 67,
+          "empty": false,
+          "entropy": 4.34,
+          "first_block": 1474,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 134
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 136,
+              "text": " the school where I teach."
+            },
+            {
+              "offset": 163,
+              "text": ", my boyfriend, who was arrested for attempting to ambush an enemy unit"
+            },
+            {
+              "offset": 2802,
+              "text": "@@@@@@@@"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 760320,
+          "cylinder": 67,
+          "empty": false,
+          "entropy": 3.44,
+          "first_block": 1485,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 135
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 4403,
+              "text": ", the geologist, who is a much liked and respected member of Dhafra's community."
+            },
+            {
+              "offset": 4484,
+              "text": ", a sympathiser to the cause, but wary of strangers."
+            },
+            {
+              "offset": 4537,
+              "text": ", an ex miner with many friends."
+            },
+            {
+              "offset": 4572,
+              "text": ", my daughter, who was arrested by t"
+            },
+            {
+              "offset": 4632,
+              "text": "he Secret Police."
+            },
+            {
+              "offset": 4650,
+              "text": ", who killed my son during his interrogation."
+            },
+            {
+              "offset": 4696,
+              "text": ", a favourite haunt of Imperial officers."
+            },
+            {
+              "offset": 4738,
+              "text": ", near the school where I teach."
+            },
+            {
+              "offset": 4771,
+              "text": ", my boyfriend, who was arrested for attempting to ambush an enemy unit"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 765952,
+          "cylinder": 68,
+          "empty": false,
+          "entropy": 4.82,
+          "first_block": 1496,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 136
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 799,
+              "text": ", a resistance fighter who is believed to have gathered information likely to be beneficial to Federation Intelligence."
+            },
+            {
+              "offset": 919,
+              "text": " from where the enemy flies out food supplies to bases on mainland Africa."
+            },
+            {
+              "offset": 994,
+              "text": ", a smuggler known to frequent"
+            },
+            {
+              "offset": 1047,
+              "text": "* the seedier areas of Angel Cove, who has reached a business understanding with Imperial Officers."
+            },
+            {
+              "offset": 1147,
+              "text": ", which I spotted carrying out manouevres out at sea, to the north."
+            },
+            {
+              "offset": 1215,
+              "text": ", an Imperial hired killer, who has struck terror into our hearts."
+            },
+            {
+              "offset": 1282,
+              "text": ", a Major in the Imperial army, who is stationed at Boulder Hills."
+            },
+            {
+              "offset": 2102,
+              "text": "ve, who has reached a business understanding with Imperial Officers."
+            },
+            {
+              "offset": 2171,
+              "text": ", which I spotted carrying out manouevres out at sea, to the north."
+            },
+            {
+              "offset": 2239,
+              "text": ", an Imperial hired killer, who has struck terror into our hearts."
+            },
+            {
+              "offset": 2306,
+              "text": ", a Major in the Imperial army, who is stationed at Boulder Hills."
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 771584,
+          "cylinder": 68,
+          "empty": false,
+          "entropy": 4.47,
+          "first_block": 1507,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 137
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 2077,
+              "text": "uisland21.bin"
+            },
+            {
+              "offset": 2096,
+              "text": "island22.bin"
+            },
+            {
+              "offset": 2114,
+              "text": "island23.bin"
+            },
+            {
+              "offset": 2130,
+              "text": "NSisland24.bin"
+            },
+            {
+              "offset": 2150,
+              "text": "island25.bin"
+            },
+            {
+              "offset": 2167,
+              "text": "Nisland26.bin"
+            },
+            {
+              "offset": 2186,
+              "text": "island27.bin"
+            },
+            {
+              "offset": 2204,
+              "text": "island28.bin"
+            },
+            {
+              "offset": 2221,
+              "text": "gisland29.bin"
+            },
+            {
+              "offset": 2239,
+              "text": "oisland30.bin"
+            },
+            {
+              "offset": 2257,
+              "text": "Xisland31.bin"
+            },
+            {
+              "offset": 2275,
+              "text": "Bisland32.bin"
+            },
+            {
+              "offset": 2294,
+              "text": "island33.bin"
+            },
+            {
+              "offset": 2311,
+              "text": ":island34.bin"
+            },
+            {
+              "offset": 2330,
+              "text": "island35.bin"
+            },
+            {
+              "offset": 2348,
+              "text": "island36.bin"
+            },
+            {
+              "offset": 2365,
+              "text": "Nisland37.bin"
+            },
+            {
+              "offset": 2384,
+              "text": "island38.bin"
+            },
+            {
+              "offset": 2402,
+              "text": "island39.bin"
+            },
+            {
+              "offset": 2420,
+              "text": "island40.bin"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 777216,
+          "cylinder": 69,
+          "empty": false,
+          "entropy": 3.26,
+          "first_block": 1518,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 138
+        }
+      ]
+    },
+    "trackloader_analysis": {
+      "boot_ascii_strings": [],
+      "candidate_code_tracks": [
+        0
+      ],
+      "high_entropy_tracks": [],
+      "nonempty_head0_tracks": 39,
+      "nonempty_head1_tracks": 37,
+      "nonempty_track_spans": [
+        {
+          "end_track": 0,
+          "start_track": 0
+        },
+        {
+          "end_track": 93,
+          "start_track": 32
+        },
+        {
+          "end_track": 138,
+          "start_track": 126
+        }
+      ],
+      "repeated_track_groups": []
+    }
+  },
+  "bootblock_target_name": "amiga_disk_midwinter-ii---flames-of-freedom-v1.7.9.1991-1991-09-07-rainbird-disk-3-of-3-missions-cr-qtx__amiga_raw_bootblock",
+  "bootblock_target_path": "targets/amiga_disk_midwinter-ii---flames-of-freedom-v1.7.9.1991-1991-09-07-rainbird-disk-3-of-3-missions-cr-qtx/targets/amiga_raw_bootblock",
+  "disk_id": "midwinter-ii---flames-of-freedom-v1.7.9.1991-1991-09-07-rainbird-disk-3-of-3-missions-cr-qtx",
+  "imported_targets": [
+    {
+      "binary_path": "bin/Midwinter II - Flames of Freedom v1.7.9.1991 (1991-09-07)(Rainbird)(Disk 3 of 3)(Missions)[cr QTX].adf::bootblock",
+      "entry_path": "bootblock",
+      "target_name": "amiga_disk_midwinter-ii---flames-of-freedom-v1.7.9.1991-1991-09-07-rainbird-disk-3-of-3-missions-cr-qtx__amiga_raw_bootblock",
+      "target_path": "targets/amiga_disk_midwinter-ii---flames-of-freedom-v1.7.9.1991-1991-09-07-rainbird-disk-3-of-3-missions-cr-qtx/targets/amiga_raw_bootblock",
+      "target_type": "bootblock"
+    }
+  ],
+  "schema_version": 1,
+  "source_path": "bin/Midwinter II - Flames of Freedom v1.7.9.1991 (1991-09-07)(Rainbird)(Disk 3 of 3)(Missions)[cr QTX].adf",
+  "source_sha256": "9da706a1ab8004eb599ac5f26cb0c0bb0e8ede84ff09cbf53d656e9b30730776"
+}

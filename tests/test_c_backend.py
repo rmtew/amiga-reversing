@@ -962,24 +962,8 @@ def test_real_dll_magicland_records_loader_file_transfers_without_unproven_asset
     by_path = {str(transfer["path"]): transfer for transfer in media_transfers}
 
     assert loader_asset_events == []
-    assert len(direct_target_loader_events) == 12
-    assert len(target_loader_events) == 12
-    assert {event["source_path"] for event in target_loader_events} == {
-        "7",
-        "FONT",
-        "HEIGHT.DATA",
-        "MAP",
-        "PANEL.RAW",
-        "PANELBITS.RAW",
-        "PIC.HAM",
-        "SPRITES1.RAW",
-        "SPRITES2.RAW",
-        "SPRITES3.RAW",
-        "TUNE00",
-    }
-    assert all(event["status"] == "needs_simulated_decrunch" for event in target_loader_events)
-    assert all(event["reason"] == "target_loader_acceptance_matched" for event in target_loader_events)
-    assert all("codec_id" not in event for event in target_loader_events)
+    assert direct_target_loader_events == []
+    assert target_loader_events == []
     assert len(direct_media_transfers) == 14
     assert len(media_transfers) == 14
     assert by_path["TUNE00"]["destination_addr"] == 0x51618

@@ -1,0 +1,21 @@
+{
+  "absolute_code_labels": [],
+  "bootblock": null,
+  "custom_structs": [],
+  "data_block_layouts": [],
+  "entry_comments": [],
+  "entry_register_seeds": [],
+  "execution_views": [],
+  "library": null,
+  "manual_representations": [],
+  "manual_runtime_address_refs": [],
+  "resident": null,
+  "rsset_layout_regions": [],
+  "rsset_use_site_bindings": [],
+  "seeded_code_entrypoints": [],
+  "seeded_code_labels": [],
+  "seeded_entities": [],
+  "suppressed_seeded_items": [],
+  "target_equates": [],
+  "target_type": "program"
+}

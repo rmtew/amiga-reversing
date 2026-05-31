@@ -1,0 +1,13 @@
+{
+  "created_at": "2026-05-31T02:53:45.158935+00:00",
+  "origin": {
+    "filename": "Adventures of Robin Hood, The (1991)(Millennium)(M4)[cr SR].adf",
+    "kind": "user_upload",
+    "platform": "amiga-disk",
+    "sha256": "0c2b743a7e74c8d4def040a552a90d91c98cd0fb4c023923201d29723af0d8c1",
+    "size": 901120,
+    "source_path": "bin/Adventures of Robin Hood, The (1991)(Millennium)(M4)[cr SR].adf"
+  },
+  "schema_version": 2,
+  "updated_at": "2026-05-31T02:53:45.302532+00:00"
+}

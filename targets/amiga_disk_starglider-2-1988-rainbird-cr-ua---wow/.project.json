@@ -1,0 +1,13 @@
+{
+  "created_at": "2026-05-31T02:53:45.944436+00:00",
+  "origin": {
+    "filename": "Starglider 2 (1988)(Rainbird)[cr UA - WOW].adf",
+    "kind": "user_upload",
+    "platform": "amiga-disk",
+    "sha256": "77c633a9270f85361a30ba19175f5940155631ceb6c84b47b1efbb0bf2150ee3",
+    "size": 901120,
+    "source_path": "bin/Starglider 2 (1988)(Rainbird)[cr UA - WOW].adf"
+  },
+  "schema_version": 2,
+  "updated_at": "2026-05-31T02:53:46.070493+00:00"
+}

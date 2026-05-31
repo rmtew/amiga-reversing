@@ -1,0 +1,7613 @@
+{
+  "analysis": {
+    "bitmap": null,
+    "block_usage": null,
+    "boot_block": {
+      "bootcode_entropy": 6.53,
+      "bootcode_has_code": true,
+      "bootcode_size": 1012,
+      "checksum": "0x0DF76F7F",
+      "checksum_valid": true,
+      "flags_byte": 0,
+      "fs_description": "DOS\\0 - Original File System",
+      "fs_type": "0",
+      "import_target": {
+        "entry_path": "bootblock",
+        "local_target_id": "amiga_raw_bootblock",
+        "source": {
+          "address_model": "local_offset",
+          "byte_offset": 0,
+          "byte_size": 1024,
+          "code_start_offset": 12,
+          "entrypoint": 458764,
+          "kind": "raw_binary",
+          "load_address": 458752
+        },
+        "target_metadata": {
+          "absolute_code_labels": [],
+          "bootblock": {
+            "bootcode_offset": 12,
+            "bootcode_size": 1012,
+            "checksum": "0x0DF76F7F",
+            "checksum_valid": true,
+            "entrypoint": 458764,
+            "flags_byte": 0,
+            "fs_description": "DOS\\0 - Original File System",
+            "load_address": 458752,
+            "magic_ascii": "DOS",
+            "rootblock_ptr": 0
+          },
+          "custom_structs": [],
+          "entry_register_seeds": [
+            {
+              "context_name": null,
+              "entry_offset": null,
+              "kind": "library_base",
+              "library_name": "exec.library",
+              "note": "ExecBase",
+              "register": "A6",
+              "struct_name": "LIB"
+            },
+            {
+              "context_name": "trackdisk.device",
+              "entry_offset": null,
+              "kind": "struct_ptr",
+              "library_name": null,
+              "note": "IOStdReq (open trackdisk.device)",
+              "register": "A1",
+              "struct_name": "IO"
+            }
+          ],
+          "execution_views": [],
+          "library": null,
+          "resident": null,
+          "rsset_layout_regions": [],
+          "seeded_code_entrypoints": [],
+          "seeded_code_labels": [],
+          "seeded_entities": [],
+          "suppressed_seeded_items": [],
+          "target_type": "bootblock"
+        },
+        "target_type": "bootblock"
+      },
+      "is_dos": true,
+      "magic_ascii": "DOS",
+      "rootblock_ptr": 0
+    },
+    "bootloader_analysis": {
+      "memory_regions": [],
+      "stages": [
+        {
+          "base_addr": 458752,
+          "decode_outputs": [],
+          "decode_regions": [],
+          "derived_regions": [],
+          "disk_reads": [],
+          "entry_addr": 458764,
+          "handoff_target": null,
+          "handoffs": [],
+          "hardware_accesses": [],
+          "import_target": null,
+          "loads": [],
+          "materialized": true,
+          "memory_copies": [],
+          "name": "boot",
+          "reachable_instruction_count": 6,
+          "read_setups": [],
+          "size": 1012
+        },
+        {
+          "base_addr": 262144,
+          "decode_outputs": [],
+          "decode_regions": [],
+          "derived_regions": [],
+          "disk_reads": [
+            {
+              "byte_length": 21504,
+              "command_name": "CMD_READ",
+              "destination_addr": 262144,
+              "disk_offset": 1024,
+              "instruction_addr": 458764,
+              "source_kind": "logical_disk_offset"
+            }
+          ],
+          "entry_addr": 262144,
+          "handoff_target": null,
+          "handoffs": [],
+          "hardware_accesses": [],
+          "import_target": {
+            "entry_path": "bootloader/stage_1",
+            "local_target_id": "amiga_raw_bootloader_stage_1",
+            "source": {
+              "address_model": "runtime_absolute",
+              "byte_offset": 1024,
+              "byte_size": 21504,
+              "code_start_offset": 0,
+              "entrypoint": 262144,
+              "kind": "raw_binary",
+              "load_address": 262144
+            },
+            "target_metadata": {
+              "absolute_code_labels": [],
+              "bootblock": null,
+              "custom_structs": [],
+              "entry_register_seeds": [
+                {
+                  "context_name": null,
+                  "entry_offset": null,
+                  "kind": "library_base",
+                  "library_name": "exec.library",
+                  "note": "ExecBase",
+                  "register": "A6",
+                  "struct_name": "LIB"
+                },
+                {
+                  "context_name": "trackdisk.device",
+                  "entry_offset": null,
+                  "kind": "struct_ptr",
+                  "library_name": null,
+                  "note": "IOStdReq (open trackdisk.device)",
+                  "register": "A1",
+                  "struct_name": "IO"
+                }
+              ],
+              "execution_views": [],
+              "library": null,
+              "resident": null,
+              "rsset_layout_regions": [],
+              "seeded_code_entrypoints": [],
+              "seeded_code_labels": [],
+              "seeded_entities": [],
+              "suppressed_seeded_items": [],
+              "target_type": "bootloader_stage"
+            },
+            "target_type": "bootloader_stage"
+          },
+          "loads": [],
+          "materialized": true,
+          "memory_copies": [],
+          "name": "stage_1",
+          "reachable_instruction_count": 5,
+          "read_setups": [
+            {
+              "adkcon_values": [],
+              "buffer_addr": 262144,
+              "buffer_scan_addr": null,
+              "cylinder": 0,
+              "dma_byte_length": 21504,
+              "dmacon_values": [],
+              "drive": null,
+              "dsklen_dma_byte_length": null,
+              "dsklen_dma_enabled": false,
+              "dsklen_value": null,
+              "dsklen_write": false,
+              "head": 0,
+              "instruction_addr": 458764,
+              "sync_word": null,
+              "track": 0,
+              "wait_loop_addr": null
+            }
+          ],
+          "size": 21504
+        }
+      ],
+      "transfers": [
+        {
+          "byte_length": 21504,
+          "checksum_gate_addr": null,
+          "checksum_gate_kind": null,
+          "destination_addr": 262144,
+          "disk_offset": 1024,
+          "end_track": null,
+          "input_buffer_addr": null,
+          "output_addr": null,
+          "source_addr": null,
+          "source_kind": "logical_disk_offset",
+          "stage_name": "stage_1",
+          "start_byte_offset": null,
+          "start_track": null,
+          "target_addr": null,
+          "transfer_kind": "disk_read"
+        }
+      ]
+    },
+    "directories": null,
+    "disk_info": {
+      "is_dos": true,
+      "path": "Adventures of Robin Hood, The (1991)(Millennium)(M4)[cr SR].adf",
+      "sectors_per_track": 11,
+      "size": 901120,
+      "total_sectors": 1760,
+      "variant": "DD"
+    },
+    "files": null,
+    "filesystem": null,
+    "non_dos": {
+      "bootcode_present": true,
+      "description": "Custom format disk (non-AmigaDOS)",
+      "dos_magic_without_filesystem": true,
+      "filesystem_parse_error": "C disk inspect output is missing root"
+    },
+    "root_block": null,
+    "track_analysis": {
+      "non_empty_tracks": 160,
+      "raw_sources": [
+        {
+          "byte_length": 5632,
+          "byte_offset": 0,
+          "cylinder": 0,
+          "head": 0,
+          "track": 0
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 5632,
+          "cylinder": 0,
+          "head": 1,
+          "track": 1
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 11264,
+          "cylinder": 1,
+          "head": 0,
+          "track": 2
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 16896,
+          "cylinder": 1,
+          "head": 1,
+          "track": 3
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 22528,
+          "cylinder": 2,
+          "head": 0,
+          "track": 4
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 28160,
+          "cylinder": 2,
+          "head": 1,
+          "track": 5
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 33792,
+          "cylinder": 3,
+          "head": 0,
+          "track": 6
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 39424,
+          "cylinder": 3,
+          "head": 1,
+          "track": 7
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 45056,
+          "cylinder": 4,
+          "head": 0,
+          "track": 8
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 50688,
+          "cylinder": 4,
+          "head": 1,
+          "track": 9
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 56320,
+          "cylinder": 5,
+          "head": 0,
+          "track": 10
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 61952,
+          "cylinder": 5,
+          "head": 1,
+          "track": 11
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 67584,
+          "cylinder": 6,
+          "head": 0,
+          "track": 12
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 73216,
+          "cylinder": 6,
+          "head": 1,
+          "track": 13
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 78848,
+          "cylinder": 7,
+          "head": 0,
+          "track": 14
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 84480,
+          "cylinder": 7,
+          "head": 1,
+          "track": 15
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 90112,
+          "cylinder": 8,
+          "head": 0,
+          "track": 16
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 95744,
+          "cylinder": 8,
+          "head": 1,
+          "track": 17
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 101376,
+          "cylinder": 9,
+          "head": 0,
+          "track": 18
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 107008,
+          "cylinder": 9,
+          "head": 1,
+          "track": 19
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 112640,
+          "cylinder": 10,
+          "head": 0,
+          "track": 20
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 118272,
+          "cylinder": 10,
+          "head": 1,
+          "track": 21
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 123904,
+          "cylinder": 11,
+          "head": 0,
+          "track": 22
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 129536,
+          "cylinder": 11,
+          "head": 1,
+          "track": 23
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 135168,
+          "cylinder": 12,
+          "head": 0,
+          "track": 24
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 140800,
+          "cylinder": 12,
+          "head": 1,
+          "track": 25
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 146432,
+          "cylinder": 13,
+          "head": 0,
+          "track": 26
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 152064,
+          "cylinder": 13,
+          "head": 1,
+          "track": 27
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 157696,
+          "cylinder": 14,
+          "head": 0,
+          "track": 28
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 163328,
+          "cylinder": 14,
+          "head": 1,
+          "track": 29
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 168960,
+          "cylinder": 15,
+          "head": 0,
+          "track": 30
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 174592,
+          "cylinder": 15,
+          "head": 1,
+          "track": 31
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 180224,
+          "cylinder": 16,
+          "head": 0,
+          "track": 32
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 185856,
+          "cylinder": 16,
+          "head": 1,
+          "track": 33
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 191488,
+          "cylinder": 17,
+          "head": 0,
+          "track": 34
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 197120,
+          "cylinder": 17,
+          "head": 1,
+          "track": 35
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 202752,
+          "cylinder": 18,
+          "head": 0,
+          "track": 36
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 208384,
+          "cylinder": 18,
+          "head": 1,
+          "track": 37
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 214016,
+          "cylinder": 19,
+          "head": 0,
+          "track": 38
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 219648,
+          "cylinder": 19,
+          "head": 1,
+          "track": 39
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 225280,
+          "cylinder": 20,
+          "head": 0,
+          "track": 40
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 230912,
+          "cylinder": 20,
+          "head": 1,
+          "track": 41
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 236544,
+          "cylinder": 21,
+          "head": 0,
+          "track": 42
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 242176,
+          "cylinder": 21,
+          "head": 1,
+          "track": 43
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 247808,
+          "cylinder": 22,
+          "head": 0,
+          "track": 44
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 253440,
+          "cylinder": 22,
+          "head": 1,
+          "track": 45
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 259072,
+          "cylinder": 23,
+          "head": 0,
+          "track": 46
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 264704,
+          "cylinder": 23,
+          "head": 1,
+          "track": 47
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 270336,
+          "cylinder": 24,
+          "head": 0,
+          "track": 48
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 275968,
+          "cylinder": 24,
+          "head": 1,
+          "track": 49
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 281600,
+          "cylinder": 25,
+          "head": 0,
+          "track": 50
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 287232,
+          "cylinder": 25,
+          "head": 1,
+          "track": 51
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 292864,
+          "cylinder": 26,
+          "head": 0,
+          "track": 52
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 298496,
+          "cylinder": 26,
+          "head": 1,
+          "track": 53
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 304128,
+          "cylinder": 27,
+          "head": 0,
+          "track": 54
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 309760,
+          "cylinder": 27,
+          "head": 1,
+          "track": 55
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 315392,
+          "cylinder": 28,
+          "head": 0,
+          "track": 56
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 321024,
+          "cylinder": 28,
+          "head": 1,
+          "track": 57
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 326656,
+          "cylinder": 29,
+          "head": 0,
+          "track": 58
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 332288,
+          "cylinder": 29,
+          "head": 1,
+          "track": 59
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 337920,
+          "cylinder": 30,
+          "head": 0,
+          "track": 60
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 343552,
+          "cylinder": 30,
+          "head": 1,
+          "track": 61
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 349184,
+          "cylinder": 31,
+          "head": 0,
+          "track": 62
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 354816,
+          "cylinder": 31,
+          "head": 1,
+          "track": 63
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 360448,
+          "cylinder": 32,
+          "head": 0,
+          "track": 64
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 366080,
+          "cylinder": 32,
+          "head": 1,
+          "track": 65
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 371712,
+          "cylinder": 33,
+          "head": 0,
+          "track": 66
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 377344,
+          "cylinder": 33,
+          "head": 1,
+          "track": 67
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 382976,
+          "cylinder": 34,
+          "head": 0,
+          "track": 68
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 388608,
+          "cylinder": 34,
+          "head": 1,
+          "track": 69
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 394240,
+          "cylinder": 35,
+          "head": 0,
+          "track": 70
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 399872,
+          "cylinder": 35,
+          "head": 1,
+          "track": 71
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 405504,
+          "cylinder": 36,
+          "head": 0,
+          "track": 72
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 411136,
+          "cylinder": 36,
+          "head": 1,
+          "track": 73
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 416768,
+          "cylinder": 37,
+          "head": 0,
+          "track": 74
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 422400,
+          "cylinder": 37,
+          "head": 1,
+          "track": 75
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 428032,
+          "cylinder": 38,
+          "head": 0,
+          "track": 76
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 433664,
+          "cylinder": 38,
+          "head": 1,
+          "track": 77
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 439296,
+          "cylinder": 39,
+          "head": 0,
+          "track": 78
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 444928,
+          "cylinder": 39,
+          "head": 1,
+          "track": 79
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 450560,
+          "cylinder": 40,
+          "head": 0,
+          "track": 80
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 456192,
+          "cylinder": 40,
+          "head": 1,
+          "track": 81
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 461824,
+          "cylinder": 41,
+          "head": 0,
+          "track": 82
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 467456,
+          "cylinder": 41,
+          "head": 1,
+          "track": 83
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 473088,
+          "cylinder": 42,
+          "head": 0,
+          "track": 84
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 478720,
+          "cylinder": 42,
+          "head": 1,
+          "track": 85
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 484352,
+          "cylinder": 43,
+          "head": 0,
+          "track": 86
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 489984,
+          "cylinder": 43,
+          "head": 1,
+          "track": 87
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 495616,
+          "cylinder": 44,
+          "head": 0,
+          "track": 88
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 501248,
+          "cylinder": 44,
+          "head": 1,
+          "track": 89
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 506880,
+          "cylinder": 45,
+          "head": 0,
+          "track": 90
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 512512,
+          "cylinder": 45,
+          "head": 1,
+          "track": 91
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 518144,
+          "cylinder": 46,
+          "head": 0,
+          "track": 92
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 523776,
+          "cylinder": 46,
+          "head": 1,
+          "track": 93
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 529408,
+          "cylinder": 47,
+          "head": 0,
+          "track": 94
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 535040,
+          "cylinder": 47,
+          "head": 1,
+          "track": 95
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 540672,
+          "cylinder": 48,
+          "head": 0,
+          "track": 96
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 546304,
+          "cylinder": 48,
+          "head": 1,
+          "track": 97
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 551936,
+          "cylinder": 49,
+          "head": 0,
+          "track": 98
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 557568,
+          "cylinder": 49,
+          "head": 1,
+          "track": 99
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 563200,
+          "cylinder": 50,
+          "head": 0,
+          "track": 100
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 568832,
+          "cylinder": 50,
+          "head": 1,
+          "track": 101
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 574464,
+          "cylinder": 51,
+          "head": 0,
+          "track": 102
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 580096,
+          "cylinder": 51,
+          "head": 1,
+          "track": 103
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 585728,
+          "cylinder": 52,
+          "head": 0,
+          "track": 104
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 591360,
+          "cylinder": 52,
+          "head": 1,
+          "track": 105
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 596992,
+          "cylinder": 53,
+          "head": 0,
+          "track": 106
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 602624,
+          "cylinder": 53,
+          "head": 1,
+          "track": 107
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 608256,
+          "cylinder": 54,
+          "head": 0,
+          "track": 108
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 613888,
+          "cylinder": 54,
+          "head": 1,
+          "track": 109
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 619520,
+          "cylinder": 55,
+          "head": 0,
+          "track": 110
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 625152,
+          "cylinder": 55,
+          "head": 1,
+          "track": 111
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 630784,
+          "cylinder": 56,
+          "head": 0,
+          "track": 112
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 636416,
+          "cylinder": 56,
+          "head": 1,
+          "track": 113
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 642048,
+          "cylinder": 57,
+          "head": 0,
+          "track": 114
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 647680,
+          "cylinder": 57,
+          "head": 1,
+          "track": 115
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 653312,
+          "cylinder": 58,
+          "head": 0,
+          "track": 116
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 658944,
+          "cylinder": 58,
+          "head": 1,
+          "track": 117
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 664576,
+          "cylinder": 59,
+          "head": 0,
+          "track": 118
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 670208,
+          "cylinder": 59,
+          "head": 1,
+          "track": 119
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 675840,
+          "cylinder": 60,
+          "head": 0,
+          "track": 120
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 681472,
+          "cylinder": 60,
+          "head": 1,
+          "track": 121
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 687104,
+          "cylinder": 61,
+          "head": 0,
+          "track": 122
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 692736,
+          "cylinder": 61,
+          "head": 1,
+          "track": 123
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 698368,
+          "cylinder": 62,
+          "head": 0,
+          "track": 124
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 704000,
+          "cylinder": 62,
+          "head": 1,
+          "track": 125
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 709632,
+          "cylinder": 63,
+          "head": 0,
+          "track": 126
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 715264,
+          "cylinder": 63,
+          "head": 1,
+          "track": 127
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 720896,
+          "cylinder": 64,
+          "head": 0,
+          "track": 128
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 726528,
+          "cylinder": 64,
+          "head": 1,
+          "track": 129
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 732160,
+          "cylinder": 65,
+          "head": 0,
+          "track": 130
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 737792,
+          "cylinder": 65,
+          "head": 1,
+          "track": 131
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 743424,
+          "cylinder": 66,
+          "head": 0,
+          "track": 132
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 749056,
+          "cylinder": 66,
+          "head": 1,
+          "track": 133
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 754688,
+          "cylinder": 67,
+          "head": 0,
+          "track": 134
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 760320,
+          "cylinder": 67,
+          "head": 1,
+          "track": 135
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 765952,
+          "cylinder": 68,
+          "head": 0,
+          "track": 136
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 771584,
+          "cylinder": 68,
+          "head": 1,
+          "track": 137
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 777216,
+          "cylinder": 69,
+          "head": 0,
+          "track": 138
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 782848,
+          "cylinder": 69,
+          "head": 1,
+          "track": 139
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 788480,
+          "cylinder": 70,
+          "head": 0,
+          "track": 140
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 794112,
+          "cylinder": 70,
+          "head": 1,
+          "track": 141
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 799744,
+          "cylinder": 71,
+          "head": 0,
+          "track": 142
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 805376,
+          "cylinder": 71,
+          "head": 1,
+          "track": 143
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 811008,
+          "cylinder": 72,
+          "head": 0,
+          "track": 144
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 816640,
+          "cylinder": 72,
+          "head": 1,
+          "track": 145
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 822272,
+          "cylinder": 73,
+          "head": 0,
+          "track": 146
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 827904,
+          "cylinder": 73,
+          "head": 1,
+          "track": 147
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 833536,
+          "cylinder": 74,
+          "head": 0,
+          "track": 148
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 839168,
+          "cylinder": 74,
+          "head": 1,
+          "track": 149
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 844800,
+          "cylinder": 75,
+          "head": 0,
+          "track": 150
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 850432,
+          "cylinder": 75,
+          "head": 1,
+          "track": 151
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 856064,
+          "cylinder": 76,
+          "head": 0,
+          "track": 152
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 861696,
+          "cylinder": 76,
+          "head": 1,
+          "track": 153
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 867328,
+          "cylinder": 77,
+          "head": 0,
+          "track": 154
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 872960,
+          "cylinder": 77,
+          "head": 1,
+          "track": 155
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 878592,
+          "cylinder": 78,
+          "head": 0,
+          "track": 156
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 884224,
+          "cylinder": 78,
+          "head": 1,
+          "track": 157
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 889856,
+          "cylinder": 79,
+          "head": 0,
+          "track": 158
+        },
+        {
+          "byte_length": 5632,
+          "byte_offset": 895488,
+          "cylinder": 79,
+          "head": 1,
+          "track": 159
+        }
+      ],
+      "total_tracks": 160,
+      "track_size_bytes": 5632,
+      "tracks": [
+        {
+          "ascii_strings": [
+            {
+              "offset": 14,
+              "text": "SKR.,x"
+            },
+            {
+              "offset": 1301,
+              "text": "DPs1hP?"
+            },
+            {
+              "offset": 1520,
+              "text": "E^1@xR"
+            },
+            {
+              "offset": 2346,
+              "text": " BPCpAhB"
+            },
+            {
+              "offset": 2363,
+              "text": "AtF<F|G"
+            },
+            {
+              "offset": 2413,
+              "text": "AMGCGcE"
+            },
+            {
+              "offset": 2539,
+              "text": "KtB|OBJ"
+            },
+            {
+              "offset": 2567,
+              "text": "O^L>K>H~M~O"
+            },
+            {
+              "offset": 2591,
+              "text": "FIEiDyI"
+            },
+            {
+              "offset": 2599,
+              "text": "J%DeHuC-J"
+            },
+            {
+              "offset": 2837,
+              "text": "&|,B$\"&"
+            },
+            {
+              "offset": 4074,
+              "text": "8C4(\"P"
+            },
+            {
+              "offset": 4536,
+              "text": "hlmi]i`"
+            },
+            {
+              "offset": 4876,
+              "text": "p>Nbzq"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 0,
+          "cylinder": 0,
+          "empty": false,
+          "entropy": 7.73,
+          "first_block": 0,
+          "has_code": true,
+          "head": 0,
+          "m68k_pattern_count": 1,
+          "track": 0
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 153,
+              "text": "9uuX;^~1g{I"
+            },
+            {
+              "offset": 763,
+              "text": "z'l'p0"
+            },
+            {
+              "offset": 894,
+              "text": "/__`th])"
+            },
+            {
+              "offset": 1205,
+              "text": " EvhR4p"
+            },
+            {
+              "offset": 1306,
+              "text": "F#O:'I"
+            },
+            {
+              "offset": 1382,
+              "text": ",+%h#t"
+            },
+            {
+              "offset": 1785,
+              "text": "\\Zp4`#WF"
+            },
+            {
+              "offset": 2089,
+              "text": "<GMp6_"
+            },
+            {
+              "offset": 2195,
+              "text": ")>i[WL"
+            },
+            {
+              "offset": 2525,
+              "text": "[#.Ih("
+            },
+            {
+              "offset": 2764,
+              "text": "D(@B/c"
+            },
+            {
+              "offset": 2876,
+              "text": "#e\"ibnC="
+            },
+            {
+              "offset": 3273,
+              "text": "{cKXDk*"
+            },
+            {
+              "offset": 4011,
+              "text": "e'Nnq!"
+            },
+            {
+              "offset": 4415,
+              "text": "h#ShBQy"
+            },
+            {
+              "offset": 4689,
+              "text": "AS`ZgI"
+            },
+            {
+              "offset": 4923,
+              "text": "ik$TSk"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 5632,
+          "cylinder": 0,
+          "empty": false,
+          "entropy": 7.92,
+          "first_block": 11,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 1,
+          "track": 1
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 105,
+              "text": "'Bu'WM)"
+            },
+            {
+              "offset": 182,
+              "text": "(bhkk&"
+            },
+            {
+              "offset": 202,
+              "text": "x\":~G}"
+            },
+            {
+              "offset": 760,
+              "text": "\\X'>U?p"
+            },
+            {
+              "offset": 1407,
+              "text": "6G6Yz@"
+            },
+            {
+              "offset": 1743,
+              "text": "20G0C@"
+            },
+            {
+              "offset": 1925,
+              "text": "1aX:`#"
+            },
+            {
+              "offset": 2427,
+              "text": "|&n8>5"
+            },
+            {
+              "offset": 3337,
+              "text": ",- A)+#"
+            },
+            {
+              "offset": 3674,
+              "text": "!>Z7t1"
+            },
+            {
+              "offset": 3971,
+              "text": "hg;66FZ"
+            },
+            {
+              "offset": 4839,
+              "text": "UFH^{[EP"
+            },
+            {
+              "offset": 4875,
+              "text": "`N{0Mgj"
+            },
+            {
+              "offset": 5365,
+              "text": "!K@2c@"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 11264,
+          "cylinder": 1,
+          "empty": false,
+          "entropy": 7.9,
+          "first_block": 22,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 2
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 1229,
+              "text": "p)qGq8"
+            },
+            {
+              "offset": 4990,
+              "text": "/AXb@X"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 16896,
+          "cylinder": 1,
+          "empty": false,
+          "entropy": 7.7,
+          "first_block": 33,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 1,
+          "track": 3
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 582,
+              "text": "Ty:>^e1"
+            },
+            {
+              "offset": 897,
+              "text": ":}}xq3N"
+            },
+            {
+              "offset": 2217,
+              "text": "> aFcO>%|"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 22528,
+          "cylinder": 2,
+          "empty": false,
+          "entropy": 7.75,
+          "first_block": 44,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 4
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 639,
+              "text": "0|1 :80"
+            },
+            {
+              "offset": 762,
+              "text": "A0 M!f"
+            },
+            {
+              "offset": 1538,
+              "text": "^~|6@O"
+            },
+            {
+              "offset": 2177,
+              "text": "e2Y~H8"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 28160,
+          "cylinder": 2,
+          "empty": false,
+          "entropy": 7.76,
+          "first_block": 55,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 5
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 1019,
+              "text": "J*8*xp_"
+            },
+            {
+              "offset": 5141,
+              "text": "DPs1hP?"
+            },
+            {
+              "offset": 5360,
+              "text": "E^1@xR"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 33792,
+          "cylinder": 3,
+          "empty": false,
+          "entropy": 4.39,
+          "first_block": 66,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 6
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 338,
+              "text": "tPb(6 "
+            },
+            {
+              "offset": 515,
+              "text": "D2A*A:D"
+            },
+            {
+              "offset": 797,
+              "text": "X)YyXSX"
+            },
+            {
+              "offset": 1047,
+              "text": "PvUvWNTnS^Q1W"
+            },
+            {
+              "offset": 1063,
+              "text": "R}SsR[V"
+            },
+            {
+              "offset": 1246,
+              "text": "0II\\BV"
+            },
+            {
+              "offset": 1578,
+              "text": "hh$VX;"
+            },
+            {
+              "offset": 1627,
+              "text": "rp+X\\ "
+            },
+            {
+              "offset": 1809,
+              "text": " L8sl$s"
+            },
+            {
+              "offset": 2089,
+              "text": "XCF65N"
+            },
+            {
+              "offset": 3220,
+              "text": "W[B]EZ"
+            },
+            {
+              "offset": 3440,
+              "text": "\\6S|yv="
+            },
+            {
+              "offset": 3454,
+              "text": ":^#gs."
+            },
+            {
+              "offset": 4355,
+              "text": "MI9q:q1"
+            },
+            {
+              "offset": 4661,
+              "text": "8(hY&\"/"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 39424,
+          "cylinder": 3,
+          "empty": false,
+          "entropy": 7.89,
+          "first_block": 77,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 7
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 270,
+              "text": "D5V5(;"
+            },
+            {
+              "offset": 830,
+              "text": "=+i6tQ9"
+            },
+            {
+              "offset": 1148,
+              "text": "w$vmqt"
+            },
+            {
+              "offset": 1245,
+              "text": "14d>e)"
+            },
+            {
+              "offset": 1821,
+              "text": "0x:uoh9"
+            },
+            {
+              "offset": 2228,
+              "text": "&8 _a-:"
+            },
+            {
+              "offset": 2940,
+              "text": "yI.N`@4gm"
+            },
+            {
+              "offset": 3144,
+              "text": "rIK{0d"
+            },
+            {
+              "offset": 3166,
+              "text": "J0a;`2"
+            },
+            {
+              "offset": 3483,
+              "text": "5ba@;b"
+            },
+            {
+              "offset": 4296,
+              "text": "7*(k`j"
+            },
+            {
+              "offset": 4643,
+              "text": "z ^d*p"
+            },
+            {
+              "offset": 5385,
+              "text": "PH$dob"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 45056,
+          "cylinder": 4,
+          "empty": false,
+          "entropy": 7.93,
+          "first_block": 88,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 1,
+          "track": 8
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 247,
+              "text": "Dj?m[L#"
+            },
+            {
+              "offset": 430,
+              "text": ";(8yL`8"
+            },
+            {
+              "offset": 496,
+              "text": "EsnHco"
+            },
+            {
+              "offset": 681,
+              "text": "acE6-5"
+            },
+            {
+              "offset": 877,
+              "text": ")J'cntW{"
+            },
+            {
+              "offset": 1335,
+              "text": "fTwD0D"
+            },
+            {
+              "offset": 2603,
+              "text": "5[.tpNA"
+            },
+            {
+              "offset": 2629,
+              "text": "[(W_)/r"
+            },
+            {
+              "offset": 4450,
+              "text": "/ccT~!"
+            },
+            {
+              "offset": 4644,
+              "text": "S/Z[^!"
+            },
+            {
+              "offset": 4715,
+              "text": "t1jd'oh"
+            },
+            {
+              "offset": 5483,
+              "text": "C`2s`>"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 50688,
+          "cylinder": 4,
+          "empty": false,
+          "entropy": 7.88,
+          "first_block": 99,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 9
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 470,
+              "text": "(*O1>aPR"
+            },
+            {
+              "offset": 861,
+              "text": "^l~!_c"
+            },
+            {
+              "offset": 1217,
+              "text": "p)qGq8"
+            },
+            {
+              "offset": 4978,
+              "text": "/AXb@X"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 56320,
+          "cylinder": 5,
+          "empty": false,
+          "entropy": 7.7,
+          "first_block": 110,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 1,
+          "track": 10
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 570,
+              "text": "Ty:>^e1"
+            },
+            {
+              "offset": 885,
+              "text": ":}}xq3N"
+            },
+            {
+              "offset": 2205,
+              "text": "> aFcO>%|"
+            },
+            {
+              "offset": 4665,
+              "text": "4,Kn>~q"
+            },
+            {
+              "offset": 5103,
+              "text": "8HD5ef,"
+            },
+            {
+              "offset": 5431,
+              "text": "D| \\@%0"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 61952,
+          "cylinder": 5,
+          "empty": false,
+          "entropy": 7.76,
+          "first_block": 121,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 11
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 193,
+              "text": "{;~L}U>@l"
+            },
+            {
+              "offset": 886,
+              "text": "-a~}c{"
+            },
+            {
+              "offset": 1328,
+              "text": "f?Nb\\u"
+            },
+            {
+              "offset": 5086,
+              "text": "W$5At]"
+            },
+            {
+              "offset": 5201,
+              "text": "4#@2#5"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 67584,
+          "cylinder": 6,
+          "empty": false,
+          "entropy": 7.76,
+          "first_block": 132,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 12
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 482,
+              "text": "rT&lJP`"
+            },
+            {
+              "offset": 624,
+              "text": "pHDEH#"
+            },
+            {
+              "offset": 975,
+              "text": "&$xP~&v(fx$D"
+            },
+            {
+              "offset": 988,
+              "text": "2rDr$ ?"
+            },
+            {
+              "offset": 3349,
+              "text": "DPs1hP?"
+            },
+            {
+              "offset": 3568,
+              "text": "E^1@xR"
+            },
+            {
+              "offset": 4178,
+              "text": "tPb(6 "
+            },
+            {
+              "offset": 4414,
+              "text": "@W@wGOC"
+            },
+            {
+              "offset": 4736,
+              "text": "UHJh@XG"
+            },
+            {
+              "offset": 4920,
+              "text": "RGC'FgL"
+            },
+            {
+              "offset": 4930,
+              "text": "[WM7IwN"
+            },
+            {
+              "offset": 5023,
+              "text": "HS!SOS^"
+            },
+            {
+              "offset": 5034,
+              "text": "3M3hsQ"
+            },
+            {
+              "offset": 5458,
+              "text": "BpnLp/"
+            },
+            {
+              "offset": 5466,
+              "text": "B}TkDf"
+            },
+            {
+              "offset": 5534,
+              "text": "-s' #;)"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 73216,
+          "cylinder": 6,
+          "empty": false,
+          "entropy": 6.68,
+          "first_block": 143,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 1,
+          "track": 13
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 191,
+              "text": "[_<=!E"
+            },
+            {
+              "offset": 258,
+              "text": "C*mh{Z"
+            },
+            {
+              "offset": 1035,
+              "text": "Qrf |#"
+            },
+            {
+              "offset": 1215,
+              "text": "aF3A'K9"
+            },
+            {
+              "offset": 1854,
+              "text": "ghJ?U]"
+            },
+            {
+              "offset": 2449,
+              "text": "v652i~"
+            },
+            {
+              "offset": 2456,
+              "text": "9!Y~lQ`&b"
+            },
+            {
+              "offset": 2591,
+              "text": "?HSD&F"
+            },
+            {
+              "offset": 3913,
+              "text": "q)cid."
+            },
+            {
+              "offset": 4245,
+              "text": "\\0 T4( "
+            },
+            {
+              "offset": 4331,
+              "text": "1EPj=&W"
+            },
+            {
+              "offset": 4419,
+              "text": "%DckY\\"
+            },
+            {
+              "offset": 4474,
+              "text": "!K#Dy="
+            },
+            {
+              "offset": 5049,
+              "text": "&0(YAe"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 78848,
+          "cylinder": 7,
+          "empty": false,
+          "entropy": 7.92,
+          "first_block": 154,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 1,
+          "track": 14
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 192,
+              "text": "@GgI.R"
+            },
+            {
+              "offset": 269,
+              "text": "@v5uI19"
+            },
+            {
+              "offset": 354,
+              "text": "`&7Wmc"
+            },
+            {
+              "offset": 1893,
+              "text": "qF-Xay"
+            },
+            {
+              "offset": 2207,
+              "text": "QaU}Qr["
+            },
+            {
+              "offset": 2988,
+              "text": "nYnj:b"
+            },
+            {
+              "offset": 3076,
+              "text": "icgPA "
+            },
+            {
+              "offset": 3096,
+              "text": " c#mp@"
+            },
+            {
+              "offset": 3481,
+              "text": "u0X.`*"
+            },
+            {
+              "offset": 4564,
+              "text": "Yv=Wkp"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 84480,
+          "cylinder": 7,
+          "empty": false,
+          "entropy": 7.93,
+          "first_block": 165,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 15
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 435,
+              "text": "Ch<@EM$"
+            },
+            {
+              "offset": 644,
+              "text": "L:*r\\#bK"
+            },
+            {
+              "offset": 905,
+              "text": "}s'{$S"
+            },
+            {
+              "offset": 1144,
+              "text": "}/h|Q7<"
+            },
+            {
+              "offset": 1423,
+              "text": "8]b^+X}G1;"
+            },
+            {
+              "offset": 1494,
+              "text": "j8kg3g5"
+            },
+            {
+              "offset": 2387,
+              "text": "yff`Nw/j]_"
+            },
+            {
+              "offset": 2883,
+              "text": "0IuI\\<"
+            },
+            {
+              "offset": 3140,
+              "text": "9&!B?P"
+            },
+            {
+              "offset": 3606,
+              "text": "]{DS@A;#"
+            },
+            {
+              "offset": 3615,
+              "text": "KY^]K&#"
+            },
+            {
+              "offset": 3813,
+              "text": "t!SAaF"
+            },
+            {
+              "offset": 3985,
+              "text": "`G ;hlZgl"
+            },
+            {
+              "offset": 4987,
+              "text": "bW`8A`"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 90112,
+          "cylinder": 8,
+          "empty": false,
+          "entropy": 7.88,
+          "first_block": 176,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 1,
+          "track": 16
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 2277,
+              "text": "(Oa\"HO"
+            },
+            {
+              "offset": 3197,
+              "text": "ogSA#D"
+            },
+            {
+              "offset": 3323,
+              "text": "<$_2~xe"
+            },
+            {
+              "offset": 4394,
+              "text": "S,2 ,<D"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 95744,
+          "cylinder": 8,
+          "empty": false,
+          "entropy": 7.71,
+          "first_block": 187,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 17
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 686,
+              "text": "=F~`?X"
+            },
+            {
+              "offset": 1394,
+              "text": "> aFcO>%|"
+            },
+            {
+              "offset": 2528,
+              "text": "\"xOw>@"
+            },
+            {
+              "offset": 5435,
+              "text": "0|2 <20|: <:0|<d"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 101376,
+          "cylinder": 9,
+          "empty": false,
+          "entropy": 7.76,
+          "first_block": 198,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 18
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 23,
+              "text": "(-ae}a"
+            },
+            {
+              "offset": 105,
+              "text": "aVwaQ|"
+            },
+            {
+              "offset": 242,
+              "text": "B>D=R8@"
+            },
+            {
+              "offset": 433,
+              "text": "q $<@_"
+            },
+            {
+              "offset": 3036,
+              "text": "<0mv({"
+            },
+            {
+              "offset": 3607,
+              "text": "t  \\dA"
+            },
+            {
+              "offset": 5373,
+              "text": "n2nR.2.R?"
+            },
+            {
+              "offset": 5472,
+              "text": "#MED`L"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 107008,
+          "cylinder": 9,
+          "empty": false,
+          "entropy": 7.74,
+          "first_block": 209,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 19
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 1557,
+              "text": "DPs1hP?"
+            },
+            {
+              "offset": 1776,
+              "text": "E^1@xR"
+            },
+            {
+              "offset": 2572,
+              "text": "EbARG2G"
+            },
+            {
+              "offset": 2754,
+              "text": "#C&S$+ "
+            },
+            {
+              "offset": 2814,
+              "text": "f4btdL`\\c\"d2e"
+            },
+            {
+              "offset": 3205,
+              "text": "6-K-g-hm:mUm"
+            },
+            {
+              "offset": 3455,
+              "text": "ATpUEUVNN"
+            },
+            {
+              "offset": 3631,
+              "text": "TVC@\\Dj"
+            },
+            {
+              "offset": 4343,
+              "text": "as\\,v/Z"
+            },
+            {
+              "offset": 5024,
+              "text": "e?ngk6"
+            },
+            {
+              "offset": 5086,
+              "text": "&Y\\3t2m"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 112640,
+          "cylinder": 10,
+          "empty": false,
+          "entropy": 7.69,
+          "first_block": 220,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 20
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 222,
+              "text": "]!B#8Q"
+            },
+            {
+              "offset": 632,
+              "text": "xHdSRN\\N"
+            },
+            {
+              "offset": 2345,
+              "text": ">/PzU@x:"
+            },
+            {
+              "offset": 2973,
+              "text": "itnnKH"
+            },
+            {
+              "offset": 3130,
+              "text": "kj55q5=0"
+            },
+            {
+              "offset": 3278,
+              "text": "gj8*;\""
+            },
+            {
+              "offset": 4322,
+              "text": "A##,Q]"
+            },
+            {
+              "offset": 4490,
+              "text": "Du|f<b"
+            },
+            {
+              "offset": 4573,
+              "text": "]OuL!g"
+            },
+            {
+              "offset": 5506,
+              "text": "Xi\\pv7"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 118272,
+          "cylinder": 10,
+          "empty": false,
+          "entropy": 7.93,
+          "first_block": 231,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 21
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 45,
+              "text": "K[K<,%"
+            },
+            {
+              "offset": 163,
+              "text": "c2KB]+"
+            },
+            {
+              "offset": 319,
+              "text": "'j^,9#lp"
+            },
+            {
+              "offset": 708,
+              "text": "&[L&+n"
+            },
+            {
+              "offset": 766,
+              "text": "b|xffd"
+            },
+            {
+              "offset": 847,
+              "text": "Id$X4D"
+            },
+            {
+              "offset": 1206,
+              "text": "|kZj[p"
+            },
+            {
+              "offset": 1518,
+              "text": "w@\"aL+t"
+            },
+            {
+              "offset": 1717,
+              "text": "\"5z@{m"
+            },
+            {
+              "offset": 1845,
+              "text": "$I~a`,'c}"
+            },
+            {
+              "offset": 2625,
+              "text": "f9ffg?"
+            },
+            {
+              "offset": 3367,
+              "text": "y9F.@m"
+            },
+            {
+              "offset": 3682,
+              "text": "0;LU/4"
+            },
+            {
+              "offset": 3770,
+              "text": "jgf?kw"
+            },
+            {
+              "offset": 5294,
+              "text": "Mh\\&]`"
+            },
+            {
+              "offset": 5592,
+              "text": "`_ZoTe"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 123904,
+          "cylinder": 11,
+          "empty": false,
+          "entropy": 7.92,
+          "first_block": 242,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 22
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 27,
+              "text": "fF)a\\+"
+            },
+            {
+              "offset": 1720,
+              "text": "C`2s`>"
+            },
+            {
+              "offset": 3601,
+              "text": "*KH!3H"
+            },
+            {
+              "offset": 3909,
+              "text": "\"AXa@XzAXb"
+            },
+            {
+              "offset": 4913,
+              "text": "A,,Kq>`"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 129536,
+          "cylinder": 11,
+          "empty": false,
+          "entropy": 7.75,
+          "first_block": 253,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 23
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 1444,
+              "text": "S,2 ,<D"
+            },
+            {
+              "offset": 2386,
+              "text": "`;CL_2~"
+            },
+            {
+              "offset": 2519,
+              "text": "-hxB(h"
+            },
+            {
+              "offset": 4078,
+              "text": "> aFcO>%|"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 135168,
+          "cylinder": 12,
+          "empty": false,
+          "entropy": 7.75,
+          "first_block": 264,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 24
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 2493,
+              "text": "0|2 <20|: <:0|<d"
+            },
+            {
+              "offset": 2713,
+              "text": "(-ae}a"
+            },
+            {
+              "offset": 2795,
+              "text": "aVwaQ|"
+            },
+            {
+              "offset": 2932,
+              "text": "B>D=R8@"
+            },
+            {
+              "offset": 3123,
+              "text": "q $<@_"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 140800,
+          "cylinder": 12,
+          "empty": false,
+          "entropy": 7.76,
+          "first_block": 275,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 25
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 95,
+              "text": "<0mv({"
+            },
+            {
+              "offset": 666,
+              "text": "t  \\hA"
+            },
+            {
+              "offset": 1168,
+              "text": "><fo>||"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 146432,
+          "cylinder": 13,
+          "empty": false,
+          "entropy": 6.38,
+          "first_block": 286,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 26
+        },
+        {
+          "ascii_strings": [],
+          "byte_length": 5632,
+          "byte_offset": 152064,
+          "cylinder": 13,
+          "empty": false,
+          "entropy": 4.05,
+          "first_block": 297,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 27
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 735,
+              "text": "@TAcY;"
+            },
+            {
+              "offset": 2736,
+              "text": "G@AjA]"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 157696,
+          "cylinder": 14,
+          "empty": false,
+          "entropy": 7.59,
+          "first_block": 308,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 1,
+          "track": 28
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 2171,
+              "text": "'[ jG K"
+            },
+            {
+              "offset": 4878,
+              "text": " VG }c-()"
+            },
+            {
+              "offset": 5283,
+              "text": "i@[vCV"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 163328,
+          "cylinder": 14,
+          "empty": false,
+          "entropy": 7.55,
+          "first_block": 319,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 29
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 1381,
+              "text": "Hzs{nOk{yx"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 168960,
+          "cylinder": 15,
+          "empty": false,
+          "entropy": 7.46,
+          "first_block": 330,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 30
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 139,
+              "text": "UFryb#"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 174592,
+          "cylinder": 15,
+          "empty": false,
+          "entropy": 2.44,
+          "first_block": 341,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 31
+        },
+        {
+          "ascii_strings": [],
+          "byte_length": 5632,
+          "byte_offset": 180224,
+          "cylinder": 16,
+          "empty": false,
+          "entropy": 5.78,
+          "first_block": 352,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 32
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 3280,
+              "text": "<H Bx "
+            },
+            {
+              "offset": 3959,
+              "text": "h;I`aP"
+            },
+            {
+              "offset": 4070,
+              "text": "508j@d"
+            },
+            {
+              "offset": 5589,
+              "text": "}>tK}y"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 185856,
+          "cylinder": 16,
+          "empty": false,
+          "entropy": 7.51,
+          "first_block": 363,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 33
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 891,
+              "text": "v_@l |s"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 191488,
+          "cylinder": 17,
+          "empty": false,
+          "entropy": 7.57,
+          "first_block": 374,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 1,
+          "track": 34
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 955,
+              "text": ",ep<02"
+            },
+            {
+              "offset": 3182,
+              "text": "UFryb#"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 197120,
+          "cylinder": 17,
+          "empty": false,
+          "entropy": 6.4,
+          "first_block": 385,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 35
+        },
+        {
+          "ascii_strings": [],
+          "byte_length": 5632,
+          "byte_offset": 202752,
+          "cylinder": 18,
+          "empty": false,
+          "entropy": 2.22,
+          "first_block": 396,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 36
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 223,
+              "text": "@TAcY;"
+            },
+            {
+              "offset": 2224,
+              "text": "G@AjA]"
+            },
+            {
+              "offset": 2976,
+              "text": "H8Y`ow"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 208384,
+          "cylinder": 18,
+          "empty": false,
+          "entropy": 7.56,
+          "first_block": 407,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 37
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 1634,
+              "text": "'[ jG K"
+            },
+            {
+              "offset": 4341,
+              "text": " VG }c-()"
+            },
+            {
+              "offset": 4746,
+              "text": "i@[vCV"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 214016,
+          "cylinder": 19,
+          "empty": false,
+          "entropy": 7.54,
+          "first_block": 418,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 38
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 844,
+              "text": "Hzs{nOk{yx"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 219648,
+          "cylinder": 19,
+          "empty": false,
+          "entropy": 7.45,
+          "first_block": 429,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 39
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 163,
+              "text": "4H`<cT"
+            },
+            {
+              "offset": 1337,
+              "text": "|R3o&!X"
+            },
+            {
+              "offset": 4793,
+              "text": " @MT$O"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 225280,
+          "cylinder": 20,
+          "empty": false,
+          "entropy": 7.51,
+          "first_block": 440,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 40
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 4007,
+              "text": "bc(`Dw"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 230912,
+          "cylinder": 20,
+          "empty": false,
+          "entropy": 7.52,
+          "first_block": 451,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 41
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 1050,
+              "text": "G:09{O"
+            },
+            {
+              "offset": 1613,
+              "text": "vJr;[FF"
+            },
+            {
+              "offset": 3751,
+              "text": "9Nt{kd"
+            },
+            {
+              "offset": 5514,
+              "text": "@!Rhb#l<r"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 236544,
+          "cylinder": 21,
+          "empty": false,
+          "entropy": 7.53,
+          "first_block": 462,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 1,
+          "track": 42
+        },
+        {
+          "ascii_strings": [],
+          "byte_length": 5632,
+          "byte_offset": 242176,
+          "cylinder": 21,
+          "empty": false,
+          "entropy": 5.12,
+          "first_block": 473,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 43
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 4068,
+              "text": "@1p102"
+            },
+            {
+              "offset": 4253,
+              "text": "1W@2@A"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 247808,
+          "cylinder": 22,
+          "empty": false,
+          "entropy": 3.82,
+          "first_block": 484,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 44
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 1035,
+              "text": " ! @B@`"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 253440,
+          "cylinder": 22,
+          "empty": false,
+          "entropy": 7.25,
+          "first_block": 495,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 45
+        },
+        {
+          "ascii_strings": [],
+          "byte_length": 5632,
+          "byte_offset": 259072,
+          "cylinder": 23,
+          "empty": false,
+          "entropy": 7.23,
+          "first_block": 506,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 46
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 584,
+              "text": "0K$>|r"
+            },
+            {
+              "offset": 5588,
+              "text": "r |#Td"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 264704,
+          "cylinder": 23,
+          "empty": false,
+          "entropy": 2.55,
+          "first_block": 517,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 47
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 68,
+              "text": "L$xcd="
+            },
+            {
+              "offset": 106,
+              "text": "X  0x0X^"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 270336,
+          "cylinder": 24,
+          "empty": false,
+          "entropy": 7.24,
+          "first_block": 528,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 48
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 641,
+              "text": "7H6x6="
+            },
+            {
+              "offset": 2025,
+              "text": "!` z}>"
+            },
+            {
+              "offset": 2568,
+              "text": "c b=r8"
+            },
+            {
+              "offset": 3907,
+              "text": "I <cr9"
+            },
+            {
+              "offset": 4338,
+              "text": "8@;ms<5"
+            },
+            {
+              "offset": 4670,
+              "text": "} A`)`&"
+            },
+            {
+              "offset": 5047,
+              "text": "@p@/@8"
+            },
+            {
+              "offset": 5057,
+              "text": "`0`O`~"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 275968,
+          "cylinder": 24,
+          "empty": false,
+          "entropy": 7.23,
+          "first_block": 539,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 49
+        },
+        {
+          "ascii_strings": [],
+          "byte_length": 5632,
+          "byte_offset": 281600,
+          "cylinder": 25,
+          "empty": false,
+          "entropy": 4.74,
+          "first_block": 550,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 50
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 1603,
+              "text": "{*=r`#"
+            },
+            {
+              "offset": 2327,
+              "text": "<\\qu?~"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 287232,
+          "cylinder": 25,
+          "empty": false,
+          "entropy": 1.9,
+          "first_block": 561,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 51
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 2627,
+              "text": "\"!@#uv"
+            },
+            {
+              "offset": 2863,
+              "text": "vxWQWuHl)"
+            },
+            {
+              "offset": 5334,
+              "text": "!}V~k@["
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 292864,
+          "cylinder": 26,
+          "empty": false,
+          "entropy": 5.2,
+          "first_block": 572,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 52
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 1743,
+              "text": ".x5X5 "
+            },
+            {
+              "offset": 5452,
+              "text": "!#A?n0"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 298496,
+          "cylinder": 26,
+          "empty": false,
+          "entropy": 7.51,
+          "first_block": 583,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 53
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 1364,
+              "text": "ABi*8K#"
+            },
+            {
+              "offset": 1546,
+              "text": "!;D( TV"
+            },
+            {
+              "offset": 3563,
+              "text": ">WoGh(_#"
+            },
+            {
+              "offset": 3775,
+              "text": "@ !~GA"
+            },
+            {
+              "offset": 4273,
+              "text": " HD@DD"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 304128,
+          "cylinder": 27,
+          "empty": false,
+          "entropy": 6.36,
+          "first_block": 594,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 1,
+          "track": 54
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 1816,
+              "text": "3~Om2I"
+            },
+            {
+              "offset": 2735,
+              "text": "3p,I`J"
+            },
+            {
+              "offset": 2877,
+              "text": "<cN.04"
+            },
+            {
+              "offset": 3803,
+              "text": "rxkp8oA"
+            },
+            {
+              "offset": 3880,
+              "text": "O|mfy8`!8"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 309760,
+          "cylinder": 27,
+          "empty": false,
+          "entropy": 7.6,
+          "first_block": 605,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 55
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 239,
+              "text": "_vqy=W"
+            },
+            {
+              "offset": 729,
+              "text": "\" apZLlxl^"
+            },
+            {
+              "offset": 2272,
+              "text": "kd@~Fa_"
+            },
+            {
+              "offset": 3770,
+              "text": "<<>4pm"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 315392,
+          "cylinder": 28,
+          "empty": false,
+          "entropy": 7.56,
+          "first_block": 616,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 56
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 532,
+              "text": "CnM nN"
+            },
+            {
+              "offset": 848,
+              "text": "qp`i/o"
+            },
+            {
+              "offset": 936,
+              "text": "h?&:7'-"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 321024,
+          "cylinder": 28,
+          "empty": false,
+          "entropy": 3.63,
+          "first_block": 627,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 57
+        },
+        {
+          "ascii_strings": [],
+          "byte_length": 5632,
+          "byte_offset": 326656,
+          "cylinder": 29,
+          "empty": false,
+          "entropy": 7.63,
+          "first_block": 638,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 58
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 130,
+              "text": "0|vc?0"
+            },
+            {
+              "offset": 1215,
+              "text": "?d~_O!"
+            },
+            {
+              "offset": 3089,
+              "text": "rt`9p&"
+            },
+            {
+              "offset": 5433,
+              "text": "? ~3f]o"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 332288,
+          "cylinder": 29,
+          "empty": false,
+          "entropy": 7.34,
+          "first_block": 649,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 59
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 91,
+              "text": "op?4@f"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 337920,
+          "cylinder": 30,
+          "empty": false,
+          "entropy": 2.42,
+          "first_block": 660,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 60
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 2327,
+              "text": "_e{+Ae"
+            },
+            {
+              "offset": 4002,
+              "text": "n_puH<]"
+            },
+            {
+              "offset": 4617,
+              "text": "O&s/'&"
+            },
+            {
+              "offset": 5154,
+              "text": "1@9<]y"
+            },
+            {
+              "offset": 5570,
+              "text": "(p!0QY"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 343552,
+          "cylinder": 30,
+          "empty": false,
+          "entropy": 6.21,
+          "first_block": 671,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 61
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 429,
+              "text": "b[PDk]c"
+            },
+            {
+              "offset": 617,
+              "text": "lwpA@@A"
+            },
+            {
+              "offset": 1991,
+              "text": "!q%d7q&"
+            },
+            {
+              "offset": 2972,
+              "text": "(M@7q{"
+            },
+            {
+              "offset": 3688,
+              "text": "@A`,r/"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 349184,
+          "cylinder": 31,
+          "empty": false,
+          "entropy": 7.65,
+          "first_block": 682,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 62
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 290,
+              "text": "P\"piU@h^"
+            },
+            {
+              "offset": 1759,
+              "text": "@3v#6?"
+            },
+            {
+              "offset": 2073,
+              "text": "(.$1ojM"
+            },
+            {
+              "offset": 3461,
+              "text": "E?&p''="
+            },
+            {
+              "offset": 4111,
+              "text": "! @Zn("
+            },
+            {
+              "offset": 4514,
+              "text": "B'>=S$"
+            },
+            {
+              "offset": 5617,
+              "text": "'}nnXn2?"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 354816,
+          "cylinder": 31,
+          "empty": false,
+          "entropy": 7.64,
+          "first_block": 693,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 63
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 26,
+              "text": "?,(qDS"
+            },
+            {
+              "offset": 705,
+              "text": "pxVMZr"
+            },
+            {
+              "offset": 4561,
+              "text": "H/N0 9"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 360448,
+          "cylinder": 32,
+          "empty": false,
+          "entropy": 6.97,
+          "first_block": 704,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 64
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 436,
+              "text": "P98Npd9:"
+            },
+            {
+              "offset": 2600,
+              "text": "!ZVkRP"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 366080,
+          "cylinder": 32,
+          "empty": false,
+          "entropy": 7.52,
+          "first_block": 715,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 65
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 233,
+              "text": "qE?3\\2"
+            },
+            {
+              "offset": 637,
+              "text": "[Cp$HDC"
+            },
+            {
+              "offset": 1540,
+              "text": "^X,o6i"
+            },
+            {
+              "offset": 2854,
+              "text": "?UUuUWuWoaw"
+            },
+            {
+              "offset": 3187,
+              "text": "$Hp{~1"
+            },
+            {
+              "offset": 3836,
+              "text": "M}UUnO"
+            },
+            {
+              "offset": 5153,
+              "text": "B'&@/b"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 371712,
+          "cylinder": 33,
+          "empty": false,
+          "entropy": 7.51,
+          "first_block": 726,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 66
+        },
+        {
+          "ascii_strings": [],
+          "byte_length": 5632,
+          "byte_offset": 377344,
+          "cylinder": 33,
+          "empty": false,
+          "entropy": 0.28,
+          "first_block": 737,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 67
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 385,
+              "text": "b {rr`r"
+            },
+            {
+              "offset": 1065,
+              "text": "(0~~ r"
+            },
+            {
+              "offset": 1499,
+              "text": "'~>B@>J8"
+            },
+            {
+              "offset": 2057,
+              "text": "t&D?I;"
+            },
+            {
+              "offset": 2965,
+              "text": "'>] @U{"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 382976,
+          "cylinder": 34,
+          "empty": false,
+          "entropy": 7.63,
+          "first_block": 748,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 68
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 804,
+              "text": "<r~1>8"
+            },
+            {
+              "offset": 1782,
+              "text": "NA>K`?"
+            },
+            {
+              "offset": 3356,
+              "text": "/y<A98{TK"
+            },
+            {
+              "offset": 3721,
+              "text": "8dJ<Zx"
+            },
+            {
+              "offset": 4809,
+              "text": "|NZ^Ap9"
+            },
+            {
+              "offset": 5364,
+              "text": "L%<w~Ai"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 388608,
+          "cylinder": 34,
+          "empty": false,
+          "entropy": 7.59,
+          "first_block": 759,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 69
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 2872,
+              "text": ">0 ?@ "
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 394240,
+          "cylinder": 35,
+          "empty": false,
+          "entropy": 7.65,
+          "first_block": 770,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 70
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 736,
+              "text": "5%fUf~}~OGW:/"
+            },
+            {
+              "offset": 4337,
+              "text": "O_$`1>k"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 399872,
+          "cylinder": 35,
+          "empty": false,
+          "entropy": 7.35,
+          "first_block": 781,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 2,
+          "track": 71
+        },
+        {
+          "ascii_strings": [],
+          "byte_length": 5632,
+          "byte_offset": 405504,
+          "cylinder": 36,
+          "empty": false,
+          "entropy": 7.6,
+          "first_block": 792,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 1,
+          "track": 72
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 478,
+              "text": ".?w~]=^"
+            },
+            {
+              "offset": 1140,
+              "text": "BDnMP,"
+            },
+            {
+              "offset": 3344,
+              "text": "1>qo[?"
+            },
+            {
+              "offset": 3463,
+              "text": "v@rybKII!"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 411136,
+          "cylinder": 36,
+          "empty": false,
+          "entropy": 6.9,
+          "first_block": 803,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 73
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 5155,
+              "text": "WFQ:54"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 416768,
+          "cylinder": 37,
+          "empty": false,
+          "entropy": 3.45,
+          "first_block": 814,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 74
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 1470,
+              "text": "(8[x`#&"
+            },
+            {
+              "offset": 2233,
+              "text": "QUEATs"
+            },
+            {
+              "offset": 3284,
+              "text": "c BqHR"
+            },
+            {
+              "offset": 4763,
+              "text": "v!@Lp3"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 422400,
+          "cylinder": 37,
+          "empty": false,
+          "entropy": 7.54,
+          "first_block": 825,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 75
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 949,
+              "text": "$.2ng9@"
+            },
+            {
+              "offset": 986,
+              "text": "V|k@0'"
+            },
+            {
+              "offset": 2613,
+              "text": "`'E??]"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 428032,
+          "cylinder": 38,
+          "empty": false,
+          "entropy": 7.48,
+          "first_block": 836,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 76
+        },
+        {
+          "ascii_strings": [],
+          "byte_length": 5632,
+          "byte_offset": 433664,
+          "cylinder": 38,
+          "empty": false,
+          "entropy": 0.33,
+          "first_block": 847,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 77
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 166,
+              "text": "~B h4R"
+            },
+            {
+              "offset": 501,
+              "text": " h>$aig"
+            },
+            {
+              "offset": 1233,
+              "text": "Zc#vh0"
+            },
+            {
+              "offset": 1655,
+              "text": "*0[?nM"
+            },
+            {
+              "offset": 2502,
+              "text": "Bfn57ly"
+            },
+            {
+              "offset": 3273,
+              "text": ",| p9b"
+            },
+            {
+              "offset": 3341,
+              "text": "NOa2k-"
+            },
+            {
+              "offset": 4269,
+              "text": "Bz  `\\"
+            },
+            {
+              "offset": 4991,
+              "text": "tD7_u8"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 439296,
+          "cylinder": 39,
+          "empty": false,
+          "entropy": 7.66,
+          "first_block": 858,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 1,
+          "track": 78
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 627,
+              "text": "yDDyd:"
+            },
+            {
+              "offset": 1171,
+              "text": "\"P`z@I'"
+            },
+            {
+              "offset": 2273,
+              "text": "~p@68'"
+            },
+            {
+              "offset": 4065,
+              "text": "dP  kta"
+            },
+            {
+              "offset": 5058,
+              "text": "%)|!5:"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 444928,
+          "cylinder": 39,
+          "empty": false,
+          "entropy": 7.72,
+          "first_block": 869,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 79
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 925,
+              "text": "P0nA65"
+            },
+            {
+              "offset": 1865,
+              "text": "P@s  Q"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 450560,
+          "cylinder": 40,
+          "empty": false,
+          "entropy": 7.66,
+          "first_block": 880,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 80
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 4597,
+              "text": "U_QWY@"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 456192,
+          "cylinder": 40,
+          "empty": false,
+          "entropy": 6.9,
+          "first_block": 891,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 81
+        },
+        {
+          "ascii_strings": [],
+          "byte_length": 5632,
+          "byte_offset": 461824,
+          "cylinder": 41,
+          "empty": false,
+          "entropy": 4.97,
+          "first_block": 902,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 82
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 908,
+              "text": "/>.(vk"
+            },
+            {
+              "offset": 1754,
+              "text": "p`]cQh"
+            },
+            {
+              "offset": 2543,
+              "text": "q`,`-X"
+            },
+            {
+              "offset": 3872,
+              "text": "-<nN`6q"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 467456,
+          "cylinder": 41,
+          "empty": false,
+          "entropy": 7.55,
+          "first_block": 913,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 83
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 1751,
+              "text": "\\Q!7?Xo"
+            },
+            {
+              "offset": 2327,
+              "text": "&PA%$rn"
+            },
+            {
+              "offset": 4047,
+              "text": "&G?-0?"
+            },
+            {
+              "offset": 4380,
+              "text": "=|(aTr"
+            },
+            {
+              "offset": 4400,
+              "text": "3_/NLxi"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 473088,
+          "cylinder": 42,
+          "empty": false,
+          "entropy": 7.5,
+          "first_block": 924,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 84
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 511,
+              "text": "w 95@<"
+            },
+            {
+              "offset": 2488,
+              "text": "c'0.Apk"
+            },
+            {
+              "offset": 4682,
+              "text": "!q|b92"
+            },
+            {
+              "offset": 4893,
+              "text": ") au1t|"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 478720,
+          "cylinder": 42,
+          "empty": false,
+          "entropy": 6.8,
+          "first_block": 935,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 85
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 1338,
+              "text": "!z8J@i"
+            },
+            {
+              "offset": 5441,
+              "text": "<><XG?"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 484352,
+          "cylinder": 43,
+          "empty": false,
+          "entropy": 7.61,
+          "first_block": 946,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 86
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 5113,
+              "text": "qHcky2"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 489984,
+          "cylinder": 43,
+          "empty": false,
+          "entropy": 7.6,
+          "first_block": 957,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 87
+        },
+        {
+          "ascii_strings": [],
+          "byte_length": 5632,
+          "byte_offset": 495616,
+          "cylinder": 44,
+          "empty": false,
+          "entropy": 5.37,
+          "first_block": 968,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 88
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 1507,
+              "text": "m`vd\"v"
+            },
+            {
+              "offset": 2684,
+              "text": "BppYf<"
+            },
+            {
+              "offset": 3469,
+              "text": "<,*?@x"
+            },
+            {
+              "offset": 3828,
+              "text": "#T8#'>@"
+            },
+            {
+              "offset": 3847,
+              "text": "A>0oLM"
+            },
+            {
+              "offset": 4072,
+              "text": "UXE(0@"
+            },
+            {
+              "offset": 4167,
+              "text": "w=]W]u"
+            },
+            {
+              "offset": 4431,
+              "text": " GX>B-"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 501248,
+          "cylinder": 44,
+          "empty": false,
+          "entropy": 7.09,
+          "first_block": 979,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 89
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 1625,
+              "text": "cfk<g0"
+            },
+            {
+              "offset": 1846,
+              "text": "@X&&8a"
+            },
+            {
+              "offset": 2484,
+              "text": "b, T02$"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 506880,
+          "cylinder": 45,
+          "empty": false,
+          "entropy": 7.58,
+          "first_block": 990,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 90
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 1168,
+              "text": "~FIae?"
+            },
+            {
+              "offset": 2454,
+              "text": "p1F@E("
+            },
+            {
+              "offset": 4607,
+              "text": "#/&@>3"
+            },
+            {
+              "offset": 4856,
+              "text": "@q8<{g"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 512512,
+          "cylinder": 45,
+          "empty": false,
+          "entropy": 7.62,
+          "first_block": 1001,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 91
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 607,
+              "text": "!(8d$/"
+            },
+            {
+              "offset": 4358,
+              "text": "v>D$@ "
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 518144,
+          "cylinder": 46,
+          "empty": false,
+          "entropy": 6.74,
+          "first_block": 1012,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 92
+        },
+        {
+          "ascii_strings": [],
+          "byte_length": 5632,
+          "byte_offset": 523776,
+          "cylinder": 46,
+          "empty": false,
+          "entropy": 4.02,
+          "first_block": 1023,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 93
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 470,
+              "text": "?@x?OP"
+            },
+            {
+              "offset": 1665,
+              "text": "E%}xE]"
+            },
+            {
+              "offset": 2613,
+              "text": "BI`rA("
+            },
+            {
+              "offset": 3279,
+              "text": "!<7:r@x"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 529408,
+          "cylinder": 47,
+          "empty": false,
+          "entropy": 7.66,
+          "first_block": 1034,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 94
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 196,
+              "text": "{AHM!9"
+            },
+            {
+              "offset": 240,
+              "text": "[Gy'>~>"
+            },
+            {
+              "offset": 755,
+              "text": "cp@ ,2"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 535040,
+          "cylinder": 47,
+          "empty": false,
+          "entropy": 7.64,
+          "first_block": 1045,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 95
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 1253,
+              "text": "zEATH*"
+            },
+            {
+              "offset": 1539,
+              "text": "#,pM>1"
+            },
+            {
+              "offset": 1689,
+              "text": "p1,I?t"
+            },
+            {
+              "offset": 1930,
+              "text": "lfLy{`"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 540672,
+          "cylinder": 48,
+          "empty": false,
+          "entropy": 7.62,
+          "first_block": 1056,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 96
+        },
+        {
+          "ascii_strings": [],
+          "byte_length": 5632,
+          "byte_offset": 546304,
+          "cylinder": 48,
+          "empty": false,
+          "entropy": 2.72,
+          "first_block": 1067,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 97
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 1288,
+              "text": "ywcpL/"
+            },
+            {
+              "offset": 3147,
+              "text": "]WU_UU"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 551936,
+          "cylinder": 49,
+          "empty": false,
+          "entropy": 7.51,
+          "first_block": 1078,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 98
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 2684,
+              "text": "}~wAww"
+            },
+            {
+              "offset": 3164,
+              "text": "0%\"Y A0+"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 557568,
+          "cylinder": 49,
+          "empty": false,
+          "entropy": 7.63,
+          "first_block": 1089,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 99
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 2024,
+              "text": "P@0al4P"
+            },
+            {
+              "offset": 2062,
+              "text": "@!&1kml"
+            },
+            {
+              "offset": 2743,
+              "text": "b2 F*!"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 563200,
+          "cylinder": 50,
+          "empty": false,
+          "entropy": 7.61,
+          "first_block": 1100,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 100
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 945,
+              "text": "@!0$I|"
+            },
+            {
+              "offset": 1398,
+              "text": "gu0y^a0"
+            },
+            {
+              "offset": 2709,
+              "text": "M:<!F`/"
+            },
+            {
+              "offset": 3176,
+              "text": "{\"zf*3"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 568832,
+          "cylinder": 50,
+          "empty": false,
+          "entropy": 7.24,
+          "first_block": 1111,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 101
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 5402,
+              "text": "j1Bot="
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 574464,
+          "cylinder": 51,
+          "empty": false,
+          "entropy": 4.59,
+          "first_block": 1122,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 102
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 3422,
+              "text": "4fLq3{"
+            },
+            {
+              "offset": 4199,
+              "text": " p? xh"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 580096,
+          "cylinder": 51,
+          "empty": false,
+          "entropy": 7.54,
+          "first_block": 1133,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 103
+        },
+        {
+          "ascii_strings": [],
+          "byte_length": 5632,
+          "byte_offset": 585728,
+          "cylinder": 52,
+          "empty": false,
+          "entropy": 7.58,
+          "first_block": 1144,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 104
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 589,
+              "text": "!0@\" !p@"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 591360,
+          "cylinder": 52,
+          "empty": false,
+          "entropy": 7.62,
+          "first_block": 1155,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 105
+        },
+        {
+          "ascii_strings": [],
+          "byte_length": 5632,
+          "byte_offset": 596992,
+          "cylinder": 53,
+          "empty": false,
+          "entropy": 1.17,
+          "first_block": 1166,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 106
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 165,
+              "text": ">e9y !"
+            },
+            {
+              "offset": 1777,
+              "text": "O Ab`!)"
+            },
+            {
+              "offset": 3585,
+              "text": "0aBY}v`Uy"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 602624,
+          "cylinder": 53,
+          "empty": false,
+          "entropy": 7.64,
+          "first_block": 1177,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 107
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 649,
+              "text": "FnO=p2w"
+            },
+            {
+              "offset": 3117,
+              "text": " `< N!"
+            },
+            {
+              "offset": 4346,
+              "text": "aue@P'"
+            },
+            {
+              "offset": 4712,
+              "text": "`?%gx'"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 608256,
+          "cylinder": 54,
+          "empty": false,
+          "entropy": 7.57,
+          "first_block": 1188,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 1,
+          "track": 108
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 410,
+              "text": "9]|q)<a"
+            },
+            {
+              "offset": 1891,
+              "text": "C<0AMq"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 613888,
+          "cylinder": 54,
+          "empty": false,
+          "entropy": 7.59,
+          "first_block": 1199,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 1,
+          "track": 109
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 290,
+              "text": "tFMD~0"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 619520,
+          "cylinder": 55,
+          "empty": false,
+          "entropy": 4.74,
+          "first_block": 1210,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 110
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 3178,
+              "text": "h?&@@ I"
+            },
+            {
+              "offset": 4693,
+              "text": "A1\\;\"@"
+            },
+            {
+              "offset": 5419,
+              "text": "41~/[t"
+            },
+            {
+              "offset": 5575,
+              "text": "1<s2(6"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 625152,
+          "cylinder": 55,
+          "empty": false,
+          "entropy": 5.17,
+          "first_block": 1221,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 111
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 792,
+              "text": "hC0N98"
+            },
+            {
+              "offset": 1301,
+              "text": "Hj?B=}"
+            },
+            {
+              "offset": 4935,
+              "text": "Q ?|f#"
+            },
+            {
+              "offset": 5234,
+              "text": ".8hy?M"
+            },
+            {
+              "offset": 5578,
+              "text": "A@CFD?"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 630784,
+          "cylinder": 56,
+          "empty": false,
+          "entropy": 7.58,
+          "first_block": 1232,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 112
+        },
+        {
+          "ascii_strings": [],
+          "byte_length": 5632,
+          "byte_offset": 636416,
+          "cylinder": 56,
+          "empty": false,
+          "entropy": 7.44,
+          "first_block": 1243,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 113
+        },
+        {
+          "ascii_strings": [],
+          "byte_length": 5632,
+          "byte_offset": 642048,
+          "cylinder": 57,
+          "empty": false,
+          "entropy": 2.91,
+          "first_block": 1254,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 114
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 170,
+              "text": "38&4 Ax"
+            },
+            {
+              "offset": 784,
+              "text": "@*@,@(o"
+            },
+            {
+              "offset": 947,
+              "text": "W`k`.`h "
+            },
+            {
+              "offset": 1056,
+              "text": "[@M@Q@f@\"@$@"
+            },
+            {
+              "offset": 2555,
+              "text": "}yqyusp"
+            },
+            {
+              "offset": 2642,
+              "text": ".+t4T$Xp"
+            },
+            {
+              "offset": 3590,
+              "text": ")hDt<rv"
+            },
+            {
+              "offset": 3809,
+              "text": "L\\|b:QCMb["
+            },
+            {
+              "offset": 3832,
+              "text": "2b,8`/"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 647680,
+          "cylinder": 57,
+          "empty": false,
+          "entropy": 7.42,
+          "first_block": 1265,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 115
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 1498,
+              "text": "ztx|vm`"
+            },
+            {
+              "offset": 1641,
+              "text": "BAAEEE"
+            },
+            {
+              "offset": 1874,
+              "text": "|xtf}d"
+            },
+            {
+              "offset": 2066,
+              "text": "L\"s1T`"
+            },
+            {
+              "offset": 2478,
+              "text": "|>|t6fxhG"
+            },
+            {
+              "offset": 2975,
+              "text": "hT\\b22R"
+            },
+            {
+              "offset": 3393,
+              "text": "EgVxXx,*V9"
+            },
+            {
+              "offset": 3531,
+              "text": "txrioz"
+            },
+            {
+              "offset": 3801,
+              "text": "man~qi}"
+            },
+            {
+              "offset": 4123,
+              "text": "FE<25<"
+            },
+            {
+              "offset": 4328,
+              "text": "(D4L>>"
+            },
+            {
+              "offset": 4825,
+              "text": "$Lr.~*('"
+            },
+            {
+              "offset": 4905,
+              "text": "\\\\bjzR8w"
+            },
+            {
+              "offset": 4954,
+              "text": "vz~mob"
+            },
+            {
+              "offset": 5010,
+              "text": "2:nAZHk"
+            },
+            {
+              "offset": 5058,
+              "text": "TDt\"F.F"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 653312,
+          "cylinder": 58,
+          "empty": false,
+          "entropy": 7.84,
+          "first_block": 1276,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 116
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 19,
+              "text": "1=7?7#"
+            },
+            {
+              "offset": 29,
+              "text": "rTLvCx"
+            },
+            {
+              "offset": 41,
+              "text": "AMKKEBC"
+            },
+            {
+              "offset": 472,
+              "text": "zdhlns|"
+            },
+            {
+              "offset": 986,
+              "text": ".MN/n_"
+            },
+            {
+              "offset": 1044,
+              "text": "ajrveg"
+            },
+            {
+              "offset": 1210,
+              "text": "Rr65/7"
+            },
+            {
+              "offset": 1242,
+              "text": "D*8hAY"
+            },
+            {
+              "offset": 1375,
+              "text": "ivfamw"
+            },
+            {
+              "offset": 1594,
+              "text": "z%@'$!"
+            },
+            {
+              "offset": 1668,
+              "text": ";T>C!`"
+            },
+            {
+              "offset": 1977,
+              "text": "nbr~}x"
+            },
+            {
+              "offset": 2196,
+              "text": "[@GA@M"
+            },
+            {
+              "offset": 2255,
+              "text": "uBT+2!*5"
+            },
+            {
+              "offset": 2433,
+              "text": "l``tv}p"
+            },
+            {
+              "offset": 2828,
+              "text": "<,,bzz47"
+            },
+            {
+              "offset": 3012,
+              "text": "~jvyof"
+            },
+            {
+              "offset": 3785,
+              "text": ":ZJ\"LD"
+            },
+            {
+              "offset": 4073,
+              "text": "ECMABK"
+            },
+            {
+              "offset": 4358,
+              "text": "BLrqG\\"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 658944,
+          "cylinder": 58,
+          "empty": false,
+          "entropy": 7.84,
+          "first_block": 1287,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 117
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 541,
+              "text": "FECELB"
+            },
+            {
+              "offset": 587,
+              "text": "mafvqmob"
+            },
+            {
+              "offset": 610,
+              "text": "nbbvmh"
+            },
+            {
+              "offset": 692,
+              "text": "hXA~8G"
+            },
+            {
+              "offset": 884,
+              "text": "DLBJ&nqM;W"
+            },
+            {
+              "offset": 964,
+              "text": "5=3#9:0"
+            },
+            {
+              "offset": 1319,
+              "text": "(hh(([)"
+            },
+            {
+              "offset": 1980,
+              "text": "JAn|PG"
+            },
+            {
+              "offset": 2640,
+              "text": "vrfyob"
+            },
+            {
+              "offset": 3373,
+              "text": "uiiy}g"
+            },
+            {
+              "offset": 3663,
+              "text": "vW0\\rrL k"
+            },
+            {
+              "offset": 4261,
+              "text": "n4xx*8O"
+            },
+            {
+              "offset": 4355,
+              "text": "L}bEbD"
+            },
+            {
+              "offset": 4613,
+              "text": "D?zJO@"
+            },
+            {
+              "offset": 5012,
+              "text": "y2 0!|."
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 664576,
+          "cylinder": 59,
+          "empty": false,
+          "entropy": 7.82,
+          "first_block": 1298,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 118
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 155,
+              "text": "\"\"2\"~-N"
+            },
+            {
+              "offset": 211,
+              "text": "oEAD\"8"
+            },
+            {
+              "offset": 418,
+              "text": "q et@qL"
+            },
+            {
+              "offset": 1483,
+              "text": "\\-6!2,"
+            },
+            {
+              "offset": 2621,
+              "text": "7{FeV%"
+            },
+            {
+              "offset": 2719,
+              "text": "HY:%^L"
+            },
+            {
+              "offset": 3412,
+              "text": "_@18xs"
+            },
+            {
+              "offset": 4417,
+              "text": ":yz*,?> "
+            },
+            {
+              "offset": 4881,
+              "text": "v<nrdtK"
+            },
+            {
+              "offset": 4927,
+              "text": "xl&bnd"
+            },
+            {
+              "offset": 4966,
+              "text": "BzjD<s"
+            },
+            {
+              "offset": 5194,
+              "text": "r`qb`A"
+            },
+            {
+              "offset": 5519,
+              "text": "QFV8+?"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 670208,
+          "cylinder": 59,
+          "empty": false,
+          "entropy": 7.87,
+          "first_block": 1309,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 1,
+          "track": 119
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 631,
+              "text": "W{[kk[Gw"
+            },
+            {
+              "offset": 1127,
+              "text": "T$8H`?"
+            },
+            {
+              "offset": 1530,
+              "text": "pJrR'F"
+            },
+            {
+              "offset": 1670,
+              "text": "$265;0"
+            },
+            {
+              "offset": 1751,
+              "text": "BICGO@"
+            },
+            {
+              "offset": 1875,
+              "text": "[;77C*"
+            },
+            {
+              "offset": 2018,
+              "text": "&JJBBKL"
+            },
+            {
+              "offset": 2678,
+              "text": "XL\\BB\\TX@G"
+            },
+            {
+              "offset": 2880,
+              "text": "1:<4<26930"
+            },
+            {
+              "offset": 2987,
+              "text": "DLJFNAIIANJDO"
+            },
+            {
+              "offset": 3363,
+              "text": "LFIMKG"
+            },
+            {
+              "offset": 4070,
+              "text": "Q;#kg_h"
+            },
+            {
+              "offset": 4209,
+              "text": "U~ztx{"
+            },
+            {
+              "offset": 4272,
+              "text": "4,<,(TAKD"
+            },
+            {
+              "offset": 4449,
+              "text": "5m}S[W"
+            },
+            {
+              "offset": 4483,
+              "text": "L\\BRJ:&6>"
+            },
+            {
+              "offset": 4494,
+              "text": "DTTDXN"
+            },
+            {
+              "offset": 4648,
+              "text": "i{(8$t\\b"
+            },
+            {
+              "offset": 4768,
+              "text": "wWgWwo@"
+            },
+            {
+              "offset": 4914,
+              "text": "|R\"![p`I@>:"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 675840,
+          "cylinder": 60,
+          "empty": false,
+          "entropy": 7.87,
+          "first_block": 1320,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 120
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 305,
+              "text": "cP|~zG"
+            },
+            {
+              "offset": 394,
+              "text": "n~LECEB"
+            },
+            {
+              "offset": 424,
+              "text": "cSK[gw_`"
+            },
+            {
+              "offset": 469,
+              "text": "Z\\Z=+_\\"
+            },
+            {
+              "offset": 803,
+              "text": "cy~z|dg"
+            },
+            {
+              "offset": 967,
+              "text": "@pbbab"
+            },
+            {
+              "offset": 1323,
+              "text": "LBZFNNVFJLHO"
+            },
+            {
+              "offset": 1452,
+              "text": "~&e~|z"
+            },
+            {
+              "offset": 1970,
+              "text": "-HI$Rp"
+            },
+            {
+              "offset": 2275,
+              "text": "Zfvn~qyucgp"
+            },
+            {
+              "offset": 2581,
+              "text": "\\3q'fuwt"
+            },
+            {
+              "offset": 2635,
+              "text": "eeiq~vzjblto"
+            },
+            {
+              "offset": 2658,
+              "text": "~z8b*$@"
+            },
+            {
+              "offset": 2980,
+              "text": "?f5=;8"
+            },
+            {
+              "offset": 3139,
+              "text": "2RbB<l"
+            },
+            {
+              "offset": 3456,
+              "text": "5>:<4<2613;"
+            },
+            {
+              "offset": 3589,
+              "text": "%+~~wz"
+            },
+            {
+              "offset": 4226,
+              "text": "Ksscc}}mw"
+            },
+            {
+              "offset": 4293,
+              "text": "TBRJZJR\\THO"
+            },
+            {
+              "offset": 4691,
+              "text": "!qiyE_"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 681472,
+          "cylinder": 60,
+          "empty": false,
+          "entropy": 7.86,
+          "first_block": 1331,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 121
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 24,
+              "text": "**\"#jp"
+            },
+            {
+              "offset": 88,
+              "text": "}P)>><<?"
+            },
+            {
+              "offset": 182,
+              "text": "yyqq~w)"
+            },
+            {
+              "offset": 398,
+              "text": "dbfqmw"
+            },
+            {
+              "offset": 605,
+              "text": "jf~yv("
+            },
+            {
+              "offset": 658,
+              "text": "A!aa!A~"
+            },
+            {
+              "offset": 666,
+              "text": ".VFjR<txp"
+            },
+            {
+              "offset": 1045,
+              "text": "vNn^>>^nNV"
+            },
+            {
+              "offset": 1140,
+              "text": "9>9=?;"
+            },
+            {
+              "offset": 1184,
+              "text": "IYeM}KG_H"
+            },
+            {
+              "offset": 1292,
+              "text": "}eq~vfzzo"
+            },
+            {
+              "offset": 1486,
+              "text": "xbOy{x"
+            },
+            {
+              "offset": 2688,
+              "text": "t4TdD8h"
+            },
+            {
+              "offset": 2766,
+              "text": "q1$*\\*"
+            },
+            {
+              "offset": 3001,
+              "text": "<,4DhP>/"
+            },
+            {
+              "offset": 3076,
+              "text": "(0 ?/7"
+            },
+            {
+              "offset": 3240,
+              "text": "bRrJj:"
+            },
+            {
+              "offset": 3865,
+              "text": "$,,$ '"
+            },
+            {
+              "offset": 3898,
+              "text": "wgG{[[{{gwo@"
+            },
+            {
+              "offset": 3926,
+              "text": "MV~}}I"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 687104,
+          "cylinder": 61,
+          "empty": false,
+          "entropy": 7.85,
+          "first_block": 1342,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 122
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 217,
+              "text": "42>9;0"
+            },
+            {
+              "offset": 569,
+              "text": "iyemckww"
+            },
+            {
+              "offset": 657,
+              "text": "/#=591"
+            },
+            {
+              "offset": 883,
+              "text": "jV:2jN"
+            },
+            {
+              "offset": 1386,
+              "text": "['WgG="
+            },
+            {
+              "offset": 3247,
+              "text": "vayuqiuh"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 692736,
+          "cylinder": 61,
+          "empty": false,
+          "entropy": 7.77,
+          "first_block": 1353,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 123
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 237,
+              "text": "3((r2sqQ"
+            },
+            {
+              "offset": 567,
+              "text": "Cqj\"TpH8"
+            },
+            {
+              "offset": 794,
+              "text": "AqQ6BtT8"
+            },
+            {
+              "offset": 826,
+              "text": "@hRAi>jt?"
+            },
+            {
+              "offset": 987,
+              "text": ",RVv\"X0"
+            },
+            {
+              "offset": 1275,
+              "text": ";79>71"
+            },
+            {
+              "offset": 1386,
+              "text": "zx>\\X;"
+            },
+            {
+              "offset": 2436,
+              "text": "yzzy}s"
+            },
+            {
+              "offset": 2859,
+              "text": "#+)..+&"
+            },
+            {
+              "offset": 2934,
+              "text": "ANFFKF"
+            },
+            {
+              "offset": 3352,
+              "text": "BJZ&Z_"
+            },
+            {
+              "offset": 3683,
+              "text": "%:x@x6"
+            },
+            {
+              "offset": 3784,
+              "text": "$Za)>jb"
+            },
+            {
+              "offset": 4283,
+              "text": "htzew|"
+            },
+            {
+              "offset": 4303,
+              "text": "hl<BRr"
+            },
+            {
+              "offset": 4617,
+              "text": "j::J\\X"
+            },
+            {
+              "offset": 4805,
+              "text": "bxtzu`"
+            },
+            {
+              "offset": 5301,
+              "text": "M+Sad#"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 698368,
+          "cylinder": 62,
+          "empty": false,
+          "entropy": 7.81,
+          "first_block": 1364,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 124
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 52,
+              "text": "^JMOGAO"
+            },
+            {
+              "offset": 613,
+              "text": "rxtv}d"
+            },
+            {
+              "offset": 1001,
+              "text": "($\\JJ,@"
+            },
+            {
+              "offset": 1087,
+              "text": "nvne{h"
+            },
+            {
+              "offset": 1281,
+              "text": "_cX3? `"
+            },
+            {
+              "offset": 1439,
+              "text": "td*1-560"
+            },
+            {
+              "offset": 1599,
+              "text": "VJVeob"
+            },
+            {
+              "offset": 2130,
+              "text": "Lt$( _"
+            },
+            {
+              "offset": 2336,
+              "text": "8 O'[+"
+            },
+            {
+              "offset": 2411,
+              "text": "RTtzU`"
+            },
+            {
+              "offset": 2464,
+              "text": "h((XtkX"
+            },
+            {
+              "offset": 2953,
+              "text": "SCAB@B"
+            },
+            {
+              "offset": 3238,
+              "text": "xdbqkx"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 704000,
+          "cylinder": 62,
+          "empty": false,
+          "entropy": 6.86,
+          "first_block": 1375,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 125
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 1110,
+              "text": "VSZI[^_"
+            },
+            {
+              "offset": 1220,
+              "text": "'{#3/]*"
+            },
+            {
+              "offset": 1689,
+              "text": "?03090"
+            },
+            {
+              "offset": 1713,
+              "text": "7P#P9P.P2P"
+            },
+            {
+              "offset": 1782,
+              "text": "`)`>`&`"
+            },
+            {
+              "offset": 1836,
+              "text": " . & * \" , $ "
+            },
+            {
+              "offset": 3100,
+              "text": "(+(K)}EO"
+            },
+            {
+              "offset": 3522,
+              "text": " bG!9)"
+            },
+            {
+              "offset": 3671,
+              "text": "dbfaecgc"
+            },
+            {
+              "offset": 5224,
+              "text": "&HEQKD_"
+            },
+            {
+              "offset": 5270,
+              "text": "(%a*aX"
+            },
+            {
+              "offset": 5343,
+              "text": "6\\%([J"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 709632,
+          "cylinder": 63,
+          "empty": false,
+          "entropy": 7.58,
+          "first_block": 1386,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 126
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 1332,
+              "text": "d9`>oW"
+            },
+            {
+              "offset": 2685,
+              "text": "LL$dTH/"
+            },
+            {
+              "offset": 4937,
+              "text": ".!)9,>"
+            },
+            {
+              "offset": 5014,
+              "text": "|,vUUN}"
+            },
+            {
+              "offset": 5197,
+              "text": "B,T4$,F"
+            },
+            {
+              "offset": 5215,
+              "text": "\"N%%rw"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 715264,
+          "cylinder": 63,
+          "empty": false,
+          "entropy": 7.78,
+          "first_block": 1397,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 127
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 1395,
+              "text": "xHwKSk"
+            },
+            {
+              "offset": 2472,
+              "text": "p8Dxh0"
+            },
+            {
+              "offset": 3830,
+              "text": "MCMBDW"
+            },
+            {
+              "offset": 4988,
+              "text": "MGOCLJ"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 720896,
+          "cylinder": 64,
+          "empty": false,
+          "entropy": 7.8,
+          "first_block": 1408,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 128
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 259,
+              "text": "P84.B`@"
+            },
+            {
+              "offset": 963,
+              "text": "k E@,n"
+            },
+            {
+              "offset": 1315,
+              "text": "xvH0Q!"
+            },
+            {
+              "offset": 1388,
+              "text": "hrGQ1I"
+            },
+            {
+              "offset": 2813,
+              "text": "{{dEDE"
+            },
+            {
+              "offset": 2925,
+              "text": "1bb`@_"
+            },
+            {
+              "offset": 3139,
+              "text": "wO_`Hh"
+            },
+            {
+              "offset": 3435,
+              "text": "G1v1~O"
+            },
+            {
+              "offset": 3448,
+              "text": "HL8Vv6"
+            },
+            {
+              "offset": 4100,
+              "text": "A99yY "
+            },
+            {
+              "offset": 4337,
+              "text": "h@7%RK"
+            },
+            {
+              "offset": 4695,
+              "text": "L$a<]>"
+            },
+            {
+              "offset": 4856,
+              "text": "ox\"UC~"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 726528,
+          "cylinder": 64,
+          "empty": false,
+          "entropy": 7.79,
+          "first_block": 1419,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 1,
+          "track": 129
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 731,
+              "text": "_o?71Y"
+            },
+            {
+              "offset": 753,
+              "text": "\"\"c1xy("
+            },
+            {
+              "offset": 878,
+              "text": "Sj('b_*EC"
+            },
+            {
+              "offset": 926,
+              "text": "L<r@0F"
+            },
+            {
+              "offset": 2508,
+              "text": "NN^VH\""
+            },
+            {
+              "offset": 2517,
+              "text": "io`K(l"
+            },
+            {
+              "offset": 2575,
+              "text": ")]dqb_"
+            },
+            {
+              "offset": 2693,
+              "text": "|EpS`os"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 732160,
+          "cylinder": 65,
+          "empty": false,
+          "entropy": 7.72,
+          "first_block": 1430,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 130
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 615,
+              "text": "|%URO\""
+            },
+            {
+              "offset": 781,
+              "text": "e*X4( "
+            },
+            {
+              "offset": 1423,
+              "text": "``bx1t"
+            },
+            {
+              "offset": 2559,
+              "text": "Hn/)_O"
+            },
+            {
+              "offset": 5277,
+              "text": "`(RIDYE"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 737792,
+          "cylinder": 65,
+          "empty": false,
+          "entropy": 7.77,
+          "first_block": 1441,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 1,
+          "track": 131
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 4958,
+              "text": "yXb4yuq"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 743424,
+          "cylinder": 66,
+          "empty": false,
+          "entropy": 7.73,
+          "first_block": 1452,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 132
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 438,
+              "text": "`9B^IEHI^^ZI"
+            },
+            {
+              "offset": 454,
+              "text": "A99yY "
+            },
+            {
+              "offset": 797,
+              "text": "%!{\\{C"
+            },
+            {
+              "offset": 1656,
+              "text": "L@9`(H8W"
+            },
+            {
+              "offset": 5331,
+              "text": "@ lP$`;"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 749056,
+          "cylinder": 66,
+          "empty": false,
+          "entropy": 7.68,
+          "first_block": 1463,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 1,
+          "track": 133
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 2838,
+              "text": "8h^DSF"
+            },
+            {
+              "offset": 2893,
+              "text": "Jj2BlT$Dd"
+            },
+            {
+              "offset": 3192,
+              "text": "D8$t<JV"
+            },
+            {
+              "offset": 3221,
+              "text": "uum}s}i~zbzqsp"
+            },
+            {
+              "offset": 3431,
+              "text": "OcQ!oq"
+            },
+            {
+              "offset": 3698,
+              "text": "9=335!:2"
+            },
+            {
+              "offset": 3906,
+              "text": "phDtll>"
+            },
+            {
+              "offset": 4060,
+              "text": "(JQiaBG"
+            },
+            {
+              "offset": 4484,
+              "text": "A~x,|:|F"
+            },
+            {
+              "offset": 4867,
+              "text": "lB\"ldXHp"
+            },
+            {
+              "offset": 5398,
+              "text": "ttdx[d$dDH_"
+            },
+            {
+              "offset": 5430,
+              "text": "`p(X88"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 754688,
+          "cylinder": 67,
+          "empty": false,
+          "entropy": 7.79,
+          "first_block": 1474,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 134
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 622,
+              "text": "ma\"cba "
+            },
+            {
+              "offset": 1075,
+              "text": ";Wk@Bt"
+            },
+            {
+              "offset": 3959,
+              "text": "&i`.xv"
+            },
+            {
+              "offset": 4160,
+              "text": "@q'H*`b"
+            },
+            {
+              "offset": 4668,
+              "text": " (p?o?D"
+            },
+            {
+              "offset": 5182,
+              "text": "@%DDCy"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 760320,
+          "cylinder": 67,
+          "empty": false,
+          "entropy": 7.81,
+          "first_block": 1485,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 135
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 1631,
+              "text": "dTT( w"
+            },
+            {
+              "offset": 2986,
+              "text": "?o$%>VDHw"
+            },
+            {
+              "offset": 3324,
+              "text": "@a &N1"
+            },
+            {
+              "offset": 3800,
+              "text": "_5q//&!"
+            },
+            {
+              "offset": 4710,
+              "text": "wxJpU$*<2"
+            },
+            {
+              "offset": 4807,
+              "text": ":1&2&0"
+            },
+            {
+              "offset": 5533,
+              "text": "?/(/5@"
+            },
+            {
+              "offset": 5595,
+              "text": "=c\" 2nC"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 765952,
+          "cylinder": 68,
+          "empty": false,
+          "entropy": 7.79,
+          "first_block": 1496,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 136
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 231,
+              "text": "_Xg,[D"
+            },
+            {
+              "offset": 268,
+              "text": "8'Dw2 "
+            },
+            {
+              "offset": 343,
+              "text": "POh7hO"
+            },
+            {
+              "offset": 439,
+              "text": "P\\RXARN\\O"
+            },
+            {
+              "offset": 2072,
+              "text": "7EV,9j"
+            },
+            {
+              "offset": 3402,
+              "text": "p0P `?"
+            },
+            {
+              "offset": 4710,
+              "text": "=<?=}~"
+            },
+            {
+              "offset": 4823,
+              "text": "h$DZDX"
+            },
+            {
+              "offset": 5605,
+              "text": "W `yG~"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 771584,
+          "cylinder": 68,
+          "empty": false,
+          "entropy": 7.7,
+          "first_block": 1507,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 137
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 2346,
+              "text": "38&4 Ax"
+            },
+            {
+              "offset": 2960,
+              "text": "@*@,@(o"
+            },
+            {
+              "offset": 3285,
+              "text": "@5@a@F@"
+            },
+            {
+              "offset": 4828,
+              "text": ".i}[3a$s"
+            },
+            {
+              "offset": 4852,
+              "text": " @@  `P_"
+            },
+            {
+              "offset": 5390,
+              "text": "'`W7T'"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 777216,
+          "cylinder": 69,
+          "empty": false,
+          "entropy": 6.87,
+          "first_block": 1518,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 138
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 847,
+              "text": "F9%J9v"
+            },
+            {
+              "offset": 1170,
+              "text": "R>u)lk"
+            },
+            {
+              "offset": 1375,
+              "text": ";X\\WP6"
+            },
+            {
+              "offset": 1421,
+              "text": "*h2~-5"
+            },
+            {
+              "offset": 1882,
+              "text": "|6e9<K"
+            },
+            {
+              "offset": 2134,
+              "text": "%7[;zX"
+            },
+            {
+              "offset": 2647,
+              "text": "(Xx;bVB"
+            },
+            {
+              "offset": 2715,
+              "text": "8pXd4ttBN"
+            },
+            {
+              "offset": 3467,
+              "text": "Xv,RT`"
+            },
+            {
+              "offset": 4081,
+              "text": "8\\D*rZ"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 782848,
+          "cylinder": 69,
+          "empty": false,
+          "entropy": 7.82,
+          "first_block": 1529,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 139
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 352,
+              "text": "\\4V?2|O"
+            },
+            {
+              "offset": 510,
+              "text": "yqm\\^-"
+            },
+            {
+              "offset": 540,
+              "text": "(}FCA|r"
+            },
+            {
+              "offset": 1087,
+              "text": "-5/d]MC\"Q*s"
+            },
+            {
+              "offset": 1915,
+              "text": "$7#?72"
+            },
+            {
+              "offset": 2102,
+              "text": "q P]~,//"
+            },
+            {
+              "offset": 2462,
+              "text": "pAC1#a}"
+            },
+            {
+              "offset": 3124,
+              "text": "hX0XP0@"
+            },
+            {
+              "offset": 4707,
+              "text": "mqf|ho"
+            },
+            {
+              "offset": 4851,
+              "text": "k+&z%!M"
+            },
+            {
+              "offset": 4869,
+              "text": "br>i#7w"
+            },
+            {
+              "offset": 5085,
+              "text": "ltlbjf~w"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 788480,
+          "cylinder": 70,
+          "empty": false,
+          "entropy": 7.85,
+          "first_block": 1540,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 140
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 177,
+              "text": "kpK=0N"
+            },
+            {
+              "offset": 565,
+              "text": "TYypUq"
+            },
+            {
+              "offset": 1128,
+              "text": ",&.!!.*, #"
+            },
+            {
+              "offset": 1247,
+              "text": "jrb<,TDX(p_"
+            },
+            {
+              "offset": 1310,
+              "text": "&FVZRT@S"
+            },
+            {
+              "offset": 1437,
+              "text": "\"&%#' "
+            },
+            {
+              "offset": 1649,
+              "text": "sqzw=V"
+            },
+            {
+              "offset": 1658,
+              "text": "qa~nn~aiusw"
+            },
+            {
+              "offset": 1906,
+              "text": "w$4Ll\\|8"
+            },
+            {
+              "offset": 1995,
+              "text": "NFJ\\DN"
+            },
+            {
+              "offset": 2037,
+              "text": "suianvffzfv~qecgp"
+            },
+            {
+              "offset": 2285,
+              "text": "tEDXhH J"
+            },
+            {
+              "offset": 2308,
+              "text": "Cs{jdC"
+            },
+            {
+              "offset": 2627,
+              "text": "q0Qy~P"
+            },
+            {
+              "offset": 2944,
+              "text": "\"**\",'"
+            },
+            {
+              "offset": 2996,
+              "text": "(Yq{j{~"
+            },
+            {
+              "offset": 3211,
+              "text": "civbd`w"
+            },
+            {
+              "offset": 3225,
+              "text": "x|z~y}{"
+            },
+            {
+              "offset": 3267,
+              "text": "GKc]]mm]CskgO@"
+            },
+            {
+              "offset": 3307,
+              "text": "xdtl|brj"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 794112,
+          "cylinder": 70,
+          "empty": false,
+          "entropy": 7.85,
+          "first_block": 1551,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 141
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 725,
+              "text": "-3;7?8"
+            },
+            {
+              "offset": 1090,
+              "text": ";=516:7"
+            },
+            {
+              "offset": 1283,
+              "text": "]UUSWT"
+            },
+            {
+              "offset": 1341,
+              "text": "3#&\\t4"
+            },
+            {
+              "offset": 1351,
+              "text": "J%D|<D"
+            },
+            {
+              "offset": 1853,
+              "text": "DTL<B_"
+            },
+            {
+              "offset": 2017,
+              "text": "Bv~t_2"
+            },
+            {
+              "offset": 2191,
+              "text": "^ZZ^[]"
+            },
+            {
+              "offset": 2479,
+              "text": "/? =G6"
+            },
+            {
+              "offset": 2689,
+              "text": "fzrbbrjfnquswp"
+            },
+            {
+              "offset": 2743,
+              "text": "*!)%-%).*$'"
+            },
+            {
+              "offset": 2953,
+              "text": "Sphx$T"
+            },
+            {
+              "offset": 3388,
+              "text": "yy~~z{"
+            },
+            {
+              "offset": 3540,
+              "text": "qa~.6Y~r\"\\"
+            },
+            {
+              "offset": 3710,
+              "text": "ceeaaffbdg"
+            },
+            {
+              "offset": 4805,
+              "text": "yMY[P([."
+            },
+            {
+              "offset": 4831,
+              "text": "~xq,t>-"
+            },
+            {
+              "offset": 4915,
+              "text": "XfNdDxX"
+            },
+            {
+              "offset": 5299,
+              "text": "M-MuU%yiqa"
+            },
+            {
+              "offset": 5398,
+              "text": "CMINBHG"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 799744,
+          "cylinder": 71,
+          "empty": false,
+          "entropy": 7.86,
+          "first_block": 1562,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 142
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 21,
+              "text": "x$|RjFv"
+            },
+            {
+              "offset": 118,
+              "text": "tr~s-M"
+            },
+            {
+              "offset": 758,
+              "text": "5(R\"<Ld"
+            },
+            {
+              "offset": 1025,
+              "text": "@Hrd8("
+            },
+            {
+              "offset": 1519,
+              "text": "(vf:J\"l"
+            },
+            {
+              "offset": 1549,
+              "text": "UumCs[w@"
+            },
+            {
+              "offset": 1651,
+              "text": "~{,G}8"
+            },
+            {
+              "offset": 1884,
+              "text": "s.wXXN"
+            },
+            {
+              "offset": 1980,
+              "text": " 1O`T'"
+            },
+            {
+              "offset": 2305,
+              "text": "# eR'$Sn"
+            },
+            {
+              "offset": 2360,
+              "text": "hlrf~o"
+            },
+            {
+              "offset": 2494,
+              "text": "kY]_]q"
+            },
+            {
+              "offset": 2504,
+              "text": "7B;P31"
+            },
+            {
+              "offset": 2519,
+              "text": "KMIFLK"
+            },
+            {
+              "offset": 3103,
+              "text": "Y99YiIQ"
+            },
+            {
+              "offset": 3217,
+              "text": "`bwW,4:"
+            },
+            {
+              "offset": 3924,
+              "text": "VVf&:*2B"
+            },
+            {
+              "offset": 3957,
+              "text": "lHa&$?"
+            },
+            {
+              "offset": 4221,
+              "text": "$L|Rjz&ffFZ"
+            },
+            {
+              "offset": 4510,
+              "text": "3=5==;70"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 805376,
+          "cylinder": 71,
+          "empty": false,
+          "entropy": 7.86,
+          "first_block": 1573,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 143
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 114,
+              "text": "ZF!)Q6:j"
+            },
+            {
+              "offset": 269,
+              "text": "`feagh"
+            },
+            {
+              "offset": 380,
+              "text": "AZrnIqn&"
+            },
+            {
+              "offset": 1298,
+              "text": "\".EL#/"
+            },
+            {
+              "offset": 1457,
+              "text": "qy{s{s"
+            },
+            {
+              "offset": 1487,
+              "text": "dlewwhk"
+            },
+            {
+              "offset": 1610,
+              "text": "^ZN:`o"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 811008,
+          "cylinder": 72,
+          "empty": false,
+          "entropy": 4.85,
+          "first_block": 1584,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 144
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 163,
+              "text": "L\"}/:ZX"
+            },
+            {
+              "offset": 240,
+              "text": "[R574f"
+            },
+            {
+              "offset": 724,
+              "text": "VSZI[^_"
+            },
+            {
+              "offset": 834,
+              "text": "'{#3/]*"
+            },
+            {
+              "offset": 1303,
+              "text": "?03090"
+            },
+            {
+              "offset": 1327,
+              "text": "7P#P9P.P2P"
+            },
+            {
+              "offset": 1396,
+              "text": "`)`>`&`"
+            },
+            {
+              "offset": 1450,
+              "text": " . & * \" , $ "
+            },
+            {
+              "offset": 2232,
+              "text": "@Y@bQsH"
+            },
+            {
+              "offset": 2518,
+              "text": "`PX8 `[0o"
+            },
+            {
+              "offset": 4040,
+              "text": "g^(%Xp"
+            },
+            {
+              "offset": 4271,
+              "text": "[X9}|A"
+            },
+            {
+              "offset": 5534,
+              "text": "1@!^n~"
+            },
+            {
+              "offset": 5560,
+              "text": "Vz\"RX="
+            },
+            {
+              "offset": 5604,
+              "text": "6ww_p  "
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 816640,
+          "cylinder": 72,
+          "empty": false,
+          "entropy": 7.69,
+          "first_block": 1595,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 145
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 167,
+              "text": " D)4xxu"
+            },
+            {
+              "offset": 282,
+              "text": ">|\"D.qr"
+            },
+            {
+              "offset": 2665,
+              "text": "O{w$|l"
+            },
+            {
+              "offset": 2817,
+              "text": "|0zu}v"
+            },
+            {
+              "offset": 3487,
+              "text": "AcoN>("
+            },
+            {
+              "offset": 3730,
+              "text": "b^vN|}"
+            },
+            {
+              "offset": 4530,
+              "text": "pNN^FH\""
+            },
+            {
+              "offset": 4540,
+              "text": "io`K(l"
+            },
+            {
+              "offset": 4858,
+              "text": "7&{:g/"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 822272,
+          "cylinder": 73,
+          "empty": false,
+          "entropy": 7.82,
+          "first_block": 1606,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 146
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 287,
+              "text": "2.^NRH"
+            },
+            {
+              "offset": 529,
+              "text": "<ffrtw"
+            },
+            {
+              "offset": 2945,
+              "text": "Fp!zPK"
+            },
+            {
+              "offset": 4150,
+              "text": "Y>q~2?"
+            },
+            {
+              "offset": 4487,
+              "text": "&Rt;ji"
+            },
+            {
+              "offset": 4498,
+              "text": "n1!j0_"
+            },
+            {
+              "offset": 4575,
+              "text": "K=ckW?"
+            },
+            {
+              "offset": 5194,
+              "text": "[[gnP8D"
+            },
+            {
+              "offset": 5268,
+              "text": "9q>kP'"
+            },
+            {
+              "offset": 5531,
+              "text": "*Vj\\x`;"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 827904,
+          "cylinder": 73,
+          "empty": false,
+          "entropy": 7.89,
+          "first_block": 1617,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 147
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 756,
+              "text": "_qymYH"
+            },
+            {
+              "offset": 1102,
+              "text": "<$?+]C"
+            },
+            {
+              "offset": 1409,
+              "text": "yB>!nb"
+            },
+            {
+              "offset": 1740,
+              "text": "M<D2V+"
+            },
+            {
+              "offset": 2711,
+              "text": "MS[W[P"
+            },
+            {
+              "offset": 2827,
+              "text": "+33)-\\.4 "
+            },
+            {
+              "offset": 2943,
+              "text": "hxlb\"r"
+            },
+            {
+              "offset": 3545,
+              "text": "hhHHZ:0"
+            },
+            {
+              "offset": 3595,
+              "text": "moJl!o["
+            },
+            {
+              "offset": 4701,
+              "text": "$d\"\\L&"
+            },
+            {
+              "offset": 4829,
+              "text": "B@f\"E`"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 833536,
+          "cylinder": 74,
+          "empty": false,
+          "entropy": 7.87,
+          "first_block": 1628,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 148
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 160,
+              "text": "$_ ~A2"
+            },
+            {
+              "offset": 1008,
+              "text": "@@`@ X`"
+            },
+            {
+              "offset": 2469,
+              "text": "66'`IZ"
+            },
+            {
+              "offset": 2740,
+              "text": "@\\D2n@w"
+            },
+            {
+              "offset": 3318,
+              "text": "Ea5!}A"
+            },
+            {
+              "offset": 3347,
+              "text": "v`6NV'"
+            },
+            {
+              "offset": 3722,
+              "text": "C\\ALATADCX@"
+            },
+            {
+              "offset": 4806,
+              "text": " AYFq-+7_"
+            },
+            {
+              "offset": 4817,
+              "text": "WKMQzt"
+            },
+            {
+              "offset": 4842,
+              "text": "Xk@Xb$b)"
+            },
+            {
+              "offset": 4910,
+              "text": "i,^IVW"
+            },
+            {
+              "offset": 4966,
+              "text": "A99yY "
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 839168,
+          "cylinder": 74,
+          "empty": false,
+          "entropy": 7.31,
+          "first_block": 1639,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 149
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 29,
+              "text": "~aqev:"
+            },
+            {
+              "offset": 1089,
+              "text": "lT8H@oW"
+            },
+            {
+              "offset": 1154,
+              "text": ",J.1I!N"
+            },
+            {
+              "offset": 1663,
+              "text": "nFb4(?"
+            },
+            {
+              "offset": 2713,
+              "text": "}nnuwd"
+            },
+            {
+              "offset": 3029,
+              "text": "m~amv\""
+            },
+            {
+              "offset": 3327,
+              "text": "P -M<|,"
+            },
+            {
+              "offset": 3607,
+              "text": "tB*zYDY"
+            },
+            {
+              "offset": 3951,
+              "text": "*$[Y=|"
+            },
+            {
+              "offset": 4344,
+              "text": "\"F.9DvrT`w"
+            },
+            {
+              "offset": 4799,
+              "text": "Rb0Yxw"
+            },
+            {
+              "offset": 4861,
+              "text": "^1J!D8"
+            },
+            {
+              "offset": 5113,
+              "text": "&{[Z{'"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 844800,
+          "cylinder": 75,
+          "empty": false,
+          "entropy": 7.92,
+          "first_block": 1650,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 150
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 214,
+              "text": "u~vzq{t"
+            },
+            {
+              "offset": 884,
+              "text": "|jv>>vZ>:"
+            },
+            {
+              "offset": 980,
+              "text": "2V>* 9"
+            },
+            {
+              "offset": 1001,
+              "text": "L:>II>"
+            },
+            {
+              "offset": 2024,
+              "text": "c=mm}r"
+            },
+            {
+              "offset": 2110,
+              "text": "N.NfJ<$"
+            },
+            {
+              "offset": 2159,
+              "text": "6j<Tp/"
+            },
+            {
+              "offset": 2180,
+              "text": "Fv6VfZB4h"
+            },
+            {
+              "offset": 4191,
+              "text": "<-D*#;;-"
+            },
+            {
+              "offset": 4278,
+              "text": "]ue5sEG"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 850432,
+          "cylinder": 75,
+          "empty": false,
+          "entropy": 7.87,
+          "first_block": 1661,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 151
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 347,
+              "text": "4JNaa>NV_"
+            },
+            {
+              "offset": 819,
+              "text": "hT\\rZ:"
+            },
+            {
+              "offset": 1062,
+              "text": "B*z:jR<Th@7"
+            },
+            {
+              "offset": 1364,
+              "text": "$<2**2<"
+            },
+            {
+              "offset": 1952,
+              "text": "'(+*#l"
+            },
+            {
+              "offset": 2506,
+              "text": "f&}OK("
+            },
+            {
+              "offset": 3091,
+              "text": "Dj&O89"
+            },
+            {
+              "offset": 3120,
+              "text": "w=\"Cueu}kw`"
+            },
+            {
+              "offset": 3771,
+              "text": "5Fqq5."
+            },
+            {
+              "offset": 3833,
+              "text": "tLll,t:jH`I"
+            },
+            {
+              "offset": 3854,
+              "text": "1%%!\"#"
+            },
+            {
+              "offset": 3899,
+              "text": "P|bR22R\""
+            },
+            {
+              "offset": 4127,
+              "text": "ltlj~nTJ"
+            },
+            {
+              "offset": 4762,
+              "text": "T*2|txp"
+            },
+            {
+              "offset": 5506,
+              "text": "DRy-m\""
+            },
+            {
+              "offset": 5545,
+              "text": "i~quw{("
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 856064,
+          "cylinder": 76,
+          "empty": false,
+          "entropy": 7.86,
+          "first_block": 1672,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 152
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 42,
+              "text": "2808<3"
+            },
+            {
+              "offset": 160,
+              "text": "8l2z6."
+            },
+            {
+              "offset": 582,
+              "text": "D'+=9.2$"
+            },
+            {
+              "offset": 669,
+              "text": "dL<\"Rr22"
+            },
+            {
+              "offset": 935,
+              "text": "y5/kcckw\\D\""
+            },
+            {
+              "offset": 993,
+              "text": "Db|l'0"
+            },
+            {
+              "offset": 1030,
+              "text": " y8Xho0"
+            },
+            {
+              "offset": 1139,
+              "text": "}M}kox"
+            },
+            {
+              "offset": 1389,
+              "text": "S}-uuM"
+            },
+            {
+              "offset": 1448,
+              "text": "R\"D-cG`"
+            },
+            {
+              "offset": 1617,
+              "text": "qyq~w_5"
+            },
+            {
+              "offset": 1919,
+              "text": ":2\\T80"
+            },
+            {
+              "offset": 2270,
+              "text": "^bQU|s"
+            },
+            {
+              "offset": 2323,
+              "text": "]iqyCwd"
+            },
+            {
+              "offset": 3103,
+              "text": "yvZVIc@"
+            },
+            {
+              "offset": 3168,
+              "text": "ENzFa]oL"
+            },
+            {
+              "offset": 3729,
+              "text": "MvB\\JACP"
+            },
+            {
+              "offset": 3743,
+              "text": "txtvwy"
+            },
+            {
+              "offset": 4234,
+              "text": "ij|BfEGD"
+            },
+            {
+              "offset": 4512,
+              "text": "~eeyqqugb"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 861696,
+          "cylinder": 76,
+          "empty": false,
+          "entropy": 7.88,
+          "first_block": 1683,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 153
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 44,
+              "text": "HMGA54"
+            },
+            {
+              "offset": 130,
+              "text": "aQQ!~."
+            },
+            {
+              "offset": 233,
+              "text": "jR6Q\"\""
+            },
+            {
+              "offset": 426,
+              "text": "l:>iEeEi"
+            },
+            {
+              "offset": 436,
+              "text": "F2,8`O"
+            },
+            {
+              "offset": 800,
+              "text": "#5:QmG`"
+            },
+            {
+              "offset": 1269,
+              "text": "nMEFPI"
+            },
+            {
+              "offset": 1737,
+              "text": "&~IyEyiQ"
+            },
+            {
+              "offset": 1862,
+              "text": "NQQV\\_"
+            },
+            {
+              "offset": 1933,
+              "text": ".fvQMGp"
+            },
+            {
+              "offset": 2919,
+              "text": "@w[c|D@"
+            },
+            {
+              "offset": 2989,
+              "text": "o(,/*o"
+            },
+            {
+              "offset": 3032,
+              "text": " 0(xd=\"W2"
+            },
+            {
+              "offset": 3106,
+              "text": "aQQ!.Z<XO"
+            },
+            {
+              "offset": 3129,
+              "text": "!66976"
+            },
+            {
+              "offset": 3287,
+              "text": "I~&b4h96i"
+            },
+            {
+              "offset": 3303,
+              "text": "XtBjFv"
+            },
+            {
+              "offset": 3628,
+              "text": ">Evtxzsp"
+            },
+            {
+              "offset": 3713,
+              "text": "2;!PSQ"
+            },
+            {
+              "offset": 3785,
+              "text": "E62:=:"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 867328,
+          "cylinder": 77,
+          "empty": false,
+          "entropy": 7.88,
+          "first_block": 1694,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 154
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 389,
+              "text": "b NKKNL"
+            },
+            {
+              "offset": 502,
+              "text": "%JGetG"
+            },
+            {
+              "offset": 1061,
+              "text": "7/6X@@"
+            },
+            {
+              "offset": 2448,
+              "text": "v1r|UT"
+            },
+            {
+              "offset": 2536,
+              "text": "&*<8/~"
+            },
+            {
+              "offset": 2576,
+              "text": "a ga  "
+            },
+            {
+              "offset": 3104,
+              "text": "qvysiOl"
+            },
+            {
+              "offset": 3724,
+              "text": "J6(yJ2"
+            },
+            {
+              "offset": 3999,
+              "text": "EfSrZB"
+            },
+            {
+              "offset": 4050,
+              "text": "I}'.>Q]"
+            },
+            {
+              "offset": 4273,
+              "text": "vzrzq{{"
+            },
+            {
+              "offset": 4732,
+              "text": "F$p{DJ?aa"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 872960,
+          "cylinder": 77,
+          "empty": false,
+          "entropy": 7.73,
+          "first_block": 1705,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 1,
+          "track": 155
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 16,
+              "text": "graphics.library"
+            },
+            {
+              "offset": 33,
+              "text": "     SKID ROW 1991       "
+            },
+            {
+              "offset": 544,
+              "text": "PP20f>K"
+            },
+            {
+              "offset": 713,
+              "text": "~NuPP20"
+            },
+            {
+              "offset": 2820,
+              "text": "Ybw`*\\"
+            },
+            {
+              "offset": 4213,
+              "text": "8Iij0a"
+            },
+            {
+              "offset": 4968,
+              "text": "WH(hh_"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 878592,
+          "cylinder": 78,
+          "empty": false,
+          "entropy": 7.23,
+          "first_block": 1716,
+          "has_code": true,
+          "head": 0,
+          "m68k_pattern_count": 9,
+          "track": 156
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 1579,
+              "text": "<3\" t^"
+            },
+            {
+              "offset": 2268,
+              "text": "L1 2Lq 9^"
+            },
+            {
+              "offset": 3454,
+              "text": "r$H<hn"
+            },
+            {
+              "offset": 5323,
+              "text": "BFjB`V"
+            },
+            {
+              "offset": 5434,
+              "text": "9Nbtdx"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 884224,
+          "cylinder": 78,
+          "empty": false,
+          "entropy": 7.83,
+          "first_block": 1727,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 157
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 475,
+              "text": "WLQC))Ps"
+            },
+            {
+              "offset": 1092,
+              "text": "eq~P,p0"
+            },
+            {
+              "offset": 3453,
+              "text": "f1 if="
+            },
+            {
+              "offset": 4393,
+              "text": "h~'+`$"
+            },
+            {
+              "offset": 5418,
+              "text": "|pwMIAU"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 889856,
+          "cylinder": 79,
+          "empty": false,
+          "entropy": 7.64,
+          "first_block": 1738,
+          "has_code": false,
+          "head": 0,
+          "m68k_pattern_count": 0,
+          "track": 158
+        },
+        {
+          "ascii_strings": [
+            {
+              "offset": 1303,
+              "text": "#+3;CKS[cks{"
+            },
+            {
+              "offset": 1335,
+              "text": "$,4<DLT\\dlt|"
+            },
+            {
+              "offset": 1367,
+              "text": "%-5=EMU]emu}"
+            },
+            {
+              "offset": 1399,
+              "text": "&.6>FNV^fnv~"
+            },
+            {
+              "offset": 1431,
+              "text": "'/7?GOW_gow"
+            },
+            {
+              "offset": 2435,
+              "text": ">%(9P<+"
+            },
+            {
+              "offset": 2632,
+              "text": "L`{DbY`V"
+            },
+            {
+              "offset": 3411,
+              "text": "@,@R@h"
+            },
+            {
+              "offset": 3603,
+              "text": "\\yS@@C8"
+            },
+            {
+              "offset": 4326,
+              "text": "8! `@H0ey"
+            },
+            {
+              "offset": 4341,
+              "text": "XXTYY@"
+            },
+            {
+              "offset": 4348,
+              "text": "TNRTDP"
+            },
+            {
+              "offset": 4929,
+              "text": "]TIESUR^AW"
+            }
+          ],
+          "byte_length": 5632,
+          "byte_offset": 895488,
+          "cylinder": 79,
+          "empty": false,
+          "entropy": 7.52,
+          "first_block": 1749,
+          "has_code": false,
+          "head": 1,
+          "m68k_pattern_count": 0,
+          "track": 159
+        }
+      ]
+    },
+    "trackloader_analysis": {
+      "boot_ascii_strings": [
+        "SKR.,x"
+      ],
+      "candidate_code_tracks": [
+        0,
+        156
+      ],
+      "high_entropy_tracks": [
+        1,
+        2,
+        7,
+        8,
+        9,
+        14,
+        15,
+        16,
+        21,
+        22,
+        116,
+        117,
+        118,
+        119,
+        120,
+        121
+      ],
+      "nonempty_head0_tracks": 80,
+      "nonempty_head1_tracks": 80,
+      "nonempty_track_spans": [
+        {
+          "end_track": 159,
+          "start_track": 0
+        }
+      ],
+      "repeated_track_groups": []
+    }
+  },
+  "bootblock_target_name": "amiga_disk_adventures-of-robin-hood-the-1991-millennium-m4-cr-sr__amiga_raw_bootblock",
+  "bootblock_target_path": "targets/amiga_disk_adventures-of-robin-hood-the-1991-millennium-m4-cr-sr/targets/amiga_raw_bootblock",
+  "disk_id": "adventures-of-robin-hood-the-1991-millennium-m4-cr-sr",
+  "imported_targets": [
+    {
+      "binary_path": "bin/Adventures of Robin Hood, The (1991)(Millennium)(M4)[cr SR].adf::bootblock",
+      "entry_path": "bootblock",
+      "target_name": "amiga_disk_adventures-of-robin-hood-the-1991-millennium-m4-cr-sr__amiga_raw_bootblock",
+      "target_path": "targets/amiga_disk_adventures-of-robin-hood-the-1991-millennium-m4-cr-sr/targets/amiga_raw_bootblock",
+      "target_type": "bootblock"
+    },
+    {
+      "binary_path": "bin/Adventures of Robin Hood, The (1991)(Millennium)(M4)[cr SR].adf::bootloader/stage_1",
+      "entry_path": "bootloader/stage_1",
+      "target_name": "amiga_disk_adventures-of-robin-hood-the-1991-millennium-m4-cr-sr__amiga_raw_bootloader_stage_1",
+      "target_path": "targets/amiga_disk_adventures-of-robin-hood-the-1991-millennium-m4-cr-sr/targets/amiga_raw_bootloader_stage_1",
+      "target_type": "bootloader_stage"
+    },
+    {
+      "binary_path": "bin/Adventures of Robin Hood, The (1991)(Millennium)(M4)[cr SR].adf::bootloader/stage_2",
+      "entry_path": "bootloader/stage_2",
+      "target_name": "amiga_disk_adventures-of-robin-hood-the-1991-millennium-m4-cr-sr__amiga_raw_bootloader_stage_2",
+      "target_path": "targets/amiga_disk_adventures-of-robin-hood-the-1991-millennium-m4-cr-sr/targets/amiga_raw_bootloader_stage_2",
+      "target_type": "bootloader_stage"
+    }
+  ],
+  "schema_version": 1,
+  "source_path": "bin/Adventures of Robin Hood, The (1991)(Millennium)(M4)[cr SR].adf",
+  "source_sha256": "0c2b743a7e74c8d4def040a552a90d91c98cd0fb4c023923201d29723af0d8c1"
+}

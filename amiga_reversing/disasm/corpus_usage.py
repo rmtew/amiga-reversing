@@ -352,12 +352,140 @@ def _feature_label(feature: str) -> str:
         return f"App slot: {feature.split(':', 1)[1]}"
     if feature.startswith("runtime:"):
         return feature.split(":", 1)[1].replace("_", " ")
+    if feature.startswith("analysis:accepted_code_run_end:"):
+        return f"Accepted code run end: {feature.rsplit(':', 1)[1].replace('_', ' ')}"
+    if feature.startswith("analysis:accepted_code_run_origin:"):
+        return f"Accepted code run origin: {feature.rsplit(':', 1)[1].replace('_', ' ')}"
+    if feature.startswith("analysis:accepted_code_run:"):
+        return f"Accepted code run: {feature.rsplit(':', 1)[1].replace('_', ' ')}"
+    if feature.startswith("analysis:code_origin_class:"):
+        return f"Code origin class: {feature.rsplit(':', 1)[1].replace('_', ' ')}"
+    if feature.startswith("analysis:code_origin_evidence:"):
+        return f"Code origin evidence: {feature.rsplit(':', 1)[1].replace('_', ' ')}"
+    if feature.startswith("analysis:code_origin:"):
+        return f"Code origin: {feature.rsplit(':', 1)[1].replace('_', ' ')}"
+    if feature == "analysis:code_origin":
+        return "Code origin"
+    if feature.startswith("analysis:address_identity_owner:"):
+        return f"Address identity owner: {feature.rsplit(':', 1)[1].replace('_', ' ')}"
+    if feature.startswith("analysis:address_identity_role:"):
+        return f"Address identity role: {feature.rsplit(':', 1)[1].replace('_', ' ')}"
+    if feature.startswith("analysis:address_identity_conflict:"):
+        return f"Address identity conflict: {feature.rsplit(':', 1)[1].replace('_', ' ')}"
+    if feature.startswith("analysis:address_identity:"):
+        return f"Address identity: {feature.rsplit(':', 1)[1].replace('_', ' ')}"
+    if feature == "analysis:address_identity":
+        return "Address identity"
+    if feature.startswith("analysis:symbol_origin_kind:"):
+        return f"Symbol origin: {feature.rsplit(':', 1)[1].replace('_', ' ')}"
+    if feature.startswith("analysis:symbol_origin_confidence:"):
+        return f"Symbol origin confidence: {feature.rsplit(':', 1)[1]}"
+    if feature.startswith("analysis:symbol_origin:"):
+        return f"Symbol origin: {feature.rsplit(':', 1)[1].replace('_', ' ')}"
+    if feature == "analysis:symbol_origin":
+        return "Symbol origin"
+    if feature.startswith("analysis:rendered_symbol_access_kind:"):
+        return f"Rendered symbol access: {feature.rsplit(':', 1)[1].replace('_', ' ')}"
+    if feature.startswith("analysis:rendered_symbol_access:"):
+        return f"Rendered symbol access: {feature.rsplit(':', 1)[1].replace('_', ' ')}"
+    if feature == "analysis:rendered_symbol_access":
+        return "Rendered symbol access"
+    if feature.startswith("analysis:range_ownership_kind:"):
+        return f"Range ownership: {feature.rsplit(':', 1)[1].replace('_', ' ')}"
+    if feature.startswith("analysis:range_ownership_status:"):
+        return f"Range status: {feature.rsplit(':', 1)[1].replace('_', ' ')}"
+    if feature.startswith("analysis:range_ownership_source_pattern:"):
+        return f"Range source pattern: {feature.rsplit(':', 1)[1].replace('_', ' ')}"
+    if feature.startswith("analysis:range_ownership_table_kind:"):
+        return f"Range table kind: {feature.rsplit(':', 1)[1].replace('_', ' ')}"
+    if feature.startswith("analysis:range_ownership_conflict:"):
+        return f"Range conflict: {feature.rsplit(':', 1)[1].replace('_', ' ')}"
+    if feature.startswith("analysis:range_ownership:"):
+        return f"Range ownership: {feature.rsplit(':', 1)[1].replace('_', ' ')}"
+    if feature == "analysis:range_ownership":
+        return "Range ownership"
+    if feature.startswith("analysis:absolute_address_range_owner:"):
+        return f"Absolute range owner: {feature.rsplit(':', 1)[1].replace('_', ' ')}"
+    if feature.startswith("analysis:absolute_address_range_status:"):
+        return f"Absolute range status: {feature.rsplit(':', 1)[1].replace('_', ' ')}"
+    if feature.startswith("analysis:absolute_address_range_access:"):
+        return f"Absolute range access: {feature.rsplit(':', 1)[1].replace('_', ' ')}"
+    if feature.startswith("analysis:absolute_address_range:"):
+        return f"Absolute range: {feature.rsplit(':', 1)[1].replace('_', ' ')}"
+    if feature == "analysis:absolute_address_range":
+        return "Absolute address range"
+    if feature.startswith("analysis:table_descriptor_"):
+        return f"Table descriptor: {feature.rsplit(':', 1)[1].replace('_', ' ')}"
+    if feature.startswith("analysis:table_descriptor:"):
+        return f"Table descriptor: {feature.rsplit(':', 1)[1].replace('_', ' ')}"
+    if feature == "analysis:table_descriptor":
+        return "Table descriptor"
+    if feature.startswith("analysis:table_consumer_"):
+        return f"Table consumer: {feature.rsplit(':', 1)[1].replace('_', ' ')}"
+    if feature.startswith("analysis:table_consumer:"):
+        return f"Table consumer: {feature.rsplit(':', 1)[1].replace('_', ' ')}"
+    if feature == "analysis:table_consumer":
+        return "Table consumer"
+    if feature.startswith("analysis:table_entry_"):
+        return f"Table entry: {feature.rsplit(':', 1)[1].replace('_', ' ')}"
+    if feature.startswith("analysis:table_entry:"):
+        return f"Table entry: {feature.rsplit(':', 1)[1].replace('_', ' ')}"
+    if feature == "analysis:table_entry":
+        return "Table entry"
+    if feature.startswith("analysis:runtime_address_ref_data_class:"):
+        return f"Runtime address ref data: {feature.rsplit(':', 1)[1].replace('_', ' ')}"
+    if feature.startswith("analysis:runtime_address_ref_owner:"):
+        return f"Runtime address ref owner: {feature.rsplit(':', 1)[1].replace('_', ' ')}"
+    if feature.startswith("analysis:runtime_address_ref:"):
+        return f"Runtime address ref: {feature.rsplit(':', 1)[1].replace('_', ' ')}"
+    if feature == "analysis:runtime_address_ref":
+        return "Runtime address ref"
+    if feature.startswith("analysis:data_reference_"):
+        return f"Data reference: {feature.rsplit(':', 1)[1].replace('_', ' ')}"
+    if feature.startswith("analysis:data_reference:"):
+        return f"Data reference: {feature.rsplit(':', 1)[1].replace('_', ' ')}"
+    if feature == "analysis:data_reference":
+        return "Data reference"
+    if feature.startswith("analysis:address_observation_access:"):
+        return f"Address observation access: {feature.rsplit(':', 1)[1].replace('_', ' ')}"
+    if feature.startswith("analysis:address_observation_source:"):
+        return f"Address observation source: {feature.rsplit(':', 1)[1].replace('_', ' ')}"
+    if feature.startswith("analysis:address_observation:"):
+        return f"Address observation: {feature.rsplit(':', 1)[1].replace('_', ' ')}"
+    if feature == "analysis:address_observation":
+        return "Address observation"
+    if feature.startswith("analysis:platform_address_use_shape:"):
+        return f"Platform address use shape: {feature.rsplit(':', 1)[1].replace('_', ' ')}"
+    if feature.startswith("analysis:platform_address_use_access:"):
+        return f"Platform address use access: {feature.rsplit(':', 1)[1].replace('_', ' ')}"
+    if feature.startswith("analysis:platform_address_use:"):
+        return f"Platform address use: {feature.rsplit(':', 1)[1].replace('_', ' ')}"
+    if feature == "analysis:platform_address_use":
+        return "Platform address use"
+    if feature.startswith("memory-layout-view:absolute_owner_access:"):
+        parts = feature.split(":")
+        if len(parts) >= 4:
+            return f"Memory owner/access: {parts[2].replace('_', ' ')} / {parts[3].replace('_', ' ')}"
+    if feature.startswith("memory-layout:owner_access:"):
+        parts = feature.split(":")
+        if len(parts) >= 4:
+            return f"Memory owner/access: {parts[2].replace('_', ' ')} / {parts[3].replace('_', ' ')}"
+    if feature.startswith("memory-layout:access:"):
+        return f"Memory access: {feature.rsplit(':', 1)[1].replace('_', ' ')}"
+    if feature.startswith("memory-layout-view:"):
+        return f"Memory layout: {feature.split(':', 1)[1].replace('_', ' ')}"
+    if feature.startswith("memory-layout:"):
+        return f"Memory layout: {feature.split(':', 1)[1].replace('_', ' ')}"
     if feature.startswith("label:"):
-        return f"Labels: {feature.split(':', 1)[1]}"
+        return f"Labels: {feature.split(':', 1)[1].replace('_', ' ')}"
     if feature.startswith("xref:"):
         return feature.split(":", 1)[1].replace("_", " ")
     if feature.startswith("diagnostic:"):
         return f"Diagnostic: {feature.split(':', 1)[1].replace('_', ' ')}"
+    if feature.startswith("source-quality:kind:"):
+        return f"Source quality: {feature.rsplit(':', 1)[1].replace('_', ' ')}"
+    if feature.startswith("source-quality:"):
+        return f"Source quality: {feature.split(':', 1)[1].replace('_', ' ')}"
     return feature
 
 

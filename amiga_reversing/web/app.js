@@ -437,7 +437,7 @@ const CORPUS_GROUP_PREFIXES = {
   ],
   symbols: ["label:", "xref:label", "xref:segment"],
   data: ["data:", "xref:data"],
-  diagnostics: ["diagnostic:"],
+  diagnostics: ["diagnostic:", "source-quality:"],
 };
 
 const JOB_PHASE_LABELS = {
@@ -3706,6 +3706,63 @@ function corpusFeatureLabel(feature) {
   if (text.startsWith("os_library:")) return `Library: ${text.split(":", 2)[1]}`;
   if (text.startsWith("hardware_register:")) return `Register: ${text.split(":", 2)[1]}`;
   if (text.startsWith("hardware:")) return text.split(":", 2)[1].replaceAll("/", " / ");
+  if (text.startsWith("analysis:accepted_code_run_end:")) return `Accepted code run end: ${text.split(":").pop().replaceAll("_", " ")}`;
+  if (text.startsWith("analysis:accepted_code_run_origin:")) return `Accepted code run origin: ${text.split(":").pop().replaceAll("_", " ")}`;
+  if (text.startsWith("analysis:accepted_code_run:")) return `Accepted code run: ${text.split(":").pop().replaceAll("_", " ")}`;
+  if (text.startsWith("analysis:code_origin_class:")) return `Code origin class: ${text.split(":").pop().replaceAll("_", " ")}`;
+  if (text.startsWith("analysis:code_origin_evidence:")) return `Code origin evidence: ${text.split(":").pop().replaceAll("_", " ")}`;
+  if (text.startsWith("analysis:code_origin:")) return `Code origin: ${text.split(":").pop().replaceAll("_", " ")}`;
+  if (text === "analysis:code_origin") return "Code origin";
+  if (text.startsWith("analysis:address_identity_owner:")) return `Address identity owner: ${text.split(":").pop().replaceAll("_", " ")}`;
+  if (text.startsWith("analysis:address_identity_role:")) return `Address identity role: ${text.split(":").pop().replaceAll("_", " ")}`;
+  if (text.startsWith("analysis:address_identity_conflict:")) return `Address identity conflict: ${text.split(":").pop().replaceAll("_", " ")}`;
+  if (text.startsWith("analysis:address_identity:")) return `Address identity: ${text.split(":").pop().replaceAll("_", " ")}`;
+  if (text === "analysis:address_identity") return "Address identity";
+  if (text.startsWith("analysis:symbol_origin_kind:")) return `Symbol origin: ${text.split(":").pop().replaceAll("_", " ")}`;
+  if (text.startsWith("analysis:symbol_origin_confidence:")) return `Symbol origin confidence: ${text.split(":").pop()}`;
+  if (text.startsWith("analysis:symbol_origin:")) return `Symbol origin: ${text.split(":").pop().replaceAll("_", " ")}`;
+  if (text === "analysis:symbol_origin") return "Symbol origin";
+  if (text.startsWith("analysis:rendered_symbol_access_kind:")) return `Rendered symbol access: ${text.split(":").pop().replaceAll("_", " ")}`;
+  if (text.startsWith("analysis:rendered_symbol_access:")) return `Rendered symbol access: ${text.split(":").pop().replaceAll("_", " ")}`;
+  if (text === "analysis:rendered_symbol_access") return "Rendered symbol access";
+  if (text.startsWith("analysis:range_ownership_kind:")) return `Range ownership: ${text.split(":").pop().replaceAll("_", " ")}`;
+  if (text.startsWith("analysis:range_ownership_status:")) return `Range status: ${text.split(":").pop().replaceAll("_", " ")}`;
+  if (text.startsWith("analysis:range_ownership_source_pattern:")) return `Range source pattern: ${text.split(":").pop().replaceAll("_", " ")}`;
+  if (text.startsWith("analysis:range_ownership_table_kind:")) return `Range table kind: ${text.split(":").pop().replaceAll("_", " ")}`;
+  if (text.startsWith("analysis:range_ownership_conflict:")) return `Range conflict: ${text.split(":").pop().replaceAll("_", " ")}`;
+  if (text.startsWith("analysis:range_ownership:")) return `Range ownership: ${text.split(":").pop().replaceAll("_", " ")}`;
+  if (text === "analysis:range_ownership") return "Range ownership";
+  if (text.startsWith("analysis:absolute_address_range_owner:")) return `Absolute range owner: ${text.split(":").pop().replaceAll("_", " ")}`;
+  if (text.startsWith("analysis:absolute_address_range_status:")) return `Absolute range status: ${text.split(":").pop().replaceAll("_", " ")}`;
+  if (text.startsWith("analysis:absolute_address_range_access:")) return `Absolute range access: ${text.split(":").pop().replaceAll("_", " ")}`;
+  if (text.startsWith("analysis:absolute_address_range:")) return `Absolute range: ${text.split(":").pop().replaceAll("_", " ")}`;
+  if (text === "analysis:absolute_address_range") return "Absolute address range";
+  if (text.startsWith("analysis:table_descriptor_")) return `Table descriptor: ${text.split(":").pop().replaceAll("_", " ")}`;
+  if (text.startsWith("analysis:table_descriptor:")) return `Table descriptor: ${text.split(":").pop().replaceAll("_", " ")}`;
+  if (text === "analysis:table_descriptor") return "Table descriptor";
+  if (text.startsWith("analysis:table_consumer_")) return `Table consumer: ${text.split(":").pop().replaceAll("_", " ")}`;
+  if (text.startsWith("analysis:table_consumer:")) return `Table consumer: ${text.split(":").pop().replaceAll("_", " ")}`;
+  if (text === "analysis:table_consumer") return "Table consumer";
+  if (text.startsWith("analysis:table_entry_")) return `Table entry: ${text.split(":").pop().replaceAll("_", " ")}`;
+  if (text.startsWith("analysis:table_entry:")) return `Table entry: ${text.split(":").pop().replaceAll("_", " ")}`;
+  if (text === "analysis:table_entry") return "Table entry";
+  if (text.startsWith("analysis:runtime_address_ref_data_class:")) return `Runtime address ref data: ${text.split(":").pop().replaceAll("_", " ")}`;
+  if (text.startsWith("analysis:runtime_address_ref_owner:")) return `Runtime address ref owner: ${text.split(":").pop().replaceAll("_", " ")}`;
+  if (text.startsWith("analysis:runtime_address_ref:")) return `Runtime address ref: ${text.split(":").pop().replaceAll("_", " ")}`;
+  if (text === "analysis:runtime_address_ref") return "Runtime address ref";
+  if (text.startsWith("analysis:data_reference_")) return `Data reference: ${text.split(":").pop().replaceAll("_", " ")}`;
+  if (text.startsWith("analysis:data_reference:")) return `Data reference: ${text.split(":").pop().replaceAll("_", " ")}`;
+  if (text === "analysis:data_reference") return "Data reference";
+  if (text.startsWith("analysis:address_observation_access:")) return `Address observation access: ${text.split(":").pop().replaceAll("_", " ")}`;
+  if (text.startsWith("analysis:address_observation_source:")) return `Address observation source: ${text.split(":").pop().replaceAll("_", " ")}`;
+  if (text.startsWith("analysis:address_observation:")) return `Address observation: ${text.split(":").pop().replaceAll("_", " ")}`;
+  if (text === "analysis:address_observation") return "Address observation";
+  if (text.startsWith("analysis:platform_address_use_shape:")) return `Platform address use shape: ${text.split(":").pop().replaceAll("_", " ")}`;
+  if (text.startsWith("analysis:platform_address_use_access:")) return `Platform address use access: ${text.split(":").pop().replaceAll("_", " ")}`;
+  if (text.startsWith("analysis:platform_address_use:")) return `Platform address use: ${text.split(":").pop().replaceAll("_", " ")}`;
+  if (text === "analysis:platform_address_use") return "Platform address use";
+  if (text.startsWith("source-quality:kind:")) return `Source quality: ${text.split(":").pop().replaceAll("_", " ")}`;
+  if (text.startsWith("source-quality:")) return `Source quality: ${text.split(":", 2)[1].replaceAll("_", " ")}`;
   if (text.startsWith("copper_register:")) return `Copper register: ${text.split(":", 2)[1]}`;
   if (text.startsWith("display:bitplanes:")) return `Display: ${text.split(":").pop()} bitplanes`;
   if (text.startsWith("display:")) return `Display: ${text.split(":", 2)[1].replaceAll("_", " ")}`;
@@ -3728,7 +3785,18 @@ function corpusFeatureLabel(feature) {
   if (text.startsWith("platform_field_expr:")) return `Field expr: ${text.split(":", 2)[1].replaceAll("_", ".")}`;
   if (text.startsWith("platform_field:")) return `Field: ${text.split(":", 2)[1]}`;
   if (text.startsWith("runtime:")) return text.split(":", 2)[1].replaceAll("_", " ");
-  if (text.startsWith("label:")) return `Labels: ${text.split(":", 2)[1]}`;
+  if (text.startsWith("memory-layout-view:absolute_owner_access:")) {
+    const parts = text.split(":");
+    return `Memory owner/access: ${parts[2].replaceAll("_", " ")} / ${parts[3].replaceAll("_", " ")}`;
+  }
+  if (text.startsWith("memory-layout:owner_access:")) {
+    const parts = text.split(":");
+    return `Memory owner/access: ${parts[2].replaceAll("_", " ")} / ${parts[3].replaceAll("_", " ")}`;
+  }
+  if (text.startsWith("memory-layout:access:")) return `Memory access: ${text.split(":").pop().replaceAll("_", " ")}`;
+  if (text.startsWith("memory-layout-view:")) return `Memory layout: ${text.split(":", 2)[1].replaceAll("_", " ")}`;
+  if (text.startsWith("memory-layout:")) return `Memory layout: ${text.split(":", 2)[1].replaceAll("_", " ")}`;
+  if (text.startsWith("label:")) return `Labels: ${text.split(":", 2)[1].replaceAll("_", " ")}`;
   if (text.startsWith("xref:")) return text.split(":", 2)[1].replaceAll("_", " ");
   if (text.startsWith("diagnostic:")) return `Diagnostic: ${text.split(":", 2)[1].replaceAll("_", " ")}`;
   if (text.startsWith("analysis:")) return `Internal: ${text.split(":", 2)[1]}`;
@@ -5667,6 +5735,25 @@ function renderInlineParameterSession(session) {
       <button type="button" class="command-parameter-cancel" data-inline-parameter-cancel="1">Cancel</button>
       ${session.submitError ? `<div class="command-parameter-error">${escapeHtml(session.submitError)}</div>` : ""}
     </form>
+  `;
+}
+
+function renderAssetDataProject(projectData) {
+  const asset = projectData.asset_data || {};
+  const content = asset.content || {};
+  const title = asset.role === "bootblock" ? "Bootblock bytes" : "Asset bytes";
+  const size = typeof asset.size === "number" ? formatFileSize(asset.size) : "";
+  const loadAddress = typeof asset.load_address === "number" ? `Load ${formatAddressHex(asset.load_address)}` : "";
+  document.getElementById("listing-viewport").innerHTML = `
+    <div class="corpus-disk-browser">
+      <div class="corpus-disk-browser-header">
+        <div>
+          <h2>${escapeHtml(title)}</h2>
+          <div class="progress-detail">${escapeHtml([size, loadAddress].filter(Boolean).join(" | "))}</div>
+        </div>
+      </div>
+      ${renderDiskContentView(content, "hexdump")}
+    </div>
   `;
 }
 
@@ -10419,6 +10506,16 @@ async function renderProject(projectId) {
 
     if (projectData.project.kind === "disk") {
       renderDiskProject(projectData);
+      return;
+    }
+
+    if (projectData.asset_data) {
+      renderAssetDataProject(projectData);
+      dispatchAppEvent("amiga:project-rendered", {
+        projectId,
+        generation: "asset-data",
+        totalRows: 0,
+      });
       return;
     }
 

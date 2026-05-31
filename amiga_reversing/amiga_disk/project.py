@@ -2195,59 +2195,67 @@ def create_disk_project(
 
         imported_targets_by_name: dict[str, ImportedTarget] = dict(existing_imported_targets)
         auto_discovered_target_names: set[str] = set()
+        bootblock_target_name: str | None = None
+        bootblock_target_path: str | None = None
+        bootblock_source_analysis: dict[str, object] | None = None
 
         if progress_fn is not None:
             progress_fn("create_bootblock_target", 2, 4)
         bootblock_import = analysis.boot_block.import_target
-        if bootblock_import is None or bootblock_import.source is None:
-            raise DiskAnalysisError("C disk inspect output is missing bootblock import target")
-        bootblock_source = dict(bootblock_import.source)
-        bootblock_byte_offset = bootblock_source.pop("byte_offset")
-        bootblock_byte_size = bootblock_source.pop("byte_size")
-        if not isinstance(bootblock_byte_offset, int) or not isinstance(bootblock_byte_size, int):
-            raise DiskAnalysisError("C disk inspect bootblock source byte span is invalid")
-        bootblock_local_name = _import_target_required_text(
-            bootblock_import.local_target_id, "local_target_id", "bootblock"
-        )
-        bootblock_target_name = disk_child_project_id(resolved_disk_id, bootblock_local_name)
-        bootblock_target_dir = disk_children_root / bootblock_local_name
-        auto_discovered_target_names.add(bootblock_target_name)
-        if bootblock_target_dir.exists():
-            if not bootblock_target_dir.is_dir():
-                raise DiskAnalysisError(f"Target already exists but is not a directory: {bootblock_target_name}")
-        else:
-            create_project_at_path(
-                disk_child_target_relpath(resolved_disk_id, bootblock_local_name).as_posix(),
-                project_root=project_root,
-                origin={
-                    "kind": "disk_child",
-                    "parent_disk_id": resolved_disk_id,
-                    "target_role": "bootblock",
-                    "target_type": "bootblock",
-                    "source_path": adf_file.as_posix(),
-                },
+        if bootblock_import is not None:
+            if bootblock_import.source is None:
+                raise DiskAnalysisError("C disk inspect bootblock import target is missing source")
+            bootblock_source = dict(bootblock_import.source)
+            bootblock_byte_offset = bootblock_source.pop("byte_offset")
+            bootblock_byte_size = bootblock_source.pop("byte_size")
+            if not isinstance(bootblock_byte_offset, int) or not isinstance(bootblock_byte_size, int):
+                raise DiskAnalysisError("C disk inspect bootblock source byte span is invalid")
+            bootblock_local_name = _import_target_required_text(
+                bootblock_import.local_target_id, "local_target_id", "bootblock"
             )
-            created_target_dirs.append(bootblock_target_dir)
-        clean_obsolete_target_local_state(bootblock_target_dir)
-        bootblock_binary_path = bootblock_target_dir / "binary.bin"
-        _write_bytes(bootblock_binary_path, disk_bytes[bootblock_byte_offset:bootblock_byte_offset + bootblock_byte_size])
-        bootblock_source["path"] = bootblock_binary_path.relative_to(project_root).as_posix()
-        bootblock_source["parent_disk_id"] = resolved_disk_id
-        write_source_descriptor(bootblock_target_dir, bootblock_source)
-        write_target_metadata(bootblock_target_dir, TargetMetadata.from_dict(bootblock_import.target_metadata))
-        mark_project_updated(bootblock_target_dir)
+            bootblock_target_name = disk_child_project_id(resolved_disk_id, bootblock_local_name)
+            bootblock_target_path = disk_child_target_relpath(resolved_disk_id, bootblock_local_name).as_posix()
+            bootblock_target_dir = disk_children_root / bootblock_local_name
+            auto_discovered_target_names.add(bootblock_target_name)
+            if bootblock_target_dir.exists():
+                if not bootblock_target_dir.is_dir():
+                    raise DiskAnalysisError(f"Target already exists but is not a directory: {bootblock_target_name}")
+            else:
+                create_project_at_path(
+                    disk_child_target_relpath(resolved_disk_id, bootblock_local_name).as_posix(),
+                    project_root=project_root,
+                    origin={
+                        "kind": "disk_child",
+                        "parent_disk_id": resolved_disk_id,
+                        "target_role": "bootblock",
+                        "target_type": "bootblock",
+                        "source_path": adf_file.as_posix(),
+                    },
+                )
+                created_target_dirs.append(bootblock_target_dir)
+            clean_obsolete_target_local_state(bootblock_target_dir)
+            bootblock_binary_path = bootblock_target_dir / "binary.bin"
+            _write_bytes(bootblock_binary_path, disk_bytes[bootblock_byte_offset:bootblock_byte_offset + bootblock_byte_size])
+            bootblock_source["path"] = bootblock_binary_path.relative_to(project_root).as_posix()
+            bootblock_source["parent_disk_id"] = resolved_disk_id
+            write_source_descriptor(bootblock_target_dir, bootblock_source)
+            write_target_metadata(bootblock_target_dir, TargetMetadata.from_dict(bootblock_import.target_metadata))
+            mark_project_updated(bootblock_target_dir)
 
-        imported_targets_by_name[bootblock_target_name] = ImportedTarget(
-            target_name=bootblock_target_name,
-            target_path=disk_child_target_relpath(resolved_disk_id, bootblock_local_name).as_posix(),
-            entry_path="bootblock",
-            binary_path=f"{adf_file.as_posix()}::bootblock",
-            target_type="bootblock",
-        )
-        bootblock_source_analysis = _analyze_bootblock_source_for_disk_reads(
-            bootblock_target_dir,
-            project_root=project_root,
-        )
+            imported_targets_by_name[bootblock_target_name] = ImportedTarget(
+                target_name=bootblock_target_name,
+                target_path=bootblock_target_path,
+                entry_path="bootblock",
+                binary_path=f"{adf_file.as_posix()}::bootblock",
+                target_type="bootblock",
+            )
+            if bootblock_source.get("kind") == "raw_binary":
+                bootblock_source_analysis = _analyze_bootblock_source_for_disk_reads(
+                    bootblock_target_dir,
+                    project_root=project_root,
+                )
+            else:
+                bootblock_source_analysis = {}
         for stage, stage_bytes in _materialized_bootloader_disk_stage_targets(analysis, disk_bytes):
             assert stage.import_target is not None
             assert stage.import_target.source is not None
@@ -2341,7 +2349,7 @@ def create_disk_project(
                 binary_path=f"{adf_file.as_posix()}::{span_entry_path}",
                 target_type=import_target.target_type,
             )
-        for import_target, stage_bytes in _bootblock_disk_read_stage_targets(bootblock_source_analysis, disk_bytes):
+        for import_target, stage_bytes in _bootblock_disk_read_stage_targets(bootblock_source_analysis or {}, disk_bytes):
             assert import_target.source is not None
             stage_entry_path = _import_target_required_text(
                 import_target.entry_path, "entry_path", import_target.target_type
@@ -2624,6 +2632,8 @@ def create_disk_project(
         if progress_fn is not None:
             progress_fn("write_manifest", 4, 4)
         imported_targets = sorted(imported_targets_by_name.values(), key=lambda target: target.entry_path)
+        if bootblock_target_name is None or bootblock_target_path is None:
+            raise DiskAnalysisError("C disk inspect output is missing bootblock import target")
         manifest = DiskManifest(
             schema_version=1,
             disk_id=resolved_disk_id,
@@ -2632,7 +2642,7 @@ def create_disk_project(
             analysis=analysis,
             imported_targets=imported_targets,
             bootblock_target_name=bootblock_target_name,
-            bootblock_target_path=disk_child_target_relpath(resolved_disk_id, bootblock_local_name).as_posix(),
+            bootblock_target_path=bootblock_target_path,
         )
         _write_text(manifest_path, json.dumps(manifest.to_dict(), indent=2, sort_keys=True) + "\n")
         _write_disk_target_state(

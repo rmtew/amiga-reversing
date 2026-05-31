@@ -9,6 +9,7 @@ from pathlib import Path
 
 from amiga_reversing.amiga_disk.models import DiskManifest
 from amiga_reversing.disasm.binary_source import (
+    AssetDataBinarySource,
     DiskEntryBinarySource,
     HunkFileBinarySource,
     RawBinarySource,
@@ -252,7 +253,7 @@ def _binary_project_record(
     review_state = _combined_review_state(manual_projection.review_state, review_items)
     parent_disk_id = (
         binary_source.parent_disk_id
-        if isinstance(binary_source, HunkFileBinarySource | DiskEntryBinarySource | RawBinarySource)
+        if isinstance(binary_source, HunkFileBinarySource | DiskEntryBinarySource | RawBinarySource | AssetDataBinarySource)
         else None
     )
     return ProjectRecord(

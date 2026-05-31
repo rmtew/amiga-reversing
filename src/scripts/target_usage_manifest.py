@@ -111,6 +111,19 @@ LISTING_ROW_KIND_COMMENT = 6
 CODE_START_REASON_CONTROL_TARGET = 4
 CODE_START_REASON_PLATFORM_LOADSEG_ENTRY = 9
 CODE_START_REASON_STACK_CONTINUATION = 10
+CODE_START_REASON_NAMES = {
+    1: "section_entry",
+    2: "policy_entry_offset",
+    3: "policy_entry_point",
+    4: "control_target",
+    5: "fallthrough",
+    6: "inline_resume",
+    7: "runtime_view_entry",
+    8: "linkage_api_entry",
+    9: "platform_loadseg_entry",
+    10: "stack_continuation",
+    11: "boundary_api_entry",
+}
 CONFLICT_STATE_CLEAN = 0
 CONFLICT_STATE_CODE_OVERLAP = 1
 CONFLICT_STATE_UNRESOLVED = 2
@@ -190,6 +203,22 @@ XREF_KIND_STRUCT = 10
 XREF_KIND_TYPE = 11
 XREF_KIND_OS_CALL_OUTPUT = 12
 XREF_KIND_OS_CALL_OUTPUT_STRUCT = 13
+XREF_KIND_SOURCE_QUALITY_DIAGNOSTIC = 14
+XREF_KIND_CODE_START_REF = 15
+XREF_KIND_ACCEPTED_CODE_RUN = 16
+XREF_KIND_PLATFORM_ADDRESS_USE = 17
+XREF_KIND_CODE_ORIGIN = 18
+XREF_KIND_ADDRESS_IDENTITY = 19
+XREF_KIND_SYMBOL_ORIGIN = 20
+XREF_KIND_RENDERED_SYMBOL_ACCESS = 21
+XREF_KIND_RANGE_OWNERSHIP = 22
+XREF_KIND_ABSOLUTE_ADDRESS_RANGE = 23
+XREF_KIND_TABLE_DESCRIPTOR = 24
+XREF_KIND_TABLE_CONSUMER = 25
+XREF_KIND_TABLE_ENTRY = 26
+XREF_KIND_RUNTIME_ADDRESS_REF = 27
+XREF_KIND_DATA_REFERENCE = 28
+XREF_KIND_ADDRESS_OBSERVATION = 29
 XREF_KIND_IDS = {
     "platform_typed_access": XREF_KIND_PLATFORM_TYPED_ACCESS,
     "typed_storage": XREF_KIND_TYPED_STORAGE,
@@ -204,6 +233,22 @@ XREF_KIND_IDS = {
     "type": XREF_KIND_TYPE,
     "os_call_output": XREF_KIND_OS_CALL_OUTPUT,
     "os_call_output_struct": XREF_KIND_OS_CALL_OUTPUT_STRUCT,
+    "source_quality_diagnostic": XREF_KIND_SOURCE_QUALITY_DIAGNOSTIC,
+    "code_start_ref": XREF_KIND_CODE_START_REF,
+    "accepted_code_run": XREF_KIND_ACCEPTED_CODE_RUN,
+    "platform_address_use": XREF_KIND_PLATFORM_ADDRESS_USE,
+    "code_origin": XREF_KIND_CODE_ORIGIN,
+    "address_identity": XREF_KIND_ADDRESS_IDENTITY,
+    "symbol_origin": XREF_KIND_SYMBOL_ORIGIN,
+    "rendered_symbol_access": XREF_KIND_RENDERED_SYMBOL_ACCESS,
+    "range_ownership": XREF_KIND_RANGE_OWNERSHIP,
+    "absolute_address_range": XREF_KIND_ABSOLUTE_ADDRESS_RANGE,
+    "table_descriptor": XREF_KIND_TABLE_DESCRIPTOR,
+    "table_consumer": XREF_KIND_TABLE_CONSUMER,
+    "table_entry": XREF_KIND_TABLE_ENTRY,
+    "runtime_address_ref": XREF_KIND_RUNTIME_ADDRESS_REF,
+    "data_reference": XREF_KIND_DATA_REFERENCE,
+    "address_observation": XREF_KIND_ADDRESS_OBSERVATION,
 }
 XREF_FEATURE_PLATFORM_TYPED_ACCESS_ANY = 1
 XREF_FEATURE_TYPED_STORAGE_ANY = 2
@@ -524,7 +569,7 @@ FEATURE_GROUPS: dict[str, tuple[str, ...]] = {
         "derived-decompressed-target",
         "unsupported-compressor",
     ),
-    "diagnostics": ("diagnostic:",),
+    "diagnostics": ("diagnostic:", "source-quality:"),
     "patterns": ("target-pattern:",),
 }
 
@@ -551,6 +596,78 @@ TARGET_PATTERN_FEATURE_RULES: tuple[tuple[tuple[str, ...], str], ...] = (
     (("runtime:view_role:entry_wrapper",), "target-pattern:runtime_entry_wrapper"),
     (("runtime:view_role:contained_helper",), "target-pattern:runtime_contained_helper"),
     (("runtime:view_role:overlaid_helper",), "target-pattern:runtime_overlaid_helper"),
+    (("orphan-code:context:accepted_code_boundary",), "target-pattern:source_quality_precursor_false_code"),
+    (
+        ("orphan-code:context:renderable_label", "label:definition_without_reference"),
+        "target-pattern:source_quality_precursor_label_consistency",
+    ),
+    (
+        ("memory-layout-view:absolute_owner:cpu_vector", "memory-layout:kind:cpu_vector"),
+        "target-pattern:source_quality_precursor_platform_semantics",
+    ),
+    (
+        (
+            "memory-layout-view:absolute_owner:absolute_memory",
+            "memory-layout-view:absolute_unowned_one_off",
+            "memory-layout-view:absolute_unowned_sparse",
+            "memory-layout:kind:absolute_memory",
+        ),
+        "target-pattern:source_quality_precursor_unowned_range",
+    ),
+    (
+        ("runtime:copied_code", "runtime:suppressed_org_range", "runtime:view"),
+        "target-pattern:source_quality_precursor_runtime_identity",
+    ),
+    (
+        (
+            "table:source_pattern:indexed_local_scalar_read",
+            "table:source_pattern:indexed_local_pointer_read",
+            "table:source_pattern:pc_relative_indexed_read",
+        ),
+        "target-pattern:source_quality_precursor_table_range",
+    ),
+    (
+        (
+            "source-quality:kind:accepted_code_without_executable_origin",
+            "source-quality:kind:unterminated_or_invalid_code_range",
+            "analysis:accepted_code_run:suspicious_end",
+            "analysis:code_origin:weak",
+        ),
+        "target-pattern:source_quality_false_code",
+    ),
+    (
+        (
+            "source-quality:kind:address_identity_split",
+            "analysis:address_identity:conflict",
+        ),
+        "target-pattern:source_quality_address_identity",
+    ),
+    (
+        (
+            "source-quality:kind:rendered_label_without_access",
+            "source-quality:kind:generated_symbol_stripped",
+            "analysis:symbol_origin:without_rendered_access",
+        ),
+        "target-pattern:source_quality_label_consistency",
+    ),
+    (
+        (
+            "source-quality:kind:platform_name_without_use_shape",
+            "source-quality:kind:numeric_vector_owner_without_semantics",
+            "analysis:platform_address_use_shape:low_memory_base",
+            "analysis:platform_address_use_shape:low_memory_storage",
+        ),
+        "target-pattern:source_quality_platform_semantics",
+    ),
+    (
+        (
+            "source-quality:kind:unowned_absolute_one_off",
+            "source-quality:kind:unowned_absolute_sparse_cluster",
+            "analysis:absolute_address_range:unowned_one_off",
+            "analysis:absolute_address_range:unowned_sparse",
+        ),
+        "target-pattern:source_quality_unowned_range",
+    ),
 )
 
 
@@ -1216,6 +1333,9 @@ def _analyze_file_with_listing_artifact(
     type_flow_analysis = navigation.get("type_flow_analysis")
     if isinstance(type_flow_analysis, dict):
         result["listing"]["type_flow_analysis"] = type_flow_analysis
+    labels = navigation.get("labels")
+    if isinstance(labels, list):
+        result["listing"]["labels"] = labels
     return result
 
 
@@ -1784,6 +1904,1030 @@ def _add_orphan_code_signal_features(bag: FeatureBag, section_index: int, signal
             )
 
 
+def _source_quality_diagnostic_kind(diagnostic: dict[str, Any]) -> str:
+    return (
+        _string_value(diagnostic.get("kind"))
+        or _string_value(diagnostic.get("kind_name"))
+        or _string_value(diagnostic.get("diagnostic_kind"))
+        or "unknown"
+    )
+
+
+def _source_quality_diagnostic_origin(diagnostic: dict[str, Any]) -> str | None:
+    return (
+        _string_value(diagnostic.get("origin"))
+        or _string_value(diagnostic.get("origin_kind"))
+        or _string_value(diagnostic.get("origin_kind_name"))
+    )
+
+
+def _source_quality_diagnostic_example(
+    section_index: int | None, diagnostic: dict[str, Any]
+) -> dict[str, object]:
+    diagnostic_section = _int_value(diagnostic.get("section_index"), section_index)
+    offset = _int_value(diagnostic.get("offset"))
+    kind = _source_quality_diagnostic_kind(diagnostic)
+    example = _offset_example(diagnostic_section, offset, kind)
+    for key in ("length", "size", "related_address", "address", "owner_offset", "access_width"):
+        value = _int_value(diagnostic.get(key))
+        if value is not None:
+            example[key] = value
+    for key in (
+        "origin",
+        "origin_kind",
+        "origin_kind_name",
+        "owner_kind",
+        "owner_kind_name",
+        "platform_use_shape",
+        "platform_use_shape_name",
+        "status",
+        "severity",
+        "summary",
+        "detail",
+    ):
+        value = _string_value(diagnostic.get(key))
+        if value:
+            example[key] = value
+    return example
+
+
+def _source_quality_diagnostic_features(diagnostic: dict[str, Any]) -> list[str]:
+    kind = _source_quality_diagnostic_kind(diagnostic)
+    features = [
+        "diagnostic:source_quality",
+        "source-quality:diagnostic",
+        f"source-quality:kind:{_safe_part(kind)}",
+    ]
+    origin = _source_quality_diagnostic_origin(diagnostic)
+    if origin:
+        features.append(f"source-quality:origin:{_safe_part(origin)}")
+    for key, prefix in (
+        ("owner_kind", "source-quality:owner"),
+        ("owner_kind_name", "source-quality:owner"),
+        ("platform_use_shape", "source-quality:platform_use"),
+        ("platform_use_shape_name", "source-quality:platform_use"),
+        ("status", "source-quality:status"),
+        ("severity", "source-quality:severity"),
+    ):
+        value = _string_value(diagnostic.get(key))
+        if value:
+            features.append(f"{prefix}:{_safe_part(value)}")
+    return list(dict.fromkeys(features))
+
+
+def _add_source_quality_diagnostic_features(
+    bag: FeatureBag, section_index: int | None, diagnostic: dict[str, Any]
+) -> None:
+    example = _source_quality_diagnostic_example(section_index, diagnostic)
+    for feature in _source_quality_diagnostic_features(diagnostic):
+        bag.add(feature, example=example)
+
+
+def _accepted_code_run_end_kind(run: dict[str, Any]) -> str:
+    return (
+        _string_value(run.get("end_kind"))
+        or _string_value(run.get("end_kind_name"))
+        or "unknown"
+    )
+
+
+def _accepted_code_run_origin_class(run: dict[str, Any]) -> str | None:
+    return (
+        _string_value(run.get("weakest_origin_class"))
+        or _string_value(run.get("weakest_origin_class_name"))
+        or _string_value(run.get("origin_class"))
+        or _string_value(run.get("origin_class_name"))
+    )
+
+
+def _accepted_code_run_example(section_index: int | None, run: dict[str, Any]) -> dict[str, object]:
+    run_section = _int_value(run.get("section_index"), section_index)
+    start_offset = _int_value(run.get("start_offset"), _int_value(run.get("offset")))
+    end_kind = _accepted_code_run_end_kind(run)
+    example = _offset_example(run_section, start_offset, end_kind)
+    for key in ("end_offset", "terminal_offset", "size", "instruction_count", "terminal_flow_kind"):
+        value = _int_value(run.get(key))
+        if value is not None:
+            example[key] = value
+    for key in (
+        "end_kind",
+        "end_kind_name",
+        "terminal_flow",
+        "weakest_origin_class",
+        "weakest_origin_class_name",
+        "origin_class",
+        "origin_class_name",
+        "detail",
+    ):
+        value = _string_value(run.get(key))
+        if value:
+            example[key] = value
+    return example
+
+
+def _accepted_code_run_features(run: dict[str, Any]) -> list[str]:
+    end_kind = _accepted_code_run_end_kind(run)
+    features = [
+        "analysis:accepted_code_run",
+        f"analysis:accepted_code_run_end:{_safe_part(end_kind)}",
+    ]
+    origin_class = _accepted_code_run_origin_class(run)
+    if origin_class:
+        features.append(f"analysis:accepted_code_run_origin:{_safe_part(origin_class)}")
+    if end_kind in {"data_span", "decode_gap", "weak_fallthrough_chain", "section_end"}:
+        features.append("analysis:accepted_code_run:suspicious_end")
+    return list(dict.fromkeys(features))
+
+
+def _add_accepted_code_run_features(
+    bag: FeatureBag, section_index: int | None, run: dict[str, Any]
+) -> None:
+    example = _accepted_code_run_example(section_index, run)
+    for feature in _accepted_code_run_features(run):
+        bag.add(feature, example=example)
+
+
+def _platform_address_use_shape(use: dict[str, Any]) -> str:
+    return (
+        _string_value(use.get("use_shape_name"))
+        or _string_value(use.get("use_shape"))
+        or _string_value(use.get("shape_name"))
+        or _string_value(use.get("shape"))
+        or "unknown"
+    )
+
+
+def _platform_address_use_access(use: dict[str, Any]) -> str | None:
+    return (
+        _string_value(use.get("access_kind_name"))
+        or _string_value(use.get("access"))
+        or _string_value(use.get("access_kind"))
+    )
+
+
+def _platform_address_use_example(section_index: int | None, use: dict[str, Any]) -> dict[str, object]:
+    use_section = _int_value(use.get("section_index"), section_index)
+    offset = _int_value(use.get("offset"))
+    shape = _platform_address_use_shape(use)
+    example = _offset_example(use_section, offset, shape)
+    for key in ("address", "effective_address", "handler_target", "confidence", "operand_index", "access_width"):
+        value = _int_value(use.get(key))
+        if value is not None:
+            example[key] = value
+    for key in (
+        "use_shape",
+        "use_shape_name",
+        "shape",
+        "shape_name",
+        "access",
+        "access_kind",
+        "access_kind_name",
+        "detail",
+    ):
+        value = _string_value(use.get(key))
+        if value:
+            example[key] = value
+    return example
+
+
+def _platform_address_use_features(use: dict[str, Any]) -> list[str]:
+    shape = _platform_address_use_shape(use)
+    features = [
+        "analysis:platform_address_use",
+        f"analysis:platform_address_use_shape:{_safe_part(shape)}",
+    ]
+    access = _platform_address_use_access(use)
+    if access:
+        features.append(f"analysis:platform_address_use_access:{_safe_part(access)}")
+    if _int_value(use.get("handler_target")) is not None or _bool_value(use.get("has_handler_target")):
+        features.append("analysis:platform_address_use:handler_target")
+    if shape in {"true_vector_install", "vector_clear", "vector_fill_loop", "callback_slot"}:
+        features.append("analysis:platform_address_use:vector_semantic")
+    if shape in {"low_memory_base", "low_memory_storage"}:
+        features.append("analysis:platform_address_use:low_memory")
+    return list(dict.fromkeys(features))
+
+
+def _add_platform_address_use_features(
+    bag: FeatureBag, section_index: int | None, use: dict[str, Any]
+) -> None:
+    example = _platform_address_use_example(section_index, use)
+    for feature in _platform_address_use_features(use):
+        bag.add(feature, example=example)
+
+
+def _code_origin_class(origin: dict[str, Any]) -> str:
+    return (
+        _string_value(origin.get("origin_class_name"))
+        or _string_value(origin.get("origin_class"))
+        or "unknown"
+    )
+
+
+def _code_origin_evidence(origin: dict[str, Any]) -> str | None:
+    return (
+        _string_value(origin.get("evidence_kind_name"))
+        or _string_value(origin.get("evidence_kind"))
+        or _string_value(origin.get("evidence_name"))
+        or _string_value(origin.get("evidence"))
+    )
+
+
+def _code_origin_example(section_index: int | None, origin: dict[str, Any]) -> dict[str, object]:
+    origin_section = _int_value(origin.get("section_index"), section_index)
+    offset = _int_value(origin.get("offset"))
+    origin_class = _code_origin_class(origin)
+    example = _offset_example(origin_section, offset, origin_class)
+    for key in ("length", "size", "runtime_address", "source_section_index", "source_offset", "reason", "confidence"):
+        value = _int_value(origin.get(key))
+        if value is not None:
+            example[key] = value
+    for key in (
+        "origin_class",
+        "origin_class_name",
+        "evidence_kind",
+        "evidence_kind_name",
+        "evidence",
+        "evidence_name",
+        "reason_name",
+        "detail",
+    ):
+        value = _string_value(origin.get(key))
+        if value:
+            example[key] = value
+    return example
+
+
+def _code_origin_features(origin: dict[str, Any]) -> list[str]:
+    origin_class = _code_origin_class(origin)
+    features = [
+        "analysis:code_origin",
+        f"analysis:code_origin_class:{_safe_part(origin_class)}",
+    ]
+    evidence = _code_origin_evidence(origin)
+    if evidence:
+        features.append(f"analysis:code_origin_evidence:{_safe_part(evidence)}")
+    if origin_class in {"weak_shape_only", "data_reference_only"}:
+        features.append("analysis:code_origin:weak")
+    if origin_class in {
+        "strong_entry",
+        "proven_control_target",
+        "proven_fallthrough",
+        "platform_semantic_entry",
+        "manual_seed",
+    }:
+        features.append("analysis:code_origin:executable")
+    return list(dict.fromkeys(features))
+
+
+def _add_code_origin_features(
+    bag: FeatureBag, section_index: int | None, origin: dict[str, Any]
+) -> None:
+    example = _code_origin_example(section_index, origin)
+    for feature in _code_origin_features(origin):
+        bag.add(feature, example=example)
+
+
+def _address_identity_owner(identity: dict[str, Any]) -> str | None:
+    owner = _string_value(identity.get("owner_kind_name"))
+    if owner:
+        return owner
+    owner_id = _int_value(identity.get("owner_kind"))
+    if owner_id is not None:
+        return ABSOLUTE_MEMORY_OWNER_NAMES.get(owner_id, str(owner_id))
+    return _string_value(identity.get("owner_kind"))
+
+
+def _address_identity_role(identity: dict[str, Any]) -> str | None:
+    return (
+        _string_value(identity.get("role_kind_name"))
+        or _string_value(identity.get("role_kind"))
+    )
+
+
+def _address_identity_conflict(identity: dict[str, Any]) -> str | None:
+    return (
+        _string_value(identity.get("conflict_state_name"))
+        or _string_value(identity.get("conflict_state"))
+        or _string_value(identity.get("status"))
+    )
+
+
+def _address_identity_example(section_index: int | None, identity: dict[str, Any]) -> dict[str, object]:
+    identity_section = _int_value(
+        identity.get("source_section_index"),
+        _int_value(identity.get("section_index"), section_index),
+    )
+    source_offset = _int_value(identity.get("source_offset"), _int_value(identity.get("offset")))
+    owner = _address_identity_owner(identity) or "unknown"
+    example = _offset_example(identity_section, source_offset, owner)
+    for key in (
+        "identity_id",
+        "source_offset",
+        "absolute_address",
+        "runtime_address",
+        "size",
+        "observation_count",
+        "conflict_count",
+    ):
+        value = _int_value(identity.get(key))
+        if value is not None:
+            example[key] = value
+    for key in (
+        "owner_kind",
+        "owner_kind_name",
+        "role_kind",
+        "role_kind_name",
+        "conflict_state",
+        "conflict_state_name",
+        "status",
+        "detail",
+    ):
+        value = _string_value(identity.get(key))
+        if value:
+            example[key] = value
+    return example
+
+
+def _address_identity_features(identity: dict[str, Any]) -> list[str]:
+    features = ["analysis:address_identity"]
+    owner = _address_identity_owner(identity)
+    if owner:
+        features.append(f"analysis:address_identity_owner:{_safe_part(owner)}")
+    role = _address_identity_role(identity)
+    if role:
+        features.append(f"analysis:address_identity_role:{_safe_part(role)}")
+    conflict = _address_identity_conflict(identity)
+    if conflict:
+        features.append(f"analysis:address_identity_conflict:{_safe_part(conflict)}")
+    if _int_value(identity.get("runtime_address")) is not None:
+        features.append("analysis:address_identity:runtime")
+    if (
+        _bool_value(identity.get("conflicted"))
+        or _int_value(identity.get("conflict_count"), 0) > 0
+        or conflict in {"code_data", "code_data_identity", "code_overlap", "conflicted"}
+    ):
+        features.append("analysis:address_identity:conflict")
+    return list(dict.fromkeys(features))
+
+
+def _add_address_identity_features(
+    bag: FeatureBag, section_index: int | None, identity: dict[str, Any]
+) -> None:
+    example = _address_identity_example(section_index, identity)
+    for feature in _address_identity_features(identity):
+        bag.add(feature, example=example)
+
+
+def _symbol_origin_kind(origin: dict[str, Any]) -> str:
+    return (
+        _string_value(origin.get("origin_kind_name"))
+        or _string_value(origin.get("origin_kind"))
+        or "unknown"
+    )
+
+
+def _symbol_origin_name(origin: dict[str, Any]) -> str | None:
+    return (
+        _string_value(origin.get("symbol_name"))
+        or _string_value(origin.get("symbol"))
+        or _string_value(origin.get("name"))
+    )
+
+
+def _symbol_origin_example(section_index: int | None, origin: dict[str, Any]) -> dict[str, object]:
+    origin_section = _int_value(origin.get("section_index"), section_index)
+    offset = _int_value(origin.get("offset"))
+    origin_kind = _symbol_origin_kind(origin)
+    example = _offset_example(origin_section, offset, _symbol_origin_name(origin) or origin_kind)
+    for key in ("symbol_id", "confidence", "rendered_access_count", "reference_count"):
+        value = _int_value(origin.get(key))
+        if value is not None:
+            example[key] = value
+    for key in (
+        "symbol_name",
+        "symbol",
+        "name",
+        "origin_kind",
+        "origin_kind_name",
+        "detail",
+    ):
+        value = _string_value(origin.get(key))
+        if value:
+            example[key] = value
+    return example
+
+
+def _symbol_origin_features(origin: dict[str, Any]) -> list[str]:
+    origin_kind = _symbol_origin_kind(origin)
+    features = [
+        "analysis:symbol_origin",
+        f"analysis:symbol_origin_kind:{_safe_part(origin_kind)}",
+    ]
+    confidence = _int_value(origin.get("confidence"))
+    if confidence is not None:
+        features.append(f"analysis:symbol_origin_confidence:{confidence}")
+    rendered_access_count = _int_value(origin.get("rendered_access_count"))
+    reference_count = _int_value(origin.get("reference_count"))
+    has_rendered_access = _bool_value(origin.get("has_rendered_access"))
+    if rendered_access_count == 0 or reference_count == 0 or has_rendered_access is False:
+        features.append("analysis:symbol_origin:without_rendered_access")
+    return list(dict.fromkeys(features))
+
+
+def _add_symbol_origin_features(
+    bag: FeatureBag, section_index: int | None, origin: dict[str, Any]
+) -> None:
+    example = _symbol_origin_example(section_index, origin)
+    for feature in _symbol_origin_features(origin):
+        bag.add(feature, example=example)
+
+
+def _rendered_symbol_access_kind(access: dict[str, Any]) -> str:
+    return (
+        _string_value(access.get("access_kind_name"))
+        or _string_value(access.get("access_kind"))
+        or _string_value(access.get("access"))
+        or "unknown"
+    )
+
+
+def _rendered_symbol_access_example(
+    section_index: int | None, access: dict[str, Any]
+) -> dict[str, object]:
+    access_section = _int_value(access.get("section_index"), section_index)
+    offset = _int_value(access.get("offset"))
+    access_kind = _rendered_symbol_access_kind(access)
+    symbol = (
+        _string_value(access.get("symbol_name"))
+        or _string_value(access.get("symbol"))
+        or _string_value(access.get("name"))
+    )
+    example = _offset_example(access_section, offset, symbol or access_kind)
+    for key in ("symbol_id", "operand_index", "target_offset", "target_address"):
+        value = _int_value(access.get(key))
+        if value is not None:
+            example[key] = value
+    for key in (
+        "symbol_name",
+        "symbol",
+        "name",
+        "access_kind",
+        "access_kind_name",
+        "access",
+        "detail",
+    ):
+        value = _string_value(access.get(key))
+        if value:
+            example[key] = value
+    return example
+
+
+def _rendered_symbol_access_features(access: dict[str, Any]) -> list[str]:
+    access_kind = _rendered_symbol_access_kind(access)
+    features = [
+        "analysis:rendered_symbol_access",
+        f"analysis:rendered_symbol_access_kind:{_safe_part(access_kind)}",
+    ]
+    if _int_value(access.get("target_address")) is not None or _int_value(access.get("target_offset")) is not None:
+        features.append("analysis:rendered_symbol_access:targeted")
+    return list(dict.fromkeys(features))
+
+
+def _add_rendered_symbol_access_features(
+    bag: FeatureBag, section_index: int | None, access: dict[str, Any]
+) -> None:
+    example = _rendered_symbol_access_example(section_index, access)
+    for feature in _rendered_symbol_access_features(access):
+        bag.add(feature, example=example)
+
+
+def _range_ownership_kind(range_record: dict[str, Any]) -> str:
+    return (
+        _string_value(range_record.get("kind_name"))
+        or _string_value(range_record.get("kind"))
+        or "unknown"
+    )
+
+
+def _range_ownership_status(range_record: dict[str, Any]) -> str:
+    return (
+        _string_value(range_record.get("status_name"))
+        or _string_value(range_record.get("status"))
+        or "unknown"
+    )
+
+
+def _range_ownership_example(
+    section_index: int | None, range_record: dict[str, Any]
+) -> dict[str, object]:
+    range_section = _int_value(range_record.get("section_index"), section_index)
+    start_offset = _int_value(range_record.get("start_offset"), _int_value(range_record.get("offset")))
+    kind = _range_ownership_kind(range_record)
+    example = _offset_example(range_section, start_offset, kind)
+    for key in (
+        "end_offset",
+        "positive_evidence_flags",
+        "negative_evidence_flags",
+        "data_kind",
+        "table_kind_id",
+        "source_pattern_id",
+        "source_offset",
+        "conflict_state",
+    ):
+        value = _int_value(range_record.get(key))
+        if value is not None:
+            example[key] = value
+    for key in (
+        "kind_name",
+        "kind",
+        "status_name",
+        "status",
+        "table_kind",
+        "source_pattern",
+        "role",
+        "conflict_state_name",
+        "detail",
+    ):
+        value = _string_value(range_record.get(key))
+        if value:
+            example[key] = value
+    return example
+
+
+def _range_ownership_features(range_record: dict[str, Any]) -> list[str]:
+    kind = _range_ownership_kind(range_record)
+    status = _range_ownership_status(range_record)
+    features = [
+        "analysis:range_ownership",
+        f"analysis:range_ownership_kind:{_safe_part(kind)}",
+        f"analysis:range_ownership_status:{_safe_part(status)}",
+    ]
+    source_pattern = _string_value(range_record.get("source_pattern"))
+    if source_pattern:
+        features.append(f"analysis:range_ownership_source_pattern:{_safe_part(source_pattern)}")
+    table_kind = _string_value(range_record.get("table_kind"))
+    if table_kind:
+        features.append(f"analysis:range_ownership_table_kind:{_safe_part(table_kind)}")
+    conflict_state = _string_value(range_record.get("conflict_state_name"))
+    if conflict_state:
+        features.append(f"analysis:range_ownership_conflict:{_safe_part(conflict_state)}")
+    if status == "conflict" or kind == "conflict":
+        features.append("analysis:range_ownership:conflict")
+    if _int_value(range_record.get("negative_evidence_flags"), 0) != 0:
+        features.append("analysis:range_ownership:negative_evidence")
+    return list(dict.fromkeys(features))
+
+
+def _add_range_ownership_features(
+    bag: FeatureBag, section_index: int | None, range_record: dict[str, Any]
+) -> None:
+    example = _range_ownership_example(section_index, range_record)
+    for feature in _range_ownership_features(range_record):
+        bag.add(feature, example=example)
+
+
+def _absolute_address_range_owner(range_record: dict[str, Any]) -> str | None:
+    owner = _string_value(range_record.get("owner_kind_name"))
+    if owner:
+        return owner
+    owner_id = _int_value(range_record.get("owner_kind"))
+    if owner_id is not None:
+        return ABSOLUTE_MEMORY_OWNER_NAMES.get(owner_id, str(owner_id))
+    return _string_value(range_record.get("owner_kind"))
+
+
+def _absolute_address_range_status(range_record: dict[str, Any]) -> str | None:
+    return (
+        _string_value(range_record.get("status_name"))
+        or _string_value(range_record.get("status"))
+        or _string_value(range_record.get("classification"))
+    )
+
+
+def _absolute_address_range_example(range_record: dict[str, Any]) -> dict[str, object]:
+    start = _int_value(
+        range_record.get("start_address"),
+        _int_value(range_record.get("range_start"), _int_value(range_record.get("address"))),
+    )
+    owner = _absolute_address_range_owner(range_record) or "unknown"
+    example: dict[str, object] = {"text": owner}
+    if start is not None:
+        example["address"] = start
+    for key in (
+        "end_address",
+        "range_end",
+        "size",
+        "range_size",
+        "observation_count",
+        "read_count",
+        "write_count",
+        "access_count",
+        "source_section_index",
+        "source_offset",
+    ):
+        value = _int_value(range_record.get(key))
+        if value is not None:
+            example[key] = value
+    for key in (
+        "owner_kind",
+        "owner_kind_name",
+        "status",
+        "status_name",
+        "classification",
+        "access",
+        "access_kind",
+        "access_kind_name",
+        "detail",
+    ):
+        value = _string_value(range_record.get(key))
+        if value:
+            example[key] = value
+    return example
+
+
+def _absolute_address_range_features(range_record: dict[str, Any]) -> list[str]:
+    features = ["analysis:absolute_address_range"]
+    owner = _absolute_address_range_owner(range_record)
+    if owner:
+        features.append(f"analysis:absolute_address_range_owner:{_safe_part(owner)}")
+    status = _absolute_address_range_status(range_record)
+    if status:
+        features.append(f"analysis:absolute_address_range_status:{_safe_part(status)}")
+    access = (
+        _string_value(range_record.get("access_kind_name"))
+        or _string_value(range_record.get("access"))
+        or _string_value(range_record.get("access_kind"))
+    )
+    if access:
+        features.append(f"analysis:absolute_address_range_access:{_safe_part(access)}")
+    if owner in {"absolute_memory", "unknown"} and _int_value(range_record.get("observation_count"), 0) == 1:
+        features.append("analysis:absolute_address_range:unowned_one_off")
+    if status in {"unowned_sparse", "sparse_cluster"}:
+        features.append("analysis:absolute_address_range:unowned_sparse")
+    return list(dict.fromkeys(features))
+
+
+def _add_absolute_address_range_features(bag: FeatureBag, range_record: dict[str, Any]) -> None:
+    example = _absolute_address_range_example(range_record)
+    for feature in _absolute_address_range_features(range_record):
+        bag.add(feature, example=example)
+
+
+def _table_fact_kind(record: dict[str, Any]) -> str:
+    return _string_value(record.get("table_kind")) or "unknown"
+
+
+def _table_fact_source_pattern(record: dict[str, Any]) -> str | None:
+    return _string_value(record.get("source_pattern"))
+
+
+def _table_descriptor_example(section_index: int | None, descriptor: dict[str, Any]) -> dict[str, object]:
+    table_section = _int_value(descriptor.get("section_index"), section_index)
+    start_offset = _int_value(descriptor.get("start_offset"))
+    table_kind = _table_fact_kind(descriptor)
+    example = _offset_example(table_section, start_offset, table_kind)
+    for key in (
+        "end_offset",
+        "entry_size",
+        "entry_count",
+        "entry_count_proof_id",
+        "stop_reason_id",
+        "table_kind_id",
+        "base_expression_id",
+        "source_pattern_id",
+        "role_flags",
+        "status",
+        "target_section_index",
+        "target_offset",
+        "consumer_section_index",
+        "consumer_offset",
+        "conflict_state",
+    ):
+        value = _int_value(descriptor.get(key))
+        if value is not None:
+            example[key] = value
+    for key in (
+        "entry_count_proof",
+        "stop_reason",
+        "table_kind",
+        "base_expression",
+        "source_pattern",
+        "role",
+        "status_name",
+        "conflict_state_name",
+        "detail",
+    ):
+        value = _string_value(descriptor.get(key))
+        if value:
+            example[key] = value
+    return example
+
+
+def _table_descriptor_features(descriptor: dict[str, Any]) -> list[str]:
+    table_kind = _table_fact_kind(descriptor)
+    features = [
+        "analysis:table_descriptor",
+        f"analysis:table_descriptor_kind:{_safe_part(table_kind)}",
+    ]
+    for key, prefix in (
+        ("entry_count_proof", "analysis:table_descriptor_entry_count_proof"),
+        ("stop_reason", "analysis:table_descriptor_stop_reason"),
+        ("base_expression", "analysis:table_descriptor_base"),
+        ("source_pattern", "analysis:table_descriptor_source_pattern"),
+        ("status_name", "analysis:table_descriptor_status"),
+        ("conflict_state_name", "analysis:table_descriptor_conflict"),
+    ):
+        value = _string_value(descriptor.get(key))
+        if value:
+            features.append(f"{prefix}:{_safe_part(value)}")
+    if _int_value(descriptor.get("consumer_offset")) is not None:
+        features.append("analysis:table_descriptor:consumer")
+    if _int_value(descriptor.get("target_offset")) is not None:
+        features.append("analysis:table_descriptor:target")
+    return list(dict.fromkeys(features))
+
+
+def _add_table_descriptor_features(
+    bag: FeatureBag, section_index: int | None, descriptor: dict[str, Any]
+) -> None:
+    example = _table_descriptor_example(section_index, descriptor)
+    for feature in _table_descriptor_features(descriptor):
+        bag.add(feature, example=example)
+
+
+def _table_consumer_example(section_index: int | None, consumer: dict[str, Any]) -> dict[str, object]:
+    consumer_section = _int_value(consumer.get("section_index"), section_index)
+    offset = _int_value(consumer.get("consumer_offset"), _int_value(consumer.get("offset")))
+    table_kind = _table_fact_kind(consumer)
+    example = _offset_example(consumer_section, offset, table_kind)
+    for key in (
+        "table_section_index",
+        "table_start_offset",
+        "table_end_offset",
+        "access_width",
+        "entry_count",
+        "entry_count_proof_id",
+        "stop_reason_id",
+        "table_kind_id",
+        "source_pattern_id",
+        "index_register_kind",
+        "index_register",
+        "target_register_kind",
+        "target_register",
+    ):
+        value = _int_value(consumer.get(key))
+        if value is not None:
+            example[key] = value
+    for key in ("entry_count_proof", "stop_reason", "table_kind", "source_pattern", "detail"):
+        value = _string_value(consumer.get(key))
+        if value:
+            example[key] = value
+    return example
+
+
+def _table_consumer_features(consumer: dict[str, Any]) -> list[str]:
+    table_kind = _table_fact_kind(consumer)
+    features = [
+        "analysis:table_consumer",
+        f"analysis:table_consumer_kind:{_safe_part(table_kind)}",
+    ]
+    for key, prefix in (
+        ("entry_count_proof", "analysis:table_consumer_entry_count_proof"),
+        ("stop_reason", "analysis:table_consumer_stop_reason"),
+        ("source_pattern", "analysis:table_consumer_source_pattern"),
+    ):
+        value = _string_value(consumer.get(key))
+        if value:
+            features.append(f"{prefix}:{_safe_part(value)}")
+    if _int_value(consumer.get("index_register")) is not None:
+        features.append("analysis:table_consumer:indexed")
+    return list(dict.fromkeys(features))
+
+
+def _add_table_consumer_features(
+    bag: FeatureBag, section_index: int | None, consumer: dict[str, Any]
+) -> None:
+    example = _table_consumer_example(section_index, consumer)
+    for feature in _table_consumer_features(consumer):
+        bag.add(feature, example=example)
+
+
+def _table_entry_example(section_index: int | None, entry: dict[str, Any]) -> dict[str, object]:
+    entry_section = _int_value(entry.get("section_index"), section_index)
+    entry_offset = _int_value(entry.get("entry_offset"), _int_value(entry.get("offset")))
+    table_kind = _table_fact_kind(entry)
+    example = _offset_example(entry_section, entry_offset, table_kind)
+    for key in (
+        "table_start_offset",
+        "entry_index",
+        "entry_size",
+        "raw_value",
+        "raw_value_width",
+        "table_kind_id",
+        "source_pattern_id",
+        "target_status",
+        "target_section_index",
+        "target_offset",
+        "conflict_state",
+    ):
+        value = _int_value(entry.get(key))
+        if value is not None:
+            example[key] = value
+    for key in ("table_kind", "source_pattern", "target_status_name", "conflict_state_name", "detail"):
+        value = _string_value(entry.get(key))
+        if value:
+            example[key] = value
+    return example
+
+
+def _table_entry_features(entry: dict[str, Any]) -> list[str]:
+    table_kind = _table_fact_kind(entry)
+    features = [
+        "analysis:table_entry",
+        f"analysis:table_entry_kind:{_safe_part(table_kind)}",
+    ]
+    for key, prefix in (
+        ("source_pattern", "analysis:table_entry_source_pattern"),
+        ("target_status_name", "analysis:table_entry_target_status"),
+        ("conflict_state_name", "analysis:table_entry_conflict"),
+    ):
+        value = _string_value(entry.get(key))
+        if value:
+            features.append(f"{prefix}:{_safe_part(value)}")
+    if _int_value(entry.get("target_offset")) is not None:
+        features.append("analysis:table_entry:target")
+    return list(dict.fromkeys(features))
+
+
+def _add_table_entry_features(bag: FeatureBag, section_index: int | None, entry: dict[str, Any]) -> None:
+    example = _table_entry_example(section_index, entry)
+    for feature in _table_entry_features(entry):
+        bag.add(feature, example=example)
+
+
+def _runtime_address_ref_example(section_index: int | None, ref: dict[str, Any]) -> dict[str, object]:
+    ref_section = _int_value(ref.get("section_index"), section_index)
+    offset = _int_value(ref.get("offset"))
+    example = _offset_example(ref_section, offset, "runtime_address_ref")
+    for key in (
+        "operand_index",
+        "target_section_index",
+        "target_offset",
+        "sink_address",
+        "runtime_address",
+        "size",
+        "confidence",
+        "data_class_flags",
+        "owner_element_offset",
+    ):
+        value = _int_value(ref.get(key))
+        if value is not None:
+            example[key] = value
+    for key in ("data_class", "owner_kind", "owner_id", "owner_layout_id", "xref_generation_mode", "detail"):
+        value = _string_value(ref.get(key))
+        if value:
+            example[key] = value
+    return example
+
+
+def _runtime_address_ref_features(ref: dict[str, Any]) -> list[str]:
+    features = ["analysis:runtime_address_ref"]
+    data_class = _string_value(ref.get("data_class"))
+    if data_class:
+        features.append(f"analysis:runtime_address_ref_data_class:{_safe_part(data_class)}")
+    owner_kind = _string_value(ref.get("owner_kind"))
+    if owner_kind:
+        features.append(f"analysis:runtime_address_ref_owner:{_safe_part(owner_kind)}")
+    if _int_value(ref.get("runtime_address")) is not None:
+        features.append("analysis:runtime_address_ref:runtime")
+    if _int_value(ref.get("target_offset")) is not None:
+        features.append("analysis:runtime_address_ref:target")
+    if _int_value(ref.get("sink_address")) is not None:
+        features.append("analysis:runtime_address_ref:sink")
+    return list(dict.fromkeys(features))
+
+
+def _add_runtime_address_ref_features(
+    bag: FeatureBag, section_index: int | None, ref: dict[str, Any]
+) -> None:
+    example = _runtime_address_ref_example(section_index, ref)
+    for feature in _runtime_address_ref_features(ref):
+        bag.add(feature, example=example)
+
+
+def _data_reference_example(section_index: int | None, ref: dict[str, Any]) -> dict[str, object]:
+    ref_section = _int_value(ref.get("section_index"), section_index)
+    source_offset = _int_value(ref.get("source_offset"), _int_value(ref.get("offset")))
+    source_kind = _string_value(ref.get("source_kind_name")) or "unknown"
+    example = _offset_example(ref_section, source_offset, source_kind)
+    for key in (
+        "source_kind",
+        "table_start_offset",
+        "table_entry_index",
+        "table_entry_offset",
+        "table_entry_size",
+        "raw_value",
+        "table_kind_id",
+        "source_pattern_id",
+        "target_section_index",
+        "target_offset",
+        "target_status",
+        "target_kind",
+        "target_role_flags",
+        "target_table_kind_id",
+        "target_source_pattern_id",
+        "evidence_flags",
+        "conflict_state",
+    ):
+        value = _int_value(ref.get(key))
+        if value is not None:
+            example[key] = value
+    for key in (
+        "source_kind_name",
+        "table_kind",
+        "source_pattern",
+        "target_status_name",
+        "target_role",
+        "target_table_kind",
+        "target_source_pattern",
+        "conflict_state_name",
+        "detail",
+    ):
+        value = _string_value(ref.get(key))
+        if value:
+            example[key] = value
+    return example
+
+
+def _data_reference_features(ref: dict[str, Any]) -> list[str]:
+    source_kind = _string_value(ref.get("source_kind_name")) or "unknown"
+    features = [
+        "analysis:data_reference",
+        f"analysis:data_reference_source:{_safe_part(source_kind)}",
+    ]
+    for key, prefix in (
+        ("table_kind", "analysis:data_reference_table_kind"),
+        ("source_pattern", "analysis:data_reference_source_pattern"),
+        ("target_status_name", "analysis:data_reference_target_status"),
+        ("conflict_state_name", "analysis:data_reference_conflict"),
+    ):
+        value = _string_value(ref.get(key))
+        if value:
+            features.append(f"{prefix}:{_safe_part(value)}")
+    if _int_value(ref.get("target_offset")) is not None:
+        features.append("analysis:data_reference:target")
+    if _int_value(ref.get("evidence_flags"), 0) != 0:
+        features.append("analysis:data_reference:evidence")
+    return list(dict.fromkeys(features))
+
+
+def _add_data_reference_features(bag: FeatureBag, section_index: int | None, ref: dict[str, Any]) -> None:
+    example = _data_reference_example(section_index, ref)
+    for feature in _data_reference_features(ref):
+        bag.add(feature, example=example)
+
+
+def _address_observation_example(section_index: int | None, observation: dict[str, Any]) -> dict[str, object]:
+    obs_section = _int_value(observation.get("section_index"), section_index)
+    offset = _int_value(observation.get("offset"))
+    example = _offset_example(obs_section, offset, "address_observation")
+    for key in ("operand_index", "raw_value", "address", "access_width", "identity_id", "target_offset"):
+        value = _int_value(observation.get(key))
+        if value is not None:
+            example[key] = value
+    for key in ("access", "access_kind", "access_kind_name", "source", "source_name", "detail"):
+        value = _string_value(observation.get(key))
+        if value:
+            example[key] = value
+    return example
+
+
+def _address_observation_features(observation: dict[str, Any]) -> list[str]:
+    features = ["analysis:address_observation"]
+    access = (
+        _string_value(observation.get("access_kind_name"))
+        or _string_value(observation.get("access"))
+        or _string_value(observation.get("access_kind"))
+    )
+    if access:
+        features.append(f"analysis:address_observation_access:{_safe_part(access)}")
+    source = _string_value(observation.get("source_name")) or _string_value(observation.get("source"))
+    if source:
+        features.append(f"analysis:address_observation_source:{_safe_part(source)}")
+    if _int_value(observation.get("identity_id")) is not None:
+        features.append("analysis:address_observation:identity")
+    return list(dict.fromkeys(features))
+
+
+def _add_address_observation_features(
+    bag: FeatureBag, section_index: int | None, observation: dict[str, Any]
+) -> None:
+    example = _address_observation_example(section_index, observation)
+    for feature in _address_observation_features(observation):
+        bag.add(feature, example=example)
+
+
 def _add_orphan_code_signal_summary_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
     summary = analysis.get("orphan_code_signal_summary")
     if not isinstance(summary, dict):
@@ -1989,6 +3133,44 @@ def _recovered_indirect_table_bounds_status_name(record: dict[str, Any]) -> str:
     return RECOVERED_INDIRECT_TABLE_BOUNDS_STATUS_NAMES.get(status_id or 0, "unknown")
 
 
+def _code_start_reason_name(ref: dict[str, Any]) -> str:
+    reason_name = _string_value(ref.get("reason_name"))
+    if reason_name:
+        return reason_name
+    return CODE_START_REASON_NAMES.get(_int_value(ref.get("reason"), 0) or 0, "unknown")
+
+
+def _code_start_ref_example(section_index: int | None, ref: dict[str, Any]) -> dict[str, object]:
+    reason = _code_start_reason_name(ref)
+    example = _offset_example(section_index, _int_value(ref.get("offset")), reason)
+    for key in ("reason", "confidence", "source_section_index", "source_offset", "runtime_address", "size"):
+        value = _int_value(ref.get(key))
+        if value is not None:
+            example[key] = value
+    example["reason_name"] = reason
+    return example
+
+
+def _code_start_ref_features(ref: dict[str, Any]) -> list[str]:
+    reason = _code_start_reason_name(ref)
+    features = [
+        "analysis:code_start_ref",
+        f"analysis:code_start_reason:{_safe_part(reason)}",
+    ]
+    if _int_value(ref.get("runtime_address")) is not None:
+        features.append("analysis:code_start_runtime_address")
+    confidence = _int_value(ref.get("confidence"))
+    if confidence is not None:
+        features.append(f"analysis:code_start_confidence:{confidence}")
+    return features
+
+
+def _add_code_start_ref_features(bag: FeatureBag, section_index: int | None, ref: dict[str, Any]) -> None:
+    example = _code_start_ref_example(section_index, ref)
+    for feature in _code_start_ref_features(ref):
+        bag.add(feature, example=example)
+
+
 def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
     findings = analysis.get("findings")
     if isinstance(findings, dict):
@@ -2000,6 +3182,36 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
             bag.add("diagnostic:cpu_violation", violation_count)
     _add_decompression_analysis_features(analysis, bag)
     _add_orphan_code_signal_summary_features(analysis, bag)
+    for diagnostic in _dict_items(analysis.get("source_quality_diagnostics")):
+        _add_source_quality_diagnostic_features(bag, None, diagnostic)
+    for origin in _dict_items(analysis.get("code_origins")):
+        _add_code_origin_features(bag, None, origin)
+    for identity in _dict_items(analysis.get("address_identities")):
+        _add_address_identity_features(bag, None, identity)
+    for origin in _dict_items(analysis.get("symbol_origins")):
+        _add_symbol_origin_features(bag, None, origin)
+    for access in _dict_items(analysis.get("rendered_symbol_accesses")):
+        _add_rendered_symbol_access_features(bag, None, access)
+    for range_record in _dict_items(analysis.get("range_ownerships")):
+        _add_range_ownership_features(bag, None, range_record)
+    for range_record in _dict_items(analysis.get("absolute_address_ranges")):
+        _add_absolute_address_range_features(bag, range_record)
+    for descriptor in _dict_items(analysis.get("table_descriptors")):
+        _add_table_descriptor_features(bag, None, descriptor)
+    for consumer in _dict_items(analysis.get("table_consumers")):
+        _add_table_consumer_features(bag, None, consumer)
+    for entry in _dict_items(analysis.get("table_entries")):
+        _add_table_entry_features(bag, None, entry)
+    for ref in _dict_items(analysis.get("runtime_address_refs")):
+        _add_runtime_address_ref_features(bag, None, ref)
+    for ref in _dict_items(analysis.get("data_references")):
+        _add_data_reference_features(bag, None, ref)
+    for observation in _dict_items(analysis.get("address_observations")):
+        _add_address_observation_features(bag, None, observation)
+    for run in _dict_items(analysis.get("accepted_code_runs")):
+        _add_accepted_code_run_features(bag, None, run)
+    for use in _dict_items(analysis.get("platform_address_uses")):
+        _add_platform_address_use_features(bag, None, use)
     for table in _dict_items(analysis.get("table_records")):
         role = _table_role_name(table)
         table_kind = _table_kind_name(table)
@@ -2075,6 +3287,12 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
         bag.add("memory-layout:any", example=example)
         bag.add(f"memory-layout:record:{_safe_part(record_kind)}", example=example)
         bag.add(f"memory-layout:kind:{_safe_part(memory_kind)}", example=example)
+        access = _string_value(record.get("access"))
+        if access:
+            bag.add(f"memory-layout:access:{_safe_part(access)}", example=example)
+            owner_kind = _string_value(record.get("owner_kind"))
+            if owner_kind:
+                bag.add(f"memory-layout:owner_access:{_safe_part(owner_kind)}:{_safe_part(access)}", example=example)
         layout_kind = _int_value(record.get("layout_kind"))
         layout_kind_name = BASE_LAYOUT_KIND_NAMES.get(layout_kind) if layout_kind is not None else None
         if layout_kind_name:
@@ -2115,6 +3333,32 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
     _add_memory_layout_view_features(bag, memory_layout_records)
     for section in _dict_items(analysis.get("sections")):
         section_index = _int_value(section.get("section_index"), 0)
+        for ref in _dict_items(section.get("code_start_refs")):
+            _add_code_start_ref_features(bag, section_index, ref)
+        for origin in _dict_items(section.get("code_origins")):
+            _add_code_origin_features(bag, section_index, origin)
+        for identity in _dict_items(section.get("address_identities")):
+            _add_address_identity_features(bag, section_index, identity)
+        for origin in _dict_items(section.get("symbol_origins")):
+            _add_symbol_origin_features(bag, section_index, origin)
+        for access in _dict_items(section.get("rendered_symbol_accesses")):
+            _add_rendered_symbol_access_features(bag, section_index, access)
+        for range_record in _dict_items(section.get("range_ownerships")):
+            _add_range_ownership_features(bag, section_index, range_record)
+        for range_record in _dict_items(section.get("absolute_address_ranges")):
+            _add_absolute_address_range_features(bag, range_record)
+        for descriptor in _dict_items(section.get("table_descriptors")):
+            _add_table_descriptor_features(bag, section_index, descriptor)
+        for consumer in _dict_items(section.get("table_consumers")):
+            _add_table_consumer_features(bag, section_index, consumer)
+        for entry in _dict_items(section.get("table_entries")):
+            _add_table_entry_features(bag, section_index, entry)
+        for ref in _dict_items(section.get("runtime_address_refs")):
+            _add_runtime_address_ref_features(bag, section_index, ref)
+        for ref in _dict_items(section.get("data_references")):
+            _add_data_reference_features(bag, section_index, ref)
+        for observation in _dict_items(section.get("address_observations")):
+            _add_address_observation_features(bag, section_index, observation)
         for call in _dict_items(section.get("recovered_platform_calls")):
             library = _string_value(call.get("library_name")) or _string_value(call.get("note_base_name")) or "unknown"
             function = (
@@ -2242,6 +3486,12 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
                     bag.add("runtime:copied_entry_stub")
         for signal in _dict_items(section.get("orphan_code_signals")):
             _add_orphan_code_signal_features(bag, section_index, signal)
+        for run in _dict_items(section.get("accepted_code_runs")):
+            _add_accepted_code_run_features(bag, section_index, run)
+        for use in _dict_items(section.get("platform_address_uses")):
+            _add_platform_address_use_features(bag, section_index, use)
+        for diagnostic in _dict_items(section.get("source_quality_diagnostics")):
+            _add_source_quality_diagnostic_features(bag, section_index, diagnostic)
         violation_count = _int_value(section.get("violation_count"), 0)
         if violation_count > 0:
             bag.add("diagnostic:analysis_violation", violation_count)
@@ -2633,7 +3883,35 @@ def _add_decompression_analysis_features(analysis: dict[str, Any], bag: FeatureB
             bag.add(feature, example=example)
 
 
+def _add_listing_navigation_label_features(listing: dict[str, Any], bag: FeatureBag) -> None:
+    for label in _dict_items(listing.get("labels")):
+        access_counts = label.get("access_counts")
+        if not isinstance(access_counts, dict):
+            continue
+        definition_count = _int_value(access_counts.get("definition"), 0) or 0
+        reference_count = _int_value(access_counts.get("reference"), 0) or 0
+        if definition_count == 0 or reference_count != 0:
+            continue
+        symbol = _string_value(label.get("symbol"))
+        example = _offset_example(
+            _int_value(label.get("section_index")),
+            _int_value(label.get("addr")),
+            symbol or "label_without_reference",
+        )
+        row_index = _int_value(label.get("row_index"))
+        if row_index is not None:
+            example["row_index"] = row_index
+        stable_key = _string_value(label.get("stable_key"))
+        if stable_key:
+            example["stable_key"] = stable_key
+        if symbol:
+            example["symbol"] = symbol
+        example["reference_count"] = reference_count
+        bag.add("label:definition_without_reference", example=example)
+
+
 def _add_listing_features(listing: dict[str, Any], bag: FeatureBag) -> None:
+    _add_listing_navigation_label_features(listing, bag)
     direct_control_stub_rows = _listing_direct_control_stub_table_row_features(listing)
     for row_index, row in enumerate(_dict_items(listing.get("rows"))):
         text = _string_value(row.get("text")) or ""
@@ -2867,6 +4145,7 @@ def _add_memory_layout_view_features(bag: FeatureBag, records: list[dict[str, An
     range_space_counts: dict[int, int] = {}
     conflict_state_counts: dict[int, int] = {}
     absolute_owner_counts: dict[int, int] = {}
+    absolute_owner_access_counts: dict[tuple[int, str], int] = {}
     runtime_view_entry_counts: dict[str, int] = {}
     for record in records:
         range_space_kind = _int_value(record.get("range_space_kind"))
@@ -2878,6 +4157,10 @@ def _add_memory_layout_view_features(bag: FeatureBag, records: list[dict[str, An
         owner_kind_id = _absolute_memory_owner_kind_id(record)
         if owner_kind_id is not None:
             absolute_owner_counts[owner_kind_id] = absolute_owner_counts.get(owner_kind_id, 0) + 1
+            access = _string_value(record.get("access"))
+            if access:
+                key = (owner_kind_id, access)
+                absolute_owner_access_counts[key] = absolute_owner_access_counts.get(key, 0) + 1
         if _memory_layout_record_kind_id(record) == 6:
             entry_count = _int_value(record.get("entry_point_count"))
             if entry_count is not None and entry_count > 0:
@@ -2890,6 +4173,17 @@ def _add_memory_layout_view_features(bag: FeatureBag, records: list[dict[str, An
         summary["conflict_count"] = sum(conflict_state_counts.values())
     if absolute_owner_counts:
         summary["absolute_ref_count"] = sum(absolute_owner_counts.values())
+        absolute_memory_owner_id = next(
+            (
+                owner_kind_id
+                for owner_kind_id in absolute_owner_counts
+                if _absolute_memory_owner_kind_name(owner_kind_id) == "absolute_memory"
+            ),
+            None,
+        )
+        if absolute_memory_owner_id is not None:
+            absolute_memory_count = absolute_owner_counts[absolute_memory_owner_id]
+            summary["absolute_unowned_ref_count"] = absolute_memory_count
     if runtime_view_entry_counts:
         summary["runtime_view_entry_count"] = sum(runtime_view_entry_counts.values())
     bag.add("memory-layout-view:any", example=summary)
@@ -2913,6 +4207,19 @@ def _add_memory_layout_view_features(bag: FeatureBag, records: list[dict[str, An
             bag.add(
                 f"memory-layout-view:absolute_owner:{_safe_part(owner_name)}",
                 example={"owner_kind_id": owner_kind_id, "absolute_ref_count": count},
+            )
+            if owner_name == "absolute_memory":
+                unowned_example = {"owner_kind_id": owner_kind_id, "absolute_ref_count": count}
+                bag.add("memory-layout-view:absolute_unowned_refs", example=unowned_example)
+                if count == 1:
+                    bag.add("memory-layout-view:absolute_unowned_one_off", example=unowned_example)
+                elif count <= 4:
+                    bag.add("memory-layout-view:absolute_unowned_sparse", example=unowned_example)
+        for (owner_kind_id, access), count in sorted(absolute_owner_access_counts.items()):
+            owner_name = _absolute_memory_owner_kind_name(owner_kind_id)
+            bag.add(
+                f"memory-layout-view:absolute_owner_access:{_safe_part(owner_name)}:{_safe_part(access)}",
+                example={"owner_kind_id": owner_kind_id, "access": access, "absolute_ref_count": count},
             )
     if runtime_view_entry_counts:
         bag.add("memory-layout-view:runtime_view_entry", example=summary)
@@ -4022,6 +5329,508 @@ def _decompression_analysis_xrefs(
     return xrefs
 
 
+def _source_quality_diagnostic_xrefs(
+    row: dict[str, object],
+    diagnostic: dict[str, Any],
+    row_locations: dict[tuple[int, int], tuple[int, str | None, str | None]],
+    *,
+    section_index: int | None,
+) -> list[dict[str, object]]:
+    diagnostic_section = _int_value(diagnostic.get("section_index"), section_index)
+    offset = _int_value(diagnostic.get("offset"))
+    row_index, stable_key, row_text = _row_location(row_locations, diagnostic_section, offset)
+    kind = _source_quality_diagnostic_kind(diagnostic)
+    text = (
+        row_text
+        or _string_value(diagnostic.get("summary"))
+        or _string_value(diagnostic.get("detail"))
+        or kind
+    )
+    value = _int_value(diagnostic.get("related_address"))
+    if value is None:
+        value = _int_value(diagnostic.get("address"))
+    if value is None:
+        value = _int_value(diagnostic.get("length"))
+    return [
+        _xref(
+            row,
+            feature,
+            "source_quality_diagnostic",
+            section=diagnostic_section,
+            offset=offset,
+            row_index=row_index,
+            stable_key=stable_key,
+            symbol=kind,
+            value=value,
+            text=text,
+        )
+        for feature in _source_quality_diagnostic_features(diagnostic)
+    ]
+
+
+def _code_start_ref_xrefs(
+    row: dict[str, object],
+    ref: dict[str, Any],
+    row_locations: dict[tuple[int, int], tuple[int, str | None, str | None]],
+    *,
+    section_index: int | None,
+) -> list[dict[str, object]]:
+    reason = _code_start_reason_name(ref)
+    offset = _int_value(ref.get("offset"))
+    runtime_address = _int_value(ref.get("runtime_address"))
+    size = _int_value(ref.get("size"))
+    row_index, stable_key, row_text = _row_location(row_locations, section_index, offset)
+    return [
+        _xref(
+            row,
+            feature,
+            "code_start_ref",
+            section=section_index,
+            offset=offset,
+            row_index=row_index,
+            stable_key=stable_key,
+            symbol=reason,
+            value=runtime_address if runtime_address is not None else size,
+            text=row_text or f"code start {reason}",
+        )
+        for feature in _code_start_ref_features(ref)
+    ]
+
+
+def _accepted_code_run_xrefs(
+    row: dict[str, object],
+    run: dict[str, Any],
+    row_locations: dict[tuple[int, int], tuple[int, str | None, str | None]],
+    *,
+    section_index: int | None,
+) -> list[dict[str, object]]:
+    run_section = _int_value(run.get("section_index"), section_index)
+    start_offset = _int_value(run.get("start_offset"), _int_value(run.get("offset")))
+    row_index, stable_key, row_text = _row_location(row_locations, run_section, start_offset)
+    end_kind = _accepted_code_run_end_kind(run)
+    end_offset = _int_value(run.get("end_offset"))
+    return [
+        _xref(
+            row,
+            feature,
+            "accepted_code_run",
+            section=run_section,
+            offset=start_offset,
+            row_index=row_index,
+            stable_key=stable_key,
+            symbol=end_kind,
+            value=end_offset if end_offset is not None else _int_value(run.get("size")),
+            text=row_text or _string_value(run.get("detail")) or f"accepted code run {end_kind}",
+        )
+        for feature in _accepted_code_run_features(run)
+    ]
+
+
+def _platform_address_use_xrefs(
+    row: dict[str, object],
+    use: dict[str, Any],
+    row_locations: dict[tuple[int, int], tuple[int, str | None, str | None]],
+    *,
+    section_index: int | None,
+) -> list[dict[str, object]]:
+    use_section = _int_value(use.get("section_index"), section_index)
+    offset = _int_value(use.get("offset"))
+    row_index, stable_key, row_text = _row_location(row_locations, use_section, offset)
+    shape = _platform_address_use_shape(use)
+    value = _int_value(use.get("effective_address"))
+    if value is None:
+        value = _int_value(use.get("address"))
+    if value is None:
+        value = _int_value(use.get("handler_target"))
+    return [
+        _xref(
+            row,
+            feature,
+            "platform_address_use",
+            section=use_section,
+            offset=offset,
+            row_index=row_index,
+            stable_key=stable_key,
+            symbol=shape,
+            value=value,
+            text=row_text or _string_value(use.get("detail")) or f"platform address use {shape}",
+        )
+        for feature in _platform_address_use_features(use)
+    ]
+
+
+def _code_origin_xrefs(
+    row: dict[str, object],
+    origin: dict[str, Any],
+    row_locations: dict[tuple[int, int], tuple[int, str | None, str | None]],
+    *,
+    section_index: int | None,
+) -> list[dict[str, object]]:
+    origin_section = _int_value(origin.get("section_index"), section_index)
+    offset = _int_value(origin.get("offset"))
+    row_index, stable_key, row_text = _row_location(row_locations, origin_section, offset)
+    origin_class = _code_origin_class(origin)
+    value = _int_value(origin.get("runtime_address"))
+    if value is None:
+        value = _int_value(origin.get("length"))
+    if value is None:
+        value = _int_value(origin.get("size"))
+    return [
+        _xref(
+            row,
+            feature,
+            "code_origin",
+            section=origin_section,
+            offset=offset,
+            row_index=row_index,
+            stable_key=stable_key,
+            symbol=origin_class,
+            value=value,
+            text=row_text or _string_value(origin.get("detail")) or f"code origin {origin_class}",
+        )
+        for feature in _code_origin_features(origin)
+    ]
+
+
+def _address_identity_xrefs(
+    row: dict[str, object],
+    identity: dict[str, Any],
+    row_locations: dict[tuple[int, int], tuple[int, str | None, str | None]],
+    *,
+    section_index: int | None,
+) -> list[dict[str, object]]:
+    identity_section = _int_value(
+        identity.get("source_section_index"),
+        _int_value(identity.get("section_index"), section_index),
+    )
+    source_offset = _int_value(identity.get("source_offset"), _int_value(identity.get("offset")))
+    row_index, stable_key, row_text = _row_location(row_locations, identity_section, source_offset)
+    owner = _address_identity_owner(identity) or "unknown"
+    value = _int_value(identity.get("absolute_address"))
+    if value is None:
+        value = _int_value(identity.get("runtime_address"))
+    if value is None:
+        value = _int_value(identity.get("identity_id"))
+    return [
+        _xref(
+            row,
+            feature,
+            "address_identity",
+            section=identity_section,
+            offset=source_offset,
+            row_index=row_index,
+            stable_key=stable_key,
+            symbol=owner,
+            value=value,
+            text=row_text or _string_value(identity.get("detail")) or f"address identity {owner}",
+        )
+        for feature in _address_identity_features(identity)
+    ]
+
+
+def _symbol_origin_xrefs(
+    row: dict[str, object],
+    origin: dict[str, Any],
+    row_locations: dict[tuple[int, int], tuple[int, str | None, str | None]],
+    *,
+    section_index: int | None,
+) -> list[dict[str, object]]:
+    origin_section = _int_value(origin.get("section_index"), section_index)
+    offset = _int_value(origin.get("offset"))
+    row_index, stable_key, row_text = _row_location(row_locations, origin_section, offset)
+    origin_kind = _symbol_origin_kind(origin)
+    value = _int_value(origin.get("symbol_id"))
+    if value is None:
+        value = _int_value(origin.get("rendered_access_count"))
+    return [
+        _xref(
+            row,
+            feature,
+            "symbol_origin",
+            section=origin_section,
+            offset=offset,
+            row_index=row_index,
+            stable_key=stable_key,
+            symbol=_symbol_origin_name(origin) or origin_kind,
+            value=value,
+            text=row_text or _string_value(origin.get("detail")) or f"symbol origin {origin_kind}",
+        )
+        for feature in _symbol_origin_features(origin)
+    ]
+
+
+def _rendered_symbol_access_xrefs(
+    row: dict[str, object],
+    access: dict[str, Any],
+    row_locations: dict[tuple[int, int], tuple[int, str | None, str | None]],
+    *,
+    section_index: int | None,
+) -> list[dict[str, object]]:
+    access_section = _int_value(access.get("section_index"), section_index)
+    offset = _int_value(access.get("offset"))
+    row_index, stable_key, row_text = _row_location(row_locations, access_section, offset)
+    access_kind = _rendered_symbol_access_kind(access)
+    value = _int_value(access.get("target_address"))
+    if value is None:
+        value = _int_value(access.get("target_offset"))
+    if value is None:
+        value = _int_value(access.get("symbol_id"))
+    symbol = (
+        _string_value(access.get("symbol_name"))
+        or _string_value(access.get("symbol"))
+        or _string_value(access.get("name"))
+        or access_kind
+    )
+    return [
+        _xref(
+            row,
+            feature,
+            "rendered_symbol_access",
+            section=access_section,
+            offset=offset,
+            row_index=row_index,
+            stable_key=stable_key,
+            symbol=symbol,
+            value=value,
+            text=row_text or _string_value(access.get("detail")) or f"rendered symbol access {access_kind}",
+        )
+        for feature in _rendered_symbol_access_features(access)
+    ]
+
+
+def _range_ownership_xrefs(
+    row: dict[str, object],
+    range_record: dict[str, Any],
+    row_locations: dict[tuple[int, int], tuple[int, str | None, str | None]],
+    *,
+    section_index: int | None,
+) -> list[dict[str, object]]:
+    range_section = _int_value(range_record.get("section_index"), section_index)
+    start_offset = _int_value(range_record.get("start_offset"), _int_value(range_record.get("offset")))
+    row_index, stable_key, row_text = _row_location(row_locations, range_section, start_offset)
+    kind = _range_ownership_kind(range_record)
+    end_offset = _int_value(range_record.get("end_offset"))
+    return [
+        _xref(
+            row,
+            feature,
+            "range_ownership",
+            section=range_section,
+            offset=start_offset,
+            row_index=row_index,
+            stable_key=stable_key,
+            symbol=kind,
+            value=end_offset,
+            text=row_text or _string_value(range_record.get("detail")) or f"range ownership {kind}",
+        )
+        for feature in _range_ownership_features(range_record)
+    ]
+
+
+def _absolute_address_range_xrefs(
+    row: dict[str, object],
+    range_record: dict[str, Any],
+    row_locations: dict[tuple[int, int], tuple[int, str | None, str | None]],
+) -> list[dict[str, object]]:
+    section_index = _int_value(range_record.get("source_section_index"))
+    source_offset = _int_value(range_record.get("source_offset"))
+    row_index, stable_key, row_text = _row_location(row_locations, section_index, source_offset)
+    owner = _absolute_address_range_owner(range_record) or "unknown"
+    value = _int_value(
+        range_record.get("start_address"),
+        _int_value(range_record.get("range_start"), _int_value(range_record.get("address"))),
+    )
+    return [
+        _xref(
+            row,
+            feature,
+            "absolute_address_range",
+            section=section_index,
+            offset=source_offset,
+            row_index=row_index,
+            stable_key=stable_key,
+            symbol=owner,
+            value=value,
+            text=row_text or _string_value(range_record.get("detail")) or f"absolute address range {owner}",
+        )
+        for feature in _absolute_address_range_features(range_record)
+    ]
+
+
+def _table_descriptor_xrefs(
+    row: dict[str, object],
+    descriptor: dict[str, Any],
+    row_locations: dict[tuple[int, int], tuple[int, str | None, str | None]],
+    *,
+    section_index: int | None,
+) -> list[dict[str, object]]:
+    table_section = _int_value(descriptor.get("section_index"), section_index)
+    start_offset = _int_value(descriptor.get("start_offset"))
+    row_index, stable_key, row_text = _row_location(row_locations, table_section, start_offset)
+    table_kind = _table_fact_kind(descriptor)
+    return [
+        _xref(
+            row,
+            feature,
+            "table_descriptor",
+            section=table_section,
+            offset=start_offset,
+            row_index=row_index,
+            stable_key=stable_key,
+            symbol=table_kind,
+            value=_int_value(descriptor.get("entry_count")),
+            text=row_text or _string_value(descriptor.get("detail")) or f"table descriptor {table_kind}",
+        )
+        for feature in _table_descriptor_features(descriptor)
+    ]
+
+
+def _table_consumer_xrefs(
+    row: dict[str, object],
+    consumer: dict[str, Any],
+    row_locations: dict[tuple[int, int], tuple[int, str | None, str | None]],
+    *,
+    section_index: int | None,
+) -> list[dict[str, object]]:
+    consumer_section = _int_value(consumer.get("section_index"), section_index)
+    offset = _int_value(consumer.get("consumer_offset"), _int_value(consumer.get("offset")))
+    row_index, stable_key, row_text = _row_location(row_locations, consumer_section, offset)
+    table_kind = _table_fact_kind(consumer)
+    return [
+        _xref(
+            row,
+            feature,
+            "table_consumer",
+            section=consumer_section,
+            offset=offset,
+            row_index=row_index,
+            stable_key=stable_key,
+            symbol=table_kind,
+            value=_int_value(consumer.get("table_start_offset")),
+            text=row_text or _string_value(consumer.get("detail")) or f"table consumer {table_kind}",
+        )
+        for feature in _table_consumer_features(consumer)
+    ]
+
+
+def _table_entry_xrefs(
+    row: dict[str, object],
+    entry: dict[str, Any],
+    row_locations: dict[tuple[int, int], tuple[int, str | None, str | None]],
+    *,
+    section_index: int | None,
+) -> list[dict[str, object]]:
+    entry_section = _int_value(entry.get("section_index"), section_index)
+    entry_offset = _int_value(entry.get("entry_offset"), _int_value(entry.get("offset")))
+    row_index, stable_key, row_text = _row_location(row_locations, entry_section, entry_offset)
+    table_kind = _table_fact_kind(entry)
+    return [
+        _xref(
+            row,
+            feature,
+            "table_entry",
+            section=entry_section,
+            offset=entry_offset,
+            row_index=row_index,
+            stable_key=stable_key,
+            symbol=table_kind,
+            value=_int_value(entry.get("target_offset"), _int_value(entry.get("raw_value"))),
+            text=row_text or _string_value(entry.get("detail")) or f"table entry {table_kind}",
+        )
+        for feature in _table_entry_features(entry)
+    ]
+
+
+def _runtime_address_ref_xrefs(
+    row: dict[str, object],
+    ref: dict[str, Any],
+    row_locations: dict[tuple[int, int], tuple[int, str | None, str | None]],
+    *,
+    section_index: int | None,
+) -> list[dict[str, object]]:
+    ref_section = _int_value(ref.get("section_index"), section_index)
+    offset = _int_value(ref.get("offset"))
+    row_index, stable_key, row_text = _row_location(row_locations, ref_section, offset)
+    value = _int_value(ref.get("runtime_address"), _int_value(ref.get("target_offset")))
+    return [
+        _xref(
+            row,
+            feature,
+            "runtime_address_ref",
+            section=ref_section,
+            offset=offset,
+            row_index=row_index,
+            stable_key=stable_key,
+            symbol=_string_value(ref.get("data_class")) or "runtime_address_ref",
+            value=value,
+            text=row_text or _string_value(ref.get("detail")) or "runtime address ref",
+        )
+        for feature in _runtime_address_ref_features(ref)
+    ]
+
+
+def _data_reference_xrefs(
+    row: dict[str, object],
+    ref: dict[str, Any],
+    row_locations: dict[tuple[int, int], tuple[int, str | None, str | None]],
+    *,
+    section_index: int | None,
+) -> list[dict[str, object]]:
+    ref_section = _int_value(ref.get("section_index"), section_index)
+    source_offset = _int_value(ref.get("source_offset"), _int_value(ref.get("offset")))
+    row_index, stable_key, row_text = _row_location(row_locations, ref_section, source_offset)
+    source_kind = _string_value(ref.get("source_kind_name")) or "unknown"
+    return [
+        _xref(
+            row,
+            feature,
+            "data_reference",
+            section=ref_section,
+            offset=source_offset,
+            row_index=row_index,
+            stable_key=stable_key,
+            symbol=source_kind,
+            value=_int_value(ref.get("target_offset"), _int_value(ref.get("raw_value"))),
+            text=row_text or _string_value(ref.get("detail")) or f"data reference {source_kind}",
+        )
+        for feature in _data_reference_features(ref)
+    ]
+
+
+def _address_observation_xrefs(
+    row: dict[str, object],
+    observation: dict[str, Any],
+    row_locations: dict[tuple[int, int], tuple[int, str | None, str | None]],
+    *,
+    section_index: int | None,
+) -> list[dict[str, object]]:
+    obs_section = _int_value(observation.get("section_index"), section_index)
+    offset = _int_value(observation.get("offset"))
+    row_index, stable_key, row_text = _row_location(row_locations, obs_section, offset)
+    access = (
+        _string_value(observation.get("access_kind_name"))
+        or _string_value(observation.get("access"))
+        or _string_value(observation.get("access_kind"))
+        or "address_observation"
+    )
+    value = _int_value(observation.get("address"), _int_value(observation.get("raw_value")))
+    return [
+        _xref(
+            row,
+            feature,
+            "address_observation",
+            section=obs_section,
+            offset=offset,
+            row_index=row_index,
+            stable_key=stable_key,
+            symbol=access,
+            value=value,
+            text=row_text or _string_value(observation.get("detail")) or f"address observation {access}",
+        )
+        for feature in _address_observation_features(observation)
+    ]
+
+
 def _analysis_xrefs(
     row: dict[str, object],
     analysis: dict[str, Any],
@@ -4038,6 +5847,36 @@ def _analysis_xrefs(
             for index in range(violation_count):
                 xrefs.append(_xref(row, "diagnostic:cpu_violation", "diagnostic", value=index, text="CPU violation"))
     xrefs.extend(_decompression_analysis_xrefs(row, analysis, row_locations))
+    for diagnostic in _dict_items(analysis.get("source_quality_diagnostics")):
+        xrefs.extend(_source_quality_diagnostic_xrefs(row, diagnostic, row_locations, section_index=None))
+    for origin in _dict_items(analysis.get("code_origins")):
+        xrefs.extend(_code_origin_xrefs(row, origin, row_locations, section_index=None))
+    for identity in _dict_items(analysis.get("address_identities")):
+        xrefs.extend(_address_identity_xrefs(row, identity, row_locations, section_index=None))
+    for origin in _dict_items(analysis.get("symbol_origins")):
+        xrefs.extend(_symbol_origin_xrefs(row, origin, row_locations, section_index=None))
+    for access in _dict_items(analysis.get("rendered_symbol_accesses")):
+        xrefs.extend(_rendered_symbol_access_xrefs(row, access, row_locations, section_index=None))
+    for range_record in _dict_items(analysis.get("range_ownerships")):
+        xrefs.extend(_range_ownership_xrefs(row, range_record, row_locations, section_index=None))
+    for range_record in _dict_items(analysis.get("absolute_address_ranges")):
+        xrefs.extend(_absolute_address_range_xrefs(row, range_record, row_locations))
+    for descriptor in _dict_items(analysis.get("table_descriptors")):
+        xrefs.extend(_table_descriptor_xrefs(row, descriptor, row_locations, section_index=None))
+    for consumer in _dict_items(analysis.get("table_consumers")):
+        xrefs.extend(_table_consumer_xrefs(row, consumer, row_locations, section_index=None))
+    for entry in _dict_items(analysis.get("table_entries")):
+        xrefs.extend(_table_entry_xrefs(row, entry, row_locations, section_index=None))
+    for ref in _dict_items(analysis.get("runtime_address_refs")):
+        xrefs.extend(_runtime_address_ref_xrefs(row, ref, row_locations, section_index=None))
+    for ref in _dict_items(analysis.get("data_references")):
+        xrefs.extend(_data_reference_xrefs(row, ref, row_locations, section_index=None))
+    for observation in _dict_items(analysis.get("address_observations")):
+        xrefs.extend(_address_observation_xrefs(row, observation, row_locations, section_index=None))
+    for run in _dict_items(analysis.get("accepted_code_runs")):
+        xrefs.extend(_accepted_code_run_xrefs(row, run, row_locations, section_index=None))
+    for use in _dict_items(analysis.get("platform_address_uses")):
+        xrefs.extend(_platform_address_use_xrefs(row, use, row_locations, section_index=None))
     for table in _dict_items(analysis.get("table_records")):
         role = _table_role_name(table)
         table_kind = _table_kind_name(table)
@@ -4223,6 +6062,8 @@ def _analysis_xrefs(
                 value=record_value, text=row_text or conflict_state, **owner_range_xref))
     for section in _dict_items(analysis.get("sections")):
         section_index = _int_value(section.get("section_index"), 0)
+        for ref in _dict_items(section.get("code_start_refs")):
+            xrefs.extend(_code_start_ref_xrefs(row, ref, row_locations, section_index=section_index))
         for call in _dict_items(section.get("recovered_platform_calls")):
             library = _string_value(call.get("library_name")) or _string_value(call.get("note_base_name")) or "unknown"
             function = (
@@ -4448,6 +6289,36 @@ def _analysis_xrefs(
                         text=text,
                     )
                 )
+        for run in _dict_items(section.get("accepted_code_runs")):
+            xrefs.extend(_accepted_code_run_xrefs(row, run, row_locations, section_index=section_index))
+        for origin in _dict_items(section.get("code_origins")):
+            xrefs.extend(_code_origin_xrefs(row, origin, row_locations, section_index=section_index))
+        for identity in _dict_items(section.get("address_identities")):
+            xrefs.extend(_address_identity_xrefs(row, identity, row_locations, section_index=section_index))
+        for origin in _dict_items(section.get("symbol_origins")):
+            xrefs.extend(_symbol_origin_xrefs(row, origin, row_locations, section_index=section_index))
+        for access in _dict_items(section.get("rendered_symbol_accesses")):
+            xrefs.extend(_rendered_symbol_access_xrefs(row, access, row_locations, section_index=section_index))
+        for range_record in _dict_items(section.get("range_ownerships")):
+            xrefs.extend(_range_ownership_xrefs(row, range_record, row_locations, section_index=section_index))
+        for range_record in _dict_items(section.get("absolute_address_ranges")):
+            xrefs.extend(_absolute_address_range_xrefs(row, range_record, row_locations))
+        for descriptor in _dict_items(section.get("table_descriptors")):
+            xrefs.extend(_table_descriptor_xrefs(row, descriptor, row_locations, section_index=section_index))
+        for consumer in _dict_items(section.get("table_consumers")):
+            xrefs.extend(_table_consumer_xrefs(row, consumer, row_locations, section_index=section_index))
+        for entry in _dict_items(section.get("table_entries")):
+            xrefs.extend(_table_entry_xrefs(row, entry, row_locations, section_index=section_index))
+        for ref in _dict_items(section.get("runtime_address_refs")):
+            xrefs.extend(_runtime_address_ref_xrefs(row, ref, row_locations, section_index=section_index))
+        for ref in _dict_items(section.get("data_references")):
+            xrefs.extend(_data_reference_xrefs(row, ref, row_locations, section_index=section_index))
+        for observation in _dict_items(section.get("address_observations")):
+            xrefs.extend(_address_observation_xrefs(row, observation, row_locations, section_index=section_index))
+        for use in _dict_items(section.get("platform_address_uses")):
+            xrefs.extend(_platform_address_use_xrefs(row, use, row_locations, section_index=section_index))
+        for diagnostic in _dict_items(section.get("source_quality_diagnostics")):
+            xrefs.extend(_source_quality_diagnostic_xrefs(row, diagnostic, row_locations, section_index=section_index))
         recovered_indirect_sites = list(_dict_items(section.get("recovered_indirect_sites")))
         for site in recovered_indirect_sites:
             offset = _int_value(site.get("offset"))

@@ -1,0 +1,12 @@
+{
+  "created_at": "2026-05-31T02:53:45.956418+00:00",
+  "origin": {
+    "kind": "disk_child",
+    "parent_disk_id": "starglider-2-1988-rainbird-cr-ua---wow",
+    "source_path": "bin/Starglider 2 (1988)(Rainbird)[cr UA - WOW].adf",
+    "target_role": "bootblock",
+    "target_type": "bootblock"
+  },
+  "schema_version": 2,
+  "updated_at": "2026-05-31T02:53:45.967012+00:00"
+}

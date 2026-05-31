@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parents[2]
 
 from amiga_reversing.amiga_disk.models import DiskManifest
 from amiga_reversing.disasm.assembler_profiles import load_assembler_profile
+from amiga_reversing.disasm.binary_source import AssetDataBinarySource
 from amiga_reversing.disasm.c_backend import benchmark_from_facts_v2_asm_source_profile
 from amiga_reversing.disasm.effective_metadata import effective_metadata_file
 from amiga_reversing.disasm.project_ids import target_output_stem
@@ -143,6 +144,28 @@ def _benchmark_binary_target(
     disasm_path.unlink(missing_ok=True)
 
     start = time.perf_counter()
+    if isinstance(paths.binary_source, AssetDataBinarySource):
+        data = paths.binary_source.read_bytes()
+        asset_benchmark = {
+            "benchmark_version": 1,
+            "platform": "asset-data",
+            "file": {"size": len(data), "role": paths.binary_source.role},
+        }
+        record = _benchmark_record(
+            target,
+            paths.binary_source.display_path,
+            TargetBenchmarkStatus.OK,
+            time.perf_counter() - start,
+            asset_benchmark,
+            disasm_path,
+        )
+        if write_output:
+            (target_dir / "benchmark.json").write_text(
+                json.dumps(asdict(record), indent=2) + "\n",
+                encoding="ascii",
+            )
+        return record
+
     assembler_profile_name = _assembler_profile_for_target(target_dir)
     c_benchmark: dict[str, object] | None = None
     try:

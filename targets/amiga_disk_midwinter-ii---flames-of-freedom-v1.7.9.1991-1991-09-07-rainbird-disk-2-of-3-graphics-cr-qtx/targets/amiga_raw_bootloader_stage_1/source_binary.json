@@ -1,0 +1,9 @@
+{
+  "address_model": "runtime_absolute",
+  "code_start_offset": 0,
+  "entrypoint": 262144,
+  "kind": "raw_binary",
+  "load_address": 262144,
+  "parent_disk_id": "midwinter-ii---flames-of-freedom-v1.7.9.1991-1991-09-07-rainbird-disk-2-of-3-graphics-cr-qtx",
+  "path": "targets/amiga_disk_midwinter-ii---flames-of-freedom-v1.7.9.1991-1991-09-07-rainbird-disk-2-of-3-graphics-cr-qtx/targets/amiga_raw_bootloader_stage_1/binary.bin"
+}

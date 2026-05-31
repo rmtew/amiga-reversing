@@ -452,18 +452,30 @@ static int append_bootblock_import_target_json(JsonBuilder *builder, const Amiga
     if (json_builder_append(builder,
             "{\"target_type\":\"bootblock\",\"entry_path\":\"bootblock\",\"local_target_id\":\"amiga_raw_bootblock\"") != 0)
         return -1;
-    if (json_builder_append(builder, ",\"source\":{\"kind\":\"raw_binary\"") != 0)
-        return -1;
-    if (json_builder_appendf(builder,
-            ",\"address_model\":\"local_offset\",\"byte_offset\":0,\"byte_size\":%u,\"load_address\":%u",
-            byte_size, load_address) != 0)
-        return -1;
-    if (json_builder_appendf(builder, ",\"entrypoint\":%u,\"code_start_offset\":%u}", load_address + entry_offset,
-            entry_offset) != 0)
-        return -1;
+    if (analysis->bootcode_has_code) {
+        if (json_builder_append(builder, ",\"source\":{\"kind\":\"raw_binary\"") != 0)
+            return -1;
+        if (json_builder_appendf(builder,
+                ",\"address_model\":\"local_offset\",\"byte_offset\":0,\"byte_size\":%u,\"load_address\":%u",
+                byte_size, load_address) != 0)
+            return -1;
+        if (json_builder_appendf(builder, ",\"entrypoint\":%u,\"code_start_offset\":%u}", load_address + entry_offset,
+                entry_offset) != 0)
+            return -1;
+    } else {
+        if (json_builder_appendf(builder,
+                ",\"source\":{\"kind\":\"asset_data\",\"byte_offset\":0,\"byte_size\":%u,\"load_address\":%u,"
+                "\"role\":\"bootblock\"}",
+                byte_size, load_address) != 0)
+            return -1;
+    }
     if (json_builder_append(builder, ",\"target_metadata\":{\"target_type\":\"bootblock\",\"entry_register_seeds\":") != 0)
         return -1;
-    if (append_boot_entry_register_seeds_json(builder) != 0) return -1;
+    if (analysis->bootcode_has_code) {
+        if (append_boot_entry_register_seeds_json(builder) != 0) return -1;
+    } else if (json_builder_append(builder, "[]") != 0) {
+        return -1;
+    }
     if (json_builder_append(builder, ",\"bootblock\":{\"magic_ascii\":") != 0) return -1;
     if (json_builder_append_json_string(builder, analysis->boot_magic) != 0) return -1;
     if (json_builder_appendf(builder, ",\"flags_byte\":%u,\"fs_description\":", analysis->dos_flags) != 0) return -1;

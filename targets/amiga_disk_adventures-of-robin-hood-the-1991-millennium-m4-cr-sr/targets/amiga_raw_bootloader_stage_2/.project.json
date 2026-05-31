@@ -1,0 +1,13 @@
+{
+  "created_at": "2026-05-31T02:53:45.277557+00:00",
+  "origin": {
+    "entry_path": "bootloader/stage_2",
+    "kind": "disk_child",
+    "parent_disk_id": "adventures-of-robin-hood-the-1991-millennium-m4-cr-sr",
+    "source_path": "bin/Adventures of Robin Hood, The (1991)(Millennium)(M4)[cr SR].adf",
+    "target_role": "bootloader_stage",
+    "target_type": "bootloader_stage"
+  },
+  "schema_version": 2,
+  "updated_at": "2026-05-31T02:53:45.288518+00:00"
+}

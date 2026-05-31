@@ -71,7 +71,6 @@ static int json_builder_append_facts_v2_profile(JsonBuilder *builder, const M68k
 static int append_analysis_restored_source_model_json(JsonBuilder *builder, const char *backend_name,
     const M68kObject *object, const M68kRenderPlan *source_plan);
 static uint32_t read_be32_local(const uint8_t *data);
-static void write_be32_local(uint8_t *data, uint32_t value);
 static int write_bytes_to_path_local(const char *path, const unsigned char *data, size_t size,
     M68kDiagList *diagnostics);
 static const char *self_decrunch_sim_stop_reason_name_local(uint8_t stop_reason);
@@ -2804,7 +2803,6 @@ static const char *decompression_source_kind_name_local(uint8_t source_kind) {
     case PLATFORM_DECOMPRESSION_SOURCE_SECTION_RANGE: return "section_range";
     case PLATFORM_DECOMPRESSION_SOURCE_RECOGNIZED_UNPACKER: return "recognized_unpacker";
     case PLATFORM_DECOMPRESSION_SOURCE_SELF_DECRUNCHER: return "self_decruncher";
-    case PLATFORM_DECOMPRESSION_SOURCE_TARGET_LOADER_FILE: return "target_loader_file";
     default: return "unknown";
   }
 }
@@ -2845,7 +2843,6 @@ static const char *decompression_reason_name_local(uint8_t reason) {
     case PLATFORM_DECOMPRESSION_REASON_SIMULATED_NO_OUTPUT_RANGE: return "simulated_no_output_range";
     case PLATFORM_DECOMPRESSION_REASON_SIMULATED_UNKNOWN_STOP: return "simulated_unknown_stop";
     case PLATFORM_DECOMPRESSION_REASON_INVALID_DECOMPRESSED_ENTRYPOINT: return "invalid_decompressed_entrypoint";
-    case PLATFORM_DECOMPRESSION_REASON_TARGET_LOADER_ACCEPTANCE_MATCHED: return "target_loader_acceptance_matched";
     default: return "unknown";
   }
 }
@@ -2982,21 +2979,6 @@ typedef struct PlatformRecognizedUnpackerEvent {
   uint8_t has_copied_stub_transfer;
 } PlatformRecognizedUnpackerEvent;
 
-typedef struct PlatformTargetLoaderFileEvent {
-  uint32_t source_section_index;
-  uint32_t transfer_offset;
-  uint32_t path_section_index;
-  uint32_t path_offset;
-  uint32_t destination_addr;
-  uint32_t source_size;
-  uint32_t acceptance_check_offset;
-  uint32_t acceptance_value;
-  uint32_t processor_call_offset;
-  uint32_t processor_entry_offset;
-  char path[256];
-  char source_sha256[65];
-} PlatformTargetLoaderFileEvent;
-
 typedef struct PlatformRuntimeWriteObservation {
   uint32_t start;
   uint32_t end;
@@ -3039,15 +3021,6 @@ static void make_recognized_unpacker_event_id_local(char *out, size_t out_size,
     event != NULL ? (unsigned)event->source_section_index : 0U,
     event != NULL ? (unsigned)event->marker_offset : 0U,
     codec_id);
-}
-
-static void make_target_loader_file_event_id_local(char *out, size_t out_size,
-    const PlatformTargetLoaderFileEvent *event) {
-  if (out == NULL || out_size == 0U) return;
-  snprintf(out, out_size, "decompression:target_loader_file:section:%u:%08X:%08X",
-    event != NULL ? (unsigned)event->source_section_index : 0U,
-    event != NULL ? (unsigned)event->transfer_offset : 0U,
-    event != NULL ? (unsigned)event->processor_call_offset : 0U);
 }
 
 static int runtime_transfer_target_from_candidate_min_local(const M68kDecodeSectionIR *section,
@@ -4968,214 +4941,6 @@ static int collect_self_decrunch_events_local(const M68kObject *object, const M6
   return result;
 }
 
-static int platform_file_ascii_equal_ci_local(const char *left, const char *right) {
-  unsigned char lc, rc;
-  if (left == NULL || right == NULL) return 0;
-  while (*left != '\0' && *right != '\0') {
-    lc = (unsigned char)*left++;
-    rc = (unsigned char)*right++;
-    if (tolower(lc) != tolower(rc)) return 0;
-  }
-  return *left == '\0' && *right == '\0';
-}
-
-static const AmigaDiskEntry *platform_file_find_amiga_disk_entry_local(const AmigaDiskAnalysis *disk,
-    const char *path) {
-  size_t index;
-  if (disk == NULL || path == NULL || path[0] == '\0') return NULL;
-  for (index = 0U; index < disk->entry_count; ++index) {
-    const AmigaDiskEntry *entry = &disk->entries[index];
-    if (entry->kind == AMIGA_DISK_ENTRY_FILE && entry->path != NULL &&
-        platform_file_ascii_equal_ci_local(entry->path, path)) {
-      return entry;
-    }
-  }
-  return NULL;
-}
-
-static int platform_file_extract_amiga_entry_payload_local(const uint8_t *disk_data, size_t disk_size,
-    const AmigaDiskEntry *entry, Arena *arena, uint8_t **out_data, size_t *out_size) {
-  uint8_t *payload;
-  size_t pos = 0U;
-  size_t index;
-  if (out_data != NULL) *out_data = NULL;
-  if (out_size != NULL) *out_size = 0U;
-  if (disk_data == NULL || entry == NULL || arena == NULL || out_data == NULL || out_size == NULL) return -1;
-  payload = (uint8_t *)arena_alloc(arena, entry->byte_size != 0U ? entry->byte_size : 1U);
-  if (payload == NULL) return -1;
-  for (index = 0U; index < entry->extent_count; ++index) {
-    const AmigaDiskExtent *extent = &entry->extents[index];
-    if ((size_t)extent->image_offset > disk_size ||
-        (size_t)extent->byte_size > disk_size - (size_t)extent->image_offset ||
-        pos > (size_t)entry->byte_size ||
-        (size_t)extent->byte_size > (size_t)entry->byte_size - pos) {
-      return -1;
-    }
-    memcpy(payload + pos, disk_data + extent->image_offset, extent->byte_size);
-    pos += extent->byte_size;
-  }
-  *out_data = payload;
-  *out_size = pos;
-  return 0;
-}
-
-static int target_loader_acceptance_check_candidate_local(const M68kDecodeCandidate *candidate,
-    uint8_t *out_reg, uint32_t *out_value) {
-  M68kInstructionIR instruction;
-  uint32_t value = 0U;
-  uint8_t reg = 0U;
-  if (out_reg != NULL) *out_reg = 0U;
-  if (out_value != NULL) *out_value = 0U;
-  if (candidate == NULL || out_reg == NULL || out_value == NULL ||
-      candidate->mnemonic_id != M68K_ASM_MNEMONIC_CMPI ||
-      candidate->size_suffix != 'l' || candidate->operand_count != 2U) {
-    return 0;
-  }
-  if (!recognized_unpacker_immediate_operand_value_local(candidate, &value)) return 0;
-  if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0 ||
-      instruction.operand_count != 2U ||
-      instruction.operands[1].value.kind != M68K_ASM_OPERAND_EA ||
-      instruction.operands[1].value.ea_mode != 2U ||
-      instruction.operands[1].value.ea_reg >= 8U) {
-    return 0;
-  }
-  reg = (uint8_t)instruction.operands[1].value.ea_reg;
-  *out_reg = reg;
-  *out_value = value;
-  return 1;
-}
-
-static int target_loader_acceptance_direct_processor_call_local(const M68kDecodeIR *decode, size_t section_index,
-    const M68kDecodeCandidate *acceptance, uint8_t max_cpu, uint32_t *out_call_offset,
-    uint32_t *out_entry_offset) {
-  const uint32_t scan_limit = 32U;
-  uint32_t cursor;
-  uint32_t end;
-  if (out_call_offset != NULL) *out_call_offset = 0U;
-  if (out_entry_offset != NULL) *out_entry_offset = 0U;
-  if (decode == NULL || acceptance == NULL || out_call_offset == NULL || out_entry_offset == NULL ||
-      acceptance->byte_count == 0U || acceptance->offset > UINT32_MAX - acceptance->byte_count ||
-      section_index >= decode->section_count) {
-    return 0;
-  }
-  cursor = acceptance->offset + acceptance->byte_count;
-  end = cursor > UINT32_MAX - scan_limit ? UINT32_MAX : cursor + scan_limit;
-  while (cursor < end && cursor < decode->sections[section_index].size) {
-    const M68kDecodeCandidate *candidate = NULL;
-    uint32_t target = 0U;
-    if (m68k_decode_ir_ensure_candidate_at((M68kDecodeIR *)decode, section_index, cursor,
-        max_cpu, &candidate, m68k_diag_sink(NULL)) != 0 ||
-        candidate == NULL || candidate->byte_count == 0U) {
-      break;
-    }
-    if (decode_candidate_direct_call_target_local(candidate, section_index, &target)) {
-      *out_call_offset = candidate->offset;
-      *out_entry_offset = target;
-      return 1;
-    }
-    if (candidate->offset > UINT32_MAX - candidate->byte_count) break;
-    cursor = candidate->offset + candidate->byte_count;
-  }
-  return 0;
-}
-
-static int collect_target_loader_file_events_local(const M68kObject *object, const M68kSourceAnalysisIR *analysis,
-    PlatformTargetLoaderFileEvent *events, size_t event_capacity, size_t *out_event_count, Arena *arena) {
-  unsigned char *disk_data = NULL;
-  size_t disk_size = 0U;
-  AmigaDiskAnalysis disk;
-  M68kDecodeIR decode;
-  size_t section_index;
-  int have_disk_analysis = 0;
-  int result = 0;
-  if (out_event_count != NULL) *out_event_count = 0U;
-  if (object == NULL || analysis == NULL || events == NULL || out_event_count == NULL ||
-      event_capacity == 0U || arena == NULL || object->platform_backend_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK) {
-    return 0;
-  }
-  if (strcmp(analysis->policy.source_context_kind, "disk_entry") != 0 ||
-      analysis->policy.source_context_disk_path[0] == '\0') {
-    return 0;
-  }
-  memset(&disk, 0, sizeof(disk));
-  memset(&decode, 0, sizeof(decode));
-  if (read_file_to_buffer(analysis->policy.source_context_disk_path, &disk_data, &disk_size, m68k_diag_sink(NULL)) != 0)
-    return 0;
-  if (amiga_disk_analyze_buffer(disk_data, disk_size, &disk, m68k_diag_sink(NULL)) != 0) goto cleanup;
-  have_disk_analysis = 1;
-  if (m68k_decode_ir_build_object_sections(&decode, object, m68k_diag_sink(NULL)) != 0) goto cleanup;
-  for (section_index = 0U; section_index < analysis->section_count && section_index < decode.section_count &&
-      *out_event_count < event_capacity; ++section_index) {
-    const M68kSectionAnalysisIR *section = &analysis->sections[section_index];
-    size_t transfer_index;
-    uint32_t candidate_offset;
-    if (section->certain_code_start == NULL) continue;
-    for (transfer_index = 0U; transfer_index < section->recovered_platform_media_transfer_count &&
-        *out_event_count < event_capacity; ++transfer_index) {
-      const M68kRecoveredPlatformMediaTransferIR *transfer =
-        &section->recovered_platform_media_transfers[transfer_index];
-      const AmigaDiskEntry *entry;
-      uint8_t *payload = NULL;
-      size_t payload_size = 0U;
-      uint32_t payload_acceptance_value;
-      if (transfer->source_kind != M68K_RECOVERED_PLATFORM_TRANSFER_SOURCE_TARGET_LOADER_FILE ||
-          transfer->path == NULL || transfer->path[0] == '\0') {
-        continue;
-      }
-      entry = platform_file_find_amiga_disk_entry_local(&disk, transfer->path);
-      if (entry == NULL ||
-          platform_file_extract_amiga_entry_payload_local(disk_data, disk_size, entry, arena, &payload,
-            &payload_size) != 0 ||
-          payload_size < 4U) {
-        continue;
-      }
-      payload_acceptance_value = read_be32_local(payload);
-      for (candidate_offset = 0U; candidate_offset < decode.sections[section_index].size &&
-          *out_event_count < event_capacity; ++candidate_offset) {
-        const M68kDecodeCandidate *candidate = NULL;
-        uint8_t compare_reg = 0U;
-        uint32_t acceptance_value = 0U;
-        uint32_t processor_call_offset = 0U;
-        uint32_t processor_entry_offset = 0U;
-        PlatformTargetLoaderFileEvent event;
-        if (section->certain_code_start[candidate_offset] == 0U ||
-            m68k_decode_ir_ensure_candidate_at(&decode, section_index, candidate_offset, analysis->policy.max_cpu,
-              &candidate, m68k_diag_sink(NULL)) != 0 ||
-            candidate == NULL || candidate->byte_count == 0U) {
-          continue;
-        }
-        if (!target_loader_acceptance_check_candidate_local(candidate, &compare_reg, &acceptance_value) ||
-            acceptance_value != payload_acceptance_value ||
-            !target_loader_acceptance_direct_processor_call_local(&decode, section_index, candidate,
-              analysis->policy.max_cpu, &processor_call_offset, &processor_entry_offset)) {
-          continue;
-        }
-        (void)compare_reg;
-        memset(&event, 0, sizeof(event));
-        event.source_section_index = (uint32_t)section_index;
-        event.transfer_offset = transfer->offset;
-        event.path_section_index = (uint32_t)transfer->path_section_index;
-        event.path_offset = transfer->path_offset;
-        event.destination_addr = transfer->destination_addr;
-        event.source_size = payload_size <= UINT32_MAX ? (uint32_t)payload_size : UINT32_MAX;
-        event.acceptance_check_offset = candidate->offset;
-        event.acceptance_value = acceptance_value;
-        event.processor_call_offset = processor_call_offset;
-        event.processor_entry_offset = processor_entry_offset;
-        snprintf(event.path, sizeof(event.path), "%s", transfer->path);
-        (void)m68k_platform_sha256_hex(payload, payload_size, event.source_sha256);
-        events[*out_event_count] = event;
-        *out_event_count += 1U;
-      }
-    }
-  }
-cleanup:
-  m68k_decode_ir_destroy(&decode);
-  if (have_disk_analysis) amiga_disk_analysis_destroy(&disk);
-  free(disk_data);
-  return result;
-}
-
 static const char *self_decrunch_sim_stop_reason_name_local(uint8_t stop_reason) {
   switch (stop_reason) {
     case M68K_SIM_CONCRETE_RUN_STOP_NONE: return "none";
@@ -5452,73 +5217,6 @@ static int append_self_decrunch_event_json(JsonBuilder *builder, const PlatformS
   return json_builder_append(builder, "}");
 }
 
-static int append_target_loader_file_event_json(JsonBuilder *builder, const PlatformTargetLoaderFileEvent *event) {
-  char event_id[160];
-  if (builder == NULL || event == NULL) return -1;
-  make_target_loader_file_event_id_local(event_id, sizeof(event_id), event);
-  if (json_builder_appendf(builder, "{\"event_kind_id\":%u,\"event_kind\":",
-      (unsigned)PLATFORM_DECOMPRESSION_EVENT_KIND_DECOMPRESSION) != 0 ||
-      json_builder_append_json_string(builder,
-        decompression_event_kind_name_local(PLATFORM_DECOMPRESSION_EVENT_KIND_DECOMPRESSION)) != 0 ||
-      json_builder_append(builder, ",\"event_id\":") != 0 ||
-      json_builder_append_json_string(builder, event_id) != 0 ||
-      json_builder_appendf(builder, ",\"status_id\":%u,\"status\":",
-        (unsigned)PLATFORM_DECOMPRESSION_STATUS_NEEDS_SIMULATED_DECRUNCH) != 0 ||
-      json_builder_append_json_string(builder,
-        decompression_status_name_local(PLATFORM_DECOMPRESSION_STATUS_NEEDS_SIMULATED_DECRUNCH)) != 0 ||
-      json_builder_appendf(builder, ",\"reason_id\":%u,\"reason\":",
-        (unsigned)PLATFORM_DECOMPRESSION_REASON_TARGET_LOADER_ACCEPTANCE_MATCHED) != 0 ||
-      json_builder_append_json_string(builder,
-        decompression_reason_name_local(PLATFORM_DECOMPRESSION_REASON_TARGET_LOADER_ACCEPTANCE_MATCHED)) != 0 ||
-      json_builder_appendf(builder, ",\"payload_role_id\":%u,\"payload_role\":",
-        (unsigned)PLATFORM_DECOMPRESSION_PAYLOAD_ROLE_UNKNOWN_DATA) != 0 ||
-      json_builder_append_json_string(builder,
-        decompression_payload_role_name_local(PLATFORM_DECOMPRESSION_PAYLOAD_ROLE_UNKNOWN_DATA)) != 0 ||
-      json_builder_appendf(builder, ",\"payload_role_confidence_id\":%u,\"payload_role_confidence\":",
-        (unsigned)PLATFORM_DECOMPRESSION_PAYLOAD_ROLE_CONFIDENCE_TOOL_INFERRED) != 0 ||
-      json_builder_append_json_string(builder,
-        decompression_payload_role_confidence_name_local(
-          PLATFORM_DECOMPRESSION_PAYLOAD_ROLE_CONFIDENCE_TOOL_INFERRED)) != 0 ||
-      json_builder_appendf(builder, ",\"parent_remains_active_id\":%u,\"parent_remains_active\":",
-        (unsigned)PLATFORM_DECOMPRESSION_PARENT_REMAINS_ACTIVE_TRUE) != 0 ||
-      json_builder_append_json_string(builder,
-        decompression_parent_remains_active_name_local(PLATFORM_DECOMPRESSION_PARENT_REMAINS_ACTIVE_TRUE)) != 0 ||
-      json_builder_appendf(builder, ",\"source_kind_id\":%u,\"source_kind\":",
-        (unsigned)PLATFORM_DECOMPRESSION_SOURCE_TARGET_LOADER_FILE) != 0 ||
-      json_builder_append_json_string(builder,
-        decompression_source_kind_name_local(PLATFORM_DECOMPRESSION_SOURCE_TARGET_LOADER_FILE)) != 0 ||
-      json_builder_appendf(builder, ",\"codec_support_id\":%u,\"codec_support\":",
-        (unsigned)PLATFORM_DECOMPRESSION_CODEC_SUPPORT_SIMULATOR_REQUIRED) != 0 ||
-      json_builder_append_json_string(builder,
-        decompression_codec_support_name_local(PLATFORM_DECOMPRESSION_CODEC_SUPPORT_SIMULATOR_REQUIRED)) != 0 ||
-      json_builder_append(builder, ",\"provider_id\":\"m68k-sim-decrunch\"") != 0) {
-    return -1;
-  }
-  if (json_builder_appendf(builder,
-      ",\"source_section\":%u,\"source_section_offset\":%u,\"transfer_offset\":%u,"
-      "\"path_section_index\":%u,\"path_offset\":%u,\"destination_addr\":%u,"
-      "\"source_size\":%u,\"source_sha256\":",
-      (unsigned)event->source_section_index, (unsigned)event->transfer_offset,
-      (unsigned)event->transfer_offset, (unsigned)event->path_section_index,
-      (unsigned)event->path_offset, (unsigned)event->destination_addr,
-      (unsigned)event->source_size) != 0 ||
-      json_builder_append_json_string(builder, event->source_sha256) != 0 ||
-      json_builder_append(builder, ",\"source_path\":") != 0 ||
-      json_builder_append_json_string(builder, event->path) != 0 ||
-      json_builder_appendf(builder,
-        ",\"acceptance_check_offset\":%u,\"acceptance_value\":%u,"
-        "\"processor_call_offset\":%u,\"processor_entry_offset\":%u,"
-        "\"materialization_blocker\":",
-        (unsigned)event->acceptance_check_offset, (unsigned)event->acceptance_value,
-        (unsigned)event->processor_call_offset, (unsigned)event->processor_entry_offset) != 0 ||
-      json_builder_append_json_string(builder,
-        "target loader file matched target-owned acceptance check, but replayed decompressor writes are not proven") !=
-        0) {
-    return -1;
-  }
-  return json_builder_append(builder, "}");
-}
-
 static int append_derived_decompression_suggestion_json(JsonBuilder *builder,
     const PlatformDecompressionIdentifyResult *result, const M68kRuntimeViewIR *runtime_copy_view) {
   char event_id[160];
@@ -5672,18 +5370,15 @@ static int append_object_decompression_analysis_json(JsonBuilder *builder, const
   const size_t result_capacity = 32U;
   const size_t self_decrunch_event_capacity = 16U;
   const size_t recognized_unpacker_event_capacity = 16U;
-  const size_t target_loader_file_event_capacity = 32U;
   const size_t candidate_capacity = 16U;
   Arena *scratch_arena = NULL;
   PlatformDecompressionIdentifyResult *results = NULL;
   PlatformSelfDecrunchEvent *self_decrunch_events = NULL;
   PlatformRecognizedUnpackerEvent *recognized_unpacker_events = NULL;
-  PlatformTargetLoaderFileEvent *target_loader_file_events = NULL;
   PlatformDecompressionCandidate *candidates = NULL;
   size_t result_count = 0U;
   size_t self_decrunch_event_count = 0U;
   size_t recognized_unpacker_event_count = 0U;
-  size_t target_loader_file_event_count = 0U;
   size_t section_index;
   size_t emitted_event_count = 0U;
   int rc = -1;
@@ -5699,12 +5394,9 @@ static int append_object_decompression_analysis_json(JsonBuilder *builder, const
   recognized_unpacker_events = (PlatformRecognizedUnpackerEvent *)arena_calloc(scratch_arena,
     recognized_unpacker_event_capacity,
     sizeof(*recognized_unpacker_events));
-  target_loader_file_events = (PlatformTargetLoaderFileEvent *)arena_calloc(scratch_arena,
-    target_loader_file_event_capacity,
-    sizeof(*target_loader_file_events));
   candidates = (PlatformDecompressionCandidate *)arena_calloc(scratch_arena, candidate_capacity, sizeof(*candidates));
   if (results == NULL || self_decrunch_events == NULL || recognized_unpacker_events == NULL ||
-      target_loader_file_events == NULL || candidates == NULL) {
+      candidates == NULL) {
     goto cleanup;
   }
   for (section_index = 0U; section_index < object->section_count; ++section_index) {
@@ -5776,10 +5468,6 @@ static int append_object_decompression_analysis_json(JsonBuilder *builder, const
       &recognized_unpacker_event_count, NULL, NULL, NULL, NULL, scratch_arena) != 0) {
     goto cleanup;
   }
-  if (collect_target_loader_file_events_local(object, analysis, target_loader_file_events,
-      target_loader_file_event_capacity, &target_loader_file_event_count, scratch_arena) != 0) {
-    goto cleanup;
-  }
   if (json_builder_append(builder, ",\"packed_payloads\":[") != 0) goto cleanup;
   for (section_index = 0U; section_index < result_count; ++section_index) {
     if (section_index != 0U && json_builder_append(builder, ",") != 0) goto cleanup;
@@ -5813,11 +5501,6 @@ static int append_object_decompression_analysis_json(JsonBuilder *builder, const
       continue;
     if (emitted_event_count != 0U && json_builder_append(builder, ",") != 0) goto cleanup;
     if (append_self_decrunch_event_json(builder, &self_decrunch_events[section_index]) != 0) goto cleanup;
-    ++emitted_event_count;
-  }
-  for (section_index = 0U; section_index < target_loader_file_event_count; ++section_index) {
-    if (emitted_event_count != 0U && json_builder_append(builder, ",") != 0) goto cleanup;
-    if (append_target_loader_file_event_json(builder, &target_loader_file_events[section_index]) != 0) goto cleanup;
     ++emitted_event_count;
   }
   if (json_builder_append(builder, "]") != 0) goto cleanup;
@@ -8410,13 +8093,6 @@ static int policy_add_raw_runtime_load_range_local(M68kAnalysisPolicy *policy, c
 
 static uint32_t read_be32_local(const uint8_t *data) {
   return ((uint32_t)data[0] << 24) | ((uint32_t)data[1] << 16) | ((uint32_t)data[2] << 8) | (uint32_t)data[3];
-}
-
-static void write_be32_local(uint8_t *data, uint32_t value) {
-  data[0] = (uint8_t)(value >> 24);
-  data[1] = (uint8_t)(value >> 16);
-  data[2] = (uint8_t)(value >> 8);
-  data[3] = (uint8_t)value;
 }
 
 static uint16_t read_be16_local(const uint8_t *data) {

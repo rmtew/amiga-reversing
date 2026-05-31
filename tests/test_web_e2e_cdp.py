@@ -1567,7 +1567,7 @@ def test_brave_cdp_command_palette_offers_rename_for_selected_label_row(
             binary_source=SimpleNamespace(kind="raw", display_path="bin/demo"),
         ),
     )
-    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
+    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir, project_root=None: object())
     monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
 
     with _live_server() as base_url, brave_page() as page:
@@ -1854,7 +1854,7 @@ def test_brave_cdp_command_palette_applies_manual_representation(monkeypatch: py
         "resolve_project_paths",
         lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
     )
-    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
+    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir, project_root=None: object())
     monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
 
     with _live_server() as base_url, brave_page() as page:
@@ -1956,7 +1956,7 @@ def test_brave_cdp_inline_parameter_sessions_for_label_comment_and_representatio
         "resolve_project_paths",
         lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
     )
-    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
+    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir, project_root=None: object())
     monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
 
     with _live_server() as base_url, brave_page() as page:
@@ -2185,7 +2185,7 @@ def test_brave_cdp_command_palette_adds_review_note_and_navigation_entry(
         "resolve_project_paths",
         lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
     )
-    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
+    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir, project_root=None: object())
     monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
 
     with _live_server() as base_url, brave_page() as page:
@@ -2294,7 +2294,7 @@ def test_brave_cdp_llm_operable_command_smoke_uses_debug_state_and_locators(
         "resolve_project_paths",
         lambda project_name, project_root=None: SimpleNamespace(target_dir=target_dir, binary_source=source),
     )
-    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: source)
+    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir, project_root=None: source)
     monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
 
     with _live_server() as base_url, brave_page() as page:
@@ -2867,7 +2867,7 @@ def test_brave_cdp_manual_seed_waits_for_analysis_before_review_refresh(monkeypa
         "resolve_project_paths",
         lambda project_name, project_root=None: SimpleNamespace(target_dir=tmp_path / project_name),
     )
-    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir: object())
+    monkeypatch.setattr(disasm_server, "resolve_target_binary_source", lambda target_dir, project_root=None: object())
     monkeypatch.setattr(disasm_server, "append_manual_action", append_action)
 
     with _live_server() as base_url, brave_page() as page:

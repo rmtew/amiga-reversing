@@ -222,6 +222,14 @@ def _make_dos_custom_boot_adf() -> bytes:
     return b"".join(bytes(block) for block in blocks)
 
 
+def _make_dos_longword_fill_boot_adf() -> bytes:
+    image = bytearray(BLOCK_SIZE * TOTAL_BLOCKS)
+    for offset in range(0, BLOCK_SIZE * 2, 4):
+        image[offset : offset + 3] = b"DOS"
+        image[offset + 3] = (offset // 4) & 0xFF
+    return bytes(image)
+
+
 class AmigaDiskTests(PlatformDiskTestCaseMixin, unittest.TestCase):
 
     def test_analyze_ffs_adf(self) -> None:
@@ -298,6 +306,17 @@ class AmigaDiskTests(PlatformDiskTestCaseMixin, unittest.TestCase):
             "stage_1",
             {stage["name"] for stage in actual["bootloader_analysis"]["stages"]},
         )
+
+    def test_dos_longword_fill_bootblock_is_not_code(self) -> None:
+        actual = self.inspect_disk_buffer("amiga-disk", _make_dos_longword_fill_boot_adf())
+        self.assertEqual(actual["format_kind"], "dos-invalid-root-pointer")
+        self.assertEqual(actual["boot_block"]["bootcode_has_code"], 0)
+        import_target = actual["boot_block"]["import_target"]
+        self.assertEqual(import_target["target_type"], "bootblock")
+        self.assertEqual(import_target["source"]["kind"], "asset_data")
+        self.assertEqual(import_target["source"]["byte_offset"], 0)
+        self.assertEqual(import_target["source"]["byte_size"], BLOCK_SIZE * 2)
+        self.assertEqual(import_target["source"]["role"], "bootblock")
 
     def test_analyze_ffs_adf_with_extension_blocks(self) -> None:
         actual = self.inspect_disk_buffer("amiga-disk", _make_ffs_adf_with_extension())
