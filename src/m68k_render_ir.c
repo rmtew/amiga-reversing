@@ -10061,9 +10061,6 @@ int m68k_render_ir_preview_emit_prepared(const M68kObject *object, const M68kDec
   if (render_asm_source && source_analysis == NULL) return -1;
   memset(&platform_state, 0, sizeof(platform_state));
   out_preview->platform_backend_kind = object->platform_backend_kind;
-  if (render_asm_source) {
-    out_preview->platform_base_slot_count = (uint32_t)(lookup->global_base_slot_count + lookup->base_field_slot_count);
-  }
   out_preview->collect_asm_source_text = render_asm_source && collect_asm_source_text ? 1U : 0U;
   out_preview->collect_asm_source_hash = out_preview->collect_asm_source_text;
   phase_start = clock();

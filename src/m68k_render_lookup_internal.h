@@ -920,6 +920,7 @@ void attach_operand_label_symbol(const M68kRenderLookup *lookup, M68kInstruction
   size_t operand_index, size_t source_section_index, uint32_t source_offset, size_t target_section_index,
   uint32_t target_offset);
 typedef struct M68kSourceAnalysisBuildStats {
+  uint32_t platform_base_slot_count;
   uint32_t platform_call_count;
   uint32_t platform_effect_count;
 } M68kSourceAnalysisBuildStats;

@@ -10301,7 +10301,7 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
     render_preview->asm_source_first_numeric_runtime_ref_target_offset;
   out_profile->asm_source_first_numeric_runtime_ref_runtime_address =
     render_preview->asm_source_first_numeric_runtime_ref_runtime_address;
-  out_profile->platform_base_slot_count = render_preview->platform_base_slot_count;
+  out_profile->platform_base_slot_count = source_analysis_stats.platform_base_slot_count;
   out_profile->platform_call_count = source_analysis_stats.platform_call_count;
   out_profile->platform_effect_count = source_analysis_stats.platform_effect_count;
   out_profile->asm_source_lossy_numeric_hunk_relocations =

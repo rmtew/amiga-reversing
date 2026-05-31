@@ -4457,10 +4457,10 @@ m68k_analysis_render_lookup_build_source_analysis(
 ```
 
 The builder now owns a local scratch arena and reports analysis-owned platform
-call/effect counts through `M68kSourceAnalysisBuildStats`. `M68kRenderIRPreview`
-keeps render/export timings and source output counters only; it no longer acts
-as an allocation-failure side channel or analysis counter store for recovered
-platform facts.
+base-slot/call/effect counts through `M68kSourceAnalysisBuildStats`.
+`M68kRenderIRPreview` keeps render/export timings and source output counters
+only; it no longer acts as an allocation-failure side channel or analysis
+counter store for recovered platform facts.
 
 This intentionally breaks the old internal API instead of preserving a wrapper.
 There are no external consumers, and keeping the old signature would preserve

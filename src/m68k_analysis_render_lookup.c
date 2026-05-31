@@ -14752,6 +14752,9 @@ int m68k_analysis_render_lookup_build_source_analysis(M68kRenderLookup *lookup,
       accepted_bytes == NULL || source_analysis == NULL) {
     return -1;
   }
+  if (out_stats != NULL) {
+    out_stats->platform_base_slot_count = (uint32_t)(lookup->global_base_slot_count + lookup->base_field_slot_count);
+  }
   memset(&platform_analysis_state, 0, sizeof(platform_analysis_state));
   memset(&section_analysis, 0, sizeof(section_analysis));
   scratch_arena = arena_create(4096U);
