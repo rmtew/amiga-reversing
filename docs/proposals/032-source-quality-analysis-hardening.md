@@ -4261,3 +4261,27 @@ The collector is used by both source-quality fact production and assembly
 presentation, so it should not carry renderer ownership in its type names.
 Only the final `render_asm_base_layout_rs()` path remains render-specific
 because that function emits `RSSET`/`RS.*` source text.
+
+### Source-Blocker Analysis Runs Without Source Export
+
+`facts_v2_collect_profile_internal()` now builds a local `M68kSourceAnalysisIR`
+when source blockers are requested, even if the caller is not exporting
+assembly source. This makes pre-render source-quality diagnostics visible to
+direct/source-blocker profiles instead of only to source-export callers.
+
+The post-render symbol-access comparison is gated to actual assembly-source
+rendering:
+
+```text
+collect source analysis only
+  -> expected_symbol_access rows may exist
+  -> no rendered_symbol_access rows are required
+  -> no missing-rendered-symbol blocker is emitted
+
+render assembly source
+  -> rendered_symbol_access rows are recorded from emitted source
+  -> expected vs rendered access gate runs
+```
+
+That keeps source-quality checks active for profile/refusal paths without
+turning collect-only analysis into a false render failure.

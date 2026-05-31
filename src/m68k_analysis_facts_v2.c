@@ -9815,6 +9815,7 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   M68kRenderLookup render_lookup;
   int render_text_preview;
   int render_asm_source;
+  int source_analysis_required;
   int source_analysis_live = 0;
   int source_analysis_owned_by_caller = out_source_analysis != NULL;
   int render_lookup_live = 0;
@@ -9845,7 +9846,8 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   runtime_address_space_init(&runtime_addresses, workflow.arena);
   render_text_preview = preview_source_enabled_local();
   render_asm_source = force_asm_source || (allow_env_asm_source && asm_source_enabled_local());
-  if (source_analysis == NULL && render_asm_source) source_analysis = &local_source_analysis;
+  source_analysis_required = source_analysis != NULL || render_asm_source || mark_source_blockers;
+  if (source_analysis == NULL && source_analysis_required) source_analysis = &local_source_analysis;
   max_cpu = policy->max_cpu != 0U ? policy->max_cpu : M68K_ASM_CPU_68060;
   if (source_analysis != NULL) {
     fail_stage = "source analysis initialization";
@@ -10281,7 +10283,7 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
     out_profile->asm_source_first_failure_offset = render_preview->asm_source_first_failure_offset;
     out_profile->asm_source_first_failure_aux_offset = render_preview->asm_source_first_failure_aux_offset;
   }
-  if (source_analysis != NULL) {
+  if (source_analysis != NULL && render_asm_source) {
     if (m68k_source_quality_analyze_rendered_symbol_accesses(source_analysis) != 0) {
       m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
         "facts_v2 rendered symbol access analysis failed");

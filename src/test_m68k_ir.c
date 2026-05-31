@@ -5354,6 +5354,53 @@ static int test_facts_v2_render_asm_source_renders_symbolic_branch(void) {
   return 0;
 }
 
+static int test_facts_v2_collect_source_analysis_does_not_require_rendered_symbols(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  int saw_expected_branch_target_access = 0;
+  uint8_t bytes[6] = {0x60u, 0x02u, 0x4eu, 0x71u, 0x4eu, 0x75u};
+  memset(&section, 0, sizeof(section));
+  memset(&source_analysis, 0, sizeof(source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
+    &source_analysis, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_U32(0U, profile.source_quality_blockers);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(M68K_SOURCE_EXPORT_FAILURE_NONE, profile.asm_source_first_failure_kind);
+  M68K_C_ASSERT(source_analysis.section_count > 0U);
+  {
+    size_t access_index;
+    const M68kSectionAnalysisIR *analysis_section = &source_analysis.sections[0];
+    M68K_C_ASSERT_U32(0U, (uint32_t)analysis_section->rendered_symbol_access_count);
+    for (access_index = 0U; access_index < analysis_section->expected_symbol_access_count; ++access_index) {
+      const M68kExpectedSymbolAccessIR *access = &analysis_section->expected_symbol_accesses[access_index];
+      if (access->offset == 0U &&
+          access->target_section_index == 0U &&
+          access->target_offset == 4U &&
+          access->access_kind == M68K_EXPECTED_SYMBOL_ACCESS_BRANCH_TARGET &&
+          access->symbol_name != NULL &&
+          strcmp(access->symbol_name, "loc_0_00000004") == 0) {
+        saw_expected_branch_target_access = 1;
+      }
+    }
+  }
+  M68K_C_ASSERT(saw_expected_branch_target_access);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_render_asm_source_renders_symbolic_pc_relative_data_target(void) {
   M68kObject object;
   M68kSection section;
@@ -24168,6 +24215,8 @@ int m68k_c_ir_tests(void) {
     {"facts_v2_asm_source_hashes_clean_byte_source", test_facts_v2_asm_source_hashes_clean_byte_source},
     {"facts_v2_render_asm_source_renders_symbolic_branch",
       test_facts_v2_render_asm_source_renders_symbolic_branch},
+    {"facts_v2_collect_source_analysis_does_not_require_rendered_symbols",
+      test_facts_v2_collect_source_analysis_does_not_require_rendered_symbols},
     {"facts_v2_render_asm_source_renders_symbolic_pc_relative_data_target",
       test_facts_v2_render_asm_source_renders_symbolic_pc_relative_data_target},
     {"facts_v2_render_asm_source_accepts_reachable_68030_pmmu",
