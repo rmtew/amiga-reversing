@@ -11,15 +11,14 @@ typedef enum M68kFactKind {
   M68K_FACT_CODE_START = 1,
   M68K_FACT_CODE_ACCEPTED = 2,
   M68K_FACT_LABEL_REQUIRED = 3,
-  M68K_FACT_LABEL_CREATED = 4,
-  M68K_FACT_XREF = 5,
-  M68K_FACT_RELOCATION_REF = 6,
-  M68K_FACT_DATA_SPAN = 7,
-  M68K_FACT_VIOLATION = 8,
-  M68K_FACT_RELOCATION_ANCHOR = 9,
-  M68K_FACT_RUNTIME_ADDRESS_REF = 10,
-  M68K_FACT_RUNTIME_ADDRESS_RANGE = 11,
-  M68K_FACT_PLATFORM_MEDIA_TRANSFER = 12
+  M68K_FACT_XREF = 4,
+  M68K_FACT_RELOCATION_REF = 5,
+  M68K_FACT_DATA_SPAN = 6,
+  M68K_FACT_VIOLATION = 7,
+  M68K_FACT_RELOCATION_ANCHOR = 8,
+  M68K_FACT_RUNTIME_ADDRESS_REF = 9,
+  M68K_FACT_RUNTIME_ADDRESS_RANGE = 10,
+  M68K_FACT_PLATFORM_MEDIA_TRANSFER = 11
 } M68kFactKind;
 
 typedef enum M68kFactConfidence {
@@ -79,7 +78,6 @@ typedef struct M68kFactIR {
   uint32_t code_start_count;
   uint32_t code_accepted_count;
   uint32_t label_required_count;
-  uint32_t label_created_count;
   uint32_t xref_count;
   uint32_t relocation_ref_count;
   uint32_t relocation_anchor_count;

@@ -23,6 +23,12 @@
 #include <string.h>
 
 typedef struct M68kRenderLookup M68kRenderLookup;
+typedef struct M68kAnalysisLabelPoint {
+  size_t section_index;
+  uint32_t offset;
+  uint8_t confidence;
+} M68kAnalysisLabelPoint;
+
 typedef enum M68kRenderRangeStructuredItemSource {
   M68K_RENDER_RANGE_STRUCTURED_ITEM_NONE = 0,
   M68K_RENDER_RANGE_STRUCTURED_ITEM_POLICY = 1,
@@ -916,7 +922,8 @@ void attach_operand_label_symbol(const M68kRenderLookup *lookup, M68kInstruction
 int m68k_analysis_render_lookup_run_platform_passes(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
   uint8_t **accepted_start, uint8_t **accepted_bytes, M68kRenderIRPreview *preview);
 int m68k_render_lookup_build(M68kRenderLookup *lookup, const M68kObject *object, const M68kDecodeIR *decode,
-  const M68kFactIR *facts, const M68kAnalysisPolicy *policy, uint8_t **accepted_start);
+  const M68kFactIR *facts, const M68kAnalysisPolicy *policy, uint8_t **accepted_start,
+  const M68kAnalysisLabelPoint *analysis_labels, size_t analysis_label_count);
 void m68k_render_lookup_destroy(M68kRenderLookup *lookup);
 void m68k_render_lookup_materialize_relocation_target_labels(M68kRenderLookup *lookup);
 void m68k_render_lookup_materialize_structured_long_table_target_labels(M68kRenderLookup *lookup,

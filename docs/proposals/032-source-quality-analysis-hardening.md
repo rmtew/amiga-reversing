@@ -4069,12 +4069,12 @@ M68kRenderedSymbolAccessIR
 manifest shortcut remains deleted; there is no compatibility lane for
 nonexistent or guessed facts.
 
-`M68K_FACT_LABEL_CREATED` is currently exported as a symbol origin only. It is
-not automatically promoted to an expected rendered symbol access. That was
-tested and rejected because label facts also cover labels analysis may need for
-numeric, suppressed, or data-only contexts. A rendered-access requirement must
-come from a specific render obligation such as a label statement, operand
-symbol, branch target, equate, or storage label, not from a generic label fact.
+The broad `M68K_FACT_LABEL_CREATED` path has now been deleted. Analysis labels
+live in the facts-v2 label lookup and are exported as
+`M68kSymbolOriginIR(origin_kind=analysis_label)`. A rendered-access requirement
+still must come from a specific render obligation such as a label statement,
+operand symbol, branch target, equate, or storage label, not from generic label
+existence.
 
 ### Post-Render Symbol-Access Gate
 
@@ -4294,9 +4294,9 @@ creation behind the facts-v2 label lookup so duplicate creation is tracked
 against the active decode extents. Only tests still called the old create
 helper, and the fact-list scan existed only as a null-lookup fallback.
 
-Tests now construct explicit `M68K_FACT_LABEL_CREATED` facts through a local
-test helper when they need fixture setup. No compatibility wrapper remains,
-because this repository has no external API consumers to preserve.
+Tests now construct explicit `M68kAnalysisLabelPoint` fixtures when they need
+synthetic labels. No compatibility wrapper remains, because this repository has
+no external API consumers to preserve.
 
 ### Symbol Origins Consume Label Lookup
 
@@ -4315,3 +4315,23 @@ The public JSON/source-analysis origin name changed from `label_created` to
 `analysis_label`. That deliberately breaks the stale internal vocabulary:
 source-quality consumers should see an analysis label origin, not a legacy fact
 implementation detail.
+
+### Label Created Fact Deletion
+
+`M68K_FACT_LABEL_CREATED` has been removed from `M68kFactIR`. It was not an
+independent fact; it duplicated the active label lookup and forced render lookup
+construction to scan append-only facts for label materialization.
+
+The replacement model is direct:
+
+```text
+facts-v2 label lookup
+  -> M68kAnalysisLabelPoint(section, offset, confidence)
+  -> render lookup label materialization
+  -> source-analysis symbol origins
+```
+
+`LABEL_REQUIRED` remains for now because it still represents an unsatisfied
+symbol obligation before analysis proves that the requested label can be
+materialized. That is a narrower remaining debt item than the old
+created-label fact.

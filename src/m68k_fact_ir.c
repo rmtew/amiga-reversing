@@ -7,7 +7,6 @@ static void count_fact(M68kFactIR *ir, uint8_t kind) {
     case M68K_FACT_CODE_START: ++ir->code_start_count; break;
     case M68K_FACT_CODE_ACCEPTED: ++ir->code_accepted_count; break;
     case M68K_FACT_LABEL_REQUIRED: ++ir->label_required_count; break;
-    case M68K_FACT_LABEL_CREATED: ++ir->label_created_count; break;
     case M68K_FACT_XREF: ++ir->xref_count; break;
     case M68K_FACT_RELOCATION_REF: ++ir->relocation_ref_count; break;
     case M68K_FACT_RELOCATION_ANCHOR: ++ir->relocation_anchor_count; break;

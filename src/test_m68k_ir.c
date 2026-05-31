@@ -33,7 +33,8 @@ static Arena *test_ir_result_arena(void) {
 
 static int test_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *decode,
     const M68kFactIR *facts, const M68kAnalysisPolicy *policy, uint8_t **accepted_start,
-    uint8_t **accepted_bytes, int render_text_preview, int render_asm_source,
+    uint8_t **accepted_bytes, const M68kAnalysisLabelPoint *analysis_labels, size_t analysis_label_count,
+    int render_text_preview, int render_asm_source,
     int collect_asm_source_text, int emit_asm_source_text, M68kRenderIRPreview *out_preview) {
   M68kRenderLookup lookup;
   M68kAnalysisPolicy default_policy;
@@ -56,7 +57,8 @@ static int test_render_ir_preview_build(const M68kObject *object, const M68kDeco
     effective_policy = &default_policy;
     default_policy_live = 1;
   }
-  if (m68k_render_lookup_build(&lookup, object, decode, facts, effective_policy, accepted_start) != 0) goto cleanup;
+  if (m68k_render_lookup_build(&lookup, object, decode, facts, effective_policy, accepted_start,
+      analysis_labels, analysis_label_count) != 0) goto cleanup;
   if (render_asm_source &&
       m68k_analysis_render_lookup_run_platform_passes(&lookup, decode, accepted_start, accepted_bytes,
         out_preview) != 0) {
@@ -107,25 +109,22 @@ static int runtime_address_ref_has_data_class(const M68kRuntimeAddressRefIR *ref
   return ref != NULL && (ref->data_class_flags & data_class_flags) == data_class_flags;
 }
 
-static int test_append_label_created_fact(M68kFactIR *facts, size_t section_index, uint32_t offset,
-    uint8_t confidence) {
-  M68kFact fact;
+static int test_append_analysis_label(M68kAnalysisLabelPoint *labels, size_t *label_count, size_t label_capacity,
+    size_t section_index, uint32_t offset, uint8_t confidence) {
   size_t index;
-  if (facts == NULL) return -1;
-  for (index = 0U; index < facts->fact_count; ++index) {
-    const M68kFact *existing = &facts->facts[index];
-    if (existing->kind == M68K_FACT_LABEL_CREATED &&
-        existing->section_index == section_index &&
-        existing->offset == offset) {
+  if (labels == NULL || label_count == NULL) return -1;
+  for (index = 0U; index < *label_count; ++index) {
+    const M68kAnalysisLabelPoint *existing = &labels[index];
+    if (existing->section_index == section_index && existing->offset == offset) {
       return 0;
     }
   }
-  memset(&fact, 0, sizeof(fact));
-  fact.kind = M68K_FACT_LABEL_CREATED;
-  fact.confidence = confidence;
-  fact.section_index = section_index;
-  fact.offset = offset;
-  return m68k_fact_ir_append(facts, &fact);
+  if (*label_count >= label_capacity) return -1;
+  labels[*label_count].section_index = section_index;
+  labels[*label_count].offset = offset;
+  labels[*label_count].confidence = confidence;
+  ++*label_count;
+  return 0;
 }
 
 static int test_source_statement_renderer_renders_single_statement(void) {
@@ -12197,6 +12196,8 @@ static int test_facts_v2_source_zero_runtime_copy_continues_without_storage_org(
   M68kFactIR facts;
   M68kRenderIRPreview preview;
   M68kFact fact;
+  M68kAnalysisLabelPoint analysis_labels[2];
+  size_t analysis_label_count = 0U;
   uint8_t *accepted_start[1];
   uint8_t *accepted_bytes[1];
   uint8_t start_map[8];
@@ -12224,8 +12225,10 @@ static int test_facts_v2_source_zero_runtime_copy_continues_without_storage_org(
   m68k_render_ir_preview_init(&preview);
   M68K_C_ASSERT_INT(0, m68k_decode_ir_build_object(&decode, &object, M68K_ASM_CPU_68060,
     m68k_diag_sink(NULL)));
-  M68K_C_ASSERT_INT(0, test_append_label_created_fact(&facts, 0U, 0U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
-  M68K_C_ASSERT_INT(0, test_append_label_created_fact(&facts, 0U, 4U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
+  M68K_C_ASSERT_INT(0, test_append_analysis_label(analysis_labels, &analysis_label_count,
+    sizeof(analysis_labels) / sizeof(analysis_labels[0]), 0U, 0U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
+  M68K_C_ASSERT_INT(0, test_append_analysis_label(analysis_labels, &analysis_label_count,
+    sizeof(analysis_labels) / sizeof(analysis_labels[0]), 0U, 4U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
   memset(&fact, 0, sizeof(fact));
   fact.kind = M68K_FACT_CODE_START;
   fact.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
@@ -12246,7 +12249,7 @@ static int test_facts_v2_source_zero_runtime_copy_continues_without_storage_org(
   fact.size = 4U;
   M68K_C_ASSERT_INT(0, m68k_fact_ir_append(&facts, &fact));
   M68K_C_ASSERT_INT(0, test_render_ir_preview_build(&object, &decode, &facts, NULL,
-    accepted_start, accepted_bytes, 0, 1, 1, 1, &preview));
+    accepted_start, accepted_bytes, analysis_labels, analysis_label_count, 0, 1, 1, 1, &preview));
   M68K_C_ASSERT(preview.asm_source_text != NULL);
   M68K_C_ASSERT(strstr(preview.asm_source_text, "    ORG $100\nabs_0_00000100:\n") != NULL);
   M68K_C_ASSERT(strstr(preview.asm_source_text, "    ORG $4\n") == NULL);
@@ -12267,6 +12270,8 @@ static int test_facts_v2_mid_section_runtime_stub_does_not_org_back_to_storage(v
   M68kFactIR facts;
   M68kRenderIRPreview preview;
   M68kFact fact;
+  M68kAnalysisLabelPoint analysis_labels[3];
+  size_t analysis_label_count = 0U;
   uint8_t *accepted_start[1];
   uint8_t *accepted_bytes[1];
   uint8_t start_map[24];
@@ -12300,9 +12305,12 @@ static int test_facts_v2_mid_section_runtime_stub_does_not_org_back_to_storage(v
   m68k_render_ir_preview_init(&preview);
   M68K_C_ASSERT_INT(0, m68k_decode_ir_build_object(&decode, &object, M68K_ASM_CPU_68060,
     m68k_diag_sink(NULL)));
-  M68K_C_ASSERT_INT(0, test_append_label_created_fact(&facts, 0U, 0U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
-  M68K_C_ASSERT_INT(0, test_append_label_created_fact(&facts, 0U, 0x10U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
-  M68K_C_ASSERT_INT(0, test_append_label_created_fact(&facts, 0U, 0x14U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
+  M68K_C_ASSERT_INT(0, test_append_analysis_label(analysis_labels, &analysis_label_count,
+    sizeof(analysis_labels) / sizeof(analysis_labels[0]), 0U, 0U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
+  M68K_C_ASSERT_INT(0, test_append_analysis_label(analysis_labels, &analysis_label_count,
+    sizeof(analysis_labels) / sizeof(analysis_labels[0]), 0U, 0x10U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
+  M68K_C_ASSERT_INT(0, test_append_analysis_label(analysis_labels, &analysis_label_count,
+    sizeof(analysis_labels) / sizeof(analysis_labels[0]), 0U, 0x14U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
   memset(&fact, 0, sizeof(fact));
   fact.kind = M68K_FACT_CODE_START;
   fact.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
@@ -12333,7 +12341,7 @@ static int test_facts_v2_mid_section_runtime_stub_does_not_org_back_to_storage(v
   fact.runtime_address = 0x5000U;
   M68K_C_ASSERT_INT(0, m68k_fact_ir_append(&facts, &fact));
   M68K_C_ASSERT_INT(0, test_render_ir_preview_build(&object, &decode, &facts, NULL,
-    accepted_start, accepted_bytes, 0, 1, 1, 1, &preview));
+    accepted_start, accepted_bytes, analysis_labels, analysis_label_count, 0, 1, 1, 1, &preview));
   M68K_C_ASSERT(preview.asm_source_text != NULL);
   M68K_C_ASSERT(strstr(preview.asm_source_text, "    ORG $5000\n") == NULL);
   M68K_C_ASSERT(strstr(preview.asm_source_text, "    ORG $14\n") == NULL);
@@ -12696,6 +12704,8 @@ static int test_facts_v2_runtime_trampoline_copy_does_not_force_low_org(void) {
   M68kFactIR facts;
   M68kRenderIRPreview preview;
   M68kFact fact;
+  M68kAnalysisLabelPoint analysis_labels[3];
+  size_t analysis_label_count = 0U;
   uint8_t *accepted_start[1];
   uint8_t *accepted_bytes[1];
   uint8_t start_map[48];
@@ -12732,9 +12742,12 @@ static int test_facts_v2_runtime_trampoline_copy_does_not_force_low_org(void) {
   m68k_render_ir_preview_init(&preview);
   M68K_C_ASSERT_INT(0, m68k_decode_ir_build_object(&decode, &object, M68K_ASM_CPU_68060,
     m68k_diag_sink(NULL)));
-  M68K_C_ASSERT_INT(0, test_append_label_created_fact(&facts, 0U, 0U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
-  M68K_C_ASSERT_INT(0, test_append_label_created_fact(&facts, 0U, 0x10U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
-  M68K_C_ASSERT_INT(0, test_append_label_created_fact(&facts, 0U, 0x20U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
+  M68K_C_ASSERT_INT(0, test_append_analysis_label(analysis_labels, &analysis_label_count,
+    sizeof(analysis_labels) / sizeof(analysis_labels[0]), 0U, 0U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
+  M68K_C_ASSERT_INT(0, test_append_analysis_label(analysis_labels, &analysis_label_count,
+    sizeof(analysis_labels) / sizeof(analysis_labels[0]), 0U, 0x10U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
+  M68K_C_ASSERT_INT(0, test_append_analysis_label(analysis_labels, &analysis_label_count,
+    sizeof(analysis_labels) / sizeof(analysis_labels[0]), 0U, 0x20U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
   memset(&fact, 0, sizeof(fact));
   fact.kind = M68K_FACT_CODE_START;
   fact.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
@@ -12785,7 +12798,7 @@ static int test_facts_v2_runtime_trampoline_copy_does_not_force_low_org(void) {
   fact.runtime_address = 0x64U;
   M68K_C_ASSERT_INT(0, m68k_fact_ir_append(&facts, &fact));
   M68K_C_ASSERT_INT(0, test_render_ir_preview_build(&object, &decode, &facts, NULL,
-    accepted_start, accepted_bytes, 0, 1, 1, 1, &preview));
+    accepted_start, accepted_bytes, analysis_labels, analysis_label_count, 0, 1, 1, 1, &preview));
   M68K_C_ASSERT(preview.asm_source_text != NULL);
   M68K_C_ASSERT(strstr(preview.asm_source_text, "    ORG $4\n") == NULL);
   M68K_C_ASSERT(strstr(preview.asm_source_text, "runtime_code_00000004\tEQU\t$4\n") != NULL);
@@ -12918,6 +12931,8 @@ static int test_facts_v2_full_load_view_does_not_label_alternate_copied_address_
   M68kFactIR facts;
   M68kRenderIRPreview preview;
   M68kFact fact;
+  M68kAnalysisLabelPoint analysis_labels[2];
+  size_t analysis_label_count = 0U;
   uint8_t *accepted_start[1];
   uint8_t *accepted_bytes[1];
   uint8_t start_map[18];
@@ -12952,8 +12967,10 @@ static int test_facts_v2_full_load_view_does_not_label_alternate_copied_address_
   m68k_render_ir_preview_init(&preview);
   M68K_C_ASSERT_INT(0, m68k_decode_ir_build_object(&decode, &object, M68K_ASM_CPU_68060,
     m68k_diag_sink(NULL)));
-  M68K_C_ASSERT_INT(0, test_append_label_created_fact(&facts, 0U, 0U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
-  M68K_C_ASSERT_INT(0, test_append_label_created_fact(&facts, 0U, 8U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
+  M68K_C_ASSERT_INT(0, test_append_analysis_label(analysis_labels, &analysis_label_count,
+    sizeof(analysis_labels) / sizeof(analysis_labels[0]), 0U, 0U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
+  M68K_C_ASSERT_INT(0, test_append_analysis_label(analysis_labels, &analysis_label_count,
+    sizeof(analysis_labels) / sizeof(analysis_labels[0]), 0U, 8U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
   memset(&fact, 0, sizeof(fact));
   fact.kind = M68K_FACT_RUNTIME_ADDRESS_RANGE;
   fact.confidence = M68K_FACT_CONFIDENCE_REQUIRED;
@@ -12995,7 +13012,7 @@ static int test_facts_v2_full_load_view_does_not_label_alternate_copied_address_
   fact.runtime_address = 0x400U;
   M68K_C_ASSERT_INT(0, m68k_fact_ir_append(&facts, &fact));
   M68K_C_ASSERT_INT(0, test_render_ir_preview_build(&object, &decode, &facts, NULL,
-    accepted_start, accepted_bytes, 0, 1, 1, 1, &preview));
+    accepted_start, accepted_bytes, analysis_labels, analysis_label_count, 0, 1, 1, 1, &preview));
   M68K_C_ASSERT(preview.asm_source_text != NULL);
   M68K_C_ASSERT(strstr(preview.asm_source_text, "    ORG $70000\n") != NULL);
   M68K_C_ASSERT(strstr(preview.asm_source_text, "runtime_code_00000400\tEQU\t$400\n") != NULL);
@@ -15752,6 +15769,8 @@ static int test_render_plan_marks_emitted_org_subline_as_directive(void) {
   M68kFactIR facts;
   M68kRenderIRPreview preview;
   M68kFact fact;
+  M68kAnalysisLabelPoint analysis_labels[2];
+  size_t analysis_label_count = 0U;
   uint8_t *accepted_start[1];
   uint8_t *accepted_bytes[1];
   uint8_t start_map[24];
@@ -15784,8 +15803,10 @@ static int test_render_plan_marks_emitted_org_subline_as_directive(void) {
   m68k_render_ir_preview_init(&preview);
   M68K_C_ASSERT_INT(0, m68k_decode_ir_build_object(&decode, &object, M68K_ASM_CPU_68060,
     m68k_diag_sink(NULL)));
-  M68K_C_ASSERT_INT(0, test_append_label_created_fact(&facts, 0U, 0U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
-  M68K_C_ASSERT_INT(0, test_append_label_created_fact(&facts, 0U, 0x10U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
+  M68K_C_ASSERT_INT(0, test_append_analysis_label(analysis_labels, &analysis_label_count,
+    sizeof(analysis_labels) / sizeof(analysis_labels[0]), 0U, 0U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
+  M68K_C_ASSERT_INT(0, test_append_analysis_label(analysis_labels, &analysis_label_count,
+    sizeof(analysis_labels) / sizeof(analysis_labels[0]), 0U, 0x10U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
   memset(&fact, 0, sizeof(fact));
   fact.kind = M68K_FACT_CODE_START;
   fact.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
@@ -15816,7 +15837,7 @@ static int test_render_plan_marks_emitted_org_subline_as_directive(void) {
   fact.runtime_address = 0x80U;
   M68K_C_ASSERT_INT(0, m68k_fact_ir_append(&facts, &fact));
   M68K_C_ASSERT_INT(0, test_render_ir_preview_build(&object, &decode, &facts, NULL,
-    accepted_start, accepted_bytes, 0, 1, 1, 1, &preview));
+    accepted_start, accepted_bytes, analysis_labels, analysis_label_count, 0, 1, 1, 1, &preview));
   for (row_index = 0U; row_index < preview.asm_source_plan.row_count; ++row_index) {
     const M68kRenderPlanRow *row = &preview.asm_source_plan.rows[row_index];
     if (row->text != NULL && strstr(row->text, "    ORG $80\n") != NULL) {
@@ -15882,7 +15903,7 @@ static int test_facts_v2_render_asm_source_splits_raw_data_plan_rows(void) {
   M68K_C_ASSERT_INT(0, m68k_decode_ir_build_object(&decode, &object, M68K_ASM_CPU_68060,
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT_INT(0, test_render_ir_preview_build(&object, &decode, &facts, &policy,
-    accepted_start, accepted_bytes, 0, 1, 1, 1, &preview));
+    accepted_start, accepted_bytes, NULL, 0U, 0, 1, 1, 1, &preview));
   for (index = 0U; index < preview.asm_source_plan.row_count; ++index) {
     const M68kRenderPlanRow *row = &preview.asm_source_plan.rows[index];
     if (row->kind != M68K_RENDER_PLAN_ROW_DATA) continue;
@@ -21782,6 +21803,8 @@ static int test_render_ir_suppresses_orphan_structured_field_label(void) {
   M68kFact fact;
   M68kAnalysisPolicy policy;
   M68kRenderIRPreview preview;
+  M68kAnalysisLabelPoint analysis_labels[3];
+  size_t analysis_label_count = 0U;
   uint8_t *accepted_start[1];
   uint8_t *accepted_bytes[1];
   uint8_t accepted_start_0[64];
@@ -21834,18 +21857,10 @@ static int test_render_ir_suppresses_orphan_structured_field_label(void) {
     "APTR");
   M68K_C_ASSERT_INT(0, m68k_decode_ir_build_object(&decode, &object, M68K_ASM_CPU_68000,
     m68k_diag_sink(NULL)));
-  memset(&fact, 0, sizeof(fact));
-  fact.kind = M68K_FACT_LABEL_CREATED;
-  fact.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
-  fact.section_index = 0U;
-  fact.offset = 18U;
-  M68K_C_ASSERT_INT(0, m68k_fact_ir_append(&facts, &fact));
-  memset(&fact, 0, sizeof(fact));
-  fact.kind = M68K_FACT_LABEL_CREATED;
-  fact.confidence = M68K_FACT_CONFIDENCE_REQUIRED;
-  fact.section_index = 0U;
-  fact.offset = 30U;
-  M68K_C_ASSERT_INT(0, m68k_fact_ir_append(&facts, &fact));
+  M68K_C_ASSERT_INT(0, test_append_analysis_label(analysis_labels, &analysis_label_count,
+    sizeof(analysis_labels) / sizeof(analysis_labels[0]), 0U, 18U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
+  M68K_C_ASSERT_INT(0, test_append_analysis_label(analysis_labels, &analysis_label_count,
+    sizeof(analysis_labels) / sizeof(analysis_labels[0]), 0U, 30U, M68K_FACT_CONFIDENCE_REQUIRED));
   memset(&fact, 0, sizeof(fact));
   fact.kind = M68K_FACT_RELOCATION_REF;
   fact.confidence = M68K_FACT_CONFIDENCE_REQUIRED;
@@ -21856,21 +21871,17 @@ static int test_render_ir_suppresses_orphan_structured_field_label(void) {
   fact.size = 4U;
   M68K_C_ASSERT_INT(0, m68k_fact_ir_append(&facts, &fact));
   M68K_C_ASSERT_INT(0, test_render_ir_preview_build(&object, &decode, &facts, &policy,
-    accepted_start, accepted_bytes, 0, 1, 1, 1, &preview));
+    accepted_start, accepted_bytes, analysis_labels, analysis_label_count, 0, 1, 1, 1, &preview));
   M68K_C_ASSERT(preview.asm_source_text != NULL);
   M68K_C_ASSERT(strstr(preview.asm_source_text, "loc_0_00000012:") == NULL);
   M68K_C_ASSERT(strstr(preview.asm_source_text, "\tdc.l resident_name\t; APTR RT_NAME\n") != NULL);
   M68K_C_ASSERT(strstr(preview.asm_source_text, "resident_name:\n") != NULL);
   m68k_render_ir_preview_destroy(&preview);
   m68k_render_ir_preview_init(&preview);
-  memset(&fact, 0, sizeof(fact));
-  fact.kind = M68K_FACT_LABEL_CREATED;
-  fact.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
-  fact.section_index = 0U;
-  fact.offset = 40U;
-  M68K_C_ASSERT_INT(0, m68k_fact_ir_append(&facts, &fact));
+  M68K_C_ASSERT_INT(0, test_append_analysis_label(analysis_labels, &analysis_label_count,
+    sizeof(analysis_labels) / sizeof(analysis_labels[0]), 0U, 40U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
   M68K_C_ASSERT_INT(0, test_render_ir_preview_build(&object, &decode, &facts, &policy,
-    accepted_start, accepted_bytes, 0, 1, 1, 1, &preview));
+    accepted_start, accepted_bytes, analysis_labels, analysis_label_count, 0, 1, 1, 1, &preview));
   M68K_C_ASSERT(preview.asm_source_text != NULL);
   M68K_C_ASSERT(strstr(preview.asm_source_text, "loc_0_00000028:") == NULL);
   M68K_C_ASSERT(strstr(preview.asm_source_text, "resident_name:\n") != NULL);

@@ -5463,9 +5463,11 @@ static void render_lookup_build_block_start_before_maps(M68kRenderLookup *lookup
 }
 
 int m68k_render_lookup_build(M68kRenderLookup *lookup, const M68kObject *object, const M68kDecodeIR *decode,
-    const M68kFactIR *facts, const M68kAnalysisPolicy *policy, uint8_t **accepted_start) {
+    const M68kFactIR *facts, const M68kAnalysisPolicy *policy, uint8_t **accepted_start,
+    const M68kAnalysisLabelPoint *analysis_labels, size_t analysis_label_count) {
   size_t section_index;
   size_t fact_index;
+  size_t analysis_label_index;
   if (lookup == NULL || decode == NULL || facts == NULL) return -1;
   memset(lookup, 0, sizeof(*lookup));
   lookup->section_count = decode->section_count;
@@ -5675,12 +5677,17 @@ int m68k_render_lookup_build(M68kRenderLookup *lookup, const M68kObject *object,
       }
     }
   }
+  for (analysis_label_index = 0U; analysis_label_index < analysis_label_count; ++analysis_label_index) {
+    const M68kAnalysisLabelPoint *label = &analysis_labels[analysis_label_index];
+    if (label->section_index < decode->section_count &&
+        label->offset <= lookup->label_extents[label->section_index]) {
+      render_lookup_set_label(lookup, label->section_index, label->offset);
+    }
+  }
   for (fact_index = 0U; fact_index < facts->fact_count; ++fact_index) {
     const M68kFact *fact = &facts->facts[fact_index];
     if (fact->section_index >= decode->section_count) continue;
-    if (fact->kind == M68K_FACT_LABEL_CREATED && fact->offset <= lookup->label_extents[fact->section_index]) {
-      render_lookup_set_label(lookup, fact->section_index, fact->offset);
-    } else if (fact->kind == M68K_FACT_CODE_START &&
+    if (fact->kind == M68K_FACT_CODE_START &&
         fact->reason != M68K_FACT_CODE_START_REASON_FALLTHROUGH &&
         fact->offset < lookup->block_start_extents[fact->section_index]) {
       lookup->block_starts[fact->section_index][fact->offset] = 1U;
