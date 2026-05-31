@@ -3085,3 +3085,29 @@ src\build\m68k_c_unit_tests.exe
 uv run python -m pytest tests\test_target_usage_manifest.py -q
 uv run platform-rendered-source-roundtrip --no-write-report --json
 ```
+
+### Structured Data Range Ownership Migration
+
+Moved structured-data range ownership export out of render preview and into
+source-quality analysis:
+
+```text
+M68kAnalysisStructuredDataItem
+  -> shared IR range kind/evidence helpers
+  -> m68k_source_quality_analyze()
+  -> M68kRangeOwnershipIR(text/table/structured/platform_metadata)
+```
+
+`m68k_render_ir_preview_build()` no longer appends lookup-owned
+`range_ownerships` into Source Analysis IR. Render lookup still keeps an
+internal range view for formatting and boundary decisions, but the durable
+source-analysis fact is now emitted from the C analysis item model.
+
+Verified:
+
+```text
+cmd /c src\build.bat
+src\build\m68k_c_unit_tests.exe
+uv run python -m pytest tests\test_target_usage_manifest.py -q
+uv run platform-rendered-source-roundtrip --no-write-report --json
+```

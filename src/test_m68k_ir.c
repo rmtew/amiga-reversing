@@ -10209,6 +10209,40 @@ static int test_source_quality_analyze_exports_platform_address_uses(void) {
   return 0;
 }
 
+static int test_source_quality_analyze_exports_structured_data_range_ownership(void) {
+  M68kSourceAnalysisIR source_analysis;
+  M68kSectionAnalysisIR section_analysis;
+  M68kAnalysisStructuredDataItem item;
+  char *analysis_json = NULL;
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_create(&source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_create(&section_analysis, test_ir_result_arena()));
+  section_analysis.section_index = 0U;
+  section_analysis.section_size = 32U;
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
+  memset(&item, 0, sizeof(item));
+  item.has_section_index = 1U;
+  item.section_index = 0U;
+  item.offset = 8U;
+  item.size = 12U;
+  item.kind = M68K_ANALYSIS_STRUCTURED_DATA_STRING;
+  item.source_pattern_id = M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_TERMINATED_TEXT;
+  m68k_analysis_structured_data_item_set_semantic_role_flags(&item,
+    M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING);
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_structured_data_item(&source_analysis, &item));
+  M68K_C_ASSERT_INT(0, m68k_source_quality_analyze(&source_analysis));
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"range_ownership_count\":1") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json,
+    "\"range_ownerships\":[{\"start_offset\":8,\"end_offset\":20,\"kind\":2,\"kind_name\":\"text\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"source_pattern\":\"terminated_text\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"role\":\"string\"") != NULL);
+  free(analysis_json);
+  m68k_ir_section_analysis_destroy(&section_analysis);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  return 0;
+}
+
 static int test_source_quality_analyze_blocks_code_without_executable_origin(void) {
   M68kSourceAnalysisIR source_analysis;
   M68kSectionAnalysisIR section_analysis;
@@ -23454,6 +23488,8 @@ int m68k_c_ir_tests(void) {
       test_source_quality_analyze_exports_code_origins_and_runs},
     {"source_quality_analyze_exports_platform_address_uses",
       test_source_quality_analyze_exports_platform_address_uses},
+    {"source_quality_analyze_exports_structured_data_range_ownership",
+      test_source_quality_analyze_exports_structured_data_range_ownership},
     {"source_quality_analyze_blocks_code_without_executable_origin",
       test_source_quality_analyze_blocks_code_without_executable_origin},
     {"source_quality_analyze_uses_cfg_terminal_run_end",

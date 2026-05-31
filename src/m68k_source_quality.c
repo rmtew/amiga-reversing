@@ -387,6 +387,55 @@ static int append_accepted_code_range_ownerships_for_section(M68kSectionAnalysis
   return 0;
 }
 
+static uint32_t structured_data_range_negative_evidence_flags(uint8_t conflict_state) {
+  if (conflict_state == M68K_ANALYSIS_CONFLICT_STATE_CODE_OVERLAP) return M68K_RANGE_NEGATIVE_CODE_OVERLAP;
+  if (conflict_state == M68K_ANALYSIS_CONFLICT_STATE_UNRESOLVED_CODE_TARGET)
+    return M68K_RANGE_NEGATIVE_UNRESOLVED_CODE_TARGET;
+  return 0U;
+}
+
+static M68kSectionAnalysisIR *source_analysis_section_by_index(M68kSourceAnalysisIR *source_analysis,
+    uint32_t section_index) {
+  size_t index;
+  if (source_analysis == NULL) return NULL;
+  for (index = 0U; index < source_analysis->section_count; ++index) {
+    if (source_analysis->sections[index].section_index == section_index) return &source_analysis->sections[index];
+  }
+  return NULL;
+}
+
+static int append_structured_data_range_ownerships(M68kSourceAnalysisIR *source_analysis) {
+  size_t index;
+  if (source_analysis == NULL) return -1;
+  for (index = 0U; index < source_analysis->structured_data_item_count; ++index) {
+    const M68kAnalysisStructuredDataItem *item = &source_analysis->structured_data_items[index];
+    M68kSectionAnalysisIR *section;
+    M68kRangeOwnershipIR range;
+    if (!item->has_section_index || item->size == 0U || item->offset > UINT32_MAX - item->size) continue;
+    section = source_analysis_section_by_index(source_analysis, item->section_index);
+    if (section == NULL) continue;
+    memset(&range, 0, sizeof(range));
+    range.start_offset = item->offset;
+    range.end_offset = item->offset + item->size;
+    range.kind = m68k_analysis_structured_data_range_ownership_kind(item);
+    range.status = item->table_conflicted ? M68K_RANGE_OWNERSHIP_STATUS_CONFLICT :
+      M68K_RANGE_OWNERSHIP_STATUS_ACCEPTED;
+    range.data_kind = item->kind;
+    range.conflict_state = item->table_conflict_state;
+    range.positive_evidence_flags = m68k_analysis_structured_data_range_ownership_evidence_flags(item);
+    range.negative_evidence_flags = item->table_conflicted ?
+      structured_data_range_negative_evidence_flags(item->table_conflict_state) : 0U;
+    range.has_source = item->has_consumer;
+    range.source_offset = item->consumer_offset;
+    range.table_kind_id = item->table_kind_id;
+    range.source_pattern_id = item->source_pattern_id;
+    range.role = item->semantic_role[0] != '\0' ? (char *)item->semantic_role : NULL;
+    range.source_pattern = item->source_pattern[0] != '\0' ? (char *)item->source_pattern : NULL;
+    if (m68k_ir_section_analysis_append_range_ownership(section, &range) != 0) return -1;
+  }
+  return 0;
+}
+
 static int append_accepted_runs_for_section(M68kSectionAnalysisIR *section) {
   uint32_t cursor;
   if (section == NULL || section->certain_code_byte == NULL || section->certain_code_size == 0U) return 0;
@@ -444,6 +493,7 @@ int m68k_source_quality_analyze(M68kSourceAnalysisIR *source_analysis) {
     if (append_accepted_runs_for_section(section) != 0) return -1;
     if (append_accepted_code_range_ownerships_for_section(section) != 0) return -1;
   }
+  if (append_structured_data_range_ownerships(source_analysis) != 0) return -1;
   if (append_address_identities_and_ranges(source_analysis) != 0) return -1;
   return 0;
 }

@@ -1987,6 +1987,9 @@ uint8_t m68k_analysis_table_stop_reason_for_entry_count_proof(uint8_t proof_id);
 uint8_t m68k_recovered_indirect_source_pattern_id(uint8_t shape);
 const char *m68k_recovered_indirect_source_pattern_name(uint8_t source_pattern_id);
 const char *m68k_recovered_platform_transfer_source_kind_name(uint8_t source_kind);
+uint8_t m68k_analysis_structured_data_range_ownership_kind(const M68kAnalysisStructuredDataItem *item);
+uint32_t m68k_analysis_structured_data_range_ownership_evidence_flags(
+  const M68kAnalysisStructuredDataItem *item);
 int m68k_asm_operand_absolute_value(uint8_t kind, const M68kAsmOperandValue *operand, uint32_t *out_value);
 void m68k_analysis_structured_data_item_set_semantic_role_flags(M68kAnalysisStructuredDataItem *item,
   uint32_t semantic_role_flags);

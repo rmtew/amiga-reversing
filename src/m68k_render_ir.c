@@ -30,8 +30,6 @@ static const char *manual_representation_symbol_name(const M68kRenderLookup *loo
 static void render_asm_dc_symbol_expr(M68kRenderIRPreview *preview, uint32_t size, const char *expr,
     const char *comment);
 static void render_lookup_set_label(M68kRenderLookup *lookup, size_t section_index, uint32_t offset);
-static uint8_t range_ownership_kind_for_structured_item(const M68kAnalysisStructuredDataItem *item);
-static uint32_t range_ownership_evidence_for_structured_item(const M68kAnalysisStructuredDataItem *item);
 static int lookup_storage_label_has_inbound_target_ref(const M68kRenderLookup *lookup, size_t section_index,
     uint32_t offset);
 
@@ -5376,10 +5374,10 @@ static int hydrate_range_ownership_view(const M68kRenderLookup *lookup,
   *out_range = *stored;
   item = range_ownership_structured_item(lookup, stored);
   if (item != NULL) {
-    out_range->kind = range_ownership_kind_for_structured_item(item);
+    out_range->kind = m68k_analysis_structured_data_range_ownership_kind(item);
     out_range->status = item->table_conflicted ? M68K_RANGE_OWNERSHIP_STATUS_CONFLICT :
       M68K_RANGE_OWNERSHIP_STATUS_ACCEPTED;
-    out_range->positive_evidence_flags = range_ownership_evidence_for_structured_item(item);
+    out_range->positive_evidence_flags = m68k_analysis_structured_data_range_ownership_evidence_flags(item);
     out_range->structured_item = item;
   }
   return 1;
@@ -8700,76 +8698,6 @@ static int render_analysis_append_immediate_text_tokens_for_section(
   return 0;
 }
 
-static uint8_t range_ownership_kind_for_structured_item(const M68kAnalysisStructuredDataItem *item) {
-  uint32_t role_flags;
-  if (item == NULL) return M68K_RANGE_OWNERSHIP_UNKNOWN;
-  role_flags = item->semantic_role_flags;
-  if (item->platform_kind_id != M68K_ANALYSIS_STRUCTURED_DATA_PLATFORM_KIND_NONE ||
-      item->platform_field_id != M68K_ANALYSIS_STRUCTURED_DATA_PLATFORM_FIELD_NONE) {
-    return M68K_RANGE_OWNERSHIP_PLATFORM_METADATA;
-  }
-  if ((role_flags & (M68K_ANALYSIS_STRUCTURED_DATA_ROLE_POINTER_TABLE |
-      M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE)) != 0U) {
-    return M68K_RANGE_OWNERSHIP_TABLE;
-  }
-  if ((role_flags & (M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING |
-      M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LENGTH_PREFIXED_STRING |
-      M68K_ANALYSIS_STRUCTURED_DATA_ROLE_MACOS_SYMBOL_STRING |
-      M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING_CONTROL_STREAM)) != 0U) {
-    return M68K_RANGE_OWNERSHIP_TEXT;
-  }
-  return M68K_RANGE_OWNERSHIP_STRUCTURED_DATA;
-}
-
-static uint32_t range_ownership_evidence_for_structured_item(const M68kAnalysisStructuredDataItem *item) {
-  uint32_t flags = M68K_RANGE_EVIDENCE_STRUCTURED_DATA;
-  if (item == NULL) return flags;
-  if (item->has_target) flags |= M68K_RANGE_EVIDENCE_POINTER_TARGET;
-  if (item->has_consumer) flags |= M68K_RANGE_EVIDENCE_INDEXED_TABLE_ACCESS;
-  if (item->platform_kind_id != M68K_ANALYSIS_STRUCTURED_DATA_PLATFORM_KIND_NONE ||
-      item->platform_field_id != M68K_ANALYSIS_STRUCTURED_DATA_PLATFORM_FIELD_NONE) {
-    flags |= M68K_RANGE_EVIDENCE_PLATFORM_RECORD;
-  }
-  switch (item->source_pattern_id) {
-    case M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_API_STRING_POINTER:
-    case M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_API_TEXT_BUFFER:
-      flags |= M68K_RANGE_EVIDENCE_API_ARGUMENT;
-      break;
-    case M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_POINTER_STRING_TABLE:
-    case M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_WORD_OFFSET_STRING_TABLE:
-    case M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_INDEXED_WORD_DISPATCH:
-    case M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_INDEXED_LOCAL_POINTER_READ:
-    case M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_PC_RELATIVE_INDEXED_READ:
-    case M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_PC_RELATIVE_INDEXED_INDIRECT_DISPATCH:
-    case M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_KEYED_LONG_RELATIVE_DISPATCH:
-      flags |= M68K_RANGE_EVIDENCE_INDEXED_TABLE_ACCESS;
-      break;
-    case M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_MULTILINE_TEXT:
-    case M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_TERMINATED_TEXT:
-    case M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_BOUNDED_TEXT:
-    case M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_STRING_TABLE_SEQUENCE:
-    case M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_CONTROL_STRING_STREAM:
-      flags |= M68K_RANGE_EVIDENCE_TEXT_SHAPE;
-      break;
-    default:
-      break;
-  }
-  if ((item->semantic_role_flags & (M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING |
-      M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LENGTH_PREFIXED_STRING |
-      M68K_ANALYSIS_STRUCTURED_DATA_ROLE_MACOS_SYMBOL_STRING |
-      M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING_CONTROL_STREAM)) != 0U) {
-    flags |= M68K_RANGE_EVIDENCE_TEXT_SHAPE | M68K_RANGE_EVIDENCE_TERMINATOR_SHAPE;
-  }
-  return flags;
-}
-
-static uint32_t range_ownership_negative_evidence_for_table_conflict(uint8_t conflict_state) {
-  if (conflict_state == M68K_ANALYSIS_CONFLICT_STATE_CODE_OVERLAP) return M68K_RANGE_NEGATIVE_CODE_OVERLAP;
-  if (conflict_state == M68K_ANALYSIS_CONFLICT_STATE_UNRESOLVED_CODE_TARGET)
-    return M68K_RANGE_NEGATIVE_UNRESOLVED_CODE_TARGET;
-  return 0U;
-}
-
 static uint32_t structured_data_item_table_entry_size(const M68kAnalysisStructuredDataItem *item) {
   if (item == NULL) return 0U;
   if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_BYTES) return 1U;
@@ -9035,41 +8963,6 @@ static int render_analysis_append_lookup_table_descriptors_for_section(
         section_analysis, item) != 0) {
       return -1;
     }
-  }
-  return 0;
-}
-
-static int render_analysis_append_lookup_range_ownerships_for_section(
-    const M68kRenderLookup *lookup, size_t section_index,
-    M68kSectionAnalysisIR *section_analysis) {
-  size_t index;
-  if (lookup == NULL || section_analysis == NULL) return -1;
-  for (index = 0U; index < lookup->range_ownership_count; ++index) {
-    M68kRenderRangeOwnershipView view;
-    const M68kAnalysisStructuredDataItem *item;
-    M68kRangeOwnershipIR range;
-    if (lookup->range_ownerships[index].section_index != section_index) continue;
-    if (!hydrate_range_ownership_view(lookup, &lookup->range_ownerships[index], &view)) continue;
-    item = view.structured_item;
-    memset(&range, 0, sizeof(range));
-    range.start_offset = view.start_offset;
-    range.end_offset = view.end_offset;
-    range.kind = view.kind;
-    range.status = view.status;
-    range.positive_evidence_flags = view.positive_evidence_flags;
-    if (item != NULL) {
-      range.data_kind = item->kind;
-      range.conflict_state = item->table_conflict_state;
-      range.negative_evidence_flags = item->table_conflicted ?
-        range_ownership_negative_evidence_for_table_conflict(item->table_conflict_state) : 0U;
-      range.has_source = item->has_consumer;
-      range.source_offset = item->consumer_offset;
-      range.table_kind_id = item->table_kind_id;
-      range.source_pattern_id = item->source_pattern_id;
-      range.role = item->semantic_role[0] != '\0' ? (char *)item->semantic_role : NULL;
-      range.source_pattern = item->source_pattern[0] != '\0' ? (char *)item->source_pattern : NULL;
-    }
-    if (m68k_ir_section_analysis_append_range_ownership(section_analysis, &range) != 0) return -1;
   }
   return 0;
 }
@@ -12165,10 +12058,6 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
       }
       if (render_analysis_append_orphan_code_signals_for_section(&lookup, section, accepted_start[section_index],
           accepted_bytes[section_index], current_section_analysis) != 0) {
-        goto cleanup;
-      }
-      if (render_analysis_append_lookup_range_ownerships_for_section(&lookup, section->section_index,
-          current_section_analysis) != 0) {
         goto cleanup;
       }
       if (render_analysis_append_lookup_table_descriptors_for_section(&lookup, section,
