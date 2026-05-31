@@ -1014,6 +1014,29 @@ static int append_accepted_runs_for_section(M68kSectionAnalysisIR *section) {
   return 0;
 }
 
+static int append_orphan_conflict_ranges_for_section(M68kSectionAnalysisIR *section) {
+  size_t index;
+  if (section == NULL) return -1;
+  for (index = 0U; index < section->orphan_code_signal_count; ++index) {
+    const M68kOrphanCodeSignalIR *signal = &section->orphan_code_signals[index];
+    M68kRangeOwnershipIR range;
+    if (signal->size == 0U || signal->nearby_data_relation == M68K_ORPHAN_CODE_SIGNAL_NEARBY_DATA_NONE)
+      continue;
+    memset(&range, 0, sizeof(range));
+    range.start_offset = signal->offset;
+    if (signal->offset > UINT32_MAX - signal->size) continue;
+    range.end_offset = signal->offset + signal->size;
+    range.kind = M68K_RANGE_OWNERSHIP_CONFLICT;
+    range.status = M68K_RANGE_OWNERSHIP_STATUS_CONFLICT;
+    range.positive_evidence_flags = M68K_RANGE_EVIDENCE_CODE_SHAPE;
+    range.negative_evidence_flags = M68K_RANGE_NEGATIVE_MISSING_INBOUND |
+      M68K_RANGE_NEGATIVE_STRUCTURED_DATA_OVERLAP;
+    range.conflict_state = M68K_ANALYSIS_CONFLICT_STATE_UNRESOLVED;
+    if (m68k_ir_section_analysis_append_range_ownership(section, &range) != 0) return -1;
+  }
+  return 0;
+}
+
 int m68k_source_quality_analyze(M68kSourceAnalysisIR *source_analysis,
     const M68kDecodeIR *decode, uint8_t *const *accepted_start, uint8_t *const *accepted_bytes) {
   size_t section_index;
@@ -1025,6 +1048,7 @@ int m68k_source_quality_analyze(M68kSourceAnalysisIR *source_analysis,
     if (append_platform_address_uses_for_section(section) != 0) return -1;
     if (append_accepted_runs_for_section(section) != 0) return -1;
     if (append_accepted_code_range_ownerships_for_section(section) != 0) return -1;
+    if (append_orphan_conflict_ranges_for_section(section) != 0) return -1;
   }
   if (append_structured_data_range_ownerships(source_analysis) != 0) return -1;
   if (append_structured_data_table_descriptors(source_analysis) != 0) return -1;

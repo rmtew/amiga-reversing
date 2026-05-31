@@ -8608,29 +8608,6 @@ cleanup:
   return result;
 }
 
-static int render_analysis_append_orphan_conflict_ranges_for_section(M68kSectionAnalysisIR *section_analysis) {
-  size_t index;
-  if (section_analysis == NULL) return -1;
-  for (index = 0U; index < section_analysis->orphan_code_signal_count; ++index) {
-    const M68kOrphanCodeSignalIR *signal = &section_analysis->orphan_code_signals[index];
-    M68kRangeOwnershipIR range;
-    if (signal->size == 0U || signal->nearby_data_relation == M68K_ORPHAN_CODE_SIGNAL_NEARBY_DATA_NONE)
-      continue;
-    memset(&range, 0, sizeof(range));
-    range.start_offset = signal->offset;
-    if (signal->offset > UINT32_MAX - signal->size) continue;
-    range.end_offset = signal->offset + signal->size;
-    range.kind = M68K_RANGE_OWNERSHIP_CONFLICT;
-    range.status = M68K_RANGE_OWNERSHIP_STATUS_CONFLICT;
-    range.positive_evidence_flags = M68K_RANGE_EVIDENCE_CODE_SHAPE;
-    range.negative_evidence_flags = M68K_RANGE_NEGATIVE_MISSING_INBOUND |
-      M68K_RANGE_NEGATIVE_STRUCTURED_DATA_OVERLAP;
-    range.conflict_state = M68K_ANALYSIS_CONFLICT_STATE_UNRESOLVED;
-    if (m68k_ir_section_analysis_append_range_ownership(section_analysis, &range) != 0) return -1;
-  }
-  return 0;
-}
-
 static int render_orphan_candidate_range_is_blocked(const M68kRenderLookup *lookup,
     const M68kDecodeSectionIR *section, const uint8_t *accepted_bytes, uint32_t offset, uint32_t size,
     int allow_structured_data_overlap) {
@@ -11695,9 +11672,6 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
       }
       if (render_analysis_append_orphan_code_signals_for_section(&lookup, section, accepted_start[section_index],
           accepted_bytes[section_index], current_section_analysis) != 0) {
-        goto cleanup;
-      }
-      if (render_analysis_append_orphan_conflict_ranges_for_section(current_section_analysis) != 0) {
         goto cleanup;
       }
       if (m68k_ir_source_analysis_append_section(out_source_analysis, current_section_analysis) != 0) goto cleanup;

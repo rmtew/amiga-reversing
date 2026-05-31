@@ -3201,3 +3201,27 @@ src\build\m68k_c_unit_tests.exe
 uv run python -m pytest tests\test_target_usage_manifest.py -q
 uv run platform-rendered-source-roundtrip --no-write-report --json
 ```
+
+### Orphan Conflict Range Migration
+
+Moved orphan-code conflict range ownership out of render preview and into
+source-quality analysis:
+
+```text
+M68kOrphanCodeSignalIR with nearby data relation
+  -> m68k_source_quality_analyze()
+  -> M68kRangeOwnershipIR(kind = conflict, status = conflict)
+```
+
+Render still discovers orphan-code signals for now because that pass depends on
+render lookup boundaries and structured-data overlap checks. The conflict range
+derived from those signals is no longer renderer-owned.
+
+Verified:
+
+```text
+cmd /c src\build.bat
+src\build\m68k_c_unit_tests.exe
+uv run python -m pytest tests\test_target_usage_manifest.py -q
+uv run platform-rendered-source-roundtrip --no-write-report --json
+```

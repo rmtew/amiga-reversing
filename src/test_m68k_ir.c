@@ -10577,6 +10577,35 @@ static int test_source_quality_analyze_uses_cfg_terminal_run_end(void) {
   return 0;
 }
 
+static int test_source_quality_analyze_exports_orphan_conflict_ranges(void) {
+  M68kSourceAnalysisIR source_analysis;
+  M68kSectionAnalysisIR section_analysis;
+  M68kOrphanCodeSignalIR signal;
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_create(&source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_create(&section_analysis, test_ir_result_arena()));
+  section_analysis.section_index = 0U;
+  section_analysis.section_size = 32U;
+  memset(&signal, 0, sizeof(signal));
+  signal.offset = 12U;
+  signal.size = 4U;
+  signal.reason = M68K_ORPHAN_CODE_SIGNAL_TERMINAL_DECODE;
+  signal.status = M68K_ORPHAN_CODE_SIGNAL_UNRESOLVED;
+  signal.nearby_data_relation = M68K_ORPHAN_CODE_SIGNAL_NEARBY_DATA_OVERLAP;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_orphan_code_signal(&section_analysis, &signal));
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
+  M68K_C_ASSERT_INT(0, m68k_source_quality_analyze(&source_analysis, NULL, NULL, NULL));
+  M68K_C_ASSERT_INT(1, (int)source_analysis.sections[0].range_ownership_count);
+  M68K_C_ASSERT_INT(12, (int)source_analysis.sections[0].range_ownerships[0].start_offset);
+  M68K_C_ASSERT_INT(16, (int)source_analysis.sections[0].range_ownerships[0].end_offset);
+  M68K_C_ASSERT_INT(M68K_RANGE_OWNERSHIP_CONFLICT,
+    source_analysis.sections[0].range_ownerships[0].kind);
+  M68K_C_ASSERT_INT(M68K_ANALYSIS_CONFLICT_STATE_UNRESOLVED,
+    source_analysis.sections[0].range_ownerships[0].conflict_state);
+  m68k_ir_section_analysis_destroy(&section_analysis);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  return 0;
+}
+
 static int test_source_analysis_range_ownership_exports_conflict(void) {
   M68kSourceAnalysisIR source_analysis;
   M68kSectionAnalysisIR section_analysis;
@@ -23732,6 +23761,8 @@ int m68k_c_ir_tests(void) {
       test_source_quality_analyze_blocks_code_without_executable_origin},
     {"source_quality_analyze_uses_cfg_terminal_run_end",
       test_source_quality_analyze_uses_cfg_terminal_run_end},
+    {"source_quality_analyze_exports_orphan_conflict_ranges",
+      test_source_quality_analyze_exports_orphan_conflict_ranges},
     {"source_analysis_range_ownership_exports_conflict",
       test_source_analysis_range_ownership_exports_conflict},
     {"source_analysis_platform_storage_effect_conflicts_only_mapped_section_storage",
