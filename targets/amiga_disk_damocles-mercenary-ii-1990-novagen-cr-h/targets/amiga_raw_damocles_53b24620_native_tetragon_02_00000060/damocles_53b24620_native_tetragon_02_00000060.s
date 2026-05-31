@@ -1,34 +1,39 @@
 ; Memory map
 ;   code[$00000000-$000779C9] -> runtime[$00001000-$000789C9] policy materialized
 ;   Absolute memory refs:
-;     absolute[$00079910] refs=1 access=a
-;     absolute[$00079938] refs=1 access=a
-;     absolute[$00079AE4] refs=2 access=a
-;     absolute[$00079AE8] refs=1 access=a
-;     absolute[$00079D2A] refs=1 access=a
-;     absolute[$00079D35] refs=1 access=a
-;     absolute[$0007B882] refs=1 access=a
-;     absolute[$0007B9FA] refs=1 access=a
-;     absolute[$0007BA3A] refs=1 access=a
-;     absolute[$0007BC6C] refs=1 access=a
-;     absolute[$0007D480] refs=1 access=a
-;     absolute[$0007D500] refs=1 access=a
-;     absolute[$0007D920] refs=3 access=a
-;     absolute[$0007D924] refs=1 access=a
-;     absolute[$0007D94C] refs=1 access=a
-;     absolute[$0007D9EA] refs=1 access=a
-;     absolute[$0007DA38] refs=1 access=a
-;     absolute[$0007DB2C] refs=1 access=a
-;     absolute[$0007F6EA] refs=1 access=a
-;     absolute[$0007F6F0] refs=1 access=a
-;     absolute[$0007F8A4] refs=1 access=a
-;     absolute[$0007F8AA] refs=1 access=a
-;     absolute[$0007FA3A] refs=1 access=a
-;     absolute[$0007FAE8] refs=1 access=a
-;     absolute[$0007FFFA] refs=3 access=a
-;     absolute[$00DFF01F] refs=1 access=r
-;     absolute[$FFFF8242-$FFFF8260] refs=8 access=w
-;     absolute[$FFFF8800-$FFFF8801] refs=2 access=w
+;     absolute[$0000003C] refs=2 access=r
+;     absolute[$000000F0] refs=1 access=r
+;     absolute[$000000F4] refs=1 access=r
+;     absolute[$000000F8] refs=2 access=r
+;     absolute[$000000FC] refs=3 access=ra
+;     absolute[$00000100] refs=2 access=r
+;     absolute[$0000010E] refs=1 access=r
+;     absolute[$0000013F] refs=1 access=r
+;     absolute[$00000144] refs=1 access=r
+;     absolute[$00000200] refs=1 access=r
+;     absolute[$00000244] refs=1 access=r
+;     absolute[$0000028C] refs=1 access=a
+;     absolute[$000003FC] refs=8 access=a
+;     absolute[$00000400] refs=2 access=a
+;     absolute[$00034006] refs=2 access=a
+;     absolute[$0004B3C2] refs=4 access=a
+;     absolute[$000502C8] refs=1 access=a
+;     absolute[$00051632] refs=1 access=a
+;     absolute[$000516CE] refs=1 access=a
+;     absolute[$000517B0] refs=1 access=a
+;     absolute[$000517FC] refs=1 access=a
+;     absolute[$00051840] refs=1 access=a
+;     absolute[$00051848] refs=1 access=a
+;     absolute[$00069914] refs=1 access=a
+;     absolute[$00069F40-$0006BE80] refs=1 access=a
+;     absolute[$0006BA22] refs=1 access=a
+;     absolute[$0006BA4A] refs=1 access=a
+;     absolute[$0006BA72] refs=1 access=a
+;     absolute[$0006BA9A] refs=1 access=a
+;     absolute[$0006BAC2] refs=1 access=a
+;     absolute[$0006BAEA] refs=1 access=a
+;     absolute[$0006BB12] refs=1 access=a
+;     ... additional absolute memory ranges omitted
 
 ; AmigaOS compatibility
 ;   required OS floor: unknown

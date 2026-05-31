@@ -1,7 +1,3 @@
-; Memory map
-;   Absolute memory refs:
-;     absolute[$00000040-$00000044] refs=3 access=r
-
 ; AmigaOS compatibility, inferred from recovered OS calls
 ;   required OS floor: 1.3
 ;   evidence: highest recovered API requirement is 1.3

@@ -1,6 +1,9 @@
 ; Memory map
 ;   section_2[$0000006A-$0000014C] -> runtime[$00000100-$000001E2] discovered_copy materialized
 ;   Absolute memory refs:
+;     absolute[$00000800] refs=1 access=a
+;     absolute[$00001000] refs=1 access=a
+;     absolute[$00002700] refs=1 access=a
 ;     absolute[$000130B6] refs=1 access=a
 ;     absolute[$00040000] refs=2 access=a
 ;     absolute[$0004F92B] refs=1 access=a

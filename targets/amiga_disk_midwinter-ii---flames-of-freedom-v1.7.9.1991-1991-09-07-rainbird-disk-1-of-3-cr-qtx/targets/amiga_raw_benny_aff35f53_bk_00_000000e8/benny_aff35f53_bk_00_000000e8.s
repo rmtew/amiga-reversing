@@ -1,6 +1,7 @@
 ; Memory map
 ;   code[$00000000-$00009AF6] -> runtime[$00040000-$00049AF6] policy materialized
 ;   Absolute memory refs:
+;     absolute[$00040A86] refs=1 access=a
 ;     absolute[$00049AF6] refs=2 access=a
 
 ; AmigaOS compatibility

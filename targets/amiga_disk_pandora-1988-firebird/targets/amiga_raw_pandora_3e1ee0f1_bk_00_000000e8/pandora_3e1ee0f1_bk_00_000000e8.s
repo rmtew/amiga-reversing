@@ -5,39 +5,34 @@
 ;   code[$00000000-$00055370] -> runtime[$00010000-$00065370] discovered_copy materialized
 ;   code[$00000001-$00055371] -> runtime[$00010001-$00065371] conflicting_discovered_copy suppressed
 ;   Absolute memory refs:
-;     absolute[$000007E8-$000007EE] refs=2 access=w
+;     absolute[$00000400] refs=2 access=r
+;     absolute[$000010F0] refs=1 access=a
+;     absolute[$00002204] refs=1 access=a
+;     absolute[$000032FC] refs=1 access=a
+;     absolute[$0000397C] refs=3 access=a
 ;     absolute[$000039BC-$000039BD] refs=1 access=r
-;     absolute[$000064C0-$000064C4] refs=3 access=w
-;     absolute[$00065370] refs=2 access=a
-;     absolute[$00065374] refs=1 access=a
-;     absolute[$000653B8] refs=1 access=a
-;     absolute[$00065580] refs=1 access=a
-;     absolute[$00065698] refs=1 access=a
-;     absolute[$00065798] refs=1 access=a
-;     absolute[$00065898] refs=1 access=a
-;     absolute[$00065998] refs=1 access=a
-;     absolute[$00065A98] refs=1 access=a
-;     absolute[$00065C98] refs=1 access=a
-;     absolute[$00065D98] refs=1 access=a
-;     absolute[$00065E98] refs=1 access=a
-;     absolute[$00065F98] refs=1 access=a
-;     absolute[$00066218] refs=1 access=a
-;     absolute[$00066908] refs=1 access=a
-;     absolute[$00066CC8] refs=1 access=a
-;     absolute[$00066DC8] refs=1 access=a
-;     absolute[$000678C8] refs=1 access=a
-;     absolute[$00067FE4] refs=1 access=a
-;     absolute[$000681E4] refs=1 access=a
-;     absolute[$00068364] refs=1 access=a
-;     absolute[$000683A8] refs=1 access=a
-;     absolute[$000684A8] refs=1 access=a
-;     absolute[$00068580] refs=1 access=a
-;     absolute[$000685FC] refs=1 access=a
-;     absolute[$0006867C] refs=1 access=a
-;     absolute[$000689C4] refs=1 access=a
-;     absolute[$00068CAC] refs=1 access=a
-;     absolute[$00068E0C] refs=1 access=a
-;     ... additional absolute memory ranges omitted
+;     absolute[$000039CC] refs=1 access=a
+;     absolute[$000039FC] refs=3 access=a
+;     absolute[$00004000] refs=1 access=a
+;     absolute[$000109EA] refs=1 access=a
+;     absolute[$00010ED8] refs=1 access=a
+;     absolute[$0001A862] refs=2 access=a
+;     absolute[$00070028-$000700A0] refs=3 access=a
+;     absolute[$00075000-$000750A0] refs=4 access=a
+;     absolute[$0007D000] refs=1 access=a
+;     absolute[$0007D380] refs=1 access=a
+;     absolute[$0007D680] refs=1 access=a
+;     absolute[$0007DA00] refs=1 access=a
+;     absolute[$0007DC00] refs=1 access=a
+;     absolute[$0007DF60] refs=1 access=a
+;     absolute[$0007DFCC] refs=1 access=a
+;     absolute[$0007E254] refs=1 access=a
+;     absolute[$0007E554] refs=1 access=a
+;     absolute[$0007E6D4] refs=1 access=a
+;     absolute[$0007E9D4] refs=1 access=a
+;     absolute[$0007F13C] refs=1 access=a
+;     absolute[$0007F630] refs=1 access=a
+;     absolute[$0007FDB0] refs=1 access=a
 
 ; AmigaOS compatibility
 ;   required OS floor: unknown

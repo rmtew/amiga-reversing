@@ -4,9 +4,15 @@
 ;   code[$00000172-$000001A6] -> runtime[$00078C00-$00078C34] discovered_copy suppressed
 ;   code[$00000174-$000001A8] -> runtime[$00078C02-$00078C36] discovered_copy suppressed
 ;   Absolute memory refs:
+;     absolute[$00000864] refs=1 access=a
+;     absolute[$0000086C] refs=1 access=a
+;     absolute[$00000898] refs=1 access=a
+;     absolute[$000008B0] refs=1 access=a
+;     absolute[$00009C78] refs=1 access=a
 ;     absolute[$00020000] refs=1 access=a
 ;     absolute[$00076CC0] refs=1 access=a
-;     absolute[$00077A6A] refs=1 access=a
+;     absolute[$0007FDF0] refs=1 access=r
+;     absolute[$0007FFF0] refs=1 access=r
 
 ; AmigaOS compatibility, inferred from recovered OS calls
 ;   required OS floor: 1.3

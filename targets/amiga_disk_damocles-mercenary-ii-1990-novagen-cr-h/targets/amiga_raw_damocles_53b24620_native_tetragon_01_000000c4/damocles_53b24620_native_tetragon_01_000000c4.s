@@ -3,7 +3,11 @@
 ;   code[$000002D2-$00010000] -> runtime[$00042000-$00051D2E] conflicting_discovered_copy suppressed
 ;   code[$000002D3-$00010000] -> runtime[$00042001-$00051D2E] conflicting_discovered_copy suppressed
 ;   Absolute memory refs:
+;     absolute[$00031000] refs=4 access=r
 ;     absolute[$00031004-$00031008] refs=1 access=w
+;     absolute[$00031064] refs=1 access=r
+;     absolute[$00032000] refs=4 access=r
+;     absolute[$00035000] refs=3 access=r
 
 ; AmigaOS compatibility, inferred from recovered OS calls
 ;   required OS floor: 1.3

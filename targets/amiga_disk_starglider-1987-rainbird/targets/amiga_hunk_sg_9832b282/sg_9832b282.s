@@ -2,38 +2,15 @@
 ;   section[$00005B04-$00005B24] -> runtime[$00DFF180-$00DFF1A0] discovered_copy suppressed
 ;   Absolute memory refs:
 ;     absolute[$0000001E-$00000020] refs=1 access=r
+;     absolute[$00000040] refs=1 access=r
 ;     absolute[$0000009A-$0000009C] refs=1 access=w
-;     absolute[$000002CE-$000002D0] refs=1 access=w
-;     absolute[$00000337-$00000338] refs=1 access=w
-;     absolute[$00002968-$0000296C] refs=1 access=w
-;     absolute[$00007ABC-$00007AC3] refs=15 access=rw
-;     absolute[$00008ED2-$00008ED4] refs=5 access=rw
-;     absolute[$00009186-$0000918E] refs=8 access=rw
-;     absolute[$00009192-$00009196] refs=4 access=r
-;     absolute[$000091B4-$000091B5] refs=4 access=rw
-;     absolute[$000091C2-$000091C3] refs=14 access=rw
-;     absolute[$000091C4-$000091C5] refs=9 access=rw
-;     absolute[$000091C6-$000091CA] refs=7 access=rw
-;     absolute[$000095DE-$000095DF] refs=23 access=rw
-;     absolute[$00009882-$00009886] refs=3 access=rw
-;     absolute[$0000999E-$000099B2] refs=30 access=rw
-;     absolute[$0000A05A-$0000A05E] refs=2 access=rw
-;     absolute[$0000A082-$0000A083] refs=2 access=w
-;     absolute[$0000A09F-$0000A0A0] refs=2 access=w
-;     absolute[$0000A0BB-$0000A0BC] refs=4 access=w
-;     absolute[$0000A0BD-$0000A0BF] refs=8 access=w
-;     absolute[$0000A0C4-$0000A0C5] refs=2 access=w
-;     absolute[$0000A0E0-$0000A0E1] refs=4 access=w
-;     absolute[$0000A0E2-$0000A0E4] refs=8 access=w
-;     absolute[$0000A0E9-$0000A0EA] refs=2 access=w
-;     absolute[$0000A105-$0000A109] refs=25 access=w
-;     absolute[$0000A10E-$0000A10F] refs=2 access=w
-;     absolute[$0000A118-$0000A119] refs=8 access=w
-;     absolute[$0000A11A-$0000A11C] refs=16 access=w
-;     absolute[$0000A129-$0000A12A] refs=6 access=w
-;     absolute[$0000A12B-$0000A12D] refs=12 access=w
-;     absolute[$0000A138-$0000A139] refs=2 access=w
-;     ... additional absolute memory ranges omitted
+;     absolute[$000009C4] refs=1 access=a
+;     absolute[$00001290] refs=2 access=a
+;     absolute[$000012D0] refs=3 access=a
+;     absolute[$00003300] refs=6 access=a
+;     absolute[$00060000] refs=1 access=a
+;     absolute[$00068000] refs=1 access=a
+;     absolute[$00BFE0FF-$00BFE100] refs=1 access=r
 
 ; AmigaOS compatibility, inferred from recovered OS calls
 ;   required OS floor: 1.3

@@ -189,6 +189,70 @@ static void absolute_range_fill_access_counts(const M68kSourceAnalysisIR *source
   }
 }
 
+static uint32_t absolute_range_end(const M68kAbsoluteAddressRangeIR *range) {
+  if (range == NULL) return 0U;
+  if (range->range_size == 0U || range->start_address > UINT32_MAX - range->range_size)
+    return range->start_address;
+  return range->start_address + range->range_size;
+}
+
+static int absolute_ranges_can_merge(const M68kAbsoluteAddressRangeIR *left,
+    const M68kAbsoluteAddressRangeIR *right) {
+  if (left == NULL || right == NULL) return 0;
+  if (left->owner_kind != right->owner_kind || left->status != right->status) return 0;
+  return right->start_address <= absolute_range_end(left);
+}
+
+static void absolute_range_merge(M68kAbsoluteAddressRangeIR *dest, const M68kAbsoluteAddressRangeIR *source) {
+  uint32_t start;
+  uint32_t end;
+  if (dest == NULL || source == NULL) return;
+  start = dest->start_address < source->start_address ? dest->start_address : source->start_address;
+  end = absolute_range_end(dest) > absolute_range_end(source) ? absolute_range_end(dest) : absolute_range_end(source);
+  dest->start_address = start;
+  dest->range_size = start <= end ? end - start : 0U;
+  dest->observation_count += source->observation_count;
+  dest->read_count += source->read_count;
+  dest->write_count += source->write_count;
+  dest->access_count += source->access_count;
+  if (source->source_section_index < dest->source_section_index ||
+      (source->source_section_index == dest->source_section_index && source->source_offset < dest->source_offset)) {
+    dest->source_section_index = source->source_section_index;
+    dest->source_offset = source->source_offset;
+  }
+}
+
+static void source_analysis_sort_and_coalesce_absolute_ranges(M68kSourceAnalysisIR *source_analysis) {
+  size_t index;
+  size_t out_count = 0U;
+  if (source_analysis == NULL || source_analysis->absolute_address_ranges == NULL ||
+      source_analysis->absolute_address_range_count == 0U) {
+    return;
+  }
+  for (index = 1U; index < source_analysis->absolute_address_range_count; ++index) {
+    M68kAbsoluteAddressRangeIR current = source_analysis->absolute_address_ranges[index];
+    size_t cursor = index;
+    while (cursor > 0U) {
+      const M68kAbsoluteAddressRangeIR *previous = &source_analysis->absolute_address_ranges[cursor - 1U];
+      if (previous->start_address < current.start_address) break;
+      if (previous->start_address == current.start_address && previous->owner_kind <= current.owner_kind) break;
+      source_analysis->absolute_address_ranges[cursor] = *previous;
+      --cursor;
+    }
+    source_analysis->absolute_address_ranges[cursor] = current;
+  }
+  for (index = 0U; index < source_analysis->absolute_address_range_count; ++index) {
+    M68kAbsoluteAddressRangeIR current = source_analysis->absolute_address_ranges[index];
+    if (out_count != 0U &&
+        absolute_ranges_can_merge(&source_analysis->absolute_address_ranges[out_count - 1U], &current)) {
+      absolute_range_merge(&source_analysis->absolute_address_ranges[out_count - 1U], &current);
+      continue;
+    }
+    source_analysis->absolute_address_ranges[out_count++] = current;
+  }
+  source_analysis->absolute_address_range_count = out_count;
+}
+
 static void address_identity_merge_observation(M68kAddressIdentityIR *identity,
     const M68kAddressObservationIR *observation, uint32_t section_index) {
   if (identity == NULL || observation == NULL) return;
@@ -273,6 +337,7 @@ static int append_address_identities_and_ranges(M68kSourceAnalysisIR *source_ana
     absolute_range_fill_access_counts(source_analysis, identity, &range);
     if (m68k_ir_source_analysis_append_absolute_address_range(source_analysis, &range) != 0) return -1;
   }
+  source_analysis_sort_and_coalesce_absolute_ranges(source_analysis);
   return 0;
 }
 

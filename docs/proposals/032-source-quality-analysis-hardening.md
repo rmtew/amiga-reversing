@@ -3124,6 +3124,42 @@ uv run python -m pytest tests\test_target_usage_manifest.py -q
 uv run platform-rendered-source-roundtrip --no-write-report --json
 ```
 
+### Absolute Memory Header From Source-Quality Ranges
+
+Removed the render-side absolute-memory header scan:
+
+```text
+deleted:
+  render_absolute_memory_header_collect()
+  render_absolute_memory_header_add_range()
+  render_absolute_memory_header_coalesce()
+
+kept:
+  SourceQuality address observations
+  M68kAddressIdentityIR
+  M68kAbsoluteAddressRangeIR
+```
+
+Source rendering now formats the memory-map absolute reference header from
+`M68kSourceAnalysisIR.absolute_address_ranges`. Render no longer walks accepted
+instructions to decide which absolute operands are meaningful for that header.
+The source-quality pass sorts and coalesces absolute ranges so the durable C
+facts remain stable and readable before presentation sees them.
+
+The target re-render changed only generated source comments in the memory-map
+header. Round-trip stayed exact/content-exact with the existing container
+policy. The visible effect is that the header no longer reports render-local
+operand scan output; it reports source-quality-owned unowned absolute ranges.
+
+Verified:
+
+```text
+cmd /c src\build.bat
+src\build\m68k_c_unit_tests.exe
+uv run python -m pytest tests\test_target_usage_manifest.py -q
+uv run platform-rendered-source-roundtrip --update-rendered-source --json
+```
+
 ### Render Walk Source-Analysis Decoupling
 
 Moved source-analysis section assembly out of the source row walk:

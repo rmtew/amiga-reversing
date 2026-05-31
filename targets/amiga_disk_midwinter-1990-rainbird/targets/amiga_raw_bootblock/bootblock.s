@@ -2,7 +2,7 @@
 ;   Absolute memory refs:
 ;     absolute[$000314E0] refs=1 access=a
 ;     absolute[$00031500] refs=1 access=a
-;     absolute[$00070000] refs=1 access=a
+;     absolute[$00070000] refs=3 access=a
 
 ; AmigaOS compatibility, inferred from recovered OS calls
 ;   required OS floor: 1.3

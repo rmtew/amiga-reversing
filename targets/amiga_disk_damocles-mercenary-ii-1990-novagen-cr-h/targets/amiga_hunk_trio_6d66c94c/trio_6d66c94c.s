@@ -1,12 +1,11 @@
 ; Memory map
 ;   Absolute memory refs:
-;     absolute[$00002F0A-$00002F10] refs=7 access=rw
-;     absolute[$00002F12-$00002F14] refs=2 access=rw
-;     absolute[$00002F16-$00002F18] refs=2 access=rw
-;     absolute[$00002F1A-$00002F1F] refs=4 access=rw
-;     absolute[$00002F20-$00002F22] refs=2 access=w
-;     absolute[$00008400-$00008402] refs=2 access=r
-;     absolute[$0000842E-$00008434] refs=3 access=w
+;     absolute[$00000B5C] refs=1 access=a
+;     absolute[$00000B5E] refs=2 access=a
+;     absolute[$00000B8A] refs=2 access=a
+;     absolute[$00000BB6] refs=2 access=a
+;     absolute[$00002290] refs=1 access=a
+;     absolute[$00002292] refs=1 access=a
 
 ; AmigaOS compatibility, inferred from recovered OS calls
 ;   required OS floor: 1.3

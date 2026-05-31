@@ -3,6 +3,8 @@
 ;   code[$00000046-$00005400] -> runtime[$00006000-$0000B3BA] discovered_copy suppressed
 ;   code[$0000004A-$00005400] -> runtime[$00006004-$0000B3BA] discovered_copy suppressed
 ;   Absolute memory refs:
+;     absolute[$00002000] refs=4 access=a
+;     absolute[$000066FC] refs=3 access=a
 ;     absolute[$00010000] refs=6 access=a
 ;     absolute[$00013000] refs=1 access=a
 ;     absolute[$0001E000] refs=2 access=a

@@ -1,7 +1,12 @@
 ; Memory map
 ;   code[$00000000-$000200FD] -> runtime[$00020000-$000400FD] policy materialized
 ;   Absolute memory refs:
-;     absolute[$0007FA00-$0007FA08] refs=6 access=w
+;     absolute[$000000C0] refs=1 access=a
+;     absolute[$0002142E] refs=2 access=a
+;     absolute[$000214FE] refs=1 access=a
+;     absolute[$0002164E] refs=1 access=a
+;     absolute[$0007FA00-$0007FA04] refs=5 access=w
+;     absolute[$0007FA04-$0007FA08] refs=1 access=w
 
 ; AmigaOS compatibility, inferred from recovered OS calls
 ;   required OS floor: 1.3

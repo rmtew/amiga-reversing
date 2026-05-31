@@ -1,9 +1,13 @@
 ; Memory map
 ;   Absolute memory refs:
-;     absolute[$FFFFFF22] refs=1 access=a
+;     absolute[$000000C0] refs=1 access=r
+;     absolute[$0000FF22] refs=1 access=r
+;     absolute[$FFFFFF22] refs=2 access=ra
 ;     absolute[$FFFFFF64] refs=1 access=a
 ;     absolute[$FFFFFF94] refs=2 access=a
 ;     absolute[$FFFFFFA6] refs=1 access=a
+;     absolute[$FFFFFFE8] refs=1 access=r
+;     absolute[$FFFFFFEE] refs=1 access=r
 
 ; AmigaOS compatibility, inferred from recovered OS calls
 ;   required OS floor: 2.0

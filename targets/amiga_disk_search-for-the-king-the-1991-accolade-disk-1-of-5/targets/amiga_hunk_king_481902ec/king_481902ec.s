@@ -1,15 +1,5 @@
 ; Memory map
 ;   Absolute memory refs:
-;     absolute[$00004410-$00004414] refs=3 access=r
-;     absolute[$00006182-$0000618A] refs=15 access=r
-;     absolute[$0000AA2C-$0000AA30] refs=6 access=r
-;     absolute[$00022D10] refs=1 access=a
-;     absolute[$0002C950] refs=1 access=a
-;     absolute[$00036590] refs=2 access=a
-;     absolute[$000401D0] refs=1 access=a
-;     absolute[$00047ED0] refs=1 access=a
-;     absolute[$00047EE4] refs=5 access=a
-;     absolute[$0005C704] refs=3 access=a
 ;     absolute[$FFFFFE00] refs=1 access=a
 ;     absolute[$FFFFFFFF] refs=3 access=a
 

@@ -1439,30 +1439,7 @@ static int lookup_materialized_runtime_address_source_offset(const M68kRenderLoo
 static int render_absolute_ref_access_kind(uint8_t access_kind);
 static uint32_t render_instruction_access_width(const M68kInstructionIR *instruction, uint8_t access_kind);
 
-typedef struct M68kRenderAbsoluteMemoryRangeSummary {
-  uint32_t start;
-  uint32_t end;
-  uint32_t ref_count;
-  uint8_t has_read;
-  uint8_t has_write;
-  uint8_t has_address;
-  uint8_t truncated;
-} M68kRenderAbsoluteMemoryRangeSummary;
-
 #define M68K_RENDER_ABSOLUTE_MEMORY_HEADER_RANGE_LIMIT 32U
-
-static void *render_arena_grow_array(Arena *arena, void *items, size_t count, size_t *capacity,
-    size_t initial_capacity, size_t item_size) {
-  size_t next_capacity;
-  if (arena == NULL || capacity == NULL || item_size == 0U) return NULL;
-  if (count < *capacity) return items;
-  next_capacity = (*capacity == 0U) ? initial_capacity : (*capacity * 2U);
-  if (next_capacity < count || next_capacity > SIZE_MAX / item_size) return NULL;
-  items = arena_realloc_copy(arena, items, count * item_size, next_capacity * item_size);
-  if (items == NULL) return NULL;
-  *capacity = next_capacity;
-  return items;
-}
 
 static int render_absolute_memory_header_owner_is_absolute(const M68kRenderLookup *lookup,
     const M68kDecodeSectionIR *section, uint32_t address) {
@@ -1487,161 +1464,60 @@ static int render_absolute_memory_header_owner_is_absolute(const M68kRenderLooku
   return 1;
 }
 
-static int render_absolute_memory_header_add_range(Arena *arena, M68kRenderAbsoluteMemoryRangeSummary **io_ranges,
-    size_t *io_count, size_t *io_capacity, uint32_t start, uint32_t size, uint8_t access_kind) {
-  uint32_t end = size != 0U && start <= UINT32_MAX - size ? start + size : start;
-  size_t index;
-  if (arena == NULL || io_ranges == NULL || io_count == NULL || io_capacity == NULL) return -1;
-  for (index = 0U; index < *io_count; ++index) {
-    M68kRenderAbsoluteMemoryRangeSummary *range = &(*io_ranges)[index];
-    if (start > range->end || end < range->start) continue;
-    if (start < range->start) range->start = start;
-    if (end > range->end) range->end = end;
-    ++range->ref_count;
-    if (access_kind == M68K_SIM_ACCESS_MEMORY_READ) range->has_read = 1U;
-    else if (access_kind == M68K_SIM_ACCESS_MEMORY_WRITE) range->has_write = 1U;
-    else range->has_address = 1U;
-    return 0;
-  }
-  *io_ranges = (M68kRenderAbsoluteMemoryRangeSummary *)render_arena_grow_array(arena, *io_ranges, *io_count,
-    io_capacity, 32U, sizeof(**io_ranges));
-  if (*io_ranges == NULL) return -1;
-  memset(&(*io_ranges)[*io_count], 0, sizeof((*io_ranges)[*io_count]));
-  (*io_ranges)[*io_count].start = start;
-  (*io_ranges)[*io_count].end = end;
-  (*io_ranges)[*io_count].ref_count = 1U;
-  (*io_ranges)[*io_count].has_read = access_kind == M68K_SIM_ACCESS_MEMORY_READ ? 1U : 0U;
-  (*io_ranges)[*io_count].has_write = access_kind == M68K_SIM_ACCESS_MEMORY_WRITE ? 1U : 0U;
-  (*io_ranges)[*io_count].has_address =
-    access_kind != M68K_SIM_ACCESS_MEMORY_READ && access_kind != M68K_SIM_ACCESS_MEMORY_WRITE ? 1U : 0U;
-  (*io_ranges)[*io_count].truncated = 0U;
-  ++*io_count;
-  return 0;
-}
-
-static size_t render_absolute_memory_header_collect(const M68kRenderLookup *lookup,
-    const M68kDecodeIR *decode, uint8_t **accepted_start, Arena *arena,
-    M68kRenderAbsoluteMemoryRangeSummary **out_ranges) {
-  size_t section_index;
-  size_t range_count = 0U;
-  size_t range_capacity = 0U;
-  if (out_ranges != NULL) *out_ranges = NULL;
-  if (lookup == NULL || decode == NULL || accepted_start == NULL || arena == NULL || out_ranges == NULL)
-    return 0U;
-  for (section_index = 0U; section_index < decode->section_count; ++section_index) {
-    const M68kDecodeSectionIR *section = &decode->sections[section_index];
-    size_t candidate_index;
-    if (accepted_start[section_index] == NULL) continue;
-    for (candidate_index = 0U; candidate_index < section->candidate_count; ++candidate_index) {
-      const M68kDecodeCandidate *candidate = &section->candidates[candidate_index];
-      M68kInstructionIR instruction;
-      const M68kSimFormMetadata *metadata;
-      size_t operand_index;
-      if (candidate->offset >= section->size || accepted_start[section_index][candidate->offset] == 0U) continue;
-      if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) continue;
-      metadata = m68k_sim_metadata_for_instruction(&instruction);
-      if (metadata == NULL) continue;
-      for (operand_index = 0U; operand_index < candidate->operand_count && operand_index < 4U &&
-           operand_index < instruction.operand_count; ++operand_index) {
-        uint8_t access_kind = metadata->operand_access_kinds[operand_index];
-        uint32_t address = 0U;
-        uint32_t width;
-        if (!render_absolute_ref_access_kind(access_kind)) continue;
-        if (!m68k_asm_operand_absolute_value(candidate->operand_kinds[operand_index],
-            &candidate->operands[operand_index], &address)) {
-          continue;
-        }
-        if (!render_absolute_memory_header_owner_is_absolute(lookup, section, address)) continue;
-        width = render_instruction_access_width(&instruction, access_kind);
-        if (width == 0U && address < 0x10000U) continue;
-        if (render_absolute_memory_header_add_range(arena, out_ranges, &range_count, &range_capacity, address,
-            width, access_kind) != 0) {
-          return 0U;
-        }
-      }
-    }
-  }
-  return range_count;
-}
-
-static size_t render_absolute_memory_header_coalesce(M68kRenderAbsoluteMemoryRangeSummary *ranges,
-    size_t range_count) {
-  size_t index;
-  size_t out_count = 0U;
-  if (ranges == NULL || range_count == 0U) return 0U;
-  for (index = 1U; index < range_count; ++index) {
-    M68kRenderAbsoluteMemoryRangeSummary current = ranges[index];
-    size_t cursor = index;
-    while (cursor > 0U && current.start < ranges[cursor - 1U].start) {
-      ranges[cursor] = ranges[cursor - 1U];
-      --cursor;
-    }
-    ranges[cursor] = current;
-  }
-  for (index = 0U; index < range_count; ++index) {
-    M68kRenderAbsoluteMemoryRangeSummary *out;
-    if (out_count == 0U || ranges[index].start > ranges[out_count - 1U].end) {
-      if (out_count != index) ranges[out_count] = ranges[index];
-      ++out_count;
-      continue;
-    }
-    out = &ranges[out_count - 1U];
-    if (ranges[index].end > out->end) out->end = ranges[index].end;
-    out->ref_count += ranges[index].ref_count;
-    out->has_read = (uint8_t)(out->has_read || ranges[index].has_read);
-    out->has_write = (uint8_t)(out->has_write || ranges[index].has_write);
-    out->has_address = (uint8_t)(out->has_address || ranges[index].has_address);
-  }
-  return out_count;
-}
-
 static void render_asm_absolute_memory_header(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
-    const M68kDecodeIR *decode, uint8_t **accepted_start, int *io_emitted_header) {
-  Arena *scratch_arena;
-  ArenaMark scratch_mark;
-  M68kRenderAbsoluteMemoryRangeSummary *ranges = NULL;
-  size_t range_count;
+    const M68kSourceAnalysisIR *source_analysis, int *io_emitted_header) {
   size_t index;
+  size_t emitted_count = 0U;
   if (preview == NULL || io_emitted_header == NULL) return;
-  scratch_arena = render_preview_scratch_arena(preview);
-  if (scratch_arena == NULL) return;
-  scratch_mark = arena_mark(scratch_arena);
-  range_count = render_absolute_memory_header_collect(lookup, decode, accepted_start, scratch_arena, &ranges);
-  range_count = render_absolute_memory_header_coalesce(ranges, range_count);
-  if (range_count == 0U) {
-    arena_rewind(scratch_arena, scratch_mark);
-    return;
-  }
-  if (!*io_emitted_header) {
-    render_asm_file_comment_line(preview, "Memory map");
-    *io_emitted_header = 1;
-  }
-  render_asm_file_comment_line(preview, "  Absolute memory refs:");
-  for (index = 0U; index < range_count && index < M68K_RENDER_ABSOLUTE_MEMORY_HEADER_RANGE_LIMIT; ++index) {
+  if (lookup == NULL || source_analysis == NULL || source_analysis->absolute_address_range_count == 0U) return;
+  for (index = 0U; index < source_analysis->absolute_address_range_count; ++index) {
+    const M68kAbsoluteAddressRangeIR *range = &source_analysis->absolute_address_ranges[index];
     char comment[160];
     char access[32];
+    uint32_t end;
+    if (range->status != M68K_ABSOLUTE_ADDRESS_RANGE_STATUS_UNOWNED_ONE_OFF &&
+        range->status != M68K_ABSOLUTE_ADDRESS_RANGE_STATUS_UNOWNED_SPARSE) {
+      continue;
+    }
+    if (range->owner_kind != M68K_ABSOLUTE_MEMORY_OWNER_ABSOLUTE_MEMORY &&
+        range->owner_kind != M68K_ABSOLUTE_MEMORY_OWNER_UNKNOWN) {
+      continue;
+    }
+    if (emitted_count == 0U) {
+      if (!*io_emitted_header) {
+        render_asm_file_comment_line(preview, "Memory map");
+        *io_emitted_header = 1;
+      }
+      render_asm_file_comment_line(preview, "  Absolute memory refs:");
+    }
+    if (emitted_count >= M68K_RENDER_ABSOLUTE_MEMORY_HEADER_RANGE_LIMIT) {
+      ++emitted_count;
+      continue;
+    }
     access[0] = '\0';
-    if (ranges[index].has_read) strcat(access, "r");
-    if (ranges[index].has_write) strcat(access, "w");
-    if (ranges[index].has_address) strcat(access, "a");
+    if (range->read_count != 0U) strcat(access, "r");
+    if (range->write_count != 0U) strcat(access, "w");
+    if (range->access_count > range->read_count + range->write_count) strcat(access, "a");
     if (access[0] == '\0') snprintf(access, sizeof(access), "-");
-    if (ranges[index].start == ranges[index].end) {
+    end = range->range_size != 0U && range->start_address <= UINT32_MAX - range->range_size ?
+      range->start_address + range->range_size : range->start_address;
+    if (range->start_address == end) {
       snprintf(comment, sizeof(comment), "    absolute[$%08X] refs=%u access=%s",
-        (unsigned)ranges[index].start, (unsigned)ranges[index].ref_count, access);
+        (unsigned)range->start_address, (unsigned)range->observation_count, access);
     } else {
       snprintf(comment, sizeof(comment), "    absolute[$%08X-$%08X] refs=%u access=%s",
-        (unsigned)ranges[index].start, (unsigned)ranges[index].end, (unsigned)ranges[index].ref_count, access);
+        (unsigned)range->start_address, (unsigned)end, (unsigned)range->observation_count, access);
     }
     render_asm_file_comment_line(preview, comment);
+    ++emitted_count;
   }
-  if (range_count > M68K_RENDER_ABSOLUTE_MEMORY_HEADER_RANGE_LIMIT) {
+  if (emitted_count > M68K_RENDER_ABSOLUTE_MEMORY_HEADER_RANGE_LIMIT) {
     render_asm_file_comment_line(preview, "    ... additional absolute memory ranges omitted");
   }
-  arena_rewind(scratch_arena, scratch_mark);
 }
 
 static void render_asm_memory_map_header(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
-    const M68kDecodeIR *decode, uint8_t **accepted_start) {
+    const M68kDecodeIR *decode, const M68kSourceAnalysisIR *source_analysis) {
   size_t index;
   int emitted_header = 0;
   if (preview == NULL || lookup == NULL || decode == NULL) return;
@@ -1675,7 +1551,7 @@ static void render_asm_memory_map_header(M68kRenderIRPreview *preview, const M68
       render_runtime_range_kind_name(fact->runtime_kind), materialized ? "materialized" : "suppressed");
     render_asm_file_comment_line(preview, comment);
   }
-  render_asm_absolute_memory_header(preview, lookup, decode, accepted_start, &emitted_header);
+  render_asm_absolute_memory_header(preview, lookup, source_analysis, &emitted_header);
   if (emitted_header) {
     hash_asm_text(preview, "\n");
     ++preview->asm_source_lines;
@@ -11396,7 +11272,7 @@ int m68k_render_ir_preview_emit_prepared(const M68kObject *object, const M68kDec
   phase_start = clock();
   if (render_asm_source) {
     begin_asm_source_plan_row(out_preview, M68K_RENDER_PLAN_ROW_DIAGNOSTIC, 0U);
-    render_asm_memory_map_header(out_preview, lookup, decode, accepted_start);
+    render_asm_memory_map_header(out_preview, lookup, decode, source_analysis);
     finish_asm_source_plan_row(out_preview, M68K_RENDER_PLAN_NO_SECTION, 0U, 0U, 0);
     begin_asm_source_plan_row(out_preview, M68K_RENDER_PLAN_ROW_PLATFORM_DIRECTIVE, 0U);
     render_asm_platform_header(out_preview, object);

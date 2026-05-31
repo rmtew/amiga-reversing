@@ -2,6 +2,8 @@
 ;   code[$0000004C-$00000400] -> runtime[$00000200-$000005B4] discovered_copy materialized
 ;   code[$00000038-$0000004C] -> runtime[$00000380-$00000394] conflicting_discovered_copy suppressed
 ;   Absolute memory refs:
+;     absolute[$00001000] refs=2 access=ra
+;     absolute[$0001A000] refs=1 access=r
 ;     absolute[$00024000] refs=1 access=a
 ;     absolute[$00FC0000] refs=1 access=a
 
