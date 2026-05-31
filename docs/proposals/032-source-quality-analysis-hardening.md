@@ -3131,10 +3131,9 @@ enqueue/prove code start
 
 Direct decoded branch/call/jump targets now carry
 `direct_control_target`; runtime-translated targets carry
-`runtime_control_target`. Source quality still has a compatibility mapper for
-older/default facts, but it first preserves the producer value. That makes
-unknown control evidence a real producer TODO instead of a Python or report
-guess.
+`runtime_control_target`. Source quality no longer reconstructs evidence from
+the generic code-start reason. Missing evidence remains `unknown`, which makes
+the producer gap visible instead of hiding it behind compatibility inference.
 
 Remaining cleanup is to remove broad `control_target_unspecified` producers
 from relocation-backed control, traced indirect calls/jumps, dispatch tables,

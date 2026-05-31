@@ -10284,6 +10284,7 @@ static int test_source_quality_analyze_exports_code_origins_and_runs(void) {
   memset(&code_start_ref, 0, sizeof(code_start_ref));
   code_start_ref.offset = 4U;
   code_start_ref.reason = M68K_FACT_CODE_START_REASON_POLICY_ENTRY_POINT;
+  code_start_ref.evidence_kind = M68K_CODE_ORIGIN_EVIDENCE_POLICY_ENTRY_POINT;
   code_start_ref.confidence = M68K_FACT_CONFIDENCE_REQUIRED;
   code_start_ref.source_section_index = 0U;
   code_start_ref.source_offset = 4U;
@@ -10291,6 +10292,7 @@ static int test_source_quality_analyze_exports_code_origins_and_runs(void) {
   M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_code_start_ref(&section_analysis, &code_start_ref));
   code_start_ref.offset = 6U;
   code_start_ref.reason = M68K_FACT_CODE_START_REASON_FALLTHROUGH;
+  code_start_ref.evidence_kind = M68K_CODE_ORIGIN_EVIDENCE_FALLTHROUGH;
   code_start_ref.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
   code_start_ref.source_offset = 4U;
   M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_code_start_ref(&section_analysis, &code_start_ref));

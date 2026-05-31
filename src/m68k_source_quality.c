@@ -29,38 +29,9 @@ static uint8_t code_origin_class_from_reason(uint32_t reason) {
   }
 }
 
-static uint32_t code_origin_evidence_from_ref(const M68kCodeStartRefIR *ref, size_t section_index) {
+static uint32_t code_origin_evidence_from_ref(const M68kCodeStartRefIR *ref) {
   if (ref == NULL) return M68K_CODE_ORIGIN_EVIDENCE_UNKNOWN;
-  if (ref->evidence_kind != M68K_CODE_ORIGIN_EVIDENCE_UNKNOWN) return ref->evidence_kind;
-  switch (ref->reason) {
-    case M68K_FACT_CODE_START_REASON_SECTION_ENTRY:
-      return M68K_CODE_ORIGIN_EVIDENCE_SECTION_ENTRY;
-    case M68K_FACT_CODE_START_REASON_POLICY_ENTRY_OFFSET:
-      return M68K_CODE_ORIGIN_EVIDENCE_POLICY_ENTRY_OFFSET;
-    case M68K_FACT_CODE_START_REASON_POLICY_ENTRY_POINT:
-      return M68K_CODE_ORIGIN_EVIDENCE_POLICY_ENTRY_POINT;
-    case M68K_FACT_CODE_START_REASON_CONTROL_TARGET:
-      if (ref->has_runtime_address) return M68K_CODE_ORIGIN_EVIDENCE_RUNTIME_CONTROL_TARGET;
-      if (ref->source_section_index == section_index && ref->source_offset != ref->offset)
-        return M68K_CODE_ORIGIN_EVIDENCE_DIRECT_CONTROL_TARGET;
-      return M68K_CODE_ORIGIN_EVIDENCE_CONTROL_TARGET_UNSPECIFIED;
-    case M68K_FACT_CODE_START_REASON_FALLTHROUGH:
-      return M68K_CODE_ORIGIN_EVIDENCE_FALLTHROUGH;
-    case M68K_FACT_CODE_START_REASON_INLINE_RESUME:
-      return M68K_CODE_ORIGIN_EVIDENCE_INLINE_RESUME;
-    case M68K_FACT_CODE_START_REASON_RUNTIME_VIEW_ENTRY:
-      return M68K_CODE_ORIGIN_EVIDENCE_RUNTIME_VIEW_ENTRY;
-    case M68K_FACT_CODE_START_REASON_LINKAGE_API_ENTRY:
-      return M68K_CODE_ORIGIN_EVIDENCE_LINKAGE_API_ENTRY;
-    case M68K_FACT_CODE_START_REASON_PLATFORM_LOADSEG_ENTRY:
-      return M68K_CODE_ORIGIN_EVIDENCE_PLATFORM_LOADSEG_ENTRY;
-    case M68K_FACT_CODE_START_REASON_STACK_CONTINUATION:
-      return M68K_CODE_ORIGIN_EVIDENCE_STACK_CONTINUATION;
-    case M68K_FACT_CODE_START_REASON_BOUNDARY_API_ENTRY:
-      return M68K_CODE_ORIGIN_EVIDENCE_BOUNDARY_API_ENTRY;
-    default:
-      return M68K_CODE_ORIGIN_EVIDENCE_UNKNOWN;
-  }
+  return ref->evidence_kind;
 }
 
 static int code_origin_class_is_executable_proof(uint8_t origin_class) {
@@ -85,7 +56,7 @@ static int append_code_origins_for_section(M68kSectionAnalysisIR *section) {
     origin.source_offset = ref->source_offset;
     origin.runtime_address = ref->runtime_address;
     origin.reason = ref->reason;
-    origin.evidence_kind = code_origin_evidence_from_ref(ref, section->section_index);
+    origin.evidence_kind = code_origin_evidence_from_ref(ref);
     origin.origin_class = code_origin_class_from_reason(ref->reason);
     origin.confidence = ref->confidence;
     origin.has_runtime_address = ref->has_runtime_address;
