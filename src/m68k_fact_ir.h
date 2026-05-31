@@ -94,7 +94,5 @@ void m68k_fact_ir_init(M68kFactIR *ir);
 void m68k_fact_ir_destroy(M68kFactIR *ir);
 int m68k_fact_ir_append(M68kFactIR *ir, const M68kFact *fact);
 int m68k_fact_ir_require_label(M68kFactIR *ir, size_t section_index, uint32_t offset, uint8_t confidence);
-int m68k_fact_ir_create_label(M68kFactIR *ir, size_t section_index, uint32_t offset, uint8_t confidence);
-int m68k_fact_ir_has_label(const M68kFactIR *ir, size_t section_index, uint32_t offset);
 
 #endif

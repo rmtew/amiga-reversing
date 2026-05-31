@@ -61,25 +61,3 @@ int m68k_fact_ir_require_label(M68kFactIR *ir, size_t section_index, uint32_t of
   fact.offset = offset;
   return m68k_fact_ir_append(ir, &fact);
 }
-
-int m68k_fact_ir_create_label(M68kFactIR *ir, size_t section_index, uint32_t offset, uint8_t confidence) {
-  M68kFact fact;
-  if (m68k_fact_ir_has_label(ir, section_index, offset)) return 0;
-  memset(&fact, 0, sizeof(fact));
-  fact.kind = M68K_FACT_LABEL_CREATED;
-  fact.confidence = confidence;
-  fact.section_index = section_index;
-  fact.offset = offset;
-  return m68k_fact_ir_append(ir, &fact);
-}
-
-int m68k_fact_ir_has_label(const M68kFactIR *ir, size_t section_index, uint32_t offset) {
-  size_t index;
-  if (ir == NULL) return 0;
-  for (index = 0U; index < ir->fact_count; ++index) {
-    const M68kFact *fact = &ir->facts[index];
-    if (fact->kind == M68K_FACT_LABEL_CREATED && fact->section_index == section_index && fact->offset == offset)
-      return 1;
-  }
-  return 0;
-}

@@ -107,6 +107,27 @@ static int runtime_address_ref_has_data_class(const M68kRuntimeAddressRefIR *ref
   return ref != NULL && (ref->data_class_flags & data_class_flags) == data_class_flags;
 }
 
+static int test_append_label_created_fact(M68kFactIR *facts, size_t section_index, uint32_t offset,
+    uint8_t confidence) {
+  M68kFact fact;
+  size_t index;
+  if (facts == NULL) return -1;
+  for (index = 0U; index < facts->fact_count; ++index) {
+    const M68kFact *existing = &facts->facts[index];
+    if (existing->kind == M68K_FACT_LABEL_CREATED &&
+        existing->section_index == section_index &&
+        existing->offset == offset) {
+      return 0;
+    }
+  }
+  memset(&fact, 0, sizeof(fact));
+  fact.kind = M68K_FACT_LABEL_CREATED;
+  fact.confidence = confidence;
+  fact.section_index = section_index;
+  fact.offset = offset;
+  return m68k_fact_ir_append(facts, &fact);
+}
+
 static int test_source_statement_renderer_renders_single_statement(void) {
   M68kStatementIR stmt;
   uint8_t bytes[3] = {0x41u, 0x42u, 0x00u};
@@ -3730,17 +3751,6 @@ static int test_decode_ir_keeps_odd_branch_target_for_analysis(void) {
   M68K_C_ASSERT_U32(3U, decode.sections[0].candidates[0].targets[0].offset);
   m68k_decode_ir_destroy(&decode);
   m68k_object_destroy(&object);
-  return 0;
-}
-
-static int test_fact_ir_label_creation_dedupes(void) {
-  M68kFactIR facts;
-  m68k_fact_ir_init(&facts);
-  M68K_C_ASSERT_INT(0, m68k_fact_ir_create_label(&facts, 0U, 4U, M68K_FACT_CONFIDENCE_REQUIRED));
-  M68K_C_ASSERT_INT(0, m68k_fact_ir_create_label(&facts, 0U, 4U, M68K_FACT_CONFIDENCE_REQUIRED));
-  M68K_C_ASSERT_INT(1, (int)facts.label_created_count);
-  M68K_C_ASSERT(m68k_fact_ir_has_label(&facts, 0U, 4U));
-  m68k_fact_ir_destroy(&facts);
   return 0;
 }
 
@@ -12214,8 +12224,8 @@ static int test_facts_v2_source_zero_runtime_copy_continues_without_storage_org(
   m68k_render_ir_preview_init(&preview);
   M68K_C_ASSERT_INT(0, m68k_decode_ir_build_object(&decode, &object, M68K_ASM_CPU_68060,
     m68k_diag_sink(NULL)));
-  M68K_C_ASSERT_INT(0, m68k_fact_ir_create_label(&facts, 0U, 0U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
-  M68K_C_ASSERT_INT(0, m68k_fact_ir_create_label(&facts, 0U, 4U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
+  M68K_C_ASSERT_INT(0, test_append_label_created_fact(&facts, 0U, 0U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
+  M68K_C_ASSERT_INT(0, test_append_label_created_fact(&facts, 0U, 4U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
   memset(&fact, 0, sizeof(fact));
   fact.kind = M68K_FACT_CODE_START;
   fact.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
@@ -12290,9 +12300,9 @@ static int test_facts_v2_mid_section_runtime_stub_does_not_org_back_to_storage(v
   m68k_render_ir_preview_init(&preview);
   M68K_C_ASSERT_INT(0, m68k_decode_ir_build_object(&decode, &object, M68K_ASM_CPU_68060,
     m68k_diag_sink(NULL)));
-  M68K_C_ASSERT_INT(0, m68k_fact_ir_create_label(&facts, 0U, 0U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
-  M68K_C_ASSERT_INT(0, m68k_fact_ir_create_label(&facts, 0U, 0x10U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
-  M68K_C_ASSERT_INT(0, m68k_fact_ir_create_label(&facts, 0U, 0x14U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
+  M68K_C_ASSERT_INT(0, test_append_label_created_fact(&facts, 0U, 0U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
+  M68K_C_ASSERT_INT(0, test_append_label_created_fact(&facts, 0U, 0x10U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
+  M68K_C_ASSERT_INT(0, test_append_label_created_fact(&facts, 0U, 0x14U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
   memset(&fact, 0, sizeof(fact));
   fact.kind = M68K_FACT_CODE_START;
   fact.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
@@ -12722,9 +12732,9 @@ static int test_facts_v2_runtime_trampoline_copy_does_not_force_low_org(void) {
   m68k_render_ir_preview_init(&preview);
   M68K_C_ASSERT_INT(0, m68k_decode_ir_build_object(&decode, &object, M68K_ASM_CPU_68060,
     m68k_diag_sink(NULL)));
-  M68K_C_ASSERT_INT(0, m68k_fact_ir_create_label(&facts, 0U, 0U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
-  M68K_C_ASSERT_INT(0, m68k_fact_ir_create_label(&facts, 0U, 0x10U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
-  M68K_C_ASSERT_INT(0, m68k_fact_ir_create_label(&facts, 0U, 0x20U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
+  M68K_C_ASSERT_INT(0, test_append_label_created_fact(&facts, 0U, 0U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
+  M68K_C_ASSERT_INT(0, test_append_label_created_fact(&facts, 0U, 0x10U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
+  M68K_C_ASSERT_INT(0, test_append_label_created_fact(&facts, 0U, 0x20U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
   memset(&fact, 0, sizeof(fact));
   fact.kind = M68K_FACT_CODE_START;
   fact.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
@@ -12942,8 +12952,8 @@ static int test_facts_v2_full_load_view_does_not_label_alternate_copied_address_
   m68k_render_ir_preview_init(&preview);
   M68K_C_ASSERT_INT(0, m68k_decode_ir_build_object(&decode, &object, M68K_ASM_CPU_68060,
     m68k_diag_sink(NULL)));
-  M68K_C_ASSERT_INT(0, m68k_fact_ir_create_label(&facts, 0U, 0U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
-  M68K_C_ASSERT_INT(0, m68k_fact_ir_create_label(&facts, 0U, 8U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
+  M68K_C_ASSERT_INT(0, test_append_label_created_fact(&facts, 0U, 0U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
+  M68K_C_ASSERT_INT(0, test_append_label_created_fact(&facts, 0U, 8U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
   memset(&fact, 0, sizeof(fact));
   fact.kind = M68K_FACT_RUNTIME_ADDRESS_RANGE;
   fact.confidence = M68K_FACT_CONFIDENCE_REQUIRED;
@@ -15774,8 +15784,8 @@ static int test_render_plan_marks_emitted_org_subline_as_directive(void) {
   m68k_render_ir_preview_init(&preview);
   M68K_C_ASSERT_INT(0, m68k_decode_ir_build_object(&decode, &object, M68K_ASM_CPU_68060,
     m68k_diag_sink(NULL)));
-  M68K_C_ASSERT_INT(0, m68k_fact_ir_create_label(&facts, 0U, 0U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
-  M68K_C_ASSERT_INT(0, m68k_fact_ir_create_label(&facts, 0U, 0x10U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
+  M68K_C_ASSERT_INT(0, test_append_label_created_fact(&facts, 0U, 0U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
+  M68K_C_ASSERT_INT(0, test_append_label_created_fact(&facts, 0U, 0x10U, M68K_FACT_CONFIDENCE_TOOL_INFERRED));
   memset(&fact, 0, sizeof(fact));
   fact.kind = M68K_FACT_CODE_START;
   fact.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
@@ -24153,7 +24163,6 @@ int m68k_c_ir_tests(void) {
     {"facts_v2_aligned_two_byte_zero_raw_span_renders_word",
       test_facts_v2_aligned_two_byte_zero_raw_span_renders_word},
     {"decode_ir_keeps_odd_branch_target_for_analysis", test_decode_ir_keeps_odd_branch_target_for_analysis},
-    {"fact_ir_label_creation_dedupes", test_fact_ir_label_creation_dedupes},
     {"facts_v2_profile_collects_decode_and_label_facts", test_facts_v2_profile_collects_decode_and_label_facts},
     {"facts_v2_implicit_entry_only_first_code_section",
       test_facts_v2_implicit_entry_only_first_code_section},

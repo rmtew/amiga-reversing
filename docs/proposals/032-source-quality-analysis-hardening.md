@@ -4285,3 +4285,15 @@ render assembly source
 
 That keeps source-quality checks active for profile/refusal paths without
 turning collect-only analysis into a false render failure.
+
+### Removed Unused Label-Creation API
+
+Deleted the production-facing `m68k_fact_ir_create_label()` helper and the
+`m68k_fact_ir_has_label()` fact-list scan. Production had already moved label
+creation behind the facts-v2 label lookup so duplicate creation is tracked
+against the active decode extents. Only tests still called the old create
+helper, and the fact-list scan existed only as a null-lookup fallback.
+
+Tests now construct explicit `M68K_FACT_LABEL_CREATED` facts through a local
+test helper when they need fixture setup. No compatibility wrapper remains,
+because this repository has no external API consumers to preserve.

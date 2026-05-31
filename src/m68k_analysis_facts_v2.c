@@ -805,21 +805,20 @@ fail:
   return -1;
 }
 
-static int label_lookup_has_label(const M68kFactsV2LabelLookup *lookup, const M68kFactIR *facts,
-    size_t section_index, uint32_t offset) {
+static int label_lookup_has_label(const M68kFactsV2LabelLookup *lookup, size_t section_index, uint32_t offset) {
   if (lookup != NULL && section_index < lookup->section_count && lookup->labels != NULL &&
       lookup->extents != NULL && lookup->labels[section_index] != NULL &&
       offset <= lookup->extents[section_index]) {
     return lookup->labels[section_index][offset] != 0U;
   }
-  return m68k_fact_ir_has_label(facts, section_index, offset);
+  return 0;
 }
 
 static int label_lookup_create_label(M68kFactsV2LabelLookup *lookup, M68kFactIR *facts,
     size_t section_index, uint32_t offset, uint8_t confidence) {
   M68kFact fact;
   if (facts == NULL) return -1;
-  if (label_lookup_has_label(lookup, facts, section_index, offset)) return 0;
+  if (label_lookup_has_label(lookup, section_index, offset)) return 0;
   memset(&fact, 0, sizeof(fact));
   fact.kind = M68K_FACT_LABEL_CREATED;
   fact.confidence = confidence;
@@ -8333,7 +8332,7 @@ static int seed_linkage_api_entry_labels(M68kDecodeIR *decode, M68kFactIR *facts
     section = &decode->sections[fact->section_index];
     if (section->kind != M68K_SECTION_CODE || fact->offset >= section->size ||
         accepted_start[fact->section_index][fact->offset] || accepted_bytes[fact->section_index][fact->offset] ||
-        !label_lookup_has_label(label_lookup, facts, fact->section_index, fact->offset) ||
+        !label_lookup_has_label(label_lookup, fact->section_index, fact->offset) ||
         !labelled_entry_decodes_terminal_api_wrapper(decode, section, platform_kind, accepted_bytes, fact->offset,
           max_cpu)) {
       continue;
@@ -8420,7 +8419,7 @@ static uint32_t resolve_required_label_invariants(const M68kDecodeIR *decode, ui
         fact->section_index >= decode->section_count)
       continue;
     section = &decode->sections[fact->section_index];
-    if (label_lookup_has_label(label_lookup, facts, fact->section_index, fact->offset)) continue;
+    if (label_lookup_has_label(label_lookup, fact->section_index, fact->offset)) continue;
     ++unresolved;
     if (accepted_offset_is_interior(section, accepted_start[fact->section_index],
         accepted_bytes[fact->section_index], fact->offset)) {
