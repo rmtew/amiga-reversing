@@ -1694,6 +1694,48 @@ typedef struct M68kSourceQualityDiagnosticIR {
   char *owner_kind;
 } M68kSourceQualityDiagnosticIR;
 
+typedef enum M68kSymbolOriginKind {
+  M68K_SYMBOL_ORIGIN_UNKNOWN = 0,
+  M68K_SYMBOL_ORIGIN_LABEL_CREATED = 1,
+  M68K_SYMBOL_ORIGIN_ACCEPTED_CODE_TARGET = 2,
+  M68K_SYMBOL_ORIGIN_DATA_REFERENCE = 3,
+  M68K_SYMBOL_ORIGIN_TABLE_ENTRY = 4,
+  M68K_SYMBOL_ORIGIN_ADDRESS_IDENTITY = 5,
+  M68K_SYMBOL_ORIGIN_PLATFORM_SEMANTIC_USE = 6,
+  M68K_SYMBOL_ORIGIN_MANUAL_LABEL = 7
+} M68kSymbolOriginKind;
+
+typedef enum M68kExpectedSymbolAccessKind {
+  M68K_EXPECTED_SYMBOL_ACCESS_UNKNOWN = 0,
+  M68K_EXPECTED_SYMBOL_ACCESS_LABEL_STATEMENT = 1,
+  M68K_EXPECTED_SYMBOL_ACCESS_BRANCH_TARGET = 2,
+  M68K_EXPECTED_SYMBOL_ACCESS_OPERAND = 3,
+  M68K_EXPECTED_SYMBOL_ACCESS_EQUATE = 4,
+  M68K_EXPECTED_SYMBOL_ACCESS_STORAGE_LABEL = 5
+} M68kExpectedSymbolAccessKind;
+
+typedef struct M68kSymbolOriginIR {
+  char *symbol_name;
+  uint32_t offset;
+  uint32_t source_section_index;
+  uint32_t source_offset;
+  uint8_t origin_kind;
+  uint8_t confidence;
+  uint8_t reserved[2];
+} M68kSymbolOriginIR;
+
+typedef struct M68kExpectedSymbolAccessIR {
+  char *symbol_name;
+  uint32_t offset;
+  uint32_t target_section_index;
+  uint32_t target_offset;
+  uint32_t operand_index;
+  uint8_t access_kind;
+  uint8_t confidence;
+  uint8_t has_target;
+  uint8_t reserved[1];
+} M68kExpectedSymbolAccessIR;
+
 typedef enum M68kCodeOriginClass {
   M68K_CODE_ORIGIN_UNKNOWN = 0,
   M68K_CODE_ORIGIN_STRONG_ENTRY = 1,
@@ -1904,6 +1946,12 @@ typedef struct M68kSectionAnalysisIR {
   M68kSourceQualityDiagnosticIR *source_quality_diagnostics;
   size_t source_quality_diagnostic_count;
   size_t source_quality_diagnostic_capacity;
+  M68kSymbolOriginIR *symbol_origins;
+  size_t symbol_origin_count;
+  size_t symbol_origin_capacity;
+  M68kExpectedSymbolAccessIR *expected_symbol_accesses;
+  size_t expected_symbol_access_count;
+  size_t expected_symbol_access_capacity;
   M68kCodeOriginIR *code_origins;
   size_t code_origin_count;
   size_t code_origin_capacity;
@@ -1979,6 +2027,8 @@ const char *m68k_incomplete_analysis_source_kind_name(uint8_t source_kind);
 const char *m68k_source_quality_diagnostic_severity_name(uint8_t severity);
 const char *m68k_source_quality_diagnostic_kind_name(uint8_t kind);
 const char *m68k_source_quality_diagnostic_origin_name(uint8_t origin);
+const char *m68k_symbol_origin_kind_name(uint8_t kind);
+const char *m68k_expected_symbol_access_kind_name(uint8_t kind);
 const char *m68k_code_origin_class_name(uint8_t origin_class);
 const char *m68k_code_origin_evidence_kind_name(uint32_t evidence_kind);
 const char *m68k_accepted_code_run_end_kind_name(uint8_t end_kind);
@@ -2135,6 +2185,10 @@ int m68k_ir_section_analysis_append_code_start_ref(M68kSectionAnalysisIR *sectio
     const M68kCodeStartRefIR *code_start_ref);
 int m68k_ir_section_analysis_append_source_quality_diagnostic(M68kSectionAnalysisIR *section_analysis,
     const M68kSourceQualityDiagnosticIR *diagnostic);
+int m68k_ir_section_analysis_append_symbol_origin(M68kSectionAnalysisIR *section_analysis,
+    const M68kSymbolOriginIR *origin);
+int m68k_ir_section_analysis_append_expected_symbol_access(M68kSectionAnalysisIR *section_analysis,
+    const M68kExpectedSymbolAccessIR *access);
 int m68k_ir_section_analysis_append_code_origin(M68kSectionAnalysisIR *section_analysis,
     const M68kCodeOriginIR *origin);
 int m68k_ir_section_analysis_append_accepted_code_run(M68kSectionAnalysisIR *section_analysis,

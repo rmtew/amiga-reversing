@@ -3736,6 +3736,7 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
     size_t unresolved_typed_access_index, runtime_view_index, runtime_address_ref_index, address_observation_index;
     size_t platform_address_use_index;
     size_t code_start_ref_index;
+    size_t symbol_origin_index, expected_symbol_access_index;
     size_t code_origin_index, accepted_code_run_index;
     size_t data_reference_index, immediate_text_token_index;
     size_t string_ref_index;
@@ -4066,6 +4067,85 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
         goto oom;
       if (append_source_quality_diagnostic_json(&builder,
           &section->source_quality_diagnostics[source_quality_index], 1U) != 0)
+        goto oom;
+    }
+    if (json_builder_appendf(&builder, "],\"symbol_origin_count\":%u,\"symbol_origins\":[",
+          (unsigned)section->symbol_origin_count) != 0)
+      goto oom;
+    for (symbol_origin_index = 0U; symbol_origin_index < section->symbol_origin_count;
+        ++symbol_origin_index) {
+      const M68kSymbolOriginIR *origin = &section->symbol_origins[symbol_origin_index];
+      if (symbol_origin_index != 0U && json_builder_append(&builder, ",") != 0)
+        goto oom;
+      if (json_builder_appendf(&builder,
+          "{\"offset\":%u,\"symbol_name\":",
+          (unsigned)origin->offset) != 0)
+        goto oom;
+      if (json_builder_append_json_string(&builder, origin->symbol_name) != 0)
+        goto oom;
+      if (json_builder_appendf(&builder,
+          ",\"origin_kind_id\":%u,\"origin_kind\":",
+          (unsigned)origin->origin_kind) != 0)
+        goto oom;
+      if (json_builder_append_json_string(&builder,
+          m68k_symbol_origin_kind_name(origin->origin_kind)) != 0)
+        goto oom;
+      if (json_builder_appendf(&builder,
+          ",\"source_section_index\":%u,\"source_offset\":%u,\"confidence\":%u}",
+          (unsigned)origin->source_section_index, (unsigned)origin->source_offset,
+          (unsigned)origin->confidence) != 0)
+        goto oom;
+    }
+    if (json_builder_appendf(&builder,
+        "],\"expected_symbol_access_count\":%u,\"expected_symbol_accesses\":[",
+        (unsigned)section->expected_symbol_access_count) != 0)
+      goto oom;
+    for (expected_symbol_access_index = 0U;
+        expected_symbol_access_index < section->expected_symbol_access_count;
+        ++expected_symbol_access_index) {
+      const M68kExpectedSymbolAccessIR *access =
+        &section->expected_symbol_accesses[expected_symbol_access_index];
+      if (expected_symbol_access_index != 0U && json_builder_append(&builder, ",") != 0)
+        goto oom;
+      if (json_builder_appendf(&builder,
+          "{\"offset\":%u,\"symbol_name\":",
+          (unsigned)access->offset) != 0)
+        goto oom;
+      if (json_builder_append_json_string(&builder, access->symbol_name) != 0)
+        goto oom;
+      if (json_builder_appendf(&builder,
+          ",\"access_kind_id\":%u,\"access_kind\":",
+          (unsigned)access->access_kind) != 0)
+        goto oom;
+      if (json_builder_append_json_string(&builder,
+          m68k_expected_symbol_access_kind_name(access->access_kind)) != 0)
+        goto oom;
+      if (json_builder_append(&builder, ",\"target_section_index\":") != 0)
+        goto oom;
+      if (access->has_target) {
+        if (json_builder_appendf(&builder, "%u", (unsigned)access->target_section_index) != 0)
+          goto oom;
+      } else if (json_builder_append(&builder, "null") != 0) {
+        goto oom;
+      }
+      if (json_builder_append(&builder, ",\"target_offset\":") != 0)
+        goto oom;
+      if (access->has_target) {
+        if (json_builder_appendf(&builder, "%u", (unsigned)access->target_offset) != 0)
+          goto oom;
+      } else if (json_builder_append(&builder, "null") != 0) {
+        goto oom;
+      }
+      if (json_builder_append(&builder, ",\"operand_index\":") != 0)
+        goto oom;
+      if (access->operand_index == UINT32_MAX) {
+        if (json_builder_append(&builder, "null") != 0)
+          goto oom;
+      } else if (json_builder_appendf(&builder, "%u", (unsigned)access->operand_index) != 0) {
+        goto oom;
+      }
+      if (json_builder_appendf(&builder, ",\"confidence\":%u}",
+          (unsigned)access->confidence) != 0)
         goto oom;
     }
     if (json_builder_appendf(&builder, "],\"code_origin_count\":%u,\"code_origins\":[",

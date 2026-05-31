@@ -1787,6 +1787,27 @@ fixture search until C emits final facts:
   a fresh corpus index is required after C emits symbol facts
 ```
 
+Implementation progress:
+
+```text
+C now exports first-class symbol-origin and expected-symbol-access rows from the
+existing label precursor facts:
+
+  M68K_FACT_LABEL_CREATED
+    -> M68kSymbolOriginIR(origin_kind=label_created)
+
+  M68K_FACT_LABEL_REQUIRED
+    -> M68kExpectedSymbolAccessIR(access_kind=label_statement)
+
+These are intentionally narrow. They preserve the current C evidence as durable
+source-analysis JSON without claiming operand use-sites that the renderer has
+not recorded.
+
+Rendered symbol accesses remain absent until the render walk records real
+label/operand/equate uses. Python manifest indexing consumes only exported C
+facts and must not synthesize rendered use-sites from target-ref bitsets.
+```
+
 Representative search result:
 
 ```text

@@ -332,6 +332,44 @@ const char *m68k_source_quality_diagnostic_origin_name(uint8_t origin) {
   }
 }
 
+const char *m68k_symbol_origin_kind_name(uint8_t kind) {
+  switch (kind) {
+    case M68K_SYMBOL_ORIGIN_LABEL_CREATED:
+      return "label_created";
+    case M68K_SYMBOL_ORIGIN_ACCEPTED_CODE_TARGET:
+      return "accepted_code_target";
+    case M68K_SYMBOL_ORIGIN_DATA_REFERENCE:
+      return "data_reference";
+    case M68K_SYMBOL_ORIGIN_TABLE_ENTRY:
+      return "table_entry";
+    case M68K_SYMBOL_ORIGIN_ADDRESS_IDENTITY:
+      return "address_identity";
+    case M68K_SYMBOL_ORIGIN_PLATFORM_SEMANTIC_USE:
+      return "platform_semantic_use";
+    case M68K_SYMBOL_ORIGIN_MANUAL_LABEL:
+      return "manual_label";
+    default:
+      return "unknown";
+  }
+}
+
+const char *m68k_expected_symbol_access_kind_name(uint8_t kind) {
+  switch (kind) {
+    case M68K_EXPECTED_SYMBOL_ACCESS_LABEL_STATEMENT:
+      return "label_statement";
+    case M68K_EXPECTED_SYMBOL_ACCESS_BRANCH_TARGET:
+      return "branch_target";
+    case M68K_EXPECTED_SYMBOL_ACCESS_OPERAND:
+      return "operand";
+    case M68K_EXPECTED_SYMBOL_ACCESS_EQUATE:
+      return "equate";
+    case M68K_EXPECTED_SYMBOL_ACCESS_STORAGE_LABEL:
+      return "storage_label";
+    default:
+      return "unknown";
+  }
+}
+
 const char *m68k_code_origin_class_name(uint8_t origin_class) {
   switch (origin_class) {
     case M68K_CODE_ORIGIN_STRONG_ENTRY:
@@ -2708,6 +2746,65 @@ int m68k_ir_section_analysis_append_source_quality_diagnostic(M68kSectionAnalysi
   return 0;
 }
 
+int m68k_ir_section_analysis_append_symbol_origin(M68kSectionAnalysisIR *section_analysis,
+    const M68kSymbolOriginIR *origin) {
+  M68kSymbolOriginIR copy;
+  size_t index;
+  if (section_analysis == NULL || origin == NULL || section_analysis->arena == NULL) return -1;
+  if (origin->origin_kind == M68K_SYMBOL_ORIGIN_UNKNOWN ||
+      origin->symbol_name == NULL || origin->symbol_name[0] == '\0') return 0;
+  for (index = 0U; index < section_analysis->symbol_origin_count; ++index) {
+    const M68kSymbolOriginIR *existing = &section_analysis->symbol_origins[index];
+    if (existing->offset == origin->offset &&
+        existing->source_section_index == origin->source_section_index &&
+        existing->source_offset == origin->source_offset &&
+        existing->origin_kind == origin->origin_kind &&
+        strcmp(existing->symbol_name, origin->symbol_name) == 0) {
+      return 0;
+    }
+  }
+  section_analysis->symbol_origins = (M68kSymbolOriginIR *)arena_grow_array(section_analysis->arena,
+    section_analysis->symbol_origins, section_analysis->symbol_origin_count,
+    &section_analysis->symbol_origin_capacity, 8U, sizeof(*section_analysis->symbol_origins));
+  if (section_analysis->symbol_origins == NULL) return -1;
+  copy = *origin;
+  copy.symbol_name = arena_strdup(section_analysis->arena, origin->symbol_name);
+  if (copy.symbol_name == NULL) return -1;
+  section_analysis->symbol_origins[section_analysis->symbol_origin_count++] = copy;
+  return 0;
+}
+
+int m68k_ir_section_analysis_append_expected_symbol_access(M68kSectionAnalysisIR *section_analysis,
+    const M68kExpectedSymbolAccessIR *access) {
+  M68kExpectedSymbolAccessIR copy;
+  size_t index;
+  if (section_analysis == NULL || access == NULL || section_analysis->arena == NULL) return -1;
+  if (access->access_kind == M68K_EXPECTED_SYMBOL_ACCESS_UNKNOWN ||
+      access->symbol_name == NULL || access->symbol_name[0] == '\0') return 0;
+  for (index = 0U; index < section_analysis->expected_symbol_access_count; ++index) {
+    const M68kExpectedSymbolAccessIR *existing = &section_analysis->expected_symbol_accesses[index];
+    if (existing->offset == access->offset &&
+        existing->target_section_index == access->target_section_index &&
+        existing->target_offset == access->target_offset &&
+        existing->operand_index == access->operand_index &&
+        existing->access_kind == access->access_kind &&
+        strcmp(existing->symbol_name, access->symbol_name) == 0) {
+      return 0;
+    }
+  }
+  section_analysis->expected_symbol_accesses =
+    (M68kExpectedSymbolAccessIR *)arena_grow_array(section_analysis->arena,
+      section_analysis->expected_symbol_accesses, section_analysis->expected_symbol_access_count,
+      &section_analysis->expected_symbol_access_capacity, 8U,
+      sizeof(*section_analysis->expected_symbol_accesses));
+  if (section_analysis->expected_symbol_accesses == NULL) return -1;
+  copy = *access;
+  copy.symbol_name = arena_strdup(section_analysis->arena, access->symbol_name);
+  if (copy.symbol_name == NULL) return -1;
+  section_analysis->expected_symbol_accesses[section_analysis->expected_symbol_access_count++] = copy;
+  return 0;
+}
+
 int m68k_ir_section_analysis_append_code_origin(M68kSectionAnalysisIR *section_analysis,
     const M68kCodeOriginIR *origin) {
   size_t index;
@@ -4163,6 +4260,20 @@ int m68k_ir_source_analysis_append_section(M68kSourceAnalysisIR *source_analysis
   for (index = 0; index < section_analysis->source_quality_diagnostic_count; ++index) {
     if (m68k_ir_section_analysis_append_source_quality_diagnostic(&copy,
           &section_analysis->source_quality_diagnostics[index]) != 0) {
+      m68k_ir_section_analysis_destroy(&copy);
+      return -1;
+    }
+  }
+  for (index = 0; index < section_analysis->symbol_origin_count; ++index) {
+    if (m68k_ir_section_analysis_append_symbol_origin(&copy,
+          &section_analysis->symbol_origins[index]) != 0) {
+      m68k_ir_section_analysis_destroy(&copy);
+      return -1;
+    }
+  }
+  for (index = 0; index < section_analysis->expected_symbol_access_count; ++index) {
+    if (m68k_ir_section_analysis_append_expected_symbol_access(&copy,
+          &section_analysis->expected_symbol_accesses[index]) != 0) {
       m68k_ir_section_analysis_destroy(&copy);
       return -1;
     }

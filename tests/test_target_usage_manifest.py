@@ -9,10 +9,12 @@ from src.scripts.target_usage_manifest import (
     XREF_KIND_CODE_ORIGIN,
     XREF_KIND_CODE_START_REF,
     XREF_KIND_DATA_REFERENCE,
+    XREF_KIND_EXPECTED_SYMBOL_ACCESS,
     XREF_KIND_PLATFORM_ADDRESS_USE,
     XREF_KIND_RANGE_OWNERSHIP,
     XREF_KIND_RUNTIME_ADDRESS_REF,
     XREF_KIND_SOURCE_QUALITY_DIAGNOSTIC,
+    XREF_KIND_SYMBOL_ORIGIN,
     XREF_KIND_TABLE_CONSUMER,
     XREF_KIND_TABLE_DESCRIPTOR,
     XREF_KIND_TABLE_ENTRY,
@@ -696,6 +698,62 @@ def test_analysis_code_origins_are_indexed_for_false_code_search() -> None:
     assert origin_xrefs[0]["row_index"] == 11
     assert origin_xrefs[0]["symbol"] == "weak_shape_only"
     assert origin_xrefs[0]["value"] == 8
+
+
+def test_analysis_symbol_origins_and_expected_accesses_are_indexed_for_label_search() -> None:
+    analysis = {
+        "sections": [
+            {
+                "section_index": 0,
+                "symbol_origins": [
+                    {
+                        "offset": 0x42C00,
+                        "symbol_name": "abs_0_00042C00",
+                        "origin_kind": "label_created",
+                        "source_section_index": 0,
+                        "source_offset": 0x42C00,
+                        "confidence": 80,
+                    }
+                ],
+                "expected_symbol_accesses": [
+                    {
+                        "offset": 0x42C00,
+                        "symbol_name": "abs_0_00042C00",
+                        "access_kind": "label_statement",
+                        "target_section_index": 0,
+                        "target_offset": 0x42C00,
+                        "operand_index": None,
+                        "confidence": 100,
+                    }
+                ],
+            }
+        ]
+    }
+    bag = FeatureBag()
+    _add_analysis_features(analysis, bag)
+    counts, examples, tags = bag.row_features()
+
+    assert counts["analysis:symbol_origin"] == 1
+    assert counts["analysis:symbol_origin_kind:label_created"] == 1
+    assert counts["analysis:expected_symbol_access"] == 1
+    assert counts["analysis:expected_symbol_access_kind:label_statement"] == 1
+    assert counts["analysis:expected_symbol_access:targeted"] == 1
+    assert "target-pattern:source_quality_label_consistency" in tags
+    assert examples["analysis:symbol_origin"][0]["symbol_name"] == "abs_0_00042C00"
+
+    row = {"id": "fixture", "platform": "amiga-hunk", "source_id": "fixture", "origin": {}}
+    row_locations = {(0, 0x42C00): (12, "s0:00042C00:label:12", "abs_0_00042C00:")}
+    xrefs = _analysis_xrefs(row, analysis, row_locations)
+    origin_xrefs = [xref for xref in xrefs if xref["feature"] == "analysis:symbol_origin"]
+    access_xrefs = [xref for xref in xrefs if xref["feature"] == "analysis:expected_symbol_access:targeted"]
+    assert len(origin_xrefs) == 1
+    assert len(access_xrefs) == 1
+    assert origin_xrefs[0]["kind_id"] == XREF_KIND_SYMBOL_ORIGIN
+    assert access_xrefs[0]["kind_id"] == XREF_KIND_EXPECTED_SYMBOL_ACCESS
+    assert origin_xrefs[0]["row_index"] == 12
+    assert access_xrefs[0]["row_index"] == 12
+    assert origin_xrefs[0]["symbol"] == "abs_0_00042C00"
+    assert access_xrefs[0]["value"] == 0x42C00
 
 
 def test_analysis_address_identities_are_indexed_for_identity_search() -> None:
