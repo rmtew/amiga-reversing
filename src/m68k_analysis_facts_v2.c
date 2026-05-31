@@ -1542,7 +1542,7 @@ static int seed_facts_from_object(const M68kObject *object, const M68kAnalysisPo
     fact.platform_record_kind = fixup->platform_relocation_record_kind;
     if (m68k_fact_ir_append(facts, &fact) != 0) return -1;
     if (has_target_section) {
-      if (m68k_fact_ir_require_label(facts, target_section_index, fact.target_offset,
+      if (m68k_fact_ir_append_label_request(facts, target_section_index, fact.target_offset,
           M68K_FACT_CONFIDENCE_REQUIRED) != 0) return -1;
       if (label_lookup_create_label(label_lookup, target_section_index, fact.target_offset,
           M68K_FACT_CONFIDENCE_REQUIRED) != 0) return -1;
@@ -2895,7 +2895,7 @@ static int trace_state_record_runtime_sink_ref(const M68kRuntimeAddressSpace *ru
       M68K_FACT_CONFIDENCE_TOOL_INFERRED) != 0) {
     return -1;
   }
-  return m68k_fact_ir_require_label(facts, section_index, target_offset,
+  return m68k_fact_ir_append_label_request(facts, section_index, target_offset,
     M68K_FACT_CONFIDENCE_TOOL_INFERRED);
 }
 
@@ -4671,7 +4671,7 @@ static int append_runtime_address_refs_for_accepted(const M68kDecodeIR *decode, 
             M68K_FACT_CONFIDENCE_TOOL_INFERRED) != 0) {
           return -1;
         }
-        if (m68k_fact_ir_require_label(facts, section_index, target_offset,
+        if (m68k_fact_ir_append_label_request(facts, section_index, target_offset,
               M68K_FACT_CONFIDENCE_TOOL_INFERRED) != 0) {
           return -1;
         }
@@ -5213,7 +5213,7 @@ static int enqueue_same_section_control_resolved_target_from_offset(M68kDecodeIR
   if (target_candidate == NULL) return 0;
   if (append_xref_fact(facts, section_index, source_offset, target_offset, confidence) != 0)
     return -1;
-  if (m68k_fact_ir_require_label(facts, section_index, target_offset, confidence) != 0)
+  if (m68k_fact_ir_append_label_request(facts, section_index, target_offset, confidence) != 0)
     return -1;
   if (accepted_start[section_index][target_offset] && trace_state == NULL && !target_has_runtime_address) return 0;
   {
@@ -5318,7 +5318,7 @@ static int enqueue_cross_section_control_resolved_target_from_offset(M68kDecodeI
       target_offset, confidence) != 0) {
     return -1;
   }
-  if (m68k_fact_ir_require_label(facts, target_section_index, target_offset, confidence) != 0) return -1;
+  if (m68k_fact_ir_append_label_request(facts, target_section_index, target_offset, confidence) != 0) return -1;
   if (accepted_start[target_section_index][target_offset]) return 0;
   return enqueue_code_start_runtime_evidence_ex(facts, queue, profile, target_section_index, target_offset,
     confidence, code_start_reason != 0U ? code_start_reason : M68K_FACT_CODE_START_REASON_CONTROL_TARGET,
@@ -5402,7 +5402,7 @@ static int append_trace_origin_runtime_control_ref(M68kDecodeIR *decode, M68kFac
   if (ref_result < 0) return -1;
   if (append_xref_fact(facts, section_index, target_value->origin_offset, target_offset, confidence) != 0)
     return -1;
-  return m68k_fact_ir_require_label(facts, section_index, target_offset, confidence);
+  return m68k_fact_ir_append_label_request(facts, section_index, target_offset, confidence);
 }
 
 static int enqueue_interrupt_vector_store_target(M68kDecodeIR *decode, M68kFactIR *facts,
@@ -5560,7 +5560,7 @@ static int seed_runtime_ref_target_discovered_copy_entries(M68kDecodeIR *decode,
     }
     if (candidate == NULL) continue;
     trace_state_init_unknown(&trace_state);
-    if (m68k_fact_ir_require_label(facts, range->section_index, range->source_offset,
+    if (m68k_fact_ir_append_label_request(facts, range->section_index, range->source_offset,
         M68K_FACT_CONFIDENCE_TOOL_INFERRED) != 0) {
       return -1;
     }
@@ -7363,7 +7363,7 @@ static int append_indirect_table_base_runtime_ref(M68kFactIR *facts, size_t sect
       M68K_FACT_CONFIDENCE_TOOL_INFERRED) != 0) {
     return -1;
   }
-  if (m68k_fact_ir_require_label(facts, section_index, base_ref->table_offset,
+  if (m68k_fact_ir_append_label_request(facts, section_index, base_ref->table_offset,
       M68K_FACT_CONFIDENCE_TOOL_INFERRED) != 0) {
     return -1;
   }
@@ -8035,32 +8035,32 @@ static int demote_required_label_conflicts(const M68kDecodeIR *decode,
     const M68kAcceptedCandidateIndex *accepted_index, uint8_t **accepted_start,
     uint8_t **accepted_bytes, M68kFactIR *facts, M68kFactsV2LabelLookup *label_lookup,
     uint32_t *accepted_count, uint32_t *out_interior_conflicts) {
-  size_t fact_index;
+  size_t request_index;
   uint32_t interior = 0U;
   if (decode == NULL || accepted_index == NULL || accepted_start == NULL || accepted_bytes == NULL ||
-      facts == NULL || accepted_count == NULL || out_interior_conflicts == NULL) {
+      facts == NULL || label_lookup == NULL || accepted_count == NULL || out_interior_conflicts == NULL) {
     return -1;
   }
-  for (fact_index = 0U; fact_index < facts->fact_count; ++fact_index) {
-    const M68kFact *fact = &facts->facts[fact_index];
+  for (request_index = 0U; request_index < facts->label_request_count; ++request_index) {
+    const M68kLabelRequest *request = &facts->label_requests[request_index];
     const M68kDecodeSectionIR *section;
     const M68kDecodeCandidate *candidate;
-    if (fact->kind != M68K_FACT_LABEL_REQUIRED || fact->confidence < M68K_FACT_CONFIDENCE_REQUIRED ||
-        fact->section_index >= decode->section_count)
+    if (request->confidence < M68K_FACT_CONFIDENCE_REQUIRED ||
+        request->section_index >= decode->section_count)
       continue;
-    section = &decode->sections[fact->section_index];
-    if (!accepted_offset_is_interior(section, accepted_start[fact->section_index],
-        accepted_bytes[fact->section_index], fact->offset)) {
+    section = &decode->sections[request->section_index];
+    if (!accepted_offset_is_interior(section, accepted_start[request->section_index],
+        accepted_bytes[request->section_index], request->offset)) {
       continue;
     }
-    candidate = accepted_candidate_index_covering(accepted_index, accepted_start[fact->section_index],
-      fact->section_index, fact->offset, 1);
+    candidate = accepted_candidate_index_covering(accepted_index, accepted_start[request->section_index],
+      request->section_index, request->offset, 1);
     if (candidate == NULL) continue;
-    clear_accepted_candidate(accepted_start[fact->section_index], accepted_bytes[fact->section_index],
+    clear_accepted_candidate(accepted_start[request->section_index], accepted_bytes[request->section_index],
       candidate, accepted_count);
-    if (label_lookup_create_label(label_lookup, fact->section_index, fact->offset,
-        fact->confidence) != 0) return -1;
-    if (append_violation_fact(facts, fact->section_index, candidate->offset, fact->offset) != 0) return -1;
+    if (label_lookup_create_label(label_lookup, request->section_index, request->offset,
+        request->confidence) != 0) return -1;
+    if (append_violation_fact(facts, request->section_index, candidate->offset, request->offset) != 0) return -1;
     ++interior;
   }
   *out_interior_conflicts = interior;
@@ -8192,22 +8192,23 @@ static int classify_relocation_anchor_contexts(const M68kDecodeIR *decode,
 
 static int materialize_safe_required_labels(const M68kDecodeIR *decode, uint8_t **accepted_start,
     uint8_t **accepted_bytes, M68kFactIR *facts, M68kFactsV2LabelLookup *label_lookup) {
-  size_t fact_index;
-  if (decode == NULL || accepted_start == NULL || accepted_bytes == NULL || facts == NULL) return -1;
-  for (fact_index = 0U; fact_index < facts->fact_count; ++fact_index) {
-    const M68kFact *fact = &facts->facts[fact_index];
+  size_t request_index;
+  if (decode == NULL || accepted_start == NULL || accepted_bytes == NULL || facts == NULL ||
+      label_lookup == NULL) return -1;
+  for (request_index = 0U; request_index < facts->label_request_count; ++request_index) {
+    const M68kLabelRequest *request = &facts->label_requests[request_index];
     const M68kDecodeSectionIR *section;
     uint32_t extent;
-    if (fact->kind != M68K_FACT_LABEL_REQUIRED || fact->section_index >= decode->section_count) continue;
-    section = &decode->sections[fact->section_index];
+    if (request->section_index >= decode->section_count) continue;
+    section = &decode->sections[request->section_index];
     extent = decode_section_extent_local(section);
-    if (fact->offset > extent) continue;
-    if (accepted_offset_is_interior(section, accepted_start[fact->section_index],
-        accepted_bytes[fact->section_index], fact->offset)) {
+    if (request->offset > extent) continue;
+    if (accepted_offset_is_interior(section, accepted_start[request->section_index],
+        accepted_bytes[request->section_index], request->offset)) {
       continue;
     }
-    if (label_lookup_create_label(label_lookup, fact->section_index, fact->offset,
-        fact->confidence) != 0) return -1;
+    if (label_lookup_create_label(label_lookup, request->section_index, request->offset,
+        request->confidence) != 0) return -1;
   }
   return 0;
 }
@@ -8349,24 +8350,25 @@ static int seed_linkage_api_entry_labels(M68kDecodeIR *decode, M68kFactIR *facts
     *out_seeded = 0U;
     return 0;
   }
-  for (fact_index = 0U; fact_index < facts->fact_count; ++fact_index) {
-    const M68kFact *fact = &facts->facts[fact_index];
+  for (fact_index = 0U; fact_index < facts->label_request_count; ++fact_index) {
+    const M68kLabelRequest *request = &facts->label_requests[fact_index];
     const M68kDecodeSectionIR *section;
-    if (fact->kind != M68K_FACT_LABEL_REQUIRED || fact->confidence < M68K_FACT_CONFIDENCE_REQUIRED ||
-        fact->section_index >= decode->section_count) {
+    if (request->confidence < M68K_FACT_CONFIDENCE_REQUIRED ||
+        request->section_index >= decode->section_count) {
       continue;
     }
-    section = &decode->sections[fact->section_index];
-    if (section->kind != M68K_SECTION_CODE || fact->offset >= section->size ||
-        accepted_start[fact->section_index][fact->offset] || accepted_bytes[fact->section_index][fact->offset] ||
-        !label_lookup_has_label(label_lookup, fact->section_index, fact->offset) ||
-        !labelled_entry_decodes_terminal_api_wrapper(decode, section, platform_kind, accepted_bytes, fact->offset,
+    section = &decode->sections[request->section_index];
+    if (section->kind != M68K_SECTION_CODE || request->offset >= section->size ||
+        accepted_start[request->section_index][request->offset] ||
+        accepted_bytes[request->section_index][request->offset] ||
+        !label_lookup_has_label(label_lookup, request->section_index, request->offset) ||
+        !labelled_entry_decodes_terminal_api_wrapper(decode, section, platform_kind, accepted_bytes, request->offset,
           max_cpu)) {
       continue;
     }
-    if (enqueue_code_start_runtime(facts, queue, profile, fact->section_index, fact->offset,
+    if (enqueue_code_start_runtime(facts, queue, profile, request->section_index, request->offset,
         M68K_FACT_CONFIDENCE_TOOL_INFERRED,
-        M68K_FACT_CODE_START_REASON_LINKAGE_API_ENTRY, fact->section_index, fact->offset, 0U, 0U, NULL) != 0) {
+        M68K_FACT_CODE_START_REASON_LINKAGE_API_ENTRY, request->section_index, request->offset, 0U, 0U, NULL) != 0) {
       return -1;
     }
     ++seeded;
@@ -8432,25 +8434,25 @@ static size_t platform_api_entry_seed_pass_limit(const M68kDecodeIR *decode) {
 static uint32_t resolve_required_label_invariants(const M68kDecodeIR *decode, uint8_t **accepted_start,
     uint8_t **accepted_bytes, const M68kFactIR *facts, M68kFactIR *out_facts,
     const M68kFactsV2LabelLookup *label_lookup, uint32_t *out_interior_conflicts) {
-  size_t fact_index;
+  size_t request_index;
   uint32_t unresolved = 0U;
   uint32_t interior = 0U;
-  if (decode == NULL || accepted_start == NULL || accepted_bytes == NULL || facts == NULL || out_facts == NULL ||
-      out_interior_conflicts == NULL) {
+  if (decode == NULL || accepted_start == NULL || accepted_bytes == NULL || facts == NULL ||
+      label_lookup == NULL || out_facts == NULL || out_interior_conflicts == NULL) {
     return 0U;
   }
-  for (fact_index = 0U; fact_index < facts->fact_count; ++fact_index) {
-    const M68kFact *fact = &facts->facts[fact_index];
+  for (request_index = 0U; request_index < facts->label_request_count; ++request_index) {
+    const M68kLabelRequest *request = &facts->label_requests[request_index];
     const M68kDecodeSectionIR *section;
-    if (fact->kind != M68K_FACT_LABEL_REQUIRED || fact->confidence < M68K_FACT_CONFIDENCE_REQUIRED ||
-        fact->section_index >= decode->section_count)
+    if (request->confidence < M68K_FACT_CONFIDENCE_REQUIRED ||
+        request->section_index >= decode->section_count)
       continue;
-    section = &decode->sections[fact->section_index];
-    if (label_lookup_has_label(label_lookup, fact->section_index, fact->offset)) continue;
+    section = &decode->sections[request->section_index];
+    if (label_lookup_has_label(label_lookup, request->section_index, request->offset)) continue;
     ++unresolved;
-    if (accepted_offset_is_interior(section, accepted_start[fact->section_index],
-        accepted_bytes[fact->section_index], fact->offset)) {
-      if (append_violation_fact(out_facts, fact->section_index, fact->offset, fact->offset) == 0) ++interior;
+    if (accepted_offset_is_interior(section, accepted_start[request->section_index],
+        accepted_bytes[request->section_index], request->offset)) {
+      if (append_violation_fact(out_facts, request->section_index, request->offset, request->offset) == 0) ++interior;
     }
   }
   *out_interior_conflicts = interior;
@@ -8607,7 +8609,7 @@ static int enqueue_adjacent_direct_control_stub_table_entries(M68kDecodeIR *deco
           &entry_runtime)) {
         has_entry_runtime = 1U;
       }
-      if (m68k_fact_ir_require_label(facts, section_index, cursor,
+      if (m68k_fact_ir_append_label_request(facts, section_index, cursor,
           M68K_FACT_CONFIDENCE_TOOL_INFERRED) != 0) {
         return -1;
       }
@@ -8775,7 +8777,7 @@ static int enqueue_indexed_direct_control_stub_table_entries(M68kDecodeIR *decod
         M68K_FACT_CONFIDENCE_TOOL_INFERRED) != 0) {
       return -1;
     }
-    if (m68k_fact_ir_require_label(facts, section_index, cursor, M68K_FACT_CONFIDENCE_TOOL_INFERRED) != 0)
+    if (m68k_fact_ir_append_label_request(facts, section_index, cursor, M68K_FACT_CONFIDENCE_TOOL_INFERRED) != 0)
       return -1;
     if (enqueue_code_start_runtime_evidence_ex(facts, queue, profile, section_index, cursor,
         M68K_FACT_CONFIDENCE_TOOL_INFERRED, M68K_FACT_CODE_START_REASON_CONTROL_TARGET,
@@ -9515,7 +9517,7 @@ static int run_reachable_fixed_point(const M68kObject *object, M68kDecodeIR *dec
         if (append_violation_fact(facts, item.section_index, item.offset, target_offset) != 0) return -1;
         continue;
       }
-      if (m68k_fact_ir_require_label(facts, item.section_index, target_offset,
+      if (m68k_fact_ir_append_label_request(facts, item.section_index, target_offset,
           M68K_FACT_CONFIDENCE_TOOL_INFERRED) != 0) return -1;
       if (target->kind == M68K_DECODE_TARGET_DATA ||
           decode_target_is_indexed_control_operand_base(candidate, target)) {
@@ -10227,7 +10229,7 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
     }
   }
   out_profile->labels_created = (uint32_t)label_lookup.point_count;
-  out_profile->labels_referenced = facts.label_required_count;
+  out_profile->labels_referenced = (uint32_t)facts.label_request_count;
   out_profile->queue_iterations = (uint32_t)queue.cursor;
   start = clock();
   fail_stage = "render preview build";

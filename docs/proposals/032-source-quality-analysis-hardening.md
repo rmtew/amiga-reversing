@@ -4331,7 +4331,23 @@ facts-v2 label lookup
   -> source-analysis symbol origins
 ```
 
-`LABEL_REQUIRED` remains for now because it still represents an unsatisfied
-symbol obligation before analysis proves that the requested label can be
-materialized. That is a narrower remaining debt item than the old
-created-label fact.
+### Label Required Fact Deletion
+
+`M68K_FACT_LABEL_REQUIRED` has also been removed from `M68kFactIR`. It was not
+a durable fact; it was a request for later label materialization. Keeping it in
+the append-only fact array forced source-quality passes to rediscover label
+obligations by scanning unrelated facts.
+
+The replacement is an explicit request lane:
+
+```text
+m68k_fact_ir_append_label_request()
+  -> M68kLabelRequest(section, offset, confidence)
+  -> materialize_safe_required_labels()
+  -> facts-v2 label lookup
+```
+
+This preserves the real meaning, "analysis needs a label here", without
+pretending that the request is itself a semantic fact. The source-quality path
+now consumes typed label requests and active label points, not
+`LABEL_REQUIRED`/`LABEL_CREATED` pseudo-facts.

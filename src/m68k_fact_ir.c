@@ -6,7 +6,6 @@ static void count_fact(M68kFactIR *ir, uint8_t kind) {
   switch (kind) {
     case M68K_FACT_CODE_START: ++ir->code_start_count; break;
     case M68K_FACT_CODE_ACCEPTED: ++ir->code_accepted_count; break;
-    case M68K_FACT_LABEL_REQUIRED: ++ir->label_required_count; break;
     case M68K_FACT_XREF: ++ir->xref_count; break;
     case M68K_FACT_RELOCATION_REF: ++ir->relocation_ref_count; break;
     case M68K_FACT_RELOCATION_ANCHOR: ++ir->relocation_anchor_count; break;
@@ -51,12 +50,21 @@ int m68k_fact_ir_append(M68kFactIR *ir, const M68kFact *fact) {
   return 0;
 }
 
-int m68k_fact_ir_require_label(M68kFactIR *ir, size_t section_index, uint32_t offset, uint8_t confidence) {
-  M68kFact fact;
-  memset(&fact, 0, sizeof(fact));
-  fact.kind = M68K_FACT_LABEL_REQUIRED;
-  fact.confidence = confidence;
-  fact.section_index = section_index;
-  fact.offset = offset;
-  return m68k_fact_ir_append(ir, &fact);
+int m68k_fact_ir_append_label_request(M68kFactIR *ir, size_t section_index, uint32_t offset, uint8_t confidence) {
+  M68kLabelRequest *grown;
+  size_t next_capacity;
+  if (ir == NULL || ir->arena == NULL) return -1;
+  if (ir->label_request_count == ir->label_request_capacity) {
+    next_capacity = ir->label_request_capacity == 0U ? 64U : ir->label_request_capacity * 2U;
+    grown = (M68kLabelRequest *)arena_realloc_copy(ir->arena, ir->label_requests,
+      ir->label_request_capacity * sizeof(*grown), next_capacity * sizeof(*grown));
+    if (grown == NULL) return -1;
+    ir->label_requests = grown;
+    ir->label_request_capacity = next_capacity;
+  }
+  ir->label_requests[ir->label_request_count].section_index = section_index;
+  ir->label_requests[ir->label_request_count].offset = offset;
+  ir->label_requests[ir->label_request_count].confidence = confidence;
+  ++ir->label_request_count;
+  return 0;
 }

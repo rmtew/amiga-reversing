@@ -10,15 +10,14 @@
 typedef enum M68kFactKind {
   M68K_FACT_CODE_START = 1,
   M68K_FACT_CODE_ACCEPTED = 2,
-  M68K_FACT_LABEL_REQUIRED = 3,
-  M68K_FACT_XREF = 4,
-  M68K_FACT_RELOCATION_REF = 5,
-  M68K_FACT_DATA_SPAN = 6,
-  M68K_FACT_VIOLATION = 7,
-  M68K_FACT_RELOCATION_ANCHOR = 8,
-  M68K_FACT_RUNTIME_ADDRESS_REF = 9,
-  M68K_FACT_RUNTIME_ADDRESS_RANGE = 10,
-  M68K_FACT_PLATFORM_MEDIA_TRANSFER = 11
+  M68K_FACT_XREF = 3,
+  M68K_FACT_RELOCATION_REF = 4,
+  M68K_FACT_DATA_SPAN = 5,
+  M68K_FACT_VIOLATION = 6,
+  M68K_FACT_RELOCATION_ANCHOR = 7,
+  M68K_FACT_RUNTIME_ADDRESS_REF = 8,
+  M68K_FACT_RUNTIME_ADDRESS_RANGE = 9,
+  M68K_FACT_PLATFORM_MEDIA_TRANSFER = 10
 } M68kFactKind;
 
 typedef enum M68kFactConfidence {
@@ -70,14 +69,22 @@ typedef struct M68kFact {
   uint32_t anchor_kind;
 } M68kFact;
 
+typedef struct M68kLabelRequest {
+  size_t section_index;
+  uint32_t offset;
+  uint8_t confidence;
+} M68kLabelRequest;
+
 typedef struct M68kFactIR {
   Arena *arena;
   M68kFact *facts;
   size_t fact_count;
   size_t fact_capacity;
+  M68kLabelRequest *label_requests;
+  size_t label_request_count;
+  size_t label_request_capacity;
   uint32_t code_start_count;
   uint32_t code_accepted_count;
-  uint32_t label_required_count;
   uint32_t xref_count;
   uint32_t relocation_ref_count;
   uint32_t relocation_anchor_count;
@@ -91,6 +98,6 @@ typedef struct M68kFactIR {
 void m68k_fact_ir_init(M68kFactIR *ir);
 void m68k_fact_ir_destroy(M68kFactIR *ir);
 int m68k_fact_ir_append(M68kFactIR *ir, const M68kFact *fact);
-int m68k_fact_ir_require_label(M68kFactIR *ir, size_t section_index, uint32_t offset, uint8_t confidence);
+int m68k_fact_ir_append_label_request(M68kFactIR *ir, size_t section_index, uint32_t offset, uint8_t confidence);
 
 #endif
