@@ -856,8 +856,21 @@ void attach_operand_label_symbol(const M68kRenderLookup *lookup, M68kInstruction
   uint32_t target_offset);
 int m68k_analysis_render_lookup_run_platform_passes(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
   uint8_t **accepted_start, uint8_t **accepted_bytes, M68kRenderIRPreview *preview);
+int m68k_render_lookup_build(M68kRenderLookup *lookup, const M68kObject *object, const M68kDecodeIR *decode,
+  const M68kFactIR *facts, const M68kAnalysisPolicy *policy, uint8_t **accepted_start);
+void m68k_render_lookup_destroy(M68kRenderLookup *lookup);
+void m68k_render_lookup_materialize_relocation_target_labels(M68kRenderLookup *lookup);
+void m68k_render_lookup_materialize_structured_long_table_target_labels(M68kRenderLookup *lookup,
+  const M68kDecodeIR *decode);
 int m68k_analysis_render_lookup_append_auto_policy(M68kSourceAnalysisIR *source_analysis,
   M68kRenderLookup *lookup);
+int m68k_render_ir_build_source_analysis_from_lookup(M68kRenderIRPreview *preview, M68kRenderLookup *lookup,
+  const M68kDecodeIR *decode, const M68kAnalysisPolicy *policy, uint8_t **accepted_start,
+  uint8_t **accepted_bytes, M68kSourceAnalysisIR *source_analysis);
+int m68k_render_ir_preview_emit_prepared(const M68kObject *object, const M68kDecodeIR *decode,
+  M68kRenderLookup *prepared_lookup, const M68kAnalysisPolicy *policy, uint8_t **accepted_start,
+  uint8_t **accepted_bytes, int render_text_preview, int render_asm_source, int collect_asm_source_text,
+  int emit_asm_source_text, M68kRenderIRPreview *out_preview, const M68kSourceAnalysisIR *source_analysis);
 int m68k_analysis_render_lookup_append_cfg_for_section(const M68kRenderLookup *lookup,
   const M68kDecodeSectionIR *section, const uint8_t *accepted_start, const uint8_t *accepted_bytes,
   Arena *scratch_arena, M68kSectionAnalysisIR *section_analysis);

@@ -31,6 +31,35 @@ static Arena *test_ir_result_arena(void) {
   return arena;
 }
 
+static int test_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *decode,
+    const M68kFactIR *facts, const M68kAnalysisPolicy *policy, uint8_t **accepted_start,
+    uint8_t **accepted_bytes, int render_text_preview, int render_asm_source,
+    int collect_asm_source_text, int emit_asm_source_text, M68kRenderIRPreview *out_preview) {
+  M68kRenderLookup lookup;
+  int result = -1;
+  if (object == NULL || decode == NULL || facts == NULL || accepted_start == NULL || accepted_bytes == NULL ||
+      out_preview == NULL) {
+    return -1;
+  }
+  memset(&lookup, 0, sizeof(lookup));
+  m68k_render_ir_preview_init(out_preview);
+  out_preview->platform_backend_kind = object->platform_backend_kind;
+  if (m68k_render_lookup_build(&lookup, object, decode, facts, policy, accepted_start) != 0) goto cleanup;
+  if (render_asm_source &&
+      m68k_analysis_render_lookup_run_platform_passes(&lookup, decode, accepted_start, accepted_bytes,
+        out_preview) != 0) {
+    goto cleanup;
+  }
+  m68k_render_lookup_materialize_structured_long_table_target_labels(&lookup, decode);
+  m68k_render_lookup_materialize_relocation_target_labels(&lookup);
+  result = m68k_render_ir_preview_emit_prepared(object, decode, &lookup, policy, accepted_start, accepted_bytes,
+    render_text_preview, render_asm_source, collect_asm_source_text, emit_asm_source_text, out_preview,
+    NULL);
+cleanup:
+  m68k_render_lookup_destroy(&lookup);
+  return result;
+}
+
 static int test_render_policy_defaults(void) {
   M68kRenderPolicy policy;
   memset(&policy, 0xA5, sizeof(policy));
@@ -11954,8 +11983,8 @@ static int test_facts_v2_source_zero_runtime_copy_continues_without_storage_org(
   fact.runtime_address = 0x100U;
   fact.size = 4U;
   M68K_C_ASSERT_INT(0, m68k_fact_ir_append(&facts, &fact));
-  M68K_C_ASSERT_INT(0, m68k_render_ir_preview_build(&object, &decode, &facts, NULL,
-    accepted_start, accepted_bytes, 0, 1, 1, 1, &preview, NULL));
+  M68K_C_ASSERT_INT(0, test_render_ir_preview_build(&object, &decode, &facts, NULL,
+    accepted_start, accepted_bytes, 0, 1, 1, 1, &preview));
   M68K_C_ASSERT(preview.asm_source_text != NULL);
   M68K_C_ASSERT(strstr(preview.asm_source_text, "    ORG $100\nabs_0_00000100:\n") != NULL);
   M68K_C_ASSERT(strstr(preview.asm_source_text, "    ORG $4\n") == NULL);
@@ -12041,8 +12070,8 @@ static int test_facts_v2_mid_section_runtime_stub_does_not_org_back_to_storage(v
   fact.has_runtime_address = 1U;
   fact.runtime_address = 0x5000U;
   M68K_C_ASSERT_INT(0, m68k_fact_ir_append(&facts, &fact));
-  M68K_C_ASSERT_INT(0, m68k_render_ir_preview_build(&object, &decode, &facts, NULL,
-    accepted_start, accepted_bytes, 0, 1, 1, 1, &preview, NULL));
+  M68K_C_ASSERT_INT(0, test_render_ir_preview_build(&object, &decode, &facts, NULL,
+    accepted_start, accepted_bytes, 0, 1, 1, 1, &preview));
   M68K_C_ASSERT(preview.asm_source_text != NULL);
   M68K_C_ASSERT(strstr(preview.asm_source_text, "    ORG $5000\n") == NULL);
   M68K_C_ASSERT(strstr(preview.asm_source_text, "    ORG $14\n") == NULL);
@@ -12493,8 +12522,8 @@ static int test_facts_v2_runtime_trampoline_copy_does_not_force_low_org(void) {
   fact.has_runtime_address = 1U;
   fact.runtime_address = 0x64U;
   M68K_C_ASSERT_INT(0, m68k_fact_ir_append(&facts, &fact));
-  M68K_C_ASSERT_INT(0, m68k_render_ir_preview_build(&object, &decode, &facts, NULL,
-    accepted_start, accepted_bytes, 0, 1, 1, 1, &preview, NULL));
+  M68K_C_ASSERT_INT(0, test_render_ir_preview_build(&object, &decode, &facts, NULL,
+    accepted_start, accepted_bytes, 0, 1, 1, 1, &preview));
   M68K_C_ASSERT(preview.asm_source_text != NULL);
   M68K_C_ASSERT(strstr(preview.asm_source_text, "    ORG $4\n") == NULL);
   M68K_C_ASSERT(strstr(preview.asm_source_text, "runtime_code_00000004\tEQU\t$4\n") != NULL);
@@ -12703,8 +12732,8 @@ static int test_facts_v2_full_load_view_does_not_label_alternate_copied_address_
   fact.has_runtime_address = 1U;
   fact.runtime_address = 0x400U;
   M68K_C_ASSERT_INT(0, m68k_fact_ir_append(&facts, &fact));
-  M68K_C_ASSERT_INT(0, m68k_render_ir_preview_build(&object, &decode, &facts, NULL,
-    accepted_start, accepted_bytes, 0, 1, 1, 1, &preview, NULL));
+  M68K_C_ASSERT_INT(0, test_render_ir_preview_build(&object, &decode, &facts, NULL,
+    accepted_start, accepted_bytes, 0, 1, 1, 1, &preview));
   M68K_C_ASSERT(preview.asm_source_text != NULL);
   M68K_C_ASSERT(strstr(preview.asm_source_text, "    ORG $70000\n") != NULL);
   M68K_C_ASSERT(strstr(preview.asm_source_text, "runtime_code_00000400\tEQU\t$400\n") != NULL);
@@ -15524,8 +15553,8 @@ static int test_render_plan_marks_emitted_org_subline_as_directive(void) {
   fact.has_runtime_address = 1U;
   fact.runtime_address = 0x80U;
   M68K_C_ASSERT_INT(0, m68k_fact_ir_append(&facts, &fact));
-  M68K_C_ASSERT_INT(0, m68k_render_ir_preview_build(&object, &decode, &facts, NULL,
-    accepted_start, accepted_bytes, 0, 1, 1, 1, &preview, NULL));
+  M68K_C_ASSERT_INT(0, test_render_ir_preview_build(&object, &decode, &facts, NULL,
+    accepted_start, accepted_bytes, 0, 1, 1, 1, &preview));
   for (row_index = 0U; row_index < preview.asm_source_plan.row_count; ++row_index) {
     const M68kRenderPlanRow *row = &preview.asm_source_plan.rows[row_index];
     if (row->text != NULL && strstr(row->text, "    ORG $80\n") != NULL) {
@@ -15590,8 +15619,8 @@ static int test_facts_v2_render_asm_source_splits_raw_data_plan_rows(void) {
 
   M68K_C_ASSERT_INT(0, m68k_decode_ir_build_object(&decode, &object, M68K_ASM_CPU_68060,
     m68k_diag_sink(NULL)));
-  M68K_C_ASSERT_INT(0, m68k_render_ir_preview_build(&object, &decode, &facts, &policy,
-    accepted_start, accepted_bytes, 0, 1, 1, 1, &preview, NULL));
+  M68K_C_ASSERT_INT(0, test_render_ir_preview_build(&object, &decode, &facts, &policy,
+    accepted_start, accepted_bytes, 0, 1, 1, 1, &preview));
   for (index = 0U; index < preview.asm_source_plan.row_count; ++index) {
     const M68kRenderPlanRow *row = &preview.asm_source_plan.rows[index];
     if (row->kind != M68K_RENDER_PLAN_ROW_DATA) continue;
@@ -21564,8 +21593,8 @@ static int test_render_ir_suppresses_orphan_structured_field_label(void) {
   fact.target_offset = 30U;
   fact.size = 4U;
   M68K_C_ASSERT_INT(0, m68k_fact_ir_append(&facts, &fact));
-  M68K_C_ASSERT_INT(0, m68k_render_ir_preview_build(&object, &decode, &facts, &policy,
-    accepted_start, accepted_bytes, 0, 1, 1, 1, &preview, NULL));
+  M68K_C_ASSERT_INT(0, test_render_ir_preview_build(&object, &decode, &facts, &policy,
+    accepted_start, accepted_bytes, 0, 1, 1, 1, &preview));
   M68K_C_ASSERT(preview.asm_source_text != NULL);
   M68K_C_ASSERT(strstr(preview.asm_source_text, "loc_0_00000012:") == NULL);
   M68K_C_ASSERT(strstr(preview.asm_source_text, "\tdc.l resident_name\t; APTR RT_NAME\n") != NULL);
@@ -21578,8 +21607,8 @@ static int test_render_ir_suppresses_orphan_structured_field_label(void) {
   fact.section_index = 0U;
   fact.offset = 40U;
   M68K_C_ASSERT_INT(0, m68k_fact_ir_append(&facts, &fact));
-  M68K_C_ASSERT_INT(0, m68k_render_ir_preview_build(&object, &decode, &facts, &policy,
-    accepted_start, accepted_bytes, 0, 1, 1, 1, &preview, NULL));
+  M68K_C_ASSERT_INT(0, test_render_ir_preview_build(&object, &decode, &facts, &policy,
+    accepted_start, accepted_bytes, 0, 1, 1, 1, &preview));
   M68K_C_ASSERT(preview.asm_source_text != NULL);
   M68K_C_ASSERT(strstr(preview.asm_source_text, "loc_0_00000028:") == NULL);
   M68K_C_ASSERT(strstr(preview.asm_source_text, "resident_name:\n") != NULL);

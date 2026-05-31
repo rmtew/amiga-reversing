@@ -3087,6 +3087,43 @@ uv run python -m pytest tests\test_target_usage_manifest.py -q
 uv run platform-rendered-source-roundtrip --no-write-report --json
 ```
 
+### Prepared Render Lookup And Pre-Render Source Quality
+
+Moved the remaining source-analysis build point ahead of source rendering:
+
+```text
+facts_v2_collect_profile_internal()
+  -> build render lookup
+  -> run platform lookup passes
+  -> materialize lookup-derived labels
+  -> build Source Analysis IR from the prepared lookup
+  -> append storage/incomplete/recovered/address/media facts
+  -> run m68k_source_quality_analyze()
+  -> source blocker check
+  -> emit source from prepared lookup + const Source Analysis IR
+```
+
+Render preview no longer owns the source-analysis lifecycle or the blocker
+ordering. It receives a prepared lookup plus completed source-analysis input
+and formats output. Source-quality blockers are now counted before render
+emission, so byte-real source with source-quality failures can be refused
+without waiting for `.s` text generation.
+
+The old `m68k_render_ir_preview_build(..., out_source_analysis)` compatibility
+surface was removed instead of preserved. This codebase has no external API
+customers, so the internal C tests now use a local helper over the prepared
+lookup API rather than carrying a production wrapper for a stale ownership
+model.
+
+Verified:
+
+```text
+cmd /c src\build.bat
+src\build\m68k_c_unit_tests.exe
+uv run python -m pytest tests\test_target_usage_manifest.py -q
+uv run platform-rendered-source-roundtrip --no-write-report --json
+```
+
 ### Render Walk Source-Analysis Decoupling
 
 Moved source-analysis section assembly out of the source row walk:

@@ -84,9 +84,5 @@ typedef struct M68kRenderIRPreview {
 void m68k_render_ir_preview_init(M68kRenderIRPreview *preview);
 void m68k_render_ir_preview_destroy(M68kRenderIRPreview *preview);
 int candidate_calls_a6_lvo(const M68kDecodeCandidate *candidate, int16_t *out_lvo);
-int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *decode, const M68kFactIR *facts,
-  const M68kAnalysisPolicy *policy, uint8_t **accepted_start, uint8_t **accepted_bytes, int render_text_preview,
-  int render_asm_source, int collect_asm_source_text, int emit_asm_source_text,
-  M68kRenderIRPreview *out_preview, M68kSourceAnalysisIR *out_source_analysis);
 
 #endif
