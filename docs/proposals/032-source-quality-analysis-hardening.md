@@ -4245,3 +4245,19 @@ m68k_render_ir_preview_emit_prepared()
 
 This is an internal ownership cleanup, not a compatibility layer. There are no
 external consumers that need the old render-owned location.
+
+### Base-Layout Internal API Cleanup
+
+Removed the stale app/RS render names from the shared base-layout collector:
+
+```text
+M68kAppRsLayoutSlot      -> M68kBaseLayoutSlot
+M68kAppRsLayoutGroup     -> M68kBaseLayoutGroup
+app_rs_layout_collect_*  -> base_layout_collect_*
+M68K_RENDER_APP_*        -> M68K_APP_*
+```
+
+The collector is used by both source-quality fact production and assembly
+presentation, so it should not carry renderer ownership in its type names.
+Only the final `render_asm_base_layout_rs()` path remains render-specific
+because that function emits `RSSET`/`RS.*` source text.

@@ -6168,7 +6168,7 @@ static int render_lookup_add_named_layout_field_slot(M68kRenderLookup *lookup, c
 
 static int render_lookup_add_app_access_slot(M68kRenderLookup *lookup, int16_t displacement,
     uint8_t observed_access_size, size_t source_section_index, uint32_t source_offset) {
-  return render_lookup_add_base_field_slot_with_symbol(lookup, M68K_RENDER_APP_BASE_SYMBOL, displacement, "", NULL,
+  return render_lookup_add_base_field_slot_with_symbol(lookup, M68K_APP_BASE_SYMBOL, displacement, "", NULL,
     M68K_RENDER_BASE_FIELD_SLOT_APP_ACCESS, observed_access_size, source_section_index, source_offset);
 }
 
@@ -6181,7 +6181,7 @@ static int render_lookup_seed_policy_rsset_layout_regions(M68kRenderLookup *look
   }
   for (index = 0U; index < policy->rsset_layout_region_count && index < M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT; ++index) {
     const M68kAnalysisRssetLayoutRegion *slot = &policy->rsset_layout_regions[index];
-    const char *base_symbol = slot->base_symbol[0] != '\0' ? slot->base_symbol : M68K_RENDER_APP_BASE_SYMBOL;
+    const char *base_symbol = slot->base_symbol[0] != '\0' ? slot->base_symbol : M68K_APP_BASE_SYMBOL;
     if (slot->symbol[0] == '\0' || slot->offset > 0x7FFFU) continue;
     if (render_lookup_add_named_layout_field_slot(lookup, base_symbol, (int16_t)slot->offset, slot->symbol, SIZE_MAX,
         UINT32_MAX) != 0) {
@@ -13256,7 +13256,7 @@ static int render_lookup_add_open_library_result_app_base_slots(M68kRenderLookup
     candidate = find_candidate_at_offset_local(section, offset);
     if (candidate == NULL || candidate->byte_count == 0U) continue;
     if (!a6_is_exec && candidate_stores_d0_to_a6_slot(candidate, &displacement)) {
-      if (render_lookup_add_base_field_slot(lookup, M68K_RENDER_APP_BASE_SYMBOL, displacement, library_name,
+      if (render_lookup_add_base_field_slot(lookup, M68K_APP_BASE_SYMBOL, displacement, library_name,
           section->section_index, candidate->offset) != 0)
         return -1;
       result = 1;
@@ -13656,14 +13656,14 @@ static int render_lookup_infer_global_base_slots(M68kRenderLookup *lookup, const
         }
         if (format_open_device_app_iorequest_slot_name(trace_state.addr_regs[0].name, iorequest_slot_name,
             sizeof(iorequest_slot_name))) {
-          if (render_lookup_add_base_field_slot_with_symbol(lookup, M68K_RENDER_APP_BASE_SYMBOL,
+          if (render_lookup_add_base_field_slot_with_symbol(lookup, M68K_APP_BASE_SYMBOL,
               trace_state.app_addresses[1].displacement, trace_state.addr_regs[0].name, iorequest_slot_name,
               M68K_RENDER_BASE_FIELD_SLOT_IOREQUEST, 4U, section->section_index, candidate->offset) != 0) {
             goto cleanup;
           }
         }
         if (device_base_displacement >= -32768 && device_base_displacement <= 32767) {
-          if (render_lookup_add_device_base_field_slot(lookup, M68K_RENDER_APP_BASE_SYMBOL,
+          if (render_lookup_add_device_base_field_slot(lookup, M68K_APP_BASE_SYMBOL,
               (int16_t)device_base_displacement, trace_state.addr_regs[0].name, section->section_index,
               candidate->offset) != 0) {
             goto cleanup;
@@ -13677,7 +13677,7 @@ static int render_lookup_infer_global_base_slots(M68kRenderLookup *lookup, const
         char unknown_owner_name[32];
         const char *owner_name = trace_state.addr_regs[local_base_reg].known
           ? trace_state.addr_regs[local_base_reg].name
-          : (local_base_reg == 6U ? M68K_RENDER_APP_BASE_SYMBOL : NULL);
+          : (local_base_reg == 6U ? M68K_APP_BASE_SYMBOL : NULL);
         if (owner_name == NULL &&
             amiga_unknown_base_register_owner_name(local_base_reg, unknown_owner_name, sizeof(unknown_owner_name))) {
           owner_name = unknown_owner_name;
@@ -13691,7 +13691,7 @@ static int render_lookup_infer_global_base_slots(M68kRenderLookup *lookup, const
       }
       if (candidate_stores_named_value_to_app_slot(&trace_state, candidate, &named_app_slot_displacement,
           named_app_slot_symbol, sizeof(named_app_slot_symbol))) {
-        if (render_lookup_add_named_layout_field_slot(lookup, M68K_RENDER_APP_BASE_SYMBOL, named_app_slot_displacement,
+        if (render_lookup_add_named_layout_field_slot(lookup, M68K_APP_BASE_SYMBOL, named_app_slot_displacement,
             named_app_slot_symbol, section->section_index, candidate->offset) != 0) {
           goto cleanup;
         }
@@ -14659,7 +14659,7 @@ static Arena *analysis_preview_scratch_arena(M68kRenderIRPreview *preview) {
 }
 
 static int append_base_layout_fields_from_slots(M68kSourceAnalysisIR *source_analysis,
-    const M68kAppRsLayoutSlot *slots, size_t slot_count) {
+    const M68kBaseLayoutSlot *slots, size_t slot_count) {
   size_t index;
   if (source_analysis == NULL || slots == NULL) return 0;
   for (index = 0U; index < slot_count; ++index) {
@@ -14695,8 +14695,8 @@ int m68k_analysis_render_lookup_append_base_layout_fields(M68kRenderIRPreview *p
     const M68kRenderLookup *lookup, const M68kDecodeIR *decode, M68kSourceAnalysisIR *source_analysis) {
   Arena *scratch_arena;
   ArenaMark scratch_mark;
-  M68kAppRsLayoutSlot *slots = NULL;
-  M68kAppRsLayoutGroup *layouts = NULL;
+  M68kBaseLayoutSlot *slots = NULL;
+  M68kBaseLayoutGroup *layouts = NULL;
   size_t slot_capacity;
   size_t slot_count = 0U;
   int32_t base_offset = 0, app_sizeof_value = 0;
@@ -14706,14 +14706,14 @@ int m68k_analysis_render_lookup_append_base_layout_fields(M68kRenderIRPreview *p
   int result = -1;
   if (source_analysis == NULL) return 0;
   if (preview == NULL || lookup == NULL) return -1;
-  slot_capacity = app_rs_layout_slot_capacity_for_lookup(lookup);
+  slot_capacity = base_layout_slot_capacity_for_lookup(lookup);
   scratch_arena = analysis_preview_scratch_arena(preview);
   if (scratch_arena == NULL) return -1;
   scratch_mark = arena_mark(scratch_arena);
-  slots = (M68kAppRsLayoutSlot *)arena_calloc(scratch_arena, slot_capacity, sizeof(*slots));
-  layouts = (M68kAppRsLayoutGroup *)arena_calloc(scratch_arena, slot_capacity, sizeof(*layouts));
+  slots = (M68kBaseLayoutSlot *)arena_calloc(scratch_arena, slot_capacity, sizeof(*slots));
+  layouts = (M68kBaseLayoutGroup *)arena_calloc(scratch_arena, slot_capacity, sizeof(*layouts));
   if (slots == NULL || layouts == NULL) goto cleanup;
-  if (app_rs_layout_collect_slots(preview, lookup, decode, slots, slot_capacity, &slot_count,
+  if (base_layout_collect_slots(preview, lookup, decode, slots, slot_capacity, &slot_count,
       &has_resident_context, &has_app_sizeof_value, &base_offset, &app_sizeof_value) != 0) {
     goto cleanup;
   }
@@ -14721,7 +14721,7 @@ int m68k_analysis_render_lookup_append_base_layout_fields(M68kRenderIRPreview *p
     result = 0;
     goto cleanup;
   }
-  layout_count = app_rs_layout_prepare_groups(slots, slot_count, layouts, slot_capacity, base_offset,
+  layout_count = base_layout_prepare_groups(slots, slot_count, layouts, slot_capacity, base_offset,
     has_resident_context, has_app_sizeof_value, app_sizeof_value);
   if (layout_count == SIZE_MAX) goto cleanup;
   result = append_base_layout_fields_from_slots(source_analysis, slots, slot_count);
