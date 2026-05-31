@@ -842,7 +842,7 @@ static int append_symbol_facts_from_label_facts(const M68kDecodeIR *decode,
     const M68kFact *fact = &facts->facts[fact_index];
     M68kSectionAnalysisIR *section_analysis;
     char symbol_name[M68K_IR_SYMBOL_NAME_SIZE];
-    if ((fact->kind != M68K_FACT_LABEL_CREATED && fact->kind != M68K_FACT_LABEL_REQUIRED) ||
+    if (fact->kind != M68K_FACT_LABEL_CREATED ||
         fact->section_index >= decode->section_count ||
         fact->section_index >= source_analysis->section_count ||
         fact->offset > decode_section_extent_local(&decode->sections[fact->section_index])) {
@@ -853,7 +853,7 @@ static int append_symbol_facts_from_label_facts(const M68kDecodeIR *decode,
     format_lookup_asm_label_with_generation(lookup, symbol_name, sizeof(symbol_name),
       fact->section_index, fact->offset);
     if (symbol_name[0] == '\0') continue;
-    if (fact->kind == M68K_FACT_LABEL_CREATED) {
+    {
       M68kSymbolOriginIR origin;
       memset(&origin, 0, sizeof(origin));
       origin.symbol_name = symbol_name;
@@ -863,18 +863,6 @@ static int append_symbol_facts_from_label_facts(const M68kDecodeIR *decode,
       origin.origin_kind = M68K_SYMBOL_ORIGIN_LABEL_CREATED;
       origin.confidence = fact->confidence;
       if (m68k_ir_section_analysis_append_symbol_origin(section_analysis, &origin) != 0) return -1;
-    } else {
-      M68kExpectedSymbolAccessIR access;
-      memset(&access, 0, sizeof(access));
-      access.symbol_name = symbol_name;
-      access.offset = fact->offset;
-      access.target_section_index = (uint32_t)fact->section_index;
-      access.target_offset = fact->offset;
-      access.operand_index = UINT32_MAX;
-      access.access_kind = M68K_EXPECTED_SYMBOL_ACCESS_LABEL_STATEMENT;
-      access.confidence = fact->confidence;
-      access.has_target = 1U;
-      if (m68k_ir_section_analysis_append_expected_symbol_access(section_analysis, &access) != 0) return -1;
     }
   }
   return 0;
@@ -10292,6 +10280,21 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
     out_profile->asm_source_first_failure_section = render_preview->asm_source_first_failure_section;
     out_profile->asm_source_first_failure_offset = render_preview->asm_source_first_failure_offset;
     out_profile->asm_source_first_failure_aux_offset = render_preview->asm_source_first_failure_aux_offset;
+  }
+  if (source_analysis != NULL) {
+    if (m68k_source_quality_analyze_rendered_symbol_accesses(source_analysis) != 0) {
+      m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
+        "facts_v2 rendered symbol access analysis failed");
+      goto fail;
+    }
+    facts_v2_record_source_quality_diagnostics_from_analysis(out_profile, source_analysis);
+    if (out_profile->source_quality_blockers != 0U &&
+        out_profile->asm_source_first_failure_kind == M68K_SOURCE_EXPORT_FAILURE_NONE) {
+      out_profile->asm_source_first_failure_kind = M68K_SOURCE_EXPORT_FAILURE_SOURCE_QUALITY;
+      out_profile->asm_source_first_failure_section = out_profile->first_source_quality_diagnostic_section;
+      out_profile->asm_source_first_failure_offset = out_profile->first_source_quality_diagnostic_offset;
+      out_profile->asm_source_first_failure_aux_offset = out_profile->first_source_quality_diagnostic_kind;
+    }
   }
   out_profile->asm_source_hash = render_preview->asm_source_hash;
   if (render_asm_source && (out_profile->relocation_anchor_instruction_bytes != 0U ||

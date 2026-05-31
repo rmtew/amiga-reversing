@@ -6,5 +6,6 @@
 
 int m68k_source_quality_analyze(M68kSourceAnalysisIR *source_analysis,
     const M68kDecodeIR *decode, uint8_t *const *accepted_start, uint8_t *const *accepted_bytes);
+int m68k_source_quality_analyze_rendered_symbol_accesses(M68kSourceAnalysisIR *source_analysis);
 
 #endif

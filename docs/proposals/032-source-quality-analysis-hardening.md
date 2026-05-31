@@ -4052,3 +4052,60 @@ C Source Analysis IR
 
 Until that C path exists, Python should not carry compatibility code for
 nonexistent source-quality facts.
+
+### C Symbol-Access Fact Export
+
+Added the C Source Analysis IR rows described above:
+
+```text
+M68kSymbolOriginIR
+M68kExpectedSymbolAccessIR
+M68kRenderedSymbolAccessIR
+```
+
+`platform_file_json.c` now exports those rows from C-owned source analysis, and
+`target_usage_manifest.py` indexes only the exported C facts. The old Python
+manifest shortcut remains deleted; there is no compatibility lane for
+nonexistent or guessed facts.
+
+`M68K_FACT_LABEL_CREATED` is currently exported as a symbol origin only. It is
+not automatically promoted to an expected rendered symbol access. That was
+tested and rejected because label facts also cover labels analysis may need for
+numeric, suppressed, or data-only contexts. A rendered-access requirement must
+come from a specific render obligation such as a label statement, operand
+symbol, branch target, equate, or storage label, not from a generic label fact.
+
+### Post-Render Symbol-Access Gate
+
+Added `m68k_source_quality_analyze_rendered_symbol_accesses()` as a post-render
+source-quality pass:
+
+```text
+pre-render source-quality:
+  code origins, accepted runs, ownership ranges, tables, address identities
+
+render preview/source:
+  emits actual rendered symbol-access facts
+
+post-render source-quality:
+  expected_symbol_accesses - rendered_symbol_accesses
+    -> missing_expected_symbol_access blocker
+```
+
+This placement matters. The check is about rendered output, so it runs after
+`m68k_render_ir_preview_emit_prepared()` has populated the actual rendered
+facts. Running it before render confused valid numeric/data cases with missing
+source output.
+
+Current enforced case:
+
+```text
+expected: access_kind=label_statement, symbol=loc_0_00000004, offset=4
+rendered: no matching non-comment label_statement
+result: source_quality diagnostic missing_expected_symbol_access, blocker=true
+```
+
+Follow-up work remains to add precise C producers for branch targets, operands,
+equates, storage labels, and independent label-statement obligations. Those
+producers must be reason-driven; they must not reuse broad label-created or
+label-required facts as a shortcut.
