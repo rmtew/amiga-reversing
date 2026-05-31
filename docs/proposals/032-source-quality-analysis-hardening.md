@@ -3104,17 +3104,12 @@ after:
   reason_name = policy_entry_point
 ```
 
-The current mapper distinguishes entry, fallthrough, runtime-view, platform,
-stack-continuation, direct-control, runtime-control, and still-broad
-`control_target_unspecified` origins. That last value is intentional pressure:
-remaining producers that still only say `CONTROL_TARGET` are now visible in
-JSON/corpus indexing instead of being hidden as a numeric reason.
-
-This does not finish the evidence-subkind migration. The next code-origin slice
-should push explicit evidence into the enqueue sites for relocation-backed
-control, traced indirect calls/jumps, dispatch tables, callback fields, vector
-stores, and copied/runtime aliases so `control_target_unspecified` disappears
-from clean source-quality output.
+The mapper now distinguishes entry, fallthrough, runtime-view, platform,
+stack-continuation, direct-control, runtime-control, relocation-backed control,
+traced indirect control, dispatch-table control, callback-field control,
+vector-store control, and runtime-copy control origins. There is no compatibility
+alias for broad control-target evidence: a producer that cannot name its
+evidence source reports `unknown`, which is a real analysis gap.
 
 ### Code Origin Evidence Producer Storage
 
@@ -3135,9 +3130,26 @@ Direct decoded branch/call/jump targets now carry
 the generic code-start reason. Missing evidence remains `unknown`, which makes
 the producer gap visible instead of hiding it behind compatibility inference.
 
-Remaining cleanup is to remove broad `control_target_unspecified` producers
-from relocation-backed control, traced indirect calls/jumps, dispatch tables,
-callback fields, vector stores, and copied/runtime aliases.
+### Control Origin Producer Evidence Split
+
+Removed the broad control-target evidence value instead of keeping it as an API
+compatibility alias. `CONTROL_TARGET` with no producer-owned evidence now
+exports `unknown`, and each resolved producer threads the specific evidence it
+owns:
+
+```text
+decoded direct branch/call/jump    -> direct_control_target
+runtime-translated branch/call/jump -> runtime_control_target
+relocation-backed control target   -> relocation_control_target
+trace-derived indirect target      -> traced_indirect_control_target
+dispatch/jump table target         -> dispatch_table_control_target
+callback field target              -> callback_field_control_target
+interrupt/vector store target      -> vector_store_control_target
+copied/runtime entry target        -> runtime_copy_control_target
+```
+
+This deliberately breaks the old numeric evidence IDs. They are internal C IR
+values, not a public compatibility contract.
 
 Verified:
 

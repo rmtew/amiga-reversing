@@ -9851,6 +9851,7 @@ static int test_render_lookup_range_ownership_uses_stable_auto_indices(void) {
   lookup.auto_structured_data_items = grown;
   lookup.auto_structured_data_item_capacity = 1U;
   lookup.auto_structured_data_item_count = 1U;
+  memset(&lookup.auto_structured_data_items[0], 0, sizeof(lookup.auto_structured_data_items[0]));
   lookup.auto_structured_data_items[0].has_section_index = 1U;
   lookup.auto_structured_data_items[0].section_index = 0U;
   lookup.auto_structured_data_items[0].offset = 4U;
@@ -10319,7 +10320,7 @@ static int test_source_quality_analyze_exports_code_origins_and_runs(void) {
   M68K_C_ASSERT(strstr(analysis_json, "\"evidence_kind\":\"policy_entry_point\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"evidence_kind\":\"fallthrough\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"evidence_kind_id\":3") != NULL);
-  M68K_C_ASSERT(strstr(analysis_json, "\"evidence_kind_id\":5") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"evidence_kind_id\":4") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"accepted_code_run_count\":1") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
     "\"accepted_code_runs\":[{\"start_offset\":4,\"end_offset\":8,\"instruction_count\":2") != NULL);
@@ -10377,10 +10378,26 @@ static int test_source_quality_analyze_preserves_code_origin_producer_evidence(v
   M68K_C_ASSERT(strstr(analysis_json, "\"origin_class\":\"proven_control_target\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"reason_name\":\"control_target\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"evidence_kind\":\"runtime_control_target\"") != NULL);
-  M68K_C_ASSERT(strstr(analysis_json, "\"evidence_kind_id\":12") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"evidence_kind_id\":11") != NULL);
   free(analysis_json);
   m68k_ir_section_analysis_destroy(&section_analysis);
   m68k_ir_source_analysis_destroy(&source_analysis);
+  return 0;
+}
+
+static int test_code_origin_evidence_kind_names(void) {
+  M68K_C_ASSERT_STR("relocation_control_target",
+    m68k_code_origin_evidence_kind_name(M68K_CODE_ORIGIN_EVIDENCE_RELOCATION_CONTROL_TARGET));
+  M68K_C_ASSERT_STR("traced_indirect_control_target",
+    m68k_code_origin_evidence_kind_name(M68K_CODE_ORIGIN_EVIDENCE_TRACED_INDIRECT_CONTROL_TARGET));
+  M68K_C_ASSERT_STR("dispatch_table_control_target",
+    m68k_code_origin_evidence_kind_name(M68K_CODE_ORIGIN_EVIDENCE_DISPATCH_TABLE_CONTROL_TARGET));
+  M68K_C_ASSERT_STR("callback_field_control_target",
+    m68k_code_origin_evidence_kind_name(M68K_CODE_ORIGIN_EVIDENCE_CALLBACK_FIELD_CONTROL_TARGET));
+  M68K_C_ASSERT_STR("vector_store_control_target",
+    m68k_code_origin_evidence_kind_name(M68K_CODE_ORIGIN_EVIDENCE_VECTOR_STORE_CONTROL_TARGET));
+  M68K_C_ASSERT_STR("runtime_copy_control_target",
+    m68k_code_origin_evidence_kind_name(M68K_CODE_ORIGIN_EVIDENCE_RUNTIME_COPY_CONTROL_TARGET));
   return 0;
 }
 
@@ -24070,6 +24087,8 @@ int m68k_c_ir_tests(void) {
       test_source_quality_analyze_exports_code_origins_and_runs},
     {"source_quality_analyze_preserves_code_origin_producer_evidence",
       test_source_quality_analyze_preserves_code_origin_producer_evidence},
+    {"code_origin_evidence_kind_names",
+      test_code_origin_evidence_kind_names},
     {"source_quality_analyze_exports_platform_address_uses",
       test_source_quality_analyze_exports_platform_address_uses},
     {"source_quality_analyze_exports_structured_data_range_ownership",

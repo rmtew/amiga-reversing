@@ -365,8 +365,6 @@ const char *m68k_code_origin_evidence_kind_name(uint32_t evidence_kind) {
       return "policy_entry_offset";
     case M68K_CODE_ORIGIN_EVIDENCE_POLICY_ENTRY_POINT:
       return "policy_entry_point";
-    case M68K_CODE_ORIGIN_EVIDENCE_CONTROL_TARGET_UNSPECIFIED:
-      return "control_target_unspecified";
     case M68K_CODE_ORIGIN_EVIDENCE_FALLTHROUGH:
       return "fallthrough";
     case M68K_CODE_ORIGIN_EVIDENCE_INLINE_RESUME:
@@ -385,6 +383,18 @@ const char *m68k_code_origin_evidence_kind_name(uint32_t evidence_kind) {
       return "runtime_control_target";
     case M68K_CODE_ORIGIN_EVIDENCE_DIRECT_CONTROL_TARGET:
       return "direct_control_target";
+    case M68K_CODE_ORIGIN_EVIDENCE_RELOCATION_CONTROL_TARGET:
+      return "relocation_control_target";
+    case M68K_CODE_ORIGIN_EVIDENCE_TRACED_INDIRECT_CONTROL_TARGET:
+      return "traced_indirect_control_target";
+    case M68K_CODE_ORIGIN_EVIDENCE_DISPATCH_TABLE_CONTROL_TARGET:
+      return "dispatch_table_control_target";
+    case M68K_CODE_ORIGIN_EVIDENCE_CALLBACK_FIELD_CONTROL_TARGET:
+      return "callback_field_control_target";
+    case M68K_CODE_ORIGIN_EVIDENCE_VECTOR_STORE_CONTROL_TARGET:
+      return "vector_store_control_target";
+    case M68K_CODE_ORIGIN_EVIDENCE_RUNTIME_COPY_CONTROL_TARGET:
+      return "runtime_copy_control_target";
     default:
       return "unknown";
   }
