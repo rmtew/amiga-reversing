@@ -3087,6 +3087,42 @@ uv run python -m pytest tests\test_target_usage_manifest.py -q
 uv run platform-rendered-source-roundtrip --no-write-report --json
 ```
 
+### Render Walk Source-Analysis Decoupling
+
+Moved source-analysis section assembly out of the source row walk:
+
+```text
+before:
+  m68k_render_ir_preview_build()
+    walks rendered rows
+    mutates M68kSectionAnalysisIR while emitting labels
+    appends CFG/orphan/platform facts at the end of each rendered section
+
+after:
+  m68k_render_ir_preview_build()
+    builds lookup/platform passes
+    builds source-analysis sections before presentation rows
+    walks rows only for source/text/plan presentation
+```
+
+This removes the row-emission dependency from durable section analysis. Null
+analysis policy remains a supported internal call shape because the render path
+already accepts it; this is not a compatibility shim for external consumers.
+
+The remaining ownership gap is narrower: some producers still live in
+`m68k_render_ir.c`, but they no longer depend on row emission as their control
+flow. Next cleanup should move those producers behind a C analysis/source-quality
+entry point and make render preview consume the completed analysis model.
+
+Verified:
+
+```text
+cmd /c src\build.bat
+src\build\m68k_c_unit_tests.exe
+uv run python -m pytest tests\test_target_usage_manifest.py -q
+uv run platform-rendered-source-roundtrip --no-write-report --json
+```
+
 ### Code Origin Evidence Naming
 
 Made `M68kCodeOriginIR.evidence_kind` a named C source-quality evidence value

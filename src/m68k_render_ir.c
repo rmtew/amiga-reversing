@@ -8417,6 +8417,24 @@ static int lookup_should_emit_label_statement(const M68kRenderLookup *lookup,
   return 0;
 }
 
+static int append_source_analysis_labels_for_section(const M68kRenderLookup *lookup,
+    const M68kDecodeSectionIR *section, const uint8_t *accepted_start, M68kSectionAnalysisIR *section_analysis) {
+  uint32_t offset;
+  uint32_t render_extent;
+  if (lookup == NULL || section == NULL || section_analysis == NULL) return -1;
+  render_extent = render_section_extent(section);
+  for (offset = 0U; offset < render_extent; ++offset) {
+    if (!lookup_should_emit_label_statement(lookup, section, accepted_start, section->section_index, offset))
+      continue;
+    if (m68k_ir_section_analysis_add_label(section_analysis, offset) != 0) return -1;
+  }
+  if (lookup_has_renderable_label(lookup, section->section_index, render_extent) &&
+      m68k_ir_section_analysis_add_label(section_analysis, render_extent) != 0) {
+    return -1;
+  }
+  return 0;
+}
+
 int candidate_is_accepted_start(const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
     const M68kDecodeCandidate *candidate) {
   return candidate != NULL && candidate->byte_count != 0U &&
@@ -11257,6 +11275,79 @@ static int record_section_platform_call_analysis(M68kRenderIRPreview *preview, M
   return 0;
 }
 
+static int build_source_analysis_from_render_lookup(M68kRenderIRPreview *preview, M68kRenderLookup *lookup,
+    const M68kDecodeIR *decode, const M68kAnalysisPolicy *policy, uint8_t **accepted_start,
+    uint8_t **accepted_bytes, M68kSourceAnalysisIR *source_analysis) {
+  M68kRenderPlatformState platform_analysis_state;
+  M68kSectionAnalysisIR section_analysis;
+  int section_analysis_live = 0;
+  Arena *scratch_arena = NULL;
+  size_t section_index;
+  if (preview == NULL || lookup == NULL || decode == NULL || accepted_start == NULL ||
+      accepted_bytes == NULL || source_analysis == NULL) {
+    return -1;
+  }
+  memset(&platform_analysis_state, 0, sizeof(platform_analysis_state));
+  memset(&section_analysis, 0, sizeof(section_analysis));
+  if (m68k_analysis_render_lookup_append_auto_policy(source_analysis, lookup) != 0) return -1;
+  if (render_asm_app_extension_rs_append_layout_facts(preview, lookup, decode, source_analysis) != 0) return -1;
+  for (section_index = 0U; section_index < decode->section_count; ++section_index) {
+    const M68kDecodeSectionIR *section = &decode->sections[section_index];
+    if (m68k_ir_section_analysis_create(&section_analysis, source_analysis->arena) != 0) goto fail;
+    section_analysis_live = 1;
+    section_analysis.section_index = section->section_index;
+    section_analysis.section_kind = section->kind;
+    section_analysis.section_size = section->allocation_size != 0U ? section->allocation_size : section->size;
+    if (m68k_ir_section_analysis_set_name(&section_analysis, section->name) != 0 ||
+        m68k_ir_section_analysis_set_code_map(&section_analysis, accepted_start[section_index],
+          accepted_bytes[section_index], section->size) != 0) {
+      goto fail;
+    }
+    if (m68k_analysis_render_lookup_append_section(lookup, decode, &section_analysis) != 0) goto fail;
+    if (record_section_platform_call_analysis(preview, lookup, &platform_analysis_state, decode, policy,
+        accepted_start, section_index, section, &section_analysis) < 0) {
+      goto fail;
+    }
+    if (append_source_analysis_labels_for_section(lookup, section, accepted_start[section_index],
+        &section_analysis) != 0) {
+      goto fail;
+    }
+    scratch_arena = render_preview_scratch_arena(preview);
+    if (scratch_arena == NULL) goto fail;
+    if (m68k_analysis_render_lookup_append_cfg_for_section(lookup, section, accepted_start[section_index],
+        accepted_bytes[section_index], scratch_arena, &section_analysis) != 0) {
+      goto fail;
+    }
+    if (render_analysis_append_orphan_code_signals_for_section(lookup, section, accepted_start[section_index],
+        accepted_bytes[section_index], &section_analysis) != 0) {
+      goto fail;
+    }
+    if (m68k_ir_source_analysis_append_section(source_analysis, &section_analysis) != 0) goto fail;
+    m68k_ir_section_analysis_destroy(&section_analysis);
+    section_analysis_live = 0;
+  }
+  return 0;
+fail:
+  if (section_analysis_live) m68k_ir_section_analysis_destroy(&section_analysis);
+  return -1;
+}
+
+static int record_platform_call_analysis_for_preview(M68kRenderIRPreview *preview, M68kRenderLookup *lookup,
+    const M68kDecodeIR *decode, const M68kAnalysisPolicy *policy, uint8_t **accepted_start) {
+  M68kRenderPlatformState platform_analysis_state;
+  size_t section_index;
+  if (preview == NULL || lookup == NULL || decode == NULL || accepted_start == NULL) return -1;
+  memset(&platform_analysis_state, 0, sizeof(platform_analysis_state));
+  for (section_index = 0U; section_index < decode->section_count; ++section_index) {
+    const M68kDecodeSectionIR *section = &decode->sections[section_index];
+    if (record_section_platform_call_analysis(preview, lookup, &platform_analysis_state, decode, policy,
+        accepted_start, section_index, section, NULL) < 0) {
+      return -1;
+    }
+  }
+  return 0;
+}
+
 void m68k_render_ir_preview_init(M68kRenderIRPreview *preview) {
   if (preview == NULL) return;
   memset(preview, 0, sizeof(*preview));
@@ -11286,10 +11377,6 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
   clock_t phase_end;
   M68kRenderLookup lookup;
   M68kRenderPlatformState platform_state;
-  M68kRenderPlatformState platform_analysis_state;
-  M68kSectionAnalysisIR section_analysis;
-  Arena *scratch_arena = NULL;
-  int section_analysis_live = 0;
   int build_source_analysis = out_source_analysis != NULL;
   int build_platform_analysis = render_asm_source || build_source_analysis;
   int result = -1;
@@ -11297,8 +11384,6 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
     return -1;
   memset(&lookup, 0, sizeof(lookup));
   memset(&platform_state, 0, sizeof(platform_state));
-  memset(&platform_analysis_state, 0, sizeof(platform_analysis_state));
-  memset(&section_analysis, 0, sizeof(section_analysis));
   m68k_render_ir_preview_init(out_preview);
   out_preview->platform_backend_kind = object->platform_backend_kind;
   if (out_source_analysis != NULL && out_source_analysis->arena == NULL) goto cleanup;
@@ -11316,13 +11401,14 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
   render_lookup_materialize_relocation_target_labels(&lookup);
   phase_end = clock();
   out_preview->platform_pass_seconds = elapsed_seconds_local(phase_start, phase_end);
-  if (out_source_analysis != NULL &&
-      m68k_analysis_render_lookup_append_auto_policy(out_source_analysis, &lookup) != 0) {
-    out_preview->asm_source_allocation_failed = 1U;
-    goto cleanup;
-  }
-  if (out_source_analysis != NULL &&
-      render_asm_app_extension_rs_append_layout_facts(out_preview, &lookup, decode, out_source_analysis) != 0) {
+  if (out_source_analysis != NULL) {
+    if (build_source_analysis_from_render_lookup(out_preview, &lookup, decode, policy, accepted_start, accepted_bytes,
+        out_source_analysis) != 0) {
+      out_preview->asm_source_allocation_failed = 1U;
+      goto cleanup;
+    }
+  } else if (build_platform_analysis &&
+      record_platform_call_analysis_for_preview(out_preview, &lookup, decode, policy, accepted_start) != 0) {
     out_preview->asm_source_allocation_failed = 1U;
     goto cleanup;
   }
@@ -11350,32 +11436,12 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
   phase_start = clock();
   for (section_index = 0U; section_index < decode->section_count; ++section_index) {
     const M68kDecodeSectionIR *section = &decode->sections[section_index];
-    M68kSectionAnalysisIR *current_section_analysis = NULL;
     uint32_t offset = 0U;
     uint32_t asm_logical_pc = 0U;
     uint32_t render_extent = render_section_extent(section);
     size_t render_candidate_index = 0U;
     out_preview->structural_hash = hash_step(out_preview->structural_hash, section_index);
     out_preview->structural_hash = hash_step(out_preview->structural_hash, render_extent);
-    if (out_source_analysis != NULL) {
-      if (m68k_ir_section_analysis_create(&section_analysis, out_source_analysis->arena) != 0) goto cleanup;
-      section_analysis_live = 1;
-      section_analysis.section_index = section->section_index;
-      section_analysis.section_kind = section->kind;
-      section_analysis.section_size = section->allocation_size != 0U ? section->allocation_size : section->size;
-      if (m68k_ir_section_analysis_set_name(&section_analysis, section->name) != 0 ||
-          m68k_ir_section_analysis_set_code_map(&section_analysis, accepted_start[section_index],
-            accepted_bytes[section_index], section->size) != 0) {
-        goto cleanup;
-      }
-      if (m68k_analysis_render_lookup_append_section(&lookup, decode, &section_analysis) != 0) goto cleanup;
-      current_section_analysis = &section_analysis;
-    }
-    if (build_platform_analysis &&
-        record_section_platform_call_analysis(out_preview, &lookup, &platform_analysis_state, decode, policy,
-          accepted_start, section_index, section, current_section_analysis) < 0) {
-      goto cleanup;
-    }
     if (render_asm_source) {
       begin_asm_source_plan_row(out_preview, M68K_RENDER_PLAN_ROW_SECTION, (uint32_t)section_index);
       render_asm_section_header(out_preview, decode, section_index);
@@ -11397,10 +11463,6 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
         ++out_preview->statement_count;
         ++out_preview->label_statement_count;
         hash_statement(out_preview, 'L', section->section_index, offset, 0U, 0U);
-        if (current_section_analysis != NULL &&
-            m68k_ir_section_analysis_add_label(current_section_analysis, offset) != 0) {
-          goto cleanup;
-        }
         if (render_text_preview) render_text_line(out_preview, 'L', section->section_index, offset, 0U, 0U);
         if (render_asm_source) {
           M68kRenderPlanRow *row;
@@ -11651,10 +11713,6 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
       ++out_preview->statement_count;
       ++out_preview->label_statement_count;
       hash_statement(out_preview, 'L', section->section_index, render_extent, 0U, 0U);
-      if (current_section_analysis != NULL &&
-          m68k_ir_section_analysis_add_label(current_section_analysis, render_extent) != 0) {
-        goto cleanup;
-      }
       if (render_text_preview) render_text_line(out_preview, 'L', section->section_index, render_extent, 0U, 0U);
       if (render_asm_source) {
         M68kRenderPlanRow *row;
@@ -11664,24 +11722,6 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
         set_asm_source_plan_row_statement_from_section(row, M68K_STATEMENT_LABEL, NULL, section, render_extent,
           0U);
       }
-    }
-    if (out_source_analysis != NULL) {
-      scratch_arena = render_preview_scratch_arena(out_preview);
-      if (scratch_arena == NULL) goto cleanup;
-      if (m68k_analysis_render_lookup_append_cfg_for_section(&lookup, section, accepted_start[section_index],
-          accepted_bytes[section_index], scratch_arena, current_section_analysis) != 0) {
-        goto cleanup;
-      }
-      if (render_analysis_append_orphan_code_signals_for_section(&lookup, section, accepted_start[section_index],
-          accepted_bytes[section_index], current_section_analysis) != 0) {
-        goto cleanup;
-      }
-      if (m68k_ir_source_analysis_append_section(out_source_analysis, current_section_analysis) != 0) goto cleanup;
-      m68k_ir_section_analysis_destroy(&section_analysis);
-      section_analysis_live = 0;
-    } else if (section_analysis_live) {
-      m68k_ir_section_analysis_destroy(&section_analysis);
-      section_analysis_live = 0;
     }
   }
   phase_end = clock();
@@ -11706,9 +11746,6 @@ int m68k_render_ir_preview_build(const M68kObject *object, const M68kDecodeIR *d
   out_preview->footer_seconds = elapsed_seconds_local(phase_start, phase_end);
   result = 0;
 cleanup:
-  if (section_analysis_live) {
-    m68k_ir_section_analysis_destroy(&section_analysis);
-  }
   render_lookup_destroy(&lookup);
   return result;
 }
