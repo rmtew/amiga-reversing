@@ -5983,8 +5983,8 @@ static int test_facts_v2_analysis_records_address_domain_immediate_absolute_refs
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
   M68kSourceAnalysisIR source_analysis;
-  const M68kAbsoluteMemoryRefIR *movea_runtime_ref = NULL;
-  const M68kAbsoluteMemoryRefIR *compare_runtime_ref = NULL;
+  const M68kAddressObservationIR *movea_runtime_ref = NULL;
+  const M68kAddressObservationIR *compare_runtime_ref = NULL;
   char *source = NULL;
   size_t index;
   uint8_t bytes[0x118];
@@ -6031,8 +6031,8 @@ static int test_facts_v2_analysis_records_address_domain_immediate_absolute_refs
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
     &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
-  for (index = 0U; index < source_analysis.sections[0].absolute_memory_ref_count; ++index) {
-    const M68kAbsoluteMemoryRefIR *ref = &source_analysis.sections[0].absolute_memory_refs[index];
+  for (index = 0U; index < source_analysis.sections[0].address_observation_count; ++index) {
+    const M68kAddressObservationIR *ref = &source_analysis.sections[0].address_observations[index];
     if (ref->offset == 0U && ref->address == 0x210U) movea_runtime_ref = ref;
     if (ref->offset == 6U && ref->address == 0x214U) compare_runtime_ref = ref;
   }
@@ -7364,7 +7364,7 @@ static int test_facts_v2_orphan_signal_classifies_vector_operand_as_vector_inbou
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
   M68kSourceAnalysisIR source_analysis;
-  const M68kAbsoluteMemoryRefIR *ref;
+  const M68kAddressObservationIR *ref;
   char *source = NULL;
   char *analysis_json = NULL;
   uint8_t bytes[10] = {
@@ -7391,8 +7391,8 @@ static int test_facts_v2_orphan_signal_classifies_vector_operand_as_vector_inbou
   M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.sections[0].orphan_code_signal_count);
   M68K_C_ASSERT_U32(M68K_ORPHAN_CODE_SIGNAL_INBOUND_VECTOR,
     source_analysis.sections[0].orphan_code_signals[0].missing_inbound);
-  M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.sections[0].absolute_memory_ref_count);
-  ref = &source_analysis.sections[0].absolute_memory_refs[0];
+  M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.sections[0].address_observation_count);
+  ref = &source_analysis.sections[0].address_observations[0];
   M68K_C_ASSERT_U32(2U, ref->offset);
   M68K_C_ASSERT_U32(0x10U, ref->address);
   M68K_C_ASSERT_U32(M68K_ABSOLUTE_MEMORY_OWNER_CPU_VECTOR, ref->owner_kind);
@@ -7418,7 +7418,7 @@ static int test_facts_v2_orphan_signal_does_not_treat_relocated_low_offset_as_ve
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
   M68kSourceAnalysisIR source_analysis;
-  const M68kAbsoluteMemoryRefIR *ref;
+  const M68kAddressObservationIR *ref;
   char *source = NULL;
   char *analysis_json = NULL;
   uint8_t source_bytes[10] = {
@@ -7465,8 +7465,8 @@ static int test_facts_v2_orphan_signal_does_not_treat_relocated_low_offset_as_ve
   M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.sections[0].orphan_code_signal_count);
   M68K_C_ASSERT(source_analysis.sections[0].orphan_code_signals[0].missing_inbound !=
     M68K_ORPHAN_CODE_SIGNAL_INBOUND_VECTOR);
-  M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.sections[0].absolute_memory_ref_count);
-  ref = &source_analysis.sections[0].absolute_memory_refs[0];
+  M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.sections[0].address_observation_count);
+  ref = &source_analysis.sections[0].address_observations[0];
   M68K_C_ASSERT_U32(2U, ref->offset);
   M68K_C_ASSERT_U32(0x10U, ref->address);
   M68K_C_ASSERT_U32(M68K_ABSOLUTE_MEMORY_OWNER_SECTION_STORAGE, ref->owner_kind);
@@ -10263,7 +10263,7 @@ static int test_source_quality_analyze_exports_code_origins_and_runs(void) {
   M68kSourceAnalysisIR source_analysis;
   M68kSectionAnalysisIR section_analysis;
   M68kCodeStartRefIR code_start_ref;
-  M68kAbsoluteMemoryRefIR absolute_ref;
+  M68kAddressObservationIR absolute_ref;
   uint8_t certain_start[16];
   uint8_t certain_byte[16];
   char *analysis_json = NULL;
@@ -10297,12 +10297,16 @@ static int test_source_quality_analyze_exports_code_origins_and_runs(void) {
   memset(&absolute_ref, 0, sizeof(absolute_ref));
   absolute_ref.offset = 6U;
   absolute_ref.operand_index = 1U;
+  absolute_ref.raw_value = 0x42C6CU;
   absolute_ref.address = 0x42C6CU;
   absolute_ref.access_width = 4U;
   absolute_ref.access_kind = M68K_SIM_ACCESS_MEMORY_READ;
+  absolute_ref.source = M68K_ADDRESS_OBSERVATION_SOURCE_ABSOLUTE_OPERAND;
   absolute_ref.owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_ABSOLUTE_MEMORY;
   absolute_ref.owner_offset = absolute_ref.address;
-  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_absolute_memory_ref(&section_analysis, &absolute_ref));
+  absolute_ref.has_address = 1U;
+  absolute_ref.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_address_observation(&section_analysis, &absolute_ref));
   M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
   M68K_C_ASSERT_INT(0, m68k_source_quality_analyze(&source_analysis, NULL, NULL, NULL));
   M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
@@ -10343,7 +10347,7 @@ static int test_source_quality_analyze_exports_code_origins_and_runs(void) {
 static int test_source_quality_analyze_exports_platform_address_uses(void) {
   M68kSourceAnalysisIR source_analysis;
   M68kSectionAnalysisIR section_analysis;
-  M68kAbsoluteMemoryRefIR absolute_ref;
+  M68kAddressObservationIR absolute_ref;
   char *analysis_json = NULL;
   M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_create(&source_analysis));
   M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_create(&section_analysis, test_ir_result_arena()));
@@ -10356,7 +10360,11 @@ static int test_source_quality_analyze_exports_platform_address_uses(void) {
   absolute_ref.access_width = 4U;
   absolute_ref.access_kind = M68K_SIM_ACCESS_MEMORY_WRITE;
   absolute_ref.owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_CPU_VECTOR;
-  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_absolute_memory_ref(&section_analysis, &absolute_ref));
+  absolute_ref.raw_value = absolute_ref.address;
+  absolute_ref.source = M68K_ADDRESS_OBSERVATION_SOURCE_ABSOLUTE_OPERAND;
+  absolute_ref.has_address = 1U;
+  absolute_ref.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_address_observation(&section_analysis, &absolute_ref));
   M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
   M68K_C_ASSERT_INT(0, m68k_source_quality_analyze(&source_analysis, NULL, NULL, NULL));
   M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
@@ -21866,18 +21874,18 @@ static int test_facts_v2_register_runtime_sink_auto_classifies_copper_list(void)
   return 0;
 }
 
-static int test_facts_v2_analysis_records_absolute_memory_refs(void) {
+static int test_facts_v2_analysis_records_absolute_operand_observations(void) {
   M68kObject object;
   M68kSection section;
   M68kObjectAddResult added;
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
   M68kSourceAnalysisIR source_analysis;
-  const M68kAbsoluteMemoryRefIR *exec_ref = NULL;
-  const M68kAbsoluteMemoryRefIR *custom_ref = NULL;
-  const M68kAbsoluteMemoryRefIR *custom_field_ref = NULL;
-  const M68kAbsoluteMemoryRefIR *absolute_ref = NULL;
-  const M68kAbsoluteMemoryRefIR *code_ref = NULL;
+  const M68kAddressObservationIR *exec_ref = NULL;
+  const M68kAddressObservationIR *custom_ref = NULL;
+  const M68kAddressObservationIR *custom_field_ref = NULL;
+  const M68kAddressObservationIR *absolute_ref = NULL;
+  const M68kAddressObservationIR *code_ref = NULL;
   char *source = NULL;
   char *analysis_json = NULL;
   size_t index;
@@ -21919,9 +21927,9 @@ static int test_facts_v2_analysis_records_absolute_memory_refs(void) {
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
     &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
-  M68K_C_ASSERT_U32(5U, (uint32_t)source_analysis.sections[0].absolute_memory_ref_count);
-  for (index = 0U; index < source_analysis.sections[0].absolute_memory_ref_count; ++index) {
-    const M68kAbsoluteMemoryRefIR *ref = &source_analysis.sections[0].absolute_memory_refs[index];
+  M68K_C_ASSERT_U32(5U, (uint32_t)source_analysis.sections[0].address_observation_count);
+  for (index = 0U; index < source_analysis.sections[0].address_observation_count; ++index) {
+    const M68kAddressObservationIR *ref = &source_analysis.sections[0].address_observations[index];
     if (ref->address == 4U) exec_ref = ref;
     else if (ref->address == 0x00DFF09AU) custom_ref = ref;
     else if (ref->address == 0x00DFF0A4U) custom_field_ref = ref;
@@ -21952,9 +21960,9 @@ static int test_facts_v2_analysis_records_absolute_memory_refs(void) {
   M68K_C_ASSERT(analysis_json != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"memory_layout_record_count\":5") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
-    "\"record_kind_id\":8,\"record_kind\":\"absolute_memory_ref\",\"memory_kind\":\"execbase_literal\"") != NULL);
+    "\"record_kind_id\":8,\"record_kind\":\"address_observation\",\"memory_kind\":\"execbase_literal\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
-    "\"record_kind\":\"absolute_memory_ref\",\"memory_kind\":\"hardware_register\"") != NULL);
+    "\"record_kind\":\"address_observation\",\"memory_kind\":\"hardware_register\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"owner_kind_id\":3,\"owner_kind\":\"hardware_register\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"owner_symbol\":\"intena\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"owner_symbol\":\"aud0+ac_len\"") != NULL);
@@ -21963,7 +21971,7 @@ static int test_facts_v2_analysis_records_absolute_memory_refs(void) {
     "\"range_space_kind\":3,\"range_space\":\"absolute\",\"range_start\":14676122,\"range_size\":2,"
     "\"range_end\":14676124") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
-    "\"record_kind\":\"absolute_memory_ref\",\"memory_kind\":\"absolute_memory\"") != NULL);
+    "\"record_kind\":\"address_observation\",\"memory_kind\":\"absolute_memory\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
     "\"range_space_kind\":3,\"range_space\":\"absolute\",\"range_start\":458752,\"range_size\":0,"
     "\"range_end\":458752") != NULL);
@@ -21986,7 +21994,7 @@ static int test_facts_v2_runtime_mapped_section_keeps_low_absolute_refs_absolute
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
   M68kSourceAnalysisIR source_analysis;
-  const M68kAbsoluteMemoryRefIR *low_ref = NULL;
+  const M68kAddressObservationIR *low_ref = NULL;
   char *source = NULL;
   char *analysis_json = NULL;
   size_t index;
@@ -22023,8 +22031,8 @@ static int test_facts_v2_runtime_mapped_section_keeps_low_absolute_refs_absolute
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, ";   Absolute memory refs:\n") != NULL);
   M68K_C_ASSERT(strstr(source, ";     absolute[$0000012A-$0000012E] refs=1 access=r\n") != NULL);
-  for (index = 0U; index < source_analysis.sections[0].absolute_memory_ref_count; ++index) {
-    const M68kAbsoluteMemoryRefIR *ref = &source_analysis.sections[0].absolute_memory_refs[index];
+  for (index = 0U; index < source_analysis.sections[0].address_observation_count; ++index) {
+    const M68kAddressObservationIR *ref = &source_analysis.sections[0].address_observations[index];
     if (ref->address == 0x12AU) low_ref = ref;
   }
   M68K_C_ASSERT(low_ref != NULL);
@@ -22035,7 +22043,7 @@ static int test_facts_v2_runtime_mapped_section_keeps_low_absolute_refs_absolute
   M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(analysis_json != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
-    "\"record_kind\":\"absolute_memory_ref\",\"memory_kind\":\"absolute_memory\"") != NULL);
+    "\"record_kind\":\"address_observation\",\"memory_kind\":\"absolute_memory\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"range_start\":298,\"range_size\":4,\"range_end\":302") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"owner_kind\":\"section_storage\"") == NULL);
   free(analysis_json);
@@ -22147,7 +22155,7 @@ static int test_facts_v2_orphan_absolute_operand_records_unresolved_memory_layou
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
   M68kSourceAnalysisIR source_analysis;
-  const M68kAbsoluteMemoryRefIR *ref;
+  const M68kAddressObservationIR *ref;
   char *source = NULL;
   char *analysis_json = NULL;
   uint8_t bytes[10] = {
@@ -22168,8 +22176,8 @@ static int test_facts_v2_orphan_absolute_operand_records_unresolved_memory_layou
     &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.sections[0].orphan_code_signal_count);
-  M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.sections[0].absolute_memory_ref_count);
-  ref = &source_analysis.sections[0].absolute_memory_refs[0];
+  M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.sections[0].address_observation_count);
+  ref = &source_analysis.sections[0].address_observations[0];
   M68K_C_ASSERT_U32(2U, ref->offset);
   M68K_C_ASSERT_U32(0x00070000U, ref->address);
   M68K_C_ASSERT_U32(M68K_ABSOLUTE_MEMORY_OWNER_ABSOLUTE_MEMORY, ref->owner_kind);
@@ -22179,7 +22187,7 @@ static int test_facts_v2_orphan_absolute_operand_records_unresolved_memory_layou
   M68K_C_ASSERT(analysis_json != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"memory_layout_record_count\":1") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
-    "\"record_kind_id\":8,\"record_kind\":\"absolute_memory_ref\",\"memory_kind\":\"absolute_memory\"") != NULL);
+    "\"record_kind_id\":8,\"record_kind\":\"address_observation\",\"memory_kind\":\"absolute_memory\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"owner_kind_id\":7,\"owner_kind\":\"absolute_memory\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
     "\"range_space_kind\":3,\"range_space\":\"absolute\",\"range_start\":458752,\"range_size\":0,"
@@ -22201,7 +22209,7 @@ static int test_facts_v2_orphan_absolute_operand_classifies_amiga_hardware_owner
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
   M68kSourceAnalysisIR source_analysis;
-  const M68kAbsoluteMemoryRefIR *ref;
+  const M68kAddressObservationIR *ref;
   char *source = NULL;
   char *analysis_json = NULL;
   uint8_t bytes[10] = {
@@ -22223,8 +22231,8 @@ static int test_facts_v2_orphan_absolute_operand_classifies_amiga_hardware_owner
     &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.sections[0].orphan_code_signal_count);
-  M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.sections[0].absolute_memory_ref_count);
-  ref = &source_analysis.sections[0].absolute_memory_refs[0];
+  M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.sections[0].address_observation_count);
+  ref = &source_analysis.sections[0].address_observations[0];
   M68K_C_ASSERT_U32(2U, ref->offset);
   M68K_C_ASSERT_U32(0x00DFF09AU, ref->address);
   M68K_C_ASSERT_U32(M68K_ABSOLUTE_MEMORY_OWNER_HARDWARE_REGISTER, ref->owner_kind);
@@ -22234,7 +22242,7 @@ static int test_facts_v2_orphan_absolute_operand_classifies_amiga_hardware_owner
   M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(analysis_json != NULL);
   M68K_C_ASSERT(strstr(analysis_json,
-    "\"record_kind_id\":8,\"record_kind\":\"absolute_memory_ref\",\"memory_kind\":\"hardware_register\"") != NULL);
+    "\"record_kind_id\":8,\"record_kind\":\"address_observation\",\"memory_kind\":\"hardware_register\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"owner_kind_id\":3,\"owner_kind\":\"hardware_register\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"owner_symbol\":\"intena\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"conflict_state_id\":2,\"conflict_state\":\"unresolved\"") != NULL);
@@ -24168,8 +24176,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_render_asm_source_merges_hardware_base_by_id},
     {"facts_v2_render_asm_source_inherits_hardware_base_into_local_helper",
       test_facts_v2_render_asm_source_inherits_hardware_base_into_local_helper},
-    {"facts_v2_analysis_records_absolute_memory_refs",
-      test_facts_v2_analysis_records_absolute_memory_refs},
+    {"facts_v2_analysis_records_absolute_operand_observations",
+      test_facts_v2_analysis_records_absolute_operand_observations},
     {"facts_v2_runtime_mapped_section_keeps_low_absolute_refs_absolute",
       test_facts_v2_runtime_mapped_section_keeps_low_absolute_refs_absolute},
     {"facts_v2_render_asm_source_symbols_low_absolute_memory_slots",

@@ -27,9 +27,9 @@ static int append_runtime_view_entry_json(JsonBuilder *builder, const M68kRuntim
 static const char *m68k_code_start_reason_name(uint32_t reason);
 static const char *absolute_memory_owner_kind_name(uint8_t owner_kind);
 static const char *analysis_conflict_state_name(uint8_t conflict_state);
-static void absolute_memory_ref_owner_symbols(const M68kAbsoluteMemoryRefIR *ref,
+static void address_observation_owner_symbols(const M68kAddressObservationIR *observation,
   const char **out_symbol, const char **out_base_symbol);
-static int absolute_memory_ref_owner_symbol_expr(const M68kAbsoluteMemoryRefIR *ref,
+static int address_observation_owner_symbol_expr(const M68kAddressObservationIR *observation,
   char *buf, size_t buf_size);
 static const char *listing_operand_access_name(uint8_t access_kind);
 static int append_listing_operand_parts_json(JsonBuilder *builder, const M68kStatementIR *stmt);
@@ -209,21 +209,23 @@ static const char *analysis_conflict_state_name(uint8_t conflict_state) {
   }
 }
 
-static void absolute_memory_ref_owner_symbols(const M68kAbsoluteMemoryRefIR *ref,
+static void address_observation_owner_symbols(const M68kAddressObservationIR *observation,
     const char **out_symbol, const char **out_base_symbol) {
   const char *symbol = NULL;
   const char *base_symbol = NULL;
-  if (ref != NULL) {
-    if (ref->owner_kind == M68K_ABSOLUTE_MEMORY_OWNER_EXECBASE_LITERAL) {
+  if (observation != NULL && observation->has_address) {
+    if (observation->owner_kind == M68K_ABSOLUTE_MEMORY_OWNER_EXECBASE_LITERAL) {
       symbol = "ExecBase";
-    } else if (ref->owner_kind == M68K_ABSOLUTE_MEMORY_OWNER_CPU_VECTOR) {
-      const M68kCpuExceptionVectorInfo *vector = m68k_cpu_find_exception_vector_by_address(ref->address);
+    } else if (observation->owner_kind == M68K_ABSOLUTE_MEMORY_OWNER_CPU_VECTOR) {
+      const M68kCpuExceptionVectorInfo *vector =
+        m68k_cpu_find_exception_vector_by_address(observation->address);
       symbol = vector != NULL ? vector->symbol_name : NULL;
-    } else if (ref->owner_kind == M68K_ABSOLUTE_MEMORY_OWNER_HARDWARE_REGISTER) {
+    } else if (observation->owner_kind == M68K_ABSOLUTE_MEMORY_OWNER_HARDWARE_REGISTER) {
       const AmigaOsHardwareRegisterInfo *hardware_register =
-        amiga_os_find_hardware_register_by_cpu_address(ref->address);
+        amiga_os_find_hardware_register_by_cpu_address(observation->address);
       const AmigaOsHardwareRegisterFieldInfo *hardware_field =
-        hardware_register == NULL ? amiga_os_find_hardware_register_field_by_cpu_address(ref->address) : NULL;
+        hardware_register == NULL ? amiga_os_find_hardware_register_field_by_cpu_address(observation->address) :
+        NULL;
       symbol = hardware_register != NULL ? hardware_register->symbol_name : NULL;
       base_symbol = hardware_register != NULL ? hardware_register->base_symbol : NULL;
       if (hardware_field != NULL) {
@@ -232,9 +234,9 @@ static void absolute_memory_ref_owner_symbols(const M68kAbsoluteMemoryRefIR *ref
           : hardware_field->register_symbol;
         base_symbol = hardware_field->base_symbol;
       }
-    } else if (ref->owner_kind == M68K_ABSOLUTE_MEMORY_OWNER_HARDWARE_REGISTER_RANGE) {
+    } else if (observation->owner_kind == M68K_ABSOLUTE_MEMORY_OWNER_HARDWARE_REGISTER_RANGE) {
       const AmigaOsHardwareRegisterRangeInfo *hardware_range =
-        amiga_os_find_hardware_register_range_by_cpu_address(ref->address);
+        amiga_os_find_hardware_register_range_by_cpu_address(observation->address);
       symbol = hardware_range != NULL ? hardware_range->symbol_name : NULL;
       base_symbol = hardware_range != NULL ? hardware_range->base_symbol : NULL;
     }
@@ -243,15 +245,18 @@ static void absolute_memory_ref_owner_symbols(const M68kAbsoluteMemoryRefIR *ref
   if (out_base_symbol != NULL) *out_base_symbol = base_symbol;
 }
 
-static int absolute_memory_ref_owner_symbol_expr(const M68kAbsoluteMemoryRefIR *ref,
+static int address_observation_owner_symbol_expr(const M68kAddressObservationIR *observation,
     char *buf, size_t buf_size) {
   const AmigaOsHardwareRegisterFieldInfo *hardware_field;
   const char *instance_symbol;
   int written;
   if (buf == NULL || buf_size == 0U) return 0;
   buf[0] = '\0';
-  if (ref == NULL || ref->owner_kind != M68K_ABSOLUTE_MEMORY_OWNER_HARDWARE_REGISTER) return 0;
-  hardware_field = amiga_os_find_hardware_register_field_by_cpu_address(ref->address);
+  if (observation == NULL || !observation->has_address ||
+      observation->owner_kind != M68K_ABSOLUTE_MEMORY_OWNER_HARDWARE_REGISTER) {
+    return 0;
+  }
+  hardware_field = amiga_os_find_hardware_register_field_by_cpu_address(observation->address);
   if (hardware_field == NULL || hardware_field->field_symbol == NULL ||
       hardware_field->field_symbol[0] == '\0') {
     return 0;
@@ -2652,7 +2657,13 @@ static size_t source_analysis_memory_layout_record_count(const M68kSourceAnalysi
     count += section->recovered_platform_typed_access_count;
     count += section->recovered_platform_unresolved_typed_access_count;
     count += section->runtime_view_count;
-    count += section->absolute_memory_ref_count;
+    for (ref_index = 0U; ref_index < section->address_observation_count; ++ref_index) {
+      const M68kAddressObservationIR *observation = &section->address_observations[ref_index];
+      if (observation->source == M68K_ADDRESS_OBSERVATION_SOURCE_ABSOLUTE_OPERAND &&
+          observation->has_address) {
+        ++count;
+      }
+    }
     for (ref_index = 0U; ref_index < section->recovered_platform_effect_count; ++ref_index) {
       if (platform_effect_is_storage_kind(section->recovered_platform_effects[ref_index].kind))
         ++count;
@@ -3316,50 +3327,58 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
         return -1;
       if (json_builder_append(builder, "}") != 0) return -1;
     }
-    for (absolute_ref_index = 0U; absolute_ref_index < section->absolute_memory_ref_count;
+    for (absolute_ref_index = 0U; absolute_ref_index < section->address_observation_count;
         ++absolute_ref_index) {
-      const M68kAbsoluteMemoryRefIR *ref = &section->absolute_memory_refs[absolute_ref_index];
-      const char *memory_kind = absolute_memory_owner_kind_name(ref->owner_kind);
+      const M68kAddressObservationIR *observation = &section->address_observations[absolute_ref_index];
+      const char *memory_kind;
       const char *owner_symbol = NULL;
       const char *owner_base_symbol = NULL;
       char owner_symbol_expr[64];
-      absolute_memory_ref_owner_symbols(ref, &owner_symbol, &owner_base_symbol);
-      if (absolute_memory_ref_owner_symbol_expr(ref, owner_symbol_expr, sizeof(owner_symbol_expr)))
+      if (observation->source != M68K_ADDRESS_OBSERVATION_SOURCE_ABSOLUTE_OPERAND ||
+          !observation->has_address) {
+        continue;
+      }
+      memory_kind = absolute_memory_owner_kind_name(observation->owner_kind);
+      address_observation_owner_symbols(observation, &owner_symbol, &owner_base_symbol);
+      if (address_observation_owner_symbol_expr(observation, owner_symbol_expr, sizeof(owner_symbol_expr)))
         owner_symbol = owner_symbol_expr;
       if (emitted++ != 0U && json_builder_append(builder, ",") != 0) return -1;
       if (json_builder_appendf(builder,
-          "{\"record_kind_id\":%u,\"record_kind\":\"absolute_memory_ref\",\"memory_kind\":",
-          (unsigned)M68K_MEMORY_LAYOUT_RECORD_ABSOLUTE_MEMORY_REF) != 0)
+          "{\"record_kind_id\":%u,\"record_kind\":\"address_observation\",\"memory_kind\":",
+          (unsigned)M68K_MEMORY_LAYOUT_RECORD_ADDRESS_OBSERVATION) != 0)
         return -1;
       if (json_builder_append_json_string(builder, memory_kind) != 0) return -1;
       if (json_builder_appendf(builder,
-          ",\"section_index\":%u,\"source_offset\":%u,\"source_size\":%u,"
+          ",\"section_index\":%u,\"source_offset\":%u,"
           "\"operand_index\":%u,\"access\":",
-          (unsigned)section->section_index, (unsigned)ref->offset, (unsigned)ref->source_size,
-          (unsigned)ref->operand_index) != 0) {
+          (unsigned)section->section_index, (unsigned)observation->offset,
+          (unsigned)observation->operand_index) != 0) {
         return -1;
       }
-      if (json_builder_append_json_string(builder, listing_operand_access_name(ref->access_kind)) != 0)
+      if (json_builder_append_json_string(builder, listing_operand_access_name(observation->access_kind)) != 0)
         return -1;
       if (json_builder_appendf(builder,
           ",\"access_width\":%u,\"address\":%u,\"owner_kind_id\":%u,\"owner_kind\":",
-          (unsigned)ref->access_width, (unsigned)ref->address, (unsigned)ref->owner_kind) != 0) {
+          (unsigned)observation->access_width, (unsigned)observation->address,
+          (unsigned)observation->owner_kind) != 0) {
         return -1;
       }
-      if (json_builder_append_json_string(builder, absolute_memory_owner_kind_name(ref->owner_kind)) != 0)
+      if (json_builder_append_json_string(builder,
+          absolute_memory_owner_kind_name(observation->owner_kind)) != 0)
         return -1;
       if (append_memory_layout_range_json(builder, MEMORY_LAYOUT_RANGE_SPACE_ABSOLUTE,
-          (int64_t)ref->address, ref->access_width) != 0) return -1;
+          (int64_t)observation->address, observation->access_width) != 0) return -1;
       if (json_builder_append(builder, ",\"owner_symbol\":") != 0) return -1;
       if (json_builder_append_nullable_string(builder, owner_symbol) != 0) return -1;
       if (json_builder_append(builder, ",\"owner_base_symbol\":") != 0) return -1;
       if (json_builder_append_nullable_string(builder, owner_base_symbol) != 0) return -1;
       {
-        uint8_t conflict_state = ref->conflict_state;
+        uint8_t conflict_state = observation->conflict_state;
         if (json_builder_appendf(builder,
             ",\"owner_offset\":%u,\"confidence\":%u,\"conflicted\":%s,"
             "\"conflict_state_id\":%u,\"conflict_state\":\"%s\"}",
-            (unsigned)ref->owner_offset, (unsigned)ref->confidence, ref->conflicted ? "true" : "false",
+            (unsigned)observation->owner_offset, (unsigned)observation->confidence,
+            observation->conflicted ? "true" : "false",
             (unsigned)conflict_state, analysis_conflict_state_name(conflict_state)) != 0) {
           return -1;
         }
@@ -3859,6 +3878,21 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
         goto oom;
       if (observation->has_identity &&
           json_builder_appendf(&builder, ",\"identity_id\":%u", (unsigned)observation->identity_id) != 0)
+        goto oom;
+      if (json_builder_appendf(&builder,
+          ",\"owner_kind_id\":%u,\"owner_kind_name\":",
+          (unsigned)observation->owner_kind) != 0)
+        goto oom;
+      if (json_builder_append_json_string(&builder,
+          absolute_memory_owner_kind_name(observation->owner_kind)) != 0)
+        goto oom;
+      if (json_builder_appendf(&builder,
+          ",\"owner_offset\":%u,\"conflicted\":%s,\"conflict_state_id\":%u,\"conflict_state_name\":",
+          (unsigned)observation->owner_offset, observation->conflicted ? "true" : "false",
+          (unsigned)observation->conflict_state) != 0)
+        goto oom;
+      if (json_builder_append_json_string(&builder,
+          analysis_conflict_state_name(observation->conflict_state)) != 0)
         goto oom;
       if (json_builder_appendf(&builder, ",\"confidence\":%u}", (unsigned)observation->confidence) != 0)
         goto oom;

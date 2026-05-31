@@ -8781,41 +8781,41 @@ static const M68kFact *render_operand_relocation_ref(const M68kRenderLookup *loo
   return NULL;
 }
 
-static void render_analysis_classify_orphan_absolute_memory_ref(const M68kRenderLookup *lookup,
+static void render_analysis_classify_orphan_absolute_operand_observation(const M68kRenderLookup *lookup,
     const M68kDecodeSectionIR *section, uint8_t platform_kind, uint32_t address,
-    M68kAbsoluteMemoryRefIR *ref) {
+    M68kAddressObservationIR *observation) {
   uint8_t platform_owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_UNKNOWN;
   uint32_t platform_owner_offset = 0U;
   uint32_t source_offset = 0U;
-  if (ref == NULL) return;
-  ref->owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_ABSOLUTE_MEMORY;
-  ref->owner_offset = address;
+  if (observation == NULL) return;
+  observation->owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_ABSOLUTE_MEMORY;
+  observation->owner_offset = address;
   if (platform_facts_v2_absolute_memory_owner(platform_kind, address, &platform_owner_kind,
       &platform_owner_offset)) {
-    ref->owner_kind = platform_owner_kind;
-    ref->owner_offset = platform_owner_offset;
+    observation->owner_kind = platform_owner_kind;
+    observation->owner_offset = platform_owner_offset;
     return;
   }
   if (m68k_cpu_find_exception_vector_by_address(address) != NULL ||
       platform_facts_v2_is_callback_vector_slot(platform_kind, address)) {
-    ref->owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_CPU_VECTOR;
-    ref->owner_offset = 0U;
+    observation->owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_CPU_VECTOR;
+    observation->owner_offset = 0U;
     return;
   }
   if (section != NULL &&
       lookup_materialized_runtime_address_source_offset(lookup, section->section_index, address, &source_offset)) {
-    ref->owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_RUNTIME_RANGE;
-    ref->owner_offset = source_offset;
+    observation->owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_RUNTIME_RANGE;
+    observation->owner_offset = source_offset;
     return;
   }
   if (section != NULL && !render_lookup_section_has_runtime_range(lookup, section->section_index) &&
       address < section->size) {
-    ref->owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_SECTION_STORAGE;
-    ref->owner_offset = address;
+    observation->owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_SECTION_STORAGE;
+    observation->owner_offset = address;
   }
 }
 
-static int render_analysis_append_orphan_absolute_memory_refs_for_signal(const M68kRenderLookup *lookup,
+static int render_analysis_append_orphan_absolute_operand_observations_for_signal(const M68kRenderLookup *lookup,
     const M68kDecodeSectionIR *section, const M68kOrphanCodeSignalIR *signal,
     M68kSectionAnalysisIR *section_analysis) {
   uint32_t cursor;
@@ -8845,29 +8845,36 @@ static int render_analysis_append_orphan_absolute_memory_refs_for_signal(const M
       uint32_t address = 0U;
       uint8_t access_kind = metadata->operand_access_kinds[operand_index];
       const M68kFact *relocation;
-      M68kAbsoluteMemoryRefIR ref;
+      M68kAddressObservationIR observation;
       if (!render_absolute_ref_access_kind(access_kind)) continue;
       if (!m68k_asm_operand_absolute_value(candidate->operand_kinds[operand_index],
           &candidate->operands[operand_index], &address)) {
         continue;
       }
-      memset(&ref, 0, sizeof(ref));
-      ref.offset = candidate->offset;
-      ref.operand_index = (uint32_t)operand_index;
-      ref.source_size = candidate->byte_count;
-      ref.access_width = render_instruction_access_width(&instruction, access_kind);
-      ref.address = address;
-      ref.access_kind = access_kind;
-      ref.confidence = signal->confidence;
-      ref.conflict_state = M68K_ANALYSIS_CONFLICT_STATE_UNRESOLVED;
+      memset(&observation, 0, sizeof(observation));
+      observation.offset = candidate->offset;
+      observation.operand_index = (uint32_t)operand_index;
+      observation.raw_value = address;
+      observation.address = address;
+      observation.access_width = render_instruction_access_width(&instruction, access_kind);
+      observation.access_kind = access_kind;
+      observation.source = M68K_ADDRESS_OBSERVATION_SOURCE_ABSOLUTE_OPERAND;
+      observation.has_address = 1U;
+      observation.confidence = signal->confidence;
+      observation.conflict_state = M68K_ANALYSIS_CONFLICT_STATE_UNRESOLVED;
       relocation = render_operand_relocation_ref(lookup, section->section_index, candidate, operand_index);
       if (relocation != NULL) {
-        ref.owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_SECTION_STORAGE;
-        ref.owner_offset = relocation->target_offset;
+        observation.owner_kind = M68K_ABSOLUTE_MEMORY_OWNER_SECTION_STORAGE;
+        observation.owner_offset = relocation->target_offset;
+        observation.target_section_index = relocation->target_section_index > UINT32_MAX ? UINT32_MAX :
+          (uint32_t)relocation->target_section_index;
+        observation.target_offset = relocation->target_offset;
+        observation.has_target = 1U;
       } else {
-        render_analysis_classify_orphan_absolute_memory_ref(lookup, section, platform_kind, address, &ref);
+        render_analysis_classify_orphan_absolute_operand_observation(lookup, section, platform_kind, address,
+          &observation);
       }
-      if (m68k_ir_section_analysis_append_absolute_memory_ref(section_analysis, &ref) != 0) return -1;
+      if (m68k_ir_section_analysis_append_address_observation(section_analysis, &observation) != 0) return -1;
     }
     cursor += candidate->byte_count;
   }
@@ -9162,7 +9169,7 @@ static int render_analysis_append_orphan_code_signals_for_section(const M68kRend
         ? "decoded terminal island suppressed by non-control runtime address reference"
         : "decoded instruction island ends in generated terminal flow";
       if (m68k_ir_section_analysis_append_orphan_code_signal(section_analysis, &signal) != 0) return -1;
-      if (render_analysis_append_orphan_absolute_memory_refs_for_signal(lookup, section, &signal,
+      if (render_analysis_append_orphan_absolute_operand_observations_for_signal(lookup, section, &signal,
           section_analysis) != 0) {
         return -1;
       }

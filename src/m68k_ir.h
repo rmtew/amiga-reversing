@@ -1258,28 +1258,13 @@ typedef enum M68kMemoryLayoutRecordKind {
   M68K_MEMORY_LAYOUT_RECORD_PLATFORM_UNRESOLVED_TYPED_ACCESS = 5,
   M68K_MEMORY_LAYOUT_RECORD_RUNTIME_VIEW = 6,
   M68K_MEMORY_LAYOUT_RECORD_RUNTIME_ADDRESS_REF = 7,
-  M68K_MEMORY_LAYOUT_RECORD_ABSOLUTE_MEMORY_REF = 8,
+  M68K_MEMORY_LAYOUT_RECORD_ADDRESS_OBSERVATION = 8,
   M68K_MEMORY_LAYOUT_RECORD_PLATFORM_STORAGE_LAYOUT = 9
 } M68kMemoryLayoutRecordKind;
 
-typedef struct M68kAbsoluteMemoryRefIR {
-  uint32_t offset;
-  uint32_t operand_index;
-  uint32_t source_size;
-  uint32_t access_width;
-  uint32_t address;
-  uint32_t owner_offset;
-  uint8_t access_kind;
-  uint8_t owner_kind;
-  uint8_t confidence;
-  uint8_t conflicted;
-  uint8_t conflict_state;
-  uint8_t reserved[3];
-} M68kAbsoluteMemoryRefIR;
-
 typedef enum M68kAddressObservationSourceKind {
   M68K_ADDRESS_OBSERVATION_SOURCE_UNKNOWN = 0,
-  M68K_ADDRESS_OBSERVATION_SOURCE_ABSOLUTE_MEMORY_REF = 1,
+  M68K_ADDRESS_OBSERVATION_SOURCE_ABSOLUTE_OPERAND = 1,
   M68K_ADDRESS_OBSERVATION_SOURCE_RUNTIME_ADDRESS_REF = 2
 } M68kAddressObservationSourceKind;
 
@@ -1884,9 +1869,6 @@ typedef struct M68kSectionAnalysisIR {
   M68kRuntimeAddressRefIR *runtime_address_refs;
   size_t runtime_address_ref_count;
   size_t runtime_address_ref_capacity;
-  M68kAbsoluteMemoryRefIR *absolute_memory_refs;
-  size_t absolute_memory_ref_count;
-  size_t absolute_memory_ref_capacity;
   M68kAddressObservationIR *address_observations;
   size_t address_observation_count;
   size_t address_observation_capacity;
@@ -2121,8 +2103,6 @@ int m68k_ir_section_analysis_append_runtime_view(M68kSectionAnalysisIR *section_
     const M68kRuntimeViewIR *runtime_view);
 int m68k_ir_section_analysis_append_runtime_address_ref(M68kSectionAnalysisIR *section_analysis,
     const M68kRuntimeAddressRefIR *runtime_address_ref);
-int m68k_ir_section_analysis_append_absolute_memory_ref(M68kSectionAnalysisIR *section_analysis,
-    const M68kAbsoluteMemoryRefIR *absolute_memory_ref);
 int m68k_ir_section_analysis_append_address_observation(M68kSectionAnalysisIR *section_analysis,
     const M68kAddressObservationIR *observation);
 int m68k_ir_section_analysis_append_platform_address_use(M68kSectionAnalysisIR *section_analysis,

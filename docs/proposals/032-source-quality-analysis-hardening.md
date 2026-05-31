@@ -146,7 +146,7 @@ m68k_render_ir_preview_build()
 
 m68k_analysis_facts_v2.c after preview
   -> recovered indirect sites
-  -> absolute memory refs
+  -> address observations
   -> platform media/storage facts
   -> incomplete-analysis facts
   -> finalized conflicts
@@ -159,7 +159,7 @@ m68k_facts_v2_collect_source_analysis_profile()
   -> facts_v2_collect_profile_internal()
   -> m68k_render_ir_preview_build(..., out_source_analysis)
   -> append_recovered_indirect_sites_for_accepted()
-  -> append_absolute_memory_refs_for_accepted()
+  -> append_address_observations_for_accepted()
   -> append_platform_media_transfers_from_facts()
   -> append_platform_storage_layouts_from_object()
   -> facts_v2_append_incomplete_analysis_from_profile()
@@ -263,7 +263,7 @@ facts_v2_collect_profile_internal()
        -> render walk appends per-section source-analysis facts
        -> render_asm_app_extension_rs() appends base layout facts
   -> append_recovered_indirect_sites_for_accepted()
-  -> append_absolute_memory_refs_for_accepted()
+  -> append_address_observations_for_accepted()
   -> append_platform_media_transfers_from_facts()
   -> append_platform_storage_layouts_from_object()
   -> finalize table/base-layout conflicts
@@ -360,7 +360,7 @@ typedef struct M68kSectionAnalysisIR {
   M68kDataReferenceIR *data_references;
   M68kRuntimeViewIR *runtime_views;
   M68kRuntimeAddressRefIR *runtime_address_refs;
-  M68kAbsoluteMemoryRefIR *absolute_memory_refs;
+  M68kAddressObservationIR *address_observations;
   M68kCodeStartRefIR *code_start_refs;
   Arena *arena;
 } M68kSectionAnalysisIR;
@@ -818,7 +818,7 @@ trace_state_record_runtime_sink_ref()
 trace_state_record_runtime_storage_sink_ref()
   -> traced values stored into platform-classed storage sinks
 
-append_absolute_memory_refs_for_accepted()
+append_address_observations_for_accepted()
   -> direct absolute operands with memory read/write/compute/branch use
   -> address-domain immediates
   -> relocation target override to section storage
@@ -827,7 +827,7 @@ append_absolute_memory_refs_for_accepted()
 The problem is coverage, phase, and ownership.
 
 `m68k_asm_operand_absolute_value()` sees only direct absolute effective
-addresses. `append_absolute_memory_refs_for_accepted()` adds those and some
+addresses. `append_address_observations_for_accepted()` adds those and some
 address-domain immediates, but it does not make a durable general observation
 for every address-bearing instruction form. The traced table/control machinery
 can already reason about register-derived addresses in narrow paths, but that
@@ -854,7 +854,7 @@ known address register plus indexed table offset
 absolute destination operand
 ```
 
-`append_absolute_memory_refs_for_accepted()` also runs after render preview and
+`append_address_observations_for_accepted()` also runs after render preview and
 assigns owner kind before C has grouped observations into identities and ranges.
 That is too late for source-quality decisions. It also classifies CPU vectors by
 numeric address after the platform owner check, which means an address such as
@@ -913,10 +913,10 @@ typedef struct M68kAddressObservationIR {
 } M68kAddressObservationIR;
 ```
 
-The old `M68kAbsoluteMemoryRefIR` should not remain as a parallel semantic
-system. Migrate its consumers to address observations, address identities, and
-range ownership facts, then delete the shallow collector and render-side
-absolute-memory discovery.
+The old `M68kAbsoluteMemoryRefIR` no longer remains in source analysis. The
+remaining work is to make render-side absolute-memory discovery consume address
+observations, address identities, and range ownership facts instead of
+rebuilding an equivalent view.
 
 ### Runtime, Source, And Storage Ranges
 
@@ -1278,7 +1278,7 @@ candidate_stores_immediate_to_interrupt_vector()
 candidate_stores_trace_to_callback_vector()
 enqueue_interrupt_vector_store_target()
 append_runtime_address_refs_for_accepted()
-append_absolute_memory_refs_for_accepted()
+append_address_observations_for_accepted()
 trace_state_record_runtime_sink_ref()
 trace_state_record_runtime_storage_sink_ref()
 ```
@@ -2114,7 +2114,7 @@ Implementation order:
 ```text
 1. Add M68kAddressObservationIR with address form and source evidence fields.
 2. Move direct absolute operands, address immediates, relocation targets, and
-   runtime mapped operands from append_absolute_memory_refs_for_accepted().
+   runtime mapped operands into the address-observation producers.
 3. Lift traced address-register base plus displacement and indexed-base forms
    out of narrow table/control paths into the general observation pass.
 4. Convert runtime sink, storage sink, runtime copy, PC-relative, table-entry,
@@ -2128,7 +2128,7 @@ Implementation order:
    splits, and low-address uses with unproven semantics.
 10. Make symbols and renderer consume expected accesses from identities/ranges.
 11. Delete M68kAbsoluteMemoryRefIR after consumers move to observations,
-    identities, and ranges.
+    identities, and ranges. [done for source analysis]
 12. Delete render-side absolute-memory header and symbol discovery.
 13. Keep absolute-slot trace propagation only as local trace implementation, not
     as a rendered semantic or exported range fact.
@@ -2761,8 +2761,8 @@ git diff --check
   boundary; weak fallthrough into data is diagnosed or demoted.
 - Address/data references no longer promote code by themselves.
 - Address-like operands in supported instruction forms produce C observations.
-- `M68kAbsoluteMemoryRefIR` is deleted or reduced to a temporary migration
-  detail; final consumers use address observations, identities, and ranges.
+- `M68kAbsoluteMemoryRefIR` is deleted; final consumers use address
+  observations, identities, and ranges.
 - `$74 + displacement` style base addressing becomes a low-memory base/storage
   observation, not a CPU-vector use.
 - One-off and sparse non-system absolute refs are grouped into candidate ranges
@@ -2951,7 +2951,7 @@ M68kAddressObservationIR
   -> source kind
 ```
 
-The initial producer is a migration bridge from existing C facts:
+The initial producer was a migration bridge from existing C facts:
 
 ```text
 M68kAbsoluteMemoryRefIR
@@ -2961,10 +2961,12 @@ M68kRuntimeAddressRefIR
   -> address_observation(source = runtime_address_ref)
 ```
 
-This does not delete `M68kAbsoluteMemoryRefIR` yet. It makes address
-observations queryable through the source-analysis JSON surface already indexed
-by Python, so later slices can move identity/range/platform ownership consumers
-off the temporary absolute-memory ref path without adding Python inference.
+The migration is now complete for direct absolute operands:
+`M68kAbsoluteMemoryRefIR` has been removed from `M68kSectionAnalysisIR`.
+Accepted-code and orphan-code operand scans append
+`M68kAddressObservationIR(source = absolute_operand)` directly. Runtime address
+refs still become observations in source-quality analysis because they remain a
+distinct runtime-source fact family.
 
 Verified:
 
@@ -3006,15 +3008,15 @@ analysis:absolute_address_range:unowned_sparse
 The current producer is intentionally conservative:
 
 ```text
-existing absolute/runtime refs
+absolute operand observations + runtime refs
   -> address observations
   -> address identities
   -> absolute address ranges
 ```
 
-It does not yet delete `M68kAbsoluteMemoryRefIR` or replace renderer/platform
-semantic consumers. It makes those later deletions possible without moving
-ownership to Python.
+`M68kAbsoluteMemoryRefIR` is no longer present in source analysis. The remaining
+renderer/platform semantic cleanup must consume the observation, identity, and
+range facts directly instead of rebuilding equivalent views.
 
 Verified:
 
@@ -3458,6 +3460,50 @@ analysis pass owns its own platform state and shares the same post-instruction
 state update helper used by rendering, including known library-name loads. This
 keeps rendered-source presentation and collect-only source analysis aligned
 without preserving a render-time compatibility path.
+
+Verified:
+
+```text
+cmd /c src\build.bat
+src\build\m68k_c_unit_tests.exe
+uv run python -m pytest tests\test_target_usage_manifest.py -q
+uv run platform-rendered-source-roundtrip --no-write-report --json
+```
+
+### Absolute Operand Observation Direct Ownership
+
+Removed the temporary absolute-memory-ref source-analysis IR:
+
+```text
+deleted:
+  M68kAbsoluteMemoryRefIR
+  M68kSectionAnalysisIR.absolute_memory_refs
+  m68k_ir_section_analysis_append_absolute_memory_ref()
+
+kept as durable C facts:
+  M68kAddressObservationIR(source = absolute_operand)
+  M68kAddressIdentityIR
+  M68kAbsoluteAddressRangeIR
+  M68kPlatformAddressUseIR
+```
+
+Accepted instructions now append absolute/address-domain operands directly as
+address observations:
+
+```text
+accepted M68kDecodeCandidate operand
+  -> absolute operand or address-domain immediate
+  -> platform/runtime/relocation owner classification
+  -> M68kAddressObservationIR(source = absolute_operand)
+```
+
+The orphan-code signal path does the same for unresolved terminal islands. The
+memory-layout JSON surface now emits these as
+`record_kind = "address_observation"` instead of exposing the removed
+intermediate record. The per-section `address_observations` JSON rows expose
+owner kind, owner offset, conflict state, and identity id directly. This
+intentionally breaks the old internal schema rather than preserving a
+compatibility wrapper.
 
 Verified:
 

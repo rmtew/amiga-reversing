@@ -63,25 +63,6 @@ static int append_code_origins_for_section(M68kSectionAnalysisIR *section) {
 static int append_address_observations_for_section(M68kSectionAnalysisIR *section) {
   size_t index;
   if (section == NULL) return -1;
-  for (index = 0U; index < section->absolute_memory_ref_count; ++index) {
-    const M68kAbsoluteMemoryRefIR *ref = &section->absolute_memory_refs[index];
-    M68kAddressObservationIR observation;
-    memset(&observation, 0, sizeof(observation));
-    observation.offset = ref->offset;
-    observation.operand_index = ref->operand_index;
-    observation.raw_value = ref->address;
-    observation.address = ref->address;
-    observation.access_width = ref->access_width;
-    observation.access_kind = ref->access_kind;
-    observation.source = M68K_ADDRESS_OBSERVATION_SOURCE_ABSOLUTE_MEMORY_REF;
-    observation.owner_kind = ref->owner_kind;
-    observation.owner_offset = ref->owner_offset;
-    observation.conflict_state = ref->conflict_state;
-    observation.conflicted = ref->conflicted;
-    observation.has_address = 1U;
-    observation.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
-    if (m68k_ir_section_analysis_append_address_observation(section, &observation) != 0) return -1;
-  }
   for (index = 0U; index < section->runtime_address_ref_count; ++index) {
     const M68kRuntimeAddressRefIR *ref = &section->runtime_address_refs[index];
     M68kAddressObservationIR observation;
