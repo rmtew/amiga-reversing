@@ -3151,6 +3151,33 @@ uv run python -m pytest tests\test_target_usage_manifest.py -q
 uv run platform-rendered-source-roundtrip --no-write-report --json
 ```
 
+### Amiga LVO Fact Append Pre-Render Split
+
+Removed the durable Amiga LVO call/effect fact append from
+`render_asm_instruction()`. The accepted-candidate loop now records those facts
+before optional instruction rendering:
+
+```text
+accepted Amiga instruction candidate
+  -> shared Amiga vector resolver
+  -> recovered_platform_call / recovered_platform_effect
+  -> optional source instruction rendering
+```
+
+The renderer still uses the shared resolver to format operands and advance
+platform state, but it no longer owns the semantic fact append. Collect-only
+runs advance platform state through the same resolver without invoking source
+formatting.
+
+Verified:
+
+```text
+cmd /c src\build.bat
+src\build\m68k_c_unit_tests.exe
+uv run python -m pytest tests\test_target_usage_manifest.py -q
+uv run platform-rendered-source-roundtrip --no-write-report --json
+```
+
 ### Base Layout Fact Append Split
 
 Moved RSSET/base-layout fact append out of the header source renderer:
@@ -3200,9 +3227,10 @@ m68k_facts_v2_collect_source_analysis_profile()
   -> recovered_platform_call(_GetFNum)
 ```
 
-This does not finish platform-call ownership. Trap-call, Amiga LVO, wrapper,
-and call-comment facts still need a pre-render C platform-call analysis pass so
-source-quality receives all platform call facts without invoking the formatter.
+This did not finish platform-call ownership by itself. Later slices moved
+trap-call and Amiga LVO/wrapper facts onto collect-only analysis as well. The
+remaining platform-call cleanup is to make this a named pre-render platform-call
+analysis pass instead of a set of migration hooks inside preview build.
 
 Verified:
 
@@ -3228,10 +3256,10 @@ accepted instruction candidate
 The regression covers collect-only analysis for Atari `m_shrink`; rendering
 source is no longer required for that platform-call fact to exist.
 
-This is still a migration step. The Amiga LVO/wrapper path remains tied to the
-instruction formatter because it currently shares symbol attachment and comment
-state with rendering. That needs a dedicated pre-render platform-call analysis
-pass, not more formatter-side fact append.
+This was still a migration step when landed. A later slice moved the Amiga
+LVO/wrapper path onto collect-only analysis with a shared resolver. The
+remaining cleanup is structural: extract the pre-render platform-call analysis
+pass so preview build no longer coordinates those producers inline.
 
 Verified:
 
