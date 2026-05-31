@@ -3087,6 +3087,35 @@ uv run python -m pytest tests\test_target_usage_manifest.py -q
 uv run platform-rendered-source-roundtrip --no-write-report --json
 ```
 
+### Pre-Render Source Blocker Diagnostics
+
+Moved pre-render-safe source-analysis facts ahead of render preview:
+
+```text
+object platform storage layouts
+  -> M68kSourceAnalysisIR before render preview
+
+table target set capacity hit
+  -> M68kIncompleteAnalysisIR before render preview
+  -> M68kSourceQualityDiagnosticIR(blocker) before render preview
+  -> asm_source_refused before render preview
+```
+
+`facts_v2_has_source_blockers()` now includes source-quality blockers, and the
+profile source-quality counters are recomputed from `M68kSourceAnalysisIR` so
+the pre-render and post-render passes do not double count diagnostics. This is
+still partial: diagnostics that depend on render-owned section/base-layout
+producers cannot move earlier until those producers are removed from render.
+
+Verified:
+
+```text
+cmd /c src\build.bat
+src\build\m68k_c_unit_tests.exe
+uv run python -m pytest tests\test_target_usage_manifest.py -q
+uv run platform-rendered-source-roundtrip --no-write-report --json
+```
+
 ### Amiga LVO Call Fact Collection
 
 Moved Amiga LVO call fact collection onto the collect-only source-analysis path.

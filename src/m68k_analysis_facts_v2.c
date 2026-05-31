@@ -9510,7 +9510,7 @@ static int facts_v2_has_hard_failures(const M68kFactsV2Profile *profile) {
 }
 
 static int facts_v2_has_source_blockers(const M68kFactsV2Profile *profile) {
-  return facts_v2_has_hard_failures(profile);
+  return facts_v2_has_hard_failures(profile) || (profile != NULL && profile->source_quality_blockers != 0U);
 }
 
 static void facts_v2_record_source_blocker_first_failure(M68kFactsV2Profile *profile) {
@@ -9545,6 +9545,11 @@ static void facts_v2_record_source_blocker_first_failure(M68kFactsV2Profile *pro
     kind = M68K_SOURCE_EXPORT_FAILURE_REQUIRED_INSTRUCTION;
     section = profile->first_required_instruction_failure_section;
     offset = profile->first_required_instruction_failure_offset;
+  } else if (profile->source_quality_blockers != 0U) {
+    kind = M68K_SOURCE_EXPORT_FAILURE_SOURCE_QUALITY;
+    section = profile->first_source_quality_diagnostic_section;
+    offset = profile->first_source_quality_diagnostic_offset;
+    aux_offset = profile->first_source_quality_diagnostic_kind;
   }
   profile->asm_source_first_failure_kind = kind;
   profile->asm_source_first_failure_section = section;
@@ -9601,6 +9606,11 @@ static void facts_v2_record_source_quality_diagnostics_from_analysis(M68kFactsV2
     const M68kSourceAnalysisIR *source_analysis) {
   size_t index, section_index;
   if (profile == NULL || source_analysis == NULL) return;
+  profile->source_quality_diagnostics = 0U;
+  profile->source_quality_blockers = 0U;
+  profile->first_source_quality_diagnostic_kind = 0U;
+  profile->first_source_quality_diagnostic_section = 0U;
+  profile->first_source_quality_diagnostic_offset = 0U;
   for (index = 0U; index < source_analysis->source_quality_diagnostic_count; ++index) {
     facts_v2_record_source_quality_diagnostic(profile, &source_analysis->source_quality_diagnostics[index]);
   }
@@ -9917,6 +9927,20 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
     out_profile->interior_conflicts = out_profile->interior_conflicts_resolved_by_demote +
       out_profile->interior_conflicts_unresolved;
   }
+  if (out_source_analysis != NULL && append_platform_storage_layouts_from_object(object, out_source_analysis) != 0) {
+    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
+      "facts_v2 platform storage layout append failed");
+    goto fail;
+  }
+  if (out_source_analysis != NULL &&
+      facts_v2_append_incomplete_analysis_from_profile(out_profile, out_source_analysis) != 0) {
+    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
+      "facts_v2 incomplete analysis append failed");
+    goto fail;
+  }
+  if (out_source_analysis != NULL) {
+    facts_v2_record_source_quality_diagnostics_from_analysis(out_profile, out_source_analysis);
+  }
   if ((render_asm_source || mark_source_blockers) && facts_v2_has_source_blockers(out_profile)) {
     out_profile->asm_source_enabled = render_asm_source ? 1U : 0U;
     out_profile->asm_source_refused = 1U;
@@ -9983,17 +10007,6 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
       append_platform_media_transfers_from_facts(&decode, &facts, out_source_analysis) != 0) {
     m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
       "facts_v2 platform media transfer append failed");
-    goto fail;
-  }
-  if (out_source_analysis != NULL && append_platform_storage_layouts_from_object(object, out_source_analysis) != 0) {
-    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
-      "facts_v2 platform storage layout append failed");
-    goto fail;
-  }
-  if (out_source_analysis != NULL &&
-      facts_v2_append_incomplete_analysis_from_profile(out_profile, out_source_analysis) != 0) {
-    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
-      "facts_v2 incomplete analysis append failed");
     goto fail;
   }
   if (out_source_analysis != NULL &&
