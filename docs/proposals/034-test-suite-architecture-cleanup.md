@@ -1729,18 +1729,23 @@ pointer table entry and reference recovery
 listing row text, byte spans, and original bytes
 ```
 
-That is exactly the shape the cleanup should eliminate. The retained real test
-should assert only a few target-level sentinels:
+That is exactly the shape the cleanup should eliminate. The retained Bloodwych
+target proof should not be a second full-listing checklist. The exact source
+round-trip sentinel already renders Bloodwych, proves the copied stage at
+`$400`, checks representative table/source snippets, assembles the result, and
+compares rebuilt hunk bytes. The broad listing checklist can therefore be
+removed rather than narrowed into another duplicate real-target pass.
 
 ```text
 facts_v2 source is not refused
 required instruction failures stay at zero
 copied stage at $400 renders as code
-one scalar table and one pointer table survive with accepted status
+full source assembles and section bytes match
 ```
 
-The detailed rules should be moved to small fixtures. That gives failures a
-clear owner:
+The detailed rules are covered by small or lower-level fixtures where they
+already exist, and missing seams should be added there rather than recreated in
+the real Bloodwych test. That gives failures a clear owner:
 
 ```text
 synthetic indexed branch fixture fails
@@ -1751,6 +1756,22 @@ synthetic scalar table fixture fails
 
 real Bloodwych sentinel fails
   -> target-specific integration regressed
+```
+
+Implementation checkpoint:
+
+```text
+removed:
+  test_real_dll_bloodwych_detects_runtime_copy_loader_and_table_rows
+
+retained real Bloodwych proof:
+  test_real_dll_bloodwych_generated_source_assembles_exact
+
+existing compact coverage:
+  runtime ORG/storage alias tests
+  copied runtime stub tracing tests
+  indexed dispatch/pointer-table round-trip tests
+  copper list and bitmap runtime-ref row projection tests
 ```
 
 ### Data Class Navigation And Candidate Generation
@@ -1788,9 +1809,9 @@ candidate generation contract
 The candidate-generation portion does not need three real project analyses.
 
 The same problem appears in the string/table evidence tests. For example,
-`test_real_dll_025_string_text_examples_render_from_evidence` renders
-Starglider, Pandora, MonAm, Magicland, and Conqueror in one test. That is five
-real source renders to prove string rendering examples.
+`test_real_dll_025_string_text_examples_render_from_evidence` rendered
+Starglider, Pandora, MonAm, Magicland, and Conqueror in one test. That was five
+real source renders to prove selected string rendering examples.
 
 Split it into:
 
@@ -1803,6 +1824,21 @@ classification contract
 
 real corpus sentinels
   one short example per target family, each with a clear test name
+```
+
+Implementation checkpoint:
+
+```text
+test_real_dll_025_string_text_examples_render_from_evidence
+  now renders Starglider only
+  keeps positive bounded strings and negative over-classification checks
+  relies on compact/library-name and C render contracts for generic string rules
+
+removed from this Python real corpus test:
+  Pandora credits examples
+  MonAm diagnostic strings
+  Magicland title/copyright examples
+  Conqueror cracktro strings
 ```
 
 `test_real_dll_026_table_descriptors_use_evidence_bounds_not_caps` has the same
@@ -2612,18 +2648,18 @@ wide confidence layers remain meaningful and easier to understand
 
 ## Current Verification Snapshot
 
-After the generated/drift split, route-command split, CDP race fixes, and MPW
-fixture narrowing:
+After the generated/drift split, route-command split, CDP race fixes, MPW
+fixture narrowing, and the Bloodwych/string real fixture cleanup:
 
 ```text
 pytest tests -q --durations=20
-  1242 passed, 408 deselected in 14.92s
+  1242 passed, 407 deselected in 17.24s
 
 pytest tests -m integration -q
   202 passed, 1446 deselected in 30.07s
 
-pytest tests -m real_integration -q
-  133 passed, 16 skipped, 1501 deselected in 94.99s
+pytest tests -m real_integration -q --durations=20
+  132 passed, 16 skipped, 1501 deselected in 90.15s
 
 uv run ruff check
   passed
@@ -2664,6 +2700,9 @@ pytest tests\test_c_backend.py -m c_backend -k "tetragon" -q --durations=20
 pytest tests\test_c_backend.py -m real_integration -k "pandora_bk_provider_wrapper" -q --durations=10
   1 passed, 223 deselected in 6.54s
 
+pytest tests\test_c_backend.py -m real_integration -k "bloodwych or 025_string_text_examples or data_classes_reach_listing_rows" -q --durations=20
+  3 passed, 220 deselected in 10.32s
+
 pytest tests\test_active_imports.py -q --durations=10
   5 passed in 1.28s
 
@@ -2682,6 +2721,17 @@ python -m amiga_reversing.tools.rendered_source_roundtrip_report --update-render
 
 The default loop is back under 20s without parallelism. The integration layer is
 still too broad and remains the main cleanup target.
+
+The latest real-integration profile now has no separate Bloodwych runtime/table
+listing pass. The largest remaining real fixture overreach is:
+
+```text
+Damocles copied-stub native unpacking          13.79s
+MPW real image import                           9.39s
+Pandora BK provider wrapper                     6.01s
+data-class rows/navigation                      5.24s
+Pandora table descriptors/evidence bounds       4.92s
+```
 
 ## Trailing Notes And Follow-Up Observations
 

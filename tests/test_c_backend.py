@@ -10004,126 +10004,6 @@ def test_real_dll_genam_profile_exposes_c_app_slot_analysis() -> None:
     assert profile["facts_v2"]["queue_iterations"] < 10000
 
 
-def test_real_dll_bloodwych_detects_runtime_copy_loader_and_table_rows() -> None:
-    _requires_c_backend_dlls()
-    combined = _facts_v2_listing_analysis_for_project("amiga_hunk_bloodwych")
-    rows = combined["listing"]["rows"]
-    profile = combined["profile"]
-
-    facts_v2 = profile["facts_v2"]
-    assert facts_v2["asm_source_refused"] is False
-    assert facts_v2["required_instruction_failures"] == 0
-    assert facts_v2["unsupported_instruction_demotes"] == 0
-    assert facts_v2["interior_conflicts_unresolved"] == 0
-    copied_stage_rows = [
-        row for row in rows if row["section_index"] == 0 and row["start_offset"] == 0x5C
-    ]
-    assert any(row["kind"] == "label" and "abs_0_00000400:" in str(row["text"]) for row in copied_stage_rows)
-    assert any(row["kind"] == "instruction" for row in copied_stage_rows)
-    assert not any(row["kind"] == "data" for row in copied_stage_rows)
-    assert any(
-        row["section_index"] == 0
-        and row["start_offset"] == 0x4B2A
-        and row["kind"] == "instruction"
-        and "\tclr.b $0011(a4)" in str(row["text"])
-        for row in rows
-    )
-    bitmap_refs = [
-        ref
-        for row in rows
-        if row["kind"] == "data" and str(row["text"]).startswith("\tdc.w bplpt") and row.get("runtime_address_refs")
-        for ref in row["runtime_address_refs"]
-    ]
-    assert [(ref["runtime_address"], ref["size"], ref["data_class"]) for ref in bitmap_refs] == [
-        (0x70000, 0x2000, "bitmap"),
-        (0x72000, 0x2000, "bitmap"),
-        (0x74000, 0x2000, "bitmap"),
-        (0x76000, 0x2000, "bitmap"),
-    ]
-    section = combined["analysis"]["sections"][0]
-    sites_by_offset = {site["offset"]: site for site in section["recovered_indirect_sites"]}
-    assert sites_by_offset[0x79D8]["status"] == "jump_table"
-    assert sites_by_offset[0x79D8]["target_count"] == 9
-    assert sites_by_offset[0xA394]["status"] == "jump_table"
-    assert sites_by_offset[0xA394]["target_count"] == 5
-    refs_by_source = [
-        ref
-        for ref in section["code_start_refs"]
-        if ref["source_offset"] in {0x79D8, 0xA394}
-    ]
-    assert len(refs_by_source) == 14
-    bloodwych_table = next(
-        descriptor
-        for descriptor in section["table_descriptors"]
-        if descriptor["start_offset"] == 106360 and descriptor["entry_count"] == 73
-    )
-    assert bloodwych_table["status_name"] == "accepted"
-    assert bloodwych_table["source_pattern"] == "indexed_local_scalar_read"
-    assert bloodwych_table["entry_size"] == 2
-    assert bloodwych_table["end_offset"] == 106506
-    assert bloodwych_table["entry_count_proof"] == "consumer_structural_scan"
-    assert bloodwych_table["stop_reason"] == "consumer_structural_stop"
-    bloodwych_scalar_entries = [
-        entry
-        for entry in section["table_entries"]
-        if entry["table_start_offset"] == bloodwych_table["start_offset"]
-    ]
-    assert len(bloodwych_scalar_entries) == 73
-    assert {entry["target_status_name"] for entry in bloodwych_scalar_entries} == {
-        "numeric_exact"
-    }
-    assert not [
-        ref
-        for ref in section["data_references"]
-        if ref["table_start_offset"] == bloodwych_table["start_offset"]
-    ]
-    bloodwych_pointer_entries = [
-        entry
-        for entry in section["table_entries"]
-        if entry["table_start_offset"] == 526
-    ]
-    bloodwych_pointer_refs = [
-        ref
-        for ref in section["data_references"]
-        if ref["table_start_offset"] == 526
-    ]
-    assert len(bloodwych_pointer_entries) == 5
-    assert len(bloodwych_pointer_refs) == 5
-    assert {entry["target_status_name"] for entry in bloodwych_pointer_entries} == {
-        "accepted_target"
-    }
-    assert bloodwych_pointer_refs[0]["target_offset"] == 35552
-    assert bloodwych_pointer_refs[-1]["target_offset"] == 35620
-
-    data_rows = {str(row["text"]).strip(): row for row in rows if row["kind"] == "data"}
-
-    first_pointer = data_rows["dc.l abs_0_00008E84\t; pointer_table"]
-    second_pointer = data_rows["dc.l abs_0_00008F14"]
-    first_word = data_rows["dc.w abs_0_000058F4-abs_0_000058F4\t; lookup_table"]
-    second_word = data_rows["dc.w abs_0_0000590C-abs_0_000058F4"]
-
-    assert (first_pointer["start_offset"], first_pointer["end_offset"], first_pointer["bytes"]) == (
-        0x20E,
-        0x212,
-        "00008e84",
-    )
-    assert (second_pointer["start_offset"], second_pointer["end_offset"], second_pointer["bytes"]) == (
-        0x212,
-        0x216,
-        "00008f14",
-    )
-    assert (first_word["start_offset"], first_word["end_offset"], first_word["bytes"]) == (
-        0x5548,
-        0x554A,
-        "0000",
-    )
-    assert (second_word["start_offset"], second_word["end_offset"], second_word["bytes"]) == (
-        0x554A,
-        0x554C,
-        "0018",
-    )
-
-
 def test_real_dll_render_plan_data_classes_reach_listing_rows_navigation_and_candidates() -> None:
     _requires_c_backend_dlls()
 
@@ -10999,71 +10879,20 @@ def test_real_dll_starglider_main_app_slot_widths_stay_evidence_backed() -> None
 def test_real_dll_025_string_text_examples_render_from_evidence() -> None:
     _requires_c_backend_dlls()
 
-    starglider_paths = resolve_project_paths(
+    paths = resolve_project_paths(
         "amiga_disk_starglider-1987-rainbird__amiga_hunk_sg_9832b282",
         project_root=PROJECT_ROOT,
     )
-    starglider_source, starglider_profile = listing_artifact_source_text_with_c_backend_profile(
-        starglider_paths.binary_source,
-        metadata_path=starglider_paths.target_dir / "target_metadata.json",
+    source_text, profile = listing_artifact_source_text_with_c_backend_profile(
+        paths.binary_source,
+        metadata_path=paths.target_dir / "target_metadata.json",
         project_root=PROJECT_ROOT,
     )
-    assert starglider_profile["facts_v2"]["asm_source_refused"] is False
-    assert '\tdc.b "ACE PILOT",$00\n' in starglider_source
-    assert '\tdc.b "COMMANDER",$00\n' in starglider_source
-    assert '\tdc.b "NuNu    ",$00' not in starglider_source
-    assert '\tdc.b "NuD0        00000000",$00' not in starglider_source
-
-    pandora_paths = resolve_project_paths(
-        "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8",
-        project_root=PROJECT_ROOT,
-    )
-    pandora_source, pandora_profile = listing_artifact_source_text_with_c_backend_profile(
-        pandora_paths.binary_source,
-        metadata_path=pandora_paths.target_dir / "target_metadata.json",
-        project_root=PROJECT_ROOT,
-    )
-    assert pandora_profile["facts_v2"]["asm_source_refused"] is False
-    assert '\tdc.b "   CREATED BY: SHAHID AHMAD",$0D\n' in pandora_source
-    assert '\tdc.b "PUBLISHED BY: FIREBIRD SOFTWARE",$00\n' in pandora_source
-    assert '\tdc.b "0123456789ABCDEF",$00\n' in pandora_source
-    assert '\tdc.w abs_0_0001A6CD-abs_0_0001A25C\n' in pandora_source
-
-    monam_paths = resolve_project_paths("amiga_hunk_monam302", project_root=PROJECT_ROOT)
-    monam_source, monam_profile = listing_artifact_source_text_with_c_backend_profile(
-        monam_paths.binary_source,
-        metadata_path=monam_paths.target_dir / "target_metadata.json",
-        project_root=PROJECT_ROOT,
-    )
-    assert monam_profile["facts_v2"]["asm_source_refused"] is False
-    assert '\tdc.b "Current Breakpoints:",$0A\n\tdc.b $00\n' in monam_source
-    assert '\tdc.b "Checking for libfile..",$0A\n\tdc.b $00\n' in monam_source
-
-    magicland_paths = resolve_project_paths(
-        "amiga_disk_magicland-dizzy-1991-codemasters-trsi-lsd__amiga_hunk_md_e066dc14",
-        project_root=PROJECT_ROOT,
-    )
-    magicland_source, magicland_profile = listing_artifact_source_text_with_c_backend_profile(
-        magicland_paths.binary_source,
-        metadata_path=magicland_paths.target_dir / "target_metadata.json",
-        project_root=PROJECT_ROOT,
-    )
-    assert magicland_profile["facts_v2"]["asm_source_refused"] is False
-    assert '\tdc.b "MAGICLAND DIZZY!",$00\n' in magicland_source
-    assert '\tdc.b "COPYRIGHT 1991 CODEMASTERS SOFTWARE LTD.",$FF\n' in magicland_source
-
-    conqueror_paths = resolve_project_paths(
-        "amiga_disk_conqueror-1990-rainbow-arts-de-en__amiga_hunk_conqueror_cf971606",
-        project_root=PROJECT_ROOT,
-    )
-    conqueror_source, conqueror_profile = listing_artifact_source_text_with_c_backend_profile(
-        conqueror_paths.binary_source,
-        metadata_path=conqueror_paths.target_dir / "target_metadata.json",
-        project_root=PROJECT_ROOT,
-    )
-    assert conqueror_profile["facts_v2"]["asm_source_refused"] is False
-    assert '\tdc.b "         Conqueror was cracked by QUARTEX in 1990",$0A\n' in conqueror_source
-    assert '\tdc.b "              Click mouse to start CONQUEROR ! "\n' in conqueror_source
+    assert profile["facts_v2"]["asm_source_refused"] is False
+    assert '\tdc.b "ACE PILOT",$00\n' in source_text
+    assert '\tdc.b "COMMANDER",$00\n' in source_text
+    assert '\tdc.b "NuNu    ",$00' not in source_text
+    assert '\tdc.b "NuD0        00000000",$00' not in source_text
 
 
 def test_real_dll_026_table_descriptors_use_evidence_bounds_not_caps() -> None:
