@@ -4699,6 +4699,39 @@ uv run python -m amiga_reversing.tools.rendered_source_roundtrip_report --json
   55 targets, 0 failures, 39 full-file exact, 15 content-exact only, 1 unsupported
 ```
 
+### Runtime Ref Platform Semantic Uses
+
+Runtime address refs now also feed the same platform semantic-use fact lane.
+This captures the helper-derived uses that are not themselves structured-data
+ownership records:
+
+```text
+M68kRuntimeAddressRefIR.data_class_flags
+  -> m68k_source_quality_analyze()
+  -> M68kPlatformSemanticUseIR
+```
+
+That matters for the Amiga helper paths that already infer runtime refs for
+things like copper bitmap pointers, bitmap memory uses, and audio sample
+pointers. The source-quality output can now say "this instruction/use site is
+semantically a sound sample or bitmap use" without relying on renderer comments
+or Python reclassification.
+
+The regression fixture extends
+`source_quality_analyze_exports_platform_semantic_uses`: the same source-quality
+run now exports structured-data bitmap/blitter uses plus a runtime-ref
+`sound_sample` use.
+
+Verified:
+
+```text
+cmd /c src\build.bat
+src\build\m68k_c_unit_tests.exe m68k_ir
+uv run python -m pytest tests\test_target_usage_manifest.py -q
+uv run python -m amiga_reversing.tools.rendered_source_roundtrip_report --json
+  55 targets, 0 failures, 39 full-file exact, 15 content-exact only, 1 unsupported
+```
+
 ### Relocation-Backed Control Symbol Accesses
 
 The symbol-access gate now covers relocation-backed branch/call/jump operands

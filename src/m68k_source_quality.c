@@ -770,6 +770,54 @@ static int append_structured_data_platform_semantic_uses(M68kSourceAnalysisIR *s
   return 0;
 }
 
+static int append_runtime_ref_platform_semantic_use(M68kSectionAnalysisIR *section,
+    const M68kRuntimeAddressRefIR *ref, uint32_t role_flag) {
+  M68kPlatformSemanticUseIR use;
+  if (section == NULL || ref == NULL) return -1;
+  memset(&use, 0, sizeof(use));
+  use.kind = platform_semantic_use_kind_from_role_flag(role_flag);
+  if (use.kind == M68K_PLATFORM_SEMANTIC_USE_UNKNOWN) return 0;
+  use.offset = ref->offset;
+  use.size = ref->size != 0U ? ref->size : ref->source_size;
+  use.role_flags = role_flag;
+  use.confidence = ref->confidence;
+  use.has_target = ref->has_target;
+  use.target_section_index = (uint32_t)ref->target_section_index;
+  use.target_offset = ref->target_offset;
+  return m68k_ir_section_analysis_append_platform_semantic_use(section, &use);
+}
+
+static int append_runtime_ref_platform_semantic_uses(M68kSourceAnalysisIR *source_analysis) {
+  static const uint32_t platform_role_flags[] = {
+    M68K_ANALYSIS_STRUCTURED_DATA_ROLE_COPPER_LIST,
+    M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BITMAP,
+    M68K_ANALYSIS_STRUCTURED_DATA_ROLE_SOUND_SAMPLE,
+    M68K_ANALYSIS_STRUCTURED_DATA_ROLE_DISK_BUFFER,
+    M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BLITTER_DESTINATION,
+    M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BLITTER_SOURCE,
+    M68K_ANALYSIS_STRUCTURED_DATA_ROLE_PALETTE,
+    M68K_ANALYSIS_STRUCTURED_DATA_ROLE_SPRITE,
+    M68K_ANALYSIS_STRUCTURED_DATA_ROLE_AUDIO_TABLE
+  };
+  size_t section_index;
+  if (source_analysis == NULL) return -1;
+  for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
+    M68kSectionAnalysisIR *section = &source_analysis->sections[section_index];
+    size_t ref_index;
+    for (ref_index = 0U; ref_index < section->runtime_address_ref_count; ++ref_index) {
+      const M68kRuntimeAddressRefIR *ref = &section->runtime_address_refs[ref_index];
+      size_t role_index;
+      for (role_index = 0U; role_index < sizeof(platform_role_flags) / sizeof(platform_role_flags[0]);
+           ++role_index) {
+        uint32_t role_flag = platform_role_flags[role_index];
+        if ((ref->data_class_flags & role_flag) == 0U) continue;
+        if (append_runtime_ref_platform_semantic_use(section, ref, role_flag) != 0) return -1;
+      }
+    }
+  }
+  return 0;
+}
+
 static int append_structured_data_table_descriptors(M68kSourceAnalysisIR *source_analysis) {
   size_t index;
   if (source_analysis == NULL) return -1;
@@ -1742,6 +1790,7 @@ int m68k_source_quality_analyze(M68kSourceAnalysisIR *source_analysis,
   if (append_expected_manual_equate_symbol_accesses(source_analysis) != 0) return -1;
   if (append_structured_data_range_ownerships(source_analysis) != 0) return -1;
   if (append_structured_data_platform_semantic_uses(source_analysis) != 0) return -1;
+  if (append_runtime_ref_platform_semantic_uses(source_analysis) != 0) return -1;
   if (append_structured_data_table_descriptors(source_analysis) != 0) return -1;
   if (append_structured_data_table_entries(source_analysis, decode, accepted_start, accepted_bytes) != 0) return -1;
   if (append_immediate_text_tokens(source_analysis, decode, accepted_start) != 0) return -1;
