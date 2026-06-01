@@ -1586,6 +1586,42 @@ hash/materialization contract
   one fixture -> decompressed sha256
 ```
 
+#### Slice 7 Implementation Checkpoint - Pandora Real Smoke Narrowed
+
+The real Pandora BK wrapper test no longer asserts exact packed size,
+decompressed size, or decompressed hash. It now keeps the real corpus proof:
+
+```text
+one BK payload is detected by ancient-cli
+payload is at section 0 offset $E8
+one derived target suggestion exists
+one decompression event exists
+suggestion/event are materializable
+reason is initial_control_target_validated_provider_wrapper
+payload role is primary_program
+parent target does not remain active
+load/entry identity is $20000/$20000
+```
+
+Downstream materialized-child metadata is already covered by fake analysis and
+fake decompressor import tests in `tests/test_import_adf.py`, where provider
+identity, hashes, payload role, confidence, parent activity, and child origin
+are asserted without the real Pandora packed fixture.
+
+The missing lower seam is still the provider-wrapper C contract itself:
+
+```text
+provider output packet + absolute transfer proof
+  -> initial_control_target_validated_provider_wrapper
+  -> parent_remains_active=false
+  -> primary_program load/entry identity
+```
+
+Today that seam is only reachable through full C analysis of a packed real
+fixture. A future backend contract should make provider-wrapper promotion
+testable without carrying a 189000-byte real packed payload in the assertion
+path.
+
 ### Voodoo, Magicland, Conqueror Decrunchers
 
 Current shape:
@@ -2581,13 +2617,13 @@ fixture narrowing:
 
 ```text
 pytest tests -q --durations=20
-  1242 passed, 408 deselected in 14.70s
+  1242 passed, 408 deselected in 14.92s
 
 pytest tests -m integration -q
   202 passed, 1446 deselected in 30.07s
 
 pytest tests -m real_integration -q
-  133 passed, 16 skipped, 1501 deselected in 93.35s
+  133 passed, 16 skipped, 1501 deselected in 94.99s
 
 uv run ruff check
   passed
@@ -2624,6 +2660,9 @@ pytest tests\test_macos_project_payload.py -m real_integration -q --durations=10
 
 pytest tests\test_c_backend.py -m c_backend -k "tetragon" -q --durations=20
   4 passed, 220 deselected in 15.41s
+
+pytest tests\test_c_backend.py -m real_integration -k "pandora_bk_provider_wrapper" -q --durations=10
+  1 passed, 223 deselected in 6.54s
 
 pytest tests\test_active_imports.py -q --durations=10
   5 passed in 1.28s
