@@ -10442,35 +10442,6 @@ def test_real_dll_voodoo_tetragon_unpacker_comparator(tmp_path: Path) -> None:
     assert hashlib.sha256(output).hexdigest() == "7ec283de794a7ddc64d8f2c3a4aa8545aee9e782476ebe75e48da8a117dd404e"
 
 
-def test_real_dll_magicland_self_decrunch_materialization(tmp_path: Path) -> None:
-    _requires_c_backend_dlls()
-
-    fixture = PROJECT_ROOT / "tests" / "fixtures" / "hunk" / "magicland_trsi_trainer_self_decrunch.bin"
-    analysis = analyze_binary_source_with_c_backend(fixture, project_root=PROJECT_ROOT)
-    event = next(event for event in analysis["decompression_events"] if event.get("source_kind") == "self_decruncher")
-    output_path = tmp_path / "magicland_trsi_trainer_self_decrunch.bin"
-
-    result = materialize_self_decrunch_event_with_c_backend(
-        "amiga-hunk",
-        fixture,
-        event["event_id"],
-        output_path,
-        project_root=PROJECT_ROOT,
-    )
-
-    output = output_path.read_bytes()
-    assert event["status"] == "simulated_output_observed"
-    assert event["reason"] == "simulated_pc_range_stop"
-    assert event["simulated_step_count"] > 262144
-    assert event["simulated_output_size"] == 131325
-    assert event["load_address"] == 0x20000
-    assert event["entrypoint"] == 0x20000
-    assert event["simulated_output_sha256"] == "3ceee1844eb765963ab5966093324717e70bfbf5d82595e538c9e793c6d50743"
-    assert result["status"] == "ok"
-    assert len(output) == 131325
-    assert hashlib.sha256(output).hexdigest() == event["simulated_output_sha256"]
-
-
 def test_real_dll_conqueror_runtime_view_native_decrunch_materialization(tmp_path: Path) -> None:
     _requires_c_backend_dlls()
 

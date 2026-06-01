@@ -1791,6 +1791,13 @@ Those are acceptable as retained family sentinels if their assertions stay
 focused. Damocles is the one that needs a structural test seam because the
 native copied-stub path is both expensive and currently unprofiled.
 
+Later cleanup removed
+`test_real_dll_magicland_self_decrunch_materialization`. Its large-output
+materialization path duplicated the compact self-decrunch materializer contract
+plus the cheaper Conqueror real simulator sentinel. The project-wide round-trip
+report continues to cover the imported Magicland self-decrunched child as an
+exact rendered target.
+
 #### Magicland Loader Transfer Checkpoint
 
 `test_real_dll_magicland_records_loader_file_transfers_without_unproven_asset_materialization`
@@ -3047,18 +3054,19 @@ wide confidence layers remain meaningful and easier to understand
 
 After the generated/drift split, route-command split, CDP race fixes, MPW
 fixture narrowing, duplicate MPW payload removal, the Bloodwych/string real
-fixture cleanup, Damocles copied-stub native execution deferral, and Pandora
-provider-wrapper validation deferral, and GenAm agent RSSET sentinel narrowing:
+fixture cleanup, Damocles copied-stub native execution deferral, Pandora
+provider-wrapper validation deferral, GenAm agent RSSET sentinel narrowing,
+Bloodwych exact-test removal, and Magicland materialization-test removal:
 
 ```text
 pytest tests -q --durations=20
-  1242 passed, 403 deselected in 16.92s
+  1242 passed, 402 deselected in 18.01s
 
 pytest tests -m integration -q
   202 passed, 1446 deselected in 30.07s
 
 pytest tests -m real_integration -q --durations=20
-  127 passed, 16 skipped, 1502 deselected in 46.17s
+  126 passed, 16 skipped, 1502 deselected in 53.66s
 
 uv run ruff check
   passed
@@ -3107,7 +3115,7 @@ pytest tests\test_c_backend.py -m real_integration -k "pandora_bk_provider_wrapp
   1 passed, 223 deselected in 1.19s
 
 pytest tests\test_c_backend.py -m real_integration -q --durations=20
-  116 passed, 15 skipped, 91 deselected in 36.30s
+  115 passed, 15 skipped, 91 deselected in 36.90s
 
 pytest tests\test_c_backend.py -m real_integration -k "data_classes_reach_listing_rows or 026_table_descriptors" -q --durations=20
   1 passed, 222 deselected in 1.72s
@@ -3142,10 +3150,10 @@ descriptor coverage has moved to C/source-analysis contracts. The largest
 remaining real fixture overreach is:
 
 ```text
-Damocles deferred-analysis sentinel             2.84s
-Magicland self-decrunch materialization         2.67s
-GenAm autonomous RSSET sentinel                 2.39s
-platform unresolved indirect sites              1.54s
+Damocles deferred-analysis sentinel             3.64s
+GenAm autonomous RSSET sentinel                 2.72s
+Magicland loader file transfers                 2.24s
+platform unresolved indirect sites              2.16s
 ```
 
 The Bloodwych generated-source exact test is no longer listed here because the
@@ -3191,7 +3199,7 @@ The default loop is under 20s in the clean timing run:
 
 ```text
 pytest tests -q
-  1242 passed, 403 deselected in 16.92s
+  1242 passed, 402 deselected in 18.01s
 ```
 
 The slowest remaining default tests are not the converted route command tests.
@@ -3512,8 +3520,9 @@ Voodoo Tetragon:
   compact contract
 
 Magicland self-decrunch:
-  keep one real bootstrapping smoke, move branch-over-data and output-range
-  mechanics to synthetic bootstraps
+  removed the large-output materialization smoke; compact materializer tests,
+  Conqueror real materialization, and the rendered-source round-trip report now
+  own the relevant coverage
 ```
 
 This is the next implementation frontier. The default loop is now fast enough;
