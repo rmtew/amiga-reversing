@@ -10775,25 +10775,6 @@ def test_real_dll_starglider_main_app_slot_widths_stay_evidence_backed() -> None
     assert "app_016A RS.L 1\n" not in source_text
 
 
-def test_real_dll_025_string_text_examples_render_from_evidence() -> None:
-    _requires_c_backend_dlls()
-
-    paths = resolve_project_paths(
-        "amiga_disk_starglider-1987-rainbird__amiga_hunk_sg_9832b282",
-        project_root=PROJECT_ROOT,
-    )
-    source_text, profile = listing_artifact_source_text_with_c_backend_profile(
-        paths.binary_source,
-        metadata_path=paths.target_dir / "target_metadata.json",
-        project_root=PROJECT_ROOT,
-    )
-    assert profile["facts_v2"]["asm_source_refused"] is False
-    assert '\tdc.b "ACE PILOT",$00\n' in source_text
-    assert '\tdc.b "COMMANDER",$00\n' in source_text
-    assert '\tdc.b "NuNu    ",$00' not in source_text
-    assert '\tdc.b "NuD0        00000000",$00' not in source_text
-
-
 def test_real_dll_starglider_mathtrans_linkage_api_labels_promote_wrappers() -> None:
     _requires_c_backend_dlls()
 

@@ -1992,16 +1992,34 @@ Implementation checkpoint:
 
 ```text
 test_real_dll_025_string_text_examples_render_from_evidence
-  now renders Starglider only
-  keeps positive bounded strings and negative over-classification checks
-  relies on compact/library-name and C render contracts for generic string rules
+  removed from the real integration suite
+  no longer pays full Starglider source rendering for source-quality text checks
 
 removed from this Python real corpus test:
+  Starglider rank strings and false-positive exclusions
   Pandora credits examples
   MonAm diagnostic strings
   Magicland title/copyright examples
   Conqueror cracktro strings
 ```
+
+The Starglider checks were not round-trip duplicates. Rendering bytes as
+`dc.b $41,$43,...` and rendering them as `dc.b "ACE PILOT",$00` both assemble
+to the same payload, so a project round-trip report cannot catch that
+source-quality regression. The replacement therefore moved the exact examples
+to compact C fixtures:
+
+```text
+facts_v2_rank_string_sequence_renders_starglider_examples
+  small data section renders "ACE PILOT" and "COMMANDER" from string-sequence evidence
+
+facts_v2_unlabeled_code_section_orphan_shape_does_not_auto_classify_string
+  small code-shaped byte run rejects the Starglider "NuNu" and "NuD0" false positives
+```
+
+The remaining real Starglider tests now guard target-specific control-flow,
+slot-width, and linkage behavior. Generic text classification belongs at the C
+analysis/rendering seam where the rule is cheap and explicit.
 
 `test_real_dll_026_table_descriptors_use_evidence_bounds_not_caps` has the same
 shape for runtime views, table descriptors, table entries, source rendering,
@@ -3136,6 +3154,16 @@ pytest tests\test_c_backend.py -m real_integration -k "pandora_bk_provider_wrapp
 pytest tests\test_c_backend.py -m real_integration -q --durations=20
   112 passed, 15 skipped, 91 deselected in 36.92s
 
+cmd /c src\precommit.bat
+  passed
+  m68k_ir: all 452 passed
+
+pytest tests\test_c_backend.py -m real_integration -q --durations=20
+  111 passed, 15 skipped, 91 deselected in 32.44s
+
+pytest tests -q --durations=20
+  1242 passed, 398 deselected in 21.41s
+
 pytest tests\test_c_backend.py -m real_integration -k "data_classes_reach_listing_rows or 026_table_descriptors" -q --durations=20
   1 passed, 222 deselected in 1.72s
 
@@ -3169,10 +3197,12 @@ descriptor coverage has moved to C/source-analysis contracts. The largest
 remaining real fixture overreach is:
 
 ```text
-Damocles deferred-analysis sentinel             3.61s
-GenAm autonomous RSSET sentinel                 2.51s
-Magicland loader file transfers                 2.18s
-String text examples sentinel                   1.82s
+Damocles deferred-analysis sentinel             2.98s
+Magicland loader file transfers                 1.60s
+Pandora BK provider wrapper                     1.57s
+GenAm ASCII hex layout reassembly               1.49s
+Magicland copied-runtime entry                  1.32s
+GenAm source render smoke                       1.31s
 ```
 
 The Bloodwych generated-source exact test is no longer listed here because the
