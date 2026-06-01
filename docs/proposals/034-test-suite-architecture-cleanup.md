@@ -2521,17 +2521,21 @@ MonAm
   unresolved indirect sites: 0
 ```
 
-GenAm is the useful real sentinel because it has both sides of the invariant.
-MonAm made the test slower without increasing the assertion strength. The
-lower C layer already owns the rule that resolved platform calls are not
-reported as unresolved indirect sites.
+GenAm was originally retained because it had both sides of the invariant, but
+the retained test was still a broad disjointness sweep over a real analysis.
+The lower C layer owns the core rule that resolved platform calls are not
+reported as unresolved indirect sites, and the real OpenLibrary follow-up tests
+already assert target-specific platform calls are absent from unresolved-site
+sets.
+
+Later cleanup removed
+`test_real_dll_platform_calls_are_not_unresolved_indirect_sites` entirely.
 
 Focused verification:
 
 ```text
-pytest tests\test_c_backend.py -m real_integration -k "platform_calls_are_not_unresolved" -q --durations=10
-  1 passed, 223 deselected in 2.41s
-  slowest call: 1.50s
+pytest tests\test_c_backend.py -m real_integration -q --durations=20
+  114 passed, 15 skipped, 91 deselected in 36.87s
 ```
 
 ### Slice 4F - Narrow Immediate Text Token Real Sentinel
@@ -3056,17 +3060,18 @@ After the generated/drift split, route-command split, CDP race fixes, MPW
 fixture narrowing, duplicate MPW payload removal, the Bloodwych/string real
 fixture cleanup, Damocles copied-stub native execution deferral, Pandora
 provider-wrapper validation deferral, GenAm agent RSSET sentinel narrowing,
-Bloodwych exact-test removal, and Magicland materialization-test removal:
+Bloodwych exact-test removal, Magicland materialization-test removal, and
+platform unresolved-sweep removal:
 
 ```text
 pytest tests -q --durations=20
-  1242 passed, 402 deselected in 18.01s
+  1242 passed, 401 deselected in 17.54s
 
 pytest tests -m integration -q
   202 passed, 1446 deselected in 30.07s
 
 pytest tests -m real_integration -q --durations=20
-  126 passed, 16 skipped, 1502 deselected in 53.66s
+  125 passed, 16 skipped, 1502 deselected in 45.57s
 
 uv run ruff check
   passed
@@ -3115,7 +3120,7 @@ pytest tests\test_c_backend.py -m real_integration -k "pandora_bk_provider_wrapp
   1 passed, 223 deselected in 1.19s
 
 pytest tests\test_c_backend.py -m real_integration -q --durations=20
-  115 passed, 15 skipped, 91 deselected in 36.90s
+  114 passed, 15 skipped, 91 deselected in 36.87s
 
 pytest tests\test_c_backend.py -m real_integration -k "data_classes_reach_listing_rows or 026_table_descriptors" -q --durations=20
   1 passed, 222 deselected in 1.72s
@@ -3150,10 +3155,10 @@ descriptor coverage has moved to C/source-analysis contracts. The largest
 remaining real fixture overreach is:
 
 ```text
-Damocles deferred-analysis sentinel             3.64s
-GenAm autonomous RSSET sentinel                 2.72s
-Magicland loader file transfers                 2.24s
-platform unresolved indirect sites              2.16s
+Damocles deferred-analysis sentinel             2.97s
+GenAm autonomous RSSET sentinel                 2.31s
+Immediate text real sentinel                    1.87s
+Magicland loader file transfers                 1.82s
 ```
 
 The Bloodwych generated-source exact test is no longer listed here because the
@@ -3199,7 +3204,7 @@ The default loop is under 20s in the clean timing run:
 
 ```text
 pytest tests -q
-  1242 passed, 402 deselected in 18.01s
+  1242 passed, 401 deselected in 17.54s
 ```
 
 The slowest remaining default tests are not the converted route command tests.
