@@ -986,6 +986,19 @@ static int source_quality_append_expected_operand_symbol_access(M68kSectionAnaly
   return m68k_ir_section_analysis_append_expected_symbol_access(source_section_analysis, &access);
 }
 
+static int source_quality_append_expected_equate_symbol_access(M68kSectionAnalysisIR *source_section_analysis,
+    const char *symbol_name, uint32_t offset, uint32_t operand_index) {
+  M68kExpectedSymbolAccessIR access;
+  if (source_section_analysis == NULL || symbol_name == NULL || symbol_name[0] == '\0') return -1;
+  memset(&access, 0, sizeof(access));
+  access.symbol_name = (char *)symbol_name;
+  access.offset = offset;
+  access.operand_index = operand_index;
+  access.access_kind = M68K_EXPECTED_SYMBOL_ACCESS_EQUATE;
+  access.confidence = M68K_FACT_CONFIDENCE_REQUIRED;
+  return m68k_ir_section_analysis_append_expected_symbol_access(source_section_analysis, &access);
+}
+
 static int append_expected_relocated_branch_symbol_accesses_for_section(M68kSourceAnalysisIR *source_analysis,
     M68kSectionAnalysisIR *section_analysis, const M68kDecodeIR *decode, const M68kDecodeSectionIR *section,
     const M68kFactIR *facts, const uint8_t *source_accepted_start, uint8_t *const *accepted_start) {
@@ -1172,6 +1185,34 @@ static int append_expected_data_operand_symbol_accesses(M68kSourceAnalysisIR *so
     if (section == NULL) continue;
     if (append_expected_data_operand_symbol_accesses_for_section(source_analysis, section_analysis, section,
         accepted_start[decode_index]) != 0) {
+      return -1;
+    }
+  }
+  return 0;
+}
+
+static int append_expected_manual_equate_symbol_accesses(M68kSourceAnalysisIR *source_analysis) {
+  const M68kAnalysisPolicy *policy;
+  uint16_t index;
+  if (source_analysis == NULL) return -1;
+  policy = &source_analysis->policy;
+  for (index = 0U; index < policy->manual_representation_count &&
+       index < M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT; ++index) {
+    const M68kAnalysisManualRepresentation *representation = &policy->manual_representations[index];
+    const M68kAnalysisTargetEquate *equate;
+    M68kSectionAnalysisIR *section_analysis;
+    if (!representation->has_section_index || !representation->has_operand_index ||
+        representation->style_id != M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL ||
+        representation->target_equate_index == 0U ||
+        representation->target_equate_index > policy->target_equate_count ||
+        representation->target_equate_index > M68K_ANALYSIS_TARGET_EQUATE_LIMIT) {
+      continue;
+    }
+    equate = &policy->target_equates[representation->target_equate_index - 1U];
+    section_analysis = source_analysis_section_by_index(source_analysis, representation->section_index);
+    if (section_analysis == NULL) continue;
+    if (source_quality_append_expected_equate_symbol_access(section_analysis, equate->name,
+        representation->offset, representation->operand_index) != 0) {
       return -1;
     }
   }
@@ -1698,6 +1739,7 @@ int m68k_source_quality_analyze(M68kSourceAnalysisIR *source_analysis,
   if (append_expected_intrinsic_branch_symbol_accesses(source_analysis, decode, facts, accepted_start) != 0)
     return -1;
   if (append_expected_data_operand_symbol_accesses(source_analysis, decode, accepted_start) != 0) return -1;
+  if (append_expected_manual_equate_symbol_accesses(source_analysis) != 0) return -1;
   if (append_structured_data_range_ownerships(source_analysis) != 0) return -1;
   if (append_structured_data_platform_semantic_uses(source_analysis) != 0) return -1;
   if (append_structured_data_table_descriptors(source_analysis) != 0) return -1;

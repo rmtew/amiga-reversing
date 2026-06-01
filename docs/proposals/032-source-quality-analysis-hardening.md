@@ -4796,6 +4796,43 @@ uv run python -m amiga_reversing.tools.rendered_source_roundtrip_report --json
   55 targets, 0 failures, 39 full-file exact, 15 content-exact only, 1 unsupported
 ```
 
+### Manual Equate Symbol Accesses
+
+Manual operand representations that force a target equate now create explicit
+equate-symbol expectations:
+
+```text
+manual representation
+  -> style SYMBOL
+  -> operand_index present
+  -> target_equate_index present
+  -> M68kExpectedSymbolAccessIR(equate)
+```
+
+The rendered-access recorder mirrors that path. If an emitted operand symbol
+came from a manual target-equate representation, the access is recorded as an
+equate access rather than a generic operand access:
+
+```asm
+manual_value	EQU	$1234
+
+	move.l #manual_value,d0
+```
+
+The regression fixture is
+`facts_v2_render_asm_source_records_manual_equate_access`, which asserts both
+the declaration/rendered source and the expected/rendered source-quality rows
+for `manual_value`.
+
+Verified:
+
+```text
+cmd /c src\build.bat
+src\build\m68k_c_unit_tests.exe m68k_ir
+uv run python -m amiga_reversing.tools.rendered_source_roundtrip_report --json
+  55 targets, 0 failures, 39 full-file exact, 15 content-exact only, 1 unsupported
+```
+
 ### Expected Label Statement Accesses
 
 Source-analysis labels now produce explicit expected symbol-access obligations

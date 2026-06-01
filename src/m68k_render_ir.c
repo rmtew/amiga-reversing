@@ -9944,6 +9944,7 @@ static int record_rendered_instruction_symbol_accesses(M68kSourceAnalysisIR *sou
     const M68kOperandIR *operand = &instruction->operands[operand_index];
     const M68kDecodeTarget *control_target;
     const M68kDecodeTarget *data_target;
+    const M68kAnalysisManualRepresentation *representation;
     M68kRenderedSymbolAccessIR access;
     if (!operand->symbol_ref.has_name || operand->symbol_ref.name[0] == '\0') continue;
     if ((rendered_operand_symbol_mask & (uint8_t)(1U << operand_index)) == 0U) continue;
@@ -9952,6 +9953,12 @@ static int record_rendered_instruction_symbol_accesses(M68kSourceAnalysisIR *sou
     access.offset = candidate->offset;
     access.operand_index = (uint32_t)operand_index;
     access.access_kind = M68K_RENDERED_SYMBOL_ACCESS_OPERAND;
+    representation = lookup_manual_operand_representation(lookup, section_index, candidate->offset, operand_index);
+    if (representation != NULL &&
+        representation->style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL &&
+        representation->target_equate_index != 0U) {
+      access.access_kind = M68K_RENDERED_SYMBOL_ACCESS_EQUATE;
+    }
     control_target = candidate_control_target_for_operand(candidate, operand_index);
     if (control_target != NULL) {
       const M68kFact *relocation = candidate_relocation_for_operand(lookup, section_index, candidate,

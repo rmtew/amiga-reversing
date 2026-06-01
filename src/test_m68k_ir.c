@@ -5597,6 +5597,77 @@ static int test_facts_v2_render_asm_source_renders_symbolic_pc_relative_data_tar
   return 0;
 }
 
+static int test_facts_v2_render_asm_source_records_manual_equate_access(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
+  char *source = NULL;
+  int saw_expected_equate_access = 0;
+  int saw_rendered_equate_access = 0;
+  uint8_t bytes[8] = {0x20u, 0x3cu, 0x00u, 0x00u, 0x12u, 0x34u, 0x4eu, 0x75u};
+  memset(&section, 0, sizeof(section));
+  memset(&source_analysis, 0, sizeof(source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  policy.target_equate_count = 1U;
+  snprintf(policy.target_equates[0].name, sizeof(policy.target_equates[0].name), "%s", "manual_value");
+  policy.target_equates[0].value = 0x1234;
+  policy.manual_representation_count = 1U;
+  policy.manual_representations[0].has_section_index = 1U;
+  policy.manual_representations[0].section_index = 0U;
+  policy.manual_representations[0].offset = 0U;
+  policy.manual_representations[0].size = 4U;
+  policy.manual_representations[0].style_id = M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL;
+  policy.manual_representations[0].has_operand_index = 1U;
+  policy.manual_representations[0].operand_index = 0U;
+  policy.manual_representations[0].target_equate_index = 1U;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source, &profile,
+    &source_analysis, 1U, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "manual_value\tEQU\t$1234\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.l #manual_value,d0\n") != NULL);
+  if (source_analysis.section_count > 0U) {
+    const M68kSectionAnalysisIR *analysis_section = &source_analysis.sections[0];
+    size_t access_index;
+    for (access_index = 0U; access_index < analysis_section->expected_symbol_access_count; ++access_index) {
+      const M68kExpectedSymbolAccessIR *access = &analysis_section->expected_symbol_accesses[access_index];
+      if (access->offset == 0U &&
+          access->operand_index == 0U &&
+          access->access_kind == M68K_EXPECTED_SYMBOL_ACCESS_EQUATE &&
+          access->symbol_name != NULL &&
+          strcmp(access->symbol_name, "manual_value") == 0) {
+        saw_expected_equate_access = 1;
+      }
+    }
+    for (access_index = 0U; access_index < analysis_section->rendered_symbol_access_count; ++access_index) {
+      const M68kRenderedSymbolAccessIR *access = &analysis_section->rendered_symbol_accesses[access_index];
+      if (access->offset == 0U &&
+          access->operand_index == 0U &&
+          access->access_kind == M68K_RENDERED_SYMBOL_ACCESS_EQUATE &&
+          access->symbol_name != NULL &&
+          strcmp(access->symbol_name, "manual_value") == 0) {
+        saw_rendered_equate_access = 1;
+      }
+    }
+  }
+  M68K_C_ASSERT(saw_expected_equate_access);
+  M68K_C_ASSERT(saw_rendered_equate_access);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  m68k_facts_v2_free_text(source);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_render_asm_source_accepts_reachable_68030_pmmu(void) {
   M68kObject object;
   M68kSection section;
@@ -24700,6 +24771,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_collect_source_analysis_does_not_require_rendered_symbols},
     {"facts_v2_render_asm_source_renders_symbolic_pc_relative_data_target",
       test_facts_v2_render_asm_source_renders_symbolic_pc_relative_data_target},
+    {"facts_v2_render_asm_source_records_manual_equate_access",
+      test_facts_v2_render_asm_source_records_manual_equate_access},
     {"facts_v2_render_asm_source_accepts_reachable_68030_pmmu",
       test_facts_v2_render_asm_source_accepts_reachable_68030_pmmu},
     {"facts_v2_render_asm_source_keeps_unrelocated_abs_call_numeric",
