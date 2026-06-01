@@ -10034,18 +10034,15 @@ def test_real_dll_render_plan_data_classes_reach_listing_rows() -> None:
 def test_real_dll_platform_calls_are_not_unresolved_indirect_sites() -> None:
     _requires_c_backend_dlls()
 
-    for target_name in ["amiga_hunk_genam", "amiga_hunk_monam302"]:
-        combined = _facts_v2_listing_analysis_for_project(target_name)
-        for section in combined["analysis"]["sections"]:
-            platform_call_offsets = {
-                call["offset"] for call in section["recovered_platform_calls"]
-            }
-            unresolved_indirect_offsets = {
-                site["offset"]
-                for site in section["recovered_indirect_sites"]
-                if site["status"] == "unresolved"
-            }
-            assert unresolved_indirect_offsets.isdisjoint(platform_call_offsets)
+    combined = _facts_v2_listing_analysis_for_project("amiga_hunk_genam")
+    for section in combined["analysis"]["sections"]:
+        platform_call_offsets = {call["offset"] for call in section["recovered_platform_calls"]}
+        unresolved_indirect_offsets = {
+            site["offset"]
+            for site in section["recovered_indirect_sites"]
+            if site["status"] == "unresolved"
+        }
+        assert unresolved_indirect_offsets.isdisjoint(platform_call_offsets)
 
 
 def test_real_dll_genam_register_copied_code_target_promotes_code() -> None:

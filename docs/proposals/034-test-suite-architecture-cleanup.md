@@ -2400,6 +2400,34 @@ pytest tests\test_c_backend.py -m real_integration -k "monam_callback_field_targ
   slowest call: 0.68s
 ```
 
+### Slice 4E - Narrow Platform Call Unresolved-Site Sentinel
+
+`test_real_dll_platform_calls_are_not_unresolved_indirect_sites` looped GenAm
+and MonAm:
+
+```text
+GenAm
+  recovered platform calls: 128
+  unresolved indirect sites: 6
+
+MonAm
+  recovered platform calls: 278
+  unresolved indirect sites: 0
+```
+
+GenAm is the useful real sentinel because it has both sides of the invariant.
+MonAm made the test slower without increasing the assertion strength. The
+lower C layer already owns the rule that resolved platform calls are not
+reported as unresolved indirect sites.
+
+Focused verification:
+
+```text
+pytest tests\test_c_backend.py -m real_integration -k "platform_calls_are_not_unresolved" -q --durations=10
+  1 passed, 223 deselected in 2.41s
+  slowest call: 1.50s
+```
+
 Updated non-real C backend layer:
 
 ```text
@@ -2898,13 +2926,13 @@ fixture cleanup, and Damocles copied-stub native execution deferral:
 
 ```text
 pytest tests -q --durations=20
-  1242 passed, 405 deselected in 16.17s
+  1242 passed, 405 deselected in 14.91s
 
 pytest tests -m integration -q
   202 passed, 1446 deselected in 30.07s
 
 pytest tests -m real_integration -q --durations=20
-  129 passed, 16 skipped, 1502 deselected in 58.75s
+  129 passed, 16 skipped, 1502 deselected in 54.86s
 
 uv run ruff check
   passed
@@ -2985,12 +3013,12 @@ listing pass, and Damocles candidate analysis no longer pays native copied-stub
 execution. The largest remaining real fixture overreach is:
 
 ```text
-Pandora BK provider wrapper                     6.27s
-Pandora table descriptors/evidence bounds       4.14s
-Bloodwych generated source exact                3.19s
-platform calls unresolved indirect sentinel     3.08s
-Damocles deferred-analysis sentinel             2.98s
-GenAm autonomous RSSET sentinel                 2.97s
+Pandora BK provider wrapper                     5.93s
+Pandora table descriptors/evidence bounds       4.04s
+Bloodwych generated source exact                3.01s
+GenAm autonomous RSSET sentinel                 2.96s
+Damocles deferred-analysis sentinel             2.80s
+Magicland self-decrunch materialization         2.41s
 ```
 
 ## Trailing Notes And Follow-Up Observations
