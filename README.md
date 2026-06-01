@@ -1,10 +1,15 @@
-# Amiga Reversing Toolkit
+# M68k Reversing Toolkit
 
-Spec-driven toolchain for reverse engineering Amiga 68000 binaries. All M68K
-knowledge is extracted from the Motorola Programmer's Reference Manual PDF into
-structured JSON, then used to generate a disassembler, assembler, symbolic
-executor, and effect predictor. External oracles (vasm, Musashi) verify the
-generated tools -- they are never part of the toolchain itself.
+This is an LLM written toolkit. While the direction and implementation choices
+of the LLM have been overseen and guided, it was automatically programmed and
+no code has been written by hand. As such this is an experiment in prototyping
+things what would not otherwise get written if it were not being done
+automatically. By definition this is vibe coded.
+
+The core of the development has been to try and build a programmatically
+generated knowledge base. This is extracted from system documents from PDFs,
+NDKs and include files (`.fd`, `.h`, `.c`). Then it is used to generate `.c`
+and `.h` files for the underlying C-based framework to build on.
 
 ## Structure
 

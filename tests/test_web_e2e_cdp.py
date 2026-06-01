@@ -927,6 +927,57 @@ def test_brave_cdp_can_open_project_and_render_listing(monkeypatch: pytest.Monke
 
 
 @pytest.mark.web_e2e
+def test_brave_cdp_asset_data_bootblock_renders_hex_without_listing_job(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    project_root = tmp_path
+    target_dir = project_root / "targets" / "amiga_disk_demo__amiga_raw_bootblock"
+    target_dir.mkdir(parents=True)
+    (target_dir / "binary.bin").write_bytes(b"DOS\0" + (b"\0" * 1020))
+    (target_dir / "source_binary.json").write_text(
+        json.dumps(
+            {
+                "kind": "asset_data",
+                "path": "targets/amiga_disk_demo__amiga_raw_bootblock/binary.bin",
+                "load_address": 0x70000,
+                "role": "bootblock",
+            }
+        ),
+        encoding="utf-8",
+    )
+    project = replace(
+        _binary_project("amiga_disk_demo__amiga_raw_bootblock"),
+        target_dir=str(target_dir),
+        output_path=None,
+        binary_path="bin/demo.adf::bootblock",
+        target_type="bootblock",
+    )
+    monkeypatch.setattr(disasm_server, "PROJECT_ROOT", project_root)
+    monkeypatch.setattr(disasm_server, "get_project", lambda project_name: project)
+    monkeypatch.setattr(disasm_server, "mark_project_opened", lambda project_name: project)
+    monkeypatch.setattr(
+        disasm_server,
+        "_start_listing_job",
+        lambda project_name: pytest.fail("asset_data project must not start a listing job"),
+    )
+
+    with _live_server() as base_url, brave_page() as page:
+        page.call("Page.navigate", {"url": f"{base_url}/{project.id}"})
+        page.wait_for_event("Page.loadEventFired")
+        page.wait_for_app_event(
+            "amiga:project-rendered",
+            "detail.generation === 'asset-data'",
+        )
+        assert page.evaluate("document.querySelector('#project-title')?.textContent") == project.id
+        assert page.evaluate("document.querySelector('#listing-viewport')?.textContent.includes('Bootblock bytes')")
+        assert page.evaluate("document.querySelector('#listing-viewport')?.textContent.includes('Load $70000')")
+        assert page.evaluate("document.querySelector('#listing-viewport')?.textContent.includes('44 4F 53 00')")
+        assert not page.evaluate("document.querySelector('#listing-viewport')?.textContent.includes('Load failed')")
+        page.assert_no_errors()
+
+
+@pytest.mark.web_e2e
 def test_brave_cdp_can_open_single_macos_project_from_home(monkeypatch: pytest.MonkeyPatch) -> None:
     project = _macos_project("macos_mpw_preview")
     monkeypatch.setattr(disasm_server, "list_projects", lambda: [project])
