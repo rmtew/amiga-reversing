@@ -3274,6 +3274,32 @@ cmd /c src\precommit.bat
 pytest tests\test_c_backend.py -m real_integration -q --durations=20
   109 passed, 15 skipped, 91 deselected in 27.04s
 
+pytest tests -q --durations=20
+  1242 passed, 396 deselected in 16.16s
+
+pytest tests -m real_integration -q --durations=20
+  120 passed, 16 skipped, 1502 deselected in 38.01s
+
+pytest tests -m "integration and not real_integration" -q --durations=20
+  203 passed, 1435 deselected in 44.91s
+
+ruff check
+  passed
+
+mypy
+  passed
+
+python -m amiga_reversing.tools.rendered_source_roundtrip_report --update-rendered-source --json
+  55 targets, 0 failures, 39 full-file exact, 15 content-exact only, 1 unsupported
+  no rendered-source file changes
+
+pytest tests\test_web_e2e_cdp.py -m web_e2e -q --durations=20
+  57 passed in 162.39s
+
+pytest tests\test_web_e2e_cdp.py -q --durations=20
+  57 deselected in 0.23s
+  note: default addopts exclude web_e2e, so the explicit web_e2e marker is required for CDP
+
 pytest tests\test_c_backend.py -m real_integration -k "data_classes_reach_listing_rows or 026_table_descriptors" -q --durations=20
   1 passed, 222 deselected in 1.72s
 
@@ -3315,6 +3341,19 @@ Magicland copied-runtime entry                  1.15s
 Pandora BK provider wrapper                     1.11s
 Voodoo Tetragon comparator                      0.99s
 ```
+
+The non-real integration layer is now dominated by two deliberate drift-style
+checks:
+
+```text
+test_generated_mac_os_runtime_metadata_is_current        8.45s
+test_diagnostic_inventory_loads_current_generated_form_tables  3.30s
+```
+
+Those are not good candidates for assertion trimming. They are the one-real-
+world extraction checks that remain after the parser/reporting tests were moved
+to synthetic fixtures. The layer routing should keep `codegen_drift` visible as
+its own opt-in gate rather than mixing it with developer-loop unit tests.
 
 The Bloodwych generated-source exact test is no longer listed here because the
 required full-project round-trip report already covers `amiga_hunk_bloodwych`
