@@ -1009,12 +1009,6 @@ def test_real_dll_magicland_records_loader_file_transfers_without_unproven_asset
         "amiga_disk_magicland-dizzy-1991-codemasters-trsi-lsd__amiga_hunk_md_e066dc14",
         project_root=PROJECT_ROOT,
     )
-    with effective_metadata_file(paths.target_dir) as metadata_path:
-        direct_analysis = analyze_project_source_with_c_backend(
-            paths.binary_source,
-            metadata_path=metadata_path,
-            project_root=PROJECT_ROOT,
-        )
     combined = _facts_v2_listing_analysis_for_project(paths.name)
     analysis = combined["analysis"]
 
@@ -1028,29 +1022,16 @@ def test_real_dll_magicland_records_loader_file_transfers_without_unproven_asset
         for event in analysis["decompression_events"]
         if event.get("source_kind") == "target_loader_file"
     ]
-    direct_target_loader_events = [
-        event
-        for event in direct_analysis["decompression_events"]
-        if event.get("source_kind") == "target_loader_file"
-    ]
     media_transfers = [
         transfer
         for section in analysis["sections"]
         for transfer in section["recovered_platform_media_transfers"]
         if transfer["source_kind"] == "target_loader_file"
     ]
-    direct_media_transfers = [
-        transfer
-        for section in direct_analysis["sections"]
-        for transfer in section["recovered_platform_media_transfers"]
-        if transfer["source_kind"] == "target_loader_file"
-    ]
     by_path = {str(transfer["path"]): transfer for transfer in media_transfers}
 
     assert loader_asset_events == []
-    assert direct_target_loader_events == []
     assert target_loader_events == []
-    assert len(direct_media_transfers) == 14
     assert len(media_transfers) == 14
     assert by_path["TUNE00"]["destination_addr"] == 0x51618
     assert by_path["TUNE00"]["offset"] == 0xD4

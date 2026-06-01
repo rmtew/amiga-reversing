@@ -1763,6 +1763,35 @@ Those are acceptable as retained family sentinels if their assertions stay
 focused. Damocles is the one that needs a structural test seam because the
 native copied-stub path is both expensive and currently unprofiled.
 
+#### Magicland Loader Transfer Checkpoint
+
+`test_real_dll_magicland_records_loader_file_transfers_without_unproven_asset_materialization`
+was doing two analyses of the same Magicland target:
+
+```text
+analyze_project_source_with_c_backend(...)
+_facts_v2_listing_analysis_for_project(...)
+```
+
+Both exposed the same recovered target-loader file-transfer facts. The test now
+uses the combined listing analysis only:
+
+```text
+combined analysis
+  -> no loader-owned decompression events
+  -> no target-loader decompression events
+  -> 14 recovered target_loader_file media transfers
+  -> TUNE00 and MAP destination/offset sentinels
+```
+
+Measured result:
+
+```text
+pytest tests\test_c_backend.py -m real_integration -k "magicland_records_loader_file_transfers" -q --durations=10
+  1 passed, 223 deselected in 2.46s
+  slowest call: 1.57s
+```
+
 ### Bloodwych Runtime And Tables
 
 Current test:
@@ -2835,13 +2864,13 @@ fixture cleanup, and Damocles copied-stub native execution deferral:
 
 ```text
 pytest tests -q --durations=20
-  1242 passed, 405 deselected in 16.74s
+  1242 passed, 405 deselected in 16.16s
 
 pytest tests -m integration -q
   202 passed, 1446 deselected in 30.07s
 
 pytest tests -m real_integration -q --durations=20
-  129 passed, 16 skipped, 1502 deselected in 59.98s
+  129 passed, 16 skipped, 1502 deselected in 60.74s
 
 uv run ruff check
   passed
@@ -2922,12 +2951,12 @@ listing pass, and Damocles candidate analysis no longer pays native copied-stub
 execution. The largest remaining real fixture overreach is:
 
 ```text
-Pandora BK provider wrapper                     6.26s
-Pandora table descriptors/evidence bounds       4.26s
-Bloodwych generated source exact                3.22s
-Damocles deferred-analysis sentinel             2.97s
-GenAm autonomous RSSET sentinel                 2.90s
-Magicland self-decrunch materialization         2.52s
+Pandora BK provider wrapper                     6.44s
+Pandora table descriptors/evidence bounds       4.36s
+Bloodwych generated source exact                3.18s
+Damocles deferred-analysis sentinel             3.10s
+GenAm autonomous RSSET sentinel                 2.95s
+Magicland self-decrunch materialization         2.67s
 ```
 
 ## Trailing Notes And Follow-Up Observations
