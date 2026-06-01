@@ -10778,6 +10778,38 @@ static int test_source_quality_analyze_accepts_rendered_expected_symbol_access(v
   return 0;
 }
 
+static int test_source_quality_analyze_warns_unreferenced_label_statement(void) {
+  M68kSourceAnalysisIR source_analysis;
+  M68kSectionAnalysisIR section_analysis;
+  M68kRenderedSymbolAccessIR rendered_access;
+  char *analysis_json = NULL;
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_create(&source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_create(&section_analysis, test_ir_result_arena()));
+  section_analysis.section_index = 0U;
+  memset(&rendered_access, 0, sizeof(rendered_access));
+  rendered_access.symbol_name = "loc_0_00000004";
+  rendered_access.offset = 4U;
+  rendered_access.target_section_index = 0U;
+  rendered_access.target_offset = 4U;
+  rendered_access.operand_index = UINT32_MAX;
+  rendered_access.access_kind = M68K_RENDERED_SYMBOL_ACCESS_LABEL_STATEMENT;
+  rendered_access.has_target = 1U;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_rendered_symbol_access(
+    &section_analysis, &rendered_access));
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
+  M68K_C_ASSERT_INT(0, m68k_source_quality_analyze_rendered_symbol_accesses(&source_analysis));
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"kind\":\"unreferenced_label_statement\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"severity\":\"warning\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"blocker\":false") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"summary\":\"label statement has no rendered symbol reference\"") != NULL);
+  free(analysis_json);
+  m68k_ir_section_analysis_destroy(&section_analysis);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  return 0;
+}
+
 static int test_source_quality_analyze_accepts_branch_target_alias_symbol_access(void) {
   M68kSourceAnalysisIR source_analysis;
   M68kSectionAnalysisIR section_analysis;
@@ -24935,6 +24967,8 @@ int m68k_c_ir_tests(void) {
       test_source_quality_analyze_blocks_missing_expected_symbol_access},
     {"source_quality_analyze_accepts_rendered_expected_symbol_access",
       test_source_quality_analyze_accepts_rendered_expected_symbol_access},
+    {"source_quality_analyze_warns_unreferenced_label_statement",
+      test_source_quality_analyze_warns_unreferenced_label_statement},
     {"source_quality_analyze_accepts_branch_target_alias_symbol_access",
       test_source_quality_analyze_accepts_branch_target_alias_symbol_access},
     {"source_quality_analyze_exports_code_origins_and_runs",

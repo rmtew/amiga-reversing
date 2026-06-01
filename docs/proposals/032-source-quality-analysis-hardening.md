@@ -4906,3 +4906,33 @@ src\build\m68k_c_unit_tests.exe m68k_ir
 uv run python -m amiga_reversing.tools.rendered_source_roundtrip_report --json
   55 targets, 0 failures, 39 full-file exact, 15 content-exact only, 1 unsupported
 ```
+
+### Unreferenced Label Statement Diagnostics
+
+Rendered label statements are now checked for a separate "is this label used?"
+signal. A label statement no longer satisfies that question by existing:
+
+```text
+rendered label statement
+  -> search rendered symbol accesses at the same target
+  -> ignore label_statement and comment_only rows
+  -> emit unreferenced_label_statement when no non-label reference exists
+```
+
+The diagnostic is currently a warning, not a hard source-export blocker. That
+keeps existing corpus round-trip status stable while making the failure visible
+as a C source-quality fact instead of a renderer-only silence. The next hardening
+step can promote specific unreferenced-label classes to blockers once the corpus
+rows have been reviewed.
+
+The regression fixture is
+`source_quality_analyze_warns_unreferenced_label_statement`.
+
+Verified:
+
+```text
+cmd /c src\build.bat
+src\build\m68k_c_unit_tests.exe m68k_ir
+uv run python -m amiga_reversing.tools.rendered_source_roundtrip_report --json
+  55 targets, 0 failures, 39 full-file exact, 15 content-exact only, 1 unsupported
+```

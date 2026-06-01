@@ -613,6 +613,61 @@ static int append_missing_expected_symbol_access_diagnostics_for_section(M68kSec
   return 0;
 }
 
+static int rendered_symbol_access_references_label(const M68kRenderedSymbolAccessIR *label,
+    const M68kRenderedSymbolAccessIR *access) {
+  if (label == NULL || access == NULL || access->comment_only ||
+      access->access_kind == M68K_RENDERED_SYMBOL_ACCESS_LABEL_STATEMENT ||
+      access->access_kind == M68K_RENDERED_SYMBOL_ACCESS_UNKNOWN) {
+    return 0;
+  }
+  if (label->has_target && access->has_target) {
+    return label->target_section_index == access->target_section_index &&
+      label->target_offset == access->target_offset;
+  }
+  return label->symbol_name != NULL && access->symbol_name != NULL &&
+    strcmp(label->symbol_name, access->symbol_name) == 0;
+}
+
+static int section_has_rendered_reference_to_label(const M68kSectionAnalysisIR *section,
+    const M68kRenderedSymbolAccessIR *label) {
+  size_t index;
+  if (section == NULL || label == NULL) return 0;
+  for (index = 0U; index < section->rendered_symbol_access_count; ++index) {
+    if (rendered_symbol_access_references_label(label, &section->rendered_symbol_accesses[index])) return 1;
+  }
+  return 0;
+}
+
+static int append_unreferenced_label_statement_diagnostic(M68kSectionAnalysisIR *section,
+    const M68kRenderedSymbolAccessIR *label) {
+  M68kSourceQualityDiagnosticIR diagnostic;
+  if (section == NULL || label == NULL) return -1;
+  memset(&diagnostic, 0, sizeof(diagnostic));
+  diagnostic.kind = M68K_SOURCE_QUALITY_DIAGNOSTIC_UNREFERENCED_LABEL_STATEMENT;
+  diagnostic.severity = M68K_SOURCE_QUALITY_DIAGNOSTIC_SEVERITY_WARNING;
+  diagnostic.origin = M68K_SOURCE_QUALITY_DIAGNOSTIC_ORIGIN_RENDER_EXPORT;
+  diagnostic.has_section_index = 1U;
+  diagnostic.section_index = (uint32_t)section->section_index;
+  diagnostic.has_offset = 1U;
+  diagnostic.offset = label->offset;
+  diagnostic.summary = "label statement has no rendered symbol reference";
+  diagnostic.evidence_source = "rendered_symbol_access";
+  return m68k_ir_section_analysis_append_source_quality_diagnostic(section, &diagnostic);
+}
+
+static int append_unreferenced_label_statement_diagnostics_for_section(M68kSectionAnalysisIR *section) {
+  size_t index;
+  if (section == NULL) return -1;
+  for (index = 0U; index < section->rendered_symbol_access_count; ++index) {
+    const M68kRenderedSymbolAccessIR *access = &section->rendered_symbol_accesses[index];
+    if (access->access_kind != M68K_RENDERED_SYMBOL_ACCESS_LABEL_STATEMENT || access->comment_only) continue;
+    if (!section_has_rendered_reference_to_label(section, access)) {
+      if (append_unreferenced_label_statement_diagnostic(section, access) != 0) return -1;
+    }
+  }
+  return 0;
+}
+
 static int append_accepted_code_range_ownerships_for_section(M68kSectionAnalysisIR *section) {
   uint32_t cursor;
   if (section == NULL || section->certain_code_byte == NULL || section->certain_code_size == 0U) return 0;
@@ -1803,6 +1858,10 @@ int m68k_source_quality_analyze_rendered_symbol_accesses(M68kSourceAnalysisIR *s
   if (source_analysis == NULL) return -1;
   for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
     if (append_missing_expected_symbol_access_diagnostics_for_section(
+        &source_analysis->sections[section_index]) != 0) {
+      return -1;
+    }
+    if (append_unreferenced_label_statement_diagnostics_for_section(
         &source_analysis->sections[section_index]) != 0) {
       return -1;
     }

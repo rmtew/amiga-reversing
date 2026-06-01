@@ -312,6 +312,8 @@ const char *m68k_source_quality_diagnostic_kind_name(uint8_t kind) {
       return "manual_evidence_conflict";
     case M68K_SOURCE_QUALITY_DIAGNOSTIC_ACCEPTED_CODE_WITHOUT_EXECUTABLE_ORIGIN:
       return "accepted_code_without_executable_origin";
+    case M68K_SOURCE_QUALITY_DIAGNOSTIC_UNREFERENCED_LABEL_STATEMENT:
+      return "unreferenced_label_statement";
     default:
       return "unknown";
   }
