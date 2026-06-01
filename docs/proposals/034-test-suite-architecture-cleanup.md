@@ -1873,10 +1873,11 @@ test_real_dll_026_table_descriptors_use_evidence_bounds_not_caps
   no longer builds a full listing artifact or navigation payload
   keeps the Pandora runtime-view and table-bound evidence sentinel
   drops source-render assertions from this analysis-only test
+  no longer asserts detailed table entry/reference export mechanics
 
 remaining work:
   add compact render fixtures for the removed source snippets
-  split string-table and dispatch-table descriptor details by rule
+  keep table entry/reference export details in C/source-analysis contract tests
 ```
 
 #### Data-Class Candidate Pre-Research
@@ -2701,13 +2702,13 @@ fixture cleanup:
 
 ```text
 pytest tests -q --durations=20
-  1242 passed, 407 deselected in 15.17s
+  1242 passed, 407 deselected in 14.78s
 
 pytest tests -m integration -q
   202 passed, 1446 deselected in 30.07s
 
 pytest tests -m real_integration -q --durations=20
-  131 passed, 16 skipped, 1502 deselected in 76.78s
+  131 passed, 16 skipped, 1502 deselected in 73.18s
 
 uv run ruff check
   passed
@@ -2777,10 +2778,10 @@ The latest real-integration profile now has no separate Bloodwych runtime/table
 listing pass. The largest remaining real fixture overreach is:
 
 ```text
-Damocles copied-stub native unpacking          13.51s
-Pandora BK provider wrapper                     6.11s
-data-class rows                                4.81s
-Pandora table descriptors/evidence bounds       4.11s
+Damocles copied-stub native unpacking          13.18s
+Pandora BK provider wrapper                     5.71s
+data-class rows                                4.60s
+Pandora table descriptors/evidence bounds       3.80s
 ```
 
 ## Trailing Notes And Follow-Up Observations
