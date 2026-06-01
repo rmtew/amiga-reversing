@@ -1589,11 +1589,21 @@ hash/materialization contract
 #### Slice 7 Implementation Checkpoint - Pandora Real Smoke Narrowed
 
 The real Pandora BK wrapper test no longer asserts exact packed size,
-decompressed size, or decompressed hash. It now keeps the real corpus proof:
+decompressed size, or decompressed hash. A fast section-range decompression
+contract now owns provider/codec/materialized-byte assertions:
 
 ```text
-one BK payload is detected by ancient-cli
-payload is at section 0 offset $E8
+test_decompression_c_backend_pandora_bk_section_range_contract
+  decompress section 0 offset $E8 size 189000
+  provider_id ancient-cli
+  codec_id bk
+  decompressed size matches output file
+  decompressed sha256 matches the known BK payload
+```
+
+The real wrapper test now keeps only the real corpus promotion proof:
+
+```text
 one derived target suggestion exists
 one decompression event exists
 suggestion/event are materializable
@@ -1617,10 +1627,19 @@ provider output packet + absolute transfer proof
   -> primary_program load/entry identity
 ```
 
-Today that seam is only reachable through full C analysis of a packed real
-fixture. A future backend contract should make provider-wrapper promotion
-testable without carrying a 189000-byte real packed payload in the assertion
-path.
+Today that promotion seam is only reachable through full C analysis of a packed
+real fixture. The provider/decompression assertions are now cheap, but a future
+backend contract should still make provider-wrapper promotion testable without
+carrying a 189000-byte real packed payload in the assertion path.
+
+Focused verification:
+
+```text
+pytest tests\test_c_backend.py -m c_backend -k "pandora_bk" -q --durations=20
+  2 passed, 222 deselected in 6.89s
+  real wrapper promotion  5.95s
+  section-range contract  0.11s
+```
 
 ### Voodoo, Magicland, Conqueror Decrunchers
 
@@ -2682,13 +2701,13 @@ fixture cleanup:
 
 ```text
 pytest tests -q --durations=20
-  1242 passed, 406 deselected in 15.70s
+  1242 passed, 407 deselected in 15.17s
 
 pytest tests -m integration -q
   202 passed, 1446 deselected in 30.07s
 
 pytest tests -m real_integration -q --durations=20
-  131 passed, 16 skipped, 1501 deselected in 78.30s
+  131 passed, 16 skipped, 1502 deselected in 76.78s
 
 uv run ruff check
   passed
@@ -2758,10 +2777,10 @@ The latest real-integration profile now has no separate Bloodwych runtime/table
 listing pass. The largest remaining real fixture overreach is:
 
 ```text
-Damocles copied-stub native unpacking          14.01s
-Pandora BK provider wrapper                     6.15s
-data-class rows                                4.75s
-Pandora table descriptors/evidence bounds       3.98s
+Damocles copied-stub native unpacking          13.51s
+Pandora BK provider wrapper                     6.11s
+data-class rows                                4.81s
+Pandora table descriptors/evidence bounds       4.11s
 ```
 
 ## Trailing Notes And Follow-Up Observations

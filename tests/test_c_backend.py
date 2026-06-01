@@ -970,6 +970,32 @@ def test_decompression_c_backend_section_range_reports_unknown_payload(tmp_path:
     assert not output.exists()
 
 
+def test_decompression_c_backend_pandora_bk_section_range_contract(tmp_path: Path) -> None:
+    _requires_c_backend_dlls()
+    fixture = PROJECT_ROOT / "tests" / "fixtures" / "hunk" / "pandora_bk_wrapper.bin"
+    output = tmp_path / "pandora_bk_payload.bin"
+
+    decompressed = decompress_packed_section_range_with_c_backend(
+        "amiga-hunk",
+        fixture,
+        0,
+        0xE8,
+        189000,
+        output,
+        project_root=PROJECT_ROOT,
+    )
+    payload = decompressed["packed_payloads"][0]
+
+    assert decompressed["status"] == "ok"
+    assert payload["provider_id"] == "ancient-cli"
+    assert payload["codec_id"] == "bk"
+    assert payload["source_section"] == 0
+    assert payload["source_section_offset"] == 0xE8
+    assert payload["packed_size"] == 189000
+    assert payload["decompressed_size"] == output.stat().st_size
+    assert payload["decompressed_sha256"] == "70480017cbedb4ed1d28c0bb190917720b8d2780914c37622b0df92c070aee8f"
+
+
 def _facts_v2_listing_analysis_for_project(target_name: str) -> dict[str, object]:
     _requires_project_paths(target_name)
     payload = analyze_project_with_c_artifact(target_name, project_root=PROJECT_ROOT)
@@ -10339,19 +10365,11 @@ def test_real_dll_pandora_bk_provider_wrapper_promotes_absolute_payload() -> Non
 
     fixture = PROJECT_ROOT / "tests" / "fixtures" / "hunk" / "pandora_bk_wrapper.bin"
     analysis = analyze_binary_source_with_c_backend(fixture, project_root=PROJECT_ROOT)
-    payloads = analysis["packed_payloads"]
     suggestions = analysis["derived_target_suggestions"]
     events = analysis["decompression_events"]
 
-    assert len(payloads) == 1
     assert len(suggestions) == 1
     assert len(events) == 1
-    assert payloads[0]["provider_id"] == "ancient-cli"
-    assert payloads[0]["codec_id"] == "bk"
-    assert payloads[0]["source_section"] == 0
-    assert payloads[0]["source_section_offset"] == 0xE8
-    assert payloads[0]["packed_size"] > 0
-    assert payloads[0]["decompressed_size"] > 0
     assert suggestions[0]["status"] == "materializable"
     assert suggestions[0]["reason"] == "initial_control_target_validated_provider_wrapper"
     assert suggestions[0]["payload_role"] == "primary_program"
