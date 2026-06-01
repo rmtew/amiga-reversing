@@ -1846,6 +1846,20 @@ shape for runtime views, table descriptors, table entries, source rendering,
 and false-positive exclusions. It should be split by rule before trying to
 optimise the implementation.
 
+Implementation checkpoint:
+
+```text
+test_real_dll_026_table_descriptors_use_evidence_bounds_not_caps
+  now uses analyze_project_source_with_c_backend()
+  no longer builds a full listing artifact or navigation payload
+  keeps the Pandora runtime-view and table-bound evidence sentinel
+  drops source-render assertions from this analysis-only test
+
+remaining work:
+  add compact render fixtures for the removed source snippets
+  split string-table and dispatch-table descriptor details by rule
+```
+
 #### Data-Class Candidate Pre-Research
 
 The candidate-generation lower seam already exists:
@@ -1893,6 +1907,8 @@ Implementation checkpoint:
 test_real_dll_render_plan_data_classes_reach_listing_rows_navigation_and_candidates
   narrowed to real data_class row and typed-data navigation sentinels
   no longer calls reversing_loop._listing_data_symbol_candidates()
+  generates typed-data navigation only for the Bloodwych navigation sentinel
+  uses row-window listing payloads for GenAm and MonAm row survival checks
 
 tests/test_reversing_loop.py
   retains direct synthetic data-symbol candidate coverage
@@ -1902,8 +1918,8 @@ Measured result:
 
 ```text
 pytest tests\test_c_backend.py -m real_integration -k "data_classes_reach_listing_rows" -q --durations=10
-  1 passed, 223 deselected in 6.77s
-  slowest call: 5.93s
+  1 passed, 222 deselected in 6.43s
+  slowest call: 5.54s
 
 pytest tests\test_reversing_loop.py -k "listing_data_symbol_candidates_use_data_class_row_identity or listing_data_symbol_candidates_use_runtime_ref_identity" -q
   2 passed, 434 deselected in 0.33s
@@ -2653,13 +2669,13 @@ fixture narrowing, and the Bloodwych/string real fixture cleanup:
 
 ```text
 pytest tests -q --durations=20
-  1242 passed, 407 deselected in 17.24s
+  1242 passed, 407 deselected in 16.28s
 
 pytest tests -m integration -q
   202 passed, 1446 deselected in 30.07s
 
 pytest tests -m real_integration -q --durations=20
-  132 passed, 16 skipped, 1501 deselected in 90.15s
+  132 passed, 16 skipped, 1501 deselected in 89.84s
 
 uv run ruff check
   passed
@@ -2703,6 +2719,9 @@ pytest tests\test_c_backend.py -m real_integration -k "pandora_bk_provider_wrapp
 pytest tests\test_c_backend.py -m real_integration -k "bloodwych or 025_string_text_examples or data_classes_reach_listing_rows" -q --durations=20
   3 passed, 220 deselected in 10.32s
 
+pytest tests\test_c_backend.py -m real_integration -k "data_classes_reach_listing_rows or 026_table_descriptors" -q --durations=20
+  2 passed, 221 deselected in 11.01s
+
 pytest tests\test_active_imports.py -q --durations=10
   5 passed in 1.28s
 
@@ -2726,11 +2745,11 @@ The latest real-integration profile now has no separate Bloodwych runtime/table
 listing pass. The largest remaining real fixture overreach is:
 
 ```text
-Damocles copied-stub native unpacking          13.79s
-MPW real image import                           9.39s
-Pandora BK provider wrapper                     6.01s
-data-class rows/navigation                      5.24s
-Pandora table descriptors/evidence bounds       4.92s
+Damocles copied-stub native unpacking          14.16s
+MPW real image import                          10.05s
+Pandora BK provider wrapper                     6.04s
+data-class rows/navigation                      5.55s
+Pandora table descriptors/evidence bounds       4.03s
 ```
 
 ## Trailing Notes And Follow-Up Observations

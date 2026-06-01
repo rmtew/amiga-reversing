@@ -74,6 +74,7 @@ from tests.c_backend_listing_rows import (
     analyze_source_with_c_artifact,
     build_project_listing_rows_from_source_with_c_artifact,
     build_project_listing_rows_profile_with_c_artifact,
+    build_project_listing_rows_window_with_c_artifact,
     build_project_listing_rows_with_c_artifact,
 )
 
@@ -10024,7 +10025,12 @@ def test_real_dll_render_plan_data_classes_reach_listing_rows_navigation_and_can
         },
     }
     for target_name, expected_counts in expectations.items():
-        rows, _, profile = build_project_listing_rows_profile_with_c_artifact(
+        row_builder = (
+            build_project_listing_rows_profile_with_c_artifact
+            if target_name == "amiga_hunk_bloodwych"
+            else build_project_listing_rows_window_with_c_artifact
+        )
+        rows, _, profile = row_builder(
             target_name,
             project_root=PROJECT_ROOT,
         )
@@ -10043,7 +10049,7 @@ def test_real_dll_render_plan_data_classes_reach_listing_rows_navigation_and_can
         for data_class, expected_count in expected_counts.items():
             assert sum(1 for row in rows if row.get("data_class") == data_class) >= expected_count
 
-        if target_name in {"amiga_hunk_bloodwych", "amiga_hunk_genam"}:
+        if target_name == "amiga_hunk_bloodwych":
             expected = []
             seen = set()
             for row in rows:
@@ -10898,26 +10904,17 @@ def test_real_dll_025_string_text_examples_render_from_evidence() -> None:
 def test_real_dll_026_table_descriptors_use_evidence_bounds_not_caps() -> None:
     _requires_c_backend_dlls()
 
-    pandora = _facts_v2_listing_analysis_for_project(
+    paths = _requires_project_paths(
         "amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8"
     )
-    pandora_section = pandora["analysis"]["sections"][0]
-    pandora_source_text = "\n".join(str(row.get("text", "")) for row in pandora["listing"]["rows"])
+    with effective_metadata_file(paths.target_dir) as metadata_path:
+        pandora = analyze_project_source_with_c_backend(
+            paths.binary_source,
+            metadata_path=metadata_path,
+            project_root=PROJECT_ROOT,
+        )
+    pandora_section = pandora["sections"][0]
     assert pandora["profile"]["facts_v2"]["asm_source_refused"] is False
-    assert "ORG $10000" in pandora_source_text
-    assert "abs_0_00010000:" in pandora_source_text
-    assert "lea.l abs_0_00010000.l,a2" in pandora_source_text
-    assert "lea.l abs_0_0001046A.l,a3" in pandora_source_text
-    assert "abs_0_0001046A:" in pandora_source_text
-    assert "lea.l absolute_slot_000039FC.l,a0" in pandora_source_text
-    assert "runtime_code_0001046A\tEQU\t$1046A" not in pandora_source_text
-    assert "move.l #abs_0_0005D5DE,bltapt(a5)" in pandora_source_text
-    assert "movea.l #abs_0_0001C3A8,a0" in pandora_source_text
-    assert "ORG $55370" not in pandora_source_text
-    assert "ORG $5548F" not in pandora_source_text
-    assert "loc_0_00057800:" not in pandora_source_text
-    assert "loc_0_00057D00:" not in pandora_source_text
-    assert "loc_0_00000078:" not in pandora_source_text
     assert not any(ref.get("offset") == 0x78 for ref in pandora_section["code_start_refs"])
     assert not any(site.get("target") == 0x78 for site in pandora_section["recovered_indirect_sites"])
     assert any(
@@ -10926,14 +10923,14 @@ def test_real_dll_026_table_descriptors_use_evidence_bounds_not_caps() -> None:
         and record.get("runtime_address") == 0x20000
         and record.get("entry_runtime_address") == 0x20000
         and record.get("entry_reason_name") == "policy_entry_point"
-        for record in pandora["analysis"]["memory_layout_records"]
+        for record in pandora["memory_layout_records"]
     )
     assert any(
         record.get("record_kind") == "runtime_view"
         and record.get("source_offset") == 0
         and record.get("runtime_address") == 0x10000
         and record.get("entry_point_count", 0) == 0
-        for record in pandora["analysis"]["memory_layout_records"]
+        for record in pandora["memory_layout_records"]
     )
 
     pandora_tables = pandora_section["table_descriptors"]

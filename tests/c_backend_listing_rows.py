@@ -22,6 +22,23 @@ def build_project_listing_rows_with_c_artifact(
     return cast(ProjectRowsResult, deepcopy(_cached_project_listing_rows(project_name, str(project_root.resolve()))))
 
 
+def build_project_listing_rows_window_with_c_artifact(
+    project_name: str,
+    *,
+    project_root: Path = PROJECT_ROOT,
+) -> ProjectRowsResult:
+    total_rows, profile, artifact = c_backend.build_project_listing_artifact_profile(
+        project_name,
+        project_root=project_root,
+    )
+    try:
+        payload, window_profile = artifact.window_payload(start=0, count=total_rows)
+        rows = list(payload["rows"])
+        return rows, _api_calls_from_rows(rows), {**profile, **window_profile}
+    finally:
+        artifact.close()
+
+
 @cache
 def _cached_project_listing_rows(project_name: str, project_root_text: str) -> ProjectRowsResult:
     project_root = Path(project_root_text)
