@@ -10794,20 +10794,6 @@ def test_real_dll_025_string_text_examples_render_from_evidence() -> None:
     assert '\tdc.b "NuD0        00000000",$00' not in source_text
 
 
-def test_real_dll_028_immediate_text_tokens_are_instruction_operand_facts() -> None:
-    _requires_c_backend_dlls()
-
-    monam = _facts_v2_listing_analysis_for_project("amiga_hunk_monam302")
-    monam_section = monam["analysis"]["sections"][0]
-    monam_token = next(
-        token for token in monam_section["immediate_text_tokens"] if token["text"] == "DEV "
-    )
-    assert monam_token["source_offset"] == 186
-    assert monam_token["operand_index"] == 0
-    assert monam_token["width"] == 4
-    assert monam_token["value"] == 0x44455620
-
-
 def test_real_dll_starglider_mathtrans_linkage_api_labels_promote_wrappers() -> None:
     _requires_c_backend_dlls()
 

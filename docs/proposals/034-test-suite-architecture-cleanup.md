@@ -2545,7 +2545,7 @@ same exported-token contract over MonAm and GenAm. The C unit layer already
 proves immediate text tokens export source offset, operand index, width, value,
 text, and JSON fields from a compact instruction fixture.
 
-The real layer now keeps one corpus sentinel:
+The real layer briefly kept one corpus sentinel:
 
 ```text
 MonAm
@@ -2556,12 +2556,17 @@ MonAm
   value: $44455620
 ```
 
+Later cleanup removed
+`test_real_dll_028_immediate_text_tokens_are_instruction_operand_facts`
+entirely. It did not protect a distinct target workflow; it re-ran a full MonAm
+analysis to prove the same token-export contract already covered by
+`source_analysis_immediate_text_token_exports_operand_fact`.
+
 Focused verification:
 
 ```text
-pytest tests\test_c_backend.py -m real_integration -k "immediate_text_tokens" -q --durations=10
-  1 passed, 223 deselected in 2.27s
-  slowest call: 1.42s
+pytest tests\test_c_backend.py -m real_integration -q --durations=20
+  113 passed, 15 skipped, 91 deselected in 37.37s
 ```
 
 Updated non-real C backend layer:
@@ -3061,17 +3066,17 @@ fixture narrowing, duplicate MPW payload removal, the Bloodwych/string real
 fixture cleanup, Damocles copied-stub native execution deferral, Pandora
 provider-wrapper validation deferral, GenAm agent RSSET sentinel narrowing,
 Bloodwych exact-test removal, Magicland materialization-test removal, and
-platform unresolved-sweep removal:
+platform unresolved-sweep removal, and immediate-text real sentinel removal:
 
 ```text
 pytest tests -q --durations=20
-  1242 passed, 401 deselected in 17.54s
+  1242 passed, 400 deselected in 17.70s
 
 pytest tests -m integration -q
   202 passed, 1446 deselected in 30.07s
 
 pytest tests -m real_integration -q --durations=20
-  125 passed, 16 skipped, 1502 deselected in 45.57s
+  124 passed, 16 skipped, 1502 deselected in 48.26s
 
 uv run ruff check
   passed
@@ -3120,7 +3125,7 @@ pytest tests\test_c_backend.py -m real_integration -k "pandora_bk_provider_wrapp
   1 passed, 223 deselected in 1.19s
 
 pytest tests\test_c_backend.py -m real_integration -q --durations=20
-  114 passed, 15 skipped, 91 deselected in 36.87s
+  113 passed, 15 skipped, 91 deselected in 37.37s
 
 pytest tests\test_c_backend.py -m real_integration -k "data_classes_reach_listing_rows or 026_table_descriptors" -q --durations=20
   1 passed, 222 deselected in 1.72s
@@ -3155,10 +3160,10 @@ descriptor coverage has moved to C/source-analysis contracts. The largest
 remaining real fixture overreach is:
 
 ```text
-Damocles deferred-analysis sentinel             2.97s
-GenAm autonomous RSSET sentinel                 2.31s
-Immediate text real sentinel                    1.87s
-Magicland loader file transfers                 1.82s
+Damocles deferred-analysis sentinel             3.76s
+GenAm autonomous RSSET sentinel                 2.42s
+MonAm OpenLibrary app-slot DOS calls            1.95s
+Magicland loader file transfers                 1.84s
 ```
 
 The Bloodwych generated-source exact test is no longer listed here because the
@@ -3204,7 +3209,7 @@ The default loop is under 20s in the clean timing run:
 
 ```text
 pytest tests -q
-  1242 passed, 401 deselected in 17.54s
+  1242 passed, 400 deselected in 17.70s
 ```
 
 The slowest remaining default tests are not the converted route command tests.
