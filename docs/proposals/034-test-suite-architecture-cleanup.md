@@ -1909,8 +1909,8 @@ synthetic indexed branch fixture fails
 synthetic scalar table fixture fails
   -> table bound proof is broken
 
-real Bloodwych sentinel fails
-  -> target-specific integration regressed
+project-wide rendered source report fails on Bloodwych
+  -> target-specific round-trip integration regressed
 ```
 
 Implementation checkpoint:
@@ -1919,8 +1919,8 @@ Implementation checkpoint:
 removed:
   test_real_dll_bloodwych_detects_runtime_copy_loader_and_table_rows
 
-retained real Bloodwych proof:
-  test_real_dll_bloodwych_generated_source_assembles_exact
+retained Bloodwych proof:
+  project-wide rendered source round-trip report
 
 existing compact coverage:
   runtime ORG/storage alias tests
@@ -2186,7 +2186,7 @@ pytest tests\test_c_backend.py -m c_backend -k "rsset_layout_region" -q --durati
 
 ### Bloodwych Generated Source Exactness
 
-Current test:
+Original test:
 
 ```text
 test_real_dll_bloodwych_generated_source_assembles_exact
@@ -2200,8 +2200,9 @@ test_real_dll_bloodwych_generated_source_assembles_exact
 Split:
 
 ```text
-real rebuild sentinel
-  Bloodwych full source assembles and section bytes match
+project round-trip report
+  Bloodwych content is exact
+  known container shape mismatch is reported explicitly
 
 render contracts
   small render fixtures for:
@@ -2223,21 +2224,7 @@ The full rebuild should not also be the only test for every renderer string.
 Implementation checkpoint:
 
 ```text
-test_real_dll_bloodwych_generated_source_assembles_exact
-  now keeps:
-    full source render
-    full source assemble
-    rebuilt hunk section byte comparison
-    source refusal / instruction mismatch checks
-    a small set of representative source smoke sentinels
-
-  no longer carries:
-    every audio register comment
-    every display register comment
-    every bitmap EQU line
-    every lookup-table variant
-    every pointer-table row
-    every vector rendering assertion
+removed test_real_dll_bloodwych_generated_source_assembles_exact
 ```
 
 The detailed cases are covered by lower seams that already use small inputs:
@@ -2256,10 +2243,12 @@ test_labelized_table_shape_features_and_xrefs
   target-usage feature extraction from selected listing rows
 ```
 
-This pass does not reduce the Bloodwych runtime materially because exact rebuild
-still requires rendering and assembling the real target. It does reduce
-reviewer risk: future renderer changes fail at the smallest relevant contract
-instead of presenting a full Bloodwych failure as the first diagnostic.
+The full-target round-trip invariant is owned by the project-wide rendered
+source report that is required for output-affecting commits. In the current
+report, `amiga_hunk_bloodwych` is content-exact with `diff_range_count: 0` and
+only `container_shape_mismatch`, which is the same ground the test's section
+hex comparison covered. Keeping the per-target real test made the real suite
+pay another full Bloodwych render/assemble while proving less than the report.
 
 ### Slice 4 - Collapse Drift Tests To One Real Pass Per Generator
 
@@ -3063,13 +3052,13 @@ provider-wrapper validation deferral, and GenAm agent RSSET sentinel narrowing:
 
 ```text
 pytest tests -q --durations=20
-  1242 passed, 404 deselected in 18.38s
+  1242 passed, 403 deselected in 16.92s
 
 pytest tests -m integration -q
   202 passed, 1446 deselected in 30.07s
 
 pytest tests -m real_integration -q --durations=20
-  128 passed, 16 skipped, 1502 deselected in 52.31s
+  127 passed, 16 skipped, 1502 deselected in 46.17s
 
 uv run ruff check
   passed
@@ -3117,11 +3106,8 @@ cmd /c src\test.bat --no-build
 pytest tests\test_c_backend.py -m real_integration -k "pandora_bk_provider_wrapper" -q --durations=10
   1 passed, 223 deselected in 1.19s
 
-pytest tests\test_c_backend.py -m real_integration -k "bloodwych or 025_string_text_examples or data_classes_reach_listing_rows" -q --durations=20
-  3 passed, 220 deselected in 10.32s
-
-pytest tests\test_c_backend.py -m real_integration -k "bloodwych_generated_source" -q --durations=10
-  1 passed, 223 deselected in 3.74s
+pytest tests\test_c_backend.py -m real_integration -q --durations=20
+  116 passed, 15 skipped, 91 deselected in 36.30s
 
 pytest tests\test_c_backend.py -m real_integration -k "data_classes_reach_listing_rows or 026_table_descriptors" -q --durations=20
   1 passed, 222 deselected in 1.72s
@@ -3156,12 +3142,16 @@ descriptor coverage has moved to C/source-analysis contracts. The largest
 remaining real fixture overreach is:
 
 ```text
-Bloodwych generated source exact                3.24s
-Damocles deferred-analysis sentinel             2.95s
-Magicland self-decrunch materialization         2.77s
+Damocles deferred-analysis sentinel             2.84s
+Magicland self-decrunch materialization         2.67s
 GenAm autonomous RSSET sentinel                 2.39s
-platform unresolved indirect sites              1.75s
+platform unresolved indirect sites              1.54s
 ```
+
+The Bloodwych generated-source exact test is no longer listed here because the
+required full-project round-trip report already covers `amiga_hunk_bloodwych`
+as content-exact with no byte diff ranges and an explicit container-shape
+diagnostic.
 
 ## Trailing Notes And Follow-Up Observations
 
@@ -3201,7 +3191,7 @@ The default loop is under 20s in the clean timing run:
 
 ```text
 pytest tests -q
-  1242 passed, 404 deselected in 18.38s
+  1242 passed, 403 deselected in 16.92s
 ```
 
 The slowest remaining default tests are not the converted route command tests.

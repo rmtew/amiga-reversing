@@ -275,20 +275,6 @@ def test_load_dll_resolves_relative_project_root_for_windows_dll_directory(
     assert loaded_paths == [str(dll_path.resolve())]
 
 
-def _amiga_hunk_section_hexes(path: Path) -> list[str]:
-    inspector = PROJECT_ROOT / "src" / "build" / "platform_file_cli.exe"
-    result = subprocess.run(
-        [str(inspector), "inspect-file", "amiga-hunk", str(path)],
-        cwd=PROJECT_ROOT,
-        stdin=subprocess.DEVNULL,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    assert result.returncode == 0, result.stderr
-    return [section["data_hex"] for section in json.loads(result.stdout)["sections"]]
-
-
 def test_decompression_c_backend_reports_unknown_payload(tmp_path: Path) -> None:
     _requires_c_backend_dlls()
     payload = tmp_path / "unknown.bin"
@@ -10977,65 +10963,6 @@ def test_real_dll_monam_openlibrary_app_slot_resolves_dos_calls() -> None:
     for offset, symbol_name in expected_calls.items():
         assert calls_by_offset[offset] == symbol_name
         assert offset not in unresolved_offsets
-
-
-def test_real_dll_bloodwych_generated_source_assembles_exact(tmp_path: Path) -> None:
-    _requires_c_backend_dlls()
-    paths = resolve_project_paths(
-        "amiga_hunk_bloodwych",
-        project_root=PROJECT_ROOT,
-    )
-
-    source_text, source_text_profile = listing_artifact_source_text_with_c_backend_profile(
-        paths.binary_source,
-        metadata_path=paths.target_dir / "target_metadata.json",
-        project_root=PROJECT_ROOT,
-    )
-    rebuilt, assembler_profile = assemble_platform_source_text_with_c_backend(
-        "amiga-hunk",
-        source_text,
-        include_dir=PROJECT_ROOT / "ext" / "amiga_includes" / "ndk_2.0" / "include",
-        output_path=tmp_path / "bloodwych_generated_source.hunk",
-        target_cpu="any",
-        project_root=PROJECT_ROOT,
-    )
-
-    assert source_text_profile["facts_v2"]["asm_source_refused"] is False
-    section_pos = source_text.index("    SECTION section,code_c\n")
-    assert source_text.index("    RSSET 0\n") < section_pos
-    assert source_text.index('    INCLUDE "hardware/custom.i"\n') < section_pos
-    assert "loc_0_0000005C:\n    ORG $400\nabs_0_00000400:" in source_text
-    assert "ORG $5C" not in source_text
-    assert "\tmove.w #$400,(a0)\n" in source_text
-    assert "\tmove.w #abs_0_00000400,(a0)\n" not in source_text
-    assert "\tmove.l #abs_0_00008E10,_custom+cop1lc.l\t; copper_list pointer\n" in source_text
-    assert (
-        "abs_0_000015AE:\n"
-        "\tdc.w abs_0_0000166A-abs_0_0000166A\t; lookup_table\n"
-    ) in source_text
-    assert (
-        "\tlea.l abs_0_0000C266-4.l,a0\n"
-        "\tmovea.l $0(a0,d0.w),a0\n"
-        "\tjmp (a0)\n"
-        "abs_0_0000C266:\n"
-        "\tdc.l abs_0_0000C53C\t; pointer_table\n"
-    ) in source_text
-    display_summary = (
-        "    ; display layout 4 bitmap planes $00070000..$00076000 step $2000 | "
-        "display setup 4 bitplanes lores color window v=$37..$FF h=$81..$C1 rows 200 "
-        "fetch $38..$D0 row 40 bytes/plane mod 0/0 span $1F40/plane\n"
-    )
-    assert (
-        "abs_0_00008E10:\n"
-        f"{display_summary}"
-        "\tdc.w bplpt,bitmap_00070000_hi\t; bitmap pointer $00070000\n"
-    ) in source_text
-    assert "$00DFF" not in source_text
-    assert assembler_profile["rebuilt_bytes"] == len(rebuilt)
-    assert _amiga_hunk_section_hexes(tmp_path / "bloodwych_generated_source.hunk") == _amiga_hunk_section_hexes(
-        paths.binary_source.path
-    )
-    assert source_text_profile["facts_v2"]["asm_source_instruction_byte_mismatches"] == 0
 
 
 def test_real_dll_inspects_and_extracts_dos_disk_entry() -> None:
