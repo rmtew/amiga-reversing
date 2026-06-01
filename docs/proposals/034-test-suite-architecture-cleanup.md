@@ -1880,9 +1880,9 @@ Those tests directly feed synthetic rows to:
 reversing_loop._listing_data_symbol_candidates([row])
 ```
 
-That means the real GenAm loop in
+That means the real GenAm loop in the original
 `test_real_dll_render_plan_data_classes_reach_listing_rows_navigation_and_candidates`
-does not need to prove candidate command shape. The real test should narrow to:
+did not need to prove candidate command shape. The real test should narrow to:
 
 ```text
 real data-class sentinel
@@ -1904,22 +1904,25 @@ diagnostic problem: a candidate-generation regression should fail in
 Implementation checkpoint:
 
 ```text
-test_real_dll_render_plan_data_classes_reach_listing_rows_navigation_and_candidates
-  narrowed to real data_class row and typed-data navigation sentinels
+test_real_dll_render_plan_data_classes_reach_listing_rows
+  narrowed to real data_class row survival sentinels
   no longer calls reversing_loop._listing_data_symbol_candidates()
-  generates typed-data navigation only for the Bloodwych navigation sentinel
-  uses row-window listing payloads for GenAm and MonAm row survival checks
+  no longer generates typed-data navigation for a real target
+  uses row-window listing payloads for Bloodwych, GenAm, and MonAm
 
 tests/test_reversing_loop.py
   retains direct synthetic data-symbol candidate coverage
+
+src/test_m68k_ir.c
+  retains direct C coverage for listing_navigation_uses_render_plan_data_class
 ```
 
 Measured result:
 
 ```text
 pytest tests\test_c_backend.py -m real_integration -k "data_classes_reach_listing_rows" -q --durations=10
-  1 passed, 222 deselected in 6.43s
-  slowest call: 5.54s
+  1 passed, 222 deselected in 5.38s
+  slowest call: 4.56s
 
 pytest tests\test_reversing_loop.py -k "listing_data_symbol_candidates_use_data_class_row_identity or listing_data_symbol_candidates_use_runtime_ref_identity" -q
   2 passed, 434 deselected in 0.33s
@@ -2679,13 +2682,13 @@ fixture cleanup:
 
 ```text
 pytest tests -q --durations=20
-  1242 passed, 406 deselected in 16.50s
+  1242 passed, 406 deselected in 15.70s
 
 pytest tests -m integration -q
   202 passed, 1446 deselected in 30.07s
 
 pytest tests -m real_integration -q --durations=20
-  131 passed, 16 skipped, 1501 deselected in 80.01s
+  131 passed, 16 skipped, 1501 deselected in 78.30s
 
 uv run ruff check
   passed
@@ -2755,10 +2758,10 @@ The latest real-integration profile now has no separate Bloodwych runtime/table
 listing pass. The largest remaining real fixture overreach is:
 
 ```text
-Damocles copied-stub native unpacking          15.06s
-Pandora BK provider wrapper                     6.16s
-data-class rows/navigation                      5.73s
-Pandora table descriptors/evidence bounds       4.07s
+Damocles copied-stub native unpacking          14.01s
+Pandora BK provider wrapper                     6.15s
+data-class rows                                4.75s
+Pandora table descriptors/evidence bounds       3.98s
 ```
 
 ## Trailing Notes And Follow-Up Observations

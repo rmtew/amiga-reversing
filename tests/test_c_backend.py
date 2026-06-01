@@ -10005,7 +10005,7 @@ def test_real_dll_genam_profile_exposes_c_app_slot_analysis() -> None:
     assert profile["facts_v2"]["queue_iterations"] < 10000
 
 
-def test_real_dll_render_plan_data_classes_reach_listing_rows_navigation_and_candidates() -> None:
+def test_real_dll_render_plan_data_classes_reach_listing_rows() -> None:
     _requires_c_backend_dlls()
 
     expectations = {
@@ -10025,12 +10025,7 @@ def test_real_dll_render_plan_data_classes_reach_listing_rows_navigation_and_can
         },
     }
     for target_name, expected_counts in expectations.items():
-        row_builder = (
-            build_project_listing_rows_profile_with_c_artifact
-            if target_name == "amiga_hunk_bloodwych"
-            else build_project_listing_rows_window_with_c_artifact
-        )
-        rows, _, profile = row_builder(
+        rows, _, profile = build_project_listing_rows_window_with_c_artifact(
             target_name,
             project_root=PROJECT_ROOT,
         )
@@ -10048,39 +10043,6 @@ def test_real_dll_render_plan_data_classes_reach_listing_rows_navigation_and_can
         ]
         for data_class, expected_count in expected_counts.items():
             assert sum(1 for row in rows if row.get("data_class") == data_class) >= expected_count
-
-        if target_name == "amiga_hunk_bloodwych":
-            expected = []
-            seen = set()
-            for row in rows:
-                key = (row.get("section_index"), row.get("addr"), row.get("data_class"))
-                if row.get("data_class") and row.get("kind") not in {"instruction", "label"} and key not in seen:
-                    seen.add(key)
-                    expected.append(
-                        (
-                            row.get("section_index"),
-                            row.get("addr"),
-                            row.get("comment_text") or row["data_class"],
-                        )
-                    )
-            assert expected
-
-            navigation = profile["navigation"]
-            assert isinstance(navigation, dict)
-            groups = navigation["groups"]
-            assert isinstance(groups, dict)
-            typed_data = groups["typed-data"]
-            assert isinstance(typed_data, list)
-
-            keys = [
-                (entry.get("hunk_index"), entry.get("addr"), entry.get("summary"))
-                for entry in typed_data
-                if isinstance(entry, dict)
-            ]
-            assert len(keys) == len(set(keys))
-            entries = set(keys)
-            for key in expected:
-                assert key in entries
 
 
 def test_real_dll_platform_calls_are_not_unresolved_indirect_sites() -> None:
