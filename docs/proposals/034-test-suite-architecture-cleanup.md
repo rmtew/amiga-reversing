@@ -2033,6 +2033,59 @@ sentinel cost. The next runtime reduction is to split the three real target
 analyses into one target per sentinel or to add synthetic row/navigation
 contracts for the navigation projection itself.
 
+### GenAm Agent Loop Sentinels
+
+The real agent tests had the same shape as the earlier route-command tests:
+they used a full real target loop to force individual planner/candidate cases.
+
+Current broad shape:
+
+```text
+test_agent_real_genam_autonomous_rsset_candidate_converges_source
+test_agent_real_genam_autonomous_lvo_library_base_candidate_converges
+test_agent_real_genam_autonomous_data_symbol_candidate_is_not_generic_progress
+
+each:
+  copy targets/amiga_hunk_genam
+  copy bin/GenAm
+  build real listing/projection
+  monkeypatch competing candidate families away
+  run one clean-run iteration
+```
+
+The lower seams already own the detailed behavior:
+
+```text
+tests/test_reversing_loop.py
+  _listing_library_base_candidates()
+  _listing_rsset_region_candidates()
+  data symbol class/address planner skip
+  run_one library-base verifier
+  rsset semantic reload verifier
+```
+
+The real layer now keeps one GenAm end-to-end sentinel:
+
+```text
+test_agent_real_genam_autonomous_rsset_candidate_converges_source
+  real GenAm listing/projection
+  clean-run agent loop
+  target.rsset_region.add command
+  semantic reload verification
+  rendered source contains the projected RSSET region
+```
+
+The LVO and data-symbol real loops were removed because they duplicated direct
+candidate and verifier contracts while paying the same real target setup.
+
+Measured result:
+
+```text
+pytest tests\test_agent_reversing_loop.py -m real_integration -q --durations=10
+  1 passed, 2 deselected in 3.19s
+  slowest call: 2.93s
+```
+
 ### Bloodwych Generated Source Exactness
 
 Current test:
@@ -2782,13 +2835,13 @@ fixture cleanup, and Damocles copied-stub native execution deferral:
 
 ```text
 pytest tests -q --durations=20
-  1242 passed, 407 deselected in 16.39s
+  1242 passed, 405 deselected in 16.74s
 
 pytest tests -m integration -q
   202 passed, 1446 deselected in 30.07s
 
 pytest tests -m real_integration -q --durations=20
-  131 passed, 16 skipped, 1502 deselected in 66.99s
+  129 passed, 16 skipped, 1502 deselected in 59.98s
 
 uv run ruff check
   passed
@@ -2869,12 +2922,12 @@ listing pass, and Damocles candidate analysis no longer pays native copied-stub
 execution. The largest remaining real fixture overreach is:
 
 ```text
-Pandora BK provider wrapper                     7.13s
-Pandora table descriptors/evidence bounds       4.29s
-GenAm autonomous LVO/RSSET candidates           3.29s / 2.98s
-Damocles deferred-analysis sentinel             3.28s
-Bloodwych generated source exact                3.17s
-Magicland self-decrunch materialization         2.77s
+Pandora BK provider wrapper                     6.26s
+Pandora table descriptors/evidence bounds       4.26s
+Bloodwych generated source exact                3.22s
+Damocles deferred-analysis sentinel             2.97s
+GenAm autonomous RSSET sentinel                 2.90s
+Magicland self-decrunch materialization         2.52s
 ```
 
 ## Trailing Notes And Follow-Up Observations
@@ -2904,7 +2957,8 @@ real Damocles corpus sentinel
 ```
 
 The larger remaining real-suite costs are now Pandora BK, table descriptor
-evidence bounds, autonomous GenAm agent runs, and full-source rebuild sentinels.
+evidence bounds, full-source rebuild sentinels, and native materialization
+sentinels.
 Those need the same treatment: keep one real corpus sentinel, move detailed
 behavior to compact contracts, and avoid making real targets carry every
 assertion.
