@@ -2428,6 +2428,32 @@ pytest tests\test_c_backend.py -m real_integration -k "platform_calls_are_not_un
   slowest call: 1.50s
 ```
 
+### Slice 4F - Narrow Immediate Text Token Real Sentinel
+
+`test_real_dll_028_immediate_text_tokens_are_instruction_operand_facts` ran the
+same exported-token contract over MonAm and GenAm. The C unit layer already
+proves immediate text tokens export source offset, operand index, width, value,
+text, and JSON fields from a compact instruction fixture.
+
+The real layer now keeps one corpus sentinel:
+
+```text
+MonAm
+  text: "DEV "
+  source_offset: 186
+  operand_index: 0
+  width: 4
+  value: $44455620
+```
+
+Focused verification:
+
+```text
+pytest tests\test_c_backend.py -m real_integration -k "immediate_text_tokens" -q --durations=10
+  1 passed, 223 deselected in 2.27s
+  slowest call: 1.42s
+```
+
 Updated non-real C backend layer:
 
 ```text
@@ -2926,13 +2952,13 @@ fixture cleanup, and Damocles copied-stub native execution deferral:
 
 ```text
 pytest tests -q --durations=20
-  1242 passed, 405 deselected in 14.91s
+  1242 passed, 405 deselected in 15.32s
 
 pytest tests -m integration -q
   202 passed, 1446 deselected in 30.07s
 
 pytest tests -m real_integration -q --durations=20
-  129 passed, 16 skipped, 1502 deselected in 54.86s
+  129 passed, 16 skipped, 1502 deselected in 55.18s
 
 uv run ruff check
   passed
@@ -3013,12 +3039,12 @@ listing pass, and Damocles candidate analysis no longer pays native copied-stub
 execution. The largest remaining real fixture overreach is:
 
 ```text
-Pandora BK provider wrapper                     5.93s
-Pandora table descriptors/evidence bounds       4.04s
-Bloodwych generated source exact                3.01s
+Pandora BK provider wrapper                     5.98s
+Pandora table descriptors/evidence bounds       3.99s
 GenAm autonomous RSSET sentinel                 2.96s
-Damocles deferred-analysis sentinel             2.80s
-Magicland self-decrunch materialization         2.41s
+Bloodwych generated source exact                2.93s
+Damocles deferred-analysis sentinel             2.81s
+Magicland self-decrunch materialization         2.39s
 ```
 
 ## Trailing Notes And Follow-Up Observations

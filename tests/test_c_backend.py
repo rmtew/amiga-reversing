@@ -10932,16 +10932,6 @@ def test_real_dll_028_immediate_text_tokens_are_instruction_operand_facts() -> N
     assert monam_token["width"] == 4
     assert monam_token["value"] == 0x44455620
 
-    genam = _facts_v2_listing_analysis_for_project("amiga_hunk_genam")
-    genam_section = genam["analysis"]["sections"][0]
-    genam_token = next(
-        token for token in genam_section["immediate_text_tokens"] if token["text"] == "RGNA"
-    )
-    assert genam_token["source_offset"] == 5334
-    assert genam_token["operand_index"] == 0
-    assert genam_token["width"] == 4
-    assert genam_token["value"] == 0x52474E41
-
 
 def test_real_dll_starglider_mathtrans_linkage_api_labels_promote_wrappers() -> None:
     _requires_c_backend_dlls()
