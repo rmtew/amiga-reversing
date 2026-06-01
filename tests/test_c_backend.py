@@ -10878,36 +10878,6 @@ def test_real_dll_cross_section_openlibrary_name_resolves_followup_calls() -> No
     assert not unresolved_offsets
 
 
-def test_real_dll_monam_openlibrary_app_slot_resolves_dos_calls() -> None:
-    _requires_c_backend_dlls()
-
-    combined = _facts_v2_listing_analysis_for_project("amiga_hunk_monam302")
-    calls_by_offset = {
-        call["offset"]: call["symbol_name"]
-        for section in combined["analysis"]["sections"]
-        for call in section["recovered_platform_calls"]
-    }
-    unresolved_offsets = {
-        site["offset"]
-        for section in combined["analysis"]["sections"]
-        for site in section["recovered_indirect_sites"]
-        if site["status"] == "unresolved"
-    }
-    expected_calls = {
-        0x1AFE: "_LVOIoErr",
-        0x448E: "_LVOUnLoadSeg",
-        0x555E: "_LVOLoadSeg",
-        0x5646: "_LVOCreateProc",
-        0x73C4: "_LVOOpen",
-        0x7438: "_LVORead",
-        0x7450: "_LVOWrite",
-        0x747C: "_LVOClose",
-    }
-    for offset, symbol_name in expected_calls.items():
-        assert calls_by_offset[offset] == symbol_name
-        assert offset not in unresolved_offsets
-
-
 def test_real_dll_inspects_and_extracts_dos_disk_entry() -> None:
     _requires_c_backend_dlls()
     disk_path = PROJECT_ROOT / "bin" / "Search for the King, The (1991)(Accolade)(Disk 1 of 5).adf"

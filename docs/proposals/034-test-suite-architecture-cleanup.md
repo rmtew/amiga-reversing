@@ -2531,6 +2531,14 @@ sets.
 Later cleanup removed
 `test_real_dll_platform_calls_are_not_unresolved_indirect_sites` entirely.
 
+The same reasoning applies to
+`test_real_dll_monam_openlibrary_app_slot_resolves_dos_calls`. It paid a full
+MonAm analysis to prove the opened DOS base can be stored and later used for
+LVO call resolution. The compact C fixture already covers that path with
+`_LVOOldOpenLibrary`, `h1dl_DOSBase`, follow-up `_LVOOutput`, and zero
+unresolved indirect sites. The remaining real OpenLibrary tests keep cheaper
+corpus coverage for D0-to-A6 and cross-section library-name variants.
+
 Focused verification:
 
 ```text
@@ -3065,18 +3073,19 @@ After the generated/drift split, route-command split, CDP race fixes, MPW
 fixture narrowing, duplicate MPW payload removal, the Bloodwych/string real
 fixture cleanup, Damocles copied-stub native execution deferral, Pandora
 provider-wrapper validation deferral, GenAm agent RSSET sentinel narrowing,
-Bloodwych exact-test removal, Magicland materialization-test removal, and
-platform unresolved-sweep removal, and immediate-text real sentinel removal:
+Bloodwych exact-test removal, Magicland materialization-test removal,
+platform unresolved-sweep removal, immediate-text real sentinel removal, and
+MonAm OpenLibrary app-slot pass removal:
 
 ```text
 pytest tests -q --durations=20
-  1242 passed, 400 deselected in 17.70s
+  1242 passed, 399 deselected in 19.79s
 
 pytest tests -m integration -q
   202 passed, 1446 deselected in 30.07s
 
 pytest tests -m real_integration -q --durations=20
-  124 passed, 16 skipped, 1502 deselected in 48.26s
+  123 passed, 16 skipped, 1502 deselected in 47.84s
 
 uv run ruff check
   passed
@@ -3125,7 +3134,7 @@ pytest tests\test_c_backend.py -m real_integration -k "pandora_bk_provider_wrapp
   1 passed, 223 deselected in 1.19s
 
 pytest tests\test_c_backend.py -m real_integration -q --durations=20
-  113 passed, 15 skipped, 91 deselected in 37.37s
+  112 passed, 15 skipped, 91 deselected in 36.92s
 
 pytest tests\test_c_backend.py -m real_integration -k "data_classes_reach_listing_rows or 026_table_descriptors" -q --durations=20
   1 passed, 222 deselected in 1.72s
@@ -3160,10 +3169,10 @@ descriptor coverage has moved to C/source-analysis contracts. The largest
 remaining real fixture overreach is:
 
 ```text
-Damocles deferred-analysis sentinel             3.76s
-GenAm autonomous RSSET sentinel                 2.42s
-MonAm OpenLibrary app-slot DOS calls            1.95s
-Magicland loader file transfers                 1.84s
+Damocles deferred-analysis sentinel             3.61s
+GenAm autonomous RSSET sentinel                 2.51s
+Magicland loader file transfers                 2.18s
+String text examples sentinel                   1.82s
 ```
 
 The Bloodwych generated-source exact test is no longer listed here because the
@@ -3209,7 +3218,7 @@ The default loop is under 20s in the clean timing run:
 
 ```text
 pytest tests -q
-  1242 passed, 400 deselected in 17.70s
+  1242 passed, 399 deselected in 19.79s
 ```
 
 The slowest remaining default tests are not the converted route command tests.
