@@ -7761,20 +7761,11 @@ def test_real_dll_monam_callback_field_targets_decode_from_indirect_call() -> No
         metadata_path=paths.target_dir / "target_metadata.json",
         project_root=PROJECT_ROOT,
     )
-    combined = _facts_v2_listing_analysis_for_project("amiga_hunk_monam302")
-    section = combined["analysis"]["sections"][0]
 
     assert source_profile["facts_v2"]["asm_source_refused"] is False
     assert "\tmovea.l $003E(a3),a0\n\tjsr $0000(a0)\n" in source_text
     assert "loc_0_00005F32:\n\tbra.w loc_0_00005F44\n" in source_text
     assert "loc_0_00005F32:\n\tdc.b $60,$00,$00,$10" not in source_text
-    for offset in (0x5F32, 0x5FE2, 0x66F6, 0x6782, 0x682E):
-        assert any(
-            ref.get("offset") == offset
-            and ref.get("reason_name") == "control_target"
-            and ref.get("source_offset") == 0x5F2A
-            for ref in section["code_start_refs"]
-        )
 
 
 def test_real_dll_magicland_org_bootstrap_decodes_copied_runtime_entry() -> None:

@@ -2366,6 +2366,40 @@ pytest tests\test_c_backend.py -m "c_backend and not real_integration" -k "inlin
   224 deselected in 0.19s
 ```
 
+### Slice 4D - Narrow MonAm Callback Field Real Sentinel
+
+The MonAm callback-field test was paying two target-scale C crossings:
+
+```text
+listing_artifact_source_text_with_c_backend_profile(...)
+_facts_v2_listing_analysis_for_project("amiga_hunk_monam302")
+```
+
+The direct C unit layer already owns the precise callback-field facts:
+
+```text
+facts_v2_callback_field_store_promotes_indirect_call_target
+facts_v2_callback_field_target_inherits_call_site_trace_state
+```
+
+The retained real MonAm sentinel now proves that the callback target reaches the
+rendered source as code rather than remaining raw branch bytes:
+
+```text
+movea.l $003E(a3),a0
+jsr $0000(a0)
+loc_0_00005F32:
+  bra.w loc_0_00005F44
+```
+
+Focused verification:
+
+```text
+pytest tests\test_c_backend.py -m real_integration -k "monam_callback_field_targets" -q --durations=10
+  1 passed, 223 deselected in 1.51s
+  slowest call: 0.68s
+```
+
 Updated non-real C backend layer:
 
 ```text
@@ -2864,13 +2898,13 @@ fixture cleanup, and Damocles copied-stub native execution deferral:
 
 ```text
 pytest tests -q --durations=20
-  1242 passed, 405 deselected in 16.16s
+  1242 passed, 405 deselected in 16.17s
 
 pytest tests -m integration -q
   202 passed, 1446 deselected in 30.07s
 
 pytest tests -m real_integration -q --durations=20
-  129 passed, 16 skipped, 1502 deselected in 60.74s
+  129 passed, 16 skipped, 1502 deselected in 58.75s
 
 uv run ruff check
   passed
@@ -2951,12 +2985,12 @@ listing pass, and Damocles candidate analysis no longer pays native copied-stub
 execution. The largest remaining real fixture overreach is:
 
 ```text
-Pandora BK provider wrapper                     6.44s
-Pandora table descriptors/evidence bounds       4.36s
-Bloodwych generated source exact                3.18s
-Damocles deferred-analysis sentinel             3.10s
-GenAm autonomous RSSET sentinel                 2.95s
-Magicland self-decrunch materialization         2.67s
+Pandora BK provider wrapper                     6.27s
+Pandora table descriptors/evidence bounds       4.14s
+Bloodwych generated source exact                3.19s
+platform calls unresolved indirect sentinel     3.08s
+Damocles deferred-analysis sentinel             2.98s
+GenAm autonomous RSSET sentinel                 2.97s
 ```
 
 ## Trailing Notes And Follow-Up Observations
