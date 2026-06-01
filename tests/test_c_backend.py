@@ -92,6 +92,16 @@ def _requires_project_paths(target_name: str) -> ProjectPaths:
         pytest.skip(f"Target fixture is not materialized by the current import policy: {target_name} ({exc})")
 
 
+def _assemble_rendered_amiga_hunk_source(rendered: str) -> bytes:
+    rebuilt, _assembler_profile = assemble_platform_source_text_with_c_backend(
+        "amiga-hunk",
+        rendered,
+        include_dir=PROJECT_ROOT / "ext" / "amiga_includes" / "ndk_2.0" / "include",
+        project_root=PROJECT_ROOT,
+    )
+    return rebuilt
+
+
 def test_020_006_amiga_listing_keeps_shared_data_range_out_of_instruction_rows(tmp_path: Path) -> None:
     _requires_c_backend_dlls()
     binary_path = tmp_path / "shared_ranges.hunk"
@@ -3280,18 +3290,11 @@ after_data:
             metadata_path=metadata_path,
             project_root=PROJECT_ROOT,
         )
-        rebuilt, _source_profile, direct_profile = facts_v2_direct_rebuild_project_source_with_c_backend_profile(
-            source,
-            metadata_path=metadata_path,
-            compare_original=True,
-            project_root=PROJECT_ROOT,
-        )
+        rebuilt = _assemble_rendered_amiga_hunk_source(rendered)
 
     assert 'renamed_text:\n\tdc.b "TEXT",$00\n' in rendered
     assert "seeded_text:" not in rendered
     assert rebuilt == original
-    assert direct_profile["direct_rebuild_refused"] is False
-    assert direct_profile["direct_rebuild_exact"] is True
 
 
 def test_real_dll_manual_data_symbol_remove_suppresses_rendered_seeded_entity(tmp_path: Path) -> None:
@@ -3381,17 +3384,10 @@ after_data:
             metadata_path=metadata_path,
             project_root=PROJECT_ROOT,
         )
-        rebuilt, _source_profile, direct_profile = facts_v2_direct_rebuild_project_source_with_c_backend_profile(
-            source,
-            metadata_path=metadata_path,
-            compare_original=True,
-            project_root=PROJECT_ROOT,
-        )
+        rebuilt = _assemble_rendered_amiga_hunk_source(rendered)
 
     assert "seeded_text:" not in rendered
     assert rebuilt == original
-    assert direct_profile["direct_rebuild_refused"] is False
-    assert direct_profile["direct_rebuild_exact"] is True
 
 
 def test_real_dll_manual_data_symbol_rename_renders_ordinary_data_row(tmp_path: Path) -> None:
@@ -3462,17 +3458,10 @@ after_data:
             metadata_path=metadata_path,
             project_root=PROJECT_ROOT,
         )
-        rebuilt, _source_profile, direct_profile = facts_v2_direct_rebuild_project_source_with_c_backend_profile(
-            source,
-            metadata_path=metadata_path,
-            compare_original=True,
-            project_root=PROJECT_ROOT,
-        )
+        rebuilt = _assemble_rendered_amiga_hunk_source(rendered)
 
     assert "renamed_text:\n\tdc.b $54,$45,$58,$54,$00\n" in rendered
     assert rebuilt == original
-    assert direct_profile["direct_rebuild_refused"] is False
-    assert direct_profile["direct_rebuild_exact"] is True
 
 
 def test_real_dll_manual_data_symbol_rename_updates_rendered_use_site(tmp_path: Path) -> None:
@@ -3542,18 +3531,11 @@ data_label:
             metadata_path=metadata_path,
             project_root=PROJECT_ROOT,
         )
-        rebuilt, _source_profile, direct_profile = facts_v2_direct_rebuild_project_source_with_c_backend_profile(
-            source,
-            metadata_path=metadata_path,
-            compare_original=True,
-            project_root=PROJECT_ROOT,
-        )
+        rebuilt = _assemble_rendered_amiga_hunk_source(rendered)
 
     assert "\tlea.l renamed_data(pc),a0\n" in rendered
     assert "renamed_data:\n\tdc.b $44,$41,$54,$41,$00,$00\n" in rendered
     assert rebuilt == original
-    assert direct_profile["direct_rebuild_refused"] is False
-    assert direct_profile["direct_rebuild_exact"] is True
 
 
 @pytest.mark.parametrize(
@@ -4792,12 +4774,7 @@ def test_real_dll_genam_ascii_hex_table_data_block_layout_reassembles(tmp_path: 
             metadata_path=metadata_path,
             project_root=PROJECT_ROOT,
         )
-        rebuilt, _source_profile, direct_profile = facts_v2_direct_rebuild_project_source_with_c_backend_profile(
-            paths.binary_source,
-            metadata_path=metadata_path,
-            compare_original=True,
-            project_root=PROJECT_ROOT,
-        )
+        rebuilt = _assemble_rendered_amiga_hunk_source(rendered)
 
     assert "ascii_hex_digit_value:\n\tdcb.b $30,$FF\t; lookup_table\n" in rendered
     assert "ascii_hex_digit_values:\n\tdc.b $00,$01,$02,$03,$04,$05,$06,$07,$08,$09\t; lookup_table\n" in rendered
@@ -4805,7 +4782,6 @@ def test_real_dll_genam_ascii_hex_table_data_block_layout_reassembles(tmp_path: 
     assert "ascii_hex_lower_values:\n\tdc.b $0A,$0B,$0C,$0D,$0E,$0F\t; lookup_table\n" in rendered
     assert "ascii_hex_tail:\n\tdcb.b $19,$FF\t; lookup_table\n" in rendered
     assert rebuilt == original
-    assert direct_profile["direct_rebuild_exact"] is True
 
 
 def test_real_dll_data_block_layout_removal_returns_raw_source_and_reassembles(tmp_path: Path) -> None:
@@ -5329,12 +5305,7 @@ start:
             project_root=PROJECT_ROOT,
         )["analysis_policy"]
         rendered = render_project_source_with_c_backend(source, metadata_path=metadata_path, project_root=PROJECT_ROOT)
-        rebuilt, _source_profile, direct_profile = facts_v2_direct_rebuild_project_source_with_c_backend_profile(
-            source,
-            metadata_path=metadata_path,
-            compare_original=True,
-            project_root=PROJECT_ROOT,
-        )
+        rebuilt = _assemble_rendered_amiga_hunk_source(rendered)
 
     assert "\tmove.w d0,$0096(a5)\n" in baseline
     assert policy["manual_representations"] == [
@@ -5343,7 +5314,6 @@ start:
     assert "\tmove.w d0,dmacon(a5)\n" in rendered
     assert "\tmove.w d0,$0096(a5)\n" not in rendered
     assert rebuilt == original
-    assert direct_profile["direct_rebuild_exact"] is True
 
 
 @pytest.mark.parametrize("action", ["defer_fact", "reject_fact"])
@@ -5368,18 +5338,12 @@ start:
             project_root=PROJECT_ROOT,
         )["analysis_policy"]
         rendered = render_project_source_with_c_backend(source, metadata_path=metadata_path, project_root=PROJECT_ROOT)
-        rebuilt, _source_profile, direct_profile = facts_v2_direct_rebuild_project_source_with_c_backend_profile(
-            source,
-            metadata_path=metadata_path,
-            compare_original=True,
-            project_root=PROJECT_ROOT,
-        )
+        rebuilt = _assemble_rendered_amiga_hunk_source(rendered)
 
     assert policy["manual_representations"] == []
     assert "\tmove.w d0,$0096(a5)\n" in rendered
     assert "dmacon(a5)" not in rendered
     assert rebuilt == original
-    assert direct_profile["direct_rebuild_exact"] is True
 
 
 def test_real_dll_stale_a5_decision_identity_does_not_render(tmp_path: Path) -> None:
@@ -5403,18 +5367,12 @@ start:
             project_root=PROJECT_ROOT,
         )["analysis_policy"]
         rendered = render_project_source_with_c_backend(source, metadata_path=metadata_path, project_root=PROJECT_ROOT)
-        rebuilt, _source_profile, direct_profile = facts_v2_direct_rebuild_project_source_with_c_backend_profile(
-            source,
-            metadata_path=metadata_path,
-            compare_original=True,
-            project_root=PROJECT_ROOT,
-        )
+        rebuilt = _assemble_rendered_amiga_hunk_source(rendered)
 
     assert policy["manual_representations"] == []
     assert "\tmove.w d0,$0096(a5)\n" in rendered
     assert "dmacon(a5)" not in rendered
     assert rebuilt == original
-    assert direct_profile["direct_rebuild_exact"] is True
 
 
 def _target_equate_manual_action_log_text(source: HunkFileBinarySource, actions: list[dict[str, object]]) -> str:

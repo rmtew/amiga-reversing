@@ -2490,6 +2490,41 @@ pytest tests\test_c_backend.py -m "c_backend and not real_integration" -k "inlin
   224 deselected in 0.19s
 ```
 
+### Slice 4C.1 - Stop Re-Rendering Already Rendered Manual-Edit Sources
+
+Several manual-edit tests had this shape:
+
+```python
+rendered = render_project_source_with_c_backend(source, metadata_path=metadata_path)
+rebuilt, _source_profile, direct_profile = facts_v2_direct_rebuild_project_source_with_c_backend_profile(
+    source,
+    metadata_path=metadata_path,
+    compare_original=True,
+)
+
+assert "...expected rendered edit..." in rendered
+assert rebuilt == original
+assert direct_profile["direct_rebuild_exact"] is True
+```
+
+That asks the C backend to render the same source twice. The direct rebuild API
+is still important, and it remains covered by explicit direct-rebuild tests.
+For tests whose main assertion is the rendered manual-edit output, the cheaper
+contract is:
+
+```python
+rendered = render_project_source_with_c_backend(source, metadata_path=metadata_path)
+rebuilt = _assemble_rendered_amiga_hunk_source(rendered)
+
+assert "...expected rendered edit..." in rendered
+assert rebuilt == original
+```
+
+This keeps the round-trip proof for the exact rendered text under test, but it
+does not also retest the direct-rebuild orchestration path. The first cleanup
+pass applied this to the GenAm ASCII-hex table layout hotspot and adjacent
+manual data-symbol/A5 decision tests.
+
 ### Slice 4D - Narrow MonAm Callback Field Real Sentinel
 
 The MonAm callback-field test was paying two target-scale C crossings:
@@ -3164,6 +3199,12 @@ pytest tests\test_c_backend.py -m real_integration -q --durations=20
 pytest tests -q --durations=20
   1242 passed, 398 deselected in 21.41s
 
+pytest tests\test_c_backend.py -m real_integration -k "genam_ascii_hex_table_data_block_layout or manual_data_symbol_rename_updates_rendered_seeded_entity or manual_data_symbol_remove_suppresses_rendered_seeded_entity or manual_data_symbol_rename_renders_ordinary_data_row or manual_data_symbol_rename_updates_rendered_use_site or accepted_a5_decision or nonaccepted_a5_decision or stale_a5_decision" -q --durations=12
+  9 passed, 208 deselected in 1.74s
+
+pytest tests\test_c_backend.py -m real_integration -q --durations=20
+  111 passed, 15 skipped, 91 deselected in 29.84s
+
 pytest tests\test_c_backend.py -m real_integration -k "data_classes_reach_listing_rows or 026_table_descriptors" -q --durations=20
   1 passed, 222 deselected in 1.72s
 
@@ -3197,12 +3238,12 @@ descriptor coverage has moved to C/source-analysis contracts. The largest
 remaining real fixture overreach is:
 
 ```text
-Damocles deferred-analysis sentinel             2.98s
-Magicland loader file transfers                 1.60s
-Pandora BK provider wrapper                     1.57s
-GenAm ASCII hex layout reassembly               1.49s
-Magicland copied-runtime entry                  1.32s
-GenAm source render smoke                       1.31s
+Damocles deferred-analysis sentinel             2.76s
+Magicland loader file transfers                 1.56s
+Starglider app-slot width sentinel              1.42s
+data class listing/navigation sentinel          1.36s
+GenAm source render smoke                       1.18s
+runtime memory immediate real sentinels         1.14s / 1.03s
 ```
 
 The Bloodwych generated-source exact test is no longer listed here because the
