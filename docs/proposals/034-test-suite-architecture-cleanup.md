@@ -2525,6 +2525,30 @@ does not also retest the direct-rebuild orchestration path. The first cleanup
 pass applied this to the GenAm ASCII-hex table layout hotspot and adjacent
 manual data-symbol/A5 decision tests.
 
+### Slice 4C.2 - Split GenAm Source Render From Listing Projection
+
+`test_real_dll_renders_genam` was also doing two jobs:
+
+```text
+render bin/GenAm as source
+  assert source contains app-slot symbols and does not misname $0098(a1)
+
+build amiga_hunk_genam listing rows
+  assert hundreds of app-slot row references exist
+  assert representative read/write access rows are projected
+```
+
+The listing-row behavior is covered by C listing contracts and the separate
+GenAm app-slot profile sentinel. Keeping it in the source-render smoke made one
+test pay for both source rendering and listing artifact construction. The
+retained real source-render smoke now checks only source-render regressions:
+
+```text
+SECTION and instruction text exists
+app_0234 RS definition and app_0234(a6) source use survive
+$0098(a1) is not misclassified as m68k_vector_trap_6_instruction_vector(a1)
+```
+
 ### Slice 4D - Narrow MonAm Callback Field Real Sentinel
 
 The MonAm callback-field test was paying two target-scale C crossings:
@@ -3205,6 +3229,12 @@ pytest tests\test_c_backend.py -m real_integration -k "genam_ascii_hex_table_dat
 pytest tests\test_c_backend.py -m real_integration -q --durations=20
   111 passed, 15 skipped, 91 deselected in 29.84s
 
+pytest tests\test_c_backend.py -m real_integration -k "renders_genam or genam_profile_exposes_c_app_slot_analysis" -q --durations=10
+  2 passed, 215 deselected in 2.47s
+
+pytest tests\test_c_backend.py -m real_integration -q --durations=20
+  111 passed, 15 skipped, 91 deselected in 24.80s
+
 pytest tests\test_c_backend.py -m real_integration -k "data_classes_reach_listing_rows or 026_table_descriptors" -q --durations=20
   1 passed, 222 deselected in 1.72s
 
@@ -3240,10 +3270,11 @@ remaining real fixture overreach is:
 ```text
 Damocles deferred-analysis sentinel             2.76s
 Magicland loader file transfers                 1.56s
-Starglider app-slot width sentinel              1.42s
-data class listing/navigation sentinel          1.36s
-GenAm source render smoke                       1.18s
-runtime memory immediate real sentinels         1.14s / 1.03s
+Starglider app-slot width sentinel              1.22s
+GenAm LVO operand-part sentinel                 1.05s
+Pandora BK provider wrapper                     1.02s
+Magicland copied-runtime entry                  0.97s
+Voodoo Tetragon comparator                      0.91s
 ```
 
 The Bloodwych generated-source exact test is no longer listed here because the

@@ -9817,36 +9817,6 @@ def test_real_dll_renders_genam() -> None:
     assert "$0098(a1)" in rendered
     assert "m68k_vector_trap_6_instruction_vector(a1)" not in rendered
 
-    rows, _api_calls, _profile = build_project_listing_rows_with_c_artifact(
-        "amiga_hunk_genam",
-        project_root=PROJECT_ROOT,
-    )
-    refs = [ref for row in rows for ref in row.get("app_slot_refs", [])]
-    symbols = {ref["symbol"] for ref in refs}
-    generated_symbols = [
-        symbol
-        for symbol in symbols
-        if symbol.startswith("app_")
-        and len(symbol) == 8
-        and all(ch in "0123456789ABCDEF" for ch in symbol[4:])
-    ]
-    refs_by_text = {str(row["text"]).strip(): row["app_slot_refs"] for row in rows if row.get("app_slot_refs")}
-
-    assert len(refs) > 500
-    assert len(generated_symbols) > 100
-    assert refs_by_text["move.l a7,app_0234(a6)"] == [
-        {"symbol": "app_0234", "displacement": 0x0234, "base_register": "A6", "operand_index": 1, "access": "write"}
-    ]
-    assert refs_by_text["subq.l #4,app_0234(a6)"] == [
-        {
-            "symbol": "app_0234",
-            "displacement": 0x0234,
-            "base_register": "A6",
-            "operand_index": 1,
-            "access": "read-write",
-        }
-    ]
-
 
 def test_real_dll_genam_raw_0102_a6_exposes_rsset_binding_report() -> None:
     _requires_c_backend_dlls()
