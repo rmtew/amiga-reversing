@@ -3218,6 +3218,79 @@ This is not moving coverage out of the suite. It removes three repeated server
 snapshots that never simulated the named boundary and leaves the real browser
 durability claim to the CDP layer.
 
+#### Route Catalog Implementation Checkpoint - Catalog Logic Below Routes
+
+The next route profile showed that some route tests were still proving catalog
+logic and manual-action payload generation through `/api/projects/.../commands`
+and `/commands/execute`:
+
+```text
+test_route_manual_action_catalog_reports_and_executes_rsset_use_site_binding      0.93s
+test_route_manual_action_catalog_matches_equate_lvo_and_struct_offset_helpers    0.60s
+```
+
+Those tests mixed three contracts:
+
+```text
+route context resolution
+catalog action construction
+manual action payload execution
+```
+
+The route layer already has broad context-resolution and command-execution
+smokes. These two tests were mostly checking catalog-specific behavior:
+
+```text
+RSSET binding report fields
+RSSET bind/unbind payload provenance
+semantic equate/LVO/struct-offset helper availability
+semantic hint payload generation
+```
+
+They now use the lower seams directly:
+
+```python
+def _element_catalog_actions(
+    row: ListingRow | Mapping[str, object],
+    element_id: str,
+    **selector: object,
+) -> list[dict[str, object]]:
+    row_payload = dict(serialize_row(row)) if isinstance(row, ListingRow) else dict(row)
+    return listing_element_action_catalog(row_payload, {"element_id": element_id, **selector})
+```
+
+Execution assertions use the existing manual-command helper:
+
+```text
+_execute_manual_command_fixture(...)
+  -> _execute_manual_action_command(...)
+  -> listing_catalog_manual_payload(...)
+```
+
+That keeps the catalog and manual-action contracts intact without requiring
+route locator resolution for every assertion.
+
+Focused verification:
+
+```text
+pytest tests\test_disasm_server.py::test_manual_action_catalog_reports_and_executes_rsset_use_site_binding -q --durations=10
+  1 passed in 0.67s
+  call time below 0.005s display threshold
+
+pytest tests\test_disasm_server.py::test_manual_action_catalog_matches_equate_lvo_and_struct_offset_helpers -q --durations=10
+  1 passed in 0.69s
+  call time 0.03s
+
+pytest tests\test_disasm_server.py -m integration -q --durations=35
+  91 passed, 91 deselected in 14.24s
+
+pytest tests -m "integration and not real_integration" -q --durations=30
+  201 passed, 1437 deselected in 29.79s
+```
+
+The route layer still keeps route wiring coverage; catalog-specific checks now
+fail closer to the catalog code that owns them.
+
 ## Expected End State
 
 The target shape is:
@@ -3319,7 +3392,7 @@ provider-wrapper validation deferral, GenAm agent RSSET sentinel narrowing,
 Bloodwych exact-test removal, Magicland materialization-test removal,
 platform unresolved-sweep removal, immediate-text real sentinel removal, and
 MonAm OpenLibrary app-slot pass removal, planner-selection lower-seam cleanup,
-and API durability matrix narrowing:
+API durability matrix narrowing, and route catalog lower-seam cleanup:
 
 ```text
 pytest tests -q --durations=20
@@ -3416,7 +3489,7 @@ pytest tests\test_reversing_loop.py -q --durations=20
   436 passed in 2.95s
 
 pytest tests -q --durations=30
-  1242 passed, 396 deselected in 14.46s
+  1244 passed, 394 deselected in 14.69s
 
 pytest tests -m real_integration -q --durations=20
   120 passed, 16 skipped, 1502 deselected in 38.01s
@@ -3428,7 +3501,10 @@ pytest tests\test_api_workflow_harness.py -m integration -q --durations=10
   5 passed in 1.70s
 
 pytest tests -m "integration and not real_integration" -q --durations=30
-  203 passed, 1435 deselected in 32.48s
+  201 passed, 1437 deselected in 29.79s
+
+pytest tests\test_disasm_server.py -m integration -q --durations=35
+  91 passed, 91 deselected in 14.24s
 
 ruff check
   passed
