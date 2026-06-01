@@ -10,10 +10,6 @@ from amiga_reversing.disasm.project_paths import PROJECT_ROOT
 from amiga_reversing.disasm.projects import ProjectKind, ProjectRecord
 from amiga_reversing.tools import platform_executable_formats
 
-IMAGE_PATH = Path("resources/platform_macos/MPW-GM.img.bin")
-NDIF2RAW_PATH = Path("ext/tools/ndif2raw/ndif2raw.exe")
-SAMPLE_DIR = Path("ext/macos_includes/mpw_gm/Interfaces/AStructMacs")
-
 
 def _c_owned_restored_source_packet(
     *,
@@ -1533,84 +1529,3 @@ def test_macos_source_sections_accept_compact_restored_source_packet() -> None:
     assert selected_section["code1_layout_context"]["candidate_entry_stub"]["label"] == "CODE_1_candidate_entry_stub"
     assert selected_section["source_envelope"]["kind"] == "source_envelope"
     assert "semantic source rows are rendered" in selected_section["source_envelope"]["reason"]
-
-
-def test_macos_project_payload_reads_committed_mpw_fixture_when_available() -> None:
-    if not IMAGE_PATH.exists():
-        pytest.skip("MPW-GM image fixture is not available")
-    if not NDIF2RAW_PATH.exists():
-        pytest.skip("ndif2raw provider is not available")
-    required = [SAMPLE_DIR / "Sample.a", SAMPLE_DIR / "Sample.r", SAMPLE_DIR / "Sample.make"]
-    if any(not path.exists() for path in required):
-        pytest.skip("MPW-GM source fixture metadata is not available")
-    project = ProjectRecord(
-        id="macos_mpw_sample",
-        name="macos_mpw_sample",
-        kind=ProjectKind.MACOS,
-        target_dir="targets/macos_mpw_sample",
-        output_path=None,
-        binary_path=IMAGE_PATH.as_posix(),
-        ready=True,
-        last_opened=None,
-        manifest_path=None,
-        target_count=None,
-        source_path=IMAGE_PATH.as_posix(),
-        disk_type="HFS",
-        parent_project_id=None,
-        target_type="macos_hfs_resource_code_file",
-        created_at="2026-03-25T00:00:00+00:00",
-        updated_at="2026-03-25T01:00:00+00:00",
-        origin={
-            "kind": "macos_mpw_fixture",
-            "source_image": IMAGE_PATH.as_posix(),
-            "hfs_path": "MPW-GM/MPW/Tools/Asm",
-            "source_files": [(SAMPLE_DIR / "Sample.a").as_posix()],
-            "resource_files": [(SAMPLE_DIR / "Sample.r").as_posix()],
-            "build_files": [(SAMPLE_DIR / "Sample.make").as_posix()],
-        },
-    )
-
-    payload = macos_project_payload.build_macos_project_payload(project)
-    container = payload["binary_container_view"]
-    source_sections = container["source_body_sections"]
-    source_quality = container["source_quality_gate"]
-    selected = container["selected_code_segment"]
-    code1_section = next(item for item in source_sections if item["id"] == 1)
-    code27_section = next(item for item in source_sections if item["id"] == 27)
-
-    assert platform_executable_formats.validate_parser_fact_references(payload) == []
-    assert payload["platform"] == "macos"
-    assert container["finder"] == {"type": "MPST", "creator": "MPS ", "cnid": 2310}
-    assert len(container["code_resources"]) == 28
-    assert len(container["code_resource_details"]) == 28
-    assert len(source_sections) == 28
-    assert [item["id"] for item in source_sections] == sorted(item["id"] for item in container["code_resources"])
-    assert {item["resource_type"] for item in container["resource_fork"]["non_code_resource_details"]} == {
-        "acur",
-        "CURS",
-        "cmdo",
-        "vers",
-    }
-    assert source_quality["kind"] == "macos_source_quality_gate_v1"
-    assert source_quality["status"] == "byte_real_baseline"
-    assert source_quality["semantic_closeout_status"] == "semantic_source_complete_for_known_bounds"
-    assert source_quality["semantic_decode_gap_resource_count"] > 0
-    assert len(source_quality["resources"]) == len(source_sections)
-    assert code1_section["status"] == "selected_full_listing"
-    assert code1_section["semantic_source"]["instruction_row_count"] >= 7000
-    assert any(
-        row.get("kind") == "label" and row.get("payload_offset") == 40
-        for row in code1_section["semantic_source"]["rows"]
-    )
-    assert any(
-        row.get("kind") == "instruction"
-        and row.get("payload_offset") == 40
-        and str(row.get("text") or "").strip() == "movea.l (a7)+,a0"
-        for row in code1_section["semantic_source"]["rows"]
-    )
-    assert code27_section["incoming_code0_xrefs"]
-    assert selected["code_entry_offset"] == 40
-    assert selected["code_bytes_size"] == 28984
-    assert payload["native_source"]["backend"] == "macos-code"
-    assert payload["native_source"]["source_kind"] == "macos_code_resource"
-    assert payload["provenance"]["source_image"] == IMAGE_PATH.as_posix()

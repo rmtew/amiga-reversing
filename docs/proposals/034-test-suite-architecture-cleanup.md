@@ -2542,23 +2542,32 @@ test_macos_source_sections_accept_compact_restored_source_packet
 The real MPW fixture test is now a smoke, not a packed checklist:
 
 ```text
-test_macos_project_payload_reads_committed_mpw_fixture_when_available
+test_c_macos_hfs_code_summary_matches_committed_mpw_asm_metadata
   real MPW-GM image
-  real Sample source/resource/build metadata
+  real C HFS summary
   parser fact references validate
   finder identity
-  28 CODE resources/details/source sections
-  non-CODE type set
-  source quality gate status
-  selected CODE 1 sentinel row
-  CODE 27 receives generated CODE 0 xrefs
-  native source/provenance identity
+  28 CODE resources
+  CODE 0 jump-table/A5 metadata
+  selected CODE 1 bounds and far-model header
+  segment-loader fixup inventory
+  CODE resource extraction starts with the expected entry bytes
 ```
 
-This still pays the full real payload build cost, because it is intentionally
-the one real image-to-payload sentinel. The improvement is architectural: most
-semantic obligations now live at compact helper seams where failures are
-specific and cheap.
+The former `test_macos_project_payload_reads_committed_mpw_fixture_when_available`
+real-image payload build has been removed. It duplicated the real C summary
+smoke above while also rebuilding the full UI payload and selected semantic
+source. The payload-builder obligations now sit in compact tests:
+
+```text
+test_macos_project_payload_uses_c_summary_and_source_fixture_metadata
+test_macos_source_quality_gate_accepts_compact_source_packet
+test_macos_non_code_resource_placeholders_accept_compact_inventory
+test_macos_source_sections_accept_compact_restored_source_packet
+```
+
+That gives one real image/import sentinel and keeps source-quality/source-section
+failures at compact packet seams.
 
 Focused verification:
 
@@ -2665,17 +2674,18 @@ wide confidence layers remain meaningful and easier to understand
 ## Current Verification Snapshot
 
 After the generated/drift split, route-command split, CDP race fixes, MPW
-fixture narrowing, and the Bloodwych/string real fixture cleanup:
+fixture narrowing, duplicate MPW payload removal, and the Bloodwych/string real
+fixture cleanup:
 
 ```text
 pytest tests -q --durations=20
-  1242 passed, 407 deselected in 16.28s
+  1242 passed, 406 deselected in 16.50s
 
 pytest tests -m integration -q
   202 passed, 1446 deselected in 30.07s
 
 pytest tests -m real_integration -q --durations=20
-  132 passed, 16 skipped, 1501 deselected in 89.84s
+  131 passed, 16 skipped, 1501 deselected in 80.01s
 
 uv run ruff check
   passed
@@ -2693,7 +2703,7 @@ pytest tests\test_macos_target_artifact.py -q --durations=10
   5 passed, 6 deselected in 0.32s
 
 pytest tests -m macos_real_fixture -q --durations=10
-  11 passed, 1638 deselected in 7.66s
+  11 passed, 1637 deselected in 7.19s
 
 pytest tests\test_macos_target_artifact.py -m real_integration -q --durations=10
   6 passed, 5 deselected in 3.38s
@@ -2705,10 +2715,10 @@ pytest tests\test_macos_project_payload.py -k "compact_source_packet or source_q
   1 passed, 12 deselected in 0.25s
 
 pytest tests\test_macos_project_payload.py -q --durations=15
-  14 passed, 1 deselected in 0.30s
+  14 passed in 0.25s
 
-pytest tests\test_macos_project_payload.py -m real_integration -q --durations=10
-  1 passed, 14 deselected in 9.23s
+pytest tests\test_macos_c_backend.py -m real_integration -k "committed_mpw_asm_metadata" -q --durations=10
+  1 passed, 21 deselected in 1.35s
 
 pytest tests\test_c_backend.py -m c_backend -k "tetragon" -q --durations=20
   4 passed, 220 deselected in 15.41s
@@ -2745,11 +2755,10 @@ The latest real-integration profile now has no separate Bloodwych runtime/table
 listing pass. The largest remaining real fixture overreach is:
 
 ```text
-Damocles copied-stub native unpacking          14.16s
-MPW real image import                          10.05s
-Pandora BK provider wrapper                     6.04s
-data-class rows/navigation                      5.55s
-Pandora table descriptors/evidence bounds       4.03s
+Damocles copied-stub native unpacking          15.06s
+Pandora BK provider wrapper                     6.16s
+data-class rows/navigation                      5.73s
+Pandora table descriptors/evidence bounds       4.07s
 ```
 
 ## Trailing Notes And Follow-Up Observations
