@@ -10034,41 +10034,29 @@ def test_real_dll_genam_profile_exposes_c_app_slot_analysis() -> None:
 def test_real_dll_render_plan_data_classes_reach_listing_rows() -> None:
     _requires_c_backend_dlls()
 
-    expectations = {
-        "amiga_hunk_bloodwych": {
-            "lookup_table": 230,
-            "pointer_table": 4,
-            "string": 72,
-        },
-        "amiga_hunk_genam": {
-            "lookup_table": 6,
-            "string": 145,
-        },
-        "amiga_hunk_monam302": {
-            "lookup_table": 18,
-            "pointer_table": 1,
-            "string": 128,
-        },
+    expected_counts = {
+        "lookup_table": 18,
+        "pointer_table": 1,
+        "string": 128,
     }
-    for target_name, expected_counts in expectations.items():
-        rows, _, profile = build_project_listing_rows_window_with_c_artifact(
-            target_name,
-            project_root=PROJECT_ROOT,
-        )
-        assert profile["facts_v2"]["asm_source_refused"] is False
-        assert not [
-            row
-            for row in rows
-            if str(row.get("text", "")).strip().endswith(":") and row.get("kind") not in {"label", "directive", "comment"}
-        ]
-        assert not [row for row in rows if row.get("data_class") and row.get("kind") != "data"]
-        assert not [
-            row
-            for row in rows
-            if row.get("data_class") and str(row.get("text", "")).strip().endswith(":")
-        ]
-        for data_class, expected_count in expected_counts.items():
-            assert sum(1 for row in rows if row.get("data_class") == data_class) >= expected_count
+    rows, _, profile = build_project_listing_rows_window_with_c_artifact(
+        "amiga_hunk_monam302",
+        project_root=PROJECT_ROOT,
+    )
+    assert profile["facts_v2"]["asm_source_refused"] is False
+    assert not [
+        row
+        for row in rows
+        if str(row.get("text", "")).strip().endswith(":") and row.get("kind") not in {"label", "directive", "comment"}
+    ]
+    assert not [row for row in rows if row.get("data_class") and row.get("kind") != "data"]
+    assert not [
+        row
+        for row in rows
+        if row.get("data_class") and str(row.get("text", "")).strip().endswith(":")
+    ]
+    for data_class, expected_count in expected_counts.items():
+        assert sum(1 for row in rows if row.get("data_class") == data_class) >= expected_count
 
 
 def test_real_dll_platform_calls_are_not_unresolved_indirect_sites() -> None:

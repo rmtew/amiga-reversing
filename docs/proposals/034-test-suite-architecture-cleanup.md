@@ -2007,7 +2007,8 @@ test_real_dll_render_plan_data_classes_reach_listing_rows
   narrowed to real data_class row survival sentinels
   no longer calls reversing_loop._listing_data_symbol_candidates()
   no longer generates typed-data navigation for a real target
-  uses row-window listing payloads for Bloodwych, GenAm, and MonAm
+  uses one MonAm row-window listing payload because it carries lookup_table,
+  pointer_table, and string data_class rows
 
 tests/test_reversing_loop.py
   retains direct synthetic data-symbol candidate coverage
@@ -2020,8 +2021,8 @@ Measured result:
 
 ```text
 pytest tests\test_c_backend.py -m real_integration -k "data_classes_reach_listing_rows" -q --durations=10
-  1 passed, 222 deselected in 5.38s
-  slowest call: 4.56s
+  1 passed, 223 deselected in 1.69s
+  slowest call: 0.81s
 
 pytest tests\test_reversing_loop.py -k "listing_data_symbol_candidates_use_data_class_row_identity or listing_data_symbol_candidates_use_runtime_ref_identity" -q
   2 passed, 434 deselected in 0.33s
@@ -2781,13 +2782,13 @@ fixture cleanup, and Damocles copied-stub native execution deferral:
 
 ```text
 pytest tests -q --durations=20
-  1242 passed, 407 deselected in 14.56s
+  1242 passed, 407 deselected in 16.39s
 
 pytest tests -m integration -q
   202 passed, 1446 deselected in 30.07s
 
 pytest tests -m real_integration -q --durations=20
-  131 passed, 16 skipped, 1502 deselected in 64.33s
+  131 passed, 16 skipped, 1502 deselected in 66.99s
 
 uv run ruff check
   passed
@@ -2868,12 +2869,12 @@ listing pass, and Damocles candidate analysis no longer pays native copied-stub
 execution. The largest remaining real fixture overreach is:
 
 ```text
-Pandora BK provider wrapper                     6.02s
-data-class rows                                4.60s
-Pandora table descriptors/evidence bounds       3.95s
-GenAm autonomous LVO/RSSET candidates           3.20s / 2.95s
-Bloodwych generated source exact                2.89s
-Damocles deferred-analysis sentinel             2.77s
+Pandora BK provider wrapper                     7.13s
+Pandora table descriptors/evidence bounds       4.29s
+GenAm autonomous LVO/RSSET candidates           3.29s / 2.98s
+Damocles deferred-analysis sentinel             3.28s
+Bloodwych generated source exact                3.17s
+Magicland self-decrunch materialization         2.77s
 ```
 
 ## Trailing Notes And Follow-Up Observations
@@ -2902,10 +2903,11 @@ real Damocles corpus sentinel
   -> section 2 remains materializable with native_execution_deferred
 ```
 
-The larger remaining real-suite costs are now Pandora BK, data-class listing
-rows, table descriptor evidence bounds, and autonomous GenAm agent runs. Those
-need the same treatment: keep one real corpus sentinel, move detailed behavior
-to compact contracts, and avoid making real targets carry every assertion.
+The larger remaining real-suite costs are now Pandora BK, table descriptor
+evidence bounds, autonomous GenAm agent runs, and full-source rebuild sentinels.
+Those need the same treatment: keep one real corpus sentinel, move detailed
+behavior to compact contracts, and avoid making real targets carry every
+assertion.
 
 ### Default Loop Headroom Is Real But Narrow
 
