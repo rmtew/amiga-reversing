@@ -3647,11 +3647,18 @@ pytest tests\test_web_e2e_cdp.py -m web_e2e -q --durations=20
   57 passed in 168.17s
 ```
 
-The required `--update-rendered-source` refresh could not be rerun in the final
-verification pass because the approval reviewer rejected the broad write scope.
-The read-only report above proves the current rendered sources still round-trip
-with no failures. The earlier update-mode run in this proposal reported the
-same 55-target summary and no rendered-source file changes.
+The required `--update-rendered-source` refresh was rerun after explicit
+approval for the broad target-source rewrite scope:
+
+```text
+python -m amiga_reversing.tools.rendered_source_roundtrip_report --update-rendered-source --json
+  55 targets, 0 failures, 39 full-file exact, 15 content-exact only, 1 unsupported
+```
+
+`git diff --name-only HEAD -- targets docs\proposals\034-test-suite-architecture-cleanup.md`
+reported no target source diffs after the refresh. The rendered source tree is
+therefore stable under the current renderer, and the known remaining
+round-trip debt is container fidelity rather than emitted source drift.
 
 The default loop is back under 20s without parallelism. The integration layer is
 still too broad and remains the main cleanup target.
@@ -3906,7 +3913,7 @@ The lesson for the test cleanup is that moving tests to cleaner seams should
 not make the browser layer optional. CDP remains valuable for async ordering and
 filesystem visibility races that unit tests will not naturally catch.
 
-### Target Render Checks Not Yet Exercised By This Slice
+### Target Render Checks Exercised By This Slice
 
 The required full target source refresh was run:
 
