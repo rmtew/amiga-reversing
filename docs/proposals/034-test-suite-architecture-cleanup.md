@@ -2549,6 +2549,38 @@ app_0234 RS definition and app_0234(a6) source use survive
 $0098(a1) is not misclassified as m68k_vector_trap_6_instruction_vector(a1)
 ```
 
+### Slice 4C.3 - Replace Runtime Immediate Real Renders With A Rule Fixture
+
+`test_real_dll_runtime_memory_immediates_need_proven_external_role` rendered
+both GenAm and MonAm only to assert this negative:
+
+```python
+assert "#bitmap_" not in rendered
+assert "#disk_buffer_" not in rendered
+```
+
+That is a source-quality check, so the project round-trip report cannot replace
+it. But it is not a GenAm/MonAm-specific rule. The rule is:
+
+```text
+ordinary immediate values stay numeric
+bitmap_*/disk_buffer_* names require proven hardware/storage sink semantics
+```
+
+The replacement is a compact C render fixture:
+
+```text
+facts_v2_runtime_memory_immediate_requires_sink_role
+  move.l #$10000,d0
+  move.l #$67D00,d1
+  assert no bitmap_ or disk_buffer_ symbol appears
+  assert the immediates render numerically
+```
+
+Positive bitmap and disk-buffer naming remains covered by the hardware/storage
+sink C fixtures. The expensive real binary pair no longer owns this generic
+negative rule.
+
 ### Slice 4D - Narrow MonAm Callback Field Real Sentinel
 
 The MonAm callback-field test was paying two target-scale C crossings:
@@ -3235,6 +3267,13 @@ pytest tests\test_c_backend.py -m real_integration -k "renders_genam or genam_pr
 pytest tests\test_c_backend.py -m real_integration -q --durations=20
   111 passed, 15 skipped, 91 deselected in 24.80s
 
+cmd /c src\precommit.bat
+  passed
+  m68k_ir: all 453 passed
+
+pytest tests\test_c_backend.py -m real_integration -q --durations=20
+  109 passed, 15 skipped, 91 deselected in 27.04s
+
 pytest tests\test_c_backend.py -m real_integration -k "data_classes_reach_listing_rows or 026_table_descriptors" -q --durations=20
   1 passed, 222 deselected in 1.72s
 
@@ -3268,13 +3307,13 @@ descriptor coverage has moved to C/source-analysis contracts. The largest
 remaining real fixture overreach is:
 
 ```text
-Damocles deferred-analysis sentinel             2.76s
+Damocles deferred-analysis sentinel             2.83s
 Magicland loader file transfers                 1.56s
-Starglider app-slot width sentinel              1.22s
-GenAm LVO operand-part sentinel                 1.05s
-Pandora BK provider wrapper                     1.02s
-Magicland copied-runtime entry                  0.97s
-Voodoo Tetragon comparator                      0.91s
+GenAm LVO operand-part sentinel                 1.28s
+Starglider app-slot width sentinel              1.19s
+Magicland copied-runtime entry                  1.15s
+Pandora BK provider wrapper                     1.11s
+Voodoo Tetragon comparator                      0.99s
 ```
 
 The Bloodwych generated-source exact test is no longer listed here because the

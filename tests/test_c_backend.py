@@ -9871,15 +9871,6 @@ def test_real_dll_genam_raw_0102_a6_exposes_rsset_binding_report() -> None:
     assert report_action["report"]["render"]["state"] == "linked_gap_or_raw"
 
 
-@pytest.mark.parametrize("binary_name", ["GenAm", "MonAm302"])
-def test_real_dll_runtime_memory_immediates_need_proven_external_role(binary_name: str) -> None:
-    _requires_c_backend_dlls()
-    rendered = render_binary_source_with_c_backend(PROJECT_ROOT / "bin" / binary_name)
-
-    assert "#bitmap_" not in rendered
-    assert "#disk_buffer_" not in rendered
-
-
 def test_real_dll_genam_profile_exposes_c_app_slot_analysis() -> None:
     _requires_c_backend_dlls()
     _rows, _api_calls, profile = build_project_listing_rows_profile_with_c_artifact(

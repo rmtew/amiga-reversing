@@ -23861,6 +23861,43 @@ static int test_facts_v2_copper_storage_sink_rejects_low_scalar_origin(void) {
   return 0;
 }
 
+static int test_facts_v2_runtime_memory_immediate_requires_sink_role(void) {
+  M68kObject object;
+  M68kSection section;
+  M68kObjectAddResult added;
+  M68kAnalysisPolicy policy;
+  M68kFactsV2Profile profile;
+  char *source = NULL;
+  uint8_t bytes[14] = {
+    0x20u, 0x3cu, 0x00u, 0x01u, 0x00u, 0x00u,
+    0x22u, 0x3cu, 0x00u, 0x06u, 0x7du, 0x00u,
+    0x4eu, 0x75u
+  };
+  memset(&section, 0, sizeof(section));
+  M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+  object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+  section.kind = M68K_SECTION_CODE;
+  section.size = sizeof(bytes);
+  section.data_size = sizeof(bytes);
+  section.data = bytes;
+  added = m68k_object_add_section(&object, &section);
+  M68K_C_ASSERT(added.ok);
+  m68k_analysis_policy_init_default(&policy);
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "bitmap_") == NULL);
+  M68K_C_ASSERT(strstr(source, "disk_buffer_") == NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.l #$10000,d0\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmove.l #$67D00,d1\n") != NULL);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+  M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_facts_v2_free_text(source);
+  m68k_object_destroy(&object);
+  return 0;
+}
+
 static int test_facts_v2_dsklen_write_renders_dma_size_comment(void) {
   M68kObject object;
   M68kSection section;
@@ -25213,6 +25250,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_copper_storage_sink_preserves_branch_distinct_bitmap_origins},
     {"facts_v2_copper_storage_sink_rejects_low_scalar_origin",
       test_facts_v2_copper_storage_sink_rejects_low_scalar_origin},
+    {"facts_v2_runtime_memory_immediate_requires_sink_role",
+      test_facts_v2_runtime_memory_immediate_requires_sink_role},
     {"facts_v2_dsklen_write_renders_dma_size_comment",
       test_facts_v2_dsklen_write_renders_dma_size_comment},
     {"facts_v2_render_asm_source_marks_structured_data_code_overlap",
