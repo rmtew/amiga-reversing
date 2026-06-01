@@ -638,6 +638,24 @@ static int section_has_rendered_reference_to_label(const M68kSectionAnalysisIR *
   return 0;
 }
 
+static int section_label_has_structured_origin(const M68kSectionAnalysisIR *section,
+    const M68kRenderedSymbolAccessIR *label) {
+  size_t index;
+  if (section == NULL || label == NULL) return 0;
+  for (index = 0U; index < section->symbol_origin_count; ++index) {
+    const M68kSymbolOriginIR *origin = &section->symbol_origins[index];
+    if (origin->origin_kind != M68K_SYMBOL_ORIGIN_STRUCTURED_DATA) continue;
+    if (label->has_target) {
+      if (label->target_section_index == section->section_index && label->target_offset == origin->offset)
+        return 1;
+    } else if (label->symbol_name != NULL && origin->symbol_name != NULL &&
+        strcmp(label->symbol_name, origin->symbol_name) == 0) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
 static int append_unreferenced_label_statement_diagnostic(M68kSectionAnalysisIR *section,
     const M68kRenderedSymbolAccessIR *label) {
   M68kSourceQualityDiagnosticIR diagnostic;
@@ -661,6 +679,7 @@ static int append_unreferenced_label_statement_diagnostics_for_section(M68kSecti
   for (index = 0U; index < section->rendered_symbol_access_count; ++index) {
     const M68kRenderedSymbolAccessIR *access = &section->rendered_symbol_accesses[index];
     if (access->access_kind != M68K_RENDERED_SYMBOL_ACCESS_LABEL_STATEMENT || access->comment_only) continue;
+    if (section_label_has_structured_origin(section, access)) continue;
     if (!section_has_rendered_reference_to_label(section, access)) {
       if (append_unreferenced_label_statement_diagnostic(section, access) != 0) return -1;
     }

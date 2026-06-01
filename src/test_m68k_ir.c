@@ -2660,7 +2660,10 @@ static int test_facts_v2_structured_data_emits_referenced_interior_label(void) {
   M68kObjectAddResult added;
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
   char *source = NULL;
+  size_t origin_index;
+  int found_structured_origin = 0;
   uint8_t bytes[16] = {
     0x4Eu, 0x75u,
     0x00u, 0x00u, 0x00u, 0x08u,
@@ -2705,14 +2708,31 @@ static int test_facts_v2_structured_data_emits_referenced_interior_label(void) {
   policy.structured_data_items[1].offset = 6U;
   policy.structured_data_items[1].size = 8U;
   policy.structured_data_items[1].kind = M68K_ANALYSIS_STRUCTURED_DATA_BYTES;
-  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
-    m68k_diag_sink(NULL)));
+  policy.named_label_count = 1U;
+  policy.named_labels[0].has_section_index = 1U;
+  policy.named_labels[0].section_index = 0U;
+  policy.named_labels[0].offset = 6U;
+  snprintf(policy.named_labels[0].name, sizeof(policy.named_labels[0].name), "structured_bytes");
+  memset(&source_analysis, 0, sizeof(source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "\tdc.l loc_0_00000008\t; pointer_table\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "structured_bytes:\n") != NULL);
   M68K_C_ASSERT(strstr(source, "loc_0_00000008:\n") != NULL);
   M68K_C_ASSERT(strstr(source, "loc_0_00000008:\n\tdc.b $33,$44") != NULL);
+  M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.section_count);
+  for (origin_index = 0U; origin_index < source_analysis.sections[0].symbol_origin_count; ++origin_index) {
+    const M68kSymbolOriginIR *origin = &source_analysis.sections[0].symbol_origins[origin_index];
+    if (origin->offset == 6U && origin->origin_kind == M68K_SYMBOL_ORIGIN_STRUCTURED_DATA &&
+        strcmp(origin->symbol_name, "structured_bytes") == 0) {
+      found_structured_origin = 1;
+    }
+  }
+  M68K_C_ASSERT(found_structured_origin);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_facts_v2_free_text(source);
   m68k_object_destroy(&object);
   return 0;
@@ -10689,6 +10709,8 @@ static int test_source_analysis_symbol_origin_and_expected_access_export(void) {
   M68K_C_ASSERT(strstr(analysis_json, "\"comment_only\":false") != NULL);
   M68K_C_ASSERT_STR("analysis_label",
     m68k_symbol_origin_kind_name(M68K_SYMBOL_ORIGIN_ANALYSIS_LABEL));
+  M68K_C_ASSERT_STR("structured_data",
+    m68k_symbol_origin_kind_name(M68K_SYMBOL_ORIGIN_STRUCTURED_DATA));
   M68K_C_ASSERT_STR("label_statement",
     m68k_expected_symbol_access_kind_name(M68K_EXPECTED_SYMBOL_ACCESS_LABEL_STATEMENT));
   M68K_C_ASSERT_STR("label_statement",
@@ -10804,6 +10826,45 @@ static int test_source_quality_analyze_warns_unreferenced_label_statement(void) 
   M68K_C_ASSERT(strstr(analysis_json, "\"severity\":\"warning\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"blocker\":false") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"summary\":\"label statement has no rendered symbol reference\"") != NULL);
+  free(analysis_json);
+  m68k_ir_section_analysis_destroy(&section_analysis);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  return 0;
+}
+
+static int test_source_quality_analyze_accepts_unreferenced_structured_label_statement(void) {
+  M68kSourceAnalysisIR source_analysis;
+  M68kSectionAnalysisIR section_analysis;
+  M68kSymbolOriginIR origin;
+  M68kRenderedSymbolAccessIR rendered_access;
+  char *analysis_json = NULL;
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_create(&source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_create(&section_analysis, test_ir_result_arena()));
+  section_analysis.section_index = 0U;
+  memset(&origin, 0, sizeof(origin));
+  origin.symbol_name = "palette_table";
+  origin.offset = 4U;
+  origin.source_section_index = 0U;
+  origin.source_offset = 4U;
+  origin.origin_kind = M68K_SYMBOL_ORIGIN_STRUCTURED_DATA;
+  origin.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_symbol_origin(&section_analysis, &origin));
+  memset(&rendered_access, 0, sizeof(rendered_access));
+  rendered_access.symbol_name = "palette_table";
+  rendered_access.offset = 4U;
+  rendered_access.target_section_index = 0U;
+  rendered_access.target_offset = 4U;
+  rendered_access.operand_index = UINT32_MAX;
+  rendered_access.access_kind = M68K_RENDERED_SYMBOL_ACCESS_LABEL_STATEMENT;
+  rendered_access.has_target = 1U;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_rendered_symbol_access(
+    &section_analysis, &rendered_access));
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
+  M68K_C_ASSERT_INT(0, m68k_source_quality_analyze_rendered_symbol_accesses(&source_analysis));
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"origin_kind\":\"structured_data\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"kind\":\"unreferenced_label_statement\"") == NULL);
   free(analysis_json);
   m68k_ir_section_analysis_destroy(&section_analysis);
   m68k_ir_source_analysis_destroy(&source_analysis);
@@ -24969,6 +25030,8 @@ int m68k_c_ir_tests(void) {
       test_source_quality_analyze_accepts_rendered_expected_symbol_access},
     {"source_quality_analyze_warns_unreferenced_label_statement",
       test_source_quality_analyze_warns_unreferenced_label_statement},
+    {"source_quality_analyze_accepts_unreferenced_structured_label_statement",
+      test_source_quality_analyze_accepts_unreferenced_structured_label_statement},
     {"source_quality_analyze_accepts_branch_target_alias_symbol_access",
       test_source_quality_analyze_accepts_branch_target_alias_symbol_access},
     {"source_quality_analyze_exports_code_origins_and_runs",

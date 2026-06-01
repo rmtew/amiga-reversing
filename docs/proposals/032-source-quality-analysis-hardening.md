@@ -4936,3 +4936,31 @@ src\build\m68k_c_unit_tests.exe m68k_ir
 uv run python -m amiga_reversing.tools.rendered_source_roundtrip_report --json
   55 targets, 0 failures, 39 full-file exact, 15 content-exact only, 1 unsupported
 ```
+
+### Structured Label Origin Exception
+
+Unreferenced label diagnostics now respect explicit C-owned structured origins.
+The rule is:
+
+```text
+rendered label statement
+  -> visible non-comment reference exists
+     -> valid
+  -> no visible reference, but symbol_origin(structured_data) exists at target
+     -> valid structured anchor
+  -> otherwise
+     -> unreferenced_label_statement diagnostic
+```
+
+This keeps the Damocles-style stray-label signal while avoiding false positives
+for labels whose purpose is to name a structured data object rather than serve
+as a branch/data operand target. The structured origin is emitted while
+projecting label lookup into Source Analysis IR when the label offset matches a
+structured-data item anchor.
+
+Focused fixtures:
+
+```text
+source_quality_analyze_warns_unreferenced_label_statement
+source_quality_analyze_accepts_unreferenced_structured_label_statement
+```

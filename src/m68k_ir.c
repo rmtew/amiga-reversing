@@ -350,6 +350,8 @@ const char *m68k_symbol_origin_kind_name(uint8_t kind) {
       return "platform_semantic_use";
     case M68K_SYMBOL_ORIGIN_MANUAL_LABEL:
       return "manual_label";
+    case M68K_SYMBOL_ORIGIN_STRUCTURED_DATA:
+      return "structured_data";
     default:
       return "unknown";
   }

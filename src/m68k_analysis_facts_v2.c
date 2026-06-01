@@ -858,6 +858,20 @@ static int label_lookup_create_label(M68kFactsV2LabelLookup *lookup,
   return -1;
 }
 
+static int source_analysis_has_structured_data_anchor_label(const M68kSourceAnalysisIR *source_analysis,
+    size_t section_index, uint32_t offset) {
+  size_t item_index;
+  if (source_analysis == NULL) return 0;
+  for (item_index = 0U; item_index < source_analysis->structured_data_item_count; ++item_index) {
+    const M68kAnalysisStructuredDataItem *item = &source_analysis->structured_data_items[item_index];
+    if (item->has_section_index && item->section_index == section_index && item->offset == offset &&
+        item->size != 0U) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
 static int append_symbol_facts_from_label_lookup(const M68kDecodeIR *decode,
     const M68kFactsV2LabelLookup *label_lookup, const M68kRenderLookup *lookup,
     M68kSourceAnalysisIR *source_analysis) {
@@ -889,6 +903,10 @@ static int append_symbol_facts_from_label_lookup(const M68kDecodeIR *decode,
       origin.origin_kind = M68K_SYMBOL_ORIGIN_ANALYSIS_LABEL;
       origin.confidence = label_lookup->confidences[section_index][offset];
       if (m68k_ir_section_analysis_append_symbol_origin(section_analysis, &origin) != 0) return -1;
+      if (source_analysis_has_structured_data_anchor_label(source_analysis, section_index, offset)) {
+        origin.origin_kind = M68K_SYMBOL_ORIGIN_STRUCTURED_DATA;
+        if (m68k_ir_section_analysis_append_symbol_origin(section_analysis, &origin) != 0) return -1;
+      }
     }
   }
   return 0;
