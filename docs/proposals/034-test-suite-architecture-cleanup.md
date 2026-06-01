@@ -1685,8 +1685,11 @@ The real wrapper test now keeps only the real corpus promotion proof:
 ```text
 one derived target suggestion exists
 one decompression event exists
+one scanned packed payload exists
+payload is provider-scanned ancient-cli/bk at section 0 offset $E8
+payload reports decompressed_size from scan-json but no decompressed_sha256
 suggestion/event are materializable
-reason is initial_control_target_validated_provider_wrapper
+reason is provider_wrapper_validation_deferred
 payload role is primary_program
 parent target does not remain active
 load/entry identity is $20000/$20000
@@ -1701,23 +1704,48 @@ The missing lower seam is still the provider-wrapper C contract itself:
 
 ```text
 provider output packet + absolute transfer proof
-  -> initial_control_target_validated_provider_wrapper
+  -> provider_wrapper_validation_deferred during analysis
   -> parent_remains_active=false
   -> primary_program load/entry identity
 ```
 
-Today that promotion seam is only reachable through full C analysis of a packed
-real fixture. The provider/decompression assertions are now cheap, but a future
-backend contract should still make provider-wrapper promotion testable without
-carrying a 189000-byte real packed payload in the assertion path.
+The product path now avoids decompression during analysis for provider wrapper
+cases where Ancient scan metadata plus static wrapper transfer gives enough
+metadata to materialize a child target. Decompressed bytes and hashes are still
+proved by the explicit section-range materialization contract and by import-time
+materialization.
+
+Ancient cannot be removed yet. Current imported targets and real tests still use
+it for codecs that native Tetragon and simulated self-decrunch support do not
+cover:
+
+```text
+targets/amiga_disk_pandora-1988-firebird/.../decompression.json
+  method ancient-cli, codec bk
+
+targets/amiga_disk_midwinter-ii---flames-of-freedom-.../.../decompression.json
+  method ancient-cli, codec bk
+
+test_real_dll_carrier_decompression_suggestions_require_runtime_metadata
+  ancient-cli rnc1-old
+
+test_real_dll_voodoo_trainer_decompression_comparator
+  ancient-cli rnc1
+```
+
+Removing Ancient requires native or replacement support for at least `bk`,
+`rnc1`, and `rnc1-old`, followed by target reimport/regeneration.
 
 Focused verification:
 
 ```text
 pytest tests\test_c_backend.py -m c_backend -k "pandora_bk" -q --durations=20
-  2 passed, 222 deselected in 6.89s
-  real wrapper promotion  5.95s
-  section-range contract  0.11s
+  2 passed, 222 deselected in 1.99s
+  real wrapper promotion  1.03s
+  section-range contract  0.16s
+
+pytest tests\test_c_backend.py -m c_backend -k "pandora_bk or carrier_decompression_suggestions or voodoo_trainer_decompression_comparator" -q --durations=20
+  3 passed, 1 skipped, 220 deselected in 2.38s
 ```
 
 ### Voodoo, Magicland, Conqueror Decrunchers
@@ -2989,17 +3017,18 @@ wide confidence layers remain meaningful and easier to understand
 
 After the generated/drift split, route-command split, CDP race fixes, MPW
 fixture narrowing, duplicate MPW payload removal, the Bloodwych/string real
-fixture cleanup, and Damocles copied-stub native execution deferral:
+fixture cleanup, Damocles copied-stub native execution deferral, and Pandora
+provider-wrapper validation deferral:
 
 ```text
 pytest tests -q --durations=20
-  1242 passed, 405 deselected in 15.21s
+  1242 passed, 405 deselected in 18.29s
 
 pytest tests -m integration -q
   202 passed, 1446 deselected in 30.07s
 
 pytest tests -m real_integration -q --durations=20
-  129 passed, 16 skipped, 1502 deselected in 55.80s
+  129 passed, 16 skipped, 1502 deselected in 54.71s
 
 uv run ruff check
   passed
@@ -3042,10 +3071,10 @@ pytest tests\test_import_adf.py -k "recognized_unpacker" -q --durations=10
 
 cmd /c src\test.bat --no-build
   C unit tests passed
-  162 Python src unittest tests passed in 13.751s
+  162 Python src unittest tests passed in 14.224s
 
 pytest tests\test_c_backend.py -m real_integration -k "pandora_bk_provider_wrapper" -q --durations=10
-  1 passed, 223 deselected in 6.54s
+  1 passed, 223 deselected in 1.19s
 
 pytest tests\test_c_backend.py -m real_integration -k "bloodwych or 025_string_text_examples or data_classes_reach_listing_rows" -q --durations=20
   3 passed, 220 deselected in 10.32s
@@ -3079,16 +3108,17 @@ The default loop is back under 20s without parallelism. The integration layer is
 still too broad and remains the main cleanup target.
 
 The latest real-integration profile now has no separate Bloodwych runtime/table
-listing pass, and Damocles candidate analysis no longer pays native copied-stub
-execution. The largest remaining real fixture overreach is:
+listing pass, Damocles candidate analysis no longer pays native copied-stub
+execution, and Pandora provider-wrapper analysis no longer pays Ancient
+decompression just to establish load/entry metadata. The largest remaining real
+fixture overreach is:
 
 ```text
-Pandora BK provider wrapper                     5.98s
-Pandora table descriptors/evidence bounds       4.13s
-GenAm autonomous RSSET sentinel                 3.01s
-Bloodwych generated source exact                2.94s
-Damocles deferred-analysis sentinel             2.89s
-Magicland self-decrunch materialization         2.49s
+Pandora table descriptors/evidence bounds       4.10s
+Bloodwych generated source exact                3.06s
+GenAm autonomous RSSET sentinel                 2.99s
+Damocles deferred-analysis sentinel             2.95s
+Magicland self-decrunch materialization         2.53s
 ```
 
 ## Trailing Notes And Follow-Up Observations
@@ -3117,9 +3147,8 @@ real Damocles corpus sentinel
   -> section 2 remains materializable with native_execution_deferred
 ```
 
-The larger remaining real-suite costs are now Pandora BK, table descriptor
-evidence bounds, full-source rebuild sentinels, and native materialization
-sentinels.
+The larger remaining real-suite costs are now table descriptor evidence bounds,
+full-source rebuild sentinels, and native materialization sentinels.
 Those need the same treatment: keep one real corpus sentinel, move detailed
 behavior to compact contracts, and avoid making real targets carry every
 assertion.

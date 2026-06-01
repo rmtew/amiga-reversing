@@ -10322,20 +10322,30 @@ def test_real_dll_pandora_bk_provider_wrapper_promotes_absolute_payload() -> Non
 
     fixture = PROJECT_ROOT / "tests" / "fixtures" / "hunk" / "pandora_bk_wrapper.bin"
     analysis = analyze_binary_source_with_c_backend(fixture, project_root=PROJECT_ROOT)
+    payloads = analysis["packed_payloads"]
     suggestions = analysis["derived_target_suggestions"]
     events = analysis["decompression_events"]
 
+    assert len(payloads) == 1
     assert len(suggestions) == 1
     assert len(events) == 1
+    assert payloads[0]["provider_id"] == "ancient-cli"
+    assert payloads[0]["codec_id"] == "bk"
+    assert payloads[0]["confidence"] == "provider-scanned"
+    assert payloads[0]["source_section"] == 0
+    assert payloads[0]["source_section_offset"] == 0xE8
+    assert payloads[0]["packed_size"] == 189000
+    assert payloads[0]["decompressed_size"] > 0
+    assert "decompressed_sha256" not in payloads[0]
     assert suggestions[0]["status"] == "materializable"
-    assert suggestions[0]["reason"] == "initial_control_target_validated_provider_wrapper"
+    assert suggestions[0]["reason"] == "provider_wrapper_validation_deferred"
     assert suggestions[0]["payload_role"] == "primary_program"
     assert suggestions[0]["parent_remains_active"] == "false"
     assert suggestions[0]["load_address"] == 0x20000
     assert suggestions[0]["entrypoint"] == 0x20000
     assert suggestions[0]["initial_control_target"] == 0x20000
     assert events[0]["status"] == "materializable"
-    assert events[0]["reason"] == "initial_control_target_validated_provider_wrapper"
+    assert events[0]["reason"] == "provider_wrapper_validation_deferred"
     assert events[0]["parent_remains_active"] == "false"
     assert events[0]["load_address"] == 0x20000
     assert events[0]["entrypoint"] == 0x20000

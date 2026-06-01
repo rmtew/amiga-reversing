@@ -2857,6 +2857,8 @@ static const char *decompression_reason_name_local(uint8_t reason) {
     case PLATFORM_DECOMPRESSION_REASON_INVALID_DECOMPRESSED_ENTRYPOINT: return "invalid_decompressed_entrypoint";
     case PLATFORM_DECOMPRESSION_REASON_NATIVE_TETRAGON_UNPACK_DEFERRED:
       return "native_tetragon_unpack_deferred";
+    case PLATFORM_DECOMPRESSION_REASON_PROVIDER_WRAPPER_VALIDATION_DEFERRED:
+      return "provider_wrapper_validation_deferred";
     default: return "unknown";
   }
 }
@@ -2902,6 +2904,10 @@ static const char *decompression_codec_support_name_local(uint8_t codec_support)
 static uint8_t decompression_suggestion_reason_local(const PlatformDecompressionIdentifyResult *result,
     const M68kRuntimeViewIR *runtime_copy_view) {
   if (result == NULL) return PLATFORM_DECOMPRESSION_REASON_INVALID_RECORD;
+  if (result->has_decompressed_load_entry &&
+      result->has_decompressed_load_entry_from_wrapper &&
+      !result->decompressed)
+    return PLATFORM_DECOMPRESSION_REASON_PROVIDER_WRAPPER_VALIDATION_DEFERRED;
   if (result->has_decompressed_load_entry)
     return result->has_decompressed_load_entry_from_wrapper ?
       PLATFORM_DECOMPRESSION_REASON_INITIAL_CONTROL_TARGET_VALIDATED_PROVIDER_WRAPPER :
@@ -4512,6 +4518,95 @@ cleanup:
   return ok;
 }
 
+static const char *provider_candidate_codec_name_local(const PlatformDecompressionCandidate *candidate) {
+  if (candidate == NULL || candidate->codec_hint[0] == '\0') return "unknown";
+  if (strcmp(candidate->codec_hint, "bk") == 0) return "bk";
+  if (strcmp(candidate->codec_hint, "rnc1-old") == 0) return "rnc1-old";
+  return candidate->codec_hint;
+}
+
+static int init_scanned_provider_candidate_result_local(PlatformDecompressionIdentifyResult *result,
+    const M68kSection *section, size_t section_index, const PlatformDecompressionCandidate *candidate) {
+  if (result == NULL || section == NULL || section->data == NULL || candidate == NULL ||
+      candidate->packed_size == 0U || candidate->decompressed_size == 0U ||
+      candidate->offset > section->data_size || candidate->packed_size > section->data_size - candidate->offset) {
+    return -1;
+  }
+  platform_decompression_identify_result_init(result);
+  snprintf(result->provider_id, sizeof(result->provider_id), "ancient-cli");
+  snprintf(result->codec_id, sizeof(result->codec_id), "%s",
+    candidate->codec_hint[0] != '\0' ? candidate->codec_hint : "unknown");
+  snprintf(result->codec_name, sizeof(result->codec_name), "%s",
+    provider_candidate_codec_name_local(candidate));
+  snprintf(result->confidence, sizeof(result->confidence), "provider-scanned");
+  result->found = 1;
+  result->source_offset = candidate->offset;
+  result->source_section_index = (uint32_t)section_index;
+  result->source_section_offset = candidate->offset;
+  result->packed_size = candidate->packed_size;
+  result->decompressed_size = candidate->decompressed_size;
+  result->has_source_section = 1U;
+  (void)m68k_platform_sha256_hex(section->data + candidate->offset, candidate->packed_size,
+    result->source_sha256);
+  return 0;
+}
+
+static int promote_provider_payload_from_wrapper_static_local(const M68kObject *object,
+    const M68kSourceAnalysisIR *analysis, PlatformDecompressionIdentifyResult *result,
+    Arena *scratch_arena) {
+  M68kDecodeIR decode;
+  const M68kDecodeSectionIR *decode_section;
+  const M68kSectionAnalysisIR *section_analysis;
+  uint32_t offset;
+  uint32_t source_start, source_end;
+  int promoted = 0;
+  memset(&decode, 0, sizeof(decode));
+  if (object == NULL || analysis == NULL || scratch_arena == NULL || result == NULL ||
+      !result->has_source_section || result->source_section_index >= object->section_count ||
+      result->source_section_index >= analysis->section_count ||
+      result->source_section_offset > UINT32_MAX - result->packed_size) {
+    return 0;
+  }
+  if (m68k_decode_ir_build_object_sections(&decode, object, m68k_diag_sink(NULL)) != 0) return 0;
+  if (result->source_section_index >= decode.section_count) {
+    m68k_decode_ir_destroy(&decode);
+    return 0;
+  }
+  decode_section = &decode.sections[result->source_section_index];
+  section_analysis = &analysis->sections[result->source_section_index];
+  source_start = result->source_section_offset;
+  source_end = source_start + result->packed_size;
+  for (offset = 0U; offset < section_analysis->certain_code_size; ++offset) {
+    const M68kDecodeCandidate *candidate = NULL;
+    uint32_t transfer_target = 0U;
+    uint8_t parent_remains_active;
+    if (section_analysis->certain_code_start == NULL || !section_analysis->certain_code_start[offset]) continue;
+    if (m68k_decode_ir_ensure_candidate_at(&decode, result->source_section_index, offset,
+        analysis->policy.max_cpu, &candidate, m68k_diag_sink(NULL)) != 0 ||
+        candidate == NULL || candidate->byte_count == 0U) {
+      continue;
+    }
+    if (candidate->offset > UINT32_MAX - candidate->byte_count) continue;
+    if (candidate->offset < source_end && candidate->offset + candidate->byte_count > source_start) continue;
+    if (!runtime_transfer_target_from_candidate_local(decode_section, section_analysis, candidate,
+        &transfer_target, &parent_remains_active)) {
+      continue;
+    }
+    if (parent_remains_active || transfer_target > UINT32_MAX - result->decompressed_size) continue;
+    result->has_decompressed_load_entry = 1U;
+    result->has_decompressed_load_entry_from_wrapper = 1U;
+    result->parent_remains_active_known = 1U;
+    result->parent_remains_active = 0U;
+    result->decompressed_load_address = transfer_target;
+    result->decompressed_entrypoint = transfer_target;
+    result->decompressed_initial_control_target = transfer_target;
+    promoted = 1;
+    break;
+  }
+  m68k_decode_ir_destroy(&decode);
+  return promoted;
+}
+
 static int promote_provider_payload_from_wrapper_simulation_local(const M68kObject *object,
     const M68kSourceAnalysisIR *analysis, const char *output_path, PlatformDecompressionIdentifyResult *result,
     Arena *scratch_arena) {
@@ -5469,6 +5564,11 @@ static int append_object_decompression_analysis_json(JsonBuilder *builder, const
       if (!automatic_decompression_candidate_is_useful(candidate)) continue;
       if (analysis_range_overlaps_accepted_code(section_analysis, candidate->offset, candidate->packed_size))
         continue;
+      if (init_scanned_provider_candidate_result_local(&result, section, section_index, candidate) == 0 &&
+          promote_provider_payload_from_wrapper_static_local(object, analysis, &result, scratch_arena)) {
+        results[result_count++] = result;
+        continue;
+      }
       if (make_temp_output_path(output_path, sizeof(output_path)) != 0) goto cleanup;
       phase_start = clock();
       if (platform_decompression_decompress_buffer_range("ancient-cli", "", section->data, section->data_size,

@@ -778,9 +778,11 @@ int platform_decompression_append_result_json(JsonBuilder *builder,
         (unsigned)PLATFORM_DECOMPRESSION_CODEC_SUPPORT_EXTERNAL_PROVIDER) != 0) return -1;
     if (json_builder_append(builder, ",\"confidence\":") != 0) return -1;
     if (json_builder_append_json_string(builder, result->confidence) != 0) return -1;
-    if (result->decompressed) {
+    if (result->decompressed_size != 0U) {
       if (json_builder_appendf(builder, ",\"decompressed_size\":%u", (unsigned)result->decompressed_size) != 0)
         return -1;
+    }
+    if (result->decompressed) {
       if (json_builder_append(builder, ",\"decompressed_sha256\":") != 0) return -1;
       if (json_builder_append_json_string(builder, result->decompressed_sha256) != 0) return -1;
       if (result->decompressed_path[0] != '\0') {
