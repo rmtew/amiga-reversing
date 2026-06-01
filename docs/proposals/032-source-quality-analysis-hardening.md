@@ -312,6 +312,270 @@ src/platform_facts_v2.c              platform dictionary adapter remains here
 Do not create a Python source-quality module. Python can call the C pipeline,
 read JSON, group rows, and display diagnostics.
 
+## Tutorial: Validation Contract
+
+Source-quality diagnostics are not review hints when they identify impossible
+or internally inconsistent analysis. They are validation failures in the
+framework. If one of these hard checks fires, the correct response is to fix
+the C analysis/rendering pipeline, not to ask the user to review around it.
+There should not be a "warning" class for broken source-quality invariants:
+either the invariant fails and source export is refused, or the observation is
+not a source-quality diagnostic and belongs in review/candidate reporting.
+
+The validation contract is:
+
+```text
+C analysis creates semantic facts
+  -> source-quality validates the facts are internally consistent
+  -> blocking diagnostics set source refusal/profile failure
+  -> render/export is not allowed to hide or bypass the failure
+```
+
+This applies whether the bad fact came from auto-analysis or from effective
+metadata projected from a manual action. Manual input may request a seed or
+representation, but it must not be able to force the framework to emit broken
+source. If a manual request would create a broken code block, label, range, or
+representation, the API/tooling should return a structured error code plus
+clear user-facing text:
+
+```text
+manual_action_validation_failed
+  code: source_quality_invalid_code_run
+  text: requested code range is not a credible terminated code run
+
+manual_action_validation_failed
+  code: source_quality_missing_symbol_definition
+  text: requested symbol access would have no emitted definition
+
+manual_action_validation_failed
+  code: source_quality_unreferenced_label
+  text: requested label has no visible access or structured origin
+```
+
+Validation still lives in C; UI and Python only surface the code/text.
+
+The same rules apply to automatic and manual facts:
+
+```text
+manual or automatic code block
+  -> no executable origin / weak origin / bad terminal shape
+     -> blocking diagnostic
+
+manual or automatic label
+  -> definition without visible access or structured origin
+     -> diagnostic
+  -> access without emitted definition
+     -> blocking diagnostic
+```
+
+The current hardening has two validation lanes:
+
+```text
+pre-render source-quality
+  -> accepted code credibility
+  -> address-use/domain classification
+  -> symbol origins and expected accesses
+  -> diagnostics before render preview
+
+post-render source-quality
+  -> actual rendered accesses
+  -> expected-vs-rendered symbol comparison
+  -> diagnostics before source export is accepted
+```
+
+Both lanes are required, but the framework should fail at the earliest point
+where the invalid state is knowable. Post-render validation is only for
+invariants that cannot be observed until rendering has produced actual output.
+Some failures should be detected early, before the full analysis/render path
+spends time producing output that must be refused anyway:
+
+```text
+accepted block has no credible executable origin
+accepted run is not terminated by branch/return/trap/no-return call
+accepted run falls through into owned data/table/string bytes
+candidate has known bad-disassembly pattern
+symbol origin cannot justify an emitted label
+address-shaped literal lacks proven address-use domain
+```
+
+Other failures require the renderer to have produced an observable output trace
+and therefore belong in the post-render lane:
+
+```text
+expected label definition was not emitted
+expected operand/equate symbol was rendered numerically
+rendered label has no visible non-comment access and no structured origin
+rendered symbol access targets the wrong section/offset/domain
+comment-only mention is used as the only evidence of a symbol access
+```
+
+The post-render pass is therefore not a fallback cleanup step. It is a final
+invariant check over the exported source:
+
+```text
+expected_symbol_access
+  + rendered_symbol_access
+  -> consistent source
+
+expected_symbol_access
+  + no rendered access
+  -> source-quality blocker
+
+rendered label/access
+  + no source-quality origin/use proof
+  -> diagnostic or blocker by class
+```
+
+Bad code emission is treated the same way. A byte run can decode and round-trip
+while still being false code. A valid decode is not enough if the run has the
+shape of data or an unsplit mixed block:
+
+```asm
+    ori.b #$8000,d6
+    ori.b #0,d0
+    ori.b #0,d0
+```
+
+The expected analysis behaviour is:
+
+```text
+accepted code run
+  -> walk block/run boundaries
+  -> classify terminal instruction shape
+  -> score weak/bad instruction patterns
+  -> check fallthrough target ownership
+  -> either prove credible code or emit diagnostic
+```
+
+Examples of hard failure signals:
+
+```text
+unterminated accepted run
+accepted run ends in non-terminal instruction with no proven fallthrough
+fallthrough enters structured data or string/table ownership
+run consists mostly of immediate-ORI/ANDI-style low-entropy data decodes
+terminal instruction exists only after bytes that should have been split as data
+code label exists for a block with no executable origin
+```
+
+These diagnostics must feed the existing source-refusal path and corpus feature
+lanes. They must not be suppressible by the UI, Python reporting, or a render
+option:
+
+```text
+source-quality blocker
+  -> profile.source_quality_blockers > 0
+  -> asm_source_refused = 1
+  -> asm_source_first_failure_* points at first blocker
+  -> rendered-source update/roundtrip reports failure
+```
+
+The goal is to make failures loud and actionable for framework work:
+
+```text
+framework generated invalid source
+  -> framework validation fails
+  -> developer fixes analysis
+  -> target renders cleanly
+```
+
+## Tutorial: Test Shape
+
+Source-quality correctness must be proven with isolated fixtures first. Large
+targets such as Damocles, Starglider, Midwinter II, Pandora, or Bloodwych are
+integration evidence and drift detection, not the primary proof for nuanced
+framework behaviour.
+
+The required test shape is:
+
+```text
+small C fixture
+  -> constructs the minimum bytes/facts/policy for one invariant
+  -> asserts the source-quality fact or diagnostic directly
+  -> asserts source refusal when the invariant is blocking
+
+large target render/roundtrip
+  -> proves the isolated behaviour still composes with real targets
+  -> catches unexpected render drift
+  -> does not replace the small fixture
+```
+
+Avoid this shape for new framework rules:
+
+```text
+large in-situ target fixture
+  -> many analysis behaviours happen together
+  -> one assertion proves only that the blob currently works
+  -> failure is slow and hard to minimize
+```
+
+Every validation rule in this proposal should have a focused fixture that
+names the invariant it protects. Target-specific examples can motivate the
+fixture, but the fixture should not require importing or analyzing the whole
+target unless the rule genuinely depends on container/platform integration.
+
+Minimum fixture coverage:
+
+```text
+accepted code without executable origin
+unterminated accepted code run
+bad-code-pattern accepted run
+fallthrough into owned data/table/string
+expected label definition missing from render
+expected operand/equate symbol rendered numerically
+rendered label with no visible non-comment access
+structured label origin exception
+comment-only symbol mention does not satisfy access
+weak address-shaped literal stays numeric
+proven absolute slot renders symbolically
+runtime/LVO-style value is not forced into absolute_slot_*
+manual/effective metadata cannot force broken code or labels
+```
+
+Maintain this as an inventory, not prose. Each source-quality invariant should
+have one row mapping the rule, the small fixture, and any large target that
+motivated or guards it:
+
+```text
+invariant
+  -> focused C fixture
+  -> expected fact/diagnostic
+  -> source refusal? yes/no
+  -> corpus target evidence, if any
+```
+
+Example:
+
+```text
+runtime/LVO-style value is not forced into absolute_slot_*
+  -> source_quality_analyze_accepts_runtime_alias_for_absolute_slot_access
+  -> expected/rendered symbolic access domain compatibility
+  -> source refusal: no
+  -> Midwinter II setpatch_55392121
+```
+
+The inventory is how a reviewer checks that proposal coverage is complete. A
+large target without a focused fixture is evidence of a gap, not evidence that
+the invariant is tested.
+
+Corpus-scale commands remain mandatory gates for output-affecting work:
+
+```text
+platform-rendered-source-roundtrip --update-rendered-source --json
+```
+
+But that command answers a different question:
+
+```text
+Do all tracked target renders still compose and round-trip?
+```
+
+It must not be the only evidence for:
+
+```text
+Does this source-quality invariant work?
+```
+
 New or strengthened fact families:
 
 ```text
@@ -2944,11 +3208,14 @@ jump edge at run end   -> proven_transfer
 otherwise a non-section-end run remains accepted_gap
 ```
 
-`accepted_gap` now emits a non-blocking
-`unterminated_or_invalid_code_range` warning when the run has a real origin but
-no terminal/proven-transfer ending yet. This keeps the current output from
-being silently reclassified while making the residual source-quality weakness
-queryable and visible through C facts.
+`accepted_gap` is now recorded as accepted-run metadata, not as a warning. A
+plain gap is ambiguous: it may be a fixture boundary, an unmodelled
+continuation, or a real broken code/data split. `unterminated_or_invalid_code_range`
+must be a blocking diagnostic only when analysis has concrete evidence that the
+run is invalid, such as fallthrough into owned data, a non-terminal instruction
+with no credible continuation, or a bad-disassembly pattern. Otherwise the
+observation belongs in review/candidate reporting, not source-quality
+diagnostics.
 
 Facts-v2 profiles now count source-quality diagnostics and blockers, expose the
 first source-quality diagnostic, and map blocking source-quality failures to
@@ -4916,17 +5183,43 @@ signal. A label statement no longer satisfies that question by existing:
 rendered label statement
   -> search rendered symbol accesses at the same target
   -> ignore label_statement and comment_only rows
-  -> emit unreferenced_label_statement when no non-label reference exists
+  -> accept labels with C-owned origin/context
+  -> emit blocking unreferenced_label_statement when no non-label reference
+     and no C-owned origin/context exists
 ```
 
-The diagnostic is currently a warning, not a hard source-export blocker. That
-keeps existing corpus round-trip status stable while making the failure visible
-as a C source-quality fact instead of a renderer-only silence. The next hardening
-step can promote specific unreferenced-label classes to blockers once the corpus
-rows have been reviewed.
+The diagnostic is a hard source-export blocker. A label emitted with no visible
+non-comment use and no C-owned origin is broken source, not a review item. If
+the corpus hits this diagnostic, analysis or rendering must be fixed so the
+label either has a visible access or has a proven C-owned origin.
+
+The implemented safe subset does not yet block every origin-backed label that
+lacks a visible access. Existing real targets expose labels whose uses are
+present in rendered expressions, table entries, data relocations, object
+symbols, or accepted code starts before all of those paths have complete
+`M68kRenderedSymbolAccessIR` coverage. Blocking those now would turn missing
+access instrumentation into false source refusals. The current hard check
+therefore fires only when a rendered label has no visible reference and no
+source-analysis context such as:
+
+```text
+symbol origin
+label-offset origin
+accepted code start
+structured/non-code range ownership
+code origin
+```
+
+The broader final rule remains:
+
+```text
+origin-backed label
+  -> visible non-comment access, or explicit anchor-origin exception
+  -> otherwise blocking unreferenced_label_statement
+```
 
 The regression fixture is
-`source_quality_analyze_warns_unreferenced_label_statement`.
+`source_quality_analyze_blocks_unreferenced_label_statement`.
 
 Verified:
 
@@ -4961,6 +5254,235 @@ structured-data item anchor.
 Focused fixtures:
 
 ```text
-source_quality_analyze_warns_unreferenced_label_statement
+source_quality_analyze_blocks_unreferenced_label_statement
 source_quality_analyze_accepts_unreferenced_structured_label_statement
 ```
+
+### Address Observation Symbol Accesses
+
+Address-shaped literals are not automatically source symbols. The expected
+behaviour is:
+
+```text
+literal value
+  -> proven address use?
+     -> classify the address domain
+     -> render symbolically only when the classified use benefits the reverser
+  -> weak address-shaped candidate only?
+     -> keep numeric in source
+     -> expose as review/analysis candidate
+  -> typed non-address value?
+     -> render with the typed domain if known
+     -> otherwise keep numeric
+```
+
+This prevents every plausible pointer-looking value from being uplifted into an
+`absolute_slot_*` equate. A symbolic operand is valuable only when analysis has
+evidence for why the value is address-like in this program:
+
+```text
+memory read/write at the address
+lea/pea used as a pointer argument to a known API/helper
+stored into a known pointer field
+used as a jump/call target
+used as a base for repeated or ranged accesses
+loop clears/fills/copies a range
+matches platform register/vector/base knowledge
+maps to a target runtime/source range
+```
+
+Weak evidence should not force symbolic rendering:
+
+```text
+immediate literal happens to be in a plausible address range
+negative long value looks address-shaped
+one-off constant with no pointer/memory/control use
+argument value is actually signed offset / enum / flags / size
+```
+
+If the domain is unknown, do not invent a name. A name is justified only when it
+communicates a proven semantic role. Unknown names are worse than numeric
+values because they imply meaning the framework has not proved:
+
+```text
+unknown address-shaped literal
+  -> keep $XXXXXXXX in source
+  -> emit review/candidate fact if useful
+  -> no absolute_slot_*
+  -> no runtime_address_*
+
+known typed call input
+  -> use the typed domain symbol if known
+  -> otherwise keep numeric with typed evidence, not a fake address symbol
+```
+
+The address domain determines the symbol family:
+
+```text
+located target storage
+  -> source/range label tied to section bytes or an ORG/runtime view
+
+one-off proven absolute storage/use
+  -> absolute_slot_*
+
+inferred absolute range
+  -> range identity plus member/offset symbols when useful
+
+platform/runtime semantic address
+  -> platform symbol, vector symbol, hardware symbol, or typed call input
+
+weak candidate
+  -> numeric source plus review/analysis record
+```
+
+`runtime_address_*` is therefore not a synonym for located data or generic
+absolute storage. It is a temporary/render-domain alias for an address-shaped
+value whose stronger meaning has not yet been fully named. In SetPatch, for
+example, `$FFFFFF94` appears as a typed call input (`funcOffset long`), closer
+to an Exec LVO/function-offset value than to data located at `$FFFFFF94`.
+The desired end state is to avoid emitting `runtime_address_*` for such unknown
+typed values at all. Use a real domain name when known; otherwise leave the
+operand numeric and expose the candidate/type evidence outside the source text.
+
+The current implementation still has a compatibility bridge: C-owned absolute
+memory observations produce expected operand-symbol accesses when the renderer
+is supposed to emit the generated absolute slot symbol. That bridge exists to
+catch silent numeric regressions, not to declare that every address-shaped
+literal deserves an `absolute_slot_*`.
+
+The producer is deliberately narrower than "any named address observation":
+
+```text
+accepted instruction operand
+  -> exact address observation at same offset/operand
+  -> owner=absolute_memory
+  -> conflict_state=clean
+  -> source=absolute_operand
+  -> symbol_name present
+  -> renderer-backed shape
+  -> M68kExpectedSymbolAccessIR(operand)
+```
+
+Renderer-backed shape means one of the existing absolute-slot paths:
+
+```text
+memory read/write absolute operand
+  -> access_width known
+  -> address < $00010000
+
+compute-address absolute operand
+  -> no stronger semantic/comment owner
+  -> not stack-top setup
+```
+
+This matters for Damocles-style output where C analysis has already created an
+absolute-memory symbol, but the rendered source can still print the raw numeric
+operand:
+
+```asm
+absolute_slot_0000012A	EQU	$12A
+
+	move.l absolute_slot_0000012A.w,d0
+```
+
+The source-quality gate can now distinguish three cases:
+
+```text
+absolute_slot symbol was expected and rendered
+  -> valid
+
+absolute_slot symbol was expected but operand stayed numeric
+  -> missing_expected_symbol_access
+
+address has stronger semantic rendering
+  -> no missing-symbol diagnostic
+```
+
+The stronger-owner exceptions are important. Stack setup uses `stack_top_*`
+symbols, not generated `absolute_slot_*` names. Bitmap memory operands can be
+kept numeric with a semantic comment when the runtime-ref data class proves the
+bitmap use:
+
+```asm
+	lea.l $00010010.l,a0	; bitmap memory plane 0 +$10 ($00010010)
+```
+
+Those comments are still facts produced by C analysis and render lookup; they
+are not a reason to require the weaker absolute-slot operand symbol.
+
+Midwinter II `setpatch_55392121` exposed the same rule from the opposite side:
+Source Analysis can assign an `absolute_slot_*` name to a high negative
+absolute value, while the renderer legitimately emits a stronger
+`runtime_address_*` alias for the exact same operand:
+
+```asm
+absolute_slot_FFFFFF94   ; Source Analysis absolute-memory identity
+runtime_address_FFFFFF94 EQU $FFFFFF94
+
+	pea.l runtime_address_FFFFFF94.l	; KNOWN: arg +8 funcOffset long
+```
+
+That output is not a missing symbol access. It is still a symbolic operand, and
+the source-quality matcher treats the generated runtime alias as satisfying the
+generated absolute-slot expectation when all of these are true:
+
+```text
+same rendered statement offset
+same operand index
+expected symbol is absolute_slot_XXXXXXXX
+rendered symbol is runtime_address_XXXXXXXX
+XXXXXXXX values match exactly
+```
+
+This keeps the diagnostic focused on the real failure:
+
+```text
+expected absolute_slot_XXXXXXXX
+  -> rendered as numeric $XXXXXXXX
+     -> missing_expected_symbol_access
+
+expected absolute_slot_XXXXXXXX
+  -> rendered as runtime_address_XXXXXXXX
+     -> valid symbolic alias
+```
+
+Focused fixture:
+
+```text
+facts_v2_render_asm_source_symbols_absolute_address_uses
+source_quality_analyze_accepts_runtime_alias_for_absolute_slot_access
+```
+
+The fixture now asserts both sides of the quality gate for generated absolute
+slot symbols:
+
+```text
+expected_symbol_access(absolute_slot_00006F50, operand)
+rendered_symbol_access(absolute_slot_00006F50, operand)
+
+expected_symbol_access(absolute_slot_0002F490, operand)
+rendered_symbol_access(absolute_slot_0002F490, operand)
+```
+
+Verified so far:
+
+```text
+cmd /c src\build.bat
+src\build\m68k_c_unit_tests.exe m68k_ir
+  m68k_ir: all 458 passed
+
+platform-rendered-source-roundtrip --update-rendered-source --json
+  targets: 55
+  failures: 0
+  rendered_source_full_file_exact: 39
+  rendered_source_content_exact_only: 15
+  unsupported: 1
+```
+
+Remaining Damocles-specific work is still open. This slice does not by itself
+repair the false accepted-code island at `$00042C00`, the `runtime_address_*`
+label-domain confusion, or the missed mapped labels for operands such as
+`$00042C6C.l`, `$00042C70.l`, `$000459BA.l`, and `$000459C6.l`. It adds the
+framework signal that will turn one class of "analysis named it but rendering
+missed it" into a C-visible source-quality failure instead of a silent bad
+source rendering.

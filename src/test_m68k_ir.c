@@ -10800,7 +10800,44 @@ static int test_source_quality_analyze_accepts_rendered_expected_symbol_access(v
   return 0;
 }
 
-static int test_source_quality_analyze_warns_unreferenced_label_statement(void) {
+static int test_source_quality_analyze_accepts_runtime_alias_for_absolute_slot_access(void) {
+  M68kSourceAnalysisIR source_analysis;
+  M68kSectionAnalysisIR section_analysis;
+  M68kExpectedSymbolAccessIR access;
+  M68kRenderedSymbolAccessIR rendered_access;
+  char *analysis_json = NULL;
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_create(&source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_create(&section_analysis, test_ir_result_arena()));
+  section_analysis.section_index = 3U;
+  section_analysis.section_size = 512U;
+  memset(&access, 0, sizeof(access));
+  access.symbol_name = "absolute_slot_FFFFFF94";
+  access.offset = 0x178U;
+  access.operand_index = 0U;
+  access.access_kind = M68K_EXPECTED_SYMBOL_ACCESS_OPERAND;
+  access.confidence = M68K_FACT_CONFIDENCE_TOOL_INFERRED;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_expected_symbol_access(&section_analysis, &access));
+  memset(&rendered_access, 0, sizeof(rendered_access));
+  rendered_access.symbol_name = "runtime_address_FFFFFF94";
+  rendered_access.offset = 0x178U;
+  rendered_access.operand_index = 0U;
+  rendered_access.access_kind = M68K_RENDERED_SYMBOL_ACCESS_OPERAND;
+  M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_rendered_symbol_access(
+    &section_analysis, &rendered_access));
+  M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
+  M68K_C_ASSERT_INT(0, m68k_source_quality_analyze_rendered_symbol_accesses(&source_analysis));
+  M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(analysis_json != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"expected_symbol_access_count\":1") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"rendered_symbol_access_count\":1") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"kind\":\"missing_expected_symbol_access\"") == NULL);
+  free(analysis_json);
+  m68k_ir_section_analysis_destroy(&section_analysis);
+  m68k_ir_source_analysis_destroy(&source_analysis);
+  return 0;
+}
+
+static int test_source_quality_analyze_blocks_unreferenced_label_statement(void) {
   M68kSourceAnalysisIR source_analysis;
   M68kSectionAnalysisIR section_analysis;
   M68kRenderedSymbolAccessIR rendered_access;
@@ -10823,8 +10860,8 @@ static int test_source_quality_analyze_warns_unreferenced_label_statement(void) 
   M68K_C_ASSERT_INT(0, source_analysis_to_json(&source_analysis, &analysis_json, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(analysis_json != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"kind\":\"unreferenced_label_statement\"") != NULL);
-  M68K_C_ASSERT(strstr(analysis_json, "\"severity\":\"warning\"") != NULL);
-  M68K_C_ASSERT(strstr(analysis_json, "\"blocker\":false") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"severity\":\"error\"") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"blocker\":true") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"summary\":\"label statement has no rendered symbol reference\"") != NULL);
   free(analysis_json);
   m68k_ir_section_analysis_destroy(&section_analysis);
@@ -10996,9 +11033,7 @@ static int test_source_quality_analyze_exports_code_origins_and_runs(void) {
   M68K_C_ASSERT(strstr(analysis_json, "\"absolute_address_range_count\":1") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"status_name\":\"unowned_one_off\"") != NULL);
   M68K_C_ASSERT(strstr(analysis_json, "\"read_count\":1") != NULL);
-  M68K_C_ASSERT(strstr(analysis_json, "\"kind\":\"unterminated_or_invalid_code_range\"") != NULL);
-  M68K_C_ASSERT(strstr(analysis_json, "\"severity\":\"warning\"") != NULL);
-  M68K_C_ASSERT(strstr(analysis_json, "\"blocker\":false") != NULL);
+  M68K_C_ASSERT(strstr(analysis_json, "\"kind\":\"unterminated_or_invalid_code_range\"") == NULL);
   free(analysis_json);
   m68k_ir_section_analysis_destroy(&section_analysis);
   m68k_ir_source_analysis_destroy(&source_analysis);
@@ -23061,7 +23096,13 @@ static int test_facts_v2_render_asm_source_symbols_absolute_address_uses(void) {
   M68kObjectAddResult added;
   M68kAnalysisPolicy policy;
   M68kFactsV2Profile profile;
+  M68kSourceAnalysisIR source_analysis;
   char *source = NULL;
+  size_t access_index;
+  int saw_expected_first = 0;
+  int saw_expected_second = 0;
+  int saw_rendered_first = 0;
+  int saw_rendered_second = 0;
   uint8_t bytes[] = {
     0x43U, 0xF9U, 0x00U, 0x00U, 0x6FU, 0x50U,
     0x49U, 0xF9U, 0x00U, 0x02U, 0xF4U, 0x90U,
@@ -23087,8 +23128,9 @@ static int test_facts_v2_render_asm_source_symbols_absolute_address_uses(void) {
   policy.runtime_entry_points[0].has_section_index = 1U;
   policy.runtime_entry_points[0].section_index = 0U;
   policy.runtime_entry_points[0].runtime_address = 0x5BFF0U;
-  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
-    m68k_diag_sink(NULL)));
+  memset(&source_analysis, 0, sizeof(source_analysis));
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
+    &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
   M68K_C_ASSERT(strstr(source, "absolute_slot_00006F50\tEQU\t$6F50\n") != NULL);
   M68K_C_ASSERT(strstr(source, "absolute_slot_0002F490\tEQU\t$2F490\n") != NULL);
@@ -23096,8 +23138,42 @@ static int test_facts_v2_render_asm_source_symbols_absolute_address_uses(void) {
   M68K_C_ASSERT(strstr(source, "\tlea.l absolute_slot_0002F490.l,a4\n") != NULL);
   M68K_C_ASSERT(strstr(source, "$00006F50.l") == NULL);
   M68K_C_ASSERT(strstr(source, "$0002F490.l") == NULL);
+  M68K_C_ASSERT_U32(1U, (uint32_t)source_analysis.section_count);
+  for (access_index = 0U; access_index < source_analysis.sections[0].expected_symbol_access_count;
+       ++access_index) {
+    const M68kExpectedSymbolAccessIR *access = &source_analysis.sections[0].expected_symbol_accesses[access_index];
+    if (access->offset == 0U && access->operand_index == 0U &&
+        access->access_kind == M68K_EXPECTED_SYMBOL_ACCESS_OPERAND &&
+        access->symbol_name != NULL && strcmp(access->symbol_name, "absolute_slot_00006F50") == 0) {
+      saw_expected_first = 1;
+    }
+    if (access->offset == 6U && access->operand_index == 0U &&
+        access->access_kind == M68K_EXPECTED_SYMBOL_ACCESS_OPERAND &&
+        access->symbol_name != NULL && strcmp(access->symbol_name, "absolute_slot_0002F490") == 0) {
+      saw_expected_second = 1;
+    }
+  }
+  for (access_index = 0U; access_index < source_analysis.sections[0].rendered_symbol_access_count;
+       ++access_index) {
+    const M68kRenderedSymbolAccessIR *access = &source_analysis.sections[0].rendered_symbol_accesses[access_index];
+    if (access->offset == 0U && access->operand_index == 0U &&
+        access->access_kind == M68K_RENDERED_SYMBOL_ACCESS_OPERAND &&
+        access->symbol_name != NULL && strcmp(access->symbol_name, "absolute_slot_00006F50") == 0) {
+      saw_rendered_first = 1;
+    }
+    if (access->offset == 6U && access->operand_index == 0U &&
+        access->access_kind == M68K_RENDERED_SYMBOL_ACCESS_OPERAND &&
+        access->symbol_name != NULL && strcmp(access->symbol_name, "absolute_slot_0002F490") == 0) {
+      saw_rendered_second = 1;
+    }
+  }
+  M68K_C_ASSERT(saw_expected_first);
+  M68K_C_ASSERT(saw_expected_second);
+  M68K_C_ASSERT(saw_rendered_first);
+  M68K_C_ASSERT(saw_rendered_second);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+  m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_facts_v2_free_text(source);
   m68k_object_destroy(&object);
   return 0;
@@ -25028,8 +25104,10 @@ int m68k_c_ir_tests(void) {
       test_source_quality_analyze_blocks_missing_expected_symbol_access},
     {"source_quality_analyze_accepts_rendered_expected_symbol_access",
       test_source_quality_analyze_accepts_rendered_expected_symbol_access},
-    {"source_quality_analyze_warns_unreferenced_label_statement",
-      test_source_quality_analyze_warns_unreferenced_label_statement},
+    {"source_quality_analyze_accepts_runtime_alias_for_absolute_slot_access",
+      test_source_quality_analyze_accepts_runtime_alias_for_absolute_slot_access},
+    {"source_quality_analyze_blocks_unreferenced_label_statement",
+      test_source_quality_analyze_blocks_unreferenced_label_statement},
     {"source_quality_analyze_accepts_unreferenced_structured_label_statement",
       test_source_quality_analyze_accepts_unreferenced_structured_label_statement},
     {"source_quality_analyze_accepts_branch_target_alias_symbol_access",
