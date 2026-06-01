@@ -698,6 +698,78 @@ static int append_structured_data_range_ownerships(M68kSourceAnalysisIR *source_
   return 0;
 }
 
+static uint8_t platform_semantic_use_kind_from_role_flag(uint32_t role_flag) {
+  switch (role_flag) {
+    case M68K_ANALYSIS_STRUCTURED_DATA_ROLE_COPPER_LIST:
+      return M68K_PLATFORM_SEMANTIC_USE_COPPER_LIST;
+    case M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BITMAP:
+      return M68K_PLATFORM_SEMANTIC_USE_BITMAP_PLANE;
+    case M68K_ANALYSIS_STRUCTURED_DATA_ROLE_SOUND_SAMPLE:
+      return M68K_PLATFORM_SEMANTIC_USE_SOUND_SAMPLE;
+    case M68K_ANALYSIS_STRUCTURED_DATA_ROLE_DISK_BUFFER:
+      return M68K_PLATFORM_SEMANTIC_USE_DISK_BUFFER;
+    case M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BLITTER_DESTINATION:
+    case M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BLITTER_SOURCE:
+      return M68K_PLATFORM_SEMANTIC_USE_BLITTER_BUFFER;
+    case M68K_ANALYSIS_STRUCTURED_DATA_ROLE_PALETTE:
+      return M68K_PLATFORM_SEMANTIC_USE_PALETTE;
+    case M68K_ANALYSIS_STRUCTURED_DATA_ROLE_SPRITE:
+      return M68K_PLATFORM_SEMANTIC_USE_SPRITE;
+    case M68K_ANALYSIS_STRUCTURED_DATA_ROLE_AUDIO_TABLE:
+      return M68K_PLATFORM_SEMANTIC_USE_AUDIO_TABLE;
+    default:
+      return M68K_PLATFORM_SEMANTIC_USE_UNKNOWN;
+  }
+}
+
+static int append_structured_data_platform_semantic_use(M68kSourceAnalysisIR *source_analysis,
+    const M68kAnalysisStructuredDataItem *item, uint32_t role_flag) {
+  M68kSectionAnalysisIR *section;
+  M68kPlatformSemanticUseIR use;
+  if (source_analysis == NULL || item == NULL || !item->has_section_index ||
+      item->section_index >= source_analysis->section_count) {
+    return 0;
+  }
+  memset(&use, 0, sizeof(use));
+  use.kind = platform_semantic_use_kind_from_role_flag(role_flag);
+  if (use.kind == M68K_PLATFORM_SEMANTIC_USE_UNKNOWN) return 0;
+  use.offset = item->offset;
+  use.size = item->size;
+  use.role_flags = role_flag;
+  use.source_pattern_id = item->source_pattern_id;
+  use.confidence = 255U;
+  use.has_target = item->has_target;
+  use.target_section_index = item->target_section;
+  use.target_offset = item->target_offset;
+  section = &source_analysis->sections[item->section_index];
+  return m68k_ir_section_analysis_append_platform_semantic_use(section, &use);
+}
+
+static int append_structured_data_platform_semantic_uses(M68kSourceAnalysisIR *source_analysis) {
+  static const uint32_t platform_role_flags[] = {
+    M68K_ANALYSIS_STRUCTURED_DATA_ROLE_COPPER_LIST,
+    M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BITMAP,
+    M68K_ANALYSIS_STRUCTURED_DATA_ROLE_SOUND_SAMPLE,
+    M68K_ANALYSIS_STRUCTURED_DATA_ROLE_DISK_BUFFER,
+    M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BLITTER_DESTINATION,
+    M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BLITTER_SOURCE,
+    M68K_ANALYSIS_STRUCTURED_DATA_ROLE_PALETTE,
+    M68K_ANALYSIS_STRUCTURED_DATA_ROLE_SPRITE,
+    M68K_ANALYSIS_STRUCTURED_DATA_ROLE_AUDIO_TABLE
+  };
+  size_t item_index, role_index;
+  if (source_analysis == NULL) return -1;
+  for (item_index = 0U; item_index < source_analysis->structured_data_item_count; ++item_index) {
+    const M68kAnalysisStructuredDataItem *item = &source_analysis->structured_data_items[item_index];
+    for (role_index = 0U; role_index < sizeof(platform_role_flags) / sizeof(platform_role_flags[0]); ++role_index) {
+      uint32_t role_flag = platform_role_flags[role_index];
+      if ((item->semantic_role_flags & role_flag) == 0U) continue;
+      if (append_structured_data_platform_semantic_use(source_analysis, item, role_flag) != 0) return -1;
+    }
+  }
+  return 0;
+}
+
 static int append_structured_data_table_descriptors(M68kSourceAnalysisIR *source_analysis) {
   size_t index;
   if (source_analysis == NULL) return -1;
@@ -1418,6 +1490,7 @@ int m68k_source_quality_analyze(M68kSourceAnalysisIR *source_analysis,
   if (append_expected_intrinsic_branch_symbol_accesses(source_analysis, decode, facts, accepted_start) != 0)
     return -1;
   if (append_structured_data_range_ownerships(source_analysis) != 0) return -1;
+  if (append_structured_data_platform_semantic_uses(source_analysis) != 0) return -1;
   if (append_structured_data_table_descriptors(source_analysis) != 0) return -1;
   if (append_structured_data_table_entries(source_analysis, decode, accepted_start, accepted_bytes) != 0) return -1;
   if (append_immediate_text_tokens(source_analysis, decode, accepted_start) != 0) return -1;

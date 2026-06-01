@@ -3744,7 +3744,7 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
     size_t block_index, edge_index, violation_index, app_slot_ref_index, typed_access_index, range_index;
     size_t table_descriptor_index, table_consumer_index, table_entry_index;
     size_t unresolved_typed_access_index, runtime_view_index, runtime_address_ref_index, address_observation_index;
-    size_t platform_address_use_index;
+    size_t platform_address_use_index, platform_semantic_use_index;
     size_t code_start_ref_index;
     size_t symbol_origin_index, expected_symbol_access_index;
     size_t rendered_symbol_access_index;
@@ -3953,6 +3953,41 @@ int source_analysis_to_json(const M68kSourceAnalysisIR *source_analysis, char **
       if (use->has_handler_target &&
           json_builder_appendf(&builder, ",\"handler_target\":%u", (unsigned)use->handler_target) != 0)
         goto oom;
+      if (json_builder_append(&builder, "}") != 0)
+        goto oom;
+    }
+    if (json_builder_appendf(&builder,
+          "],\"platform_semantic_use_count\":%u,\"platform_semantic_uses\":[",
+          (unsigned)section->platform_semantic_use_count) != 0)
+      goto oom;
+    for (platform_semantic_use_index = 0U; platform_semantic_use_index < section->platform_semantic_use_count;
+        ++platform_semantic_use_index) {
+      const M68kPlatformSemanticUseIR *use = &section->platform_semantic_uses[platform_semantic_use_index];
+      if (platform_semantic_use_index != 0U && json_builder_append(&builder, ",") != 0)
+        goto oom;
+      if (json_builder_appendf(&builder,
+          "{\"offset\":%u,\"size\":%u,\"kind_id\":%u,\"kind_name\":",
+          (unsigned)use->offset, (unsigned)use->size, (unsigned)use->kind) != 0)
+        goto oom;
+      if (json_builder_append_json_string(&builder, m68k_platform_semantic_use_kind_name(use->kind)) != 0)
+        goto oom;
+      if (json_builder_appendf(&builder,
+          ",\"role_flags\":%u,\"source_pattern_id\":%u,\"source_pattern_name\":",
+          (unsigned)use->role_flags, (unsigned)use->source_pattern_id) != 0)
+        goto oom;
+      if (json_builder_append_nullable_string(&builder,
+          m68k_analysis_structured_data_source_pattern_name(use->source_pattern_id)) != 0)
+        goto oom;
+      if (json_builder_appendf(&builder, ",\"confidence\":%u,\"target_section_index\":",
+          (unsigned)use->confidence) != 0)
+        goto oom;
+      if (use->has_target) {
+        if (json_builder_appendf(&builder, "%u,\"target_offset\":%u",
+            (unsigned)use->target_section_index, (unsigned)use->target_offset) != 0)
+          goto oom;
+      } else if (json_builder_append(&builder, "null,\"target_offset\":null") != 0) {
+        goto oom;
+      }
       if (json_builder_append(&builder, "}") != 0)
         goto oom;
     }

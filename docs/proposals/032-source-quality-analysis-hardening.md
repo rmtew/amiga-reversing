@@ -4651,3 +4651,47 @@ the absolute-long destination was rejected because the preceding absolute-word
 source operand had not been counted. Relocation-backed source rendering now uses
 the same KB-derived extension accounting as the assembler instead of a partial
 copy.
+
+### Platform Semantic Use IR Bootstrap
+
+Added the first C-owned platform semantic use fact lane:
+
+```text
+M68kAnalysisStructuredDataItem.semantic_role_flags
+  -> m68k_source_quality_analyze()
+  -> M68kPlatformSemanticUseIR
+  -> source_analysis_to_json()
+  -> target_usage_manifest.py feature/xref indexing
+```
+
+This covers the existing platform/data semantic roles that were previously only
+visible through structured-data roles and render/lookup comments:
+
+```text
+copper_list
+bitmap_plane
+sound_sample
+disk_buffer
+blitter_buffer
+palette
+sprite
+audio_table
+```
+
+The current producer deliberately uses existing C structured-data evidence
+rather than re-inferring display/audio/bitmap meaning in Python or JSON. It is
+not yet the full Slice 7 closeout: the remaining Amiga display/audio helper
+logic in `m68k_analysis_render_lookup.c` still needs to feed richer semantic
+facts, and render comments should eventually consume those facts directly. This
+slice establishes the durable IR/export/search lane so that later movement has
+a real destination.
+
+Verified:
+
+```text
+cmd /c src\build.bat
+src\build\m68k_c_unit_tests.exe m68k_ir
+uv run python -m pytest tests\test_target_usage_manifest.py -q
+uv run python -m amiga_reversing.tools.rendered_source_roundtrip_report --json
+  55 targets, 0 failures, 39 full-file exact, 15 content-exact only, 1 unsupported
+```

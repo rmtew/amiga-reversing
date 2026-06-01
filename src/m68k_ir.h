@@ -1366,6 +1366,31 @@ typedef struct M68kPlatformAddressUseIR {
   uint8_t has_handler_target;
 } M68kPlatformAddressUseIR;
 
+typedef enum M68kPlatformSemanticUseKind {
+  M68K_PLATFORM_SEMANTIC_USE_UNKNOWN = 0,
+  M68K_PLATFORM_SEMANTIC_USE_COPPER_LIST = 1,
+  M68K_PLATFORM_SEMANTIC_USE_BITMAP_PLANE = 2,
+  M68K_PLATFORM_SEMANTIC_USE_DISPLAY_SETUP = 3,
+  M68K_PLATFORM_SEMANTIC_USE_SOUND_SAMPLE = 4,
+  M68K_PLATFORM_SEMANTIC_USE_DISK_BUFFER = 5,
+  M68K_PLATFORM_SEMANTIC_USE_BLITTER_BUFFER = 6,
+  M68K_PLATFORM_SEMANTIC_USE_PALETTE = 7,
+  M68K_PLATFORM_SEMANTIC_USE_SPRITE = 8,
+  M68K_PLATFORM_SEMANTIC_USE_AUDIO_TABLE = 9
+} M68kPlatformSemanticUseKind;
+
+typedef struct M68kPlatformSemanticUseIR {
+  uint32_t offset;
+  uint32_t size;
+  uint32_t target_section_index;
+  uint32_t target_offset;
+  uint32_t role_flags;
+  uint8_t kind;
+  uint8_t source_pattern_id;
+  uint8_t confidence;
+  uint8_t has_target;
+} M68kPlatformSemanticUseIR;
+
 typedef struct M68kCodeStartRefIR {
   uint32_t offset;
   uint32_t reason;
@@ -1969,6 +1994,9 @@ typedef struct M68kSectionAnalysisIR {
   M68kPlatformAddressUseIR *platform_address_uses;
   size_t platform_address_use_count;
   size_t platform_address_use_capacity;
+  M68kPlatformSemanticUseIR *platform_semantic_uses;
+  size_t platform_semantic_use_count;
+  size_t platform_semantic_use_capacity;
   M68kCodeStartRefIR *code_start_refs;
   size_t code_start_ref_count;
   size_t code_start_ref_capacity;
@@ -2071,6 +2099,7 @@ const char *m68k_absolute_address_range_status_name(uint8_t status);
 const char *m68k_absolute_memory_owner_kind_name(uint8_t owner_kind);
 const char *m68k_analysis_conflict_state_name(uint8_t conflict_state);
 const char *m68k_platform_address_use_shape_name(uint8_t use_shape);
+const char *m68k_platform_semantic_use_kind_name(uint8_t kind);
 uint8_t m68k_analysis_table_entry_count_proof_for_source_pattern(uint8_t source_pattern_id);
 uint8_t m68k_analysis_table_stop_reason_for_entry_count_proof(uint8_t proof_id);
 uint8_t m68k_recovered_indirect_source_pattern_id(uint8_t shape);
@@ -2214,6 +2243,8 @@ int m68k_ir_section_analysis_append_address_observation(M68kSectionAnalysisIR *s
     const M68kAddressObservationIR *observation);
 int m68k_ir_section_analysis_append_platform_address_use(M68kSectionAnalysisIR *section_analysis,
     const M68kPlatformAddressUseIR *use);
+int m68k_ir_section_analysis_append_platform_semantic_use(M68kSectionAnalysisIR *section_analysis,
+    const M68kPlatformSemanticUseIR *use);
 int m68k_ir_section_analysis_append_code_start_ref(M68kSectionAnalysisIR *section_analysis,
     const M68kCodeStartRefIR *code_start_ref);
 int m68k_ir_section_analysis_append_source_quality_diagnostic(M68kSectionAnalysisIR *section_analysis,

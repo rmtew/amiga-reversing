@@ -13,13 +13,13 @@ import zlib
 from pathlib import Path
 from typing import Any, cast
 
+from amiga_reversing.disasm import c_backend
 from amiga_reversing.disasm.binary_source import (
     DiskEntryBinarySource,
     HunkFileBinarySource,
     RawBinarySource,
     resolve_target_binary_source,
 )
-from amiga_reversing.disasm import c_backend
 from amiga_reversing.disasm.effective_metadata import effective_metadata_file
 from src.scripts import amiga_hardware_usage
 from src.scripts.platform_manifest_io import (
@@ -220,6 +220,7 @@ XREF_KIND_TABLE_ENTRY = 27
 XREF_KIND_RUNTIME_ADDRESS_REF = 28
 XREF_KIND_DATA_REFERENCE = 29
 XREF_KIND_ADDRESS_OBSERVATION = 30
+XREF_KIND_PLATFORM_SEMANTIC_USE = 31
 XREF_KIND_IDS = {
     "platform_typed_access": XREF_KIND_PLATFORM_TYPED_ACCESS,
     "typed_storage": XREF_KIND_TYPED_STORAGE,
@@ -250,6 +251,7 @@ XREF_KIND_IDS = {
     "table_entry": XREF_KIND_TABLE_ENTRY,
     "runtime_address_ref": XREF_KIND_RUNTIME_ADDRESS_REF,
     "data_reference": XREF_KIND_DATA_REFERENCE,
+    "platform_semantic_use": XREF_KIND_PLATFORM_SEMANTIC_USE,
     "address_observation": XREF_KIND_ADDRESS_OBSERVATION,
 }
 XREF_FEATURE_PLATFORM_TYPED_ACCESS_ANY = 1
@@ -662,6 +664,7 @@ TARGET_PATTERN_FEATURE_RULES: tuple[tuple[tuple[str, ...], str], ...] = (
             "source-quality:kind:numeric_vector_owner_without_semantics",
             "analysis:platform_address_use_shape:low_memory_base",
             "analysis:platform_address_use_shape:low_memory_storage",
+            "analysis:platform_semantic_use",
         ),
         "target-pattern:source_quality_platform_semantics",
     ),
@@ -1232,7 +1235,7 @@ def _project_target_manifest_entry(target_dir: Path, *, root: Path = ROOT) -> tu
     if size_value is not None:
         entry["size"] = size_value
     if source is not None and hasattr(source, "path") and ("sha256" not in entry or "size" not in entry):
-        path = getattr(source, "path")
+        path = source.path
         if isinstance(path, Path):
             try:
                 data = path.read_bytes()
@@ -2119,6 +2122,57 @@ def _add_platform_address_use_features(
 ) -> None:
     example = _platform_address_use_example(section_index, use)
     for feature in _platform_address_use_features(use):
+        bag.add(feature, example=example)
+
+
+def _platform_semantic_use_kind(use: dict[str, Any]) -> str:
+    return (
+        _string_value(use.get("kind_name"))
+        or _string_value(use.get("kind"))
+        or _string_value(use.get("semantic_kind"))
+        or "unknown"
+    )
+
+
+def _platform_semantic_use_source_pattern(use: dict[str, Any]) -> str | None:
+    return (
+        _string_value(use.get("source_pattern_name"))
+        or _string_value(use.get("source_pattern"))
+    )
+
+
+def _platform_semantic_use_example(section_index: int | None, use: dict[str, Any]) -> dict[str, object]:
+    use_section = _int_value(use.get("section_index"), section_index)
+    offset = _int_value(use.get("offset"))
+    kind = _platform_semantic_use_kind(use)
+    example = _offset_example(use_section, offset, kind)
+    for key in ("size", "role_flags", "confidence", "target_section_index", "target_offset"):
+        value = _int_value(use.get(key))
+        if value is not None:
+            example[key] = value
+    source_pattern = _platform_semantic_use_source_pattern(use)
+    if source_pattern:
+        example["source_pattern"] = source_pattern
+    return example
+
+
+def _platform_semantic_use_features(use: dict[str, Any]) -> list[str]:
+    kind = _platform_semantic_use_kind(use)
+    features = [
+        "analysis:platform_semantic_use",
+        f"analysis:platform_semantic_use_kind:{_safe_part(kind)}",
+    ]
+    source_pattern = _platform_semantic_use_source_pattern(use)
+    if source_pattern:
+        features.append(f"analysis:platform_semantic_use_source:{_safe_part(source_pattern)}")
+    return list(dict.fromkeys(features))
+
+
+def _add_platform_semantic_use_features(
+    bag: FeatureBag, section_index: int | None, use: dict[str, Any]
+) -> None:
+    example = _platform_semantic_use_example(section_index, use)
+    for feature in _platform_semantic_use_features(use):
         bag.add(feature, example=example)
 
 
@@ -3242,6 +3296,8 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
         _add_accepted_code_run_features(bag, None, run)
     for use in _dict_items(analysis.get("platform_address_uses")):
         _add_platform_address_use_features(bag, None, use)
+    for use in _dict_items(analysis.get("platform_semantic_uses")):
+        _add_platform_semantic_use_features(bag, None, use)
     for table in _dict_items(analysis.get("table_records")):
         role = _table_role_name(table)
         table_kind = _table_kind_name(table)
@@ -3522,6 +3578,8 @@ def _add_analysis_features(analysis: dict[str, Any], bag: FeatureBag) -> None:
             _add_accepted_code_run_features(bag, section_index, run)
         for use in _dict_items(section.get("platform_address_uses")):
             _add_platform_address_use_features(bag, section_index, use)
+        for use in _dict_items(section.get("platform_semantic_uses")):
+            _add_platform_semantic_use_features(bag, section_index, use)
         for diagnostic in _dict_items(section.get("source_quality_diagnostics")):
             _add_source_quality_diagnostic_features(bag, section_index, diagnostic)
         violation_count = _int_value(section.get("violation_count"), 0)
@@ -5491,6 +5549,35 @@ def _platform_address_use_xrefs(
     ]
 
 
+def _platform_semantic_use_xrefs(
+    row: dict[str, object],
+    use: dict[str, Any],
+    row_locations: dict[tuple[int, int], tuple[int, str | None, str | None]],
+    *,
+    section_index: int | None,
+) -> list[dict[str, object]]:
+    use_section = _int_value(use.get("section_index"), section_index)
+    offset = _int_value(use.get("offset"))
+    row_index, stable_key, row_text = _row_location(row_locations, use_section, offset)
+    kind = _platform_semantic_use_kind(use)
+    size = _int_value(use.get("size"))
+    return [
+        _xref(
+            row,
+            feature,
+            "platform_semantic_use",
+            section=use_section,
+            offset=offset,
+            row_index=row_index,
+            stable_key=stable_key,
+            symbol=kind,
+            value=size,
+            text=row_text or _string_value(use.get("detail")) or f"platform semantic use {kind}",
+        )
+        for feature in _platform_semantic_use_features(use)
+    ]
+
+
 def _code_origin_xrefs(
     row: dict[str, object],
     origin: dict[str, Any],
@@ -5934,6 +6021,8 @@ def _analysis_xrefs(
         xrefs.extend(_accepted_code_run_xrefs(row, run, row_locations, section_index=None))
     for use in _dict_items(analysis.get("platform_address_uses")):
         xrefs.extend(_platform_address_use_xrefs(row, use, row_locations, section_index=None))
+    for use in _dict_items(analysis.get("platform_semantic_uses")):
+        xrefs.extend(_platform_semantic_use_xrefs(row, use, row_locations, section_index=None))
     for table in _dict_items(analysis.get("table_records")):
         role = _table_role_name(table)
         table_kind = _table_kind_name(table)
@@ -6376,6 +6465,8 @@ def _analysis_xrefs(
             xrefs.extend(_address_observation_xrefs(row, observation, row_locations, section_index=section_index))
         for use in _dict_items(section.get("platform_address_uses")):
             xrefs.extend(_platform_address_use_xrefs(row, use, row_locations, section_index=section_index))
+        for use in _dict_items(section.get("platform_semantic_uses")):
+            xrefs.extend(_platform_semantic_use_xrefs(row, use, row_locations, section_index=section_index))
         for diagnostic in _dict_items(section.get("source_quality_diagnostics")):
             xrefs.extend(_source_quality_diagnostic_xrefs(row, diagnostic, row_locations, section_index=section_index))
         recovered_indirect_sites = list(_dict_items(section.get("recovered_indirect_sites")))
@@ -6459,10 +6550,9 @@ def _listing_xrefs(
         example = _offset_example(section_index, offset, stripped_text[:160])
         example["row_index"] = row_index
         label_symbol = _listing_row_label_symbol(listing_row)
-        if label_symbol:
-            if feature_bag is not None:
-                feature_bag.add("label:any", example=example)
-                feature_bag.add("label:definition", example=example)
+        if label_symbol and feature_bag is not None:
+            feature_bag.add("label:any", example=example)
+            feature_bag.add("label:definition", example=example)
         direct_control_features = sorted(direct_control_stub_rows.get(row_index, ()))
         code_start_reason_features = _listing_code_start_reason_features(listing_row)
         if direct_control_features:
@@ -6600,9 +6690,8 @@ def _listing_xrefs(
             operand_text = _string_value(operand.get("text")) or stripped_text
             segment_addr = _int_value(operand.get("segment_addr"))
             symbol = _operand_symbol(operand)
-            if symbol:
-                if feature_bag is not None:
-                    feature_bag.add("label:reference", example=example)
+            if symbol and feature_bag is not None:
+                feature_bag.add("label:reference", example=example)
             if segment_addr is not None:
                 ref_feature = (
                     "xref:data_ref" if _listing_row_is_kind(listing_row, LISTING_ROW_KIND_DATA) else "xref:code_ref"
@@ -6749,15 +6838,15 @@ def _app_slot_layout_xrefs(row: dict[str, object], app_slot_analysis: dict[str, 
             field_path = _field_path_text(struct_name, field_ref) or field_name
             refs = _dict_items(field_ref.get("refs"))
             first_ref = refs[0] if refs else {}
-            field_xref = dict(
-                section=section,
-                offset=offset,
-                row_index=_int_value(first_ref.get("row_index"), row_index),
-                stable_key=_string_value(first_ref.get("stable_key")),
-                symbol=field_symbol,
-                value=field_offset,
-                text=f"{field_path} in {struct_name}",
-            )
+            field_xref = {
+                "section": section,
+                "offset": offset,
+                "row_index": _int_value(first_ref.get("row_index"), row_index),
+                "stable_key": _string_value(first_ref.get("stable_key")),
+                "symbol": field_symbol,
+                "value": field_offset,
+                "text": f"{field_path} in {struct_name}",
+            }
             xrefs.append(_xref(row, "app_slot:typed_field_ref", "app_slot_field_ref", **field_xref))
             if field_ref.get("field_inherited") is True:
                 xrefs.append(_xref(row, "app_slot:inherited_field_ref", "app_slot_field_ref", **field_xref))
@@ -6777,7 +6866,7 @@ def _app_slot_layout_xrefs(row: dict[str, object], app_slot_analysis: dict[str, 
             if start is not None and end is not None
             else "app slot field gap"
         )
-        field_gap_xref = dict(offset=start, value=size, text=field_path or text)
+        field_gap_xref = {"offset": start, "value": size, "text": field_path or text}
         xrefs.append(_xref(row, "app_slot:field_gap", "app_slot_field_gap", **field_gap_xref))
         xrefs.append(_xref(row, f"app_slot_field_gap:{_safe_part(coverage)}", "app_slot_field_gap", **field_gap_xref))
         if field_path:
@@ -6825,16 +6914,16 @@ def _app_slot_layout_xrefs(row: dict[str, object], app_slot_analysis: dict[str, 
     for arg in _dict_items(app_slot_analysis.get("untyped_api_args")):
         function_name = _string_value(arg.get("function")) or "unknown"
         reason = _string_value(arg.get("reason")) or "unknown"
-        arg_xref = dict(
-            section=_int_value(arg.get("hunk_index")),
-            offset=_int_value(arg.get("addr")),
-            row_index=_int_value(arg.get("row_index")),
-            stable_key=_string_value(arg.get("stable_key")),
-            source_stable_key=_string_value(arg.get("source_stable_key")),
-            symbol=_string_value(arg.get("symbol")),
-            value=_int_value(arg.get("displacement")),
-            text=f"{arg.get('symbol') or 'app slot'} -> {function_name} {arg.get('register') or ''}".strip(),
-        )
+        arg_xref = {
+            "section": _int_value(arg.get("hunk_index")),
+            "offset": _int_value(arg.get("addr")),
+            "row_index": _int_value(arg.get("row_index")),
+            "stable_key": _string_value(arg.get("stable_key")),
+            "source_stable_key": _string_value(arg.get("source_stable_key")),
+            "symbol": _string_value(arg.get("symbol")),
+            "value": _int_value(arg.get("displacement")),
+            "text": f"{arg.get('symbol') or 'app slot'} -> {function_name} {arg.get('register') or ''}".strip(),
+        }
         xrefs.append(_xref(row, "app_slot:untyped_api_arg", "app_slot_api_arg", **arg_xref))
         xrefs.append(_xref(row, f"app_slot_api_arg:{_safe_part(function_name)}", "app_slot_api_arg", **arg_xref))
         xrefs.append(_xref(row, f"app_slot_api_arg_reason:{_safe_part(reason)}", "app_slot_api_arg", **arg_xref))
@@ -7086,7 +7175,7 @@ def _operand_symbol(operand: dict[str, Any]) -> str | None:
     if not text:
         return None
     candidate = text.strip().split("+", 1)[0].split("(", 1)[0].split(",", 1)[0].strip()
-    if not candidate or candidate.startswith("#") or candidate.startswith("$"):
+    if not candidate or candidate.startswith(("#", "$")):
         return None
     if re.match(r"^[A-Za-z_][A-Za-z0-9_$.]*$", candidate):
         return candidate.rstrip(":")
@@ -8377,7 +8466,7 @@ def _unresolved_typed_field_text_is_control_transfer(text: object) -> bool:
     if value is None:
         return False
     stripped = value.strip().lower()
-    return stripped.startswith("jsr ") or stripped.startswith("jmp ")
+    return stripped.startswith(("jsr ", "jmp "))
 
 
 def _unresolved_typed_field_report_classification_name(classification_id: int) -> str:
@@ -8833,9 +8922,10 @@ def build_type_flow_report(
             add_example(report, "app_slot_suggested_region", example)
         feature_class_id = _xref_feature_class_id(xref)
         feature_value = _xref_feature_value(xref)
-        if feature_class_id == XREF_FEATURE_CLASS_PLATFORM_TYPED_ACCESS_STRUCT and feature_value is not None:
-            bump_map(report, "struct_counts", feature_value)
-        elif feature_class_id == XREF_FEATURE_CLASS_PLATFORM_UNRESOLVED_TYPED_ACCESS_STRUCT and feature_value is not None:
+        if feature_class_id in {
+            XREF_FEATURE_CLASS_PLATFORM_TYPED_ACCESS_STRUCT,
+            XREF_FEATURE_CLASS_PLATFORM_UNRESOLVED_TYPED_ACCESS_STRUCT,
+        } and feature_value is not None:
             bump_map(report, "struct_counts", feature_value)
         elif feature_class_id == XREF_FEATURE_CLASS_PLATFORM_STRUCT_FIELD and feature_value is not None:
             bump_map(report, "field_counts", feature_value)
@@ -9612,16 +9702,16 @@ def _type_flow_access_matches_storage(storage: dict[str, Any], access: dict[str,
     storage_offset = _int_value(storage.get("offset"))
     provenance_section = _int_value(access.get("type_provenance_section"))
     provenance_offset = _int_value(access.get("type_provenance_offset"))
-    if provenance_offset is not None and storage_offset is not None:
-        if provenance_offset == storage_offset and (
-            provenance_section is None or storage_section is None or provenance_section == storage_section
-        ):
-            return True
+    if (
+        provenance_offset is not None
+        and storage_offset is not None
+        and provenance_offset == storage_offset
+        and (provenance_section is None or storage_section is None or provenance_section == storage_section)
+    ):
+        return True
     storage_aliases = _type_flow_storage_type_aliases(_string_value(storage.get("symbol")))
     access_structs = access.get("structs")
-    if storage_aliases and isinstance(access_structs, set) and storage_aliases.intersection(access_structs):
-        return True
-    return False
+    return bool(storage_aliases and isinstance(access_structs, set) and storage_aliases.intersection(access_structs))
 
 
 def _type_flow_first_later_xref(

@@ -570,6 +570,31 @@ const char *m68k_platform_address_use_shape_name(uint8_t use_shape) {
   }
 }
 
+const char *m68k_platform_semantic_use_kind_name(uint8_t kind) {
+  switch (kind) {
+    case M68K_PLATFORM_SEMANTIC_USE_COPPER_LIST:
+      return "copper_list";
+    case M68K_PLATFORM_SEMANTIC_USE_BITMAP_PLANE:
+      return "bitmap_plane";
+    case M68K_PLATFORM_SEMANTIC_USE_DISPLAY_SETUP:
+      return "display_setup";
+    case M68K_PLATFORM_SEMANTIC_USE_SOUND_SAMPLE:
+      return "sound_sample";
+    case M68K_PLATFORM_SEMANTIC_USE_DISK_BUFFER:
+      return "disk_buffer";
+    case M68K_PLATFORM_SEMANTIC_USE_BLITTER_BUFFER:
+      return "blitter_buffer";
+    case M68K_PLATFORM_SEMANTIC_USE_PALETTE:
+      return "palette";
+    case M68K_PLATFORM_SEMANTIC_USE_SPRITE:
+      return "sprite";
+    case M68K_PLATFORM_SEMANTIC_USE_AUDIO_TABLE:
+      return "audio_table";
+    default:
+      return "unknown";
+  }
+}
+
 uint8_t m68k_analysis_structured_data_range_ownership_kind(const M68kAnalysisStructuredDataItem *item) {
   uint32_t role_flags;
   if (item == NULL) return M68K_RANGE_OWNERSHIP_UNKNOWN;
@@ -2753,6 +2778,34 @@ int m68k_ir_section_analysis_append_platform_address_use(M68kSectionAnalysisIR *
   return 0;
 }
 
+int m68k_ir_section_analysis_append_platform_semantic_use(M68kSectionAnalysisIR *section_analysis,
+    const M68kPlatformSemanticUseIR *use) {
+  M68kPlatformSemanticUseIR copy;
+  size_t index;
+  if (section_analysis == NULL || use == NULL || section_analysis->arena == NULL) return -1;
+  if (use->kind == M68K_PLATFORM_SEMANTIC_USE_UNKNOWN) return 0;
+  for (index = 0U; index < section_analysis->platform_semantic_use_count; ++index) {
+    const M68kPlatformSemanticUseIR *existing = &section_analysis->platform_semantic_uses[index];
+    if (existing->offset == use->offset &&
+        existing->size == use->size &&
+        existing->kind == use->kind &&
+        existing->source_pattern_id == use->source_pattern_id &&
+        existing->has_target == use->has_target &&
+        existing->target_section_index == use->target_section_index &&
+        existing->target_offset == use->target_offset) {
+      return 0;
+    }
+  }
+  section_analysis->platform_semantic_uses = (M68kPlatformSemanticUseIR *)arena_grow_array(
+    section_analysis->arena, section_analysis->platform_semantic_uses,
+    section_analysis->platform_semantic_use_count, &section_analysis->platform_semantic_use_capacity,
+    8U, sizeof(*section_analysis->platform_semantic_uses));
+  if (section_analysis->platform_semantic_uses == NULL) return -1;
+  copy = *use;
+  section_analysis->platform_semantic_uses[section_analysis->platform_semantic_use_count++] = copy;
+  return 0;
+}
+
 int m68k_ir_section_analysis_append_code_start_ref(M68kSectionAnalysisIR *section_analysis,
     const M68kCodeStartRefIR *code_start_ref) {
   size_t index;
@@ -4335,6 +4388,13 @@ int m68k_ir_source_analysis_append_section(M68kSourceAnalysisIR *source_analysis
   for (index = 0; index < section_analysis->platform_address_use_count; ++index) {
     if (m68k_ir_section_analysis_append_platform_address_use(&copy,
           &section_analysis->platform_address_uses[index]) != 0) {
+      m68k_ir_section_analysis_destroy(&copy);
+      return -1;
+    }
+  }
+  for (index = 0; index < section_analysis->platform_semantic_use_count; ++index) {
+    if (m68k_ir_section_analysis_append_platform_semantic_use(&copy,
+          &section_analysis->platform_semantic_uses[index]) != 0) {
       m68k_ir_section_analysis_destroy(&copy);
       return -1;
     }

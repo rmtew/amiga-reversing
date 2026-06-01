@@ -11,6 +11,7 @@ from src.scripts.target_usage_manifest import (
     XREF_KIND_DATA_REFERENCE,
     XREF_KIND_EXPECTED_SYMBOL_ACCESS,
     XREF_KIND_PLATFORM_ADDRESS_USE,
+    XREF_KIND_PLATFORM_SEMANTIC_USE,
     XREF_KIND_RANGE_OWNERSHIP,
     XREF_KIND_RENDERED_SYMBOL_ACCESS,
     XREF_KIND_RUNTIME_ADDRESS_REF,
@@ -1121,6 +1122,51 @@ def test_analysis_platform_address_uses_are_indexed_for_semantic_search() -> Non
     assert use_xrefs[0]["row_index"] == 12
     assert use_xrefs[0]["symbol"] == "low_memory_base"
     assert use_xrefs[0]["value"] == 0x641C
+
+
+def test_analysis_platform_semantic_uses_are_indexed_for_semantic_search() -> None:
+    analysis = {
+        "sections": [
+            {
+                "section_index": 0,
+                "platform_semantic_uses": [
+                    {
+                        "offset": 0x6D480,
+                        "size": 0x1600,
+                        "kind_name": "bitmap_plane",
+                        "source_pattern_name": "postincrement_read_sequence",
+                        "role_flags": 0x20,
+                        "confidence": 255,
+                    }
+                ],
+            }
+        ],
+    }
+    bag = FeatureBag()
+    _add_analysis_features(analysis, bag)
+    counts, examples, tags = bag.row_features()
+
+    assert counts["analysis:platform_semantic_use"] == 1
+    assert counts["analysis:platform_semantic_use_kind:bitmap_plane"] == 1
+    assert counts["analysis:platform_semantic_use_source:postincrement_read_sequence"] == 1
+    assert "target-pattern:source_quality_platform_semantics" in tags
+    assert examples["analysis:platform_semantic_use_kind:bitmap_plane"][0]["size"] == 0x1600
+
+    row = {"id": "fixture", "platform": "amiga-hunk", "source_id": "fixture", "origin": {}}
+    row_locations = {(0, 0x6D480): (21, "s0:0006D480:data:21", "\tdc.w $1234")}
+    xrefs = _analysis_xrefs(row, analysis, row_locations)
+    use_xrefs = [
+        xref
+        for xref in xrefs
+        if xref["feature"] == "analysis:platform_semantic_use_kind:bitmap_plane"
+    ]
+    assert len(use_xrefs) == 1
+    assert use_xrefs[0]["kind_id"] == XREF_KIND_PLATFORM_SEMANTIC_USE
+    assert use_xrefs[0]["section"] == 0
+    assert use_xrefs[0]["offset"] == 0x6D480
+    assert use_xrefs[0]["row_index"] == 21
+    assert use_xrefs[0]["symbol"] == "bitmap_plane"
+    assert use_xrefs[0]["value"] == 0x1600
 
 
 def test_direct_control_stub_table_feature_and_xref() -> None:
