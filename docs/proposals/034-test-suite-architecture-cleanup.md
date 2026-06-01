@@ -2005,16 +2005,47 @@ Implementation checkpoint:
 
 ```text
 test_real_dll_026_table_descriptors_use_evidence_bounds_not_caps
-  now uses analyze_project_source_with_c_backend()
-  no longer builds a full listing artifact or navigation payload
-  keeps the Pandora runtime-view and table-bound evidence sentinel
-  drops source-render assertions from this analysis-only test
-  no longer asserts detailed table entry/reference export mechanics
+  removed from the real integration suite
+  no longer pays full Pandora child analysis for duplicated table mechanics
 
 remaining work:
-  add compact render fixtures for the removed source snippets
+  keep Pandora child source exactness in rendered-source roundtrip
+  keep provider/materialization coverage in the Pandora BK wrapper tests
   keep table entry/reference export details in C/source-analysis contract tests
 ```
+
+The behavior is already covered at smaller seams:
+
+```text
+src/test_m68k_ir.c
+  facts_v2_pc_word_dispatch_descriptor_promotes_targets_beyond_inline_set
+    auto table descriptor end offset follows structural evidence, not a cap
+
+  facts_v2_address_indexed_word_load_uses_signed_table_displacement
+    indexed word dispatch promotes bounded relative targets
+
+  facts_v2_word_offset_table_targets_promote_strings
+    word-offset string tables produce string rows and relative lookup entries
+
+  source_analysis_table_descriptor_exports_consumer_fact
+    table descriptor JSON exports consumer offsets, structural proof, and
+    table kind without a real target
+
+  source_analysis_table_descriptor_exports_loop_limit_proof
+    consumer_structural_scan and consumer_structural_stop survive JSON export
+
+  source_analysis_table_entry_exports_status
+  source_analysis_data_reference_exports_table_entry
+    table entries and references are exported independently of Pandora
+
+  facts_v2_policy_runtime_entrypoint_maps_absolute_load
+  listing_navigation_reports_runtime_views
+    runtime view records and entry reasons are exported from compact inputs
+```
+
+That is a cleaner boundary than keeping one real Pandora child test as the only
+visible failure for table caps, runtime views, entry/reference export, and
+false-positive exclusions.
 
 #### Data-Class Candidate Pre-Research
 
@@ -3022,13 +3053,13 @@ provider-wrapper validation deferral:
 
 ```text
 pytest tests -q --durations=20
-  1242 passed, 405 deselected in 18.29s
+  1242 passed, 404 deselected in 16.63s
 
 pytest tests -m integration -q
   202 passed, 1446 deselected in 30.07s
 
 pytest tests -m real_integration -q --durations=20
-  129 passed, 16 skipped, 1502 deselected in 54.71s
+  128 passed, 16 skipped, 1502 deselected in 49.87s
 
 uv run ruff check
   passed
@@ -3083,7 +3114,7 @@ pytest tests\test_c_backend.py -m real_integration -k "bloodwych_generated_sourc
   1 passed, 223 deselected in 3.74s
 
 pytest tests\test_c_backend.py -m real_integration -k "data_classes_reach_listing_rows or 026_table_descriptors" -q --durations=20
-  2 passed, 221 deselected in 11.01s
+  1 passed, 222 deselected in 1.72s
 
 pytest tests\test_active_imports.py -q --durations=10
   5 passed in 1.28s
@@ -3109,16 +3140,17 @@ still too broad and remains the main cleanup target.
 
 The latest real-integration profile now has no separate Bloodwych runtime/table
 listing pass, Damocles candidate analysis no longer pays native copied-stub
-execution, and Pandora provider-wrapper analysis no longer pays Ancient
-decompression just to establish load/entry metadata. The largest remaining real
-fixture overreach is:
+execution, Pandora provider-wrapper analysis no longer pays Ancient
+decompression just to establish load/entry metadata, and duplicate Pandora table
+descriptor coverage has moved to C/source-analysis contracts. The largest
+remaining real fixture overreach is:
 
 ```text
-Pandora table descriptors/evidence bounds       4.10s
-Bloodwych generated source exact                3.06s
-GenAm autonomous RSSET sentinel                 2.99s
-Damocles deferred-analysis sentinel             2.95s
-Magicland self-decrunch materialization         2.53s
+GenAm autonomous RSSET sentinel                 3.14s
+Bloodwych generated source exact                3.13s
+Damocles deferred-analysis sentinel             2.85s
+Magicland self-decrunch materialization         2.50s
+Immediate text real sentinel                    1.66s
 ```
 
 ## Trailing Notes And Follow-Up Observations
@@ -3147,8 +3179,8 @@ real Damocles corpus sentinel
   -> section 2 remains materializable with native_execution_deferred
 ```
 
-The larger remaining real-suite costs are now table descriptor evidence bounds,
-full-source rebuild sentinels, and native materialization sentinels.
+The larger remaining real-suite costs are now full-source rebuild sentinels,
+agent end-to-end sentinels, and native materialization sentinels.
 Those need the same treatment: keep one real corpus sentinel, move detailed
 behavior to compact contracts, and avoid making real targets carry every
 assertion.
