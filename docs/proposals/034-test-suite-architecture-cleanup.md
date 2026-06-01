@@ -2960,9 +2960,9 @@ pytest tests\test_macos_target_artifact.py -k compact_source_packet -q
   1 passed, 10 deselected in 0.19s
 ```
 
-This does not replace the committed MPW source export drift check yet. It
-establishes the lower seam that the broad real payload test can move assertions
-onto:
+At this point in the cleanup, the compact renderer contract did not yet replace
+the committed MPW source export drift check. It established the lower seam that
+the broad real payload test could move assertions onto:
 
 ```text
 current broad test
@@ -2972,9 +2972,10 @@ new lower seam
   compact packet -> source export renderer
 ```
 
-The remaining work is to extract or build the compact all-resource packet that
-carries source-quality rows, generated xrefs, labels, and residual summaries
-without serializing the 61MB full UI payload.
+The next required step was to extract or build the compact all-resource packet
+that carried source-quality rows, generated xrefs, labels, and residual
+summaries without serializing the 61MB full UI payload. Slice 5B and 5C below
+are the implementation checkpoints for that step.
 
 Additional subtree measurements explain the size problem:
 
@@ -3613,6 +3614,45 @@ python -m amiga_reversing.tools.rendered_source_roundtrip_report --update-render
   55 targets, 0 failures, 39 full-file exact, 15 content-exact only, 1 unsupported
 ```
 
+Final verification pass for the current tree:
+
+```text
+pytest tests -q --durations=30
+  1245 passed, 393 deselected in 16.16s
+
+pytest tests -m "integration and not real_integration" -q --durations=30
+  201 passed, 1437 deselected in 35.37s
+
+pytest tests -m real_integration -q --durations=30
+  119 passed, 16 skipped, 1503 deselected in 38.58s
+
+ruff check
+  passed
+
+mypy
+  passed
+
+cmd /c src\precommit.bat
+  passed
+  style: OK
+  dead_code: OK
+  unit: OK
+  integration: OK
+  explicit: OK
+
+python -m amiga_reversing.tools.rendered_source_roundtrip_report --json
+  55 targets, 0 failures, 39 full-file exact, 15 content-exact only, 1 unsupported
+
+pytest tests\test_web_e2e_cdp.py -m web_e2e -q --durations=20
+  57 passed in 168.17s
+```
+
+The required `--update-rendered-source` refresh could not be rerun in the final
+verification pass because the approval reviewer rejected the broad write scope.
+The read-only report above proves the current rendered sources still round-trip
+with no failures. The earlier update-mode run in this proposal reported the
+same 55-target summary and no rendered-source file changes.
+
 The default loop is back under 20s without parallelism. The integration layer is
 still too broad and remains the main cleanup target.
 
@@ -3624,21 +3664,27 @@ descriptor coverage has moved to C/source-analysis contracts. The largest
 remaining real fixture overreach is:
 
 ```text
-Damocles deferred-analysis sentinel             2.83s
-Magicland loader file transfers                 1.56s
-GenAm LVO operand-part sentinel                 1.28s
-Starglider app-slot width sentinel              1.19s
-Magicland copied-runtime entry                  1.15s
-Pandora BK provider wrapper                     1.11s
-Voodoo Tetragon comparator                      0.99s
+Damocles deferred-analysis sentinel             3.05s
+GenAm agent RSSET sentinel                      2.41s
+Mac listing artifact provenance                 1.82s
+Magicland loader file transfers                 1.65s
+Mac C HFS summary smoke                         1.46s
+Mac CODE 1 backend decode                       1.42s
+Voodoo Tetragon comparator                      1.37s
+Magicland copied-runtime entry                  1.35s
+Starglider app-slot width sentinel              1.28s
+Pandora BK provider wrapper                     1.17s
 ```
 
-The non-real integration layer is now dominated by two deliberate drift-style
-checks:
+The non-real integration layer is now dominated by deliberate drift checks,
+route/browser-adjacent harnesses, and a few compact C backend project sentinels:
 
 ```text
-test_generated_mac_os_runtime_metadata_is_current        8.45s
-test_diagnostic_inventory_loads_current_generated_form_tables  3.30s
+test_diagnostic_inventory_loads_current_generated_form_tables       3.36s
+test_api_harness_runs_manual_mutation_durability_matrix             2.15s
+test_project_source_facts_v2_indexed_pointer_table_comparators...   1.21s / 1.14s
+test_route_reproduction_profile_list_show_set_without_manual_log    1.17s
+test_generated_mac_os_runtime_metadata_is_current                   1.16s
 ```
 
 Those are not good candidates for assertion trimming. They are the one-real-
