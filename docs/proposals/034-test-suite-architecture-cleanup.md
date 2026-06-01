@@ -2151,6 +2151,47 @@ analysis contracts
 
 The full rebuild should not also be the only test for every renderer string.
 
+Implementation checkpoint:
+
+```text
+test_real_dll_bloodwych_generated_source_assembles_exact
+  now keeps:
+    full source render
+    full source assemble
+    rebuilt hunk section byte comparison
+    source refusal / instruction mismatch checks
+    a small set of representative source smoke sentinels
+
+  no longer carries:
+    every audio register comment
+    every display register comment
+    every bitmap EQU line
+    every lookup-table variant
+    every pointer-table row
+    every vector rendering assertion
+```
+
+The detailed cases are covered by lower seams that already use small inputs:
+
+```text
+test_project_source_facts_v2_biased_absolute_long_dispatch_table_roundtrips
+  pointer-table rendering from a compact hunk
+
+test_project_source_facts_v2_pc_indexed_absolute_long_dispatch_table_roundtrips
+  lookup-table rendering from a compact hunk
+
+test_real_dll_facts_v2_listing_rows_auto_classifies_copper_list_from_cop_pointer
+  copper/display row classification from a small raw packet
+
+test_labelized_table_shape_features_and_xrefs
+  target-usage feature extraction from selected listing rows
+```
+
+This pass does not reduce the Bloodwych runtime materially because exact rebuild
+still requires rendering and assembling the real target. It does reduce
+reviewer risk: future renderer changes fail at the smallest relevant contract
+instead of presenting a full Bloodwych failure as the first diagnostic.
+
 ### Slice 4 - Collapse Drift Tests To One Real Pass Per Generator
 
 For each generator:
@@ -2952,13 +2993,13 @@ fixture cleanup, and Damocles copied-stub native execution deferral:
 
 ```text
 pytest tests -q --durations=20
-  1242 passed, 405 deselected in 15.32s
+  1242 passed, 405 deselected in 15.21s
 
 pytest tests -m integration -q
   202 passed, 1446 deselected in 30.07s
 
 pytest tests -m real_integration -q --durations=20
-  129 passed, 16 skipped, 1502 deselected in 55.18s
+  129 passed, 16 skipped, 1502 deselected in 55.80s
 
 uv run ruff check
   passed
@@ -3009,6 +3050,9 @@ pytest tests\test_c_backend.py -m real_integration -k "pandora_bk_provider_wrapp
 pytest tests\test_c_backend.py -m real_integration -k "bloodwych or 025_string_text_examples or data_classes_reach_listing_rows" -q --durations=20
   3 passed, 220 deselected in 10.32s
 
+pytest tests\test_c_backend.py -m real_integration -k "bloodwych_generated_source" -q --durations=10
+  1 passed, 223 deselected in 3.74s
+
 pytest tests\test_c_backend.py -m real_integration -k "data_classes_reach_listing_rows or 026_table_descriptors" -q --durations=20
   2 passed, 221 deselected in 11.01s
 
@@ -3040,11 +3084,11 @@ execution. The largest remaining real fixture overreach is:
 
 ```text
 Pandora BK provider wrapper                     5.98s
-Pandora table descriptors/evidence bounds       3.99s
-GenAm autonomous RSSET sentinel                 2.96s
-Bloodwych generated source exact                2.93s
-Damocles deferred-analysis sentinel             2.81s
-Magicland self-decrunch materialization         2.39s
+Pandora table descriptors/evidence bounds       4.13s
+GenAm autonomous RSSET sentinel                 3.01s
+Bloodwych generated source exact                2.94s
+Damocles deferred-analysis sentinel             2.89s
+Magicland self-decrunch materialization         2.49s
 ```
 
 ## Trailing Notes And Follow-Up Observations

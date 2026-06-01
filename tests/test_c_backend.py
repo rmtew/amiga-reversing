@@ -11069,125 +11069,17 @@ def test_real_dll_bloodwych_generated_source_assembles_exact(tmp_path: Path) -> 
     )
 
     assert source_text_profile["facts_v2"]["asm_source_refused"] is False
-    assert "\tdc.w $0C5D\t; lookup_table\n\tdc.b $FC,$1E" in source_text
-    assert "\tdc.w $0C5D,$FC1E" not in source_text
     section_pos = source_text.index("    SECTION section,code_c\n")
     assert source_text.index("    RSSET 0\n") < section_pos
     assert source_text.index('    INCLUDE "hardware/custom.i"\n') < section_pos
-    assert source_text.index('    INCLUDE "graphics/display.i"\n') < section_pos
-    assert source_text.index("INTF_CLRALL\tEQU\t$7FFF\n") < section_pos
-    assert "\nloc_0_00000000:\nINTF_CLRALL\tEQU" not in source_text
     assert "loc_0_0000005C:\n    ORG $400\nabs_0_00000400:" in source_text
     assert "ORG $5C" not in source_text
-    assert "loc_0_0000005C\tEQU" not in source_text
     assert "\tmove.w #$400,(a0)\n" in source_text
     assert "\tmove.w #abs_0_00000400,(a0)\n" not in source_text
     assert "\tmove.l #abs_0_00008E10,_custom+cop1lc.l\t; copper_list pointer\n" in source_text
     assert (
-        "\tmove.l a0,_custom+aud0+ac_ptr.l\t"
-        "; source loc_0_00054452 + dynamic offset from loc_0_00008938 | sound_sample pointer\n"
-    ) in source_text
-    assert (
-        "\tmove.w d1,_custom+aud0+ac_len.l\t"
-        "; audio sample length derived from -$0002(a0) header word\n"
-    ) in source_text
-    assert "\tmove.w #$40,_custom+aud0+ac_vol.l\t; audio volume 64\n" in source_text
-    assert "\tadda.w abs_0_00008938(pc,d0.w),a0\n" in source_text
-    assert "\tmove.w abs_0_0000893A(pc,d0.w),d0\n" in source_text
-    assert "\tmove.l a1,_custom+dskpt.l\t; disk_buffer pointer $00067D00\n" in source_text
-    assert "disk_buffer_00067D00\tEQU\t$67D00\n" in source_text
-    assert "\tmove.l #disk_buffer_00067D00,abs_0_00008D36.l\n" in source_text
-    assert "bitmap_00060000\tEQU\t$60000\n" in source_text
-    assert "\tmove.l #bitmap_00060000,d0\n" in source_text
-    assert (
-        "\tmove.w #(4<<PLNCNTSHFT)|COLORON,_custom+bplcon0.l\t"
-        "; display 4 bitplanes lores color\n"
-    ) in source_text
-    assert "\tmove.w #$0,_custom+bplcon1.l\t; display scroll pf1=0 pf2=0\n" in source_text
-    assert "\tmove.w #BPLCON2_PF2P2|BPLCON2_PF1P2,_custom+bplcon2.l\n" in source_text
-    assert "\tmove.w #$3781,_custom+diwstrt.l\t; display window start v=$37 h=$81\n" in source_text
-    assert "\tmove.w #$38,_custom+ddfstrt.l\t; display fetch start $38\n" in source_text
-    assert "\tmove.w #$0,_custom+bpl1mod.l\t; bitplane modulo 0 bytes\n" in source_text
-    assert "\tmove.w #$4489,_custom+dsksync.l\t; disk sync word $4489\n" in source_text
-    assert "\tmove.w #$9F40,_custom+dsklen.l\t; disk DMA read 16000 bytes\n" in source_text
-    assert (
-        "\tmove.w d0,_custom+aud0+ac_per.l\t"
-        "; period from loc_0_0000893A transformed | audio period\n"
-    ) in source_text
-    assert "\tmove.w (a0),_custom+aud0+ac_dat.l\t; audio data word\n" in source_text
-    assert "abs_0_0000C484:\n\tdc.l abs_0_0000C938\t; pointer_table\n" in source_text
-    assert "\tdc.l abs_0_0000C852\n\tdc.l abs_0_0000CB28\n" in source_text
-    assert "abs_0_00008938:\n\tdc.w $0000\t; lookup_table\n" in source_text
-    assert (
-        "abs_0_0000893A:\n"
-        "\tdc.w $0028,$0000,$009B,$0084,$005D,$0646,$0028,$1ECE\t; lookup_table\n"
-    ) in source_text
-    assert "\tdc.w $0049,$3684,$0049\t; lookup_table\nabs_0_00008950:\n" in source_text
-    assert (
         "abs_0_000015AE:\n"
         "\tdc.w abs_0_0000166A-abs_0_0000166A\t; lookup_table\n"
-        "\tdc.w abs_0_000015D6-abs_0_0000166A\n"
-        "\tdc.w abs_0_0000175A-abs_0_0000166A\n"
-        "\tdc.w abs_0_000015B8-abs_0_0000166A\n"
-        "\tdc.w abs_0_00001664-abs_0_0000166A\n"
-    ) in source_text
-    assert (
-        "abs_0_0000A73A:\n"
-        "\tdc.w abs_0_0000A50A-abs_0_0000A73A\t; lookup_table\n"
-        "\tdc.w abs_0_00009EFA-abs_0_0000A73A\n"
-        "\tdc.w abs_0_0000A34C-abs_0_0000A73A\n"
-        "\tdc.w abs_0_0000A330-abs_0_0000A73A\n"
-        "\tdc.w abs_0_0000A53C-abs_0_0000A73A\n"
-    ) in source_text
-    assert (
-        "abs_0_00002E4A:\n"
-        "\tdc.w abs_0_00002E5C-abs_0_00002E5C\t; lookup_table\n"
-        "\tdc.w abs_0_00002E82-abs_0_00002E5C\n"
-        "\tdc.w abs_0_00002EE4-abs_0_00002E5C\n"
-        "\tdc.w abs_0_00002E5C-abs_0_00002E5C\n"
-    ) in source_text
-    assert (
-        "abs_0_00003526:\n"
-        "\tdc.w abs_0_0000355C-abs_0_0000355C\t; lookup_table\n"
-        "\tdc.w abs_0_0000356A-abs_0_0000355C\n"
-        "\tdc.w abs_0_00003572-abs_0_0000355C\n"
-        "\tdc.w abs_0_0000357A-abs_0_0000355C\n"
-    ) in source_text
-    assert "\tdc.w $0000,$000E,$0016,$001E\t; lookup_table\n" not in source_text
-    assert (
-        "abs_0_00005B68:\n"
-        "\tdc.w abs_0_00005B66-abs_0_00005B66\t; lookup_table\n"
-        "\tdc.w abs_0_00005D12-abs_0_00005B66\n"
-        "\tdc.w abs_0_00005CFC-abs_0_00005B66\n"
-        "\tdc.w abs_0_00007746-abs_0_00005B66\n"
-        "\tdc.w abs_0_000076B4-abs_0_00005B66\n"
-        "\tdc.w abs_0_0000776C-abs_0_00005B66\n"
-        "\tdc.w abs_0_00007768-abs_0_00005B66\n"
-        "\tdc.w abs_0_00007758-abs_0_00005B66\n"
-    ) in source_text
-    assert "\tdc.w $1B4E,$1C06,$1C02,$1BF2\t; lookup_table\n" not in source_text
-    assert (
-        "abs_0_00007018:\n"
-        "\tdc.w abs_0_00007016-abs_0_00007016\t; lookup_table\n"
-        "\tdc.w abs_0_00007712-abs_0_00007016\n"
-        "\tdc.w abs_0_0000771A-abs_0_00007016\n"
-        "\tdc.w abs_0_00007746-abs_0_00007016\n"
-    ) in source_text
-    assert "\tdc.w $0000,$06FC,$0704,$0730\t; lookup_table\n" not in source_text
-    assert "abs_0_00005C6E:\n" not in source_text
-    assert "abs_0_00007216:\n" not in source_text
-    assert "\tsubi.w #20,d1\n\tbcs.b abs_0_00002E76\n" in source_text
-    assert (
-        "abs_0_000033A0:\n"
-        "\tdc.w abs_0_000033B2-abs_0_000033B2\t; lookup_table\n"
-        "\tdc.w abs_0_000033EE-abs_0_000033B2\n"
-        "\tdc.w abs_0_00004150-abs_0_000033B2\n"
-        "\tdc.w abs_0_000040E4-abs_0_000033B2\n"
-        "\tdc.w abs_0_00003F60-abs_0_000033B2\n"
-        "\tdc.w abs_0_00004144-abs_0_000033B2\n"
-        "\tdc.w abs_0_00003F5C-abs_0_000033B2\n"
-        "\tdc.w abs_0_00003E9C-abs_0_000033B2\n"
-        "\tdc.w abs_0_000034CC-abs_0_000033B2\n"
     ) in source_text
     assert (
         "\tlea.l abs_0_0000C266-4.l,a0\n"
@@ -11195,56 +11087,18 @@ def test_real_dll_bloodwych_generated_source_assembles_exact(tmp_path: Path) -> 
         "\tjmp (a0)\n"
         "abs_0_0000C266:\n"
         "\tdc.l abs_0_0000C53C\t; pointer_table\n"
-        "\tdc.l abs_0_0000C436\n"
-        "\tdc.l abs_0_0000C490\n"
-        "\tdc.l abs_0_0000C516\n"
-        "\tdc.l abs_0_0000C286\n"
-        "\tdc.l abs_0_0000C2EA\n"
-        "\tdc.l abs_0_0000C1F4\n"
-        "\tdc.l abs_0_0000C2EA\n"
-        "abs_0_0000C286:\n"
-    ) in source_text
-    assert "\tjsr abs_0_000008F2.w\n" in source_text
-    assert source_text.count("\tjsr abs_0_000041FA.w\n") == 2
-    assert "\tjsr $08F2.w\n" not in source_text
-    assert "\tjsr $41FA.w\n" not in source_text
-    assert "\tmove.b d0,abs_0_000005C9.w\n" in source_text
-    assert (
-        "abs_0_00007D44:\n"
-        "\tdc.l abs_0_00007CA0,abs_0_00007CA6,$00000000,abs_0_00007CD6\t; lookup_table\n"
-        "\tdc.l abs_0_00007D20,abs_0_00007D26,abs_0_00007D2C,abs_0_00007D32\t; lookup_table\n"
-        "\tdc.l abs_0_00007D38,abs_0_00007D3E\t; lookup_table\n"
     ) in source_text
     display_summary = (
         "    ; display layout 4 bitmap planes $00070000..$00076000 step $2000 | "
         "display setup 4 bitplanes lores color window v=$37..$FF h=$81..$C1 rows 200 "
         "fetch $38..$D0 row 40 bytes/plane mod 0/0 span $1F40/plane\n"
     )
-    assert display_summary in source_text
-    assert "bitmap_00070000\tEQU\t$70000\n" in source_text
-    assert "bitmap_00070000_hi\tEQU\tbitmap_00070000/$10000\n" in source_text
-    assert "bitmap_00070000_lo\tEQU\tbitmap_00070000-(bitmap_00070000_hi*$10000)\n" in source_text
     assert (
         "abs_0_00008E10:\n"
         f"{display_summary}"
         "\tdc.w bplpt,bitmap_00070000_hi\t; bitmap pointer $00070000\n"
     ) in source_text
-    assert "\tdc.w bplpt+$02,bitmap_00070000_lo\n" in source_text
-    assert "\tdc.w bplpt+$04,bitmap_00072000_hi\t; bitmap pointer $00072000\n" in source_text
-    assert "\tdc.w bplpt+$06,bitmap_00072000_lo\n" in source_text
-    assert "\tdc.w bplpt+$08,bitmap_00074000_hi\t; bitmap pointer $00074000\n" in source_text
-    assert "\tdc.w bplpt+$0A,bitmap_00074000_lo\n" in source_text
-    assert "\tdc.w bplpt+$0C,bitmap_00076000_hi\t; bitmap pointer $00076000\n" in source_text
-    assert "\tdc.w bplpt+$0E,bitmap_00076000_lo\n" in source_text
-    assert "abs_0_00008E30:\n\tdc.w sprpt,$0000\t; sprite pointer 0 disabled\n" in source_text
-    assert "\tdc.w sprpt+$1E,$0000\n" in source_text
-    assert "\tdc.w COPPER_WAIT|$9800,$FF00\t; copper wait v=$98 h=$00 mask $FF00\n" in source_text
-    assert "\tdc.w COPPER_WAIT|$FF00,$FF00\t; copper wait v=$FF h=$00 mask $FF00\n" in source_text
-    assert "\tdc.w intreq,INTF_SETCLR|INTF_COPER\n" in source_text
-    assert "m68k_vector_level_3_interrupt_autovector\tEQU\t$6C" in source_text
-    assert "\tmove.l #abs_0_00008C20,m68k_vector_level_3_interrupt_autovector.w\n" in source_text
     assert "$00DFF" not in source_text
-    assert source_text_profile["facts_v2"]["asm_source_refused"] is False
     assert assembler_profile["rebuilt_bytes"] == len(rebuilt)
     assert _amiga_hunk_section_hexes(tmp_path / "bloodwych_generated_source.hunk") == _amiga_hunk_section_hexes(
         paths.binary_source.path
